@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-lex.el,v 1.1 2002/07/16 21:14:43 ponced Exp $
+;; X-RCS: $Id: wisent-java-lex.el,v 1.2 2002/07/17 10:00:29 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,6 @@
 ;; 
 
 ;;; Code:
-(require 'semantic-lex)
 (require 'wisent-flex)
 
 ;;; Analyzers
@@ -41,7 +40,7 @@
   "Detect and create identifier or keyword tokens."
   "\\(\\sw\\|\\s_\\)+"
   (semantic-lex-token
-   (or (semantic-flex-keyword-p (match-string 0))
+   (or (semantic-lex-keyword-p (match-string 0))
        'IDENTIFIER)
    (match-beginning 0)
    (match-end 0)))
@@ -51,7 +50,7 @@
   "\\(\\sw\\|\\s_\\)+"
   (let ((sy (match-string 0)))
     (semantic-lex-token
-     (or (semantic-flex-keyword-p sy)
+     (or (semantic-lex-keyword-p sy)
          (cond
           ((string-equal sy "null")
            'NULL_LITERAL)
@@ -87,20 +86,6 @@
           start end))))
      (point))))
 
-(define-lex-regex-analyzer wisent-java-lex-punctuation
-  "Detect and create punctuation tokens."
-  "\\(\\s.\\|\\s$\\|\\s'\\)+"
-  (let* ((punct (match-string 0))
-         (start (match-beginning 0))
-         (rules (cdr (wisent-flex-token-rules 'punctuation)))
-         entry)
-    ;; Starting with the longest punctuation string, search if it
-    ;; matches a punctuation of this language.
-    (while (and (> (length punct) 0)
-                (not (setq entry (rassoc punct rules))))
-      (setq punct (substring punct 0 -1)))
-    (semantic-lex-token (car entry) start (+ start (length punct)))))
-
 (define-lex-block-analyzer wisent-java-lex-blocks
   "Detect and create a open, close or block token."
   (PAREN_BLOCK ("(" LPAREN) (")" RPAREN))
@@ -119,7 +104,7 @@ It ignores whitespaces, newlines and comments."
   wisent-java-lex-number
   wisent-java-lex-string
   wisent-java-lex-symbol
-  wisent-java-lex-punctuation
+  wisent-flex-punctuation
   wisent-java-lex-blocks
   semantic-lex-default-action)
 
@@ -132,7 +117,7 @@ It ignores whitespaces, newlines and comments."
   wisent-java-lex-number
   wisent-java-lex-string
   wisent-java-lex-symbol2
-  wisent-java-lex-punctuation
+  wisent-flex-punctuation
   wisent-java-lex-blocks
   semantic-lex-default-action)
 
