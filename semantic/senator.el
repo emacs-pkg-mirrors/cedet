@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.56 2001/11/30 03:33:28 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.57 2001/12/07 21:12:30 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1326,6 +1326,26 @@ PROPS is the list of properties of this menu item."
                             (make-string senator-uniquify-count ?\ ))
                     props)))))
 
+(defcustom senator-mode-menu-item-format "_ %s"
+  "*Format of menu item labels in the \"Modes\" menu.
+This format is used when Emacs is displaying through a window system.
+The function `format' will receives an unique label string."
+  :group 'senator
+  :type 'string
+  :set (lambda (sym val)
+         (set-default sym val)
+         (setq senator-modes-menu-cache nil)))
+
+(defcustom senator-mode-menu-item-format-tty "%s (%s)"
+  "*Format of menu item labels in the \"Modes\" menu.
+This format is used when Emacs is using a text-only terminal.
+The function `format' will receives the mode name and a label string."
+  :group 'senator
+  :type 'string
+  :set (lambda (sym val)
+         (set-default sym val)
+         (setq senator-modes-menu-cache nil)))
+
 (defun senator-build-mode-menu-items (entry)
   "Return menu items for the registered minor mode ENTRY.
 Each entry will be displayed in the menu like this:
@@ -1338,20 +1358,24 @@ Each entry will be displayed in the menu like this:
         (global (cddr entry)))
     (if window-system
         (setq local  (senator-build-command-menu-item
-                      (format "_ %s" senator-base-local-label)
+                      (format senator-mode-menu-item-format
+                              senator-base-local-label)
                       local)
               global (senator-build-command-menu-item
-                      (format "_ %s" senator-base-global-label)
+                      (format senator-mode-menu-item-format
+                              senator-base-global-label)
                       global)
-              name   (vector name :active nil)
+              name   (vector name nil nil)
               senator-uniquify-count (1+ senator-uniquify-count))
       ;; Merge mode name in active menu items (the only ones
       ;; displayed) when using a text-only terminal.
       (setq local  (senator-build-command-menu-item
-                    (format "%s (%s)" name senator-base-local-label)
+                    (format senator-mode-menu-item-format-tty
+                            name senator-base-local-label)
                     local)
             global (senator-build-command-menu-item
-                    (format "%s (%s)" name senator-base-global-label)
+                    (format senator-mode-menu-item-format-tty
+                            name senator-base-global-label)
                     global)
             name    nil))
     (delq nil (list name local global))))
