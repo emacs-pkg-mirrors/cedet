@@ -1,10 +1,10 @@
 ;;; chart.el --- Draw charts (bar charts, etc)
 
-;;; Copyright (C) 1996, 1998, 1999, 2001 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2001, 2004 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.2
-;; RCS: $Id: chart.el,v 1.14 2001/10/03 01:59:06 zappo Exp $
+;; RCS: $Id: chart.el,v 1.15 2004/11/19 18:18:08 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -664,7 +664,7 @@ SORT-PRED if desired."
     (erase-buffer)
     (insert "cd " d ";du -sk * \n")
     (message "Running `cd %s;du -sk *'..." d)
-    (call-process-region (point-min) (point-max) "csh" t
+    (call-process-region (point-min) (point-max) shell-file-name t
 			 (current-buffer) nil)
     (goto-char (point-min))
     (message "Scanning output ...")
