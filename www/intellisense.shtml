@@ -20,6 +20,43 @@ available in Semantic.
 </p>
 
 <table width=100% class=BAR><tr><td>
+<h3>What is Intellisense?   <font size=-1>(For Emacs Lisp programmers)</font></h3>
+</td></tr></table>
+
+<p>In emacs-lisp-mode, if you press M-TAB, the window may split and show
+you completions.  In addition, it even knows if you are completing a
+function or a variable, and adjusts the list accordingly.  This is
+pretty close to what intellisense is, though the task is much more
+difficult in C++.
+
+<p>For C++, if you typed in
+<pre>
+q = foo.a
+</pre>
+<p>the intellisense feature would realize that the "a" symbol must be
+a field or method of "foo", so first it looks up what "foo" is to
+determine the data type.  It also knows that the result is assigned
+into "q", so it also looks up q's datatype.  Lastly, it finds all
+fields/methods of the variable "foo" that start with q, and
+is/returns the datatype of a.
+
+<p>That is (presumably) the "intelli-" part.
+
+<p>While that would be really handy to have bound to M-TAB, the
+association users from other environments make is that it shows these
+features in popup interactive window, much like one of Emacs' tool
+tips.
+
+<p>The features of this window are that regular typing goes into the
+editor, and up/down keys modify the highlighting of a selected
+completion in the tooltip window.
+
+<p>A feature of the completion is that the tooltip window would just
+appear out of nowhere without you asking for it, presumably because
+the editor thinks you're stuck.  It's not my term, but perhaps this is
+the "-sense" part where the editor thinks it knows you are stuck.
+</p>
+<table width=100% class=BAR><tr><td>
 <h3>Basic Setup</h3>
 </td></tr></table>
 
