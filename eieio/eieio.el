@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.11 1996/10/28 22:31:27 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.12 1996/11/01 05:22:37 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -333,19 +333,17 @@ in that class definition.  See defclass for more information"
 	  ;; of the specified name, and also performs a `defsetf' if applicable
 	  ;; so that users can `setf' the space returned by this function
 	  (if acces
-	      (let ((newfn acces))
-		(fset newfn (list
-			     'lambda '(obj) 
-			     (format "Retrieves the field `%s' from object of class `%s'"
-				     name cname)
-			     (list 'oref-engine 'obj (list
-						      'quote
-						      name))))
+	      (progn
+		(defmethod-engine acces 
+		  (list (list (list 'this cname))
+			(format "Retrieves the slot `%s' from an object of class `%s'"
+				name cname)
+			(list 'oref-engine 'this (list 'quote name))))
 		;; If defsetf is loaded, then create the setf definition we want
 		(if (fboundp 'defsetf)
 		    (eval
 		     (list
-		      'defsetf newfn '(node) '(store)
+		      'defsetf acces '(node) '(store)
 		      '(oset-engine node 'name store))))
 		)
 	    )
@@ -520,7 +518,7 @@ the body, such as:
 ;;;                              requires that `cl' be loaded.
 ;;;
 (defmacro oref (obj field)
-  "Macro calling oref-engine with the quote inserted before field."
+  "Macro calling `oref-engine' with the quote inserted before field."
   (list 'oref-engine obj (list 'quote field)))
 
 (defun oref-engine (obj field)
@@ -545,9 +543,11 @@ the body, such as:
 ;; This alias is needed so that functions can be written
 ;; for defaults, but still behave like lambdas.
 (defalias 'lambda-default 'lambda)
+(put 'lambda-default 'lisp-indent-function 'defun)
+(put 'lambda-default 'byte-compile 'byte-compile-lambda-form)
 
 (defmacro oref-default (obj field)
-  "Macro calling oref-default-engine with the quote inserted before field."
+  "Macro calling `oref-default-engine' with the quote inserted before field."
   (list 'oref-default-engine obj (list 'quote field)))
 
 (defun oref-default-engine (obj field)
@@ -573,7 +573,7 @@ represent the actual stored value."
 	  val)))))
 
 (defmacro oset (obj field value)
-  "Macro calling oset-engine with the quote inserted before field."
+  "Macro calling `oset-engine' with the quote inserted before field."
   (list 'oset-engine obj (list 'quote field) value))
 
 (defun oset-engine (obj field value)
@@ -582,6 +582,25 @@ represent the actual stored value."
     (if (not c) (error "Named field %s does not occur in %s" 
 		       field (object-name obj)))
     (aset obj c value)))
+
+(defmacro oset-default (class field value)
+  "Macro calling `oset-default-engine' with the quote in front of the
+field name."
+  (list 'oset-default-engine class (list 'quote field) value))
+
+(defun oset-default-engine (class field value)
+  "Set the default value for CLASS at FIELD to be VALUE, and return
+VALUE.  This does not affect any existing objects of type CLASS"
+  (let* ((scoped-class class)
+	 (c (eieio-field-name-index class field))
+	 (nump (length (aref (class-v class) class-public-a))))
+    (if (not c) (error "Named field %s does not occur in %s"
+		       field (class-name class)))
+    (setcar
+     (if (< c (+ 3 nump))
+	 (nthcdr (- c 3) (aref (class-v class) class-public-d))
+       (nthcdr (- c nump 3) (aref (class-v class) class-private-d)))
+     value)))
 
 
 ;;;
@@ -611,6 +630,10 @@ represent the actual stored value."
 (defun object-name (obj) "Return a lisp like symbol string for object OBJ"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (format "#<%s %s>" (symbol-name (object-class obj)) (aref obj 2)))
+
+(defun object-name-string (obj) "Return a string which is OBJs name"
+  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (aref obj 2))
 
 (defun object-class (obj) "Return the class struct defining OBJ"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
@@ -1007,9 +1030,6 @@ associated with this symbol.  Current method specific code is:")
   (if (not (boundp 'byte-compile-outbuffer))
       (defvar byte-compile-outbuffer nil)))
 
-(eval-and-compile
-  (put 'defmethod 'byte-hunk-handler 'byte-compile-file-form-defmethod))
-
 (defun byte-compile-file-form-defmethod (form)
   "Mumble about the thing we are compiling."
   (setq form (cdr form))
@@ -1053,6 +1073,9 @@ associated with this symbol.  Current method specific code is:")
       (princ "))" my-outbuffer)
       nil
       )))
+
+(eval-and-compile
+  (put 'defmethod 'byte-hunk-handler 'byte-compile-file-form-defmethod))
 
 (defun eieio-byte-compile-princ-code (code outbuffer)
   "Xemacs and GNU emacs do their things differently. Lets do it right
