@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.3 2003/12/21 02:13:04 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.4 2003/12/23 02:19:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -196,22 +196,6 @@ current buffer.")
 ;;
 ;; This is the idle function which handles reparsing, and also
 ;; manages services that depend on tag values.
-(defvar semantic-idle-scheduler-input-function
-  (list (lambda () (not (sit-for 0 0 t)))
-	(lambda () (not (sit-for 0))))
-  "List of functions to use to calculate if there is user input waiting.")
-
-(defun semantic-idle-scheduler-user-input-waiting-p ()
-  "Return non-nil if there is user input waiting for us."
-  (when semantic-idle-scheduler-input-function
-    (condition-case nil
-	(funcall (car semantic-idle-scheduler-input-function))
-      (error
-       (setq semantic-idle-scheduler-input-function
-	     (cdr semantic-idle-scheduler-input-function))
-       (semantic-idle-scheduler-user-input-waiting-p))
-      )))
-
 (defun semantic-idle-scheduler-function ()
   "Function run when after `semantc-idle-scheduler-idle-time'.
 This function will reparse the current buffer, and if successful,
@@ -220,32 +204,34 @@ call additional functions registered with the timer calls."
 
     ;; Disable the auto parse timer while re-parsing
     (semantic-idle-scheduler-kill-timer)
-    
-    (condition-case nil
-	;; First, reparse the current buffer.
-  	(let ((inhibit-quit nil)
-	      (lexok (semantic-idle-scheduler-refresh-tags))
-	      (buffers (buffer-list))
-	      (queue semantic-idle-scheduler-queue)
-	      )
 
-	  ;; Now loop over other buffers, trying to update them as well.
-	  (save-excursion
-	    (while (and buffers
-			(not (semantic-idle-scheduler-user-input-waiting-p)))
-	      (set-buffer (car buffers))
-	      (when semantic-idle-scheduler-mode
-		(semantic-idle-scheduler-refresh-tags)
+    (semantic-exit-on-input 'idle-timer
+      (condition-case err
+	  ;; First, reparse the current buffer.
+	  (let ((inhibit-quit nil)
+		(lexok (semantic-idle-scheduler-refresh-tags))
+		(buffers (buffer-list))
+		(queue semantic-idle-scheduler-queue)
 		)
-	      (setq buffers (cdr buffers))))
+
+	    ;; Now loop over other buffers, trying to update them as well.
+	    (save-excursion
+	      (while buffers
+		(semantic-throw-on-input 'parsing-all-buffers)
+		(set-buffer (car buffers))
+		(when semantic-idle-scheduler-mode
+		  (semantic-idle-scheduler-refresh-tags)
+		  )
+		(setq buffers (cdr buffers))))
       
-	  ;; Evaluate all other services.  Stop on keypress.
-	  (when lexok
-	    (while (and queue (not (semantic-idle-scheduler-user-input-waiting-p)))
-	      (funcall (car queue))
-	      ))
-	  )
-      (error nil))
+	    ;; Evaluate all other services.  Stop on keypress.
+	    (when lexok
+	      (while queue
+		(semantic-throw-on-input 'idle-queue)
+		(funcall (car queue))
+		))
+	    )
+	(error (message "idle error: %S" err))))
     
     ;; Enable again the auto parse timer
     (semantic-idle-scheduler-setup-timer)))
@@ -532,6 +518,9 @@ be override with `idle-summary-current-symbol-info'"
       
       (eldoc-message str))  
     ))
+
+(put 'semantic-idle-summary-function 'semantic-overload
+     'idle-summary-current-symbol-info)
  
 (semantic-alias-obsolete 'semantic-summary-mode
 			 'semantic-idle-summary-mode)
