@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.10
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.158 2000/03/21 18:42:19 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.159 2000/04/09 01:37:53 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -537,7 +537,7 @@ hierarchy would be replaced with the new directory."
 (defcustom speedbar-indentation-width 1
   "*When sub-nodes are expanded, the number of spaces used for indentation."
   :group 'speedbar
-  :type 'boolean)
+  :type 'integer)
 
 (defcustom speedbar-hide-button-brackets-flag nil
   "*Non-nil means speedbar will hide the brackets around the + or -."
@@ -2314,40 +2314,40 @@ position to insert a new item, and that the new item will end with a CR"
   (let ((start (point))
 	(end (progn
 	       (insert (int-to-string depth) ":")
-	       (point))))
+	       (point)))
+	(depthspacesize (* depth speedbar-indentation-width)))
     (put-text-property start end 'invisible t)
-    )
-  (insert-char ?  (* depth speedbar-indentation-width) nil)
-  (put-text-property (- (point) depth) (point) 'invisible nil)
-  (let* ((exp-button (cond ((eq exp-button-type 'bracket) "[%c]")
-			   ((eq exp-button-type 'angle) "<%c>")
-			   ((eq exp-button-type 'curly) "{%c}")
-			   (t ">")))
-	 (buttxt (format exp-button exp-button-char))
-	 (start (point))
-	 (end (progn (insert buttxt) (point)))
-	 (bf (if exp-button-type 'speedbar-button-face nil))
-	 (mf (if exp-button-function 'speedbar-highlight-face nil))
-	 )
-    (speedbar-make-button start end bf mf exp-button-function exp-button-data)
-    (if (fboundp 'speedbar-insert-image-expand-button)
-	(speedbar-insert-image-expand-button start))
-    (if speedbar-hide-button-brackets-flag
-	(progn
-	  (put-text-property start (1+ start) 'invisible t)
-	  (put-text-property end (1- end) 'invisible t)))
-    )
-  (insert-char ?  1 nil)
-  (put-text-property (1- (point)) (point) 'invisible nil)
-  (let ((start (point))
-	(end (progn (insert tag-button) (point))))
-    (insert-char ?\n 1 nil)
+    (insert-char ?  depthspacesize nil)
+    (put-text-property (- (point) depthspacesize) (point) 'invisible nil)
+    (let* ((exp-button (cond ((eq exp-button-type 'bracket) "[%c]")
+			     ((eq exp-button-type 'angle) "<%c>")
+			     ((eq exp-button-type 'curly) "{%c}")
+			     (t ">")))
+	   (buttxt (format exp-button exp-button-char))
+	   (start (point))
+	   (end (progn (insert buttxt) (point)))
+	   (bf (if exp-button-type 'speedbar-button-face nil))
+	   (mf (if exp-button-function 'speedbar-highlight-face nil))
+	   )
+      (speedbar-make-button start end bf mf exp-button-function exp-button-data)
+      (if (fboundp 'speedbar-insert-image-expand-button)
+	  (speedbar-insert-image-expand-button start))
+      (if speedbar-hide-button-brackets-flag
+	  (progn
+	    (put-text-property start (1+ start) 'invisible t)
+	    (put-text-property end (1- end) 'invisible t)))
+      )
+    (insert-char ?  1 nil)
     (put-text-property (1- (point)) (point) 'invisible nil)
-    (speedbar-make-button start end tag-button-face
-			  (if tag-button-function 'speedbar-highlight-face nil)
-			  tag-button-function tag-button-data))
-)
-
+    (let ((start (point))
+	  (end (progn (insert tag-button) (point))))
+      (insert-char ?\n 1 nil)
+      (put-text-property (1- (point)) (point) 'invisible nil)
+      (speedbar-make-button start end tag-button-face
+			    (if tag-button-function 'speedbar-highlight-face nil)
+			    tag-button-function tag-button-data))
+    ))
+  
 (defun speedbar-change-expand-button-char (char)
   "Change the expansion button character to CHAR for the current line."
   (save-excursion
@@ -3710,7 +3710,10 @@ functions to do caching and flushing if appropriate."
     (let ((dtf speedbar-dynamic-tags-function-list)
 	  (ret t))
       (while (and (eq ret t) dtf)
-	(setq ret (funcall (car (car dtf)) file))
+	(setq ret
+	      (if (fboundp (car (car dtf)))
+		  (funcall (car (car dtf)) file)
+		t))
 	(if (eq ret t)
 	    (setq dtf (cdr dtf))))
       (if (eq ret t)
