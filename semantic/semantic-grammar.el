@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.31 2003/08/02 08:10:09 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.32 2003/08/11 06:33:50 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -444,6 +444,19 @@ nil."
                   props (cons (list key pkey pval) props)
                   plist (cdr plist))))))
     props))
+
+(defvar semantic-grammar-macros nil
+  "List of associations (MACRO-NAME . EXPANDER).")
+(make-variable-buffer-local 'semantic-grammar-macros)
+
+(defun semantic-grammar-macros ()
+  "Build and return the alist of defined macros."
+  (append
+;;;; TODO
+   ;; Definitions found in tags.
+   nil
+   ;; Other pre-installed definitions.
+   semantic-grammar-macros))
 
 ;;;;
 ;;;; Overloaded functions that build parser data.
@@ -550,13 +563,13 @@ nil."
   "\
 ;;; %F --- Generated parser support file
 
-;; Copyright (C) %Y %U
-;;
+%C
+
 ;; Author: %U <%M>
 ;; Created: %D
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.31 2003/08/02 08:10:09 ponced Exp $
-;;
+;; X-RCS: %V
+
 ;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
@@ -595,44 +608,60 @@ nil."
 "
   "Generated footer template.")
 
-(defsubst semantic-grammar-header ()
-  "Return the generated header text."
+(defun semantic-grammar-copyright-line ()
+  "Return the grammar copyright line, or nil if not found."
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward "^;;+[ \t]+Copyright (C) .*$"
+                             ;; Search only in the four top lines
+                             (save-excursion (forward-line 4) (point))
+                             t)
+      (match-string 0))))
+
+(defun semantic-grammar-header ()
+  "Return text of a generated standard header."
   (let ((file (buffer-name semantic--grammar-output-buffer))
-        (gram (buffer-name semantic--grammar-input-buffer))
-        (year (format-time-string "%Y"))
-        (date (format-time-string "%Y-%m-%d %T%z")))
+        (gram (buffer-name))
+        (date (format-time-string "%Y-%m-%d %T%z"))
+        (vcid (concat "$" "Id" "$")) ;; Avoid expansion
+        ;; Try to get the copyright from the input grammar, or
+        ;; generate a new one if not found.
+        (copy (or (semantic-grammar-copyright-line)
+                  (concat (format-time-string ";; Copyright (C) %Y ")
+                          user-full-name))))
     (Sformat '((?U user-full-name)
                (?M user-mail-address)
                (?F file)
                (?G gram)
-               (?Y year)
-               (?D date))
+               (?C copy)
+               (?D date)
+               (?V vcid))
              semantic-grammar-header-template)))
 
-(defsubst semantic-grammar-footer ()
-  "Return the generated footer text."
+(defun semantic-grammar-footer ()
+  "Return text of a generated standard footer."
   (let* ((file (buffer-name semantic--grammar-output-buffer))
          (libr (file-name-sans-extension file)))
     (Sformat '((?F file)
                (?L libr))
              semantic-grammar-footer-template)))
 
-(defsubst semantic-grammar-token-data ()
+(defun semantic-grammar-token-data ()
   "Return the string value of the table of lexical tokens."
   (semantic-grammar-as-string
    (semantic-grammar-tokentable-builder)))
 
-(defsubst semantic-grammar-keyword-data ()
+(defun semantic-grammar-keyword-data ()
   "Return the string value of the table of keywords."
   (semantic-grammar-as-string
    (semantic-grammar-keywordtable-builder)))
 
-(defsubst semantic-grammar-parser-data ()
+(defun semantic-grammar-parser-data ()
   "Return the parser table as a string value."
   (semantic-grammar-as-string
    (semantic-grammar-parsetable-builder)))
 
-(defsubst semantic-grammar-setup-data ()
+(defun semantic-grammar-setup-data ()
   "Return the parser setup code form as a string value."
   (semantic-grammar-as-string
    (semantic-grammar-setupcode-builder)))
@@ -641,20 +670,15 @@ nil."
   "Create the grammar Lisp code in given package."
   (interactive)
   (semantic-bovinate-toplevel t)
-  ;; Values of the following local variables are obtained from the
-  ;; grammar parsed tree in current buffer, that is before switching
-  ;; to the output file.
-  (let* ((output   (concat (semantic-grammar-package) ".el"))
+  (let* (
+         ;; Values of the following local variables are obtained from
+         ;; the grammar parsed tree in current buffer, that is before
+         ;; switching to the output file.
+         (output   (concat (semantic-grammar-package) ".el"))
          (semantic--grammar-input-buffer  (current-buffer))
          (semantic--grammar-output-buffer (find-file-noselect output))
-         (prefix   (file-name-sans-extension output))
          (header   (semantic-grammar-header))
          (prologue (semantic-grammar-prologue))
-         (tokens   (semantic-grammar-token-data))
-         (keywords (semantic-grammar-keyword-data))
-         (parser   (semantic-grammar-parser-data))
-         (setupfct (semantic-grammar-setupfunction))
-         (setupdat (semantic-grammar-setup-data))
          (epilogue (semantic-grammar-epilogue))
          (footer   (semantic-grammar-footer))
          )
@@ -662,48 +686,116 @@ nil."
     (erase-buffer)
     (unless (eq major-mode 'emacs-lisp-mode)
       (emacs-lisp-mode))
-    ;; Header + Prologue
+    
+;;;; Header + Prologue
+    
     (insert header
             "\n;;; Prologue\n;;\n"
             prologue
             "\n;;; Declarations\n;;\n"
             )
-    ;; Declarations & rules
-    (semantic-grammar-insert-defconst
-     (semantic-grammar-keywordtable) keywords
-     "Table of language keywords.")
-    (semantic-grammar-insert-defconst
-     (semantic-grammar-tokentable) tokens
-     "Table of lexical tokens.")
-    (semantic-grammar-insert-defconst
-     (semantic-grammar-parsetable) parser
-     "Parser table.")
-    (semantic-grammar-insert-defun
-     setupfct setupdat
-     "Setup the Semantic Parser.")
-    ;; Epilogue & footer
-    (insert "\n;;; Epilogue\n;;\n"
-            epilogue
-            footer
-            )
-    (goto-char (point-min))
-    ;; Make sure the file was required.  This solves the problem
-    ;; of compiling a grammar, followed by loading a file and not
-    ;; having the rest of the source loaded up.
-    (eval-buffer)
     
-;;;; TODO (HOW?)   
+    ;; Evaluate the prologue now, because libraries might be required
+    ;; to evaluate the remaining of code.  Particularly if they
+    ;; provide the definition of grammar macro expanders!
+    (eval-region (point-min) (point))
+    
+;;;; Declarations & Rules
+    
+    ;; These definitions are automatically evaluated when inserted.
+    (semantic-grammar-insert-defconst
+     (semantic-grammar-keywordtable)
+     (with-current-buffer semantic--grammar-input-buffer
+       (semantic-grammar-keyword-data))
+     "Table of language keywords.")
+    
+    (semantic-grammar-insert-defconst
+     (semantic-grammar-tokentable)
+     (with-current-buffer semantic--grammar-input-buffer
+       (semantic-grammar-token-data))
+     "Table of lexical tokens.")
+    
+    (semantic-grammar-insert-defconst
+     (semantic-grammar-parsetable)
+     (with-current-buffer semantic--grammar-input-buffer
+       (semantic-grammar-parser-data))
+     "Parser table.")
+    
+    (semantic-grammar-insert-defun
+     (semantic-grammar-setupfunction)
+     (with-current-buffer semantic--grammar-input-buffer
+       (semantic-grammar-setup-data))
+     "Setup the Semantic Parser.")
+    
+;;;; Epilogue & Footer
+    
+    ;; Eval epilogue code to make sure the file was required.  This
+    ;; solves the problem of compiling a grammar, followed by loading
+    ;; a file and not having the rest of the source loaded up.
+    (eval-region
+     (point)
+     (progn
+       (insert "\n;;; Epilogue\n;;\n"
+               epilogue
+               footer
+               )
+       (point)))
+    
+    (goto-char (point-min))
+    
     ;; The above functions each evaluate the tables created
     ;; into memory.  Now find all buffers that match the
     ;; major modes we have created this language for, and
     ;; force them to call our setup function again, refreshing
     ;; all semantic data, and enabling them to work with the
     ;; new code just created.
-    '(semantic-map-mode-buffers
-      (semantic-grammar-setupfunction)
-      (semantic-grammar-languagemode))
+    
+;;;; FIXME?
+    
+    ;; At this point, I don't know any user's defined setup code :-(
+    ;; At least, what I can do for now, is to run the generated
+    ;; parser-install function.
+    (semantic-map-mode-buffers
+     (semantic-grammar-setupfunction)
+     (semantic-grammar-languagemode))
     
     ))
+
+;;;;
+;;;; Macros highlighting
+;;;;
+
+(defvar semantic--grammar-macros-regexp-1 nil)
+(make-variable-buffer-local 'semantic--grammar-macros-regexp-1)
+
+(defun semantic--grammar-macros-regexp-1 ()
+  "Return font-lock keyword regexp for pre-installed macro names."
+  (and semantic-grammar-macros
+       (not semantic--grammar-macros-regexp-1)
+       (condition-case nil
+           (setq semantic--grammar-macros-regexp-1
+                 (concat "(\\s-*"
+                         (regexp-opt
+                          (mapcar #'(lambda (e) (symbol-name (car e)))
+                                  semantic-grammar-macros)
+                          t)
+                         "\\>"))
+         (error nil)))
+  semantic--grammar-macros-regexp-1)
+
+(defun semantic--grammar-macros-regexp-2 ()
+  "Return font-lock keyword regexp for macros defined in grammar."
+  nil
+;;;; TODO
+  )
+
+(defun semantic--grammar-macros-matcher (end)
+  "Search for a grammar macro name to highlight.
+END is the limit of the search."
+  (let ((regexp (semantic--grammar-macros-regexp-1)))
+    (or (and regexp (re-search-forward regexp end t))
+        (and (setq regexp (semantic--grammar-macros-regexp-2))
+             (re-search-forward regexp end t)))))
 
 ;;;;
 ;;;; Define major mode
@@ -732,34 +824,6 @@ nil."
 (defvar semantic-grammar-mode-hook nil
   "Hook run when starting Semantic grammar mode.")
 
-(defvar semantic-grammar-builtin-names
-  '(
-    "ASSOC"
-    "EXPAND"
-    "EXPANDFULL"
-    "TAG"
-    "VARIABLE-TAG"
-    "FUNCTION-TAG"
-    "TYPE-TAG"
-    "INCLUDE-TAG"
-    "PACKAGE-TAG"
-    "CODE-TAG"
-    )
-  "The default list of grammar builtin names.
-Used by font-lock to highlight builtin names.")
-
-(defvar semantic-grammar-builtin-names-regexp nil)
-
-(defun semantic-grammar-builtin-names-matcher (end)
-  "Font lock matcher for grammar builtin names."
-  (unless (local-variable-p 'semantic-grammar-builtin-names-regexp)
-    (make-local-variable 'semantic-grammar-builtin-names-regexp)
-    (setq semantic-grammar-builtin-names-regexp
-          (concat "(\\s-*"
-                  (regexp-opt semantic-grammar-builtin-names t)
-                  "\\>")))
-  (re-search-forward semantic-grammar-builtin-names-regexp end t))
-
 (defvar semantic-grammar-mode-keywords-1
   `(("\\(\\<%%\\>\\|\\<%[{}]\\)"
      0 font-lock-reference-face)
@@ -770,7 +834,7 @@ Used by font-lock to highlight builtin names.")
      0 (unless (semantic-grammar-in-lisp-p) 'bold))
     ("^\\(\\(\\sw\\|\\s_\\)+\\)[ \n\r\t]*:"
      1 font-lock-function-name-face)
-    (semantic-grammar-builtin-names-matcher
+    (semantic--grammar-macros-matcher
      1 ,(if (boundp 'font-lock-builtin-face)
             'font-lock-builtin-face
           'font-lock-preprocessor-face))
@@ -811,6 +875,7 @@ Used by font-lock to highlight builtin names.")
     (define-key km "%" 'semantic-grammar-electric-punctuation)
     (define-key km "(" 'semantic-grammar-electric-punctuation)
     (define-key km ")" 'semantic-grammar-electric-punctuation)
+    (define-key km ":" 'semantic-grammar-electric-punctuation)
 
     (define-key km "\t"       'semantic-grammar-indent)
     (define-key km "\M-\t"    'semantic-grammar-complete)
@@ -901,6 +966,7 @@ the change bounds to encompass the whole nonterminal tag."
           ))
   (make-local-variable 'semantic-stickyfunc-sticky-classes)
   (setq semantic-stickyfunc-sticky-classes '(nonterminal))
+  ;; Handle safe re-parse of grammar rules.
   (semantic-make-local-hook 'semantic-edits-new-change-hooks)
   (add-hook 'semantic-edits-new-change-hooks
             'semantic-grammar-edits-new-change-hook-fcn
@@ -911,13 +977,6 @@ the change bounds to encompass the whole nonterminal tag."
 ;;;; Useful commands
 ;;;;
 
-(defun semantic-grammar-skip-comments-backward ()
-  "Move point backward, stopping after comments and whitespaces."
-  (let ((bol (save-excursion (beginning-of-line) (point))))
-    (while (nth 4 (parse-partial-sexp bol (point)))
-      (re-search-backward ";;"))
-    (forward-comment (- (point-max)))))
-
 (defvar semantic-grammar-skip-quoted-syntax-table
   (let ((st (copy-syntax-table semantic-grammar-syntax-table)))
     (modify-syntax-entry ?\' "$" st)
@@ -926,96 +985,74 @@ the change bounds to encompass the whole nonterminal tag."
 Consider quote as a \"paired delimiter\", so `forward-sexp' will skip
 whole quoted expression.")
 
-(defun semantic-grammar-goto-grammar-indent-anchor ()
-  "Move the point to current grammar indent anchor.
-That is just after the previous percent, colon or semicolon character
-found, taking care of comments and Lisp code.  Return the column where
-the anchor is or nil if the point has not moved."
-    (condition-case nil
-        (let ((found nil))
-          (save-excursion
-            ;; Escape Lisp code
-            (semantic-grammar-skip-comments-backward)
-            (condition-case nil
-                (while t (up-list -1))
-              (error nil))
-            ;; Search for previous [%;:]
-            (while (not found)
-              (semantic-grammar-skip-comments-backward)
-              (cond
-               ((eq (char-before) ?\')
-                (with-syntax-table
-                    ;; Can't be Lisp code here!
-                    ;; Temporarily consider quote as a "paired
-                    ;; delimiter", so `forward-sexp' can skip the
-                    ;; whole quoted expression.
-                    semantic-grammar-skip-quoted-syntax-table
-                  (forward-sexp -1)))
-               ((and (eq (char-before) ?\%)
-                     (not (looking-at "\\<prec\\>")))
-                (setq found (point)))
-               ((memq (char-before) '(?\: ?\;))
-                (setq found (point)))
-               ((bobp)
-                (error ""))
-               ((zerop (skip-syntax-backward "."))
-                (forward-sexp -1)))))
-          (goto-char found)
-          (1- (current-column)))
-      (error nil)))
+(defsubst semantic-grammar-backward-item ()
+  "Move point to beginning of the previous grammar item."
+  (forward-comment (- (point-max)))
+  (if (zerop (skip-syntax-backward "."))
+      (if (eq (char-before) ?\')
+          (with-syntax-table
+              ;; Can't be Lisp code here!  Temporarily consider quote
+              ;; as a "paired delimiter", so `forward-sexp' can skip
+              ;; the whole quoted expression.
+              semantic-grammar-skip-quoted-syntax-table
+            (forward-sexp -1))
+        (forward-sexp -1))))
 
-(defsubst semantic-grammar-between-name-and-colon-p (point)
-  "Return non-nil if POINT is between name and colon.
-If so move to POINT."
-  (let (name-end)
-    (if (save-excursion
-          (forward-comment (point-max))
-          (when (looking-at "\\(\\w\\|\\s_\\)+\\s-*$")
-            (forward-sexp 1)
-            (setq name-end (point))
-            (forward-comment (point-max))
-            (when (looking-at ":")
-              (beginning-of-line)
-              (and (> point name-end) (<= point (point))))))
-        (goto-char point))))
-
-(defun semantic-grammar-grammar-compute-indentation ()
-  "Compute indentation of the current line of grammar."
-  (save-excursion
-    (beginning-of-line)
-    (if (or (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
-            (and (looking-at "\\s-*%")
-                 (not (looking-at "\\s-*%prec\\>"))))
-        0
-      (let* ((p (point))
-             (i (semantic-grammar-goto-grammar-indent-anchor)))
-        (if (not (and i (eq (char-before) ?\:)))
-            (if (semantic-grammar-between-name-and-colon-p p)
-                (if (looking-at "\\s-*;;")
-                    1
-                  2)
-              0)
-          (if (or (looking-at "\\s-*$")
-                  (save-excursion (beginning-of-line)
-                                  (looking-at "\\s-*:")))
-              (setq i 2))
-          (goto-char p)
-          (cond ((looking-at "\\s-*;;")
-                 (1- i))
-                ((looking-at "\\s-*[|;]")
-                 i)
-                (t
-                 (+ i 2))))))))
+(defun semantic-grammar-anchored-indentation ()
+  "Return indentation based on previous anchor character found."
+  (let (indent)
+    (save-excursion
+      (while (not indent)
+        (semantic-grammar-backward-item)
+        (cond
+         ((bobp)
+          (setq indent 0))
+         ((looking-at ":")
+          (setq indent (current-column))
+          (forward-char)
+          (skip-syntax-forward "-")
+          (if (eolp) (setq indent 2))
+          )
+         ((and (looking-at "[;%]")
+               (not (looking-at "\\<%prec\\>")))
+          (setq indent 0)
+          ))))
+    indent))
 
 (defun semantic-grammar-do-grammar-indent ()
   "Indent a line of grammar.
 When called the point is not in Lisp code."
-  (let ((indent (semantic-grammar-grammar-compute-indentation)))
-    (if (/= (current-indentation) indent)
-        (save-excursion
-          (beginning-of-line)
-          (delete-horizontal-space)
-          (indent-to indent)))))
+  (let (indent n)
+    (save-excursion
+      (beginning-of-line)
+      (skip-syntax-forward "-")
+      (setq indent (current-column))
+      (cond
+       ((or (bobp)
+            (looking-at "\\(\\w\\|\\s_\\)+\\s-*:")
+            (and (looking-at "%")
+                 (not (looking-at "%prec\\>"))))
+        (setq n 0))
+       ((looking-at ":")
+        (setq n 2))
+       ((and (looking-at ";;")
+             (save-excursion (forward-comment (point-max))
+                             (looking-at ":")))
+        (setq n 1))
+       (t
+        (setq n (semantic-grammar-anchored-indentation))
+        (unless (zerop n)
+          (cond
+           ((looking-at ";;")
+            (setq n (1- n)))
+           ((looking-at "[|;]")
+            )
+           (t
+            (setq n (+ n 2)))))))
+      (when (/= n indent)
+        (beginning-of-line)
+        (delete-horizontal-space)
+        (indent-to n)))))
 
 (defvar semantic-grammar-brackets-as-parens-syntax-table
   (let ((st (copy-syntax-table emacs-lisp-mode-syntax-table)))
