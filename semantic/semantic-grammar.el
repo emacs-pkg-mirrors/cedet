@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.22 2003/03/27 07:42:41 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.23 2003/03/31 07:46:24 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -150,7 +150,7 @@ It ignores whitespaces, newlines and comments."
 ;;;;
 
 (defconst semantic-grammar-automaton
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-16 10:18+0100
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-30 18:55+0200
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -323,7 +323,7 @@ It ignores whitespaces, newlines and comments."
         ((PUT any_symbol put_value_list)
          (let*
              ((vals
-               (mapcar 'semantic-token-name $3)))
+               (mapcar 'semantic-tag-name $3)))
            (list 'wisent-raw-tag
                  (list 'semantic-tag
                        (list 'quote $2)
@@ -332,7 +332,7 @@ It ignores whitespaces, newlines and comments."
         ((PUT put_name_list put_value)
          (let*
              ((names
-               (mapcar 'semantic-token-name $2)))
+               (mapcar 'semantic-tag-name $2)))
            (list 'wisent-raw-tag
                  (list 'semantic-tag
                        (list 'quote
@@ -346,9 +346,9 @@ It ignores whitespaces, newlines and comments."
         ((PUT put_name_list put_value_list)
          (let*
              ((names
-               (mapcar 'semantic-token-name $2))
+               (mapcar 'semantic-tag-name $2))
               (vals
-               (mapcar 'semantic-token-name $3)))
+               (mapcar 'semantic-tag-name $3)))
            (list 'wisent-raw-tag
                  (list 'semantic-tag
                        (list 'quote
@@ -520,7 +520,7 @@ It ignores whitespaces, newlines and comments."
   "Parser automaton.")
 
 (defconst semantic-grammar-keywords
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-16 10:18+0100
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-30 18:55+0200
   (semantic-lex-make-keyword-table
    '(("left" . LEFT)
      ("nonassoc" . NONASSOC)
@@ -541,7 +541,7 @@ It ignores whitespaces, newlines and comments."
   "Keywords.")
 
 (defconst semantic-grammar-tokens
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-16 10:18+0100
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-30 18:55+0200
   (wisent-lex-make-token-table
    '(("punctuation"
       (PERCENT . "%")
@@ -571,7 +571,7 @@ It ignores whitespaces, newlines and comments."
 
 (defun semantic-grammar-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-16 10:18+0100
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-30 18:55+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -616,10 +616,10 @@ the change bounds to encompass the whole nonterminal tag."
   (let ((outer (car (semantic-find-nonterminal-by-overlay-in-region
                      (semantic-edits-os overlay)
                      (semantic-edits-oe overlay)))))
-    (if (eq 'nonterminal (semantic-token-token outer))
+    (if (semantic-tag-class-of-p outer 'nonterminal)
         (semantic-overlay-move overlay
-                               (semantic-token-start outer)
-                               (semantic-token-end outer)))))
+                               (semantic-tag-start outer)
+                               (semantic-tag-end outer)))))
 
 ;;;; 
 ;;;; Semantic action expansion
@@ -672,7 +672,7 @@ Warn if other tags of class CLASS exist."
                 class (current-buffer))))
     (if tags
         (prog1
-            (semantic-token-name (car tags))
+            (semantic-tag-name (car tags))
           (if (cdr tags)
               (message "*** Ignore all but first declared %s"
                        class))))))
@@ -687,8 +687,8 @@ That is tag names plus names defined in tag attribute `:rest'."
             #'(lambda (tag)
                 (mapcar
                  #'intern
-                 (cons (semantic-token-name tag)
-                       (semantic-token-extra-spec tag :rest))))
+                 (cons (semantic-tag-name tag)
+                       (semantic-tag-get-attribute tag :rest))))
             tags))))
 
 (defsubst semantic-grammar-item-text (item)
@@ -714,11 +714,11 @@ That is tag names plus names defined in tag attribute `:rest'."
      #'(lambda (code-tag)
          (buffer-substring
           (progn
-            (goto-char (semantic-token-start code-tag))
+            (goto-char (semantic-tag-start code-tag))
             (skip-chars-forward "{\r\n\t ")
             (point))
            (progn
-             (goto-char (semantic-token-end code-tag))
+             (goto-char (semantic-tag-end code-tag))
              (skip-chars-backward "\r\n\t %}")
              (point))))
      (semantic-find-nonterminal-by-token 'code (current-buffer))
@@ -774,8 +774,8 @@ That is an alist of (VALUE . TOKEN) where VALUE is the string value of
 the keyword and TOKEN is the terminal symbol identifying the keyword."
   (mapcar
    #'(lambda (key)
-       (cons (semantic-token-extra-spec key :value)
-             (intern (semantic-token-name key))))
+       (cons (semantic-tag-get-attribute key :value)
+             (intern (semantic-tag-name key))))
    (semantic-find-nonterminal-by-token 'keyword (current-buffer))))
 
 (defun semantic-grammar-keyword-properties (keywords)
@@ -788,8 +788,8 @@ the keyword and TOKEN is the terminal symbol identifying the keyword."
             puts  (cdr puts)
             keys  (mapcar
                    #'intern
-                   (cons (semantic-token-name put)
-                         (semantic-token-extra-spec put :rest))))
+                   (cons (semantic-tag-name put)
+                         (semantic-tag-get-attribute put :rest))))
       (while keys
         (setq key   (car keys)
               keys  (cdr keys)
@@ -797,7 +797,7 @@ the keyword and TOKEN is the terminal symbol identifying the keyword."
         (if (null assoc)
             nil ;;(message "*** %%put to undefined keyword %s ignored" key)
           (setq key   (car assoc)
-                plist (semantic-token-extra-spec put :value))
+                plist (semantic-tag-get-attribute put :value))
           (while plist
             (setq pkey  (intern (caar plist))
                   pval  (read (cdar plist))
@@ -819,8 +819,8 @@ nil."
     (while tags
       (setq tag  (car tags)
             tags (cdr tags))
-      (when (setq type (semantic-token-extra-spec tag :type))
-        (setq names (semantic-token-extra-spec tag :value)
+      (when (setq type (semantic-tag-get-attribute tag :type))
+        (setq names (semantic-tag-get-attribute tag :value)
               assoc (assoc type alist))
         (or assoc (setq assoc (list type)
                         alist (cons assoc alist)))
@@ -838,11 +838,11 @@ nil."
     (while tags
       (setq tag  (car tags)
             tags (cdr tags))
-      (setq names (cons (semantic-token-name tag)
-                        (semantic-token-extra-spec tag :rest))
-            type  (or (semantic-token-extra-spec tag :type)
+      (setq names (cons (semantic-tag-name tag)
+                        (semantic-tag-get-attribute tag :rest))
+            type  (or (semantic-tag-get-attribute tag :type)
                       "<no-type>")
-            value (semantic-token-extra-spec tag :value)
+            value (semantic-tag-get-attribute tag :value)
             assoc (assoc type alist))
       (or assoc (setq assoc (list type)
                       alist (cons assoc alist)))
@@ -860,8 +860,8 @@ nil."
     (while puts
       (setq put   (car puts)
             puts  (cdr puts)
-            keys  (cons (semantic-token-name put)
-                        (semantic-token-extra-spec put :rest)))
+            keys  (cons (semantic-tag-name put)
+                        (semantic-tag-get-attribute put :rest)))
       (while keys
         (setq key   (car keys)
               keys  (cdr keys)
@@ -869,7 +869,7 @@ nil."
         (if (null assoc)
             nil ;; (message "*** %%put to undefined token %s ignored" key)
           (setq key   (car assoc)
-                plist (semantic-token-extra-spec put :value))
+                plist (semantic-tag-get-attribute put :value))
           (while plist
             (setq pkey  (intern (caar plist))
                   pval  (read (cdar plist))
@@ -1545,7 +1545,7 @@ Use the Lisp or grammar indenter depending on point location."
   "Return a string abbreviation of TAG.
 Optional PARENT is not used.
 Optional COLOR is used to flag if color is added to the text."
-  (let ((class (semantic-token-token tag))
+  (let ((class (semantic-tag-class tag))
 	(name (semantic-name-nonterminal tag parent color)))
     (cond
      ((eq class 'nonterminal)
@@ -1562,7 +1562,7 @@ Optional COLOR is used to flag if color is added to the text."
   "Return a string summarizing TAG.
 Optional PARENT is not used.
 Optional argument COLOR determines if color is added to the text."
-  (let ((class (semantic-token-token tag))
+  (let ((class (semantic-tag-class tag))
 	(name (semantic-name-nonterminal tag parent color))
 	(label nil)
 	(desc nil))
@@ -1579,22 +1579,22 @@ Optional argument COLOR determines if color is added to the text."
          #'(lambda (put)
              (unless summary
                (setq summary (cdr (assoc "summary"
-                                         (semantic-token-extra-spec
+                                         (semantic-tag-get-attribute
                                           put :value))))))
          ;; Get `put' tag with TAG name.
          (semantic-find-nonterminal-by-name-regexp
-          (regexp-quote (semantic-token-name tag))
+          (regexp-quote (semantic-tag-name tag))
           (semantic-find-nonterminal-by-token 'put (current-buffer))))
 	(setq desc (concat " = "
-                           (semantic-token-extra-spec tag :value)
+                           (semantic-tag-get-attribute tag :value)
                            (if summary
                                (concat " - " (read summary))
                              "")))))
      ((eq class 'token)
       (setq label "Token: ")
-      (let ((val   (semantic-token-extra-spec tag :value))
-            (type  (semantic-token-extra-spec tag :type))
-            (names (semantic-token-extra-spec tag :rest)))
+      (let ((val   (semantic-tag-get-attribute tag :value))
+            (type  (semantic-tag-get-attribute tag :type))
+            (names (semantic-tag-get-attribute tag :rest)))
         (if names
             (setq name (mapconcat 'identity (cons name names) " ")))
         (setq desc (concat
@@ -1606,8 +1606,8 @@ Optional argument COLOR determines if color is added to the text."
                       "")))))
      ((eq class 'assoc)
       (setq label "Assoc: ")
-      (let ((val   (semantic-token-extra-spec tag :value))
-            (type  (semantic-token-extra-spec tag :type)))
+      (let ((val   (semantic-tag-get-attribute tag :value))
+            (type  (semantic-tag-get-attribute tag :type)))
         (setq desc (concat
                     (if type
                         (format " <%s>" type)
