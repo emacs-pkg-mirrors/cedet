@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.43 2000/09/08 22:21:50 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.44 2000/09/13 21:30:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -874,13 +874,11 @@ Argument NONTERM is the nonterminal symbol to start with.
 Optional argument DEPTH is the depth of lists to dive into.
 Whan used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
-  (let* ((stream (semantic-flex start end (or depth 1)))
-	 (ans (semantic-bovinate-nonterminal
-	       stream
-	       ;; the byte compiler will complain about this one.
-	       table
-	       nonterm)))
-    (car (cdr ans))))
+  (car (cdr (semantic-bovinate-nonterminal
+	     (semantic-flex start end (or depth 1))
+	     ;; the byte compiler will complain about TABLE
+	     table
+	     nonterm))))
 
 (defun semantic-bovinate-from-nonterminal-full (start end nonterm
 						      &optional depth)
