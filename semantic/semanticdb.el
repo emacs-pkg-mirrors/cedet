@@ -1,10 +1,10 @@
 ;;; semanticdb.el --- Semantic token database manager
 
-;;; Copyright (C) 2000 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.7 2000/12/16 03:12:55 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.8 2001/01/07 03:05:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -267,11 +267,24 @@ If ARG is nil, then toggle."
 ;; Line all the semantic-util 'find-nonterminal...' type functions, but
 ;; trans file across the database.
 (defun semanticdb-find-nonterminal-by-name (name &optional database)
-  "Find a nonterminal with name NAME in our databases.
+  "Find all occurances of nonterminals with name NAME in our databases.
 Search for it in DATABASE if provided, otherwise search a range
 of databases."
-  
-  )
+  (if (not database)
+      ;; Calculate what database to use.
+      ;; Something simple and dumb for now.
+      (setq database semanticdb-current-database))
+  (let ((files (oref database tables))
+	(found nil)
+	(ret nil))
+    (while files
+      (setq found (semantic-find-nonterminal-by-name 
+		   name (oref (car files) tokens))
+	    files (cdr files)
+	    )
+      (if found
+	  (setq ret (cons found ret))))
+    (nreverse ret)))
 
 (defun semanticdb-file-stream (file)
   "Return a list of tokens belonging to FILE.
