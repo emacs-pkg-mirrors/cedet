@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic token streams
 
-;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.85 2001/11/30 03:00:31 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.86 2002/02/06 03:20:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -181,6 +181,43 @@ Instead, use `semantic-token-variable-extra-spec',
 	  ((eq tt 'type)
 	   (semantic-token-type-extra-spec token spec))
 	  (t nil))))
+
+(defun semantic-token-extra-specs (token)
+  "Retrieve the extra specifications list for TOKEN.
+This function can get extra specifications from any type of token.
+Do not use the function if you know what type of token you are dereferencing.
+Instead, use `semantic-token-variable-extra-specs',
+`semantic-token-function-extra-specs', or  `semantic-token-type-extra-specs'."
+  (let ((tt (semantic-token-token token)))
+    (cond ((eq tt 'variable)
+	   (semantic-token-variable-extra-specs token))
+	  ((eq tt 'function)
+	   (semantic-token-function-extra-specs token))
+	  ((eq tt 'type)
+	   (semantic-token-type-extra-specs token))
+	  (t nil))))
+
+(defun semantic-token-add-extra-spec (token spec value)
+  "Add to TOKEN, and extra specifier SPEC with VALUE.
+Use this function in a parser when not all specifiers are known
+at the same time."
+  (let ((tt (semantic-token-token token))
+	(esl nil))
+    (cond ((eq tt 'variable)
+	   (setcar (nthcdr 4 token)
+		   (cons (cons spec value)
+			 (semantic-token-variable-extra-specs token))))
+	  ((eq tt 'function)
+	   (setcar (nthcdr 4 token)
+		   (cons (cons spec value)
+			 (semantic-token-function-extra-specs token))))
+	  ((eq tt 'type)
+	   (setcar (nthcdr 5 token)
+		   (cons (cons spec value)
+			 (semantic-token-type-extra-specs token))))
+	  (t nil))
+    token))
+
 
 (defmacro semantic-token-modifiers (token)
   "Retrieve modifiers for TOKEN.
@@ -1036,6 +1073,7 @@ Return nil if not found."
     semantic-uml-abbreviate-nonterminal
     semantic-uml-prototype-nonterminal
     semantic-uml-concise-prototype-nonterminal
+    semantic-emacs-lisp-nonterminal
     )
   "List of functions which convert a token to text.
 Each function must take the parameters TOKEN &optional PARENT COLOR.
@@ -1119,6 +1157,11 @@ for details on adding new types."
   )
 
 ;;; The token->text functions
+(defun semantic-emacs-lisp-nonterminal (token &optional parent color)
+  "Convert TOKEN to a string that is Emacs Lisp.
+PARENT and COLOR are ignored."
+  (format "%S" token))
+
 (defun semantic-name-nonterminal (token &optional parent color)
   "Return the name string describing TOKEN.
 The name is the shortest possible representation.
