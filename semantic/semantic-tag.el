@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.8 2003/03/27 07:43:34 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.9 2003/03/27 08:28:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -521,6 +521,7 @@ That is the value of the attribute `:detail'."
 
 ;;; Language Specific Tag access via overload
 ;;
+;;;###autoload
 (define-overload semantic-tag-components (tag)
   "Return a list of components for TAG.
 A Component is a part of TAG which itself may be a TAG.
@@ -863,7 +864,6 @@ and `semantic-tag-type-interfaces' instead")
 (semantic-alias-obsolete 'semantic-tag-make-assoc-list
                          'semantic-tag-make-plist)
 
-;;;###autoload
 (semantic-alias-obsolete 'semantic-nonterminal-children
 			 'semantic-tag-components-with-overlays)
 
