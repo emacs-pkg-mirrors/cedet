@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.25 2003/04/01 13:05:34 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.26 2003/06/04 05:46:42 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1322,9 +1322,9 @@ the anchor is or nil if the point has not moved."
                     ;; whole quoted expression.
                     semantic-grammar-skip-quoted-syntax-table
                   (forward-sexp -1)))
-               ((eq (char-before) ?\%)
-                (or (looking-at "\\<prec\\>")
-                    (setq found (point))))
+               ((and (eq (char-before) ?\%)
+                     (not (looking-at "\\<prec\\>")))
+                (setq found (point)))
                ((memq (char-before) '(?\: ?\;))
                 (setq found (point)))
                ((bobp)
