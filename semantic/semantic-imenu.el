@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000, 2001 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.22 2001/01/24 21:19:01 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.23 2001/01/25 03:26:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -51,6 +51,7 @@
 		     (not (string-match "[^-]" (ad-get-arg 0))))
 		(setq ad-return-value "-")
 	      ad-do-it)))
+      )
   (error nil))
 
 
@@ -114,6 +115,9 @@ other buffer local ones based on the same semanticdb."
 (defvar semantic-imenu-directory-current-file nil
   "When building a file index, this is the file name currently being built.")
 
+(defvar semantic-imenu-auto-rebuild-running nil
+  "Non-nil if `semantic-imenu-rebuild-directory-indexes' is running.")
+
 ;;; Code:
 (defun semantic-imenu-token-overlay (token)
   "Return the overlay belonging to TOKEN.
@@ -151,9 +155,16 @@ Optional argument REST is some extra stuff."
 	      (pos (aref position 1)))
 	  (find-file file)
 	  (imenu-default-goto-function name pos rest))
-      (message "Semantic Imenu override problem. (Internal bug)")
-      (setq imenu--index-alist nil))
-     ))
+      ;; When the POSITION is the symbol 'file-only' it means that this
+      ;; is a directory index entry and there is no tokens in this
+      ;; file. So just jump to the beginning of the file.
+      (if (eq position 'file-only)
+	  (progn
+	    (find-file name)
+	    (imenu-default-goto-function name (point-min) rest))
+	(message "Semantic Imenu override problem. (Internal bug)")
+	(setq imenu--index-alist nil)))
+    ))
 
 (defun semantic-imenu-flush-fcn (&optional ignore)
   "This function is called as a hook to clear the imenu cache.
@@ -192,16 +203,26 @@ Optional argument STREAM is the stream of tokens for the current buffer."
              (buffer-name))
     (let ((index (list
 		  (cons (oref semanticdb-current-table file)
-			(semantic-create-imenu-index-1 stream))))
+			(or (semantic-create-imenu-index-1 stream)
+			    ;; No tokens in this file
+			    'file-only))))
 	  (tables (oref semanticdb-current-database tables)))
       (working-status-forms "Imenu Directory Index" "done"
 	(while tables
 	  (let ((semantic-imenu-directory-current-file
-		 (oref (car tables) file)))
+		 (oref (car tables) file))
+		tokens)
 	    (when (not (eq (car tables) semanticdb-current-table))
-	      (setq index (cons (cons semantic-imenu-directory-current-file
-				      (semantic-create-imenu-index-1
-				       (oref (car tables) tokens)))
+	      (setq tokens (oref (car tables) tokens)
+		    index (cons (cons semantic-imenu-directory-current-file
+				      (or (and tokens
+					       ;; don't pass nil stream because
+					       ;; it will use the current
+					       ;; buffer
+					       (semantic-create-imenu-index-1
+						(oref (car tables) tokens)))
+					  ;; no tokens in the file
+					  'file-only))
 				index)))
 	    (setq tables (cdr tables)))
 	  (working-dynamic-status))
@@ -330,9 +351,6 @@ Optional argument NOTYPECHECK specifies not to make subgroups under types."
 
 ;;; directory imenu rebuilding.
 ;;
-(defvar semantic-imenu-auto-rebuild-running nil
-  "Non-nil if `semantic-imenu-rebuild-directory-indexes' is running.")
-
 (defun semantic-imenu-rebuild-directory-indexes (db)
   "Rebuild directory index imenus based on Semantic database DB."
   (let ((l (buffer-list))
