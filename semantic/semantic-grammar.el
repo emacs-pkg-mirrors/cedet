@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.61 2004/03/28 13:07:03 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.62 2004/04/29 10:12:19 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -143,7 +143,7 @@ ARGS are ASSOC's key value list."
   senator-add-log-tokens '(nonterminal put token keyword)
   "List of nonterminal tags used with add-log.")
 
-(define-mode-overload-implementation semantic-tag-components
+(define-mode-local-override semantic-tag-components
   semantic-grammar-mode (tag)
   "Return the children of tag TAG."
   (semantic-tag-get-attribute tag :children))
@@ -1625,7 +1625,7 @@ EXPANDER is the name of the function that expands MACRO."
         (eldoc-last-data-store expander doc 'function))
       doc)))
 
-(define-mode-overload-implementation semantic-idle-summary-current-symbol-info
+(define-mode-local-override semantic-idle-summary-current-symbol-info
   semantic-grammar-mode ()
   "Display additional eldoc information about grammar syntax elements.
 Syntax element is the current symbol at point.
@@ -1660,50 +1660,50 @@ Otherwise return nil."
        (t nil)))
     (or val (semantic-idle-summary-current-symbol-info-default))))
 
-(define-mode-overload-implementation semantic-tag-boundary-p
+(define-mode-local-override semantic-tag-boundary-p
   semantic-grammar-mode (tag)
   "Return non-nil for tags that should have a boundary drawn.
 Only tags of type 'nonterminal will be so marked."
   (let ((c (semantic-tag-class tag)))
     (eq c 'nonterminal)))
 
-(define-mode-overload-implementation semantic-ctxt-current-function
+(define-mode-local-override semantic-ctxt-current-function
   semantic-grammar-mode (&optional point)
   "Determine the name of the current function at POINT."
   (if (semantic-grammar-in-lisp-p)
-      (semantic-with-mode-bindings emacs-lisp-mode
+      (with-mode-local emacs-lisp-mode
 	(semantic-ctxt-current-function point))
     nil
     ))
 
-(define-mode-overload-implementation semantic-ctxt-current-argument
+(define-mode-local-override semantic-ctxt-current-argument
   semantic-grammar-mode (&optional point)
   "Determine the argument index of the called function at POINT."
   (if (semantic-grammar-in-lisp-p)
-      (semantic-with-mode-bindings emacs-lisp-mode
+      (with-mode-local emacs-lisp-mode
 	(semantic-ctxt-current-argument point))
     nil
     ))
 
-(define-mode-overload-implementation semantic-ctxt-current-assignment
+(define-mode-local-override semantic-ctxt-current-assignment
   semantic-grammar-mode (&optional point)
   "Determine the tag being assigned into at POINT."
   (if (semantic-grammar-in-lisp-p)
-      (semantic-with-mode-bindings emacs-lisp-mode
+      (with-mode-local emacs-lisp-mode
 	(semantic-ctxt-current-assignment point))
     nil
     ))
 
-(define-mode-overload-implementation semantic-ctxt-current-class-list
+(define-mode-local-override semantic-ctxt-current-class-list
   semantic-grammar-mode (&optional point)
   "Determine the class of tags that can be used at POINT."
   (if (semantic-grammar-in-lisp-p)
-      (semantic-with-mode-bindings emacs-lisp-mode
+      (with-mode-local emacs-lisp-mode
 	(semantic-ctxt-current-class-list point))
     '(nonterminal keyword)
     ))
 
-(define-mode-overload-implementation semantic-format-tag-abbreviate
+(define-mode-local-override semantic-format-tag-abbreviate
   semantic-grammar-mode (tag &optional parent color)
   "Return a string abbreviation of TAG.
 Optional PARENT is not used.
@@ -1720,7 +1720,7 @@ Optional COLOR is used to flag if color is added to the text."
      (t
       (concat "%" (symbol-name class) " " name)))))
 
-(define-mode-overload-implementation semantic-format-tag-summarize
+(define-mode-local-override semantic-format-tag-summarize
   semantic-grammar-mode (tag &optional parent color)
   "Return a string summarizing TAG.
 Optional PARENT is not used.
@@ -1794,11 +1794,11 @@ Optional argument COLOR determines if color is added to the text."
 (eval-when-compile
   (require 'semantic-analyze))
 
-(define-mode-overload-implementation semantic-analyze-current-context
+(define-mode-local-override semantic-analyze-current-context
   semantic-grammar-mode (point)
   "Provide a semantic analysis object describing a context in a grammar."
   (if (semantic-grammar-in-lisp-p)
-      (semantic-with-mode-bindings emacs-lisp-mode
+      (with-mode-local emacs-lisp-mode
 	(semantic-analyze-current-context point))
 
     (let* ((context-return nil)
@@ -1834,11 +1834,11 @@ Optional argument COLOR determines if color is added to the text."
 
       context-return)))
 
-(define-mode-overload-implementation semantic-analyze-possible-completions
+(define-mode-local-override semantic-analyze-possible-completions
   semantic-grammar-mode (context)
   "Return a list of possible completions based on CONTEXT."
   (if (semantic-grammar-in-lisp-p)
-      (semantic-with-mode-bindings emacs-lisp-mode
+      (with-mode-local emacs-lisp-mode
 	(semantic-analyze-possible-completions context))
     (save-excursion
       (set-buffer (oref context buffer))
