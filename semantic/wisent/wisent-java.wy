@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.12 2003/08/02 08:20:55 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.13 2003/12/05 09:19:49 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -58,6 +58,13 @@
 %token <close-paren> RBRACE           "}"
 %token <open-paren>  LBRACK           "["
 %token <close-paren> RBRACK           "]"
+
+;; ---------------
+;; Block terminals
+;; ---------------
+%token <block>       PAREN_BLOCK      "(LPAREN RPAREN)"
+%token <block>       BRACE_BLOCK      "(LBRACE RBRACE)"
+%token <block>       BRACK_BLOCK      "(LBRACK RBRACK)"
 
 ;; ------------------
 ;; Operator terminals
