@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.10 2002/09/05 13:28:18 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.11 2002/09/24 22:07:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -482,6 +482,8 @@ Each analyzer should be an analyzer created with `define-lex-analyzer'."
          (while (and (< (point) end)
                      (or (not length) (<= (length token-stream) length)))
            (semantic-lex-one-token ,analyzers)
+	   (when (eq end-point start)
+	     (error "Lexical Analyzer: potential hang detected"))
            (goto-char end-point)))
        ;; Return to where we started.
        ;; Do not wrap in protective stuff so that if there is an error
