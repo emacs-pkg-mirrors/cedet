@@ -1,8 +1,8 @@
 ;;; semantic-lex.el --- Lexical Analyzer builder
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.37 2005/01/10 07:41:32 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.38 2005/04/01 02:20:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -818,6 +818,12 @@ so that analysis can continue, if possible."
 	    ))
   (setq semantic-lex-end-point (point)))
 
+(defcustom semantic-lex-debug-analyzers nil
+  "Non nil means to debug analyzers with syntax protection.
+Only in effect if `debug-on-error' is also non-nil."
+  :group 'semantic
+  :type 'boolean)
+
 (defmacro semantic-lex-unterminated-syntax-protection (syntax &rest forms)
   "For SYNTAX, execute FORMS with protection for unterminated syntax.
 If FORMS throws an error, treat this as a syntax problem, and
@@ -827,7 +833,7 @@ the desired syntax, and a position returned.
 If `debug-on-error' is set, errors are not caught, so that you can
 debug them.
 Avoid using a large FORMS since it is duplicated."
-  `(if debug-on-error
+  `(if (and debug-on-error semantic-lex-debug-analyzers)
        (progn ,@forms)
      (condition-case nil
          (progn ,@forms)
