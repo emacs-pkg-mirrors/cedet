@@ -5,7 +5,8 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.4
+;;; Version: 0.5
+;;; RCS: $Id: eieio.el,v 1.2 1996/03/10 15:18:37 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -28,25 +29,30 @@
 ;;;
 ;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
 ;;;
+;;; Updates can be found at:
+;;;    ftp://ftp.ultranet.com/pub/zappo
 
 ;;;
 ;;; Commentary:
 ;;;
 ;;; EIEIO is a series of lisp routines which, if used, provide a class
-;;; structure methodology vaguely reminicent of c++ style class
-;;; definitions in the emacs lisp setting.
+;;; structure methodology vaguely which implements a small subset of
+;;; CLOS, the Common Lisp Object System.  In addition, eieio also adds
+;;; a few new features whose value has yet to prove themselves.
 ;;;
 ;;; Classes can inherit (singly) from other classes, and attributes
 ;;; can be multiply defined (but only one actual storage spot will be
 ;;; allocated) Attributes may be given initial values in the class
-;;; definition.  Methods can be defined for each sub-class, or only
-;;; for a parent class.
+;;; definition.  Class methods (methods definied _IN_ a class) can be
+;;; defined for each sub-class, or only for a parent class.  A method
+;;; can also be defined outside a class in CLOS style where the
+;;; parameters determine which implementation to use.
 ;;;
-;;; Documentation for a class is updated as new methods are added.
-;;; Since emacs documents all functions, and the methods are not
-;;; stored as named functions, their doc-strings are remembered, and
-;;; stuck into the classes' doc string as these items change.  This
-;;; makes loading slower, but does not affect run-time.
+;;; Documentation for a class is updated as new class methods are
+;;; added.  Since emacs documents all functions, and the class methods
+;;; are not stored as named functions, their doc-strings are
+;;; remembered, and stuck into the classes' doc string as these items
+;;; change.  This makes loading slower, but does not affect run-time.
 ;;;
 
 ;;; Structural description of object vectors
@@ -89,10 +95,15 @@
 ;;; Where the field# are the public then private attributes.  (Methods
 ;;;            are stored in the class defenitions.)
 
-;;;
-;;; Variable declarations.  These variables are used to hold the call
-;;; state when using methods.
-;;;
+;;; Generic functions and methods get a single defined symbol
+;;; representing the name of the method.  This method always calls the
+;;; same thing: eieio-generic-call  In order to fathom which method to
+;;; call, properties are attached to the method name of the form:
+;;; :KEY-classname where :KEY is :BEFORE :PRIMARY or :AFTER.
+;;; (:PRIMARY represents the middle, but is not needed when declaring
+;;; you method) `classname' represents the name of the class for which
+;;; this method is defined, or `generic' if it isn't defined.  In this
+;;; way, all implementations can be quickly found and run.
 
 ;;;
 ;;; History
@@ -121,14 +132,25 @@
 ;;;           some eieio specific ones.
 ;;;        Renamed defmethod to defclassmethod
 ;;;        Added CLOS functions `make-instance' and `slot-value'
+;;; 0.5  - Finally figured out how to fix macros so they byte compile
+;;;      - Added CLOS style `defmethod' and `defgeneric'
 
+;;;
+;;; Variable declarations.  These variables are used to hold the call
+;;; state when using methods.
+;;;
+
 (defvar this nil
   "Inside a method, this variable is the object in question.  DO NOT
-SET THIS YOURSELF unless you are trying to simulate friend: fields.")
+SET THIS YOURSELF unless you are trying to simulate friendly fields.")
 
 (defvar scoped-class nil
   "This is set when a method is defined so we know we are allowed to
 check private parts. DO NOT SET THIS YOURSELF!")
+
+(defvar eieio-generic-args nil
+  "When calling methods or generics, specifies the formal parameter
+list which has to be faked around the existing emacs interpreter")
 
 ;; This is a bootstrap for eieio-default-superclass so it has a value
 ;; while it is being built itself.
@@ -320,6 +342,8 @@ in that class definition.  See defclass for more information"
     newc
     ))
 
+;;; CLOS style implementation of object creators.
+;;;
 (defmacro make-instance (class &rest initargs)
   "Make a new instance of CLASS with initilaization of some parts with
 INITARGS"
@@ -332,7 +356,8 @@ INITARGS"
     (apply cc class initargs)))
 
 ;;;
-;;; Modification and querying of objects
+;;; Class Methods (methods stored in a class with no external symbol
+;;;                of thier own)
 ;;;
 (defmacro defclassmethod (method class args &rest body)
   "Define a function method for METHODEF with ARGS and BODY.  It
@@ -363,20 +388,100 @@ returns a tuple `(class method)'"
     (eieio-rebuild-doc-string (symbol-value cl))
     (list cl mt)))
 
+;;;
+;;; CLOS methods and generics
+;;;
+(defmacro defgeneric (method args &optional doc-string)
+  "Creates a generic function, which is called whenever a more
+specific method is requested.  A generic function has no body, as
+it's purpose is to decide which method body is apropriate to use.  Use
+`defmethod' to create methods, and it calls defgeneric for you."
+  (list 'defgeneric-engine
+	(list 'quote method)
+	(list 'quote args)
+	doc-string))
+
+(defun defgeneric-engine (method args doc-string)
+  "Engine part to defgeneric macro"
+  (let ((lambda-form
+	 (list 'lambda '(&rest local-args)
+	       doc-string
+	       (list 'let (list (list 'eieio-generic-args 
+				      (list 'quote args)))
+		     ;; Call generic master with method as first
+		     ;; argument, and args as continuing arguments
+		     (list 'eieio-generic-call 
+			   (list 'quote method) 
+			   'local-args)))))
+    (if (and (fboundp method) (not (generic-p method)))
+	(error "You cannot create a generic/method over an existing symbol"))
+    (fset method lambda-form)
+    ;; Tag it so we have a safty net before overwriting emacs internals
+    (put method 'eieio-generic t)
+    'method))
+
+(defmacro defmethod (method &rest args)
+  "Creates a new METHOD through `defgeneric' and adds the apropriate
+qualifiers to the symbol METHOD.  ARGS lists any keys (such as :BEFORE
+or :AFTER, it's checked for the arglst, and docstring, and eventually
+the body, such as: 
+
+  (defmethod mymethod [:BEFORE | :AFTER] (args)
+    doc-string
+    body)"
+  (list 'defmethod-engine
+	(list 'quote method)
+	(list 'quote args)))
+
+(defun defmethod-engine (method args)
+  "Workpart of the defmethod macro"
+  (let ((key nil) (body nil) (bindsym nil) (firstarg nil) (typesym nil)
+	(argfix nil) loopa)
+    ;; find optional keys
+    (if (or (eq ':BEFORE (car args))
+	    (eq ':AFTER (car args)))
+	(setq key (car args)
+	      args (cdr args))
+      (setq key ':PRIMARY)) 
+    ;; get body, and fix contents of args to be the arguments of the fn.
+    (setq body (cdr args)
+	  args (car args))
+    (setq loopa args)
+    ;; Create a fixed version of the arguments
+    (while loopa
+      (setq argfix (cons (if (listp (car loopa)) (car (car loopa)) (car loopa))
+			 argfix))
+      (setq loopa (cdr loopa)))
+    ;; make sure there is a generic
+    (if (not (fboundp method))
+	(defgeneric-engine method args 
+	  (if (stringp (car body)) 
+	      (car body) (format "Generically created method %s" method))))
+    ;; create symbol for property to bind to.  If the first arg is of
+    ;; the form (varname vartype) and `vartype' is a class, then
+    ;; that class will be the type symbol.  If not, then it will fall
+    ;; under the type `primary' which is a non-specific calling of the
+    ;; function.
+    (setq firstarg (car args))
+    (if (and (listp firstarg) (class-p (nth 1 firstarg)))
+	(setq typesym (symbol-name (aref (class-v (nth 1 firstarg)) 1)))
+      (setq typesym "generic"))
+    (setq bindsym (intern (concat (symbol-name key) "-" typesym)))
+    ;; Put this lambda into the symbol so we can find it
+    (put method bindsym 
+	 (append
+	  (list 'lambda (reverse argfix))
+	  body)))
+  method)
+
+;;;
+;;; Get/Set slots in an object.  `setf' should be used, but that
+;;;                              requires that `cl' be loaded.
+;;;
 (defmacro oref (obj field)
-  "Macro which translates an OREF directly into an AREF.  You can't change
-a structure without re-evaluating all functions which reference that object!"
-  (let* ((obj-val (eval obj))
-	 (c (eieio-field-name-index (aref obj-val 1) field)))
-    (if (not c) (error "Named field %s does not occur in %s" 
-		       field (object-name obj-val)))
-    (list 'aref obj c)))
+  "Macro calling oref-engine with the quote inserted before field."
+  (list 'oref-engine obj (list 'quote field)))
 
-;(defmacro oref-old (obj field)
-;  "Macro calling oref-engine with the quote inserted before field."
-;  (list 'oref-engine obj (list 'quote field)))
-
-;; This is the old style which happens to match slot-value from CLOS
 (defun oref-engine (obj field)
   "Return the value in OBJ at FIELD in the object vector."
   (let ((c (eieio-field-name-index (aref obj 1) field)))
@@ -407,17 +512,9 @@ represent the actual stored value."
 	val))))
 
 (defmacro oset (obj field value)
-  "Set the value in OBJ at FIELD to be VALUE, and return VALUE."
-  (let* ((obj-val (eval obj))
-	 (c (eieio-field-name-index (aref obj-val 1) field)))
-    (if (not c) (error "Named field %s does not occur in %s" 
-		       field (object-name obj-val)))
-    (list 'aset obj c value)))
+  "Macro calling oset-engine with the quote inserted before field."
+  (list 'oset-engine obj (list 'quote field) value))
 
-; old macros for oset.. now calculations occur in macro speeding up runtime
-;(defmacro oset-old (obj field value)
-;  "Macro calling oset-engine with the quote inserted before field."
-;  (list 'oset-engine obj (list 'quote field) value))
 (defun oset-engine (obj field value)
   "Set the value in OBJ at FIELD to be VALUE, and return VALUE."
   (let ((c (eieio-field-name-index (aref obj 1) field)))
@@ -428,14 +525,16 @@ represent the actual stored value."
 (defmacro ocall (obj method &rest args)
   "For the given OBJ, call the METHOD associated with it using ARGS as
 the arguments used to call it."
-  (list 'ocall-engine obj (object-class (symbol-value obj))
-	(list 'quote method) (list 'quote args)))
+  (let ((tempvar (make-symbol "objval")))
+    (list 'let (list (list tempvar obj))
+	  (list 'ocall-engine tempvar (list 'object-class tempvar)
+		(list 'quote method) (list 'quote args)))))
 
 (defmacro ocall-parent (&rest args)
   "For the currently active object (stored in THIS) call the currently
 running method (stored conveniently in METHOD) on the parent class of
 the current methods class (currently stored in scoped-class)"
-  (list 'ocall-engine this (class-parent scoped-class) 'method
+  (list 'ocall-engine this (list 'class-parent 'scoped-class) 'method
 	(list 'quote args)))
 
 (defun ocall-engine (obj class method args)
@@ -527,6 +626,10 @@ with the list of arguments ARGS."
   (or (equal child class) 
       (and (aref (class-v child) 3) (child-of-class-p (aref (class-v child) 3) class))))
 
+(defun generic-p (method)
+  "Return `t' if symbol METHOD is a generic function"
+  (and (fboundp method) (get method 'eieio-generic)))
+
 
 ;;;
 ;;; EIEIO internal search functions
@@ -575,6 +678,62 @@ with the list of arguments ARGS."
 		c))
 	  nil)
       c)))
+
+;;;
+;;; CLOS generics internal function handling
+;;;
+(defun eieio-generic-call (method args)
+  "Do the hard work of looking up which method to call out of all
+available methods which may be programmed in."
+  ;; We must expand our arguments first as they are always
+  ;; passed in as quoted symbols
+  (let ((newargs nil) (forms nil) (mclass nil)  (lambdas nil))
+    ;; evaluate the arguments BEFORE changing THIS and SCOPED CLASS
+    (while args
+      (setq newargs (cons (eval (car args)) newargs)
+	    args (cdr args)))
+    ;; fix the order
+    (setq newargs (reverse newargs))
+    ;; lookup the forms to use
+    (if (object-p (car newargs))
+	(setq mclass (object-class (car newargs))))
+    ;; Now create a list in reverse order of all the calls we have
+    ;; make in order to successfully do this right
+    (setq lambdas (cons (eieio-generic-form method ":AFTER-" nil) lambdas))
+    (if mclass
+	(setq lambdas (cons (eieio-generic-form method ":AFTER-" mclass)
+			    lambdas)))
+    (setq lambdas (cons (eieio-generic-form method ":PRIMARY-" nil) lambdas))
+    (if mclass
+	(setq lambdas (cons (eieio-generic-form method ":PRIMARY-" mclass)
+			    lambdas)))
+    (setq lambdas (cons (eieio-generic-form method ":BEFORE-" nil) lambdas))
+    (if mclass
+	(setq lambdas (cons (eieio-generic-form method ":BEFORE-" mclass)
+			    lambdas)))
+    ;; Now loop through all occurances forms which we must execute
+    ;; (which are happilly sorted now) and execute them all!
+    (let ((rval nil))
+      (while lambdas
+	(if (car lambdas)
+	    (setq rval (apply (car lambdas) newargs)))
+	(setq lambdas (cdr lambdas)))
+      rval)))
+
+(defun eieio-generic-form (method tag class)
+ "Return the lambda form belonging to METHOD using TAG based upon
+CLASS.  If CLASS is not an class then use `generic' instead.  If class
+has no form, but has a parent class, then trace to that parent class"
+ (if (class-p class)
+     (let ((sym (intern (concat tag (symbol-name (aref (class-v class) 1))))))
+       (if (get method sym)
+	   (get method sym)
+	 (if (class-parent class)
+	     (eieio-generic-form method tag (class-parent class))
+	   nil)))
+   (if class
+       nil  ; if it has a value, but is not a class, this is a bug
+     (get method (intern (concat tag "generic"))))))
 
 ;;;
 ;;; Way to assign fields based on a list.  Used for constructors, or
@@ -751,6 +910,16 @@ the screen."
 	       )))
 	  )
 
+(add-hook 'edebug-setup-hook
+	  (lambda () 
+	    (def-edebug-spec defmethod
+	      (symbolp	                ; This is the methods symbol
+	       [ &optional symbolp ]    ; this is key :BEFORE etc
+	       lambda-list              ; arguments
+	       [ &optional stringp ]    ; documentation string
+	       def-body	                ; part to be debugged
+	       )))
+	  )
+
 ;;; end of lisp
 (provide 'eieio)
-
