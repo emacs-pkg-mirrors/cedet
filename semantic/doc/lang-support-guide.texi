@@ -1023,6 +1023,7 @@ non-regular languages, or external programs for speed.
 @menu
 * External Parsers::                   Writing an external parser
 * Grammar Programming Environment::    Using the grammar writing environemt
+* Grammar Framework: (grammar-fw.info).General grammar writing guide.
 * Bovine Parsers: (bovine.info).       Bovine grammar based parsers
 * Wisent Parsers: (wisent.info).       Wisent grammar based parsers
 @end menu
