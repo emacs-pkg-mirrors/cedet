@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.43 2001/08/04 21:01:49 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.44 2001/08/27 14:53:35 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -114,10 +114,42 @@
   :group 'semantic)
 
 (defcustom senator-minor-mode-name "Senator"
-  "*Name displayed in the modeline when senator minor mode is on."
-  :group 'senator
-  :type 'string)
+  "*Name displayed in the mode line when senator minor mode is on.
+If nil nothing is displayed in the mode line.  A space is
+automatically added at the beginning of this string.
 
+The value of this variable is used when Senator mode is turned on."
+  :group 'senator
+  :type '(choice
+          (const  :tag "none" nil)
+          (string :tag "name")))
+
+(defcustom senator-minor-mode-isearch-suffix "/is"
+  "*String appended to the mode name when senator isearch mode is on.
+If nil no suffix is added to the mode name.  Used only if
+`senator-minor-mode-name' is non-nil.
+
+The value of this variable is used when Senator mode is turned on."
+  :group 'senator
+  :type '(choice
+          (const  :tag "none" nil)
+          (string :tag "name")))
+
+(defcustom senator-minor-mode-hook nil
+  "Hook run at the end of function `senator-minor-mode'."
+  :group 'senator
+  :type 'hook)
+
+(defcustom senator-minor-mode-on-hook nil
+  "Hook called when senator minor mode is turned on."
+  :group 'senator
+  :type 'hook)
+  
+(defcustom senator-minor-mode-off-hook nil
+  "Hook called when senator minor mode is turned off."
+  :group 'senator
+  :type 'hook)
+  
 (defcustom senator-step-at-token-ids nil
   "*List of token identifiers where to step.
 Token identifier is symbol 'variable, 'function, 'type, or other.  If
@@ -1242,7 +1274,7 @@ That is remove the unsupported :help stuff."
 
 (defvar senator-menu-bar
   (list
-   senator-minor-mode-name
+   "Senator"
    (list
     "Navigate"
     (senator-menu-item
@@ -1559,29 +1591,26 @@ That is remove the unsupported :help stuff."
 
 (defun senator-show-status ()
   "Update the modeline to show the senator minor mode state.
-If `senator-isearch-semantic-mode' is non-nil append \"/si\" to
-the value of the variable `senator-minor-mode-name'."
-  (setq senator-mode (format (if senator-isearch-semantic-mode
-                                 " %s/si"
-                               " %s")
-                             senator-minor-mode-name))
+If `senator-isearch-semantic-mode' is non-nil append
+`senator-minor-mode-isearch-suffix' to the value of the variable
+`senator-minor-mode-name'."
+  (if (not (and senator-minor-mode senator-minor-mode-name))
+      (setq senator-mode "")
+    (setq senator-mode
+          (format " %s%s" senator-minor-mode-name
+                  (if senator-isearch-semantic-mode
+                      (or senator-minor-mode-isearch-suffix "")
+                    "")))
+;;; Emacs 21 goodies
+    (and (not (featurep 'xemacs))
+         (> emacs-major-version 20)
+         (setq senator-mode
+               (propertize senator-mode
+                           'help-echo "mouse-2: turn off Senator mode"
+                           'local-map (make-mode-line-mouse2-map
+                                       #'senator-mode-line-toggle)))))
   (force-mode-line-update))
 
-(defcustom senator-minor-mode-hook nil
-  "Hook run at the end of function `senator-minor-mode'."
-  :group 'senator
-  :type 'hook)
-
-(defcustom senator-minor-mode-on-hook nil
-  "Hook called when senator minor mode is turned on."
-  :group 'senator
-  :type 'hook)
-  
-(defcustom senator-minor-mode-off-hook nil
-  "Hook called when senator minor mode is turned off."
-  :group 'senator
-  :type 'hook)
-  
 (defvar senator-minor-mode nil
   "Non-nil if Senator minor mode is enabled.
 Use the command `senator-minor-mode' to change this variable.")
@@ -1595,8 +1624,11 @@ enabled parse the current buffer if needed.  Return non-nil if the
 minor mode is enabled."
   (if senator-minor-mode
       (if (not (and (featurep 'semantic) (semantic-active-p)))
-          ;; Disable minor mode if semantic stuff not available
-          (senator-minor-mode nil)
+          (progn
+            ;; Disable minor mode if semantic stuff not available
+            (setq senator-minor-mode nil)
+            (error "Buffer %s was not set up for parsing"
+                   (buffer-name)))
         ;; XEmacs needs this
         (if (featurep 'xemacs)
             (easy-menu-add senator-minor-menu senator-mode-map))
@@ -1670,6 +1702,29 @@ minor mode is enabled.
                   minor-mode-map-alist)))
     
   )
+
+;;; Emacs 21 goodies
+(and (not (featurep 'xemacs))
+     (> emacs-major-version 20)
+     (progn
+
+       ;; Add Senator to the the minor mode menu in the mode line
+       (define-key mode-line-mode-menu [senator-minor-mode]
+         `(menu-item "Senator" senator-minor-mode
+                     :button  (:toggle . senator-minor-mode)
+                     :visible (and (featurep 'semantic)
+                                   (semantic-active-p))))
+     
+       (defun senator-mode-line-toggle (event)
+         "Turn off `senator-minor-mode' from the mode-line.
+EVENT is a mouse click event."
+         (interactive "e")
+         (save-selected-window
+           (select-window (posn-window (event-start event)))
+           (senator-minor-mode)
+           (force-mode-line-update)))
+       
+       ))
 
 ;;;;
 ;;;; Useful advices
