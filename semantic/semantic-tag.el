@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.14 2003/04/02 04:26:47 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.15 2003/04/05 03:00:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -284,7 +284,7 @@ TYPE can be a string, or a token of class 'type."
 			      ((and (semantic-tag-p tagtype)
 				    (semantic-tag-of-class-p tagtype 'type))
 			       (semantic-tag-name tagtype))
-			      (t (error "Tag's type is unknown"))))
+			      (t nil)))
 	 (typestring (cond ((stringp type)
 			    type)
 			   ((and (semantic-tag-p type)
@@ -292,19 +292,21 @@ TYPE can be a string, or a token of class 'type."
 			    (semantic-tag-name type))
 			   (t (error "Type's type is unknown"))))
 	 )
-    (or
-     ;; Matching strings (input type is string)
-     (and (stringp type)
-	  (string= tagtypestring type))
-     ;; Matching strings (tag type is string)
-     (and (stringp tagtype)
-	  (string= tagtype typestring))
-     ;; Matching tokens, and the type of the type is the same.
-     (and (string= tagtypestring typestring)
-	  (if (and (semantic-tag-type tag) (semantic-tag-type type))
-	      (equal (semantic-tag-type tag) (semantic-tag-type type))
-	    t))
-     )
+    (and
+     tagtypestring
+     (or
+      ;; Matching strings (input type is string)
+      (and (stringp type)
+	   (string= tagtypestring type))
+      ;; Matching strings (tag type is string)
+      (and (stringp tagtype)
+	   (string= tagtype typestring))
+      ;; Matching tokens, and the type of the type is the same.
+      (and (string= tagtypestring typestring)
+	   (if (and (semantic-tag-type tag) (semantic-tag-type type))
+	       (equal (semantic-tag-type tag) (semantic-tag-type type))
+	     t))
+      ))
     ))
 
 ;;; Tag creation
@@ -542,6 +544,18 @@ That is the value of the attribute `const'."
 That is the value of the attribute `:system-flag'."
   (semantic-tag-get-attribute tag :system-flag))
 
+(define-overload semantic-tag-include-filename (tag)
+  "Return a filename representation of TAG.
+The default action is to return the `semantic-tag-name'.
+Some languages do not use full filenames in their include statements.
+Override this method to translate the code represenation
+into a filename.  (A relative filename if necessary.)")
+
+(defun semantic-tag-include-filename-default (tag)
+  "Return a filename representation of TAG.
+Returns `semantic-tag-name'."
+  (semantic-tag-name tag))
+
 ;;; Tags of class `code'
 ;;
 (defsubst semantic-tag-code-detail (tag)
@@ -569,7 +583,7 @@ Perform the described task in `semantic-tag-components'."
 	(t nil)))
 
 ;;;###autoload
-(define-overload semantic-tag-components-with-overlays (tag &rest ignore)
+(define-overload semantic-tag-components-with-overlays (tag)
   "Return the list of top level components belonging to TAG.
 Children are any sub-tags which contain overlays.
 
@@ -582,7 +596,7 @@ you should still return them with this function.
 Ignoring this step will prevent several features from working correctly."
   )
 
-(defun semantic-tag-components-with-overlays-default (tag &rest ignore)
+(defun semantic-tag-components-with-overlays-default (tag)
   "Return the list of top level components belonging to TAG.
 Children are any sub-tags which contain overlays.
 The default action collects regular components of TAG, in addition
