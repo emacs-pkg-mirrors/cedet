@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.148 1999/05/23 13:27:27 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.149 1999/05/27 01:44:30 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -1752,18 +1752,22 @@ it from the speedbar buffer."
 nil if not applicable."
   (save-excursion
     (beginning-of-line)
-    (if (re-search-forward " [-+=]?> \\([^ ]+\\)"
+    (if (re-search-forward " [-+=]?> \\([^\n]+\\)"
 			   (save-excursion(end-of-line)(point)) t)
 	(let ((tag (match-string 1))
+	      (attr (speedbar-line-token))
 	      (item nil))
-	  (looking-at "\\([0-9]+\\):")
-	  (setq item (file-name-nondirectory (speedbar-line-path)))
-	  (speedbar-message "Tag: %s  in %s" tag item))
+	  (if (and (featurep 'semantic) (semantic-token-p attr))
+	      (speedbar-message (semantic-summerize-nonterminal attr))
+	    (looking-at "\\([0-9]+\\):")
+	    (setq item (file-name-nondirectory (speedbar-line-path)))
+	    (speedbar-message "Tag: %s  in %s" tag item)))
       (if (re-search-forward "{[+-]} \\([^\n]+\\)$"
 			     (save-excursion(end-of-line)(point)) t)
 	  (speedbar-message "Group of tags \"%s\"" (match-string 1))
 	(if (re-search-forward " [+-]?[()|@] \\([^\n]+\\)$" nil t)
-	    (let ((detail (match-string 1))
+	    (let* ((detailtext (match-string 1))
+		   (detail (or (speedbar-line-token) detailtext))
 		  (parent (save-excursion
 			    (beginning-of-line)
 			    (let ((dep (if (looking-at "[0-9]+:")
@@ -1774,11 +1778,18 @@ nil if not applicable."
 							   ":")
 						  nil t))
 			    (if (looking-at "[0-9]+: +[-+=>]> \\([^\n]+\\)$")
-				(match-string 1)
+				(speedbar-line-token)
 			      nil))))
-	      (if parent
-		  (speedbar-message "Detail: %s of tag %s" detail parent)
-		(speedbar-message "Detail: %s of a tag." detail)))
+	      (if (and (featurep 'semantic) (semantic-token-p detail))
+		  (speedbar-message
+		   (semantic-summerize-nonterminal detail parent))
+		(if parent
+		    (speedbar-message "Detail: %s of tag %s" detail
+				      (if (and (featurep 'semantic)
+					       (semantic-token-p parent))
+					  (semantic-token-name parent)
+					parent))
+		  (speedbar-message "Detail: %s" detail))))
 	  nil)))))
 
 (defun speedbar-files-item-info ()
@@ -3216,12 +3227,12 @@ Optional argument P is where to start the search from."
     (if p (goto-char p))
     (beginning-of-line)
     (if (looking-at (concat
-		     "\\([0-9]+\\): *[[<{][-+?][]>}] \\([^ \n]+\\)\\("
+		     "\\([0-9]+\\): *[[<{]?[-+?=][]>}@()|] \\([^ \n]+\\)\\("
 		     speedbar-indicator-regex "\\)?"))
 	(progn
 	  (goto-char (match-beginning 2))
 	  (get-text-property (point) 'speedbar-token))
-      nil)))	  
+      nil)))
 
 (defun speedbar-line-file (&optional p)
   "Retrieve the file or whatever from the line at P point.
