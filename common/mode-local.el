@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.2 2004/05/12 16:47:56 ponced Exp $
+;; X-RCS: $Id: mode-local.el,v 1.3 2004/06/24 08:05:31 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -46,8 +46,19 @@
 
 ;;; Compatibility
 ;;
-(when (featurep 'xemacs)
-  ;; In Xemacs, workaround a bug in some versions of
+(defun mode-local-define-derived-mode-needed-p ()
+  "Return non-nil if mode local has to fix `define-derived-mode'.
+That is, if `define-derived-mode' does not set `derived-mode-parent'."
+  (let ((body (cdr (macroexpand '(define-derived-mode c p ""))))
+        (bad t))
+    (while (and body bad)
+      (if (equal (car body) '(put 'c 'derived-mode-parent 'p))
+          (setq bad nil)
+        (setq body (cdr body))))
+    bad))
+
+(when (mode-local-define-derived-mode-needed-p)
+  ;; Workaround a bug in some (XEmacs) versions of
   ;; `define-derived-mode' that don't set the `derived-mode-parent'
   ;; property, and break mode-local.
   (defadvice define-derived-mode
@@ -102,6 +113,14 @@ The current buffer is the newly created file buffer.")
 (defvar mode-local-changed-mode-buffers nil
   "List of buffers whose `major-mode' has changed recently.")
 
+(defvar mode-local--init-mode nil)
+
+(defsubst mode-local-initialized-p ()
+  "Return non-nil if mode local is initialized in current buffer.
+That is, if the current `major-mode' is equal to the major mode for
+which mode local bindings have been activated."
+  (eq mode-local--init-mode major-mode))
+
 (defun mode-local-post-major-mode-change ()
   "`post-command-hook' run when there is a `major-mode' change.
 This makes sure mode local init type stuff can occur."
@@ -113,7 +132,9 @@ This makes sure mode local init type stuff can occur."
          ;; Make sure variables are set up for this mode.
          (activate-mode-local-bindings)
          (run-hooks 'mode-local-init-hook))
-     nil buffers)))
+     #'(lambda ()
+         (not (mode-local-initialized-p)))
+     buffers)))
 
 (defun mode-local-on-major-mode-change ()
   "Function called in `change-major-mode-hook'."
@@ -273,7 +294,9 @@ That is, copy mode local bindings into corresponding buffer local
 variables.
 If MODE is not specified it defaults to current `major-mode'."
   (let (modes table)
-    (or mode (setq mode major-mode))
+    (unless mode
+      (set (make-local-variable 'mode-local--init-mode) major-mode)
+      (setq mode major-mode))
     ;; Get MODE's parents & MODE in the right order.
     (while mode
       (setq modes (cons mode modes)
@@ -293,7 +316,9 @@ If MODE is not specified it defaults to current `major-mode'."
 That is, kill buffer local variables set from the corresponding mode
 local bindings.
 If MODE is not specified it defaults to current `major-mode'."
-  (or mode (setq mode major-mode))
+  (unless mode
+    (kill-local-variable 'mode-local--init-mode)
+    (setq mode major-mode))
   (let (table)
     (while mode
       (when (setq table (get mode 'mode-local-symbol-table))
