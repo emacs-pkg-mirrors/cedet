@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.24 2004/02/05 01:38:28 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.25 2004/02/05 03:18:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -626,24 +626,27 @@ a reasonable distance."
   (let ((s (semantic-overlay-start semantic-complete-inline-overlay))
 	(e (semantic-overlay-end semantic-complete-inline-overlay))
 	(b (semantic-overlay-buffer semantic-complete-inline-overlay))
-	(txt (semantic-completion-text))
+	(txt nil)
 	)
-    (if (or (not (eq b (current-buffer)))
-	    (< (point) s)
-	    (> (point) e))
-	(progn
-	  ;;(message "Exit: %S %S %S" s e (point))
-	  (semantic-complete-inline-exit)
-	  ))
-    ;; Exit if the user typed in a character that is not part
-    ;; of the symbol being completed.
-    (if (and (not (string= txt ""))
-	     (save-excursion
-	       (forward-char -1)
-	       (not (looking-at "\\(\\w\\|\\s_\\)"))))
-	(progn
-	  ;;(message "Non symbol character.")
-	  (semantic-complete-inline-exit))
+    (cond
+     ;; EXIT when we are no longer in a good place.
+     ((or (not (eq b (current-buffer)))
+	  (< (point) s)
+	  (> (point) e))
+      ;;(message "Exit: %S %S %S" s e (point))
+      (semantic-complete-inline-exit)
+      )
+     ;; Exit if the user typed in a character that is not part
+     ;; of the symbol being completed.
+     ((and (setq txt (semantic-completion-text))
+	   (not (string= txt ""))
+	   (and (/= (point) s)
+		(save-excursion
+		  (forward-char -1)
+		  (not (looking-at "\\(\\w\\|\\s_\\)")))))
+      ;;(message "Non symbol character.")
+      (semantic-complete-inline-exit))
+     (t
       ;; Else, show completions now
       (condition-case e
 	  (save-excursion
@@ -662,7 +665,7 @@ a reasonable distance."
 	      ))
 	(error (message "Bug Showing Completions: %S" e)))
     
-      )))
+      ))))
 
 (defun semantic-complete-inline-tag-engine
   (collector displayor buffer start end)
@@ -1374,11 +1377,12 @@ if `force-show' is 0, this value is always ignored.")
       ;; If we cannot use tooltips, then go to the normal mode with
       ;; a traditional completion buffer.
       (call-next-method)
-    (let* ((l (mapcar semantic-completion-displayor-format-tag-function
-		      (semanticdb-strip-find-results (oref obj table))))
+    (let* ((table (semanticdb-strip-find-results (oref obj table)))
+	   (l (mapcar semantic-completion-displayor-format-tag-function table))
 	   (ll (length l))
 	   (typing-count (oref obj typing-count))
 	   (force-show (oref obj force-show))
+	   (matchtxt (semantic-completion-text))
 	   msg)
       (if (or (oref obj shown)
 	      (< ll (oref obj max-tags))
@@ -1388,18 +1392,36 @@ if `force-show' is 0, this value is always ignored.")
 	    (oset obj typing-count 0)
 	    (oset obj shown t)
 	    (if (eq 1 ll)
-		(setq msg "SOLE COMPLETION")
+		;; We Have only one possible match.  There could be two cases.
+		;; 1) input text != single match.
+		;;    --> Show it!
+		;; 2) input text == single match.
+		;;   --> Complain about it, but still show the match.
+		(if (string= matchtxt (semantic-tag-name (car table)))
+		    (setq msg (concat "[COMPLETE]\n" (car l)))
+		  (setq msg (car l)))
+	      ;; Create the long message.
 	      (setq msg (mapconcat 'identity l "\n"))
+	      ;; If there is nothing, say so!
 	      (if (eq 0 (length msg))
-		  (setq msg "NO MORE COMPLETIONS")))
+		  (setq msg "[NO MATCH]")))
 	    (semantic-displayor-tooltip-show msg))
-	(oset obj typing-count (1+ typing-count))
+	;; The typing count determines if the user REALLY REALLY
+	;; wanted to show that much stuff.  Only increment
+	;; if the current command is a completion command.
+	(if (and (stringp (this-command-keys))
+		 (string= (this-command-keys) "\C-i"))
+	    (oset obj typing-count (1+ typing-count)))
+	;; At this point, we know we have too many items.
+	;; Lets be brave, and truncate l
+	(setcdr (nthcdr (oref obj max-tags) l) nil)
+	(setq msg (mapconcat 'identity l "\n"))
 	(cond
 	 ((= force-show -1)
-	  (semantic-displayor-tooltip-show "TOO MANY"))
+	  (semantic-displayor-tooltip-show (concat msg "\n...")))
 	 ((= force-show 1)
-	  (semantic-displayor-tooltip-show
-	   "TOO MANY (Type TAB or SPACE again to show force)")))))))
+	  (semantic-displayor-tooltip-show (concat msg "\n(TAB for more)")))
+	 )))))
 
 (defun semantic-displayor-tooltip-show (text)
   "Display a tooltip with TEXT near cursor."
