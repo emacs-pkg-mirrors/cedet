@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.37 2000/12/05 03:36:54 zappo Exp $
+@c $Id: eieio.texi,v 1.38 2001/01/10 06:52:59 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -990,6 +990,8 @@ is possible to use several features at the same time.
 @comment  node-name,  next,  previous,  up
 @section @code{eieio-instance-inheritor}
 
+This class is in package @file{eieio-base}.
+
 Instance inheritance is a mechanism whereby the value of a slot in
 object instance can reference the parent instance.  If the parent's slot
 value is changed, then the child instance is also changed.  If the
@@ -1016,6 +1018,8 @@ parent instance.  If the parent slot is also unbound, then
 
 @node eieio-instance-tracker, eieio-persistent, eieio-instance-inheritor, Base Classes
 @comment  node-name,  next,  previous,  up
+
+This class is in package @file{eieio-base}.
 
 Sometimes it is useful to keep a master list of all instances of a given
 class.  The class @code{eieio-instance-tracker} performs this task.
@@ -1051,9 +1055,15 @@ list of objects to be searched.
 @comment  node-name,  next,  previous,  up
 @section @code{eieio-persistent}
 
+This class is in package @file{eieio-base}.
+
 If you want an object, or set of objects to be persistent, meaning the
 slot values are important to keep saved between sessions, then you will
 want your top level object to inherit from @code{eieio-persistent}.
+
+To make sure your persistent object can be moved, make sure all file
+names stored to disk are made relative with
+@code{eieio-persistent-path-relative}.
 
 @deftp {Class} eieio-persistent file file-header-line
 Enables persistence for instances of this class.
@@ -1093,6 +1103,8 @@ previously written with @code{eieio-persistent-save}.
 @node eieio-speedbar, , eieio-persistent, Base Classes
 @comment  node-name,  next,  previous,  up
 @section @code{eieio-speedbar}
+
+This class is in package @file{eieio-speedbar}.
 
 If a series of class instances map to a tree structure, it is possible
 to cause your classes to be displayable in Speedbar. @xref{Top(speedbar)}.
