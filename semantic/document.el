@@ -1,10 +1,10 @@
-;;; document.el --- Use the bovinator to aid in generating documentation.
+;;; document.el --- Use the semantic parser to generate documentation.
 
 ;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.24 2004/03/11 12:25:32 ponced Exp $
+;; X-RCS: $Id: document.el,v 1.25 2004/03/19 23:36:11 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -85,7 +85,7 @@ When non-nil, query for a new documentation file."
 		     (list (document-locate-file
 			    (current-buffer) t)))))
   ;; First, garner some information from Semantic.
-  (semantic-bovinate-toplevel t)
+  (semantic-fetch-tags)
   (let ((cdi (semantic-brute-find-tag-by-position (point) (current-buffer)))
 	(cdib (current-buffer)))
     ;; Make sure we have a file.
@@ -104,7 +104,7 @@ When non-nil, query for a new documentation file."
 (defun document-inline ()
   "Document the current function with an inline comment."
   (interactive)
-  (semantic-bovinate-toplevel t)
+  (semantic-fetch-tags)
   (let ((cf (semantic-brute-find-tag-by-position (point) (current-buffer))))
     (document-insert-defun-comment cf (current-buffer))))
 
@@ -172,7 +172,7 @@ When non-nil, query for a new documentation file."
   (let ((comment (semantic-documentation-for-tag tag 'lex)))
     (save-excursion
       (document-update-paramlist tag comment))
-    (semantic-bovinate-toplevel t)
+    (semantic-fetch-tags)
     (let ((ct (semantic-brute-find-tag-by-position
 	       (point) (current-buffer))))
       (setq comment (semantic-documentation-for-tag tag 'lex))
