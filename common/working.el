@@ -1,6 +1,6 @@
 ;;; working --- Display a "working" message in the minibuffer.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.4
@@ -367,8 +367,9 @@ macro `working-status-forms'."
 		     (frame-parameter (selected-frame) 'minibuffer))
 		    ((fboundp 'frame-property)
 		     (frame-property (selected-frame) 'minibuffer))))
-	 (fr (if (and mbw (not (eq mbw t)))
-		 (window-frame mbw) default-minibuffer-frame)))
+	 (fr (if (windowp mbw)
+		 (window-frame mbw)
+	       default-minibuffer-frame)))
     (frame-width fr)))
 
 ;;; Percentage display types.
