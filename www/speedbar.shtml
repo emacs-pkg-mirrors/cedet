@@ -97,6 +97,8 @@ Different Modes for Speedbar
     VHDL mode</a> has a very fancy class browser for VHDL files.
 <li><a href="http://xslt-process.sourceforge.net/index.php">
     XSLT-process</a> for Emacs provides XSLT file browsing.
+<li><a href="http://mh-e.sourceforge.net/">
+    MH-E</a> displays mail folders and message counts.
 <li><a href="http://sourceforge.net/projects/xslide">XSlide</a>
     uses imenu to display tags from XSL stylesheets.
 <li><a href="http://www.obermuhlner.com/public/Projects/Palm/pilrc-mode">
