@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.9 1999/09/05 19:45:55 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.10 1999/09/06 09:09:03 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -123,7 +123,7 @@ Argument LEVEL is the current level of recursion we have hit."
       (insert "@table @code\n@item "
 	      (if (and (child-of-class-p (car revlist) root-class)
 		       (not (eq class (car revlist))))
-		  (concat "@w{@xref{" (symbol-name (car revlist)) "}}")
+		  (concat "@w{@xref{" (symbol-name (car revlist)) "}.}")
 		(symbol-name (car revlist)))
 	      "\n")
       (setq revlist (cdr revlist)
@@ -134,8 +134,9 @@ Argument LEVEL is the current level of recursion we have hit."
 	  (insert "No children")
 	(insert "@table @asis\n@item Children:\n")
 	(while clist
-	  (insert "@w{@xref{" (symbol-name (car clist)) "}}")
-	  (if (cdr clist) (insert ", "))
+	  (insert "@w{@xref{" (symbol-name (car clist)) "}")
+	  (if (cdr clist) (insert ",") (insert "."))
+	  (insert "} ")
 	  (setq clist (cdr clist)))
 	(insert "\n@end table\n")
 	))
@@ -199,7 +200,7 @@ validation is done on that slot."
 	  ;; default differs only, xref the parent
 	  ;; This should be upgraded to actually search for the last
 	  ;; differing default (or the original.)
-	  (insert "@xref{" (symbol-name (class-parent class)) "}\n")
+	  (insert "@xref{" (symbol-name (class-parent class)) "}.\n")
 	(insert (if doc (eieiodoc-texify-docstring doc class) "Not Documented")
 		"\n@refill\n\n")))
     set-me))
@@ -276,7 +277,7 @@ that class.
 				 "@dfn{" "@code{")
 			     vs "}"
 			     (if (and (class-p v) (not (eq v class)))
-				 (concat " @xref{" vs "}")))
+				 (concat " @xref{" vs "}.")))
 			    nil t string)))))
   (while (string-match "\\( \\|^\\)\\(nil\\|t\\|'[-a-zA-Z0-9]+\\|:[-a-zA-Z0-9]+\\)\\([ ,]\\|$\\)" string)
     (setq string (replace-match "@code{\\2}" t nil string 2)))
