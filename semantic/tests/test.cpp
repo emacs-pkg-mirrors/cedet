@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.3 2001/08/17 21:22:59 zappo Exp $
+ * $Id: test.cpp,v 1.4 2001/09/14 20:35:59 zappo Exp $
  *
  */
 
@@ -103,6 +103,10 @@ void *class3::method4_for_class3( int a, int b) reentrant
 {
 }
 
+void *class3::method5_for_class3( int a, int b) const
+{
+}
+
 /* Namespaces */
 namespace namespace1 {
   void ns_method1() { }
@@ -118,5 +122,9 @@ namespace namespace1 {
     
 }
 
-
-
+/* Initializers */
+void tinitializers1(): inita1(False),
+		       inita2(False)
+{
+  inita1= 1;
+}
