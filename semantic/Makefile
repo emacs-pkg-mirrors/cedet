@@ -9,15 +9,17 @@
 top=
 ede_FILES=Project.ede Makefile
 
+metagrammar_SEMANTIC_GRAMMAR=semantic-grammar.wy
 EMACS=emacs
-LOADPATH=../common/ ../eieio/ ../ede/ wisent/ bovine/\
-   ../common/ ../speedbar/ ../ede/ ../eieio/\
+LOADPATH=../common/ ./ ../eieio/ ../common/\
+   ../eieio/ ../ede/ wisent/ bovine/ ../common/ ../speedbar/ ../ede/ ../eieio/\
    
+metagrammar_SAMENATIC_GRAMMAR_EL=semantic-grammar-wy.el
+EMACS=emacs
 LOADDEFS=semantic-loaddefs.el
 LOADDIRS=. bovine wisent
 maintenance_LISP=semantic-ede-grammar.el
 EMACS=emacs
-wy_MISC=semantic-grammar.wy
 scripts_MISC=semanticdb.sh
 example_MISC=semantic-example.el
 init_LISP=semantic-load.el
@@ -31,7 +33,17 @@ DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: autoloads wy scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
+all: metagrammar autoloads scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
+
+.PHONY: metagrammar
+metagrammar: autoloads $(metagrammar_SEMANTIC_GRAMMAR)
+	@echo "(add-to-list 'load-path nil)" > grammar-make-script
+	@for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> grammar-make-script; \
+	done;
+	@echo "(require 'semantic-load)" >> grammar-make-script
+	@echo "(require 'semantic-grammar)" >> grammar-make-script
+	${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $(metagrammar_SEMANTIC_GRAMMAR)
 
 .PHONY: autoloads
 autoloads: 
@@ -50,9 +62,6 @@ maintenance: $(maintenance_LISP)
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
-
-wy: 
-	@
 
 scripts: 
 	@
@@ -133,9 +142,9 @@ clean:
 
 .PHONY: dist
 
-dist:
+dist: $(metagrammar_SAMENATIC_GRAMMAR_EL)
 	mkdir $(DISTDIR)
-	cp $(LOADDEFS) $(maintenance_LISP) $(wy_MISC) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
+	cp $(metagrammar_SEMANTIC_GRAMMAR) $(metagrammar_SAMENATIC_GRAMMAR_EL) $(LOADDEFS) $(maintenance_LISP) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/wisent dist
 	cd tests; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/tests dist
 	cd doc; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/doc dist
