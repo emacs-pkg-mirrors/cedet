@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.102 2001/05/16 02:01:45 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.103 2001/05/29 15:06:02 ponced Exp $
 
 (defvar semantic-version "1.4beta5"
   "Current version of Semantic.")
@@ -895,6 +895,30 @@ the current results on a parse error."
 	    (working-dynamic-status))))
     result))
 
+(defun semantic-remove-dirty-children-internal (token dirties)
+  "Remove TOKEN children from DIRTIES.
+Return the new value of DIRTIES."
+  (if dirties
+      (let ((children (semantic-nonterminal-children token t))
+            child)
+        (while (and children dirties)
+          (setq child (car children)
+                children (cdr children)
+                dirties  (semantic-remove-dirty-children-internal
+                          child (delq child dirties))))))
+  dirties)
+
+(defun semantic-remove-dirty-children (token)
+  "Remove TOKEN children from the list of dirty tokens.
+This must be done before deoverlaying TOKEN.  At this point (when
+called by `semantic-rebovinate-token') TOKEN is the first element of
+`semantic-dirty-tokens' so only the rest of `semantic-dirty-tokens' is
+considered."
+  (setq semantic-dirty-tokens
+        (cons (car semantic-dirty-tokens)
+              (semantic-remove-dirty-children-internal
+               token (cdr semantic-dirty-tokens)))))
+
 (defun semantic-rebovinate-token (token)
   "Use TOKEN for extents, and reparse it, splicing it back into the cache."
   (let* ((flexbits (semantic-flex (semantic-token-start token)
@@ -943,6 +967,8 @@ the current results on a parse error."
           (semantic-overlay-put o 'old-face (semantic-overlay-get oo 'old-face))
           (semantic-overlay-put o 'intangible (semantic-overlay-get oo 'intangible))
           (semantic-overlay-put o 'invisible (semantic-overlay-get oo 'invisible))
+          ;; Remove TOKEN children from `semantic-dirty-tokens'
+          (semantic-remove-dirty-children token)
           ;; Free the old overlay(s)
           (semantic-deoverlay-token token)
           ;; Recover properties
