@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.13 2004/03/01 01:14:03 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.14 2004/03/01 01:33:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -215,6 +215,7 @@ COLOR specifies if color should be used."
 
 ;;; Data Type
 ;;
+;;;###autoload
 (define-overload semantic-format-tag-type (tag color)
   "Convert the data type of TAG to a string usable in tag formatting.
 It is presumed that TYPE is a string or semantic tag.")
