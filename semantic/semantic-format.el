@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.17 2004/03/19 23:51:26 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.18 2004/06/24 00:50:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,7 +66,7 @@ COLOR indicates that the generated text should be colored using
 ;;;###autoload
 (semantic-varalias-obsolete 'semantic-token->text-functions
                             'semantic-format-tag-functions)
-
+;;;###autoload
 (defvar semantic-format-tag-custom-list
   (append '(radio)
 	  (mapcar (lambda (f) (list 'const f))
