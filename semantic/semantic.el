@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.26 2000/04/23 15:34:53 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.27 2000/04/25 14:45:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -450,36 +450,49 @@ stripped from the main list of synthesized tokens."
       (if semantic-dump-parse (semantic-dump-buffer-init))
       ;; Parse!
       (working-status-forms "Scanning" "done"
-	(while ss
-	  (if (not (and trashcomments (eq (car (car ss)) 'comment)))
-	      (let ((nontermsym
-		     (semantic-bovinate-nonterminal
-		      ss semantic-toplevel-bovine-table))
-		    (tmpet nil))
-		(if (not nontermsym)
-		    (error "Parse error @ %d" (car (cdr (car ss)))))
-		(if (car (cdr nontermsym))
-		    (progn
-		      (if semantic-expand-nonterminal
-			  (setq tmpet (funcall semantic-expand-nonterminal
-					       (car (cdr nontermsym)))))
-		      (if (not tmpet)
-			  (setq tmpet (list (car (cdr nontermsym)))))
-		      (setq res (append tmpet res)))
-					;(error "Parse error")
-		  )
-		;; Designated to ignore.
-		(setq ss (car nontermsym)))
-	    (setq ss (cdr ss)))
-	  (working-status
-	   (if ss
-	       (floor
-		(* 100.0 (/ (float (car (cdr (car ss))))
-			    (float (point-max)))))
-	     100)))
+	(setq res 
+	      (semantic-bovinate-nonterminals ss 'bovine-toplevel
+					      depth trashcomments))
 	(working-status t))
       (setq semantic-toplevel-bovine-cache (list (nreverse res) (point-max)))
       (car semantic-toplevel-bovine-cache)))))
+
+(defun semantic-bovinate-nonterminals (stream nonterm &optional
+					      depth trashcomments)
+  "Bovinate the entire stream STREAM starting with NONTERM.
+DEPTH is optional, and defaults to 0.
+Optional argument TRASHCOMMENTS indicates that comments should be
+stripped from the main list of synthesized tokens."
+  (if (not depth) (setq depth 0))
+  (let ((result nil))
+    (while stream
+      (if (not (and trashcomments (eq (car (car stream)) 'comment)))
+	  (let ((nontermsym
+		 (semantic-bovinate-nonterminal
+		  stream semantic-toplevel-bovine-table nonterm))
+		(tmpet nil))
+	    (if (not nontermsym)
+		(error "Parse error @ %d" (car (cdr (car stream)))))
+	    (if (car (cdr nontermsym))
+		(progn
+		  (if semantic-expand-nonterminal
+		      (setq tmpet (funcall semantic-expand-nonterminal
+					   (car (cdr nontermsym)))))
+		  (if (not tmpet)
+		      (setq tmpet (list (car (cdr nontermsym)))))
+		  (setq result (append tmpet result)))
+					;(error "Parse error")
+	      )
+	    ;; Designated to ignore.
+	    (setq stream (car nontermsym)))
+	(setq stream (cdr stream)))
+      (working-status
+       (if stream
+	   (floor
+	    (* 100.0 (/ (float (car (cdr (car stream))))
+			(float (point-max)))))
+	 100)))
+    result))
 
 ;;; Behavioral APIs
 ;;
@@ -921,6 +934,20 @@ a START and END part."
 	       table
 	       nonterm)))
     (car (cdr ans))))
+
+(defun semantic-bovinate-from-nonterminal-full (start end nonterm &optional depth)
+  "Bovinate from within a nonterminal lambda from START to END.
+Depends on the existing environment created by `semantic-bovinate-stream'.
+Argument NONTERM is the nonterminal symbol to start with.
+Optional argument DEPTH is the depth of lists to dive into.
+Whan used in a `lambda' of a MATCH-LIST, there is no need to include
+a START and END part."
+  (semantic-bovinate-nonterminals (semantic-flex start end (or depth 1))
+				  nonterm
+				  depth
+				  ;; Compiler will complain.
+				  trashcomments))
+    
 
 ;;; Semantic Flexing
 ;;
