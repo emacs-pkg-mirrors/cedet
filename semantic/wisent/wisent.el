@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.14 2001/09/18 14:50:40 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.15 2001/09/21 14:30:45 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -564,6 +564,19 @@ The value is a pair (SR-conflicts . RR-conflicts).")
       (elt wisent--terms (- i wisent--nvars))
     (elt wisent--vars i)))
 
+;; Misc.
+(eval-when-compile
+  (or (fboundp 'noninteractive)
+      ;; Silence the Emacs byte compiler
+      (defun noninteractive nil))
+  )
+
+(defsubst wisent-noninteractive ()
+  "Return non-nil if running without interactive terminal."
+  (if (featurep 'xemacs)
+      (noninteractive)
+    noninteractive))
+
 ;; Logging/Output
 (defvar wisent-log-buffer nil
   "Hold the logging buffer.")
@@ -588,6 +601,20 @@ The value is a pair (SR-conflicts . RR-conflicts).")
 logging buffer."
   (with-current-buffer (wisent-log-buffer)
     (insert (apply #'format args))))
+
+(defconst wisent-log-file "wisent.output"
+  "The logging file.
+Used when running without interactive terminal.")
+
+(defun wisent-append-to-log-file ()
+  "Append contents of `wisent-log-buffer' to `wisent-log-file'."
+  (if wisent-log-buffer
+      (condition-case err
+          (with-current-buffer (wisent-log-buffer)
+            (widen)
+            (write-region (point-min) (point-max) wisent-log-file t))
+        (error
+         (message "%s" (error-message-string err))))))
 
 (defun wisent-log-starts (starts)
   "Log the list of start nonterminals.
@@ -632,20 +659,24 @@ STARTS is the table of defined entry points."
 (defun wisent-log-conflicts ()
   "Log summary of grammar conflicts."
   (if wisent--conflicts
-      (with-current-buffer (wisent-log-buffer)
-        (let ((sr (car wisent--conflicts))
-              (rr (cdr wisent--conflicts))
-              (i 0))
-          (wisent-output "\nGrammar contains ")
-          (if (> sr 0)
-              (wisent-output "%d shift/reduce conflict%s%s"
-                             sr
-                             (if (> sr 1) "s" "")
-                             (if (> rr 0) " and " ".\n\n")))
-          (if (> rr 0)
-              (wisent-output "%d reduce/reduce conflict%s.\n\n"
-                             rr
-                             (if (> rr 1) "s" "")))
+      (let ((sr  (car wisent--conflicts))
+            (rr  (cdr wisent--conflicts))
+            (msg "\nGrammar contains ")
+            (i   0))
+        (if (> sr 0)
+            (setq msg (format "%s%d shift/reduce conflict%s%s"
+                              msg
+                              sr
+                              (if (> sr 1) "s" "")
+                              (if (> rr 0) " and " "."))))
+        (if (> rr 0)
+            (setq msg (format "%s%d reduce/reduce conflict%s."
+                              msg
+                              rr
+                              (if (> rr 1) "s" ""))))
+        (message msg)
+        (with-current-buffer (wisent-log-buffer)
+          (wisent-output "%s\n\n" msg)
           (while (< i wisent--nstates)
             (if (aref wisent--conflicts-by-state i)
                 (progn
@@ -1941,7 +1972,9 @@ the tables."
             (wisent-log-starts starts)
             (wisent-log-nullables)
             (wisent-log-rules)
-            (wisent-log "\n\n")))
+            (wisent-log "\n\n")
+            (if (wisent-noninteractive)
+                (wisent-append-to-log-file))))
       (if stream
           (save-excursion
             (working-dynamic-status
