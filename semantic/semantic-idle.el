@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.26 2004/06/06 08:24:54 ponced Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.27 2004/06/10 17:26:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -258,18 +258,20 @@ And also manages services that depend on tag values."
   "Function run when after `semantic-idle-scheduler-idle-time'.
 This function will reparse the current buffer, and if successful,
 call additional functions registered with the timer calls."
-  (when (and (semantic-idle-scheduler-enabled-p)
-	     (= (recursion-depth) 0))
+  (save-match-data
+    (when (and (semantic-idle-scheduler-enabled-p)
+	       (= (recursion-depth) 0))
 
-    ;; Disable the auto parse timer while re-parsing
-    (semantic-idle-scheduler-kill-timer)
+      ;; Disable the auto parse timer while re-parsing
+      (semantic-idle-scheduler-kill-timer)
 
-    ;; Handle re-parsing and other scheduled services
-    (semantic-safe "idle error: %S"
-      (semantic-idle-core-handler))
+      ;; Handle re-parsing and other scheduled services
+      (semantic-safe "idle error: %S"
+	(semantic-idle-core-handler))
 
-    ;; Enable again the auto parse timer
-    (semantic-idle-scheduler-setup-timer)))
+      ;; Enable again the auto parse timer
+      (semantic-idle-scheduler-setup-timer))))
+
 
 ;;; REPARSING
 ;;
