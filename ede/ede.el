@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.26 1999/11/29 21:29:12 zappo Exp $
+;; RCS: $Id: ede.el,v 1.27 1999/12/01 01:53:37 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -865,7 +865,8 @@ If TARGET belongs to a subproject, return that project file."
     (let ((s (oref proj subproj))
 	  (ans nil))
       (while (and s (not ans))
-	(setq ans (ede-target-in-project-p (car s))))
+	(setq ans (ede-target-in-project-p (car s) target))
+	(setq s (cdr s)))
       ans)))
 
 (defun ede-target-parent (target)
