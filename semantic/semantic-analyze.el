@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.31 2004/02/19 01:20:44 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.32 2004/02/22 21:06:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -681,12 +681,13 @@ Returns an object based on symbol `semantic-analyze-context'."
        (if (interactive-p)
 	   (semantic-analyze-pop-to-context context-return))
        ;; Add this to a buffer cache
-       (semantic-cache-data-to-buffer (current-buffer)
-				      (car bounds)
-				      (cdr bounds)
-				      context-return
-				      'current-context
-				      'exit-cache-zone)
+       (when bounds
+	 (semantic-cache-data-to-buffer (current-buffer)
+					(car bounds)
+					(cdr bounds)
+					context-return
+					'current-context
+					'exit-cache-zone))
        ;; Return our context.
        context-return))))
 
