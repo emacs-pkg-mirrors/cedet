@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.85 2003/10/15 15:21:02 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.85.2.1 2003/10/27 14:45:35 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -818,14 +818,14 @@ choosen from the completion menu."
 (defun senator-completion-menu-item (tag)
   "Return a completion menu item from TAG.
 That is a pair (MENU-ITEM-TEXT . TAG-ARRAY).  TAG-ARRAY is an
-array of one element containting TAG.  Can return nil to discard a
+array of one element containing TAG.  Can return nil to discard a
 menu item."
   (if (semantic-tag-p tag)
       (cons (funcall (if (fboundp senator-completion-menu-summary-function)
                          senator-completion-menu-summary-function
                        #'semantic-format-tag-prototype) tag)
             (vector tag))
-    (cons (file-name-sans-extension (oref (car tag) file))
+    (cons (semanticdb-printable-name (car tag))
           (delq nil
                 (mapcar #'senator-completion-menu-item
                         (cdr tag))))))
