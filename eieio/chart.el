@@ -4,7 +4,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.2
-;; RCS: $Id: chart.el,v 1.13 2001/09/14 19:49:10 zappo Exp $
+;; RCS: $Id: chart.el,v 1.14 2001/10/03 01:59:06 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -83,26 +83,40 @@ List is limited currently, which is ok since you really can't display
 too much in text characters anyways.")
 
 (defvar chart-face-color-list '("red" "green" "blue"
-				"orange" "yellow" "purple")
+				"cyan" "yellow" "purple")
   "Colors to use when generating `chart-face-list'.
 Colors will be the background color.")
 
-(defvar chart-face-pixmap-list '("dimple1" "scales" "dot"
-				 "cross_weave" "boxes" "dimple3")
+(defvar chart-face-pixmap-list
+  (if (and (fboundp 'display-graphic-p)
+	   (display-graphic-p))
+      '("dimple1" "scales" "dot" "cross_weave" "boxes" "dimple3"))
   "If pixmaps are allowed, display these background pixmaps.
 Useful if new Emacs is used on B&W display")
 
-(if (and window-system (not chart-face-list))
+(defcustom chart-face-use-pixmaps nil
+  "*Non-nil to use fancy pixmaps in the background of chart face colors."
+  :group 'eieio
+  :type 'boolean)
+
+(if (and (if (fboundp 'display-color-p)
+	     (display-color-p)
+	   window-system)
+	 (not chart-face-list))
     (let ((cl chart-face-color-list)
 	  (pl chart-face-pixmap-list)
 	  nf)
-      (while (and cl pl)
+      (while cl
 	(setq nf (make-face (intern (concat "chart-" (car cl) "-" (car pl)))))
-	(if (> (x-display-color-cells) 4)
+	(if (condition-case nil
+		(> (x-display-color-cells) 4)
+	      (error t))
 	    (set-face-background nf (car cl))
 	  (set-face-background nf "white"))
 	(set-face-foreground nf "black")
-	(if (fboundp 'set-face-background-pixmap)
+	(if (and chart-face-use-pixmaps
+		 pl
+		 (fboundp 'set-face-background-pixmap))
 	    (condition-case nil
 		(set-face-background-pixmap nf (car pl))
 	      (error (message "Cannot set background pixmap %s" (car pl)))))
@@ -296,9 +310,10 @@ MARGIN, ZONE, START, and END specify restrictions in chart space."
 		  (t
 		   (format "%d" i))))
       (if (eq dir 'vertical)
-	  (chart-goto-xy (+ (+ margin z) (if (oref a loweredge)
-					     (- (length s)) 1))
-			 (chart-translate-ypos (oref a chart) i))
+	  (let ((x (+ (+ margin z) (if (oref a loweredge)
+				       (- (length s)) 1))))
+	    (if (< x 1) (setq x 1))
+	    (chart-goto-xy x (chart-translate-ypos (oref a chart) i)))
 	(chart-goto-xy (chart-translate-xpos (oref a chart) i)
 		       (+ margin z (if (oref a loweredge) -1 1))))
       (setq p1 (point))
@@ -345,10 +360,13 @@ Optional argument MARGIN , ZONE, START and END specify boundaries of the drawing
 	(setq p (- (+ (car r) (/ (- (cdr r) (car r)) 2))
 		   (/ (length (car s)) 2))))
       (if (eq dir 'vertical)
-	  (chart-goto-xy (+ (+ margin z) (if (oref a loweredge)
-					     (- (length (car s)))
-					   (length (car s))))
-			 p)
+	  (let ((x (+ (+ margin z) (if (oref a loweredge)
+				       (- (length (car s)))
+				     (length (car s))))))
+	    (if (< x 1) (setq x 1))
+	    (if (> (length (car s)) (1- margin))
+		(setq x (+ x margin)))
+	    (chart-goto-xy x p))
 	(chart-goto-xy p (+ (+ margin z) (if (oref a loweredge)
 					     (if odd -2 -1)
 					   (if odd 2 1)))))
