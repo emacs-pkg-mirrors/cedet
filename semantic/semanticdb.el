@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.57 2003/04/06 00:46:22 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.58 2003/04/09 01:07:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -510,7 +510,7 @@ Update the environment of Semantic enabled buffers accordingly."
   (while cache
     (when (semantic-overlay-p (semantic-tag-overlay cache))
       (message "Token %s has an erroneous overlay!"
-	       (semantic-summarize-nonterminal (car cache))))
+	       (semantic-format-tag-summarize (car cache))))
     (semanticdb-table-oob-sanity-check
      (semantic-tag-components-with-overlays (car cache)))
     (setq cache (cdr cache))))
