@@ -7,8 +7,34 @@
    (ede-proj-target-makefile-info "Documentation"
     :name "Documentation"
     :path ""
-    :source '("semantic.texi" "user-guide.texi" "lang-support-guide.texi" "semantic.texi" "app-dev-guide.texi" "glossary.texi" "overview.texi" "installation.texi" "fdl.texi" "internals.texi" "tags.texi" "bovine.texi" "wisent.texi")
+    :source '("semantic.texi" "semantic.texi" "glossary.texi" "overview.texi" "installation.texi" "fdl.texi" "internals.texi" "semanticheader.texi")
     :mainmenu "semantic.texi"
     )
+   (ede-proj-target-makefile-info "semantic-user.info"
+    :name "semantic-user.info"
+    :path ""
+    :source '("user-guide.texi")
+    )
+   (ede-proj-target-makefile-info "semantic-appdev"
+    :name "semantic-appdev.info"
+    :path ""
+    :source '("app-dev-guide.texi" "tags.texi")
+    )
+   (ede-proj-target-makefile-info "semantic-lagdev.info"
+    :name "semantic-langdev.info"
+    :path ""
+    :source '("lang-support-guide.texi")
+    )
+   (ede-proj-target-makefile-info "bovine.info"
+    :name "bovine.info"
+    :path ""
+    :source '("bovine.texi")
+    )
+   (ede-proj-target-makefile-info "wisent.info"
+    :name "wisent.info"
+    :path ""
+    :source '("wisent.texi")
+    )
+
    )
   )
