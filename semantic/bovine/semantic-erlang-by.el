@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003 Vladimir G. Sekissov
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2003-08-28 12:42:36+0200
+;; Created: 2003-08-28 14:41:54+0200
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-erlang-by.el,v 1.1 2003/08/28 11:00:19 ponced Exp $
+;; X-RCS: $Id: semantic-erlang-by.el,v 1.2 2003/08/28 12:46:27 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -390,13 +390,13 @@
     (binary-segment-rest
      (punctuation
       "\\b[:]\\b"
-      integer-literal
+      basic-type
       punctuation
       "\\b[/]\\b"
       binary-type-spec-list)
      (punctuation
       "\\b[:]\\b"
-      integer-literal)
+      basic-type)
      (punctuation
       "\\b[/]\\b"
       binary-type-spec-list)
@@ -432,7 +432,7 @@
       "unit"
       punctuation
       "\\b[:]\\b"
-      integer-literal)
+      basic-type)
      ) ;; end binary-unit
 
     (binary-type-spec
