@@ -791,7 +791,6 @@ For more on override methods, @inforef{Semantic Overload Mechanism, , lang-suppo
 * Format Tag::                  Converting Tokens into text strings
 * Tag Members::                 Tags in tags
 * Tag Details::                 Arbitrary token detail fetching
-* Local Context::               Deriving information about a language specific local context.
 * Making New Methods::          How to add your own methods for a tool
 @end menu
 
@@ -1097,158 +1096,6 @@ If the doc was not found, an error is thrown.
 Note: @var{TYPE} not yet implemented.
 @end defun
 
-@node Local Context
-@section Local Context
-
-@defun semantic-up-context &optional point bounds-type
-@anchor{semantic-up-context}
-Move point up one context from @var{POINT}.
-Return non-@code{nil} if there are no more context levels.
-Overloaded functions using @code{up-context} take no parameters.
-@var{BOUNDS-TYPE} is a symbol representing a tag class to restrict
-movement to.  If this is @code{nil}, @code{'function} is used.
-This will find the smallest tag of that class (function, variable,
-type, etc) and make sure non-@code{nil} is returned if you cannot
-go up past the bounds of that tag.
-@end defun
-
-@defun semantic-beginning-of-context &optional point
-@anchor{semantic-beginning-of-context}
-Move @var{POINT} to the beginning of the current context.
-Return non-@code{nil} if there is no upper context.
-The default behavior uses @dfn{semantic-up-context}.
-This function can be overriden in semantic using the
-symbol @code{beginning-of-context}.
-@end defun
-
-@defun semantic-end-of-context &optional point
-@anchor{semantic-end-of-context}
-Move @var{POINT} to the end of the current context.
-Return non-@code{nil} if there is no upper context.
-Be default, this uses @dfn{semantic-up-context}, and assumes parenthetical
-block delimiters.
-This function can be overriden in semantic using the
-symbol @code{end-of-context}.
-@end defun
-
-@defun semantic-get-local-variables &optional point
-@anchor{semantic-get-local-variables}
-Get the local variables based on POINT's context.
-Local variables are returned in Semantic tag format.
-Be default, this calculates the current bounds using context blocks
-navigation, then uses the parser with @code{bovine-inner-scope} to
-parse tags at the beginning of the context.
-This can be overriden with @code{get-local-variables}.
-@end defun
-
-@defun semantic-get-local-arguments &optional point
-@anchor{semantic-get-local-arguments}
-Get arguments (variables) from the current context at @var{POINT}.
-Parameters are available if the point is in a function or method.
-Return a list of tags unlinked from the originating buffer.
-Arguments are obtained by overriding @code{get-local-arguments}, or by the
-default function @dfn{semantic-get-local-arguments-default}.  This, must
-return a list of tags, or a list of strings that will be converted to
-tags.
-@end defun
-
-@defun semantic-get-all-local-variables &optional point
-@anchor{semantic-get-all-local-variables}
-Get all local variables for this context, and parent contexts.
-Local variables are returned in Semantic tag format.
-Be default, this gets local variables, and local arguments.
-Optional argument @var{POINT} is the location to start getting the variables from.
-This function can be overriden in semantic using the
-symbol @code{get-all-local-variables}.
-@end defun
-
-These next set of functions handle local context parsing.   This means
-looking at the code (locally) and navigating, and fetching information
-such as a the type of the parameter the cursor may be typing in.
-
-@defun semantic-end-of-command
-@anchor{semantic-end-of-command}
-Move to the end of the current command.
-Be default, uses @code{semantic-command-separation-character}.
-This function can be overriden in semantic using the
-symbol @code{end-of-command}.
-@end defun
-
-@defun semantic-beginning-of-command
-@anchor{semantic-beginning-of-command}
-Move to the beginning of the current command.
-Be default, uses @code{semantic-command-separation-character}.
-This function can be overriden in semantic using the
-symbol @code{beginning-of-command}.
-@end defun
-
-@defun semantic-ctxt-current-symbol &optional point
-@anchor{semantic-ctxt-current-symbol}
-Return the current symbol the cursor is on at @var{POINT} in a list.
-This will include a list of type/field names when applicable.
-This function can be overriden in semantic using the
-symbol @code{ctxt-current-symbol}.
-@end defun
-
-@defun semantic-ctxt-current-assignment &optional point
-@anchor{semantic-ctxt-current-assignment}
-Return the current assignment near the cursor at @var{POINT}.
-Return a list as per @dfn{semantic-ctxt-current-symbol}.
-Return @code{nil} if there is nothing relevant.
-This function can be overriden in semantic using the
-symbol @code{ctxt-current-assignment}.
-@end defun
-
-@defun semantic-ctxt-current-function &optional point
-@anchor{semantic-ctxt-current-function}
-Return the current function call the cursor is in at @var{POINT}.
-The function returned is the one accepting the arguments that
-the cursor is currently in.  It will not return function symbol if the
-cursor is on the text representing that function.
-This function can be overriden in semantic using the
-symbol @code{ctxt-current-function}.
-@end defun
-
-@defun semantic-ctxt-current-argument &optional point
-@anchor{semantic-ctxt-current-argument}
-Return the index of the argument position the cursor is on at @var{POINT}.
-This function can be overriden in semantic using the
-symbol @code{ctxt-current-argument}.
-@end defun
-
-@defun semantic-ctxt-current-thing
-@anchor{semantic-ctxt-current-thing}
-Calculate a thing identified by the current cursor position.
-Calls previously defined @code{semantic-ctxt-current-...} calls until something
-gets a match.  See @dfn{semantic-ctxt-current-symbol},
-@dfn{semantic-ctxt-current-function}, and @dfn{semantic-ctxt-current-assignment}
-for details on the return value.
-@end defun
-
-@defun semantic-ctxt-current-class-list &optional point
-@anchor{semantic-ctxt-current-class-list}
-Return a list of tag classes that are allowed at @var{POINT}.
-If @var{POINT} is @code{nil}, the current buffer location is used.
-For example, in Emacs Lisp, the symbol after a ( is most likely
-a function.  In a makefile, symbols after a : are rules, and symbols
-after a $( are variables.
-This function can be overriden in semantic using the
-symbol @code{ctxt-current-class-list}.
-@end defun
-
-@defun semantic-ctxt-scoped-types &optional point
-@anchor{semantic-ctxt-scoped-types}
-Return a list of type names currently in scope at @var{POINT}.
-The return value can be a mixed list of either strings (names of
-types that are in scope) or actual tags (type declared locally
-that may or may not have a name.)
-This function can be overriden in semantic using the
-symbol @code{ctxt-scoped-types}.
-@end defun
-
-For details on using these functions to get more detailed information
-about the current context: @xref{Context Analysis}.
-
 @node Making New Methods
 @section Making New Methods
 
@@ -1392,7 +1239,7 @@ error, using this macro like this:
 
 @example
 (semantic-lex-catch-errors
-   (semantic-bovinate-toplevel t))
+   (semantic-fetch-tags))
 @end example
 
 will put the parser into the 'unparseable' state, and allow other
@@ -1946,38 +1793,53 @@ context, or lexical scope.  Semantic terms these lexical scopes as a
 Some of them are override functions.  Language authors can override
 a subset of them to make them work for their language.
 
-@defun semantic-up-context &optional point
-Move point up one context from @var{POINT}.
+@defun semantic-up-context &optional point bounds-type
+@anchor{semantic-up-context}
+Move point up one context from @var{point}.
 Return non-@code{nil} if there are no more context levels.
 Overloaded functions using @code{up-context} take no parameters.
+@var{bounds-type} is a symbol representing a tag class to restrict
+movement to.  If this is @code{nil}, @code{'function} is used.
+This will find the smallest tag of that class (function, variable,
+type, etc) and make sure non-@code{nil} is returned if you cannot
+go up past the bounds of that tag.
 @end defun
 
 @defun semantic-beginning-of-context &optional point
-Move @var{POINT} to the beginning of the current context.
+@anchor{semantic-beginning-of-context}
+Move @var{point} to the beginning of the current context.
 Return non-@code{nil} if there is no upper context.
-The default behavior uses @code{semantic-up-context}.  It can
-be overridden with @code{beginning-of-context}.
+The default behavior uses @dfn{semantic-up-context}.
+This function can be overriden in semantic using the
+symbol @code{beginning-of-context}.
 @end defun
 
 @defun semantic-end-of-context &optional point
-Move @var{POINT} to the end of the current context.
+@anchor{semantic-end-of-context}
+Move @var{point} to the end of the current context.
 Return non-@code{nil} if there is no upper context.
-Be default, this uses @code{semantic-up-context}, and assumes parenthetical
-block delimiters.  This can be overridden with @code{end-of-context}.
+Be default, this uses @dfn{semantic-up-context}, and assumes parenthetical
+block delimiters.
+This function can be overriden in semantic using the
+symbol @code{end-of-context}.
 @end defun
 
 These next set of functions can be used to navigate across commands.
 
 @defun semantic-end-of-command
+@anchor{semantic-end-of-command}
 Move to the end of the current command.
 Be default, uses @code{semantic-command-separation-character}.
-Override with @code{end-of-command}.
+This function can be overriden in semantic using the
+symbol @code{end-of-command}.
 @end defun
 
 @defun semantic-beginning-of-command
+@anchor{semantic-beginning-of-command}
 Move to the beginning of the current command.
-Be default, users @code{semantic-command-separation-character}.
-Override with @code{beginning-of-command}.
+Be default, uses @code{semantic-command-separation-character}.
+This function can be overriden in semantic using the
+symbol @code{beginning-of-command}.
 @end defun
 
 @node Local Variables
@@ -1988,28 +1850,31 @@ defined.  These functions can be used to retrieve lists of locally
 scoped variables.
 
 @defun semantic-get-local-variables &optional point
+@anchor{semantic-get-local-variables}
 Get the local variables based on POINT's context.
-Local variables are returned in Semantic token format.
-By default, this calculates the current bounds using context blocks
-navigation, then uses the parser with @code{bovine-inner-scope} to
-parse tokens at the beginning of the context.
-This can be overridden with @code{get-local-variables}.
+Local variables are returned in Semantic tag format.
+This can be overriden with @code{get-local-variables}.
 @end defun
 
 @defun semantic-get-local-arguments &optional point
-Get arguments (variables) from the current context at @var{POINT}.
+@anchor{semantic-get-local-arguments}
+Get arguments (variables) from the current context at @var{point}.
 Parameters are available if the point is in a function or method.
-This function returns a list of tokens.  If the local token returns
-just a list of strings, then this function will convert them to tokens.
-Part of this behavior can be overridden with @code{get-local-arguments}.
+Return a list of tags unlinked from the originating buffer.
+Arguments are obtained by overriding @code{get-local-arguments}, or by the
+default function @dfn{semantic-get-local-arguments-default}.  This, must
+return a list of tags, or a list of strings that will be converted to
+tags.
 @end defun
 
 @defun semantic-get-all-local-variables &optional point
+@anchor{semantic-get-all-local-variables}
 Get all local variables for this context, and parent contexts.
-Local variables are returned in Semantic token format.
+Local variables are returned in Semantic tag format.
 Be default, this gets local variables, and local arguments.
-This can be overridden with @code{get-all-local-variables}.
-Optional argument @var{POINT} is the location to start getting the variables from.
+Optional argument @var{point} is the location to start getting the variables from.
+This function can be overriden in semantic using the
+symbol @code{get-all-local-variables}.
 @end defun
 
 @node Derived Context
@@ -2023,28 +1888,67 @@ These context deriving functions can be overridden to provide language
 specific behavior.  By default, it assumes a C like language.
 
 @defun semantic-ctxt-current-symbol &optional point
-Return the current symbol the cursor is on at @var{POINT} in a list.
+@anchor{semantic-ctxt-current-symbol}
+Return the current symbol the cursor is on at @var{point} in a list.
 This will include a list of type/field names when applicable.
-This can be overridden using @code{ctxt-current-symbol}.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-symbol}.
 @end defun
 
 @defun semantic-ctxt-current-assignment &optional point
-Return the current assignment near the cursor at @var{POINT}.
-Return a list as per @code{semantic-ctxt-current-symbol}.
+@anchor{semantic-ctxt-current-assignment}
+Return the current assignment near the cursor at @var{point}.
+Return a list as per @dfn{semantic-ctxt-current-symbol}.
 Return @code{nil} if there is nothing relevant.
-Override with @code{ctxt-current-assignment}.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-assignment}.
 @end defun
 
 @defun semantic-ctxt-current-function &optional point
-Return the current symbol the cursor is on at @var{POINT}.
+@anchor{semantic-ctxt-current-function}
+Return the current function call the cursor is in at @var{point}.
 The function returned is the one accepting the arguments that
-the cursor is currently in.
-This can be overridden with `ctxt.current-function'.
+the cursor is currently in.  It will not return function symbol if the
+cursor is on the text representing that function.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-function}.
 @end defun
 
 @defun semantic-ctxt-current-argument &optional point
-Return the current symbol the cursor is on at @var{POINT}.
-Override with @code{ctxt-current-argument}.
+@anchor{semantic-ctxt-current-argument}
+Return the index of the argument position the cursor is on at @var{point}.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-argument}.
+@end defun
+
+@defun semantic-ctxt-current-thing
+@anchor{semantic-ctxt-current-thing}
+Calculate a thing identified by the current cursor position.
+Calls previously defined @code{semantic-ctxt-current-...} calls until something
+gets a match.  See @dfn{semantic-ctxt-current-symbol},
+@dfn{semantic-ctxt-current-function}, and @dfn{semantic-ctxt-current-assignment}
+for details on the return value.
+@end defun
+
+@defun semantic-ctxt-current-class-list &optional point
+@anchor{semantic-ctxt-current-class-list}
+Return a list of tag classes that are allowed at @var{POINT}.
+If @var{POINT} is @code{nil}, the current buffer location is used.
+For example, in Emacs Lisp, the symbol after a ( is most likely
+a function.  In a makefile, symbols after a : are rules, and symbols
+after a $( are variables.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-class-list}.
+@end defun
+
+@defun semantic-ctxt-scoped-types &optional point
+@anchor{semantic-ctxt-scoped-types}
+Return a list of type names currently in scope at @var{POINT}.
+The return value can be a mixed list of either strings (names of
+types that are in scope) or actual tags (type declared locally
+that may or may not have a name.)
+This function can be overriden in semantic using the
+symbol @code{ctxt-scoped-types}.
 @end defun
 
 @node Context Analysis
@@ -2098,12 +2002,12 @@ a summary of the return value.  This is useful when debugging.
 +--------+   +-----------+                   |
 | Parser |---| Tag Table |------------+      |
 +--------+   +-----------+            |      |
-                                      |      |
+                                      V      V
 +-------------+                     +-------------------+
-| Semantic DB |---------------------| Semantic Analyzer |
+| Semantic DB |-------------------->| Semantic Analyzer |
 +-------------+                     +-------------------+
                                              |
-                                             |
+                                             V
                                      +-----------------+
                                      | Analysis Object |
                                      +-----------------+
