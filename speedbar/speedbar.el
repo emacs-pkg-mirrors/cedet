@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7g
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.108 1998/06/09 16:30:42 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.109 1998/06/11 22:03:30 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -404,11 +404,17 @@
 ;;         list to the file list, and vice-versa.
 ;;       Added fortran expressions ftom Bruce Ravelravel@phys.washington.edu
 ;;       It is now possible to manage multiple expansion lists for
-;;         speedbar and reference them by string.
+;;         speedbar and reference them by string.  This information is
+;;         stored in `speedbar-initial-expansion-mode-alist', and is
+;;         accessed through `speedbar-initial-expansion-list' and
+;;         other similar functions.  `speedbar-stealthy-function-list'
+;;         has been updated to also be taged by name strings which
+;;         match those found in `speedbar-initial-expansion-mode-alist'
 ;;       Added new 'buffers' and 'quickbuffers' major display modes
 ;;         for speedbar.  Quickbuffers auto-restores the previous
 ;;         display mode.  Both show the buffer list, and lets the user
 ;;         click on the desired buffer to bring it to the front.
+;;         Has specialized keybindings for kill/revert buffer.
 ;;       Added new tag grouping code.  It is controlled through
 ;;        `speedbar-tag-hierarchy-method', `speedbar-tag-split-minimum-length',
 ;;         and `speedbar-tag-regroup-maximum-length'
@@ -485,12 +491,13 @@
 
 ;;; Code:
 (defvar speedbar-initial-expansion-mode-alist
-  '(("files" speedbar-easymenu-definition-special speedbar-file-key-map
-     speedbar-directory-buttons speedbar-default-directory-list)
-    ("buffers" speedbar-buffer-easymenu-definition speedbar-buffers-key-map
+  '(("buffers" speedbar-buffer-easymenu-definition speedbar-buffers-key-map
      speedbar-buffer-buttons)
     ("quick buffers" speedbar-buffer-easymenu-definition speedbar-buffers-key-map
      speedbar-buffer-buttons-temp)
+    ;; Files last, means first in the Displays menu
+    ("files" speedbar-easymenu-definition-special speedbar-file-key-map
+     speedbar-directory-buttons speedbar-default-directory-list)
     )
   "List of named expansion elements for filling the speedbar frame.
 These expansion lists are only valid for regular files.  Special modes
@@ -519,8 +526,15 @@ This is used for returning to a previous expansion list method when
 the user is done with the current expansion list.")
 
 (defvar speedbar-stealthy-function-list
-  '(speedbar-update-current-file speedbar-check-vc speedbar-check-objects)
+  '(("files"
+     speedbar-update-current-file speedbar-check-vc speedbar-check-objects)
+    )
   "List of functions to periodically call stealthily.
+This list is of the form:
+ '( (\"NAME\" FUNCTION ...)
+    ...)
+where NAME is the name of the major display mode these functions are
+for, and the remaining elements FUNCTION are functions to call in order.
 Each function must return nil if interrupted, or t if completed.
 Stealthy functions which have a single operation should always return
 t.  Functions which take a long time should maintain a state (where
@@ -976,14 +990,6 @@ to toggle this value.")
   (modify-syntax-entry ?[ " " speedbar-syntax-table)
   (modify-syntax-entry ?] " " speedbar-syntax-table))
 
-(defun speedbar-make-specialized-keymap ()
-  "Create a keymap for use w/ a speedbar major or minor display mode.
-This basically creates a sparse keymap, and makes it's parent be
-`speedbar-key-map'."
-  (let ((k (make-sparse-keymap)))
-    (set-keymap-parent k speedbar-key-map)
-    k))
-
 (defvar speedbar-key-map nil
   "Keymap used in speedbar buffer.")
 
@@ -1056,6 +1062,14 @@ This basically creates a sparse keymap, and makes it's parent be
     ;; Lastly, we want to track the mouse.  Play here
     (define-key speedbar-key-map [mouse-movement] 'speedbar-track-mouse)
    ))
+
+(defun speedbar-make-specialized-keymap ()
+  "Create a keymap for use w/ a speedbar major or minor display mode.
+This basically creates a sparse keymap, and makes it's parent be
+`speedbar-key-map'."
+  (let ((k (make-sparse-keymap)))
+    (set-keymap-parent k speedbar-key-map)
+    k))
 
 (defvar speedbar-file-key-map nil
   "Keymap used in speedbar buffer while files are displayed.")
@@ -2062,6 +2076,13 @@ This is based on `speedbar-initial-expansion-list-name' referencing
    (car (cdr (cdr (assoc speedbar-initial-expansion-list-name
 			 speedbar-initial-expansion-mode-alist))))))
 
+(defun speedbar-initial-stealthy-functions ()
+  "Return a list of functions to call stealthily.
+This is based on `speedbar-initial-expansion-list-name' referencing
+`speedbar-stealthy-function-list'."
+  (cdr (assoc speedbar-initial-expansion-list-name
+	      speedbar-stealthy-function-list)))
+
 (defun speedbar-add-expansion-list (new-list)
   "Add NEW-LIST to the list of expansion lists."
   (add-to-list 'speedbar-initial-expansion-mode-alist new-list))
@@ -2759,7 +2780,7 @@ This should only be used by modes classified as special."
 Each item returns t if it completes successfully, or nil if
 interrupted by the user."
   (if (not speedbar-stealthy-update-recurse)
-      (let ((l speedbar-stealthy-function-list)
+      (let ((l (speedbar-initial-stealthy-functions))
 	    (speedbar-stealthy-update-recurse t))
 	(unwind-protect
 	    (while (and l (funcall (car l)))
@@ -3856,12 +3877,41 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 (defun speedbar-buffer-kill-buffer ()
   "Kill the buffer the cursor is on in the speedbar buffer."
   (interactive)
-  )
+  (or (save-excursion
+	(beginning-of-line)
+	;; If this fails, then it is a non-standard click, and as such,
+	;; perfectly allowed.
+	(if (re-search-forward "[]>}] [a-zA-Z0-9]"
+			       (save-excursion (end-of-line) (point))
+			       t)
+	    (let ((text (progn
+			  (forward-char -1)
+			  (buffer-substring (point) (save-excursion
+						      (end-of-line)
+						      (point))))))
+	      (if (and (get-buffer text)
+		       (y-or-n-p (format "Kill buffer %s? " text)))
+		  (kill-buffer text)))))))
 
 (defun speedbar-buffer-revert-buffer ()
   "Revert the buffer the cursor is on in the speedbar buffer."
   (interactive)
-  )
+  (save-excursion
+    (beginning-of-line)
+    ;; If this fails, then it is a non-standard click, and as such,
+    ;; perfectly allowed
+    (if (re-search-forward "[]>}] [a-zA-Z0-9]"
+			   (save-excursion (end-of-line) (point))
+			   t)
+	(let ((text (progn
+		      (forward-char -1)
+		      (buffer-substring (point) (save-excursion
+						  (end-of-line)
+						  (point))))))
+	  (if (get-buffer text)
+	      (progn
+		(set-buffer text)
+		(revert-buffer t)))))))
 
 
 
