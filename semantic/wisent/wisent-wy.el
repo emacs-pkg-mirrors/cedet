@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.17 2002/08/08 16:07:18 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.18 2002/08/11 09:44:04 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -105,7 +105,7 @@ It ignores whitespaces, newlines and comments."
   semantic-lex-ignore-comments
   ;; Must detect punctuations after comments because the semicolon can
   ;; be a punctuation or a comment start!
-  wisent-flex-punctuation
+  wisent-lex-punctuation
   wisent-wy-lex-blocks
   semantic-lex-default-action)
 
@@ -130,7 +130,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-07 13:25+0200
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-10 20:59+0200
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -414,7 +414,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-07 13:25+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-10 20:59+0200
    (semantic-lex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -435,8 +435,8 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-07 13:25+0200
-   (wisent-flex-make-token-table
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-10 20:59+0200
+   (wisent-lex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
        (GT . ">")
@@ -465,14 +465,14 @@ It ignores whitespaces, newlines and comments."
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-07 13:25+0200
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-10 20:59+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-wy-automaton
           semantic-flex-keywords-obarray wisent-wy-keywords
-          wisent-flex-tokens-obarray wisent-wy-tokens)
+          wisent-lex-tokens-obarray wisent-wy-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
@@ -483,7 +483,6 @@ It ignores whitespaces, newlines and comments."
      (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
              "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
      semantic-lex-analyzer 'wisent-wy-lexer
-     wisent-lexer-function 'wisent-lex
      ;; Environment
      semantic-type-relation-separator-character '(":")
      semantic-symbol->name-assoc-list
@@ -662,7 +661,7 @@ Warn if other TYPE tokens exist."
       (setq semantic-parser-name \"LALR\"\n\
             semantic-toplevel-bovine-table %s\n\
             semantic-flex-keywords-obarray %s\n\
-            wisent-flex-tokens-obarray %s)\n\
+            wisent-lex-tokens-obarray %s)\n\
       ;; Collect unmatched syntax lexical tokens\n\
       (semantic-make-local-hook 'wisent-discarding-token-functions)\n\
       (add-hook 'wisent-discarding-token-functions\n\
@@ -992,7 +991,7 @@ of the first line of comment."
           (pp-to-string
            (wisent-wy-with-wy-buffer
             (let ((tokens (wisent-wy-tokens)))
-              `(wisent-flex-make-token-table
+              `(wisent-lex-make-token-table
                 ',tokens
                 ',(wisent-wy-token-properties tokens)))))))
 
