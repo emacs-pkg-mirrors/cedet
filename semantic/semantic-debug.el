@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.8 2003/03/13 02:22:24 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.9 2003/04/05 15:55:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -183,13 +183,13 @@ as a nonterminal (or tag) in the source buffer.
 If RULE and MATCH indicies are specified, highlight those also."
   (set-buffer (oref iface :parser-buffer))
   
-  (let* ((rules (semantic-find-nonterminal-by-token 'nonterminal (current-buffer)))
-	 (nt (semantic-find-nonterminal-by-name nonterm rules))
+  (let* ((rules (semantic-find-tags-by-class 'nonterminal (current-buffer)))
+	 (nt (semantic-find-first-tag-by-name nonterm rules))
 	 (o nil)
 	 )
     (when nt
       ;; I know it is the first symbol appearing in the body of this token.
-      (goto-char (semantic-token-start nt))
+      (goto-char (semantic-tag-start nt))
 	
       (setq o (semantic-make-overlay (point) (progn (forward-sexp 1) (point))))
       (semantic-overlay-put o 'face 'highlight)
@@ -493,7 +493,7 @@ Do not update any tokens already parsed."
   (interactive)
   (let ((parser semantic-debug-current-parser)
 	;; Get the location as semantic tokens.
-	(location (semantic-current-nonterminal))
+	(location (semantic-current-tag))
 	)
     (if location
 	(semantic-debug-parser-break parser location)
