@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.1
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.19 2001/02/01 19:38:53 zappo Exp $
+;; VC: $Id: senator.el,v 1.20 2001/02/01 23:27:43 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -96,6 +96,17 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.20  2001/02/01 23:27:43  ponced
+;; `senator-last-name' removed.
+;; `senator-jump-completion-list' new variable.
+;; `senator-jump' simpler and more robust!  Save the current
+;; completion table in `senator-jump-completion-list', then reuse it
+;; to retrieve the token association.  Also, this solves jump
+;; conflicts when the same token name is present in different token
+;; children.
+;; `senator-completion-stream' Store the full token itself in the
+;; value part of each association.
+;;
 ;; Revision 1.19  2001/02/01 19:38:53  zappo
 ;; `senator-complete-symbol' now checks that it complete the same symbol
 ;; to reuse `senator-last-completion-stat'.  This is needed when for
@@ -407,31 +418,22 @@ name.  The parent list is in reverse order."
             parent (cdr parent)))
     (concat name (semantic-token-name token))))
 
-(defun senator-last-name (full-name)
-  "Return the last name from FULL-NAME.
-That is the name after the last
-`semantic-type-relation-separator-character' or FULL-NAME itself if it
-does not contain any separator character."
-  (and (string-match (format "[%s]?\\([^%s]+\\)\\'"
-                             semantic-type-relation-separator-character
-                             semantic-type-relation-separator-character)
-                     full-name)
-       (match-string 1 full-name)))
-
 (defun senator-completion-stream (stream parent full-name-p &optional top-level)
   "Return a useful completion list from STREAM.
-That is a flat list of all tokens available.  Prepend to each token
-name the name of tokens in its PARENT list if FULL-NAME-P is non-nil.
-This helps to distinguish between tokens in multiple top level type
-declarations or in sub type declarations.  If TOP-LEVEL is non-nil the
-completion list will contain only tokens at top level.  Otherwise all
-sub type tokens are included too."
+That is a flat alist of all tokens available.  The key part of each
+association is the token name. It is prepended by the name of tokens
+in its PARENT list if FULL-NAME-P is non-nil.  This helps to
+distinguish between tokens in multiple top level type declarations or
+in sub type declarations.  The value part of each association is the
+full token itself.  If TOP-LEVEL is non-nil the completion list will
+contain only tokens at top level.  Otherwise all sub tokens are
+included too."
   (let (cs token children)
     (while stream
       (setq token  (car stream))
       (setq stream (cdr stream))
       (setq cs (cons (cons (senator-full-token-name token parent)
-                           (cdr token))
+                           token)
                      cs))
       (and (not top-level)
            (setq children (semantic-nonterminal-children token t))
@@ -624,6 +626,10 @@ Return the semantic token or nil if at beginning of buffer."
                        where))
     found))
 
+(defvar senator-jump-completion-list nil
+  "`senator-jump' stores here its current completion list.
+Then use `assoc' to retrieve the token associated to a symbol.")
+
 ;;;###autoload
 (defun senator-jump (sym)
   "Jump to the semantic symbol SYM.
@@ -632,17 +638,15 @@ local type's context (see function `senator-current-type-context')."
   (interactive
    (list
     (completing-read "Jump to: "
-                     (senator-completion-list current-prefix-arg)
+                     (setq senator-jump-completion-list
+                           (senator-completion-list current-prefix-arg))
                      nil
                      t
                      ""
                      'semantic-read-symbol-history)))
-  (when sym
-    (let ((token
-           (semantic-find-nonterminal-by-name (senator-last-name sym)
-                                              (current-buffer)
-                                              t)))
-      (goto-char (semantic-token-start  token))
+  (let ((token (cdr (assoc sym senator-jump-completion-list))))
+    (when token
+      (goto-char (semantic-token-start token))
       (senator-momentary-highlight-token token)
       (senator-message "%S: %s "
                        (semantic-token-token token)
