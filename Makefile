@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.6 2004/03/28 01:52:01 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.7 2004/06/12 13:00:58 ponced Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -61,7 +61,11 @@ __DOMAKE=$(MAKE) $(MFLAGS) EMACS="$(EMACS)" SHELL="$(SHELL)"
 ## Build
 ##
 
-all: $(CEDET_PACKAGES)
+all: clean-autoloads packages
+
+bootstrap: clean-all packages
+
+packages: $(CEDET_PACKAGES)
 
 .PHONY: $(CEDET_PACKAGES)
 $(CEDET_PACKAGES):
