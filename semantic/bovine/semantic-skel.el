@@ -1,9 +1,9 @@
 ;;; semantic-skel.el --- Semantic details for skel
 
-;;; Copyright (C) 2001, 2003 Eric M. Ludlam
+;;; Copyright (C) 2001, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-skel.el,v 1.4 2003/08/02 08:15:35 ponced Exp $
+;; X-RCS: $Id: semantic-skel.el,v 1.5 2004/03/03 03:12:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -72,7 +72,7 @@
 ;; You do not need to use this function unless you have compound
 ;; definitions.  For example, in C, the following is expanded:
 ;;  int x, y;
-(defun semantic-expand-skeleton-nonterminal (nonterm)
+(defun semantic-skeleton-expand-tag (nonterm)
   "Expand NONTERM into a list of equivalent nonterminals, or nil."
   nil)
 
@@ -96,7 +96,7 @@
                                             (function . "Functions")
                                             (include  . "Includes")
                                             (package  . "Exports"))
-        ;;semantic-expand-nonterminal 'semantic-expand-skeleton-nonterminal
+        ;;semantic-tag-expand-function 'semantic-skeleton-expand-tag
         ;;semantic-lex-extensions semantic-lex-skeleton-extensions
         ;;semantic-dependency-include-path semantic-default-skeleton-path
         imenu-create-index-function 'semantic-create-imenu-index
@@ -108,11 +108,6 @@
         ;; Semantic navigation inside 'type children
         senator-step-at-tag-classes '(function variable)
         )
-
-  ;; Use this after defining override functions.
-  ;;  (semantic-install-function-overrides
-  ;;   '(
-  ;;     ))
   )
 
 ;; Loading this file will install the parser.  Add this line
