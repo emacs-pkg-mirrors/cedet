@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.67 2000/07/19 02:33:58 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.68 2000/07/19 02:38:42 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -58,6 +58,20 @@
 
 (if (not (fboundp 'typep))
     (autoload 'typep "cl" "Determie if OBJ is of type TYPE." nil))
+
+;; Compatibility
+(if (fboundp 'compiled-function-arglist)
+
+    ;; XEmacs can only access a compiled functions arglist like this:
+    (defalias 'eieio-compiled-function-arglist 'compiled-function-arglist)
+
+  ;; Emacs doesn't have this function, but since FUNC is a vector, we can just
+  ;; grab the apropriate slot.
+  (defun eieio-compiled-function-arglist (func)
+    "Return the argument list for the compiled function FUNC."
+    (aref func 0))
+
+  )
 
 
 ;;;
@@ -1585,10 +1599,7 @@ associated with this symbol.  Current method specific code is:")
 			       (let* ((func (cdr (car gm)))
 				      (arglst
 				       (if (byte-code-function-p func)
-					   (if (fboundp
-						'compiled-function-arglist)
-					       (compiled-function-arglist func)
-					     (aref func 0))
+					   (eieio-compiled-function-arglist func)
 					 (car (cdr func)))))
 				 (format "%S" arglst))
 			       "\n"
