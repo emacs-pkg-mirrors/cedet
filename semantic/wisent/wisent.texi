@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.10 2002/06/24 16:46:05 ponced Exp $
+@c $Id: wisent.texi,v 1.11 2002/06/25 17:32:53 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle Wisent: the Bison-compatible Parser Generator for Emacs
@@ -85,10 +85,15 @@ How to use Wisent with Semantic
 * Grammar styles::              
 * Wisent Flex::                 
 
+WY grammar format
+
+* Percent-keywords::            
+
 Grammar styles
 
 * Bovine style::                
 * Bison style::                 
+* Mixed style::                 
 
 Bovine style
 
@@ -597,42 +602,41 @@ Here is the corresponding Lisp form accepted by
 @comment  node-name,  next,  previous,  up
 @chapter Parsing
 
-@cindex Bottom-up parser
-@cindex Table-driven parser
+@cindex Bottom-Up parser
 @cindex Shift-Reduce parser
-@cindex Parser elementary operations
-The parser used by Wisent is a @dfn{bottom-up} parser driven by
-the automaton produced by @code{wisent-compile-grammar} from a
-context-free grammar (@pxref{Grammar}).
-
-A such parser, also called a @dfn{shift-reduce} parser, performs four
-elementary operations depending on states popped up from a state
-stack.  Each operation pushes a new state into the state stack.
-
-The four elementary operations performed are:
+@cindex Table-driven parser
+@cindex Shift
+@cindex Reduce
+The Wisent's parser is what is called a @dfn{bottom-up} or
+@dfn{shift-reduce} parser which repeatedly:
 
 @table @dfn
 @item shift
-This operation pushes the value of the last lexical token read (the
-look-ahead token) into a value stack and reads a new one.
-@xref{Writing a lexer}.
+That is pushes the value of the last lexical token read (the
+look-ahead token) into a value stack, and reads a new one.
 @item reduce
-This operation replaces a nonterminal by its semantic value.  The
-nonterminal component values are popped from the value stack and
-reduced by the semantic action (@pxref{action}) associated to this
-nonterminal.  The result is pushed back on top of value stack.
-@item accept
-This operation stops the parser which has successfully processed all
-input tokens.  The semantic value of the start nonterminal is on top
-of the value stack. 
-@item error
-This operation interrupts parsing because of a syntax error (an
-unexpected token in input).  At this point the parser can call a
-recovery routine and try to resume (@pxref{Error recovery}) or simply
-issue an error message (@pxref{Report errors}) and stop.
+That is replaces a nonterminal by its semantic value.  The values of
+the components which form the right hand side of a rule are popped
+from the value stack and reduced by the semantic action of this rule.
+The result is pushed back on top of value stack.
 @end table
 
-The parser is entered by calling the following function:
+The parser will stop on:
+
+@table @dfn
+@item accept
+When all input has been successfully parsed.  The semantic value of
+the start nonterminal is on top of the value stack.
+@item error
+When a syntax error (an unexpected token in input) has been detected.
+At this point the parser issues an error message and either stops or
+calls a recovery routine to try to resume parsing.
+@end table
+
+The above elementary actions are driven by the LALR(1) automaton built
+by @code{wisent-compile-grammar} from a context-free grammar.
+
+The Wisent's parser is entered by calling the function:
 
 @findex wisent-parse
 @defun wisent-parse automaton lexer &optional error start
@@ -701,6 +705,10 @@ input stream.
 @vindex wisent-eoi-term
 When there are no more tokens to read the lexer must return the token
 @code{(list wisent-eoi-term)} to each request.
+
+@defvar wisent-eoi-term
+Predefined constant, End-Of-Input terminal symbol.
+@end defvar
 
 @code{wisent-flex} is an example of a lexer that reads Semantic's
 syntactic tokens and produces lexical tokens.  @xref{Wisent Flex}.
@@ -917,6 +925,16 @@ block delimited by @samp{LBRACE} (@code{@{}) and @samp{RBRACE}
 
 @cindex How to use Wisent with Semantic
 @cindex Wisent vs. Semantic
+@cindex Semantic syntax tree
+@cindex Semantic token
+This chapter presents how the Wisent's parser can be used to produce
+@dfn{syntax trees} for the Semantic tool set.
+
+A Semantic syntax tree is a hierarchy of Emacs Lisp data structures,
+called @dfn{Semantic tokens}, that describes a program in a way
+independent of programming languages.  Semantic tokens can be seen as
+@dfn{tags} that map program declarations, like functions, methods,
+variables, data types, classes, includes, grammar rules, etc..
 
 @menu
 * WY grammar format::           
@@ -944,8 +962,8 @@ Semantic specific Percent-keywords.
 @end itemize
 
 So, if you are already familiar with Bison and have some knowledge of
-Emacs Lisp, writing WY grammars is straightforward ;-)  See also @ref{WY
-Major Mode}.
+Emacs Lisp, writing WY grammars is straightforward ;-)@*
+See also @ref{WY Major Mode}.
 
 A good way to describe the WY grammar format, and to see how it looks,
 is to show its specification as a WY grammar:
@@ -1186,6 +1204,86 @@ example, the following are valid character literals:
 '\n', ' '             ;; whitespaces
 @end example
 
+@menu
+* Percent-keywords::            
+@end menu
+
+@node Percent-keywords,  , WY grammar format, WY grammar format
+@comment  node-name,  next,  previous,  up
+@subsection Percent-keywords
+
+@cindex %keywordtable
+@cindex %languagemode
+@cindex %left
+@cindex %nonassoc
+@cindex %outputfile
+@cindex %parsetable
+@cindex %prec
+@cindex %put
+@cindex %right
+@cindex %setupfunction
+@cindex %start
+@cindex %token
+@cindex %tokentable
+
+@table @code
+@item %outputfile @var{file-name}
+Required declaration that specifies the name of an Emacs Lisp source
+file where to put Lisp code generated from the current grammar.
+@var{file-name} must be a string.
+
+@item %parsetable @var{variable-name}
+Name of the variable set with the generated parser automaton.
+
+@item %keywordtable @var{variable-name}
+Name of the variable set with the generated table of keywords.
+
+@item %tokentable @var{variable-name}
+Name of the variable set with the generated table of tokens.
+
+@item %setupfunction @var{function-name}
+Name of the function containing the generated setup code.
+
+@item %languagemode @var{mode-name}@dots{}
+Names of major modes where Semantic uses the Wisent's parser with this
+grammar.
+
+@item %start @var{nonterminal}@dots{}
+Declare the nonterminal start symbols.
+
+@item %token @var{terminal} @var{value}
+Declare language keywords.  These terminal symbols are stored in the
+@code{%keywordtable} variable.
+
+@item %token <@var{type}> @var{terminal} [@var{value}]
+@itemx %token [<@var{type}>] @var{terminal}@dots{}
+Declare terminal symbols that aren't keywords.  They are stored in
+the @code{%tokentable} variable.
+
+@item %put @{@var{terminal}@dots{}@} @{@var{property value}@dots{}@}
+@itemx %put @var{terminal} @{@var{property value}@dots{}@}
+@itemx %put @{@var{terminal}@dots{}@} @var{property value}
+@itemx %put @var{terminal} @var{property value}
+Give properties to tokens.
+
+@item %left @var{terminal}@dots{}
+@itemx %right @var{terminal}@dots{}
+@itemx %nonassoc @var{terminal}@dots{}
+Assign associativity and precedence level to terminals.
+
+@item %prec @var{terminal}
+Assign @var{terminal} precedence level to current rule.  @code{%prec}
+must be only used in a rule, like this:
+
+@example
+exp:
+  @dots{}
+  | '-' exp %prec NEG
+  @dots{}
+  ;
+@end example
+@end table
+
 @node WY Major Mode, Grammar styles, WY grammar format, Wisent Bovine
 @comment  node-name,  next,  previous,  up
 @section WY Major Mode
@@ -1213,7 +1311,8 @@ current buffer.
 
 The variables named by the @code{%parsetable}, @code{%keywordtable}
 and @code{%tokentable} declarations are updated with Lisp data
-generated from rules and @code{%start}, @code{%token}/@code{%put}
+generated from the rules, and the @code{%start}, @code{%left},
+@code{%right}, @code{%nonassoc} and @code{%token}/@code{%put}
 declarations found in the grammar.
 
 The function named by the @code{%setupfunction} declaration is updated
@@ -1232,12 +1331,16 @@ Semantic for this particular programming language.
 @section Grammar styles
 
 @cindex Grammar styles
+Semantic bovination heavily depends on how you wrote the grammar.
 There are mainly two styles to write a Wisent's grammar intended to be
-used with the Semantic tool set.
+used with the Semantic tool set: the @dfn{Bovine style} and the
+@dfn{Bison style}.  Each one has pros and cons, and in certain cases
+it can be worth a mix of the two styles!
 
 @menu
 * Bovine style::                
 * Bison style::                 
+* Mixed style::                 
 @end menu
 
 @node Bovine style, Bison style, Grammar styles, Grammar styles
@@ -1336,7 +1439,7 @@ At each iteration it will return a @samp{formal_parameter} raw token,
 or nil to skip unwanted (single @samp{LPAREN} or @samp{RPAREN} for
 example) or unexpected input data.
 
-@node Bison style,  , Bovine style, Grammar styles
+@node Bison style, Mixed style, Bovine style, Grammar styles
 @comment  node-name,  next,  previous,  up
 @subsection Bison style
 
@@ -1395,6 +1498,95 @@ formal_parameter
                          nil)
   ;
 @end example
+
+@node Mixed style,  , Bison style, Grammar styles
+@comment  node-name,  next,  previous,  up
+@subsection Mixed style
+
+@cindex Grammar mixed style
+The following example is a snippet of the WY format grammar provided
+in the Semantic distribution in the file @file{wisent-wy.wy}.
+
+@example
+%start grammar
+@dots{}
+
+grammar:
+  @dots{}
+  | nonterminal
+  ;
+@dots{}
+
+nonterminal:
+    any_symbol COLON rules SEMI
+    (wisent-token $1 'nonterminal nil $3 nil)
+  | error SEMI
+  ;
+
+rules:
+    lifo_rules
+    (apply #'nconc (nreverse $1))
+  ;
+
+lifo_rules:
+    lifo_rules OR rule
+    (cons $3 $1)
+  | rule
+    (list $1)
+  ;
+
+rule:
+    rhs
+    @dots{}
+    (wisent-cooked-token name 'rule type comps prec action nil)
+  ;
+@end example
+
+This example shows how Bovine and Bison styles can be combined in the
+same grammar to obtain a good compromise between grammar complexity
+and an efficient parsing strategy in an interactive environment.
+
+@code{nonterminal} is parsed using normal bovination via the main
+@code{grammar} rule.  The semantic action calls @code{wisent-token} to
+produce a Semantic raw token, automagically cooked by Semantic.
+
+But @code{rules} part is parsed in Bison style! Why?
+
+Rule delimiters are the colon (@code{:}), that follows the nonterminal
+name, and a final semicolon (@code{;}).  Unfortunately these
+delimiters naturally are not @code{open-paren}/@code{close-paren}
+type, and Emacs syntactic analyzer can't easily isolate data between
+them to produce a @code{semantic-list} token.  Consequently it is not
+possible to use @code{EXPANDFULL} to bovinate @code{RULES_PART}, like
+this:
+
+@example
+nonterminal:
+    any_symbol COLON rules SEMI
+    (wisent-token $1 'nonterminal nil $3 nil)
+  ;
+
+rules:
+    RULES_PART  ;; @strong{Map a @code{semantic-list} syntactic token}
+    (EXPANDFULL $1 'rules)
+  ;
+
+rules:
+    COLON
+    ()
+    OR
+    ()
+    SEMI
+    ()
+    rhs
+    @dots{}
+    (wisent-token name 'rule type comps prec action nil)
+  ;
+@end example
+
+In such cases, when it is difficult for Emacs to obtain
+@code{semantic-list} syntactic tokens, the best solution is to use
+traditional Bison style with error recovery!
 
 @node Wisent Flex,  , Grammar styles, Wisent Bovine
 @comment  node-name,  next,  previous,  up
@@ -1549,4 +1741,4 @@ string comparison:
 @c That's all
 @bye
 
-@c  LocalWords:  Wisent
+@c  LocalWords:  Wisent automagically bovination bovinate
