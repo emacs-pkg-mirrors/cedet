@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.7 2003/03/17 01:16:31 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.8 2003/04/06 00:53:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,13 +25,13 @@
 ;; 
 ;;; Commentary:
 ;;
-;; Databases of various forms call all be searched.  These routines
+;; Databases of various forms can all be searched.  These routines
 ;; cover many common forms of searching.
 ;;
 ;; There are three types of searches that can be implemented:
 ;;
 ;; Basic Search:
-;;  These searches allow searching on specific attributes of tokens,
+;;  These searches allow searching on specific attributes of tags,
 ;;  such as name or type.
 ;;
 ;; Advanced Search:
@@ -46,7 +46,7 @@
 ;;
 ;; Generic Search:
 ;;  The generic search, `semanticdb-find-nonterminal-by-function'
-;;  accepts a Emacs Lisp predicate that tests tokens in Semantic
+;;  accepts a Emacs Lisp predicate that tests tags in Semantic
 ;;  format.  Most external searches cannot perform this search.
 
 (require 'semanticdb)
@@ -134,6 +134,8 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
       db token search-parts search-includes diff-mode find-file-match))
    ignore-system
    find-file-match))
+(make-obsolete 'semanticdb-find-nonterminal-by-token
+	       "Please don't use this function")
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-name
@@ -149,6 +151,8 @@ Return a list ((DB-TABLE . TOKEN) ...)."
       db name search-parts search-includes diff-mode find-file-match))
    ignore-system
    find-file-match))
+(make-obsolete 'semanticdb-find-nonterminal-by-name
+	       "Please don't use this function")
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-name-regexp
@@ -164,6 +168,8 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
       db regex search-parts search-includes diff-mode find-file-match))
    ignore-system
    find-file-match))
+(make-obsolete 'semanticdb-find-nonterminal-by-name-regexp
+	       "Please don't use this function")
 
 
 ;;;###autoload
@@ -180,6 +186,8 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
       db type search-parts search-includes diff-mode find-file-match))
    ignore-system
    find-file-match))
+(make-obsolete 'semanticdb-find-nonterminal-by-type
+	       "Please don't use this function")
 
 
 ;;;###autoload
@@ -196,7 +204,8 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
       db property value search-parts search-includes diff-mode find-file-match))
    ignore-system
    find-file-match))
-
+(make-obsolete 'semanticdb-find-nonterminal-by-property
+	       "Please don't use this function")
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-extra-spec
@@ -212,7 +221,8 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
       db spec search-parts search-includes diff-mode find-file-match))
    ignore-system
    find-file-match))
-
+(make-obsolete 'semanticdb-find-nonterminal-by-extra-spec
+	       "Please don't use this function")
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-extra-spec-value
@@ -228,6 +238,8 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
       db spec value search-parts search-includes diff-mode find-file-match))
    ignore-system
    find-file-match))
+(make-obsolete 'semanticdb-find-nonterminal-by-extra-spec-value
+	       "Please don't use this function")
 
 ;;; Advanced Search Routines
 ;;
@@ -255,7 +267,7 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
 Search in all DATABASES.  If DATABASES is nil, search a range of
 associated databases calculated `semanticdb-current-database-list' and
 DATABASES is a list of variable `semanticdb-project-database' objects.
-When SEARCH-PARTS is non-nil the search will include children of tokens.
+When SEARCH-PARTS is non-nil the search will include children of tags.
 When SEARCH-INCLUDES is non-nil, the search will include dependency files.
 When DIFF-MODE is non-nil, search databases which are of a different mode.
 A Mode is the `major-mode' that file was in when it was last parsed.
@@ -385,7 +397,7 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   ((database semanticdb-project-database)
    function &optional search-parts search-includes diff-mode find-file-match)
   "In DATABASE, find all occurances of nonterminals which match FUNCTION.
-When SEARCH-PARTS is non-nil the search will include children of tokens.
+When SEARCH-PARTS is non-nil the search will include children of tags.
 When SEARCH-INCLUDES is non-nil, the search will include dependency files.
 When DIFF-MODE is non-nil, search databases which are of a different mode.
 A mode is the `major-mode' that file was in when it was last parsed.
@@ -403,7 +415,7 @@ Return a list of matches."
 	;; senator-eldoc mode.
 	;;(semanticdb-refresh-table (car files))
 	(setq found (funcall function
-			     (oref (car files) tokens)
+			     (semanticdb-get-tags (car files))
 			     search-parts
 			     search-includes
 			     )))
@@ -414,7 +426,7 @@ Return a list of matches."
 	    (if find-file-match
 		(save-excursion (semanticdb-set-buffer (car files))))
 	    ;; In theory, the database is up-to-date with what is in the file, and
-	    ;; these tokens are ready to go.
+	    ;; these tags are ready to go.
 	    ;; There is a bug lurking here I don't have time to fix.
 	    (setq ret (cons (cons (car files) found) ret))
 	    (setq found nil)))
