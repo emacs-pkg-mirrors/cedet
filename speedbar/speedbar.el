@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.206 2001/10/18 18:43:01 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.207 2001/10/18 18:52:43 zappo Exp $
 
 (defvar speedbar-version "0.14beta2"
   "The current version of speedbar.")
@@ -1985,6 +1985,15 @@ Groups may optionally contain a position."
   (sort (copy-alist lst)
 	(lambda (a b) (string< (car a) (car b)))))
 
+(defun speedbar-try-completion (string alist)
+  "A wrapper for `try-completion'.
+Passes STRING and ALIST to `try-completion' if ALIST
+passes some tests."
+  (if (and (listp alist) (not (null alist))
+	   (listp (car alist)) (stringp (car (car alist))))
+      (try-completion string alist)
+    nil))
+
 (defun speedbar-prefix-group-tag-hierarchy (lst)
   "Prefix group names for tag hierarchy LST."
   (let ((newlst nil)
@@ -2015,7 +2024,7 @@ Groups may optionally contain a position."
       ;; list get-shorter than our minimum.
       (if (<= (length sublst) speedbar-tag-split-minimum-length)
 	  (setq work-list sublst)
-	(setq diff-idx (length (try-completion "" sublst)))
+	(setq diff-idx (length (speedbar-try-completion "" sublst)))
 	;; Sort the whole list into bins.
 	(while sublst
 	  (let ((e (car sublst))
@@ -2037,7 +2046,7 @@ Groups may optionally contain a position."
 	  ;; The bins contents are currently in forward order.
 	  (let ((l (aref bins diff-idx)))
 	    (if l
-		(let ((tmp (cons (try-completion "" l) l)))
+		(let ((tmp (cons (speedbar-try-completion "" l) l)))
 		  (if (or (> (length l) speedbar-tag-regroup-maximum-length)
 			  (> (+ (length l) (length short-group-list))
 			     speedbar-tag-split-minimum-length))
@@ -2055,7 +2064,7 @@ Groups may optionally contain a position."
 			  ;; Only one short group?  Just stick it in
 			  ;; there by itself.  Make a group, and find
 			  ;; a subexpression
-			  (let ((subexpression (try-completion
+			  (let ((subexpression (speedbar-try-completion
 						"" short-group-list)))
 			    (if (< (length subexpression)
 				   speedbar-tag-group-name-minimum-length)
@@ -2106,7 +2115,7 @@ Groups may optionally contain a position."
 	;; Only one short group?  Just stick it in
 	;; there by itself.
 	(setq work-list
-	      (cons (cons (try-completion "" short-group-list)
+	      (cons (cons (speedbar-try-completion "" short-group-list)
 			  short-group-list)
 		    work-list)))
        (short-group-list
@@ -2142,7 +2151,7 @@ Argument LST is the list of tags to trim."
       (setq lst (cdr lst)))
     ;; Get the prefix to trim by.  Make sure that we don't trim
     ;; off silly pieces, only complete understandable words.
-    (setq trim-prefix (try-completion "" sublst)
+    (setq trim-prefix (speedbar-try-completion "" sublst)
 	  newlst (nreverse newlst))
     (if (or (= (length sublst) 1)
 	    (not trim-prefix)
@@ -3265,7 +3274,7 @@ interested in."
 	    (setq end (point-max)))))
       ;; Now work out the details of centering
       (let ((nl (count-lines start end))
-	    (wl (count-lines (window-start) (window-end)))
+	    (wl (1- (window-height)))
 	    (cp (point)))
 	(if (> nl wl)
 	    ;; We can't fit it all, so just center on cursor
