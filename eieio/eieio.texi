@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.2 1996/03/10 15:17:25 zappo Exp $
+@c $Id: eieio.texi,v 1.3 1996/03/28 03:52:15 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -46,6 +46,7 @@ aspects of CLOS.
 * Writing Class Methods:: How to write an embedded class method.
 * Predicates::            Class-p, Object-p, etc-p.
 * Browsing::              Browsing your class lists.
+* Class Values::          Displaying information about a class or object.
 @end menu
 
 As of this writing, updates can be found at:
@@ -67,6 +68,9 @@ didn't restrict myself to only using the keymap access functions when
 writing etalk.  I am not suggesting all of emacs follow this paradigm,
 (Hey.. theres one of those OBJECT words!) only mentioning the type of
 stuff they talk about in my classes.
+
+  I've recently attempted to make eieio CLOS compatible (Common Lisp
+Object System).  This compatibility is only at a fairly basic level.
 
 @section What EIEIO supports
 
@@ -92,25 +96,45 @@ We could say EIEIO is still in the Fungus stages of development as a
 class can have but one parent.
 @end table
 
+@section EIEIO example programs that are almost useful.
+
+@table @asis
+@item tree
+Draw a structured tree by building a series of embeded lists of
+`tree-node' class objects.  Includes the functions `eieio-class-tree' to
+browse your current eieio inheritance structure
+@item java-tree
+Use tree mode to create an inheritance tree for all classes in a java
+source directory.
+@item chart
+Uses eieio to manage charts/axis/sequences, and allows display of simple
+bar-charts.  Example programs are available displaying emacs memory
+usage and list occupation, in addition to file counts and size charts.
+Theres even a sample that will display a chart of who sends you the most
+email!  See doc-string for `chart-bar-quickie' to make your own bar
+charts easilly.
+@end table
+
 @section EIEIO wish list
 
 @enumerate
 @item
 More CLOS compatibility.
 @item
-Field and method references are currently looked up at runtime.  This
-can be slow with big classes.  A way to speed this up would be very
+Field and class-method references are currently looked up at runtime.
+This can be slow with big classes.  A way to speed this up would be very
 handy.
 @item
 Get edebug to correctly debug a defclassmethod and defmethod.  Currently
 debugging works, but you have to step through the creation of the method
 definition first.
 @item
-More built-in methods similar to 'constructor and 'destructor, like
-'print-construct, 'print, 'save, and 'load with defaults performing
+More built-in class-methods similar to 'constructor and 'destructor,
+like 'print-construct, 'print, 'save, and 'load with defaults performing
 basic structural storage, which can be over-loaded to read/write
 anything in any format.  I have not done this because the more methods
-added, the slower things get at run time. (See 2)
+added, the slower things get at run time. (See 2) It might be worthwhile
+to add these methods in as CLOS methods which would be much faster.
 @item
 Integrate in the desired built-in methods into the object browser.
 @item
@@ -150,6 +174,9 @@ Calls defgeneric, and accepts most of the expected arguments.  Only the
 first argument to the created method may be typecast, though any
 argument can be syntactically typecast.  (And promptly ignored)  To
 typecast against a class, the class must exist before defmethod is called.
+@item call-next-method
+Inside a method, calls the next available method up the inheritance tree
+for the given object.
 @end table
 
 Some top-level CLOS functions which are not yet defined in EIEIO which
@@ -157,9 +184,8 @@ are defined in CLOS.
 
 @table @asis
 @item describe
-Pretty print an object.
-@item call-next-method
-Similar to @code{ocall-parent}
+Pretty print an object.  Can be found as `eieio-describe-class' for a
+bufferized version.
 @end table
 
 When creating a new class @xref{Building Classes} there are several
@@ -188,7 +214,8 @@ This means that the specified tag is going to be a method instead of an
 attribute.  This installs this name into a vector (instead of a series
 of dynamic lists) to speed up access, and allows a method to be
 private.  Any @code{defclassmethod} of a method defined such will NOT HAVE A
-GENERIC FUNCTION ASSOCIATED WITH IT, and will be referenced via ocall only.
+GENERIC FUNCTION ASSOCIATED WITH IT, and will be referenced via ocall
+only.  If typecasting is implemented later, this will be replaced.
 @end table
 
 Any tags not understood are summarily ignored (in addition to it's parameter)
@@ -524,6 +551,11 @@ Now that we know how to create classes, access fields, and define
 methods, it might be useful to verify that everything is doing ok.  To
 help with this a plethora of predicates have been created.
 
+@defun class-v class
+Return a vector with all the class's important parts in it.  This vector
+is not a copy.  Changing this vector changes the class.
+@end defun
+
 @defun class-p class
 Return @code{t} if @var{class} is a class type.
 @end defun
@@ -586,7 +618,7 @@ is created for it.  Thus in our example, the function @code{animal-p}
 and @code{bird-p} are created, and return @code{t} if passed an object
 of the appropriate type.
 
-@node Browsing, , Predicates, Top
+@node Browsing, Class Values, Predicates, Top
 @comment  node-name,  next,  previous,  up
 @chapter Browsing class trees
 
@@ -634,5 +666,23 @@ of classes.
 
 Note: new classes are consed into the inheritance lists, so the tree
 comes out upside-down.
+
+@node Class Values, , Browsing, Top
+@comment  node-name,  next,  previous,  up
+@chapter Class Values
+
+Details about any class or object can be retrieved using the function
+`eieio-describe-class' function.  Interactivly, type in the name of a
+class.  In a program, pass it a string with the name of a class, a
+class, or an object.  The resulting buffer will display all field names,
+and their default values.  For objects, and additional column
+representing current value of that field is also displayed.
+
+The display is broken into two sections.  Private parts and public
+parts.  Faces are used when available.  If the function
+`eieio-class-tree' is used (from tree.el) then choosing the edit
+function on a node calls this function.  This function is also useful
+when used with edebug while attempting to determine what is wrong with a
+function.
 
 @bye
