@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.147 2002/07/15 10:27:20 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.148 2002/07/20 08:05:28 ponced Exp $
 
 (defvar semantic-version "2.0alpha2"
   "Current version of Semantic.")
@@ -133,7 +133,7 @@ Do not set this yourself.  Call `semantic-bovinate-buffer-debug'.")
   :group 'semantic
   :type 'boolean)
 
-(defvar semantic-bovinate-parser nil
+(defvar semantic-bovinate-parser #'semantic-bovinate-nonterminal-default
   "Function used to parse input stream.
 See the default parser `semantic-bovinate-nonterminal-default' for
 details.")
@@ -874,6 +874,15 @@ a list of cooked tokens."
 
 ;;; Bovine table runtime functions
 ;;
+(defsubst semantic-bovinate-nonterminal (stream table &optional nonterminal)
+  "Bovinate STREAM based on the TABLE of nonterminal symbols.
+Optional argument NONTERMINAL is the nonterminal symbol to start with.
+This is the core routine for converting a stream into a table.
+Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
+elements of STREAM that have not been used.  SEMANTIC-STREAM is the
+list of semantic tokens found."
+  (funcall semantic-bovinate-parser stream table nonterminal))
+
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
 					      depth returnonerror)
   "Bovinate the entire stream STREAM starting with NONTERM.
@@ -918,24 +927,11 @@ with the current results on a parse error."
       (setq stream (car nontermsym))
       (if stream
 	  (if (eq semantic-bovination-working-type 'percent)
-	      (working-status (floor
-			       (* 100.0 (/ (float (car (cdr (car stream))))
-					   (float (point-max))))))
+	      (working-status
+               (/ (* 100 (semantic-lex-token-start (car stream)))
+                  (point-max)))
 	    (working-dynamic-status))))
     result))
-
-(defun semantic-bovinate-nonterminal (stream table &optional nonterminal)
-  "Bovinate STREAM based on the TABLE of nonterminal symbols.
-Optional argument NONTERMINAL is the nonterminal symbol to start with.
-This is the core routine for converting a stream into a table.
-Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
-elements of STREAM that have not been used.  SEMANTIC-STREAM is the
-list of semantic tokens found."
-  (funcall (or semantic-bovinate-parser
-               #'semantic-bovinate-nonterminal-default)
-           stream
-           table
-           nonterminal))
 
 ;; These are functions that can be called from within a bovine table.
 ;; Most of these have code auto-generated from other construct in the
