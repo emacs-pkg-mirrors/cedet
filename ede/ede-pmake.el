@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.27 2000/09/28 18:40:23 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.28 2000/10/14 02:56:55 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -133,11 +133,11 @@ MFILENAME is the makefile to generate."
 	  ;; Insert Rules
 	  ;;
 	  (insert "\n\nall:")
-	  (mapcar (lambda (c)
-		    (if (and (slot-exists-p c 'partofall) (oref c partofall))
-			;; Only insert this rule if it is a part of ALL.
-			(insert " " (ede-proj-makefile-target-name c))))
-		  targ)
+	  (mapc (lambda (c)
+		  (if (and (slot-exists-p c 'partofall) (oref c partofall))
+		      ;; Only insert this rule if it is a part of ALL.
+		      (insert " " (ede-proj-makefile-target-name c))))
+		targ)
 	  (insert "\n\n")
 	  ;; Some C inference rules
 	  ;; Dependency rules borrowed from automake.
@@ -148,7 +148,7 @@ MFILENAME is the makefile to generate."
 	  ;; General makefile rules stored in the individual targets
 	  (ede-compiler-begin-unique
 	    (ede-proj-makefile-insert-rules this)
-	    (mapcar 'ede-proj-makefile-insert-rules targ))
+	    (mapc 'ede-proj-makefile-insert-rules targ))
 	  ;; Distribution rules such as CLEAN and DIST
 	  (when isdist
 	    (ede-proj-makefile-tags this mt)
@@ -161,11 +161,11 @@ MFILENAME is the makefile to generate."
 	;; Distribution variables
 	(let ((targ (if isdist (oref this targets) mt)))
 	  (ede-compiler-begin-unique
-	    (mapcar 'ede-proj-makefile-insert-automake-pre-variables targ))
+	    (mapc 'ede-proj-makefile-insert-automake-pre-variables targ))
 	  (ede-compiler-begin-unique
-	    (mapcar 'ede-proj-makefile-insert-source-variables targ))
+	    (mapc 'ede-proj-makefile-insert-source-variables targ))
 	  (ede-compiler-begin-unique
-	    (mapcar 'ede-proj-makefile-insert-automake-post-variables targ))
+	    (mapc 'ede-proj-makefile-insert-automake-post-variables targ))
 	  (ede-compiler-begin-unique
 	    (ede-proj-makefile-insert-user-rules this))
 	  (insert "\n# End of Makefile.am\n")
@@ -232,20 +232,20 @@ Use CONFIGURATION as the current configuration to query."
 	(conf-done nil))
     ;; Insert all variables, and augment them with details from
     ;; the current configuration.
-    (mapcar (lambda (c)
-	      (insert (car c) "=")
-	      (if (assoc (car c) conf-table)
-		  (progn
-		    (insert (cdr (assoc (car c) conf-table)) " ")
-		    (setq conf-done (cons (car c) conf-done))))
-	      (insert (cdr c) "\n"))
-	    (oref this variables))
+    (mapc (lambda (c)
+	    (insert (car c) "=")
+	    (if (assoc (car c) conf-table)
+		(progn
+		  (insert (cdr (assoc (car c) conf-table)) " ")
+		  (setq conf-done (cons (car c) conf-done))))
+	    (insert (cdr c) "\n"))
+	  (oref this variables))
     ;; Add in all variables from the configuration not allready covered.
-    (mapcar (lambda (c)
-	      (if (member (car c) conf-done)
-		  nil
-		(insert (car c) "=" (cdr c) "\n")))
-	    conf-table))
+    (mapc (lambda (c)
+	    (if (member (car c) conf-done)
+		nil
+	      (insert (car c) "=" (cdr c) "\n")))
+	  conf-table))
   (insert "\nede_FILES=" (file-name-nondirectory (oref this file)) " "
 	  (ede-proj-dist-makefile this) "\n"))
 
@@ -278,13 +278,18 @@ Optional argument MORESOURCE is a list of additional sources to add to the
 sources variable."
   (call-next-method)
   (let ((comp (ede-proj-compilers this))
+	(link (ede-proj-linkers this))
 	(name (ede-proj-makefile-target-name this))
 	(src (oref this source)))
     (while comp
       (ede-compiler-only-once (car comp)
 	(ede-proj-makefile-insert-object-variables (car comp) name src)
 	(ede-proj-makefile-insert-variables (car comp)))
-      (setq comp (cdr comp)))))
+      (setq comp (cdr comp)))
+    (while link
+      (ede-linker-only-once (car link)
+	(ede-proj-makefile-insert-variables (car link)))
+      (setq link (cdr link)))))
 
 (defmethod ede-proj-makefile-insert-automake-pre-variables
   ((this ede-proj-target))
@@ -329,7 +334,7 @@ These are removed with make clean."
 ;;
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-project))
   "Insert rules needed by THIS target."
-  (mapcar 'ede-proj-makefile-insert-rules (oref this inference-rules))
+  (mapc 'ede-proj-makefile-insert-rules (oref this inference-rules))
   )
 
 (defmethod ede-proj-makefile-insert-dist-rules ((this ede-proj-project))
@@ -382,25 +387,31 @@ These are removed with make clean."
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile))
   "Insert rules needed by THIS target."
-  (mapcar 'ede-proj-makefile-insert-rules (oref this rules))
+  (mapc 'ede-proj-makefile-insert-rules (oref this rules))
   (let ((c (ede-proj-compilers this)))
     (when c
-      (mapcar 'ede-proj-makefile-insert-rules c)
+      (mapc 'ede-proj-makefile-insert-rules c)
       (insert (ede-proj-makefile-target-name this) ": "
 	      (ede-proj-makefile-dependencies this) "\n")
-      (mapcar 'ede-proj-makefile-insert-commands c)
+      (ede-proj-makefile-insert-commands this)
       )))
+
+(defmethod ede-proj-makefile-insert-commands ((this ede-proj-target-makefile))
+  "Insert the commands needed by target THIS.
+For targets, insert the commands needed by the chosen compiler."
+  (mapc 'ede-proj-makefile-insert-commands (ede-proj-compilers this))
+  (mapc 'ede-proj-makefile-insert-commands (ede-proj-linkers this)))
 
 (defmethod ede-proj-makefile-insert-user-rules ((this ede-proj-project))
   "Insert user specified rules needed by THIS target.
 This is different from `ede-proj-makefile-insert-rules' in that this
 function won't create the building rules which are auto created with
 automake."
-  (mapcar 'ede-proj-makefile-insert-user-rules (oref this inference-rules)))
+  (mapc 'ede-proj-makefile-insert-user-rules (oref this inference-rules)))
 
 (defmethod ede-proj-makefile-insert-user-rules ((this ede-proj-target))
   "Insert user specified rules needed by THIS target."
-  (mapcar 'ede-proj-makefile-insert-rules (oref this rules)))
+  (mapc 'ede-proj-makefile-insert-rules (oref this rules)))
 
 (defmethod ede-proj-makefile-dependencies ((this ede-proj-target-makefile))
   "Return a string representing the dependencies for THIS.
