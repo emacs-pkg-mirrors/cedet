@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.59 2001/04/21 14:43:54 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.60 2001/04/25 17:25:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -570,6 +570,18 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
     ,streamorbuffer ,search-parts ,search-includes)
   )
 
+(defmacro semantic-find-nonterminal-by-extra-spec-value
+  (spec value streamorbuffer &optional search-parts search-includes)
+  "Find all nonterminals with a given SPEC equal to VALUE in STREAMORBUFFER.
+SPEC is a symbol key into the modifiers association list.
+VALUE is the value that SPEC should match.
+Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
+`semantic-find-nonterminal-by-function'."
+  `(semantic-find-nonterminal-by-function
+    (lambda (tok) (equal (semantic-token-extra-spec tok ,spec) ,value))
+    ,streamorbuffer ,search-parts ,search-includes)
+  )
+
 (defun semantic-find-nonterminal-by-function
   (function streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals in which FUNCTION match within STREAMORBUFFER.
@@ -819,8 +831,13 @@ FILTER must be a function to call on each element."
 	(if filter
 	    (semantic-find-nonterminal-by-function filter stream)
 	  (semantic-find-nonterminal-standard stream)))
+  (if (and default (string-match ":" prompt))
+      (setq prompt
+	    (concat (substring prompt 0 (match-end 0))
+		    " (default: " default ") ")))
   (completing-read prompt stream nil t ""
-		   'semantic-read-symbol-history))
+		   'semantic-read-symbol-history
+		   default))
 
 (defun semantic-read-variable (prompt &optional default stream)
   "Read a variable name from the user for the current buffer.
