@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.173 2000/07/13 19:11:49 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.174 2000/07/19 00:36:23 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -940,7 +940,8 @@ This basically creates a sparse keymap, and makes it's parent be
   (append
    '("Speedbar"
      ["Update" speedbar-refresh t]
-     ["Auto Update" speedbar-toggle-updates (not speedbar-update-flag-disable)
+     ["Auto Update" speedbar-toggle-updates
+      :active (not speedbar-update-flag-disable)
       :style toggle :selected speedbar-update-flag])
    (if (and (or (fboundp 'defimage)
 		(fboundp 'make-image-specifier))
@@ -1592,7 +1593,6 @@ mode-line.  This is only useful for non-XEmacs"
   "Pop up a menu related to the clicked on item.
 Must be bound to EVENT."
   (interactive "e")
-  (select-frame speedbar-frame)
   (save-excursion
     (goto-char (event-closest-point event))
     (beginning-of-line)
@@ -2747,16 +2747,16 @@ name will have the function FIND-FUN and not token."
 			    (or (speedbar-line-file)
 				(speedbar-line-path))))
 	 expand-button tag-button)
-     (if (get-file-buffer f)
-	 (save-excursion
-	   (set-buffer (get-file-buffer f))
-	   (setq expand-button speedbar-generic-list-group-expand-button-type
-		 tag-button speedbar-generic-list-tag-button-type)))
-    ;; Adjust the list.
-    (setq lst (speedbar-create-tag-hierarchy lst))
-    ;; insert the parts
-    (while lst
-      (cond ((null (car-safe lst)) nil)	;this would be a separator
+     (save-excursion
+       (if (get-file-buffer f)
+	   (set-buffer (get-file-buffer f)))
+       (setq expand-button speedbar-generic-list-group-expand-button-type
+	     tag-button speedbar-generic-list-tag-button-type))
+     ;; Adjust the list.
+     (setq lst (speedbar-create-tag-hierarchy lst))
+     ;; insert the parts
+     (while lst
+       (cond ((null (car-safe lst)) nil)	;this would be a separator
 	    ((speedbar-generic-list-tag-p (car lst))
 	     (speedbar-make-tag-line tag-button
 				     nil nil nil ;no expand button data
@@ -3441,7 +3441,9 @@ directory, then it is the directory name."
       (if f
 	  (let* ((depth (string-to-int (match-string 1)))
 		 (path (speedbar-line-path depth)))
-	    (concat path f))
+	    (if (file-exists-p (concat path f))
+		(concat path f)
+	      nil))
 	nil))))
 
 (defun speedbar-goto-this-file (file)
