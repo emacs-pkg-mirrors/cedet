@@ -1,0 +1,368 @@
+;;; wisent-wy.wy -- LALR grammar of Wisent's input grammar
+;;
+;; Copyright (C) 2002 David Ponce
+;;
+;; Author: David Ponce <david@dponce.com>
+;; Maintainer: David Ponce <david@dponce.com>
+;; Created: 19 Feb 2002
+;; Keywords: syntax
+;; X-RCS: $Id: wisent-wy.wy,v 1.1 2002/02/23 08:57:44 ponced Exp $
+;;
+;; This file is not part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+%{
+  (setq semantic-toplevel-bovine-table wisent-wy-automaton
+        ;; Use the Wisent's parser.
+        semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
+        ;; Language keywords
+        semantic-flex-keywords-obarray wisent-wy-keywords
+        ;; Numbers
+        semantic-number-expression
+        (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
+                "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
+        ;; Define the lexer
+        wisent-lexer-function 'wisent-wy-lex
+        ;; How `semantic-flex' will setup the lexer input stream.
+        wisent-flex-depth 0
+        ;; Case sensitive
+        semantic-case-fold nil
+        ;; Disable reporting of parse errors
+        wisent-error-function 'ignore
+        ;; Parent/Child separator
+        semantic-type-relation-separator-character '(":")
+        ;; Names
+        semantic-symbol->name-assoc-list
+        '(
+          (code         . "Setup Code")
+          (keyword      . "Keyword")
+          (token        . "Token")
+          (nonterminal  . "Nonterminal")
+          (rule         . "Rule")
+          )
+        ;; Faces
+        semantic-face-alist
+        '(
+          (code         . default)
+          (keyword      . font-lock-keyword-face)
+          (token        . font-lock-constant-face)
+          (nonterminal  . font-lock-function-name-face)
+          (rule         . default)
+          )
+        )
+
+  (semantic-install-function-overrides
+   '(
+     ;;(abbreviate-nonterminal    . wisent-wy-abbreviate-nonterminal)
+     ;;(summarize-nonterminal     . wisent-wy-summarize-nonterminal)
+     ;;(eldoc-current-symbol-info . wisent-wy-ecsi)
+     (nonterminal-children      . wisent-wy-nonterminal-children)
+     )
+   t)
+		    
+  %}
+
+%outputfile    "wisent-wy.el"
+%parsetable    wisent-wy-automaton
+%keywordtable  wisent-wy-keywords
+%languagemode  wy-mode
+%setupfunction wisent-wy-setup-semantic
+
+;; Main
+%start grammar
+;; Reparse
+%start code declaration nonterminal rule
+;; EXPANDFULL
+%start put_names put_values
+
+%token LEFT          "left"
+%token NONASSOC      "nonassoc"
+%token PREC          "prec"
+%token PUT           "put"
+%token RIGHT         "right"
+%token START         "start"
+%token TOKEN         "token"
+%token LANGUAGEMODE  "languagemode"
+%token OUTPUTFILE    "outputfile"
+%token SETUPFUNCTION "setupfunction"
+%token KEYWORDTABLE  "keywordtable"
+%token PARSETABLE    "parsetable"
+%token TOKENTABLE    "tokentable"
+
+%token <punct> COLON   ":"
+%token <punct> GT      ">"
+%token <punct> LT      "<"
+%token <punct> OR      "|"
+%token <punct> PERCENT "%"
+%token <punct> SEMI    ";"
+
+%token <paren> PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE
+
+
+%token <literal> NUMBER STRING SYMBOL
+
+%%
+
+grammar:
+    PERCENT
+    ()
+  | code
+  | declaration
+  | nonterminal
+  ;
+
+code:
+    PAREN_BLOCK
+    (wisent-token "code" 'code nil $1 nil)
+  | BRACE_BLOCK
+    (wisent-token "code" 'code nil $1 nil)
+  ;
+
+declaration:
+    decl
+    (apply #'wisent-token $1)
+  ;
+
+decl:
+    languagemode_decl
+  | outputfile_decl
+  | setupfunction_decl
+  | keywordtable_decl
+  | parsetable_decl
+  | tokentable_decl
+  | token_decl
+  | start_decl
+  | left_decl
+  | right_decl
+  | nonassoc_decl
+  | put_decl
+  ;
+
+languagemode_decl:
+    LANGUAGEMODE symbols
+    (list (car $2) 'languagemode nil (cdr $2) nil)
+  ;
+
+outputfile_decl:
+    OUTPUTFILE string_value
+    (list $2 'outputfile nil nil)
+  ;
+
+string_value:
+    STRING
+    (read $1)
+  ;
+
+setupfunction_decl:
+    SETUPFUNCTION SYMBOL
+    (list $2 'setupfunction nil nil)
+  ;
+
+keywordtable_decl:
+    KEYWORDTABLE SYMBOL
+    (list $2 'keywordtable nil nil)
+  ;
+
+parsetable_decl:
+    PARSETABLE SYMBOL
+    (list $2 'parsetable nil nil)
+  ;
+
+tokentable_decl:
+    TOKENTABLE SYMBOL
+    (list $2 'tokentable nil nil)
+  ;
+
+token_decl:
+    TOKEN token_type_opt SYMBOL string_value
+    (list $3 (if $2 'token 'keyword) $2 $4 nil)
+  | TOKEN token_type_opt symbols
+    (list "" 'token $2 $3 nil)
+  ;
+
+token_type_opt:
+  ;; EMPTY
+  | token_type
+  ;
+
+token_type:
+    LT SYMBOL GT
+    (identity $2)
+  ;
+
+start_decl:
+    START symbols
+    (list (car $2) 'start nil (cdr $2) nil)
+  ;
+
+left_decl:
+    LEFT symbols
+    (list (car $2) 'left nil (cdr $2) nil)
+  ;
+
+right_decl:
+    RIGHT symbols
+    (list (car $2) 'right nil (cdr $2) nil)
+  ;
+
+nonassoc_decl:
+    NONASSOC symbols
+    (list (car $2) 'nonassoc nil (cdr $2) nil)
+  ;
+
+put_decl:
+    PUT SYMBOL put_value
+    (list $2 'put nil nil (list $3) nil)
+  | PUT SYMBOL put_value_list
+    (let* ((vals (mapcar #'(lambda (tok) (nth 3 tok)) $3)))
+      (list $2 'put nil nil vals nil))
+  | PUT put_name_list put_value
+    (let* ((names (mapcar #'semantic-token-name $2)))
+      (list (car names) 'put nil (cdr names) (list $3) nil))
+  | PUT put_name_list put_value_list
+    (let* ((names (mapcar #'semantic-token-name $2))
+           (vals  (mapcar #'(lambda (tok) (nth 3 tok)) $3)))
+      (list (car names) 'put nil (cdr names) vals nil))
+  ;
+
+put_name_list:
+    BRACE_BLOCK
+    (EXPANDFULL $1 put_names)
+  ;
+
+put_names:
+    LBRACE
+    ()
+  | RBRACE
+    ()
+  | SYMBOL
+ ;; Must return a list of Semantic tokens to EXPANDFULL!
+    (list (list $1 'put-name nil nil))
+  ;
+
+put_value_list:
+    BRACE_BLOCK
+    (EXPANDFULL $1 put_values)
+  ;
+
+put_values:
+    LBRACE
+    ()
+  | RBRACE
+    ()
+  | put_value
+ ;; Must return a list of Semantic tokens to EXPANDFULL!
+    (list (list "" 'put-value nil $1 nil))
+  ;
+
+put_value:
+    SYMBOL any_value
+    (cons $1 $2)
+  ;
+
+;; Return a Lisp readable form
+any_value:
+    STRING
+  | SYMBOL
+  | NUMBER
+  | PAREN_BLOCK
+  ;
+
+symbols:
+    lifo_symbols
+    (nreverse $1)
+  ;
+
+lifo_symbols:
+    lifo_symbols SYMBOL
+    (cons $2 $1)
+  | SYMBOL
+    (list $1)
+  ;
+
+nonterminal:
+    SYMBOL COLON rules SEMI
+    (wisent-token $1 'nonterminal nil $3 nil)
+  | error SEMI
+  ;
+
+rules:
+    lifo_rules
+    (apply #'nconc (nreverse $1))
+  ;
+
+lifo_rules:
+    lifo_rules OR rule
+    (cons $3 $1)
+  | rule
+    (list $1)
+  ;
+
+;; ("rule" 'rule nil (elements) action prec nil)
+;; (elements) -> ((MID-ACTION . SYMBOL) ...) or nil -> EMPTY rule
+rule:
+ ;; EMPTY
+    (wisent-token "empty" 'rule nil nil nil nil nil)
+  | action
+    (wisent-token "empty" 'rule nil nil $1 nil nil)
+  | prec action
+    (wisent-token "empty" 'rule nil nil $2 $1 nil)
+  | elements action_opt
+    (let ((elts (nreverse $1)))
+      (wisent-token (mapconcat #'cdr elts " ")
+                    'rule nil elts $2 nil nil))
+  | elements prec action_opt
+    (let ((elts (nreverse $1)))
+      (wisent-token (mapconcat #'cdr elts " ")
+                    'rule nil elts $3 $2 nil))
+  ;
+
+prec:
+    PERCENT PREC SYMBOL
+    (identity $3)
+  ;
+       
+action_opt:
+ ;; EMPTY
+  | action
+  ;
+
+action:
+    PAREN_BLOCK
+  | BRACE_BLOCK
+    (format "(progn\n%s)"
+            (let ((s $1))
+              (if (string-match "^{[\r\n\t ]*" s)
+                  (setq s (substring s (match-end 0))))
+              (if (string-match "[\r\n\t ]*}$" s)
+                  (setq s (substring s 0 (match-beginning 0))))
+              s))
+  ;
+
+elements:
+    elements element
+    (cons $2 $1)
+  | element
+    (list $1)
+  ;
+
+element:
+    action_opt SYMBOL
+    (cons $1 $2)
+  ;
+
+;;; wisent-wy.wy ends here
