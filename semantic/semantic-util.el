@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.105 2003/03/14 01:54:33 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.106 2003/03/14 02:29:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -584,8 +584,8 @@ a shallow copy of the token to be modified.  The second is the PARENT
 which is adopting TOKEN.  This function should return TOKEN (or a copy of it)
 which is then integrated into the revised token list.")
 
-(defun semantic-adopt-external-members (tokens)
-  "Rebuild TOKENS so that externally defined members are regrouped.
+(defun semantic-adopt-external-members (tags)
+  "Rebuild TAGS so that externally defined members are regrouped.
 Some languages such as C++ and CLOS permit the declaration of member
 functions outside the definition of the class.  It is easier to study
 the structure of a program when such methods are grouped together
@@ -599,7 +599,7 @@ types which do not have a position, but have children which *do*
 have positions.
 
 Applications should use `semantic-mark-external-member-function'
-to modify all tokens which are found as externally defined to some
+to modify all tags which are found as externally defined to some
 type.  For example, changing the token type for generating extra
 buckets with the bucket function."
   (let ((parent-buckets nil)
@@ -609,32 +609,32 @@ buckets with the bucket function."
 	)
     ;; Rebuild the output list, stripping out all parented
     ;; external entries
-    (while tokens
+    (while tags
       (cond
-       ((setq tmp (semantic-nonterminal-external-member-parent (car tokens)))
-	(let ((tokencopy (copy-sequence (car tokens)))
+       ((setq tmp (semantic-nonterminal-external-member-parent (car tags)))
+	(let ((tagcopy (semantic-clone-tag (car tags)))
 	      (a (assoc tmp parent-buckets)))
-	  (semantic-token-put-no-side-effect tokencopy 'adopted t)
+	  (semantic-token-put-no-side-effect tagcopy 'adopted t)
 	  (if a
 	      ;; If this parent is already in the list, append.
-	      (setcdr (nthcdr (1- (length a)) a) (list tokencopy))
+	      (setcdr (nthcdr (1- (length a)) a) (list tagcopy))
 	    ;; If not, prepend this new parent bucket into our list
 	    (setq parent-buckets
-		  (cons (cons tmp (list tokencopy)) parent-buckets)))
+		  (cons (cons tmp (list tagcopy)) parent-buckets)))
 	  ))
-       ((eq (semantic-token-token (car tokens)) 'type)
+       ((eq (semantic-token-token (car tags)) 'type)
 	;; Types need to be rebuilt from scratch so we can add in new
 	;; children to the child list.  Only the top-level cons
 	;; cells need to be duplicated so we can hack out the
 	;; child list later.
-	(setq out (cons (copy-sequence (car tokens)) out))
+	(setq out (cons (copy-sequence (car tags)) out))
 	(setq decent-list (cons (car out) decent-list))
 	)
        (t
 	;; Otherwise, append this token to our new output list.
-	(setq out (cons (car tokens) out)))
+	(setq out (cons (car tags) out)))
        )
-      (setq tokens (cdr tokens)))
+      (setq tags (cdr tags)))
     ;; Rescan out, by decending into all types and finding parents
     ;; for all entries moved into the parent-buckets.
     (while decent-list
@@ -668,17 +668,15 @@ buckets with the bucket function."
     (while parent-buckets
       (if (car (car parent-buckets))
 	  (let* ((tmp (car parent-buckets))
-		 (fauxtok (list (car tmp) 'type
-				semantic-orphaned-member-metaparent-type
-				nil ;; Part list
-				nil ;; parents (unknow)
-				nil ;; extra spec
-				nil ;; doc
-				'((faux . t)) ;; proprties
-				nil ;; overlay
-				))
+		 (fauxtok (semantic-tag-new-type
+			   (car tmp)
+			   semantic-orphaned-member-metaparent-type
+			   nil ;; Part list
+			   nil ;; parents (unknow)
+			   ))
 		 (partcdr (nthcdr 3 fauxtok))
 		 (bucketkids (cdr tmp)))
+	    (semantic-token-put fauxtok 'faux t) ;; proprties
 	    (if semantic-mark-external-member-function
 		(setq bucketkids
 		      (mapcar (lambda (tok)
@@ -1547,7 +1545,7 @@ If NOSNARF is 'flex, then return the flex token."
 	 (semantic-lex-analyzer #'semantic-comment-lexer))
     (if (eq nosnarf 'flex)
 	(car (semantic-lex (point) (1+ (point))))
-      (let ((ct (semantic-flex-text
+      (let ((ct (semantic-lex-token-text
 		 (car (semantic-lex (point) (1+ (point)))))))
 	(if nosnarf
 	    nil
