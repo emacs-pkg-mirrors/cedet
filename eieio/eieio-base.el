@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.16 2002/08/08 01:10:30 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.17 2002/08/20 14:44:28 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -145,8 +145,12 @@ A singleton is a class which will only ever have one instace."
 NAME and FIELDS initialize the new object.
 This constructor guarantees that no matter how many you request,
 only one object ever exists."
+  ;; NOTE TO SELF: In next version, make `slot-boundp' support classes
+  ;; with class allocated slots or default values.
   (let ((old (oref-default class singleton)))
-    (or old (call-next-method))))
+    (if (eq old eieio-unbound)
+	(oset-default class singleton (call-next-method))
+      old)))
 
 
 ;;; eieio-persistent
