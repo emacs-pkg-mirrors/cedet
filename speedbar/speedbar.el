@@ -3,9 +3,11 @@
 ;;; Copyright (C) 1996, 97, 98, 99, 00 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.13
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.178 2000/08/17 03:01:59 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.179 2000/08/17 03:11:01 zappo Exp $
+
+(defvar speedbar-version "0.13beta1"
+  "The current version of speedbar.")
 
 ;; This file is part of GNU Emacs.
 
@@ -1092,7 +1094,7 @@ in the selected file.
     (setq font-lock-keywords nil) ;; no font-locking please
     (setq truncate-lines t)
     (make-local-variable 'frame-title-format)
-    (setq frame-title-format "Speedbar")
+    (setq frame-title-format (concat "Speedbar " speedbar-version))
 
     (toggle-read-only 1)
     (speedbar-set-mode-line-format)
@@ -2883,7 +2885,8 @@ the file being checked."
 (defun speedbar-click (e)
   "Activate any speedbar buttons where the mouse is clicked.
 This must be bound to a mouse event.  A button is any location of text
-with a mouse face that has a text property called `speedbar-function'."
+with a mouse face that has a text property called `speedbar-function'.
+Argument E is the click event."
   (speedbar-do-function-pointer)
   (dframe-quick-mouse e))
 
