@@ -15,6 +15,11 @@
     :path ""
     :autoload-file "cogre-loaddefs.el"
     )
+   (ede-proj-target-elisp "init"
+    :name "init"
+    :path ""
+    :source '("cogre-load.el")
+    )
    (ede-proj-target-elisp "dot"
     :name "dot"
     :path ""

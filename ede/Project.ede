@@ -10,6 +10,11 @@
     :path ""
     :autoload-file "ede-loaddefs.el"
     )
+   (ede-proj-target-elisp "init"
+    :name "init"
+    :path ""
+    :source '("ede-load.el")
+    )
    (ede-proj-target-elisp "ede"
     :name "ede"
     :path ""

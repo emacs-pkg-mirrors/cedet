@@ -10,6 +10,11 @@
     :path ""
     :autoload-file "speedbar-loaddefs.el"
     )
+   (ede-proj-target-elisp "init"
+    :name "init"
+    :path ""
+    :source '("speedbar-load.el")
+    )
    (ede-proj-target-elisp "speedbar"
     :name "speedbar"
     :path ""
