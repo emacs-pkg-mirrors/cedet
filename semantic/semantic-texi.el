@@ -1,9 +1,9 @@
 ;;; semantic-texi.el --- Semantic details for Texinfo files
 
-;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.23 2003/11/20 15:01:15 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.24 2004/03/05 03:21:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -330,13 +330,11 @@ If TAG is nil, determine a tag based on the current position."
   (unless (semantic-tag-of-class-p tag 'def)
     (error "Only deffns (or defun or defvar) can be updated"))
   (let* ((name (semantic-tag-name tag))
-	 (tags (apply
-		#'append
-		(mapcar
-		 #'cdr
-		 ;; `semanticdb-find-first-tag-by-name' returns a
-		 ;; list ((DB-TABLE . TOKEN) ...)
-		 (semanticdb-brute-deep-find-tags-by-name name nil t))))
+	 (tags (semanticdb-strip-find-results
+		;; `semanticdb-find-first-tag-by-name' returns a
+		;; list ((DB-TABLE . TOKEN) ...)
+		(semanticdb-brute-deep-find-tags-by-name name)
+		t))
 	 (docstring nil)
 	 (docstringproto nil)
 	 (docstringvar nil)
@@ -349,8 +347,9 @@ If TAG is nil, determine a tag based on the current position."
 	(let ((sourcetag (car tags)))
 	  ;; There could be more than one!  Come up with a better
 	  ;; solution someday.
-	  (set-buffer (semantic-tag-buffer sourcetag))
-	  (unless (eq major-mode 'texinfo-mode)
+	  (when (semantic-tag-buffer sourcetag)
+	    (set-buffer (semantic-tag-buffer sourcetag))
+	    (unless (eq major-mode 'texinfo-mode)
 	    (cond ((semantic-tag-get-attribute sourcetag 'prototype)
 		   ;; If we found a match with doc that is a prototype, then store
 		   ;; that, but don't exit till we find the real deal.
@@ -359,9 +358,11 @@ If TAG is nil, determine a tag based on the current position."
 		  ((eq (semantic-tag-class sourcetag) 'variable)
 		   (setq docstringvar (semantic-documentation-for-tag sourcetag)
 			 doctagvar sourcetag))
+		  ((semantic-tag-get-attribute sourcetag 'override-function)
+		   nil)
 		  (t
 		   (setq docstring (semantic-documentation-for-tag sourcetag))))
-	    (setq doctag (if docstring sourcetag nil)))
+	    (setq doctag (if docstring sourcetag nil))))
 	  (setq tags (cdr tags)))))
     ;; If we found a prototype of the function that has some doc, but not the
     ;; actual function, lets make due with that.
