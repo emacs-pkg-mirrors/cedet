@@ -3,8 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.1
-;;; RCS: $Id: e-config.el,v 1.5 1996/11/13 21:48:08 zappo Exp $
+;;; RCS: $Id: e-config.el,v 1.6 1996/12/19 21:16:58 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -261,6 +260,7 @@ useful for sending email."
       (create-widget "From Style     :" widget-label)
 
       (create-widget "name-type" widget-option-button
+		     :title "Name Format"
 		     :x -2 :y t :option-list opt-list :state fsdo)
 
       (create-widget "Looks Like:" widget-label :y -1)
@@ -304,7 +304,7 @@ useful for sending email."
 		   :value (data-object-symbol 'mail-yank-prefix))
     (create-widget "cite-pref" widget-label
 		   :x 3 :y -1 :label-value
-		   "This appears before quoted text. Usually `>'")
+		   "This appears before quoted text. It is `>' for most mailers.")
 
     )
   (dlg-end)
@@ -389,6 +389,10 @@ useful for ps-print."
 
     (create-widget "Print header on each page." widget-toggle-button
 		   :state (data-object-symbol 'ps-print-header))
+
+    (create-widget "Print page numbers (Must have headers on)."
+		   widget-toggle-button
+		   :state (data-object-symbol 'ps-show-n-of-n))
      
     (create-widget "Print gaudy frame around header." widget-toggle-button
 		   :state (data-object-symbol 'ps-print-header-frame))
@@ -396,13 +400,114 @@ useful for ps-print."
     (create-widget "Print with color." widget-toggle-button
 		   :state (data-object-symbol 'ps-print-color-p))
 
-    (create-widget "Printed Font Size:" widget-labeled-text
-		   :unit "Pts" :text-length 5
-		   :value (data-object-symbol-string-to-int 'ps-font-size))
+    (create-widget "Auto-detect faces for bold, italic, and underline."
+		   widget-toggle-button
+		   :state (data-object-symbol 'ps-auto-font-detect))
 
-    (create-widget "Print command    :" widget-labeled-text
+    (create-widget "Printed Font Size :" widget-labeled-text
+		   :unit "Pts" :text-length 10
+		   :value (data-object-symbol-string-to-int
+			   'ps-font-size))
+
+    (create-widget "Note: You must change the character width and height
+whenever you change the font size, or the font family." widget-label
+                   :x 5 :y -1 :face 'bold)
+
+    (create-widget "Character Width   :" widget-labeled-text
+		   :unit "Pts" :text-length 10 :y -1
+		   :value (data-object-symbol-string-to-int 'ps-avg-char-width))
+    (create-widget "Space Width       :" widget-labeled-text
+		   :unit "Pts" :text-length 10
+		   :value (data-object-symbol-string-to-int 'ps-space-width))
+    (create-widget "Line Height       :" widget-labeled-text
+		   :unit "Pts" :text-length 10
+		   :value (data-object-symbol-string-to-int 'ps-line-height))
+
+
+    (create-widget "Note: All font families listed are optimized
+to work with Ghostscript" widget-label :face 'bold-italic :x 5)
+
+    (create-widget "Printed Font Family:" widget-option-text
+		   :y -1
+		   :text-length 30 :option-list 
+		   '("Courier"
+		     "CharterBT-Roman"
+		     "Times-Roman"
+		     "Helvetica"
+		     "ZapfChancery"
+		     "Palatino-Roman"
+		     "NewCenturySchlbk-Roman"
+		     "Utopia-Regular"
+		     )
+		   :value (data-object-symbol 'ps-font))
+
+    (create-widget "Bold Font Family   :" widget-option-text
+		   :box-face 'bold
+		   :text-length 30 :option-list
+		   '("Courier-Bold"
+		     "Charter-Bold"
+		     "Times-Bold"
+		     "Helvetica-Bold"
+		     "ZapfChancery-Bold"
+		     "Palatino-Bold"
+		     "NewCenturySchlbk-Bold"
+		     "Utopia-Bold"
+		     )
+		   :value (data-object-symbol 'ps-font-bold))
+
+    (create-widget "Italic Font Family :" widget-option-text
+		   :box-face 'italic
+		   :text-length 30 :option-list
+		   '("Courier-Oblique"
+		     "Charter-Italic"
+		     "Times-Italic"
+		     "Helvetica-Oblique"
+		     "ZapfChancery-Oblique"
+		     "Palatino-Italic"
+		     "NewCenturySchlbk-Italic"
+		     "Utopia-Italic"
+		     )
+		   :value (data-object-symbol 'ps-font-italic))
+
+    (create-widget "Bold Italic Font   :" widget-option-text
+		   :box-face 'bold-italic
+		   :text-length 30 :option-list 
+		   '("Courier-BoldOblique"
+		     "Charter-BoldItalic"
+		     "Times-BoldItalic"
+		     "Helvetica-BoldOblique"
+		     ;; Offer both since there is no bold-oblique
+		     "ZapfChancery-Bold"
+		     "ZapfChancery-Oblique"
+		     "Palatino-BoldItalic"
+		     "NewCenturySchlbk-BoldItalic"
+		     "Utopia-BoldItalic"
+		     )
+		   :value (data-object-symbol 'ps-font-bold-italic))
+
+    (create-widget "Print command     :" widget-labeled-text
 		   :text-length 20
 		   :value (data-object-symbol 'ps-lpr-command))
+    (create-widget "lpr parameters    :" widget-labeled-text
+		   :text-length 30
+		   :value (data-object-symbol-translated 
+			   'ps-lpr-switches
+			   :set-lambda 'dlg-string-to-list
+			   :get-lambda 'dlg-list-to-string))
+    (create-widget "Paper Size        :" widget-label)
+    (let* ((opt-list '("'ps-letter" "'ps-legal" "'ps-a4"))
+	   (opt-dat (data-object-symbol-list-index
+		     'ps-paper-type
+		     :value (cond ((eq ps-paper-type 'ps-letter) 0)
+				  ((eq ps-paper-type 'ps-legal) 1)
+				  ((eq ps-paper-type 'ps-a4) 2)
+				  (t 0))
+		     :string-list opt-list)))
+
+      (create-widget "paper-size" widget-option-button
+		     :title "Paper Size"
+		     :x -2 :y t :option-list opt-list :state opt-dat)
+      )
     )
   (dlg-end)
   (dialog-refresh)
@@ -447,9 +552,9 @@ useful for ps-print."
 				   "'fast-lock-mode")
 				 :value 
 				 (cond 
-				  ((eq mail-from-style 'fast-lock-mode)
+				  ((eq font-lock-support-mode 'fast-lock-mode)
 				   2)
-				  ((eq mail-from-style 'lazy-lock-mode)
+				  ((eq font-lock-support-mode 'lazy-lock-mode)
 				   1)
 				  (t 0))))
 
