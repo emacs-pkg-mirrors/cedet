@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.96 2001/04/22 01:42:12 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.97 2001/04/25 18:56:23 ponced Exp $
 
 (defvar semantic-version "1.4beta3"
   "Current version of Semantic.")
@@ -512,39 +512,40 @@ The returned item may be an overlay or an unloaded buffer representation."
       semantic-bovinate-toplevel-override))
 
 (defun semantic-new-buffer-fcn ()
-  "Run in `find-file-hooks'.
-Runs `semantic-init-hook' if the major mode is setup to use semantic."
-  (when (and (semantic-active-p) (buffer-file-name))
+  "Setup Semantic in the current buffer.
+Runs `semantic-init-hook' if the major mode is setup to use Semantic."
+  (when (semantic-active-p)
+    (semantic-clear-toplevel-cache)
     (setq semantic-toplevel-bovine-force-reparse t)
     (run-hooks 'semantic-init-hooks)))
 
-(defvar semantic-changed-major-mode nil
-  "List of modes whose `major-mode' has changed recently.")
+(defvar semantic-changed-mode-buffers nil
+  "List of buffers whose `major-mode' has changed recently.")
+
+(defun semantic-post-change-major-mode-function ()
+  "`post-command-hook' run when there is a `major-mode' change.
+This makes sure semantic-init type stuff can occur."
+  (remove-hook 'post-command-hook
+               'semantic-post-change-major-mode-function)
+  (let (buf)
+    (while semantic-changed-mode-buffers
+      (setq buf (car semantic-changed-mode-buffers)
+            semantic-changed-mode-buffers
+            (cdr semantic-changed-mode-buffers))
+      (and (buffer-live-p buf)
+           (buffer-file-name buf)
+           (with-current-buffer buf
+             (semantic-new-buffer-fcn))))))
 
 (defun semantic-change-major-mode-hook-function ()
   "Function called in `change-major-mode-hook'."
-  ;; After whatever was run to change the major mode is done,
-  ;; make sure semantic can reinitialize itself.
-  (if (not (semantic-active-p))
-      ;; Do nothing if semantic is not active in this buffer.
-      nil
-    (semantic-clear-toplevel-cache))
-  (add-hook 'post-command-hook 'semantic-post-change-major-mode-function)
-  (setq semantic-changed-major-mode (cons (current-buffer)
-					  semantic-changed-major-mode))
-  )
+  (add-to-list 'semantic-changed-mode-buffers (current-buffer))
+  (add-hook 'post-command-hook 'semantic-post-change-major-mode-function))
 
-(defun semantic-post-change-major-mode-function ()
-  "Called in a `post-command-hook' when there is a `major-mode' change.
-This makes sure semantic-init type stuff can occur."
-  (save-excursion
-    (remove-hook 'post-command-hook 'semantic-post-change-major-mode-function)
-    (while semantic-changed-major-mode
-      (set-buffer (car semantic-changed-major-mode))
-      (setq semantic-changed-major-mode (cdr semantic-changed-major-mode))
-      (semantic-new-buffer-fcn))))
-
-(add-hook 'change-major-mode-hook 'semantic-change-major-mode-hook-function)
+(add-hook 'find-file-hooks
+          'semantic-post-change-major-mode-function)
+(add-hook 'change-major-mode-hook
+          'semantic-change-major-mode-hook-function)
 
 ;; Test the above hook.
 ;;(add-hook 'semantic-init-hooks (lambda () (message "init for semantic")))
@@ -631,9 +632,9 @@ Optional argument CHECKCACHE indicates if the cache check should be made."
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer.
-If the optional argument CHECKCACHE is non-nil, then make sure the cached
-token list is up to date.  If a partial reparse is possible, do that,
-otherwise, do a full reparse."
+If the optional argument CHECKCACHE is non-nil, then make sure the
+cached token list is up to date.  If a partial reparse is possible, do
+that, otherwise, do a full reparse."
   (cond
    ((and semantic-bovinate-toplevel-override
 	 ;; We cannot predict partial reparsing for these parsers.  Let them
