@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.19 1999/09/06 10:24:20 zappo Exp $
+@c $Id: eieio.texi,v 1.20 1999/09/08 01:29:47 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -250,6 +250,7 @@ valuen)}.  Some valid tags are:
 The argument used during initialization.  @xref{Making New Objects}.
 @item :initform
 A lisp expression used to generate the default value for this slot.
+If :initform is left out, that slot defaults to being unbound.
 @item :accessor
 Name of a generic function which can be used to fetch the value of this slot.
 @item :writer
@@ -465,22 +466,27 @@ changed, this can be arranged by simply executing this bit of code:
 
 @end defun
 
-@defun oref object field
+@defun oref object slot
 
-This recalls the value in slot @var{field} in @var{object} and returns
+This recalls the value in slot @var{slot} in @var{object} and returns
 it.
 @end defun
 
-@defun oref-default object field
+@defun oref-default object slot
 
 This gets the default value in @var{object}'s class definition for
-@code{field}.  This can be different from the value returned by
+@code{slot}.  This can be different from the value returned by
 @code{oref}.  @var{object} can also be a class symbol or an instantiated
 object.
 @end defun
 
-@defun slot-value object field
+@defun slot-value object slot
 This function is mearly an alias for oref
+@end defun
+
+@defun slot-makeunbound object slot
+This function unbinds @var(slot) in @var{object}.  Referencing an
+unbound slot can throw an error.
 @end defun
 
 When using @code{oref} or @code{oset}, if the value behind @var{field}
@@ -504,13 +510,23 @@ read the values, or set the local variable to a new value.
 @end example
 @end defun
 
-@defun slot-missing object field operation &optional new-valie
-This method is called when a there is an attemp to access a slot that
+@defun slot-missing object field operation &optional new-value
+This method is called when there is an attempt to access a slot that
 does not exist for a given object.  The default method signals an error
 of type @code{invalid-slot-name}.  @xref{Signals}.
 
 You may override this behavior, but it is not expected to return in the
 current implementation.
+
+This function takes arguments in a different order than in CLOS.
+@end defun
+
+@defun slot-unbound object class field operation 
+This method is called when there is an attempt to reference an unbound
+slot.  A slot is unbound if it has no :initform, and was never set.
+
+If a class implements this method, and it has a return value, then that
+return value is returned by @code{slot-value}.
 @end defun
 
 @node Writing Methods, Predicates, Accessing Fields, Top
@@ -628,9 +644,8 @@ Return Non-@code{nil} if @var{obj} contains @var{slot} in its class.
 @end defun
 
 @defun slot-boundp obj slot
-In CLOS, an object can have an unbound slot.  EIEIO binds all
-slots at instantiation time, thus this function is a macro that calls
-@code{slot-exists-p}
+Return Non-@code{nil} if @var{obj}'s @var{slot} is bound.  A slot is
+unbound if it has no :initform, and was never set.
 @end defun
 
 @defun class-name class
