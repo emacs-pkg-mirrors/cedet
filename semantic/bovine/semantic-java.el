@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.5 2003/03/27 07:46:06 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.6 2003/04/09 12:32:20 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -92,7 +92,7 @@ FLOATING_POINT_LITERAL:
   "Return a function (method) prototype for TAG.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
-See also `semantic-java-prototype-nonterminal'."
+See also `semantic-java-prototype-tag'."
   (let ((name (semantic-tag-name tag))
         (type (semantic-tag-type tag))
         (args (semantic-tag-function-arguments tag))
@@ -103,29 +103,29 @@ See also `semantic-java-prototype-nonterminal'."
             args (cdr args))
       (if (semantic-tag-p arg)
           (setq argt (if color
-                         (semantic-colorize-text
+                         (semantic--format-colorize-text
                           (semantic-tag-type arg) 'type)
                        (semantic-tag-type arg))
                 argp (concat argp argt (if args "," "")))))
     (if color
         (progn
           (if type
-              (setq type (semantic-colorize-text type 'type)))
-          (setq name (semantic-colorize-text name 'function))))
+              (setq type (semantic--format-colorize-text type 'type)))
+          (setq name (semantic--format-colorize-text name 'function))))
     (concat (or type "") (if type " " "") name "(" argp ")")))
 
 (defun semantic-java-prototype-variable (tag &optional parent color)
   "Return a variable (field) prototype for TAG.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
-See also `semantic-java-prototype-nonterminal'."
+See also `semantic-java-prototype-tag'."
   (concat (if color
-              (semantic-colorize-text
+              (semantic--format-colorize-text
                (semantic-tag-type tag) 'type)
             (semantic-tag-type tag))
           " "
           (if color
-              (semantic-colorize-text
+              (semantic--format-colorize-text
                (semantic-tag-name tag) 'variable)
             (semantic-tag-name tag))))
 
@@ -133,25 +133,25 @@ See also `semantic-java-prototype-nonterminal'."
   "Return a type (class/interface) prototype for TAG.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
-See also `semantic-java-prototype-nonterminal'."
+See also `semantic-java-prototype-tag'."
   (concat (semantic-tag-type tag)
           " "
           (if color
-              (semantic-colorize-text
+              (semantic--format-colorize-text
                (semantic-tag-name tag) 'type)
             (semantic-tag-name tag))))
 
-(defun semantic-java-prototype-nonterminal (tag &optional parent color)
+(defun semantic-java-prototype-tag (tag &optional parent color)
   "Return a prototype for TOKEN.
-Override `semantic-prototype-nonterminal'.
+Override `semantic-format-tag-prototype'.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in."
-  (let ((fprot (intern-soft
-                (format "semantic-java-prototype-%s"
-                        (semantic-tag-class tag)))))
-    (if (fboundp fprot)
-        (funcall fprot tag parent color)
-      (semantic-prototype-nonterminal-default tag parent color))))
+  (let ((f (intern-soft (format "semantic-java-prototype-%s"
+                                (semantic-tag-class tag)))))
+    (funcall (if (fboundp f)
+                 f
+               'semantic-format-tag-prototype-default)
+             tag parent color)))
 
 ;; Documentation handler
 ;;
@@ -170,7 +170,7 @@ Attempt to strip out comment syntactic sugar, unless optional argument
 NOSNARF is non-nil.
 If NOSNARF is 'flex, then return the semantic lex token.
 Override `semantic-find-documentation'."
-  (if (or tag (setq tag (semantic-current-nonterminal)))
+  (if (or tag (setq tag (semantic-current-tag)))
       (with-current-buffer (semantic-tag-buffer tag))
     ;; Move the point at token start
     (goto-char (semantic-tag-start tag))
@@ -198,7 +198,7 @@ Override `semantic-find-documentation'."
             ;; comment is the current one!
             (goto-char (semantic-lex-token-end c))
             (semantic-java-skip-spaces-forward)
-            (when (eq tag (semantic-current-nonterminal))
+            (when (eq tag (semantic-current-tag))
               (goto-char p)
               (semantic-find-doc-snarf-comment nosnarf)))))))
 
