@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.232 2003/09/07 02:14:50 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.233 2003/09/26 04:01:51 zappo Exp $
 
 (defvar speedbar-version "0.15beta1"
   "The current version of speedbar.")
@@ -2896,7 +2896,9 @@ that will occur on your system."
    (if (fboundp 'vc-state)
        ;; Emacs 21 handles VC state in a nice way.
        (condition-case nil
-	   (not (eq 'up-to-date (vc-state (concat directory name))))
+	   (let ((state  (vc-state (concat directory name))))
+	     (not (or (eq 'up-to-date state)
+		      (null state))))
 	 ;; An error means not in a VC system
 	 (error nil))
      (or
