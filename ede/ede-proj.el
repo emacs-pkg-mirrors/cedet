@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.44 2003/09/06 19:38:42 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.45 2003/10/02 01:44:13 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -224,6 +224,7 @@ These files can contain additional rules, variables, and customizations.")
     :initform t
     :type boolean
     :custom boolean
+    :group (default settings)
     :documentation
     "Non-nil to do implement automatic dependencies in the Makefile.")
    (menu :initform
@@ -232,6 +233,18 @@ These files can contain additional rules, variables, and customizations.")
 	  [ "Upload Distribution" ede-upload-distribution t ]
 	  )
 	 )
+   (metasubproject
+    :initarg :metasubproject
+    :initform nil
+    :type boolean
+    :custom boolean
+    :group (default settings)
+    :documentation
+    "Non-nil if this is a metasubproject.
+Usually, a subproject is determined by a parent project.  If multiple top level
+projects are grouped into a large project not maintained by EDE, then you need
+to set this to non-nil.  The only effect is that the `dist' rule will then avoid
+making a tar file.")
    )
   "The EDE-PROJ project definition class.")
 
