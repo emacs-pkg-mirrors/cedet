@@ -3,8 +3,8 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.34 1997/03/03 02:46:17 zappo Exp $
-;;; Version: 0.4.4
+;;; RCS: $Id: speedbar.el,v 1.35 1997/03/19 00:09:42 zappo Exp $
+;;; Version: 0.4.5
 ;;; Keywords: file, tags, tools
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -217,6 +217,8 @@
 ;;;       Added S-mouse2 as "power click" for always poping up a new frame.
 ;;;        and always rescanning with imenu (ditching the imenu cache), and
 ;;;        always rescanning directories.
+;;; 0.4.5 XEmacs bugfixes and enhancements.
+;;;       Window Title simplified.
 ;;;
 ;;; TODO:
 ;;; 1) More functions to create buttons and options
@@ -264,8 +266,12 @@ between different directories.")
 (defvar speedbar-frame-parameters (list 
 				   ;; Xemacs fails to delete speedbar
 				   ;; if minibuffer is off.
-				   (cons 'minibuffer 
-					 (if speedbar-xemacsp t nil))
+				   ;(cons 'minibuffer 
+				   ; (if speedbar-xemacsp t nil))
+				   ;; The above behavior seems to have fixed
+				   ;; itself somewhere along the line.
+				   ;; let me know if any problems arise.
+				   '(minibuffer . nil)
 				   '(width . 20)
 				   '(scroll-bar-width . 10)
 				   '(border-width . 0)
@@ -706,11 +712,14 @@ supported at a time."
 	  ;; Turn off toolbar and menubar under XEmacs
 	  (if speedbar-xemacsp
 	      (progn
-		(set-specifier default-toolbar-visible-p (cons (selected-frame) nil))
-		(set-specifier menubar-visible-p (cons (selected-frame) nil))
-		(make-local-variable 'current-menubar)
-		(setq current-menubar speedbar-menu)
-		(add-submenu nil speedbar-menu nil)
+		(set-specifier default-toolbar-visible-p
+			       (cons (selected-frame) nil))
+		;; These lines make the menu-bar go away nicely, but
+		;; they also cause xemacs much heartache.
+		;;(set-specifier menubar-visible-p (cons (selected-frame) nil))
+		;;(make-local-variable 'current-menubar)
+		;;(setq current-menubar speedbar-menu)
+		;;(add-submenu nil speedbar-menu nil)
 		))
 	  (setq default-minibuffer-frame speedbar-attached-frame))
 	(speedbar-set-timer speedbar-update-speed)
@@ -795,6 +804,8 @@ Keybindings: \\<speedbar-key-map>
     (set-syntax-table speedbar-syntax-table)
     (setq font-lock-keywords nil) ;; no font-locking please
     (setq truncate-lines t)
+    (make-local-variable 'frame-title-format)
+    (setq frame-title-format "Speedbar")
     (make-local-variable 'temp-buffer-show-function)
     (setq temp-buffer-show-function 'speedbar-temp-buffer-show-function)
     (setq kill-buffer-hook '(lambda () (let ((skilling (boundp 'skilling)))
