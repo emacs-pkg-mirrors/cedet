@@ -4,7 +4,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.2
-;; RCS: $Id: chart.el,v 1.12 2001/08/31 17:29:50 zappo Exp $
+;; RCS: $Id: chart.el,v 1.13 2001/09/14 19:49:10 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -318,10 +318,10 @@ Automatically compensates for for direction."
 	 (ns (length
 	      (oref (if (eq dir 'vertical) (oref c x-axis) (oref c y-axis))
 		    items)))
-	 (lpn (/ (float w) (float ns)))
+	 (lpn (/ (+ 1.0 (float w)) (float ns)))
 	 )
-    (cons (+ m 1 (round (* lpn (float n))))
-	  (+ m (round (* lpn (+ 1 (float n))))))
+    (cons (+ m (round (* lpn (float n))))
+	  (+ m -1 (round (* lpn (+ 1.0 (float n))))))
     ))
 
 (defmethod chart-axis-draw ((a chart-axis-names) &optional dir margin zone start end)
@@ -340,7 +340,10 @@ Optional argument MARGIN , ZONE, START and END specify boundaries of the drawing
     (while s
       (setq odd (= (% (length s) 2) 1))
       (setq r (chart-translate-namezone (oref a chart) i))
-      (setq p (- (+ (car r) (/ (- (cdr r) (car r)) 2)) (/ (length (car s)) 2)))
+      (if (eq dir 'vertical)
+	  (setq p (/ (+ (car r) (cdr r)) 2))
+	(setq p (- (+ (car r) (/ (- (cdr r) (car r)) 2))
+		   (/ (length (car s)) 2))))
       (if (eq dir 'vertical)
 	  (chart-goto-xy (+ (+ margin z) (if (oref a loweredge)
 					     (- (length (car s)))
@@ -501,6 +504,8 @@ cons cells of the form (NAME . NUM).  See SORT for more details."
 	(num (goto-line (1+ y))))
     (if (and (= 0 num) (/= 0 (current-column))) (newline 1))
     (if (eobp) (newline num))
+    (if (< x 0) (setq x 0))
+    (if (< y 0) (setq y 0))
     ;; Now, a quicky column moveto/forceto method.
     (or (= (move-to-column x) x)
 	(let ((p (point)))
