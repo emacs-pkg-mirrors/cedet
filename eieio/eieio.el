@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.14
-;; RCS: $Id: eieio.el,v 1.60 1999/12/01 02:09:03 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.61 1999/12/01 02:22:07 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -34,22 +34,28 @@
 
 ;;; Commentary:
 ;;
-;; EIEIO is a series of Lisp routines which provide a class structure
-;; methodology which implements a small subset of CLOS, the Common
-;; Lisp Object System.  In addition, eieio also adds a few new
-;; features which help it integrate more strongly with the Emacs
-;; running environment.
+;; EIEIO is a series of Lisp routines which implements a subset of
+;; CLOS, the Common Lisp Object System.  In addition, EIEIO also adds
+;; a few new features which help it integrate more strongly with the
+;; Emacs running environment.
 ;;
 ;; See eieio.texi for complete documentation on using this package.
+
+;;; Code:
+(eval-when-compile (require 'cl))
+
+(defvar eieio-version "0.13"
+  "Current version of EIEIO.")
+(defun eieio-version ()
+  "Display the current version of EIEIO."
+  (interactive)
+  (message eieio-version))
 
 
 ;;;
 ;; Variable declarations.  These variables are used to hold the call
 ;; state when using methods.
 ;;
-
-;;; Code:
-(eval-when-compile (require 'cl))
 
 (defvar this nil
   "Inside a method, this variable is the object in question.
@@ -1229,7 +1235,7 @@ This should only be called from a generic function."
       (setq lambdas (eieio-generic-form eieio-generic-call-methodname
 					method-primary (car mclass))
 	    mclass (cdr mclass)))
-    (if lambdas t nil)))     
+    (if lambdas t nil)))
 
 (defun call-next-method (&rest replacement-args)
   "Call the next logical method from another method.
@@ -1696,7 +1702,7 @@ ignored parameters."
   )
 
 (defmethod object-print ((this eieio-default-superclass) &rest strings)
-  "Pretty printer for object THIS.  Calls function `object-name' with STRINGS.
+  "Pretty printer for object THIS.  Call function `object-name' with STRINGS.
 The default method for printing object THIS is to use the
 function `object-name'.  At times it could be useful to put a summary
 of the object into the default #<notation> string.  Overload this
