@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.13 1999/08/14 14:25:41 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.14 1999/09/05 19:51:49 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -84,8 +84,8 @@ MFILENAME is the makefile to generate."
 				 mt))))
 	  ;; Only add the distribution stuff in when depth != 0
 	  (if (= depth 0)
-	      (insert "DISTDIR=" (oref this name) "-"
-		      (oref this version) "\n"))
+	      (insert "VERSION=" (oref this version) "\n"
+		      "DISTDIR=" (oref this name) "-$(VERSION)\n"))
 	  ;; Some built in variables for C code
 	  (if df
 	      (let ((tc depth))
@@ -434,12 +434,12 @@ These are removed with make clean."
   (call-next-method)
   (insert (ede-name this) ":\n"
 	  "\t@echo \"(add-to-list 'load-path \\\"$(PWD)\\\")\" > "
-	  (ede-name this) "-comp\n")
+	  (ede-name this) "-compile-script\n")
   (if (oref this load-path)
       (progn
 	(insert "\t@for loadpath in ${LOADPATH}; do \\\n")
 	(insert "\t  echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> "
-		(ede-name this) "-comp; \\\n")
+		(ede-name this) "-compile-script; \\\n")
 	(insert "\t  done\n")))
 ;  (let ((lp (oref this load-path)))
 ;    (while lp
@@ -449,17 +449,20 @@ These are removed with make clean."
   (let ((ar (oref this requirements)))
     (while ar
       (insert "\t@echo \"(require '" (car ar) ")\" >> " (ede-name this)
-	      "-comp\n")
+	      "-compile-script\n")
       (setq ar (cdr ar))))
-  (insert "\t$(EMACS) -batch -l " (ede-name this) "-comp -f batch-byte-compile"
-	  " $(" (ede-proj-makefile-sourcevar this) ")\n"))
+  (insert "\t$(EMACS) -batch -l " (ede-name this) "-compile-script "
+	  "-f batch-byte-compile  $(" (ede-proj-makefile-sourcevar this)
+	  ")\n"))
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile-info))
   "Insert rules to build THIS set of texinfo documentation files."
   (call-next-method)
-  (insert "\n" (ede-name this) ": $(" (ede-pmake-varname this) "_INFOS)\n"
-	  "\tmakeinfo " (or (oref this mainmenu) (car (oref this source)))
-	  "\n"))
+  (let ((mm (oref this mainmenu)))
+    (if (or (string= mm "") (not mm))
+	(setq mm (car (oref this source))))
+    (insert "\n" (ede-name this) ": $(" (ede-pmake-varname this) "_INFOS)\n"
+	    "\tmakeinfo " mm "\n")))
 
 ;; Tags
 (defmethod ede-proj-makefile-tags ((this ede-proj-project) targets)
