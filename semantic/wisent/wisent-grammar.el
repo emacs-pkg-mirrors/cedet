@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.16 2004/01/23 08:36:14 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.17 2004/02/26 08:36:29 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -155,9 +155,20 @@ Return the expanded expression."
    (semantic-grammar-keywordtable)
    (semantic-grammar-tokentable)))
 
+(defvar wisent-grammar-menu
+  '("WY Grammar"
+    ["LALR Compiler Verbose" wisent-toggle-verbose-flag
+     :style toggle :active (boundp 'wisent-verbose-flag)
+     :selected (and (boundp 'wisent-verbose-flag)
+                    wisent-verbose-flag)]
+    )
+  "WY mode specific grammar menu.
+Menu items are appended to the common grammar menu.")
+
 ;;;###autoload
 (define-derived-mode wisent-grammar-mode semantic-grammar-mode "WY"
   "Major mode for editing Wisent grammars."
+  (semantic-grammar-setup-menu wisent-grammar-menu)
   (semantic-install-function-overrides
    '((grammar-parsetable-builder . wisent-grammar-parsetable-builder)
      (grammar-setupcode-builder  . wisent-grammar-setupcode-builder)
