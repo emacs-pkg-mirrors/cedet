@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.32 2004/01/23 08:33:29 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.33 2004/02/12 02:04:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -498,7 +498,10 @@ Analyze the area between BEG and END."
 
 (defun semantic-lex-debug (arg)
   "Debug the semantic lexer in the current buffer.
-Argument ARG specifies of the analyze the whole buffer, or start at point."
+Argument ARG specifies of the analyze the whole buffer, or start at point.
+While engaged, each token identified by the lexer will be highlighted
+in the target buffer   A description of the current token will be
+displayed in the minibuffer.  Press SPC to move to the next lexical token."
   (interactive "P")
   (require 'semantic-debug)
   (let ((semantic-lex-debug t))
