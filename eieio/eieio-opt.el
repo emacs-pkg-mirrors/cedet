@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.12 2000/08/20 16:09:36 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.13 2000/08/20 16:54:23 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -148,7 +148,8 @@ If CLASS is actually an object, then also display current values of that obect."
 		  (princ (car doc))))
 	    (terpri)
 	    (terpri))
-	  (setq methods (cdr methods)))))))
+	  (setq methods (cdr methods)))))
+    (buffer-string)))
 
 (defun eieio-describe-class-slots (class)
   "Describe the slots in CLASS.
@@ -226,12 +227,88 @@ Optional argument BUILDLIST is more list to attach."
       (setq sublst (cdr sublst)))
     buildlist))
 
-(defun eieio-read-class (prompt)
-  "Return a class chosen by the user using PROMPT."
-  (intern (completing-read prompt (eieio-build-class-alist) nil t)))
+(defvar eieio-read-class nil
+  "History of the function `eieio-read-class' prompt.")
+
+(defun eieio-read-class (prompt &optional histvar)
+  "Return a class chosen by the user using PROMPT.
+Optional argument HISTVAR is a variable to use as history."
+  (intern (completing-read prompt (eieio-build-class-alist) nil t nil
+			   (or histvar 'eieio-read-class))))
 
 ;;; Collect all the generic functions created so far, and do cool stuff.
 ;;
+;;;###autoload
+(defalias 'describe-method 'eieio-describe-generic)
+;;;###autoload
+(defalias 'describe-generic 'eieio-describe-generic)
+;;;###autoload
+(defalias 'eieio-describe-method 'eieio-describe-generic)
+;;;###autoload
+(defun eieio-describe-generic (generic)
+  "Describe the generic function GENERIC.
+Also extracts information about all methods specific to this generic."
+  (interactive (list (eieio-read-generic "Generic Method: ")))
+  (if (not (generic-p generic))
+      (signal 'wrong-type-argument '(generic-p generic)))
+  (with-output-to-temp-buffer "*Help*"
+    (prin1 generic)
+    (princ " is a generic function.")
+    (terpri)
+    (terpri)
+    (let ((d (documentation generic)))
+      (if (not d)
+	  (princ "The generic is not documented.\n")
+	(princ "Documentation:")
+	(terpri)
+	(princ d)
+	(terpri)
+	(terpri)))
+    (princ "Implementations:")
+    (terpri)
+    (terpri)
+    (let ((i 3)
+	  (prefix [ ":BEFORE" ":PRIMARY" ":AFTER" ] ))
+      ;; Loop over fanciful generics
+      (while (< i 6)
+	(let ((gm (aref (get generic 'eieio-method-tree) i)))
+	  (when gm
+	    (princ "Generic ")
+	    (princ (aref prefix (- i 3)))
+	    (terpri)
+	    (princ (or (nth 2 gm) "Undocumented"))
+	    (terpri)
+	    (terpri)))
+	(setq i (1+ i)))
+      (setq i 0)
+      ;; Loop over defined class-specific methods
+      (while (< i 3)
+	(let ((gm (reverse (aref (get generic 'eieio-method-tree) i))))
+	  (while gm
+	    (princ "`")
+	    (prin1 (car (car gm)))
+	    (princ "'")
+	    ;; prefix type
+	    (princ " ")
+	    (princ (aref prefix i))
+	    (princ " ")
+	    ;; argument list
+	    (let* ((func (cdr (car gm)))
+		   (arglst
+		    (if (byte-code-function-p func)
+			(eieio-compiled-function-arglist func)
+		      (car (cdr func)))))
+	      (prin1 arglst))
+	    (terpri)
+	    ;; 3 because of cdr
+	    (princ (or (documentation (cdr (car gm)))
+		       "Undocumented"))
+	    (setq gm (cdr gm))
+	    (terpri)
+	    (terpri)))
+	(setq i (1+ i))))
+    (buffer-string)))
+
 (defun eieio-all-generic-functions (&optional class)
   "Return a list of all generic functions.
 Optional CLASS argument returns only those functions that contain methods for CLASS."
@@ -272,9 +349,23 @@ function has no documentation, then return nil."
 	      (if (fboundp primary) (documentation primary) nil)
 	      (if (fboundp after) (documentation after)))))))
 
+(defvar eieio-read-generic nil
+  "History of the `eieio-read-generic' prompt.")
+
+(defun eieio-read-generic-p (fn)
+  "Function used in function `eieio-read-generic'.
+This is because `generic-p' is a macro.
+Argument FN is the function to test."
+  (generic-p fn))
+
+(defun eieio-read-generic (prompt &optional historyvar)
+  "Read a generic function from the minibuffer with PROMPT.
+Optional argument HISTORYVAR is the variable to use as history."
+  (intern (completing-read prompt obarray 'eieio-read-generic-p
+			   t nil (or historyvar 'eieio-read-generic))))
+
 ;;; Help system augmentation
 ;;
-
 (defun eieio-help-mode-augmentation-maybee ()
   "For buffers thrown into help mode, augment for eieio."
   ;; Scan created buttons so far if we are in help mode.
@@ -296,10 +387,13 @@ function has no documentation, then return nil."
 	    (let* ((help-data (get-text-property (point) 'help-xref))
 		   (method (car help-data))
 		   (args (cdr help-data)))
-	      (if (and (symbolp (car args))
-		       (class-p (car args)))
-		  (setcar help-data 'describe-class))
-	      )))))))
+	      (when (symbolp (car args))
+		(cond ((class-p (car args))
+		       (setcar help-data 'eieio-describe-class))
+		      ((generic-p (car args))
+		       (setcar help-data 'eieio-describe-generic))
+		      (t nil))
+		))))))))
 
 ;;; How about showing the hierarchy in speedbar?  Cool!
 ;;
