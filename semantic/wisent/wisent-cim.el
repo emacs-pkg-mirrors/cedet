@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 07 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-cim.el,v 1.10 2002/10/02 15:06:52 ponced Exp $
+;; X-RCS: $Id: wisent-cim.el,v 1.11 2003/02/19 16:28:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,8 +38,10 @@
 (require 'wisent-bovine)
 
 (defconst wisent-cim-automaton
-  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-10-02 15:43+0200
-  (eval-when-compile
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2003-02-18 22:46+0100
+  (progn
+    (eval-when-compile
+      (require 'wisent-comp))
     (wisent-compile-grammar
      '((HACTIVATE HAFTER HARRAY HAT HBEFORE HBEGIN HBOOLEAN HCHARACTER HCLASS HCONC HDELAY HDO HELSE HEND HEQ HEXTERNAL HFOR HGE HGO HGOTO HGT HHIDDEN HIF HIN HINNER HINSPECT HINTEGER HIS HLABEL HLE HLONG HLT HNAME HNE HNEW HNONE HNOTEXT HOTHERWISE HPRIOR HPROCEDURE HPROTECTED HQUA HREACTIVATE HREAL HREF HSHORT HSTEP HSWITCH HTEXT HTHEN HTHIS HTO HUNTIL HVALUE HVAR HVIRTUAL HWHEN HWHILE HASSIGNVALUE HASSIGNREF HPAREXPSEPARATOR HLABELSEPARATOR HSTATEMENTSEPARATOR HBEGPAR HENDPAR HEQR HNER HADD HSUB HMUL HDIV HINTDIV HEXP HDOTDOTDOT HIDENTIFIER HBOOLEANKONST HINTEGERKONST HCHARACTERKONST HREALKONST HTEXTKONST)
        ((right HASSIGN)
@@ -579,12 +581,12 @@
   "Parser automaton.")
 
 (defconst wisent-cim-keywords
-  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-10-02 15:43+0200
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2003-02-18 22:46+0100
   (semantic-lex-make-keyword-table 'nil 'nil)
   "Keywords.")
 
 (defconst wisent-cim-tokens
-  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-10-02 15:43+0200
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2003-02-18 22:46+0100
   (wisent-lex-make-token-table
    '(("tval"
       (HTEXTKONST))
@@ -684,12 +686,13 @@
 
 (defun wisent-cim-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-10-02 15:43+0200
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2003-02-18 22:46+0100
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-cim-automaton
+          semantic-debug-parser-source "wisent-cim.wy"
           semantic-flex-keywords-obarray wisent-cim-keywords
           semantic-lex-types-obarray wisent-cim-tokens)
     ;; Collect unmatched syntax lexical tokens
