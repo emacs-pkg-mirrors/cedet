@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.12 2001/09/13 14:15:11 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.13 2001/09/14 15:23:10 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -44,7 +44,7 @@
 ;; Bison like mechanism to recover from parse errors and can resolve
 ;; shift/reduce conflicts using operator precedence declarations.
 ;;
-;; For more details on the basic concepts for understanding Wisent
+;; For more details on the basic concepts for understanding Wisent,
 ;; read the Bison manual ;)
 ;;
 ;; 1. Grammar
@@ -52,8 +52,10 @@
 ;;
 ;; In order for Wisent to parse a language, it must be described by a
 ;; Context Free Grammar (CFG).  This grammar is then compiled, using
-;; the function `wisent-compile-grammar', to produce the tables needed
-;; by the parser (actually an Elisp `vector' of vectors and listes!).
+;; the function `wisent-compile-grammar'.  This produces the tables
+;; needed by the parser.  The table is an Emacs Lisp `vector' of
+;; vectors and listes.  See `wisent-compile-grammar' for details on
+;; the format of the table.
 ;;
 ;; `wisent-compile-grammar' is called like this:
 ;;
@@ -113,7 +115,7 @@
 ;;      to do when the rule is matched.  Like in Bison, action accept
 ;;      `$<i>' placeholders.  Each `$<i>' placeholder will receive the
 ;;      value of i-th element of ITEMS.  The first element is `$1',
-;;      the second one `$2', etc..  Unlike Bison Wisent does not allow
+;;      the second one `$2', etc..  Unlike Bison, Wisent does not allow
 ;;      the use of `$<i>' placeholders with i <= 0.
 ;;
 ;;      Also the special variable `$region' contains the start/end
@@ -148,7 +150,8 @@
 ;; ===========
 ;;
 ;; Here is an example of a Bison like grammar to parse simple infix
-;; arithmetic expressions:
+;; arithmetic expressions.  It is explained more fully in the Bison
+;; manual: "Infix Calc(bison.info)".
 ;;
 ;;   %token NUM
 ;;   %token NL
@@ -262,53 +265,7 @@
 ;; 
 
 ;;; Code:
-
-;;;;
-;;;; Working goodies
-;;;;
-
 (require 'working)
-
-(defvar wisent-working-step ""
-  "String identifying the step currently running.")
-
-(defsubst wisent-working-dots (length done)
-  "Return ... when running or ...`working-donestring' when done.
-LENGTH is ignored and process is done when DONE is t."
-  (if (eq done t)
-      (concat "..." working-donestring)
-    "..."))
-
-(defmacro wisent-working (message donestr &rest forms)
-  "Wrapper for `working-status-forms'.
-See `working-status-forms' for details on MESSAGE, DONESTR and FORMS
-arguments.  Does not override an outer `working-status-forms'
-MESSAGE."
-  `(let ((working-status-dynamic-type #'wisent-working-dots))
-     (working-status-forms (or working-message ,message) ,donestr
-       ,@forms)))
-
-(put 'wisent-working 'lisp-indent-function 2)
-
-(defmacro wisent-working-step (&optional step)
-  "Wrapper for in process `working-dynamic-status'.
-Does nothing if not called within the macro `wisent-working'.  If
-optional STEP is non-nil it must be a string identifying the process
-step currently running."
-  `(if working-message
-       (working-dynamic-status
-        nil
-        ,(if step
-             `(setq wisent-working-step ,step)
-           'wisent-working-step))))
-
-(defmacro wisent-working-done (&optional summary)
-  "Wrapper for ending `working-dynamic-status'.
-Does nothing if not called within the macro `wisent-working'.  If
-optional SUMMARY is non-nil it must be a string giving a process
-summary."
-  `(if working-message
-       (working-dynamic-status t ,(or summary ""))))
 
 ;;;;
 ;;;; Global constants
@@ -863,6 +820,7 @@ returns non-nil."
   "Setup the data structures from input grammar GRAM.
 The input grammar is in an internal format built by
 `wisent-process-grammar'."
+  (working-dynamic-status "(pack-grammar)")
   (setq wisent--rlhs  (make-vector wisent--nrules nil)
         wisent--rrhs  (make-vector wisent--nrules nil)
         wisent--ritem (make-vector (1+ wisent--nitems) nil))
@@ -906,6 +864,7 @@ The input grammar is in an internal format built by
 rules can derive it.  It sets up the value of `wisent--derives' so
 that wisent--derives[i - ntokens] points to a list of rule numbers,
 terminated with -1."
+  (working-dynamic-status "(set-derives)")
   (let ((delts (make-vector (1+ wisent--nrules) 0))
         (dset  (make-vector wisent--nvars -1))
         (i 1) ;; i = 0
@@ -936,6 +895,7 @@ terminated with -1."
 That is a vector saying which nonterminals can expand into the null
 string.  wisent--nullable[i - ntokens] is non-nil if symbol i can do
 so."
+  (working-dynamic-status "(set-nullable)")
   (setq wisent--nullable (make-vector wisent--nvars nil))
   (let ((squeue (make-vector wisent--nvars 0))
         (rcount (make-vector (1+ wisent--nrules) 0))
@@ -1109,6 +1069,7 @@ that could arrive next."
 
 (defun wisent-generate-states ()
   "Compute the nondeterministic finite state machine from the grammar."
+  (working-dynamic-status "(generate-states)")
   ;; Allocate storage
   (setq wisent--kernel-base (make-vector wisent--nsyms 0)
         wisent--kernel-end  (make-vector wisent--nsyms nil))
@@ -1296,27 +1257,18 @@ tokens they accept.
   1 if the rule wisent--laruleno[l] is applicable in the appropriate
   state when the next token is symbol i.  If wisent--la[l, i] and
   wisent--la[l, j] are both 1 for i != j, it is a conflict."
+  (working-dynamic-status "(lalr)")
   (setq wisent--token-set-size
         (1+ (/ wisent--nterms wisent-bits-per-word)))
-  (wisent-working-step " (set-accessing-symbol)")
   (wisent-set-accessing-symbol)
-  (wisent-working-step " (set-shift-table)")
   (wisent-set-shift-table)
-  (wisent-working-step " (set-reduction-table)")
   (wisent-set-reduction-table)
-  (wisent-working-step " (set-max-rhs)")
   (wisent-set-max-rhs)
-  (wisent-working-step " (initialize-LA)")
   (wisent-initialize-la)
-  (wisent-working-step " (set-goto-map)")
   (wisent-set-goto-map)
-  (wisent-working-step " (initialize-F)")
   (wisent-initialize-f)
-  (wisent-working-step " (build-relations)")
   (wisent-build-relations)
-  (wisent-working-step " (digraph)")
   (wisent-digraph wisent--includes)
-  (wisent-working-step " (compute-lookaheads)")
   (wisent-compute-lookaheads))
 
 (defun wisent-set-accessing-symbol ()
@@ -1705,6 +1657,7 @@ tokens they accept.
         
 (defun wisent-build-states ()
   "Build states in the action table."
+  (working-dynamic-status "(build-states)")
   (setq wisent--action-table       (make-vector wisent--nstates nil)
         wisent--conflicts-by-state (make-vector wisent--nstates nil)
         wisent--conflicts          nil)
@@ -1777,6 +1730,7 @@ tokens they accept.
 (defun wisent-compact-action-table ()
   "Compact the action table `wisent--action-table'.
 That is group together most common actions in each state."
+  (working-dynamic-status "(compact-action-table)")
   (let ((i 0)
         acts act)
     (while (< i wisent--nstates)
@@ -1808,12 +1762,12 @@ That is group together most common actions in each state."
 
 (defun wisent-build-action-table ()
   "Build and return the parser action table."
-  (wisent-working-step " (building action-table)")
+  (working-dynamic-status "(building action-table)")
   wisent--action-table)
 
 (defun wisent-build-goto-table ()
   "Build and return the parser goto table."
-  (wisent-working-step " (building goto-table)")
+  (working-dynamic-status "(building goto-table)")
   (let ((i 0)
         shifts states state symbol gotos table)
     (while (< i wisent--nstates)
@@ -1873,13 +1827,13 @@ And returns the updated top-of-stack index."
 (defun wisent-build-reduction-table (gram/acts)
   "Build and return the parser reduction table.
 GRAM/ACTS is the list of actions associated to nonterminals."
-  (wisent-working-step " (building reduction-table)")
+  (working-dynamic-status "(building reduction-table)")
   (apply #'vector (cons nil (mapcar #'wisent-reduce-action
                                     gram/acts))))
 
 (defun wisent-build-terminal-table ()
   "Build and return the parser terminal table."
-  (wisent-working-step " (building terminal-table)")
+  (working-dynamic-status "(building terminal-table)")
   (let ((i 0)
         (l wisent--terms)
         tokens)
@@ -1907,19 +1861,12 @@ the tables."
     (while l
       (setq wisent--nitems (+ wisent--nitems (length (caar l)))
             l (cdr l)))
-    (wisent-working-step " (pack-grammar)")
     (wisent-pack-grammar gram)
-    (wisent-working-step " (set-derives)")
     (wisent-set-derives)
-    (wisent-working-step " (set-nullable)")
     (wisent-set-nullable)
-    (wisent-working-step " (generate-states)")
     (wisent-generate-states)
-    (wisent-working-step " (lalr)")
     (wisent-lalr)
-    (wisent-working-step " (build-states)")
     (wisent-build-states)
-    (wisent-working-step " (compact-action-table)")
     (wisent-compact-action-table)
     (prog1
         (setq tables (vector
@@ -1939,8 +1886,8 @@ the tables."
             (wisent-log "\n\n")))
       (if stream
           (save-excursion
-            (wisent-working-step
-             (format " (output tables on %S)" stream))
+            (working-dynamic-status
+             (format "(pretty-print tables on %S)" stream))
             (pp tables stream))))
     ))
 
@@ -2185,27 +2132,34 @@ of the parser!"
 (defalias 'wisent-compiled-grammar-p 'vectorp)
 
 (defun wisent-compile-grammar (gram &optional starts stream)
-  "Compile grammar GRAM and return the LALR(1) tables.
+  "Compile grammar GRAM and return the tables needed by the parser.
 Optional argument STARTS is a list of nonterminal symbols defined as
 entry point in the grammar.  If nil the first nonterminal specified in
-the grammar will be the only start symbol defined.  If STREAM is
-specified it defines an `standard-output' stream where the tables are
-pretty-printed."
+the grammar will be the only start symbol defined.  Optional STREAM is
+a `standard-output' stream where the tables will be pretty-printed.
+The value returned by `wisent-compile-grammar' is a vector of vectors
+and listes: [ACTIONS GOTOS REDUCTIONS TERMS STARTS] where:
+
+- - ACTIONS/GOTOS tell the parser what action to do at each state.
+- - REDUCTIONS holds the byte code of semantic actions.
+- - TERMS associates terminal symbols to their internal ID.
+- - STARTS gives the defined start nonterminals."
   (if (wisent-compiled-grammar-p gram)
       gram ;; Grammar already compiled just return it
-    (wisent-working "Compiling grammar%s" "done"
-      (wisent-working-step " (initializing)")
-      (wisent-initialize-all)
-      (let ((tables (wisent-process-grammar gram starts stream)))
-        (if wisent-debug-flag
-            nil ;; disable compilation when debugging
-          ;; Compile the reduction table
-          (wisent-working-step " (byte-compiling reduction table)")
-          (wisent-byte-compile-reduction-table (aref tables 2)))
-        ;; Cleanup storage!
-        (wisent-free-all)
-        (wisent-working-done)
-        tables))))
+    (let ((working-status-dynamic-type #'working-text-display))
+      (working-status-forms "Compiling grammar" "done"
+        (working-dynamic-status "(initializing)")
+        (wisent-initialize-all)
+        (let ((tables (wisent-process-grammar gram starts stream)))
+          (if wisent-debug-flag
+              nil ;; disable compilation when debugging
+            ;; Compile the reduction table
+            (working-dynamic-status "(byte-compiling reduction table)")
+            (wisent-byte-compile-reduction-table (aref tables 2)))
+          ;; Cleanup storage!
+          (wisent-free-all)
+          (working-dynamic-status t)
+          tables)))))
 
 ;;;;
 ;;;; The LR parser driver
