@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.7 2003/09/07 09:02:47 ponced Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.8 2003/09/08 08:01:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -366,6 +366,7 @@ buckets with the bucket function."
 ;; In order to adopt external children, we need a few overload methods
 ;; to enable the feature.
 ;;
+;;;###autoload
 (define-overload semantic-tag-external-member-parent (tag)
   "Return a parent for TAG when TAG is an external member.
 TAG is an external member if it is defined at a toplevel and
@@ -393,6 +394,7 @@ include the default behavior, and merely extend your own."
 (semantic-alias-obsolete 'semantic-nonterminal-external-member-parent
 			 'semantic-tag-external-member-parent)
 
+;;;###autoload
 (define-overload semantic-tag-external-member-p (parent tag)
   "Return non-nil if PARENT is the parent of TAG.
 TAG is an external member of PARENT when it is somehow tagged
@@ -420,6 +422,7 @@ include the default behavior, and merely extend your own."
 (semantic-alias-obsolete 'semantic-nonterminal-external-member-p
 			 'semantic-tag-external-member-p)
 
+;;;###autoload
 (define-overload semantic-tag-external-member-children (tag &optional usedb)
   "Return the list of children which are not *in* TAG.
 If optional argument USEDB is non-nil, then also search files in
