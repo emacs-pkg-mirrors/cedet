@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.8 2000/12/05 15:59:07 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.9 2000/12/07 09:20:21 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -29,8 +29,8 @@
 ;;; Commentary:
 ;;
 ;; This library defines commands and a minor mode to navigate between
-;; language semantic tokens in current buffer.  It uses Eric Ludlam's
-;; semantic bovinator tool to parse the buffer and find the language
+;; semantic language tokens in the current buffer.  It uses Eric Ludlam's
+;; Semantic Bovinator tool to parse the buffer and find the language
 ;; tokens.
 
 ;; The commands `senator-next-token' and `senator-previous-token'
@@ -38,9 +38,9 @@
 
 ;; Also, for each built-in search command `search-forward',
 ;; `search-backward', `re-search-forward', `re-search-backward',
-;; `word-search-forward' and `word-search-backward', an equivalent
-;; `senator-<search-command>' is defined which search only in semantic
-;; token names.
+;; `word-search-forward' and `word-search-backward', there is an
+;; equivalent `senator-<search-command>' defined which searches only
+;; in semantic token names.
 
 ;; The command `senator-isearch-toggle-semantic-mode' toggles semantic
 ;; search in isearch mode.  When semantic search is enabled, isearch
@@ -50,7 +50,7 @@
 ;; enable or disable the SEmantic NAvigaTOR stuff for the current
 ;; buffer.
 
-;; The best way to use navigation commands is to bind them to keyword
+;; The best way to use navigation commands is to bind them to keyboard
 ;; shortcuts.  Senator minor mode uses the common prefix key "C-c ,".
 ;; The following default key bindings are provided when semantic minor
 ;; mode is enabled:
@@ -62,14 +62,19 @@
 ;;    C-c , i         `senator-isearch-toggle-semantic-mode'
 ;;
 ;; To install, put this file on your Emacs-Lisp load path and add
-;; (require 'senator) into your ~/.emacs startup file.  To enable
-;; senator stuff in the current buffer use (senator-minor-mode 1).
+;;   (require 'senator)
+;; into your ~/.emacs startup file.  To enable senator stuff in the
+;; current buffer use
+;;   (senator-minor-mode 1).
 
-;; You can customize the `senator-step-at-token-ids' and
-;; `senator-step-at-start-end-token-ids' options to navigate (and
-;; search) only between particular tokens and to step at start and end
-;; of some of them.  To have a mode specific customization, do
-;; something like this in a hook:
+;; You can customize the `senator-step-at-token-ids' to navigate (and
+;; search) only between tokens of a particular type.  (Such as
+;; functions and variables.)
+
+;; Customize `senator-step-at-start-end-token-ids' to stop at the
+;; start and end of the specified token types.
+
+;; To have a mode specific customization, do something like this in a hook:
 ;;
 ;; (add-hook 'mode-hook
 ;;           (lambda ()
@@ -87,6 +92,9 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.9  2000/12/07 09:20:21  david_ponce
+;; Applied Eric Ludlam's doc fix patch.
+;;
 ;; Revision 1.8  2000/12/05 15:59:07  david_ponce
 ;; Improved consistency with built-in search commands.
 ;; New search commands like the ones in the Emacs Search menu.
@@ -483,7 +491,7 @@ implementation."
 ;;;;
 
 (defun senator-nonincremental-search-forward (string)
-  "Read a string and search for it nonincrementally."
+  "Search for STRING  nonincrementally."
   (interactive "sSemantic search for string: ")
   (if (equal string "")
       (senator-search-forward (car search-ring))
@@ -491,7 +499,7 @@ implementation."
     (senator-search-forward string)))
 
 (defun senator-nonincremental-search-backward (string)
-  "Read a string and search backward for it nonincrementally."
+  "Search backward for STRING nonincrementally."
   (interactive "sSemantic search for string: ")
   (if (equal string "")
       (senator-search-backward (car search-ring))
@@ -499,7 +507,7 @@ implementation."
     (senator-search-backward string)))
 
 (defun senator-nonincremental-re-search-forward (string)
-  "Read a regular expression and search for it nonincrementally."
+  "Search for the regular expression STRING nonincrementally."
   (interactive "sSemantic search for regexp: ")
   (if (equal string "")
       (senator-re-search-forward (car regexp-search-ring))
@@ -507,7 +515,7 @@ implementation."
     (senator-re-search-forward string)))
 
 (defun senator-nonincremental-re-search-backward (string)
-  "Read a regular expression and search backward for it nonincrementally."
+  "Search backward for the regular expression STRING nonincrementally."
   (interactive "sSemantic search for regexp: ")
   (if (equal string "")
       (senator-re-search-backward (car regexp-search-ring))
