@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.9 2000/05/25 13:16:01 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.10 2000/06/13 14:40:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -221,6 +221,40 @@ in the new list."
       (setq stream (cdr stream)))
     found))
 
+;;; Bucketizing: Take and convert the tokens based on type.
+(defun semantic-bucketize (tokens)
+  "Sort TOKENS into a group of buckets based on type, and toss the rest.
+The buckets should be organized into a form usable by `semantic-sb-buttons'."
+  (let ((bins (make-vector (1+ (length semantic-symbol->name-assoc-list)) nil))
+	ask toktype
+	(sn semantic-symbol->name-assoc-list)
+	(nsn nil)
+	(num 1)
+	(out nil))
+    ;; Build up the bucket vector
+    (while sn
+      (setq nsn (cons (cons (car (car sn)) num) nsn)
+	    sn (cdr sn)
+	    num (1+ num)))
+    ;; Place into buckets
+    (while tokens
+      (setq toktype (semantic-token-token (car tokens))
+	    ask (assq toktype nsn)
+	    num (or (cdr ask) 0))
+      (aset bins num (cons (car tokens) (aref bins num)))
+      (setq tokens (cdr tokens)))
+    ;; Remove from buckets into a speedbar supported list.
+    (setq num 1)
+    (while (< num (length bins))
+      (setq out
+	    (cons (cons
+		   (cdr (nth (1- num) semantic-symbol->name-assoc-list))
+		   (aref bins num))
+		  out)
+	    num (1+ num)))
+    (setq out (cons (cons "Misc" (aref bins 0)) out))
+    (nreverse out)))
+
 ;;; Recursive searching through dependency trees
 ;;
 ;; This will depend on the general searching APIS defined above.
@@ -328,14 +362,15 @@ where SYM is the symbol to override, and FUN is the function to
 override it with.
 Available override symbols:
 
-  SYBMOL                 PARAMETERS              DESCRIPTION
- `find-dependency'       (buffer token)           Find the dependency file
- `find-nonterminal'      (buffer token & parent)  Find token in buffer.
- `find-documentation'    (buffer token & nosnarf) Find doc comments.
- `summerize-nonterminal' (token & parent)         Return summery string.
- `prototype-nonterminal' (token)                  Return a prototype string.
- `prototype-file'        (buffer)                 Return a file in which
- 	                                          prototypes are placed
+  SYBMOL                  PARAMETERS              DESCRIPTION
+ `find-dependency'        (buffer token)           Find the dependency file
+ `find-nonterminal'       (buffer token & parent)  Find token in buffer.
+ `find-documentation'     (buffer token & nosnarf) Find doc comments.
+ `abbreviate-nonterminal' (token & parent)         Return summery string.
+ `summerize-nonterminal'  (token & parent)         Return summery string.
+ `prototype-nonterminal'  (token)                  Return a prototype string.
+ `prototype-file'         (buffer)                 Return a file in which
+ 	                                           prototypes are placed
 Parameters mean:
 
   &      - Following parameters are optional
@@ -489,6 +524,18 @@ If NOSNARF is 'flex, then return the flex token."
 			   (substring ct (match-end 0))))))
       ;; Now return the text.
       ct)))
+
+(defun semantic-abbreviate-nonterminal (token &optional parent)
+  "Return an abbreviated string describing TOKEN.
+The abbreviation is to be short, with possible symbols indicating
+the type of token, or other information.
+Optional argument PARENT is the parent type if TOKEN is a detail."
+  (let ((s (semantic-fetch-overload 'abbreviate-nonterminal))
+	tt)
+    (if s
+	(funcall s token parent)
+      ;; Do lots of complex stuff here.
+      (semantic-token-name token))))
 
 (defun semantic-summerize-nonterminal (token &optional parent)
   "Summerize TOKEN in a reasonable way.
