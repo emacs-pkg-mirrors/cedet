@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: tools, gud
-;; X-RCS: $Id: sb-gud.el,v 1.9 2002/02/28 16:22:30 zappo Exp $
+;; X-RCS: $Id: sb-gud.el,v 1.10 2002/03/16 20:02:39 zappo Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -86,7 +86,7 @@ t means that there is no stack, and we are in display-file mode.")
 If the GUD BUFFER is not running a supported debugger, then turn
 off the specialized speedbar mode."
   (if (and (save-excursion (goto-char (point-min))
-			   (looking-at "Current Stack"))
+			   (looking-at "\\(//\\)?Current Stack"))
 	   (equal gud-last-last-frame gud-last-speedbar-stackframe))
       nil
     (setq gud-last-speedbar-buffer buffer)
@@ -102,8 +102,8 @@ off the specialized speedbar mode."
 		   nil))))
       (erase-buffer)
       (if (not frames)
-	  (insert "No Stack frames\n")
-	(insert "Current Stack:\n"))
+	  (speedbar-insert-label "No Stack frames")
+	(speebar-insert-label "Current Stack:"))
       (while frames
 	(insert (nth 1 (car frames)) ":\n")
 	(if (= (length (car frames)) 2)
@@ -124,13 +124,13 @@ off the specialized speedbar mode."
 				  'speedbar-highlight-face
 				  (cond ((eq ff 'gud-gdb-find-file)
 					 'gud-gdb-goto-stackframe)
-					(t (error "Should never be here.")))
+					(t (error "Should never be here")))
 				  (car frames) t))
 	(setq frames (cdr frames)))
       (let ((selected-frame
 	     (cond ((eq ff 'gud-gdb-find-file)
 		    (gud-gdb-selected-frame-info buffer))
-		   (t (error "Should never be here.")))))))
+		   (t (error "Should never be here")))))))
     (setq gud-last-speedbar-stackframe gud-last-last-frame)))
 
 (defun gud-gdb-goto-stackframe (text token indent)
