@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.7 2001/04/21 02:32:48 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.8 2001/04/27 14:03:51 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -178,25 +178,8 @@ Optional argument COMMENT is a header line comment."
 (defmethod eieio-persistent-path-relative ((this eieio-persistent) file)
   "For object THIS, make absolute file name FILE relative."
   ;; Woah!  Look at `file-relative-name' as a solution.
-  (let* ((src (expand-file-name file))
-	 (dest (file-name-directory (oref this file)))
-	 (cs1  (compare-strings src 0 nil dest 0 nil))
-	 diff abdest absrc)
-    ;; Find the common directory part
-    (setq diff (substring src 0 cs1))
-    (setq cs1 (split-string diff "[\\/]"))
-    (setq cs1 (length (nth (1- (length cs1)) cs1)))
-    (setq diff (substring diff 0 (- (length diff) cs1)))
-    ;; Get the uncommon bits from dest and src.
-    (setq abdest (substring dest (length diff))
-	  absrc (substring src (length diff)))
-    ;; Find number if dirs in absrc, and add those as ".." to dest.
-    ;; Rember we have a file name, so that is the 1-.
-    (setq cs1 (1- (length (split-string absrc "[\\/]"))))
-    (while (> cs1 0)
-      (setq abdest (concat "../" abdest)
-	    cs1 (1- cs1)))
-    absrc))
+  (file-relative-name (expand-file-name file)
+		      (file-name-directory (oref this file))))
 
 (defmethod eieio-persistent-save ((this eieio-persistent) &optional file)
   "Save persistent object THIS to disk.
