@@ -33,7 +33,7 @@
    <a href=ede.shtml>EDE</a> is my solution to this problem. EDE
    attempts to not only solve that single set of problems, but to
    create a framework within which experts in specific languages can
-   plug in support for thier envornments.
+   plug in support for their environments.
 </p>
 
 <P>Building any tool with that much flexibility requires an API with
@@ -55,7 +55,7 @@
 <P>Context recommendations are not possible without first having
    complete knowledge of the current project source code.  <a
    href=ede.shtml>EDE</a> provides project information.  To get
-   information related to the sourcecode, however, a parser is needed.
+   information related to the source code, however, a parser is needed.
    Since the goal is to support many languages, a parser generator is
    needed to create parsers easily.  The <a href=semantic.shtml>
    Semantic Bovinator</a> is CEDET's source code tag parser.
@@ -73,7 +73,7 @@
    these things.
 </p>
 
-<P>Please visit individual project pages for additionalinformation and
+<P>Please visit individual project pages for additional information and
    downloads.
 </p>
 
@@ -84,7 +84,7 @@
    article</a>
    about the
    <a href=http://jde.sunsite.dk/>JDE</a>
-   includes some pointers to CEDET, and metions some of these tools.</p>
+   includes some pointers to CEDET, and mentions some of these tools.</p>
 
 <H3>Base Tools are:</h3>
 
@@ -101,7 +101,7 @@
 </p>
 
 <P><A HREF="ftp/working.el-1.3.gz"> <b>Working</b></A> is a
-   busy-meter utlity.  It displays eye candy while waiting for emacs
+   busy-meter utility.  It displays eye candy while waiting for Emacs
    to do something.
 </p>
 
@@ -129,7 +129,7 @@
    lets you browse your files' contents.
    Uses the Semantic package.</p>
 
-<h3>Other Miscelaneous Emacs Hacks at this web site:</h3>
+<h3>Other Miscellaneous Emacs Hacks at this web site:</h3>
 
 <P><A HREF="checkdoc.shtml"><B>Checkdoc</B></A> is a program which
    checks the style of your documentation strings and comments.
@@ -151,7 +151,7 @@
 </p>
 
 <P><A HREF="ftp/hangman.el-0.1.gz"><b>Hangman</b></A> game for
-   emacs.  About as simple as it gets.
+   Emacs.  About as simple as it gets.
 </p>
 
 <?php
