@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.20 2001/08/30 07:17:09 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.21 2001/09/27 21:05:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -429,7 +429,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-                "Java language specification.")
+                 "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -968,8 +968,6 @@ This function is a Java specific `get-local-variables' override."
      ;; Semantic navigation inside 'type children
      senator-step-at-token-ids '(function variable)
      )
-    ;; Needed by `semantic-find-doc-snarf-comment'.
-    (set (make-local-variable 'block-comment-end) "\\s-*\\*/")
     )
  
   ;; End code generated from java.bnf
