@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-image.el,v 1.9 2003/02/21 18:02:48 zappo Exp $
+;; X-RCS: $Id: sb-image.el,v 1.10 2003/08/25 17:23:39 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -35,202 +35,41 @@
 ;;
 ;; This file requires the `image' package if it is available.
 
-(condition-case nil
-    (require 'image)
-  (error nil))
+(require 'ezimage)
 
 ;;; Code:
-(defcustom speedbar-use-images
-  (and (or (fboundp 'defimage) ; emacs 21
-	   (fboundp 'make-image-specifier)) ; xemacs
-       (if (fboundp 'display-graphic-p) ; emacs 21
-	   (display-graphic-p)
-	 window-system) ; old emacs & xemacs
-       (or (not (fboundp 'image-type-available-p)) ; xemacs?
-	   (image-type-available-p 'xpm))) ; emacs 21
+(defcustom speedbar-use-images ezimage-use-images
   "*Non-nil if speedbar should display icons."
   :group 'speedbar
   :version "21.1"
   :type 'boolean)
 
-;;; Some images if defimage is available:
-(eval-and-compile
-
-(if (fboundp 'defimage)
-    (defalias 'defimage-speedbar 'defimage)
-
-  (if (not (fboundp 'make-glyph))
-      
-(defmacro defimage-speedbar (variable imagespec docstring)
-  "Don't bother loading up an image...
-Argument VARIABLE is the variable to define.
-Argument IMAGESPEC is the list defining the image to create.
-Argument DOCSTRING is the documentation for VARIABLE."
-  `(defvar ,variable nil ,docstring))
-
-;; ELSE
-(defun speedbar-find-image-on-load-path (image)
-  "Find the image file IMAGE on the load path."
-  (let ((l (cons
-	    ;; In XEmacs, try the data directory first (for an
-	    ;; install in XEmacs property.  Then search the load
-	    ;; path (for user installs)
-	    (locate-data-directory "speedbar")
-	    load-path))
-	(r nil))
-    (while (and l (not r))
-      (if (file-exists-p (concat (car l) "/" image))
-	  (setq r (concat (car l) "/" image)))
-      (setq l (cdr l)))
-    r))
-
-(defun speedbar-convert-emacs21-imagespec-to-xemacs (spec)
-  "Convert the Emacs21 image SPEC into an XEmacs image spec."
-  (let* ((sl (car spec))
-	 (itype (nth 1 sl))
-	 (ifile (nth 3 sl)))
-    (vector itype ':file (speedbar-find-image-on-load-path ifile))))
-
-(defmacro defimage-speedbar (variable imagespec docstring)
-  "Define VARIABLE as an image if `defimage' is not available.
-IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
-  `(defvar ,variable
-     ;; The Emacs21 version of defimage looks just like the XEmacs image
-     ;; specifier, except that it needs a :type keyword.  If we line
-     ;; stuff up right, we can use this cheat to support XEmacs specifiers.
-     (condition-case nil
-	 (make-glyph
-	  (make-image-specifier
-	   (speedbar-convert-emacs21-imagespec-to-xemacs (quote ,imagespec)))
-	  'buffer)
-       (error nil))
-     ,docstring))
-
-)))
-
-(defimage-speedbar speedbar-directory
-  ((:type xpm :file "sb-dir.xpm" :ascent center))
-  "Image used for emptly closed directories.")
-
-(defimage-speedbar speedbar-directory-plus
-  ((:type xpm :file "sb-dir-plus.xpm" :ascent center))
-  "Image used for closed directories with stuff in them.")
-
-(defimage-speedbar speedbar-directory-minus
-  ((:type xpm :file "sb-dir-minus.xpm" :ascent center))
-  "Image used for open directories with stuff in them.")
-
-(defimage-speedbar speedbar-page-plus
-  ((:type xpm :file "sb-pg-plus.xpm" :ascent center))
-  "Image used for closed files with stuff in them.")
-
-(defimage-speedbar speedbar-page-minus
-  ((:type xpm :file "sb-pg-minus.xpm" :ascent center))
-  "Image used for open files with stuff in them.")
-
-(defimage-speedbar speedbar-page
-  ((:type xpm :file "sb-pg.xpm" :ascent center))
-  "Image used for files that can't be opened.")
-
-(defimage-speedbar speedbar-tag
-  ((:type xpm :file "sb-tag.xpm" :ascent center))
-  "Image used for tags.")
-
-(defimage-speedbar speedbar-tag-plus
-  ((:type xpm :file "sb-tag-plus.xpm" :ascent center))
-  "Image used for closed tag groups.")
-
-(defimage-speedbar speedbar-tag-minus
-  ((:type xpm :file "sb-tag-minus.xpm" :ascent center))
-  "Image used for open tag groups.")
-
-(defimage-speedbar speedbar-tag-gt
-  ((:type xpm :file "sb-tag-gt.xpm" :ascent center))
-  "Image used for open tag groups.")
-
-(defimage-speedbar speedbar-tag-v
-  ((:type xpm :file "sb-tag-v.xpm" :ascent center))
-  "Image used for open tag groups.")
-
-(defimage-speedbar speedbar-tag-type
-  ((:type xpm :file "sb-tag-type.xpm" :ascent center))
-  "Image used for open tag groups.")
-
-(defimage-speedbar speedbar-box-plus
-  ((:type xpm :file "sb-box-plus.xpm" :ascent center))
-  "Image used for closed groups of tags.")
-
-(defimage-speedbar speedbar-box-minus
-  ((:type xpm :file "sb-box-minus.xpm" :ascent center))
-  "Image used for open groups of tags.")
-
-(defimage-speedbar speedbar-mail
-  ((:type xpm :file "sb-mail.xpm" :ascent center))
-  "Image used for open tag groups.")
-
-(defimage-speedbar speedbar-checkout
-  ((:type xpm :file "sb-chk.xpm" :ascent center))
-  "Image used for open tag groups.")
-
-(defimage-speedbar speedbar-object
-  ((:type xpm :file "sb-obj.xpm" :ascent center))
-  "Image used for open tag groups.")
-
-(defimage-speedbar speedbar-object-out-of-date
-  ((:type xpm :file "sb-objod.xpm" :ascent center))
-  "Image used for open tag groups.")
-
-(defimage-speedbar speedbar-label
-  ((:type xpm :file "sb-label.xpm" :ascent center))
-  "Image used for label prefix.")
-
-(defimage-speedbar speedbar-read-only
-  ((:type xpm :file "sb-ro.xpm" :ascent center))
-  "Image used to mark an item Read Only, Locked, or some such.")
-
-(defimage-speedbar speedbar-document-tag
-  ((:type xpm :file "sb-doc.xpm" :ascent center))
-  "Image used to indicate documentation available.")
-
-(defimage-speedbar speedbar-document-plus
-  ((:type xpm :file "sb-doc-plus.xpm" :ascent center))
-  "Image used to indicate documentation available.")
-
-(defimage-speedbar speedbar-document-minus
-  ((:type xpm :file "sb-doc-minus.xpm" :ascent center))
-  "Image used to indicate documentation available.")
-
-(defimage-speedbar speedbar-info-tag
-  ((:type xpm :file "sb-info.xpm" :ascent center))
-  "Image used to indicate more information available.")
+(defalias 'defimage-speedbar 'defezimage)
 
 (defvar speedbar-expand-image-button-alist
-  '(("<+>" . speedbar-directory-plus)
-    ("<->" . speedbar-directory-minus)
-    ("< >" . speedbar-directory)
-    ("[+]" . speedbar-page-plus)
-    ("[-]" . speedbar-page-minus)
-    ("[?]" . speedbar-page)
-    ("[ ]" . speedbar-page)
-    ("{+}" . speedbar-box-plus)
-    ("{-}" . speedbar-box-minus)
-    ("<M>" . speedbar-mail)
-    ("<d>" . speedbar-document-tag)
-    ("<i>" . speedbar-info-tag)
-    (" =>" . speedbar-tag)
-    (" +>" . speedbar-tag-gt)
-    (" ->" . speedbar-tag-v)
-    (">" . speedbar-tag)
-    ("@" . speedbar-tag-type)
-    ("  @" . speedbar-tag-type)
-    ("*" . speedbar-checkout)
-    ("#" . speedbar-object)
-    ("!" . speedbar-object-out-of-date)
-    ("//" . speedbar-label)
-    ("%" . speedbar-read-only)
-    ;; Not used in this form, but kept here so we don't forget
-    ("<d+>" . speedbar-document-plus)
-    ("<d->" . speedbar-document-minus)
+  '(("<+>" . ezimage-directory-plus)
+    ("<->" . ezimage-directory-minus)
+    ("< >" . ezimage-directory)
+    ("[+]" . ezimage-page-plus)
+    ("[-]" . ezimage-page-minus)
+    ("[?]" . ezimage-page)
+    ("[ ]" . ezimage-page)
+    ("{+}" . ezimage-box-plus)
+    ("{-}" . ezimage-box-minus)
+    ("<M>" . ezimage-mail)
+    ("<d>" . ezimage-document-tag)
+    ("<i>" . ezimage-info-tag)
+    (" =>" . ezimage-tag)
+    (" +>" . ezimage-tag-gt)
+    (" ->" . ezimage-tag-v)
+    (">"   . ezimage-tag)
+    ("@"   . ezimage-tag-type)
+    ("  @" . ezimage-tag-type)
+    ("*"   . ezimage-checkout)
+    ("#"   . ezimage-object)
+    ("!"   . ezimage-object-out-of-date)
+    ("//"  . ezimage-label)
+    ("%"   . ezimage-lock)
     )
   "List of text and image associations.")
 
@@ -238,26 +77,10 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
   "Insert an image button based on text starting at START for LENGTH chars.
 If buttontext is unknown, just insert that text.
 If we have an image associated with it, use that image."
-  (if speedbar-use-images
-      (let* ((bt (buffer-substring start (+ length start)))
-	     (a (assoc bt speedbar-expand-image-button-alist)))
-	;; Regular images (created with `insert-image' are intangible
-	;; which (I suppose) make them more compatible with XEmacs 21.
-	;; Unfortunatly, there is a giant pile o code dependent on the
-	;; underlying text.  This means if we leave it tangible, then I
-	;; don't have to change said giant piles o code.
-	(if (and a (symbol-value (cdr a)))
-	    (if (featurep 'xemacs)
-		(add-text-properties (+ start (length bt)) start
-				     (list 'end-glyph (symbol-value (cdr a))
-					   'rear-nonsticky (list 'display)
-					   'invisible t
-					   'detachable t))
-	      (add-text-properties start (+ start (length bt))
-				   (list 'display (symbol-value (cdr a))
-					 'rear-nonsticky (list 'display))))
-	  ;(message "Bad text [%s]" (buffer-substring start (+ start length)))
-	  ))))
+  (when speedbar-use-images
+    (let ((ezimage-expand-image-button-alist
+	   speedbar-expand-image-button-alist))
+      (ezimage-insert-image-button-maybe start length))))
 
 (defun speedbar-image-dump ()
   "Dump out the current state of the Speedbar image alist.
