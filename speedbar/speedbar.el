@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.6.3.a
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.75 1998/03/06 14:31:38 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.76 1998/03/06 15:36:42 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -319,6 +319,9 @@
 ;;       Adding indicators now selectivly removes stale related indicators 
 ;;         so for states that change, it is safe to re-evaluate
 ;;       Speedbar will now work in a non-windowing environment.
+;;       `speedbar-update-flag' defaults to nil on terminals.
+;;       `speedbar-timer-fn' will be called by `speedbar-get-focus' if
+;;         `speedbar-update-flag' is nil.
 ;;       Added navigation functions `speedbar-restricted-next' and
 ;;         `speedbar-restricted-prev' for navigation only in a
 ;;         specific depth of files.
@@ -329,8 +332,6 @@
 ;; - Timeout directories we haven't visited in a while.
 ;; - Remeber tags when refreshing the display.  (Refresh tags too?)
 ;; - More 'special mode support.
-;;
-;; * Show when an "object" file is out of date when -obj- indicators are on
 
 (require 'assoc)
 (require 'easymenu)
@@ -752,9 +753,11 @@ PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
 	  speedbar-ignored-path-regexp (speedbar-extension-list-to-regex
 					speedbar-ignored-path-expressions)))
 
-(defvar speedbar-update-flag (or (fboundp 'run-with-idle-timer)
-				 (fboundp 'start-itimer)
-				 (boundp 'post-command-idle-hook))
+(defvar speedbar-update-flag (and
+			      (or (fboundp 'run-with-idle-timer)
+				  (fboundp 'start-itimer)
+				  (boundp 'post-command-idle-hook))
+			      window-system)
   "*Non-nil means to automatically update the display.
 When this is nil then speedbar will not follow the attached frame's path.
 When speedbar is active, use:
@@ -1018,10 +1021,15 @@ selected.  If the speedbar frame is active, then select the attached frame."
   (if (eq (selected-frame) speedbar-frame)
       (if (frame-live-p speedbar-attached-frame)
 	  (select-frame speedbar-attached-frame))
+    ;; If updates are off, then refresh the frame (they want it now...)
+    (if (not speedbar-update-flag)
+	(let ((speedbar-update-flag t))
+	  (speedbar-timer-fn)))
     ;; make sure we have a frame
     (if (not (frame-live-p speedbar-frame)) (speedbar-frame-mode 1))
     ;; go there
-    (select-frame speedbar-frame))
+    (select-frame speedbar-frame)
+    )
   (other-frame 0))
 
 (defun speedbar-close-frame ()
