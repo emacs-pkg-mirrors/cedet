@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.18 2003/08/26 20:07:07 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.19 2003/08/28 02:56:20 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -809,7 +809,7 @@ that class.
  :tag       => @code{:tag}
  [ stuff ]  => @code{[ stuff ]}
  Key        => @kbd{Key}     (key is C\\-h, M\\-h, SPC, RET, TAB and the like)"
-  (while (string-match "`\\([-a-zA-Z0-9]+\\)'" string)
+  (while (string-match "`\\([-a-zA-Z0-9<>.]+\\)'" string)
     (let* ((vs (substring string (match-beginning 1) (match-end 1)))
 	   (v (intern-soft vs)))
       (setq string
