@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.29 2004/02/22 21:47:35 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.30 2004/02/26 15:30:26 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1437,12 +1437,24 @@ if `force-show' is 0, this value is always ignored.")
 	  (semantic-displayor-tooltip-show (concat msg "\n(TAB for more)")))
 	 )))))
 
+;;; Compatibility
+;;
+(eval-when-compile
+  (if (fboundp 'window-inside-edges)
+      ;; Emacs devel.
+      (defalias 'semantic-displayor-window-edges
+        'window-inside-edges)
+    ;; Emacs 21
+    (defalias 'semantic-displayor-window-edges
+      'window-edges)
+    ))
+
 (defun semantic-displayor-point-position ()
   "Return the location of POINT as positioned on the selected frame.
 Return a cons cell (X . Y)"
   (let* ((w (selected-window))
 	 (f (selected-frame))
-	 (edges (window-inside-edges w))
+	 (edges (semantic-displayor-window-edges w))
 	 (col (current-column))
 	 (row (count-lines (window-start w) (point)))
 	 (x (+ (car edges) col))
