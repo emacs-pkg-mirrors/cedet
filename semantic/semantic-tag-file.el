@@ -1,10 +1,10 @@
 ;;; semantic-tag-file.el --- Routines that find files based on tags.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.8 2004/04/29 10:14:01 ponced Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.9 2005/02/13 15:03:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -110,20 +110,30 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
        ;; TODO: Allow TAG to travel with originating file info.
        (when (semantic-tag-buffer tag)
          (set-buffer (semantic-tag-buffer tag)))
-       (let ((name (semantic-tag-name tag)))
-         (cond ((file-exists-p name)
-                (expand-file-name name))
-               ((and (symbolp semantic-dependency-include-path)
-                     (fboundp semantic-dependency-include-path))
-                (funcall semantic-dependency-include-path name))
-               (t
-                (let ((p semantic-dependency-include-path)
-                      (found nil))
-                  (while (and p (not found))
-                    (if (file-exists-p (concat (car p) "/" name))
-                        (setq found (concat (car p) "/" name)))
-                    (setq p (cdr p)))
-                  found))))))))
+       (let* ((name (semantic-tag-name tag))
+	      (result
+	       (cond ((semantic--tag-get-property tag 'dependency-file)
+		      (semantic--tag-get-property tag 'dependency-file))
+		     ((file-exists-p name)
+		      (expand-file-name name))
+		     ((and (symbolp semantic-dependency-include-path)
+			   (fboundp semantic-dependency-include-path))
+		      (funcall semantic-dependency-include-path name))
+		     (t
+		      (let ((p semantic-dependency-include-path)
+			    (found nil))
+			(while (and p (not found))
+			  (if (file-exists-p (concat (car p) "/" name))
+			      (setq found (concat (car p) "/" name)))
+			  (setq p (cdr p)))
+			found)))))
+	 (if (stringp result)
+	     (progn
+	       (semantic--tag-put-property tag 'dependency-file result)
+	       result)
+	   (semantic--tag-put-property tag 'dependency-file 'none)
+	   nil))))
+    ))
 
 (make-obsolete-overload 'semantic-find-dependency
                         'semantic-dependency-tag-file)
