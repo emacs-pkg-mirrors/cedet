@@ -3,9 +3,11 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 1.4
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.78 2001/01/24 21:06:16 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.79 2001/01/31 15:21:55 zappo Exp $
+
+(defvar semantic-version "1.4.alpha2"
+  "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,9 +40,6 @@
 
 (require 'working)
 (require 'semantic-util)
-
-(defvar semantic-version "1.4"
-  "Current version of Semantic.")
 
 (defgroup semantic nil
   "Parser Generator."
@@ -182,22 +181,22 @@ a type nonterminal.
 
 TOP-LEVEL ENTRIES:
 
- (\"NAME\" variable \"TYPE\" DEFAULT-VALUE MODIFIERS 
+ (\"NAME\" variable \"TYPE\" DEFAULT-VALUE EXTRA-SPEC 
          \"DOCSTRING\" PROPERTIES OVERLAY)
    The definition of a variable, or constant.
    DEFAULT-VALUE can be something apropriate such a a string,
                  or list of parsed elements.
-   MODIFIERS are details about a variable that are not covered in the TYPE.
-             See detail on MODIFIERS after entries section.
+   EXTRA-SPEC are details about a variable that are not covered in the TYPE.
+             See detail on EXTRA-SPEC after entries section.
    DOCSTRING is optional.
 
- (\"NAME\" function \"TYPE\" ( ARG-LIST ) MODIFIERS
+ (\"NAME\" function \"TYPE\" ( ARG-LIST ) EXTRA-SPEC
           \"DOCSTRING\" PROPERTIES OVERLAY)
    A function/procedure definition.
    ARG-LIST is a list of variable definitions.
    DOCSTRING is optional.
 
- (\"NAME\" type \"TYPE\" ( PART-LIST ) ( PARENTS ) MODIFIERS
+ (\"NAME\" type \"TYPE\" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC
           \"DOCSTRING\" PROPERTIES OVERLAY)
    A type definition.
    TYPE of a type could be anything, such as (in C) struct, union, typedef,
@@ -216,16 +215,17 @@ TOP-LEVEL ENTRIES:
    In Emacs Lisp, a `provide' statement.  DETAIL might be an
    associated file name.  In Java, this is a package statement.
 
-MODIFIERS:
+EXTRA-SPEC:
 
-  The MODIFIERS section of variables, functions, and types provide a
+  The EXTRA-SPEC section of variables, functions, and types provide a
 location to place language specific details which are not accounted
 for by the base token type.  Because there is an arbitrary number of
-things that could be associated in the MODIFIERS section, this should
+things that could be associated in the EXTRA-SPEC section, this should
 be formatted as an association list.
 
-  Here are some typed modifiers that may exist.  Any arbitrary number of
-modifiers may be created, and modifiers not documented here are allowed.
+  Here are some typed extra specifiers that may exist.  Any arbitrary
+number of extra specifiers may be created, and specifiers not
+documented here are allowed.
 
   (parent .  \"text\") - Name of a parent type/class.  C++ and CLOS allow
      the creation of a function outside the body of that type/class.
@@ -441,6 +441,15 @@ The returned item may be an overlay or an unloaded buffer representation."
   (and (listp token)
        (stringp (car token))
        (symbolp (car (cdr token)))))
+
+(defun semantic-token-with-position-p (token)
+  "Return non-nil if TOKEN is a semantic token with positional information."
+  (and (listp token)
+       (stringp (car token))
+       (symbolp (car (cdr token)))
+       (let ((o (semantic-token-overlay (car token))))
+	 (or (semantic-overlay-p o)
+	     (arrayp o)))))
 
 ;;; Overlay and error stacks.
 ;;
@@ -1000,17 +1009,16 @@ a START and END part."
 				   nonterm
 				   depth)))
 
-(defun semantic-bovinate-block-until-header (start end nonterm &optional depth)
+(defun semantic-bovinate-region-until-error (start end nonterm &optional depth)
   "Bovinate between START and END starting with NONTERM.
-If NONTERM is nil, start with `bovine-block-toplevel'.
 Optinal DEPTH specifies how many levels of parenthesis to enter.
 This command will parse until an error is encountered, and return
 the list of everything found until that moment.
 This is meant for finding variable definitions at the beginning of
-code blocks in methods.  If `bovine-block-toplevel' can also support
+code blocks in methods.  If `bovine-inner-scope' can also support
 commands, use `semantic-bovinate-from-nonterminal-full'."
   (nreverse
-   (semantic-bovinate-nonterminals (semantic-flex start end (or depth 1))
+   (semantic-bovinate-nonterminals (semantic-flex start end depth)
 				   nonterm
 				   depth
 				   ;; This says stop on an error.
