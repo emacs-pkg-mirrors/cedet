@@ -1,9 +1,9 @@
 ;;; semantic-debug.el --- Language Debugger framework
 
-;;; Copyright (C) 2003 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.10 2003/09/24 13:49:35 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.11 2004/03/19 23:46:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -367,7 +367,7 @@ Argument ONOFF is non-nil when we are entering debug mode.
 	)
     ;; We could recurse into a parser while debugging.
     ;; Is that a problem?
-    (semantic-bovinate-toplevel)
+    (semantic-fetch-tags)
     ;; We should turn the auto-parser back on, but don't do it for
     ;; now until the debugger is working well.
     ))
