@@ -158,7 +158,8 @@ Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
   (let* ((p (or percent (floor (* 100.0 (/ (float (point)) (point-max))))))
 	 (m1 (apply 'format working-message args))
-	 (m2 (funcall working-status-percentage-type (length m1) p)))
+	 (m2 (funcall working-status-percentage-type (length m1) p))
+	 (message-log-max))
     (message "%s%s" m1 m2)))
 
 (defun working-dynamic-status (&optional number &rest args)
@@ -170,7 +171,8 @@ numbers would appear.  Additional ARGS are passed to fill on %
 elements of MESSAGE from the macro `working-status-forms'."
   (let* ((n (or number working-ref1))
 	 (m1 (apply 'format working-message args))
-	 (m2 (funcall working-status-dynamic-type (length m1) n)))
+	 (m2 (funcall working-status-dynamic-type (length m1) n))
+	 (message-log-max))
     (message "%s%s" m1 m2)
     (setq working-ref1 (1+ working-ref1))))
 
