@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.9 2003/04/07 11:21:31 ponced Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.10 2003/07/25 17:34:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,8 +116,8 @@ This was snarfed out of eldoc."
     arglist))
 
 (defun semanticdb-elisp-sym->tag (sym &optional toktype)
-  "Convert SYM into a semantic token.
-TOKTYPE is a hint to the type of token desired."
+  "Convert SYM into a semantic tag.
+TOKTYPE is a hint to the type of tag desired."
   (if (stringp sym)
       (setq sym (intern-soft sym)))
   (when sym
