@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.20 2004/02/19 02:19:22 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.21 2004/02/22 21:44:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -360,7 +360,7 @@ Attempts a simple prototype for calling or using TAG."
 	(t
 	 (insert (semantic-tag-name tag)))))
 
-(define-mode-overload-implementation semantic-nonterminal-protection
+(define-mode-overload-implementation semantic-tag-protection
   emacs-lisp-mode (tag &optional parent)
   "Return the protection of TAG in PARENT.
 Override function for `semantic-nonterminal-protection'."
@@ -376,7 +376,7 @@ Override function for `semantic-nonterminal-protection'."
      ((string= prot ":protected") 'protected)
      ((string= prot "protected") 'protected))))
 
-(define-mode-overload-implementation semantic-elisp-nonterminal-static
+(define-mode-overload-implementation semantic-tag-static
   emacs-lisp-mode (tag &optional parent)
   "Return non-nil if TAG is static in PARENT class.
 Overrides `semantic-nonterminal-static'."
