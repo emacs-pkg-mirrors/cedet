@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.14 2001/09/20 11:50:55 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.15 2001/09/21 14:31:36 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,6 +36,10 @@
 (require 'wisent-bovine)
 (require 'semantic-java)
 (eval-when-compile
+  (require 'semantic-util)
+  (require 'semantic-ctxt)
+  (require 'semantic-imenu)
+  (require 'senator)
   (require 'document))
 
 ;;;;
