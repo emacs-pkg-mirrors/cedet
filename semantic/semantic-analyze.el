@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.22 2004/02/03 19:34:06 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.23 2004/02/04 04:17:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -258,18 +258,63 @@ will be stored.  If nil, that data is thrown away."
     ;; Return the mess
     (nreverse tag)))
 
+(defun semantic-analyze-inherited-tags (type)
+  "Return all tags that TYPE inherits from.
+For langauges with protection on specific methods or slots,
+it should strip out those not accessable by methods of TYPE."
+  (let (;; PARENTS specifies only the superclasses and not
+	;; interfaces.  Inheriting from an interfaces implies
+	;; you have a copy of all methods locally.  I think.
+	(parents (semantic-tag-type-superclasses type))
+	(p nil)
+	(ret nil)
+	)
+    (while parents
+      (setq p (car parents))
+      ;; Get this parent
+      (let ((oneparent
+	     (semantic-analyze-find-tag
+	      (cond ((stringp p) p)
+		    ((semantic-tag-p p) (seamntic-tag-name p))
+		    ((and (listp p) (stringp (car p)))
+		     (car p)))
+	      'type)))
+	;; Get tags from this parent.
+	(let* ((alltags (semantic-analyze-type-parts oneparent))
+	       (accessabletags (semantic-find-tags-by-scope-protection
+				'public oneparent alltags)))
+	  (setq ret (append ret accessabletags))))
+	;; Continue on
+      (setq parents (cdr parents)))
+    ret))
+
 (defun semantic-analyze-type-parts (type)
   "Return all parts of TYPE, a tag representing a TYPE declaration.
 This includes both the TYPE parts, and all functions found in all
 databases which have this type as a property."
-  (let ((slots
-	 (semantic-tag-components type)
-	 ;(semantic-tag-type-parts type)
-	 )
-	(extmeth (semantic-tag-external-member-children type t)))
+  (let (;; SLOTS are the slots directly a part of TYPE.
+	(slots (semantic-tag-components type))
+	;; EXTMETH are externally defined methods that are still
+	;; a part of this class.
+	(extmeth (semantic-tag-external-member-children type t))
+	;; INHERITED are tags found in classes that our TYPE tag
+	;; inherits from.
+	(inherited (semantic-analyze-inherited-tags type))
+	)
     ;; Flatten the database output.
-    (append slots extmeth)
+    (append slots extmeth inherited)
     ))
+
+(defun semantic-analyze-scoped-tags (typelist)
+  "Return a list of tags accessable when TYPELIST is in scope.
+Tags returned are not in the global name space, but are instead
+scoped inside a class or namespace.  Such items can be referenced
+without use of \"object.function()\" style syntax due to an
+implicit \"object\"."
+  (apply #'append (mapcar #'semantic-analyze-type-parts typelist))
+  ;; We also need to get all parents of typelist, and include public or
+  ;; protected methods of those!
+  )
 
 (defun semantic-analyze-scope-nested-tags (&optional position)
   "Return a list of types in order of nesting for the context of POSITION.
@@ -314,18 +359,6 @@ are from nesting data types."
 	    (reverse returnlist))
 	  )))))
 
-
-(defun semantic-analyze-scoped-tags (typelist)
-  "Return a list of tags accessable when TYPELIST is in scope.
-Tags returned are not in the global name space, but are instead
-scoped inside a class or namespace.  Such items can be referenced
-without use of \"object.function()\" style syntax due to an
-implicit \"object\"."
-  (apply #'append (mapcar #'semantic-analyze-type-parts typelist))
-  ;; We also need to get all parents of typelist, and include public or
-  ;; protected methods of those!
-  )
-
 (defun semantic-analyze-scoped-types (&optional position)
   "Return a list of types current in scope at POSITION.
 This is based on what tags exist at POSITION, and any associated
@@ -354,6 +387,7 @@ types available."
       (if parents
 	  (append parents code-scoped-parents)
 	code-scoped-parents))))
+
 
 ;;; Top Level context analysis function
 ;;
