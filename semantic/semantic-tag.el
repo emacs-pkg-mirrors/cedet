@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.5 2003/03/21 03:17:06 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.6 2003/03/21 09:25:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -114,8 +114,9 @@ That is, an overlay or an unloaded buffer representation."
 That function is for internal use only."
   (nthcdr 4 tag))
 
-(defsubst semantic-tag-set-overlay (tag overlay)
-  "Set the overlay part of TAG with OVERLAY."
+(defsubst semantic--tag-set-overlay (tag overlay)
+  "Set the overlay part of TAG with OVERLAY.
+That function is for internal use only."
   (setcar (semantic--tag-overlay-cdr tag) overlay))
 
 (defsubst semantic-tag-start (tag)
@@ -132,10 +133,17 @@ That function is for internal use only."
         (semantic-overlay-end o)
       (aref o 1))))
 
-(defsubst semantic-tag-extent (tag)
-  "Return the extent (START END) of TAG."
+(defsubst semantic-tag-bounds (tag)
+  "Return the location (START END) of data TAG describes."
   (list (semantic-tag-start tag)
         (semantic-tag-end tag)))
+
+(defun semantic-tag-set-bounds (tag start end)
+  "In TAG, set the START and END location of data it describes."
+  (let ((o (semantic-tag-overlay tag)))
+    (if (semantic-overlay-p o)
+        (semantic-overlay-move o start end)
+      (semantic-tag-set-overlay tag (vector start end)))))
 
 (defsubst semantic-tag-buffer (tag)
   "Return the buffer TAG resides in."
@@ -229,6 +237,10 @@ That function is for internal use only."
        (listp (nth 3 tag))                ; PROPERTIES
        ))
 
+(defsubst semantic-tag-of-class-p (tag class)
+  "Return non-nil if class of TAG is CLASS."
+  (eq (semantic-tag-class tag) class))
+
 (defun semantic-tag-with-position-p (tag)
   "Return non-nil if TAG has positional information."
   (and (semantic-tag-p tag)
@@ -241,10 +253,9 @@ That function is for internal use only."
 Use `eq' to test of two tags are the same.  Use this function if tags
 are being copied and regrouped to test for if two tags represent the
 same thing, but may be constructed of different cons cells."
-  (and (string= (semantic-tag-name tag1) (semantic-tag-name tag2))
-       (eq (semantic-tag-class tag1) (semantic-tag-class tag2))
-       (eq (semantic-tag-start tag1) (semantic-tag-start tag2))
-       (eq (semantic-tag-end tag1) (semantic-tag-end tag2))))
+  (and (equal (semantic-tag-name tag1) (semantic-tag-name tag2))
+       (semantic-tag-class-of-p tag1 (semantic-tag-class tag2))
+       (equal (semantic-tag-bounds tag1) (semantic-tag-bounds tag2))))
 
 ;;; Tag creation
 ;;
@@ -301,11 +312,11 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
                  :arguments ,arg-list
                  ,@attributes))
 
-(defmacro semantic-tag-new-type (name type part-list parents &rest attributes)
+(defmacro semantic-tag-new-type (name type members parents &rest attributes)
   "Create a semantic tag of class type.
 NAME is the name of this type.
 TYPE is a string or semantic tag representing the type of this type.
-PART-LIST is a list of strings or semantic tags representing the
+MEMBERS is a list of strings or semantic tags representing the
 elements that make up this type if it is a composite type.
 PARENTS is a cons cell.  (EXPLICIT-PARENTS . INTERFACE-PARENTS)
 EXPLICIT-PARENTS can be a single string (Just one parent) or a
@@ -321,7 +332,7 @@ interface.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
   `(semantic-tag ,name 'type
                  :type ,type
-                 :children ,part-list
+                 :members ,members
                  :superclasses ,(car parents)
                  :interfaces ,(cdr parents)
                  ,@attributes))
@@ -394,10 +405,10 @@ If not provided, then only the POSITION can be provided."
 
 ;;; Tags of class `type'
 ;;
-(defsubst semantic-tag-type-parts (tag)
-  "Return the parts of the type that TAG describes.
-That is the value of the `:children' attribute."
-  (semantic-tag-attribute tag :children))
+(defsubst semantic-tag-type-members (tag)
+  "Return the members of the type that TAG describes.
+That is the value of the `:members' attribute."
+  (semantic-tag-attribute tag :members))
 
 (defun semantic-tag-type-superclasses (tag)
   "Return the list of superclasses of the type that TAG describes."
@@ -410,16 +421,6 @@ That is the value of the `:children' attribute."
 (defsubst semantic-tag-type-interfaces (tag)
   "Return the list of interfaces of the type that TAG describes."
   (semantic-tag-attribute tag :interfaces))
-
-(defsubst semantic-token-type-parent (tag)
-  "Return the parent of the type that TAG describes.
-The return value is a list.  A value of nil means no parents.
-The `car' of the list is either the parent class, or a list
-of parent classes.  The `cdr' of the list is the list of
-interfaces, or abstract classes which are parents of TAG."
-  (cons (semantic-tag-attribute tag :superclasses)
-        (semantic-tag-type-interfaces tag)))
-(make-obsolete 'semantic-token-type-parent)
 
 ;;; Tags of class `function'
 ;;
@@ -482,10 +483,10 @@ or the list of arguments to a 'function tag."
 
 (defun semantic-tag-components-default (tag)
   "Return a list of components for TAG.
-Perform the described task in `semantic-tag-componenents'."
-  (cond ((eq class 'type)
-	 (semantic-tag-type-parts tag))
-	((eq class 'function)
+Perform the described task in `semantic-tag-components'."
+  (cond ((semantic-tag-of-class-p tag 'type)
+	 (semantic-tag-type-members tag))
+	((semantic-tag-of-class-p tag 'function)
 	 (semantic-tag-function-arguments tag))
 	(t nil)))
 
@@ -506,7 +507,7 @@ Ignoring this step will prevent several features from working correctly."
   "Return the list of top level components belonging to TAG.
 Children are any sub-tags which contain overlays.
 The default action collects regular components of TAG, in addition
-to any components beloning to an anonymouse type."
+to any components beloning to an anonymous type."
   (let ((class (semantic-tag-class tag))
 	(explicit-children (semantic-tag-components tag))
 	(type (semantic-tag-type tag))
@@ -516,9 +517,9 @@ to any components beloning to an anonymouse type."
     ;; its type.  This implies it may have children with overlays.
     (when (and type (semantic-tag-p type))
       (setq anon-type-children (semantic-tag-components type))
-      ;; Add anonymouse children
+      ;; Add anonymous children
       (while anon-type-children
-	(when (semamantic-tag-with-position-p (car anon-type-children))
+	(when (semantic-tag-with-position-p (car anon-type-children))
 	  (setq all-children (cons (car anon-type-children) all-children)))
 	(setq anon-type-children (cdr anon-type-children))))
     ;; Add explicit children
@@ -564,7 +565,7 @@ to any components beloning to an anonymouse type."
                          'semantic-tag-end)
 
 (semantic-alias-obsolete 'semantic-token-extent
-                         'semantic-tag-extent)
+                         'semantic-tag-bounds)
 
 (semantic-alias-obsolete 'semantic-token-buffer
                          'semantic-tag-buffer)
@@ -594,7 +595,17 @@ to any components beloning to an anonymouse type."
                          'semantic-tag-docstring)
 
 (semantic-alias-obsolete 'semantic-token-type-parts
-                         'semantic-tag-type-parts)
+                         'semantic-tag-type-members)
+
+(defsubst semantic-token-type-parent (tag)
+  "Return the parent of the type that TAG describes.
+The return value is a list.  A value of nil means no parents.
+The `car' of the list is either the parent class, or a list
+of parent classes.  The `cdr' of the list is the list of
+interfaces, or abstract classes which are parents of TAG."
+  (cons (semantic-tag-attribute tag :superclasses)
+        (semantic-tag-type-interfaces tag)))
+(make-obsolete 'semantic-token-type-parent)
 
 (semantic-alias-obsolete 'semantic-token-type-parent-superclass
                          'semantic-tag-type-superclasses)
