@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.15 2003/03/03 01:42:05 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.16 2003/03/04 02:36:58 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta4"
@@ -127,11 +127,11 @@ where RELEASE is a symbol such as `full', or `beta'."
 		       "-version"))))
 	(code nil))
     (unless ver
-      (error "Package %S does not define %S-version"))
+      (error "Package %S does not define %S-version" package package))
     ;; Decode the code
     (setq code (inversion-decode-version ver))
     (unless code
-      (error "%S-version value cannot be decoded"))
+      (error "%S-version value cannot be decoded" package))
     code))
 
 (defun inversion-package-incompatibility-version (package)
