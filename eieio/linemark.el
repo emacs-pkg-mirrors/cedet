@@ -5,7 +5,7 @@
 ;; Created: Dec 1999
 ;; Keywords: lisp
 ;;
-;; Copyright (C) 1999, 2001, 2002, 2003 Eric M. Ludlam
+;; Copyright (C) 1999, 2001, 2002, 2003, 2004 Eric M. Ludlam
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -421,6 +421,7 @@ Call the new entrie's activate method."
 ;;	    (oref viss-bookmark-group marks)))
 ;;
 
+;;;###autoload
 (defun enable-visual-studio-bookmarks ()
   "Bind the viss bookmark functions to F2 related keys.
 \\<global-map>
