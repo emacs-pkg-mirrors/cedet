@@ -5,8 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.109 2001/07/13 18:03:51 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.110 2001/07/17 19:17:26 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta2"
   "Current version of EIEIO.")
@@ -232,7 +231,8 @@ yet supported.  Supported tags are:
               - A string documenting use of this slot.
 
 The following are extensions on CLOS:
-  :protection - Specify protection for this slot.  `:public' or `:private'
+  :protection - Specify protection for this slot.
+                Defaults to `:public'.  Also use `:protected', or `:private'
   :custom     - When customizing an object, the custom :type.  Public only.
   :label      - A text string label used for a slot when customizing.
   :group      - Name of a customization group this slot belongs in.
@@ -444,7 +444,8 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 
 	;; Clean up the meaning of protection.
 	(cond ((or (eq prot 'public) (eq prot :public)) (setq prot nil))
-	      ((or (eq prot 'private) (eq prot :private)) (setq prot t))
+	      ((or (eq prot 'protected) (eq prot :protected)) (setq prot 'protected))
+	      ((or (eq prot 'private) (eq prot :private)) (setq prot 'private))
 	      ((eq prot nil) nil)
 	      (t (signal 'invalid-slot-type (list ':protection prot))))
 
@@ -567,7 +568,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	(setq newsym (intern (symbol-name (car pubsyms)) oa))
 	(set newsym cnt)
 	(setq cnt (1+ cnt))
-	(if (car prots) (put newsym 'private (car prots)))
+	(if (car prots) (put newsym 'protection (car prots)))
 	(setq pubsyms (cdr pubsyms)
 	      prots (cdr prots)))
       (aset newc class-symbol-obarray oa)
@@ -1361,10 +1362,16 @@ reverse-lookup that name, and recurse with the associated slot value."
 				  class-symbol-obarray)))
 	 (fsi (if (symbolp fsym) (symbol-value fsym) nil)))
     (if (integerp fsi)
-	(if (or (not (get fsym 'private))
-		(and scoped-class (child-of-class-p class scoped-class)))
-	    (+ 3 fsi)
-	  nil)
+	(cond
+	 ((not (get fsym 'protection))
+	  (+ 3 fsi))
+	 ((and (eq (get fsym 'protection) 'protected)
+	       (and scoped-class (child-of-class-p class scoped-class)))
+	  (+ 3 fsi))
+	 ((and (eq (get fsym 'protection) 'private)
+	       (and scoped-class (eq class scoped-class)))
+	  (+ 3 fsi))
+	 (t nil))
       (let ((fn (eieio-initarg-to-attribute class field)))
 	(if fn (eieio-field-name-index class fn) nil)))))
 
