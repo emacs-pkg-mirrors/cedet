@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.3 2001/10/08 21:08:59 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.4 2001/10/08 21:10:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -470,7 +470,7 @@ Analysis is done at POINT."
 	(setq c (semantic-find-nonterminal-by-name-regexp
 		 (concat "^" completetext)
 		 (oref a scope)
-		 nil nil)
+		 nil nil))
 	      
       (let ((expr (concat "^" completetext)))
 	;; No type based on the completetext.  This is a free-range
