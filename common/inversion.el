@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.11 2003/01/28 16:06:09 ponced Exp $
+;; X-RCS: $Id: inversion.el,v 1.12 2003/03/02 13:47:30 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta4"
@@ -341,38 +341,41 @@ the main INSTALLDIR/PACKAGE path."
 
 ;;; Inversion tests
 ;;
-(let ((c1 (inversion-package-version 'inversion))
-      (c1i (inversion-package-incompatibility-version 'inversion))
-      (c2 (inversion-decode-version "1.3alpha2"))
-      (c3 (inversion-decode-version "1.3beta4"))
-      (c4 (inversion-decode-version "1.3beta5"))
-      (c5 (inversion-decode-version "1.3.4"))
-      (c6 (inversion-decode-version "2.3alpha1")))
-  (if (not (and
-	    (inversion-= c1 c1)
-	    (inversion-< c1i c1)
-	    (inversion-< c2 c3)
-	    (inversion-< c3 c4)
-	    (inversion-< c4 c5)
-	    (inversion-< c5 c6)
-	    (inversion-< c2 c4)
-	    (inversion-< c2 c5)
-	    (inversion-< c2 c6)
-	    (inversion-< c3 c5)
-	    (inversion-< c3 c6)
-	    ;; Negatives
-	    (not (inversion-< c3 c2))
-	    (not (inversion-< c4 c3))
-	    (not (inversion-< c5 c4))
-	    (not (inversion-< c6 c5))
-	    ;; Test the tester on inversion
-	    (not (inversion-test 'inversion inversion-version))
-	    ;; Test that we throw an error
-	    (inversion-test 'inversion "0.0.0")
-	    (inversion-test 'inversion "1000.0")
-	    ))
-      (error "Inversion tests failed")
-    t))
+(defun inversion-unit-test ()
+  "Test inversion to make sure it can identify different version strings."
+  (interactive)
+  (let ((c1 (inversion-package-version 'inversion))
+	(c1i (inversion-package-incompatibility-version 'inversion))
+	(c2 (inversion-decode-version "1.3alpha2"))
+	(c3 (inversion-decode-version "1.3beta4"))
+	(c4 (inversion-decode-version "1.3beta5"))
+	(c5 (inversion-decode-version "1.3.4"))
+	(c6 (inversion-decode-version "2.3alpha1")))
+    (if (not (and
+	      (inversion-= c1 c1)
+	      (inversion-< c1i c1)
+	      (inversion-< c2 c3)
+	      (inversion-< c3 c4)
+	      (inversion-< c4 c5)
+	      (inversion-< c5 c6)
+	      (inversion-< c2 c4)
+	      (inversion-< c2 c5)
+	      (inversion-< c2 c6)
+	      (inversion-< c3 c5)
+	      (inversion-< c3 c6)
+	      ;; Negatives
+	      (not (inversion-< c3 c2))
+	      (not (inversion-< c4 c3))
+	      (not (inversion-< c5 c4))
+	      (not (inversion-< c6 c5))
+	      ;; Test the tester on inversion
+	      (not (inversion-test 'inversion inversion-version))
+	      ;; Test that we throw an error
+	      (inversion-test 'inversion "0.0.0")
+	      (inversion-test 'inversion "1000.0")
+	      ))
+	(error "Inversion tests failed")
+      (message "Inversion tests passed."))))
 
 ;;; URL and downloading code
 ;;
