@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document-vars.el,v 1.2 2001/05/01 16:51:33 zappo Exp $
+;; X-RCS: $Id: document-vars.el,v 1.3 2001/09/29 23:42:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,6 +30,22 @@
 
 ;;; Code:
 (provide 'document-vars)
+
+(eval-when-compile
+  ;; Emacs 21
+  (condition-case nil
+      (require 'newcomment)
+    (error nil))
+  )
+
+(defvar document-comment-start nil
+  "Comment start string.")
+
+(defvar document-comment-line-prefix nil
+  "Comment prefix string.  Used at the beginning of each line.")
+
+(defvar document-comment-end nil
+  "Comment end string.")
 
 (defcustom document-copyright-notice-file nil
   "*A file name containing a copyright notice.
