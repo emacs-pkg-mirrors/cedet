@@ -10,5 +10,5 @@ the only place to get the latest versions of individual tools.
 
 <p>Try out
 <a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=192965">
-cedet-1.0beta1.tar.gz</a>.
+cedet-1.0beta1c.tar.gz</a>.
 
