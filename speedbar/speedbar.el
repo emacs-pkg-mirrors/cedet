@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.191 2000/10/09 04:20:30 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.192 2000/10/15 02:24:18 zappo Exp $
 
 (defvar speedbar-version "0.13"
   "The current version of speedbar.")
@@ -894,20 +894,20 @@ directories.")
 
 ;;; Compatibility
 ;;
-(if (fboundp 'make-overlay)
+(if (featurep 'xemacs)
     (progn
-      (defalias 'speedbar-make-overlay 'make-overlay)
-      (defalias 'speedbar-overlay-put 'overlay-put)
-      (defalias 'speedbar-delete-overlay 'delete-overlay)
-      (defalias 'speedbar-overlay-start 'overlay-start)
-      (defalias 'speedbar-overlay-end 'overlay-end)
-      (defalias 'speedbar-mode-line-update 'force-mode-line-update))
-  (defalias 'speedbar-make-overlay 'make-extent)
-  (defalias 'speedbar-overlay-put 'set-extent-property)
-  (defalias 'speedbar-delete-overlay 'delete-extent)
-  (defalias 'speedbar-overlay-start 'extent-start)
-  (defalias 'speedbar-overlay-end 'extent-end)
-  (defalias 'speedbar-mode-line-update 'redraw-modeline))
+      (defalias 'speedbar-make-overlay 'make-extent)
+      (defalias 'speedbar-overlay-put 'set-extent-property)
+      (defalias 'speedbar-delete-overlay 'delete-extent)
+      (defalias 'speedbar-overlay-start 'extent-start)
+      (defalias 'speedbar-overlay-end 'extent-end)
+      (defalias 'speedbar-mode-line-update 'redraw-modeline))
+  (defalias 'speedbar-make-overlay 'make-overlay)
+  (defalias 'speedbar-overlay-put 'overlay-put)
+  (defalias 'speedbar-delete-overlay 'delete-overlay)
+  (defalias 'speedbar-overlay-start 'overlay-start)
+  (defalias 'speedbar-overlay-end 'overlay-end)
+  (defalias 'speedbar-mode-line-update 'force-mode-line-update))
 
 ;;; Mode definitions/ user commands
 ;;
