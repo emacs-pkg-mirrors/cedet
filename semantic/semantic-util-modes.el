@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.8 2001/11/07 20:16:26 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.9 2001/11/13 19:52:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -332,7 +332,7 @@ This will highlight elements in SYNTAX as unmatched-syntax."
           (semantic-overlay-put o 'semantic 'unmatched)
           (semantic-overlay-put o 'face 'semantic-unmatched-syntax-face)
           (setq syntax (cdr syntax))))
-    (message "No unmatched syntax elements to highlight.")))
+    ))
 
 (defun semantic-next-unmatched-syntax (point &optional bound)
   "Find the next overlay for unmatched syntax after POINT.
