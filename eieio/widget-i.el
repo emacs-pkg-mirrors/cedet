@@ -4,9 +4,9 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.3 1996/07/28 18:36:42 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.4 1996/08/19 00:52:21 zappo Exp $
 ;;; Keywords: OO widget
-;;;
+;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation; either version 2, or (at your option)
@@ -24,19 +24,19 @@
 ;;;              The Free Software Foundation, Inc.
 ;;;              675 Mass Ave.
 ;;;              Cambridge, MA 02139, USA. 
-;;;
+;;;      
 ;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
-;;;
+;;;      
 
 ;;;
 ;;; Commentary:
-;;;
+;;;      
 ;;; This requires the widget definition file (widget-d) and supplies
 ;;; the functionality behind all the classes by defining their
 ;;; methods.  All mundane repetitive work is done in dialog.el. (Such
 ;;; as creating buffers, modes, and the top-level shell.)
-;;;
-
+;;;           
+         
 (require 'eieio)			;objects
 (require 'widget-d)			;widget definitions
        
@@ -60,8 +60,9 @@
 	;; make sure we don't call thier update function.
 	(while refs
 	  (if (not (equal (car refs) setter))
-	      (save-excursion
-		(update-symbol (car refs) this)))
+	      (let ((pnt (point)))
+		(update-symbol (car refs) this)
+		(goto-char pnt)))
 	  (setq refs (cdr refs))))))
 
 (defmethod get-value ((this data-object))
@@ -758,6 +759,60 @@ help about this widget."
 
 
 ;;
+;; Scale
+;;
+(defmethod verify ((this widget-scale) fix)
+  "Verifies the scale widget is ok."
+  ;; make sure that the scale state is ok
+  (let ((tv (transform-dataobject (oref this state) this "ScaleState" fix)))
+    (if tv
+	(progn
+	  (if (not (numberp (get-value tv)))
+	      (set-value tv 0))
+	  (oset this state tv)
+	  (add-reference tv this))
+      (error "Scale value for %s is not a number" (object-name this))))
+  ;; make sure that the scale max is ok
+  (let ((tv (transform-dataobject (oref this maximum) this "ScaleMax" fix)))
+    (if tv
+	(progn
+	  (oset this maximum tv)
+	  (add-reference tv this))
+      (error "Scale value for %s is not a number" (object-name this))))
+  ;; make sure that the scale min is ok
+  (let ((tv (transform-dataobject (oref this minumum) this "ScaleMin" fix)))
+    (if tv
+	(progn
+	  (oset this minimum tv)
+	  (add-reference tv this))
+      (error "Scale value for %s is not a number" (object-name this))))
+  ;; Check sizes
+  (let ((length (+ (get-value (oref this maximum)) 
+		  (if (oref this end-buttons) 2 0)))
+	(w (oref this width))
+	(h (oref this height)))
+    (cond ((eq (oref this direction) 'horizontal)
+	   (if (not w) (oset this width length))
+	   (if (not h) (oset this height 1))
+	   )
+	  ((eq (oref this direction) 'vertical)
+	   (if (not w) (oset this width 1))
+	   (if (not h) (oset this height (width 2)))
+	   )
+	  (t
+	   (error "Value %S for field direction in %s invalid"
+		  (oref this direction)
+		  (object-name this)))))
+  ;; Verify parent parts
+  (call-next-method)
+  )
+
+(defmethod draw ((this widget-scale))
+  "Draws a scale widget"
+  )
+
+
+;;
 ;; Text
 ;;
 
@@ -767,6 +822,8 @@ help about this widget."
   (let ((tv (transform-dataobject (oref this value) this "TextPart" fix)))
     (if tv
 	(progn
+	  (if (not (stringp (get-value tv)))
+	      (set-value tv ""))
 	  (oset this value tv)
 	  (add-reference tv this))
       (error "Text field value for %s is not a data-object."
