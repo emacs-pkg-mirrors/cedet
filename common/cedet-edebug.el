@@ -1,7 +1,7 @@
 ;;; cedet-edebug.el --- Special EDEBUG augmentation code
 
 ;;;
-;; Copyright (C) 2003 Eric M. Ludlam
+;; Copyright (C) 2003, 2004 Eric M. Ludlam
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,10 +23,6 @@
 ;;
 ;; Please send bug reports, etc. to zappo@gnu.org
 
-
-;;; History:
-;; 
-
 ;;; Commentary:
 ;;
 ;; Some aspects of EDEBUG are not extensible.  It is possible to extend
@@ -36,25 +32,10 @@
 ;; This package provides a way to extend some aspects of edebug, such as value
 ;; printing.
 
-;; Default extensions are for EIEIO.
-(require 'eieio)
-(require 'semantic-tag)
 
+;;; Code:
 (defvar cedet-edebug-prin1-extensions
-  '(
-    ;; EIEIO extensions
-    ( (class-p object) . (class-name object) )
-    ( (object-p object) . (object-print object) )
-    ( (and (listp object) (or (class-p (car object)) (object-p (car object)))) .
-      (cedet-edebug-prin1-recurse object) )
-    ;; Semantic TAG datatype extensions
-    ( (semantic-tag-p object) . (concat "#<TAG " (semantic-format-tag-name object) ">") )
-    ( (and (listp object) (semantic-tag-p (car object))) .
-      (cedet-edebug-prin1-recurse object) )
-    ;; Semantic DB find result datatype
-    ( (semanticdb-find-results-p object) .
-      (semanticdb-find-result-prin1-to-string object) )
-    )
+  nil
   "An alist of of code that can extend PRIN1 for edebug.
 Each entry has the value: (CONDITION . PRIN1COMMAND).")
 
@@ -74,7 +55,7 @@ constructing the function."
 				     (cdr (car c))))
 			 code))
       (setq c (cdr c)))
-    (fset 'cedet-edebug-prin1-to-string
+    (fset 'cedet-edebug-prin1-to-string-inner
 	  `(lambda (object &optional noescape)
 	     "Display eieio OBJECT in fancy format.  Overrides the edebug default.
 Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
@@ -83,9 +64,43 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 	      (t (prin1-to-string object noescape)))))
     ))
 
+(defun cedet-edebug-prin1-to-string (object &optional noescape)
+  "CEDET version of `edebug-prin1-to-string' that adds specialty
+print methods for very large complex objects."
+  (if (not (fboundp 'cedet-edebug-prin1-to-string-inner))
+      ;; Recreate the official fcn now.
+      (cedet-edebug-rebuild-prin1))
+
+  ;; Call the auto-generated version.
+  ;; This is not going to be available at compile time.
+  (cedet-edebug-prin1-to-string-inner object noescape))
+
+
+(defun cedet-edebug-add-print-override (testfcn printfcn)
+  "Add a new EDEBUG print override.
+TESTFCN is a routine that returns nil if the first argument
+passed to it is not to use PRINTFCN.
+PRINTFCN accepts an object identified by TESTFCN and
+returns a string.
+New tests are always added to the END of the list of tests.
+See `cedet-edebug-prin1-extensions' for the official list."
+  (condition-case nil
+      (add-to-list 'cedet-edebug-prin1-extensions
+		   (cons testfcn printfcn)
+		   t)
+    (error ;; That failed, it must be an older version of Emacs
+     ;; withouth the append argument for `add-to-list'
+     ;; Doesn't handle the don't add twice case, but that's a
+     ;; development thing and developers probably use new emacsen.
+     (setq cedet-edebug-prin1-extensions
+	   (append cedet-edebug-prin1-extensions
+		   (list (cons testfcn printfcn))))))
+  ;; whack the old implementation to force a rebuild.
+  (fmakunbound 'cedet-edebug-prin1-to-string-inner))
+
 ;;; NOTE TO SELF.  Make this system used as an extension
 ;;; and then autoload the below.
-;;;###NOT autoload
+;;;###autoload
 (add-hook 'edebug-setup-hook
 	  (lambda ()
 	    (require 'cedet-edebug)
