@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.6 2001/02/22 20:01:16 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.7 2001/02/26 15:19:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -423,7 +423,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-   "Java language specification.")
+    "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -678,7 +678,8 @@ Override `semantic-find-documentation'."
    )
 
   ;; Code generated from java.bnf
-  (setq semantic-toplevel-bovine-table semantic-toplevel-java-bovine-table)
+  (setq semantic-toplevel-bovine-table semantic-toplevel-java-bovine-table
+        semantic-toplevel-bovine-table-source "java.bnf")
   (setq semantic-flex-keywords-obarray semantic-java-keyword-table)
   (setq
    ;; Java is case sensitive
