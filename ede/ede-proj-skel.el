@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-skel.el,v 1.4 2000/05/01 02:24:22 zappo Exp $
+;; RCS: $Id: ede-proj-skel.el,v 1.5 2000/07/12 14:11:14 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -34,6 +34,8 @@
 ;; If a function is commented out, then you probably don't need to
 ;; override it.  If it is not commented out, you probably need it, but
 ;; there is no requirement that you impelement it.
+
+(eval-and-compile (require 'ede-proj))
 
 ;;; Code:
 (defclass ede-proj-target-%NAME% (ede-proj-target-%PARENT%)
@@ -157,6 +159,27 @@
   (insert ... ;; Code to create a rule for THIS.
 	  ))
 
+;; This function allows modifictions to configure.in.
+;; Only useful when a user specifies automake mode in EDE project.
+;; This may not be necessary, but is needed if special programs,
+;; libraries, header files, or other configurable items are needed.
+;;
+;; See the autoconf editing routines, most of which are safe
+;; to call multiple times.
+;(defmethod ede-proj-tweak-autoconf ((this ede-proj-target-%NAME%))
+;  "Tweak the configure file (current buffer) to accomodate THIS."
+;  (autoconf-...)
+;  )
+
+;; This function allows the target to flush left overs.
+;; ie, if a previous configuration included some macro, then
+;;     you can remove it with this one.
+;; A subsequent call to `ede-proj-tweak-autoconf' will restore
+;; any changes if needed.
+;(defmethod ede-proj-flush-autoconf ((this ede-proj-%NAME%))
+;  "Flush the configure file (current buffer) to accomodate THIS."
+;  nil)
+
 ;; This function is used to find a header file in which prototypes from
 ;; BUFFER go.  This is used by advanced features for which this type
 ;; of behavior is useful.  This feature is used mainly by tools
@@ -183,7 +206,7 @@
 ;; This lets you add buttons of things your target contains which may
 ;; not be shown be default.
 ;;
-;; You will need to tweek the functions used when clicking on the
+;; You will need to tweak the functions used when clicking on the
 ;; expand icon (maybe) and the item name (maybe). Leave those alone
 ;; if they are simple source files.
 ;;(defmethod eieio-speedbar-child-make-tag-lines ((this ede-proj-target-%NAME%))
