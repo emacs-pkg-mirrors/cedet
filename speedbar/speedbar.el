@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.222 2002/10/26 13:45:46 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.223 2002/11/28 13:11:48 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -3383,7 +3383,7 @@ interested in."
 
   (save-selected-window
   
-    (select-window (get-buffer-window speedbar-buffer))
+    (select-window (get-buffer-window speedbar-buffer t))
     
     (set-buffer speedbar-buffer)
     
