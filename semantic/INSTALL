@@ -21,8 +21,9 @@ How to install Semantic
 
 3) Install load hooks into your .emacs file.
 
+(add-to-list 'load-path "/path/to/semantic")
 (setq semantic-load-turn-everything-on t)
-(load-file "/path/to/semantic/semantic-load.el")
+(require 'semantic-load)
 
 
 4) If turning everything on is too much:
