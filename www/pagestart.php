@@ -3,7 +3,8 @@
 <style>
 <!--
 ol,ul,p,body,td,tr,th,form {font-family : helvetica,sans-serif; } 
-table.BAR { background-color: lightgreen; }
+table.BAR { background-color: lightgreen; border-top: medium solid black; border-bottom: medium solid black}
+table.SPEEDBAR { background-color: none; border: medium solid black}
 td.BAR { background-color: lightgreen; }
 A:visited { color: #0000A0 ; text-decoration: none }
 A:link { color: #0000F0 ; text-decoration: none }
