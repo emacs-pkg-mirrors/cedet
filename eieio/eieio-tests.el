@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.18 2001/08/01 01:43:44 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.19 2001/09/14 19:46:26 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -432,7 +432,7 @@ METHOD is the method that was attempting to be called."
 	   :custom symbol
 	   :label "Wild Animal"
 	   :group borg
-	   :protection public)
+	   :protection :ublic)
    (slot-2 :initarg :penguin
 	   :initform "penguin"
 	   :type string
@@ -442,7 +442,7 @@ METHOD is the method that was attempting to be called."
 	   :label "Wild bird"
 	   :group vorlon
 	   :accessor get-slot-2
-	   :protection private)
+	   :protection :private)
    )
   (:custom-groups (foo))
   "A class for testing slot arguments."
@@ -493,13 +493,18 @@ METHOD is the method that was attempting to be called."
   "Try to access slot-2 in S2."
   (oref s2 slot-2))
 
+(defmethod prot1-slot-3-only ((s2 prot-1))
+  "Try to access slot-3 in S2.
+Do not override for `prot-2'."
+  (oref s2 slot-3))
+
 (defmethod prot1-slot-3 ((s2 prot-1))
-  "Try to access slot-2 in S2."
-  (oref s2 slot-2))
+  "Try to access slot-3 in S2."
+  (oref s2 slot-3))
 
 (defmethod prot1-slot-3 ((s2 prot-2))
-  "Try to access slot-2 in S2."
-  (oref s2 slot-2))
+  "Try to access slot-3 in S2."
+  (oref s2 slot-3))
 
 (defvar p1 (prot-1 ""))
 (defvar p2 (prot-2 ""))
@@ -536,6 +541,14 @@ METHOD is the method that was attempting to be called."
       (prot1-slot-3 p2)
       (error "Accessing private slot in a subclass method succeeded."))
   (error nil))
+
+(condition-case nil
+    (prot1-slot-3-only p1)
+  (error (error "Accessing private slot by same class failed.")))
+
+(condition-case nil
+    (prot1-slot-3-only p2)
+  (error (error "Accessing private slot by subclass in sameclass method failed.")))
 
 ;;; eieio-instance-inheritor
 ;; Test to make sure this works.
