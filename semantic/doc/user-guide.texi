@@ -50,7 +50,7 @@ If you use @file{semantic-load.el}, you do not need to add the above
 lines in your .emacs file.
 
 Two additional speedbar modes are described in @ref{Speedbar Analysis}, and
-@ref{Class Browser}.
+@ref{class browser}.
 
 @node ECB
 @section ECB
