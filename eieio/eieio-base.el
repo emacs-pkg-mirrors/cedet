@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.11 2001/05/09 02:23:48 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.12 2001/07/12 18:33:03 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -95,7 +95,7 @@ All slots are unbound, except those initialized with PARAMS."
 ;; symbol is then used to contain these objects.
 (defclass eieio-instance-tracker ()
   ((tracking-symbol :type symbol
-		    :allocation class
+		    :allocation :class
 		    :documentation
 		    "The symbol used to maintain a list of our instances.
 The instance list is treated as a variable, with new instances added to it.")
@@ -144,13 +144,16 @@ Returns the first match."
 This must be a string, and must be specified when the new object is
 instantiated.")
    (file-header-line :type string
-		     :allocation class
+		     :allocation :class
 		     :initform ";; EIEIO PERSISTENT OBJECT"
 		     :documentation
 		     "Header line for the save file.
 This is used with the `object-write' method."))
-  "This special class enables persistence through save files.
-Use the `object-save' method to write this object to disk.")
+  "This special class enables persistence through save files
+Use the `object-save' method to write this object to disk.  The save
+format is Emacs Lisp code which calls the constructor for the saved
+object.  For this reason, only slots which do not have an `:initarg'
+specified will not be saved.")
 
 (defun eieio-persistent-read (filename)
   "Read a persistent object from FILENAME."
