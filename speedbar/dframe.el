@@ -1,12 +1,12 @@
 ;;; dframe --- dedicate frame support modes
 
-;;; Copyright (C) 1996, 97, 98, 99, 2000, 01 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 2000, 01, 02 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.19 2001/12/17 14:47:19 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.20 2002/09/03 22:55:19 zappo Exp $
 
-(defvar dframe-version "1.2"
+(defvar dframe-version "1.3"
   "The current version of the dedicated frame library.")
 
 ;; This file is part of GNU Emacs.
@@ -328,8 +328,24 @@ CREATE-HOOK are hooks to run after creating a frame."
 
       (if dframe-xemacsp
 	  ;; Hack the XEmacs mouse-motion handler
-	  (set (make-local-variable 'mouse-motion-handler)
-	       'dframe-track-mouse-xemacs)
+	  (progn
+	    ;; Hack the XEmacs mouse-motion handler
+	    (set (make-local-variable 'mouse-motion-handler)
+		 'dframe-track-mouse-xemacs)
+	    ;; Hack the double click handler
+	    (make-local-variable 'mouse-track-click-hook)
+	    (add-hook 'mouse-track-click-hook
+		      (lambda (event count)
+			(if (/= (event-button event) 1)
+			    nil		; Do normal operations.
+			  (cond ((eq count 1)
+				 (dframe-quick-mouse event))
+				((or (eq count 2)
+				     (eq count 3))
+				 (dframe-click event)
+				 (dframe-quick-mouse event)))
+			  ;; Don't do normal operations.
+			  t))))
 	;; Enable mouse tracking in emacs
 	(if dframe-track-mouse-function
 	    (set (make-local-variable 'track-mouse) t))	;this could be messy.
