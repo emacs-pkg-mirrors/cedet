@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.14 2003/04/09 01:03:23 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.15 2003/08/29 16:05:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,6 +42,7 @@
   (inversion-require 'eieio "0.18"))
 (require 'semantic-format)
 (require 'semantic-ctxt)
+(require 'semantic-sort)
 (eval-when-compile (require 'semanticdb)
 		   (require 'semanticdb-find))
 
