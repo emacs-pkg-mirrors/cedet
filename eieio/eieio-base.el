@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.2 2000/12/09 23:30:19 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.3 2000/12/15 01:18:06 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -198,6 +198,7 @@ Optional argument FILE overrides the file name specified in the object
 instance."
   (save-excursion
     (let ((b (set-buffer (get-buffer-create " *tmp object write*")))
+	  (default-directory (file-name-directory (oref this file)))
 	  (cfn (oref this file)))
       (unwind-protect
 	  (save-excursion
