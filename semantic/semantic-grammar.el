@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.60 2004/03/21 18:20:41 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.61 2004/03/28 13:07:03 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1236,33 +1236,30 @@ the change bounds to encompass the whole nonterminal tag."
   (kill-all-local-variables)
   (setq major-mode 'semantic-grammar-mode
         mode-name "Semantic Grammar Framework")
-  (make-local-variable 'parse-sexp-ignore-comments)
-  (setq parse-sexp-ignore-comments t)
-  (make-local-variable 'comment-start)
-  (setq comment-start ";;")
-  (make-local-variable 'comment-start-skip)
+  (set (make-local-variable 'parse-sexp-ignore-comments) t)
+  (set (make-local-variable 'comment-start) ";;")
   ;; Look within the line for a ; following an even number of backslashes
   ;; after either a non-backslash or the line beginning.
-  (setq comment-start-skip "\\(\\(^\\|[^\\\\\n]\\)\\(\\\\\\\\\\)*\\);+ *")
+  (set (make-local-variable 'comment-start-skip)
+       "\\(\\(^\\|[^\\\\\n]\\)\\(\\\\\\\\\\)*\\);+ *")
   (set-syntax-table semantic-grammar-syntax-table)
   (use-local-map semantic-grammar-map)
-  (make-local-variable 'indent-line-function)
-  (setq indent-line-function 'semantic-grammar-indent)
-  (make-local-variable 'fill-paragraph-function)
-  (setq fill-paragraph-function 'lisp-fill-paragraph)
-  (make-local-variable 'font-lock-multiline)
-  (setq font-lock-multiline 'undecided)
-  (make-local-variable 'font-lock-defaults)
-  (setq font-lock-defaults
-        '((semantic-grammar-mode-keywords
-           semantic-grammar-mode-keywords-1
-           semantic-grammar-mode-keywords-2
-           semantic-grammar-mode-keywords-3)
-          nil ;; perform string/comment fontification
-          nil ;; keywords are case sensitive.
-          ;; This puts _ & - as a word constituant,
-          ;; simplifying our keywords significantly
-          ((?_ . "w") (?- . "w"))))
+  (set (make-local-variable 'indent-line-function)
+       'semantic-grammar-indent)
+  (set (make-local-variable 'fill-paragraph-function)
+       'lisp-fill-paragraph)
+  (set (make-local-variable 'font-lock-multiline)
+       'undecided)
+  (set (make-local-variable 'font-lock-defaults)
+       '((semantic-grammar-mode-keywords
+          semantic-grammar-mode-keywords-1
+          semantic-grammar-mode-keywords-2
+          semantic-grammar-mode-keywords-3)
+         nil  ;; perform string/comment fontification
+         nil  ;; keywords are case sensitive.
+         ;; This puts _ & - as a word constituant,
+         ;; simplifying our keywords significantly
+         ((?_ . "w") (?- . "w"))))
   ;; Setup Semantic to parse grammar
   (semantic-grammar-wy--install-parser)
   (setq semantic-lex-comment-regex ";;"
@@ -1275,17 +1272,17 @@ the change bounds to encompass the whole nonterminal tag."
           (token        . "Token")
           (nonterminal  . "Nonterminal")
           (rule         . "Rule")
-          )
-        semantic-format-face-alist
-        '(
-          (code         . default)
-          (keyword      . font-lock-keyword-face)
-          (token        . font-lock-type-face)
-          (nonterminal  . font-lock-function-name-face)
-          (rule         . default)
           ))
-  (make-local-variable 'semantic-stickyfunc-sticky-classes)
-  (setq semantic-stickyfunc-sticky-classes '(nonterminal))
+  (set (make-local-variable 'semantic-format-face-alist)
+       '(
+         (code         . default)
+         (keyword      . font-lock-keyword-face)
+         (token        . font-lock-type-face)
+         (nonterminal  . font-lock-function-name-face)
+         (rule         . default)
+         ))
+  (set (make-local-variable 'semantic-stickyfunc-sticky-classes)
+       '(nonterminal))
   ;; Before each change, clear the cached regexp used to highlight
   ;; macros local in this grammar.
   (semantic-make-local-hook 'before-change-functions)
