@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.8 2001/10/10 19:07:58 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.9 2001/11/07 20:20:12 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -112,7 +112,17 @@ working goodies."
               (point-max)))
         (working-dynamic-status)))
   (funcall wisent-lexer-function))
-  
+
+(defun wisent-collect-unmatched-syntax (input)
+  "Add INPUT lexical token to the cache of unmatched tokens.
+Run as `wisent-skip-token-hook' hook function.
+See also the variable `semantic-unmatched-syntax-cache'."
+  (let ((region (cddr input)))
+    (and (number-or-marker-p (car region))
+         (number-or-marker-p (cdr region))
+         (setq semantic-unmatched-syntax-cache
+               (cons (cons (car input) region)
+                     semantic-unmatched-syntax-cache)))))
 
 (defun wisent-bovinate-nonterminal (stream table lexer error
                                            &optional nonterminal)
@@ -140,6 +150,9 @@ Optional argument RETURNONERROR indicates that the parser should exit
 with the current results on a parse error."
   (let ((case-fold-search semantic-case-fold)
         result nontermsym sstream)
+    ;; Collect unmatched syntax lexical tokens
+    (add-hook 'wisent-skip-token-hook
+              'wisent-collect-unmatched-syntax)
     (while stream
       (setq nontermsym (wisent-bovinate-nonterminal
                         stream
@@ -155,6 +168,9 @@ with the current results on a parse error."
             (setq stream nil)
           ;;(error "Parse error")
 	  )))
+    ;; End of collect of unmatched syntax lexical tokens
+    (remove-hook 'wisent-skip-token-hook
+                 'wisent-collect-unmatched-syntax)
     result))
 
 (defun wisent-rebovinate-token (token)
@@ -219,7 +235,7 @@ with the current results on a parse error."
 Iterates until all the space between START and END is exhausted.
 Argument NONTERM is the nonterminal symbol to start with or nil for
 default goal.  Optional argument DEPTH is the depth of lists to dive
-into. It defaults to `wisent-flex-depth'."
+into.  It defaults to `wisent-flex-depth'."
   (wisent-bovinate-nonterminals
    (semantic-flex start end (or depth wisent-flex-depth))
    nonterm))
@@ -264,6 +280,8 @@ that, otherwise, do a full reparse."
       (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
           ;; If the partial reparse fails, jump to a full reparse.
           (wisent-bovinate-toplevel checkcache)
+        ;; Clear the cache of unmatched syntax tokens
+        (semantic-clear-unmatched-syntax-cache)
         ;; After partial reparse completed, let hooks know the updated
         ;; tokens
         (run-hook-with-args 'semantic-after-partial-cache-change-hook
