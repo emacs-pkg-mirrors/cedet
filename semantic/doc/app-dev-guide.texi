@@ -5,6 +5,9 @@
 @c proper menus for this chapter.
 @end ignore
 
+Once a source file has been parsed, the following APIs can be used to
+write programs that use the token stream most effectively.
+
 @ignore
 
 This chapter is for developers of semantic applications
@@ -21,17 +24,6 @@ would go here.
 @end ignore
 
 @menu
-* Programming::                 
-* Current Context::             
-@end menu
-
-@node Programming
-@section Programming
-
-Once a source file has been parsed, the following APIs can be used to
-write programs that use the token stream most effectively.
-
-@menu
 * Token Queries::               Getting info about a parsed token (nonterminal).
 * Nonterminal Streams::         Working with streams of nonterminals.
 * Nonterminals at point::       Finding nonterminals at point.
@@ -42,13 +34,14 @@ write programs that use the token stream most effectively.
                                 queries and local context information
 * Parser Hooks::                How to know when tags change.
 * Example Programs::            Simple programming examples.
+* Current Context::             
 @end menu
 
 @node Token Queries
-@subsection Token Queries
+@section Token Queries
 
 When writing programs that use the bovinator, the following functions
-are needed to find get details out of a nonterminal.
+are needed to get details out of a nonterminal.
 
 @defun semantic-equivalent-tokens-p token1 token2
 Compare @var{TOKEN1} and @var{TOKEN2} and return non-@code{nil} if they are equivalent.
@@ -202,7 +195,7 @@ Retrieve the flag indicating if the include @var{TOKEN} is a system include.
 For override methods that query a token, see @xref{Token Details}.
 
 @node Nonterminal Streams
-@subsection Nonterminal streams
+@section Nonterminal streams
 
 These functions take some key, and returns information found inside
 the nonterminal stream.  Some will return one token (the first
@@ -306,7 +299,7 @@ in which @var{TOKEN} (the token found to match @var{NAME}) was found.
 @end defun
 
 @node Nonterminals at point
-@subsection Nonterminals at point
+@section Nonterminals at point
 
 When you just want to get at a nonterminal the cursor is on, there is
 a more efficient mechanism than using
@@ -346,7 +339,7 @@ containing a field.  Return @code{nil} if there is no parent.
 @end defun
 
 @node Nonterminal Sorting
-@subsection Nonterminal sorting
+@section Nonterminal sorting
 
 Sometimes it is important to reorganize a token stream into a form
 that is better for display to a user.  It is important to not use
@@ -417,7 +410,7 @@ revised token list.
 @end defvar
 
 @node Nonterminal Completion
-@subsection Nonterminal completion
+@section Nonterminal completion
 
 These functions provide ways reading the names of items in a buffer with
 completion.
@@ -461,9 +454,8 @@ from under point.
 @var{STREAM} is the list of tokens to complete from.
 @end defun
 
-
 @node Override Methods
-@subsection Override Methods
+@section Override Methods
 
 These functions are called `override methods' because they provide
 generic behaviors, which a given language can override.  For example,
@@ -480,7 +472,7 @@ be passed in via a variable.
 @end menu
 
 @node Token->Text
-@subsubsection Token->Text
+@subsection Token->Text
 
 Any given token consists of Meta information which is best viewed in
 some textual form.  This could be as simple as the token's name, or as
@@ -566,7 +558,7 @@ Optional argument @var{COLOR} means highlight the prototype with font-lock color
 @end defun
 
 @node Token Details
-@subsubsection Token Details
+@subsection Token Details
 
 These functions help derive information about tokens that may not
 be obvious for non-traditional languages with their own token types.
@@ -725,7 +717,7 @@ enhancement.
 @end defun
 
 @node Local Context
-@subsubsection Local Context
+@subsection Local Context
 
 @defun semantic-up-context &optional point
 Move point up one context from @var{POINT}.
@@ -822,10 +814,10 @@ For details on using these functions to get more detailed information
 about the current context: @xref{Context Analysis}.
 
 @node Making New Methods
-@subsubsection Making New Methods
+@subsection Making New Methods
 
 @node Parser Hooks
-@subsection Parser Hooks
+@section Parser Hooks
 
 If you write a program that uses the stream of tokens in a persistent
 display or database, it is necessary to know when tokens change so
@@ -944,13 +936,13 @@ during a flush when the cache is given a new value of nil.
 @end defvar
 
 @node Example Programs
-@subsection Programming Examples
+@section Programming Examples
 
 Here are some simple examples that use different aspects of the
 semantic library APIs.  For fully functional example programs with
 lots of comments, see the file @file{semantic-examples.el}.
 
-@subsection Interactively querying for a token name
+@heading Interactively querying for a token name
 
 If you need a command that asks the user for a token name, you can
 get full range completion using the query functions
@@ -960,7 +952,7 @@ get full range completion using the query functions
 (interactive (list (semantic-read-symbol "Symbol: ")))
 @end example
 
-@subsection Finding a symbol in a buffer
+@heading Finding a symbol in a buffer
 
 If you have the name of a function or variable, and need to find its
 location in a buffer, you need a search function.  There is a wide
@@ -974,7 +966,7 @@ range of searches you can perform @ref{Nonterminal Streams}.
  nil) ;; do not look inside header files.
 @end example
 
-@subsection Finding a symbol in a project
+@heading Finding a symbol in a project
 
 If you have the name of a function or variable, and need to find its
 location somewhere in a project, you need to use the Semantic Database
@@ -984,7 +976,7 @@ ones found in @ref{Nonterminal Streams}.
 The Semantic Database is interesting in that the return structure is
 not
 
-@subsection Locating a token in a buffer
+@heading Locating a token in a buffer
 
 If you have a nonterminal token, or a list of them, you may want to
 find their position in a buffer.
@@ -1016,7 +1008,7 @@ explicitly request the database object (found in the @code{car} of
 each sublist) get the file loaded.  It is useful to not auto find all
 files if you don't need to jump to that token.
 
-@subsection Converting a token into a human readable string.
+@heading Converting a token into a human readable string.
 
 A nonterminal token is a rather unpleasant Lisp structure when trying
 to decipher what is going on.  As such, there is a wide range of
