@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.3 2002/09/03 23:41:18 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.4 2002/09/03 23:52:05 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta1"
@@ -201,7 +201,7 @@ Return nil if everything is ok.  Return an error string otherwise."
      ((inversion-< code req)
       ;; Version is too old!
       (format "You need to upgrade package %s to %s" package minimum))
-     ((inversion < req code)
+     ((inversion-< req code)
       ;; Newer is installed.  What to do?
       (let ((incompatible
 	     (inversion-package-incompatibility-version package)))
