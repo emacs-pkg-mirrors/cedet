@@ -10,8 +10,8 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH=../../../cedet/common/ ../../../cedet/common/ ../../../cedet/semantic/ ../../../cedet/eieio/\
-   ../../../cedet/speedbar/ ../../../cedet/common/ ../../../cedet/semantic/wisent/ ../../../cedet/semantic/
+LOADPATH=../common/ ../common/ ../semantic/ ../eieio/\
+   ../speedbar/ ../common/ ../semantic/wisent/ ../semantic/
 LOADDEFS=contrib-loaddefs.el
 LOADDIRS=.
 init_LISP=cedet-contrib-load.el
