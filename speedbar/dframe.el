@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.15 2001/05/08 17:28:07 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.16 2001/10/22 20:16:43 zappo Exp $
 
 (defvar dframe-version "1.1"
   "The current version of the dedicated frame library.")
@@ -845,7 +845,10 @@ This should be bound to mouse event E."
 E is the event causing the click."
   (interactive "e")
   (dframe-mouse-set-point e)
-  (funcall dframe-mouse-click-function e))
+  (when dframe-mouse-click-function
+    ;; On the off chance of buffer switch, or something incorrectly
+    ;; configured.
+    (funcall dframe-mouse-click-function e)))
 
 (defun dframe-double-click (e)
   "Activate the registered click function on a double click.
