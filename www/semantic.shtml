@@ -115,7 +115,7 @@ Complexity of semantic.el
 <dd>Tools writing to the Semantic API may need to change when moving
   from 1.4 to 2.0, but the confusion as to what a token or
   nonterminal is will now be clear.
-<dt><b>More Langauges supported.</b>
+<dt><b>More Languages supported.</b>
 <dd>New parsers for Python, and Erlang.
 </dl>
 
