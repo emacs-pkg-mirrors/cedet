@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.4 1999/03/17 23:35:04 zappo Exp $
+@c $Id: ede.texi,v 1.5 1999/03/20 17:15:57 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -51,7 +51,8 @@ the command @code{global-ede-mode}, or by putting this in your
 @file{~/.emacs} file.
 
 @example
-(global-ede-mode)
+(require 'ede)
+(global-ede-mode t)
 @end example
 
 When EDE is active for a given buffer, the menu item ``Project''
@@ -63,8 +64,9 @@ regardless of the type of project you are actually working on.
 @chapter Creating a project
 
 EDE can support many different types of projects.  When creating a new
-project with the command `ede-new' (found in the menu) you must choose
-the type of project you would like to create.  @xref{Project types}
+project with the command `ede-new' (or "Create a New Project" in the
+menu) you must choose the type of project you would like to create.
+@xref{Project types}
 
 Each type has it's own benefits or language specific enhancements.  You
 will be prompted for the type of project you would like to create.  The
@@ -73,6 +75,20 @@ simplest and most language agnostic project type is ``edeproject''.
 Not all project types need or can be created in this way.  The
 ``automake'' project type does not have a project initialization method,
 but will read existing @file{Makefile.in} files.
+
+@chapter Creating a subproject
+
+A subproject is merely a project in a subdirectory in some other
+projects control.  You can create a subproject by using the 'ede-new'
+command (or "Create a New Project from the menu") while a file in a
+subdirectory is loaded.  This new project will be automatically added to
+the parent project, and will be automatically loaded when the parent is
+read.
+
+When using a "project" command that invovles a makefile, EDE uses
+the top-most project's makefile as a starting place for the build.  How
+the toplevel project handles subprojects in the build process is
+dependendent on that project's type.
 
 @node Modifying your project, Building and Debugging, Creating a project, Top
 @chapter Modifying your project
@@ -90,7 +106,8 @@ target.  You can remove a target with the command
 
 You can add and remove files into targets with the command
 @code{ede-add-file} and @code{ede-remove-file} bound to @kbd{C-c . a}
-and @kbd{C-c . d} respectively.  If a project is active, and a new file
+and @kbd{C-c . d} respectively.  These commands will add the current
+buffer's file into the target.  If a project is active, and a new file
 is loaded, EDE will attempt to auto-add that file to a target of your
 choice.
 
@@ -210,6 +227,12 @@ during auto-add)
 @item ede-proj-makefile-sourcevar
 Return a string which is name of the Makefile variable containing the
 sources.
+@item ede-proj-makefile-dependency-files
+Return a list of files which generate dependencies for your target.
+(Makefile generation only.)
+@item ede-proj-makefile-garbage-patterns
+Return a list of patterns which are files that are cleaned w/ the clean
+target. (Makefile generation only.)
 @item ede-proj-makefile-insert-variables
 Override this if you have extra variables you need to insert beyond the
 source variable.
