@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.19 2003/01/31 04:16:26 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.20 2003/01/31 05:23:09 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -27,7 +27,16 @@
 
 ;;; Commentary:
 ;;
-;; See comments in wisent-python.el.
+;; This is an LALR python parser that follows the official python
+;; grammar closely with very few exceptions.
+;;
+;;; To do:
+;;
+;; * Modify the grammar to take advantage of scan-lists advice, i.e.,
+;;   generate INDENT_BLOCK tokens such as PAREN_BLOCK tokens rather than
+;;   generating whole bunch of lexical tokens.
+;;
+;; * Parse base-class parameters of class definitions.
 
 ;; --------
 ;; Settings
@@ -48,28 +57,16 @@
 ;;    - Needed by EXPANDFULL clauses
 %start function_parameters
 
-;; Customize `wisent-flex' match algorithm
-;; - Use string comparison for:
-;; %put {open-paren close-paren symbol} string t
-
-;; Customize `wisent-flex' match algorithm
-;; - Use string comparison for:
-;; - An operator can be made of multiple successive punctuations
-;; %put punctuation {string t multiple t}
 %{
   (setq
    ;; Character used to separation a parent/child relationship
    semantic-type-relation-separator-character '(".")
    semantic-command-separation-character ";"
-   ;; Init indentation stack
    wisent-python-lexer-indent-stack '(0)
-
    semantic-lex-analyzer #'semantic-python-lexer
    semantic-lex-depth	0
    )
-
   %}
-
 
 %token <newline>     NEWLINE
 
@@ -287,14 +284,12 @@ goal
 ;; simple_stmt: small_stmt (';' small_stmt)* [';'] NEWLINE
 simple_stmt
   : small_stmt_list semicolon_opt NEWLINE
-    (identity $1)
   ;
 
 ;; small_stmt (';' small_stmt)*
 small_stmt_list
   : small_stmt
   | small_stmt_list SEMICOLON small_stmt
-    (identity $1)
   ;
 
 small_stmt
@@ -323,9 +318,9 @@ print_stmt
 ;; [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ]
 print_stmt_trailer
   : test_list_opt
-    (or $1 "")
+    ()
   | GTGT test trailing_test_list_with_opt_comma_opt
-    (identity $2)
+    ()
   ;
 
 ;; [ (',' test)+ [','] ]
@@ -393,14 +388,15 @@ del_stmt
 ;; exprlist: expr (',' expr)* [',']
 exprlist
   : expr_list comma_opt
-    (identity $1)
+    ()
   ;
 
 ;; expr (',' expr)*
 expr_list
   : expr
+    ()
   | expr_list COMMA expr
-    (format "%s, %s" $1 $3)
+    ()
   ;
 
 ;;;============================================================================
@@ -447,6 +443,7 @@ return_stmt
 testlist_opt
   : ;;EMPTY
   | testlist
+    ()
   ;
 
 ;; yield_stmt: 'yield' testlist
@@ -464,9 +461,8 @@ raise_stmt
 ;; [test [',' test [',' test]]]
 zero_one_two_or_three_tests
   : ;;EMPTY
-    (identity "")
   | test zero_one_or_two_tests
-    (identity $1)
+    ()
   ;
 
 ;; [',' test [',' test]]
@@ -501,7 +497,6 @@ import_stmt
 dotted_as_name_list
   : dotted_as_name
   | dotted_as_name_list COMMA dotted_as_name
-    (identity $1)
   ;
 
 ;; ('*' | import_as_name (',' import_as_name)*)
@@ -529,7 +524,6 @@ import_as_name
 ;; dotted_as_name: dotted_name [NAME NAME]
 dotted_as_name
   : dotted_name name_name_opt
-    (identity $1)
   ;
 
 ;; [NAME NAME]
@@ -560,7 +554,6 @@ global_stmt
 comma_sep_name_list
   : NAME
   | comma_sep_name_list COMMA NAME
-    (format "%s" $1)
   ;
 
 ;;;============================================================================
@@ -693,21 +686,23 @@ try_stmt
 ;; (except_clause ':' suite)+
 except_clause_suite_pair_list
   : except_clause COLON suite
-    (concat "except_clause_suite_pair_list")
+    ()
   | except_clause_suite_pair_list except_clause COLON suite
-    (concat "except_clause_suite_pair_list")
+    ()
   ;
 
 ;; # NB compile.c makes sure that the default except clause is last
 ;; except_clause: 'except' [test [',' test]]
 except_clause
   : EXCEPT zero_one_or_two_test
+    ()
   ;
 
 ;; [test [',' test]]
 zero_one_or_two_test
   : ;;EMPTY
   | test zero_or_one_comma_test
+    ()
   ;
 
 ;;;============================================================================
@@ -776,20 +771,20 @@ test
 test_test
   : and_test
   | test_test OR and_test
-    (format "%s %s %s" $1 $2 $3)
+    ()
   ;
 
 ;; and_test: not_test ('and' not_test)*
 and_test
   : not_test
   | and_test AND not_test
-    (format "%s %s %s" $1 $2 $3)
+    ()
   ;
 
 ;; not_test: 'not' not_test | comparison
 not_test
   : NOT not_test
-    (format "NOT %s" $1)
+    ()
   | comparison
   ;
 
@@ -797,7 +792,7 @@ not_test
 comparison
   : expr
   | comparison comp_op expr
-    (format "%s %s %s" $1 $2 $3)
+    ()
   ;
 
 ;; comp_op: '<'|'>'|'=='|'>='|'<='|'<>'|'!='|'in'|'not' 'in'|'is'|'is' 'not'
@@ -809,28 +804,28 @@ comp_op
 expr
   : xor_expr
   | expr BAR xor_expr
-    (format "%s %s %s" $1 $2 $3)
+    ()
   ;
 
 ;; xor_expr: and_expr ('^' and_expr)*
 xor_expr
   : and_expr
   | xor_expr HAT and_expr
-    (format "%s %s %s" $1 $2 $3)
+    ()
   ;
 
 ;; and_expr: shift_expr ('&' shift_expr)*
 and_expr
   : shift_expr
   | and_expr AMP shift_expr
-    (format "%s %s %s" $1 $2 $3)
+    ()
   ;
 
 ;; shift_expr: arith_expr (('<<'|'>>') arith_expr)*
 shift_expr
   : arith_expr
   | shift_expr shift_expr_operators arith_expr
-    (format "%s %s %s" $1 $2 $3)
+    ()
   ;
 
 ;; ('<<'|'>>')
@@ -843,7 +838,7 @@ shift_expr_operators
 arith_expr
   : term
   | arith_expr plus_or_minus term
-    (format "%s %s %s" $1 $2 $3)
+    ()
   ;
 
 ;; ('+'|'-')
@@ -856,7 +851,7 @@ plus_or_minus
 term
   : factor
   | term term_operator factor
-    (format "%s %s %s" $1 $2 $3)
+    ()
   ;
 
 term_operator
@@ -869,7 +864,7 @@ term_operator
 ;; factor: ('+'|'-'|'~') factor | power
 factor
   : prefix_operators factor
-    (format "%s %s" $1 $2)
+    ()
   | power
   ;
 
@@ -892,49 +887,50 @@ power
 trailer_zom
   : ;;EMPTY
   | trailer_zom trailer
-    (format "(%s %s)" (or $1 "") $2)
+    ()
   ;
 
 exponent_zom
   : ;;EMPTY
   | exponent_zom EXPONENT factor
-    (format "(%s ** %s)" (or $1 "") $3)
+    ()
   ;
 
 ;; trailer: '(' [arglist] ')' | '[' subscriptlist ']' | '.' NAME
 trailer
   : PAREN_BLOCK
+    ()
   | BRACK_BLOCK
+    ()
   | PERIOD NAME
-    (concat "." $2)
+    ()
   ;
 
 ;; atom: '(' [testlist] ')' | '[' [listmaker] ']' | '{' [dictmaker] '}'
 ;;     | '`' testlist '`'   | NAME | NUMBER | STRING+
 atom
   : PAREN_BLOCK
-    (format "%s" $1)
+    ()
   | BRACK_BLOCK
-    (format "%s" $1)
+    ()
   | BRACE_BLOCK
-    (format "%s" $1)
+    ()
   | BACKQUOTE testlist BACKQUOTE
     ()
   | NAME
   | NUMBER_LITERAL
-    (concat $1)
   | one_or_more_string
   ;
 
 test_list_opt
   : ;;EMPTY
   | testlist
+    ()
   ;
 
 ;; testlist: test (',' test)* [',']
 testlist
   : comma_sep_test_list comma_opt
-    (identity $1)
   ;
 
 ;; test (',' test)*
@@ -960,7 +956,7 @@ one_or_more_string
 ;; lambdef: 'lambda' [varargslist] ':' test
 lambdef
   : LAMBDA varargslist_opt COLON test
-    (format "%s %s %s" $1 $2 $3)
+    (format "%s %s" $1 (or $2 ""))
   ;
 
 ;; [varargslist]
@@ -1029,7 +1025,6 @@ fplist
 fpdef_list
   : fpdef
   | fpdef_list COMMA fpdef
-    (identity $1)
   ;
 
 ;; ['=' test]
