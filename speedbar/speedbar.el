@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7e
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.89 1998/04/15 13:48:25 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.90 1998/04/15 17:01:04 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -348,6 +348,7 @@
 ;;       Added new tag grouping code.  It is controlled through
 ;;        `speedbar-tag-hierarchy-method', `speedbar-tag-split-minimum-length',
 ;;        and `speedbar-tag-regroup-maximum-length'
+;;       XEmacs custom workaround changes.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -358,12 +359,18 @@
 (require 'assoc)
 (require 'easymenu)
 
+(defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
+  "Non-nil if we are running in the XEmacs environment.")
+(defvar speedbar-xemacs20p (and speedbar-xemacsp (= emacs-major-version 20)))
+
 ;; From custom web page for compatibility between versions of custom:
 (eval-and-compile
   (condition-case ()
       (require 'custom)
     (error nil))
-  (if (and (featurep 'custom) (fboundp 'custom-declare-variable))
+  (if (and (featurep 'custom) (fboundp 'custom-declare-variable)
+	   ;; David Hughes 2nd April 1998
+	   (or (not speedbar-xemacsp) speedbar-xemacs20p))
       nil ;; We've got what we needed
     ;; We have the old custom-library, hack around it!
     (defmacro defgroup (&rest args)
@@ -396,10 +403,6 @@
   :group 'speedbar)
 
 ;;; Code:
-(defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
-  "Non-nil if we are running in the XEmacs environment.")
-(defvar speedbar-xemacs20p (and speedbar-xemacsp (= emacs-major-version 20)))
-
 (defvar speedbar-initial-expansion-mode-alist
   '(("files" speedbar-easymenu-definition-special
      speedbar-directory-buttons speedbar-default-directory-list)
@@ -903,6 +906,18 @@ to toggle this value.")
   (define-key speedbar-key-map "D" 'speedbar-item-delete)
   (define-key speedbar-key-map "R" 'speedbar-item-rename)
 
+  ;; Short cuts I happen to find useful
+  (define-key speedbar-key-map "r" 
+    (lambda () (interactive)
+      (speedbar-change-initial-expansion-list
+       speedbar-previously-used-expansion-list-name)))
+  (define-key speedbar-key-map "b"
+    (lambda () (interactive)
+      (speedbar-change-initial-expansion-list "quick buffers")))
+  (define-key speedbar-key-map "f"
+    (lambda () (interactive)
+      (speedbar-change-initial-expansion-list "files")))
+
   ;; Overrides
   (substitute-key-definition 'switch-to-buffer
 			     'speedbar-switch-buffer-attached-frame
@@ -940,7 +955,9 @@ to toggle this value.")
 
     ;; This lets the user scroll as if we had a scrollbar... well maybe not
     (define-key speedbar-key-map [mode-line mouse-2] 'speedbar-mouse-hscroll)
-    ))
+    ;; another handy place users might click to get our menu.
+    (define-key speedbar-key-map [mode-line down-mouse-1] 'speedbar-emacs-popup-kludge)
+   ))
 
 (defvar speedbar-easymenu-definition-base
   '("Speedbar"
