@@ -176,8 +176,8 @@ it will take ahead of time.  Functions provided in `working' are:
 MESSAGE is the message string to use and DONESTR is the completed text
 to use when the functions `working-status' is called from FORMS."
   `(let ((working-message ,message)
-	  (working-donestring ,donestr)
-	   (working-ref1 0))
+	 (working-donestring ,donestr)
+	 (working-ref1 0))
      ,@forms))
 (put 'working-status-forms 'lisp-indent-function 2)
 
@@ -189,12 +189,13 @@ TIMEOUT is the length of time to wait between message updates.
 MESSAGE is the message string to use and DONESTR is the completed text
 to use when the functions `working-status' is called from FORMS."
   `(let* ((working-message ,message)
-	    (working-donestring ,donestr)
-	      (working-ref1 0)
-	        (working-timer
-		    (working-run-with-timer ,timeout ,timeout 'working-dynamic-status)))
+	  (working-donestring ,donestr)
+	  (working-ref1 0)
+	  (time ,timeout)
+	  (working-timer
+	   (working-run-with-timer time time 'working-dynamic-status)))
      (unwind-protect
-	  (progn ,@forms)
+	 (progn ,@forms)
        (working-cancel-timer working-timer))
      (working-dynamic-status t)))
 (put 'working-status-timeout 'lisp-indent-function 3)
@@ -450,9 +451,11 @@ is t to display the done string, or the number to display."
 
 ;;; Some edebug hooks
 ;;
-(add-hook 'edebug-setup-hook
-	  (lambda ()
-	    (def-edebug-spec working-status-forms (form form def-body))))
+(add-hook
+ 'edebug-setup-hook
+ (lambda ()
+   (def-edebug-spec working-status-forms (form form def-body))
+   (def-edebug-spec working-status-timeout (form form form def-body))))
 
 ;;; Example function using `working'
 ;;
