@@ -1,10 +1,10 @@
 ;;; ede-proj-archive.el --- EDE Generic Project archive support
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-archive.el,v 1.7 2000/09/28 18:40:50 zappo Exp $
+;; RCS: $Id: ede-proj-archive.el,v 1.8 2001/04/27 00:16:02 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -37,8 +37,7 @@
 (defvar ede-gcc-archive-compiler
   (clone ede-gcc-compiler
 	 "ede-c-archive-compiler"
-	 :name "gcc"
-	 :likvariables '(("AR" . "NOT YET IMPLEMENTED"))
+	 :name "ar"
 	 :commands '("$(AR) $@ $^")
 	 :autoconf '(("AC_CHECK_PROGS" . "RANLIB, ranlib"))
 	 )
