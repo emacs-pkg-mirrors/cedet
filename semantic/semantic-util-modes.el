@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.21 2002/08/08 16:05:41 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.22 2002/09/07 02:05:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -185,129 +185,6 @@ function used to toggle the mode."
    (t
     (memq mode semantic-init-hooks))
    ))
-
-
-;;;;
-;;;; Minor mode to show modified (dirty) tokens
-;;;;
-
-;;;###autoload
-(defun global-semantic-show-dirty-mode (&optional arg)
-  "Toggle global use of option `semantic-show-dirty-mode'.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  (interactive "P")
-  (setq global-semantic-show-dirty-mode
-        (semantic-toggle-minor-mode-globally
-         'semantic-show-dirty-mode arg)))
-
-;;;###autoload
-(defcustom global-semantic-show-dirty-mode nil
-  "*If non-nil enable global use of show-dirty mode."
-  :group 'semantic
-  :type 'boolean
-  :require 'semantic-util-modes
-  :initialize 'custom-initialize-default
-  :set (lambda (sym val)
-         (global-semantic-show-dirty-mode (if val 1 -1))))
-
-(defcustom semantic-show-dirty-mode-hook nil
-  "*Hook run at the end of function `semantic-show-dirty-mode'."
-  :group 'semantic
-  :type 'hook)
-
-(defface semantic-dirty-token-face
-  '((((class color) (background dark))
-     (:background "gray10"))
-    (((class color) (background light))
-     (:background "gray90")))
-  "*Face used to show dirty tokens in `semantic-show-dirty-token-mode'."
-  :group 'semantic)
-
-(defun semantic-show-dirty-token-hook-fcn (token start end)
-  "Function set into `semantic-dirty-token-hooks'.
-This will highlight TOKEN as dirty.
-START and END define the region changed, but are not used."
-  (semantic-highlight-token token 'semantic-dirty-token-face))
-
-(defun semantic-show-clean-token-hook-fcn (token)
-  "Function set into `semantic-clean-token-hooks'.
-This will unhighlight TOKEN from being dirty."
-  (semantic-unhighlight-token token))
-
-(defvar semantic-show-dirty-mode-map
-  (let ((km (make-sparse-keymap)))
-    km)
-  "Keymap for show-dirty minor mode.")
-
-(defvar semantic-show-dirty-mode nil
-  "Non-nil if show-dirty minor mode is enabled.
-Use the command `semantic-show-dirty-mode' to change this variable.")
-(make-variable-buffer-local 'semantic-show-dirty-mode)
-
-(defun semantic-show-dirty-mode-setup ()
-  "Setup option `semantic-show-dirty-mode'.
-The minor mode can be turned on only if semantic feature is available
-and the current buffer was set up for parsing.  When minor mode is
-enabled parse the current buffer if needed.  Return non-nil if the
-minor mode is enabled."
-  (if semantic-show-dirty-mode
-      (if (not (and (featurep 'semantic) (semantic-active-p)))
-          (progn
-            ;; Disable minor mode if semantic stuff not available
-            (setq semantic-show-dirty-mode nil)
-            (error "Buffer %s was not set up for parsing"
-                   (buffer-name)))
-        (semantic-make-local-hook 'semantic-dirty-token-hooks)
-        (semantic-make-local-hook 'semantic-clean-token-hooks)
-        (semantic-make-local-hook 'after-save-hook)
-        (add-hook 'semantic-dirty-token-hooks
-                  'semantic-show-dirty-token-hook-fcn nil t)
-        (add-hook 'semantic-clean-token-hooks
-                  'semantic-show-clean-token-hook-fcn nil t)
-        (add-hook 'after-save-hook
-                  'semantic-rebovinate-quickly-hook nil t)
-        )
-    ;; Remove hooks
-    (remove-hook 'semantic-dirty-token-hooks
-                 'semantic-show-dirty-token-hook-fcn t)
-    (remove-hook 'semantic-clean-token-hooks
-                 'semantic-show-clean-token-hook-fcn t)
-    (remove-hook 'after-save-hook
-                 'semantic-rebovinate-quickly-hook t))
-  semantic-show-dirty-mode)
-
-;;;###autoload
-(defun semantic-show-dirty-mode (&optional arg)
-  "Minor mode for highlighting dirty tokens.
-With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled.
-
-\\{semantic-show-dirty-mode-map}"
-  (interactive
-   (list (or current-prefix-arg
-             (if semantic-show-dirty-mode 0 1))))
-  (setq semantic-show-dirty-mode
-        (if arg
-            (>
-             (prefix-numeric-value arg)
-             0)
-          (not semantic-show-dirty-mode)))
-  (semantic-show-dirty-mode-setup)
-  (run-hooks 'semantic-show-dirty-mode-hook)
-  (if (interactive-p)
-      (message "show-dirty minor mode %sabled"
-               (if semantic-show-dirty-mode "en" "dis")))
-  (semantic-mode-line-update)
-  semantic-show-dirty-mode)
-
-(semantic-add-minor-mode 'semantic-show-dirty-mode
-                         "d"
-                         semantic-show-dirty-mode-map)
-
-
 
 ;;;;
 ;;;; Minor mode to highlight areas that a user edits.
