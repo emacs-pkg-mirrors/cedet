@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.wy,v 1.5 2002/03/03 23:05:40 ponced Exp $
+;; X-RCS: $Id: wisent-wy.wy,v 1.6 2002/06/29 18:14:37 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -311,7 +311,7 @@ put_names:
     ()
   | any_symbol
  ;; Must return a list of Semantic tokens to EXPANDFULL!
-    (list (list $1 'put-name nil nil))
+    (list $1 'put-name nil nil)
   ;
 
 put_value_list:
@@ -326,7 +326,7 @@ put_values:
     ()
   | put_value
  ;; Must return a list of Semantic tokens to EXPANDFULL!
-    (list (list "" 'put-value nil $1 nil))
+    (list "" 'put-value nil $1 nil)
   ;
 
 put_value:
@@ -378,46 +378,60 @@ lifo_rules:
 
 ;; rule token:
 ;; ----------
-;; EMPTY rule
-;;    ("empty" 'rule nil nil PREC ACTION nil)
-;; Other rule
-;;    (RULE-NAME 'rule nil ELEMENTS PREC ACTION nil)
-;; where:
-;;  ELEMENTS is a list of ([MID-ACTION|nil] . TERM)
+;;  (RULE-NAME 'rule TYPE COMPONENTS PREC ACTION nil)
+;;
+;;  where:
+;;    TYPE is "group" or "empty"
+;;    COMPONENTS is a list (COMPONENT ...)
+;;
+;;    where:
+;;     COMPONENT is a list (MID-RULE-ACTION) or an ITEM.
 ;;
 rule:
- ;; EMPTY
-    (wisent-token "empty" 'rule nil nil nil nil nil)
-  | level action_opt
-    (wisent-token "empty" 'rule nil nil $1 $2 nil)
-  | elements
-    (let (action name)
-      (if (consp (car $1))
-          ;; mid-rule action
-          (setq action (caar $1) $1 (nreverse (cdr $1)))
-        ;; item
-        (setq action nil $1 (nreverse $1)))
-      (setq name (if $1
-                     (mapconcat #'(lambda (e) (if (consp e) "{}" e))
-                                $1 " ")
-                   "empty"))
-      (wisent-token name 'rule nil $1 nil action nil))
-  | elements level action_opt
-    (let (name)
-      (setq $1 (nreverse $1)
-            name (mapconcat #'(lambda (e) (if (consp e) "{}" e))
-                            $1 " "))
-      (wisent-token name 'rule nil $1 $2 $3 nil))
+    rhs
+    (let* ((rhs $1)
+           name type comps prec action elt)
+      (while rhs
+        (setq elt (car rhs)
+              rhs (cdr rhs))
+        (cond
+         ;; precedence level
+         ((vectorp elt)
+          (if prec
+              (message "Duplicate %%prec in a rule, keep latest"))
+          (setq prec (aref elt 0)))
+         ;; action
+         ((consp elt)
+          (if (or action comps)
+              ;; A mid-rule action
+              (setq comps (cons elt comps))
+            ;; The end-of-rule action
+            (setq action (car elt))))
+         ;; item
+         (t
+          (setq comps (cons elt comps)))))
+      (if comps
+          (setq type "group"
+                name (mapconcat
+                      #'(lambda (e) (if (consp e) "{}" e)) comps " "))
+        (setq type "empty"
+              name ";;EMPTY"))
+      (wisent-cooked-token name 'rule type comps prec action nil))
+  ;
+
+rhs:
+ ;; empty
+  | rhs item
+    (cons $2 $1)
+  | rhs action
+    (cons (list $2) $1)
+  | rhs level
+    (cons (vector $2) $1)
   ;
 
 level:
     PERCENT PREC item
     (identity $3)
-  ;
-
-action_opt:
- ;; EMPTY
-  | action
   ;
 
 action:
@@ -430,19 +444,6 @@ action:
               (if (string-match "[\r\n\t ]*}$" s)
                   (setq s (substring s 0 (match-beginning 0))))
               s))
-  ;
-
-elements:
-    elements element
-    (cons $2 $1)
-  | element
-    (list $1)
-  ;
-
-element:
-    action
-    (list $1)
-  | item
   ;
 
 items:
