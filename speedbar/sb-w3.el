@@ -1,11 +1,11 @@
 ;;; sb-w3 --- Speedbar support for w3.
 
-;; Copyright (C) 1997, 1998 Free Software Foundation
+;; Copyright (C) 1997, 1998, 2001, 2002 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2.1
 ;; Keywords: tags, tools, w3
-;; X-RCS: $Id: sb-w3.el,v 1.7 1998/06/13 14:00:25 zappo Exp $
+;; X-RCS: $Id: sb-w3.el,v 1.8 2002/02/06 18:58:23 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -75,6 +75,7 @@
     )
   "Extra menu items for w3 mode.")
 
+;;;###autoload
 (defun w3-speedbar-buttons (buffer)
   "Create speedbar buttons for the current web BUFFER displayed in w3 mode."
   (save-excursion
