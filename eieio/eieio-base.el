@@ -1,10 +1,10 @@
 ;;; eieio-base.el --- Base classes for EIEIO.
 
 ;;;
-;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
+;; Copyright (C) 2000, 2001, 2002, 2004 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.17 2002/08/20 14:44:28 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.18 2004/07/13 14:58:28 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -109,7 +109,7 @@ a variable symbol used to store a list of all instances."
 Optional argument FIELDS are the initialization arguments."
   ;; Theoretically, this is never called twice for a given instance.
   (let ((sym (oref this tracking-symbol)))
-    (if (not (member this (symbol-value sym)))
+    (if (not (memq this (symbol-value sym)))
 	(set sym (append (symbol-value sym) (list this))))))
 
 (defmethod delete-instance ((this eieio-instance-tracker))
@@ -155,15 +155,17 @@ only one object ever exists."
 
 ;;; eieio-persistent
 ;;
-;; For objects which must save themselves to disk.  Provides a
-;; `object-save' method to save an object to disk, and a
+;; For objects which must save themselves to disk.  Provides an
+;; `object-write' method to save an object to disk, and a
 ;; `eieio-persistent-read' function to call to read an object
 ;; from disk.
 ;;
 ;; Also provide the method `eieio-persistent-path-relative' to
 ;; calculate path names relative to a given instance.  This will
-;; can make the saved object location independent of all file
-;; references are made relative.
+;; make the saved object location independent by converting all file
+;; references to be relative to the directory the object is saved to.
+;; You must call `eieio-peristent-path-relative' on each file name
+;; saved in your object.
 (defclass eieio-persistent ()
   ((file :initarg :file
 	 :type string
