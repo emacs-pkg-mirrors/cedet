@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.13 2003/05/29 01:05:06 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.14 2003/08/06 18:35:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -264,8 +264,8 @@ TABLE is a semantic tags table.  See `semantic-something-to-tag-table'."
 NAME is a string.
 TABLE is a semantic tags table.  See `semantic-something-to-tag-table'.
 This routine uses `assoc' to quickly find the first matching entry."
-  (assoc-string name (semantic-something-to-tag-table table)
-		semantic-case-fold))
+  (funcall (if semantic-case-fold 'assoc-ignore-case 'assoc)
+           name (semantic-something-to-tag-table table)))
 
 ;;;###autoload
 (defmacro semantic-find-tags-by-name (name &optional table)
