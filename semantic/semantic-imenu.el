@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.52 2004/08/25 06:18:52 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.53 2004/10/21 11:23:18 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +38,7 @@
 
 (require 'semantic)
 (require 'semantic-format)
+(require 'working)
 (eval-when-compile
   (condition-case nil
       (require 'imenu)
@@ -444,8 +445,9 @@ Optional argument PARENT is a tag parent of STREAM."
                            'semantic-create-imenu-index)
                        semanticdb-current-database
                        (eq semanticdb-current-database db))
-              (message "Building %s Semantic directory index imenu"
-                       (buffer-name b))
+              (working-temp-message
+               "Building %s Semantic directory index imenu"
+               (buffer-name b))
               ;; Rebuild the imenu
               (imenu--cleanup)
               (setq imenu--index-alist nil)
