@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.114 1998/07/15 19:59:34 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.115 1998/08/03 13:28:14 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -818,6 +818,9 @@ to toggle this value.")
     (define-key speedbar-key-map [mode-line down-mouse-1]
       'speedbar-emacs-popup-kludge)
 
+    ;; We can't switch buffers with the buffer mouse menu.  Lets hack it.
+    (define-key speedbar-key-map [C-down-mouse-1] 'speedbar-hack-buffer-menu)
+
     ;; Lastly, we want to track the mouse.  Play here
     (define-key speedbar-key-map [mouse-movement] 'speedbar-track-mouse)
    ))
@@ -1396,6 +1399,26 @@ Must be bound to event E."
     (if (< emacs-major-version 20)
 	(mouse-major-mode-menu e)
       (mouse-major-mode-menu e nil))))
+
+(defun speedbar-hack-buffer-menu (e)
+  "Control mouse 1 is buffer menu.
+This hack overrides it so that the right thing happens in the main
+Emacs frame, not in the speedbar frame.
+Argument E is the event causing this activity."
+  (interactive "e")
+  (let ((fn (lookup-key global-map (if speedbar-xemacsp
+				              '(control button1)
+				     [C-down-mouse-1])))
+	(newbuff nil))
+    (unwind-protect
+	(save-excursion
+	  (set-window-dedicated-p (selected-window) nil)
+	  (call-interactively fn)
+	  (setq newbuff (current-buffer)))
+      (switch-to-buffer " SPEEDBAR")
+      (set-window-dedicated-p (selected-window) t))
+    (speedbar-with-attached-buffer
+     (switch-to-buffer newbuff))))
 
 (defun speedbar-next (arg)
   "Move to the next ARGth line in a speedbar buffer."
@@ -2671,7 +2694,10 @@ updated."
 		))
 	    (setq speedbar-last-selected-file newcf))
 	  (if (not sucf-recursive)
-	      (speedbar-position-cursor-on-line))
+	      (progn
+		(speedbar-center-buffer-smartly)
+		(speedbar-position-cursor-on-line)
+		))
 	  (set-buffer lastb)
 	  (select-frame lastf)
 	  )))
@@ -3300,7 +3326,7 @@ frame instead."
 This assumes that the cursor is on a file, or tag of a file which the user is
 interested in."
   (if (<= (count-lines (point-min) (point-max))
-	  (window-height (selected-window)))
+	  (1- (window-height (selected-window))))
       ;; whole buffer fits
       (let ((cp (point)))
 	(goto-char (point-min))
