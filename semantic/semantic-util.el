@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.99 2002/08/04 02:03:14 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.100 2002/09/07 02:04:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1278,7 +1278,7 @@ COLOR specifies if these arguments should be colored or not."
 	       ))
 	    ((semantic-token-p (car args))
 	     (setq out
-		   (cons (semantic-prototype-nonterminal (car args) nil t)
+		   (cons (semantic-prototype-nonterminal (car args) nil color)
 			 out))))
       (setq args (cdr args)))
     (nreverse out)))
@@ -1771,6 +1771,7 @@ file prototypes belong in."
 
 ;;;; Mode-specific Token information
 ;;
+;;;###autoload
 (defun semantic-nonterminal-children (token &optional positionalonly)
   "Return the list of top level children belonging to TOKEN.
 Children are any sub-tokens which may contain overlays.
