@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.55 2002/06/18 21:31:43 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.56 2002/08/11 16:26:19 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1612,7 +1612,12 @@ and initial #."
     ;; In BNF part, to BNF completion.
     (senator-complete-symbol)))
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
+
+;;;###autoload
+(eval-after-load "speedbar"
+  (speedbar-add-supported-extension ".bnf"))
 
 (eval-after-load "which-func"
   '(unless (eq which-func-modes t)
