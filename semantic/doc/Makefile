@@ -53,7 +53,7 @@ tags:
 
 
 clean:
-	rm -f *.html *.info
+	rm -f *.html *.info*
 
 .PHONY: dist
 
