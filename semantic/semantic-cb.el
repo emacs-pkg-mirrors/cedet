@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.3 2002/03/17 17:14:52 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.4 2002/03/23 03:07:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -124,7 +124,10 @@ We need to go back later and fill them in from this list.")
   "The current project's class structure.")
 
 (defun semantic-cb-new-class-browser ()
-  "Create an object representing this project's organization."
+  "Create an object representing this project's organization.
+The object returned is of type `semantic-cb-project', which contains
+the slot `:types', a list of all top-level types.  Each element is a
+class of type `semantic-cb-token', or `semantic-cb-type'."
   (let ((alldbtype (semanticdb-find-nonterminal-by-token
 		    'type
 		    nil			;current project
@@ -338,7 +341,11 @@ Argument DIR is the directory speedbar is asking about."
 
 ;;;###autoload
 (defun semantic-cb-speedbar-mode ()
-  "documentation"
+  "Bring speedbar up, and put it into Class Browser mode.
+This will use the Class Browser logic applied to the current Semantic
+project database to build the available relations.  The structure of
+the class hierarchy can then be navigated using traditional speedbar
+interactions."
   (interactive)
   (speedbar-frame-mode 1)
   (speedbar-change-initial-expansion-list "Class Browser")
