@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7.2
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.119 1998/08/08 21:19:14 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.120 1998/08/16 16:14:55 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -388,7 +388,6 @@ is attached to."
 ;; Emacs frame parameters
 (defcustom speedbar-frame-parameters '((minibuffer . nil)
 				       (width . 20)
-				       (scroll-bar-width . 10)
 				       (border-width . 0)
 				       (menu-bar-lines . 0)
 				       (unsplittable . t))
