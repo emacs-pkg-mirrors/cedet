@@ -1,11 +1,11 @@
 ;;; semantic-sb.el --- Semantic tag display for speedbar
 
-;;; Copyright (C) 1999 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.6 1999/05/27 01:44:17 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.7 2000/01/25 03:22:03 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -290,6 +290,13 @@ TEXT TOKEN and INDENT are the details."
 	      (semantic-sb-one-button (car sordid) level)))
        (setq sordid (cdr sordid))))))
 
+(defun semantic-insert-bovine-list (level lst)
+  "At LEVEL, insert the bovine parsed list LST.
+Use arcane knowledge about the semantic tokens in the tagged elements
+to create much wiser decisions about how to sort and group these items."
+  ;; The bovinator logic is *very* complex.  Do this elsewhere.
+  (semantic-sb-buttons level lst))
+
 (defun semantic-sb-buttons (level tokens)
   "Create buttons at LEVEL using TOKENS sorting into type buckets."
   (save-restriction
@@ -324,6 +331,27 @@ TEXT TOKEN and INDENT are the details."
 	    (t nil))
       (setq tokens (cdr tokens)))
     (list types vars funs deps)))
+
+(defun semantic-fetch-dynamic-bovine (file)
+  "Load FILE into a buffer, and generate tags using the Semantic Bovinator.
+Returns the tag list, or t for an error."
+  ;; Load this AND compile it in
+  (save-excursion
+    (set-buffer (find-file-noselect file))
+    (if speedbar-power-click (setq semantic-toplevel-bovine-cache))
+    (if (not semantic-toplevel-bovine-table)
+	t
+      (condition-case nil
+	  (progn
+	    ;; TODO!
+	    ;; The bovinator is refuses to cache data.  It is up to speedbar
+	    ;; (who knows better) to do the caching for it.
+	    (semantic-bovinate-toplevel nil t))
+	(error t)))))
+
+;; Link ourselves into the tagging process.
+(add-to-list 'speedbar-dynamic-tags-function-list
+	     '(semantic-fetch-dynamic-bovine  . semantic-insert-bovine-list))
 
 (provide 'semantic-sb)
 
