@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.1 2001/08/09 07:46:52 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.2 2001/08/13 09:49:31 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -248,7 +248,7 @@
   `(condition-case nil
        (car (read-from-string (nth 3 ,token)))
      (error
-      ;;(message "read error on %S" (car part))
+      ;;(message "read error on %S" (nth 3 ,token))
       nil)))
 
 (defmacro semantic-bnf-token-rule-matchlist (token)
@@ -527,7 +527,7 @@ produce the following table of tokens:
     (paren (LPAREN . \"(\")
            (RPAREN . \")\")))"
   (let ((tokens (semantic-find-nonterminal-by-token 'token tokstream))
-        token ttype tvalue bin bins)
+        token tsymb ttype tvalue bin bins)
     (while tokens
       (setq token  (car tokens)
             tokens (cdr tokens)
@@ -568,6 +568,39 @@ The result is inserted at point in the current buffer."
 
 ;;; Output File hacks
 ;;
+(defun semantic-beginning-of-body ()
+  "Move point to the beginning of the body of the function at point.
+ Skip docstring and `interactive' form if present.  If there are
+ comment lines before the first statement move point to the beginning
+ of the first line of comment."
+  (interactive)
+  (beginning-of-defun)
+  ;; Skip `defun' and function name
+  (re-search-forward "(defun\\s-*\\(\\sw\\|\\s_\\)+\\s-*")
+  ;; Skip arglist
+  (forward-sexp)
+  ;; Skip spaces and comments
+  (forward-comment (point-max))
+  ;; Maybe skip docstring
+  (if (looking-at "\\s\"")
+      (progn
+        (forward-sexp)
+        ;; Skip spaces and comments
+        (forward-comment (point-max))))
+  ;; Maybe skip `interactive' form
+  (if (looking-at "\\s([ \r\n\t]*\\binteractive\\b")
+      (progn
+        (forward-list)
+        ;; Skip spaces and comments
+        (forward-comment (point-max))))
+  ;; Now move back to the first line of comments before this statement
+  (forward-comment (- (point-max)))
+  ;; Maybe skip line comment
+  (if (looking-at "\\s-*\\(\\s<\\)")
+      (forward-comment 1))
+  ;; Move point to the beginning of comment or statement
+  (skip-chars-forward "[ \n\r\t]"))
+
 (defun semantic-bnf-find-table-destination-old ()
   "Find the destination file for this BNF file via comments."
   (save-excursion
@@ -581,7 +614,8 @@ The result is inserted at point in the current buffer."
 	    (set-buffer (find-file-noselect f))
 	    (goto-char (point-min))
 	    (if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
-					   (regexp-quote v)) nil t)
+					   (regexp-quote v) "\\b"
+                                           ) nil t)
 		(progn
 		  (goto-char (match-beginning 0))
 		  (point-marker)))))
@@ -603,7 +637,8 @@ parse table variable."
 	(set-buffer (find-file-noselect file))
 	(goto-char (point-min))
 	(if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
-				       (regexp-quote var)) nil t)
+				       (regexp-quote var) "\\b"
+                                       ) nil t)
 	    (progn
 	      (goto-char (match-beginning 0))
 	      (point-marker))
@@ -626,7 +661,8 @@ keyword table variable."
 	(set-buffer (find-file-noselect file))
 	(goto-char (point-min))
 	(if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
-				       (regexp-quote var)) nil t)
+				       (regexp-quote var) "\\b"
+                                       ) nil t)
 	    (progn
 	      (goto-char (match-beginning 0))
 	      (point-marker))
@@ -687,9 +723,9 @@ SOURCEFILE is the file name from whence tokstream came."
 		(delete-region (1+ mb) (1- me))
 		(goto-char (1+ mb))
 		t)
-	    ;; Add a new on in at the end
+	    ;; Add a new on in at the beginning
 	    (goto-char e)
-	    (down-list -1)		; hop into the end
+	    (semantic-beginning-of-body)
 	    ;; Insert delimiters, move cursor
 	    (let ((m (string-match ";"
 				   (car semantic-setup-code-delimiters))))
@@ -725,7 +761,8 @@ token table variable."
 	(set-buffer (find-file-noselect file))
 	(goto-char (point-min))
 	(if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
-				       (regexp-quote var)) nil t)
+				       (regexp-quote var) "\\b"
+                                       ) nil t)
 	    (progn
 	      (goto-char (match-beginning 0))
 	      (point-marker))
