@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.121 2001/10/03 00:28:21 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.122 2001/10/03 17:46:54 ponced Exp $
 
 (defvar semantic-version "1.4beta12"
   "Current version of Semantic.")
@@ -39,6 +39,7 @@
 ;; 
 
 (require 'working)
+(require 'assoc)
 
 (defgroup semantic nil
   "Parser Generator/Parser."
@@ -1681,16 +1682,19 @@ LENGTH tokens."
 		      r)))
 	      ;; comment end is also EOL for some languages.
 	      ((looking-at "\\(\\s-\\|\\s>\\)+"))
+	      ;; numbers
+	      ((and semantic-number-expression
+		    (looking-at semantic-number-expression))
+	       (setq ts (cons (cons 'number
+				    (cons (match-beginning 0)
+					  (match-end 0)))
+			      ts)))
 	      ;; symbols
 	      ((looking-at "\\(\\sw\\|\\s_\\)+")
 	       (setq ts (cons (cons
 			       ;; Get info on if this is a keyword or not
 			       (or (semantic-flex-keyword-p (match-string 0))
-				   (save-match-data
-				     (if (and semantic-number-expression
-					      (string-match semantic-number-expression (match-string 0)))
-					 'number
-				       'symbol)))
+                                   'symbol)
 			       (cons (match-beginning 0) (match-end 0)))
 			      ts)))
 	      ;; Character quoting characters (ie, \n as newline)
