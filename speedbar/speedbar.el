@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.20 1997/01/25 14:51:01 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.21 1997/01/25 15:12:38 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -640,7 +640,9 @@ Keybindings: \\<speedbar-key-map>
   (setq kill-buffer-hook '(lambda () (let ((skilling (boundp 'skilling)))
 				       (if skilling
 					   nil
-					 (speedbar-frame-mode -1)))))
+					 (if (eq (current-buffer)
+						 speedbar-buffer)
+					     (speedbar-frame-mode -1))))))
   (setq mode-line-format
 	'("<< SPEEDBAR " (line-number-mode " %3l ") " >>"))
   (if (not speedbar-xemacsp) (setq auto-show-mode nil))	;no auto-show for FSF
