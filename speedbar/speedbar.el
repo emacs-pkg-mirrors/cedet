@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.18 1997/01/23 03:03:27 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.19 1997/01/25 14:45:40 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -157,23 +157,21 @@
 ;;;         the stealthy list.  New function `speedbar-check-vc' will
 ;;;         examine each file and mark it if it is checked out.  To
 ;;;         add new version control types, override the function
-;;;         `speedbar-this-file-in-vc'.  The stealth list is
-;;;         interruptible so that long operations do not interrupt
-;;;         someones editing flow.  Other long speedbar updates will
-;;;         be added to the stealthy list in the future.
+;;;         `speedbar-this-file-in-vc' and `speedbar-vc-check-dir-p'.
+;;;         The stealth list is interruptible so that long operations
+;;;         do not interrupt someones editing flow.  Other long
+;;;         speedbar updates will be added to the stealthy list in the
+;;;         future should interesting ones be needed.
+;;;       Added many new functions including:
+;;;         `speedbar-item-byte-compile' `speedbar-item-load'
+;;;         `speedbar-item-copy' `speedbar-item-rename' `speedbar-item-delete'
+;;;         and `speedbar-item-info'
 ;;;
 ;;; TODO:
-;;; 1) Apply timeout to directory caches so that large directories are
-;;;    dumped if not used often.
-;;; 2) List of directories to never visit.  (User might be browsing
-;;;    there temporarilly such as info files, documentation and the
-;;;    like)
-;;; 3) Implement SHIFT-mouse2 to rescan buffers with imenu.
-;;; 4) More functions to create buttons and options
-;;; 5) filtering algoritms to reduce the number of tags/files
-;;;    displayed.
-;;; 6) More intelligent current file highlighting.
-;;;
+;;; 1) Implement SHIFT-mouse2 to rescan buffers with imenu.
+;;; 2) More functions to create buttons and options
+;;; 3) filtering algoritms to reduce the number of tags/files displayed.
+;;; 4) Timeout directories we haven't visited in a while.
 
 (require 'assoc)
 
@@ -255,7 +253,8 @@ verbosity.")
 (defvar speedbar-vc-indicator " *"
   "*Text used to mark files which are currently checked out.
 Currently only RCS is supported.  Other version control systems can be
-added by examining the function `speedbar-this-file-in-vc'")
+added by examining the function `speedbar-this-file-in-vc' and 
+`speedbar-vc-check-dir-p'")
 
 (defvar speedbar-vc-do-check t
   "*Non-nil check all files in speedar to see if they have been checked out.
@@ -361,13 +360,21 @@ list of strings."
   (define-key speedbar-key-map "+" 'speedbar-expand-line)
   (define-key speedbar-key-map "-" 'speedbar-contract-line)
   (define-key speedbar-key-map "r" 'speedbar-refresh)
-  ;; This doesn't work as expected.
-  ;;(define-key speedbar-key-map "\C-h" 'speedbar-help-helper)
+
+  ;; After much use, I suddenly desired in my heart to perform dired
+  ;; style operations since the directory was RIGHT THERE!
+  (define-key speedbar-key-map "I" 'speedbar-item-info)
+  (define-key speedbar-key-map "B" 'speedbar-item-byte-compile)
+  (define-key speedbar-key-map "L" 'speedbar-item-load)
+  (define-key speedbar-key-map "C" 'speedbar-item-copy)
+  (define-key speedbar-key-map "D" 'speedbar-item-delete)
+  (define-key speedbar-key-map "R" 'speedbar-item-rename)
 
   (if (string-match "XEmacs" emacs-version)
       (progn
 	;; bind mouse bindings so we can manipulate the items on each line
 	(define-key speedbar-key-map 'button2 'speedbar-click)
+	(define-key speedbar-key-map '(meta button2) 'speedbar-mouse-item-info)
 
 	;; Setup XEmacs Menubar
 	(defvar speedbar-menu
@@ -402,6 +409,7 @@ list of strings."
     ;; bind mouse bindings so we can manipulate the items on each line
     (define-key speedbar-key-map [mouse-2] 'speedbar-click)
     (define-key speedbar-key-map [down-mouse-2] 'speedbar-quick-mouse)
+    (define-key speedbar-key-map [M-mouse-2] 'speedbar-mouse-item-info)
 
     ;; this was meant to do a rescan or something
     ;;(define-key speedbar-key-map [shift-mouse-2] 'speedbar-hard-click)
@@ -437,6 +445,18 @@ list of strings."
       (cons "Configure Faces" 'speedbar-configure-faces))
     (define-key speedbar-menu-map [configopt] 
       (cons "Configure Options" 'speedbar-configure-options))
+    (define-key speedbar-menu-map [delete] 
+      (cons "Delete Item" 'speedbar-item-delete))
+    (define-key speedbar-menu-map [rename] 
+      (cons "Rename Item" 'speedbar-item-rename))
+    (define-key speedbar-menu-map [copy] 
+      (cons "Copy Item" 'speedbar-item-copy))
+    (define-key speedbar-menu-map [compile] 
+      (cons "Byte Compile File" 'speedbar-item-byte-compile))
+    (define-key speedbar-menu-map [load] 
+      (cons "Load Lisp File" 'speedbar-item-load))
+    (define-key speedbar-menu-map [iinfo] 
+      (cons "Item Information" 'speedbar-item-info))
     (define-key speedbar-menu-map [contract] 
       (cons "Contract Item" 'speedbar-contract-line))
     (define-key speedbar-menu-map [expand] 
@@ -453,9 +473,22 @@ list of strings."
 (put 'speedbar-configure-options 'menu-enable '(or (featurep 'dialog)
 						   (featurep 'ecfg-menu)))
 (put 'speedbar-contract-line 'menu-enable
-     '(save-excursion (beginning-of-line) (looking-at "[0-9]+:.-. ")))
+     '(save-excursion (beginning-of-line) (looking-at "[0-9]+: *.-. ")))
 (put 'speedbar-expand-line 'menu-enable
-     '(save-excursion (beginning-of-line) (looking-at "[0-9]+:.\\+. ")))
+     '(save-excursion (beginning-of-line) (looking-at "[0-9]+: *.\\+. ")))
+
+(put 'speedbar-item-byte-compile 'menu-enable
+     '(save-excursion (beginning-of-line)
+		      (looking-at "[0-9]+: *\\[[+-]\\] .+\\(\\.el\\)\\( \\*\\)?$")))
+(put 'speedbar-item-load 'menu-enable
+     '(save-excursion (beginning-of-line)
+		      (looking-at "[0-9]+: *\\[[+-]\\] .+\\(\\.el\\)\\( \\*\\)?$")))
+(put 'speedbar-item-copy 'menu-enable
+     '(save-excursion (beginning-of-line) (looking-at "[0-9]+: *\\[")))
+(put 'speedbar-item-rename 'menu-enable
+     '(save-excursion (beginning-of-line) (looking-at "[0-9]+: *[[<]")))
+(put 'speedbar-item-delete 'menu-enable
+     '(save-excursion (beginning-of-line) (looking-at "[0-9]+: *[[<]")))
 
 (defvar speedbar-buffer nil
   "The buffer displaying the speedbar.")
@@ -564,7 +597,7 @@ which is generated from `completion-ignored-extensions'.
 Files with a `*' character after their name are files checked out of a
 version control system.  (currently only RCS is supported.)  New
 version control systems can be added by examining the documentation
-for `speedbar-this-file-in-vc'
+for `speedbar-this-file-in-vc' and `speedbar-vc-check-dir-p'
 
 Click on the [+] to display a list of tags from that file.  Click on
 the [-] to retract the list.  Click on the file name to edit the file
@@ -580,7 +613,17 @@ Keybindings: \\<speedbar-key-map>
 \\[speedbar-edit-line]        Edit the file/directory on this line.  Same as clicking 
            on the name on the selected line.)
 \\[speedbar-expand-line]        Expand the current line.  Same as clicking on the + on a line.
-\\[speedbar-contract-line]        Contract the current line.  Same as clicking on the - on a line."
+\\[speedbar-contract-line]        Contract the current line.  Same as clicking on the - on a line.
+
+\\[speedbar-mouse-item-info]  Get info about item on current line.
+\\[speedbar-item-info]     Get info about item on current line.
+
+\\[speedbar-item-load]   Load the lisp file under cursor (optional load .elc)
+\\[speedbar-item-byte-compile]   Byte compile file under cursor
+\\[speedbar-item-copy]   Copy the item under cursor somewhere
+\\[speedbar-item-rename]   Rename the item under cursor
+\\[speedbar-item-delete]   Delete the item under cursor
+"
   ;; NOT interactive
   (setq speedbar-buffer (set-buffer (get-buffer-create "SPEEDBAR")))
   (kill-all-local-variables)
@@ -633,7 +676,119 @@ modeline.  This is only useful for non-XEmacs"
   (if (<= 1 speedbar-verbosity-level) (message "Refreshing speedbar..."))
   (speedbar-update-contents)
   (speedbar-stealthy-updates)
+  ;; Reset the timer in case it got really hosed for some reason...
+  (speedbar-set-timer speedbar-update-speed)
   (if (<= 1 speedbar-verbosity-level) (message "Refreshing speedbar...done")))
+
+(defun speedbar-item-load ()
+  "Byte compile the item under the cursor or mouse if it is a lisp file."
+  (interactive)
+  (let ((f (speedbar-line-file)))
+    (if (and (file-exists-p f) (string-match "\\.el$" f))
+	(if (and (file-exists-p (concat f "c"))
+		 (y-or-n-p (format "Load %sc? " f)))
+	    ;; If the compiled version exists, load that instead...
+	    (load-file (concat f "c"))
+	  (load-file f))
+      (error "Not a loadable file..."))))
+
+(defun speedbar-item-byte-compile ()
+  "Byte compile the item under the cursor or mouse if it is a lisp file."
+  (interactive)
+  (let ((f (speedbar-line-file)))
+    (if (and (file-exists-p f) (string-match "\\.el$" f))
+	(byte-compile-file f nil))
+    ))
+
+(defun speedbar-mouse-item-info (event)
+  "Provide information about what the user clicked on."
+  (interactive "e")
+  (mouse-set-point event)
+  (speedbar-item-info))
+
+(defun speedbar-item-info ()
+  "Display info in the minibuffer about the button the mouse is over."
+  (interactive)
+  (let* ((item (speedbar-line-file))
+	 (attr (if item (file-attributes item) nil)))
+    (if item (message "%s %d %s" (nth 8 attr) (nth 7 attr) item)
+      (save-excursion
+	(beginning-of-line)
+	(looking-at "\\([0-9]+\\):")
+	(setq item (speedbar-line-path (string-to-int (match-string 1))))
+	(if (re-search-forward "> \\([^ ]+\\)$"
+			       (save-excursion(end-of-line)(point)) t)
+	    (progn
+	      (setq attr (get-text-property (match-beginning 1)
+					    'speedbar-token))
+	      (message "Tag %s in %s at position %s"
+		       (match-string 1) item (if attr attr 0)))
+	  (message "No special info for this line.")))
+	  )))
+
+(defun speedbar-item-copy ()
+  "Copy the item under the cursor.
+Files can be copied to new names or places."
+  (interactive)
+  (let ((f (speedbar-line-file)))
+    (if (not f)	(error "Not a file."))
+    (if (file-directory-p f)
+	(error "Cannot copy directory.")
+      (let* ((rt (read-file-name (format "Copy %s to: "
+					 (file-name-nondirectory f))))
+	     (refresh (member (expand-file-name (file-name-directory rt))
+			      speedbar-shown-directories)))
+	;; Create the right file name part
+	(if (file-directory-p rt)
+	    (setq rt 
+		  (concat (expand-file-name rt)
+			  (if (string-match "/$" rt) "" "/")
+			  (file-name-nondirectory f))))
+	(if (or (not (file-exists-p rt))
+		(y-or-n-p (format "Overwrite %s with %s? " rt f)))
+	    (progn
+	      (copy-file f rt t t)
+	      ;; refresh display if the new place is currently displayed.
+	      (if refresh (speedbar-refresh))))))))
+
+
+(defun speedbar-item-rename ()
+  "Rename the item under the cursor or mouse.
+Files can be renamed to new names or moved to new directories."
+  (interactive)
+  (let ((f (speedbar-line-file)))
+    (if f
+	(let* ((rt (read-file-name (format "Rename %s to: "
+					   (file-name-nondirectory f))))
+	       (refresh (member (expand-file-name (file-name-directory rt))
+				speedbar-shown-directories)))
+	  ;; Create the right file name part
+	  (if (file-directory-p rt)
+	      (setq rt 
+		    (concat (expand-file-name rt)
+			    (if (string-match "/$" rt) "" "/")
+			    (file-name-nondirectory f))))
+	  (if (or (not (file-exists-p rt))
+		  (y-or-n-p (format "Overwrite %s with %s? " rt f)))
+	      (progn
+		(rename-file f rt t)
+		;; refresh display if the new place is currently displayed.
+		(if refresh (speedbar-refresh)))))
+      (error "Not a file."))))
+
+(defun speedbar-item-delete ()
+  "Delete the item under the cursor.  Files are removed from disk."
+  (interactive)
+  (let ((f (speedbar-line-file)))
+    (if (not f) (error "Not a file."))
+    (if (y-or-n-p (format "Delete %s? " f))
+	(progn
+	  (if (file-directory-p f)
+	      (delete-directory f)
+	    (delete-file f))
+	  (message "Okie dokie..")
+	  (speedbar-refresh)))
+    ))
 
 
 ;;;
@@ -1023,13 +1178,14 @@ updated."
 
 (defun speedbar-check-vc ()
   "Scan all files in a directory, and for each see if it's checked out.
-See `speedbar-this-file-in-vc' for how to add nore types of version
-control systems."
+See `speedbar-this-file-in-vc' and `speedbar-vc-check-dir-p' for how
+to add nore types of version control systems."
   ;; Check for to-do to be reset.  If reset but no RCS is available
   ;; then set to nil (do nothing) otherwise, start at the beginning
   (save-excursion
     (set-buffer speedbar-buffer)
     (if (and speedbar-vc-do-check (eq speedbar-vc-to-do-point t)
+	     (speedbar-vc-check-dir-p default-directory)
 	     (not (and (featurep 'ange-ftp)
 		       (string-match (car ange-ftp-name-format)
 				     (expand-file-name default-directory)))))
@@ -1067,17 +1223,27 @@ is right in front of the file name."
 	(message "Speedbar vc check...%s" fulln))
     (and (file-writable-p fulln)
 	 (speedbar-this-file-in-vc f fn))))
-  
+
+(defun speedbar-vc-check-dir-p (path)
+  "Return t if we should bother checking PATH for vc files.
+This can be overloaded to add new types of version control systems."
+  (or
+   (file-exists-p (concat path "RCS/"))
+   ;; If SCCS is added in `speedbar-this-file-in-vc'
+   ;; (file-exists-p (concat path "SCCS/"))
+   ;; (file-exists-p (getenv "SCCSPATHTHINGIDONTREMEMBER"))
+   ))
+
 (defun speedbar-this-file-in-vc (path name)
   "Check to see if the file in PATH with NAME is in a version control system.
 You can add new VC systems by overriding this function.  You can
 optimize this function by overriding it and only doing those checks
 that will occur on your system."
-
   (or
    (file-exists-p (concat path "RCS/" fn ",v"))
    ;; Is this right?  I don't recall
    ;;(file-exists-p (concat path "SCCS/," fn))
+   ;;(file-exists-p (concat (getenv "SCCSPATHTHING") "/SCCS/," fn))
    ))
 
 ;;;
@@ -1095,6 +1261,22 @@ that will occur on your system."
   "Position the cursor on a line."
   (beginning-of-line)
   (re-search-forward "[]>}]" (save-excursion (end-of-line) (point)) t))
+
+(defun speedbar-line-file (&optional p)
+  "Retrieve the file or whatever from the line at P point.
+The return value is a string representing the file.  If it is a
+directory, then it is the directory name."
+  (save-excursion
+    (beginning-of-line)
+    (if (looking-at (concat
+		     "\\([0-9]+\\): *[[<][-+][]>] \\([^ \n]+\\)\\("
+		     (regexp-quote speedbar-vc-indicator)
+		     "\\)?"))
+	(let* ((depth (string-to-int (match-string 1)))
+	       (path (speedbar-line-path depth))
+	       (f (match-string 2)))
+	  (concat path f))
+      nil)))
 
 (defun speedbar-line-path (depth)
   "Retrieve the pathname associated with the current line.
