@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.2 2001/08/13 09:49:31 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.3 2001/08/14 14:04:55 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -540,11 +540,13 @@ produce the following table of tokens:
         (setq bins (cons (list ttype (cons tsymb tvalue)) bins))))
     bins))
 
-(defun semantic-bnf-to-lalr (&optional tokstream)
+(defun semantic-bnf-to-lalr (&optional tokstream start)
   "Convert the BNF rules in TOKSTREAM to LALR internal lisp form.
-The result is inserted at point in the current buffer."
+START is a list of 'start tokens defining alternate entry point in the
+grammar.  The result is inserted at point in the current buffer."
   (setq tokstream (or tokstream (semantic-bovinate-toplevel t)))
   (let ((terms  (semantic-bnf-find-terminal-symbols tokstream))
+        (starts (mapcar #'semantic-bnf-token-name-symbol start))
         vars tok lhs rhs gram)
     (while tokstream
       (setq tok       (car tokstream)
@@ -558,12 +560,13 @@ The result is inserted at point in the current buffer."
                            (semantic-bnf-token-rule-matchlist tok)))
               vars (cons (cons lhs rhs) vars))))
     (setq gram (nconc terms (nreverse vars)))
+    (require 'wisent) ;; `wisent-compile-grammar' must be defined!
     ;; Insert the grammar
-;;;    (insert "(wisent-compile-grammar\n'")
-    (insert "  `")
+    (insert "  (eval-when-compile\n    (wisent-compile-grammar\n      `")
     (pp gram (current-buffer))
-;;;    (insert ")\n")
-    ))
+    (insert "      '")
+    (pp starts (current-buffer))
+    (insert "  ))\n")))
 
 
 ;;; Output File hacks
@@ -900,7 +903,7 @@ token table variable."
       (cond
        ((eq pmode 'lalr)
         ;; generate table for the LALR parser
-        (semantic-bnf-to-lalr tok))
+        (semantic-bnf-to-lalr tok start))
        (t
         ;; generate table for the default parser
         (semantic-bnf-to-bovine
