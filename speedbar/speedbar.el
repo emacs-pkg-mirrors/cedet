@@ -1,10 +1,11 @@
+
 ;;; speedbar --- quick access to files and tags in a frame
 
-;;; Copyright (C) 1996, 97, 98, 99, 00, 01 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.209 2001/10/27 21:12:19 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.210 2002/02/26 11:53:52 zappo Exp $
 
 (defvar speedbar-version "0.14beta2"
   "The current version of speedbar.")
@@ -1121,7 +1122,7 @@ and the existence of packages."
 	  (easy-menu-define speedbar-menu-map (current-local-map)
 			    "Speedbar menu" md)
 	(easy-menu-add md (current-local-map))
-	(set-buffer-menubar (list md))))
+	(if (featurep 'menubars) (set-buffer-menubar (list md)))))
     (run-hooks 'speedbar-reconfigure-keymaps-hook)))
 
 
@@ -1209,7 +1210,6 @@ of intermediate nodes are skipped."
   (interactive "p")
   (speedbar-restricted-move (or arg 1))
   (speedbar-item-info))
-
 
 (defun speedbar-restricted-prev (arg)
   "Move to the previous ARGth line in a speedbar buffer at the same depth.
@@ -1596,6 +1596,8 @@ will be run with the TOKEN parameter (any Lisp object)"
   (put-text-property start end 'mouse-face mouse)
   (put-text-property start end 'help-echo #'dframe-help-echo)
   (put-text-property start end 'invisible nil)
+  (put-text-property start end 'speedbar-text
+		     (buffer-substring-no-properties start end))
   (if function (put-text-property start end 'speedbar-function function))
   (if token (put-text-property start end 'speedbar-token token))
   ;; So far the only text we have is less that 3 chars.
@@ -2299,8 +2301,10 @@ name will have the function FIND-FUN and not token."
   (interactive)
   ;; Set the current special buffer
   (setq speedbar-desired-buffer nil)
+
   ;; Check for special modes
   (speedbar-maybe-add-localized-support (current-buffer))
+
   ;; Choose the correct method of doodling.
   (if (and speedbar-mode-specific-contents-flag
 	   (listp speedbar-special-mode-expansion-list)
@@ -2314,17 +2318,19 @@ name will have the function FIND-FUN and not token."
 
 (defun speedbar-update-directory-contents ()
   "Update the contents of the speedbar buffer based on the current directory."
-  (let ((cbd (expand-file-name default-directory))
-	cbd-parent
-	(funclst (speedbar-initial-expansion-list))
-	(cache speedbar-full-text-cache)
-	;; disable stealth during update
-	(speedbar-stealthy-function-list nil)
-	(use-cache nil)
-	(expand-local nil)
-	;; Because there is a bug I can't find just yet
-	(inhibit-quit nil))
-    (save-excursion
+
+  (save-excursion
+
+    (let ((cbd (expand-file-name default-directory))
+	  cbd-parent
+	  (funclst (speedbar-initial-expansion-list))
+	  (cache speedbar-full-text-cache)
+	  ;; disable stealth during update
+	  (speedbar-stealthy-function-list nil)
+	  (use-cache nil)
+	  (expand-local nil)
+	  ;; Because there is a bug I can't find just yet
+	  (inhibit-quit nil))
       (set-buffer speedbar-buffer)
       ;; If we are updating contents to where we are, then this is
       ;; really a request to update existing contents, so we must be
@@ -2413,6 +2419,7 @@ This should only be used by modes classified as special."
 	  ;; decide NOT to update themselves.
 	  (funcall (car funclst) specialbuff)
 	  (setq funclst (cdr funclst))))
+
       (goto-char (point-min))))
   (speedbar-reconfigure-keymaps))
 
@@ -2527,6 +2534,9 @@ If new functions are added, their state needs to be updated here."
 
 (defun speedbar-find-selected-file (file)
   "Goto the line where FILE is."
+
+  (set-buffer speedbar-buffer)
+  
   (goto-char (point-min))
   (let ((m nil))
     (while (and (setq m (re-search-forward
@@ -2616,7 +2626,13 @@ updated."
 	    (setq speedbar-last-selected-file newcf))
 	  (if (not sucf-recursive)
 	      (progn
-		(speedbar-center-buffer-smartly)
+
+                ;;Sat Dec 15 2001 12:40 AM (burton@openprivacy.org): this
+                ;;doesn't need to be in.  We don't want to recenter when we are
+                ;;updating files.
+
+                ;;(speedbar-center-buffer-smartly)
+
 		(speedbar-position-cursor-on-line)
 		))
 	  (set-buffer lastb)
@@ -2889,9 +2905,8 @@ Optional argument P is where to start the search from."
     (if p (goto-char p))
     (beginning-of-line)
     (if (looking-at (concat
-		     "\\([0-9]+\\): *[[<{]?[-+?=][]>}@()|] \\([^ \n]+\\)\\("
-		     speedbar-indicator-regex "\\)?"))
-	(match-string 2)
+		     "\\([0-9]+\\): *[[<{]?[-+?=][]>}@()|] \\([^ \n]+\\)"))
+	(get-text-property (match-beginning 2) 'speedbar-text)
       nil)))
 
 (defun speedbar-line-token (&optional p)
@@ -3273,62 +3288,69 @@ frame instead."
   "Recenter a speedbar buffer so the current indentation level is all visible.
 This assumes that the cursor is on a file, or tag of a file which the user is
 interested in."
-  (if (<= (count-lines (point-min) (point-max))
-	  (1- (window-height (selected-window))))
-      ;; whole buffer fits
-      (let ((cp (point)))
-	(goto-char (point-min))
-	(recenter 0)
-	(goto-char cp))
-    ;; too big
-    (let (depth start end exp p)
-      (save-excursion
-	(beginning-of-line)
-	(setq depth (if (looking-at "[0-9]+")
-			(string-to-int (buffer-substring-no-properties
-					(match-beginning 0) (match-end 0)))
-		      0))
-	(setq exp (format "^%d:" depth)))
-      (save-excursion
-	(end-of-line)
-	(if (re-search-backward exp nil t)
-	    (setq start (point))
-	  (setq start (point-min)))
-	(save-excursion			;Not sure about this part.
-	  (end-of-line)
-	  (setq p (point))
-	  (while (and (not (re-search-forward exp nil t))
-		      (>= depth 0))
-	    (setq depth (1- depth))
-	    (setq exp (format "^%d:" depth)))
-	  (if (/= (point) p)
-	      (setq end (point))
-	    (setq end (point-max)))))
-      ;; Now work out the details of centering
-      (let ((nl (count-lines start end))
-	    (wl (1- (window-height)))
-	    (cp (point)))
-	(if (> nl wl)
-	    ;; We can't fit it all, so just center on cursor
-	    (progn (goto-char start)
-		   (recenter 1))
-	  ;; we can fit everything on the screen, but...
-	  (if (and (pos-visible-in-window-p start (selected-window))
-		   (pos-visible-in-window-p end (selected-window)))
-	      ;; we are all set!
-	      nil
-	    ;; we need to do something...
-	    (goto-char start)
-	    (let ((newcent (/ (- (window-height (selected-window)) nl) 2))
-		  (lte (count-lines start (point-max))))
-	      (if (and (< (+ newcent lte) (window-height (selected-window)))
-		       (> (- (window-height (selected-window)) lte 1)
-			  newcent))
-		  (setq newcent (- (window-height (selected-window))
-				   lte 1)))
-	      (recenter newcent))))
-	(goto-char cp)))))
 
+  (save-selected-window
+  
+    (select-window (get-buffer-window speedbar-buffer))
+    
+    (set-buffer speedbar-buffer)
+    
+    (if (<= (count-lines (point-min) (point-max))
+	    (1- (window-height (selected-window))))
+	;; whole buffer fits
+	(let ((cp (point)))
+
+	  (goto-char (point-min))
+	  (recenter 0)
+	  (goto-char cp))
+      ;; too big
+      (let (depth start end exp p)
+	(save-excursion
+	  (beginning-of-line)
+	  (setq depth (if (looking-at "[0-9]+")
+			  (string-to-int (buffer-substring-no-properties
+					  (match-beginning 0) (match-end 0)))
+			0))
+	  (setq exp (format "^%d:" depth)))
+	(save-excursion
+	  (end-of-line)
+	  (if (re-search-backward exp nil t)
+	      (setq start (point))
+	    (setq start (point-min)))
+	  (save-excursion		;Not sure about this part.
+	    (end-of-line)
+	    (setq p (point))
+	    (while (and (not (re-search-forward exp nil t))
+			(>= depth 0))
+	      (setq depth (1- depth))
+	      (setq exp (format "^%d:" depth)))
+	    (if (/= (point) p)
+		(setq end (point))
+	      (setq end (point-max)))))
+	;; Now work out the details of centering
+	(let ((nl (count-lines start end))
+              (wl (1- (window-height (selected-window))))
+	      (cp (point)))
+	  (if (> nl wl)
+	      ;; We can't fit it all, so just center on cursor
+	      (progn (goto-char start)
+		     (recenter 1))
+	    ;; we can fit everything on the screen, but...
+	    (if (and (pos-visible-in-window-p start (selected-window))
+		     (pos-visible-in-window-p end (selected-window)))
+		;; we are all set!
+		nil
+	      ;; we need to do something...
+	      (goto-char start)
+	      (let ((newcent (/ (- (window-height (selected-window)) nl) 2))
+		    (lte (count-lines start (point-max))))
+		(if (and (< (+ newcent lte) (window-height (selected-window)))
+			 (> (- (window-height (selected-window)) lte 1)
+			    newcent))
+		    (setq newcent (- (window-height (selected-window))
+				     lte 1)))
+		(recenter newcent))))
+          (goto-char cp))))))
 
 ;;; Tag Management -- List of expanders:
 ;;
