@@ -6,9 +6,9 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.101 2001/05/07 20:31:59 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.102 2001/05/09 02:25:53 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "0.17"
+(defvar eieio-version "0.17beta1"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
