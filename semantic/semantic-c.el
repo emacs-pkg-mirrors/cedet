@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.8 2003/01/30 08:09:16 berndl Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.9 2003/01/30 13:41:37 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -333,6 +333,12 @@
  ( template-type opt-stars opt-template-equal
   ,(semantic-lambda
   ( cons ( concat ( car (nth 0 vals)) ( make-string ( car (nth 1 vals)) 42)) ( cdr (nth 0 vals)))))
+ ( string
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ( number
+  ,(semantic-lambda
+  (list (nth 0 vals))))
  ) ; end template-var
  (opt-template-equal
  ( punctuation "\\b=\\b" symbol punctuation "\\b<\\b" template-specifier-types punctuation "\\b>\\b"
@@ -463,12 +469,9 @@
  ( builtintype
   ,(semantic-lambda
   (nth 0 vals)))
- ( symbol template-specifier
+ ( namespace-symbol opt-template-specifier
   ,(semantic-lambda
-  (list (nth 0 vals) 'type "class")))
- ( namespace-symbol opt-stars opt-template-specifier
-  ,(semantic-lambda
-  (nth 0 vals)))
+  (nth 0 vals) (list 'type "class")))
  ( symbol
   ,(semantic-lambda
   (list (nth 0 vals))))
