@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.15 2001/09/21 14:30:45 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.16 2001/11/07 20:18:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -305,7 +305,7 @@ Also all symbol starting with '$' are reserved for internal use.")
 ;;;;
 
 (defgroup wisent nil
-  "The Semantic bison like parser generator.
+  "The Bison like parser generator for Emacs.
 
                   /\\_.-^^^-._/\\
                   \\__       __/
@@ -329,6 +329,11 @@ Also all symbol starting with '$' are reserved for internal use.")
   "The size of `wisent--state-table'."
   :type 'integer
   :group 'wisent)
+
+(defvar wisent-skip-token-hook nil
+  "Hook run when the parser skips a lexical token.
+The hook function receives the lexical token skipped.  For language
+specific hooks, make sure you define this as a local hook.")
 
 ;;;;
 ;;;; Bit vector management
@@ -461,47 +466,47 @@ N is the number of elements to process.  The result is stored in V1."
 (defvar wisent--nullable        nil
   "Nullable nonterminal flags.")
 (defvar wisent--derives         nil
-  "")
+  "Rules that can derive each nonterminal.")
 (defvar wisent--fderives        nil
-  "")
+  "Rules that can help derive beginning of data of each nonterminal.")
 (defvar wisent--firsts          nil
-  "")
+  "Vector of item number listes indicating first items.")
 (defvar wisent--kernel-base     nil
-  "")
+  "Start indexes of item numbers activated if a symbol is shifted.")
 (defvar wisent--kernel-end      nil
-  "")
+  "End indexes of item numbers activated if a symbol is shifted.")
 (defvar wisent--shift-symbol    nil
-  "")
+  "Symbols that can be shifted.")
 (defvar wisent--shift-set       nil
-  "")
+  "State numbers reached by each shift transition.")
 (defvar wisent--state-table     nil
-  "")
+  "The state table.")
 (defvar wisent--access-symbol   nil
-  "")
+  "Indexes of accessing symbol of each state.")
 (defvar wisent--reduction-table nil
-  "")
+  "The reduction table.")
 (defvar wisent--shift-table     nil
-  "")
+  "The shift table.")
 (defvar wisent--consistent      nil
-  "")
+  "For each state, non-nil if no LA is needed to decide what to do.")
 (defvar wisent--lookaheads      nil
-  "")
+  "Lookaheads.")
 (defvar wisent--la              nil
-  "")
+  "Matrix of bits.")
 (defvar wisent--laruleno        nil
-  "")
+  "Rules that need lookahead in various states.")
 (defvar wisent--lookback        nil
-  "")
+  "Lookback edges.")
 (defvar wisent--goto-map        nil
-  "")
+  "Indexes of first transition states.")
 (defvar wisent--from-state      nil
-  "")
+  "State numbers which transitions lead from.")
 (defvar wisent--to-state        nil
-  "")
+  "State numbers which transitions lead to.")
 (defvar wisent--includes        nil
-  "")
+  "Includes.")
 (defvar wisent--f               nil
-  "")
+  "Working table to compute lookaheads.")
 (defvar wisent--action-table    nil
   "Action table.")
 (defvar wisent--rules           nil
@@ -522,31 +527,29 @@ This is a vector of pairs (SR-conflicts . RR-conflicts).")
 (defvar wisent--nterms          nil
   "Number of terminals.")
 (defvar wisent--nsyms           nil
-  "")
+  "Number of non terminals and terminals.")
 (defvar wisent--nstates         nil
   "Number of states.")
 (defvar wisent--first-state     nil
-  "")
+  "Record first state.")
 (defvar wisent--last-state      nil
-  "")
+  "Record last state.")
 (defvar wisent--final-state     nil
-  "")
+  "Record final state.")
 (defvar wisent--first-shift     nil
-  "")
+  "Record first shift.")
 (defvar wisent--last-shift      nil
-  "")
+  "Record last shift.")
 (defvar wisent--first-reduction nil
-  "")
+  "Record first reduction.")
 (defvar wisent--last-reduction  nil
-  "")
+  "Record last reduction.")
 (defvar wisent--nshifts         nil
-  "")
-(defvar wisent--maxrhs          nil
-  "")
+  "Number of symbols that can be shifted.")
 (defvar wisent--ngotos          nil
-  "")
+  "Number of transitions which accept a nonterminal.")
 (defvar wisent--token-set-size  nil
-  "")
+  "Size of a token set.")
 (defvar wisent--conflicts nil
   "Total number of conflicts found.
 The value is a pair (SR-conflicts . RR-conflicts).")
@@ -731,7 +734,7 @@ describes the resolve choice, that is \"shift\" or \"reduce\"."
    
 ;; Debug
 (defvar wisent-debug-flag nil
-  "Enable some debug stuff when non-nil.")
+  "Non-nil means enable some debug stuff.")
 
 ;; Utilities
 (defun wisent-pos-in-list (x lst)
@@ -832,7 +835,6 @@ returns non-nil."
         wisent--first-reduction    nil
         wisent--last-reduction     nil
         wisent--nshifts            nil
-        wisent--maxrhs             nil
         wisent--ngotos             nil
         wisent--nstates            nil
         wisent--nvars              nil
@@ -1125,11 +1127,11 @@ that could arrive next."
 (defun wisent-new-itemsets (itemset)
   "Find which symbols can be shifted in the current state.
 And for each one record which items would be active after that shift.
-Uses the contents of ITEMSET.  shift_symbol is set to a vector of the
-symbols that can be shifted.  For each symbol in the grammar,
-wisent--kernel-base[symbol] points to a vector of item numbers
-activated if that symbol is shifted, and wisent--kernel-end[symbol]
-points after the end of that vector."
+Uses the contents of ITEMSET.  `wisent--shift-symbol' is set to a
+vector of the symbols that can be shifted.  For each symbol in the
+grammar, wisent--kernel-base[symbol] points to a vector of item
+numbers activated if that symbol is shifted, and
+wisent--kernel-end[symbol] points after the end of that vector."
   (setq wisent--shift-symbol nil)
   (fillarray wisent--kernel-end nil)
   (let ((isp itemset)
@@ -1270,10 +1272,10 @@ tokens they accept.
   wisent--from_state[t] is the state number which a transition leads
   from and wisent--to-state[t] is the state number it leads to.  All
   the transitions that accept a particular variable are grouped
-  together and wisent--goto_map[i - ntokens] is the index in
+  together and wisent--goto-map[i - ntokens] is the index in
   wisent--from-state and wisent--to-state of the first of them.
 
-- `wisent--consistent'[s] is nonzero if no lookahead is needed to
+- `wisent--consistent'[s] is non-nil if no lookahead is needed to
   decide what to do in state s.
 
 - `wisent--laruleno' is a vector which records the rules that need
@@ -1294,7 +1296,6 @@ tokens they accept.
   (wisent-set-accessing-symbol)
   (wisent-set-shift-table)
   (wisent-set-reduction-table)
-  (wisent-set-max-rhs)
   (wisent-initialize-la)
   (wisent-set-goto-map)
   (wisent-initialize-f)
@@ -1331,20 +1332,8 @@ tokens they accept.
             l (cdr l))
       (aset wisent--reduction-table (wisent-red-number x) x))))
 
-(defun wisent-set-max-rhs ()
-  "Compute the length of the longest right hand side."
-  (let ((r      0)
-        (length 0)
-        *r)
-    (setq wisent--maxrhs 0)
-    (while (setq *r (aref wisent--ritem r))
-      (if (>= *r 0)
-          (setq length (1+ length))
-        (setq wisent--maxrhs (max wisent--maxrhs length)
-              length 0))
-      (setq r (1+ r)))))
-
 (defun wisent-initialize-la ()
+  "Initialize lookaheads."
   (setq wisent--consistent (make-vector wisent--nstates nil)
         wisent--lookaheads (make-vector (1+ wisent--nstates) nil))
   (let ((count 0)
@@ -1390,6 +1379,7 @@ tokens they accept.
       (setq i (1+ i)))))
 
 (defun wisent-set-goto-map ()
+  "Setup `wisent--goto-map'."
   (setq wisent--goto-map (make-vector (1+ wisent--nvars) 0))
   (let ((temp-map (make-vector (1+ wisent--nvars) 0))
         (ng 0)
@@ -1455,6 +1445,7 @@ tokens they accept.
     middle))
 
 (defun wisent-initialize-f ()
+  "Initialize `wisent--f'."
   (setq wisent--f (make-vector wisent--ngotos nil))
   (let ((reads (make-vector wisent--ngotos nil))
         (i     0)
@@ -1488,6 +1479,8 @@ tokens they accept.
     (wisent-digraph reads)))
 
 (defun wisent-add-lookback-edge (stateno ruleno gotono)
+  "Add a lookback edge.
+STATENO, RULENO and GOTONO are state, rule and goto numbers."
   (let ((k (aref wisent--lookaheads (1+ stateno)))
         (found nil)
         (i (aref wisent--lookaheads stateno)))
@@ -1501,6 +1494,7 @@ tokens they accept.
           (cons gotono (aref wisent--lookback i)))))
 
 (defun wisent-transpose (r n)
+  "Transpose vector R of N elements."
   (let ((new-end (make-vector n nil))
         (new-r   (make-vector n nil))
         (i       0)
@@ -1527,6 +1521,7 @@ tokens they accept.
     new-r))
 
 (defun wisent-symbol-state (stateno symbol)
+  "Return, from state STATENO, SYMBOL state."
   (let ((j (wisent-shift-shifts (aref wisent--shift-table stateno)))
         (stno stateno))
     (while j
@@ -1537,6 +1532,7 @@ tokens they accept.
     stno))
 
 (defun wisent-build-relations ()
+  "Build relations."
   (setq wisent--includes (make-vector wisent--ngotos nil))
   (let ((i 0)
         state1 symbol1 rulep edges
@@ -1579,6 +1575,7 @@ tokens they accept.
                           wisent--includes wisent--ngotos)))
 
 (defun wisent-compute-lookaheads ()
+  "Compute lookaheads."
   (let ((n (aref wisent--lookaheads wisent--nstates))
         (i 0)
         sp)
@@ -2320,6 +2317,7 @@ To be used in grammar recovery actions."
   (if (eq (car wisent-input) wisent-eoi-term)
       ;; does nothing at EOI to avoid infinite recovery loop
       nil
+    (run-hook-with-args 'wisent-skip-token-hook wisent-input)
     (wisent-clearin)
     (wisent-errok)))
 
@@ -2347,9 +2345,10 @@ To be used in grammar recovery actions."
         (wisent-error (format "Skipping invalid '%s' from %s to %s"
                               $nterm start end))
         ;; read input until matching close paren or EOI
-        (setq input (list nil nil start)) ;; Dummy input to start
+        (setq input wisent-input)
         (while (and (not (eq (car input) wisent-eoi-term))
                     (< (nth 2 input) end))
+          (run-hook-with-args 'wisent-skip-token-hook input)
           (setq input (wisent-lexer)))
         ;; Clear the lookahead token
         (if (eq (car wisent-input) wisent-eoi-term)
@@ -2467,8 +2466,7 @@ symbol specified at compilation time (see `wisent-compile-grammar')."
         (if (eq wisent-recovering wisent-parse-max-recover)
             (if (eq (car wisent-input) wisent-eoi-term)
                 (setq action nil) ;; Terminate if at end of input.
-              (message "Error recovery skip token %S"
-                       wisent-input)
+              (run-hook-with-args 'wisent-skip-token-hook wisent-input)
               (setq wisent-input (wisent-lexer)))
 
           ;; Else will try to reuse lookahead token after shifting the
@@ -2514,8 +2512,7 @@ symbol specified at compilation time (see `wisent-compile-grammar')."
                       (not (or (eq wisent-eoi-term choice)
                                (assq (wisent-translate
                                       choice terminals) choices))))
-                  (message "Error recovery skip token %S"
-                           wisent-input)
+                  (run-hook-with-args 'wisent-skip-token-hook wisent-input)
                   (setq wisent-input nil))))))
         
        ;; Shift current token on top of the stack
