@@ -1,10 +1,10 @@
 ;;; semantic-sb.el --- Semantic tag display for speedbar
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.46 2004/03/06 20:14:27 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.47 2004/03/11 02:28:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -73,17 +73,31 @@ This will replace the named bucket that would have usually occured here."
 ;;
 ;;  +>  -> click to see additional information
 
+(define-overload semantic-sb-tag-children-to-expand (tag)
+  "For TAG, return a list of children that TAG expands to.
+If this returns a value, then a +> icon is created.
+If it returns nil, then a => icon is created.")
+
+(defun semantic-sb-tag-children-to-expand-default (tag)
+  "For TAG, the children for type, variable, and function classes."
+  (let ((class (semantic-tag-class tag)))
+    (cond ((eq class 'type)
+	   (semantic-tag-type-members tag))
+	  ((eq class 'variable)
+	   (semantic-tag-variable-default tag))
+	  ((eq class 'function)
+	   (semantic-tag-function-arguments tag))
+	  )))
+
 (defun semantic-sb-one-button (tag depth &optional prefix)
   "Insert TAG as a speedbar button at DEPTH.
 Optional PREFIX is used to specify special marker characters."
   (let* ((class (semantic-tag-class tag))
-	 (edata (cond ((eq class 'type)
-		        (semantic-tag-type-members tag))
-		      ((eq class 'variable)
-		       (semantic-tag-variable-default tag))
-		      ((eq class 'function)
-		       (semantic-tag-function-arguments tag))
-		      ))
+	 (edata (save-excursion
+		   (when (and (semantic-tag-overlay tag)
+			      (semantic-tag-buffer tag))
+		     (set-buffer (semantic-tag-buffer tag)))
+		   (semantic-sb-tag-children-to-expand tag)))
 	 (type (semantic-tag-type tag))
 	 (abbrev (save-excursion
 		   (when (and (semantic-tag-overlay tag)
@@ -212,7 +226,21 @@ Optional MODIFIERS is additional text needed for variables."
 		   (if args
 		       (semantic-sb-maybe-token-to-button
 			(car args) indent ")"))
-		   )))))
+		   ))))
+	  (t
+	   (let ((components
+		  (save-excursion
+		    (when (and (semantic-tag-overlay tag)
+			       (semantic-tag-buffer tag))
+		      (set-buffer (semantic-tag-buffer tag)))
+		    (semantic-sb-tag-children-to-expand tag))))
+	     ;; Well, it wasn't one of the many things we expect.
+	     ;; Lets just insert them in with no decoration.
+	     (while components
+	       (semantic-sb-one-button (car components) indent)
+	       (setq components (cdr components)))
+	     ))
+	  )
     ))
 
 (defun semantic-sb-detail-parent ()
