@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.6 1999/03/02 15:51:06 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.7 1999/03/09 16:11:35 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -210,13 +210,20 @@ in targets.")
 	(oset project file cfn)
 	(kill-buffer b)))))
 
-(defmethod eieio-done-customizing ((proj ede-proj-project))
-  "Call this when a user finishes customizing this object."
+(defmethod ede-commit-local-variables ((proj ede-proj-project))
+  "Commit change to local variables in PROJ."
   (ede-proj-save proj))
 
-(defmethod eieio-done-customizing ((proj ede-proj-target))
+(defmethod eieio-done-customizing ((proj ede-proj-project))
   "Call this when a user finishes customizing this object.
-Argument PROJ is the project we are completing customization on."
+Argument PROJ is the project to save."
+  (call-next-method)
+  (ede-proj-save proj))
+
+(defmethod eieio-done-customizing ((target ede-proj-target))
+  "Call this when a user finishes customizing this object.
+Argument TARGET is the project we are completing customization on."
+  (call-next-method)
   (ede-proj-save (ede-current-project)))
 
 (defmethod ede-commit-project ((proj ede-proj-project))
