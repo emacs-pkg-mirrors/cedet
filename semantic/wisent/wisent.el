@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.16 2001/11/07 20:18:57 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.17 2001/12/15 23:33:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2256,6 +2256,11 @@ and listes: [ACTIONS GOTOS REDUCTIONS TERMS STARTS] where:
 (defvar wisent-nerrs nil
   "Hold the number of parse errors.")
 
+(defvar wisent-lookahead nil
+  "Hold the lookahead lexical token.
+This value is non-nil if the parser terminated because of an
+unrecoverable error.")
+
 ;;;; Variables and macros that are useful in grammar actions.
 
 (defvar wisent-parse-lexer-function nil
@@ -2377,8 +2382,7 @@ SP is the top of stack index.  NT is the reduced nonterminal ID.
 GOTO-TABLE is the parser goto table.  VALUE is the nonterminal reduced
 value.  Return the new top of stack index."
   (let ((state (aref stack sp)))
-    (or (< (setq sp (+ sp 2)) wisent-parse-max-stack-size)
-        (error "Parse error: stack overflow"))
+    (setq sp (+ sp 2))
     (aset stack sp (cdr (assq nt (aref goto-table state))))
     (aset stack (1- sp) value)
     sp))
@@ -2434,7 +2438,8 @@ symbol specified at compilation time (see `wisent-compile-grammar')."
          (wisent-recovering nil)
          (wisent-input (wisent-parse-start start starts))
          state tokid choices choice)
-    (setq wisent-nerrs 0) ;; Reset parse error counter
+    (setq wisent-nerrs     0 ;; Reset parse error counter
+          wisent-lookahead nil) ;; and lookahead token
     (aset stack 0 0) ;; Initial state
     (while action
       (setq state  (aref stack sp)
@@ -2487,9 +2492,8 @@ symbol specified at compilation time (see `wisent-compile-grammar')."
 
           (if (not choice)
               ;; No 'error terminal was found.  Just terminate.
-              (progn
-                (message "No error recovery found in stack")
-                (setq action nil))
+              (setq wisent-lookahead wisent-input
+                    action nil)
             
             ;; Try to recover and continue parsing.
             ;; Shift the error terminal.
