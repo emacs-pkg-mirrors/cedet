@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.94 2001/01/24 21:03:55 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.95 2001/01/25 19:15:14 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -885,7 +885,7 @@ doc string, and eventually the body, such as:
 ;;; Slot type validation
 ;;
 (defun eieio-perform-slot-validation (spec value)
-  "Signal if SPEC does not match VALUE."
+  "Return non-nil if SPEC does not match VALUE."
   ;; typep is in cl-macs
   (or (eq spec t)			; t always passes
       (eq value eieio-unbound)		; unbound always passes
