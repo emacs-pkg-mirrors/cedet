@@ -472,7 +472,7 @@ For historical compatibility, the form @w{@samp{%token @var{name}
 @var{value}}} actually declares a keyword, and is strictly equivalent
 to @w{@samp{%keyword @var{name} @var{value}}}.  Because the former is
 ambiguous and could be abandoned in future releases of @semantic{}, we
-highly recommend to use the latter to declare keywords!@refill
+highly recommend to use the latter to declare keywords!
 @end table
 
 In the generated library, token definitions are stored in the table of
@@ -942,7 +942,7 @@ Lisp code.
 
 You can run the command @command{semantic-grammar-create-package} with
 @w{@kbd{C-c C-c}} (or @w{@kbd{C-u C-c C-c}} to unconditionally
-re-generate the Lisp code).@refill
+re-generate the Lisp code).
 
 Additionally, when this command is run interactively, all open buffers
 of that mode have their setup functions re-run.  That way after
@@ -967,7 +967,7 @@ expression then Lisp symbols are completed.
 @end deffn
 
 You can run the command @command{semantic-grammar-complete} with
-@w{@kbd{@key{META} @key{TAB}}}.@refill
+@w{@kbd{@key{META} @key{TAB}}}.
 
 @deffn Command semantic-grammar-find-macro-expander macro-name library
 @anchor{semantic-grammar-find-macro-expander}
@@ -990,11 +990,20 @@ semantic-appdev}.
 @end deffn
 
 You can run the command @command{semantic-grammar-find-macro-expander}
-with @w{@kbd{C-c m}}.@refill
+with @w{@kbd{C-c m}}.
 
 The characters @w{@kbd{| ; % ( ) :}} are @dfn{electric punctuations}.
 Each time you type one, the line is re-indented after the character is
-inserted.@refill
+inserted.
+
+@deffn Command semantic-grammar-insert-keyword name
+@anchor{semantic-grammar-insert-keyword}
+Insert a new @code{%keyword} declaration with @var{name}.
+Assumes it is typed in with the correct casing.
+@end deffn
+
+You can run the command @command{semantic-grammar-insert-keyword}
+with @w{@kbd{C-c i k}}.
 
 @node Auto-generation of lexical rules
 @section Auto-generation of lexical rules
