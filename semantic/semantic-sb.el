@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.13 2000/04/25 16:27:26 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.14 2000/04/27 22:09:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -59,6 +59,9 @@
   "Insert TOKEN as a speedbar button at DEPTH.
 Optional PREFIX is used to specify special marker characters."
   (let* ((type (semantic-token-token token))
+	 (ttype (if (member type '(function variable type))
+		    (semantic-token-type token)
+		  nil))
 	 (edata (cond ((eq type 'type)
 		        (semantic-token-type-parts token))
 		      ((eq type 'variable)
@@ -78,8 +81,8 @@ Optional PREFIX is used to specify special marker characters."
     ;; types are a bit unique.  Variable types can have special meaning.
     (cond ((eq type 'type)
 	   (let ((name (semantic-token-name token)))
-	     (if (semantic-token-type token)
-		 (setq name (concat (semantic-token-type token) " " name)))
+	     (if ttype
+		 (setq name (concat ttype " " name)))
 	     (if (or edata (semantic-token-type-parent token))
 		 (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
 					 'speedbar-button-face
@@ -94,10 +97,7 @@ Optional PREFIX is used to specify special marker characters."
 				     'semantic-sb-token-jump
 				     token t)))
 	  (t
-	   (if (or (and (semantic-token-type token)
-			(or (not (listp (semantic-token-type token)))
-			    (car (semantic-token-type token))))
-		   edata)
+	   (if (or (and ttype (or (not (listp ttype)) (car ttype))) edata)
 	       (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
 				       'speedbar-button-face
 				       'speedbar-highlight-face
