@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.43 1999/09/05 11:08:49 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.44 1999/09/05 12:40:15 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -399,9 +399,6 @@ toplevel documentation for this class."
     ;; turn this into a useable self-pointing symbol
     (set cname cname)
 
-    ;; Set up a specialized doc string
-    (eieio-rebuild-doc-string cname)
-
     ;; Attach field symbols into an obarray, and store the index of
     ;; this field as the variable slot in this new symbol.  We need to
     ;; know about primes, because obarrays are best set in vectors of
@@ -448,6 +445,9 @@ toplevel documentation for this class."
 	    (list 'lambda (list 'obj)
 		  (format "Test OBJ to see if it an object of type %s" cname)
 		  (list 'same-class-p 'obj cname))))
+
+    ;; Set up a specialized doc string
+    (eieio-rebuild-doc-string cname)
 
     ;; if this is a superclass, clear out parent (which was set to the
     ;; default superclass eieio-default-superclass)
@@ -1355,35 +1355,50 @@ viewing by apropos, and describe-variables, and the like."
   (if (not (class-p class)) (signal 'wrong-type-argument '(class-p class)))
   (let* ((cv (class-v class))
 	 (newdoc (aref cv class-doc))
-	 (docs (aref cv class-public-doc))
-	 (names (aref cv class-public-a))
-	 (deflt (aref cv class-public-d))
-	 (prot (aref cv class-protection))
+	 (docs   (aref cv class-public-doc))
+	 (names  (aref cv class-public-a))
+	 (deflt  (aref cv class-public-d))
+	 (types  (aref cv class-public-type))
+	 (i      0)
+	 (prot   (aref cv class-protection))
 	 )
     (setq newdoc (concat newdoc "\n\nInstance Allocated Slots:"))
     (while names
       (setq newdoc (concat newdoc "\n\n"
 			   (if (car prot) "Private " "")
 			   "Slot: " (symbol-name (car names))
+			   (if (not (eq (aref types i) t))
+			       (concat "    type = "
+				       (format "%S" (aref types i)))
+			     "")
 			   "    default = " (format "%S" (car deflt))
 			   (if (car docs) (concat "\n  " (car docs)) "")))
       (setq names (cdr names)
 	    docs (cdr docs)
 	    deflt (cdr deflt)
-	    prot (cdr prot)))
-    (setq docs (aref cv class-class-allocation-doc)
+	    prot (cdr prot)
+	    i (1+ i)))
+    (setq docs  (aref cv class-class-allocation-doc)
 	  names (aref cv class-class-allocation-a)
-	  prot (aref cv class-class-allocation-protection))
+	  types (aref cv class-class-allocation-type)
+	  i     0
+	  prot  (aref cv class-class-allocation-protection))
     (if names
 	(setq newdoc (concat newdoc "\n\nClass Allocated Slots:")))
     (while names
       (setq newdoc (concat newdoc "\n\n"
 			   (if (car prot) "Private " "")
 			   "Slot: " (symbol-name (car names))
+			   (if (not (eq (aref types i) t))
+			       (concat "    type = "
+				       (format "%S" (aref types i)))
+			     "")
 			   (if (car docs) (concat "\n  " (car docs)) "")))
       (setq names (cdr names)
 	    docs (cdr docs)
-	    prot (cdr prot)))    ;; only store this on the variable.  The doc-string in the vector
+	    prot (cdr prot)
+	    i (1+ i)))
+    ;; only store this on the variable.  The doc-string in the vector
     ;; is ONLY the top level doc for this class.  The value found via
     ;; emacs needs to be more descriptive.
     (put class 'variable-documentation newdoc)))
