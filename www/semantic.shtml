@@ -30,8 +30,13 @@ authors, without knowing anything about those tools.</p>
 <li>language definitions: Parsers already existing for the parser
             generator language (Bovine Normal Form), Emacs Lisp, and
 	    C.
+<li>database: Persistent storage of parsed information.  Speeds load
+	time and provides standard way of cross referencing files.
 <li>navigator: Senator is a navigator that permits simple navigation
 	    through the parsed language.
+<li>analyzer: Examines code, and references those names against a
+	database of pre-parsed files to provide detailed information.
+<li>imenu support: Create hierarchical imenu menus from parsed files.
 <li>speedbar browser: Code for browsing a generated nonterminal list
             with Speedbar.
 <li>Documentation generator: Identifies inline documentation in source
@@ -54,7 +59,7 @@ Complexity of semantic.el
 </td>
 </table>
 
-<h3>Tools in 1.4 beta</h3>
+<h3>New tools in 1.4 beta</h3>
 <ol>
 <li>charting: Draw a chart of some things semantic can quantify.
 <li>database: store parsed tokens on a file system.
@@ -70,9 +75,11 @@ Complexity of semantic.el
 <ol>
 <li>Faster parsing: David Ponce is working on a bison port to Emacs Lisp.
 <li>local context: A mechanism for identifying the local context in a language.
-<li>completion: intelligent completion
+<li>completion: intelligent completion filtering on data types
 <li>type analysis library: Analyze the types (structures & classes) in a given
 	  project. (See also <a href=cogre.shtml>COGRE</a>)
+<li>Unit Test generation: Analyze an API, and automatically create
+          unit tests for it.
 <li>smart templates: Insert code fragments based based intrinsicly
 	  upon the language definition, and available variables and types.
 <li>dependency analysis: Determine if a given dependency is really needed,
@@ -123,26 +130,15 @@ Complexity of semantic.el
 
 <h2>Notes</h2>
 
-<P>Semantic works with Emacs 20.x, 21 pre-release, XEmacs 20.x, and 21.x.
+<P>Semantic works with Emacs 20.x, 21, XEmacs 20.x, and 21.x.
 </p>
-
-<P>The following seems to be fixed with bovinator 1.1 and greater:</p>
-
-<P>Emacs sometimes has trouble with very complex definitions.
-You may need to add this to your .emacs file</p>
-
-<pre>
-(setq max-specpdl-size 1000)
-</pre>
 
 <h2>Download the Semantic Bovinator</h2>
 
 <P>Live on the Edge!  Try
    <a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
-   Semantic 1.4 beta11</a><br>
-   Semantic 1.4 beta 11 will <b>NOT WORK</b> with JDE 2.2.6, nor 
-   JDE beta 2.2.7 beta 10.  Please use JDE release 2.2.7 or later which
-   explicitly depends on Semantic 1.4 beta 5 or later.
+   Semantic 1.4 beta12</a><br>
+   This version depends on the recent speedbar release: version 0.14 beta 2.
 </p>
 
 <p>The latest stable bovinator:
@@ -154,11 +150,11 @@ You may need to add this to your .emacs file</p>
 <P>Semantic's speedbar interface requires the
 <a href="speedbar.shtml">latest version of speedbar.</a></p>
 
-<P>Semantic 1.4 introduces the Semantic Database.  This database
-   requires the latest version of
+<P>Semantic 1.4 introduces the Semantic Database, Semantic Analysis
+   tool, and semantic charts..  These tools
+   require the latest version of
    <a href="eieio.shtml">EIEIO</a>.
-   To fully compile semantic 1.4, you will also need a copy of
-   <a href="speedbar.shtml">Speedbar</a>.
+</p>
 
 <P>If semantic kills font-lock, you need to get and use
 <a href=http://cedet.sourceforge.net/ftp/overlay-fix.el>
