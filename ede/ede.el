@@ -1,10 +1,10 @@
 ;;; ede.el --- Emacs Development Environment gloss
 
-;;;  Copyright (C) 1998, 99  Eric M. Ludlam
+;;;  Copyright (C) 1998, 99, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.28 1999/12/04 17:32:35 zappo Exp $
+;; RCS: $Id: ede.el,v 1.29 2000/04/28 22:56:02 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -36,11 +36,6 @@
 ;; different ones.
 
 ;;; Install
-;;
-;;  Place these files in your load path, and byte compile them
-;;
-;;  ede and it's support files depend on:
-;;   eieio and make-mode.  It will use compile, gud, and speedbar.
 ;;
 ;;  This command enables project mode on all files.
 ;;
@@ -759,6 +754,20 @@ Argument THIS is the project to convert PATH to."
   "Return non-nil if THIS target wants FILE."
   nil)
 
+(defmethod ede-expand-filename ((this ede-project) filename)
+  "Return a fully qualified file name based on project THIS.
+FILENAME should be just a filename which occurs in a directory controlled
+by this project."
+  (let ((path (file-name-directory (oref this file)))
+	(proj (oref this subproj))
+	(found nil))
+    (if (file-exists-p (concat path filename))
+	(concat path filename)
+      (while (and (not found) proj)
+	(setq found (ede-expand-filename (car proj) filename)
+	      proj (cdr proj)))
+      found)))
+
 
 ;;; EDE project-autoload methods
 ;;
@@ -834,6 +843,13 @@ Argument DIR is the directory to trim upwards."
 	(if (not found)
 	    (error "No project for %s, but passes project-p test" file))
 	found))))
+
+(defun ede-toplevel ()
+  "Return the ede project which is the root of the current project."
+  (let ((cp (ede-current-project)))
+    (while (ede-parent-project cp)
+      (setq cp (ede-parent-project cp)))
+    cp))
 
 (defun ede-parent-project (&optional obj)
   "Return the project belonging to the parent directory.
