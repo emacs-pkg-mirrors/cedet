@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-config.el,v 1.11 1997/01/19 22:07:22 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.12 1997/01/24 00:38:26 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -60,7 +60,14 @@ the changes you just set.")
 ;;; DLG builders
 ;;;
 (defun dlg-init (&optional edit-style)
-  "Configure some basic emacs stuff"
+  "Prepare a new dialog-mode buffer and initialize Configure subsystem.
+EDIT-STYLE is one of nil, 'dot-emacs, or 'xdefaults.  If nil, then
+edit lines are available for both the .emacs file, and the xdefaults
+file.  If one of the symbols is used, then only that edit line is
+availabe.  This call also creates checkboxes for controlling how and
+when symbols will modify the current emacs environment.
+
+A HELP button provides a view of the Dialog-mode help screen."
   (switch-to-buffer (get-buffer-create "Emacs Configure"))
   (toggle-read-only -1)
   (erase-buffer)
@@ -117,7 +124,7 @@ the changes you just set.")
     ))
 
 (defun dlg-end ()
-  "Add the [Done] button to the end."
+  "Add the <Done> button to the end, and provide any closure needed."
   (create-widget "econfogok" widget-push-button
 		 :x 2 :y -2
 		 :label-value "Done"
@@ -126,8 +133,10 @@ the changes you just set.")
 			      (message "Click to finish configuring."))))
 
 (defun dlg-info-button (description infopage help)
-  "Creates a special label/push-button combination specialized for
-jumping to an info page."
+  "Creates a special widget group for jumping to an Info node.
+DESCRIPTION is a string label placed before a button labeled <Read Info>.
+INFOPAGE is the string passed to `Info-goto-node'.  HELP is a string
+displayed in the minibuffer whenever help is requested from the pushbutton."
   (if description
       (create-widget "info-label" widget-label
 		     :label-value description))
@@ -142,12 +151,13 @@ jumping to an info page."
 				  (list 'message help))))
 
 (defun dlg-bunch-of-simple-toggles (&rest toggle-data)
-  "Creates a bunch of toggle buttons in the current group.  Parameters
-are of the form LABEL-STRING SYMBOL LABEL-STRING SYMBOL ... infinitly
-repeating.  Each LABEL-STRING becomes the toggle button's label, and
-the SYMBOL is the symbol this toggle directly edits through a
-`data-object-symbol' class.  If the symbol is a local variable, then
-the object `data-object-symbol-default' is used instead."
+  "Creates a bunch of toggle buttons in the current group.
+Parameters are of the form LABEL-STRING SYMBOL LABEL-STRING SYMBOL
+... infinitly repeating.  Each LABEL-STRING becomes the toggle
+button's label, and the SYMBOL is the symbol this toggle directly
+edits through a `data-object-symbol' class.  If the symbol is a local
+variable, then the object `data-object-symbol-default' is used
+instead."
   (while toggle-data
     ;; By making sure that the symbol really exists, we can more easilly
     ;; create cross-emacsen dialogs
@@ -160,14 +170,15 @@ the object `data-object-symbol-default' is used instead."
     (setq toggle-data (cdr (cdr toggle-data)))))
 
 (defmacro dlg-color-name (cn)
-  "Avoid annoyance of XEmacs differences"
+  "Avoid annoyance of XEmacs differences."
   (if (eval-when-compile dialog-xemacs-p)
       (list 'if cn (list 'color-name cn) cn)
     cn))
 
 (defun dlg-face-box (face &optional bx by boxjust)
-  "Create a frame to edit FACE in.  Optionally set position at BX and BY
-using BOXJUST as the justification for the label."
+  "Create a small frame to edit FACE in.
+Optionally set position at BX and BY using BOXJUST as the
+justification for the frame's label."
   (dialog-build-group (create-widget (format "Edit %S" face) widget-frame
 				     :x bx :y by :position boxjust)
 
@@ -224,9 +235,9 @@ using BOXJUST as the justification for the label."
     ))
 
 (defun dlg-faces (&optional list-o-faces)
-  "Creates a dialog mode in which emacs faces are edited.  If optional
-LIST-O-FACES is provided, then create a box for each.  Otherwise,
-default to a list of simple faces."
+  "Creates a dialog mode in which emacs faces are edited.
+If optional LIST-O-FACES is provided, then create a box for each.
+Otherwise, default to a list of simple faces."
   (interactive)
   (if (not list-o-faces)
       (setq list-o-faces (list 'default 
@@ -263,8 +274,9 @@ default to a list of simple faces."
 	       )))
 
 (defun dlg-quick-find (find file)
-  "Return t if string FIND is in the FILE.  Don't dispose of file since
-we will use it soon."
+  "Return t if string FIND is in the FILE.
+Don't dispose of file since it will probably be used by the editing
+facilities of the configure dialog calling this."
   (save-excursion
     (set-buffer (find-file-noselect file))
     (goto-char (point-min))
@@ -282,8 +294,8 @@ Unfortunately, it currently assumes there is but one dialog window."
     (other-window 1)))
 
 (defun dlg-edit-config-file (object)
-  "Reads the currently stored config-file, and starts saving
-the variables we are editing."
+  "Load in a config file, allows OBJECT to edit it,
+and displays the file in a small window."
   (if (and dlg-auto-edit dlg-config-file (not (oref this protect)))
       (let ((ob (current-buffer))
 	    nb pnt)
@@ -297,8 +309,9 @@ the variables we are editing."
 ;;; Some utility functions to use
 ;;;
 (defun dlg-string-to-list (string separator)
-  "Take STRING, and turn it into a list of parameters as though taken by a
-program.  Splits the string on SEPARATOR."
+  "Convert STRING into a list splitting based on SEPARATOR.
+This is handy for `data-object's which are held in string editors that
+wish to produce lists of strings.  (Such as parameters or some-such)"
   (let ((lst nil) (olist nil)
 	(last 0))
     (while (string-match separator string last)
@@ -314,7 +327,8 @@ program.  Splits the string on SEPARATOR."
   )
 
 (defun dlg-list-to-string (list separator)
-  "Take LIST, and turn it into a SEPARATOR separated string."
+  "Take LIST, and turn it into a SEPARATOR separated string.
+This has the reverse effect of `dlg-string-to-list'"
   (let ((str ""))
     (while list
       (setq str (concat str (car list) separator)
