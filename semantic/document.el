@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.9 2001/04/13 16:46:46 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.10 2001/09/29 23:42:44 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@
 ;; can not insert foriegn tokens.
 
 (require 'sformat)
+;; This contains most variable settings for auto-comment generation.
 (require 'document-vars)
 
 ;;; Code:
@@ -59,21 +60,9 @@
   :group 'document
   :type 'string)
 
-(defvar document-comment-start nil
-  "Comment start string.")
-
-(defvar document-comment-line-prefix nil
-  "Comment prefix string.  Used at the beginning of each line.")
-
-(defvar document-comment-end nil
-  "Comment end string.")
-
 (defvar document-runflags nil
   "Flags collected while updating a comment.
 This is used to create a history element.")
-
-;; This contains most variable settings for auto-comment generation.
-(require 'document-vars)
 
 ;;; Status tracking
 ;;
