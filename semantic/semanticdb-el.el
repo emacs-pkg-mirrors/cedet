@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.8 2003/04/06 00:58:29 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.9 2003/04/07 11:21:31 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -194,8 +194,28 @@ Return a list of tags."
   "In TABLE, find all occurances of tags matching PREFIX.
 Returns a table of all matching tags."
   (delq nil (mapcar 'semanticdb-elisp-sym->tag
-		    (all-completions prefix obarray)))
-  )
+		    (all-completions prefix obarray))))
+
+;;; Deep Searches
+;;
+;; For Emacs Lisp deep searches are like top level searches.
+(defmethod semanticdb-deep-find-tags-by-name-method
+  ((table semanticdb-table-emacs-lisp) name)
+  "Find all tags name NAME in TABLE.
+Like `semanticdb-find-tags-by-name-method' for Emacs Lisp."
+  (semanticdb-find-tags-by-name-method table name))
+
+(defmethod semanticdb-deep-find-tags-by-name-regexp-method
+  ((table semanticdb-table-emacs-lisp) regex)
+  "Find all tags with name matching REGEX in TABLE.
+Like `semanticdb-find-tags-by-name-method' for Emacs Lisp."
+  (semanticdb-find-tags-by-name-regexp-method table regex))
+
+(defmethod semanticdb-deep-find-tags-for-completion-method
+  ((table semanticdb-table-emacs-lisp) prefix)
+  "In TABLE, find all occurances of tags matching PREFIX.
+Like `semanticdb-find-tags-for-completion-method' for Emacs Lisp."
+  (semanticdb-find-tags-for-completion-method table prefix))
 
 ;;; Advanced Searches
 ;;
