@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.8 2003/05/12 13:46:13 ponced Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.9 2003/05/13 14:42:35 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -197,7 +197,7 @@ HISTORY is a symbol representing a variable to story the history in."
 				default-tag))
     ;; First, see if the displayor has a focus entry for us.
     (setq tag (list (semantic-displayor-current-focus displayor)))
-    (unless tag
+    (unless (car tag)
       ;; Convert the answer, a string, back into a tag using
       ;; the collector
       (if (slot-boundp collector 'match-list)
@@ -238,8 +238,12 @@ HISTORY is a symbol representing a variable to story the history in."
     (when (string= name "")
       ;; The user wants the defaults!
       (exit-minibuffer))
-    (semantic-complete-do-completion)
+    (semantic-complete-try-completion)
     (cond
+     ;; Input match displayor focus entry
+     ((and (semantic-displayor-current-focus displayor)
+           (equal name (oref displayor last-prefix)))
+      (exit-minibuffer))
      ;; One match
      ((and (slot-boundp collector 'match-list)
 	   (oref collector match-list))
@@ -256,6 +260,39 @@ HISTORY is a symbol representing a variable to story the history in."
       (semantic-completion-message " [No Match]")))
     ))
 
+(defun semantic-complete-try-completion (&optional partial)
+  "Try a completion for the current minibuffer.
+If PARTIAL, do partial completion stopping at spaces."
+  (let ((comp (semantic-collector-try-completion
+               semantic-completion-collector-engine)))
+    (cond
+     ((null comp)
+      (semantic-completion-message " [No Match]")
+      (ding)
+      )
+     ((stringp comp)
+      (if (string= (semantic-minibuffer-contents) comp)
+          nil ;; Minibuffer isn't changing.  Display.
+        (beginning-of-line)
+        (delete-region (point) (point-max))
+        ;; We should pay attention to the parameter
+        ;; PARTIAL here, and look at the text we are
+        ;; putting in, stopping on whitespace and word separator
+        ;; characters.
+        (insert comp))
+      )
+     ((and (listp comp) (semantic-tag-p (car comp)))
+      (unless (string= (buffer-string) (semantic-tag-name (car comp)))
+        ;; A fully unique completion was available.
+        (semantic-delete-minibuffer-contents)
+        (insert (semantic-tag-name (car comp))))
+      ;; The match is complete
+      (if (= (length comp) 1)
+          (semantic-completion-message " [Complete]")
+        (semantic-completion-message " [Complete, but not unique]"))
+      )
+     (t nil))))
+
 (defun semantic-complete-do-completion (&optional partial)
   "Do a completion for the current minibuffer.
 If PARTIAL, do partial completion stopping at spaces."
@@ -264,56 +301,28 @@ If PARTIAL, do partial completion stopping at spaces."
    (semantic-minibuffer-contents))
   (let* ((na (semantic-collector-next-action
 	      semantic-completion-collector-engine)))
-    (cond ((eq na 'display)
-	   ;; We need to display the completions.
-	   ;; Set the completions into the display engine
-	   (semantic-displayor-set-completions
-	    semantic-completion-display-engine
-	    (semantic-collector-all-completions
-	     semantic-completion-collector-engine)
-	    (semantic-minibuffer-contents))
-	   ;; Ask the displayor to display them.
-	   (semantic-displayor-show-request
-	    semantic-completion-display-engine)
-	   )
-	  ((eq na 'focus)
-	   (semantic-displayor-focus-request
-	    semantic-completion-display-engine)
-	   )
-	  ((eq na 'complete)
-	   ;; Else, we are in completion mode
-	   (let ((comp (semantic-collector-try-completion
-			semantic-completion-collector-engine))
-		 )
-	     (cond ((string= (semantic-minibuffer-contents)
-			     comp)
-		    ;; Minibuffer isn't changing.  Display.
-		    )
-		   ((null comp)
-		    (semantic-completion-message " [No Match]")
-		    (ding))
-		   ((stringp comp)
-		    (beginning-of-line)
-		    (delete-region (point) (point-max))
-		    ;; We should pay attention to the parameter
-		    ;; PARTIAL here, and look at the text we are
-		    ;; putting in, stopping on whitespace and word separator
-		    ;; characters.
-		    (insert comp))
-		   ((and (listp comp)
-			 (semantic-tag-p (car comp)))
-		    (when (not (string= (buffer-string)
-					(semantic-tag-name (car comp))))
-		      ;; A fully unique completion was available.
-		      (semantic-delete-minibuffer-contents)
-		      (insert (semantic-tag-name (car comp))))
-		    ;; The match is complete
-		    (if (= (length comp) 1)
-			(semantic-completion-message " [Complete]")
-		      (semantic-completion-message " [Complete, but not unique]"))
-		    )
-		   (t nil))))
-	  (t nil))))
+    (cond
+     ((eq na 'display)
+      ;; We need to display the completions.
+      ;; Set the completions into the display engine
+      (semantic-displayor-set-completions
+       semantic-completion-display-engine
+       (semantic-collector-all-completions
+        semantic-completion-collector-engine)
+       (semantic-minibuffer-contents))
+      ;; Ask the displayor to display them.
+      (semantic-displayor-show-request
+       semantic-completion-display-engine)
+      )
+     ((eq na 'focus)
+      (semantic-displayor-focus-request
+       semantic-completion-display-engine)
+      )
+     ((eq na 'complete)
+      ;; Else, we are in completion mode
+      (semantic-complete-try-completion partial)
+      )
+     (t nil))))
 
 (defun semantic-completion-message (fmt &rest args)
   "Display the string FMT formatted with ARGS at the end of the minibuffer."
@@ -759,6 +768,18 @@ if `force-show' is 0, this value is always ignored.")
    (semantic-format-tag-prototype
     (semantic-complete-read-tag-buffer-deep "Symbol: ")
     )))
+
+(defun semantic-complete-jump ()
+  "Jump to a semantic symbol."
+  (interactive)
+  (let ((tag (semantic-complete-read-tag-buffer-deep "Symbol: ")))
+    (when (semantic-tag-p tag)
+      (push-mark)
+      (goto-char (semantic-tag-start tag))
+      (semantic-momentary-highlight-token tag)
+      (working-message "%S: %s "
+                       (semantic-tag-class tag)
+                       (semantic-tag-name  tag)))))
 
 ;; End
 (provide 'semantic-complete)
