@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.11 2001/07/12 19:21:53 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.12 2001/08/08 00:41:57 zappo Exp $
 
-(defvar cogre-version "0.1"
+(defvar cogre-version "0.2"
   "Current version of Cogre.")
 
 ;; This file is not part of GNU Emacs.
@@ -492,7 +492,7 @@ If there is a PREFIX argument, then force a query for one."
   "Insert a new node at the current point.
 Argument POINT is a position to insert this node to.
 NODETYPE is the eieio class name for the node to insert."
-  (interactive (list (point) (cogre-default-node)))
+  (interactive (list (point) (cogre-default-node nil current-prefix-arg)))
   (save-excursion
     (goto-char point)
     (if (not nodetype) (setq nodetype 'cogre-node))
@@ -512,7 +512,7 @@ POINT is the node the cursor is in.
 LINKTYPE is the eieio class name for the link to insert."
   (interactive (list (cogre-node-at-point-interactive (mark))
 		     (cogre-node-at-point-interactive (point))
-		     (cogre-default-link)))
+		     (cogre-default-link nil current-prefix-arg)))
   (if (not linktype) (setq linktype cogre-link))
   (make-instance linktype "Link" :start mark :end point)
   (if (interactive-p)
@@ -1042,16 +1042,6 @@ The data returned is (X1 Y1 X2 Y2)."
 	    )
 	  ))))
   (call-next-method))
-
-;;; Layout Engine
-;;
-(defmethod cogre-layout ((node cogre-node))
-  "Layout NODE in the graph."
-  )
-
-(defmethod cogre-layout ((link cogre-link))
-  "Layout LINK in the graph."
-  )
 
 ;;; Low Level Rendering and status
 ;;
