@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.33 2000/09/27 01:00:00 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.34 2000/09/28 03:20:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,7 +35,10 @@
      (semantic-list
       ,(lambda (vals start end)
 	 (let ((i (semantic-bovinate-from-nonterminal
-		   start end 'extract-toplevel)))
+		   start end 'extract-toplevel nil
+		   ;; NOTE, currently the longest item we have is 6 long,
+		   ;; so only ask the flexer to go out 6 tokens.
+		   6)))
 	   (append (nreverse (cdr (cdr (reverse i))))
 		   (list start end)))))
      (extract-toplevel))
