@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.215 2002/03/16 15:50:08 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.216 2002/03/17 02:19:28 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -2721,7 +2721,7 @@ indicator, then do not add a space."
 		      (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-]\\] "
 					 nil t))
 	    (setq speedbar-ro-to-do-point (point))
-	    (if (not (file-writable-p (speedbar-line-text)))
+	    (if (not (file-writable-p (speedbar-line-file)))
 		(speedbar-add-indicator
 		 speedbar-object-read-only-indicator
 		 (regexp-quote speedbar-object-read-only-indicator))
