@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.8 2002/08/11 09:42:52 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.9 2003/03/13 08:40:08 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -399,7 +399,7 @@ goal
   : compilation_unit
  ;; Generate a special token 'goal that will be post-processed by
  ;; `wisent-java-expand-nonterminal' to extract the actual tags in $1.
-    (wisent-token "goal" 'goal $1 nil)
+    (TAG "goal" 'goal 'tree $1)
   ;
 
 literal
@@ -513,7 +513,7 @@ type_declarations
 
 package_declaration
   : PACKAGE name SEMICOLON
-    (wisent-cooked-token $2 'package nil nil)
+    (EXPANDTAG (PACKAGE-TAG $2 nil))
   | error
  ;; On error skip token and continue
     (wisent-skip-token)
@@ -521,9 +521,9 @@ package_declaration
 
 import_declaration
   : IMPORT name SEMICOLON
-    (wisent-cooked-token $2 'include nil nil)
+    (EXPANDTAG (INCLUDE-TAG $2 nil))
   | IMPORT name DOT MULT SEMICOLON
-    (wisent-cooked-token (concat $2 $3 $4) 'include nil nil)
+    (EXPANDTAG (INCLUDE-TAG (concat $2 $3 $4) nil))
   | error
  ;; On error skip token and loop to `import_declarations'
     (wisent-skip-token)
@@ -568,9 +568,9 @@ modifier
 
 class_declaration
   : modifiers_opt CLASS IDENTIFIER superc_opt interfaces_opt class_body
-    (wisent-cooked-token $3 'type $2 $6 (if (or $4 $5) (cons $4 $5))
-                         (ASSOC typemodifiers $1)
-                         nil)
+    (EXPANDTAG
+     (TYPE-TAG $3 $2 $6 (if (or $4 $5) (cons $4 $5)) 'typemodifiers $1)
+     )
   ;
 
 superc
@@ -643,7 +643,7 @@ field_declarations_opt
   | field_declarations
  ;; Generate a special token 'goal that will be post-processed by
  ;; `wisent-java-expand-nonterminal' to extract the actual tags in $1.
-    (wisent-token "goal" 'goal (apply 'nconc (nreverse $1)) nil)
+    (TAG "goal" 'goal 'tree (apply 'nconc (nreverse $1)))
   ;
 
 field_declarations
@@ -662,9 +662,9 @@ field_declaration_maybe
 
 field_declaration
   : modifiers_opt type variable_declarators SEMICOLON
-    (wisent-cooked-token $3 'variable $2 nil
-                         (ASSOC typemodifiers $1)
-                         nil)
+    (EXPANDTAG
+     (VARIABLE-TAG $3 $2 nil 'typemodifiers $1)
+     )
   ;
 
 variable_declarators
@@ -694,13 +694,13 @@ variable_initializer
 
 method_declaration
   : modifiers_opt VOID method_declarator throwsc_opt method_body
-    (wisent-cooked-token (car $3) 'function $2 (cdr $3)
-                         (ASSOC typemodifiers $1 throws $4)
-                         nil)
+    (EXPANDTAG
+     (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
+     )
   | modifiers_opt type method_declarator throwsc_opt method_body
-    (wisent-cooked-token (car $3) 'function $2 (cdr $3)
-                         (ASSOC typemodifiers $1 throws $4)
-                         nil)
+    (EXPANDTAG
+     (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
+     )
   ;
 
 method_declarator
@@ -725,9 +725,9 @@ formal_parameter_list
 
 formal_parameter
   : formal_parameter_modifier_opt type variable_declarator_id
-    (wisent-cooked-token $3 'variable $2 nil
-                         (ASSOC typemodifiers $1)
-                         nil)
+    (EXPANDTAG
+     (VARIABLE-TAG $3 $2 nil 'typemodifiers $1)
+     )
   ;
 
 formal_parameter_modifier_opt
@@ -764,9 +764,9 @@ static_initializer
 
 constructor_declaration
   : modifiers_opt constructor_declarator throwsc_opt constructor_body
-    (wisent-cooked-token (car $2) 'function nil (cdr $2)
-                         (ASSOC typemodifiers $1 throws $3)
-                         nil)
+    (EXPANDTAG
+     (FUNCTION-TAG (car $2) nil (cdr $2) 'typemodifiers $1 'throws $3)
+     )
   ;
 
 constructor_declarator
@@ -797,9 +797,9 @@ explicit_constructor_invocation
 
 interface_declaration
   : modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body
-    (wisent-cooked-token $3 'type $2 $5 (if $4 (cons nil $4))
-                         (ASSOC typemodifiers $1)
-                         nil)
+    (EXPANDTAG
+     (TYPE-TAG $3 $2 $5 (if $4 (cons nil $4)) 'typemodifiers $1)
+     )
   ;
 
 extends_interfaces_opt
@@ -849,13 +849,13 @@ constant_declaration
 
 abstract_method_declaration
   : modifiers_opt VOID method_declarator throwsc_opt SEMICOLON
-    (wisent-cooked-token (car $3) 'function $2 (cdr $3)
-                         (ASSOC typemodifiers $1 throws $4)
-                         nil)
+    (EXPANDTAG
+     (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
+     )
   | modifiers_opt type method_declarator throwsc_opt SEMICOLON
-    (wisent-cooked-token (car $3) 'function $2 (cdr $3)
-                         (ASSOC typemodifiers $1 throws $4)
-                         nil)
+    (EXPANDTAG
+     (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
+     )
   ;
 
 array_initializer
