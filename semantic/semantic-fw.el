@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.4 2002/07/30 19:56:40 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.5 2002/07/31 19:46:16 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -255,10 +255,12 @@ Use `semantic-list-overrides' to get a list of override functions.")
 (defsubst semantic-current-overrides (&optional mode)
   "Return the current function overrides table.
 That is `semantic-override-table' if locally set, or the override
-table of MODE or its parents.  MODE defaults to current value of
-`major-mode'."
-  (or mode (setq mode major-mode))
-  (let ((table semantic-override-table))
+table of current major mode or its parents.
+If optional argument MODE is specified return the override table of
+that mode or its parents."
+  (let (table)
+    (or mode (setq table semantic-override-table
+                   mode  major-mode))
     (while (and mode (not table))
       (or (setq table (get mode 'semantic-override-table))
           (setq mode  (get mode 'derived-mode-parent))))
@@ -292,10 +294,17 @@ variable `semantic-override-table'.  This later installation should be
 done in MODE hook."
   (let (table overload overname function override)
     (if mode
-        (or (setq table (get mode 'semantic-override-table))
-            (put mode 'semantic-override-table
-                 (setq table (semantic-new-overrides))))
+        (progn
+          (setq table
+                ;; Install in given MODE override table
+                (or (get mode 'semantic-override-table)
+                    ;; Or in a new one inherited from MODE parents
+                    (semantic-new-overrides
+                     (semantic-current-overrides mode))))
+          (put mode 'semantic-override-table table))
+      ;; Install in buffer local override table
       (or semantic-override-table
+          ;; Or in a new one inherited from `major-mode' or parents
           (setq semantic-override-table
                 (semantic-new-overrides
                  (semantic-current-overrides))))
@@ -319,12 +328,13 @@ done in MODE hook."
         (set overload function))
       (put overload 'override transient))))
 
-(defun semantic-fetch-overload (overload &optional mode)
+(defun semantic-fetch-overload (overload)
   "Return the current OVERLOAD function, or nil if not found.
 Fetch OVERLOAD from `semantic-override-table' if locally set, or from
-the override table of MODE or its parents.  MODE defaults to current
-value of `major-mode'."
-  (let ((table (semantic-current-overrides mode)))
+the override table of current major mode or its parents.  Set the
+buffer local value of `semantic-override-table' to the current
+override table found."
+  (let ((table (semantic-current-overrides)))
     (and (arrayp table)
          (setq semantic-override-table table)
          (setq overload (intern-soft (symbol-name overload) table))
