@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.33 2003/07/18 05:23:21 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.34 2003/08/28 02:53:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -223,7 +223,7 @@ until the buffer is reparsed."
      (:background "gray20"))
     (((class color) (background light))
      (:background "gray90")))
-  "*Face used to show dirty tokens in `semantic-highlight-edits-token-mode'."
+  "*Face used to show dirty tokens in `semantic-highlight-edits-mode'."
   :group 'semantic)
 
 (defun semantic-highlight-edits-new-change-hook-fcn (overlay)
@@ -267,15 +267,13 @@ minor mode is enabled."
 
 ;;;###autoload
 (defun semantic-highlight-edits-mode (&optional arg)
-  "Minor mode for highlighting change made in a buffer.
+  "Minor mode for highlighting changes made in a buffer.
 Changes are tracked by semantic so that the incremental parser can work
 properly.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled.
-
-\\{semantic-highlight-edits-mode-map}"
+minor mode is enabled."
   (interactive
    (list (or current-prefix-arg
              (if semantic-highlight-edits-mode 0 1))))
@@ -455,6 +453,11 @@ minor mode is enabled."
 ;;;###autoload
 (defun semantic-show-unmatched-syntax-mode (&optional arg)
   "Minor mode to highlight unmatched syntax tokens.
+When a parser executes, some elements in the buffer may not match any
+parser rules.  These text characters are considered unmatched syntax.
+Often time, the display of unmatched syntax can expose coding
+problems before the compiler is run.
+
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
@@ -664,6 +667,11 @@ minor mode is enabled."
 ;;;###autoload
 (defun semantic-auto-parse-mode (&optional arg)
   "Minor mode to auto parse buffer following a change.
+When this mode is off, a buffer is only rescanned for tokens when
+some command requests the list of available tokens.  When auto-parse
+is enabled, Emacs periodically checks to see if the buffer is out of
+date, and reparses while the user is idle (not typing.)
+
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
@@ -797,13 +805,16 @@ minor mode is enabled."
 (defun semantic-show-parser-state-mode (&optional arg)
   "Minor mode for displaying parser cache state in the modeline.
 The cache can be in one of three states.  They are
-Up To Date, partial reprase needed, and full reparse needed.
+Up to date, Partial reprase needed, and Full reparse needed.
+The state is indicated in the modeline with the following characters:
+ `-'  ->  The cache is up to date.
+ `!'  ->  The cache requires a full update.
+ `~'  ->  The cache needs to be incrementally parsed.
+ `@'  ->  Auto-parse in progress (not set here.)
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled.
-
-\\{semantic-show-parser-state-mode-map}"
+minor mode is enabled."
   (interactive
    (list (or current-prefix-arg
              (if semantic-show-parser-state-mode 0 1))))
@@ -927,15 +938,13 @@ Return non-nil if the minor mode is enabled."
 
 ;;;###autoload
 (defun semantic-summary-mode (&optional arg)
-  "Minor mode to show useful things about tokens in echo area.
+  "Minor mode to show useful things about tags in echo area.
 Enables/disables option `eldoc-mode' which supplies the support functions for
 this minor mode.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled.
-
-\\{semantic-summary-mode-map}"
+minor mode is enabled."
   (interactive
    (list (or current-prefix-arg
              (if semantic-summary-mode 0 1))))
@@ -1040,14 +1049,17 @@ text for that function in Emacs 21's header line."
 
 ;;;###autoload
 (defun semantic-stickyfunc-mode (&optional arg)
-  "Minor mode to show useful things about tokens in header line.
+  "Minor mode to show the title of a tag in the header line.
 Enables/disables making the header line of functions sticky.
+A function (or other tag class specified by
+`semantic-stickyfunc-sticky-classes') has a header line, meaning the
+first line which describes the rest of the construct.  This first
+line is what is displayed in the Emacs 21 header line.
+
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled.
-
-\\{semantic-stickyfunc-mode-map}"
+minor mode is enabled."
   (interactive
    (list (or current-prefix-arg
              (if semantic-stickyfunc-mode 0 1))))
@@ -1068,6 +1080,7 @@ minor mode is enabled.
 (defvar semantic-stickyfunc-sticky-classes
   '(function type)
   "List of tag classes which sticky func will display in the header line.")
+(make-variable-buffer-local 'semantic-stickyfunc-sticky-classes)
 
 (defun semantic-stickyfunc-fetch-stickyline ()
   "Make the function at the top of the current window sticky.
@@ -1079,10 +1092,18 @@ If there is no function, disable the header line."
 	   (forward-line -1)
 	   (end-of-line)
 	   ;; Capture this function
-	   (let ((tag (semantic-current-tag)))
-	     (if (or (not tag)
-		     (not (member (semantic-tag-class tag)
-				  semantic-stickyfunc-sticky-classes)))
+	   (let* ((tags (nreverse (semantic-find-tag-by-overlay (point))))
+		  (tag (progn
+			 ;; Get rid of non-matching tags.
+			 (while (and tags
+				     (not (member
+					   (semantic-tag-class (car tags))
+					   semantic-stickyfunc-sticky-classes))
+				     )
+			   (setq tags (cdr tags)))
+			 (car tags))))
+	     ;; TAG is nil if there was nothing of the apropriate type there.
+	     (if (not tag)
 		 ;; Set it to be the text under the header line
 		 (buffer-substring (point-at-bol) (point-at-eol))
 	       ;; Get it
@@ -1192,6 +1213,7 @@ minor mode is enabled."
 ;;;###autoload
 (defun semantic-show-tag-boundaries-mode (&optional arg)
   "Minor mode to display a boundary in front of tags.
+The boundary is displayed using an overline in Emacs 21.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
@@ -1329,7 +1351,7 @@ See `semantic-highlight-attribute-alist' for customization."
 			(eq (semantic-tag-protection tag) 'protected))) .
      semantic-highlight-attribute-face-protected)
     )
-  "List of functions testing attributes of a tag and associated faces.
+  "Association list of functions testing attributes of a tag and a faces.
 Each function must take one argument, the tag.
 Each face will be applied to those tags for which the function returns true."
   :group 'semantic
@@ -1392,7 +1414,10 @@ minor mode is enabled."
   
 ;;;###autoload
 (defun semantic-highlight-by-attribute-mode (&optional arg)
-  "Minor mode to display a boundary in front of tags.
+  "Minor mode to highlight tags based on some attribute.
+By default, the protection of a tag will give it a different
+background color.
+
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
