@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.68 2003/04/01 15:20:50 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.69 2003/04/04 08:25:35 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -2355,8 +2355,8 @@ if it was previously put here by any sort of user's customization.")
 
 (defun senator-hippie-expand-hook ()
   "Enable or disable use of semantic completion with `hippie-expand'.
-Depending on the value of the variable `senator-minor-mode'.  Run as
-`senator-minor-mode-hook'."
+Depending on the value of the variable `senator-minor-mode'.
+Run as `senator-minor-mode-hook'."
   (make-local-variable 'hippie-expand-try-functions-list)
   (make-local-variable 'senator-try-function-already-enabled)
   (if senator-minor-mode
@@ -2376,10 +2376,7 @@ Depending on the value of the variable `senator-minor-mode'.  Run as
               (delq 'senator-try-expand-semantic
                     hippie-expand-try-functions-list)))))
 
-;; Setup semantic completion after hippie-exp was [auto]loaded
-(eval-after-load 'hippie-exp
-  '(add-hook 'senator-minor-mode-hook 'senator-hippie-expand-hook)
-  )
+(add-hook 'senator-minor-mode-hook 'senator-hippie-expand-hook)
 
 ;;;###autoload
 (defun senator-try-expand-semantic (old)
