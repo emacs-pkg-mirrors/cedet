@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.29 2000/04/25 16:33:52 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.30 2000/04/27 22:10:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,6 +232,8 @@
   
        (put 'working-status-forms 'lisp-indent-function 2)))))
 
+(require 'semantic-util)
+
 ;;; Code:
 (defvar semantic-edebug nil
   "When non-nil, activate the interactive parsing debugger.
@@ -367,7 +369,10 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
 ;;; Utility API functions
 ;;
 ;; These functions use the flex and bovination engines to perform some
-;; simple tasks useful to other programs.
+;; simple tasks useful to other programs.  These are just the most
+;; critical entries.
+;;
+;; See semantic-util for a wider range of utility functions and macros.
 ;;
 (defun semantic-clear-toplevel-cache ()
   "Clear the toplevel bovin cache for the current buffer."
@@ -378,9 +383,9 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
   "Retrieve from TOKEN the token identifier."
   `(nth 1 ,token))
 
-(defmacro semantic-token-name (token)
+(defun semantic-token-name (token)
   "Retrieve the name of TOKEN."
-  `(car ,token))
+  (car token))
 
 (defmacro semantic-token-docstring (token)
   "Retrieve the doc string of TOKEN."
@@ -393,35 +398,6 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
 (defmacro semantic-token-end (token)
   "Retrieve the end location of TOKEN."
   `(nth (- (length ,token) 1) ,token))
-
-(defmacro semantic-token-type (token)
-  "Retrieve the type of TOKEN."
-  `(nth 2 ,token))
-
-(defmacro semantic-token-type-parts (token)
-  "Retrieve the parts of TOKEN."
-  `(nth 3 ,token))
-
-(defmacro semantic-token-type-parent (token)
-  "Retrieve the parent of TOKEN."
-  `(nth 4 ,token))
-
-(defmacro semantic-token-function-args (token)
-  "Retrieve the type of TOKEN."
-  `(nth 3 ,token))
-
-(defmacro semantic-token-variable-const (token)
-  "Retrieve the status of constantness from variable TOKEN."
-  `(nth 3 ,token))
-
-(defmacro semantic-token-variable-default (token)
-  "Retrieve the default value of TOKEN."
-  `(nth 4 ,token))
-
-(defmacro semantic-token-variable-modifiers (token)
-  "Retrieve extra modifiers for the variable TOKEN."
-  `(nth 5 ,token))
-
 
 (defun semantic-token-p (token)
   "Return non-nil if TOKEN is most likely a semantic token."
@@ -486,160 +462,11 @@ stripped from the main list of synthesized tokens."
 	    ;; Designated to ignore.
 	    (setq stream (car nontermsym)))
 	(setq stream (cdr stream)))
-      (working-status
-       (if stream
-	   (floor
-	    (* 100.0 (/ (float (car (cdr (car stream))))
-			(float (point-max)))))
-	 100)))
+      (if stream
+	  (working-status (floor
+			   (* 100.0 (/ (float (car (cdr (car stream))))
+				       (float (point-max))))))))
     result))
-
-;;; Behavioral APIs
-;;
-;; Each major mode will want to support a specific set of behaviors.
-;; Usually generic behaviors that need just a little bit of local
-;; specifics.  This section permits the setting of override functions
-;; for tasks of that nature, and also provides reasonable defaults.
-
-(defvar semantic-override-table nil
-  "Buffer local semantic function overrides alist.
-These overrides provide a hook for a `major-mode' to override specific
-behaviors with respect to generated semantic toplevel nonterminals and
-things that these non-terminals are useful for.
-Each element must be of the form: (SYM . FUN)
-where SYM is the symbol to override, and FUN is the function to
-override it with.
-Available override symbols:
-
-  SYBMOL                 PARAMETERS              DESCRIPTION
- `find-dependency'       (buffer token & parent)  find the dependency file
- `find-nonterminal'      (buffer token & parent)  find token in buffer.
- `summerize-nonterminal' (token & parent)         return summery string.
- `prototype-nonterminal' (token)                  return a prototype string.
-
-Parameters mean:
-
-  &      - Following parameters are optional
-  buffer - The buffer in which a token was found.
-  token  - The nonterminal token we are doing stuff with
-  parent - If a TOKEN is stripped (of positional infomration) then
-           this will be the parent token which should have positional
-           information in it.")
-(make-variable-buffer-local 'semantic-override-table)
-
-(defun semantic-fetch-overload (sym)
-  "Find and return the overload function for SYM."
-  (let ((a (assq sym semantic-override-table)))
-    (cdr a)))
-
-(defvar semantic-dependency-include-path nil
-  "Defines the include path used when searching for files.
-This should be a list of directories to search which is specific to
-the file being included.
-This variable can also be set to a single function.  If it is a
-function, it will be called with one arguments, the file to find as a
-string, and  it should return the full path to that file, or nil.")
-(make-variable-buffer-local `semantic-dependency-include-path)
-
-(defun semantic-find-dependency (buffer token &optional parent)
-  "Find the filename represented from BUFFER's TOKEN.
-TOKEN may be a stripped element, in which case PARENT specifies a
-parent token that has positinal information.
-Depends on `semantic-dependency-include-path' for searching.  Always searches
-`.' first, then searches additional paths."
-  (if (or (not (bufferp buffer)) (not token))
-      (error "Semantic-find-nonterminal: specify BUFFER and TOKEN"))
-  
-  (let ((s (semantic-fetch-overload 'find-dependency)))
-    (if s (funcall s buffer token)
-      (save-excursion
-	(set-buffer buffer)
-	(let ((name (semantic-token-name token)))
-	  (cond ((file-exists-p name)
-		 (expand-file-name name))
-		((and (symbolp semantic-dependency-include-path)
-		      (fboundp semantic-dependency-include-path))
-		 (funcall semantic-dependency-include-path name))
-		(t
-		 (let ((p semantic-dependency-include-path)
-		       (found nil))
-		   (while (and p (not found))
-		     (if (file-exists-p (concat (car p) "/" name))
-			 (setq found (concat (car p) "/" name)))
-		     (setq p (cdr p)))
-		   found))))))))
-
-(defun semantic-find-nonterminal (buffer token &optional parent)
-  "Find the location from BUFFER belonging to TOKEN.
-TOKEN may be a stripped element, in which case PARENT specifies a
-parent token that has position information.
-Different behaviors are provided depending on the type of token.
-For example, dependencies (includes) will seek out the file that is
-depended on, and functions will move to the specified definition."
-  (if (or (not (bufferp buffer)) (not token))
-      (error "Semantic-find-nonterminal: specify BUFFER and TOKEN"))
-  
-  (if (and (eq (semantic-token-token token) 'include)
-	   (let ((f (semantic-find-dependency buffer token parent)))
-	     (if f (find-file f))))
-      nil
-    (let ((s (semantic-fetch-overload 'find-nonterminal)))
-      (if s (funcall s buffer token)
-	(let ((start (semantic-token-start token)))
-	  (if (numberp start)
-	      ;; If it's a number, go there
-	      (goto-char start)
-	    ;; Otherwise, it's a trimmed vector, such as a parameter,
-	    ;; or a structure part.
-	    (if (not parent)
-		nil
-	      (goto-char (semantic-token-start parent))
-	      ;; Here we make an assumtion that the text returned by
-	      ;; the bovinator and concocted by us actually exists
-	      ;; in the buffer.
-	      (re-search-forward (semantic-token-name token) nil t))))))))
-
-(defun semantic-summerize-nonterminal (token &optional parent)
-  "Summerize TOKEN in a reasonable way.
-Optional argument PARENT is the parent type if TOKEN is a detail."
-  (let ((s (semantic-fetch-overload 'prototype-nonterminal))
-	tt)
-    (if s
-	(funcall s token parent)
-      (setq tt (semantic-token-token token))
-      ;; FLESH THIS OUT MORE
-      (concat (capitalize (symbol-name tt)) ": "
-	      (let* ((type (semantic-token-type token))
-		     (tok (semantic-token-token token))
-		     (args (cond ((eq tok 'function)
-				  (semantic-token-function-args token))
-				 ((eq tok 'type)
-				  (semantic-token-type-parts token))
-				 (t nil)))
-		     (mods (if (eq tok 'variable)
-			       (semantic-token-variable-modifiers token))))
-		(if args
-		    (setq args
-			  (concat " " (if (eq tok 'type) "{" "(")
-				  (if (stringp (car args))
-				      (mapconcat (lambda (a) a) args " ")
-				    (mapconcat 'car args " "))
-				   (if (eq tok 'type) "}" ")"))))
-		(if (and type (listp type))
-		    (setq type (car type)))
-		(concat (if type (concat type " "))
-			(semantic-token-name token)
-			(or args "")
-			(or mods "")))))))
-
-(defun semantic-prototype-nonterminal (token)
-  "Return a prototype for TOKEN.
-This functin must be overloaded, though it need not be used."
-  (let ((s (semantic-fetch-overload 'summerize-nonterminal)))
-    (if s
-	;; Prototype is non-local
-	(funcall s token prototype)
-      (error "No generic implementation for prototypeing nonterminals"))))
 
 ;;; Semantic Table debugging
 ;;
