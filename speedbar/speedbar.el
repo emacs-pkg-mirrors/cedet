@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.7.1
+;; Version: 0.7.2
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.118 1998/08/04 14:11:16 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.119 1998/08/08 21:19:14 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -2478,7 +2478,7 @@ name will have the function FIND-FUN and not token."
 	    ;; default the shown directories to this list...
 	    (setq speedbar-shown-directories (list cbd)))
 	  ))
-      (setq speedbar-last-selected-file nil)
+      (if (not expand-local) (setq speedbar-last-selected-file nil))
       (speedbar-with-writable
 	(if (and expand-local
 		 ;; Find this directory as a speedbar node.
@@ -2560,7 +2560,6 @@ This should only be used by modes classified as special."
 			(progn
 			  (message "Updating speedbar to special mode: %s...done"
 				   major-mode)
-			  (sit-for 1)
 			  (message nil))))
 		;; Update all the contents if directories change!
 		(if (or (member (expand-file-name default-directory)
@@ -2581,7 +2580,6 @@ This should only be used by modes classified as special."
 		      (progn
 			(message "Updating speedbar to: %s...done"
 				 default-directory)
-			(sit-for 1)
 			(message nil)))))
 	      (select-frame af))
 	    ;; Now run stealthy updates of time-consuming items
@@ -2618,19 +2616,36 @@ If new functions are added, their state needs to be updated here."
   (run-hooks 'speedbar-scanner-reset-hook)
   )
 
+(defun speedbar-find-selected-file (file)
+  "Goto the line where FILE is."
+  (goto-char (point-min))
+  (let ((m nil))
+    (while (and (setq m (re-search-forward
+			 (concat " \\(" (file-name-nondirectory file)
+				 "\\)\\(" speedbar-indicator-regex "\\)?\n")
+			 nil t))
+		(not (string= file
+			      (concat
+			       (speedbar-line-path
+				(save-excursion
+				  (goto-char (match-beginning 0))
+				  (beginning-of-line)
+				  (save-match-data
+				    (looking-at "[0-9]+:")
+				    (string-to-number (match-string 0)))))
+			       (match-string 1))))))
+    (if m
+	(progn
+	  (goto-char (match-beginning 1))
+	  (match-string 1)))))
+
 (defun speedbar-clear-current-file ()
   "Locate the file thought to be current, and remove its highlighting."
   (save-excursion
     (set-buffer speedbar-buffer)
     (if speedbar-last-selected-file
 	(speedbar-with-writable
-	  (goto-char (point-min))
-	  (if (and
-	       speedbar-last-selected-file
-	       (re-search-forward
-		(concat " \\(" (regexp-quote speedbar-last-selected-file)
-			"\\)\\(" speedbar-indicator-regex "\\)?\n")
-		nil t))
+	  (if (speedbar-find-selected-file speedbar-last-selected-file)
 	      (put-text-property (match-beginning 1)
 				 (match-end 1)
 				 'face
@@ -2649,7 +2664,7 @@ updated."
 			       nil)))
 		     (select-frame lastf)
 		     rf)))
-	 (newcf (if newcfd (file-name-nondirectory newcfd)))
+	 (newcf (if newcfd newcfd))
 	 (lastb (current-buffer))
 	 (sucf-recursive (boundp 'sucf-recursive))
 	 (case-fold-search t))
@@ -2668,15 +2683,12 @@ updated."
 	  ;; now highlight the new one.
 	  (set-buffer speedbar-buffer)
 	  (speedbar-with-writable
-	    (goto-char (point-min))
-	    (if (re-search-forward
-		 (concat " \\(" (regexp-quote newcf) "\\)\\("
-			 speedbar-indicator-regex "\\)?$") nil t)
-		  ;; put the property on it
-		  (put-text-property (match-beginning 1)
-				     (match-end 1)
-				     'face
-				     'speedbar-selected-face)
+	    (if (speedbar-find-selected-file newcf)
+		;; put the property on it
+		(put-text-property (match-beginning 1)
+				   (match-end 1)
+				   'face
+				   'speedbar-selected-face)
 	      ;; Oops, it's not in the list.  Should it be?
 	      (if (and (string-match speedbar-file-regexp newcf)
 		       (string= (file-name-directory newcfd)
@@ -2684,8 +2696,7 @@ updated."
 		  ;; yes, it is (we will ignore unknowns for now...)
 		  (progn
 		    (speedbar-refresh)
-		    (if (re-search-forward
-			 (concat " \\(" (regexp-quote newcf) "\\)\n") nil t)
+		    (if (speedbar-find-selected-file newcf)
 			;; put the property on it
 			(put-text-property (match-beginning 1)
 					   (match-end 1)
@@ -3098,7 +3109,7 @@ directory with these items."
 	(beginning-of-line)
 	;; If this fails, then it is a non-standard click, and as such,
 	;; perfectly allowed.
-	(if (re-search-forward "[]>}] [a-zA-Z0-9]"
+	(if (re-search-forward "[]>?}] [^ ]"
 			       (save-excursion (end-of-line) (point))
 			       t)
 	    (speedbar-do-function-pointer)
@@ -3179,14 +3190,13 @@ Handles end-of-sublist smartly."
   (speedbar-with-writable
     (save-excursion
       (end-of-line) (forward-char 1)
-      (while (and (not (save-excursion
-			 (re-search-forward (format "^%d:" indent)
-					    nil t)))
-		  (>= indent 0))
-	(setq indent (1- indent)))
-      (delete-region (point) (if (>= indent 0)
-				 (match-beginning 0)
-			       (point-max))))))
+      (let ((start (point)))
+	(while (and (looking-at "^\\([0-9]+\\):")
+		    (> (string-to-int (match-string 1)) indent)
+		    (not (eobp)))
+	  (forward-line 1)
+	  (beginning-of-line))
+	(delete-region start (point))))))
 
 (defun speedbar-dired (text token indent)
   "Speedbar click handler for directory expand button.
@@ -3346,7 +3356,7 @@ interested in."
 	(end-of-line)
 	(if (re-search-backward exp nil t)
 	    (setq start (point))
-	  (error "Center error"))
+	  (setq start (point-min)))
 	(save-excursion			;Not sure about this part.
 	  (end-of-line)
 	  (setq p (point))
@@ -3674,7 +3684,7 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 	(beginning-of-line)
 	;; If this fails, then it is a non-standard click, and as such,
 	;; perfectly allowed.
-	(if (re-search-forward "[]>}] [a-zA-Z0-9]"
+	(if (re-search-forward "[]>?}] [^ ]"
 			       (save-excursion (end-of-line) (point))
 			       t)
 	    (let ((text (progn
@@ -3694,7 +3704,7 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
     (beginning-of-line)
     ;; If this fails, then it is a non-standard click, and as such,
     ;; perfectly allowed
-    (if (re-search-forward "[]>}] [a-zA-Z0-9]"
+    (if (re-search-forward "[]>?}] [^ ]"
 			   (save-excursion (end-of-line) (point))
 			   t)
 	(let ((text (progn
