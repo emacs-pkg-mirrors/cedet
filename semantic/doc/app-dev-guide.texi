@@ -2007,8 +2007,6 @@ databases to determine the types and names available.
 
 Two high level functions which can be run interactively are:
 
-   *** NOTE TO SELF *** Add more here
-
 @deffn Command semantic-analyze-current-context position
 Analyze the current context at @var{POSITION}.
 If called interactively, display interesting information about @var{POSITION}
@@ -2021,3 +2019,59 @@ Returns an object based on symbol @code{semantic-analyze-context}.
 Return a list of semantic tokens which are possible completions.
 Analysis is done at @var{POINT}.
 @end deffn
+
+@menu
+* Analysis Overview::   A description of how the analyzer works.
+* Analysis Objects::    What is in the analysis object.
+* Completion Overview:: How completions are calculated.
+@end menu
+
+@node Analysis Overview
+@subsection Analysis Overview
+
+The semantic analysis function @dfn{semantic-analye-current-context}
+creats an Analysis Object.  See @ref{Analysis Objects}.  This object
+contains many useful pieces of information needed to do any other
+kind of intelligent action on the local context.
+
+If you call this function interactively, it will popup a buffer with
+a summary of the return value.  This is useful when debugging.
+
+@example
++--------+   +----------------+   +----------------------------+
+| Buffer |---| Context Parser |---| Local Context Synax Result |
++--------+   +----------------+   +----------------------------+
+    |                                        |
++--------+   +-----------+                   |
+| Parser |---| Tag Table |------------+      |
++--------+   +-----------+            |      |
+                                      |      |
++-------------+                     +-------------------+
+| Semantic DB |---------------------| Semantic Analyzer |
++-------------+                     +-------------------+
+                                             |
+                                             |
+                                     +-----------------+
+                                     | Analysis Object |
+                                     +-----------------+
+@end example
+
+@node Analysis Objects
+@subsection Analysis Objects
+
+@defindex analyze
+
+@c First, delete text between this comment and END OF ANALYZE OBJECT text.
+@c 
+@c Execute the below line with C-x C-e
+@c
+
+@c (progn (require 'semantic-analyze) (eieiodoc-class semantic-analyze-context "analyze"))
+
+
+@c END OF ANALZE OBJECT SECTION
+
+@node Completion Overview
+@subsection Completion Overview
+
+
