@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.35 2003/08/28 07:44:14 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.36 2003/08/29 16:14:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,6 +36,10 @@
 ;;; Code:
 (require 'working)
 (require 'semantic)
+
+(eval-when-compile
+  (require 'semantic-decorate)
+  )
 
 ;;; Compatibility
 (if (fboundp 'propertize)
