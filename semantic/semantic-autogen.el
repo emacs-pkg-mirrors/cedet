@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-autogen.el,v 1.2 2002/08/08 18:28:25 zappo Exp $
+;; X-CVS: $Id: semantic-autogen.el,v 1.3 2002/08/09 03:22:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,6 +32,11 @@
 
 (add-to-list 'load-path ".")
 
+;; Load this in first
+(require 'autoload)
+
+(put 'define-overload 'doc-string-elt 3)
+
 (defun semantic-hack-autoloads ()
   "Create semantic autoloads from sources."
   (interactive)
@@ -46,6 +51,70 @@
     )
   (newline 2)
   (save-buffer))
+
+;; Bum me out.  Taken from autoload.el and augmented.  Just look at these
+;; hard coded lists.  BLECH!
+(defun make-autoload (form file)
+  "Turn FORM into an autoload or defvar for source file FILE.
+Returns nil if FORM is not a special autoload form (i.e. a function definition
+or macro definition or a defcustom)."
+  (let ((car (car-safe form)) expand)
+    (cond
+     ;; For complex cases, try again on the macro-expansion.
+     ((and (memq car '(easy-mmode-define-global-mode
+		       easy-mmode-define-minor-mode define-minor-mode))
+	   (setq expand (let ((load-file-name file)) (macroexpand form)))
+	   (eq (car expand) 'progn)
+	   (memq :autoload-end expand))
+      (let ((end (memq :autoload-end expand)))
+	;; Cut-off anything after the :autoload-end marker.
+	(setcdr end nil)
+	(cons 'progn
+	      (mapcar (lambda (form) (make-autoload form file))
+		      (cdr expand)))))
+
+     ;; For special function-like operators, use the `autoload' function.
+     ((memq car '(defun define-skeleton defmacro define-derived-mode
+		   define-generic-mode easy-mmode-define-minor-mode
+		   easy-mmode-define-global-mode
+		   define-minor-mode defun* defmacro*
+		   ;; Semantic Special:  Some functions
+		   define-overload
+		   ))
+      (let* ((macrop (memq car '(defmacro defmacro*)))
+	     (name (nth 1 form))
+	     (body (nthcdr (get car 'doc-string-elt) form))
+	     (doc (if (stringp (car body)) 
+		      (prog1 (car body)
+			(setq body (cdr body))))))
+	;; `define-generic-mode' quotes the name, so take care of that
+	(list 'autoload (if (listp name) name (list 'quote name)) file doc
+	      (or (and (memq car '(define-skeleton define-derived-mode
+				    define-generic-mode
+				    easy-mmode-define-global-mode
+				    easy-mmode-define-minor-mode
+				    define-minor-mode)) t)
+		  (eq (car-safe (car body)) 'interactive))
+	      (if macrop (list 'quote 'macro) nil))))
+
+     ;; Convert defcustom to a simpler (and less space-consuming) defvar,
+     ;; but add some extra stuff if it uses :require.
+     ((eq car 'defcustom)
+      (let ((varname (car-safe (cdr-safe form)))
+	    (init (car-safe (cdr-safe (cdr-safe form))))
+	    (doc (car-safe (cdr-safe (cdr-safe (cdr-safe form)))))
+	    (rest (cdr-safe (cdr-safe (cdr-safe (cdr-safe form))))))
+	(if (not (plist-get rest :require))
+	    `(defvar ,varname ,init ,doc)
+	  `(progn
+	     (defvar ,varname ,init ,doc)
+	     (custom-add-to-group ,(plist-get rest :group)
+				  ',varname 'custom-variable)
+	     (custom-add-load ',varname
+			      ,(plist-get rest :require))))))
+
+     ;; nil here indicates that this is not a special autoload form.
+     (t nil))))
 
 (provide 'semantic-autogen)
 
