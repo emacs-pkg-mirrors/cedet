@@ -14,7 +14,7 @@
    (ede-proj-target-elisp "examples"
     :name "examples"
     :path ""
-    :source '("tree.el" "call-tree.el" "chart.el" "eieio-speedbar.el")
+    :source '("tree.el" "call-tree.el" "chart.el" "eieio-speedbar.el" "linemark.el")
     )
    (ede-proj-target-makefile-info "eieio.info"
     :name "eieio.info"
@@ -30,11 +30,13 @@
    (ede-proj-target-makefile-miscelaneous "Misc"
     :name "Misc"
     :path ""
-    :source '("INSTALL")
+    :source '("INSTALL" "ChangeLog")
     :partofall 'nil
     )
    )
   :web-site-url "http://cedet.sourceforge.net/eieio.shtml"
+  :web-site-directory "/r@scp:shell.sourceforge.net:cedet/htdocs"
+  :web-site-file "eieio.shtml"
   :ftp-upload-site "/ftp@upload.sourceforge.net/incoming"
   :configuration-variables 'nil
   )
