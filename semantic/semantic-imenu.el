@@ -4,7 +4,7 @@
 ;;; Copyright (C) 2001 Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.26 2001/02/21 20:55:50 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.27 2001/02/23 02:03:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,6 +55,11 @@
       )
   (error nil))
 
+(defgroup semantic-imenu nil
+  "Parser Generator Imenu interface."
+  :group 'semantic
+  :group 'imenu
+  )
 
 (defcustom semantic-imenu-summary-function 'semantic-abbreviate-nonterminal
   "*Function to use when creating items in Imenu.
@@ -62,29 +67,26 @@ Some useful functions are:
 `semantic-abbreviate-nonterminal'
 `semantic-summarize-nonterminal'
 `semantic-prototype-nonterminal'"
-  :group 'imenu
+  :group 'semantic-imenu
   :type 'function)
 (make-variable-buffer-local 'semantic-imenu-summary-function)
 
 (defcustom semantic-imenu-bucketize-file t
   "*Non-nil if tokens in a file are to be grouped into buckets."
-  :group 'imenu
-  :group 'semantic
+  :group 'semantic-imenu
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-bucketize-file)
 
 (defcustom semantic-imenu-buckets-to-submenu t
   "*Non-nil if buckets of tokens are to be turned into submenus.
 This option is ignored if `semantic-imenu-bucketize-file' is nil."
-  :group 'imenu
-  :group 'semantic
+  :group 'semantic-imenu
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-buckets-to-submenu)
 
 (defcustom semantic-imenu-expand-type-parts t
   "*Non-nil if types should have submenus with parts in it."
-  :group 'imenu
-  :group 'semantic
+  :group 'semantic-imenu
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-expand-type-parts)
 
@@ -92,15 +94,13 @@ This option is ignored if `semantic-imenu-bucketize-file' is nil."
   "*Non-nil if elements of a type should be placed grouped into buckets.
 Nil means to keep them in the same order.
 Overriden to nil if `semantic-imenu-bucketize-file' is nil."
-  :group 'imenu
-  :group 'semantic
+  :group 'semantic-imenu
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-bucketize-type-parts)
 
 (defcustom semantic-imenu-sort-bucket-function nil
   "*Function to use when sorting tags in the buckets of functions."
-  :group 'imenu
-  :group 'semantic
+  :group 'semantic-imenu
   :type 'function)
 (make-variable-buffer-local 'semantic-imenu-sort-bucket-function)
 
@@ -109,15 +109,14 @@ Overriden to nil if `semantic-imenu-bucketize-file' is nil."
 Doesn't actually parse the entire directory, but displays tags for all files
 currently listed in the current Semantic database.
 This variable has no meaning if semanticdb is not active."
-  :group 'imenu
-  :group 'semantic
+  :group 'semantic-imenu
   :type 'boolean)
 
 (defcustom semantic-imenu-auto-rebuild-directory-indexes t
   "*If non-nil automatically rebuild directory index imenus.
 That is when a directory index imenu is updated, automatically rebuild
 other buffer local ones based on the same semanticdb."
-  :group 'semantic
+  :group 'semantic-imenu
   :type 'boolean)
 
 (defvar semantic-imenu-directory-current-file nil
