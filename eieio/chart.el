@@ -1,10 +1,10 @@
 ;;; chart.el --- Draw charts (bar charts, etc)
 
-;;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.1
-;; RCS: $Id: chart.el,v 1.5 1998/10/27 18:11:34 zappo Exp $
+;; RCS: $Id: chart.el,v 1.6 1999/02/18 19:10:23 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -190,8 +190,8 @@ Returns the newly created buffer"
   "Subclass for bar charts. (Vertical or horizontal)")
 
 (defmethod chart-draw ((c chart) &optional buff)
-  "Start drawing a chart object C in optional BUFF. Erases current contents
-of buffer"
+  "Start drawing a chart object C in optional BUFF.
+Erases current contents of buffer"
   (save-excursion
     (if buff (set-buffer buff))
     (erase-buffer)
@@ -210,18 +210,19 @@ of buffer"
     ))
 
 (defmethod chart-draw-title ((c chart))
-  "Draw a title upon the chart"
+  "Draw a title upon the chart.
+Argument C is the chart object."
   (chart-display-label (oref c title) 'horizontal 0 0 (window-width)
 		       (oref c title-face)))
 
 (defmethod chart-size-in-dir ((c chart) dir)
-  "Return the physical size of chart C in direction DIR"
+  "Return the physical size of chart C in direction DIR."
   (if (eq dir 'vertical)
       (oref c y-width)
     (oref c x-width)))
 
 (defmethod chart-draw-axis ((c chart))
-  "Draw axis into the current buffer defined by chart C"
+  "Draw axis into the current buffer defined by chart C."
   (let ((ymarg (oref c y-margin))
 	(xmarg (oref c x-margin))
 	(ylen (oref c y-width))
@@ -235,8 +236,9 @@ of buffer"
   )
 
 (defmethod chart-axis-draw ((a chart-axis) &optional dir margin zone start end)
-  "Draw some axis for A in direction DIR at with MARGIN in
-boundry START -> END"
+  "Draw some axis for A in direction DIR at with MARGIN in boundry.
+ZONE is a zone specification.
+START and END represent the boundary."
   (chart-draw-line dir (+ margin (if zone zone 0)) start end)
   (chart-display-label (oref a name) dir (if zone (+ zone margin 3)
 					   (if (eq dir 'horizontal)
@@ -244,7 +246,7 @@ boundry START -> END"
 		       start end (oref a name-face)))
 
 (defmethod chart-translate-xpos ((c chart) x)
-  "Translate in chart C the coordinate X into a screen column"
+  "Translate in chart C the coordinate X into a screen column."
   (let ((range (oref (oref c x-axis) bounds)))
     (+ (oref c x-margin)
        (round (* (float (- x (car range)))
@@ -253,7 +255,7 @@ boundry START -> END"
   )
 
 (defmethod chart-translate-ypos ((c chart) y)
-  "Translate in chart C the coordinate Y into a screen row"
+  "Translate in chart C the coordinate Y into a screen row."
   (let ((range (oref (oref c y-axis) bounds)))
     (+ (oref c x-margin)
        (- (oref c y-width)
@@ -263,7 +265,9 @@ boundry START -> END"
   )
 
 (defmethod chart-axis-draw ((a chart-axis-range) &optional dir margin zone start end)
-  "Draw axis information based upon a range to be spread along the edge"
+  "Draw axis information based upon a range to be spread along the edge.
+A is the chart to draw.  DIR is the direction.
+MARGIN, ZONE, START, and END specify restrictions in chart space."
   (call-next-method)
   ;; We prefer about 5 spaces between each value
   (let* ((i (car (oref a bounds)))
@@ -296,8 +300,9 @@ boundry START -> END"
 )
 
 (defmethod chart-translate-namezone ((c chart) n)
-  "Return a dot-pair representing the range of cols or rows in which
-the nth name resides.  Automatically compensates for for direction."
+  "Return a dot-pair representing a positional range for a name.
+The name in chart C of the Nth name resides.
+Automatically compensates for for direction."
   (let* ((dir (oref c direction))
 	 (w (if (eq dir 'vertical) (oref c x-width) (oref c y-width)))
 	 (m (if (eq dir 'vertical) (oref c y-margin) (oref c x-margin)))
@@ -311,7 +316,9 @@ the nth name resides.  Automatically compensates for for direction."
     ))
 
 (defmethod chart-axis-draw ((a chart-axis-names) &optional dir margin zone start end)
-  "Draw axis information based upon a range to be spread along the edge"
+  "Draw axis information based upon A range to be spread along the edge.
+Optional argument DIR the direction of the chart.
+Optional argument MARGIN , ZONE, START and END specify boundaries of the drawing."
   (call-next-method)
   ;; We prefer about 5 spaces between each value
   (let* ((i 0)
@@ -342,7 +349,7 @@ the nth name resides.  Automatically compensates for for direction."
 )
 
 (defmethod chart-draw-data ((c chart-bar))
-  "Display the data available in a bar chart C"
+  "Display the data available in a bar chart C."
   (let* ((data (oref c sequences))
 	 (dir (oref c direction))
 	 (odir (if (eq dir 'vertical) 'horizontal 'vertical))
@@ -362,7 +369,9 @@ the nth name resides.  Automatically compensates for for direction."
 		  (zp (if (eq dir 'vertical)
 			  (chart-translate-ypos c 0)
 			(chart-translate-xpos c 0)))
-		  (fc (nth (% i (length chart-face-list)) chart-face-list))
+		  (fc (if chart-face-list
+			  (nth (% i (length chart-face-list)) chart-face-list)
+			'default))
 		  )
 	      (if (< dp zp)
 		  (progn
@@ -385,9 +394,9 @@ the nth name resides.  Automatically compensates for for direction."
   )
 
 (defmethod chart-add-sequence ((c chart) &optional seq axis-label)
-  "Adds to chart object C the sequence object SEQ.  If AXIS-LABEL,
-then the axis stored in C is updated with the bounds of SEQ, or is
-created with the bounds of SEQ."
+  "Add to chart object C the sequence object SEQ.
+If AXIS-LABEL, then the axis stored in C is updated with the bounds of SEQ,
+or is created with the bounds of SEQ."
   (if axis-label
       (let ((axis (oref-engine c axis-label)))
 	(if (stringp (car (oref seq data)))
@@ -417,7 +426,7 @@ created with the bounds of SEQ."
 ;;; Charting optimizers
 
 (defmethod chart-trim ((c chart) max)
-  "Trim all sequences in chart C to be at most MAX elements long"
+  "Trim all sequences in chart C to be at most MAX elements long."
   (let ((s (oref c sequences)))
     (while s
       (let ((sl (oref (car s) data)))
@@ -427,8 +436,8 @@ created with the bounds of SEQ."
   )
 
 (defmethod chart-sort ((c chart) pred)
-  "Sort the data in chart C using predicate PRED.  See `chart-sort-matchlist'
-for more details"
+  "Sort the data in chart C using predicate PRED.
+See `chart-sort-matchlist' for more details"
   (let* ((sl (oref c sequences))
 	 (s1 (car sl))
 	 (s2 (car (cdr sl)))
