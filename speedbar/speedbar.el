@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.167 2000/05/15 21:56:46 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.168 2000/05/17 02:19:55 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -930,16 +930,18 @@ This basically creates a sparse keymap, and makes it's parent be
   )
 
 (defvar speedbar-easymenu-definition-base
-  `("Speedbar"
-    ["Update" speedbar-refresh t]
-    ["Auto Update" speedbar-toggle-updates
-     :style toggle :selected speedbar-update-flag]
-    ,(if (and (or (fboundp 'defimage)
-		  (fboundp 'make-image-specifier))
-	      window-system)
-	 ["Use Images" speedbar-toggle-images
-	  :style toggle :selected speedbar-use-images])
-    )
+  (append
+   '("Speedbar"
+     ["Update" speedbar-refresh t]
+     ["Auto Update" speedbar-toggle-updates
+      :style toggle :selected speedbar-update-flag])
+   (if (and (or (fboundp 'defimage)
+		(fboundp 'make-image-specifier))
+	    window-system)
+       (list
+	["Use Images" speedbar-toggle-images
+	 :style toggle :selected speedbar-use-images]))
+   )
   "Base part of the speedbar menu.")
 
 (defvar speedbar-easymenu-definition-special
@@ -2066,17 +2068,20 @@ If PREVLINE, then put this button on the previous line.
 
 This is a convenience function for special mode that create their own
 specialized speedbar displays."
-  ;; What the fletch is this goto-char for?  Can I remove it safely??
-  ;; TODO: Investigate.
   (goto-char (point-max))
-  (if (/= (current-column) 0) (insert "\n"))
-  (if prevline (progn (delete-char -1) (insert " "))) ;back up if desired...
+  (let ((start (point)))
+    (if (/= (current-column) 0) (insert "\n"))
+    (put-text-property start (point) 'invisible nil))
+  (if prevline (progn (delete-char -1)
+		      (insert " ") ;back up if desired...
+		      (put-text-property (1- (point)) (point) 'invisible nil)))
   (let ((start (point)))
     (insert text)
     (speedbar-make-button start (point) face mouse function token))
   (let ((start (point)))
     (insert "\n")
     (put-text-property start (point) 'face nil)
+    (put-text-property start (point) 'invisible nil)
     (put-text-property start (point) 'mouse-face nil)))
 
 (defun speedbar-make-button (start end face mouse function &optional token)
