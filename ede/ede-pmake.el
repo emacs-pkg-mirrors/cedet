@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.12 1999/06/24 13:25:12 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.13 1999/08/14 14:25:41 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -176,6 +176,7 @@ MFILENAME is the makefile to generate."
 		(insert " $(ede_FILES) $(DISTDIR)\n"
 			"\ttar -cvzf $(DISTDIR).tar.gz $(DISTDIR)\n"
 			"\trm -rf $(DISTDIR)\n\n")
+		(ede-proj-makefile-tags this mt)
 		;; Add rules here for subprojects!
 		(insert mfilename ": "
 			(file-name-nondirectory (oref this file)) "\n"
@@ -459,6 +460,28 @@ These are removed with make clean."
   (insert "\n" (ede-name this) ": $(" (ede-pmake-varname this) "_INFOS)\n"
 	  "\tmakeinfo " (or (oref this mainmenu) (car (oref this source)))
 	  "\n"))
+
+;; Tags
+(defmethod ede-proj-makefile-tags ((this ede-proj-project) targets)
+  "Insert into the current location rules to make recursive TAGS files.
+Argument THIS is the project to create tags for.
+Argument TARGETS are the targets we should depend on for TAGS."
+  (insert "tags: ")
+  (let ((tg targets))
+    ;; Loop over all source variables and insert them
+    (while tg
+      (insert "$(" (ede-proj-makefile-sourcevar (car tg)) ") ")
+      (setq tg (cdr tg)))
+    (if targets
+	(insert "\n\tetags $^\n"))
+    ;; Now recurse into all subprojects
+    (setq tg (oref this subproj))
+    (while tg
+      (insert "\tcd " (file-name-directory (oref (car tg) file)) "; make $@\n")
+      (setq tg (cdr tg)))
+    (insert "\n")))
+    
+    
 
 (provide 'ede-pmake)
 
