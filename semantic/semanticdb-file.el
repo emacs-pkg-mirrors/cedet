@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.4 2003/03/02 14:24:12 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.5 2003/03/10 02:33:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -131,14 +131,12 @@ If DIRECTORY doesn't exist, create a new one."
 	     (tv (oref r semantic-token-version))
 	     (fv (oref r semanticdb-version))
 	     )
+	;; Restore the parent-db connection
+	(while c
+	  (oset (car c) parent-db r)
+	  (setq c (cdr c)))
 	(if (not (inversion-test 'semanticdb-file fv))
-	    ;; semanticdb object is ok.
-	    (if (not (inversion-test 'semantic-token tv))
-		;; AOK
-		(while c
-		  ;; Restore the parent-db connection
-		  (oset (car c) parent-db r)
-		  (setq c (cdr c)))
+	    (when (inversion-test 'semantic-token tv)
 	      ;; Incompatible version.  Flush tables.
 	      (oset r tables nil)
 	      ;; Reset the version to new version.
@@ -150,6 +148,9 @@ If DIRECTORY doesn't exist, create a new one."
 	  ;; Version is not ok.  Flush whole system
 	  (message "semanticdb file is old.  Starting over for %s"
 		   filename)
+	  ;; This database is so old, we need to replace it.
+	  ;; We also need to delete it from the instance tracker.
+	  (delete-instance r)
 	  (setq r nil))
 	r)
     (error (message "Cache Error: %s, Restart" foo)
