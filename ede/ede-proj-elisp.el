@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.20 2003/09/04 18:36:08 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.21 2003/09/10 13:05:59 ponced Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -223,6 +223,12 @@ is found, such as a `-version' variable, or the standard header."
 		  :documentation "The file that autoload definitions are placed in.
 There should be one load defs file for a given package.  The load defs are created
 for all Emacs Lisp sources that exist in the directory of the created target.")
+   (autoload-dirs :initarg :autoload-dirs
+		  :initform nil
+		  :type list
+		  :custom (repeat string)
+		  :documentation "The directories to scan for autoload definitions.
+If nil defaults to the current directory.")
    )
   "Target that builds an autoload file.
 Files do not need to be added to this target.")
@@ -238,7 +244,7 @@ Files do not need to be added to this target.")
      "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
      "done;"
      "@echo \"(require 'cedet-autogen)\" >> $@-compile-script"
-     "$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ ."
+     "$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)"
      )
    :sourcetype '(ede-source-emacs)
    )
@@ -279,6 +285,10 @@ sources variable."
   (call-next-method)
   (ede-pmake-insert-variable-shared "LOADDEFS"
     (insert (oref this autoload-file)))
+  (ede-pmake-insert-variable-shared "LOADDIRS"
+    (insert (mapconcat 'identity
+                       (or (oref this autoload-dirs) '("."))
+                       " ")))
   )
 
 (defmethod project-compile-target ((obj ede-proj-target-elisp-autoloads))
