@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.30 2001/02/02 04:11:29 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.31 2001/02/14 02:36:23 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -101,21 +101,32 @@
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'token
 		     (nth 2 vals)  (nth 3 vals))))
-     (PUT symbol symbol symbol
+     (PUT symbol symbol put-value
 	     ,(semantic-lambda
-	       (list (nth 1 vals) 'put
-		     (nth 2 vals)
-		     (nth 3 vals))))
-     (PUT symbol symbol string
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'put
-		     (nth 2 vals)
-		     (nth 3 vals))))
-     (PUT symbol symbol semantic-list
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'put
-		     (nth 2 vals)
-		     (semantic-flex-text (cons 1 (nth 3 vals))))))
+	       (list (list (nth 1 vals)) 'put
+		     (list (cons (nth 2 vals) (nth 3 vals))))))
+     (PUT symbol semantic-list
+	  ,(semantic-lambda
+	    (list (list (nth 1 vals)) 'put
+		  (semantic-bovinate-from-nonterminal-full
+		    (car (nth 2 vals)) (cdr (nth 2 vals))
+		    `put-value-list))))
+     (PUT semantic-list symbol put-value
+	  ,(semantic-lambda
+	    (list (semantic-bovinate-from-nonterminal-full
+		    (car (nth 1 vals)) (cdr (nth 1 vals))
+		    `put-name-list)
+		  'put
+		  (list (cons (nth 2 vals) (nth 3 vals))))))
+     (PUT semantic-list semantic-list
+	  ,(semantic-lambda
+	    (list (semantic-bovinate-from-nonterminal-full
+		    (car (nth 1 vals)) (cdr (nth 1 vals))
+		    `put-name-list)
+		  'put
+		  (semantic-bovinate-from-nonterminal-full
+		    (car (nth 2 vals)) (cdr (nth 2 vals))
+		    `put-value-list))))
      (OUTPUTFILE symbol punctuation "." symbol "\\bel\\b"
 	     ,(semantic-lambda
 	       (list (concat (nth 1 vals) ".el") 'outputfile)))
@@ -141,6 +152,22 @@
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'quotemode)))
      )
+    (put-name-list
+     (open-paren ,(semantic-lambda (list nil)))
+     (close-paren ,(semantic-lambda (list nil)))
+     (symbol ,(semantic-lambda (list (nth 0 vals)))))
+    (put-value-list
+     (open-paren ,(semantic-lambda (list nil)))
+     (close-paren ,(semantic-lambda (list nil)))
+     (symbol put-value
+     ,(semantic-lambda
+       (cons (nth 0 vals) (nth 1 vals))))
+     )
+    (put-value
+     (symbol ,(semantic-lambda (list (nth 0 vals))))
+     (string ,(semantic-lambda (list (nth 0 vals))))
+     (semantic-list
+      ,(semantic-lambda (list (semantic-flex-text (cons 1 (nth 0 vals)))))))
     (rule-list
      (match-list lambda-fn rule-or-list
 		 ,(semantic-lambda
@@ -583,6 +610,7 @@ SOURCEFILE is the file name from whence tokstream came."
 	    (delete-region (point) (save-excursion (forward-sexp 1) (point))))
 	(delete-blank-lines)
 	(let ((key (semantic-find-nonterminal-by-token 'keyword tok))
+	      keys
 	      (put (semantic-find-nonterminal-by-token 'put tok))
 	      (start (point)))
 	  (if (not key)
@@ -595,13 +623,22 @@ SOURCEFILE is the file name from whence tokstream came."
 	    (insert ")\n  '(\n ")
 	    ;; Now get all properties
 	    (while put
-	      (setq key (semantic-find-nonterminal-by-token 'keyword tok))
-	      (let ((a (assoc (nth 0 (car put)) key)))
-		(if (not a) (error "Token %s not found" (nth 0 (car put))))
-		(insert "  ("
-			(nth 3 a) " "
-			(nth 2 (car put)) " "
-			(nth 3 (car put)) ")\n "))
+	      (setq keys (car (car put)))
+	      (while keys
+		(setq key (semantic-find-nonterminal-by-token 'keyword tok))
+		(let ((a (assoc (if (listp (car keys))
+				    (car (car keys))
+				  (car keys))
+				key)))
+		  (if (not a) (error "Token %s not found" (car keys)))
+		  (let ((pairs (nth 2 (car put))))
+		    (while pairs
+		      (insert "  ("
+			      (nth 3 a) " "
+			      (car (car pairs)) " "
+			      (car (cdr (car pairs))) ")\n ")
+		      (setq pairs (cdr pairs)))))
+		(setq keys (cdr keys)))
 	      (setq put (cdr put)))
 	    (insert "))\n "))
 	  (save-excursion
