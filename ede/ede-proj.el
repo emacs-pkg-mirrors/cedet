@@ -3,9 +3,8 @@
 ;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.10 1999/03/17 23:08:50 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.11 1999/03/20 16:17:32 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -51,19 +50,29 @@ distributed, and each should have a corresponding rule to build it.")
 	     :initform "Makefile"
 	     :custom string
 	     :documentation "File name of generated Makefile.")
+   (configuration-variables
+    :initarg :configuration-variables
+    :initform nil
+    :custom (repeat (cons (string :tag "Configuration")
+			  (repeat
+			   (cons (string :tag "Name")
+				 (string :tag "Value")))))
+    :documentation "Makefile variables appended to use in different configurations.
+These variables are used in the makefile when a configuration becomes active.
+Target variables are always renamed such as foo_CFLAGS, then included into
+commands where the variable would usually appear.")
    (rules :initarg :rules
 	  :initform nil
 	  :custom (repeat (object :objecttype ede-makefile-rule))
-	  :documentation "Arbitrary rules needed to make this target.")
+	  :documentation
+	  "Arbitrary rules and dependencies needed to make this target.")
    )
   "Abstract class for Makefile based targets.")
 
 (defclass ede-proj-target-makefile-objectcode (ede-proj-target-makefile)
-  ((ldflags :initarg :ldflags
-	    :initform nil
-	    :custom (repeat (string :tag "Flag"))
-	    :documentation "Additional flags to pass to the linker.
-Please refer to your linker's manual for information.")
+  (;; Give this a new default
+   (configuration-variables :initform ("debug" . (("CFLAGS" . "-g")
+						  ("LDFLAGS" . "-g"))))
    (headers :initarg :headers
 	    :initform nil
 	    :custom (repeat (string :tag "Header"))
@@ -108,6 +117,13 @@ All other sources should be included independently."))
 	      :documentation "Additional load-path arguments.
 When compiling from the command line, these are added to the makefile.
 When compiling from within emacs, these are ignored.")
+   (requirements :initarg :requirements
+		 :initform nil
+		 :custom (repeat string)
+		 :documentation
+		 "Additional packages that should be loaded before building.
+When using eieio, tools generally need to be loaded before you can compile
+them safely.")
    )
   "This target consists of a group of lisp files.
 A lisp target may be one general program with many separate lisp files in it.")
@@ -146,7 +162,7 @@ A target of \"foo.o\" explicitly matches the file foo.o.")
 		 :custom string
 		 :documentation "Dependencies on this target.
 A pattern of \"%.o\" would match a file of the same prefix as the target
-if that target is also an inference rule pattern. 
+if that target is also an inference rule pattern.
 A dependency of \"foo.c\" explicitly lists foo.c as a dependency.
 A variable such as $(name_SOURCES) will list all the source files
 belonging to the target name.")
@@ -180,11 +196,26 @@ in targets.")
 	      :custom (repeat (cons (string :tag "Name")
 				    (string :tag "Value")))
 	      :documentation "Variables to set in this Makefile.")
+   (configuration-variables
+    :initarg :configuration-variables
+    :initform ("debug" (("DEBUG" . "1")))
+    :custom (repeat (cons (string :tag "Configuration")
+			  (repeat
+			   (cons (string :tag "Name")
+				 (string :tag "Value")))))
+    :documentation "Makefile variables to use in different configurations.
+These variables are used in the makefile when a configuration becomes active.")
    (inference-rules :initarg :inference-rules
 		    :initform nil
-		    :custom (repeat 
+		    :custom (repeat
 			     (object :objecttype ede-makefile-rule))
 		    :documentation "Inference rules to add to the makefile.")
+   (automatic-dependencies
+    :initarg :automatic-dependencies
+    :initform t
+    :custom boolean
+    :documentation
+    "Non-nil to do implement automatic dependencies in the Makefile.")
    )
   "The EDE-PROJ project definition class.")
 
@@ -260,7 +291,7 @@ Argument TARGET is the project we are completing customization on."
 	  proj
 	(let ((targets (oref proj targets))
 	      (f nil))
-	  (while (and targets (not f))
+	  (while targets
 	    (if (or (member (ede-convert-path proj (buffer-file-name buffer))
 			    (oref (car targets) source))
 		    (and (slot-exists-p (car targets) 'headers)
@@ -271,7 +302,7 @@ Argument TARGET is the project we are completing customization on."
 			 (member
 			  (ede-convert-path proj (buffer-file-name buffer))
 			  (oref (car targets) auxsource))))
-		(setq f (car targets)))
+		(setq f (cons (car targets) f)))
 	    (setq targets (cdr targets)))
 	  f))))
 
@@ -345,7 +376,8 @@ Argument TARGET is the project we are completing customization on."
       (setq ts (cdr ts)))
     ;; Remove THIS from it's parent.
     ;; The two vectors should be pointer equivalent.
-    (oset p targets (delq this (oref p targets)))))
+    (oset p targets (delq this (oref p targets)))
+    (ede-proj-save (ede-current-project))))
 
 (defmethod project-add-file ((this ede-proj-target) file)
   "Add to target THIS the current buffer represented as FILE."
@@ -474,13 +506,22 @@ Optional argument COMMAND is the s the alternate command to use."
 	(t
 	 (with-slots (targets) this
 	   (while (and targets
-		       (not (obj-of-class-p 
+		       (not (obj-of-class-p
 			     (car targets)
 			     'ede-proj-target-makefile)))
 	     (setq targets (cdr targets)))
 	   (if targets (oref (car targets) makefile)
 	     "Makefile")))))
   
+(defun ede-proj-regenerate ()
+  "Regenerate Makefiles for and edeproject project."
+  (interactive)
+  (ede-proj-makefile-create
+   (ede-current-project)
+   ;; Just do this one for now.  Come up with a way to do all potential
+   ;; makefiles in the future.
+   (ede-proj-dist-makefile (ede-current-project))))
+
 (eval-when-compile (require 'ede-pmake))
 
 (defmethod ede-proj-makefile-create-maybe ((this ede-proj-project) mfilename)
@@ -488,7 +529,8 @@ Optional argument COMMAND is the s the alternate command to use."
 MFILENAME is the makefile to generate."
   ;; For now, pass through until dirty is implemented.
   (require 'ede-pmake)
-  (ede-proj-makefile-create this mfilename))
+  (if (file-newer-than-file-p mfilename (oref this file))
+      (ede-proj-makefile-create this mfilename)))
 
 ;;; Lower level overloads
 ;;  
