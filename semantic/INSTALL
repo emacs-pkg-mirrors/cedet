@@ -5,14 +5,20 @@ How to install Semantic
 1.1) Optional: Install EIEIO CLOS library package from:
 	http://cedet.sourceforge.net/eieio.shtml
 
+1.2) Optional: Install the Speedbar package from:
+	http://cedet.sourceforge.net/speedbar.shtml
+     Note: Some parts of semantic may not load with the version
+	   of speedbar included in current versions of Emacs
+
 2) Byte compile semantic (optional, but recommended)
 
-   a) Edit Makefile, and change LOADPATH to include the path to EIEIO.
+   a) Edit Makefile, and change LOADPATH to include the path to
+	 EIEIO and Speedbar.
    b) run "make"
 
    -OR-
 
-   a) run "make LOADPATH=<path to eieio>"
+   a) run: make LOADPATH="<path to eieio> <path to speedbar>"
 
    If byte compilation fails fails:
     a) Follow step 3:
