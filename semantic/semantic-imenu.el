@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.19 2000/11/13 21:02:39 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.20 2000/12/07 04:51:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,7 +43,7 @@
   "*Function to use when creating items in Imenu.
 Some useful functions are:
 `semantic-abbreviate-nonterminal'
-`semantic-summerize-nonterminal'
+`semantic-summarize-nonterminal'
 `semantic-prototype-nonterminal'"
   :group 'imenu
   :type 'function)
