@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.2 1999/05/17 17:29:31 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.3 1999/05/23 13:30:19 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -261,6 +261,7 @@ VALS are the matches in the BNF notation file."
   (interactive "FBNF file: ")
   (let* ((tokstream (save-excursion
 		      (set-buffer (find-file-noselect file))
+		      (semantic-clear-toplevel-cache)
 		      (save-excursion
 			(goto-char (point-min))
 			(semantic-bovinate-toplevel 0 t))))
@@ -295,7 +296,7 @@ VALS are the matches in the BNF notation file."
 	  (indent-for-tab-command))
 	(setq tokstream (cdr tokstream))
 	(working-status (* 100.0 (- 1.0 (/ (float (length tokstream)) tl)))))
-      (working-status 100.0 t))
+      (working-status t))
     (insert ")\n")
     ))
 
