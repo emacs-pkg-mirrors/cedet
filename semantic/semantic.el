@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.27 2000/04/25 14:45:06 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.28 2000/04/25 16:25:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -532,6 +532,43 @@ Parameters mean:
   (let ((a (assq sym semantic-override-table)))
     (cdr a)))
 
+(defvar semantic-dependency-include-path nil
+  "Defines the include path used when searching for files.
+This should be a list of directories to search which is specific to
+the file being included.
+This variable can also be set to a single function.  If it is a
+function, it will be called with one arguments, the file to find as a
+string, and  it should return the full path to that file, or nil.")
+(make-variable-buffer-local `semantic-dependency-include-path)
+
+(defun semantic-find-dependency (buffer token &optional parent)
+  "Find the filename represented from BUFFER's TOKEN.
+TOKEN may be a stripped element, in which case PARENT specifies a
+parent token that has positinal information.
+Depends on `semantic-dependency-include-path' for searching.  Always searches
+`.' first, then searches additional paths."
+  (if (or (not (bufferp buffer)) (not token))
+      (error "Semantic-find-nonterminal: specify BUFFER and TOKEN"))
+  
+  (let ((s (semantic-fetch-overload 'find-dependency)))
+    (if s (funcall s buffer token)
+      (save-excursion
+	(set-buffer buffer)
+	(let ((name (semantic-token-name token)))
+	  (cond ((file-exists-p name)
+		 (expand-file-name name))
+		((and (symbolp semantic-dependency-include-path)
+		      (fboundp semantic-dependency-include-path))
+		 (funcall semantic-dependency-include-path name))
+		(t
+		 (let ((p semantic-dependency-include-path)
+		       (found nil))
+		   (while (and p (not found))
+		     (if (file-exists-p (concat (car p) "/" name))
+			 (setq found (concat (car p) "/" name)))
+		     (setq p (cdr p)))
+		   found))))))))
+
 (defun semantic-find-nonterminal (buffer token &optional parent)
   "Find the location from BUFFER belonging to TOKEN.
 TOKEN may be a stripped element, in which case PARENT specifies a
@@ -542,27 +579,25 @@ depended on, and functions will move to the specified definition."
   (if (or (not (bufferp buffer)) (not token))
       (error "Semantic-find-nonterminal: specify BUFFER and TOKEN"))
   
-  (if (if (eq (semantic-token-token token) 'include)
-	  (let ((s (semantic-fetch-overload 'find-dependency)))
-	    (if s
-		(progn (funcall s buffer token) t)
-	      t))
-	t)
-      (let ((s (semantic-fetch-overload 'find-nonterminal)))
-	(if s (funcall s buffer token)
-	  (let ((start (semantic-token-start token)))
-	    (if (numberp start)
-		;; If it's a number, go there
-		(goto-char start)
-	      ;; Otherwise, it's a trimmed vector, such as a parameter,
-	      ;; or a structure part.
-	      (if (not parent)
-		  nil
-		(goto-char (semantic-token-start parent))
-		;; Here we make an assumtion that the text returned by
-		;; the bovinator and concocted by us actually exists
-		;; in the buffer.
-		(re-search-forward (semantic-token-name token) nil t))))))))
+  (if (and (eq (semantic-token-token token) 'include)
+	   (let ((f (semantic-find-dependency buffer token parent)))
+	     (if f (find-file f))))
+      nil
+    (let ((s (semantic-fetch-overload 'find-nonterminal)))
+      (if s (funcall s buffer token)
+	(let ((start (semantic-token-start token)))
+	  (if (numberp start)
+	      ;; If it's a number, go there
+	      (goto-char start)
+	    ;; Otherwise, it's a trimmed vector, such as a parameter,
+	    ;; or a structure part.
+	    (if (not parent)
+		nil
+	      (goto-char (semantic-token-start parent))
+	      ;; Here we make an assumtion that the text returned by
+	      ;; the bovinator and concocted by us actually exists
+	      ;; in the buffer.
+	      (re-search-forward (semantic-token-name token) nil t))))))))
 
 (defun semantic-summerize-nonterminal (token &optional parent)
   "Summerize TOKEN in a reasonable way.
