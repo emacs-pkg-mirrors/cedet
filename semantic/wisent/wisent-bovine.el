@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.29 2003/03/27 07:46:47 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.30 2003/09/07 09:03:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -478,7 +478,7 @@ the standard function `semantic-parse-region'."
              start end))
   (let* ((case-fold-search semantic-case-fold)
          (wisent-lex-istream (semantic-lex start end depth))
-         ptree token cooked lstack wisent-lex-lookahead)
+         ptree tag cooked lstack wisent-lex-lookahead)
     ;; Loop while there are lexical tokens available
     (while wisent-lex-istream
       ;; Parse
@@ -512,8 +512,8 @@ the standard function `semantic-parse-region'."
         (while cooked
           (setq tag    (car cooked)
                 cooked (cdr cooked))
-          (or (semantic-tag-get tag 'reparse-symbol)
-              (semantic-tag-put tag 'reparse-symbol goal)))
+          (or (semantic--tag-get-property tag 'reparse-symbol)
+              (semantic--tag-put-property tag 'reparse-symbol goal)))
         )
        ;; Return on error if requested
        (returnonerror
