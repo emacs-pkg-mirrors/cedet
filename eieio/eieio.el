@@ -6,14 +6,14 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.6
-;;; RCS: $Id: eieio.el,v 1.6 1996/06/01 14:50:56 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.7 1996/07/28 18:30:49 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation; either version 2, or (at your option)
 ;;; any later version.
-;;;
+;;;           
 ;;; This program is distributed in the hope that it will be useful,
 ;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -34,7 +34,7 @@
 
 ;;;
 ;;; Commentary:
-;;;
+;;;      
 ;;; EIEIO is a series of lisp routines which, if used, provide a class
 ;;; structure methodology vaguely which implements a small subset of
 ;;; CLOS, the Common Lisp Object System.  In addition, eieio also adds
@@ -153,6 +153,8 @@
 ;;;           the lookup times.  Old list is still there because it is
 ;;;           needed for generating sub-classes, and for doing
 ;;;           browsing things.
+;;;        Changed Constructor and Destructor into methods, instead of
+;;;           classmethods
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -186,6 +188,14 @@ list which has to be faked around the existing emacs interpreter")
 (defconst class-initarg-tuples 11 "Class initarg tuples list")
 (defconst class-methods 12 "Class methods index")
 (defconst class-num-fields 13 "Number of fields in the class definition object")
+
+(defconst method-before 0 "Index into :BEFORE tag on a method")
+(defconst method-primary 1 "Index into :PRIMARY tag on a method")
+(defconst method-after 2 "Index into :AFTER tag on a method")
+(defconst method-generic-before 3 "Index into generic :BEFORE tag on a method")
+(defconst method-generic-primary 4 "Index into generic :PRIMARY tag on a method")
+(defconst method-generic-after 5 "Index into generic :AFTER tag on a method")
+(defconst method-num-fields 6 "Number of indexes into a method's vector")
 
 
 ;;;
@@ -381,7 +391,7 @@ in that class definition.  See defclass for more information"
 		 '(aset no 0 'object)
 		 (list 'aset 'no 1 cname)
 		 '(aset no 2 newname)
-		 '(ocall no constructor fields)
+		 '(constructor no fields)
 		 'no)))
 
     ;; Create the test function
@@ -466,8 +476,6 @@ it's purpose is to decide which method body is apropriate to use.  Use
     (if (and (fboundp method) (not (generic-p method)))
 	(error "You cannot create a generic/method over an existing symbol"))
     (fset method lambda-form)
-    ;; Tag it so we have a safty net before overwriting emacs internals
-    (put method 'eieio-generic t)
     'method))
 
 (defmacro defmethod (method &rest args)
@@ -488,11 +496,14 @@ the body, such as:
   (let ((key nil) (body nil) (bindsym nil) (firstarg nil) (typesym nil)
 	(argfix nil) loopa)
     ;; find optional keys
-    (if (or (eq ':BEFORE (car args))
-	    (eq ':AFTER (car args)))
-	(setq key (car args)
-	      args (cdr args))
-      (setq key ':PRIMARY)) 
+    (setq key
+	  (cond ((eq ':BEFORE (car args))
+		 (setq args (cdr args))
+		 0)
+		((eq ':AFTER (car args))
+		 (setq args (cdr args))
+		 2)
+		(t 1)))
     ;; get body, and fix contents of args to be the arguments of the fn.
     (setq body (cdr args)
 	  args (car args))
@@ -514,16 +525,13 @@ the body, such as:
     ;; function.
     (setq firstarg (car args))
     (if (listp firstarg)
-	(if (class-p (nth 1 firstarg))
-	    (setq typesym (symbol-name (aref (class-v (nth 1 firstarg)) 1)))
-	  (error "Unknown class type %s in method parameters" (nth 1 firstarg)))
-      (setq typesym "generic"))
-    (setq bindsym (intern (concat (symbol-name key) "-" typesym)))
+	(if (not (class-p (nth 1 firstarg)))
+	    (error "Unknown class type %s in method parameters" (nth 1 firstarg)))
+      ;; generics are higher
+      (setq key (+ key method-num-fields)))
     ;; Put this lambda into the symbol so we can find it
-    (put method bindsym 
-	 (append
-	  (list 'lambda (reverse argfix))
-	  body)))
+    (eieiomt-add method (append (list 'lambda (reverse argfix)) body)
+		 key (nth 1 firstarg)))
   method)
 
 ;;;
@@ -553,6 +561,10 @@ the body, such as:
 	(list 'oset-engine obj 'field store))
       ))
 
+;; This alias is needed so that functions can be written
+;; for defaults, but still behave like lambdas.
+(defalias 'lambda-default 'lambda)
+
 (defmacro oref-default (obj field)
   "Macro calling oref-default-engine with the quote inserted before field."
   (list 'oref-default-engine obj (list 'quote field)))
@@ -568,11 +580,16 @@ represent the actual stored value."
     (let ((val (if (< c (+ 3 nump))
 		   (nth (- c 3) (aref (class-v (aref obj 1)) class-public-d))
 		 (nth (- c nump 3) (aref (class-v (aref obj 1)) class-private-d)))))
+      ;; check for functions to evaluate
       (if (or (and (listp val) (equal (car val) 'lambda))
 	      (and (symbolp val) (fboundp val)))
 	  (let ((this obj))
 	    (funcall val))
-	val))))
+	;; check for quoted things
+	(if (and (listp val) (equal (car val) 'quote))
+	    (car (cdr val))
+	  ;; return it verbatim
+	  val)))))
 
 (defmacro oset (obj field value)
   "Macro calling oset-engine with the quote inserted before field."
@@ -638,13 +655,14 @@ with the list of arguments ARGS."
 ;;; Simple generators, and query functions.  None of these would do
 ;;; well embedded into an object.
 ;;;
-(defun class-v (class) "Internal: Returns the class vector from the CLASS symbol"
-  (if (not (symbolp class)) (signal 'wrong-type-argument (list 'symbolp class)))
-  (get class 'eieio-class-definition))
+(defmacro class-v (class) "Internal: Returns the class vector from the CLASS symbol"
+  ;(if (not (symbolp class)) (signal 'wrong-type-argument (list 'symbolp class)))
+  (list 'get class ''eieio-class-definition))
 
 (defun class-p (class) "Return t if CLASS is a valid class vector."
-  (and (symbolp class) (vectorp (get class 'eieio-class-definition))
-       (equal (aref (class-v class) 0) 'defclass)))
+  (and (symbolp class) 
+       (let ((cv (get class 'eieio-class-definition)))
+	 (and (vectorp cv) (equal (aref cv 0) 'defclass)))))
 
 (defun object-p (obj) "Return t if OBJ is an OBJECT vector."
   (and (vectorp obj) (equal (aref obj 0) 'object) (class-p (aref obj 1))))
@@ -690,8 +708,10 @@ with the list of arguments ARGS."
       (and (aref (class-v child) 3) (child-of-class-p (aref (class-v child) 3) class))))
 
 (defun generic-p (method)
-  "Return `t' if symbol METHOD is a generic function"
-  (and (fboundp method) (get method 'eieio-generic)))
+  "Return `t' if symbol METHOD is a generic function.  Only methods
+have the symbol `eieio-method-tree' as a property (which contains a
+list of all bindings to that method type.)"
+  (and (fboundp method) (get method 'eieio-method-tree)))
 
 
 ;;;
@@ -759,23 +779,26 @@ available methods which may be programmed in."
     ;; Now create a list in reverse order of all the calls we have
     ;; make in order to successfully do this right.  Rules:
     ;; 1) Only call generics if scoped-class is not defined
-    ;;    This prevents multiple calls in the case of a parent class call.
+    ;;    This prevents multiple calls in the case of recursion
     ;; 2) Only call specifics if the definition allows for them.
     ;; 3) Call in order based on :BEFORE, :PRIMARY, and :AFTER
     (if (not scoped-class)
-	(setq lambdas (cons (eieio-generic-form method ":AFTER-" nil) lambdas)))
+	(setq lambdas (cons (eieio-generic-form method method-after nil)
+			    lambdas)))
     (if mclass
-	(setq lambdas (cons (eieio-generic-form method ":AFTER-" mclass)
+	(setq lambdas (cons (eieio-generic-form method method-after mclass)
 			    lambdas)))
     (if (not scoped-class)
-	(setq lambdas (cons (eieio-generic-form method ":PRIMARY-" nil) lambdas)))
+	(setq lambdas (cons (eieio-generic-form method method-primary nil)
+			    lambdas)))
     (if mclass
-	(setq lambdas (cons (eieio-generic-form method ":PRIMARY-" mclass)
+	(setq lambdas (cons (eieio-generic-form method method-primary mclass)
 			    lambdas)))
     (if (not scoped-class)
-	(setq lambdas (cons (eieio-generic-form method ":BEFORE-" nil) lambdas)))
+	(setq lambdas (cons (eieio-generic-form method method-before nil)
+			    lambdas)))
     (if mclass
-	(setq lambdas (cons (eieio-generic-form method ":BEFORE-" mclass)
+	(setq lambdas (cons (eieio-generic-form method method-before mclass)
 			    lambdas)))
 
     ;; Now loop through all occurances forms which we must execute
@@ -797,25 +820,81 @@ method belong to the parent class"
 	(mclass (class-parent scoped-class)))
     ;; lookup the form to use for the PRIMARY object for the next level
     (setq lambdas (eieio-generic-form eieio-generic-call-methodname
-				      ":PRIMARY-" mclass))
+				      method-primary mclass))
     ;; Setup calling environment, and apply arguments...
     (let ((scoped-class (cdr lambdas)))
       (apply (car lambdas) newargs))))
 
+;;;
+;;; eieio-method-tree : eieiomt-
+;;;
+;;; Stored as eieio-method-tree in property list of a generic method
+;;;
+;;; (eieio-method-tree . [BEFORE PRIMARY AFTER 
+;;;                       genericBEFORE genericPRIMARY genericAFTER])
+;;;    where the association is a vector.
+;;;    (aref 0  -- all methods classified as :BEFORE
+;;;    (aref 1  -- all methods classified as :PRIMARY
+;;;    (aref 2  -- all methods classified as :AFTER
+;;;    (aref 3  -- a generic classified as :BEFORE
+;;;    (aref 4  -- a generic classified as :PRIMARY
+;;;    (aref 5  -- a generic classified as :AFTER
+;;;
+;;; Each list of methods is stored as follows:
+;;;
+;;; ( ( class . function ) ( class ... ))
+;;;
+;;; The elts 3-5 are mearly function bodies
+;;;
+
+(defun eieiomt-add (method-name method tag class)
+  "Add to METHOD-NAME the METHOD with associated TAG a function
+associated with CLASS"
+  (if (or (>= tag method-num-fields) (< tag 0))
+      (error "eieiomt-add: method tag error!"))
+  (let ((emtv (get method-name 'eieio-method-tree)))
+    (if (not emtv)
+	(setq emtv (put method-name 'eieio-method-tree 
+			(make-vector method-num-fields nil))))
+    ;; only cons new cells on if it doesn't already exist!
+    (if (assq class (aref emtv tag))
+	(setcdr (assq class (aref emtv tag)) method)
+      (aset emtv tag (cons (cons class method) (aref emtv tag))))
+    ))
+
+(defun eieiomt-get (method-name tag class)
+  "Get the method implementation from METHOD-NAME of the correct TAG
+matching CLASS"
+  (if (>= tag method-num-fields) (< tag 0)
+    (error "eieiomt-add: method tag error!"))
+  (let ((emtv (get method-name 'eieio-method-tree)))
+    (if (not emtv) 
+	nil
+      (cdr (assq class (aref emtv tag))))))
+
 (defun eieio-generic-form (method tag class)
  "Return the lambda form belonging to METHOD using TAG based upon
-CLASS.  If CLASS is not an class then use `generic' instead.  If class
+CLASS.  If CLASS is not a class then use `generic' instead.  If class
 has no form, but has a parent class, then trace to that parent class"
- (if (class-p class)
-     (let ((sym (intern (concat tag (symbol-name (aref (class-v class) 1))))))
-       (if (get method sym)
-	   (cons (get method sym) (aref (class-v class) 1))
-	 (if (class-parent class)
-	     (eieio-generic-form method tag (class-parent class))
-	   nil)))
-   (if class
-       nil  ; if it has a value, but is not a class, this is a bug
-     (get method (intern (concat tag "generic"))))))
+
+ (let ((emtl (aref (get method 'eieio-method-tree) (if class tag (+ tag 3)))))
+   (if (class-p class)
+     (let ((ov nil))
+       (while (and class (not ov) emtl)
+	 (setq ov (assq class emtl))
+	 (if ov
+	     (setq ov (cons (cdr ov) (aref (class-v class) 1)))
+	   (if (class-parent class)
+	       (setq class (class-parent class))
+	     (if (eq class 'eieio-default-superclass)
+		 (setq class nil)
+	       (setq class 'eieio-default-superclass)))))
+       ;; return the created dotted pair
+       ov)
+     ;; for a generic call, what is a list, is the function body we want.
+     (if emtl
+	 (cons emtl nil)
+       nil))))
 
 ;;;
 ;;; Way to assign fields based on a list.  Used for constructors, or
@@ -902,16 +981,15 @@ viewing by apropos, and describe-variables, and the like."
     nil ; don't rebuild these objects.
 
   (defclass eieio-default-superclass nil
-    ((constructor :method t)		; Called when created
-     (destructor :method t)		; called when removed
-     )
+    nil
     "Default class used as parent class for superclasses.  It's
 fields are automatically adopted by such superclasses but not stored
 in the `parent' field.  When searching for attributes or methods, when
 the last parent is found, the search will recurse to this class.")
+)
 
 ;;; We want our superclass to define it's own methods.
-  (defclassmethod constructor eieio-default-superclass (&optional fields)
+(defmethod constructor ((this eieio-default-superclass) &optional fields)
     "Constructor for filling in attributes when constructing a new
 class."
     ;; Load in the defaults
@@ -920,12 +998,10 @@ class."
     (eieio-set-fields this fields)
     )
 
-  (defclassmethod destructor eieio-default-superclass (&rest params)
-    "Destructor for cleaning up any dynamic links to our object."
-    ;; No cleanup... yet.
-    )
-
-  )  ; End bootstrap check
+(defmethod destructor ((this eieio-default-superclass) &rest params)
+  "Destructor for cleaning up any dynamic links to our object."
+  ;; No cleanup... yet.
+  )
 
 
 ;;;
