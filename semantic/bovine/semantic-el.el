@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.11 2003/03/27 13:59:33 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.12 2003/04/06 01:06:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -245,7 +245,7 @@ Return a bovination list to use."
      ;; Now for other stuff
      ((eq ts 'require)
       (semantic-tag-new-include
-       sn nil))
+       sn nil :directory (nth 2 rt)))
      ((eq ts 'provide)
       (semantic-tag-new-package
        sn (nth 3 rt)))
@@ -411,6 +411,13 @@ Don't implement this."
 	    (t (1- count))))
     ))
 
+(define-mode-overload-implementation semantic-tag-include-filename emacs-lisp-mode
+  (tag)
+  "Return the name of the tag with .el appended.
+If there is a detail, prepend that directory."
+  (let ((name (semantic-tag-name tag))
+	(detail (semantic-tag-get-attribute tag :directory)))
+    (concat (expand-file-name name detail) ".el")))
 
 (defvar-mode-local emacs-lisp-mode semantic-lex-analyzer
   'semantic-emacs-lisp-lexer)
