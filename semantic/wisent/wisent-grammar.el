@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.4 2003/02/19 16:31:02 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.5 2003/03/13 08:36:48 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -62,6 +62,41 @@ NONTERM is the nonterminal symbol to start with."
           (car ,$ri) (cdr ,$ri) ',nonterm 1)
       (error "Invalid form (EXPANDFULL %s %s)" $i nonterm))))
 
+(defun wisent-grammar-TAG (&rest args)
+  "Return expansion of built-in TAG expression.
+ARGS are the arguments passed to the expanded form."
+  `(wisent-raw-token (semantic-token ,@args)))
+
+(defun wisent-grammar-VARIABLE-TAG (&rest args)
+  "Return expansion of built-in VARIABLE-TAG expression.
+ARGS are the arguments passed to the expanded form."
+  `(wisent-raw-token (semantic-token-new-variable ,@args)))
+
+(defun wisent-grammar-FUNCTION-TAG (&rest args)
+  "Return expansion of built-in FUNCTION-TAG expression.
+ARGS are the arguments passed to the expanded form."
+  `(wisent-raw-token (semantic-token-new-function ,@args)))
+
+(defun wisent-grammar-TYPE-TAG (&rest args)
+  "Return expansion of built-in TYPE-TAG expression.
+ARGS are the arguments passed to the expanded form."
+  `(wisent-raw-token (semantic-token-new-type ,@args)))
+
+(defun wisent-grammar-INCLUDE-TAG (&rest args)
+  "Return expansion of built-in INCLUDE-TAG expression.
+ARGS are the arguments passed to the expanded form."
+  `(wisent-raw-token (semantic-token-new-include ,@args)))
+
+(defun wisent-grammar-PACKAGE-TAG (&rest args)
+  "Return expansion of built-in PACKAGE-TAG expression.
+ARGS are the arguments passed to the expanded form."
+  `(wisent-raw-token (semantic-token-new-package ,@args)))
+
+(defun wisent-grammar-EXPANDTAG (&rest args)
+  "Return expansion of built-in EXPANDTAG expression.
+ARGS are the arguments passed to the expanded form."
+  `(wisent-cook-token ,@args))
+
 (defconst wisent-grammar-builtins
   '(
     ;; Builtin name . Expander
@@ -69,6 +104,13 @@ NONTERM is the nonterminal symbol to start with."
     (  ASSOC        . semantic-grammar-ASSOC)
     (  EXPAND       . wisent-grammar-EXPAND)
     (  EXPANDFULL   . wisent-grammar-EXPANDFULL)
+    (  TAG          . wisent-grammar-TAG)
+    (  VARIABLE-TAG . wisent-grammar-VARIABLE-TAG)
+    (  FUNCTION-TAG . wisent-grammar-FUNCTION-TAG)
+    (  TYPE-TAG     . wisent-grammar-TYPE-TAG)
+    (  INCLUDE-TAG  . wisent-grammar-INCLUDE-TAG)
+    (  PACKAGE-TAG  . wisent-grammar-PACKAGE-TAG)
+    (  EXPANDTAG    . wisent-grammar-EXPANDTAG)
     ;; ------------ . ---------------------------------
     )
   "Expanders of Semantic built-in functions in LALR grammar.")
