@@ -35,12 +35,21 @@
 ;; information during edits, automatically updating the automake file
 ;; where apropriate.
 
+;;; Install
+;;
+;;  project-am depends on:
+;;   eieio and make-mode.  It will use compile, gud, and speedbar.
+;;
+;;  This command enables project mode on all files.
+;;
+;;  (global-project-am-mode t)
+
 ;;; Adding new target objects
 ;;
 ;; To add a new target object, create an object that inherits from
 ;; either `project-am-target', or some other more similar object.
 ;; Next, add your type to `project-am-type-alist' which is used to
-;; make associations.  Lastly, make;; sure that the following methods
+;; make associations.  Lastly, make sure that the following methods
 ;; are defined for it:
 ;;
 ;; `project-am-rescan'  - Rescan the makefile for contents.  Also used to
@@ -62,10 +71,9 @@
 ;;; History:
 ;; 
 
-(require 'speedbar)
 (require 'makefile "make-mode")
 (require 'eieio)
-(eval-when-compile (require 'compile))
+(eval-when-compile (require 'compile) (require 'speedbar))
 
 ;; From custom web page for compatibility between versions of custom
 ;; with help from ptype@dera.gov.uk (Proto Type)
@@ -202,6 +210,18 @@ Do not set this to non-nil globally.  It is used internally.")
 	    (make-local-variable 'project-am-object)
 	    (setq project-am-object
 		  (project-am-buffer-object amf (current-buffer)))))))
+
+(defun global-project-am-mode (arg)
+  "Turn on `project-am' mode when ARG is positive.
+If ARG is negative, disable.  Toggle otherwise."
+  (interactive "p")
+  (if (not arg)
+      (if (member 'project-am-maybe-install find-file-hooks)
+	  (global-project-am-mode -1)
+	(global-project-am-mode 1))
+    (if (or (eq arg t) (> arg 0))
+	(add-hook 'find-file-hooks 'project-am-maybe-install)
+      (remove-hook 'find-file-hooks 'project-am-maybe-install))))
 
 ;;; Important macros for doing commands.
 ;;
@@ -1164,8 +1184,6 @@ STOP-BEFORE is a regular expression matching a file name."
 ;;; Hooks
 ;;
 ;;  These let us watch various activities, and respond apropriatly.
-
-(add-hook 'find-file-hooks 'project-am-maybe-install)
 
 (add-hook 'edebug-setup-hook
 	  (lambda ()
