@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.3 2001/09/26 21:07:28 ponced Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.4 2001/10/03 00:33:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,6 +61,44 @@ for tokens which will be charted."
 		       nums "Volume")
     ))
 
+(defun semantic-chart-database-size (&optional buffer-or-stream)
+  "Create a bar chart representing the size of each file in semanticdb.
+Each bar represents how many toplevel nonterminals in BUFFER-OR-STREAM
+exist in each database entry."
+  (interactive)
+  (if (or (not (fboundp 'semanticdb-minor-mode-p))
+	  (not (semanticdb-minor-mode-p)))
+      (error "Semanticdb is not enabled"))
+  (let* ((stream (cond ((not buffer-or-stream)
+			(semantic-bovinate-toplevel t))
+		       ((bufferp buffer-or-stream)
+			(save-excursion
+			  (set-buffer buffer-or-stream)
+			  (semantic-bovinate-toplevel t)))
+		       (t buffer-or-stream)))
+	 (db semanticdb-current-database)
+	 (names (mapcar 'car (object-assoc-list 'file (oref db tables))))
+	 (numnuts (mapcar (lambda (a)
+			    (prog1
+				(cons (length (car a))
+				      (car names))
+			      (setq names (cdr names))))
+			  (object-assoc-list 'tokens (oref db tables))))
+	 (nums nil)
+	 (fh (/ (- (frame-height) 7) 4)))
+    (setq numnuts (sort numnuts (lambda (a b) (> (car a) (car b)))))
+    (setq names (mapcar 'cdr numnuts)
+	  nums (mapcar 'car numnuts))
+    (if (> (length names) fh)
+	(progn
+	  (setcdr (nthcdr fh names) nil)
+	  (setcdr (nthcdr fh nums) nil)))
+    (chart-bar-quickie 'horizontal
+		       "Semantic DB Toplevel Token Volume"
+		       names "File"
+		       nums "Volume")
+    ))
+
 (defun semantic-chart-token-complexity (tok)
   "Calculate the `complexity' of token TOK."
   (count-lines
@@ -92,6 +130,7 @@ Only the most complex items are charted."
 	 (cplx (mapcar (lambda (tok)
 			 (cons tok (semantic-chart-token-complexity tok)))
 		       stream))
+	 (namelabel (cdr (assoc 'function semantic-symbol->name-assoc-list)))
 	 (names nil)
 	 (nums nil))
     (setq cplx (sort cplx (lambda (a b) (> (cdr a) (cdr b)))))
@@ -105,7 +144,7 @@ Only the most complex items are charted."
 ;; ;; 			names))
     (chart-bar-quickie 'horizontal
 		       (format "Function Complexity in %s" name)
-		       names (symbol-name sym)
+		       names namelabel
 		       nums "Complexity (Lines of code)")
     ))
 
