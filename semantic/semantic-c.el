@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.39 2001/09/26 23:55:11 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.40 2001/09/29 23:44:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,7 @@
 
 (eval-when-compile
   (require 'semantic-ctxt)
+  (require 'semantic-imenu)
   (require 'document))
 
 ;;; Code:
@@ -513,8 +514,7 @@
 		   (mods (semantic-token-variable-extra-spec nonterm 'typemodifiers))
 		   (suffix "")
 		   (lst (semantic-token-name nonterm))
-		   (cur nil)
-		   (cnt 0))
+		   (cur nil))
 	       (while lst
 		 (setq suffix "" ty "")
 		 (setq cur (car lst))
