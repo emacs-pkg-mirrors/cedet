@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.13 2001/09/14 15:23:10 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.14 2001/09/18 14:50:40 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1787,6 +1787,60 @@ That is group together most common actions in each state."
       (setq i (1+ i)))
     (apply #'vector (nreverse table))))
 
+(defsubst wisent-quote-p (sym)
+  "Return non-nil if SYM is bound to the `quote' function."
+  (condition-case nil
+      (eq (indirect-function sym)
+          (indirect-function 'quote))
+    (error nil)))
+
+(defsubst wisent-backquote-p (sym)
+  "Return non-nil if SYM is bound to the `backquote' function."
+  (condition-case nil
+      (eq (indirect-function sym)
+          (indirect-function 'backquote))
+    (error nil)))
+
+(defun wisent-action-expand (expr &optional phlds)
+  "Expand semantic action expression EXPR.
+Optional PHLDS is the accumulated list of '$i' placeholders.
+Return a cons (PHLDS . EEXPR) where:
+
+- - PHLDS is the updated list of '$i' placeholders found in EXPR.
+- - EEXPR is EXPR with `backquote' forms expanded."
+  (if (not (listp expr))
+      ;; EXPR is an atom, no expansion needed
+      (progn
+        (and (symbolp expr)
+             (string-match "^[$][1-9][0-9]*$" (symbol-name expr))
+             ;; Accumulate $i symbol
+             (add-to-list 'phlds expr))
+        (cons phlds expr))
+    ;; EXPR is a list, expand inside it
+    (let (eexpr sexpr bltn)
+      ;; If backquote expand it first
+      (if (wisent-backquote-p (car expr))
+          (setq expr (macroexpand expr)))
+      (while expr
+        (setq sexpr (car expr)
+              expr  (cdr expr))
+        (cond
+         ;; Function call excepted quote expression
+         ((and (consp sexpr)
+               (not (wisent-quote-p (car sexpr))))
+          (setq sexpr (wisent-action-expand sexpr phlds)
+                phlds (car sexpr)
+                sexpr (cdr sexpr)))
+         ;; $i symbol
+         ((and (symbolp sexpr)
+               (string-match "^[$][1-9][0-9]*$" (symbol-name sexpr)))
+          ;; Accumulate $i symbol
+          (add-to-list 'phlds sexpr))
+         )
+        ;; Accumulate expanded forms
+        (setq eexpr (nconc eexpr (list sexpr))))
+      (cons phlds eexpr))))
+
 (defun wisent-reduce-action (p)
   "Given the reduction rule P return the action function to apply.
 
@@ -1798,6 +1852,9 @@ An action function receives three arguments:
 
 And returns the updated top-of-stack index."
   (let* ((nt/rh (car p))
+         (xa    (wisent-action-expand (cdr p)))
+         ($l    (car xa))               ; $<i> found in action
+         (expr  (cdr xa))               ; expanded form of action
          (nt    (car nt/rh))            ; reduced nonterminal ID
          (rh    (cdr nt/rh))            ; right hand side nt IDs
          (n     (length rh))            ; number of values in stack
@@ -1809,9 +1866,10 @@ And returns the updated top-of-stack index."
          $i)
     (while (<= i n)
       (setq $i  (intern (format "$%d" vi))
-            pl  (cons `(cdr (aref stack (- sp ,spi))) pl)
-            vbl (cons `(,$i (car (aref stack (- sp ,spi)))) vbl)
-            i   (1+ i)
+            pl  (cons `(cdr (aref stack (- sp ,spi))) pl))
+      (if (memq $i $l) ;; Only bind $<i> if used in action
+          (setq vbl (cons `(,$i (car (aref stack (- sp ,spi)))) vbl)))
+      (setq i   (1+ i)
             vi  (1- vi)
             spi (+ spi 2)))
     (setq vbl `(,@vbl
@@ -1822,7 +1880,7 @@ And returns the updated top-of-stack index."
          ,(if (= nt 0) ;; If `wisent-start-nonterm'
               '(identity $1) ;; Dummy accept action never called
             `(wisent-push stack (- sp ,(1- spi)) ,nt gotos
-                          (cons ,(cdr p) $region)))))))
+                          (cons ,expr $region)))))))
 
 (defun wisent-build-reduction-table (gram/acts)
   "Build and return the parser reduction table.
