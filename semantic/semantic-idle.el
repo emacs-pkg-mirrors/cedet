@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.8 2004/01/12 15:42:03 ponced Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.9 2004/01/13 03:42:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -233,7 +233,7 @@ call additional functions registered with the timer calls."
 		(setq buffers (cdr buffers))))
       
 	    ;; Evaluate all other services.  Stop on keypress.
-	    (when lexok
+	    (save-excursion
 	      (while queue
 		(semantic-throw-on-input 'idle-queue)
 		(funcall (car queue))
@@ -541,7 +541,7 @@ be override with `idle-summary-current-symbol-info'"
 	  (if (> (length str) w)
 	      (setq str (substring str 0 w)))))
       
-      (eldoc-message str))  
+      (eldoc-message str))
     ))
 
 (put 'semantic-idle-summary-idle-function 'semantic-overload
@@ -571,7 +571,8 @@ an indicator that there are more entries for longer lists."
   "Popup a list of TAGS in a separate window near the cursor."
   (require 'tooltip)
   (require 'avoid)
-  (let* ((displayed-tags
+  (let* ((add-dots nil)
+	 (displayed-tags
 	  (if (<= (length tags) (1+ semantic-idle-completion-popup-max-size))
 	      tags
 	    (let ((subtags nil)
@@ -581,6 +582,7 @@ an indicator that there are more entries for longer lists."
 		(setq tags (cdr tags)
 		      subtags (cdr subtags)
 		      cnt (1+ cnt)))
+	      (setq add-dots t)
 	      (nreverse subtags))))
 	 (text (mapconcat 'semantic-format-tag-name
 			  displayed-tags
@@ -593,9 +595,50 @@ an indicator that there are more entries for longer lists."
 	 (oframe (car oP))
 	 (ox     (cadr oP))
 	 (oy     (cddr oP)))
+    (if add-dots (setq text (concat text "\n...")))
     (set-mouse-position frame x y)
     (tooltip-show text)
     (set-mouse-position frame (1+ x) y)
+    ))
+
+(defvar semantic-idle-completion-region-map
+  (let ((k (make-sparse-keymap)))
+    (define-key k "\C-i" #'semantic-ia-complete-symbol)
+    ;; NOTE TO SELF:
+    ;; Add up/down arrows to select different elements from the list.
+    k)
+  "Keymap placed on the momentary idle completion overlay.")
+
+(defun semantic-idle-create-overlay-with-completion-map (begin end prefix)
+  "Create an overlay from BEGIN to END.
+BEGIN and END wrap our PREFIX.
+Highlight it, and make it aware of our keymap."
+  (let ((o (semantic-make-overlay begin (+ end 1)))
+	)
+    (semantic-overlay-put o 'face 'highlight)
+    o))
+
+(defun semantic-idle-momentary-unoverlay (o)
+  "Deoverlay the overlay O."
+  (remove-hook 'pre-command-hook
+	       `(lambda () (semantic-idle-momentary-unoverlay ,o)))
+  (semantic-overlay-delete o)
+  (tooltip-hide)
+  ;; Here is a devious hack that binds TAB to be the
+  ;; magical complete-symbol thingy.
+  (let ((fcn (lookup-key semantic-idle-completion-region-map
+			 (this-command-keys) nil)))
+    (when fcn (setq this-command fcn)))
+  )
+
+(defun semantic-idle-momentary-overlay-with-completion-map (begin end prefix)
+  "Make an overlay from BEGIN to END.
+BEGIN and END wrap PREFIX.
+Highlight it until the next keystroke."
+  (let ((o (semantic-idle-create-overlay-with-completion-map begin end prefix))
+	)
+    (add-hook 'pre-command-hook
+	      `(lambda () (semantic-idle-momentary-unoverlay ,o)))
     ))
 
 (defun semantic-idle-completion-list-default ()
@@ -607,11 +650,14 @@ an indicator that there are more entries for longer lists."
       (condition-case nil
 	  (let* ((context (semantic-analyze-current-context (point)))
 		 (prefix (reverse (oref context :prefix)))
+		 (bounds (oref context :bounds))
 		 (completions nil))
 	    (when (stringp (car prefix))
 	      (setq completions
 		    (semantic-analyze-possible-completions context))
 	      (when completions
+		(semantic-idle-momentary-overlay-with-completion-map
+		 (car bounds) (cdr bounds) prefix)
 		(semantic-idle-completion-popup-list
 		 (semantic-unique-tag-table-by-name completions))
 		)))
