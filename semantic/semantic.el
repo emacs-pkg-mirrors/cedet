@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.110 2001/07/20 22:05:39 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.111 2001/08/17 21:20:32 zappo Exp $
 
-(defvar semantic-version "1.4beta9"
+(defvar semantic-version "1.4"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -139,124 +139,13 @@ type when it is found.  It is passed the list of all buffer text
 elements found since the last lambda expression.  It should return a
 semantic element (see below.)
 
-For consistency between languages, always use the following symbol
-forms.  It is fine to create new symbols, or to exclude some if they
-do not exist, however by using these symbols, you can maximize the
-number of language-independent programs available for use with your
-language.
+You can easily avoid learning the format of this variable by
+writing a BNF file.  See notes in `semantic-bnf.el' or the
+\"BNF conversion\" section in the semantic texinfo manual.
 
-GENERIC ENTRIES:
-
- Bovine table entry return elements are up to the table author.  It is
-recommended, however, that the following format be used.
-
- (\"NAME\" type-symbol [\"TYPE\"] ... \"DOCSTRING\" PROPERTIES OVERLAY)
-
-Where type-symbol is the type of return token found, and NAME is it's
-name.  If there is any typing information needed to describe this
-entry, make that come third.  Next, any additional information follows
-the optional type.  The last data entry can be the position in the buffer
-of DOCSTRING.  A docstring does not have to exist in the form used by
-Emacs Lisp.  It could be the text of a comment appearing just before a
-function call, or in line with a variable.
-
-PROPERTIES is a list of additional properties for this token.
-PRORPERTIES is not for details of the token.  It is used for
-additional tags needed by tools using the parse stream.  For example,
-the `dirty' property is used when a given token needs to be reparsed.
-
-PROPERTIES are automatically added to the token by the system when
-using BNF, or `semantic-lambda' in the table.
-
-The last element must be OVERLAY.  The OVERLAY is automatically
-created by the parsing system.  When programming with BNF, or using
-`semantic-lambda', no extra work needs to be done.  If you are
-building the parse table yourself, use START and END.
-
-It may seem odd to place NAME in slot 0, and the type-symbol in slot
-1, but this turns the returned elements into a list which can be used
-by alist based function.  This makes it ideal for passing into generic
-sorters, string completion functions, and list searching functions.
-
-In the below entry formats, \"NAME\" is a string which is the name of
-the object in question.  It is possible for this to be nil in some
-situations, and code dealing with entries should try to be aware of
-these situations.
-
-\"TYPE\" is a string representing the type of some objects.  For a
-variable, this could very well be another top level token representing
-a type nonterminal.
-
-TOP-LEVEL ENTRIES:
-
- (\"NAME\" variable \"TYPE\" DEFAULT-VALUE EXTRA-SPEC 
-         \"DOCSTRING\" PROPERTIES OVERLAY)
-   The definition of a variable, or constant.
-   DEFAULT-VALUE can be something apropriate such a a string,
-                 or list of parsed elements.
-   EXTRA-SPEC are details about a variable that are not covered in the TYPE.
-             See detail on EXTRA-SPEC after entries section.
-   DOCSTRING is optional.
-
- (\"NAME\" function \"TYPE\" ( ARG-LIST ) EXTRA-SPEC
-          \"DOCSTRING\" PROPERTIES OVERLAY)
-   A function/procedure definition.
-   ARG-LIST is a list of variable definitions.
-   DOCSTRING is optional.
-
- (\"NAME\" type \"TYPE\" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC
-          \"DOCSTRING\" PROPERTIES OVERLAY)
-   A type definition.
-   TYPE of a type could be anything, such as (in C) struct, union, typedef,
-        or class.
-   PART-LIST is only useful for structs that have multiple individual parts.
-            (It is recommended that these be variables, functions or types).
-   PARENTS is strictly for classes where there is inheritance.
-           See `semantic-token-parent' for a description of this value.   
-
- (\"FILE\" include SYSTEM \"DOCSTRING\" PROPERTIES OVERLAY)
-   In C, an #include statement.  In elisp, a require statement.
-   Indicates additional locations of sources or definitions.
-   SYSTEM is true if this include is part of a set of system includes.
-
- (\"NAME\" package DETAIL \"DOCSTRING\" PROPERTIES OVERLAY)
-   In Emacs Lisp, a `provide' statement.  DETAIL might be an
-   associated file name.  In Java, this is a package statement.
-
-EXTRA-SPEC:
-
-  The EXTRA-SPEC section of variables, functions, and types provide a
-location to place language specific details which are not accounted
-for by the base token type.  Because there is an arbitrary number of
-things that could be associated in the EXTRA-SPEC section, this should
-be formatted as an association list.
-
-  Here are some typed extra specifiers that may exist.  Any arbitrary
-number of extra specifiers may be created, and specifiers not
-documented here are allowed.
-
-  (parent .  \"text\") - Name of a parent type/class.  C++ and CLOS allow
-     the creation of a function outside the body of that type/class.
-
-  (dereference .  INT) - Number of levels of dereference.  In C, the number
-     of `*' characters indicating pointers.
-
-  (typemodifiers .  \"text\") - Keyword modifiers for a type.  In C, such
-     words would include `register', and `volatile'.
-
-  (suffix . \"text\") - Suffix information for a variable.
-
-  (const .  t) - This exists if the variable or return value is constant.
-
-  (throws .  \"text\") - For functions or methods in languages that support
-     typed signal throwing.
-
-  (destructor . t) - This exists for functions which are destructor methods
-     in a class definition.
-
-  (user-visible . t) - For functions in interpreted languages such as Emacs Lisp,
-     this signals that a function or variable is user visible.  In Emacs Lisp,
-     this means a function is `interactive'.")
+For consistency between languages, try to use common return values
+from your parser.  Please reference the \"Semantic Token Style Guide\"
+section in the semantic texinfo manual.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table)
 
 (defvar semantic-toplevel-bovine-table-source nil
