@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.24 2002/09/11 10:23:08 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.25 2002/10/02 15:05:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -50,24 +50,24 @@ When non-nil it is directly returned by `wisent-lex-function'.")
 
 (defsubst wisent-lex-token-rules (symbol)
   "Return matching rules of token class SYMBOL."
-  (semantic-lex-token-value (symbol-name symbol) 'noerror))
+  (semantic-lex-type-value (symbol-name symbol) 'noerror))
 
 (defsubst wisent-lex-token-get (symbol property)
   "For token class SYMBOL, return its PROPERTY value or nil."
-  (semantic-lex-token-get (symbol-name symbol) property 'noerror))
+  (semantic-lex-type-get (symbol-name symbol) property 'noerror))
 
 (defun wisent-lex-make-token-table (specs &optional propspecs)
   "Convert token SPECS into an obarray and return it.
 If optional argument PROPSPECS is non nil, then interpret it, and
-apply those properties (see `semantic-lex-make-token-table' for
+apply those properties (see `semantic-lex-make-type-table' for
 details)."
-  (let ((semantic-lex-tokens-obarray
-         (semantic-lex-make-token-table specs propspecs)))
+  (let ((semantic-lex-types-obarray
+         (semantic-lex-make-type-table specs propspecs)))
     ;; Set up some useful default properties
-    (semantic-lex-token-put "punctuation" 'char-literal t 'add)
-    (semantic-lex-token-put "open-paren"  'char-literal t 'add)
-    (semantic-lex-token-put "close-paren" 'char-literal t 'add)
-    semantic-lex-tokens-obarray))
+    (semantic-lex-type-put "punctuation" 'char-literal t 'add)
+    (semantic-lex-type-put "open-paren"  'char-literal t 'add)
+    (semantic-lex-type-put "close-paren" 'char-literal t 'add)
+    semantic-lex-types-obarray))
 
 (defsubst wisent-lex-match (text default rules &optional usequal)
   "Return lexical symbol matching TEXT or DEFAULT if not found.
@@ -87,25 +87,7 @@ instead of regexp match."
 ;;; Semantic 2.x lexical analysis
 ;;
 
-;; Some general purpose analyzers
-;;
-(define-lex-analyzer wisent-lex-punctuation
-  "Detect and create punctuation tokens."
-  (and (looking-at "\\(\\s.\\|\\s$\\|\\s'\\)+")
-       (let* ((punct (match-string 0))
-              (start (match-beginning 0))
-              (rules (cdr (wisent-lex-token-rules 'punctuation)))
-              entry)
-         ;; Starting with the longest punctuation string, search if it
-         ;; matches a punctuation of this language.
-         (while (and (> (length punct) 0)
-                     (not (setq entry (rassoc punct rules))))
-           (setq punct (substring punct 0 -1)))
-         (if entry
-             (semantic-lex-token
-              (car entry) start (+ start (length punct)))))))
-
-;;; Lexer creation macros
+;; Lexer creation macros
 ;;
 (defmacro wisent-lex-eoi ()
   "Return an End-Of-Input lexical token.
