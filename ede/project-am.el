@@ -107,10 +107,10 @@
   :group 'project-am
   :type 'string)
 
-(defcustom project-am-debugon-target-function 'gdb
+(defcustom project-am-debug-target-function 'gdb
   "*Default Emacs command used to debug a target."
   :group 'project-am
-  :type 'sexp)
+  :type 'sexp) ; make this be a list some day
 
 (defconst project-am-type-alist
   '(("bin" project-am-program "bin_PROGRAMS")
@@ -261,9 +261,9 @@ Do not set this to non-nil globally.  It is used internally.")
        "---"
        [ "Compile project" project-am-compile-project t ]
        [ "Compile target" project-am-compile-target t ]
-       [ "Debug target" project-am-debug-target nil ]
-;	 (and project-am-object
-;	      (obj-of-class-p project-am-object project-am-program)) ]
+       [ "Debug target" project-am-debug-target
+	 (and project-am-object
+	      (obj-of-class-p project-am-object project-am-program)) ]
        "---"
        [ "Make distribution" project-am-make-dist t ]
        )))
@@ -479,7 +479,20 @@ Argument COMMAND is the command to use for compiling the target."
 (defun project-am-debug-target ()
   "Run the current project in the debugger."
   (interactive)
-  (message "not implemented.") )
+  (let ((tb (get-buffer-create " *padt*"))
+	(dd default-directory)
+	(obj project-am-object)
+	(cmd nil))
+    (unwind-protect
+	(progn
+	  (set-buffer tb)
+	  (setq default-directory dd)
+	  (setq cmd (read-from-minibuffer
+		     "Run (like this): "
+		     (concat (symbol-name project-am-debug-target-function)
+			     " " (project-am-name obj))))
+	  (funcall project-am-debug-target-function cmd))
+      (kill-buffer tb))))
 
 (defun project-am-make-dist ()
   "Run the current project in the debugger."
