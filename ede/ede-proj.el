@@ -1,10 +1,10 @@
 ;;; ede-proj.el --- EDE Generic Project file driver
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.40 2002/12/23 17:39:07 emacsman Exp $
+;; RCS: $Id: ede-proj.el,v 1.41 2003/01/29 03:17:58 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -71,6 +71,12 @@ This should be a symbol, which contains the object defining the linker.
 This enables save/restore to do so by name, permitting the sharing
 of these linker resources, and global customization thereof.")
    ;; Class allocated slots
+   (phony :allocation :class
+	  :initform nil
+	  :type boolean
+	  :documentation
+	  "A phony target is one where the build target does not relate to a file.
+Such targets are always built, but make knows how to deal with them..")
    (availablecompilers :allocation :class
 		       :initform nil
 		       :type (or null list)
@@ -132,21 +138,21 @@ It is safe to leave this blank.")
    )
   "Abstract class for Makefile based targets.")
 
-(autoload 'ede-proj-target-aux "ede-proj-aux" 
+(autoload 'ede-proj-target-aux "ede-proj-aux"
   "Target class for a group of lisp files." nil nil)
-(autoload 'ede-proj-target-elisp "ede-proj-elisp" 
+(autoload 'ede-proj-target-elisp "ede-proj-elisp"
   "Target class for a group of lisp files." nil nil)
-(autoload 'ede-proj-target-scheme "ede-proj-scheme" 
+(autoload 'ede-proj-target-scheme "ede-proj-scheme"
   "Target class for a group of lisp files." nil nil)
-(autoload 'ede-proj-target-makefile-miscelaneous "ede-proj-misc" 
+(autoload 'ede-proj-target-makefile-miscelaneous "ede-proj-misc"
   "Target class for a group of miscelaneous w/ a special makefile." nil nil)
-(autoload 'ede-proj-target-makefile-program "ede-proj-prog" 
+(autoload 'ede-proj-target-makefile-program "ede-proj-prog"
   "Target class for building a program." nil nil)
-(autoload 'ede-proj-target-makefile-archive "ede-proj-archive" 
+(autoload 'ede-proj-target-makefile-archive "ede-proj-archive"
   "Target class for building an archive of object code." nil nil)
-(autoload 'ede-proj-target-makefile-shared-object "ede-proj-shared" 
+(autoload 'ede-proj-target-makefile-shared-object "ede-proj-shared"
   "Target class for building a shared object." nil nil)
-(autoload 'ede-proj-target-makefile-info "ede-proj-info" 
+(autoload 'ede-proj-target-makefile-info "ede-proj-info"
   "Target class for info files." nil nil)
 
 (defvar ede-proj-target-alist
@@ -320,7 +326,7 @@ Argument TARGET is the project we are completing customization on."
 				  (list (file-name-nondirectory src))
 				nil)))
     ;; If we added it, set the local buffer's object.
-    (if src (progn 
+    (if src (progn
 	      (setq ede-object ot)
 	      (ede-apply-object-keymap)))
     ;; Add it to the project object
@@ -509,7 +515,7 @@ Converts all symbols into the objects to be used."
 
 ;;; Target type specific autogenerating gobbldegook.
 ;;
-(eval-when-compile 
+(eval-when-compile
   ;; This provides prevents recursive loading during a compile
   (provide 'ede-proj)
   (require 'ede-pmake "ede-pmake.el")
