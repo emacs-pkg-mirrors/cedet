@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-config.el,v 1.7 1996/12/19 21:19:37 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.8 1997/01/07 23:07:14 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -249,12 +249,12 @@ the variables we are editing."
 ;;;
 ;;; Some utility functions to use
 ;;;
-(defun dlg-string-to-list (string)
-  "Take string, and turn it into a list of parameters as though taken by a
-program.  Splits the string on spaces."
+(defun dlg-string-to-list (string separator)
+  "Take STRING, and turn it into a list of parameters as though taken by a
+program.  Splits the string on SEPARATOR."
   (let ((lst nil)
 	(last 0))
-    (while (string-match "[ ]+" string last)
+    (while (string-match separator string last)
       (setq lst (cons (substring string last (match-beginning 0)) lst)
 	    last (match-end 0)))
     (if (/= last (length string))
@@ -262,11 +262,11 @@ program.  Splits the string on spaces."
     (nreverse lst))
   )
 
-(defun dlg-list-to-string (list)
-  "Take list, and turn it into a space separated string."
+(defun dlg-list-to-string (list separator)
+  "Take LIST, and turn it into a SEPARATOR separated string."
   (let ((str ""))
     (while list
-      (setq str (concat str (car list) " ")
+      (setq str (concat str (car list) separator)
 	    list (cdr list)))
     str)
   )
