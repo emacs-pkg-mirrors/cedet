@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.27 2004/04/28 15:42:09 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.28 2004/04/29 10:11:36 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -239,7 +239,8 @@ Return a bovination list to use."
        :documentation (semantic-elisp-do-doc (nth 2 rt))
        )
       )
-     ((eq ts 'define-mode-overload-implementation)
+     ((memq ts '( define-mode-overload-implementation
+                  define-mode-local-override ))
       (let ((args (nth 3 rt))
 	    )
 	(semantic-tag-new-function
@@ -287,7 +288,7 @@ syntax as specified by the syntax table."
   semantic-lex-punctuation
   semantic-lex-default-action)
 
-(define-mode-overload-implementation semantic-find-dependency
+(define-mode-local-override semantic-find-dependency
   emacs-lisp-mode (tag)
   "Find the file BUFFER depends on described by TAG."
   (let ((f (file-name-sans-extension
@@ -320,7 +321,7 @@ into Emacs Lisp's memory."
 	  (format "\n@obsolete{%s,%s}" obsoletor (semantic-tag-name tag))
 	""))))
 
-(define-mode-overload-implementation semantic-documentation-for-tag
+(define-mode-local-override semantic-documentation-for-tag
   emacs-lisp-mode (tag &optional nosnarf)
   "Return the documentation string for TAG.
 Optional argument NOSNARF is ignored."
@@ -345,7 +346,7 @@ Optional argument NOSNARF is ignored."
        (semantic-emacs-lisp-overridable-doc tag)
        (semantic-emacs-lisp-obsoleted-doc tag)))))
 
-(define-mode-overload-implementation semantic-insert-foreign-tag
+(define-mode-local-override semantic-insert-foreign-tag
   emacs-lisp-mode (tag tagfile)
   "Insert TAG from TAGFILE at point.
 Attempts a simple prototype for calling or using TAG."
@@ -355,7 +356,7 @@ Attempts a simple prototype for calling or using TAG."
 	(t
 	 (insert (semantic-tag-name tag)))))
 
-(define-mode-overload-implementation semantic-tag-protection
+(define-mode-local-override semantic-tag-protection
   emacs-lisp-mode (tag &optional parent)
   "Return the protection of TAG in PARENT.
 Override function for `semantic-tag-protection'."
@@ -371,7 +372,7 @@ Override function for `semantic-tag-protection'."
      ((string= prot ":protected") 'protected)
      ((string= prot "protected") 'protected))))
 
-(define-mode-overload-implementation semantic-tag-static-p
+(define-mode-local-override semantic-tag-static-p
   emacs-lisp-mode (tag &optional parent)
   "Return non-nil if TAG is static in PARENT class.
 Overrides `semantic-nonterminal-static'."
@@ -382,7 +383,7 @@ Overrides `semantic-nonterminal-static'."
 ;;
 ;; Emacs lisp is very different from C,C++ which most context parsing
 ;; functions are written.  Support them here.
-(define-mode-overload-implementation semantic-up-context emacs-lisp-mode
+(define-mode-local-override semantic-up-context emacs-lisp-mode
   (&optional point bounds-type)
   "Move up one context in an Emacs Lisp function.
 A Context in many languages is a block with it's own local variables.
@@ -401,7 +402,7 @@ define-mode-overload\\)\
   last-up))
 
 
-(define-mode-overload-implementation semantic-get-local-variables emacs-lisp-mode
+(define-mode-local-override semantic-get-local-variables emacs-lisp-mode
   (&optional point)
   "Return a list of local variables for POINT.
 Scan backwards from point at each successive function.  For all occurances
@@ -434,7 +435,7 @@ of `let' or `let*', grab those variable names."
 	(up-list -1)))
     (nreverse vars)))
 
-(define-mode-overload-implementation semantic-end-of-command emacs-lisp-mode
+(define-mode-local-override semantic-end-of-command emacs-lisp-mode
   ()
   "Move cursor to the end of the current command.
 In emacs lisp this is easilly defined by parenthisis bounding."
@@ -442,7 +443,7 @@ In emacs lisp this is easilly defined by parenthisis bounding."
       (up-list 1)
     (error nil)))
 
-(define-mode-overload-implementation semantic-beginning-of-command emacs-lisp-mode
+(define-mode-local-override semantic-beginning-of-command emacs-lisp-mode
   ()
   "Move cursor to the beginning of the current command.
 In emacs lisp this is easilly defined by parenthisis bounding."
@@ -452,7 +453,7 @@ In emacs lisp this is easilly defined by parenthisis bounding."
         (forward-char 1))
     (error nil)))
 
-(define-mode-overload-implementation semantic-ctxt-current-symbol emacs-lisp-mode
+(define-mode-local-override semantic-ctxt-current-symbol emacs-lisp-mode
   (&optional point)
   "List the symbol under point."
   (save-excursion
@@ -462,7 +463,7 @@ In emacs lisp this is easilly defined by parenthisis bounding."
       (if sym (list sym)))
     ))
 
-(define-mode-overload-implementation semantic-ctxt-current-function emacs-lisp-mode
+(define-mode-local-override semantic-ctxt-current-function emacs-lisp-mode
   (&optional point)
   "Return a string which is the current function being called."
   (save-excursion
@@ -505,7 +506,7 @@ In emacs lisp this is easilly defined by parenthisis bounding."
 	  ))
       )))
 
-(define-mode-overload-implementation semantic-ctxt-current-assignment emacs-lisp-mode
+(define-mode-local-override semantic-ctxt-current-assignment emacs-lisp-mode
   (&optional point)
   "What is the variable being assigned into at POINT?"
   (save-excursion
@@ -557,7 +558,7 @@ In emacs lisp this is easilly defined by parenthisis bounding."
        (t nil))
       )))
 
-(define-mode-overload-implementation semantic-ctxt-current-argument emacs-lisp-mode
+(define-mode-local-override semantic-ctxt-current-argument emacs-lisp-mode
   (&optional point)
   "Return the index into the argument the cursor is in, or nil."
   (save-excursion
@@ -576,7 +577,7 @@ In emacs lisp this is easilly defined by parenthisis bounding."
 	    (t (1- count))))
     ))
 
-(define-mode-overload-implementation semantic-ctxt-current-class-list emacs-lisp-mode
+(define-mode-local-override semantic-ctxt-current-class-list emacs-lisp-mode
   (&optional point)
   "Return a list of tag classes allowed at POINT.
 Emacs Lisp knows much more about the class of the tag needed to perform
@@ -600,7 +601,7 @@ fields and such to, but that is for some other day."
       (error '(variable)))
     ))
 
-(define-mode-overload-implementation semantic-tag-include-filename emacs-lisp-mode
+(define-mode-local-override semantic-tag-include-filename emacs-lisp-mode
   (tag)
   "Return the name of the tag with .el appended.
 If there is a detail, prepend that directory."
@@ -608,7 +609,7 @@ If there is a detail, prepend that directory."
 	(detail (semantic-tag-get-attribute tag :directory)))
     (concat (expand-file-name name detail) ".el")))
 
-(define-mode-overload-implementation semantic-format-tag-abbreviate emacs-lisp-mode
+(define-mode-local-override semantic-format-tag-abbreviate emacs-lisp-mode
   (tag &optional parent color)
   "Return an abbreviated string describing tag."
   (let ((class (semantic-tag-class tag))
@@ -620,7 +621,7 @@ If there is a detail, prepend that directory."
      (t
       (semantic-format-tag-abbreviate-default tag parent color)))))
   
-(define-mode-overload-implementation semantic-format-tag-prototype emacs-lisp-mode
+(define-mode-local-override semantic-format-tag-prototype emacs-lisp-mode
   (tag &optional parent color)
   "Return a prototype string describing tag.
 In Emacs Lisp, a prototype for something may start (autoload ...).
@@ -641,13 +642,13 @@ a real Emacs Lisp protype, we can fix it then."
      (t
       (semantic-format-tag-prototype-default tag parent color)))))
 
-(define-mode-overload-implementation semantic-format-tag-concise-prototype emacs-lisp-mode
+(define-mode-local-override semantic-format-tag-concise-prototype emacs-lisp-mode
   (tag &optional parent color)
   "Return a concise prototype string describing tag.
 See `semantic-format-tag-prototype' for Emacs Lisp for more details."
   (semantic-format-tag-prototype tag parent color))
   
-(define-mode-overload-implementation semantic-format-tag-uml-prototype emacs-lisp-mode
+(define-mode-local-override semantic-format-tag-uml-prototype emacs-lisp-mode
   (tag &optional parent color)
   "Return a uml prototype string describing tag.
 See `semantic-format-tag-prototype' for Emacs Lisp for more details."
@@ -677,8 +678,8 @@ See `semantic-format-tag-prototype' for Emacs Lisp for more details."
 (defvar-mode-local emacs-lisp-mode imenu-create-index-function
   'semantic-create-imenu-index)
 
-(define-semantic-child-mode lisp-mode emacs-lisp-mode
-  "Make `lisp-mode' inherits semantic behavior from `emacs-lisp-mode'.")
+(define-child-mode lisp-mode emacs-lisp-mode
+  "Make `lisp-mode' inherits mode local behavior from `emacs-lisp-mode'.")
 
 ;;;###autoload
 (defun semantic-default-elisp-setup ()
