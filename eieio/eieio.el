@@ -5,8 +5,8 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.5
-;;; RCS: $Id: eieio.el,v 1.4 1996/03/28 03:39:19 zappo Exp $
+;;; Version: 0.6
+;;; RCS: $Id: eieio.el,v 1.5 1996/04/10 22:35:55 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -147,6 +147,10 @@
 ;;;           your output.
 ;;;        Added `eieio-describe-class' command which creates a buffer
 ;;;           and displays the entire contents of a class or object.
+;;;        Turned field names into properties on the class to reduce
+;;;           the lookup times.  Old list is still there because it is
+;;;           needed for generating sub-classes, and for doing
+;;;           browsing things.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -325,6 +329,22 @@ in that class definition.  See defclass for more information"
     (put cname 'variable-documentation doc-string)
     (put cname 'eieio-class-definition newc)
 
+    ;; Now attach all field symbols onto `cname' such that they are
+    ;; properties with the value being the index into the vector which
+    ;; contains the actual data belonging to that field
+    (let ((cnt 0)
+	  (pubsyms (aref newc class-public-a))
+	  (privsyms (aref newc class-private-a)))
+      (while pubsyms
+	(put cname (intern (format "eieio-public-%s" (car pubsyms))) cnt)
+	(setq cnt (1+ cnt))
+	(setq pubsyms (cdr pubsyms)))
+      (while privsyms
+	(put cname (intern (format "eieio-private-%s" (car privsyms))) cnt)
+	(setq cnt (1+ cnt))
+	(setq privsyms (cdr privsyms)))
+      )
+	  
     ;; Create the constructor function
     (fset cname
 	  (list 'lambda (list 'newname '&rest 'fields)
@@ -648,23 +668,15 @@ with the list of arguments ARGS."
   "In OBJ find the index of the named FIELD."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let ((c 0) (l (aref (class-v class) class-public-a)))
-    ;; Check out the public symbols
-    (while (and l (not (equal field (car l))))
-      (setq c (1+ c))
-      (setq l (cdr l)))
-    (if (not l)
-	(if (child-of-class-p class scoped-class)
-	    (progn
-	      (setq l (aref (class-v class) class-private-a))
-	      (while (and l (not (equal field (car l))))
-		(setq c (1+ c))
-		(setq l (cdr l)))
-	      (if (not l)
-		  l
-		(+ c 3)))
-	  nil)
-      (+ c 3))))
+  (let ((pubs (get class (intern (format "eieio-public-%s" field)))))
+    (if (integerp pubs)
+	(+ 3 pubs)
+      (if (child-of-class-p class scoped-class)
+	  (let ((pris (get class (intern (format "eieio-private-%s" field)))))
+	    (if (integerp pris)
+		(+ 3 pris)
+	      nil))
+	nil))))
 
 (defun eieio-method-name-index (class method)
   "Return the index for a CLASS where a METHOD resides"
