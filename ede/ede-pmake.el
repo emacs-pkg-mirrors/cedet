@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.1 1999/02/26 02:50:38 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.2 1999/03/02 15:52:48 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -69,12 +69,12 @@ MFILENAME is the makefile to generate."
 	(while tmp
 	  (ede-proj-makefile-insert-variables (car tmp))
 	  (setq tmp (cdr tmp)))
-	(ede-proj-makefile-insert-rules this)
 	(setq tmp mt)
 	(insert "\n\nall:")
 	(while tmp (insert " " (oref (car tmp) name))
 	       (setq tmp (cdr tmp)))
 	(insert "\n\n")
+	(ede-proj-makefile-insert-rules this)
 	(setq tmp mt)
 	(while tmp
 	  (ede-proj-makefile-insert-rules (car tmp))
@@ -130,16 +130,21 @@ MFILENAME is the makefile to generate."
   (insert "\nede_FILES=" (file-name-nondirectory (oref this file)) " "
 	  (ede-proj-dist-makefile this) "\n"))
 
-(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target))
-  "Insert variables needed by target THIS."
+(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target) &optional
+					       moresource)
+  "Insert variables needed by target THIS.
+Optional argument MORESOURCE is a list of additional sources to add to the
+sources variable."
   (insert (ede-proj-makefile-sourcevar this) "="
-	  (mapconcat (lambda (a) a) (oref this source) " ")
-	  "\n"))
+	  (mapconcat (lambda (a) a) (oref this source) " "))
+  (if moresource
+      (insert " \\\n   " (mapconcat (lambda (a) a) moresource " ") ""))
+  (insert "\n"))
 
 (defmethod ede-proj-makefile-insert-variables
   ((this ede-proj-target-makefile-objectcode))
   "Insert variables needed by target THIS."
-  (call-next-method)
+  (call-next-method this (oref this headers))
   (insert (ede-name this) "_OBJ="
 	  (mapconcat (lambda (a)
 		       (concat (file-name-sans-extension a) ".o"))
@@ -153,11 +158,11 @@ MFILENAME is the makefile to generate."
 ;;; RULES
 ;;
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-project))
-  "Insert inference rules needed by THIS target."
+  "Insert rules needed by THIS target."
   (mapcar 'ede-proj-makefile-insert-rules (oref this inference-rules)))
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-target))
-  "Insert inference rules needed by THIS target."
+  "Insert rules needed by THIS target."
   (mapcar 'ede-proj-makefile-insert-rules (oref this rules)))
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-makefile-rule))
@@ -170,6 +175,10 @@ MFILENAME is the makefile to generate."
   ((this ede-proj-target-makefile-objectcode))
   "Insert rules needed by THIS target."
   (call-next-method)
+  (if (oref this headers)
+      (insert "$(" (ede-name this) "_OBJ): "
+	      (mapconcat (lambda (a) a) (oref this headers) " ")
+	      "\n\n"))
   (insert (ede-name this) ": $(" (ede-name this) "_OBJ)\n"
 	  ;; Compile line
 	  "\t$(CC)"
@@ -179,7 +188,10 @@ MFILENAME is the makefile to generate."
 	  (if (ede-proj-target-makefile-program-p this)
 	      ;; Some libaries
 	      (concat " "
-		      (mapconcat (lambda (c) (concat "-l" c))
+		      (mapconcat (lambda (c)
+				   (if (= (aref c 0) ?$)
+				       c
+				     (concat "-l" c)))
 				 (oref this ldlibs) " "))
 	    "")
 	  "\n\n"))
