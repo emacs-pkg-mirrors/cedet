@@ -1,6 +1,6 @@
 ;;; working --- Display a "working" message in the minibuffer.
 
-;;;  Copyright (C) 1998  Eric Ludlam
+;;;  Copyright (C) 1998  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
@@ -47,34 +47,40 @@
 ;;; Backwards Compatibility:
 ;;
 ;; If you want to use working in your program, but don't want to force people
-;; to install working, use this at the beginning of your program for
+;; to install working, use could this at the beginning of your program for
 ;; compatibility.
 ;;
-;;(condition-case nil
-;;    (require 'working)
-;;  (error
-;;   (progn
-;;     (defmacro working-status-forms (message donestr &rest forms)
-;;	 "Contain a block of code during which a working status is shown."
-;;	 (list 'let (list (list 'msg message) (list 'dstr donestr) '(ref1 0))
-;;	       (cons 'progn forms)))
-;;  
-;;     (defun working-status (&optional percent &rest args)
-;;	 "Called within the macro `working-status-forms', show the status."
-;;	 (message
-;;	  "%s%s" (apply 'format msg args)
-;;	  (if (eq percent t) (concat "... " dstr)
-;;	    (format "... %3d%%"
-;;		    (or percent
-;;			(floor (* 100.0 (/ (float (point)) (point-max)))))))))
-;;  
-;;     (defun working-static-status (&optional number &rest args)
-;;	 "Called within the macro `working-status-forms', show the status."
-;;	 (message "%s%s" (apply 'format msg args)
-;;		  (format "... %c" (aref [ ?- ?/ ?| ?\\ ] (% ref1 4))))
-;;	 (setq ref1 (1+ ref1)))
-;;  
-;;     (put 'working-status-forms 'lisp-indent-function 2))))
+;; (eval-and-compile
+;;   (condition-case nil
+;; 	 (require 'working)
+;;     (error
+;; 	(progn
+;; 	  (defmacro working-status-forms (message donestr &rest forms)
+;; 	    "Contain a block of code during which a working status is shown."
+;; 	    (list 'let (list (list 'msg message) (list 'dstr donestr)
+;; 			     '(ref1 0))
+;; 		  (cons 'progn forms)))
+;;   
+;; 	  (defun working-status (&optional percent &rest args)
+;; 	    "Called within the macro `working-status-forms', show the status."
+;; 	    (message "%s%s" (apply 'format msg args)
+;; 		     (if (eq percent t) (concat "... " dstr)
+;; 		       (format "... %3d%%"
+;; 			       (or percent
+;; 				   (floor (* 100.0 (/ (float (point))
+;; 						      (point-max)))))))))
+;;   
+;; 	  (defun working-static-status (&optional number &rest args)
+;; 	    "Called within the macro `working-status-forms', show the status."
+;; 	    (message "%s%s" (apply 'format msg args)
+;; 		     (format "... %c" (aref [ ?- ?/ ?| ?\\ ] (% ref1 4))))
+;; 	    (setq ref1 (1+ ref1)))
+;;   
+;; 	  (put 'working-status-forms 'lisp-indent-function 2)))))
+;;
+;; Depending on what features you use, it is, of course, easy to
+;; reduce the total size of the above by omitting those features you
+;; do not use.
 
 ;;; History:
 ;; 
