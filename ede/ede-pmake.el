@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.33 2001/06/03 14:44:12 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.34 2001/12/05 01:22:25 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -105,9 +105,21 @@ MFILENAME is the makefile to generate."
 	  (ede-compiler-begin-unique
 	    (mapcar 'ede-proj-makefile-insert-variables targ))
 	  ;; Only add the distribution stuff in when depth != 0
-	  (if (= depth 0)
-	      (insert "VERSION=" (oref this version) "\n"
-		      "DISTDIR=" (oref this name) "-$(VERSION)\n"))
+	  (let ((top  (ede-toplevel this))
+		(tmp this)
+		(subdir ""))
+	    (insert "VERSION=" (oref top version) "\n"
+		    "DISTDIR=$(top)" (oref top name) "-$(VERSION)")
+	    (while (ede-parent-project tmp)
+	      (setq subdir
+		    (concat
+		     "/"
+		     (file-name-nondirectory
+		      (directory-file-name
+		       (file-name-directory (oref tmp file))))
+		     subdir)
+		    tmp (ede-parent-project tmp)))
+	    (insert subdir "\n"))
 	  ;; Some built in variables for C code
 	  (if df
 	      (let ((tc depth))
@@ -248,8 +260,14 @@ Use CONFIGURATION as the current configuration to query."
 		nil
 	      (insert (car c) "=" (cdr c) "\n")))
 	  conf-table))
+  (let* ((top "")
+	 (tmp this))
+    (while (ede-parent-project tmp)
+      (setq tmp (ede-parent-project tmp)
+	    top (concat "../" top)))
+    (insert "\ntop=" top))
   (insert "\nede_FILES=" (file-name-nondirectory (oref this file)) " "
-	  (ede-proj-dist-makefile this) "\n"))
+	  (file-name-nondirectory (ede-proj-dist-makefile this)) "\n"))
 
 (defmethod ede-proj-makefile-insert-source-variables ((this ede-proj-target)
 						      &optional
@@ -373,7 +391,7 @@ Argument THIS is the target that should insert stuff."
     (unless (ede-subproject-p this)
       ;; Only delete if we are the toplevel project.
       (insert "\trm -rf $(DISTDIR)\n"))
-    (insert "\tmkdir $(DISTDIR)\n")
+    (insert "\tmkdir $(DISTDIR)\n")	;We may need a -p, but I think not.
     (setq tmp (oref this targets))
     (insert "\tcp")
     (while tmp
@@ -404,8 +422,7 @@ Argument THIS is the target that should insert stuff."
      this (lambda (sproj)
 	    (insert "\tcd "
 		    (directory-file-name (ede-subproject-relative-path sproj))
-		    "; $(MAKE) dist DISTDIR=$(DISTDIR)/"
-		    (directory-file-name (ede-subproject-relative-path sproj))
+		    "; $(MAKE) dist"
 		    "\n")))
 
     ;; Tar up the stuff.
@@ -487,8 +504,9 @@ Argument TARGETS are the targets we should depend on for TAGS."
     (while tg
       (insert "$(" (ede-proj-makefile-sourcevar (car tg)) ") ")
       (setq tg (cdr tg)))
+    (insert "\n")
     (if targets
-	(insert "\n\tetags $^\n"))
+	(insert "\tetags $^\n"))
     ;; Now recurse into all subprojects
     (setq tg (oref this subproj))
     (while tg
