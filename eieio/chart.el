@@ -4,7 +4,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.1
-;; RCS: $Id: chart.el,v 1.7 1999/09/05 19:49:00 zappo Exp $
+;; RCS: $Id: chart.el,v 1.8 1999/11/19 19:38:36 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -134,19 +134,22 @@ Returns the newly created buffer"
 	  :initform "Emacs Chart")
    (title-face :initarg :title-face
 	       :initform 'bold-italic)
-   (x-axis :initarg :x-axis)
+   (x-axis :initarg :x-axis
+	   :initform nil )
    (x-margin :initarg :x-margin
 	     :initform 5)
    (x-width :initarg :x-width
 	    :initform (lambda () (- (window-width) 10)))
-   (y-axis :initarg :y-axis)
+   (y-axis :initarg :y-axis
+	   :initform nil)
    (y-margin :initarg :y-margin
 	     :initform 5)
    (y-width :initarg :y-width
 	    :initform (lambda () (- (window-height) 10)))
    (key-label :initarg :key-label
-	      :initarg "Key")
-   (sequences :initarg :sequences)
+	      :initform "Key")
+   (sequences :initarg :sequences
+	      :initform nil)
    )
   "Superclass for all charts to be displayed in an emacs buffer")
 
