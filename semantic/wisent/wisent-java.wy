@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.15 2004/01/18 15:45:43 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.16 2004/03/10 19:35:41 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -369,7 +369,7 @@ goal
   : compilation_unit
  ;; Generate a special token 'goal that will be post-processed by
  ;; `wisent-java-expand-nonterminal' to extract the actual tags in $1.
-    (TAG "goal" 'goal 'tree $1)
+    (TAG "goal" 'goal :tree $1)
   ;
 
 literal
@@ -539,7 +539,7 @@ modifier
 class_declaration
   : modifiers_opt CLASS IDENTIFIER superc_opt interfaces_opt class_body
     (EXPANDTAG
-     (TYPE-TAG $3 $2 $6 (if (or $4 $5) (cons $4 $5)) 'typemodifiers $1)
+     (TYPE-TAG $3 $2 $6 (if (or $4 $5) (cons $4 $5)) :typemodifiers $1)
      )
   ;
 
@@ -613,7 +613,7 @@ field_declarations_opt
   | field_declarations
  ;; Generate a special token 'goal that will be post-processed by
  ;; `wisent-java-expand-nonterminal' to extract the actual tags in $1.
-    (TAG "goal" 'goal 'tree (apply 'nconc (nreverse $1)))
+    (TAG "goal" 'goal :tree (apply 'nconc (nreverse $1)))
   ;
 
 field_declarations
@@ -633,7 +633,7 @@ field_declaration_maybe
 field_declaration
   : modifiers_opt type variable_declarators SEMICOLON
     (EXPANDTAG
-     (VARIABLE-TAG $3 $2 nil 'typemodifiers $1)
+     (VARIABLE-TAG $3 $2 nil :typemodifiers $1)
      )
   ;
 
@@ -665,11 +665,11 @@ variable_initializer
 method_declaration
   : modifiers_opt VOID method_declarator throwsc_opt method_body
     (EXPANDTAG
-     (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
+     (FUNCTION-TAG (car $3) $2 (cdr $3) :typemodifiers $1 :throws $4)
      )
   | modifiers_opt type method_declarator throwsc_opt method_body
     (EXPANDTAG
-     (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
+     (FUNCTION-TAG (car $3) $2 (cdr $3) :typemodifiers $1 :throws $4)
      )
   ;
 
@@ -696,7 +696,7 @@ formal_parameter_list
 formal_parameter
   : formal_parameter_modifier_opt type variable_declarator_id
     (EXPANDTAG
-     (VARIABLE-TAG $3 $2 nil 'typemodifiers $1)
+     (VARIABLE-TAG $3 $2 nil :typemodifiers $1)
      )
   ;
 
@@ -735,7 +735,7 @@ static_initializer
 constructor_declaration
   : modifiers_opt constructor_declarator throwsc_opt constructor_body
     (EXPANDTAG
-     (FUNCTION-TAG (car $2) nil (cdr $2) 'typemodifiers $1 'throws $3)
+     (FUNCTION-TAG (car $2) nil (cdr $2) :typemodifiers $1 :throws $3)
      )
   ;
 
@@ -768,7 +768,7 @@ explicit_constructor_invocation
 interface_declaration
   : modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body
     (EXPANDTAG
-     (TYPE-TAG $3 $2 $5 (if $4 (cons nil $4)) 'typemodifiers $1)
+     (TYPE-TAG $3 $2 $5 (if $4 (cons nil $4)) :typemodifiers $1)
      )
   ;
 
@@ -820,11 +820,11 @@ constant_declaration
 abstract_method_declaration
   : modifiers_opt VOID method_declarator throwsc_opt SEMICOLON
     (EXPANDTAG
-     (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
+     (FUNCTION-TAG (car $3) $2 (cdr $3) :typemodifiers $1 :throws $4)
      )
   | modifiers_opt type method_declarator throwsc_opt SEMICOLON
     (EXPANDTAG
-     (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
+     (FUNCTION-TAG (car $3) $2 (cdr $3) :typemodifiers $1 :throws $4)
      )
   ;
 
