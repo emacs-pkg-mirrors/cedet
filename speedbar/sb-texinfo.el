@@ -5,7 +5,7 @@
 ;; Author: Richard Y. Kim, <ryk@ap.com>
 ;; Maintainer: Richard Y. Kim, <ryk@ap.com>
 ;; Created: Fri Jun 16 17:23:11 2000
-;; Version: $Id: sb-texinfo.el,v 1.2 2000/07/04 01:10:05 zappo Exp $
+;; Version: $Id: sb-texinfo.el,v 1.3 2000/07/05 01:52:17 zappo Exp $
 ;; Keywords:
 
 ;; This program is free software; you can redistribute it and/or
@@ -38,7 +38,7 @@
 ;; Installtation procedure:
 ;;   Install speedbar 0.11 or later.
 ;;   Add the following to your ~/.emacs file:
-;;   (eval-after-load "speedbar" (load-library "sb-texinfo"))
+;;   (eval-after-load "speedbar" '(load-library "sb-texinfo"))
 
 ;; Known Problems:
 ;;   Does not look inside files included via @include directive.
@@ -57,6 +57,11 @@
 ;;   you do not use texinfo mode provided by auctex!
 
 ;;; Change Log:
+;;;
+;;; 1.5 - speedbar-tag-hierarchy-method is set to nil by
+;;;       speedbar-insert-texinfo-list as well as
+;;;       speedbar-fetch-dynamic-texinfo.  This is needed in order to
+;;;       have the texinfo nodes displayed in correct order.
 ;;;
 ;;; 1.4 - speedbar-tag-hierarchy-method is now set to nil by
 ;;;       speedbar-fetch-dynamic-texinfo after making it buffer local
@@ -182,9 +187,10 @@
 	    new-list)))
 
 (defun speedbar-insert-texinfo-list (indent lst)
-  (speedbar-insert-generic-list indent (speedbar-format-texinfo-list lst indent)
-				'speedbar-tag-expand
-				'speedbar-tag-find))
+  (let (speedbar-tag-hierarchy-method)
+    (speedbar-insert-generic-list indent (speedbar-format-texinfo-list lst indent)
+				  'speedbar-tag-expand
+				  'speedbar-tag-find)))
 
 ;;; sb-texinfo.el ends here
 
