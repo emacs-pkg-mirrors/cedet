@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.10 1997/01/04 14:31:57 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.11 1997/01/04 15:44:54 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -310,6 +310,8 @@ list of strings."
   (define-key speedbar-key-map "+" 'speedbar-expand-line)
   (define-key speedbar-key-map "-" 'speedbar-contract-line)
   (define-key speedbar-key-map "r" 'speedbar-refresh)
+  ;; This doesn't work as expected.
+  ;;(define-key speedbar-key-map "\C-h" 'speedbar-help-helper)
 
   (if (string-match "XEmacs" emacs-version)
       (progn
@@ -525,7 +527,7 @@ Keybindings: \\<speedbar-key-map>
   (setq speedbar-buffer (set-buffer (get-buffer-create "SPEEDBAR")))
   (kill-all-local-variables)
   (setq major-mode 'speedbar-mode)
-  (setq mode-name "SB")
+  (setq mode-name "Speedbar")
   (use-local-map speedbar-key-map)
   (set-syntax-table speedbar-syntax-table)
   (setq font-lock-keywords nil) ;; no font-locking please
@@ -562,6 +564,15 @@ to make sure our cache is synchonized to the filesystem"
   (message "Refreshing speedbar...")
   (speedbar-update-contents)
   (message "Refreshing speedbar...done"))
+
+;; This doesn't work as expected. ;(
+(defun speedbar-help-helper ()
+  "This function does calls `Helper-help' but does so that the
+activity occurs in the selected-frame."
+  (interactive)
+  (select-frame speedbar-attached-frame t)
+  (call-interactively 'Helper-help)
+  )
 
 
 ;;;
@@ -1043,7 +1054,8 @@ that file into the attached buffer."
 	 (let ((oldl speedbar-shown-directories)
 	       (newl nil)
 	       (td (expand-file-name 
-		    (concat (speedbar-line-path indent) 	   (while oldl
+		    (concat (speedbar-line-path indent) token))))
+	   (while oldl
 	     (if (not (string-match (concat "^" (regexp-quote td)) (car oldl)))
 		 (setq newl (cons (car oldl) newl)))
 	     (setq oldl (cdr oldl)))
@@ -1190,6 +1202,10 @@ interested in."
 ;;;
 ;;; Tag Management -- Imenu
 ;;;
+(if (eval-when-compile (string-match "XEmacs" emacs-version))
+
+nil
+
 (defun speedbar-fetch-dynamic-imenu (file)
   "Use the imenu package to load in file, and extract all the items
 tags we wish to display in the speedbar package."
@@ -1199,6 +1215,8 @@ tags we wish to display in the speedbar package."
     (condition-case nil
 	(imenu--make-index-alist t)
       (error t))))
+
+)
 
 
 ;;;
@@ -1386,23 +1404,23 @@ dynamically determine which colors to use."
 		((and (fboundp 'x-display-color-p) (x-display-color-p)) 'color)
 		(t 'mono)))
 	 (bg-res (if (fboundp 'x-get-resource)
-		     (if (eval-when-compile speedbar-xemacsp)
+		     (if speedbar-xemacsp
 			 (x-get-resource ".backgroundMode" "BackgroundMode" 'string)
 		       (x-get-resource ".backgroundMode" "BackgroundMode"))
 		   nil))
 	 (bgmode
 	  (cond (bg-res (intern (downcase bg-res)))
 		((let* ((bgc (or (cdr (assq 'background-color params))
-				 (if (eval-when-compile speedbar-xemacsp)
+				 (if speedbar-xemacsp
 				     (x-get-resource ".background"
 						     "Background" 'string)
 				   (x-get-resource ".background"
 						   "Background"))))
-			(bgcr (if (eval-when-compile speedbar-xemacsp)
+			(bgcr (if speedbar-xemacsp
 				  (color-instance-rgb-components
 				   (make-color-instance bgc))
 				(x-color-values bgc)))
-			(wcr (if (eval-when-compile speedbar-xemacsp)
+			(wcr (if speedbar-xemacsp
 				 (color-instance-rgb-components
 				  (make-color-instance "white"))
 			       (x-color-values "white"))))
