@@ -165,9 +165,9 @@ has a specialized mode bound way to do this.
 
 The parser has several parts which are all also overloadable.  The
 primary entry point into the parser is
-@code{semantic-bovinate-toplevel} which calls
+@code{semantic-fetch-tags} which calls
 @code{semantic-parse-region} which returns a list of semantic tags
-which get set to @code{semantic-toplevel-bovine-cache}.
+which get set to @code{semantic--buffer-cache}.
 
 @code{semantic-parse-region} is the first ``overloadable'' function.
 The default behavior of this is to simply call @code{semantic-lex},
@@ -324,7 +324,7 @@ overloaded, and define syntactic sugar to do so.
 NOTE: describe the functions that do parsing, and how to overload each.
 
 @ignore
-semantic-bovinate-toplevel is the top level function that parses the current buffer.
+semantic-fetch-tags is the top level function that parses the current buffer.
   semantic-parse-changes
     semantic-parse-changes-default
       semantic-edits-incremental-parser
@@ -469,7 +469,7 @@ should already work for your language.
 The primary entry point of the lexer is the @dfn{semantic-lex} function
 shown below.
 Normally, you do not need to call this function.
-It is usually called by @emph{semantic-bovinate-toplevel} for you.
+It is usually called by @emph{semantic-fetch-tags} for you.
 
 @anchor{semantic-lex}
 @defun semantic-lex start end &optional depth length
@@ -997,7 +997,7 @@ mode.  (I'm not sure if that should be covered elsewhere.)
 
 When converting a source file into a tag table it is important to
 specify rules to accomplish this.  The rules are stored in the buffer
-local variable @code{semantic-toplevel-bovine-table}.
+local variable @code{semantic--buffer-cache}.
 
 While it is certainly possible to write this table yourself, it is
 most likely you will want to use the @ref{Grammar Programming
@@ -1056,21 +1056,20 @@ For more information,
 
 From a program you can use the function:
 
-@defun semantic-bovinate-toplevel &optional checkcache
-@anchor{semantic-bovinate-toplevel}
-Bovinate the entire current buffer.
-Do an incremental reparse if possible, otherwise do a full reparse.
-
-@table @strong
-@item Please Note:
-The optional argument @var{CHECKCACHE} is ignored.  It is maintained
-for compatibility with previous versions of Semantic.
-@end table
+@defun semantic-fetch-tags
+@anchor{semantic-fetch-tags}
+Fetch semantic tags from the current buffer.
+If the buffer cache is up to date, return that.
+If the buffer cache is out of date, attempt an incremental reparse.
+If the buffer has not been parsed before, or if the incremental reparse
+fails, then parse the entire buffer.
+If a lexcial error had been previously discovered and the buffer
+was marked unparseable, then do nothing, and return the cache.
 @end defun
 
 @deffn Command semantic-clear-toplevel-cache
 @anchor{semantic-clear-toplevel-cache}
-Clear the toplevel bovine cache for the current buffer.
+Clear the toplevel tag cache for the current buffer.
 Clearing the cache will force a complete reparse next time a token
 stream is requested.
 @end deffn
@@ -1546,10 +1545,10 @@ behaving as expected.  One way is to debug against the source @file{.by}
 file.
 
 If your language definition was written in BNF notation, debugging is
-quite easy.  The command @code{bovinate-debug} will start you off.
+quite easy.  The command @code{semantic-debug} will start you off.
 
-@deffn Command bovinate-debug
-Bovinate the current buffer and run in parser debug mode.
+@deffn Command semantic-debug
+Reprase the current buffer and run in parser debug mode.
 @end deffn
 
 While debugging, two windows are visible.  One window shows the file
