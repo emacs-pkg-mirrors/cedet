@@ -1,0 +1,221 @@
+\input texinfo   @c -*-texinfo-*-
+@c
+@c $Id: semantic.texi,v 1.1 1999/05/27 16:55:28 zappo Exp $
+@c
+@setfilename semantic.info
+@settitle Semantic parsing for Emacs
+
+@ifinfo
+@format
+START-INFO-DIR-ENTRY
+* semantic: (semantic).       Semantic Parsing for Emacs
+END-INFO-DIR-ENTRY
+@end format
+@end ifinfo
+
+@titlepage
+@sp 10
+@center @titlefont{Semantic}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 1999 Eric M. Ludlam
+@end titlepage
+
+@node Top, , , (dir)Top
+@comment  node-name,  next,  previous,  up
+
+Semantic is a program for Emacs which includes, at its core, a lexer,
+and a compiler compiler (bovinator).  Additional tools include a
+bnf->semantic table converter, example tables, and a speedbar tool.
+
+The core utility is the ``semantic bovinator'' which has similar
+behaviors as yacc or bison.  Since it is not designed to be as feature
+rich as these tools, it uses the term ``bovine'' for cow, a lesser
+cousin of the yak and bison.
+
+In it's current state, the bovinator is both fast (because it uses emacs
+tricks) and slow (it is recursive, and not table (array) based).  If you
+have experience with compiler compilers (bison, yacc, etc) your help to
+make these updates would be greatly appreciated.
+
+Because the bovinator is recursive, you may need to add the following to
+your .emacs file:
+
+@code{(setq max-specpdl-size 1000)}
+
+@menu
+* Lexing ::             Setting up the lexer for your language.
+* Bovinating ::         Setting up the parser for your language.
+* BNF conversion::      Using the BNF converter to make tables.
+* Compiling ::          Running the bovinator on a source file.
+* Debugging ::          Using the bovine table debugger.
+@end menu
+
+@node Lexing, Bovinating, Top, Top
+@chapter Preparing your language for Lexing
+
+In order to reduce a source file into a token list, it must first be
+converted into a token stream.  Tokens are syntactic elements such as
+whitespace, symbols, strings, lists, and punctuation.
+
+The lexer uses the syntax table for conversion, so as long as that is
+set up correctly (along with the important @code{comment-start-skip}
+variable) you should be ok.
+
+*** Add doc for extending the tokenizer when it's been implemented. ***
+
+@node Bovinating, BNF conversion, Lexing, Top
+@chapter Preparing a bovine table for your language
+
+When converting a source file into a nonterminal token stream
+(parse-tree) it is important to specify rules to accomplish this.  The
+rules are stored in the buffer local variable
+@code{semantic-toplevel-bovine-table}.
+
+While it is certainly possible to write this table yourself, it is most
+likely you will want to use the BNF converter.  @xref{BNF conversion}.
+This is an easier method for specifying your rules.  You will still need
+to specify a variable in you language for the table, however.  A good
+rule of thumb is to call it @code{langauge-toplevel-bovine-table}.
+
+When initializing a major-mode for your language, you will set the
+variable @code{semantic-toplevel-bovine-table} to the contents of your
+language table.  @code{semantic-toplevel-bovine-table} is always buffer
+local.
+
+Since it is important to know the format of the table when debugging
+@xref{Debugging}, you should still attempt to understand the basics of
+the table.
+
+Please see the documentation for the variable
+@code{semantic-toplevel-bovine-table} for details on it's format.
+
+* fix this *
+
+@node BNF conversion, Compiling, Bovinating, Top
+@chapter Using the BNF converter to make bovine tables
+
+The BNF converter takes a file in "Bovine Normal Form" which is very
+similar to "Backus-Naur Form", and is therefore a pun.  If you have
+ever used yacc or bison, you will find it similar.
+
+It is important to have a Emacs Lisp file with a variable ready to take
+the output of your table @xref{Bovinating}.  Also, make sure that the
+file @file{semantic-bnf} is loaded.  Give your language file the
+extension @file{.bnf} and you are ready.
+
+The comment character is @asis{#} and you will want to place a comment
+near the top of the file which looks like this:
+
+@example
+# TABLE: semantic-ex.el:semantic-toplevel-c-bovine-table
+@end example
+
+Where you specify the file, and variable where you want this language
+file to be parsed to.  When you want to test your file, use the keyboard
+shortcut @kbd{C-c C-c} to parse the file, generate the variable, and
+load the new definition in.  You will then have to re-run your
+major-mode in the desired buffer for it to take effect.
+
+Writing the rules should be very similar to bison for basic syntax.
+Each rule is of the form
+
+@example
+RESULT : MATCH1 (optional-lambda-expression)
+       | MATCH2 (optional-lambda-expression)
+       ;
+@end example
+
+@var{RESULT} is a non-terminal, or a token synthisized in your grammar.
+@var{MATCH} is a list of elements that are to be matched if @var{RESULT}
+is to be made.  The optional lambda expression is a list containing
+simplified rules for concocting the parse tree.
+
+@var{MATCH} is made up of symbols and strings.  A symbol such as
+@code{foo} means that a syntactic token of type @code{foo} must be
+matched.  A string in the mix means that the previous symbol must have
+the additional constraint of exactly matching it.  Thus, the
+combination:
+@example
+  symbol "moose"
+@end example
+means that a symbol must first be encountered, and then it must
+@code{string-match "moose"}.
+
+The ole (optional lambda expression) is converted into a bovine lambda
+@xref{Bovinating}. This lambda has special short-cuts to simplify
+reading the emacs bnf definition.  An ole like this:
+@example
+ ( $1 )
+@end example
+results in a lambda return which consists entirely of the string
+or object found by matching the first (zeroeth) element of match.
+An ole like this:
+@example
+( ,(foo $1) )
+@end example
+executes `foo' on the first argument, and then splices it's return
+into the return list whereas:
+@example
+( (foo $1) )
+@end example
+executes foo, and that is placed in the return list.
+
+Here are other things that can appear inline:
+@table @code
+@item $1
+the first object matched.
+@item ,$1
+the first object spliced into the list (assuming it is a list from a
+non-terminal)
+@item '$1
+the first object matched, placed in a list.  ie ( $1 )
+@item foo
+the symbol foo (exactly as displayed)
+@item (foo)
+a function call to foo which is stuck into the return list.
+@item ,(foo)
+a function call to foo which is spliced into the return list.
+@item '(foo)
+a function call to foo which is stuck into the return list in a list.
+@end table
+
+@node Compiling, Debugging, BNF conversion, Top
+@chapter Compiling a language file with the bovinator
+
+From a program you can use the function @code{semantic-bovinate-toplevel}.
+This function takes two optional parameters.  First is the DEPTH which
+defaults to 0.  The lexer takes a DEPTH parameter which is used to
+determine if @code{open-paren} and @code{close-paren} tokens are
+returned, or if @code{semantic-list} tokens are returned.
+
+The second command TRASHCOMMENTS defaults to nil, and indicates if
+comments should be automatically stripped when they are encountered.
+
+Another function you can use is @code{semantic-bovinate-nonterminal}.
+This command takes a token stream returned by the function
+@code{semantic-flex} followed by a DEPTH (as above).  This takes an
+additional optional argument of NONTERMINAL which is the nonterminal in
+your table it is to start parsing with.
+
+As a user, you can run the command @code{bovinate} which runs the
+previously mentioned command, and displays the returned tokens in a
+buffer.  This is a great took for testing tables as you develop them.
+
+@node Debugging, , Compiling, Top
+@chapter Debugging a bovine table.
+
+To debug a language is a two step process.  The first tells emacs where
+to find the source code to the bovine table.  The second is to run the
+debugger from a language file that uses the table.
+
+To set a table, put the cursor in the table, and run the command
+@code{semantic-bovinate-debug-set-table}.  Emacs records the location
+for debugging.  Next place the cursor in the language file you want to
+debug, and run the command @code{bovinate-debug}.  This command opens
+the table and language file, and highlights the apropriate pieces
+depending on what it is about to look at.  Details about the current
+state are shown in the minibuffer.
+
+Pressing any key advances.  @kbd{C-g} halts the debugger.
+
+@bye
