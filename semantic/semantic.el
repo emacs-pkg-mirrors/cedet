@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.36 2000/05/17 02:24:30 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.37 2000/06/11 18:50:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -355,6 +355,20 @@ TOP-LEVEL ENTRIES:
 OTHER ENTRIES:")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table)
 
+(defvar semantic-symbol->name-assoc-list
+  '((variable . "Variables")
+    (function . "Functions")
+    (type . "Types")
+    (include . "Dependencies")
+    (package . "Provides"))
+  "Association between symbols returned, and a string.
+The string is used to represent a group of objects of the given type.
+It is sometimes useful for a language to use a different string
+in place of the default, even though that language will still
+return a symbol.  For example, Java return's includes, but the
+string can be replaced with `Imports'.")
+(make-variable-buffer-local 'semantic-symbol->name-assoc-list)
+
 (defvar semantic-expand-nonterminal nil
   "Function to call for each returned Non-terminal.
 Return a list of non-terminals derived from the first argument, or nil
@@ -549,6 +563,7 @@ Argument COMMENT is additional description."
     (split-window-vertically)
     (switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
     (other-window 1)
+    (semantic-clear-toplevel-cache)
     (semantic-bovinate-toplevel nil t)))
 
 (defun semantic-bovinate-show (lse nonterminal matchlen tokenlen collection)
@@ -732,27 +747,50 @@ list of semantic tokens found."
 	      (cond ((eq r 'fail)
 		     (setq lte '(trash 0 . 0)))
 		    (t nil))))
-	(if (semantic-bovinate-symbol-nonterminal-p (car lte) table)
-	    ;; We have a nonterminal symbol.  Recurse inline.
-	    (let ((nontermout (semantic-bovinate-nonterminal s table (car lte))))
-	      (setq s (car nontermout)
-		    val (car (cdr nontermout)))
-	      (if val
-		  (let ((len (length val))
-			(strip (nreverse (cdr (cdr (reverse val))))))
-		    (if semantic-dump-parse
-			(semantic-dump-detail (cdr nontermout)
-					      (car lte)
-					      ""
-					      "NonTerm Match"))
-		    (setq end (nth (1- len) val) ;reset end to the end of exp
-			  cvl (cons strip cvl) ;prepend value of exp
-			  lte (cdr lte)) ;update the local table entry
-		    )
-		;; No value means that we need to terminate this match.
-		(setq lte nil cvl nil)) ;No match, exit
-	      )
-
+	(cond
+	 ;; The special ITERATE keyword idicates a special recursion
+	 ;; removal sequence which can be iterated over.  Iteration
+	 ;; also simplifies some types of matching.
+	 ;; NOTE: Iterate always succeeds because an empty list is ok.
+	 ((eq (car lte) 'ITERATE)
+	  (let ((nontermout (semantic-bovinate-stream s table (cdr lte)))
+		)
+	    (setq s (car nontermout)
+		  val (car (cdr nontermout)))
+	    (if val
+		(let ((len (length val))
+		      (strip (nreverse (cdr (cdr (reverse val))))))
+		  (if semantic-dump-parse
+		      (semantic-dump-detail (cdr nontermout)
+					    (car lte)
+					    ""
+					    "Iterate Match"))
+		  (setq end (nth (1- len) val)
+			cvl (cons strip cvl))))
+	    (setq lte nil)
+	    ))
+	 ;; We have a nonterminal symbol.  Recurse inline.
+	 ((semantic-bovinate-symbol-nonterminal-p (car lte) table)
+	  (let ((nontermout (semantic-bovinate-nonterminal s table (car lte))))
+	    (setq s (car nontermout)
+		  val (car (cdr nontermout)))
+	    (if val
+		(let ((len (length val))
+		      (strip (nreverse (cdr (cdr (reverse val))))))
+		  (if semantic-dump-parse
+		      (semantic-dump-detail (cdr nontermout)
+					    (car lte)
+					    ""
+					    "NonTerm Match"))
+		  (setq end (nth (1- len) val) ;reset end to the end of exp
+			cvl (cons strip cvl) ;prepend value of exp
+			lte (cdr lte)) ;update the local table entry
+		  )
+	      ;; No value means that we need to terminate this match.
+	      (setq lte nil cvl nil)) ;No match, exit
+	    ))
+	 ;; Default case
+	 (t
 	  (setq lse (car s)		;Get the local stream element
 		s (cdr s))		;update stream.
 	  ;; trash comments if it's turned on
@@ -792,7 +830,7 @@ list of semantic tokens found."
 				      nonterminal (semantic-flex-text lse)
 				      "Term Type Fail"))
 	    (setq lte nil cvl nil)) 	;No more matches, exit
-	  ))
+	  )))
       (if (not cvl)			;lte=nil;  there was no match.
 	  (setq matchlist (cdr matchlist)) ;Move to next matchlist entry
 	(setq out (if (car lte)
@@ -864,6 +902,21 @@ a function.  The function should both move point, and return a lexical
 token of the form ( TYPE START .  END).  nil is also a valid return.")
 (make-variable-buffer-local 'semantic-flex-extensions)
 
+(defvar semantic-flex-syntax-modifications nil
+  "Updates to the syntax table for this buffer.
+These changes are active only while this file is being flexed.
+This is a list where each element is of the form:
+  (CHAR CLASS) 
+Where CHAR is the char passed to `modify-syntax-entry',
+and CLASS is the string also passed to `modify-syntax-entry' to define
+what class of syntax CHAR is.")
+(make-variable-buffer-local 'semantic-flex-syntax-modifications)
+
+(defvar semantic-flex-enable-newlines nil
+  "When flexing, report 'newlines as syntactic elements.
+Useful for languages where the newline is a special case terminator.")
+(make-variable-buffer-local 'semantic-flex-enable-newlines)
+
 (defun semantic-flex-buffer (&optional depth)
   "Sematically flex the current buffer.
 Optional argument DEPTH is the depth to scan into lists."
@@ -887,76 +940,95 @@ return token will be larger than END.  To truly restrict scanning, using
 	(curdepth 0)
 	(cs (if comment-start-skip
 		(concat "\\(\\s<\\|" comment-start-skip "\\)")
-	      (concat "\\(\\s<\\)"))))
-    (goto-char start)
-    (while (< (point) end)
-      (cond (;; comment end is also EOL for some languages.
-	     (looking-at "\\(\\s-\\|\\s>\\)+"))
-	    ((and semantic-flex-extensions
-		  (let ((fe semantic-flex-extensions)
-			(r nil))
-		    (while fe
-		      (if (looking-at (car (car fe)))
-			  (setq ts (cons (funcall (cdr (car fe))) ts)
-				r t
-				fe nil
-				ep (point)))
-		      (setq fe (cdr fe)))
-		    (if (and r (not (car ts))) (setq ts (cdr ts)))
-		    r)))
-	    ((looking-at "\\(\\sw\\|\\s_\\)+")
-	     (setq ts (cons (cons 'symbol
-				  (cons (match-beginning 0) (match-end 0)))
-			    ts)))
-	    ((looking-at "\\s\\+")
-	     (setq ts (cons (cons 'charquote
-				  (cons (match-beginning 0) (match-end 0)))
-			    ts)))
-	    ((looking-at "\\s(")
-	     (if (or (not depth) (< curdepth depth))
-		 (progn
-		   (setq curdepth (1+ curdepth))
-		   (setq ts (cons (cons 'open-paren
-					(cons (match-beginning 0) (match-end 0)))
-				  ts)))
-	       (setq ts (cons (cons 'semantic-list
+	      (concat "\\(\\s<\\)")))
+	(newsyntax (copy-syntax-table (syntax-table)))
+	(mods semantic-flex-syntax-modifications))
+    ;; Update the syntax table
+    (while mods
+      (modify-syntax-entry (car (car mods)) (car (cdr (car mods))) newsyntax)
+      (setq mods (cdr mods)))
+    (with-syntax-table newsyntax
+      (goto-char start)
+      (while (< (point) end)
+	(cond (;; catch newlines when needed
+	       (and semantic-flex-enable-newlines
+		    (looking-at "\n"))
+	       (setq ts (cons (cons 'newline
+				    (cons (match-beginning 0) (match-end 0)))
+			      ts)))
+	      ;; special extentions, sometimes includes some whitespace.
+	      ((and semantic-flex-extensions
+		    (let ((fe semantic-flex-extensions)
+			  (r nil))
+		      (while fe
+			(if (looking-at (car (car fe)))
+			    (setq ts (cons (funcall (cdr (car fe))) ts)
+				  r t
+				  fe nil
+				  ep (point)))
+			(setq fe (cdr fe)))
+		      (if (and r (not (car ts))) (setq ts (cdr ts)))
+		      r)))
+	      ;; comment end is also EOL for some languages.
+	      ((looking-at "\\(\\s-\\|\\s>\\)+"))
+	      ;; symbols
+	      ((looking-at "\\(\\sw\\|\\s_\\)+")
+	       (setq ts (cons (cons 'symbol
+				    (cons (match-beginning 0) (match-end 0)))
+			      ts)))
+	      ;; Character quoting characters (ie, \n as newline)
+	      ((looking-at "\\s\\+")
+	       (setq ts (cons (cons 'charquote
+				    (cons (match-beginning 0) (match-end 0)))
+			      ts)))
+	      ;; Open parens, or semantic-lists.
+	      ((looking-at "\\s(")
+	       (if (or (not depth) (< curdepth depth))
+		   (progn
+		     (setq curdepth (1+ curdepth))
+		     (setq ts (cons (cons 'open-paren
+					  (cons (match-beginning 0) (match-end 0)))
+				    ts)))
+		 (setq ts (cons (cons 'semantic-list
+				      (cons (match-beginning 0)
+					    (save-excursion
+					      (forward-list 1)
+					      (setq ep (point)))))
+				ts))))
+	      ;; Close parens
+	      ((looking-at "\\s)")
+	       (setq ts (cons (cons 'close-paren
+				    (cons (match-beginning 0) (match-end 0)))
+			      ts))
+	       (setq curdepth (1- curdepth)))
+	      ;; String initiators
+	      ((looking-at "\\s\"")
+	       ;; Zing to the end of this string.
+	       (setq ts (cons (cons 'string
 				    (cons (match-beginning 0)
 					  (save-excursion
-					    (forward-list 1)
+					    (forward-sexp 1)
 					    (setq ep (point)))))
-			      ts))))
-	    ((looking-at "\\s)")
-	     (setq ts (cons (cons 'close-paren
-				  (cons (match-beginning 0) (match-end 0)))
-			    ts))
-	     (setq curdepth (1- curdepth)))
-	    ((looking-at "\\s\"")
-	     ;; Zing to the end of this string.
-	     (setq ts (cons (cons 'string
-				  (cons (match-beginning 0)
-					(save-excursion
-					  (forward-sexp 1)
-					  (setq ep (point)))))
-			    ts)))
-	    ((looking-at cs)
-	     ;; Zing to the end of this comment.
-	     (if (eq (car (car ts)) 'comment)
-		 (setcdr (cdr (car ts)) (save-excursion
-					  (forward-comment 1)
-					  (setq ep (point))))
-	       (setq ts (cons (cons 'comment
-				    (cons (match-beginning 0)
-					  (save-excursion
+			      ts)))
+	      ((looking-at cs)
+	       ;; Zing to the end of this comment.
+	       (if (eq (car (car ts)) 'comment)
+		   (setcdr (cdr (car ts)) (save-excursion
 					    (forward-comment 1)
-					    (setq ep (point)))))
-			      ts))))
-	    ((looking-at "\\(\\s.\\|\\s$\\|\\s'\\)")
-	     (setq ts (cons (cons 'punctuation
-				  (cons (match-beginning 0) (match-end 0)))
-			    ts)))
-	    (t (error "What is that?")))
-      (goto-char (or ep (match-end 0)))
-      (setq ep nil))
+					    (setq ep (point))))
+		 (setq ts (cons (cons 'comment
+				      (cons (match-beginning 0)
+					    (save-excursion
+					      (forward-comment 1)
+					      (setq ep (point)))))
+				ts))))
+	      ((looking-at "\\(\\s.\\|\\s$\\|\\s'\\)")
+	       (setq ts (cons (cons 'punctuation
+				    (cons (match-beginning 0) (match-end 0)))
+			      ts)))
+	      (t (error "What is that?")))
+	(goto-char (or ep (match-end 0)))
+	(setq ep nil)))
     (goto-char pos)
     ;(message "Flexing muscles...done")
     (nreverse ts)))
