@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.5 2002/07/31 19:45:51 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.6 2002/08/02 01:40:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -200,26 +200,6 @@ Argument START, END, and LENGTH specify the bounds of the change."
       (semantic-edits-flush-change (car changes))
       (setq changes (cdr changes))))
   )
-
-(defun semantic-edits-bovinate-region (start end &optional reparse-symbol)
-  "Bovinate the area between START and END, and return any tokens found.
-If END needs to be extended due to a lexical token being too large,
-it will be silently ignored.
-Optional argument REPARSE-SYMBOL is the rule to start parsing at if it
-is known.
-This function returns tokens with overlays (already cooked.)"
-  (let* ((semantic-bovination-working-type 'dynamic)
-         (lexbits (semantic-lex start end))
-         tokens)
-    (working-status-forms
-        (semantic-bovination-working-message (buffer-name)) "done"
-      (setq tokens (semantic-bovinate-nonterminals
-                    lexbits
-                    reparse-symbol
-                    nil
-                    t))
-      (working-dynamic-status t))
-    tokens))
 
 (defun semantic-edits-change-in-one-token-p (change hits)
   "Return non-nil of the overlay CHANGE exists solely in one leaf token.
@@ -645,7 +625,7 @@ the semantic cache to see what needs to be changed."
                       ;; children.
                       (semantic-nonterminal-children parent-token nil)))
             ;; Use the boundary to calculate the new tokens found.
-            (setq newf-tokens (semantic-edits-bovinate-region
+            (setq newf-tokens (semantic-bovinate-region
                                parse-start parse-end reparse-symbol))
             ;; Make sure all these tokens are given overlays.
             ;; They have already been cooked by the bovinator and just
@@ -708,7 +688,7 @@ the semantic cache to see what needs to be changed."
               ;; Flush change regardless of above if statement.
               )
 
-;;;; Some unhandled case.           
+;;;; Some unhandled case.
              ((error "Don't know what to do")))
           
             ;; We got this far, and we didn't flag a full reparse.
