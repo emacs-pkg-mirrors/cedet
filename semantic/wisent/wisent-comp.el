@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.1 2002/02/01 23:54:58 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.2 2002/02/02 00:21:49 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1922,9 +1922,9 @@ there are any reduce/reduce conflicts.")
 
 (defun wisent-total-conflicts ()
   "Report the total number of conflicts."
-  (unless (and wisent-expected-conflicts
-               (= src-total wisent-expected-conflicts)
-               (zerop rrc-total))
+  (unless (and (zerop rrc-total)
+               (or (zerop src-total)
+                   (= src-total (or wisent-expected-conflicts 0))))
     (let* ((src (wisent-source))
            (src (if src (concat " in " src) ""))
            (msg (format "Grammar%s contains" src)))
