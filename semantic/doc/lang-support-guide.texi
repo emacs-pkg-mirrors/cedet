@@ -25,7 +25,6 @@ studies.
 * Language Support Overview::   
 * Writing Lexers::              
 * Writing Parsers::             
-* Writing Grammar::              
 * Compiling::                   
 * Debugging::                   
 * Parser Error Handling::       
@@ -717,7 +716,7 @@ while parsing, and can skip them all together.
 @subsection Keywords
 
 Another important piece of the lexer is the keyword table (see
-@ref{Settings}).  You language will want to set up a keyword table for
+@ref{Writing Parsers}).  You language will want to set up a keyword table for
 fast conversion of symbol strings to language terminals.
 
 The keywords table can also be used to store additional information
@@ -756,7 +755,37 @@ and quick way of storing details about text in the buffer.
 @node Keyword Properties
 @subsection Standard Keyword Properties
 
-Add known properties here when they are known.
+Keywords in a language can have multiple properties.  These
+properties can be used to associate the string that is the keyword
+with additional information.
+
+Currently available properties are:
+
+@table @b
+@item summary
+The summary property is used by semantic-summary-mode as a help
+string for the keyword specified.
+@end table
+
+Notes:
+
+Possible future properties.  This is just me musing:
+
+@table @b
+@item face
+Face used for highlighting this keyword, differentiating it from the
+keyword face.
+@item template
+@itemx skeleton
+Some sort of tempo/skel template for inserting the programatic
+structure associated with this keyword.
+@item abbrev
+As with template.
+@item action
+@itemx menu
+Perhaps the keyword is clickable and some action would be useful.
+@end table
+
 
 @node Writing Parsers
 @section Writing Parsers
@@ -785,7 +814,7 @@ specify rules to accomplish this.  The rules are stored in the buffer
 local variable @code{semantic-toplevel-bovine-table}.
 
 While it is certainly possible to write this table yourself, it is most
-likely you will want to use a compiler compiler instead @ref{Bovine Parser}.
+likely you will want to use a compiler compiler instead @ref{Bovine Parsers}.
 
 There are three choices for implementing your grammar.
 
@@ -814,21 +843,24 @@ non-regular languages, or external programs for speed.
 @end menu
 
 @node External Parsers
-@section External Parsers
+@subsection External Parsers
 
+The texinfo parser in @file{semantic-texi.el} is an example of an
+external parser.  To make your parser work, you need to have a setup
+function.
 
 @node Bovine Parsers
-@section Bovine Parsers
+@subsection Bovine Parsers
 
 @include bovine.texi
 
 @node Wisent Parsers
-@section Wisent Parsers
+@subsection Wisent Parsers
 
 @include wisent.texi
 
 @node Grammer Programming Environment
-@section Grammer Programming Environment
+@subsection Grammer Programming Environment
 
 
 
