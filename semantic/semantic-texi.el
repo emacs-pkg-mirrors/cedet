@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.26 2004/03/11 02:25:58 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.27 2004/03/20 00:12:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 ;;; Commentary:
 ;;
 ;; Parse Texinfo buffers using regular expressions.  The core parser
-;; engine is the function `semantic-texi-bovinate-headings'.  The
+;; engine is the function `semantic-texi-parse-headings'.  The
 ;; parser plug-in is the function `semantic-texi-parse-region' that
 ;; overrides `semantic-parse-region'.
 
@@ -72,9 +72,8 @@ or
 
 It is an override of 'parse-region and must be installed by the
 function `semantic-install-function-overrides'."
-  ;;(semantic-texi-bovinate-headings)
   (mapcar 'semantic-texi-expand-tag
-          (semantic-texi-bovinate-headings)))
+          (semantic-texi-parse-headings)))
 
 (defun semantic-texi-parse-changes ()
   "Parse changes in the current texinfo buffer."
@@ -90,7 +89,7 @@ function `semantic-install-function-overrides'."
          tag :members (mapcar 'semantic-texi-expand-tag chil)))
     (car (semantic--tag-expand tag))))
 
-(defun semantic-texi-bovinate-headings ()
+(defun semantic-texi-parse-headings ()
   "Parse the current texinfo buffer for all semantic tags now."
   (let ((pass1 nil))
     ;; First search and snarf.
@@ -346,7 +345,7 @@ that start with that symbol."
      (parse-changes . semantic-texi-parse-changes)))
   (setq semantic-parser-name "TEXI"
         ;; Setup a dummy parser table to enable parsing!
-        semantic-toplevel-bovine-table t
+        semantic--parse-table t
         imenu-create-index-function 'semantic-create-imenu-index
 	semantic-command-separation-character "@"
 	semantic-type-relation-separator-character '(":")
@@ -415,7 +414,7 @@ Note: TYPE not yet implemented."
     (while (and f (not match))
       (unless stream
 	(with-current-buffer (find-file-noselect (car f))
-	  (setq stream (semantic-bovinate-toplevel t))))
+	  (setq stream (semantic-fetch-tags))))
       (setq match (semantic-find-first-tag-by-name name stream))
       (when match
 	(set-buffer (semantic-tag-buffer match))
@@ -429,7 +428,7 @@ If TAG is nil, determine a tag based on the current position."
   (interactive)
   (unless (or (featurep 'semanticdb) (semanticdb-minor-mode-p))
     (error "Texinfo updating only works when `semanticdb' is being used"))
-  (semantic-bovinate-toplevel t)
+  (semantic-fetch-tags)
   (unless tag
     (beginning-of-line)
     (setq tag (semantic-current-tag)))
@@ -498,7 +497,7 @@ The current buffer must include TAG."
   (interactive)
   (when (eq major-mode 'texinfo-mode)
     (error "Not a source file"))
-  (semantic-bovinate-toplevel t)
+  (semantic-fetch-tags)
   (unless tag
     (setq tag (semantic-current-tag)))
   (unless (semantic-documentation-for-tag tag)
@@ -511,7 +510,7 @@ The current buffer must include TAG."
     (while (and texi (not doctag))
       (set-buffer (find-file-noselect (car texi)))
       (setq doctag (semantic-find-first-tag-by-name
-		    name (semantic-bovinate-toplevel t))
+		    name (semantic-fetch-tags))
 	    docbuff (if doctag (current-buffer) nil))
       (setq texi (cdr texi)))
     (unless doctag
@@ -547,7 +546,7 @@ If TAG is nil, it is derived from the deffn under POINT."
   (interactive)
   (unless (or (featurep 'semanticdb) (semanticdb-minor-mode-p))
     (error "Texinfo updating only works when `semanticdb' is being used"))
-  (semantic-bovinate-toplevel t)
+  (semantic-fetch-tags)
   (unless tag
     (beginning-of-line)
     (setq tag (semantic-current-tag)))
