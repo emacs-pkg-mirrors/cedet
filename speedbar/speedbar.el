@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.13 1997/01/18 02:30:39 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.14 1997/01/18 14:53:13 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -74,6 +74,8 @@
 ;;;    Users of emacs previous to to v 19.31 (when idle timers
 ;;; where introduced) will not have speedbar updating automatically.
 ;;; Use "r" to refresh the display after changing directories.
+;;; Remember, do not interrupt the stealthy updates or you display may
+;;; not be completely refreshed.
 ;;;
 ;;;    See optional file `speedbcfg.el' for interactive buffers
 ;;; allowing simple configuration of colors and features of speedbar.
@@ -150,6 +152,13 @@
 ;;;         that should be in the list, the speedbar cache is replaced.     
 ;;;       Temp buffers are now shown in the attached frame not the
 ;;;         speedbar frame
+;;;       New variables `speedbar-vc-*' and `speedbar-stealthy-function-list'
+;;;         added.  `speedbar-update-current-file' is now a member of
+;;;         the stealthy list.  New function `speedbar-check-vc' will
+;;;         examine each file and mark it if it is checked out.  The
+;;;         stealth list is interruptible so that long operations do
+;;;         not interrupt someones editing flow.  Other long speedbar
+;;;         updates will be added to the stealthy list in the future.
 ;;;
 ;;; TODO:
 ;;; 1) Apply timeout to directory caches so that large directories are
@@ -175,6 +184,15 @@ a top level update is issued.  These functions will allways get the
 default directory to use passed in as the first parameter, and a 0 as
 the second parameter.  They must assume that the cursor is at the
 postion where they start inserting buttons.")
+
+(defvar speedbar-stealthy-function-list
+  '(speedbar-update-current-file speedbar-check-vc)
+  "List of functions to periodically call stealthely.  Each function
+must return `nil' if interrupted, or `t' if completed.  Stealthy
+functions which have a single operation should always return t.
+Functions which take a long time should maintain a state (where they
+are in their speedbar related calculations) and permit interruption.
+See `speedbar-check-vc' as a good example.")
 
 (defvar speedbar-show-unknown-files nil
   "*Non-nil shows files with a ? in the expansion tag for files we can't
@@ -210,7 +228,7 @@ is experimental for performace testing.")
 
 (defvar speedbar-sort-tags nil
   "*If Non-nil, sort tags in the speedbar display.  (Currently only
-works with etags.)")
+works with etags.  See imenu.el for how imenu does sorting.)")
 
 (defvar speedbar-before-delete-hook nil
   "*Hooks called before deletiing the speedbar frame.")
@@ -220,6 +238,23 @@ works with etags.)")
 
 (defvar speedbar-timer-hook nil
   "*Hooks called after running the speedbar timer function")
+
+(defvar speedbar-verbosity-level 1
+  "*Verbosity level of the speedbar.  0 means say nothing.  1
+means medium level verbosity.  2 and higher are higher levels of
+verbosity.")
+
+(defvar speedbar-vc-indicator " *"
+  "*Text used to mark files which are currently checked out of a version
+control system.")
+
+(defvar speedbar-vc-do-check t
+  "*non-nil check all files in list to see if they have been checked
+out so that we can mark them.")
+
+(defvar speedbar-vc-to-do-point nil
+  "Local variable used to maintain the list of files for stealthy
+examination of version control")
 
 (defvar speedbar-ignored-modes
   '(Info-mode)
@@ -516,6 +551,12 @@ files which don't have imenu support, but are not expressly ignored.
 Files are completely ignored if they match `speedbar-file-unshown-regexp'
 which is generated from `completion-ignored-extensions'.
 
+Files with a `*' character after their name are files checked out of a
+version control system.  (currently only RCS is supported.)  New
+version control systems can be added by examining the documentation
+for `speedbar-stealthy-function-list' and the function
+`speedbar-check-vc'.
+
 Click on the [+] to display a list of tags from that file.  Click on
 the [-] to retract the list.  Click on the file name to edit the file
 in the attached frame.
@@ -578,9 +619,10 @@ mouse is being clicked on the far left, or far right of the modeline."
 to make sure our cache is synchonized to the filesystem"
   (interactive)
   (adelete 'speedbar-directory-contents-alist default-directory)
-  (message "Refreshing speedbar...")
+  (if (<= 1 speedbar-verbosity-level) (message "Refreshing speedbar..."))
   (speedbar-update-contents)
-  (message "Refreshing speedbar...done"))
+  (speedbar-stealthy-updates)
+  (if (<= 1 speedbar-verbosity-level) (message "Refreshing speedbar...done")))
 
 ;; This doesn't work as expected. ;(
 (defun speedbar-help-helper ()
@@ -792,6 +834,7 @@ cell of the form ( 'dir-list . 'file-list )"
   "Inserts files for DIRECTORY with level INDEX at point"
   (speedbar-insert-files-at-point
    (speedbar-file-lists directory) index)
+  (setq speedbar-vc-to-do-point t)
   )
 
 (defun speedbar-insert-generic-list (level lst expand-fun find-fun)
@@ -865,16 +908,34 @@ function FIND-FUN and not token."
 			(not (buffer-file-name))
 			)
 		    nil
-		  (message "Updating speedbar to: %s..." default-directory)
+		  (if (<= 1 speedbar-verbosity-level) 
+		      (message "Updating speedbar to: %s..." default-directory))
 		  (speedbar-update-contents)
-		  (message "Updating speedbar to: %s...done" default-directory))
+		  (if (<= 1 speedbar-verbosity-level)
+		      (message "Updating speedbar to: %s...done" default-directory)))
 		(select-frame af) )))
       ;; Reset the timer
       (speedbar-set-timer speedbar-update-speed)
-      ;; Ok, un-underline old file, underline current file
-      (speedbar-update-current-file)))
+      ;; Now run stealthy updates of time-consuming items
+      (speedbar-stealthy-updates)
+      ))
   (run-hooks 'speedbar-timer-hook)
   )
+
+
+;;;
+;;; Stealthy activities
+;;;
+(defun speedbar-stealthy-updates ()
+  "For a given speedbar, run all items in the stealthy function list
+until we are all done."
+  (let ((l speedbar-stealthy-function-list))
+    (unwind-protect
+	(while (and l (funcall (car l)))
+	  (sit-for 0)
+	  (setq l (cdr l)))
+      ;(message "Exit with %S" (car l))
+      )))
 
 (defun speedbar-update-current-file ()
   "Find out what the current file is, and update our visuals to indicate
@@ -899,7 +960,9 @@ updated."
 	    (if (and 
 		 speedbar-last-selected-file
 		 (re-search-forward 
-		  (concat " \\(" (regexp-quote speedbar-last-selected-file) "\\)\n")
+		  (concat " \\(" (regexp-quote speedbar-last-selected-file) 
+			  "\\)\\(" (regexp-quote speedbar-vc-indicator)
+			  "\\)?\n")
 		  nil t))
 		(put-text-property (match-beginning 1)
 				   (match-end 1)
@@ -907,7 +970,9 @@ updated."
 				   'speedbar-file-face))
 	    (goto-char (point-min))
 	    (if (re-search-forward 
-		 (concat " \\(" (regexp-quote newcf) "\\)\n") nil t)
+		 (concat " \\(" (regexp-quote newcf) "\\)\\("
+			 (regexp-quote speedbar-vc-indicator)
+			 "\\)?\n") nil t)
 		;; put the property on it
 		(put-text-property (match-beginning 1)
 				   (match-end 1)
@@ -931,7 +996,42 @@ updated."
 	  (forward-line -1)
 	  (speedbar-position-cursor-on-line)
 	  (set-buffer lastb)
-	  (select-frame lastf)))))
+	  (select-frame lastf))))
+  ;; return that we are done with this activity.
+  t)
+
+(defun speedbar-check-vc ()
+  "Scan all files in a files directory, and for each see if it's
+checked out of RCS or SCCS."
+  ;; Check for to-do to be reset.  If reset but no RCS is available
+  ;; then set to nil (do nothing) otherwise, start at the beginning
+  (if (and speedbar-vc-do-check (eq speedbar-vc-to-do-point t))
+      (if (file-exists-p "RCS") (setq speedbar-vc-to-do-point 0)
+	(setq speedbar-vc-to-do-point nil)))
+  (if (numberp speedbar-vc-to-do-point)
+      (save-excursion
+	(set-buffer speedbar-buffer)
+	(goto-char speedbar-vc-to-do-point)
+	(while (and (not (input-pending-p))
+		    (re-search-forward ":\\[[+-]\\] " nil t))
+	  (let ((f (buffer-substring-no-properties
+		    (point) (progn (end-of-line) (point)))))
+	    (setq speedbar-vc-to-do-point (point))
+	    (if (<= 2 speedbar-verbosity-level) 
+		(message "speedbar RCS check...%s" f))
+	    (if (and (file-writable-p f)
+		     (file-exists-p (concat "RCS/" f ",v")))
+		(speedbar-with-writable
+		  (insert speedbar-vc-indicator)))))
+	(if (input-pending-p)
+	    ;; return that we are incomplete
+	    nil
+	  ;; we are done, set to-do to nil
+	  (setq speedbar-vc-to-do-point nil)
+	  ;; and return t
+	  t))
+    t))
+
 
 ;;;
 ;;; Clicking Activity
@@ -970,6 +1070,10 @@ these items."
 		 (setq path (buffer-substring-no-properties
 			     (match-beginning 1) (match-end 1))))))
 	(setq depth (1- depth)))
+      (if (and path
+	       (string-match (concat (regexp-quote speedbar-vc-indicator) "$")
+			     path))
+	  (setq path (substring path 0 (match-beginning 0))))
       (concat default-directory path))))
 
 (defun speedbar-edit-line ()
@@ -1319,13 +1423,13 @@ position in FILE."
 	(save-excursion
 	  (if (get-buffer "*etags tmp*")
 	      (kill-buffer "*etags tmp*"))	;kill to clean it up
-	  (message "Fetching etags...")
+	  (if (<= 1 speedbar-verbosity-level) (message "Fetching etags..."))
 	  (set-buffer (get-buffer-create "*etags tmp*"))
 	  (apply 'call-process speedbar-fetch-etags-command nil 
 		 (current-buffer) nil 
 		 (append speedbar-fetch-etags-arguments (list file)))
 	  (goto-char (point-min))
-	  (message "Fetching etags...")
+	  (if (<= 1 speedbar-verbosity-level) (message "Fetching etags..."))
 	  (let ((expr 
 		 (let ((exprlst speedbar-fetch-etags-parse-list)
 		       (ans nil))
