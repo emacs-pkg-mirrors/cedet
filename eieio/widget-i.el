@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: widget-i.el,v 1.16 1996/11/27 03:36:39 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.17 1996/12/12 03:32:44 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -301,7 +301,7 @@ count when being picked."
   (draw this))
 
 (defmethod resize ((this widget-square) width height)
-  "Resize ourselves to dimentions width height"
+  "Resize ourselves to dimensions width height"
   (oset this width width)
   (oset this height height)
   (verify this t)
@@ -321,20 +321,34 @@ count when being picked."
   )
 
 (defmethod verify-size ((this widget-group))
-  "Verify our current size to make shure that our size is correct
+  "Verify our current size to make sure that our size is correct
 based on the number of children we have."
-  (let ((maxw (oref this width))
-	(maxh (oref this height))
-	(l (oref this child-list))
-	(prev nil))
+  ;; Below, use the eieio primitive `eieio-field-name-primitive' to get the
+  ;; position in an object vector for `x', `y', `width' and `height'.
+  ;; This is a short cut because this value will not change, and saves
+  ;; a function call for all occurrences of the lookup.  We cannot
+  ;; cache the value because we must do this for ALL in the entire dialog.
+  ;; This provides about a 1/3 time savings, but isn't recommended as
+  ;; there is no error checking for rogue objects.  The Positions are
+  ;; guaranteed by inheritance.
+  (let* ((width-i (eieio-field-name-index (aref this object-class) 'width))
+	 (height-i (eieio-field-name-index (aref this object-class) 'height))
+	 (x-i (eieio-field-name-index (aref this object-class) 'x))
+	 ;; (y-i (eieio-field-name-index (aref this object-class) 'y))
+	 (nx-i (eieio-field-name-index (aref this object-class) 'nx))
+	 (ny-i (eieio-field-name-index (aref this object-class) 'ny))
+	 (maxw (aref this width-i))
+	 (maxh (aref this height-i))
+	 (l (oref this child-list))
+	 (prev nil))
     (while l
       (verify-position (car l) prev)
       (if (obj-of-class-p (car l) widget-group)
 	  (verify-size (car l)))
       (if (obj-of-class-p (car l) widget-visual)
-	  (let ((tw (+ (oref (car l) nx) (oref (car l) width) 
-		       (if (eq 0 (oref (car l) x)) 0 1)))
-		(th (+ (oref (car l) ny) (oref (car l) height) 
+	  (let ((tw (+ (aref (car l) nx-i) (aref (car l) width-i) 
+		       (if (eq 0 (aref (car l) x-i)) 0 1)))
+		(th (+ (aref (car l) ny-i) (aref (car l) height-i) 
 		       ;; vertical space is valueable. Only give extra space
 		       ;; for boxed widgets.
 		       (if (and (oref (car l) boxed) (aref (oref (car l) box-sides) 3))
@@ -343,8 +357,8 @@ based on the number of children we have."
 	    (if (< maxh th) (setq maxh th))
 	    (setq prev (car l))))
       (setq l (cdr l)))
-    (oset this width maxw)
-    (oset this height maxh)))
+    (aset this width-i maxw)
+    (aset this height-i maxh)))
 
 (defmethod add-child ((this widget-group) child &optional first)
   "Add widget CHILD to our personal list of child widgets"
@@ -417,11 +431,13 @@ is always in reverse order for speed."
   (let ((newlist nil)
 	(kids (oref this child-list)))
     (while kids
-      (if (oref (car kids) handle-io)
+      (if (and (obj-of-class-p (car kids) 'widget-visual)
+	       (oref (car kids) handle-io))
 	  (if (obj-of-class-p (car kids) widget-group)
-	      (setq newlist (append 
-			     (build-navigation-list (car kids))
-			     newlist))
+	      (let ((tmplist (build-navigation-list (car kids))))
+		(setq newlist (append 
+			       (or tmplist (list (car kids)))
+			       newlist)))
 	    (setq newlist (cons (car kids) newlist))))
       (setq kids (cdr kids)))
     newlist))
@@ -461,8 +477,9 @@ to the ARGth widget in some direction."
 	(navlist (get-navigation-list this)))
     (if (not cw) (setq arg 0
 		       cw (car (car navlist))))
-    ;; loop down over all groups
-    (while (obj-of-class-p cw widget-group)
+    ;; loop down over all groups, but only if that widget has
+    ;; children
+    (while (and (obj-of-class-p cw widget-group) (first-io-widget cw))
       (let ((tcw (selected-widget cw)))
 	(if tcw 
 	    (setq cw tcw)
@@ -579,7 +596,7 @@ is known."
 ;;
 
 (defmethod verify ((this widget-labeled-text) fix)
-  "Initilize the `widget-labeled-text' class with the pre-determined widgets
+  "Initialize the `widget-labeled-text' class with the pre-determined widgets
 in a standard format."
   (call-next-method)
   ;; Why labeled text with no label?  Create a label from our name if there
@@ -726,7 +743,7 @@ is known."
 ;; label
 ;;
 (defmethod verify ((this widget-label) fix)
-  "Verify the label widget's componants."
+  "Verify the label widget's components."
   ;; Do we even have a label value?  If not invent one
   (if (not (oref this label-value))
       (oset this label-value (object-name-string this)))
@@ -989,13 +1006,15 @@ help about this widget."
       (if (or (member 'down-mouse-3 coe)
 	      (member 'mouse-3 coe))
 	  (help-actions this 'click)
-	(let ((rv (dialog-list-2-menu coe "Options" (oref this option-list))))
+	(let ((rv (dialog-list-2-menu coe (oref this title)
+				      (oref this option-list))))
 	  (if rv (set-value (oref this state) rv this))
 	  (reset-option-label this)
 	  (show-arm this nil)))
     (cond ((member coe '(return ?  ?\n ?\f))
 	   (show-arm this t)
-	   (let* ((nv (completing-read "Select Value: " 
+	   (let* ((nv (completing-read (concat "Select " (oref this title)
+					       ": ")
 				       (oref this option-obarray) nil t 
 				       (nth (get-value (oref this state))
 					    (oref this option-list)))))
@@ -1230,7 +1249,7 @@ help about this widget."
   )
 
 (defmethod widgetscale-normalize ((this widget-scale) value)
-  "Return the position in the scale's major dimention in which value
+  "Return the position in the scale's major dimension in which value
 is placed"
   (let* ((size (- (oref-engine this (if (eq (oref this direction) 'horizontal)
 					'width 'height))
@@ -1241,7 +1260,7 @@ is placed"
 
 (defmethod widgetscale-denormalize ((this widget-scale) position)
   "Return the position in the value represented at POSITION within the
-scale's major dimention."
+scale's major dimension."
   (let* ((size (- (oref-engine this (if (eq (oref this direction) 'horizontal)
 					'width 'height))
 		  (if (oref this end-buttons) 2 0)))
@@ -1382,7 +1401,7 @@ scale's major dimention."
   (call-next-method))
 
 (defmethod draw ((this widget-text-field))
-  "Render's a text widget onto the display"
+  "Renders a text widget onto the display"
   (call-next-method)
   (let* ((myto (oref this value))
 	 (myts (render myto))
@@ -1393,6 +1412,7 @@ scale's major dimention."
 	 (sflag nil)
 	 (lc 0)
 	 (textlist (dialog-string-to-list myts))
+	 (os nil)
 	 )  
     (goto-xy (1- (oref this rx)) (oref this ry))
     ;; check for characters off to the left
@@ -1465,6 +1485,7 @@ scale's major dimention."
 	       (odr (get-value dr))
 	       (odc (get-value dc))
 	       (ndr nil) (ndc nil)
+	       (mod nil)		;modification flag
 	       j2x j2y			;jump to positions
 	       ;; Text field doesn't want newlines
 	       (next-line-add-newlines
@@ -1479,9 +1500,12 @@ scale's major dimention."
 	    (set-buffer-modified-p nil)
 	    (forward-line cntl)
 	    (move-to-column cp)
-	    (command-execute com)
-	    (setq cc (current-column)
-		  mod (buffer-modified-p))
+	    (if (dialog-mouse-event-p coe)
+		;; the only mouse event bound is mouse-2, or paste.
+		;; Fake it right here...
+		(call-interactively 'yank)
+	      (command-execute com))
+	    (setq mod (buffer-modified-p))
 	    (and mod 
 		 (setq num-lines 
 		       (and drn (dialog-count-lines (point-min) (point-max)))
