@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.26 2001/05/02 01:32:57 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.27 2001/05/09 03:26:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,7 +111,9 @@
  ( close-paren "}"
   ,(semantic-lambda
   (list nil)))
- ( opt-class-protection punctuation "\\b:\\b")
+ ( opt-class-protection punctuation "\\b:\\b"
+  ,(semantic-lambda
+  (nth 0 vals) (list 'label)))
  ( var-or-fun)
  ( type)
  ( define
@@ -163,7 +165,7 @@
  (enumsubparts
  ( symbol opt-assign
   ,(semantic-lambda
-  (list (nth 0 vals) 'enum)))
+  (list (nth 0 vals) 'variable "int") (nth 1 vals) (list ( semantic-bovinate-make-assoc-list 'const t) nil)))
  ( open-paren "{"
   ,(semantic-lambda
   (list nil)))
@@ -229,6 +231,7 @@
  ( SIGNED)
  ( UNSIGNED)
  ( VIRTUAL)
+ ( INLINE)
  ) ; end DECLMOD
  (typeform
  ( typeformbase opt-stars opt-ref
@@ -451,7 +454,7 @@
  ))
  ) ; end expression
  )
-  "C language specification.")
+     "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -574,6 +577,7 @@ machine."
       ("volatile" . VOLATILE)
       ("signed" . SIGNED)
       ("unsigned" . UNSIGNED)
+      ("inline" . INLINE)
       ("virtual" . VIRTUAL)
       ("struct" . STRUCT)
       ("union" . UNION)
