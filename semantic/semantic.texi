@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.11 2000/07/01 18:00:55 zappo Exp $
+@c $Id: semantic.texi,v 1.12 2000/07/01 19:15:33 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -509,6 +509,14 @@ Find a nonterminal @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a stri
 Find a nonterminal covinging @var{POSITION} within @var{STREAMORBUFFER}.
 @var{POSITION} is a number, or marker.  If @var{NOMEDIAN} is non-@code{nil}, don't do
 the median calculation, and return nil.
+@end defun
+
+@defun semantic-find-innermost-nonterminal-by-position position streamorbuffer &optional nomedian
+Find a list of nonterminals covering @var{POSITION} within
+@var{STREAMORBUFFER}.  @var{POSITION} is a number, or marker.  If
+@var{NOMEDIAN} is non-@code{nil}, don't do the median calculation, and
+return nil.  This function will find the topmost item, and recurse until
+no more details are available of findable.
 @end defun
 
 @defun semantic-find-nonterminal-by-token token streamorbuffer
