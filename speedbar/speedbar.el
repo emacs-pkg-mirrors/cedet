@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.224 2003/02/05 15:28:07 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.225 2003/02/11 12:43:17 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -986,7 +986,7 @@ selected.  If the speedbar frame is active, then select the attached frame."
 (defmacro speedbar-frame-width ()
   "Return the width of the speedbar frame in characters.
 nil if it doesn't exist."
-  '(frame-width (speedbar-current-frame)))
+  '(window-width (get-buffer-window speedbar-buffer)))
 
 (defun speedbar-mode ()
   "Major mode for managing a display of directories and tags.
