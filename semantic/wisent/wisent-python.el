@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.13 2002/08/04 17:12:56 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.14 2002/08/07 18:00:50 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -408,7 +408,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-04 19:08+0200
+    ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-07 15:19+0200
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT RAW_STRING_LITERAL AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -1014,7 +1014,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-04 19:08+0200
+   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-07 15:19+0200
    (semantic-lex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -1078,7 +1078,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-04 19:08+0200
+   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-07 15:19+0200
    (wisent-flex-make-token-table
     '(("raw-string"
        (RAW_STRING_LITERAL))
@@ -1159,11 +1159,11 @@ Return a 'raw-string syntactic token."
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-04 19:08+0200
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-07 15:19+0200
   (progn
     (semantic-install-function-overrides
-     '((bovinate-nonterminal . wisent-bovinate-nonterminal)))
-    (setq semantic-bovinate-parser-name "LALR"
+     '((parse-stream . wisent-parse-stream)))
+    (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-python-parser-tables
           semantic-flex-keywords-obarray wisent-python-keywords
           wisent-flex-tokens-obarray wisent-python-tokens)
