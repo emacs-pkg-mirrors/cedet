@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.7 2000/12/05 11:13:19 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.8 2000/12/05 15:59:07 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -51,9 +51,15 @@
 ;; buffer.
 
 ;; The best way to use navigation commands is to bind them to keyword
-;; shortcuts.  In senator minor mode `senator-next-token' and
-;; `senator-previous-token' are respectively binded to C-,n and C-,p.
-;; And C-,i is binded to `senator-isearch-toggle-semantic-mode'.
+;; shortcuts.  Senator minor mode uses the common prefix key "C-c ,".
+;; The following default key bindings are provided when semantic minor
+;; mode is enabled:
+;;
+;;    key             binding
+;;    ---             -------
+;;    C-c , n         `senator-next-token'
+;;    C-c , p         `senator-previous-token'
+;;    C-c , i         `senator-isearch-toggle-semantic-mode'
 ;;
 ;; To install, put this file on your Emacs-Lisp load path and add
 ;; (require 'senator) into your ~/.emacs startup file.  To enable
@@ -81,6 +87,14 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.8  2000/12/05 15:59:07  david_ponce
+;; Improved consistency with built-in search commands.
+;; New search commands like the ones in the Emacs Search menu.
+;; Added a menu to senator minor mode.
+;; The common prefix key in senator minor mode is now "C-c ,".
+;; Updated header comments.
+;; Some code cleanup.
+;;
 ;; Revision 1.7  2000/12/05 11:13:19  david_ponce
 ;; New major version 2.0 with [i]search feature and a senator minor mode.
 ;; Added compatibility code between GNU Emacs 20.7 and 21.
@@ -286,9 +300,6 @@ the point."
   "Use SEARCHER to search WHAT in semantic tokens after point.
 See `search-forward' for the meaning of BOUND NOERROR and COUNT.
 BOUND and COUNT are just ignored in the current implementation."
-  (if (equal what "")
-      (setq what (car search-ring))
-    (isearch-update-ring what nil))
   (let ((origin (point))
         (senator-step-at-start-end-token-ids nil)
         token pos start limit)
@@ -316,9 +327,6 @@ BOUND and COUNT are just ignored in the current implementation."
 See `search-backward' for the meaning of BOUND NOERROR and
 COUNT.  BOUND and COUNT are just ignored in the current
 implementation."
-  (if (equal what "")
-      (setq what (car search-ring))
-    (isearch-update-ring what nil))
   (let ((origin (point))
         (senator-step-at-start-end-token-ids nil)
         token pos start limit)
@@ -417,7 +425,7 @@ Set point to the end of the occurrence found, and return point.  See
 `search-forward' for details and the meaning of BOUND NOERROR and
 COUNT.  BOUND and COUNT are just ignored in the current
 implementation."
-  (interactive "sSemantic search: ")
+  (interactive "MSemantic search: ")
   (senator-search-forward-raw #'search-forward what bound noerror count))
 
 ;;;###autoload
@@ -447,7 +455,7 @@ Set point to the beginning of the occurrence found, and return point.
 See `search-backward' for details and the meaning of BOUND NOERROR and
 COUNT.  BOUND and COUNT are just ignored in the current
 implementation."
-  (interactive "sSemantic backward search: ")
+  (interactive "MSemantic backward search: ")
   (senator-search-backward-raw #'search-backward what bound noerror count))
 
 ;;;###autoload
@@ -471,31 +479,186 @@ implementation."
   (senator-search-backward-raw #'word-search-backward what bound noerror count))
 
 ;;;;
-;;;; Senator minor mode
+;;;; Others useful search commands (minor mode menu)
 ;;;;
 
-(require 'easy-mmode)
+(defun senator-nonincremental-search-forward (string)
+  "Read a string and search for it nonincrementally."
+  (interactive "sSemantic search for string: ")
+  (if (equal string "")
+      (senator-search-forward (car search-ring))
+    (isearch-update-ring string nil)
+    (senator-search-forward string)))
+
+(defun senator-nonincremental-search-backward (string)
+  "Read a string and search backward for it nonincrementally."
+  (interactive "sSemantic search for string: ")
+  (if (equal string "")
+      (senator-search-backward (car search-ring))
+    (isearch-update-ring string nil)
+    (senator-search-backward string)))
+
+(defun senator-nonincremental-re-search-forward (string)
+  "Read a regular expression and search for it nonincrementally."
+  (interactive "sSemantic search for regexp: ")
+  (if (equal string "")
+      (senator-re-search-forward (car regexp-search-ring))
+    (isearch-update-ring string t)
+    (senator-re-search-forward string)))
+
+(defun senator-nonincremental-re-search-backward (string)
+  "Read a regular expression and search backward for it nonincrementally."
+  (interactive "sSemantic search for regexp: ")
+  (if (equal string "")
+      (senator-re-search-backward (car regexp-search-ring))
+    (isearch-update-ring string t)
+    (senator-re-search-backward string)))
+
+(defun senator-nonincremental-repeat-search-forward ()
+  "Search forward for the previous search string."
+  (interactive)
+  (if (null search-ring)
+      (error "No previous search"))
+  (senator-search-forward (car search-ring)))
+
+(defun senator-nonincremental-repeat-search-backward ()
+  "Search backward for the previous search string."
+  (interactive)
+  (if (null search-ring)
+      (error "No previous search"))
+  (senator-search-backward (car search-ring)))
+
+(defun senator-nonincremental-repeat-re-search-forward ()
+  "Search forward for the previous regular expression."
+  (interactive)
+  (if (null regexp-search-ring)
+      (error "No previous search"))
+  (senator-re-search-forward (car regexp-search-ring)))
+
+(defun senator-nonincremental-repeat-re-search-backward ()
+  "Search backward for the previous regular expression."
+  (interactive)
+  (if (null regexp-search-ring)
+      (error "No previous search"))
+  (senator-re-search-backward (car regexp-search-ring)))
+
+;;;;
+;;;; Senator minor mode
+;;;;
 
 (defvar senator-isearch-semantic-mode nil
   "Non-nil if isearch does semantic search.
 This is a buffer local variable.")
 (make-variable-buffer-local 'senator-isearch-semantic-mode)
 
-(defvar senator-prefix-map nil
-  "Keymap containing bindings to senator functions.")
+(defvar senator-prefix-key [(control ?c) ?,]
+  "The common prefix key in senator minor mode.")
 
-(if senator-prefix-map
-    nil
-  (define-prefix-command 'senator-prefix-map)
-  (define-key senator-prefix-map "i" 'senator-isearch-toggle-semantic-mode)
-  (define-key senator-prefix-map "p" 'senator-previous-token)
-  (define-key senator-prefix-map "n" 'senator-next-token))
+(defvar senator-prefix-map
+  (let ((km (make-sparse-keymap)))
+    (define-key km "i" 'senator-isearch-toggle-semantic-mode)
+    (define-key km "p" 'senator-previous-token)
+    (define-key km "n" 'senator-next-token)
+    km)
+  "Default key bindings in senator minor mode.")
+
+(defvar senator-menu-bar
+  '("Senator"
+    ("Navigate"
+     ["Next"
+      senator-next-token
+      :active t
+      :help "Go to the next token found"
+      ]
+     ["Previous"
+      senator-previous-token
+      :active t
+      :help "Go to the previous token found"
+      ]
+     )
+    ("Search"
+     ["Search..."
+      senator-nonincremental-search-forward
+      :active t
+      :help "Search forward for a string"
+      ]
+     ["Search Backwards..."
+      senator-nonincremental-search-backward
+      :active t
+      :help "Search backwards for a string"
+      ]
+     ["Repeat Search"
+      senator-nonincremental-repeat-search-forward
+      :active search-ring
+      :help "Repeat last search forward"
+      ]
+     ["Repeat Backwards"
+      senator-nonincremental-repeat-search-backward
+      :active search-ring
+      :help "Repeat last search backwards"
+      ]
+     ["Search Regexp..."
+      senator-nonincremental-re-search-forward
+      :active t
+      :help "Search forward for a regular expression"
+      ]
+     ["Search Regexp Backwards..."
+      senator-nonincremental-re-search-backward
+      :active t
+      :help "Search backwards for a regular expression"
+      ]
+     ["Repeat Regexp"
+      senator-nonincremental-repeat-re-search-forward
+      :active regexp-search-ring
+      :help "Repeat last regular expression search forward"
+      ]
+     ["Repeat Regexp Backwards"
+      senator-nonincremental-repeat-re-search-backward
+      :active regexp-search-ring
+      :help "Repeat last regular expression search backwards"
+      ]
+     "-"
+     ["Semantic isearch mode"
+      senator-isearch-toggle-semantic-mode
+      :active t
+      :style toggle :selected senator-isearch-semantic-mode
+      :help "Toggle semantic search in isearch mode"
+      ]
+     )
+    "-"
+    ["Options..."
+     (customize-group "senator")
+     :active t
+     :help "Customize SEmantic NAvigaTOR options"
+     ]
+    )
+  "Menu for senator minor mode.")
 
 (defvar senator-mode-map
-  (easy-mmode-define-keymap
-   '(([(control ?,)] . senator-prefix-map)))
+  (let ((km (make-sparse-keymap)))
+    (define-key km senator-prefix-key senator-prefix-map)
+    (easy-menu-define senator-minor-menu km "Senator Minor Mode Menu"
+                      senator-menu-bar)
+    km)
   "Keymap for senator minor mode.")
 
+(defun senator-minor-mode-setup ()
+  "Actually setup the senator minor mode.
+Turn off the minor mode if semantic feature is not available or
+`semantic-toplevel-bovine-table' not provided for the current buffer.
+If minor mode is enabled parse the current buffer if needed.  Return
+non-nil if the minor mode is enabled."
+  (if senator-minor-mode
+      (if (not (and (featurep 'semantic) semantic-toplevel-bovine-table))
+          ;; Disable minor mode if semantic stuff not available
+          (senator-minor-mode nil)
+        ;; Parse the current buffer if needed
+        (senator-parse)
+        )
+    ;; Disable semantic isearch
+    (setq senator-isearch-semantic-mode nil))
+  senator-minor-mode)
+  
 (if (fboundp 'define-minor-mode)
 
 ;;; Note that `define-minor-mode' actually calls the mode-function if
@@ -506,26 +669,16 @@ This is a buffer local variable.")
       "Toggle senator minor mode.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode is turned on only if semantic feature is available and a
-`semantic-toplevel-bovine-table' is provided.  Returns non-nil if the
-new state is enabled.
+`semantic-toplevel-bovine-table' is provided for the current buffer.
+Return non-nil if the minor mode is enabled.
 
 \\{senator-mode-map}"
       nil " Senator" senator-mode-map
       :global nil
       :group 'senator
-      (if senator-minor-mode
-          (if (not (and (featurep 'semantic) semantic-toplevel-bovine-table))
-              ;; Disable minor mode if semantic stuff not available
-              (senator-minor-mode nil)
-            ;; Parse the current buffer if needed
-            (senator-parse)
-            )
-        ;; Disable semantic isearch
-        (setq senator-isearch-semantic-mode nil)
-        )
-      senator-minor-mode)
+      (senator-minor-mode-setup))
 
-  ;; If `define-minor-mode' not defined
+;;; `define-minor-mode' is not defined
 
   (defvar senator-minor-mode nil
     "Non-nil if senator minor mode is on.")
@@ -542,11 +695,11 @@ new state is enabled.
   
 ;;;###autoload
   (defun senator-minor-mode (&optional arg)
-    "Toggle senator minor mode.
+      "Toggle senator minor mode.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode is turned on only if semantic feature is available and a
-`semantic-toplevel-bovine-table' is provided.  Returns non-nil if the
-new state is enabled.
+`semantic-toplevel-bovine-table' is provided for the current buffer.
+Return non-nil if the minor mode is enabled.
 
 \\{senator-mode-map}"
     (interactive "P")
@@ -565,16 +718,7 @@ new state is enabled.
       (and senator-minor-mode-off-hook
            (not senator-minor-mode)
            (run-hooks senator-minor-mode-off-hook)))
-    (if senator-minor-mode
-        (if (not (and (featurep 'semantic) semantic-toplevel-bovine-table))
-            ;; Disable minor mode if semantic stuff not available
-            (senator-minor-mode nil)
-          ;; Parse the current buffer if needed
-          (senator-parse)
-          )
-      ;; Disable semantic isearch
-      (setq senator-isearch-semantic-mode nil)
-      )
+    (senator-minor-mode-setup)
     (senator-message "Senator minor mode %s"
                      (if senator-minor-mode
                          "enabled"
