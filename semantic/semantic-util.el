@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.32 2000/10/18 02:47:13 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.33 2000/12/05 02:25:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -863,9 +863,11 @@ Optional FACE specifies the face to use."
   (remove-hook 'pre-command-hook
 	       `(lambda () (semantic-unhighlight-token `,token))))
 
-(defun semantic-momentary-highlight-token (token)
-  "Highlight TOKEN, removing highlighting when the user hits a key."
-  (semantic-highlight-token token)
+(defun semantic-momentary-highlight-token (token &optional face)
+  "Highlight TOKEN, removing highlighting when the user hits a key.
+Optional argument FACE is the face to use for highlighting.
+If FACE is not specified, then `highlight' will be used."
+  (semantic-highlight-token token face)
   (add-hook 'pre-command-hook
 	    `(lambda () (semantic-unhighlight-token ',token))))
 
@@ -905,6 +907,33 @@ instead of read-only."
     (semantic-overlay-put o 'modification-hooks hook)
     (semantic-overlay-put o 'insert-in-front-hooks hook)
     (semantic-overlay-put o 'insert-behind-hooks hook)))
+
+;;; Force token lists in and out of overlay mode.
+;;
+(defun semantic-deoverlay-token (token)
+  "Convert TOKEN from using an overlay to using an overlay proxy."
+  (let* ((c (semantic-token-overlay-cdr token))
+	 (a (vector (semantic-overlay-buffer (car c))
+		    (semantic-overlay-start (car c))
+		    (semantic-overlay-end (car c)))))
+    (semantic-overlay-delete (car c))
+    (setcar c a)))
+
+(defun semantic-overlay-token (token)
+  "Convert TOKEN from using an overlay proxy to using an overlay."
+  (let* ((c (semantic-token-overlay-cdr token))
+	 (o (semantic-make-overlay (aref (car c) 1)
+				   (aref (car c) 2)
+				   (aref (car c) 0))))
+    (setcar c o)))
+
+(defun semantic-deoverlay-cache ()
+  "Convert all tokens in the current cache to use overlay proxies."
+  )
+
+(defun semantic-overlay-cache ()
+  "Convert all tokens in the current cache to use overlays."
+  )
 
 ;;; Interactive Functions for bovination
 ;;
