@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.4 2002/03/23 03:07:37 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.5 2002/08/11 16:26:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,6 +36,8 @@
 ;; nearly no effort.
 
 (require 'semantic)
+(require 'semanticdb)
+(require 'semanticdb-search)
 (require 'eieio-speedbar)
 (require 'eieio-base)
 
