@@ -6,7 +6,7 @@
 ## Maintainer: David Ponce <david@dponce.com>
 ## Created: 07 Aug 2001
 ## Keywords: syntax
-## X-RCS: $Id: wisent-java.bnf,v 1.9 2001/09/20 11:50:24 ponced Exp $
+## X-RCS: $Id: wisent-java.bnf,v 1.10 2001/09/27 21:05:50 ponced Exp $
 ##
 ## This file is not part of GNU Emacs.
 ##
@@ -85,8 +85,6 @@
     ;; Semantic navigation inside 'type children
     senator-step-at-token-ids '(function variable)
     )
-   ;; Needed by `semantic-find-doc-snarf-comment'.
-   (set (make-local-variable 'block-comment-end) "\\s-*\\*/")
    ;; Setup javadoc stuff
    (semantic-java-doc-setup)
    )%

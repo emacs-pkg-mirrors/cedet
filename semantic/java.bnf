@@ -6,7 +6,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.12 2001/08/10 12:45:27 ponced Exp $
+# $Id: java.bnf,v 1.13 2001/09/27 21:04:08 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -57,8 +57,6 @@
     ;; Semantic navigation inside 'type children
     senator-step-at-token-ids '(function variable)
     )
-   ;; Needed by `semantic-find-doc-snarf-comment'.
-   (set (make-local-variable 'block-comment-end) "\\s-*\\*/")
    )%
 
 %token ABSTRACT     "abstract"
