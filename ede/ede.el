@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.52 2001/05/20 12:45:46 zappo Exp $
+;; RCS: $Id: ede.el,v 1.53 2001/06/03 15:05:29 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -75,7 +75,7 @@
   )
 
 (defcustom ede-auto-add-method 'ask
-  "Determins if a new source file shoud be automatically added to a target.
+  "*Determins if a new source file shoud be automatically added to a target.
 Whenever a new file is encountered in a directory controlled by a
 project file, all targets are queried to see if it should be added.
 If the value is 'always, then the new file is added to the first
@@ -343,6 +343,61 @@ If `ede-object' is nil, then commands will operate on this object.")
   "Non nil means scan down a tree, otherwise rescans are top level only.
 Do not set this to non-nil globally.  It is used internally.")
 
+;;; The EDE persistent cache.
+;;
+(defcustom ede-project-placeholder-cache-file
+  (expand-file-name "~/.projects.ede")
+  "*File containing the list of projects EDE has viewed."
+  :group 'ede
+  :type 'file)
+
+(defvar ede-project-cache-files nil
+  "List of project files EDE has seen before.")
+
+(defun ede-save-cache ()
+  "Save a cache of EDE objects that Emacs has seen before."
+  (interactive)
+  (let ((p ede-projects)
+	(c ede-project-cache-files))
+    (set-buffer (find-file-noselect ede-project-placeholder-cache-file t))
+    (erase-buffer)
+    (insert ";; EDE project cache file.
+;; This contains a list of projects you have visited.\n(")
+    (while p
+      (insert "\n  \"" (oref (car p) file) "\"")
+      (setq p (cdr p)))
+    (while c
+      (insert "\n \"" (car c) "\"")
+      (setq c (cdr c)))
+    (insert "\n)\n")
+    (save-buffer 0)
+    (kill-buffer (current-buffer))
+    ))
+
+(defun ede-load-cache ()
+  "Load the cache of EDE projects."
+  (condition-case nil
+      (progn
+	(set-buffer (find-file-noselect ede-project-placeholder-cache-file t))
+	(goto-char (point-min))
+	(let ((c (read (current-buffer)))
+	      (p ede-projects))
+	  ;; Remove loaded projects from the cache.
+	  (while p
+	    (setq c (delete (oref (car p) file) c))
+	    (setq p (cdr p)))
+	  ;; Save it
+	  (setq ede-project-cache-files c)))
+    (error nil))
+  (if (get-file-buffer ede-project-placeholder-cache-file)
+      (kill-buffer (get-file-buffer ede-project-placeholder-cache-file)))
+  )
+
+;;; Get the cache usable.
+(add-hook 'kill-emacs-hook 'ede-save-cache)
+(ede-load-cache)
+
+
 ;;; Important macros for doing commands.
 ;;
 (defmacro ede-with-projectfile (obj &rest forms)
@@ -362,6 +417,9 @@ Do not set this to non-nil globally.  It is used internally.")
 	      '(if (not dbka) (kill-buffer (current-buffer))))))
 (put 'ede-with-projectfile 'lisp-indent-function 1)
 
+
+;;; Prompting
+;;
 (defun ede-singular-object (prompt)
   "Using PROMPT, choose a single object from the current buffer."
   (if (listp ede-object)
@@ -737,6 +795,19 @@ Argument FILE is the file or directory to load a project from."
 (defmethod ede-add-subproject ((proj-a ede-project) proj-b)
   "Add into PROJ-A, the subproject PROJ-B."
   (oset proj-a subproj (cons proj-b (oref proj-a subproj))))
+
+(defmethod ede-subproject-relative-path ((proj ede-project))
+  "Get a path name for PROJ which is relative to the parent project."
+  (let* ((parent (ede-parent-project proj))
+	 (pdir nil)
+	 (dir (file-name-directory (oref proj file))))
+    (if parent
+	(file-relative-name dir (file-name-directory (oref parent file)))
+      dir)))
+
+(defmethod ede-subproject-p ((proj ede-project))
+  "Return non-nil if PROJ is a sub project."
+  (ede-parent-project proj))
 
 (defun ede-invoke-method (sym &rest args)
   "Invoke method SYM on the current buffer's project object.
@@ -1281,6 +1352,10 @@ nil is returned if the current directory is not a part ofa project."
 		(append (cdr tocheck) (oref (car tocheck) subproj))))
 	(if (not found)
 	    (error "No project for %s, but passes project-p test" file))
+	;; Now that the file has been reset inside the project object, do
+	;; the cache maintenance.
+	(setq ede-project-cache-files
+	      (delete (oref found file) ede-project-cache-files))
 	found)))))
 
 (defun ede-toplevel (&optional subproj)
@@ -1296,10 +1371,11 @@ instead of the current project."
   "Return the project belonging to the parent directory.
 nil if there is no previous directory.
 Optional argument OBJ is an object to find the parent of."
-  (if obj
-      (ede-load-project-file (ede-up-directory (file-name-directory
-						(oref obj file))))
-    (ede-load-project-file (ede-up-directory default-directory))))
+  (ede-load-project-file
+   (concat (ede-up-directory
+	    (if obj (file-name-directory (oref obj file))
+	      default-directory))
+	   "/")))
 
 (defun ede-current-project ()
   "Return the current project file."
