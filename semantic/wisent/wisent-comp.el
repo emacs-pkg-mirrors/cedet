@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.9 2002/02/14 09:49:28 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.10 2002/02/16 22:20:47 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2827,75 +2827,93 @@ data that matched this rule.  Return the goto table."
           (indirect-function 'backquote))
     (error nil)))
 
-(defun wisent-semantic-action-expand-body (expr &optional phlds)
-  "Expand semantic action expression EXPR.
-Optional PHLDS is the accumulated list of '$i' placeholders.
-Return a cons (PHLDS . EEXPR) where:
+(defun wisent-check-$N (x m)
+  "Return non-nil if X is a valid $N symbol.
+That is if X is a $N symbol with N >= 1 and N <= M.
+Also warn if X is a $N or $regionN symbol with N < 1 or N > M."
+  (when (symbolp x)
+    (let ((n (symbol-name x))
+          i)
+      (when (string-match "^\\(\\$\\(region\\)?\\)\\([0-9]+\\)$" n)
+        (setq i (string-to-int (match-string 3 n))
+              n (match-string 1 n))
+        (if (and (>= i 1) (<= i m))
+            (string-equal n "$")
+          (message (if (< m 1)
+                       "*** %s not found, no %sN variable are defined"
+                     "*** %s not found in %s[1-%d] range")
+                   x n m)
+          nil)))))
 
-- - PHLDS is the updated list of '$i' placeholders found in EXPR.
-- - EEXPR is EXPR with `backquote' forms expanded."
-  (if (not (listp expr))
-      ;; EXPR is an atom, no expansion needed
+(defun wisent-semantic-action-expand-body (body n &optional $n-list)
+  "Parse BODY of semantic action.
+N is the maximum index of $N variables.  Warn if BODY contains
+reference to $M variables with M > N.
+Optional $N-LIST is the accumulated list of '$N' placeholders.
+Return a cons ($N-LIST . XBODY) where:
+
+- - $N-LIST is the updated list of '$i' placeholders found in BODY.
+- - XBODY is BODY expression with `backquote' forms expanded."
+  (if (not (listp body))
+      ;; BODY is an atom, no expansion needed
       (progn
-        (and (symbolp expr)
-             (string-match "^[$][1-9][0-9]*$" (symbol-name expr))
-             ;; Accumulate $i symbol
-             (add-to-list 'phlds expr))
-        (cons phlds expr))
-    ;; EXPR is a list, expand inside it
-    (let (eexpr sexpr bltn)
+        (if (wisent-check-$N body n)
+            ;; Accumulate $i symbol
+            (add-to-list '$n-list body))
+        (cons $n-list body))
+    ;; BODY is a list, expand inside it
+    (let (xbody sexpr bltn)
       ;; If backquote expand it first
-      (if (wisent-backquote-p (car expr))
-          (setq expr (macroexpand expr)))
-      (while expr
-        (setq sexpr (car expr)
-              expr  (cdr expr))
+      (if (wisent-backquote-p (car body))
+          (setq body (macroexpand body)))
+      (while body
+        (setq sexpr (car body)
+              body  (cdr body))
         (cond
          ;; Function call excepted quote expression
          ((and (consp sexpr)
                (not (wisent-quote-p (car sexpr))))
-          (setq sexpr (wisent-semantic-action-expand-body sexpr phlds)
-                phlds (car sexpr)
+          (setq sexpr (wisent-semantic-action-expand-body sexpr n $n-list)
+                $n-list (car sexpr)
                 sexpr (cdr sexpr)))
          ;; $i symbol
-         ((and (symbolp sexpr)
-               (string-match "^[$][1-9][0-9]*$" (symbol-name sexpr)))
+         ((wisent-check-$N sexpr n)
           ;; Accumulate $i symbol
-          (add-to-list 'phlds sexpr))
+          (add-to-list '$n-list sexpr))
          )
         ;; Accumulate expanded forms
-        (setq eexpr (nconc eexpr (list sexpr))))
-      (cons phlds eexpr))))
+        (setq xbody (nconc xbody (list sexpr))))
+      (cons $n-list xbody))))
 
 (defun wisent-semantic-action (r)
-  "Transform semantic action body of rule R into an Elisp function.
-That function will receive three arguments:
+  "Set up the Elisp function for semantic action at rule R.
+On entry RCODE[R] contains a pair (BODY . N) where BODY is the body of
+the semantic action and N is the maximum number of values available in
+the parser's stack.  This replace RCODE[R] by a function of three
+arguments:
 
 - the state/value stack
 - the top-of-stack index
 - the goto table
 
-And returns the updated top-of-stack index."
+that returns the updated top-of-stack index."
   (if (not (aref ruseful r))
       (aset rcode r #'error)
-    (let* ((xa   (wisent-semantic-action-expand-body (aref rcode r)))
-           ($l   (car xa))              ; list of $I found in body
-           (expr (cdr xa))              ; expanded form of body
+    (let* ((n    (cdr (aref rcode r)))  ; nb of val avail. in stack
+           (body (wisent-semantic-action-expand-body
+                  (car (aref rcode r)) n))
+           ($l   (car body))            ; list of $I found in body
+           (body (cdr body))            ; expanded form of body
            (nt   (aref rlhs r))         ; nonterminal item no.
            (rl   nil)                   ; list of binded $regionI
-           (bl   nil)                   ; let* binding list
-           i n vi spi $i $ri n)
-      ;; Compute size of RHS for that rule.  It gives the number of
-      ;; values to pop from the stack.
-      (setq i (aref rrhs r)
-            n 0)
-      (while (> (aref ritem i) 0)
-        (setq n (1+ n)
-              i (1+ i)))
-      ;; Compute bindings
-      (setq vi  n                       ; index of $I
-            spi 1                       ; index in stack of $I value
-            i   1)
+           (bl   nil)                   ; `let*' binding list
+           (vi   n)                     ; index of $I
+           (spi  1)                     ; index in stack of $I value
+           (rhl  0)                     ; length of RHS of this rule
+           $i $ri i)
+      
+      ;; Compute $N and $regionN bindings
+      (setq i 1)
       (while (<= i n)
         (setq $i  (intern (format "$%d" vi))
               $ri (intern (format "$region%d" vi))
@@ -2909,20 +2927,37 @@ And returns the updated top-of-stack index."
       (setq bl `(,@bl
                  ($region (wisent-region ,@rl))
                  ($nterm  ',(aref tags nt))))
+      
+      ;; Compute RHL, the length of rule's RHS.  It will give the
+      ;; parser state at STACK[top - 2*RHL].  And where to push the
+      ;; result of the semantic action at STACK[top - 2*RHL -1] (see
+      ;; the function `wisent-push').
+      ;; Generally N, the maximum number of values available in the
+      ;; stack, is equal to RHL.  But for mid-rule actions N, the
+      ;; number of rule elements before the action, is greater than or
+      ;; equal to RHL which is always 0 (empty rule).
+      (setq i (aref rrhs r))
+      (while (> (aref ritem i) 0)
+        (setq rhl (1+ rhl)
+              i (1+ i)))
+      
+      ;; Generate the semantic action function.
       (aset rcode r
             `(lambda (stack sp gotos)
                (let* ,bl
-                 (wisent-push stack (- sp ,(1- spi)) ,nt gotos
-                              (cons ,expr $region)))))
+                 (wisent-push stack (- sp ,(* rhl 2)) ,nt gotos
+                              (cons ,body $region)))))
+      
+      ;; Unless debugging, byte-compile the function. This
+      ;; significantly improves the performance of the parser!
       (or wisent-debug-flag
-          ;; Byte-compile the function. This significantly improves
-          ;; the performance of the parser!
           (aset rcode r (byte-compile (aref rcode r))))
+      
       )))
 
 (defun wisent-semantic-actions ()
-  "Turn the body of semantic actions into a Lisp function.
-Return the table of functions."
+  "Return the table of semantic actions.
+Turn the body of semantic actions into a Lisp function."
   (working-dynamic-status "(building semantic actions)")
   (let ((i 1))
     (while (<= i nrules)
@@ -2980,91 +3015,13 @@ in internal format.  STARTS defines the start symbols."
 
 (defconst wisent-reserved-symbols (list wisent-error-term)
   "The list of reserved symbols.
-Also all symbol starting with '$' are reserved for internal use.")
+Also all symbols starting with a character defined in
+`wisent-reserved-capitals' are reserved for internal use.")
 
-(defmacro wisent-ISVALID (x)
-  "Return non-nil if X is an allowed symbol."
-  `(and ,x
-        (symbolp ,x)
-        (not (char-equal (aref (symbol-name ,x) 0) ?\$))
-        (not (memq ,x wisent-reserved-symbols))))
-
-(defsubst wisent-default-semantic-action-body (rhs-length)
-  "Return a default semantic action body.
-RHS-LENGTH is the number of symbols in the right hand side of the
-rule.  The default body returns nil for an empty rule or the value
-of the first symbol in the rule, that is $1."
-  (if (> rhs-length 0)
-      '$1
-    '()))
-
-(defun wisent-parse-nonterminal (def)
-  "Parse nonterminal definition DEF.
-On entry DEF has the form:  (NONTERM . RULES)
-
-where RULES is a list of elements of the form:
-
-  (MATCHINGS [PREC-TERM] [ACTION])
-
-where MATCHINGS is the list of terminals and non terminals to match.
-Optional value PREC-TERM is a vector of one element: the terminal
-symbol from which the rule gets its precedence level.  And optional
-value ACTION is a semantic action statement.
-Return an internal form."
-  (let ((nonterm (car def))
-        (rules   (cdr def))
-        prods rule rhs rest prod item items)
-    (or (consp rules)
-        (error "At least one production needed for nonterminal %s"
-               nonterm))
-    (setq nonterm (wisent-item-number nonterm))
-    (while rules
-      (setq rule  (car rules)
-            rules (cdr rules)
-            rhs   (car rule)
-            rest  (cdr rule)
-            prod  (mapcar #'wisent-item-number rhs)
-            items rhs)
-      
-      ;; Check & count items
-      (setq nitems (1+ nitems)) ;; LHS item
-      (while items
-        (setq item   (car items)
-              items  (cdr items)
-              nitems (1+ nitems)) ;; RHS items
-        (or (memq item token-list)
-            (memq item var-list)
-            (error "Invalid terminal or nonterminal %s" item)))
-      
-      ;; Check & collect rule precedence level
-      (if (vectorp (car rest))
-          (progn
-            (setq item (car rest))
-            (or (and (= (length item) 1)
-                     (memq (aref item 0) token-list)
-                     (wisent-prec (aref item 0)))
-                (error "Invalid rule precedence level %S" item))
-            (setq rprec (cons (wisent-item-number (aref item 0)) rprec)
-                  rest  (cdr rest)))
-        ;; No precedence level
-        (setq rprec (cons nil rprec)))
-      
-      ;; Check & collect semantic action body
-      (if rest
-          (progn
-            (or (null (cdr rest))
-                (error "Invalid semantic action %S" rest))
-            (setq rcode (cons (car rest) rcode)))
-        (setq rcode (cons (wisent-default-semantic-action-body
-                           (length rhs))
-                          rcode)))
-      
-      ;; Push production.
-      (setq prods  (cons prod prods)
-            nrules (1+ nrules)))
-    
-    ;; Return internal form of the nonterminal definition
-    (cons nonterm (nreverse prods))))
+(defconst wisent-reserved-capitals '(?\$ ?\@)
+  "The list of reserved capital letters.
+All symbol starting with one of these letters are reserved for
+internal use.")
 
 (defconst wisent-starts-nonterm '$STARTS
   "Main start symbol.
@@ -3075,6 +3032,13 @@ It gives the rules for start symbols.")
 That is don't add extra start rules to the grammar.  This is
 useful to compare the Wisent's generated automaton with the Bison's
 one.")
+
+(defmacro wisent-ISVALID (x)
+  "Return non-nil if X is an allowed symbol."
+  `(and ,x
+        (symbolp ,x)
+        (not (memq (aref (symbol-name ,x) 0) wisent-reserved-capitals))
+        (not (memq ,x wisent-reserved-symbols))))
 
 (defun wisent-push-token (symbol &optional nocheck)
   "Push a new SYMBOL in the list of tokens.
@@ -3108,6 +3072,114 @@ Bypass checking if NOCHECK is non-nil."
   (setq nvars (1+ nvars)
         var-list (cons symbol var-list)))
 
+(defun wisent-parse-nonterminals (defs)
+  (setq rprec  nil
+        rcode  nil
+        nitems 0
+        nrules 0)
+  (let (def nonterm rlist rule rules rhs rhss rest item items
+            rhl semact ccode cprec new gensym gensym-count)
+    (setq gensym-count 0)
+    (while defs
+      (setq def     (car defs)
+            defs    (cdr defs)
+            nonterm (car def)
+            rlist   (cdr def)
+            ccode   rcode ;; Where to push mid-rule action codes
+            cprec   rprec ;; Where to push mid-rule action prec. level
+            rhss    nil)
+      (or (consp rlist)
+          (error "At least one production needed for nonterminal %s"
+                 nonterm))
+      (while rlist
+        (setq rule  (car rlist)
+              rlist (cdr rlist)
+              items (car rule)
+              rest  (cdr rule)
+              rhl   0
+              rhs   nil)
+      
+        ;; Check & count items
+        (setq nitems (1+ nitems)) ;; LHS item
+        (while items
+          (setq item (car items)
+                items (cdr items)
+                nitems (1+ nitems)) ;; RHS items
+          (if (consp item)
+              ;; Mid-rule action
+              (progn
+                (setq gensym (intern (format "@%d" gensym-count))
+                      gensym-count (1+ gensym-count))
+                (wisent-push-var gensym t)
+                ;; Push a new rule with an empty match and the
+                ;; mid-rule action
+                (setq semact (cons item rhl)
+                      item   gensym ;; Repl. action by gen. nonterm
+                      rules  (cons (list item nil) rules)
+                      nitems (1+ nitems)
+                      nrules (1+ nrules))
+                ;; The lists RULES, RCODE & RPREC must be kept
+                ;; synchronized.  So, push mid-rule action at CCODE
+                ;; in RCODE, and corresponding precedence level at
+                ;; CPREC in RPREC.
+                (if (null ccode)
+                    (setq ccode (cons semact ccode)
+                          rcode ccode)
+                  (setq new (cons (car ccode) (cdr ccode)))
+                  (setcdr ccode new)
+                  (setcar ccode semact))
+                (if (null cprec)
+                    (setq cprec (cons nil cprec)
+                          rprec cprec)
+                  (setq new (cons (car cprec) (cdr cprec)))
+                  (setcdr cprec new)
+                  (setcar cprec nil))
+                )
+            ;; terminal or nonterminal symbol
+            (or (memq item token-list)
+                (memq item var-list)
+                (error "Invalid terminal or nonterminal %s" item)))
+          (setq rhl (1+ rhl)
+                rhs (cons item rhs)))
+      
+        ;; Check & collect rule precedence level
+        (if (vectorp (car rest))
+            (progn
+              (setq item (car rest))
+              (or (and (= (length item) 1)
+                       (memq (aref item 0) token-list)
+                       (wisent-prec (aref item 0)))
+                  (error "Invalid rule precedence level %S" item))
+              (setq rprec (cons (wisent-item-number (aref item 0)) rprec)
+                    rest  (cdr rest)))
+          ;; No precedence level
+          (setq rprec (cons nil rprec)))
+      
+        ;; Check & collect semantic action body
+        (setq semact (cons
+                      (if rest
+                          (if (cdr rest)
+                              (error "Invalid semantic action %S" rest)
+                            (car rest))
+                        ;; Give a default semantic action body: nil
+                        ;; for an empty rule or $1, the value of the
+                        ;; first symbol in the rule, otherwise.
+                        (if (> rhl 0) '$1 '()))
+                      rhl))
+        (setq rcode (cons semact rcode))
+      
+        (setq rhss   (cons (nreverse rhs) rhss)
+              nrules (1+ nrules)))
+    
+      (setq rules (cons (cons nonterm (nreverse rhss)) rules)))
+  
+    (setq ruseful (make-vector (1+ nrules) t)
+          rprec   (vconcat (cons nil (nreverse rprec)))
+          rcode   (vconcat (cons nil (nreverse rcode))))
+    
+    (nreverse rules)
+    ))
+
 (defun wisent-parse-grammar (grammar &optional start-list)
   "Parse GRAMMAR and build a suitable internal representation.
 Optional argument START-LIST defines the start symbols.
@@ -3122,7 +3194,7 @@ list of tokens which must have been declared in TOKENS."
   (or (and (consp grammar) (> (length grammar) 2))
       (error "Invalid grammar definition"))
   
-  (let (i r nt pl rhs pre lst start-var assoc rules
+  (let (i r nt pl rhs pre lst start-var assoc rules item
           token var def tokens vars defs ep-token ep-var ep-def)
     
     ;; Built-in tokens
@@ -3240,6 +3312,9 @@ list of tokens which must have been declared in TOKENS."
       (wisent-push-var start-var t)
       (setq defs (cons (cons start-var ep-def) defs))))
     
+    ;; Set up rules main data structure & RPREC, RCODE, RUSEFUL
+    (setq rules (wisent-parse-nonterminals defs))
+    
     ;; Set up the terminal & nonterminal lists.
     (setq nsyms      (+ ntokens nvars)
           token-list (nreverse token-list)
@@ -3255,23 +3330,13 @@ list of tokens which must have been declared in TOKENS."
     ;; Store special item numbers
     (setq error-token-number (wisent-item-number wisent-error-term)
           start-symbol       (wisent-item-number start-var))
-          
+    
     ;; Keep symbols in the TAGS vector so that TAGS[I] is the symbol
     ;; associated to item number I.
     (setq tags (vconcat token-list var-list))
     
-    ;; Build rules data
-    (setq rprec  nil
-          rcode  nil
-          nitems 0
-          nrules 0
-          rules  (mapcar #'wisent-parse-nonterminal defs)
-          rprec  (vconcat (cons nil (nreverse rprec)))
-          rcode  (vconcat (cons nil (nreverse rcode))))
-    
     ;; Set up RLHS RRHS & RITEM data structures
-    (setq ruseful (make-vector (1+ nrules) t)
-          rlhs    (make-vector (1+ nrules) nil)
+    (setq rlhs    (make-vector (1+ nrules) nil)
           rrhs    (make-vector (1+ nrules) nil)
           ritem   (make-vector (1+ nitems) nil)
           i 0
@@ -3280,17 +3345,18 @@ list of tokens which must have been declared in TOKENS."
       (setq nt (caar rules)
             pl (cdar rules))
       (while pl
-        (aset rlhs r nt)
+        (aset rlhs r (wisent-item-number nt))
         (aset rrhs r i)
         (setq rhs (car pl)
               pre nil)
         (while rhs
+          (setq item (wisent-item-number (car rhs)))
           ;; Get default precedence level of rule, that is the
           ;; precedence of the last terminal in it.
-          (if (wisent-ISTOKEN (car rhs))
-              (setq pre (car rhs)))
+          (if (wisent-ISTOKEN item)
+              (setq pre item))
           
-          (aset ritem i (car rhs))
+          (aset ritem i item)
           (setq i (1+ i)
                 rhs (cdr rhs)))
         ;; Setup the precedence level of the rule, that is the one
