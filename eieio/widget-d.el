@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-d.el,v 1.4 1996/08/19 00:50:17 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.5 1996/09/21 15:55:25 zappo Exp $
 ;;; Keywords: OO widget
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -149,6 +149,11 @@ widgets which contain children")
   ((buffer :initarg :buffer
 	   :initform current-buffer
 	   :docstring "Buffer this dialog resides in")
+   (logical-child-list :initform nil
+		       :docstring 
+		       "Maintained by the top-level shell, this slot contains a list of all the children in thier logical order
+for the purpose of tab-stepping across them"
+		       :protection private)
    (handle-io :initform t)
    )
   "Definition for a toplevel shell, which contains all children widget
@@ -168,9 +173,6 @@ for a given buffer.")
 consisting of substrings of left, right, center, top, and bottom.
 top-left is assumed if valid values are not found."
 	      :protection private)
-    (invisible :initarg :invisible
-	       :initform nil
-	       :docstring "t if this widget does should have the invisible property.")
     )
   "Definition for a frame, which can contain several children grouped
 in a labeled box.")
@@ -191,6 +193,11 @@ contain widgets of type widget-radio-button.")
   ((label-value :initarg :label-value
 		:initform nil
 		:docstring "The object to display on ourselves")
+   (label-list :initarg nil
+	       :initform nil
+	       :docstring "The label value is transformed into this list, which is broken
+into substrings around carriage returns."
+	       :protection private)
    (justification :initarg :justification
 		  :initform center
 		  :docstring "how to justify the text.  Valid values are 'left, 'center, 'right")
