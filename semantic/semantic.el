@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.161 2002/08/13 16:38:52 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.162 2002/09/07 01:57:47 zappo Exp $
 
 (defvar semantic-version "2.0alpha4"
   "Current version of Semantic.")
@@ -518,8 +518,6 @@ stream is requested."
     (mapcar 'semantic-delete-overlay-maybe (car l))
     (mapcar 'semantic-delete-overlay-maybe (cdr l))
     )
-  ;; Clear the dirty tokens... no longer relevant
-  (setq semantic-dirty-tokens nil)
   (semantic-parse-tree-set-needs-rebuild)
   ;; Remove this hook which tracks if a buffer is up to date or not.
   (remove-hook 'after-change-functions 'semantic-change-function t)
