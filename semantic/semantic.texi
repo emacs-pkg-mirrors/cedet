@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.64 2002/05/09 04:21:42 emacsman Exp $
+@c $Id: semantic.texi,v 1.65 2002/05/13 04:54:34 emacsman Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -76,7 +76,7 @@ Semantic is a tool primarily for the Emacs-Lisp programmer.
 However, it comes with ``applications'' that non-programmer might
 find useful.
 This chapter is mostly for the benefit of these non-programmers
-as it gives brief descpriptions of basic concepts such as
+as it gives brief descriptions of basic concepts such as
 grammars, parsers, compiler-compilers, parse-tree, etc.
 
 @cindex grammar
@@ -191,11 +191,11 @@ The next step is the parsing shown below.
 
 The end result, the parse tree, is created based on the ``bovine table'',
 which is the internal representation of the BNF language grammar used by
-semantinc.
+semantic.
 
 Semantic database provides caching of the parse trees by saving them
 into files named @file{semantic.cache} automatically then loading them
-when appropriate instead of reparsing.  The reason for this is to save the
+when appropriate instead of re-parsing.  The reason for this is to save the
 time it takes to parse a file which could take several seconds or more
 for large files.
 
@@ -422,7 +422,7 @@ These are typically @code{)}, @code{@}}, @code{]}, etc.
 @item comment
 A comment chunk.
 These token types are not produced by default.
-They are produced only if the user set 
+They are produced only if the user set
 @var{semantic-ignore-comments} to @code{nil}.
 @item newline
 Characters matching @code{\\s-*\\(\n\\)}.
@@ -501,7 +501,7 @@ Only set this on a per mode basis, not globally.
 Symbol specifying what to @dfn{throw} upon finding unterminated syntax.
 Lists and strings, could be unterminated.  This provides something that
 can be @code{thrown} from the lexical analysis phase for tools that wish
-to take special care when problems arrize during a parse.
+to take special care when problems arise during a parse.
 Set this variable in a @dfn{let} statement, then wrap lexical or parsing
 calls in @dfn{catch}.
 @end defvar
@@ -545,7 +545,7 @@ keyword which has a @var{PROPERTY} value.
 
 @defun semantic-flex-keywords &optional property
 Return a list of semantic keywords.
-If optional @var{PROPERTY} is non-nil, return only keywords which have 
+If optional @var{PROPERTY} is non-nil, return only keywords which have
 @var{PROPERTY} set.
 @end defun
 
@@ -836,8 +836,8 @@ Available override symbols:
 @item find-dependency        @tab (token)           @tab Find the dependency file
 @item find-nonterminal       @tab (token & parent)  @tab Find token in buffer.
 @item find-documentation     @tab (token & nosnarf) @tab Find doc comments.
-@item abbreviate-nonterminal @tab (token & parent)  @tab Return summery string.
-@item summarize-nonterminal  @tab (token & parent)  @tab Return summery string.
+@item abbreviate-nonterminal @tab (token & parent)  @tab Return summary string.
+@item summarize-nonterminal  @tab (token & parent)  @tab Return summary string.
 @item prototype-nonterminal  @tab (token)           @tab Return a prototype string.
 @item concise-prototype-nonterminal'     @tab (tok & parent color) @tab Return a concise prototype string.
 @item uml-abbreviate-nonterminal'        @tab (tok & parent color) @tab Return a UML standard abbreviation string.
@@ -848,7 +848,7 @@ Available override symbols:
 @item nonterminal-children   @tab (token)           @tab Return first rate children. These are children which may contain overlays.
 @item nonterminal-external-member-parent @tab (token) @tab Parent of TOKEN
 @item nonterminal-external-member-p @tab (parent token) @tab Non nil if TOKEN has PARENT, but is not in PARENT.
-@item nonterminal-external-member-children @tab (token & usedb) @tab Get all external children of TOKEN.  
+@item nonterminal-external-member-children @tab (token & usedb) @tab Get all external children of TOKEN.
 @item nonterminal-protection @tab (token & parent)  @tab Return protection as a symbol.
 @item nonterminal-abstract   @tab (token & parent)  @tab Return if TOKEN is abstract.
 @item nonterminal-leaf       @tab (token & parent)  @tab Return if TOKEN is leaf.
@@ -1072,7 +1072,7 @@ reading the Emacs BNF definition.  An OLE like this:
 @end example
 
 results in a lambda return which consists entirely of the string
-or object found by matching the first (zeroeth) element of match.
+or object found by matching the first (zeroth) element of match.
 An OLE like this:
 
 @example
@@ -1194,7 +1194,7 @@ multiple languages, it is important to have a consistent meaning for
 the contents of the tokens returned.  The variable
 @code{semantic-toplevel-bovine-table} is documented with the complete
 list of a tokens that a functional or OO language may use.  While any
-given laguage is free to create their own tokens, such a language
+given language is free to create their own tokens, such a language
 definition would not produce a stream of tokens usable by a
 generalized tool.
 
@@ -1257,12 +1257,12 @@ following token formats are available.
 @itemx @code{("NAME" variable "TYPE" DEFAULT-VALUE EXTRA-SPEC}
 @itemx @code{        "DOCSTRING" PROPERTIES OVERLAY)}
 @var{TYPE} is a string representing the type of this variable.
-@var{TYPE} can be @code{nil} for untyped langauges.  Languages which
+@var{TYPE} can be @code{nil} for untyped languages.  Languages which
 support variable declarations without a type (Such as C) should supply
 a string representing the default type for that language.
 
 @var{DEFAULT-VALUE} can be a string, or something pre-parsed and
-langauge specific.  Hopefully this slot will be better defined in
+language specific.  Hopefully this slot will be better defined in
 future versions of Semantic.
 
 @var{EXTRA-SPEC} are extra specifiers.  See below.
@@ -1286,7 +1286,7 @@ Partial tokens may contain the @var{NAME} slot, @var{token-symbol},
 and possibly a @var{TYPE}.
 @item String
 A string representing the name of the argument.  Common in untyped
-langauges.
+languages.
 @end table
 
 
@@ -1309,7 +1309,7 @@ Partial tokens may contain the @var{NAME} slot, @var{token-symbol},
 and possibly a @var{TYPE}.
 @item String
 A string representing the name of the slot or field.  Common in untyped
-langauges.
+languages.
 @end table
 
 @var{PARENTS} represents a list of parents of this type.  Parents are used
@@ -1610,7 +1610,7 @@ interfaces, or abstract classes which are parents of @var{TOKEN}.
 @end defun
 
 @defun semantic-token-type-parent-superclass token
-Retrieve the parent superclasses of type type @var{TOKEN}.
+Retrieve the parent super classes of type type @var{TOKEN}.
 @end defun
 
 @defun semantic-token-type-parent-implement token
@@ -1695,7 +1695,7 @@ For override methods that query a token, see @xref{Token Details}.
 These functions take some key, and returns information found inside
 the nonterminal stream.  Some will return one token (the first
 matching item found.)  Others will return a list of all items matching
-a given criterion.  All these functions work reguardless of a buffer
+a given criterion.  All these functions work regardless of a buffer
 being in memory or not.
 
 @defun semantic-find-nonterminal-by-name name streamorbuffer &optional search-parts search-include
@@ -1766,7 +1766,7 @@ Find all nonterminals in which @var{FUNCTION} match within @var{STREAMORBUFFER}.
 in the new list.
 
 If optional argument @var{SEARCH-PARTS} is non-@code{nil}, all sub-parts of tokens
-are searched.  The overloadable function @dfn{semantic-nonterminal-children} is
+are searched.  The over-loadable function @dfn{semantic-nonterminal-children} is
 used for the searching child lists.  If @var{SEARCH-PARTS} is the symbol
 @code{'positiononly}, then only children that have positional information are
 searched.
@@ -1780,14 +1780,14 @@ Find the first nonterminal which @var{FUNCTION} match within @var{STREAMORBUFFER
 @var{FUNCTION} must return non-@code{nil} if an element of @var{STREAM} will be included
 in the new list.
 If optional argument @var{SEARCH-PARTS}, all sub-parts of tokens are searched.
-The overloadable function @dfn{semantic-nonterminal-children} is used for
+The over-loadable function @dfn{semantic-nonterminal-children} is used for
 searching.
 If @var{SEARCH-INCLUDES} is non-@code{nil}, then all include files are also
 searched for matches.
 @end defun
 
 @defun semantic-recursive-find-nonterminal-by-name name buffer
-Recursively find the first occurence of @var{NAME}.
+Recursively find the first occurrence of @var{NAME}.
 Start search with @var{BUFFER}.  Recurse through all dependencies till found.
 The return item is of the form (@var{BUFFER} @var{TOKEN}) where @var{BUFFER} is the buffer
 in which @var{TOKEN} (the token found to match @var{NAME}) was found.
@@ -1798,7 +1798,7 @@ in which @var{TOKEN} (the token found to match @var{NAME}) was found.
 @section Nonterminals at point
 
 When you just want to get at a nonterminal the cursor is on, there is
-a more effiecient mechanism than using
+a more efficient mechanism than using
 @code{semantic-find-nonterminal-by-position}.  This mechanism
 directly queries the overlays the parsing step leaves in the buffer.
 This provides for very rapid retrieval of what function or variable
@@ -1991,7 +1991,7 @@ would claim as a parent.
 @end defvar
 
 @defvar semantic-token->text-custom-list
-@var{A} List used by customizeable variables to choose a token to text function.
+@var{A} List used by customizable variables to choose a token to text function.
 Use this variable in the @code{:type} field of a customizable variable.
 @end defvar
 
@@ -2076,21 +2076,21 @@ to also include the default behavior, and merely extend your own.
 Note for language authors:
   If a mode defines a language that has tokens in it with overlays that
 should not be considered children, you should still return them with
-this function.  If you do not, then token reparsing, and database
+this function.  If you do not, then token re-parsing, and database
 saving will fail.
 @end defun
 
 @defun semantic-nonterminal-external-member-parent token
 Return a parent for @var{TOKEN} when @var{TOKEN} is an external member.
 @var{TOKEN} is an external member if it is defined at a toplevel and
-has some sort of label defing a parent.  The parent return will
+has some sort of label defining a parent.  The parent return will
 be a string.
 
-The default behavior, if not overriden with
+The default behavior, if not overridden with
 @code{nonterminal-external-member-parent} is get the @code{'parent} extra
 specifier of @var{TOKEN}.
 
-If this function is overriden, use
+If this function is overridden, use
 @dfn{semantic-nonterminal-external-member-parent-default} to also
 include the default behavior, and merely extend your own.
 @end defun
@@ -2100,11 +2100,11 @@ Return non-@code{nil} if @var{PARENT} is the parent of @var{TOKEN}.
 @var{TOKEN} is an external member of @var{PARENT} when it is somehow tagged
 as having @var{PARENT} as it's parent.
 
-The default behavior, if not overriden with
+The default behavior, if not overridden with
 @code{nonterminal-external-member-p} is to match @code{'parent} extra specifier in
 the name of @var{TOKEN}.
 
-If this function is overriden, use
+If this function is overridden, use
 @code{semantic-nonterminal-external-member-children-p-default} to also
 include the default behavior, and merely extend your own.
 @end defun
@@ -2120,12 +2120,12 @@ Children in this case are functions or types which are members of
 the class.  @var{C}++ and @var{CLOS} both permit methods of a class to be defined
 outside the bounds of the class' definition.
 
-The default behavior, if not overriden with
+The default behavior, if not overridden with
 @code{nonterminal-external-member-children} is to search using
 @dfn{semantic-nonterminal-external-member-p} in all top level definitions
 with a parent of @var{TOKEN}.
 
-If this function is overriden, use
+If this function is overridden, use
 @dfn{semantic-nonterminal-external-member-children-default} to also
 include the default behavior, and merely extend your own.
 @end defun
@@ -2149,9 +2149,9 @@ is to return a symbol based on type modifiers.
 Return non @code{nil} if @var{TOKEN} is abstract.
 Optional @var{PARENT} is the parent token of @var{TOKEN}.
 In @var{UML}, abstract methods and classes have special meaning and behavior
-in how methods are overriden.  In @var{UML}, abstract methods are italicized.
+in how methods are overridden.  In @var{UML}, abstract methods are italicized.
 
-The default behavior (if not overriden with @code{nonterminal-abstract}
+The default behavior (if not overridden with @code{nonterminal-abstract}
 is to return true if @code{abstract} is in the type modifiers.
 @end defun
 
@@ -2160,7 +2160,7 @@ Return non @code{nil} if @var{TOKEN} is leaf.
 Optional @var{PARENT} is the parent token of @var{TOKEN}.
 In @var{UML}, leaf methods and classes have special meaning and behavior.
 
-The default behavior (if not overriden with @code{nonterminal-leaf}
+The default behavior (if not overridden with @code{nonterminal-leaf}
 is to return true if @code{leaf} is in the type modifiers.
 @end defun
 
@@ -2171,7 +2171,7 @@ In @var{UML}, static methods and attributes mean that they are allocated
 in the parent class, and are not instance specific.
 @var{UML} notation specifies that @var{STATIC} entries are underlined.
 
-The default behavior (if not overriden with @code{nonterminal-static}
+The default behavior (if not overridden with @code{nonterminal-static}
 is to return true if @code{static} is in the type modifiers.
 @end defun
 
@@ -2311,7 +2311,7 @@ For details on using these functions to get more detailed information
 about the current context: @xref{Context Analysis}.
 
 @node Making New Methods, , Local Context, Override Methods
-@subsection Makeing New Methods
+@subsection Making New Methods
 
 @node Parser Hooks, Example Programs, Override Methods, Programming
 @section Parser Hooks
@@ -2325,7 +2325,7 @@ integration with token changes can be achieved via several very
 important hooks.
 
 One interesting way to interact with the parser is to let it know that
-changes you are going to make will not require reparsing.
+changes you are going to make will not require re-parsing.
 
 @defvar semantic-edits-are-safe
 When non-@code{nil}, modifications do not require a reparse.
@@ -2337,7 +2337,7 @@ as adding or updating top-level comments.
 @end defvar
 
 Next, it is sometimes useful to know what the current parsing state
-is.  These function can let you know what level of reparsing may be
+is.  These function can let you know what level of re-parsing may be
 needed.  Careful choices on when to reparse can make your program much
 faster.
 
@@ -2356,7 +2356,7 @@ when checking @dfn{semantic-bovine-toplevel-full-reparse-needed-p}.
 
 If you need very close interaction with the user's editing, then these
 two hooks can be used to find out when a given tag is being changed.
-These hooks could even be used to cut down on reparsing if used correctly.
+These hooks could even be used to cut down on re-parsing if used correctly.
 
 For all hooks, make sure you are careful to add it as a local hook if
 you only want to effect a single buffer.  Setting it globally can
@@ -2373,11 +2373,11 @@ reparse is done instead.
 @end defvar
 
 @defvar semantic-clean-token-hooks
-Hooks run after a token is marked as clean (reparsed after user edits.)
+Hooks run after a token is marked as clean (re-parsed after user edits.)
 The functions must take a @var{TOKEN} as a parameter.
 Any token sent to this hook will have first been called with
 @code{semantic-dirty-token-hooks}.  This hook is not called for tokens
-marked dirty if the buffer is completely reparsed.  In that case, use
+marked dirty if the buffer is completely re-parsed.  In that case, use
 @code{semantic-after-toplevel-cache-change-hook}.
 @end defvar
 
@@ -2392,7 +2392,7 @@ Lastly, if you just want to know when a buffer changes, use this hook.
 @defvar semantic-after-toplevel-bovinate-hook
 Hooks run after a toplevel token parse.
 It is not run if the toplevel parse command is called, and buffer does
-not need to be fully reparsed.
+not need to be fully re-parsed.
 This function is also called when the toplevel cache is flushed, and
 the cache is emptied.
 For language specific hooks, make sure you define this as a local hook.
@@ -2403,9 +2403,9 @@ Use @code{semantic-after-toplevel-cache-change-hook} instead.
 
 @defvar semantic-after-toplevel-cache-change-hook
 Hooks run after the buffer token list has changed.
-This list will change when a buffer is reparsed, or when the token
+This list will change when a buffer is re-parsed, or when the token
 list in a buffer is cleared.  It is *NOT* called if the current token
-list partially reparsed.
+list partially re-parsed.
 
 Hook functions must take one argument, which is the new list of
 tokens associated with this buffer.
@@ -2416,7 +2416,7 @@ For language specific hooks, make sure you define this as a local hook.
 @defvar semantic-after-partial-cache-change-hook
 Hooks run after the buffer token list has been updated.
 This list will change when the current token list has been partially
-reparsed.
+re-parsed.
 
 Hook functions must take one argument, which is the list of tokens
 updated among the ones associated with this buffer.
@@ -2442,7 +2442,7 @@ lots of comments, see the file @file{semantic-examples.el}.
 @subsection Interactively querying for a token name
 
 If you need a command that asks the user for a token name, you can
-get full range completion using the query functions 
+get full range completion using the query functions
 @ref{Nonterminal Completion}.
 
 @example
@@ -2471,7 +2471,7 @@ location somewhere in a project, you need to use the Semantic Database
 ones found in @ref{Nonterminal Streams}.
 
 The Semantic Database is interesting in that the return structure is
-not 
+not
 
 @subsection Locating a token in a buffer
 
@@ -2492,7 +2492,7 @@ find their position in a buffer.
 Of interesting note above, semanticdb can find symbols in files that
 are not loaded into an Emacs buffer.  These tokens do not have an
 associated overlay, and the function @dfn{semantic-token-buffer} will
-fail. 
+fail.
 
 The last parameter's tells the search function to
 @dfn{find-file-noselect} any file in which a matching token was
@@ -2557,7 +2557,7 @@ which uses a similar form.
 * Blocks::
 * Local Variables::             Getting lists of local variables.
 * Derived Context::             What goes at a given location?
-* Context Analysis::            Analisys information about the local context.
+* Context Analysis::            Analysis information about the local context.
 @end menu
 
 @node Blocks, Local Variables, Current Context, Current Context
@@ -2613,10 +2613,10 @@ scoped variables.
 @defun semantic-get-local-variables &optional point
 Get the local variables based on POINT's context.
 Local variables are returned in Semantic token format.
-Be default, this calculates the current bounds using context blocks
+By default, this calculates the current bounds using context blocks
 navigation, then uses the parser with @code{bovine-inner-scope} to
 parse tokens at the beginning of the context.
-This can be overriden with @code{get-local-variables}.
+This can be overridden with @code{get-local-variables}.
 @end defun
 
 @defun semantic-get-local-arguments &optional point
@@ -2671,7 +2671,7 @@ Override with @code{ctxt-current-argument}.
 @end defun
 
 @node Context Analysis,  , Derived Context, Current Context
-@section Analisys of the current context
+@section Analysis of the current context
 
 The context parsing API is used in a context analysis library.  This
 library provides high level routines for scanning through token
@@ -2832,7 +2832,7 @@ a @code{section} has interesting children.
 Semanticdb is a utility which tracks your parsed files, and saves the
 parsed information to files.  When you reload your source files,
 semanticdb automatically associates the file with the cached copy,
-saving time by not reparsing your buffer.
+saving time by not re-parsing your buffer.
 
 Semanticdb also provides an API for programs to use.  These functions
 will return token information without loading the source file into
@@ -2894,7 +2894,7 @@ As such, all search functions return a list of the form:
 @end example
 
 @defun semanticdb-find-nonterminal-by-function function &optional databases search-parts search-includes diff-mode find-file-match
-Find all occurances of nonterminals which match @var{FUNCTION}.
+Find all occurrences of nonterminals which match @var{FUNCTION}.
 Search in all @var{DATABASES}.  If @var{DATABASES} is @code{nil}, search a range of
 associated databases.
 When @var{SEARCH-PARTS} is non-@code{nil} the search will include children of tokens.
@@ -2906,13 +2906,13 @@ in an Emacs buffer.
 @end defun
 
 @defun semanticdb-find-nonterminal-by-name name &optional databases search-parts search-includes diff-mode find-file-match
-Find all occurances of nonterminals with name @var{NAME} in databases.
+Find all occurrences of nonterminals with name @var{NAME} in databases.
 See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
 @var{SEARCH-PARTS}, @var{SEARCH-INCLUDES}, @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
 @end defun
 
 @defun semanticdb-find-nonterminal-by-name-regexp regex &optional databases search-parts search-includes diff-mode find-file-match
-Find all occurances of nonterminals with name matching @var{REGEX} in databases.
+Find all occurrences of nonterminals with name matching @var{REGEX} in databases.
 See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
 @var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
 @end defun
@@ -3161,7 +3161,7 @@ list.
 
 @deffn Command semantic-analyze-possible-completions context
 Return a list of semantic tokens which are possible completions.
-@var{CONTEXT} is either a position (such as point), or a precalculated
+@var{CONTEXT} is either a position (such as point), or a pre-calculated
 context.  Passing in a context is useful if the caller also needs
 to access parts of the analysis.
 
@@ -3453,9 +3453,9 @@ run as soon as Emacs is idle.
 @end deffn
 
 @deffn Option semantic-auto-parse-max-buffer-size
-Maximum size in bytes of buffers automatically reparsed.
+Maximum size in bytes of buffers automatically re-parsed.
 If this value is less than or equal to @var{0} buffers are automatically
-reparsed regardless of their size.
+re-parsed regardless of their size.
 @end deffn
 
 @node Index,  , Tools, Top
@@ -3467,3 +3467,25 @@ reparsed regardless of their size.
 
 @bye
 
+@c LocalWords: alist API APIs arg argc args argv asis assoc autoload
+@c LocalWords: backquote bnf bovinate bovinates
+@c LocalWords: bovinating bovination bovinator bucketize
+@c LocalWords: cb cdr charquote checkcache cindex CLOS
+@c LocalWords: concat concocting const constantness ctxt Decl defcustom
+@c LocalWords: deffn deffnx defun defvar destructor's dfn diff dir
+@c LocalWords: doc docstring EDE EIEIO elisp emacsman emph enum
+@c LocalWords: eq Exp EXPANDFULL expresssion fn foo func funcall
+@c LocalWords: ia ids iff ifinfo imenu imenus init int isearch itemx java kbd
+@c LocalWords: keymap keywordtable lang languagemode lexer lexing Ludlam
+@c LocalWords: menubar metaparent metaparents min minibuffer Misc mode's
+@c LocalWords: multitable NAvigaTOR noindent nomedian nonterm noselect
+@c LocalWords: nosnarf obarray OLE OO outputfile paren parsetable POINT's
+@c LocalWords: popup positionalonly positiononly positionormarker pre
+@c LocalWords: printf printindex Programmatically pt punctuations quotemode
+@c LocalWords: ref regex regexp Regexps reparse resetfile samp sb
+@c LocalWords: scopestart SEmantic semanticdb setfilename setq
+@c LocalWords: settitle setupfunction sexp sp SPC speedbar speedbar's
+@c LocalWords: streamorbuffer struct subalist submenu submenus
+@c LocalWords: subsubsection sw sym texi texinfo titlefont titlepage
+@c LocalWords: tok TOKEN's toplevel typemodifiers uml unset untar
+@c LocalWords: uref usedb var vskip xref yak
