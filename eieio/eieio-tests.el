@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.17 2001/07/17 20:04:36 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.18 2001/08/01 01:43:44 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -200,37 +200,40 @@ METHOD is the method that was attempting to be called."
 (defmethod class-fun-tag :PRIMARY ((a class-a))
   "Tagging fun primary A."
   (unless (eq class-fun-tag-state 'before-generic)
-    (error "BEFORE generic not called before PRIMARY"))
-  (setq class-fun-tag-state 'primary-method))
+    (error "BEFORE generic not called before PRIMARY method"))
+  (setq class-fun-tag-state 'primary-method)
+  (call-next-method))
 
 (defmethod class-fun-tag :BEFORE ((a class-a))
   "Tagging fun before A."
   (unless (eq class-fun-tag-state nil)
     (error "BEFORE method not called first"))
-  (setq class-fun-tag-state 'before-method))
+  (setq class-fun-tag-state 'before-method)
+  (call-next-method))
 
 (defmethod class-fun-tag :AFTER ((a class-a))
   "Tagging fun after A."
   (unless (eq class-fun-tag-state 'primary-generic)
-    (error "AFTER not called after PRIMARY generic"))
-  (setq class-fun-tag-state 'after-method))
+    (error "PRIMARY generic not called before AFTER method"))
+  (setq class-fun-tag-state 'after-method)
+  (call-next-method))
 
 (defmethod class-fun-tag :PRIMARY (a)
   "Generic untyped primary for A."
   (unless (eq class-fun-tag-state 'primary-method)
-    (error "PRIMARY generic not called after BEFORE method"))
+    (error "PRIMARY generic not called after PRIMARY method"))
   (setq class-fun-tag-state 'primary-generic))
 
 (defmethod class-fun-tag :BEFORE (a)
   "Generic untyped before for A."
   (unless (eq class-fun-tag-state 'before-method)
-    (error "BEFORE generic not called first"))
+    (error "BEFORE generic not called after BEFORE method"))
   (setq class-fun-tag-state 'before-generic))
 
 (defmethod class-fun-tag :AFTER (a)
   "Generic untyped after for A."
   (unless (eq class-fun-tag-state 'after-method)
-    (error "AFTER generic not called after PRIMARY method"))
+    (error "AFTER generic not called after AFTER method"))
   (setq class-fun-tag-state 'after-generic))
 
 (let ((class-fun-tag-state nil))
