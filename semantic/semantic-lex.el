@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.1 2002/07/03 18:44:43 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.2 2002/07/04 02:57:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -179,6 +179,11 @@ FLOATING_POINT_LITERAL:
   ;")
 (make-variable-buffer-local 'semantic-lex-number-expression)
 
+(defvar semantic-lex-depth 0
+  "Default lexing depth.
+This specifies how many lists to create tokens in.")
+(make-variable-buffer-local 'semantic-flex-depth)
+
 (defvar semantic-lex-unterminated-syntax-end-function
   (lambda (syntax syntax-start lex-end) lex-end)
   "Function called when unterminated syntax is encountered.
@@ -201,7 +206,7 @@ when finding unterminated syntax.")
   )
 
 ;; Do the cutover for compatibility
-(defalias 'semantic-flex 'semantic-lex)
+;;(defalias 'semantic-flex 'semantic-lex)
 
 (defun semantic-lex (start end &optional depth length)
   "Lexically analyze text in the current buffer between START and END.
@@ -302,17 +307,20 @@ Proper action in FORMS is to move the value of `end-point' to after
 the location of the analyzed entry, and to add any discovered tokens
 at the beginning of `token-stream'.   This can be done by using
 `semantic-lex-token'."
-  `(defvar ,name nil ,doc)
-  `(setq ,name '(,condition ,@forms))
-  )
+  `(eval-and-compile
+     (defvar ,name nil ,doc)
+     ;; Do this part separately so that re-evaluation rebuilds this code.
+     (setq ,name '(,condition ,@forms))
+     ))
 
 
 (defmacro define-lex-regex-analyzer (name doc regexp &rest forms)
   "Create a lexical analyzer with NAME and DOC  that match REGEXP.
 FORMS are evaluated upon a successful match.
 See `define-lex-analyzer' for more about analyzers."
-  `(defvar ,name nil ,doc)
-  `(setq ,name  '((looking-at ,regexp) ,@forms)))
+  `(eval-and-compile
+     (defvar ,name nil ,doc)
+     (setq ,name  '((looking-at ,regexp) ,@forms))))
 
 (defmacro define-lex-simple-regex-analyzer (name doc regexp toksym
 						 &optional index
@@ -325,14 +333,15 @@ expression.
 FORMS are evaluated upon a successful match BEFORE the new token is
 created.  It is valid to ignore FORMS.
 See `define-lex-analyzer' for more about analyzers."
-  `(defvar ,name nil ,doc)
-  `(setq ,name
-	'((looking-at ,regexp)
-	  ,@forms
-	  (semantic-lex-token ,toksym
-			      (match-beginning ,(or index 0))
-			      (match-end ,(or index 0)))))
-  )
+  `(eval-and-compile
+     (defvar ,name nil ,doc)
+     (setq ,name
+	   '((looking-at ,regexp)
+	     ,@forms
+	     (semantic-lex-token ,toksym
+				 (match-beginning ,(or index 0))
+				 (match-end ,(or index 0)))))
+     ))
 
 ;;; Analyzers
 ;;
