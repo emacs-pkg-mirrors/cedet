@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: e-config.el,v 1.8 1997/01/18 16:48:35 zappo Exp $
+;;; RCS: $Id: e-config.el,v 1.9 1997/01/18 23:48:43 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -161,7 +161,7 @@ useful for programmers."
 			   ;; Override the default.. this is more dependable
 			   :value (member 'copyright-update write-file-hooks)
 			   :command "(load-library \"copyright\")(add-hook 'write-file-hooks 'copyright-update)"
-			   :disable-command "(remove-hook 'write-file-hooks 'copyright-update"))
+			   :disable-command "(remove-hook 'write-file-hooks 'copyright-update)"))
     ;; compile stuff
     (require 'compile)
 
@@ -245,6 +245,7 @@ useful for programmers."
 ;;;
 ;;; Ange-ftp configuration
 ;;;
+
 (defun econfig-ange-ftp ()
   "Creates a configure window modifying variables useful with the ange-ftp
 package."
@@ -256,12 +257,24 @@ package."
 If you wish to specify those hosts on one side
 of a firewall, an example would be: `\\.domain\\.com$'"
 		   widget-label)
-    (create-widget "Local Host Regexp: " widget-labeled-text
-		   :text-length 30
-		   :value (data-object-symbol 'ange-ftp-local-host-regexp))
-    (create-widget "Gateway Host:      " widget-labeled-text
-		   :text-length 30
-		   :value (data-object-symbol 'ange-ftp-gateway-host))
+    (let ((domain (if (string-match "\\.\\w+\\.\\w+$" (system-name))
+		      (match-string 0 (system-name))
+		    nil)))
+		    
+      (create-widget "Local Host Regexp: " widget-option-text
+		     :text-length 30
+		     :value (data-object-symbol 'ange-ftp-local-host-regexp)
+		     :option-list (list (regexp-quote domain)
+					(regexp-quote (system-name))
+					".*"))
+
+      (create-widget "Gateway Host:      " widget-option-text
+		     :text-length 30
+		     :value (data-object-symbol 'ange-ftp-gateway-host)
+		     :option-list (list (concat "gateway" domain)
+					(concat "ftp" domain)
+					(or ange-ftp-gateway-host "")))
+      )
     
     (dialog-build-group "Smart Gateways"
       (create-widget "Smart gateways are FTP proxies where user@host is issued
@@ -334,20 +347,20 @@ you will need to set the following as well."
   (require 'bookmark)
   (dialog-build-group (format "Bookmark Options for v %s" bookmark-version)
     
-    (dlg-bunch-of-simple-toggles
-     "Require annotations with bookmarks" 'bookmark-use-annotations
-     "Show annotations during jump" 'bookmark-automatically-show-annotations
-     "Completion ignores case" 'bookmark-completion-ignore-case
-     "Sort bookmarks" 'bookmark-sort-flag)
+  (dlg-bunch-of-simple-toggles
+   "Require annotations with bookmarks" 'bookmark-use-annotations
+   "Show annotations during jump" 'bookmark-automatically-show-annotations
+   "Completion ignores case" 'bookmark-completion-ignore-case
+   "Sort bookmarks" 'bookmark-sort-flag)
 
-    (create-widget "Save File:" widget-labeled-text
-		   :text-length 40
-		   :value (data-object-symbol 'bookmark-default-file))
+  (create-widget "Save File:" widget-labeled-text
+		 :text-length 40
+		 :value (data-object-symbol 'bookmark-default-file))
 
-    (dlg-info-button "Want to learn more about bookmarks?"
-		     "(emacs)Bookmarks"
-		     "Press to read info files about bookmarks")
-    )
+  (dlg-info-button "Want to learn more about bookmarks?"
+		   "(emacs)Bookmarks"
+		   "Press to read info files about bookmarks")
+  )
   (dlg-end)
   (dialog-refresh)
   )
@@ -363,36 +376,36 @@ you will need to set the following as well."
   (require 'ispell)
   (dialog-build-group (format "Ispell %s Options" 
 			      (substring ispell-version 0 4))
-    (dlg-bunch-of-simple-toggles
-     "Highlight Spelling Errors" 'ispell-highlight-p
-     "Spell-check quietly" 'ispell-quietly
-     "Check Spelling Of Comments" 'ispell-check-comments
-     "Query-Replace Corrections (if same error multiple times)"
-     'ispell-query-replace-choices
-     "Skip tibs (For TeX bibliographies)" 'ispell-skip-tib
-     "Keep Choices Window Visible" 'ispell-keep-choices-win)
+  (dlg-bunch-of-simple-toggles
+   "Highlight Spelling Errors" 'ispell-highlight-p
+   "Spell-check quietly" 'ispell-quietly
+   "Check Spelling Of Comments" 'ispell-check-comments
+   "Query-Replace Corrections (if same error multiple times)"
+   'ispell-query-replace-choices
+   "Skip tibs (For TeX bibliographies)" 'ispell-skip-tib
+   "Keep Choices Window Visible" 'ispell-keep-choices-win)
 
-    (create-widget "Choices Window Height:" widget-labeled-text
-		   :text-length 5 :unit "Lines"
-		   :value (data-object-symbol-string-to-int 
-			   'ispell-choices-win-default-height
-			   :float-p nil))
+  (create-widget "Choices Window Height:" widget-labeled-text
+		 :text-length 5 :unit "Lines"
+		 :value (data-object-symbol-string-to-int 
+			 'ispell-choices-win-default-height
+			 :float-p nil))
 
-    (create-widget "Alternate dictionary :" widget-labeled-text
-		   :text-length 30
-		   :value (data-object-symbol 'ispell-alternate-dictionary))
+  (create-widget "Alternate dictionary :" widget-labeled-text
+		 :text-length 30
+		 :value (data-object-symbol 'ispell-alternate-dictionary))
 
-    (create-widget "Personaly dictionary :" widget-labeled-text
-		   :text-length 20 :unit "(blank = ~/.ispell_DICTNAME)"
-		   :value (data-object-symbol 'ispell-personal-dictionary))
+  (create-widget "Personaly dictionary :" widget-labeled-text
+		 :text-length 20 :unit "(blank = ~/.ispell_DICTNAME)"
+		 :value (data-object-symbol 'ispell-personal-dictionary))
      
-    (dlg-bunch-of-simple-toggles
-     "Silently save personal dictionary" 'ispell-silently-savep)
+  (dlg-bunch-of-simple-toggles
+   "Silently save personal dictionary" 'ispell-silently-savep)
 
-    (dlg-info-button "Want to learn more about Ispell?"
-		     "(ispell)Emacs"
-		     "Press to read info files about ispell in emacs")
-    )  
+  (dlg-info-button "Want to learn more about Ispell?"
+		   "(ispell)Emacs"
+		   "Press to read info files about ispell in emacs")
+  )  
   (dlg-end)
   (dialog-refresh)
   )
@@ -408,26 +421,26 @@ useful for sending email."
   (require 'rmail)
   (dialog-build-group "Rmail Options"
 
-    (create-widget "Rmail File               :" widget-labeled-text
-		   :text-length 20
-		   :value (data-object-symbol 'rmail-file-name))
+  (create-widget "Rmail File               :" widget-labeled-text
+		 :text-length 20
+		 :value (data-object-symbol 'rmail-file-name))
     
-    (create-widget "Secondary File Directory :" widget-labeled-text
-		   :text-length 20
-		   :value (data-object-symbol 'rmail-secondary-file-directory))
+  (create-widget "Secondary File Directory :" widget-labeled-text
+		 :text-length 20
+		 :value (data-object-symbol 'rmail-secondary-file-directory))
     
-    (create-widget "Default Secondary File   :" widget-labeled-text
-		   :text-length 20
-		   :value (data-object-symbol 'rmail-default-rmail-file))
+  (create-widget "Default Secondary File   :" widget-labeled-text
+		 :text-length 20
+		 :value (data-object-symbol 'rmail-default-rmail-file))
     
-    (dlg-bunch-of-simple-toggles
-     "Delete messages after saving to secondary file" 'rmail-delete-after-output
-     "Summary motion scrolls messages" 'rmail-summary-scroll-between-messages)
+  (dlg-bunch-of-simple-toggles
+   "Delete messages after saving to secondary file" 'rmail-delete-after-output
+   "Summary motion scrolls messages" 'rmail-summary-scroll-between-messages)
 
-    (dlg-info-button "Want to know more about reading mail?"
-		     "(emacs)rmail"
-		     "Click to read info pages about rmail.")
-    )
+  (dlg-info-button "Want to know more about reading mail?"
+		   "(emacs)rmail"
+		   "Click to read info pages about rmail.")
+  )
   (dlg-end)
   (dialog-refresh)
   )
@@ -436,9 +449,9 @@ useful for sending email."
   "Return a string which is how the mail address would be shown"
   (cond ((or (eq style 2) (eq style 'angles))
 	 (concat (user-full-name) " <" user-mail-address ">"))
-	((or (eq style 1) (eq style 'parens))
-	 (concat user-mail-address " (" (user-full-name) ")"))
-	(t user-mail-address)))
+  ((or (eq style 1) (eq style 'parens))
+   (concat user-mail-address " (" (user-full-name) ")"))
+  (t user-mail-address)))
 
 (defun econfig-mail ()
   "Creates a configure window with variables modifying variables
@@ -448,83 +461,83 @@ useful for sending email."
   (require 'sendmail)
   (dialog-build-group "Mail Address Options"
     
-    (let* ((uma (data-object-symbol 'user-mail-address))
-	   (opt-list '("nil" "'parens" "'angles"))
-	   (fsdo (data-object-symbol-list-index
-		  'mail-from-style
-		  :value (cond ((eq mail-from-style 'angles) 2)
-			       ((eq mail-from-style 'parens) 1)
-			       (t 0))
-		  :string-list opt-list))
-	   (emdo (data-object "example-mail-name" 
-			      :value (econfig-mail-showfrom mail-from-style))))
+  (let* ((uma (data-object-symbol 'user-mail-address))
+	 (opt-list '("nil" "'parens" "'angles"))
+	 (fsdo (data-object-symbol-list-index
+		'mail-from-style
+		:value (cond ((eq mail-from-style 'angles) 2)
+			     ((eq mail-from-style 'parens) 1)
+			     (t 0))
+		:string-list opt-list))
+	 (emdo (data-object "example-mail-name" 
+			    :value (econfig-mail-showfrom mail-from-style))))
 
-      (create-widget "Mail Address   :" widget-labeled-text :text-length 50
-		     :value uma)
+    (create-widget "Mail Address   :" widget-labeled-text :text-length 50
+		   :value uma)
       
-      (create-widget "Reply-to       :" widget-labeled-text :text-length 50
-		     :value (data-object-symbol 'mail-default-reply-to))
+    (create-widget "Reply-to       :" widget-labeled-text :text-length 50
+		   :value (data-object-symbol 'mail-default-reply-to))
     
-      (create-widget "From Style     :" widget-label)
+    (create-widget "From Style     :" widget-label)
 
-      (create-widget "name-type" widget-option-button
-		     :title "Name Format"
-		     :x -2 :y t :option-list opt-list :state fsdo)
+    (create-widget "name-type" widget-option-button
+		   :title "Name Format"
+		   :x -2 :y t :option-list opt-list :state fsdo)
 
-      (create-widget "Looks Like:" widget-label :y -1)
-      (create-widget "example-label" widget-label :x -2 :y t 
-		     ;; set max width
-		     :width (+ 3 (length (user-full-name))
-			       (length user-mail-address))
-		     :justification 'left
-		     :face 'bold
-		     :label-value emdo)
+    (create-widget "Looks Like:" widget-label :y -1)
+    (create-widget "example-label" widget-label :x -2 :y t 
+		   ;; set max width
+		   :width (+ 3 (length (user-full-name))
+			     (length user-mail-address))
+		   :justification 'left
+		   :face 'bold
+		   :label-value emdo)
 
-      ;; This translates the address from one type to the other
-      (create-widget "address-translator" widget-gadget-translator
-		     :watch fsdo :change emdo
-		     :translate-function 
-		     (lambda (a b) 
-		       (set-value b (econfig-mail-showfrom (get-value a)) 
-				  this)))
-      (create-widget "address-translator" widget-gadget-translator
-		     :watch uma :change emdo
-		     :translate-function 
-		     (lambda (a b) 
-		       (let ((user-mail-address (get-value a)))
-			 (set-value b (econfig-mail-showfrom mail-from-style)
-				    this))))
-      ))
+    ;; This translates the address from one type to the other
+    (create-widget "address-translator" widget-gadget-translator
+		   :watch fsdo :change emdo
+		   :translate-function 
+		   (lambda (a b) 
+		     (set-value b (econfig-mail-showfrom (get-value a)) 
+				this)))
+    (create-widget "address-translator" widget-gadget-translator
+		   :watch uma :change emdo
+		   :translate-function 
+		   (lambda (a b) 
+		     (let ((user-mail-address (get-value a)))
+		       (set-value b (econfig-mail-showfrom mail-from-style)
+				  this))))
+    ))
   (dialog-build-group "Editing outbound mail"
     
-    (dlg-bunch-of-simple-toggles
-     "Add BCC to yourself for outbound message" 'mail-self-blind
-     )
+  (dlg-bunch-of-simple-toggles
+   "Add BCC to yourself for outbound message" 'mail-self-blind
+   )
 
-    (create-widget "Personal Alias File:" widget-labeled-text
-		   :text-length 30
-		   :value (data-object-symbol 'mail-personal-alias-file))
+  (create-widget "Personal Alias File:" widget-labeled-text
+		 :text-length 30
+		 :value (data-object-symbol 'mail-personal-alias-file))
 
-    (create-widget "Signature File :" widget-labeled-text :text-length 50
-		   :value (data-object-symbol 'mail-signature-file))
+  (create-widget "Signature File :" widget-labeled-text :text-length 50
+		 :value (data-object-symbol 'mail-signature-file))
     
-    (create-widget "Auto load signature file" widget-toggle-button
-		   :state (data-object-symbol 'mail-signature))
-    (create-widget  "Spellcheck outbound messages (with ispell)"
-		    widget-toggle-button
-		    :state (data-object-symbol-hook
-			    'mail-send-hook
-			    :command 
-			    "(lambda () (if (y-or-n-p \"Spell message?\") (ispell-message)))"
-			    ))
+  (create-widget "Auto load signature file" widget-toggle-button
+		 :state (data-object-symbol 'mail-signature))
+  (create-widget  "Spellcheck outbound messages (with ispell)"
+		  widget-toggle-button
+		  :state (data-object-symbol-hook
+			  'mail-send-hook
+			  :command 
+			  "(lambda () (if (y-or-n-p \"Spell message?\") (ispell-message)))"
+			  ))
     
-    (create-widget "Citation Prefix:" widget-labeled-text :text-length 10
-		   :value (data-object-symbol 'mail-yank-prefix))
+  (create-widget "Citation Prefix:" widget-labeled-text :text-length 10
+		 :value (data-object-symbol 'mail-yank-prefix))
 
-    )
+  )
   (dlg-info-button "Want to know more about sending mail?"
-		   "(emacs)Sending Mail"
-		   "Click to read info pages about sending mail.")
+  "(emacs)Sending Mail"
+  "Click to read info pages about sending mail.")
 
   (dlg-end)
   (dialog-refresh)
@@ -541,50 +554,55 @@ useful for sending email."
   (dlg-init 'dot-emacs)
   (dialog-build-group (format "Supercite %s Options" sc-version)
     
-    (dlg-bunch-of-simple-toggles
-     "Auto-fill cited regions" 'sc-auto-fill-region-p
-     "Cite Blank Lines" 'sc-cite-blank-lines-p
-     "Confirm Citation Attribution" 'sc-confirm-always-p
-     "Downcase All Attribution Strings" 'sc-downcase-p
-     "Fixup Leading Whitespace in Citation" 'sc-fixup-whitespace-p
-     "Use Nested-Citation Styles" 'sc-nested-citation-p
-     "Use Anon When No Attribution String Is Available" 
-     'sc-use-only-preference-p
-     )
+  (create-widget "Use Supercite in mail mode" widget-toggle-button
+		 :state (data-object-symbol-hook 
+			 'mail-citation-hook
+			 :command "sc-cite-original"))
+					;    (create-widget "Disable GNUS default citation method"
+					;		   :state (data-object-symbol 'news-reply-header-hook))
 
-    (let ((nuke-list '("'all" "'none" "'specified" "'keep")))
+  (dlg-bunch-of-simple-toggles
+   "Auto-fill cited regions" 'sc-auto-fill-region-p
+   "Cite Blank Lines" 'sc-cite-blank-lines-p
+   "Confirm Citation Attribution" 'sc-confirm-always-p
+   "Downcase All Attribution Strings" 'sc-downcase-p
+   "Fixup Leading Whitespace in Citation" 'sc-fixup-whitespace-p
+   "Use Nested-Citation Styles" 'sc-nested-citation-p
+   "Use Anon When No Attribution String Is Available" 
+   'sc-use-only-preference-p
+   )
 
-      (create-widget "Header Nuking Method:" widget-label)
+  (let ((nuke-list '("'all" "'none" "'specified" "'keep")))
 
-      (create-widget "nuke-me" widget-option-button
-		     :title "Nuke Method" :x -2 :y t
-		     :option-list nuke-list
-		     :state (data-object-symbol-list-index
-			     'sc-nuke-mail-headers
-			     :value (cond 
-				     ((eq sc-nuke-mail-headers 'all) 0)
-				     ((eq sc-nuke-mail-headers 'none) 1)
-				     ((eq sc-nuke-mail-headers 'specified) 2)
-				     (t 3))
-			     :string-list nuke-list))
-      )
+    (create-widget "Header Nuking Method:" widget-label)
+
+    (create-widget "nuke-me" widget-option-button
+		   :title "Nuke Method" :x -2 :y t
+		   :option-list nuke-list
+		   :state (data-object-symbol-list-index
+			   'sc-nuke-mail-headers
+			   :value (cond 
+				   ((eq sc-nuke-mail-headers 'all) 0)
+				   ((eq sc-nuke-mail-headers 'none) 1)
+				   ((eq sc-nuke-mail-headers 'specified) 2)
+				   (t 3))
+			   :string-list nuke-list))
+    )
       
-    (create-widget "Nuke List" widget-push-button
-		   :activate-hook 
-		   (lambda (obj reason)
-		     (describe-variable 'sc-nuke-mail-header-list)))
-    (create-widget "Valid when \"Nuke Method\" is\n'specified or 'keep"
-		   widget-label :x -3 :y t)
-    (create-widget "nuke-text" widget-scrolled-text
-		   :width 40 :height 5 :y -1
-		   :value (data-object-symbol-translated
-			   'sc-nuke-mail-header-list
-			   :set-lambda		
-			   (lambda (obj)
-			     (let ((l (dlg-string-to-list obj "[ ]*\n")))
-			       (setq sc-nuke-mail-header-list l)
-			       l))
-			   :get-lambda
+  (create-widget "Nuke List" widget-push-button
+		 :activate-hook 
+		 (lambda (obj reason)
+		   (describe-variable 'sc-nuke-mail-header-list)))
+  (create-widget "Valid when \"Nuke Method\" is\n'specified or 'keep"
+		 widget-label :x -3 :y t)
+  (create-widget "nuke-text" widget-scrolled-text
+		 :width 40 :height 5 :y -1
+		 :value (data-object-symbol-translated
+			 'sc-nuke-mail-header-list
+			 :set-lambda		
+			 (lambda (obj)
+			   (dlg-string-to-list obj "[ ]*\n"))
+			 :get-lambda
 			   (lambda (obj)
 			     (dlg-list-to-string obj "\n"))))
 
@@ -809,6 +827,7 @@ to work with Ghostscript" widget-label :face 'bold-italic :x 5)
 			    (> emacs-minor-version 31))
 			(data-object-command-option
 			 "(global-font-lock-mode t)"
+			 :value global-font-lock-mode
 			 :disable-command "(global-font-lock-mode nil)")
 		      (data-object-symbol-hook
 		       'find-file-hooks
