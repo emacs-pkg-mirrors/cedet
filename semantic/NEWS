@@ -237,6 +237,11 @@ A lot of things are now auto-loaded on demand.
 
 * Languages.
 
+** Python parser added.
+The LALR grammar is based on the official grammar with slight
+modifications.  The tokens generated are formatted similar to
+those produced by the Java parser.
+
 TBD.
 
 
