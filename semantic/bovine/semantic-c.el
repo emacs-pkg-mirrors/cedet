@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.8 2003/01/30 14:55:38 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.9 2003/02/03 08:47:05 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-30 15:14+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-02-02 13:42+0100
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -618,17 +618,11 @@
 
     (template-var
      (template-type
-      opt-stars
       opt-template-equal
       ,(semantic-lambda
         (cons
-         (concat
-          (car
-           (nth 0 vals))
-          (make-string
-           (car
-            (nth 1 vals))
-           42))
+         (car
+          (nth 0 vals))
          (cdr
           (nth 0 vals))))
       )
@@ -641,6 +635,12 @@
       ,(semantic-lambda
         (list
          (nth 0 vals)))
+      )
+     (opt-stars
+      opt-ref
+      namespace-symbol
+      ,(semantic-lambda
+        (nth 2 vals))
       )
      ) ;; end template-var
 
@@ -681,29 +681,38 @@
       ,(semantic-lambda
         (list
          (nth 1 vals) 'type
-         "struct" nil nil))
+         "class" nil nil))
       )
-     (builtintype
-      symbol
+     (declmods
+      typeformbase
+      cv-declmods
+      opt-stars
+      opt-ref
+      variablearg-opt-name
       ,(semantic-lambda
-        (nth 0 vals)
-        (list 'type nil nil nil))
-      )
-     (builtintype
-      ,(semantic-lambda
-        (nth 0 vals)
-        (list 'type nil nil nil))
-      )
-     (namespace-symbol
-      symbol
-      ,(semantic-lambda
-        (nth 0 vals)
-        (list 'type nil nil nil))
-      )
-     (namespace-symbol
-      ,(semantic-lambda
-        (nth 0 vals)
-        (list 'type nil nil nil))
+        (list
+         (car
+          (nth 1 vals)) 'type nil nil
+         (semantic-bovinate-make-assoc-list
+          'const
+          (if
+              (member
+               "const"
+               (append
+                (nth 0 vals)
+                (nth 2 vals))) t nil)
+          'typemodifiers
+          (delete
+           "const"
+           (append
+            (nth 0 vals)
+            (nth 2 vals)))
+          'reference
+          (car
+           (nth 4 vals))
+          'pointer
+          (car
+           (nth 3 vals)))))
       )
      ) ;; end template-type
 
@@ -1866,7 +1875,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   def)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-30 15:14+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-02-02 13:42+0100
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -2122,7 +2131,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-30 15:14+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-02-02 13:42+0100
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
           semantic-toplevel-bovine-table-source "c.by"
