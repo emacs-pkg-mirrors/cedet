@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.10 2002/07/16 21:18:18 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.11 2002/07/17 10:00:53 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,7 +34,6 @@
 
 ;;; Code:
 (require 'wisent-bovine)
-(require 'semantic-lex)
 
 (eval-when-compile
   (require 'font-lock))
@@ -49,7 +48,7 @@
   "Detect and create identifier or keyword tokens."
   "\\(\\sw\\|\\s_\\)+"
   (semantic-lex-token
-   (or (semantic-flex-keyword-p (match-string 0))
+   (or (semantic-lex-keyword-p (match-string 0))
        'SYMBOL)
    (match-beginning 0)
    (match-end 0)))
@@ -84,20 +83,6 @@
   "Detect and create a C-like character token."
   wisent-wy-lex-c-char-re 'CHARACTER)
 
-(define-lex-regex-analyzer wisent-wy-lex-punctuation
-  "Detect and create punctuation tokens."
-  "\\(\\s.\\|\\s$\\|\\s'\\)+"
-  (let* ((punct (match-string 0))
-         (start (match-beginning 0))
-         (rules (cdr (wisent-flex-token-rules 'punctuation)))
-         entry)
-    ;; Starting with the longest punctuation string, search if it
-    ;; matches a punctuation of this language.
-    (while (and (> (length punct) 0)
-                (not (setq entry (rassoc punct rules))))
-      (setq punct (substring punct 0 -1)))
-    (semantic-lex-token (car entry) start (+ start (length punct)))))
-
 (define-lex-block-analyzer wisent-wy-lex-blocks
   "Detect and create a open, close or block token."
   (PAREN_BLOCK ("(" LPAREN) (")" RPAREN))
@@ -120,7 +105,7 @@ It ignores whitespaces, newlines and comments."
   semantic-lex-ignore-comments
   ;; Must detect punctuations after comments because the semicolon can
   ;; be a punctuation or a comment start!
-  wisent-wy-lex-punctuation
+  wisent-flex-punctuation
   wisent-wy-lex-blocks
   semantic-lex-default-action)
 
@@ -992,7 +977,7 @@ of the first line of comment."
           (pp-to-string
            (wisent-wy-with-wy-buffer
             (let ((keywords (wisent-wy-keywords)))
-              `(semantic-flex-make-keyword-table
+              `(semantic-lex-make-keyword-table
                 ',keywords
                 ',(wisent-wy-keyword-properties keywords)))))))
 
