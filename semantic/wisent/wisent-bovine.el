@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.10 2001/12/07 21:13:24 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.11 2001/12/15 23:27:12 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,6 +101,8 @@ This function does not have argument and must pop tokens from
   "Function used to report parse error.")
 (make-variable-buffer-local 'wisent-error-function)
 
+(defvar wisent-lexer-lookahead nil)
+
 (defun wisent-lexer-wrapper ()
   "Return the next lexical input available.
 Used as a wrapper to call `wisent-lexer-function' and to provide
@@ -111,7 +113,10 @@ working goodies."
            (/ (* 100 (semantic-flex-start (car wisent-flex-istream)))
               (point-max)))
         (working-dynamic-status)))
-  (funcall wisent-lexer-function))
+  (or (prog1
+          wisent-lexer-lookahead
+        (setq wisent-lexer-lookahead nil))
+      (funcall wisent-lexer-function)))
 
 (defun wisent-collect-unmatched-syntax (input)
   "Add INPUT lexical token to the cache of unmatched tokens.
@@ -149,12 +154,13 @@ list of semantic tokens found."
 Optional argument RETURNONERROR indicates that the parser should exit
 with the current results on a parse error."
   (let ((case-fold-search semantic-case-fold)
-        result nontermsym sstream)
+        result nontermsym sstream lookahead wisent-lexer-lookahead)
     ;; Collect unmatched syntax lexical tokens
     (add-hook 'wisent-skip-token-hook
               'wisent-collect-unmatched-syntax)
     (while stream
-      (setq nontermsym (wisent-bovinate-nonterminal
+      (setq lookahead wisent-lexer-lookahead
+            nontermsym (wisent-bovinate-nonterminal
                         stream
                         semantic-toplevel-bovine-table
                         #'wisent-lexer-wrapper
@@ -162,8 +168,11 @@ with the current results on a parse error."
                         nonterm)
             stream     (car nontermsym)
             sstream    (nth 1 nontermsym))
+      (if (and wisent-lookahead (eq lookahead wisent-lookahead))
+          (wisent-collect-unmatched-syntax lookahead)
+        (setq wisent-lexer-lookahead wisent-lookahead))
       (if sstream
-          (setq result (append sstream result))
+          (setq result (nconc sstream result))
         (if returnonerror
             (setq stream nil)
           ;;(error "Parse error")
@@ -236,9 +245,10 @@ Iterates until all the space between START and END is exhausted.
 Argument NONTERM is the nonterminal symbol to start with or nil for
 default goal.  Optional argument DEPTH is the depth of lists to dive
 into.  It defaults to `wisent-flex-depth'."
-  (wisent-bovinate-nonterminals
-   (semantic-flex start end (or depth wisent-flex-depth))
-   nonterm))
+  (nreverse
+   (wisent-bovinate-nonterminals
+    (semantic-flex start end (or depth 1))
+    nonterm)))
 
 (defun wisent-bovinate-region-until-error (start end nonterm
                                                  &optional depth)
@@ -249,11 +259,11 @@ error is encountered, and return the list of everything found until
 that moment.  This is meant for finding variable definitions at the
 beginning of code blocks in methods.  If NONTERM can also support
 commands, use `wisent-bovinate-from-nonterminal-full'."
-  (wisent-bovinate-nonterminals
-   (semantic-flex start end (or depth wisent-flex-depth))
-   nonterm
-   ;; This says stop on an error.
-   t))
+  (nreverse (wisent-bovinate-nonterminals
+             (semantic-flex start end (or depth wisent-flex-depth))
+             nonterm
+             ;; This says stop on an error.
+             t)))
 
 (defun wisent-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer with the LALR parser.
@@ -307,13 +317,16 @@ that, otherwise, do a full reparse."
       ;;    (semantic-dump-buffer-init))
       ;; Parse!
       (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
-        (setq cache (wisent-bovinate-nonterminals
-                     (semantic-flex (point-min) (point-max)) nil))
+        (setq cache (nreverse
+                     (wisent-bovinate-nonterminals
+                      (semantic-flex (point-min) (point-max)) nil)))
         (working-status t))
-      ;; Clear the cache just before setting the cache.  This way,
-      ;; if an error occurs, we can capture it, and leave the old state
-      ;; behind.
-      (semantic-clear-toplevel-cache)
+      ;; Clear the cache just before setting the cache.  This way, if
+      ;; an error occurs, we can capture it, and leave the old state
+      ;; behind.  Preserve the new unmatched syntax cache.
+      (let ((unmatched-syntax semantic-unmatched-syntax-cache))
+        (semantic-clear-toplevel-cache)
+        (setq semantic-unmatched-syntax-cache unmatched-syntax))
       ;; Set up the new overlays, and then reset the cache.
       (semantic-overlay-list cache)
       (semantic-set-toplevel-bovine-cache cache)
