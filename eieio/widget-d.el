@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: widget-d.el,v 1.9 1996/11/18 00:21:46 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.10 1996/11/27 03:40:46 zappo Exp $
 ;;; Keywords: OO widget
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -74,10 +74,6 @@ widgets will use data-object to store their data.")
 	   :initform nil
 	   :accessor get-parent
 	   :docstring "A widget of type `widget-group' of which this is a child.")
-   (managed :initarg :managed
-	    :initform t
-	    :docstring "(unused) t if this widget is active."
-	    :protection private)
    (watched-symbols :initarg :watched-symbols
 		    :initform nil
 		    :docstring "List of symbols this widget cares about."
@@ -109,17 +105,17 @@ or something like that.")
    (y :initarg :y
       :initform nil
       :docstring "The Y position in a buffer relative to parent.")
-   (resizeable :initarg :resizeable
-	       :initform nil
-	       :docstring "(unused) t if this widget has a tendency to resize itself.")
+;   (resizeable :initarg :resizeable
+;	       :initform nil
+;	       :docstring "(unused) t if this widget has a tendency to resize itself.")
    (nx :initform 0
        :docstring "The normalized X position relative to parent. (After geometry management)")
    (ny :initform 0
        :docstring "The normalized Y position relative to parent. (After geometry management)")
-   (marker :initarg :marker
-	   :initform nil
-	   :protection private
-	   :docstring "(Unused) Marker in the dialog buffer from which all drawing commands are based.")
+;   (marker :initarg :marker
+;	   :initform nil
+;	   :protection private
+;	   :docstring "(Unused) Marker in the dialog buffer from which all drawing commands are based.")
    (face :initarg :face
 	 :initform widget-default-face
 	 :protection private
@@ -252,6 +248,50 @@ which represents some sort of typing which would be useful to know.")
   "Special group widget which makes creating text fields with labels next to
 them more convenient.")
 
+(defclass widget-option-text (widget-group)
+  ((handle-io :initform t)
+   (value :initarg :value
+	  :initform nil
+	  :docstring "Text object displayed with a `widget-option-button' just to the right
+and a label to the left.  This contains the value used by the option button and
+the text widget so they can communicate.")
+   (label :initarg :label
+	  :initform nil
+	  :docstring "Text object displayed with a `widget-label' before a `widget-text-field'.")
+   (text-length :initarg :text-length
+		:initform 20
+		:docstring "The width passed to the `widget-text-field'")
+   (option-list :initarg :option-list
+		:initform nil
+		:docstring "List of strings which are the options to appear in the option list.")
+   )
+  "Specialized text widget which will have an optional `widget-label' followed
+by a `widget-text-field' which will be followed by a `widget-option-button'.
+The menu button will appear as a down-arrow.  Items selected from the menu
+will then appear in the text field.")
+
+(defclass widget-scrolled-text (widget-group)
+  ((handle-io :initform t)
+   (boxed :initform t)
+   (value :initarg :value
+	  :initform nil
+	  :docstring "The `data-object' we are going to edit with the text widget")
+   (state :initarg :state
+	  :initform 0
+	  :docstring "Current value of the built-in scrollbar")
+   (maximum :initarg :maximum
+	    :initform 1
+	    :docstring "Largest allowed value for the built-in scrollbar")
+   (scrollbar :initform nil
+	      :docstring "Holder for scrollbar so we don't make too many of them"
+	      :protection private)
+   )
+  "Specialized composite widget which wil build a `widget-text-block'
+of the same dimentions given for our width/height.  A scrollbar will be
+created just off the edge of our box and it's `maximum' and `minimum' will
+be controlled by the text widget (as it's text gets larger/smaller), and
+the scrollbar's value will alter the text widget's positioning of text.")
+
 ;;
 ;; The important label type
 ;;
@@ -297,8 +337,7 @@ carriage returns in them.")
 	     :initform widget-arm-face
 	     :docstring "Face used when this button has been pushed."
 	     :protection private)
-   (focus-face :initarg :focus-face
-	       :initform widget-focus-face
+   (focus-face :initform widget-focus-face
 	       :protection private)
    (activate-hook :initarg :activate-hook
 		  :initform nil
@@ -318,25 +357,45 @@ If a push button is desired, it is better to use a widget of type
 `widget-push-button' instead as it has a better visual effects.")
 
 (defclass widget-push-button (widget-button)
-  ((boxed :initarg :boxed
-	  :initform t)
-   (box-char :initarg :box-char
-	     :initform [?  ?  ?  ?  ?  ?  ?< ?> ]
+  ((boxed :initform t)
+   (box-char :initform [?  ?  ?  ?  ?  ?  ?< ?> ]
 	     :protection private)
    (box-sides :initform [ t t nil nil ])
-   (box-face :initarg :box-face
-	     :initform widget-indicator-face
+   (box-face :initform widget-indicator-face
 	     :protection private)
    ;; Add a little bit of margin
-   (leftmargin :initarg :leftmargin
-	       :initform 1)
-   (rightmargin :initarg :rightmargin
-		:initform 1)
+   (leftmargin :initform 1)
+   (rightmargin :initform 1)
    )
   "Class for a push button.  This button behaves as a `widget-button'
 but with a different visual effect.  This is the preferred widget to
 use as the `widget-button' is used as a starting point for all button
 types.")
+
+(defclass widget-arrow-button (widget-button)
+  ((activate-hook :initform (lambda-default (obj reason)
+			      "Arrow button Activate-Hook"
+			      (let ((state (oref obj state)))
+				(set-value state (+ (get-value state)
+						    (oref obj adjustment))))))
+   (state :initarg :state
+	  :initarg nil
+	  :docstring "The value which will be adjusted when we are activated")
+   (direction :initarg :direction
+	      :initarg 'up
+	      :documentation "Direction this arrow button points.  Valid values are 'up,
+'down, 'left, and 'right.  The values 'up and 'left will default `adjustment'
+to -1, and 'right and 'down will set it to 1.  This field will also
+automatically set the `label-value' slot if it is not specified.")
+   (adjustment :initarg :adjustment
+	       :initarg nil
+	       :docstring "How much to adjust `state' by when activated.  If it is not specified
+at creation time, it's value will be generated from the value of the 
+`direction' slot.")
+   )
+  "An arrow button is a specialized button used to increment or decrement a
+state variable.  Arrow buttons are usually used to adjust `widget-scale'
+values.")
 
 (defclass widget-option-button (widget-button)
   ((option-indicator :initarg :option-indicator
@@ -344,7 +403,7 @@ types.")
 		     :docstring "String printed to the left of the label in `left-margin' used to show this is an option button.")
    (option-list :initarg :option-list
 		:initform nil
-		:docstring "List of strings which are the options")
+		:docstring "List of strings which are the options to appear in the pull down menu.")
    (option-obarray :initform nil
 		   :protection private
 		   :docstring "Obarray used for command line reading of symbols")
@@ -354,6 +413,11 @@ types.")
 	     :protection private)
    (justification :initarg :justification
 		  :initform left)
+   (dynamic-label :initarg :dynamic-label
+		  :initform t
+		  :docstring "t means that the label of this button will always show the selected
+element from option-list.  nil will leave the label string alone."
+		  :protection private)
    (boxed :initform nil)
    (state :initarg :state
 	  :initform 0
@@ -400,9 +464,12 @@ values.")
 ;;
 ;; Scrollbar types
 ;;
-(defclass widget-scale (widget-square)
+(defclass widget-scale (widget-group)
   ((handle-io :initform t)
-   (boxed :initform t)
+   (focus-face :initarg :focus-face
+	       :initform widget-focus-face
+	       :docstring "Face used on thumb and step buttons when the mouse is over them."
+	       :protection private)
    (state :initarg :state
 	  :initform 0
 	  :docstring "Current value of this scale")
@@ -417,10 +484,17 @@ values.")
 	      :docstring "Direction to draw the scale")
    (end-buttons :initarg :end-buttons
 		:initform nil
-		:docstring "Text used to inc/dec this scale")
-   (marker :initarg :marker
+		:docstring "t means to create two buttons to inc/dec the scale value")
+   (trough-face :initarg :trough-face
+		:initform nil
+		:docstring "Face used when rendering the trough of a scale widget")
+   (trough-chars :initarg :trough-chars
+		 :initform [ ?- ?| ]
+		 :docstring "Characters used when drawing the trough, the vector is of the
+form [ horizontal-char vertical-char ]")
+   (thumb :initarg :thumb
 	   :initform "#"
-	   :docstring "Character used to draw the value indicator")
+	   :docstring "Character used to draw the value thumb button indicator")
    )
   "Not Implemented Completely Yet.
 
@@ -430,7 +504,7 @@ characters.")
 
 (defclass widget-scrollbar (widget-scale)
   ((end-buttons :initarg :end-buttons
-		:initform [ [ "<" ">" ] [ "/\\" "\\/" ] ])
+		:initform t)
    (range :initarg :range
 	  :initform 10
 	  :docstring "Range of currently viewable area"))
@@ -466,10 +540,19 @@ left or right of the field."
 global map is used when this value is nil.  Otherwise, additional
 mode-specific keymaps could be substituted to lend additional
 behaviors.")
-   (disppos :initform 0
-	    :docstring "Current position in the text value to display info from")
-   (keycache :initform nil
-	     :docstring "Collecting keypresses for multi keystroke keys.")
+   (display-column :initarg :display-column
+		   :initform 0
+		   :docstring "Current horizontal position in a text buffer where the display starts")
+   (display-row :initarg :display-row
+		:initform 0
+		:docstring "Current vertical position in a text buffer where the display starts")
+   (display-num-rows :initarg :display-num-rows
+		     :initform nil
+		     :docstring "The number of rows of text displayed in this text widget.  This is
+different from the number of rows displayed as some are clipped.")
+; This isn't used, but may be useful in the future.
+;   (keycache :initform nil
+;	     :docstring "Collecting keypresses for multi keystroke keys.")
    (value :initarg :value
 	  :initform nil
 	  :docstring "A `data-object' representing the string we are editing.")
@@ -478,6 +561,16 @@ behaviors.")
 which is no more than 1 line high.  Extra text will not be printed,
 but characters on either side of the field will display `<' or `>' to
 indicate that there is more to see outside of the visible part.")
+
+(defclass widget-text-box (widget-text-field)
+  ((height :initform nil)
+   (boxed :initform t)
+   (face :initform nil
+	 :protection private)
+   (focus-face :initform nil
+	       :protection private))
+  "A text box is a multi-line `widget-text-field'.  It specifies differing
+features needed to make a multi-line text box look better.")
 
 (run-hooks 'widget-d-load-hooks)
 
