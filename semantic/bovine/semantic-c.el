@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.6 2003/01/29 17:55:19 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.7 2003/01/30 09:17:14 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1650,6 +1650,26 @@ Go to the next line."
   "\\\\\\s-*\n"
   (setq end-point (match-end 0)))
 
+(define-lex-regex-analyzer semantic-lex-c-string
+  "Detect and create a C string token."
+  "L?\\(\\s\"\\)"
+  ;; Zing to the end of this string.
+  (semantic-lex-token
+   'string (point)
+   (save-excursion
+     ;; Skip L prefix if present.
+     (goto-char (match-beginning 1))
+     (condition-case nil
+	 (forward-sexp 1)
+       ;; This case makes lex robust to broken strings.
+       (error
+	(goto-char
+	 (funcall
+	  semantic-lex-unterminated-syntax-end-function
+	  'string
+	  start end))))
+     (point))))
+
 (define-lex semantic-c-lexer
   "Lexical Analyzer for C code."
   semantic-lex-ignore-whitespace
@@ -1659,11 +1679,12 @@ Go to the next line."
   semantic-lex-c-include-system
   semantic-lex-c-ignore-ending-backslash
   semantic-lex-number
+  ;; Must detect C strings before symbols because of possible L prefix!
+  semantic-lex-c-string
   semantic-lex-symbol-or-keyword
   semantic-lex-charquote
   semantic-lex-paren-or-list
   semantic-lex-close-paren
-  semantic-lex-string
   semantic-lex-ignore-comments
   semantic-lex-punctuation
   semantic-lex-default-action)
