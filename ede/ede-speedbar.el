@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.10 1999/12/02 20:34:41 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.11 1999/12/04 17:32:18 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -36,6 +36,8 @@
 ;;; Code:
 (require 'ede)
 (require 'eieio-speedbar)
+
+(eval-when-compile (require 'speedbar))
 
 ;;; Speedbar support mode
 ;;
@@ -225,9 +227,9 @@ A plain child is a child element which is not an EIEIO object."
   "Return the list of speedbar display children for THIS."
   (oref this source))
 
-(defmethod eieio-speedbar-child-make-tag-lines ((this ede-target))
+(defmethod eieio-speedbar-child-make-tag-lines ((this ede-target) depth)
   "Create a speedbar tag line for a child of THIS.
-It has string CHILD-STRING, and depth DEPTH."
+It has depth DEPTH."
   (with-slots (source) this
     (mapcar (lambda (car)
  	      (speedbar-make-tag-line 'bracket ?+
