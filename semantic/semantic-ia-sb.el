@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.15 2004/04/28 15:38:39 ponced Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.16 2004/10/14 02:54:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,7 +41,7 @@
 
   ;; Basic featuers.
   (define-key semantic-ia-sb-key-map "\C-m" 'speedbar-edit-line)
-  (define-key semantic-ia-sb-key-map "I" 'semantic-ia-show-sb-tag-info)
+  (define-key semantic-ia-sb-key-map "I" 'semantic-ia-sb-show-tag-info)
   )
 
 (defvar semantic-ia-sb-easymenu-definition
@@ -242,45 +242,48 @@ See `semantic-ia-sb-tag-info' for more."
 Show the information in a shrunk split-buffer and expand
 out as many details as possible.
 TEXT, TAG, and INDENT are speedbar function arguments."
-  (unwind-protect
-      (let ((ob nil))
-	(speedbar-select-attached-frame)
-	(setq ob (current-buffer))
-	(with-output-to-temp-buffer "*Tag Information*"
-	  ;; Output something about this tag:
-	  (save-excursion
-	    (set-buffer "*Tag Information*")
-	    (goto-char (point-max))
-	    (insert
-	     (semantic-format-tag-prototype tag nil t)
-	     "\n")
-	    (let ((typetok
-		   (save-excursion
-		     (set-buffer ob)
-		     (semantic-analyze-tag-type tag))))
-	      (if typetok
-		  (insert (semantic-format-tag-prototype
-			   typetok nil t))
-		;; No type found by the analyzer
-		(let ((type (semantic-tag-type tag)))
-		  (save-excursion
-		    (set-buffer
-		     (marker-buffer (car semantic-ia-sb-last-analysis)))
- 		    (cond ((semantic-tag-p type)
- 			   (setq type (semantic-tag-name type)))
- 			  ((listp type)
- 			   (setq type (car type))))
+  (when (semantic-tag-p tag)
+    (unwind-protect
+	(let ((ob nil))
+	  (speedbar-select-attached-frame)
+	  (setq ob (current-buffer))
+	  (with-output-to-temp-buffer "*Tag Information*"
+	    ;; Output something about this tag:
+	    (save-excursion
+	      (set-buffer "*Tag Information*")
+	      (goto-char (point-max))
+	      (insert
+	       (semantic-format-tag-prototype tag nil t)
+	       "\n")
+	      (let ((typetok
+		     (condition-case nil
+			 (save-excursion
+			   (set-buffer ob)
+			   (semantic-analyze-tag-type tag))
+		       (error nil))))
+		(if typetok
+		    (insert (semantic-format-tag-prototype
+			     typetok nil t))
+		  ;; No type found by the analyzer
+		  ;; The below used to try and select the buffer from the last
+		  ;; analysis, but since we are already in the correct buffer, I
+		  ;; don't think that is needed.
+		  (let ((type (semantic-tag-type tag)))
+		    (cond ((semantic-tag-p type)
+			   (setq type (semantic-tag-name type)))
+			  ((listp type)
+			   (setq type (car type))))
 		    (if (semantic-lex-keyword-p type)
 			(setq typetok
 			      (semantic-lex-keyword-get type 'summary))))
 		  (if typetok
-		      (insert typetok)))
-		))
-	    ))
-	;; Make it small
-	(shrink-window-if-larger-than-buffer
-	 (get-buffer-window "*Tag Information*")))
-    (select-frame speedbar-frame)))
+		      (insert typetok))
+		  ))
+	      ))
+	  ;; Make it small
+	  (shrink-window-if-larger-than-buffer
+	   (get-buffer-window "*Tag Information*")))
+      (select-frame speedbar-frame))))
 
 (defun semantic-ia-sb-line-path (&optional depth)
   "Return the file name associated with DEPTH."
@@ -288,38 +291,37 @@ TEXT, TAG, and INDENT are speedbar function arguments."
     (let* ((tok (speedbar-line-token))
 	   (buff (if (semantic-tag-buffer tok)
 		     (semantic-tag-buffer tok)
-		   ;; Local variables are deoverlayed.  We should assume
-		   ;; that they are in the buffer deriving the context.
-		   (marker-buffer (car semantic-ia-sb-last-analysis)))))
+		   (current-buffer))))
       (buffer-file-name buff))))
 
 (defun semantic-ia-sb-complete (text tag indent)
   "At point in the attached buffer, complete the symbol clicked on.
 TEXT TAG and INDENT are the details."
   ;; Find the specified bounds from the current analysis.
-  (let* ((a (cdr semantic-ia-sb-last-analysis))
-	 (pnt (car semantic-ia-sb-last-analysis))
-	 (bounds (oref a bounds))
-	 (movepoint nil)
-	 )
-    (save-excursion
-      (set-buffer (marker-buffer pnt))
-      (if (and (<= (point) (cdr bounds)) (>= (point) (car bounds)))
-	  (setq movepoint t))
-      (goto-char (car bounds))
-      (delete-region (car bounds) (cdr bounds))
-      (insert (semantic-tag-name tag))
-      (if movepoint (setq movepoint (point)))
-      ;; I'd like to use this to add fancy () or what not at the end
-      ;; but we need the parent file whih requires an upgrade to the
-      ;; analysis tool.
-      ;;(semantic-insert-foreign-tag tag ??))
-      )
-    (if movepoint
-	(let ((cf (selected-frame)))
-	  (speedbar-select-attached-frame)
-	  (goto-char movepoint)
-	  (select-frame cf)))))
+  (speedbar-select-attached-frame)
+  (unwind-protect
+      (let* ((a (semantic-analyze-current-context (point)))
+	     (bounds (oref a bounds))
+	     (movepoint nil)
+	     )
+	(save-excursion
+	  (if (and (<= (point) (cdr bounds)) (>= (point) (car bounds)))
+	      (setq movepoint t))
+	  (goto-char (car bounds))
+	  (delete-region (car bounds) (cdr bounds))
+	  (insert (semantic-tag-name tag))
+	  (if movepoint (setq movepoint (point)))
+	  ;; I'd like to use this to add fancy () or what not at the end
+	  ;; but we need the parent file whih requires an upgrade to the
+	  ;; analysis tool.
+	  ;;(semantic-insert-foreign-tag tag ??))
+	  )
+	(if movepoint
+	    (let ((cf (selected-frame)))
+	      (speedbar-select-attached-frame)
+	      (goto-char movepoint)
+	      (select-frame cf))))
+    (select-frame speedbar-frame)))
 
 (provide 'semantic-ia-sb)
 
