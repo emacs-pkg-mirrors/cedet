@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: dlg-config.el,v 1.5 1996/11/01 05:33:00 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.6 1996/11/10 14:16:50 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -60,7 +60,7 @@ the changes you just set.")
 ;;;
 ;;; DLG builders
 ;;;
-(defun dlg-init ()
+(defun dlg-init (&optional edit-style)
   "Configure some basic emacs stuff"
   (switch-to-buffer (get-buffer-create "Emacs Configure"))
   (toggle-read-only -1)
@@ -69,16 +69,27 @@ the changes you just set.")
   (dialog-build-group (create-widget "Emacs Config Options" widget-frame
 				     :position 'top-right)
 
-    (create-widget "config-file" widget-labeled-text
-		   :label "Config File  :" :text-length 40
-		   :value (data-object-symbol "config-file" :protect t
-					      :symbol 'dlg-config-file))
-    (create-widget "x-config-file" widget-labeled-text
-		   :label "Xdefault File:" :text-length 40
-		   :value (data-object-symbol "x-file" :protect t
-					      :symbol 'dlg-xdefaults-file))
+    (if (or (not edit-style) (eq edit-style 'dot-emacs))
+	(create-widget "config-file" widget-labeled-text
+		       :label "Config File  :" :text-length 40
+		       :value (data-object-symbol "config-file" :protect t
+						  :symbol 'dlg-config-file)))
+    (if (or (not edit-style) (eq edit-style 'xdefaults))
+	(create-widget "x-config-file" widget-labeled-text
+		       :label "Xdefault File:" :text-length 40
+		       :value (data-object-symbol "x-file" :protect t
+						  :symbol 'dlg-xdefaults-file)))
+    (create-widget "Modify running environment"
+		   widget-toggle-button :y -1
+		   :state dlg-modify-running-environment
+		   :activate-hook (lambda (obj reason)
+				    (setq dlg-modify-running-environment
+					  (get-value (oref obj state))))
+		   :help-hook (lambda (obj reason)
+				(message "ON means to modify your environment whenever a value changes."))
+		   )
     (create-widget "Auto Edit files" widget-toggle-button
-		   :y -1 :state dlg-auto-edit
+		   :x -2 :y t :state dlg-auto-edit
 		   :activate-hook (lambda (obj reason)
 				    (setq dlg-auto-edit
 					  (get-value (oref obj state))))
@@ -86,20 +97,12 @@ the changes you just set.")
 				(message "ON means to modify the appropriate config file for all changes"))
 		   )
     (create-widget "Show Edits" widget-toggle-button
-		   :x -5 :y t :state dlg-show-edits
+		   :x -2 :y t :state dlg-show-edits
 		   :activate-hook (lambda (obj reason)
 				    (setq dlg-show-edits
 					  (get-value (oref obj state))))
 		   :help-hook (lambda (obj reason)
 				(message "ON means to show all edits in another window."))
-		   )
-    (create-widget "Modify running environment (Does not affect everything.)"
-		   widget-toggle-button :state dlg-modify-running-environment
-		   :activate-hook (lambda (obj reason)
-				    (setq dlg-modify-running-environment
-					  (get-value (oref obj state))))
-		   :help-hook (lambda (obj reason)
-				(message "ON means to modify your environment whenever a value changes."))
 		   )
     ))
 
@@ -187,7 +190,7 @@ default to a list of simple faces."
 			       'secondary-selection
 			       (if (member 'paren-mismatch (face-list))
 				   'paren-mismatch))))
-  (dlg-init)
+  (dlg-init 'xdefaults)
   (let ((even t))
     (while list-o-faces
       (if (car list-o-faces)
