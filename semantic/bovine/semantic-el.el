@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.17 2003/09/05 04:19:01 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.18 2003/12/11 01:08:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -453,7 +453,7 @@ Don't implement this."
     (if point (goto-char point))
     (semantic-beginning-of-command)
     (let ((fun (function-at-point)))
-      (if fun (list fun)))
+      (if fun (list (symbol-name fun))))
     ))
 
 (define-mode-overload-implementation semantic-ctxt-current-argument emacs-lisp-mode
