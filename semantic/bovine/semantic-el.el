@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.1 2002/08/11 17:25:44 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.2 2002/08/13 16:37:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -321,25 +321,32 @@ Overrides `semantic-nonterminal-static'."
   ;; This can only be true (theoretically) in a class where it is assigned.
   (semantic-token-extra-spec token 'static))
 
-(setq-major-mode semantic-lex-analyzer emacs-lisp-mode
-		 'semantic-emacs-lisp-lexer)
+(defvar-mode-local emacs-lisp-mode semantic-lex-analyzer
+  'semantic-emacs-lisp-lexer)
 
-(setq-major-mode semantic-toplevel-bovine-table emacs-lisp-mode
-		 semantic-toplevel-elisp-bovine-table)
-(setq-major-mode semantic-expand-nonterminal emacs-lisp-mode
-		 'semantic-expand-elisp-nonterminal)
-(setq-major-mode semantic-function-argument-separator emacs-lisp-mode
-		 " ")
-(setq-major-mode semantic-function-argument-separation-character emacs-lisp-mode
-		 " ")
-(setq-major-mode semantic-symbol->name-assoc-list emacs-lisp-mode
-		 '( (type     . "Types")
-		    (variable . "Variables")
-		    (function . "Defuns")
-		    (include  . "Requires")
-		    (package  . "Provides")))
-(setq-major-mode imenu-create-index-function emacs-lisp-mode
-		 'semantic-create-imenu-index)
+(defvar-mode-local emacs-lisp-mode semantic-toplevel-bovine-table
+  semantic-toplevel-elisp-bovine-table)
+
+(defvar-mode-local emacs-lisp-mode semantic-expand-nonterminal
+  'semantic-expand-elisp-nonterminal)
+
+(defvar-mode-local emacs-lisp-mode semantic-function-argument-separator
+  " ")
+
+(defvar-mode-local emacs-lisp-mode semantic-function-argument-separation-character
+  " ")
+
+(defvar-mode-local emacs-lisp-mode semantic-symbol->name-assoc-list
+  '(
+    (type     . "Types")
+    (variable . "Variables")
+    (function . "Defuns")
+    (include  . "Requires")
+    (package  . "Provides")
+    ))
+
+(defvar-mode-local emacs-lisp-mode imenu-create-index-function
+  'semantic-create-imenu-index)
 
 ;;;###autoload
 (defun semantic-default-elisp-setup ()
