@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.31 2001/02/14 02:36:23 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.32 2001/02/24 02:08:17 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -655,7 +655,10 @@ SOURCEFILE is the file name from whence tokstream came."
 	   (when var
 	     ;; The bovine table
 	     (insert "(setq semantic-toplevel-bovine-table "
-		     (semantic-token-name (car var)) ")\n "))
+		     (semantic-token-name (car var)) "\n ")
+	     (insert "semantic-toplevel-bovine-table-source \""
+		     fname "\")\n")
+	     )
 	   ;; Keytable setup
 	   (when key
 	     (insert "(setq semantic-flex-keywords-obarray "
@@ -715,6 +718,59 @@ SOURCEFILE is the file name from whence tokstream came."
       (erase-buffer)
       (insert "Expanding rule [" (semantic-token-name r) "]\n\n")
       (semantic-bnf-to-bovine (list r)))))
+
+;;; Debugging support
+;;
+;; Source level debugging if a BNF table requires a few simple functions.
+(defun semantic-bnf-find-state-position (rule matchlistindex matchindex)
+  "Find the current debugger position in the current buffer.
+RULE is a symbol representing the rule name we are currently in.
+MATCHLISTINDEX is the index to the current match list being tested.
+MATCHINDEX is the index into the matchlist being tested."
+  (let* ((start (car (semantic-find-nonterminal-by-token 'start (current-buffer))))
+	 (sn (symbol-name rule))
+	 (findme (if (and start (eq rule 'bovine-toplevel))
+		     (semantic-token-name start)
+		   (symbol-name rule)))
+	 (r (semantic-find-nonterminal-by-name
+	     findme (semantic-find-nonterminal-by-token
+		     'rule (current-buffer)))))
+    (if (not r)
+	(error "Semantic debugger error: Cannot find rule %s" findme))
+    ;; Find the rule
+    (goto-char (semantic-token-start r))
+    ;; find the matchlist
+    (re-search-forward ":\\s-*")
+    (while (/= matchlistindex 0)
+      (re-search-forward "^\\s-*|\\s-*")
+      (setq matchlistindex (1- matchlistindex))
+      )
+    ;; find the specific token we are matching
+    (while (/= matchindex 0)
+      (when (semantic-bnf-looking-at-%token-not-keyword)
+	(setq matchindex (1- matchindex)))
+      (forward-sexp 1)
+      (setq matchindex (1- matchindex))
+      )
+    (skip-chars-forward " \t\n")
+    ;; Leave the cursor here, and let them highlight if for us
+    (current-buffer)
+    ))
+
+(defun semantic-bnf-looking-at-%token-not-keyword ()
+  "Return non-nil if the token following the cursor is a %token.
+Some tokens are keywords.  Make sure we know the difference."
+  (when (looking-at "\\s-*\\(\\(\\w\\|\\s_\\)+\\)")
+    (semantic-find-nonterminal-by-name
+     (match-string 1)
+     (semantic-find-nonterminal-by-token 'token (current-buffer)))))
+
+(defun semantic-bnf-find-source-on-load-path (sourcefile)
+  "Find the BNF file SOURCEFILE on the Emacs `load-path'.
+Once found, put it in a buffer, and return it."
+  (let ((sf (locate-library sourcefile)))
+    (if sf (find-file-noselect sf)))
+  )
 
 ;;; Semantic BNF mode
 ;;
