@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.3 2000/12/15 01:18:06 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.4 2001/01/10 06:52:02 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -106,7 +106,7 @@ a variable symbol used to store a list of all instances.")
   "Make sure THIS is in our master list of this class.
 Optional argument FIELDS are the initialization arguments."
   ;; Theoretically, this is never called twice for a given instance.
-  (add-to-list (oref this tracking-symbol) this t))
+  (add-to-list (oref this tracking-symbol) this))
 
 (defmethod delete-instance ((this eieio-instance-tracker))
   "Remove THIS from the master list of this class."
