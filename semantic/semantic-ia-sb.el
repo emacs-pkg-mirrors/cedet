@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.1 2002/03/14 03:31:22 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.2 2002/03/14 18:28:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,6 +56,11 @@
 			       semantic-ia-sb-key-map
 			       semantic-ia-speedbar))
 
+(speedbar-add-mode-functions-list
+ (list "Analyze"
+       ;;'(speedbar-item-info . eieio-speedbar-item-info)
+       '(speedbar-line-path . semantic-ia-sb-line-path)))
+
 (defun semantic-speedbar-analysis ()
   "Pull up speedbar in semantic analysis mode."
   (interactive)
@@ -82,7 +87,7 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
 	  (speedbar-select-attached-frame)
 	  (setq buffer (current-buffer))
 	  (save-excursion
-	    (if (eq (car semantic-ai-sb-last-analysis) (point))
+	    (if (eq (car semantic-ia-sb-last-analysis) (point))
 		(setq analysis (cdr semantic-ia-sb-last-analysis))
 	      (setq analysis (semantic-analyze-current-context (point))))
 	    (setq semantic-ia-sb-last-analysis (cons (point-marker) analysis))
@@ -108,19 +113,28 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
       ;; 			    nil nil nil nil)
       (when fnargs
 	(insert "Arguments:\n")
-	(semantic-ia-sb-string-list fnargs 'speedbar-tag-face nil))
+	(semantic-ia-sb-string-list fnargs
+				    'speedbar-tag-face
+				    'semantic-sb-token-jump))
       (let ((localvars (oref analysis localvariables)))
 	(when localvars
 	  (insert "Local Variables:\n")
-	  (semantic-ia-sb-string-list localvars 'speedbar-tag-face nil)))
+	  (semantic-ia-sb-string-list localvars
+				      'speedbar-tag-face
+				      ;; This is from semantic-sb
+				      'semantic-sb-token-jump)))
       (let ((prefix (oref analysis prefix)))
 	(when prefix
 	  (insert "Prefix:\n")
-	  (semantic-ia-sb-string-list prefix 'speedbar-tag-face nil))
+	  (semantic-ia-sb-string-list prefix
+				      'speedbar-tag-face
+				      'semantic-sb-token-jump))
 	)
       (when completions
 	(insert "Completions:\n")
-	(semantic-ia-sb-string-list completions 'speedbar-tag-face nil))
+	(semantic-ia-sb-string-list completions
+				    'speedbar-tag-face
+				    'semantic-ia-sb-complete))
       )))
 
 (defun semantic-ia-sb-string-list (list face function)
@@ -137,10 +151,44 @@ Each button will use FACE, and be activated with FUNCTION."
 			      0)
       (setq list (cdr list)))))
 		 
+(defun semantic-ia-sb-line-path (&optional depth)
+  "Return the file name associated with DEPTH."
+  (save-match-data
+    (let* ((tok (speedbar-line-token))
+	   (buff (if (semantic-token-buffer tok)
+		     (semantic-token-buffer tok)
+		   ;; Local variables are deoverlayed.  We should assume
+		   ;; that they are in the buffer deriving the context.
+		   (marker-buffer (car semantic-ia-sb-last-analysis)))))
+      (buffer-file-name buff))))
 
-
-
-
+(defun semantic-ia-sb-complete (text token indent)
+  "At point in the attached buffer, complete the symbol clicked on.
+TEXT TOKEN and INDENT are the details."
+  ;; Find the specified bounds from the current analysis.
+  (let* ((a (cdr semantic-ia-sb-last-analysis))
+	 (pnt (car semantic-ia-sb-last-analysis))
+	 (bounds (oref a bounds))
+	 (movepoint nil)
+	 )
+    (save-excursion
+      (set-buffer (marker-buffer pnt))
+      (if (and (<= (point) (cdr bounds)) (>= (point) (car bounds)))
+	  (setq movepoint t))
+      (delete-region (car bounds) (cdr bounds))
+      (goto-char (car bounds))
+      (insert (semantic-token-name token))
+      (if movepoint (setq movepoint (point)))
+      ;; I'd like to use this to add fancy () or what not at the end
+      ;; but we need the parent file whih requires an upgrade to the
+      ;; analysis tool.
+      ;;(senator-insert-foreign-token token ??))
+      )
+    (if movepoint
+	(let ((cf (selected-frame)))
+	  (speedbar-select-attached-frame)
+	  (goto-char movepoint)
+	  (select-frame cf)))))
 
 (provide 'semantic-ia-sb)
 
