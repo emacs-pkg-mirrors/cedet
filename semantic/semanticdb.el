@@ -1,10 +1,10 @@
 ;;; semanticdb.el --- Semantic token database manager
 
-;;; Copyright (C) 1999, 2000 Eric M. Ludlam
+;;; Copyright (C) 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.1 2000/12/07 04:21:54 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.2 2000/12/07 04:46:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,6 +64,7 @@ If file is loaded, return it's tokens, calling `semantic-bovinate-toplevel'.
 If file is not loaded, and tokens are available in the database, return them.
 If file is not loaded, and not tokens are available in the data base,
 load the file, and call `semantic-bovinate-toplevel'."
+  (message "Not yet implemented.")
   )
 
 ;;; Classes:
@@ -178,8 +179,10 @@ Sets up the semanticdb environment."
 (defun semanticdb-kill-hook ()
   "Function run when a buffer is killed.
 If there is a semantic cache, slurp out the overlays, an store
-it in our database."
-  (if semantic-toplevel-bovine-table
+it in our database.  If that buffer has not cache, ignore it, we'll
+handle it later if need be."
+  (if (and semantic-toplevel-bovine-table
+	   semantic-toplevel-bovine-cache)
       (semantic-deoverlay-cache)))
 
 (defun semanticdb-kill-emacs-hook ()
@@ -197,14 +200,18 @@ Save all the databases."
     )
   "List of hooks and values to add/remove when configuring semanticdb.")
 
+(defun semanticdb-minor-mode-p ()
+  "Return non-nil if `semanticdb-minor-mode' is active."
+  (member (car (car semanticdb-hooks))
+	  (symbol-value (car (cdr (car semanticdb-hooks))))))
+
 (defun global-semanticdb-minor-mode (&optional arg)
   "Toggle the use of `semanticdb-minor-mode'.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
   (if (not arg)
-      (if (member (car (car semanticdb-hooks))
-		  (symbol-value (car (cdr (car semanticdb-hooks)))))
+      (if (semanticdb-minor-mode-p)
 	  (setq arg -1)
 	(setq arg 1)))
   (let ((fn 'add-hook)
