@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.37 2003/07/29 15:14:42 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.38 2003/12/22 15:54:57 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -77,8 +77,13 @@ other criteria.")
 
   (global-senator-minor-mode 1)
   (global-semantic-show-unmatched-syntax-mode 1)
-  (global-semantic-summary-mode 1)
-  (global-semantic-auto-parse-mode 1)
+  ;; Superseeded
+  ;; (global-semantic-summary-mode 1)
+  (global-semantic-idle-scheduler-mode 1)
+  
+  ;; Superseeded
+  ;; (global-semantic-auto-parse-mode 1)
+  (global-semantic-idle-summary-mode 1)
 
   (global-semantic-show-parser-state-mode 1)
 
