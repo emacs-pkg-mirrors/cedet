@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.48 2002/08/07 20:28:30 zappo Exp $
+@c $Id: eieio.texi,v 1.49 2002/08/07 21:08:10 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -1038,7 +1038,9 @@ is possible to use several features at the same time.
 @menu
 * eieio-instance-inheritor::    Enable value inheritance between instances.
 * eieio-instance-tracker::      Enable self tracking instances.
+* eieio-singleton::             Only one instance of a given class.
 * eieio-persistent::            Enable persistence for a class.
+* eieio-named::                 Use the object name as a :name field.
 * eieio-speedbar::              Enable speedbar support in your objects.
 @end menu
 
@@ -1072,7 +1074,7 @@ method will cause references to unbound slots to be redirected to the
 parent instance.  If the parent slot is also unbound, then
 @code{slot-unbound} will throw an @code{slot-unbound} signal.
 
-@node eieio-instance-tracker, eieio-persistent, eieio-instance-inheritor, Base Classes
+@node eieio-instance-tracker, eieio-singleton, eieio-instance-inheritor, Base Classes
 @comment  node-name,  next,  previous,  up
 
 This class is in package @file{eieio-base}.
@@ -1107,7 +1109,19 @@ The paramter @var{list-symbol} is the variable symbol which contains the
 list of objects to be searched.
 @end deffn
 
-@node eieio-persistent, eieio-speedbar, eieio-instance-tracker, Base Classes
+@node eieio-singleton, eieio-persistent, eieio-instance-tracker, Base Classes
+@comment  node-name,  next,  previous,  up
+@section @code{eieio-singleton}
+
+This class is in package @file{eieio-base}.
+
+@deftp {Class} eieio-singleton
+Inheriting from the singleton class will guarantee that there will
+only ever be one instance of this class.  Multiple calls to
+@code{make-instance} will always return the same object.
+@end deftp
+
+@node eieio-persistent, eieio-named, eieio-singleton, Base Classes
 @comment  node-name,  next,  previous,  up
 @section @code{eieio-persistent}
 
@@ -1156,7 +1170,19 @@ Read @var{filename} which contains an @code{eieio-persistent} object
 previously written with @code{eieio-persistent-save}.
 @end defun
 
-@node eieio-speedbar, , eieio-persistent, Base Classes
+@node eieio-named, eieio-speedbar, eieio-persistent, Base Classes
+@comment  node-name,  next,  previous,  up
+@section @code{eieio-named}
+
+This class is in package @file{eieio-base}.
+
+@deftp {Class} eieio-named
+Object with a name.
+Name storage already occurs in an object.  This object provides get/set
+access to it.
+@end deftp
+
+@node eieio-speedbar, , eieio-named, Base Classes
 @comment  node-name,  next,  previous,  up
 @section @code{eieio-speedbar}
 
