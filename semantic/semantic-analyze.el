@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.21 2004/02/03 17:07:06 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.22 2004/02/03 19:34:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -271,6 +271,50 @@ databases which have this type as a property."
     (append slots extmeth)
     ))
 
+(defun semantic-analyze-scope-nested-tags (&optional position)
+  "Return a list of types in order of nesting for the context of POSITION.
+If POSITION is in a method with a named parent, find that parent, and
+identify it's scope via overlay instead.
+This only finds ONE immediate parent by name.  All other parents returned
+are from nesting data types."
+  (save-excursion
+    (if position (goto-char position))
+    (let* ((stack (reverse (semantic-find-tag-by-overlay (point))))
+	   (tag (car stack))
+	   (pparent (car (cdr stack)))
+	   )
+      ;; Only do this level of analysis for functions.
+      (when (eq (semantic-tag-class tag) 'function)
+	(if (and pparent (eq (semantic-tag-class pparent) 'type))
+	    ;; We have a parent in our stack, so analyze this stack
+	    ;; We are done.
+	    nil
+	  ;; No parent, we need to seek one out.
+	  (let ((p (semantic-tag-function-parent tag)))
+	    (when p
+	      ;; We have a parent, search for it.
+	      (let ((ptag (semantic-analyze-find-tag
+			   (cond ((stringp p) p)
+				 ((semantic-tag-p p)
+				  (semantic-tag-name p))
+				 ((and (listp p) (stringp (car p)))
+				  (car p))) 'type)))
+		(setq pparent ptag)))
+	    ))
+	;; If we have a pparent tag, lets go there
+	;; an analyze that stack of tags.
+	(when (and pparent (semantic-tag-with-position-p pparent))
+	  (semantic-go-to-tag pparent)
+	  (setq stack (reverse (semantic-find-tag-by-overlay (point))))
+	  (let ((returnlist nil))
+	    ;; Add things to STACK until we cease finding tags of class type.
+	    (while (and stack (eq (semantic-tag-class (car stack)) 'type))
+	      (setq returnlist (cons (car stack) returnlist)
+		    stack (cdr stack)))
+	    (reverse returnlist))
+	  )))))
+
+
 (defun semantic-analyze-scoped-tags (typelist)
   "Return a list of tags accessable when TYPELIST is in scope.
 Tags returned are not in the global name space, but are instead
@@ -290,26 +334,9 @@ types available."
     (if position (goto-char position))
     (let ((tag (semantic-current-tag))
 	  (code-scoped-parents nil)
-	  (parent nil))
-      (setq parent
-	    ;; This only makes sense in a function
-	    (when (and tag (eq (semantic-tag-class tag) 'function))
-	      ;; If TAG is a function, it may have a parent class.
-	      ;; Find it.
-	      (let ((p (semantic-tag-function-parent tag)))
-		(if p
-		    ;; We have a parent, search for it.
-		    (let ((ptag (semantic-analyze-find-tag
-				 (cond ((stringp p) p)
-				       ((semantic-tag-p p)
-					(semantic-tag-name p))
-				       ((and (listp p) (stringp (car p)))
-					(car p))) 'type)))
-		      ptag)
-		  ;; No specified parent.  See if there is a parent by
-		  ;; position?
-		  (setq p (semantic-current-tag-parent))
-		  p))))
+	  (parents nil))
+      ;; Get the PARENTS including nesting scope for this location.
+      (setq parents (semantic-analyze-scope-nested-tags))
       ;; Lets ask if any types are currently scoped.  Scoped
       ;; classes and types provide their public methods and types
       ;; in source code, but are unrelated hierarchically.
@@ -324,8 +351,8 @@ types available."
       (setq code-scoped-parents (nreverse code-scoped-parents))
       ;; We return a list in case a function can have multiple explicit
       ;; parents.
-      (if parent
-	  (cons parent code-scoped-parents)
+      (if parents
+	  (append parents code-scoped-parents)
 	code-scoped-parents))))
 
 ;;; Top Level context analysis function
