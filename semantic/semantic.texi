@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.63 2002/03/23 03:02:41 zappo Exp $
+@c $Id: semantic.texi,v 1.64 2002/05/09 04:21:42 emacsman Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -652,50 +652,71 @@ from yacc and bison. @xref{(bison)}.)
 There are several settings that can be made in the settings section.
 They are:
 
-@table @code
-@item %start <nonterminal>
+@deffn Setting %start <nonterminal>
 Specify an alternative to @code{bovine-toplevel}.  (See below)
-@item %scopestart <nonterminal>
+@end deffn
+
+@deffn Setting %scopestart <nonterminal>
 Specify an alternative to @code{bovine-inner-scope}.
-@item %outputfile <filename>
+@end deffn
+
+@deffn Setting %outputfile <filename>
 Required.  Specifies the file into which this files output is stored.
-@item %parsetable <lisp-variable-name>
+@end deffn
+
+@deffn Setting %parsetable <lisp-variable-name>
 Required.  Specifies a lisp variable into which the output is stored.
-@item %setupfunction <lisp-function-name>
+@end deffn
+
+@deffn Setting %setupfunction <lisp-function-name>
 Required.  Name of a function into which setup code is to be inserted.
-@item %keywordtable <lisp-variable-name>
+@end deffn
+
+@deffn Setting %keywordtable <lisp-variable-name>
 Required if there are @code{%token} keywords.
 Specifies a lisp variable into which the output of a keyword table is
 stored.  This obarray is used to turn symbols into keywords when applicable.
-@item %token <name> "<text>"
+@end deffn
+
+@deffn Setting %token <name> "<text>"
 Optional.  Specify a new token @var{NAME}.  This is added to a lexical
 keyword list using @var{TEXT}.  The symbol is then converted into a new
 lexical terminal.  This requires that the @code{%keywordtable} specified
 variable is available in the file specified by @code{%outputfile}.
-@item %token <name> type "<text>"
+@end deffn
+
+@deffn Setting %token <name> type "<text>"
 Optional.  Specify a new token @var{NAME}.  It is made from an existing
 lexical token of type @var{TYPE}.  @var{TEXT} is a string which will be
 matched explicitly.  @var{NAME} can be used in match rules as though they were
 flex tokens, but are converted back to @var{TYPE} "text" internally.
-@item %put <NAME> symbol <VALUE>
-@itemx %put <NAME> ( symbol1 <VALUE1> symbol2 <VALUE2> ... )
-@itemx %put ( <NAME1> <NAME2>...) symbol <VALUE>
+@end deffn
+
+@deffn Setting %put <NAME> symbol <VALUE>
+@deffnx Setting %put <NAME> ( symbol1 <VALUE1> symbol2 <VALUE2> ... )
+@deffnx Setting %put ( <NAME1> <NAME2>...) symbol <VALUE>
 Tokens created without a type are considered keywords, and placed in a
 keyword table.  Use @code{%put} to apply properties to that keyword.
 (see @ref{Lexing}).
-@item %languagemode <lisp-function-name>
-@itemx %languagemode ( <lisp-function-name1> <lisp-function-name2> ... )
+@end deffn
+
+@deffn Setting %languagemode <lisp-function-name>
+@deffnx Setting %languagemode ( <lisp-function-name1> <lisp-function-name2> ... )
 Optional.  Specifies the Emacs major mode associated with the language
 being specified.  When the language is converted, all buffers of this
 mode will get the new table installed.
-@item %quotemode backquote
+@end deffn
+
+@deffn Setting %quotemode backquote
 Optional.  Specifies how symbol quoting is handled in the Optional
 Lambda Expressions. (See below)
-@item %( <lisp-expression> )%
+@end deffn
+
+@deffn Setting {%( <lisp-expression> )%}
 Specify setup code to be inserted into the @code{%setupfunction}.
 It will be inserted between two specifier strings, or added to
 the end of the function.
-@end table
+@end deffn
 
 When working inside @code{%( ... )%} tokens, any lisp expression can be
 entered which will be placed inside the setup function.  In general, you
