@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.17 1999/05/22 14:28:26 zappo Exp $
+;; RCS: $Id: ede.el,v 1.18 1999/06/07 13:01:48 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -308,6 +308,8 @@ Argument LIST-O-O is the list of objects to choose from."
     (add-to-list 'minor-mode-map-alist
 		 (cons 'ede-minor-mode
 		       ede-minor-keymap))))
+
+(autoload 'ede-dired-minor-mode "ede-dired" "EDE commands for dired" t)
 
 (defun ede-minor-mode (&optional arg)
   "Project Automake minor mode.
