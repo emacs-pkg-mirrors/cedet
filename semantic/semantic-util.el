@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.60 2001/04/25 17:25:53 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.61 2001/05/05 14:54:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -886,13 +886,15 @@ things that these non-terminals are useful for.  Use the function
 Available override symbols:
 
   SYBMOL                  PARAMETERS         DESCRIPTION
+ `abbreviate-nonterminal' (tok & parent color)        Return summary string.
+ `summarize-nonterminal'  (tok & parent color)        Return summary string.
+ `prototype-nonterminal'  (tok & parent color)        Return a prototype string.
+ `concise-prototype-nonterminal' (tok & parent color) Return a concise prototype string.
+ `uml-abbreviate-nonterminal' (tok & parent color)    Return a UML standard abbreviation string.
+
  `find-dependency'        (token)            Find the dependency file
  `find-nonterminal'       (token & parent)   Find token in buffer.
  `find-documentation'     (token & nosnarf)  Find doc comments.
- `abbreviate-nonterminal' (token & parent)   Return summary string.
- `summarize-nonterminal'  (token & parent)   Return summary string.
- `prototype-nonterminal'  (token)            Return a prototype string.
- `concise-prototype-nonterminal' (token) Return a concise prototype string.
  `prototype-file'         (buffer)           Return a file in which
  	                                     prototypes are placed
  `nonterminal-children'   (token)            Return first rate children.
@@ -960,6 +962,345 @@ Return nil if not found."
   (symbol-value
    (and (arrayp semantic-override-table)
         (intern-soft (symbol-name sym) semantic-override-table))))
+
+;;; Token to text overload functions
+;;
+;; Abbreviations, prototypes, and coloring support.
+(eval-when-compile (require 'font-lock))
+
+(defvar semantic-token->text-functions
+  '(semantic-name-nonterminal
+    semantic-abbreviate-nonterminal
+    semantic-summarize-nonterminal
+    semantic-prototype-nonterminal
+    semantic-concise-prototype-nonterminal
+    semantic-uml-abbreviate-nonterminal
+    )
+  "List of functions which convert a token to text.
+Each function must take the parameters TOKEN &optional PARENT COLOR.
+TOKEN is the token to convert.
+PARENT is a parent token or name which refers to the structure
+or class which contains TOKEN.  PARENT is NOT a class which a TOKEN
+would claim as a parent.
+COLOR indicates that the generated text should be colored using
+`font-lock'.")
+
+(defvar semantic-token->text-custom-list
+  (append '(radio)
+	  (mapcar (lambda (f) (list 'const f))
+		  semantic-token->text-functions)
+	  '(function))
+  "A List used by customizeable variables to choose a token to text function.
+Use this variable in the :type field of a customizable variable.")
+
+(defun semantic-colorize-text (text face)
+  "Apply onto TEXT the FACE containing the desired colors."
+  (let ((newtext (concat text)))
+    (put-text-property 0 (length text) 'face face newtext)
+    newtext)
+  )
+
+(defun semantic-name-nonterminal (token &optional parent color)
+  "Return the name string describing TOKEN.
+The name is the short est possible representation.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'name-nonterminal))
+	tt)
+    ;; No colors without font lock
+    (if (not (featurep 'font-lock)) (setq color nil))
+    (if s
+	(funcall s token parent color)
+      (semantic-name-nonterminal-default token parent color))))
+
+(defun semantic-name-nonterminal-default (token &optional parent color)
+  "Return an abbreviated string describing TOKEN.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  ;; Do lots of complex stuff here.
+  (let ((tok (semantic-token-token token))
+	(name (semantic-token-name token))
+	(face nil)
+	)
+    (cond ((eq tok 'function)
+	   (setq face font-lock-function-name-face))
+	  ((eq tok 'include)
+	   (setq face font-lock-constant-face))
+	  ((eq tok 'variable)
+	   (setq face font-lock-variable-name-face))
+	  ((eq tok 'type)
+	   (setq face font-lock-type-face))
+	  ((eq tok 'provide)
+	   (setq face font-lock-constant-face))
+	  )
+    (if color (setq name (semantic-colorize-text name face)))
+    name))
+
+(defun semantic-abbreviate-nonterminal (token &optional parent color)
+  "Return an abbreviated string describing TOKEN.
+The abbreviation is to be short, with possible symbols indicating
+the type of token, or other information.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'abbreviate-nonterminal)))
+    ;; No colors without font lock
+    (if (not (featurep 'font-lock)) (setq color nil))
+    (if s
+	(funcall s token parent color)
+      (semantic-abbreviate-nonterminal-default token parent color))))
+
+(defun semantic-abbreviate-nonterminal-default (token &optional parent color)
+  "Return an abbreviated string describing TOKEN.
+Optional argument PARENT is a parent token in the token hierarchy.
+In this case PARENT refers to containment, not inheritance.
+Optional argument COLOR means highlight the prototype with font-lock colors.
+This is a simple C like default."
+  ;; Do lots of complex stuff here.
+  (let ((tok (semantic-token-token token))
+	(name (semantic-name-nonterminal token parent color))
+	(suffix "")
+	str)
+    (cond ((eq tok 'function)
+	   (setq suffix "()"))
+	  ((eq tok 'include)
+	   (setq suffix "<>"))
+	  ((eq tok 'variable)
+	   (setq suffix (if (semantic-token-variable-default token)
+			    "=" "")))
+	  )
+    (setq str (concat name suffix))
+    (if parent
+	(setq str
+	      (concat (semantic-name-nonterminal parent color)
+		      (car semantic-type-relation-separator-character)
+		      str)))
+    str))
+
+;; Semantic 1.2.x had this misspelling.  Keep it for backwards compatibiity.
+(defalias 'semantic-summerize-nonterminal 'semantic-summarize-nonterminal)
+
+(defun semantic-summarize-nonterminal (token &optional parent color)
+  "Summarize TOKEN in a reasonable way.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'summarize-nonterminal)))
+    ;; No colors without font lock
+    (if (not (featurep 'font-lock)) (setq color nil))
+    (if s
+	(funcall s token parent color)
+      (semantic-summarize-nonterminal-default token parent color)
+      )))
+
+(defun semantic-summarize-nonterminal-default (token &optional parent color)
+  "Summarize TOKEN in a reasonable way.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((proto (semantic-prototype-nonterminal token nil color))
+	(label (capitalize
+		(or (cdr-safe (assoc (semantic-token-token token)
+				     semantic-symbol->name-assoc-list))
+		    (symbol-name (semantic-token-token token))))))
+    (if color
+	(setq label (semantic-colorize-text label font-lock-string-face)))
+    (concat label ": " proto))
+  )
+
+(defun semantic-prototype-nonterminal (token &optional parent color)
+  "Return a prototype for TOKEN.
+This functin must be overloaded, though it need not be used.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'prototype-nonterminal)))
+    ;; No colors without font lock
+    (if (not (featurep 'font-lock)) (setq color nil))
+    (if s
+	;; Prototype is non-local
+	(funcall s token t)
+      (semantic-prototype-nonterminal-default token parent color))))
+
+(defun semantic-prototype-nonterminal-default-args (args color)
+  "Create a list of of strings for prototypes of ARGS.
+ARGS can be a list of terminals, or a list of strings.
+COLOR specifies if these arguments should be colored or not."
+  (let ((out nil))
+    (while args
+      (cond ((stringp (car args))
+	     (let ((a (car args)))
+	       (if color
+		   (setq a (semantic-colorize-text
+			    a font-lock-variable-name-face)))
+	       (setq out (cons a out))
+	       ))
+	    ((semantic-token-p (car args))
+	     (setq out
+		   (cons (semantic-prototype-nonterminal (car args) nil t)
+			 out))))
+      (setq args (cdr args)))
+    (nreverse out)))
+
+(defun semantic-prototype-nonterminal-default (token &optional parent color)
+  "Default method for returning a prototype for TOKEN.
+This will work for C like languages.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let* ((tok (semantic-token-token token))
+	 (name (semantic-name-nonterminal token parent color))
+	 (type (if (member tok '(function variable type))
+		   (semantic-token-type token) ""))
+	 (args (semantic-prototype-nonterminal-default-args
+		(cond ((eq tok 'function)
+		       (semantic-token-function-args token))
+		      ((eq tok 'type)
+		       (semantic-token-type-parts token))
+		      (t nil))
+		color))
+	 (const (semantic-token-extra-spec token 'const))
+	 (mods (append
+		(if const '("const") nil)
+		(semantic-token-extra-spec token 'typemodifiers)))
+	 (array (if (eq tok 'variable)
+		    (let ((deref
+			   (semantic-token-variable-extra-spec
+			    token 'dereference))
+			  (r ""))
+		      (while (and deref (/= deref 0))
+			(setq r (concat r "[]")
+			      deref (1- deref)))
+		      r)))
+	 (suffix (if (eq tok 'variable)
+		     (semantic-token-variable-extra-spec token 'suffix)))
+	 )
+    (if (and (listp mods) mods)
+	(setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
+    (if (and mods color)
+	(setq mods (semantic-colorize-text
+		    mods
+		    font-lock-type-face)))
+    (if args
+	(setq args
+	      (concat " "
+		      (if (eq tok 'type) "{" "(")
+		      (mapconcat (lambda (a) a) args ",")
+		      (if (eq tok 'type) "}" ")"))))
+    (if type
+	(if (semantic-token-p type)
+	    (setq type (semantic-prototype-nonterminal type nil color))
+	  (if (listp type)
+	      (setq type (car type)))
+	  (if color
+	      (setq type (semantic-colorize-text type font-lock-type-face)))))
+    (concat (or mods "")
+	    (if type (concat type " "))
+	    name
+	    (or args "")
+	    (or array ""))))
+
+(defun semantic-concise-prototype-nonterminal (token &optional parent color)
+  "Return a concise prototype for TOKEN.
+This function must be overloaded, though it need not be used.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'concise-prototype-nonterminal)))
+    (if s
+	(funcall s token parent color)
+      (semantic-concise-prototype-nonterminal-default token parent color))))
+
+(defun semantic-concise-prototype-nonterminal-default (token &optional parent color)
+  "Return a concise prototype for TOKEN.
+This default cococt a cheap concise prototype using C like syntax.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((tok (semantic-token-token token)))
+    (cond
+     ((eq tok 'type)
+      (concat (semantic-name-nonterminal token parent color) "{}"))
+     ((eq tok 'function)
+      (let ((args (semantic-token-function-args token)))
+        (concat (semantic-name-nonterminal token parent color)
+                "("
+                (if args
+                    (cond ((stringp (car args))
+			   (mapconcat
+			    (if color
+				(lambda (a) (semantic-colorize-text
+					     a font-lock-variable-name-face))
+			      'identity)
+			    args ","))
+			  ((semantic-token-p (car args))
+			   (mapconcat
+			    (lambda (a)
+			      (let ((ty (semantic-token-type a)))
+				(cond ((and (stringp ty) color)
+				       (semantic-colorize-text
+					ty font-lock-type-face))
+				      ((stringp ty)
+				       ty)
+				      ((semantic-token-p ty)
+				       (semantic-prototype-nonterminal
+					ty parent nil))
+				      ((and (consp ty) color)
+				       (semantic-colorize-text
+					(car ty) font-lock-type-face))
+				      ((consp ty)
+				       (car ty))
+				      (t (error "Concice-prototype")))))
+			    args ", "))
+			  ((consp (car args))
+			   (mapconcat
+			    (if color
+				(lambda (a)
+				  (semantic-colorize-text
+				   (car a) font-lock-type-face))
+			      'car)
+			    args ","))
+			  (t (error "Concice-prototype")))
+                  "")
+                ")")))
+     ((eq tok 'variable)
+      (let* ((deref (semantic-token-variable-extra-spec
+                     token 'dereference))
+             (array "")
+             (suffix (semantic-token-variable-extra-spec
+                      token 'suffix)))
+        (while (and deref (/= deref 0))
+          (setq array (concat array "[]")
+                deref (1- deref)))
+        (concat (semantic-name-nonterminal token parent nil)
+                array)))
+     (t
+      (semantic-abbreviate-nonterminal token parent nil)))))
+
+(defun semantic-uml-abbreviate-nonterminal (token &optional parent color)
+  "Return a UML style abbreviation for TOKEN.
+This function must be overloaded, though it need not be used.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'uml-abbreviate-nonterminal)))
+    (if s
+	(funcall s token parent color)
+      (semantic-uml-abbreviate-nonterminal-default token parent color))))
+
+(defun semantic-uml-abbreviate-nonterminal-default (token &optional parent color)
+  "Return a UML style abbreviation for TOKEN.
+This default cococt a cheap concise prototype using C like syntax.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let* ((tok (semantic-token-token token))
+	 (name (semantic-name-nonterminal token parent color))
+	 (type (if (member tok '(function variable type))
+		   (semantic-token-type token) ""))
+	 )
+    (if type
+	(if (semantic-token-p type)
+	    (setq type (semantic-prototype-nonterminal type nil color))
+	  (if (listp type)
+	      (setq type (car type)))
+	  (if color
+	      (setq type (semantic-colorize-text type font-lock-type-face)))))
+    (if type
+	(concat name ":" type)
+      name)
+    ))
 
 (defvar semantic-dependency-include-path nil
   "Defines the include path used when searching for files.
@@ -1109,164 +1450,6 @@ If NOSNARF is 'flex, then return the flex token."
 			     (substring ct (match-end 0))))))
 	;; Now return the text.
 	ct))))
-
-(defun semantic-abbreviate-nonterminal (token &optional parent)
-  "Return an abbreviated string describing TOKEN.
-The abbreviation is to be short, with possible symbols indicating
-the type of token, or other information.
-Optional argument PARENT is the parent type if TOKEN is a detail."
-  (let ((s (semantic-fetch-overload 'abbreviate-nonterminal))
-	tt)
-    (if s
-	(funcall s token parent)
-      (semantic-abbreviate-nonterminal-default token parent))))
-
-(defun semantic-abbreviate-nonterminal-default (token &optional parent)
-  "Return an abbreviated string describing TOKEN.
-Optional argument PARENT is a parent token in the token hierarchy.
-This is a simple C like default."
-  ;; Do lots of complex stuff here.
-  (let ((tok (semantic-token-token token))
-	(name (semantic-token-name token))
-	str)
-    (setq str
-	  (concat name
-		  (cond ((eq tok 'function) "()")
-			((eq tok 'include) "<>")
-			((and (eq tok 'variable)
-			      (semantic-token-variable-default token))
-			 "=")
-			)))
-    (if parent
-	(setq str
-	      (concat (semantic-token-name parent)
-		      (car semantic-type-relation-separator-character)
-		      str)))
-    str))
-
-;; Semantic 1.2.x had this misspelling.  Keep it for backwards compatibiity.
-(defalias 'semantic-summerize-nonterminal 'semantic-summarize-nonterminal)
-
-(defun semantic-summarize-nonterminal (token &optional parent)
-  "Summarize TOKEN in a reasonable way.
-Optional argument PARENT is the parent type if TOKEN is a detail."
-  (let ((s (semantic-fetch-overload 'summarize-nonterminal)))
-    (if s
-	(funcall s token parent)
-      ;; FLESH THIS OUT MORE
-      (concat (capitalize
-	       (or (cdr-safe (assoc (semantic-token-token token)
-				    semantic-symbol->name-assoc-list))
-		   (symbol-name (semantic-token-token token))))
-	      ": "
-	      (semantic-prototype-nonterminal token)))))
-
-(defun semantic-prototype-nonterminal (token)
-  "Return a prototype for TOKEN.
-This functin must be overloaded, though it need not be used."
-  (let ((tt (semantic-token-token token))
-	(s (semantic-fetch-overload 'prototype-nonterminal)))
-    (if s
-	;; Prototype is non-local
-	(funcall s token)
-      (semantic-prototype-nonterminal-default token))))
-
-(defun semantic-prototype-nonterminal-default (token)
-  "Default method for returning a prototype for TOKEN.
-This will work for C like languages."
-  (let* ((tok (semantic-token-token token))
-	 (type (if (member tok '(function variable type))
-		   (semantic-token-type token) ""))
-	 (args (cond ((eq tok 'function)
-		      (semantic-token-function-args token))
-		     ((eq tok 'type)
-		      (semantic-token-type-parts token))
-		     (t nil)))
-	 (const (semantic-token-extra-spec token 'const))
-	 (mods (append
-		(if const '("const") nil)
-		(semantic-token-extra-spec token 'typemodifiers)))
-	 (array (if (eq tok 'variable)
-		    (let ((deref
-			   (semantic-token-variable-extra-spec
-			    token 'dereference))
-			  (r ""))
-		      (while (and deref (/= deref 0))
-			(setq r (concat r "[]")
-			      deref (1- deref)))
-		      r)))
-	 (suffix (if (eq tok 'variable)
-		     (semantic-token-variable-extra-spec token 'suffix)))
-	 )
-    (if (and (listp mods) mods)
-	(setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
-    (if args
-	(setq args
-	      (concat " " (if (eq tok 'type) "{" "(")
-		      (if (stringp (car args))
-			  (mapconcat (lambda (a) a) args ",")
-			(mapconcat 'car args ","))
-		      (if (eq tok 'type) "}" ")"))))
-    (if (and type (listp type))
-	(setq type (car type)))
-    (concat (or mods "")
-	    (if type (concat type " "))
-	    (semantic-token-name token)
-	    (or args "")
-	    (or array ""))))
-
-(defun semantic-concise-prototype-nonterminal (token)
-  "Return a concise prototype for TOKEN.
-This function must be overloaded, though it need not be used."
-  (let ((s (semantic-fetch-overload 'concise-prototype-nonterminal)))
-    (if s
-	(funcall s token)
-      (semantic-concise-prototype-nonterminal-default token))))
-
-(defun semantic-concise-prototype-nonterminal-default (token)
-  "Return a concise prototype for TOKEN.
-This default cococt a cheap concise prototype using C like syntax."
-  (let ((tok (semantic-token-token token)))
-    (cond
-     ((eq tok 'type)
-      (concat (semantic-token-name token) "{}"))
-     ((eq tok 'function)
-      (let ((args (semantic-token-function-args token)))
-        (concat (semantic-token-name token)
-                "("
-                (if args
-                    (cond ((stringp (car args))
-			   (mapconcat 'identity args ","))
-			  ((semantic-token-p (car args))
-			   (mapconcat
-			    (lambda (a)
-			      (let ((ty (semantic-token-type a)))
-				(cond ((stringp ty)
-				       ty)
-				      ((semantic-token-p ty)
-				       (semantic-prototype-nonterminal ty))
-				      ((consp ty)
-				       (car ty))
-				      (t (error "Concice-prototype")))))
-			    args ", "))
-			  ((consp (car args))
-			   (mapconcat 'car args ","))
-			  (t (error "Concice-prototype")))
-                  "")
-                ")")))
-     ((eq tok 'variable)
-      (let* ((deref (semantic-token-variable-extra-spec
-                     token 'dereference))
-             (array "")
-             (suffix (semantic-token-variable-extra-spec
-                      token 'suffix)))
-        (while (and deref (/= deref 0))
-          (setq array (concat array "[]")
-                deref (1- deref)))
-        (concat (semantic-token-name token)
-                array)))
-     (t
-      (semantic-abbreviate-nonterminal token)))))
 
 (defun semantic-prototype-file (buffer)
   "Return a file in which prototypes belonging to BUFFER should be placed.
