@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-source.el,v 1.2 2000/10/14 02:57:41 zappo Exp $
+;; RCS: $Id: ede-source.el,v 1.3 2001/01/10 07:00:00 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -27,10 +27,10 @@
 ;; will be maintained, and used to track target objects, what they accept,
 ;; and what compilers can be used.
 
-(require 'eieio)
+(require 'eieio-base)
 
 ;;; Code:
-(defclass ede-sourcecode ()
+(defclass ede-sourcecode (eieio-instance-inheritor)
   ((name :initarg :name
 	 :type string
 	 :documentation
