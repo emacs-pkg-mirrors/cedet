@@ -6,7 +6,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.9 2001/04/26 07:08:28 ponced Exp $
+# $Id: java.bnf,v 1.10 2001/04/30 08:27:51 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -271,7 +271,7 @@
 %token AUTHOR      "author"
 %put   AUTHOR      javadoc (seq 1 usage (type))
 %token VERSION     "version"
-%put   VERSION     javadoc (seq 2 usage (type) opt t) 
+%put   VERSION     javadoc (seq 2 usage (type)) 
 %token PARAM       "param"
 %put   PARAM       javadoc (seq 3 usage (function) with-name t) 
 #%token RETURN      "return"
@@ -649,6 +649,9 @@ expression: unary_expression operators_expression_opt
           ;
 
 # $Log: java.bnf,v $
+# Revision 1.10  2001/04/30 08:27:51  ponced
+# Changed "version" javadoc keyword to not optional.
+#
 # Revision 1.9  2001/04/26 07:08:28  ponced
 # Added official javadoc line tag keywords.
 # Provided a value for `block-comment-end'.
