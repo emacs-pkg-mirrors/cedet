@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.9 2000/09/22 02:07:54 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.10 2000/09/25 22:50:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -67,6 +67,12 @@ Overriden to nil if `semantic-imenu-bucketize-file' is nil."
   :group 'semantic
   :type 'bool)
 
+(defcustom semantic-imenu-sort-bucket-function nil
+  "*Function to use when sorting tags in the buckets of functions."
+  :group 'imenu
+  :group 'semantic
+  :type 'function)
+
 ;;; Code:
 (defun semantic-imenu-goto-function (name position &optional rest)
   "Move point associated with NAME to POSITION.
@@ -84,7 +90,8 @@ Optional argument STREAM STREAM is an optional stream of tokens used to create m
   (setq imenu-default-goto-function 'semantic-imenu-goto-function)
   (let ((tokens (or stream (semantic-bovinate-toplevel nil t t))))
     (if semantic-imenu-bucketize-file
-	(let ((buckets (semantic-bucketize tokens))
+	(let ((buckets (semantic-bucketize
+			tokens semantic-imenu-sort-bucket-function))
 	      item name
 	      depend-index
 	      index)
