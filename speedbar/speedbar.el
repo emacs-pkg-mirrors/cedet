@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.214 2002/03/15 15:14:41 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.215 2002/03/16 15:50:08 zappo Exp $
 
-(defvar speedbar-version "0.14beta3"
+(defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
 
 ;; This file is part of GNU Emacs.
@@ -3925,11 +3925,11 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 (defface speedbar-separator-face '((((class color) (background light))
 				    (:background "blue"
 				     :foreground "white"
-				     :overline "white"))
+				     :overline "gray"))
 				   (((class color) (background dark))
 				    (:background "blue"
 				     :foreground "white"
-				     :overline "white"))
+				     :overline "gray"))
 				   (((class grayscale monochrome)
 				     (background light))
 				    (:background "black"
