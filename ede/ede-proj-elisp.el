@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.14 2001/05/14 17:44:13 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.15 2001/05/31 02:57:39 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ A lisp target may be one general program with many separate lisp files in it.")
      "@if test ! -z \"${LOADPATH}\" ; then\\"
      "   for loadpath in ${LOADPATH}; do \\"
      "      echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
-     "    done\\"
+     "    done;\\"
      "fi"
      "@echo \"(setq debug-on-error t)\" >> $@-compile-script"
      "$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^"
@@ -134,13 +134,12 @@ is found, such as a `-version' variable, or the standard header."
 
 (defmethod ede-proj-makefile-insert-variables :AFTER ((this ede-proj-target-elisp))
   "Insert variables needed by target THIS."
-  (if (oref this aux-packages)
-      (insert "LOADPATH=" (mapconcat (lambda (a) a)
-				     (ede-proj-elisp-packages-to-loadpath
-				      (oref this aux-packages))
-				     " ")
-	      "\n")
-    (insert "LOADPATH=\n")))
+  (ede-pmake-insert-variable-shared "LOADPATH"
+    (if (oref this aux-packages)
+	(insert (mapconcat (lambda (a) a)
+			   (ede-proj-elisp-packages-to-loadpath
+			    (oref this aux-packages))
+			   " ")))))
 
 (defun ede-proj-elisp-add-path (path)
   "Add path PATH into the file if it isn't already there."
