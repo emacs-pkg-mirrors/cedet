@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.7 2003/01/30 09:17:14 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.8 2003/01/30 14:55:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-29 18:21+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-30 15:14+0100
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -632,6 +632,16 @@
          (cdr
           (nth 0 vals))))
       )
+     (string
+      ,(semantic-lambda
+        (list
+         (nth 0 vals)))
+      )
+     (number
+      ,(semantic-lambda
+        (list
+         (nth 0 vals)))
+      )
      ) ;; end template-var
 
     (opt-template-equal
@@ -855,18 +865,12 @@
       ,(semantic-lambda
         (nth 0 vals))
       )
-     (symbol
-      template-specifier
-      ,(semantic-lambda
-        (list
-         (nth 0 vals) 'type
-         "class"))
-      )
      (namespace-symbol
-      opt-stars
       opt-template-specifier
       ,(semantic-lambda
-        (nth 0 vals))
+        (nth 0 vals)
+        (list 'type
+              "class"))
       )
      (symbol
       ,(semantic-lambda
@@ -1862,7 +1866,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   def)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-29 18:21+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-30 15:14+0100
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -2118,7 +2122,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-29 18:21+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-30 15:14+0100
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
           semantic-toplevel-bovine-table-source "c.by"
