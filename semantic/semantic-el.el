@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.56 2002/05/07 01:31:14 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.57 2002/06/17 20:00:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -149,6 +149,7 @@ Return a bovination list to use."
               doc)
         ))
      ((or (eq ts 'defun)
+	  (eq ts 'defun*)
 	  (eq ts 'defsubst)
 	  (eq ts 'defmacro))
       ;; functions and macros
