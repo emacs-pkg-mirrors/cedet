@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.13 2000/10/04 02:50:00 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.14 2000/10/04 03:07:48 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -87,6 +87,9 @@ of these.")
   "Buffer local variable in object customize buffers for the current widget.")
 (defvar eieio-co nil
   "Buffer local variable in object customize buffers for the current obj.")
+(defvar eieio-cog nil
+  "Buffer local variable in object customize buffers for the current group.")
+
 
 (define-widget 'object-edit 'group
   "Abstractly modify a CLOS object."
@@ -220,6 +223,9 @@ of these.")
 (defun eieio-object-value-get (widget)
   "Get the value of WIDGET."
   (let* ((obj (widget-get widget :value))
+	 (master-group eieio-cog)
+	 (cv (class-v (object-class-fast obj)))
+	 (fgroup (aref cv class-public-custom-group))
 	 (wids (widget-get widget :children))
 	 (name (car (widget-apply (car wids) :value-inline)))
 	 (chil (nthcdr 1 wids))
@@ -230,15 +236,18 @@ of these.")
     ;; -- None yet
     ;; Create a batch of initargs for each slot.
     (while (and fields chil)
-      (if (car fcust)
+      (if (and (car fcust)
+	       (or (not master-group) (member master-group (car fgroup)))
+	       (slot-boundp obj (car fields)))
 	  (progn
 	    ;; Only customized fields have widgets
 	    (eieio-oset obj (car fields)
-			 (car (widget-apply (car chil) :value-inline)))
+			(car (widget-apply (car chil) :value-inline)))
 	    ;; Two widets per field.  The slot value, and the doc.
 	    (setq chil (cdr (cdr chil)))))
       (setq fields (cdr fields)
-	    fcust (cdr fcust)))
+	    fgroup (cdr fcust))
+	    fcust (cdr fcust))
     ;; Set any name updates on it.
     (aset obj object-name name)
     ;; This is the same object we had before.
@@ -293,11 +302,20 @@ These groups are specified with the `:group' slot flag."
     (goto-char (point-min))
     (widget-forward 3)
     (make-local-variable 'eieio-co)
-    (setq eieio-co obj)))
+    (setq eieio-co obj)
+    (make-local-variable 'eieio-cog)
+    (setq eieio-cog obj group)))
 
 (defmethod eieio-custom-object-apply-reset ((obj eieio-default-superclass))
   "Insert an Apply and Reset button into the object editor.
 Argument OBJ os the object being customized."
+  (widget-create 'push-button
+		 :notify (lambda (&rest ignore)
+			   (widget-apply eieio-wo :value-get)
+			   (eieio-done-customizing eieio-co)
+			   (bury-buffer))
+		 "Accept")
+  (widget-insert "   ")
   (widget-create 'push-button
 		 :notify (lambda (&rest ignore)
 			   ;; I think the act of getting it sets
@@ -311,7 +329,7 @@ Argument OBJ os the object being customized."
   (widget-create 'push-button
 		 :notify (lambda (&rest ignore)
 			   (message "Resetting.")
-			   (eieio-customize-object eieio-co))
+			   (eieio-customize-object eieio-co eieio-cog))
 		 "Reset")
   (widget-insert "   ")
   (widget-create 'push-button
