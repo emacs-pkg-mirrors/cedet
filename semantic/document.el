@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.16 2003/04/02 02:27:08 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.17 2003/07/16 14:53:49 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -110,25 +110,25 @@ When non-nil, query for a new documentation file."
 
 ;;; Documentation insertion functions
 ;;
-(defun document-insert-texinfo (nonterm buffer)
-  "Insert texinfo documentation about NONTERM from BUFFER."
-  (let ((tt (semantic-tag-class nonterm)))
+(defun document-insert-texinfo (tag buffer)
+  "Insert texinfo documentation about TAG from BUFFER."
+  (let ((tt (semantic-tag-class tag)))
     (insert "@"
 	    (cond ((eq tt 'variable)
-		   (if (semantic-tag-get-attribute nonterm 'user-visible)
+		   (if (semantic-tag-get-attribute tag 'user-visible)
 		       "deffn Option"
 		     "defvar"))
 		  ((eq tt 'function)
-		   (if (semantic-tag-get-attribute nonterm 'user-visible)
+		   (if (semantic-tag-get-attribute tag 'user-visible)
 		       "deffn Command"
 		     "defun"))
 		  ((eq tt 'type)
 		   "deftype")
 		  (t (error "Don't know how to document that")))
 	    " "
-	    (semantic-tag-name nonterm))
+	    (semantic-tag-name tag))
     (if (eq tt 'function)
-	(let ((args (semantic-tag-function-arguments nonterm)))
+	(let ((args (semantic-tag-function-arguments tag)))
 	  (while args
 	    (insert " ")
 	    (if (stringp (car args))
@@ -137,45 +137,45 @@ When non-nil, query for a new documentation file."
 	    (setq args (cdr args)))))
     (insert "\n")
     (insert (document-massage-to-texinfo
-	     nonterm
+	     tag
 	     buffer
-	     (document-generate-documentation nonterm buffer)))
+	     (document-generate-documentation tag buffer)))
     (insert "\n@end "
 	    (cond ((eq tt 'variable)
-		   (if (semantic-tag-get-attribute nonterm 'user-visible)
+		   (if (semantic-tag-get-attribute tag 'user-visible)
 		       "deffn"
 		     "defvar"))
 		  ((eq tt 'function)
-		   (if (semantic-tag-get-attribute nonterm 'user-visible)
+		   (if (semantic-tag-get-attribute tag 'user-visible)
 		       "deffn"
 		     "defun"))
 		  ((eq tt 'type)
 		   "deftype"))
 	    )))
 
-(defun document-insert-defun-comment (nonterm buffer)
-  "Insert mode-comment documentation about NONTERM from BUFFER."
+(defun document-insert-defun-comment (tag buffer)
+  "Insert mode-comment documentation about TAG from BUFFER."
   (interactive)
   (let ((document-runflags nil)
-	(tt (semantic-tag-class nonterm)))
+	(tt (semantic-tag-class tag)))
     (cond
      ((eq tt 'function)
-      (if (semantic-find-documentation nonterm t)
-	  (document-update-comment nonterm)
-	(document-insert-function-comment-new nonterm))
+      (if (semantic-documentation-for-tag tag t)
+	  (document-update-comment tag)
+	(document-insert-function-comment-new tag))
       (message "Done..."))
      (t
       (error "Type %S is not yet managed by document `document-inline'" tt)))))
 
-(defun document-update-comment (nonterm)
-  "Update an existing comment for NONTERM."
-  (let ((comment (semantic-find-documentation nonterm 'flex)))
+(defun document-update-comment (tag)
+  "Update an existing comment for TAG."
+  (let ((comment (semantic-documentation-for-tag tag 'lex)))
     (save-excursion
-      (document-update-paramlist nonterm comment))
+      (document-update-paramlist tag comment))
     (semantic-bovinate-toplevel t)
     (let ((ct (semantic-brute-find-tag-by-position
 	       (point) (current-buffer))))
-      (setq comment (semantic-find-documentation nonterm 'flex))
+      (setq comment (semantic-documentation-for-tag tag 'lex))
       (document-update-history comment (document-get-history-elt "")))))
 
 (defun document-insert-new-file-header (header)
@@ -269,16 +269,16 @@ Adds the comment line PREFIX to each line."
 
 ;;; Documentatation generation functions
 ;;
-(defun document-generate-documentation (nonterm buffer)
-  "Return a plain string documenting NONTERM from BUFFER."
+(defun document-generate-documentation (tag buffer)
+  "Return a plain string documenting TAG from BUFFER."
   (save-excursion
     (set-buffer buffer)
     (let ((doc ;; Second, does this thing have docs in the source buffer which
 	   ;; an override method might be able to find?
-	   (semantic-find-documentation nonterm)
+	   (semantic-documentation-for-tag tag)
 	   ))
       (if (not doc)
-	  (document-generate-new-documentation nonterm buffer)
+	  (document-generate-new-documentation tag buffer)
 	;; Ok, now lets see what sort of formatting there might be,
 	;; and see about removing some of it.. (Tables of arguments,
 	;; and that sort of thing.)
@@ -286,35 +286,35 @@ Adds the comment line PREFIX to each line."
 	;; Return the string.
 	doc))))
 
-(defun document-generate-new-documentation (nonterm buffer)
-  "Look at elements of NONTERM in BUFFER to make documentation.
+(defun document-generate-new-documentation (tag buffer)
+  "Look at elements of TAG in BUFFER to make documentation.
 This will create a new documentation string from scratch."
   ;; We probably want more than this, but for now it's close.
-  (document-function-name-comment nonterm))
+  (document-function-name-comment tag))
 
 ;;; Inline comment mangling.
 ;;
-(defun document-insert-function-comment-new (nonterm)
-  "Insert a new comment which explains the function found in NONTERM."
+(defun document-insert-function-comment-new (tag)
+  "Insert a new comment which explains the function found in TAG."
   (let ((hist (document-get-history-elt ""))
 	(pnt 0)
 	(upnt 0)
 	(st 0)
 	(zpnt 0)
-	(fname (semantic-tag-name nonterm))
-	(returns (semantic-tag-type nonterm))
-	(params (semantic-tag-function-arguments nonterm))
+	(fname (semantic-tag-name tag))
+	(returns (semantic-tag-type tag))
+	(params (semantic-tag-function-arguments tag))
 	)
     (if (listp returns)
 	;; convert a type list into a long string to analyze.
 	(setq returns (car returns)))
-    ;; nonterm should always be correct.
-    (goto-char (semantic-tag-start nonterm))
+    ;; tag should always be correct.
+    (goto-char (semantic-tag-start tag))
     (setq st (point))
     (insert (Sformat (list (list ?F fname)
 			   (list ?f '(lambda () (setq zpnt (Sformat-point)) ""))
 			   (list ?p '(lambda () (setq pnt (Sformat-point)) ""))
-			   (list ?D (document-function-name-comment nonterm))
+			   (list ?D (document-function-name-comment tag))
 			   (list ?R (document-insert-return returns))
 			   (list ?P '(lambda ()
 				       (document-insert-parameters params)))
@@ -336,8 +336,8 @@ This will create a new documentation string from scratch."
     )
   )
 
-(defun document-function-name-comment (nonterm)
-  "Create documentation for the function defined in NONTERM.
+(defun document-function-name-comment (tag)
+  "Create documentation for the function defined in TAG.
 If we can identify a verb in the list followed by some
 name part then check the return value to see if we can use that to
 finish off the sentence.  ie. any function with 'alloc' in it will be
@@ -346,8 +346,8 @@ allocating something based on its type."
 	(dropit nil)
 	(tailit nil)
 	(news "")
-	(fname (semantic-tag-name nonterm))
-	(retval (or (semantic-tag-type nonterm) "")))
+	(fname (semantic-tag-name tag))
+	(retval (or (semantic-tag-type tag) "")))
     (if (listp retval)
 	;; convert a type list into a long string to analyze.
 	(setq retval (car retval)))
@@ -462,7 +462,7 @@ Optional COMMENTLIST is a list of previously known parts with comments."
   )
 
 (defun document-parameter-comment (param &optional commentlist)
-  "Convert nonterminal or string PARAM into a name,comment pair.
+  "Convert tag or string PARAM into a name,comment pair.
 Optional COMMENTLIST is list of previously existing comments to
 use instead in alist form.  If the name doesn't appear in the list of
 standard names, then englishify it instead."
@@ -582,11 +582,11 @@ Arguments can be semantic tokens, or strings."
 	 arg)
 	(t (format "%s" arg))))
 
-(defun document-update-paramlist (nonterm comment)
-  "Update NONTERM's comment found in the flex token COMMENT."
+(defun document-update-paramlist (tag comment)
+  "Update TAG's comment found in the flex token COMMENT."
   (let ((endpos 0) st en (il nil)
 	(case-fold-search nil)
-	(l (semantic-tag-function-arguments nonterm)))
+	(l (semantic-tag-function-arguments tag)))
     (save-excursion
       (goto-char (semantic-lex-token-start comment))
       (let ((s (document-just-after-token-regexp ?P document-function-comment))
@@ -769,8 +769,8 @@ Leaves other formatting elements the way they are."
 
 ;;; Texinfo mangling.
 ;;
-(defun document-massage-to-texinfo (nonterm buffer string)
-  "Massage NONTERM's documentation from BUFFER as STRING.
+(defun document-massage-to-texinfo (tag buffer string)
+  "Massage TAG's documentation from BUFFER as STRING.
 This is to take advantage of TeXinfo's markup symbols."
   (if (save-excursion (set-buffer buffer)
 		      (eq major-mode 'emacs-lisp-mode))
