@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.5 2000/04/30 02:30:29 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.6 2000/04/30 22:45:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,23 +43,23 @@
       (nth 2 token)))
 
 (defmacro semantic-token-type-parts (token)
-  "Retrieve the parts of TOKEN."
+  "Retrieve the parts of the type TOKEN."
   `(nth 3 ,token))
 
 (defmacro semantic-token-type-parent (token)
-  "Retrieve the parent of TOKEN."
+  "Retrieve the parent of the type TOKEN."
   `(nth 4 ,token))
 
 (defmacro semantic-token-function-args (token)
-  "Retrieve the type of TOKEN."
+  "Retrieve the arguments of the function TOKEN."
   `(nth 3 ,token))
 
 (defmacro semantic-token-variable-const (token)
-  "Retrieve the status of constantness from variable TOKEN."
+  "Retrieve the status of constantness from the variable TOKEN."
   `(nth 3 ,token))
 
 (defmacro semantic-token-variable-default (token)
-  "Retrieve the default value of TOKEN."
+  "Retrieve the default value of the variable TOKEN."
   `(nth 4 ,token))
 
 (defmacro semantic-token-variable-modifiers (token)
@@ -67,7 +67,7 @@
   `(nth 5 ,token))
 
 (defmacro semantic-token-include-system (token)
-  "Retrieve the flat indicating if the include TOKEN is a sysmtem include."
+  "Retrieve the flag indicating if the include TOKEN is a sysmtem include."
   `(nth 2 ,token))
 
 ;;; Searching APIs
@@ -95,6 +95,41 @@
 	    ;; Go to dependencies, and search there.
 	    nil)
 	m))))
+
+(defun semantic-find-nonterminal-by-position (position streamorbuffer
+						       &optional nomedian)
+  "Find a nonterminal covinging POSITION within STREAMORBUFFER.
+POSITION is a number, or marker.  If NOMEDIAN is non-nil, don't do
+the median calculation, and return nil."
+  (save-excursion
+    (if (markerp position) (set-buffer (marker-buffer position)))
+    (let* ((stream (if (bufferp streamorbuffer)
+		       (save-excursion
+			 (set-buffer streamorbuffer)
+			 (semantic-bovinate-toplevel nil t))
+		     streamorbuffer))
+	   (prev nil)
+	   (found nil))
+      (while (and stream (not found))
+	;; perfect fit
+	(if (and (>= position (semantic-token-start (car stream)))
+		 (<= position (semantic-token-end (car stream))))
+	    (setq found (car stream))
+	  ;; Median between to objects.
+	  (if (and prev (not nomedian)
+		   (>= position (semantic-token-end prev))
+		   (<= position (semantic-token-start (car stream))))
+	      (let ((median (/ (+ (semantic-token-end prev)
+				  (semantic-token-start (car stream)))
+			       2)))
+		(setq found
+		      (if (> position median)
+			  (car stream)
+			prev)))))
+	;; Next!!!
+	(setq prev (car stream)
+	      stream (cdr stream)))
+      found)))
 
 (defun semantic-find-nonterminal-by-token (token streamorbuffer)
   "Find all nonterminals with a token TOKEN within STREAMORBUFFER.
@@ -243,7 +278,7 @@ FILTER must be a function to call on each element.  (See"
   (completing-read prompt stream nil t ""
 		   'semantic-read-symbol-history default))
 
-(defun semantic-read-variable (prompt &optinal default stream)
+(defun semantic-read-variable (prompt &optional default stream)
   "Read a variable name from the user for the current buffer.
 PROMPT is the prompt to use.
 Optional arguments:
@@ -253,7 +288,7 @@ STREAM is the list of tokens to complete from."
   (semantic-read-symbol
    prompt default (semantic-find-nonterminal-by-type 'varible stream)))
 
-(defun semantic-read-function (prompt &optinal default stream)
+(defun semantic-read-function (prompt &optional default stream)
   "Read a function name from the user for the current buffer.
 PROMPT is the prompt to use.
 Optional arguments:
@@ -263,7 +298,7 @@ STREAM is the list of tokens to complete from."
   (semantic-read-symbol
    prompt default (semantic-find-nonterminal-by-type 'function stream)))
 
-(defun semantic-read-type (prompt &optinal default stream)
+(defun semantic-read-type (prompt &optional default stream)
   "Read a type name from the user for the current buffer.
 PROMPT is the prompt to use.
 Optional arguments:
@@ -291,13 +326,13 @@ override it with.
 Available override symbols:
 
   SYBMOL                 PARAMETERS              DESCRIPTION
- `find-dependency'       (buffer token)           find the dependency file
- `find-nonterminal'      (buffer token & parent)  find token in buffer.
- `summerize-nonterminal' (token & parent)         return summery string.
- `prototype-nonterminal' (token)                  return a prototype string.
- `prototype-file'        (buffer)                 return a file in which
+ `find-dependency'       (buffer token)           Find the dependency file
+ `find-nonterminal'      (buffer token & parent)  Find token in buffer.
+ `find-documentation'    (buffer token)           Find doc comments.
+ `summerize-nonterminal' (token & parent)         Return summery string.
+ `prototype-nonterminal' (token)                  Return a prototype string.
+ `prototype-file'        (buffer)                 Return a file in which
  	                                          prototypes are placed
-
 Parameters mean:
 
   &      - Following parameters are optional
@@ -373,6 +408,7 @@ depended on, and functions will move to the specified definition."
       nil
     (let ((s (semantic-fetch-overload 'find-nonterminal)))
       (if s (funcall s buffer token)
+	(set-buffer buffer)
 	(let ((start (semantic-token-start token)))
 	  (if (numberp start)
 	      ;; If it's a number, go there
@@ -386,6 +422,62 @@ depended on, and functions will move to the specified definition."
 	      ;; the bovinator and concocted by us actually exists
 	      ;; in the buffer.
 	      (re-search-forward (semantic-token-name token) nil t))))))))
+
+(defun semantic-find-documentation (buffer token)
+  "Find documentation from BUFFER/TOKEN and return it as a clean string.
+TOKEN might have DOCUMENTATION set in it already.  If not, there may be
+some documentation in a comment preceeding TOKEN's definition which we
+cal look for.  When appropriate, this can be overridden by a language specific
+enhancement."
+  (if (or (not (bufferp buffer)) (not token))
+      (error "Semantic-find-documentation: specify BUFFER and TOKEN"))
+  (let ((s (semantic-fetch-overload 'find-documentation)))
+    (if s (funcall s buffer token)
+      ;; No override.  Try something simple to find documentation in
+      ;; BUFFER.
+      (save-excursion
+	(semantic-find-nonterminal buffer token)
+	(or
+	 ;; Is there doc in the token???
+	 (if (semantic-token-docstring token)
+	     (progn (goto-char (semantic-token-docstring token))
+		    (semantic-find-doc-snarf-comment)))
+	 ;; Check just before the definition.
+	 (save-excursion
+	   (re-search-backward comment-start-skip nil t)
+	   (if (not (semantic-find-nonterminal-by-position
+		     (point) (current-buffer) t))
+	       ;; We found a comment that doesn't belong to the body
+	       ;; of a function.
+	       (semantic-find-doc-snarf-comment)))
+	 ;;  Lets look for comments either after the definition, but before code:
+	 ;; Not sure yet.  Fill in something clever later....
+	 nil
+	 )))))
+
+(defun semantic-find-doc-snarf-comment nil
+  "Snarf up the comment at POINT for `semantic-find-documentation'.
+Attempt to strip out comment syntactic sugar."
+  (let ((ct (semantic-flex-text (car (semantic-flex (point) (1+ (point)))))))
+    ;; ok, try to clean the text up.
+    ;; Comment start thingy
+    (while (string-match (concat "^\\s-*" comment-start-skip) ct)
+      (setq ct (concat (substring ct 0 (match-beginning 0))
+		       (substring ct (match-end 0)))))
+    ;; Arbitrary punctuation at the beginning of each line.
+    (while (string-match "^\\s-*\\s.+\\s-*" ct)
+      (setq ct (concat (substring ct 0 (match-beginning 0))
+		       (substring ct (match-end 0)))))
+    ;; End of a block comment.
+    (if (and block-comment-end (string-match block-comment-end ct))
+      (setq ct (concat (substring ct 0 (match-beginning 0))
+		       (substring ct (match-end 0)))))
+    ;; In case it's a real string, STRIPIT.
+    (while (string-match "\\s-*\\s\"+\\s-*" ct)
+      (setq ct (concat (substring ct 0 (match-beginning 0))
+		       (substring ct (match-end 0)))))
+    ;; Now return the text.
+    ct))
 
 (defun semantic-summerize-nonterminal (token &optional parent)
   "Summerize TOKEN in a reasonable way.
@@ -457,16 +549,19 @@ file prototypes belong in."
 (defun semantic-hack-search ()
   "Disply info about something under the cursor using generic methods."
   (interactive)
-  (let ((name (thing-at-point 'symbol))
-;	(strm (cdr (semantic-bovinate-toplevel nil t)))
+  (let (
+	;(name (thing-at-point 'symbol))
+	(strm (cdr (semantic-bovinate-toplevel nil t)))
 	(res nil))
-    (if name
+;    (if name
 	(setq res
 ;	      (semantic-find-nonterminal-by-name name strm)
 ;	      (semantic-find-nonterminal-by-type name strm)
-	      (semantic-recursive-find-nonterminal-by-name name (current-buffer))
+;	      (semantic-recursive-find-nonterminal-by-name name (current-buffer))
+	      (semantic-find-nonterminal-by-position (point) strm)
 	      
-	      ))
+	      )
+;	)
     (if res
 	(progn
 	  (pop-to-buffer "*SEMANTIC HACK RESULTS*")
