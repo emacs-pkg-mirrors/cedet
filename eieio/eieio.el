@@ -2,12 +2,12 @@
 ;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
+;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.114 2001/10/03 01:56:31 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.115 2002/02/09 19:56:40 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "0.17beta3"
+(defvar eieio-version "0.17"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -49,6 +49,31 @@
   "Display the current version of EIEIO."
   (interactive)
   (message eieio-version))
+
+(defun eieio-require-version (major minor &optional beta)
+  "Non-nil if this version of EIEIO does not satisfy a specific version.
+Arguments can be:
+
+  (MAJOR MINOR &optional BETA)
+
+  Values MAJOR and MINOR must be integers.  BETA can be an integer, or
+excluded if a released version is required.
+
+It is assumed that if the current version is newer than that specified,
+everything passes.  Exceptions occur when known incompatibilities are
+introduced."
+  (when (string-match "\\([0-9]+\\)\\.\\([0-9]+\\)\\( ?beta ?\\([0-9]+\\)\\)?"
+		      eieio-version)
+    (let ((vmajor (string-to-int (match-string 1 eieio-version)))
+	  (vminor (string-to-int (match-string 2 eieio-version)))
+	  (vbeta (match-string 4 eieio-version)))
+      (when vbeta (setq vbeta (string-to-int vbeta)))
+      (or (> major vmajor)
+	  (and (= major vmajor) (> minor vminor))
+	  (and (= major vmajor) (= minor vminor)
+	       (or (and (not beta) vbeta)
+		   (and beta vbeta (> beta vbeta)))))
+      )))
 
 (eval-and-compile
 ;; Abount the above.  EIEIO must process it's own code when it compiles
