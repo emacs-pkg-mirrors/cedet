@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.121 2002/06/27 02:57:18 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.122 2002/06/27 16:52:48 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17"
   "Current version of EIEIO.")
@@ -42,7 +42,7 @@
 ;; There is funny stuff going on with typep and deftype.  This
 ;; is the only way I seem to be able to make this stuff load properly.
 (require 'cl)
-(load-library "cl-macs") ; No provide in this file.
+(load "cl-macs" nil t) ; No provide in this file.
 
 ;;; Code:
 (defun eieio-version ()
@@ -371,12 +371,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	  (aset newc class-parent (nreverse (aref newc class-parent))) )
       ;; If there is nothing to loop over, then inherit from the
       ;; default superclass.
-      (if (eq cname 'eieio-default-superclass)
-	  ;; In this case, we have absolutly no parent, so we can ssy safely
-	  ;; that the parent classes are being bootstrapped.
-	  (if (or (not (featurep 'bytecomp))
-		  byte-compile-verbose)
-	      (message "Bootstrapping objects..."))
+      (unless (eq cname 'eieio-default-superclass)
 	;; adopt the default parent here, but clear it later...
 	(setq clearparent t)
 	;; save new child in parent
@@ -385,7 +380,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		  (cons cname (aref (class-v 'eieio-default-superclass) class-children))))
 	;; save parent in child
 	(aset newc class-parent (list eieio-default-superclass))))
-
+    
     ;; turn this into a useable self-pointing symbol
     (set cname cname)
 
@@ -650,12 +645,6 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     ;; if this is a superclass, clear out parent (which was set to the
     ;; default superclass eieio-default-superclass)
     (if clearparent (aset newc class-parent nil))
-
-    ;; Indicate bootstrapping is done...
-    (if (and (eq cname 'eieio-default-superclass)
-	     (or (not (featurep 'bytecomp))
-		 byte-compile-verbose))
-	(message "Bootstrapping objects...done"))
 
     ;; Create the cached default object.
     (let ((cache (make-vector (+ (length (aref newc class-public-a))
