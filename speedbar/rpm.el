@@ -1,11 +1,11 @@
 ;;; rpm.el --- Manage Red Hat packages in emacs
 
-;;; Copyright (C) 1998 Eric M. Ludlam
+;;; Copyright (C) 1998, 1999 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
 ;; Keywords: speedbar, rpm
-;; X-RCS: $Id: rpm.el,v 1.3 1998/06/13 13:40:20 zappo Exp $
+;; X-RCS: $Id: rpm.el,v 1.4 1999/03/01 15:49:22 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -163,11 +163,11 @@ TEXT is the name of the package.  TOKEN and INDENT are ignored."
       ;; Get the database information here
       (if (= (point-min) (point-max))
 	  (progn
-	    (message "Running rpm -qa")
+	    (speedbar-message "Running rpm -qa")
 	    (call-process "rpm" nil t nil "-qa" "--queryformat"
 			  "%{name}-%{version}-%{release} %{group}\n")))
       ;; Convert it into a giant list
-      (message "Parsing output ... ")
+      (speedbar-message "Parsing output ... ")
       (goto-char (point-min))
       (while (re-search-forward "^\\([^ ]+\\) \\([^\n]+\\)$" nil t)
 	(let* ((n (match-string 1))
