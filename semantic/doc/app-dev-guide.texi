@@ -876,6 +876,17 @@ Convert @var{TAG} to a string that is the print name for @var{TAG}.
 @var{PARENT} and @var{COLOR} are ignored.
 @end defun
 
+An additional utility will return a string for just the data type of
+a tag.  This function is used in the above routines as well.
+
+@defun semantic-format-tag-type tag color
+@anchor{semantic-format-tag-type}
+Convert the data type of @var{TAG} to a string usable in tag formatting.
+It is presumed that @var{TYPE} is a string or semantic tag.
+This function can be overriden in semantic using the
+symbol @code{format-tag-type}.
+@end defun
+
 @node Tag Members
 @section Tag Members
 
