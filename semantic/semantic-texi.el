@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.5 2001/04/12 01:13:10 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.6 2001/09/29 23:48:41 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,7 +101,7 @@ SECTIOLIST starting at ELT 2.  Sections not are not dealt with as soon as a
 token with greater section value than LEVEL is found."
   (let ((newl nil)
 	(oldl sectionlist)
-	tmp)
+	)
     (save-excursion
       (catch 'level-jump
 	(while oldl
@@ -109,7 +109,7 @@ token with greater section value than LEVEL is found."
 	  (if (looking-at "@\\(\\w+\\)")
 	      (let* ((word (match-string 1))
 		     (levelmatch (assoc word texinfo-section-list))
-		     text begin end tmp
+		     text begin tmp
 		     )
 		;; Get out of here if there if we made it that far.
 		(if (and levelmatch (<= (car (cdr levelmatch)) level))
