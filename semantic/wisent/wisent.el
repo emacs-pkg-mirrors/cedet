@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.11 2001/09/12 15:41:35 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.12 2001/09/13 14:15:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,24 +41,38 @@
 ;; T.  Pennello, TOPLAS, vol.  4, no.  4, October 1982.
 ;;
 ;; Unlike the Dominique Boucher's Scheme implementation Wisent has a
-;; Bison like mechanism to recover from parse errors.
-
-;; Usage:
+;; Bison like mechanism to recover from parse errors and can resolve
+;; shift/reduce conflicts using operator precedence declarations.
 ;;
-;; The first step is to generate the LALR(1) tables needed by the
-;; parser from a given Context Free Grammar (CFG).  This is done by
-;; the function `wisent-compile-grammar' like this:
+;; For more details on the basic concepts for understanding Wisent
+;; read the Bison manual ;)
 ;;
-;;    (wisent-compile-grammar grammar [starts] [stream])
+;; 1. Grammar
+;; ==========
+;;
+;; In order for Wisent to parse a language, it must be described by a
+;; Context Free Grammar (CFG).  This grammar is then compiled, using
+;; the function `wisent-compile-grammar', to produce the tables needed
+;; by the parser (actually an Elisp `vector' of vectors and listes!).
+;;
+;; `wisent-compile-grammar' is called like this:
+;;
+;;    (wisent-compile-grammar GRAMMAR [STARTS] [STREAM])
 ;;
 ;; - GRAMMAR is the CFG to process.
 ;;
-;; - Optional argument STARTS is a list of nonterminal symbols defined
-;;   as entry point in the grammar.  If nil the first nonterminal
+;; - STARTS (optional) is a list of nonterminal symbols defined as
+;;   entry point in the grammar.  If nil the first nonterminal
 ;;   specified in the grammar will be the only start symbol defined.
 ;;
-;; - If STREAM is specified it defines an `standard-output' stream
-;;   where the tables are pretty-printed.
+;; - STREAM (optional) is a `standard-output' stream where the tables
+;;   will be pretty-printed.
+;;
+;;   ****************************************************************
+;;   WARNING: As the tables resulting of grammar compilation can be
+;;   very large pretty-printing (done via the standard function `pp')
+;;   can take a while and consume a lot of computer resources!
+;;   ****************************************************************
 ;;
 ;; For example:
 ;;
@@ -66,9 +80,10 @@
 ;;
 ;; inserts the parser tables value at point in current buffer.
 ;;
-;; The grammar is a list of the following form:
-;;
-;; (TERMINALS ASSOCS . NON-TERMINALS)
+;; 1.1 Grammar format
+;; ==================
+;; 
+;; This is a list (TERMINALS ASSOCS . NON-TERMINALS) where:
 ;;
 ;; - TERMINALS is the list terminal symbols used in the grammar.
 ;;
@@ -81,20 +96,25 @@
 ;; - NON-TERMINALS is the list of non terminal definitions.  Each
 ;;   definition has the form (NONTERM . PRODS) where NONTERM is the
 ;;   non terminal symbol and PRODS the list of productions associated
-;;   to this non terminal.  Each element of PRODS has the form: (ITEMS
-;;   [PREC] [ACTION]).  ITEMS is a list of terminal and/or non
-;;   terminal symbols to match.  It is nil for an empty match.
-;;   Optional values PREC and ACTION are:
+;;   to this non terminal.  Each element of PRODS has the form:
 ;;
-;;   -- PREC a vector of one element: a terminal symbol.  The rule
-;;      will be given the precedence level of this terminal symbol.
-;;      By default the rule precedence is the one of the last terminal
-;;      symbol in it.
+;;   (ITEMS [PREC] [ACTION]) where:
 ;;
-;;   -- ACTION one s-exp: the semantic action to do when the rule is
-;;      matched.  Like in Bison, action accept `$<i>' placeholders.
-;;      Each `$<i>' placeholder will receive the value of i-th rule
-;;      item.
+;;   -- ITEMS is a list of terminal and/or non terminal symbols to
+;;      match.  Or nil for an empty match.
+;;
+;;   -- PREC (optional) is a vector of one element: a terminal symbol.
+;;      The rule will be given the precedence level of this terminal
+;;      symbol.  By default the rule precedence is the one of the last
+;;      terminal symbol in it.  Only terminals declared in ASSOCS have
+;;      a precedence level.
+;;
+;;   -- ACTION (optional) is one Elisp expression: the semantic action
+;;      to do when the rule is matched.  Like in Bison, action accept
+;;      `$<i>' placeholders.  Each `$<i>' placeholder will receive the
+;;      value of i-th element of ITEMS.  The first element is `$1',
+;;      the second one `$2', etc..  Unlike Bison Wisent does not allow
+;;      the use of `$<i>' placeholders with i <= 0.
 ;;
 ;;      Also the special variable `$region' contains the start/end
 ;;      positions of text matched by the rule, as a pair (START-POS
@@ -107,21 +127,28 @@
 ;;      symbol the action belongs to.  It could be useful to improve
 ;;      error reporting or debugging.
 ;;
-;;      If you don't specify an action for a rule, wisent (like Bison)
+;;      If you don't specify an action for a rule, Wisent (like Bison)
 ;;      supplies a default: `$1'.  Thus, the value of the first symbol
 ;;      in the rule becomes the value of the whole rule.  The default
-;;      action for an empty rule returns nil.
+;;      action for an empty match returns nil.
 ;;
-;; By default, conflicts in the grammar are handled in a conventional
-;; way.  Shift/Reduce conflicts are resolved by shifting, and
-;; Reduce/Reduce conflicts are resolved by choosing the rule listed
-;; first in the grammar definition.  Like in Bison, you can control
-;; how Shift/Reduce conflicts are resolved using associativity rules
-;; for terminals (see ASSOCS above) and explicit rule precedence level
-;; (see PREC above).
-
-;; Here is an example of a Bison like grammar for arithmetic
-;; expressions:
+;; 1.2 Conflicts
+;; =============
+;;
+;; Wisent resolves conflicts in grammar the same way Bison does.
+;;
+;; It resolves a reduce/reduce conflict by choosing to use the rule
+;; that appears first in the grammar.
+;;
+;; It resolves shift/reduce conflicts by choosing to shift, unless
+;; otherwise directed by operator precedence declarations (see ASSOCS
+;; and NON-TERMINALS in chapter 1.1 "Grammar format" above).
+;;
+;; 1.3 Example
+;; ===========
+;;
+;; Here is an example of a Bison like grammar to parse simple infix
+;; arithmetic expressions:
 ;;
 ;;   %token NUM
 ;;   %token NL
@@ -188,26 +215,34 @@
 ;;     ((exp EXP exp))
 ;;     ((LPAREN exp RPAREN))))
 ;;
-;; When the grammar is compiled you can use `wisent-parse' to parse a
-;; source.  `wisent-parse' is driven by the tables produced by
-;; `wisent-compile-grammar'.  It is called like this:
+;; 2. Parsing
+;; ==========
 ;;
-;;   (wisent-parse tables lexer error-function [start])
+;; The parser used by Wisent is a bottom-up LR parser driven by the
+;; tables produced by `wisent-compile-grammar' from a CFG grammar.  To
+;; start the parser call the function `wisent-parse' like this:
 ;;
-;; This do a bottom-up parsing which returns the value of the START
-;; nonterminal (the goal).
+;;   (wisent-parse TABLES LEXER ERROR-FUNCTION [START])
 ;;
-;; - TABLES are the tables produced by `wisent-compile-grammar'.
+;; It returns the semantic value of the START nonterminal (the goal).
+;;
+;; - TABLES are the parser tables produced by
+;;   `wisent-compile-grammar'.
 ;;
 ;; - LEXER is a function with no argument called by the parser to
 ;;   obtain the next terminal in input.  LEXER must return a list
 ;;   (TERM TERM-VALUE [TERM-START . TERM-END]) or (`wisent-eoi-term')
-;;   when at the end of the input.  TERM is the unique symbol
-;;   identifying a terminal as specified in the grammar.  TERM-VALUE
-;;   is the actual value of the terminal and optionals TERM-START,
-;;   TERM-END are the start and end positions of the terminal string
-;;   value in the input stream.  You can use the macro `wisent-lexer'
-;;   to call LEXER in semantic actions.
+;;   when at the end of the input.
+;;
+;;   -- TERM is the unique symbol identifying a terminal as specified
+;;      in the grammar.
+;;
+;;   -- TERM-VALUE is the actual value of the terminal.
+;;
+;;   -- TERM-START and TERM-END (optionals) are the start and end
+;;      positions of the terminal string value in the input stream.
+;;      You can use the macro `wisent-lexer' to call LEXER in semantic
+;;      actions.
 ;;
 ;; - ERROR-FUNCTION is a reporting function called when a parse error
 ;;   occurs.  It receives a message string to report.  When
@@ -221,7 +256,7 @@
 ;; - START specify the nonterminal symbol used by the parser as its
 ;;   goal.  It defaults to the first nonterminal specified in the
 ;;   grammar.  START must be one the STARTS symbol specified at
-;;   compilation time (see `wisent-compile-grammar' above).
+;;   compilation time (see chapter 1 "Grammar" above).
 
 ;;; History:
 ;; 
@@ -582,13 +617,13 @@ The value is a pair (SR-conflicts . RR-conflicts).")
 
 (defun wisent-log-buffer ()
   "Return the logging buffer."
-  (or (buffer-live-p wisent-log-buffer)
-      (with-current-buffer
-          (setq wisent-log-buffer
-                (get-buffer-create "*wisent-log*"))
-        (wisent-output (format-time-string
-                        "*** %x %X - wisent log started ***\n"))))
-  wisent-log-buffer)
+  (or wisent-log-buffer
+      (progn
+        (setq wisent-log-buffer "*wisent-log*")
+        (with-current-buffer (get-buffer-create wisent-log-buffer)
+          (wisent-output (format-time-string
+                          "*** %x %X - wisent log started ***\n\n")))))
+  (get-buffer-create wisent-log-buffer))
 
 (defun wisent-log (&rest args)
   "Insert an element into the logging buffer.
@@ -710,66 +745,6 @@ describes the resolve choice, that is \"shift\" or \"reduce\"."
 (defvar wisent-debug-flag nil
   "Enable some debug stuff when non-nil.")
 
-(defmacro wisent-show (v)
-  "Show the value of variable V.
-That is insert (setq V <value-of-v>) in the current buffer."
-  `(progn
-     (wisent-output "(setq %s\n" ',v)
-     (pp ,v)
-     (wisent-output ")\n")))
-
-(defun wisent-show-all (title)
-  "Log TITLE string followed by the values all global variables."
-  (with-current-buffer (wisent-log-buffer)
-    (let ((standard-output (current-buffer)))
-      (wisent-output ";;; %s\n\n" title)
-      (wisent-show wisent--rrhs)
-      (wisent-show wisent--rlhs)
-      (wisent-show wisent--ritem)
-      (wisent-show wisent--nullable)
-      (wisent-show wisent--derives)
-      (wisent-show wisent--fderives)
-      (wisent-show wisent--firsts)
-      (wisent-show wisent--kernel-base)
-      (wisent-show wisent--kernel-end)
-      (wisent-show wisent--shift-symbol)
-      (wisent-show wisent--shift-set)
-      (wisent-show wisent--state-table)
-      (wisent-show wisent--access-symbol)
-      (wisent-show wisent--reduction-table)
-      (wisent-show wisent--shift-table)
-      (wisent-show wisent--consistent)
-      (wisent-show wisent--lookaheads)
-      (wisent-show wisent--la)
-      (wisent-show wisent--laruleno)
-      (wisent-show wisent--lookback)
-      (wisent-show wisent--goto-map)
-      (wisent-show wisent--from-state)
-      (wisent-show wisent--to-state)
-      (wisent-show wisent--includes)
-      (wisent-show wisent--f)
-      (wisent-show wisent--action-table)
-
-      ;; - Variables
-      (wisent-show wisent--nitems)
-      (wisent-show wisent--nrules)
-      (wisent-show wisent--nvars)
-      (wisent-show wisent--nterms)
-      (wisent-show wisent--nsyms)
-      (wisent-show wisent--nstates)
-      (wisent-show wisent--first-state)
-      (wisent-show wisent--last-state)
-      (wisent-show wisent--final-state)
-      (wisent-show wisent--first-shift)
-      (wisent-show wisent--last-shift)
-      (wisent-show wisent--first-reduction)
-      (wisent-show wisent--last-reduction)
-      (wisent-show wisent--nshifts)
-      (wisent-show wisent--maxrhs)
-      (wisent-show wisent--ngotos)
-      (wisent-show wisent--token-set-size)
-      )))
-
 ;; Utilities
 (defun wisent-pos-in-list (x lst)
   "Return the position of X in list LST or nil if not found.
@@ -830,46 +805,53 @@ returns non-nil."
 ;; Cleanup/initialization
 (defun wisent-free-all ()
   "Cleanup all global variables."
-  (setq wisent--state-table     nil
-        wisent--rrhs            nil
-        wisent--rlhs            nil
-        wisent--ritem           nil
-        wisent--nullable        nil
-        wisent--derives         nil
-        wisent--fderives        nil
-        wisent--firsts          nil
-        wisent--kernel-base     nil
-        wisent--kernel-end      nil
-        wisent--shift-symbol    nil
-        wisent--shift-set       nil
-        wisent--access-symbol   nil
-        wisent--reduction-table nil
-        wisent--shift-table     nil
-        wisent--consistent      nil
-        wisent--lookaheads      nil
-        wisent--la              nil
-        wisent--laruleno        nil
-        wisent--lookback        nil
-        wisent--goto-map        nil
-        wisent--from-state      nil
-        wisent--to-state        nil
-        wisent--includes        nil
-        wisent--f               nil
-        wisent--action-table    nil
-        wisent--nstates         nil
-        wisent--first-state     nil
-        wisent--last-state      nil
-        wisent--final-state     nil
-        wisent--first-shift     nil
-        wisent--last-shift      nil
-        wisent--first-reduction nil
-        wisent--last-reduction  nil
-        wisent--nshifts         nil
-        wisent--maxrhs          nil
-        wisent--ngotos          nil
-        wisent--token-set-size  nil
-        wisent--terms           nil
-        wisent--vars            nil))
+  (setq wisent--state-table        nil
+        wisent--rrhs               nil
+        wisent--rlhs               nil
+        wisent--ritem              nil
+        wisent--nullable           nil
+        wisent--derives            nil
+        wisent--fderives           nil
+        wisent--firsts             nil
+        wisent--kernel-base        nil
+        wisent--kernel-end         nil
+        wisent--shift-symbol       nil
+        wisent--shift-set          nil
+        wisent--access-symbol      nil
+        wisent--reduction-table    nil
+        wisent--shift-table        nil
+        wisent--consistent         nil
+        wisent--lookaheads         nil
+        wisent--la                 nil
+        wisent--laruleno           nil
+        wisent--lookback           nil
+        wisent--goto-map           nil
+        wisent--from-state         nil
+        wisent--to-state           nil
+        wisent--includes           nil
+        wisent--f                  nil
+        wisent--action-table       nil
+        wisent--terms              nil
+        wisent--vars               nil
+        wisent--rules              nil
+        wisent--rprec              nil
+        wisent--conflicts-by-state nil
+        wisent--first-state        nil
+        wisent--last-state         nil
+        wisent--final-state        nil
+        wisent--first-shift        nil
+        wisent--last-shift         nil
+        wisent--first-reduction    nil
+        wisent--last-reduction     nil
+        wisent--nshifts            nil
+        wisent--maxrhs             nil
+        wisent--ngotos             nil
+        wisent--nstates            nil
+        wisent--nvars              nil
+        wisent--nterms             nil
+        wisent--nrules             nil
+        wisent--token-set-size     nil
+        wisent-log-buffer          nil))
 
 (defun wisent-initialize-all ()
   "Set up all global variables to initial state."
@@ -1953,7 +1935,8 @@ the tables."
             (wisent-log "\n\nGrammar\n")
             (wisent-log-starts starts)
             (wisent-log-nullables)
-            (wisent-log-rules)))
+            (wisent-log-rules)
+            (wisent-log "\n\n")))
       (if stream
           (save-excursion
             (wisent-working-step
