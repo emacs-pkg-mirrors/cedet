@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.230 2003/07/24 00:01:25 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.231 2003/08/06 18:35:19 ponced Exp $
 
 (defvar speedbar-version "0.15"
   "The current version of speedbar.")
@@ -922,10 +922,10 @@ supported at a time.
 		     "Speedbar"
 		     #'speedbar-frame-mode
 		     (if dframe-xemacsp
-			 (cons speedbar-frame-plist
-			       ;; This is a hack to get speedbar to iconfiy
-			       ;; with the selected frame.
-			       (cons 'parent (selected-frame)))
+			 (append speedbar-frame-plist
+				 ;; This is a hack to get speedbar to iconfiy
+				 ;; with the selected frame.
+				 (list 'parent (selected-frame)))
 		       speedbar-frame-parameters)
 		     speedbar-before-delete-hook
 		     speedbar-before-popup-hook
