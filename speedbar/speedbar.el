@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.48 1997/05/26 12:51:23 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.49 1997/05/29 22:16:49 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -239,6 +239,7 @@
 ;; 3) Timeout directories we haven't visited in a while.
 ;; 4) Remeber tags when refreshing the display.  (Refresh tags too?)
 ;; 5) More 'special mode support.
+;; 6) Smart way to auto-expand instead of directory switch
 
 ;;; Code:
 (require 'assoc)
@@ -391,9 +392,9 @@ It is generated from the variable `completion-ignored-extensions'")
 
 (defvar speedbar-supported-extension-expressions
   (append '(".[CcHh]\\(++\\|pp\\|c\\|h\\)?" ".tex\\(i\\(nfo\\)?\\)?"
-	    ".el" ".emacs" ".p")
+	    ".el" ".emacs" ".p" ".java")
 	  (if speedbar-use-imenu-flag
-	      '(".java" ".f90" ".ada" ".pl" ".tcl" ".m"
+	      '(".f90" ".ada" ".pl" ".tcl" ".m"
 		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
@@ -2224,7 +2225,8 @@ Returns the tag list, or t for an error."
 ;;; Tag Management -- etags  (XEmacs compatibility part)
 ;;
 (defvar speedbar-fetch-etags-parse-list
-  '(("\\.\\([cChH]\\|c++\\|cpp\\|cc\\|hh\\)$" . speedbar-parse-c-or-c++tag)
+  '(;; Note that java has the same parse-group as c
+    ("\\.\\([cChH]\\|c++\\|cpp\\|cc\\|hh\\|java\\)$" . speedbar-parse-c-or-c++tag)
     ("\\.el\\|\\.emacs" . "defun\\s-+\\(\\(\\w\\|[-_]\\)+\\)\\s-*\C-?")
     ("\\.tex$" . speedbar-parse-tex-string)
     ("\\.p" .
