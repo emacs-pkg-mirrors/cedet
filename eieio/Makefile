@@ -21,7 +21,7 @@ eieio_info_TEXINFOS=eieio.texi
 MAKEINFO=makeinfo
 test_LISP=eieio-tests.el
 Misc_MISC=INSTALL ChangeLog
-VERSION=0.18
+VERSION=0.18beta1
 DISTDIR=$(top)eieio-$(VERSION)
 
 
