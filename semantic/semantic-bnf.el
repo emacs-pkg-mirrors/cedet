@@ -1,11 +1,11 @@
 ;;; semantic-bnf.el --- Semantic details for some languages
 
-;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.49 2002/01/15 06:35:54 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.50 2002/01/19 20:21:26 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -955,7 +955,8 @@ token table variable."
       (error "Not valid outside the scope of a BNF file"))
   ;; Do the work
   (semantic-clear-toplevel-cache)
-  (let* ((fname (file-name-nondirectory (buffer-file-name)))
+  (let* ((inhibit-modification-hooks t) ;; Make it go fast.
+	 (fname (file-name-nondirectory (buffer-file-name)))
 	 (tok (semantic-bovinate-toplevel t))
 	 (dest (semantic-bnf-find-table-destination tok))
 	 (keydest (semantic-bnf-find-keyword-destination tok))
