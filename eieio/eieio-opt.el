@@ -1,9 +1,9 @@
 ;;; eieio-opt.el -- eieio optional functions (debug, printing, speedbar)
 
-;;; Copyright (C) 1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.18 2001/04/27 00:37:40 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.19 2002/02/23 03:22:20 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -81,6 +81,8 @@ Argument CH-PREFIX is another character prefix to display."
 If CLASS is actually an object, then also display current values of that obect."
   (interactive (list (eieio-read-class "Class: ")))
   (with-output-to-temp-buffer "*Help*"
+    (if (class-option class :abstract)
+	(princ "Abstract "))
     (princ "Class ")
     (prin1 class)
     (terpri)
