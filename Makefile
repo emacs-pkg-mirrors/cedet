@@ -1,11 +1,11 @@
 ## Makefile --- Definition file for building CEDET
 ##
-## Copyright (C) 2003 by David Ponce
+## Copyright (C) 2003, 2004 by David Ponce
 ##
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.5 2003/10/22 15:12:31 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.6 2004/03/28 01:52:01 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -34,7 +34,8 @@ ede \
 speedbar \
 eieio \
 semantic \
-cogre
+cogre \
+contrib
 
 ## Path to your Emacs
 EMACS=emacs
@@ -47,7 +48,7 @@ FIND=find
 #RM = rm -f
 
 ############### Internal part of the Makefile ###############
-CEDET_VERSION=1.0beta1
+CEDET_VERSION=1.0beta2
 CEDET_FILES=Makefile INSTALL
 DIST_ROOT=cedet-$(CEDET_VERSION)
 DIST_DIR=$(CEDET_HOME)/$(DIST_ROOT)
