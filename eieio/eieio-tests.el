@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.1 1999/11/27 12:52:10 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.2 1999/12/01 01:39:08 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -266,6 +266,12 @@ METHOD is the method that was attempting to be called."
      (eq (class-parents class-a) nil)
      (equal (class-parents class-ab) '(class-a class-b))
      (same-class-p a class-a)
+     (class-a-p a)
+     (not (class-a-p ab))
+     (class-a-child-p a)
+     (class-a-child-p ab)
+     (not (class-a-p "foo"))
+     (not (class-a-child-p "foo"))
      )
     nil
   (error "Inheritance tests: failed"))
