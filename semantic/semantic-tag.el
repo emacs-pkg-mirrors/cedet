@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.1 2003/03/19 16:10:23 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.2 2003/03/20 09:18:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -276,7 +276,7 @@ NAME is a string representing the name of this tag.
 CLASS is the symbol that represents the class of tag this is,
 such as 'variable, or 'function.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
-  (list name class (semantic-tag-make-plist attributes)))
+  (list name class (semantic-tag-make-plist attributes) nil nil))
 
 (defmacro semantic-tag-new-variable (name type default-value &rest attributes)
   "Create a semantic tag of class variable.
@@ -357,7 +357,7 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
 
 ;;; Tag Cloning.
 ;;
-(defun semantic-clone-tag (tag)
+(defun semantic-tag-clone (tag)
   "Clone TAG, creating a new TAG.
 The actual values in TAG such as string names are not copied,
 but shared with the original.
@@ -609,6 +609,9 @@ That is the value of the attribute `:detail'."
                          'semantic-tag-make-plist)
 
 ;; Lets test this out during this short transition.
+(semantic-alias-obsolete 'semantic-clone-tag
+                         'semantic-tag-clone)
+
 (semantic-alias-obsolete 'semantic-token
                          'semantic-tag)
 
