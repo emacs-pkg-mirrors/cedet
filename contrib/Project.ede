@@ -2,6 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "ede-proj-project"
   :name "Contrib"
+  :version "0.0"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-elisp-autoloads "autoloads"
@@ -9,16 +10,27 @@
     :path ""
     :autoload-file "contrib-loaddefs.el"
     )
-   (semantic-ede-proj-target-grammar "Wisent Languages"
-    :name "Wisent_Languages"
+   (ede-proj-target-elisp "init"
+    :name "init"
+    :path ""
+    :source '("cedet-contrib-load.el")
+    )
+   (ede-proj-target-elisp "setup"
+    :name "setup"
+    :path ""
+    :source '("cedet-contrib.el")
+    :versionsource '("cedet-contrib.el")
+    )
+   (semantic-ede-proj-target-grammar "wy"
+    :name "wy"
     :path ""
     :source '("wisent-csharp.wy")
     )
    (ede-proj-target-elisp "lisp"
     :name "lisp"
     :path ""
-    :source '("cedet-contrib.el" "wisent-csharp.el")
-    :aux-packages '("semantic-grammar" "wisent" "semantic-el")
+    :source '("wisent-csharp.el")
+    :aux-packages '("semantic-grammar" "wisent"  "inversion" "speedbar")
     )
    )
   )
