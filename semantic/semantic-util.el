@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.82 2001/10/08 21:02:21 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.83 2001/10/26 14:05:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1742,11 +1742,25 @@ this function."
   "Return the children of TOKEN.
 For types, return the type parts.
 For functions return the argument list."
-  (cond ((eq (semantic-token-token token) 'type)
-	 (semantic-token-type-parts token))
-	((eq (semantic-token-token token) 'function)
-	 (semantic-token-function-args token))
-	(t nil)))
+  (let ((explicit-children
+	 (cond ((eq (semantic-token-token token) 'type)
+		(semantic-token-type-parts token))
+	       ((eq (semantic-token-token token) 'function)
+		(semantic-token-function-args token))
+	       (t nil)))
+	(type (semantic-token-type token))
+	(anon-type-children nil))
+    ;; Identify if this token has an anonymous structure as
+    ;; its type.  This implies it may have children with overlays.
+    (if (and type
+	     (semantic-token-p type)
+	     (eq (semantic-token-token type) 'type))
+	(setq anon-type-children
+	      (semantic-nonterminal-children type)))
+    (if anon-type-children
+	(append explicit-children anon-type-children)
+      explicit-children)))
+	 
 
 (defun semantic-nonterminal-protection (token &optional parent)
   "Return protection information about TOKEN with optional PARENT.
