@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.151 1999/10/20 13:42:24 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.152 1999/11/29 20:39:05 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -353,7 +353,7 @@ effective when it's display is shown.")
   :group 'speedbar
   :type 'hook)
 
-(defcustom speedbar-visiting-tag-hook nil
+(defcustom speedbar-visiting-tag-hook '(speedbar-highlight-one-tag-line)
   "Hooks run when speedbar visits a tag in the selected frame."
   :group 'speedbar
   :type 'hook
@@ -4100,7 +4100,7 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 
 (defun speedbar-recenter ()
   "Recenter the current buffer so POINT is on the top of the window."
-  (recenter (window-hight (selected-window))/2))
+  (recenter (window-hight (/ (selected-window)) 2)))
 
 
 ;;; Color loading section.
@@ -4157,7 +4157,7 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 ;; some edebug hooks
 (add-hook 'edebug-setup-hook
 	  (lambda ()
-	    (def-edebug-spec 'speedbar-with-writable def-body)))
+	    (def-edebug-spec speedbar-with-writable def-body)))
 
 (provide 'speedbar)
 ;;; speedbar ends here
