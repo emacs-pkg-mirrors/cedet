@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.11 1998/10/27 17:16:31 zappo Exp $
+@c $Id: eieio.texi,v 1.12 1999/01/21 14:48:23 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{eieio}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1995,1996,1998 Eric M. Ludlam
+Copyright @copyright{} 1995,1996,1998, 1999 Eric M. Ludlam
 @end titlepage
 
 
@@ -42,6 +42,7 @@ wrong!
 * Writing Methods::       How to write an embedded class method.
 * Predicates::            Class-p, Object-p, etc-p.
 * Association Lists::     List of objects as assoc lists.
+* Introspection::         Looking inside a class.
 * Signals::               When you make errors
 * Browsing::              Browsing your class lists.
 * Class Values::          Displaying information about a class or object.
@@ -125,11 +126,6 @@ charts easily.
 @enumerate
 @item
 More CLOS compatibility.
-@item
-More built-in class-methods similar to 'constructor and 'destructor,
-like 'print-construct, 'print, 'save, and 'load with defaults performing
-basic structural storage, which can be over-loaded to read/write
-anything in any format.
 @item
 Integrate in the desired built-in methods into the object browser.
 @item
@@ -290,7 +286,7 @@ parent class) will actually inherit from a special superclass stored in
 simple, but with it, certain default methods or attributes can be added
 to all objects at any time, without updating their code in the future
 (If there is a change).  In CLOS, this would be named
-@code{STANDARD-OBJECT} an may be aliased in the future.
+@code{STANDARD-OBJECT} and is aliased.
 
 Currently, the default superclass is defined as follows:
 
@@ -302,83 +298,65 @@ Currently, the default superclass is defined as follows:
 fields are automatically adopted by such superclasses but not stored
 in the `parent' field.  When searching for attributes or methods, when
 the last parent is found, the search will recurse to this class.")
-
-(defmethod constructor ((this eieio-default-superclass) &optional fields)
-    "Constructor for filling in attributes when constructing a new
-class."
-    (eieio-set-defaults this t)
-    (eieio-set-fields this fields)
-    )
-
-(defmethod destructor ((this eieio-default-superclass) &rest params)
-  "Destructor for cleaning up any dynamic links to our object."
-  )
-
-(defmethod object-print ((this eieio-default-superclass) &optional strings)
-  "Pretty priniter.  The default method for printing an object is to use
-the `object-name' function.  At times it could be useful to put a summary of
-the object into the default #<notation> string.  Overload this function to
-allow summaries of your objects to be used by eieio browsing tools.  The
-optional parameter STRINGS is for additional summary parts to put into the
-name string.  When passing in extra strings from child classes, always
-remember  to prepend a space."
-  (object-name this (apply 'concat strings)))
 @end example
 
-The @code{constructor} method is always called with the parameter
-@var{fields} from any classes' @code{constructor} function.  The default
-method assigns elements from this list into the fields of the current
-object (Even though they are not defined by the default class. Cool
-huh?)  If you want something to happen every time an object of your
-class is created, set this method to something for your object, and make
-the very first line be: @code{(call-next-method)}.  Thus you can get
-it's functionality, plus be able to add your own.  Make sure your method
-takes a @var{fields} parameter. @xref{CLOS compatibility} for info about
-@code{call-next-method}.
+When creating an object of any type, you can use it's constructor, or
+@code{make-instance}.  This, in turns calls @code{shared-initialize}.
 
-The constructor overloading is used in the dlg-class module so that data
-objects can have default values gleaned from the system.  The following
-allows a data-object which maintains a value associated with an emacs
-symbol to initilize it's value slot intelligently after the regular
-constructor method has been called:
+@defun initialize-instance obj &rest fields
+Initialize @var{obj}.  Sets fields of @var{obj} with @obj{fields} which
+is a list of name/value pairs.  These are actually just passed to
+@code{shared-initialize}.
+@end defun
+
+@defun 
+@defun shared-initialize obj &rest fields
+Sets fields of @var{obj} with @obj{fields} which is a list of name/value
+pairs.
+@end defun
+
+In addition, there are several other default methods.  The last one
+implemented for EIEIO is @code{slot-missing} @xref{Accessing Fields}.
+
+@defun clone obj &rest params
+Make a deep copy of @var{obj}.  Once this copy is made, make
+modifications specified by @var{params}.  @var{params} uses the same
+format as the @var{fields} of @code{initialize-instance}.  The only
+other change is to modify the name with an incrementing numeric.
+@end defun
+
+@defn object-print obj &rest strings
+Construct a printing lisp symbol for @var{OBJ}.  This would look like:
+@example
+ #<class-name "objname">
+@end example.
+STRINGS are additional parameters passed in by overloading functions to
+add more data into the printing abbreviation.
 
 @example
-(defmethod constructor :AFTER ((this data-object-symbol) &rest fields)
-  "This method is called during construction to initialize the value field
-based upon the symbol we are editing"
-  (dlg-init-symbol this)  ;; uses the symbol field to initialize the
-                          ;; value field.
-  (oset this value (symbol-value (oref this symbol))))
-@end example
+(defclass data-object ()
+   (value)
+   "Object containing one data slot.")
 
-Currently @code{destructor} does nothing, and is never called.  I haven't
-quite figured out what to do with it yet.
-
-The @code{object-print} function is used by functions in
-@file{eieio-opt.el} to display objects with small summaries, and by the
-edebug interfacing code.  It is useful to use the
-@code{replacement-args} parameter to @code{call-next-method} when
-overloading @code{object-print}.  For instance, this code lets
-@code{data-objects} from the dialog example code to also show it's value
-parameter in it's name:
-
-@example
 (defmethod object-print ((this data-object) &optional strings)
-  "Return a nice string with a summary of the data object as part of
-the name."
+  "Return a string with a summary of the data object as part of the name."
   (apply 'call-next-method this 
 	 (cons (format " value: %s" (render this)) strings)))
 @end example
 
-here is what some output will look like:
+here is what some output could look like:
 @example
 (object-print test-object)
    => #<data-object test-object value: 3>
 @end example
+@end defun
 
-Eventually it might be nice to have a @code{write} and a @var{read}
-method so all objects could write themselves (store on disk) and read
-themselves, but that is a task for later.
+@defun object-write obj &optional comment
+Write @var{obj} onto a stream in a readable fashion.  The resulting
+output will be lisp code which can be used with @code{read} and
+@code{eval} to recover the object.  Only fields with @code{:initarg}s
+are written to the stream.
+@end defun
 
 @node Making New Objects, Accessing Fields, Default Superclass, Top
 @comment  node-name,  next,  previous,  up
@@ -471,6 +449,29 @@ tracked with the variable @code{this}.  You can set the field
 methods.  It is not necessary to name your object @code{this}, or to use
 private fields.  It's not CLOS compatible, but I find it useful in the
 dialog example system.
+
+@defun with-slots entries object forms
+Bind ENTRIES lexically to the specified slot values in OBJECT, and
+execute FORMS.  In CLOS, it would be possible to set values in OBJECT by
+using @code{setf} to assign to these values, but in Emacs, you may only
+read the values, or set the local variable to a new value.
+
+@example
+(defclass myclass () (x :initarg 1))
+(setq mc (make-instance 'myclass))
+(with-slots (x) mc x)                      => 1
+(with-slots ((something x)) mc something)  => 1
+@end example
+@end defun
+
+@defun slot-missing object field operation &optional new-valie
+This method is called when a there is an attemp to access a slot that
+does not exist for a given object.  The default method signals an error
+of type @code{invalid-slot-name}. @xref{Signals}
+
+You may override this behavior, but it is not expected to return in the
+current implementation.
+@end defun
 
 @node Writing Methods, Predicates, Accessing Fields, Top
 @comment  node-name,  next,  previous,  up
@@ -582,6 +583,16 @@ Return @code{t} if @var{class} is a class type.
 Return @code{t} if @var{obj} is an object.
 @end defun
 
+@defun slot-exists-p obj slot
+Return Non-@code{nil} if @var{obj} contains @var{slot} in its class.
+@end defun
+
+@defun slot-boundp obj slot
+In CLOS, an object can have an unbound slot.  Since EIEIO binds all
+slots at instantiation time.  Thus, this function is a macro that calls
+@code{slot-exists-p}
+@end defun
+
 @defun class-name class
 Return a string of the form #<class myclassname> which should look
 similar to other lisp objects like buffers and processes.  Printing a
@@ -590,7 +601,8 @@ class results only in a symbol.
 
 @defun class-constructor class
 Return a symbol used as a constructor for @var{class}.  This way you can
-make an object of a passed in class without knowing what it is.
+make an object of a passed in class without knowing what it is.  This is
+not a part of CLOS.
 @end defun
 
 @defun object-name obj
@@ -604,6 +616,10 @@ information into the symbol.
 
 @defun object-class obj
 Returns the class symbol from @var{obj}.
+@end defun
+
+@defun class-of obj
+CLOS symbol which does the same thing as @code{object-class}
 @end defun
 
 @defun object-class-fast obj
@@ -661,7 +677,7 @@ select only a subset of classes to choose from should it prove
 necessary.
 @end defun
 
-@node Association Lists, Signals, Predicates, Top
+@node Association Lists, Introspection, Predicates, Top
 @chapter Association Lists
 
 Lisp offers the concept of association lists, with primitives such as
@@ -678,6 +694,25 @@ Return an association list generated by extracting @var{field} from all
 objects in @var{list}.  For each element of @var{list} the @code{car} is
 the value of @var{field}, and the @code{cdr} is the object it was
 extracted from.  This is useful for generating completion tables.
+@end defun
+
+@node Introspection, Signals, Association Lists, Top
+@chapter Introspection
+
+Introspection permits a programmer to peek at the contents of a class
+without any previous knowledge of that class.  While EIEIO implements
+objects on top of vectors, and thus everything is technically visible,
+some functions have been provided.  None of these functions are a part
+of CLOS.
+
+@defun obj-fields obj
+Return the list of public slots for @var{obj}.
+@end defun
+
+@defun class-slot-initarg class slot
+For the given @var{class} return the :initarg associated with
+@var{slot}.  Not all slots have initargs, so the return value can be
+nil.
 @end defun
 
 @node Signals, Browsing, Association Lists, Top
