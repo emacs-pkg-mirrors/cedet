@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.14 2000/04/27 22:09:58 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.15 2000/04/28 18:58:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -115,7 +115,11 @@ Optional PREFIX is used to specify special marker characters."
 		  (if (semantic-token-variable-default token)
 		      (speedbar-insert-button "=" nil nil nil nil t)))
 		 ((eq type 'function)
-		  (speedbar-insert-button "()" nil nil nil nil t)))))))
+		  (speedbar-insert-button "()" nil nil nil nil t))
+		 ((and (eq type 'include)
+		       (semantic-token-include-system token))
+		  (speedbar-insert-button "<>" nil nil nil nil t))
+		 )))))
   
 (defun semantic-sb-speedbar-data-line (depth button text &optional
 					     text-fun text-data)
