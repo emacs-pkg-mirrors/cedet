@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.30 2003/02/18 00:34:37 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.31 2003/02/18 01:58:23 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -92,30 +92,28 @@ stack."
 	  ;; Blank or comment line => no indentation change
 	  ((looking-at "\\(#\\|$\\)")
 	   (forward-line 1)
-	   (setq end-point (point))
+	   (setq semantic-lex-end-point (point))
 	   (semantic-lex-python-pop-indent-stack)
 	   ;; Since position changed, returning t here won't result in
 	   ;; infinite loop.
 	   t)
 	  ;; No change in indentation.
 	  ((= curr-indent last-indent)
-	   (setq end-point (point))
+	   (setq semantic-lex-end-point (point))
 	   ;; If pos did not change, then we must return nil so that
 	   ;; other lexical analyzers can be run.
 	   nil)
 	  ;; Indentation increased
 	  ((> curr-indent last-indent)
-	   (if (or (not depth) (< current-depth depth))
+	   (if (or (not depth) (< semantic-lex-current-depth depth))
 	       (progn
-		 ;;(message "depth=%s, current-depth=%s" depth current-depth)
 		 ;; Return an INDENT lexical token
-		 (setq current-depth (1+ current-depth))
+		 (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
 		 (push curr-indent wisent-python-lexer-indent-stack)
 		 (semantic-lex-push-token
 		  (semantic-lex-token 'INDENT last-pos (point)))
 		 t)
 	     ;; Add an INDENT_BLOCK token
-	     ;;(message "depth=%s, current-depth=%s" depth current-depth)
 	     (semantic-lex-push-token
 	      (semantic-lex-token
 	      'INDENT_BLOCK
@@ -132,14 +130,14 @@ stack."
 		    (funcall
 		     semantic-lex-unterminated-syntax-end-function
 		     'INDENT start end))))
-		(setq end-point (point)))))
+		(setq semantic-lex-end-point (point)))))
 	     t)
 	   )
 	  ;; Indentation decreased
 	  (t
 	   ;; Pop items from indentation stack
 	   (while (< curr-indent last-indent)
-	     (setq current-depth (1- current-depth))
+	     (setq semantic-lex-current-depth (1- semantic-lex-current-depth))
 	     (semantic-lex-push-token
 	      (semantic-lex-token 'DEDENT last-pos (point)))
 	     (pop wisent-python-lexer-indent-stack)
@@ -202,7 +200,7 @@ then throw away any immediately following INDENT and DEDENT tokens."
     (forward-char 1)
     (skip-chars-forward " \t")
     (setq wisent-python-explicit-line-continuation nil))
-  (setq end-point (point)))
+  (setq semantic-lex-end-point (point)))
 
 ;; This is same as wisent-java-lex-symbol except for using 'NAME token
 ;; rather than 'IDENTIFIER. -ryk1/05/03.
