@@ -5,8 +5,8 @@
 ;; Copyright (C) 1995,1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; Version: 0.11
-;; RCS: $Id: eieio.el,v 1.39 1999/06/19 17:05:09 zappo Exp $
+;; Version: 0.12
+;; RCS: $Id: eieio.el,v 1.40 1999/07/12 12:52:29 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -665,8 +665,7 @@ Fills in OBJ's FIELD with it's default value."
 Checks the :type specifier."
   ;; Trim off object IDX junk.
   (setq field-idx (- field-idx 3))
-  (let ((s (aref (class-v class) class-public-a))
-	(spec nil))
+  (let ((s (aref (class-v class) class-public-a)))
     (if (not (eieio-perform-slot-validation
 	      (if (< field-idx (length s))
 		  ;; It's public
@@ -1212,7 +1211,8 @@ associated with this symbol.  Current method specific code is:")
     (while (< i 6)
       (let ((gm (aref (get sym 'eieio-method-tree) i)))
 	(if gm
-	    (setq newdoc (concat newdoc "\n\nGeneric " (aref prefix (- i 3)) "\n"
+	    (setq newdoc (concat newdoc "\n\nGeneric " (aref prefix (- i 3))
+				 "\n" 
 				 (if (nth 2 gm) (nth 2 gm) "Undocumented")))))
       (setq i (1+ i)))
     (setq i 0)
@@ -1224,9 +1224,13 @@ associated with this symbol.  Current method specific code is:")
 			       " " (aref prefix i) " "
 			       ;; argument list
 			       (let* ((func (cdr (car gm)))
-				      (arglst (if (byte-code-function-p func)
-						  (aref func 0)
-						(car (cdr func)))))
+				      (arglst
+				       (if (byte-code-function-p func)
+					   (if (fboundp
+						'compiled-function-arglist)
+					       (compiled-function-arglist func)
+					     (aref func 0))
+					 (car (cdr func)))))
 				 (format "%S" arglst))
 			       "\n"
 			       ;; 3 because of cdr
