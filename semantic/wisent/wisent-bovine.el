@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.14 2002/02/20 17:49:53 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.15 2002/02/26 18:49:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,26 +37,7 @@
 
 (require 'semantic)
 (require 'wisent)
-
-;;; These two functions should be moved to semantic.el
-;;
-(defsubst semantic-flex-token-value (table category &optional key)
-  "Return %token values from the token table TABLE.
-CATEGORY is a symbol identifying a token category.  If the symbol KEY
-is specified the function returns the particular value of this token.
-Otherwise the function returns the alist of (KEY . VALUE) for this
-category.  See also the function `semantic-bnf-token-table'."
-  (let ((cat-alist (cdr (assq category table))))
-    (if key
-        (cdr (assq key cat-alist))
-      cat-alist)))
-
-(defsubst semantic-flex-token-key (table category value)
-  "Search for a %token symbol in the token table TABLE.
-CATEGORY is a symbol identifying a token category.  VALUE is the value
-of the token to search for.  If not found return nil.  See also the
-function `semantic-bnf-token-table'."
-  (car (rassoc value (cdr (assq category table)))))
+(require 'wisent-flex)
 
 ;;; Token production
 ;;
@@ -74,41 +55,18 @@ Should be used in Semantic actions to build the bovine cache."
                         (setq $region (nthcdr 2 wisent-input)))
                     (vector (car $region) (cdr $region))
                   (vector (point-max) (point-max)))))))
-
-;;; Unmatched syntax
-;;
-(defun wisent-collect-unmatched-syntax (input)
-  "Add INPUT lexical token to the cache of unmatched tokens.
-Run as `wisent-skip-token-hook' hook function.
-See also the variable `semantic-unmatched-syntax-cache'."
-  (let ((region (cddr input)))
-    (and (number-or-marker-p (car region))
-         (number-or-marker-p (cdr region))
-         (setq semantic-unmatched-syntax-cache
-               (cons (cons (car input) region)
-                     semantic-unmatched-syntax-cache)))))
 
 ;;; Bovination
 ;;
-(defvar wisent-flex-istream nil
-  "Input stream of `semantic-flex' lexical tokens.
-The actual value of this variable is local to
-`wisent-bovinate-nonterminal'.")
+(defvar wisent-error-function #'ignore
+  "Function used to report parse error.")
+(make-variable-buffer-local 'wisent-error-function)
 
-(defvar wisent-flex-depth nil
-  "How `semantic-flex' will setup the lexer input stream.
-See also `semantic-flex-depth'.")
-(make-variable-buffer-local 'wisent-flex-depth)
-
-(defvar wisent-lexer-function nil
+(defvar wisent-lexer-function #'wisent-flex
   "Function used to get the next lexical token in input.
 This function does not have argument and must pop tokens from
 `wisent-flex-istream'.")
 (make-variable-buffer-local 'wisent-lexer-function)
-
-(defvar wisent-error-function #'ignore
-  "Function used to report parse error.")
-(make-variable-buffer-local 'wisent-error-function)
 
 (defvar wisent-lexer-lookahead nil)
 
@@ -126,6 +84,17 @@ working goodies."
           wisent-lexer-lookahead
         (setq wisent-lexer-lookahead nil))
       (funcall wisent-lexer-function)))
+
+(defun wisent-collect-unmatched-syntax (input)
+  "Add INPUT lexical token to the cache of unmatched tokens.
+Run as `wisent-skip-token-hook' hook function.
+See also the variable `semantic-unmatched-syntax-cache'."
+  (let ((region (cddr input)))
+    (and (number-or-marker-p (car region))
+         (number-or-marker-p (cdr region))
+         (setq semantic-unmatched-syntax-cache
+               (cons (cons (car input) region)
+                     semantic-unmatched-syntax-cache)))))
 
 (defun wisent-bovinate-nonterminal (stream table
                                            &optional nonterminal)
@@ -182,8 +151,7 @@ with the current results on a parse error."
   ;; Pre Hooks
   (run-hook-with-args 'semantic-pre-clean-token-hooks token)
 
-  (let* ((semantic-flex-depth wisent-flex-depth)
-         (stream (semantic-flex (semantic-token-start token)
+  (let* ((stream (semantic-flex (semantic-token-start token)
                                 (semantic-token-end token)))
 	 ;; For embeded tokens (type parts, for example) we need a
 	 ;; different symbol.  Come up with a plan to solve this.
@@ -276,7 +244,6 @@ that, otherwise, do a full reparse."
     (garbage-collect)
     ;; Reparse the whole system
     (let* ((gc-cons-threshold 10000000)
-           (semantic-flex-depth wisent-flex-depth)
            ;; Capture the lexical tokens here so that if an error is
            ;; thrown, the cache is still safe.
            (lex (semantic-flex (point-min) (point-max)))
