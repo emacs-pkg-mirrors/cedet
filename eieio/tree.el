@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.2
-;;; RCS: $Id: tree.el,v 1.3 1996/03/10 15:24:25 zappo Exp $
+;;; RCS: $Id: tree.el,v 1.4 1996/03/28 03:51:52 zappo Exp $
 ;;; Keywords: OO, tree                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -38,6 +38,35 @@
 ;;;  The interactive command `tree-test-it-all' will display a demo tree,
 ;;; and `directory-tree-thing' will display a directory hierarchy from
 ;;; the default directory of the current buffer.
+;;;
+;;; You can access general tree commands to play with this mode using
+;;; the functions:
+;;; tree-test-it-all  - bogus data that lets you see how tree-mode works
+;;; eieio-class-tree  - show all currently defined eieio classes and
+;;;                     their current inheritance organization
+;;; directory-tree-thing - Draw a tree corresponding to the current
+;;;                     directory.
+;;; 
+;;; In all tree modes: 
+;;; RET & mouse-1
+;;;       will select a node: usually printing something simple in the
+;;;       minibuffer.
+;;; e & mouse-2
+;;;       will edit a node: bring up a file/directory/editor for that
+;;;       object.
+;;; x & mouse-3
+;;;       expand or deflate a node and it's children.  Shrunken nodes
+;;;       will have elipses `...' in them to indicate that more data
+;;;       could be expanded.
+;;;
+;;; Creating a new tree mode:
+;;; 1) Look at an example
+;;; 2) Create a new tree-node class and add whatever slots you need
+;;; 3) Create a place to make a tree with `tree-new-buffer'
+;;; 4) Set root of tree ith `tree-set-root'
+;;; 5) Add nodes ass you see fit with `tree-add-child'
+;;; 6) Draw the tree with `tree-refresh-tree'
+;;; 7) Modify select, edit, and change-scope to do whatever you need.   
 ;;;
 ;;; REQUIRES: emacs 19.30 or better and eieio
 
@@ -410,7 +439,55 @@ text-properties"
 
 
 ;;;
-;;; Tree demos using other modes
+;;; Tree demo using eieio class structures
+;;;
+(defclass eieio-tree-node (tree-node)
+  ((class :initarg :class
+	  :initform nil))
+  "Tree node used to represent eieio classes")
+
+(defmethod edit ((etn eieio-tree-node))
+  "Don't really edit, but pull up details about the given widget using
+`eieio-describe-class'"
+  (eieio-describe-class (oref etn class)))
+
+(defmethod select ((etn eieio-tree-node))
+  "Display a tiny bit of info about this object which might be useful"
+  (message "%s" (class-name (oref etn class)))
+  )
+
+(defun eieio-new-node (class)
+  "Creates a new widget tree node with the specified WIDGET slot"
+  (eieio-tree-node (symbol-name class)
+		   :name (symbol-name class)
+		   :class class)
+  )
+
+(defun eieio-class-tree (&optional root-class)
+  "Displays a class tree using the TREE package in another buffer."
+  (interactive)
+  (if (not root-class) (setq root-class 'eieio-default-superclass))
+  (switch-to-buffer (tree-new-buffer "*EIEIO CLASS TREE*"))
+  (erase-buffer)
+  (let ((np (tree-set-root (eieio-new-node root-class))))
+    (eieio-tree-grow np))
+  (tree-refresh-tree))
+
+(defun eieio-tree-grow (node)
+  "Adds to NODE all children belonging to the widget specified in it's
+widget field"
+  (let* ((wk (aref (class-v (oref node class)) class-children))
+	 nn)
+    (while wk
+      (setq nn (eieio-new-node (car wk)))
+      (tree-add-child node nn)
+      (eieio-tree-grow nn)
+      (setq wk (cdr wk))))
+  )
+
+
+;;;
+;;; Tree demos using directories
 ;;;
 (defclass dirtree-node (tree-node)
   ((pathname :initarg :path
