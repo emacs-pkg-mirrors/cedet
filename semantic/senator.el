@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.13 2000/12/12 09:21:43 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.14 2000/12/12 11:02:16 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -92,6 +92,9 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.14  2000/12/12 11:02:16  david_ponce
+;; `senator-mark-defun' now work on XEmacs too.
+;;
 ;; Revision 1.13  2000/12/12 09:21:43  david_ponce
 ;; Fixed a "side effect" bug with latest `beginning-of-defun' and
 ;; `end-of-defun' advices.  They caused font-lock, which uses
@@ -867,11 +870,15 @@ Use semantic tokens to navigate."
 The defun marked is the one that contains point or follows point.
 Use semantic tokens to navigate."
   (interactive)
-  (push-mark (point))
-  (senator-end-of-defun)
-  (push-mark (point) nil t)
-  (senator-beginning-of-defun)
-  (re-search-backward "^\n" (- (point) 1) t))
+  (let ((origin (point))
+	(end    (progn (senator-end-of-defun) (point)))
+	(start  (progn (senator-beginning-of-defun) (point))))
+    (goto-char origin)
+    (push-mark (point))
+    (goto-char end) ;; end-of-defun
+    (push-mark (point) nil t)
+    (goto-char start) ;; beginning-of-defun
+    (re-search-backward "^\n" (- (point) 1) t)))
 
 (defadvice beginning-of-defun (around senator activate)
   "Move backward to the beginning of a defun.
