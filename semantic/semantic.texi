@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.45 2001/09/12 04:52:52 zappo Exp $
+@c $Id: semantic.texi,v 1.46 2001/09/12 13:29:18 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -955,13 +955,13 @@ producing the name of the function, the ~ is added back in.
 For functions in interpreted languages such as Emacs Lisp, this
 signals that a function or variable is user visible.  In Emacs Lisp,
 this means a function is @dfn{interactive}.
-@end table
 
 @item (prototype . t)
 For functions or variables that are not declared locally, a prototype
 is something that will define that function or variable for use.
 In C, the term represents prototypes generally used in header files.
 In Emacs Lisp, the @code{autoload} statement creates prototypes.
+@end table
 
 @node Compiling, Debugging, BNF conversion, Top
 @chapter Compiling a language file with the bovinator
