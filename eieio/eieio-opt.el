@@ -4,7 +4,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: eieio-opt.el,v 1.1 1996/11/27 03:37:30 zappo Exp $
+;;; RCS: $Id: eieio-opt.el,v 1.2 1996/12/12 03:37:24 zappo Exp $
 ;;; Keywords: OO, lisp
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -41,7 +41,7 @@
 
 (defun eieio-browse (&optional root-class)
   "Create an object browser window which shows all objects starting
-with root-class, or eieio-default-superclass if none is given."
+with root-class, or `eieio-default-superclass' if none is given."
   (interactive (if current-prefix-arg
 		   (list (read (completing-read "Class: " 
 						(eieio-build-class-alist)
