@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.8 2001/04/07 14:26:51 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.9 2001/04/13 16:46:46 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -126,7 +126,7 @@ When non-nil, query for a new documentation file."
 		     "defvar"))
 		  ((eq tt 'function)
 		   (if (semantic-token-extra-spec nonterm 'user-visible)
-		       "deffn Comamnd"
+		       "deffn Command"
 		     "defun"))
 		  ((eq tt 'type)
 		   "deftype")
