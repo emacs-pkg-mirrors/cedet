@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.88 2002/05/07 01:26:22 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.89 2002/05/07 01:34:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -292,8 +292,8 @@ buffer, or a filename."
 	((and (listp something)
 	      (semantic-token-p (car something)))
 	 something)
-	((and ((stringp stream-or-buffer)
-	       (file-exists-p stream-or-buffer)))
+	((and (stringp something)
+	      (file-exists-p something))
 	 (semantic-file-token-stream something nil))
 	(t nil)))
 
@@ -766,7 +766,7 @@ The overloadable function `semantic-nonterminal-children' is used for
 searching.
 If SEARCH-INCLUDES is non-nil, then all include files are also
 searched for matches."
-  (let ((stream (semantic-something-to-stream stremorbuffer))
+  (let ((stream (semantic-something-to-stream streamorbuffer))
 	(found nil)
         (case-fold-search semantic-case-fold))
     (while (and (not found) stream)
