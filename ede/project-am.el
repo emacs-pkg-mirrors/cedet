@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.22 2000/07/12 14:18:48 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.23 2000/07/22 12:51:45 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -419,20 +419,18 @@ It does not check for existing project objects.  Use `project-am-load'."
 ;;; Methods:
 (defmethod ede-find-target ((amf project-am-makefile) buffer)
   "Fetch the target belonging to BUFFER."
-  (or ede-object
-    (if (ede-project-mine amf buffer)
-	amf
+  (or (call-next-method)
       (let ((targ (oref amf targets))
 	    (sobj (oref amf subproj))
 	    (obj nil))
 	(while (and targ (not obj))
-	  (if (ede-project-mine (car targ) buffer)
+	  (if (ede-buffer-mine (car targ) buffer)
 	      (setq obj (car targ)))
 	  (setq targ (cdr targ)))
 	(while (and sobj (not obj))
 	  (setq obj (project-am-buffer-object (car sobj) buffer)
 		sobj (cdr sobj)))
-	obj))))
+	obj)))
 
 (defmethod project-targets-for-file ((proj project-am-makefile))
   "Return a list of targets the project PROJ."
@@ -558,13 +556,13 @@ It does not check for existing project objects.  Use `project-am-load'."
 nil means that this buffer belongs to no-one."
   (if (not amf)
       nil
-    (if (ede-project-mine amf buffer)
+    (if (ede-buffer-mine amf buffer)
 	amf
       (let ((targ (oref amf targets))
 	    (sobj (oref amf subproj))
 	    (obj nil))
 	(while (and targ (not obj))
-	  (if (ede-project-mine (car targ) buffer)
+	  (if (ede-buffer-mine (car targ) buffer)
 	      (setq obj (car targ)))
 	  (setq targ (cdr targ)))
 	(while (and sobj (not obj))
@@ -572,26 +570,26 @@ nil means that this buffer belongs to no-one."
 		sobj (cdr sobj)))
 	obj))))
   
-(defmethod ede-project-mine ((this project-am-makefile) buffer)
+(defmethod ede-buffer-mine ((this project-am-makefile) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (string= (oref this :file) (expand-file-name (buffer-file-name buffer))))
 
-(defmethod ede-project-mine ((this project-am-objectcode) buffer)
+(defmethod ede-buffer-mine ((this project-am-objectcode) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (member (file-name-nondirectory (buffer-file-name buffer))
 	  (oref this :source)))
 
-(defmethod ede-project-mine ((this project-am-texinfo) buffer)
+(defmethod ede-buffer-mine ((this project-am-texinfo) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (let ((bfn (buffer-file-name buffer)))
     (or (string= (oref this :name)  (file-name-nondirectory bfn))
 	(member (file-name-nondirectory bfn) (oref this :include)))))
 	
-(defmethod ede-project-mine ((this project-am-man) buffer)
+(defmethod ede-buffer-mine ((this project-am-man) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (string= (oref this :name) (buffer-file-name buffer)))
 
-(defmethod ede-project-mine ((this project-am-lisp) buffer)
+(defmethod ede-buffer-mine ((this project-am-lisp) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (member (file-name-nondirectory (buffer-file-name buffer))
 	  (oref this :lisp)))
