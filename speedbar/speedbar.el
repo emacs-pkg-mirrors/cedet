@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7g
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.107 1998/05/17 14:28:34 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.108 1998/06/09 16:30:42 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -88,7 +88,7 @@
 ;; done before speedbar is loaded.
 ;;
 ;;   To add new file types to imenu, see the documentation in the
-;; file imenu.el that comes with emacs.  To add new file types which
+;; file imenu.el that comes with Emacs.  To add new file types which
 ;; etags supports, you need to modify the variable
 ;; `speedbar-fetch-etags-parse-list'.
 ;;
@@ -103,8 +103,6 @@
 ;;
 ;;    To enable mouse tracking with information in the minibuffer of
 ;; the attached frame, use the variable `speedbar-track-mouse-flag'.
-;; In GNU emacs, this also sets `track-mouse' to t for all frames.
-;; If you have a fast machine, this shouldn't be a problem.
 ;;
 ;;    Tag layout can be modified through `speedbar-tag-hierarchy-method',
 ;; which controls how tags are layed out.  It is actually a list of
@@ -158,7 +156,7 @@
 ;; building a speedbar display easy.  See the documentation for
 ;; `speedbar-with-writable' (needed because the buffer is usually
 ;; read-only) `speedbar-make-tag-line', `speedbar-insert-button', and
-;; `speedbar-insert-generic-list'. If you use
+;; `speedbar-insert-generic-list'.  If you use
 ;; `speedbar-insert-generic-list', also read the doc for
 ;; `speedbar-tag-hierarchy-method' in case you wish to override it.
 ;; The function `speedbar-with-attached-buffer' brings you back to the
@@ -169,9 +167,9 @@
 ;; is extra data you can pass along.  The "function" must take three
 ;; parameters.  They are (TEXT TOKEN INDENT).  TEXT is the text of the
 ;; button clicked on.  TOKEN is the data passed in when you create the
-;; button. INDENT is an indentation level, or 0.  You can store
+;; button.  INDENT is an indentation level, or 0.  You can store
 ;; indentation levels with `speedbar-make-tag-line' which creates a
-;; line with an expander (eg. [+]) and a text button.
+;; line with an expander (eg.  [+]) and a text button.
 ;;
 ;; Some useful functions when writing expand functions, and click
 ;; functions are `speedbar-change-expand-button-char',
@@ -197,7 +195,7 @@
 ;; are the same.  Once you create these items, you can call the
 ;; function `speedbar-add-expansion-list'.  It takes one parameter
 ;; which is a list element of the form (NAME MENU KEYMAP &rest
-;; BUTTON-FUNCTIONS). NAME is a string that will show up in the
+;; BUTTON-FUNCTIONS).  NAME is a string that will show up in the
 ;; Displays menu item.  MENU is a symbol containing the menu items to
 ;; splice in.  KEYMAP is a symbol holding the keymap to use, and
 ;; BUTTON-FUNCTIONS are the function names to call, in order, to create
@@ -500,7 +498,7 @@ still get to override this list on a mode-by-mode basis.  This list of
 lists is of the form (NAME MENU KEYMAP FN1 FN2 ...).  NAME is a string
 representing the types of things to be displayed.  MENU is an easymenu
 structure used when in this mode.  KEYMAP is a local keymap to install
-over the regular speedbar keymap.  FN1 ... are functions that will be
+over the regular speedbar keymap.  FN1 ...  are functions that will be
 called in order.  These functions will always get the default
 directory to use passed in as the first parameter, and a 0 as the
 second parameter.  The 0 indicates the uppermost indentation level.
@@ -644,7 +642,7 @@ use etags instead.  Etags support is not as robust as imenu support."
 ;;;	   (set sym val))))
 
 (defcustom speedbar-sort-tags nil
-  "*If Non-nil, sort tags in the speedbar display. *Obsolete*."
+  "*If Non-nil, sort tags in the speedbar display.  *Obsolete*."
   :group 'speedbar
   :type 'boolean)
 
@@ -654,7 +652,7 @@ use etags instead.  Etags support is not as robust as imenu support."
 Groups are defined as expandable meta-tags.  Imenu supports such
 things in some languages, such as separating variables from functions.
 Available methods are:
-  sort         - Sort tags. (sometimes unnecessary)
+  sort         - Sort tags.  (sometimes unnecessary)
   trim-words   - Trim all tags by a common prefix, broken @ word sections.
   prefix-group - Try to guess groups by prefix.
   simple-group - If imenu already returned some meta groups, stick all
@@ -823,8 +821,8 @@ state data."
 
 (defun speedbar-extension-list-to-regex (extlist)
   "Takes EXTLIST, a list of extensions and transforms it into regexp.
-All the preceding . are stripped for an optimized expression starting
-with . followed by extensions, followed by full-filenames."
+All the preceding `.' are stripped for an optimized expression starting
+with `.' followed by extensions, followed by full-filenames."
   (let ((regex1 nil) (regex2 nil))
     (while extlist
       (if (= (string-to-char (car extlist)) ?.)
@@ -1391,7 +1389,9 @@ in the selected file.
 	  (make-local-variable 'mouse-motion-handler)
 	  (setq mouse-motion-handler 'speedbar-track-mouse-xemacs))
       (if speedbar-track-mouse-flag
-	  (setq track-mouse t))		;this could be messy.
+	  (progn
+	    (make-local-variable 'track-mouse)
+	    (setq track-mouse t)))	;this could be messy.
       (setq auto-show-mode nil))	;no auto-show for Emacs
     (run-hooks 'speedbar-mode-hook))
   (speedbar-update-contents)
@@ -1736,7 +1736,7 @@ Assumes that the current buffer is the speedbar buffer"
 	(message nil))))
 
 (defun speedbar-item-load ()
-  "Load the item under the cursor or mouse if it is a lisp file."
+  "Load the item under the cursor or mouse if it is a Lisp file."
   (interactive)
   (let ((f (speedbar-line-file)))
     (if (and (file-exists-p f) (string-match "\\.el\\'" f))
@@ -1748,7 +1748,7 @@ Assumes that the current buffer is the speedbar buffer"
       (error "Not a loadable file"))))
 
 (defun speedbar-item-byte-compile ()
-  "Byte compile the item under the cursor or mouse if it is a lisp file."
+  "Byte compile the item under the cursor or mouse if it is a Lisp file."
   (interactive)
   (let ((f (speedbar-line-file))
 	(sf (selected-frame)))
@@ -2028,7 +2028,7 @@ specialized speedbar displays."
 (defun speedbar-make-button (start end face mouse function &optional token)
   "Create a button from START to END, with FACE as the display face.
 MOUSE is the mouse face.  When this button is clicked on FUNCTION
-will be run with the TOKEN parameter (any lisp object)"
+will be run with the TOKEN parameter (any Lisp object)"
   (put-text-property start end 'face face)
   (put-text-property start end 'mouse-face mouse)
   (put-text-property start end 'invisible nil)
@@ -2312,7 +2312,7 @@ position to insert a new item, and that the new item will end with a CR"
   "Insert list of FILES starting at point, and indenting all files to LEVEL.
 Tag expandable items with a +, otherwise a ?.  Don't highlight ? as we
 don't know how to manage them.  The input parameter FILES is a cons
-cell of the form ( 'DIRLIST . 'FILELIST )"
+cell of the form ( 'DIRLIST .  'FILELIST )"
   ;; Start inserting all the directories
   (let ((dirs (car files)))
     (while dirs
@@ -2691,7 +2691,7 @@ This should only be used by modes classified as special."
   (speedbar-reconfigure-keymaps))
 
 (defun speedbar-timer-fn ()
-  "Run whenever emacs is idle to update the speedbar item."
+  "Run whenever Emacs is idle to update the speedbar item."
   (if (not (and (frame-live-p speedbar-frame)
 		(frame-live-p speedbar-attached-frame)))
       (speedbar-set-timer nil)
@@ -2863,7 +2863,7 @@ updated."
 (defun speedbar-add-indicator (indicator-string &optional replace-this)
   "Add INDICATOR-STRING to the end of this speedbar line.
 If INDICATOR-STRING is space, and REPLACE-THIS is a character, then
-an the existing indicator is removed. If there is already an
+an the existing indicator is removed.  If there is already an
 indicator, then do not add a space."
   (beginning-of-line)
   ;; The nature of the beast: Assume we are in "the right place"
@@ -3374,7 +3374,7 @@ expanded.  INDENT is the current indentation level."
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent)
 	 )
-	(t (error "Ooops... not sure what to do")))
+	(t (error "Ooops...  not sure what to do")))
   (speedbar-center-buffer-smartly)
   (setq speedbar-last-selected-file nil)
   (save-excursion (speedbar-stealthy-updates)))
@@ -3417,7 +3417,7 @@ indentation level."
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
-	(t (error "Ooops... not sure what to do")))
+	(t (error "Ooops...  not sure what to do")))
   (speedbar-center-buffer-smartly))
 
 (defun speedbar-tag-find (text token indent)
@@ -3451,7 +3451,7 @@ level."
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
-	(t (error "Ooops... not sure what to do")))
+	(t (error "Ooops...  not sure what to do")))
   (speedbar-center-buffer-smartly))
 
 ;;; Loading files into the attached frame.
@@ -3672,7 +3672,7 @@ Each symbol will be associated with its line position in FILE."
 ;      (delete-region (match-beginning 1) (match-end 1)))))
 
 (defun speedbar-extract-one-symbol (expr)
-  "At point, return nil, or one alist in the form: ( symbol . position )
+  "At point, return nil, or one alist in the form: (SYMBOL .  POSITION)
 The line should contain output from etags.  Parse the output using the
 regular expression EXPR"
   (let* ((sym (if (stringp expr)
@@ -3771,6 +3771,11 @@ strict standard."
   (define-key speedbar-buffers-key-map "\C-m" 'speedbar-edit-line)
   (define-key speedbar-buffers-key-map "+" 'speedbar-expand-line)
   (define-key speedbar-buffers-key-map "-" 'speedbar-contract-line)
+
+  ;; Buffer specific keybindings
+  (define-key speedbar-buffers-key-map "k" 'speedbar-buffer-kill-buffer)
+  (define-key speedbar-buffers-key-map "r" 'speedbar-buffer-revert-buffer)
+
   )
 
 (defvar speedbar-buffer-easymenu-definition
@@ -3847,6 +3852,17 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
     (switch-to-buffer text)
     (if token (speedbar-change-initial-expansion-list
 	       speedbar-previously-used-expansion-list-name))))
+
+(defun speedbar-buffer-kill-buffer ()
+  "Kill the buffer the cursor is on in the speedbar buffer."
+  (interactive)
+  )
+
+(defun speedbar-buffer-revert-buffer ()
+  "Revert the buffer the cursor is on in the speedbar buffer."
+  (interactive)
+  )
+
 
 
 ;;; Color loading section  This is messy *Blech!*
