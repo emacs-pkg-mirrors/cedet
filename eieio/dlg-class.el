@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-class.el,v 1.5 1997/01/07 23:06:49 zappo Exp $
+;;; RCS: $Id: dlg-class.el,v 1.6 1997/01/10 23:07:51 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -89,6 +89,15 @@ initialized."
 based upon the symbol we are editing"
   (dlg-init-symbol this)
   (oset this value (symbol-value (oref this symbol))))
+
+(defmethod help-form ((this data-object-symbol))
+  "Return the form '(describe-variable my-symbol) or '(describe-function...)
+depending on the type of symbol being modified by this data object."
+  (if (get (oref this symbol) 'variable-documentation)
+      (list 'describe-variable (list 'quote (oref this symbol)))
+    (if (fboundp (oref this symbol))
+	(list 'describe-function (list 'quote (oref this symbol)))
+      nil)))  
 
 (defclass data-object-symbol-translated (data-object-symbol)
   ((set-lambda :initarg :set-lambda
@@ -209,6 +218,11 @@ based upon the symbol we are editing"
   (dlg-init-symbol this)
   (oset this value (featurep (oref this symbol))))
 
+(defmethod help-form ((this data-object-symbol-feature))
+  "Return command to print a message describing help for this symbol."
+  (list 'message
+	(format "Load the feature \"%s\" at startup." (oref this symbol))))
+
 (defclass data-object-symbol-hook (data-object-symbol)
   ((command :initarg :command
 	    :initform nil
@@ -225,6 +239,14 @@ based upon the symbol we want to add a hook to."
       (set (oref this symbol) nil))
   (oset this value (member (read (oref this command))
 			   (symbol-value (oref this symbol)))))
+
+(defmethod help-form ((this data-object-symbol-hook))
+  "Return a form describing how to use this object to add functionality."
+  (or (call-next-method)
+      (list 'message
+	    (format "In hook %s add: %S"
+		    (oref this symbol)
+		    (oref this command)))))
 
 (defclass data-object-symbol-disabled (data-object-symbol)
   nil
@@ -267,6 +289,11 @@ based upon the symbol we are editing"
   (if (not (oref this value))  ;; Allow caller to override this one.
       (oset this value (dlg-quick-find (oref this command) dlg-config-file))))
 
+(defmethod help-form ((this data-object-command-option))
+  "Return a form to describe help about the command to be run."
+  (list 'message (format "Run this at startup: %s" (oref this command)))
+  )
+
 ;; face specific data objects
 ;;
 (defclass data-face-object (data-object)
@@ -283,17 +310,34 @@ of a face.")
   nil
   "`data-face-object' which maintains the foreground")
 
+(defmethod help-form ((this data-face-foreground-object))
+  "Describes help for face modifier."
+  '(message "Valid colors are names like `red' or numbers like #rrggbb"))
+
 (defclass data-face-background-object (data-face-object)
   nil
   "`data-face-object' which maintains the background")
+
+(defmethod help-form ((this data-face-background-object))
+  "Describes help for face modifier."
+  '(message "Valid colors are names like `red' or numbers like #rrggbb"))
 
 (defclass data-face-underline-object (data-face-object)
   nil
   "`data-face-object' which maintains current underline state")
 
+(defmethod help-form ((this data-face-underline-object))
+  "Describes help for face modifier."
+  '(message "When this is non-nil, this face will be underlined."))
+
 (defclass data-face-emphasis-object (data-face-object)
   nil
   "`data-face-object' which maintains current emphasis state. (bold & italic combos)")
+
+(defmethod help-form ((this data-face-emphasis-object))
+  "Describes help for face modifier."
+  '(message "A face emphisis may be `default' `bold' `italic' or `bold-italic'"))
+
 
 ;;;
 ;;; Implementation of above classes.
