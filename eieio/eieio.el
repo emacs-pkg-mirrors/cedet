@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.10
-;; RCS: $Id: eieio.el,v 1.34 1999/01/28 16:01:17 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.35 1999/02/02 20:59:31 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1362,7 +1362,7 @@ Called from the constructor routine."
     "Constructs the new object THIS based on FIELDS.
 FIELDS is a tagged list where odd numbered elements are tags, and
 even numbered elements are the values to store in the tagged slot.  If
-you overload the initialize-instance, there you will need to call
+you overload the `initialize-instance', there you will need to call
 `shared-initialize' yourself, or you can call `call-next-method' to
 have this constructor called automatically.  If these steps are not
 taken, then new objects of your class will not have their values
@@ -1395,14 +1395,16 @@ sure to call `call-next-method' first and modify the returned object."
     nobj))
 
 (defmethod destructor ((this eieio-default-superclass) &rest params)
-  "Destructor for cleaning up any dynamic links to our object."
+  "Destructor for cleaning up any dynamic links to our object.
+Argument THIS is the object being destroyed.  PARAMS are additional
+ignored parameters."
   ;; No cleanup... yet.
   )
 
 (defmethod object-print ((this eieio-default-superclass) &rest strings)
-  "Pretty printer for any object.  Calls `object-name' with STRINGS.
-  The default method for printing an object is to use the
-`object-name' function.  At times it could be useful to put a summary
+  "Pretty printer for any object.  Calls function `object-name' with STRINGS.
+The default method for printing object THIS is to use the
+function `object-name'.  At times it could be useful to put a summary
 of the object into the default #<notation> string.  Overload this
 function to allow summaries of your objects to be used by eieio
 browsing tools.  The optional parameter STRINGS is for additional
@@ -1414,7 +1416,7 @@ strings from child classes, always remember to prepend a space."
   "When printing, keep track of the current indentation depth.")
 
 (defmethod object-write ((this eieio-default-superclass) &optional comment)
-  "Write an object out to the current stream.
+  "Write object THIS out to the current stream.
 This writes out the vector version of this object.  Complex and recursive
 object are discouraged from being written.
   If optional COMMENT is non-nil, include comments when outputting

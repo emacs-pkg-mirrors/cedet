@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.2 1999/01/28 15:57:06 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.3 1999/02/02 20:59:20 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -144,7 +144,7 @@ This is the next line of documentation.")
 To override call the `eieio-custom-widget-insert' to just insert the
 object widget."
   ;; Insert check for multiple edits here.
-  (let ((b (switch-to-buffer (get-buffer-create 
+  (let ((b (switch-to-buffer (get-buffer-create
 			      (concat "*CUSTOMIZE " (object-name obj) "*")))))
     (toggle-read-only -1)
     (erase-buffer)
@@ -177,7 +177,7 @@ object widget."
 
 (defmethod eieio-custom-widget-insert ((obj eieio-default-superclass)
 				       &rest flags)
-  "Inserts the widget used for editing object in the current buffer.
+  "Insert the widget used for editing object OBJ in the current buffer.
 Arguments FLAGS are widget compatible flags.
 Must return the created widget."
   (widget-create 'object-edit :value obj))
