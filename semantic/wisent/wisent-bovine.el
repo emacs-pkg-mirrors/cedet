@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.23 2002/09/05 13:31:51 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.24 2002/09/11 10:23:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -89,19 +89,21 @@ instead of regexp match."
 
 ;; Some general purpose analyzers
 ;;
-(define-lex-regex-analyzer wisent-lex-punctuation
+(define-lex-analyzer wisent-lex-punctuation
   "Detect and create punctuation tokens."
-  "\\(\\s.\\|\\s$\\|\\s'\\)+"
-  (let* ((punct (match-string 0))
-         (start (match-beginning 0))
-         (rules (cdr (wisent-lex-token-rules 'punctuation)))
-         entry)
-    ;; Starting with the longest punctuation string, search if it
-    ;; matches a punctuation of this language.
-    (while (and (> (length punct) 0)
-                (not (setq entry (rassoc punct rules))))
-      (setq punct (substring punct 0 -1)))
-    (semantic-lex-token (car entry) start (+ start (length punct)))))
+  (and (looking-at "\\(\\s.\\|\\s$\\|\\s'\\)+")
+       (let* ((punct (match-string 0))
+              (start (match-beginning 0))
+              (rules (cdr (wisent-lex-token-rules 'punctuation)))
+              entry)
+         ;; Starting with the longest punctuation string, search if it
+         ;; matches a punctuation of this language.
+         (while (and (> (length punct) 0)
+                     (not (setq entry (rassoc punct rules))))
+           (setq punct (substring punct 0 -1)))
+         (if entry
+             (semantic-lex-token
+              (car entry) start (+ start (length punct)))))))
 
 ;;; Lexer creation macros
 ;;
