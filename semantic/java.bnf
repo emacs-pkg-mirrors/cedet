@@ -1,12 +1,12 @@
 # BNF grammar for Java
 #
-# Copyright (C) 2000, 2001 Paul F. Kinnucan, Jr.
-# Copyright (C) 2001 David Ponce
+# Copyright (C) 2000, 2001, 2002 Paul F. Kinnucan, Jr.
+# Copyright (C) 2001, 2002 David Ponce
 #
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.15 2002/05/15 19:21:02 ponced Exp $
+# $Id: java.bnf,v 1.16 2002/07/17 12:08:30 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,36 +34,34 @@
 
 %(progn
    (setq
-    ;; Java numbers
-    semantic-number-expression semantic-java-number-regexp
-    ;; Java is case sensitive
-    semantic-case-fold nil
-    ;; special handling of multiple variable declarations/statement
+    ;; Lexical analysis
+    semantic-lex-analyzer 'semantic-java-lexer
+    semantic-lex-number-expression semantic-java-number-regexp
+    ;; Parsing
     semantic-expand-nonterminal 'semantic-expand-java-nonterminal
-    ;; function to use when creating items in imenu
+    ;; Environment
+    semantic-case-fold nil
     semantic-imenu-summary-function 'semantic-prototype-nonterminal
-    ;; function to use for creating the imenu
     imenu-create-index-function 'semantic-create-imenu-index
-    ;; Character used to separation a parent/child relationship
     semantic-type-relation-separator-character '(".")
-    semantic-command-separation-character ";"
-    document-comment-start "/**"
-    document-comment-line-prefix " *"
-    document-comment-end " */"
-    ;; speedbar and imenu buckets name
-    semantic-symbol->name-assoc-list-for-type-parts
-    ;; In type parts
-    '((type     . "Classes")
-      (variable . "Variables")
-      (function . "Methods"))
-    semantic-symbol->name-assoc-list
-    ;; Everywhere
-    (append semantic-symbol->name-assoc-list-for-type-parts
-            '((include  . "Imports")
-              (package  . "Package")))
-    ;; Semantic navigation inside 'type children
-    senator-step-at-token-ids '(function variable)
-    )
+     semantic-command-separation-character ";"
+     document-comment-start "/**"
+     document-comment-line-prefix " *"
+     document-comment-end " */"
+     ;; speedbar and imenu buckets name
+     semantic-symbol->name-assoc-list-for-type-parts
+     ;; in type parts
+     '((type     . "Classes")
+       (variable . "Variables")
+       (function . "Methods"))
+     semantic-symbol->name-assoc-list
+     ;; everywhere
+     (append semantic-symbol->name-assoc-list-for-type-parts
+             '((include  . "Imports")
+               (package  . "Package")))
+     ;; navigation inside 'type children
+     senator-step-at-token-ids '(function variable)
+     )
    )%
 
 %token ABSTRACT     "abstract"
