@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.15 2001/10/28 00:01:36 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.16 2002/02/06 18:57:05 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -221,6 +221,7 @@ Optional THISFILE represends the filename of"
       (nreverse completions))))
 
 ;;; Info mode node listing
+;;;###autoload
 (defun Info-speedbar-buttons (buffer)
   "Create a speedbar display to help navigation in an Info file.
 BUFFER is the buffer speedbar is requesting buttons for."
