@@ -1,11 +1,11 @@
 ;;; sb-info --- Speedbar support for Info
 
-;; Copyright (C) 1997, 1998, 2000, 2001 Free Software Foundation
+;; Copyright (C) 1997, 1998, 2000, 2001, 2002 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.16 2002/02/06 18:57:05 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.17 2002/02/28 16:24:29 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -51,7 +51,7 @@
 ;;         minor mode effortlessly.
 ;; 0.2.1   Added section adding major display mode at load time.
 
-;(require 'speedbar)
+(require 'speedbar)
 (require 'info)
 
 ;;; Code:

@@ -1,11 +1,11 @@
 ;;; sb-gud --- Speedbar support for the Grand Unified Debugger
 
-;; Copyright (C) 1997, 1998, 2001 Free Software Foundation
+;; Copyright (C) 1997, 1998, 2001, 2002 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: tools, gud
-;; X-RCS: $Id: sb-gud.el,v 1.8 2002/02/06 18:56:17 zappo Exp $
+;; X-RCS: $Id: sb-gud.el,v 1.9 2002/02/28 16:22:30 zappo Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -46,6 +46,8 @@
 ;; 0.1   - First revision
 ;; 0.1.1 - Removed dependency on speedbspec.
 ;; 0.1.2 - Changed to handle keymap feature.
+
+(require 'speedbar)
 
 ;;; Code:
 (defvar gud-last-speedbar-buffer nil
