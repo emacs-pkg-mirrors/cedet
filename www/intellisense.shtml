@@ -64,3 +64,38 @@ M-x semantic-speedbar-analysis
 <p>which will now be able to analyze the cursor location, and provide
 intelligent references.  Sometimes you need to press <tt>g</tt> to
 force an update.
+
+<h2>Semantic Analyzer FAQ</h2>
+
+Quastions are for C/C++:
+
+<pre>
+Q) When I type the name of a struct or class and press "." nothing
+   happens:
+
+A) The context analyzer has a bug that requires at least on symbol
+   character to appear after the "."
+
+Q) I've typed in a new function, and the analyzer does nothing or
+   throws an error.
+
+A) The new code must be parsed by semantic at least once to identify
+   that you are in a function.  You can force this to occur using
+   the command "M-x bovinate RET".
+
+   All syntax surrounding the types you are attempting to complete in
+   must also be syntactically correct.
+
+Q) How does semantic choose the available completions?
+
+A) It first attempts to determine the type for the local context as
+   an assignment, argument to a function, or other.
+
+   Second, it parses the current reference, such as "c->f".
+
+   It determines the type of "c", and collects a list of available
+   members.  It then filters all those members starting with "f" in
+   this case, and filters again to only those members of the desired
+   type.
+
+</pre>
