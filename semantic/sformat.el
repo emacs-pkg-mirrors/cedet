@@ -46,7 +46,7 @@
 ;; and substring) to quickly scan over plain text, and then a slower
 ;; character by character scan to handle tokens.
 
-;;; $Id: sformat.el,v 1.3 2000/05/06 01:34:32 zappo Exp $
+;;; $Id: sformat.el,v 1.4 2001/09/30 00:06:12 ponced Exp $
 ;;
 ;; History
 ;;
@@ -64,6 +64,10 @@
 ;; Added speedup to a list searches
 
 ;;; Code:
+(eval-when-compile
+  ;; Silence the byte-compiler
+  (defvar newstr nil))
+
 (defvar Sformat-default-format 'Sformat-default-format-method
   "Function used when the input param is a string and not a function.
 This function must conform to the following parameters:
