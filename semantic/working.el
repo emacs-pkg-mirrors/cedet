@@ -1,6 +1,6 @@
 ;;; working --- Display a "working" message in the minibuffer.
 
-;;;  Copyright (C) 1997, 1998  Free Software Foundation
+;;;  Copyright (C) 1998  Eric Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
@@ -29,6 +29,38 @@
 ;;  this code.
 ;;
 
+;;; Backwards Compatibility:
+;;
+;; If you want to use working in your program, but don't want to force people
+;; to install working, use this at the beginning of your program for
+;; compatibility.
+;;
+;;(condition-case nil
+;;    (require 'working)
+;;  (error 
+;;   (progn
+;;     (defmacro working-status-forms (message donestr &rest forms)
+;;	 "Contain a block of code during which a working status is shown."
+;;	 (list 'let (list (list 'msg message) (list 'dstr donestr) '(ref1 0))
+;;	       (cons 'progn forms)))
+;;  
+;;     (defun working-status (&optional percent &rest args)
+;;	 "Called within the macro `working-status-forms', show the status."
+;;	 (message
+;;	  "%s%s" (apply 'format msg args)
+;;	  (if (eq percent t) (concat "... " dstr)
+;;	    (format "... %3d%%"
+;;		    (or percent
+;;			(floor (* 100.0 (/ (float (point)) (point-max)))))))))
+;;  
+;;     (defun working-static-status (&optional number &rest args)
+;;	 "Called within the macro `working-status-forms', show the status."
+;;	 (message "%s%s" (apply 'format msg args)
+;;		  (format "... %c" (aref [ ?- ?/ ?| ?\\ ] (% ref1 4))))
+;;	 (setq ref1 (1+ ref1))) 
+;;  
+;;     (put 'working-status-forms 'lisp-indent-function 2))))
+
 ;;; History:
 ;; 
 ;; 1.0 First Version
@@ -47,13 +79,32 @@
 ;;
 (defcustom working-status-type 'working-bar-percent-display
   "Function used to display the percent status.
-Functions provide in `working' are:
+Functions provided in `working' are:
   `working-percent-display'
   `working-bar-display'
   `working-bar-percent-display'
-  `working-percent-bar-display'"
+  `working-percent-bar-display'
+  `working-celeron-percent-display'"
   :group 'working
-  :type 'sexp)
+  :type '(choice (const working-percent-display)
+		 (const working-bar-display)
+		 (const working-bar-percent-display)
+		 (const working-percent-bar-display)
+		 (const celeron-percent-display)))
+
+(defcustom working-static-type 'working-celeron-display
+  "Function used to display a celeron working display.
+Static working types occur when the program does not know how long
+it will take ahead of time.  Functions provided in `working' are:
+  `working-number-display'
+  `working-spinner-display'
+  `working-dotgrowth-display'
+  `working-celeron-display'"
+  :group 'working
+  :type '(choice (const working-number-display)
+		 (const working-spinner-display)
+		 (const working-dotgrowth-display)
+		 (const working-celeron-display)))
 
 ;;; Programmer functions
 ;;
@@ -78,7 +129,20 @@ macro `working-status-forms'."
   (let* ((p (or percent (floor (* 100.0 (/ (float (point)) (point-max))))))
 	 (m1 (apply 'format msg args))
 	 (m2 (funcall working-status-type (length m1) p)))
-    (message (concat m1 m2))))
+    (message "%s%s" m1 m2)))
+
+(defun working-static-status (&optional number &rest args)
+  "Called within the macro `working-status-forms', show the status.
+If NUMBER is nil, then increment NUMBER from 0 with each call.  If it
+is a number or float, use it as the raw percentile.  If it is a
+string, then consider the job done, and display this string where
+numbers would appear.  Additional ARGS are passed to fill on %
+elements of MESSAGE from the macro `working-status-forms'."
+  (let* ((n (or number ref1))
+	 (m1 (apply 'format msg args))
+	 (m2 (funcall working-static-type (length m1) n)))
+    (message "%s%s" m1 m2)
+    (setq ref1 (1+ ref1))))
 
 ;;; Percentage display types.
 ;;
@@ -88,7 +152,7 @@ LENGTH is the amount of display that has been used.  PERCENT
 is t to display the done string, or the precentage to display."
   (cond ((eq percent t) (concat "... " dstr))
 	;; All the % signs because it then gets passed to message.
-	(t (format "... %3d%%%%" percent))))
+	(t (format "... %3d%%" percent))))
 
 (defun working-bar-display (length percent)
   "Return a string with a bar-graph showing percent.
@@ -131,21 +195,97 @@ is t to display the done string, or the precentage to display."
 	   (setq ref1 (length ps))
 	   (concat ps " " (working-bar-display psl percent))))))
 
+(defun working-celeron-percent-display (length percent)
+  "Return a string with a celeron and string showing percent.
+LENGTH is the amount of display that has been used.  PERCENT
+is t to display the done string, or the precentage to display."
+  (prog1
+      (cond ((eq percent t) (working-celeron-display length t))
+	    ;; All the % signs because it then gets passed to message.
+	    (t (format "%s %3d%%"
+		       (working-celeron-display length 0)
+		       percent)))
+    (setq ref1 (1+ ref1))))
+
+;;; Static display types.
+;;
+(defun working-number-display (length number)
+  "Return a string display the number of things that happened.
+LENGTH is the amount of display that has been used.  NUMBER
+is t to display the done string, or the number to display."
+  (cond ((eq number t) (concat "... " dstr))
+	;; All the % signs because it then gets passed to message.
+	(t (format "... %d" number))))
+
+(defun working-spinner-display (length number)
+  "Return a string displaying a spinner based on a number.
+LENGTH is the amount of display that has been used.  NUMBER
+is t to display the done string, or the number to display."
+  (cond ((eq number t) (concat "... " dstr))
+	;; All the % signs because it then gets passed to message.
+	(t (format "... %c" (aref [ ?- ?/ ?| ?\\ ] (% number 4))))))
+
+(defun working-dotgrowth-display (length number)
+  "Return a string displaying growing dots due to activity.
+LENGTH is the amount of display that has been used.  NUMBER
+is t to display the done string, or the number to display."
+  ;; Always use ref1 because we count calls, not arbitrary numbers.
+  (concat " (" (make-string ref1 ?.) ")"
+	  (if (eq number t) (concat " " dstr) "")))
+
+(defvar working-celeron-strings
+  [ "[O     ]" "[oO    ]" "[-oO   ]" "[ -oO  ]" "[  -oO ]" "[   -oO]"
+    "[    -O]" "[     O]" "[    Oo]" "[   Oo-]"  "[  Oo- ]" "[ Oo-  ]"
+    "[Oo-   ]" "[O-    ]"]
+  "Strings representing a silly celeron.")
+
+(defun working-celeron-display (length number)
+  "Return a string displaying a celeron as things happen.
+LENGTH is the amount of display that has been used.  NUMBER
+is t to display the done string, or the number to display."
+  (cond ((eq number t)
+	 (if (< (length dstr) 6)
+	     (concat " ["
+		     (make-string (ceiling (/ (- 6.0 (length dstr)) 2)) ? )
+		     dstr
+		     (make-string (floor (/ (- 6.0 (length dstr)) 2)) ? )
+		     "]")
+	   (concat " " (aref working-celeron-strings
+			     (% ref1 (length working-celeron-strings)))
+		   " " dstr)))
+	;; All the % signs because it then gets passed to message.
+	(t (concat " " (aref working-celeron-strings
+			     (% ref1 (length working-celeron-strings)))))))
+
 ;;; Example function using `working'
 ;;
-(defun working-verify-parenthisis ()
-  "Verify all the parenthisis in an elisp program buffer."
-  (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    (working-status-forms "Scanning" "done"
-      (while (not (eobp))
-	;; Use default buffer position.
-	(working-status)
-	(forward-sexp 1)
-	(sleep-for 0.05)
-	)
-      (working-status t))))
+;;(defun working-verify-parenthisis-a ()
+;;  "Verify all the parenthisis in an elisp program buffer."
+;;  (interactive)
+;;  (save-excursion
+;;    (goto-char (point-min))
+;;    (working-status-forms "Scanning" "done"
+;;	(while (not (eobp))
+;;	  ;; Use default buffer position.
+;;	  (working-status)
+;;	  (forward-sexp 1)
+;;	  (sleep-for 0.05)
+;;	  )
+;;	(working-status t))))
+;; 
+;;(defun working-verify-parenthisis-b ()
+;;  "Verify all the parenthisis in an elisp program buffer."
+;;  (interactive)
+;;  (save-excursion
+;;    (goto-char (point-min))
+;;    (working-status-forms "Scanning" "done"
+;;	(while (not (eobp))
+;;	  ;; Use default buffer position.
+;;	  (working-static-status)
+;;	  (forward-sexp 1)
+;;	  (sleep-for 0.05)
+;;	  )
+;;	(working-static-status t))))
 
 (provide 'working)
 
