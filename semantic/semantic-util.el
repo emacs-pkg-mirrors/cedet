@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.83 2001/10/26 14:05:41 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.84 2001/10/31 18:28:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1279,11 +1279,13 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 			      deref (1- deref)))
 		      r)))
 	 (point (semantic-token-extra-spec token 'pointer))
+	 (ref (semantic-token-extra-spec token 'reference))
 	 )
     (if (and (listp mods) mods)
 	(setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
     (if (and mods color)
 	(setq mods (semantic-colorize-text mods 'type)))
+    (if ref (setq ref "&"))		; only 1 reference?
     (if point (setq point (make-string point ?*)) "")
     (if args
 	(setq args
@@ -1301,7 +1303,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	      (setq type (semantic-colorize-text type 'type)))))
     (concat (or mods "")
 	    (if type (concat type " "))
-	    point
+	    point ref			;there should be only 1.
 	    name
 	    (or args "")
 	    (or array ""))))
@@ -1419,7 +1421,12 @@ Colorize the new text based on COLOR."
 	 (concat token-or-string (or args "")))
 	((semantic-token-p token-or-string)
 	 (let ((name (semantic-name-nonterminal token-or-string parent color))
-	       (type  (semantic-token-type token-or-string)))
+	       (type  (semantic-token-type token-or-string))
+	       (point (semantic-token-extra-spec token-or-string 'pointer))
+	       (ref (semantic-token-extra-spec token-or-string 'reference))
+	       )
+	   (if ref (setq ref "&"))	; only 1 reference?
+	   (if point (setq point (make-string point ?*)) "")
 	   (setq type
 		 (cond ((semantic-token-p type)
 			(semantic-prototype-nonterminal type nil color))
@@ -1434,7 +1441,7 @@ Colorize the new text based on COLOR."
 	   (setq name (concat name (or args "")))
 	   (if type (concat name
 			    semantic-uml-colon-string
-			    type)
+			    type ref point)
 	     name)))
 	(t "")))
 
