@@ -79,7 +79,7 @@ useful examples
     overview.
 <DT><a href="cogre.shtml">COGRE</a>
 <DD>COnnected GRaph Editor uses EIEIO to track graph elements.
-<DT><a href="http://jde.sunsite.dk/">JDE</a>
+<DT><a href="http://jdee.sunsite.dk/">JDE</a>
 <DD>Java Development Environment for Emacs uses EIEIO to manage the debugger,
     dialogs, and more.
 <DT><a href="http://ecb.sourceforge.net/">ECB</a>
