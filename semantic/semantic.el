@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.15 1999/12/17 20:53:51 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.16 2000/01/25 03:22:28 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -627,7 +627,7 @@ COLLECTION is the list of things collected so far."
 	  (set-buffer (marker-buffer semantic-bovinate-debug-table))
 	  (goto-char semantic-bovinate-debug-table)
 	  (re-search-forward
-	   (concat "^\\s-*\\((\\|'((\\)\\(" (symbol-name nonterminal)
+	   (concat "^\\s-*\\((\\|['`]((\\)\\(" (symbol-name nonterminal)
 		   "\\)[ \t\n]+(")
 	   nil t)
 	  (setq ol2 (make-overlay (match-beginning 2) (match-end 2)))
