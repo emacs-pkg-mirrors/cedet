@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.8 2000/05/04 03:34:22 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.9 2000/05/25 13:16:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,6 +36,9 @@
 ;;
 ;; These macros extract parts from the default token types as
 ;; described by `semantic-toplevel-bovine-table'
+
+;; Check semantic.el for the other token information extraction functions.
+
 (defun semantic-token-type (token)
   "Retrieve the type of TOKEN."
   (if (member (semantic-token-token token)
@@ -286,7 +289,7 @@ DEFAULT is the default choice.  If no default is given, one is read
 from under point.
 STREAM is the list of tokens to complete from."
   (semantic-read-symbol
-   prompt default (semantic-find-nonterminal-by-type 'varible stream)))
+   prompt default (semantic-find-nonterminal-by-type 'variable stream)))
 
 (defun semantic-read-function (prompt &optional default stream)
   "Read a function name from the user for the current buffer.
