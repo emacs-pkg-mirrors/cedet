@@ -1,10 +1,10 @@
 ;;; semantic-ctxt.el --- Context calculations for Semantic tools.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.27 2003/12/04 22:31:35 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.28 2004/01/10 01:22:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -165,7 +165,8 @@ This can be overriden with `get-local-variables'."
 (defun semantic-get-local-variables-default (&optional point)
   "Get local values from a specific context.
 Uses the bovinator with the special top-symbol `bovine-inner-scope'
-to collect tags, such as local variables or prototypes."
+to collect tags, such as local variables or prototypes.
+Optional argument POINT specifies where to scan from."
   (let ((vars nil)
         ;; We want nothing to do with funny syntaxing while doing this.
         (semantic-unmatched-syntax-hook nil))
