@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.34 2001/08/17 21:08:04 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.35 2001/08/18 04:08:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -181,7 +181,7 @@
  ( ENUM opt-name enumparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
- ( TYPEDEF typeform symbol
+ ( TYPEDEF typeformbase opt-stars symbol
   ,(semantic-lambda
   (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
  ) ; end typesimple
@@ -227,11 +227,6 @@
  ( INLINE)
  ( REGISTER)
  ) ; end DECLMOD
- (typeform
- ( typeformbase opt-stars opt-ref
-  ,(semantic-lambda
-  (nth 0 vals)))
- ) ; end typeform
  (opt-ref
  ( punctuation "\\b&\\b")
  ()
@@ -266,17 +261,17 @@
  ( DOUBLE)
  ) ; end builtintype
  (var-or-fun
- ( declmods typeform var-or-func-decl
+ ( declmods typeformbase opt-ref var-or-func-decl
   ,(semantic-lambda
-  ( semantic-c-reconstitute-token (nth 2 vals) (nth 0 vals) (nth 1 vals))))
+  ( semantic-c-reconstitute-token (nth 3 vals) (nth 0 vals) (nth 1 vals))))
  ( declmods var-or-func-decl
   ,(semantic-lambda
   ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
  ) ; end var-or-fun
  (var-or-func-decl
- ( opt-class opt-destructor functionname arg-list opt-reentrant opt-throw fun-or-proto-end
+ ( opt-stars opt-class opt-destructor functionname arg-list opt-reentrant opt-throw fun-or-proto-end
   ,(semantic-lambda
-  (nth 2 vals) (list 'function (nth 0 vals) (nth 1 vals) (nth 3 vals) (nth 5 vals) (nth 4 vals))))
+  (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 4 vals) (nth 6 vals) (nth 5 vals)) (nth 0 vals)))
  ( varnamelist punctuation "\\b;\\b"
   ,(semantic-lambda
   (list (nth 0 vals) 'variable)))
@@ -338,9 +333,9 @@
   (list (nth 2 vals)) (nth 0 vals) (nth 3 vals) (nth 4 vals) (nth 5 vals)))
  ) ; end varname
  (variablearg
- ( declmods typeform varname
+ ( declmods typeformbase opt-stars opt-ref varname
   ,(semantic-lambda
-  (list ( car (nth 2 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals))) nil)))
+  (list ( car (nth 4 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'pointer ( car (nth 2 vals))) nil)))
  ) ; end variablearg
  (varnamelist
  ( varname punctuation "\\b,\\b" varnamelist
@@ -474,7 +469,7 @@
  ))
  ) ; end expression
  )
-     "C language specification.")
+                 "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -507,13 +502,10 @@
 		 (if (nth 2 cur)
 		     (setq suffix (concat ":" (nth 2 cur))))
 		 (if (= (length basety) 1)
-		     (progn
-		       (setq ty (car basety))
-		       (if (nth 1 cur)
-			   (setq ty (concat ty (make-string (nth 1 cur) ?*)))))
+		     (setq ty (car basety))
 		   (setq ty basety))
 		 (setq vl (cons
-			   (list
+			     (list
 			    (car cur)	;name
 			    'variable
 			    ty		;type
@@ -523,6 +515,7 @@
 			     'suffix suffix
 			     'typemodifiers mods
 			     'dereference (length (nth 3 cur))
+			     'pointer (nth 1 cur)
 			     )
 			    (semantic-token-docstring nonterm) ;doc
 			    (semantic-token-overlay nonterm))
@@ -543,7 +536,8 @@
 
 (defun semantic-c-reconstitute-token (tokenpart declmods typedecl)
   "Reconstitute a token TOKENPART with DECLMODS and TYPEDECL.
-This is so we don't have to match the same starting text several times."
+This is so we don't have to match the same starting text several times.
+Optional argument STAR and REF indicate the number of * and & in the typedef."
   (cond ((eq (nth 1 tokenpart) 'variable)
 	 (list (car tokenpart)
 	       'variable
@@ -551,7 +545,8 @@ This is so we don't have to match the same starting text several times."
 	       nil			;default value (filled with expand)
 	       (semantic-bovinate-make-assoc-list
 		'const (if (member "const" declmods) t nil)
-		'typemodifiers (delete "const" declmods))
+		'typemodifiers (delete "const" declmods)
+		)
 	       nil)
 	 )
 	((eq (nth 1 tokenpart) 'function)
@@ -564,6 +559,7 @@ This is so we don't have to match the same starting text several times."
 		'typemodifiers (delete "const" declmods)
 		'parent (car (nth 2 tokenpart))
 		'destructor (car (nth 3 tokenpart) )
+		'pointer (nth 7 tokenpart)
 		;; Even though it is "throw" in C++, we use
 		;; `throws' as a common name for things that toss
 		;; exceptions about.
