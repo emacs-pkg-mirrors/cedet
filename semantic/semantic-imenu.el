@@ -3,11 +3,11 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.18 2000/10/12 22:14:12 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.19 2000/11/13 21:02:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
-;; Semantic-ex is free software; you can redistribute it and/or modify
+;; Semantic-imenu is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
@@ -35,7 +35,9 @@
 ;;             ))
 
 (require 'semantic)
-(require 'imenu)
+(condition-case nil
+    (require 'imenu)
+  (error nil))
 
 (defcustom semantic-imenu-summary-function 'semantic-abbreviate-nonterminal
   "*Function to use when creating items in Imenu.
@@ -103,7 +105,7 @@ This is added to `semantic-before-toplevel-cache-flush-hook'."
 (defun semantic-create-imenu-index (&optional stream)
   "Create an imenu index for any buffer which supports Semantic.
 Uses the output of the Semantic Bovinator to create the index.
-Optional argument STREAM STREAM is an optional stream of tokens used to create menus."
+Optional argument STREAM is an optional stream of tokens used to create menus."
   (setq imenu-default-goto-function 'semantic-imenu-goto-function)
   (add-hook 'semantic-before-toplevel-cache-flush-hook
 	    'semantic-imenu-flush-fcn nil t)
@@ -112,7 +114,7 @@ Optional argument STREAM STREAM is an optional stream of tokens used to create m
 (defun semantic-create-imenu-index-1 (&optional stream)
   "Create an imenu index for any buffer which supports Semantic.
 Uses the output of the Semantic Bovinator to create the index.
-Optional argument STREAM STREAM is an optional stream of tokens used to create menus."
+Optional argument STREAM is an optional stream of tokens used to create menus."
   (let ((tokens (or stream (semantic-bovinate-toplevel t))))
     (if semantic-imenu-bucketize-file
 	(let ((buckets (semantic-bucketize
