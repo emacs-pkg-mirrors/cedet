@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.4 2001/10/03 00:33:33 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.5 2001/11/17 15:44:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,8 @@
 (require 'chart)
 
 ;;; Code:
+
+;;;###autoload
 (defun semantic-chart-nonterminals-by-token (&optional buffer-or-stream)
   "Create a bar chart representing the number of nonterminals for a token.
 Each bar represents how many toplevel nonterminal in BUFFER-OR-STREAM
@@ -61,6 +63,7 @@ for tokens which will be charted."
 		       nums "Volume")
     ))
 
+;;;###autoload
 (defun semantic-chart-database-size (&optional buffer-or-stream)
   "Create a bar chart representing the size of each file in semanticdb.
 Each bar represents how many toplevel nonterminals in BUFFER-OR-STREAM
@@ -105,6 +108,7 @@ exist in each database entry."
    (semantic-token-end tok)
    (semantic-token-start tok)))
 
+;;;###autoload
 (defun semantic-chart-nonterminal-complexity-token
   (&optional symbol buffer-or-stream)
   "Create a bar chart representing the complexity of some tokens.
