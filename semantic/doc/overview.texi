@@ -209,14 +209,14 @@ The output of the lexer is a list of tokens that make up the file.
 The next step is the parsing shown below.
 
 @example
-                    bovine table
+                    parser tables
                          |
                          v
     token stream --->  Parser  ----> parse tree
 @end example
 
-The end result, the parse tree, is created based on the ``bovine table'',
-which is the internal representation of the BNF language grammar used by
+The end result, the parse tree, is created based on the parser tables,
+which are in the internal representation of the language grammar used by
 semantic.
 
 Semantic database provides caching of the parse trees by saving them
