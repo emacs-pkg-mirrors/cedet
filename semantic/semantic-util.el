@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.71 2001/07/19 19:43:59 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.72 2001/07/20 14:04:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1085,7 +1085,9 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let ((name (semantic-token-name token))
-	(destructor (semantic-token-function-destructor token)))
+	(destructor
+	 (if (eq (semantic-token-token token) 'function)
+	     (semantic-token-function-destructor token))))
     (when destructor
       (setq name (concat "~" name)))
     (if color
