@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: e-config.el,v 1.6 1996/12/19 21:16:58 zappo Exp $
+;;; RCS: $Id: e-config.el,v 1.7 1997/01/07 23:07:38 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -492,8 +492,12 @@ to work with Ghostscript" widget-label :face 'bold-italic :x 5)
 		   :text-length 30
 		   :value (data-object-symbol-translated 
 			   'ps-lpr-switches
-			   :set-lambda 'dlg-string-to-list
-			   :get-lambda 'dlg-list-to-string))
+			   :set-lambda 
+			   (lambda (obj)
+			     (dlg-string-to-list obj "[ ]+"))
+			   :get-lambda 
+			   (lambda (obj)
+			     (dlg-list-to-string obj " "))))
     (create-widget "Paper Size        :" widget-label)
     (let* ((opt-list '("'ps-letter" "'ps-legal" "'ps-a4"))
 	   (opt-dat (data-object-symbol-list-index
