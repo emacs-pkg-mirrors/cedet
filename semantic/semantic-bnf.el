@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.22 2000/10/10 00:48:29 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.23 2000/11/13 21:04:40 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -476,6 +476,7 @@ SOURCEFILE is the file name from whence tokstream came."
   (if (not (eq major-mode 'semantic-bnf-mode))
       (error "Not valid outside the scope of a BNF file"))
   ;; Do the work
+  (semantic-clear-toplevel-cache)
   (let* ((fname (file-name-nondirectory (buffer-file-name)))
 	 (tok (semantic-bovinate-toplevel t))
 	 (bb (current-buffer))
@@ -497,7 +498,8 @@ SOURCEFILE is the file name from whence tokstream came."
 	(delete-blank-lines)
 	(let ((key (semantic-find-nonterminal-by-token 'keyword tok))
 	      (start (point)))
-	  (when key
+	  (if (not key)
+	      (insert "nil\n")
 	    (insert "(semantic-flex-make-keyword-table \n `(")
 	    (while key
 	      (insert " (" (nth 3 (car key)) " . " (car (car key)) ")\n")
