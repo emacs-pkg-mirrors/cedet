@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.177 2004/03/19 23:33:08 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.178 2004/03/20 11:30:58 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -520,7 +520,7 @@ stream is requested."
 'percent means we are doing a linear parse through the buffer.
 'dynamic means we are reparsing specific tokens.")
 (semantic-varalias-obsolete 'semantic-bovination-working-type
-			    'semanic-working-type)
+			    'semantic-working-type)
 
 (defsubst semantic-parser-working-message (&optional arg)
   "Return the message string displayed while parsing.
