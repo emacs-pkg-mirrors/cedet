@@ -1,10 +1,10 @@
 ;;; semanticdb-el.el --- Semantic database extensions for Emacs Lisp
 
-;;; Copyright (C) 2002 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.2 2002/12/06 01:33:38 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.3 2003/02/13 07:13:43 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -194,28 +194,20 @@ Return a list ((DB-TABLE . TOKEN) ...)."
 (defmethod semanticdb-find-nonterminal-by-name-regexp-method
   ((database semanticdb-project-database-emacs-lisp)
    regex search-parts search-includes diff-mode find-file-match)
-  "Find all occurances of nonterminals with name matching REGEX in DATABASE.
-Uses `apropos-internal' to find matches.a
+  "Find all occurrences of nonterminals with name matching REGEX in DATABASE.
+Uses `apropos-internal' to find matches.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
 SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
 Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (let ((syms (apropos-internal regex))
-	(toklst nil)
-	(newtable nil)
-	)
-    (when syms
-      (while syms
-	(setq toklst (cons (semanticdb-elisp-sym->nonterm (car syms))
-			   toklst)
-	      syms (cdr syms)))
-      ;; Set up the table.
-      (setq newtable (semanticdb-table-emacs-lisp "name regexp search"))
-      (oset newtable parent-db database)
-      (oset newtable tokens toklst)
-      ;; Return the new table.
-      (list (cons newtable toklst))
-      )
-    ))
+  (let ((toklst (delq nil (mapcar 'semanticdb-elisp-sym->nonterm
+				  (apropos-internal regex)))))
+    (if toklst
+	;; Set up the table.
+	(let ((newtable (semanticdb-table-emacs-lisp "name regexp search")))
+	  (oset newtable parent-db database)
+	  (oset newtable tokens toklst)
+	  ;; Return the new table.
+	  (list (cons newtable toklst))))))
 
 (defmethod semanticdb-find-nonterminal-by-type-method
   ((database semanticdb-project-database-emacs-lisp)
