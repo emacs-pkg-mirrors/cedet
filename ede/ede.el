@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.43 2000/10/21 02:19:44 zappo Exp $
+;; RCS: $Id: ede.el,v 1.44 2000/10/23 17:59:20 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -795,18 +795,6 @@ Optional argument FORCE forces the file to be removed without asking."
   (let ((ede-object (ede-current-project)))
     (ede-invoke-method 'project-make-dist)))
 
-(defun ede-update-version (newversion)
-  "Update the current projects main version number.
-Argument NEWVERSION is the version number to use in the current project."
-  (interactive (list (let* ((o (ede-toplevel))
-			    (v (oref o version)))
-		       (read-string (format "Update Version (was %s): " v)
-				  v nil v))))
-  (let ((ede-object (ede-toplevel)))
-    (oset ede-object :version newversion)
-    (project-update-version ede-object)
-    (ede-update-version-in-source ede-object newversion)))
-
 (eval-when-compile (require 'eieio-custom))
 
 (defvar eieio-ede-old-variables nil
@@ -916,11 +904,6 @@ Argument FILE is the file to add."
   "Remove the current buffer from project target OT.
 Argument FNND is an argument."
   (error "remove-file not supported by %s" (object-name ot)))
-
-(defmethod project-update-version ((ot ede-project))
-  "The :version of the project OT has been updated.
-Handle saving, or other detail."
-  (error "project-update-version not supported by %s" (object-name ot)))
 
 (defmethod project-edit-file-target ((ot ede-target))
   "Edit the target OT associated w/ this file."
@@ -1370,32 +1353,11 @@ This includes buffers controlled by a specific target of PROJECT."
 (defmethod ede-map-targets ((this ede-project) proc)
   "For object THIS, execute PROC on all targets."
   (mapcar proc (oref this targets)))
-
-;;; Version Checking/Updating
-;;
-(defmethod ede-update-version-in-source ((this ede-project) version)
-  "Change occurrences of a version string in sources.
-In project THIS, cycle over all targets to give them a chance to set
-their sources to VERSION."
-  (ede-map-targets this (lambda (targ)
-			  (ede-update-version-in-source targ version))))
 
-(defmethod ede-update-version-in-source ((this ede-target) version)
-  "In sources for THIS, change version numbers to VERSION."
-  (if (and (slot-boundp this 'versionsource)
-	   (oref this versionsource))
-      (save-excursion
-	(set-buffer (find-file-noselect
-		     (ede-expand-filename this (oref this versionsource))))
-	(goto-char (point-min))
-	(let ((case-fold-search t))
-	  (if (re-search-forward "version:\\s-*\\([^ \t\n]+\\)" nil t)
-	      (progn
-		(delete-region (match-beginning 1)
-			       (match-end 1))
-		(goto-char (match-beginning 1))
-		(insert version)))))))
-
+(defmethod ede-map-any-target-p ((this ede-project) proc)
+  "For project THIS, map PROC to all targets and return if any non-nil.
+Return the first non-nil value returned by PROC."
+  (ede-or (ede-map-targets this proc)))
 
 
 ;;; Project-local variables
