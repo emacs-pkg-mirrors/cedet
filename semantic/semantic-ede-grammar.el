@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.3 2003/08/23 21:42:08 zappo Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.4 2003/08/28 13:26:08 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -166,6 +166,15 @@ parsing different languages.")
 ;;	(oref this source))
   ;; Call the normal insertion of rules.
   (call-next-method)
+  )
+
+(defmethod ede-proj-makefile-insert-dist-dependencies ((this semantic-ede-proj-target-grammar))
+  "Insert dist dependencies, or intermediate targets.
+This makes sure that all grammar lisp files are created before the dist
+runs, so they are always up to date.
+Argument THIS is the target that should insert stuff."
+  (call-next-method)
+  (insert " $(" (ede-pmake-varname this) "_SAMENATIC_GRAMMAR_EL)")
   )
 
 ;;;###autoload
