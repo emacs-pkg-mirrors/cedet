@@ -1,8 +1,54 @@
-## ----------------- ##
-## GNU Cim Grammar.  ##
-## ----------------- ##
+### wisent-cim.bnf --- GNU Cim Grammar
 
-# GNU Cim, the GNU Simula 87 Compiler.
+## Copyright (C) 2002 David Ponce
+## Copyright 2001 Free Software Foundation, Inc.
+
+## Author: David Ponce <david@dponce.com>
+## Maintainer: David Ponce <david@dponce.com>
+## Created: 07 Feb 2002
+## Keywords: syntax
+## X-RCS: $Id: wisent-cim.bnf,v 1.2 2002/02/08 23:23:12 ponced Exp $
+
+## This file is not part of GNU Emacs.
+
+## This program is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License as
+## published by the Free Software Foundation; either version 2, or (at
+## your option) any later version.
+
+## This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
+
+## You should have received a copy of the GNU General Public License
+## along with this program; see the file COPYING.  If not, write to
+## the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+## Boston, MA 02111-1307, USA.
+
+### Commentary:
+##
+## This is a port of the Bison 1.31 GNU Cim, the GNU Simula 87
+## Compiler, grammar found in file tests/torture.at.  It is good to
+## torture Wisent too ;-).  It should report 73 shift/reduce conflicts
+## and 12 reduce/reduce conflicts:
+##
+## State 60 contains 14 S/R conflicts.
+## State 111 contains 1 S/R conflict.
+## State 112 contains 1 S/R conflict.
+## State 173 contains 1 S/R conflict.
+## State 191 contains 14 S/R conflicts.
+## State 192 contains 14 S/R conflicts.
+## State 247 contains 9 S/R conflicts and 2 R/R conflicts.
+## State 260 contains 6 R/R conflicts.
+## State 290 contains 1 S/R conflict.
+## State 294 contains 9 S/R conflicts and 2 R/R conflicts.
+## State 361 contains 9 S/R conflicts and 2 R/R conflicts.
+##
+## Implementation is in the file wisent-cim.el.
+
+### History:
+## 
 
 # --------
 # Settings
@@ -98,20 +144,6 @@
 # ---------------------------
 # Resolution of S/R conflicts
 # ---------------------------
-#
-# Contains 73 shift/reduce conflicts and 12 reduce/reduce conflicts
-#
-# State 60 contains 14 shift/reduce conflicts.
-# State 111 contains 1 shift/reduce conflict.
-# State 112 contains 1 shift/reduce conflict.
-# State 173 contains 1 shift/reduce conflict.
-# State 191 contains 14 shift/reduce conflicts.
-# State 192 contains 14 shift/reduce conflicts.
-# State 247 contains 9 shift/reduce conflicts and 2 reduce/reduce conflicts.
-# State 260 contains 6 reduce/reduce conflicts.
-# State 290 contains 1 shift/reduce conflict.
-# State 294 contains 9 shift/reduce conflicts and 2 reduce/reduce conflicts.
-# State 361 contains 9 shift/reduce conflicts and 2 reduce/reduce conflicts.
 
 %right HASSIGN;
 %left  HORELSE;
@@ -493,3 +525,5 @@ ARGUMENT_LIST: EXPRESSION
              ;
 
 %%
+
+### wisent-cim.bnf ends here

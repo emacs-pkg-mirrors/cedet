@@ -1,3 +1,42 @@
+;;; wisent-cim.el --- GNU Cim Grammar
+
+;; Copyright (C) 2002 David Ponce
+;; Copyright 2001 Free Software Foundation, Inc.
+
+;; Author: David Ponce <david@dponce.com>
+;; Maintainer: David Ponce <david@dponce.com>
+;; Created: 07 Feb 2002
+;; Keywords: syntax
+;; X-RCS: $Id: wisent-cim.el,v 1.2 2002/02/08 23:23:12 ponced Exp $
+
+;; This file is not part of GNU Emacs.
+
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
+
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+;;; Commentary:
+;;
+;; Just a good torture test for Wisent ;-)
+;; The grammar is generated from the BNF file wisent-cim.bnf.
+
+;;; History:
+;; 
+
+;;; Code:
+(require 'wisent-bovine)
+
 (defconst wisent-cim-parser-tables
   (eval-when-compile
   (wisent-compile-grammar
@@ -303,7 +342,7 @@
       ((EXPRESSION))
       ((EXPRESSION HPAREXPSEPARATOR ARGUMENT_LIST))))
    '(MAIN_MODULE)))
-"Automaton.")
+  "Automaton.")
 
 (defconst wisent-cim-keywords
   (semantic-flex-make-keyword-table 
@@ -391,7 +430,7 @@
   "Tokens.")
 
 (defun wisent-cim-default-setup ()
-  "cim-mode Hook."
+  "Setup."
   ;; Code generated from wisent-cim.bnf
   (setq semantic-toplevel-bovine-table wisent-cim-parser-tables
         semantic-toplevel-bovine-table-source "wisent-cim.bnf")
@@ -399,3 +438,7 @@
  
  ;; End code generated from wisent-cim.bnf
  )
+
+(provide 'wisent-cim)
+
+;;; wisent-cim.el ends here
