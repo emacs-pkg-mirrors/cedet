@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.27 2004/03/01 01:15:30 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.28 2004/03/10 19:32:40 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -119,9 +119,9 @@ Go to the next line."
 	 (let* ((mb (semantic-tag-get-attribute tag :members))
 		(ret mb))
 	   (while mb
-	     (let ((mods (semantic-tag-get-attribute (car mb) 'typemodifiers)))
+	     (let ((mods (semantic-tag-get-attribute (car mb) :typemodifiers)))
 	       (setq mods (cons "extern" (cons "\"C\"" mods)))
-	       (semantic-tag-put-attribute (car mb) 'typemodifiers mods))
+	       (semantic-tag-put-attribute (car mb) :typemodifiers mods))
 	     (setq mb (cdr mb)))
 	   ret))
 	((listp (car tag))
@@ -131,7 +131,7 @@ Go to the next line."
 		(let ((vl nil)
 		      (basety (semantic-tag-type tag))
 		      (ty "")
-		      (mods (semantic-tag-get-attribute tag 'typemodifiers))
+		      (mods (semantic-tag-get-attribute tag :typemodifiers))
 		      (suffix "")
 		      (lst (semantic-tag-name tag))
 		      (default nil)
@@ -152,11 +152,11 @@ Go to the next line."
 			       (if default
 				   (buffer-substring-no-properties
 				    (car default) (car (cdr default))))
-			       'const (semantic-tag-variable-constant-p tag)
-			       'suffix suffix
-			       'typemodifiers mods
-			       'dereference (length (nth 3 cur))
-			       'pointer (nth 1 cur)
+			       :constant-flag (semantic-tag-variable-constant-p tag)
+			       :suffix suffix
+			       :typemodifiers mods
+			       :dereference (length (nth 3 cur))
+			       :pointer (nth 1 cur)
 			       :documentation (semantic-tag-docstring tag) ;doc
 			       )
 			      vl))
@@ -181,14 +181,14 @@ Go to the next line."
 				    (list
 				     (semantic-tag-name
 				      (semantic-tag-type-superclasses tag)))
-				    'pointer
+				    :pointer
 				    (let ((stars (car (car (car names)))))
 				      (if (= stars 0) nil stars))
 				    ;; This specifies what the typedef
 				    ;; is expanded out as.  Just the
 				    ;; name shows up as a parent of this
 				    ;; typedef.
-				    'typedef
+				    :typedef
 				    (semantic-token-type-parent tag)
 				    :documentation
 				    (semantic-tag-docstring tag))
@@ -231,8 +231,8 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 	  (car tokenpart)
 	  (or typedecl "int")	;type
 	  nil			;default value (filled with expand)
-	  'const (if (member "const" declmods) t nil)
-	  'typemodifiers (delete "const" declmods)
+	  :constant-flag (if (member "const" declmods) t nil)
+	  :typemodifiers (delete "const" declmods)
 	  )
 	 )
 	((eq (nth 1 tokenpart) 'function)
@@ -259,7 +259,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 		typedecl
 		nil
 		;; It is a function pointer
-		'functionpointer t
+		:functionpointer-flag t
 		)
 	     ;; The function
 	     (semantic-tag-new-function
@@ -276,31 +276,31 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 				   "class")))
 			(t "int")))
 	      (nth 4 tokenpart)		;arglist
-	      'const (if (member "const" declmods) t nil)
-	      'typemodifiers (delete "const" declmods)
-	      'parent (car (nth 2 tokenpart))
-	      'destructor (if (car (nth 3 tokenpart) ) t)
-	      'constructor (if constructor t)
-	      'pointer (nth 7 tokenpart)
+	      :constant-flag (if (member "const" declmods) t nil)
+	      :typemodifiers (delete "const" declmods)
+	      :parent (car (nth 2 tokenpart))
+	      :destructor-flag (if (car (nth 3 tokenpart) ) t)
+	      :constructor-flag (if constructor t)
+	      :pointer (nth 7 tokenpart)
 	      ;; Even though it is "throw" in C++, we use
 	      ;; `throws' as a common name for things that toss
 	      ;; exceptions about.
-	      'throws (nth 5 tokenpart)
+	      :throws (nth 5 tokenpart)
 	      ;; Reemtrant is a C++ thingy.  Add it here
-	      'reentrant (if (member "reentrant" (nth 6 tokenpart)) t)
+	      :reentrant-flag (if (member "reentrant" (nth 6 tokenpart)) t)
 	      ;; A function post-const is funky.  Try stuff
-	      'methodconst (if (member "const" (nth 6 tokenpart)) t)
+	      :methodconst-flag (if (member "const" (nth 6 tokenpart)) t)
 	      ;; prototypes are functions w/ no body
-	      'prototype (if (nth 8 tokenpart) t)
+	      :prototype-flag (if (nth 8 tokenpart) t)
 	      ;; Pure virtual
-	      'pure-virtual (if (eq (nth 8 tokenpart) 'pure-virtual) t)
+	      :pure-virtual-flag (if (eq (nth 8 tokenpart) :pure-virtual-flag) t)
 	      )))
 	 )
 	))
 
 (defun semantic-c-reconstitute-template (tag specifier)
   "Reconstitute the token TAG with the template SPECIFIER."
-  (semantic-tag-put-attribute tag 'template (or specifier ""))
+  (semantic-tag-put-attribute tag :template (or specifier ""))
   tag)
 
 ;;; Override methods & Variables
@@ -318,7 +318,7 @@ machine."
   "Convert TAG to a string that is the print name for TAG.
 Optional PARENT and COLOR are ignored."
   (let ((name (semantic-format-tag-name-default tag parent color))
-	(fnptr (semantic-tag-get-attribute tag 'functionpointer))
+	(fnptr (semantic-tag-get-attribute tag :functionpointer-flag))
 	)
     (if (not fnptr)
 	name
@@ -382,8 +382,8 @@ Override function for `semantic-tag-protection'."
 Adds pointer and reference symbols to the default.
 Argument COLOR adds color to the text."
   (let* ((type (semantic-format-tag-type-default tag color))
-	 (point (semantic-tag-get-attribute tag 'pointer))
-	 (ref (semantic-tag-get-attribute tag 'reference))
+	 (point (semantic-tag-get-attribute tag :pointer))
+	 (ref (semantic-tag-get-attribute tag :reference))
 	 )
     (if ref (setq ref "&"))
     (if point (setq point (make-string point ?*)) "")
@@ -393,11 +393,11 @@ Argument COLOR adds color to the text."
 
 (defun semantic-c-tag-template (tag)
   "Return the template specification for TAG, or nil."
-  (semantic-tag-get-attribute tag 'template))
+  (semantic-tag-get-attribute tag :template))
 
 (defun semantic-c-tag-template-specifier (tag)
   "Return the template specifier specification for TAG, or nil."
-  (semantic-tag-get-attribute tag 'template-specifier))
+  (semantic-tag-get-attribute tag :template-specifier))
 
 (defun semantic-c-template-string-body (templatespec)
   "Convert TEMPLATESPEC into a string.
@@ -452,15 +452,15 @@ In C, a method is abstract if it is `virtual', which is already
 handled.  A class is abstract iff it's destructor is virtual."
   (cond
    ((eq (semantic-tag-class tag) 'type)
-    (or (semantic-brute-find-tag-by-attribute 'pure-virtual
+    (or (semantic-brute-find-tag-by-attribute :pure-virtual-flag
 					      (semantic-tag-components tag)
 					      )
 	(let* ((ds (semantic-brute-find-tag-by-attribute
-		    'destructor
+		    :destructor-flag
 		    (semantic-tag-components tag)
 		    ))
 	       (cs (semantic-brute-find-tag-by-attribute
-		    'constructor
+		    :constructor-flag
 		    (semantic-tag-components tag)
 		    )))
 	  (and ds (member "virtual" (semantic-tag-modifiers (car ds)))
@@ -468,7 +468,7 @@ handled.  A class is abstract iff it's destructor is virtual."
 	       )
 	  )))
    ((eq (semantic-tag-class tag) 'function)
-    (semantic-tag-get-attribute tag 'pure-virtual))
+    (semantic-tag-get-attribute tag :pure-virtual-flag))
    (t (semantic-tag-abstract-p-default tag parent))))
 
 (defun semantic-c-analyze-dereference-metatype (type)
@@ -476,7 +476,7 @@ handled.  A class is abstract iff it's destructor is virtual."
 If TYPE is a typedef, get TYPE's type by name or tag, and return."
   (if (and (eq (semantic-tag-class type) 'type)
 	   (string= (semantic-tag-type type) "typedef"))
-      (semantic-tag-get-attribute type 'typedef)
+      (semantic-tag-get-attribute type :typedef)
     type))
 
 (defun semantic-c-analyze-type-constants (type)
