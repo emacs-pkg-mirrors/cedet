@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.8 2001/04/12 01:11:15 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.9 2001/04/21 14:42:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -121,7 +121,8 @@ parse tokens at the beginning of the context.
 This can be overriden with `get-local-variables'."
   (save-excursion
     (if point (goto-char (point)))
-    (let ((s (semantic-fetch-overload 'get-local-variables)))
+    (let ((s (semantic-fetch-overload 'get-local-variables))
+	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
 	(semantic-get-local-variables-default)
 	))))
@@ -144,6 +145,7 @@ just a list of strings, then this function will convert them to tokens.
 Part of this behavior can be overridden with `get-local-arguments'."
   (if point (goto-char (point)))
   (let* ((s (semantic-fetch-overload 'get-local-arguments))
+	 (case-fold-search semantic-case-fold)
 	 (params (if s (funcall s)
 		   (semantic-get-local-arguments-default)))
 	 (rparams nil))
@@ -174,7 +176,8 @@ This can be overridden with `get-all-local-variables'.
 Optional argument POINT is the location to start getting the variables from."
   (save-excursion
     (if point (goto-char (point)))
-    (let ((s (semantic-fetch-overload 'get-all-local-variables)))
+    (let ((s (semantic-fetch-overload 'get-all-local-variables))
+	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
 	(semantic-get-all-local-variables-default)
 	))))
@@ -218,7 +221,8 @@ this information."
   "Move to the end of the current command.
 Be default, uses `semantic-command-separation-character'.
 Override with `end-of-command'."
-    (let ((s (semantic-fetch-overload 'end-of-command)))
+    (let ((s (semantic-fetch-overload 'end-of-command))
+	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
 	(semantic-end-of-command-default)
 	)))
@@ -237,7 +241,8 @@ beginning and end of a command."
   "Move to the beginning of the current command.
 Be default, users `semantic-command-separation-character'.
 Override with `beginning-of-command'."
-    (let ((s (semantic-fetch-overload 'beginning-of-command)))
+    (let ((s (semantic-fetch-overload 'beginning-of-command))
+	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
 	(semantic-beginning-of-command-default)
 	)))
@@ -266,7 +271,8 @@ beginning and end of a command."
 This will include a list of type/field names when applicable.
 This can be overridden using `ctxt-current-symbol'."
     (if point (goto-char (point)))
-    (let ((s (semantic-fetch-overload 'ctxt-current-symbol)))
+    (let ((s (semantic-fetch-overload 'ctxt-current-symbol))
+	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
 	(semantic-ctxt-current-symbol-default)
 	)))
@@ -322,7 +328,8 @@ Return a list as per `semantic-ctxt-current-symbol'.
 Return nil if there is nothing relevant.
 Override with `ctxt-current-assignment'."
     (if point (goto-char (point)))
-    (let ((s (semantic-fetch-overload 'ctxt-current-assignment)))
+    (let ((s (semantic-fetch-overload 'ctxt-current-assignment))
+	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
 	(semantic-ctxt-current-assignment-default)
 	)))
@@ -356,7 +363,8 @@ The function returned is the one accepting the arguments that
 the cursor is currently in.
 This can be overridden with `ctxt-current-function'."
     (if point (goto-char (point)))
-    (let ((s (semantic-fetch-overload 'ctxt-current-function)))
+    (let ((s (semantic-fetch-overload 'ctxt-current-function))
+	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
 	(semantic-ctxt-current-function-default)
 	)))
@@ -373,7 +381,8 @@ This can be overridden with `ctxt-current-function'."
   "Return the current symbol the cursor is on at POINT.
 Override with `ctxt-current-argument'."
     (if point (goto-char (point)))
-    (let ((s (semantic-fetch-overload 'ctxt-current-argument)))
+    (let ((s (semantic-fetch-overload 'ctxt-current-argument))
+	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
 	(semantic-ctxt-current-argument-default)
 	)))
@@ -402,6 +411,7 @@ Depends on `semantic-function-argument-separation-character'."
   "Find a token definition matching NAME with TOKENTYPE.
 Optional RETURNTYPE is a return value to match against also."
   (let* ((locals (semantic-get-all-local-variables))
+	 (case-fold-search semantic-case-fold)
 	 (option
 	  (or (let ((found nil))
 		(while (and locals (not found))
@@ -441,6 +451,7 @@ where VARTOKEN is a semantic token of the variable foo's declaration.
 FIELDTOKEN is either a string, or a semantic token representing
 the field in foo's type."
   (let ((v (semantic-ctxt-current-symbol))
+	(case-fold-search semantic-case-fold)
 	(name nil)
 	(tok nil)
 	(chil nil)
