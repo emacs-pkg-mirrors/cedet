@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 23 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-flex.el,v 1.5 2002/07/02 09:40:35 ponced Exp $
+;; X-RCS: $Id: wisent-flex.el,v 1.6 2002/07/15 10:30:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -299,6 +299,19 @@ example on how to define the mapping of 'punctuation syntactic tokens.
                     (aref text 0)
                   stok)
                 (cons text (cdr flex)))))))
+
+;; Lexer for use with Semantic 2.x lexical analysis
+(defun wisent-lex ()
+  "Return the next available lexical token in Wisent's form.
+The variable `wisent-flex-istream' contains the list of lexical tokens
+produced by `semantic-lex'.  Pop the next token available and convert
+it to a form suitable for the Wisent's parser."
+  (if wisent-flex-istream
+      (let ((tk (car wisent-flex-istream)))
+        ;; Eat input stream
+        (setq wisent-flex-istream (cdr wisent-flex-istream))
+        (cons (car tk) (cons (semantic-flex-text tk) (cdr tk))))
+    (wisent-flex-eoi)))
 
 (provide 'wisent-flex)
 
