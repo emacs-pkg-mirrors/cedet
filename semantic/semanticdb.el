@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.11 2001/01/25 19:12:14 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.12 2001/01/31 16:44:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,6 +34,17 @@
 (require 'eieio-base)
 
 ;;; Variables:
+;;;###autoload
+(defcustom semanticdb-global-mode nil
+  "*If non-nil enable the use of `semanticdb-minor-mode'."
+  :group 'semantic
+  :type 'boolean
+  :require 'semanticdb
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (global-semanticdb-minor-mode (if val 1 -1))
+         (custom-set-default sym val)))
+
 (defcustom semanticdb-default-file-name "semantic.cache"
   "*File name of the semantic token cache."
   :group 'semantic
@@ -347,24 +358,65 @@ If ARG is nil, then toggle."
 ;;
 ;; Line all the semantic-util 'find-nonterminal...' type functions, but
 ;; trans file across the database.
-(defun semanticdb-find-nonterminal-by-name (name &optional database)
-  "Find all occurances of nonterminals with name NAME in our databases.
-Search for it in DATABASE if provided, otherwise search a range
-of databases."
-  (if (not database)
+(defun semanticdb-find-nonterminal-by-name
+  (name &optional databases search-parts search-includes diff-mode)
+  "Find all occurances of nonterminals with name NAME in databases.
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES and DIFF-MODE."
+  (semanticdb-find-nonterminal-by-function
+   (lambda (stream sp si)
+     (semantic-find-nonterminal-by-name name stream sp si))
+   databases search-parts search-includes diff-mode))
+
+(defun semanticdb-find-nonterminal-by-name-regexp
+  (regex &optional databases search-parts search-includes diff-mode)
+  "Find all occurances of nonterminals with name matching REGEX in databases.
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES and DIFF-MODE."
+  (semanticdb-find-nonterminal-by-function
+   (lambda (stream sp si)
+     (semantic-find-nonterminal-by-name-regexp regex stream sp si))
+   databases search-parts search-includes diff-mode))
+
+(defun semanticdb-find-nonterminal-by-type
+  (type &optional databases search-parts search-includes diff-mode)
+  "Find all nonterminals with a type of TYPE in databases.
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES and DIFF-MODE."
+  (semanticdb-find-nonterminal-by-function
+   (lambda (stream sp si)
+     (semantic-find-nonterminal-by-type type stream sp si))
+   databases search-parts search-includes diff-mode))
+
+(defun semanticdb-find-nonterminal-by-function
+  (function &optional databases search-parts search-includes diff-mode)
+  "Find all occurances of nonterminals which match FUNCTION.
+Search in all DATABASES.  If DATABASES is nil, search a range of
+associated databases.
+When SEARCH-PARTS is non-nil the search will include children of tokens.
+When SEARCH-INCLUDES is non-nil, the search will include dependency files.
+When DIFF-MODE is non-nil, search databases which are of a different mode.
+A Mode is the `major-mode' that file was in when it was last parsed."
+  (if (not databases)
       ;; Calculate what database to use.
       ;; Something simple and dumb for now.
-      (setq database semanticdb-current-database))
-  (let ((files (oref database tables))
-	(found nil)
-	(ret nil))
-    (while files
-      (setq found (semantic-find-nonterminal-by-name 
-		   name (oref (car files) tokens))
-	    files (cdr files)
-	    )
-      (if found
-	  (setq ret (cons found ret))))
+      (setq databases (list semanticdb-current-database)))
+  (let ((ret nil))
+    (while databases
+      (let* ((files (oref (car databases) tables))
+	     (found nil)
+	     (mm major-mode))
+	(while files
+	  (when (eq mm (oref (car files) major-mode))
+	    (setq found (funcall function
+				 (oref (car files) tokens)
+				 search-parts
+				 search-includes
+				 )))
+	  (setq files (cdr files))
+	  (if found
+	      (setq ret (cons found ret)))))
+      (setq databases (cdr databases)))
     (nreverse ret)))
 
 (defun semanticdb-file-stream (file)
