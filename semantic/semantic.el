@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.170 2003/03/27 07:45:02 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.171 2003/04/01 15:20:11 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -200,9 +200,9 @@ character) is called with this hook when it doesn't match in the
 grammar, and multiple unmatched syntax elements are not grouped
 together.  Each hook is called with one argument, which is a list of
 syntax tokens created by the semantic lexer.  Use the functions
-`semantic-flex-start', `semantic-flex-end' and `semantic-flex-text' to
-get information about these tokens.  The current buffer is the buffer
-these tokens are derived from.")
+`semantic-lex-token-start', `semantic-lex-token-end' and
+`semantic-lex-token-text' to get information about these tokens.  The
+current buffer is the buffer these tokens are derived from.")
 
 (defvar semantic-before-toplevel-bovination-hook nil
   "Hooks run before a toplevel token parse.
