@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.26 2001/01/24 21:20:51 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.27 2001/01/31 15:59:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -187,7 +187,7 @@ Optional MODIFIERS is additional text needed for variables."
 	       (setq parts (cdr parts)))))
 	  ((eq tt 'variable)
 	   (if type
-	       (let ((mods (semantic-token-variable-modifier token 'typemodifiers)))
+	       (let ((mods (semantic-token-variable-extra-spec token 'typemodifiers)))
 		 (semantic-sb-maybe-token-to-button type indent "@" mods)))
 	   ;; default value here
 	   )
