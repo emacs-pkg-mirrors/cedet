@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.3 1999/02/02 20:59:20 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.4 1999/02/03 18:10:50 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -58,6 +58,11 @@ This is the next line of documentation.")
   "Test variable for editing an object."
   :type 'object)
 
+(defvar eieio-wo nil
+  "Buffer local variable in object customize buffers for the current widget.")
+(defvar eieio-co nil
+  "Buffer local variable in object customize buffers for the current obj.")
+
 (define-widget 'object-edit 'group
   "Abstractly modify a CLOS object."
   :tag "Object"
@@ -68,12 +73,23 @@ This is the next line of documentation.")
   :value-delete 'widget-children-value-delete
   :validate 'widget-children-validate
   :match 'eieio-object-match
+  :clone-object-children nil
   )
 
 (defun eieio-object-match (widget value)
   "Match info for WIDGET against VALUE."
   ;; Write me
   t)
+
+(defun eieio-filter-slot-type (widget slottype)
+  "Filter WIDGETs SLOTTYPE."
+  (if (widget-get widget :clone-object-children)
+      slottype
+    (cond ((eq slottype 'object)
+	   'object-edit)
+	  ((equal slottype '(repeat object))
+	   '(repeat object-edit))
+	  (t slottype))))
 
 (defun eieio-object-value-create (widget)
   "Create the value of WIDGET."
@@ -91,7 +107,8 @@ This is the next line of documentation.")
 	    ;; In this case, this field has a custom type.  Create it's
 	    ;; children widgets.
 	    (setq chil (cons (widget-create-child-and-convert
-			      widget (car fcust)
+			      widget
+			      (eieio-filter-slot-type widget (car fcust))
 			      :tag
 			      (concat "   Slot `"
 				      (symbol-name
@@ -158,16 +175,21 @@ object widget."
     (setq eieio-wo (eieio-custom-widget-insert obj))
     ;;Now generate the apply buttons
     (widget-insert "\n")
-    (widget-create 'push-button "Apply"
+    (widget-create 'push-button
 		   :notify (lambda (&rest ignore)
 			     ;; I think the act of getting it sets
 			     ;; it's value through the get function.
+			     (message "Applying Changes...")
 			     (widget-apply eieio-wo :value-get)
-			     ))
+			     (eieio-done-customizing eieio-co)
+			     (message "Applying Changes...Done."))
+		    "Apply")
     (widget-insert "   ")
-    (widget-create 'push-button "Reset"
+    (widget-create 'push-button
 		   :notify (lambda (&rest ignore)
-			     (eieio-customize-object eieio-co)))
+			     (message "Resetting.")
+			     (eieio-customize-object eieio-co))
+		   "Reset")
     ;; Now initialize the buffer
     (use-local-map widget-keymap)
     (widget-setup)
@@ -182,11 +204,20 @@ Arguments FLAGS are widget compatible flags.
 Must return the created widget."
   (widget-create 'object-edit :value obj))
 
+(defmethod eieio-done-customizing ((obj eieio-default-superclass))
+  "When a applying change to a widget, call this method.
+This method is called by the default widget-edit commands.  User made
+commands should also call this method when applying changes.
+Argument OBJ is the object that has been customized."
+  nil)
+
 (define-widget 'object 'object-edit
   "Instance of a CLOS class."
   :format "%{%t%}:\n%v"
   :value-to-internal 'eieio-object-value-to-abstract
-  :value-to-external 'eieio-object-abstract-to-value)
+  :value-to-external 'eieio-object-abstract-to-value
+  :clone-object-children t
+  )
 
 (defun eieio-object-value-to-abstract (widget value)
   "For WIDGET, convert VALUE to an abstract /safe/ representation."
