@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.64 2003/11/20 14:48:12 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.65 2003/12/04 22:00:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -103,6 +103,11 @@ This table is the root of tables, and contains the minimum needed
 for a new table not associated with a buffer."
   :abstract t)
 
+(defmethod semanticdb-get-buffer ((obj semanticdb-abstract-table))
+  "Return a buffer associated with OBJ.
+If the buffer is not in memory, load it with `find-file-noselect'."
+  nil)
+
 (defclass semanticdb-table (semanticdb-abstract-table)
   ((file :initarg :file
 	 :documentation "File name relative to the parent database.
@@ -187,10 +192,15 @@ If one isn't found, create one."
   				    (oref obj reference-directory))
 		'file (oref obj tables)))
 
+(defmethod semanticdb-get-buffer ((obj semanticdb-table))
+  "Return a buffer associated with OBJ.
+If the buffer is not in memory, load it with `find-file-noselect'."
+  (find-file-noselect (semanticdb-full-filename obj)))
+
 (defmethod semanticdb-set-buffer ((obj semanticdb-table))
   "Set the current buffer to be a buffer owned by OBJ.
 If OBJ's file is not loaded, read it in first."
-  (set-buffer (find-file-noselect (semanticdb-full-filename obj))))
+  (set-buffer (semanticdb-get-buffer obj)))
 
 (defmethod semanticdb-refresh-table ((obj semanticdb-table))
   "If the tag list associated with OBJ is loaded, refresh it.
