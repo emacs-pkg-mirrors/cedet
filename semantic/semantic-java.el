@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.21 2001/09/27 21:05:11 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.22 2001/10/03 17:57:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,11 +46,6 @@
  ( import_declaration)
  ( type_declaration)
  ) ; end bovine-toplevel
- (number
- ( symbol "[0-9]" punctuation "\\." symbol "[0-9Ee]" punctuation "[-+]" symbol "[0-9fFdD]")
- ( symbol "[0-9]" punctuation "\\." symbol "[0-9EefFdD]")
- ( symbol "[0-9fFdD]")
- ) ; end number
  (literal
  ( number)
  ( qualified_name)
@@ -429,7 +424,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-                 "Java language specification.")
+                   "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -554,6 +549,53 @@
      ("@deprecated" javadoc (seq 12 usage (type function variable) opt t))
      ))
   "Java keywords.")
+
+(defconst semantic-java-number-regexp
+  (eval-when-compile
+    (concat "\\("
+            "\\<[0-9]+[.][0-9]+\\([eE][-+]?[0-9]+\\)?[fFdD]?\\>"
+            "\\|"
+            "\\<[0-9]+[.][eE][-+]?[0-9]+[fFdD]?\\>"
+            "\\|"
+            "\\<[0-9]+[.][fFdD]\\>"
+            "\\|"
+            "\\<[0-9]+[.]"
+            "\\|"
+            "[.][0-9]+\\([eE][-+]?[0-9]+\\)?[fFdD]?\\>"
+            "\\|"
+            "\\<[0-9]+[eE][-+]?[0-9]+[fFdD]?\\>"
+            "\\|"
+            "\\<0[xX][0-9a-fA-F]+[lL]?\\>"
+            "\\|"
+            "\\<[0-9]+[lLfFdD]?\\>"
+            "\\)"
+            ))
+  "Lexer regexp to match Java number terminals.
+Following is the specification of Java number literals.
+
+DECIMAL_LITERAL:
+    [1-9][0-9]*
+  ;
+HEX_LITERAL:
+    0[xX][0-9a-fA-F]+
+  ;
+OCTAL_LITERAL:
+    0[0-7]*
+  ;
+INTEGER_LITERAL:
+    <DECIMAL_LITERAL>[lL]?
+  | <HEX_LITERAL>[lL]?
+  | <OCTAL_LITERAL>[lL]?
+  ;
+EXPONENT:
+    [eE][+-]?[09]+
+  ;
+FLOATING_POINT_LITERAL:
+    [0-9]+[.][0-9]*<EXPONENT>?[fFdD]?
+  | [.][0-9]+<EXPONENT>?[fFdD]?
+  | [0-9]+<EXPONENT>[fFdD]?
+  | [0-9]+<EXPONENT>?[fFdD]
+  ;")
 
 ;;;;
 ;;;; Prototype handler
@@ -945,6 +987,8 @@ This function is a Java specific `get-local-variables' override."
   (setq semantic-flex-keywords-obarray semantic-java-keyword-table)
   (progn
     (setq
+     ;; Java numbers
+     semantic-number-expression semantic-java-number-regexp
      ;; Java is case sensitive
      semantic-case-fold nil
      ;; special handling of multiple variable declarations/statement
