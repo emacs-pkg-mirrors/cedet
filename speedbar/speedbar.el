@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7d
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.87 1998/03/18 17:58:51 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.88 1998/03/18 18:29:50 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -520,22 +520,22 @@ use etags instead.  Etags support is not as robust as imenu support."
   :type 'boolean)
 
 (defcustom speedbar-tag-hierarchy-method '(prefix-group trim-words)
-  "*List of methods which speedbar will use to  organize tags into groups.
+  "*List of methods which speedbar will use to organize tags into groups.
 Groups are defined as expandable meta-tags.  Imenu supports such
 things in some languages, such as separating variables from functions.
 Available methods are:
-  flat         - Leave the generated list unchanged.
-  sort         - Sort gats. (sometimes unnecessary)
+  sort         - Sort tags. (sometimes unnecessary)
   trim-words   - Trim all tags by a common prefix, broken @ word sections.
   prefix-group - Try to guess groups by prefix.
   simple-group - If imenu already returned some meta groups, stick all
                  tags that are not in a group into a sub-group."
   :group 'speedbar
-  :type '(repeat 
-	  '(radio
-	    (const :tag "Trim words to common prefix." trim-words)
-	    (const :tag "Create groups from common prefixes." prefix-group)
-	    (const :tag "Group loose tags into their own group." simple-group))
+  :type '(repeat
+	  (radio
+	   (const :tag "Sort the tags." sort)
+	   (const :tag "Trim words to common prefix." trim-words)
+	   (const :tag "Create groups from common prefixes." prefix-group)
+	   (const :tag "Group loose tags into their own group." simple-group))
 	  ))
 
 (defcustom speedbar-tag-split-minimum-length 10
