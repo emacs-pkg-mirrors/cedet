@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.1 2003/03/28 02:40:08 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.2 2003/03/30 02:29:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,8 +53,11 @@
 
 ;;; Overlay Search Routines
 ;;
+;; These routines provide fast access to tokens based on a buffer that
+;; has parsed tokens in it.  Uses overlays to perform the hard work.
+;;
 (defun semantic-find-tag-by-overlay (&optional positionormarker buffer)
-  "Find all nonterminals covering POSITIONORMARKER by using overlays.
+  "Find all tags covering POSITIONORMARKER by using overlays.
 If POSITIONORMARKER is nil, use the current point.
 Optional BUFFER is used if POSITIONORMARKER is a number, otherwise the current
 buffer is used.  This finds all tags covering the specified position
@@ -80,7 +83,7 @@ from largest to smallest via the start location."
 				 (semantic-tag-start b)))))))
 
 (defun semantic-find-tag-by-overlay-in-region (start end &optional buffer)
-  "Find all nonterminals which exist in whole or in part between START and END.
+  "Find all tags which exist in whole or in part between START and END.
 Uses overlays to determine positin.
 Optional BUFFER argument specifies the buffer to use."
   (save-excursion
@@ -98,7 +101,7 @@ Optional BUFFER argument specifies the buffer to use."
 				 (semantic-tag-start b)))))))
 
 (defun semantic-find-tag-by-overlay-next (&optional start buffer)
-  "Find the next nonterminal after START in BUFFER.
+  "Find the next tag after START in BUFFER.
 If START is in an overlay, find the tag which starts next,
 not the current tag."
   (save-excursion
@@ -155,25 +158,25 @@ not the current tag."
 Overlays are a fast way of finding this information for active buffers."
   (let ((tag (nreverse (semantic-find-tag-by-overlay
 			(semantic-tag-start tag)))))
-    ;; This is a lot like `semantic-current-nonterminal-parent', but
+    ;; This is a lot like `semantic-current-tag-parent', but
     ;; it uses a position to do it's work.  Assumes two tags don't share
     ;; the same start unless they are siblings.
     (car (cdr tag))))
 
 (defun semantic-current-tag ()
-  "Return the current nonterminal in the current buffer.
+  "Return the current tag in the current buffer.
 If there are more than one in the same location, return the
 smallest tag.  Return nil if there is no tag here."
   (car (nreverse (semantic-find-tag-by-overlay))))
 
 (defun semantic-current-tag-parent ()
-  "Return the current nonterminals parent in the current buffer.
+  "Return the current tags parent in the current buffer.
 A tag's parent would be a containing structure, such as a type
 containing a field.  Return nil if there is no parent."
   (car (cdr (nreverse (semantic-find-tag-by-overlay)))))
 
 (defun semantic-current-tag-of-class (class)
-  "Return the current (smallest) nonterminal of CLASS in the current buffer.
+  "Return the current (smallest) tags of CLASS in the current buffer.
 If the smallest tag is not of type CLASS, keep going upwards until one
 is found.
 Uses `semantic-tag-class' for classification."
@@ -186,8 +189,137 @@ Uses `semantic-tag-class' for classification."
 
 ;;; Search Routines
 ;;
+;; These are routines that search a single tags table.
+;;
+;; The original API (see COMPATIBILITY section below) in semantic 1.4
+;; had these usage statistics:
+;;
+;; semantic-find-nonterminal-by-name 17
+;; semantic-find-nonterminal-by-name-regexp 8  - Most doing completion
+;; semantic-find-nonterminal-by-position 13
+;; semantic-find-nonterminal-by-token 21
+;; semantic-find-nonterminal-by-type 2
+;; semantic-find-nonterminal-standard 1
+;;
+;; semantic-find-nonterminal-by-function (not in other searches)  1
+;;
+;; New API: As above w/out `search-parts' or `search-includes' arguments.
+;; Extra fcn: Specific to completion which is what -name-regexp is
+;;            mostly used for
+;;
+;; As for the sarguments "search-parts" and "search-includes" here
+;; are stats:
+;;
+;; search-parts: 4  - charting x2, find-doc, senator (sans db)
+;;
+;; Implement command to flatten a tag table.  Call new API Fcn w/
+;; flattened table for same results.
+;;
+;; search-include: 2 - analyze x2 (sans db)
+;;
+;; Not used effectively.  Not to be re-implemented here.
 
-; NEW SEARCH FCNS GO HERE.  WHAT ARE THEY?
+(defsubst semantic--find-tags-by-function (predicate &optional table)
+  "Find tags for which PREDICATE is non-nil in TABLE.
+PREDICATE is a lambda expression which accepts on TAG.
+TABLE  is a semantic tags table.  See `semantic-something-to-tag-table'."
+  (let ((tags (semantic-something-to-tag-table table))
+	(result nil))
+    (mapc (lambda (tag) (and (funcall predicate tag)
+			     (setq result (cons tag result))))
+	  tags)
+    (nreverse result)))
+
+(defsubst semantic-find-first-tag-by-name (name &optional table)
+  "Find the first tag with NAME in TABLE.
+NAME is a string.
+TABLE is a semantic tags table.  See `semantic-something-to-tag-table'.
+This routine uses `assoc' to quickly find the first matching entry."
+  (assoc-string name (semantic-something-to-tag-table table)
+		semantic-case-fold))
+
+(defun semantic-find-tags-by-name (name &optional table)
+  "Find all tags with NAME in TABLE.
+NAME is a string.
+TABLE is a tag table.  See `semantic-something-to-tag-table'."
+  (let ((case-fold-search semantic-case-fold))
+    (semantic--find-tags-by-function
+     (lambda (tag) (string= name (semantic-tag-name tag)))
+     (semantic-something-to-tag-table table))))
+
+(defun semantic-find-tags-for-completion (prefix &optional table)
+  "Find all tags whos name begins with PREFIX in TABLE.
+PREFIX is a string.
+TABLE is a tag table.  See `semantic-something-to-tag-table'.
+While it would be nice to use `try-completion' or `all-completions',
+those functions do not return the tags, only a string.
+Uses `compare-strings' for fast comparison."
+  (let ((l (length prefix)))
+    (semantic--find-tags-by-function
+     (lambda (tag)
+       (eq (compare-strings prefix 0 nil
+			    (semantic-tag-name tag) 0 l
+			    semantic-case-fold)
+	   t))
+     (semantic-something-to-tag-table table))))
+
+(defun semantic-find-tags-by-name-regexp (regexp &optional table)
+  "Find all tags with name matching REGEXP in TABLE.
+REGEXP is a string containing a regular expression,
+TABLE is a tag table.  See `semantic-something-to-tag-table'.
+Consider using `semantic-find-tags-for-completion' if you are
+attempting to do completions."
+  (let ((case-fold-search semantic-case-fold))
+    (semantic--find-tags-by-function
+     (lambda (tag) (string-match regexp (semantic-tag-name tag)))
+     (semantic-something-to-tag-table table))))
+
+(defun semantic-find-tags-by-class (class &optional table)
+  "Find all tags of class CLASS in TABLE.
+CLASS is a symbol representing the class of the token, such as
+'variable, of 'function..
+TABLE is a tag table.  See `semantic-something-to-tag-table'."
+  (semantic--find-tags-by-function
+   (lambda (tag) (eq class (semantic-tag-class tag)))
+   (semantic-something-to-tag-table table)))
+
+(defun semantic-find-tags-by-type (type &optional table)
+  "Find all tags of with a type TYPE in TABLE.
+TYPE is a string or tag representing a data type as defined in the
+language the tags were parsed from, such as \"int\", or perhaps
+a tag whose name is that of a struct or class.
+TABLE is a tag table.  See `semantic-something-to-tag-table'."
+  (semantic--find-tags-by-function
+   (lambda (tag) (eq class (semantic-tag-class tag)))
+   (semantic-something-to-tag-table table)))
+
+;;; Tag Table Flattening
+;;
+;; In the 1.4 search API, there was a parameter "search-parts" which
+;; was used to find tags inside other tags.  This was used
+;; infrequently, mostly for completion/jump routines.  These types
+;; of commands would be better off with a flattened list, where all
+;; tags appear at the top level.
+
+(defun semantic-flatten-tags-table (&optional table)
+  "Flatten the tags table TABLE.
+All tags in TABLE, and all components of top level tags
+in TABLE will appear at the top level of list.
+Tags promoted to the top of the list will still appear
+unmodified as components of their parent tags."
+  (let* ((table (semantic-something-to-tag-table table))
+	 ;; Initialize the starting list with our table.
+	 (lists (list table)))
+    (mapc (lambda (tag)
+	    (let ((components (semantic-tag-components tag)))
+	      (if (and components
+		       (semantic-tag-p (car components)))
+		  (setq lists (cons
+			       (semantic-flatten-tags-table components)
+			       lists)))))
+	  table)
+    (apply 'append (nreverse lists))
+    ))
 
 
 ;;
@@ -196,7 +328,7 @@ Uses `semantic-tag-class' for classification."
 
 ;;; Old Style Brute Force Search Routines
 ;;
-;; These functions will search through nonterminal lists explicity for
+;; These functions will search through tags lists explicity for
 ;; desired information.
 
 ;; The -by-name nonterminal search can use the built in fcn
@@ -208,7 +340,9 @@ Uses `semantic-tag-class' for classification."
   (name streamorbuffer &optional search-parts search-include)
   "Find a tag NAME within STREAMORBUFFER.  NAME is a string.
 If SEARCH-PARTS is non-nil, search children of tags.
-If SEARCH-INCLUDE is non-nil, search include files."
+If SEARCH-INCLUDE is non-nil, search include files.
+
+Use `semantic-find-first-tag-by-name' instead."
   (let* ((stream (if (bufferp streamorbuffer)
 		     (save-excursion
 		       (set-buffer streamorbuffer)
@@ -239,10 +373,12 @@ If SEARCH-INCLUDE is non-nil, search include files."
 (defmacro semantic-brute-find-tag-by-class
   (class streamorbuffer &optional search-parts search-includes)
   "Find all tags with a class CLASS within STREAMORBUFFER.
-CLASS is a symbol representing the class of the tokens to find.
+CLASS is a symbol representing the class of the tags to find.
 See `semantic-tag-class'.
 Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
-`semantic-brute-find-tag-by-function'."
+`semantic-brute-find-tag-by-function'.
+
+Use `semantic-find-tag-by-class' instead."
   `(semantic-brute-find-tag-by-function
     (lambda (tag) (eq ,class (semantic-tag-class tag)))
     ,streamorbuffer ,search-parts ,search-includes))
@@ -261,7 +397,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 (defun semantic-brute-find-tag-by-type
   (type streamorbuffer &optional search-parts search-includes)
   "Find all tags with type TYPE within STREAMORBUFFER.
-TYPE is a string which is the name of the type of the token returned.
+TYPE is a string which is the name of the type of the tags returned.
 See `semantic-tag-type'.
 Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 `semantic-brute-find-tag-by-function'."
@@ -279,7 +415,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
   (regexp streamorbuffer &optional search-parts search-includes)
   "Find all tags with type matching REGEXP within STREAMORBUFFER.
 REGEXP is a regular expression  which matches the  name of the type of the
-tokens returned.  See `semantic-tag-type'.
+tags returned.  See `semantic-tag-type'.
 Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 `semantic-brute-find-tag-by-function'."
   (semantic-brute-find-tag-by-function
@@ -338,7 +474,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 
 (defun semantic-brute-find-tag-by-function
   (function streamorbuffer &optional search-parts search-includes)
-  "Find all tags for which FUNCTION returns non-nil within STREAMORBUFFER.
+  "Find all tags for which FUNCTION's value is non-nil within STREAMORBUFFER.
 FUNCTION must return non-nil if an element of STREAM will be included
 in the new list.
 
