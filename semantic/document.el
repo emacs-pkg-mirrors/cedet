@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.15 2003/04/02 02:25:34 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.16 2003/04/02 02:27:08 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -303,7 +303,7 @@ This will create a new documentation string from scratch."
 	(zpnt 0)
 	(fname (semantic-tag-name nonterm))
 	(returns (semantic-tag-type nonterm))
-	(params (semantic-tag-function-args nonterm))
+	(params (semantic-tag-function-arguments nonterm))
 	)
     (if (listp returns)
 	;; convert a type list into a long string to analyze.
@@ -484,7 +484,7 @@ standard names, then englishify it instead."
     (if (/= (length cmt) 0)
 	nil
       ;; finally check for array parts
-      (if (and (not (stringp param)) (semantic-tag-variable-modifiers param))
+      (if (and (not (stringp param)) (semantic-tag-modifiers param))
 	  (setq cmt (concat cmt "array of ")))
       (setq aso document-autocomment-param-type-alist)
       (while (and aso tt)
@@ -586,7 +586,7 @@ Arguments can be semantic tokens, or strings."
   "Update NONTERM's comment found in the flex token COMMENT."
   (let ((endpos 0) st en (il nil)
 	(case-fold-search nil)
-	(l (semantic-tag-function-args nonterm)))
+	(l (semantic-tag-function-arguments nonterm)))
     (save-excursion
       (goto-char (semantic-lex-token-start comment))
       (let ((s (document-just-after-token-regexp ?P document-function-comment))
