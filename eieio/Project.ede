@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "eieio"
   :name "eieio"
-  :version "0.17"
+  :version "0.18"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-elisp "eieio"
@@ -14,7 +14,7 @@
    (ede-proj-target-elisp "examples"
     :name "examples"
     :path ""
-    :source '("tree.el" "call-tree.el" "chart.el" "eieio-speedbar.el" "linemark.el")
+    :source '("tree.el" "call-tree.el" "chart.el" "eieio-speedbar.el" "linemark.el" "lmcompile.el")
     )
    (ede-proj-target-makefile-info "eieio.info"
     :name "eieio.info"
