@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.7 2003/08/17 02:46:25 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.8 2003/11/20 14:54:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -71,13 +71,17 @@ TAGTABLE is passedto `semantic-something-to-tag-table'."
   (let* ((stream (semantic-something-to-tag-table (or tagtable
 						      (current-buffer))))
 	 (db semanticdb-current-database)
-	 (names (mapcar 'car (object-assoc-list 'file (oref db tables))))
+	 (dbt (semanticdb-get-database-tables db))
+	 (names (mapcar 'car
+			(object-assoc-list
+			 'file
+			 dbt)))
 	 (numnuts (mapcar (lambda (a)
 			    (prog1
 				(cons (length (car a))
 				      (car names))
 			      (setq names (cdr names))))
-			  (object-assoc-list 'tags (oref db tables))))
+			  (object-assoc-list 'tags dbt)))
 	 (nums nil)
 	 (fh (/ (- (frame-height) 7) 4)))
     (setq numnuts (sort numnuts (lambda (a b) (> (car a) (car b)))))
