@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.15 2004/01/09 20:56:30 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.16 2004/01/09 20:58:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -238,7 +238,7 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
       ;; If we don't load this, then finding include tags within
       ;; the table could fail!
       ;; (when ans (save-excursion (semanticdb-set-buffer ans)))
-      )
+     ;;  )
      (t
       ;; Somewhere in our project hierarchy
       ;; Remember: Roots includes system databases which can create
