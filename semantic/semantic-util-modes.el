@@ -1,12 +1,12 @@
 ;;; semantic-util-modes.el --- Semantic minor modes
 
-;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;; Copyright (C) 2001 David Ponce
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.23 2002/12/29 18:03:13 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.24 2003/02/17 02:12:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -566,6 +566,7 @@ Use the command `semantic-auto-parse-mode' to change this variable.")
   "Return non-nil if auto-parse is enabled for this buffer.
 See also the variable `semantic-auto-parse-max-buffer-size'."
   (if semantic-auto-parse-mode
+      (not semantic-debug-enabled)
       (or (<= semantic-auto-parse-max-buffer-size 0)
           (< (buffer-size) semantic-auto-parse-max-buffer-size))))
 
