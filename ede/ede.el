@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.19 1999/09/03 13:37:16 zappo Exp $
+;; RCS: $Id: ede.el,v 1.20 1999/09/08 23:04:51 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -47,7 +47,7 @@
 ;;  (global-ede-mode t)
 
 ;;; Code:
-(defvar ede-version "0.4"
+(defvar ede-version "0.7"
   "Current version of the Emacs EDE.")
 
 ;; From custom web page for compatibility between versions of custom
@@ -129,49 +129,74 @@ type is required and the load function used.")
    )
   "List of vectos defining how to determine what type of projects exist.")
 
+(defvar ede-default-target-menu
+  '( [ "Debug target" ede-debug-target
+       (and ede-object
+	    (obj-of-class-p ede-object ede-target)) ]
+     )
+  "Menu used by default for most project/target types.")
+
 ;;; Generic project information manager objects
 ;;
 (defclass ede-target ()
   ((name :initarg :name
+	 :type (or string null)
 	 :custom string
 	 :documentation "Name of this target.")
    (path :initarg :path
+	 :type (or string null)
 	 :custom string
 	 :documentation "The path to this target.")
    (takes-compile-command
+    :allocation :class
     :initarg :takes-compile-command
+    :type boolean
     :initform nil
-    :documentation "Non-nil if this target requires a user approved command."
-    :allocation :class)
+    :documentation "Non-nil if this target requires a user approved command.")
    (source :initarg :source
-	   :type 'list
+	   ;; I'd prefer a list of strings.
+	   :type list
 	   :custom (repeat (string :tag "File"))
 	   :documentation "Source files in this target.")
+   (keybindings :allocation :class
+		:initform (("D" . ede-debug-target))
+		:documentation "Keybindings specialized to this type of target."
+		:accessor ede-object-keybindings)
+   (menu :allocation :class
+	 :initform (lambda () ede-default-target-menu)
+	 :documentation "Menu specialized to this type of target."
+	 :accessor ede-object-menu)
    )
   "A top level target to build.")
 
 (defclass ede-project ()
   ((name :initarg :name
 	 :initform "Untitled"
+	 :type string
 	 :custom string
 	 :documentation "The name used when generating distribution files.")
    (version :initarg :version
 	    :initform "1.0"
+	    :type string
 	    :custom string
 	    :documentation "The version number used when distributing files.")
    (file :initarg :file
+	 :type (or string null)
 	 :documentation "File name where this project is stored.")
    ;; No initarg.  We don't want this saved.
    (root :documentation "The root project file if this is a subproject.")
    ;; No initarg.  We don't want this saved in a file.
    (subproj :initform nil
+	    :type list
 	    :documentation "Sub projects controlled by this project.
 For Automake based projects, each directory is treated as a project.")
    (targets :initarg :targets
+	    :type list
 	    :custom (repeat object)
 	    :documentation "List of top level targets in this project.")
    (configurations :initarg :configurations
 		   :initform ("debug" "release")
+		   :type list
 		   :custom (repeat string)
 		   :documentation "List of available configuration types.
 Individual target/project types can form associations between a configuration,
@@ -185,6 +210,14 @@ and target specific elements such as build variables.")
 		    :custom (repeat (cons (sexp :tag "Variable")
 					  (sexp :tag "Value")))
 		    :documentation "Project local variables")
+   (keybindings :allocation :class
+		:initform (("D" . ede-debug-target))
+		:documentation "Keybindings specialized to this type of target."
+		:accessor ede-object-keybindings)
+   (menu :allocation :class
+	 :initform (lambda () ede-default-target-menu)
+	 :documentation "Menu specialized to this type of target."
+	 :accessor ede-object-menu)
    )
   "Top level EDE project specification.
 All specific project types must derive from this project.")
@@ -198,6 +231,10 @@ All specific project types must derive from this project.")
   "The current buffer's target object.
 This object's class determines how to compile and debug from a buffer.")
 (make-variable-buffer-local 'ede-object)
+
+(defvar ede-selected-object nil
+  "The currently user-selected project or target.
+If `ede-object' is nil, then commands will operate on this object.")
 
 (defvar ede-constructing nil
   "Non nil when constructing a project hierarchy.")
@@ -267,51 +304,45 @@ Argument LIST-O-O is the list of objects to choose from."
     map)
   "Keymap used in project minor mode.")
 
+(defvar ede-minor-target-keymap nil
+  "Keymap used for target-specifics.")
+(make-variable-buffer-local 'ede-minor-target-keymap)
+
 (if ede-minor-keymap
-    (progn
-      (easy-menu-define
-       ede-minor-menu-2 ede-minor-keymap "Project Minor Mode Menu 2"
-       '("Target"
-	 [ "Debug target" ede-debug-target
-	   (and ede-object
-		(obj-of-class-p ede-object ede-target)) ]
-	 )
-       )
-      (easy-menu-define
-       ede-minor-menu ede-minor-keymap "Project Minor Mode Menu"
-       '("Project"
-	 [ "Build all" ede-compile-project nil ]
-	 [ "Build Active Project" ede-compile-project t ]
-	 [ "Build Active Target" ede-compile-target t ]
-	 [ "Build Selected..." ede-compile-selected t ]
-	 "---"
-	 [ "Add File" ede-add-file (ede-current-project) ]
-	 [ "Remove File" ede-remove-file
-	   (and ede-object
-		(or (listp ede-object)
-		    (not (obj-of-class-p ede-object ede-project)))) ]
-	 "---"
-	 [ "Select Active Target" nil nil ]
-	 [ "Add Target" ede-new-target (ede-current-project) ]
-	 [ "Remove Target" ede-delete-target ede-object ]
-	 [ "Target Preferences..." ede-customize-target
-	   (and ede-object
-		(not (obj-of-class-p ede-object ede-project))) ]
-	 "---"
-	 [ "Select Active Project" nil nil ]
-	 [ "Create Project" ede-new (not ede-object) ]
-	 [ "Remove Project" nil nil ]
-	 [ "Load a project" ede t ]
-	 [ "Rescan Project Files" ede-rescan-toplevel t ]
-	 [ "Customize Project" ede-customize-project (ede-current-project) ]
-	 [ "Edit Projectfile" ede-edit-file-target
-	   (and ede-object
-		(not (obj-of-class-p ede-object ede-project))) ]
-	 [ "Make distribution" ede-make-dist t ]
-	 "---"
-	 [ "View Project Tree" ede-speedbar t ]
-	 ))
-      ))
+    (easy-menu-define
+     ede-minor-menu ede-minor-keymap "Project Minor Mode Menu"
+     '("Project"
+       [ "Build all" ede-compile-project nil ]
+       [ "Build Active Project" ede-compile-project t ]
+       [ "Build Active Target" ede-compile-target t ]
+       [ "Build Selected..." ede-compile-selected t ]
+       "---"
+       [ "Add File" ede-add-file (ede-current-project) ]
+       [ "Remove File" ede-remove-file
+	 (and ede-object
+	      (or (listp ede-object)
+		  (not (obj-of-class-p ede-object ede-project)))) ]
+       "---"
+       [ "Select Active Target" nil nil ]
+       [ "Add Target" ede-new-target (ede-current-project) ]
+       [ "Remove Target" ede-delete-target ede-object ]
+       [ "Target Preferences..." ede-customize-target
+	 (and ede-object
+	      (not (obj-of-class-p ede-object ede-project))) ]
+       "---"
+       [ "Select Active Project" nil nil ]
+       [ "Create Project" ede-new (not ede-object) ]
+       [ "Remove Project" nil nil ]
+       [ "Load a project" ede t ]
+       [ "Rescan Project Files" ede-rescan-toplevel t ]
+       [ "Customize Project" ede-customize-project (ede-current-project) ]
+       [ "Edit Projectfile" ede-edit-file-target
+	 (and ede-object
+	      (not (obj-of-class-p ede-object ede-project))) ]
+       [ "Make distribution" ede-make-dist t ]
+       "---"
+       [ "View Project Tree" ede-speedbar t ]
+       )))
 
 ;; Allow re-insertion of a new keymap
 (let ((a (assoc 'ede-minor-mode minor-mode-map-alist)))
@@ -319,7 +350,31 @@ Argument LIST-O-O is the list of objects to choose from."
       (setcdr a ede-minor-keymap)
     (add-to-list 'minor-mode-map-alist
 		 (cons 'ede-minor-mode
-		       ede-minor-keymap))))
+		       ede-minor-keymap))
+    (add-to-list 'minor-mode-map-alist
+		 (cons 'ede-minor-mode
+		       ede-minor-target-keymap))
+    ))
+
+(defun ede-apply-object-keymap (&optional default)
+  "Create keymap `ede-minor-target-keymap' with bindings for `ede-object'.
+Optional argument DEFAULT indicates if this should be set to the default
+version of the keymap."
+  (let ((object (or ede-object ede-selected-object)))
+    (condition-case nil
+	(let ((keys (ede-object-keybindings object))
+	      (menu (ede-object-menu object)))
+	  (if default
+	      (setq-default ede-minor-target-keymap (make-sparse-keymap))
+	    (setq ede-minor-target-keymap (make-sparse-keymap)))
+	  ;; Create keymap under C-c ., then bind all these letters
+	  ;; under that.
+	  (mapcar (lambda (fnkey) (define-key ede-minor-target-keymap
+				    (car fnkey) (cdr fnkey))) keys)
+	  (easy-menu-define
+	   ede-minor-menu-2 ede-minor-target-keymap "Project Minor Mode Menu 2"
+	   (cons "Target" menu)))
+      (error nil))))
 
 (autoload 'ede-dired-minor-mode "ede-dired" "EDE commands for dired" t)
 
@@ -346,7 +401,8 @@ mode.  nil means to toggle the mode."
 	    (if (and (not ede-object) (ede-current-project))
 		(ede-auto-add-to-target))
 	    (if (ede-current-project)
-		(ede-set-project-variables (ede-current-project))))))))
+		(ede-set-project-variables (ede-current-project)))
+	    (ede-apply-object-keymap))))))
   
 (defun global-ede-mode (arg)
   "Turn on variable `ede-minor-mode' mode when ARG is positive.
@@ -393,10 +449,10 @@ of objects with the `ede-want-file-p' method."
 	  (cond ((or (eq ede-auto-add-method 'ask)
 		     (and (eq ede-auto-add-method 'multi-ask)
 			  (< 1 (length desires))))
-		 (let* ((al (cons '("None" . nil)
+		 (let* ((al (cons '("none" . nil)
 				  (object-assoc-list 'name desires)))
-			(ans (completing-read "Add file to target: " al
-					      nil t)))
+			(ans (completing-read (format "Add %s to target: " (buffer-file-name))
+					      al nil t)))
 		   (setq ans (assoc ans al))
 		   (if (cdr ans)
 		       (ede-add-file (cdr ans)))))
@@ -462,7 +518,8 @@ ARGS are additional arguments to pass to method sym."
   (interactive)
   (project-new-target (ede-current-project))
   (setq ede-object nil)
-  (setq ede-object (ede-buffer-object (current-buffer))))
+  (setq ede-object (ede-buffer-object (current-buffer)))
+  (ede-apply-object-keymap))
 
 (defun ede-delete-target (target)
   "Delete TARGET from the current project."
@@ -479,7 +536,8 @@ ARGS are additional arguments to pass to method sym."
 	(set-buffer (car condemned))
 	(setq ede-object nil)
 	(setq ede-object (ede-buffer-object (current-buffer)))
-	(setq condemned (cdr condemned))))))
+	(setq condemned (cdr condemned))))
+    (ede-apply-object-keymap)))
 
 (defun ede-add-file (target)
   "Add the current buffer to a TARGET in the current project."
@@ -489,7 +547,8 @@ ARGS are additional arguments to pass to method sym."
 				     "Target: "))))
   (project-add-file target (buffer-file-name))
   (setq ede-object nil)
-  (setq ede-object (ede-buffer-object (current-buffer))))
+  (setq ede-object (ede-buffer-object (current-buffer)))
+  (ede-apply-object-keymap))
 
 (defun ede-remove-file (&optional force)
   "Remove the current file from targets.
@@ -510,7 +569,8 @@ Optional argument FORCE forces the file to be removed without asking."
 						   (buffer-file-name)))))
       (setq eo (cdr eo)))
     (setq ede-object nil)
-    (setq ede-object (ede-buffer-object (current-buffer)))))
+    (setq ede-object (ede-buffer-object (current-buffer)))
+    (ede-apply-object-keymap)))
 
 (defun ede-edit-file-target ()
   "Enter the project file to hand edit the current buffer's target."
