@@ -110,12 +110,19 @@ getService(const std::string& pServiceName, const int pRetries=20)
 
 // function template declaration
 template<class T> void sort(vector<T>&);
-// function template definition
-template<class T, class S, int i> void sort(vector<T>& v)
+// complex function template definition
+template<class T, class S, const NamespaceY::ClassX<TestClass, &s> volatile ***&i>
+map<ClassY, ClassX, 10>
+sort(const vector<T>& v)
 {
   return;
 }
 
+// variable declarations of template-types
+foo<TClass, Testnamespace::XClass, i> *bar1;
+foo<TClass, Testnamespace::XClass, **&i> *bar2;
+foo<TClass, Testnamespace::XClass, *Namespace::ClassX::i> bar3;
+foo<0> bar0;
 
 class SomeName;
 class OtherName;
