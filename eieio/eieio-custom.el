@@ -1,9 +1,9 @@
 ;;; eieio-custom.el -- eieio object customization
 
-;;; Copyright (C) 1999 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.8 2000/07/14 02:30:49 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.9 2000/07/16 22:14:38 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -48,6 +48,17 @@
 	     :custom string
 	     :documentation "A string for testing custom.
 This is the next line of documentation.")
+   (listostuff :initarg :listostuff
+	       :initform ("1" "2" "3")
+	       :type list
+	       :custom (repeat (string :tag "Stuff"))
+	       :documentation "A list of stuff.")
+   (uninitialized :initarg :uninitialized
+		  :type string
+		  :custom string
+		  :documentation "This slot is not initialized.
+Used to make sure that custom doesn't barf when it encounters one
+of these.")
    (a-number :initarg :a-number
 	     :initform 2
 	     :custom integer
@@ -57,6 +68,16 @@ This is the next line of documentation.")
 (defcustom eieio-widget-test (eieio-widget-test-class "Foo")
   "Test variable for editing an object."
   :type 'object)
+
+(defface eieio-custom-slot-tag-face '((((class color)
+					(background dark))
+				       (:foreground "light blue"))
+				      (((class color)
+					(background light))
+				       (:foreground "blue"))
+				      (t (:italic t)))
+  "Face used for unpushable variable tags."
+  :group 'custom-faces)
 
 (defvar eieio-wo nil
   "Buffer local variable in object customize buffers for the current widget.")
@@ -117,13 +138,14 @@ This is the next line of documentation.")
     ;; First line describes the object, but is not editable.
     (setq chil (cons (widget-create-child-and-convert
 		      widget 'string :tag "Object "
+		      :sample-face 'bold
 		      (object-name-string obj))
 		     chil))
     ;; Loop over all the fields, creating child widgets.
     (while fields
       ;; Output this slot if it has a customize flag associated with it.
       (if (car fcust)
-	  (progn
+	  (when (slot-boundp obj (car fields))
 	    ;; In this case, this field has a custom type.  Create it's
 	    ;; children widgets.
 	    (setq chil (cons (widget-create-child-and-convert
@@ -144,7 +166,9 @@ This is the next line of documentation.")
 				  (if (string-match "^:" s)
 				      (substring s (match-end 0))
 				    s))))
-			      :value (slot-value obj (car fields)))
+			      :value (slot-value obj (car fields))
+			      :sample-face 'eieio-custom-slot-tag-face
+			      )
 			     chil))
 	    (setq chil (cons (widget-create-child-and-convert
 			      widget 'documentation-string
