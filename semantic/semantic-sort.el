@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.10 2004/01/10 01:23:40 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.11 2004/02/05 03:16:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -138,7 +138,7 @@ Return the sorted list."
 
 ;;;###autoload
 (defun semantic-unique-tag-table-by-name (tags)
-  "Scan a list of TAGS, removing duplicates.
+  "Scan a list of TAGS, removing duplicate names.
 This must first sort the tags by name alphabetically ascending."
   (let ((copy (copy-sequence tags))
 	(sorted (semantic-sort-tokens-by-name-increasing tags))
@@ -147,6 +147,23 @@ This must first sort the tags by name alphabetically ascending."
       (if (or (not uniq)
 	      (not (string= (semantic-tag-name (car sorted))
 			    (semantic-tag-name (car uniq)))))
+	  (setq uniq (cons (car sorted) uniq)))
+      (setq sorted (cdr sorted))
+      )
+    (nreverse uniq)))
+
+;;;###autoload
+(defun semantic-unique-tag-table (tags)
+  "Scan a list of TAGS, removing duplicates.
+This must first sort the tags by name alphabetically ascending.
+TAGS are removed only if they are equivalent, as can happen when
+multiple tag sources are scanned."
+  (let ((copy (copy-sequence tags))
+	(sorted (semantic-sort-tokens-by-name-increasing tags))
+	(uniq nil))
+    (while sorted
+      (if (or (not uniq)
+	      (not (semantic-equivalent-tag-p (car sorted) (car uniq))))
 	  (setq uniq (cons (car sorted) uniq)))
       (setq sorted (cdr sorted))
       )
