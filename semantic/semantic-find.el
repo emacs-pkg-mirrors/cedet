@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.18 2004/02/02 02:50:36 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.19 2004/02/04 03:57:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -335,6 +335,27 @@ Used in completion."
   `(semantic--find-tags-by-macro
     (semantic-tag-type-compound-p (car tags))
     ,table))
+
+;;;###autoload
+(defun semantic-find-tags-by-scope-protection (scopeprotection parent &optional table)
+  "Find all tags accessable by SCOPEPROTECTION.
+SCOPEPROTECTION is a symbol which can be returned by the method
+`semantic-tag-protection'.  A hard-coded order is used to determine a match.
+PARENT is a tag representing the PARENT slot needed for
+`semantic-tag-protection'.
+TABLE is a list of tags (a subset of PARENT members) to scan.  If TABLE is nil,
+the type members of PARENT are used.
+See `semantic-tag-protected-p' for details on which tags are returned."
+  (if (not (eq (semantic-tag-class parent) 'type))
+      (signal 'wrong-type-argument '(semantic-find-tags-by-scope-protection
+				     parent
+				     semantic-tag-class type))
+    (if (not table) (setq table (semantic-tag-type-members parent)))
+    (if (null scopeprotection)
+	table
+      (semantic--find-tags-by-macro
+       (not (semantic-tag-protected-p (car tags) scopeprotection parent))
+       table))))
 
 ;;;###autoload
 (defsubst semantic-find-tags-included (&optional table)
