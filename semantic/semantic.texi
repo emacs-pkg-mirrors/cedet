@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.56 2001/11/23 19:09:27 emacsman Exp $
+@c $Id: semantic.texi,v 1.57 2001/11/23 20:31:28 emacsman Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -159,7 +159,7 @@ Semantic comes with grammars for these languages:
 @end itemize
 
 Several tools employing semantic that provide user observable features
-are listed in @@ref{Tools} section.
+are listed in @ref{Tools} section.
 
 @node Semantic Components, Lexing, Overview, Top
 @chapter Semantic Components
@@ -173,7 +173,8 @@ This step is called lexing.
 The output of the lexer is a list of tokens that make up the file.
 
 @example
-                      options (and syntax table)
+        syntax table, keywords list, and options
+                         |
                          |
                          v
     input file  ---->  Lexer   ----> token stream
@@ -182,7 +183,7 @@ The output of the lexer is a list of tokens that make up the file.
 The next step is the parsing shown below.
 
 @example
-                      bovine table
+                    bovine table
                          |
                          v
     token stream --->  Parser  ----> parse tree
