@@ -1,53 +1,61 @@
-;;; psql - Postgres95 `psql' tool interface
-;;;
-;;; Copyright (C) 1996 Eric M. Ludlam
-;;;
-;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.1
-;;; RCS: $Id: psql.el,v 1.3 1996/06/01 14:50:20 zappo Exp $
-;;; Keywords: OO postgres95 database
-;;;                                                                          
-;;; This program is free software; you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 2, or (at your option)
-;;; any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program; if not, you can either send email to this
-;;; program's author (see below) or write to:
-;;;
-;;;              The Free Software Foundation, Inc.
-;;;              675 Mass Ave.
-;;;              Cambridge, MA 02139, USA. 
-;;;
-;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
-;;;
-;;; Updates can be found at:
-;;;    ftp://ftp.ultranet.com/pub/zappo
+;;; psql --- PostgresSQL 'psql' tool interface
+;;
+;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;
+;; Author: <zappo@gnu.ai.mit.edu>
+;; Version: 0.1
+;; RCS: $Id: psql.el,v 1.4 1998/09/11 22:41:07 zappo Exp $
+;; Keywords: OO postgres95 database
+;;                                                                          
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, you can either send email to this
+;; program's author (see below) or write to:
+;;
+;;              The Free Software Foundation, Inc.
+;;              675 Mass Ave.
+;;              Cambridge, MA 02139, USA.
+;;
+;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
+;;
+;; Updates can be found at:
+;;    ftp://ftp.ultranet.com/pub/zappo
 
 ;;; Commentary:
-;;;   This tool uses dbif to inherit a connection type, and uses this
-;;; to interface with a postgres95 database using the psql command
-;;; line tool which is run inside a comint buffer.  The output from
-;;; the program is parsed, and the apropriate dbif-tuple type is then
-;;; generated.
+;;   This tool uses dbif to inherit a connection type, and uses this
+;; to interface with a postgres95 database using the psql command
+;; line tool which is run inside a comint buffer.  The output from
+;; the program is parsed, and the apropriate dbif-tuple type is then
+;; generated.
 
 ;;;
-;;; PSQL backend
-;;;
+;; PSQL backend
+;;
+
+;;; History:
+;; 
+
 (require 'dbif)
 
+;;; Code:
 (defvar psql-command "psql"
   "Command used to start a new interactive postgres SQL client.")
 
-(defvar psql-execute-flags '("-n")
-  "List of flags to use when starting PSQL.  Don't add -q as this
-mode require the prompt in order to know when to execute commands.")
+(defvar psql-execute-flags '("-n"	;no readline
+			     "-F" "\C-?" ;delete char as the separator.
+			     )
+  "List of flags to use when starting PSQL.
+Don't add -q as this mode require the prompt in order to know when to
+execute commands.")
 
 (defclass psql-connection (dbif-connection)
   ((host :initarg :host
@@ -56,15 +64,39 @@ mode require the prompt in order to know when to execute commands.")
 	 :initarg nil)
    (database :initarg :database
 	     :initarg nil))
-  "Postgres 95 connection type inheriting from dbif package.")
+  "Postgressql connection type inheriting from dbif package.")
 
-(defun psql-set-db (host port database)
-  "Create a new connection to the postgres server on HOST via PORT.
-Use the USER to connect to DATABASE"
-  (interactive "sHost: \nsPort: \nsDatabase: ")
+(defun psql-database-list ()
+  "Fetch a listing of all the available databases."
+  (prog1
+      (condition-case nil
+	  (save-excursion
+	    (set-buffer (get-buffer-create "*PSQL DB LIST*"))
+	    (shell-command "psql -F \C-? -l" (current-buffer))
+	    (goto-char (point-min))
+	    (let* ((tuple (psql-parse-table))
+		   (databases nil)
+		   (ret nil))
+	      (setq databases (oref tuple :values))
+	      ;;The following line, if run in emacs 20.2 while in edb
+	      ;; will seg-fault emacs.  Hmmm.
+	      ;;(setq databases (oref tuple :value))
+	      (while databases
+		(setq ret (cons (car (car databases)) ret)
+		      databases (cdr databases)))
+	      (nreverse ret)))
+	;(error nil)
+	)
+    (kill-buffer "*PSQL DB LIST*")
+    ))
+
+(defun psql-set-db (database &optional host port)
+  "Create a new connection to DATABASE in postgres.
+The server is on HOST via PORT."
+  (interactive "sDatabase: \nsHost: \nsPort: ")
+  (if (string= database "") (setq database nil))
   (if (string= host "") (setq host nil))
   (if (string= port "") (setq port nil))
-  (if (string= database "") (setq database nil))
   (let ((nb (get-buffer-create (format "*psql-%s-%s-%s*"
 				       (if host host (system-name))
 				       (if port port "5432")
@@ -92,7 +124,7 @@ Use the USER to connect to DATABASE"
 	    (setq params (cons host params))
 	    (setq params (cons "-H" params))))
       (comint-exec (current-buffer)
-		   (format "psql-proc-%s-%s-%s" 
+		   (format "psql-proc-%s-%s-%s"
 			   (if host host (system-name))
 			   (if port port "5432")
 			   (if database database
@@ -112,7 +144,7 @@ Use the USER to connect to DATABASE"
   "Returns a psql-tuple object containing information about the tables
 in this database."
   (save-excursion
-    (dbif-exec dbbuff (format "\\\\d %s" tablename))))
+    (dbif-exec dbbuff (format "\\d %s" tablename))))
 
 (defmethod dbif-get-table-list ((dbbuff psql-connection))
   "Get a list of available tables from the database specified in dbbuff"
@@ -150,7 +182,7 @@ is supplied by comint-mode"
 	(message "Waiting for PSQL output...")
 	(accept-process-output (get-buffer-process (current-buffer)) 1))
       (save-restriction
-	(narrow-to-region start-pos (save-excursion 
+	(narrow-to-region start-pos (save-excursion
 				      (goto-char (point-max))
 				      (beginning-of-line) (point)))
 	;; Now execute commands to parse the output...
@@ -164,62 +196,73 @@ is supplied by comint-mode"
 	(delete-region (point-min) (point-max)))
       (goto-char (point-max))
       tvv)))
-  
-  
+
+;;; Table Parsing
+;;
 (defun psql-parse-message ()
-  "Reads characters from current-buffer just after point treating it
-as PSQL output message, and return a message string"
+  "Read characters just after point treating it as PSQL output message.
+Return a message string"
   (buffer-substring (point) (save-excursion (end-of-line) (point))))
 
 (defun psql-parse-table ()
-  "Reads characters from current-buffer just after point treating it
-as a PSQL output table.  Values are read from the table which is
-separated by lines of ---- and cols of |"
+  "Read characters just after point treating it as a PSQL output table.
+We must be able to distinguish between tables w/ the DEL character, and
+those with pipes.  The pipe ones are safe, where the DEL ones are not."
   (message "Parsing PSQL table...")
   ;; The -1 accounts for title area
-  (let ((namelst nil) (datalst nil) (sizelst nil) sublst numcol (numrow 0))
-    ;; first, read in the titles of the columns
-    (re-search-forward "--+\\+?$" nil t)
-    (forward-char 1)
-    (while (re-search-forward "[ ]+\\([A-Za-z0-9_]+\\)[ ]+|" ;no space in name
-			      (save-excursion (end-of-line) (point)) t)
-      (setq namelst (cons (buffer-substring (match-beginning 1)
-					    (match-end 1))
-			  namelst))
-      (setq sizelst (cons (length (car namelst)) sizelst)))
+  (let ((namelst nil) (datalst nil) (sizelst nil) sublst numcol (numrow 0)
+	(sep "\C-?"))
+    (while (looking-at "^\\s-*$") (forward-line 1) (beginning-of-line))
+    (if (looking-at "\\s-*\\(Database\\|Table\\)\\s-+=")
+	(progn
+	  (setq sep "|")
+	  (re-search-forward "--+\\+?$" nil t)
+	  (end-of-line)
+	  ;; first, read in the titles of the columns
+	  (forward-char 1)))
+    (while (re-search-forward
+	    (concat "\\( *\\([A-Za-z0-9_]+\\) *\\)\\($\\|" sep "\\)")
+	    (save-excursion (end-of-line) (point)) t)
+      (setq namelst (cons (match-string 2) namelst)
+	    sizelst (cons (- (match-end 1) (match-beginning 1)) sizelst)))
     (setq numcol (length namelst)
 	  sizelst (reverse sizelst))
     (forward-line 1)
     (beginning-of-line)
-    (while (and (not (eobp)) (or (not dbif-max-parse) 
+    (while (and (not (eobp)) (or (not dbif-max-parse)
 				 (> dbif-max-parse numrow)))
-      (let (colcnt)
-	(setq colcnt 0 sublst nil)
-	(if (looking-at "[ ]*|")
-	    (progn
-	      (setq numrow (1+ numrow))
-	      (while (< colcnt numcol)
-		(if (looking-at
-		     "[ ]*|[ ]+\\([^|]*[^ \t\n|]\\)[ ]*\\(|\\)")
-		    (progn
-		      (setq sublst (cons
-				    (buffer-substring (match-beginning 1)
-						      (match-end 1))
-				    sublst))
-		      (goto-char (match-beginning 2)))
-		  ;; In this case, there may be nothing in between pipes
-		  ;; at all!
-		  (if (looking-at "|[ \t]+\\(|\\)")
-		      (progn
-			(setq sublst (cons "" sublst))
-			(goto-char (match-beginning 1)))
-		    (error "psql-parse-table: could not parse table!")))
-		;; an error prevents us from getting here...
-		(if (< (nth colcnt sizelst) (length (car sublst)))
-		    (setcar (nthcdr colcnt sizelst) (length (car sublst))))
-		(setq colcnt (1+ colcnt)))))
-	(if sublst
-	    (setq datalst (cons (reverse sublst) datalst))))
+      (if (or (looking-at "\\s-*$") (looking-at "([0-9]+ Rows)$")
+	      (looking-at "\\( *\\+\\)?\\(-+\\+\\)+"))
+	  nil
+	(let (colcnt)
+	  (setq colcnt 0
+		sublst nil
+		numrow (1+ numrow))
+	  (if (looking-at (concat "[ ]*" sep "[ ]+"))
+	      (goto-char (match-end 0)))
+	  (while (< colcnt numcol)
+	    (if (looking-at
+		 (concat
+		  "[ ]*\\([^" sep "]*[^ \t\n" sep "]\\)[ ]*\\("
+		  (if (= colcnt (1- numcol)) "\n\\||" sep)
+		  "\\)"))
+		(progn
+		  (setq sublst (cons (match-string 1) sublst))
+		  (goto-char (match-beginning 2))
+		  (if (looking-at sep) (goto-char (match-end 0))))
+	      ;; In this case, there may be nothing in between pipes
+	      ;; at all!
+	      (if (looking-at (concat sep "[ \t]+\\(" sep "\\)"))
+		  (progn
+		    (setq sublst (cons "" sublst))
+		    (goto-char (match-beginning 1)))
+		(error "Psql-parse-table: could not parse table!")))
+	    ;; an error prevents us from getting here...
+	    (if (< (nth colcnt sizelst) (length (car sublst)))
+		(setcar (nthcdr colcnt sizelst) (length (car sublst))))
+	    (setq colcnt (1+ colcnt)))
+	  (if sublst
+	      (setq datalst (cons (reverse sublst) datalst)))))
 	(forward-line 1)
 	(beginning-of-line)
 	)
@@ -230,6 +273,6 @@ separated by lines of ---- and cols of |"
 		:maxwidths sizelst
 		:values (reverse datalst))))
 
-;;; end of lisp
 (provide 'psql)
 
+;;; psql.el ends here
