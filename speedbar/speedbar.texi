@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.16 2002/02/28 16:34:28 zappo Exp $
+@c $Id: speedbar.texi,v 1.17 2003/11/20 15:31:02 zappo Exp $
 @c
 
 @c This file is part of GNU Emacs
@@ -27,7 +27,7 @@
 * Speedbar: (speedbar).        File/Tag summarizing utility.
 @end direntry
 @ifnottex
-Copyright @copyright{} 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.1 or
@@ -861,9 +861,9 @@ You can easily add new version control systems into speedbar's detection
 scheme.  To make a directory ``disappear'' from the list, use the variable
 @code{speedbar-directory-unshown-regexp}.
 
-@cindex @code{speedbar-vc-path-enable-hook}
+@cindex @code{speedbar-vc-directory-enable-hook}
 Next, you need to write entries for two hooks.  The first is
-@code{speedbar-vc-path-enable-hook} which will enable a VC check in the
+@code{speedbar-vc-directory-enable-hook} which will enable a VC check in the
 current directory for the group of files being checked.  Your hook
 function should take one parameter (the directory to check) and return
 @code{t} if your VC method is in control here.
