@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.183 2000/09/07 22:08:14 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.184 2000/09/09 11:12:57 zappo Exp $
 
-(defvar speedbar-version "0.13beta2"
+(defvar speedbar-version "0.13beta3"
   "The current version of speedbar.")
 
 ;; This file is part of GNU Emacs.
@@ -308,15 +308,17 @@ nil means don't show the file in the list."
   :group 'speedbar
   :type 'boolean)
 
+;;; EVENTUALLY REMOVE THESE
+
 ;; When I moved to a repeating timer, I had the horrible missfortune
 ;; of loosing the ability for adaptive speed choice.  This update
 ;; speed currently causes long delays when it should have been turned off.
-(defcustom speedbar-navigating-speed dframe-update-speed
-  "*Idle time to wait after navigation commands in speedbar are executed.
-Navigation commands included expanding/contracting nodes, and moving
-between different directories."
-  :group 'speedbar
-  :type 'integer)
+(defvar speedbar-update-speed dframe-update-speed
+  "*Obsoleted variable.  Use `dframe-update-speed'.")
+
+(defvar speedbar-navigating-speed dframe-update-speed
+  "*Obsoleted variable.  Use `dframe-update-speed'.")
+;;; END REMOVE THESE
 
 (defcustom speedbar-frame-parameters '((minibuffer . nil)
 				       (width . 20)
