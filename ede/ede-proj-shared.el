@@ -1,10 +1,10 @@
 ;;; ede-proj-shared.el --- EDE Generic Project shared library support
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-shared.el,v 1.2 1999/11/09 20:37:20 zappo Exp $
+;; RCS: $Id: ede-proj-shared.el,v 1.3 2000/01/18 18:52:25 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -49,16 +49,6 @@ Use ldlibs to add addition libraries.")
 ;(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-shared-object))
 ;  "Return the variable name for THIS's sources."
 ;  (concat (oref this name) "_LTLIBRARIES"))
-
-(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-info))
-  "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_INFOS"))
-
-(defmethod ede-proj-makefile-insert-rules
-  ((this ede-proj-target-makefile-shared-object))
-  "Create the make rule needed to create an archive for THIS."
-  (call-next-method)
-  )
 
 (provide 'ede-proj-shared)
 
