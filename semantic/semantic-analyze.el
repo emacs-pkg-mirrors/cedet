@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.10 2003/03/08 16:24:45 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.11 2003/03/26 20:23:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -417,7 +417,9 @@ Returns an object based on symbol `semantic-analyze-context'."
 	   (bounds (save-excursion
 		     (cond ((and prefix (looking-at endsym))
 			    (cons (point) (progn
-					    (forward-sexp 1)
+					    (condition-case nil
+						(forward-sexp 1)
+					      (error nil))
 					    (point))))
 			   (prefix
 			    (condition-case nil
