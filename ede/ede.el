@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.20 1999/09/08 23:04:51 zappo Exp $
+;; RCS: $Id: ede.el,v 1.21 1999/09/20 19:31:06 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -140,11 +140,11 @@ type is required and the load function used.")
 ;;
 (defclass ede-target ()
   ((name :initarg :name
-	 :type (or string null)
+	 :type string
 	 :custom string
 	 :documentation "Name of this target.")
    (path :initarg :path
-	 :type (or string null)
+	 :type string
 	 :custom string
 	 :documentation "The path to this target.")
    (takes-compile-command
@@ -181,10 +181,11 @@ type is required and the load function used.")
 	    :custom string
 	    :documentation "The version number used when distributing files.")
    (file :initarg :file
-	 :type (or string null)
+	 :type string
 	 :documentation "File name where this project is stored.")
    ;; No initarg.  We don't want this saved.
-   (root :documentation "The root project file if this is a subproject.")
+   (root :initform nil
+	 :documentation "The root project file if this is a subproject.")
    ;; No initarg.  We don't want this saved in a file.
    (subproj :initform nil
 	    :type list
