@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.12 2003/03/02 13:47:30 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.13 2003/03/02 14:04:22 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta4"
@@ -48,6 +48,15 @@
 ;;
 ;; (let ((err (inversion-test 'spiffy "1.0")))
 ;;    (if err (your-stuff-here)))
+;;
+;; If you new package (2.0) needs to make sure a load file from your
+;; package is compatible, use this test:
+;;
+;; (if (not (inversion-reverse-test 'spiffy version-from-file))
+;;       ;; Everything ok
+;;       (do stuff)
+;;    ;; Out of date
+;;    (import-old-code))
 ;;
 ;; If you would like to make inversion optional, do this:
 ;;
@@ -234,7 +243,7 @@ Return:
      ;; Check failed
      (t t))))
 
-(defun inversion-test (package minimum &rest reserved)
+(Defun inversion-test (package minimum &rest reserved)
   "Test that PACKAGE meets the MINIMUM version requirement.
 PACKAGE is a symbol, similar to what is passed to `require'.
 MINIMUM is of similar format to return entries of
@@ -260,6 +269,39 @@ Return nil if everything is ok.	 Return an error string otherwise."
       ;; that error.
       (format "Package %s version is not backward compatible with %s"
 	      package minimum))
+     ;; Check failed
+     (t "Inversion version check failed."))))
+
+(defun inversion-reverse-test (package oldversion &rest reserved)
+  "Test that PACKAGE at OLDVERSION is still compatible.
+If something like a save file is loaded at OLDVERSION, this
+test will identify if OLDVERSION is compatible with the current version
+of PACKAGE.
+PACKAGE is a symbol, similar to what is passed to `require'.
+OLDVERSION is of similar format to return entries of
+`inversion-decode-version', or a classic version string.
+RESERVED arguments are kept for a later user.
+This depends on the symbols `PACKAGE-version' and optionally
+`PACKAGE-incompatible-version' being defined in PACKAGE.
+Return nil if everything is ok.	 Return an error string otherwise."
+  (let ((check (inversion-check-version
+		(inversion-package-version package)
+		(inversion-package-incompatibility-version package)
+		oldversion reserved)))
+    (cond
+     ((null check)
+      ;; Same version.. Yay!
+      nil)
+     ((eq check 'outdated)
+      ;; Version is too old!
+      (format "Package %s version %s is not compatible with current version"
+	      package oldversion))
+     ((eq check 'incompatible)
+      ;; Newer is installed but the requested version is = or < than
+      ;; what the package maintainer says is incompatible, then throw
+      ;; that error.
+      (format "Package %s version is not backward compatible with %s"
+	      package oldversion))
      ;; Check failed
      (t "Inversion version check failed."))))
 
