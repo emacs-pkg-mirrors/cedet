@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 1.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.2 2000/11/10 17:11:15 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.3 2000/11/14 13:04:26 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -65,6 +65,15 @@
 ;;; Change Log:
 
 ;; $Log: senator.el,v $
+;; Revision 1.3  2000/11/14 13:04:26  david_ponce
+;; Improved navigation in semantic token where to step at start and end.
+;;
+;; - `senator-next-token' move the point to the end of token if it was at
+;;   beginning or in the middle of the token.
+;;
+;; - `senator-previous-token' move the point to the beginning of token if
+;;   it was at end or in the middle of the token.
+;;
 ;; Revision 1.2  2000/11/10 17:11:15  david_ponce
 ;; Fixed a little bug in `senator-previous-token' navigation.
 ;;
@@ -161,7 +170,9 @@ function for `senator-find-previous-token'."
   (let (token found)
     (while (and tokens (not found))
       (setq token (car tokens))
-      (if (>= (semantic-token-start token) pos)
+      (if (or (and (senator-step-at-start-end-p token)
+                   (> (semantic-token-end token) pos))
+             (>= (semantic-token-start token) pos))
           (setq found token)
         (if (eq (semantic-token-token token) 'type)
             (setq found (senator-find-next-token
@@ -169,80 +180,73 @@ function for `senator-find-previous-token'."
       (setq tokens (cdr tokens)))
     found))
 
-(defvar senator-last-visited nil
-  "Hold the last visited token.")
+(defun senator-middle-of-token-p (pos token)
+  "Return non-nil if POS is between start and end of TOKEN."
+  (and (> pos (semantic-token-start token))
+       (< pos (semantic-token-end   token))))
 
 ;;;###autoload
 (defun senator-next-token ()
   "Navigate to the next semantic token."
   (interactive)
-  (let ((tokens (senator-parse))
+  (let ((pos    (point))
+        (tokens (senator-parse))
         found where)
-    (if (and (senator-step-at-start-end-p senator-last-visited)
-             (= (semantic-token-start senator-last-visited) (point)))
-        (setq found senator-last-visited)
-      (if (memq real-last-command
-                '(senator-previous-token senator-next-token))
-          (forward-char)
-        (setq senator-last-visited nil))
-      (setq found (senator-find-next-token tokens (point)))
-      (while (senator-skip-p found)
-        (forward-char)
-        (setq found (senator-find-next-token tokens (point)))))
-    (cond (found
-           (if (eq found senator-last-visited)
-               (progn
-                 (setq where "end")
-                 (goto-char (semantic-token-end found)))
+    (if (memq real-last-command
+              '(senator-previous-token senator-next-token))
+        (forward-char))
+    (setq found (senator-find-next-token tokens (point)))
+    (while (senator-skip-p found)
+      (forward-char)
+      (setq found (senator-find-next-token tokens (point))))
+    (if (not found)
+        (progn
+          (goto-char (point-max))
+          (senator-message "End of buffer"))
+      (cond ((and (senator-step-at-start-end-p found)
+                  (or (= pos (semantic-token-start found))
+                      (senator-middle-of-token-p pos found)))
+             (setq where "end")
+             (goto-char (semantic-token-end found)))
+            (t
              (setq where "start")
-             (goto-char (semantic-token-start found))
-             (setq senator-last-visited found))
-           (semantic-momentary-highlight-token found)
-           (senator-message "%S: %s (%s)"
-                            (semantic-token-token found)
-                            (semantic-token-name  found)
-                            where))
-          (t
-           (goto-char (point-max))
-           (setq senator-last-visited nil)
-           (senator-message "End of buffer")))))
+             (goto-char (semantic-token-start found))))
+      (semantic-momentary-highlight-token found)
+      (senator-message "%S: %s (%s)"
+                       (semantic-token-token found)
+                       (semantic-token-name  found)
+                       where))))
 
 ;;;###autoload
 (defun senator-previous-token ()
   "Navigate to the previous semantic token."
   (interactive)
-  (let ((tokens (senator-parse))
+  (let ((pos    (point))
+        (tokens (senator-parse))
         found where)
-    (if (and (senator-step-at-start-end-p senator-last-visited)
-             (= (semantic-token-end senator-last-visited) (point)))
-        (setq found senator-last-visited)
-      (if (eq real-last-command 'senator-previous-token)
-          (backward-char))
-      (if (not (memq real-last-command
-                     '(senator-next-token senator-previous-token)))
-          (setq senator-last-visited nil))
-      (setq found (senator-find-previous-token tokens (point)))
-      (while (senator-skip-p found)
-        (backward-char)
-        (setq found (senator-find-previous-token tokens (point)))))
-    (cond (found
-           (if (or (eq found senator-last-visited)
-                   (not (senator-step-at-start-end-p found)))
-               (progn
-                 (setq where "start")
-                 (goto-char (semantic-token-start found)))
+    (if (eq real-last-command 'senator-previous-token)
+        (backward-char))
+    (setq found (senator-find-previous-token tokens (point)))
+    (while (senator-skip-p found)
+      (backward-char)
+      (setq found (senator-find-previous-token tokens (point))))
+    (if (not found)
+        (progn
+          (goto-char (point-min))
+          (senator-message "Beginning of buffer"))
+      (cond ((or (not (senator-step-at-start-end-p found))
+                 (= pos (semantic-token-end found))
+                 (senator-middle-of-token-p pos found))
+             (setq where "start")
+             (goto-char (semantic-token-start found)))
+            (t
              (setq where "end")
-             (goto-char (semantic-token-end found)))
-           (setq senator-last-visited found)
-           (semantic-momentary-highlight-token found)
-           (senator-message "%S: %s (%s)"
-                            (semantic-token-token found)
-                            (semantic-token-name  found)
-                            where))
-          (t
-           (goto-char (point-min))
-           (setq senator-last-visited nil)
-           (senator-message "Beginning of buffer")))))
+             (goto-char (semantic-token-end found))))
+      (semantic-momentary-highlight-token found)
+      (senator-message "%S: %s (%s)"
+                       (semantic-token-token found)
+                       (semantic-token-name  found)
+                       where))))
 
 (provide 'senator)
 
