@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.38 2001/04/28 01:54:02 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.39 2001/05/05 14:59:09 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -901,6 +901,7 @@ Once found, put it in a buffer, and return it."
   (semantic-install-function-overrides
    '( (abbreviate-nonterminal . semantic-bnf-abbreviate-nonterminal)
       (summarize-nonterminal . semantic-bnf-summarize-nonterminal)
+      (name-nonterminal . semantic-bnf-name-nonterminal)
       (eldoc-current-symbol-info . semantic-bnf-ecsi)
       (nonterminal-children . semantic-bnf-nonterminal-children)
       )
@@ -925,32 +926,68 @@ used locally."
     (semantic-nonterminal-children-default token))
   )
 
-(defun semantic-bnf-abbreviate-nonterminal (token &optional parent)
+(defun semantic-bnf-name-nonterminal (token &optional parent color)
+  "Return a string name of TOKEN.
+Optional PARENT is not used.
+Optional COLOR is used to flag if color is added to the text."
+  (if color
+      (let ((tok (semantic-token-token token))
+	    (face nil))
+	(cond
+	 ((eq tok 'rule)
+	  (setq face font-lock-function-name-face))
+	 ((eq tok 'keyword)
+	  (setq face font-lock-keyword-face))
+	 ((eq tok 'token)
+	  (setq face font-lock-variable-name-face))
+	 (t (setq face nil)))
+	(if face
+	    (semantic-colorize-text (semantic-token-name token) face)
+	  (semantic-name-nonterminal-default token parent color)))
+    (semantic-name-nonterminal-default token parent color)))
+
+(defun semantic-bnf-abbreviate-nonterminal (token &optional parent color)
   "Return a string abbreviation of TOKEN.
-Optional PARENT is not used."
+Optional PARENT is not used.
+Optional COLOR is used to flag if color is added to the text."
   (let ((tok (semantic-token-token token))
-	(name (semantic-token-name token)))
+	(name (semantic-name-nonterminal token parent color)))
     (cond
      ((eq tok 'rule) (concat name ":"))
      ((eq tok 'setting) "%settings%")
      ((or (eq tok 'token) (eq tok 'keyword)) name)
      (t (concat "%" (symbol-name tok) " " name)))))
 
-(defun semantic-bnf-summarize-nonterminal (token &optional parent)
+(defun semantic-bnf-summarize-nonterminal (token &optional parent color)
   "Return a string summarizing TOKEN.
-Optional PARENT is not used."
+Optional PARENT is not used.
+Optional argument COLOR determines if color is added to the text."
   (let ((tok (semantic-token-token token))
-	(name (semantic-token-name token)))
+	(name (semantic-name-nonterminal token parent color))
+	(label nil)
+	(desc nil))
     (cond
      ((eq tok 'rule)
-      (concat "Rule: " name " with "
-	      (int-to-string (length (nth 3 token)))
-	      " match lists."))
+      (setq label "Rule: "
+	    desc (concat " with "
+			 (int-to-string (length (nth 3 token)))
+			 " match lists.")))
      ((eq tok 'keyword)
-      (concat "Keyword: " name " " (nth 3 token)))
+      (setq label "Keyword: "
+	    desc (concat " " (nth 3 token))))
      ((eq tok 'token)
-      (concat "Token: " name " " (nth 2 token) " " (nth 3 token)))
-     (t (semantic-bnf-abbreviate-nonterminal token))))
+      (setq label "Token: "
+	    desc (concat " " (nth 2 token) " " (nth 3 token))))
+     (t (setq desc
+	      (semantic-bnf-abbreviate-nonterminal token parent color))))
+    (if (and color label)
+	(setq label (semantic-colorize-text label font-lock-string-face)))
+    (if (and color label desc)
+	(setq desc (semantic-colorize-text desc font-lock-comment-face)))
+    (if label
+	(concat label name desc)
+      ;; Just a description is the abbreviated version
+      desc))
   )
 
 (defvar semantic-bnf-syntax-help
