@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.13 2002/08/11 09:38:42 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.14 2002/08/11 16:27:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -908,6 +908,17 @@ of the variable `semantic-dirty-tokens' changed by side effect."
 Argument START, END, and LENGTH specify the bounds of the change."
   (setq semantic-unmatched-syntax-cache-check t)
   (run-hook-with-args 'semantic-change-hooks start end length))
+
+
+;;; Setup incremental parser
+;;
+;;;###autoload
+(add-hook 'semantic-change-hooks
+          #'semantic-edits-change-function-handle-changes)
+;;;###autoload
+(add-hook 'semantic-before-toplevel-cache-flush-hook
+          #'semantic-edits-flush-changes)
+
 
 
 ;;; Reparse one token.
