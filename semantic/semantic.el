@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.191 2005/01/20 13:44:03 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.192 2005/04/01 02:23:32 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -584,6 +584,49 @@ was marked unparseable, then do nothing, and return the cache."
   
   ;; Always return the current parse tree.
   semantic--buffer-cache)
+
+;;;###autoload
+(defun semantic-refresh-tags-safe ()
+  "Refreshes the current buffer's tags safely.
+
+Return non-nil if the refresh was successful.
+Return nil if there is some sort of syntax error preventing a reparse.
+
+Does nothing if the current buffer doesn't need reparsing."
+
+  ;; These checks actually occur in `semantic-fetch-tags', but if we
+  ;; do them here, then all the bovination hooks are not run, and
+  ;; we save lots of time.
+  (cond 
+   ;; If the buffer was previously marked unparseable,
+   ;; then don't waste our time.
+   ((semantic-parse-tree-unparseable-p)
+    nil)
+   ;; The parse tree is already ok.
+   ((semantic-parse-tree-up-to-date-p)
+    t)
+   (t
+    (let* ((inhibit-quit nil)
+	   (lexically-safe t)
+	   )
+
+      (unwind-protect
+	  ;; Perform the parsing.
+	  (progn
+	    (when (semantic-lex-catch-errors safe-refresh
+		    (save-excursion (semantic-fetch-tags))
+		    nil)
+	      ;; If we are here, it is because the lexical step failed,
+	      ;; proably due to unterminated lists or something like that.
+	    
+	      ;; We do nothing, and just wait for the next idle timer
+	      ;; to go off.  In the meantime, remember this, and make sure
+	      ;; no other idle services can get executed.
+	      (setq lexically-safe nil))
+	    )
+	)
+      ;; Return if we are lexically safe
+      lexically-safe))))
 
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional ignored)
