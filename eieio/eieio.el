@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.89 2000/12/04 16:42:28 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.90 2000/12/04 20:01:37 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -1916,6 +1916,24 @@ instantiated.")
 This is used with the `object-write' method."))
   "This special class enables persistence through save files.
 Use the `object-save' method to write this object to disk.")
+
+(defun eieio-persistent-read (filename)
+  "Read a persistent object from FILENAME."
+  (save-excursion
+    (let ((ret nil))
+      (set-buffer (get-buffer-create " *tmp eieio read*"))
+      (unwind-protect
+	  (progn
+	    (erase-buffer)
+	    (insert-file filename)
+	    (goto-char (point-min))
+	    (setq ret (read (current-buffer)))
+	    (if (not (child-of-class-p (car ret) 'eieio-persistent))
+		(error "Corrupt object on disk"))
+	    (setq ret (eval ret))
+	    (oset ret file filename))
+	(kill-buffer " *tmp eieio read*"))
+      ret)))
 
 (defmethod object-write ((this eieio-persistent) &optional comment)
   "Write persistent object THIS out to the current stream.
