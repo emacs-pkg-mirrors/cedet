@@ -7,7 +7,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.2 2001/07/21 11:00:55 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.3 2001/08/02 14:57:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1212,16 +1212,19 @@ The optional argument CHECKCACHE is ignored."
   "Parse the current buffer."
   (interactive)
   (let ((gc-cons-threshold 10000000)
+        (bname (format "%s [LALR]" (buffer-name)))
         semantic-flex-depth ast clock)
     (garbage-collect)
     (message "Parsing buffer...")
     (setq clock (float-time)
           wisent-java-lex-istream
           (semantic-flex (point-min) (point-max)))
-    (setq ast   (wisent-parse wisent-java-parser-tables
-                              #'wisent-java-lex
-                              #'wisent-java-parse-error)
-          clock (- (float-time) clock))
+    (working-status-forms bname "done"
+      (setq ast   (wisent-parse wisent-java-parser-tables
+                                #'wisent-java-lex
+                                #'wisent-java-parse-error)
+            clock (- (float-time) clock))
+      (working-status t))
     (message "Generating AST...")
     (with-current-buffer (get-buffer-create "*wisent-java-parse*")
       (let ((standard-output (current-buffer)))
