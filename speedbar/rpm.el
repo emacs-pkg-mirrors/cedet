@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
 ;; Keywords: speedbar, rpm
-;; X-RCS: $Id: rpm.el,v 1.7 2001/10/28 00:02:47 zappo Exp $
+;; X-RCS: $Id: rpm.el,v 1.8 2002/02/06 18:55:36 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -98,6 +98,7 @@ Source RPM\\|URL\\) *:" 0 font-lock-variable-name-face)
 			     ((?_ . "w") (?/ . "w"))))
   (run-hooks 'rpm-info-hook))
 
+;;;###autoload
 (defun rpm ()
   "Red Hat Package Management in Emacs."
   (interactive)
