@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.43 2003/03/31 10:06:23 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.44 2003/04/01 13:06:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -508,7 +508,7 @@ in which case it concatenates them together."
 (defadvice which-function (around semantic-which activate)
   "Choose the function to display via semantic if it is currently active."
   (if (and (featurep 'semantic) semantic-toplevel-bovine-cache)
-      (let ((ol (semantic-find-nonterminal-by-overlay)))
+      (let ((ol (semantic-find-tag-by-overlay)))
 	(setq ad-return-value (funcall semantic-which-function ol)))
     ad-do-it))
 
