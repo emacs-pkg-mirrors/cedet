@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.26 2003/03/13 08:33:48 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.27 2003/03/14 08:18:01 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -340,26 +340,28 @@ Should be used in Semantic actions to build the bovine cache."
                    (wisent-token ,@return-val)))
           (l cooked))
      (while l
-       (semantic-token-put (car l) 'reparse-symbol $nterm)
+       (semantic-tag-put (car l) 'reparse-symbol $nterm)
        (setq l (cdr l)))
      cooked))
 
-(defsubst wisent-raw-token (semantic-token)
-  "Return a raw token from given SEMANTIC-TOKEN.
-Should be used in semantic actions to build the Semantic parse tree."
-  (nconc semantic-token
+(defsubst wisent-raw-tag (semantic-tag)
+  "Return raw form of given Semantic tag SEMANTIC-TAG.
+Should be used in semantic actions, in grammars, to build a Semantic
+parse tree."
+  (nconc semantic-tag
          (if (or $region
                  (setq $region (nthcdr 2 wisent-input)))
              (list (car $region) (cdr $region))
            (list (point-max) (point-max)))))
 
-(defsubst wisent-cook-token (wisent-raw-token)
-  "Cook WISENT-RAW-TOKEN and return a list of cooked tokens.
-Should be used in semantic actions to build the Semantic parse tree."
-  (let* ((cooked (semantic-raw-to-cooked-token wisent-raw-token))
+(defsubst wisent-cook-tag (raw-tag)
+  "From raw form of Semantic tag RAW-TAG, return a list of cooked tags.
+Should be used in semantic actions, in grammars, to build a Semantic
+parse tree."
+  (let* ((cooked (semantic-raw-to-cooked-token raw-tag))
          (l cooked))
     (while l
-      (semantic-token-put (car l) 'reparse-symbol $nterm)
+      (semantic-tag-put (car l) 'reparse-symbol $nterm)
       (setq l (cdr l)))
     cooked))
 
@@ -530,8 +532,8 @@ the standard function `semantic-parse-region'."
         (while cooked
           (setq token  (car cooked)
                 cooked (cdr cooked))
-          (or (semantic-token-get token 'reparse-symbol)
-              (semantic-token-put token 'reparse-symbol goal)))
+          (or (semantic-tag-get token 'reparse-symbol)
+              (semantic-tag-put token 'reparse-symbol goal)))
         )
        ;; Return on error if requested
        (returnonerror
