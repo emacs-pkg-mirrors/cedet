@@ -1,11 +1,11 @@
 ;;; ede-speedbar.el --- Speebar viewing of EDE projects
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.11 1999/12/04 17:32:18 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.12 2000/05/01 02:21:06 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -233,7 +233,7 @@ It has depth DEPTH."
   (with-slots (source) this
     (mapcar (lambda (car)
  	      (speedbar-make-tag-line 'bracket ?+
- 				      'ede-tag-file
+ 				      'speedbar-tag-file
  				      (concat (oref this :path) car)
  				      car
  				      'ede-file-find
@@ -251,12 +251,7 @@ INDENT is the current indentation level."
 
 (defun ede-create-tag-buttons (filename indent)
   "Create the tag buttons associated with FILENAME at INDENT."
-  (let* ((lst (if speedbar-use-imenu-flag
-		  (let ((tim (speedbar-fetch-dynamic-imenu filename)))
-		    (if (eq tim t)
-			(speedbar-fetch-dynamic-etags filename)
-		      tim))
-		(speedbar-fetch-dynamic-etags filename))))
+  (let* ((lst (speedbar-fetch-dynamic-tags filename)))
     ;; if no list, then remove expando button
     (if (not lst)
 	(speedbar-change-expand-button-char ??)
@@ -266,24 +261,6 @@ INDENT is the current indentation level."
 				      lst
 				      'ede-tag-expand
 				      'ede-tag-find)))))
-
-(defun ede-tag-file (text token indent)
-  "Expand a tag sublist.  Imenu will return sub-lists of specialized tag types.
-Etags does not support this feature.  TEXT will be the button
-string.  TOKEN will be the list, and INDENT is the current indentation
-level."
-  (cond ((string-match "+" text)	;we have to expand this file
-	 (speedbar-change-expand-button-char ?-)
-	 (let ((file (speedbar-line-file)))
-	   (speedbar-with-writable
-	     (save-excursion
-	       (end-of-line) (forward-char 1)
-	       (ede-create-tag-buttons file (1+ indent))))))
-	((string-match "-" text)	;we have to contract this node
-	 (speedbar-change-expand-button-char ?+)
-	 (speedbar-delete-subblock indent))
-	(t (error "Ooops...  not sure what to do")))
-  (speedbar-center-buffer-smartly))
 
 (defun ede-tag-expand (text token indent)
   "Expand a tag sublist.  Imenu will return sub-lists of specialized tag types.
