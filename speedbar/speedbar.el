@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.31 1997/03/01 14:14:12 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.32 1997/03/01 15:08:52 zappo Exp $
 ;;; Version: 0.4.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -211,13 +211,16 @@
 ;;;       Speedbar buffer now starts with a space, and is not deleted
 ;;;        ewhen the speedbar frame is closed.  This prevents the invisible
 ;;;        frame from preventing buffer switches with other buffers.
-;;;       
+;;;       Fixed very bad bug in the -add-[extension|path] functions.
+;;;       Added `speedbar-find-file-in-frame' which will always pop up a frame
+;;;        that is already display a buffer selected in the speedbar buffer.
+;;;       Added S-mouse2 as "power click" for always poping up a new frame.
+;;;        and always rescanning with imenu (ditching the imenu cache)
 ;;;
 ;;; TODO:
-;;; 1) Implement SHIFT-mouse2 to rescan buffers with imenu.
-;;; 2) More functions to create buttons and options
-;;; 3) filtering algoritms to reduce the number of tags/files displayed.
-;;; 4) Timeout directories we haven't visited in a while.
+;;; 1) More functions to create buttons and options
+;;; 2) filtering algoritms to reduce the number of tags/files displayed.
+;;; 3) Timeout directories we haven't visited in a while.
 
 (require 'assoc)
 
@@ -479,7 +482,8 @@ When speedbar is active, use \\<speedbar-key-map> `\\[speedbar-toggle-updates]' 
       (progn
 	;; bind mouse bindings so we can manipulate the items on each line
 	(define-key speedbar-key-map 'button2 'speedbar-click)
-	(define-key speedbar-key-map '(meta button2) 'speedbar-mouse-item-info)
+	(define-key speedbar-key-map '(shift button2) 'speedbar-power-click)
+	(define-key speedbar-key-map '(meta button3) 'speedbar-mouse-item-info)
 
 	;; Setup XEmacs Menubar
 	(defvar speedbar-menu
@@ -518,12 +522,11 @@ When speedbar is active, use \\<speedbar-key-map> `\\[speedbar-toggle-updates]' 
 	)
     ;; bind mouse bindings so we can manipulate the items on each line
     (define-key speedbar-key-map [mouse-2] 'speedbar-click)
+    ;; This is the power click for poping up new frames
+    (define-key speedbar-key-map [S-mouse-2] 'speedbar-power-click)
     ;; This adds a small unecessary visual effect
     ;;(define-key speedbar-key-map [down-mouse-2] 'speedbar-quick-mouse)
     (define-key speedbar-key-map [M-mouse-2] 'speedbar-mouse-item-info)
-
-    ;; this was meant to do a rescan or something
-    ;;(define-key speedbar-key-map [shift-mouse-2] 'speedbar-hard-click)
 
     ;; disable all menus - we don't have a lot of space to play with
     ;; in such a skinny frame.  This will cleverly find and nuke some
@@ -627,6 +630,9 @@ gathered, and in which files and such are displayed.")
 Each sublist was returned by `speedbar-file-lists'.  This list is
 maintained to speed up the refresh rate when switching between
 directories.")
+
+(defvar speedbar-power-click nil
+  "Never set this by hand.  Value is t when S-mouse activity occurs.")
 
 
 ;;;
@@ -1755,6 +1761,12 @@ was not a mouse event."
 	(select-frame speedbar-attached-frame)
 	(other-frame 0))))
 
+(defun speedbar-power-click (e)
+  "Activate any speedbar button as a power click."
+  (interactive "e")
+  (let ((speedbar-power-click t))
+    (speedbar-click e)))
+
 (defun speedbar-click (e)
   "Activate any speedbar buttons where the mouse is clicked.
 This must be bound to a mouse event.  A button is any location of text
@@ -1793,8 +1805,7 @@ a function if apropriate"
   "Speedbar click handler for filenames.
 Clicking the filename loads that file into the attached buffer."
   (let ((cdd (speedbar-line-path indent)))
-    (select-frame speedbar-attached-frame)
-    (find-file (concat cdd text))
+    (speedbar-find-file-in-frame (concat cdd text))
     (speedbar-stealthy-updates)
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
@@ -1908,8 +1919,7 @@ TOK is the file to expand."
 (defun speedbar-tag-find (text token indent)
   "For the tag in a file, goto that position"
   (let ((file (speedbar-line-path indent)))
-    (select-frame speedbar-attached-frame)
-    (find-file file)
+    (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
@@ -1936,6 +1946,25 @@ Etags does not support this feature."
 	 (speedbar-delete-subblock indent))
 	(t (error "Ooops... not sure what to do.")))
   (speedbar-center-buffer-smartly))
+
+;;;
+;;; Loading files into the attached frame.
+;;;
+(defun speedbar-find-file-in-frame (file)
+  "This will load FILE into the speedbar attached frame.
+If the file is being displayed in a different frame already, then raise that
+frame instead."
+  (let* ((buff (find-file-noselect file))
+	 (bwin (get-buffer-window buff 0)))
+    (if bwin
+	(progn
+	  (select-window bwin)
+	  (raise-frame (window-frame bwin)))
+      (if speedbar-power-click
+	  (let ((pop-up-frames t)) (select-window (display-buffer buff)))
+	(select-frame speedbar-attached-frame)
+	(switch-to-buffer buff))))
+  )
 
 ;;;
 ;;; Centering Utility
@@ -2015,7 +2044,9 @@ tags we wish to display in the speedbar package."
   (save-excursion
     (set-buffer (find-file-noselect file))
     (condition-case nil
-	(imenu--make-index-alist t)
+	(progn
+	  (if speedbar-power-click (setq imenu--index-alist nil))
+	  (imenu--make-index-alist t))
       (error t))))
 
 )
