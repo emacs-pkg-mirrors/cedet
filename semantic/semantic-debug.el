@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.6 2003/02/17 02:11:33 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.7 2003/03/08 16:34:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,8 @@
 ;;
 
 (require 'semantic)
-(require 'eieio)
+(require 'inversion)
+(inversion-require 'eieio "0.18")
 
 ;;; Code:
 ;;;###autoload
