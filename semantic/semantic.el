@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 1.3.2
+;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.62 2000/11/18 14:09:50 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.63 2000/12/03 14:45:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,171 +32,6 @@
 ;; The output of a semantic bovine parse is parse tree.  While it is
 ;; possible to assign actions in the bovine-table in a similar fashion
 ;; to bison, this is not it's end goal.
-;;
-;; Bovine Table Tips & Tricks:
-;; ---------------------------
-;;
-;; Many of the tricks needed to create rules in bison or yacc can be
-;; used here.  The exceptions to this rule are that there is no need to
-;; declare bison tokens, and you cannot put "code" in the middle of a
-;; match rule.  In addition, you should avoid empty matching rules as
-;; I haven't quite gotten those to be reliable yet.
-;;
-;; The top-level bovine table is an association list of all the rules
-;; needed to parse your language, or language segment.  It is easiest
-;; to create one master rule file, and call the semantic bovinator on
-;; subsections passing down the nonterminal rule you want to match.
-;;
-;; Thus, every entry in the bovine table is of the form:
-;; ( NONTERMINAL-SYMBOL MATCH-LIST )
-;; 
-;; The nonterminal symbol is equivalent to the bison RESULT, and the
-;; MATCH-LIST is equivalent to the bison COMPONENTS.  Thus, the bison
-;; rule:
-;;        expseq: expseq1
-;;              | expseq2
-;;              ;
-;; becomes:
-;;        ( expseq ( expseq1 ) ( expseq2 ) )
-;; which defines RESULT expseq which can be either COMPONENT expseq1
-;; or expseq2.  These two table entries also use nonterminal results,
-;; and also use the DEFAULT RESULT LAMBDA (see below for details on
-;; the RESULT LAMBDA).
-;;
-;; You can also have recursive rules, as in bison.  For example the
-;; bison rule:
-;;        expseq1: exp
-;;               | expseq1 ',' exp
-;;               ;
-;; becomes:
-;;        (expseq1 (exp)
-;;                 (expseq1 punctuation "," exp
-;;                          (lambda (val start end)
-;;                                  ( -generator code- ))))
-;;
-;; This time, the second rule uses it's own RESULT LAMBDA.
-;;
-;; Lastly, you can also have STRING LITERALS in your rules, though
-;; these are different from Bison.  As can be seen above, a literal is
-;; a constant lexed symbol, such as `punctuation', followed by a string
-;; which is a *regular expression* which must match, or this rule will
-;; fail.
-;;
-;; In BISON, a given rule can have inline ACTIONS.  In the semantic
-;; bovinator, there can be only one ACTION which I will refer to here
-;; as the RESULT LAMBDA.  There are two default RESULT LAMBDAs which
-;; can be used which cover the default case.  The RESULT LAMBDA must
-;; return a valid nonterminal token.  A nonterminal token is always of the
-;; form ( NAME TOKEN VALUE1 VALUE2 ... START END).  NAME is the name
-;; to use for this token.  It is first so that a list of tokens is
-;; also an alist, or completion table.  Token should be the same
-;; symbol as the nonterminal token generated, though it does not have to
-;; be.  The values can be anything you want, including other tokens.
-;; START and END indicate where in the buffer this token is, and is
-;; easily derived from the START and END parameter passed down.
-;;
-;; A RESULT LAMBDA must take three parameters, VALS, START and END.
-;; VALS is the list of literals derived during the bovination of the
-;; match list, including punctuation, parens, and explicit
-;; matches.  other elements
-;;
-;; Here are some example match lists and their code:
-;;
-;; (expression (lambda (vals start end)
-;;                     (append (car vals) (list start end))))
-;;
-;; In this RESULT LAMBDA, VALS will be of length one, and it's first
-;; element will contain the nonterminal expression result.  It is
-;; likely to use a rule like this when there is a top level nonterminal
-;; symbol whose contents are several other single nonterminal rules.
-;; Because of this, we want to result that value with our START and END
-;; appended.
-;;
-;; NOTE: nonterminal values passed in as VALS always have their
-;;       START/END parts stripped!
-;;
-;; This example lambda is also one of the DEFAULT lambdas for the case
-;; of a single nonterminal result.  Thus, the above rule could also be
-;; written as (expression).
-;;
-;; A more complex example uses more flex elements.  Lets match this:
-;;
-;;    (defun myfunction (arguments) "docstring" ...)
-;;
-;; If we assume a flex depth of 1, we can write it this way:
-;;
-;; (open-paren "(" symbol "defun" symbol semantic-list string
-;;             (lambda (vals start end)
-;;                     (list (nth 2 vals) 'function nil (nth 3 vals)
-;;                           (nth 4 vals) start end)))
-;;
-;; The above will create a function token, whose format is
-;; predefined.  (See the symbol `semantic-toplevel-bovine-table' for
-;; details on some default symbols that should be provided.)
-;;
-;; From this we can see that VALS will have the value:
-;; ( "(" "defun" "myfunction" "(arguments)" "docstring")
-;;
-;; If we also want to return a list of arguments in our function
-;; token, we can replace `semantic-list' with the following recursive
-;; nonterminal rule.
-;;
-;; ( arg-list (semantic-list
-;;             (lambda (vals start end)
-;;                (semantic-bovinate-from-nonterminal start end 'argsyms))))
-;; ( argsyms
-;;   (open-paren argsyms (lambda (vals start end)
-;;			   (append (car (cdr vals)) (list start end))))
-;;   (symbol argsyms (lambda (vals start end)
-;;		       (append (cons (car vals) (car (cdr vals)))
-;;			       (list start end))))
-;;   (symbol close-paren (lambda (vals start end)
-;;			   (list (car vals) start end))))
-;;
-;; This recursive rule can find a parenthetic list with any number of
-;; symbols in it.
-;;
-;; Here we also see a new function, `semantic-bovinate-from-nonterminal'.
-;; This function takes START END and a nonterminal result symbol to
-;; match.  This will return a complete token, including START and
-;; END.  This function should ONLY BE USED IN A RESULT LAMBDA.  It
-;; uses knowledge of that scope to reduce the number of parameters
-;; that need to be passed in.  This is useful for decomposing complex
-;; syntactic elements, such as semantic-list.
-;;
-;; Token's and the VALS argument
-;; -----------------------------
-;;
-;; Not all syntactic tokens are represented by strings in the VALS argument
-;; to the match-list lambda expression.  Some are a dotted pair (START . END).
-;; The following are represented as strings:
-;;  1) symbols
-;;  2) punctuation
-;;  3) open/close-paren
-;;  4) charquote
-;;  5) strings
-;; The following are represented as a dotted-pair.
-;;  1) semantic-list
-;;  2) comments
-;; Nonterminals are always lists which are generated in the lambda
-;; expression.
-;;
-;; Semantic Bovine Table Debugger
-;; ------------------------------
-;;
-;; The bovinator also includes a primitive debugger.  This debugger
-;; walks through the parsing process and see how it's being
-;; interpretted.  There are two steps in debuggin a bovine table.
-;;
-;; First, place the cursor in the source code where the table is
-;; defined.  Execute the command `semantic-bovinate-debug-set-table'.
-;; This tells the debugger where you table is.
-;;
-;; Next, place the cursor in a buffer you which to run the bovinator
-;; on, and execute the command `semantic-bovinate-buffer-debug'.  This
-;; will parse the table, and highlight the relevant areas and walk
-;; through the match list with the cursor, displaying the current list
-;; of values (which is always backwards.)
 ;;
 ;; DESIGN ISSUES:
 ;; -------------
@@ -231,7 +66,8 @@
       (defalias 'semantic-overlay-put 'set-extent-property)
       (defalias 'semantic-overlay-get 'extent-property)
       (defalias 'semantic-overlay-delete 'delete-extent)
-      (defalias 'semantic-overlays-at 'extent-at)
+      (defalias 'semantic-overlays-at
+        (lambda (pos) (extent-list nil pos pos)))
       (defalias 'semantic-overlays-in 
 	(lambda (beg end) (extent-list nil beg end)))
       (defalias 'semantic-overlay-buffer 'extent-buffer)
@@ -488,25 +324,35 @@ If not provided, then only the POSITION can be provided."
       p)))
 
 (defmacro semantic-token-overlay (token)
-  "Retrieve the OVERLAY part of TOKEN."
+  "Retrieve the OVERLAY part of TOKEN.
+The returned item may be an overlay or an unloaded buffer representation."
   `(nth (- (length ,token) 1) ,token))
+
+(defmacro semantic-token-overlay-cdr (token)
+  "Retrieve the cons cell containing the OVERLAY part of TOKEN."
+  `(nthcdr (- (length ,token) 1) ,token))
 
 (defmacro semantic-token-extent (token)
   "Retrieve the extent (START END) of TOKEN."
-  `(let ((over (semantic-token-overlay ,token)))
-     (list (semantic-overlay-start over) (semantic-overlay-end over))))
+  `(let ((o (semantic-token-overlay ,token)))
+     (if (semantic-overlay-p o)
+	 (list (semantic-overlay-start o) (semantic-overlay-end o))
+       (list (aref o 1) (aref o 2)))))
 
-(defmacro semantic-token-start (token)
+(defun semantic-token-start (token)
   "Retrieve the start location of TOKEN."
-  `(semantic-overlay-start (semantic-token-overlay ,token)))
+  (let ((o (semantic-token-overlay token)))
+    (if (semantic-overlay-p o) (semantic-overlay-start o) (aref o 1))))
 
-(defmacro semantic-token-end (token)
+(defun semantic-token-end (token)
   "Retrieve the end location of TOKEN."
-  `(semantic-overlay-end (semantic-token-overlay ,token)))
+  (let ((o (semantic-token-overlay token)))
+    (if (semantic-overlay-p o) (semantic-overlay-end o) (aref o 2))))
 
-(defmacro semantic-token-buffer (token)
+(defun semantic-token-buffer (token)
   "Retrieve the buffer TOKEN resides in."
-  `(semantic-overlay-buffer (semantic-token-overlay ,token)))
+  (let ((o (semantic-token-overlay token)))
+    (if (semantic-overlay-p o) (semantic-overlay-buffer o) (aref over 0))))
 
 (defun semantic-token-p (token)
   "Return non-nil if TOKEN is most likely a semantic token."
@@ -514,7 +360,7 @@ If not provided, then only the POSITION can be provided."
        (stringp (car token))
        (symbolp (car (cdr token)))))
 
-;;; Parsing functions
+;;; Overlay and error stacks.
 ;;
 (defvar semantic-overlay-error-recovery-stack nil
   "List of overlays used during error recovery.")
@@ -538,6 +384,20 @@ If not provided, then only the POSITION can be provided."
   (if (semantic-overlay-get overlay 'semantic)
       (semantic-overlay-delete overlay)))
 
+;;; Interfacing with the system
+;;
+(defun semantic-find-file-hook ()
+  "Run in `find-file-hooks'.
+Runs `semantic-init-hook' if the major mode is setup to use semantic."
+  (if semantic-toplevel-bovine-table
+      (run-hooks 'semantic-init-hook)))
+(add-hook 'find-file-hooks 'semantic-find-file-hook)
+
+;; Test the above hook.
+;;(add-hook 'semantic-init-hook (lambda () (message "init for semantic")))
+
+;;; Parsing functions
+;;
 (defun semantic-clear-toplevel-cache ()
   "Clear the toplevel bovin cache for the current buffer."
   (interactive)
@@ -585,13 +445,17 @@ there has been a size change."
 		  (semantic-bovinate-nonterminals
 		   ss 'bovine-toplevel semantic-flex-depth))
 	    (working-status t))
-	  (setq semantic-toplevel-bovine-cache
-		(list (nreverse res) (point-max))
-		semantic-toplevel-bovine-cache-check nil)
-	  (add-hook 'after-change-functions 'semantic-change-function nil t)
-	  (run-hooks 'semantic-after-toplevel-bovinate-hook)
+	  (semantic-set-toplevel-bovine-cache
+	   (list (nreverse res) (point-max)))
 	  (car semantic-toplevel-bovine-cache))))
     ))
+
+(defun semantic-set-toplevel-bovine-cache (tokenlist)
+  "Set the toplevel bovine cache to TOKENLIST."
+  (setq semantic-toplevel-bovine-cache tokenlist
+	semantic-toplevel-bovine-cache-check nil)
+  (add-hook 'after-change-functions 'semantic-change-function nil t)
+  (run-hooks 'semantic-after-toplevel-bovinate-hook))
 
 (defun semantic-change-function (start end length)
   "Run whenever a buffer controlled by `semantic-mode' change.
