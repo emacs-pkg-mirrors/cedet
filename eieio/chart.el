@@ -4,7 +4,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.1
-;; RCS: $Id: chart.el,v 1.8 1999/11/19 19:38:36 zappo Exp $
+;; RCS: $Id: chart.el,v 1.9 2000/07/16 21:42:22 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -401,7 +401,7 @@ Optional argument MARGIN , ZONE, START and END specify boundaries of the drawing
 If AXIS-LABEL, then the axis stored in C is updated with the bounds of SEQ,
 or is created with the bounds of SEQ."
   (if axis-label
-      (let ((axis (oref-engine c axis-label)))
+      (let ((axis (eieio-oref c axis-label)))
 	(if (stringp (car (oref seq data)))
 	    (let ((labels (oref seq data)))
 	      (if (not axis)
@@ -422,7 +422,7 @@ or is created with the bounds of SEQ."
 	      (setq l (cdr l)))
 	    (oset axis bounds range)))
 	(if (eq axis-label 'x-axis) (oset axis loweredge nil))
-	(oset-engine c axis-label axis)
+	(eieio-oset c axis-label axis)
 	))
   (oset c sequences (append (oref c sequences) (list seq))))
 
