@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7e
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.92 1998/04/16 16:38:25 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.93 1998/04/16 18:26:31 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -347,8 +347,10 @@
 ;;         click on the desired buffer to bring it to the front.
 ;;       Added new tag grouping code.  It is controlled through
 ;;        `speedbar-tag-hierarchy-method', `speedbar-tag-split-minimum-length',
-;;        and `speedbar-tag-regroup-maximum-length'
-;;       XEmacs custom workaround changes.
+;;         and `speedbar-tag-regroup-maximum-length'
+;;       You can now use the generic tagging function on arbitrary [+] buttons
+;;         for non file based speedbar displays.
+;;       XEmacs old custom workaround changes.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -2952,28 +2954,34 @@ Otherwise do not move and return nil."
   "Retrieve the pathname associated with the current line.
 This may require traversing backwards from DEPTH and combining the default
 directory with these items."
-  (save-excursion
-    (save-match-data
-      (let ((path nil))
-	(setq depth (1- depth))
-	(while (/= depth -1)
-	  (if (not (re-search-backward (format "^%d:" depth) nil t))
-	      (error "Error building path of tag")
-	    (cond ((looking-at "[0-9]+:\\s-*<->\\s-+\\([^\n]+\\)$")
-		   (setq path (concat (buffer-substring-no-properties
-				       (match-beginning 1) (match-end 1))
-				      "/"
-				      path)))
-		  ((looking-at "[0-9]+:\\s-*[-]\\s-+\\([^\n]+\\)$")
-		   ;; This is the start of our path.
-		   (setq path (buffer-substring-no-properties
-			       (match-beginning 1) (match-end 1))))))
-	  (setq depth (1- depth)))
-	(if (and path
-		 (string-match (concat speedbar-indicator-regex "$")
-			       path))
-	    (setq path (substring path 0 (match-beginning 0))))
-	(concat default-directory path)))))
+  (cond
+   ((string= speedbar-initial-expansion-list-name "files")
+    (save-excursion
+      (save-match-data
+	(let ((path nil))
+	  (setq depth (1- depth))
+	  (while (/= depth -1)
+	    (if (not (re-search-backward (format "^%d:" depth) nil t))
+		(error "Error building path of tag")
+	      (cond ((looking-at "[0-9]+:\\s-*<->\\s-+\\([^\n]+\\)$")
+		     (setq path (concat (buffer-substring-no-properties
+					 (match-beginning 1) (match-end 1))
+					"/"
+					path)))
+		    ((looking-at "[0-9]+:\\s-*[-]\\s-+\\([^\n]+\\)$")
+		     ;; This is the start of our path.
+		     (setq path (buffer-substring-no-properties
+				 (match-beginning 1) (match-end 1))))))
+	    (setq depth (1- depth)))
+	  (if (and path
+		   (string-match (concat speedbar-indicator-regex "$")
+				 path))
+	      (setq path (substring path 0 (match-beginning 0))))
+	  (concat default-directory path)))))
+   (t
+    ;; If we aren't in file mode, then return an empty string to make
+    ;; sure that we can still get some stuff done.
+    "")))
 
 (defun speedbar-path-line (path)
   "Position the cursor on the line specified by PATH."
@@ -3535,14 +3543,16 @@ If TEMP is non-nil, then clicking on a buffer restores the previous display."
     (while bl
       (if (string-match "^[ *]" (buffer-name (car bl)))
 	  nil
-	(speedbar-make-tag-line 'bracket
-				(if (string-match speedbar-file-regexp
-						  (buffer-name (car bl)))
-				    ?+  ??)
-				nil nil
-				(buffer-name (car bl))
-				'speedbar-buffer-click temp
-				'speedbar-file-face 0))
+	(let* ((known (string-match speedbar-file-regexp
+				    (buffer-name (car bl))))
+	       (expchar (if known ?+ ??))
+	       (fn (if known 'speedbar-tag-file nil))
+	       (fname (save-excursion (set-buffer (car bl))
+				      (buffer-file-name))))
+	  (speedbar-make-tag-line 'bracket expchar fn fname
+				  (buffer-name (car bl))
+				  'speedbar-buffer-click temp
+				  'speedbar-file-face 0)))
       (setq bl (cdr bl)))
     (setq bl (buffer-list))
     (insert "Scratch Buffers:\n")
