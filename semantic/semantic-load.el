@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.8 2001/10/02 18:50:12 ponced Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.9 2001/10/03 00:32:34 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -56,6 +56,10 @@
 
 ;; semanticdb
 (autoload 'global-semanticdb-minor-mode "semanticdb" nil t)
+
+(autoload 'semantic-chart-nonterminals-by-token "semantic-chart" nil t)
+(autoload 'semantic-chart-nonterminal-complexity-token "semantic-chart" nil t)
+(autoload 'semantic-chart-database-size "semantic-chart" nil t)
 
 ;; senator
 (autoload 'senator-minor-mode "senator"
