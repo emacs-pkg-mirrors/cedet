@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.23 2003/09/16 19:43:38 ponced Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.24 2003/12/22 16:01:36 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ A lisp target may be one general program with many separate lisp files in it.")
      "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
      "done;"
      "@echo \"(setq debug-on-error t)\" >> $@-compile-script"
-     "$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^"
+     "$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^"
      )
    :autoconf '("AM_PATH_LISPDIR")
    :sourcetype '(ede-source-emacs)
@@ -244,7 +244,7 @@ Files do not need to be added to this target.")
      "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
      "done;"
      "@echo \"(require 'cedet-autogen)\" >> $@-compile-script"
-     "$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)"
+     "$(EMACS) -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)"
      )
    :sourcetype '(ede-source-emacs)
    )
@@ -273,7 +273,7 @@ sources variable."
 
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-elisp-autoloads))
   "Return the variable name for THIS's sources."
-  "LOADDEFS")
+  nil) ; "LOADDEFS")
 
 (defmethod ede-proj-makefile-dependencies ((this ede-proj-target-elisp-autoloads))
   "Return a string representing the dependencies for THIS.
@@ -292,7 +292,7 @@ Always return an empty string for an autoloads generator."
   )
 
 (defmethod project-compile-target ((obj ede-proj-target-elisp-autoloads))
-  "Compile all sources in a Lisp target OBJ."
+  "Create or update the autoload target."
   (require 'cedet-autogen)
   (call-interactively 'cedet-update-autoloads))
 
