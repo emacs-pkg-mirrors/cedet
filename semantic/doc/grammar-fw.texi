@@ -984,8 +984,8 @@ Select the buffer containing the tag's definition, and move point there.
 Enabling the @code{global-semanticdb-minor-mode} is highly recommended
 because this command uses the @code{semanticdb-find} feature to
 automatically search for a macro expander function into included
-libraries.  For details on the Semantic Database @inforef{semanticdb,
-Semantic Database, semantic-user}.
+libraries.  For more details, @inforef{Semantic Database, ,
+semantic-appdev}.
 @end table
 @end deffn
 
@@ -1098,7 +1098,7 @@ A macro expander is an Emacs Lisp function that operates on the
 unevaluated expressions for the arguments, and returns a Lisp
 expression containing these argument expressions or parts of them.
 
-Macro names are used like Lisp function name in call expressions.  To
+Macro names are used like Lisp function names in call expressions.  To
 help distinguish grammar macro calls from traditional Lisp function
 calls, macro names are automatically highlighted in semantic actions.
 
@@ -1129,6 +1129,14 @@ are declared.  @xref{use-macros Decl}.
 
 @node Adding a new grammar mode
 @chapter Adding a new grammar mode
+
+@menu
+* Specialized Implementation::  
+* Querying grammars::           
+@end menu
+
+@node Specialized Implementation
+@section Specialized Implementation
 
 Each specialized grammar mode is responsible for implementing the
 following @acronym{API}.  Implementations are done with
@@ -1189,6 +1197,107 @@ List of associations (@var{MACRO-NAME} . @var{EXPANDER}).
 
 @end itemize
 
+@node Querying grammars
+@section Querying grammars
+
+Grammar files are parsed by the @semantic{} @acronym{LALR} parser,
+which means that you can use the powerful @acronym{API} provided by
+@semantic{} to query grammar tags.
+
+@inforef{top, Application Development Manual, semantic-appdev}.
+
+@c document here the grammar tags
+
+Moreover, the common grammar framework provides the following high
+level @acronym{API} to query grammar declarations.
+
+@defun semantic-grammar-prologue
+@anchor{semantic-grammar-prologue}
+Return grammar prologue code as a string value.
+@*@xref{Prologue}.
+@end defun
+
+@defun semantic-grammar-epilogue
+@anchor{semantic-grammar-epilogue}
+Return grammar epilogue code as a string value.
+@*@xref{Epilogue}.
+@end defun
+
+@defun semantic-grammar-package
+@anchor{semantic-grammar-package}
+Return the @code{%package} value as a string.
+If there is no @code{%package} statement in the grammar, return a default
+package name derived from the grammar file name.
+@*@xref{package Decl}.
+@end defun
+
+@defun semantic-grammar-languagemode
+@anchor{semantic-grammar-languagemode}
+Return the @code{%languagemode} value as a list of symbols or nil.
+@*@xref{languagemode Decl}.
+@end defun
+
+@defun semantic-grammar-start
+@anchor{semantic-grammar-start}
+Return the @code{%start} value as a list of symbols or nil.
+@*@xref{start Decl}.
+@end defun
+
+@defun semantic-grammar-scopestart
+@anchor{semantic-grammar-scopestart}
+Return the @code{%scopestart} value as a symbol or nil.
+@*@xref{scopestart Decl}.
+@end defun
+
+@defun semantic-grammar-quotemode
+@anchor{semantic-grammar-quotemode}
+Return the @code{%quotemode} value as a symbol or nil.
+@*@xref{quotemode Decl}.
+@end defun
+
+@defun semantic-grammar-keywords
+@anchor{semantic-grammar-keywords}
+Return the language keywords.
+That is an alist of (@var{VALUE} . @var{TOKEN}) where @var{VALUE} is
+the string value of the keyword and @var{TOKEN} is the terminal symbol
+identifying the keyword.
+@*@xref{keyword Decl}.
+@end defun
+
+@defun semantic-grammar-keyword-properties keywords
+@anchor{semantic-grammar-keyword-properties}
+Return the list of @var{KEYWORDS} properties.
+@*@xref{keyword Decl}, @xref{put Decl}.
+@end defun
+
+@defun semantic-grammar-tokens
+@anchor{semantic-grammar-tokens}
+Return defined lexical tokens.
+That is an alist (@var{TYPE} . @var{DEFS}) where type is a
+@code{%token <type>} symbol and @var{DEFS} is an alist of (@var{TOKEN}
+. @var{VALUE}).  @var{TOKEN} is the terminal symbol identifying the
+token and @var{VALUE} is the string value of the token or @code{nil}.
+@*@xref{token Decl}.
+@end defun
+
+@defun semantic-grammar-token-properties tokens
+@anchor{semantic-grammar-token-properties}
+Return properties of declared types.
+Types are explicitly declared by @code{%type} statements.  Types found
+in @var{TOKENS} are those declared implicitly by @code{%token}
+statements.  Properties can be set by @code{%put} and @code{%type}
+statements.  Properties set by @code{%type} statements take precedence
+over those set by @code{%put} statements.
+@*@xref{token Decl}, @xref{type Decl}, @xref{put Decl}.
+@end defun
+
+@defun semantic-grammar-use-macros
+@anchor{semantic-grammar-use-macros}
+Return macro definitions from @code{%use-macros} statements.
+Also load the specified macro libraries.
+@*@xref{use-macros Decl}.
+@end defun
+
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
 
@@ -1207,4 +1316,4 @@ List of associations (@var{MACRO-NAME} . @var{EXPANDER}).
 
 @c Following comments are for the benefit of ispell.
 
-@c  LocalWords:  bovinator wisent LALR Elisp automagically Decl
+@c  LocalWords:  bovinator wisent LALR Elisp automagically Decl API
