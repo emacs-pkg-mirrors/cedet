@@ -1,8 +1,8 @@
 ;;; semantic-bovine.el --- LL Parser/Analyzer core.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.4 2003/01/09 12:55:06 ponced Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.5 2003/02/13 02:47:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -131,17 +131,23 @@ list of semantic tokens found."
                             (not (listp (car lte))))
 
                   ;; BNF SOURCE DEBUGGING!
-                  (if semantic-edebug
+                  (if semantic-debug-enabled
                       (let* ((db-nt   (semantic-bovinate-nonterminal-db-nt))
                              (db-ml   (cdr (assq db-nt table)))
                              (db-mlen (length db-ml))
                              (db-midx (- db-mlen (length matchlist)))
                              (db-tlen (length (nth db-midx db-ml)))
-                             (db-tidx (- db-tlen (length lte))))
-                        (if (eq 'fail
-                                (semantic-bovinate-show
-                                 (car s) db-nt db-midx db-tidx cvl))
-                            (setq lte '(trash 0 . 0)))))
+                             (db-tidx (- db-tlen (length lte)))
+			     (frame (semantic-bovine-debug-create-frame
+				     db-nt db-midx db-tidx cvl (car s)))
+			     (cmd (semantic-debug-break frame))
+			     )
+                        (cond ((eq 'fail cmd) (setq lte '(trash 0 . 0)))
+			      ((eq 'quit cmd) (signal 'quit "Abort"))
+			      ((eq 'abort cmd) (error "Abort"))
+			      ;; support more commands here.
+
+			      )))
                   ;; END BNF SOURCE DEBUGGING!
               
                   (cond
@@ -169,19 +175,6 @@ list of semantic tokens found."
                     (if (eq (car lte) (car lse)) ;syntactic match
                         (let ((valdot (cdr lse)))
                           (setq val (semantic-flex-text lse))
-                          ;; DEBUG SECTION
-                          (if semantic-dump-parse
-                              (semantic-dump-detail
-                               (if (stringp (car (cdr lte)))
-                                   (list (car (cdr lte)) (car lte))
-                                 (list (car lte)))
-                               (semantic-bovinate-nonterminal-db-nt)
-                               val
-                               (if (stringp (car (cdr lte)))
-                                   (if (string-match (car (cdr lte)) val)
-                                       "Term Match" "Term Fail")
-                                 "Term Type=")))
-                          ;; END DEBUG SECTION
                           (setq lte (cdr lte))
                           (if (stringp (car lte))
                               (progn
@@ -212,17 +205,6 @@ list of semantic tokens found."
                   (let ((start (car (cdr (car stream)))))
                     (setq out (cond
                                ((car lte)
-                        
-              ;; REMOVE THIS TO USE THE REFERENCE/COMPARE CODE
-              ;;(let ((o (apply (car lte) ;call matchlist fn on values
-              ;;                (nreverse cvl) start (list end))))
-              ;;  (if semantic-bovinate-create-reference
-              ;;      (semantic-bovinate-add-reference o))
-              ;;  (if semantic-bovinate-compare-reference
-              ;;      (semantic-bovinate-compare-against-reference o))
-              ;;  o
-              ;;  )
-                            
                                 (funcall (car lte) ;call matchlist fn on values
                                          (nreverse cvl) start end))
                                ((and (= (length cvl) 1)
@@ -281,188 +263,6 @@ list of semantic tokens found."
 ;; Make it the default parser
 ;;;###autoload
 (defalias 'semantic-parse-stream-default 'semantic-bovinate-stream)
-
-;;; Debugging in bovine tables
-;;
-(defun semantic-dump-buffer-init ()
-  "Initialize the semantic dump buffer."
-  (save-excursion
-    (let ((obn (buffer-name)))
-      (set-buffer (get-buffer-create "*Semantic Dump*"))
-      (erase-buffer)
-      (insert "Parse dump of " obn "\n\n")
-      (insert (format "%-15s %-15s %10s %s\n\n"
-		      "Nonterm" "Comment" "Text" "Context"))
-      )))
-
-(defun semantic-dump-detail (lse nonterminal text comment)
-  "Dump info about this match.
-Argument LSE is the current syntactic element.
-Argument NONTERMINAL is the nonterminal matched.
-Argument TEXT is the text to match.
-Argument COMMENT is additional description."
-  (save-excursion
-    (set-buffer "*Semantic Dump*")
-    (goto-char (point-max))
-    (insert (format "%-15S %-15s %10s %S\n" nonterminal comment text lse)))
-  )
-
-(defvar semantic-bovinate-debug-table nil
-  "A marker where the current table we are debugging is.")
-
-(defun semantic-bovinate-debug-set-table (&optional clear)
-  "Set the table for the next debug to be here.
-Optional argument CLEAR to unset the debug table."
-  (interactive "P")
-  (if clear (setq semantic-bovinate-debug-table nil)
-    (if (not (eq major-mode 'emacs-lisp-mode))
-	(error "Not an Emacs Lisp file"))
-    (beginning-of-defun)
-    (setq semantic-bovinate-debug-table (point-marker))))
-  
-;; We will get warnings in here about semantic-bnf-* fns.
-;; We cannot require semantic-bnf due to compile errors.
-;;;###autoload
-(defun semantic-bovinate-debug-buffer ()
-  "Bovinate the current buffer in debug mode."
-  (interactive)
-  (if (and (not semantic-toplevel-bovine-table-source)
-	   (not semantic-bovinate-debug-table))
-      (error
-       "Call `semantic-bovinate-debug-set-table' from your semantic table"))
-  (delete-other-windows)
-  (split-window-vertically)
-  (if semantic-bovinate-debug-table
-      (switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
-    (if (not semantic-toplevel-bovine-table-source)
-        (error "No debuggable BNF source found"))
-    (require 'semantic-bnf)
-    (switch-to-buffer (semantic-bnf-find-source-on-load-path
-                       semantic-toplevel-bovine-table-source)))
-  (other-window 1)
-  (semantic-clear-toplevel-cache)
-  (let ((semantic-edebug t))
-    (semantic-bovinate-toplevel)))
-
-(defun semantic-bovinate-show (lse nonterminal matchlen tokenlen collection)
-  "Display some info about the current parse.
-Returns 'fail if the user quits, nil otherwise.
-LSE is the current listed syntax element.
-NONTERMINAL is the current nonterminal being parsed.
-MATCHLEN is the number of match lists tried.
-TOKENLEN is the number of match tokens tried.
-COLLECTION is the list of things collected so far."
-  (let* ((semantic-edebug nil)
-         (ol1 nil) (ol2 nil) (ret nil)
-         (bnf-buffer (semantic-bnf-find-source-on-load-path
-                      semantic-toplevel-bovine-table-source)))
-    (unwind-protect
-	(progn
-	  (goto-char (car (cdr lse)))
-	  (setq ol1 (semantic-make-overlay (car (cdr lse)) (cdr (cdr lse))))
-	  (semantic-overlay-put ol1 'face 'highlight)
-	  (goto-char (car (cdr lse)))
-	  (if window-system nil (sit-for 1))
-	  (other-window 1)
-	  (let (s e)
-	    (if semantic-bovinate-debug-table
-		(progn
-		  (set-buffer (marker-buffer semantic-bovinate-debug-table))
-		  (goto-char semantic-bovinate-debug-table)
-		  (re-search-forward
-		   (concat "^\\s-*\\((\\|['`]((\\)\\(" (symbol-name nonterminal)
-			   "\\)[ \t\n]+(")
-		   nil t)
-		  (setq s (match-beginning 2)
-			e (match-end 2))
-		  (forward-char -2)
-		  (forward-list matchlen)
-		  (skip-chars-forward " \t\n(")
-		  (forward-sexp tokenlen)
-		  )
-	      ;; The user didn't specify a lisp level table.
-	      ;; go to the source...
-	      (set-buffer bnf-buffer)
-	      (semantic-bnf-find-state-position
-	       nonterminal matchlen tokenlen)
-	      (save-excursion
-		(goto-char (semantic-token-start (semantic-current-nonterminal)))
-		(setq s (point)
-		      e (progn (forward-sexp 1) (point))))
-	      )
-	    (setq ol2 (semantic-make-overlay s e))
-	    (semantic-overlay-put ol2 'face 'highlight)
-	    )
-	  (message "%s: %S" lse collection)
-	  (let ((e (semantic-read-event)))
-	    (cond ((eq e ?f)		;force a failure on this symbol.
-		   (setq ret 'fail))
-		  ((eq e ?a)		;Abort this syntax element
-		   (error "Abort"))
-		  ((eq e ?q)		;Quit this debug session
-		   (signal 'quit "Abort"))
-		  (t nil)))
-	  (other-window 1)
-	  )
-      (semantic-overlay-delete ol1)
-      (semantic-overlay-delete ol2))
-    ret))
-
-;;; Reference Debugging
-;;
-(defvar semantic-bovinate-create-reference nil
-  "Non nil to create a reference.")
-
-(defvar semantic-bovinate-reference-token-list nil
-  "A list generated as a reference (assumed valid).
-A second pass compares return values against this list.")
-
-(defun semantic-bovinate-add-reference (ref)
-  "Add REF to the reference list."
-  (setq semantic-bovinate-reference-token-list
-	(cons ref semantic-bovinate-reference-token-list)))
-
-(defvar semantic-bovinate-compare-reference nil
-  "Non nil to compare against a reference list.")
-
-(defvar semantic-bovinate-reference-temp-list nil
-  "List used when doing a compare.")
-
-(defun semantic-bovinate-compare-against-reference (ref)
-  "Compare REF against what was returned last time."
-  (if (not (equal ref (car semantic-bovinate-reference-temp-list)))
-      (let ((debug-on-error t))
-	(error "Stop: %d %S != %S"
-	       (- (length semantic-bovinate-reference-token-list)
-		  (length semantic-bovinate-reference-temp-list))
-	       (car semantic-bovinate-reference-temp-list)
-	       ref))
-    (setq semantic-bovinate-reference-temp-list
-	  (cdr semantic-bovinate-reference-temp-list))))
-	   
-(defun bovinate-create-reference ()
-  "Create a reference list."
-  (interactive)
-  (condition-case nil
-      (progn
-	(semantic-clear-toplevel-cache)
-	(setq semantic-bovinate-create-reference t
-	      semantic-bovinate-reference-token-list nil)
-	(bovinate)
-	(setq semantic-bovinate-reference-token-list
-	      (nreverse semantic-bovinate-reference-token-list)))
-    (error nil))
-  (setq semantic-bovinate-create-reference nil))
-
-(defun bovinate-reference-compare ()
-  "Compare the current parsed output to the reference list.
-Create a reference with `bovinate-create-reference'."
-  (interactive)
-  (let ((semantic-bovinate-compare-reference t))
-    (semantic-clear-toplevel-cache)
-    (setq semantic-bovinate-reference-temp-list
-	  semantic-bovinate-reference-token-list)
-    (bovinate)))
 
 (provide 'semantic-bovine)
 
