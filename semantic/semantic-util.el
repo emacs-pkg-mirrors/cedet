@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.43 2001/01/31 16:28:47 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.44 2001/02/01 02:20:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -95,7 +95,7 @@ function does not appear in body of it's parent class."
 
 (defmacro semantic-token-variable-default (token)
   "Retrieve the default value of the variable TOKEN."
-  `(nth 4 ,token))
+  `(nth 3 ,token))
 
 (defmacro semantic-token-variable-extra-specs (token)
   "Retrieve extra specifications for the variable TOKEN."
@@ -321,13 +321,13 @@ If SEARCH-INCLUDE is non-nil, search include files."
       (let ((toklst stream)
 	    (children nil))
 	(while (and (not m) toklst)
-	  (setq toklst (cdr toklst))
 	  (if search-parts
 	      (progn
 		(setq children (semantic-nonterminal-children (car toklst)))
 		(if children
 		    (setq m (semantic-find-nonterminal-by-name
-			     name children))))))
+			     name children search-parts search-include)))))
+	  (setq toklst (cdr toklst)))
 	(if (not m)
 	    ;; Go to dependencies, and search there.
 	    nil)
