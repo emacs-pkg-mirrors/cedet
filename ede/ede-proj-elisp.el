@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.25 2004/01/19 20:59:00 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.26 2004/04/06 00:37:35 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -317,6 +317,22 @@ Always return an empty string for an autoloads generator."
 There are standards in Elisp files specifying how the version string
 is found, such as a `-version' variable, or the standard header."
   nil)
+
+(defmethod ede-proj-makefile-insert-dist-dependencies ((this ede-proj-target-elisp-autoloads))
+  "Insert any symbols that the DIST rule should depend on.
+Emacs Lisp autoload files ship the generated .el files.
+Argument THIS is the target which needs to insert an info file."
+  ;; In some cases, this is ONLY the index file.  That should generally
+  ;; be ok.
+  (insert " " (ede-proj-makefile-target-name this))
+  )
+
+(defmethod ede-proj-makefile-insert-dist-filepatterns ((this ede-proj-target-elisp-autoloads))
+  "Insert any symbols that the DIST rule should distribute.
+Emacs Lisp autoload files ship the generated .el files.
+Argument THIS is the target which needs to insert an info file."
+  (insert " " (oref this autoload-file))
+  )
 
 (defmethod ede-proj-tweak-autoconf ((this ede-proj-target-elisp-autoloads))
   "Tweak the configure file (current buffer) to accomodate THIS."
