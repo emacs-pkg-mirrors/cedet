@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.20 2004/02/02 02:51:52 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.21 2004/02/03 17:07:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -184,7 +184,7 @@ Optional argument LOCALVAR is the list of local variables to use when
 finding the details on the first element of SEQUENCE in case
 it is not found in the global set of tables.
 Optional argument SCOPE are additional terminals to search which are currently
-scoped.  These are no local variables, but symbols available in a structure
+scoped.  These are not local variables, but symbols available in a structure
 which doesn't need to be dereferneced.
 Optional argument TYPERETURN is a symbol ini which the types of all found
 will be stored.  If nil, that data is thrown away."
@@ -309,20 +309,19 @@ types available."
 		  ;; No specified parent.  See if there is a parent by
 		  ;; position?
 		  (setq p (semantic-current-tag-parent))
-		  p))
-	      ;; Lets ask if any types are currently scoped.  Scoped
-	      ;; classes and types provide their public methods and types
-	      ;; in source code, but are unrelated hierarchically.
-	      (let ((sp (semantic-ctxt-scoped-types)))
-		(while sp
-		  ;; Get this thing as a non terminal
-		  (setq code-scoped-parents
-			(cons
-			 (semantic-analyze-find-tag (car sp))
-			 code-scoped-parents))
-		  (setq  sp (cdr sp))))
-	      (setq code-scoped-parents (nreverse code-scoped-parents))
-	      ))
+		  p))))
+      ;; Lets ask if any types are currently scoped.  Scoped
+      ;; classes and types provide their public methods and types
+      ;; in source code, but are unrelated hierarchically.
+      (let ((sp (semantic-ctxt-scoped-types)))
+	(while sp
+	  ;; Get this thing as a tag
+	  (setq code-scoped-parents
+		(cons
+		 (semantic-analyze-find-tag (car sp))
+		 code-scoped-parents))
+	  (setq  sp (cdr sp))))
+      (setq code-scoped-parents (nreverse code-scoped-parents))
       ;; We return a list in case a function can have multiple explicit
       ;; parents.
       (if parent
