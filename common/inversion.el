@@ -3,10 +3,10 @@
 ;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.18 2003/09/06 19:41:09 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.19 2003/09/06 19:41:41 zappo Exp $
 
 ;;; Code:
-(defvar inversion-version "1.0"
+(defvar inversion-version "1.1"
   "Current version of InVersion.")
 (defvar inversion-incompatible-version "0.1alpha1"
   "An earlier release which is incompatible with this release.")
