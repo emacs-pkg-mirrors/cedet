@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.3 1999/05/06 11:33:15 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.4 1999/05/06 20:44:52 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -28,6 +28,10 @@
 ;;
 ;; API for determining semantic content of a buffer.  The mode using
 ;; semantic must be a deterministic programming language.
+;;
+;; The output of a semantic bovine parse is parse tree.  While it is
+;; possible to assign actions in the bovine-table in a similar fashion
+;; to bison, this is not it's end goal.
 ;;
 ;; Bovine Table Tips & Tricks:
 ;; ---------------------------
@@ -194,6 +198,10 @@
        (put 'working-status-forms 'lisp-indent-function 2)))))
 
 ;;; Code:
+(defvar semantic-edebug nil
+  "When non-nil, activate the interactive parsing debugger.
+Do not set this yourself.  Call `semantic-bovinate-buffer-debug'.")
+
 (defvar semantic-toplevel-bovine-table nil
   "Variable that defines how to bovinate top level items in a buffer.
 Set this in your major mode to return function and variable semantic
@@ -291,7 +299,7 @@ OTHER ENTRIES:")
 ;;
 (defmacro semantic-token-token (token)
   "Retrieve from TOKEN the token identifier."
-  '(nth 1 ,token))
+  `(nth 1 ,token))
 
 (defmacro semantic-token-name (token)
   "Retrieve the name of TOKEN."
@@ -354,6 +362,63 @@ stripped from the main list of synthesized tokens."
 	(working-dynamic-status t))
     (nreverse res)))
 
+;;; Semantic Table debugging
+;;
+(defvar semantic-bovinate-debug-table nil
+  "A marker where the current table we are debugging is.")
+
+(defun semantic-bovinate-debug-set-table ()
+  "Set the table for the next debug to be here."
+  (interactive)
+  (if (not (eq major-mode 'emacs-lisp-mode))
+      (error "Not an Emacs Lisp file"))
+  (beginning-of-defun)
+  (setq semantic-bovinate-debug-table (point-marker)))
+
+(defun semantic-bovinate-buffer-debug ()
+  "Bovinate the current buffer in debug mode."
+  (interactive)
+  (if (not semantic-bovinate-debug-table)
+      (error
+       "Call `semantic-bovinate-debug-set-table' from your semantic table"))
+  (let ((semantic-edebug t))
+    (delete-other-windows)
+    (split-window-vertically)
+    (switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
+    (other-window 1)
+    (semantic-bovinate-toplevel nil t)))
+
+(defun semantic-bovinate-show (lse nonterminal matchlen tokenlen collection)
+  "Display some info about the current parse.
+LSE is the current listed syntax element.
+NONTERMINAL is the current nonterminal being parsed.
+MATCHLEN is the number of match lists tried.
+TOKENLEN is the number of match tokens tried.
+COLLECTION is the list of things collected so far."
+  (let ((ol1 nil) (ol2 nil))
+    (unwind-protect
+	(progn
+	  (setq ol1 (make-overlay (car (cdr lse)) (cdr (cdr lse))))
+	  (overlay-put ol1 'face 'highlight)
+	  (other-window 1)
+	  (set-buffer (marker-buffer semantic-bovinate-debug-table))
+	  (goto-char semantic-bovinate-debug-table)
+	  (re-search-forward
+	   (concat "^\\s-*(\\(" (symbol-name nonterminal) "\\)[ \t\n]+(")
+	   nil t)
+	  (setq ol2 (make-overlay (match-beginning 1) (match-end 1)))
+	  (overlay-put ol2 'face 'highlight)
+	  (forward-char -2)
+	  (forward-list matchlen)
+	  (skip-chars-forward " \t\n(")
+	  (forward-sexp tokenlen)
+	  (read-event (format "%s: %S" (car s) collection))
+	  (other-window 1)
+	  )
+      (delete-overlay ol1)
+      (delete-overlay ol2)
+      )))
+
 
 ;;; Semantic Bovination
 ;;
@@ -361,7 +426,6 @@ stripped from the main list of synthesized tokens."
 ;; The bovinator takes a state table, and converts the token stream
 ;; into a new semantic stream defined by the bovination table.
 ;;
-
 (defun semantic-bovinate-nonterminal (stream table &optional nonterminal)
   "Bovinate STREAM based on the TABLE of nonterminal symbols.
 Optional argument NONTERMINAL is the nonterminal symbol to start with.
@@ -392,6 +456,8 @@ list of semantic tokens found."
 	(s-stack nil)			;rollback stream stack
 	(start nil)			;the beginning and end.
 	(end nil)
+	(db-mlen (length matchlist))
+	(db-tlen 0)
 	)
     ;; prime the rollback stack
     (setq s-stack (cons stream s-stack)
@@ -399,8 +465,18 @@ list of semantic tokens found."
     (while matchlist
       (setq s (car s-stack)		;init s from the stack.
 	    cvl nil			;re-init the collected value list.
-	    lte (car matchlist))	;Get the local matchlist entry.
+	    lte (car matchlist)		;Get the local matchlist entry.
+	    db-tlen (length lte))	;length of the local match.
+      (if (listp (car lte))
+	  ;; In this case, we have an EMPTY match!  Make stuff up.
+	  (setq cvl (list nil)))
       (while (and lte (not (listp (car lte))))
+	;; edebugging!
+	(if (and lte semantic-edebug)
+	    (semantic-bovinate-show (car s) nonterminal
+				    (- db-mlen (length matchlist))
+				    (- db-tlen (length lte))
+				    cvl))
 	;; COMMENT STRIPPING
 	;; If I were to strip comments automatically, do it here.
 	;; I suspect that comments may be important to keep for some
@@ -417,9 +493,10 @@ list of semantic tokens found."
 			  cvl (cons strip cvl) ;prepend value of exp
 			  lte (cdr lte))) ;update the local table entry
 		;; No value means that we need to terminate this match.
-		(setq lte nil cvl nil)))	;No match, exit
+		(setq lte nil cvl nil))) ;No match, exit
 	  (setq lse (car s)		;Get the local stream element
 		s (cdr s))		;update stream.
+	  ;; Do the compare
 	  (if (eq (car lte) (car lse))	;syntactic match
 	      (progn
 		(setq val (semantic-flex-text lse)
@@ -430,10 +507,10 @@ list of semantic tokens found."
 			    lte (cdr lte))
 		      (if (string-match tev val)
 			  (setq cvl (cons val cvl)) ;append this value
-			(setq lte nil cvl nil)))	;clear the entry (exit)
+			(setq lte nil cvl nil))) ;clear the entry (exit)
 		  (setq cvl (cons val cvl))) ;append unchecked value.
 		(setq end (cdr (cdr lse))))
-	    (setq lte nil cvl nil))))	;No match, exit
+	    (setq lte nil cvl nil))))	;No more matches, exit
       (if (not cvl)			;lte=nil;  there was no match.
 	  (setq matchlist (cdr matchlist)) ;Move to next matchlist entry
 	(setq out (if (car lte)
@@ -492,7 +569,7 @@ as (symbol start-expression .  end-expresssion)."
 	(pos (point))
 	(ep nil)
 	(curdepth 0)
-	(cs (concat "\\(\\s<\\|" (regexp-quote comment-start) "\\)")))
+	(cs (concat "\\(\\s<\\|" comment-start-skip "\\)")))
     (goto-char start)
     (while (< (point) end)
       (cond (;; comment end is also EOL for some languages.
