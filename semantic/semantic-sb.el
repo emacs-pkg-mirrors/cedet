@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.18 2000/06/11 18:45:44 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.19 2000/06/13 14:39:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -329,39 +329,6 @@ to create much wiser decisions about how to sort and group these items."
 				      (1+ level))))
 	(setq lst (cdr lst))))))
 
-(defun semantic-sb-bucketize (tokens)
-  "Sort TOKENS into a group of buckets based on type, and toss the rest.
-The buckets should be organized into a form usable by `semantic-sb-buttons'."
-  (let ((bins (make-vector (1+ (length semantic-symbol->name-assoc-list)) nil))
-	ask toktype
-	(sn semantic-symbol->name-assoc-list)
-	(nsn nil)
-	(num 1)
-	(out nil))
-    ;; Build up the bucket vector
-    (while sn
-      (setq nsn (cons (cons (car (car sn)) num) nsn)
-	    sn (cdr sn)
-	    num (1+ num)))
-    ;; Place into buckets
-    (while tokens
-      (setq toktype (semantic-token-token (car tokens))
-	    ask (assq toktype nsn)
-	    num (or (cdr ask) 0))
-      (aset bins num (cons (car tokens) (aref bins num)))
-      (setq tokens (cdr tokens)))
-    ;; Remove from buckets into a speedbar supported list.
-    (setq num 1)
-    (while (< num (length bins))
-      (setq out
-	    (cons (cons
-		   (cdr (nth (1- num) semantic-symbol->name-assoc-list))
-		   (aref bins num))
-		  out)
-	    num (1+ num)))
-    (setq out (cons (cons "Misc" (aref bins 0)) out))
-    (nreverse out)))
-
 (defun semantic-fetch-dynamic-bovine (file)
   "Load FILE into a buffer, and generate tags using the Semantic Bovinator.
 Returns the tag list, or t for an error."
@@ -372,7 +339,7 @@ Returns the tag list, or t for an error."
     (if (not semantic-toplevel-bovine-table)
 	t
       (condition-case nil
-	  (semantic-sb-bucketize
+	  (semantic-bucketize
 	   (semantic-bovinate-toplevel nil t))
 	(error t)))))
 
