@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.123 2001/10/04 15:02:57 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.124 2001/10/26 19:40:49 ponced Exp $
 
 (defvar semantic-version "1.4beta12"
   "Current version of Semantic.")
@@ -204,6 +204,15 @@ If you need a token list, use `semantic-bovinate-toplevel'.  If you
 need the cached values for some reason, chances are you can, add a
 hook to `semantic-after-toplevel-cache-change-hook'.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache)
+
+(defvar semantic-unmatched-syntax-cache nil
+  "A cached copy of unmatched syntax tokens.")
+(make-variable-buffer-local 'semantic-unmatched-syntax-cache)
+
+(defvar semantic-unmatched-syntax-cache-check nil
+  "Non nil if the unmatched syntax cache is out of date.
+This is tracked with `semantic-change-function'.")
+(make-variable-buffer-local 'semantic-unmatched-syntax-cache-check)
 
 (defvar semantic-edits-are-safe nil
   "When non-nil, modifications do not require a reparse.
@@ -464,25 +473,8 @@ The returned item may be an overlay or an unloaded buffer representation."
 		  (not (stringp o)))))))
 
 
-;;; Overlay and error stacks.
+;;; Overlay.
 ;;
-(defvar semantic-overlay-error-recovery-stack nil
-  "List of overlays used during error recovery.")
-
-(defun semantic-overlay-stack-add (o)
-  "Add overlay O to the error recovery stack."
-  (setq semantic-overlay-error-recovery-stack
-	(if (listp o)
-	    (append o semantic-overlay-error-recovery-stack)
-	  (cons o semantic-overlay-error-recovery-stack))))
-
-(defun semantic-overlay-stack-clear ()
-  "Clear the overlay error recovery stack."
-  (while semantic-overlay-error-recovery-stack
-    (semantic-overlay-delete (car semantic-overlay-error-recovery-stack))
-    (setq semantic-overlay-error-recovery-stack
-	  (cdr semantic-overlay-error-recovery-stack))))
-
 (defun semantic-delete-overlay-maybe (overlay)
   "Delete OVERLAY if it is a semantic token overlay."
   (if (semantic-overlay-get overlay 'semantic)
@@ -515,6 +507,15 @@ when checking `semantic-bovine-toplevel-full-reparse-needed-p'."
   (and semantic-toplevel-bovine-cache
        semantic-dirty-tokens
        (not (semantic-bovine-toplevel-full-reparse-needed-p checkcache))))
+
+(defsubst semantic-bovine-umatched-syntax-refresh-needed-p  (&optional checkcache)
+  "Return non-nil if the unmatched syntax cache needs a refresh.
+That is if the cache is dirty or if the current buffer needs a full or
+partial reparse.  Optional argument CHECKCACHE indicates if the
+toplevel cache check should be made."
+  (or semantic-unmatched-syntax-cache-check
+      (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
+      (semantic-bovine-toplevel-partial-reparse-needed-p checkcache)))
 
 (defun semantic-new-buffer-fcn ()
   "Setup Semantic in the current buffer.
@@ -594,6 +595,29 @@ Optional argument CLEAR will clear the cache before bovinating."
 
 ;;; Parsing functions
 ;;
+(defun semantic-clear-unmatched-syntax-cache ()
+  "Clear the cache of unmatched syntax tokens."
+  (setq semantic-unmatched-syntax-cache nil
+        semantic-unmatched-syntax-cache-check t))
+
+(defun semantic-bovinate-unmatched-syntax (&optional checkcache)
+  "Return the list of unmatched syntax tokens.
+If the optional argument CHECKCACHE is non-nil, then make sure the
+cached token list is up to date."
+  ;; If the cache need refresh then do a full re-parse.
+  (if (semantic-bovine-umatched-syntax-refresh-needed-p checkcache)
+      ;; To avoid a recursive call, temporarily disable
+      ;; `semantic-unmatched-syntax-hook'.
+      (let (semantic-unmatched-syntax-hook)
+        (condition-case nil
+            (progn
+              (semantic-clear-toplevel-cache)
+              (semantic-bovinate-toplevel))
+          (quit
+           (message "semantic-bovinate-unmatched-syntax: parsing of buffer canceled."))
+          )))
+    semantic-unmatched-syntax-cache)
+
 (defun semantic-clear-toplevel-cache ()
   "Clear the toplevel bovin cache for the current buffer.
 Clearing the cache will force a complete reparse next time a token
@@ -601,6 +625,7 @@ stream is requested."
   (interactive)
   (run-hooks 'semantic-before-toplevel-cache-flush-hook)
   (setq semantic-toplevel-bovine-cache nil)
+  (semantic-clear-unmatched-syntax-cache)
   ;; Nuke all semantic overlays.  This is faster than deleting based
   ;; on our data structure.
   (let ((l (semantic-overlay-lists)))
@@ -690,6 +715,8 @@ that, otherwise, do a full reparse."
       (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
           ;; If the partial reparse fails, jump to a full reparse.
           (semantic-bovinate-toplevel checkcache)
+        ;; Clear the cache of unmatched syntax tokens
+        (semantic-clear-unmatched-syntax-cache)
         ;; After partial reparse completed, let hooks know the updated
         ;; tokens
         (run-hook-with-args 'semantic-after-partial-cache-change-hook
@@ -700,7 +727,7 @@ that, otherwise, do a full reparse."
     (garbage-collect)
     ;; Reparse the whole system
     (let ((gc-cons-threshold 10000000)
-          res semantic-overlay-error-recovery-stack)
+          res)
       (semantic-clear-toplevel-cache)
       ;; Init a dump
       (if semantic-dump-parse
@@ -711,7 +738,9 @@ that, otherwise, do a full reparse."
                    (semantic-flex (point-min) (point-max))
                    'bovine-toplevel semantic-flex-depth))
 	(working-status t))
-      (semantic-set-toplevel-bovine-cache (nreverse res))
+      (setq res (nreverse res))
+      (semantic-overlay-list res)
+      (semantic-set-toplevel-bovine-cache res)
       semantic-toplevel-bovine-cache)
     )
    (t
@@ -724,10 +753,14 @@ that, otherwise, do a full reparse."
   (setq semantic-toplevel-bovine-cache tokenlist
 	semantic-toplevel-bovine-cache-check nil
 	semantic-toplevel-bovine-force-reparse nil
+        semantic-unmatched-syntax-cache-check nil
         semantic-bovinate-nonterminal-check-obarray nil)
   (add-hook 'after-change-functions 'semantic-change-function nil t)
   (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
 		      semantic-toplevel-bovine-cache)
+  ;; Refresh the display of unmatched syntax tokens if enabled
+  (run-hook-with-args 'semantic-unmatched-syntax-hook
+                      semantic-unmatched-syntax-cache)
   ;; Old Semantic 1.3 hook API.  Maybe useful forever?
   (run-hooks 'semantic-after-toplevel-bovinate-hook)
   )
@@ -735,6 +768,7 @@ that, otherwise, do a full reparse."
 (defun semantic-change-function (start end length)
   "Provide a mechanism for semantic token management.
 Argument START, END, and LENGTH specify the bounds of the change."
+  (setq semantic-unmatched-syntax-cache-check t)
   (run-hook-with-args 'semantic-change-hooks start end length))
 
 ;;; Force token lists in and out of overlay mode.
@@ -799,66 +833,34 @@ Argument START, END, and LENGTH specify the bounds of the change."
 ;;
 (defun semantic-raw-to-cooked-token (token)
   "Convert TOKEN from a raw state to a cooked state.
-The parser returns raw tokens with positional data START/END.
-We convert it from that to a cooked state with a property list and an overlay.
-Change the token with side effects and returns TOKEN."
-  (let* ((result nil)
-	 (expandedtokens nil)
-	 (ncdr (- (length token) 2))
+The parser returns raw tokens with positional data START/END.  We
+convert it from that to a cooked state with a property list and a
+vector [START END].  Change the token with side effects and returns
+TOKEN."
+  (let* ((ncdr    (- (length token) 2))
 	 (propcdr (if (natnump ncdr) (nthcdr ncdr token)))
-	 (overcdr (cdr propcdr))
+	 (rngecdr (cdr propcdr))
 	 ;; propcdr is the CDR containing the START from the token.
-	 ;; overcdr is the CDR containing the END from the token.
+	 ;; rngecdr is the CDR containing the END from the token.
 	 ;; PROPCDR will contain the property list after cooking.
-	 ;; OVERCDR will contain the overlay after cooking.
-	 (o (condition-case nil
-		(semantic-make-overlay (car propcdr)
-				       (car overcdr)
-				       (current-buffer)
-				       ;; Examin start/rear
-				       ;; advance flags.
-				       )
-	      (error (debug token)
-		     nil))))
-    ;; Convert START/END into PROPERTIES/OVERLAY.
-    (setcar overcdr o)
+	 ;; RNGECDR will contain the [START END] vector after cooking.
+	 (range   (condition-case nil
+                      (vector (car propcdr) (car rngecdr))
+                    (error (debug token)
+                           nil)))
+         result expandedtokens)
+    ;; Convert START/END into PROPERTIES/[START END].
+    (setcar rngecdr range)
     (setcar propcdr nil)
-    (semantic-overlay-put o 'semantic token)
     ;; Expand based on local configuration
     (if (not semantic-expand-nonterminal)
-	;; no expanders
+	;; No expanders
 	(setq result (cons token result))
-      ;; Glom generated tokens
-      (setq expandedtokens (funcall semantic-expand-nonterminal token))
-      (if (not expandedtokens)
-	  (progn (setq result (cons token result))
-		 (semantic-overlay-stack-add o))
-	;; Fixup all overlays, start by deleting the old one
-	(let ((tokenloop expandedtokens) o start end)
-	  (while tokenloop
-	    (setq propcdr (nthcdr (- (length (car tokenloop)) 2)
-				   (car tokenloop))
-		  overcdr (nthcdr (- (length (car tokenloop)) 1)
-				   (car tokenloop))
-		  ;; this will support new overlays created by
-		  ;; the special function, or recycles
-		  start (if (semantic-overlay-live-p (car overcdr))
-			    (semantic-overlay-start (car overcdr))
-			  start)
-		  end (if (semantic-overlay-live-p (car overcdr))
-			  (semantic-overlay-end (car overcdr))
-			end)
-		  o (semantic-make-overlay start end
-					   (current-buffer)))
-	    (if (semantic-overlay-live-p (car overcdr))
-		(semantic-overlay-delete (semantic-token-overlay
-					  (car tokenloop))))
-	    (semantic-overlay-stack-add o)
-	    (setcar propcdr nil)
-	    (setcar overcdr o)
-	    (semantic-overlay-put o 'semantic (car tokenloop))
-	    (setq tokenloop (cdr tokenloop))))
-	(setq result (append expandedtokens result))))
+      ;; Glom generated tokens.  THESE TOKENS MUST BE VALID ONES!
+      (setq expandedtokens (funcall semantic-expand-nonterminal token)
+            result (if expandedtokens
+                       (append expandedtokens result)
+                     (cons token result))))
     result))
 
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
@@ -869,17 +871,14 @@ Optional argument RETURNONERROR indicates that the parser should exit with
 the current results on a parse error."
   (if (not depth) (setq depth semantic-flex-depth))
   (let ((result nil)
-	(homeless-syntax nil)
 	(case-fold-search semantic-case-fold))
     (while stream
       (let* ((nontermsym
 	      (semantic-bovinate-nonterminal
 	       stream semantic-toplevel-bovine-table nonterm))
-	     (stream-overlays (car (cdr (cdr nontermsym))))
 	     (token (car (cdr nontermsym))))
 	(if (not nontermsym)
 	    (error "Parse error @ %d" (car (cdr (car stream)))))
-	(semantic-overlay-stack-add stream-overlays)
 	(if token
 	    (if (car token)
 		(progn
@@ -895,9 +894,10 @@ the current results on a parse error."
 	      (setq stream nil)
 	    ;; The current item in the stream didn't match, so add it to
 	    ;; the list of syntax items which didn't match.
-	    (setq homeless-syntax (cons (car stream) homeless-syntax))
+	    (setq semantic-unmatched-syntax-cache
+                  (cons (car stream) semantic-unmatched-syntax-cache))
 	    ))
-	;; De)ignated to ignore.
+	;; Designated to ignore.
 	(setq stream (car nontermsym)))
       (if stream
 	  (if (eq semantic-bovination-working-type 'percent)
@@ -905,8 +905,6 @@ the current results on a parse error."
 			       (* 100.0 (/ (float (car (cdr (car stream))))
 					   (float (point-max))))))
 	    (working-dynamic-status))))
-    (run-hook-with-args 'semantic-unmatched-syntax-hook
-			homeless-syntax)
     result))
 
 (defun semantic-rebovinate-token (token)
@@ -951,6 +949,7 @@ the current results on a parse error."
       ;; Don't do much if we have to do a full recheck.
       (if semantic-toplevel-bovine-cache-check
           nil
+        (semantic-overlay-token new)
         (let ((oo (semantic-token-overlay token))
               (o (semantic-token-overlay new)))
           ;; Copy all properties of the old overlay here.
@@ -1025,10 +1024,9 @@ If so abort because an infinite recursive parse is suspected."
 Optional argument NONTERMINAL is the nonterminal symbol to start with.
 Use `bovine-toplevel' if it is not provided.
 This is the core routine for converting a stream into a table.
-Return the list (STREAM SEMANTIC-STREAM OVERLAYS) where STREAM are those
+Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
-list of semantic tokens found.  OVERLAYS is the list of overlays found
-so far, to be used in the error recovery stack."
+list of semantic tokens found."
   (if (not nonterminal)
       (setq nonterminal 'bovine-toplevel))
 
@@ -1050,12 +1048,10 @@ so far, to be used in the error recovery stack."
         out                      ;Output
         end                      ;End of match
         result
-        semantic-overlay-error-recovery-stack ;part of error recovery
         )
     (while nt-loop
       (catch 'push-non-terminal
-        (setq semantic-overlay-error-recovery-stack nil
-              nt-popup nil
+        (setq nt-popup nil
               end (cdr (cdr (car stream))))
         (while (or nt-loop nt-popup)
           (setq nt-loop nil
@@ -1100,8 +1096,6 @@ so far, to be used in the error recovery stack."
                 (setq
                  ;; push state into the nt-stack
                  nt-stack (cons (vector matchlist cvl lte stream end
-                                        ;; error recovery
-                                        semantic-overlay-error-recovery-stack
                                         )
                                 nt-stack)
                  ;; new non-terminal matchlist
@@ -1144,7 +1138,6 @@ so far, to be used in the error recovery stack."
                                                      '(comment semantic-list))
                                                valdot val)
                                            cvl)) ;append this value
-                              (semantic-overlay-stack-clear)
                               (setq lte nil cvl nil))) ;clear the entry (exit)
                         (setq cvl (cons
                                    (if (memq (car lse)
@@ -1157,7 +1150,6 @@ so far, to be used in the error recovery stack."
                                             (semantic-bovinate-nonterminal-db-nt)
                                             (semantic-flex-text lse)
                                             "Term Type Fail"))
-                  (semantic-overlay-stack-clear)
                   (setq lte nil cvl nil)) ;No more matches, exit
                 )))
             (if (not cvl)               ;lte=nil;  there was no match.
@@ -1194,14 +1186,11 @@ so far, to be used in the error recovery stack."
               ))
 	  (setq result
 		(if (eq s starting-stream)
-		    (list (cdr s) nil
-			  semantic-overlay-error-recovery-stack)
-		  (list s out
-			semantic-overlay-error-recovery-stack)))
+		    (list (cdr s) nil)
+		  (list s out)))
           (if nt-stack
               ;; pop previous state from the nt-stack
-              (let ((state (car nt-stack))
-                    (ov semantic-overlay-error-recovery-stack))
+              (let ((state (car nt-stack)))
 
                 (setq nt-popup    t
                       ;; pop actual parser state
@@ -1210,13 +1199,8 @@ so far, to be used in the error recovery stack."
                       lte         (aref state 2)
                       stream      (aref state 3)
                       end         (aref state 4)
-                      ;; pop error recovery state
-                      semantic-overlay-error-recovery-stack (aref state 5)
                       ;; update the stack
                       nt-stack    (cdr nt-stack))
-                
-                (if ov
-                    (semantic-overlay-stack-add ov))
                 
                 (if out
                     (let ((len (length out))
@@ -1232,7 +1216,6 @@ so far, to be used in the error recovery stack."
                       )
                   ;; No value means that we need to terminate this
                   ;; match.
-                  (semantic-overlay-stack-clear)
                   (setq lte nil cvl nil)) ;No match, exit
                 )))))
     result))
