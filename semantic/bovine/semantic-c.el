@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.15 2003/04/02 02:00:20 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.16 2003/04/02 04:20:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 20:20-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 23:16-0500
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -693,7 +693,7 @@
       ,(semantic-lambda
 	(semantic-tag-new-type
 	 (car
-	  (nth 1 vals)) nil nil
+	  (nth 1 vals)) nil nil nil
 	 'const
 	 (if
 	     (member
@@ -852,23 +852,23 @@
      (STRUCT
       symbol
       ,(semantic-lambda
-	(list
-	 (nth 1 vals) 'type
-	 (nth 0 vals)))
+	(semantic-tag-new-type
+	 (nth 1 vals)
+	 (nth 0 vals) nil nil))
       )
      (UNION
       symbol
       ,(semantic-lambda
-	(list
-	 (nth 1 vals) 'type
-	 (nth 0 vals)))
+	(semantic-tag-new-type
+	 (nth 1 vals)
+	 (nth 0 vals) nil nil))
       )
      (ENUM
       symbol
       ,(semantic-lambda
-	(list
-	 (nth 1 vals) 'type
-	 (nth 0 vals)))
+	(semantic-tag-new-type
+	 (nth 1 vals)
+	 (nth 0 vals) nil nil))
       )
      (builtintype
       ,(semantic-lambda
@@ -877,9 +877,10 @@
      (namespace-symbol
       opt-template-specifier
       ,(semantic-lambda
-	(nth 0 vals)
-	(list 'type
-	      "class"))
+	(semantic-tag-new-type
+	 (car
+	  (nth 0 vals))
+	 "class" nil nil))
       )
      (symbol
       ,(semantic-lambda
@@ -1875,7 +1876,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   tag)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 20:20-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 23:16-0500
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -2094,17 +2095,17 @@ In C, a method is abstract if it is `virtual', which is already
 handled.  A class is abstract iff it's destructor is virtual."
   (cond
    ((eq (semantic-tag-class tag) 'type)
-    (or (semantic-find-nonterminal-by-extra-spec 'pure-virtual
-						 (semantic-tag-components tag)
-						 nil nil)
-	(let* ((ds (semantic-find-nonterminal-by-extra-spec
+    (or (semantic-brute-find-tag-by-attribute 'pure-virtual
+					      (semantic-tag-components tag)
+					      )
+	(let* ((ds (semantic-brute-find-tag-by-attribute
 		    'destructor
 		    (semantic-tag-components tag)
-		    nil nil))
-	       (cs (semantic-find-nonterminal-by-extra-spec
+		    ))
+	       (cs (semantic-brute-find-tag-by-attribute
 		    'constructor
 		    (semantic-tag-components tag)
-		    nil nil)))
+		    )))
 	  (and ds (member "virtual" (semantic-tag-modifiers (car ds)))
 	       cs (eq 'protected (semantic-nonterminal-protection cs tag))
 	       )
@@ -2131,7 +2132,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 20:20-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 23:16-0500
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
 	  semantic-debug-parser-source "c.by"
