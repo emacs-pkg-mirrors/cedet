@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.23 2005/01/13 12:27:38 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.24 2005/01/29 04:32:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -108,7 +108,51 @@
 (require 'semanticdb)
 
 ;;; Code:
+(defvar semanticdb-find-throttle-custom-list
+  '(repeat (radio (const 'local)
+		  (const 'project)
+		  (const 'unloaded)
+		  (const 'system)
+		  (const 'recursive)
+		  (const 'omnipotent)))
+  "Customization values for semanticdb find throttle.
+See `semanticdb-find-throttle' for details.")
 
+(defcustom semanticdb-find-default-throttle '(project system recursive)
+  "The default throttle for `semanticdb-find' routines.
+The throttle controls how detailed the list of database
+tables is for a symbol lookup.  The value is a list with
+the following keys:
+  `file'       - The file the search is being performed from.
+                 This option is here for completeness only, and
+                 is assumed to always be on.
+  `local'      - Tables from the same local directory are included.
+                 This includes files directly referenced by a file name
+                 which might be in a different directory.
+  `project'    - Tables from the same local project are included
+                 If `project' is specified, then `local' is assumed.
+  `unloaded'   - If a table is not in memory, load it.  If it is not cached
+                 on disk either, get the source, parse it, and create
+                 the table.
+  `system'     - Tables from system databases.  These are specifically
+                 tables from system header files, or language equivalent.
+  `recursive'  - For include based searches, includes tables referenced
+                 by included files.
+  `omnipotent' - Included system databases which are omnipotent, or
+                 somehow know everything.  Omnipotent databases are found
+                 in `semanticdb-project-system-databases'.
+                 The Emacs Lisp system DB is an omnipotent database."
+  :group 'semanticdb
+  :type semanticdb-find-throttle-custom-list)
+
+(defun semanticdb-find-throttle-active-p (access-type)
+  "Non-nil if ACCESS-TYPE is an active throttle type."
+  (or (memq access-type semanticdb-find-default-throttle)
+      (eq access-type 'file)
+      (and (eq access-type 'local)
+	   (memq 'project semanticdb-find-default-throttle))
+      ))
+	
 ;;; Path Translations
 ;;
 ;;; OVERLOAD Functions
@@ -200,9 +244,10 @@ Default action as described in `semanticdb-find-translate-path'."
 	;; Add to list of tables
 	(push nexttable matchedtables)
 	;; Queue new includes to list
-	(setq includetags (append includetags
-				  (semantic-find-tags-included
-				   (semanticdb-get-tags nexttable)))))
+	(if (semanticdb-find-throttle-active-p 'recursive)
+	    (setq includetags (append includetags
+				      (semantic-find-tags-included
+				       (semanticdb-get-tags nexttable))))))
       (setq includetags (cdr includetags)))
     (nreverse matchedtables)))
 
@@ -218,7 +263,8 @@ overlay of :filename attribute."
 (defun semanticdb-find-table-for-include-default (includetag &optional table)
   "Default implementation of `semanticdb-find-table-for-include'.
 Uses `semanticdb-current-database-list' as the search path.
-INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
+INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'.
+Included databases are filtered based on `semanticdb-find-default-throttle'."
   (if (not (eq (semantic-tag-class includetag) 'include))
       (signal 'wrong-type-argument (list includetag 'include)))
 
@@ -230,20 +276,32 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 	(ans nil))
     (cond
      ;; Relative path name
-     ((file-exists-p (expand-file-name name))
+     ((and (file-exists-p (expand-file-name name))
+	   (semanticdb-find-throttle-active-p 'local))
       (setq ans (semanticdb-file-table-object name)))
 
      ;; On the path somewhere
-;;;; THIS NEEDS WORK!
 ;;;; NOTES: Separate system includes from local includes.
 ;;;;        Use only system databases for system includes.
-     ;((setq tmp (semantic-dependency-tag-file includetag))
-     ; (setq ans (semanticdb-file-table-object tmp))
-      ;; If we don't load this, then finding include tags within
-      ;; the table could fail!
-      ;; (when ans (save-excursion (semanticdb-set-buffer ans)))
-     ;;  )
-     (t
+     ((and (setq tmp (semantic-dependency-tag-file includetag))
+	   (semanticdb-find-throttle-active-p 'system))
+      (let ((db (semanticdb-directory-loaded-p (file-name-directory tmp))))
+	(if db
+	    ;; We have a database, but perhaps not a table?
+	    (setq ans (semanticdb-file-table db tmp)))
+	(if ans
+	    ;; We are A-ok!
+	    nil
+	  ;; The file is not i memory!
+	  ;; Should we force it to be loaded in?
+	  (if (semanticdb-find-throttle-active-p 'unloaded)
+	      (progn
+		(setq ans (semanticdb-file-table-object tmp))
+		)
+	    ;; We are not allowed to return the discovered
+	    ;; answer if the throttle is set low.
+	    (setq ans nil)))))
+     ((semanticdb-find-throttle-active-p 'project)
       ;; Somewhere in our project hierarchy
       ;; Remember: Roots includes system databases which can create
       ;; specialized tables we can search.
@@ -261,11 +319,12 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 		(setq ans (semanticdb-file-table-object fname)))
 	    ;; No reference directory  Probably a system database
 	    ;; NOTE: Systemdb will need to override `semanticdb-file-table'.
-	    (setq ans (semanticdb-file-table
-		       (car roots)
-		       ;; Use name direct from tag.  System DB will expect it
-		       ;; in the original form.
-		       (semantic-tag-name includetag)))))
+	    (if (semanticdb-find-throttle-active-p 'omnipotent)
+		(setq ans (semanticdb-file-table
+			   (car roots)
+			   ;; Use name direct from tag.  System DB will expect it
+			   ;; in the original form.
+			   (semantic-tag-name includetag))))))
 
 	(setq roots (cdr roots))))
      )
@@ -280,13 +339,25 @@ With ARG non-nil, specify a BRUTISH translation."
   (interactive "P")
   (let ((p (semanticdb-find-translate-path nil arg)))
     ;; Output the result
+    (message "%d paths found." (length p))
     (with-output-to-temp-buffer "*Translated Path*"
       (while p
-	(princ (semanticdb-printable-name (car p)))
+	(condition-case nil
+	    (progn
+	      (princ (semanticdb-full-filename (car p)))
+	      (princ ": ")
+	      (prin1 (length (oref (car p) tags)))
+	      (princ " tags")
+	      (let ((parent (oref (car p) parent-db)))
+		(when parent
+		  (princ " : ")
+		  (princ (object-name parent))))
+	      )
+	  (no-method-definition
+	   (princ (semanticdb-printable-name (car p)))))
 	(princ "\n")
 	(setq p (cdr p)))
       )
-    (message "%d paths found." (length p))
     ))
 
 ;;; FIND results and edebug
