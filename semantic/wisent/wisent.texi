@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.14 2002/06/27 12:30:16 ponced Exp $
+@c $Id: wisent.texi,v 1.15 2002/06/27 19:48:19 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle Wisent: the Bison-compatible Parser Generator for Emacs
@@ -18,12 +18,14 @@ This manual documents Wisent, the Bison-compatible Parser Generator
 for Emacs.
 
 Some texts are borrowed or adapted from the manual of Bison version
-1.35, updated 25 February 2002.
+1.35.  The text in section entitled ``Understanding the automaton'' is
+adapted from the section ``Understanding Your Parser'' in the manual
+of Bison version 1.49.
 
 @iftex
 Copyright @copyright{} 2001, 2002 David Ponce
 Copyright @copyright{} 1988, 1989, 1990, 1991, 1992, 1993, 1995, 1998,
-1999, 2000, 2001 Free Software Foundation, Inc.
+1999, 2000, 2001, 2002 Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -69,13 +71,14 @@ License''.
 Grammar
 
 * Grammar format::              
+* Example::                     
 * Compiling a grammar::         
 * Conflicts::                   
-* Example::                     
 
-Compiling a grammar
+Conflicts
 
 * Grammar Debugging::           
+* Understanding the automaton::  
 
 Parsing
 
@@ -110,9 +113,9 @@ Grammar styles
 
 @cindex Wisent overview
 @cindex Wisent vs. Bison
-Wisent (the European Bison) is an implementation in Emacs Lisp of the
-GNU Compiler Compiler Bison. Its code is a port of the C code of GNU
-Bison 1.28 & 1.31.
+@dfn{Wisent} (the European Bison) is an implementation in Emacs Lisp
+of the GNU Compiler Compiler Bison. Its code is a port of the C code
+of GNU Bison 1.28 & 1.31.
 
 For more details on the basic concepts for understanding Wisent, it is
 worthwhile to read the Bison Manual.@*
@@ -221,9 +224,9 @@ between, can be combined into a larger grouping of type @code{exp}.
  
 @menu
 * Grammar format::              
+* Example::                     
 * Compiling a grammar::         
 * Conflicts::                   
-* Example::                     
 @end menu
 
 @node Grammar format
@@ -380,6 +383,115 @@ matching the empty string, for which the default action is to return
 @end table
 @end table
 
+@node Example
+@section Example
+
+@cindex Grammar example
+Here is an example to parse simple infix arithmetic expressions.@*
+@inforef{Infix Calc, , bison.info}, for more details.
+
+The full grammar in @dfn{WY} format (See @ref{WY grammar format}) is
+available in the file @file{wisent-calc.wy}.
+
+@example
+%token <number> NUM
+
+%nonassoc '=' ;; comparison
+%left '-' '+'
+%left '*' '/'
+%left NEG     ;; negation--unary minus
+%right '^'    ;; exponentiation
+
+%%
+
+input:
+    line
+  | input line
+    (format "%s %s" $1 $2)
+  ;
+
+line:
+    ';'
+    @{";"@}
+  | exp ';'
+    (format "%s;" $1)
+  ;
+
+exp:
+    NUM
+    (string-to-number $1)
+  | exp '=' exp
+    (= $1 $3)
+  | exp '+' exp
+    (+ $1 $3)
+  | exp '-' exp
+    (- $1 $3)
+  | exp '*' exp
+    (* $1 $3)
+  | exp '/' exp
+    (/ $1 $3)
+  | '-' exp %prec NEG
+    (- $2)
+  | exp '^' exp
+    (expt $1 $3)
+  | '(' exp ')'
+    @{$2@}
+  ;
+
+%%
+@end example
+
+Here is the corresponding Lisp form accepted by Wisent:
+
+@lisp
+'(
+  ;; Terminals
+  (NUM)
+  
+  ;; Terminal associativity & precedence
+  ((nonassoc ?=)
+   (left ?- ?+)
+   (left ?* ?/)
+   (left NEG)
+   (right ?^))
+  
+  ;; Rules
+  (input
+   ((line))
+   ((input line)
+    (format "%s %s" $1 $2))
+   )
+
+  (line
+   ((?;)
+    (progn ";"))
+   ((exp ?;)
+    (format "%s;" $1))
+   )
+
+  (exp
+   ((NUM)
+    (string-to-number $1))
+   ((exp ?= exp)
+    (= $1 $3))
+   ((exp ?+ exp)
+    (+ $1 $3))
+   ((exp ?- exp)
+    (- $1 $3))
+   ((exp ?* exp)
+    (* $1 $3))
+   ((exp ?/ exp)
+    (/ $1 $3))
+   ((?- exp) [NEG]
+    (- $2))
+   ((exp ?^ exp)
+    (expt $1 $3))
+   ((?\( exp ?\))
+    (progn $2))
+   )
+  )
+@end lisp
+
 @node Compiling a grammar
 @section Compiling a grammar
 
@@ -439,38 +551,6 @@ lexical tokens that will be first shifted into the parser stack.
 @end table
 @end defun
 
-@menu
-* Grammar Debugging::           
-@end menu
-
-@node Grammar Debugging
-@subsection Grammar Debugging
-
-To help writing a new grammar, it is possible to tell
-@code{wisent-compile-grammar} to produce a report containing verbose
-descriptions of the grammar and parser (it is equivalent to the
-@code{--verbose} option for Bison), by setting to non-@code{nil} this
-variable:
-
-@vindex wisent-verbose-flag
-@defvar wisent-verbose-flag
-Non-nil means to report verbose information on generated parser.
-@end defvar
-
-For performance reason, the code of semantic actions is byte-compiled
-by default.  It is useful to prevent byte-compilation when you want to
-debug action code by including calls to the Emacs debugger.  For that
-you must set to non-@code{nil} this variable:
-
-@vindex wisent-debug-flag
-@defvar wisent-debug-flag
-Non-@code{nil} means enable some debug stuff.
-@end defvar
-
-Note that when non-@code{nil}, @code{wisent-debug-flag} also enables
-reporting of the content of some internal data structures.  This is
-mainly useful to debug the grammar compiler itself.
-
 @node Conflicts
 @section Conflicts
 
@@ -513,115 +593,396 @@ reduce/reduce conflict must be studied and usually eliminated.@*
 @inforef{Reduce/Reduce , , bison.info}, for more information.
 @end table
 
-@node Example
-@section Example
+@menu
+* Grammar Debugging::           
+* Understanding the automaton::  
+@end menu
 
-@cindex Grammar example
-Here is an example to parse simple infix arithmetic expressions.@*
-@inforef{Infix Calc, Examples, bison.info}, for more details.
+@node Grammar Debugging
+@subsection Grammar debugging
 
-The full grammar in @dfn{WY} format (See @ref{WY grammar format}) is
-available in the file @file{wisent-calc.wy}.
+@cindex Grammar debugging
+To help writing a new grammar, it is possible to tell
+@code{wisent-compile-grammar} to produce a report containing verbose
+descriptions of the grammar and parser (it is equivalent to the
+@code{--verbose} option for Bison), by setting to non-@code{nil} this
+variable:
+
+@vindex wisent-verbose-flag
+@defvar wisent-verbose-flag
+Non-nil means to report verbose information on generated parser.
+@end defvar
+
+The verbose report is printed in the temporary buffer
+@code{*wisent-log*} when running interactively, or in file
+@file{wisent.output} when running in batch mode.  Different
+reports are separated from each other by a line like this:
 
 @example
-%token <number> NUM
-
-%nonassoc '=' ;; comparison
-%left '-' '+'
-%left '*' '/'
-%left NEG     ;; negation--unary minus
-%right '^'    ;; exponentiation
-
-%%
-
-input:
-    line
-  | input line
-    (format "%s %s" $1 $2)
-  ;
-
-line:
-    ';'
-    @{";"@}
-  | exp ';'
-    (format "%s;" $1)
-  ;
-
-exp:
-    NUM
-    (string-to-number $1)
-  | exp '=' exp
-    (= $1 $3)
-  | exp '+' exp
-    (+ $1 $3)
-  | exp '-' exp
-    (- $1 $3)
-  | exp '*' exp
-    (* $1 $3)
-  | exp '/' exp
-    (/ $1 $3)
-  | '-' exp %prec NEG
-    (- $2)
-  | exp '^' exp
-    (expt $1 $3)
-  | '(' exp ')'
-    @{$2@}
-  ;
-
-%%
+*** Wisent @var{SOURCE-FILE} - 2002-06-27 17:33
 @end example
 
-Here is the corresponding Lisp form accepted by
-@code{wisent-compile-grammar}:
+where @var{SOURCE-FILE} is the name of the Emacs Lisp file from which
+the grammar was read.
 
-@lisp
-'(
-  ;; Terminals
-  (NUM)
-  
-  ;; Terminal associativity & precedence
-  ((nonassoc ?=)
-   (left ?- ?+)
-   (left ?* ?/)
-   (left NEG)
-   (right ?^))
-  
-  ;; Rules
-  (input
-   ((line))
-   ((input line)
-    (format "%s %s" $1 $2))
-   )
+@xref{Understanding the automaton}, for details on the verbose report.
 
-  (line
-   ((?;)
-    (progn ";"))
-   ((exp ?;)
-    (format "%s;" $1))
-   )
+For performance reason, the code of semantic actions is byte-compiled
+by default.  It is useful to prevent byte-compilation when you want to
+debug action code by including calls to the Emacs debugger.  For that
+you must set to non-@code{nil} this variable:
 
-  (exp
-   ((NUM)
-    (string-to-number $1))
-   ((exp ?= exp)
-    (= $1 $3))
-   ((exp ?+ exp)
-    (+ $1 $3))
-   ((exp ?- exp)
-    (- $1 $3))
-   ((exp ?* exp)
-    (* $1 $3))
-   ((exp ?/ exp)
-    (/ $1 $3))
-   ((?- exp) [NEG]
-    (- $2))
-   ((exp ?^ exp)
-    (expt $1 $3))
-   ((?\( exp ?\))
-    (progn $2))
-   )
+@vindex wisent-debug-flag
+@defvar wisent-debug-flag
+Non-@code{nil} means enable some debug stuff.
+@end defvar
+
+Note that when non-@code{nil}, @code{wisent-debug-flag} also enables
+reporting of the content of some internal data structures.  This is
+mainly useful to debug the grammar compiler itself.
+
+@node Understanding the automaton
+@subsection Understanding the automaton
+
+@cindex Understanding the automaton
+This section (took from the manual of Bison 1.49) describes how to use
+the verbose report printed by @code{wisent-compile-grammar} to
+understand the generated automaton, to tune or fix a grammar.
+
+We will use the following example:
+
+@example
+(let ((wisent-verbose-flag t)) ;; Print a verbose report!
+  (wisent-compile-grammar
+   '((NUM STR)                          ; %token NUM STR
+
+     ((left ?+ ?-)                      ; %left '+' '-'; 
+      (left ?*))                        ; %left '*'
+
+     (exp                               ; exp:
+      ((exp ?+ exp))                    ;    exp '+' exp
+      ((exp ?- exp))                    ;  | exp '-' exp
+      ((exp ?* exp))                    ;  | exp '*' exp
+      ((exp ?/ exp))                    ;  | exp '/' exp
+      ((NUM))                           ;  | NUM
+      )                                 ;  ;
+
+     (useless                           ; useless:
+      ((STR))                           ;    STR
+      )                                 ;  ;
+     )
+   'nil)                                ; no %start declarations
   )
-@end lisp
+@end example
+
+When evaluating the above expression, grammar compilation first issues
+the following two clear messages:
+
+@example
+Grammar contains 1 useless nonterminals and 1 useless rules
+Grammar contains 7 shift/reduce conflicts
+@end example
+
+The @samp{*wisent-log*} buffer details things!
+
+The first section reports conflicts that were solved using precedence
+and/or associativity:
+
+@example
+Conflict in state 7 between rule 1 and token '+' resolved as reduce.
+Conflict in state 7 between rule 1 and token '-' resolved as reduce.
+Conflict in state 7 between rule 1 and token '*' resolved as shift.
+Conflict in state 8 between rule 2 and token '+' resolved as reduce.
+Conflict in state 8 between rule 2 and token '-' resolved as reduce.
+Conflict in state 8 between rule 2 and token '*' resolved as shift.
+Conflict in state 9 between rule 3 and token '+' resolved as reduce.
+Conflict in state 9 between rule 3 and token '-' resolved as reduce.
+Conflict in state 9 between rule 3 and token '*' resolved as reduce.
+@end example
+
+The next section reports useless tokens, nonterminal and rules (note
+that useless tokens might be used by the scanner):
+
+@example
+Useless nonterminals:
+
+   useless
+
+
+Terminals which are not used:
+
+   STR
+
+
+Useless rules:
+
+#6     useless: STR;
+@end example
+
+The next section lists states that still have conflicts:
+
+@example
+State 7 contains 1 shift/reduce conflict.
+State 8 contains 1 shift/reduce conflict.
+State 9 contains 1 shift/reduce conflict.
+State 10 contains 4 shift/reduce conflicts.
+@end example
+
+The next section reproduces the grammar used:
+
+@example
+Grammar
+
+  Number, Rule
+  1       exp -> exp '+' exp
+  2       exp -> exp '-' exp
+  3       exp -> exp '*' exp
+  4       exp -> exp '/' exp
+  5       exp -> NUM
+@end example
+
+And reports the uses of the symbols:
+
+@example
+Terminals, with rules where they appear
+
+$EOI (-1)
+error (1)
+NUM (2) 5
+STR (3) 6
+'+' (4) 1
+'-' (5) 2
+'*' (6) 3
+'/' (7) 4
+
+
+Nonterminals, with rules where they appear
+
+exp (8)
+    on left: 1 2 3 4 5, on right: 1 2 3 4
+@end example
+
+The report then details the automaton itself, describing each state
+with it set of @dfn{items}, also known as @dfn{pointed rules}.  Each
+item is a production rule together with a point (marked by @samp{.})
+that the input cursor.
+
+@example
+state 0
+
+    NUM	shift, and go to state 1
+
+    exp	go to state 2
+@end example
+
+State 0 corresponds to being at the very beginning of the parsing, in
+the initial rule, right before the start symbol (@samp{exp}).  When
+the parser returns to this state right after having reduced a rule
+that produced an @samp{exp}, it jumps to state 2.  If there is no such
+transition on a nonterminal symbol, and the lookahead is a @samp{NUM},
+then this token is shifted on the parse stack, and the control flow
+jumps to state 1.  Any other lookahead triggers a parse error.
+
+In the state 1...
+
+@example
+state 1
+
+    exp  ->  NUM .   (rule 5)
+
+    $default	reduce using rule 5 (exp)
+@end example
+
+the rule 5, @samp{exp: NUM;}, is completed.  Whatever the lookahead
+(@samp{$default}), the parser will reduce it.  If it was coming from
+state 0, then, after this reduction it will return to state 0, and
+will jump to state 2 (@samp{exp: go to state 2}).
+
+@example
+state 2
+
+    exp  ->  exp . '+' exp   (rule 1)
+    exp  ->  exp . '-' exp   (rule 2)
+    exp  ->  exp . '*' exp   (rule 3)
+    exp  ->  exp . '/' exp   (rule 4)
+
+    $EOI	shift, and go to state 11
+    '+'	shift, and go to state 3
+    '-'	shift, and go to state 4
+    '*'	shift, and go to state 5
+    '/'	shift, and go to state 6
+@end example
+
+In state 2, the automaton can only shift a symbol.  For instance,
+because of the item @samp{exp -> exp . '+' exp}, if the lookahead if
+@samp{+}, it will be shifted on the parse stack, and the automaton
+control will jump to state 3, corresponding to the item
+@samp{exp -> exp . '+' exp}:
+
+@example
+state 3
+
+    exp  ->  exp '+' . exp   (rule 1)
+
+    NUM	shift, and go to state 1
+
+    exp	go to state 7
+@end example
+
+Since there is no default action, any other token than those listed
+above will trigger a parse error.
+
+The interpretation of states 4 to 6 is straightforward:
+
+@example
+state 4
+
+    exp  ->  exp '-' . exp   (rule 2)
+
+    NUM	shift, and go to state 1
+
+    exp	go to state 8
+
+
+
+state 5
+
+    exp  ->  exp '*' . exp   (rule 3)
+
+    NUM	shift, and go to state 1
+
+    exp	go to state 9
+
+
+
+state 6
+
+    exp  ->  exp '/' . exp   (rule 4)
+
+    NUM	shift, and go to state 1
+
+    exp	go to state 10
+@end example
+
+As was announced in beginning of the report, @samp{State 7 contains 1
+shift/reduce conflict.}:
+
+@example
+state 7
+
+    exp  ->  exp . '+' exp   (rule 1)
+    exp  ->  exp '+' exp .   (rule 1)
+    exp  ->  exp . '-' exp   (rule 2)
+    exp  ->  exp . '*' exp   (rule 3)
+    exp  ->  exp . '/' exp   (rule 4)
+
+    '*'	shift, and go to state 5
+    '/'	shift, and go to state 6
+
+    '/'	[reduce using rule 1 (exp)]
+    $default	reduce using rule 1 (exp)
+@end example
+
+Indeed, there are two actions associated to the lookahead @samp{/}:
+either shifting (and going to state 6), or reducing rule 1.  The
+conflict means that either the grammar is ambiguous, or the parser
+lacks information to make the right decision.  Indeed the grammar is
+ambiguous, as, since we did not specify the precedence of @samp{/},
+the sentence @samp{NUM + NUM / NUM} can be parsed as @samp{NUM + (NUM
+/ NUM)}, which corresponds to shifting @samp{/}, or as @samp{(NUM +
+NUM) / NUM}, which corresponds to reducing rule 1.
+
+Because in LALR(1) parsing a single decision can be made, Wisent
+arbitrarily chose to disable the reduction, see @ref{Conflicts}.
+Discarded actions are reported in between square brackets.
+
+Note that all the previous states had a single possible action: either
+shifting the next token and going to the corresponding state, or
+reducing a single rule.  In the other cases, i.e., when shifting
+@emph{and} reducing is possible or when @emph{several} reductions are
+possible, the lookahead is required to select the action.  State 7 is
+one such state: if the lookahead is @samp{*} or @samp{/} then the
+action is shifting, otherwise the action is reducing rule 1.  In other
+words, the first two items, corresponding to rule 1, are not eligible
+when the lookahead is @samp{*}, since we specified that @samp{*} has
+higher precedence that @samp{+}.  More generally, some items are
+eligible only with some set of possible lookaheads.
+
+States 8 to 10 are similar:
+
+@example
+state 8
+
+    exp  ->  exp . '+' exp   (rule 1)
+    exp  ->  exp . '-' exp   (rule 2)
+    exp  ->  exp '-' exp .   (rule 2)
+    exp  ->  exp . '*' exp   (rule 3)
+    exp  ->  exp . '/' exp   (rule 4)
+
+    '*'	shift, and go to state 5
+    '/'	shift, and go to state 6
+
+    '/'	[reduce using rule 2 (exp)]
+    $default	reduce using rule 2 (exp)
+
+
+
+state 9
+
+    exp  ->  exp . '+' exp   (rule 1)
+    exp  ->  exp . '-' exp   (rule 2)
+    exp  ->  exp . '*' exp   (rule 3)
+    exp  ->  exp '*' exp .   (rule 3)
+    exp  ->  exp . '/' exp   (rule 4)
+
+    '/'	shift, and go to state 6
+
+    '/'	[reduce using rule 3 (exp)]
+    $default	reduce using rule 3 (exp)
+
+
+
+state 10
+
+    exp  ->  exp . '+' exp   (rule 1)
+    exp  ->  exp . '-' exp   (rule 2)
+    exp  ->  exp . '*' exp   (rule 3)
+    exp  ->  exp . '/' exp   (rule 4)
+    exp  ->  exp '/' exp .   (rule 4)
+
+    '+'	shift, and go to state 3
+    '-'	shift, and go to state 4
+    '*'	shift, and go to state 5
+    '/'	shift, and go to state 6
+
+    '+'	[reduce using rule 4 (exp)]
+    '-'	[reduce using rule 4 (exp)]
+    '*'	[reduce using rule 4 (exp)]
+    '/'	[reduce using rule 4 (exp)]
+    $default	reduce using rule 4 (exp)
+@end example
+
+Observe that state 10 contains conflicts due to the lack of precedence
+of @samp{/} wrt @samp{+}, @samp{-}, and @samp{*}, but also because the
+associativity of @samp{/} is not specified.
+
+Finally, the state 11 (plus 12) is named the @dfn{final state}, or the
+@dfn{accepting state}:
+
+@example
+state 11
+
+    $EOI	shift, and go to state 12
+
+
+
+state 12
+
+    $default	accept
+@end example
+
+The end of input is shifted @samp{$EOI shift,} and the parser exits
+successfully (@samp{go to state 12}, that terminates).
 
 @node Parsing
 @chapter Parsing
