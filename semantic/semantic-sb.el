@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.1 1999/05/05 13:59:24 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.2 1999/05/06 11:34:00 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 
 (defun semantic-sb-one-button (token depth)
   "Insert TOKEN as a speedbar button at DEPTH."
-  (let* ((type (car token))
+  (let* ((type (semantic-token-token token))
 	 (edata (cond ((eq type 'type)
 		       (semantic-token-type-parts token))
 		      ((eq type 'variable)
@@ -101,7 +101,7 @@ Argument TEXT-DATA is the token data to pass to TEXT-FUN."
 	       (insert (int-to-string depth) ":")
 	       (point))))
     (put-text-property start end 'invisible t)
-    (insert-char ?  indent nil)
+    (insert-char ?  depth nil)
     (speedbar-insert-button button nil nil nil nil t)
     (speedbar-insert-button text
 			    'speedbar-tag-face
@@ -111,7 +111,7 @@ Argument TEXT-DATA is the token data to pass to TEXT-FUN."
 
 (defun semantic-sb-insert-details (token indent)
   "Insert details about TOKEN at level INDENT."
-  (let ((tt (car token))
+  (let ((tt (semantic-token-token token))
 	(type (semantic-token-type token)))
     (cond ((eq tt 'type)
 	   nil)
@@ -134,8 +134,9 @@ Argument TEXT-DATA is the token data to pass to TEXT-FUN."
 		     (semantic-sb-speedbar-data-line
 		      indent "|" (car args))
 		     (setq args (cdr args)))
-		   (semantic-sb-speedbar-data-line
-		    indent ")" (car args))
+		   (if args
+		       (semantic-sb-speedbar-data-line
+			indent ")" (car args)))
 		   )))))
     ))
 
@@ -212,14 +213,15 @@ TEXT TOKEN and INDENT are the details."
 
 (defun semantic-sb-buckets (tokens)
   "Sort TOKENS into a group of buckets based on type, and toss the rest."
-  (let ((vars nil) (funs nil) (types nil))
+  (let ((vars nil) (funs nil) (types nil) toktype)
     (while tokens
-      (cond ((eq (car (car tokens)) 'variable)
+      (setq toktype (semantic-token-token (car tokens)))
+      (cond ((eq toktype  'variable)
 	     (setq vars (cons (car tokens) vars)))
-	    ((eq (car (car tokens)) 'function)
+	    ((eq toktype 'function)
 	     (setq funs (cons (car tokens) funs)))
-	    ((eq (car (car tokens)) 'type)
-	     (setq types (cons (car tokens) type)))
+	    ((eq toktype 'type)
+	     (setq types (cons (car tokens) types)))
 	    (t nil))
       (setq tokens (cdr tokens)))
     (list (nreverse types) (nreverse vars) (nreverse funs))))
