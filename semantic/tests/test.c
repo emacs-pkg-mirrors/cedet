@@ -1,7 +1,7 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.5 2001/10/04 15:06:11 zappo Exp $
+ * $Id: test.c,v 1.6 2001/10/05 02:12:27 zappo Exp $
  *
  */
 /* types of include files */
@@ -63,7 +63,7 @@ enum { enum31, enum32 } var_of_anonymous_enum;
 
 typedef enum myenum1 typedef_of_myenum1;
 typedef enum myenum1 *typedef_of_pointer_myenum1;
-typedef enum { int slot_a; } typedef_of_anonymous_enum;
+typedef enum { enum_a = 3, enum_b } typedef_of_anonymous_enum;
 
 typedef int typedef_of_int;
 
