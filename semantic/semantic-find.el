@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.12 2003/05/29 00:57:08 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.13 2003/05/29 01:05:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -376,38 +376,6 @@ TABLE is a tag table.  See `semantic-something-to-tag-table'."
    (equal (semantic-nonterminal-external-member-parent (car tags))
 	  type)
    table))
-
-;;; Tag Table Flattening
-;;
-;; In the 1.4 search API, there was a parameter "search-parts" which
-;; was used to find tags inside other tags.  This was used
-;; infrequently, mostly for completion/jump routines.  These types
-;; of commands would be better off with a flattened list, where all
-;; tags appear at the top level.
-
-;;;###autoload
-(defun semantic-flatten-tags-table (&optional table)
-  "Flatten the tags table TABLE.
-All tags in TABLE, and all components of top level tags
-in TABLE will appear at the top level of list.
-Tags promoted to the top of the list will still appear
-unmodified as components of their parent tags."
-  (let* ((table (semantic-something-to-tag-table table))
-	 ;; Initialize the starting list with our table.
-	 (lists (list table)))
-    (mapc (lambda (tag)
-	    (let ((components (semantic-tag-components tag)))
-	      (if (and components
-		       ;; unpositined tags can be hazardous to
-		       ;; completion.  Do we need any type of tag
-		       ;; here?  - EL
-		       (semantic-tag-with-position-p (car components)))
-		  (setq lists (cons
-			       (semantic-flatten-tags-table components)
-			       lists)))))
-	  table)
-    (apply 'append (nreverse lists))
-    ))
 
 ;;
 ;; ************************** Compatibility ***************************
