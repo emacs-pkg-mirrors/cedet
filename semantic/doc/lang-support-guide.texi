@@ -5,6 +5,11 @@
 @c proper menus for this chapter.
 @end ignore
 
+Semantic is bundled with support for several languages such as
+C, C++, Java, Python, etc.
+However one of the primary gols of semantic is to provide a framework
+in which anyone can add support for other languages easily.
+
 @ignore
 
 This chapter is for those who would like to add a new parser to the
@@ -13,6 +18,7 @@ This chapter should
 
 * describe wisent LALR parser, bovine LL parser, and give examples of
   custom parsers.
+* Give guideline on when to use LALR and when to use LL.
 * describe grammar file formats, semantic actions.
 * describe how to write lexers
 * give examples such as wisent-awk, wisent-calc, etc
@@ -20,25 +26,463 @@ This chapter should
 @end ignore
 
 @menu
-* Parser Overview::             
-* Writing Grammars::            
+* Language Support Overview::   
 * Writing Lexers::              
+* Writing Parsers::             
+* BNF conversion::              
+* Compiling::                   
+* Debugging::                   
 * Parser Error Handling::       
 @end menu
 
-@node Parser Overview
-@section Parser Overview
-@cindex Parser Overview
+@node Language Support Overview
+@section Language Support Overview
+@cindex Language Support Overview
 
 @example
+* To support a new language, one must write a set of emacs-lisp
+  functions that converts any valid text written in that language
+  into a list of semantic tokens.  Typically this task is divided into two
+  areas: a lexer and a parser.
+* There are many ways of doing this.  However in almost all cases, two 
+* Parser converts
 wisent parsers
 bovine parsers
 custom parsers
 @end example
 
-@node Writing Grammars
-@section Writing Grammars
-@cindex Writing Grammars
+semantic-bovinate-toplevel calls semantic-parse-region
+which returns a list of semantic tokens which get set to
+semantic-toplevel-bovine-cache.
+
+* semantic-parse-region is the first ``overloadable'' function.
+  The default behavior of this is to simply call semantic-lex, then
+  pass the lexical token list to semantic-repeat-parse-whole-stream.
+  This in turn 
+
+
+@node Writing Lexers
+@section Writing Lexers
+@cindex Writing Lexers
+
+@ignore
+Are we going to support semantic-flex as well as the new lexer?
+@end ignore
+
+In order to reduce a source file into a token list, it must first be
+converted into a token stream.  Tokens are syntactic elements such as
+whitespace, symbols, strings, lists, and punctuation.
+
+The lexer uses the major-mode's syntax table for conversion.
+@xref{Syntax Tables,,,elisp}.
+As long as that is set up correctly (along with the important
+@code{comment-start} and @code{comment-start-skip} variable) the lexer
+should already work for your language.
+
+The primary entry point of the lexer is the @dfn{semantic-flex} function
+shown below.
+Normally, you do not need to call this function.
+It is usually called by @emph{semantic-bovinate-toplevel} for you.
+
+@anchor{semantic-flex}
+@defun semantic-flex start end &optional depth length
+Using the syntax table, do something roughly equivalent to flex.
+Semantically check between @var{START} and @var{END}.  Optional
+argument @var{DEPTH} indicates at what level to scan over entire
+lists.  The return value is a token stream.  Each element is a list
+of the form (symbol start-expression .  end-expresssion). @var{END} does
+not mark the end of the text scanned, only the end of the beginning of
+text scanned.  Thus, if a string extends past @var{END}, the end of
+the return token will be larger than @var{END}.  To truly restrict
+scanning, use `narrow-to-region'.  The last argument, @var{LENGTH}
+specifies that @dfn{semantic-flex} should only return
+@var{LENGTH} tokens.
+@end defun
+
+@menu
+* Lexer Overview::              
+* Lexer Output::                
+* Lexer Options::               
+* Keywords::                    
+* Keyword Properties::          
+@end menu
+
+@node Lexer Overview
+@subsection Lexer Overview
+
+Semantic lexer breaks up the content of an Emacs buffer into a list of
+tokens.  This process is based mostly on regular expressions which in
+turn depend on the syntax table of the buffer's major mode being setup
+properly.
+@xref{Major Modes,,,emacs}.
+@xref{Syntax Tables,,,elisp}.
+@xref{Regexps,,,emacs}.
+
+Specifically, the following regular expressions which rely on syntax
+tables are used:
+
+@table @code
+@item @code{\\s-}
+whitespace characters
+@item @code{\\sw}
+word constituent
+@item @code{\\s_}
+symbol constituent
+@item @code{\\s.}
+punctuation character
+@item @code{\\s<}
+comment starter
+@item @code{\\s>}
+comment ender
+@item @code{\\s\\}
+escape character
+@item @code{\\s)}
+close parenthesis character
+@item @code{\\s$}
+paired delimiter
+@item @code{\\s\"}
+string quote
+@item @code{\\s\'}
+expression prefix
+@end table
+
+In addition, Emacs' built-in features such as
+@code{comment-start-skip},
+@code{forward-comment},
+@code{forward-list},
+and
+@code{forward-sexp}
+are employed.
+
+@node Lexer Output
+@subsection Lexer Output
+
+The lexer, @ref{semantic-flex}, scans the content of a buffer and
+returns a token list.
+Let's illustrate this using this simple example.
+
+@example
+00: /*
+01:  * Simple program to demonstrate semantic.
+02:  */
+03:
+04: #include <stdio.h>
+05:
+06: int i_1;
+07:
+08: int
+09: main(int argc, char** argv)
+10: @{
+11:     printf("Hello world.\n");
+12: @}
+@end example
+
+Evaluating @code{(semantic-flex (point-min) (point-max))}
+within the buffer with the code above returns the following token list.
+The input line and string that produced each token is shown after
+each semi-colon.
+
+@example
+((punctuation     52 .  53)     ; 04: #
+ (INCLUDE         53 .  60)     ; 04: include
+ (punctuation     61 .  62)     ; 04: <
+ (symbol          62 .  67)     ; 04: stdio
+ (punctuation     67 .  68)     ; 04: .
+ (symbol          68 .  69)     ; 04: h
+ (punctuation     69 .  70)     ; 04: >
+ (INT             72 .  75)     ; 06: int
+ (symbol          76 .  79)     ; 06: i_1
+ (punctuation     79 .  80)     ; 06: ;
+ (INT             82 .  85)     ; 08: int
+ (symbol          86 .  90)     ; 08: main
+ (semantic-list   90 . 113)     ; 08: (int argc, char** argv)
+ (semantic-list  114 . 147)     ; 09-12: body of main function
+ )
+@end example
+
+As shown above, the token list is a list of ``tokens''.
+Each token in turn is a list of the form
+
+@example
+(TOKEN-TYPE BEGINNING-POSITION . ENDING-POSITION)
+@end example
+
+@noindent
+where TOKEN-TYPE is a symbol, and the other two are integers indicating
+the buffer position that delimit the token such that
+
+@lisp
+(buffer-substring BEGINNING-POSITION ENDING-POSITION)
+@end lisp
+
+@noindent
+would return the string form of the token.
+
+Note that one line (line 4 above) can produce seven tokens while
+the whole body of the function produces a single token.
+This is because the @var{depth} parameter of @code{semantic-flex} was
+not specified.
+Let's see the output when @var{depth} is set to 1.
+Evaluate @code{(semantic-flex (point-min) (point-max) 1)} in the same buffer.
+Note the third argument of @code{1}.
+
+@example
+((punctuation    52 .  53)     ; 04: #
+ (INCLUDE        53 .  60)     ; 04: include
+ (punctuation    61 .  62)     ; 04: <
+ (symbol         62 .  67)     ; 04: stdio
+ (punctuation    67 .  68)     ; 04: .
+ (symbol         68 .  69)     ; 04: h
+ (punctuation    69 .  70)     ; 04: >
+ (INT            72 .  75)     ; 06: int
+ (symbol         76 .  79)     ; 06: i_1
+ (punctuation    79 .  80)     ; 06: ;
+ (INT            82 .  85)     ; 08: int
+ (symbol         86 .  90)     ; 08: main
+
+ (open-paren     90 .  91)     ; 08: (
+ (INT            91 .  94)     ; 08: int
+ (symbol         95 .  99)     ; 08: argc
+ (punctuation    99 . 100)     ; 08: ,
+ (CHAR          101 . 105)     ; 08: char
+ (punctuation   105 . 106)     ; 08: *
+ (punctuation   106 . 107)     ; 08: *
+ (symbol        108 . 112)     ; 08: argv
+ (close-paren   112 . 113)     ; 08: )
+
+ (open-paren    114 . 115)     ; 10: @{
+ (symbol        120 . 126)     ; 11: printf
+ (semantic-list 126 . 144)     ; 11: ("Hello world.\n")
+ (punctuation   144 . 145)     ; 11: ;
+ (close-paren   146 . 147)     ; 12: @}
+ )
+@end example
+
+The @var{depth} parameter ``peeled away'' one more level of ``list''
+delimited by matching parenthesis or braces.
+The depth parameter can be specified to be any number.
+However, the parser needs to be able to handle the extra tokens.
+
+This is an interesting benefit of the lexer having the full
+resources of Emacs at its disposal.
+Skipping over matched parenthesis is achieved by simply calling
+the built-in functions @code{forward-list} and @code{forward-sexp}.
+
+All common token symbols are enumerated below.  Additional token
+symbols aside from these can be generated by the lexer if user option
+@var{semantic-flex-extensions} is set.  It is up to the user to add
+matching extensions to the parser to deal with the lexer
+extensions.  An example use of @var{semantic-flex-extensions} is in
+@file{semantic-make.el} where @var{semantic-flex-extensions} is set to
+the value of @var{semantic-flex-make-extensions} which may generate
+@code{shell-command} tokens.
+
+@anchor{Default syntactic tokens}
+@subsection Default syntactic tokens if the lexer is not extended.
+@table @code
+@item bol
+Empty string matching a beginning of line.
+This token is produced only if the user set
+@var{semantic-flex-enable-bol} to non-@code{nil}.
+@item charquote
+String sequences that match @code{\\s\\+}.
+@item close-paren
+Characters that match @code{\\s)}.
+These are typically @code{)}, @code{@}}, @code{]}, etc.
+@item comment
+A comment chunk.
+These token types are not produced by default.
+They are produced only if the user set
+@var{semantic-ignore-comments} to @code{nil}.
+@item newline
+Characters matching @code{\\s-*\\(\n\\|\\s>\\)}.
+This token is produced only if the user set
+@var{semantic-flex-enable-newlines} to
+non-@code{nil}.
+@item open-paren
+Characters that match @code{\\s(}.
+These are typically @code{(}, @code{@{}, @code{[}, etc.
+Note that these are not usually generated unless the @var{depth}
+argument to @ref{semantic-flex} is greater than 0.
+@item punctuation
+Characters matching @code{\\(\\s.\\|\\s$\\|\\s'\\)}.
+@item semantic-list
+String delimited by matching parenthesis, braces, etc. that
+the lexer skipped over, because the @var{depth} parameter
+to @ref{semantic-flex} was not high enough.
+@item string
+Quoted strings, i.e., string sequences that start and end with
+characters matching @code{\\s\"}.
+The lexer relies on @code{forward-sexp} to find the
+matching end.
+@item symbol
+String sequences that match @code{\\(\\sw\\|\\s_\\)+}.
+@item whitespace
+Characters that match `\\s-+' regexp. 
+This token is produced only if the user set
+@var{semantic-flex-enable-whitespace} to non-@code{nil}.  If
+@var{semantic-ignore-comments} is non-@code{nil} too comments are
+considered as whitespaces.
+@end table
+
+@node Lexer Options
+@subsection Lexer Options
+
+Although most lexer functions are called for you by other semantic
+functions, there are ways for you to extend or customize the lexer.
+Three variables shown below serve this purpose.
+
+@defvar semantic-flex-unterminated-syntax-end-function
+Function called when unterminated syntax is encountered.
+This should be set to one function.  That function should take three
+parameters.  The @var{SYNTAX}, or type of syntax which is unterminated.
+@var{SYNTAX-START} where the broken syntax begins.
+@var{FLEX-END} is where the lexical analysis was asked to end.
+This function can be used for languages that can intelligently fix up
+broken syntax, or the exit lexical analysis via @dfn{throw} or @dfn{signal}
+when finding unterminated syntax.
+@end defvar
+
+@defvar semantic-flex-extensions
+Buffer local extensions to the lexical analyzer.
+This should contain an alist with a key of a regex and a data element of
+a function.  The function should both move point, and return a lexical
+token of the form:
+
+@example
+( TYPE START . END)
+@end example
+
+@code{nil} is a valid return value.
+@var{TYPE} can be any type of symbol, as long as it doesn't occur as a
+nonterminal in the language definition.
+@end defvar
+
+@defvar semantic-flex-syntax-modifications
+Changes the syntax table for a given buffer.
+These changes are active only while the buffer is being flexed.
+This is a list where each element has the form
+@example
+(CHAR CLASS)
+@end example
+
+CHAR is the char passed to `modify-syntax-entry',
+and CLASS is the string also passed to `modify-syntax-entry' to define
+what syntax class CHAR has.
+
+@example
+(setq semantic-flex-syntax-modifications '((?. "_"))
+@end example
+
+This makes the period @asis{.} a symbol constituent.  This may be necessary if
+filenames are prevalent, such as in Makefiles.
+@end defvar
+
+@defvar semantic-flex-enable-newlines
+When flexing, report @code{'newlines} as syntactic elements.
+Useful for languages where the newline is a special case terminator.
+Only set this on a per mode basis, not globally.
+@end defvar
+
+@defvar semantic-flex-enable-whitespace
+When flexing, report @code{'whitespace} as syntactic elements.
+Useful for languages where the syntax is whitespace dependent.
+Only set this on a per mode basis, not globally.
+@end defvar
+
+@defvar semantic-flex-enable-bol
+When flexing, report beginning of lines as syntactic elements.
+Useful for languages like python which are indentation sensitive.
+Only set this on a per mode basis, not globally.
+@end defvar
+
+@defvar semantic-number-expression
+Regular expression for matching a number.
+If this value is @code{nil}, no number extraction is done during lex.
+This expression tries to match C and Java like numbers.
+
+@example
+DECIMAL_LITERAL:
+    [1-9][0-9]*
+  ;
+HEX_LITERAL:
+    0[xX][0-9a-fA-F]+
+  ;
+OCTAL_LITERAL:
+    0[0-7]*
+  ;
+INTEGER_LITERAL:
+    <DECIMAL_LITERAL>[lL]?
+  | <HEX_LITERAL>[lL]?
+  | <OCTAL_LITERAL>[lL]?
+  ;
+EXPONENT:
+    [eE][+-]?[09]+
+  ;
+FLOATING_POINT_LITERAL:
+    [0-9]+[.][0-9]*<EXPONENT>?[fFdD]?
+  | [.][0-9]+<EXPONENT>?[fFdD]?
+  | [0-9]+<EXPONENT>[fFdD]?
+  | [0-9]+<EXPONENT>?[fFdD]
+  ;
+@end example
+@end defvar
+
+@node Keywords
+@subsection Keywords
+
+Another important piece of the lexer is the keyword table (see
+@ref{Settings}).  You language will want to set up a keyword table for
+fast conversion of symbol strings to language terminals.
+
+The keywords table can also be used to store additional information
+about those keywords.  The following programming functions can be useful
+when examining text in a language buffer.
+
+@defun semantic-flex-keyword-p text
+Return non-@code{nil} if @var{TEXT} is a keyword in the keyword table.
+@end defun
+
+@defun semantic-flex-keyword-put text property value
+For keyword @var{TEXT}, set @var{PROPERTY} to @var{VALUE}.
+@end defun
+
+@defun semantic-token-put-no-side-effect token key value
+For @var{TOKEN}, put the property @var{KEY} on it with @var{VALUE} without side effects.
+If @var{VALUE} is @code{nil}, then remove the property from @var{TOKEN}.
+All cons cells in the property list are replicated so that there
+are no side effects if @var{TOKEN} is in shared lists.
+@end defun
+
+@defun semantic-flex-keyword-get text property
+For keyword @var{TEXT}, get the value of @var{PROPERTY}.
+@end defun
+
+@defun semantic-flex-map-keywords fun &optional property
+Call function @var{FUN} on every semantic keyword.
+If optional @var{PROPERTY} is non-nil, call @var{FUN} only on every
+keyword which has a @var{PROPERTY} value.
+@var{FUN} receives a semantic keyword as argument.
+@end defun
+
+@defun semantic-flex-keywords &optional property
+Return a list of semantic keywords.
+If optional @var{PROPERTY} is non-nil, return only keywords which have
+@var{PROPERTY} set.
+@end defun
+
+Keyword properties can be set up in a BNF file for ease of maintenance.
+While examining the text in a language buffer, this can provide an easy
+and quick way of storing details about text in the buffer.
+
+@node Keyword Properties
+@subsection Standard Keyword Properties
+
+Add known properties here when they are known.
+
+@node Writing Parsers
+@section Writing Parsers
+@cindex Writing Parsers
 
 @ignore
 For the parser developer, I can think of two extra sections.  One for
@@ -58,14 +502,930 @@ between the two file types (by and wy) and how to use the grammar
 mode.  (I'm not sure if that should be covered elsewhere.)
 @end ignore
 
-@node Writing Lexers
-@section Writing Lexers
-@cindex Writing Lexers
+When converting a source file into a nonterminal token stream
+(parse-tree) it is important to specify rules to accomplish this.  The
+rules are stored in the buffer local variable
+@code{semantic-toplevel-bovine-table}.
+
+While it is certainly possible to write this table yourself, it is most
+likely you will want to use the BNF converter (see @xref{BNF conversion}.)
+This is an easier method for specifying your rules.  You will still need
+to specify a variable in your language for the table, however.  A good
+rule of thumb is to call it @code{language-toplevel-bovine-table} if it
+part of the language, or @code{semantic-toplevel-language-bovine-table}
+if you donate it to the semantic package.
+
+When initializing a major-mode for your language, you will set the
+variable @code{semantic-toplevel-bovine-table} to the contents of your
+language table.  @code{semantic-toplevel-bovine-table} is always buffer
+local.
+
+Since it is important to know the format of the table when debugging ,
+you should still attempt to understand the basics of the table.
+
+Please see the documentation for the variable
+@code{semantic-toplevel-bovine-table} for details on its format.
+
+* add more doc here *
+
+@node BNF conversion
+@section Using the BNF converter to make bovine tables
+
+The BNF converter takes a file in "Bovine Normal Form" which is similar
+to "Backus-Naur Form".  If you have ever used yacc or bison, you will
+find it similar.  The BNF form used by semantic, however, does not
+include token precedence rules, and several other features needed to make
+real parser generators.
+
+It is important to have an Emacs Lisp file with a variable ready to take
+the output of your table (see @xref{Writing Parsers}.)  Also, make sure that the
+file @file{semantic-bnf.el} is loaded.  Give your language file the
+extension @file{.bnf} and you are ready.
+
+The comment character is @asis{#}.
+
+When you want to test your file, use the keyboard shortcut @kbd{C-c C-c}
+to parse the file, generate the variable, and load the new definition
+in.  It will then use the settings specified above to determine what to
+do.  Use the shortcut @kbd{C-c c} to do the same thing, but spend
+extra time indenting the table nicely.
+
+Make sure that you create the variable specified in the
+@code{%parsetable} token before trying to convert the BNF file.  A
+simple definition like this is sufficient.
 
 @example
-semantic-flex?
-new lexer based on macros
+(defvar semantic-toplevel-lang-bovine-table
+   nil
+   "Table for use with semantic for parsing LANG.")
 @end example
+
+If you use tokens (created with the @code{%token} specifier), also
+make sure you have a keyword table available, like this:
+
+@example
+(defvar semantic-lang-keyword-table
+   nil
+   "Table for use with semantic for keywords.")
+@end example
+
+Specify the name of the keyword table with the @code{%keywordtable}
+specifier.
+
+The BNF file has two sections.  The first is the settings section, and
+the second is the language definition, or list of semantic rules.
+
+@menu
+* Settings::                    Setup for a language
+* Rules::                       Create rules to parse a language
+* Optional Lambda Expression::  Actions to take when a rule is matched
+* Examples::                    Simple Samples
+* Style Guide::                 What the tokens mean, and how to use them.
+
+@end menu
+
+@node Settings
+@subsection Settings
+
+A setting is a keyword starting with a @asis{%}.  (This syntax is taken
+from yacc and bison. @xref{(bison)}.)
+
+There are several settings that can be made in the settings section.
+They are:
+
+@deffn Setting %start <nonterminal>
+Specify an alternative to @code{bovine-toplevel}.  (See below)
+@end deffn
+
+@deffn Setting %scopestart <nonterminal>
+Specify an alternative to @code{bovine-inner-scope}.
+@end deffn
+
+@deffn Setting %outputfile <filename>
+Required.  Specifies the file into which this files output is stored.
+@end deffn
+
+@deffn Setting %parsetable <lisp-variable-name>
+Required.  Specifies a lisp variable into which the output is stored.
+@end deffn
+
+@deffn Setting %setupfunction <lisp-function-name>
+Required.  Name of a function into which setup code is to be inserted.
+@end deffn
+
+@deffn Setting %keywordtable <lisp-variable-name>
+Required if there are @code{%token} keywords.
+Specifies a lisp variable into which the output of a keyword table is
+stored.  This obarray is used to turn symbols into keywords when applicable.
+@end deffn
+
+@deffn Setting %token <name> "<text>"
+Optional.  Specify a new token @var{NAME}.  This is added to a lexical
+keyword list using @var{TEXT}.  The symbol is then converted into a new
+lexical terminal.  This requires that the @code{%keywordtable} specified
+variable is available in the file specified by @code{%outputfile}.
+@end deffn
+
+@deffn Setting %token <name> type "<text>"
+Optional.  Specify a new token @var{NAME}.  It is made from an existing
+lexical token of type @var{TYPE}.  @var{TEXT} is a string which will be
+matched explicitly.  @var{NAME} can be used in match rules as though they were
+flex tokens, but are converted back to @var{TYPE} "text" internally.
+@end deffn
+
+@deffn Setting %put <NAME> symbol <VALUE>
+@deffnx Setting %put <NAME> ( symbol1 <VALUE1> symbol2 <VALUE2> ... )
+@deffnx Setting %put ( <NAME1> <NAME2>...) symbol <VALUE>
+Tokens created without a type are considered keywords, and placed in a
+keyword table.  Use @code{%put} to apply properties to that keyword.
+(see @ref{Writing Lexers}).
+@end deffn
+
+@deffn Setting %languagemode <lisp-function-name>
+@deffnx Setting %languagemode ( <lisp-function-name1> <lisp-function-name2> ... )
+Optional.  Specifies the Emacs major mode associated with the language
+being specified.  When the language is converted, all buffers of this
+mode will get the new table installed.
+@end deffn
+
+@deffn Setting %quotemode backquote
+Optional.  Specifies how symbol quoting is handled in the Optional
+Lambda Expressions. (See below)
+@end deffn
+
+@deffn Setting {%( <lisp-expression> )%}
+Specify setup code to be inserted into the @code{%setupfunction}.
+It will be inserted between two specifier strings, or added to
+the end of the function.
+@end deffn
+
+When working inside @code{%( ... )%} tokens, any lisp expression can be
+entered which will be placed inside the setup function.  In general, you
+probably want to set variables that tell Semantic and related tools how
+the language works.
+
+Here are some variables that control how different programs will work
+with your language.
+
+@defvar semantic-flex-depth
+Default flexing depth.
+This specifies how many lists to create tokens in.
+@end defvar
+
+@defvar semantic-number-expression
+Regular expression for matching a number.
+If this value is @code{nil}, no number extraction is done during lex.
+Symbols which match this expression are returned as @code{number}
+tokens instead of @code{symbol} tokens.
+
+The default value for this variable should work in most languages.
+@end defvar
+
+@defvar semantic-flex-extensions
+Buffer local extensions to the lexical analyzer.
+This should contain an alist with a key of a regex and a data element of
+a function.  The function should both move point, and return a lexical
+token of the form:
+@example
+( TYPE START . END)
+@end example
+
+@code{nil} is also a valid return.
+@var{TYPE} can be any type of symbol, as long as it doesn't occur as a
+nonterminal in the language definition.
+@end defvar
+
+@defvar semantic-flex-syntax-modifications
+Updates to the syntax table for this buffer.
+These changes are active only while this file is being flexed.
+This is a list where each element is of the form:
+@example
+(CHAR CLASS)
+@end example
+Where @var{CHAR} is the char passed to @dfn{modify-syntax-entry},
+and @var{CLASS} is the string also passed to @dfn{modify-syntax-entry} to define
+what class of syntax @var{CHAR} is.
+@end defvar
+
+@defvar semantic-flex-enable-newlines
+When flexing, report @code{'newlines} as syntactic elements.
+Useful for languages where the newline is a special case terminator.
+Only set this on a per mode basis, not globally.
+@end defvar
+
+@defvar semantic-ignore-comments
+Default comment handling.
+@code{t} means to strip comments when flexing.  @code{Nil} means to keep comments
+as part of the token stream.
+@end defvar
+
+@defvar semantic-symbol->name-assoc-list
+Association between symbols returned, and a string.
+The string is used to represent a group of objects of the given type.
+It is sometimes useful for a language to use a different string
+in place of the default, even though that language will still
+return a symbol.  For example, Java return's includes, but the
+string can be replaced with @code{Imports}.
+@end defvar
+
+@defvar semantic-case-fold
+Value for @code{case-fold-search} when parsing.
+@end defvar
+
+@defvar semantic-expand-nonterminal
+Function to call for each nonterminal production.
+Return a list of non-terminals derived from the first argument, or @code{nil}
+if it does not need to be expanded.
+Languages with compound definitions should use this function to expand
+from one compound symbol into several.  For example, in @var{C} the
+definition
+@example
+int a, b;
+@end example
+is easily parsed into one token, but represents multiple variables.  A
+functions should be written which takes this compound token and turns
+it into two tokens, one for @var{A}, and the other for @var{B}.
+
+Within the language definition (the @file{.bnf} sources), it is often
+useful to set the NAME slot of a token with a list of items that
+distinguish each element in the compound definition.
+
+This list can then be detected by the function set in
+@code{semantic-expand-nonterminal} to create multiple tokens.
+This function has one additional duty of managing the overlays created
+by semantic.  It is possible to use the single overlay in the compound
+token for all your tokens, but this can pose problems identifying
+all tokens covering a given definition.
+
+Please see @file{semantic-java.el} for an example of managing overlays
+when expanding a token into multiple definitions.
+@end defvar
+
+@defvar semantic-override-table
+Buffer local semantic function overrides alist.
+These overrides provide a hook for a `major-mode' to override specific
+behaviors with respect to generated semantic toplevel nonterminals and
+things that these non-terminals are useful for.
+Each element must be of the form: (SYM . FUN)
+where SYM is the symbol to override, and FUN is the function to
+override it with.
+
+Available override symbols:
+
+@multitable {@code{abbreviate-nonterminal}} {(token & nosnarf)} {Find token in buffer}
+@item SYMBOL                 @tab PARAMETERS        @tab DESCRIPTION
+@item find-dependency        @tab (token)           @tab Find the dependency file
+@item find-nonterminal       @tab (token & parent)  @tab Find token in buffer.
+@item find-documentation     @tab (token & nosnarf) @tab Find doc comments.
+@item abbreviate-nonterminal @tab (token & parent)  @tab Return summary string.
+@item summarize-nonterminal  @tab (token & parent)  @tab Return summary string.
+@item prototype-nonterminal  @tab (token)           @tab Return a prototype string.
+@item concise-prototype-nonterminal'     @tab (tok & parent color) @tab Return a concise prototype string.
+@item uml-abbreviate-nonterminal'        @tab (tok & parent color) @tab Return a UML standard abbreviation string.
+@item uml-prototype-nonterminal'         @tab (tok & parent color) @tab Return a UML like prototype string.
+@item uml-concise-prototype-nonterminal' @tab (tok & parent color) @tab Return a UML like concise prototype string.
+
+@item prototype-file         @tab (buffer)          @tab Return a file in which prototypes are placed
+@item nonterminal-children   @tab (token)           @tab Return first rate children. These are children which may contain overlays.
+@item nonterminal-external-member-parent @tab (token) @tab Parent of TOKEN
+@item nonterminal-external-member-p @tab (parent token) @tab Non nil if TOKEN has PARENT, but is not in PARENT.
+@item nonterminal-external-member-children @tab (token & usedb) @tab Get all external children of TOKEN.
+@item nonterminal-protection @tab (token & parent)  @tab Return protection as a symbol.
+@item nonterminal-abstract   @tab (token & parent)  @tab Return if TOKEN is abstract.
+@item nonterminal-leaf       @tab (token & parent)  @tab Return if TOKEN is leaf.
+@item nonterminal-static     @tab (token & parent)  @tab Return if TOKEN is static.
+@item beginning-of-context   @tab (& point)         @tab Move to the beginning of the
+					                 current context.
+@item end-of-context         @tab (& point)         @tab Move to the end of the
+					                 current context.
+@item up-context             @tab (& point)         @tab Move up one context level.
+@item get-local-variables    @tab (& point)         @tab Get local variables.
+@item get-all-local-variables@tab (& point)         @tab Get all local variables.
+@item get-local-arguments    @tab (& point)         @tab Get arguments to this function.
+
+@item end-of-command         @tab                   @tab Move to the end of the current
+                                                         command
+@item beginning-of-command   @tab                   @tab Move to the beginning of the
+                                                         current command
+@item ctxt-current-symbol    @tab (& point)         @tab List of related symbols.
+@item ctxt-current-assignment@tab (& point)         @tab Variable being assigned to.
+@item ctxt-current-function  @tab (& point)         @tab Function being called at point.
+@item ctxt-current-argument  @tab (& point)         @tab The index to the argument of
+                                                         the current function the cursor
+                                                         is in.
+@end multitable
+
+Parameters mean:
+
+@table @code
+@item &
+Following parameters are optional
+@item buffer
+The buffer in which a token was found.
+@item token
+The nonterminal token we are doing stuff with
+@item parent
+If a TOKEN is stripped (of positional information) then this will be the
+parent token which should have positional information in it.
+@end table
+
+@end defvar
+
+@defvar semantic-type-relation-separator-character
+Character strings used to separation a parent/child relationship.
+This list of strings are used for displaying or finding separators
+in variable field dereferencing.  The first character will be used for
+display.  In @var{C}, a type field is separated like this: ``type.field''
+thus, the character is a ``.''.  In @var{C}, and additional value of ``->''
+would be in the list, so that ``type->field'' could be found.
+@end defvar
+
+
+@defvar semantic-dependency-include-path
+Defines the include path used when searching for files.
+This should be a list of directories to search which is specific to
+the file being included.
+This variable can also be set to a single function.  If it is a
+function, it will be called with one arguments, the file to find as a
+string, and  it should return the full path to that file, or nil.
+@end defvar
+
+This configures Imenu to use semantic parsing.
+
+@defvar imenu-create-index-function
+The function to use for creating a buffer index.
+
+It should be a function that takes no arguments and returns an index
+of the current buffer as an alist.
+
+Simple elements in the alist look like @samp{(INDEX-NAME . INDEX-POSITION)}.
+Special elements look like @samp{(INDEX-NAME INDEX-POSITION FUNCTION ARGUMENTS...)}.
+A nested sub-alist element looks like (INDEX-NAME SUB-ALIST).
+The function @code{imenu--subalist-p} tests an element and returns t
+if it is a sub-alist.
+
+This function is called within a @code{save-excursion}.
+
+The variable is buffer-local.
+@end defvar
+
+
+These are specific to the document tool.
+
+@table @code
+@item document-comment-start
+Comment start string.
+@item document-comment-line-prefix
+Comment prefix string.  Used at the beginning of each line.
+@item document-comment-end
+Comment end string.
+@end table
+
+@node Rules
+@subsection Rules
+
+Writing the rules should be very similar to bison for basic syntax.
+Each rule is of the form
+
+@example
+RESULT : MATCH1 (optional-lambda-expression)
+       | MATCH2 (optional-lambda-expression)
+       ;
+@end example
+
+@var{RESULT} is a non-terminal, or a token synthesized in your grammar.
+@var{MATCH} is a list of elements that are to be matched if @var{RESULT}
+is to be made.  The optional lambda expression is a list containing
+simplified rules for concocting the parse tree.
+
+In bison, each time an element of a @var{MATCH} is found, it is
+"shifted" onto the parser stack.  (The stack of matched elements.)  When
+all of @var{MATCH1}'s elements have been matched, it is "reduced" to
+@var{RESULT}.  @xref{(bison)Algorithm}.
+
+The first @var{RESULT} written into your language specification should
+be @code{bovine-toplevel}, or the symbol specified with @code{%start}.
+When starting a parse for a file, this is the default token iterated
+over.  You can use any token you want in place of @code{bovine-toplevel}
+if you specify what that nonterminal will be with a @code{%start} token
+in the settings section.
+
+@var{MATCH} is made up of symbols and strings.  A symbol such as
+@code{foo} means that a syntactic token of type @code{foo} must be
+matched.  A string in the mix means that the previous symbol must have
+the additional constraint of exactly matching it.  Thus, the
+combination:
+
+@example
+symbol "moose"
+@end example
+
+means that a symbol must first be encountered, and then it must
+@code{string-match "moose"}.  Be especially careful to remember that the
+string is a regular expression.  The code:
+
+@example
+punctuation "."
+@end example
+
+will match any punctuation.
+
+For the above example in bison, a LEX rule would be used to create a new
+token @var{MOOSE}.  In this case, the @var{MOOSE} token would appear.
+For the bovinator, this task was mixed into the language definition to
+simplify implementation, though Bison's technique is more efficient.
+
+To make a symbol match explicitly for keywords, for example, you can use
+the @code{%token} command in the settings section to create new symbols.
+
+@example
+%token MOOSE "moose"
+
+find_a_moose: MOOSE
+            ;
+@end example
+
+will match ``moose'' explicitly, unlike the previous example where moose
+need only appear in the symbol.  This is because ``moose'' will be
+converted to @var{MOOSE} in the lexical analysis stage.  Thus the symbol
+@var{MOOSE} won't be available any other way.
+
+If we specify our token in this way:
+
+@example
+%token MOOSE symbol "moose"
+
+find_a_moose: MOOSE
+            ;
+@end example
+
+then @code{MOOSE} will match the string "moose" explicitly, but it won't
+do so at the lexical level, allowing use of the text "moose" in other
+forms of regular expressions.
+
+Non symbol tokens are also allowed.  For example:
+
+@example
+%token PERIOD punctuation "."
+
+filename : symbol PERIOD symbol
+         ;
+@end example
+
+will explicitly match one period when used in the above rule.
+
+@xref{Default syntactic tokens}.
+
+
+@node Optional Lambda Expression
+@subsection Optional Lambda Expressions
+
+The OLE (Optional Lambda Expression) is converted into a bovine lambda
+(see @xref{Writing Parsers}.) This lambda has special short-cuts to simplify
+reading the Emacs BNF definition.  An OLE like this:
+
+@example
+( $1 )
+@end example
+
+results in a lambda return which consists entirely of the string
+or object found by matching the first (zeroth) element of match.
+An OLE like this:
+
+@example
+( ,(foo $1) )
+@end example
+
+executes `foo' on the first argument, and then splices its return
+into the return list whereas:
+
+@example
+( (foo $1) )
+@end example
+
+executes foo, and that is placed in the return list.
+
+Here are other things that can appear inline:
+@table @code
+@item $1
+the first object matched.
+@item ,$1
+the first object spliced into the list (assuming it is a list from a
+non-terminal)
+@item '$1
+the first object matched, placed in a list.  i.e. ( $1 )
+@item foo
+the symbol foo (exactly as displayed)
+@item (foo)
+a function call to foo which is stuck into the return list.
+@item ,(foo)
+a function call to foo which is spliced into the return list.
+@item '(foo)
+a function call to foo which is stuck into the return list in a list.
+@item (EXPAND $1 nonterminal depth)
+a list starting with EXPAND performs a recursive parse on the token
+passed to it (represented by $1 above.)  The semantic list is a common
+token to expand, as there are often interesting things in the list.
+The @var{nonterminal} is a symbol in your table which the bovinator will
+start with when parsing.  @var{nonterminal}'s definition is the same as
+any other nonterminal.  @var{depth} should be at least 1 when
+descending into a semantic list.
+@item (EXPANDFULL $1 nonterminal depth)
+is like EXPAND, except that the parser will iterate over
+@var{nonterminal} until there are no more matches.  (The same way the
+parser iterates over @code{bovine-toplevel}. This lets you have
+much simpler rules in this specific case, and also lets you have
+positional information in the returned tokens, and error skipping.
+@item (ASSOC symbol1 value1 symbol2 value2 ... )
+This is used for creating an association list.  Each @var{SYMBOL} is
+included in the list if the associated @var{VALUE} is non-nil.  While
+the items are all listed explicitly, the created structure is an
+association list of the form:
+@example
+( ( symbol1 . value1) (symbol2 . value2) ... )
+@end example
+@end table
+
+If the symbol @code{%quotemode backquote} is specified, then use
+@code{,@@} to splice a list in, and @code{,} to evaluate the expression.
+This lets you send @code{$1} as a symbol into a list instead of having
+it expanded inline.
+
+@node Examples
+@subsection Examples
+
+The rule:
+
+@example
+SYMBOL : symbol
+@end example
+
+is equivalent to
+
+@example
+SYMBOL : symbol
+         ( $1 )
+@end example
+
+which, if it matched the string "A", would return
+
+@example
+( "A" )
+@end example
+
+If this rule were used like this:
+
+@example
+ASSIGN: SYMBOL punctuation "=" SYMBOL
+        ( $1 $3 )
+@end example
+
+it would match "A=B", and return
+
+@example
+( ("A") ("B") )
+@end example
+
+The letters A and B come back in lists because SYMBOL is a nonterminal,
+not an actual lexical element.
+
+to get a better result with nonterminals, use @asis{,} to splice lists
+in like this;
+
+@example
+ASSIGN: SYMBOL punctuation "=" SYMBOL
+        ( ,$1 ,$3 )
+@end example
+
+which would return
+
+@example
+( "A" "B" )
+@end example
+
+@node Style Guide
+@subsection Semantic Token Style Guide
+
+In order for a generalized program using Semantic to work with
+multiple languages, it is important to have a consistent meaning for
+the contents of the tokens returned.  The variable
+@code{semantic-toplevel-bovine-table} is documented with the complete
+list of a tokens that a functional or OO language may use.  While any
+given language is free to create their own tokens, such a language
+definition would not produce a stream of tokens usable by a
+generalized tool.
+
+@section Minimum Requirements
+
+In general, all tokens returned from a parser should be generated with
+the following form:
+
+@example
+("NAME" type-symbol ... "DOCSTRING" PROPERTIES OVERLAY)
+@end example
+
+@var{NAME} and @var{type-symbol} are the only syntactic elements of a
+nonterminal which are guaranteed to exist.  This means that a parser
+which uses @code{nil} for either of these two slots, or some value
+which is not type consistent is wrong.
+
+@var{NAME} is also guaranteed to be a string.  This string represents
+the name of the nonterminal, usually a named definition which the
+language will use elsewhere as a reference to the syntactic element
+found.
+
+@var{type-symbol} is a symbol representing the type of the
+nonterminal.  Valid @var{type-symbol}s can be anything, as long is it
+is an Emacs Lisp symbol.
+
+@var{DOCSTRING} is a required slot in the nonterminal, but can be
+nil.  Some languages have the documentation saved as a comment
+nearby.  In these cases, DOCSTRING is nil, and the function
+`semantic-find-documentation'.
+
+@var{PROPERTIES} is a slot generated by the semantic parser harness,
+and need not be provided by a language author.  Programmatically access
+nonterminal properties with @code{semantic-token-put} and
+@code{semantic-token-get} to access properties.
+
+@var{OVERLAY} represents positional information for this token.  It is
+automatically generated by the semantic parser harness, and need not
+be provided by the language author, unless they provide a nonterminal
+expansion function via @code{semantic-expand-nonterminal}.
+
+The @var{OVERLAY} property is accessed via several functions returning
+the beginning, end, and buffer of a token.  Use these functions unless
+the overlay is really needed (see @ref{Token Queries}).  Depending on the
+overlay in a program can be dangerous because sometimes the overlay is
+replaced with an integer pair
+@example
+[ START END ]
+@end example
+when the buffer the token belongs to is not in memory.  This happens
+when a using has activated the Semantic Database @ref{semanticdb}.
+
+@section Nonterminals for Functional Languages.
+
+If a parser produces tokens for a functional language, then the
+following token formats are available.
+
+@table @asis
+@item Variable
+@itemx @code{("NAME" variable "TYPE" DEFAULT-VALUE EXTRA-SPEC}
+@itemx @code{        "DOCSTRING" PROPERTIES OVERLAY)}
+@var{TYPE} is a string representing the type of this variable.
+@var{TYPE} can be @code{nil} for untyped languages.  Languages which
+support variable declarations without a type (Such as C) should supply
+a string representing the default type for that language.
+
+@var{DEFAULT-VALUE} can be a string, or something pre-parsed and
+language specific.  Hopefully this slot will be better defined in
+future versions of Semantic.
+
+@var{EXTRA-SPEC} are extra specifiers.  See below.
+
+
+@item Function
+@itemx @code{ ("NAME" function "TYPE" ( ARG-LIST ) EXTRA-SPEC}
+@itemx @code{          "DOCSTRING" PROPERTIES OVERLAY)}
+@var{TYPE} is a string representing the return type of this function
+or method.  @var{type} can be @code{nil} for untyped languages, or for
+procedures in languages which support functions with no return data.
+See above for more.
+
+@var{ARG-LIST} is a list of arguments passed to this function.
+Each element in the arg list can be one of the following:
+@table @asis
+@item Semantic Token
+A full semantic token with positional information.
+@item A partial semantic token
+Partial tokens may contain the @var{NAME} slot, @var{token-symbol},
+and possibly a @var{TYPE}.
+@item String
+A string representing the name of the argument.  Common in untyped
+languages.
+@end table
+
+
+@item Type Declaration
+@itemx @code{ ("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC}
+@itemx @code{          "DOCSTRING" PROPERTIES OVERLAY)}
+@var{TYPE} a string representing the of the type, such as (in C)
+``struct'', ``union'', ``enum'', ``typedef'', or ``class''.
+The @var{TYPE} for a type token should not be nil, as even untyped
+languages with structures have type types.
+
+@var{PART-LIST} is the list of individual entries inside compound
+types.  Structures, for example, can contain several fields which can
+be represented as variables.  Valid entries in a @var{PART-LIST} are:
+@table @asis
+@item Semantic Token
+A full semantic token with positional information.
+@item A partial semantic token
+Partial tokens may contain the @var{NAME} slot, @var{token-symbol},
+and possibly a @var{TYPE}.
+@item String
+A string representing the name of the slot or field.  Common in untyped
+languages.
+@end table
+
+@var{PARENTS} represents a list of parents of this type.  Parents are used
+in two situations.
+@table @asis
+@item Inheritance
+For types which inherit from other types of the same type-type (Such
+as classes).
+@item Aliases
+For types which are aliases of other types, the parent type is the
+type being aliased.  The Types' type is the command specifying that it
+is an alias (Such as ``typedef'' in C or C++).
+@end table
+
+The structure of the @var{PARENTS} list is of this form:
+@example
+( EXPLICIT-PARENTS . INTERFACE-PARENTS)
+@end example
+@var{EXPLICIT-PARENTS} can be a single string (Just one parent) or a
+list of parents (in a multiple inheritance situation.  It can also be
+nil.
+
+@var{INTERFACE-PARENTS} is a list of strings representing the names of
+all INTERFACES, or abstract classes inherited from.  It can also be
+nil.
+
+This slot can be interesting because the form:
+@example
+( nil "string")
+@end example
+is a valid parent where there is no explicit parent, and only an
+interface.
+
+
+@item Include files
+@itemx @code{("FILE" include SYSTEM "DOCSTRING" PROPERTIES OVERLAY)}
+A statement which gets additional definitions from outside the current
+file, such as an @code{#include} statement in C.
+In this case, instead of @var{NAME}, a @var{FILE} is specified.
+@var{FILE} can be a subset of the actual file to be loaded.
+
+@var{SYSTEM} is true if this include is part of a set of system
+includes.  This field isn't currently being used and may be
+eliminated.
+
+
+@item Package & Provide statements
+@itemx @code{("NAME" package DETAIL "DOCSTRING" PROPERTIES OVERLAY)}
+A statement which declares a given file is part of a package, such as
+the Java @code{package} statement, or a @code{provide} in Emacs Lisp.
+
+@var{DETAIL} might be an associated file name, or some other language
+specific bit of information.
+@end table
+
+@section Extra Specifiers
+
+Some default token types have a slot EXTRA-SPEC, for extra specifiers.
+These specifiers provide additional details not commonly used, or not
+available in all languages.  This list is an alist, and if a given key
+is nil, it is not in the list, saving space.  Some valid extra
+specifiers are:
+
+@table @code
+@item (parent .  "text")
+Name of a parent type/class.  This is not the same as a parent for a
+type.  In C++ and CLOS allow the creation of a function outside the
+body of that class.  Such functions will set the @var{parent}
+specifier to a plain text string which is the name of that parent.
+
+@item (dereference .  INT)
+Number of levels of dereference.
+In C, the number of array dimensions.
+
+@item (pointer . INT)
+Number of levels of pointers.
+In C, the number of @code{*} characters.
+
+@item (typemodifiers .  ( "text" ... ))
+Keyword modifiers for a type.  In C, such words would include
+@code{register'} and @code{volatile'}
+
+@item (suffix . "text")
+Suffix information for a variable.  Not currently used.
+
+@item (const .  t)
+This exists if the variable or function return value is constant.
+
+@item (throws .  ( "text" ... ))
+For functions or methods in languages that support typed signal
+throwing, this is a list of exceptions that can be thrown.
+
+@item (destructor . t)
+This exists for functions which are destructor methods in a class
+definition.  In C++, a destructor's name excludes the ~ character.  When
+producing the name of the function, the ~ is added back in.
+
+@item (constructor . t)
+This exists for functions which are constructors in a class
+definition.  In C++ this is t when the name of this function is
+the same as the name of the parent class.
+
+@item (user-visible . t)
+For functions in interpreted languages such as Emacs Lisp, this
+signals that a function or variable is user visible.  In Emacs Lisp,
+this means a function is @dfn{interactive}.
+
+@item (prototype . t)
+For functions or variables that are not declared locally, a prototype
+is something that will define that function or variable for use.
+In C, the term represents prototypes generally used in header files.
+In Emacs Lisp, the @code{autoload} statement creates prototypes.
+@end table
+
+@node Compiling
+@section Compiling a language file with the bovinator
+
+From a program you can use the function @code{semantic-bovinate-toplevel}.
+This function takes one optional parameter specifying if the cache
+should be refreshed.  By default, the cached results of the last parse
+are always used.  Specifying that the cache should be checked will cause
+it to be flushed if it is out of date.
+
+Another function you can use is @code{semantic-bovinate-nonterminal}.
+This command takes a token stream returned by the function
+@code{semantic-flex} followed by a DEPTH (as above).  This takes an
+additional optional argument of NONTERMINAL which is the nonterminal in
+your table it is to start parsing with.
+
+@deffn Command bovinate &optional clear
+Bovinate the current buffer.  Show output in a temp buffer.
+Optional argument @var{CLEAR} will clear the cache before bovinating.
+@end deffn
+
+@deffn Command semantic-clear-toplevel-cache
+Clear the toplevel bovine cache for the current buffer.
+Clearing the cache will force a complete reparse next time a token
+stream is requested.
+@end deffn
+
+@defun semantic-bovinate-toplevel &optional checkcache
+Bovinate the entire current buffer.
+If the optional argument @var{CHECKCACHE} is non-@code{nil}, then flush the cache iff
+there has been a size change.
+@end defun
+
+@node Debugging
+@section Debugging
+
+Writing language files using BNF is significantly easier than writing
+then using regular expressions in a functional manner.  Debugging
+them, however, can still prove challenging.
+
+There are two ways to debug a language definition if it is not
+behaving as expected.  One way is to debug against the source @file{.bnf}
+file.  The second is to debug against the lisp table created from the
+@file{.bnf} source, or perhaps written by hand.
+
+If your language definition was written in BNF notation, debugging is
+quite easy.  The command @code{bovinate-debug} will start you off.
+
+@deffn Command bovinate-debug
+Bovinate the current buffer and run in debug mode.
+@end deffn
+
+If you prefer debugging against the Lisp table, find the table in a
+buffer, place the cursor in it, and use the command
+@code{semantic-bovinate-debug-set-table} in it.
+
+@deffn Command semantic-bovinate-debug-set-table &optional clear
+Set the table for the next debug to be here.
+Optional argument @var{CLEAR} to unset the debug table.
+@end deffn
+
+After the table is set, the @code{bovinate-debug} command can be run
+at any time for the given language.
+
+While debugging, two windows are visible.  One window shows the file
+being parsed, and the syntactic token being tested is highlighted.  The
+second window shows the table being used (either in the BNF source, or
+the Lisp table) with the current rule highlighted.  The cursor will
+sit on the specific match rule being tested against.
+
+In the minibuffer, a brief summary of the current situation is
+listed.  The first element is the syntactic token which is a list of
+the form:
+
+@example
+(TYPE START . END)
+@end example
+
+The rest of the display is a list of all strings collected for the
+currently tested rule.  Each time a new rule is entered, the list is
+restarted.  Upon returning from a rule into a previous match list, the
+previous match list is restored, with the production of the dependent
+rule in the list.
+
+Use @kbd{C-g} to stop debugging.  There are no commands for any
+fancier types of debugging.
 
 @node Parser Error Handling
 @section Parser Error Handling

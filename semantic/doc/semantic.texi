@@ -2,11 +2,11 @@
 @c %**start of header
 @setfilename semantic.info
 @set TITLE  Semantic Manual
-@set AUTHOR Semantic Developers
+@set AUTHOR Eric M. Ludlam and David Ponce
 @settitle @value{TITLE}
 
 @c *************************************************************************
-@c @ c@ Header
+@c @ Header
 @c *************************************************************************
 
 @c Merge all indexes into a single index.
@@ -20,6 +20,30 @@
 @c @paragraphindent 2
 @c @@smallbook
 @c %**end of header
+
+@copying
+This manual documents Semantic, a new intrastructure for parser
+based text analysis for Emacs.
+
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam, David Ponce
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being list their titles, with the Front-Cover Texts
+being list, and with the Back-Cover Texts being list.  A copy of the
+license is included in the section entitled ``GNU Free Documentation
+License''.
+@end quotation
+@end copying
+
+@ifinfo
+@dircategory Emacs
+@direntry
+* Semantic: (semantic).	Infrastructure for parser based text analysis.
+@end direntry
+@end ifinfo
 
 @iftex
 @finalout
@@ -35,22 +59,14 @@ Copyright @copyright{} 2002 @value{AUTHOR}
 @end ifinfo
 
 @titlepage
+@sp 10
 @title @value{TITLE}
-@author by @value{AUTHOR}
+@author by @value{AUTHOR}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam, David Ponce
 @page
-
-@vskip 0pt plus 1filll
-@center @emph{Get the latest information!}
-This document is authored in GNU Texinfo format.
-Any texinfo document can be converted to a variety of formats including
-HTML, PDF, RTF, Postscript, and of course GNU @code{info}.
-The GNU @code{info} files can be read online using the
-@code{Emacs} editor, or the @code{info} document viewing programs.
-
-Copyright @copyright{} 2002 @value{AUTHOR}
-
-@sp 2
-
+@vskip 0pt plus 1 fill
+@insertcopying
 @end titlepage
 @page
 
@@ -58,34 +74,10 @@ Copyright @copyright{} 2002 @value{AUTHOR}
 @c @ Macros
 @c *************************************************************************
 
-@c fileref macro is workaround to texi2html bug where 4 or 5 argument
-@c @ref command is not handled properly.
-@macro fileref{file,node,name}
-@c
-@ifhtml
-@html
-<A TARGET=_top HREF="\file\_frame.html">\name\</A>
-@end html
-@end ifhtml
-@c
-@ifnothtml
-@ref{\node\,\name\,\name\,\file\}
-@end ifnothtml
-@c
-@end macro
-
-@c Like @uref, except "TARGET=_top" attibute is specified.
-@macro urefTopFrame{url,string}
-
-@ifhtml
-@html
-<A TARGET=_top HREF="\url\">\string\</A>
-@end html
-@end ifhtml
-@ifnothtml
-@uref{\url\,\string\}
-@end ifnothtml
-
+@c To be used within the glossary section.
+@macro keyword{kw}
+@anchor{\kw\}
+@b{\kw\}
 @end macro
 
 @c *************************************************************************
@@ -95,14 +87,29 @@ Copyright @copyright{} 2002 @value{AUTHOR}
 @node top
 @top @value{TITLE}
 
+Semantic is a program for Emacs which includes, at its core, a lexer,
+and a compiler compiler (bovinator).  Additional tools include a
+bnf->semantic table converter, example tables, and a speedbar tool.
+
+The core utility is the ``semantic bovinator'' which has similar
+behaviors as yacc or bison.  Since it is not designed to be as feature
+rich as these tools, it uses the term ``bovine'' for cow, a lesser
+cousin of the yak and bison.
+
+To send bug reports, or participate in discussions about semantic,
+use the mailing list cedet-semantic@@sourceforge.net via the URL:
+@url{http://lists.sourceforge.net/lists/listinfo/cedet-semantic}
+
 @menu
-* Overview::
-* Installation::
-* Semantic User's Guide::
-* Application Developer's Guide::
-* Language Support Developer's Guide::
-* Semantic Internals::
-* Index::
+* Overview::                    
+* Installation::                
+* Semantic User's Guide::       
+* Application Developer's Guide::  
+* Language Support Developer's Guide::  
+* Semantic Internals::          
+* Glossary::                    
+* GNU Free Documentation License::  
+* Index::                       
 @end menu
 
 @node Overview
@@ -135,6 +142,16 @@ Copyright @copyright{} 2002 @value{AUTHOR}
 
 @include internals.texi
 
+@node Glossary
+@appendix Glossary
+
+@include glossary.texi
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@include fdl.texi
+
 @node Index
 @unnumbered Index
 @printindex cp
@@ -145,3 +162,26 @@ Copyright @copyright{} 2002 @value{AUTHOR}
 @end iftex
 
 @bye
+
+@c LocalWords: alist API APIs arg argc args argv asis assoc autoload
+@c LocalWords: backquote bnf bovinate bovinates
+@c LocalWords: bovinating bovination bovinator bucketize
+@c LocalWords: cb cdr charquote checkcache cindex CLOS
+@c LocalWords: concat concocting const constantness ctxt Decl defcustom
+@c LocalWords: deffn deffnx defun defvar destructor's dfn diff dir
+@c LocalWords: doc docstring EDE EIEIO elisp emacsman emph enum
+@c LocalWords: eq Exp EXPANDFULL expresssion fn foo func funcall
+@c LocalWords: ia ids iff ifinfo imenu imenus init int isearch itemx java kbd
+@c LocalWords: keymap keywordtable lang languagemode lexer lexing Ludlam
+@c LocalWords: menubar metaparent metaparents min minibuffer Misc mode's
+@c LocalWords: multitable NAvigaTOR noindent nomedian nonterm noselect
+@c LocalWords: nosnarf obarray OLE OO outputfile paren parsetable POINT's
+@c LocalWords: popup positionalonly positiononly positionormarker pre
+@c LocalWords: printf printindex Programmatically pt punctuations quotemode
+@c LocalWords: ref regex regexp Regexps reparse resetfile samp sb
+@c LocalWords: scopestart SEmantic semanticdb setfilename setq
+@c LocalWords: settitle setupfunction sexp sp SPC speedbar speedbar's
+@c LocalWords: streamorbuffer struct subalist submenu submenus
+@c LocalWords: subsubsection sw sym texi texinfo titlefont titlepage
+@c LocalWords: tok TOKEN's toplevel typemodifiers uml unset untar
+@c LocalWords: uref usedb var vskip xref yak

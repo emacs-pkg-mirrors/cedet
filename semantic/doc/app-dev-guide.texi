@@ -19,3 +19,1191 @@ Most of the stuff from @ref{Programming,,,semantic}
 would go here.
 
 @end ignore
+
+@menu
+* Programming::                 
+* Current Context::             
+@end menu
+
+@node Programming
+@section Programming
+
+Once a source file has been parsed, the following APIs can be used to
+write programs that use the token stream most effectively.
+
+@menu
+* Token Queries::               Getting info about a parsed token (nonterminal).
+* Nonterminal Streams::         Working with streams of nonterminals.
+* Nonterminals at point::       Finding nonterminals at point.
+* Nonterminal Sorting::         Reorganizing streams.
+* Nonterminal Completion::      Completing read functions.
+* Override Methods::            Language dependent functions covering
+                                conversion to text strings, language dependent
+                                queries and local context information
+* Parser Hooks::                How to know when tags change.
+* Example Programs::            Simple programming examples.
+@end menu
+
+@node Token Queries
+@subsection Token Queries
+
+When writing programs that use the bovinator, the following functions
+are needed to find get details out of a nonterminal.
+
+@defun semantic-equivalent-tokens-p token1 token2
+Compare @var{TOKEN1} and @var{TOKEN2} and return non-@code{nil} if they are equivalent.
+Use @dfn{eq} to test of two tokens are the same.  Use this function if tokens
+are being copied and regrouped to test for if two tokens represent the same
+thing, but may be constructed of different cons cells.
+@end defun
+
+@defun semantic-token-token token
+Retrieve from @var{TOKEN} the token identifier.
+i.e., the symbol @code{'variable}, @code{'function}, @code{'type}, or other.
+@end defun
+
+@defun semantic-token-name token
+Retrieve the name of @var{TOKEN}.
+@end defun
+
+@defun semantic-token-docstring token &optional buffer
+Retrieve the documentation of @var{TOKEN}.
+Optional argument @var{BUFFER} indicates where to get the text from.
+If not provided, then only the @var{POSITION} can be provided.
+@end defun
+
+@defun semantic-token-overlay token
+Retrieve the @var{OVERLAY} part of @var{TOKEN}.
+The returned item may be an overlay or an unloaded buffer representation.
+@end defun
+
+@defun semantic-token-extent token
+Retrieve the extent (@var{START} @var{END}) of @var{TOKEN}.
+@end defun
+
+@defun semantic-token-start token
+Retrieve the start location of @var{TOKEN}.
+@end defun
+
+@defun semantic-token-end token
+Retrieve the end location of @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type token
+Retrieve the type of @var{TOKEN}.
+@end defun
+
+@defun semantic-token-put token property value
+On @var{token}, set @var{property} to @var{value}.
+@end defun
+
+@defun semantic-token-get token property
+For @var{token} get the value of @var{property}.
+@end defun
+
+@defun semantic-token-extra-spec token spec
+Retrieve a specifier for the variable @var{TOKEN}.
+@var{SPC} is the symbol whose modifier value to get.
+This function can get specifiers from any type of @var{TOKEN}.
+Do not use this function if you know what type of token you are dereferencing.
+Instead, use the function specific to that token type.  It will be faster.
+@end defun
+
+@defun semantic-token-type-parts token
+Retrieve the parts of the type @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-parent token
+Retrieve the parent of the type @var{TOKEN}.
+The return value is a list.  @var{A} value of @code{nil} means no parents.
+The @dfn{car} of the list is either the parent class, or a list
+of parent classes.  The @dfn{cdr} of the list is the list of
+interfaces, or abstract classes which are parents of @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-parent-superclass token
+Retrieve the parent super classes of type type @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-parent-implement token
+Retrieve the parent interfaces of type type @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-modifiers token
+Retrieve the type modifiers for the type @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-extra-specs token
+Retrieve the extra specifiers for the type @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-extra-spec token spec
+Retrieve a extra specifier for the type @var{TOKEN}.
+@var{SPEC} is the symbol whose modifier value to get.
+@end defun
+
+@defun semantic-token-function-args token
+Retrieve the arguments of the function @var{TOKEN}.
+@end defun
+
+@defun semantic-token-function-modifiers token
+Retrieve the type modifiers of the function @var{TOKEN}.
+@end defun
+
+@defun semantic-token-function-destructor token
+Non-@code{nil} if @var{TOKEN} is a destructor function.
+@end defun
+
+@defun semantic-token-function-extra-specs token
+Retrieve the extra specifiers of the function @var{TOKEN}.
+@end defun
+
+@defun semantic-token-function-extra-spec token spec
+Retrieve a specifier for the function @var{TOKEN}.
+@var{SPEC} is a symbol whose specifier value to get.
+@end defun
+
+@defun semantic-token-function-throws token
+Retrieve the throws signal of the function @var{TOKEN}.
+This is an optional field, and returns @code{nil} if it doesn't exist.
+@end defun
+
+@defun semantic-token-function-parent token
+The parent of the function @var{TOKEN}.
+A function has a parent if it is a method of a class, and if the
+function does not appear in body of its parent class.
+@end defun
+
+@defun semantic-token-variable-const token
+Retrieve the status of constantness from the variable @var{TOKEN}.
+@end defun
+
+@defun semantic-token-variable-default token
+Retrieve the default value of the variable @var{TOKEN}.
+@end defun
+
+@defun semantic-token-variable-modifiers token
+Retrieve type modifiers for the variable @var{TOKEN}.
+@end defun
+
+@defun semantic-token-variable-extra-specs token
+Retrieve extra specifiers for the variable @var{TOKEN}.
+@end defun
+
+@defun semantic-token-variable-extra-spec token spec
+Retrieve a specifier value for the variable @var{TOKEN}.
+@var{SPEC} is the symbol whose specifier value to get.
+@end defun
+
+@defun semantic-token-include-system token
+Retrieve the flag indicating if the include @var{TOKEN} is a system include.
+@end defun
+
+For override methods that query a token, see @xref{Token Details}.
+
+@node Nonterminal Streams
+@subsection Nonterminal streams
+
+These functions take some key, and returns information found inside
+the nonterminal stream.  Some will return one token (the first
+matching item found.)  Others will return a list of all items matching
+a given criterion.  All these functions work regardless of a buffer
+being in memory or not.
+
+@defun semantic-find-nonterminal-by-name name streamorbuffer &optional search-parts search-include
+Find a nonterminal @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a string.
+If @var{SEARCH-PARTS} is non-@code{nil}, search children of tokens.
+If @var{SEARCH-INCLUDE} is non-@code{nil}, search include files.
+@end defun
+
+@defun semantic-find-nonterminal-by-property property value streamorbuffer &optional search-parts search-includes
+Find all nonterminals with @var{PROPERTY} equal to @var{VALUE} in @var{STREAMORBUFFER}.
+Properties can be added with @dfn{semantic-token-put}.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
+@end defun
+
+@defun semantic-find-nonterminal-by-extra-spec spec streamorbuffer &optional search-parts search-includes
+Find all nonterminals with a given @var{SPEC} in @var{STREAMORBUFFER}.
+@var{SPEC} is a symbol key into the modifiers association list.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
+@end defun
+
+@defun semantic-find-nonterminal-by-extra-spec-value spec value streamorbuffer &optional search-parts search-includes
+Find all nonterminals with a given @var{SPEC} equal to @var{VALUE} in @var{STREAMORBUFFER}.
+@var{SPEC} is a symbol key into the modifiers association list.
+@var{VALUE} is the value that @var{SPEC} should match.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
+@end defun
+
+@defun semantic-find-nonterminal-by-position position streamorbuffer &optional nomedian
+Find a nonterminal covering @var{POSITION} within @var{STREAMORBUFFER}.
+@var{POSITION} is a number, or marker.  If @var{NOMEDIAN} is non-@code{nil}, don't do
+the median calculation, and return nil.
+@end defun
+
+@defun semantic-find-innermost-nonterminal-by-position position streamorbuffer &optional nomedian
+Find a list of nonterminals covering @var{POSITION} within @var{STREAMORBUFFER}.
+@var{POSITION} is a number, or marker.  If @var{NOMEDIAN} is non-@code{nil}, don't do
+the median calculation, and return nil.
+This function will find the topmost item, and recurse until no more
+details are available of findable.
+@end defun
+
+@defun semantic-find-nonterminal-by-token token streamorbuffer &optional search-parts search-includes
+Find all nonterminals with a token @var{TOKEN} within @var{STREAMORBUFFER}.
+@var{TOKEN} is a symbol representing the type of the tokens to find.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDE} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
+@end defun
+
+@defun semantic-find-nonterminal-standard streamorbuffer &optional search-parts search-includes
+Find all nonterminals in @var{STREAMORBUFFER} which define simple token types.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDE} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
+@end defun
+
+@defun semantic-find-nonterminal-by-type type streamorbuffer &optional search-parts search-includes
+Find all nonterminals with type @var{TYPE} within @var{STREAMORBUFFER}.
+@var{TYPE} is a string which is the name of the type of the token returned.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
+@end defun
+
+@defun semantic-find-nonterminal-by-function function streamorbuffer &optional search-parts search-includes
+Find all nonterminals in which @var{FUNCTION} match within @var{STREAMORBUFFER}.
+@var{FUNCTION} must return non-@code{nil} if an element of @var{STREAM} will be included
+in the new list.
+
+If optional argument @var{SEARCH-PARTS} is non-@code{nil}, all sub-parts of tokens
+are searched.  The over-loadable function @dfn{semantic-nonterminal-children} is
+used for the searching child lists.  If @var{SEARCH-PARTS} is the symbol
+@code{'positiononly}, then only children that have positional information are
+searched.
+
+If @var{SEARCH-INCLUDES} is non-@code{nil}, then all include files are also
+searched for matches.
+@end defun
+
+@defun semantic-find-nonterminal-by-function-first-match function streamorbuffer &optional search-parts search-includes
+Find the first nonterminal which @var{FUNCTION} match within @var{STREAMORBUFFER}.
+@var{FUNCTION} must return non-@code{nil} if an element of @var{STREAM} will be included
+in the new list.
+If optional argument @var{SEARCH-PARTS}, all sub-parts of tokens are searched.
+The over-loadable function @dfn{semantic-nonterminal-children} is used for
+searching.
+If @var{SEARCH-INCLUDES} is non-@code{nil}, then all include files are also
+searched for matches.
+@end defun
+
+@defun semantic-recursive-find-nonterminal-by-name name buffer
+Recursively find the first occurrence of @var{NAME}.
+Start search with @var{BUFFER}.  Recurse through all dependencies till found.
+The return item is of the form (@var{BUFFER} @var{TOKEN}) where @var{BUFFER} is the buffer
+in which @var{TOKEN} (the token found to match @var{NAME}) was found.
+@end defun
+
+@node Nonterminals at point
+@subsection Nonterminals at point
+
+When you just want to get at a nonterminal the cursor is on, there is
+a more efficient mechanism than using
+@code{semantic-find-nonterminal-by-position}.  This mechanism
+directly queries the overlays the parsing step leaves in the buffer.
+This provides for very rapid retrieval of what function or variable
+the cursor is currently in.
+@refill
+
+These functions query the current buffer's overlay system for tokens.
+
+@defun semantic-find-nonterminal-by-overlay &optional positionormarker buffer
+Find all nonterminals covering @var{POSITIONORMARKER} by using overlays.
+If @var{POSITIONORMARKER} is @code{nil}, use the current point.
+Optional @var{BUFFER} is used if @var{POSITIONORMARKER} is a number, otherwise the current
+buffer is used.  This finds all tokens covering the specified position
+by checking for all overlays covering the current spot.  They are then sorted
+from largest to smallest via the start location.
+@end defun
+
+@defun semantic-find-nonterminal-by-overlay-in-region start end &optional buffer
+Find all nonterminals which exist in whole or in part between @var{START} and @var{END}.
+Uses overlays to determine position.
+Optional @var{BUFFER} argument specifies the buffer to use.
+@end defun
+
+@defun semantic-current-nonterminal
+Return the current nonterminal in the current buffer.
+If there are more than one in the same location, return the
+smallest token.
+@end defun
+
+@defun semantic-current-nonterminal-parent
+Return the current nonterminals parent in the current buffer.
+@var{A} token's parent would be a containing structure, such as a type
+containing a field.  Return @code{nil} if there is no parent.
+@end defun
+
+@node Nonterminal Sorting
+@subsection Nonterminal sorting
+
+Sometimes it is important to reorganize a token stream into a form
+that is better for display to a user.  It is important to not use
+functions with side effects when doing this, and that could effect
+the token cache.
+
+There are some existing utility functions which will reorganize the
+token list for you.
+
+@defun semantic-bucketize tokens &optional parent filter
+Sort @var{TOKENS} into a group of buckets based on token type.
+Unknown types are placed in a Misc bucket.
+Type bucket names are defined by either `semantic-symbol->name-assoc-list'.
+If @var{PARENT} is specified, then @var{TOKENS} belong to this @var{PARENT} in some way.
+This will use `semantic-symbol->name-assoc-list-for-type-parts' to
+generate bucket names.
+Optional argument @var{FILTER} is a filter function to be applied to each bucket.
+The filter function will take one argument, which is a list of tokens, and
+may re-organize the list with side-effects.
+@end defun
+
+@defvar semantic-bucketize-token-token
+Function used to get a symbol describing the class of a token.
+This function must take one argument of a semantic token.
+It should return a symbol found in `semantic-symbol->name-assoc-list'
+which @dfn{semantic-bucketize} uses to bin up tokens.
+To create new bins for an application augment
+`semantic-symbol->name-assoc-list', and
+`semantic-symbol->name-assoc-list-for-type-parts' in addition
+to setting this variable (locally in your function).
+@end defvar
+
+@defun semantic-adopt-external-members tokens
+Rebuild @var{TOKENS} so that externally defined members are regrouped.
+Some languages such as @var{C}++ and @var{CLOS} permit the declaration of member
+functions outside the definition of the class.  It is easier to study
+the structure of a program when such methods are grouped together
+more logically.
+
+This function uses @dfn{semantic-nonterminal-external-member-p} to
+determine when a potential child is an externally defined member.
+
+Note: Applications which use this function must account for token
+types which do not have a position, but have children which *do*
+have positions.
+
+Applications should use @code{semantic-mark-external-member-function}
+to modify all tokens which are found as externally defined to some
+type.  For example, changing the token type for generating extra
+buckets with the bucket function.
+@end defun
+
+@defvar semantic-orphaned-member-metaparent-type
+In @dfn{semantic-adopt-external-members}, the type of @code{'type} for metaparents.
+@var{A} metaparent is a made-up type semantic token used to hold the child list
+of orphaned members of a named type.
+@end defvar
+
+@defvar semantic-mark-external-member-function
+Function called when an externally defined orphan is found.
+Be default, the token is always marked with the @code{adopted} property.
+This function should be locally bound by a program that needs
+to add additional behaviors into the token list.
+This function is called with one argument which is a shallow copy
+of the token to be modified.  This function should return the
+token (or a copy of it) which is then integrated into the
+revised token list.
+@end defvar
+
+@node Nonterminal Completion
+@subsection Nonterminal completion
+
+These functions provide ways reading the names of items in a buffer with
+completion.
+
+
+@defun semantic-read-symbol prompt &optional default stream filter
+Read a symbol name from the user for the current buffer.
+@var{PROMPT} is the prompt to use.
+Optional arguments:
+@var{DEFAULT} is the default choice.  If no default is given, one is read
+from under point.
+@var{STREAM} is the list of tokens to complete from.
+@var{FILTER} is provides a filter on the types of things to complete.
+@var{FILTER} must be a function to call on each element.  (See !!!
+@end defun
+
+@defun semantic-read-variable prompt &optional default stream
+Read a variable name from the user for the current buffer.
+@var{PROMPT} is the prompt to use.
+Optional arguments:
+@var{DEFAULT} is the default choice.  If no default is given, one is read
+from under point.
+@var{STREAM} is the list of tokens to complete from.
+@end defun
+
+@defun semantic-read-function prompt &optional default stream
+Read a function name from the user for the current buffer.
+@var{PROMPT} is the prompt to use.
+Optional arguments:
+@var{DEFAULT} is the default choice.  If no default is given, one is read
+from under point.
+@var{STREAM} is the list of tokens to complete from.
+@end defun
+
+@defun semantic-read-type prompt &optional default stream
+Read a type name from the user for the current buffer.
+@var{PROMPT} is the prompt to use.
+Optional arguments:
+@var{DEFAULT} is the default choice.  If no default is given, one is read
+from under point.
+@var{STREAM} is the list of tokens to complete from.
+@end defun
+
+
+@node Override Methods
+@subsection Override Methods
+
+These functions are called `override methods' because they provide
+generic behaviors, which a given language can override.  For example,
+finding a dependency file in Emacs lisp can be done with the
+`locate-library' command (which overrides the default behavior.)  In C,
+a dependency can be found by searching a generic search path which can
+be passed in via a variable.
+
+@menu
+* Token->Text::                 Converting Tokens into text strings
+* Token Details::               Arbitrary token detail fetching
+* Local Context::               Deriving information about a language specific local context.
+* Making New Methods::          How to add your own methods for a tool
+@end menu
+
+@node Token->Text
+@subsubsection Token->Text
+
+Any given token consists of Meta information which is best viewed in
+some textual form.  This could be as simple as the token's name, or as
+a prototype to be added to header file in C.  Not only are there
+several default converters from a Token into text, but there is also
+some convenient variables that can be used with them.  Use these
+variables to allow options on output forms when displaying tokens in
+your programs.
+
+@defvar semantic-token->text-functions
+List of functions which convert a token to text.
+Each function must take the parameters @var{TOKEN} &optional @var{PARENT} @var{COLOR}.
+@var{TOKEN} is the token to convert.
+@var{PARENT} is a parent token or name which refers to the structure
+or class which contains @var{TOKEN}.  @var{PARENT} is @var{NOT} a class which a @var{TOKEN}
+would claim as a parent.
+@var{COLOR} indicates that the generated text should be colored using
+@code{font-lock}.
+@end defvar
+
+@defvar semantic-token->text-custom-list
+@var{A} List used by customizable variables to choose a token to text function.
+Use this variable in the @code{:type} field of a customizable variable.
+@end defvar
+
+Every token to text conversion function must take the same parameters,
+which are @var{TOKEN}, the token to be converted, @var{PARENT}, the
+containing parent (like a structure which contains a variable), and
+@var{COLOR}, which is a flag specifying that color should be applied
+to the returned string.
+
+When creating, or using these strings, particularly with color, use
+@dfn{concat} to build up larger strings instead of @dfn{format}.  This
+will preserve text properties.
+
+@defun semantic-name-nonterminal token &optional parent color
+Return the name string describing @var{TOKEN}.
+The name is the shortest possible representation.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-summarize-nonterminal token &optional parent color
+Summarize @var{TOKEN} in a reasonable way.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-prototype-nonterminal token &optional parent color
+Return a prototype for @var{TOKEN}.
+This function should be overloaded, though it need not be used.
+This is because it can be used to create code by language independent
+tools.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-prototype-file buffer
+Return a file in which prototypes belonging to @var{BUFFER} should be placed.
+Default behavior (if not overridden) looks for a token specifying the
+prototype file, or the existence of an @var{EDE} variable indicating which
+file prototypes belong in.
+@end defun
+
+@defun semantic-abbreviate-nonterminal token &optional parent color
+Return an abbreviated string describing @var{TOKEN}.
+The abbreviation is to be short, with possible symbols indicating
+the type of token, or other information.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-concise-prototype-nonterminal token &optional parent color
+Return a concise prototype for @var{TOKEN}.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-uml-abbreviate-nonterminal token &optional parent color
+Return a @var{UML} style abbreviation for @var{TOKEN}.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@node Token Details
+@subsubsection Token Details
+
+These functions help derive information about tokens that may not
+be obvious for non-traditional languages with their own token types.
+
+@defun semantic-nonterminal-children token &optional positionalonly
+Return the list of top level children belonging to @var{TOKEN}.
+Children are any sub-tokens which may contain overlays.
+The default behavior (if not overridden with @code{nonterminal-children}
+is to return type parts for a type, and arguments for a function.
+
+If optional argument @var{POSITIONALONLY} is non-@code{nil}, then only return valid
+children if they contain positions.  Some languages may choose to create
+lists of children without position/overlay information.
+
+If this function is overridden, use @dfn{semantic-nonterminal-children-default}
+to also include the default behavior, and merely extend your own.
+
+Note for language authors:
+  If a mode defines a language that has tokens in it with overlays that
+should not be considered children, you should still return them with
+this function.  If you do not, then token re-parsing, and database
+saving will fail.
+@end defun
+
+@defun semantic-nonterminal-external-member-parent token
+Return a parent for @var{TOKEN} when @var{TOKEN} is an external member.
+@var{TOKEN} is an external member if it is defined at a toplevel and
+has some sort of label defining a parent.  The parent return will
+be a string.
+
+The default behavior, if not overridden with
+@code{nonterminal-external-member-parent} is get the @code{'parent} extra
+specifier of @var{TOKEN}.
+
+If this function is overridden, use
+@dfn{semantic-nonterminal-external-member-parent-default} to also
+include the default behavior, and merely extend your own.
+@end defun
+
+@defun semantic-nonterminal-external-member-p parent token
+Return non-@code{nil} if @var{PARENT} is the parent of @var{TOKEN}.
+@var{TOKEN} is an external member of @var{PARENT} when it is somehow tagged
+as having @var{PARENT} as it's parent.
+
+The default behavior, if not overridden with
+@code{nonterminal-external-member-p} is to match @code{'parent} extra specifier in
+the name of @var{TOKEN}.
+
+If this function is overridden, use
+@code{semantic-nonterminal-external-member-children-p-default} to also
+include the default behavior, and merely extend your own.
+@end defun
+
+@defun semantic-nonterminal-external-member-children token &optional usedb
+Return the list of children which are not *in* @var{TOKEN}.
+If optional argument @var{USEDB} is non-@code{nil}, then also search files in
+the Semantic Database.  If @var{USEDB} is a list of databases, search those
+databases.
+
+Children in this case are functions or types which are members of
+@var{TOKEN}, such as the parts of a type, but which are not defined inside
+the class.  @var{C}++ and @var{CLOS} both permit methods of a class to be defined
+outside the bounds of the class' definition.
+
+The default behavior, if not overridden with
+@code{nonterminal-external-member-children} is to search using
+@dfn{semantic-nonterminal-external-member-p} in all top level definitions
+with a parent of @var{TOKEN}.
+
+If this function is overridden, use
+@dfn{semantic-nonterminal-external-member-children-default} to also
+include the default behavior, and merely extend your own.
+@end defun
+
+@defun semantic-nonterminal-protection token &optional parent
+Return protection information about @var{TOKEN} with optional @var{PARENT}.
+This function returns on of the following symbols:
+   @code{nil}      - No special protection.  Language dependent.
+   @code{'public}  - Anyone can access this @var{TOKEN}.
+   @code{'private} - Only methods in the local scope can access @var{TOKEN}.
+   @code{'friend}  - Like private, except some outer scopes are allowed
+              access to token.
+Some languages may choose to provide additional return symbols specific
+to themselves.  Use of this function should allow for this.
+
+The default behavior (if not overridden with @code{nonterminal-protection}
+is to return a symbol based on type modifiers.
+@end defun
+
+@defun semantic-nonterminal-abstract token &optional parent
+Return non @code{nil} if @var{TOKEN} is abstract.
+Optional @var{PARENT} is the parent token of @var{TOKEN}.
+In @var{UML}, abstract methods and classes have special meaning and behavior
+in how methods are overridden.  In @var{UML}, abstract methods are italicized.
+
+The default behavior (if not overridden with @code{nonterminal-abstract}
+is to return true if @code{abstract} is in the type modifiers.
+@end defun
+
+@defun semantic-nonterminal-leaf token &optional parent
+Return non @code{nil} if @var{TOKEN} is leaf.
+Optional @var{PARENT} is the parent token of @var{TOKEN}.
+In @var{UML}, leaf methods and classes have special meaning and behavior.
+
+The default behavior (if not overridden with @code{nonterminal-leaf}
+is to return true if @code{leaf} is in the type modifiers.
+@end defun
+
+@defun semantic-nonterminal-static token &optional parent
+Return non @code{nil} if @var{TOKEN} is static.
+Optional @var{PARENT} is the parent token of @var{TOKEN}.
+In @var{UML}, static methods and attributes mean that they are allocated
+in the parent class, and are not instance specific.
+@var{UML} notation specifies that @var{STATIC} entries are underlined.
+
+The default behavior (if not overridden with @code{nonterminal-static}
+is to return true if @code{static} is in the type modifiers.
+@end defun
+
+@defun semantic-find-dependency token
+Find the filename represented from @var{TOKEN}.
+@var{TOKEN} may be a stripped element, in which case @var{PARENT} specifies a
+parent token that has positional information.
+Depends on @code{semantic-dependency-include-path} for searching.  Always searches
+`.' first, then searches additional paths.
+
+
+@defvar semantic-dependency-include-path
+Defines the include path used when searching for files.
+This should be a list of directories to search which is specific to
+the file being included.
+This variable can also be set to a single function.  If it is a
+function, it will be called with one arguments, the file to find as a
+string, and  it should return the full path to that file, or nil.
+@end defvar
+
+
+@end defun
+
+
+@defun semantic-find-nonterminal token &optional parent
+Find the location of @var{TOKEN}.
+@var{TOKEN} may be a stripped element, in which case @var{PARENT} specifies a
+parent token that has position information.
+Different behaviors are provided depending on the type of token.
+For example, dependencies (includes) will seek out the file that is
+depended on, and functions will move to the specified definition.
+@end defun
+
+@defun semantic-find-documentation token
+Find documentation from @var{TOKEN} and return it as a clean string.
+@var{TOKEN} might have @var{DOCUMENTATION} set in it already.  If not, there may be
+some documentation in a comment preceding TOKEN's definition which we
+can look for.  When appropriate, this can be overridden by a language specific
+enhancement.
+@end defun
+
+@node Local Context
+@subsubsection Local Context
+
+@defun semantic-up-context &optional point
+Move point up one context from @var{POINT}.
+Return non-@code{nil} if there are no more context levels.
+Overloaded functions using @code{up-context} take no parameters.
+@end defun
+
+@defun semantic-beginning-of-context &optional point
+Move @var{POINT} to the beginning of the current context.
+Return non-@code{nil} if there is no upper context.
+The default behavior uses @dfn{semantic-up-context}.  It can
+be overridden with @code{beginning-of-context}.
+@end defun
+
+@defun semantic-end-of-context &optional point
+Move @var{POINT} to the end of the current context.
+Return non-@code{nil} if there is no upper context.
+Be default, this uses @dfn{semantic-up-context}, and assumes parenthetical
+block delimiters.  This can be overridden with @code{end-of-context}.
+@end defun
+
+@defun semantic-get-local-variables &optional point
+Get the local variables based on POINT's context.
+Local variables are returned in Semantic token format.
+Be default, this calculates the current bounds using context blocks
+navigation, then uses the parser with @code{bovine-inner-scope} to
+parse tokens at the beginning of the context.
+This can be overridden with @code{get-local-variables}.
+@end defun
+
+@defun semantic-get-local-arguments &optional point
+Get arguments (variables) from the current context at @var{POINT}.
+Parameters are available if the point is in a function or method.
+This function returns a list of tokens.  If the local token returns
+just a list of strings, then this function will convert them to tokens.
+Part of this behavior can be overridden with @code{get-local-arguments}.
+@end defun
+
+@defun semantic-get-all-local-variables &optional point
+Get all local variables for this context, and parent contexts.
+Local variables are returned in Semantic token format.
+Be default, this gets local variables, and local arguments.
+This can be overridden with @code{get-all-local-variables}.
+Optional argument @var{POINT} is the location to start getting the variables from.
+@end defun
+
+These next set of functions handle local context parsing.   This means
+looking at the code (locally) and navigating, and fetching information
+such as a the type of the parameter the cursor may be typing in.
+
+@defun semantic-end-of-command
+Move to the end of the current command.
+Be default, uses @code{semantic-command-separation-character}.
+Override with @code{end-of-command}.
+@end defun
+
+@defun semantic-beginning-of-command
+Move to the beginning of the current command.
+Be default, users @code{semantic-command-separation-character}.
+Override with @code{beginning-of-command}.
+@end defun
+
+@defun semantic-ctxt-current-symbol &optional point
+Return the current symbol the cursor is on at @var{POINT} in a list.
+This will include a list of type/field names when applicable.
+This can be overridden using @code{ctxt-current-symbol}.
+@end defun
+
+@defun semantic-ctxt-current-assignment &optional point
+Return the current assignment near the cursor at @var{POINT}.
+Return a list as per @dfn{semantic-ctxt-current-symbol}.
+Return @code{nil} if there is nothing relevant.
+Override with @code{ctxt-current-assignment}.
+@end defun
+
+@defun semantic-ctxt-current-function &optional point
+Return the current function the cursor is in at @var{POINT}.
+The function returned is the one accepting the arguments that
+the cursor is currently in.
+This can be overridden with @code{ctxt-current-function}.
+@end defun
+
+@defun semantic-ctxt-current-argument &optional point
+Return the current symbol the cursor is on at @var{POINT}.
+Override with @code{ctxt-current-argument}.
+@end defun
+
+@defun semantic-ctxt-scoped-types &optional point
+Return a list of type names currently in scope at @var{POINT}.
+Override with @code{ctxt-scoped-types}.
+@end defun
+
+For details on using these functions to get more detailed information
+about the current context: @xref{Context Analysis}.
+
+@node Making New Methods
+@subsubsection Making New Methods
+
+@node Parser Hooks
+@subsection Parser Hooks
+
+If you write a program that uses the stream of tokens in a persistent
+display or database, it is necessary to know when tokens change so
+that your displays can be updated.  This is especially important as
+tokens can be replaced, changed, or deleted, and the associated
+overlays will then throw errors when you try to use them.  Complete
+integration with token changes can be achieved via several very
+important hooks.
+
+One interesting way to interact with the parser is to let it know that
+changes you are going to make will not require re-parsing.
+
+@defvar semantic-edits-are-safe
+When non-@code{nil}, modifications do not require a reparse.
+This prevents tokens from being marked dirty, and it
+prevents top level edits from causing a cache check.
+Use this when writing programs that could cause a full
+reparse, but will not change the tag structure, such
+as adding or updating top-level comments.
+@end defvar
+
+Next, it is sometimes useful to know what the current parsing state
+is.  These function can let you know what level of re-parsing may be
+needed.  Careful choices on when to reparse can make your program much
+faster.
+
+@defun semantic-bovine-toplevel-full-reparse-needed-p &optional checkcache
+Return non-@code{nil} if the current buffer needs a full reparse.
+Optional argument @var{CHECKCACHE} indicates if the cache check should be made.
+@end defun
+
+@defun semantic-bovine-toplevel-partial-reparse-needed-p &optional checkcache
+Return non-@code{nil} if the current buffer needs a partial reparse.
+This only returns non-@code{nil} if @dfn{semantic-bovine-toplevel-full-reparse-needed-p}
+returns nil.
+Optional argument @var{CHECKCACHE} indicates if the cache check should be made
+when checking @dfn{semantic-bovine-toplevel-full-reparse-needed-p}.
+@end defun
+
+If you need very close interaction with the user's editing, then these
+two hooks can be used to find out when a given tag is being changed.
+These hooks could even be used to cut down on re-parsing if used correctly.
+
+For all hooks, make sure you are careful to add it as a local hook if
+you only want to effect a single buffer.  Setting it globally can
+cause unwanted effects if your program is concerned with a single buffer.
+
+@defvar semantic-dirty-token-hooks
+Hooks run after when a token is marked as dirty (edited by the user).
+The functions must take @var{TOKEN}, @var{START}, and @var{END} as a parameters.
+This hook will only be called once when a token is first made dirty,
+subsequent edits will not cause this to run a second time unless that
+token is first cleaned.  Any token marked as dirty will
+also be called with @code{semantic-clean-token-hooks}, unless a full
+reparse is done instead.
+@end defvar
+
+@defvar semantic-clean-token-hooks
+Hooks run after a token is marked as clean (re-parsed after user edits.)
+The functions must take a @var{TOKEN} as a parameter.
+Any token sent to this hook will have first been called with
+@code{semantic-dirty-token-hooks}.  This hook is not called for tokens
+marked dirty if the buffer is completely re-parsed.  In that case, use
+@code{semantic-after-toplevel-cache-change-hook}.
+@end defvar
+
+@defvar semantic-change-hooks
+Hooks run when semantic detects a change in a buffer.
+Each hook function must take three arguments, identical to the
+common hook @code{after-change-function}.
+@end defvar
+
+Lastly, if you just want to know when a buffer changes, use this hook.
+
+@defvar semantic-after-toplevel-bovinate-hook
+Hooks run after a toplevel token parse.
+It is not run if the toplevel parse command is called, and buffer does
+not need to be fully re-parsed.
+This function is also called when the toplevel cache is flushed, and
+the cache is emptied.
+For language specific hooks, make sure you define this as a local hook.
+
+This hook should not be used any more.
+Use @code{semantic-after-toplevel-cache-change-hook} instead.
+@end defvar
+
+@defvar semantic-after-toplevel-cache-change-hook
+Hooks run after the buffer token list has changed.
+This list will change when a buffer is re-parsed, or when the token
+list in a buffer is cleared.  It is *NOT* called if the current token
+list partially re-parsed.
+
+Hook functions must take one argument, which is the new list of
+tokens associated with this buffer.
+
+For language specific hooks, make sure you define this as a local hook.
+@end defvar
+
+@defvar semantic-after-partial-cache-change-hook
+Hooks run after the buffer token list has been updated.
+This list will change when the current token list has been partially
+re-parsed.
+
+Hook functions must take one argument, which is the list of tokens
+updated among the ones associated with this buffer.
+
+For language specific hooks, make sure you define this as a local hook.
+@end defvar
+
+@defvar semantic-before-toplevel-cache-flush-hook
+Hooks run before the toplevel nonterminal cache is flushed.
+For language specific hooks, make sure you define this as a local hook.
+This hook is called before a corresponding
+@code{semantic-after-toplevel-cache-change-hook} which is also called
+during a flush when the cache is given a new value of nil.
+@end defvar
+
+@node Example Programs
+@subsection Programming Examples
+
+Here are some simple examples that use different aspects of the
+semantic library APIs.  For fully functional example programs with
+lots of comments, see the file @file{semantic-examples.el}.
+
+@subsection Interactively querying for a token name
+
+If you need a command that asks the user for a token name, you can
+get full range completion using the query functions
+@ref{Nonterminal Completion}.
+
+@example
+(interactive (list (semantic-read-symbol "Symbol: ")))
+@end example
+
+@subsection Finding a symbol in a buffer
+
+If you have the name of a function or variable, and need to find its
+location in a buffer, you need a search function.  There is a wide
+range of searches you can perform @ref{Nonterminal Streams}.
+
+@example
+(semantic-find-nonterminal-by-name
+ "some-name"
+ (current-buffer)
+ t    ;; look inside structures and classes for these symbols
+ nil) ;; do not look inside header files.
+@end example
+
+@subsection Finding a symbol in a project
+
+If you have the name of a function or variable, and need to find its
+location somewhere in a project, you need to use the Semantic Database
+@ref{semanticdb}.  There are many search functions similar to the
+ones found in @ref{Nonterminal Streams}.
+
+The Semantic Database is interesting in that the return structure is
+not
+
+@subsection Locating a token in a buffer
+
+If you have a nonterminal token, or a list of them, you may want to
+find their position in a buffer.
+
+@example
+(semanticdb-find-nonterminal-by-name
+ "symbol"
+ nil   ;; Defaults to the current project's database list.
+ t     ;; Search inside types
+ nil   ;; Do not search include files
+ nil   ;; Only search files in the same mode (all C files)
+ t     ;; When a token is found, make sure it is loaded in a buffer.
+ )
+@end example
+
+Of interesting note above, semanticdb can find symbols in files that
+are not loaded into an Emacs buffer.  These tokens do not have an
+associated overlay, and the function @dfn{semantic-token-buffer} will
+fail.
+
+The last parameter's tells the search function to
+@dfn{find-file-noselect} any file in which a matching token was
+found.  This will allow you to merge all the tokens into a completion
+list, or other flat list needed by most functions that use
+association lists.
+
+If you do not ask semanticdb to load those files, you will need to
+explicitly request the database object (found in the @code{car} of
+each sublist) get the file loaded.  It is useful to not auto find all
+files if you don't need to jump to that token.
+
+@subsection Converting a token into a human readable string.
+
+A nonterminal token is a rather unpleasant Lisp structure when trying
+to decipher what is going on.  As such, there is a wide range of
+functions available that can convert a token into a human readable,
+and colorful string @ref{Token->Text}.
+
+If you program interfaces with lots of users, you will probably want
+to have your program define a configurable variable that will let
+users change the visible portion of your program.
+
+@example
+(defcustom my-summary-function 'semantic-uml-prototype-nonterminal
+  "*Function to use when showing info about my token."
+  :group 'my-program
+  :type semantic-token->text-custom-list)
+@end example
+
+Note the special type provided by semantic.
+
+Next, you can call this function to create a string.
+
+@example
+(funcall my-summary-function token
+                             token-parent
+                             t ; use color
+                             )
+@end example
+
+In this case, @var{token-parent} is an optional argument.  In many
+cases, parent is not used by the outputting function.  The parent
+may be a struct or class that contains @var{token}, or nil for
+top-level definitions.  In particular, C++ needs the parent to
+correctly calculate the protection of each method.
+
+
+@node Current Context
+@section Deriving the Current Context
+
+This chapter deals with how to derive the current context, and also
+how a language maintainer can get the current context API to work
+with their language.
+
+By default, the behavior will function in C like languages.  This
+means languages with parenthetical blocks, and type dereferencing
+which uses a similar form.
+
+@menu
+* Blocks::                      
+* Local Variables::             Getting lists of local variables.
+* Derived Context::             What goes at a given location?
+* Context Analysis::            Analysis information about the local context.
+@end menu
+
+@node Blocks
+@subsection Blocks and Navigation
+
+Source code is typically built up of control structures, and blocks of
+context, or lexical scope.  Semantic terms these lexical scopes as a
+``context''.  The following functions can be used to navigate contexts.
+Some of them are override functions.  Language authors can override
+a subset of them to make them work for their language.
+
+@defun semantic-up-context &optional point
+Move point up one context from @var{POINT}.
+Return non-@code{nil} if there are no more context levels.
+Overloaded functions using @code{up-context} take no parameters.
+@end defun
+
+@defun semantic-beginning-of-context &optional point
+Move @var{POINT} to the beginning of the current context.
+Return non-@code{nil} if there is no upper context.
+The default behavior uses @code{semantic-up-context}.  It can
+be overridden with @code{beginning-of-context}.
+@end defun
+
+@defun semantic-end-of-context &optional point
+Move @var{POINT} to the end of the current context.
+Return non-@code{nil} if there is no upper context.
+Be default, this uses @code{semantic-up-context}, and assumes parenthetical
+block delimiters.  This can be overridden with @code{end-of-context}.
+@end defun
+
+These next set of functions can be used to navigate across commands.
+
+@defun semantic-end-of-command
+Move to the end of the current command.
+Be default, uses @code{semantic-command-separation-character}.
+Override with @code{end-of-command}.
+@end defun
+
+@defun semantic-beginning-of-command
+Move to the beginning of the current command.
+Be default, users @code{semantic-command-separation-character}.
+Override with @code{beginning-of-command}.
+@end defun
+
+@node Local Variables
+@subsection Deriving local variables
+
+Within a given context, or block of code, local variables are often
+defined.  These functions can be used to retrieve lists of locally
+scoped variables.
+
+@defun semantic-get-local-variables &optional point
+Get the local variables based on POINT's context.
+Local variables are returned in Semantic token format.
+By default, this calculates the current bounds using context blocks
+navigation, then uses the parser with @code{bovine-inner-scope} to
+parse tokens at the beginning of the context.
+This can be overridden with @code{get-local-variables}.
+@end defun
+
+@defun semantic-get-local-arguments &optional point
+Get arguments (variables) from the current context at @var{POINT}.
+Parameters are available if the point is in a function or method.
+This function returns a list of tokens.  If the local token returns
+just a list of strings, then this function will convert them to tokens.
+Part of this behavior can be overridden with @code{get-local-arguments}.
+@end defun
+
+@defun semantic-get-all-local-variables &optional point
+Get all local variables for this context, and parent contexts.
+Local variables are returned in Semantic token format.
+Be default, this gets local variables, and local arguments.
+This can be overridden with @code{get-all-local-variables}.
+Optional argument @var{POINT} is the location to start getting the variables from.
+@end defun
+
+@node Derived Context
+@subsection Deriving the Current Context
+
+While a context has already been used to describe blocks of code,
+other context include more local details, such as the symbol the
+cursor is on, or the fact we are assigning into some other variable.
+
+These context deriving functions can be overridden to provide language
+specific behavior.  By default, it assumes a C like language.
+
+@defun semantic-ctxt-current-symbol &optional point
+Return the current symbol the cursor is on at @var{POINT} in a list.
+This will include a list of type/field names when applicable.
+This can be overridden using @code{ctxt-current-symbol}.
+@end defun
+
+@defun semantic-ctxt-current-assignment &optional point
+Return the current assignment near the cursor at @var{POINT}.
+Return a list as per @code{semantic-ctxt-current-symbol}.
+Return @code{nil} if there is nothing relevant.
+Override with @code{ctxt-current-assignment}.
+@end defun
+
+@defun semantic-ctxt-current-function &optional point
+Return the current symbol the cursor is on at @var{POINT}.
+The function returned is the one accepting the arguments that
+the cursor is currently in.
+This can be overridden with `ctxt.current-function'.
+@end defun
+
+@defun semantic-ctxt-current-argument &optional point
+Return the current symbol the cursor is on at @var{POINT}.
+Override with @code{ctxt-current-argument}.
+@end defun
+
+@node Context Analysis
+@subsection Analysis of the current context
+
+The context parsing API is used in a context analysis library.  This
+library provides high level routines for scanning through token
+databases to create lists of token associates.  At it's core is a set
+of EIEIO classes defining a context.  The context contains information
+about what was parsed at a given position, such as the strings there,
+and they type of assignment.  The analysis library then searches the
+databases to determine the types and names available.
+
+Two high level functions which can be run interactively are:
+
+*NOTE TO SELF: Add more here*
+
+@deffn Command semantic-analyze-current-context position
+Analyze the current context at @var{POSITION}.
+If called interactively, display interesting information about @var{POSITION}
+in a separate buffer.
+Returns an object based on symbol @code{semantic-analyze-context}.
+@end deffn
+
+
+@deffn Command semantic-analyze-possible-completions point
+Return a list of semantic tokens which are possible completions.
+Analysis is done at @var{POINT}.
+@end deffn
