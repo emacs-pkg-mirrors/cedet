@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.71 2000/08/20 13:16:31 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.72 2000/08/20 15:26:41 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.15"
   "Current version of EIEIO.")
@@ -1070,6 +1070,13 @@ If EXTRA, include that in the string returned to represent the symbol."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (class-parents-fast class))
 
+(defmacro class-children-fast (class) "Return child classes to CLASS with no check."
+  (list 'aref (list 'class-v class) class-children))
+
+(defun class-children (class) "Return child classses to CLASS."
+  (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
+  (class-children-fast class))
+
 (defmacro class-parent-fast (class) "Return first parent class to CLASS with no check."
   (list 'car (list 'class-parents-fast class)))
 
@@ -1919,8 +1926,20 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 
 ))
 
-;;; Autoloading some external symbols
+;;; Autoloading some external symbols, and hooking into the help system
 ;;
+
+;; make sure this shows up after the help mode hook.
+(add-hook 'temp-buffer-show-hook 'eieio-help-mode-augmentation-maybee t)
+(require 'advice)
+(defadvice describe-variable (around describe-class-maybeen activate)
+  "Display the full documentation of VARIABLE (a symbol).
+Returns the documentation as a string, also."
+  (if (class-p (ad-get-arg 0))
+      (describe-class (ad-get-arg 0))
+    ad-do-it))
+
+(autoload 'eieio-help-mode-augmentation-mayee "eieio-opt" "For buffers thrown into help mode, augment for eieio.")
 (autoload 'eieio-browse "eieio-opt" "Create an object browser window" t)
 (autoload 'eieio-describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
 (autoload 'describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
