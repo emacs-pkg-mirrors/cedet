@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.18 2003/02/17 01:45:08 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.19 2003/03/14 01:56:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1101,17 +1101,17 @@ syntax as specified by the syntax table."
 ;;; Compatibility with Semantic 1.x lexical analysis
 ;;
 
-(defalias 'semantic-flex-start 'semantic-lex-token-start)
-(defalias 'semantic-flex-end 'semantic-lex-token-end)
-(defalias 'semantic-flex-text 'semantic-lex-token-text)
-(defalias 'semantic-flex-make-keyword-table 'semantic-lex-make-keyword-table)
-(defalias 'semantic-flex-keyword-p 'semantic-lex-keyword-p)
-(defalias 'semantic-flex-keyword-put 'semantic-lex-keyword-put)
-(defalias 'semantic-flex-keyword-get 'semantic-lex-keyword-get)
-(defalias 'semantic-flex-map-keywords 'semantic-lex-map-keywords)
-(defalias 'semantic-flex-keywords 'semantic-lex-keywords)
-(defalias 'semantic-flex-buffer 'semantic-lex-buffer)
-(defalias 'semantic-flex-list   'semantic-lex-list)
+(semantic-alias-obsolete 'semantic-flex-start 'semantic-lex-token-start)
+(semantic-alias-obsolete 'semantic-flex-end 'semantic-lex-token-end)
+(semantic-alias-obsolete 'semantic-flex-text 'semantic-lex-token-text)
+(semantic-alias-obsolete 'semantic-flex-make-keyword-table 'semantic-lex-make-keyword-table)
+(semantic-alias-obsolete 'semantic-flex-keyword-p 'semantic-lex-keyword-p)
+(semantic-alias-obsolete 'semantic-flex-keyword-put 'semantic-lex-keyword-put)
+(semantic-alias-obsolete 'semantic-flex-keyword-get 'semantic-lex-keyword-get)
+(semantic-alias-obsolete 'semantic-flex-map-keywords 'semantic-lex-map-keywords)
+(semantic-alias-obsolete 'semantic-flex-keywords 'semantic-lex-keywords)
+(semantic-alias-obsolete 'semantic-flex-buffer 'semantic-lex-buffer)
+(semantic-alias-obsolete 'semantic-flex-list   'semantic-lex-list)
 
 ;; This simple scanner uses the syntax table to generate a stream of
 ;; simple tokens of the form:
