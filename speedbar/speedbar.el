@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7e
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.91 1998/04/16 16:29:56 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.92 1998/04/16 16:38:25 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -359,11 +359,10 @@
 (require 'assoc)
 (require 'easymenu)
 
-(eval-and-compile
-  (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
-    "Non-nil if we are running in the XEmacs environment.")
-  (defvar speedbar-xemacs20p (and speedbar-xemacsp 
-				  (= emacs-major-version 20))))
+(defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
+  "Non-nil if we are running in the XEmacs environment.")
+(defvar speedbar-xemacs20p (and speedbar-xemacsp 
+				(= emacs-major-version 20)))
 
 ;; From custom web page for compatibility between versions of custom:
 (eval-and-compile
@@ -371,8 +370,9 @@
       (require 'custom)
     (error nil))
   (if (and (featurep 'custom) (fboundp 'custom-declare-variable)
-	   ;; David Hughes 2nd April 1998
-	   (or (not speedbar-xemacsp) speedbar-xemacs20p))
+	   ;; Some XEmacsen w/ custom don't have :set keyword.
+	   ;; This protects them against custom.
+	   (fboundp 'custom-initialize-set))
       nil ;; We've got what we needed
     ;; We have the old custom-library, hack around it!
     (defmacro defgroup (&rest args)
