@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.2 2003/08/22 18:18:27 zappo Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.3 2003/08/23 21:42:08 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -36,25 +36,31 @@
   ((menu :initform nil)
    (keybindings :initform nil)
    (phony :initform t)
-   (sourcetype :initform (semantic-ede-source-grammar))
-   (availablecompilers :initform (semantic-ede-grammar-compiler))
+   (sourcetype :initform
+	       (semantic-ede-source-grammar-wisent
+		semantic-ede-source-grammar-bovine
+		))
+   (availablecompilers :initform
+		       (semantic-ede-grammar-compiler-wisent
+			semantic-ede-grammar-compiler-bovine
+			))
    )
   "This target consists of a group of grammar files.
 A grammar target consists of grammar files that build Emacs Lisp programs for
 parsing different languages.")
 
-(defvar semantic-ede-source-grammar
-  (ede-sourcecode "semantic-ede-grammar-source"
-		  :name "Semantic Grammar"
+(defvar semantic-ede-source-grammar-wisent
+  (ede-sourcecode "semantic-ede-grammar-source-wisent"
+		  :name "Wisent Grammar"
 		  :sourcepattern "\\.wy$"
 		  )
-  "Semantic Grammar source code definition.")
+  "Semantic Grammar source code definition for wisent.")
 
 (defclass semantic-ede-grammar-compiler-class (ede-compiler)
   nil
   "Specialized compiler for semamtic grammars.")
 
-(defvar semantic-ede-grammar-compiler
+(defvar semantic-ede-grammar-compiler-wisent
   (semantic-ede-grammar-compiler-class
    "ede-emacs-wisent-compiler"
    :name "emacs"
@@ -71,8 +77,38 @@ parsing different languages.")
      "${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $^"
      )
    ;; :autoconf '("AM_PATH_LISPDIR")
-   :sourcetype '(semantic-ede-source-grammar)
+   :sourcetype '(semantic-ede-source-grammar-wisent)
    :objectextention "-wy.elc"
+   )
+  "Compile Emacs Lisp programs.")
+
+
+(defvar semantic-ede-source-grammar-bovine
+  (ede-sourcecode "semantic-ede-grammar-source-bovine"
+		  :name "Bovine Grammar"
+		  :sourcepattern "\\.by$"
+		  )
+  "Semantic Grammar source code definition for the bovinator.")
+
+(defvar semantic-ede-grammar-compiler-bovine
+  (semantic-ede-grammar-compiler-class
+   "ede-emacs-wisent-compiler"
+   :name "emacs"
+   :variables '(("EMACS" . "emacs"))
+   :commands
+   '(
+     "@echo \"(add-to-list 'load-path nil)\" > grammar-make-script"
+     "@for loadpath in . ${LOADPATH}; do \\"
+     "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> grammar-make-script; \\"
+     "done;"
+     "@echo \"(require 'semantic-load)\" >> grammar-make-script"
+     "@echo \"(require 'semantic-grammar)\" >> grammar-make-script"
+     ;; "@echo \"(setq debug-on-error t)\" >> grammar-make-script"
+     "${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $^"
+     )
+   ;; :autoconf '("AM_PATH_LISPDIR")
+   :sourcetype '(semantic-ede-source-grammar-bovine)
+   :objectextention "-by.elc"
    )
   "Compile Emacs Lisp programs.")
 
