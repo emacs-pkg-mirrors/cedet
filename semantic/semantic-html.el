@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-html.el,v 1.4 2004/04/29 10:10:52 ponced Exp $
+;; X-RCS: $Id: semantic-html.el,v 1.5 2004/07/15 20:27:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -245,6 +245,8 @@ tag with greater section value than LEVEL is found."
 ;;;###autoload
 (add-hook 'html-mode-hook 'semantic-default-html-setup)
 
+(define-child-mode html-helper-mode html-mode
+  "`html-helper-mode' needs the same semantic support as `html-mode'.")
 
 (provide 'semantic-html)
 
