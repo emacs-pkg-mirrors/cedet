@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.15 2001/07/05 15:43:16 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.16 2001/07/12 19:49:22 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -47,7 +47,7 @@
    (classslot :initform penguin
 	      :type symbol
 	      :documentation "A class allocated slot."
-	      :allocation class)
+	      :allocation :class)
    (test-tag :initform nil
 	     :documentation "Used to make sure methods are called.")
    (self :initform nil
@@ -369,12 +369,17 @@ METHOD is the method that was attempting to be called."
 
 ;;; Test function type in a class
 ;;
+(defvar class-typep-var 0
+  "A variable used in an initform.")
+
+(setq class-typep-var 1)
+
 (defclass class-typep ()
   ((slot1 :type function
 	  :initform <
 	  )
    (slot2 :type integer
-	  :initform (lambda () 1)
+	  :initform (lambda () class-typep-var)
 	  )
    (slot4 :type function
 	  :initform (lambda-default () 2)
@@ -382,7 +387,12 @@ METHOD is the method that was attempting to be called."
    )
   "Test different types in a class.")
 
+(setq class-typep-var 2)
+
 (defvar ct (class-typep "foo"))
+
+(if (/= (oref ct slot2) 2)
+    (error "Default value for slot2 incorrect.")) 
 
 
 ;;; Inheritance status
