@@ -1,12 +1,12 @@
 ;;; semantic-grammar.el --- Major mode framework for Semantic grammars
 ;;
-;; Copyright (C) 2002, 2003 David Ponce
+;; Copyright (C) 2002, 2003, 2004 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.46 2003/12/22 15:57:59 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.47 2004/01/09 21:01:24 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1491,7 +1491,7 @@ Otherwise return nil."
        ((and elt (boundp elt))
         (setq val (eldoc-get-var-docstring elt)))
        (t nil)))
-    (or val (senator-eldoc-print-current-symbol-info-default))))
+    (or val (semantic-idle-summary-current-symbol-info-default))))
 
 (define-mode-overload-implementation semantic-tag-boundary-p
   semantic-grammar-mode (tag)
