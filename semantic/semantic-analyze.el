@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.29 2004/02/08 22:23:06 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.30 2004/02/10 01:52:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -78,7 +78,7 @@
 
 ;;; Code:
 
-;;; Context Analysis
+;;; Tag Finding
 ;;
 (defun semantic-analyze-find-tags-by-prefix (prefix)
   "Attempt to find a tag with PREFIX.
@@ -94,6 +94,23 @@ Almost all searches use the same arguments."
     (semantic-find-tags-for-completion
      prefix (current-buffer))))
  
+(define-overload semantic-analyze-tag-prototype-p (tag)
+  "Non-nil if TAG is a prototype."
+  )
+
+(defun semantic-analyze-tag-prototype-p-default (tag)
+  "Non-nil if TAG is a prototype."
+  (let ((p (semantic-tag-get-attribute tag :prototype)))
+    (cond
+     ;; Trust the parser author.
+     (p p)
+     ;; Empty types might be a prototype.
+     ((eq (semantic-tag-class tag) 'type)
+      (not (semantic-tag-type-members tag)))
+     ;; No other heuristics.
+     (t nil))
+    ))
+
 (defun semantic-analyze-find-tag (name &optional tagclass scope)
   "Return the first tag found with NAME or nil if not found.
 Optional argument TAGCLASS specifies the class of tag to return, such
@@ -112,17 +129,22 @@ Almost all searches use the same arguments."
                ;; Search just this file
                (semantic-find-tags-by-name
                 name (current-buffer)))))
+	proto
         ret)
     (if tagclass
         ;; Scan only for tags of a given class.
         (while (and retlist (not ret))
           (if (semantic-tag-of-class-p (car retlist) tagclass)
-              (setq ret (car retlist))
-            (setq retlist (cdr retlist))))
+	      (if (semantic-analyze-tag-prototype-p (car retlist))
+		  (setq proto (car retlist))
+		(setq ret (car retlist))))
+	  (setq retlist (cdr retlist)))
       ;; Just get the first tag found.
       (setq ret (car retlist)))
-    ret))
+    (or ret proto)))
 
+;;; Finding Datatypes
+;;
 (defun semantic-analyze-tag-type-to-name (tag)
   "Get the name of TAG's type.
 The TYPE field in a tag can be nil (return nil)
@@ -218,6 +240,8 @@ within that types field.  Also handles anonymous types."
       ;; We now have a tag associated with the type.
       (semantic-analyze-dereference-metatype typetag))))
 
+;;; Tag Sequences
+;;
 (defun semantic-analyze-find-tag-sequence (sequence &optional localvar scope typereturn)
   "Attempt to find all tags in SEQUENCE.
 Optional argument LOCALVAR is the list of local variables to use when
@@ -298,6 +322,8 @@ will be stored.  If nil, that data is thrown away."
     ;; Return the mess
     (nreverse tag)))
 
+;;; Scope Determination
+;;
 (defun semantic-analyze-inherited-tags (type scope)
   "Return all tags that TYPE inherits from.
 Argument SCOPE specify additional tags that are in scope
