@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.3 2002/07/10 03:51:16 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.4 2002/07/12 01:27:31 emacsman Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,7 +30,8 @@
 
 ;;;###autoload
 (defvar semantic-lex-analyzer nil
-  "The lexical analyzer used for a given buffer.")
+  "The lexical analyzer used for a given buffer.
+See `semantic-lex' for documentation.")
 
 ;;; Code:
 (defvar semantic-lex-tokens
@@ -395,7 +396,7 @@ This action will just throw an error."
 
 (define-lex-simple-regex-analyzer semantic-lex-newline
   "Detect and create newline tokens."
-  "\\s-*\\(\n\\|\\s>\\)"  newline 1)
+  "\\s-*\\(\n\\|\\s>\\)"  'newline 1)
 
 (define-lex-regex-analyzer semantic-lex-newline-as-whitespace
   "Detect and create newline tokens.
