@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-skel.el,v 1.5 2000/07/12 14:11:14 zappo Exp $
+;; RCS: $Id: ede-proj-skel.el,v 1.6 2000/07/22 12:45:27 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -66,6 +66,17 @@
 (defmethod ede-want-file-p ((obj ede-proj-target-%NAME%) file)
   "Return t if OBJ wants to own FILE."
   (string match "\\.%MYEXTENSION%$" file))
+
+;; When a buffer is read in, EDE checks to see which target this
+;; buffer belongs to.  The default method for all targets checks
+;; the file name against the list of known source files.
+;; If your target has additional source files stored elsewhere,
+;; this is how you will check.
+;;(defmethod ede-buffer-mine ((this ede-proj-target-%NAME%) buffer)
+;;  "Return non-nil if object THIS lays claim to the file in BUFFER."
+;;  (or (call-next-method)
+;;      (%additional-checks-here%)
+;;      ))
 
 ;; This function lets you take files being added to your target and
 ;; stick them into different slots.  This is useful if you have
