@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.61 2003/09/04 18:41:43 zappo Exp $
+;; RCS: $Id: ede.el,v 1.62 2003/09/06 19:37:55 zappo Exp $
 (defconst ede-version "1.0beta3"
   "Current version of the Emacs EDE.")
 
@@ -510,8 +510,7 @@ Argument LIST-O-O is the list of objects to choose from."
   (if a
       (setcdr a ede-minor-keymap)
     (add-to-list 'minor-mode-map-alist
-		 (cons 'ede-minor-mode
-		       ede-minor-keymap))
+		 (cons 'ede-minor-mode ede-minor-keymap))
     ))
 
 (defun ede-menu-obj-of-class-p (class)
@@ -682,6 +681,7 @@ easy to edit your automake files.
 
 With argument ARG positive, turn on the mode.  Negative, turn off the
 mode.  nil means to toggle the mode."
+  (interactive "P")
   (if (or (eq major-mode 'dired-mode)
 	  (eq major-mode 'vc-dired-mode))
       (ede-dired-minor-mode arg)
@@ -689,7 +689,8 @@ mode.  nil means to toggle the mode."
       (setq ede-minor-mode
 	    (not (or (and (null arg) ede-minor-mode)
 		     (<= (prefix-numeric-value arg) 0))))
-      (if (and ede-minor-mode (not ede-constructing))
+      (if (and ede-minor-mode (not ede-constructing)
+	       (ede-directory-project-p default-directory))
 	  (progn
 	    (ede-load-project-file default-directory)
 	    (setq ede-object (ede-buffer-object))
@@ -697,7 +698,10 @@ mode.  nil means to toggle the mode."
 		(ede-auto-add-to-target))
 	    (if (ede-current-project)
 		(ede-set-project-variables (ede-current-project)))
-	    (ede-apply-object-keymap))))))
+	    (ede-apply-object-keymap))
+	;; If we fail to have a project here, turn it back off.
+	(if (not (interactive-p))
+	    (setq ede-minor-mode nil))))))
   
 (defun global-ede-mode (arg)
   "Turn on variable `ede-minor-mode' mode when ARG is positive.
