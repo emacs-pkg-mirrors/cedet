@@ -1,12 +1,12 @@
 ;;; speedbar --- quick access to files and tags in a frame
 
-;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02, 03, 04 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02, 03, 04, 05 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.242 2004/10/05 14:16:07 berndl Exp $
+;; X-RCS: $Id: speedbar.el,v 1.243 2005/02/03 14:10:19 zappo Exp $
 
-(defvar speedbar-version "0.15beta2"
+(defvar speedbar-version "1.0"
   "The current version of speedbar.")
 (defvar speedbar-incompatible-version "0.14beta4"
   "This version of speedbar is incompatible with this version.
@@ -3467,6 +3467,9 @@ If the file is being displayed in a different frame already, then raise that
 frame instead."
   (let* ((buff (find-file-noselect file))
 	 (bwin (get-buffer-window buff 0)))
+
+;; something in here causes mouse to move.
+
     (if bwin
 	(progn
 	  (select-window bwin)
