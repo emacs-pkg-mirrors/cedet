@@ -1,10 +1,10 @@
 ;;; semantic-idle.el --- Schedule parsing tasks in idle time
 
-;;; Copyright (C) 2003 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.5 2003/12/28 17:52:38 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.6 2004/01/09 21:07:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -91,6 +91,8 @@ run as soon as Emacs is idle."
 ;;;###autoload
 (defun global-semantic-idle-scheduler-mode (&optional arg)
   "Toggle global use of option `semantic-idle-scheduler-mode'.
+The idle scheduler with automatically reparse buffers in idle time,
+and then schedule other jobs setup with `semantic-idle-scheduler-add'.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
@@ -244,13 +246,6 @@ call additional functions registered with the timer calls."
 
 (defcustom semantic-idle-scheduler-no-working-message t
   "*If non-nil, disable display of working messages during parse."
-  :group 'semantic
-  :type 'boolean)
-
-(defcustom semantic-idle-scheduler-working-in-modeline-flag nil
-  "*Non-nil means show working messages in the mode line.
-Typically, parsing will show messages in the minibuffer.
-This will move the parse message into the modeline."
   :group 'semantic
   :type 'boolean)
 
@@ -458,29 +453,57 @@ Some useful functions are found in `semantic-format-tag-functions'."
   :type semantic-format-tag-custom-list)
 
 (defsubst semantic-idle-summary-find-current-symbol-tag (sym)
-  "Search for a semantic tag with name SYM.
-Return the tag found or nil if not found."
+  "Search for a semantic tag with name SYM in database tables.
+Return the tag found or nil if not found.
+If semanticdb is not in use, use the current buffer only."
   (car (if (and (featurep 'semanticdb) semanticdb-current-database)
            (cdar (semanticdb-deep-find-tags-by-name sym))
          (semantic-deep-find-tags-by-name sym (current-buffer)))))
 
+(defun semantic-idle-summary-current-symbol-info-brutish ()
+  "Return a string message describing the current context.
+Gets a symbol with `semantic-ctxt-current-thing' and then
+trys to find it with a deep targetted search."
+  ;; Try the current "thing".
+  (setq sym (car (semantic-ctxt-current-thing)))
+  (semantic-idle-summary-find-current-symbol-tag sym))
+
+(defun semantic-idle-summary-current-symbol-keyword ()
+  "Return a string message describing the current symbol.
+Returns a value only if it is a keyword."
+  ;; Try the current "thing".
+  (setq sym (car (semantic-ctxt-current-thing)))
+  (if (semantic-lex-keyword-p sym)
+      (semantic-lex-keyword-get sym 'summary)))
+
+(defun semantic-idle-summary-current-symbol-info-context ()
+  "Return a string message describing the current context.
+Use the semantic analyzer to find the symbol information."
+  (condition-case nil
+      (let ((analysis (semantic-analyze-current-context (point)))
+	    (prefix nil))
+	(when (and analysis (setq prefix (oref analysis :prefix)))
+	  (setq prefix (reverse prefix))
+	  (cond ((semantic-tag-p (car prefix))
+		 (car prefix))
+		((and (stringp (car prefix))
+		      (semantic-tag-p (car (cdr prefix))))
+		 (car (cdr prefix)))
+		(t
+		 nil))
+	  ))
+    (error nil)))
+
 (defun semantic-idle-summary-current-symbol-info-default ()
   "Return a string message describing the current context."
-  (let (sym found)
-    (and
-     ;; 1- Look for a tag with current symbol name
-     (setq sym (car (semantic-ctxt-current-symbol)))
-     (not (setq found (semantic-idle-summary-find-current-symbol-tag sym)))
-     ;; 2- Look for a keyword with that name
-     (semantic-lex-keyword-p sym)
-     (not (setq found (semantic-lex-keyword-get sym 'summary)))
-     ;; 3- Look for a tag with current function name
-     (setq sym (car (semantic-ctxt-current-function)))
-     (not (setq found (semantic-idle-summary-find-current-symbol-tag sym)))
-     ;; 4- Look for a keyword with that name
-     (semantic-lex-keyword-p sym)
-     (setq found (semantic-lex-keyword-get sym 'summary)))
-    found))
+  ;; use whicever has success first.
+  (or
+   (semantic-idle-summary-current-symbol-keyword)
+
+   (semantic-idle-summary-current-symbol-info-context)
+
+   (semantic-idle-summary-current-symbol-info-brutish)
+   ))
 
 (define-semantic-idle-service semantic-idle-summary
   "Display a tag summary of the lexcial token under the cursor.
@@ -514,7 +537,7 @@ be override with `idle-summary-current-symbol-info'"
       (eldoc-message str))  
     ))
 
-(put 'semantic-idle-summary-function 'semantic-overload
+(put 'semantic-idle-summary-idle-function 'semantic-overload
      'idle-summary-current-symbol-info)
  
 (semantic-alias-obsolete 'semantic-summary-mode
