@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.74 2001/09/12 04:49:54 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.75 2001/09/18 18:07:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1030,6 +1030,32 @@ COLOR indicates that the generated text should be colored using
   "A List used by customizeable variables to choose a token to text function.
 Use this variable in the :type field of a customizable variable.")
 
+(defvar semantic-function-argument-separator ","
+  "Text used to separate arguments when creating text from tokens.")
+(make-variable-buffer-local 'semantic-function-argument-separator)
+
+(defun semantic-test-all-token->text-functions ()
+  "Test all outputs from `semantic-token->text-functions'.
+Output is generated from the function under `point'."
+  (interactive)
+  (semantic-bovinate-toplevel t)
+  (let* ((tok (semantic-current-nonterminal))
+	 (par (or (semantic-current-nonterminal-parent)
+		  (if (semantic-token-function-parent tok)
+		      (semantic-find-nonterminal-by-name
+		       (semantic-token-function-parent tok)
+		       (current-buffer)))
+		  ))
+	 (fns semantic-token->text-functions))
+    (with-output-to-temp-buffer "*Token->text*"
+      (princ "Token->text function tests:")
+      (while fns
+	(princ "\n")
+	(princ (car fns))
+	(princ ":\n ")
+	(princ (funcall (car fns) tok par t))
+	(setq fns (cdr fns)))
+      )))
 
 (defvar semantic-face-alist
   `( (function . font-lock-function-name-face)
@@ -1241,7 +1267,8 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	(setq args
 	      (concat " "
 		      (if (eq tok 'type) "{" "(")
-		      (mapconcat (lambda (a) a) args ",")
+		      (mapconcat (lambda (a) a) args
+				 semantic-function-argument-separator)
 		      (if (eq tok 'type) "}" ")"))))
     (if type
 	(if (semantic-token-p type)
@@ -1286,7 +1313,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 				(lambda (a) (semantic-colorize-text
 					     a 'variable))
 			      'identity)
-			    args ", "))
+			    args semantic-function-argument-separator))
 			  ((semantic-token-p (car args))
 			   (mapconcat
 			    (lambda (a)
@@ -1303,14 +1330,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 				      ((consp ty)
 				       (car ty))
 				      (t (error "Concice-prototype")))))
-			    args ", "))
+			    args semantic-function-argument-separator))
 			  ((consp (car args))
 			   (mapconcat
 			    (if color
 				(lambda (a)
 				  (semantic-colorize-text (car a) 'type))
 			      'car)
-			    args ", "))
+			    args semantic-function-argument-separator))
 			  (t (error "Concice-prototype")))
                   "")
                 ")")))
@@ -1384,7 +1411,8 @@ Colorize the new text based on COLOR."
 		       (t nil)))
 	   (if (and type color)
 	       (setq type (semantic-colorize-text type 'type)))
-	   (if type (concat name (or args "")
+	   (setq name (concat name (or args "")))
+	   (if type (concat name
 			    semantic-uml-colon-string
 			    type)
 	     name)))
@@ -1423,7 +1451,7 @@ COLOR indicates if the string should be colorized."
 		       (semantic-uml-token-or-string-to-string
 			a nil nil color))
 		     arguments
-		     ", ")
+		     semantic-function-argument-separator)
 	  ")"))
 
 (defun semantic-uml-prototype-nonterminal (token &optional parent color)
@@ -1452,7 +1480,8 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
     (setq prot (semantic-uml-protection-to-string prot))
     (concat prot
 	    (semantic-uml-token-or-string-to-string
-	      token parent argtext color))
+	     token parent argtext color)
+	    )
     ))
 
 (defun semantic-uml-concise-prototype-nonterminal (token &optional parent color)
