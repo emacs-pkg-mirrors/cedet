@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.42 2001/01/25 19:10:08 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.43 2001/01/31 16:28:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,7 +29,6 @@
 ;; Semantic Bovinator.
 ;;
 
-
 ;;; Code:
 
 ;;; Simple APIs
@@ -53,107 +52,96 @@
   "Retrieve the parent of the type TOKEN."
   `(nth 4 ,token))
 
-(defmacro semantic-token-type-modifiers (token)
-  "Retrieve the modifiers for the type TOKEN."
+(defmacro semantic-token-type-extra-specs (token)
+  "Retrieve extra specifications for the type TOKEN."
   `(nth 5 ,token))
 
-(defmacro semantic-token-type-modifier (token modifier)
-  "Retrieve a modifier for the type TOKEN.
-MODIFIER is the symbol whose modifier value to get."
-  `(cdr (assoc ,modifier (semantic-token-type-modifiers ,token))))
+(defmacro semantic-token-type-extra-spec (token spec)
+  "Retrieve an extra specification for the type TOKEN.
+SPEC is the symbol whose specification value to get."
+  `(cdr (assoc ,spec (semantic-token-type-extra-specs ,token))))
+
+(defmacro semantic-token-type-modifiers (token)
+  "Retrieve modifiers for the type TOKEN."
+  `(semantic-token-type-extra-spec ,token 'typemodifiers))
 
 (defmacro semantic-token-function-args (token)
   "Retrieve the arguments of the function TOKEN."
   `(nth 3 ,token))
 
-(defmacro semantic-token-function-modifiers (token)
-  "Retrieve modifiers for the function TOKEN."
+(defmacro semantic-token-function-extra-specs (token)
+  "Retrieve extra specifications for the function TOKEN."
   `(nth 4 ,token))
 
-(defmacro semantic-token-function-modifier (token modifier)
-  "Retrieve a modifier for the function TOKEN.
-MODIFIER is the symbol whose modifier value to get."
-  `(cdr (assoc ,modifier (semantic-token-function-modifiers ,token))))
+(defmacro semantic-token-function-extra-spec (token spec)
+  "Retrieve an extra specification for the function TOKEN.
+SPEC is the symbol whose specification value to get."
+  `(cdr (assoc ,spec (semantic-token-function-extra-specs ,token))))
+
+(defmacro semantic-token-function-modifiers (token)
+  "Retrieve modifiers for the function TOKEN."
+  `(semantic-token-function-extra-spec ,token 'typemodifiers))
 
 (defmacro semantic-token-function-throws (token)
   "The symbol string that a function can throws.
 Determines if it is available based on the length of TOKEN."
-  `(semantic-token-function-modifier ,token 'throws))
+  `(semantic-token-function-extra-spec ,token 'throws))
 
 (defmacro semantic-token-function-parent (token)
   "The parent of the function TOKEN.
 A function has a parent if it is a method of a class, and if the
 function does not appear in body of it's parent class."
-  `(semantic-token-function-modifier ,token 'parent))
+  `(semantic-token-function-extra-spec ,token 'parent))
 
 (defmacro semantic-token-variable-default (token)
   "Retrieve the default value of the variable TOKEN."
   `(nth 4 ,token))
 
-(defmacro semantic-token-variable-modifiers (token)
-  "Retrieve modifiers for the variable TOKEN."
+(defmacro semantic-token-variable-extra-specs (token)
+  "Retrieve extra specifications for the variable TOKEN."
   `(nth 4 ,token))
 
-(defmacro semantic-token-variable-modifier (token modifier)
-  "Retrieve a modifier for the variable TOKEN.
-MODIFIER is the symbol whose modifier value to get."
-  `(cdr (assoc ,modifier (semantic-token-variable-modifiers ,token))))
+(defmacro semantic-token-variable-extra-spec (token spec)
+  "Retrieve an extra specification for the variable TOKEN.
+SPEC is the symbol whose specification value to get."
+  `(cdr (assoc ,spec (semantic-token-variable-extra-specs ,token))))
+
+(defmacro semantic-token-variable-modifiers (token)
+  "Retrieve modifiers for the variable TOKEN."
+  `(semantic-token-variable-extra-spec ,token 'typemodifiers))
 
 (defmacro semantic-token-variable-const (token)
   "Retrieve the status of constantness from the variable TOKEN."
-  `(semantic-token-variable-modifier ,token 'const))
+  `(semantic-token-variable-extra-spec ,token 'const))
 
 (defmacro semantic-token-variable-optsuffix (token)
   "Optional details if this variable has bit fields, or array dimentions.
 Determines if it is available based on the length of TOKEN."
-  `(semantic-token-variable-modifier ,token 'suffix))
+  `(semantic-token-variable-extra-spec ,token 'suffix))
 
 (defmacro semantic-token-include-system (token)
  "Retrieve the flag indicating if the include TOKEN is a system include."
   `(nth 2 ,token))
 
-(defun semantic-token-modifier (token modifier)
-  "Retrieve a modifier for TOKEN.
-MODIFIER is a symbol whose modifier value to get.
-This function can get modifiers from any type of token.
+(defun semantic-token-extra-spec (token spec)
+  "Retrieve an extra specification for TOKEN.
+SPEC is a symbol whose specification value to get.
+This function can get extra specifications from any type of token.
 Do not use the function if you know what type of token you are dereferencing.
-Instead, use `semantic-token-variable-modifier',
-`semantic-token-function-modifier', or  `semantic-token-type-modifier'."
+Instead, use `semantic-token-variable-extra-spec',
+`semantic-token-function-extra-spec', or  `semantic-token-type-extra-spec'."
   (let ((tt (semantic-token-token token)))
     (cond ((eq tt 'variable)
-	   (semantic-token-variable-modifier token modifier))
+	   (semantic-token-variable-extra-spec token spec))
 	  ((eq tt 'function)
-	   (semantic-token-function-modifier token modifier))
+	   (semantic-token-function-extra-spec token spec))
 	  ((eq tt 'type)
-	   (semantic-token-type-modifier token modifier))
+	   (semantic-token-type-extra-spec token spec))
 	  (t nil))))
 
-;;; Searching APIs
+;;; Searching by Position APIs
 ;;
-;; These functions search through lists of nonterminals which are in
-;; standard form.
-(defun semantic-find-nonterminal-by-name (name streamorbuffer)
-  "Find a nonterminal NAME within STREAMORBUFFER.  NAME is a string."
-  (let* ((stream (if (bufferp streamorbuffer)
-		     (save-excursion
-		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel))
-		   streamorbuffer))
-	 (m (assoc name stream)))
-    (if m
-	m
-      (let ((toklst (semantic-find-nonterminal-by-token 'type stream)))
-	(while (and (not m) toklst)
-	  (let ((parts (semantic-token-type-parts (car toklst))))
-	    (setq m (if (listp (car parts))
-			(semantic-find-nonterminal-by-name name parts)
-		      (car-safe (member name parts)))
-		  toklst (cdr toklst))))
-	(if (not m)
-	    ;; Go to dependencies, and search there.
-	    nil)
-	m))))
-
+;; These functions will find nonterminals based on a position.
 (defun semantic-find-nonterminal-by-position (position streamorbuffer
 						       &optional nomedian)
   "Find a nonterminal covering POSITION within STREAMORBUFFER.
@@ -310,91 +298,142 @@ smallest token."
 
 ;;; Generalized nonterminal searching
 ;;
-(defun semantic-find-nonterminal-by-token (token streamorbuffer)
-  "Find all nonterminals with a token TOKEN within STREAMORBUFFER.
-TOKEN is a symbol."
-  (let ((stream (if (bufferp streamorbuffer)
-		     (save-excursion
-		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel))
-		   streamorbuffer))
-	(nl nil))
-    (while stream
-      (if (eq token (semantic-token-token (car stream)))
-	  (setq nl (cons (car stream) nl)))
-      (setq stream (cdr stream)))
-    (nreverse nl)))
+;; These functions will search through nonterminal lists explicity for
+;; desired information.
 
-(defun semantic-find-nonterminal-standard (streamorbuffer)
-  "Find all nonterminals in STREAMORBUFFER which define simple token types."
-  (let ((stream (if (bufferp streamorbuffer)
+;; The -by-name nonterminal search can use the built in fcn
+;; `assoc', which is faster than looping ourselves, so we will
+;; not use `semantic-find-nonterminal-by-function' to do this,
+;; instead erroring on the side of speed.
+(defun semantic-find-nonterminal-by-name
+  (name streamorbuffer &optional search-parts search-include)
+  "Find a nonterminal NAME within STREAMORBUFFER.  NAME is a string.
+If SEARCH-PARTS is non-nil, search children of tokens.
+If SEARCH-INCLUDE is non-nil, search include files."
+  (let* ((stream (if (bufferp streamorbuffer)
 		     (save-excursion
 		       (set-buffer streamorbuffer)
 		       (semantic-bovinate-toplevel))
 		   streamorbuffer))
-	(nl nil))
-    (while stream
-      (if (member (semantic-token-token (car stream))
-		  '(function variable type))
-	  (setq nl (cons (car stream) nl)))
-      (setq stream (cdr stream)))
-    (nreverse nl)))
+	 (m (assoc name stream)))
+    (if m
+	m
+      (let ((toklst stream)
+	    (children nil))
+	(while (and (not m) toklst)
+	  (setq toklst (cdr toklst))
+	  (if search-parts
+	      (progn
+		(setq children (semantic-nonterminal-children (car toklst)))
+		(if children
+		    (setq m (semantic-find-nonterminal-by-name
+			     name children))))))
+	(if (not m)
+	    ;; Go to dependencies, and search there.
+	    nil)
+	m))))
+
+(defmacro semantic-find-nonterminal-by-token
+  (token streamorbuffer &optional search-parts search-includes)
+  "Find all nonterminals with a token TOKEN within STREAMORBUFFER.
+TOKEN is a symbol representing the type of the tokens to find.
+Optional argument SEARCH-PARTS and SEARCH-INCLUDE are passed to
+`semantic-find-nonterminal-by-function'."
+  `(semantic-find-nonterminal-by-function
+    (lambda (tok) (eq ,token (semantic-token-token tok)))
+    ,streamorbuffer ,search-parts ,search-includes))
+
+(defmacro semantic-find-nonterminal-standard
+  (streamorbuffer &optional search-parts search-includes)
+  "Find all nonterminals in STREAMORBUFFER which define simple token types.
+Optional argument SEARCH-PARTS and SEARCH-INCLUDE are passed to
+`semantic-find-nonterminal-by-function'."
+  `(semantic-find-nonterminal-by-function
+    (lambda (tok) (member tok '(function variable type)))
+    ,streamorbuffer ,search-parts ,search-includes))
 
 (defvar semantic-default-built-in-types nil
   "For a given language, a set of built-in types.")
 (make-variable-buffer-local 'semantic-default-built-in-types)
 
-(defun semantic-find-nonterminal-by-type (type streamorbuffer)
+(defun semantic-find-nonterminal-by-type
+  (type streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals with type TYPE within STREAMORBUFFER.
-TYPE is a string."
-  (let ((stream (if (bufferp streamorbuffer)
-		     (save-excursion
-		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel))
-		   streamorbuffer))
-	(nl nil) (ts nil))
-    (if (member type semantic-default-built-in-types)
-	(setq nl (list (list type 'type "built in")))
-      (while stream
-	(setq ts (semantic-token-type (car stream)))
-	(if (and (listp ts) (eq (semantic-token-token ts) 'type))
-	    (setq ts (semantic-token-name ts)))
-	(if (equal type ts)
-	    (setq nl (cons (car stream) nl)))
-	(setq stream (cdr stream))))
-    (nreverse nl)))
+TYPE is a string which is the name of the type of the token returned.
+Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
+`semantic-find-nonterminal-by-function'."
+  (if (member type semantic-default-built-in-types)
+      (list (list type 'type "built in"))
+    (semantic-find-nonterminal-by-function
+     (lambda (tok)
+       (let ((ts (semantic-token-type tok)))
+	 (if (and (listp ts) (eq (semantic-token-token ts) 'type))
+	     (setq ts (semantic-token-name ts)))
+	 (equal type ts)))
+     streamorbuffer search-parts search-includes)))
 
-(defmacro semantic-find-nonterminal-by-name-regexp (regex streamorbuffer)
-  "Find all nonterminals whose name match REGEX in STREAMORBUFFER."
+(defun semantic-find-nonterminal-by-type-regexp
+  (regexp streamorbuffer &optional search-parts search-includes)
+  "Find all nonterminals with type matching REGEXP within STREAMORBUFFER.
+REGEXP is a regular expression  which matches the  name of the type of the
+tokens returned.
+Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
+`semantic-find-nonterminal-by-function'."
+  (semantic-find-nonterminal-by-function
+   (lambda (tok)
+     (let ((ts (semantic-token-type tok)))
+       (if (listp ts)
+	   (setq ts
+		 (if (eq (semantic-token-token ts) 'type)
+		     (semantic-token-name ts)
+		   (car ts))))
+       (and ts (string-match regexp ts))))
+   streamorbuffer search-parts search-includes))
+
+(defmacro semantic-find-nonterminal-by-name-regexp
+  (regex streamorbuffer &optional search-parts search-includes)
+  "Find all nonterminals whose name match REGEX in STREAMORBUFFER.
+Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
+`semantic-find-nonterminal-by-function'."
   `(semantic-find-nonterminal-by-function
     (lambda (tok) (string-match ,regex (semantic-token-name tok)))
-    ,streamorbuffer)
+    ,streamorbuffer ,search-parts ,search-includes)
   )
 
-(defmacro semantic-find-nonterminal-by-property (property value streamorbuffer)
+(defmacro semantic-find-nonterminal-by-property
+  (property value streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals with PROPERTY equal to VALUE in STREAMORBUFFER.
-Properties can be added with `semantic-token-put'."
+Properties can be added with `semantic-token-put'.
+Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
+`semantic-find-nonterminal-by-function'."
   `(semantic-find-nonterminal-by-function
    (lambda (tok) (equal (semantic-token-get tok ,property) ,value))
-   ,streamorbuffer)
+   ,streamorbuffer ,search-parts ,search-includes)
   )
 
-(defmacro semantic-find-nonterminal-by-modifier (modifier streamorbuffer)
-  "Find all nonterminals with a given MODIFIER in STREAMORBUFFER.
-MODIFIER is a symbol key into the modifiers association list."
+(defmacro semantic-find-nonterminal-by-extra-spec
+  (spec streamorbuffer &optional search-parts search-includes)
+  "Find all nonterminals with a given SPEC in STREAMORBUFFER.
+SPEC is a symbol key into the modifiers association list.
+Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
+`semantic-find-nonterminal-by-function'."
   `(semantic-find-nonterminal-by-function
-    (lambda (tok) (semantic-token-modifier tok ,modifier))
-    ,streamorbuffer)
+    (lambda (tok) (semantic-token-extra-spec tok ,spec))
+    ,streamorbuffer ,search-parts ,search-includes)
   )
 
-(defun semantic-find-nonterminal-by-function 
+(defun semantic-find-nonterminal-by-function
   (function streamorbuffer &optional search-parts search-includes)
   "Find all nonterminals in which FUNCTION match within STREAMORBUFFER.
 FUNCTION must return non-nil if an element of STREAM will be included
 in the new list.
-If optional argument SEARCH-PARTS, all sub-parts of tokens are searched.
-The overloadable function `semantic-nonterminal-children' is used for
-searching.
+
+If optional argument SEARCH-PARTS is non-nil, all sub-parts of tokens
+are searched.  The overloadable function `semantic-nonterminal-children' is
+used for the searching child lists.  If SEARCH-PARTS is the symbol
+'positiononly, then only children that have positional information are
+searched.
+
 If SEARCH-INCLUDES is non-nil, then all include files are also
 searched for matches."
   (let ((streamlist (list
@@ -417,7 +456,10 @@ searched for matches."
 	    (setq nl (cons (car stream) nl)))
 	(if search-parts
 	    (progn
-	      (setq sl (semantic-nonterminal-children (car stream)))
+	      (setq sl (semantic-nonterminal-children
+			(car stream)
+			t
+			))
 	      (if sl
 		  (setq nl (append nl (semantic-find-nonterminal-by-function
 				       function sl
@@ -426,10 +468,10 @@ searched for matches."
 	(setq stream (cdr stream)))
       (setq streamlist (cdr streamlist)))
     (setq nl (nreverse nl))
-    (while includes
-      (setq nl (append nl (semantic-find-nonterminal-by-function
-			   
-			   ))))
+;    (while includes
+;      (setq nl (append nl (semantic-find-nonterminal-by-function
+;			   
+;			   ))))
     nl))
 
 (defun semantic-find-nonterminal-by-function-first-match
@@ -690,6 +732,16 @@ Available override symbols:
 					     These are children which may
 					     contain overlays.
 
+  CONTEXT FUNCTIONS:
+ `beginning-of-context'   (& point)          Move to the beginning of the
+					     current context.
+ `end-of-context'         (& point)          Move to the end of the
+					     current context.
+ `up-context'             (& point)          Move up one context level.
+ `get-local-variables'    (& point)          Get local variables.
+ `get-all-local-variables'(& point)          Get all local variables.
+ `get-local-arguments'    (& point)          Get arguments to this function.
+
 Parameters mean:
 
   &      - Following parameters are optional
@@ -722,6 +774,9 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 `.' first, then searches additional paths."
   (if (not token)
       (setq token (car (semantic-find-nonterminal-by-overlay nil))))
+
+  (if (not (eq (semantic-token-token token) 'include))
+      (signal 'wrong-type-argument (list token 'include)))
 
   ;; First, see if this file exists in the current EDE projecy
   (if (and (fboundp 'ede-expand-filename) ede-minor-mode
@@ -924,13 +979,13 @@ This functin must be overloaded, though it need not be used."
 			 ((eq tok 'type)
 			  (semantic-token-type-parts token))
 			 (t nil)))
-	     (const (semantic-token-modifier token 'const))
+	     (const (semantic-token-extra-spec token 'const))
 	     (mods (append
 		    (if const '("const") nil)
-		    (semantic-token-modifier token 'typemodifiers)))
+		    (semantic-token-extra-spec token 'typemodifiers)))
 	     (array (if (eq tok 'variable)
 			(let ((deref
-			       (semantic-token-variable-modifier
+			       (semantic-token-variable-extra-spec
 				token 'dereference))
 			      (r ""))
 			  (while (and deref (/= deref 0))
@@ -938,7 +993,7 @@ This functin must be overloaded, though it need not be used."
 				  deref (1- deref)))
 			  r)))
 	     (suffix (if (eq tok 'variable)
-			 (semantic-token-variable-modifier token 'suffix)))
+			 (semantic-token-variable-extra-spec token 'suffix)))
 	     )
 	(if (and (listp mods) mods)
 	    (setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
@@ -996,7 +1051,10 @@ this function."
   (let* ((s (semantic-fetch-overload 'nonterminal-children))
 	 (chil (if s (funcall s token)
 		 (semantic-nonterminal-children-default token))))
-    (if (semantic-token-p (car chil)) chil nil)))
+    (if (or (not positionalonly)
+	    (semantic-token-with-position-p (car chil)))
+	chil
+      nil)))
 
 (defun semantic-nonterminal-children-default (token)
   "Return the children of TOKEN.
@@ -1077,6 +1135,11 @@ instead of read-only."
     (semantic-overlay-put o 'modification-hooks hook)
     (semantic-overlay-put o 'insert-in-front-hooks hook)
     (semantic-overlay-put o 'insert-behind-hooks hook)))
+
+(defun semantic-narrow-to-token (token)
+  "Narrow to the region specified by TOKEN."
+  (narrow-to-region (semantic-token-start token)
+		    (semantic-token-end token)))
 
 ;;; Force token lists in and out of overlay mode.
 ;;
@@ -1194,6 +1257,17 @@ If TOKEN is not specified, use the token at point."
 
 ;;; Show dirty mode
 ;;
+;;;###autoload
+(defcustom semantic-show-dirty-mode nil
+  "*If non-nil enable the use of `semantic-show-dirty-mode'."
+  :group 'semantic
+  :type 'boolean
+  :require 'semantic-util
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (semantic-show-dirty-mode (if val 1 -1))
+         (custom-set-default sym val)))
+
 (defface semantic-dirty-token-face  '((((class color) (background dark))
 				       (:background "gray10"))
 				      (((class color) (background light))
