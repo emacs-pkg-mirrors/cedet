@@ -1,0 +1,497 @@
+;;; semantic-grammar.wy -- LALR grammar of Semantic input grammars
+;;
+;; Copyright (C) 2002 David Ponce
+;;
+;; Author: David Ponce <david@dponce.com>
+;; Maintainer: David Ponce <david@dponce.com>
+;; Created: 26 Aug 2002
+;; Keywords: syntax
+;; X-RCS: $Id: semantic-grammar.wy,v 1.1 2002/09/05 13:27:39 ponced Exp $
+;;
+;; This file is not part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+%{
+  (setq
+   ;; Lexical analysis
+   semantic-lex-number-expression
+   (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
+           "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
+   semantic-lex-analyzer 'semantic-grammar-lexer
+   ;; Environment
+   semantic-type-relation-separator-character '(":")
+   semantic-symbol->name-assoc-list
+   '(
+     (code         . "Setup Code")
+     (keyword      . "Keyword")
+     (token        . "Token")
+     (nonterminal  . "Nonterminal")
+     (rule         . "Rule")
+     )
+   semantic-face-alist
+   '(
+     (code         . default)
+     (keyword      . font-lock-keyword-face)
+     (token        . font-lock-type-face)
+     (nonterminal  . font-lock-function-name-face)
+     (rule         . default)
+     )
+   )
+  %}
+
+%outputfile    "semantic-grammar.el"
+%parsetable    semantic-grammar-automaton
+%keywordtable  semantic-grammar-keywords
+%tokentable    semantic-grammar-tokens
+%languagemode  wy-mode
+%setupfunction semantic-grammar-setup-semantic
+
+;; Main
+%start grammar
+;; Reparse
+%start code declaration nonterminal rule
+;; EXPANDFULL
+%start put_names put_values
+
+;; Keywords
+%token LEFT          "left"
+%token NONASSOC      "nonassoc"
+%token PREC          "prec"
+%token PUT           "put"
+%token RIGHT         "right"
+%token START         "start"
+%token SCOPESTART    "scopestart"
+%token QUOTEMODE     "quotemode"
+%token TOKEN         "token"
+%token LANGUAGEMODE  "languagemode"
+%token OUTPUTFILE    "outputfile"
+%token SETUPFUNCTION "setupfunction"
+%token KEYWORDTABLE  "keywordtable"
+%token PARSETABLE    "parsetable"
+%token TOKENTABLE    "tokentable"
+
+;; Literals
+%token <string>        STRING
+%token <symbol>        SYMBOL
+%token <number>        NUMBER
+%token <char>          CHARACTER
+%token <sexp>          PREFIX-EXP
+
+;; Blocks
+%token <semantic-list> PAREN_BLOCK "^("
+%token <semantic-list> BRACE_BLOCK "^{"
+
+;; Parens
+%token <open-paren>    LBRACE      "{"
+%token <close-paren>   RBRACE      "}"
+
+;; Punctuations
+%token <punctuation>   COLON       ":"
+%token <punctuation>   SEMI        ";"
+%token <punctuation>   OR          "|"
+%token <punctuation>   LT          "<"
+%token <punctuation>   GT          ">"
+%token <punctuation>   PERCENT     "%"
+
+;; ;; Use string comparison for the following type of tokens
+;; %put {punctuation open-paren close-paren} string t
+
+%%
+
+grammar:
+    PERCENT
+    ()
+  | code
+  | declaration
+  | nonterminal
+  ;
+
+;; code token:
+;; -----------
+;;  ("code" 'code nil LISP-CALL-EXPRESSION nil)
+;;
+code:
+    PAREN_BLOCK
+    (wisent-token "code" 'code nil $1 nil)
+  | BRACE_BLOCK
+    (wisent-token "code" 'code nil $1 nil)
+  ;
+
+declaration:
+    decl
+    (apply #'wisent-token $1)
+  ;
+
+decl:
+    languagemode_decl
+  | outputfile_decl
+  | setupfunction_decl
+  | keywordtable_decl
+  | parsetable_decl
+  | tokentable_decl
+  | token_decl
+  | start_decl
+  | scopestart_decl
+  | quotemode_decl
+  | left_decl
+  | right_decl
+  | nonassoc_decl
+  | put_decl
+  ;
+
+;; languagemode token:
+;; -------------------
+;;  (FIRST-MODE-NAME 'languagemode nil REST-MODE-NAMES nil)
+;;
+languagemode_decl:
+    LANGUAGEMODE symbols
+    (list (car $2) 'languagemode nil (cdr $2) nil)
+  ;
+
+;; outputfile token:
+;; -----------------
+;;  (FILE-NAME 'outputfile nil nil)
+;;
+outputfile_decl:
+    OUTPUTFILE string_value
+    (list $2 'outputfile nil nil)
+  ;
+
+string_value:
+    STRING
+    (read $1)
+  ;
+
+;; setupfunction token:
+;; --------------------
+;;  (FUNC-NAME 'setupfunction nil nil)
+;;
+setupfunction_decl:
+    SETUPFUNCTION any_symbol
+    (list $2 'setupfunction nil nil)
+  ;
+
+;; keywordtable token:
+;; -------------------
+;;  (VAR-NAME 'keywordtable nil nil)
+;;
+keywordtable_decl:
+    KEYWORDTABLE any_symbol
+    (list $2 'keywordtable nil nil)
+  ;
+
+;; parsetable token:
+;; -----------------
+;;  (VAR-NAME 'parsetable nil nil)
+;;
+parsetable_decl:
+    PARSETABLE any_symbol
+    (list $2 'parsetable nil nil)
+  ;
+
+;; tokentable token:
+;; -----------------
+;;  (VAR-NAME 'tokentable nil nil)
+;;
+tokentable_decl:
+    TOKENTABLE any_symbol
+    (list $2 'tokentable nil nil)
+  ;
+
+;; token token:
+;; ------------
+;;  (FIRST-TOKEN-NAME 'token TYPE REST-TOKEN-NAMES VALUE nil)
+;;
+;; keyword token:
+;; --------------
+;;  (KEYWORD-NAME 'keyword nil nil KEYWORD-VALUE nil)
+;;
+token_decl:
+    TOKEN token_type_opt any_symbol string_value
+    (list $3 (if $2 'token 'keyword) $2 nil $4 nil)
+  | TOKEN token_type_opt symbols
+    (list (car $3) 'token $2 (cdr $3) nil nil)
+  ;
+
+token_type_opt:
+ ;; EMPTY
+  | token_type
+  ;
+
+token_type:
+    LT any_symbol GT
+    (identity $2)
+  ;
+
+;; start token:
+;; ------------
+;;  (FIRST-SYMBOL-NAME 'start nil REST-SYMBOL-NAMES nil)
+;;
+start_decl:
+    START symbols
+    (list (car $2) 'start nil (cdr $2) nil)
+  ;
+
+;; scopestart token:
+;; ----------------
+;;  (SYMBOL-NAME 'scopestart nil nil)
+;;
+scopestart_decl:
+    SCOPESTART any_symbol
+    (list $2 'scopestart nil nil)
+  ;
+
+;; quotemode token:
+;; ----------------
+;;  (SYMBOL-NAME 'quotemode nil nil)
+;;
+quotemode_decl:
+    QUOTEMODE any_symbol
+    (list $2 'quotemode nil nil)
+  ;
+
+;; left token:
+;; -----------
+;;  ("left" 'assoc TYPE ITEMS nil)
+;;
+left_decl:
+    LEFT token_type_opt items
+    (list $1 'assoc $2 $3 nil)
+  ;
+
+;; right token:
+;; ------------
+;;  ("right" 'assoc TYPE ITEMS nil)
+;;
+right_decl:
+    RIGHT token_type_opt items
+    (list $1 'assoc $2 $3 nil)
+  ;
+
+;; nonassoc token:
+;; ---------------
+;;  ("nonassoc" 'assoc TYPE ITEMS nil)
+;;
+nonassoc_decl:
+    NONASSOC token_type_opt items
+    (list $1 'assoc $2 $3 nil)
+  ;
+
+;; put token:
+;; ----------
+;;  (FIRST-SYMBOL-NAME 'put nil REST-SYMBOL-NAMES PLIST nil)
+;;
+put_decl:
+    PUT any_symbol put_value
+    (list $2 'put nil nil (list $3) nil)
+  | PUT any_symbol put_value_list
+    (let* ((vals (mapcar #'(lambda (tok) (nth 3 tok)) $3)))
+      (list $2 'put nil nil vals nil))
+  | PUT put_name_list put_value
+    (let* ((names (mapcar #'semantic-token-name $2)))
+      (list (car names) 'put nil (cdr names) (list $3) nil))
+  | PUT put_name_list put_value_list
+    (let* ((names (mapcar #'semantic-token-name $2))
+           (vals  (mapcar #'(lambda (tok) (nth 3 tok)) $3)))
+      (list (car names) 'put nil (cdr names) vals nil))
+  ;
+
+put_name_list:
+    BRACE_BLOCK
+    (EXPANDFULL $1 put_names)
+  ;
+
+put_names:
+    LBRACE
+    ()
+  | RBRACE
+    ()
+  | any_symbol
+ ;; Must return a list of Semantic tokens to EXPANDFULL!
+    (wisent-token $1 'put-name nil nil)
+  ;
+
+put_value_list:
+    BRACE_BLOCK
+    (EXPANDFULL $1 put_values)
+  ;
+
+put_values:
+    LBRACE
+    ()
+  | RBRACE
+    ()
+  | put_value
+ ;; Must return a list of Semantic tokens to EXPANDFULL!
+    (wisent-token "" 'put-value nil $1 nil)
+  ;
+
+put_value:
+    any_symbol any_value
+    (cons $1 $2)
+  ;
+
+;; Return a Lisp readable form
+any_value:
+    any_symbol
+  | STRING
+  | NUMBER
+  | PREFIX-EXP
+  | PAREN_BLOCK
+  ;
+
+symbols:
+    lifo_symbols
+    (nreverse $1)
+  ;
+
+lifo_symbols:
+    lifo_symbols any_symbol
+    (cons $2 $1)
+  | any_symbol
+    (list $1)
+  ;
+
+;; nonterminal token:
+;; ------------------
+;;  (NONTERMINAL-NAME 'nonterminal nil RULE-TOKENS nil)
+;;
+nonterminal:
+    any_symbol COLON rules SEMI
+    (wisent-token $1 'nonterminal nil $3 nil)
+  ;
+
+rules:
+    lifo_rules
+    (apply #'nconc (nreverse $1))
+  ;
+
+lifo_rules:
+    lifo_rules OR rule
+    (cons $3 $1)
+  | rule
+    (list $1)
+  ;
+
+;; rule token:
+;; ----------
+;;  (RULE-NAME 'rule TYPE COMPONENTS PREC ACTION nil)
+;;
+;;  where:
+;;    TYPE is "group" or "empty"
+;;    COMPONENTS is a list (COMPONENT ...)
+;;
+;;    where:
+;;     COMPONENT is a list (MID-RULE-ACTION) or an ITEM.
+;;
+rule:
+    rhs
+    (let* ((rhs $1)
+           name type comps prec action elt)
+      (while rhs
+        (setq elt (car rhs)
+              rhs (cdr rhs))
+        (cond
+         ;; precedence level
+         ((vectorp elt)
+          (if prec
+              (message "Duplicate %%prec in a rule, keep latest"))
+          (setq prec (aref elt 0)))
+         ;; action
+         ((consp elt)
+          (if (or action comps)
+              ;; A mid-rule action
+              (setq comps (cons elt comps))
+            ;; The end-of-rule action
+            (setq action (car elt))))
+         ;; item
+         (t
+          (setq comps (cons elt comps)))))
+      (if comps
+          (setq type "group"
+                name (mapconcat
+                      #'(lambda (e) (if (consp e) "{}" e)) comps " "))
+        (setq type "empty"
+              name ";;EMPTY"))
+      (wisent-cooked-token name 'rule type comps prec action nil))
+  ;
+
+rhs:
+ ;; EMPTY
+  | rhs item
+    (cons $2 $1)
+  | rhs action
+    (cons (list $2) $1)
+  | rhs level
+    (cons (vector $2) $1)
+  ;
+
+level:
+    PERCENT PREC item
+    (identity $3)
+  ;
+
+action:
+    PAREN_BLOCK
+  | BRACE_BLOCK
+    (format "(progn\n%s)"
+            (let ((s $1))
+              (if (string-match "^{[\r\n\t ]*" s)
+                  (setq s (substring s (match-end 0))))
+              (if (string-match "[\r\n\t ]*}$" s)
+                  (setq s (substring s 0 (match-beginning 0))))
+              s))
+  ;
+
+items:
+    lifo_items
+    (nreverse $1)
+  ;
+
+lifo_items:
+    lifo_items item
+    (cons $2 $1)
+  | item
+    (list $1)
+  ;
+
+item:
+    any_symbol
+  | CHARACTER
+  ;
+
+any_symbol:
+    SYMBOL
+ ;; Keywords are reserved symbols only when they follow PERCENT!
+  | LEFT
+  | NONASSOC
+  | PREC
+  | PUT
+  | RIGHT
+  | START
+  | SCOPESTART
+  | QUOTEMODE
+  | TOKEN
+  | LANGUAGEMODE
+  | OUTPUTFILE
+  | SETUPFUNCTION
+  | KEYWORDTABLE
+  | PARSETABLE
+  | TOKENTABLE
+  ;
+
+;;; semantic-grammar.wy ends here

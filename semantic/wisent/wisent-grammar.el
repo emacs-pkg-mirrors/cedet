@@ -1,0 +1,227 @@
+;;; wisent-grammar.el --- Wisent's input grammar mode
+;;
+;; Copyright (C) 2002 David Ponce
+;;
+;; Author: David Ponce <david@dponce.com>
+;; Maintainer: David Ponce <david@dponce.com>
+;; Created: 26 Aug 2002
+;; Keywords: syntax
+;; X-RCS: $Id: wisent-grammar.el,v 1.1 2002/09/05 13:30:22 ponced Exp $
+;;
+;; This file is not part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+;;; Commentary:
+;; 
+;; Major mode for editing Wisent's input grammar (.wy) files.
+
+;;; History:
+;; 
+
+;;; Code:
+(require 'semantic-grammar)
+
+(defsubst wisent-grammar-region-placeholder ($n)
+  "Return $regionN placeholder symbol corresponding to given $N one.
+Return nil if $N is not a valid placeholder symbol."
+  (let ((n (symbol-name $n)))
+    (if (string-match "^[$]\\([1-9][0-9]*\\)$" n)
+        (intern (concat "$region" (match-string 1 n))))))
+
+(defun wisent-grammar-EXPAND ($i nonterm)
+  "Return expansion of built-in EXPAND expression.
+$I is the placeholder value to expand.
+NONTERM is the nonterminal symbol to start with."
+  (let (($ri (wisent-grammar-region-placeholder $i)))
+    (if $ri
+        `(semantic-bovinate-from-nonterminal
+          (car ,$ri) (cdr ,$ri) ',nonterm)
+      (error "Invalid form (EXPAND %s %s)" $i nonterm))))
+
+(defun wisent-grammar-EXPANDFULL ($i nonterm)
+  "Return expansion of built-in EXPANDFULL expression.
+$I is the placeholder value to expand.
+NONTERM is the nonterminal symbol to start with."
+  (let (($ri (wisent-grammar-region-placeholder $i)))
+    (if $ri
+        `(semantic-parse-region
+          (car ,$ri) (cdr ,$ri) ',nonterm 1)
+      (error "Invalid form (EXPANDFULL %s %s)" $i nonterm))))
+
+(defconst wisent-grammar-builtins
+  '(
+    ;; Builtin name . Expander
+    ;; ------------ . ---------------------------------
+    (  ASSOC        . semantic-grammar-ASSOC)
+    (  EXPAND       . wisent-grammar-EXPAND)
+    (  EXPANDFULL   . wisent-grammar-EXPANDFULL)
+    ;; ------------ . ---------------------------------
+    )
+  "Expanders of Semantic built-in functions in LALR grammar.")
+
+(defun wisent-grammar-expand-sexpr (expr)
+  "Return expanded form of the expression EXPR.
+`backquote' expressions and Semantic built-in function calls are
+expanded.  The variable `wisent-grammar-builtins' defines
+built-in functions and corresponding expanders."
+  (if (not (listp expr))
+      ;; EXPR is an atom, no expansion needed
+      expr
+    ;; EXPR is a list, expand inside it
+    (let (eexpr sexpr bltn)
+      ;; If backquote expand it first
+      (if (semantic-grammar-backquote-p (car expr))
+          (setq expr (macroexpand expr)))
+      ;; Expand builtins
+      (if (setq bltn (assq (car expr) wisent-grammar-builtins))
+          (setq expr (apply (cdr bltn) (cdr expr))))
+      (while expr
+        (setq sexpr (car expr)
+              expr  (cdr expr))
+        ;; Recursively expand function call but quote expression
+        (and (consp sexpr)
+             (not (semantic-grammar-quote-p (car sexpr)))
+             (setq sexpr (wisent-grammar-expand-sexpr sexpr)))
+        ;; Accumulate expanded forms
+        (setq eexpr (nconc eexpr (list sexpr))))
+      eexpr)))
+
+(defun wisent-grammar-assocs ()
+  "Return associativity and precedence level definitions."
+  (mapcar
+   #'(lambda (token)
+       (cons (intern (semantic-token-name token))
+             (mapcar #'semantic-grammar-item-value (nth 3 token))))
+   (semantic-find-nonterminal-by-token 'assoc (current-buffer))))
+
+(defun wisent-grammar-terminals ()
+  "Return the list of terminal symbols.
+Keep order of declaration in the WY file without duplicates."
+  (let (terms)
+    (mapcar
+     #'(lambda (tok)
+         (mapcar #'(lambda (name)
+                     (add-to-list 'terms (intern name)))
+                 (cons (semantic-token-name tok) (nth 3 tok))))
+     (semantic-find-nonterminal-by-function
+      #'(lambda (tok)
+          (memq (semantic-token-token tok ) '(token keyword)))
+      (current-buffer)))
+    (nreverse terms)))
+
+(defun wisent-grammar-nonterminals ()
+  "Return the list form of nonterminal definitions."
+  (let ((nttoks (semantic-find-nonterminal-by-token
+                 'nonterminal (current-buffer)))
+        rltoks nterms rules rule elems elem actn sexp prec)
+    (while nttoks
+      (setq rltoks (semantic-nonterminal-children (car nttoks))
+            rules  nil)
+      (while rltoks
+        (setq elems (nth 3 (car rltoks))
+              prec  (nth 4 (car rltoks))
+              actn  (nth 5 (car rltoks))
+              rule  nil)
+        (when elems ;; not an EMPTY rule
+          (while elems
+            (setq elem  (car elems)
+                  elems (cdr elems))
+            (setq elem (if (consp elem) ;; mid-rule action
+                           (wisent-grammar-expand-sexpr (read (car elem)))
+                         (semantic-grammar-item-value elem)) ;; item
+                  rule (cons elem rule)))
+          (setq rule (nreverse rule)))
+        (if prec
+            (setq prec (vector (semantic-grammar-item-value prec))))
+        (if actn
+            (setq sexp (wisent-grammar-expand-sexpr (read actn))))
+        (setq rule (if actn
+                       (if prec
+                           (list rule prec sexp)
+                         (list rule sexp))
+                     (if prec
+                         (list rule prec)
+                       (list rule))))
+        (setq rules (cons rule rules)
+              rltoks (cdr rltoks)))
+      (setq nterms (cons (cons (intern (semantic-token-name (car nttoks)))
+                               (nreverse rules))
+                         nterms)
+            nttoks (cdr nttoks)))
+    (nreverse nterms)))
+
+(defun wisent-grammar-grammar ()
+  "Return Elisp form of the grammar."
+  (let* ((terminals    (wisent-grammar-terminals))
+         (nonterminals (wisent-grammar-nonterminals))
+         (assocs       (wisent-grammar-assocs)))
+    (cons terminals (cons assocs nonterminals))))
+
+(defun wisent-grammar-tokentable-builder ()
+  "Return the default value of the token table."
+  (let ((tokens (semantic-grammar-tokens)))
+    `(wisent-lex-make-token-table
+      ',tokens
+      ',(semantic-grammar-token-properties tokens))))
+
+(defun wisent-grammar-parsetable-builder ()
+  "Return the value of the parser table."
+  `(eval-when-compile
+     (wisent-compile-grammar
+      ',(wisent-grammar-grammar)
+      ',(semantic-grammar-start))))
+
+(defun wisent-grammar-setupcode-builder ()
+  "Return the text of the setup code."
+  (format
+   "(progn\n\
+      (semantic-install-function-overrides\n\
+       '((parse-stream . wisent-parse-stream)))\n\
+      (setq semantic-parser-name \"LALR\"\n\
+            semantic-toplevel-bovine-table %s\n\
+            semantic-flex-keywords-obarray %s\n\
+            semantic-lex-tokens-obarray %s)\n\
+      ;; Collect unmatched syntax lexical tokens\n\
+      (semantic-make-local-hook 'wisent-discarding-token-functions)\n\
+      (add-hook 'wisent-discarding-token-functions\n\
+                'wisent-collect-unmatched-syntax nil t)\n\
+     %s)"
+   (semantic-grammar-parsetable)
+   (semantic-grammar-keywordtable)
+   (semantic-grammar-tokentable)
+   (semantic-grammar-setupcode-text)))
+
+
+;;;###autoload
+(define-derived-mode wisent-grammar-mode semantic-grammar-mode "WY"
+  "Major mode for editing Wisent grammars."
+  (semantic-install-function-overrides
+   '((grammar-tokentable-builder . wisent-grammar-tokentable-builder)
+     (grammar-parsetable-builder . wisent-grammar-parsetable-builder)
+     (grammar-setupcode-builder  . wisent-grammar-setupcode-builder)
+     )))
+
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.wy$" . wisent-grammar-mode))
+
+;;;###autoload
+(eval-after-load "speedbar"
+  '(speedbar-add-supported-extension ".wy"))
+
+(provide 'wisent-grammar)
+
+;;; wisent-grammar.el ends here
