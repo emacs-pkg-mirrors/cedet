@@ -25,7 +25,7 @@
    (ede-proj-target-aux "aux"
     :name "aux"
     :path ""
-    :source '("INSTALL")
+    :source '("INSTALL" "ChangeLog")
     )
    (ede-proj-target-makefile-miscelaneous "images"
     :name "images"
