@@ -4,16 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-misc.el,v 1.4 2000/07/11 23:14:35 zappo Exp $
+;; RCS: $Id: ede-proj-misc.el,v 1.5 2000/09/24 15:39:03 zappo Exp $
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -29,11 +27,14 @@
 ;; This misc target lets the user link in custom makefiles to an EDE
 ;; project.
 
-(eval-and-compile (require 'ede-proj))
+(require 'ede-pmake)
+(require 'ede-proj-comp)
 
 ;;; Code:
 (defclass ede-proj-target-makefile-miscelaneous (ede-proj-target-makefile)
-  ((submakefile :initarg :submakefile
+  ((sourcetype :initform (ede-misc-source))
+   (availablecompilers :initform (ede-misc-compile))
+   (submakefile :initarg :submakefile
 		:initform ""
 		:type string
 		:custom string
@@ -45,9 +46,22 @@ The sub-makefile is used to build this target.")
 A user-written makefile is used to build this target.
 All listed sources are included in the distribution.")
 
-(defmethod ede-want-file-p ((obj ede-proj-target-makefile-miscelaneous) file)
-  "Return t if OBJ wants to own FILE."
-  t)
+(defvar ede-misc-source
+  (ede-sourcecode "ede-misc-source"
+		  :name "Miscelaneous"
+		  :sourcepattern ".*")
+  "Miscelaneous fiels definition.")
+
+(defvar ede-misc-compile
+  (ede-compiler "ede-misc-compile"
+		:name "Sub Makefile"
+		:commands
+		'(
+		  )
+		:autoconf nil
+		:sourcetype '(ede-misc-source)
+		)
+  "Compile code via a sub-makefile.")
 
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-miscelaneous))
   "Return the variable name for THIS's sources."
@@ -61,7 +75,9 @@ All listed sources are included in the distribution.")
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile-miscelaneous))
   "Create the make rule needed to create an archive for THIS."
-  (call-next-method)
+  ;; DO NOT call the next method.  We will never have any compilers,
+  ;; or any dependencies, or stuff like this.  This rull will lets us
+  ;; deal with it in a nice way.
   (insert (ede-name this) ": ")
   (with-slots (submakefile) this
     (if (string= submakefile "")
