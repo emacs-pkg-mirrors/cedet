@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.107 2003/03/17 01:19:01 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.108 2003/03/27 07:44:12 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1600,59 +1600,6 @@ file prototypes belong in."
 
 ;;;; Mode-specific Token information
 ;;
-;;;###autoload
-(defun semantic-nonterminal-children (token &optional positionalonly)
-  "Return the list of top level children belonging to TOKEN.
-Children are any sub-tokens which may contain overlays.
-The default behavior (if not overriden with `nonterminal-children'
-is to return type parts for a type, and arguments for a function.
-
-If optional argument POSITIONALONLY is non-nil, then only return valid
-children if they contain positions.  Some languages may choose to create
-lists of children without position/overlay information.
-
-If this function is overriden, use `semantic-nonterminal-children-default'
-to also include the default behavior, and merely extend your own.
-
-Note for language authors:
-  If a mode defines a language that has tokens in it with overlays that
-should not be considered children, you should still return them with
-this function, otherwise saving cannot work."
-  (let* ((s (semantic-fetch-overload 'nonterminal-children))
-	 (chil (if s (funcall s token)
-		 (semantic-nonterminal-children-default token))))
-    (if positionalonly
-      (let ((newchil nil))
-	(while chil
-	  (if (semantic-token-with-position-p (car chil))
-	      (setq newchil (cons (car chil) newchil)))
-	  (setq chil (cdr chil)))
-	(nreverse newchil))
-      chil)))
-
-(defun semantic-nonterminal-children-default (token)
-  "Return the children of TOKEN.
-For types, return the type parts.
-For functions return the argument list."
-  (let ((explicit-children
-	 (cond ((eq (semantic-token-token token) 'type)
-		(semantic-token-type-parts token))
-	       ((eq (semantic-token-token token) 'function)
-		(semantic-token-function-args token))
-	       (t nil)))
-	(type (semantic-token-type token))
-	(anon-type-children nil))
-    ;; Identify if this token has an anonymous structure as
-    ;; its type.  This implies it may have children with overlays.
-    (if (and type
-	     (semantic-token-p type)
-	     (eq (semantic-token-token type) 'type))
-	(setq anon-type-children
-	      (semantic-nonterminal-children type)))
-    (if anon-type-children
-	(append explicit-children anon-type-children)
-      explicit-children)))
-
 (define-overload semantic-nonterminal-external-member-parent (token)
   "Return a parent for TOKEN when TOKEN is an external member.
 TOKEN is an external member if it is defined at a toplevel and
