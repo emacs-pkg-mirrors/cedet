@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.47 2001/01/25 19:14:19 zappo Exp $
+;; RCS: $Id: ede.el,v 1.48 2001/04/27 00:24:58 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -542,8 +542,12 @@ If optional argument CURRENT is non-nil, return sub-menu code."
 (defun ede-turn-on-hook ()
   "Turn on EDE minor mode in the current buffer if needed.
 To be used in hook functions."
-  (if (and (stringp (buffer-file-name))
-	   (stringp default-directory))
+  (if (or (and (stringp (buffer-file-name))
+	       (stringp default-directory))
+	  ;; Emacs 21 has no buffer file name for directory edits.
+	  ;; so we need to add these hacks in.
+	  (eq major-mode 'dired-mode)
+	  (eq major-mode 'vc-dired-mode))
       (ede-minor-mode 1)))
 
 (defun ede-minor-mode (&optional arg)
@@ -1153,7 +1157,10 @@ This depends on an up to day `ede-project-class-files' variable."
 (defun ede-up-directory (dir)
   "Return a path that is up one directory.
 Argument DIR is the directory to trim upwards."
-  (file-name-directory (substring dir 0 (1- (length dir)))))
+  (let ((newdir (file-name-directory (directory-file-name dir))))
+    (if (string= dir newdir)
+	nil
+      newdir)))
 
 (defun ede-toplevel-project (path)
   "Starting with PATH, find the toplevel project directory."
@@ -1422,7 +1429,7 @@ If VARIABLE is not project local, just use set."
   "Return the sourcecode objects which THIS permits."
   (let ((sc (oref this sourcetype))
 	(rs nil))
-    (while sc
+    (while (and (listp sc) sc)
       (setq rs (cons (symbol-value (car sc)) rs)
 	    sc (cdr sc)))
     rs))
