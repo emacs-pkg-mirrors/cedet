@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.97 2001/02/17 14:36:08 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.98 2001/02/17 15:00:54 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -1023,7 +1023,7 @@ Fills in OBJ's FIELD with it's default value."
       (eieio-barf-if-slot-unbound
        (let ((val (nth (- c 3) (aref (class-v cl) class-public-d))))
 	 (eieio-default-eval-maybe val))
-       obj (aref obj object-class) 'oref-default))))
+       obj cl 'oref-default))))
 
 (defun eieio-default-eval-maybe (val)
   "Check VAL, and return what `oref-default' would provide."
