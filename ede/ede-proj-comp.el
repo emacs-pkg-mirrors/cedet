@@ -1,10 +1,10 @@
 ;;; ede-proj-comp.el --- EDE Generic Project compiler/rule driver
 
-;;;  Copyright (C) 1999, 2000, 2001  Eric M. Ludlam
+;;;  Copyright (C) 1999, 2000, 2001, 2004  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-comp.el,v 1.6 2001/05/19 22:59:10 zappo Exp $
+;; RCS: $Id: ede-proj-comp.el,v 1.7 2004/03/27 02:58:21 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -149,7 +149,9 @@ belonging to the target name.")
 	  :custom (repeat string)
 	  :documentation "Scripts to execute.
 These scripst will be executed in sh (Unless the SHELL variable is overriden).
-Do not prefix with TAB.")
+Do not prefix with TAB.
+Each individual element of this list can be either a string, or
+a lambda function.  (The custom element does not yet express that.")
    (phony :initarg :phony
 	  :initform nil
 	  :type boolean
@@ -316,7 +318,15 @@ compiler it decides to use after inserting in the rule."
   (when (slot-boundp this 'commands)
     (with-slots (commands) this
       (mapcar
-       (lambda (obj) (insert "\t" obj "\n"))
+       (lambda (obj) (insert "\t"
+			     (cond ((stringp obj)
+				    obj)
+				   ((and (listp obj)
+					 (eq (car obj) 'lambda))
+				    (funcall obj))
+				   (t
+				    (format "%S" obj)))
+			     "\n"))
        commands))
     (insert "\n")))
 
