@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.16 2000/09/21 03:34:28 zappo Exp $
+@c $Id: semantic.texi,v 1.17 2000/09/28 02:02:11 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -240,6 +240,143 @@ Name of a function into which setup code is to be inserted.
 Specify setup code to be inserted into the @code{%setupfunction}.
 It will be inserted between two specifier strings, or added to
 the end of the function.
+@end table
+
+When working inside @code{%( ... )%} tokens, any lisp expression can be
+entered which will be placed inside the setup function.  In general, you
+probably want to set variables that tell Semantic and related tools how
+the language works.
+
+Here are some variable that control how different programs will work
+with your language.
+
+@defvar semantic-flex-depth
+Default flexing depth.
+This specifies how many lists to create tokens in.
+@end defvar
+
+@defvar semantic-flex-extensions
+Buffer local extensions to the lexical analyzer.
+This should contain an alist with a key of a regex and a data element of
+a function.  The function should both move point, and return a lexical
+token of the form ( TYPE START .  END).  nil is also a valid return.
+@end defvar
+
+@defvar semantic-flex-syntax-modifications
+Updates to the syntax table for this buffer.
+These changes are active only while this file is being flexed.
+This is a list where each element is of the form:
+  (CHAR CLASS) 
+Where CHAR is the char passed to `modify-syntax-entry',
+and CLASS is the string also passed to `modify-syntax-entry' to define
+what class of syntax CHAR is.
+@end defvar
+
+@defvar semantic-flex-enable-newlines
+When flexing, report 'newlines as syntactic elements.
+Useful for languages where the newline is a special case terminator.
+Only set this on a per mode basis, not globally.
+@end defvar
+
+@defvar semantic-ignore-comments
+Default comment handling.
+t means to strip comments when flexing.  Nil means to keep comments
+as part of the token stream.
+@end defvar
+
+@defvar semantic-symbol->name-assoc-list
+Association between symbols returned, and a string.
+The string is used to represent a group of objects of the given type.
+It is sometimes useful for a language to use a different string
+in place of the default, even though that language will still
+return a symbol.  For example, Java return's includes, but the
+string can be replaced with `Imports'.
+@end defvar
+
+@defvar semantic-case-fold
+Value for `case-fold-search' when parsing.
+@end defvar
+
+@defvar semantic-expand-nonterminal
+Function to call for each returned Non-terminal.
+Return a list of non-terminals derived from the first argument, or nil
+if it does not need to be expanded.
+@end defvar
+
+@defvar semantic-override-table
+Buffer local semantic function overrides alist.
+These overrides provide a hook for a `major-mode' to override specific
+behaviors with respect to generated semantic toplevel nonterminals and
+things that these non-terminals are useful for.
+Each element must be of the form: (SYM . FUN)
+where SYM is the symbol to override, and FUN is the function to
+override it with.
+
+Available override symbols:
+
+@multitable {@code{abbreviate-nonterminal}} {(buffer token & nosnarf)} {Find token in buffer}
+@item SYBMOL                 @tab PARAMETERS               @tab DESCRIPTION
+@item find-dependency        @tab (buffer token)           @tab Find the dependency file
+@item find-nonterminal       @tab (buffer token & parent)  @tab Find token in buffer.
+@item find-documentation     @tab (buffer token & nosnarf) @tab Find doc comments.
+@item abbreviate-nonterminal @tab (token & parent)         @tab Return summery string.
+@item summerize-nonterminal  @tab (token & parent)         @tab Return summery string.
+@item prototype-nonterminal  @tab (token)                  @tab Return a prototype string.
+@item prototype-file         @tab (buffer)                 @tab Return a file in which prototypes are placed
+@end multitable
+ 	                                           
+Parameters mean:
+
+@table @code
+@item &
+Following parameters are optional
+@item buffer
+The buffer in which a token was found.
+@item token
+The nonterminal token we are doing stuff with
+@item parent
+If a TOKEN is stripped (of positional infomration) then this will be the
+parent token which should have positional information in it.
+@end table
+
+@end defvar
+
+@defvar semantic-dependency-include-path
+Defines the include path used when searching for files.
+This should be a list of directories to search which is specific to
+the file being included.
+This variable can also be set to a single function.  If it is a
+function, it will be called with one arguments, the file to find as a
+string, and  it should return the full path to that file, or nil.
+@end defvar
+
+@defvar imenu-create-index-function
+The function to use for creating a buffer index.
+
+It should be a function that takes no arguments and returns an index
+of the current buffer as an alist.
+
+Simple elements in the alist look like @samp{(INDEX-NAME . INDEX-POSITION)}.
+Special elements look like @samp{(INDEX-NAME INDEX-POSITION FUNCTION ARGUMENTS...)}.
+A nested sub-alist element looks like (INDEX-NAME SUB-ALIST).
+The function @code{imenu--subalist-p} tests an element and returns t
+if it is a sub-alist.
+
+This function is called within a @code{save-excursion}.
+
+The variable is buffer-local.
+@end defvar
+
+
+These are specific to the document tool.
+
+@table @code
+@item document-comment-start
+Comment start string.
+@item document-comment-line-prefix
+Comment prefix string.  Used at the beginning of each line.
+@item document-comment-end
+Comment end string.
 @end table
 
 @node Rules, Optional Lambda Expression, Settings, BNF conversion
