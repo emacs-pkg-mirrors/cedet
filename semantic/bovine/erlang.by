@@ -21,7 +21,7 @@
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 ;;
-;; $Id: erlang.by,v 1.2 2003/08/28 12:46:01 ponced Exp $
+;; $Id: erlang.by,v 1.3 2003/08/29 07:56:36 ponced Exp $
 ;;
 
 %package semantic-erlang-by
@@ -454,7 +454,7 @@ record-decl
 record-def
   : open-paren atom COMA BRACE_BLCK close-paren
  ;;(,$2 type "record" (EXPANDFULL $4 record-field-decl 1) nil nil)
-    (TYPE-TAG ,$2 "record" (EXPANDFULL $4 record-field-decl 1))
+    (TYPE-TAG ,$2 "record" (EXPANDFULL $4 record-field-decl 1) nil)
   ;
 
 record-decl-tuple
@@ -1041,13 +1041,13 @@ macro-app
 include-dir
   : MINUS INCLUDE PAREN_BLCK full-stop
  ;;( (car (EXPAND $3 include-file-name 1)) include nil nil )
-    (INCLUDE-TAG (car (EXPAND $3 include-file-name 1)))
+    (INCLUDE-TAG (car (EXPAND $3 include-file-name 1)) nil)
   ;
 
 include-lib-dir
   : MINUS INCLUDE_LIB PAREN_BLCK full-stop
  ;;( (car (EXPAND $3 include-file-name 1)) include nil nil )
-    (INCLUDE-TAG (car (EXPAND $3 include-file-name 1)))
+    (INCLUDE-TAG (car (EXPAND $3 include-file-name 1)) nil)
   ;
 
 include-file-name
