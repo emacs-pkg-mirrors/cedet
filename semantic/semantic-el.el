@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.9 1999/06/06 13:56:55 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.10 1999/06/14 13:57:42 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -306,7 +306,7 @@
     (varnamelist
      ( varname punctuation "," varnamelist
 	       (lambda (vals start end)
-		 (append  (list ( cons (nth 0 vals) (nth 2 vals)))
+		 (append  ( cons (nth 0 vals) (nth 2 vals))
 			  (list start end))))
      ( varname
        (lambda (vals start end)
@@ -409,6 +409,7 @@
 		   (cur nil)
 		   (cnt 0))
 	       (while lst
+		 (setq mods "" ty "")
 		 (setq cur (car lst))
 		 (if (nth 2 cur)
 		     (setq mods (concat ":" (nth 2 cur))))
