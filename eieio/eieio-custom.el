@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.9 2000/07/16 22:14:38 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.10 2000/08/20 13:15:15 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -156,7 +156,7 @@ of these.")
 			       (make-string
 				(or (widget-get widget :indent) 0)
 				? )
-			       "  Slot "
+			       "Slot "
 			       (let ((s (symbol-name
 					 (or (class-slot-initarg
 					      (object-class-fast obj)
@@ -228,38 +228,49 @@ object widget."
   (let ((b (switch-to-buffer (get-buffer-create
 			      (concat "*CUSTOMIZE " (object-name obj) "*")))))
     (toggle-read-only -1)
+    (kill-all-local-variables)
     (erase-buffer)
     (let ((all (overlay-lists)))
       ;; Delete all the overlays.
       (mapcar 'delete-overlay (car all))
       (mapcar 'delete-overlay (cdr all)))
+    ;; Add an apply reset option at the top of the buffer.
+    (eieio-custom-object-apply-reset obj)
+    (widget-insert "\n\n")
     (widget-insert "Edit object " (object-name obj) "\n\n")
     ;; Create the widget editing the object.
     (make-local-variable 'eieio-wo)
     (setq eieio-wo (eieio-custom-widget-insert obj))
     ;;Now generate the apply buttons
     (widget-insert "\n")
-    (widget-create 'push-button
-		   :notify (lambda (&rest ignore)
-			     ;; I think the act of getting it sets
-			     ;; it's value through the get function.
-			     (message "Applying Changes...")
-			     (widget-apply eieio-wo :value-get)
-			     (eieio-done-customizing eieio-co)
-			     (message "Applying Changes...Done."))
-		    "Apply")
-    (widget-insert "   ")
-    (widget-create 'push-button
-		   :notify (lambda (&rest ignore)
-			     (message "Resetting.")
-			     (eieio-customize-object eieio-co))
-		   "Reset")
+    (eieio-custom-object-apply-reset obj)
     ;; Now initialize the buffer
     (use-local-map widget-keymap)
     (widget-setup)
     ;(widget-minor-mode)
+    (goto-char (point-min))
+    (widget-forward 3)
     (make-local-variable 'eieio-co)
     (setq eieio-co obj)))
+
+(defmethod eieio-custom-object-apply-reset ((obj eieio-default-superclass))
+  "Insert an Apply and Reset button into the object editor.
+Argument OBJ os the object being customized."
+  (widget-create 'push-button
+		 :notify (lambda (&rest ignore)
+			   ;; I think the act of getting it sets
+			   ;; it's value through the get function.
+			   (message "Applying Changes...")
+			   (widget-apply eieio-wo :value-get)
+			   (eieio-done-customizing eieio-co)
+			   (message "Applying Changes...Done."))
+		 "Apply")
+  (widget-insert "   ")
+  (widget-create 'push-button
+		 :notify (lambda (&rest ignore)
+			   (message "Resetting.")
+			   (eieio-customize-object eieio-co))
+		 "Reset"))
 
 (defmethod eieio-custom-widget-insert ((obj eieio-default-superclass)
 				       &rest flags)
