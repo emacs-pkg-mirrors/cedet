@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.183 2004/05/08 07:51:06 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.184 2004/05/12 16:49:16 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -97,11 +97,11 @@ string can be replaced with `Imports'.")
 
 (defvar semantic-symbol->name-assoc-list-for-type-parts nil
   "Like `semantic-symbol->name-assoc-list' for type parts.
-Some tokens that have children (see `semantic-nonterminal-children')
-will want to define the names of classes of tokens differently than
-at the top level.  For example, in C++, a Function may be called
-a Method.  In addition, there may be new types of tokens that exist
-only in classes, such as protection labels.")
+Some tags that have children (see `semantic-tag-children-compatibility')
+will want to define the names of classes of tags differently than at
+the top level.  For example, in C++, a Function may be called a
+Method.  In addition, there may be new types of tags that exist only
+in classes, such as protection labels.")
 (make-variable-buffer-local 'semantic-symbol->name-assoc-list-for-type-parts)
 
 (defvar semantic-case-fold nil
@@ -115,8 +115,8 @@ if it does not need to be expanded.
 Languages with compound definitions should use this function to expand
 from one compound symbol into several.  For example, in C the definition
   int a, b;
-is easily parsed into one token.  This function should take this
-compound token and turn it into two tokens, one for A, and the other for B.")
+is easily parsed into one tag.  This function should take this
+compound tag and turn it into two tags, one for A, and the other for B.")
 (make-variable-buffer-local 'semantic-expand-nonterminal)
 
 (defvar semantic--buffer-cache nil
@@ -126,9 +126,9 @@ this is returned instead of re-parsing the buffer.
  
   DO NOT USE THIS VARIABLE IN PROGRAMS.
 
-If you need a token list, use `semantic-fetch-tags'.  If you
-need the cached values for some reason, chances are you can, add a
-hook to `semantic-after-toplevel-cache-change-hook'.")
+If you need a tag list, use `semantic-fetch-tags'.  If you need the
+cached values for some reason, chances are you can, add a hook to
+`semantic-after-toplevel-cache-change-hook'.")
 (make-variable-buffer-local 'semantic--buffer-cache)
 (semantic-varalias-obsolete 'semantic-toplevel-bovine-cache
 			    'semantic--buffer-cache)
@@ -144,11 +144,11 @@ This is tracked with `semantic-change-function'.")
 
 (defvar semantic-edits-are-safe nil
   "When non-nil, modifications do not require a reparse.
-This prevents tokens from being marked dirty, and it
-prevents top level edits from causing a cache check.
-Use this when writing programs that could cause a full
-reparse, but will not change the tag structure, such
-as adding or updating `top-level' comments.")
+This prevents tags from being marked dirty, and it prevents top level
+edits from causing a cache check.
+Use this when writing programs that could cause a full reparse, but
+will not change the tag structure, such as adding or updating
+`top-level' comments.")
 
 (defvar semantic-unmatched-syntax-hook nil
   "Hooks run when semantic detects syntax not matched in a grammar.
@@ -163,7 +163,7 @@ current buffer is the buffer these tokens are derived from.")
 
 (defvar semantic--before-fetch-tags-hook nil
   "Hooks run before a buffer is parses for tags.
-It is called before any request for tokens is made via the function
+It is called before any request for tags is made via the function
 `semantic-fetch-tags' by an application.
 If any hook returns a nil value, the cached value is returned
 immediately, even if it is empty.")
@@ -171,7 +171,7 @@ immediately, even if it is empty.")
 			    'semantic--before-fetch-tags-hook)
 
 (defvar semantic-after-toplevel-bovinate-hook nil
-  "Hooks run after a toplevel token parse.
+  "Hooks run after a toplevel parse.
 It is not run if the toplevel parse command is called, and buffer does
 not need to be fully reparsed.
 For language specific hooks, make sure you define this as a local hook.
@@ -181,13 +181,13 @@ Use `semantic-after-toplevel-cache-change-hook' instead.")
 (make-obsolete-variable 'semantic-after-toplevel-bovinate-hook nil)
 
 (defvar semantic-after-toplevel-cache-change-hook nil
-  "Hooks run after the buffer token list has changed.
-This list will change when a buffer is reparsed, or when the token
-list in a buffer is cleared.  It is *NOT* called if the current token
-list partially reparsed.
+  "Hooks run after the buffer tag list has changed.
+This list will change when a buffer is reparsed, or when the tag list
+in a buffer is cleared.  It is *NOT* called if the current tag list is
+partially reparsed.
 
-Hook functions must take one argument, which is the new list of
-tokens associated with this buffer.
+Hook functions must take one argument, which is the new list of tags
+associated with this buffer.
 
 For language specific hooks, make sure you define this as a local hook.")
 
@@ -263,7 +263,7 @@ setup to use Semantic."
 
 (defvar semantic-init-db-hooks nil
   "Hooks run when a buffer is initialized with a parsing table for DBs.
-This hook is for database functions which intend to swap in a token table.
+This hook is for database functions which intend to swap in a tag table.
 This guarantees that the DB will go before other modes that require
 a parse of the buffer.")
 
@@ -348,7 +348,7 @@ the output buffer."
   (let* ((start (current-time))
 	 (out (semantic-fetch-tags))
 	 (end (current-time)))
-    (message "Retrieving tokens took %.2f seconds."
+    (message "Retrieving tags took %.2f seconds."
 	     (semantic-elapsed-time start end))
     (when (or (null clear) (not (listp clear)))
       (pop-to-buffer "*Parser Output*")
@@ -369,10 +369,9 @@ specific rules file.
 The default parser table used for bovine or wisent based parsers is
 `semantic--parse-table'.
 
-Must return a list: (STREAM NONTERMINALTOKENS)
-where STREAM is the unused elements from STREAM, and NONTERMINALTOKENS
-is the list of nonterminals found, usually only one token is returned
-with the exception of compound statements")
+Must return a list: (STREAM TAGS) where STREAM is the unused elements
+from STREAM, and TAGS is the list of semantic tags found, usually only
+one tag is returned with the exception of compound statements")
 
 (define-overload semantic-parse-changes ()
   "Reparse changes in the current buffer.
@@ -382,7 +381,7 @@ analyze.")
 
 (define-overload semantic-parse-region
   (start end &optional nonterminal depth returnonerror)
-  "Parse the area between START and END, and return any tokens found.
+  "Parse the area between START and END, and return any tags found.
 If END needs to be extended due to a lexical token being too large, it
 will be silently ignored.
 
@@ -394,15 +393,15 @@ RETURNONERROR specifies that parsing should stop on the first
 unmatched syntax encountered.  When nil, parsing skips the syntax,
 adding it to the unmatched syntax cache.
 
-Must return a list of tokens wich have been cooked (repositioned
-properly) but which DO NOT HAVE OVERLAYS associated with them.  When
-overloading this function, use `semantic-raw-to-cooked-token' to cook
-tokens.")
+Must return a list of semantic tags wich have been cooked
+\(repositioned properly) but which DO NOT HAVE OVERLAYS associated
+with them.  When overloading this function, use `semantic--tag-expand'
+to cook raw tags.")
 
 ;;;###autoload
 (defun semantic-parse-region-default
   (start end &optional nonterminal depth returnonerror)
-  "Parse the area between START and END, and return any tokens found.
+  "Parse the area between START and END, and return any tags found.
 If END needs to be extended due to a lexical token being too large, it
 will be silently ignored.
 Optional arguments:
@@ -413,13 +412,13 @@ unterminated syntax."
   (if (or (< end start) (> end (point-max)))
       (error "Invalid bounds passed to `semantic-parse-region'"))
   (let ((lexbits (semantic-lex start end depth))
-	tokens)
+	tags)
     ;; Init a dump
     ;;    (if semantic-dump-parse
     ;;	      (semantic-dump-buffer-init))
-    (setq tokens (semantic-repeat-parse-whole-stream
-                  lexbits nonterminal returnonerror))
-    (nreverse tokens)))
+    (setq tags (semantic-repeat-parse-whole-stream
+                lexbits nonterminal returnonerror))
+    (nreverse tags)))
 
 ;;; Parsing functions
 ;;
@@ -458,8 +457,8 @@ Argument UNMATCHED-SYNTAX is the syntax to set into the cache."
 
 (defun semantic-clear-toplevel-cache ()
   "Clear the toplevel tag cache for the current buffer.
-Clearing the cache will force a complete reparse next time a token
-stream is requested."
+Clearing the cache will force a complete reparse next time a tag list
+is requested."
   (interactive)
   (run-hooks 'semantic-before-toplevel-cache-flush-hook)
   (setq semantic--buffer-cache nil)
@@ -501,7 +500,7 @@ stream is requested."
 (defvar semantic-working-type 'percent
   "*The type of working message to use when parsing.
 'percent means we are doing a linear parse through the buffer.
-'dynamic means we are reparsing specific tokens.")
+'dynamic means we are reparsing specific tags.")
 (semantic-varalias-obsolete 'semantic-bovination-working-type
 			    'semantic-working-type)
 
@@ -560,7 +559,7 @@ was marked unparseable, then do nothing, and return the cache."
         ;; Move this into the incremental parser.  This is a bug.
         ;;
         (semantic-clear-unmatched-syntax-cache)
-        (run-hook-with-args ;; Let hooks know the updated tokens
+        (run-hook-with-args ;; Let hooks know the updated tags
          'semantic-after-partial-cache-change-hook res))
       )
    
@@ -669,20 +668,21 @@ commands, use `semantic-bovinate-from-nonterminal-full'."
 (make-obsolete 'semantic-bovinate-region-until-error
                'semantic-parse-region)
 
-(defsubst semantic-bovinate-from-nonterminal (start end nonterm
-						 &optional depth length)
+(defsubst semantic-bovinate-from-nonterminal
+  (start end nonterm &optional depth length)
   "Bovinate from within a nonterminal lambda from START to END.
 Argument NONTERM is the nonterminal symbol to start with.
-Optional argument DEPTH is the depth of lists to dive into.
-When used in a `lambda' of a MATCH-LIST, there is no need to include
-a START and END part.
-Optional argument LENGTH specifies we are only interested in LENGTH tokens."
+Optional argument DEPTH is the depth of lists to dive into.  When used
+in a `lambda' of a MATCH-LIST, there is no need to include a START and
+END part.
+Optional argument LENGTH specifies we are only interested in LENGTH
+tokens."
   (car-safe (cdr (semantic-parse-stream
 		  (semantic-lex start end (or depth 1) length)
 		  nonterm))))
 
-(defsubst semantic-bovinate-from-nonterminal-full (start end nonterm
-						      &optional depth)
+(defsubst semantic-bovinate-from-nonterminal-full
+  (start end nonterm &optional depth)
   "NOTE: Use `semantic-parse-region' instead.
 
 Bovinate from within a nonterminal lambda from START to END.
