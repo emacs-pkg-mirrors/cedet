@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.12 2002/07/30 19:59:05 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.13 2002/08/04 16:17:33 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -130,7 +130,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-30 20:32+0200
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-04 17:51+0200
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -414,7 +414,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-30 20:32+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-04 17:51+0200
    (semantic-lex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -435,7 +435,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-30 20:32+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-04 17:51+0200
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -465,10 +465,11 @@ It ignores whitespaces, newlines and comments."
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-30 20:32+0200
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-04 17:51+0200
   (progn
-    (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
-          semantic-bovinate-parser-name "LALR"
+    (semantic-install-function-overrides
+     '((bovinate-nonterminal . wisent-bovinate-nonterminal)))
+    (setq semantic-bovinate-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-wy-automaton
           semantic-flex-keywords-obarray wisent-wy-keywords
           wisent-flex-tokens-obarray wisent-wy-tokens)
@@ -656,8 +657,9 @@ Warn if other TYPE tokens exist."
   "Return setupcode expressions as a string."
   (format
    "(progn\n\
-      (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal\n\
-            semantic-bovinate-parser-name \"LALR\"\n\
+      (semantic-install-function-overrides\n\
+       '((bovinate-nonterminal . wisent-bovinate-nonterminal)))\n\
+      (setq semantic-bovinate-parser-name \"LALR\"\n\
             semantic-toplevel-bovine-table %s\n\
             semantic-flex-keywords-obarray %s\n\
             wisent-flex-tokens-obarray %s)\n\
