@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.23 2001/01/24 21:08:41 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.24 2001/01/31 15:26:10 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.24  2001/01/31 15:26:10  zappo
+# Added `codeblock' rule and `%scopestart'.
+#
 # Revision 1.23  2001/01/24 21:08:41  zappo
 # Added support for new token formats that use ASSOC.
 #
@@ -38,6 +41,7 @@
 #
 
 %start         declaration
+%scopestart    codeblock
 %outputfile    semantic-c.el
 %parsetable    semantic-toplevel-c-bovine-table
 %keywordtable  semantic-c-keyword-table
@@ -80,6 +84,13 @@ declaration : include
 	    | prototype
 	    | define
 	    ;
+
+codeblock : macro
+	  | define
+	  | variable
+	  | prototype
+	  | type # type is less likely to be used here.
+	  ;
 		
 include : HASH INCLUDE punctuation "<" filename punctuation ">"
 	  ( ,$4 include t nil )
