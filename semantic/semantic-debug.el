@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.7 2003/03/08 16:34:49 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.8 2003/03/13 02:22:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -293,13 +293,16 @@ on different types of return values."
     (define-key km "a" 'semantic-debug-abort)
     (define-key km "g" 'semantic-debug-go)
     (define-key km "b" 'semantic-debug-set-breakpoint)
-    
+    ;; Some boring bindings.
+    (define-key km "e" 'eval-expression)
+   
     km)
   "Keymap used when in semantic-debug-node.")
 
 (defun semantic-debug-mode (onoff)
   "Turn `semantic-debug-mode' on and off.
-Argument ONOFF is non-nil when we are entering debug mode."
+Argument ONOFF is non-nil when we are entering debug mode.
+\\{semantic-debug-mode-map}"
   (let ((iface semantic-debug-current-interface))
     (if onoff
 	;; Turn it on
