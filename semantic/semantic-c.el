@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.51 2001/11/30 03:51:35 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.52 2001/12/04 19:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,12 +61,12 @@
   (list nil)))
  ) ; end extern-c-contents
  (extern-c
- ( EXTERN string "C" semantic-list
+ ( EXTERN string "\"C\"" semantic-list
   ,(semantic-lambda
   (list 'extern
  (semantic-bovinate-from-nonterminal-full (car (nth 2 vals)) (cdr (nth 2 vals)) 'extern-c-contents)
  )))
- ( EXTERN string "C"
+ ( EXTERN string "\"C\""
   ,(semantic-lambda
   (list nil)))
  ) ; end extern-c
@@ -577,7 +577,7 @@
   (list ( identity start) ( identity end))))
  ) ; end expression
  )
-  "C language specification.")
+   "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
@@ -868,11 +868,22 @@ Override function for `semantic-nonterminal-protection'."
 		  ((string= (semantic-token-type parent) "struct") 'public))))
     (or prot 'public)))
 
+(defun semantic-c-nonterminal-children (token)
+  "Return children for the C token TOKEN."
+  (if (and (eq (semantic-token-token token) 'type)
+	   (string= (semantic-token-type token) "typedef"))
+      ;; A typedef can contain a parent who has positional children,
+      ;; but that parent will not have a position.  Do this funny hack
+      ;; to make sure we can apply overlays properly.
+      (semantic-nonterminal-children (semantic-token-type-parent token))
+    (semantic-nonterminal-children-default token)))
+
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
   (semantic-install-function-overrides
    '((nonterminal-protection . semantic-c-nonterminal-protection)
+     (nonterminal-children . semantic-c-nonterminal-children)
      ))
   ;; Code generated from c.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
