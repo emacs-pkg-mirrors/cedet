@@ -37,7 +37,7 @@
 ;;    (working-status t))
 ;;
 ;; If you cannot calculate a percentile, use the function
-;; `working-static-status' instead, and pass in what you know.  For
+;; `working-dynamic-status' instead, and pass in what you know.  For
 ;; both status printing functions, the first argument is optional,
 ;; and you may pass in additional arguments as `format' elements
 ;; to the first argument of `working-status-forms'.
@@ -70,7 +70,7 @@
 ;; 				   (floor (* 100.0 (/ (float (point))
 ;; 						      (point-max)))))))))
 ;;   
-;; 	  (defun working-static-status (&optional number &rest args)
+;; 	  (defun working-dynamic-status (&optional number &rest args)
 ;; 	    "Called within the macro `working-status-forms', show the status."
 ;; 	    (message "%s%s" (apply 'format msg args)
 ;; 		     (format "... %c" (aref [ ?- ?/ ?| ?\\ ] (% ref1 4))))
@@ -113,9 +113,9 @@ Functions provided in `working' are:
 		 (const working-percent-bar-display)
 		 (const celeron-percent-display)))
 
-(defcustom working-status-static-type 'working-celeron-display
+(defcustom working-status-dynamic-type 'working-celeron-display
   "Function used to display a celeron working display.
-Static working types occur when the program does not know how long
+Dynamic working types occur when the program does not know how long
 it will take ahead of time.  Functions provided in `working' are:
   `working-number-display'
   `working-spinner-display'
@@ -161,7 +161,7 @@ macro `working-status-forms'."
 	 (m2 (funcall working-status-percentage-type (length m1) p)))
     (message "%s%s" m1 m2)))
 
-(defun working-static-status (&optional number &rest args)
+(defun working-dynamic-status (&optional number &rest args)
   "Called within the macro `working-status-forms', show the status.
 If NUMBER is nil, then increment NUMBER from 0 with each call.  If it
 is a number or float, use it as the raw percentile.  If it is a
@@ -170,7 +170,7 @@ numbers would appear.  Additional ARGS are passed to fill on %
 elements of MESSAGE from the macro `working-status-forms'."
   (let* ((n (or number working-ref1))
 	 (m1 (apply 'format working-message args))
-	 (m2 (funcall working-status-static-type (length m1) n)))
+	 (m2 (funcall working-status-dynamic-type (length m1) n)))
     (message "%s%s" m1 m2)
     (setq working-ref1 (1+ working-ref1))))
 
@@ -237,7 +237,7 @@ is t to display the done string, or the percentage to display."
 		       percent)))
     (setq working-ref1 (1+ working-ref1))))
 
-;;; Static display types.
+;;; Dynamic display types.
 ;;
 (defun working-number-display (length number)
   "Return a string display the number of things that happened.
@@ -275,21 +275,24 @@ is t to display the done string, or the number to display."
   (cond ((eq number t)
 	 (if (< (length working-donestring) 6)
 	     (concat " ["
-		     (make-string (ceiling (/ (- 6.0 (length working-donestring)) 2)) ? )
+		     (make-string
+		      (ceiling (/ (- 6.0 (length working-donestring)) 2)) ? )
 		     working-donestring
-		     (make-string (floor (/ (- 6.0 (length working-donestring)) 2)) ? )
+		     (make-string
+		      (floor (/ (- 6.0 (length working-donestring)) 2)) ? )
 		     "]")
 	   (concat " " (aref working-celeron-strings
 			     (% working-ref1 (length working-celeron-strings)))
 		   " " working-donestring)))
 	;; All the % signs because it then gets passed to message.
-	(t (concat " " (aref working-celeron-strings
-			     (% working-ref1 (length working-celeron-strings)))))))
+	(t (concat " " (aref 
+			working-celeron-strings
+			(% working-ref1 (length working-celeron-strings)))))))
 
 ;;; Example function using `working'
 ;;
-(defun working-verify-parenthisis-a ()
-  "Verify all the parenthisis in an elisp program buffer."
+(defun working-verify-parenthesis-a ()
+  "Verify all the parenthesis in an elisp program buffer."
   (interactive)
   (save-excursion
     (goto-char (point-min))
@@ -302,19 +305,19 @@ is t to display the done string, or the number to display."
 	  )
 	(working-status t))))
  
-(defun working-verify-parenthisis-b ()
-  "Verify all the parenthisis in an elisp program buffer."
+(defun working-verify-parenthesis-b ()
+  "Verify all the parenthesis in an elisp program buffer."
   (interactive)
   (save-excursion
     (goto-char (point-min))
     (working-status-forms "Scanning" "done"
 	(while (not (eobp))
 	  ;; Use default buffer position.
-	  (working-static-status)
+	  (working-dynamic-status)
 	  (forward-sexp 1)
 	  (sleep-for 0.05)
 	  )
-	(working-static-status t))))
+	(working-dynamic-status t))))
 
 (provide 'working)
 
