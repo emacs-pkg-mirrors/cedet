@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.34 2001/04/19 13:08:22 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.35 2001/04/23 07:17:24 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -103,9 +103,9 @@
 ;;; Code:
 (require 'semantic)
 (require 'semantic-ctxt)
+(require 'semantic-imenu)
 (eval-when-compile
   (require 'semanticdb)
-  (require 'semantic-imenu)
   )
 
 ;;; Customization
@@ -156,7 +156,7 @@ langage behaviour."
                                              (:background "gray30"))
                                             (((class color) (background light))
                                              (:background "gray70")))
-  "Face used to momentarilly highlight tokens."
+  "Face used to momentarily highlight tokens."
   :group 'semantic-faces)
 
 (defface senator-intangible-face '((((class color) (background light))
@@ -1701,6 +1701,15 @@ The defun marked is the one that contains point or follows point.
 If semantic tokens are available, use them to navigate."
   (if (and senator-minor-mode (interactive-p))
       (senator-mark-defun)
+    ad-do-it))
+
+(defadvice add-log-current-defun (around senator activate)
+  "Return name of function definition point is in, or nil."
+  (if senator-minor-mode
+      (let ((cd (semantic-current-nonterminal)))
+      (if (member (semantic-token-token cd) '(function variable type))
+          (setq ad-return-value (semantic-token-name cd))
+        ad-do-it))
     ad-do-it))
 
 ;;;;
