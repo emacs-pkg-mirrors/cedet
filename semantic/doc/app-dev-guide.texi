@@ -434,266 +434,20 @@ filled in the initializer for that object.
 
 All collectors inherit from:
 
-@deftype semantic-collector-abstract
+@deffn Type semantic-collector-abstract
 Root class for completion engines.
-@end deftype
+@end deffn
 
 Available instantiable classes are:
 
-@deftype semantic-collector-buffer-deep
+@deffn Type semantic-collector-buffer-deep
 Completion engine for tags in the current buffer.
 Provides deep searches through types.
-@end deftype
+@end deffn
 
 NOTE: Add sections for writing new collectors.
 
 @c (eieiodoc-class semantic-collector-abstract "cc")
-@menu
-* semantic-collector-abstract ::
-*  semantic-collector-buffer-abstract ::
-*   semantic-collector-buffer-deep ::
-@end menu
-
-
-@node semantic-collector-abstract, semantic-collector-buffer-abstract,  , Tag Collectors
-@subsubsection Tag Collectors
-
-A tag collector is an object that inherits from
-@dfn{semantic-collector-abstract}.  A new collector is needed for
-each specialized type of prompt that draws from a different selection
-of tags.
-
-You can have a collector that satisfies multiple purposes using slots
-filled in the initializer for that object.
-
-All collectors inherit from:
-
-@deftype semantic-collector-abstract
-Root class for completion engines.
-@end deftype
-
-Available instantiable classes are:
-
-@deftype semantic-collector-buffer-deep
-Completion engine for tags in the current buffer.
-Provides deep searches through types.
-@end deftype
-
-NOTE: Add sections for writing new collectors.
-
-@c (eieiodoc-class semantic-collector-abstract "cc")
-@comment  node-name,  next,  previous,  up
-@subsubsection semantic-collector-abstract
-@ccindex semantic-collector-abstract
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item semantic-collector-abstract
-@table @asis
-@item Children:
-@w{@xref{semantic-collector-buffer-abstract}.} 
-@end table
-
-@end table
-@end table
-
-  You cannot create a new object of type semantic-collector-abstract
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :buffer
-Type: @code{buffer}
-
-Originating buffer for this collector.
-Some collectors use a given buffer as a starting place while looking up
-tags.
-@refill
-
-@end table
-
-@end table
-@subsubsubsection Specialized Methods
-
-@deffn Method semantic-collector-all-completions :AFTER obj 
-For @var{OBJ}, retrieve all completions matching PREFIX.
-The returned list consists of all the tags currently
-matching PREFIX.
-@end deffn
-
-@deffn Method semantic-collector-calculate-completions :AFTER obj prefix 
-Calculate completions for prefix as setup for other queries.
-@end deffn
-
-@deffn Method semantic-collector-try-completion :AFTER obj 
-For @var{OBJ}, attempt to match PREFIX.
-See @dfn{try-completion} for details on how this works.
-Return @code{nil} for no match.
-Return a string for a partial match.
-For a unique match of PREFIX, return the list of all tags
-with that name.
-@end deffn
-
-@deffn Method semantic-collector-flush :AFTER this 
-Flush @var{THIS} collector object, clearing any caches and prefix.
-@end deffn
-
-@deffn Method semantic-collector-calculate-cache :AFTER obj 
-Calculate the completion cache for @var{OBJ}.
-@end deffn
-
-@deffn Method semantic-collector-next-action :AFTER obj 
-What should we do next?  @var{OBJ} can predict a next good action.
-@end deffn
-
-@deffn Method semantic-collector-last-prefix= :AFTER obj last-prefix 
-Return non-@code{nil} if @var{OBJ}'s prefix matches PREFIX.
-@end deffn
-
-
-@node semantic-collector-buffer-abstract, semantic-collector-buffer-deep, semantic-collector-abstract, Tag Collectors
-@subsubsection Tag Collectors
-
-A tag collector is an object that inherits from
-@dfn{semantic-collector-abstract}.  A new collector is needed for
-each specialized type of prompt that draws from a different selection
-of tags.
-
-You can have a collector that satisfies multiple purposes using slots
-filled in the initializer for that object.
-
-All collectors inherit from:
-
-@deftype semantic-collector-abstract
-Root class for completion engines.
-@end deftype
-
-Available instantiable classes are:
-
-@deftype semantic-collector-buffer-deep
-Completion engine for tags in the current buffer.
-Provides deep searches through types.
-@end deftype
-
-NOTE: Add sections for writing new collectors.
-
-@c (eieiodoc-class semantic-collector-abstract "cc")
-@comment  node-name,  next,  previous,  up
-@subsubsection semantic-collector-buffer-abstract
-@ccindex semantic-collector-buffer-abstract
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item @w{@xref{semantic-collector-abstract}.}
-@table @code
-@item semantic-collector-buffer-abstract
-@table @asis
-@item Children:
-@w{@xref{semantic-collector-buffer-deep}.} 
-@end table
-
-@end table
-
-@end table
-@end table
-
-  You cannot create a new object of type semantic-collector-buffer-abstract
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :buffer
-Type: @code{buffer}
-
-Originating buffer for this collector.
-Some collectors use a given buffer as a starting place while looking up
-tags.
-@refill
-
-@end table
-
-@end table
-@subsubsubsection Specialized Methods
-
-@deffn Method semantic-collector-calculate-cache :AFTER obj 
-Calculate the completion cache for @var{OBJ}.
-Uses @dfn{semantic-flatten-tags-table}
-@end deffn
-
-@deffn Method constructor :BEFORE this newname &rest fields 
-Reuse previously created objects of this type in buffer.
-@end deffn
-
-
-@node semantic-collector-buffer-deep,  , semantic-collector-buffer-abstract, Tag Collectors
-@subsubsection Tag Collectors
-
-A tag collector is an object that inherits from
-@dfn{semantic-collector-abstract}.  A new collector is needed for
-each specialized type of prompt that draws from a different selection
-of tags.
-
-You can have a collector that satisfies multiple purposes using slots
-filled in the initializer for that object.
-
-All collectors inherit from:
-
-@deftype semantic-collector-abstract
-Root class for completion engines.
-@end deftype
-
-Available instantiable classes are:
-
-@deftype semantic-collector-buffer-deep
-Completion engine for tags in the current buffer.
-Provides deep searches through types.
-@end deftype
-
-NOTE: Add sections for writing new collectors.
-
-@c (eieiodoc-class semantic-collector-abstract "cc")
-@comment  node-name,  next,  previous,  up
-@subsubsection semantic-collector-buffer-deep
-@ccindex semantic-collector-buffer-deep
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item @w{@xref{semantic-collector-abstract}.}
-@table @code
-@item @w{@xref{semantic-collector-buffer-abstract}.}
-@table @code
-@item semantic-collector-buffer-deep
-No children
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type semantic-collector-buffer-deep
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :buffer
-Type: @code{buffer}
-
-Originating buffer for this collector.
-Some collectors use a given buffer as a starting place while looking up
-tags.
-@refill
-
-@end table
-
-@end table
-
 
 @c END OF COLLECTOR
 
@@ -712,285 +466,27 @@ tag of many in a visible way.
 All displayors inherit from the displayor baseclass that defines the
 default behaviors:
 
-@deftype semantic-displayor-abstract
+@deffn Type semantic-displayor-abstract
 Manages the display of some number of tags.
-@end deftype
+@end deffn
 
 Distinct implementations of displayors include:
 
-@deftype semantic-displayor-traditional
+@deffn Type semantic-displayor-traditional
 Traditional display mechanism for a list of possible completions.
-@end deftype
+@end deffn
 
-@deftype semantic-displayor-traditional-with-focus-highlight
+@deffn Type semantic-displayor-traditional-with-focus-highlight
 A traditional displayor which can focus on a tag by showing it.
-@end deftype
+@end deffn
 
-@deftype semantic-displayor-tooltip
+@deffn Type semantic-displayor-tooltip
 Display mechanism using tooltip for a list of possible completions.
-@end deftype
+@end deffn
 
 NOTE: Add sections for writing new collectors.
 
 @c (eieiodoc-class semantic-displayor-abstract "cd")
-@menu
-* semantic-displayor-abstract ::
-*  semantic-displayor-traditional ::
-*   semantic-displayor-traditional-with-focus-highlight ::
-*  semantic-displayor-focus-abstract ::
-*   semantic-displayor-traditional-with-focus-highlight ::
-*  semantic-displayor-tooltip ::
-@end menu
-
-
-@node semantic-displayor-abstract, semantic-displayor-traditional,  , Tag Displayors
-@subsubsection Tag Displayors
-
-When a user is interacting with the prompt
-@comment  node-name,  next,  previous,  up
-@subsubsection semantic-displayor-abstract
-@cdindex semantic-displayor-abstract
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item semantic-displayor-abstract
-@table @asis
-@item Children:
-@w{@xref{semantic-displayor-traditional},} @w{@xref{semantic-displayor-focus-abstract},} @w{@xref{semantic-displayor-tooltip}.} 
-@end table
-
-@end table
-@end table
-
-  You cannot create a new object of type semantic-displayor-abstract
-
-@table @asis
-@end table
-@subsubsubsection Specialized Methods
-
-@deffn Method semantic-displayor-focus-request :AFTER obj 
-A request to for the displayor to focus on some tag option.
-@end deffn
-
-@deffn Method semantic-displayor-current-focus :AFTER obj 
-Return the tag currently in focus.
-@end deffn
-
-@deffn Method semantic-displayor-show-request :AFTER obj 
-A request to show the current tags table.
-@end deffn
-
-@deffn Method semantic-displayor-next-action :AFTER obj 
-The next action to take on the minibuffer related to display.
-@end deffn
-
-@deffn Method semantic-displayor-set-completions :AFTER obj table prefix 
-Set the list of tags to be completed over to @var{TABLE}.
-@end deffn
-
-
-@node semantic-displayor-traditional, semantic-displayor-traditional-with-focus-highlight, semantic-displayor-abstract, Tag Displayors
-@subsubsection Tag Displayors
-
-When a user is interacting with the prompt
-@comment  node-name,  next,  previous,  up
-@subsubsection semantic-displayor-traditional
-@cdindex semantic-displayor-traditional
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item @w{@xref{semantic-displayor-abstract}.}
-@table @code
-@item semantic-displayor-traditional
-@table @asis
-@item Children:
-@w{@xref{semantic-displayor-traditional-with-focus-highlight}.} 
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type semantic-displayor-traditional
-
-@table @asis
-@end table
-
-@node semantic-displayor-traditional-with-focus-highlight, semantic-displayor-focus-abstract, semantic-displayor-traditional, Tag Displayors
-@subsubsection Tag Displayors
-
-When a user is interacting with the prompt
-@comment  node-name,  next,  previous,  up
-@subsubsection semantic-displayor-traditional-with-focus-highlight
-@cdindex semantic-displayor-traditional-with-focus-highlight
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item @w{@xref{semantic-displayor-abstract}.}
-@table @code
-@item @w{@xref{semantic-displayor-traditional}.}
-@table @code
-@item semantic-displayor-traditional-with-focus-highlight
-No children
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type semantic-displayor-traditional-with-focus-highlight
-
-@table @asis
-@end table
-@subsubsubsection Specialized Methods
-
-@deffn Method semantic-displayor-focus-request :AFTER obj 
-Focus in on possible tag completions.
-Focus is performed by cycling through the tags and highlighting
-one in the source buffer.
-@end deffn
-
-
-@node semantic-displayor-focus-abstract, semantic-displayor-traditional-with-focus-highlight, semantic-displayor-traditional-with-focus-highlight, Tag Displayors
-@subsubsection Tag Displayors
-
-When a user is interacting with the prompt
-@comment  node-name,  next,  previous,  up
-@subsubsection semantic-displayor-focus-abstract
-@cdindex semantic-displayor-focus-abstract
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item @w{@xref{semantic-displayor-abstract}.}
-@table @code
-@item semantic-displayor-focus-abstract
-@table @asis
-@item Children:
-@w{@xref{semantic-displayor-traditional-with-focus-highlight}.} 
-@end table
-
-@end table
-
-@end table
-@end table
-
-  You cannot create a new object of type semantic-displayor-focus-abstract
-
-@table @asis
-@end table
-@subsubsubsection Specialized Methods
-
-@deffn Method semantic-displayor-focus-next-tag :AFTER obj 
-Return the next tag @var{OBJ} should focus on.
-@end deffn
-
-@deffn Method semantic-displayor-current-focus :AFTER obj 
-Return the tag currently in focus.
-@end deffn
-
-@deffn Method semantic-displayor-set-completions :AFTER obj table prefix 
-Set the list of tags to be completed over to @var{TABLE}.
-@end deffn
-
-
-@node semantic-displayor-traditional-with-focus-highlight, semantic-displayor-tooltip, semantic-displayor-focus-abstract, Tag Displayors
-@subsubsection Tag Displayors
-
-When a user is interacting with the prompt
-@comment  node-name,  next,  previous,  up
-@subsubsection semantic-displayor-traditional-with-focus-highlight
-@cdindex semantic-displayor-traditional-with-focus-highlight
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item @w{@xref{semantic-displayor-abstract}.}
-@table @code
-@item @w{@xref{semantic-displayor-traditional}.}
-@table @code
-@item semantic-displayor-traditional-with-focus-highlight
-No children
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type semantic-displayor-traditional-with-focus-highlight
-
-@table @asis
-@end table
-@subsubsubsection Specialized Methods
-
-@deffn Method semantic-displayor-focus-request :AFTER obj 
-Focus in on possible tag completions.
-Focus is performed by cycling through the tags and highlighting
-one in the source buffer.
-@end deffn
-
-
-@node semantic-displayor-tooltip,  , semantic-displayor-traditional-with-focus-highlight, Tag Displayors
-@subsubsection Tag Displayors
-
-When a user is interacting with the prompt
-@comment  node-name,  next,  previous,  up
-@subsubsection semantic-displayor-tooltip
-@cdindex semantic-displayor-tooltip
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item @w{@xref{semantic-displayor-abstract}.}
-@table @code
-@item semantic-displayor-tooltip
-No children
-@end table
-
-@end table
-@end table
-
-  Create a new object with name NAME of class type semantic-displayor-tooltip
-
-@table @asis
-@item Slots:
-
-@table @code
-@item :max-tags
-Type: @code{integer} @*
-Default Value: @code{10}
-
-Max number of tags displayed on tooltip at once.
-If @code{force-show} is 1,  this value is ignored with typing @kbd{tab} or space twice continuously.
-if @code{force-show} is 0, this value is always ignored.
-@refill
-
-@item :force-show
-Type: @code{integer} @*
-Default Value: @code{1}
-
-Control the behavior of the number of tags is greater than @code{max-tags}.
--1 means tags are never shown.
-0 means the tags are always shown.
-1 means tags are shown if space or @kbd{tab} is typed twice continuously.
-@refill
-
-@end table
-
-@end table
-@subsubsubsection Specialized Methods
-
-@deffn Method semantic-displayor-show-request :AFTER obj 
-A request to show the current tags table.
-@end deffn
-
-
 
 @c END OF DISPLAYOR
 
@@ -1050,6 +546,7 @@ be passed in via a variable.
 
 @menu
 * Format Tag::                  Converting Tokens into text strings
+* Tag Members::                 Tags in tags
 * Tag Details::                 Arbitrary token detail fetching
 * Local Context::               Deriving information about a language specific local context.
 * Making New Methods::          How to add your own methods for a tool
@@ -1099,19 +596,189 @@ Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
 Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
 @end defun
 
+@defun semantic-format-tag-abbreviate tag &optional parent color
+Return an abbreviated string describing @var{TAG}.
+The abbreviation is to be short, with possible symbols indicating
+the type of tag, or other information.
+Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
 @defun semantic-format-tag-summarize tag &optional parent color
 Summarize @var{TAG} in a reasonable way.
 Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
 Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
 @end defun
 
-@defun semantic-prototype-nonterminal token &optional parent color
-Return a prototype for @var{TOKEN}.
+@defun semantic-format-tag-prototype tag &optional parent color
+Return a prototype for @var{TAG}.
 This function should be overloaded, though it need not be used.
 This is because it can be used to create code by language independent
 tools.
-Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
 Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-format-tag-concise-prototype tag &optional parent color
+Return a concise prototype for @var{TAG}.
+Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-format-tag-uml-abbreviate tag &optional parent color
+Return a @var{UML} style abbreviation for @var{TAG}.
+Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-format-tag-uml-prototype tag &optional parent color
+Return a @var{UML} style prototype for @var{TAG}.
+Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-format-tag-uml-concise-prototype tag &optional parent color
+Return a @var{UML} style concise prototype for @var{TAG}.
+Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-format-tag-prin1 tag &optional parent color
+Convert @var{TAG} to a string that is the print name for @var{TAG}.
+@var{PARENT} and @var{COLOR} are ignored.
+@end defun
+
+@node Tag Members
+@subsection Tag Members
+
+Tags are often in a hierarchical form, meaning that a tag found in
+the top-level list may itself contain additional members.
+
+The following overridable functions can fetch those tags.
+
+@defun semantic-tag-components tag
+Return a list of components for @var{TAG}.
+A Component is a part of @var{TAG} which itself may be a @var{TAG}.
+Examples include the elements of a structure in a @code{`type} tag,
+or the list of arguments to a @code{'function} tag.
+@end defun
+
+@defun semantic-tag-components-with-overlays tag
+Return the list of top level components belonging to @var{TAG}.
+Children are any sub-tags which contain overlays.
+
+Default behavior is to get @dfn{semantic-tag-components} in addition
+to the components of an anonymous types (if applicable.)
+
+Note for language authors:
+  If a mode defines a language tag that has tags in it with overlays
+you should still return them with this function.
+Ignoring this step will prevent several features from working correctly.
+@end defun
+
+Some languages can define parts of a tag outside the actual scope of
+the parent tag.  You can fetch information about them with these
+overload functions.
+
+
+@defun semantic-tag-external-member-p parent token
+Return non-@code{nil} if @var{PARENT} is the parent of @var{TAG}.
+@var{TAG} is an external member of @var{PARENT} when it is somehow tagged
+as having @var{PARENT} as it's parent.
+@var{PARENT} and @var{TAG} must both be semantic tags.
+
+The default behavior, if not overridden with
+@code{tag-external-member-p} is to match @code{'parent} extra specifier in
+the name of @var{TAG}.
+
+If this function is overridden, use
+@code{semantic-tag-external-member-children-p-default} to also
+include the default behavior, and merely extend your own.
+@end defun
+
+@defun semantic-tag-external-member-children tag &optional usedb
+Return the list of children which are not *in* @var{TAG}.
+If optional argument @var{USEDB} is non-@code{nil}, then also search files in
+the Semantic Database.  If @var{USEDB} is a list of databases, search those
+databases.
+
+Children in this case are functions or types which are members of
+@var{TAG}, such as the parts of a type, but which are not defined inside
+the class.  @var{C}++ and @var{CLOS} both permit methods of a class to be defined
+outside the bounds of the class' definition.
+
+The default behavior, if not overridden with
+@code{tag-external-member-children} is to search using
+@dfn{semantic-tag-external-member-p} in all top level definitions
+with a parent of @var{TAG}.
+
+If this function is overridden, use
+@dfn{semantic-tag-external-member-children-default} to also
+include the default behavior, and merely extend your own.
+@end defun
+
+@node Tag Details
+@subsection Tag Details
+
+These functions help derive information about tags that may not
+be obvious for non-traditional languages with their own token types.
+
+@defun semantic-tag-protection tag &optional parent
+Return protection information about @var{TAG} with optional @var{PARENT}.
+This function returns on of the following symbols:
+   @code{nil}        - No special protection.  Language dependent.
+   @code{'public}    - Anyone can access this @var{TAG}.
+   @code{'private}   - Only methods in the local scope can access @var{TAG}.
+   @code{'protected} - Like private for outside scopes, like public for child
+                classes.
+Some languages may choose to provide additional return symbols specific
+to themselves.  Use of this function should allow for this.
+
+The default behavior (if not overridden with @code{tag-protection}
+is to return a symbol based on type modifiers.
+@end defun
+
+@defun semantic-tag-abstract tag &optional parent
+Return non @code{nil} if @var{TAG} is abstract.
+Optional @var{PARENT} is the parent tag of @var{TAG}.
+In @var{UML}, abstract methods and classes have special meaning and behavior
+in how methods are overridden.  In @var{UML}, abstract methods are italicized.
+
+The default behavior (if not overridden with @code{tag-abstract}
+is to return true if @code{abstract} is in the type modifiers.
+@end defun
+
+@defun semantic-tag-leaf tag &optional parent
+Return non @code{nil} if @var{TAG} is leaf.
+Optional @var{PARENT} is the parent tag of @var{TAG}.
+In @var{UML}, leaf methods and classes have special meaning and behavior.
+
+The default behavior (if not overridden with @code{tag-leaf}
+is to return true if @code{leaf} is in the type modifiers.
+@end defun
+
+@defun semantic-tag-static tag &optional parent
+Return non @code{nil} if @var{TAG} is static.
+Optional @var{PARENT} is the parent tag of @var{TAG}.
+In @var{UML}, static methods and attributes mean that they are allocated
+in the parent class, and are not instance specific.
+@var{UML} notation specifies that @var{STATIC} entries are underlined.
+@end defun
+
+@defvar semantic-dependency-include-path
+Defines the include path used when searching for files.
+This should be a list of directories to search which is specific to
+the file being included.
+If @code{semantic-find-dependency} is overridden for a given language, this
+path is most likely ignored.
+
+@var{TODO}: use ffap.el to locate such items.
+@end defvar
+
+@defun semantic-dependency-tag-file &optional tag
+Find the filename represented from @var{TAG}.
+Depends on @code{semantic-dependency-include-path} for searching.  Always searches
+@code{.} first, then searches additional paths.
 @end defun
 
 @defun semantic-prototype-file buffer
@@ -1121,231 +788,82 @@ prototype file, or the existence of an @var{EDE} variable indicating which
 file prototypes belong in.
 @end defun
 
-@defun semantic-abbreviate-nonterminal token &optional parent color
-Return an abbreviated string describing @var{TOKEN}.
-The abbreviation is to be short, with possible symbols indicating
-the type of token, or other information.
-Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
-Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
-@end defun
-
-@defun semantic-concise-prototype-nonterminal token &optional parent color
-Return a concise prototype for @var{TOKEN}.
-Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
-Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
-@end defun
-
-@defun semantic-uml-abbreviate-nonterminal token &optional parent color
-Return a @var{UML} style abbreviation for @var{TOKEN}.
-Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
-Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
-@end defun
-
-@node Tag Details
-@subsection Tag Details
-
-These functions help derive information about tokens that may not
-be obvious for non-traditional languages with their own token types.
-
-@defun semantic-nonterminal-children token &optional positionalonly
-Return the list of top level children belonging to @var{TOKEN}.
-Children are any sub-tokens which may contain overlays.
-The default behavior (if not overridden with @code{nonterminal-children}
-is to return type parts for a type, and arguments for a function.
-
-If optional argument @var{POSITIONALONLY} is non-@code{nil}, then only return valid
-children if they contain positions.  Some languages may choose to create
-lists of children without position/overlay information.
-
-If this function is overridden, use @dfn{semantic-nonterminal-children-default}
-to also include the default behavior, and merely extend your own.
-
-Note for language authors:
-  If a mode defines a language that has tokens in it with overlays that
-should not be considered children, you should still return them with
-this function.  If you do not, then token re-parsing, and database
-saving will fail.
-@end defun
-
-@defun semantic-nonterminal-external-member-parent token
-Return a parent for @var{TOKEN} when @var{TOKEN} is an external member.
-@var{TOKEN} is an external member if it is defined at a toplevel and
-has some sort of label defining a parent.  The parent return will
-be a string.
-
-The default behavior, if not overridden with
-@code{nonterminal-external-member-parent} is get the @code{'parent} extra
-specifier of @var{TOKEN}.
-
-If this function is overridden, use
-@dfn{semantic-nonterminal-external-member-parent-default} to also
-include the default behavior, and merely extend your own.
-@end defun
-
-@defun semantic-nonterminal-external-member-p parent token
-Return non-@code{nil} if @var{PARENT} is the parent of @var{TOKEN}.
-@var{TOKEN} is an external member of @var{PARENT} when it is somehow tagged
-as having @var{PARENT} as it's parent.
-
-The default behavior, if not overridden with
-@code{nonterminal-external-member-p} is to match @code{'parent} extra specifier in
-the name of @var{TOKEN}.
-
-If this function is overridden, use
-@code{semantic-nonterminal-external-member-children-p-default} to also
-include the default behavior, and merely extend your own.
-@end defun
-
-@defun semantic-nonterminal-external-member-children token &optional usedb
-Return the list of children which are not *in* @var{TOKEN}.
-If optional argument @var{USEDB} is non-@code{nil}, then also search files in
-the Semantic Database.  If @var{USEDB} is a list of databases, search those
-databases.
-
-Children in this case are functions or types which are members of
-@var{TOKEN}, such as the parts of a type, but which are not defined inside
-the class.  @var{C}++ and @var{CLOS} both permit methods of a class to be defined
-outside the bounds of the class' definition.
-
-The default behavior, if not overridden with
-@code{nonterminal-external-member-children} is to search using
-@dfn{semantic-nonterminal-external-member-p} in all top level definitions
-with a parent of @var{TOKEN}.
-
-If this function is overridden, use
-@dfn{semantic-nonterminal-external-member-children-default} to also
-include the default behavior, and merely extend your own.
-@end defun
-
-@defun semantic-nonterminal-protection token &optional parent
-Return protection information about @var{TOKEN} with optional @var{PARENT}.
-This function returns on of the following symbols:
-   @code{nil}      - No special protection.  Language dependent.
-   @code{'public}  - Anyone can access this @var{TOKEN}.
-   @code{'private} - Only methods in the local scope can access @var{TOKEN}.
-   @code{'friend}  - Like private, except some outer scopes are allowed
-              access to token.
-Some languages may choose to provide additional return symbols specific
-to themselves.  Use of this function should allow for this.
-
-The default behavior (if not overridden with @code{nonterminal-protection}
-is to return a symbol based on type modifiers.
-@end defun
-
-@defun semantic-nonterminal-abstract token &optional parent
-Return non @code{nil} if @var{TOKEN} is abstract.
-Optional @var{PARENT} is the parent token of @var{TOKEN}.
-In @var{UML}, abstract methods and classes have special meaning and behavior
-in how methods are overridden.  In @var{UML}, abstract methods are italicized.
-
-The default behavior (if not overridden with @code{nonterminal-abstract}
-is to return true if @code{abstract} is in the type modifiers.
-@end defun
-
-@defun semantic-nonterminal-leaf token &optional parent
-Return non @code{nil} if @var{TOKEN} is leaf.
-Optional @var{PARENT} is the parent token of @var{TOKEN}.
-In @var{UML}, leaf methods and classes have special meaning and behavior.
-
-The default behavior (if not overridden with @code{nonterminal-leaf}
-is to return true if @code{leaf} is in the type modifiers.
-@end defun
-
-@defun semantic-nonterminal-static token &optional parent
-Return non @code{nil} if @var{TOKEN} is static.
-Optional @var{PARENT} is the parent token of @var{TOKEN}.
-In @var{UML}, static methods and attributes mean that they are allocated
-in the parent class, and are not instance specific.
-@var{UML} notation specifies that @var{STATIC} entries are underlined.
-
-The default behavior (if not overridden with @code{nonterminal-static}
-is to return true if @code{static} is in the type modifiers.
-@end defun
-
-@defun semantic-find-dependency token
-Find the filename represented from @var{TOKEN}.
-@var{TOKEN} may be a stripped element, in which case @var{PARENT} specifies a
-parent token that has positional information.
-Depends on @code{semantic-dependency-include-path} for searching.  Always searches
-`.' first, then searches additional paths.
-
-
-@defvar semantic-dependency-include-path
-Defines the include path used when searching for files.
-This should be a list of directories to search which is specific to
-the file being included.
-This variable can also be set to a single function.  If it is a
-function, it will be called with one arguments, the file to find as a
-string, and  it should return the full path to that file, or nil.
-@end defvar
-
-
-@end defun
-
-
-@defun semantic-find-nonterminal token &optional parent
-Find the location of @var{TOKEN}.
-@var{TOKEN} may be a stripped element, in which case @var{PARENT} specifies a
-parent token that has position information.
-Different behaviors are provided depending on the type of token.
+@defun semantic-go-to-tag &optional tag parent
+Go to the location of @var{TAG}.
+@var{TAG} may be a stripped element, in which case @var{PARENT} specifies a
+parent tag that has position information.
+Different behaviors are provided depending on the type of tag.
 For example, dependencies (includes) will seek out the file that is
-depended on, and functions will move to the specified definition.
+depended on (see @dfn{semantic-dependency-tag-file}..
 @end defun
 
-@defun semantic-find-documentation token
-Find documentation from @var{TOKEN} and return it as a clean string.
-@var{TOKEN} might have @var{DOCUMENTATION} set in it already.  If not, there may be
-some documentation in a comment preceding TOKEN's definition which we
-can look for.  When appropriate, this can be overridden by a language specific
-enhancement.
+@defun semantic-texi-find-documentation name &optional type
+Find the function or variable @var{NAME} of @var{TYPE} in the texinfo source.
+@var{NAME} is a string representing some functional symbol.
+@var{TYPE} is a string, such as ``variable`` or ''Command'' used to find
+the correct definition in case @var{NAME} qualifies as several things.
+When this function exists, @var{POINT} is at the definition.
+If the doc was not found, an error is thrown.
+Note: @var{TYPE} not yet implemented.
 @end defun
 
 @node Local Context
 @subsection Local Context
 
-@defun semantic-up-context &optional point
+@defun semantic-up-context &optional point bounds-type
 Move point up one context from @var{POINT}.
 Return non-@code{nil} if there are no more context levels.
 Overloaded functions using @code{up-context} take no parameters.
+@var{BOUNDS-TYPE} is a symbol representing a tag class to restrict
+movement to.  If this is @code{nil}, @code{'function} is used.
+This will find the smallest tag of that class (function, variable,
+type, etc) and make sure non-@code{nil} is returned if you cannot
+go up past the bounds of that tag.
 @end defun
 
 @defun semantic-beginning-of-context &optional point
 Move @var{POINT} to the beginning of the current context.
 Return non-@code{nil} if there is no upper context.
-The default behavior uses @dfn{semantic-up-context}.  It can
-be overridden with @code{beginning-of-context}.
+The default behavior uses @dfn{semantic-up-context}.
+This function can be overriden in semantic using the
+symbol @code{beginning-of-context}.
 @end defun
 
 @defun semantic-end-of-context &optional point
 Move @var{POINT} to the end of the current context.
 Return non-@code{nil} if there is no upper context.
 Be default, this uses @dfn{semantic-up-context}, and assumes parenthetical
-block delimiters.  This can be overridden with @code{end-of-context}.
+block delimiters.
+This function can be overriden in semantic using the
+symbol @code{end-of-context}.
 @end defun
 
 @defun semantic-get-local-variables &optional point
 Get the local variables based on POINT's context.
-Local variables are returned in Semantic token format.
+Local variables are returned in Semantic tag format.
 Be default, this calculates the current bounds using context blocks
 navigation, then uses the parser with @code{bovine-inner-scope} to
-parse tokens at the beginning of the context.
-This can be overridden with @code{get-local-variables}.
+parse tags at the beginning of the context.
+This can be overriden with @code{get-local-variables}.
 @end defun
 
 @defun semantic-get-local-arguments &optional point
 Get arguments (variables) from the current context at @var{POINT}.
 Parameters are available if the point is in a function or method.
-This function returns a list of tokens.  If the local token returns
-just a list of strings, then this function will convert them to tokens.
-Part of this behavior can be overridden with @code{get-local-arguments}.
+Return a list of tags unlinked from the originating buffer.
+Arguments are obtained by overriding @code{get-local-arguments}, or by the
+default function @dfn{semantic-get-local-arguments-default}.  This, must
+return a list of tags, or a list of strings that will be converted to
+tags.
 @end defun
 
 @defun semantic-get-all-local-variables &optional point
 Get all local variables for this context, and parent contexts.
-Local variables are returned in Semantic token format.
+Local variables are returned in Semantic tag format.
 Be default, this gets local variables, and local arguments.
-This can be overridden with @code{get-all-local-variables}.
 Optional argument @var{POINT} is the location to start getting the variables from.
+This function can be overriden in semantic using the
+symbol @code{get-all-local-variables}.
 @end defun
 
 These next set of functions handle local context parsing.   This means
@@ -1355,43 +873,51 @@ such as a the type of the parameter the cursor may be typing in.
 @defun semantic-end-of-command
 Move to the end of the current command.
 Be default, uses @code{semantic-command-separation-character}.
-Override with @code{end-of-command}.
+This function can be overriden in semantic using the
+symbol @code{end-of-command}.
 @end defun
 
 @defun semantic-beginning-of-command
 Move to the beginning of the current command.
-Be default, users @code{semantic-command-separation-character}.
-Override with @code{beginning-of-command}.
+Be default, uses @code{semantic-command-separation-character}.
+This function can be overriden in semantic using the
+symbol @code{beginning-of-command}.
 @end defun
 
 @defun semantic-ctxt-current-symbol &optional point
 Return the current symbol the cursor is on at @var{POINT} in a list.
 This will include a list of type/field names when applicable.
-This can be overridden using @code{ctxt-current-symbol}.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-symbol}.
 @end defun
 
 @defun semantic-ctxt-current-assignment &optional point
 Return the current assignment near the cursor at @var{POINT}.
 Return a list as per @dfn{semantic-ctxt-current-symbol}.
 Return @code{nil} if there is nothing relevant.
-Override with @code{ctxt-current-assignment}.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-assignment}.
 @end defun
 
 @defun semantic-ctxt-current-function &optional point
-Return the current function the cursor is in at @var{POINT}.
+Return the current function call the cursor is in at @var{POINT}.
 The function returned is the one accepting the arguments that
-the cursor is currently in.
-This can be overridden with @code{ctxt-current-function}.
+the cursor is currently in.  It will not return function symbol if the
+cursor is on the text representing that function.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-function}.
 @end defun
 
 @defun semantic-ctxt-current-argument &optional point
-Return the current symbol the cursor is on at @var{POINT}.
-Override with @code{ctxt-current-argument}.
+Return the index of the argument position the cursor is on at @var{POINT}.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-argument}.
 @end defun
 
 @defun semantic-ctxt-scoped-types &optional point
 Return a list of type names currently in scope at @var{POINT}.
-Override with @code{ctxt-scoped-types}.
+This function can be overriden in semantic using the
+symbol @code{ctxt-scoped-types}.
 @end defun
 
 For details on using these functions to get more detailed information
@@ -1427,53 +953,54 @@ is.  These function can let you know what level of re-parsing may be
 needed.  Careful choices on when to reparse can make your program much
 faster.
 
-@defun semantic-bovine-toplevel-full-reparse-needed-p &optional checkcache
-Return non-@code{nil} if the current buffer needs a full reparse.
-Optional argument @var{CHECKCACHE} indicates if the cache check should be made.
+@c PARSER STATE STUFF HERE
+
+@defun semantic-parse-tree-needs-update-p
+Return non-@code{nil} if the current parse tree needs to be updated.
 @end defun
 
-@defun semantic-bovine-toplevel-partial-reparse-needed-p &optional checkcache
-Return non-@code{nil} if the current buffer needs a partial reparse.
-This only returns non-@code{nil} if @dfn{semantic-bovine-toplevel-full-reparse-needed-p}
-returns nil.
-Optional argument @var{CHECKCACHE} indicates if the cache check should be made
-when checking @dfn{semantic-bovine-toplevel-full-reparse-needed-p}.
+@defun semantic-parse-tree-needs-rebuild-p
+Return non-@code{nil} if the current parse tree needs to be rebuilt.
+@end defun
+
+@defun semantic-parse-tree-up-to-date-p
+Return non-@code{nil} if the current parse tree is up to date.
 @end defun
 
 If you just want to know when a buffer changes, use this hook.
 
 @defvar semantic-after-toplevel-cache-change-hook
 Hooks run after the buffer token list has changed.
-This list will change when a buffer is re-parsed, or when the token
-list in a buffer is cleared.  It is *NOT* called if the current token
-list partially re-parsed.
+This list will change when a buffer is reparsed, or when the token
+list in a buffer is cleared.  It is *@var{NOT}* called if the current token
+list partially reparsed.
 
 Hook functions must take one argument, which is the new list of
 tokens associated with this buffer.
 
 For language specific hooks, make sure you define this as a local hook.
-
-@obsolete{semantic-after-toplevel-bovinate-hook}
 @end defvar
 
 If you want tighter interaction with how the user is editing
 different tags, you can use this hook instead.
 
 @defvar semantic-after-partial-cache-change-hook
-Hooks run after the buffer token list has been updated.
-This list will change when the current token list has been partially
-re-parsed.
+Hooks run after the buffer cache has been updated.
+
+This hook will run when the cache has been partially reparsed.
+Partial reparses are incurred when a user edits a buffer, and only the
+modified sections are rescanned.
 
 Hook functions must take one argument, which is the list of tokens
-updated among the ones associated with this buffer.
+updated in the current buffer.
 
 For language specific hooks, make sure you define this as a local hook.
 @end defvar
 
 @defvar semantic-before-toplevel-cache-flush-hook
 Hooks run before the toplevel nonterminal cache is flushed.
-For language specific hooks, make sure you define this as a local hook.
-This hook is called before a corresponding
+For language specific hooks, make sure you define this as a local
+hook.  This hook is called before a corresponding
 @code{semantic-after-toplevel-cache-change-hook} which is also called
 during a flush when the cache is given a new value of nil.
 @end defvar
