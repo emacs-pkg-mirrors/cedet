@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.10 2003/11/20 14:55:51 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.11 2003/12/11 01:03:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -117,7 +117,10 @@ If DIRECTORY doesn't exist, create a new one."
     (unless db
       (setq db (make-instance
 		dbc  ; Create the database requested.  Perhaps
-		(file-name-nondirectory fn)
+		(concat (file-name-nondirectory
+			 (directory-file-name
+			  (file-name-directory fn)))
+			"/")
 		:file fn :tables nil
 		:semantic-tag-version semantic-version
 		:semanticdb-version semanticdb-file-version)))
