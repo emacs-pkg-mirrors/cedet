@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-class.el,v 1.7 1997/01/18 23:49:26 zappo Exp $
+;;; RCS: $Id: dlg-class.el,v 1.8 1997/01/19 22:06:01 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -50,22 +50,22 @@ different values of state")
 
 (defmethod reset-option-label :BEFORE ((this widget-option-button-dlg-font-style))
   "Change our face whenever a new button label is presented."
-  (oset this face (aref [ 'default 'bold 'italic 'bold-italic ]
+  (oset this face (aref [ default bold italic bold-italic ]
 			(get-value (oref this state))))
-  (oset this focus-face (aref [ 'bold 'default 'bold-italic 'italic ]
+  (oset this focus-face (aref [ bold default bold-italic italic ]
 			      (get-value (oref this state)))))
 
 (defmethod verify :AFTER ((this widget-option-button-dlg-font-style) fix)
   "Change our face to be dependent upon our initialization value in state."
-  (oset this face (aref [ 'default 'bold 'italic 'bold-italic ]
+  (oset this face (aref [ default bold italic bold-italic ]
 			(get-value (oref this state))))
-  (oset this focus-face (aref [ 'bold 'default 'bold-italic 'italic ]
+  (oset this focus-face (aref [ bold default bold-italic italic ]
 			      (get-value (oref this state)))))
 
 ;;;
 ;;; Specialized data types
 ;;;
-(defclass data-object-symbol (data-object)
+(defclass data-symbol (data-object)
   ((symbol :initarg :symbol
 	   :initform nil
 	   :docstring "Symbol whose value changes in parallel to :value"
@@ -545,11 +545,12 @@ the variables we are editing."
   "Reads the currently stored config-file, and starts saving
 the features we are editing."
   (if  (re-search-forward (concat 
-			   "\\(;*\\)(require[ \t\n]+'"
+			   "\\(;*(\\)require[ \t\n]+'"
 			   (symbol-name (oref this symbol))) nil t)
       (progn
 	(goto-char (match-beginning 1))
-	(replace-match (if (oref this value) "" ";;") nil nil nil 1))
+	(delete-region (match-beginning 1) (match-end 1))
+	(insert (if (oref this value) "(" ";;(")))
     (goto-char (point-max))
     (if (oref this value)
 	(insert "\n(require '" (symbol-name (oref this symbol)) ")")))
@@ -574,7 +575,8 @@ the hooks we are editing."
 			   (regexp-quote (oref this command))) nil t)
       (progn
 	(goto-char (match-beginning 1))
-	(replace-match (if (oref this value) "" ";;") nil nil nil 1))
+	(delete-region (match-beginning 1) (match-end 1))
+	(insert (if (oref this value) "" ";;")))
     (goto-char (point-max))
     (if (oref this value)
 	(insert "\n(add-hook '" (symbol-name (oref this symbol))
@@ -635,14 +637,22 @@ the variables we are editing."
   (point))
 
 ;; FACE-FOREGROUND
+(defmacro data-valid-color-p (c)
+  "Work around annoying differences between emacsen"
+  (if (eval-when-compile (boundp 'x-color-defined-p))
+      (list 'x-color-defined-p c)
+    (list 'valid-color-name-p c)))
+
 (defmethod set-value :BEFORE ((this data-face-foreground-object) value &optional setter)
   "Set the value of a `data-face-foreground-object' and modifies said face."
   (if (and (stringp value) (stringp (get-value this)) 
 	   (not (string= value (get-value this)))
-	   (x-color-defined-p value))
+	   (data-valid-color-p value))
       (set-face-foreground (oref this face) value)
     (if (string= value "")
-	(set-face-foreground (oref this face) nil)))
+	(if (eval-when-compile dialog-xemacs-p)
+	    (set-face-foreground (oref this face) "")
+	  (set-face-foreground (oref this face) nil))))
   (if (stringp value)
       (dlg-edit-xdefaults this "attributeForeground" value)))
 
@@ -651,10 +661,12 @@ the variables we are editing."
   "Set the value of a `data-face-foreground-object' and modifies said face."
   (if (and (stringp value) (stringp (get-value this)) 
 	   (not (string= value (get-value this)))
-	   (x-color-defined-p value))
+	   (data-valid-color-p value))
       (set-face-background (oref this face) value)
     (if (string= value "")
-	(set-face-background (oref this face) nil)))
+	(if (eval-when-compile dialog-xemacs-p)
+	    (set-face-background (oref this face) "")
+	  (set-face-background (oref this face) nil))))
   (if (stringp value)
       (dlg-edit-xdefaults this "attributeBackground" value)))
 
