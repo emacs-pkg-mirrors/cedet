@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.22 2000/07/11 23:11:59 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.23 2000/07/22 12:41:31 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -27,9 +27,8 @@
 ;; 
 ;; Code generator for Makefiles.
 
-(eval-and-compile 
-  (require 'ede-proj)
-  (require 'ede-proj-obj))
+(require 'ede-proj)
+(require 'ede-proj-obj)
 
 ;;; Code:
 (defmethod ede-proj-makefile-create ((this ede-proj-project) mfilename)
@@ -190,9 +189,24 @@ MFILENAME is the makefile to generate."
 			"\tmkdir $(DISTDIR)\n")
 		(setq tmp (oref this targets))
 		(insert "\tcp")
-		(while tmp (insert " $(" (ede-proj-makefile-sourcevar (car tmp))
-				   ")")
-		       (setq tmp (cdr tmp)))
+		(while tmp
+		  (let ((sv (ede-proj-makefile-sourcevar (car tmp))))
+		    (if (listp sv)
+			;; Handle special case variables.
+			(cond ((eq (cdr sv) 'share)
+			       ;; This variable may be shared between multiple targets.
+			       (if (re-search-backward (concat "\\$(" (car sv) ")")
+						       (save-excursion
+							 (beginning-of-line)
+							 (point))
+						       t)
+				   ;; If its already in the dist target, then skip it.
+				   nil
+				 (setq sv (car sv))))
+			      (t (setq sv (car sv)))))
+		    (if (stringp sv)
+			(insert " $(" sv ")"))
+		    (setq tmp (cdr tmp))))
 		(insert " $(ede_FILES) $(DISTDIR)\n"
 			"\ttar -cvzf $(DISTDIR).tar.gz $(DISTDIR)\n"
 			"\trm -rf $(DISTDIR)\n\n")
@@ -277,11 +291,29 @@ Use CONFIGURATION as the current configuration to query."
   "Insert variables needed by target THIS.
 Optional argument MORESOURCE is a list of additional sources to add to the
 sources variable."
-  (insert (ede-proj-makefile-sourcevar this) "="
-	  (mapconcat (lambda (a) a) (oref this source) " "))
-  (if moresource
-      (insert " \\\n   " (mapconcat (lambda (a) a) moresource " ") ""))
-  (insert "\n"))
+  (let ((sv (ede-proj-makefile-sourcevar this))
+	(addcr t))
+    (cond ((and (listp sv) (eq (cdr sv) 'share))
+	   ;; This variable may be shared between targets
+	   (if (re-search-backward (concat "^" (car sv) "=") nil t)
+	       (progn
+		 (end-of-line)
+		 (while (= (following-char) ?\\)
+		   (forward-char 1)
+		   (end-of-line))
+		 (insert "\\\n   ")
+		 (setq addcr nil))
+	     (insert (car sv) "="))
+	   )
+	  ((listp sv)
+	   (insert (car sv) "="))
+	  (t
+	   (insert sv "=")))
+    (insert (mapconcat (lambda (a) a) (oref this source) " "))
+    (if moresource
+	(insert " \\\n   " (mapconcat (lambda (a) a) moresource " ") ""))
+    (if addcr (insert "\n"))
+    (goto-char (point-max))))
 
 ;;; GARBAGE PATTERNS
 ;;
