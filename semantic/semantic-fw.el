@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.23.2.1 2003/11/01 19:39:10 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.23.2.2 2003/11/10 08:11:51 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -113,12 +113,13 @@ will throw a warning when it encounters this symbol."
   "Make OLDVARALIAS an alias for variable NEWVAR.
 Mark OLDVARALIAS as obsolete, such that the byte compiler
 will throw a warning when it encounters this symbol."
-  (if (fboundp 'defvaralias)
+  (condition-case err
       (defvaralias oldvaralias newvar)
-    (message "\
+    (error
+     (message "+++ %s\n\
 *** Compatibility with Semantic 2 might be broken:\n\
     can't make obsolete variable `%s'\n\
-    alias of `%s'." oldvaralias newvar))
+    alias of `%s'." (error-message-string err) oldvaralias newvar)))
   (make-obsolete-variable oldvaralias newvar))
 
 
