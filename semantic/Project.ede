@@ -5,21 +5,26 @@
   :version "1.4"
   :file "Project.ede"
   :targets (list 
-   (ede-proj-target-elisp "senator"
-    :name "senator"
-    :path ""
-    :source '("senator.el")
-    )
    (ede-proj-target-elisp "(semantic-bnf.el semantic.el semantic-util.el)"
     :name "semantic"
     :path ""
     :source '("semantic-bnf.el" "semantic.el" "semantic-util.el" "semantic-ctxt.el")
     :versionsource '("semantic.el")
     )
+   (ede-proj-target-elisp "Languages"
+    :name "Languages"
+    :path ""
+    :source '("semantic-make.el" "semantic-c.el" "semantic-el.el" "semantic-java.el" "semantic-texi.el")
+    )
    (ede-proj-target-elisp "tools"
     :name "tools"
     :path ""
-    :source '("document.el" "document-vars.el" "sformat.el" "semantic-make.el" "semantic-c.el" "semantic-java.el" "semantic-imenu.el" "semantic-el.el" "semantic-sb.el" "working.el" "semantic-mode.el" "semanticdb.el" "semantic-java.el" "semantic-texi.el")
+    :source '("document.el" "document-vars.el" "sformat.el" "semantic-imenu.el" "semantic-sb.el" "working.el" "semantic-mode.el" "semanticdb.el")
+    )
+   (ede-proj-target-elisp "senator"
+    :name "senator"
+    :path ""
+    :source '("senator.el")
     )
    (ede-proj-target-aux "misc"
     :name "misc"
