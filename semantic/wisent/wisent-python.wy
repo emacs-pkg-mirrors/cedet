@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.13 2002/08/11 09:43:38 ponced Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.14 2003/01/06 16:45:54 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -37,30 +37,14 @@
    ;;"Regexp matching python raw string prefix."
    wisent-python-raw-string-re "\\<[r]['\"]"
 
-   ;; How `semantic-flex' will setup the lexer input stream.
-   semantic-flex-depth nil
-   ;; python grammar requires BOL tokens to compute indent/dedent
-   semantic-flex-enable-bol t
-   ;; python grammar requires NEWLINE tokens!
-   semantic-flex-enable-newlines t
-   ;; Tell `semantic-flex' to handle Python numbers
-   semantic-number-expression semantic-python-number-regexp
    ;; Character used to separation a parent/child relationship
    semantic-type-relation-separator-character '(".")
    semantic-command-separation-character ";"
    ;; Init indentation stack
    wisent-python-lexer-indent-stack '(0)
-   ;; Init paired delimiter stack
-   wisent-python-matching-pair-stack nil
-
-   semantic-flex-python-extensions
-   (list '("\\(\\<r\\)?\"\"\"" . semantic-flex-python-triple-quotes)
-	 (cons wisent-python-raw-string-re 'wisent-python-flex-raw-string))
-
-   semantic-flex-extensions semantic-flex-python-extensions
 
    semantic-lex-analyzer #'semantic-python-lexer
-   wisent-lexer-function #'wisent-flex
+   semantic-lex-depth	nil
    )
 
   %}
