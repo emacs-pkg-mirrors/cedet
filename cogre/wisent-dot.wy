@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.wy,v 1.5 2004/01/15 01:29:37 zappo Exp $
+;; X-RCS: $Id: wisent-dot.wy,v 1.6 2004/01/23 15:00:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,64 +37,66 @@
 %start node-description
 
 ;;; KEYWORDS
-%keyword DIGRAPH 	"digraph"
-%put DIGRAPH summary "digraph <name> { <graph elements> ... }"
-%keyword GRAPH 	"graph"
-%put GRAPH summary "graph <name> { <graph elements> ... }"
+%type    <keyword>
+%keyword DIGRAPH  "digraph"
+%put     DIGRAPH  summary "digraph <name> { <graph elements> ... }"
+%keyword GRAPH    "graph"
+%put     GRAPH    summary "graph <name> { <graph elements> ... }"
 %keyword SUBGRAPH "subgraph"
-%put SUBGRAPH summary "subgraph <name> { <graph elements> ... }"
-%keyword NODE 	"node"
-%put NODE summary "node [<attribute>...];"
-%keyword SHAPE 	"shape"
-%put SHAPE summary "shape=<shape-type>"
+%put     SUBGRAPH summary "subgraph <name> { <graph elements> ... }"
+%keyword NODE     "node"
+%put     NODE     summary "node [<attribute>...];"
+%keyword SHAPE    "shape"
+%put     SHAPE    summary "shape=<shape-type>"
 %keyword LABEL    "label"
-%put LABEL summary "label=\"string\""
-%keyword COLOR 	"color"
-%put COLOR summary "color=<color-spec>"
-%keyword STYLE 	"style"
-%put STYLE summary "style=<style-spec>"
-%keyword LEN 	"len"
-%put LEN summary "len=<value>"
+%put     LABEL    summary "label=\"string\""
+%keyword COLOR    "color"
+%put     COLOR    summary "color=<color-spec>"
+%keyword STYLE    "style"
+%put     STYLE    summary "style=<style-spec>"
+%keyword LEN      "len"
+%put     LEN      summary "len=<value>"
 %keyword FONTNAME "fontname"
-%put FONTNAME summary "fontname=<font-spec>"
+%put     FONTNAME summary "fontname=<font-spec>"
 %keyword FONTSIZE "fontsize"
-%put FONTSIZE summary "fontsize=<font-size-number>"
-%keyword WIDTH 	"width"
-%keyword HEIGHT 	"height"
-%keyword SPLINES 	"splines"
-%keyword OVERLAP 	"overlap"
+%put     FONTSIZE summary "fontsize=<font-size-number>"
+%keyword WIDTH    "width"
+%keyword HEIGHT   "height"
+%keyword SPLINES  "splines"
+%keyword OVERLAP  "overlap"
 
 ;;; Punctuation Types
-%type <punctuation> syntax "\\s.+" matchdatatype string
-
-%token  <punctuation> DILINK 	"->"
-%put DILINK summary "<node> -> <node>;    Directed link"
-%token  <punctuation> LINK 	"--"
-%put LINK summary "<node> -- <node>;   Link"
-%token <punctuation> EQUAL 	"="
-%token <punctuation> SEMI 	";"
-%token <punctuation> COMMA 	","
+%type  <punctuation> syntax "\\s.+"
+%token <punctuation> DILINK "->"
+%put   DILINK summary "<node> -> <node>;   Directed link"
+%token <punctuation> LINK   "--"
+%put   LINK   summary "<node> -- <node>;   Link"
+%token <punctuation> EQUAL  "="
+%token <punctuation> SEMI   ";"
+%token <punctuation> COMMA  ","
 
 ;;; BLOCK types
-%type <block> syntax "\\(\\s(\\|\\s)\\)" matchdatatype block
+%type  <block>
+%token <block>       BRACKET_BLOCK "(LBRACKET RBRACKET)"
+%token <block>       BRACE_BLOCK   "(LBRACE RBRACE)"
+%token <block>       PAREN_BLOCK   "(LPAREN RPAREN)"
+%token <open-paren>  LBRACE        "{"
+%token <close-paren> RBRACE        "}"
+%token <open-paren>  LBRACKET      "["
+%token <close-paren> RBRACKET      "]"
+%token <open-paren>  LPAREN        "("
+%token <close-paren> RPAREN        ")"
 
-%token <open-paren> LBRACE "{"
-%token <close-paren> RBRACE "}"
-%token <open-paren> LBRACKET "["
-%token <close-paren> RBRACKET "]"
-%token <open-paren> LPAREN "("
-%token <close-paren> RPAREN ")"
-
-%token <block> BRACKET_BLOCK "(LBRACKET RBRACKET)"
-%token <block> BRACE_BLOCK   "(LBRACE RBRACE)"
-%token <block> PAREN_BLOCK   "(LPAREN RPAREN)"
 
 ;;; Bland default types
+%type  <symbol>
 %token <symbol> symbol
+
+%type  <string>
 %token <string> string
+
+%type  <number>
 %token <number> number
-
-
 
 %%
 
@@ -197,5 +199,21 @@ opt-link-attributes
   ;
 
 %%
+
+(define-lex wisent-dot-lexer
+  "Lexical analyzer that handles DOT buffers.
+It ignores whitespace, newlines and comments."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  semantic-lex-ignore-comments
+  wisent-dot-wy--<keyword>-keyword-analyzer
+  wisent-dot-wy--<symbol>-regexp-analyzer
+  wisent-dot-wy--<block>-block-analyzer
+  ;; ?? semantic-lex-close-paren
+  wisent-dot-wy--<number>-regexp-analyzer
+  wisent-dot-wy--<string>-sexp-analyzer
+  wisent-dot-wy--<punctuation>-string-analyzer
+  semantic-lex-default-action
+  )
 
 ;;; wisent-dot.wy ends here
