@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.52 2003/02/13 01:23:08 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.53 2003/03/08 16:34:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,6 +31,8 @@
 ;; By default, assume one database per directory.
 ;;
 
+(require 'inversion)
+(inversion-require 'eieio "0.18")
 (require 'eieio-base)
 (require 'semantic)
 
@@ -186,6 +188,31 @@ This will call `semantic-bovinate-toplevel' if that file is in memory."
 	(save-excursion
 	  (semanticdb-set-buffer obj)
 	  (semantic-bovinate-toplevel t)))))
+
+(defmethod semanticdb-needs-refresh-p ((obj semanticdb-table))
+  "Return non-nil of OBJ's token list is out of date.
+The file associated with OBJ does not need to be in a buffer."
+  (let ((buff (get-file-buffer (semanticdb-full-filename obj)))
+	)
+    (if buff
+	(save-excursion
+	  (set-buffer buff)
+	  ;; Use semantic's magic tracker to determine of the buffer is up
+	  ;; to date or not.
+	  (not (semantic-parse-tree-up-to-date-p))
+	  ;; We assume that semanticdb is keeping itself up to date.
+	  ;; via all the clever hooks
+	  )
+      ;; Buffer isn't loaded.  The only clue we have is if the file
+      ;; is somehow different from our mark in the semanticdb table.
+      (let* ((stats (file-attributes (semanticdb-full-filename obj)))
+	     (actualmax (aref stats 7)))
+
+	(or (not (slot-boundp obj 'tokens))
+	    (not (oref obj tokens))
+	    (/= (or (oref obj pointmax) 0) actualmax)
+	    )
+	))))
 
 (defmethod semanticdb-save-db ((DB semanticdb-project-database))
   "Cause a database to save itself.
@@ -366,8 +393,11 @@ Sets up the semanticdb environment."
         (unbound-slot
          ;; Old version of the semanticdb table can miss the unmatched
          ;; syntax slot.  If so, just clear the unmatched syntax cache.
-         (semantic-clear-unmatched-syntax-cache)))
-      (semantic-set-toplevel-bovine-cache  (oref ctbl tokens))
+         (semantic-clear-unmatched-syntax-cache)
+	 ;; Make sure it has a value.
+	 (oset ctbl unmatched-syntax nil)
+	 ))
+      (semantic-set-toplevel-bovine-cache (oref ctbl tokens))
       (semantic-overlay-cache)
       )
     ))
