@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.5 2003/01/29 03:41:48 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.6 2003/01/29 17:55:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-28 10:05+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-29 18:21+0100
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -883,6 +883,7 @@
     (builtintype-types
      (VOID)
      (CHAR)
+     (WCHAR)
      (SHORT)
      (INT)
      (LONG
@@ -1190,23 +1191,26 @@
       typeformbase
       cv-declmods
       opt-ref
-      opt-stars
       variablearg-opt-name
       ,(semantic-lambda
         (list
          (list
-          (nth 5 vals)) 'variable
+          (nth 4 vals)) 'variable
          (nth 1 vals) nil
          (semantic-bovinate-make-assoc-list
           'const
           (if
               (member
                "const"
-               (nth 0 vals)) t nil)
+               (append
+                (nth 0 vals)
+                (nth 2 vals))) t nil)
           'typemodifiers
           (delete
            "const"
-           (nth 0 vals))
+           (append
+            (nth 0 vals)
+            (nth 2 vals)))
           'reference
           (car
            (nth 3 vals))) nil))
@@ -1218,11 +1222,12 @@
       ,(semantic-lambda
         (nth 0 vals))
       )
-     ( ;;EMPTY
+     (opt-stars
       ,(semantic-lambda
         (list
-         ""
-         0 nil nil nil))
+         "")
+        (nth 0 vals)
+        (list nil nil nil))
       )
      ) ;; end variablearg-opt-name
 
@@ -1541,6 +1546,23 @@
       semantic-list)
      ) ;; end function-call
 
+    (string-seq
+     (string
+      string-seq
+      ,(semantic-lambda
+        (list
+         (concat
+          (nth 0 vals)
+          (car
+           (nth 1 vals)))))
+      )
+     (string
+      ,(semantic-lambda
+        (list
+         (nth 0 vals)))
+      )
+     ) ;; end string-seq
+
     (expression
      (number
       ,(semantic-lambda
@@ -1560,7 +1582,7 @@
          (identity start)
          (identity end)))
       )
-     (string
+     (string-seq
       ,(semantic-lambda
         (list
          (identity start)
@@ -1819,7 +1841,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   def)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-28 10:05+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-29 18:21+0100
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -1863,6 +1885,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("sizeof" . SIZEOF)
      ("void" . VOID)
      ("char" . CHAR)
+     ("wchar_t" . WCHAR)
      ("short" . SHORT)
      ("int" . INT)
      ("long" . LONG)
@@ -1877,6 +1900,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
      ("int" summary "Integral Primitive Type: (-2147483648 to 2147483647)")
      ("short" summary "Integral Primitive Type: (-32768 to 32767)")
+     ("wchar_t" summary "Wide Character Type")
      ("char" summary "Integral Character Type: (0 to 256)")
      ("void" summary "Built in typeless type: void")
      ("sizeof" summary "Compile time macro: sizeof(<type or variable>) // size in bytes")
@@ -2073,7 +2097,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-28 10:05+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-29 18:21+0100
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
           semantic-toplevel-bovine-table-source "c.by"
