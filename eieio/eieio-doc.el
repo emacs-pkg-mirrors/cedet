@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.12 1999/09/10 01:01:54 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.13 2000/07/14 02:30:33 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -246,13 +246,13 @@ Return t if it does, and return 'default if the default has changed."
 	(scoped-class (class-parent class))
 	(eieio-skip-typecheck))
     (condition-case nil
-	(setq df (oref-default-engine (class-parent class) slot)
+	(setq df (eieio-oref-default (class-parent class) slot)
 	      err nil)
       (invalid-slot-name (setq df nil))
       (error (setq df nil)))
     (if err
 	nil
-      (if (equal df (oref-default-engine class slot))
+      (if (equal df (eieio-oref-default class slot))
 	  t
 	'default))))
 

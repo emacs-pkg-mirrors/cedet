@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.7 1999/12/04 16:43:21 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.8 2000/07/14 02:30:49 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -178,7 +178,7 @@ This is the next line of documentation.")
       (if (car fcust)
 	  (progn
 	    ;; Only customized fields have widgets
-	    (oset-engine obj (car fields)
+	    (eieio-oset obj (car fields)
 			 (car (widget-apply (car chil) :value-inline)))
 	    ;; Two widets per field.  The slot value, and the doc.
 	    (setq chil (cdr (cdr chil)))))
