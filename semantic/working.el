@@ -195,6 +195,24 @@ to use when the functions `working-status' is called from FORMS."
      (working-dynamic-status t)))
 (put 'working-status-timeout 'lisp-indent-function 3)
 
+(defun working-status-call-process
+  (timeout message donestr program &optional infile buffer display &rest args)
+  "Display working messages while running a process.
+TIMEOUT is how fast to display the messages.
+MESSAGE is the message to show, and DONESTR is the string to add when done.
+CALLPROCESSARGS are the same style of args as passed to `call-process'.
+The are: PROGRAM, INFILE, BUFFER, DISPLAY, and ARGS.
+Since it actually calls `start-process', not all features will work."
+  (working-status-timeout timeout message donestr
+    (let ((proc (apply 'start-process "working"
+		              (if (listp buffer) (car buffer) buffer)
+			             program args)))
+      (set-process-sentinel proc 'list)
+      (while (eq (process-status proc) 'run)
+	;; This caused my solaris Emacs 20.3 to crash.
+	;; (accept-process-output proc)
+	(sit-for timeout)))))
+
 (defun working-status (&optional percent &rest args)
   "Called within the macro `working-status-forms', show the status.
 If PERCENT is nil, then calculate PERCENT from the value of `point' in
@@ -467,6 +485,11 @@ is t to display the done string, or the number to display."
   (interactive)
   (working-status-timeout .1 "Press a key..." "done"
     (while (sit-for 10))))
+
+(defun working-verify-sleep ()
+  "Display funny graphics while waiting for sleep to sleep."
+  (interactive)
+  (working-status-call-process .1 "Zzzzz" "Snort" "sleep" nil nil nil "5"))
 
 (provide 'working)
 
