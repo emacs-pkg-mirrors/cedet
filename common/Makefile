@@ -73,9 +73,9 @@ clean:
 
 .PHONY: dist
 
-dist:
+dist: autoloads
 	mkdir $(DISTDIR)
-	cp $(init_LISP) $(setup_LISP) $(common_LISP) $(ede_FILES) $(DISTDIR)
+	cp cedet-loaddefs.el $(init_LISP) $(setup_LISP) $(common_LISP) $(ede_FILES) $(DISTDIR)
 	cd icons; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/icons dist
 
 Makefile: Project.ede
