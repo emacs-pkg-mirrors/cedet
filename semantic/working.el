@@ -94,6 +94,7 @@
 ;;
 ;; 1.2 Fix up documentation.
 ;;     Updated dotgrowth function for exceptionally large numbers of dots.
+;;     Added the percentage bubble displays.
 
 (require 'custom)
 
@@ -113,12 +114,16 @@ Functions provided in `working' are:
   `working-bar-display'
   `working-bar-percent-display'
   `working-percent-bar-display'
+  `working-bubble-display'
+  `working-bubble-precent-display'
   `working-celeron-percent-display'"
   :group 'working
   :type '(choice (const working-percent-display)
 		 (const working-bar-display)
 		 (const working-bar-percent-display)
 		 (const working-percent-bar-display)
+		 (const working-bubble-display)
+		 (const working-bubble-percent-display)
 		 (const working-celeron-percent-display)))
 
 (defcustom working-status-dynamic-type 'working-celeron-display
@@ -244,6 +249,36 @@ is t to display the done string, or the percentage to display."
 	  (t
 	   (setq working-ref1 (length ps))
 	   (concat ps " " (working-bar-display psl percent))))))
+
+(defun working-bubble-display (length percent)
+  "Return a string with a bubble graph indicating the precent completed.
+LENGTH is the amount of the display that has been used.  PERCENT
+is t to display the done string, or the percentage to display."
+  (if (eq percent t)
+      (concat " [@@@@@@@@@@@@@@@@@@@@] " working-donestring)
+    (let ((bs " [")
+	  (bubbles [ ?. ?- ?o ?O ?@ ]))
+      (if (> percent 5)
+	  (setq bs (concat bs (make-string (/ percent 5) ?@))))
+      (setq bs (concat bs
+		       (char-to-string (aref bubbles (% percent 5)))))
+      (if (/= (/ percent 5) 20)
+	  (setq bs (concat bs (make-string (- 19 (/ percent 5)) ? ))))
+      (concat bs "]"))))
+
+(defun working-bubble-percent-display (length percent)
+  "Return a string with a percentile and bubble graph showing percentage.
+LENGTH is the amount of display that has been used.  PERCENT
+is t to display the done string, or the percentage to display."
+  (let* ((ps (if (eq percent t)
+		 (concat " ... " working-donestring)
+	       (working-percent-display length percent)))
+	 (psl (+ 1 length (if (eq percent t) working-ref1 (length ps)))))
+    (cond ((eq percent t)
+	   (concat (working-bubble-display psl t)))
+	  (t
+	   (setq working-ref1 (length ps))
+	   (concat (working-bubble-display psl percent) ps)))))
 
 (defun working-celeron-percent-display (length percent)
   "Return a string with a celeron and string showing percent.
