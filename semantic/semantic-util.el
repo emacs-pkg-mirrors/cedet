@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.51 2001/02/23 16:06:02 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.52 2001/03/08 18:45:47 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -258,7 +258,7 @@ UNTRUSTED"
     (if buffer (set-buffer buffer))
     (if (not start) (setq start (point)))
     (let ((os start) (ol nil))
-      (while (and os (not ol))
+      (while (and os (< os (point-max)) (not ol))
 	(setq os (semantic-overlay-next-change os))
 	(when os
 	  ;; Get overlays at position
@@ -283,7 +283,7 @@ UNTRUSTED"
     (if buffer (set-buffer buffer))
     (if (not start) (setq start (point)))
     (let ((os start) (ol nil))
-      (while (and os (not ol))
+      (while (and os (> os (point-min)) (not ol))
 	(setq os (semantic-overlay-previous-change os))
 	(when os
 	  ;; Get overlays at position
