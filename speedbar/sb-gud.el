@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: tools, gud
-;; X-RCS: $Id: sb-gud.el,v 1.5 1998/05/17 14:38:03 zappo Exp $
+;; X-RCS: $Id: sb-gud.el,v 1.6 1998/06/13 13:38:45 zappo Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -160,8 +160,8 @@ off the specialized speedbar mode."
 	(let ((e (car gud-gdb-fetched-stack-frame-list))
 	      (name nil) (num nil))
 	  (if (not (or
-		    (string-match "^#\\([0-9]+\\) +[0-9a-fx]+ in \\([0-9a-zA-Z_]+\\) (" e)
-		    (string-match "^#\\([0-9]+\\) +\\([0-9a-zA-Z_]+\\) (" e)))
+		    (string-match "^#\\([0-9]+\\) +[0-9a-fx]+ in \\([:0-9a-zA-Z_]+\\) (" e)
+		    (string-match "^#\\([0-9]+\\) +\\([:0-9a-zA-Z_]+\\) (" e)))
 	      (if (not (string-match
 			"at \\([-0-9a-zA-Z_.]+\\):\\([0-9]+\\)$" e))
 		  nil
