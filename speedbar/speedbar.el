@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.186 2000/09/30 02:30:11 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.187 2000/10/01 01:06:08 zappo Exp $
 
 (defvar speedbar-version "0.13beta3"
   "The current version of speedbar.")
@@ -324,6 +324,7 @@ nil means don't show the file in the list."
 				       (width . 20)
 				       (border-width . 0)
 				       (menu-bar-lines . 0)
+				       (tool-bar-lines . 0)
 				       (unsplittable . t))
   "*Parameters to use when creating the speedbar frame in Emacs.
 Any parameter supported by a frame may be added.  The parameter `height'
