@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.39 2003/08/29 07:55:58 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.40 2003/08/29 16:11:43 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -39,7 +39,8 @@
 
 (eval-when-compile
   (require 'font-lock)
-  (require 'semantic-edit))
+  (require 'semantic-edit)
+  (require 'semantic-format))
 
 ;;;;
 ;;;; Set up lexer
