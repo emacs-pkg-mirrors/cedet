@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.4 2003/02/19 15:20:59 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.5 2003/03/27 07:46:06 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -88,24 +88,24 @@ FLOATING_POINT_LITERAL:
 
 ;; Prototype handler
 ;;
-(defun semantic-java-prototype-function (token &optional parent color)
-  "Return a function (method) prototype for TOKEN.
+(defun semantic-java-prototype-function (tag &optional parent color)
+  "Return a function (method) prototype for TAG.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
 See also `semantic-java-prototype-nonterminal'."
-  (let ((name (semantic-token-name token))
-        (type (semantic-token-type token))
-        (args (semantic-token-function-args token))
+  (let ((name (semantic-tag-name tag))
+        (type (semantic-tag-type tag))
+        (args (semantic-tag-function-arguments tag))
         (argp "")
         arg argt)
     (while args
       (setq arg  (car args)
             args (cdr args))
-      (if (semantic-token-p arg)
+      (if (semantic-tag-p arg)
           (setq argt (if color
                          (semantic-colorize-text
-                          (semantic-token-type arg) 'type)
-                       (semantic-token-type arg))
+                          (semantic-tag-type arg) 'type)
+                       (semantic-tag-type arg))
                 argp (concat argp argt (if args "," "")))))
     (if color
         (progn
@@ -114,44 +114,44 @@ See also `semantic-java-prototype-nonterminal'."
           (setq name (semantic-colorize-text name 'function))))
     (concat (or type "") (if type " " "") name "(" argp ")")))
 
-(defun semantic-java-prototype-variable (token &optional parent color)
-  "Return a variable (field) prototype for TOKEN.
+(defun semantic-java-prototype-variable (tag &optional parent color)
+  "Return a variable (field) prototype for TAG.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
 See also `semantic-java-prototype-nonterminal'."
   (concat (if color
               (semantic-colorize-text
-               (semantic-token-type token) 'type)
-            (semantic-token-type token))
+               (semantic-tag-type tag) 'type)
+            (semantic-tag-type tag))
           " "
           (if color
               (semantic-colorize-text
-               (semantic-token-name token) 'variable)
-            (semantic-token-name token))))
+               (semantic-tag-name tag) 'variable)
+            (semantic-tag-name tag))))
 
-(defun semantic-java-prototype-type (token &optional parent color)
-  "Return a type (class/interface) prototype for TOKEN.
+(defun semantic-java-prototype-type (tag &optional parent color)
+  "Return a type (class/interface) prototype for TAG.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
 See also `semantic-java-prototype-nonterminal'."
-  (concat (semantic-token-type token)
+  (concat (semantic-tag-type tag)
           " "
           (if color
               (semantic-colorize-text
-               (semantic-token-name token) 'type)
-            (semantic-token-name token))))
+               (semantic-tag-name tag) 'type)
+            (semantic-tag-name tag))))
 
-(defun semantic-java-prototype-nonterminal (token &optional parent color)
+(defun semantic-java-prototype-nonterminal (tag &optional parent color)
   "Return a prototype for TOKEN.
 Override `semantic-prototype-nonterminal'.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in."
   (let ((fprot (intern-soft
                 (format "semantic-java-prototype-%s"
-                        (semantic-token-token token)))))
+                        (semantic-tag-class tag)))))
     (if (fboundp fprot)
-        (funcall fprot token parent color)
-      (semantic-prototype-nonterminal-default token parent color))))
+        (funcall fprot tag parent color)
+      (semantic-prototype-nonterminal-default tag parent color))))
 
 ;; Documentation handler
 ;;
@@ -163,65 +163,44 @@ Optional argument COLOR indicates that color should be mixed in."
   "Move point forward, skipping Java whitespaces."
   (skip-chars-forward " \n\r\t"))
 
-(defun semantic-java-find-documentation (&optional token nosnarf)
-  "Find documentation from TOKEN and return it as a clean string.
-Java have documentation set in a comment preceeding TOKEN's
-definition.  Optional argument NOSNARF means to only return the flex
-token for it.  If NOSNARF is 'flex, then only return the flex token.
+(defun semantic-java-find-documentation (&optional tag nosnarf)
+  "Find documentation from TAG and return it as a clean string.
+Java have documentation set in a comment preceeding TAG's definition.
+Attempt to strip out comment syntactic sugar, unless optional argument
+NOSNARF is non-nil.
+If NOSNARF is 'flex, then return the semantic lex token.
 Override `semantic-find-documentation'."
-  (if (or token (setq token (semantic-current-nonterminal)))
-      (save-excursion
-        (set-buffer (semantic-token-buffer token))
-        ;; Move the point at token start
-        (goto-char (semantic-token-start token))
-        (semantic-java-skip-spaces-forward)
-        ;; If the point already at "/**" (this occurs after a doc fix)
-        (if (looking-at "/\\*\\*")
-            nil
-          ;; Skip previous spaces
-          (semantic-java-skip-spaces-backward)
-          ;; Ensure point is after "*/" (javadoc block comment end)
-          (condition-case nil
-              (backward-char 2)
-            (error nil))
-          (when (looking-at "\\*/")
-            ;; Move the point backward across the comment
-            (forward-char 2)            ; return just after "*/"
-            (forward-comment -1)        ; to skip the entire block
-            ))
-        ;; Verify the point is at "/**" (javadoc block comment start)
-        (if (looking-at "/\\*\\*")
-            (let ((p (point))
-                  (c (semantic-find-doc-snarf-comment 'flex)))
-              (when c
-                ;; Verify that the token just following the doc
-                ;; comment is the current one!
-                (goto-char (semantic-flex-end c))
-                (semantic-java-skip-spaces-forward)
-                (when (eq token (semantic-current-nonterminal))
-                  (goto-char p)
-                  (semantic-find-doc-snarf-comment nosnarf))))))))
-
-;; Local context handler
-;;
-(defun semantic-java-get-local-variables ()
-  "Get local values from a specific context.
-Uses the bovinator with the special top-symbol `field_declaration'
-to collect tokens, such as local variables or prototypes.
-This function is a Java specific `get-local-variables' override."
-  (let ((vars nil)
-        ;; We want nothing to do with funny syntaxing while doing this.
-        (semantic-unmatched-syntax-hook nil))
-    (while (not (semantic-up-context (point) 'function))
-      (save-excursion
-        (forward-char 1)
-        (setq vars
-              (append (semantic-bovinate-region-until-error
-                       (point)
-                       (save-excursion (semantic-end-of-context) (point))
-                       'field_declaration)
-                      vars))))
-    vars))
+  (if (or tag (setq tag (semantic-current-nonterminal)))
+      (with-current-buffer (semantic-tag-buffer tag))
+    ;; Move the point at token start
+    (goto-char (semantic-tag-start tag))
+    (semantic-java-skip-spaces-forward)
+    ;; If the point already at "/**" (this occurs after a doc fix)
+    (if (looking-at "/\\*\\*")
+        nil
+      ;; Skip previous spaces
+      (semantic-java-skip-spaces-backward)
+      ;; Ensure point is after "*/" (javadoc block comment end)
+      (condition-case nil
+          (backward-char 2)
+        (error nil))
+      (when (looking-at "\\*/")
+        ;; Move the point backward across the comment
+        (forward-char 2)                ; return just after "*/"
+        (forward-comment -1)            ; to skip the entire block
+        ))
+    ;; Verify the point is at "/**" (javadoc block comment start)
+    (if (looking-at "/\\*\\*")
+        (let ((p (point))
+              (c (semantic-find-doc-snarf-comment 'flex)))
+          (when c
+            ;; Verify that the token just following the doc
+            ;; comment is the current one!
+            (goto-char (semantic-lex-token-end c))
+            (semantic-java-skip-spaces-forward)
+            (when (eq tag (semantic-current-nonterminal))
+              (goto-char p)
+              (semantic-find-doc-snarf-comment nosnarf)))))))
 
 ;;; Javadoc facilities
 ;;
@@ -239,7 +218,7 @@ Ordered following Sun's Tag Convention at
 (defvar semantic-java-doc-with-ref-tags nil
   "Javadoc tags which have a reference.")
 
-;; Optional javadoc tags by token category
+;; Optional javadoc tags by classes of semantic tag
 ;;
 (defvar semantic-java-doc-extra-type-tags nil
   "Optional tags used in class/interface documentation.
@@ -253,7 +232,7 @@ Ordered following Sun's Tag Convention.")
   "Optional tags used in field documentation.
 Ordered following Sun's Tag Convention.")
 
-;; All javadoc tags by token category
+;; All javadoc tags by classes of semantic tag
 ;;
 (defvar semantic-java-doc-type-tags nil
   "Tags allowed in class/interface documentation.
@@ -283,11 +262,11 @@ That is TAG `symbol-name' without the leading '@'."
   "Return non-nil if javadoc keyword K1 is before K2."
   (let* ((t1   (semantic-java-doc-tag k1))
          (t2   (semantic-java-doc-tag k2))
-         (seq1 (and (semantic-flex-keyword-p t1)
-                    (plist-get (semantic-flex-keyword-get t1 'javadoc)
+         (seq1 (and (semantic-lex-keyword-p t1)
+                    (plist-get (semantic-lex-keyword-get t1 'javadoc)
                                'seq)))
-         (seq2 (and (semantic-flex-keyword-p t2)
-                    (plist-get (semantic-flex-keyword-get t2 'javadoc)
+         (seq2 (and (semantic-lex-keyword-p t2)
+                    (plist-get (semantic-lex-keyword-get t2 'javadoc)
                                'seq))))
     (if (and (numberp seq1) (numberp seq2))
         (<= seq1 seq2)
@@ -307,7 +286,7 @@ removed from the result list."
         (mapcar
          #'(lambda (k)
              (let* ((tag   (semantic-java-doc-tag k))
-                    (plist (semantic-flex-keyword-get tag 'javadoc)))
+                    (plist (semantic-lex-keyword-get tag 'javadoc)))
                (if (or (not property) (plist-get plist property))
                    (funcall fun k plist))))
          semantic-java-doc-line-tags)))
@@ -321,7 +300,7 @@ removed from the result list."
   (or semantic-java-doc-line-tags
       (setq semantic-java-doc-line-tags
             (sort (mapcar #'semantic-java-doc-tag-name
-                          (semantic-flex-keywords 'javadoc))
+                          (semantic-lex-keywords 'javadoc))
                   #'semantic-java-doc-keyword-before-p)))
 
   (or semantic-java-doc-with-name-tags
