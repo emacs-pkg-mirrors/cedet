@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.106 2001/06/11 18:08:15 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.107 2001/07/13 15:39:35 zappo Exp $
 
-(defvar semantic-version "1.4beta7"
+(defvar semantic-version "1.4beta8"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
