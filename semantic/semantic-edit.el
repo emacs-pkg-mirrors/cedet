@@ -211,7 +211,7 @@ This function returns tokens with overlays (already cooked.)"
   (let* ((lexbits (semantic-lex start end))
 	 (tokens (semantic-bovinate-nonterminals
 		  lexbits
-		  nil
+		  reparse-symbol
 		  nil
 		  t)))
     tokens))
@@ -638,7 +638,8 @@ semantic cache to see what needs to be changed."
 	    ;; some parent.  They should all have the same start symbol
 	    ;; since that is how the multi-token parser works.  Grab
 	    ;; the reparse symbol from the first of the returned tokens.
-	    (semantic-token-get (car tokens) 'reparse-symbol)
+	    (setq reparse-symbol (semantic-token-get
+                                  (car tokens) 'reparse-symbol))
 	    ;; Find a parent if not provided.
 	    (when (and (not parent-token) tokens)
 	      (setq parent (semantic-find-nonterminal-parent-by-overlay
@@ -747,7 +748,7 @@ together also in CACHELIST.
 PARENT is the parent token containing OLDTOKENS.
 CACHELIST should be the children from PARENT, but may be
 pre-positioned to a convenient location."
-  (let* ((first (car oldtokens))n
+  (let* ((first (car oldtokens))
 	 (last (nth (1- (length oldtokens)) oldtokens))
 	 (chil (if parent
 		   (semantic-nonterminal-children parent t)
