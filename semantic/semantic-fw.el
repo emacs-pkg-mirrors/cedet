@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.25 2003/12/23 02:07:45 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.26 2004/01/16 08:54:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -605,6 +605,11 @@ calling this one."
                   "define-lex-block-analyzer"
                   "define-lex-regex-analyzer"
                   "define-lex-simple-regex-analyzer"
+                  "define-lex-keyword-type-analyzer"
+                  "define-lex-sexp-type-analyzer"
+                  "define-lex-regex-type-analyzer"
+                  "define-lex-string-type-analyzer"
+                  "define-lex-block-type-analyzer"
                   "define-mode-overload-implementation"
                   "define-semantic-child-mode"
                   "define-overload"
