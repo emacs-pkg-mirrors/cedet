@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.57 2002/06/17 20:00:01 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.58 2002/07/21 13:38:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -276,7 +276,7 @@ Override function for `semantic-nonterminal-protection'."
      ((string= prot "protected") 'protected))))
 
 (defun semantic-elisp-nonterminal-static (token &optional parent)
-  "Return non-nil of TOKEN is static in PARENT class.
+  "Return non-nil if TOKEN is static in PARENT class.
 Overrides `semantic-nonterminal-static'."
   ;; This can only be true (theoretically) in a class where it is assigned.
   (semantic-token-extra-spec token 'static))
