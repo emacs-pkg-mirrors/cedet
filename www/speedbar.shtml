@@ -60,6 +60,12 @@ compiling lisp files.</P>
 <P>Speedbar works with Emacs 19.3x, 20.x, and 21 pre-release.  It also works with XEmacs 20.x, and 21.x.
 </p>
 
+<h2>Read the docs:</h2>
+
+<P>You can read the 
+   <a href=info/speedbar.html>html documentation</a>
+   created from the texinfo file.</p>
+
 <h2>Speedbar Enabled tools:</h2>
 
 <P>There are several speedbar enabled tools above and beyond those

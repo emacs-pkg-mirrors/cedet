@@ -35,6 +35,12 @@ Unfortunatly this is only really useful for small projects.</p>
 which will be the default for large projects where the Makefile
 generation is insufficient.</p>
 
+<h2>Read the docs:</h2>
+
+<P>You can read the 
+   <a href=info/ede.html>html documentation</a>
+   created from the texinfo file.</p>
+
 <h2>Dependencies</h2>
 
 <P>EDE 1.0 depends on these lisp packages:<br>

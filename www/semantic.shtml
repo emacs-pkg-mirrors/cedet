@@ -68,6 +68,12 @@ authors, without knowing anything about those tools.</p>
 <li>Call tree management: Find out where types and functions are used.
 </ol>
 
+<h2>Read the docs:</h2>
+
+<P>You can read the 
+   <a href=info/semantic.html>html documentation</a>
+   created from the texinfo file.</p>
+
 <h2>Contribute to Semantic</h2>
 
 <P>Semantic's potential scope is quite large.  If you would like to help
