@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.15 1999/05/22 14:29:25 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.16 1999/09/08 23:05:59 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -36,11 +36,14 @@
 ;;; Class Definitions:
 (defclass ede-proj-target (ede-target)
   ((auxsource :initarg :auxsource
+	      :initform nil
+	      :type list
 	      :custom (repeat (string :tag "File"))
 	      :documentation "Auxilliary source files included in this target.
 Each of these is considered equivalent to a source file, but it is not
 distributed, and each should have a corresponding rule to build it.")
    (dirty :initform nil
+	  :type boolean
 	  :documentation "Non-nil when generated files needs updating.")
    )
   "Abstract class for ede-proj targets.")
@@ -48,11 +51,13 @@ distributed, and each should have a corresponding rule to build it.")
 (defclass ede-proj-target-makefile (ede-proj-target)
   ((makefile :initarg :makefile
 	     :initform "Makefile"
+	     :type string
 	     :custom string
 	     :documentation "File name of generated Makefile.")
    (configuration-variables
     :initarg :configuration-variables
     :initform nil
+    :type list
     :custom (repeat (cons (string :tag "Configuration")
 			  (repeat
 			   (cons (string :tag "Name")
@@ -63,6 +68,7 @@ Target variables are always renamed such as foo_CFLAGS, then included into
 commands where the variable would usually appear.")
    (rules :initarg :rules
 	  :initform nil
+	  :type list
 	  :custom (repeat (object :objecttype ede-makefile-rule))
 	  :documentation
 	  "Arbitrary rules and dependencies needed to make this target.")
@@ -75,6 +81,7 @@ commands where the variable would usually appear.")
 						  ("LDFLAGS" . "-g"))))
    (headers :initarg :headers
 	    :initform nil
+	    :type list
 	    :custom (repeat (string :tag "Header"))
 	    :documentation "Header files included in the distribution.
 EDE generated Makefiles make all sources dependent on all header files.
@@ -89,6 +96,7 @@ file.")
   (ede-proj-target-makefile-objectcode)
   ((ldlibs :initarg :ldlibs
 	   :initform nil
+	   :type list
 	   :custom (repeat (string :tag "Library"))
 	   :documentation
 	   "Libraries, such as \"m\" or \"Xt\" which this program dependso on.
@@ -97,6 +105,7 @@ prefix, or a \".so\" suffix."
 	   )
    (ldflags :initarg :ldflags
 	    :initform nil
+	    :type list
 	    :custom (repeat (string :tag "Link Flag"))
 	    :documentation
 	    "Additional flags to add when linking this target.
@@ -127,6 +136,7 @@ Use ldlibs to add addition libraries.")
 (defclass ede-proj-target-makefile-info (ede-proj-target-makefile)
   ((mainmenu :initarg :mainmenu
 	     :initform ""
+	     :type string
 	     :custom string
 	     :documentation "The main menu resides in this file.
 All other sources should be included independently."))
@@ -135,12 +145,14 @@ All other sources should be included independently."))
 (defclass ede-proj-target-lisp (ede-proj-target-makefile)
   ((load-path :initarg :load-path
 	      :initform nil
+	      :type list
 	      :custom (repeat string)
 	      :documentation "Additional load-path arguments.
 When compiling from the command line, these are added to the makefile.
 When compiling from within emacs, these are ignored.")
    (requirements :initarg :requirements
 		 :initform nil
+		 :type list
 		 :custom (repeat string)
 		 :documentation
 		 "Additional packages that should be loaded before building.
@@ -153,6 +165,7 @@ A lisp target may be one general program with many separate lisp files in it.")
 (defclass ede-proj-target-scheme (ede-proj-target)
   ((interpreter :initarg :interpreter
 		:initform "guile"
+		:type string
 		:custom string
 		:documentation "The preferred interpreter for this code.")
    )
@@ -176,12 +189,14 @@ A lisp target may be one general program with many separate lisp files in it.")
 (defclass ede-makefile-rule ()
   ((target :initarg :target
 	   :initform ""
+	   :type string
 	   :custom string
 	   :documentation "The target pattern.
 A pattern of \"%.o\" is used for inference rules, and would match object files.
 A target of \"foo.o\" explicitly matches the file foo.o.")
    (dependencies :initarg :dependencies
 		 :initform ""
+		 :type string
 		 :custom string
 		 :documentation "Dependencies on this target.
 A pattern of \"%.o\" would match a file of the same prefix as the target
@@ -191,12 +206,14 @@ A variable such as $(name_SOURCES) will list all the source files
 belonging to the target name.")
    (rules :initarg :rules
 	  :initform nil
+	  :type list
 	  :custom (repeat string)
 	  :documentation "Scripts to execute.
 These scripst will be executed in sh (Unless the SHELL variable is overriden).
 Do not prefix with TAB.")
    (phony :initarg :phony
 	  :initform nil
+	  :type boolean
 	  :custom boolean
 	  :documentation "Is this a phony rule?
 Adds this rule to a .PHONY list."))
@@ -204,7 +221,8 @@ Adds this rule to a .PHONY list."))
 
 (defclass ede-proj-project (ede-project)
   ((makefile-type :initarg :makefile-type
-		  :initform 'Makefile
+		  :initform Makefile
+		  :type symbol
 		  :custom (choice (const Makefile)
 				  ;(const Makefile.in)
 				  (const Makefile.am)
@@ -216,12 +234,14 @@ If this value is NOT 'Makefile, then that overrides the :makefile slot
 in targets.")
    (variables :initarg :variables
 	      :initform nil
+	      :type list
 	      :custom (repeat (cons (string :tag "Name")
 				    (string :tag "Value")))
 	      :documentation "Variables to set in this Makefile.")
    (configuration-variables
     :initarg :configuration-variables
     :initform ("debug" (("DEBUG" . "1")))
+    :type list
     :custom (repeat (cons (string :tag "Configuration")
 			  (repeat
 			   (cons (string :tag "Name")
@@ -236,6 +256,7 @@ These variables are used in the makefile when a configuration becomes active.")
    (automatic-dependencies
     :initarg :automatic-dependencies
     :initform t
+    :type boolean
     :custom boolean
     :documentation
     "Non-nil to do implement automatic dependencies in the Makefile.")
@@ -379,7 +400,9 @@ Argument TARGET is the project we are completing customization on."
 				  (list (file-name-nondirectory src))
 				nil)))
     ;; If we added it, set the local buffer's object.
-    (if src (setq ede-object ot))
+    (if src (progn 
+	      (setq ede-object ot)
+	      (ede-apply-object-keymap)))
     ;; Add it to the project object
     (oset this targets (cons ot (oref this targets)))
     ;; And save
@@ -398,7 +421,9 @@ Argument TARGET is the project we are completing customization on."
 	    (save-excursion
 	      (set-buffer b)
 	      (if (eq ede-object this)
-		  (setq ede-object nil)))))
+		  (progn
+		    (setq ede-object nil)
+		    (ede-apply-object-keymap))))))
       (setq ts (cdr ts)))
     ;; Remove THIS from it's parent.
     ;; The two vectors should be pointer equivalent.
