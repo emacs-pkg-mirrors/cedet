@@ -1,9 +1,10 @@
-;;; semantic-imenu.el --- Use the Bovinator as a imenu tag generateor
+;;; semantic-imenu.el --- Use the Bovinator as a imenu tag generator
 
-;;; Copyright (C) 2000, 2001 Paul Kinnucan & Eric Ludlam
+;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
+;;; Copyright (C) 2001 Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.23 2001/01/25 03:26:13 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.24 2001/01/25 19:08:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -199,8 +200,6 @@ Optional argument STREAM is the stream of tokens for the current buffer."
   (if (not semanticdb-current-database)
       (semantic-create-imenu-index-1 stream)
     ;; We have a database, list all files, with the current file on top.
-    (message "Building %s Semantic directory index imenu"
-             (buffer-name))
     (let ((index (list
 		  (cons (oref semanticdb-current-table file)
 			(or (semantic-create-imenu-index-1 stream)
@@ -212,7 +211,10 @@ Optional argument STREAM is the stream of tokens for the current buffer."
 	  (let ((semantic-imenu-directory-current-file
 		 (oref (car tables) file))
 		tokens)
-	    (when (not (eq (car tables) semanticdb-current-table))
+	    (when (and (not (eq (car tables) semanticdb-current-table))
+		       (semanticdb-live-p (car tables))
+		       (eq major-mode (oref (car tables) major-mode))
+		       )
 	      (setq tokens (oref (car tables) tokens)
 		    index (cons (cons semantic-imenu-directory-current-file
 				      (or (and tokens
