@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.20 2004/02/26 15:33:02 ponced Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.21 2004/03/04 01:52:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -534,6 +534,7 @@ Use the semantic analyzer to find the symbol information."
 (defvar semantic-idle-summary-out-of-context-faces
   '(
     font-lock-comment-face
+    font-lock-string-face
     font-lock-doc-string-face           ; XEmacs.
     font-lock-doc-face                  ; Emacs 21 and later.
     )
