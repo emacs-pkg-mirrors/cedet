@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.29 2003/02/10 05:27:42 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.30 2003/02/18 00:34:37 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -73,7 +73,8 @@
 (defun semantic-lex-python-pop-indent-stack ()
   (if (eq (point) end)
       (while (> (car wisent-python-lexer-indent-stack) 0)
-	(semantic-lex-token 'DEDENT (point) (point))
+	(semantic-lex-push-token
+	 (semantic-lex-token 'DEDENT (point) (point)))
 	(pop wisent-python-lexer-indent-stack))))
 
 (define-lex-analyzer semantic-lex-python-beginning-of-line
@@ -110,11 +111,13 @@ stack."
 		 ;; Return an INDENT lexical token
 		 (setq current-depth (1+ current-depth))
 		 (push curr-indent wisent-python-lexer-indent-stack)
-		 (semantic-lex-token 'INDENT last-pos (point))
+		 (semantic-lex-push-token
+		  (semantic-lex-token 'INDENT last-pos (point)))
 		 t)
 	     ;; Add an INDENT_BLOCK token
 	     ;;(message "depth=%s, current-depth=%s" depth current-depth)
-	     (semantic-lex-token
+	     (semantic-lex-push-token
+	      (semantic-lex-token
 	      'INDENT_BLOCK
 	      (progn (beginning-of-line) (point))
 	      (save-excursion
@@ -129,7 +132,7 @@ stack."
 		    (funcall
 		     semantic-lex-unterminated-syntax-end-function
 		     'INDENT start end))))
-		(setq end-point (point))))
+		(setq end-point (point)))))
 	     t)
 	   )
 	  ;; Indentation decreased
@@ -137,7 +140,8 @@ stack."
 	   ;; Pop items from indentation stack
 	   (while (< curr-indent last-indent)
 	     (setq current-depth (1- current-depth))
-	     (semantic-lex-token 'DEDENT last-pos (point))
+	     (semantic-lex-push-token
+	      (semantic-lex-token 'DEDENT last-pos (point)))
 	     (pop wisent-python-lexer-indent-stack)
 	     (setq last-indent (or (car wisent-python-lexer-indent-stack) 0)))
 	   ;; If pos did not change, then we must return nil so that
@@ -159,7 +163,8 @@ If the following line is an implicit continuation of current line,
 then throw away any immediately following INDENT and DEDENT tokens."
   (looking-at "\\(\n\\|\\s>\\)") ;; newline or end of buffer
   (goto-char (match-end 0))
-  (semantic-lex-token 'NEWLINE (1- (point)) (point))
+  (semantic-lex-push-token
+   (semantic-lex-token 'NEWLINE (1- (point)) (point)))
   (semantic-lex-python-pop-indent-stack))
 
 (define-lex-analyzer semantic-lex-python-string
@@ -186,7 +191,8 @@ then throw away any immediately following INDENT and DEDENT tokens."
 		  'STRING_LITERAL
 		  opos end))
 		(point))))))
-    (semantic-lex-token 'STRING_LITERAL opos e)))
+    (semantic-lex-push-token
+     (semantic-lex-token 'STRING_LITERAL opos e))))
 
 (define-lex-analyzer semantic-lex-python-charquote
   "Handle BACKSLASH syntactic tokens."
@@ -203,11 +209,12 @@ then throw away any immediately following INDENT and DEDENT tokens."
 (define-lex-regex-analyzer semantic-lex-python-symbol
   "Detect and create identifier or keyword tokens."
   "\\(\\sw\\|\\s_\\)+"
-  (semantic-lex-token
+  (semantic-lex-push-token
+   (semantic-lex-token
    (or (semantic-lex-keyword-p (match-string 0))
        'NAME)
    (match-beginning 0)
-   (match-end 0)))
+   (match-end 0))))
 
 ;; Same as wisent-java-lex-number. -ryk1/05/03.
 (define-lex-simple-regex-analyzer semantic-lex-python-number
