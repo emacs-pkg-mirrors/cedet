@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.49 2004/06/19 15:04:15 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.50 2004/06/28 13:33:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -47,6 +47,11 @@ Dummy implementation for compatibility which just return STRING and
 ignore PROPERTIES."
     string)
   )
+
+;;; Group for all semantic enhancing modes 
+(defgroup semantic-modes nil
+  "Minor modes associated with the Semantic architecture."
+  :group 'semantic)
 
 ;;;;
 ;;;; Semantic minor modes stuff
@@ -207,6 +212,7 @@ If ARG is nil, then toggle."
 When this mode is enabled, changes made to a buffer are highlighted
 until the buffer is reparsed."
   :group 'semantic
+  :group 'semantic-modes
   :type 'boolean
   :require 'semantic-util-modes
   :initialize 'custom-initialize-default
@@ -319,6 +325,7 @@ If ARG is nil, then toggle."
 When this mode is enabled, syntax in the current buffer which the
 semantic parser cannot match is highlighted with a red underline."
   :group 'semantic
+  :group 'semantic-modes
   :type 'boolean
   :require 'semantic-util-modes
   :initialize 'custom-initialize-default
@@ -727,6 +734,7 @@ of the current function or method is displayed in it.
 This makes it appear that the first line of that tag is
 `sticky' to the top of the window."
   :group 'semantic
+  :group 'semantic-modes
   :type 'boolean
   :require 'semantic-util-modes
   :initialize 'custom-initialize-default
