@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.21 2004/03/04 01:52:12 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.22 2004/03/19 23:59:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -310,7 +310,7 @@ reparse.
 
 Does nothing if the current buffer doesn't need reparsing."
 
-  (let* ((semantic-bovination-working-type nil)
+  (let* ((semantic-working-type nil)
 	 (inhibit-quit nil)
 	 (working-use-echo-area-p
 	  (not semantic-idle-scheduler-working-in-modeline-flag))
@@ -333,7 +333,7 @@ Does nothing if the current buffer doesn't need reparsing."
     (unwind-protect
 	;; Perform the parsing.
 	(when (semantic-lex-catch-errors idle-scheduler
-		(save-excursion (semantic-bovinate-toplevel t))
+		(save-excursion (semantic-fetch-tags))
 		  nil)
 	  ;; If we are here, it is because the lexical step failed,
 	  ;; proably due to unterminated lists or something like that.
