@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-skel.el,v 1.3 2000/04/29 14:47:42 zappo Exp $
+;; RCS: $Id: ede-proj-skel.el,v 1.4 2000/05/01 02:24:22 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -157,14 +157,23 @@
   (insert ... ;; Code to create a rule for THIS.
 	  ))
 
-;; This function us used to find a header file in which prototypes from
+;; This function is used to find a header file in which prototypes from
 ;; BUFFER go.  This is used by advanced features for which this type
 ;; of behavior is useful.  This feature is used mainly by tools
 ;; using the SEMANTIC BOVINATOR http://www.ultranet.com/~zappo/semantic.shtml
 ;; to perform advanced language specific actions.
-(defmethod ede-buffer-header-file((this ede-proj-target-%NAME%) buffer)
-  "Return the name of a file in which prototypes go."
-  (oref this ...))
+;;(defmethod ede-buffer-header-file((this ede-proj-target-%NAME%) buffer)
+;;  "Return the name of a file in which prototypes go."
+;;  (oref this ...))
+
+;; This function is used to return documentation files.  If this target
+;; contains documentation files, then return those files.  If this target
+;; does not provide documentation, delete this method.
+;;(defmethod ede-documentation ((this ede-target-%NAME%))
+;;  "Return a list of files that provides documentation.
+;;Documentation is not for object THIS, but is provided by THIS for other
+;;files in the project."
+;;  nil)
 
 ;;; EDE speedbar browsing enhancements
 ;;
