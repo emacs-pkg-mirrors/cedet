@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.9 2003/10/01 08:49:44 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.10 2003/10/02 13:56:25 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -38,6 +38,7 @@
 
 ;; Keywords
 %token DEFAULT-PREC    "%default-prec"
+%token NO-DEFAULT-PREC "%no-default-prec"
 %token LANGUAGEMODE    "%languagemode"
 %token LEFT            "%left"
 %token NONASSOC        "%nonassoc"
@@ -114,6 +115,7 @@ declaration:
 
 decl:
     default_prec_decl
+  | no_default_prec_decl
   | languagemode_decl
   | package_decl
   | precedence_decl
@@ -132,13 +134,13 @@ decl:
   ;
 
 default_prec_decl:
-    DEFAULT-PREC any_value
-    (let ((dprec (string-to-number $2)))
-      (setq dprec (cond
-                   ((zerop dprec) nil)
-                   ((= 1 dprec) t)
-                   ((error "invalid value for `%default-prec'"))))
-      `(TAG "default-prec" 'assoc :value ,dprec))
+    DEFAULT-PREC
+    `(TAG "default-prec" 'assoc :value '("t"))
+  ;
+
+no_default_prec_decl:
+    NO-DEFAULT-PREC
+    `(TAG "default-prec" 'assoc :value '("nil"))
   ;
 
 languagemode_decl:
