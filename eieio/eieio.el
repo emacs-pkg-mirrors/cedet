@@ -2,11 +2,11 @@
 ;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
+;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.93 2000/12/09 23:29:56 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.94 2001/01/24 21:03:55 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -337,6 +337,31 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		  (cons cname (aref (class-v 'eieio-default-superclass) class-children))))
 	;; save parent in child
 	(aset newc class-parent (list eieio-default-superclass))))
+
+    ;; turn this into a useable self-pointing symbol
+    (set cname cname)
+
+    ;; These two tests must be created right away so we can have self-
+    ;; referencing classes.  ei, a class whose slot can contain only
+    ;; pointers to itself.
+
+    ;; Create the test function
+    (let ((csym (intern (concat (symbol-name cname) "-p"))))
+      (fset csym
+	    (list 'lambda (list 'obj)
+		  (format "Test OBJ to see if it an object of type %s" cname)
+		  (list 'and '(object-p obj)
+			(list 'same-class-p 'obj cname)))))
+
+    ;; Create a handy child test too
+    (let ((csym (intern (concat (symbol-name cname) "-child-p"))))
+      (fset csym
+	    (list 'lambda (list 'obj)
+		  (format
+		   "Test OBJ to see if it an object is a child of type %s"
+		   cname)
+		  (list 'and '(object-p obj)
+			(list 'obj-of-class-p 'obj cname)))))
     
     ;; before adding new fields, lets add all the methods and classes
     ;; in from the parent class
@@ -499,9 +524,6 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     (aset newc class-class-allocation-values
 	  (apply 'vector (aref newc class-class-allocation-values)))
 
-    ;; turn this into a useable self-pointing symbol
-    (set cname cname)
-
     ;; Attach field symbols into an obarray, and store the index of
     ;; this field as the variable slot in this new symbol.  We need to
     ;; know about primes, because obarrays are best set in vectors of
@@ -541,24 +563,6 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		 '(aset no object-name newname)
 		 '(initialize-instance no fields)
 		 'no)))
-
-    ;; Create the test function
-    (let ((csym (intern (concat (symbol-name cname) "-p"))))
-      (fset csym
-	    (list 'lambda (list 'obj)
-		  (format "Test OBJ to see if it an object of type %s" cname)
-		  (list 'and '(object-p obj)
-			(list 'same-class-p 'obj cname)))))
-
-    ;; Create a handy child test too
-    (let ((csym (intern (concat (symbol-name cname) "-child-p"))))
-      (fset csym
-	    (list 'lambda (list 'obj)
-		  (format
-		   "Test OBJ to see if it an object is a child of type %s"
-		   cname)
-		  (list 'and '(object-p obj)
-			(list 'obj-of-class-p 'obj cname)))))
 
     ;; Set up a specialized doc string.
     ;; Use stored value since it is calculated in a non-trivial way
@@ -779,13 +783,17 @@ the new child class."
 ;;; CLOS style implementation of object creators.
 ;;
 (defun make-instance (class &rest initargs)
-  "Make a new instance of CLASS with initialization based on INITARGS.
-INITARGS starts with a name for the class.  This can be any valid Lisp
-object, but is generally a string.  The rest of the init args are
-label/value pairs.  The label's are the symbols created with the
-:initarg tag from the `defclass' call.  The value is the value stored
-in that slot."
-  (let ((cc (class-constructor class))) (apply cc class initargs)))
+  "Make a new instance of CLASS with NAME and initialization based on INITARGS.
+The class' constructor requires a name for use when printing.
+`make-instance' in CLOS doesn't use names the way Emacs does, so the
+class is used as the name slot instead when INITARGS doesn't start with
+a string.  The rest of INITARGS are label/value pairs.  The label's
+are the symbols created with the :initarg tag from the `defclass' call.
+The value is the value stored in that slot."
+  (if (and (car initargs) (stringp (car initargs)))
+      (apply (class-constructor class) initargs)
+    (apply  (class-constructor class) class initargs)))
+
 
 ;;; CLOS methods and generics
 ;;
