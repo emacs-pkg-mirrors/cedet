@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.53 2001/06/03 15:05:29 zappo Exp $
+;; RCS: $Id: ede.el,v 1.54 2001/09/12 04:41:02 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -256,6 +256,24 @@ For Automake based projects, each directory is treated as a project.")
 		 :group name
 		 :documentation "URL to this projects web site.
 This is a URL to be sent to a web site for documentation.")
+   (web-site-directory :initarg :web-site-directory
+		       :initform ""
+		       :custom string
+		       :label "Web Page Directory"
+		       :group name
+		       :documentation
+		       "A directory where web pages can be found by Emacs.
+For remote locations use a path compatible with ange-ftp or EFS.
+You can also use TRAMP for use with rcp & scp.")
+   (web-site-file :initarg :web-site-file
+		  :initform ""
+		  :custom string
+		  :label "Web Page File"
+		  :group name
+		  :documentation
+		  "A file which contains the home page for this project.
+This file can be relative to slot `web-site-directory'.
+This can be a local file, use ange-ftp, EFS, or TRAMP.")
    (ftp-site :initarg :ftp-site
 	     :initform ""
 	     :type string
@@ -264,7 +282,8 @@ This is a URL to be sent to a web site for documentation.")
 	     :group name
 	     :documentation
 	     "FTP site where this project's distribution can be found.
-This FTP site should be in Emacs form, as needed by `ange-ftp'")
+This FTP site should be in Emacs form, as needed by `ange-ftp', but can
+also be of a form used by TRAMP for use with scp, or rcp.")
    (ftp-upload-site :initarg :ftp-upload-site
 		    :initform ""
 		    :type string
@@ -306,6 +325,8 @@ and target specific elements such as build variables.")
 	 (
 	  [ "Update Version" ede-update-version ede-object ]
 	  [ "Version Control Status" ede-vc-project-directory ede-object ]
+	  [ "Edit Project Homepage" ede-edit-web-page
+	    (and ede-object (oref (ede-toplevel) web-site-file)) ]
 	  [ "Browse Project URL" ede-web-browse-home
 	    (and ede-object
 		 (not (string= "" (oref (ede-toplevel) web-site-url)))) ]
@@ -1246,6 +1267,16 @@ Documentation is not for object THIS, but is provided by THIS for other
 files in the project."
   nil)
 
+(defun ede-html-documentation-files ()
+  "Return a list of HTML documentation files associated with this project."
+  (ede-html-documentation (ede-toplevel))
+  )
+
+(defmethod ede-html-documentation ((this ede-project))
+  "Return a list of HTML files provided by project THIS."
+  
+  )
+
 (defun ede-ecb-project-paths ()
   "Return a list of all paths for all active EDE projects.
 This functions is meant for use with ECB."
@@ -1607,6 +1638,15 @@ If VARIABLE is not project local, just use set."
 
 (autoload 'ede-web-browse-home "ede-system" t
   "Web browse this project's home page.")
+
+(autoload 'ede-edit-web-page "ede-system" t
+  "Edit the web site for this project.")
+
+(autoload 'ede-upload-distribution "ede-system" t
+  "Upload the dist for this project to the upload site.")
+
+(autoload 'ede-upload-html-documentation "ede-system" t
+  "Upload auto-generated HTML to the web site.")
 
 (provide 'ede)
 
