@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.24 2000/12/16 02:48:20 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.25 2000/12/16 02:59:33 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -103,6 +103,16 @@
 	       (list (nth 1 vals) 'put
 		     (nth 2 vals)
 		     (nth 3 vals))))
+     (symbol "put" symbol symbol string
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'put
+		     (nth 2 vals)
+		     (nth 3 vals))))
+     (symbol "put" symbol symbol semantic-list
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'put
+		     (nth 2 vals)
+		     (semantic-flex-text (cons 1 (nth 3 vals))))))
      (symbol "outputfile" symbol punctuation "." symbol "\\bel\\b"
 	     ,(semantic-lambda
 	       (list (concat (nth 1 vals) ".el") 'outputfile)))
