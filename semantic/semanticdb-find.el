@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.19 2004/07/20 17:55:49 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.20 2004/07/30 17:57:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -171,6 +171,9 @@ Default action as described in `semanticdb-find-translate-path'."
      #'append
      (mapcar
       (lambda (db) (semanticdb-get-database-tables db))
+      ;; FIXME:
+      ;; This should scan the current project directory list for all
+      ;; semanticdb files, perhaps hadding proxies for them.
       (semanticdb-current-database-list (oref basedb reference-directory)))))
   )
 
