@@ -1,9 +1,9 @@
 ;;; semantic-texi.el --- Semantic details for Texinfo files
 
-;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.30 2004/08/25 06:19:25 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.31 2005/01/16 22:04:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,10 +232,6 @@ thingy from it using the `document' tool."
     (require 'document)
     (document-insert-texinfo tag b)))
 
-(define-mode-local-override semantic-sb-tag-children-to-expand
-  texinfo-mode (tag)
-  "The children TAG expands to."
-  (semantic-tag-components tag))
 
 (define-mode-local-override semantic-ctxt-current-class-list
   texinfo-mode (&optional point)
