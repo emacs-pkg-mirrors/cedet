@@ -5,7 +5,7 @@
 ;;
 ;; Author: <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
-;; RCS: $Id: call-tree.el,v 1.2 1998/10/27 18:00:42 zappo Exp $
+;; RCS: $Id: call-tree.el,v 1.3 1998/10/27 18:01:34 zappo Exp $
 ;; Keywords: OO, tree, call-graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -140,9 +140,6 @@ Argument NEWFUNC is a function I cannot devine at this time."
     (while (and fp (not (eq newfunc (oref fp symbol))))
       (setq fp (oref fp parent)))
     fp))
-
-;;; end of lisp
-(provide 'call-tree)
 
 (provide 'call-tree)
 
