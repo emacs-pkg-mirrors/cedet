@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.34 2003/03/13 08:39:22 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.35 2003/03/13 16:48:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -885,7 +885,7 @@ variable NAME."
      
      ;; Expand a goal
      ((eq cat 'goal)
-      (nreverse (cdr (assq 'tree (nth 2 token)))))
+      (nreverse (semantic-token-extra-spec token 'tree)))
      
      ;; Expand multiple names in the same variable declaration.
      ((and (eq cat 'variable)
