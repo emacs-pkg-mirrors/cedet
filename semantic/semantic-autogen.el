@@ -1,8 +1,8 @@
 ;;; semantic-autogen.el --- Auto load statement generator
 
-;;; Copyright (C) 2002 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-autogen.el,v 1.7 2002/09/07 01:56:34 zappo Exp $
+;; X-CVS: $Id: semantic-autogen.el,v 1.8 2003/02/15 09:38:04 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,120 +22,133 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-;; 
+;;
 ;; Automatically generate autoloads for Semantic.
 ;;
 ;; Future: Automatically generate parser initialization
 
-;;; Code
-;;
+;;; History:
+;; 
 
-(if noninteractive
-    (progn
-      ;; if the user is doing this non-interactivly, we need to set up
-      ;; these conveniences.
-      (add-to-list 'load-path nil)
-      (setq find-file-hooks nil
-	    find-file-suppress-same-file-warnings t)
-      ))
+;;; Code:
+;;
 
 ;; Load this in first
 (require 'autoload)
 
-(put 'define-overload 'doc-string-elt 3)
-;; This hack only works to autoload generics w/out :BEFORE style tokens.
-(put 'defmethod 'doc-string-elt 3)
+;;; Compatibility
+(defun semantic-autogen-noninteractive ()
+  "Return non-nil if running non-interactively."
+  (if (featurep 'xemacs)
+      (noninteractive)
+    noninteractive))
+
+(if (fboundp 'keywordp)
+    (defalias 'semantic-autogen-keywordp 'keywordp)
+  (defun semantic-autogen-keywordp (object)
+    "Return t if OBJECT is a keyword.
+This means that it is a symbol with a print name beginning with `:'
+interned in the initial obarray."
+    (and (symbolp object)
+         (char-equal ?: (aref 0 (symbol-name object)))))
+  )
+
+(when (semantic-autogen-noninteractive)
+  ;; If the user is doing this non-interactively, we need to set up
+  ;; these conveniences.
+  (add-to-list 'load-path nil)
+  (setq find-file-hooks nil
+        find-file-suppress-same-file-warnings t)
+  )
+
+(defadvice make-autoload (before semantic-make-autoload activate)
+  "Extend `make-autoload' with support for particular Semantic forms.
+When a such form, like defclass, defmethod, etc., is recognized, it is
+replaced with side effect by an equivalent known form before calling
+the true `make-autoload' function."
+  (if (consp (ad-get-arg 0))
+      (let* ((form (ad-get-arg 0))
+             (car (car-safe form))
+             name args doc
+             )
+        (cond
+         ((eq car 'define-overload)
+          (setcar form 'defun)
+          )
+         ((eq car 'defmethod)
+          (setq name (nth 1 form)
+                args (nthcdr 2 form))
+          (if (semantic-autogen-keywordp (car args))
+              (setq args (cdr args)))
+          (setq doc  (nth 1 args)
+                args (car args))
+          (setcar form 'defun)
+          (setcdr form (list name args (if (stringp doc) doc)))
+          )
+         ((eq car 'defclass)
+          (setq name (nth 1 form)
+                args (nth 2 form)
+                doc  (nth 4 form))
+          (setcar form 'defun)
+          (setcdr form (list name args (if (stringp doc) doc)))
+          ))
+        )))
+
+(defconst semantic-autogen-header
+  "Auto-generated semantic autoloads"
+  "Header of the auto-generated autoloads file.")
+
+(defvar semantic-autogen-file "semantic-al.el"
+  "Name of the auto-generated autoloads file.")
+
+(defvar semantic-autogen-subdirs '("wisent" "bovine")
+  "Sub-directories to scan for autoloads.")
+
+(defun semantic-autogen-update-header ()
+  "Update header of the auto-generated autoloads file.
+Run as `write-contents-hooks'."
+  (when (string-equal generated-autoload-file (buffer-file-name))
+    (let ((tag (format ";;; %s ---" (file-name-nondirectory
+                                     (buffer-file-name)))))
+      (message "Updating header...")
+      (goto-char (point-min))
+      (cond
+       ;; Replace existing header line
+       ((re-search-forward (concat "^" (regexp-quote tag)) nil t)
+        (beginning-of-line)
+        (kill-line 1)
+        )
+       ;; Insert header before first ^L encountered (XEmacs)
+       ((re-search-forward "^" nil t)
+        (beginning-of-line)
+        ))
+      (insert tag " " semantic-autogen-header)
+      (newline)
+      (message "Updating header...done")
+      nil ;; Say not already written.
+      )))
 
 (defun semantic-hack-autoloads ()
-  "Create semantic autoloads from sources."
+  "Update semantic autoloads from sources.
+Autoloads file name is defined in variable `semantic-autogen-file'."
   (interactive)
-  (let* ((dir (file-name-directory (locate-library "semantic")))
-	 (generated-autoload-file (concat dir "semantic-al.el"))
-	 )
-    (find-file (concat dir "semantic-al.el"))
-    (erase-buffer)
-
-    (insert ";;; semantic-al.el --- Auto-generated file filled with autoloads.")
-    (update-autoloads-from-directories dir
-				       (concat dir "/wisent")
-				       (concat dir "/bovine"))
-    )
-  (newline 2))
-
-;; Bum me out.  Taken from autoload.el and augmented.  Just look at these
-;; hard coded lists.  BLECH!
-(defun make-autoload (form file)
-  "Turn FORM into an autoload or defvar for source file FILE.
-Returns nil if FORM is not a special autoload form (i.e. a function definition
-or macro definition or a defcustom)."
-  (let ((car (car-safe form)) expand)
-    (cond
-     ;; For complex cases, try again on the macro-expansion.
-     ((and (memq car '(easy-mmode-define-global-mode
-		       easy-mmode-define-minor-mode define-minor-mode))
-	   (setq expand (let ((load-file-name file)) (macroexpand form)))
-	   (eq (car expand) 'progn)
-	   (memq :autoload-end expand))
-      (let ((end (memq :autoload-end expand)))
-	;; Cut-off anything after the :autoload-end marker.
-	(setcdr end nil)
-	(cons 'progn
-	      (mapcar (lambda (form) (make-autoload form file))
-		      (cdr expand)))))
-
-     ;; For special function-like operators, use the `autoload' function.
-     ((memq car '(defun define-skeleton defmacro define-derived-mode
-		   define-generic-mode easy-mmode-define-minor-mode
-		   easy-mmode-define-global-mode
-		   define-minor-mode defun* defmacro*
-		   ;; Semantic Special:  Some functions
-		   define-overload
-		   defmethod
-		   ))
-      (let* ((macrop (memq car '(defmacro defmacro*)))
-	     (name (nth 1 form))
-	     (body (nthcdr (get car 'doc-string-elt) form))
-	     (doc (if (stringp (car body)) 
-		      (prog1 (car body)
-			(setq body (cdr body))))))
-	;; `define-generic-mode' quotes the name, so take care of that
-	(list 'autoload (if (listp name) name (list 'quote name)) file doc
-	      (or (and (memq car '(define-skeleton define-derived-mode
-				    define-generic-mode
-				    easy-mmode-define-global-mode
-				    easy-mmode-define-minor-mode
-				    define-minor-mode)) t)
-		  (eq (car-safe (car body)) 'interactive))
-	      (if macrop (list 'quote 'macro) nil))))
-
-     ;; So we can export a class, export it as a function.
-     ;; That way when we "initialize" allocate one of this
-     ;; class, it loads the file.
-     ((eq car 'defclass)
-      (let ((varname (car-safe (cdr-safe form)))
-	    )
-	(list 'autoload (list 'quote varname) file nil nil nil)
-	))
-
-     ;; Convert defcustom to a simpler (and less space-consuming) defvar,
-     ;; but add some extra stuff if it uses :require.
-     ((eq car 'defcustom)
-      (let ((varname (car-safe (cdr-safe form)))
-	    (init (car-safe (cdr-safe (cdr-safe form))))
-	    (doc (car-safe (cdr-safe (cdr-safe (cdr-safe form)))))
-	    (rest (cdr-safe (cdr-safe (cdr-safe (cdr-safe form))))))
-	(if (not (plist-get rest :require))
-	    `(defvar ,varname ,init ,doc)
-	  `(progn
-	     (defvar ,varname ,init ,doc)
-	     (custom-add-to-group ,(plist-get rest :group)
-				  ',varname 'custom-variable)
-	     (custom-add-load ',varname
-			      ,(plist-get rest :require))))))
-
-     ;; nil here indicates that this is not a special autoload form.
-     (t nil))))
+  (let* ((default-directory (file-name-directory (locate-library "semantic")))
+         (generated-autoload-file (expand-file-name semantic-autogen-file))
+         (subdirs (mapcar 'expand-file-name semantic-autogen-subdirs))
+         (write-contents-hooks '(semantic-autogen-update-header))
+         (command-line-args-left (cons default-directory subdirs))
+         )
+    ;; If file don't exist, and is not automatically created...
+    (unless (or (file-exists-p generated-autoload-file)
+                (fboundp 'autoload-ensure-default-file))
+      ;; Create a file buffer.
+      (find-file generated-autoload-file)
+      ;; Use Unix EOLs, so that the file is portable to all platforms.
+      (setq buffer-file-coding-system 'raw-text-unix)
+      ;; Insert the header so that the buffer is not empty.
+      (semantic-autogen-update-header))
+    (batch-update-autoloads)))
 
 (provide 'semantic-autogen)
 
-;;; semantic-alg.el ends here
+;;; semantic-autogen.el ends here
