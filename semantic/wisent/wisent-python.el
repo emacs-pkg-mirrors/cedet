@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.4 2002/06/22 03:33:43 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.5 2002/06/22 08:37:50 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -93,7 +93,9 @@
 ;;   properly suppressed when a logical line continues on two or more
 ;;   physical lines explicitly via '\'.
 ;;
-;; * Figure out why "server_address = ('', port)" cannot be parsed!
+;; * Figure out why a '*' in formal parameter list cannot be parsed, e.g.,
+;;
+;;       def log_error(self, *args):
 ;;
 ;; * Delete most semantic rules when the grammar is debugged.
 ;;
@@ -283,7 +285,7 @@ we get around ot it.")
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 13:12-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 18:28-0700
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -719,8 +721,7 @@ we get around ot it.")
 	(nil)
 	((dictmaker)))
        (one_or_more_string
-	((STRING_LITERAL)
-	 (read $1))
+	((STRING_LITERAL))
 	((one_or_more_string STRING_LITERAL)
 	 (format "%s %s" $1
 		 (read $2))))
