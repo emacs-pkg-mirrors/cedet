@@ -2,12 +2,12 @@
 ;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;; Copyright (C) 95,96,98,99,2000,01,02,03 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.129 2003/09/09 17:03:43 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.130 2003/09/24 13:50:31 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "0.18"
+(defvar eieio-version "0.18beta1"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1693,16 +1693,6 @@ CLASS is the class this method is associated with."
 	(let ((eieiomt-optimizing-obarray (aref emto key)))
 	  (mapatoms 'eieiomt-sym-optimize eieiomt-optimizing-obarray)))
     ))
-
-(defun eieiomt-get (method-name key class)
-  "Get the implementation for METHOD-NAME for int KEY matching CLASS.
-See `eieiomt-add' for details on how these are set."
-  (if (>= key method-num-fields) (< key 0)
-    (error "eieiomt-get: method key error!"))
-  (let ((emto (get method-name 'eieio-method-obarray)))
-    (if (not emto)
-	nil
-      (intern-soft (symbol-name class) (aref emto key)))))
 
 (defun eieiomt-next (class)
   "Return the next parent class for CLASS.
