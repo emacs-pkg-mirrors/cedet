@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.14 2002/08/07 18:00:25 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.15 2002/08/08 16:06:45 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -590,7 +590,7 @@ This function is a Java specific `get-local-variables' override."
       (save-excursion
         (forward-char 1)
         (setq vars
-              (append (semantic-bovinate-region
+              (append (semantic-parse-region
                        (point)
                        (save-excursion (semantic-end-of-context) (point))
                        'field_declaration
