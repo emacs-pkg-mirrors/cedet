@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.22 2002/02/22 22:26:24 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.23 2002/02/23 13:19:44 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -696,6 +696,24 @@ Do not override for `prot-2'."
 
 (if (not (string= "NewName" (oref N object-name)))
     (error "Named object `object-name' slot set/ref failed."))
+
+
+;;; Test some utilities in EIEIO-OPT
+;;
+(defclass opt-test1 ()
+  ()
+  "Abstract base class"
+  :abstract t)
+
+(defclass opt-test2 (opt-test1)
+  ()
+  "Instantiable child")
+
+(if (/= (length (eieio-build-class-alist opt-test1 nil)) 2)
+    (error "eieio-build-class-alist did not return all possible classes"))
+
+(if (/= (length (eieio-build-class-alist opt-test1 t)) 1)
+    (error "eieio-build-class-alist did not filter on INSTANTIABLE-ONLY"))
 
 
 ;;;
