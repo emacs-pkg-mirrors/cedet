@@ -1,4 +1,4 @@
-;;; c.by -- LL grammar for Erlang language specification
+;;; erlang.by -- LL grammar for Erlang language specification
 ;;
 ;; Copyright (C) 2002, 2003 Vladimir G. Sekissov
 ;; Copyright (C) 2003 David Ponce
@@ -21,7 +21,7 @@
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 ;;
-;; $Id: erlang.by,v 1.3 2003/08/29 07:56:36 ponced Exp $
+;; $Id: erlang.by,v 1.4 2003/08/31 15:06:44 ponced Exp $
 ;;
 
 %package semantic-erlang-by
@@ -319,8 +319,8 @@ module-decl
 
 module-attr
   : MINUS MODULE PAREN_BLCK full-stop
- ;;( (car (EXPAND $3 module-attr-name 2)) package nil nil )
-    (PACKAGE-TAG (car (EXPAND $3 module-attr-name 2)) nil)
+ ;;( (car (EXPAND $3 module-attr-name)) package nil nil )
+    (PACKAGE-TAG (car (EXPAND $3 module-attr-name)) nil)
   ;
 
 module-attr-name
@@ -362,23 +362,23 @@ anywhere-attr
 
 export-attr
   : MINUS EXPORT PAREN_BLCK full-stop
- ;;( (car (EXPAND $3 export-name-list 1)) export nil nil )
+ ;;( (car (EXPAND $3 export-name-list)) export nil nil )
   ;
 
 export-name-list
   : open-paren BRACK_BLCK close-paren
- ;; ( (car (EXPAND $2 function-name-list 1)) )
+ ;; ( (car (EXPAND $2 function-name-list)) )
   ;
 
 import-attr
   : MINUS IMPORT PAREN_BLCK full-stop
- ;;( (car (EXPAND $3 import-name-list 1)) import nil nil )
-    (TAG (car (EXPAND $3 import-name-list 1)) 'import)
+ ;;( (car (EXPAND $3 import-name-list)) import nil nil )
+    (TAG (car (EXPAND $3 import-name-list)) 'import)
   ;
 
 import-name-list
   : open-paren module-name COMA BRACK_BLCK close-paren
-    ( ,$2 (EXPAND $4 function-name-list 1))
+    ( ,$2 (EXPAND $4 function-name-list))
   | open-paren module-name close-paren
     ( ,$2 )
   ;
@@ -409,7 +409,7 @@ compile-attr
 
 file-attr
   : MINUS FILE PAREN_BLCK full-stop
- ;;( (car (EXPAND $3 file-attr-list 1)) file nil nil )
+ ;;( (car (EXPAND $3 file-attr-list)) file nil nil )
   ;
 
 file-attr-list
@@ -448,13 +448,13 @@ function-clause
 
 record-decl
   : MINUS RECORD PAREN_BLCK full-stop
-    ( ,(car (EXPANDFULL $3 record-def 1)) )
+    ( ,(car (EXPANDFULL $3 record-def)) )
   ;
 
 record-def
   : open-paren atom COMA BRACE_BLCK close-paren
- ;;(,$2 type "record" (EXPANDFULL $4 record-field-decl 1) nil nil)
-    (TYPE-TAG ,$2 "record" (EXPANDFULL $4 record-field-decl 1) nil)
+ ;;(,$2 type "record" (EXPANDFULL $4 record-field-decl) nil nil)
+    (TYPE-TAG ,$2 "record" (EXPANDFULL $4 record-field-decl) nil)
   ;
 
 record-decl-tuple
@@ -492,7 +492,7 @@ pattern
   | BRACE_BLCK
  ;;( "Tuple" tuple nil nil )
     (TAG "Tuple" 'list)
- ;; ( (EXPAND $1 tuple-pattern 1) )
+ ;; ( (EXPAND $1 tuple-pattern) )
   | record-pattern
     ( ,$1 )
   ;
@@ -545,7 +545,7 @@ patterns-rest
 record-pattern
   : HASH atom BRACE_BLCK
     ( (car $2) )
- ;; ( (cons $2 (EXPAND $3 record-pattern-tuple 1) ) )
+ ;; ( (cons $2 (EXPAND $3 record-pattern-tuple) ) )
   ;
 
 record-pattern-tuple
@@ -650,7 +650,7 @@ record-expr-rest
 record-expr-field
   : atom PERIOD atom
   | atom BRACE_BLCK
- ;; ( $1 (EXPAND $3 record-update-tuple 1) )
+ ;; ( $1 (EXPAND $3 record-update-tuple) )
   | record-expr
   ;
 
@@ -684,9 +684,9 @@ application-expr
 
 application-expr-rest
   : PAREN_BLCK
- ;;( (EXPAND $1 application-expr-list 1) )
+ ;;( (EXPAND $1 application-expr-list) )
   | COLON primary-expr PAREN_BLCK
- ;;( $1 $2 (EXPAND $3 application-expr-list 1) )
+ ;;( $1 $2 (EXPAND $3 application-expr-list) )
   | ;;EMPTY
   ;
 
@@ -701,11 +701,11 @@ primary-expr
   | basic-type
  ;;| module-name
   | BRACE_BLCK
- ;;  ( (EXPAND $1 tuple-skel 1) )
+ ;;  ( (EXPAND $1 tuple-skel) )
   | BRACK_BLCK
- ;;  ( (EXPAND $1 list-skel 1) )
+ ;;  ( (EXPAND $1 list-skel) )
   | BRACK_BLCK
- ;;  ( (EXPAND $1 list-compr 1) )
+ ;;  ( (EXPAND $1 list-compr) )
   | block-expr
   | if-expr
   | case-expr
@@ -829,7 +829,7 @@ fun-clauses-rest
 
 fun-clause
   : PAREN_BLCK clause-guard clause-body
-    ( ,(car (EXPAND $1 clause-pattern-list 1)) )
+    ( ,(car (EXPAND $1 clause-pattern-list)) )
   ;
 
 clause-pattern-list
@@ -867,7 +867,7 @@ query-expr
 
 paren-expr
   : PAREN_BLCK
- ;;  ( ,(EXPAND $1 paren-expr-list 1) )
+ ;;  ( ,(EXPAND $1 paren-expr-list) )
   ;
 
 paren-expr-list
@@ -890,18 +890,18 @@ guard-test
   | guard-term-cmp
   | guard-recognizer
   | PAREN_BLCK
- ;;  ( (EXPAND $1 paren-guard-test 1 ) )
+ ;;  ( (EXPAND $1 paren-guard-test) )
   ;
 
 guard-record-test
   : RECORD PAREN_BLCK
- ;;  ( ,(EXPAND $2 guard-record-test 1) )
+ ;;  ( ,(EXPAND $2 guard-record-test) )
   | open-paren guard-expr COMA symbol close-paren
   ;
 
 guard-recognizer
   : symbol PAREN_BLCK
- ;;  ( ,(cons $1 ,(EXPAND $2 guard-expr 1) ) )
+ ;;  ( ,(cons $1 ,(EXPAND $2 guard-expr) ) )
   ;
 
 guard-term-cmp
@@ -946,7 +946,7 @@ guard-prefix-expr
 
 guard-application-expr
   : atom PAREN_BLCK
- ;;  ( (cons $1 (EXPAND $2 guard-exprs-list 1) ) )
+ ;;  ( (cons $1 (EXPAND $2 guard-exprs-list) ) )
   | guard-record-expr
   | guard-primary-expr
   ;
@@ -975,11 +975,11 @@ guard-primary-expr
   : basic-type
   | macro-app
   | BRACE_BLCK
- ;;  ( ,(EXPAND $1 guard-tuple-skel 1 ) )
+ ;;  ( ,(EXPAND $1 guard-tuple-skel) )
   | BRACK_BLCK
- ;;  ( ,(EXPAND $1 guard-list-skel 1 ) )
+ ;;  ( ,(EXPAND $1 guard-list-skel) )
   | PAREN_BLCK
- ;;  ( ,(EXPAND $1 guard-paren-expr 1 ) )
+ ;;  ( ,(EXPAND $1 guard-paren-expr) )
   ;
 
 guard-tuple-skel
@@ -1014,7 +1014,7 @@ directive
 
 macro-def
   : MINUS DEFINE PAREN_BLCK full-stop
-    ( ,(EXPAND $3 macro-def-list 1) )
+    ( ,(EXPAND $3 macro-def-list) )
   ;
 
 macro-def-list
@@ -1040,14 +1040,14 @@ macro-app
 
 include-dir
   : MINUS INCLUDE PAREN_BLCK full-stop
- ;;( (car (EXPAND $3 include-file-name 1)) include nil nil )
-    (INCLUDE-TAG (car (EXPAND $3 include-file-name 1)) nil)
+ ;;( (car (EXPAND $3 include-file-name)) include nil nil )
+    (INCLUDE-TAG (car (EXPAND $3 include-file-name)) nil)
   ;
 
 include-lib-dir
   : MINUS INCLUDE_LIB PAREN_BLCK full-stop
- ;;( (car (EXPAND $3 include-file-name 1)) include nil nil )
-    (INCLUDE-TAG (car (EXPAND $3 include-file-name 1)) nil)
+ ;;( (car (EXPAND $3 include-file-name)) include nil nil )
+    (INCLUDE-TAG (car (EXPAND $3 include-file-name)) nil)
   ;
 
 include-file-name
@@ -1057,12 +1057,12 @@ include-file-name
 
 ifdef-dir
   : MINUS IFDEF PAREN_BLCK full-stop
- ;;( ,(EXPAND $3 macro-name 1) )
+ ;;( ,(EXPAND $3 macro-name) )
   ;
 
 ifndef-dir
   : MINUS IFNDEF PAREN_BLCK full-stop
- ;;( ,(EXPAND $3 macro-name 1) )
+ ;;( ,(EXPAND $3 macro-name) )
   ;
 
 else-dir
