@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.69 2004/03/19 23:40:51 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.70 2004/08/25 06:18:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -585,6 +585,13 @@ table object for it."
 	  (save-excursion
 	    (set-buffer (find-file-noselect file))
 	    ;; Find file should automatically do this for us.
+	    ;; Sometimes the DB table doesn't contains tags and needs
+	    ;; a refresh.  For example, when the file is loaded for
+	    ;; the first time, and the idle scheduler didn't get a
+	    ;; chance to trigger a parse before the file buffer is
+	    ;; killed.
+	    (when (semanticdb-needs-refresh-p semanticdb-current-table)
+	      (semanticdb-refresh-table semanticdb-current-table))
 	    (prog1
 		semanticdb-current-table
 	      ;; If we had to find the file, then we should kill it
