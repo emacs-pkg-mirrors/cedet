@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.9 2003/03/15 19:29:53 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.10 2003/03/21 03:27:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -126,7 +126,7 @@ Return a bovination list to use."
     (cond
      ((listp ts)
       ;; If the first elt is a list, then it is some arbitrary code.
-      (list "anonymous" 'code))
+      (semantic-tag-new-code "anonymous" nil))
      ((or (eq ts 'eval-and-compile)
 	  (eq ts 'eval-when-compile))
       ;; Eval and compile can be wrapped around definitions, such as in
@@ -142,15 +142,15 @@ Return a bovination list to use."
 	  (eq ts 'defface)
 	  (eq ts 'defimage))
       (let ((doc (semantic-elisp-form-to-doc-string (nth 3 rt))))
-        ;; Variables and constants
+	;; Variables and constants
 	(semantic-tag-new-variable
-         sn nil (nth 2 rt)
-	 'const (if (eq ts 'defconst) t nil)
+	 sn nil (nth 2 rt)
 	 'user-visible (and doc
 			    (> (length doc) 0)
 			    (= (aref doc 0) ?*))
+	 'const (if (eq ts 'defconst) t nil)
 	 )
-	;doc
+	;;doc
 	))
      ((or (eq ts 'defun)
 	  (eq ts 'defun*)
@@ -253,7 +253,7 @@ Return a bovination list to use."
        sn (nth 3 rt)))
      (t
       ;; Other stuff
-      (semantic-tag (symbol-name ts) 'code)
+      (semantic-tag-new-code (symbol-name ts) nil)
       ))))
 
 (defun semantic-expand-elisp-nonterminal (nonterm)
