@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.21 2002/03/23 01:39:10 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.22 2002/09/03 02:14:04 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -92,16 +92,16 @@ If CLASS is actually an object, then also display current values of that obect."
 	(princ " Inherits from ")
 	(while pl
 	  (princ "`") (prin1 (car pl)) (princ "'")
-	  (if pl (princ ", "))
-	  (setq pl (cdr pl)))
+	  (setq pl (cdr pl))
+	  (if pl (princ ", ")))
 	(terpri)))
     (let ((ch (class-children class)))
       (when ch
 	(princ " Children ")
 	(while ch
 	  (princ "`") (prin1 (car ch)) (princ "'")
-	  (if ch (princ ", "))
-	  (setq ch (cdr ch)))
+	  (setq ch (cdr ch))
+	  (if ch (princ ", ")))
 	(terpri)))
     (terpri)
     ;; System documentation
@@ -128,6 +128,13 @@ If CLASS is actually an object, then also display current values of that obect."
 	  (princ "'")
 	  (if (not doc)
 	      (princ "  Undocumented")
+	    (if (car doc)
+		(progn
+		  (princ "  :STATIC ")
+		  (prin1 (car (car doc)))
+		  (terpri)
+		  (princ (cdr (car doc)))))
+	    (setq doc (cdr doc))
 	    (if (car doc)
 		(progn
 		  (princ "  :BEFORE ")
@@ -287,7 +294,7 @@ Also extracts information about all methods specific to this generic."
     (terpri)
     (terpri)
     (let ((i 3)
-	  (prefix [ ":BEFORE" ":PRIMARY" ":AFTER" ] ))
+	  (prefix [ ":STATIC" ":BEFORE" ":PRIMARY" ":AFTER" ] ))
       ;; Loop over fanciful generics
       (while (< i 6)
 	(let ((gm (aref (get generic 'eieio-method-tree) i)))
@@ -434,7 +441,7 @@ Optional argument HISTORYVAR is the variable to use as history."
 	(while (re-search-forward "^\\(Instance\\|Class\\) Allocated Slots:$" nil t)
 	    (put-text-property (match-beginning 0) (match-end 0) 'face 'bold))
 	(goto-char (point-min))
-	(while (re-search-forward ":\\(BEFORE\\|AFTER\\|PRIMARY\\)" nil t)
+	(while (re-search-forward ":\\(STATIC\\|BEFORE\\|AFTER\\|PRIMARY\\)" nil t)
 	    (put-text-property (match-beginning 0) (match-end 0) 'face 'bold))
 	(goto-char (point-min))
 	(while (re-search-forward "^\\(Private \\)?Slot:" nil t)
