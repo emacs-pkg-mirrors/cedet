@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7.2d
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.130 1998/11/22 13:43:33 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.131 1998/11/24 20:08:53 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -2905,11 +2905,11 @@ that will occur on your system."
    (file-exists-p (concat path "RCS/" name ",v"))
    (file-exists-p (concat path "RCS/" name))
    ;; Local SCCS file name
-   (file-exists-p (concat path "SCCS/p." name))
+   (file-exists-p (concat path "SCCS/s." name))
    ;; Remote SCCS file name
    (let ((proj-dir (getenv "PROJECTDIR")))
      (if proj-dir
-         (file-exists-p (concat proj-dir "/SCCS/p." name))
+         (file-exists-p (concat proj-dir "/SCCS/s." name))
        nil))
    ;; User extension
    (run-hook-with-args 'speedbar-vc-in-control-hook path name)
