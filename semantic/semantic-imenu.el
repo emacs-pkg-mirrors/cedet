@@ -3,8 +3,9 @@
 ;;; Copyright (C) 2000, 2001 Paul Kinnucan & Eric Ludlam
 ;;; Copyright (C) 2001 Eric Ludlam
 
-;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.27 2001/02/23 02:03:17 zappo Exp $
+;; Created By: Paul Kinnucan
+;; Maintainer: Eric Ludlam
+;; X-RCS: $Id: semantic-imenu.el,v 1.28 2001/04/07 13:44:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -225,7 +226,7 @@ Optional argument STREAM is the stream of tokens for the current buffer."
 		tokens)
 	    (when (and (not (eq (car tables) semanticdb-current-table))
 		       (semanticdb-live-p (car tables))
-		       (eq major-mode (oref (car tables) major-mode))
+		       (semanticdb-equivalent-mode (car tables))
 		       )
 	      (setq tokens (oref (car tables) tokens)
 		    index (cons (cons semantic-imenu-directory-current-file
