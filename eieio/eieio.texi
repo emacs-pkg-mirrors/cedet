@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.6 1996/11/14 00:06:30 zappo Exp $
+@c $Id: eieio.texi,v 1.7 1996/11/18 00:20:36 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -48,6 +48,7 @@ aspects of CLOS.
 * Signals::               When you make errors
 * Browsing::              Browsing your class lists.
 * Class Values::          Displaying information about a class or object.
+* Documentation::         Automatically creating texinfo documentation
 * Demo Programs::         Some examples using eieio.
 @end menu
 
@@ -417,7 +418,7 @@ class must be re-evaluated.
 
 This gets the default value in @var{object}'s class definition for
 @code{field}.  This can be different from the value returned by
-@code{oref}.
+@code{oref}.  @var{object} can also be a class symbol.
 
 @end defun
 
@@ -589,6 +590,14 @@ is created for it.  Thus in our example, the function @code{animal-p}
 and @code{bird-p} are created, and return @code{t} if passed an object
 of the appropriate type.
 
+@defun eieio-build-class-alist &optional base-class
+Returns an alist of all currently defined classes.  This alist is
+suitable for completion lists used by interactive functions to select a
+class.  The optional argument base-class allows the programmer to select
+only a subset of classes to choose from should it prove necessary.
+@end defun
+
+
 @node Signals, Browsing, Predicates, Top
 @comment  node-name,  next,  previous,  up
 @chapter Signals
@@ -679,24 +688,70 @@ of classes.
 Note: new classes are consed into the inheritance lists, so the tree
 comes out upside-down.
 
-@node Class Values, Demo Programs, Browsing, Top
+It is also possible to use the function @code{eieio-class-tree} in the
+@file{tree.el} package.  This will create an interactive tree.  Clicking
+on nodes will allow expansion/contraction of branches, or editing of a
+class.  @xref{Class Values}
+
+@node Class Values, Documentation, Browsing, Top
 @comment  node-name,  next,  previous,  up
 @chapter Class Values
 
 Details about any class or object can be retrieved using the function
-`eieio-describe-class' function.  Interactivly, type in the name of a
-class.  In a program, pass it a string with the name of a class, a
-class, or an object.  The resulting buffer will display all field names,
-and their default values.  For objects, and additional column
+@code{eieio-describe-class} function.  Interactivly, type in the name of
+a class.  In a program, pass it a string with the name of a class, a
+class symbol, or an object.  The resulting buffer will display all field
+names and their default values.  For objects, and additional column
 representing current value of that field is also displayed.
 
 The display is broken into two sections.  Private parts and public
 parts.  Faces are used when available.  If the function
 `eieio-class-tree' is used (from tree.el) then choosing the edit
 function on a node calls this function.  This function is also useful
-when used with edebug while attempting to determine what is wrong with a
-function.
-@node Demo Programs, , Class Values, Top
+when used with edebug while attempting to determine what is wrong with
+method.
+
+@node Documentation, Demo Programs, Class Values, Top
+@comment  node-name,  next,  previous,  up
+@chapter Documentation
+
+It is possible to automatically create documentation for your classes in
+texinfo format by using the tools in the file @file{eieio-doc.el}
+
+@deffn Command eieiodoc-class class indexstring &optional skiplist
+
+This will start at point, and created an indented menu of all the child
+classes of, and including @var{class}, but skipping any classes that
+might be in @var{skiplist} It will then create nodes for all these
+classes, subsection headings, and indexes.
+
+Each class will be indexed using the texinfo labeled index
+@var{indexstring} which is a two letter description.
+@xref{(texinfo) New Indices}
+
+To use this command, the texinfo macro
+
+@example
+@@defindex @@var @{ indexstring @}
+@end example
+
+@noindent
+where @var{indexstring} is replaced with the two letter code.
+
+Next, an inheritance tree will be created listing all parents of that
+section's class.
+
+Then,all the slots will be expanded in tables, and described
+using the documentation strings from the code.  Default values will also
+be displayed.  Only those slots with @code{:initarg} specified will be
+expanded, others will be hidden.  If a slot is inherited from a parent,
+that slot will also be skipped unless the default value is different.
+It there is a change, then the documentation part of the slot will be
+replace with an @@xref back to the parent.
+
+@end deffn
+
+@node Demo Programs, , Documentation, Top
 @comment  node-name,  next,  previous,  up
 @chapter Demo Programs
 
@@ -710,7 +765,7 @@ functionality of these appear below:
 These files provide widget definitions and functionality.  Dialog mode
 provides the functional interface to creating a dialog box, and several
 convenience functions for creating widgets in those dialog buffers.
-@item dlg-config
+@item dlg-config dlg-class e-config
 This file provides another layer on dialog mode, plus some new widgets.
 These widgets are designed specifically for modifying configurations in
 a running emacs, and modifying the corresponding .emacs file for
@@ -731,12 +786,6 @@ recursive functions.
 @item chart
 Draw bar charts from data.  Examples include displaying sizes of emacs
 values, file distribution, and rmail distributions.
-@item dbif psql
-Dbif provides a generic database interface.  Psql is a subclass of the
-database class designed for parsing information from a postgres95
-database (not version .02)  Information is returned in lists.
-@item dbif-browse
-Provides a very simple browser using dbif.
 @end table
 
 
