@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: e-config.el,v 1.2 1996/10/12 10:22:41 zappo Exp $
+;;; RCS: $Id: e-config.el,v 1.3 1996/11/07 19:07:29 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -48,109 +48,82 @@
 for emacs."
   (interactive)
   (dlg-init)
-  (let ((oframe (create-widget "Interface Options" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Interface Options"))
-	)
-    (create-widget "linenumber" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Display Line Number in Modeline"
+  (dialog-build-group (create-widget "Interface Options" widget-frame)
+    (create-widget "linenumber" widget-toggle-button
+		   :label-value "Display Line Number in Modeline"
 		   :state (data-object-symbol "line-number-mode"
-					      :value line-number-mode
 					      :symbol 'line-number-mode))
-    (create-widget "colnumber" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Display Column Number in Modeline"
+    (create-widget "colnumber" widget-toggle-button
+		   :label-value "Display Column Number in Modeline"
 		   :state (data-object-symbol "column-number-mode"
-					      :value column-number-mode
 					      :symbol 'column-number-mode))
-    (create-widget "truncatelines" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Truncate Lines"
+    (create-widget "truncatelines" widget-toggle-button
+		   :label-value "Truncate Lines"
 		   :state (data-object-symbol-default "truncate-lines"
-						      :value truncate-lines
 						      :symbol 'truncate-lines))
-    (create-widget "suggkey" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Suggest Key Bindings"
+    (create-widget "suggkey" widget-toggle-button
+		   :label-value "Suggest Key Bindings"
 		   :state (data-object-symbol "Suggest Key Bindings"
-					      :value suggest-key-bindings
 					      :symbol 'suggest-key-bindings))
-    (create-widget "visiblebel" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Visible Bell"
+    (create-widget "visiblebel" widget-toggle-button
+		   :label-value "Visible Bell"
 		   :state (data-object-symbol "visible-bell"
-					      :value visible-bell
 					      :symbol 'visible-bell))
-    (create-widget "inversedisplay" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Inverse Video"
+    (create-widget "inversedisplay" widget-toggle-button
+		   :label-value "Inverse Video"
 		   :state (data-object-symbol "inverse-video"
-					      :value inverse-video
 					      :symbol 'inverse-video))
-    (create-widget "mdlineinverse" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Modeline Inverse Video"
+    (create-widget "mdlineinverse" widget-toggle-button
+		   :label-value "Modeline Inverse Video"
 		   :state (data-object-symbol "mode-line-inverse-video"
-					      :value mode-line-inverse-video
 					      :symbol 'mode-line-inverse-video))
-    (create-widget "srchhighlight" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Search Highlights Current Match"
+    (create-widget "srchhighlight" widget-toggle-button
+		   :label-value "Search Highlights Current Match"
 		   :state (data-object-symbol "search-highlight"
-					      :value search-highlight
 					      :symbol 'search-highlight))
-    (create-widget "qrhighlight" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Query Replace Highlight"
+    (create-widget "qrhighlight" widget-toggle-button
+		   :label-value "Query Replace Highlight"
 		   :state (data-object-symbol "query-replace-highlight"
-					      :value query-replace-highlight
 					      :symbol 'query-replace-highlight))
-    (create-widget "recursmini" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Enable Recursive Minibuffers"
+    (create-widget "recursmini" widget-toggle-button
+		   :label-value "Enable Recursive Minibuffers"
 		   :state (data-object-symbol "enable-recursive-minibuffers"
-					      :value enable-recursive-minibuffers
 					      :symbol 'enable-recursive-minibuffers))
-    (create-widget "scroll-step" widget-label oframe
-		   :x 1 :y -1 :label-value "Scroll Step:")
-    (create-widget "scroll-step" widget-text-field oframe
-		   :width 20 :height 1 :x -2 :y t 
-		   :value (data-object-symbol-string-to-int "scroll-step"
-					      :symbol 'scroll-step
-					      :value (int-to-string scroll-step)))
+    (create-widget "Scroll Step:" widget-labeled-text
+		   :unit "lines" :text-length 10 
+		   :value (data-object-symbol-string-to-int 
+			   "scroll-step" :symbol 'scroll-step))
     )
-  (let ((oframe (create-widget "Toggle Frame startup commands" widget-frame 
-			       widget-toplevel-shell
-			       :x 1 :y -3
-			       :frame-label "Startup Commands"))
-	)
+  (dialog-build-group (create-widget "Startup Commands" widget-frame)
 
-    (create-widget "display-time" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Display time in modeline"
+    (create-widget "display-time" widget-toggle-button
+		   :label-value "Display time in modeline"
 		   :state (data-object-command-option
 			   "display-time"
-			   :value (dlg-quick-find "^\\s-*(display-time)" 
-						  dlg-config-file)
 			   :command "(display-time)"))
-    (create-widget "type-break" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Typing break mode (remind you to rest)"
-		   :state (data-object-symbol
-			   "type-break"
-			   :value type-break-mode
-			   :symbol 'type-break-mode))
-    (create-widget "paren" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Highlight Parenthesis"
+    (create-widget "type-break" widget-toggle-button
+		   :label-value "Typing break mode (remind you to rest)"
+		   :state (data-object-symbol "type-break"
+					      :symbol 'type-break-mode))
+    (create-widget "paren" widget-toggle-button
+		   :label-value "Highlight Parenthesis"
 		   :state (data-object-symbol-feature
 			   "paren"
-			   :value (featurep 'paren)
 			   :symbol 'paren
-			   ;;:unload-commands '(show-paren-mode -1)
-			   :unload-commands nil
+			   :unload-commands 
+			   (if (> emacs-minor-version 34)
+			       '(show-paren-mode -1) nil)
 			   ))
-    (create-widget "autoshow" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Auto Change Horizontal View"
+    (create-widget "autoshow" widget-toggle-button
+		   :label-value "Automatically Scroll Horizontally"
 		   :state (data-object-symbol-feature
 			   "auto-show"
-			   :value (featurep 'auto-show)
 			   :symbol 'auto-show
 			   :unload-commands '(auto-show-mode -1)))
-    (create-widget "resizemini" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Magically Resize Minibuffer"
+    (create-widget "resizemini" widget-toggle-button
+		   :label-value "Magically Resize Minibuffer when needed."
 		   :state (data-object-symbol-feature
 			   "rsz-mini"
-			   :value (featurep 'rsz-mini)
 			   :symbol 'rsz-mini
 			   :unload-commands '(progn
 					       (remove-hook 'minibuffer-setup-hook
@@ -169,92 +142,55 @@ for emacs."
 for emacs."
   (interactive)
   (dlg-init)
-  (let ((oframe (create-widget "Toggle Frame buffoptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Behavior Options"))
-	)
-    (create-widget "mouseyank" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Mouse Yanks to Cursor (not mouse)"
+  (dialog-build-group (create-widget "Behavior Options" widget-frame)
+
+    (create-widget "Mouse Yanks to Cursor (not mouse)" widget-toggle-button
 		   :state (data-object-symbol "mouse-yank-at-point"
-					      :value mouse-yank-at-point
 					      :symbol 'mouse-yank-at-point))
-    (create-widget "nxtnewline" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Next-line adds newline at end of buffer"
+    (create-widget "Next-line adds newline at end of buffer"
+		   widget-toggle-button
 		   :state (data-object-symbol "next-line-add-newlines"
-					      :value next-line-add-newlines
 					      :symbol 'next-line-add-newlines))
-    (create-widget "adaptfill" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Adaptive Fill Mode"
+    (create-widget "Adaptive Fill Mode" widget-toggle-button
 		   :state (data-object-symbol "adaptive-fill-mode"
-					      :value adaptive-fill-mode
 					      :symbol 'adaptive-fill-mode))
-    (create-widget "newline" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Require Final Newline"
+    (create-widget "Require Final Newline" widget-toggle-button
 		   :state (data-object-symbol "require-final-newline"
-					      :value require-final-newline
 					      :symbol 'require-final-newline))
-    (if (not (boundp 'text-mode-hook)) (setq text-mode-hook nil))
-    (create-widget "autofilltxt" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Auto fill in all text modes"
+
+    (create-widget "Auto fill in all text modes" widget-toggle-button
 		   :state (data-object-symbol-hook
 			   "auto-fill"
-			   :value (member 'turn-on-auto-fill text-mode-hook)
 			   :symbol 'text-mode-hook
 			   :command "turn-on-auto-fill"))
     )
-  (let ((oframe (create-widget "Toggle Frame disabled functions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Suggested Disabled Commands"))
-	)
-    (create-widget "eval-expression" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Evaluate Expression  < M-: >"
+  (dialog-build-group (create-widget "Suggested Disabled Commands" widget-frame)
+
+    (create-widget "Evaluate Expression  < M-: >" widget-toggle-button
 		   :state (data-object-symbol-disabled
-			   "eval-expression"
-			   :value (get 'eval-expression 'disabled)
-			   :symbol 'eval-expression))
-    (create-widget "narrow-to-region" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Narrow to region   < C-x n n >"
+			   "eval-expression" :symbol 'eval-expression))
+    (create-widget "Narrow to region     < C-x n n >" widget-toggle-button
 		   :state (data-object-symbol-disabled
-			   "eval-expression"
-			   :value (get 'narrow-to-region 'disabled)
-			   :symbol 'eval-expression))
-    (create-widget "set-goal-column" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Set Goal Column    < C-x C-n >"
+			   "eval-expression" :symbol 'eval-expression))
+    (create-widget "Set Goal Column      < C-x C-n >" widget-toggle-button
 		   :state (data-object-symbol-disabled
-			   "set-goal-column"
-			   :value (get 'set-goal-column 'disabled)
-			   :symbol 'set-goal-column))
-    (create-widget "erase-buffer" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Erase buffer       < M-x erase-buffer >"
+			   "set-goal-column" :symbol 'set-goal-column))
+    (create-widget "Erase buffer         < M-x erase-buffer >" widget-toggle-button
 		   :state (data-object-symbol-disabled
-			   "erase-buffer"
-			   :value (get 'erase-buffer 'disabled)
-			   :symbol 'erase-buffer))
+			   "erase-buffer" :symbol 'erase-buffer))
     )
-  (let ((oframe (create-widget "Toggle Frame backup functions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Backup File Methods"))
-	)
-    (create-widget "by-copying" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "By Copying (off uses move)"
-		   :state (data-object-symbol
-			   "by-copying"
-			   :value backup-by-copying
-			   :symbol 'backup-by-copying))
-    (create-widget "by-copying-when-linked" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "By Copying When Linked"
-		   :state (data-object-symbol
+  (dialog-build-group (create-widget "Backup File Methods" widget-frame)
+
+    (create-widget "By Copying (off uses move)" widget-toggle-button
+		   :state (data-object-symbol "by-copying"
+					      :symbol 'backup-by-copying))
+    (create-widget "By Copying When Linked" widget-toggle-button
+		   :state (data-object-symbol 
 			   "by-copying-when-linked"
-			   :value backup-by-copying-when-linked
 			   :symbol 'backup-by-copying-when-linked))
-    (create-widget "by-copying-when-mismatch" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "By Copying When Owner/Group Mismatch"
+    (create-widget "By Copying When Owner/Group Mismatch " widget-toggle-button
 		   :state (data-object-symbol
 			   "by-copying-when-mismatch"
-			   :value backup-by-copying-when-mismatch
 			   :symbol 'backup-by-copying-when-mismatch))
     )
   (dlg-end)
@@ -269,46 +205,33 @@ for emacs."
 useful for programmers."
   (interactive)
   (dlg-init)
-  (let ((oframe (create-widget "Toggle Frame buffoptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Program Editing Options"))
-	)
-    (create-widget "localvar" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Enable Local Variables"
+  (dialog-build-group (create-widget "Program Editing Options" widget-frame)
+
+    (create-widget "Enable Local Variables" widget-toggle-button
 		   :state (data-object-symbol "enable-local-variables"
-					      :value enable-local-variables
 					      :symbol 'enable-local-variables))
 
-
-    (create-widget "upd-copyright" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Check for copyright update"
+    (create-widget "Check for copyright update" widget-toggle-button
 		   :state (data-object-command-option
 			   "copyright"
+			   ;; Override the default.. this is more dependable
 			   :value (member 'copyright-update write-file-hooks)
 			   :command "(load-library \"copyright\")(add-hook 'write-file-hooks 'copyright-update)"
 			   :disable-command "(remove-hook 'write-file-hooks 'copyright-update"))
     ;; compile stuff
     (require 'compile)
 
-    (create-widget "compile-finish" widget-label oframe
-		   :x 1 :y -1 :label-value "Compile Finish Command:")
-    (create-widget "compile-command" widget-text-field oframe
-		   :width 40 :height 1 :x -2 :y t 
+    (create-widget "Compile Finish Command:" widget-labeled-text
+		   :text-length 50
 		   :value (data-object-symbol-lisp-expression
 			   "compilation-finish-command"
-			   :symbol 'compilation-finish-function
-			   :value
-			   (format "%S" compilation-finish-function)))
+			   :symbol 'compilation-finish-function))
 
-    (create-widget "compile-label" widget-label oframe
-		   :x 1 :y -1 :label-value "Compile Command       :")
-    (create-widget "compile-command" widget-text-field oframe
-		   :width 40 :height 1 :x -2 :y t 
+    (create-widget "Compile Command       :"widget-labeled-text
+		   :text-length 50
 		   :value (data-object-symbol "compile-command"
-					      :symbol 'compile-command
-					      :value
-					      compile-command))
+					      :symbol 'compile-command))
+
     )
   (dlg-end)
   (dialog-refresh)
@@ -317,133 +240,122 @@ useful for programmers."
 ;;;
 ;;; Mail configurations
 ;;;
+(defun econfig-mail-showfrom (style)
+  "Return a string which is how the mail address would be shown"
+  (cond ((or (eq style 2) (eq style 'angles))
+	 (concat (user-full-name) " <" user-mail-address ">"))
+	((or (eq style 1) (eq style 'parens))
+	 (concat user-mail-address " (" (user-full-name) ")"))
+	(t user-mail-address)))
+
 (defun econfig-mail ()
   "Creates a configure window with variables modifying variables
 useful for sending email."
   (interactive)
   (dlg-init)
   (require 'rmail)
-  (let ((oframe (create-widget "rmail options" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Rmail Options"))
-	)
-    (create-widget "rmail-file-name" widget-label oframe
-		   :x 1 :y 1 :label-value "Rmail File               :")
-    (create-widget "rmail-file-name-txt" widget-text-field oframe
-		   :width 20 :height 1 :x -2 :y t 
-		   :value (data-object-symbol
-			   "rmail-file-name"
-			   :symbol 'rmail-file-name
-			   :value rmail-file-name))
+  (dialog-build-group (create-widget "Rmail Options" widget-frame)
+
+    (create-widget "Rmail File               :" widget-labeled-text
+		   :text-length 20
+		   :value (data-object-symbol "rmail-file-name"
+					      :symbol 'rmail-file-name))
     
-    (create-widget "rmail-secondary-file-directory" widget-label oframe
-		   :x 1 :y -1 :label-value "Secondary File Directory :")
-    (create-widget "rmail-secondary-file-directory-txt" widget-text-field oframe
-		   :width 20 :height 1 :x -2 :y t 
+    (create-widget "Secondary File Directory :" widget-labeled-text
+		   :text-length 20
 		   :value (data-object-symbol
 			   "rmail-secondary-file-directory"
-			   :symbol 'rmail-secondary-file-directory
-			   :value rmail-secondary-file-directory))
+			   :symbol 'rmail-secondary-file-directory))
     
-    (create-widget "rmail-default-rmail-file" widget-label oframe
-		   :x 1 :y -1 :label-value "Default Secondary File   :")
-    (create-widget "rmail-default-rmail-file" widget-text-field oframe
-		   :width 20 :height 1 :x -2 :y t 
+    (create-widget "Default Secondary File   :" widget-labeled-text
+		   :text-length 20
 		   :value (data-object-symbol
 			   "rmail-default-rmail-file"
-			   :symbol 'rmail-default-rmail-file
-			   :value rmail-default-rmail-file))
+			   :symbol 'rmail-default-rmail-file))
     
-    (create-widget "rmail-delete-after-output" widget-toggle-button oframe
-		   :x 1 :y -2 :label-value "Delete messages after saving to secondary file"
+    (create-widget "Delete messages after saving to secondary file"
+		   widget-toggle-button
 		   :state (data-object-symbol
 			   "rmail-delete-after-output"
-			   :value rmail-delete-after-output
 			   :symbol 'rmail-delete-after-output))
 
-    (create-widget "rmail-summary-scroll-between-messages:" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Summary motion scrolls messages"
+    (create-widget "Summary motion scrolls messages" widget-toggle-button
 		   :state (data-object-symbol
 			   "rmail-summary-scroll-between-messages"
-			   :value rmail-summary-scroll-between-messages
 			   :symbol 'rmail-summary-scroll-between-messages))
 
     )
   (require 'sendmail)
-  (let ((oframe (create-widget "mail options" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Sending Mail Options"))
-	)
-    (create-widget "user-mail-address" widget-label oframe
-		   :x 1 :y 1 :label-value "Mail Address   :")
-    (create-widget "user-mail-address-txt" widget-text-field oframe
-		   :width 30 :height 1 :x -2 :y t 
-		   :value (data-object-symbol
-			   "mail-addresss"
-			   :symbol 'user-mail-address
-			   :value user-mail-address))
-
-    (create-widget "default-reply-to" widget-label oframe
-		   :x 1 :y -1 :label-value "Reply-to       :")
-    (create-widget "default-reply-t" widget-text-field oframe
-		   :width 30 :height 1 :x -2 :y t 
-		   :value (data-object-symbol
-			   "reply-to"
-			   :symbol 'mail-default-reply-to
-			   :value mail-default-reply-to))
+  (dialog-build-group (create-widget "Sending Mail Options" widget-frame)
     
-    (let ((opt-list '("nil" "'parens" "'angles")))
-      (create-widget "name type" widget-label oframe
-		     :x 1 :y -2 :height 1 :label-value "From Style     :")
-      (create-widget "name-type" widget-option-button oframe
-		     :x -2 :y t :option-list opt-list
-		     :state (data-object-symbol-list-index
-			     "from-style"
-			     :symbol 'mail-from-style
-			     :value (cond ((eq mail-from-style 'angles) 2)
-					  ((eq mail-from-style 'parens) 1)
-					  (t 0))
-			     :string-list opt-list)))
+    (let* ((uma (data-object-symbol "mail-addresss"
+				    :symbol 'user-mail-address))
+	   (opt-list '("nil" "'parens" "'angles"))
+	   (fsdo (data-object-symbol-list-index
+		  "from-style"
+		  :symbol 'mail-from-style
+		  :value (cond ((eq mail-from-style 'angles) 2)
+			       ((eq mail-from-style 'parens) 1)
+			       (t 0))
+		  :string-list opt-list))
+	   (emdo (data-object "example-mail-name" 
+			      :value (econfig-mail-showfrom mail-from-style))))
 
-    (create-widget "sig-file" widget-label oframe
-		   :x 1 :y -3 :label-value "Signature File :")
-    (create-widget "sig-file-t" widget-text-field oframe
-		   :width 30 :height 1 :x -2 :y t 
-		   :value (data-object-symbol
-			   "sig-file"
-			   :symbol 'mail-signature-file
-			   :value mail-signature-file))
+      (create-widget "Mail Address   :" widget-labeled-text :text-length 50
+		     :value uma)
+      
+      (create-widget "Reply-to       :" widget-labeled-text :text-length 50
+		     :value (data-object-symbol "reply-to"
+						:symbol 'mail-default-reply-to))
     
-    (create-widget "mail-signature" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Auto load signature file"
-		   :state (data-object-symbol
-			   "mail-signature"
-			   :value mail-signature
-			   :symbol 'mail-signature))
-    (create-widget "spellcheck" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Spellcheck outbound messages"
-		       :state (data-object-symbol-hook
-			       "spellcheck"
-			       :value (member '(lambda ()
-						 (if (y-or-n-p "Spell message?")
-						     (ispell-message)))
-					      mail-send-hook)
-			       :symbol 'mail-send-hook
-			       :command "(lambda () (if (y-or-n-p \"Spell message?\") (ispell-message)))"
-			       ))
+      (create-widget "From Style     :" widget-label)
 
+      (create-widget "name-type" widget-option-button
+		     :x -2 :y t :option-list opt-list :state fsdo)
 
-    (create-widget "cite-pref" widget-label oframe
-		   :x 1 :y -2 :label-value "Citation Prefix:")
-    (create-widget "cite-pref-t" widget-text-field oframe
-		   :width 30 :height 1 :x -2 :y t 
-		   :value (data-object-symbol
-			   "cite-pref"
-			   :symbol 'mail-yank-prefix
-			   :value mail-yank-prefix))
-    (create-widget "cite-pref" widget-label oframe
+      (create-widget "Looks Like:" widget-label :y -1)
+      (create-widget "example-label" widget-label :x -2 :y t 
+		     ;; set max width
+		     :width (+ 3 (length (user-full-name))
+			       (length user-mail-address))
+		     :justification 'left
+		     :face 'bold
+		     :label-value emdo)
+
+      ;; This translates the address from one type to the other
+      (create-widget "address-translator" widget-gadget-translator
+		     :watch fsdo :change emdo
+		     :translate-function 
+		     (lambda (a b) 
+		       (set-value b (econfig-mail-showfrom (get-value a)) 
+				  this)))
+      (create-widget "address-translator" widget-gadget-translator
+		     :watch uma :change emdo
+		     :translate-function 
+		     (lambda (a b) 
+		       (let ((user-mail-address (get-value a)))
+			 (set-value b (econfig-mail-showfrom mail-from-style)
+				    this))))
+      )
+
+    (create-widget "Signature File :" widget-labeled-text :text-length 50
+		   :value (data-object-symbol "sig-file"
+					      :symbol 'mail-signature-file))
+    
+    (create-widget "Auto load signature file" widget-toggle-button
+		   :state (data-object-symbol "mail-signature"
+					      :symbol 'mail-signature))
+    (create-widget  "Spellcheck outbound messages" widget-toggle-button
+		    :state (data-object-symbol-hook
+			    "spellcheck"
+			    :symbol 'mail-send-hook
+			    :command "(lambda () (if (y-or-n-p \"Spell message?\") (ispell-message)))"
+			    ))
+
+    (create-widget "Citation Prefix:" widget-labeled-text :text-length 10
+		   :value (data-object-symbol "cite-pref"
+					      :symbol 'mail-yank-prefix))
+    (create-widget "cite-pref" widget-label
 		   :x 3 :y -1 :label-value
 		   "This appears before quoted text. Usually `>'")
 
@@ -461,108 +373,70 @@ useful for sending email."
 useful calendar mode."
   (interactive)
   (dlg-init)
-  (let ((oframe (create-widget "Toggle Frame caloptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Calendar Options"))
-	)
-    (create-widget "cal-lat" widget-label oframe
-		   :x 1 :y 1 :label-value "Latitude :")
-    (create-widget "cal-lat-txt" widget-text-field oframe
-		   :width 10 :height 1 :x -2 :y t 
-		   :value (data-object-symbol-string-to-int "calendar-latitude"
-					      :symbol 'calendar-latitude
-					      :value 
-					      (if (numberp calendar-latitude)
-						  (int-to-string calendar-latitude)
-						nil)))
-    (create-widget "cal-lat-unit" widget-label oframe
-		   :x -3 :y t :label-value "Degrees")
-    
-    (create-widget "cal-lon" widget-label oframe
-		   :x 1 :y -1 :label-value "Longitude:")
-    (create-widget "cal-lat-txt" widget-text-field oframe
-		   :width 10 :height 1 :x -2 :y t 
-		   :value (data-object-symbol-string-to-int "longitude"
-					      :symbol 'calendar-longitude
-					      :value 
-					      (if (numberp calendar-longitude)
-						  (int-to-string calendar-longitude)
-						nil)))
-    
-    (create-widget "cal-lon-unit" widget-label oframe
-		   :x -3 :y t :label-value "Degrees")
-    )
-  (let ((oframe (create-widget "Toggle Frame holoptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Holiday Options"))
-	)
-    (create-widget "christian" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Show all Christian Holidays"
-		   :state (data-object-symbol "all-christian-calendar-holidays"
-					      :value all-christian-calendar-holidays
-					      :symbol 'all-christian-calendar-holidays))
+  (dialog-build-group (create-widget "Calendar Options" widget-frame)
 
-    (create-widget "hebrew" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Show all Hebrew Holidays"
-		   :state (data-object-symbol "all-hebrew-calendar-holidays"
-					      :value all-hebrew-calendar-holidays
-					      :symbol 'all-hebrew-calendar-holidays))
+    (create-widget "Latitude :" widget-labeled-text
+		   :unit "Degrees" :text-length 10
+		   :value (data-object-symbol-string-to-int 
+			   "calendar-latitude"
+			   :symbol 'calendar-latitude))
 
-    (create-widget "islamic" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Show all Islamic Holidays"
-		   :state (data-object-symbol "all-islamic-calendar-holidays"
-					      :value all-islamic-calendar-holidays
-					      :symbol 'all-islamic-calendar-holidays))
+    (create-widget "Longitude:" widget-labeled-text
+		   :unit "Degrees" :text-length 10
+		   :value (data-object-symbol-string-to-int 
+			   "calendar-longitude"
+			   :symbol 'calendar-longitude))
 
-    (create-widget "showhol" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Show Holidays at Startup"
-		   :state (data-object-symbol "view-calendar-holidays-initially"
-					      :value view-calendar-holidays-initially
-					      :symbol 'view-calendar-holidays-initially))
 
     )
-  (let ((oframe (create-widget "Toggle Frame apptoptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Appointment Options"))
-	)
-    (create-widget "diaryfile" widget-label oframe
-		   :x 1 :y 1 :label-value "Diary File:")
-    (create-widget "diaryfile-txt" widget-text-field oframe
-		   :width 20 :height 1 :x -2 :y t 
+  (dialog-build-group (create-widget "Holiday Options" widget-frame)
+
+    (create-widget "Show all Christian Holidays" widget-toggle-button
+		   :state (data-object-symbol 
+			   "all-christian-calendar-holidays"
+			   :symbol 'all-christian-calendar-holidays))
+
+    (create-widget "Show all Hebrew Holidays" widget-toggle-button
+		   :state (data-object-symbol
+			   "all-hebrew-calendar-holidays"
+			   :symbol 'all-hebrew-calendar-holidays))
+
+    (create-widget "Show all Islamic Holidays" widget-toggle-button
+		   :state (data-object-symbol
+			   "all-islamic-calendar-holidays"
+			   :symbol 'all-islamic-calendar-holidays))
+
+    (create-widget "Show Holidays at Startup" widget-toggle-button
+		   :state (data-object-symbol 
+			   "view-calendar-holidays-initially"
+			   :symbol 'view-calendar-holidays-initially))
+
+    )
+  (dialog-build-group (create-widget "Appointment Options" widget-frame)
+
+    (create-widget "Diary File:" widget-labeled-text
+		   :text-length 20
 		   :value (data-object-symbol "diaryfile"
-					      :symbol 'diary-file
-					      :value diary-file))
-    (create-widget "do-appointments" widget-toggle-button oframe
-		   :x 1 :y -2 :label-value "Warn of impending appointments"
+					      :symbol 'diary-file))
+
+    (create-widget "Warn of impending appointments" widget-toggle-button
 		   :state (data-object-symbol-hook
 			   "diary-hook"
-			   :value (member 'appt-make-list  diary-hook)
 			   :symbol 'diary-hook
 			   :command "appt-make-list"))
-    (create-widget "noisy" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Appointments Audible"
+    (create-widget "Appointments Audible" widget-toggle-button
 		   :state (data-object-symbol "appt-audible"
-					      :value appt-audible
 					      :symbol 'appt-audible))
-    (create-widget "visible" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Appointments Displayed"
+    (create-widget "Appointments Displayed" widget-toggle-button
 		   :state (data-object-symbol "apt-display-diary"
-					      :value appt-display-diary
 					      :symbol 'appt-display-diary))
-    (create-widget "modeline" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Display Appointment Time in Modeline"
+    (create-widget "Display Appointment Time in Modeline" widget-toggle-button
 		   :state (data-object-symbol "apt-display-mode-line"
-					      :value appt-display-mode-line
 					      :symbol 'appt-display-mode-line))
-    (create-widget "showappts" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Show Appointments at Startup"
+    (create-widget "Show Appointments at Startup" widget-toggle-button
 		   :state (data-object-symbol "view-diary-entries-initially"
-					      :value view-diary-entries-initially
 					      :symbol 'view-diary-entries-initially))
-
+    
     )
   (dlg-end)
   (dialog-refresh)
@@ -577,50 +451,29 @@ useful for ps-print."
   (interactive)
   (dlg-init)
   (require 'ps-print)
-  (let ((oframe (create-widget "Toggle Frame psprintoptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Postscript Printing Options"))
-	)
-    (create-widget "header" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Print header on each page."
+  (dialog-build-group (create-widget "Postscript Printing Options" widget-frame)
+
+    (create-widget "Print header on each page." widget-toggle-button
 		   :state (data-object-symbol "ps-print-header"
-					      :value ps-print-header
 					      :symbol 'ps-print-header))
      
-    (create-widget "headerframe" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Print gaudy frame around header."
+    (create-widget "Print gaudy frame around header." widget-toggle-button
 		   :state (data-object-symbol "ps-print-header-frame"
-					      :value ps-print-header-frame
 					      :symbol 'ps-print-header-frame))
     
-   (create-widget "color" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Print with color."
+    (create-widget "Print with color." widget-toggle-button
 		   :state (data-object-symbol "ps-print-color-p"
-					      :value ps-print-color-p
 					      :symbol 'ps-print-color-p))
 
-    (create-widget "ps-font-size" widget-label oframe
-		   :x 1 :y -2 :label-value "Printed Font Size:")
-    (create-widget "ps-font-size-txt" widget-text-field oframe
-		   :width 5 :height 1 :x -2 :y t 
+    (create-widget "Printed Font Size:" widget-labeled-text
+		   :unit "Pts" :text-length 5
 		   :value (data-object-symbol-string-to-int "fontds-size"
-					      :symbol 'ps-font-size
-					      :value 
-					      (if (numberp ps-font-size)
-						  (int-to-string ps-font-size)
-						10)))
-    (create-widget "ps-font-size-unit" widget-label oframe
-		   :x -3 :y t :label-value "Pts")
+					      :symbol 'ps-font-size))
 
-    (create-widget "psprintcmd" widget-label oframe
-		   :x 1 :y -2 :label-value "Print command    :")
-    (create-widget "psprintcmd-txt" widget-text-field oframe
-		   :width 20 :height 1 :x -2 :y t 
+    (create-widget "Print command    :" widget-labeled-text
+		   :text-length 20
 		   :value (data-object-symbol "ps-lpr-command"
-					      :symbol 'ps-lpr-command
-					      :value ps-lpr-command))
-    
+					      :symbol 'ps-lpr-command))
     )
   (dlg-end)
   (dialog-refresh)
@@ -633,125 +486,88 @@ useful for ps-print."
   "Creates a configure window with variables modifying how font lock is used."
   (interactive)
   (dlg-init)
-  (let ((oframe (create-widget "Toggle Frame buffoptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Font Lock Options"))
-	)
-    (if (or (> emacs-major-version 19)
-	    (> emacs-minor-version 31))
-	(create-widget "alwayson" widget-toggle-button oframe
-		       :x 1 :y 1 :label-value "Always activate font-lock"
-		       :state (data-object-command-option
-			       "font-lock"
-			       :value (dlg-quick-find 
-				       "^\\s-*(global-font-lock-mode t)" 
-				       dlg-config-file)
-			       :command "(global-font-lock-mode t)"
-			       :disable-command "(global-font-lock-mode nil)"))
-    
-      (create-widget "alwayson" widget-toggle-button oframe
-		     :x 1 :y 1 :label-value "Always activate font-lock"
-		     :state (data-object-symbol-hook
-			     "font-lock"
-			     :value (member 'turn-on-font-lock find-file-hooks)
-			     :symbol 'find-file-hooks
-			     :command "turn-on-font-lock")))
+  (dialog-build-group (create-widget "Font Lock Options" widget-frame)
 
-    (create-widget "maxdecor" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Always use maximum decoration"
-		   :state (data-object-symbol "font-lock-maximum-decoration"
-					      :value font-lock-maximum-decoration
-					      :symbol 'font-lock-maximum-decoration))
+    (create-widget  "Always activate font-lock" widget-toggle-button
+		    :state 
+		    (if (or (> emacs-major-version 19)
+			    (> emacs-minor-version 31))
+			(data-object-command-option
+			 "font-lock"
+			 :command "(global-font-lock-mode t)"
+			 :disable-command "(global-font-lock-mode nil)")
+		      (data-object-symbol-hook
+		       "font-lock"
+		       :symbol 'find-file-hooks
+		       :command "turn-on-font-lock")))
 
-    (create-widget "lazylock" widget-toggle-button oframe
-		   :x 1 :y -2 :label-value "Use Lazy-Lock (deferred font locking)"
-		   :state (data-object-symbol-hook 
-			   "font-lock-support-mode-lazy"
-			   :value (or
-				   (equal font-lock-support-mode 'lazy-lock-mode)
-				   (and (listp font-lock-support-mode)
-					(member 'lazy-lock-mode font-lock-support-mode)))
-			   :symbol 'font-lock-support-mode
-			   :command "lazy-lock-mode"))
+    (create-widget "Always use maximum decoration" widget-toggle-button
+		   :state (data-object-symbol 
+			   "font-lock-maximum-decoration"
+			   :symbol 'font-lock-maximum-decoration))
 
-    (create-widget "fastlock" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Use Fast-Lock (cached font lock info)"
-		   :state (data-object-symbol-hook 
-			   "font-lock-support-mode-fast"
-			   :value (or
-				   (equal font-lock-support-mode 'fast-lock-mode)
-				   (and
-				    (list font-lock-support-mode)
-				    (member 'fast-lock-mode font-lock-support-mode)))
-			   :symbol 'font-lock-support-mode
-			   :command "fast-lock-mode"))
-    )
+    (dialog-build-group (create-widget "Font Lock Enhancers" widget-radio-frame
+				       ;; In this situation, lets
+				       ;; turn off some of the sides, and
+				       ;; it will behave like a separator
+				       :box-sides [nil nil t nil]
+				       :position 'top-right
+				       :state
+				       (data-object-symbol-list-index
+					"lazy-or-fast"
+					:symbol 'font-lock-support-mode
+					:string-list 
+					'("nil" "'lazy-lock-mode"
+					  "'fast-lock-mode")
+					:value 
+					(cond 
+					 ((eq mail-from-style 'fast-lock-mode)
+					  2)
+					 ((eq mail-from-style 'lazy-lock-mode)
+					  1)
+					 (t 0))))
+
+      (create-widget "Use Nothing (No locking enhancers)" widget-radio-button)
+
+      (create-widget "Use Lazy-Lock (deferred font locking)" widget-radio-button)
+
+      (create-widget "Use Fast-Lock (cached font lock info)" widget-radio-button)
+
+      ))
   (require 'lazy-lock)
-  (let ((oframe (create-widget "lazy-lock-buffoptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Lazy Lock Options"))
-	)
-    (create-widget "defer-time" widget-label oframe
-		   :x 1 :y 1 :label-value "Defer Time   :")
-    (create-widget "defer-time-txt" widget-text-field oframe
-		   :width 5 :height 1 :x -2 :y t 
+  (dialog-build-group (create-widget "Lazy Lock Options" widget-frame)
+
+    (create-widget "Defer Time   :" widget-labeled-text
+		   :text-length 5 :unit "Seconds"
 		   :value (data-object-symbol-string-to-int 
 			   "defer-time"
-			   :symbol 'lazy-lock-defer-time
-			   :value 
-			   (number-to-string lazy-lock-defer-time)))
-    (create-widget "defer-time-unit" widget-label oframe
-		   :x -3 :y t :label-value "Seconds")
+			   :symbol 'lazy-lock-defer-time))
     
-    (create-widget "stealthverbose" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Stealth Mode verbosity"
-		   :state (data-object-symbol "lazy-lock-stealth-verbose"
-					      :value lazy-lock-stealth-verbose
-					      :symbol 'lazy-lock-stealth-verbose))
+    (create-widget "Stealth Mode verbosity" widget-toggle-button
+		   :state (data-object-symbol
+			   "lazy-lock-stealth-verbose"
+			   :symbol 'lazy-lock-stealth-verbose))
 
-    (create-widget "stealth-time" widget-label oframe
-		   :x 1 :y -1 :label-value "Stealth Time :")
-    (create-widget "stealth-time-txt" widget-text-field oframe
-		   :width 5 :height 1 :x -2 :y t 
+    (create-widget "Stealth Time :" widget-labeled-text
+		   :text-length 5 :unit "Seconds"
 		   :value (data-object-symbol-string-to-int 
 			   "stealth-time"
-			   :symbol 'lazy-lock-stealth-time
-			   :value 
-			   (number-to-string lazy-lock-stealth-time)))
-    (create-widget "stealth-time-unit" widget-label oframe
-		   :x -3 :y t :label-value "Seconds")
+			   :symbol 'lazy-lock-stealth-time))
 
-    (create-widget "stealth-lines" widget-label oframe
-		   :x 1 :y -1 :label-value "Stealth Lines:")
-    (create-widget "stealth-lines-txt" widget-text-field oframe
-		   :width 5 :height 1 :x -2 :y t 
+    (create-widget "Stealth Lines:" widget-labeled-text
+		   :text-length 5 :unit "Lines"
 		   :value (data-object-symbol-string-to-int 
 			   "stealth-lines"
-			   :symbol 'lazy-lock-stealth-lines
-			   :value 
-			   (number-to-string lazy-lock-stealth-lines)))
-    (create-widget "stealth-lines-unit" widget-label oframe
-		   :x -3 :y t :label-value "Lines")
-    
-
+			   :symbol 'lazy-lock-stealth-lines))
     )
   (require 'fast-lock)
-  (let ((oframe (create-widget "fast-lock-buffoptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Fast Lock Options"))
-	)
+  (dialog-build-group (create-widget "Fast Lock Options" widget-frame)
 
-    (create-widget "saveothers" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Save font cache for files belonging to others"
-		   :state (data-object-symbol "fast-lock-save-others"
-					      :value fast-lock-save-others
-					      :symbol 'fast-lock-save-others))
-
+    (create-widget  "Save font cache for files belonging to others" 
+		    widget-toggle-button
+		    :state (data-object-symbol "fast-lock-save-others"
+					       :symbol 'fast-lock-save-others))
     )
-
   (dlg-end)
   (dialog-refresh)
   )
