@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.65 2003/12/04 22:00:37 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.66 2003/12/11 00:58:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -121,6 +121,13 @@ Checked on retrieval to make sure the file is the same.")
 		     "List of vectors specifying unmatched syntax.")
    )
   "A single table of tags derived from file.")
+
+(defmethod object-print ((obj semanticdb-table) &rest strings)
+  "Pretty printer extension for `semanticdb-abstract-table'.
+Adds the number of tags in this file to the object print name."
+  (apply 'call-next-method obj
+	 (cons (format " (%d tags)" (length (semanticdb-get-tags obj)))
+	       strings)))
 
 (defclass semanticdb-project-database (eieio-instance-tracker)
   ((tracking-symbol :initform semanticdb-database-list)
