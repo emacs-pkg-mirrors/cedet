@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.21 2004/03/24 13:33:20 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.22 2004/03/30 10:12:50 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -189,6 +189,7 @@ If optional LEFT is non-nil insert spaces on left."
 (defvar wisent-new-log-flag nil
   "non-nil means to start a new report.")
 
+;;;###autoload
 (defvar wisent-verbose-flag nil
   "*non-nil means to report verbose information on generated parser.")
 
