@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.115 2003/04/09 00:47:19 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.116 2003/04/19 02:58:07 emacsman Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; API for acessing and searching nonterminal streams from the
+;; API for accessing and searching nonterminal streams from the
 ;; Semantic Bovinator.
 ;;
 
@@ -259,7 +259,7 @@ buckets with the bucket function."
 	(setq out (cons (car tags) out)))
        )
       (setq tags (cdr tags)))
-    ;; Rescan out, by decending into all types and finding parents
+    ;; Rescan out, by descending into all types and finding parents
     ;; for all entries moved into the parent-buckets.
     (while decent-list
       (let* ((bucket (assoc (semantic-tag-name (car decent-list))
@@ -296,11 +296,11 @@ buckets with the bucket function."
 			   (car tmp)
 			   semantic-orphaned-member-metaparent-type
 			   nil ;; Part list
-			   nil ;; parents (unknow)
+			   nil ;; parents (unknown)
 			   ))
 		 (partcdr (nthcdr 3 fauxtok))
 		 (bucketkids (cdr tmp)))
-	    (semantic--tag-put-property fauxtok 'faux t) ;; proprties
+	    (semantic--tag-put-property fauxtok 'faux t) ;; properties
 	    (if semantic-mark-external-member-function
 		(setq bucketkids
 		      (mapcar (lambda (tok)
@@ -394,7 +394,7 @@ Return the sorted list."
 ;; but will add full recursion through the dependencies list per
 ;; stream.
 (defun semantic-recursive-find-nonterminal-by-name (name buffer)
-  "Recursivly find the first occurance of NAME.
+  "Recursively find the first occurrence of NAME.
 Start search with BUFFER.  Recurse through all dependencies till found.
 The return item is of the form (BUFFER TOKEN) where BUFFER is the buffer
 in which TOKEN (the token found to match NAME) was found.
@@ -520,7 +520,7 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
   (if (not (eq (semantic-tag-class tag) 'include))
       (signal 'wrong-type-argument (list tag 'include)))
 
-  ;; First, see if this file exists in the current EDE projecy
+  ;; First, see if this file exists in the current EDE project
   (if (and (fboundp 'ede-expand-filename) ede-minor-mode
 	   (ede-expand-filename (ede-toplevel)
 				(semantic-tag-name tag)))
@@ -581,7 +581,7 @@ depended on, and functions will move to the specified definition."
 		      ;; may be deoverlayed.
 		      (set-buffer (semantic-tag-buffer parent)))
 		  (goto-char (semantic-tag-start parent))
-		  ;; Here we make an assumtion that the text returned by
+		  ;; Here we make an assumption that the text returned by
 		  ;; the bovinator and concocted by us actually exists
 		  ;; in the buffer.
 		  (re-search-forward (semantic-tag-name token) nil t)))))))))
@@ -590,8 +590,8 @@ depended on, and functions will move to the specified definition."
 (defun semantic-find-documentation (&optional token nosnarf)
   "Find documentation from TOKEN and return it as a clean string.
 TOKEN might have DOCUMENTATION set in it already.  If not, there may be
-some documentation in a comment preceeding TOKEN's definition which we
-cal look for.  When appropriate, this can be overridden by a language specific
+some documentation in a comment preceding TOKEN's definition which we
+can look for.  When appropriate, this can be overridden by a language specific
 enhancement.
 Optional argument NOSNARF means to only return the flex token for it.
 If nosnarf if 'flex, then only return the flex token."
@@ -660,7 +660,7 @@ If NOSNARF is 'flex, then return the flex token."
 
 (defun semantic-prototype-file (buffer)
   "Return a file in which prototypes belonging to BUFFER should be placed.
-Default behavior (if not overriden) looks for a token specifying the
+Default behavior (if not overridden) looks for a token specifying the
 prototype file, or the existence of an EDE variable indicating which
 file prototypes belong in."
   (let ((s (semantic-fetch-overload 'prototype-file)))
@@ -683,14 +683,14 @@ file prototypes belong in."
 (define-overload semantic-nonterminal-external-member-parent (token)
   "Return a parent for TOKEN when TOKEN is an external member.
 TOKEN is an external member if it is defined at a toplevel and
-has some sort of label defing a parent.  The parent return will
+has some sort of label defining a parent.  The parent return will
 be a string.
 
-The default behavior, if not overriden with
+The default behavior, if not overridden with
 `nonterminal-external-member-parent' is get the 'parent extra
 specifier of TOKEN.
 
-If this function is overriden, use
+If this function is overridden, use
 `semantic-nonterminal-external-member-parent-default' to also
 include the default behavior, and merely extend your own."
   )
@@ -710,11 +710,11 @@ TOKEN is an external member of PARENT when it is somehow tagged
 as having PARENT as it's parent.
 PARENT and TOKEN must both be semantic tokens.
 
-The default behavior, if not overriden with
+The default behavior, if not overridden with
 `nonterminal-external-member-p' is to match 'parent extra specifier in
 the name of TOKEN.
 
-If this function is overriden, use
+If this function is overridden, use
 `semantic-nonterminal-external-member-children-p-default' to also
 include the default behavior, and merely extend your own."
   )
@@ -739,12 +739,12 @@ TOKEN, such as the parts of a type, but which are not defined inside
 the class.  C++ and CLOS both permit methods of a class to be defined
 outside the bounds of the class' definition.
 
-The default behavior, if not overriden with
+The default behavior, if not overridden with
 `nonterminal-external-member-children' is to search using
 `semantic-nonterminal-external-member-p' in all top level definitions
 with a parent of TOKEN.
 
-If this function is overriden, use
+If this function is overridden, use
 `semantic-nonterminal-external-member-children-default' to also
 include the default behavior, and merely extend your own."
   )
@@ -778,7 +778,7 @@ This function returns on of the following symbols:
 Some languages may choose to provide additional return symbols specific
 to themselves.  Use of this function should allow for this.
 
-The default behavior (if not overriden with `nonterminal-protection'
+The default behavior (if not overridden with `nonterminal-protection'
 is to return a symbol based on type modifiers."
   (let* ((s (semantic-fetch-overload 'nonterminal-protection)))
     (if s (funcall s token parent)
@@ -809,9 +809,9 @@ See `semantic-nonterminal-protection'."
   "Return non nil if TOKEN is abstract.
 Optional PARENT is the parent token of TOKEN.
 In UML, abstract methods and classes have special meaning and behavior
-in how methods are overriden.  In UML, abstract methods are italicized.
+in how methods are overridden.  In UML, abstract methods are italicized.
 
-The default behavior (if not overriden with `nonterminal-abstract'
+The default behavior (if not overridden with `nonterminal-abstract'
 is to return true if `abstract' is in the type modifiers."
   (let* ((s (semantic-fetch-overload 'nonterminal-abstract)))
     (if s (funcall s token parent)
@@ -834,7 +834,7 @@ See `semantic-nonterminal-abstract'."
 Optional PARENT is the parent token of TOKEN.
 In UML, leaf methods and classes have special meaning and behavior.
 
-The default behavior (if not overriden with `nonterminal-leaf'
+The default behavior (if not overridden with `nonterminal-leaf'
 is to return true if `leaf' is in the type modifiers."
   (let* ((s (semantic-fetch-overload 'nonterminal-leaf)))
     (if s (funcall s token parent)
@@ -1054,7 +1054,7 @@ If TOKEN is not specified, use the token at point."
 ;;
 ;; Some hacks to help me test these functions
 (defun semantic-current-token (p)
-  "Display the curent token.
+  "Display the current token.
 Argument P is the point to search from in the current buffer."
   (interactive "d")
   (let ((tok (semantic-brute-find-innermost-tag-by-position
@@ -1064,7 +1064,7 @@ Argument P is the point to search from in the current buffer."
   )
 
 (defun semantic-hack-search ()
-  "Disply info about something under the cursor using generic methods."
+  "Display info about something under the cursor using generic methods."
   (interactive)
   (let (
 	;(name (thing-at-point 'symbol))
