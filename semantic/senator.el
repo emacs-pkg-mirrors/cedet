@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.71 2003/04/09 12:12:20 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.72 2003/05/19 07:23:16 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -963,20 +963,15 @@ use `imenu--mouse-menu' to handle the popup menu."
           (or (cdr index)
               ;; ... If only one menu item, no need to popup the menu.
               (setq item (car index))))))
-      
       (or item
-          (setq item ;; Delegates menu handling to imenu :-)
-                (let* ((senator-completion-selected-item nil)
-                       (imenu-default-goto-function
-                        #'(lambda (name pos &rest rest)
-                            (setq senator-completion-selected-item
-                                  (cons name pos)))))
-                  (imenu--mouse-menu
-                   index
-                   ;; popup at point
-                   (senator-completion-menu-point-as-event)
-                   title)
-                  senator-completion-selected-item)))
+          ;; `imenu--mouse-menu' automagically splits large menu into
+          ;; several submenus, displays the popup menu, and returns
+          ;; the selected item :-)
+          (setq item (imenu--mouse-menu
+                      index
+                      ;; popup at point
+                      (senator-completion-menu-point-as-event)
+                      title)))
       (if item
           (senator-completion-menu-do-complete (cdr item))))))
 
