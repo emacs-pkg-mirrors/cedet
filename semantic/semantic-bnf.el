@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.34 2001/03/05 13:05:34 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.35 2001/03/10 16:20:45 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1005,8 +1005,9 @@ Returns the previous colon's column."
 	  (sc nil))
       (goto-char p)
       (while (and (re-search-backward "^\\s-*;\\s-*$" nil t)
-		  (semantic-bnf-in-lambda-continuation-p))
-	(setq sc t))
+		  (semantic-bnf-in-lambda-continuation-p)))
+      (if (looking-at "\\s-*;")
+	  (setq sc t))
       (if sc
 	  (if (< (point) cp)
 	      ci
