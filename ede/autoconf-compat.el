@@ -2,6 +2,7 @@
 ;;;                        with older emacsen.
 ;; Delta: 1) this comment
 ;;           provide `autoconf-compat' instead of autoconf-mode.
+;;           Added `with-syntax-table' compatibility code.
 
 ;;; autoconf.el --- Mode for editing Autoconf configure.in files.
 
@@ -9,7 +10,7 @@
 
 ;; Author: Dave Love <fx@gnu.org>
 ;; Keywords: languages
-;; $Revision: 1.1 $
+;; $Revision: 1.2 $
 
 ;; This file is part of GNU Emacs.
 
@@ -42,6 +43,28 @@
 ;; for editing the Autoconf M4 source, rather than configure.in files.
 
 ;;; Code:
+
+  (eval-and-compile (if (not (fboundp 'with-syntax-table))
+			
+;; Copied from Emacs 21 for compatibility with released Emacses.
+(defmacro with-syntax-table (table &rest body)
+  "Evaluate BODY with syntax table of current buffer set to a copy of TABLE.
+The syntax table of the current buffer is saved, BODY is evaluated, and the
+saved table is restored, even in case of an abnormal exit.
+Value is what BODY returns."
+  (let ((old-table (make-symbol "table"))
+	(old-buffer (make-symbol "buffer")))
+    `(let ((,old-table (syntax-table))
+	   (,old-buffer (current-buffer)))
+       (unwind-protect
+	   (progn
+	     (set-syntax-table (copy-syntax-table ,table))
+	     ,@body)
+	 (save-current-buffer
+	   (set-buffer ,old-buffer)
+	   (set-syntax-table ,old-table))))))
+
+))
 
 (defvar autoconf-mode-map (make-sparse-keymap))
 
