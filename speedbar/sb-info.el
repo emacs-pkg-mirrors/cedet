@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.13 2000/08/17 03:05:21 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.14 2000/09/22 02:24:24 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -154,7 +154,7 @@ The INDENT level is ignored."
 	  (let ((pop-up-frames t)) (select-window (display-buffer buff)))
 	(dframe-select-attached-frame speedbar-frame)
 	(switch-to-buffer buff)))
-    (if (string-match "^(\\([^)]+\\))\\([^.]+\\)$" node)
+    (if (string-match "^(\\([^)]+\\))\\([^,:]+\\)$" node)
 	(let ((file (match-string 1 node))
 	      (node (match-string 2 node)))
 	  (Info-find-node file node)
@@ -194,7 +194,7 @@ Optional THISFILE represends the filename of"
     (if (not (equal major-mode 'Info-mode))
 	(Info-mode))
     ;; Get the node into this buffer
-    (if (string-match "^(\\([^)]+\\))\\([^.]+\\)$" nodespec)
+    (if (string-match "^(\\([^)]+\\))\\([^,:]+\\)$" nodespec)
 	(let ((file (match-string 1 nodespec))
 	      (node (match-string 2 nodespec)))
 	  (Info-find-node file node))
