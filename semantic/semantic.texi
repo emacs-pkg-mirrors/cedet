@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.7 2000/05/06 01:35:23 zappo Exp $
+@c $Id: semantic.texi,v 1.8 2000/05/25 13:16:45 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -371,6 +371,10 @@ Retrieve the name of @var{TOKEN}.
 Retrieve the documentation of @var{TOKEN}.
 Optional argument @var{BUFFER} indicates where to get the text from.
 If not provided, then only the @var{POSITION} can be provided.
+@end defun
+
+@defun semantic-token-extent token
+Retrieve the extent (@var{START} @var{END}) of @var{TOKEN}."
 @end defun
 
 @defun semantic-token-start token
