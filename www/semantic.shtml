@@ -1,0 +1,164 @@
+<title>Semantic Bovinator</title>
+
+<!--#include file="rightcol.php"-->
+
+<table align=right>
+<tr><td><img src=bovine.jpg></td></tr>
+<tr><td align=center><font size=-2>Logo by David Ponce</font></td></tr>
+</table>
+
+<h2>Semantic Bovinator</h2>
+
+<p>The Semantic Bovinator is a lexer, parser-generator, and parser.
+It is written in <b>Emacs Lisp</b> and is customized to the way Emacs
+thinks about language files, and is optimized to use Emacs' parsing
+capabilities.</p>
+
+<p>The Semantic Bovinator's goal is to provide an intermediate API for
+authors of language agnostic tools who want to deal with languages in
+a generic way.  It also provides a simple way for Mode Authors who are
+expert's in their language, to provide a parser for those tool
+authors, without knowing anything about those tools.</p>
+
+<h3>The Semantic Bovinator is made up of these important pieces:</h3>
+<ol>
+<li>lexer: Converts a language into a token stream
+<li>parser: Converts a token stream into a stream of nonterminals
+            defined by the language.
+<li>parser-generator: Converts a language definition into a table
+            usable by the parser.  (Written using the Semantic Bovinator)
+<li>language definitions: Parsers already existing for the parser
+            generator language (Bovine Normal Form), Emacs Lisp, and
+	    C.
+<li>navigator: Senator is a navigator that permits simple navigation
+	    through the parsed language.
+<li>speedbar browser: Code for browsing a generated nonterminal list
+            with Speedbar.
+<li>Documentation generator: Identifies inline documentation in source
+            code, and can convert it to texinfo.  It can also create
+	    inline documenation.
+</ol>
+
+<h3>Tools in 1.4 beta</h3>
+<ol>
+<li>database: store parsed tokens on a file system.
+      This will provide search and restore capabilities. 
+<li>local context: A mechanism for identifying the local context in a language.
+    (1/2 of this is in 1.4 beta.)
+<li>completion: intelligent completion (Some new completion facilities exist in
+    senator.el)
+<li>intellisense like information via eldoc (definitions in senator.el)
+</ol>
+
+<h3>Tools planned for future versions of Semantic:</h3>
+<ol>
+<li>Faster parsing: David Ponce is working on a bison port to Emacs Lisp.
+<li>local context: A mechanism for identifying the local context in a language.
+<li>completion: intelligent completion
+<li>type analysis library: Analyze the types (structures & classes) in a given
+	  project. (See also <a href=cogre.shtml>COGRE</a>)
+<li>smart templates: Insert code fragments based based intrinsicly
+	  upon the language definition, and available variables and types.
+<li>dependency analysis: Determine if a given dependency is really needed,
+	  or if a dependency is missing.
+<li>comment generation: Create comment templates based on the current
+	  context.
+<li>header file manager: For languages with header files (c, c++), maintain
+	  them from the originating sources.
+<li>Call tree management: Find out where types and functions are used.
+</ol>
+
+<h2>Contribute to Semantic</h2>
+
+<P>Semantic's potential scope is quite large.  If you would like to help
+   semantic push forward, consider participating in one of these fields:</p>
+
+<ul>
+<li>Write a language agnostic tool that uses semantic.  (See proposed
+      tools above.)
+<li>Write a language definition for an unsupported language.
+<li>Maintain one of the language definitions already in semantic, like
+    scheme or C++.
+<li>Test semantic and send in bugs.
+<li>Help with documentation
+</ul>
+
+<h2>Other Tools that use Semantic</h2>
+
+<P><a href=http://jde.sunsite.dk/><b>Java Development Environment (JDE)</b></a>
+   is a full development environment for Java.  It uses Semantic
+   to provide useful Java specific features.</p>
+
+<P><a href=http://home.swipnet.se/mayhem/ecb.html>
+   <b>Emacs Class Browser (ECB)</b></a>
+      lets you browse your files' contents.
+      Uses the Semantic package.</p>
+
+<p><a href=cogre.shtml><b>COGRE</b></a> (pronounced <em>cougar</em>)
+   is a COnnected GRaph Editor for Emacs.
+   As it matures, it will use semantic to reverse-engineer sources
+   into UML diagrams.</p>
+
+<h2>Notes</h2>
+
+<P>Semantic works with Emacs 20.x, 21 pre-release, XEmacs 20.x, and 21.x.
+</p>
+
+<P>The following seems to be fixed with bovinator 1.1 and greater:</p>
+
+<P>Emacs sometimes has trouble with very complex definitions.
+You may need to add this to your .emacs file</p>
+
+<pre>
+(setq max-specpdl-size 1000)
+</pre>
+
+<h2>Download the Semantic Bovinator</h2>
+
+<P>Live on the Edge!  Try
+   <a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
+   Semantic 1.4 beta9</a><br>
+   Semantic 1.4 beta 9 will <b>NOT WORK</b> with JDE 2.2.6, nor 
+   JDE beta 2.2.7 beta 10.  Please use JDE release 2.2.7 or later which
+   explicitly depends on Semantic 1.4 beta 5 or later.
+</p>
+
+<p>The latest stable bovinator:
+<a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
+      semantic-1.3.3.tar.gz</a></p>
+
+<h3>Bovinator Dependencies</h3>
+
+<P>Semantic's speedbar interface requires the
+<a href="speedbar.shtml">latest version of speedbar.</a></p>
+
+<P>Semantic 1.4 introduces the Semantic Database.  This database
+   requires the latest version of
+   <a href="eieio.shtml">EIEIO</a>.
+   To fully compile semantic 1.4, you will also need a copy of
+   <a href="speedbar.shtml">Speedbar</a>.
+
+<P>If semantic kills font-lock, you need to get and use
+<a href=ftp://cedet.sourceforge.net/pub/cedet/overlay-fix.el>
+overlay-fix.el</a>
+Thanks to David Ponce for creating this fix.
+</p>
+
+<h3>RPMS</h3>
+
+<P>RPMS for semantic can be downloaded from
+  <a href=http://sourceforge.net/projects/rte>Real Time Enterprises</a>
+  RPM site at sourceforge.</p>
+
+<h3>Older releases of Semantic</h3>
+
+<P><a href="ftp://cedet.sourceforge.net/pub/cedet/semantic-1.2.1.tar.gz"> semantic-1.2.1.tar.gz</a>
+</p>
+
+<P><a href="ftp://cedet.sourceforge.net/pub/cedet/semantic-1.1.tar.gz"> semantic-1.1.tar.gz</a>
+</p>
+
+
+
+<!--#include file="footer.fsf.shtml"-->
+

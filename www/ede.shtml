@@ -1,0 +1,79 @@
+<TITLE>EDE Homepage</TITLE>
+
+<!--#include file="rightcol.php"-->
+
+<H1>EDE</H1>
+
+<P>Emacs Development Environment.</p>
+
+<p>EDE is an <B>Emacs lisp</B> program which implements an environment
+similar to those found in IDEs (Integrated Development Environment).
+While Emacs is the premier development environment, and has lots of
+support for this activity, EDE brings many divergent commands used for
+debugging, and compiling and sticks them into a simple menu next to
+commands used for maintaining a project file.</p>
+
+<P>What EDE brings to the party is an awareness of how a singular source
+file fits into the overall scheme of an application.  EDE knows what
+target a file belongs to, and will offer the correct options
+automatically when debugging or compiling.</p>
+
+<P>EDE is an object oriented program which defines a set of core
+virtual objects representing a project and target.  Actual
+implementations expound upon these providing the actual
+functionality.</p>
+
+<P>Two project file types are included.  <em>project-am</em> is the
+original project mode which implements these ideas directly on
+pre-existing automake files.  (It cannot created them).
+<em>ede-proj</em> is a different implementation which maintains state
+in a file called <tt>Project.ede</tt>.  This mode autogenerates your
+Makefile whenever you compile so there is no need to learn make.
+Unfortunatly this is only really useful for small projects.</p>
+
+<P>EDE 1.0 will have ede-proj autogenerate automake files
+which will be the default for large projects where the Makefile
+generation is insufficient.</p>
+
+<h2>Dependencies</h2>
+
+<P>EDE 1.0 depends on these lisp packages:<br>
+
+<ul>
+<li><a href=eieio.shtml>EIEIO (0.16)</a>
+    a CLOS implementation for emacs.  EIEIO version 0.16 or later is
+    needed.
+<li><a href=speedbar.shtml>Speedbar (0.13 or better)</a>
+    a file/tag/project hierarchy browser.
+<li><a href=semantic.shtml>Semantic (1.4 or better)</a>
+    a parser generator.  This is not required, but instead
+    will use EDE features in 1.0.
+</ul>
+</p>
+
+<p>EDE 0.6 and earlier depends on the following additional lisp packages:<br>
+
+<ul>
+<li><a href=eieio.shtml>EIEIO (0.12)</a>,
+    a CLOS implementation for emacs.  EIEIO version 0.13 will not work
+    with EDE 0.6 or earlier.
+<li><a href=speedbar.shtml>Speedbar (0.8.1 or better)</a>,
+    a file/tag hierarchy browsser.
+</ul>
+
+<h2>Downloading EDE</h2>
+
+<P>
+Live on the Edge!  Try
+<a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
+EDE 1.0 beta 2</a>
+</p>
+
+
+You can download the last stable version of EDE:<p>
+
+<A HREF="ftp://cedet.sourceforge.net/pub/cedet/EDE-0.6.tar.gz">EDE-0.6.tar.gz</A><p>
+
+<A HREF="ftp://cedet.sourceforge.net/pub/cedet/EDE-0.5.tar.gz">EDE-0.5.tar.gz</A><p>
+
+<!--#include file="footer.fsf.shtml"-->

@@ -1,0 +1,28 @@
+<!-- Generic footer for FSF related web pages -->
+<h3>Having Trouble with the FTP server?</h3>
+
+<P>I do not know why some folks have problems connecting the the FTP
+server.  If you do, try the
+<a href=ftpgate.shtml>ftp->http</a> gate I set up.
+</p>
+
+<br clear=both>
+<hr>
+<A href="http://sourceforge.net"> 
+<IMG src="http://sourceforge.net/sflogo.php?group_id=14932&type=1"
+     width="88" height="31" border="0" alt="SourceForge Logo" align=right>
+</A>
+<A HREF="index.shtml"><IMG SRC="minitreb.jpg" ALT="gnu" ALIGN=LEFT></A>
+<A HREF="http://www.ultranet.com/~zappo/index.shtml">Eric's homepage</A><BR>
+<A HREF="index.php">Return to CEDET.</A><BR>
+Send mail to
+<A HREF="mailto:zappo@gnu.org">zappo@gnu.org</A> to contact me.<br>
+Visit
+<A HREF="http://www.siege-engine.com">Siege-engine.com</a>
+to see what I do in analog land.
+<FONT SIZE=-2>
+<P>Copyright(C) 1997,98,99,2000,01 Eric M. Ludlam<BR>
+   Verbatim copying and distribution is permitted in any medium,
+   provided this notice is preserved.<BR>
+</FONT>
+<BR CLEAR=BOTH>

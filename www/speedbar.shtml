@@ -1,0 +1,111 @@
+<TITLE>Speedbar Homepage</TITLE>
+
+<!--#include file="rightcol.php"-->
+<img src=speedbar-2.jpg align=left>
+
+<h2>Speedbar for Emacs</h2>
+
+<P>Speedbar is an <B>Emacs Lisp</B> program which allows you to create a
+special skinny frame with a specialized directory listing in it.  This
+listing will have both directories and filtered files in it.  You can
+then load files into your emacs frame, or expand the files to display
+all the tags that are in them and jump to those tags.  You can also
+expand multiple directories into your speedbar frame.</P>
+
+<P>Using Shift with the mouse is considered a "power click" which will
+ignore any cached data that might be related to the navigation
+desired.  When loading a file, a power click will pull that file into
+a new frame.</P>
+
+<P>For PC users with two button mice, a button1 double click acts as
+the mouse-2 click most emacs users are familiar with.</P>
+
+<P>Additional keyboard commands are available for friendly file IO
+functions such as Rename/Copy/Delete, Loading lisp files, and
+compiling lisp files.</P>
+
+<table align=right>
+<td>
+<a href=speedbar-multi.jpg>
+<center>
+<img src=speedbar-multi.jpg alt=speedbar-multi-jpm width=100 height=100>
+</a>
+<br>
+<font size=-2>
+3 Modes for speedbar
+</font>
+</center>
+</td>
+</table>
+
+<P>Speedbar is more than just file browsing, however.  Speedbar is a
+   generalized browser.  Speedbar supports:
+
+<ul>
+<li> multiple tagging methods for files (such as etags, imenu, and semantic)
+<li> multiple major display modes (such as buffer lists, project lists,
+   and EIEIO class browsing,)
+<li> multiple minor display modes that appear when you view special files,
+     such as Info pages, or read mail with RMAIL.
+</ul>
+</p>
+
+<h2>About the picture</h2>
+
+<P>Starting with Speedbar 0.11, images are now supported to represent files and tags.  This screen shot was taken using Emacs 21 pre-release, using
+ <a href=semantic.shtml>Semantic</a> for tag generation.  Any version
+ of XEmacs should generate a similar picture.
+</p>
+
+<P>Speedbar works with Emacs 19.3x, 20.x, and 21 pre-release.  It also works with XEmacs 20.x, and 21.x.
+</p>
+
+<h2>Speedbar Enabled tools:</h2>
+
+<P>There are several speedbar enabled tools above and beyond those
+   implicitly supported by default.</p>
+
+<ul>
+<li>
+    VHDL mode has a very fancy class browser for VHDL files.
+<li><a href=http://xslt-process.sourceforge.net/index.php>
+     XSLT-process</a> for Emacs provides XSLT file browsing.
+</ul>
+
+<p>If you know of others, let me know and I'll add a link.</p>
+
+<br clear=both>
+<h2>Downloading speedbar</h2>
+
+<P>
+Live on the Edge!  Try
+<a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
+speedbar 0.14beta1</a>
+</p>
+
+<P>
+<a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
+speedbar-0.13a.tar.gz</A>.  <br>There is a bug in the Makefile of
+speedbar 0.13a.  To build, use the command "make LOADPATH=." to work
+around the problem quickly.
+</P>
+
+<h3>RPMS</h3>
+
+<P>RPMS for speedbar can be downloaded from
+  <a href=http://sourceforge.net/projects/rte>Real Time Enterprises</a>
+  RPM site at sourceforge.</p>
+
+<h3>Older releases of Speedbar</h3>
+
+<P><A HREF="ftp://cedet.sourceforge.net/pub/cedet/speedbar-0.12.tar.gz">
+speedbar-0.12.tar.gz</A>.</P>
+
+<P><A HREF="ftp://cedet.sourceforge.net/pub/cedet/speedbar-0.11.1.tar.gz">
+speedbar-0.11.1.tar.gz</A> fixes some Makefile bugs.</P>
+
+<P><A HREF="ftp://cedet.sourceforge.net/pub/cedet/speedbar-0.10.tar.gz"> speedbar-0.10.tar.gz</A>
+(Now with documentation.)
+</P>
+
+<!--#include file="footer.fsf.shtml"-->
