@@ -1,10 +1,12 @@
 <TITLE>EDE Homepage</TITLE>
 
 <!--#include file="rightcol.php"-->
-
-<H1>EDE</H1>
-
-<P>Emacs Development Environment.</p>
+<table width=100% bgcolor=#000099>
+<tr><td><h2><font color=yellow>EDE:</font></h2></td></tr>
+<tr><td><font color=yellow>"Emacs Development Environment"<br>
+<em>File organizer and Makefile constructor.</em>
+</font></td></tr>
+</table>
 
 <p>EDE is an <B>Emacs lisp</B> program which implements an environment
 similar to those found in IDEs (Integrated Development Environment).
