@@ -4,8 +4,8 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.40 2000/10/04 03:38:26 zappo Exp $
-(defconst ede-version "0.8"
+;; RCS: $Id: ede.el,v 1.41 2000/10/11 03:06:59 zappo Exp $
+(defconst ede-version "0.8 beta 2"
   "Current version of the Emacs EDE.")
 
 ;; This software is free software; you can redistribute it and/or modify
@@ -160,10 +160,11 @@ type is required and the load function used.")
 	 :documentation "Name of this target.")
    (path :initarg :path
 	 :type string
-	 :custom string
-	 :label "Path to target"
-	 :group (default name)
-	 :documentation "The path to this target.")
+	 ;:custom string
+	 ;:label "Path to target"
+	 ;:group (default name)
+	 :documentation "The path to the sources of this target.
+Relative to the path of the project it belongs to.")
    (source :initarg :source
 	   ;; I'd prefer a list of strings.
 	   :type list
@@ -173,12 +174,12 @@ type is required and the load function used.")
 	   :documentation "Source files in this target.")
    ;; Class level slots
    ;;
-   (takes-compile-command :allocation :class
-			  :initarg :takes-compile-command
-			  :type boolean
-			  :initform nil
-			  :documentation
-     "Non-nil if this target requires a user approved command.")
+;   (takes-compile-command :allocation :class
+;			  :initarg :takes-compile-command
+;			  :type boolean
+;			  :initform nil
+;			  :documentation
+;     "Non-nil if this target requires a user approved command.")
    (sourcetype :allocation :class
 	       :type list ;; list of symbols
 	       :documentation
@@ -262,7 +263,13 @@ and target specific elements such as build variables.")
 		:documentation "Keybindings specialized to this type of target."
 		:accessor ede-object-keybindings)
    (menu :allocation :class
-	 :initform nil
+	 :initform
+	 (
+	  [ "Update Version" ede-update-version ede-object ]
+	  [ "Rescan Project Files" ede-rescan-toplevel t ]
+	  [ "Edit Projectfile" ede-edit-file-target
+	    (and ede-object
+		 (not (obj-of-class-p ede-object ede-project))) ])
 	 :documentation "Menu specialized to this type of target."
 	 :accessor ede-object-menu)
    )
@@ -356,33 +363,13 @@ Argument LIST-O-O is the list of objects to choose from."
       (easy-menu-define
        ede-minor-menu ede-minor-keymap "Project Minor Mode Menu"
        '("Project"
-	 [ "Build all" ede-compile-project nil ]
-	 [ "Build Active Project" ede-compile-project t ]
-	 [ "Build Active Target" ede-compile-target t ]
-	 [ "Build Selected..." ede-compile-selected t ]
-	 "---"
-	 [ "Add File" ede-add-file (ede-current-project) ]
-	 [ "Remove File" ede-remove-file
-	   (and ede-object
-		(or (listp ede-object)
-		    (not (obj-of-class-p ede-object ede-project)))) ]
-	 "---"
-	 [ "Select Active Target" 'undefined nil ]
-	 [ "Add Target" ede-new-target (ede-current-project) ]
-	 [ "Remove Target" ede-delete-target ede-object ]
-; Re-enable this when there are some options...
-;	 ( "Target Options" :filter ede-target-forms-menu )
-	 "---"
-	 [ "Select Active Project" 'undefined nil ]
+	 ( "Build" :filter ede-build-forms-menu )
+	 ( "Project Options" :filter ede-project-forms-menu )
+	 ( "Target Options" :filter ede-target-forms-menu )
 	 [ "Create Project" ede-new (not ede-object) ]
-	 [ "Remove Project" 'undefined nil ]
 	 [ "Load a project" ede t ]
-	 [ "Rescan Project Files" ede-rescan-toplevel t ]
-	 [ "Edit Projectfile" ede-edit-file-target
-	   (and ede-object
-		(not (obj-of-class-p ede-object ede-project))) ]
-	 [ "Update Version" ede-update-version ede-object ]
-	 [ "Make distribution" ede-make-dist t ]
+;;	 [ "Select Active Target" 'undefined nil ]
+;;	 [ "Remove Project" 'undefined nil ]
 	 "---"
 	 ( "Customize" :filter ede-customize-forms-menu )
 	 [ "View Project Tree" ede-speedbar t ]
@@ -398,20 +385,72 @@ Argument LIST-O-O is the list of objects to choose from."
 		       ede-minor-keymap))
     ))
 
+(defun ede-build-forms-menu (menu-def)
+  "Create a sub menu for building different parts of an EDE system.
+Argument MENU-DEF is the menu definition to use."
+  (easy-menu-filter-return
+   (easy-menu-create-menu
+    "Build Forms"
+    (let* ((obj (ede-current-project))
+	   (newmenu nil) ;'([ "Build Selected..." ede-compile-selected t ]))
+	   (targets (oref obj targets))
+	   targitems
+	   (tskip nil))
+      ;; First, collect the build items from the project
+      (setq newmenu (append newmenu (ede-menu-items-build obj t)))
+      ;; Second, Declare the current target menu items
+      (if (and ede-object (obj-of-class-p ede-object ede-target))
+	  (setq newmenu (append newmenu
+				(ede-menu-items-build ede-object t))
+		tskip ede-object))
+      ;; Third, by name, enable builds for other local targets
+      (while targets
+	(unless (eq tskip (car targets))
+	  (setq targitems (ede-menu-items-build (car targets) nil))
+	  (setq newmenu
+		(append newmenu
+			(if (= 1 (length targitems))
+			    targitems
+			  (cons (ede-name (car targets))
+				targitems))))
+	  )
+	(setq targets (cdr targets)))
+      ;; Fourth, build sub projects.
+      ;; Fifth, Add make distribution
+      (setq newmenu
+	    (append newmenu
+		    (list [ "Make distribution" ede-make-dist t ])))
+      ;; Return it
+      newmenu
+      ))))
+
 (defun ede-target-forms-menu (menu-def)
   "Create a target MENU-DEF based on the object belonging to this buffer."
   (easy-menu-filter-return
    (easy-menu-create-menu
     "Target Forms"
-    (let* ((obj (or ede-selected-object ede-object))
-	   (defaultitems
-	     '( [ "Target Preferences..." ede-customize-target
-		  (and ede-object
-		       (not (obj-of-class-p ede-object ede-project))) ]
-		)))
-      (if (and obj (oref obj menu))
-	  (append defaultitems (oref obj menu))
-	defaultitems)))))
+    (let ((obj (or ede-selected-object ede-object)))
+      (append
+       '([ "Add File" ede-add-file (ede-current-project) ]
+	 [ "Remove File" ede-remove-file
+	   (and ede-object
+		(or (listp ede-object)
+		    (not (obj-of-class-p ede-object ede-project)))) ])
+       (if (and obj (oref obj menu))
+	   (oref obj menu)))))))
+
+(defun ede-project-forms-menu (menu-def)
+  "Create a target MENU-DEF based on the object belonging to this buffer."
+  (easy-menu-filter-return
+   (easy-menu-create-menu
+    "Project Forms"
+    (let* ((obj (ede-current-project)))
+      (append
+       '( [ "Add Target" ede-new-target (ede-current-project) ]
+	  [ "Remove Target" ede-delete-target ede-object ])
+       (if (and obj (oref obj menu))
+	   (oref obj menu)
+	 nil))))))
 
 (defun ede-customize-forms-menu (menu-def)
   "Create a menu of the project, and targets that can be customized.
@@ -444,6 +483,30 @@ version of the keymap."
 	    (setq keys (cdr keys))))
       (error nil))))
 
+;;; Menu building methods for building
+;;
+(defmethod ede-menu-items-build ((obj ede-project) &optional current)
+  "Return a list of menu items for building project OBJ.
+If optional argument CURRENT is non-nil, return sub-menu code."
+  (if current
+      (list [ "Build Current Project" ede-compile-project t ])
+    (list (vector
+	   (list
+	    (concat "Build Project " (ede-name obj))
+	    `(project-compile-project ,obj))))))
+
+(defmethod ede-menu-items-build ((obj ede-target) &optional current)
+  "Return a list of menu items for building target OBJ.
+If optional argument CURRENT is non-nil, return sub-menu code."
+  (if current
+      (list [ "Build Current Target" ede-compile-target t ])
+    (list (vector
+	   (concat "Build Target " (ede-name obj))
+	   `(project-compile-target ,obj)
+	   t))))
+
+;;; Mode Declarations
+;;
 (eval-and-compile
   (autoload 'ede-dired-minor-mode "ede-dired" "EDE commands for dired" t))
 
@@ -518,10 +581,21 @@ of objects with the `ede-want-file-p' method."
 	  (cond ((or (eq ede-auto-add-method 'ask)
 		     (and (eq ede-auto-add-method 'multi-ask)
 			  (< 1 (length desires))))
-		 (let* ((al (append '(("none" . nil) ("new target" . new))
-				    (object-assoc-list 'name desires)))
-			(ans (completing-read (format "Add %s to target: " (buffer-file-name))
-					      al nil t)))
+		 (let* ((al (append
+			     ;; some defaults
+			     '(("none" . nil)
+			       ("new target" . new))
+			     ;; If we are in an unparented subdir,
+			     ;; offer new a subproject
+			     (if (ede-directory-project-p default-directory)
+				 ()
+			       '(("create subproject" . project)))
+			     ;; Here are the existing objects we want.
+			     (object-assoc-list 'name desires)))
+			(case-fold-search t)
+			(ans (completing-read
+			      (format "Add %s to target: " (buffer-file-name))
+			      al nil t)))
 		   (setq ans (assoc ans al))
 		   (cond ((object-p (cdr ans))
 			  (ede-add-file (cdr ans)))
@@ -905,7 +979,13 @@ Default to making it project relative.
 Argument THIS is the project to convert PATH to."
   (let ((proj (ede-target-parent this)))
     (if proj
-	(ede-convert-path proj path)
+	(let ((p (ede-convert-path proj path))
+	      (lp (or (oref this path) "")))
+	  ;; Our target THIS may have path information.
+	  ;; strip this out of the conversion.
+	  (if (string= (substring p (length lp)) lp)
+	      (substring p (length lp))
+	    p))
       (error "Parentless target %s" this))))
 
 (defmethod ede-want-file-p ((this ede-target) file)
@@ -1065,8 +1145,20 @@ Argument DIR is the directory to trim upwards."
 	 (projtoload nil)
 	 (toppath nil)
 	 (o nil))
-    (if (or (not pfc) ede-constructing)
-	nil
+    (cond
+     ((not pfc)
+      ;; Scan upward for a the next project file.
+      (let ((p path))
+	(while (and p (not (ede-directory-project-p p)))
+	  (setq p (ede-up-directory p)))
+	(if p (ede-load-project-file p)
+	  nil)
+	;; recomment as we go
+	;nil
+	))
+     (ede-constructing
+      nil)
+     (t
       (setq toppath (ede-toplevel-project path))
       ;; We found the top-most directory.  Check to see if we already
       ;; have an object defining it's project.
@@ -1090,7 +1182,7 @@ Argument DIR is the directory to trim upwards."
 		(append (cdr tocheck) (oref (car tocheck) subproj))))
 	(if (not found)
 	    (error "No project for %s, but passes project-p test" file))
-	found))))
+	found)))))
 
 (defun ede-toplevel (&optional subproj)
   "Return the ede project which is the root of the current project.
@@ -1168,14 +1260,22 @@ could become slow in time."
 	      (setq targets (cdr targets)))
 	    f)))))
 
+(defmethod ede-target-buffer-in-sourcelist ((this ede-target) buffer source)
+  "Return non-nil if object THIS is in BUFFER to a SOURCE list.
+Handles complex path issues."
+  (let* ((p (ede-convert-path this (buffer-file-name buffer)))
+	 (path (file-name-directory p))
+	 (file (file-name-nondirectory p)))
+    (and (or (not path) (string= path (oref this path)))
+	 (member file source))))
+
 (defmethod ede-buffer-mine ((this ede-project) buffer)
   "Return non-nil if object THIS lays claim to the file in BUFFER."
   nil)
 
 (defmethod ede-buffer-mine ((this ede-target) buffer)
   "Return non-nil if object THIS lays claim to the file in BUFFER."
-  (member (ede-convert-path this (buffer-file-name buffer))
-	  (oref this source)))
+  (ede-target-buffer-in-sourcelist this buffer (oref this source)))
 
 
 ;;; Project mapping
