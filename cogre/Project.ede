@@ -44,7 +44,7 @@
    (ede-proj-target-elisp "(cogre.el cogre-uml.el uml-create.el)"
     :name "COGRE"
     :path ""
-    :source '("cogre.el" "cogre-uml.el" "uml-create.el" "cogre-lay.el")
+    :source '("cogre.el" "cogre-uml.el" "uml-create.el")
     :versionsource '("cogre.el")
     :aux-packages '("eieio" "semantic" "semantic-el")
     )
