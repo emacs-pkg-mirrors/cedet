@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.8 2003/08/25 17:12:50 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.8.2.1 2003/10/29 15:07:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -211,10 +211,21 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
   ;; that don't represent files!  We want to have file names.
   (let ((name (semantic-tag-include-filename includetag))
 	(roots (semanticdb-current-database-list))
+	(tmp nil)
 	(ans nil))
-    ;; Relative path name
-    (if (file-exists-p (expand-file-name name))
-	(setq ans (semanticdb-file-table-object name))
+    (cond
+     ;; Relative path name
+     ((file-exists-p (expand-file-name name))
+      (setq ans (semanticdb-file-table-object name)))
+
+     ;; On the path somewhere
+;;;; THIS NEEDS WORK!
+;     ((setq tmp (semantic-dependency-tag-file includetag))
+;      (setq ans (semanticdb-file-table-object tmp))
+;      ;; If we don't load this, then finding include tags within
+;      ;; the table could fail!
+;      (when ans (save-excursion (semanticdb-set-buffer ans))))
+     (t
       ;; Somewhere in our project hierarchy
       ;; Remember: Roots includes system databases which can create
       ;; specialized tables we can search.
@@ -238,6 +249,7 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 		       (semantic-tag-name includetag)))))
 
 	(setq roots (cdr roots))))
+     )
     ans))
 
 ;;; API Functions
