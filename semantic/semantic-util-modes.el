@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.4 2001/10/24 01:11:49 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.5 2001/10/24 22:35:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -108,7 +108,7 @@ function used to toggle the mode."
 
 ;;;###autoload
 (defun global-semantic-show-dirty-mode (&optional arg)
-  "Toggle global use of `semantic-show-dirty' mode.
+  "Toggle global use of `semantic-show-dirty-mode'.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
