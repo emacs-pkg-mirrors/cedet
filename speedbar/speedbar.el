@@ -1,11 +1,11 @@
-;;; speedbar --- quick access to files and tags
+;;; speedbar --- quick access to files and tags in a frame
 
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.6.3.a
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.74 1998/03/05 21:51:46 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.75 1998/03/06 14:31:38 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -2340,13 +2340,13 @@ the file being checked."
     (let ((oa speedbar-obj-alist))
       (while (and oa (not (string-match (car (car oa)) fulln)))
 	(setq oa (cdr oa)))
-      (if (not (and oa (file-exists-p (concat (file-name-sans-extension fn)
+      (if (not (and oa (file-exists-p (concat (file-name-sans-extension fulln)
 					      (cdr (car oa))))))
 	  nil
 	;; Find out if the object is out of date or not.
-	(let ((date1 (nth 5 (file-attributes fn)))
+	(let ((date1 (nth 5 (file-attributes fulln)))
 	      (date2 (nth 5 (file-attributes (concat
-					      (file-name-sans-extension fn)
+					      (file-name-sans-extension fulln)
                                               (cdr (car oa)))))))
 	  (if (or (< (car date1) (car date2))
 		  (and (= (car date1) (car date2))
