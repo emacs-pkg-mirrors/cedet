@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.146 1999/05/18 17:30:25 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.147 1999/05/22 15:17:41 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -1752,24 +1752,34 @@ it from the speedbar buffer."
 nil if not applicable."
   (save-excursion
     (beginning-of-line)
-    (if (re-search-forward " > \\([^ ]+\\)$"
+    (if (re-search-forward " [-+=]?> \\([^ ]+\\)"
 			   (save-excursion(end-of-line)(point)) t)
 	(let ((tag (match-string 1))
-	      (attr (get-text-property (match-beginning 1)
-				       'speedbar-token))
 	      (item nil))
 	  (looking-at "\\([0-9]+\\):")
-	  (setq item (speedbar-line-path (string-to-int (match-string 1))))
-	  (speedbar-message "Tag: %s  in %s @ %s"
-			    tag item (if attr
-					 (if (markerp attr)
-					     (marker-position attr)
-					   attr)
-				       0)))
+	  (setq item (file-name-nondirectory (speedbar-line-path)))
+	  (speedbar-message "Tag: %s  in %s" tag item))
       (if (re-search-forward "{[+-]} \\([^\n]+\\)$"
 			     (save-excursion(end-of-line)(point)) t)
 	  (speedbar-message "Group of tags \"%s\"" (match-string 1))
-	nil))))
+	(if (re-search-forward " [()|@] \\([^\n]+\\)$" nil t)
+	    (let ((detail (match-string 1))
+		  (parent (save-excursion
+			    (beginning-of-line)
+			    (let ((dep (if (looking-at "[0-9]+:")
+					   (1- (string-to-int (match-string 0)))
+					 0)))
+			      (re-search-backward (concat "^"
+							   (int-to-string dep)
+							   ":")
+						  nil t))
+			    (if (looking-at "[0-9]+: +[-+=>]> \\([^\n]+\\)$")
+				(match-string 1)
+			      nil))))
+	      (if parent
+		  (speedbar-message "Detail: %s of tag %s" detail parent)
+		(speedbar-message "Detail: %s of a tag." detail)))
+	  nil)))))
 
 (defun speedbar-files-item-info ()
   "Display info in the mini-buffer about the button the mouse is over."
