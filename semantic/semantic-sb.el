@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.45 2003/09/07 09:02:15 ponced Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.46 2004/03/06 20:14:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,7 +85,11 @@ Optional PREFIX is used to specify special marker characters."
 		       (semantic-tag-function-arguments tag))
 		      ))
 	 (type (semantic-tag-type tag))
-	 (abbrev (funcall semantic-sb-button-format-tag-function tag))
+	 (abbrev (save-excursion
+		   (when (and (semantic-tag-overlay tag)
+			      (semantic-tag-buffer tag))
+		     (set-buffer (semantic-tag-buffer tag)))
+		   (funcall semantic-sb-button-format-tag-function tag)))
 	 (start (point))
 	 (end (progn
 		(insert (int-to-string depth) ":")
