@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.17 1999/04/21 22:23:04 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.18 1999/11/10 14:32:35 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -38,6 +38,7 @@
 
 ;;; History:
 ;; 
+(eval-when-compile (require 'ede-speedbar))
 
 ;; Compatibility for makefile mode.
 (condition-case nil
@@ -716,6 +717,111 @@ STOP-BEFORE is a regular expression matching a file name."
 			(match-end 1))
 		       lst)))
 	  (nreverse lst)))))
+
+;;; Methods used in speedbar
+;;
+(defmethod ede-sb-button ((this project-am-program) depth)
+  "Create a speedbar button for object THIS at DEPTH."
+  (speedbar-make-tag-line 'angle ?+
+			  'ede-object-expand
+			  this (ede-name this)
+			  nil nil  ; nothing to jump to
+			  'speedbar-file-face depth))
+
+(defmethod ede-sb-button ((this project-am-lib) depth)
+  "Create a speedbar button for object THIS at DEPTH."
+  (speedbar-make-tag-line 'angle ?+
+			  'ede-object-expand
+			  this (ede-name this)
+			  nil nil  ; nothing to jump to
+			  'speedbar-file-face depth))
+
+(defmethod ede-sb-button ((this project-am-texinfo) depth)
+  "Create a speedbar button for object THIS at DEPTH."
+  (speedbar-make-tag-line 'bracket ?+
+			  'ede-object-expand
+			  this
+			  (ede-name this)
+			  'ede-file-find
+			  (concat (oref this :path)
+				  (oref this :name))
+			  'speedbar-file-face depth))
+
+(defmethod ede-sb-button ((this project-am-man) depth)
+  "Create a speedbar button for object THIS at DEPTH."
+  (speedbar-make-tag-line 'bracket ?? nil nil
+			  (ede-name this)
+			  'ede-file-find
+			  (concat (oref this :path)
+				  (oref this :name))
+			  'speedbar-file-face depth))
+
+(defmethod ede-sb-button ((this project-am-lisp) depth)
+  "Create a speedbar button for object THIS at DEPTH."
+  (speedbar-make-tag-line 'angle ?+
+			  'ede-object-expand
+			  this (ede-name this)
+			  nil nil  ; nothing to jump to
+			  'speedbar-file-face depth))
+
+(defmethod ede-sb-expand ((this project-am-objectcode) depth)
+  "Expand node describing something built into objectcode.
+TEXT is the text clicked on.  TOKEN is the object we are expanding from.
+INDENT is the current indentatin level."
+  (let ((sources (oref this :source)))
+    (while sources
+      (speedbar-make-tag-line 'bracket ?+
+			      'ede-tag-file
+			      (concat (oref this :path)
+				      (car sources))
+			      (car sources)
+			      'ede-file-find
+			      (concat
+			       (oref this :path)
+			       (car sources))
+			      'speedbar-file-face depth)
+      (setq sources (cdr sources)))))
+
+(defmethod ede-sb-expand ((this project-am-texinfo) depth)
+  "Expand node describing a texinfo manual.
+TEXT is the text clicked on.  TOKEN is the object we are expanding from.
+INDENT is the current indentatin level."
+  (let ((includes (oref this :include)))
+    (while includes
+      (speedbar-make-tag-line 'bracket ?+
+			      'ede-tag-file
+			      (concat (oref this :path)
+				      (car includes))
+			      (car includes)
+			      'ede-file-find
+			      (concat
+			       (oref this :path)
+			       (car includes))
+			      'speedbar-file-face depth)
+      (setq includes (cdr includes)))
+    ;; Not only do we show the included files (for future expansion)
+    ;; but we also want to display tags for this file too.
+    (ede-create-tag-buttons (concat (oref this :path)
+					   (oref this :name))
+				   depth)))
+
+(defmethod ede-sb-expand ((this project-am-lisp) depth)
+  "Expand node describing lisp code.
+TEXT is the text clicked on.  TOKEN is the object we are expanding from.
+INDENT is the current indentatin level."
+  (let ((sources (oref this :lisp)))
+    (while sources
+      (speedbar-make-tag-line 'bracket ?+
+			      'ede-tag-file
+			      (concat (oref this :path)
+				      (car sources))
+			      (car sources)
+			      'ede-file-find
+			      (concat
+			       (oref this :path)
+			       (car sources))
+			      'speedbar-file-face depth)
+      (setq sources (cdr sources)))))
 
 (provide 'project-am)
 
