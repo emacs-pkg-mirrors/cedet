@@ -48,7 +48,7 @@
    (ede-proj-target-elisp "Languages"
     :name "Languages"
     :path ""
-    :source '("semantic-texi.el")
+    :source '("semantic-texi.el" "semantic-html.el")
     )
    (ede-proj-target-elisp "tools"
     :name "tools"
