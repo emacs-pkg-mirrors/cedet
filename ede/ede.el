@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.14 1999/03/20 16:13:56 zappo Exp $
+;; RCS: $Id: ede.el,v 1.15 1999/03/20 17:11:07 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -491,8 +491,11 @@ Optional argument FORCE forces the file to be removed without asking."
 (defun ede-compile-project ()
   "Compile the current project."
   (interactive)
-  (let ((ede-object (ede-current-project)))
-    (ede-invoke-method 'project-compile-project)))
+  (let ((cp (ede-current-project)))
+    (while (ede-parent-project cp)
+      (setq cp (ede-parent-project cp)))
+    (let ((ede-object cp))
+      (ede-invoke-method 'project-compile-project))))
 
 (defun ede-compile-target ()
   "Compile the current buffer's associated target."
@@ -733,10 +736,14 @@ Argument DIR is the directory to trim upwards."
 	    (error "No project for %s, but passes project-p test" file))
 	found))))
 
-(defun ede-parent-project ()
+(defun ede-parent-project (&optional obj)
   "Return the project belonging to the parent directory.
-nil if there is no previous directory."
-  (ede-load-project-file (ede-up-directory default-directory)))
+nil if there is no previous directory.
+Optional argument OBJ is an object to find the parent of."
+  (if obj
+      (ede-load-project-file (ede-up-directory (file-name-directory
+						(oref obj file))))
+    (ede-load-project-file (ede-up-directory default-directory))))
 
 (defun ede-current-project ()
   "Return the current project file."
