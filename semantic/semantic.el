@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.75 2001/01/06 05:23:54 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.76 2001/01/07 02:55:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -470,6 +470,16 @@ Runs `semantic-init-hook' if the major mode is setup to use semantic."
 ;; Test the above hook.
 ;;(add-hook 'semantic-init-hooks (lambda () (message "init for semantic")))
 
+(defun semantic-eval-defun-hook ()
+  "When `eval-defun-hook' is available, use that to partially reparse."
+  (condition-case nil
+      (if (semantic-bovine-toplevel-partial-reparse-needed-p nil)
+	  (semantic-bovinate-toplevel))
+    (error nil)))
+
+(if (boundp 'eval-defun-hooks)
+    (add-hook 'eval-defun-hooks 'semantic-eval-defun-hook))
+
 ;;; Parsing functions
 ;;
 (defun semantic-clear-toplevel-cache ()
@@ -485,6 +495,7 @@ Runs `semantic-init-hook' if the major mode is setup to use semantic."
     )
   ;; Clear the dirty tokens... no longer relevant
   (setq semantic-dirty-tokens nil)
+  (setq semantic-toplevel-bovine-force-reparse t)
   ;; Remove this hook which tracks if a buffer is up to date or not.
   (remove-hook 'after-change-functions 'semantic-change-function t)
   (run-hooks 'semantic-after-toplevel-bovinate-hook))
@@ -503,55 +514,54 @@ Optional argument CHECKCACHE indicates if the cache check should be made."
        checkcache
        semantic-toplevel-bovine-cache-check)))
 
-(defun semantic-bovine-toplevel-partial-reparse-needed-p ()
-  "Return non-nil if the current buffer needs a full reparse."
+(defun semantic-bovine-toplevel-partial-reparse-needed-p (&optional checkcache)
+  "Return non-nil if the current buffer needs a full reparse.
+Optional argument CHECKCACHE indicates if the cache check should be made."
   (and semantic-toplevel-bovine-cache
-       semantic-dirty-tokens))
+       semantic-dirty-tokens
+       (not (semantic-bovine-toplevel-full-reparse-needed-p checkcache))))
 
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer.
 If the optional argument CHECKCACHE is non-nil, then flush the cache iff
 there has been a size change."
-  (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-      (semantic-clear-toplevel-cache))
-  (prog1
-      (cond
-       (semantic-toplevel-bovinate-override
-	;; Call a custom function
-	(funcall semantic-toplevel-bovinate-override checkcache)
-	)
-       ((semantic-bovine-toplevel-partial-reparse-needed-p)
-	;; We have a cache, and some dirty tokens
-	(let ((semantic-bovination-working-type 'dynamic))
-	  (working-status-forms (buffer-name) "done"
-	      (while semantic-dirty-tokens
-		(semantic-rebovinate-token (car semantic-dirty-tokens))
-		(setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
-		(working-dynamic-status))
-	      (working-dynamic-status t)))
-	semantic-toplevel-bovine-cache
-	)
-       (semantic-toplevel-bovine-cache
-	;; We have a cache with stuff in it, so return it
-	semantic-toplevel-bovine-cache
-	)
-       (t
-	;; Reparse the whole system
-	(let ((ss (semantic-flex (point-min) (point-max)))
-	      (res nil)
-	      (semantic-overlay-error-recovery-stack nil))
- 	  ;; Init a dump
-	  (if semantic-dump-parse (semantic-dump-buffer-init))
-	  ;; Parse!
-	  (working-status-forms (buffer-name) "done"
-	    (setq res
-		  (semantic-bovinate-nonterminals
-		   ss 'bovine-toplevel semantic-flex-depth))
-	    (working-status t))
-	  (semantic-set-toplevel-bovine-cache (nreverse res))
-	  semantic-toplevel-bovine-cache)))
-    ))
+  (cond
+   (semantic-toplevel-bovinate-override
+    ;; Call a custom function
+    (funcall semantic-toplevel-bovinate-override checkcache)
+    )
+   ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
+    ;; We have a cache, and some dirty tokens
+    (let ((semantic-bovination-working-type 'dynamic))
+      (working-status-forms (buffer-name) "done"
+	(while semantic-dirty-tokens
+	  (semantic-rebovinate-token (car semantic-dirty-tokens))
+	  (setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
+	  (working-dynamic-status))
+	(working-dynamic-status t)))
+    semantic-toplevel-bovine-cache
+    )
+   ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
+    (semantic-clear-toplevel-cache)
+    ;; Reparse the whole system
+    (let ((ss (semantic-flex (point-min) (point-max)))
+	  (res nil)
+	  (semantic-overlay-error-recovery-stack nil))
+      ;; Init a dump
+      (if semantic-dump-parse (semantic-dump-buffer-init))
+      ;; Parse!
+      (working-status-forms (buffer-name) "done"
+	(setq res
+	      (semantic-bovinate-nonterminals
+	       ss 'bovine-toplevel semantic-flex-depth))
+	(working-status t))
+      (semantic-set-toplevel-bovine-cache (nreverse res))
+      semantic-toplevel-bovine-cache))
+   (t
+    ;; We have a cache with stuff in it, so return it
+    semantic-toplevel-bovine-cache
+    )))
 
 (eval-when-compile (require 'semanticdb))
 
@@ -1172,33 +1182,12 @@ Value is what BODY returns."
 
 ))
 
-(defvar semantic-flex-extensions nil
-  "Buffer local extensions to the lexical analyzer.
-This should contain an alist with a key of a regex and a data element of
-a function.  The function should both move point, and return a lexical
-token of the form ( TYPE START .  END).  nil is also a valid return.")
-(make-variable-buffer-local 'semantic-flex-extensions)
-
+;;; Keyword Table Handling.
+;;
 (defvar semantic-flex-keywords-obarray nil
   "Buffer local keyword obarray for the lexical analyzer.
 These keywords are matched explicitly, and converted into special symbols.")
 (make-variable-buffer-local 'semantic-flex-keywords-obarray)
-
-(defvar semantic-flex-syntax-modifications nil
-  "Updates to the syntax table for this buffer.
-These changes are active only while this file is being flexed.
-This is a list where each element is of the form:
-  (CHAR CLASS)
-Where CHAR is the char passed to `modify-syntax-entry',
-and CLASS is the string also passed to `modify-syntax-entry' to define
-what class of syntax CHAR is.")
-(make-variable-buffer-local 'semantic-flex-syntax-modifications)
-
-(defvar semantic-flex-enable-newlines nil
-  "When flexing, report 'newlines as syntactic elements.
-Useful for languages where the newline is a special case terminator.
-Only set this on a per mode basis, not globally.")
-(make-variable-buffer-local 'semantic-flex-enable-newlines)
 
 (defun semantic-flex-make-keyword-table (keywords &optional propertyalist)
   "Convert a list of KEYWORDS into an obarray.
@@ -1237,6 +1226,58 @@ apply those properties"
   (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
     (if (not sym) (signal 'wrong-type-argument (list text 'keyword)))
     (get sym property)))
+
+;; David Ponce
+(defun semantic-flex-map-keywords (fun &optional property)
+  "Call function FUN on every semantic keyword.
+If optional PROPERTY is non-nil call FUN only on every keyword which
+have a PROPERTY value.  FUN receives a semantic keyword as argument."
+  (if (arrayp semantic-flex-keywords-obarray)
+      (mapatoms
+       (function
+        (lambda (keyword)
+          (and keyword
+               (or (null property) (get keyword property))
+               (funcall fun keyword))))
+       semantic-flex-keywords-obarray)))
+
+;; David Ponce
+(defun semantic-flex-keywords (&optional property)
+  "Return a list of semantic keywords.
+If optional PROPERTY is non-nil return only keyword which have a
+PROPERTY value."
+  (let (keywords)
+    (semantic-flex-map-keywords
+     (function
+      (lambda (keyword)
+        (setq keywords (cons keyword keywords))))
+     property)
+    keywords))
+
+;;; Lexical Analysis
+;;
+(defvar semantic-flex-extensions nil
+  "Buffer local extensions to the lexical analyzer.
+This should contain an alist with a key of a regex and a data element of
+a function.  The function should both move point, and return a lexical
+token of the form ( TYPE START .  END).  nil is also a valid return.")
+(make-variable-buffer-local 'semantic-flex-extensions)
+
+(defvar semantic-flex-syntax-modifications nil
+  "Updates to the syntax table for this buffer.
+These changes are active only while this file is being flexed.
+This is a list where each element is of the form:
+  (CHAR CLASS)
+Where CHAR is the char passed to `modify-syntax-entry',
+and CLASS is the string also passed to `modify-syntax-entry' to define
+what class of syntax CHAR is.")
+(make-variable-buffer-local 'semantic-flex-syntax-modifications)
+
+(defvar semantic-flex-enable-newlines nil
+  "When flexing, report 'newlines as syntactic elements.
+Useful for languages where the newline is a special case terminator.
+Only set this on a per mode basis, not globally.")
+(make-variable-buffer-local 'semantic-flex-enable-newlines)
 
 (defun semantic-flex-buffer (&optional depth)
   "Sematically flex the current buffer.
