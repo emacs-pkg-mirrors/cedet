@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.10 2000/09/25 22:50:12 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.11 2000/09/25 23:13:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -172,7 +172,7 @@ Optional argument NOTYPECHECK specifies not to make subgroups under types."
 		(if res		; in case, e.g. no functions defined
 		    (prog1 (nreverse res) (setcdr res oldlist))))
 	      imenu-sort-function)
-      index)))
+      (nreverse index))))
 
 ;;; Interactive Utilities
 ;;
