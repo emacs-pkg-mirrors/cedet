@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.36 2001/05/25 01:12:10 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.37 2001/06/03 14:01:13 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,14 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.37  2001/06/03 14:01:13  zappo
+# Multi-inheritance for classes.
+# Structs like classes for C++.
+# No ; on name spaces.
+# Throws for methods.
+# (Bugs & patches from "Jesper Nordenberg" <mayhem@home.se>
+# and Norbert Lindlbauer <Norbert_Lindlbauer@betaresearch.de>)
+#
 # Revision 1.36  2001/05/25 01:12:10  zappo
 # (expression): Added string.
 #
@@ -162,11 +170,15 @@
 %token NAMESPACE "namespace"
 %put NAMESPACE summary "Namespace Declaration: namespace <name> { ... };"
 
+%token THROW "throw"
+%put THROW summary "<type> <methoddef> (<method args>) throw (<exception>) ..."
+
 # Leave these alone for now.
 %token OPERATOR "operator"
 %token PUBLIC "public"
 %token PRIVATE "private"
 %token PROTECTED "protected"
+
 
 # These aren't used for parsing, but is a useful place to describe the keywords.
 %token IF "if"
@@ -254,18 +266,21 @@ filename : symbol PERIOD symbol
 	   ( (concat $1 $2 (car $3)) )
 	 ;
 
-structparts : semantic-list
-	      (EXPANDFULL $1 structsubparts)
-	    ;
-
-structsubparts : open-paren "{"
-		 ( nil )
-	       | close-paren "}"
-		 ( nil )
-	       | var-or-fun
-	       | define
-	       # sometimes there are defines in structs.
-	       ;
+# In C++, structures can have the same things as classes.
+# So delete this somday in the figure.
+#
+#structparts : semantic-list
+#	      (EXPANDFULL $1 structsubparts)
+#	    ;
+#
+#structsubparts : open-paren "{"
+#		 ( nil )
+#	       | close-paren "}"
+#		 ( nil )
+#	       | var-or-fun
+#	       | define
+#	       # sometimes there are defines in structs.
+#	       ;
 
 classparts : semantic-list
 	     (EXPANDFULL $1 classsubparts)
@@ -286,11 +301,17 @@ classsubparts : open-paren "{"
 	      | EMPTY
 	      ;
 
-opt-class-parents : COLON opt-class-protection symbol
-		    ( $3 )
+opt-class-parents : COLON class-parents
+		    ( $2 )
 		  | EMPTY
 		    ( )
 		  ;
+
+class-parents : opt-class-protection symbol COMA class-parents
+		( ,(cons $2 $4 ) )
+	      | opt-class-protection symbol
+		( $2 )
+	      ;
 
 opt-class-protection : PUBLIC
 		     | PRIVATE
@@ -306,6 +327,7 @@ namespacesubparts : open-paren "{"
 		  | close-paren "}"
 		    ( nil )
 		  | type
+                  | var-or-fun
 		  | define
 		  | opt-class-protection COLON
 		    ( $1 protection )
@@ -331,22 +353,24 @@ opt-name : symbol
 	   ( nil )
          ;
 
-typesimple : STRUCT opt-name structparts
-	     ( ,$2 type $1 $3 nil nil nil )
+typesimple : struct-or-class opt-name opt-class-parents classparts
+	     ( ,$2 type ,$1 $4 ,$3 nil nil )
 	   | UNION opt-name structparts
 	     ( ,$2 type $1 $3 nil nil nil )
 	   | ENUM opt-name enumparts
 	     ( ,$2 type $1 $3 nil nil nil )	
-           | CLASS symbol opt-class-parents classparts
-	     ( $2 type $1 $4 ,$3 nil nil )
            | TYPEDEF typeform symbol
 	     ( $3 type $1 nil $2 nil nil )
-	   | NAMESPACE symbol namespaceparts
-	     ( $2 type $1 $3 nil nil nil )
            ;
+
+struct-or-class: STRUCT
+	       | CLASS
+	       ;
 
 type : typesimple SEMICOLON
        ( ,$1 )
+     | NAMESPACE symbol namespaceparts
+       ( $2 type $1 $3 nil nil nil )
      ;
 
 opt-stars : STAR opt-stars
@@ -414,15 +438,31 @@ var-or-fun : declmods typeform var-or-func-decl
 	     ( ,(semantic-c-reconstitute-token ,$2 $1 nil ) )
 	   ;
 
-var-or-func-decl : opt-class opt-destructor functionname arg-list fun-or-proto-end
+var-or-func-decl : opt-class opt-destructor functionname arg-list 
+		   opt-throw
+		   fun-or-proto-end
 		   ( ,$3 'function 
 			 ;; Extra stuff goes in here.
 			 ;; Continue with the stuff we found in
 			 ;; this definition
-			$1 $2 $4)
+			$1 $2 $4 $5)
 		 | varnamelist  SEMICOLON
 		   ( $1 'variable )
 		 ;
+
+opt-throw : THROW semantic-list
+	     ( EXPAND $2 throw-exception-list )
+	   | EMPTY
+	   ;
+
+# Is this true?  I don't actually know.
+throw-exception-list : symbol COMA throw-exception-list
+			( ,(cons $1 $3) )
+		      | symbol close-paren ")"
+			( $1 )
+		     | open-paren "(" throw-exception-list
+			( ,$2 )
+		      ;
 
 opt-bits : COLON symbol
 	   ( $2 )
