@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.17 2003/02/07 12:23:02 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.18 2003/02/17 01:45:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -453,11 +453,74 @@ This function can be used for languages that can intelligently fix up
 broken syntax, or the exit lexical analysis via `throw' or `signal'
 when finding unterminated syntax.")
 
+;;; Interactive testing commands
+
+(defun semantic-lex-test (arg)
+  "Test the semantic lexer in the current buffer.
+If universal argument ARG, then try the whole buffer."
+  (interactive "P")
+  (let ((result (semantic-lex
+		 (if arg (point-min) (point))
+		 (point-max))))
+    (message "%s: %S" semantic-lex-analyzer result))
+  )
+
+(defvar semantic-lex-debug nil
+  "When non-nil, debug the local lexical analyzer.")
+
+(defun semantic-lex-debug (arg)
+  "Debug the semantic lexer in the current buffer.
+Argument ARG specifies of the analyze the whole buffer, or start at point."
+  (interactive "P")
+  (require 'semantic-debug)
+  (let ((semantic-lex-debug t))
+    (semantic-lex-test arg)))
+
+(defun semantic-lex-highlight-token (token)
+  "Highlight the lexical TOKEN.
+Return the overlay."
+  (let ((o (semantic-make-overlay (semantic-lex-token-start token)
+				  (semantic-lex-token-end token))))
+    (semantic-overlay-put o 'face 'highlight)
+    
+    o
+    ))
+
+(defsubst semantic-lex-debug-break (token)
+  "Break during lexical analysis at TOKEN."
+  (when semantic-lex-debug
+    (let ((o nil))
+      (unwind-protect
+	  (progn
+	    (when token
+	      (setq o (semantic-lex-highlight-token token)))
+	    (read-char
+	     (format "%S :: SPC - continue" token))
+	    )
+	(when o
+	  (semantic-overlay-delete o))))))
+
+;;; Lexical analyzer creation
 (defmacro semantic-lex-one-token (analyzers)
   "Calculate one token from the current buffer at point.
 Uses locally bound variables from `define-lex'.
 Argument ANALYZERS is the list of analyzers being used."
   (cons 'cond (mapcar #'symbol-value analyzers)))
+
+(defvar semantic-lex-end-point nil
+  "The end point as tracked through lexical functions.")
+
+(defvar semantic-lex-current-depth nil
+  "The current depth as tracked through lexical functions.")
+
+(defvar semantic-lex-maximum-depth nil
+  "The maximum depth of parenthisis as tracked through lexical functions.")
+
+(defvar semantic-lex-token-stream nil
+  "The current token stream we are collecting.")
+
+(defvar semantic-lex-analysis-bounds nil
+  "The bounds of the current analysis.")
 
 ;;;###autoload
 (defmacro define-lex (name doc &rest analyzers)
@@ -470,11 +533,16 @@ Each analyzer should be an analyzer created with `define-lex-analyzer'."
   `(defun ,name  (start end &optional depth length)
      ,(concat doc "\nSee `semantic-lex' for more information.")
      (let* ((starting-position (point))
-            (token-stream nil)
-            (end-point start)
-            (current-depth 0)
+            (semantic-lex-token-stream nil)
+	    (tmp-start start)
+            (semantic-lex-end-point start)
+            (semantic-lex-current-depth 0)
             ;; Use the default depth when not specified.
-            (depth (or depth semantic-lex-depth)))
+            (semantic-lex-maximum-depth
+	     (or depth semantic-lex-depth))
+	    ;; Bounds needed for unterminated syntax
+	    (semantic-lex-analysis-bounds (cons start end))
+	    )
        ;; Maybe REMOVE THIS LATER.
        ;; Trying to find incremental parser bug.
        (if (> end (point-max))
@@ -482,32 +550,43 @@ Each analyzer should be an analyzer created with `define-lex-analyzer'."
        (with-syntax-table semantic-lex-syntax-table
          (goto-char start)
          (while (and (< (point) end)
-                     (or (not length) (<= (length token-stream) length)))
+                     (or (not length)
+			 (<= (length semantic-lex-token-stream) length)))
            (semantic-lex-one-token ,analyzers)
-	   (when (eq end-point start)
-	     (error "Lexical Analyzer: potential hang detected"))
-           (goto-char end-point)))
+	   (when (eq semantic-lex-end-point tmp-start)
+	     (error "Lexical Analyzer: hang detected LEX: %S : START: %d END: %d"
+		    (car semantic-lex-token-stream)
+		    tmp-start
+		    semantic-lex-end-point))
+	   (setq tmp-start semantic-lex-end-point)
+           (goto-char semantic-lex-end-point)
+	   (semantic-lex-debug-break (car semantic-lex-token-stream))
+	   ))
        ;; Return to where we started.
        ;; Do not wrap in protective stuff so that if there is an error
        ;; thrown, the user knows where.
        (goto-char starting-position)
        ;; Return the token stream
-       (nreverse token-stream))))
+       (nreverse semantic-lex-token-stream))))
 
 ;;; Lexical token API
 ;;
 (defmacro semantic-lex-token (symbol start end)
   "Create a lexical token.
 SYMBOL is a symbol representing the class of syntax found.
-START and END define the bounds of the token in the current buffer.
+START and END define the bounds of the token in the current buffer."
+  `(cons ,symbol (cons ,start ,end)))
+
+(defmacro semantic-lex-push-token (token)
+  "Push TOKEN in the lexical analyzer token stream.
+Return the updated token stream.
 This macro should only be called within the bounds of
 `define-lex-analyzer'.  It changes the values of the lexical
-analyzer variables `token-stream' and `end-point'.
-If you need to move `end-point' somewhere else, just modify this
+analyzer variables `token-stream' and `semantic-lex-end-point'.
+If you need to move `semantic-lex-end-point' somewhere else, just modify this
 variable after calling `semantic-lex-token'."
-  `(setq end-point ,end
-	 token-stream (cons (cons ,symbol (cons ,start end-point))
-			    token-stream)))
+  `(setq semantic-lex-end-point (semantic-lex-token-end ,token)
+	 semantic-lex-token-stream (cons ,token semantic-lex-token-stream)))
 
 (defsubst semantic-lex-token-class (token)
   "Fetch the class of the lexical token TOKEN.
@@ -584,6 +663,32 @@ Optional argument DEPTH is the depth to scan into lists."
 
 ;;; Analyzer creation macros
 ;;
+(defsubst semantic-lex-unterminated-syntax-detected (syntax)
+  "Inside a lexical analyzer, use this when unterminated syntax was found.
+Argument SYNTAX indicates the type of syntax that is unterminated.
+The job of this function is to move (point) to a new logical location
+so that analysis can continue, if possible."
+  (goto-char
+   (funcall semantic-lex-unterminated-syntax-end-function
+	    syntax
+	    (car semantic-lex-analysis-bounds)
+	    (cdr semantic-lex-analysis-bounds)
+	    ))
+  (setq semantic-lex-end-point (point)))
+
+(defmacro semantic-lex-unterminated-syntax-protection (syntax &rest forms)
+  "For SYNTAX, execute FORMS with protection for unterminated syntax.
+If FORMS throws an error, treat this as a syntax problem, and
+execute the unterminated syntax code.  FORMS should return a position.
+Irreguardless of an error, the cursor should be moved to the end of
+the desired syntax, and a position returned."
+  `(condition-case nil
+       (progn ,@forms)
+     (error
+      (semantic-lex-unterminated-syntax-detected ,syntax)))
+  )
+(put 'semantic-lex-unterminated-syntax-protection
+     'lisp-indent-function 1)
 
 ;;;###autoload
 (defmacro define-lex-analyzer (name doc condition &rest forms)
@@ -596,18 +701,21 @@ can be used to evaluate expressions at compile time.
 While forms are running, the following variables will be locally bound:
  macro.  The macro will have access to
 some local lexical analysis variables, including:
-  `start', `end', `depth', `length' - As passed to `semantic-lex'.
-  `current-depth' - The current depth of `semantic-list' that has
+  `semantic-lex-analysis-bounds' - The bounds of the current analysis.
+                  of the form (START . END)
+  `semantic-lex-maximum-depth' - The maximum depth of semantic-list
+                  for the current analysis.
+  `semantic-lex-current-depth' - The current depth of `semantic-list' that has
                   been decended.
-  `end-point' - End Point after match.  Analyzers should set this to
-                   a buffer location if their match string does not
-                   represent the end of the matched text.
-  `token-stream' - The token list being collected.  Add new lexical
-                   tokens to this list.
-Proper action in FORMS is to move the value of `end-point' to after
-the location of the analyzed entry, and to add any discovered tokens
-at the beginning of `token-stream'.   This can be done by using
-`semantic-lex-token'."
+  `semantic-lex-end-point' - End Point after match.
+                   Analyzers should set this to a buffer location if their
+                   match string does not represent the end of the matched text.
+  `semantic-lex-token-stream' - The token list being collected.
+                   Add new lexical tokens to this list.
+Proper action in FORMS is to move the value of `semantic-lex-end-point' to
+after the location of the analyzed entry, and to add any discovered tokens
+at the beginning of `semantic-lex-token-stream'.
+This can be done by using `semantic-lex-push-token'."
   `(eval-and-compile
      (defvar ,name nil ,doc)
      (defun ,name nil)
@@ -618,9 +726,16 @@ at the beginning of `token-stream'.   This can be done by using
      ;; function could be useful for testing and debugging one
      ;; analyzer.
      (fset ',name (lambda () ,doc
-		    (let ((token-stream nil))
+		    (let ((semantic-lex-token-stream nil)
+			  (semantic-lex-end-point (point))
+			  (semantic-lex-analysis-bounds
+			   (cons (point) (point-max)))
+			  (semantic-lex-current-depth 0)
+			  (semantic-lex-maximum-depth
+			   semantic-lex-depth)
+			  )
 		      (when ,condition ,@forms)
-		      token-stream)))
+		      semantic-lex-token-stream)))
      ))
 
 ;;;###autoload
@@ -650,9 +765,10 @@ See `define-lex-analyzer' for more about analyzers."
      ,doc
      (looking-at ,regexp)
      ,@forms
-     (semantic-lex-token ,toksym
-                         (match-beginning ,(or index 0))
-                         (match-end ,(or index 0)))
+     (semantic-lex-push-token
+      (semantic-lex-token ,toksym
+			  (match-beginning ,(or index 0))
+			  (match-end ,(or index 0))))
      ))
 
 ;;;###autoload
@@ -660,7 +776,7 @@ See `define-lex-analyzer' for more about analyzers."
   "Create a lexical analyzer NAME for paired delimiters blocks.
 It detects a paired delimiters block or the corresponding open or
 close delimiter depending on the value of the variable
-`current-depth'.  DOC is the documentation string of the lexical
+`semantic-lex-current-depth'.  DOC is the documentation string of the lexical
 analyzer.  SPEC1 and SPECS specify the token symbols and open, close
 delimiters used.  Each SPEC has the form:
 
@@ -687,30 +803,30 @@ symbols returned in open and close tokens."
         (let ((text (match-string 0)) match)
           (cond
            ((setq match (assoc text ',olist))
-            (if (or (not depth) (< current-depth depth))
+            (if (or (not semantic-lex-maximum-depth)
+		    (< semantic-lex-current-depth semantic-lex-maximum-depth))
                 (progn
-                  (setq current-depth (1+ current-depth))
-                  (semantic-lex-token
-                   (nth 1 match)
-                   (match-beginning 0) (match-end 0)))
-              (semantic-lex-token
-               (nth 2 match)
-               (match-beginning 0)
-               (save-excursion
-                 (condition-case nil
-                     (forward-list 1)
-                   ;; This case makes lex robust to broken lists.
-                   (error
-                    (goto-char
-                     (funcall
-                      semantic-lex-unterminated-syntax-end-function
-                      (nth 2 match) start end))))
-                 (setq end-point (point))))))
+                  (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
+		  (semantic-lex-push-token
+		   (semantic-lex-token
+		    (nth 1 match)
+		    (match-beginning 0) (match-end 0))))
+	      (semantic-lex-push-token
+	       (semantic-lex-token
+		(nth 2 match)
+		(match-beginning 0)
+		(save-excursion
+		  (semantic-lex-unterminated-syntax-protection (nth 2 match)
+		    (forward-list 1)
+		    (point)))
+		))
+	      ))
            ((setq match (assoc text ',clist))
-            (setq current-depth (1- current-depth))
-            (semantic-lex-token
-             (nth 1 match)
-             (match-beginning 0) (match-end 0))))))
+            (setq semantic-lex-current-depth (1- semantic-lex-current-depth))
+	    (semantic-lex-push-token
+	     (semantic-lex-token
+	      (nth 1 match)
+	      (match-beginning 0) (match-end 0)))))))
        )))
 
 ;;; Analyzers
@@ -727,10 +843,10 @@ This action will just throw an error."
        ;; Just insert a (bol N . N) token in the token stream,
        ;; without moving the point.  N is the point at the
        ;; beginning of line.
-       (semantic-lex-token 'bol (point) (point))
+       (semantic-lex-push-token (semantic-lex-token 'bol (point) (point)))
        nil) ;; CONTINUE
   ;; We identify and add the BOL token onto the stream, but since
-  ;; end-point doesn't move, we always fail CONDITION, and have no
+  ;; semantic-lex-end-point doesn't move, we always fail CONDITION, and have no
   ;; FORMS body.
   nil)
 
@@ -744,38 +860,42 @@ Use this ONLY if newlines are not whitespace characters (such as when
 they are comment end characters) AND when you want whitespace tokens."
   "\\s-*\\(\n\\|\\s>\\)"
   ;; Language wants whitespaces, link them together.
-  (if (eq (semantic-lex-token-class (car token-stream)) 'whitespace)
-      (setcdr (semantic-lex-token-bounds (car token-stream))
+  (if (eq (semantic-lex-token-class (car semantic-lex-token-stream))
+	  'whitespace)
+      (setcdr (semantic-lex-token-bounds (car semantic-lex-token-stream))
               (match-end 0))
-    (semantic-lex-token
-     'whitespace (match-beginning 0) (match-end 0))))
+    (semantic-lex-push-token
+     (semantic-lex-token
+      'whitespace (match-beginning 0) (match-end 0)))))
 
 (define-lex-regex-analyzer semantic-lex-ignore-newline
   "Detect and create newline tokens.
 Use this ONLY if newlines are not whitespace characters (such as when
 they are comment end characters)."
   "\\s-*\\(\n\\|\\s>\\)"
-  (setq end-point (match-end 0)))
+  (setq semantic-lex-end-point (match-end 0)))
 
 (define-lex-regex-analyzer semantic-lex-whitespace
   "Detect and create whitespace tokens."
   ;; catch whitespace when needed
   "\\s-+"
   ;; Language wants whitespaces, link them together.
-  (if (eq (semantic-lex-token-class (car token-stream)) 'whitespace)
+  (if (eq (semantic-lex-token-class (car semantic-lex-token-stream))
+	  'whitespace)
       (progn
-        (setq end-point (match-end 0))
-        (setcdr (semantic-lex-token-bounds (car token-stream))
-                end-point))
-    (semantic-lex-token
-     'whitespace (match-beginning 0) (match-end 0))))
+        (setq semantic-lex-end-point (match-end 0))
+        (setcdr (semantic-lex-token-bounds (car semantic-lex-token-stream))
+                semantic-lex-end-point))
+    (semantic-lex-push-token
+     (semantic-lex-token
+      'whitespace (match-beginning 0) (match-end 0)))))
 
 (define-lex-regex-analyzer semantic-lex-ignore-whitespace
   "Detect and skip over whitespace tokens."
   ;; catch whitespace when needed
   "\\s-+"
   ;; Skip over the detected whitespace.
-  (setq end-point (match-end 0)))
+  (setq semantic-lex-end-point (match-end 0)))
 
 (define-lex-simple-regex-analyzer semantic-lex-number
   "Detect and create number tokens."
@@ -784,9 +904,10 @@ they are comment end characters)."
 (define-lex-regex-analyzer semantic-lex-symbol-or-keyword
   "Detect and create symbol and keyword tokens."
   "\\(\\sw\\|\\s_\\)+"
-  (semantic-lex-token
-   (or (semantic-lex-keyword-p (match-string 0)) 'symbol)
-   (match-beginning 0) (match-end 0)))
+  (semantic-lex-push-token
+   (semantic-lex-token
+    (or (semantic-lex-keyword-p (match-string 0)) 'symbol)
+    (match-beginning 0) (match-end 0))))
 
 (define-lex-simple-regex-analyzer semantic-lex-charquote
   "Detect and create charquote tokens."
@@ -817,63 +938,56 @@ types, as the value of the `punctuation' token type."
                (setq len (1- len)
                      key (substring key 0 len))))
          (if elt ;; Return the punctuation token found
-             (semantic-lex-token (car elt) pos (+ pos len))
+             (semantic-lex-push-token
+	      (semantic-lex-token (car elt) pos (+ pos len)))
            (if def ;; Return a default generic token
-               (semantic-lex-token def pos end)
+               (semantic-lex-push-token
+		(semantic-lex-token def pos end))
              ;; Nothing match
              )))))
 
 (define-lex-regex-analyzer semantic-lex-paren-or-list
   "Detect open parenthesis.
 Return either a paren token or a semantic list token depending on
-`current-depth'."
+`semantic-lex-current-depth'."
   "\\s("
-  (if (or (not depth) (< current-depth depth))
+  (if (or (not semantic-lex-maximum-depth)
+	  (< semantic-lex-current-depth semantic-lex-maximum-depth))
       (progn
-	(setq current-depth (1+ current-depth))
-	(semantic-lex-token
-	 'open-paren (match-beginning 0) (match-end 0)))
-    (semantic-lex-token
-     'semantic-list (match-beginning 0)
-     (save-excursion
-       (condition-case nil
-	   (forward-list 1)
-	 ;; This case makes lex robust
-	 ;; to broken lists.
-	 (error
-	  (goto-char
-	   (funcall
-	    semantic-lex-unterminated-syntax-end-function
-	    'semantic-list
-	    start end))))
-       (setq end-point (point))))))
+	(setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
+	(semantic-lex-push-token
+	 (semantic-lex-token
+	  'open-paren (match-beginning 0) (match-end 0))))
+    (semantic-lex-push-token
+     (semantic-lex-token
+      'semantic-list (match-beginning 0)
+      (save-excursion
+	(semantic-lex-unterminated-syntax-protection 'semantic-list
+	  (forward-list 1)
+	  (point))
+	)))
+    ))
 
 (define-lex-simple-regex-analyzer semantic-lex-open-paren
   "Detect and create an open parenthisis token."
-  "\\s(" 'open-paren 0  (setq current-depth (1+ current-depth)))
+  "\\s(" 'open-paren 0  (setq semantic-lex-current-depth (1+ semantic-lex-current-depth)))
 
 (define-lex-simple-regex-analyzer semantic-lex-close-paren
   "Detect and create a close paren token."
-  "\\s)" 'close-paren 0 (setq current-depth (1- current-depth)))
+  "\\s)" 'close-paren 0 (setq semantic-lex-current-depth (1- semantic-lex-current-depth)))
 
 (define-lex-regex-analyzer semantic-lex-string
   "Detect and create a string token."
   "\\s\""
   ;; Zing to the end of this string.
-  (semantic-lex-token
-   'string (point)
-   (save-excursion
-     (condition-case nil
-	 (forward-sexp 1)
-       ;; This case makes lex
-       ;; robust to broken strings.
-       (error
-	(goto-char
-	 (funcall
-	  semantic-lex-unterminated-syntax-end-function
-	  'string
-	  start end))))
-     (point))))
+  (semantic-lex-push-token
+   (semantic-lex-token
+    'string (point)
+    (save-excursion
+      (semantic-lex-unterminated-syntax-protection 'string
+	(forward-sexp 1)
+	(point))
+      ))))
 
 (define-lex-regex-analyzer semantic-lex-comments
   "Detect and create a comment token."
@@ -882,14 +996,15 @@ Return either a paren token or a semantic list token depending on
     (forward-comment 1)
     ;; Generate newline token if enabled
     (if (bolp) (backward-char 1))
-    (setq end-point (point))
+    (setq semantic-lex-end-point (point))
     ;; Language wants comments or want them as whitespaces,
     ;; link them together.
-    (if (eq (semantic-lex-token-class (car token-stream)) 'comment)
-	(setcdr (semantic-lex-token-bounds (car token-stream))
-		end-point)
-      (semantic-lex-token
-       'comment (match-beginning 0) end-point))))
+    (if (eq (semantic-lex-token-class (car semantic-lex-token-stream)) 'comment)
+	(setcdr (semantic-lex-token-bounds (car semantic-lex-token-stream))
+		semantic-lex-end-point)
+      (semantic-lex-push-token
+       (semantic-lex-token
+	'comment (match-beginning 0) semantic-lex-end-point)))))
 
 (define-lex-regex-analyzer semantic-lex-comments-as-whitespace
   "Detect comments and create a whitespace token."
@@ -898,14 +1013,15 @@ Return either a paren token or a semantic list token depending on
     (forward-comment 1)
     ;; Generate newline token if enabled
     (if (bolp) (backward-char 1))
-    (setq end-point (point))
+    (setq semantic-lex-end-point (point))
     ;; Language wants comments or want them as whitespaces,
     ;; link them together.
-    (if (eq (semantic-lex-token-class (car token-stream)) 'whitespace)
-	(setcdr (semantic-lex-token-bounds (car token-stream))
-		end-point)
-      (semantic-lex-token
-       'whitespace (match-beginning 0) end-point))))
+    (if (eq (semantic-lex-token-class (car semantic-lex-token-stream)) 'whitespace)
+	(setcdr (semantic-lex-token-bounds (car semantic-lex-token-stream))
+		semantic-lex-end-point)
+      (semantic-lex-push-token
+       (semantic-lex-token
+	'whitespace (match-beginning 0) semantic-lex-end-point)))))
 
 (define-lex-regex-analyzer semantic-lex-ignore-comments
   "Detect and create a comment token."
@@ -926,7 +1042,7 @@ Return either a paren token or a semantic list token depending on
 	  (backward-char 1)))
     (if (eq (point) comment-start-point)
 	(error "Strange comment syntax prevents lexical analysis"))
-    (setq end-point (point))))
+    (setq semantic-lex-end-point (point))))
 
 ;;; Comment lexer
 ;;
