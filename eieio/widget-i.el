@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.5 1996/09/21 15:54:42 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.6 1996/09/24 00:45:34 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -590,7 +590,7 @@ String to optimally fill that area."
 
 (defmethod input ((this widget-button) coe)
   "What to do if clicked upon by the mouse"
-  (if (and (listp coe) (eventp coe))
+  (if (dialog-mouse-event-p coe)
       (let ((omf (oref this focus-face)))
 	(unwind-protect
 	    (let ((cb (current-buffer)))
@@ -691,7 +691,7 @@ help about this widget."
 
 (defmethod input ((this widget-option-button) coe)
   "What to do if clicked upon by the mouse"
-  (if (and (listp coe) (eventp coe))
+  (if (dialog-mouse-event-p coe)
       (if (or (member 'down-mouse-3 coe)
 	      (member 'mouse-3 coe))
 	  (help-actions this 'click)
@@ -732,7 +732,8 @@ help about this widget."
   "Reset the label on THIS widget."
   (set-value (oref this label-value)
 	     (nth (get-value (oref this state)) (oref this option-list))
-	     this))
+	     this)
+  (label-break-into-substrings this))
 
 (defmethod move-cursor-to ((this widget-option-button))
   "Move the cursor so that it sits at a useful location inside this widget"
@@ -983,14 +984,15 @@ help about this widget."
 (defmethod input ((this widget-text-field) coe)
   "Handle user input events in the text field"
   ;; first find out if we will be doing any edits at all
-  (if (and (listp coe) (eventp coe))
+  (if (dialog-mouse-event-p coe)
       ()				;ignore it for now
     (let ((cc (cond ((numberp coe)
 		     (char-to-string coe))
 		    ((stringp coe)
 		     coe)
 		    (t
-		     (lookup-key function-key-map (make-vector 1 coe))))
+		     (or (lookup-key function-key-map (make-vector 1 coe))
+			 (make-vector 1 coe))))
 	      ))
       (if (and cc (fboundp (global-key-binding cc)))
 	  ;; In this case, we have a one-keystroke edit
