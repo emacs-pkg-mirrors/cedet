@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-image.el,v 1.7 2002/03/17 11:44:13 zappo Exp $
+;; X-RCS: $Id: sb-image.el,v 1.8 2002/03/23 03:11:07 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -40,11 +40,14 @@
   (error nil))
 
 ;;; Code:
-(defcustom speedbar-use-images (and (or (fboundp 'defimage)
-					(fboundp 'make-image-specifier))
-				    (if (fboundp 'display-graphic-p)
-					(display-graphic-p)
-				      window-system))
+(defcustom speedbar-use-images
+  (and (or (fboundp 'defimage) ; emacs 21
+	   (fboundp 'make-image-specifier)) ; xemacs
+       (if (fboundp 'display-graphic-p) ; emacs 21
+	   (display-graphic-p)
+	 window-system) ; old emacs & xemacs
+       (or (not (fboundp 'image-type-available-p)) ; xemacs?
+	   (image-type-available-p 'xpm))) ; emacs 21
   "*Non nil if speedbar should display icons."
   :group 'speedbar
   :type 'boolean)
