@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.6
-;;; RCS: $Id: eieio.el,v 1.5 1996/04/10 22:35:55 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.6 1996/06/01 14:50:56 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -59,7 +59,7 @@
 ;;;
 ;;; Class definitions shall be a stored vector:
 ;;; [ 'defclass name-of-class doc-string parent children
-;;;   public-attributes public-defaults public-methods 
+;;;   public-attributes public-defaults public-methods
 ;;;   private-attributes private-defaults private-methods 
 ;;;   initarg-tuples
 ;;;   method-implementations 
@@ -70,8 +70,10 @@
 ;;; parent is the parent class definition
 ;;; children is a list of children classes inheriting from us
 ;;; public-attributes is a list of public attributes
+;;; public-defaults is a list of public default values
 ;;; public-methods is a list of public method names
 ;;; private-attributes is a list of private attributes
+;;; private-defaults is a list of private default values
 ;;; private-methods is private list of methods
 ;;; initarg-tuples is a list of dotted pairs of (tag: . attribname)
 ;;; method-implementations is a vector of public/private implementations
@@ -198,6 +200,7 @@ tags are:
 
   :initform   - initializing form
   :initarg    - tag used during initialization
+  :accessor   - tag used to create a function to access this field
   :protection - non-nil means a private slot (only accessable in a classmethod)
   :method     - non-nil means classify this as a classmethod, not a slot
 
@@ -311,6 +314,26 @@ in that class definition.  See defclass for more information"
 		      (aset newc class-initarg-tuples
 			    (append (aref newc class-initarg-tuples)
 				    (list (cons initarg name))))))))
+	  ;; anyone can have an accessor function.  This creates a function
+	  ;; of the specified name, and also performs a `defsetf' if applicable
+	  ;; so that users can `setf' the space returned by this function
+	  (if acces
+	      (let ((newfn acces))
+		(fset newfn (list
+			     'lambda '(obj) 
+			     (format "Retrieves the field `%s' from object of class `%s'"
+				     name cname)
+			     (list 'oref-engine 'obj (list
+						      'quote
+						      name))))
+		;; If defsetf is loaded, then create the setf definition we want
+		(if (fboundp 'defsetf)
+		    (eval
+		     (list
+		      'defsetf newfn '(node) '(store)
+		      '(oset-engine node 'name store))))
+		)
+	    )
 	  )
 	)
       (setq fields (cdr fields)))
@@ -517,7 +540,18 @@ the body, such as:
     (if (not c) (error "Named field %s does not occur in %s" 
 		       field (object-name obj)))
     (aref obj c)))
+
 (defalias 'slot-value 'oref-engine)
+
+(if (featurep 'cl)
+    (progn
+      (defsetf slot-value (obj field) (store)
+	(list 'oset-engine obj field store))
+      (defsetf oref-engine (obj field) (store)
+	(list 'oset-engine obj field store))
+      (defsetf oref (obj field) (store) 
+	(list 'oset-engine obj 'field store))
+      ))
 
 (defmacro oref-default (obj field)
   "Macro calling oref-default-engine with the quote inserted before field."
