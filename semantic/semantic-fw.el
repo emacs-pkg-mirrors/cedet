@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.17 2003/03/27 07:42:02 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.18 2003/04/01 13:04:44 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,8 +29,6 @@
 ;; semantic flexible and compatible amongst different Emacs platforms.
 
 ;;; No Requirements.
-
-(load "semantic-al" nil t)
 
 ;;; Code:
 ;;
@@ -101,6 +99,22 @@
   (if (semantic-overlay-get overlay 'semantic)
       (semantic-overlay-delete overlay)))
 
+;;; Obsoleting various functions
+;;
+(defun semantic-alias-obsolete (oldfnalias newfn)
+  "Make OLDFNALIAS an alias for NEWFN.
+Mark OLDFNALIAS as obsolete, such that the byte compiler
+will throw a warning when it encounters this symbol."
+  (defalias oldfnalias newfn)
+  (make-obsolete oldfnalias newfn)
+  )
+
+;;; Semantic autoloads
+;;
+;; Load semantic-al after compatibility code, to allow to use it in
+;; autoloads without infinite recursive load problems.
+(load "semantic-al" nil t)
+
 ;;; Misc utilities
 ;;
 (defun semantic-map-buffers (fun)
@@ -538,19 +552,6 @@ Returns the documentation as a string, also."
   (font-lock-add-keywords 'emacs-lisp-mode
                           semantic-fw-font-lock-keywords)
   )
-
-
-;;; Obsoleting various functions
-;;
-;;;###autoload
-(defun semantic-alias-obsolete (oldfnalias newfn)
-  "Make OLDFNALIAS an alias for NEWFN.
-Mark OLDFNALIAS as obsolete, such that the byte compiler
-will throw a warning when it encounters this symbol."
-  (defalias oldfnalias newfn)
-  (make-obsolete oldfnalias newfn)
-  )
-
 
 ;;; Interfacing with edebug
 ;;
