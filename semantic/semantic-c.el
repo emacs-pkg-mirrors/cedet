@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.33 2001/08/01 14:35:41 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.34 2001/08/17 21:08:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -225,6 +225,7 @@
  ( UNSIGNED)
  ( VIRTUAL)
  ( INLINE)
+ ( REGISTER)
  ) ; end DECLMOD
  (typeform
  ( typeformbase opt-stars opt-ref
@@ -473,7 +474,7 @@
  ))
  ) ; end expression
  )
-  "C language specification.")
+     "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -582,6 +583,7 @@ This is so we don't have to match the same starting text several times."
       ("static" . STATIC)
       ("const" . CONST)
       ("volatile" . VOLATILE)
+      ("register" . REGISTER)
       ("signed" . SIGNED)
       ("unsigned" . UNSIGNED)
       ("inline" . INLINE)
@@ -592,6 +594,7 @@ This is so we don't have to match the same starting text several times."
       ("typedef" . TYPEDEF)
       ("class" . CLASS)
       ("namespace" . NAMESPACE)
+      ("template" . TEMPLATE)
       ("throw" . THROW)
       ("reentrant" . REENTRANT)
       ("operator" . OPERATOR)
@@ -623,6 +626,7 @@ This is so we don't have to match the same starting text several times."
      ("static" summary "Declaration Modifier: static <type> <name> ...")
      ("const" summary "Declaration Modifier: const <type> <name> ...")
      ("volatile" summary "Declaration Modifier: volatile <type> <name> ...")
+     ("register" summary "Declaration Modifier: register <type> <name> ...")
      ("signed" summary "Numeric Type Modifier: signed <numeric type> <name> ...")
      ("unsigned" summary "Numeric Type Modifier: unsigned <numeric type> <name> ...")
      ("virtual" summary "Method Modifier: virtual <type> <name>(...) ...")
@@ -632,6 +636,7 @@ This is so we don't have to match the same starting text several times."
      ("typedef" summary "Arbitrary Type Declaration: typedef <typedeclaration> <name>;")
      ("class" summary "Class Declaration: class <name>[:parents] { ... };")
      ("namespace" summary "Namespace Declaration: namespace <name> { ... };")
+     ("template" summary "template <class TYPE ...> TYPE_OR_FUNCTION")
      ("throw" summary "<type> <methoddef> (<method args>) throw (<exception>) ...")
      ("reentrant" summary "<type> <methoddef> (<method args>) reentrant ...")
      ("if" summary "if (<condition>) { code } [ else { code } ]")
@@ -709,12 +714,18 @@ Override function for `semantic-nonterminal-protection'."
 			 'protected)))
 	    )
 	  (setq pp (cdr pp)))))
-    (or prot 'public)))
+    (or prot
+	(cond ((string= (semantic-token-type token) "class") 'private)
+	      ((string= (semantic-token-type token) "struct") 'public)))
+    ))
 
 
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
   (setq semantic-default-built-in-types semantic-default-c-built-in-types)
+  (semantic-install-function-overrides
+   '((nonterminal-protection . semantic-c-nonterminal-protection)
+     ))
   ;; Code generated from c.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
 	semantic-toplevel-bovine-table-source "c.bnf")
