@@ -131,13 +131,13 @@ this action for other parser centric routines.
 *** Incremental parser.
 
 In Semantic 1.x, changes were handled in a simplistic manner, where
-tokens that changed were reparsed one at a time.  Any other form of
+tags that changed were reparsed one at a time.  Any other form of
 edit were managed through a full re-parse.
 
 The new `semantic-edits-incremental-parser' attempts to minimize the
 number of times a full re-parse needs to occur.  While overlays and
-tokens will continue to be recycled in the simple case, new cases
-where tokens are inserted or old tokens removed from the original list
+tags will continue to be recycled in the simple case, new cases
+where tags are inserted or old tags removed from the original list
 are handled.
 
 *** Deprecated and removed API.
@@ -280,6 +280,10 @@ Display the parser state in the modeline.
 
 ** `semantic-highlight-edits-mode'
 Highlight areas that a user edits.
+
+** `semantic-stickyfunc-mode'
+Make the current functions header `sticky' to the top of the current
+window.  (Emacs 21 required)
 
 * Hooks.
 
