@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.13 2001/09/11 14:59:55 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.14 2001/09/20 11:50:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1051,8 +1051,10 @@ Use the alternate LALR(1) parser."
     (setq
      ;; Override the default parser to setup the alternate LALR one.
      semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
-     ;; Setup the lexer used by the LALR parser.
-     wisent-flex-function 'wisent-java-lex
+     ;; Define the lexer used by the LALR parser.
+     wisent-lexer-function 'wisent-java-lex
+     ;; How `semantic-flex' will setup the lexer input stream.
+     wisent-flex-depth nil
      ;; Java is case sensitive
      semantic-case-fold nil
      ;; function to use when creating items in imenu
