@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.36 2001/09/29 23:47:03 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.37 2001/11/02 21:36:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -211,8 +211,10 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
                (semanticdb-minor-mode-p))
           (semantic-create-imenu-directory-index stream)
         (semantic-create-imenu-index-1 stream))
+    (make-local-hook 'semantic-before-toplevel-cache-flush-hook)
     (add-hook 'semantic-before-toplevel-cache-flush-hook
               'semantic-imenu-flush-fcn nil t)
+    (make-local-hook 'semantic-clean-token-hooks)
     (add-hook 'semantic-clean-token-hooks
               'semantic-imenu-flush-fcn nil t)))
 
