@@ -1,0 +1,24 @@
+;; Object ede-proj-project
+;; EDE project file.
+(ede-proj-project "ede-proj-project"
+  :name "Contrib"
+  :file "Project.ede"
+  :targets (list 
+   (ede-proj-target-elisp-autoloads "autoloads"
+    :name "autoloads"
+    :path ""
+    :autoload-file "contrib-loaddefs.el"
+    )
+   (semantic-ede-proj-target-grammar "Wisent Languages"
+    :name "Wisent Languages"
+    :path ""
+    :source '("wisent-csharp.wy")
+    )
+   (ede-proj-target-elisp "lisp"
+    :name "lisp"
+    :path ""
+    :source '("wisent-csharp.el")
+    :aux-packages '("semantic-grammar" "wisent")
+    )
+   )
+  )
