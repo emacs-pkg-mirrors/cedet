@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.19 2003/05/21 17:37:12 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.20 2003/05/27 15:30:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-05-15 07:28-0400
+  ;;DO NOT EDIT! Generated from c.by - 2003-05-27 11:12-0400
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -1509,12 +1509,37 @@
       ,(semantic-lambda
 	(nth 1 vals))
       )
+     (semantic-list
+      ,(lambda (vals start end)
+	 (semantic-bovinate-from-nonterminal
+	  (car
+	   (nth 0 vals))
+	  (cdr
+	   (nth 0 vals))
+	  'function-pointer))
+      )
      (symbol
       ,(semantic-lambda
 	(list
 	 (nth 0 vals)))
       )
      ) ;; end functionname
+
+    (function-pointer
+     (open-paren
+      "("
+      punctuation
+      "\\b[*]\\b"
+      symbol
+      close-paren
+      ")"
+      ,(semantic-lambda
+	(list
+	 (concat
+	  "*"
+	  (nth 2 vals))))
+      )
+     ) ;; end function-pointer
 
     (fun-or-proto-end
      (punctuation
@@ -1828,47 +1853,61 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 	 ;; error of some sort if it contains parser errors so that we
 	 ;; don't parser function calls, but that is a little beyond what
 	 ;; is available for data here.
-	 (let ((constructor
-		(and (or (and semantic-c-classname
-			      (string= (car semantic-c-classname)
-				       (car tokenpart)))
-			 (and (stringp (car (nth 2 tokenpart)))
-			      (string= (car (nth 2 tokenpart)) (car tokenpart)))
-			 )
-		     (not (car (nth 3 tokenpart))))))
-	   (semantic-tag-new-function
-	    (car tokenpart)
-	    (or typedecl		;type
-		(cond ((car (nth 3 tokenpart) )
-		       "void")		; Destructors have no return?
-		      (constructor
-		       ;; Constructors return an object.			  ;; in our
-		       (list (or (car semantic-c-classname)
-				 (car (nth 2 tokenpart)))
-			     'type
-			     (or (cdr semantic-c-classname)
-				 "class")))
-		      (t "int")))
-	    (nth 4 tokenpart)	;arglist
-	    'const (if (member "const" declmods) t nil)
-	    'typemodifiers (delete "const" declmods)
-	    'parent (car (nth 2 tokenpart))
-	    'destructor (if (car (nth 3 tokenpart) ) t)
-	    'constructor (if constructor t)
-	    'pointer (nth 7 tokenpart)
-	    ;; Even though it is "throw" in C++, we use
-	    ;; `throws' as a common name for things that toss
-	    ;; exceptions about.
-	    'throws (nth 5 tokenpart)
-	    ;; Reemtrant is a C++ thingy.  Add it here
-	    'reentrant (if (member "reentrant" (nth 6 tokenpart)) t)
-	    ;; A function post-const is funky.  Try stuff
-	    'methodconst (if (member "const" (nth 6 tokenpart)) t)
-	    ;; prototypes are functions w/ no body
-	    'prototype (if (nth 8 tokenpart) t)
-	    ;; Pure virtual
-	    'pure-virtual (if (eq (nth 8 tokenpart) 'pure-virtual) t)
-	    ))
+	 (let* ((constructor
+		 (and (or (and semantic-c-classname
+			       (string= (car semantic-c-classname)
+					(car tokenpart)))
+			  (and (stringp (car (nth 2 tokenpart)))
+			       (string= (car (nth 2 tokenpart)) (car tokenpart)))
+			  )
+		      (not (car (nth 3 tokenpart)))))
+		(fcnpointer (string-match "^\\*" (car tokenpart)))
+		(fnname (if fcnpointer
+			    (substring (car tokenpart) 1)
+			  (car tokenpart))))
+	   (if fcnpointer
+	       ;; Function pointers are really variables.
+	       (semantic-tag-new-variable
+		fnname
+		typedecl
+		nil
+		;; It is a function pointer
+		'functionpointer t
+		)
+	     ;; The function
+	     (semantic-tag-new-function
+	      fnname
+	      (or typedecl		;type
+		  (cond ((car (nth 3 tokenpart) )
+			 "void")	; Destructors have no return?
+			(constructor
+			 ;; Constructors return an object.			  ;; in our
+			 (list (or (car semantic-c-classname)
+				   (car (nth 2 tokenpart)))
+			       'type
+			       (or (cdr semantic-c-classname)
+				   "class")))
+			(t "int")))
+	      (nth 4 tokenpart)		;arglist
+	      'const (if (member "const" declmods) t nil)
+	      'typemodifiers (delete "const" declmods)
+	      'parent (car (nth 2 tokenpart))
+	      'destructor (if (car (nth 3 tokenpart) ) t)
+	      'constructor (if constructor t)
+	      'pointer (nth 7 tokenpart)
+	      ;; Even though it is "throw" in C++, we use
+	      ;; `throws' as a common name for things that toss
+	      ;; exceptions about.
+	      'throws (nth 5 tokenpart)
+	      ;; Reemtrant is a C++ thingy.  Add it here
+	      'reentrant (if (member "reentrant" (nth 6 tokenpart)) t)
+	      ;; A function post-const is funky.  Try stuff
+	      'methodconst (if (member "const" (nth 6 tokenpart)) t)
+	      ;; prototypes are functions w/ no body
+	      'prototype (if (nth 8 tokenpart) t)
+	      ;; Pure virtual
+	      'pure-virtual (if (eq (nth 8 tokenpart) 'pure-virtual) t)
+	      )))
 	 )
 	))
 
@@ -1878,7 +1917,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   tag)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-05-15 07:28-0400
+  ;;DO NOT EDIT! Generated from c.by - 2003-05-27 11:12-0400
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -1986,6 +2025,17 @@ probably do some sort of search to see what is actually on the local
 machine."
   :group 'c
   :type '(repeat (string :tag "Path")))
+
+(defun semantic-c-format-tag-name (tag &optional parent color)
+  "Convert TAG to a string that is the print name for TAG.
+Optional PARENT and COLOR are ignored."
+  (let ((name (semantic-format-tag-name-default tag parent color))
+	(fnptr (semantic-tag-get-attribute tag 'functionpointer))
+	)
+    (if (not fnptr)
+	name
+      (concat "(*" name ")"))
+    ))
 
 (defun semantic-c-nonterminal-protection (token &optional parent)
   "Return the protection of TOKEN in PARENT.
@@ -2151,7 +2201,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-05-15 07:28-0400
+  ;;DO NOT EDIT! Generated from c.by - 2003-05-27 11:12-0400
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
 	  semantic-debug-parser-source "c.by"
@@ -2192,6 +2242,7 @@ These are constants which are of type TYPE."
      (nonterminal-abstract . semantic-c-nonterminal-abstract)
      (analyze-dereference-metatype . semantic-c-analyze-dereference-metatype)
      (analyze-type-constants . semantic-c-analyze-type-constants)
+     (format-tag-name . semantic-c-format-tag-name)
      )
    t ;; Set as t for now while developing.
    )
