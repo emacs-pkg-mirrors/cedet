@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.38 2003/04/02 10:16:50 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.39 2003/04/09 12:33:15 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,7 +48,7 @@
 ;;;;
 
 (defconst wisent-java-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-02 12:05+0200
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-09 11:54+0200
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -585,7 +585,7 @@ Tweaked for Semantic needs.  That is to avoid full parsing of
 unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-02 12:05+0200
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-09 11:54+0200
   (semantic-lex-make-keyword-table
    '(("abstract" . ABSTRACT)
      ("boolean" . BOOLEAN)
@@ -739,7 +739,7 @@ unnecessary stuff to improve performance.")
   "Java keywords.")
 
 (defconst wisent-java-tokens
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-02 12:05+0200
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-09 11:54+0200
   (wisent-lex-make-token-table
    '(("number"
       (NUMBER_LITERAL))
@@ -805,7 +805,7 @@ unnecessary stuff to improve performance.")
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-02 12:05+0200
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-09 11:54+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -826,7 +826,7 @@ Use the alternate LALR(1) parser."
      ;; Parsing
      semantic-tag-expand-function 'wisent-java-expand-tag
      ;; Environment
-     semantic-imenu-summary-function 'semantic-prototype-nonterminal
+     semantic-imenu-summary-function 'semantic-format-tag-prototype
      imenu-create-index-function 'semantic-create-imenu-index
      semantic-type-relation-separator-character '(".")
      semantic-command-separation-character ";"
@@ -852,7 +852,7 @@ Use the alternate LALR(1) parser."
 
 ;; semantic overloaded functions
 (semantic-install-function-overrides
- '((prototype-nonterminal . semantic-java-prototype-nonterminal)
+ '((format-tag-prototype  . semantic-java-prototype-tag)
    (find-documentation    . semantic-java-find-documentation)
    (get-local-variables   . wisent-java-get-local-variables)
    )
