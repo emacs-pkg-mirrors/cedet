@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.6.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.72 1998/03/05 03:55:31 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.73 1998/03/05 17:59:50 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -316,6 +316,10 @@
 ;;         multiple combined indicators.
 ;;       Added new stealthy function to mark files that have associated OBJs
 ;;         Identification uses `speedbar-obj-alist' to identify files to mark.
+;;       Speedbar will now work in a non-windowing environment.
+;;       Added navigation functions `speedbar-restricted-next' and
+;;         `speedbar-restricted-prev' for navigation only in a
+;;         specific depth of files.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -790,11 +794,12 @@ to toggle this value.")
   ;; navigation
   (define-key speedbar-key-map "n" 'speedbar-next)
   (define-key speedbar-key-map "p" 'speedbar-prev)
+  (define-key speedbar-key-map "\M-n" 'speedbar-restricted-next)
+  (define-key speedbar-key-map "\M-p" 'speedbar-restricted-prev)
   (define-key speedbar-key-map " " 'speedbar-scroll-up)
   (define-key speedbar-key-map [delete] 'speedbar-scroll-down)
 
-  ;; After much use, I suddenly desired in my heart to perform dired
-  ;; style operations since the directory was RIGHT THERE!
+  ;; dired style commands
   (define-key speedbar-key-map "I" 'speedbar-item-info)
   (define-key speedbar-key-map "B" 'speedbar-item-byte-compile)
   (define-key speedbar-key-map "L" 'speedbar-item-load)
@@ -931,20 +936,6 @@ supported at a time.
 `speedbar-before-popup-hook' is called before popping up the speedbar frame.
 `speedbar-before-delete-hook' is called before the frame is deleted."
   (interactive "P")
-  (if (if (and speedbar-xemacsp (fboundp 'console-on-window-system-p))
-	  (not (console-on-window-system-p))
-	(not (symbol-value 'window-system)))
-      (error "Speedbar is not useful outside of a windowing environment"))
-;  (if speedbar-xemacsp
-;      (add-menu-button '("Tools")
-;		       ["Speedbar" speedbar-frame-mode
-;			:style toggle
-;			:selected (and (boundp 'speedbar-frame)
-;				       (frame-live-p speedbar-frame)
-;				       (frame-visible-p speedbar-frame))]
-;		       "--")
-;    (define-key-after (lookup-key global-map [menu-bar tools])
-;      [speedbar] '("Speedbar" . speedbar-frame-mode) [calendar]))
   ;; toggle frame on and off.
   (if (not arg) (if (and (frame-live-p speedbar-frame)
 			 (frame-visible-p speedbar-frame))
@@ -1073,6 +1064,10 @@ version control system.  (currently only RCS is supported.)  New
 version control systems can be added by examining the documentation
 for `speedbar-this-file-in-vc' and `speedbar-vc-check-dir-p'
 
+Files with a `#' character after them are source files that have an
+object file associated with them.  You can control what source/object
+associations exist through the variable `speedbar-obj-alist'.
+
 Click on the [+] to display a list of tags from that file.  Click on
 the [-] to retract the list.  Click on the file name to edit the file
 in the attached frame.
@@ -1096,7 +1091,8 @@ in the selected file.
     (make-local-variable 'frame-title-format)
     (setq frame-title-format "Speedbar")
     ;; Set this up special just for the speedbar buffer
-    (if (null default-minibuffer-frame)
+    ;; Terminal minibuffer stuff does not require this.
+    (if (and window-system (null default-minibuffer-frame))
 	(progn
 	  (make-local-variable 'default-minibuffer-frame)
 	  (setq default-minibuffer-frame speedbar-attached-frame)))
@@ -1281,6 +1277,51 @@ Must be bound to event E."
   "Move to the previous ARGth line in a speedbar buffer."
   (interactive "p")
   (speedbar-next (if arg (- arg) -1)))
+
+(defun speedbar-restricted-move (arg)
+  "Move to the next ARGth line in a speedbar buffer at the same depth.
+This means that movement is restricted to a subnode, and that siblings
+of intermediate nodes are skipped."
+  (if (not (numberp arg)) (signal 'wrong-type-argument (list arg 'numberp)))
+  ;; First find the extent for which we are allowed to move.
+  (let ((depth (save-excursion (beginning-of-line)
+			       (if (looking-at "[0-9]+:")
+				   (string-to-int (match-string 0))
+				 0)))
+	(crement (if (< arg 0) 1 -1)) ; decrement or increment
+	(lastmatch (point)))
+    (while (/= arg 0)
+      (forward-line (- crement))
+      (let ((subdepth (save-excursion (beginning-of-line)
+			       (if (looking-at "[0-9]+:")
+				   (string-to-int (match-string 0))
+				 0))))
+	(cond ((or (< subdepth depth)
+		   (progn (end-of-line) (eobp))
+		   (progn (beginning-of-line) (bobp)))
+	       ;; We have reached the end of this block.
+	       (goto-char lastmatch)
+	       (setq arg 0)
+	       (error "End of sub-list."))
+	      ((= subdepth depth)
+	       (setq lastmatch (point)
+		     arg (+ arg crement))))))
+    (speedbar-item-info)
+    (speedbar-position-cursor-on-line)))
+
+(defun speedbar-restricted-next (arg)
+  "Move to the next ARGth line in a speedbar buffer at the same depth.
+This means that movement is restricted to a subnode, and that siblings
+of intermediate nodes are skipped."
+  (interactive "p")
+  (speedbar-restricted-move (or arg 1)))
+
+(defun speedbar-restricted-prev (arg)
+  "Move to the previous ARGth line in a speedbar buffer at the same depth.
+This means that movement is restricted to a subnode, and that siblings
+of intermediate nodes are skipped."
+  (interactive "p")
+  (speedbar-restricted-move (if arg (- arg) -1)))
 
 (defun speedbar-scroll-up (&optional arg)
   "Page down one screen-full of the speedbar, or ARG lines."
@@ -2373,8 +2414,8 @@ directory, then it is the directory name."
     (save-match-data
       (beginning-of-line)
       (if (looking-at (concat
-		       "\\([0-9]+\\): *[[<][-+?][]>] \\([^ \n]+\\)"
-		       speedbar-indicator-regex))
+		       "\\([0-9]+\\): *[[<][-+?][]>] \\([^ \n]+\\)\\("
+		       speedbar-indicator-regex "\\)?"))
 	  (let* ((depth (string-to-int (match-string 1)))
 		 (path (speedbar-line-path depth))
 		 (f (match-string 2)))
