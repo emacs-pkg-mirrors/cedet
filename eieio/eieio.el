@@ -2,11 +2,11 @@
 ;;              or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 1995,1996, 1998, 1999 Eric M. Ludlam
+;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.64 2000/04/13 00:26:28 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.65 2000/04/13 00:32:53 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -50,6 +50,9 @@
   "Display the current version of EIEIO."
   (interactive)
   (message eieio-version))
+
+(if (not (fboundp 'typep))
+    (autoload 'typep "cl" "Determie if OBJ is of type TYPE." nil))
 
 
 ;;;
