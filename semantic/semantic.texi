@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.37 2001/04/28 13:50:46 zappo Exp $
+@c $Id: semantic.texi,v 1.38 2001/05/14 16:32:45 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -1142,6 +1142,106 @@ finding a dependency file in Emacs lisp can be done with the
 a dependency can be found by searching a generic search path which can
 be passed in via a variable.
 
+@menu
+* Token->Text:: Converting Tokens into text strings
+* Token Details:: Arbitrary token detail fetching
+* Local Context:: Deriving information about a language specific local
+                  context.
+* Making New Methods:: How to add your own methods for a tool
+@end menu
+
+@node Token->Text, Token Details, Override Methods, Override Methods
+@subsection Token->Text
+
+Any given token consists of Meta information which is best viewed in
+some textual form.  This could be as simple as the token's name, or as
+a prototype to be added to header file in C.  Not only are there
+several default converters from a Token into text, but there is also
+some convenient variables that can be used with them.  Use these
+variables to allow options on output forms when displaying tokens in
+your programs.
+
+@defvar semantic-token->text-functions
+List of functions which convert a token to text.
+Each function must take the parameters @var{TOKEN} &optional @var{PARENT} @var{COLOR}.
+@var{TOKEN} is the token to convert.
+@var{PARENT} is a parent token or name which refers to the structure
+or class which contains @var{TOKEN}.  @var{PARENT} is @var{NOT} a class which a @var{TOKEN}
+would claim as a parent.
+@var{COLOR} indicates that the generated text should be colored using
+@code{font-lock}.
+@end defvar
+
+@defvar semantic-token->text-custom-list
+@var{A} List used by customizeable variables to choose a token to text function.
+Use this variable in the @code{:type} field of a customizable variable.
+@end defvar
+
+Every token to text conversion function must take the same parameters,
+which are @var{TOKEN}, the token to be converted, @var{PARENT}, the
+containing parent (like a structure which contains a variable), and
+@var{COLOR}, which is a flag specifying that color should be applied
+to the returned string.
+
+When creating, or using these strings, particularly with color, use
+@dfn{concat} to build up larger strings instead of @dfn{format}.  This
+will preserve text properties.
+
+@defun semantic-name-nonterminal token &optional parent color
+Return the name string describing @var{TOKEN}.
+The name is the shortest possible representation.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-summarize-nonterminal token &optional parent color
+Summarize @var{TOKEN} in a reasonable way.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-prototype-nonterminal token &optional parent color
+Return a prototype for @var{TOKEN}.
+This function should be overloaded, though it need not be used.
+This is because it can be used to create code by language independent
+tools.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-prototype-file buffer
+Return a file in which prototypes belonging to @var{BUFFER} should be placed.
+Default behavior (if not overriden) looks for a token specifying the
+prototype file, or the existence of an @var{EDE} variable indicating which
+file prototypes belong in.
+@end defun
+
+@defun semantic-abbreviate-nonterminal token &optional parent color
+Return an abbreviated string describing @var{TOKEN}.
+The abbreviation is to be short, with possible symbols indicating
+the type of token, or other information.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-concise-prototype-nonterminal token &optional parent color
+Return a concise prototype for @var{TOKEN}.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@defun semantic-uml-abbreviate-nonterminal token &optional parent color
+Return a @var{UML} style abbreviation for @var{TOKEN}.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
+@end defun
+
+@node Token Details, Local Context, Token->Text, Override Methods
+@subsection Token Details
+
+These functions help derive information about tokens that may not
+be obvious for non-traditional languages with their own token types.
+
 @defun semantic-nonterminal-children token &optional positionalonly
 Return the list of top level children belonging to @var{TOKEN}.
 Children are any sub-tokens which may contain overlays.
@@ -1200,34 +1300,122 @@ cal look for.  When appropriate, this can be overridden by a language specific
 enhancement.
 @end defun
 
-@defun semantic-summarize-nonterminal token &optional parent
-Summarize @var{TOKEN} in a reasonable way.
-Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+@node Local Context, Making New Methods, Token Details, Override Methods
+@subsection Local Context
+
+@defun semantic-up-context &optional point
+Move point up one context from @var{POINT}.
+Return non-@code{nil} if there are no more context levels.
+Overloaded functions using @code{up-context} take no parameters.
 @end defun
 
-@defun semantic-prototype-nonterminal token
-Return a prototype for @var{TOKEN}.
-This functin must be overloaded, though it need not be used.
+@defun semantic-beginning-of-context &optional point
+Move @var{POINT} to the beginning of the current context.
+Return non-@code{nil} if there is no upper context.
+The default behavior uses @dfn{semantic-up-context}.  It can
+be overridden with @code{beginning-of-context}.
 @end defun
 
-@defun semantic-prototype-file buffer
-Return a file in which prototypes belonging to @var{BUFFER} should be placed.
-Default behavior (if not overriden) looks for a token specifying the
-prototype file, or the existence of an @var{EDE} variable indicating which
-file prototypes belong in.
+@defun semantic-end-of-context &optional point
+Move @var{POINT} to the end of the current context.
+Return non-@code{nil} if there is no upper context.
+Be default, this uses @dfn{semantic-up-context}, and assumes parenthetical
+block delimiters.  This can be overridden with @code{end-of-context}.
 @end defun
 
-@defun semantic-abbreviate-nonterminal token &optional parent
-Return an abbreviated string describing @var{TOKEN}.
-The abbreviation is to be short, with possible symbols indicating
-the type of token, or other information.
-Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+@defun semantic-get-local-variables &optional point
+Get the local variables based on POINT's context.
+Local variables are returned in Semantic token format.
+Be default, this calculates the current bounds using context blocks
+navigation, then uses the parser with @code{bovine-inner-scope} to
+parse tokens at the beginning of the context.
+This can be overriden with @code{get-local-variables}.
 @end defun
 
-@defun semantic-concise-prototype-nonterminal token
-Return a concise prototype for @var{TOKEN}.
-This function must be overloaded, though it need not be used.
+@defun semantic-get-local-arguments &optional point
+Get arguments (variables) from the current context at @var{POINT}.
+Parameters are available if the point is in a function or method.
+This function returns a list of tokens.  If the local token returns
+just a list of strings, then this function will convert them to tokens.
+Part of this behavior can be overridden with @code{get-local-arguments}.
 @end defun
+
+@defun semantic-get-all-local-variables &optional point
+Get all local variables for this context, and parent contexts.
+Local variables are returned in Semantic token format.
+Be default, this gets local variables, and local arguments.
+This can be overridden with @code{get-all-local-variables}.
+Optional argument @var{POINT} is the location to start getting the variables from.
+@end defun
+
+These next set of functions handle local context parsing.   This means
+looking at the code (locally) and navigating, and fetching information
+such as a the type of the parameter the cursor may be typing in.
+
+@defun semantic-end-of-command
+Move to the end of the current command.
+Be default, uses @code{semantic-command-separation-character}.
+Override with @code{end-of-command}.
+@end defun
+
+@defun semantic-beginning-of-command
+Move to the beginning of the current command.
+Be default, users @code{semantic-command-separation-character}.
+Override with @code{beginning-of-command}.
+@end defun
+
+@defun semantic-ctxt-current-symbol &optional point
+Return the current symbol the cursor is on at @var{POINT} in a list.
+This will include a list of type/field names when applicable.
+This can be overridden using @code{ctxt-current-symbol}.
+@end defun
+
+@defun semantic-ctxt-current-assignment &optional point
+Return the current assignment near the cursor at @var{POINT}.
+Return a list as per @dfn{semantic-ctxt-current-symbol}.
+Return @code{nil} if there is nothing relevant.
+Override with @code{ctxt-current-assignment}.
+@end defun
+
+@defun semantic-ctxt-current-function &optional point
+Return the current function the cursor is in at @var{POINT}.
+The function returned is the one accepting the arguments that
+the cursor is currently in.
+This can be overridden with @code{ctxt-current-function}.
+@end defun
+
+@defun semantic-ctxt-current-argument &optional point
+Return the current symbol the cursor is on at @var{POINT}.
+Override with @code{ctxt-current-argument}.
+@end defun
+
+Local Context analysis functions can look at the local context,
+and return informatin such as the type of the data that should be
+entered where the cursor is.  As of this writing, these functions
+need some more work.
+
+@defun semantic-suggest-lookup-item name &optional tokentype returntype
+Find a token definition matching @var{NAME} with @var{TOKENTYPE}.
+Optional @var{RETURNTYPE} is a return value to match against also.
+@end defun
+
+@defun semantic-suggest-variable-token-hierarchy
+Analyze the current line, and return a series of tokens.
+The tokens represent a hierarchy of dereferences.  For example, a
+variable name will return a list with one token representing that
+variable's declaration.  If that variable is being dereferenced, then
+return a list starting with the variable declaration, followed by all
+fields being extracted.
+
+For example, in c, ``foo->bar'' would return a list (@var{VARTOKEN} @var{FIELDTOKEN})
+where @var{VARTOKEN} is a semantic token of the variable foo's declaration.
+@var{FIELDTOKEN} is either a string, or a semantic token representing
+the field in foo's type.
+@end defun
+
+
+@node Making New Methods, , Local Context, Override Methods
+@subsection Local Context
 
 @node Parser Hooks, , Override Methods, Utilities
 @section Parser Hooks
@@ -1617,6 +1805,18 @@ disable any saving anywhere, @code{always}, which enables saving
 everywhere, or @code{project}, which enables saving in any directory that
 passes a list of predicates in @code{semantic-project-predicates}.
 @end deffn
+
+@deffn Option semanticdb-project-roots
+List of directories, where each directory is the root of some project.
+All subdirectories of a root project are considered a part of one project.
+Values in this string can be overriden by project management programs
+via the @code{semanticdb-project-root-functions} variable.
+@end deffn
+
+The important difference between these two is that you may put just
+``~'' in @code{semanticdb-persistent-path}, but you may put individual
+project directories into @code{semanticdb-project-roots} so that
+different database lists don't get cross referenced incorrectly.
 
 @subsection Searching
 
