@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.12 2003/07/07 20:53:35 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.13 2003/08/02 08:20:15 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,7 +34,6 @@
 
 ;;; Code:
 (require 'semantic-grammar)
-(require 'cl) ;; `cl-macroexpand-all'
 
 (defsubst wisent-grammar-region-placeholder ($n)
   "Return $regionN placeholder symbol corresponding to given $N one.
@@ -50,7 +49,7 @@ NONTERM is the nonterminal symbol to start with."
   (let ((start (semantic-grammar-start))
 	($ri (wisent-grammar-region-placeholder $i)))
     (if (not (member nonterm start))
-	(error "EXPANDFULL macro called with %s, but not used with %%start."
+	(error "EXPANDFULL macro called with %s, but not used with %%start"
 	       nonterm))
     (if $ri
         `(semantic-bovinate-from-nonterminal
@@ -64,7 +63,7 @@ NONTERM is the nonterminal symbol to start with."
   (let ((start (semantic-grammar-start))
 	($ri (wisent-grammar-region-placeholder $i)))
     (if (not (member nonterm start))
-	(error "EXPANDFULL macro called with %s, but not used with %%start."
+	(error "EXPANDFULL macro called with %s, but not used with %%start"
 	       nonterm))
     (if $ri
         `(semantic-parse-region
@@ -109,7 +108,7 @@ ARGS are the arguments passed to the expanded form."
 (defun wisent-grammar-CODE-TAG (name &rest args)
   "Return expansion of built-in CODE-TAG expression.
 NAME is the tag name."
-  `(wisent-raw-tag (semantic-tag-new-code name ,@args)))
+  `(wisent-raw-tag (semantic-tag-new-code ,name ,@args)))
 
 (defun wisent-grammar-AST-ADD (&rest args)
   "Return expansion of built-in AST-ADD expression.
@@ -172,10 +171,10 @@ ARGS are arguments passed to the function `semantic-ast-merge'."
           wisent-grammar-builtins))
 
 (defun wisent-grammar-expand-builtins (expr)
-  "Return expanded form of the expression EXPR.
-Semantic built-in function calls are expanded.  The variable
-`wisent-grammar-builtins' defines built-in functions and corresponding
-expanders."
+  "Expand Semantic built-in function calls in expression EXPR.
+Return the expanded expression.
+The variable `wisent-grammar-builtins' defines the built-in functions
+and their corresponding expanders."
   (if (or (atom expr) (semantic-grammar-quote-p (car expr)))
       expr ;; Just return atom or quoted expression.
     (let* ((expr (mapcar 'wisent-grammar-expand-builtins expr))
@@ -183,11 +182,6 @@ expanders."
       (if bltn ;; Expand Semantic built-in.
           (apply (cdr bltn) (cdr expr))
         expr))))
-
-(defun wisent-grammar-expand-sexpr (expr)
-  "Return expanded form of the expression EXPR.
-Macro and Semantic built-in function calls are expanded."
-  (cl-macroexpand-all (wisent-grammar-expand-builtins expr)))
 
 (defun wisent-grammar-assocs ()
   "Return associativity and precedence level definitions."
@@ -232,14 +226,14 @@ Keep order of declaration in the WY file without duplicates."
             (setq elem  (car elems)
                   elems (cdr elems))
             (setq elem (if (consp elem) ;; mid-rule action
-                           (wisent-grammar-expand-sexpr (read (car elem)))
+                           (wisent-grammar-expand-builtins (read (car elem)))
                          (semantic-grammar-item-value elem)) ;; item
                   rule (cons elem rule)))
           (setq rule (nreverse rule)))
         (if prec
             (setq prec (vector (semantic-grammar-item-value prec))))
         (if actn
-            (setq sexp (wisent-grammar-expand-sexpr (read actn))))
+            (setq sexp (wisent-grammar-expand-builtins (read actn))))
         (setq rule (if actn
                        (if prec
                            (list rule prec sexp)
@@ -279,27 +273,23 @@ Keep order of declaration in the WY file without duplicates."
       ',(semantic-grammar-start))))
 
 (defun wisent-grammar-setupcode-builder ()
-  "Return the text of the setup code."
+  "Return the parser setup code."
   (format
-   "(progn\n\
-      (semantic-install-function-overrides\n\
-       '((parse-stream . wisent-parse-stream)))\n\
-      (setq semantic-parser-name \"LALR\"\n\
-            semantic-toplevel-bovine-table %s\n\
-            semantic-debug-parser-source %S\n\
-            semantic-flex-keywords-obarray %s\n\
-            semantic-lex-types-obarray %s)\n\
-      ;; Collect unmatched syntax lexical tokens\n\
-      (semantic-make-local-hook 'wisent-discarding-token-functions)\n\
-      (add-hook 'wisent-discarding-token-functions\n\
-                'wisent-collect-unmatched-syntax nil t)\n\
-     %s)"
+   "(semantic-install-function-overrides\n\
+      '((parse-stream . wisent-parse-stream)))\n\
+    (setq semantic-parser-name \"LALR\"\n\
+          semantic-toplevel-bovine-table %s\n\
+          semantic-debug-parser-source %S\n\
+          semantic-flex-keywords-obarray %s\n\
+          semantic-lex-types-obarray %s)\n\
+    ;; Collect unmatched syntax lexical tokens\n\
+    (semantic-make-local-hook 'wisent-discarding-token-functions)\n\
+    (add-hook 'wisent-discarding-token-functions\n\
+              'wisent-collect-unmatched-syntax nil t)"
    (semantic-grammar-parsetable)
-   (file-name-nondirectory (buffer-file-name))
+   (buffer-name)
    (semantic-grammar-keywordtable)
-   (semantic-grammar-tokentable)
-   (semantic-grammar-setupcode-text)))
-
+   (semantic-grammar-tokentable)))
 
 ;;;###autoload
 (define-derived-mode wisent-grammar-mode semantic-grammar-mode "WY"
