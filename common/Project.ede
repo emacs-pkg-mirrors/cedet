@@ -31,4 +31,5 @@
   :web-site-directory "/r@scp:shell.sourceforge.net:cedet/htdocs"
   :ftp-upload-site "/ftp@upload.sourceforge.net:/incoming"
   :configuration-variables 'nil
+  :metasubproject 't
   )

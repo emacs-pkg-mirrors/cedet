@@ -50,4 +50,5 @@
   :web-site-file "eieio.shtml"
   :ftp-upload-site "/ftp@upload.sourceforge.net:/incoming"
   :configuration-variables 'nil
+  :metasubproject 't
   )
