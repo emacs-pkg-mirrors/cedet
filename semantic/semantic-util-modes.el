@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.36 2003/08/29 16:14:24 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.37 2003/12/11 01:08:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1376,18 +1376,18 @@ Each face will be applied to those tags for which the function returns true."
 
 (defface semantic-highlight-attribute-face-private
   '((((class color) (background dark))
-     (:background "#500000"))
+     (:background "#100000"))
     (((class color) (background light))
-     (:overline "#8aaaaa")))
+     (:overline "#8fffff")))
   "*Face used to show privatly scoped tags in.
 The face is used in  `semantic-highlight-by-attribute-mode'."
   :group 'semantic)
 
 (defface semantic-highlight-attribute-face-protected
   '((((class color) (background dark))
-     (:background "#000050"))
+     (:background "#000010"))
     (((class color) (background light))
-     (:overline "#aaaaa8")))
+     (:overline "#fffff8")))
   "*Face used to show protected scoped tags in.
 The face is used in  `semantic-highlight-by-attribute-mode'."
   :group 'semantic)
