@@ -1,11 +1,11 @@
 ;;; semantic-grammar-wy.el --- Generated parser support file
 
-;; Copyright (C) 2002, 2003 David Ponce
+;; Copyright (C) 2002, 2003, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2003-12-12 14:26:56+0100
+;; Created: 2004-01-14 10:33:53+0100
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.8 2003/12/16 11:47:28 ponced Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.9 2004/01/14 09:54:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -36,6 +36,10 @@
 
 ;;; Prologue
 ;;
+(defsubst semantic-grammar-wy--tag-value (tag)
+    "Return the value of TAG.
+Used internally to retrieve value of EXPADFULL tags."
+    (semantic-tag-get-attribute tag :value))
 
 ;;; Declarations
 ;;
@@ -55,6 +59,7 @@
      ("%scopestart" . SCOPESTART)
      ("%start" . START)
      ("%token" . TOKEN)
+     ("%type" . TYPE)
      ("%use-macros" . USE-MACROS))
    'nil)
   "Table of language keywords.")
@@ -95,7 +100,7 @@
     (eval-when-compile
       (require 'wisent-comp))
     (wisent-compile-grammar
-     '((DEFAULT-PREC NO-DEFAULT-PREC KEYWORD LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN USE-MACROS STRING SYMBOL PERCENT_PERCENT CHARACTER SEXP PREFIXED_LIST PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT)
+     '((DEFAULT-PREC NO-DEFAULT-PREC KEYWORD LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN TYPE USE-MACROS STRING SYMBOL PERCENT_PERCENT CHARACTER SEXP PREFIXED_LIST PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT)
        nil
        (grammar
         ((prologue))
@@ -126,6 +131,7 @@
         ((start_decl))
         ((keyword_decl))
         ((token_decl))
+        ((type_decl))
         ((use_macros_decl)))
        (default_prec_decl
          ((DEFAULT-PREC)
@@ -164,13 +170,13 @@
         ((PUT put_name put_value_list)
          (let*
              ((vals
-               (mapcar 'semantic-tag-name $3)))
+               (mapcar 'semantic-grammar-wy--tag-value $3)))
            `(wisent-raw-tag
              (semantic-tag ',$2 'put :value ',vals))))
         ((PUT put_name_list put_value)
          (let*
              ((names
-               (mapcar 'semantic-tag-name $2)))
+               (mapcar 'semantic-grammar-wy--tag-value $2)))
            `(wisent-raw-tag
              (semantic-tag ',(car names)
                            'put :rest ',(cdr names)
@@ -178,9 +184,9 @@
         ((PUT put_name_list put_value_list)
          (let*
              ((names
-               (mapcar 'semantic-tag-name $2))
+               (mapcar 'semantic-grammar-wy--tag-value $2))
               (vals
-               (mapcar 'semantic-tag-name $3)))
+               (mapcar 'semantic-grammar-wy--tag-value $3)))
            `(wisent-raw-tag
              (semantic-tag ',(car names)
                            'put :rest ',(cdr names)
@@ -198,7 +204,7 @@
          nil)
         ((put_name)
          (wisent-raw-tag
-          (semantic-tag $1 'put-name))))
+          (semantic-tag "name" 'put-name :value $1))))
        (put_name
         ((SYMBOL))
         ((token_type)))
@@ -215,7 +221,7 @@
          nil)
         ((put_value)
          (wisent-raw-tag
-          (semantic-tag $1 'put-value))))
+          (semantic-tag "value" 'put-value :value $1))))
        (put_value
         ((SYMBOL any_value)
          (cons $1 $2)))
@@ -251,6 +257,17 @@
        (token_type
         ((LT SYMBOL GT)
          (progn $2)))
+       (type_decl
+        ((TYPE token_type plist)
+         `(wisent-raw-tag
+           (semantic-tag ',$2 'type :value ',$3))))
+       (plist
+        ((plist put_value)
+         (append
+          (list $2)
+          $1))
+        ((put_value)
+         (list $1)))
        (use_name_list
         ((BRACE_BLOCK)
          (semantic-parse-region
@@ -264,12 +281,12 @@
          nil)
         ((SYMBOL)
          (wisent-raw-tag
-          (semantic-tag $1 'use-name))))
+          (semantic-tag "name" 'use-name :value $1))))
        (use_macros_decl
         ((USE-MACROS SYMBOL use_name_list)
          (let*
              ((names
-               (mapcar 'semantic-tag-name $3)))
+               (mapcar 'semantic-grammar-wy--tag-value $3)))
            `(wisent-raw-tag
              (semantic-tag "macro" 'macro :type ',$2 :value ',names)))))
        (string_value
@@ -398,6 +415,11 @@
   (semantic-make-local-hook 'wisent-discarding-token-functions)
   (add-hook 'wisent-discarding-token-functions
             'wisent-collect-unmatched-syntax nil t))
+
+
+;;; Analyzers
+;;
+(require 'semantic-lex)
 
 
 ;;; Epilogue
