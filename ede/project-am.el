@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.15 1999/03/17 23:35:51 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.16 1999/03/20 16:20:28 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -404,6 +404,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 	    (if (and ede-object (project-am-makefile-p ede-object))
 		ede-object
 	      (let ((ampf (project-am-makefile (project-am-last-dir fn)
+					       :name (project-am-last-dir fn)
 					       :file fn)))
 		(project-rescan ampf)
 		(make-local-variable 'ede-object)
