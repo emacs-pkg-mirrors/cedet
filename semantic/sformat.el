@@ -4,7 +4,7 @@
 ;; Version: 1.4
 ;; Keywords: extensions
 ;;
-;; Copyright (C) 1994, 1996, 1998, 1999, 2000 Free Software Foundation
+;; Copyright (C) 1994, 1996, 1998, 1999, 2000, 2002 Free Software Foundation
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@
 ;; and substring) to quickly scan over plain text, and then a slower
 ;; character by character scan to handle tokens.
 
-;;; $Id: sformat.el,v 1.4 2001/09/30 00:06:12 ponced Exp $
+;;; $Id: sformat.el,v 1.5 2002/05/07 01:31:13 zappo Exp $
 ;;
 ;; History
 ;;
@@ -205,6 +205,8 @@ Viable formats would be:
 			      ((and (symbolp sym) (fboundp sym))
 			       (funcall sym A1 A2))
 			      ((and (listp sym) (equal (car sym) 'lambda))
+			       (funcall sym))
+			      ((byte-code-function-p sym)
 			       (funcall sym))
 			      ((stringp sym)
 			       (let ((m1 (car (cdr (cdr tl)))))
@@ -372,8 +374,8 @@ if it were inserted with FORMAT in the past."
 	(progn
 	  (setq rs (substring format 0 (match-beginning 1)))
 	  ;; scan for previous tokens and shorten
-	  (while (string-match "\\(%\\)" rs)
-	    (setq rs (substring rs (+ (match-end 1) 1))))
+	  (while (string-match "\\(\\`\\|[^%]\\)\\(%\\)\\(\\'\\|[^%]\\)" rs)
+	    (setq rs (substring rs (+ (match-end 2) 1))))
 	  (regexp-quote rs))
       nil)))
 
@@ -385,8 +387,8 @@ if it were inserted with FORMAT in the past."
     (if (string-match (concat "\\(%" (char-to-string token) "\\)") format)
 	(progn
 	  (setq rs (substring format (match-end 1)))
-	  (if (string-match "\\(%\\)" rs)
-	      (setq rs (substring rs 0 (match-beginning 1))))
+	  (if (string-match "\\(\\`\\|[^%]\\)\\(%\\)\\(\\'\\|[^%]\\)" rs)
+	      (setq rs (substring rs 0 (match-beginning 2))))
 	  (regexp-quote rs))
       nil)))
 

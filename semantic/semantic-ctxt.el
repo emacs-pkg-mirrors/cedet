@@ -1,10 +1,10 @@
 ;;; semantic-ctxt.el --- Context calculations for Semantic tools.
 
-;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.19 2001/10/26 14:10:32 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.20 2002/05/07 01:31:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -308,7 +308,7 @@ beginning and end of a command."
   (skip-chars-backward semantic-command-separation-character)
   (if (re-search-backward (regexp-quote semantic-command-separation-character)
 			  nil t)
-      nil
+      (goto-char (match-end 0))
     ;; If there wasn't a command after this, we are the last
     ;; command, and we are incomplete.
     (goto-char (point-min)))
@@ -388,11 +388,13 @@ Depends on `semantic-type-relation-separator-character'."
 	    (setq symlist (cons (buffer-substring-no-properties (point) end)
 				symlist))
 	    ;; Skip the next syntactic expression backwards, then go forwards.
-	    (forward-sexp -1)
-	    ;; If we end up at the beginning of the buffer, we are narrowed
-	    ;; to a command, and need to stop.
-	    (if (bobp) (error nil))
-	    (forward-sexp 1)
+	    (let ((cp (point)))
+	      (forward-sexp -1)
+	      (forward-sexp 1)
+	      ;; If we end up at the same place we started, we are at the
+	      ;; beginning of a buffer, or narrowed to a command and
+	      ;; have to stop.
+	      (if (<= cp (point)) (error nil)))
 	    (if (looking-at fieldsep)
 		(setq end (point))
 	      (error nil))

@@ -1,11 +1,11 @@
 ;;; semantic-imenu.el --- Use the Bovinator as a imenu tag generator
 
-;;; Copyright (C) 2000, 2001 Paul Kinnucan & Eric Ludlam
+;;; Copyright (C) 2000, 2001, 2002 Paul Kinnucan & Eric Ludlam
 ;;; Copyright (C) 2001 Eric Ludlam
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.39 2001/11/30 03:31:14 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.40 2002/05/07 01:31:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -84,6 +84,13 @@ Some useful functions are found in `semantic-token->text-functions'."
   :group 'semantic-imenu
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-bucketize-file)
+
+(defcustom semantic-imenu-adopt-external-members t
+  "*Non-nil if types in a file should adopt externally defined members.
+C++ and CLOS can define methods that are not in the body of a class
+definition."
+  :group 'semantic-imenu
+  :type 'boolean)
 
 (defcustom semantic-imenu-buckets-to-submenu t
   "*Non-nil if buckets of tokens are to be turned into submenus.
@@ -174,7 +181,7 @@ Optional argument REST is some extra stuff."
     (if (vectorp position)
 	(let ((file (aref position 0))
 	      (pos (aref position 1)))
-	  (find-file file)
+	  (and file (find-file file))
 	  (imenu-default-goto-function name pos rest))
       ;; When the POSITION is the symbol 'file-only' it means that this
       ;; is a directory index entry and there is no tokens in this
@@ -209,8 +216,10 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
       (if (and semantic-imenu-index-directory
                (featurep 'semanticdb)
                (semanticdb-minor-mode-p))
-          (semantic-create-imenu-directory-index stream)
-        (semantic-create-imenu-index-1 stream))
+          (semantic-create-imenu-directory-index
+	   (or stream (semantic-bovinate-toplevel t)))
+        (semantic-create-imenu-index-1
+	 (or stream (semantic-bovinate-toplevel t)) nil))
     (semantic-make-local-hook 'semantic-before-toplevel-cache-flush-hook)
     (add-hook 'semantic-before-toplevel-cache-flush-hook
               'semantic-imenu-flush-fcn nil t)
@@ -222,11 +231,11 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
   "Create an IMENU tag index based on all files active in semanticdb.
 Optional argument STREAM is the stream of tokens for the current buffer."
   (if (not semanticdb-current-database)
-      (semantic-create-imenu-index-1 stream)
+      (semantic-create-imenu-index-1 stream nil)
     ;; We have a database, list all files, with the current file on top.
     (let ((index (list
 		  (cons (oref semanticdb-current-table file)
-			(or (semantic-create-imenu-index-1 stream)
+			(or (semantic-create-imenu-index-1 stream nil)
 			    ;; No tokens in this file
 			    'file-only))))
 	  (tables (oref semanticdb-current-database tables)))
@@ -246,7 +255,8 @@ Optional argument STREAM is the stream of tokens for the current buffer."
 					       ;; it will use the current
 					       ;; buffer
 					       (semantic-create-imenu-index-1
-						(oref (car tables) tokens)))
+						(oref (car tables) tokens)
+						nil))
 					  ;; no tokens in the file
 					  'file-only))
 				index)))
@@ -268,14 +278,24 @@ Optional argument STREAM is the stream of tokens for the current buffer."
       
       (nreverse index))))
 
-(defun semantic-create-imenu-index-1 (&optional stream)
+(defun semantic-create-imenu-index-1 (stream &optional parent)
   "Create an imenu index for any buffer which supports Semantic.
 Uses the output of the Semantic Bovinator to create the index.
-Optional argument STREAM is an optional stream of tokens used to create menus."
-  (let ((tokens (or stream (semantic-bovinate-toplevel t))))
+STREAM is a stream of tokens used to create menus.
+Optional argument PARENT is a token parent of STREAM."
+  (let ((tokens stream)
+	(semantic-imenu-adopt-external-members
+	 semantic-imenu-adopt-external-members))
+    ;; If we should regroup, do so.
+    (if semantic-imenu-adopt-external-members
+ 	(setq tokens (semantic-adopt-external-members tokens)
+	      ;; Don't allow recursion here.
+	      semantic-imenu-adopt-external-members nil))
+    ;; Test for bucketing vs not.
     (if semantic-imenu-bucketize-file
 	(let ((buckets (semantic-bucketize
-			tokens semantic-imenu-sort-bucket-function))
+			tokens parent
+			semantic-imenu-sort-bucket-function))
 	      item name
 	      index)
 	  (cond
@@ -321,41 +341,54 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
 (defun semantic-create-imenu-subindex (tokens)
   "From TOKENS, create an imenu index of interesting things."
   (let ((notypecheck (not semantic-imenu-expand-type-parts))
+	children
         index token parts)
     (while tokens
-      (setq token (car tokens))
+      (setq token (car tokens)
+	    children (semantic-nonterminal-children token t))
       (if (and (not notypecheck)
                (eq (semantic-token-token token)
                    semantic-imenu-expandable-token)
-               (semantic-token-with-position-p
-                (car (semantic-nonterminal-children token)))
+	       children
                )
           ;; to keep an homogeneous menu organisation, type menu items
           ;; always have a sub-menu with at least the *definition*
           ;; item (even if the token has no type parts)
-          (setq parts (semantic-nonterminal-children token)
-                index
-                (cons
-                 (cons
-                  (funcall semantic-imenu-summary-function token)
-                  ;; Add a menu for getting at the type definitions
-                  (if (and parts
-                           ;; Note to self: enable menu items for sub
-                           ;; parts even if they are not proper
-                           ;; tokens.
-                           (semantic-token-p (car parts)))
-                      (cons
-                       (cons "*definition*"
-                             (semantic-imenu-token-overlay token))
-                       (if (and semantic-imenu-bucketize-type-parts
-                                semantic-imenu-bucketize-file)
-                           (semantic-create-imenu-index-1 parts)
-                         (semantic-create-imenu-subindex parts)))
-                    ;; There were no parts, or something like that, so
-                    ;; instead just put the definition here.
-                    (semantic-imenu-token-overlay token)
-                    ))
-                 index))
+	  (progn
+	    (setq parts children)
+	    ;; There is options which create the submenu
+	    ;;  * Type has an overlay, but children do.
+	    ;; The type doesn't have to have it's own overlay,
+	    ;; but a type with no overlay and no children should be
+	    ;; invalid.
+	    (setq index
+		  (cons
+		   (cons
+		    (funcall semantic-imenu-summary-function token)
+		    ;; Add a menu for getting at the type definitions
+		    (if (and parts
+			     ;; Note to self: enable menu items for sub
+			     ;; parts even if they are not proper
+			     ;; tokens.
+			     (semantic-token-p (car parts)))
+			(let ((submenu
+			       (if (and semantic-imenu-bucketize-type-parts
+					semantic-imenu-bucketize-file)
+				   (semantic-create-imenu-index-1 parts token)
+				 (semantic-create-imenu-subindex parts))))
+			  ;; Only add a *definition* if we have a postion
+			  ;; in that type token.
+			  (if (semantic-token-with-position-p token)
+			      (cons
+			       (cons "*definition*"
+				     (semantic-imenu-token-overlay token))
+			       submenu)
+			    submenu))
+		      ;; There were no parts, or something like that, so
+		      ;; instead just put the definition here.
+		      (semantic-imenu-token-overlay token)
+		      ))
+		   index)))
         (setq index (cons
                      (cons
                       (funcall semantic-imenu-summary-function token)

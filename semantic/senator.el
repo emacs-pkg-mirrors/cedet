@@ -1,12 +1,12 @@
 ;;; senator.el --- SEmantic NAvigaTOR
 
-;; Copyright (C) 2000, 2001 by David Ponce
+;; Copyright (C) 2000, 2001, 2002 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.57 2001/12/07 21:12:30 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.58 2002/05/07 01:31:13 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1716,6 +1716,33 @@ This is a buffer local variable.")
     )
    "--"
    (list
+    "Analyze"
+    (senator-menu-item
+     [ "Speebar Class Browser"
+       semantic-cb-speedbar-mode
+       :active t
+       :help "Start speedbar in Class Broswer mode showing inheritance"
+       ])
+    (senator-menu-item
+     [ "Speedbar Analyzer Mode"
+       semantic-speedbar-analysis
+       :active t
+       :help "Start speedbar in Context Analysis/Completion mode."
+       ])
+    (senator-menu-item
+     [ "Context Analysis Dump"
+       semantic-analyze-current-context
+       :active t
+       :help "Show a dump of an analysis of the current local context"
+       ])
+    (senator-menu-item
+     [ "Smart Completion Dump"
+       semantic-analyze-possible-completions
+       :active t
+       :help "Show a dump of the semantic analyzer's guess at possible completions"
+       ])
+    )
+   (list 
     "Chart"
     (senator-menu-item
      [ "Chart Tokens by Class"

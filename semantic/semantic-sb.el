@@ -1,11 +1,11 @@
 ;;; semantic-sb.el --- Semantic tag display for speedbar
 
-;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.33 2001/11/22 17:08:47 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.34 2002/05/07 01:31:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -335,7 +335,13 @@ Returns the tag list, or t for an error."
 	  (setq out (semantic-bovinate-toplevel)))))
     (if (listp out)
 	(condition-case nil
-	    (semantic-bucketize out)
+	    (progn
+	      ;; This brings externally defind methods into
+	      ;; their classes, and creates meta classes for
+	      ;; orphans.
+	      (setq out (semantic-adopt-external-members out))
+	      ;; Dump all the tokens into buckets.
+	      (semantic-bucketize out))
 	  (error t))
       t)))
 

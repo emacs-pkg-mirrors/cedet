@@ -1,9 +1,9 @@
 ;;; semantic-texi.el --- Semantic details for Texinfo files
 
-;;; Copyright (C) 2001 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.7 2001/11/17 15:51:03 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.8 2002/05/07 01:31:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,7 +66,10 @@ Each token returned is of the form:
 or
  (\"NAME\" def DOC OVERLAY)"
   ;;(semantic-texi-bovinate-headings)
-  (mapcar 'semantic-texi-raw-to-cooked-token (semantic-texi-bovinate-headings))
+  (let ((lst (mapcar 'semantic-texi-raw-to-cooked-token
+		     (semantic-texi-bovinate-headings))))
+    (semantic-overlay-list lst)
+    lst)
   )
 
 (defun semantic-texi-raw-to-cooked-token (token)
@@ -322,7 +325,8 @@ The current buffer must include TOKEN."
 	    docbuff (if doctok (current-buffer) nil))
       (setq texi (cdr texi)))
     (if (not doctok)
-	(error "Token %s is not yet documented.  Use the `document' command"))
+	(error "Token %s is not yet documented.  Use the `document' command"
+	       name))
     ;; Ok, we should have everything we need.  Do the deed.
     (if (get-buffer-window docbuff)
 	(set-buffer docbuff)

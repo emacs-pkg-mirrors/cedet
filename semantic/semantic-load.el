@@ -1,9 +1,9 @@
 ;;; semantic-load.el --- Autoload definitions for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.16 2001/11/30 03:03:22 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.17 2002/05/07 01:31:14 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -56,6 +56,20 @@
 (autoload 'semantic-chart-nonterminals-by-token "semantic-chart" nil t)
 (autoload 'semantic-chart-nonterminal-complexity-token "semantic-chart" nil t)
 (autoload 'semantic-chart-database-size "semantic-chart" nil t)
+
+;;; Class browser data
+(autoload 'semantic-cb-speedbar-mode "semantic-cb")
+
+;;; Context analysis
+(autoload 'semantic-analyze-current-context "semantic-analyze")
+(autoload 'semantic-analyze-possible-completions "semantic-analyze")
+(autoload 'semantic-speedbar-analysis "semantic-ia-sb")
+
+;;; Some speedbar major modes
+(eval-after-load "speedbar"
+  '(progn
+     (require 'semantic-cb)
+     (require 'semantic-ia-sb)))
 
 
 ;;; Minor modes

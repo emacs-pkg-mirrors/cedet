@@ -1,10 +1,10 @@
 ;;; semanticdb.el --- Semantic token database manager
 
-;;; Copyright (C) 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.39 2001/12/04 02:50:05 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.40 2002/05/07 01:31:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,11 +58,14 @@
 
 (defcustom semanticdb-default-save-directory nil
   "*Directory name where semantic cache files are stored.
-If this value is nil, files are saved in the current directory.
-If the value is a string, then it overrides `semanticdb-default-file-name'
-and stores caches in a coded file name in this directory."
+If this value is nil, files are saved in the current directory. If the value
+is a valid directory, then it overrides `semanticdb-default-file-name' and
+stores caches in a coded file name in this directory."
   :group 'semanticdb
-  :type 'string)
+  :type '(choice :tag "Default-Directory"
+                 :menu-tag "Default-Directory"
+                 (const :tag "Use current directory" :value nil)
+                 (directory)))
 
 (defcustom semanticdb-persistent-path '(project)
   "*List of valid paths that semanticdb will cache tokens to.
@@ -318,17 +321,38 @@ Uses `semanticdb-persistent-path' to determine the return value."
 This could be a cache file in the current directory, or an encoded file
 name in a secondary directory."
   (if semanticdb-default-save-directory
-      (let* ((rp (file-relative-name
-		  (expand-file-name path)
-		  (expand-file-name semanticdb-default-save-directory)))
-	     (ep rp))
-	(while (string-match "/" ep)
-	  (setq ep (replace-match "#" t t ep)))
-	(concat (file-name-as-directory semanticdb-default-save-directory)
-		ep)
-	)
+      (let ((file path))
+        (when (memq system-type '(windows-nt ms-dos))
+          ;; Normalize DOSish file names: convert all slashes to
+          ;; directory-sep-char, downcase the drive letter, if any,
+          ;; and replace the leading "x:" with "/drive_x".
+          (or (file-name-absolute-p file)
+              (setq file (expand-file-name file))) ; make defaults explicit
+          ;; Replace any invalid file-name characters (for the
+          ;; case of backing up remote files).
+          (setq file (expand-file-name (convert-standard-filename file)))
+          (setq dir-sep-string (char-to-string directory-sep-char))
+          (if (eq (aref file 1) ?:)
+              (setq file (concat dir-sep-string
+                                 "drive_"
+                                 (char-to-string (downcase (aref file 0)))
+                                 (if (eq (aref file 2) directory-sep-char)
+                                     ""
+                                   dir-sep-string)
+                                 (substring file 2)))))
+        ;; Make the name unique by substituting directory
+        ;; separators.  It may not really be worth bothering about
+        ;; doubling `!'s in the original name...
+        (setq file (subst-char-in-string
+                    directory-sep-char ?!
+                    (replace-regexp-in-string "!" "!!" file)))
+        ;; Now create a filename for the cache file in
+        ;; `semanticdb-default-save-directory'.
+     (expand-file-name
+         (concat (file-name-as-directory semanticdb-default-save-directory)
+                 file)))
     (concat (file-name-directory (buffer-file-name))
-	    semanticdb-default-file-name)))
+         semanticdb-default-file-name)))
 
 ;;; Hooks:
 ;;
@@ -549,10 +573,12 @@ it returns the results of function `semanticdb-current-database'."
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
 SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH.
 Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (semanticdb-find-nonterminal-by-function
-   (lambda (stream sp si)
-     (semantic-find-nonterminal-by-token token stream sp si))
-   databases search-parts search-includes diff-mode find-file-match))
+  (let ((goofy-token-name-thing token))
+    (semanticdb-find-nonterminal-by-function
+     (lambda (stream sp si)
+       (semantic-find-nonterminal-by-token goofy-token-name-thing
+					   stream sp si))
+     databases search-parts search-includes diff-mode find-file-match)))
 
 (defun semanticdb-find-nonterminal-by-name
   (name &optional databases search-parts search-includes diff-mode find-file-match)

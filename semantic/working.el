@@ -1,6 +1,6 @@
 ;;; working --- Display a "working" message in the minibuffer.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.4
@@ -170,7 +170,7 @@ percentage display.  A number such as `2' means `2%'."
 
 (if (boundp 'global-mode-string)
     (progn
-      ;; If this variable exists, use it to pus the working message into
+      ;; If this variable exists, use it to push the working message into
       ;; an interesting part of the mode line.
       (if (null global-mode-string)
 	  (setq global-mode-string (list "")))
@@ -209,14 +209,14 @@ percentage display.  A number such as `2' means `2%'."
   )
 
 (defun working-message-emacs (&rest args)
-  "Print but no log a one-line message at the bottom of the screen.
+  "Print but don't log a one-line message at the bottom of the screen.
 See the function `message' for details on ARGS."
   (or noninteractive
       (let ((message-log-max nil)) ;; No logging
         (apply 'message args))))
 
 (defun working-message-xemacs (&rest args)
-  "Print but no log a one-line message at the bottom of the screen.
+  "Print but don't log a one-line message at the bottom of the screen.
 See the function `message' for details on ARGS."
   (or (noninteractive)
       (let ((log-message-filter-function #'ignore)) ;; No logging
@@ -322,9 +322,12 @@ Since it actually calls `start-process', not all features will work."
 			             program args)))
       (set-process-sentinel proc 'list)
       (while (eq (process-status proc) 'run)
-	;; This caused my solaris Emacs 20.3 to crash.
-	;; (accept-process-output proc)
-	(sit-for timeout)))))
+	(accept-process-output proc)
+	;; accept-process-output caused my solaris Emacs 20.3 to crash.
+	;; If this is unreliable for you, use the below which will work
+	;; in that situation.
+	;; (if (not (sit-for timeout)) (read-event))
+	))))
 
 (defun working-status (&optional percent &rest args)
   "Called within the macro `working-status-forms', show the status.

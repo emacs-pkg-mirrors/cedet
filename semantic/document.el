@@ -1,10 +1,10 @@
 ;;; document.el --- Use the bovinator to aid in generating documentation.
 
-;;; Copyright (C) 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.11 2001/10/26 14:13:07 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.12 2002/05/07 01:31:15 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -160,7 +160,7 @@ When non-nil, query for a new documentation file."
 	(document-insert-function-comment-new nonterm))
       (message "Done..."))
      (t
-      (error "Type %s is not yet managed by document `document-inline'" tt)))))
+      (error "Type %S is not yet managed by document `document-inline'" tt)))))
 
 (defun document-update-comment (nonterm)
   "Update an existing comment for NONTERM."
@@ -568,6 +568,15 @@ COMMENT is a flex token."
 	(if p (insert (format (cdr p) (cdr (car document-runflags))))))
       (setq document-runflags (cdr document-runflags)))))
 
+(defun document-argument-name (arg)
+  "Return a string representing the argument ARGs name.
+Arguments can be semantic tokens, or strings."
+  (cond ((semantic-token-p arg)
+	 (semantic-token-name arg))
+	((stringp arg)
+	 arg)
+	(t (format "%s" arg))))
+
 (defun document-update-paramlist (nonterm comment)
   "Update NONTERM's comment found in the flex token COMMENT."
   (let ((endpos 0) st en (il nil)
@@ -605,7 +614,7 @@ COMMENT is a flex token."
 	;; are the same.
 	(let ((tl l) (stop nil))
 	  (while (and tl (not stop))
-	    (if (not (assoc (semantic-token-name (car tl)) il))
+	    (if (not (assoc (document-argument-name (car tl)) il))
 		(setq stop t))
 	    (setq tl (cdr tl)))
 	  (if (not stop)
@@ -618,11 +627,11 @@ COMMENT is a flex token."
 		(cs1 nil)
 		(num 0))
 	    (while ntl
-	      (if (not (assoc (semantic-token-name (car ntl)) il))
+	      (if (not (assoc (document-argument-name (car ntl)) il))
 		  (progn
 		    (setq num (1+ num))
 		    (setq cs1 (concat cs1 (if cs1 ", ")
-				      (semantic-token-name (car ntl))))))
+				      (document-argument-name (car ntl))))))
 	      (setq ntl (cdr ntl)))
 	    (if cs1
 		(if (= num 1)

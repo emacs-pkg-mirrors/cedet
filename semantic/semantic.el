@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.138 2002/02/06 03:18:51 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.139 2002/05/07 01:31:14 zappo Exp $
 
-(defvar semantic-version "1.4beta13"
+(defvar semantic-version "1.4"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -40,6 +40,31 @@
 
 (require 'working)
 (require 'assoc)
+
+(defun semantic-require-version (major minor &optional beta)
+  "Non-nil if this version of semantic does not satisfy a specific version.
+Arguments can be:
+
+  (MAJOR MINOR &optional BETA)
+
+  Values MAJOR and MINOR must be integers.  BETA can be an integer, or
+excluded if a released version is required.
+
+It is assumed that if the current version is newer than that specified,
+everything passes.  Exceptions occur when known incompatibilities are
+introduced."
+  (when (string-match "\\([0-9]+\\)\\.\\([0-9]+\\)\\( ?beta ?\\([0-9]+\\)\\)?"
+		      semantic-version)
+    (let ((vmajor (string-to-int (match-string 1 semantic-version)))
+	  (vminor (string-to-int (match-string 2 semantic-version)))
+	  (vbeta (match-string 4 semantic-version)))
+      (when vbeta (setq vbeta (string-to-int vbeta)))
+      (or (> major vmajor)
+	  (and (= major vmajor) (> minor vminor))
+	  (and (= major vmajor) (= minor vminor)
+	       (or (and (not beta) vbeta)
+		   (and beta vbeta (> beta vbeta)))))
+      )))
 
 (defgroup semantic nil
   "Parser Generator/Parser."
@@ -160,9 +185,9 @@ section in the semantic texinfo manual.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table-source)
 
 (defvar semantic-symbol->name-assoc-list
-  '((variable . "Variables")
+  '((type     . "Types")
+    (variable . "Variables")
     (function . "Functions")
-    (type     . "Types")
     (include  . "Dependencies")
     (package  . "Provides"))
   "Association between symbols returned, and a string.
@@ -172,6 +197,15 @@ in place of the default, even though that language will still
 return a symbol.  For example, Java return's includes, but the
 string can be replaced with `Imports'.")
 (make-variable-buffer-local 'semantic-symbol->name-assoc-list)
+
+(defvar semantic-symbol->name-assoc-list-for-type-parts nil
+  "Like `semantic-symbol->name-assoc-list' for type parts.
+Some tokens that have children (see `semantic-nonterminal-children')
+will want to define the names of classes of tokens differently than
+at the top level.  For example, in C++, a Function may be called
+a Method.  In addition, there may be new types of tokens that exist
+only in classes, such as protection labels.")
+(make-variable-buffer-local 'semantic-symbol->name-assoc-list-for-type-parts)
 
 (defvar semantic-case-fold nil
   "Value for `case-fold-search' when parsing.")
@@ -297,7 +331,7 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
   "Hooks run before a toplevel token parse.
 It is called before any request for tokens is made via the function
 `semantic-bovinate-toplevel' by an application.
-If any hook returns a non-nil value, the cached value is returned
+If any hook returns a nil value, the cached value is returned
 immediatly, even if it is empty.")
 
 (defvar semantic-after-toplevel-bovinate-hook nil
@@ -419,6 +453,25 @@ If VALUE is nil, then remove the property from TOKEN."
   (let* ((c (semantic-token-properties-cdr token))
 	 (al (car c))
 	 (a (assoc key (car c))))
+    (if a
+	(if value
+	    (setcdr a value)
+	  (adelete 'al key)
+	  (setcar c al))
+      (if value
+	  (setcar c (cons (cons key value) (car c)))))
+    ))
+
+(defun semantic-token-put-no-side-effect (token key value)
+  "For TOKEN, put the property KEY on it with VALUE without side effects.
+If VALUE is nil, then remove the property from TOKEN.
+All cons cells in the property list are replicated so that there
+are no side effects if TOKEN is in shared lists."
+  (let* ((c (semantic-token-properties-cdr token))
+	 (al (copy-sequence (car c)))
+	 (a (assoc key (car c))))
+    ;; This removes side effects
+    (setcar c a)
     (if a
 	(if value
 	    (setcdr a value)
@@ -1359,14 +1412,16 @@ Argument COMMENT is additional description."
 (defvar semantic-bovinate-debug-table nil
   "A marker where the current table we are debugging is.")
 
-(defun semantic-bovinate-debug-set-table ()
-  "Set the table for the next debug to be here."
-  (interactive)
-  (if (not (eq major-mode 'emacs-lisp-mode))
-      (error "Not an Emacs Lisp file"))
-  (beginning-of-defun)
-  (setq semantic-bovinate-debug-table (point-marker)))
-
+(defun semantic-bovinate-debug-set-table (&optional clear)
+  "Set the table for the next debug to be here.
+Optional argument CLEAR to unset the debug table."
+  (interactive "P")
+  (if clear (setq semantic-bovinate-debug-table nil)
+    (if (not (eq major-mode 'emacs-lisp-mode))
+	(error "Not an Emacs Lisp file"))
+    (beginning-of-defun)
+    (setq semantic-bovinate-debug-table (point-marker))))
+  
 ;; We will get warnings in here about semantic-bnf-* fns.
 ;; We cannot require semantic-bnf due to compile errors.
 (defun semantic-bovinate-debug-buffer ()
@@ -1706,6 +1761,12 @@ Useful for languages where the newline is a special case terminator.
 Only set this on a per mode basis, not globally.")
 (make-variable-buffer-local 'semantic-flex-enable-newlines)
 
+(defvar semantic-flex-enable-whitespace nil
+  "When flexing, report 'whitespace as syntactic elements.
+Useful for languages where the syntax is whitespace dependent.
+Only set this on a per mode basis, not globally.")
+(make-variable-buffer-local 'semantic-flex-enable-whitespace)
+
 (defvar semantic-number-expression
   ;; This expression was written by David Ponce for Java, and copied
   ;; here for C and any other similar language.
@@ -1769,7 +1830,7 @@ See `semantic-flex-tokens' variable for details on token types.
 END does not mark the end of the text scanned, only the end of the beginning
 of text scanned.  Thus, if a string extends past END, the end of the
 return token will be larger than END.  To truly restrict
-scanning, use `narrow-to-region'.  
+scanning, use `narrow-to-region'.
 The last argument, LENGTH specifies that `semantic-flex' should only return
 LENGTH tokens."
   ;(message "Flexing muscles...")
@@ -1814,7 +1875,12 @@ LENGTH tokens."
 		      (if (and r (not (car ts))) (setq ts (cdr ts)))
 		      r)))
 	      ;; comment end is also EOL for some languages.
-	      ((looking-at "\\(\\s-\\|\\s>\\)+"))
+	      ((looking-at "\\(\\s-\\|\\s>\\)+")
+	       (if semantic-flex-enable-whitespace
+		   (setq ts (cons (cons 'whitespace
+					(cons (match-beginning 0)
+					      (match-end 0)))
+				  ts))))
 	      ;; numbers
 	      ((and semantic-number-expression
 		    (looking-at semantic-number-expression))

@@ -1,9 +1,9 @@
 ;;; semantic-el.el --- Semantic details for Emacs Lisp
 
-;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.55 2001/11/17 15:43:33 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.56 2002/05/07 01:31:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -88,6 +88,10 @@
 		      'protection
 		      (semantic-elisp-clos-slot-property-string
 		       part :protection)
+		      'static
+		      (equal (semantic-elisp-clos-slot-property-string
+			      part :allocation)
+			     ":class")
 		      )
 		     (semantic-elisp-clos-slot-property-string
 		      part :documentation))
@@ -187,7 +191,7 @@ Return a bovination list to use."
 	    nil (nth 3 rt)))
      ((eq ts 'defclass)
       ;; classes
-      (let ((docpart (nth 4 rt)))
+      (let ((docpart (nthcdr 4 rt)))
 	(list sn 'type "class"
 	      (semantic-elisp-clos-args-to-semantic (nth 3 rt))
 	      (semantic-elisp-desymbolify (nth 2 rt))
@@ -197,8 +201,8 @@ Return a bovination list to use."
 		(if (not (stringp docpart))
 		    docpart))
 	       )
-	      (if (stringp docpart)
-		  docpart
+	      (if (stringp (car docpart))
+		  (car docpart)
 		(car (cdr (member :documentation docpart))))))
       )
      ((eq ts 'defstruct)
@@ -270,6 +274,12 @@ Override function for `semantic-nonterminal-protection'."
      ((string= prot ":protected") 'protected)
      ((string= prot "protected") 'protected))))
 
+(defun semantic-elisp-nonterminal-static (token &optional parent)
+  "Return non-nil of TOKEN is static in PARENT class.
+Overrides `semantic-nonterminal-static'."
+  ;; This can only be true (theoretically) in a class where it is assigned.
+  (semantic-token-extra-spec token 'static))
+
 ;;;###autoload
 (defun semantic-default-elisp-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
@@ -278,6 +288,7 @@ Override function for `semantic-nonterminal-protection'."
      (find-documentation . semantic-elisp-find-documentation)
      (insert-foreign-token . semantic-elisp-insert-foreign-token)
      (nonterminal-protection . semantic-elisp-nonterminal-protection)
+     (nonterminal-static . semantic-elisp-nonterminal-static)
      )
    t)
   (setq semantic-toplevel-bovine-table semantic-toplevel-elisp-bovine-table
@@ -285,8 +296,8 @@ Override function for `semantic-nonterminal-protection'."
 	semantic-function-argument-separator " "
 	semantic-function-argument-separation-character " "
 	semantic-symbol->name-assoc-list
-	'( (variable . "Variables")
-	   (type     . "Types")
+	'( (type     . "Types")
+	   (variable . "Variables")
 	   (function . "Defuns")
 	   (include  . "Requires")
 	   (package  . "Provides"))
