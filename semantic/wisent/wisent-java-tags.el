@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.7 2002/05/15 19:23:23 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.8 2002/06/29 18:11:37 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -95,7 +95,7 @@ variable NAME."
 
 (defconst wisent-java-parser-tables
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-05-15 13:57+0200
+    ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-06-12 13:20+0200
     (wisent-compile-grammar
      '((LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP IDENTIFIER STRING_LITERAL NUMBER_LITERAL ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED)
        nil
@@ -136,7 +136,7 @@ variable NAME."
          (nreverse $2)))
        (class_body
         ((BRACE_BLOCK)
-         (wisent-bovinate-from-nonterminal-full
+         (semantic-bovinate-from-nonterminal-full
           (car $region1)
           (cdr $region1)
           'class_member_declaration)))
@@ -167,7 +167,7 @@ variable NAME."
          (identity $2)))
        (interface_body
         ((BRACE_BLOCK)
-         (wisent-bovinate-from-nonterminal-full
+         (semantic-bovinate-from-nonterminal-full
           (car $region1)
           (cdr $region1)
           'interface_member_declaration)))
@@ -231,12 +231,14 @@ variable NAME."
            ((BRACE_BLOCK)))
        (formal_parameter_list
         ((PAREN_BLOCK)
-         (wisent-bovinate-from-nonterminal-full
+         (semantic-bovinate-from-nonterminal-full
           (car $region1)
           (cdr $region1)
           'formal_parameters)))
        (formal_parameters
         ((LPAREN)
+         nil)
+        ((RPAREN)
          nil)
         ((formal_parameter COMMA))
         ((formal_parameter RPAREN)))
@@ -251,11 +253,9 @@ variable NAME."
          (list $1)))
        (field_declaration
         ((modifiers_opt type variable_declarators SEMICOLON)
-         (wisent-java-expand-nonterminal
-          (car
-           (wisent-token $3 'variable $2 nil
-                         (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                         nil)))))
+         (wisent-token $3 'variable $2 nil
+                       (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                       nil)))
        (variable_declarators
         ((variable_declarators COMMA variable_declarator)
          (cons $3 $1))
@@ -385,7 +385,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-05-15 13:57+0200
+   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-06-12 13:20+0200
    (semantic-flex-make-keyword-table
     '(("abstract" . ABSTRACT)
       ("boolean" . BOOLEAN)
@@ -541,7 +541,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-05-15 13:57+0200
+   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-06-12 13:20+0200
    (wisent-flex-make-token-table
     '(("number"
        (NUMBER_LITERAL))
@@ -632,25 +632,20 @@ MSG is the message string to report."
 Uses the bovinator with the special top-symbol `field_declaration'
 to collect tokens, such as local variables or prototypes.
 This function is a Java specific `get-local-variables' override."
-  ;; The working status is to let the parser work properly
-  (working-status-forms "LALR:Local" "done"
-    (let ((semantic-bovination-working-type nil)
-          ;; We want nothing to do with funny syntaxing while doing this.
-          (semantic-unmatched-syntax-hook nil)
-          ;; Disable parsing messages
-          (working-status-dynamic-type nil)
-          (vars nil))
-      (while (not (semantic-up-context (point) 'function))
-        (save-excursion
-          (forward-char 1)
-          (setq vars
-                (append (wisent-bovinate-from-nonterminal-full
-                         (point)
-                         (save-excursion (semantic-end-of-context) (point))
-                         'field_declaration
-                         0)
-                        vars))))
-      vars)))
+  (let ((vars nil)
+        ;; We want nothing to do with funny syntaxing while doing this.
+        (semantic-unmatched-syntax-hook nil))
+    (while (not (semantic-up-context (point) 'function))
+      (save-excursion
+        (forward-char 1)
+        (setq vars
+              (append (semantic-bovinate-from-nonterminal-full
+                       (point)
+                       (save-excursion (semantic-end-of-context) (point))
+                       'field_declaration
+                       0)
+                      vars))))
+    vars))
 
 ;;;;
 ;;;; Semantic integration of the Java LALR parser
@@ -659,9 +654,10 @@ This function is a Java specific `get-local-variables' override."
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-05-15 13:57+0200
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-06-12 13:20+0200
   (progn
-    (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
+    (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
+          semantic-bovinate-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-java-parser-tables
           semantic-flex-keywords-obarray wisent-java-keywords
           wisent-flex-tokens-obarray wisent-java-tokens)
@@ -674,6 +670,7 @@ Use the alternate LALR(1) parser."
      t ;; They can be changed in mode hook by more specific ones
      )
     (setq
+     semantic-expand-nonterminal 'wisent-java-expand-nonterminal
      ;; Tell `semantic-flex' to handle Java numbers
      semantic-number-expression semantic-java-number-regexp
      ;; function to use when creating items in imenu
