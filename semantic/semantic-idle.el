@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.7 2004/01/10 01:26:31 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.8 2004/01/12 15:42:03 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -88,7 +88,7 @@ run as soon as Emacs is idle."
   "*If non-nil, enable global use of idle-scheduler mode."
   :group 'semantic
   :type 'boolean
-  :require 'semantic-util-modes
+  :require 'semantic-idle
   :initialize 'custom-initialize-default
   :set (lambda (sym val)
          (global-semantic-idle-scheduler-mode (if val 1 -1))))
@@ -110,6 +110,7 @@ If ARG is nil, then toggle."
   :group 'semantic
   :type 'hook)
 
+;;;###autoload
 (defvar semantic-idle-scheduler-mode nil
   "Non-nil if idle-scheduler minor mode is enabled.
 Use the command `semantic-idle-scheduler-mode' to change this variable.")
@@ -368,7 +369,7 @@ If ARG is nil, then toggle.")
 " ,doc)
 	 :group 'semantic
 	 :type 'boolean
-	 :require 'semantic-util-modes
+	 :require 'semantic-idle
 	 :initialize 'custom-initialize-default
 	 :set (lambda (sym val)
 		(,global (if val 1 -1))))
