@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.64 2001/05/07 16:28:55 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.65 2001/05/18 02:56:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1373,19 +1373,24 @@ depended on, and functions will move to the specified definition."
 	    ;; Assume the tool doing the finding knows that we came
 	    ;; in from a database, and use the current buffer.
 	    (set-buffer (semantic-token-buffer token)))
-	(let ((start (semantic-token-start token)))
-	  (if (numberp start)
-	      ;; If it's a number, go there
-	      (goto-char start)
-	    ;; Otherwise, it's a trimmed vector, such as a parameter,
-	    ;; or a structure part.
-	    (if (not parent)
-		nil
-	      (goto-char (semantic-token-start parent))
-	      ;; Here we make an assumtion that the text returned by
-	      ;; the bovinator and concocted by us actually exists
-	      ;; in the buffer.
-	      (re-search-forward (semantic-token-name token) nil t))))))))
+	(if (semantic-token-with-position-p token)
+	    ;; If it's a number, go there
+	    (goto-char (semantic-token-start token))
+	  ;; Otherwise, it's a trimmed vector, such as a parameter,
+	  ;; or a structure part.
+	  (if (not parent)
+	      nil
+	    (if (semantic-token-with-position-p parent)
+		(progn
+		  (if (semantic-token-buffer parent)
+		      ;; If this parent token has no buffer, then it
+		      ;; may be deoverlayed.
+		      (set-buffer (semantic-token-buffer parent)))
+		  (goto-char (semantic-token-start parent))
+		  ;; Here we make an assumtion that the text returned by
+		  ;; the bovinator and concocted by us actually exists
+		  ;; in the buffer.
+		  (re-search-forward (semantic-token-name token) nil t)))))))))
 
 (defun semantic-find-documentation (&optional token nosnarf)
   "Find documentation from TOKEN and return it as a clean string.
