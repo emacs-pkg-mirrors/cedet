@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.60 2003/08/24 14:27:06 zappo Exp $
+;; RCS: $Id: ede.el,v 1.61 2003/09/04 18:41:43 zappo Exp $
 (defconst ede-version "1.0beta3"
   "Current version of the Emacs EDE.")
 
@@ -41,6 +41,7 @@
 ;;
 ;;  (global-ede-mode t)
 
+(load "ede-loaddefs" nil t)
 (require 'ede-source)
 
 ;;; Code:
@@ -150,6 +151,7 @@ type is required and the load function used.")
 
 ;;; Generic project information manager objects
 ;;
+;;;###autoload
 (defclass ede-target (eieio-speedbar-directory-button)
   ((buttonface :initform speedbar-file-face) ;override for superclass
    (name :initarg :name
@@ -237,6 +239,7 @@ which files this object is interested in."
 Projects placeholders will be stored in a user specific location
 and querying them will cause the actual project to get loaded.")
 
+;;;###autoload
 (defclass ede-project (ede-project-placeholder)
   ((subproj :initform nil
 	    :type list
@@ -345,6 +348,7 @@ All specific project types must derive from this project.")
 
 ;;; Management variables
 ;;
+;;;###autoload
 (defvar ede-projects nil
   "A list of all active projects currently loaded in Emacs.")
 
@@ -889,6 +893,7 @@ ARGS are additional arguments to pass to method sym."
   (setq ede-object (ede-buffer-object (current-buffer)))
   (ede-apply-object-keymap))
 
+;;;###autoload
 (defun ede-remove-file (&optional force)
   "Remove the current file from targets.
 Optional argument FORCE forces the file to be removed without asking."
@@ -928,6 +933,7 @@ Optional argument FORCE forces the file to be removed without asking."
 							"Target to Build: ")))
   (project-compile-target target))
 
+;;;###autoload
 (defun ede-compile-target ()
   "Compile the current buffer's associated target."
   (interactive)
@@ -1054,6 +1060,7 @@ Argument FILE is the file to add."
 Argument FNND is an argument."
   (error "remove-file not supported by %s" (object-name ot)))
 
+;;;###autoload
 (defmethod project-edit-file-target ((ot ede-target))
   "Edit the target OT associated w/ this file."
   (find-file (oref (ede-current-project) file)))
@@ -1070,11 +1077,13 @@ Argument FNND is an argument."
   "Delete the current target OT from it's parent project."
   (error "add-file not supported by %s" (object-name ot)))
 
+;;;###autoload
 (defmethod project-compile-project ((obj ede-project) &optional command)
   "Compile the entire current project OBJ.
 Argument COMMAND is the command to use when compiling."
   (error "compile-project not supported by %s" (object-name obj)))
 
+;;;###autoload
 (defmethod project-compile-target ((obj ede-target) &optional command)
   "Compile the current target OBJ.
 Argument COMMAND is the command to use for compiling the target."
@@ -1084,6 +1093,7 @@ Argument COMMAND is the command to use for compiling the target."
   "Run the current project target OBJ in a debugger."
   (error "debug-target not supported by %s" (object-name obj)))
 
+;;;###autoload
 (defmethod project-make-dist ((this ede-project))
   "Build a distribution for the project based on THIS project."
   (error "Make-dist not supported by %s" (object-name this)))
@@ -1102,6 +1112,7 @@ Argument COMMAND is the command to use for compiling the target."
 ;; no need to in most situations because they are either a) simple, or
 ;; b) cosmetic.
 
+;;;###autoload
 (defmethod ede-name ((this ede-target))
   "Return the name of THIS targt."
   (oref this name))
@@ -1115,6 +1126,7 @@ Argument COMMAND is the command to use for compiling the target."
 Do this by extracting the lowest directory name."
   (oref this name))
 
+;;;###autoload
 (defmethod ede-description ((this ede-project))
   "Return a description suitible for the minibuffer about THIS."
   (format "Project %s: %d subprojects, %d targets."
@@ -1339,6 +1351,7 @@ nil is returned if the current directory is not a part ofa project."
       (setq toppath newpath newpath (ede-up-directory toppath)))
     toppath))
 
+;;;###autoload
 (defun ede-load-project-file (file)
   "Project file independent way to read in FILE."
   (let* ((path (expand-file-name (file-name-directory file)))
@@ -1397,6 +1410,7 @@ instead of the current project."
       (setq cp (ede-parent-project cp)))
     cp))
 
+;;;###autoload
 (defun ede-parent-project (&optional obj)
   "Return the project belonging to the parent directory.
 nil if there is no previous directory.
@@ -1432,6 +1446,7 @@ If TARGET belongs to a subproject, return that project file."
 	(setq s (cdr s)))
       ans)))
 
+;;;###autoload
 (defun ede-target-parent (target)
   "Return the project which is the parent of TARGET.
 It is recommended you track the project a different way as this function
