@@ -6,7 +6,7 @@
 ## Maintainer: David Ponce <david@dponce.com>
 ## Created: 07 Aug 2001
 ## Keywords: syntax
-## X-RCS: $Id: wisent-java.bnf,v 1.5 2001/08/30 14:02:49 ponced Exp $
+## X-RCS: $Id: wisent-java.bnf,v 1.6 2001/08/31 11:57:54 ponced Exp $
 ##
 ## This file is not part of GNU Emacs.
 ##
@@ -394,81 +394,58 @@
 
 goal
   : compilation_unit
-    (identity $1)
   ;
 
 literal
   : NULL_LITERAL
-    (identity $1)
   | BOOLEAN_LITERAL
-    (identity $1)
   | STRING_LITERAL
-    (identity $1)
   | NUMBER_LITERAL
-    (identity $1)
   ;
 
 type
   : reference_type
-    (identity $1)
   | primitive_type
-    (identity $1)
   ;
 
 primitive_type
   : BOOLEAN
-    (identity $1)
   | numeric_type
-    (identity $1)
   ;
 
 numeric_type
   : floating_point_type
-    (identity $1)
   | integral_type
-    (identity $1)
   ;
 
 integral_type
   : CHAR
-    (identity $1)
   | LONG
-    (identity $1)
   | INT
-    (identity $1)
   | SHORT
-    (identity $1)
   | BYTE
-    (identity $1)
   ;
 
 floating_point_type
   : DOUBLE
-    (identity $1)
   | FLOAT
-    (identity $1)
   ;
 
 reference_type
   : array_type
-    (identity $1)
   | class_or_interface_type
-    (identity $1)
   ;
 
 class_or_interface_type
   : name
-    (identity $1)
   ;
 
 class_type
   : class_or_interface_type
-    (identity $1)
   ;
 
 interface_type
   : class_or_interface_type
-    (identity $1)
   ;
 
 array_type
@@ -480,14 +457,11 @@ array_type
 
 name
   : qualified_name
-    (identity $1)
   | simple_name
-    (identity $1)
   ;
 
 simple_name
   : IDENTIFIER
-    (identity $1)
   ;
 
 qualified_name
@@ -502,21 +476,17 @@ compilation_unit
 
 package_declaration_opt
   : EMPTY
-    ()
   | package_declaration
-    (identity $1)
   ;
 
 import_declarations_opt
   : EMPTY
-    ()
   | import_declarations
     (apply 'nconc (nreverse $1))
   ;
 
 type_declarations_opt
   : EMPTY
-    ()
   | type_declarations
     (apply 'nconc (nreverse $1))
   ;
@@ -557,9 +527,7 @@ type_declaration
   : SEMICOLON
     ()
   | interface_declaration
-    (identity $1)
   | class_declaration
-    (identity $1)
   | error
   # On error skip token and loop to type_declarations
     (wisent-skip-token)
@@ -567,7 +535,6 @@ type_declaration
 
 modifiers_opt
   : EMPTY
-    ()
   | modifiers
     (nreverse $1)
   ;
@@ -581,27 +548,16 @@ modifiers
 
 modifier
   : STRICTFP
-    (identity $1)
   | VOLATILE
-    (identity $1)
   | TRANSIENT
-    (identity $1)
   | SYNCHRONIZED
-    (identity $1)
   | NATIVE
-    (identity $1)
   | FINAL
-    (identity $1)
   | ABSTRACT
-    (identity $1)
   | STATIC
-    (identity $1)
   | PRIVATE
-    (identity $1)
   | PROTECTED
-    (identity $1)
   | PUBLIC
-    (identity $1)
   ;
 
 class_declaration
@@ -619,9 +575,7 @@ superc
 
 superc_opt
   : EMPTY
-    ()
   | superc
-    (identity $1)
   ;
 
 interfaces
@@ -631,7 +585,6 @@ interfaces
 
 interfaces_opt
   : EMPTY
-    ()
   | interfaces
     (nreverse $1)
   ;
@@ -650,7 +603,6 @@ class_body
 
 class_body_declarations_opt
   : EMPTY
-    ()
   | class_body_declarations
     (apply 'nconc (nreverse $1))
   ;
@@ -666,11 +618,9 @@ class_body_declaration
   : block
     ()
   | constructor_declaration
-    (identity $1)
   | static_initializer
     ()
   | class_member_declaration
-    (identity $1)
   | error
   # On error skip token and loop to class_body_declarations
     (wisent-skip-token)
@@ -678,21 +628,18 @@ class_body_declaration
 
 class_member_declaration
   : interface_declaration
-    (identity $1)
   | class_declaration
-    (identity $1)
   | method_declaration
-    (identity $1)
   | field_declaration
-    (wisent-java-expand-nonterminal (car $1))
   ;
 
 field_declaration
   : modifiers_opt type variable_declarators SEMICOLON
-    (wisent-token $3 'variable $2 nil
-                  (semantic-bovinate-make-assoc-list
-                                 'typemodifiers $1)
-                  nil)
+    (wisent-java-expand-nonterminal
+      (car (wisent-token $3 'variable $2 nil
+                         (semantic-bovinate-make-assoc-list
+                          'typemodifiers $1)
+                         nil)))
   ;
 
 variable_declarators
@@ -713,7 +660,6 @@ variable_declarator_id
   : variable_declarator_id LBRACK RBRACK
     (concat $1 "[]")
   | IDENTIFIER
-    (identity $1)
   ;
 
 variable_initializer
@@ -745,7 +691,6 @@ method_declarator
 
 formal_parameter_list_opt
   : EMPTY
-    ()
   | formal_parameter_list
     (apply 'nconc (nreverse $1))
   ;
@@ -771,9 +716,7 @@ formal_parameter
 
 throwsc_opt
   : EMPTY
-    ()
   | throwsc
-    (identity $1)
   ;
 
 throwsc
@@ -842,7 +785,6 @@ interface_declaration
 
 extends_interfaces_opt
   : EMPTY
-    ()
   | extends_interfaces
     (nreverse $1)
   ;
@@ -861,7 +803,6 @@ interface_body
 
 interface_member_declarations_opt
   : EMPTY
-    ()
   | interface_member_declarations
     (apply 'nconc (nreverse $1))
   ;
@@ -875,13 +816,9 @@ interface_member_declarations
 
 interface_member_declaration
   : interface_declaration
-    (identity $1)
   | class_declaration
-    (identity $1)
   | abstract_method_declaration
-    (identity $1)
   | constant_declaration
-    (identity $1)
   | error
   # On error skip token and loop to interface_member_declarations
     (wisent-skip-token)
@@ -889,7 +826,6 @@ interface_member_declaration
 
 constant_declaration
   : field_declaration
-    (identity $1)
   ;
 
 abstract_method_declaration
@@ -1245,14 +1181,13 @@ dims_opt
   : EMPTY
     (identity "")
   | dims
-    (identity $1)
   ;
 
 dims
   : dims LBRACK RBRACK
-    (concat $1 "[]")
+    (concat $1 $2 $3)
   | LBRACK RBRACK
-    (identity "[]")
+    (concat $1 $2)
   ;
 
 field_access
