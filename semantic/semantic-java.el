@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.17 2001/05/23 13:40:24 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.18 2001/05/28 06:51:29 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -682,13 +682,13 @@ Handle multiple variable declarations in the same statement."
 ;;;; Javadoc handler
 ;;;;
 
-(defmacro semantic-java-skip-spaces-backward ()
+(defsubst semantic-java-skip-spaces-backward ()
   "Move point backward, skipping Java whitespaces."
-  `(skip-chars-backward " \n\r\t"))
+  (skip-chars-backward " \n\r\t"))
 
-(defmacro semantic-java-skip-spaces-forward ()
+(defsubst semantic-java-skip-spaces-forward ()
   "Move point forward, skipping Java whitespaces."
-  `(skip-chars-forward " \n\r\t"))
+  (skip-chars-forward " \n\r\t"))
 
 (defun semantic-java-find-documentation (&optional token nosnarf)
   "Find documentation from TOKEN and return it as a clean string.
