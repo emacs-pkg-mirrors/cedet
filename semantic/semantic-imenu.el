@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.35 2001/09/18 19:21:54 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.36 2001/09/29 23:47:03 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,12 +36,13 @@
 ;;             (setq imenu-create-index-function 'semantic-create-imenu-index)
 ;;             ))
 
-(condition-case nil
-    (require 'imenu)
-  (error nil))
 (require 'semantic)
-(eval-when-compile (require 'semanticdb)
-		   )
+(eval-when-compile
+  (condition-case nil
+      (require 'imenu)
+    (error nil))
+  (require 'semanticdb)
+  )
 (condition-case nil
     (progn
       (require 'imenu)
@@ -274,7 +275,6 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
 	(let ((buckets (semantic-bucketize
 			tokens semantic-imenu-sort-bucket-function))
 	      item name
-	      depend-index
 	      index)
 	  (cond
 	   ((null buckets)
