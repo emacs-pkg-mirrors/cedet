@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.51 2001/05/09 01:39:58 zappo Exp $
+;; RCS: $Id: ede.el,v 1.52 2001/05/20 12:45:46 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -248,6 +248,33 @@ For Automake based projects, each directory is treated as a project.")
 	    :label "Local Targets"
 	    :group (targets)
 	    :documentation "List of top level targets in this project.")
+   (web-site-url :initarg :web-site-url
+		 :initform ""
+		 :type string
+		 :custom string
+		 :label "Web Site URL"
+		 :group name
+		 :documentation "URL to this projects web site.
+This is a URL to be sent to a web site for documentation.")
+   (ftp-site :initarg :ftp-site
+	     :initform ""
+	     :type string
+	     :custom string
+	     :label "FTP site"
+	     :group name
+	     :documentation
+	     "FTP site where this project's distribution can be found.
+This FTP site should be in Emacs form, as needed by `ange-ftp'")
+   (ftp-upload-site :initarg :ftp-upload-site
+		    :initform ""
+		    :type string
+		    :custom string
+		    :label "FTP Upload site"
+		    :group name
+		    :documentation
+		    "FTP Site to upload new distributions to.
+This FTP site should be in Emacs form as needed by `ange-ftp'.
+If this slot is nil, then use `ftp-site' instead.")
    (configurations :initarg :configurations
 		   :initform ("debug" "release")
 		   :type list
@@ -278,11 +305,17 @@ and target specific elements such as build variables.")
 	 :initform
 	 (
 	  [ "Update Version" ede-update-version ede-object ]
+	  [ "Version Control Status" ede-vc-project-directory ede-object ]
+	  [ "Browse Project URL" ede-web-browse-home
+	    (and ede-object
+		 (not (string= "" (oref (ede-toplevel) web-site-url)))) ]
+	  "--"
 	  [ "Rescan Project Files" ede-rescan-toplevel t ]
 	  [ "Edit Projectfile" ede-edit-file-target
 	    (and ede-object
 		 (or (listp ede-object)
-		     (not (obj-of-class-p ede-object ede-project)))) ])
+		     (not (obj-of-class-p ede-object ede-project)))) ]
+	  )
 	 :documentation "Menu specialized to this type of target."
 	 :accessor ede-object-menu)
    )
@@ -458,7 +491,8 @@ Argument MENU-DEF is the menu definition to use."
 	 [ "Remove File" ede-remove-file
 	   (and ede-object
 		(or (listp ede-object)
-		    (not (obj-of-class-p ede-object ede-project)))) ])
+		    (not (obj-of-class-p ede-object ede-project)))) ]
+	 "-")
        (if (not obj)
 	   nil
 	 (if (and (not (listp obj)) (oref obj menu))
@@ -467,19 +501,24 @@ Argument MENU-DEF is the menu definition to use."
 	     ;; This is bad, but I'm not sure what else to do.
 	     (oref (car obj) menu)))))))))
        
-
 (defun ede-project-forms-menu (menu-def)
   "Create a target MENU-DEF based on the object belonging to this buffer."
   (easy-menu-filter-return
    (easy-menu-create-menu
     "Project Forms"
-    (let* ((obj (ede-current-project)))
+    (let* ((obj (ede-current-project))
+	   (class (if obj (object-class obj)))
+	   (menu nil))
+      (while (and class (slot-exists-p class 'menu))
+	(setq menu (append menu (oref class menu))
+	      class (class-parent class))
+	(if (listp class) (setq class (car class))))
       (append
        '( [ "Add Target" ede-new-target (ede-current-project) ]
-	  [ "Remove Target" ede-delete-target ede-object ])
-       (if (and obj (oref obj menu))
-	   (oref obj menu)
-	 nil))))))
+	  [ "Remove Target" ede-delete-target ede-object ]
+	  "-")
+       menu
+       )))))
 
 (defun ede-customize-forms-menu (menu-def)
   "Create a menu of the project, and targets that can be customized.
@@ -954,8 +993,12 @@ Argument COMMAND is the command to use for compiling the target."
   (error "debug-target not supported by %s" (object-name obj)))
 
 (defmethod project-make-dist ((this ede-project))
-  "Build a distribution for the project based on THIS target."
+  "Build a distribution for the project based on THIS project."
   (error "Make-dist not supported by %s" (object-name this)))
+
+(defmethod project-dist-files ((this ede-project))
+  "Return a list of files that constitues a distribution of THIS project."
+  (error "Dist-files is not supported by %s" (object-name this)))
 
 (defmethod project-rescan ((this ede-project))
   "Rescan the EDE proj project THIS."
@@ -1482,6 +1525,12 @@ If VARIABLE is not project local, just use set."
 
 (autoload 'ede-update-version "ede-util"
   "Update the version of the current project." t)
+
+(autoload 'ede-vc-project-directory "ede-system" t
+  "Run `vc-directory' on the the current project.")
+
+(autoload 'ede-web-browse-home "ede-system" t
+  "Web browse this project's home page.")
 
 (provide 'ede)
 
