@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.5 1999/02/26 02:50:01 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.6 1999/03/02 15:51:06 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -36,15 +36,15 @@
 
 ;;; Class Definitions:
 (defclass ede-proj-target (ede-target)
-  ((rules :initarg :rules
-	  :initform nil
-	  :custom (repeat (object :objecttype ede-makefile-rule))
-	  :documentation "Arbitrary rules needed to make this target.")
-   (auxsource :initarg :auxsource
+  ((auxsource :initarg :auxsource
 	      :custom (repeat (string :tag "File"))
 	      :documentation "Auxilliary source files included in this target.
 Each of these is considered equivalent to a source file, but it is not
 distributed, and each should have a corresponding rule to build it.")
+   (rules :initarg :rules
+	  :initform nil
+	  :custom (repeat (object :objecttype ede-makefile-rule))
+	  :documentation "Arbitrary rules needed to make this target.")
    (dirty :initform nil
 	  :documentation "Non-nil when generated files needs updating.")
    )
@@ -62,7 +62,15 @@ distributed, and each should have a corresponding rule to build it.")
   ((ldflags :initarg :ldflags
 	    :initform nil
 	    :custom (repeat (string :tag "Flag"))
-	    :documentation "Additional flags to pass to the linker.")
+	    :documentation "Additional flags to pass to the linker.
+Please refer to your linker's manual for information.")
+   (headers :initarg :headers
+	    :initform nil
+	    :custom (repeat (string :tag "Header"))
+	    :documentation "Header files included in the distribution.
+EDE generated Makefiles make all sources dependent on all header files.
+In automake mode, these headers are ignored, but automake generates
+dependencies automatically.")
    )
   "Abstract class for Makefile based object code generating targets.
 Belonging to this group assumes you could make a .o from an element source
@@ -74,7 +82,9 @@ file.")
 	   :initform nil
 	   :custom (repeat (string :tag "Library"))
 	   :documentation
-	   "Libraries, such as \"m\" or \"Xt\" which this program dependso on."
+	   "Libraries, such as \"m\" or \"Xt\" which this program dependso on.
+The linker flag \"-l\" is automatically prepended.  Do not include a \"lib\"
+prefix, or a \".so\" suffix."
 	   ))
    "This target is an executable program.")
 
@@ -87,7 +97,8 @@ file.")
   ((mainmenu :initarg :mainmenu
 	     :initform ""
 	     :custom string
-	     :documentation "The main menu resides in this file."))
+	     :documentation "The main menu resides in this file.
+All other sources should be included independently."))
   "Target for a single info file.")
    
 (defclass ede-proj-target-lisp (ede-proj-target)
@@ -112,24 +123,30 @@ A lisp target may be one general program with many separate lisp files in it.")
   ((target :initarg :target
 	   :initform ""
 	   :custom string
-	   :documentation "The target pattern.")
+	   :documentation "The target pattern.
+A pattern of \"%.o\" is used for inference rules, and would match object files.
+A target of \"foo.o\" explicitly matches the file foo.o.")
    (dependencies :initarg :dependencies
 		 :initform ""
 		 :custom string
-		 :documentation "Dependencies on this target.")
+		 :documentation "Dependencies on this target.
+A pattern of \"%.o\" would match a file of the same prefix as the target
+if that target is also an inference rule pattern. 
+A dependency of \"foo.c\" explicitly lists foo.c as a dependency.
+A variable such as $(name_SOURCES) will list all the source files
+belonging to the target name.")
    (rules :initarg :rules
 	  :initform nil
 	  :custom (repeat string)
-	  :documentation "Scripts to execute.")
+	  :documentation "Scripts to execute.
+These scripst will be executed in sh (Unless the SHELL variable is overriden).
+Do not prefix with TAB.")
    (phony :initarg :phony
 	  :initform nil
 	  :custom boolean
-	  :documentation "Is this a phony rule?"))
+	  :documentation "Is this a phony rule?
+Adds this rule to a .PHONY list.  (unimplemented.)"))
   "A single rule for building some target.")
-
-(defclass ede-makefile-inference-rule (ede-makefile-rule)
-  nil
-  "A single inference rule.")
 
 (defclass ede-proj-project (ede-project)
   ((makefile-type :initarg :makefile-type
@@ -151,7 +168,7 @@ in targets.")
    (inference-rules :initarg :inference-rules
 		    :initform nil
 		    :custom (repeat 
-			     (object :objecttype ede-makefile-inference-rule))
+			     (object :objecttype ede-makefile-rule))
 		    :documentation "Inference rules to add to the makefile.")
    )
   "The EDE-PROJ project definition class.")
@@ -200,7 +217,7 @@ in targets.")
 (defmethod eieio-done-customizing ((proj ede-proj-target))
   "Call this when a user finishes customizing this object.
 Argument PROJ is the project we are completing customization on."
-  (eieio-done-customizing (ede-target-parent proj)))
+  (ede-proj-save (ede-current-project)))
 
 (defmethod ede-commit-project ((proj ede-proj-project))
   "Commit any change to PROJ to its file."
@@ -214,8 +231,16 @@ Argument PROJ is the project we are completing customization on."
 	(let ((targets (oref proj targets))
 	      (f nil))
 	  (while (and targets (not f))
-	    (if (member (ede-convert-path proj (buffer-file-name buffer))
-			(oref (car targets) source))
+	    (if (or (member (ede-convert-path proj (buffer-file-name buffer))
+			    (oref (car targets) source))
+		    (and (slot-exists-p (car targets) 'headers)
+			 (member
+			  (ede-convert-path proj (buffer-file-name buffer))
+			  (oref (car targets) headers)))
+		    (and (slot-exists-p (car targets) 'auxsource)
+			 (member
+			  (ede-convert-path proj (buffer-file-name buffer))
+			  (oref (car targets) auxsource))))
 		(setq f (car targets)))
 	    (setq targets (cdr targets)))
 	  f))))
@@ -224,6 +249,27 @@ Argument PROJ is the project we are completing customization on."
   "Return t if object THIS lays claim to the file in BUFFER."
   (string= (oref this file)
 	   (ede-convert-path this (buffer-file-name buffer))))
+
+;;; Desireous methods
+;;
+(defmethod ede-want-file-p ((obj ede-proj-target-aux) file)
+  "Return t if OBJ wants to own FILE."
+  (string-match "README\\|\\.txt$" file))
+
+(defmethod ede-want-file-p ((obj ede-proj-target-lisp) file)
+  "Return t if OBJ wants to own FILE."
+  (string-match "\\.el$" file))
+
+(defmethod ede-want-file-p ((obj ede-proj-target-makefile-info) file)
+  "Return t if OBJ wants to own FILE."
+  (string-match "\\.texi?$" file))
+
+(defmethod ede-want-file-p ((obj ede-proj-target-makefile-objectcode) file)
+  "Return t if OBJ wants to own FILE."
+  ;; Only C targets for now.  I'll figure out more later.
+  (string-match "\\.\\(c\\|C\\|cc\\|cpp\\|CPP\\|h\\|hh\\|hpp\\)$"
+		file))
+
 
 ;;; EDE command functions
 ;;
@@ -274,6 +320,17 @@ Argument PROJ is the project we are completing customization on."
       (oset this source (append (oref this source) (list file))))
   (ede-proj-save (ede-current-project)))
 
+(defmethod project-add-file ((this ede-proj-target-makefile-objectcode) file)
+  "Add to target THIS the current buffer represented as FILE."
+  (setq file (file-name-nondirectory file))
+  ;; Header files go into auxiliary sources.  Add more for more languages.
+  (if (not (string-match "\\.\\(h\\|hh\\)$" file))
+      ;; No match, add to regular sources.
+      (call-next-method)
+    (if (not (member file (oref this headers)))
+	(oset this headers (append (oref this headers) (list file))))
+    (ede-proj-save (ede-current-project))))
+
 (defmethod project-remove-file ((target ede-proj-target) file)
   "For TARGET, remove FILE.
 FILE must be massaged by `ede-convert-path'."
@@ -281,6 +338,16 @@ FILE must be massaged by `ede-convert-path'."
   (oset target source (delete (file-name-nondirectory file)
 			       (oref target source)))
   (ede-proj-save))
+
+(defmethod project-remove-file ((target ede-proj-target-makefile-objectcode)
+				file)
+  "For TARGET, remove FILE.
+FILE must be massaged by `ede-convert-path'."
+  ;; Speedy delete should be safe.
+  (oset target headers (delete (file-name-nondirectory file)
+			       (oref target headers)))
+  ;; This will do sources, and save the project for us.
+  (call-next-method))
 
 (defmethod project-make-dist ((this ede-proj-project))
   "Build a distribution for the project based on THIS target."
@@ -302,7 +369,7 @@ Argument COMMAND is the command to use when compiling."
 (defmethod project-compile-target ((obj ede-proj-target) &optional command)
   "Compile the current target OBJ.
 Argument COMMAND is the command to use for compiling the target."
-  (error "Compile-target not supported by %s" (object-name obj)))
+  (project-compile-project (ede-current-project) command))
 
 (defmethod project-compile-target ((obj ede-proj-target-lisp))
   "Compile all sources in a Lisp target OBJ."
