@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, scheme
-;; RCS: $Id: ede-proj-scheme.el,v 1.4 2000/07/12 14:09:15 zappo Exp $
+;; RCS: $Id: ede-proj-scheme.el,v 1.5 2000/07/12 14:13:48 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -46,8 +46,8 @@
   "Return t if OBJ wants to own FILE."
   (string-match "\\.scm$" file))
 
-(defmethod ede-proj-tweek-autoconf ((this ede-proj-target-scheme))
-  "Tweek the configure file (current buffer) to accomodate THIS."
+(defmethod ede-proj-tweak-autoconf ((this ede-proj-target-scheme))
+  "Tweak the configure file (current buffer) to accomodate THIS."
   (autoconf-insert-new-macro "AM_INIT_GUILE_MODULE"))
 
 (provide 'ede-proj-scheme)
