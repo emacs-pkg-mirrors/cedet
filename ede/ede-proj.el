@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.17 1999/09/20 19:33:07 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.18 1999/09/22 14:08:58 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -71,9 +71,23 @@ commands where the variable would usually appear.")
 	  :type list
 	  :custom (repeat (object :objecttype ede-makefile-rule))
 	  :documentation
-	  "Arbitrary rules and dependencies needed to make this target.")
+	  "Arbitrary rules and dependencies needed to make this target.
+It is safe to leave this blank.")
    )
   "Abstract class for Makefile based targets.")
+
+(defclass ede-proj-target-makefile-miscelaneous (ede-proj-target-makefile)
+  ((submakefile :initarg :submakefile
+		:initform "makefile.misc"
+		:type string
+		:custom string
+		:documentation
+		"Miscelaneous sources which have a specialized makefile.
+The sub-makefile is used to build this target.")
+   )
+   "Miscelaneous target type.
+A user-written makefile is used to build this target.
+All listed sources are included in the distribution.")
 
 (defclass ede-proj-target-makefile-objectcode (ede-proj-target-makefile)
   (;; Give this a new default
@@ -183,6 +197,7 @@ A lisp target may be one general program with many separate lisp files in it.")
     ("info" . ede-proj-target-makefile-info)
     ("auxiliary" . ede-proj-target-aux)
     ("scheme" . ede-proj-target-scheme)
+    ("miscelaneous" . ede-proj-target-makefile-miscelaneous)
     )
   "Alist of names to class types for available project target classes.")
 
@@ -378,6 +393,10 @@ Argument TARGET is the project we are completing customization on."
   ;; Only C targets for now.  I'll figure out more later.
   (string-match "\\.\\(c\\|C\\|cc\\|cpp\\|CPP\\|h\\|hh\\|hpp\\)$"
 		file))
+
+(defmethod ede-want-file-p ((obj ede-proj-target-makefile-miscelaneous) file)
+  "Return t if OBJ wants to own FILE."
+  (string-match "\\.texi?$" file))
 
 
 ;;; EDE command functions
