@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.69 2000/08/01 23:15:35 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.70 2000/08/02 00:09:46 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1680,6 +1680,8 @@ Called from the constructor routine."
     (while fields
       (let ((rn (eieio-initarg-to-attribute (object-class-fast obj)
 					    (car fields))))
+	(if (not rn)
+	    (slot-missing obj (car fields) 'oset (car (cdr fields))))
 	(eieio-oset obj rn (car (cdr fields))))
       (setq fields (cdr (cdr fields))))))
 
@@ -1701,7 +1703,7 @@ dynamically set from FIELDS."
 SLOT-NAME is the name of the failed slot, OPERATION is the type of access
 that was requested, and optional NEW-VALUE is the value that was desired
 to be set."
-  (signal 'invalid-slot-name (list (class-name (object-class object))
+  (signal 'invalid-slot-name (list (object-name object)
 				   slot-name)))
 
 (defmethod slot-unbound ((object eieio-default-superclass)
