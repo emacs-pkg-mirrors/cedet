@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-autogen.el,v 1.6 2002/08/11 18:31:22 zappo Exp $
+;; X-CVS: $Id: semantic-autogen.el,v 1.7 2002/09/07 01:56:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,6 +43,8 @@
 (require 'autoload)
 
 (put 'define-overload 'doc-string-elt 3)
+;; This hack only works to autoload generics w/out :BEFORE style tokens.
+(put 'defmethod 'doc-string-elt 3)
 
 (defun semantic-hack-autoloads ()
   "Create semantic autoloads from sources."
@@ -88,6 +90,7 @@ or macro definition or a defcustom)."
 		   define-minor-mode defun* defmacro*
 		   ;; Semantic Special:  Some functions
 		   define-overload
+		   defmethod
 		   ))
       (let* ((macrop (memq car '(defmacro defmacro*)))
 	     (name (nth 1 form))
@@ -111,7 +114,7 @@ or macro definition or a defcustom)."
      ((eq car 'defclass)
       (let ((varname (car-safe (cdr-safe form)))
 	    )
-	(list 'autoload varname file nil nil nil)
+	(list 'autoload (list 'quote varname) file nil nil nil)
 	))
 
      ;; Convert defcustom to a simpler (and less space-consuming) defvar,
