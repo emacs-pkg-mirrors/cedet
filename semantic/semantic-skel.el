@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-skel.el,v 1.1 2001/10/08 20:36:10 zappo Exp $
+;; X-RCS: $Id: semantic-skel.el,v 1.2 2001/11/17 15:41:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -71,7 +71,8 @@
 
 ;;; Setup function
 ;;
-(defun semantic-default-c-setup ()
+;;;###autoload
+(defun semantic-default-skel-setup ()
   "Set up a buffer for semantic parsing of the skeleton language."
 ;; Use this after defining override functions.
 ;;  (semantic-install-function-overrides
