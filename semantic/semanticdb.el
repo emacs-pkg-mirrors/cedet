@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.10 2001/01/25 03:27:52 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.11 2001/01/25 19:12:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -95,6 +95,11 @@ This is for the file whose tags are stored in this TABLE object.")
 	     :initform nil
 	     :documentation "Size of buffer when written to disk.
 Checked on retrieval to make sure the file is the same.")
+   (major-mode :initarg :major-mode
+	       :initform nil
+	       :documentation "Major mode this table belongs to.
+Sometimes it is important for a program to know if a given table has the
+same major mode as the current buffer.")
    (tokens :initarg :tokens
 	   :documentation "The tokens belonging to this table."))
   "A single table of tokens belonging to a given file.")
@@ -137,6 +142,12 @@ If one isn't found, create one."
   "Return the project belonging to FILENAME if it was already loaded."
   (object-assoc filename 'file semanticdb-database-list))
 
+(defmethod semanticdb-live-p ((obj semanticdb-project-database))
+  "Return non-nil if the file associated with OBJ is live.
+Live databases are objects associated with existing directories."
+  (let ((full-dir (file-name-directory (oref obj file))))
+    (file-exists-p full-dir)))
+
 (defmethod semanticdb-file-table ((obj semanticdb-project-database) filename)
   "From OBJ, return FILENAMEs associated table object."
   (object-assoc (eieio-persistent-path-relative obj filename)
@@ -145,15 +156,19 @@ If one isn't found, create one."
 (defun semanticdb-save-db (&optional DB)
   "Write out the database DB to its file.
 If DB is not specified, then use the current database."
-  (message "Saving token summary for %s..." (object-name DB))
-  (eieio-persistent-save (or DB semanticdb-current-database))
-  (run-hook-with-args 'semanticdb-save-database-hooks
-		      (or DB semanticdb-current-database))
-  (message "Saving token summary for %s...done" (object-name DB))
-  )
+  (let ((objname (oref DB file)))
+    (when (and (semanticdb-live-p DB)
+	       (semanticdb-write-directory-p DB))
+      (message "Saving token summary for %s..." objname)
+      (eieio-persistent-save (or DB semanticdb-current-database))
+      (run-hook-with-args 'semanticdb-save-database-hooks
+			  (or DB semanticdb-current-database))
+      (message "Saving token summary for %s...done" objname))
+    ))
 
 (defun semanticdb-save-all-db ()
   "Save all semantic token databases."
+  (interactive)
   (message "Saving token summaries...")
   (mapcar 'semanticdb-save-db semanticdb-database-list)
   (message "Saving token summaries...done"))
@@ -163,31 +178,68 @@ If DB is not specified, then use the current database."
   (concat (file-name-directory (oref (oref obj parent-db) file))
 	  (oref obj file)))
 
+(defmethod semanticdb-live-p ((obj semanticdb-table))
+  "Return non-nil if the file associated with OBJ is live.
+Live files are either buffers in Emacs, or files existing on the filesystem."
+  (let ((full-filename (semanticdb-full-filename obj)))
+    (or (get-file-buffer full-filename)
+	(file-exists-p full-filename))))
+
 (defmethod object-write ((obj semanticdb-table))
   "When writing a table, we have to make sure we deoverlay it first.
 Restore the overlays after writting.
 Argument OBJ is the object to write."
-  (let ((b (get-file-buffer (semanticdb-full-filename obj))))
-    (save-excursion
-      (if b (progn (set-buffer b)
-		   (condition-case nil
-		       (semantic-deoverlay-cache)
-		     (error
-		      (condition-case nil
-			  (semantic-clear-toplevel-cache)
-			(error
-			 (semantic-set-toplevel-bovine-cache nil)))))
-		   (oset obj pointmax (point-max)))))
-    (call-next-method)
-    (save-excursion
-      (if b (progn (set-buffer b) (semantic-overlay-cache))))
-    ))
+  (if (semanticdb-live-p obj)
+      (let ((b (get-file-buffer (semanticdb-full-filename obj))))
+	(save-excursion
+	  (if b (progn (set-buffer b)
+		       (condition-case nil
+			   (semantic-deoverlay-cache)
+			 (error
+			  (condition-case nil
+			      (semantic-clear-toplevel-cache)
+			    (error
+			     (semantic-set-toplevel-bovine-cache nil)))))
+		       (oset obj pointmax (point-max)))))
+	(call-next-method)
+	(save-excursion
+	  (if b (progn (set-buffer b) (semantic-overlay-cache))))
+	)))
 
-(defmethod semanticdb-write-directory-p ((obj semanticdb-table))
+;;; Directory Project support
+(defvar semanticdb-project-predicates nil
+  "List of predicates to try that indicate a directory belongs to a project.
+This list is used when `semanticdb-persistent-path' contains the value
+'project.
+Project Management software (such as EDE and JDE) should add their own
+predicates with `add-hook' to this variable, and semanticdb will save token
+caches in directories controlled by them.")
+
+(defmethod semanticdb-write-directory-p ((obj semanticdb-project-database))
   "Return non-nil if OBJ should be written to disk.
 Uses `semanticdb-persistent-path' to determine the return value."
-  t
-  )
+  (let ((path semanticdb-persistent-path))
+    (catch 'found
+      (while path
+	(cond ((stringp (car path))
+	       (if (string= (file-name-directory (oref obj file)) (car path))
+		   (throw 'found t)))
+	      ((eq (car path) 'project)
+	       (let ((predicates semanticdb-project-predicates))
+		 (while predicates
+		   (if (funcall (car predicates)
+				(file-name-directory (oref obj file)))
+		       (throw 'found t))
+		   (setq predicates (cdr predicates))))
+	       )
+	      ((eq (car path) 'never)
+	       (throw 'found nil))
+	      ((eq (car path) 'always)
+	       (throw 'found t))
+	      (t (error "Invalid path %S" (car path))))
+	(setq path (cdr path)))
+      nil)
+    ))
 
 ;;; hooks and Hats:
 (defun semanticdb-semantic-init-hook-fcn ()
@@ -217,6 +269,7 @@ Sets up the semanticdb environment."
 			  ctbl
 			  t))
     (setq semanticdb-current-table ctbl)
+    (oset semanticdb-current-table major-mode major-mode)
     (if (or (not (slot-boundp ctbl 'tokens)) (not (oref ctbl tokens))
 	    (/= (or (oref ctbl pointmax) 0) (point-max))
 	    )
