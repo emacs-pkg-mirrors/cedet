@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.30 2004/09/21 10:51:38 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.31 2005/01/05 08:46:49 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -298,12 +298,18 @@ Return a bovination list to use."
 
 (semantic-elisp-setup-form-parser
     (lambda (form start end)
-      (semantic-tag-new-type
-       (symbol-name (car (nth 1 form)))
-       "struct"
-       (semantic-elisp-desymbolify (nthcdr 2 form))
-       nil ;(semantic-elisp-desymbolify (nth 2 form))
-       ))
+      (let ((slots (nthcdr 2 form)))
+        ;; Skip doc string if present.
+        (and (stringp (car slots))
+             (setq slots (cdr slots)))
+        (semantic-tag-new-type
+         (symbol-name (if (consp (nth 1 form))
+                          (car (nth 1 form))
+                        (nth 1 form)))
+         "struct"
+         (semantic-elisp-desymbolify slots)
+         (cons nil nil)
+         )))
   defstruct
   )
 
