@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.11 2002/09/24 22:07:47 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.12 2002/10/02 15:04:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -159,69 +159,67 @@ PROPERTY set."
      #'(lambda (symbol) (cons symbol keywords)) property)
     keywords))
 
-;;; Token table handling.
+;;; Type table handling.
 ;;
-(defvar semantic-lex-tokens-obarray nil
-  "Buffer local token obarray for the lexical analyzer.")
-(make-variable-buffer-local 'semantic-lex-tokens-obarray)
+(defvar semantic-lex-types-obarray nil
+  "Buffer local types obarray for the lexical analyzer.")
+(make-variable-buffer-local 'semantic-lex-types-obarray)
 
-(defmacro semantic-lex-token-invalid (class)
-  "Signal that CLASS is an invalid token class name."
-  `(signal 'wrong-type-argument '(semantic-lex-token-class-p ,class)))
+(defmacro semantic-lex-type-invalid (type)
+  "Signal that TYPE is an invalid lexical type name."
+  `(signal 'wrong-type-argument '(semantic-lex-type-p ,type)))
 
-(defsubst semantic-lex-token-symbol (class)
-  "Return token symbol with CLASS or nil if not found.
-Return nil otherwise."
-  (and (arrayp semantic-lex-tokens-obarray)
-       (stringp class)
-       (intern-soft class semantic-lex-tokens-obarray)))
+(defsubst semantic-lex-type-symbol (type)
+  "Return symbol with TYPE or nil if not found."
+  (and (arrayp semantic-lex-types-obarray)
+       (stringp type)
+       (intern-soft type semantic-lex-types-obarray)))
 
-(defsubst semantic-lex-token-class-p (class)
-  "Return non-nil if a token with CLASS name exists.
-Return nil otherwise."
-  (and (setq class (semantic-lex-token-symbol class))
-       (symbol-value class)))
+(defsubst semantic-lex-type-p (type)
+  "Return non-nil if a symbol with TYPE name exists."
+  (and (setq type (semantic-lex-type-symbol type))
+       (symbol-value type)))
 
-(defsubst semantic-lex-token-set (class value)
-  "Set value of token with CLASS name to VALUE and return VALUE."
-  (set (intern class semantic-lex-tokens-obarray) value))
+(defsubst semantic-lex-type-set (type value)
+  "Set value of symbol with TYPE name to VALUE and return VALUE."
+  (set (intern type semantic-lex-types-obarray) value))
 
-(defsubst semantic-lex-token-value (class &optional noerror)
-  "Return value of token with CLASS name.
-If optional argument NOERROR is non-nil return nil if a token with
-CLASS name does not exist.  Otherwise signal an error."
-  (let ((token (semantic-lex-token-symbol class)))
-    (if token
-        (symbol-value token)
+(defsubst semantic-lex-type-value (type &optional noerror)
+  "Return value of symbol with TYPE name.
+If optional argument NOERROR is non-nil return nil if a symbol with
+TYPE name does not exist.  Otherwise signal an error."
+  (let ((sym (semantic-lex-type-symbol type)))
+    (if sym
+        (symbol-value sym)
       (unless noerror
-        (semantic-lex-token-invalid class)))))
+        (semantic-lex-type-invalid type)))))
 
-(defsubst semantic-lex-token-put (class property value &optional add)
-  "For token with CLASS name, set its PROPERTY to VALUE.
-If optional argument ADD is non-nil, create a new token with CLASS
+(defsubst semantic-lex-type-put (type property value &optional add)
+  "For symbol with TYPE name, set its PROPERTY to VALUE.
+If optional argument ADD is non-nil, create a new symbol with TYPE
 name if it does not already exist.  Otherwise signal an error."
-  (let ((token (semantic-lex-token-symbol class)))
-    (unless token
-      (or add (semantic-lex-token-invalid class))
-      (semantic-lex-token-set class nil)
-      (setq token (semantic-lex-token-symbol class)))
-    (put token property value)))
+  (let ((sym (semantic-lex-type-symbol type)))
+    (unless sym
+      (or add (semantic-lex-type-invalid type))
+      (semantic-lex-type-set type nil)
+      (setq sym (semantic-lex-type-symbol type)))
+    (put sym property value)))
 
-(defsubst semantic-lex-token-get (class property &optional noerror)
-  "For token with CLASS name, return its PROPERTY value.
-If optional argument NOERROR is non-nil return nil if a token with
-CLASS name does not exist.  Otherwise signal an error."
-  (let ((token (semantic-lex-token-symbol class)))
-    (if token
-        (get token property)
+(defsubst semantic-lex-type-get (type property &optional noerror)
+  "For symbol with TYPE name, return its PROPERTY value.
+If optional argument NOERROR is non-nil return nil if a symbol with
+TYPE name does not exist.  Otherwise signal an error."
+  (let ((sym (semantic-lex-type-symbol type)))
+    (if sym
+        (get sym property)
       (unless noerror
-        (semantic-lex-token-invalid class)))))
+        (semantic-lex-type-invalid type)))))
 
-(defun semantic-lex-make-token-table (specs &optional propspecs)
-  "Convert token SPECS into an obarray and return it.
-SPECS must be a list of (CLASS . TOKENS) elements, where:
+(defun semantic-lex-make-type-table (specs &optional propspecs)
+  "Convert type SPECS into an obarray and return it.
+SPECS must be a list of (TYPE . TOKENS) elements, where:
 
-  CLASS is the name of the token class symbol to define.
+  TYPE is the name of the type symbol to define.
   TOKENS is an list of (TOKSYM . MATCHER) elements, where:
 
     TOKSYM is any lexical token symbol.
@@ -230,15 +228,15 @@ SPECS must be a list of (CLASS . TOKENS) elements, where:
 
 If optional argument PROPSPECS is non nil, then interpret it, and
 apply those properties.
-PROPSPECS must be a list of (CLASS PROPERTY VALUE)."
+PROPSPECS must be a list of (TYPE PROPERTY VALUE)."
   ;; Create the symbol hash table
-  (let* ((semantic-lex-tokens-obarray (make-vector 13 0))
-         spec class tokens token alist default)
+  (let* ((semantic-lex-types-obarray (make-vector 13 0))
+         spec type tokens token alist default)
     ;; fill it with stuff
     (while specs
       (setq spec   (car specs)
             specs  (cdr specs)
-            class  (car spec)
+            type   (car spec)
             tokens (cdr spec))
       (while tokens
         (setq token  (car tokens)
@@ -249,30 +247,30 @@ PROPSPECS must be a list of (CLASS PROPERTY VALUE)."
           (if default
               (message
                "*** `%s' default matching spec %S redefined as %S"
-               class default token))
+               type default token))
           (setq default token)))
       ;; Ensure the default matching spec is the first one.
-      (semantic-lex-token-set class (cons default (nreverse alist))))
+      (semantic-lex-type-set type (cons default (nreverse alist))))
     ;; Apply all properties
     (while propspecs
       (setq spec (car propspecs)
             propspecs (cdr propspecs))
-      (semantic-lex-token-put (car spec) (nth 1 spec) (nth 2 spec)))
-    semantic-lex-tokens-obarray))
+      (semantic-lex-type-put (car spec) (nth 1 spec) (nth 2 spec)))
+    semantic-lex-types-obarray))
 
-(defsubst semantic-lex-map-tokens (fun &optional property)
-  "Call function FUN on every lexical token class.
-If optional PROPERTY is non-nil, call FUN only on every token which
-as a PROPERTY value.  FUN receives a semantic token class symbol as argument."
+(defsubst semantic-lex-map-types (fun &optional property)
+  "Call function FUN on every lexical type.
+If optional PROPERTY is non-nil, call FUN only on every type symbol
+which as a PROPERTY value.  FUN receives a type symbol as argument."
   (semantic-lex-map-symbols
-   fun semantic-lex-tokens-obarray property))
+   fun semantic-lex-types-obarray property))
 
-(defun semantic-lex-tokens (&optional property)
-  "Return a list of lexical token class symbols.
-If optional PROPERTY is non-nil, return only tokens which have a
+(defun semantic-lex-types (&optional property)
+  "Return a list of lexical type symbols.
+If optional PROPERTY is non-nil, return only type symbols which have
 PROPERTY set."
   (let (tokens)
-    (semantic-lex-map-tokens
+    (semantic-lex-map-types
      #'(lambda (symbol) (cons symbol tokens)) property)
     tokens))
 
@@ -783,6 +781,32 @@ they are comment end characters)."
 (define-lex-simple-regex-analyzer semantic-lex-punctuation
   "Detect and create punctuation tokens."
   "\\(\\s.\\|\\s$\\|\\s'\\)" 'punctuation)
+
+(define-lex-analyzer semantic-lex-punctuation-type
+  "Detect and create a punctuation type token.
+Recognized punctuations are defined in the current table of lexical
+types, as the value of the `punctuation' token type."
+  (and (looking-at "\\(\\s.\\|\\s$\\|\\s'\\)+")
+       (let* ((key (match-string 0))
+              (pos (match-beginning 0))
+              (end (match-end 0))
+              (len (- end pos))
+              (lst (semantic-lex-type-value "punctuation" t))
+              (def (car lst)) ;; default lexical symbol or nil
+              (lst (cdr lst)) ;; alist of (LEX-SYM . PUNCT-STRING)
+              (elt nil))
+         (if lst
+             ;; Starting with the longest one, search if the
+             ;; punctuation string is defined for this language.
+             (while (and (> len 0) (not (setq elt (rassoc key lst))))
+               (setq len (1- len)
+                     key (substring key 0 len))))
+         (if elt ;; Return the punctuation token found
+             (semantic-lex-token (car elt) pos (+ pos len))
+           (if def ;; Return a default generic token
+               (semantic-lex-token def pos end)
+             ;; Nothing match
+             )))))
 
 (define-lex-regex-analyzer semantic-lex-paren-or-list
   "Detect open parenthisis.  
