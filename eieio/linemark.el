@@ -90,7 +90,7 @@
   "*Face used to indicate a CAUTION type line.")
 				  
 (defface linemark-go-face '((((class color) (background light))
-			     (:background "green4"))
+			     (:background "green"))
 			    (((class color) (background dark))
 			     (:background "green4")))
   "*Face used to indicate a GO, or OK type line.")
