@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.1 1999/05/27 16:55:28 zappo Exp $
+@c $Id: semantic.texi,v 1.2 2000/04/15 20:57:40 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{Semantic}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1999 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000 Eric M. Ludlam
 @end titlepage
 
 @node Top, , , (dir)Top
@@ -61,7 +61,22 @@ The lexer uses the syntax table for conversion, so as long as that is
 set up correctly (along with the important @code{comment-start-skip}
 variable) you should be ok.
 
-*** Add doc for extending the tokenizer when it's been implemented. ***
+To extend the flexer, you can use the variable @code{semantic-flex-extensions}.
+
+@defvar semantic-flex-extensions
+For a give language buffer, this is an associate list.  The key is a
+regular expression used to match text in the buffer.  The data element
+is a function which will be called when that text is encountered.
+
+The function should return a list of the form:
+@example
+(TYPE START . END)
+@end example
+nil is also valid in case the text does not satisfy some other criterion.
+
+TYPE can be any type of symbol, as long as it doesn't occur as a
+nonterminal in the language definition.
+@end defvar
 
 @node Bovinating, BNF conversion, Lexing, Top
 @chapter Preparing a bovine table for your language
@@ -74,8 +89,10 @@ rules are stored in the buffer local variable
 While it is certainly possible to write this table yourself, it is most
 likely you will want to use the BNF converter.  @xref{BNF conversion}.
 This is an easier method for specifying your rules.  You will still need
-to specify a variable in you language for the table, however.  A good
-rule of thumb is to call it @code{langauge-toplevel-bovine-table}.
+to specify a variable in your language for the table, however.  A good
+rule of thumb is to call it @code{langauge-toplevel-bovine-table} if it
+part of the language, or @code{semantic-toplevel-language-bovine-table}
+if you donate it to the semantic package.
 
 When initializing a major-mode for your language, you will set the
 variable @code{semantic-toplevel-bovine-table} to the contents of your
@@ -110,11 +127,11 @@ near the top of the file which looks like this:
 # TABLE: semantic-ex.el:semantic-toplevel-c-bovine-table
 @end example
 
-Where you specify the file, and variable where you want this language
-file to be parsed to.  When you want to test your file, use the keyboard
-shortcut @kbd{C-c C-c} to parse the file, generate the variable, and
-load the new definition in.  You will then have to re-run your
-major-mode in the desired buffer for it to take effect.
+This lets you specify the file, and variable where you want this
+language file to be parsed to.  When you want to test your file, use the
+keyboard shortcut @kbd{C-c C-c} to parse the file, generate the
+variable, and load the new definition in.  You will then have to re-run
+your major-mode in the desired buffer for it to take effect.
 
 Writing the rules should be very similar to bison for basic syntax.
 Each rule is of the form
@@ -139,17 +156,22 @@ combination:
   symbol "moose"
 @end example
 means that a symbol must first be encountered, and then it must
-@code{string-match "moose"}.
+@code{string-match "moose"}.  Be especially careful to remember that the
+string is a regular expression.  The code:
+@example
+  punctuation "."
+@end example
+will match any punctuation.
 
-The ole (optional lambda expression) is converted into a bovine lambda
+The OLE (Optional Lambda Expression) is converted into a bovine lambda
 @xref{Bovinating}. This lambda has special short-cuts to simplify
-reading the emacs bnf definition.  An ole like this:
+reading the emacs bnf definition.  An OLE like this:
 @example
  ( $1 )
 @end example
 results in a lambda return which consists entirely of the string
 or object found by matching the first (zeroeth) element of match.
-An ole like this:
+An OLE like this:
 @example
 ( ,(foo $1) )
 @end example
@@ -199,7 +221,7 @@ your table it is to start parsing with.
 
 As a user, you can run the command @code{bovinate} which runs the
 previously mentioned command, and displays the returned tokens in a
-buffer.  This is a great took for testing tables as you develop them.
+buffer.  This is a great tool for testing tables as you develop them.
 
 @node Debugging, , Compiling, Top
 @chapter Debugging a bovine table.
