@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.17 2003/07/09 15:25:30 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.18 2003/07/16 14:07:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -665,6 +665,36 @@ DO NOT use this fcn in new code.  Use one of the above instead."
 	      (def-body))))
 
 
+;;; Tag Hooks
+;;
+;; Semantic may want to provide special hooks when specific operations
+;; are about to happen on a given tag.  These routines allow for hook
+;; maintenance on a tag.
+(defun semantic-tag-add-hook (tag hook value &optional append)
+  "Add onto TAG a HOOK with VALUE."
+  (let ((pl (semantic--tag-get-property tag hook)))
+    (setq pl (add-to-list 'pl value append))
+    (semantic--tag-put-property tag hook pl)))
+
+(defun semantic-tag-remove-hook (tag hook value)
+  "Remove from TAG the HOOK with VALUE."
+  (let ((pl (semantic--tag-get-property tag hook)))
+    (setq pl (delete value pl))
+    (semantic--tag-put-property tag hook pl)))
+
+(defun semantic--tag-run-hooks (tag hook &rest args)
+  "Run for TAG all expressions saved on the property HOOK.
+Each hook expression must take at least one argument, the TAG.
+For any given situation, additional ARGS may be passed."
+  (let ((pl (semantic--tag-get-property tag hook))
+	(arglist (cons tag args)))
+    (condition-case err
+	;; If a hook bombs, ignore it!  Usually this is tied into
+	;; some sort of critical system.
+	(apply 'run-hook-with-args 'pl arglist)
+      (error (message "Error: %S" err)))))
+
+
 ;;; Tags and Overlays
 ;;
 ;; Overlays are used so that we can quickly identify tags from
@@ -679,10 +709,12 @@ This function is for internal use only."
         (semantic--tag-set-overlay
          tag (vector (semantic-overlay-start o)
                      (semantic-overlay-end o)))
-        (semantic-overlay-delete o)
-        ;; Fix the sub-tags which contain overlays.
-        (semantic--tag-unlink-list-from-buffer
-         (semantic-tag-components-with-overlays tag))))))
+        (semantic-overlay-delete o))
+      ;; Look for a link hook on TAG.
+      (semantic--tag-run-hooks tag 'unlink-hook)
+      ;; Fix the sub-tags which contain overlays.
+      (semantic--tag-unlink-list-from-buffer
+       (semantic-tag-components-with-overlays tag)))))
 
 (defun semantic--tag-link-to-buffer (tag)
   "Convert TAG from using an overlay proxy to using an overlay.
@@ -696,9 +728,11 @@ This function is for internal use only."
         (semantic-overlay-put o 'semantic tag)
         ;; Clear the :filename property
         (semantic--tag-put-property tag :filename nil))
-        ;; Fix the sub-tags which contain overlays.
-        (semantic--tag-link-list-to-buffer
-         (semantic-tag-components-with-overlays tag)))))
+      ;; Look for a link hook on TAG.
+      (semantic--tag-run-hooks tag 'link-hook)
+      ;; Fix the sub-tags which contain overlays.
+      (semantic--tag-link-list-to-buffer
+       (semantic-tag-components-with-overlays tag)))))
 
 (defsubst semantic--tag-unlink-list-from-buffer (tags)
   "Convert TAGS from using an overlay to using an overlay proxy.
