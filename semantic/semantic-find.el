@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.10 2003/04/06 00:52:03 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.11 2003/04/07 08:26:04 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -49,7 +49,6 @@
 (require 'semantic-tag)
 
 ;;; Code:
-
 
 ;;; Overlay Search Routines
 ;;
@@ -193,7 +192,6 @@ Uses `semantic-tag-class' for classification."
 		(not (eq (semantic-tag-class (car tags)) class)))
       (setq tags (cdr tags)))
     (car tags)))
-
 
 ;;; Search Routines
 ;;
@@ -230,7 +228,7 @@ Uses `semantic-tag-class' for classification."
 (defsubst semantic--find-tags-by-function (predicate &optional table)
   "Find tags for which PREDICATE is non-nil in TABLE.
 PREDICATE is a lambda expression which accepts on TAG.
-TABLE  is a semantic tags table.  See `semantic-something-to-tag-table'."
+TABLE is a semantic tags table.  See `semantic-something-to-tag-table'."
   (let ((tags (semantic-something-to-tag-table table))
 	(result nil))
 ;    (mapc (lambda (tag) (and (funcall predicate tag)
@@ -247,17 +245,19 @@ TABLE  is a semantic tags table.  See `semantic-something-to-tag-table'."
 ;; and having the question be inlined in the while loop.
 ;; Strangely turning the upper level fcns into macros had a larger
 ;; impact.
-(defmacro semantic--find-tags-by-macro (form table)
-  "Find tags for which FORM is non-nil nil TABLE.
-TABLE  is a semantic tags table.  See `semantic-something-to-tag-table'."
+(defmacro semantic--find-tags-by-macro (form &optional table)
+  "Find tags for which FORM is non-nil in TABLE.
+TABLE is a semantic tags table.  See `semantic-something-to-tag-table'."
   `(let ((tags (semantic-something-to-tag-table ,table))
-	 (result nil))
+         (result nil))
      (while tags
        (and ,form
-	    (setq result (cons (car tags) result)))
+            (setq result (cons (car tags) result)))
        (setq tags (cdr tags)))
      (nreverse result)))
 
+;;; Top level Searches
+;;
 ;;;###autoload
 (defsubst semantic-find-first-tag-by-name (name &optional table)
   "Find the first tag with NAME in TABLE.
@@ -275,7 +275,7 @@ TABLE is a tag table.  See `semantic-something-to-tag-table'."
   `(let ((case-fold-search semantic-case-fold))
      (semantic--find-tags-by-macro
       (string= ,name (semantic-tag-name (car tags)))
-     (semantic-something-to-tag-table ,table))))
+      ,table)))
 
 ;;;###autoload
 (defmacro semantic-find-tags-for-completion (prefix &optional table)
@@ -332,7 +332,40 @@ TABLE is a tag table.  See `semantic-something-to-tag-table'."
 TABLE is a tag table.  See `semantic-something-to-tag-table'."
   (semantic-find-tags-by-class 'include table))
 
-
+;;; Deep Searches
+;;
+
+;;;###autoload
+(defmacro semantic-deep-find-tags-by-name (name &optional table)
+  "Find all tags with NAME in TABLE.
+Search in top level tags, and their components, in TABLE.
+NAME is a string.
+TABLE is a tag table.  See `semantic-flatten-tags-table'.
+See also `semantic-find-tags-by-name'."
+  `(semantic-find-tags-by-name
+    ,name (semantic-flatten-tags-table ,table)))
+
+;;;###autoload
+(defmacro semantic-deep-find-tags-for-completion (prefix &optional table)
+  "Find all tags whos name begins with PREFIX in TABLE.
+Search in top level tags, and their components, in TABLE.
+TABLE is a tag table.  See `semantic-flatten-tags-table'.
+See also `semantic-find-tags-for-completion'."
+  `(semantic-find-tags-for-completion
+    ,prefix (semantic-flatten-tags-table ,table)))
+
+;;;###autoload
+(defmacro semantic-deep-find-tags-by-name-regexp (regexp &optional table)
+  "Find all tags with name matching REGEXP in TABLE.
+Search in top level tags, and their components, in TABLE.
+REGEXP is a string containing a regular expression,
+TABLE is a tag table.  See `semantic-flatten-tags-table'.
+See also `semantic-find-tags-by-name-regexp'.
+Consider using `semantic-deep-find-tags-for-completion' if you are
+attempting to do completions."
+  `(semantic-find-tags-by-name-regexp
+    ,regexp (semantic-flatten-tags-table ,table)))
+
 ;;; Specialty Searches
 ;;
 (defun semantic-find-tags-external-children-of-type (type &optional table)
@@ -342,9 +375,8 @@ TABLE is a tag table.  See `semantic-something-to-tag-table'."
   (semantic--find-tags-by-macro
    (equal (semantic-nonterminal-external-member-parent (car tags))
 	  type)
-   table)
-)
-
+   table))
+
 ;;; Tag Table Flattening
 ;;
 ;; In the 1.4 search API, there was a parameter "search-parts" which
@@ -373,7 +405,6 @@ unmodified as components of their parent tags."
 	  table)
     (apply 'append (nreverse lists))
     ))
-
 
 ;;
 ;; ************************** Compatibility ***************************
@@ -676,7 +707,6 @@ details are available of findable."
 				(semantic-tag-type-members current)
 			      nil))))
     (nreverse (cons current returnme))))
-
 
 ;;; Compatibility Aliases
 ;;;###autoload
