@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 07 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-cim.el,v 1.8 2002/08/11 09:40:53 ponced Exp $
+;; X-RCS: $Id: wisent-cim.el,v 1.9 2002/09/05 13:33:15 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,8 +38,8 @@
 (require 'wisent-bovine)
 
 (defconst wisent-cim-automaton
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-09-05 13:56+0200
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-10 21:09+0200
     (wisent-compile-grammar
      '((HACTIVATE HAFTER HARRAY HAT HBEFORE HBEGIN HBOOLEAN HCHARACTER HCLASS HCONC HDELAY HDO HELSE HEND HEQ HEXTERNAL HFOR HGE HGO HGOTO HGT HHIDDEN HIF HIN HINNER HINSPECT HINTEGER HIS HLABEL HLE HLONG HLT HNAME HNE HNEW HNONE HNOTEXT HOTHERWISE HPRIOR HPROCEDURE HPROTECTED HQUA HREACTIVATE HREAL HREF HSHORT HSTEP HSWITCH HTEXT HTHEN HTHIS HTO HUNTIL HVALUE HVAR HVIRTUAL HWHEN HWHILE HASSIGNVALUE HASSIGNREF HPAREXPSEPARATOR HLABELSEPARATOR HSTATEMENTSEPARATOR HBEGPAR HENDPAR HEQR HNER HADD HSUB HMUL HDIV HINTDIV HEXP HDOTDOTDOT HIDENTIFIER HBOOLEANKONST HINTEGERKONST HCHARACTERKONST HREALKONST HTEXTKONST)
        ((right HASSIGN)
@@ -575,134 +575,128 @@
          (progn))
         ((EXPRESSION HPAREXPSEPARATOR ARGUMENT_LIST)
          (progn))))
-     '(MAIN_MODULE))
-    )
+     '(MAIN_MODULE)))
   "Parser automaton.")
 
 (defconst wisent-cim-keywords
-  (identity
-   ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-10 21:09+0200
-   (semantic-lex-make-keyword-table 'nil 'nil)
-   )
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-09-05 13:56+0200
+  (semantic-lex-make-keyword-table 'nil 'nil)
   "Keywords.")
 
 (defconst wisent-cim-tokens
-  (identity
-   ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-10 21:09+0200
-   (wisent-lex-make-token-table
-    '(("tval"
-       (HTEXTKONST))
-      ("rval"
-       (HREALKONST))
-      ("ival"
-       (HCHARACTERKONST)
-       (HINTEGERKONST)
-       (HBOOLEANKONST))
-      ("ident"
-       (HIDENTIFIER))
-      ("<no-type>"
-       (HDOTDOTDOT)
-       (HEXP)
-       (HINTDIV)
-       (HDIV)
-       (HMUL)
-       (HSUB)
-       (HADD)
-       (HNER)
-       (HEQR)
-       (HENDPAR)
-       (HBEGPAR)
-       (HSTATEMENTSEPARATOR)
-       (HLABELSEPARATOR)
-       (HPAREXPSEPARATOR)
-       (HASSIGNREF)
-       (HASSIGNVALUE)
-       (HWHILE)
-       (HWHEN)
-       (HVIRTUAL)
-       (HVAR)
-       (HVALUE)
-       (HUNTIL)
-       (HTO)
-       (HTHIS)
-       (HTHEN)
-       (HTEXT)
-       (HSWITCH)
-       (HSTEP)
-       (HSHORT)
-       (HREF)
-       (HREAL)
-       (HREACTIVATE)
-       (HQUA)
-       (HPROTECTED)
-       (HPROCEDURE)
-       (HPRIOR)
-       (HOTHERWISE)
-       (HNOTEXT)
-       (HNONE)
-       (HNEW)
-       (HNE)
-       (HNAME)
-       (HLT)
-       (HLONG)
-       (HLE)
-       (HLABEL)
-       (HIS)
-       (HINTEGER)
-       (HINSPECT)
-       (HINNER)
-       (HIN)
-       (HIF)
-       (HHIDDEN)
-       (HGT)
-       (HGOTO)
-       (HGO)
-       (HGE)
-       (HFOR)
-       (HEXTERNAL)
-       (HEQ)
-       (HEND)
-       (HELSE)
-       (HDO)
-       (HDELAY)
-       (HCONC)
-       (HCLASS)
-       (HCHARACTER)
-       (HBOOLEAN)
-       (HBEGIN)
-       (HBEFORE)
-       (HAT)
-       (HARRAY)
-       (HAFTER)
-       (HACTIVATE))
-      ("token"
-       (HFACTOROPERATOR)
-       (UNEAR)
-       (HTERMOPERATOR)
-       (HOBJRELOPERATOR)
-       (HREFRELOPERATOR)
-       (HVALRELOPERATOR)
-       (HASSIGN)))
-    'nil)
-   )
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-09-05 13:56+0200
+  (wisent-lex-make-token-table
+   '(("tval"
+      (HTEXTKONST))
+     ("rval"
+      (HREALKONST))
+     ("ival"
+      (HCHARACTERKONST)
+      (HINTEGERKONST)
+      (HBOOLEANKONST))
+     ("ident"
+      (HIDENTIFIER))
+     ("<no-type>"
+      (HDOTDOTDOT)
+      (HEXP)
+      (HINTDIV)
+      (HDIV)
+      (HMUL)
+      (HSUB)
+      (HADD)
+      (HNER)
+      (HEQR)
+      (HENDPAR)
+      (HBEGPAR)
+      (HSTATEMENTSEPARATOR)
+      (HLABELSEPARATOR)
+      (HPAREXPSEPARATOR)
+      (HASSIGNREF)
+      (HASSIGNVALUE)
+      (HWHILE)
+      (HWHEN)
+      (HVIRTUAL)
+      (HVAR)
+      (HVALUE)
+      (HUNTIL)
+      (HTO)
+      (HTHIS)
+      (HTHEN)
+      (HTEXT)
+      (HSWITCH)
+      (HSTEP)
+      (HSHORT)
+      (HREF)
+      (HREAL)
+      (HREACTIVATE)
+      (HQUA)
+      (HPROTECTED)
+      (HPROCEDURE)
+      (HPRIOR)
+      (HOTHERWISE)
+      (HNOTEXT)
+      (HNONE)
+      (HNEW)
+      (HNE)
+      (HNAME)
+      (HLT)
+      (HLONG)
+      (HLE)
+      (HLABEL)
+      (HIS)
+      (HINTEGER)
+      (HINSPECT)
+      (HINNER)
+      (HIN)
+      (HIF)
+      (HHIDDEN)
+      (HGT)
+      (HGOTO)
+      (HGO)
+      (HGE)
+      (HFOR)
+      (HEXTERNAL)
+      (HEQ)
+      (HEND)
+      (HELSE)
+      (HDO)
+      (HDELAY)
+      (HCONC)
+      (HCLASS)
+      (HCHARACTER)
+      (HBOOLEAN)
+      (HBEGIN)
+      (HBEFORE)
+      (HAT)
+      (HARRAY)
+      (HAFTER)
+      (HACTIVATE))
+     ("token"
+      (HFACTOROPERATOR)
+      (UNEAR)
+      (HTERMOPERATOR)
+      (HOBJRELOPERATOR)
+      (HREFRELOPERATOR)
+      (HVALRELOPERATOR)
+      (HASSIGN)))
+   'nil)
   "Tokens.")
 
 (defun wisent-cim-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-10 21:09+0200
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-09-05 13:56+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-cim-automaton
           semantic-flex-keywords-obarray wisent-cim-keywords
-          wisent-lex-tokens-obarray wisent-cim-tokens)
+          semantic-lex-tokens-obarray wisent-cim-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
               'wisent-collect-unmatched-syntax nil t)
-    )
-  )
+    ))
 
 (provide 'wisent-cim)
 
