@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.29 2004/03/24 13:34:31 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.30 2004/03/28 11:34:47 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -213,9 +213,9 @@ This variable only has meaning in the scope of `wisent-parse'.")
 
 ;; Variables that only have meaning in the scope of a semantic action.
 ;; These global definitions avoid byte-compiler warnings.
-(defvar $region)
-(defvar $nterm)
-(defvar $action)
+(defvar $region nil)
+(defvar $nterm  nil)
+(defvar $action nil)
 
 (defmacro wisent-lexer ()
   "Obtain the next terminal in input."
