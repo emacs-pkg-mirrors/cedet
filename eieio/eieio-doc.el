@@ -1,40 +1,40 @@
-;;; eieiodoc - create texinfo documentation for an eieio class
-;;;
-;;; Copyright (C) 1996 Eric M. Ludlam
-;;;
-;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: eieio-doc.el,v 1.5 1997/01/24 00:27:33 zappo Exp $
-;;; Keywords: OO, lisp, docs
-;;;
-;;; This program is free software; you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 2, or (at your option)
-;;; any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program; if not, you can either send email to this
-;;; program's author (see below) or write to:
-;;;
-;;;              The Free Software Foundation, Inc.
-;;;              675 Mass Ave.
-;;;              Cambridge, MA 02139, USA. 
-;;;
-;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
-;;;
-;;; Updates can be found at:
-;;;    ftp://ftp.ultranet.com/pub/zappo
+;;; eieio-doc.el --- create texinfo documentation for an eieio class
 
-;;;
+;;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;
+;; Author: <zappo@gnu.org>
+;; RCS: $Id: eieio-doc.el,v 1.6 1998/10/27 18:21:54 zappo Exp $
+;; Keywords: OO, lisp, docs
+;;
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, you can either send email to this
+;; program's author (see below) or write to:
+;;
+;;              The Free Software Foundation, Inc.
+;;              675 Mass Ave.
+;;              Cambridge, MA 02139, USA.
+;;
+;; Please send bug reports, etc. to zappo@gnu.org
+;;
+;; Updates can be found at:
+;;    ftp://ftp.ultranet.com/pub/zappo
+
 ;;; Commentary:
-;;;
-;;;  Outputs into the current buffer documentation in texinfo format
-;;;  for a class, all it's children, and all it's slots.
+;;
+;;  Outputs into the current buffer documentation in texinfo format
+;;  for a class, all it's children, and all it's slots.
 
+;;; Code:
 (defvar eieiodoc-currently-in-node nil
   "String representing the node we go BACK to.")
 
@@ -42,12 +42,12 @@
   "String represending what type of section header to use.")
 
 (defvar eieiodoc-prev-class nil
-  "This has a value while eieiodoc-recurse is running, and can be
-referenced from the recursed function.")
+  "Non-nil when while eieiodoc-recurse is running.
+Can be referenced from the recursed function.")
 
 (defvar eieiodoc-next-class nil
-  "This has a value while eieiodoc-recurse is running, and can be
-referenced from the recursed function.")
+  "Non-nil when eieiodoc-recurse is running.
+Can be referenced from the recursed function.")
 
 (defun eieiodoc-class (root-class indexstring &optional skiplist)
   "Create documentation starting with ROOT-CLASS.
@@ -99,7 +99,8 @@ SKIPLIST is a list of objects to skip"
 
 (defun eieiodoc-one-node (class level)
   "Create a node for CLASS, and for all subclasses of CLASS in order.
-This function should only be called by `eieiodoc-class'"
+This function should only be called by `eieiodoc-class'
+Argument LEVEL is the current level of recursion we have hit."
   (message "Building node for %s" class)
   (insert "\n@node " (symbol-name class) ", "
 	  (if eieiodoc-next-class (symbol-name eieiodoc-next-class) " ") ", "
@@ -156,7 +157,7 @@ This function should only be called by `eieiodoc-class'"
 	 )
     ;; doc of the class itself
     (insert (eieiodoc-texify-docstring (aref cv 2) class) "\n\n@table @asis\n")
-    (if names 
+    (if names
 	(progn
 	  (setq anchor (point))
 	  (insert "@item Public Slots:\n\n@table @code\n")
@@ -169,7 +170,7 @@ This function should only be called by `eieiodoc-class'"
 	  (insert "@end table\n\n")
 	  (if (not set-one) (delete-region (point) anchor))
 	  ))
-    (if pnames 
+    (if pnames
 	(progn
 	  (setq set-one nil
 		anchor (point))
@@ -188,10 +189,11 @@ This function should only be called by `eieiodoc-class'"
     ))
 
 (defun eieiodoc-one-attribute (class attribute doc deflt)
-  "Create documentation for a single attribute.
+  "Create documentation of CLASS for a single ATTRIBUTE.
 Assume this attribute is inside a table, so it is initiated with the
 @item indicator.  If this attribute is not inserted (because it is
-contained in the parent) then return nil, else return t"
+contained in the parent) then return nil, else return t.
+DOC is the documentation to use, and DEFLT is the default value."
   (let ((pv (eieiodoc-parent-diff class attribute))
 	(ia (eieio-attribute-to-initarg class attribute))
 	(set-me nil))
@@ -209,8 +211,8 @@ contained in the parent) then return nil, else return t"
 		"\n@refill\n\n")))
     set-me))
 ;;;
-;;; Utilities
-;;;
+;; Utilities
+;;
 (defun eieiodoc-recurse (rclass func &optional level skiplist)
   "Recurse down all children of RCLASS, calling FUNC on each one.
 LEVEL indicates the current depth below the first call we are.  The
@@ -250,7 +252,7 @@ Return t if it does, and return 'default if the default has changed."
 	      err nil)
       (invalid-slot-name (setq df nil))
       (error (setq df nil)))
-    (if err 
+    (if err
 	nil
       (if (equal df (oref-default-engine class slot))
 	  t
@@ -270,14 +272,13 @@ that class.
  t          => @code{t}
  :tag       => @code{:tag}
  [ stuff ]  => @code{[ stuff ]}
- Key        => @kbd{Key}        (key is C-h, M-h, SPC, RET, TAB and the like)
-"
+ Key        => @kbd{Key}        (key is C-h, M-h, SPC, RET, TAB and the like)"
   (while (string-match "`\\([-a-zA-Z0-9]+\\)'" string)
     (let* ((vs (substring string (match-beginning 1) (match-end 1)))
 	   (v (intern-soft vs)))
       (setq string
 	    (concat
-	     (replace-match (concat 
+	     (replace-match (concat
 			     (if (and (not (class-p v))(fboundp v))
 				 "@dfn{" "@code{")
 			     vs "}"
@@ -294,5 +295,6 @@ that class.
     (setq string (replace-match "@kbd{\\2}" t nil string 2)))
   string)
 
-;;; end of lisp
 (provide 'eieio-doc)
+
+;;; eieio-doc.el ends here

@@ -1,75 +1,73 @@
-;;; chart.el - Draw charts (bar charts, etc)
-;;;
-;;; Copyright (C) 1996 Eric M. Ludlam
-;;;
-;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.1
-;;; RCS: $Id: chart.el,v 1.4 1997/03/01 17:12:06 zappo Exp $
-;;; Keywords: OO, chart, graph                                           
-;;;                                                                          
-;;; This program is free software; you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 2, or (at your option)
-;;; any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program; if not, you can either send email to this
-;;; program's author (see below) or write to:
-;;;
-;;;              The Free Software Foundation, Inc.
-;;;              675 Mass Ave.
-;;;              Cambridge, MA 02139, USA. 
-;;;
-;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
-;;;
+;;; chart.el --- Draw charts (bar charts, etc)
+
+;;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;
+;; Author: <zappo@gnu.org>
+;; Version: 0.1
+;; RCS: $Id: chart.el,v 1.5 1998/10/27 18:11:34 zappo Exp $
+;; Keywords: OO, chart, graph
+;;                                                                          
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, you can either send email to this
+;; program's author (see below) or write to:
+;;
+;;              The Free Software Foundation, Inc.
+;;              675 Mass Ave.
+;;              Cambridge, MA 02139, USA.
+;;
+;; Please send bug reports, etc. to zappo@gnu.org
+
 ;;; Future versions of Chart can be found at:
-;;;  ftp://ftp.ultranet.com/pub/zappo
-;;;
+;;  ftp://ftp.ultranet.com/pub/zappo
+
 ;;; Commentary:
-;;;   This package is an experiment of mine aiding in the debugging of
-;;; eieio, and proved to be neat enough that others may like to use
-;;; it.  To quickly see what you can do with chart, run the command
-;;; `chart-test-it-all'.
-;;;   Chart current can display bar-charts in either of two
-;;; directions.  It also supports ranged (integer) axis, and axis
-;;; defined by some set of strings or names.  These name can be
-;;; automatically derived from data sequences, which are just lists of
-;;; anything encapsulated in a nice eieio object.
-;;;   Current example apps for chart can be accessed via these commands:
-;;; `chart-file-count'     - count files w/ matching extensions
-;;; `chart-space-usage'    - display space used by files/directories
-;;; `chart-emacs-storage'  - emacs storage units used/free (garbage-collect)
-;;; `chart-emacs-lists'    - length of emacs lists
-;;; `chart-rmail-from'     - who sends you the most mail (in -summary only)
-;;;
-;;; Customization:
-;;;   If you find the default colors and pixmaps unpleasant, or too
-;;; short, you can change them.  The variable `chart-face-color-list'
-;;; contains a list of colors, and `chart-face-pixmap-list' contains
-;;; all the pixmaps to use.  The current pixmaps are those found on
-;;; several systems I found.  The two lists should be the same length,
-;;; as the long list will just be truncated.
-;;;   If you would like to draw your own stipples, simply create some
-;;; xbm's and put them in a directory, then you can add:
-;;;
-;;; (setq x-bitmap-file-path (cons "~/mybitmaps" x-bitmap-file-path))
-;;;
-;;; to your .emacs (or wherever) and load the `chart-face-pixmap-list'
-;;; with all the bitmaps you want to use.
-;;;
-;;; PREFERRED: emacs 19.30 or better, but should work with earlier
-;;;            versions but without special fonts/colors/pixmaps
+;;   This package is an experiment of mine aiding in the debugging of
+;; eieio, and proved to be neat enough that others may like to use
+;; it.  To quickly see what you can do with chart, run the command
+;; `chart-test-it-all'.
+;;   Chart current can display bar-charts in either of two
+;; directions.  It also supports ranged (integer) axis, and axis
+;; defined by some set of strings or names.  These name can be
+;; automatically derived from data sequences, which are just lists of
+;; anything encapsulated in a nice eieio object.
+;;   Current example apps for chart can be accessed via these commands:
+;; `chart-file-count'     - count files w/ matching extensions
+;; `chart-space-usage'    - display space used by files/directories
+;; `chart-emacs-storage'  - Emacs storage units used/free (garbage-collect)
+;; `chart-emacs-lists'    - length of Emacs lists
+;; `chart-rmail-from'     - who sends you the most mail (in -summary only)
+;;
+;; Customization:
+;;   If you find the default colors and pixmaps unpleasant, or too
+;; short, you can change them.  The variable `chart-face-color-list'
+;; contains a list of colors, and `chart-face-pixmap-list' contains
+;; all the pixmaps to use.  The current pixmaps are those found on
+;; several systems I found.  The two lists should be the same length,
+;; as the long list will just be truncated.
+;;   If you would like to draw your own stipples, simply create some
+;; xbm's and put them in a directory, then you can add:
+;;
+;; (setq x-bitmap-file-path (cons "~/mybitmaps" x-bitmap-file-path))
+;;
+;; to your .emacs (or wherever) and load the `chart-face-pixmap-list'
+;; with all the bitmaps you want to use.
+;;
+;; PREFERRED: Emacs 19.30 or better, but should work with earlier
+;;            versions but without special fonts/colors/pixmaps
 
 (require 'eieio)
 
-;;;
-;;; Variable definitions
-;;;
+;;; Code:
 (defvar chart-map nil "Keymap used in chart mode.")
 (if chart-map
     ()
@@ -77,20 +75,23 @@
   )
 
 (defvar chart-local-object nil
-  "Local variable containing the locally displayed chart object")
+  "Local variable containing the locally displayed chart object.")
 (make-variable-buffer-local 'chart-local-object)
 
 (defvar chart-face-list nil
-  "Faces used to colorize charts.  List is limited currently, which is ok
-since you really can't display too much in text characters anyways.")
-(defvar chart-face-color-list '("red" "green" "blue" 
+  "Faces used to colorize charts.
+List is limited currently, which is ok since you really can't display
+too much in text characters anyways.")
+
+(defvar chart-face-color-list '("red" "green" "blue"
 				"orange" "yellow" "purple")
-  "Colors to use when generating chart-face-list.  Colors will be the
-background color.")
-(defvar chart-face-pixmap-list '("dimple1" "scales" "dot" 
+  "Colors to use when generating `chart-face-list'.
+Colors will be the background color.")
+
+(defvar chart-face-pixmap-list '("dimple1" "scales" "dot"
 				 "cross_weave" "boxes" "dimple3")
-  "If pixmaps are allowed, display these background pixmaps.  Useful
-if new emacs is used on B&W display")
+  "If pixmaps are allowed, display these background pixmaps.
+Useful if new Emacs is used on B&W display")
 
 (if (and window-system (not chart-face-list))
     (let ((cl chart-face-color-list)
@@ -111,7 +112,7 @@ if new emacs is used on B&W display")
 	      pl (cdr pl)))))
 
 (defun chart-mode ()
-  "Define a mode in emacs for displaying a chart."
+  "Define a mode in Emacs for displaying a chart."
   (kill-all-local-variables)
   (use-local-map chart-map)
   (setq major-mode 'chart-mode
@@ -120,8 +121,8 @@ if new emacs is used on B&W display")
   )
 
 (defun chart-new-buffer (obj)
-  "Create a new buffer called NAME in which we will display some tree
-type things.  Returns the newly created buffer"
+  "Create a new buffer NAME in which the chart OBJ is displayed.
+Returns the newly created buffer"
   (save-excursion
     (set-buffer (get-buffer-create (format "*%s*" (oref obj title))))
     (chart-mode)
@@ -225,20 +226,20 @@ of buffer"
 	(xmarg (oref c x-margin))
 	(ylen (oref c y-width))
 	(xlen (oref c x-width)))
-    (chart-axis-draw (oref c y-axis) 'vertical ymarg 
+    (chart-axis-draw (oref c y-axis) 'vertical ymarg
 		     (if (oref (oref c y-axis) loweredge) nil xlen)
 		     xmarg (+ xmarg ylen))
-    (chart-axis-draw (oref c x-axis) 'horizontal xmarg 
+    (chart-axis-draw (oref c x-axis) 'horizontal xmarg
 		     (if (oref (oref c x-axis) loweredge) nil ylen)
 		     ymarg (+ ymarg xlen)))
   )
 
 (defmethod chart-axis-draw ((a chart-axis) &optional dir margin zone start end)
-  "Draw some axis for A in direction DIR at with MARGIN in 
+  "Draw some axis for A in direction DIR at with MARGIN in
 boundry START -> END"
   (chart-draw-line dir (+ margin (if zone zone 0)) start end)
-  (chart-display-label (oref a name) dir (if zone (+ zone margin 3) 
-					   (if (eq dir 'horizontal) 
+  (chart-display-label (oref a name) dir (if zone (+ zone margin 3)
+					   (if (eq dir 'horizontal)
 					       1 0))
 		       start end (oref a name-face)))
 
@@ -246,8 +247,8 @@ boundry START -> END"
   "Translate in chart C the coordinate X into a screen column"
   (let ((range (oref (oref c x-axis) bounds)))
     (+ (oref c x-margin)
-       (round (* (float (- x (car range))) 
-		 (/ (float (oref c x-width)) 
+       (round (* (float (- x (car range)))
+		 (/ (float (oref c x-width))
 		    (float (- (cdr range) (car range))))))))
   )
 
@@ -255,9 +256,9 @@ boundry START -> END"
   "Translate in chart C the coordinate Y into a screen row"
   (let ((range (oref (oref c y-axis) bounds)))
     (+ (oref c x-margin)
-       (- (oref c y-width) 
-	  (round (* (float (- y (car range))) 
-		    (/ (float (oref c y-width)) 
+       (- (oref c y-width)
+	  (round (* (float (- y (car range)))
+		    (/ (float (oref c y-width))
 		       (float (- (cdr range) (car range)))))))))
   )
 
@@ -282,7 +283,7 @@ boundry START -> END"
 		  (t
 		   (format "%d" i))))
       (if (eq dir 'vertical)
-	  (chart-goto-xy (+ (+ margin z) (if (oref a loweredge) 
+	  (chart-goto-xy (+ (+ margin z) (if (oref a loweredge)
 					     (- (length s)) 1))
 			 (chart-translate-ypos (oref a chart) i))
 	(chart-goto-xy (chart-translate-xpos (oref a chart) i)
@@ -300,12 +301,12 @@ the nth name resides.  Automatically compensates for for direction."
   (let* ((dir (oref c direction))
 	 (w (if (eq dir 'vertical) (oref c x-width) (oref c y-width)))
 	 (m (if (eq dir 'vertical) (oref c y-margin) (oref c x-margin)))
-	 (ns (length 
+	 (ns (length
 	      (oref (if (eq dir 'vertical) (oref c x-axis) (oref c y-axis))
 		    items)))
 	 (lpn (/ (float w) (float ns)))
 	 )
-    (cons (+ m 1 (round (* lpn (float n)))) 
+    (cons (+ m 1 (round (* lpn (float n))))
 	  (+ m (round (* lpn (+ 1 (float n))))))
     ))
 
@@ -392,7 +393,7 @@ created with the bounds of SEQ."
 	(if (stringp (car (oref seq data)))
 	    (let ((labels (oref seq data)))
 	      (if (not axis)
-		  (setq axis (make-instance chart-axis-names 
+		  (setq axis (make-instance chart-axis-names
 					    :name (oref seq name)
 					    :items labels
 					    :chart c))
@@ -448,9 +449,9 @@ for more details"
   )
 
 (defun chart-sort-matchlist (namelst numlst pred)
-  "Sort NAMELST and NUMLST (both SEQUENCE objects) based on predicate
-PRED which should be the equivalent of '<, except it must expect two
-cons cells of the form ( NAME . NUM ).  See SORT for more details."
+  "Sort NAMELST and NUMLST (both SEQUENCE objects) based on predicate PRED.
+PRED should be the equivalent of '<, except it must expect two
+cons cells of the form (NAME . NUM).  See SORT for more details."
   ;; 1 - create 1 list of cons cells
   (let ((newlist nil)
 	(alst (oref namelst data))
@@ -476,28 +477,28 @@ cons cells of the form ( NAME . NUM ).  See SORT for more details."
 ;;; Utilities
 
 (defun chart-goto-xy (x y)
-  "Move cursor to position X Y in buffer, and add spaces and CRs if
-needed."
+  "Move cursor to position X Y in buffer, and add spaces and CRs if needed."
+
   (let ((indent-tabs-mode nil)
 	(num (goto-line (1+ y))))
     (if (and (= 0 num) (/= 0 (current-column))) (newline 1))
     (if (eobp) (newline num))
     ;; Now, a quicky column moveto/forceto method.
-    (or (= (move-to-column x) x) 
+    (or (= (move-to-column x) x)
 	(let ((p (point)))
 	  (indent-to x)
 	  (remove-text-properties p (point) '(face))))))
 
 (defun chart-zap-chars (n)
-  "Zap up to N chars without deleteting EOLs"
-  (if (not (eobp)) 
+  "Zap up to N chars without deleteting EOLs."
+  (if (not (eobp))
       (if (< n (- (save-excursion (end-of-line) (point)) (point)))
 	  (delete-char n)
 	(delete-region (point) (save-excursion (end-of-line) (point))))))
 
 (defun chart-display-label (label dir zone start end &optional face)
-  "Display label LABEL in direction DIR in column/row ZONE between 
-START and END"
+  "Display LABEL in direction DIR in column/row ZONE between START and END.
+Optional argument FACE is the property we wish to place on this text."
   (if (eq dir 'horizontal)
       (let (p1)
 	(chart-goto-xy (+ start (- (/ (- end start) 2) (/ (length label) 2)))
@@ -517,15 +518,15 @@ START and END"
 	(setq i (1+ i))))))
 
 (defun chart-draw-line (dir zone start end)
-  "Draw a line using line-drawing characters in direction DIR using
-column or row ZONE between START and END"
-  (chart-display-label 
+  "Draw a line using line-drawing characters in direction DIR.
+Use column or row ZONE between START and END"
+  (chart-display-label
    (make-string (- end start) (if (eq dir 'vertical) ?| ?\-))
    dir zone start end))
 
 (defun chart-deface-rectangle (dir r1 r2 face)
-  "Colorize a rectangle in direction DIR across range R1 by range R2 (dotted
-pairs) with FACE"
+  "Colorize a rectangle in direction DIR across range R1 by range R2.
+R1 and R2 are dotted pairs.  Colorize it with FACE."
   (let* ((range1 (if (eq dir 'vertical) r1 r2))
 	 (range2 (if (eq dir 'vertical) r2 r1))
 	 (y (car range2)))
@@ -539,9 +540,10 @@ pairs) with FACE"
 
 (defun chart-bar-quickie (dir title namelst nametitle numlst numtitle
 			      &optional max sort-pred)
-  "Wash over the complex eieio stuff and create a nice bar chart with
-going in direction DIR ['horizontal 'vertical] with TITLE using a name
-sequence NAMELST labeled NAMETITLE with values NUMLST labeled NUMTITLE.
+  "Wash over the complex eieio stuff and create a nice bar chart.
+Creat it going in direction DIR ['horizontal 'vertical] with TITLE
+using a name sequence NAMELST labeled NAMETITLE with values NUMLST
+labeled NUMTITLE.
 Optional arguments:
 Set the charts' max element display to MAX, and sort lists with
 SORT-PRED if desired."
@@ -569,7 +571,7 @@ SORT-PRED if desired."
 ;;; Test code
 
 (defun chart-test-it-all ()
-  "Test out various charting features"
+  "Test out various charting features."
   (interactive)
   (chart-bar-quickie 'vertical "Test Bar Chart"
 		     '( "U1" "ME2" "C3" "B4" "QT" "EZ") "Items"
@@ -579,8 +581,7 @@ SORT-PRED if desired."
 ;;; Sample utility function
 
 (defun chart-file-count (dir)
-  "Draw a chart which displays the number of files of different
-extentions in directory DIR."
+  "Draw a chart displaying the number of different file extentions in DIR."
   (interactive "DDirectory: ")
   (if (not (string-match "/$" dir))
       (setq dir (concat dir "/")))
@@ -592,7 +593,7 @@ extentions in directory DIR."
       (let* ((j (string-match "[^\\.]\\(\\.[a-zA-Z]+\\|~\\|#\\)$" (car flst)))
 	     (s (if (file-accessible-directory-p (concat dir (car flst)))
 		    "<dir>"
-		  (if j 
+		  (if j
 		      (substring (car flst) (match-beginning 1) (match-end 1))
 		    nil)))
 	     (m (member s extlst)))
@@ -612,7 +613,7 @@ extentions in directory DIR."
     ))
 
 (defun chart-space-usage (d)
-  "Display a top usage chart for directory D"
+  "Display a top usage chart for directory D."
   (interactive "DDirectory: ")
   (message "Collecting statistics...")
   (let ((nmlst nil)
@@ -642,11 +643,11 @@ extentions in directory DIR."
     ))
 
 (defun chart-emacs-storage ()
-  "Chart the current storage requirements of emacs"
+  "Chart the current storage requirements of Emacs."
   (interactive)
   (let* ((data (garbage-collect))
-	 (names '("conses" "free cons" "syms" "free syms" 
-		  "markers" "free mark" "floats" "free flt" 
+	 (names '("conses" "free cons" "syms" "free syms"
+		  "markers" "free mark" "floats" "free flt"
 		  "strings/2" "vectors"))
 	 (nums (list (car (car data))
 		     (cdr (car data))
@@ -664,7 +665,7 @@ extentions in directory DIR."
 		       nums "Objects")))
 
 (defun chart-emacs-lists ()
-  "Chart out the size of various important lists"
+  "Chart out the size of various important lists."
   (interactive)
   (let* ((names '("buffers" "frames" "processes" "faces" "x-displays"
 		  ))
@@ -705,6 +706,7 @@ extentions in directory DIR."
 		       '(lambda (a b) (> (cdr a) (cdr b))))
     ))
 
-;;; end of lisp
+
 (provide 'chart)
 
+;;; chart.el ends here
