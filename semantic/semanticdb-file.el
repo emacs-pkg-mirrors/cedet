@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.2 2002/09/07 02:12:20 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.3 2003/02/03 08:45:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -188,20 +188,18 @@ Uses `semanticdb-persistent-path' to determine the return value."
 	       (if (string= (oref obj reference-directory) (car path))
 		   (throw 'found t)))
 	      ((eq (car path) 'project)
-	       (let ((predicates semanticdb-project-predicates))
-		 (if predicates
-		     (while predicates
-		       (if (funcall (car predicates)
-				    (oref obj reference-directory))
-			   (throw 'found t))
-		       (setq predicates (cdr predicates)))
-		   ;; If the mode is 'project, and there are no project
-		   ;; modes, then just always save the file.  If users
-		   ;; wish to restrict the search, modify
-		   ;; `semanticdb-persistent-path' to include desired paths.
-		   (if (= (length semanticdb-persistent-path) 1)
+	       (if semanticdb-project-predicate-functions
+		   (if (run-hook-with-args-until-success
+			'semanticdb-project-predicate-functions
+			(oref obj reference-directory))
 		       (throw 'found t))
-		   )))
+		 ;; If the mode is 'project, and there are no project
+		 ;; modes, then just always save the file.  If users
+		 ;; wish to restrict the search, modify
+		 ;; `semanticdb-persistent-path' to include desired paths.
+		 (if (= (length semanticdb-persistent-path) 1)
+		     (throw 'found t))
+		 ))
 	      ((eq (car path) 'never)
 	       (throw 'found nil))
 	      ((eq (car path) 'always)
