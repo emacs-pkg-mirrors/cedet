@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.8 2003/09/02 14:51:44 ponced Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.9 2003/09/05 04:18:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +38,7 @@
 ;; These are functions that can be called from within a bovine table.
 ;; Most of these have code auto-generated from other construct in the
 ;; bovine input grammar.
+;;;###autoload
 (defmacro semantic-lambda (&rest return-val)
   "Create a lambda expression to return a list including RETURN-VAL.
 The return list is a lambda expression to be used in a bovine table."
