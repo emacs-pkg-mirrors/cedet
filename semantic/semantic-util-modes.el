@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.11 2001/11/21 19:31:22 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.12 2001/11/26 21:18:18 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,10 +37,19 @@
 (require 'semantic-util)
 (require 'working)
 
+;;; Compatibility
+(if (fboundp 'propertize)
+    (defalias 'semantic-propertize 'propertize)
+  (defsubst semantic-propertize (string &rest properties)
+    "Return a copy of STRING with text properties added.
+Dummy implementation for compatibility which just return STRING and
+ignore PROPERTIES."
+    string)
+  )
+
 ;;;;
 ;;;; Semantic minor modes stuff
 ;;;;
-
 (defcustom semantic-update-mode-line t
   "*If non-nil show enabled minor modes in the mode line.
 Only minor modes that are not turned on globally are shown in the mode
@@ -54,6 +63,14 @@ line."
          ;; Update status of all Semantic enabled buffers
          (semantic-map-buffers
           #'semantic-mode-line-update)))
+
+(defcustom semantic-mode-line-prefix
+  (semantic-propertize "S" 'face 'bold)
+  "*Prefix added to minor mode indicators in the mode line."
+  :group 'semantic
+  :type 'string
+  :require 'semantic-util-modes
+  :initialize 'custom-initialize-default)
 
 (defvar semantic-minor-modes-status nil
   "String showing Semantic minor modes which are locally enabled.
@@ -86,15 +103,21 @@ Only minor modes that are locally enabled are shown in the mode line."
                  (not (member ms see)) ;; Don't duplicate same status
                  (setq see (cons ms see)
                        ms (if (string-match "^[ ]*\\(.+\\)" ms)
-                              (match-string 1 ms)
-                            "")
-                       semantic-minor-modes-status
+                              (match-string 1 ms)))
+                 (setq semantic-minor-modes-status
                        (if semantic-minor-modes-status
                            (concat semantic-minor-modes-status "/" ms)
                          ms)))))
         (if semantic-minor-modes-status
             (setq semantic-minor-modes-status
-                  (concat " S/" semantic-minor-modes-status)))))
+                  (concat
+                   " "
+                   (if (string-match "^[ ]*\\(.+\\)"
+                                     semantic-mode-line-prefix)
+                       (match-string 1 semantic-mode-line-prefix)
+                     "S")
+                   "/"
+                   semantic-minor-modes-status)))))
   (working-mode-line-update))
 
 (defun semantic-add-minor-mode (toggle name &optional keymap)
@@ -193,16 +216,6 @@ If ARG is nil, then toggle."
   :group 'semantic
   :type 'hook)
 
-(defcustom semantic-show-dirty-mode-on-hook nil
-  "*Hook run when show-dirty minor mode is turned on."
-  :group 'semantic
-  :type 'hook)
-  
-(defcustom semantic-show-dirty-mode-off-hook nil
-  "*Hook run when show-dirty minor mode is turned off."
-  :group 'semantic
-  :type 'hook)
-
 (defface semantic-dirty-token-face
   '((((class color) (background dark))
      (:background "gray10"))
@@ -283,10 +296,7 @@ minor mode is enabled.
              0)
           (not semantic-show-dirty-mode)))
   (semantic-show-dirty-mode-setup)
-  (run-hooks 'semantic-show-dirty-mode-hook
-             (if semantic-show-dirty-mode
-                 'semantic-show-dirty-mode-on-hook
-               'semantic-show-dirty-mode-off-hook))
+  (run-hooks 'semantic-show-dirty-mode-hook)
   (if (interactive-p)
       (message "show-dirty minor mode %sabled"
                (if semantic-show-dirty-mode "en" "dis")))
@@ -324,16 +334,6 @@ If ARG is nil, then toggle."
 
 (defcustom semantic-show-unmatched-syntax-mode-hook nil
   "*Hook run at the end of function `semantic-show-unmatched-syntax-mode'."
-  :group 'semantic
-  :type 'hook)
-
-(defcustom semantic-show-unmatched-syntax-mode-on-hook nil
-  "*Hook called when show-unmatched-syntax minor mode is turned on."
-  :group 'semantic
-  :type 'hook)
-  
-(defcustom semantic-show-unmatched-syntax-mode-off-hook nil
-  "*Hook called when show-unmatched-syntax minor mode is turned off."
   :group 'semantic
   :type 'hook)
 
@@ -479,10 +479,7 @@ minor mode is enabled.
              0)
           (not semantic-show-unmatched-syntax-mode)))
   (semantic-show-unmatched-syntax-mode-setup)
-  (run-hooks 'semantic-show-unmatched-syntax-mode-hook
-             (if semantic-show-unmatched-syntax-mode
-                 'semantic-show-unmatched-syntax-mode-on-hook
-               'semantic-show-unmatched-syntax-mode-off-hook))
+  (run-hooks 'semantic-show-unmatched-syntax-mode-hook)
   (if (interactive-p)
       (message "show-unmatched-syntax minor mode %sabled"
                (if semantic-show-unmatched-syntax-mode "en" "dis")))
@@ -553,16 +550,6 @@ If ARG is nil, then toggle."
   :group 'semantic
   :type 'hook)
 
-(defcustom semantic-auto-parse-mode-on-hook nil
-  "*Hook run when auto-parse minor mode is turned on."
-  :group 'semantic
-  :type 'hook)
-  
-(defcustom semantic-auto-parse-mode-off-hook nil
-  "*Hook run when auto-parse minor mode is turned off."
-  :group 'semantic
-  :type 'hook)
-
 (defvar semantic-auto-parse-mode nil
   "Non-nil if auto-parse minor mode is enabled.
 Use the command `semantic-auto-parse-mode' to change this variable.")
@@ -630,10 +617,7 @@ minor mode is enabled."
              0)
           (not semantic-auto-parse-mode)))
   (semantic-auto-parse-mode-setup)
-  (run-hooks 'semantic-auto-parse-mode-hook
-             (if semantic-auto-parse-mode
-                 'semantic-auto-parse-mode-on-hook
-               'semantic-auto-parse-mode-off-hook))
+  (run-hooks 'semantic-auto-parse-mode-hook)
   (if (interactive-p)
       (message "auto-parse minor mode %sabled"
                (if semantic-auto-parse-mode "en" "dis")))
@@ -643,6 +627,100 @@ minor mode is enabled."
 (semantic-add-minor-mode 'semantic-auto-parse-mode
                          "a"
                          nil)
+
+
+;;;;
+;;;; Minor mode to show useful things about tokens
+;;;;
+
+(eval-when-compile (require 'eldoc))
+
+;;;###autoload
+(defun global-semantic-summary-mode (&optional arg)
+  "Toggle global use of `semantic-summary-mode'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  (interactive "P")
+  (setq global-semantic-summary-mode
+        (semantic-toggle-minor-mode-globally
+         'semantic-summary-mode arg)))
+
+;;;###autoload
+(defcustom global-semantic-summary-mode nil
+  "*If non-nil enable global use of summary mode."
+  :group 'semantic
+  :type 'boolean
+  :require 'semantic-util-modes
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (global-semantic-summary-mode (if val 1 -1))))
+
+(defcustom semantic-summary-mode-hook nil
+  "*Hook run at the end of function `semantic-summary-mode'."
+  :group 'semantic
+  :type 'hook)
+
+(defvar semantic-summary-mode-map
+  (let ((km (make-sparse-keymap)))
+    km)
+  "Keymap for summary minor mode.")
+
+(defvar semantic-summary-mode nil
+  "Non-nil if summary minor mode is enabled.
+Use the command `semantic-summary-mode' to change this variable.")
+(make-variable-buffer-local 'semantic-summary-mode)
+
+(defun semantic-summary-mode-setup ()
+  "Setup `semantic-summary-mode'.
+The minor mode can be turned on only if semantic feature is available
+and the current buffer was set up for parsing.  When minor mode is
+enabled parse the current buffer if needed.  Return non-nil if the
+minor mode is enabled."
+  (if semantic-summary-mode
+      (if (not (and (featurep 'semantic) (semantic-active-p)))
+          (progn
+            ;; Disable minor mode if semantic stuff not available
+            (setq semantic-summary-mode nil)
+            (error "Buffer %s was not set up for parsing"
+                   (buffer-name)))
+        ;; Enable eldoc mode
+        (eldoc-mode 1)
+        )
+    ;; Disable eldoc mode
+    (eldoc-mode -1))
+  semantic-summary-mode)
+
+;;;###autoload
+(defun semantic-summary-mode (&optional arg)
+  "Minor mode to show useful things about tokens in echo area.
+Enables/disables `eldoc-mode' which supplies the support functions for
+this minor mode.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled.
+
+\\{semantic-summary-mode-map}"
+  (interactive
+   (list (or current-prefix-arg
+             (if semantic-summary-mode 0 1))))
+  (setq semantic-summary-mode
+        (if arg
+            (>
+             (prefix-numeric-value arg)
+             0)
+          (not semantic-summary-mode)))
+  (semantic-summary-mode-setup)
+  (run-hooks 'semantic-summary-mode-hook)
+  (if (interactive-p)
+      (message "Summary minor mode %sabled"
+               (if semantic-summary-mode "en" "dis")))
+  (semantic-mode-line-update)
+  semantic-summary-mode)
+
+(semantic-add-minor-mode 'semantic-summary-mode
+                         "" ;; Eldoc provides the mode indicator
+                         semantic-summary-mode-map)
 
 (provide 'semantic-util-modes)
 
