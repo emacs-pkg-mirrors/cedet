@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.9 2000/12/07 09:20:21 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.10 2000/12/08 16:18:32 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -92,6 +92,9 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.10  2000/12/08 16:18:32  david_ponce
+;; A bunch of XEmacs compatibility code!
+;;
 ;; Revision 1.9  2000/12/07 09:20:21  david_ponce
 ;; Applied Eric Ludlam's doc fix patch.
 ;;
@@ -369,7 +372,7 @@ Return the semantic token or nil if at end of buffer."
   (let ((pos    (point))
         (tokens (senator-parse))
         found where)
-    (if (memq real-last-command
+    (if (memq last-command
               '(senator-previous-token senator-next-token))
         (forward-char))
     (setq found (senator-find-next-token tokens (point)))
@@ -400,7 +403,7 @@ Return the semantic token or nil if at beginning of buffer."
   (let ((pos    (point))
         (tokens (senator-parse))
         found where)
-    (if (eq real-last-command 'senator-previous-token)
+    (if (eq last-command 'senator-previous-token)
         (backward-char))
     (setq found (senator-find-previous-token tokens (point)))
     (if (not found)
@@ -433,7 +436,7 @@ Set point to the end of the occurrence found, and return point.  See
 `search-forward' for details and the meaning of BOUND NOERROR and
 COUNT.  BOUND and COUNT are just ignored in the current
 implementation."
-  (interactive "MSemantic search: ")
+  (interactive "sSemantic search: ")
   (senator-search-forward-raw #'search-forward what bound noerror count))
 
 ;;;###autoload
@@ -463,7 +466,7 @@ Set point to the beginning of the occurrence found, and return point.
 See `search-backward' for details and the meaning of BOUND NOERROR and
 COUNT.  BOUND and COUNT are just ignored in the current
 implementation."
-  (interactive "MSemantic backward search: ")
+  (interactive "sSemantic backward search: ")
   (senator-search-backward-raw #'search-backward what bound noerror count))
 
 ;;;###autoload
@@ -570,76 +573,108 @@ This is a buffer local variable.")
     km)
   "Default key bindings in senator minor mode.")
 
+(defun senator-menu-item (item)
+  "Build an XEmacs compatible menu item from vector ITEM.
+That is remove the unsupported :help stuff."
+  (if (featurep 'xemacs)
+      (let ((n (length item))
+            (i 0)
+            l)
+        (while (< i n)
+          (setq slot (aref item i))
+          (if (and (keywordp slot)
+                   (eq slot :help))
+              (setq i (1+ i))
+            (setq l (cons slot l)))
+          (setq i (1+ i)))
+        (apply #'vector (nreverse l)))
+    item))
+
 (defvar senator-menu-bar
-  '("Senator"
-    ("Navigate"
+  (list
+   "Senator"
+   (list
+    "Navigate"
+    (senator-menu-item
      ["Next"
       senator-next-token
       :active t
       :help "Go to the next token found"
-      ]
+      ])
+    (senator-menu-item
      ["Previous"
       senator-previous-token
       :active t
       :help "Go to the previous token found"
-      ]
-     )
-    ("Search"
+      ])
+    )
+   (list
+    "Search"
+    (senator-menu-item
      ["Search..."
       senator-nonincremental-search-forward
       :active t
       :help "Search forward for a string"
-      ]
+      ])
+    (senator-menu-item
      ["Search Backwards..."
       senator-nonincremental-search-backward
       :active t
       :help "Search backwards for a string"
-      ]
+      ])
+    (senator-menu-item
      ["Repeat Search"
       senator-nonincremental-repeat-search-forward
       :active search-ring
       :help "Repeat last search forward"
-      ]
+      ])
+    (senator-menu-item
      ["Repeat Backwards"
       senator-nonincremental-repeat-search-backward
       :active search-ring
       :help "Repeat last search backwards"
-      ]
+      ])
+    (senator-menu-item
      ["Search Regexp..."
       senator-nonincremental-re-search-forward
       :active t
       :help "Search forward for a regular expression"
-      ]
+      ])
+    (senator-menu-item
      ["Search Regexp Backwards..."
       senator-nonincremental-re-search-backward
       :active t
       :help "Search backwards for a regular expression"
-      ]
+      ])
+    (senator-menu-item
      ["Repeat Regexp"
       senator-nonincremental-repeat-re-search-forward
       :active regexp-search-ring
       :help "Repeat last regular expression search forward"
-      ]
+      ])
+    (senator-menu-item
      ["Repeat Regexp Backwards"
       senator-nonincremental-repeat-re-search-backward
       :active regexp-search-ring
       :help "Repeat last regular expression search backwards"
-      ]
-     "-"
+      ])
+    "-"
+    (senator-menu-item
      ["Semantic isearch mode"
       senator-isearch-toggle-semantic-mode
       :active t
       :style toggle :selected senator-isearch-semantic-mode
       :help "Toggle semantic search in isearch mode"
-      ]
-     )
-    "-"
+      ])
+    )
+   "-"
+   (senator-menu-item
     ["Options..."
      (customize-group "senator")
      :active t
      :help "Customize SEmantic NAvigaTOR options"
-     ]
-    )
+     ])
+   )
   "Menu for senator minor mode.")
 
 (defvar senator-mode-map
@@ -662,7 +697,13 @@ non-nil if the minor mode is enabled."
           (senator-minor-mode nil)
         ;; Parse the current buffer if needed
         (senator-parse)
+        ;; XEmacs needs this
+        (if (featurep 'xemacs)
+            (easy-menu-add senator-minor-menu senator-mode-map))
         )
+    ;; XEmacs needs this
+    (if (featurep 'xemacs)
+        (easy-menu-remove senator-minor-menu))
     ;; Disable semantic isearch
     (setq senator-isearch-semantic-mode nil))
   senator-minor-mode)
@@ -732,16 +773,23 @@ Return non-nil if the minor mode is enabled.
                          "enabled"
                        "disabled"))
     senator-minor-mode)
-  
-  (or (assq 'senator-minor-mode minor-mode-alist)
-      (setq minor-mode-alist
-            (cons (list 'senator-minor-mode " Senator") minor-mode-alist)))
-  
-  (or (assq 'senator-minor-mode minor-mode-map-alist)
-      (setq minor-mode-map-alist
-            (cons (cons 'senator-minor-mode senator-mode-map)
-                  minor-mode-map-alist)))
-  )
+
+  (if (fboundp 'add-minor-mode)
+      
+      ;; XEmacs
+      (add-minor-mode 'senator-minor-mode " Senator" senator-mode-map)
+
+    ;; Emacs 20
+    (or (assq 'senator-minor-mode minor-mode-alist)
+        (setq minor-mode-alist
+              (cons (list 'senator-minor-mode " Senator") minor-mode-alist)))
+    
+    (or (assq 'senator-minor-mode minor-mode-map-alist)
+        (setq minor-mode-map-alist
+              (cons (cons 'senator-minor-mode senator-mode-map)
+                    minor-mode-map-alist)))
+    
+    ))
 
 ;;;;
 ;;;; Useful advices
