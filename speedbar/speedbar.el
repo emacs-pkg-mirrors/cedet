@@ -1,34 +1,28 @@
 ;;; speedbar --- quick access to files and tags
 
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
-;;
+
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.6.2
+;; Version: 0.6.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.71 1998/01/07 02:05:03 zappo Exp $
-;;
+;; X-RCS: $Id: speedbar.el,v 1.72 1998/03/05 03:55:31 zappo Exp $
+
 ;; This file is part of GNU Emacs.
-;;
-;; This program is free software; you can redistribute it and/or modify
+
+;; GNU Emacs is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
-;;
-;; This program is distributed in the hope that it will be useful,
+
+;; GNU Emacs is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
-;;
+
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; if not, you can either send email to this
-;; program's author (see below) or write to:
-;;
-;;              The Free Software Foundation, Inc.
-;;              675 Mass Ave.
-;;              Cambridge, MA 02139, USA.
-;;
-;; Please send bug reports, etc. to zappo@gnu.org
-;;
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
 ;;
@@ -39,8 +33,7 @@
 ;; Starting Speedbar:
 ;;
 ;;   If speedbar came to you as a part of Emacs, simply type
-;; `M-x speedbar', and it will be autoloaded for you. A "Speedbar"
-;; submenu will be added under "Tools".
+;; `M-x speedbar', and it will be autoloaded for you.
 ;;
 ;;   If speedbar is not a part of your distribution, then add
 ;; this to your .emacs file:
@@ -48,7 +41,7 @@
 ;;   (autoload 'speedbar-frame-mode "speedbar" "Popup a speedbar frame" t)
 ;;   (autoload 'speedbar-get-focus "speedbar" "Jump to speedbar frame" t)
 ;;
-;;   If you want to choose it from a menu, you can do this:
+;;   If you want to choose it from a menu, such as "Tools", you can do this:
 ;;
 ;;   Emacs:
 ;;   (define-key-after (lookup-key global-map [menu-bar tools])
@@ -316,6 +309,13 @@
 ;;       General documentation fixup.
 ;; 0.6.1 Fixed button-3 menu for Emacs 20.
 ;; 0.6.2 Added autoload tag to `speedbar-get-focus'
+;; 0.6.3 From lektu@lander.es (Juanma Barranquero), change check for
+;;         setting mouse cursor style to be dependent on X.
+;;       Changed expressions that look for `speedbar-vc-indicator'
+;;         to use `speedbar-indicator-regex'.  This will enable
+;;         multiple combined indicators.
+;;       Added new stealthy function to mark files that have associated OBJs
+;;         Identification uses `speedbar-obj-alist' to identify files to mark.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -323,7 +323,8 @@
 ;; - Timeout directories we haven't visited in a while.
 ;; - Remeber tags when refreshing the display.  (Refresh tags too?)
 ;; - More 'special mode support.
-;; - C- Mouse 3 menu too much indirection
+;;
+;; * Show when an "object" file is out of date when -obj- indicators are on
 
 (require 'assoc)
 (require 'easymenu)
@@ -381,7 +382,7 @@ that the cursor is at the position where they start inserting
 buttons.")
 
 (defvar speedbar-stealthy-function-list
-  '(speedbar-update-current-file speedbar-check-vc)
+  '(speedbar-update-current-file speedbar-check-vc speedbar-check-objects)
   "List of functions to periodically call stealthily.
 Each function must return nil if interrupted, or t if completed.
 Stealthy functions which have a single operation should always return
@@ -550,24 +551,20 @@ verbosity."
   :group 'speedbar
   :type 'integer)
 
+(defvar speedbar-indicator-separator " "
+  "String separating file text from indicator characters.")
+
 (defcustom speedbar-vc-do-check t
   "*Non-nil check all files in speedbar to see if they have been checked out.
 Any file checked out is marked with `speedbar-vc-indicator'"
   :group 'speedbar-vc
   :type 'boolean)
 
-(defvar speedbar-vc-indicator " *"
+(defvar speedbar-vc-indicator "*"
   "Text used to mark files which are currently checked out.
 Currently only RCS is supported.  Other version control systems can be
 added by examining the function `speedbar-this-file-in-vc' and
 `speedbar-vc-check-dir-p'")
-
-(defcustom speedbar-scanner-reset-hook nil
-  "*Hook called whenever generic scanners are reset.
-Set this to implement your own scanning / rescan safe functions with
-state data."
-  :group 'speedbar
-  :type 'hook)
 
 (defcustom speedbar-vc-path-enable-hook nil
   "*Return non-nil if the current path should be checked for Version Control.
@@ -585,6 +582,45 @@ current file, and the FILENAME of the file being checked."
 
 (defvar speedbar-vc-to-do-point nil
   "Local variable maintaining the current version control check position.")
+
+(defcustom speedbar-obj-do-check t
+  "*Non-nil check all files in speedbar to see if they have an object file.
+Any file checked out is marked with `speedbar-obj-indicator', and the
+marking is based on  `speedbar-obj-alist'"
+  :group 'speedbar-vc
+  :type 'boolean)
+
+(defvar speedbar-obj-to-do-point nil
+  "Local variable maintaining the current version control check position.")
+
+(defvar speedbar-obj-indicator "#"
+  "Text used to mark files that have a corresponding hidden object file.
+The expression `speedbar-obj-alist' defines who gets tagged.")
+
+(defvar speedbar-obj-alist
+  '(("\\.\\([cpC]\\|cpp\\|cc\\)$" . ".o")
+    ("\\.el$" . ".elc")
+    ("\\.java$" . ".class")
+    ("\\.tex$" . ".dvi")
+    ("\\.texi$" . ".info"))
+  "Alist of file extensions, and their corresponding object file type.")
+
+(defvar speedbar-indicator-regex
+  (concat (regexp-quote speedbar-indicator-separator)
+	  "\\("
+	  (regexp-quote speedbar-vc-indicator)
+	  "\\|"
+	  (regexp-quote speedbar-obj-indicator)
+	  "\\)*")
+  "Regular expression used when identifying files.
+Permits stripping of indicator characters from a line.")
+
+(defcustom speedbar-scanner-reset-hook nil
+  "*Hook called whenever generic scanners are reset.
+Set this to implement your own scanning / rescan safe functions with
+state data."
+  :group 'speedbar
+  :type 'hook)
 
 (defvar speedbar-ignored-modes nil
   "*List of major modes which speedbar will not switch directories for.")
@@ -899,16 +935,16 @@ supported at a time.
 	  (not (console-on-window-system-p))
 	(not (symbol-value 'window-system)))
       (error "Speedbar is not useful outside of a windowing environment"))
-  (if speedbar-xemacsp
-      (add-menu-button '("Tools")
-		       ["Speedbar" speedbar-frame-mode
-			:style toggle
-			:selected (and (boundp 'speedbar-frame)
-				       (frame-live-p speedbar-frame)
-				       (frame-visible-p speedbar-frame))]
-		       "--")
-    (define-key-after (lookup-key global-map [menu-bar tools])
-      [speedbar] '("Speedbar" . speedbar-frame-mode) [calendar]))
+;  (if speedbar-xemacsp
+;      (add-menu-button '("Tools")
+;		       ["Speedbar" speedbar-frame-mode
+;			:style toggle
+;			:selected (and (boundp 'speedbar-frame)
+;				       (frame-live-p speedbar-frame)
+;				       (frame-visible-p speedbar-frame))]
+;		       "--")
+;    (define-key-after (lookup-key global-map [menu-bar tools])
+;      [speedbar] '("Speedbar" . speedbar-frame-mode) [calendar]))
   ;; toggle frame on and off.
   (if (not arg) (if (and (frame-live-p speedbar-frame)
 			 (frame-visible-p speedbar-frame))
@@ -960,7 +996,8 @@ supported at a time.
 					      (if speedbar-xemacsp
 						  (speedbar-needed-height)
 						(+ mh (frame-height))))))))
-		  (if (< emacs-major-version 20);;a bug is fixed in v20 & later
+		  (if (or (< emacs-major-version 20);;a bug is fixed in v20
+			  (not (eq window-system 'x)))
 		      (make-frame params)
 		    (let ((x-pointer-shape x-pointer-top-left-arrow)
 			  (x-sensitive-text-pointer-shape x-pointer-hand2))
@@ -1972,22 +2009,28 @@ This should only be used by modes classified as special."
 
 ;;; Stealthy activities
 ;;
+(defvar speedbar-stealthy-update-recurse nil
+  "Recursion avoidance variable for stealthy update.")
+
 (defun speedbar-stealthy-updates ()
   "For a given speedbar, run all items in the stealthy function list.
 Each item returns t if it completes successfully, or nil if
 interrupted by the user."
-  (let ((l speedbar-stealthy-function-list))
-    (unwind-protect
-	(while (and l (funcall (car l)))
-	  (sit-for 0)
-	  (setq l (cdr l)))
-      ;(message "Exit with %S" (car l))
-      )))
+  (if (not speedbar-stealthy-update-recurse)
+      (let ((l speedbar-stealthy-function-list)
+	    (speedbar-stealthy-update-recurse t))
+	(unwind-protect
+	    (while (and l (funcall (car l)))
+	      (sit-for 0)
+	      (setq l (cdr l)))
+	  ;;(message "Exit with %S" (car l))
+	  ))))
 
 (defun speedbar-reset-scanners ()
   "Reset any variables used by functions in the stealthy list as state.
 If new functions are added, their state needs to be updated here."
-  (setq speedbar-vc-to-do-point t)
+  (setq speedbar-vc-to-do-point t
+	speedbar-obj-to-do-point t)
   (run-hooks 'speedbar-scanner-reset-hook)
   )
 
@@ -2002,8 +2045,7 @@ If new functions are added, their state needs to be updated here."
 	       speedbar-last-selected-file
 	       (re-search-forward
 		(concat " \\(" (regexp-quote speedbar-last-selected-file)
-			"\\)\\(" (regexp-quote speedbar-vc-indicator)
-			"\\)?\n")
+			"\\)" speedbar-indicator-regex "\n")
 		nil t))
 	      (put-text-property (match-beginning 1)
 				 (match-end 1)
@@ -2043,9 +2085,8 @@ updated."
 	  (speedbar-with-writable
 	    (goto-char (point-min))
 	    (if (re-search-forward
-		 (concat " \\(" (regexp-quote newcf) "\\)\\("
-			 (regexp-quote speedbar-vc-indicator)
-			 "\\)?\n") nil t)
+		 (concat " \\(" (regexp-quote newcf) "\\)"
+			 speedbar-indicator-regex "\n") nil t)
 		  ;; put the property on it
 		  (put-text-property (match-beginning 1)
 				     (match-end 1)
@@ -2078,6 +2119,20 @@ updated."
   ;; return that we are done with this activity.
   t)
 
+(defun speedbar-add-indicator (indicator-string)
+  "Add INDICATOR-STRING to the end of this speedbar line.
+If there is already an indicator, then do not add a space."
+  (beginning-of-line)
+  ;; The nature of the beast: Assume we are in "the right place"
+  (end-of-line)
+  (skip-chars-backward (concat " " speedbar-vc-indicator
+			       speedbar-obj-indicator))
+  (speedbar-with-writable
+    (if (not (looking-at speedbar-indicator-regex))
+	(insert speedbar-indicator-separator))
+    (end-of-line)
+    (insert indicator-string)))
+
 ;; Load ange-ftp only if compiling to remove errors.
 ;; Steven L Baur <steve@xemacs.org> said this was important:
 (eval-when-compile (or (featurep 'xemacs) (require 'ange-ftp)))
@@ -2107,9 +2162,9 @@ to add more types of version control systems."
 					 nil t))
 	    (setq speedbar-vc-to-do-point (point))
 	    (if (speedbar-check-vc-this-line (match-string 1))
-		(if (not (looking-at (regexp-quote speedbar-vc-indicator)))
-		    (speedbar-with-writable (insert speedbar-vc-indicator)))
-	      (if (looking-at (regexp-quote speedbar-vc-indicator))
+		(speedbar-add-indicator speedbar-vc-indicator)
+	      ;; This requires some work still
+	      (if (looking-at speedbar-indicator-regex)
 		  (speedbar-with-writable
 		    (delete-region (match-beginning 0) (match-end 0))))))
 	  (if (input-pending-p)
@@ -2175,6 +2230,61 @@ that will occur on your system."
    ;; User extension
    (run-hook-with-args 'speedbar-vc-in-control-hook path name)
    ))
+
+;; Objet File scanning
+(defun speedbar-check-objects ()
+  "Scan all files in a directory, and for each see if there is an object.
+See `speedbar-this-file-in-obj' and `speedbar-obj-alist' for how
+to add more object types."
+  ;; Check for to-do to be reset.  If reset but no RCS is available
+  ;; then set to nil (do nothing) otherwise, start at the beginning
+  (save-excursion
+    (set-buffer speedbar-buffer)
+    (if (and speedbar-obj-do-check (eq speedbar-obj-to-do-point t))
+	(setq speedbar-obj-to-do-point 0))
+    (if (numberp speedbar-obj-to-do-point)
+	(progn
+	  (goto-char speedbar-obj-to-do-point)
+	  (while (and (not (input-pending-p))
+		      (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-]\\] "
+					 nil t))
+	    (setq speedbar-obj-to-do-point (point))
+	    (if (speedbar-check-obj-this-line (match-string 1))
+		(speedbar-add-indicator speedbar-obj-indicator)
+	      (if (looking-at speedbar-indicator-regex)
+		  ;; This needs work!
+		  (speedbar-with-writable
+		    (delete-region (match-beginning 0) (match-end 0))))))
+	  (if (input-pending-p)
+	      ;; return that we are incomplete
+	      nil
+	    ;; we are done, set to-do to nil
+	    (setq speedbar-obj-to-do-point nil)
+	    ;; and return t
+	    t))
+      t)))
+
+(defun speedbar-check-obj-this-line (depth)
+  "Return t if the file on this line has an associated object.
+Parameter DEPTH is a string with the current depth of indentation of
+the file being checked."
+  (let* ((d (string-to-int depth))
+	 (f (speedbar-line-path d))
+	 (fn (buffer-substring-no-properties
+	      ;; Skip-chars: thanks ptype@dra.hmg.gb
+	      (point) (progn
+			(skip-chars-forward "^ "
+					    (save-excursion (end-of-line)
+							    (point)))
+			(point))))
+	 (fulln (concat f fn)))
+    (if (<= 2 speedbar-verbosity-level)
+	(message "Speedbar obj check...%s" fulln))
+    (let ((oa speedbar-obj-alist))
+      (while (and oa (not (string-match (car (car oa)) fulln)))
+	(setq oa (cdr oa)))
+      (and oa (file-exists-p (concat (file-name-sans-extension fn)
+				     (cdr (car oa))))))))
 
 ;;; Clicking Activity
 ;;
@@ -2263,9 +2373,8 @@ directory, then it is the directory name."
     (save-match-data
       (beginning-of-line)
       (if (looking-at (concat
-		       "\\([0-9]+\\): *[[<][-+?][]>] \\([^ \n]+\\)\\("
-		       (regexp-quote speedbar-vc-indicator)
-		       "\\)?"))
+		       "\\([0-9]+\\): *[[<][-+?][]>] \\([^ \n]+\\)"
+		       speedbar-indicator-regex))
 	  (let* ((depth (string-to-int (match-string 1)))
 		 (path (speedbar-line-path depth))
 		 (f (match-string 2)))
@@ -2302,7 +2411,7 @@ Otherwise do not move and return nil."
 	(let ((nd (file-name-nondirectory file)))
 	  (if (re-search-forward
 	       (concat "] \\(" (regexp-quote nd)
-		       "\\)\\(" (regexp-quote speedbar-vc-indicator) "\\)?$")
+		       "\\)" speedbar-indicator-regex "$")
 	       nil t)
 	      (progn
 		(speedbar-position-cursor-on-line)
@@ -2332,7 +2441,7 @@ directory with these items."
 			       (match-beginning 1) (match-end 1))))))
 	  (setq depth (1- depth)))
 	(if (and path
-		 (string-match (concat (regexp-quote speedbar-vc-indicator) "$")
+		 (string-match (concat speedbar-indicator-regex "$")
 			       path))
 	    (setq path (substring path 0 (match-beginning 0))))
 	(concat default-directory path)))))
@@ -2351,7 +2460,7 @@ directory with these items."
       (while (and nomatch
 		  (re-search-forward
 		   (concat "[]>] \\(" (regexp-quote fname)
-			   "\\)\\(" (regexp-quote speedbar-vc-indicator) "\\)?$")
+			   "\\)" speedbar-indicator-regex "$")
 		   nil t))
 	(beginning-of-line)
 	(looking-at "\\([0-9]+\\):")
