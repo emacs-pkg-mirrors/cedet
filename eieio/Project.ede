@@ -1,0 +1,32 @@
+;; Object eieio
+;; EDE project file.
+(ede-proj-project "eieio"
+  :name "eieio"
+  :version "0.16"
+  :file "Project.ede"
+  :targets (list 
+   (ede-proj-target-elisp "(eieio.el eieio-custom.el eieio-opt.el eieio-comp.el eieio-doc.el)"
+    :name "eieio"
+    :path ""
+    :source '("eieio.el" "eieio-custom.el" "eieio-opt.el" "eieio-comp.el" "eieio-doc.el" "eieio-base.el" "compare-strings.el")
+    :versionsource '("eieio.el")
+    )
+   (ede-proj-target-elisp "examples"
+    :name "examples"
+    :path ""
+    :source '("tree.el" "chart.el" "eieio-speedbar.el" "eieio-tests.el")
+    )
+   (ede-proj-target-makefile-info "eieio.info"
+    :name "eieio.info"
+    :path ""
+    :source '("eieio.texi")
+    )
+   (ede-proj-target-makefile-miscelaneous "Misc"
+    :name "Misc"
+    :path ""
+    :source '("INSTALL")
+    :partofall 'nil
+    )
+   )
+  :configuration-variables 'nil
+  )
