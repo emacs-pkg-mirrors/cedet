@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: make.bnf,v 1.3 2000/07/01 18:19:01 zappo Exp $
+# X-RCS: $Id: make.bnf,v 1.4 2000/09/09 02:09:35 zappo Exp $
 #
 # make.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: make.bnf,v $
+# Revision 1.4  2000/09/09 02:09:35  zappo
+# Use new bnf settings section.
+#
 # Revision 1.3  2000/07/01 18:19:01  zappo
 # Updated for new elements in the tokens.
 #
@@ -31,20 +34,44 @@
 # Initial revision
 #
 
-# TABLE: semantic-make.el:semantic-toplevel-make-bovine-table
-# MODE: make-mode
+%start         Makefile
+%outputfile    semantic-make.el
+%parsetable    semantic-toplevel-make-bovine-table
+%languagemode  make-mode
+%setupfunction semantic-default-make-setup
+%quotemode     backquote
 
-bovine-toplevel : variable
-		| rule
-		| conditional
-		;
+%(setq semantic-flex-enable-newlines t
+       semantic-symbol->name-assoc-list '((variable . "Variables")
+					  (function . "Rules")
+					  (include . "Dependencies"))
+       semantic-case-fold t
+       semantic-flex-syntax-modifications '((?. "_")
+					    (?= ".")
+					    (?/ "_")
+					    (?\t ".")
+					    (?( "_")
+					    (?) "_")
+					    (?{ "_")
+					    (?} "_")
+					    (?$ "_")
+					    )
+       semantic-flex-enable-newlines t
+       imenu-create-index-function 'semantic-create-imenu-index
+       )%
+
+
+Makefile : variable
+	 | rule
+	 | conditional
+	 ;
 
 variable: symbol equals elements
-	  ($1 variable nil nil $3 nil nil)
+	  (,$1 variable nil nil ,$3 nil nil)
 	;
 
 rule: symbol colons elements commands
-      ($1 function nil $3 nil nil)
+      (,$1 function nil ,$3 nil nil)
     ;
 
 conditional: symbol "if" symbol newline
@@ -65,15 +92,15 @@ colons: punctuation ":" punctuation ":" ()
       ;
 
 elements: symbol elements
-	  ( $1 ,$2 )
+	  ( ,$1 ,@$2 )
 	| symbol newline
-	  ( $1 )
+	  ( ,$1 )
 	| newline
 	  (  )
 	;
   
 commands: shell-command newline commands
-	  ( $1 ,$2 )
+	  ( ,$1 ,@$2 )
 	| EMPTY
 	  ( )
 	;
