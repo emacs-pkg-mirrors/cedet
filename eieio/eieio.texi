@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.35 2000/12/02 02:58:18 zappo Exp $
+@c $Id: eieio.texi,v 1.36 2000/12/04 20:03:50 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -981,10 +981,11 @@ is possible to use several features at the same time.
 
 @menu
 * eieio-instance-inheritor::    Enable value inheritance between instances.
+* eieio-persistent::            Enable persistence for a class.
 * eieio-speedbar::              Enable speedbar support in your objects.
 @end menu
 
-@node eieio-instance-inheritor, eieio-speedbar, Base Classes, Base Classes
+@node eieio-instance-inheritor, eieio-persistent, Base Classes, Base Classes
 @comment  node-name,  next,  previous,  up
 @section @code{eieio-instance-inheritor}
 
@@ -1012,9 +1013,52 @@ method will cause references to unbound slots to be redirected to the
 parent instance.  If the parent slot is also unbound, then
 @code{slot-unbound} will throw an @code{slot-unbound} signal.
 
-@node eieio-speedbar, , eieio-instance-inheritor, Base Classes
+@node eieio-persistent, eieio-speedbar, eieio-instance-inheritor, Base Classes
 @comment  node-name,  next,  previous,  up
-@section eieio-speedbar
+@section @code{eieio-persistent}
+
+If you want an object, or set of objects to be persistent, meaning the
+slot values are important to keep saved between sessions, then you will
+want your top level object to inherit from @code{eieio-persistent}.
+
+@deftp {Class} eieio-persistent file file-header-line
+Enables persistence for instances of this class.
+Slot @var{file} with initarg @code{:file} is the file name in which this
+object will be saved.
+Class allocated slot @var{file-header-line} is used with method
+@code{object-write} as a header comment.
+@end deftp
+
+All objects can write themselves to a file, bu persistent objects have
+several additional methods that aid in maintaining them.
+
+@defmethod eieio-persistent eieio-save obj &optional file
+Write the object @var{obj} to its file.
+If optional argument @var{file} is specified, use that file name
+instead.
+@end defmethod
+
+@defmethod eieio-persistent eieio-persistent-path-relative obj file
+Return a file name derived from @var{file} which is relative to the
+stored location of @var{OBJ}.  This method should be used to convert
+file names so that they are relative to the save file, making any system
+of files movable from one location to another.
+@end defmethod
+
+@defmethod eieio-persistent object-write obj &optional comment
+Like @code{object-write} for @code{standard-object}, but will derive
+a header line comment from the class allocated slot if one is not
+provided.
+@end defmethod
+
+@defun eieio-persistent-read filename
+Read @var{filename} which contains an @code{eieio-persistent} object
+previously written with @code{eieio-persistent-save}.
+@end defun
+
+@node eieio-speedbar, , eieio-persistent, Base Classes
+@comment  node-name,  next,  previous,  up
+@section @code{eieio-speedbar}
 
 If a series of class instances map to a tree structure, it is possible
 to cause your classes to be displayable in Speedbar. @xref{Top(speedbar)}.
