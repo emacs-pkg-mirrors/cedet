@@ -11,7 +11,7 @@ ede_FILES=Project.ede Makefile
 
 EMACS=emacs
 LOADPATH=../common/ ../common/ 
-LOADDEFS=speedbar-defs.el
+LOADDEFS=speedbar-loaddefs.el
 LOADDIRS=.
 speedbar_LISP=dframe.el speedbar.el
 EMACS=emacs

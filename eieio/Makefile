@@ -11,7 +11,7 @@ ede_FILES=Project.ede Makefile
 
 EMACS=emacs
 LOADPATH=../common/ ../speedbar/ 
-LOADDEFS=eieio-defs.el
+LOADDEFS=eieio-loaddefs.el
 LOADDIRS=.
 eieio_LISP=eieio.el eieio-comp.el eieio-opt.el eieio-custom.el eieio-doc.el eieio-base.el
 EMACS=emacs

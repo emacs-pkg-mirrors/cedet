@@ -13,7 +13,7 @@ EMACS=emacs
 LOADPATH=../common/ ../eieio/ ../ede/ wisent/ bovine/\
    ../common/ ../speedbar/ ../ede/ ../eieio/\
    
-LOADDEFS=semantic-al.el
+LOADDEFS=semantic-loaddefs.el
 LOADDIRS=. bovine wisent
 maintenance_LISP=semantic-ede-grammar.el
 EMACS=emacs

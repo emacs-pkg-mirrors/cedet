@@ -15,7 +15,7 @@ LOADPATH=../common/ ../semantic/ ../eieio/\
    ../common/ ../semantic/wisent/ ../semantic/bovine/ ../semantic/ ../eieio/
 wisent_SAMENATIC_GRAMMAR_EL=wisent-dot-wy.el
 EMACS=emacs
-LOADDEFS=cogre-defs.el
+LOADDEFS=cogre-loaddefs.el
 LOADDIRS=.
 dot_LISP=wisent-dot.el
 EMACS=emacs
