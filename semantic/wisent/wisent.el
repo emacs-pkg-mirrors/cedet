@@ -11,7 +11,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.1 2001/07/20 11:07:33 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.2 2001/08/02 15:09:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1941,8 +1941,12 @@ is set to nil."
   "Skip an invalid token and try to continue parsing.
 To be used in grammar recovery actions."
   (wisent-error (format "Skipping invalid '%s'" $nterm))
-  (wisent-clearin)
-  (wisent-errok))
+  ;; Clear the lookahead token
+  (if (eq (car wisent-input) wisent-eoi-term)
+      ;; does nothing at EOI to avoid infinite recovery loop
+      nil
+    (wisent-clearin)
+    (wisent-errok)))
 
 (defun wisent-skip-block ()
   "Safely skip a parenthesized block and try to continue parsing.
@@ -1973,8 +1977,11 @@ To be used in grammar recovery actions."
                     (< (nth 2 input) end))
           (setq input (wisent-lexer)))
         ;; Clear the lookahead token
-        (wisent-clearin)
-        (wisent-errok)
+        (if (eq (car wisent-input) wisent-eoi-term)
+            ;; does nothing at EOI to avoid infinite recovery loop
+            nil
+          (wisent-clearin)
+          (wisent-errok))
         ;; Return a nil value with adjusted start/end positions
         (cons nil (wisent-set-region start (1+ end)))))))
 
@@ -2055,7 +2062,7 @@ receives a message string to report."
          (wisent-parse-lexer-function lexer)
          (wisent-recovering nil)
          (wisent-input (wisent-lexer))
-         result state tokid choices choice)
+         state tokid choices choice)
     (setq wisent-nerrs 0) ;; Reset parse error counter
     (aset stack 0 0) ;; Initial state
     (while action
@@ -2067,8 +2074,7 @@ receives a message string to report."
        ;; Input succesfully parsed
        ;; ------------------------
        ((eq action wisent-accept-tag)
-        (setq action nil
-              result (car (aref stack 1))))
+        (setq action nil))
        
        ;; Syntax error in input
        ;; ---------------------
@@ -2156,7 +2162,7 @@ receives a message string to report."
        (t
         (setq sp (funcall (aref reductions (- action)) stack sp gotos))
         (or wisent-input (setq wisent-input (wisent-lexer))))))
-    result))
+    (car (aref stack 1))))
 
 (provide 'wisent)
 
