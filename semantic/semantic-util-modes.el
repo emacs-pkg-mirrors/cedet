@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.43 2004/03/10 19:31:03 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.44 2004/03/20 00:15:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -462,7 +462,7 @@ minor mode is enabled."
 		  'semantic-clean-token-of-unmatched-syntax nil t)
         ;; Show unmatched syntax elements
         (semantic-show-unmatched-syntax
-         (semantic-bovinate-unmatched-syntax)))
+         (semantic-unmatched-syntax-tokens)))
     ;; Remove hooks
     (remove-hook 'semantic-unmatched-syntax-hook
                  'semantic-show-unmatched-syntax t)
@@ -950,10 +950,10 @@ minor mode is enabled."
 	(semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
 	(add-hook 'semantic-after-toplevel-cache-change-hook
 		  'semantic-stb-after-full-reparse-hook nil t)
-	(semantic-stb-reparse-hook (semantic-bovinate-toplevel))
+	(semantic-stb-reparse-hook (semantic-fetch-tags))
 	)
     ;; Cleanup tag boundaries highlighting
-    (semantic-stb-clear-boundaries (semantic-bovinate-toplevel))
+    (semantic-stb-clear-boundaries (semantic-fetch-tags))
     ;; Cleanup any leftover crap too.
     (semantic-stb-flush-rogue-boundaries)
     ;; Remove hooks
@@ -1179,10 +1179,10 @@ minor mode is enabled."
 	(semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
 	(add-hook 'semantic-after-toplevel-cache-change-hook
 		  'semantic-hba-reparse-hook nil t)
-	(semantic-hba-reparse-hook (semantic-bovinate-toplevel))
+	(semantic-hba-reparse-hook (semantic-fetch-tags))
 	)
     ;; Cleanup tag boundaries highlighting
-    (semantic-hba-clear-highlighting (semantic-bovinate-toplevel))
+    (semantic-hba-clear-highlighting (semantic-fetch-tags))
     ;; Remove hooks
     (remove-hook 'semantic-after-partial-cache-change-hook
 		 'semantic-hba-reparse-hook t)
