@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.50 1999/09/08 01:23:56 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.51 1999/09/08 11:09:27 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -817,6 +817,7 @@ created by the :initarg tag."
       (eieio-barf-if-slot-unbound (aref obj c) obj field 'oref))))
 
 (defalias 'slot-value 'oref-engine)
+(defalias 'set-slot-value 'oset-engine)
 
 ;; This alias is needed so that functions can be written
 ;; for defaults, but still behave like lambdas.
