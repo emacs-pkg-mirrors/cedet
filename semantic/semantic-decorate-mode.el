@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.7 2004/06/28 13:57:00 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.8 2004/06/28 14:22:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -143,18 +143,6 @@ If optional argument DECO is non-nil, remove only that decoration."
 
 ;;; Global setup of active decorations
 ;;
-(eval-and-compile
-  (defcustom semantic-decoration-styles nil
-    "*List of active decoration styles.
-It is an alist of \(NAME . FLAG) elements, where NAME is a style name
-and FLAG is non-nil if the style is enabled.
-See also `define-semantic-decoration-style' which will automatically
-add items to this list."
-    :group 'semantic
-    :type '(repeat (cons (string :tag "Decoration Name")
-                         (boolean :tag "Enabled"))))
-  )
-
 (defun semantic-decorate-flush-decorations (&optional buffer)
   "Flush decorations found in BUFFER.
 BUFFER defaults to the current buffer.
