@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.14 1997/01/18 14:53:13 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.15 1997/01/18 15:48:14 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -155,10 +155,12 @@
 ;;;       New variables `speedbar-vc-*' and `speedbar-stealthy-function-list'
 ;;;         added.  `speedbar-update-current-file' is now a member of
 ;;;         the stealthy list.  New function `speedbar-check-vc' will
-;;;         examine each file and mark it if it is checked out.  The
-;;;         stealth list is interruptible so that long operations do
-;;;         not interrupt someones editing flow.  Other long speedbar
-;;;         updates will be added to the stealthy list in the future.
+;;;         examine each file and mark it if it is checked out.  To
+;;;         add new version control types, override the function
+;;;         `speedbar-this-file-in-vc'.  The stealth list is
+;;;         interruptible so that long operations do not interrupt
+;;;         someones editing flow.  Other long speedbar updates will
+;;;         be added to the stealthy list in the future.
 ;;;
 ;;; TODO:
 ;;; 1) Apply timeout to directory caches so that large directories are
@@ -554,8 +556,7 @@ which is generated from `completion-ignored-extensions'.
 Files with a `*' character after their name are files checked out of a
 version control system.  (currently only RCS is supported.)  New
 version control systems can be added by examining the documentation
-for `speedbar-stealthy-function-list' and the function
-`speedbar-check-vc'.
+for `speedbar-this-file-in-vc'
 
 Click on the [+] to display a list of tags from that file.  Click on
 the [-] to retract the list.  Click on the file name to edit the file
@@ -834,7 +835,7 @@ cell of the form ( 'dir-list . 'file-list )"
   "Inserts files for DIRECTORY with level INDEX at point"
   (speedbar-insert-files-at-point
    (speedbar-file-lists directory) index)
-  (setq speedbar-vc-to-do-point t)
+  (speedbar-reset-scanners)
   )
 
 (defun speedbar-insert-generic-list (level lst expand-fun find-fun)
@@ -937,6 +938,12 @@ until we are all done."
       ;(message "Exit with %S" (car l))
       )))
 
+(defun speedbar-reset-scanners ()
+  "Call this whenever speedbar contents change to reset all functions
+which are known to scan the buffer."
+  (setq speedbar-vc-to-do-point t
+	))
+
 (defun speedbar-update-current-file ()
   "Find out what the current file is, and update our visuals to indicate
 what it is.  This is specific to file names.  If the file name doesn't show
@@ -1006,23 +1013,17 @@ checked out of RCS or SCCS."
   ;; Check for to-do to be reset.  If reset but no RCS is available
   ;; then set to nil (do nothing) otherwise, start at the beginning
   (if (and speedbar-vc-do-check (eq speedbar-vc-to-do-point t))
-      (if (file-exists-p "RCS") (setq speedbar-vc-to-do-point 0)
-	(setq speedbar-vc-to-do-point nil)))
+      (setq speedbar-vc-to-do-point 0))
   (if (numberp speedbar-vc-to-do-point)
       (save-excursion
 	(set-buffer speedbar-buffer)
 	(goto-char speedbar-vc-to-do-point)
 	(while (and (not (input-pending-p))
-		    (re-search-forward ":\\[[+-]\\] " nil t))
-	  (let ((f (buffer-substring-no-properties
-		    (point) (progn (end-of-line) (point)))))
-	    (setq speedbar-vc-to-do-point (point))
-	    (if (<= 2 speedbar-verbosity-level) 
-		(message "speedbar RCS check...%s" f))
-	    (if (and (file-writable-p f)
-		     (file-exists-p (concat "RCS/" f ",v")))
-		(speedbar-with-writable
-		  (insert speedbar-vc-indicator)))))
+		    (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-]\\] " nil t))
+	  (setq speedbar-vc-to-do-point (point))
+	  (if (speedbar-check-vc-this-line)
+	      (speedbar-with-writable
+		(insert speedbar-vc-indicator))))
 	(if (input-pending-p)
 	    ;; return that we are incomplete
 	    nil
@@ -1032,6 +1033,32 @@ checked out of RCS or SCCS."
 	  t))
     t))
 
+(defun speedbar-check-vc-this-line ()
+  "Return t if the file on this line is check of of a version control
+system.  The one caller-requirement is that the last regex matching
+opperation has the current depth stored in (match-string 1), and that
+the cursor is right in front of the file name."
+  (let* ((d (string-to-int (match-string 1)))
+	 (f (speedbar-line-path d))
+	 (fn (buffer-substring-no-properties
+	      (point) (progn (end-of-line) (point))))
+	 (fulln (concat f fn))
+	 )
+    (if (<= 2 speedbar-verbosity-level) 
+	(message "Speedbar vc check...%s" fulln))
+    (and (file-writable-p fn)
+	 (speedbar-this-file-in-vc f fn))))
+  
+(defun speedbar-this-file-in-vc (path name)
+  "Check to see if the file in PATH with NAME is in a version control
+system.  You can add new VC systems by overriding this function.  You
+can optimize this function by overriding it and only doing those
+checks that will occur on your system."
+  (or
+   (file-exists-p (concat path "RCS/" fn ",v"))
+   ;; Is this right?  I don't recall
+   ;;(file-exists-p (concat path "SCCS/," fn))
+   ))
 
 ;;;
 ;;; Clicking Activity
@@ -1182,6 +1209,7 @@ that file into the attached buffer."
 		      (concat (speedbar-line-path indent) token "/"))
 		     speedbar-shown-directories))
 	 (speedbar-change-expand-button-char ?-)
+	 (speedbar-reset-scanners)
 	 (save-excursion
 	   (end-of-line) (forward-char 1)
 	   (speedbar-with-writable
@@ -1189,6 +1217,7 @@ that file into the attached buffer."
 	      (concat (speedbar-line-path indent) token "/")
 	      (1+ indent)))))
 	((string-match "-" text)	;we have to contract this node
+	 (speedbar-reset-scanners)
 	 (let ((oldl speedbar-shown-directories)
 	       (newl nil)
 	       (td (expand-file-name 
