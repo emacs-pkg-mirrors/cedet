@@ -2,10 +2,10 @@
 
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
-;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.7b
+;; Author: Eric M. Ludlam <zappo@gnu.org>
+;; Version: 0.7d
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.85 1998/03/12 23:13:43 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.86 1998/03/18 17:48:43 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -333,6 +333,10 @@
 ;;         C-M-[f|p].  This lets you quickly navigate over the directory
 ;;         list to the file list, and vice-versa.
 ;;       Added fortran expressions ftom Bruce Ravelravel@phys.washington.edu
+;;       It is now possible to manage multiple expansion lists for
+;;         speedbar and reference them by string.
+;;       Added new tag grouping code.  It is controlled through
+;;        `speedbar-tag-hierarchy-method' & `speedbar-tag-split-minimum-length'
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -386,15 +390,26 @@
   "Non-nil if we are running in the XEmacs environment.")
 (defvar speedbar-xemacs20p (and speedbar-xemacsp (= emacs-major-version 20)))
 
-(defvar speedbar-initial-expansion-list
-  '(speedbar-directory-buttons speedbar-default-directory-list)
-  "List of functions to call to fill in the speedbar buffer.
-Whenever a top level update is issued all functions in this list are
-run.  These functions will always get the default directory to use
-passed in as the first parameter, and a 0 as the second parameter.
-The 0 indicates the uppermost indentation level.  They must assume
-that the cursor is at the position where they start inserting
-buttons.")
+(defvar speedbar-initial-expansion-mode-alist
+  '(("file" speedbar-directory-buttons speedbar-default-directory-list))
+  "List of named expansion elements for filling the speedbar frame.
+These expansion lists are only valid for regular files.  Special modes
+still get to override this list on a mode-by-mode basis.  This list of
+lists is of the form (NAME FN1 FN2 ...).  NAME is a string
+representing the types of things to be displayed.  FN1 ... are
+functions that will be called in order.  These functions will always
+get the default directory to use passed in as the first parameter, and
+a 0 as the second parameter.  The 0 indicates the uppermost
+indentation level.  They must assume that the cursor is at the
+position where they start inserting buttons.")
+
+(defcustom speedbar-initial-expansion-list-name "file"
+  "A symbol name representing the expansion list to use.
+The expansion list `speedbar-initial-expansion-mode-alist' contains
+the names and associated functions to use for buttons in speedbar."
+  :group 'speedbar
+  :type '(radio (const :tag "File Directorys" file)
+	       ))
 
 (defvar speedbar-stealthy-function-list
   '(speedbar-update-current-file speedbar-check-vc speedbar-check-objects)
@@ -414,7 +429,10 @@ frame."
 
 (defvar speedbar-special-mode-expansion-list nil
   "Default function list for creating specialized button lists.
-Similar to `speedbar-initial-expansion-list'.")
+This list is set by modes that wish to have special speedbar displays.
+The list is of function names.  Each function is called with one
+parameter BUFFER, the originating buffer.  The current buffer is the
+speedbar buffer.")
 
 (defcustom speedbar-visiting-file-hook nil
   "Hooks run when speedbar visits a file in the selected frame."
@@ -500,6 +518,32 @@ use etags instead.  Etags support is not as robust as imenu support."
   "*If Non-nil, sort tags in the speedbar display."
   :group 'speedbar
   :type 'boolean)
+
+(defcustom speedbar-tag-hierarchy-method '(prefix-group trim-words)
+  "*List of methods which speedbar will use to  organize tags into groups.
+Groups are defined as expandable meta-tags.  Imenu supports such
+things in some languages, such as separating variables from functions.
+Available methods are:
+  flat         - Leave the generated list unchanged.
+  sort         - Sort gats. (sometimes unnecessary)
+  trim-words   - Trim all tags by a common prefix, broken @ word sections.
+  prefix-group - Try to guess groups by prefix.
+  simple-group - If imenu already returned some meta groups, stick all
+                 tags that are not in a group into a sub-group."
+  :group 'speedbar
+  :type '(repeat 
+	  '(radio
+	    (const :tag "Trim words to common prefix." trim-words)
+	    (const :tag "Create groups from common prefixes." prefix-group)
+	    (const :tag "Group loose tags into their own group." simple-group))
+	  ))
+
+(defcustom speedbar-tag-split-minimum-length 10
+  "*Minimum length before we stop trying to create sub-lists in tags.
+This is used by all tag-hierarchy methods that break large lists into
+sub-lists."
+  :group 'speedbar
+  :type 'integer)
 
 (defcustom speedbar-activity-change-focus-flag nil
   "*Non-nil means the selected frame will change based on activity.
@@ -612,7 +656,7 @@ The expression `speedbar-obj-alist' defines who gets tagged.")
   '(("\\.\\([cpC]\\|cpp\\|cc\\)$" . ".o")
     ("\\.el$" . ".elc")
     ("\\.java$" . ".class")
-    ("\\.f\\(or\\|90\\|77\\)$" . ".o")
+    ("\\.f\\(or\\|90\\|77\\)?$" . ".o")
     ("\\.tex$" . ".dvi")
     ("\\.texi$" . ".info"))
   "Alist of file extensions, and their corresponding object file type.")
@@ -680,7 +724,7 @@ before speedbar has been loaded."
 	       speedbar-ignored-path-regexp
 	       (speedbar-extension-list-to-regex val))))
 
-(defcustom speedbar-directory-unshown-regexp "^\\(RCS\\|SCCS\\)\\'"
+(defcustom speedbar-directory-unshown-regexp "^\\(CVS\\|RCS\\|SCCS\\)\\'"
   "*Regular expression matching directories not to show in speedbar.
 They should include commonly existing directories which are not
 useful, such as version control."
@@ -701,9 +745,9 @@ It is generated from the variable `completion-ignored-extensions'")
 ;; change in the future.
 (defcustom speedbar-supported-extension-expressions
   (append '(".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".tex\\(i\\(nfo\\)?\\)?"
-	    ".el" ".emacs" ".l" ".lsp" ".p" ".java")
+	    ".el" ".emacs" ".l" ".lsp" ".p" ".java" ".f\\(90\\|77\\|or\\)?")
 	  (if speedbar-use-imenu-flag
-	      '(".f\\(90\\|77\\|or\\)" ".ada" ".pl" ".tcl" ".m" ".scm" ".pm"
+	      '(".ada" ".pl" ".tcl" ".m" ".scm" ".pm"
 		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
@@ -829,7 +873,7 @@ to toggle this value.")
   (define-key speedbar-key-map "R" 'speedbar-item-rename)
 
   ;; Overrides
-  (substitute-key-definition 'switch-to-buffer 
+  (substitute-key-definition 'switch-to-buffer
 			     'speedbar-switch-buffer-attached-frame
 			     speedbar-key-map global-map)
 
@@ -1715,6 +1759,33 @@ will be run with the TOKEN parameter (any lisp object)"
   (if token (put-text-property start end 'speedbar-token token))
   )
 
+;;; Initial Expansion list management
+;;
+(defun speedbar-initial-expansion-list ()
+  "Return the current default expansion list.
+This is based on `speedbar-initial-expansion-list-name' referencing
+`speedbar-initial-expansion-mode-alist'."
+  (cdr (assoc speedbar-initial-expansion-list-name
+	      speedbar-initial-expansion-mode-alist)))
+
+(defun speedbar-add-expansion-list (new-list)
+  "Add NEW-LIST to the list of expansion lists."
+  (setq speedbar-initial-expansion-mode-alist
+	(cons new-list speedbar-initial-expansion-mode-alist)))
+
+(defun speedbar-change-initial-expansion-list (new-default)
+  "Change speedbar's default expansion list to NEW-DEFAULT."
+  (interactive
+   (list
+    (completing-read "Speedbar Mode: "
+		     speedbar-initial-expansion-mode-alist
+		     nil t speedbar-initial-expansion-list-name)))
+  (setq speedbar-initial-expansion-list-name new-default)
+  (speedbar-refresh)
+  ;; If we start a temp mode, then we update the speed.
+  (if (string-match "temp" new-default)
+      (speedbar-set-timer speedbar-navigating-speed)))
+
 ;;; Special speedbar display management
 ;;
 (defun speedbar-maybe-add-localized-support (buffer)
@@ -1983,6 +2054,115 @@ cell of the form ( 'DIRLIST . 'FILELIST )"
 		(setq sf (cdr sf)))))
 	)))
 
+(defun speedbar-apply-one-tag-hierarchy-method (lst method)
+  "Adjust the tag hierarchy LST by METHOD."
+  (cond ((eq method 'sort)
+	 (sort (copy-alist lst)
+	       (lambda (a b) (string< (car a) (car b))))
+	 )
+	((eq method 'prefix-group)
+	 (let ((newlst nil)
+	       (sublst nil)
+	       (work-list nil)
+	       (junk-list nil)
+	       (bins (make-vector 256 nil))
+	       (diff-idx 0))
+	   ;; Break out sub-lists
+	   (while lst
+	     (if (listp (cdr-safe (car-safe lst)))
+		 (setq newlst (cons (car lst) newlst))
+	       (setq sublst (cons (car lst) sublst)))
+	     (setq lst (cdr lst)))
+	   ;; Now, first find out how long our list is.  Never let a
+	   ;; list get-shorter than our minimum.
+	   (if (<= (length sublst) speedbar-tag-split-minimum-length)
+	       (setq work-list (nreverse sublst))
+	     (setq diff-idx (length (try-completion "" sublst)))
+	     ;; Sort the whole list into bins.
+	     (while sublst
+	       (let ((e (car sublst))
+		     (s (car (car sublst))))
+		 (cond ((<= (length s) diff-idx)
+			;; 0 storage bin for shorty.
+			(aset bins 0 (cons e (aref bins 0))))
+		       (t
+			;; stuff into a bin based on ascii value at diff
+			(aset bins (aref s diff-idx)
+			      (cons e (aref bins (aref s diff-idx)))))))
+	       (setq sublst (cdr sublst)))
+	     ;; Go through all our bins  Stick singles into our
+	     ;; junk-list, everything else as sublsts in work-list
+	     (setq diff-idx 0)
+	     (while (> 256 diff-idx)
+	       (let ((l (aref bins diff-idx)))
+		 (if l
+		     (if (= (length l) 1)
+			 (setq junk-list (append junk-list l))
+		       (setq work-list
+			     (cons (cons (try-completion "" l) l)
+				   work-list)))))
+	       (setq diff-idx (1+ diff-idx))))
+	   ;; Now, stick our new list onto the end of
+	   (if work-list
+	       (if junk-list
+		   (append (nreverse newlst)
+			   (list (cons "Misc" junk-list))
+			   (nreverse work-list))
+		 (append (nreverse newlst)
+			 (nreverse work-list)))
+	     (append (nreverse newlst) junk-list))))
+	((eq method 'trim-words)
+	 (let ((newlst nil)
+	       (sublst nil)
+	       (trim-prefix nil)
+	       (trim-chars 0)
+	       (trimlst nil))
+	   (while lst
+	     (if (listp (cdr-safe (car-safe lst)))
+		 (setq newlst (cons (car lst) newlst))
+	       (setq sublst (cons (car lst) sublst)))
+	     (setq lst (cdr lst)))
+	   ;; Get the prefix to trim by.  Make sure that we don't trim
+	   ;; off silly pieces, only complete understandable words.
+	   (setq trim-prefix (try-completion "" sublst))
+	   (if (or (not trim-prefix)
+		   (not (string-match "\\(\\w+\\W+\\)+" trim-prefix)))
+	       (append (nreverse newlst) (nreverse sublst))
+	     (setq trim-prefix (substring trim-prefix (match-beginning 0)
+					  (match-end 0)))
+	     (setq trim-chars (length trim-prefix))
+	     (while sublst
+	       (setq trimlst (cons
+			       (cons (substring (car (car sublst)) trim-chars)
+				     (cdr (car sublst)))
+			       trimlst)
+		     sublst (cdr sublst)))
+	     ;; Put the lists together
+	     (append (nreverse newlst) trimlst))))
+	((eq method 'simple-group)
+	 (let ((newlst nil)
+	       (sublst nil))
+	   (while lst
+	     (if (listp (cdr-safe (car-safe lst)))
+		 (setq newlst (cons (car lst) newlst))
+	       (setq sublst (cons (car lst) sublst)))
+	     (setq lst (cdr lst)))
+	   (if (not newlst)
+	       (nreverse sublst)
+	     (setq newlst (cons (cons "Tags" (nreverse sublst)) newlst))
+	     (nreverse newlst))))
+	(t lst)))
+
+(defun speedbar-create-tag-hierarchy (lst)
+  "Adjust the tag hierarchy in LST, and return it.
+This uses `speedbar-tag-hierarchy-method' to determine how to adjust
+the list.  See it's value for details."
+  (let ((methods speedbar-tag-hierarchy-method))
+    (while methods
+      (setq lst (speedbar-apply-one-tag-hierarchy-method lst (car methods))
+	    methods (cdr methods)))
+    lst))
+
 (defun speedbar-insert-generic-list (level lst expand-fun find-fun)
   "At LEVEL, insert a generic multi-level alist LST.
 Associations with lists get {+} tags (to expand into more nodes) and
@@ -1992,6 +2172,8 @@ name will have the function FIND-FUN and not token."
   ;; Remove imenu rescan button
   (if (string= (car (car lst)) "*Rescan*")
       (setq lst (cdr lst)))
+  ;; Adjust the list.
+  (setq lst (speedbar-create-tag-hierarchy lst))
   ;; insert the parts
   (while lst
     (cond ((null (car-safe lst)) nil)	;this would be a separator
@@ -2035,7 +2217,7 @@ name will have the function FIND-FUN and not token."
   "Update the contents of the speedbar buffer based on the current directory."
   (let ((cbd (expand-file-name default-directory))
 	cbd-parent
-	(funclst speedbar-initial-expansion-list)
+	(funclst (speedbar-initial-expansion-list))
 	(cache speedbar-full-text-cache)
 	;; disable stealth during update
 	(speedbar-stealthy-function-list nil)
@@ -3139,29 +3321,33 @@ regular expression EXPR"
 ;; written Mar 12 1998 by Bruce Ravel <ravel@phys.washington.edu>
 (defun speedbar-parse-fortran77-tag ()
   "Parse a fortran 77 tag.
-This recognizes all 21 valid types of named subprograms in F77.
-It does not recognize unnamed main programs.  It returns the name
-of the subprogram (which may be longer than 6 characters, although
-that is not standard F77) preceded by one of `main', `fn.  ', `sub. ',
-or `b.d.' to indicate the type of subprogram.  This is
-case-insensitive --- another deviation from the strict standard."
+This recognizes all valid types of named subprograms in F77 and many
+extensions to the standard.  It does not recognize unnamed main
+programs.  It returns the name of the subprogram (which may be longer
+than 6 characters, although that is not standard F77) preceded by one
+of `main', `fn.', `sub.', or `b.d.' to indicate the type of
+subprogram.  This is case-insensitive --- another deviation from the
+strict standard."
   (save-excursion
     (let ((bound (save-excursion (end-of-line) (point)))
 	  (case-fold-search t) type name
-	  (fortran-subprogram "^ \\{6,\\}\\(b\\(lock data\\|yte function\\)\\|c\\(haracter\\*[0-9]\\{0,3\\} function\\|omplex\\( function\\|\\*16 function\\)\\)\\|double precision function\\|function\\|integer\\( function\\|\\*\\(1 function\\|2 function\\|4 function\\)\\)\\|logical\\( function\\|\\*\\(1 function\\|2 function\\|4 function\\)\\)\\|program\\|real\\( function\\|\\*\\(4 function\\|8 function\\)\\)\\|subroutine\\) +\\([a-z][a-z_0-9]\\{1,5\\}\\)") )
+	  (fortran-subprogram
+	   "^      \\s-*\\(program\\|subroutine\\|entry\\|block[ \t]*data\\|[a-z0-9* \t]*function\\) +\\([a-z][a-z_0-9 ]*\\)"))
       (cond ((re-search-forward fortran-subprogram bound t)
 	     (setq type (buffer-substring-no-properties (match-beginning 1)
 							(match-end 1)) )
-	     (setq name (buffer-substring-no-properties (match-beginning 11)
-							(match-end 11)) )
+	     (setq name (buffer-substring-no-properties (match-beginning 2)
+							(match-end 2)) )
 	     (cond ((string-match "subroutine" type)
 		    (setq type "sub. "))
-		   ((string-match "function" type)
-		    (setq type "fn.  "))
 		   ((string-match "block" type)
 		    (setq type "b.d. "))
 		   ((string-match "program" type)
-		    (setq type "main ")))
+		    (setq type "main "))
+		   ((string-match "entry" type)
+		    (setq type "ent. "))
+		   ((string-match "function" type)
+		    (setq type "fn.  ")))
 	     (concat type name) )
 	    (t nil))
       )))
