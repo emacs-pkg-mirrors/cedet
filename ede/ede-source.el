@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-source.el,v 1.1 2000/09/24 15:59:32 zappo Exp $
+;; RCS: $Id: ede-source.el,v 1.2 2000/10/14 02:57:41 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -48,6 +48,14 @@ Such as \"C\" or \"Emacs Lisp\"")
 		     "Emacs regex matching auxiliary source code this target accepts.
 Aux source are source code files needed for compilation, which are not comiled
 themselves.")
+   (enable-subdirectories :initarg :enable-subdirectories
+			  :initform nil
+			  :type boolean
+			  :documentation
+			  "Non nil if this sourcecode type uses subdirectores.
+If sourcecode always lives near the target creating it, this should be nil.
+If sourcecode can, or typically lives in a subdirectory of the owning
+target, set this to t.")
    (garbagepattern :initarg :garbagepattern
 		   :initform nil
 		   :type list
