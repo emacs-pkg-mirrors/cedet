@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-wisent.el,v 1.1 2004/03/21 18:18:20 ponced Exp $
+;; X-RCS: $Id: semantic-wisent.el,v 1.2 2004/03/24 13:51:25 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -102,11 +102,12 @@ it to a form suitable for the Wisent's parser."
 
 ;;; Syntax analysis
 ;;
-(defvar wisent-error-function #'ignore
-  "Function used to report parse error.")
+(defvar wisent-error-function nil
+  "Function used to report parse error.
+By default use the function `wisent-message'.")
 (make-variable-buffer-local 'wisent-error-function)
 
-(defvar wisent-lexer-function #'wisent-lex
+(defvar wisent-lexer-function 'wisent-lex
   "Function used to obtain the next lexical token in input.
 Should be a lexical analyzer created with `define-wisent-lexer'.")
 (make-variable-buffer-local 'wisent-lexer-function)
