@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.2 2002/12/26 11:05:59 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.3 2002/12/27 17:01:37 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -138,12 +138,12 @@
  ))
  ) ; end opt-class-parents
  (class-parents
- ( opt-class-protection opt-class-declmods symbol punctuation "\\b,\\b" class-parents
+ ( opt-class-protection opt-class-declmods namespace-symbol punctuation "\\b,\\b" class-parents
   ,(semantic-lambda
-  ( cons (nth 2 vals) (nth 4 vals))))
- ( opt-class-protection opt-class-declmods symbol
+  ( cons ( car (nth 3 vals)) (nth 5 vals))))
+ ( opt-class-protection opt-class-declmods namespace-symbol
   ,(semantic-lambda
-  (list (nth 2 vals))))
+  (nth 3 vals)))
  ) ; end class-parents
  (opt-class-declmods
  ( class-declmods opt-class-declmods
@@ -421,21 +421,13 @@
  ( symbol template-specifier
   ,(semantic-lambda
   (list (nth 0 vals) 'type "class")))
- ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b" typeformclassbase opt-template-specifier
+ ( namespace-symbol opt-stars opt-template-specifier
   ,(semantic-lambda
-  (list ( concat (nth 0 vals) "::" ( car (nth 3 vals))))))
+  (nth 0 vals)))
  ( symbol
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end typeformbase
- (typeformclassbase
- ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b" typeformclassbase
-  ,(semantic-lambda
-  (list ( concat (nth 0 vals) "::" ( car (nth 3 vals))))))
- ( symbol
-  ,(semantic-lambda
-  (list (nth 0 vals))))
- ) ; end typeformclassbase
  (builtintype
  ( VOID)
  ( CHAR)
@@ -511,12 +503,12 @@
  ()
  ) ; end opt-throw
  (throw-exception-list
- ( symbol punctuation "\\b,\\b" throw-exception-list
+ ( namespace-symbol punctuation "\\b,\\b" throw-exception-list
   ,(semantic-lambda
-  ( cons (nth 0 vals) (nth 2 vals))))
- ( symbol close-paren ")"
+  ( cons ( car (nth 0 vals)) (nth 2 vals))))
+ ( namespace-symbol close-paren ")"
   ,(semantic-lambda
-  (list (nth 0 vals))))
+  (nth 0 vals)))
  ( open-paren "(" throw-exception-list
   ,(semantic-lambda
   (nth 1 vals)))
@@ -578,6 +570,14 @@
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end varnamelist
+ (namespace-symbol
+ ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b" namespace-symbol
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) "::" ( car (nth 3 vals))))))
+ ( symbol
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ) ; end namespace-symbol
  (opt-class
  ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b"
   ,(semantic-lambda
