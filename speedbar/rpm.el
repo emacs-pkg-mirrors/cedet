@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
 ;; Keywords: speedbar, rpm
-;; X-RCS: $Id: rpm.el,v 1.1 1998/05/05 01:51:40 zappo Exp $
+;; X-RCS: $Id: rpm.el,v 1.2 1998/05/05 01:59:14 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -65,9 +65,12 @@ Source RPM\\|URL\\) *:" 0 font-lock-variable-name-face)
 (defun rpm-info (package)
   "View RPM PACKAGE information in the current buffer."
   (interactive "sPackage: ")
+  (toggle-read-only -1)
   (call-process "rpm" nil t nil "-qil" package)
   (goto-char (point-min))
-  (rpm-mode))
+  (rpm-mode)
+  (set-buffer-modified-p nil)
+  (toggle-read-only 1))
 
 (defun rpm-mode ()
   "Major mode for viewing package information."
