@@ -26,7 +26,7 @@
 This manual documents Application Development with Semantic.
 
 Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
-Copyright @copyright{} 2001, 2002, 2003 David Ponce
+Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
 @quotation
@@ -43,7 +43,7 @@ License''.
 @ifinfo
 @dircategory Emacs
 @direntry
-* Semantic Langauge Writer's guide: (semantic-langdev).
+* Semantic Language Writer's guide: (semantic-langdev).
 @end direntry
 @end ifinfo
 
@@ -58,7 +58,7 @@ License''.
 This file documents Language Support Development with Semantic.
 @emph{Infrastructure for parser based text analysis in Emacs}
 
-Copyright @copyright{} 2002 @value{AUTHOR}
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
 @end ifinfo
 
 @titlepage
@@ -66,7 +66,7 @@ Copyright @copyright{} 2002 @value{AUTHOR}
 @title @value{TITLE}
 @author by @value{AUTHOR}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
 @page
 @vskip 0pt plus 1 fill
 @insertcopying
@@ -104,9 +104,11 @@ studies.
 * Language Support Overview::   
 * Writing Lexers::              
 * Writing Parsers::             
-* Compiling::                   
+* Parsing a language file::     
 * Debugging::                   
 * Parser Error Handling::       
+* GNU Free Documentation License::  
+* Index::                       
 @end menu
 
 @node Tag Structure
@@ -179,8 +181,8 @@ overload functions as well.
 
 @menu
 * Semantic Overload Mechanism::  
-* Semantic Parser Structure::
-* Application API Structure::
+* Semantic Parser Structure::   
+* Application API Structure::   
 @end menu
 
 @node Semantic Overload Mechanism
@@ -413,7 +415,7 @@ These tools use the semantic analysis tool.
 @end table
 
 @menu
-* Semantic Analyzer Support::
+* Semantic Analyzer Support::   
 @end menu
 
 @node Semantic Analyzer Support
@@ -490,7 +492,7 @@ scanning, use @dfn{narrow-to-region}.
 * Lexer Output::                Output of a Lexical Analyzer
 * Lexer Construction::          Constructing your own lexer
 * Lexer Built In Analyzers::    Built in analyzers you can use
-* Lexer Analyzer Construction:: Constructing your own anlyzers
+* Lexer Analyzer Construction::  Constructing your own anlyzers
 * Keywords::                    Specialized lexical tokens.
 * Keyword Properties::          
 @end menu
@@ -997,35 +999,34 @@ When converting a source file into a tag table it is important to
 specify rules to accomplish this.  The rules are stored in the buffer
 local variable @code{semantic-toplevel-bovine-table}.
 
-While it is certainly possible to write this table yourself, it is most
-likely you will want to use a compiler compiler instead
-@inforef{Bovine Parsers, , bovine}.
+While it is certainly possible to write this table yourself, it is
+most likely you will want to use the @ref{Grammar Programming
+Environment}.
 
-There are three choices for implementing your grammar.
+There are three choices for parsing your language.
 
 @table @b
 @item Bovine Parser
-The bovine parser is the original semantic parser, and is an
-implementation of an LL parser.  It is good for simple langauges.  It
-has many conveniences making grammar writing easy.  The conveniences
-make it less flexible than a full LALR @emph{bison} style grammar.
+The @dfn{bovine} parser is the original @semantic{} parser, and is an
+implementation of an @acronym{LL} parser.  For more information,
+@inforef{top, the Bovine Parser Manual, bovine}.
+
 @item Wisent Parser
-The wisent parser is a port of @emph{bison} to Emacs Lisp.  Wisent
-includes the iterative error handler of the bovine parser, and has the
-same error correction as traditional LALR parsers.
+The @dfn{wisent} parser is a port of the GNU Compiler Compiler Bison
+to Emacs Lisp.  Wisent includes the iterative error handler of the
+bovine parser, and has the same error correction as traditional
+@acronym{LALR} parsers.  For more information,
+@inforef{top, the Wisent Parser Manual, wisent}.
+
 @item External Parser
 External parsers, such as the texinfo parser can be implemented using
-any means.  This allows the user of a regular expression parser for
+any means.  This allows the use of a regular expression parser for
 non-regular languages, or external programs for speed.
 @end table
 
-
 @menu
-* External Parsers::                   Writing an external parser
-* Grammar Programming Environment::    Using the grammar writing environemt
-* Grammar Framework: (grammar-fw.info).General grammar writing guide.
-* Bovine Parsers: (bovine.info).       Bovine grammar based parsers
-* Wisent Parsers: (wisent.info).       Wisent grammar based parsers
+* External Parsers::            Writing an external parser
+* Grammar Programming Environment::  Using the grammar writing environemt
 @end menu
 
 @node External Parsers
@@ -1044,75 +1045,44 @@ services in those languages.  In addition, the grammar languages are
 also supported by @semantic so tagging information is available to
 tools such as imenu or speedbar.
 
-The following additional keybindings are also available.
+For more information,
+@inforef{top, the Grammar Framework Manual, grammar-fw}.
 
-@table @kbd
-@item C-c m
-@deffn Command semantic-grammar-find-macro-expander macro-name library
-@anchor{semantic-grammar-find-macro-expander}
-Visit the Emacs Lisp library where a grammar macro is implemented.
-@var{MACRO-NAME} is a symbol that identifies a grammar macro.
-@var{LIBRARY} is the name (sans extension) of the Emacs Lisp library where
-to start searching the macro implementation.  Lookup in included
-libraries, if necessary.
-Find a function tag (in current tags table) whose name contains @var{MACRO-NAME}.
-Select the buffer containing the tag's definition, and move point there.
-@end deffn
-@item C-c C-c
-@deffn Command semantic-grammar-create-package &optional force
-@anchor{semantic-grammar-create-package}
-Create package Lisp code from grammar in current buffer.
-Does nothing if the Lisp code seems up to date.
-If optional argument @var{FORCE} is non-@code{nil}, unconditionally re-generate the
-Lisp code.
-@end deffn
+@node Parsing a language file
+@chapter Parsing a language file
 
-Additionally, when this command is run interactively, all open
-buffers of that mode have their setup functions re-run.  That way
-after compiling your grammar, all relevant buffers will be actively
-using that grammar so you can test what you have done.
+From a program you can use the function:
 
-@item M-TAB, ESC-TAB
-@deffn Command semantic-grammar-complete
-@anchor{semantic-grammar-complete}
-Attempt to complete the symbol under point.
-Completion is position sensitive.  If the cursor is in a match section of
-a rule, then nonterminals symbols are scanned.  If the cursor is in a Lisp
-expression then Lisp symbols are completed.
-@end deffn
+@defun semantic-bovinate-toplevel &optional checkcache
+@anchor{semantic-bovinate-toplevel}
+Bovinate the entire current buffer.
+Do an incremental reparse if possible, otherwise do a full reparse.
+
+@table @strong
+@item Please Note:
+The optional argument @var{CHECKCACHE} is ignored.  It is maintained
+for compatibility with previous versions of Semantic.
 @end table
+@end defun
 
-@node Compiling
-@chapter Compiling a language file with the bovinator
+Another function you can use is:
 
-From a program you can use the function @code{semantic-bovinate-toplevel}.
-This function takes one optional parameter specifying if the cache
-should be refreshed.  By default, the cached results of the last parse
-are always used.  Specifying that the cache should be checked will cause
-it to be flushed if it is out of date.
-
-Another function you can use is @code{semantic-bovinate-nonterminal}.
-This command takes a token stream returned by the function
-@code{semantic-lex} followed by a DEPTH (as above).  This takes an
-additional optional argument of NONTERMINAL which is the nonterminal in
-your table it is to start parsing with.
-
-@deffn Command bovinate &optional clear
-Bovinate the current buffer.  Show output in a temp buffer.
-Optional argument @var{CLEAR} will clear the cache before bovinating.
-@end deffn
+@defun semantic-bovinate-stream stream &optional nonterminal
+@anchor{semantic-bovinate-stream}
+Bovinate @var{STREAM}, starting at the first @var{NONTERMINAL} rule.
+Use @code{bovine-toplevel} if @var{NONTERMINAL} is not provided.
+This is the core routine for converting a stream into a table.
+Return the list (@var{STREAM} @var{SEMANTIC-STREAM}) where @var{STREAM} are those
+elements of @var{STREAM} that have not been used.  @var{SEMANTIC-STREAM} is the
+list of semantic tokens found.
+@end defun
 
 @deffn Command semantic-clear-toplevel-cache
+@anchor{semantic-clear-toplevel-cache}
 Clear the toplevel bovine cache for the current buffer.
 Clearing the cache will force a complete reparse next time a token
 stream is requested.
 @end deffn
-
-@defun semantic-bovinate-toplevel &optional checkcache
-Bovinate the entire current buffer.
-If the optional argument @var{CHECKCACHE} is non-@code{nil}, then flush the cache iff
-there has been a size change.
-@end defun
 
 @node Debugging
 @chapter Debugging
@@ -1122,14 +1092,14 @@ tools for debugging in Semantic, and the type of problem you have
 requires different types of tools.
 
 @menu
-* Lexical Debugging::
-* Parser Output tools::
-* Bovine Parser Debugging::
-* Wisent Parser Debugging::
-* Overlay Debugging::
-* Incremental Parser Debugging::
-* Debugging Analysis::
-* Semantic 1.4 Doc::
+* Lexical Debugging::           
+* Parser Output tools::         
+* Bovine Parser Debugging::     
+* Wisent Parser Debugging::     
+* Overlay Debugging::           
+* Incremental Parser Debugging::  
+* Debugging Analysis::          
+* Semantic 1.4 Doc::            
 @end menu
 
 @node Lexical Debugging
@@ -1219,7 +1189,7 @@ minor mode is enabled.
 
 Another tool that can be used is a dump of the current list of tags.
 This shows the actual Lisp representation of the tags generated in a
-rather bland dump.  this can be useful if text was successfully
+rather bland dump.  This can be useful if text was successfully
 parsed, and you want to be sure that the correct information was
 captured.
 
@@ -1466,3 +1436,21 @@ NOTE: Semantic 2.0 has more debugging commands.  Use:
 @cindex Parser Error Handling
 
 NOTE: Write Me
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@include fdl.texi
+
+@node Index
+@unnumbered Index
+@printindex cp
+
+@iftex
+@contents
+@summarycontents
+@end iftex
+
+@bye
+
+@c Following comments are for the benefit of ispell.
