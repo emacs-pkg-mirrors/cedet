@@ -6,14 +6,14 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.45 2004/03/21 07:47:11 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.46 2004/05/22 14:40:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
-;; any later version.
+;; any later version.:
 
 ;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -1140,7 +1140,7 @@ Each face will be applied to those tags for which the function returns true."
   '((((class color) (background dark))
      (:background "#100000"))
     (((class color) (background light))
-     (:overline "#8fffff")))
+     (:background "#8fffff")))
   "*Face used to show privatly scoped tags in.
 The face is used in  `semantic-highlight-by-attribute-mode'."
   :group 'semantic)
@@ -1149,7 +1149,7 @@ The face is used in  `semantic-highlight-by-attribute-mode'."
   '((((class color) (background dark))
      (:background "#000010"))
     (((class color) (background light))
-     (:overline "#fffff8")))
+     (:background "#fffff8")))
   "*Face used to show protected scoped tags in.
 The face is used in  `semantic-highlight-by-attribute-mode'."
   :group 'semantic)
