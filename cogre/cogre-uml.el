@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.3 2001/05/02 03:33:40 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.4 2001/05/07 19:02:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,6 +36,7 @@
   ((name :initform "Package")
    (blank-lines-top :initform 0)
    (blank-lines-bottom :initform 0)
+   (alignment :initform left)
    (subgraph :initarg :subgraph
 	     :initform nil
 	     :type (or null cogre-graph)
@@ -58,6 +59,7 @@ The `subgraph' slot must be scanned for this information."
   ((name :initform "Class")
    (blank-lines-top :initform 0)
    (blank-lines-bottom :initform 0)
+   (alignment :initform left)
    (class :initarg :class
 	  :initform nil
 	  :type (or string list)
@@ -139,8 +141,8 @@ Optional argument FIELDS are not used."
   "Return a list of each section, including title, attributes, and methods.
 Argument CLASS is the class whose slots are referenced."
   (list
-   (mapcar 'semantic-token-name (oref class attributes))
-   (mapcar 'semantic-token-name (oref class methods))
+   (mapcar 'semantic-uml-abbreviate-nonterminal (oref class attributes))
+   (mapcar 'semantic-uml-abbreviate-nonterminal (oref class methods))
    ))
 
 
@@ -185,7 +187,8 @@ This is supposed to infer that START contains END.")
 	      class
 	      (eq (semantic-token-token class) 'type)
 	      (string= (semantic-token-type class) "class")))
-	(setq class nil))
+	(setq class nil)
+      (setq class (semantic-token-name class)))
     ;; Create a prompt
     (setq prompt (if class (concat "Class (default " class "): ") "Class: "))
     ;; Get the stream used for completion.
@@ -264,10 +267,26 @@ The parent to CLASS, CLASS, and all of CLASSes children will be shown."
 	  (setq c (cdr c))))
       (setq children (cdr children)))
     (setq xmax (max xmax (- x-accum cogre-horizontal-margins)))
-    ;; Move the parents or children to be centered.
-
-    ;; Move the chosen node to be centered
-
+    ;; Center all the nodes to eachother.
+    (let ((shift 0)
+	  (delta 0)
+	  (lines (list parent-nodes
+		       (list class-node)
+		       children-nodes))
+	  (maxn nil)
+	  )
+      (while lines
+	(setq maxn (car (car lines)))
+	(when maxn
+	  ;;(cogre-node-rebuild maxn)
+	  (setq delta (- xmax (aref (oref maxn position) 0)
+			 (length (car (oref maxn rectangle)))))
+	  (when (> delta 0)
+	    (setq shift (/ delta 2))
+	    (mapcar (lambda (n) (cogre-move-delta n shift 0))
+		    (car lines))))
+	(setq lines (cdr lines)))
+      )
     ;; Link everyone together
     (let ((n parent-nodes))
       (while n
