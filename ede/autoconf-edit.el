@@ -4,16 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: autoconf-edit.el,v 1.5 2000/07/22 13:08:17 zappo Exp $
+;; RCS: $Id: autoconf-edit.el,v 1.6 2000/09/24 15:17:25 zappo Exp $
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -86,6 +84,7 @@ configure the initial configure script using `autoconf-new-automake-string'"
     "AC_PROG_MAKE_SET"
     "AC_PROG_AWK"
     "AC_PROG_CC"
+    "AC_PROG_CC_C_O"
     "AC_PROG_CPP"
     "AC_PROG_CXX"
     "AC_PROG_CXXCPP"
@@ -97,7 +96,9 @@ configure the initial configure script using `autoconf-new-automake-string'"
     "AC_PROG_LN_S"
     "AC_PROG_RANLIB"
     "AC_PROG_YACC"
+    "AC_CHECK_PROG"
     "AC_CHECK_PROGS"
+    "AM_PROG_LIBTOOL"
     ;; Libraries
     "AC_CHECK_LIB"
     "AC_PATH_XTRA"
@@ -235,7 +236,9 @@ Optional argument PARAM is the parameter to pass to the macro as one string."
 	 nil)
 	(t
 	 (autoconf-position-for-macro macro)
-	 (forward-sexp 2)
+	 (forward-sexp 1)
+	 (if (looking-at "\\s-*(")
+	     (forward-sexp 1))
 	 (end-of-line)
 	 (insert "\n")
 	 (autoconf-insert-macro-at-point macro param))))
