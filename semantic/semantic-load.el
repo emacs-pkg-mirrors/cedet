@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.10 2001/10/08 21:16:42 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.11 2001/10/24 00:52:11 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -166,8 +166,9 @@ If ARG is nil, then toggle."
 				     (imenu-add-to-menubar "TOKENS"))))
 
   (global-semantic-show-dirty-mode 1)
-  (global-semantic-show-unmatched-syntax-mode 1)
   (global-senator-minor-mode 1)
+  ;; At the moment, don't enable by default due to double parsing.
+  ;;(global-semantic-show-unmatched-syntax-mode 1)
   (global-semanticdb-minor-mode 1)
 
   (add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb)))
