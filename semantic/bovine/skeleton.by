@@ -3,7 +3,7 @@
 ;; Copyright (C) 2001, 2003 Eric M. Ludlam
 ;;
 ;; Author: 
-;; X-RCS: $Id: skeleton.by,v 1.3 2003/08/02 08:13:14 ponced Exp $
+;; X-RCS: $Id: skeleton.by,v 1.4 2004/09/22 11:16:53 ponced Exp $
 ;;
 ;; .bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@
 ;; Turn common punctuation elements into tokens.
 ;; This does not effect lexical analysis or accuracy,
 ;; but does make your file more readable.
-%token <punctuation> PERIOD "\\b[.]\\b"
+%token <punctuation> PERIOD "\\`[.]\\'"
 %token <punctuation> OPERATORS "[-+*/%^|&]"
 
 %%
