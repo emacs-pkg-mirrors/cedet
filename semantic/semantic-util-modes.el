@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.38 2003/12/19 17:07:54 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.39 2003/12/22 16:08:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -496,212 +496,6 @@ minor mode is enabled.
     (if o
 	(goto-char (semantic-overlay-start o)))))
 
-;;;;
-;;;; Minor mode to auto reparse buffer
-;;;;
-
-(require 'timer)
-
-(defvar semantic-auto-parse-timer nil
-  "Timer used to schedule automatic reparse.")
-
-(defcustom semantic-auto-parse-no-working-message t
-  "*If non-nil, disable display of working messages during parse."
-  :group 'semantic
-  :type 'boolean)
-
-(defcustom semantic-auto-parse-working-in-modeline-flag nil
-  "*Non-nil means show working messages in the mode line.
-Typically, parsing will show messages in the minibuffer.
-This will move the parse message into the modeline."
-  :group 'semantic
-  :type 'boolean)
-
-(defcustom semantic-auto-parse-idle-time 4
-  "*Time in seconds of idle time before auto-reparse.
-This time should be short enough to ensure that auto-parse will be
-run as soon as Emacs is idle."
-  :group 'semantic
-  :type 'number
-  :set (lambda (sym val)
-         (set-default sym val)
-         (when (timerp semantic-auto-parse-timer)
-           (cancel-timer semantic-auto-parse-timer)
-           (setq semantic-auto-parse-timer nil)
-           (semantic-auto-parse-setup-timer))))
-
-(defcustom semantic-auto-parse-max-buffer-size 0
-  "*Maximum size in bytes of buffers automatically reparsed.
-If this value is less than or equal to 0, buffers are automatically
-reparsed regardless of their size."
-  :group 'semantic
-  :type 'number)
-
-;;;###autoload
-(defcustom global-semantic-auto-parse-mode nil
-  "*If non-nil, enable global use of auto-parse mode."
-  :group 'semantic
-  :type 'boolean
-  :require 'semantic-util-modes
-  :initialize 'custom-initialize-default
-  :set (lambda (sym val)
-         (global-semantic-auto-parse-mode (if val 1 -1))))
-
-;;;###autoload
-(defun global-semantic-auto-parse-mode (&optional arg)
-  "Toggle global use of option `semantic-auto-parse-mode'.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  (interactive "P")
-  (setq global-semantic-auto-parse-mode
-        (semantic-toggle-minor-mode-globally
-         'semantic-auto-parse-mode arg)))
-
-(defcustom semantic-auto-parse-mode-hook nil
-  "*Hook run at the end of function `semantic-auto-parse-mode'."
-  :group 'semantic
-  :type 'hook)
-
-(defvar semantic-auto-parse-mode nil
-  "Non-nil if auto-parse minor mode is enabled.
-Use the command `semantic-auto-parse-mode' to change this variable.")
-(make-variable-buffer-local 'semantic-auto-parse-mode)
-
-(defvar semantic-before-auto-parse-hooks nil
-  "Hooks run before option `semantic-auto-parse-mode' begins parsing.")
-
-(defvar semantic-after-auto-parse-hooks nil
-  "Hooks run after option `semantic-auto-parse-mode' has parsed.")
-
-(defsubst semantic-auto-parse-enabled-p ()
-  "Return non-nil if auto-parse is enabled for this buffer.
-See also the variable `semantic-auto-parse-max-buffer-size'."
-  (if semantic-auto-parse-mode
-      (and (not semantic-debug-enabled)
-	   (not semantic-lex-debug)
-	   (or (<= semantic-auto-parse-max-buffer-size 0)
-	       (< (buffer-size) semantic-auto-parse-max-buffer-size)))))
-
-(defun semantic-auto-parse-bovinate ()
-  "Automatically reparse current buffer.
-Called after `semantic-auto-parse-idle-time' seconds of Emacs idle
-time.  Does nothing if option `semantic-auto-parse-mode' is not enabled or
-current buffer doesn't need reparsing or if its size exceeds the
-`semantic-auto-parse-max-buffer-size' threshold."
-  (when (semantic-auto-parse-enabled-p)
-    ;; Disable the auto parse timer while re-parsing
-    (semantic-auto-parse-kill-timer)
-    (let* ((semantic-bovination-working-type nil)
-           (inhibit-quit nil)
-           (working-use-echo-area-p
-            (not semantic-auto-parse-working-in-modeline-flag))
-           (working-status-dynamic-type
-            (if semantic-auto-parse-no-working-message
-                nil
-              working-status-dynamic-type))
-           (working-status-percentage-type
-            (if semantic-auto-parse-no-working-message
-                nil
-              working-status-percentage-type))
-           (semantic-lex-unterminated-syntax-end-function
-            (lambda (syntax start end) (throw 'auto-parse syntax)))
-	   ;; When flex is deleted, delete this also.
-           (semantic-flex-unterminated-syntax-end-function
-            (lambda (syntax start end) (throw 'auto-parse syntax)))
-           )
-      ;; Let people hook into this, but don't let them hose
-      ;; us over!
-      (condition-case nil
-          (run-hooks 'semantic-before-auto-parse-hooks)
-        (error nil))
-
-      (unwind-protect
-          ;; Perform the parsing.
-          (when (catch 'auto-parse
-                  (save-excursion
-                    (semantic-bovinate-toplevel t))
-                  nil)
-            ;; The reparse failed, no status has been set up that
-            ;; things are really bad.  If auto-parse needs to do
-            ;; something in this case, this is where we do it, otherwise
-            ;; wait for the next timer, and see if the buffer has
-            ;; been fixed up enough to do something useful.
-            ;;(message "Auto-reparse sillyness")
-            nil)
-        ;; Let people hook into this, but don't let them hose
-        ;; us over!
-        (condition-case nil
-            (run-hooks 'semantic-after-auto-parse-hooks)
-          (error nil))))
-    ;; Enable again the auto parse timer
-    (semantic-auto-parse-setup-timer)
-    ;; Return nil.
-    nil))
-
-(defun semantic-auto-parse-setup-timer ()
-  "Lazy initialization of the auto parse idle timer."
-  (or (timerp semantic-auto-parse-timer)
-      (setq semantic-auto-parse-timer
-            (run-with-idle-timer
-             semantic-auto-parse-idle-time t
-             #'semantic-auto-parse-bovinate))))
-
-(defun semantic-auto-parse-kill-timer ()
-  "Kill the auto parse idle timer."
-  (if (timerp semantic-auto-parse-timer)
-      (cancel-timer semantic-auto-parse-timer))
-  (setq semantic-auto-parse-timer nil))
-
-(defun semantic-auto-parse-mode-setup ()
-  "Setup option `semantic-auto-parse-mode'.
-The minor mode can be turned on only if semantic feature is available
-and the current buffer was set up for parsing.  When minor mode is
-enabled parse the current buffer if needed.  Return non-nil if the
-minor mode is enabled."
-  (if semantic-auto-parse-mode
-      (if (not (and (featurep 'semantic) (semantic-active-p)))
-          (progn
-            ;; Disable minor mode if semantic stuff not available
-            (setq semantic-auto-parse-mode nil)
-            (error "Buffer %s was not set up for parsing"
-                   (buffer-name)))
-        (semantic-auto-parse-setup-timer)))
-  semantic-auto-parse-mode)
-
-;;;###autoload
-(defun semantic-auto-parse-mode (&optional arg)
-  "Minor mode to auto parse buffer following a change.
-When this mode is off, a buffer is only rescanned for tokens when
-some command requests the list of available tokens.  When auto-parse
-is enabled, Emacs periodically checks to see if the buffer is out of
-date, and reparses while the user is idle (not typing.)
-
-With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled."
-  (interactive
-   (list (or current-prefix-arg
-             (if semantic-auto-parse-mode 0 1))))
-  (setq semantic-auto-parse-mode
-        (if arg
-            (>
-             (prefix-numeric-value arg)
-             0)
-          (not semantic-auto-parse-mode)))
-  (semantic-auto-parse-mode-setup)
-  (run-hooks 'semantic-auto-parse-mode-hook)
-  (if (interactive-p)
-      (message "auto-parse minor mode %sabled"
-               (if semantic-auto-parse-mode "en" "dis")))
-  (semantic-mode-line-update)
-  semantic-auto-parse-mode)
-
-(semantic-add-minor-mode 'semantic-auto-parse-mode
-                         "a"
-                         nil)
-
-
 
 ;;;;
 ;;;; Minor mode to display the parser state in the modeline.
@@ -888,101 +682,6 @@ to indicate a parse in progress."
     ;; For testing.
     ;;(sit-for 1)
     ))
-
-
-;;;;
-;;;; Minor mode to show useful things about tokens
-;;;;
-
-(eval-when-compile (require 'eldoc))
-
-;;;###autoload
-(defun global-semantic-summary-mode (&optional arg)
-  "Toggle global use of option `semantic-summary-mode'.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  (interactive "P")
-  (setq global-semantic-summary-mode
-        (semantic-toggle-minor-mode-globally
-         'semantic-summary-mode arg)))
-
-;;;###autoload
-(defcustom global-semantic-summary-mode nil
-  "*If non-nil, enable global use of `semantic-summary-mode'.
-When summary mode is enabled, the Emacs tool `eldoc-mode' is turned
-on, and augmented to display semantic tags.  In idle time, a
-message will be displayed showing details about the tag the cursor is on."
-  :group 'semantic
-  :type 'boolean
-  :require 'semantic-util-modes
-  :initialize 'custom-initialize-default
-  :set (lambda (sym val)
-         (global-semantic-summary-mode (if val 1 -1))))
-
-(defcustom semantic-summary-mode-hook nil
-  "*Hook run at the end of function `semantic-summary-mode'."
-  :group 'semantic
-  :type 'hook)
-
-(defvar semantic-summary-mode-map
-  (let ((km (make-sparse-keymap)))
-    km)
-  "Keymap for summary minor mode.")
-
-(defvar semantic-summary-mode nil
-  "Non-nil if summary minor mode is enabled.
-Use the command `semantic-summary-mode' to change this variable.")
-(make-variable-buffer-local 'semantic-summary-mode)
-
-(defun semantic-summary-mode-setup ()
-  "Setup option `semantic-summary-mode'.
-The minor mode can be turned on only if semantic feature is available
-and the current buffer was set up for parsing.
-When enabled, makes `eldoc' available for non-Emacs Lisp buffers.
-Return non-nil if the minor mode is enabled."
-  (if semantic-summary-mode
-      (if (not (and (featurep 'semantic) (semantic-active-p)))
-          (progn
-            ;; Disable minor mode if semantic stuff not available
-            (setq semantic-summary-mode nil)
-            (error "Buffer %s was not set up for parsing"
-                   (buffer-name)))
-        ;; Enable eldoc mode
-        (eldoc-mode 1)
-        )
-    ;; Disable eldoc mode
-    (eldoc-mode -1))
-  semantic-summary-mode)
-
-;;;###autoload
-(defun semantic-summary-mode (&optional arg)
-  "Minor mode to show useful things about tags in echo area.
-Enables/disables option `eldoc-mode' which supplies the support functions for
-this minor mode.
-With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled."
-  (interactive
-   (list (or current-prefix-arg
-             (if semantic-summary-mode 0 1))))
-  (setq semantic-summary-mode
-        (if arg
-            (>
-             (prefix-numeric-value arg)
-             0)
-          (not semantic-summary-mode)))
-  (semantic-summary-mode-setup)
-  (run-hooks 'semantic-summary-mode-hook)
-  (if (interactive-p)
-      (message "Summary minor mode %sabled"
-               (if semantic-summary-mode "en" "dis")))
-  (semantic-mode-line-update)
-  semantic-summary-mode)
-
-(semantic-add-minor-mode 'semantic-summary-mode
-                         "" ;; Eldoc provides the mode indicator
-                         semantic-summary-mode-map)
 
 
 ;;;;
@@ -1265,7 +964,7 @@ minor mode is enabled."
   (semantic-show-tag-boundaries-setup)
   (run-hooks 'semantic-show-tag-boundaries-hook)
   (if (interactive-p)
-      (message "show-tag-boundary-mode minor mode %sabled"
+      (message "show-tag-boundaries-mode minor mode %sabled"
                (if semantic-show-tag-boundaries-mode "en" "dis")))
   (semantic-mode-line-update)
   semantic-show-tag-boundaries-mode)
@@ -1328,7 +1027,15 @@ Eventually calls `semantic-stb-reparse-hook'."
 Adds decorations on them to help show tag boundaries."
   (while tag-list
     ;; If the tag we are looking at already has a boundary, delete it.
-    (semantic-tag-delete-secondary-overlay (car tag-list) 'semantic-stb)
+    ;(semantic-tag-delete-secondary-overlay (car tag-list) 'semantic-stb)
+    ;; The above should not be true!  Lets print a debug message
+    ;; instead.  Our fancy tag-hook should have removed it during
+    ;; the unlink phase.
+    (when (semantic-tag-get-secondary-overlay (car tag-list) 'semantic-stb)
+      (message "Secondary overlay still on %s"
+	       (semantic-format-tag-name (car tag-list)))
+      (semantic-tag-delete-secondary-overlay (car tag-list) 'semantic-stb)
+      )
     ;; Only line up certain classes of tag.
     (when (semantic-tag-boundary-p (car tag-list))
       (semantic-stb-highlight-tag-line1 (car tag-list)))
