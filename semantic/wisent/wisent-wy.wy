@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.wy,v 1.7 2002/07/01 11:37:23 ponced Exp $
+;; X-RCS: $Id: wisent-wy.wy,v 1.8 2002/07/16 21:17:37 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -26,34 +26,32 @@
 ;; Boston, MA 02111-1307, USA.
 
 %{
-  (setq semantic-number-expression
-        ;; Numbers
-        (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
-                "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
-        ;; C-like character literals
-        semantic-flex-extensions wisent-wy-flex-extensions
-        ;; Parent/Child separator
-        semantic-type-relation-separator-character '(":")
-        ;; Names
-        semantic-symbol->name-assoc-list
-        '(
-          (code         . "Setup Code")
-          (keyword      . "Keyword")
-          (token        . "Token")
-          (nonterminal  . "Nonterminal")
-          (rule         . "Rule")
-          )
-        ;; Faces
-        semantic-face-alist
-        '(
-          (code         . default)
-          (keyword      . font-lock-keyword-face)
-          (token        . font-lock-type-face)
-          (nonterminal  . font-lock-function-name-face)
-          (rule         . default)
-          )
-        )
-
+  (setq
+   ;; Lexical analysis
+   semantic-lex-number-expression
+   (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
+           "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
+   semantic-lex-analyzer 'wisent-wy-lexer
+   wisent-lexer-function 'wisent-lex
+   ;; Environment
+   semantic-type-relation-separator-character '(":")
+   semantic-symbol->name-assoc-list
+   '(
+     (code         . "Setup Code")
+     (keyword      . "Keyword")
+     (token        . "Token")
+     (nonterminal  . "Nonterminal")
+     (rule         . "Rule")
+     )
+   semantic-face-alist
+   '(
+     (code         . default)
+     (keyword      . font-lock-keyword-face)
+     (token        . font-lock-type-face)
+     (nonterminal  . font-lock-function-name-face)
+     (rule         . default)
+     )
+   )
   (semantic-install-function-overrides
    '(
      ;;(abbreviate-nonterminal    . wisent-wy-abbreviate-nonterminal)
@@ -62,7 +60,6 @@
      (nonterminal-children      . wisent-wy-nonterminal-children)
      )
    t)
-		    
   %}
 
 %outputfile    "wisent-wy.el"
@@ -116,8 +113,8 @@
 %token <punctuation>   GT          ">"
 %token <punctuation>   PERCENT     "%"
 
-;; Use string comparison for the following type of tokens
-%put {punctuation open-paren close-paren} string t
+;; ;; Use string comparison for the following type of tokens
+;; %put {punctuation open-paren close-paren} string t
 
 %%
 

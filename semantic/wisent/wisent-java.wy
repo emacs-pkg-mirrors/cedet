@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.4 2002/06/30 22:27:32 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.5 2002/07/16 21:16:24 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -38,16 +38,16 @@
    t ;; They can be changed in mode hook by more specific ones
    )
   (setq
+   ;; Lexical analysis
+   semantic-lex-number-expression semantic-java-number-regexp
+   semantic-lex-depth nil
+   semantic-lex-analyzer 'wisent-java-lexer
+   wisent-lexer-function 'wisent-lex
+   ;; Parsing
    semantic-expand-nonterminal 'wisent-java-expand-nonterminal
-   ;; How `semantic-flex' will setup the lexer input stream.
-   semantic-flex-depth nil
-   ;; Tell `semantic-flex' to handle Java numbers
-   semantic-number-expression semantic-java-number-regexp
-   ;; function to use when creating items in imenu
+   ;; Environment
    semantic-imenu-summary-function 'semantic-prototype-nonterminal
-   ;; function to use for creating the imenu
    imenu-create-index-function 'semantic-create-imenu-index
-   ;; Character used to separation a parent/child relationship
    semantic-type-relation-separator-character '(".")
    semantic-command-separation-character ";"
    document-comment-start "/**"
@@ -55,16 +55,16 @@
    document-comment-end " */"
    ;; speedbar and imenu buckets name
    semantic-symbol->name-assoc-list-for-type-parts
-   ;; In type parts
+   ;; in type parts
    '((type     . "Classes")
      (variable . "Variables")
      (function . "Methods"))
    semantic-symbol->name-assoc-list
-   ;; Everywhere
+   ;; everywhere
    (append semantic-symbol->name-assoc-list-for-type-parts
            '((include  . "Imports")
              (package  . "Package")))
-   ;; Semantic navigation inside 'type children
+   ;; navigation inside 'type children
    senator-step-at-token-ids '(function variable)
    )
   ;; Setup javadoc stuff
@@ -92,11 +92,11 @@
 %start interface_declaration
 %start abstract_method_declaration
 
-;; Customize `wisent-flex' match algorithm 
-;; - Use string comparison for:
-%put {punctuation open-paren close-paren symbol} string t
-;; - An operator can be made of multiple successive punctuations
-%put punctuation multiple t
+;; ;; Customize `wisent-flex' match algorithm 
+;; ;; - Use string comparison for:
+;; %put {punctuation open-paren close-paren symbol} string t
+;; ;; - An operator can be made of multiple successive punctuations
+;; %put punctuation multiple t
 
 ;; ---------------------
 ;; Parenthesis terminals
