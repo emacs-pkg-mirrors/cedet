@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.66 2003/12/11 00:58:41 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.67 2004/01/09 21:00:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -592,7 +592,12 @@ table object for it."
 	  (save-excursion
 	    (set-buffer (find-file-noselect file))
 	    ;; Find file should automatically do this for us.
-	    semanticdb-current-table)))))
+	    (prog1
+		semanticdb-current-table
+	      ;; If we had to find the file, then we should kill it
+	      ;; to keep the master buffer list clean.
+	      (kill-buffer (current-buffer))
+	      ))))))
 
 ;;;###autoload
 (defun semanticdb-file-stream (file)
