@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.113 2001/08/28 12:51:41 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.114 2001/09/12 04:55:00 zappo Exp $
 
-(defvar semantic-version "1.4"
+(defvar semantic-version "1.4beta10"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -420,7 +420,8 @@ The returned item may be an overlay or an unloaded buffer representation."
        (symbolp (car (cdr token)))
        (let ((o (semantic-token-overlay token)))
 	 (or (semantic-overlay-p o)
-	     (arrayp o)))))
+	     (and (arrayp o)
+		  (not (stringp o)))))))
 
 
 ;;; Overlay and error stacks.
@@ -465,6 +466,9 @@ Runs `semantic-init-hook' if the major mode is setup to use Semantic."
     (setq semantic-toplevel-bovine-force-reparse t)
     (run-hooks 'semantic-init-hooks)))
 
+(defun semantic-find-file-function ()
+  (semantic-new-buffer-fcn))
+
 (defvar semantic-changed-mode-buffers nil
   "List of buffers whose `major-mode' has changed recently.")
 
@@ -489,7 +493,7 @@ This makes sure semantic-init type stuff can occur."
   (add-hook 'post-command-hook 'semantic-post-change-major-mode-function))
 
 (add-hook 'find-file-hooks
-          'semantic-post-change-major-mode-function)
+          'semantic-find-file-function)
 (add-hook 'change-major-mode-hook
           'semantic-change-major-mode-hook-function)
 
