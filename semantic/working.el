@@ -3,7 +3,7 @@
 ;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 1.0
+;; Version: 1.1
 ;; Keywords: status
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -85,6 +85,12 @@
 ;;; History:
 ;; 
 ;; 1.0 First Version
+;;
+;; 1.1 Working messages are no longer logged.
+;;     Added a generic animation display funciton:
+;;        Convert celeron to animator
+;;        Added a bounce display
+;;     Made working robust under a multi-frame environment (speedbar)
 
 (require 'custom)
 
@@ -93,7 +99,6 @@
   "Working messages display."
   :prefix "working"
   :group 'lisp
-;  :version "20.3"
   )
 
 ;;; User configurable variables
@@ -158,7 +163,7 @@ percentile.  If it is a string, then consider the job done, and
 display this string where numbers would appear.
 Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
-  (let* ((p (or (floor percent)
+  (let* ((p (or percent
 		(floor (* 100.0 (/ (float (point)) (point-max))))))
 	 (m1 (apply 'format working-message args))
 	 (m2 (funcall working-status-percentage-type (length m1) p))
@@ -195,7 +200,7 @@ LENGTH is the amount of display that has been used.  PERCENT
 is t to display the done string, or the percentage to display."
   (let* ((mbw (frame-parameter (selected-frame) 'minibuffer))
 	 (fr (if mbw (window-frame mbw) default-minibuffer-frame))
-	 (bs (- (frame-width fr) length 4)))
+	 (bs (- (frame-width fr) length 5)))
     (cond ((eq percent t)
 	   (concat ": [" (make-string bs ?#) "] " working-donestring))
 	  ((< bs 0) "")
@@ -212,7 +217,7 @@ is t to display the done string, or the percentage to display."
   (let* ((ps (if (eq percent t)
 		 (concat "... " working-donestring)
 	       (working-percent-display length percent)))
-	 (psl (+ 3 length (if (eq percent t) working-ref1 (length ps)))))
+	 (psl (+ 2 length (if (eq percent t) working-ref1 (length ps)))))
     (cond ((eq percent t)
 	   (concat (working-bar-display psl 100) " " ps))
 	  (t
