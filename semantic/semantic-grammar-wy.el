@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2004-01-19 11:46:30+0100
+;; Created: 2004-01-22 20:36:44+0100
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.11 2004/01/19 18:51:41 ponced Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.12 2004/01/23 08:32:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -65,7 +65,7 @@ Used internally to retrieve value of EXPADFULL tags."
   "Table of language keywords.")
 
 (defconst semantic-grammar-wy--token-table
-  (wisent-lex-make-token-table
+  (semantic-lex-make-type-table
    '(("punctuation"
       (GT . ">")
       (LT . "<")
