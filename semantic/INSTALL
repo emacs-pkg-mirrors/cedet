@@ -2,12 +2,12 @@ How to install Semantic
 
 1) Copy source files somewhere.
 
-2) Byte compile semantic (optional)
+2) Byte compile semantic (optional, but recommended)
 
    a) run "make"
    b) If that fails, byte compile the files individually from Emacs or XEmacs.
 
-3) Install load hooks into your .emacs files.
+3) Install load hooks into your .emacs file.
 
 (add-to-list 'load-path "~/semantic-#.#") ; so Emacs can find semantic
 					; change to actual install area.
