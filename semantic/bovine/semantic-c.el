@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.33 2004/07/15 20:25:16 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.34 2004/07/23 18:37:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -496,7 +496,7 @@ handled.  A class is abstract iff it's destructor is virtual."
 		    (semantic-tag-components tag)
 		    )))
 	  (and ds (member "virtual" (semantic-tag-modifiers (car ds)))
-	       cs (eq 'protected (semantic-tag-protection cs tag))
+	       cs (eq 'protected (semantic-tag-protection (car cs) tag))
 	       )
 	  )))
    ((eq (semantic-tag-class tag) 'function)
