@@ -1,9 +1,9 @@
 # C/C++ BNF language specification
 #
-# Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+# Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.55 2001/12/18 02:39:12 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.56 2002/01/19 20:49:55 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -92,8 +92,6 @@
 %put CLASS summary "Class Declaration: class <name>[:parents] { ... };"
 %token NAMESPACE "namespace"
 %put NAMESPACE summary "Namespace Declaration: namespace <name> { ... };"
-%token TEMPLATE "template"
-%put TEMPLATE summary "template <TYPE> [other definition]"
 
 # Despite this, this parser can find templates by ignoring the TEMPLATE
 # keyword, and finding the class/method being templateized.
@@ -254,11 +252,17 @@ unionparts : semantic-list
 	     (EXPANDFULL $1 classsubparts)
 	   ;
 
+opt-symbol : symbol
+	   | EMPTY
+	   ;
+
 classsubparts : open-paren "{"
 		( nil )
 	      | close-paren "}"
 		( nil )
-	      | opt-class-protection COLON
+	      | class-protection opt-symbol COLON
+	      # For QT, they may put a `slot' keyword between the protection
+	      # and the COLON.
 		( ,$1 label )
 	      | var-or-fun
 	      | type
@@ -269,7 +273,7 @@ classsubparts : open-paren "{"
 	      | EMPTY
 	      ;
 
-opt-class-parents : COLON class-parents
+opt-class-parents : COLON class-parents opt-template-specifier
 		    ( $2 )
 		  | EMPTY
 		    ( )
@@ -290,9 +294,13 @@ opt-class-declmods : class-declmods opt-class-declmods
 class-declmods : VIRTUAL
 	       ;
 
-opt-class-protection : PUBLIC
-		     | PRIVATE
-		     | PROTECTED
+class-protection: PUBLIC
+		| PRIVATE
+		| PROTECTED
+		;
+
+opt-class-protection : class-protection
+		       ( ,$1 )
 		     | EMPTY
 		     ;
 
@@ -307,7 +315,7 @@ namespacesubparts : open-paren "{"
 		  | type
                   | var-or-fun
 		  | define
-		  | opt-class-protection COLON
+		  | class-protection COLON
 		    ( $1 protection )
 		  # In C++, this label in a classsubpart represents
 		  # PUBLIC or PRIVATE bits.  Ignore them for now.
@@ -333,11 +341,14 @@ opt-name : symbol
 	   ( "" )
          ;
 
-typesimple : struct-or-class opt-name opt-class-parents semantic-list
+typesimple : struct-or-class opt-name opt-template-specifier
+	     opt-class-parents semantic-list
 	     ( ,$2 type ,$1 
 		   (let ((semantic-c-classname (cons (car ,$2) (car ,$1))))
-		       (EXPANDFULL $4 classsubparts))
-		   ,$3 nil nil )
+		       (EXPANDFULL $5 classsubparts))
+		   ,$4 nil nil )
+	   | struct-or-class opt-name opt-template-specifier opt-class-parents
+	     ( ,$2 type ,$1 nil ,$4 nil nil )
 	   | UNION opt-name unionparts
 	     ( ,$2 type $1 $3 nil nil nil )
 	   | ENUM opt-name enumparts
@@ -357,32 +368,47 @@ type : typesimple SEMICOLON
      ;
 
 template : TEMPLATE template-specifier template-definition
-	 # We should add a 'template extra specifier for the definition found.
-	   ( ,$3 )
+	   ( ,(semantic-c-reconstitute-template $3 ,$2) )
 	 ;
 
-template-specifier : LESS template-specifier-type-list GREATER
+opt-template-specifier : template-specifier
+			 ( ,$1 )
+		       | EMPTY
+			 ()
+		       ;
+
+template-specifier : LESS template-specifier-types GREATER
 		     ( ,$2 )
 		   ;
 
-template-specifier-type-list : template-var COMA template-specifier-type-list
-			       ( ,(cons (,car ,$1) $3 ) )
-			     | template-var
-			       ( $1 )
+template-specifier-types : template-var template-specifier-type-list
+			   ( ,(cons ,$1 ,$2 ) )
+			 | EMPTY
+			 ;
+
+template-specifier-type-list : COMA template-specifier-types
+			       ( ,$2 )
+			     | EMPTY
+			       ( )
 			     ;
 
-template-var : template-type opt-template-equal
+template-var : template-type opt-stars opt-template-equal
 	       ( ,$1 )
 	     ;
 
 opt-template-equal : EQUAL symbol LESS template-specifier-type-list GREATER
+		     ( $2 )
 		   | EMPTY
 		   ;
 
 template-type : CLASS symbol
+		( $2 'type "class" )
 	      | STRUCT symbol
+		( $2 'type "struct" )
 	      | builtintype
+		( $1 'type )
 	      | symbol
+		( $1 )
 	      ;
 
 template-definition : type
