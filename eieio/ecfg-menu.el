@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: ecfg-menu.el,v 1.2 1996/11/13 21:47:24 zappo Exp $
+;;; RCS: $Id: ecfg-menu.el,v 1.3 1997/01/18 16:51:22 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -41,6 +41,9 @@
 (defvar econfig-color-keymap nil
   "Submenu keymap for editing different color sets")
 
+(defvar econfig-mail-keymap nil
+  "Submenu keymap for editing mail specific paramters.")
+
 (if econfig-keymap
     nil
   (setq econfig-keymap (make-sparse-keymap))
@@ -61,16 +64,32 @@
       '("Dialog Colors" . dlg-widget-faces))
     (define-key econfig-color-keymap [ basic-color ]
       '("Basic Colors" . dlg-faces)))
+  (if econfig-mail-keymap
+      nil
+    (setq econfig-mail-keymap (make-sparse-keymap))
+    (define-key econfig-mail-keymap [ citation ]
+      '("Citation" . econfig-supercite))
+    (define-key econfig-mail-keymap [ mail ]
+      '("Mail" . econfig-mail))
+    (define-key econfig-mail-keymap [ rmail ]
+      '("RMail" . econfig-rmail))
+    )
   (define-key econfig-keymap [ color ] 
     (cons "Face Colors" econfig-color-keymap))
+  (define-key econfig-keymap [ email ] 
+    (cons "E-mail" econfig-mail-keymap))
+  (define-key econfig-keymap [ ange-ftp ]
+    '("Ange FTP" . econfig-ange-ftp))
   (define-key econfig-keymap [ ps-print ]
     '("Postscript Printing" . econfig-ps-print))
   (define-key econfig-keymap [ calendar ]
     '("Calendar" . econfig-calendar))
-  (define-key econfig-keymap [ mail ]
-    '("Mail" . econfig-mail))
-  (define-key econfig-keymap [ rmail ]
-    '("RMail" . econfig-rmail))
+  (define-key econfig-keymap [ bookmarks ]
+    '("Bookmarks" . econfig-bookmarks))
+  (define-key econfig-keymap [ ispell ]
+    '("Ispell" . econfig-ispell))
+  (define-key econfig-keymap [ dired ]
+    '("Dired" . econfig-dired))
   (define-key econfig-keymap [ programs ]
     '("Program Editing" . econfig-programmer))
   (define-key econfig-keymap [ editing ]
@@ -81,8 +100,13 @@
 
 (autoload 'econfig-interface "e-config" "configuration dialog" t)
 (autoload 'econfig-editing "e-config" "configuration dialog" t)
+(autoload 'econfig-ange-ftp "e-config" "configuration dialog" t)
 (autoload 'econfig-programmer "e-config" "configuration dialog" t)
 (autoload 'econfig-calendar "e-config" "configuration dialog" t)
+(autoload 'econfig-bookmarks "e-config" "configuration dialog" t)
+(autoload 'econfig-dired "e-config" "configuration dialog" t)
+(autoload 'econfig-ispell "e-config" "configuration dialog" t)
+(autoload 'econfig-supercite "e-config" "configuration dialog" t)
 (autoload 'econfig-mail "e-config" "configuration dialog" t)
 (autoload 'econfig-rmail "e-config" "configuration dialog" t)
 (autoload 'econfig-font-lock-faces "e-config" "configuration dialog" t)
