@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: dlg-config.el,v 1.2 1996/08/17 00:30:57 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.3 1996/09/21 15:50:16 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -99,16 +99,136 @@ variable associated with the symbol field")
 (defmethod set-value :AFTER ((this data-object-symbol) value &optional setter)
   "When this data object's value is set, also set the value of it's
   symbol"
-  (if dlg-modify-running-environment (set (oref this symbol) value))
+  (if (and (stringp value) (string= value "")) (setq value nil))
+  ;; We only have to check again here just in case
+  (if (not (equal value (symbol-value (oref this symbol))))
+      (progn
+	(if dlg-modify-running-environment (set (oref this symbol) value))
+	(dlg-edit-config-file this))))
+
+(defclass data-object-symbol-string-to-int (data-object-symbol)
+  nil
+  "This type of object will also maintain it's value as a number in the
+variable associated with the symbol field")
+
+(defmethod set-value :AFTER ((this data-object-symbol-string-to-int) value &optional setter)
+  "When this data object's value is set, also set the value of it's
+  symbol"
+  (if (and dlg-modify-running-environment (stringp value))
+      (set (oref this symbol) (string-to-number value)))
   (dlg-edit-config-file this))
+
+(defclass data-object-symbol-list-index (data-object-symbol)
+  ((string-list :initarg :string-list
+		:initform nil
+		:documentation "List into which our value indexes."
+		:protection private))
+  "This type of object will also maintain it's value as a number in the
+variable associated with the symbol field.  The symbol will be
+assigned a value from this string list.")
+
+(defmethod set-value :AFTER ((this data-object-symbol-list-index) value &optional setter)
+  "When this data object's value is set, also set the value of it's
+  symbol"
+  (if (and dlg-modify-running-environment (numberp value))
+      (set (oref this symbol) (eval (read (nth value (oref this string-list))))))
+  (dlg-edit-config-file this))
+
+(defclass data-object-symbol-lisp-expression (data-object-symbol)
+  nil
+  "This type of object will also maintain it's value as an expression in the
+variable associated with the symbol field")
+
+(defmethod set-value :AFTER ((this data-object-symbol-lisp-expression) value &optional setter)
+  "When this data object's value is set, also set the value of it's
+  symbol"
+  (let ((ed t) (ex nil))
+    (if (and dlg-modify-running-environment (stringp value))
+	(progn
+	  (condition-case nil
+	      (setq ex (read value))
+	    (error (message "Invalid expression!")
+		   (setq ed nil)))
+	  (if ed (set (oref this symbol) ex))))
+    (if ed (dlg-edit-config-file this))))
 
 (defclass data-object-symbol-default (data-object-symbol)
   nil
   "This type of object uses setq-defualt for the given symbol")
 
-(defmethod set-value :AFTER ((this data-object-symbol) value &optional setter)
+(defmethod set-value :AFTER ((this data-object-symbol-default) value &optional setter)
   "When this data object value is set, set this as the new default."
   (set-default (oref this symbol) value)
+  (dlg-edit-config-file this))
+
+(defclass data-object-symbol-feature (data-object-symbol)
+  ((unload-commands :initarg :unload-commands
+		    :initform nil
+		    :documentation "Some packages may need additional unloading commands run."
+		    :protection private))
+  "This type of object uses require / unload-feature for the given symbol")
+
+(defmethod set-value :AFTER ((this data-object-symbol-feature) value &optional setter)
+  "When this data object value is set, set this as the new default."
+  (if value
+      (require (oref this symbol))
+    (require 'loadhist)
+      (if (oref this unload-commands)
+	  (let* ((file (feature-file (oref this symbol)))
+		 (dependents (delete file (copy-sequence (file-dependents file)))))
+	    (eval (oref this unload-commands))
+	    (if dependents
+		(message "cannot unload: %s depends on that feature" dependents)
+	      (unload-feature (oref this symbol))))
+	(message "You shouldn't unload this feature")))
+  (dlg-edit-config-file this))
+
+(defclass data-object-symbol-hook (data-object-symbol)
+  ((command :initarg :command
+	    :initform nil
+	    :documentation "A string representing a command to execute in a hook."
+	    :protection private))
+  "This type of object uses add/remove-hook for the given symbol")
+
+(defmethod set-value :AFTER ((this data-object-symbol-hook) value &optional setter)
+  "When this data object value is set, set this as the new default."
+  (if value
+      (add-hook (oref this symbol) (read (oref this command)))
+    (remove-hook (oref this symbol) (read (oref this command))))
+  (dlg-edit-config-file this))
+
+(defclass data-object-symbol-disabled (data-object-symbol)
+  nil
+  "This type of object uses (put ... 'disabled ...) for the given symbol")
+
+(defmethod set-value :AFTER ((this data-object-symbol-disabled) value &optional setter)
+  "When this data object value is set, set this as the new default."
+  (if dlg-modify-running-environment (put (oref this symbol) 'disabled value))
+  (dlg-edit-config-file this))
+
+(defclass data-object-command-option (data-object)
+  ((command :initarg :command
+	    :initform nil
+	    :documentation "A string representing a command to execute in a .emacs file."
+	    :protection private)
+   (disable-command :initarg :disable-command
+		    :initform nil
+		    :documentation "A string which allows `command' to be undone"
+		    :protection private)
+   (protect :initarg :protect
+	    :initform nil
+	    :documentation "Some symbols you never want to write to a file"
+	    :protection private))
+  "This type of object will optionally add a command to a .emacs file")
+
+(defmethod set-value :AFTER ((this data-object-command-option) value &optional setter)
+  "When this data object value is set, set this as the new default."
+  (if (oref this disable-command)
+      (cond (value (eval (oref this command)))
+	     (t (eval (oref this disable-command))))
+    (cond (value
+	   (message "I can't disable this, so I won't enable it either"))
+	  (t (message "I can't disable this command."))))
   (dlg-edit-config-file this))
 
 ;; face specific data objects
@@ -194,7 +314,7 @@ instantiated.")
 	       (make-face-bold f)
 	       (make-face-italic f)
 	       (dlg-edit-xdefaults this "attributeFont"
-				   "-*-*-bold-i-*-*-*-*-*-*-*-*-*-*"))))))
+				   "-*-*-bold-o-*-*-*-*-*-*-*-*-*-*"))))))
 
 ;;;
 ;;; DLG builders
@@ -257,7 +377,7 @@ instantiated.")
 (defun dlg-end ()
   "Add the [Done] button to the end."
   (create-widget "econfogok" widget-button widget-toplevel-shell
-		 :x 10 :y -3 :label-value "Done"
+		 :x t :y -3 :label-value "Done"
 		 :activate-hook (lambda (obj reason) (bury-buffer))
 		 :help-hook (lambda (obj reason)
 			      (message "Click to finish configuring."))))
@@ -287,7 +407,7 @@ at BX and BY"
 				      ""))))
     (create-widget (format "%s-bgl" face) widget-label cframe
 		   :x 1 :y -1 :label-value "Background:")
-    (create-widget (format "%s-foreground" face) widget-text-field cframe
+    (create-widget (format "%s-background" face) widget-text-field cframe
 		   :width 20 :height 1 :x -2 :y t 
 		   :value (data-face-background-object 
 			   (format "%s-bg-data" face)
@@ -313,7 +433,7 @@ at BX and BY"
 			     f 
 			     (match-beginning 1)
 			     (match-end 1))
-			    "i")
+			    "o")
 		 nil))
 	   (jnk2 (string-match x-font-regexp-weight f))
 	   (bld (if (and jnk2 (match-beginning x-font-regexp-weight-subnum))
@@ -331,45 +451,6 @@ at BX and BY"
 			     :face face
 			     :value (+ (if it 2 0) (if bld 1 0)))))
     ))
-
-(defun dlg-basic ()
-  "Creates a configure window with basic emacs items stored in it.
-Booleans are represented with toggle buttons.  Other types are
-represented as necessary."
-  (interactive)
-  (dlg-init)
-  (let ((oframe (create-widget "Toggle Frame buffoptions" widget-frame 
-			       widget-toplevel-shell
-			       :x 2 :y -3
-			       :frame-label "Buffer Options"))
-	)
-
-    (create-widget "truncatelines" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Truncate Lines"
-		   :state (data-object-symbol-default
-			   "truncate-lines"
-			   :value truncate-lines
-			   :symbol 'truncate-lines))
-    (create-widget "localvar" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Enable Local Variables"
-		   :state (data-object-symbol "enable-local-variables"
-					      :value enable-local-variables
-					      :symbol 'enable-local-variables))
-    (create-widget "newline" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Require Final Newline"
-		   :state (data-object-symbol "require-final-newline"
-					      :state require-final-newline
-					      :symbol 'require-final-newline))
-    (create-widget "qrhighlight" widget-toggle-button oframe
-		   :x 1 :y -1 :label-value "Query Replace Hightlight"
-		   :state (data-object-symbol "query-replace-highlight"
-					      :value query-replace-highlight
-					      :symbol 'query-replace-highlight))
-    )
-
-  (dlg-end)
-  (dialog-refresh)
-  )
 
 (defun dlg-faces (&optional list-o-faces)
   "Creates a dialog mode in which emacs faces are edited.  If optional
@@ -396,18 +477,6 @@ default to a list of simple faces."
   (dialog-refresh)
   )
 
-(defun dlg-font-lock-faces ()
-  "Edit list of font lock used faces"
-  (interactive)
-  (dlg-faces '(font-lock-comment-face
-	       font-lock-function-name-face
-	       font-lock-string-face
-	       font-lock-keyword-face
-	       font-lock-reference-face
-	       font-lock-variable-name-face
-	       font-lock-type-face))
-  )
-
 (defun dlg-widget-faces ()
   "Edit list of widget faces for all dialog boxes."
   (interactive)
@@ -421,6 +490,14 @@ default to a list of simple faces."
 	       widget-text-button-face
 	       )))
 
+(defun dlg-quick-find (find file)
+  "Return t if string FIND is in the FILE.  Don't dispose of file since
+we will use it soon."
+  (save-excursion
+    (set-buffer (find-file-noselect file))
+    (goto-char (point-min))
+    (re-search-forward find nil t)))
+
 (defun dlg-show-an-edit (buffer pnt)
   "Attempt to put buffer in a minimal window somewhere on the display.
 Unfortunately, it currently assumes there is but one dialog window."
@@ -432,7 +509,7 @@ Unfortunately, it currently assumes there is but one dialog window."
     (goto-char pnt)
     (other-window 1)))
 
-(defmethod dlg-edit-config-file ((this data-object-symbol))
+(defun dlg-edit-config-file (object)
   "Reads the currently stored config-file, and starts saving
 the variables we are editing."
   (if (and dlg-auto-edit dlg-config-file (not (oref this protect)))
@@ -440,26 +517,183 @@ the variables we are editing."
 	    nb pnt)
 	(setq nb (set-buffer (find-file-noselect dlg-config-file)))
 	(goto-char (point-min))
-	(if (or (re-search-forward (concat 
-				    "(setq?[ \t\n]+"
-				    (symbol-name (oref this symbol))
-				    "[ \t\n]+\\([A-Za-z0-9_]+\\)") nil t)
-		(re-search-forward (concat 
-				    "(setq?[ \t\n]+"
-				    (symbol-name (oref this symbol))
-				    "[ \t\n]+\\(\"[^\"]*\"\\)") nil t))
-	    (progn
-	      (goto-char (match-beginning 1))
-	      (delete-region (point) (match-end 1))
-	      (insert (format "%S" (oref this value))))
-	  (goto-char (point-max))
-	  (insert (format "\n(setq %s %S)"
-			  (symbol-name (oref this symbol))
-			  (oref this value))))
-	(beginning-of-line)
-	(setq pnt (point))
+	(dlg-edit-config-file-object object)
 	(set-buffer ob)
 	(dlg-show-an-edit nb pnt))))
+
+
+(defmethod dlg-edit-config-file-object ((this data-object-symbol))
+  "Reads the currently stored config-file, and starts saving
+the variables we are editing."
+  (let ((val (oref this value)))
+    (if (and (stringp val) (string= val ""))
+	(setq val nil))
+    (if (or (re-search-forward (concat 
+				"(setq[ \t\n]+"
+				(symbol-name (oref this symbol))
+				"[ \t\n]+\\([A-Za-z0-9_]+\\)") nil t)
+	    (re-search-forward (concat 
+				"(setq[ \t\n]+"
+				(symbol-name (oref this symbol))
+				"[ \t\n]+\\(\"[^\"]*\"\\)") nil t))
+	(progn
+	  (goto-char (match-beginning 1))
+	  (delete-region (point) (match-end 1))
+	  (insert (format "%S" val)))
+      (goto-char (point-max))
+      (insert (format "\n(setq %s %S)"
+		      (symbol-name (oref this symbol))
+		      val))))
+  (beginning-of-line)
+  (setq pnt (point)))
+
+(defmethod dlg-edit-config-file-object ((this data-object-symbol-list-index))
+  "Reads the currently stored config-file, and starts saving
+the variables we are editing."
+  (if (or (re-search-forward (concat 
+			      "(setq[ \t\n]+"
+			      (symbol-name (oref this symbol))
+			      "[ \t\n]+\\(['A-Za-z0-9_]+\\)") nil t)
+	  (re-search-forward (concat 
+			      "(setq[ \t\n]+"
+			      (symbol-name (oref this symbol))
+			      "[ \t\n]+\\(\"[^\"]*\"\\)") nil t))
+      (progn
+	(goto-char (match-beginning 1))
+	(delete-region (point) (match-end 1))
+	(insert (format "%s" (nth (oref this value) (oref this string-list)))))
+    (goto-char (point-max))
+    (insert (format "\n(setq %s %s)"
+		    (symbol-name (oref this symbol))
+		    (nth (oref this value) (oref this string-list)))))
+  (beginning-of-line)
+  (setq pnt (point)))
+
+(defmethod dlg-edit-config-file-object ((this data-object-symbol-lisp-expression))
+  "Reads the currently stored config-file, and starts saving
+the variables we are editing."
+  (if (re-search-forward (concat 
+			  "(setq[ \t\n]+"
+			  (symbol-name (oref this symbol))
+			  "\\([ \t\n]+\\)") nil t)
+      (progn
+	(goto-char (match-end 1))
+	(delete-region (point) (save-excursion (forward-sexp 1) (point)))
+	(insert (format "%s" (oref this value))))
+    (goto-char (point-max))
+    (insert (format "\n(setq %s %s)"
+		    (symbol-name (oref this symbol))
+		    (oref this value))))
+  (beginning-of-line)
+  (setq pnt (point)))
+
+(defmethod dlg-edit-config-file-object ((this data-object-symbol-string-to-int))
+  "Reads the currently stored config-file, and starts saving
+the variables we are editing."
+  (if  (re-search-forward (concat 
+			   "(setq[ \t\n]+"
+			   (symbol-name (oref this symbol))
+			   "[ \t\n]+\\(-?[.A-Za-z0-9_]+\\)") nil t)
+      (progn
+	(goto-char (match-beginning 1))
+	(delete-region (point) (match-end 1))
+	(insert (format "%S" (string-to-number (oref this value)))))
+    (goto-char (point-max))
+    (insert (format "\n(setq %s %S)"
+		    (symbol-name (oref this symbol))
+		    (string-to-int (oref this value)))))
+  (beginning-of-line)
+  (setq pnt (point)))
+
+(defmethod dlg-edit-config-file-object ((this data-object-symbol-hook))
+  "Reads the currently stored config-file, and starts saving
+the hooks we are editing."
+  (if  (re-search-forward (concat 
+			   "\\(;*\\)(add-hook[ \t\n]+'"
+			   (symbol-name (oref this symbol))
+			   "\\s-+'"
+			   (regexp-quote (oref this command))) nil t)
+      (progn
+	(goto-char (match-beginning 1))
+	(replace-match (if (oref this value) "" ";;") nil nil nil 1))
+    (goto-char (point-max))
+    (if (oref this value)
+	(insert "\n(add-hook '" (symbol-name (oref this symbol))
+		" '" (oref this command) ")")))
+  (beginning-of-line)
+  (setq pnt (point)))
+
+(defmethod dlg-edit-config-file-object ((this data-object-symbol-feature))
+  "Reads the currently stored config-file, and starts saving
+the features we are editing."
+  (if  (re-search-forward (concat 
+			   "\\(;*\\)(require[ \t\n]+'"
+			   (symbol-name (oref this symbol))) nil t)
+      (progn
+	(goto-char (match-beginning 1))
+	(replace-match (if (oref this value) "" ";;") nil nil nil 1))
+    (goto-char (point-max))
+    (if (oref this value)
+	(insert "\n(require '" (symbol-name (oref this symbol)) ")")))
+  (beginning-of-line)
+  (setq pnt (point)))
+
+(defmethod dlg-edit-config-file-object ((this data-object-symbol-default))
+  "Reads the currently stored config-file, and starts saving
+the variables we are editing."
+  (if (or (re-search-forward (concat 
+			      "(setq-default[ \t\n]+"
+			      (symbol-name (oref this symbol))
+			      "[ \t\n]+\\([A-Za-z0-9_]+\\)") nil t)
+	  (re-search-forward (concat 
+			      "(setq-default[ \t\n]+"
+			      (symbol-name (oref this symbol))
+			      "[ \t\n]+\\(\"[^\"]*\"\\)") nil t))
+      (progn
+	(goto-char (match-beginning 1))
+	(delete-region (point) (match-end 1))
+	(insert (format "%S" (oref this value))))
+    (goto-char (point-max))
+    (insert (format "\n(setq-default %s %S)"
+		    (symbol-name (oref this symbol))
+		    (oref this value))))
+  (beginning-of-line)
+  (setq pnt (point)))
+
+(defmethod dlg-edit-config-file-object ((this data-object-symbol-disabled))
+  "Reads the currently stored config-file, and starts saving
+the variables we are editing."
+  (if (re-search-forward (concat 
+			  "(put[ \t\n]+'"
+			  (symbol-name (oref this symbol))
+			  "[ \t\n]+'disabled[ \t\n]+\\([A-Za-z0-9_]+\\)")
+			 nil t)
+      (progn
+	(goto-char (match-beginning 1))
+	(delete-region (point) (match-end 1))
+	(insert (format "%S" (oref this value))))
+    (goto-char (point-max))
+    (insert (format "\n(put '%s 'disabled %S)"
+		    (symbol-name (oref this symbol))
+		    (oref this value))))
+  (beginning-of-line)
+  (setq pnt (point)))
+
+(defmethod dlg-edit-config-file-object ((this data-object-command-option))
+  "Reads the currently stored config-file, and enters the command here"
+  (if (re-search-forward (concat "^\\(;*\\)\\("
+				 (oref this command)
+				 "\\)")
+			 nil t)
+      (progn
+	(goto-char (match-beginning 1))
+	(delete-region (point) (match-end 1))
+	(insert (if (oref this value) "" ";;")))
+    (goto-char (point-max))
+    (if (oref this value)
+	(insert "\n" (oref this command))))
+  (beginning-of-line)
+  (setq pnt (point)))
 
 (defmethod dlg-edit-xdefaults ((this data-face-object) token val)
   "Open and edit the chosen Xdefaults file and store this face
@@ -475,10 +709,11 @@ startup (thus creating a real slow load)"
 				"emacs.*" 
 				(symbol-name (oref this face))
 				"." token ":"
-				"[ \t\n]+\\([^\n]+\\)$") nil t)
+				"\\([ \t]+\\)\\([^\n]+\\)?$") nil t)
 	    (progn
-	      (goto-char (match-beginning 1))
-	      (delete-region (point) (match-end 1))
+	      (goto-char (match-end 1))
+	      (if (match-beginning 2)
+		  (delete-region (point) (match-end 2)))
 	      (insert val))
 	  (goto-char (point-max))
 	  (insert "\nemacs*" (symbol-name (oref this face))
