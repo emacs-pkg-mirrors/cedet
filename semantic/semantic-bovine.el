@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.4 2002/08/04 01:57:01 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.5 2002/08/07 17:56:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,31 +39,6 @@
 ;; The bovinator takes a state table, and converts the token stream
 ;; into a new semantic stream defined by the bovination table.
 ;;
-
-(defun semantic-bovinate-region-default
-  (start end &optional reparse-symbol depth returnonerror)
-  "Bovinate the area between START and END, and return any tokens found.
-If END needs to be extended due to a lexical token being too large,
-it will be silently ignored.
-Optional argument REPARSE-SYMBOL is the rule to start parsing at if it
-is known.
-Optional argument DEPTH specifies the lexical depth to scan.
-Optional argument RETURNONERROR specifies that parsing should end
-when encountering unterminaled syntax."
-  (if (or (< end start) (> end (point-max)))
-      (error "Invalid bounds passed to `semantic-bovinate-region'"))
-  (let ((lexbits (semantic-lex start end depth))
-	tokens)
-    ;; Init a dump
-    ;;    (if semantic-dump-parse
-    ;;	      (semantic-dump-buffer-init))
-    (setq tokens (semantic-bovinate-nonterminals
-		  lexbits
-		  reparse-symbol
-		  depth
-		  returnonerror))
-    (nreverse tokens)))
-
 (defsubst semantic-bovinate-symbol-nonterminal-p (sym table)
   "Return non-nil if SYM is in TABLE, indicating it is NONTERMINAL."
   ;; sym is always a sym, so assq should be ok.
@@ -96,10 +71,9 @@ If so abort because an infinite recursive parse is suspected."
       (set (intern nt semantic-bovinate-nonterminal-check-obarray)
            (cons stream vs)))))
 
-(defun semantic-bovinate-nonterminal-default (stream &optional nonterminal)
-  "Bovinate STREAM based on the TABLE of nonterminal symbols.
-Optional argument NONTERMINAL is the nonterminal symbol to start with.
-Use `bovine-toplevel' if it is not provided.
+(defun semantic-bovinate-stream (stream &optional nonterminal)
+  "Bovinate STREAM, starting at the first NONTERMINAL rule.
+Use `bovine-toplevel' if NONTERMINAL is not provided.
 This is the core routine for converting a stream into a table.
 Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
@@ -300,7 +274,11 @@ list of semantic tokens found."
       (error
        ;; On error just move forward the stream of lexical tokens
        (setq result (list (cdr starting-stream) nil))))
-      result))
+    result))
+
+;; Make it the default parser
+;;;###autoload
+(defalias 'semantic-parse-stream-default 'semantic-bovinate-stream)
 
 ;;; Debugging in bovine tables
 ;;
