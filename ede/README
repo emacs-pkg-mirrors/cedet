@@ -1,0 +1,18 @@
+EDE - Emacs Development Environment
+
+Compiling instructions:
+
+EDE depends on both EIEIO and SPEEDBAR while compiling.  As such, the
+makefile included may not work if they are not in site-lisp, or other
+system install area.
+
+You can fetch the latest SPEEDBAR here (Version 0.8.1 or better):
+
+http://www.ultranet.com/~zappo/speedbar.shtml
+
+You can fetch the latest EIEIO here (Version 0.11 or better):
+
+http://www.ultranet.com/~zappo/eieio.shtml
+
+Once unpacked, you will need to tweek the Makefile to change the
+LOADPATH variable to be correct for your situation.
