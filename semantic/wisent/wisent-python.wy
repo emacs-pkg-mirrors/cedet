@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.4 2002/06/21 07:50:01 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.5 2002/06/21 10:16:23 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -47,6 +47,8 @@
    semantic-command-separation-character ";"
    ;; Init indentation stack
    wisent-python-lexer-indent-stack '(0)
+   ;; Init paired delimiter stack
+   wisent-python-matching-pair-stack nil
 
    semantic-flex-python-extensions
    '(("\"\"\"" . semantic-flex-python-triple-quotes))
@@ -75,6 +77,7 @@
 %put punctuation {string t multiple t}
 
 %token <newline>     NEWLINE
+%put newline handler wisent-python-lex-newline
 
 ;; ---------------------
 ;; Parenthesis terminals
@@ -85,6 +88,9 @@
 %token <close-paren> RBRACE     "}"
 %token <open-paren>  LBRACK 	"["
 %token <close-paren> RBRACK 	"]"
+
+%put open-paren  handler wisent-python-lex-open-paren
+%put close-paren handler wisent-python-lex-close-paren
 
 ;; ------------------
 ;; Operator terminals
@@ -127,6 +133,7 @@
 %token <punctuation> COMMA 	","
 %token <punctuation> ASSIGN 	"="
 %token <punctuation> BACKQUOTE 	"`"
+%token <punctuation> BACKSLASH 	"\\"
 
 ;; -----------------
 ;; Literal terminals

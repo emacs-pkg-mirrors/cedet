@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.2 2002/06/21 07:57:31 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.3 2002/06/21 10:16:23 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -106,11 +106,31 @@
 (require 'wisent-bovine)
 
 ;;;****************************************************************************
-;;;@ Support Functions
+;;;@ Support Code
 ;;;****************************************************************************
 ;;
 ;; Some of these need to come before `wisent-python-default-setup' so that
 ;; symbols are defined before their first use.
+
+;; Indentation stack to keep track of INDENT tokens generated without
+;; matching DEDENT tokens. Generation of each INDENT token results in
+;; a new integer being added to the beginning of this list where the
+;; integer represents the indentation of the current line. Each time a
+;; DEDENT token is generated, the latest entry added is popped off
+;; this list.
+(defvar wisent-python-lexer-indent-stack '(0))
+
+;; When a physical line ends without one or more matching ")", "]", or
+;; "}", then the following line is an implicit continuation of the
+;; current line. This means that the NEWLINE token plus any
+;; immediately following INDENT or DEDENT tokens must be discarded in
+;; the lexer stage as required by the python grammar.
+;;
+;; This stack, if non-nil, indicates that the following line is an
+;; implicit continuation of the current line. The idea is to push "(",
+;; "[", and "{" tokens whenever they are encountered, then popped when
+;; matching token is encountered.
+(defvar wisent-python-matching-pair-stack nil)
 
 ;; Quick hack to compute indentation.
 ;; Probably not good enough for production use.
@@ -162,6 +182,61 @@ Produce corresponding INDENT or DEDENT python's lexical tokens."
       ;; Return a DEDENT lexical token
       (list 'DEDENT last-indent)))))
 
+(defun wisent-python-lex-open-paren ()
+  (let* ((stok (car wisent-flex-istream))
+	 (tok-string (buffer-substring-no-properties (cadr stok) (cddr stok))))
+    (setq wisent-flex-istream (cdr wisent-flex-istream))
+    (cond
+     ((string= tok-string "(")
+      (setq wisent-python-matching-pair-stack
+	    (cons ")" wisent-python-matching-pair-stack))
+      (cons 'LPAREN (cons "(" (cdr stok))))
+     ((string= tok-string "[")
+      (setq wisent-python-matching-pair-stack
+	    (cons "]" wisent-python-matching-pair-stack))
+      (cons 'LBRACK (cons "[" (cdr stok))))
+     (t
+      (setq wisent-python-matching-pair-stack
+	    (cons "}" wisent-python-matching-pair-stack))
+      (cons 'LBRACE (cons "{" (cdr stok)))))))
+
+(defun wisent-python-lex-close-paren ()
+  (let* ((stok (car wisent-flex-istream))
+	 (tok-string (buffer-substring-no-properties (cadr stok) (cddr stok))))
+    ;; If matching delimiter, then pop it off the stack, else error.
+    (if (string= (car wisent-python-matching-pair-stack) tok-string)
+	(setq wisent-python-matching-pair-stack
+	      (cdr wisent-python-matching-pair-stack))
+      (error "Expected %s token, but got %s"
+	     (car wisent-python-matching-pair-stack) tok-string))
+    (setq wisent-flex-istream (cdr wisent-flex-istream))
+    (cond
+     ((string= tok-string ")")
+      (cons 'RPAREN (cons ")" (cdr stok))))
+     ((string= tok-string "]")
+      (cons 'RBRACK (cons "]" (cdr stok))))
+     (t
+      (cons 'RBRACE (cons "}" (cdr stok)))))))
+
+(defun wisent-python-lex-newline ()
+  "Handle NEWLINE syntactic tokens.
+If the following line is an implicit continuation of current line,
+then throw away any immediately following INDENT and DEDENT tokens."
+  (let ((stok (car wisent-flex-istream)))
+    ;; Pop the current 'newline token
+    (setq wisent-flex-istream (cdr wisent-flex-istream))
+    ;; If implicit line continuation,
+    (cond
+     (wisent-python-matching-pair-stack
+      ;; Pop the immediately following `bol' and `newline' tokens.
+      (while (memq (caar wisent-flex-istream) '(bol newline))
+	(setq wisent-flex-istream (cdr wisent-flex-istream)))
+      (wisent-flex))
+     (t
+      ;; Replace 'newline semantic token with NEWLINE wisnet token, then
+      ;; return it.
+      (cons 'NEWLINE (cons "\n" (cdr stok)))))))
+
 (defconst semantic-python-number-regexp
   (eval-when-compile
     (concat "\\("
@@ -196,8 +271,12 @@ we get around ot it.")
     (setq end (point))
     (cons 'string (cons beg end))))
 
-;; Replace the default setup by this new one.
-(add-hook 'python-mode-hook #'wisent-python-default-setup)
+;; Replace the default setup with `wisent-python-default-setup'.
+;; This should be called everytime before parsing starts.
+;; I am trying `semantic-init-hooks' instead of `python-mode-hook' hoping
+;; that the former gets called more often than the latter. -ryk 6/20/02
+;;(add-hook 'python-mode-hook #'wisent-python-default-setup)
+(add-hook 'semantic-init-hooks #'wisent-python-default-setup)
 
 ;;;****************************************************************************
 ;;;@ Code Filled in by wisent-wy-update-outputfile
@@ -205,9 +284,9 @@ we get around ot it.")
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 17:06-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 19:46-0700
     (wisent-compile-grammar
-     '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
+     '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
        (goal
 	((single_input)))
@@ -798,17 +877,11 @@ we get around ot it.")
 	 (format ", ** %s"
 		 (or $3 ""))))
        (argument
-	((white_space_tokens_zom test eq_test_opt white_space_tokens_zom)
+	((test eq_test_opt)
 	 (format "%s" $2)))
-       (white_space_tokens_zom
-	(nil)
-	((white_space_tokens_zom white_space_token)))
-       (white_space_token
-	((NEWLINE))
-	((INDENT)))
        (test_eq_opt
 	(nil)
-	((NAME ASSIGN)
+	((test ASSIGN)
 	 (format "%s = " $1)))
        (list_iter
 	((list_for))
@@ -826,7 +899,7 @@ we get around ot it.")
 
 (defconst wisent-python-keywords
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 17:06-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 19:46-0700
    (semantic-flex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -890,7 +963,7 @@ we get around ot it.")
 
 (defconst wisent-python-tokens
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 17:06-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 19:46-0700
    (wisent-flex-make-token-table
     '(("bol"
        (DEDENT)
@@ -902,6 +975,7 @@ we get around ot it.")
       ("string"
        (STRING_LITERAL))
       ("punctuation"
+       (BACKSLASH . "\\")
        (BACKQUOTE . "`")
        (ASSIGN . "=")
        (COMMA . ",")
@@ -951,6 +1025,9 @@ we get around ot it.")
       ("newline"
        (NEWLINE)))
     '(("bol" handler wisent-python-lex-bol)
+      ("close-paren" handler wisent-python-lex-close-paren)
+      ("open-paren" handler wisent-python-lex-open-paren)
+      ("newline" handler wisent-python-lex-newline)
       ("punctuation" multiple t)
       ("punctuation" string t)
       ("symbol" string t)
@@ -961,7 +1038,7 @@ we get around ot it.")
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 17:06-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 19:46-0700
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
 	  semantic-toplevel-bovine-table wisent-python-parser-tables
@@ -981,6 +1058,8 @@ we get around ot it.")
      semantic-command-separation-character ";"
      ;; Init indentation stack
      wisent-python-lexer-indent-stack '(0)
+     ;; Init paired delimiter stack
+     wisent-python-matching-pair-stack nil
 
      semantic-flex-python-extensions
      '(("\"\"\"" . semantic-flex-python-triple-quotes))
