@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2003-10-01 10:07:39+0200
+;; Created: 2003-10-02 15:27:21+0200
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.6 2003/10/01 08:50:54 ponced Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.7 2003/10/02 13:56:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -42,6 +42,7 @@
 (defconst semantic-grammar-wy--keyword-table
   (semantic-lex-make-keyword-table
    '(("%default-prec" . DEFAULT-PREC)
+     ("%no-default-prec" . NO-DEFAULT-PREC)
      ("%languagemode" . LANGUAGEMODE)
      ("%left" . LEFT)
      ("%nonassoc" . NONASSOC)
@@ -98,7 +99,7 @@
     (eval-when-compile
       (require 'wisent-comp))
     (wisent-compile-grammar
-     '((DEFAULT-PREC LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN USE-MACROS KEYWORDTABLE OUTPUTFILE PARSETABLE SETUPFUNCTION TOKENTABLE STRING SYMBOL PERCENT_PERCENT CHARACTER SEXP PREFIXED_LIST PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT)
+     '((DEFAULT-PREC NO-DEFAULT-PREC LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN USE-MACROS KEYWORDTABLE OUTPUTFILE PARSETABLE SETUPFUNCTION TOKENTABLE STRING SYMBOL PERCENT_PERCENT CHARACTER SEXP PREFIXED_LIST PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT)
        nil
        (grammar
         ((prologue))
@@ -119,6 +120,7 @@
          (eval $1)))
        (decl
         ((default_prec_decl))
+        ((no_default_prec_decl))
         ((languagemode_decl))
         ((package_decl))
         ((precedence_decl))
@@ -134,19 +136,15 @@
         ((setupfunction_decl))
         ((tokentable_decl)))
        (default_prec_decl
-         ((DEFAULT-PREC any_value)
-          (let
-              ((dprec
-                (string-to-number $2)))
-            (setq dprec
-                  (cond
-                   ((zerop dprec)
-                    nil)
-                   ((= 1 dprec)
-                    t)
-                   ((error "invalid value for `%default-prec'"))))
-            `(wisent-raw-tag
-              (semantic-tag "default-prec" 'assoc :value ,dprec)))))
+         ((DEFAULT-PREC)
+          `(wisent-raw-tag
+            (semantic-tag "default-prec" 'assoc :value
+                          '("t")))))
+       (no_default_prec_decl
+        ((NO-DEFAULT-PREC)
+         `(wisent-raw-tag
+           (semantic-tag "default-prec" 'assoc :value
+                         '("nil")))))
        (languagemode_decl
         ((LANGUAGEMODE symbols)
          `(wisent-raw-tag
