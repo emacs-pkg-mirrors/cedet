@@ -3,8 +3,7 @@
 ;;; Copyright (C) 1995, 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.11 1996/11/09 23:25:03 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.12 1996/11/18 00:28:44 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -121,6 +120,8 @@ key is any value between 0 and 128"
   (define-key dialog-mode-map "\C-p" 'dialog-handle-kbd-maybe)
   (define-key dialog-mode-map "\C-f" 'dialog-handle-kbd-maybe)
   (define-key dialog-mode-map "\C-b" 'dialog-handle-kbd-maybe)
+  (define-key dialog-mode-map "\C-e" 'dialog-handle-kbd-maybe)
+  (define-key dialog-mode-map "\C-a" 'dialog-handle-kbd-maybe)
   ;; Some keys in meta mat should not be overridden
   (define-key dialog-meta-map "x" nil)
   (define-key dialog-meta-map ":" nil)
@@ -148,12 +149,15 @@ key is any value between 0 and 128"
 	)
     ;; some translations into text
     (define-key dialog-mode-map [tab] 'dialog-next-widget)
+    (define-key dialog-mode-map [shift tab] 'dialog-prev-widget)
     (define-key dialog-mode-map [up] 'dialog-handle-kbd-maybe)
     (define-key dialog-mode-map [down] 'dialog-handle-kbd-maybe)
     (define-key dialog-mode-map [right] 'dialog-handle-kbd-maybe)
     (define-key dialog-mode-map [left] 'dialog-handle-kbd-maybe)
     (define-key dialog-mode-map [next] 'dialog-handle-kbd-maybe)
     (define-key dialog-mode-map [prev] 'dialog-handle-kbd-maybe)
+    (define-key dialog-mode-map [home] 'dialog-handle-kbd-maybe)
+    (define-key dialog-mode-map [end] 'dialog-handle-kbd-maybe)
     ;; Now some mouse events
     (define-key dialog-mode-map [mouse-2] 'dialog-handle-mouse)
     (define-key dialog-mode-map [down-mouse-2] 'dialog-handle-mouse)
@@ -411,8 +415,14 @@ registered with this area of text, otherwise run the default keybinding."
 (defmacro dialog-build-group (widget &rest forms)
   "This is similar to a `progn' where new WIDGET becomes the  default
 parent for new widgets created within FORMS"
-  (list 'let (list (list 'dialog-current-parent widget))
+  (list 'let* (list (list 'dw widget)
+		    (list 'dialog-current-parent 
+			  '(if (stringp dw) 
+			       (create-widget dw widget-frame)
+			     dw)))
 	(cons 'progn forms)))
+
+;; Now fix this macro for various thingies
 (put 'dialog-build-group 'lisp-indent-function 1)
 (add-hook 'edebug-setup-hook
 	  (lambda ()
@@ -735,15 +745,17 @@ the screen."
 		     :label-value "Third nifty option")
       )
 
-    (create-widget "some-stuff" widget-option-button
-		   :face 'italic
-		   :option-list '("Moose" "Dog" "Cat" "Mouse" "Monkey" "Penguin")
-		   )
-    (create-widget "MyText" widget-text-field
-		   :width 20 :value "My First String")
-    (create-widget "MyTextGroup" widget-labeled-text
-		   :text-length 20 :value "My Composite String"
-		   :label "Named String:" :unit "chars")
+    (dialog-build-group "Random Widget Things"
+      (create-widget "some-stuff" widget-option-button
+		     :face 'italic
+		     :option-list '("Moose" "Dog" "Cat" "Mouse" "Monkey" "Penguin")
+		     )
+      (create-widget "MyText" widget-text-field
+		     :width 20 :value "My First String")
+      (create-widget "MyTextGroup" widget-labeled-text
+		     :text-length 20 :value "My Composite String"
+		     :label "Named String:" :unit "chars")
+      )
     )
   (dialog-refresh)
   (goto-char (point-min))
