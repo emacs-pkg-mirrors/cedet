@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.23 2004/02/04 04:17:32 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.24 2004/02/05 03:16:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -756,6 +756,10 @@ in a buffer."
 		  ;; Add to the list
 		  (setq c (append c constants)))
 	      ))))
+
+      ;; Pull out trash.
+      ;; NOTE TO SELF: Is this too slow?
+      (setq c (semantic-unique-tag-table c))
 
       ;; All done!
 
