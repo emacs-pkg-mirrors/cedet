@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.8 1996/08/19 00:48:07 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.9 1996/10/12 10:23:33 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -169,11 +169,22 @@
 ;;;           :PRIMARY and :AFTER elements, and then the :BEFORE,
 ;;;           :PRIMARY and :AFTER generic calls.  Lastly turned lists
 ;;;           of associations into OBARRAYs and symbols.
+;;; 0.8    Added ability to byte compile methods on the fly.  This has
+;;;           some moderate runtime speed improvements, but slows load
+;;;           down a lot.  Control this activity through the control
+;;;           variable `eieio-byte-compile-on-load'
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
 ;;; state when using methods.
 ;;;
+
+(defvar eieio-byte-compile-on-load t
+  "*Non-nil means byte compile all methods when they are created.
+This improves speed of execution for large complex forms.  The need
+for this is because byte compiling methods doesn't create byte code
+out of the method forms because the created forms aren't attached to a
+symbols function cell.  To use edebug, set this to nil.")
 
 (defvar this nil
   "Inside a method, this variable is the object in question.  DO NOT
@@ -561,8 +572,10 @@ the body, such as:
       ;; generics are higher
       (setq key (+ key method-num-fields)))
     ;; Put this lambda into the symbol so we can find it
-    (eieiomt-add method (append (list 'lambda (reverse argfix)) body)
-		 key (nth 1 firstarg))
+    (if (byte-code-function-p (car-safe body))
+	(eieiomt-add method (car-safe body) key (nth 1 firstarg))
+      (eieiomt-add method (append (list 'lambda (reverse argfix)) body)
+		   key (nth 1 firstarg)))
     (eieio-rebuild-generic-doc-string method)
     )
   method)
@@ -889,7 +902,7 @@ method belong to the parent class"
 
 (defun eieiomt-add (method-name method tag class)
   "Add to METHOD-NAME the METHOD with associated TAG a function
-associated with CLASS"
+associated with CLASS."
   (if (or (>= tag method-num-fields) (< tag 0))
       (error "eieiomt-add: method tag error!"))
   (let ((emtv (get method-name 'eieio-method-tree))
@@ -1142,10 +1155,15 @@ associated with this symbol.  Current method specific code is:")
 			       ;; prefix type
 			       " " (aref prefix i) " "
 			       ;; argument list
-			       (format "%S" (car (cdr (cdr (car gm))))) "\n"
+			       (let* ((func (cdr (car gm)))
+				      (arglst (if (byte-code-function-p func)
+						  (aref func 0)
+						(car func))))
+				 (format "%S" arglst))
+			       "\n"
 			       ;; 3 because of cdr
-			       (if (documentation (car (car gm)))
-				   (documentation (car (car gm)))
+			       (if (documentation (cdr (car gm)))
+				   (documentation (cdr (car gm)))
 				 "Undocumented")))
 	  (setq gm (cdr gm))))
       (setq i (1+ i)))
@@ -1322,6 +1340,69 @@ an object, then also display current values of that obect."
 		"\n"))
       (setq publa (cdr publa)
 	    publd (cdr publd)))))
+
+
+;;; Interfacing with other packages
+;;
+;; Byte compiler functions for defmethod.  This will affect the new GNU
+;; byte compiler for emacs 19 and better.  This function will be called by
+;; the byte compiler whenever a `defmethod' is encountered in a file.
+;; It will output a function call to `defmethod-engine' with the byte
+;; compiled function as a parameter.  As a result, the engine must
+;; know when it encounters a compiled function.
+
+(put 'defmethod 'byte-hunk-handler 'byte-compile-file-form-defmethod)
+(defun byte-compile-file-form-defmethod (form)
+  "Mumble about the thing we are compiling."
+  (setq form (cdr form))
+  (let* ((meth (car form))
+	 (key (progn (setq form (cdr form))
+		     (cond ((eq ':BEFORE (car form))
+			    (setq form (cdr form))
+			    ":BEFORE ")
+			   ((eq ':AFTER (car form))
+			    (setq form (cdr form))
+			    ":AFTER ")
+			   (t ""))))
+	 (params (car form))
+	 (lamparams (byte-compile-defmethod-param-convert params))
+	 (class (car (cdr (car params)))))
+    (let ((name (format "%s::%s" (or class "#<generic>") meth)))
+      (if byte-compile-verbose
+	  (message "Compiling %s... (%s)" (or filename "") name))
+      (setq byte-compile-current-form name) ; for warnings
+      )
+    ;; Flush any pending output
+    (byte-compile-flush-pending)
+    ;; Byte compile the body.  For the byte compiled forms, add the 
+    ;; rest arguments, which will get ignored by the engine which will
+    ;; add them later (I hope)
+    (let* ((new-one (byte-compile-lambda 
+		     (append (list 'lambda lamparams)
+			     (cdr form))))
+	   (code (byte-compile-byte-code-maker new-one)))
+      (princ "\n(defmethod-engine '" outbuffer)
+      (princ meth outbuffer)
+      (princ " '(" outbuffer)
+      (princ key outbuffer)
+      (prin1 params outbuffer)
+      (princ " " outbuffer)
+      (prin1 code outbuffer)
+      (princ "))" outbuffer)
+      nil
+      )))
+
+(defun byte-compile-defmethod-param-convert (paramlist)
+  "Convert method params into the params used by the defmethod thingy."
+  (let ((argfix nil))
+    (while paramlist
+      (setq argfix (cons (if (listp (car paramlist)) 
+			     (car (car paramlist))
+			   (car paramlist))
+			 argfix))
+      (setq paramlist (cdr paramlist)))
+    (nreverse argfix)))
+
 
 ;; Now lets support edebug in reguard to defmethod forms.
 ;; reguardless of if edebug is running, this hook is re-eveluated so
