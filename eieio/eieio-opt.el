@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.15 2000/09/25 01:50:17 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.16 2000/12/16 15:37:31 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -409,7 +409,24 @@ Optional argument HISTORYVAR is the variable to use as history."
 		      ((generic-p (car args))
 		       (setcar help-data 'eieio-describe-generic))
 		      (t nil))
-		))))))))
+		))))
+	;; start back at the beginning, and highlight some sections
+	(goto-char (point-min))
+	(while (re-search-forward "^\\(Documentation\\|Implementations\\):$" nil t)
+	    (put-text-property (match-beginning 0) (match-end 0) 'face 'bold))
+	(goto-char (point-min))
+	(if (re-search-forward "^Specialized Methods:$" nil t)
+	    (put-text-property (match-beginning 0) (match-end 0) 'face 'bold))
+	(goto-char (point-min))
+	(while (re-search-forward "^\\(Instance\\|Class\\) Allocated Slots:$" nil t)
+	    (put-text-property (match-beginning 0) (match-end 0) 'face 'bold))
+	(goto-char (point-min))
+	(while (re-search-forward ":\\(BEFORE\\|AFTER\\|PRIMARY\\)" nil t)
+	    (put-text-property (match-beginning 0) (match-end 0) 'face 'bold))
+	(goto-char (point-min))
+	(while (re-search-forward "^\\(Private \\)?Slot:" nil t)
+	    (put-text-property (match-beginning 0) (match-end 0) 'face 'bold))
+	))))
 
 (defun eieio-help-augment-keymap ()
   "Augment the help keymap for cool EIEIO stuff."
