@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.9 2003/02/03 08:47:05 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.10 2003/02/17 01:55:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1631,14 +1631,14 @@
   "^\\s-*#if\\s-*0$"
   (beginning-of-line)
   (c-forward-conditional 1)
-  (setq end-point (point))
+  (setq semantic-lex-end-point (point))
   nil)
 
 (define-lex-regex-analyzer semantic-lex-c-if
   "Ignore various forms of #if/#else/#endif conditionals."
   "^#\\(if\\(def\\)?\\|el\\(if\\|se\\)\\|endif\\)"
   (when (bolp) (end-of-line))
-  (setq end-point (point))
+  (setq semantic-lex-end-point (point))
   nil)
 
 (define-lex-analyzer semantic-lex-c-include-system
@@ -1653,7 +1653,8 @@
     ;; This should always pass
     (re-search-forward ">")
     ;; We have the whole thing.
-    (semantic-lex-token 'system-include start (point))
+    (semantic-lex-push-token
+     (semantic-lex-token 'system-include start (point)))
     )
   )
 
@@ -1661,27 +1662,22 @@
   "Skip backslash ending a line.
 Go to the next line."
   "\\\\\\s-*\n"
-  (setq end-point (match-end 0)))
+  (setq semantic-lex-end-point (match-end 0)))
 
 (define-lex-regex-analyzer semantic-lex-c-string
   "Detect and create a C string token."
   "L?\\(\\s\"\\)"
   ;; Zing to the end of this string.
-  (semantic-lex-token
-   'string (point)
-   (save-excursion
-     ;; Skip L prefix if present.
-     (goto-char (match-beginning 1))
-     (condition-case nil
-	 (forward-sexp 1)
-       ;; This case makes lex robust to broken strings.
-       (error
-	(goto-char
-	 (funcall
-	  semantic-lex-unterminated-syntax-end-function
-	  'string
-	  start end))))
-     (point))))
+  (semantic-lex-push-token
+   (semantic-lex-token
+    'string (point)
+    (save-excursion
+      ;; Skip L prefix if present.
+      (goto-char (match-beginning 1))
+      (semantic-lex-unterminated-syntax-protection 'string
+	(forward-sexp 1)
+	(point))
+      ))))
 
 (define-lex semantic-c-lexer
   "Lexical Analyzer for C code."
