@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.7 2003/03/15 19:25:03 zappo Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.8 2003/03/16 09:28:52 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -314,9 +314,9 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
           (insert "\n(" nterm)))
         ;; Process each rule
         (while rules
-          (setq items (nth 3 (car rules))
-                prec  (nth 4 (car rules))
-                actn  (nth 5 (car rules))
+          (setq items (semantic-token-extra-spec (car rules) :value)
+                prec  (semantic-token-extra-spec (car rules) :prec)
+                actn  (semantic-token-extra-spec (car rules) :expr)
                 rules (cdr rules))
           ;; Process each item
           (insert "\n(")
@@ -343,9 +343,9 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
                  ;; in the grammar, ITEM is replaced by TYPE [REGEX].
                  ((setq token (semantic-find-nonterminal-by-name
                                item tokens)
-                        type  (nth 2 token))
+                        type  (semantic-token-extra-spec token :type))
                   (insert type)
-                  (if (setq regex (nth 4 token))
+                  (if (setq regex (semantic-token-extra-spec token :value))
                       (insert (format "\n%S" regex))))
                  ;; Don't change ITEM
                  (t
