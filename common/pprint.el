@@ -1,12 +1,12 @@
 ;;; pprint.el --- A flexible Elisp pretty-printer
 
-;; Copyright (C) 2002 David Ponce
+;; Copyright (C) 2002, 2003, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 06 Mar 2002
 ;; Keywords: lisp
-;; X-RCS: $Id: pprint.el,v 1.6 2003/02/17 09:16:02 ponced Exp $
+;; X-RCS: $Id: pprint.el,v 1.7 2004/04/08 08:49:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -158,6 +158,15 @@ beyond specified ROOM."
   "Built-in printer to process close parenthesis characters."
   (up-list 1))
 
+(defsubst pprint-nil-as-list ()
+  "If next s-expression is the nil symbol print it as ().
+Return non-nil if nil has been found and printed."
+  (skip-syntax-forward "-'")
+  (when (looking-at "\\<nil\\>")
+    (delete-region (point) (save-excursion (forward-sexp) (point)))
+    (insert "()")
+    t))
+
 (defsubst pprint-list ()
   "Built-in list printer."
   (down-list 1)
@@ -211,19 +220,13 @@ representation will not start on a new line."
 ;;;; Standard printers
 ;;;;
 
-(defun pprint-nil ()
-  "Print nil symbol as ()."
-  (delete-region (point) (save-excursion (forward-sexp) (point)))
-  (insert "()"))
-
 (defun pprint-lambda ()
   "Standard printer for `lambda' like forms."
   (down-list 1)
   (forward-sexp)
   ;; Print empty args as () instead of nil
-  (pprint-with-printers nil
-    (pprint-push-printer 'pprint-nil "\\<nil\\>")
-    (pprint-sexp t))
+  (or (pprint-nil-as-list)
+      (pprint-sexp t))
   (pprint-sequence)
   (pprint-close-list))
 
@@ -234,9 +237,8 @@ representation will not start on a new line."
   (forward-sexp)
   (forward-sexp)
   ;; Print empty args as () instead of nil
-  (pprint-with-printers nil
-    (pprint-push-printer 'pprint-nil "\\<nil\\>")
-    (pprint-sexp t))
+  (or (pprint-nil-as-list)
+      (pprint-sexp t))
   (pprint-sequence)
   (pprint-close-list))
 
@@ -256,7 +258,18 @@ representation will not start on a new line."
   "Standard printer for `let' like forms."
   (down-list 1)
   (forward-sexp)
-  (pprint-sexp t)
+  (skip-syntax-forward "-'")
+  (if (looking-at "\\s(")
+      (progn
+        (down-list 1)
+        (skip-syntax-forward "-'")
+        (unless (looking-at "\\s)")
+          (pprint-sexp t)
+          (pprint-sequence))
+        (pprint-close-list))
+    ;; Print empty let binding as () instead of nil
+    (or (pprint-nil-as-list)
+        (pprint-sexp t)))
   (pprint-maybe-newline-and-indent)
   (pprint-sequence)
   (pprint-close-list))
@@ -410,7 +423,7 @@ given WIDTH.  WIDTH value defaults to `fill-column'."
           (print-quoted t))
       (prin1 object (current-buffer)))
     (goto-char (point-min))
-    ;; Escape "(" at beginning of line.  Can only occurs in strings.
+    ;; Escape "(" at beginning of line.  Can only occur in strings.
     (when (looking-at "\\s(")
       (down-list 1)
       (while (re-search-forward "^\\s(" nil t)
@@ -440,7 +453,7 @@ value defaults to `fill-column'."
   (interactive "aPretty print function: ")
   (let ((code (symbol-function function-name)))
     (if (byte-code-function-p code)
-        (error "can't pretty-print a byte compiled function"))
+        (error "Can't pretty-print a byte compiled function"))
     (with-current-buffer
         (get-buffer-create (format "*pprint-function %s*"
                                    function-name))
