@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.15 2002/02/26 18:49:42 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.16 2002/06/29 18:09:18 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,19 +42,24 @@
 ;;; Token production
 ;;
 (defsubst wisent-token (&rest return-val)
-  "Return a Semantic token including RETURN-VAL.
+  "Return a raw Semantic token including RETURN-VAL.
 Should be used in Semantic actions to build the bovine cache."
-  ;; To avoid calling:
-  ;;   (semantic-token-put return-val 'reparse-symbol $nterm)
-  ;; the token property list with the 'reparse-symbol property is
-  ;; setup "on the fly" ;)
-  (list (nconc return-val
-               (list
-                (list (cons 'reparse-symbol $nterm))
-                (if (or $region
-                        (setq $region (nthcdr 2 wisent-input)))
-                    (vector (car $region) (cdr $region))
-                  (vector (point-max) (point-max)))))))
+  (nconc return-val
+         (if (or $region
+                 (setq $region (nthcdr 2 wisent-input)))
+             (list (car $region) (cdr $region))
+           (list (point-max) (point-max)))))
+
+(defsubst wisent-cooked-token (&rest return-val)
+  "Return a cooked Semantic token including RETURN-VAL.
+Should be used in Semantic actions to build the bovine cache."
+  (let* ((cooked (semantic-raw-to-cooked-token
+                  (apply 'wisent-token return-val)))
+         (l cooked))
+    (while l
+      (semantic-token-put (car l) 'reparse-symbol $nterm)
+      (setq l (cdr l)))
+    cooked))
 
 ;;; Bovination
 ;;
@@ -68,18 +73,14 @@ This function does not have argument and must pop tokens from
 `wisent-flex-istream'.")
 (make-variable-buffer-local 'wisent-lexer-function)
 
-(defvar wisent-lexer-lookahead nil)
+(defvar wisent-lexer-lookahead nil
+  "Extra lookahead token.
+When non-nil it is directly returned by `wisent-lexer-wrapper'.")
 
 (defun wisent-lexer-wrapper ()
   "Return the next lexical input available.
-Used as a wrapper to call `wisent-lexer-function' and to provide
-working goodies."
-  (if wisent-flex-istream
-      (if (eq semantic-bovination-working-type 'percent)
-          (working-status
-           (/ (* 100 (semantic-flex-start (car wisent-flex-istream)))
-              (point-max)))
-        (working-dynamic-status)))
+Used as a wrapper to call `wisent-lexer-function' to safely handle
+`wisent-lexer-lookahead'."
   (or (prog1
           wisent-lexer-lookahead
         (setq wisent-lexer-lookahead nil))
@@ -87,7 +88,6 @@ working goodies."
 
 (defun wisent-collect-unmatched-syntax (input)
   "Add INPUT lexical token to the cache of unmatched tokens.
-Run as `wisent-skip-token-hook' hook function.
 See also the variable `semantic-unmatched-syntax-cache'."
   (let ((region (cddr input)))
     (and (number-or-marker-p (car region))
@@ -103,210 +103,33 @@ Optional argument NONTERMINAL is the nonterminal symbol to start with.
 Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
 list of semantic tokens found."
-  (let* ((wisent-flex-istream stream)
-         (cache (condition-case nil
-                    ;; Must return a list of Semantic tokens
-                    (delq nil (mapcar
-                               #'(lambda (tok)
-                                   (if (semantic-token-p tok) tok))
-                               (wisent-parse table
-                                             #'wisent-lexer-wrapper
-                                             wisent-error-function
-                                             nonterminal)))
-                  (error nil))))
-    (list wisent-flex-istream cache)))
-
-(defun wisent-bovinate-nonterminals (stream nonterm
-                                            &optional returnonerror)
-  "Bovinate the entire stream STREAM starting with NONTERM.
-Optional argument RETURNONERROR indicates that the parser should exit
-with the current results on a parse error."
-  (let ((case-fold-search semantic-case-fold)
-        result nontermsym sstream lookahead wisent-lexer-lookahead)
-    ;; Collect unmatched syntax lexical tokens
-    (add-hook 'wisent-skip-token-hook
-              'wisent-collect-unmatched-syntax)
-    (while stream
-      (setq lookahead wisent-lexer-lookahead
-            nontermsym (wisent-bovinate-nonterminal
-                        stream semantic-toplevel-bovine-table nonterm)
-            stream     (car nontermsym)
-            sstream    (nth 1 nontermsym))
-      (if (and wisent-lookahead (eq lookahead wisent-lookahead))
-          (run-hook-with-args 'wisent-skip-token-hook lookahead)
-        (setq wisent-lexer-lookahead wisent-lookahead))
-      (if sstream
-          (setq result (nconc sstream result))
-        (if returnonerror
-            (setq stream nil)
-          ;;(error "Parse error")
-	  )))
-    ;; End of collect of unmatched syntax lexical tokens
-    (remove-hook 'wisent-skip-token-hook
-                 'wisent-collect-unmatched-syntax)
-    result))
-
-(defun wisent-rebovinate-token (token)
-  "Use TOKEN for extents, and reparse it, splicing it back into the cache."
-  ;; Pre Hooks
-  (run-hook-with-args 'semantic-pre-clean-token-hooks token)
-
-  (let* ((stream (semantic-flex (semantic-token-start token)
-                                (semantic-token-end token)))
-	 ;; For embeded tokens (type parts, for example) we need a
-	 ;; different symbol.  Come up with a plan to solve this.
-	 (nonterminal (semantic-token-get token 'reparse-symbol))
-	 (new (and nonterminal
-                   (nth 1 (condition-case nil
-                              (wisent-bovinate-nonterminal
-                               stream
-                               semantic-toplevel-bovine-table
-                               nonterminal)
-                            (error nil))))))
-    (if (or (null (car new))            ; Clever reparse failed
-            (> (length new) 1))         ; or returned multiple tokens
-        ;; Don't do much, we have to do a full recheck.
-        (setq semantic-toplevel-bovine-cache-check t)
-
-      ;; Update the cache with the new token
-      (semantic-overlay-list new)       ; Setup overlays
-      (setq new (car new))              ; Get the new token
-      (let ((oo (semantic-token-overlay token))
-            (o (semantic-token-overlay new)))
-        ;; Copy all properties of the old overlay here.  I think I can
-        ;; use plists in emacs, but not in XEmacs.  Ack!
-        (semantic-overlay-put o 'face (semantic-overlay-get oo 'face))
-        (semantic-overlay-put o 'old-face (semantic-overlay-get oo 'old-face))
-        (semantic-overlay-put o 'intangible (semantic-overlay-get oo 'intangible))
-        (semantic-overlay-put o 'invisible (semantic-overlay-get oo 'invisible))
-        ;; Free the old overlay(s)
-        (semantic-deoverlay-token token)
-        ;; Recover properties
-        (let ((p (semantic-token-properties token)))
-          (while p
-            (semantic-token-put new (car (car p)) (cdr (car p)))
-            (setq p (cdr p))))
-        (semantic-token-put new 'reparse-symbol nonterminal)
-        (semantic-token-put new 'dirty nil)
-        ;; Splice into the main list.
-        (setcdr token (cdr new))
-        (setcar token (car new))
-        ;; This important bit is because the CONS cell representing
-        ;; TOKEN is what we need here, even though the whole thing is
-        ;; the same.
-        (semantic-overlay-put o 'semantic token)
-        ;; Hooks
-        (run-hook-with-args 'semantic-clean-token-hooks token)
-        ))))
-
-(defun wisent-bovinate-toplevel (&optional checkcache)
-  "Bovinate the entire current buffer with the LALR parser.
-If the optional argument CHECKCACHE is non-nil, then make sure the
-cached token list is up to date.  If a partial reparse is possible, do
-that, otherwise, do a full reparse."
-  (cond
-   ;; Check if before bovination hooks allow to parse
-   ((not (run-hook-with-args-until-failure
-	  'semantic-before-toplevel-bovination-hook))
-    ;; If any hook returns nil, we must return the cache as the buffer
-    ;; is supposedly unsafe for parsing.
-    semantic-toplevel-bovine-cache)
-   
-   ;; Partial reparse
-   ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
-    (garbage-collect)
-    (let* ((gc-cons-threshold 10000000)
-           (changes (semantic-remove-dirty-children)))
-      ;; We have a cache, and some dirty tokens
-      (let ((semantic-bovination-working-type 'dynamic))
-        (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
-          (while (and semantic-dirty-tokens
-                      (not (semantic-bovine-toplevel-full-reparse-needed-p
-                            checkcache)))
-            (wisent-rebovinate-token (car semantic-dirty-tokens))
-            (setq semantic-dirty-tokens (cdr semantic-dirty-tokens)))
-          (working-dynamic-status t))
-        (setq semantic-dirty-tokens nil))
-      
-      (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-          ;; If the partial reparse fails, jump to a full reparse.
-          (wisent-bovinate-toplevel checkcache)
-        ;; Clear the cache of unmatched syntax tokens
-        (semantic-clear-unmatched-syntax-cache)
-        ;; After partial reparse completed, let hooks know the updated
-        ;; tokens
-        (run-hook-with-args 'semantic-after-partial-cache-change-hook
-                            changes)
-        semantic-toplevel-bovine-cache)))
-   
-   ;; Full parse
-   ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-    (garbage-collect)
-    ;; Reparse the whole system
-    (let* ((gc-cons-threshold 10000000)
-           ;; Capture the lexical tokens here so that if an error is
-           ;; thrown, the cache is still safe.
-           (lex (semantic-flex (point-min) (point-max)))
-           res)
-      ;; Init a dump
-      ;;(if semantic-dump-parse
-      ;;    (semantic-dump-buffer-init))
-      ;; Clear the caches
-      (semantic-clear-toplevel-cache)
-      ;; Parse!
-      (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
-        (setq res (wisent-bovinate-nonterminals lex nil))
-        (working-status t))
-      (setq res (nreverse res))
-      ;; Set up the new overlays, and then reset the cache.
-      (semantic-overlay-list res)
-      (semantic-set-toplevel-bovine-cache res)
-      semantic-toplevel-bovine-cache))
-
-   ;; No parse needed
-   (t
-    ;; We have a cache with stuff in it, so return it
-    semantic-toplevel-bovine-cache)
-   
-   ))
-
-(defadvice semantic-bovinate-toplevel (around wisent-bovine activate)
-  "Bypass `semantic-bovinate-toplevel-override' handling.
-So `wisent-bovinate-toplevel' can handle partial reparse too!"
-  (if (eq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel)
-      (setq ad-return-value (wisent-bovinate-toplevel (ad-get-arg 0)))
-    ad-do-it))
-
-;;; Bovine table functions
-;;
-;; These are functions that can be called from within a bovine table.
-;; Most of these have code auto-generated from other construct in the
-;; BNF.
-(defsubst wisent-bovinate-from-nonterminal-full (start end nonterm
-                                                       &optional depth)
-  "Bovinate from within a nonterminal from START to END.
-Iterates until all the space between START and END is exhausted.
-Argument NONTERM is the nonterminal symbol to start with or nil for
-the default goal.  Optional argument DEPTH is the depth of lists to
-dive into.  It defaults to 1."
-  (nreverse
-   (wisent-bovinate-nonterminals (semantic-flex start end (or depth 1))
-                                 nonterm)))
-
-(defun wisent-bovinate-region-until-error (start end nonterm
-                                                 &optional depth)
-  "Bovinate between START and END starting with NONTERM.
-Optinal DEPTH specifies how many levels of parenthesis to enter.  This
-command will parse until an error is encountered, and return the list
-of everything found until that moment.
-This is meant for finding variable definitions at the beginning of
-code blocks in methods.  If NONTERM can also support commands, use
-`wisent-bovinate-from-nonterminal-full'."
-  (nreverse
-   (wisent-bovinate-nonterminals (semantic-flex start end depth)
-                                 nonterm
-                                 ;; This says stop on an error.
-                                 t)))
+  (let (wisent-flex-istream wisent-lexer-lookahead lookahead cache)
+    (if (vectorp (caar stream))
+        (setq lookahead (aref (caar stream) 0)
+              wisent-lexer-lookahead lookahead
+              stream (cdr stream)))
+    (setq wisent-flex-istream stream
+          cache (condition-case nil
+                    (wisent-parse table
+                                  #'wisent-lexer-wrapper
+                                  wisent-error-function
+                                  nonterminal)
+                  (error nil)))
+    (if wisent-lookahead
+        (if (eq lookahead wisent-lookahead)
+            (progn
+              ;; collect unmatched token here
+              (wisent-collect-unmatched-syntax lookahead)
+              (setq cache nil)
+              ;;(run-hook-with-args 'wisent-skip-token-hook lookahead)
+              )
+          ;; push back the lookahead token
+          (setq wisent-flex-istream (cons (cons (vector wisent-lookahead)
+                                                (cddr wisent-lookahead))
+                                          wisent-flex-istream))))
+    (list wisent-flex-istream
+          (if (consp cache) cache '(nil))
+          )))
 
 (provide 'wisent-bovine)
 
