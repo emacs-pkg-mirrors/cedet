@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic token streams
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.102 2002/12/29 18:03:48 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.103 2003/02/25 16:31:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1825,7 +1825,7 @@ For functions return the argument list."
 	(append explicit-children anon-type-children)
       explicit-children)))
 
-(defun semantic-nonterminal-external-member-parent (token)
+(define-overload semantic-nonterminal-external-member-parent (token)
   "Return a parent for TOKEN when TOKEN is an external member.
 TOKEN is an external member if it is defined at a toplevel and
 has some sort of label defing a parent.  The parent return will
@@ -1838,10 +1838,7 @@ specifier of TOKEN.
 If this function is overriden, use
 `semantic-nonterminal-external-member-parent-default' to also
 include the default behavior, and merely extend your own."
-  (let* ((s (semantic-fetch-overload 'nonterminal-external-member-parent)))
-    (if s (funcall s token)
-      (semantic-nonterminal-external-member-parent-default token))
-    ))
+  )
 
 (defun semantic-nonterminal-external-member-parent-default (token)
   "Return the name of TOKENs parent iff TOKEN is not defined in it's parent."
@@ -1852,10 +1849,11 @@ include the default behavior, and merely extend your own."
       tp)
     ))
 
-(defun semantic-nonterminal-external-member-p (parent token)
+(define-overload semantic-nonterminal-external-member-p (parent token)
   "Return non-nil if PARENT is the parent of TOKEN.
 TOKEN is an external member of PARENT when it is somehow tagged
 as having PARENT as it's parent.
+PARENT and TOKEN must both be semantic tokens.
 
 The default behavior, if not overriden with
 `nonterminal-external-member-p' is to match 'parent extra specifier in
@@ -1864,10 +1862,7 @@ the name of TOKEN.
 If this function is overriden, use
 `semantic-nonterminal-external-member-children-p-default' to also
 include the default behavior, and merely extend your own."
-  (let* ((s (semantic-fetch-overload 'nonterminal-external-member-p)))
-    (if s (funcall s parent token)
-      (semantic-nonterminal-external-member-p-default parent token))
-    ))
+  )
 
 (defun semantic-nonterminal-external-member-p-default (parent token)
   "Return non-nil if PARENT is the parent of TOKEN."
@@ -1878,7 +1873,7 @@ include the default behavior, and merely extend your own."
 	 (string= (semantic-token-name parent) tp))
     ))
 
-(defun semantic-nonterminal-external-member-children (token &optional usedb)
+(define-overload semantic-nonterminal-external-member-children (token &optional usedb)
   "Return the list of children which are not *in* TOKEN.
 If optional argument USEDB is non-nil, then also search files in
 the Semantic Database.  If USEDB is a list of databases, search those
@@ -1897,23 +1892,7 @@ with a parent of TOKEN.
 If this function is overriden, use
 `semantic-nonterminal-external-member-children-default' to also
 include the default behavior, and merely extend your own."
-  (let* ((s (semantic-fetch-overload 'nonterminal-external-member-children)))
-    (if s (funcall s token usedb)
-      (semantic-nonterminal-external-member-children-default token usedb))
-    ))
-
-(defun semantic-nonterminal-external-member-children-db (token usedb)
-  "Return the list of external children for TOKEN found in semanticdb.
-USEDB is the list of databases to use, or t.
-The return value is in semanticdb output format."
-  (semanticdb-find-nonterminal-by-function
-   `(lambda (stream sp si)
-      (semantic-find-nonterminal-by-function
-       (lambda (tok)
-	 (semantic-nonterminal-external-member-p
-	  ',token tok))
-       stream sp si))
-   (if (listp usedb) usedb) nil nil t))
+  )
 
 (defun semantic-nonterminal-external-member-children-default (token &optional usedb)
   "Return list of external children for TOKEN.
@@ -1922,7 +1901,8 @@ See `semantic-nonterminal-external-member-children' for details."
   (if (and usedb
 	   (fboundp 'semanticdb-minor-mode-p)
 	   (semanticdb-minor-mode-p))
-      (let ((m (semantic-nonterminal-external-member-children-db token usedb)))
+      (let ((m (semanticdb-find-nonterminal-external-children-of-type
+		(semantic-token-name token))))
 	(if m (apply #'append (mapcar #'cdr m))))
     (semantic-find-nonterminal-by-function
      `(lambda (tok)
