@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.66 2002/06/07 18:24:58 ponced Exp $
+@c $Id: semantic.texi,v 1.67 2002/06/11 20:43:51 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -32,11 +32,9 @@ behaviors as yacc or bison.  Since it is not designed to be as feature
 rich as these tools, it uses the term ``bovine'' for cow, a lesser
 cousin of the yak and bison.
 
-In its current state, the bovinator is both fast (because it uses Emacs
-tricks) and slow (it is recursive, and not table (array) based).  If you
-have experience with compiler compilers (bison, yacc, etc) your help to
-make these updates would be greatly appreciated.
-
+To send bug reports, or participate in discussions about sematnic,
+use the mailing list cedet-semantic@@sourceforge.net via the URL:
+@url{http://lists.sourceforge.net/lists/listinfo/cedet-semantic}
 
 @menu
 * Install::                     Installing semantic.
