@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.12 1997/01/08 00:17:06 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.13 1997/01/18 02:30:39 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -122,7 +122,7 @@
 ;;;       Improved color selection to be background mode smart
 ;;;       `nil' passed to `speedbar-frame-mode' now toggles the frame as
 ;;;         advertised in the doc string
-;;; 0.4   Added modified patch from Dan Schmidt <dfan@lglass.com> allowing a
+;;; 0.4a  Added modified patch from Dan Schmidt <dfan@lglass.com> allowing a
 ;;;         directory cache to be maintained speeding up revisiting of files.
 ;;;       Default raise-lower behavior is now off by default.
 ;;;       Added some menu items for edit expand and contract.
@@ -146,6 +146,10 @@
 ;;;       Fixed XEmacs multi-frame timer selecting bug problem.
 ;;;       Added `speedbar-ignored-modes' which is a list of major modes
 ;;;         speedbar will not follow when it is displayed in the selected frame
+;;; 0.4   When the file being edited is not in the list, and is a file
+;;;         that should be in the list, the speedbar cache is replaced.     
+;;;       Temp buffers are now shown in the attached frame not the
+;;;         speedbar frame
 ;;;
 ;;; TODO:
 ;;; 1) Apply timeout to directory caches so that large directories are
@@ -158,6 +162,7 @@
 ;;; 5) filtering algoritms to reduce the number of tags/files
 ;;;    displayed.
 ;;; 6) More intelligent current file highlighting.
+;;;
 
 (require 'assoc)
 
@@ -534,12 +539,22 @@ Keybindings: \\<speedbar-key-map>
   (set-syntax-table speedbar-syntax-table)
   (setq font-lock-keywords nil) ;; no font-locking please
   (setq truncate-lines t)
+  (make-local-variable 'temp-buffer-show-function)
+  (setq temp-buffer-show-function 'speedbar-temp-buffer-show-function)
   (setq mode-line-format
 	'("<< SPEEDBAR " (line-number-mode " %3l ") " >>"))
   (if (not speedbar-xemacsp) (setq auto-show-mode nil))	;no auto-show for FSF
   (run-hooks 'speedbar-mode-hook)
   (speedbar-update-contents)
   )
+
+(defun speedbar-temp-buffer-show-function (buffer)
+  "Place in the variable `temp-buffer-show-function' to make queries
+with help or whatever display in a frame other than speedbars"
+  (if speedbar-attached-frame (select-frame speedbar-attached-frame))
+  (pop-to-buffer buffer nil)
+  (other-window -1)
+  (run-hooks 'temp-buffer-show-hook))
 
 (defun speedbar-mouse-hscroll (e)
   "Read a mouse event from the mode line, and horizontally scroll if the
@@ -846,7 +861,7 @@ function FIND-FUN and not token."
 		(if (or (member (expand-file-name default-directory)
 				speedbar-shown-directories)
 			(member major-mode speedbar-ignored-modes)
-			;;(eq af speedbar-frame)
+			(eq af speedbar-frame)
 			(not (buffer-file-name))
 			)
 		    nil
@@ -863,7 +878,9 @@ function FIND-FUN and not token."
 
 (defun speedbar-update-current-file ()
   "Find out what the current file is, and update our visuals to indicate
-what it is.  This is specific to file names."
+what it is.  This is specific to file names.  If the file name doesn't show
+up, but it should be in the list, then the directory cache needs to be
+updated."
   (let* ((lastf (selected-frame))
 	 (newcf (save-excursion
 		  (select-frame speedbar-attached-frame)
@@ -891,10 +908,25 @@ what it is.  This is specific to file names."
 	    (goto-char (point-min))
 	    (if (re-search-forward 
 		 (concat " \\(" (regexp-quote newcf) "\\)\n") nil t)
+		;; put the property on it
 		(put-text-property (match-beginning 1)
 				   (match-end 1)
 				   'face 
-				   'speedbar-selected-face))
+				   'speedbar-selected-face)
+	      ;; Oops, it's not in the list.  Should it be?
+	      (if (string-match speedbar-file-regexp newcf)
+		  ;; yes, it is (we will ignore unknowns for now...)
+		  (progn
+		    (speedbar-refresh)
+		    (if (re-search-forward 
+			 (concat " \\(" (regexp-quote newcf) "\\)\n") nil t)
+			;; put the property on it
+			(put-text-property (match-beginning 1)
+					   (match-end 1)
+					   'face 
+					   'speedbar-selected-face)))
+		;; if it's not in there now, whatever...
+		))
 	    (setq speedbar-last-selected-file newcf))
 	  (forward-line -1)
 	  (speedbar-position-cursor-on-line)
