@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.16 2003/04/19 03:29:45 emacsman Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.17 2003/07/09 15:25:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -633,6 +633,38 @@ DO NOT use this fcn in new code.  Use one of the above instead."
     (semantic-tag-components tag)))
 
 
+;;; Tag Region
+;;
+;; A Tag represents a region in a buffer.  You can narrow to that tag.
+;;
+(defun semantic-narrow-to-tag (tag)
+  "Narrow to the region specified by TAG."
+  (narrow-to-region (semantic-tag-start tag)
+		    (semantic-tag-end tag)))
+
+(defmacro semantic-with-buffer-narrowed-to-current-tag (&rest body)
+  "Execute BODY with the buffer narrowed to the current tag."
+  `(save-restriction
+     (semantic-narrow-to-tag (semantic-current-tag))
+     ,@body))
+(put 'semantic-with-buffer-narrowed-to-current-tag 'lisp-indent-function 0)
+(add-hook 'edebug-setup-hook
+	  (lambda ()
+	    (def-edebug-spec semantic-with-buffer-narrowed-to-current-tag
+	      (def-body))))
+
+(defmacro semantic-with-buffer-narrowed-to-tag (tag &rest body)
+  "Narrow to TAG, and execute BODY."
+  `(save-restriction
+     (semantic-narrow-to-tag ,tag)
+     ,@body))
+(put 'semantic-with-buffer-narrowed-to-tag 'lisp-indent-function 1)
+(add-hook 'edebug-setup-hook
+	  (lambda ()
+	    (def-edebug-spec semantic-with-buffer-narrowed-to-tag
+	      (def-body))))
+
+
 ;;; Tags and Overlays
 ;;
 ;; Overlays are used so that we can quickly identify tags from
@@ -928,6 +960,15 @@ and `semantic-tag-type-interfaces' instead")
 
 (semantic-alias-obsolete 'semantic-nonterminal-children
 			 'semantic-tag-children-compatibility)
+
+(semantic-alias-obsolete 'semantic-narrow-to-token
+			 'semantic-narrow-to-tag)
+
+(semantic-alias-obsolete 'semantic-with-buffer-narrowed-to-current-token
+			 'semantic-with-buffer-narrowed-to-current-tag)
+
+(semantic-alias-obsolete 'semantic-with-buffer-narrowed-to-token
+			 'semantic-with-buffer-narrowed-to-tag)
 
 (semantic-alias-obsolete 'semantic-deoverlay-token
                          'semantic--tag-unlink-from-buffer)
