@@ -7,7 +7,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.1 2001/07/20 11:07:28 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.2 2001/07/21 11:00:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1045,34 +1045,6 @@ unnecessary stuff to improve performance.")
   "Lexer regexps to match Java number terminals.")
 
 ;;;;
-;;;; Improved versions of some Semantic Flex functions!
-;;;;
-
-(defsubst semantic-flex-keyword-p (text)
-  "Return a symbol if TEXT is a keyword in the keyword table.
-Return nil if TEXT is not in the symbol table."
-  (symbol-value (intern-soft text semantic-flex-keywords-obarray)))
-
-(defsubst semantic-flex-start (semobj)
-  "Fetch the start position of the semantic object SEMOBJ."
-  (nth 1 semobj))
-
-(defsubst semantic-flex-end (semobj)
-  "Fetch the end position of the semantic object SEMOBJ."
-  (cdr (cdr semobj)))
-
-(defsubst semantic-flex-text (semobj)
-  "Fetch the text associated with the semantic object SEMOBJ."
-  (buffer-substring-no-properties (semantic-flex-start semobj)
-                                  (semantic-flex-end   semobj)))
-
-(defsubst semantic-flex-list (semlist depth)
-  "Flex the body of SEMLIST to DEPTH."
-  (semantic-flex (semantic-flex-start semlist)
-                 (semantic-flex-end   semlist)
-                 depth))
-
-;;;;
 ;;;; The Java Lexer
 ;;;;
 
@@ -1209,10 +1181,10 @@ MSG is the message string to report."
   "Semantic alternate Java LALR(1) parser.
 The optional argument CHECKCACHE is ignored."
   (let ((gc-cons-threshold 10000000)
+        (bname (format "%s [LALR]" (buffer-name)))
         cache semantic-flex-depth)
-    (working-status-forms (buffer-name) "done"
-      (setq wisent-java-lex-istream
-            (semantic-flex (point-min) (point-max))
+    (working-status-forms bname "done"
+      (setq wisent-java-lex-istream (semantic-flex-buffer)
             cache (wisent-parse wisent-java-parser-tables
                                 #'wisent-java-lex
                                 #'ignore ;; Don't report syntax errors
