@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.6 2003/03/15 19:30:11 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.7 2003/04/02 10:47:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-make-bovine-table
-  ;;DO NOT EDIT! Generated from make.by - 2003-03-13 20:19-0500
+  ;;DO NOT EDIT! Generated from make.by - 2003-04-02 12:41+0200
   `(
     (bovine-toplevel ;;Makefile
      (variable)
@@ -41,11 +41,11 @@
      (include)
      (whitespace
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (newline
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end Makefile
 
@@ -56,9 +56,9 @@
       opt-whitespace
       element-list
       ,(semantic-lambda
-	(semantic-tag-new-variable
-	 (nth 0 vals) nil
-	 (nth 4 vals)))
+        (semantic-tag-new-variable
+         (nth 0 vals) nil
+         (nth 4 vals)))
       )
      ) ;; end variable
 
@@ -70,9 +70,9 @@
       element-list
       commands
       ,(semantic-lambda
-	(semantic-tag-new-function
-	 (nth 0 vals) nil
-	 (nth 4 vals)))
+        (semantic-tag-new-function
+         (nth 0 vals) nil
+         (nth 4 vals)))
       )
      ) ;; end rule
 
@@ -81,17 +81,17 @@
       opt-whitespace
       targets
       ,(semantic-lambda
-	(list
-	 (car
-	  (nth 0 vals))
-	 (car
-	  (nth 2 vals))))
+        (list
+         (car
+          (nth 0 vals))
+         (car
+          (nth 2 vals))))
       )
      (target
       ,(semantic-lambda
-	(list
-	 (car
-	  (nth 0 vals))))
+        (list
+         (car
+          (nth 0 vals))))
       )
      ) ;; end targets
 
@@ -99,18 +99,18 @@
      (sub-target
       target
       ,(semantic-lambda
-	(list
-	 (concat
-	  (car
-	   (nth 0 vals))
-	  (car
-	   (nth 2 vals)))))
+        (list
+         (concat
+          (car
+           (nth 0 vals))
+          (car
+           (nth 2 vals)))))
       )
      (sub-target
       ,(semantic-lambda
-	(list
-	 (car
-	  (nth 0 vals))))
+        (list
+         (car
+          (nth 0 vals))))
       )
      ) ;; end target
 
@@ -126,45 +126,45 @@
       symbol
       newline
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (IFDEF
       whitespace
       symbol
       newline
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (IFNDEF
       whitespace
       symbol
       newline
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (IFEQ
       whitespace
       expression
       newline
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (IFNEQ
       whitespace
       expression
       newline
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (ELSE
       newline
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (ENDIF
       newline
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end conditional
 
@@ -177,8 +177,8 @@
       whitespace
       element-list
       ,(semantic-lambda
-	(semantic-tag-new-include
-	 (nth 2 vals) nil))
+        (semantic-tag-new-include
+         (nth 2 vals) nil))
       )
      ) ;; end include
 
@@ -218,7 +218,7 @@
      (elements
       newline
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      ) ;; end element-list
 
@@ -227,14 +227,14 @@
       whitespace
       elements
       ,(semantic-lambda
-	(list
-	 (nth 0 vals))
-	(nth 2 vals))
+        (list
+         (nth 0 vals))
+        (nth 2 vals))
       )
      (element
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      ( ;;EMPTY
       )
@@ -244,12 +244,12 @@
      (sub-element
       element
       ,(semantic-lambda
-	(list
-	 (concat
-	  (car
-	   (nth 0 vals))
-	  (car
-	   (nth 1 vals)))))
+        (list
+         (concat
+          (car
+           (nth 0 vals))
+          (car
+           (nth 1 vals)))))
       )
      ( ;;EMPTY
       )
@@ -261,10 +261,10 @@
      (punctuation)
      (semantic-list
       ,(semantic-lambda
-	(list
-	 (buffer-substring-no-properties
-	  (identity start)
-	  (identity end))))
+        (list
+         (buffer-substring-no-properties
+          (identity start)
+          (identity end))))
       )
      ) ;; end sub-element
 
@@ -273,10 +273,10 @@
       "\\b[$]\\b"
       semantic-list
       ,(semantic-lambda
-	(list
-	 (buffer-substring-no-properties
-	  (identity start)
-	  (identity end))))
+        (list
+         (buffer-substring-no-properties
+          (identity start)
+          (identity end))))
       )
      ) ;; end varref
 
@@ -285,9 +285,9 @@
       newline
       commands
       ,(semantic-lambda
-	(list
-	 (nth 0 vals))
-	(nth 1 vals))
+        (list
+         (nth 0 vals))
+        (nth 1 vals))
       )
      ( ;;EMPTY
       ,(semantic-lambda)
@@ -297,7 +297,7 @@
     (opt-whitespace
      (whitespace
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ( ;;EMPTY
       )
@@ -306,7 +306,7 @@
   "Table for parsing Makefiles.")
 
 (defvar semantic-make-keyword-table
-  ;;DO NOT EDIT! Generated from make.by - 2003-03-13 20:19-0500
+  ;;DO NOT EDIT! Generated from make.by - 2003-04-02 12:41+0200
   (semantic-lex-make-keyword-table
    '(("if" . IF)
      ("ifdef" . IFDEF)
@@ -440,27 +440,27 @@
 ;;;###autoload
 (defun semantic-default-make-setup ()
   "Set up a Makefile buffer for parsing with semantic."
-  ;;DO NOT EDIT! Generated from make.by - 2003-03-13 20:19-0500
+  ;;DO NOT EDIT! Generated from make.by - 2003-04-02 12:41+0200
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-make-bovine-table
-	  semantic-debug-parser-source "make.by"
-	  semantic-debug-parser-class 'semantic-bovine-debug-parser
-	  semantic-flex-keywords-obarray semantic-make-keyword-table
-	  )
+          semantic-debug-parser-source "make.by"
+          semantic-debug-parser-class 'semantic-bovine-debug-parser
+          semantic-flex-keywords-obarray semantic-make-keyword-table
+          )
     (setq semantic-symbol->name-assoc-list '((variable . "Variables")
-					     (function . "Rules")
-					     (include . "Dependencies"))
-	  semantic-case-fold t
-	  semantic-expand-nonterminal 'semantic-expand-make-nonterminal
-	  semantic-lex-syntax-modifications '((?. "_")
-					      (?= ".")
-					      (?/ "_")
-					      (?$ ".")
-					      (?+ ".")
-					      (?\\ ".")
-					      )
-	  imenu-create-index-function 'semantic-create-imenu-index
-	  ))
+                                             (function . "Rules")
+                                             (include . "Dependencies"))
+          semantic-case-fold t
+          semantic-tag-expand-function 'semantic-expand-make-nonterminal
+          semantic-lex-syntax-modifications '((?. "_")
+                                              (?= ".")
+                                              (?/ "_")
+                                              (?$ ".")
+                                              (?+ ".")
+                                              (?\\ ".")
+                                              )
+          imenu-create-index-function 'semantic-create-imenu-index
+          ))
   (setq semantic-lex-analyzer #'semantic-make-lexer)
   )
 
