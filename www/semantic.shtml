@@ -123,8 +123,8 @@ You may need to add this to your .emacs file</p>
 
 <P>Live on the Edge!  Try
    <a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
-   Semantic 1.4 beta9</a><br>
-   Semantic 1.4 beta 9 will <b>NOT WORK</b> with JDE 2.2.6, nor 
+   Semantic 1.4 beta10</a><br>
+   Semantic 1.4 beta 10 will <b>NOT WORK</b> with JDE 2.2.6, nor 
    JDE beta 2.2.7 beta 10.  Please use JDE release 2.2.7 or later which
    explicitly depends on Semantic 1.4 beta 5 or later.
 </p>
