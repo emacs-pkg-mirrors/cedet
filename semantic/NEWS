@@ -75,7 +75,7 @@ Called to lexically analyze text in an area of the current buffer.
 
 ** Parsing
 
-*** API to manage a parse tree state
+*** API to manage a parse tree state.
 
 `semantic-parse-tree-set-needs-update'
 Indicate that the current parse tree needs to be updated.
@@ -158,7 +158,46 @@ the new parse tree state management API.
 
 * Grammar framework.
 
-TBD.
+Semantic 2.0 introduced a new common grammar framework to simplify
+development of grammars suitable to parser needs.
+
+** New "abstract" major mode: `semantic-grammar-mode'.
+That defines a useful environment to develop grammars (indentation,
+syntax highlighting, parsing, etc.).
+
+By deriving new "concrete" major modes one can provide customized
+generators that convert a grammar parse tree into Elisp forms needed
+by a particular parser.
+
+** New "overloads" are provided to customize Elisp generation.
+
+`semantic-grammar-setupcode-builder'
+That returns the setup code form.
+
+`grammar-parsetable-builder'
+That returns the parser table value.
+
+`grammar-keywordtable-builder'
+That returns the keyword table table value.
+
+`grammar-tokentable-builder'
+That returns the token table value.
+
+** New grammar modes derived from `semantic-grammar-mode'.
+
+*** `bovine-grammar-mode'.
+That converts grammar input form into Elisp code to be used by the
+"bovinator".  Such grammars are associated to the .by file extension.
+
+That new mode obsoletes the previous `bnf-mode' used by Semantic.
+However .bnf grammars are still supported for compatibility with
+Semantic version 1.  Currently only c.bnf has been translated into a
+c.by format.
+
+*** `wisent-grammar-mode'.
+That converts grammar input form into Elisp code to be used by the
+Wisent LALR parser.  Such grammars are associated to the .wy
+file extension.
 
 * Database.
 
