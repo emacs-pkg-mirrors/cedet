@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.15 1999/03/20 17:11:07 zappo Exp $
+;; RCS: $Id: ede.el,v 1.16 1999/04/21 22:22:25 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -399,9 +399,13 @@ Argument FILE is the file or directory to load a project from."
 			  (object-assoc-list 'name ede-project-class-files)
 			  nil t)))
   (let* ((obj (object-assoc type 'name ede-project-class-files))
-	 (nobj (make-instance (oref obj class-sym)
-			      :name (read-string "Name: ")
-			      :file (expand-file-name (oref obj proj-file)))))
+	 (nobj (progn
+		 ;; Make sure this class gets loaded!
+		 (require (oref obj file))
+		 (make-instance (oref obj class-sym)
+				:name (read-string "Name: ")
+				:file
+				(expand-file-name (oref obj proj-file))))))
     (if (ede-parent-project)
 	(ede-add-subproject (ede-parent-project) nobj))
     (ede-commit-project nobj))
@@ -816,6 +820,13 @@ This includes buffers controlled by a specific target of PROJECT."
 	    (setq pl (cons (car bl) pl))))
       (setq bl (cdr bl)))
     pl))
+
+(defmethod ede-map-subproject ((this ede-project) proc)
+  "For object THIS, execute PROC on all subprojects."
+  (let ((s (oref this subproj)))
+    (while s
+      (apply proj (car s) nil)
+      (setq s (cdr s)))))
 
 
 ;;; Project-local variables
