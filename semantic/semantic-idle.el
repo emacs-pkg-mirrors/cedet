@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.24 2004/04/28 15:39:09 ponced Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.25 2004/05/22 14:41:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -420,10 +420,10 @@ Return non-nil if the minor mode is enabled.")
 		   (setq ,mode nil)
 		   (error "Buffer %s was not set up for parsing"
 			  (buffer-name)))
-	       ;; Enable eldoc mode
+	       ;; Enable the mode mode
 	       (semantic-idle-scheduler-add #',func)
 	       )
-	   ;; Disable eldoc mode
+	   ;; Disable the mode mode
 	   (semantic-idle-scheduler-remove #',func)
 	   )
 	 ,mode)
@@ -468,7 +468,7 @@ minor mode is enabled.")
 
 ;;; SUMMARY MODE
 ;;
-;; Use ELDOC services to show useful info about symbol under point.
+;; A mode similar to eldoc using semantic
 (require 'semantic-ctxt)
 
 (defcustom semantic-idle-summary-function 'semantic-format-tag-summarize
@@ -576,6 +576,7 @@ Call `semantic-idle-summary-current-symbol-info' for getting the
 current tag to display information."
   (or (eq major-mode 'emacs-lisp-mode)
       (not (semantic-idle-summary-useful-context-p))
+      (require 'eldoc)
       (let* ((found (semantic-idle-summary-current-symbol-info))
              (str (cond ((stringp found) found)
                         ((semantic-tag-p found)
