@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.10
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.157 2000/02/09 02:56:46 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.158 2000/03/21 18:42:19 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -199,8 +199,6 @@
 ;;; TODO:
 ;; - More functions to create buttons and options
 ;; - Timeout directories we haven't visited in a while.
-;; - Remeber tags when refreshing the display.  (Refresh tags too?)
-;; - More 'special mode support.
 
 (require 'assoc)
 (require 'easymenu)
@@ -208,7 +206,7 @@
 (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
   "Non-nil if we are running in the XEmacs environment.")
 (defvar speedbar-xemacs20p (and speedbar-xemacsp
-				(= emacs-major-version 20)))
+				(>= emacs-major-version 20)))
 
 ;; From custom web page for compatibility between versions of custom
 ;; with help from ptype@dera.gov.uk (Proto Type)
@@ -440,7 +438,7 @@ use etags instead.  Etags support is not as robust as imenu support."
     (speedbar-fetch-dynamic-etags . speedbar-insert-etags-list))
   "Set to a functions which will return and insert a list of tags.
 Each element is of the form ( FETCH .  INSERT ) where FETCH
-is a funciotn which takes one parameter (the file to tag) and return a
+is a funciotn which takes one parameter (the file to tag) and returns a
 list of tags.  The tag list can be of any form as long as the
 corresponding insert method can handle it.  If it returns t, then an
 error occured, and the next fetch routine is tried.
@@ -536,8 +534,15 @@ hierarchy would be replaced with the new directory."
   :group 'speedbar
   :type 'boolean)
 
-(defvar speedbar-hide-button-brackets-flag nil
-  "*Non-nil means speedbar will hide the brackets around the + or -.")
+(defcustom speedbar-indentation-width 1
+  "*When sub-nodes are expanded, the number of spaces used for indentation."
+  :group 'speedbar
+  :type 'boolean)
+
+(defcustom speedbar-hide-button-brackets-flag nil
+  "*Non-nil means speedbar will hide the brackets around the + or -."
+  :group 'speedbar
+  :type 'boolean)
 
 (defcustom speedbar-before-popup-hook nil
   "*Hooks called before popping up the speedbar frame."
@@ -2312,7 +2317,7 @@ position to insert a new item, and that the new item will end with a CR"
 	       (point))))
     (put-text-property start end 'invisible t)
     )
-  (insert-char ?  depth nil)
+  (insert-char ?  (* depth speedbar-indentation-width) nil)
   (put-text-property (- (point) depth) (point) 'invisible nil)
   (let* ((exp-button (cond ((eq exp-button-type 'bracket) "[%c]")
 			   ((eq exp-button-type 'angle) "<%c>")
@@ -2325,6 +2330,8 @@ position to insert a new item, and that the new item will end with a CR"
 	 (mf (if exp-button-function 'speedbar-highlight-face nil))
 	 )
     (speedbar-make-button start end bf mf exp-button-function exp-button-data)
+    (if (fboundp 'speedbar-insert-image-expand-button)
+	(speedbar-insert-image-expand-button start))
     (if speedbar-hide-button-brackets-flag
 	(progn
 	  (put-text-property start (1+ start) 'invisible t)
@@ -2351,7 +2358,10 @@ position to insert a new item, and that the new item will end with a CR"
 	  (goto-char (match-beginning 1))
 	  (delete-char 1)
 	  (insert-char char 1 t)
-	  (put-text-property (point) (1- (point)) 'invisible nil)))))
+	  (put-text-property (point) (1- (point)) 'invisible nil)
+	  (if (fboundp 'speedbar-insert-image-expand-button)
+	      ;; make sure we fix the image on the text here.
+	      (speedbar-insert-image-expand-button (- (point) 2)))))))
 
 
 ;;; Build button lists
@@ -2646,13 +2656,13 @@ name will have the function FIND-FUN and not token."
     (setq lst (cdr lst))))
 
 (defun speedbar-insert-imenu-list (indent lst)
-  "At leve INDENT, insert the imenu generated LST."
+  "At level INDENT, insert the imenu generated LST."
   (speedbar-insert-generic-list indent lst
 				'speedbar-tag-expand
 				'speedbar-tag-find))
 				
 (defun speedbar-insert-etags-list (indent lst)
-  "At leve INDENT, insert the etags generated LST."
+  "At level INDENT, insert the etags generated LST."
   (speedbar-insert-generic-list indent lst
 				'speedbar-tag-expand
 				'speedbar-tag-find))
@@ -3413,17 +3423,25 @@ directory with these items."
   "Expand the line under the cursor."
   (interactive)
   (beginning-of-line)
-  (re-search-forward ":\\s-*.\\+. " (save-excursion (end-of-line) (point)))
-  (forward-char -2)
-  (speedbar-do-function-pointer))
+  (condition-case nil
+      (progn
+	(re-search-forward ":\\s-*.\\+. "
+			   (save-excursion (end-of-line) (point)))
+	(forward-char -2)
+	(speedbar-do-function-pointer))
+    (error (speedbar-position-cursor-on-line))))
 
 (defun speedbar-contract-line ()
   "Contract the line under the cursor."
   (interactive)
   (beginning-of-line)
-  (re-search-forward ":\\s-*.-. " (save-excursion (end-of-line) (point)))
-  (forward-char -2)
-  (speedbar-do-function-pointer))
+  (condition-case nil
+      (progn
+	(re-search-forward ":\\s-*.-. "
+			   (save-excursion (end-of-line) (point)))
+	(forward-char -2)
+	(speedbar-do-function-pointer))
+    (error (speedbar-position-cursor-on-line))))
 
 (if speedbar-xemacsp
     (defalias 'speedbar-mouse-event-p 'button-press-event-p)
