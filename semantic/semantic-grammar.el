@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.20 2003/03/17 13:36:36 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.21 2003/03/21 03:20:43 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1499,6 +1499,7 @@ Use the Lisp or grammar indenter depending on point location."
     ("TYPE-TAG" . "(TYPE-TAG <name> <lang-type> <part-list> <parents> [ :key value ]*)")
     ("INCLUDE-TAG" . "(INCLUDE-TAG <name> <system-flag> [ :key value ]*)")
     ("PACKAGE-TAG" . "(PACKAGE-TAG <name> <detail> [ :key value ]*)")
+    ("CODE-TAG" . "(CODE-TAG <name> <detail> [ :key value ]*)")
     ;; Special value macros
     ("$1" . "Match Value: Value from match list in slot 1")
     ("$2" . "Match Value: Value from match list in slot 2")
