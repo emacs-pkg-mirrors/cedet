@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.150 1999/09/19 12:53:14 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.151 1999/10/20 13:42:24 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -356,7 +356,11 @@ effective when it's display is shown.")
 (defcustom speedbar-visiting-tag-hook nil
   "Hooks run when speedbar visits a tag in the selected frame."
   :group 'speedbar
-  :type 'hook)
+  :type 'hook
+  :options '(speedbar-highlight-one-tag-line
+	     speedbar-recenter-to-top
+	     speedbar-recenter
+	     ))
 
 (defcustom speedbar-load-hook nil
   "Hooks run when speedbar is loaded."
@@ -401,10 +405,10 @@ between different directories."
 				       (border-width . 0)
 				       (menu-bar-lines . 0)
 				       (unsplittable . t))
-  "*Parameters to use when creating the speedbar frame in Emacs.
-Parameters not listed here which will be added automatically are
-`height' which will be initialized to the height of the frame speedbar
-is attached to."
+  "*Parameters to use when creating the speedbar frame in Emacs.  Any
+parameter supported by a frame may be added.  The parameter `height'
+will be initialized to the height of the frame speedbar is
+attached to and added to this list before the new frame is initialized."
   :group 'speedbar
   :type '(repeat (sexp :tag "Parameter:")))
 
@@ -448,24 +452,26 @@ use etags instead.  Etags support is not as robust as imenu support."
   :type 'boolean)
 
 (defcustom speedbar-tag-hierarchy-method
-  '(prefix-group trim-words)
-  "*List of methods which speedbar will use to organize tags into groups.
-Groups are defined as expandable meta-tags.  Imenu supports such
-things in some languages, such as separating variables from functions.
-Available methods are:
-  sort         - Sort tags.  (sometimes unnecessary)
-  trim-words   - Trim all tags by a common prefix, broken @ word sections.
-  prefix-group - Try to guess groups by prefix.
-  simple-group - If imenu already returned some meta groups, stick all
-                 tags that are not in a group into a sub-group."
+  '(speedbar-prefix-group-tag-hierarchy
+    speedbar-trim-words-tag-hierarchy)
+  "*List of hooks which speedbar will use to organize tags into
+groups.  Groups are defined as expandable meta-tags.  Imenu supports
+such things in some languages, such as separating variables from
+functions.  Each hook takes one argument LST, and may destructivly
+create a new list of the same form.  LST is a list of elements of the
+form:
+  (ELT1 ELT2 ... ELTn)
+where each ELT is of the form
+  (TAG-NAME-STRING . NUMBER-OR-MARKER)
+or
+  (GROUP-NAME-STRING ELT1 EL2... ELTn)"
   :group 'speedbar
-  :type '(repeat
-	  (radio
-	   (const :tag "Sort the tags." sort)
-	   (const :tag "Trim words to common prefix." trim-words)
-	   (const :tag "Create groups from common prefixes." prefix-group)
-	   (const :tag "Group loose tags into their own group." simple-group))
-	  ))
+  :type 'hook
+  :options '(speedbar-sort-tag-hierarchy
+	     speedbar-trim-words-tag-hierarchy
+	     speedbar-prefix-group-tag-hierarchy
+	     speedbar-simple-group-tag-hierarchy)
+  )
 
 (defcustom speedbar-tag-group-name-minimum-length 4
   "*The minimum length of a prefix group name before expanding.
@@ -995,6 +1001,21 @@ directories.")
   (defun speedbar-frame-parameter (frame parameter)
     "Return FRAME's PARAMETER value."
     (cdr (assoc parameter (frame-parameters frame)))))
+
+(if (fboundp 'make-overlay)
+    (progn
+      (defalias 'speedbar-make-overlay 'make-overlay)
+      (defalias 'speedbar-overlay-put 'overlay-put)
+      (defalias 'speedbar-delete-overlay 'delete-overlay)
+      (defalias 'speedbar-overlay-start 'overlay-start)
+      (defalias 'speedbar-overlay-end 'overlay-end)
+      (defalias 'speedbar-mode-line-update 'force-mode-line-update))
+  (defalias 'speedbar-make-overlay 'make-extent)
+  (defalias 'speedbar-overlay-put 'set-extent-property)
+  (defalias 'speedbar-delete-overlay 'delete-extent)
+  (defalias 'speedbar-overlay-start 'extent-start)
+  (defalias 'speedbar-overlay-end 'extent-end)
+  (defalias 'speedbar-mode-line-update 'redraw-modeline))
 
 ;;; Mode definitions/ user commands
 ;;
@@ -1359,7 +1380,7 @@ frame and window to be the currently active frame and window."
 	  (if (not (equal mode-line-format tf))
 	      (progn
 		(setq mode-line-format tf)
-		(force-mode-line-update)))))))
+		(speedbar-mode-line-update)))))))
 
 (defun speedbar-temp-buffer-show-function (buffer)
   "Placed in the variable `temp-buffer-show-function' in `speedbar-mode'.
@@ -2378,206 +2399,211 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 		(setq sf (cdr sf)))))
 	)))
 
-(defun speedbar-apply-one-tag-hierarchy-method (lst method)
-  "Adjust the tag hierarchy LST by METHOD."
-  (cond
-   ((eq method 'sort)
-    (sort (copy-alist lst)
-	  (lambda (a b) (string< (car a) (car b)))))
-   ((eq method 'prefix-group)
-    (let ((newlst nil)
-	  (sublst nil)
- 	  (work-list nil)
-	  (junk-list nil)
-	  (short-group-list nil)
-	  (short-start-name nil)
-	  (short-end-name nil)
-	  (num-shorts-grouped 0)
-	  (bins (make-vector 256 nil))
-	  (diff-idx 0))
-      ;; Break out sub-lists
-      (while lst
-	(if (and (listp (cdr-safe (car-safe lst)))
-		 ;; This one is for bovine tokens
-		 (not (symbolp (car-safe (cdr-safe (car-safe lst))))))
-	    (setq newlst (cons (car lst) newlst))
-	  (setq sublst (cons (car lst) sublst)))
-	(setq lst (cdr lst)))
-      ;; Reverse newlst because it was made backwards.
-      ;; Sublist doesn't need reversing because the act
-      ;; of binning things will reverse it for us.
-      (setq newlst (nreverse newlst))
-      ;; Now, first find out how long our list is.  Never let a
-      ;; list get-shorter than our minimum.
-      (if (<= (length sublst) speedbar-tag-split-minimum-length)
-	  (setq work-list (nreverse sublst))
-	(setq diff-idx (length (try-completion "" sublst)))
-	;; Sort the whole list into bins.
-	(while sublst
-	  (let ((e (car sublst))
-		(s (car (car sublst))))
-	    (cond ((<= (length s) diff-idx)
-		   ;; 0 storage bin for shorty.
-		   (aset bins 0 (cons e (aref bins 0))))
-		  (t
-		   ;; stuff into a bin based on ascii value at diff
-		   (aset bins (aref s diff-idx)
-			 (cons e (aref bins (aref s diff-idx)))))))
-	  (setq sublst (cdr sublst)))
-	;; Go through all our bins  Stick singles into our
-	;; junk-list, everything else as sublsts in work-list.
-	;; If two neighboring lists are both small, make a grouped
-	;; group combinding those two sub-lists.
-	(setq diff-idx 0)
-	(while (> 256 diff-idx)
-	  (let ((l (nreverse ;; Reverse the list since they are stuck in
-		    ;; backwards.
-		    (aref bins diff-idx))))
-	    (if l
-		(let ((tmp (cons (try-completion "" l) l)))
-		  (if (or (> (length l) speedbar-tag-regroup-maximum-length)
-			  (> (+ (length l) (length short-group-list))
-			     speedbar-tag-split-minimum-length))
-		      (progn
-			;; We have reached a longer list, so we
-			;; must finish off a grouped group.
-			(cond
-			 ((and short-group-list
-			       (= (length short-group-list)
-				  num-shorts-grouped))
-			  ;; All singles?  Junk list
-			  (setq junk-list (append short-group-list
-						  junk-list)))
-			 ((= num-shorts-grouped 1)
-			  ;; Only one short group?  Just stick it in
-			  ;; there by itself.  Make a group, and find
-			  ;; a subexpression
-			  (let ((subexpression (try-completion
-						"" short-group-list)))
-			    (if (< (length subexpression)
-				   speedbar-tag-group-name-minimum-length)
-				(setq subexpression
-				      (concat short-start-name
-					      " ("
-					      (substring
-					       (car (car short-group-list))
-					       (length short-start-name))
-					      ")")))
-			    (setq work-list
-				  (cons (cons subexpression
-					      short-group-list)
-					work-list))))
-			 (short-group-list
-			  ;; Multiple groups to be named in a special
-			  ;; way by displaying the range over which we
-			  ;; have grouped them.
+(defun speedbar-sort-tag-hierarchy (lst)
+  "Sort all elements of tag hierarchy LST."
+  (sort (copy-alist lst)
+	(lambda (a b) (string< (car a) (car b)))))
+
+(defun speedbar-prefix-group-tag-hierarchy (lst)
+  "Prefix group names for tag hierarchy LST."
+  (let ((newlst nil)
+	(sublst nil)
+	(work-list nil)
+	(junk-list nil)
+	(short-group-list nil)
+	(short-start-name nil)
+	(short-end-name nil)
+	(num-shorts-grouped 0)
+	(bins (make-vector 256 nil))
+	(diff-idx 0))
+    ;; Break out sub-lists
+    (while lst
+      (if (and (listp (cdr-safe (car-safe lst)))
+	       ;; This one is for bovine tokens
+	       (not (symbolp (car-safe (cdr-safe (car-safe lst))))))
+	  (setq newlst (cons (car lst) newlst))
+	(setq sublst (cons (car lst) sublst)))
+      (setq lst (cdr lst)))
+    ;; Reverse newlst because it was made backwards.
+    ;; Sublist doesn't need reversing because the act
+    ;; of binning things will reverse it for us.
+    (setq newlst (nreverse newlst))
+    ;; Now, first find out how long our list is.  Never let a
+    ;; list get-shorter than our minimum.
+    (if (<= (length sublst) speedbar-tag-split-minimum-length)
+	(setq work-list (nreverse sublst))
+      (setq diff-idx (length (try-completion "" sublst)))
+      ;; Sort the whole list into bins.
+      (while sublst
+	(let ((e (car sublst))
+	      (s (car (car sublst))))
+	  (cond ((<= (length s) diff-idx)
+		 ;; 0 storage bin for shorty.
+		 (aset bins 0 (cons e (aref bins 0))))
+		(t
+		 ;; stuff into a bin based on ascii value at diff
+		 (aset bins (aref s diff-idx)
+		       (cons e (aref bins (aref s diff-idx)))))))
+	(setq sublst (cdr sublst)))
+      ;; Go through all our bins  Stick singles into our
+      ;; junk-list, everything else as sublsts in work-list.
+      ;; If two neighboring lists are both small, make a grouped
+      ;; group combinding those two sub-lists.
+      (setq diff-idx 0)
+      (while (> 256 diff-idx)
+	(let ((l (nreverse;; Reverse the list since they are stuck in
+		  ;; backwards.
+		  (aref bins diff-idx))))
+	  (if l
+	      (let ((tmp (cons (try-completion "" l) l)))
+		(if (or (> (length l) speedbar-tag-regroup-maximum-length)
+			(> (+ (length l) (length short-group-list))
+			   speedbar-tag-split-minimum-length))
+		    (progn
+		      ;; We have reached a longer list, so we
+		      ;; must finish off a grouped group.
+		      (cond
+		       ((and short-group-list
+			     (= (length short-group-list)
+				num-shorts-grouped))
+			;; All singles?  Junk list
+			(setq junk-list (append short-group-list
+						junk-list)))
+		       ((= num-shorts-grouped 1)
+			;; Only one short group?  Just stick it in
+			;; there by itself.  Make a group, and find
+			;; a subexpression
+			(let ((subexpression (try-completion
+					      "" short-group-list)))
+			  (if (< (length subexpression)
+				 speedbar-tag-group-name-minimum-length)
+			      (setq subexpression
+				    (concat short-start-name
+					    " ("
+					    (substring
+					     (car (car short-group-list))
+					     (length short-start-name))
+					    ")")))
 			  (setq work-list
-				(cons (cons (concat short-start-name
-						    " to "
-						    short-end-name)
-					    (nreverse short-group-list))
+				(cons (cons subexpression
+					    short-group-list)
 				      work-list))))
-			;; Reset short group list information every time.
-			(setq short-group-list nil
-			      short-start-name nil
-			      short-end-name nil
-			      num-shorts-grouped 0)))
-		  ;; Ok, now that we cleaned up the short-group-list,
-		  ;; we can deal with this new list, to decide if it
-		  ;; should go on one of these sub-lists or not.
-		  (if (< (length l) speedbar-tag-regroup-maximum-length)
-		      (setq short-group-list (append short-group-list l)
-			    num-shorts-grouped (1+ num-shorts-grouped)
-			    short-end-name (car tmp)
-			    short-start-name (if short-start-name
-						 short-start-name
-					       (car tmp)))
-		    (setq work-list (cons tmp work-list))))))
-	  (setq diff-idx (1+ diff-idx))))
-      ;; Did we run out of things?  Drop our new list onto the end.
-      (cond
-       ((and short-group-list (= (length short-group-list) num-shorts-grouped))
-	;; All singles?  Junk list
-	(setq junk-list (append short-group-list junk-list)))
-       ((= num-shorts-grouped 1)
-	;; Only one short group?  Just stick it in
-	;; there by itself.
-	(setq work-list
-	      (cons (cons (try-completion "" short-group-list)
-			  short-group-list)
-		    work-list)))
-       (short-group-list
-	;; Multiple groups to be named in a special
-	;; way by displaying the range over which we
-	;; have grouped them.
-	(setq work-list
-	      (cons (cons (concat short-start-name " to " short-end-name)
-			  short-group-list)
-		    work-list))))
-      ;; Reverse the work list nreversed when consing.
-      (setq work-list (nreverse work-list))
-      ;; Now, stick our new list onto the end of
-      (if work-list
-	  (if junk-list
-	      (append newlst work-list junk-list)
-	    (append newlst work-list))
-	(append  newlst junk-list))))
-   ((eq method 'trim-words)
-    (let ((newlst nil)
-	  (sublst nil)
-	  (trim-prefix nil)
-	  (trim-chars 0)
-	  (trimlst nil))
-      (while lst
-	(if (listp (cdr-safe (car-safe lst)))
-	    (setq newlst (cons (car lst) newlst))
-	  (setq sublst (cons (car lst) sublst)))
-	(setq lst (cdr lst)))
-      ;; Get the prefix to trim by.  Make sure that we don't trim
-      ;; off silly pieces, only complete understandable words.
-      (setq trim-prefix (try-completion "" sublst))
-      (if (or (= (length sublst) 1)
-	      (not trim-prefix)
-	      (not (string-match "\\(\\w+\\W+\\)+" trim-prefix)))
-	  (append (nreverse newlst) (nreverse sublst))
-	(setq trim-prefix (substring trim-prefix (match-beginning 0)
-				     (match-end 0)))
-	(setq trim-chars (length trim-prefix))
-	(while sublst
-	  (setq trimlst (cons
-			 (cons (substring (car (car sublst)) trim-chars)
-			       (cdr (car sublst)))
-			 trimlst)
-		sublst (cdr sublst)))
-	;; Put the lists together
-	(append (nreverse newlst) trimlst))))
-   ((eq method 'simple-group)
-    (let ((newlst nil)
-	  (sublst nil))
-      (while lst
-	(if (listp (cdr-safe (car-safe lst)))
-	    (setq newlst (cons (car lst) newlst))
-	  (setq sublst (cons (car lst) sublst)))
-	(setq lst (cdr lst)))
-      (if (not newlst)
-	  (nreverse sublst)
-	(setq newlst (cons (cons "Tags" (nreverse sublst)) newlst))
-	(nreverse newlst))))
-   (t lst)))
+		       (short-group-list
+			;; Multiple groups to be named in a special
+			;; way by displaying the range over which we
+			;; have grouped them.
+			(setq work-list
+			      (cons (cons (concat short-start-name
+						  " to "
+						  short-end-name)
+					  (nreverse short-group-list))
+				    work-list))))
+		      ;; Reset short group list information every time.
+		      (setq short-group-list nil
+			    short-start-name nil
+			    short-end-name nil
+			    num-shorts-grouped 0)))
+		;; Ok, now that we cleaned up the short-group-list,
+		;; we can deal with this new list, to decide if it
+		;; should go on one of these sub-lists or not.
+		(if (< (length l) speedbar-tag-regroup-maximum-length)
+		    (setq short-group-list (append short-group-list l)
+			  num-shorts-grouped (1+ num-shorts-grouped)
+			  short-end-name (car tmp)
+			  short-start-name (if short-start-name
+					       short-start-name
+					     (car tmp)))
+		  (setq work-list (cons tmp work-list))))))
+	(setq diff-idx (1+ diff-idx))))
+    ;; Did we run out of things?  Drop our new list onto the end.
+    (cond
+     ((and short-group-list (= (length short-group-list) num-shorts-grouped))
+      ;; All singles?  Junk list
+      (setq junk-list (append short-group-list junk-list)))
+     ((= num-shorts-grouped 1)
+      ;; Only one short group?  Just stick it in
+      ;; there by itself.
+      (setq work-list
+	    (cons (cons (try-completion "" short-group-list)
+			short-group-list)
+		  work-list)))
+     (short-group-list
+      ;; Multiple groups to be named in a special
+      ;; way by displaying the range over which we
+      ;; have grouped them.
+      (setq work-list
+	    (cons (cons (concat short-start-name " to " short-end-name)
+			short-group-list)
+		  work-list))))
+    ;; Reverse the work list nreversed when consing.
+    (setq work-list (nreverse work-list))
+    ;; Now, stick our new list onto the end of
+    (if work-list
+	(if junk-list
+	    (append newlst work-list junk-list)
+	  (append newlst work-list))
+      (append  newlst junk-list))))
+
+(defun speedbar-trim-words-tag-hierarchy (lst)
+  "Trim all words in a tag hierarchy.
+Base trimming information on word separators, and group names."
+  (let ((newlst nil)
+	(sublst nil)
+	(trim-prefix nil)
+	(trim-chars 0)
+	(trimlst nil))
+    (while lst
+      (if (listp (cdr-safe (car-safe lst)))
+	  (setq newlst (cons (car lst) newlst))
+	(setq sublst (cons (car lst) sublst)))
+      (setq lst (cdr lst)))
+    ;; Get the prefix to trim by.  Make sure that we don't trim
+    ;; off silly pieces, only complete understandable words.
+    (setq trim-prefix (try-completion "" sublst))
+    (if (or (= (length sublst) 1)
+	    (not trim-prefix)
+	    (not (string-match "\\(\\w+\\W+\\)+" trim-prefix)))
+	(append (nreverse newlst) (nreverse sublst))
+      (setq trim-prefix (substring trim-prefix (match-beginning 0)
+				   (match-end 0)))
+      (setq trim-chars (length trim-prefix))
+      (while sublst
+	(setq trimlst (cons
+		       (cons (substring (car (car sublst)) trim-chars)
+			     (cdr (car sublst)))
+		       trimlst)
+	      sublst (cdr sublst)))
+      ;; Put the lists together
+      (append (nreverse newlst) trimlst))))
+
+(defun speedbar-simple-group-tag-hierarchy (lst)
+  "Create a simple 'Tags' group with orphaned tags."
+  (let ((newlst nil)
+	(sublst nil))
+    (while lst
+      (if (listp (cdr-safe (car-safe lst)))
+	  (setq newlst (cons (car lst) newlst))
+	(setq sublst (cons (car lst) sublst)))
+      (setq lst (cdr lst)))
+    (if (not newlst)
+	(nreverse sublst)
+      (setq newlst (cons (cons "Tags" (nreverse sublst)) newlst))
+      (nreverse newlst))))
 
 (defun speedbar-create-tag-hierarchy (lst)
   "Adjust the tag hierarchy in LST, and return it.
 This uses `speedbar-tag-hierarchy-method' to determine how to adjust
-the list.  See it's value for details."
+the list."
   (let* ((f (save-excursion
 	      (forward-line -1)
 	      (speedbar-line-path)))
 	 (methods (if (get-file-buffer f)
 		      (save-excursion (set-buffer (get-file-buffer f))
 				      speedbar-tag-hierarchy-method)
-		    speedbar-tag-hierarchy-method)))
+		    speedbar-tag-hierarchy-method))
+	 (lst (copy-tree lst)))
     (while methods
-      (setq lst (speedbar-apply-one-tag-hierarchy-method lst (car methods))
+      (setq lst (funcall (car methods) lst)
 	    methods (cdr methods)))
     lst))
 
@@ -3156,6 +3182,8 @@ This should be bound to mouse event E."
 
 (defun speedbar-power-click (e)
   "Activate any speedbar button as a power click.
+A power click will dispose of cached data (if available) or bring a buffer
+up into a different window.
 This should be bound to mouse event E."
   (interactive "e")
   (let ((speedbar-power-click t))
@@ -3551,7 +3579,6 @@ INDENT is the current indentation level."
     (speedbar-set-timer speedbar-update-speed)
     (goto-char token)
     (run-hooks 'speedbar-visiting-tag-hook)
-    ;;(recenter)
     (speedbar-maybee-jump-to-attached-frame)
     ))
 
@@ -4041,9 +4068,42 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 		(set-buffer text)
 		(revert-buffer t)))))))
 
+
+;;; Useful hook values and such.
+;;
+(defvar speedbar-highlight-one-tag-line nil
+  "Overlay used for highlighting the most recently jumped to tag line.")
+
+(defun speedbar-highlight-one-tag-line ()
+  "Highlight the current line, unhighlighting a previously jumped to line."
+  (speedbar-unhighlight-one-tag-line)
+  (setq speedbar-highlight-one-tag-line
+	(speedbar-make-overlay (save-excursion (beginning-of-line) (point))
+			       (save-excursion (end-of-line)
+					       (forward-char 1)
+					       (point))))
+  (speedbar-overlay-put speedbar-highlight-one-tag-line 'face 'highlight)
+  (add-hook 'pre-command-hook 'speedbar-unhighlight-one-tag-line)
+  )
+
+(defun speedbar-unhighlight-one-tag-line ()
+  "Unhighlight the currently highlight line."
+  (if speedbar-highlight-one-tag-line
+      (progn
+	(speedbar-delete-overlay speedbar-highlight-one-tag-line)
+	(setq speedbar-highlight-one-tag-line nil)))
+  (remove-hook 'pre-command-hook 'speedbar-unhighlight-one-tag-line))
+
+(defun speedbar-recenter-to-top ()
+  "Recenter the current buffer so POINT is on the top of the window."
+  (recenter 1))
+
+(defun speedbar-recenter ()
+  "Recenter the current buffer so POINT is on the top of the window."
+  (recenter (window-hight (selected-window))/2))
 
 
-;;; Color loading section  This is messy *Blech!*
+;;; Color loading section.
 ;;
 (defface speedbar-button-face '((((class color) (background light))
 				 (:foreground "green4"))
