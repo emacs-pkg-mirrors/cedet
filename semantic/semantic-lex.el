@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.4 2002/07/12 01:27:31 emacsman Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.5 2002/07/15 10:29:34 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,12 +28,112 @@
 ;; are constructed at build time into a single routine.  This will
 ;; eliminate uneeded if statements to speed the lexer.
 
-;;;###autoload
-(defvar semantic-lex-analyzer nil
-  "The lexical analyzer used for a given buffer.
-See `semantic-lex' for documentation.")
-
 ;;; Code:
+
+;;; Compatibility
+;;
+(eval-and-compile (if (not (fboundp 'with-syntax-table))
+
+;; Copied from Emacs 21 for compatibility with released Emacses.
+(defmacro with-syntax-table (table &rest body)
+  "With syntax table of current buffer set to a copy of TABLE, evaluate BODY.
+The syntax table of the current buffer is saved, BODY is evaluated, and the
+saved table is restored, even in case of an abnormal exit.
+Value is what BODY returns."
+  (let ((old-table (make-symbol "table"))
+	(old-buffer (make-symbol "buffer")))
+    `(let ((,old-table (syntax-table))
+	   (,old-buffer (current-buffer)))
+       (unwind-protect
+	   (progn
+	     (set-syntax-table (copy-syntax-table ,table))
+	     ,@body)
+	 (save-current-buffer
+	   (set-buffer ,old-buffer)
+	   (set-syntax-table ,old-table))))))
+
+))
+
+;;; Semantic 2.x lexical analysis
+;;
+
+;;; Keyword table handling.
+;;
+(defvar semantic-flex-keywords-obarray nil
+  "Buffer local keyword obarray for the lexical analyzer.
+These keywords are matched explicitly, and converted into special symbols.")
+(make-variable-buffer-local 'semantic-flex-keywords-obarray)
+
+(defun semantic-lex-make-keyword-table (keywords &optional propertyalist)
+  "Convert a list of KEYWORDS into an obarray.
+Save the obarray into `semantic-flex-keywords-obarray'.
+If optional argument PROPERTYALIST is non nil, then interpret it, and
+apply those properties"
+  ;; Create the symbol hash table
+  (let ((obarray (make-vector 13 nil)))
+    ;; fill it with stuff
+    (while keywords
+      (set (intern (car (car keywords)) obarray)
+	   (cdr (car keywords)))
+      (setq keywords (cdr keywords)))
+    ;; Apply all properties
+    (let ((semantic-flex-keywords-obarray obarray))
+      (while propertyalist
+	(semantic-lex-keyword-put (car (car propertyalist))
+				   (nth 1 (car propertyalist))
+				   (nth 2 (car propertyalist)))
+	(setq propertyalist (cdr propertyalist))))
+    obarray))
+
+(defsubst semantic-lex-keyword-p (text)
+  "Return non-nil if TEXT is a keyword in the keyword table.
+Return nil if TEXT is not in the symbol table."
+  (symbol-value (intern-soft text semantic-flex-keywords-obarray)))
+
+(defun semantic-lex-keyword-put (text property value)
+  "For keyword TEXT, set PROPERTY to VALUE."
+  (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
+    (if (not sym) (signal 'wrong-type-argument (list text 'keyword)))
+    (put sym property value)))
+
+(defun semantic-lex-keyword-get (text property)
+  "For keyword TEXT, get the value of PROPERTY."
+  (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
+    (if (not sym) (signal 'wrong-type-argument (list text 'keyword)))
+    (get sym property)))
+
+(defun semantic-lex-map-keywords (fun &optional property)
+  "Call function FUN on every semantic keyword.
+If optional PROPERTY is non-nil, call FUN only on every keyword which
+as a PROPERTY value.  FUN receives a semantic keyword as argument."
+  (if (arrayp semantic-flex-keywords-obarray)
+      (mapatoms
+       (function
+        (lambda (keyword)
+          (and keyword
+               (or (null property) (get keyword property))
+               (funcall fun keyword))))
+       semantic-flex-keywords-obarray)))
+
+(defun semantic-lex-keywords (&optional property)
+  "Return a list of semantic keywords.
+If optional PROPERTY is non-nil, return only keywords which have a
+PROPERTY set."
+  (let (keywords)
+    (semantic-lex-map-keywords
+     (function
+      (lambda (keyword)
+        (setq keywords (cons keyword keywords))))
+     property)
+    keywords))
+
+;;;###autoload
+(defvar semantic-lex-analyzer 'semantic-flex
+  "The lexical analyzer used for a given buffer.
+See `semantic-lex' for documentation.
+For compatibility with Semantic 1.x it defaults to `semantic-flex'.")
+(make-variable-buffer-local 'semantic-lex-analyzer)
+
 (defvar semantic-lex-tokens
   '(
     (bol)
@@ -184,7 +284,7 @@ FLOATING_POINT_LITERAL:
 (defvar semantic-lex-depth 0
   "Default lexing depth.
 This specifies how many lists to create tokens in.")
-(make-variable-buffer-local 'semantic-flex-depth)
+(make-variable-buffer-local 'semantic-lex-depth)
 
 (defvar semantic-lex-unterminated-syntax-end-function
   (lambda (syntax syntax-start lex-end) lex-end)
@@ -208,9 +308,6 @@ when finding unterminated syntax.")
 	  ))
   )
 
-;; Do the cutover for compatibility
-;;(defalias 'semantic-flex 'semantic-lex)
-
 ;;;###autoload
 (defun semantic-lex (start end &optional depth length)
   "Lexically analyze text in the current buffer between START and END.
@@ -227,28 +324,6 @@ end of the return token will be larger than END.  To truly restrict
 scanning, use `narrow-to-region'."
   (funcall semantic-lex-analyzer start end depth length)
   )
-
-(eval-and-compile (if (not (fboundp 'with-syntax-table))
-
-;; Copied from Emacs 21 for compatibility with released Emacses.
-(defmacro with-syntax-table (table &rest body)
-  "Evaluate BODY with syntax table of current buffer set to a copy of TABLE.
-The syntax table of the current buffer is saved, BODY is evaluated, and the
-saved table is restored, even in case of an abnormal exit.
-Value is what BODY returns."
-  (let ((old-table (make-symbol "table"))
-	(old-buffer (make-symbol "buffer")))
-    `(let ((,old-table (syntax-table))
-	   (,old-buffer (current-buffer)))
-       (unwind-protect
-	   (progn
-	     (set-syntax-table (copy-syntax-table ,table))
-	     ,@body)
-	 (save-current-buffer
-	   (set-buffer ,old-buffer)
-	   (set-syntax-table ,old-table))))))
-
-))
 
 (defmacro semantic-lex-one-token (analyzers)
   "Calculate one token from the current buffer at point.
@@ -276,7 +351,8 @@ Each analyzer should be an analyzer created with `define-lex-analyzer'."
 	   (current-depth 0)
 	   (newsyntax (copy-syntax-table (syntax-table)))
 	   (mods semantic-lex-syntax-modifications)
-	   )
+           ;; Use the default depth if it is not specified.
+           (depth (or depth semantic-lex-depth)))
        ;; Update the syntax table
        (while mods
 	 (modify-syntax-entry (car (car mods))
@@ -294,10 +370,8 @@ Each analyzer should be an analyzer created with `define-lex-analyzer'."
        ;; Return the token stream
        (nreverse token-stream)))
   )
-
-;;; Analyzer creation macros
-;;
-;;; Semantic lex token creation
+
+;;; Lexical token API
 ;;
 (defmacro semantic-lex-token (symbol start end)
   "Create a lexical token.
@@ -311,6 +385,31 @@ variable after calling `semantic-lex-token'."
   `(setq end-point ,end
 	 token-stream (cons (cons ,symbol (cons ,start end-point))
 			    token-stream)))
+
+(defsubst semantic-lex-token-class (token)
+  "Fetch the class of the lexical token TOKEN.
+See also the function `semantic-lex-token'."
+  (car token))
+
+(defsubst semantic-lex-token-start (token)
+  "Fetch the start position of the lexical token TOKEN.
+See also the function `semantic-lex-token'."
+  (nth 1 token))
+
+(defsubst semantic-lex-token-end (token)
+  "Fetch the end position of the lexical token TOKEN.
+See also the function `semantic-lex-token'."
+  (cdr (cdr token)))
+
+(defsubst semantic-lex-token-text (token)
+  "Fetch the text associated with the lexical token TOKEN.
+See also the function `semantic-lex-token'."
+  (buffer-substring-no-properties
+   (semantic-lex-token-start token)
+   (semantic-lex-token-end   token)))
+
+;;; Analyzer creation macros
+;;
 
 ;;;###autoload
 (defmacro define-lex-analyzer (name doc condition &rest forms)
@@ -371,7 +470,7 @@ See `define-lex-analyzer' for more about analyzers."
 				 (match-beginning ,(or index 0))
 				 (match-end ,(or index 0)))))
      ))
-
+
 ;;; Analyzers
 ;;
 (define-lex-analyzer semantic-lex-default-action
@@ -444,7 +543,7 @@ they are comment end characters)."
   "Detect and create symbol and keyword tokens."
   "\\(\\sw\\|\\s_\\)+"
   (semantic-lex-token
-   (or (semantic-flex-keyword-p (match-string 0)) 'symbol)
+   (or (semantic-lex-keyword-p (match-string 0)) 'symbol)
    (match-beginning 0) (match-end 0)))
 
 (define-lex-simple-regex-analyzer semantic-lex-charquote
@@ -558,7 +657,7 @@ Return either a paren token or a semantic list token depending on
     (if (eq (point) comment-start-point)
 	(error "Strange comment syntax prevents lexical analysis"))
     (setq end-point (point))))
-
+
 ;;; Test Lexer
 ;;
 (define-lex semantic-simple-lexer
@@ -576,6 +675,308 @@ syntax as specified by the syntax table."
   semantic-lex-ignore-comments
   semantic-lex-punctuation
   semantic-lex-default-action)
+
+;;; Compatibility with Semantic 1.x lexical analysis
+;;
+
+(defalias 'semantic-flex-start 'semantic-lex-token-start)
+(defalias 'semantic-flex-end 'semantic-lex-token-end)
+(defalias 'semantic-flex-text 'semantic-lex-token-text)
+(defalias 'semantic-flex-make-keyword-table 'semantic-lex-make-keyword-table)
+(defalias 'semantic-flex-keyword-p 'semantic-lex-keyword-p)
+(defalias 'semantic-flex-keyword-put 'semantic-lex-keyword-put)
+(defalias 'semantic-flex-keyword-get 'semantic-lex-keyword-get)
+(defalias 'semantic-flex-map-keywords 'semantic-lex-map-keywords)
+(defalias 'semantic-flex-keywords 'semantic-lex-keywords)
+
+;; This simple scanner uses the syntax table to generate a stream of
+;; simple tokens of the form:
+;;
+;;  (SYMBOL START . END)
+;;
+;; Where symbol is the type of thing it is.  START and END mark that
+;; objects boundary.
+
+(defvar semantic-flex-tokens semantic-lex-tokens
+  "An alist of of semantic token types.
+See variable `semantic-lex-tokens'.")
+
+(defvar semantic-flex-unterminated-syntax-end-function
+  (lambda (syntax syntax-start flex-end) flex-end)
+  "Function called when unterminated syntax is encountered.
+This should be set to one function.  That function should take three
+parameters.  The SYNTAX, or type of syntax which is unterminated.
+SYNTAX-START where the broken syntax begins.
+FLEX-END is where the lexical analysis was asked to end.
+This function can be used for languages that can intelligently fix up
+broken syntax, or the exit lexical analysis via `throw' or `signal'
+when finding unterminated syntax.")
+
+(defvar semantic-flex-extensions nil
+  "Buffer local extensions to the lexical analyzer.
+This should contain an alist with a key of a regex and a data element of
+a function.  The function should both move point, and return a lexical
+token of the form:
+  ( TYPE START .  END)
+nil is also a valid return value.
+TYPE can be any type of symbol, as long as it doesn't occur as a
+nonterminal in the language definition.")
+(make-variable-buffer-local 'semantic-flex-extensions)
+
+(defvar semantic-flex-syntax-modifications nil
+  "Changes to the syntax table for this buffer.
+These changes are active only while the buffer is being flexed.
+This is a list where each element has the form:
+  (CHAR CLASS)
+CHAR is the char passed to `modify-syntax-entry',
+and CLASS is the string also passed to `modify-syntax-entry' to define
+what syntax class CHAR has.")
+(make-variable-buffer-local 'semantic-flex-syntax-modifications)
+
+(defvar semantic-ignore-comments t
+  "Default comment handling.
+t means to strip comments when flexing.  Nil means to keep comments
+as part of the token stream.")
+(make-variable-buffer-local 'semantic-ignore-comments)
+
+(defvar semantic-flex-enable-newlines nil
+  "When flexing, report 'newlines as syntactic elements.
+Useful for languages where the newline is a special case terminator.
+Only set this on a per mode basis, not globally.")
+(make-variable-buffer-local 'semantic-flex-enable-newlines)
+
+(defvar semantic-flex-enable-whitespace nil
+  "When flexing, report 'whitespace as syntactic elements.
+Useful for languages where the syntax is whitespace dependent.
+Only set this on a per mode basis, not globally.")
+(make-variable-buffer-local 'semantic-flex-enable-whitespace)
+
+(defvar semantic-flex-enable-bol nil
+  "When flexing, report beginning of lines as syntactic elements.
+Useful for languages like python which are indentation sensitive.
+Only set this on a per mode basis, not globally.")
+(make-variable-buffer-local 'semantic-flex-enable-bol)
+
+(defvar semantic-number-expression semantic-lex-number-expression
+  "See variable `semantic-lex-number-expression'.")
+(make-variable-buffer-local 'semantic-number-expression)
+
+(defvar semantic-flex-depth 0
+  "Default flexing depth.
+This specifies how many lists to create tokens in.")
+(make-variable-buffer-local 'semantic-flex-depth)
+
+(defun semantic-flex (start end &optional depth length)
+  "Using the syntax table, do something roughly equivalent to flex.
+Semantically check between START and END.  Optional argument DEPTH
+indicates at what level to scan over entire lists.
+The return value is a token stream.  Each element is a list, such of
+the form (symbol start-expression .  end-expression) where SYMBOL
+denotes the token type.
+See `semantic-flex-tokens' variable for details on token types.
+END does not mark the end of the text scanned, only the end of the
+beginning of text scanned.  Thus, if a string extends past END, the
+end of the return token will be larger than END.  To truly restrict
+scanning, use `narrow-to-region'.
+The last argument, LENGTH specifies that `semantic-flex' should only
+return LENGTH tokens."
+  ;;(message "Flexing muscles...")
+  (if (not semantic-flex-keywords-obarray)
+      (setq semantic-flex-keywords-obarray [ nil ]))
+  (let ((ts nil)
+        (pos (point))
+        (ep nil)
+        (curdepth 0)
+        (cs (if comment-start-skip
+                (concat "\\(\\s<\\|" comment-start-skip "\\)")
+              (concat "\\(\\s<\\)")))
+        (newsyntax (copy-syntax-table (syntax-table)))
+        (mods semantic-flex-syntax-modifications)
+        ;; Use the default depth if it is not specified.
+        (depth (or depth semantic-flex-depth)))
+    ;; Update the syntax table
+    (while mods
+      (modify-syntax-entry (car (car mods)) (car (cdr (car mods))) newsyntax)
+      (setq mods (cdr mods)))
+    (with-syntax-table newsyntax
+      (goto-char start)
+      (while (and (< (point) end) (or (not length) (<= (length ts) length)))
+        (cond
+         ;; catch beginning of lines when needed.
+         ;; Must be done before catching any other tokens!
+         ((and semantic-flex-enable-bol
+               (bolp)
+               ;; Just insert a (bol N . N) token in the token stream,
+               ;; without moving the point.  N is the point at the
+               ;; beginning of line.
+               (setq ts (cons (cons 'bol (cons (point) (point))) ts))
+               nil)) ;; CONTINUE
+         ;; special extensions, includes whitespace, nl, etc.
+         ((and semantic-flex-extensions
+               (let ((fe semantic-flex-extensions)
+                     (r nil))
+                 (while fe
+                   (if (looking-at (car (car fe)))
+                       (setq ts (cons (funcall (cdr (car fe))) ts)
+                             r t
+                             fe nil
+                             ep (point)))
+                   (setq fe (cdr fe)))
+                 (if (and r (not (car ts))) (setq ts (cdr ts)))
+                 r)))
+         ;; catch newlines when needed
+         ((looking-at "\\s-*\\(\n\\|\\s>\\)")
+          (if semantic-flex-enable-newlines
+              (setq ep (match-end 1)
+                    ts (cons (cons 'newline
+                                   (cons (match-beginning 1) ep))
+                             ts))))
+         ;; catch whitespace when needed
+         ((looking-at "\\s-+")
+          (if semantic-flex-enable-whitespace
+              ;; Language wants whitespaces, link them together.
+              (if (eq (car (car ts)) 'whitespace)
+                  (setcdr (cdr (car ts)) (match-end 0))
+                (setq ts (cons (cons 'whitespace
+                                     (cons (match-beginning 0)
+                                           (match-end 0)))
+                               ts)))))
+         ;; numbers
+         ((and semantic-number-expression
+               (looking-at semantic-number-expression))
+          (setq ts (cons (cons 'number
+                               (cons (match-beginning 0)
+                                     (match-end 0)))
+                         ts)))
+         ;; symbols
+         ((looking-at "\\(\\sw\\|\\s_\\)+")
+          (setq ts (cons (cons
+                          ;; Get info on if this is a keyword or not
+                          (or (semantic-flex-keyword-p (match-string 0))
+                              'symbol)
+                          (cons (match-beginning 0) (match-end 0)))
+                         ts)))
+         ;; Character quoting characters (ie, \n as newline)
+         ((looking-at "\\s\\+")
+          (setq ts (cons (cons 'charquote
+                               (cons (match-beginning 0) (match-end 0)))
+                         ts)))
+         ;; Open parens, or semantic-lists.
+         ((looking-at "\\s(")
+          (if (or (not depth) (< curdepth depth))
+              (progn
+                (setq curdepth (1+ curdepth))
+                (setq ts (cons (cons 'open-paren
+                                     (cons (match-beginning 0) (match-end 0)))
+                               ts)))
+            (setq ts (cons
+                      (cons 'semantic-list
+                            (cons (match-beginning 0)
+                                  (save-excursion
+                                    (condition-case nil
+                                        (forward-list 1)
+                                      ;; This case makes flex robust
+                                      ;; to broken lists.
+                                      (error
+                                       (goto-char
+                                        (funcall
+                                         semantic-flex-unterminated-syntax-end-function
+                                         'semantic-list
+                                         start end))))
+                                    (setq ep (point)))))
+                      ts))))
+         ;; Close parens
+         ((looking-at "\\s)")
+          (setq ts (cons (cons 'close-paren
+                               (cons (match-beginning 0) (match-end 0)))
+                         ts))
+          (setq curdepth (1- curdepth)))
+         ;; String initiators
+         ((looking-at "\\s\"")
+          ;; Zing to the end of this string.
+          (setq ts (cons (cons 'string
+                               (cons (match-beginning 0)
+                                     (save-excursion
+                                       (condition-case nil
+                                           (forward-sexp 1)
+                                         ;; This case makes flex
+                                         ;; robust to broken strings.
+                                         (error
+                                          (goto-char
+                                           (funcall
+                                            semantic-flex-unterminated-syntax-end-function
+                                            'string
+                                            start end))))
+                                       (setq ep (point)))))
+                         ts)))
+         ;; comments
+         ((looking-at cs)
+          (if (and semantic-ignore-comments
+                   (not semantic-flex-enable-whitespace))
+              ;; If the language doesn't deal with comments nor
+              ;; whitespaces, ignore them here.
+              (let ((comment-start-point (point)))
+                (forward-comment 1)
+                (if (eq (point) comment-start-point)
+                    ;; In this case our start-skip string failed
+                    ;; to work properly.  Lets try and move over
+                    ;; whatever white space we matched to begin
+                    ;; with.
+                    (skip-syntax-forward "-.'"
+                                         (save-excursion
+                                           (end-of-line)
+                                           (point)))
+                  ;;(forward-comment 1)
+                  ;; Generate newline token if enabled
+                  (if (and semantic-flex-enable-newlines
+                           (bolp))
+                      (backward-char 1)))
+                (if (eq (point) comment-start-point)
+                    (error "Strange comment syntax prevents lexical analysis"))
+                (setq ep (point)))
+            (let ((tk (if semantic-ignore-comments 'whitespace 'comment)))
+              (save-excursion
+                (forward-comment 1)
+                ;; Generate newline token if enabled
+                (if (and semantic-flex-enable-newlines
+                         (bolp))
+                    (backward-char 1))
+                (setq ep (point)))
+              ;; Language wants comments or want them as whitespaces,
+              ;; link them together.
+              (if (eq (car (car ts)) tk)
+                  (setcdr (cdr (car ts)) ep)
+                (setq ts (cons (cons tk (cons (match-beginning 0) ep))
+                               ts))))))
+         ;; punctuation
+         ((looking-at "\\(\\s.\\|\\s$\\|\\s'\\)")
+          (setq ts (cons (cons 'punctuation
+                               (cons (match-beginning 0) (match-end 0)))
+                         ts)))
+         ;; unknown token
+         (t
+          (error "What is that?")))
+        (goto-char (or ep (match-end 0)))
+        (setq ep nil)))
+    ;; maybe catch the last beginning of line when needed
+    (and semantic-flex-enable-bol
+         (= (point) end)
+         (bolp)
+         (setq ts (cons (cons 'bol (cons (point) (point))) ts)))
+    (goto-char pos)
+    ;;(message "Flexing muscles...done")
+    (nreverse ts)))
+
+(defsubst semantic-flex-buffer (&optional depth)
+  "Semantically flex the current buffer.
+Optional argument DEPTH is the depth to scan into lists."
+  (semantic-lex (point-min) (point-max) depth))
+
+(defsubst semantic-flex-list (semlist depth)
+  "Flex the body of SEMLIST to DEPTH."
+  (semantic-lex (semantic-flex-start semlist)
+                (semantic-flex-end   semlist)
+                depth))
 
 (provide 'semantic-lex)
 
