@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.54 2001/12/18 02:40:35 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.55 2002/02/06 03:13:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -119,6 +119,10 @@
  (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'classsubparts)
  ))
  ) ; end unionparts
+ (opt-symbol
+ ( symbol)
+ ()
+ ) ; end opt-symbol
  (classsubparts
  ( open-paren "{"
   ,(semantic-lambda
@@ -126,7 +130,7 @@
  ( close-paren "}"
   ,(semantic-lambda
   (list nil)))
- ( opt-class-protection punctuation "\\b:\\b"
+ ( class-protection opt-symbol punctuation "\\b:\\b"
   ,(semantic-lambda
   (nth 0 vals) (list 'label)))
  ( var-or-fun)
@@ -137,7 +141,7 @@
  ()
  ) ; end classsubparts
  (opt-class-parents
- ( punctuation "\\b:\\b" class-parents
+ ( punctuation "\\b:\\b" class-parents opt-template-specifier
   ,(semantic-lambda
   (list (nth 1 vals))))
  (
@@ -161,10 +165,15 @@
  (class-declmods
  ( VIRTUAL)
  ) ; end class-declmods
- (opt-class-protection
+ (class-protection
  ( PUBLIC)
  ( PRIVATE)
  ( PROTECTED)
+ ) ; end class-protection
+ (opt-class-protection
+ ( class-protection
+  ,(semantic-lambda
+  (nth 0 vals)))
  ()
  ) ; end opt-class-protection
  (namespaceparts
@@ -184,7 +193,7 @@
  ( type)
  ( var-or-fun)
  ( define)
- ( opt-class-protection punctuation "\\b:\\b"
+ ( class-protection punctuation "\\b:\\b"
   ,(semantic-lambda
   (list (nth 0 vals) 'protection)))
  ()
@@ -217,11 +226,14 @@
   (list "")))
  ) ; end opt-name
  (typesimple
- ( struct-or-class opt-name opt-class-parents semantic-list
+ ( struct-or-class opt-name opt-template-specifier opt-class-parents semantic-list
   ,(semantic-lambda
   (nth 1 vals) (list 'type) (nth 0 vals) (list ( let ( ( semantic-c-classname ( cons ( car (nth 1 vals)) ( car (nth 0 vals)))))
- (semantic-bovinate-from-nonterminal-full (car (nth 3 vals)) (cdr (nth 3 vals)) 'classsubparts)
- )) (nth 2 vals) (list nil nil)))
+ (semantic-bovinate-from-nonterminal-full (car (nth 4 vals)) (cdr (nth 4 vals)) 'classsubparts)
+ ) (nth 3 vals) ( semantic-bovinate-make-assoc-list (append 'template-specifier) (nth 2 vals)) nil)))
+ ( struct-or-class opt-name opt-template-specifier opt-class-parents
+  ,(semantic-lambda
+  (nth 1 vals) (list 'type) (nth 0 vals) (list nil (nth 3 vals) ( semantic-bovinate-make-assoc-list (append 'template-specifier) (nth 2 vals)) nil)))
  ( UNION opt-name unionparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
@@ -247,35 +259,59 @@
  (template
  ( TEMPLATE template-specifier template-definition
   ,(semantic-lambda
-  (nth 2 vals)))
+  ( semantic-c-reconstitute-template (nth 2 vals) (nth 1 vals))))
  ) ; end template
+ (opt-template-specifier
+ ( template-specifier
+  ,(semantic-lambda
+  (nth 0 vals)))
+ (
+  ,(semantic-lambda
+ ))
+ ) ; end opt-template-specifier
  (template-specifier
- ( punctuation "\\b<\\b" template-specifier-type-list punctuation "\\b>\\b"
+ ( punctuation "\\b<\\b" template-specifier-types punctuation "\\b>\\b"
   ,(semantic-lambda
   (nth 1 vals)))
  ) ; end template-specifier
+ (template-specifier-types
+ ( template-var template-specifier-type-list
+  ,(semantic-lambda
+  ( cons (nth 0 vals) (nth 1 vals))))
+ ()
+ ) ; end template-specifier-types
  (template-specifier-type-list
- ( template-var punctuation "\\b,\\b" template-specifier-type-list
+ ( punctuation "\\b,\\b" template-specifier-types
   ,(semantic-lambda
-  ( cons ( car (nth 0 vals)) (nth 2 vals))))
- ( template-var
+  (nth 1 vals)))
+ (
   ,(semantic-lambda
-  (list (nth 0 vals))))
+ ))
  ) ; end template-specifier-type-list
  (template-var
- ( template-type opt-template-equal
+ ( template-type opt-stars opt-template-equal
   ,(semantic-lambda
   (nth 0 vals)))
  ) ; end template-var
  (opt-template-equal
- ( punctuation "\\b=\\b" symbol punctuation "\\b<\\b" template-specifier-type-list punctuation "\\b>\\b")
+ ( punctuation "\\b=\\b" symbol punctuation "\\b<\\b" template-specifier-type punctuation "\\b>\\b"
+  ,(semantic-lambda
+  (list (nth 1 vals))))
  ()
  ) ; end opt-template-equal
  (template-type
- ( CLASS symbol)
- ( STRUCT symbol)
- ( builtintype)
- ( symbol)
+ ( CLASS symbol
+  ,(semantic-lambda
+  (list (nth 1 vals) 'type "class")))
+ ( STRUCT symbol
+  ,(semantic-lambda
+  (list (nth 1 vals) 'type "struct")))
+ ( builtintype
+  ,(semantic-lambda
+  (nth 0 vals) (list 'type nil)))
+ ( symbol
+  ,(semantic-lambda
+  (list (nth 0 vals) 'type nil)))
  ) ; end template-type
  (template-definition
  ( type
@@ -465,7 +501,7 @@
   (nth 1 vals)))
  ) ; end throw-exception-list
  (opt-bits
- ( punctuation "\\b:\\b" symbol
+ ( punctuation "\\b:\\b" number
   ,(semantic-lambda
   (list (nth 1 vals))))
  (
@@ -647,7 +683,7 @@
   (list ( identity start) ( identity end))))
  ) ; end expression
  )
- "C language specification.")
+   "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
@@ -801,6 +837,11 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 	 )
 	))
 
+(defun semantic-c-reconstitute-template (def specifier)
+  "Reconstitute the token DEF with the template SPECIFIER."
+  (semantic-token-add-extra-spec def 'template (or specifier ""))
+  def)
+
 (defvar semantic-c-keyword-table
   (semantic-flex-make-keyword-table 
    `( ("include" . INCLUDE)
@@ -820,7 +861,6 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
       ("typedef" . TYPEDEF)
       ("class" . CLASS)
       ("namespace" . NAMESPACE)
-      ("template" . TEMPLATE)
       ("template" . TEMPLATE)
       ("throw" . THROW)
       ("reentrant" . REENTRANT)
@@ -866,7 +906,6 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("typedef" summary "Arbitrary Type Declaration: typedef <typedeclaration> <name>;")
      ("class" summary "Class Declaration: class <name>[:parents] { ... };")
      ("namespace" summary "Namespace Declaration: namespace <name> { ... };")
-     ("template" summary "template <TYPE> [other definition]")
      ("template" summary "template <class TYPE ...> TYPE_OR_FUNCTION")
      ("throw" summary "<type> <methoddef> (<method args>) throw (<exception>) ...")
      ("reentrant" summary "<type> <methoddef> (<method args>) reentrant ...")
@@ -955,12 +994,59 @@ Override function for `semantic-nonterminal-protection'."
       (semantic-nonterminal-children (semantic-token-type-parent token))
     (semantic-nonterminal-children-default token)))
 
+(defun semantic-c-nonterminal-template (token)
+  "Return the template specification for TOKEN, or nil."
+  (semantic-token-extra-spec token 'template))
+
+(defun semantic-c-nonterminal-template-specifier (token)
+  "Return the template specifier specification for TOKEN, or nil."
+  (semantic-token-extra-spec token 'template-specifier))
+
+(defun semantic-c-template-string-body (templatespec)
+  "Convert TEMPLATESPEC into a string.
+This might be a string, or a list of tokens."
+  (cond ((stringp templatespec)
+	 templatespec)
+	((semantic-token-p templatespec)
+	 (semantic-abbreviate-nonterminal templatespec))
+	((listp templatespec)
+	 (mapconcat 'semantic-abbreviate-nonterminal templatespec ", "))))
+
+(defun semantic-c-template-string (token &optional parent color)
+  "Return a string representing the TEMPLATE attribute of TOKEN.
+This string is prefixed with a space, or is the empty string.
+Argument PARENT specifies a parent type.
+Argument COLOR specifies that the string should be colorized."
+  (let ((t2 (semantic-c-nonterminal-template-specifier token))
+;;	(t1 (semantic-c-nonterminal-template token))
+	(pt1 (if parent (semantic-c-nonterminal-template parent)))
+	(pt2 (if parent (semantic-c-nonterminal-template-specifier parent)))
+	)
+    (cond (t2
+	   (concat " <"
+		   ;; Fill in the parts here
+		   (semantic-c-template-string-body t2)
+		   ">"))
+;;;	  (t1
+;;;	   "")
+	  (t
+	   ""))))
+
+(defun semantic-c-concise-prototype-nonterminal (token &optional parent color)
+  "Return an abbreviated string describing TOKEN for C.
+Optional PARENT and COLOR as specified with
+`semantic-abbreviate-nonterminal-default'."
+  ;; If we have special template things, append.
+  (concat  (semantic-concise-prototype-nonterminal-default token parent color)
+	   (semantic-c-template-string token parent color)))
+
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
   (semantic-install-function-overrides
    '((nonterminal-protection . semantic-c-nonterminal-protection)
      (nonterminal-children . semantic-c-nonterminal-children)
+     (concise-prototype-nonterminal . semantic-c-concise-prototype-nonterminal)
      ))
   ;; Code generated from c.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
