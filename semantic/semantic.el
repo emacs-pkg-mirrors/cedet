@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.107 2001/07/13 15:39:35 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.108 2001/07/19 13:32:33 zappo Exp $
 
 (defvar semantic-version "1.4beta8"
   "Current version of Semantic.")
@@ -250,6 +250,9 @@ documented here are allowed.
 
   (throws .  \"text\") - For functions or methods in languages that support
      typed signal throwing.
+
+  (destructor . t) - This exists for functions which are destructor methods
+     in a class definition.
 
   (user-visible . t) - For functions in interpreted languages such as Emacs Lisp,
      this signals that a function or variable is user visible.  In Emacs Lisp,
