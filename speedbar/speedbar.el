@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.53 1997/06/14 02:53:18 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.54 1997/06/27 22:59:16 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -238,6 +238,8 @@
 ;; 0.5.1 Advice from ptype@dra.hmg.gb:
 ;;          Use `post-command-idle-hook' in older emacsen
 ;;         `speedbar-sort-tags' now works with imenu.
+;;          Unknown files (marked w/ ?) can now be operated on w/
+;;            file commands.
 ;;       `speedbar-vc-*-hook's for easilly adding new version control systems.
 ;;       Checkin/out w/ vc will reset the scanners and update the * marker.
 
@@ -248,6 +250,7 @@
 ;; 4) Remeber tags when refreshing the display.  (Refresh tags too?)
 ;; 5) More 'special mode support.
 ;; 6) Smart way to auto-expand instead of directory switch
+;; 7) C- Mouse 3 menu too much indirection
 
 ;;; Code:
 (require 'assoc)
@@ -1751,8 +1754,8 @@ updated."
   ;; return that we are done with this activity.
   t)
 
-;; If it's being used, check for it
-(eval-when-compile (require 'ange-ftp))
+;; Steven L Baur <steve@xemacs.org> said this was important
+(or (featurep 'xemacs) (require 'ange-ftp))
 
 (defun speedbar-check-vc ()
   "Scan all files in a directory, and for each see if it's checked out.
@@ -1918,7 +1921,7 @@ directory, then it is the directory name."
     (save-match-data
       (beginning-of-line)
       (if (looking-at (concat
-		       "\\([0-9]+\\): *[[<][-+][]>] \\([^ \n]+\\)\\("
+		       "\\([0-9]+\\): *[[<][-+?][]>] \\([^ \n]+\\)\\("
 		       (regexp-quote speedbar-vc-indicator)
 		       "\\)?"))
 	  (let* ((depth (string-to-int (match-string 1)))
