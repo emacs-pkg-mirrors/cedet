@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.50 2005/01/11 17:12:25 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.51 2005/01/12 21:27:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,6 +53,24 @@ This will replace the named bucket that would have usually occured here."
   :type semantic-format-tag-custom-list)
 
 ;;; Code:
+;;
+
+;;; Buffer setting for correct mode manipulation.
+(defun semantic-sb-tag-set-buffer (tag)
+  "Set the current buffer to something associated with TAG.
+use the speedbar-line-file to get this info if needed."
+  (if (semantic-tag-buffer tag)
+      (set-buffer (semantic-tag-buffer tag))
+    (let ((f (speedbar-line-file)))
+      (set-buffer (find-file-noselect f)))))
+
+(defmacro semantic-sb-with-tag-buffer (tag &rest forms)
+  "Set the current buffer to the origin of TAG and execute FORMS.
+Restore the old current buffer when completed."
+  `(save-excursion
+     (semantic-sb-tag-set-buffer ,tag)
+     ,@forms))
+(put 'semantic-sb-with-tag-buffer 'lisp-indent-function 1)
 
 ;;; Button Generation
 ;;
@@ -80,22 +98,16 @@ If it returns nil, then a => icon is created.")
 
 (defun semantic-sb-tag-children-to-expand-default (tag)
   "For TAG, the children for type, variable, and function classes."
-  (semantic-tag-components tag))
+  (semantic-sb-with-tag-buffer tag
+    (semantic-tag-components tag)))
 
 (defun semantic-sb-one-button (tag depth &optional prefix)
   "Insert TAG as a speedbar button at DEPTH.
 Optional PREFIX is used to specify special marker characters."
   (let* ((class (semantic-tag-class tag))
-	 (edata (save-excursion
-		   (when (and (semantic-tag-overlay tag)
-			      (semantic-tag-buffer tag))
-		     (set-buffer (semantic-tag-buffer tag)))
-		   (semantic-sb-tag-children-to-expand tag)))
+	 (edata (semantic-sb-tag-children-to-expand tag))
 	 (type (semantic-tag-type tag))
-	 (abbrev (save-excursion
-		   (when (and (semantic-tag-overlay tag)
-			      (semantic-tag-buffer tag))
-		     (set-buffer (semantic-tag-buffer tag)))
+	 (abbrev (semantic-sb-with-tag-buffer tag
 		   (funcall semantic-sb-button-format-tag-function tag)))
 	 (start (point))
 	 (end (progn
@@ -183,7 +195,8 @@ Optional MODIFIERS is additional text needed for variables."
 	     ;; or variable tokens.
 	     (when (semantic-tag-p (car parts))
 	       ;; Bucketize into groups
-	       (setq newparts (semantic-bucketize parts))
+	       (semantic-sb-with-tag-buffer (car parts)
+		 (setq newparts (semantic-bucketize parts)))
 	       (when (> (length newparts) semantic-sb-autoexpand-length)
 		 ;; More than one bucket, insert inline
 		 (semantic-sb-insert-tag-table (1- indent) newparts)
@@ -382,7 +395,8 @@ Returns the tag list, or t for an error."
 	      ;; orphans.
 	      (setq out (semantic-adopt-external-members out))
 	      ;; Dump all the tokens into buckets.
-	      (semantic-bucketize out))
+	      (semantic-sb-with-tag-buffer (car out)
+		(semantic-bucketize out)))
 	  (error t))
       t)))
 
