@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.34 2000/05/04 02:45:36 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.35 2000/05/04 03:34:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -964,6 +964,14 @@ return token will be larger than END.  To truly restrict scanning, using
 (defun semantic-flex-list (semlist depth)
   "Flex the body of SEMLIST to DEPTH."
   (semantic-flex (car (cdr semlist)) (cdr (cdr semlist)) depth))
+
+(defun semantic-flex-start (semobj)
+  "Fetch the start position of the semantic object SEMOBJ."
+  (nth 1 semobj))
+
+(defun semantic-flex-end (semobj)
+  "Fetch the end position of the semantic object SEMOBJ."
+  (cdr (cdr semobj)))
 
 (provide 'semantic)
 
