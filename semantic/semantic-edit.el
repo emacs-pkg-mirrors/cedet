@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.24 2004/06/09 06:56:02 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.25 2004/06/09 18:30:21 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -282,7 +282,8 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	 (tokens (nreverse
 		  (semantic-find-tag-by-overlay-in-region
 		   start end)))
-	 (list-to-search nil))
+	 (list-to-search nil)
+         (found nil))
     (if (not tokens)
 	(setq list-to-search semantic--buffer-cache)
       ;; A leaf is always first in this list
@@ -306,16 +307,14 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	;; Search list is nil.
 	))
     ;; If we have a search list, lets go.  Otherwise nothing.
-    (while (and list-to-search
-		;; Assume always (car (cdr list-to-search)).
-		;; A thrown error will be captured nicely, but
-		;; that case shouldn't happen.
-
-		;; We end when the start of the CDR is after the
-		;; end of our asked change.
-		(< (semantic-tag-start (car (cdr list-to-search)))
-		   end))
-      (setq list-to-search (cdr list-to-search)))
+    (while (and list-to-search (not found))
+      (if (cdr list-to-search)
+          ;; We end when the start of the CDR is after the end of our
+          ;; asked change.
+          (if (< (semantic-tag-start (cadr list-to-search)) end)
+              (setq list-to-search (cdr list-to-search))
+            (setq found t))
+        (setq list-to-search nil)))
     ;; Return it.  If it is nil, there is a logic bug, and we need
     ;; to avoid this bit of logic anyway.
     list-to-search
@@ -442,26 +441,19 @@ See `semantic-edits-change-leaf-token' for details on parents."
 ;;
 ;; Logic about how to group changes for effective reparsing and splicing.
 
+(defun semantic-parse-changes-failed (&rest args)
+  "Signal that Semantic failed to parse changes.
+That is, display a message by passing all ARGS to `format', then throw
+a 'semantic-parse-changes-failed exception with value t."
+  (message "Semantic parse changes failed: %S" (apply 'format args))
+  (throw 'semantic-parse-changes-failed t))
+
 (defsubst semantic-edits-incremental-fail ()
   "When the incremental parser fails, we mark that we need a full reparse."
   ;;(debug)
   (semantic-parse-tree-set-needs-rebuild)
   (message "Force full reparse (%s)" (buffer-name (current-buffer)))
-  (run-hooks 'semantic-edits-incremental-reparse-failed-hooks)
-  )
-
-;; Error symbol for expected parse changes failures
-(put 'semantic-parse-changes-failed 'error-conditions
-     '(error semantic-parse-changes-failed))
-(put 'semantic-parse-changes-failed 'error-message
-     "Semantic parse changes failed")
-
-(defun semantic-parse-changes-failed (&rest args)
-  "Signal that Semantic failed to parse changes.
-Make error message by passing all args to `format'."
-  (while t
-    (signal 'semantic-parse-changes-failed
-            (list (apply 'format args)))))
+  (run-hooks 'semantic-edits-incremental-reparse-failed-hooks))
 
 ;;;###autoload
 (defun semantic-edits-incremental-parser ()
@@ -471,280 +463,288 @@ the buffer that have changed.  This function depends on
 `semantic-edits-change-function-handle-changes' setting up change
 overlays in the current buffer.  Those overlays are analyzed against
 the semantic cache to see what needs to be changed."
-  (let ((changed-tokens nil))
-    (condition-case errobj
-        (let* ((debug-on-quit t) ; try to find this annoying bug!
-	       (changes (semantic-changes-in-region
-                         (point-min) (point-max)))
-               (tokens nil)		;tokens found at changes
-               (newf-tokens nil)        ;newfound tokens in change
-               (parse-start nil)        ;location to start parsing
-               (parse-end nil)          ;location to end parsing
-               (parent-token nil)	;parent of the cache list.
-               (cache-list nil)         ;list of children within which
+    (semantic-safe "incremental parser error: %S"
+      (let ((changed-tags (catch 'semantic-parse-changes-failed
+                            (semantic-edits-incremental-parser-1))))
+        (when (eq changed-tags t)
+          ;; Force a full reparse.
+          (semantic-edits-incremental-fail)
+          (setq changed-tags nil))
+        changed-tags)))
+
+(defun semantic-edits-incremental-parser-1 ()
+  "Incrementally reparse the current buffer.
+Return the list of tags that changed.
+If the incremental parse fails, throw a 'semantic-parse-changes-failed
+exception with value t, that can be caught to schedule a full reparse.
+This function is for internal use by `semantic-edits-incremental-parser'."
+  (let* ((changed-tokens nil)
+         (debug-on-quit t)            ; try to find this annoying bug!
+         (changes (semantic-changes-in-region
+                   (point-min) (point-max)))
+         (tokens nil)                   ;tokens found at changes
+         (newf-tokens nil)              ;newfound tokens in change
+         (parse-start nil)              ;location to start parsing
+         (parse-end nil)                ;location to end parsing
+         (parent-token nil)             ;parent of the cache list.
+         (cache-list nil)               ;list of children within which
 					;we incrementally reparse.
-               (reparse-symbol nil)     ;The ruled we start at for reparse.
-               (change-group nil)       ;changes grouped in this reparse
-               )
-          (or changes
-              ;; If we were called, and there are no changes, then we
-              ;; don't know what to do.  Force a full reparse.
-              (semantic-parse-changes-failed "Don't know what to do"))
-          ;; Else, we have some changes.  Loop over them attempting to
-          ;; patch things up.
-          (while changes
-            ;; Calculate the reparse boundary.
-            ;; We want to take some set of changes, and group them
-            ;; together into a small change group. One change forces
-            ;; a reparse of a larger region (the size of some set of
-            ;; tokens it encompases.)  It may contain several tokens.
-            ;; That region may have other changes in it (several small
-            ;; changes in one function, for example.)
-            ;; Optimize for the simple cases here, but try to handle
-            ;; complex ones too.
+         (reparse-symbol nil)      ;The ruled we start at for reparse.
+         (change-group nil)           ;changes grouped in this reparse
+         )
+    (or changes
+        ;; If we were called, and there are no changes, then we
+        ;; don't know what to do.  Force a full reparse.
+        (semantic-parse-changes-failed "Don't know what to do"))
+    ;; Else, we have some changes.  Loop over them attempting to
+    ;; patch things up.
+    (while changes
+      ;; Calculate the reparse boundary.
+      ;; We want to take some set of changes, and group them
+      ;; together into a small change group. One change forces
+      ;; a reparse of a larger region (the size of some set of
+      ;; tokens it encompases.)  It may contain several tokens.
+      ;; That region may have other changes in it (several small
+      ;; changes in one function, for example.)
+      ;; Optimize for the simple cases here, but try to handle
+      ;; complex ones too.
 
-            (while (and changes         ; we still have changes
-                        (or (not parse-start)
-                            ;; Below, if the change we are looking at
-                            ;; is not the first change for this
-                            ;; iteration, and it starts before the end
-                            ;; of current parse region, then it is
-                            ;; encompased within the bounds of tokens
-                            ;; modified by the previous iteration's
-                            ;; change.
-                            (< (semantic-overlay-start (car changes))
-                               parse-end)))
+      (while (and changes               ; we still have changes
+                  (or (not parse-start)
+                      ;; Below, if the change we are looking at
+                      ;; is not the first change for this
+                      ;; iteration, and it starts before the end
+                      ;; of current parse region, then it is
+                      ;; encompased within the bounds of tokens
+                      ;; modified by the previous iteration's
+                      ;; change.
+                      (< (semantic-overlay-start (car changes))
+                         parse-end)))
 
-	      ;; REMOVE LATER
-	      (if (eq (car changes) (car change-group))
-		  (semantic-parse-changes-failed
-                   "Possible infinite loop detected"))
+        ;; REMOVE LATER
+        (if (eq (car changes) (car change-group))
+            (semantic-parse-changes-failed
+             "Possible infinite loop detected"))
 
-              ;; Store this change in this change group.
-              (setq change-group (cons (car changes) change-group))
+        ;; Store this change in this change group.
+        (setq change-group (cons (car changes) change-group))
 
-              (cond
-               ;; Is this is a new parse group?
-               ((not parse-start)
-                (let (tmp)
-                  (cond
-
-;;;; Are we encompassed all in one token?
-                   ((setq tmp (semantic-edits-change-leaf-token (car changes)))
-                    (setq tokens (list tmp)
-                          parse-start (semantic-tag-start tmp)
-                          parse-end (semantic-tag-end tmp)
-                          ))
-
-;;;; Did the change occur between some tokens?
-                   ((setq cache-list (semantic-edits-change-between-tokens
-                                      (car changes)))
-                    ;; The CAR of cache-list is the token just before
-                    ;; our change, but wasn't modified.  Hmmm.
-                    ;; Bound our reparse between these two tokens
-                    (setq tokens nil
-                          parent-token
-                          (car (semantic-find-tag-by-overlay
-                                parse-start)))
-                    (cond
-                      ;; A change at the beginning of the buffer.
-                     ((> (semantic-tag-start (car cache-list))
-                         (semantic-overlay-end (car changes)))
-                      (setq parse-start
-                            ;; Don't worry about parents since
-                            ;; there there would be an exact
-                            ;; match in the token list otherwise
-                            ;; and the routine would fail.
-                            (point-min)
-                            parse-end
-                            (semantic-tag-start (car cache-list)))
-                      )
-                     ;; A change stuck on the first surrounding token.
-                     ((= (semantic-tag-end (car cache-list))
-                         (semantic-overlay-start (car changes)))
-                      ;; Reparse that first token.
-                      (setq parse-start
-                            (semantic-tag-start (car cache-list))
-                            parse-end
-                            (semantic-overlay-end (car changes))
-                            tokens
-                            (list (car cache-list)))
-                      )
-                     ;; A change at the end of the buffer.
-                     ((not (car (cdr cache-list)))
-                      (setq parse-start (semantic-tag-end
-                                         (car cache-list))
-                            parse-end (point-max))
-                      )
-                     (t
-                      (setq parse-start
-                            (semantic-tag-end (car cache-list))
-                            parse-end
-                            (semantic-tag-start (car (cdr cache-list)))
-                            ))))
-
-;;;; Did the change completely overlap some number of tokens?
-                   ((setq tmp (semantic-edits-change-over-tokens
-                               (car changes)))
-                    ;; Extract the information
-                    (setq tokens (aref tmp 0)
-                          cache-list (aref tmp 1)
-                          parent-token (aref tmp 2))
-                    ;; We can calculate parse begin/end by checking
-                    ;; out what is in TOKENS.  The one near start is
-                    ;; always first.  Make sure the reprase includes
-                    ;; the `whitespace' around the snarfed tokens.
-                    ;; Since cache-list is positioned properly, use it
-                    ;; to find that boundary.
-                    (if (eq (car tokens) (car cache-list))
-                        ;; Beginning of the buffer!
-                        (let ((end-marker (nth (length tokens)
-                                               cache-list)))
-                          (setq parse-start (point-min))
-                          (if end-marker
-                              (setq parse-end
-                                    (semantic-tag-start end-marker))
-                            (setq parse-end (semantic-overlay-end
-                                             (car changes)))))
-                      ;; Middle of the buffer.
-                      (setq parse-start
-                            (semantic-tag-end (car cache-list)))
-                      ;; For the end, we need to scoot down some
-                      ;; number of tokens.  We 1+ the length of tokens
-                      ;; because we want to skip the first token
-                      ;; (remove 1-) then want the token after the end
-                      ;; of the list (1+)
-                      (let ((end-marker (nth (1+ (length tokens)) cache-list)))
-                        (if end-marker
-                            (setq parse-end (semantic-tag-start end-marker))
-                          ;; No marker.  It is the last token in our
-                          ;; list of tokens.  Only possible if END
-                          ;; already matches the end of that token.
-                          (setq parse-end
-                                (semantic-overlay-end (car changes)))))
-                      ))
-
-;;;; Unhandled case.
-                   ;; Throw error, and force full reparse.
-                   ((semantic-parse-changes-failed "Unhandled change group")))
-                  ))
-               ;; Is this change inside the previous parse group?
-               ;; We already checked start.
-               ((< (semantic-overlay-end (car changes)) parse-end)
-                nil)
-               ;; This change extends the current parse group.
-               ;; Find any new tokens, and see how to append them.
-               ((semantic-parse-changes-failed
-                 "Unhandled secondary change overlapping boundary"))
-               )
-              ;; Prepare for the next iteration.
-              (setq changes (cdr changes)))
-
-            ;; By the time we get here, all TOKENS are children of
-            ;; some parent.  They should all have the same start symbol
-            ;; since that is how the multi-token parser works.  Grab
-            ;; the reparse symbol from the first of the returned tokens.
-            (setq reparse-symbol
-                  (semantic--tag-get-property (car (or tokens cache-list))
-					      'reparse-symbol))
-            ;; Find a parent if not provided.
-            (and (not parent-token) tokens
-                 (setq parent-token
-		       (semantic-find-tag-parent-by-overlay
-			(car tokens))))
-            ;; We can do the same trick for our parent and resulting
-            ;; cache list.
-            (or cache-list
-                (setq cache-list
-                      ;; We need to get all children in case we happen
-                      ;; to have a mix of positioned and non-positioned
-                      ;; children.
-                      (semantic-tag-components parent-token)))
-            ;; Use the boundary to calculate the new tokens found.
-            (setq newf-tokens (semantic-parse-region
-                               parse-start parse-end reparse-symbol))
-            ;; Make sure all these tokens are given overlays.
-            ;; They have already been cooked by the parser and just
-            ;; need the overlays.
-            (let ((tmp newf-tokens))
-              (while tmp
-                (semantic--tag-link-to-buffer (car tmp))
-                (setq tmp (cdr tmp))))
-
-            ;; See how this change lays out.
+        (cond
+         ;; Is this is a new parse group?
+         ((not parse-start)
+          (let (tmp)
             (cond
 
+;;;; Are we encompassed all in one token?
+             ((setq tmp (semantic-edits-change-leaf-token (car changes)))
+              (setq tokens (list tmp)
+                    parse-start (semantic-tag-start tmp)
+                    parse-end (semantic-tag-end tmp)
+                    ))
+
+;;;; Did the change occur between some tokens?
+             ((setq cache-list (semantic-edits-change-between-tokens
+                                (car changes)))
+              ;; The CAR of cache-list is the token just before
+              ;; our change, but wasn't modified.  Hmmm.
+              ;; Bound our reparse between these two tokens
+              (setq tokens nil
+                    parent-token
+                    (car (semantic-find-tag-by-overlay
+                          parse-start)))
+              (cond
+               ;; A change at the beginning of the buffer.
+               ((> (semantic-tag-start (car cache-list))
+                   (semantic-overlay-end (car changes)))
+                (setq parse-start
+                      ;; Don't worry about parents since
+                      ;; there there would be an exact
+                      ;; match in the token list otherwise
+                      ;; and the routine would fail.
+                      (point-min)
+                      parse-end
+                      (semantic-tag-start (car cache-list)))
+                )
+               ;; A change stuck on the first surrounding token.
+               ((= (semantic-tag-end (car cache-list))
+                   (semantic-overlay-start (car changes)))
+                ;; Reparse that first token.
+                (setq parse-start
+                      (semantic-tag-start (car cache-list))
+                      parse-end
+                      (semantic-overlay-end (car changes))
+                      tokens
+                      (list (car cache-list)))
+                )
+               ;; A change at the end of the buffer.
+               ((not (car (cdr cache-list)))
+                (setq parse-start (semantic-tag-end
+                                   (car cache-list))
+                      parse-end (point-max))
+                )
+               (t
+                (setq parse-start
+                      (semantic-tag-end (car cache-list))
+                      parse-end
+                      (semantic-tag-start (car (cdr cache-list)))
+                      ))))
+
+;;;; Did the change completely overlap some number of tokens?
+             ((setq tmp (semantic-edits-change-over-tokens
+                         (car changes)))
+              ;; Extract the information
+              (setq tokens (aref tmp 0)
+                    cache-list (aref tmp 1)
+                    parent-token (aref tmp 2))
+              ;; We can calculate parse begin/end by checking
+              ;; out what is in TOKENS.  The one near start is
+              ;; always first.  Make sure the reprase includes
+              ;; the `whitespace' around the snarfed tokens.
+              ;; Since cache-list is positioned properly, use it
+              ;; to find that boundary.
+              (if (eq (car tokens) (car cache-list))
+                  ;; Beginning of the buffer!
+                  (let ((end-marker (nth (length tokens)
+                                         cache-list)))
+                    (setq parse-start (point-min))
+                    (if end-marker
+                        (setq parse-end
+                              (semantic-tag-start end-marker))
+                      (setq parse-end (semantic-overlay-end
+                                       (car changes)))))
+                ;; Middle of the buffer.
+                (setq parse-start
+                      (semantic-tag-end (car cache-list)))
+                ;; For the end, we need to scoot down some
+                ;; number of tokens.  We 1+ the length of tokens
+                ;; because we want to skip the first token
+                ;; (remove 1-) then want the token after the end
+                ;; of the list (1+)
+                (let ((end-marker (nth (1+ (length tokens)) cache-list)))
+                  (if end-marker
+                      (setq parse-end (semantic-tag-start end-marker))
+                    ;; No marker.  It is the last token in our
+                    ;; list of tokens.  Only possible if END
+                    ;; already matches the end of that token.
+                    (setq parse-end
+                          (semantic-overlay-end (car changes)))))
+                ))
+
+;;;; Unhandled case.
+             ;; Throw error, and force full reparse.
+             ((semantic-parse-changes-failed "Unhandled change group")))
+            ))
+         ;; Is this change inside the previous parse group?
+         ;; We already checked start.
+         ((< (semantic-overlay-end (car changes)) parse-end)
+          nil)
+         ;; This change extends the current parse group.
+         ;; Find any new tokens, and see how to append them.
+         ((semantic-parse-changes-failed
+           "Unhandled secondary change overlapping boundary"))
+         )
+        ;; Prepare for the next iteration.
+        (setq changes (cdr changes)))
+
+      ;; By the time we get here, all TOKENS are children of
+      ;; some parent.  They should all have the same start symbol
+      ;; since that is how the multi-token parser works.  Grab
+      ;; the reparse symbol from the first of the returned tokens.
+      (setq reparse-symbol
+            (semantic--tag-get-property (car (or tokens cache-list))
+                                        'reparse-symbol))
+      ;; Find a parent if not provided.
+      (and (not parent-token) tokens
+           (setq parent-token
+                 (semantic-find-tag-parent-by-overlay
+                  (car tokens))))
+      ;; We can do the same trick for our parent and resulting
+      ;; cache list.
+      (or cache-list
+          (setq cache-list
+                ;; We need to get all children in case we happen
+                ;; to have a mix of positioned and non-positioned
+                ;; children.
+                (semantic-tag-components parent-token)))
+      ;; Use the boundary to calculate the new tokens found.
+      (setq newf-tokens (semantic-parse-region
+                         parse-start parse-end reparse-symbol))
+      ;; Make sure all these tokens are given overlays.
+      ;; They have already been cooked by the parser and just
+      ;; need the overlays.
+      (let ((tmp newf-tokens))
+        (while tmp
+          (semantic--tag-link-to-buffer (car tmp))
+          (setq tmp (cdr tmp))))
+
+      ;; See how this change lays out.
+      (cond
+
 ;;;; Whitespace change
-             ((and (not tokens) (not newf-tokens))
-              ;; A change that occured outside of any existing tokens
-              ;; and there are no new tokens to replace it.
-              (message "White space changes")
-              nil
-              )
+       ((and (not tokens) (not newf-tokens))
+        ;; A change that occured outside of any existing tokens
+        ;; and there are no new tokens to replace it.
+        (message "White space changes")
+        nil
+        )
 
 ;;;; New tokens in old whitespace area.
-             ((and (not tokens) newf-tokens)
-              ;; A change occured outside existing tokens which added
-              ;; a new token.  We need to splice these tokens back
-              ;; into the cache at the right place.
-              (semantic-edits-splice-insert newf-tokens parent-token cache-list)
+       ((and (not tokens) newf-tokens)
+        ;; A change occured outside existing tokens which added
+        ;; a new token.  We need to splice these tokens back
+        ;; into the cache at the right place.
+        (semantic-edits-splice-insert newf-tokens parent-token cache-list)
 
-              (setq changed-tokens
-                    (append newf-tokens changed-tokens))
+        (setq changed-tokens
+              (append newf-tokens changed-tokens))
 
-              (message "Inserted tokens: (%s)"
-                       (semantic-format-tag-name (car newf-tokens)))
-              )
+        (message "Inserted tokens: (%s)"
+                 (semantic-format-tag-name (car newf-tokens)))
+        )
 
 ;;;; Old tokens removed
-             ((and tokens (not newf-tokens))
-              ;; A change occured where pre-existing tokens were
-              ;; deleted!  Remove the token from the cache.
-              (semantic-edits-splice-remove tokens parent-token cache-list)
+       ((and tokens (not newf-tokens))
+        ;; A change occured where pre-existing tokens were
+        ;; deleted!  Remove the token from the cache.
+        (semantic-edits-splice-remove tokens parent-token cache-list)
 
-              (setq changed-tokens
-                    (append tokens changed-tokens))
+        (setq changed-tokens
+              (append tokens changed-tokens))
 
-              (message "Deleted tokens: (%s)"
-                       (semantic-format-tag-name (car tokens)))
-              )
+        (message "Deleted tokens: (%s)"
+                 (semantic-format-tag-name (car tokens)))
+        )
 
 ;;;; One token was updated.
-             ((and (= (length tokens) 1) (= (length newf-tokens) 1))
-              ;; One old token was modified, and it is replaced by
-              ;; One newfound token.  Splice the new token into the
-              ;; position of the old token.
-              ;; Do the splice.
-              (semantic-edits-splice-replace (car tokens) (car newf-tokens))
-              ;; Add this token to our list of changed toksns
-              (setq changed-tokens (cons (car tokens) changed-tokens))
-              ;; Debug
-              (message "Update Tag Table: %s"
-                       (semantic-format-tag-name (car tokens) nil t))
-              ;; Flush change regardless of above if statement.
-              )
+       ((and (= (length tokens) 1) (= (length newf-tokens) 1))
+        ;; One old token was modified, and it is replaced by
+        ;; One newfound token.  Splice the new token into the
+        ;; position of the old token.
+        ;; Do the splice.
+        (semantic-edits-splice-replace (car tokens) (car newf-tokens))
+        ;; Add this token to our list of changed toksns
+        (setq changed-tokens (cons (car tokens) changed-tokens))
+        ;; Debug
+        (message "Update Tag Table: %s"
+                 (semantic-format-tag-name (car tokens) nil t))
+        ;; Flush change regardless of above if statement.
+        )
 
 ;;;; Some unhandled case.
-             ((semantic-parse-changes-failed "Don't know what to do")))
+       ((semantic-parse-changes-failed "Don't know what to do")))
 
-            ;; We got this far, and we didn't flag a full reparse.
-            ;; Clear out this change group.
-            (while change-group
-              (semantic-edits-flush-change (car change-group))
-              (setq change-group (cdr change-group)))
+      ;; We got this far, and we didn't flag a full reparse.
+      ;; Clear out this change group.
+      (while change-group
+        (semantic-edits-flush-change (car change-group))
+        (setq change-group (cdr change-group)))
 
-            ;; Don't increment change here because an earlier loop
-            ;; created change-groups.
-            (setq parse-start nil)
-            )
-          ;; Mark that we are done with this glop
-          (semantic-parse-tree-set-up-to-date))
-
-      ;; Force a full reparse.
-      (semantic-parse-changes-failed
-       (message (error-message-string errobj))
-       (semantic-edits-incremental-fail)))
-
+      ;; Don't increment change here because an earlier loop
+      ;; created change-groups.
+      (setq parse-start nil)
+      )
+    ;; Mark that we are done with this glop
+    (semantic-parse-tree-set-up-to-date)
     ;; Return the list of tokens that changed.  The caller will
     ;; use this information to call hooks which can fix themselves.
     changed-tokens))
