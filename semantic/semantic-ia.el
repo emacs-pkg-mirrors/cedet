@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.2 2002/03/23 03:08:01 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.3 2002/09/07 02:02:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,6 +28,7 @@
 ;; Interactive access to `semantic-analyze'.
 ;;
 
+(require 'senator)
 (require 'semantic-analyze)
 
 ;;; Code:
