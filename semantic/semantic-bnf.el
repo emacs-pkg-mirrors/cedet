@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.50 2002/01/19 20:21:26 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.51 2002/02/14 09:48:34 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -621,7 +621,7 @@ built-in functions and corresponding expanders."
          (l   (cdr matching))
          ml prec)
     (if (string-equal (car l) "EMPTY")
-        nil
+        (setq l (cdr l)) ;; EMPTY rule can have a %prec clause too!
       (while (and l (not (eq (car l) '%prec)))
         (setq ml (cons (intern (car l)) ml)
               l  (cdr l)))
