@@ -1,0 +1,15 @@
+# Makefile for creating HTML documentation for CEDET project.
+# 
+
+all: ~/cedet/htdocs/info/eieio.html \
+     ~/cedet/htdocs/info/speedbar.html \
+     ~/cedet/htdocs/info/semantic.html \
+     ~/cedet/htdocs/info/ede.html \
+     ~/cedet/htdocs/info/cogre.html
+
+VPATH= eieio speedbar semantic ede cogre
+
+~/cedet/htdocs/info/%.html: %.texi
+	makeinfo --html -I eieio -I ede -o $@ $<
+
+#end
