@@ -11,7 +11,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.3 2001/08/13 09:51:40 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.4 2001/08/13 22:48:31 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -77,8 +77,8 @@
 ;;  )
 ;;
 ;; Where `term-...' are the terminal symbols, `nonterm-...' the
-;; non-terminal symbols.  Each `rule-...' is a list of
-;; terminals/non-terminals to be matched or () for an empty match.  A
+;; nonterminal symbols.  Each `rule-...' is a list of
+;; terminals/nonterminals to be matched or () for an empty match.  A
 ;; semantic action `action-...' can be specified which will be
 ;; executed each time the corresponding rule is matched.
 ;;
@@ -119,7 +119,7 @@
 ;; And following is the corresponding Elisp form (with actions):
 ;;
 ;;    (
-;;     ;; non-terminals
+;;     ;; nonterminals
 ;;     CONSTANT
 ;;     LPAREN
 ;;     MINUS
@@ -237,17 +237,20 @@ summary."
 
 ;; Reserved symbols
 (defconst wisent-start-nonterm    '$START
-  "Start nonterminal.")
+  "Main entry point nonterminal.")
+(defconst wisent-starts-nonterm   '$STARTS
+  "Secondary entry point nonterminal.
+The associated production gives the rules for entry point
+nonterminals.")
 (defconst wisent-eoi-term         '$EOI
   "End of input terminal.")
 (defconst wisent-error-term       'error
   "Error recovery terminal.")
 
 (defconst wisent-reserved-symbols
-  (list wisent-start-nonterm
-        wisent-eoi-term
-        wisent-error-term)
-  "The list of reserved symbols.")
+  (list wisent-error-term)
+  "The list of reserved symbols.
+Also all symbol starting with '$' are reserved for internal use.")
 
 ;; Special tags in action table
 (defconst wisent-accept-tag 'accept
@@ -542,12 +545,21 @@ That is insert (setq V <value-of-v>) in the current buffer."
 (defun wisent-show-nullable ()
   "Log the list of nullable nonterminals."
   (with-current-buffer (wisent-log-buffer)
-    (wisent-output ";;; nullable nonterminals:\n")
+    (wisent-output "\n;;; nullable nonterminals:\n")
     (let ((i 0))
       (while (< i wisent--nvars)
         (if (aref wisent--nullable i)
             (wisent-output ";; %d - %s\n" i (elt wisent--vars i)))
         (setq i (1+ i))))))
+
+(defun wisent-show-starts (starts)
+  "Log the list of start nonterminals.
+STARTS is the table of defined entry points."
+  (with-current-buffer (wisent-log-buffer)
+    (wisent-output "\n;;; entry point nonterminals:\n")
+    (while starts
+      (wisent-output ";; %s\n" (caar starts))
+      (setq starts (cdr starts)))))
 
 (defun wisent-show-all (title)
   "Log TITLE string followed by the values all global variables."
@@ -1607,11 +1619,14 @@ That is group together most common actions in each state."
 
 (defmacro wisent-valid-nonterminal-p (x)
   "Return non-nil if X is a valid nonterminal symbol."
-  `(and ,x (symbolp ,x) (not (memq ,x wisent-reserved-symbols))))
+  `(and ,x
+        (symbolp ,x)
+        (not (char-equal (aref (symbol-name ,x) 0) ?\$))
+        (not (memq ,x wisent-reserved-symbols))))
 
 (defmacro wisent-valid-terminal-p (x)
   "Return non-nil if X is a valid terminal symbol."
-  `(and ,x (symbolp ,x) (not (memq ,x wisent-reserved-symbols))))
+  `(wisent-valid-nonterminal-p ,x))
 
 (defun wisent-build-action-table ()
   "Build and return the parser action table."
@@ -1696,11 +1711,12 @@ GRAM/ACTS is the list of actions associated to nonterminals."
             l (cdr l)))
     (nreverse tokens)))
 
-(defun wisent-build-tables (gram gram/acts &optional stream)
+(defun wisent-build-tables (gram gram/acts starts &optional stream)
   "Compute and return the LALR tables needed by the parser.
 GRAM is the grammar in internal format.  GRAM/ACTS are grammar rules
-in internal format.  If optional STREAM is non-nil it receives a
-readable representation of the tables."
+in internal format.  STARTS is the table of entry point nonterminals.
+If optional STREAM is non-nil it receives a readable representation of
+the tables."
   (setq wisent--nterms (length wisent--terms))
   (setq wisent--nvars  (length wisent--vars))
   (setq wisent--nsyms  (+ wisent--nterms wisent--nvars))
@@ -1711,6 +1727,7 @@ readable representation of the tables."
     (while l
       (setq no-of-items (+ no-of-items (length (caar l)))
             l (cdr l)))
+    (wisent-show-starts starts) ;; DEBUG
     (wisent-working-step " (pack-grammar)")
     (wisent-pack-grammar no-of-rules no-of-items gram)
     (wisent-working-step " (set-derives)")
@@ -1731,7 +1748,8 @@ readable representation of the tables."
                       (wisent-build-action-table)
                       (wisent-build-goto-table)
                       (wisent-build-reduction-table gram/acts)
-                      (wisent-build-terminal-table)))
+                      (wisent-build-terminal-table)
+                      starts))
       (if stream
           (save-excursion
             (wisent-working-step
@@ -1819,17 +1837,19 @@ DEF is the internal representation of a nonterminal definition."
   (cons (wisent-grammar-production-lhs def)
         (mapcar #'wisent-grammar-rule-rhs def)))
 
-(defun wisent-process-grammar (grammar &optional stream)
+(defun wisent-process-grammar (grammar &optional starts stream)
   "Process the given external representation of GRAMMAR.
 That check and convert external representation to internal format.
-Then compute and generate the LALR tables needed by the parser.  If
+Then compute and generate the LALR tables needed by the parser.
+Optional argument STARTS is a list of entry point nonterminals.  If
 optional STREAM is non-nil it receives a readable representation of
 the tables."
   ;; Check and convert grammar to a suitable internal representation
   (or (consp grammar)
       (error "Grammar definition must be a non-empty list"))
   (let ((lst grammar)
-        term terms var def defs r-defs r-vars r-gram gram/acts)
+        term terms var def defs r-vars r-gram gram/acts
+        ep-var ep-term ep-def)
     ;; terminals
     (while (and (consp lst) (not (consp (car lst))))
       (setq term (car lst)
@@ -1839,7 +1859,7 @@ the tables."
       (if (memq term terms)
           (error "Terminal previously defined %s" term))
       (setq terms (cons term terms)))
-    ;; non-terminals
+    ;; nonterminals
     (while (consp lst)
       (setq def (car lst)
             lst (cdr lst))
@@ -1851,24 +1871,56 @@ the tables."
       (if (or (memq var terms) (assq var defs))
           (error "Nonterminal previously defined %s" var))
       (setq defs (cons def defs)))
-    
-    (setq defs (nreverse defs)
+    (if (= (length defs) 0)
+        (error "Grammar must contain at least one nonterminal"))
+    ;; Check entry point nonterminals
+    (setq defs   (nreverse defs)
+          lst    (nreverse (cons (caar defs) starts))
+          starts nil)
+    (while lst
+      (setq var (car lst)
+            lst (cdr lst))
+      (or (assq var defs)
+          (error "Entry point nonterminal %s not found" var))
+      (or (assq var starts) ;; Ignore duplicates
+          ;; For each <nonterm> entry point:
+          (setq ep-var  (make-symbol (format "$%s"  var)) ; nonterm
+                ep-term (make-symbol (format "$$%s" var)) ; terminal
+                terms   (cons ep-term terms)
+                ;; Add entry (<nonterm> . $$<nonterm>) to start table
+                starts  (cons (cons var ep-term) starts)
+                ;; Add prod. ($<nonterm> ($$<nonterm> nonterm) : $2)
+                defs    (cons (list ep-var (list ep-term var) ': '$2)
+                              defs)
+                ;; Add start rule ($<nonterm>) : $1
+                ep-def  (cons (list ep-var)
+                              (cons ': (cons '$1 ep-def))))))
+    ;; Build grammar internal representation
+    ;;
+    ;; First push start productions in the grammar definition, that
+    ;; is, for start nonterminals ($<nonterm-1> ... $<nonterm-N>):
+    ;;
+    ;; ($START       ($STARTS $EOI) : $1)
+    ;; ($STARTS      ($<nonterm-1>) : $1
+    ;;                ...
+    ;;               ($<nonterm-N>) : $1)
+    ;; ($<nonterm-1> ($$<nonterm-1> <nonterm-1>) : $2)
+    ;; ...
+    ;; ($<nonterm-N> ($$<nonterm-N> <nonterm-N>) : $2)
+    ;; 
+    (setq defs (cons (list wisent-start-nonterm
+                           (list wisent-starts-nonterm wisent-eoi-term)
+                           ': '$1)
+                     (cons (cons wisent-starts-nonterm ep-def) defs))
           wisent--terms (cons
                          wisent-eoi-term
                          (nreverse (cons wisent-error-term terms)))
-          wisent--vars  (cons
-                         wisent-start-nonterm
-                         (mapcar #'car defs)))
-    (if (= (length wisent--vars) 1)
-        (error "Grammar must contain at least one nonterminal"))
-    (setq r-defs (cons `(,wisent-start-nonterm
-                         (,(cadr wisent--vars) ,wisent-eoi-term) : $1)
-                       defs)
-          r-vars (mapcar #'wisent-process-nonterminal r-defs)
-          r-gram (mapcar #'wisent-grammar-production r-vars)
-          gram/acts (apply #'nconc r-vars))
+          wisent--vars  (mapcar #'car defs)
+          r-vars        (mapcar #'wisent-process-nonterminal defs)
+          r-gram        (mapcar #'wisent-grammar-production r-vars)
+          gram/acts     (apply #'nconc r-vars))
     ;; Build the LALR tables
-    (wisent-build-tables r-gram gram/acts stream)))
+    (wisent-build-tables r-gram gram/acts starts stream)))
 
 (defun wisent-byte-compile-reduction-table (rt)
   "Byte compile the reduction table RT.
@@ -1881,13 +1933,14 @@ of the parser!"
       (aset rt i (byte-compile (aref rt i)))
       (setq i (1+ i)))))
 
-(defun wisent-compile-grammar (gram &optional stream)
+(defun wisent-compile-grammar (gram &optional starts stream)
   "Compile grammar GRAM and return the LALR(1) tables.
+Optional argument STARTS is a list of entry point nonterminals.
 Pretty print the result on STREAM if it is non-nil."
   (wisent-working "Compiling grammar%s" "done"
     (wisent-working-step " (initializing)")
     (wisent-initialize-all)
-    (let ((tables (wisent-process-grammar gram stream)))
+    (let ((tables (wisent-process-grammar gram starts stream)))
       (if wisent-debug-flag
           nil ;; disable compilation when debugging
         ;; Compile the reduction table
@@ -2063,18 +2116,32 @@ TERMINALS is the table of terminals."
 X is a terminal ID (number) and L is the alist of (term-id . action)
 available at current state."
   `(cdr (or (assq ,x ,l) (car ,l))))
-  
-(defun wisent-parse (tables lexer error)
+
+(defsubst wisent-parse-start (start starts)
+  "Return the first lexical token to parse.
+START is the entry point nonterminal.  STARTS the table of defined
+entry points."
+  (let ((term (if start
+                  (cdr (assq start starts))
+                (cdar starts))))
+    (if term
+        (list term (symbol-name term))
+      (error "Invalid start nonterminal %s" start))))
+
+(defun wisent-parse (tables lexer error &optional start)
   "Parse data.
 The LALR(1) parser is driven by the TABLES built by
 `wisent-compile-grammar'.  LEXER is a no argument function called by
 the parser to obtain the next input token.  ERROR is an error
 reporting function called when a parse error occurs.  This function
-receives a message string to report."
+receives a message string to report.  START can specify the
+nonterminal production used at parser initial state.  If nil the
+nonterminal associated to the first grammar production is used."
   (let* ((actions    (aref tables 0))
          (gotos      (aref tables 1))
          (reductions (aref tables 2))
          (terminals  (aref tables 3))
+         (starts     (aref tables 4))
          (error-term (wisent-translate wisent-error-term terminals))
          (stack      (make-vector wisent-parse-max-stack-size nil))
          (sp     0)
@@ -2082,7 +2149,7 @@ receives a message string to report."
          (wisent-parse-error-function error)
          (wisent-parse-lexer-function lexer)
          (wisent-recovering nil)
-         (wisent-input (wisent-lexer))
+         (wisent-input (wisent-parse-start start starts))
          state tokid choices choice)
     (setq wisent-nerrs 0) ;; Reset parse error counter
     (aset stack 0 0) ;; Initial state
