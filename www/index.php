@@ -3,8 +3,10 @@
 <?php
   include ("rightcol.php")
 ?>
-
-<h2>Collection of Emacs Development Environment Tools</h2>
+<table width=100% bgcolor=#000099>
+<tr><td><h2><font color=yellow>CEDET:</font></h2></td></tr>
+<tr><td><font color=yellow>"Collection of Emacs Development Environment Tools"</font></td></tr>
+</table>
 
 <P>Welcome to the CEDET homepage.  CEDET is a collection of tools
    written with the end goal of creating an advanced development
@@ -17,61 +19,11 @@
 <P>Emacs already is a great environment for writing software, but
    there are additional areas that need improvement.  Many new ideas
    for integrated environments have been developed in newer products,
-   such as Microsoft's Visual environment.  CEDET is a new project
-   which brings together the various tools I've built to replicate
-   features.
+   such as Microsoft's Visual environment, JBuilder, Eclipse, or
+   KDevelop.  CEDET is a project which brings together several
+   different tools needed to implement advanced features.
 </p>
 
-<p>One such area previously lacking was a single integrated file/tag
-   browsing tool.  This can be done in different ways.  One technique
-   popular in new environments is called an explorer.  <a
-   href=speedbar.shtml>Speedbar</a> is my replacement which is already
-   a popular addition to Emacs and XEmacs.
-</p>
-
-<P>A second useful tool is Makefile Generation and Project Management.
-   <a href=ede.shtml>EDE</a> is my solution to this problem. EDE
-   attempts to not only solve that single set of problems, but to
-   create a framework within which experts in specific languages can
-   plug in support for their environments.
-</p>
-
-<P>Building any tool with that much flexibility requires an API with
-   lots of configurability.  A CLOS like tool was needed, and <a
-   href=eieio.shtml>EIEIO</a> is my emulation.  EIEIO provides a
-   classic Object Oriented system.  The base EDE system is a set of
-   classes and methods.  New languages can inherit from the base EDE
-   classes, and implement methods they need for their desired
-   environment.
-</p>
-
-<P>A third useful tool has the odd name of Intellisense in other
-   development tools.  This basically means that the environment can
-   identify the current editing context, and can provide useful
-   information.  This could be as simple as a list of completions, or
-   as complex as recommendations on arguments to pass to a function.
-</p>
-
-<P>Context recommendations are not possible without first having
-   complete knowledge of the current project source code.  <a
-   href=ede.shtml>EDE</a> provides project information.  To get
-   information related to the source code, however, a parser is needed.
-   Since the goal is to support many languages, a parser generator is
-   needed to create parsers easily.  The <a href=semantic.shtml>
-   Semantic Bovinator</a> is CEDET's source code tag parser.
-</p>
-
-<P>Last but not least are a new set of emerging CASE tools which link
-   diagrams and source code.  Modify the code, and your class
-   hierarchy updates.  Modify the diagram, and the code updates.  I'm
-   going to start a new project 
-   <a href=cogre.shtml>COGRE</a> (COnnected GRaph Editor) for
-   working with UML diagrams that are directly linked to source code.
-   This will depend on the Semantic parser for reverse engineering,
-   EIEIO for graph management, Speedbar for graph navigation, and
-   Emacs 21, or XEmacs 20 for the graphical power needed to represent
-   these things.
-</p>
 
 <P>Please visit individual project pages for additional information and
    downloads.
@@ -88,39 +40,53 @@
 
 <H3>Base Tools are:</h3>
 
-<P><A HREF="semantic.shtml">The <B>Semantic Bovinator</B></A> is a
-   parser generator.  It creates parsers in Emacs Lisp.  Includes
-   interfaces to imenu, which-func, and speedbar to improve tag
-   browsing.
+<P><A HREF="semantic.shtml"><B>Semantic</B></A><br> is a
+   Infrastructure for parser based text analysis in Emacs.  It creates
+   parsers in Emacs Lisp.  Includes interfaces to all common tag-like
+   features in Emacs.
 </P>
 
 <P><A HREF="eieio.shtml"> <B>EIEIO: Enhanced Implementation of Emacs
-   Interpreted Objects</B></A> is a package which implements a
+   Interpreted Objects</B></A><br> is a package which implements a
    <B>CLOS</B> subset for Emacs.  It includes examples which can draw
    simple tree graphs, and bar charts.
 </p>
 
-<P><A HREF="ftp/working.el-1.3.gz"> <b>Working</b></A> is a
-   busy-meter utility.  It displays eye candy while waiting for Emacs
-   to do something.
+<P><B>CEDET/common:</B><br>
+   The CEDET common subpackage contains small utilities recently drawn
+   out of some of the other tools.  Some example tools include:
+   <ul>
+     <li>working - A busy meter.
+     <li>sformat - Souped up format.
+     <li>cedet-autogen - Autoload generators extended for eieio and
+       semantic.
+     <li>inversion - Package level versioning system.
+     <li>ezimage - Simple way to declare and display images in all
+       versions of Emacs.
+     <li>pprint - Pertty printer for Emacs Lisp values.
+   </ul>
 </p>
 
 <h3>User Interface Tools are:</h3>
 
-<P><A HREF="speedbar.shtml"><B>Speedbar</B></A> allows you to create a
-   special skinny frame with a specialized directory listing in it.
-   Speedbar is a manual browser, class browser, file system browser,
-   project browser, and a whatsis browser.
+<P><A HREF="speedbar.shtml"><B>Speedbar</B></A><br>
+   Speedbar is an Everything Browser. It creates special skinny frame
+   to display hierarchical data.  Speedbar supports file/directory
+   trees, Info manuals, EIEIO class browsing, project browsing,
+   context analysis/autocomplete, EIRC groups, xshtml, and VHDL.  It
+   can be rigged to display just about anything.
 </P>
 
-<P><A href="ede.shtml"> <B>EDE: Emacs Development Environment</b></a>
-   implements projects under emacs making it easy to maintain programs
+<P><A href="ede.shtml"> <B>EDE: Emacs Development
+   Environment</b></a><br> EDE is a project management system. It
+   implements projects under Emacs making it easy to maintain programs
    without learning make.  This depends on EIEIO.</p>
 
-<P><A href="cogre.shtml"> <b>COGRE: COnnected GRaph Editor</b></a>
-   pronounced like <em>cougar</em>, is an interface to managing connected
-   graphs, such as UML class diagrams.</p>
-   
+<P><A href="cogre.shtml"> <b>COGRE: COnnected GRaph Editor</b></a><br>
+   COGRE, pronounced like <em>cougar</em>, is an interface to managing connected
+   graphs, such as UML class diagrams.</p>  It can display simple
+   graphs, and UML class diagrams.  It can generate simple class diagrams
+   from sources using Semantic.   
 
 <h3>Tools hosted elsewhere:</h3>
 
