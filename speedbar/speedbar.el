@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7f
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.101 1998/05/13 02:04:19 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.102 1998/05/15 03:14:00 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -361,6 +361,8 @@
 ;;         `temp-buffer-show-hook' parameter fix. Tripple click typo.
 ;;         efs (ange ftp replacement) fix. Infodoc workaround.
 ;;         Part of info-displaying system when mouse passes over text.
+;;       Enabled mouse-tracking in the speedbar frame.  Display's information
+;;         about the line the mouse is on in the attached frame's minibuffer.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -562,8 +564,18 @@ use etags instead.  Etags support is not as robust as imenu support."
   :group 'speedbar
   :type 'boolean)
 
+(defcustom speedbar-track-mouse-flag t
+  "*Non-nil means to display info about the line under the mouse."
+  :group 'speedbar
+  :type 'boolean
+  :set (lambda (sym val)
+	 (save-excursion
+	   (set-buffer speedbar-buffer)
+	   (setq track-mouse val)
+	   (set sym val))))
+
 (defcustom speedbar-sort-tags nil
-  "*If Non-nil, sort tags in the speedbar display."
+  "*If Non-nil, sort tags in the speedbar display. *Obsolete*."
   :group 'speedbar
   :type 'boolean)
 
@@ -971,6 +983,9 @@ This basically creates a sparse keymap, and makes it's parent be
     (define-key speedbar-key-map [mode-line mouse-2] 'speedbar-mouse-hscroll)
     ;; another handy place users might click to get our menu.
     (define-key speedbar-key-map [mode-line down-mouse-1] 'speedbar-emacs-popup-kludge)
+
+    ;; Lastly, we want to track the mouse.  Play here
+    (define-key speedbar-key-map [mouse-movement] 'speedbar-track-mouse)
    ))
 
 (defvar speedbar-file-key-map nil
@@ -1300,11 +1315,24 @@ in the selected file.
 						   (speedbar-frame-mode -1)))))
 	      t t)
     (speedbar-set-mode-line-format)
-    (if (not speedbar-xemacsp)
-	(setq auto-show-mode nil))	;no auto-show for Emacs
+    (if speedbar-xemacsp
+	nil
+      (if speedbar-track-mouse-flag
+	  (setq track-mouse t))		;this could be messy.
+      (setq auto-show-mode nil))	;no auto-show for Emacs
     (run-hooks 'speedbar-mode-hook))
   (speedbar-update-contents)
   speedbar-buffer)
+
+(defun speedbar-show-info-under-mouse (&optional event)
+  "Call the info function for the line under the mouse.
+Optional EVENT is currently not used."
+  (let ((pos (mouse-position)))  ; we ignore event until I use it later.
+    (if (equal (car pos) speedbar-frame)
+	(save-excursion
+	  (save-window-excursion
+	    (apply 'set-mouse-position pos)
+	    (speedbar-item-info))))))
 
 (defun speedbar-set-mode-line-format ()
   "Set the format of the mode line based on the current speedbar environment.
@@ -1444,6 +1472,20 @@ mode-line.  This is only useful for non-XEmacs"
     (customize-group 'speedbar)
     (select-frame sf))
   (speedbar-maybee-jump-to-attached-frame))
+
+(defun speedbar-track-mouse (event)
+  "For motion EVENT, display info about the current line."
+  (interactive "e")
+  (if (not speedbar-track-mouse-flag)
+      nil
+    (save-excursion
+      (let ((char (nth 1 (car (cdr event)))))
+	(if (not (numberp char))
+	    (message nil)
+	  (goto-char char)
+	  ;; (message "%S" event)
+	  (speedbar-item-info)
+	  )))))
 
 ;; In XEmacs, we make popup menus work on the item over mouse (as
 ;; opposed to where the point happens to be.)  We attain this by
@@ -1600,7 +1642,11 @@ Assumes that the current buffer is the speedbar buffer"
   (speedbar-stealthy-updates)
   ;; Reset the timer in case it got really hosed for some reason...
   (speedbar-set-timer speedbar-update-speed)
-  (if (<= 1 speedbar-verbosity-level) (message "Refreshing speedbar...done")))
+  (if (<= 1 speedbar-verbosity-level)
+      (progn
+	(message "Refreshing speedbar...done")
+	(sit-for 0)
+	(message nil)))))
 
 (defun speedbar-item-load ()
   "Load the item under the cursor or mouse if it is a lisp file."
@@ -1637,29 +1683,34 @@ This should be bound to a mouse EVENT."
   "Display info in the mini-buffer about the button the mouse is over."
   (interactive)
   (if (not speedbar-shown-directories)
-      nil
+      (message "Text: %s" (buffer-substring (point) (progn (end-of-line)
+							   (point))))
     (let* ((item (speedbar-line-file))
 	   (attr (if item (file-attributes item) nil)))
-      (if item (message "%s %d %s" (nth 8 attr) (nth 7 attr) item)
+      (if (and item attr) (message "%s %d %s" (nth 8 attr) (nth 7 attr) item)
 	(save-excursion
 	  (beginning-of-line)
-	  (looking-at "\\([0-9]+\\):")
-	  (setq item (speedbar-line-path (string-to-int (match-string 1))))
-	  (if (re-search-forward "> \\([^ ]+\\)$"
-				 (save-excursion(end-of-line)(point)) t)
-	      (progn
-		(setq attr (get-text-property (match-beginning 1)
-					      'speedbar-token))
-		(message "Tag %s in %s at position %s"
-			 (match-string 1) item
-			 (if attr
-			     (if (markerp attr) (marker-position attr) attr)
-			   0)))
-	    (if (re-search-forward "{[+-]} \\([^\n]+\\)$"
+	  (if (not (looking-at "\\([0-9]+\\):"))
+	      (message "Text: %s"
+		       (buffer-substring (point) (progn (end-of-line)
+							(point))))
+	    (setq item (speedbar-line-path (string-to-int (match-string 1))))
+	    (if (re-search-forward "> \\([^ ]+\\)$"
 				   (save-excursion(end-of-line)(point)) t)
-		(message "Group of tags \"%s\"" (match-string 1))
-	      (message "No special info for this line."))))
-	))))
+		(progn
+		  (setq attr (get-text-property (match-beginning 1)
+						'speedbar-token))
+		  (message "Tag: %s  in %s @ %s"
+			   (match-string 1) item
+			   (if attr
+			       (if (markerp attr) (marker-position attr) attr)
+			     0)))
+	      (if (re-search-forward "{[+-]} \\([^\n]+\\)$"
+				     (save-excursion(end-of-line)(point)) t)
+		  (message "Group of tags \"%s\"" (match-string 1))
+		(message "Text: %s"
+			 (buffer-substring (point) (progn (end-of-line)
+							  (point))))))))))))
 
 (defun speedbar-item-copy ()
   "Copy the item under the cursor.
@@ -2597,7 +2648,9 @@ This should only be used by modes classified as special."
 			       default-directory))))
 	      (select-frame af))
 	    ;; Now run stealthy updates of time-consuming items
-	    (speedbar-stealthy-updates)))))
+	    (speedbar-stealthy-updates)))
+      ;; Now run the mouse tracking system
+      (speedbar-show-info-under-mouse)))
   (run-hooks 'speedbar-timer-hook))
 
 
