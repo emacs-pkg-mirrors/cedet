@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.15 2002/09/07 02:01:09 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.16 2002/09/10 08:30:43 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -245,7 +245,7 @@ return nil."
 		   start end))))
     ;; A leaf is always first in this list
     (if (and tokens
-	     (< (semantic-token-start (car tokens)) start)
+	     (<= (semantic-token-start (car tokens)) start)
 	     (> (semantic-token-end (car tokens)) end))
 	;; Ok, we have a match.  If this token has children,
 	;; we have to do more tests.
@@ -530,29 +530,42 @@ the semantic cache to see what needs to be changed."
                           parent-token
                           (car (semantic-find-nonterminal-by-overlay
                                 parse-start)))
-                    (cond ((> (semantic-token-start (car cache-list))
-                              (semantic-overlay-end (car changes)))
-                           ;; A change at the beginning of the
-                           ;; buffer.
-                           (setq parse-start
-                                 ;; Don't worry about parents since
-                                 ;; there there would be an exact
-                                 ;; match in the token list otherwise
-                                 ;; and the routine would fail.
-                                 (point-min)
-                                 parse-end
-                                 (semantic-token-start (car cache-list))))
-                          ((not (car (cdr cache-list)))
-                           ;; A change at the end of the buffer.
-                           (setq parse-start (semantic-token-end
-                                              (car cache-list))
-                                 parse-end (point-max)))
-                          (t
-                           (setq parse-start
-                                 (semantic-token-end (car cache-list))
-                                 parse-end
-                                 (semantic-token-start (car (cdr cache-list)))
-                                 ))))
+                    (cond
+                      ;; A change at the beginning of the buffer.
+                     ((> (semantic-token-start (car cache-list))
+                         (semantic-overlay-end (car changes)))
+                      (setq parse-start
+                            ;; Don't worry about parents since
+                            ;; there there would be an exact
+                            ;; match in the token list otherwise
+                            ;; and the routine would fail.
+                            (point-min)
+                            parse-end
+                            (semantic-token-start (car cache-list)))
+                      )
+                     ;; A change stuck on the first surrounding token.
+                     ((= (semantic-token-end (car cache-list))
+                         (semantic-overlay-start (car changes)))
+                      ;; Reparse that first token.
+                      (setq parse-start
+                            (semantic-token-start (car cache-list))
+                            parse-end
+                            (semantic-overlay-end (car changes))
+                            tokens
+                            (list (car cache-list)))
+                      )
+                     ;; A change at the end of the buffer.
+                     ((not (car (cdr cache-list)))
+                      (setq parse-start (semantic-token-end
+                                         (car cache-list))
+                            parse-end (point-max))
+                      )
+                     (t
+                      (setq parse-start
+                            (semantic-token-end (car cache-list))
+                            parse-end
+                            (semantic-token-start (car (cdr cache-list)))
+                            ))))
 
 ;;;; Did the change completely overlap some number of tokens?
                    ((setq tmp (semantic-edits-change-over-tokens
@@ -614,8 +627,9 @@ the semantic cache to see what needs to be changed."
             ;; some parent.  They should all have the same start symbol
             ;; since that is how the multi-token parser works.  Grab
             ;; the reparse symbol from the first of the returned tokens.
-            (setq reparse-symbol (semantic-token-get
-                                  (car tokens) 'reparse-symbol))
+            (setq reparse-symbol
+                  (semantic-token-get (car (or tokens cache-list))
+                                      'reparse-symbol))
             ;; Find a parent if not provided.
             (and (not parent-token) tokens
                  (setq parent-token
