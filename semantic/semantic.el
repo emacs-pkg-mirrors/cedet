@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.50 2000/09/27 01:35:18 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.51 2000/09/27 01:46:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -567,7 +567,14 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	     ;; If we are completely enclosed in this overlay, throw away.
 	     ((and (> start (semantic-token-start (car tl)))
 		   (< end (semantic-token-end (car tl))))
-	      nil)
+	      (if (and (eq (semantic-token-token (car tl)) 'type)
+		       (not (cdr tl))
+		       (semantic-token-type-parts (car tl)))
+		  ;; This is between two items in a type with
+		  ;; stuff in it.
+		  (setq semantic-toplevel-bovine-cache-check t)
+		;; This is ok, chuck it.
+		nil))
 	     ;; If we  cover the beginning or end of this item, we must
 	     ;; reparse this object.
 	     (t
