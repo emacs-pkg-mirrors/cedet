@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.8
-;;; RCS: $Id: eieio.el,v 1.19 1996/11/27 03:39:30 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.20 1996/12/05 03:11:39 zappo Exp $
 ;;; Keywords: OO, lisp
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -154,6 +154,13 @@
 ;;;           the functions in eieio-opt.  You can now specify
 ;;;           additional summary information for object names if
 ;;;           `object-print' is used instead of `object-name'.
+;;;        Added default-object-cache to class definition.  This may
+;;;           mess up object default functions.  At the moment
+;;;           however, (copy-sequence VECTOR) is much faster than the
+;;;           old (make-vector...) (eieio-set-defaults ...) ever was.
+;;;        Fixed problems with `lambda-default' used to create functions
+;;;           to be stored as default values, instead of evaluated at
+;;;           creation time.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -174,6 +181,8 @@ check private parts. DO NOT SET THIS YOURSELF!")
 ;; while it is being built itself.
 (defvar eieio-default-superclass nil)
 
+(defconst class-symbol 1 "Class's symbol (self-referencing.)")
+(defconst class-doc 2 "Class's documentation string.")
 (defconst class-parent 3 "Class parent field")
 (defconst class-children 4 "Class children class field")
 (defconst class-symbol-obarray 5 "Obarray permitting fast access to variable position indexes")
@@ -190,6 +199,9 @@ check private parts. DO NOT SET THIS YOURSELF!")
 up instatiation time as only a `copy-sequence' will be needed, instead
 of looping over all the values and setting them from the default.")
 (defconst class-num-fields 15 "Number of fields in the class definition object")
+
+(defconst object-class 1 "Index in an object vector where the class is stored.")
+(defconst object-name 2 "Index in an object where the name is stored")
 
 (defconst method-before 0 "Index into :BEFORE tag on a method")
 (defconst method-primary 1 "Index into :PRIMARY tag on a method")
@@ -227,12 +239,12 @@ of looping over all the values and setting them from the default.")
   (list 'condition-case nil
 	(list 'let (list (list 'tobj obj))
 	      '(and (eq (aref tobj 0) 'object)
-		    (class-p (aref tobj 1))))
+		    (class-p (aref tobj object-class))))
 	'(error nil)))
 
 (defmacro class-constructor (class) 
   "Return the symbol representing the constructor of that class"
-  (list 'aref (list 'class-v class) 1))
+  (list 'aref (list 'class-v class) class-symbol))
 
 (defmacro generic-p (method)
   "Return `t' if symbol METHOD is a generic function.  Only methods
@@ -273,8 +285,8 @@ in that class definition.  See defclass for more information"
 	 (newc (make-vector class-num-fields nil)) 
 	 (clearparent nil))
     (aset newc 0 'defclass)
-    (aset newc 1 cname)
-    (aset newc 2 doc-string)
+    (aset newc class-symbol cname)
+    (aset newc class-doc doc-string)
     (if (and pname (symbolp pname))
 	(if (not (class-p pname))
 	    ;; bad class
@@ -426,7 +438,7 @@ in that class definition.  See defclass for more information"
 					(list 'aref
 					      (list 'class-v cname)
 					      'class-default-object-cache))))
-		 '(aset no 2 newname)
+		 '(aset no object-name newname)
 		 '(constructor no fields)
 		 'no)))
 
@@ -446,8 +458,8 @@ in that class definition.  See defclass for more information"
 				 (length (aref newc class-private-a))
 				 3) nil)))
 	  (aset cache 0 'object)
-	  (aset cache 1 cname)
-	  (aset cache 2 'default-cache-object)
+	  (aset cache object-class cname)
+	  (aset cache object-name 'default-cache-object)
 	  (eieio-set-defaults cache t)
 	  (aset newc class-default-object-cache cache))
 
@@ -560,7 +572,7 @@ the body, such as:
   "Return the value in OBJ at FIELD in the object vector."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let ((c (eieio-field-name-index (aref obj 1) field)))
+  (let ((c (eieio-field-name-index (aref obj object-class) field)))
     (if (not c) (signal 'invalid-slot-name (list (object-name obj) field)))
     (aref obj c)))
 
@@ -578,7 +590,17 @@ the body, such as:
 
 ;; This alias is needed so that functions can be written
 ;; for defaults, but still behave like lambdas.
-(defalias 'lambda-default 'lambda)
+(defmacro lambda-default (&rest cdr)
+  "This macro has the same rules as the macro `lambda'.  As such, the
+form (lambda-default ARGS DOCSTRING INTERACTIVE BODY) is self
+quoting.  This macro is mean for the sole purpose of quoting lambda
+expressions into class defaults.  Any `lambda-default' expression is
+automatically transformed into a `lambda' expression when copied from
+the defaults into a new object.  The use of `oref-default', however,
+will return a lambda-default expression."
+  ;; This definition is copied directly from subr.el for lambda
+  (list 'function (cons 'lambda-default cdr)))
+
 (put 'lambda-default 'lisp-indent-function 'defun)
 (put 'lambda-default 'byte-compile 'byte-compile-lambda-form)
 
@@ -593,7 +615,7 @@ represent the actual stored value.  OBJ may be an object instance, or
 a class symbol"
   (if (not (or (object-p obj) (class-p obj))) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let* ((cl (if (object-p obj) (aref obj 1) obj))
+  (let* ((cl (if (object-p obj) (aref obj object-class) obj))
 	 (c (eieio-field-name-index cl field))
 	 (nump (length (aref (class-v cl) class-public-a))))
     (if (not c) (signal 'invalid-slot-name (list (class-name cl) field)))
@@ -619,7 +641,7 @@ a class symbol"
   "Set the value in OBJ at FIELD to be VALUE, and return VALUE."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let ((c (eieio-field-name-index (aref obj 1) field)))
+  (let ((c (eieio-field-name-index (aref obj object-class) field)))
     (if (not c) (signal 'invalid-slot-name (list (object-name obj) field)))
     (aset obj c value)))
 
@@ -649,7 +671,7 @@ VALUE.  This does not affect any existing objects of type CLASS"
 ;;; well embedded into an object.
 ;;;
 (defmacro object-class-fast (obj) "Return the class struct defining OBJ with no checks"
-  (list 'aref obj 1))
+  (list 'aref obj object-class))
   
 (defun class-name (class) "Return a lisp like symbol name for object OBJ"
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
@@ -659,12 +681,12 @@ VALUE.  This does not affect any existing objects of type CLASS"
   "Return a lisp like symbol string for object OBJ.  If EXTRA, include that
 in the string returned to represent the symbol."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (format "#<%s %s%s>" (symbol-name (object-class-fast obj)) (aref obj 2)
-	  (or extra "")))
+  (format "#<%s %s%s>" (symbol-name (object-class-fast obj)) 
+	  (aref obj object-name) (or extra "")))
 
 (defun object-name-string (obj) "Return a string which is OBJs name"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (aref obj 2))
+  (aref obj object-name))
 
 (defun object-class (obj) "Return the class struct defining OBJ"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
@@ -682,7 +704,7 @@ in the string returned to represent the symbol."
   (class-parent-fast class))
 
 (defmacro same-class-fast-p (obj class) "Return t if OBJ is of class-type CLASS with no error checking."
-  (list 'eq (list 'aref obj 1) class))
+  (list 'eq (list 'aref obj object-class) class))
 
 (defun same-class-p (obj class) "Return t if OBJ is of class-type CLASS"
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
@@ -692,7 +714,7 @@ in the string returned to represent the symbol."
 (defun obj-of-class-p (obj class) "Return t if OBJ inherits anything from CLASS"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   ;; class will be checked one layer down
-  (child-of-class-p (aref obj 1) class))
+  (child-of-class-p (aref obj object-class) class))
 
 (defun child-of-class-p (child class) "If CHILD inherits anything from CLASS, return CLASS"
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
@@ -919,7 +941,7 @@ has no form, but has a parent class, then trace to that parent class"
 		 (eieiomt-sym-optimize cs))))
 	 ;; 3) If it's bound return this one.
 	 (if (fboundp  cs)
-	     (cons cs (aref (class-v class) 1))
+	     (cons cs (aref (class-v class) class-symbol))
 	   ;; 4) If it's not bound then this variable knows something
 	   (if (symbol-value cs)
 	       (progn
@@ -929,13 +951,15 @@ has no form, but has a parent class, then trace to that parent class"
 		 ;; 4.2) The optimizer should always have chosen a 
 		 ;;      function-symbol
 		 ;;(if (fboundp cs)
-		 (cons cs (aref (class-v (intern (symbol-name class))) 1))
+		 (cons cs (aref (class-v (intern (symbol-name class)))
+				class-symbol))
 		   ;;(error "EIEIO optimizer: erratic data loss!"))
 		 )
 	       ;; There never will be a funcall...
 	       nil)))
      ;; for a generic call, what is a list, is the function body we want.
-     (let ((emtl (aref (get method 'eieio-method-tree) (if class tag (+ tag 3)))))
+     (let ((emtl (aref (get method 'eieio-method-tree)
+		       (if class tag (+ tag 3)))))
        (if emtl
 	 (cons emtl nil)
 	 nil)))))
@@ -949,20 +973,24 @@ has no form, but has a parent class, then trace to that parent class"
 SET-ALL is non-nil, then when a default is nil, that value is reset.
 If SET-ALL is nil, the fields are only reset if the default is not
 nil."
-  (let ((scoped-class (aref obj 1))
-	(pub (aref (class-v (aref obj 1)) class-public-a))
-	(priv (aref (class-v (aref obj 1)) class-private-a)))
+  (let ((scoped-class (aref obj object-class))
+	(pub (aref (class-v (aref obj object-class)) class-public-a))
+	(priv (aref (class-v (aref obj object-class)) class-private-a)))
     (while pub
       (let ((df (oref-default-engine obj (car pub))))
 	(if (and (listp df) (eq (car df) 'lambda-default))
-	    (setcar df 'lambda))
+	    (progn
+	      (setq df (copy-sequence df))
+	      (setcar df 'lambda)))
 	(if (or df set-all)
 	    (oset-engine obj (car pub) df)))
       (setq pub (cdr pub)))
     (while priv
       (let ((df (oref-default-engine obj (car priv))))
 	(if (and (listp df) (eq (car df) 'lambda-default))
-	    (setcar df 'lambda))
+	    (progn
+	      (setq df (copy-sequence df))
+	      (setcar df 'lambda)))
 	(if (or df set-all)
 	    (oset-engine obj (car priv) df)))
       (setq priv (cdr priv)))))
@@ -987,7 +1015,7 @@ which is a symbol that starts with `:'."
 (defun eieio-set-fields (obj fields)
   "Set the fields of OBJ with the list FIELDS which is a list of
 name/value pairs.  Called from the constructor routine."
-  (let ((scoped-class (aref obj 1)))
+  (let ((scoped-class (aref obj object-class)))
     (while fields
       (let ((rn (eieio-initarg-to-attribute (object-class-fast obj) (car fields))))
 	(oset-engine obj rn (car (cdr fields))))
@@ -999,7 +1027,7 @@ it's methods.  Use this to set the variable 'CLASSes doc string for
 viewing by apropos, and describe-variables, and the like."
   (if (not (class-p class)) (signal 'wrong-type-argument '(class-p class)))  
   (let* ((cv (class-v class))
-	 (newdoc (aref cv 2))
+	 (newdoc (aref cv class-doc))
 	 (docs (aref cv class-public-doc))
 	 (names (aref cv class-public-a))
 	 (deflt (aref cv class-public-d))
