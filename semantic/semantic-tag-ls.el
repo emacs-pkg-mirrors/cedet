@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.1 2003/07/09 16:35:46 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.2 2003/07/16 14:51:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,6 +42,21 @@
 ;; leaf, etc.  Learn about UML to catch onto the lingo.
 
 ;;;###autoload
+(define-overload semantic-tag-calculate-parent (tag)
+  "Attempt to calculate the parent of TAG.
+The default behavior (if not overriden with `tag-calculate-parent')
+is to search a buffer found with TAG, and if externally defined,
+search locally, then semanticdb for that tag (when enabled.)")
+
+(defun semantic-tag-calculate-parent-default (tag)
+  "Attempt to calculate the parent of TAG."
+  (save-excursion
+    (set-buffer (semantic-tag-buffer tag))
+    (goto-char (semantic-tag-start tag))
+    (semantic-current-tag-parent))
+  )
+
+;;;###autoload
 (defun semantic-tag-protection (tag &optional parent)
   "Return protection information about TAG with optional PARENT.
 This function returns on of the following symbols:
@@ -57,6 +72,8 @@ The default behavior (if not overridden with `tag-protection'
 is to return a symbol based on type modifiers."
   (let* ((s (or (semantic-fetch-overload 'tag-protection)
 		(semantic-fetch-overload 'nonterminal-protection))))
+    (if (and (not parent) (semantic-tag-buffer tag))
+	(setq parent (semantic-tag-calculate-parent tag)))
     (if s (funcall s tag parent)
       (semantic-tag-protection-default tag parent))))
 
