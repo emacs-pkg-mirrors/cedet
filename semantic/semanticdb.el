@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.48 2003/01/21 08:59:31 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.49 2003/01/27 22:00:29 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -498,10 +498,11 @@ Update the environment of Semantic enabled buffers accordingly."
   "Return a list of tokens belonging to FILE.
 If file has database tokens available in the database, return them.
 If file does not have tokens available, then load the file, and create them."
-  (let* ((fo (semanticdb-get-database (concat (file-name-directory file)
-					      semanticdb-default-file-name)))
-	 (to nil))
-    (if fo (setq to (semanticdb-file-table fo file)))
+  (let* ((default-directory (file-name-directory file))
+         (fo (semanticdb-create-database semanticdb-new-database-class
+                                         default-directory))
+         (to (semanticdb-file-table fo file))
+         )
     (if to
 	(oref to tokens) ;; get them.
       ;; We must load the file.
