@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.5 2004/02/22 21:38:42 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.6 2004/03/01 01:12:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -129,7 +129,7 @@ For these PROTECTIONs, true is returned if TAG is:
     ))
 
 ;;;###autoload
-(defun semantic-tag-abstract (tag &optional parent)
+(defun semantic-tag-abstract-p (tag &optional parent)
   "Return non nil if TAG is abstract.
 Optional PARENT is the parent tag of TAG.
 In UML, abstract methods and classes have special meaning and behavior
@@ -142,7 +142,7 @@ is to return true if `abstract' is in the type modifiers."
     (if s (funcall s tag parent)
       (semantic-tag-abstract-default tag parent))))
 
-(defun semantic-tag-abstract-default (tag &optional parent)
+(defun semantic-tag-abstract-p-default (tag &optional parent)
   "Return non-nil if TAG is abstract as a child of PARENT default action.
 See `semantic-tag-abstract'."
   (let ((mods (semantic-tag-modifiers tag))
@@ -155,7 +155,7 @@ See `semantic-tag-abstract'."
     abs))
 
 ;;;###autoload
-(defun semantic-tag-leaf (tag &optional parent)
+(defun semantic-tag-leaf-p (tag &optional parent)
   "Return non nil if TAG is leaf.
 Optional PARENT is the parent tag of TAG.
 In UML, leaf methods and classes have special meaning and behavior.
@@ -167,7 +167,7 @@ is to return true if `leaf' is in the type modifiers."
     (if s (funcall s tag parent)
       (semantic-tag-leaf-default tag parent))))
 
-(defun semantic-tag-leaf-default (tag &optional parent)
+(defun semantic-tag-leaf-p-default (tag &optional parent)
   "Return non-nil if TAG is leaf as a child of PARENT default action.
 See `semantic-tag-leaf'."
   (let ((mods (semantic-tag-modifiers tag))
@@ -181,14 +181,14 @@ See `semantic-tag-leaf'."
     leaf))
 
 ;;;###autoload
-(define-overload semantic-tag-static (tag &optional parent)
+(define-overload semantic-tag-static-p (tag &optional parent)
   "Return non nil if TAG is static.
 Optional PARENT is the parent tag of TAG.
 In UML, static methods and attributes mean that they are allocated
 in the parent class, and are not instance specific.
 UML notation specifies that STATIC entries are underlined.")
 
-(defun semantic-tag-static-default (tag &optional parent)
+(defun semantic-tag-static-p-default (tag &optional parent)
   "Return non-nil if TAG is static as a child of PARENT default action.
 See `semantic-tag-static'."
   (let ((mods (semantic-tag-modifiers tag))
@@ -229,6 +229,8 @@ STREAM-OR-BUFFER with a tag stream value, or nil."
 Return the name of TAG found in the toplevel STREAM."
   (semantic-tag-name tag))
 
+;;; Compatibility aliases.
+;;
 (semantic-alias-obsolete 'semantic-nonterminal-protection
 			 'semantic-tag-protection)
 (semantic-alias-obsolete 'semantic-nonterminal-protection-default
@@ -247,6 +249,12 @@ Return the name of TAG found in the toplevel STREAM."
 			 'semantic-tag-full-name)
 (semantic-alias-obsolete 'semantic-nonterminal-full-name-default
 			 'semantic-tag-full-name-default)
+
+;; TEMPORARY within betas of CEDET 1.0
+(semantic-alias-obsolete 'semantic-tag-static 'semantic-tag-static-p)
+(semantic-alias-obsolete 'semantic-tag-leaf 'semantic-tag-leaf-p)
+(semantic-alias-obsolete 'semantic-tag-abstract 'semantic-tag-abstract-p)
+
 
 (provide 'semantic-tag-ls)
 
