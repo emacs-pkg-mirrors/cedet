@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.14 2004/01/19 18:51:18 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.15 2004/02/20 12:18:38 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -26,10 +26,10 @@
 ;; Boston, MA 02111-1307, USA.
 
 %{
-  (defsubst semantic-grammar-wy--tag-value (tag)
-    "Return the value of TAG.
-Used internally to retrieve value of EXPADFULL tags."
-    (semantic-tag-get-attribute tag :value))
+  ;; Current parsed nonterminal name.
+  (defvar semantic-grammar-wy--nterm nil)
+  ;; Index of rule in a nonterminal clause.
+  (defvar semantic-grammar-wy--rindx nil)
   }
 
 ;;%package semantic-grammar-wy
@@ -183,20 +183,16 @@ put_decl:
     PUT put_name put_value
     `(TAG ',$2 'put :value ',(list $3))
   | PUT put_name put_value_list
-    (let* ((vals (mapcar 'semantic-grammar-wy--tag-value $3)))
-      `(TAG ',$2 'put :value ',vals))
+    `(TAG ',$2 'put :value ',$3)
   | PUT put_name_list put_value
-    (let* ((names (mapcar 'semantic-grammar-wy--tag-value $2)))
-      `(TAG ',(car names) 'put :rest ',(cdr names) :value ',(list $3)))
+    `(TAG ',(car $2) 'put :rest ',(cdr $2) :value ',(list $3))
   | PUT put_name_list put_value_list
-    (let* ((names (mapcar 'semantic-grammar-wy--tag-value $2))
-           (vals  (mapcar 'semantic-grammar-wy--tag-value $3)))
-      `(TAG ',(car names) 'put :rest ',(cdr names) :value ',vals))
+    `(TAG ',(car $2) 'put :rest ',(cdr $2) :value ',$3)
   ;
 
 put_name_list:
     BRACE_BLOCK
-    (EXPANDFULL $1 put_names)
+    (mapcar 'semantic-tag-name (EXPANDFULL $1 put_names))
   ;
 
 put_names:
@@ -206,7 +202,7 @@ put_names:
     ()
   | put_name
  ;; Must return a list of Semantic tags to EXPANDFULL!
-    (TAG "name" 'put-name :value $1)
+    (TAG $1 'put-name)
   ;
 
 put_name:
@@ -216,7 +212,7 @@ put_name:
 
 put_value_list:
     BRACE_BLOCK
-    (EXPANDFULL $1 put_values)
+    (mapcar 'semantic-tag-code-detail (EXPANDFULL $1 put_values))
   ;
 
 put_values:
@@ -226,7 +222,7 @@ put_values:
     ()
   | put_value
  ;; Must return a list of Semantic tags to EXPANDFULL!
-    (TAG "value" 'put-value :value $1)
+    (CODE-TAG "put-value" $1)
   ;
 
 put_value:
@@ -290,7 +286,7 @@ plist:
 
 use_name_list:
     BRACE_BLOCK
-    (EXPANDFULL $1 use_names)
+    (mapcar 'semantic-tag-name (EXPANDFULL $1 use_names))
   ;
 
 use_names:
@@ -300,13 +296,12 @@ use_names:
     ()
   | SYMBOL
  ;; Must return a list of Semantic tags to EXPANDFULL!
-    (TAG "name" 'use-name :value $1)
+    (TAG $1 'use-name)
   ;
 
 use_macros_decl:
     USE-MACROS SYMBOL use_name_list
-    (let* ((names (mapcar 'semantic-grammar-wy--tag-value $3)))
-      `(TAG "macro" 'macro :type ',$2 :value ',names))
+    `(TAG "macro" 'macro :type ',$2 :value ',$3)
   ;
 
 string_value:
@@ -338,8 +333,11 @@ lifo_symbols:
 ;;; Grammar rules
 ;;
 nonterminal:
-    SYMBOL COLON rules SEMI
-    (TAG $1 'nonterminal :children $3)
+    SYMBOL
+    (setq semantic-grammar-wy--nterm $1
+          semantic-grammar-wy--rindx 0)
+    COLON rules SEMI
+    (TAG $1 'nonterminal :children $4)
   ;
 
 rules:
@@ -356,8 +354,11 @@ lifo_rules:
 
 rule:
     rhs
-    (let* ((rhs $1)
-           name type comps prec action elt)
+    (let* ((nterm semantic-grammar-wy--nterm)
+           (rindx semantic-grammar-wy--rindx)
+           (rhs   $1)
+           comps prec action elt)
+      (setq semantic-grammar-wy--rindx (1+ semantic-grammar-wy--rindx))
       (while rhs
         (setq elt (car rhs)
               rhs (cdr rhs))
@@ -365,27 +366,27 @@ rule:
          ;; precedence level
          ((vectorp elt)
           (if prec
-              (message "Duplicate %%prec in a rule, keep latest"))
+              (error "duplicate %%prec in `%s:%d' rule" nterm rindx))
           (setq prec (aref elt 0)))
          ;; action
          ((consp elt)
+          ;; don't forget that rhs items are in reverse order, so
+          ;; the end-of-rule semantic action is the first item.
           (if (or action comps)
-              ;; A mid-rule action
-              (setq comps (cons elt comps))
-            ;; The end-of-rule action
+              ;; a mid-rule action
+              (setq comps (cons elt comps)
+                    ;; keep rule and action index synchronized
+                    semantic-grammar-wy--rindx
+                    (1+ semantic-grammar-wy--rindx))
+            ;; the end-of-rule action
             (setq action (car elt))))
          ;; item
          (t
           (setq comps (cons elt comps)))))
-      (if comps
-          (setq type "group"
-                name (mapconcat
-                      #'(lambda (e) (if (consp e) "{}" e)) comps " "))
-        (setq type "empty"
-              name ";;EMPTY"))
       (EXPANDTAG
-       (TAG name 'rule :type type :value comps :prec prec :expr action)
-       ))
+       (TAG (format "%s:%d" nterm rindx) 'rule
+            :type (if comps "group" "empty")
+            :value comps :prec prec :expr action)))
   ;
 
 rhs:
