@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.17 2000/07/03 13:58:41 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.18 2000/07/05 14:40:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -83,6 +83,13 @@ Determines if it is available based on the length of TOKEN."
 (defmacro semantic-token-variable-modifiers (token)
   "Retrieve non-type modifiers for the variable TOKEN."
   `(nth 5 ,token))
+
+(defmacro semantic-token-variable-optsuffix (token)
+  "Optional details if this variable has bit fields, or array dimentions.
+Determines if it is available based on the length of TOKEN."
+  `(if (>= (length ,token) (+ 7 3))
+       (nth 6 ,token)
+     nil))
 
 (defmacro semantic-token-include-system (token)
  "Retrieve the flag indicating if the include TOKEN is a sysmtem include."
@@ -615,8 +622,18 @@ This functin must be overloaded, though it need not be used."
 			 ((eq tok 'type)
 			  (semantic-token-type-parts token))
 			 (t nil)))
-	     (mods (if (eq tok 'variable)
-		       (semantic-token-variable-modifiers token))))
+	     (mods (cond ((eq tok 'variable)
+			  (semantic-token-variable-modifiers token))
+			 ((eq tok 'function)
+			  (semantic-token-function-modifiers token))
+			 ((eq tok 'type)
+			  (semantic-token-type-modifiers token))
+			 (t nil)))
+	     (array (if (eq tok 'variable)
+			(semantic-token-variable-optsuffix token)))
+	     )
+	(if (and (listp mods) mods)
+	    (setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
 	(if args
 	    (setq args
 		  (concat " " (if (eq tok 'type) "{" "(")
@@ -626,10 +643,11 @@ This functin must be overloaded, though it need not be used."
 			  (if (eq tok 'type) "}" ")"))))
 	(if (and type (listp type))
 	    (setq type (car type)))
-	(concat (if type (concat type " "))
+	(concat (or mods "")
+		(if type (concat type " "))
 		(semantic-token-name token)
 		(or args "")
-		(or mods ""))))))
+		(or array ""))))))
 
 (defun semantic-prototype-file (buffer)
   "Return a file in which prototypes belonging to BUFFER should be placed.
