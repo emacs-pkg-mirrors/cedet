@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.10 2000/08/20 13:15:15 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.11 2000/09/28 18:51:18 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -219,6 +219,10 @@ This method is called by the default widget-edit commands.  User made
 commands should also call this method when applying changes.
 Argument OBJ is the object that has been customized."
   nil)
+
+(defun customize-object (obj)
+  "Customize OBJ in a custom buffer."
+  (eieio-customize-object obj))
 
 (defmethod eieio-customize-object ((obj eieio-default-superclass))
   "Customize OBJ in a specialized custom buffer.
