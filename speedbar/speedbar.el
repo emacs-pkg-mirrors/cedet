@@ -1,10 +1,10 @@
 ;;; speedbar --- quick access to files and tags in a frame
 
-;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02, 03 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.223 2002/11/28 13:11:48 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.224 2003/02/05 15:28:07 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -498,6 +498,8 @@ The expression `speedbar-obj-alist' defines who gets tagged.")
 (defvar speedbar-object-read-only-indicator "%"
   "Indicator to append onto a line if that item is Read Only.")
 
+;; Note: Look for addition place to add indicator lists that
+;; use skip-chars instead of a regular expression.
 (defvar speedbar-indicator-regex
   (concat (regexp-quote speedbar-indicator-separator)
 	  "\\("
@@ -2712,6 +2714,7 @@ indicator, then do not add a space."
   ;; The nature of the beast: Assume we are in "the right place"
   (end-of-line)
   (skip-chars-backward (concat " " speedbar-vc-indicator
+			       speedbar-object-read-only-indicator
 			       (car speedbar-obj-indicator)
 			       (cdr speedbar-obj-indicator)))
   (if (and (not (looking-at speedbar-indicator-regex))
