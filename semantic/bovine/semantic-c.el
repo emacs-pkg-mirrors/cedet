@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.32 2004/07/15 19:25:56 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.33 2004/07/15 20:25:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -230,6 +230,9 @@ Go to the next line."
 	       (t nil)))
 	(t nil)))
 
+(defvar-mode-local c-mode semantic-tag-expand-function 'semantic-expand-c-tag
+  "Function used to expand tags generated in the C bovine parser.")
+
 (defvar semantic-c-classname nil
   "At parse time, assign a class or struct name text here.
 It is picked up by `semantic-c-reconstitute-token' to determine
@@ -333,6 +336,10 @@ probably do some sort of search to see what is actually on the local
 machine."
   :group 'c
   :type '(repeat (string :tag "Path")))
+
+(defvar-mode-local c-mode semantic-dependency-include-path 
+  semantic-default-c-path
+  "System path to search for include files.")
 
 (define-mode-local-override semantic-format-tag-name
   c-mode (tag &optional parent color)
@@ -530,36 +537,53 @@ DO NOT return the list of tags encompassing point."
     tagreturn
     ))
 
+(defvar-mode-local c-mode semantic-orphaned-member-metaparent-type "struct"
+  "When lost memberes are found in the class hierarchy generator, use a struct.")
+
+(defvar-mode-local c-mode semantic-symbol->name-assoc-list
+  '((type     . "Types")
+    (variable . "Variables")
+    (function . "Functions")
+    (include  . "Includes")
+    )
+  "List of tag classes, and strings to describe them.")
+
+(defvar-mode-local c-mode semantic-symbol->name-assoc-list-for-type-parts
+  '((type     . "Types")
+    (variable . "Attributes")
+    (function . "Methods")
+    (label    . "Labels")
+    )
+  "List of tag classes in a datatype decl, and strings to describe them.")
+
+(defvar-mode-local c-mode imenu-create-index-function 'semantic-create-imenu-index
+  "Imenu index function for C.")
+
+(defvar-mode-local c-mode semantic-type-relation-separator-character '("." "->")
+  "Separator characters between something of a give type, and a field.")
+
+(defvar-mode-local c-mode semantic-command-separation-character ";"
+  "Commen separation character for C")
+
+(defvar-mode-local c-mode document-comment-start "/*"
+  "Comment start string.")
+
+(defvar-mode-local c-mode document-comment-line-prefix " *"
+  "Tween line comment decoration character.")
+
+(defvar-mode-local c-mode document-comment-end " */"
+  "Comment termination string.")
+
+(defvar-mode-local c-mode senator-step-at-tag-classes '(function variable)
+  "Tag classes where senator will stop at the end.")
+
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
   (semantic-c-by--install-parser)
-  (setq semantic-tag-expand-function 'semantic-expand-c-tag
-        semantic-dependency-include-path semantic-default-c-path
-        semantic-orphaned-member-metaparent-type "struct"
-        semantic-lex-syntax-modifications '((?> ".")
+  (setq semantic-lex-syntax-modifications '((?> ".")
                                             (?< ".")
                                             )
-        semantic-symbol->name-assoc-list
-        '((type     . "Types")
-          (variable . "Variables")
-          (function . "Functions")
-          (include  . "Includes")
-          )
-        semantic-symbol->name-assoc-list-for-type-parts
-        '((type     . "Types")
-          (variable . "Attributes")
-          (function . "Methods")
-          (label    . "Labels")
-          )
-        imenu-create-index-function 'semantic-create-imenu-index
-        semantic-type-relation-separator-character '("." "->")
-        semantic-command-separation-character ";"
-        document-comment-start "/*"
-        document-comment-line-prefix " *"
-        document-comment-end " */"
-        ;; Semantic navigation inside 'type children
-        senator-step-at-tag-classes '(function variable)
         )
   
   (setq semantic-lex-analyzer #'semantic-c-lexer))
