@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.20 1999/09/08 01:29:47 zappo Exp $
+@c $Id: eieio.texi,v 1.21 1999/09/08 15:32:53 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -201,7 +201,7 @@ subclasses to modify arguments as they are passed up the tree.  If no
 arguments are given, the expected CLOS behavior is used.
 @item setf
 If the common-lisp subsystem is loaded, the setf parameters are also
-loaded so the form @code{(setf (slot-value object value) t)} should
+loaded so the form @code{(setf (slot-value object slot) t)} should
 work.
 @end table
 
@@ -482,6 +482,12 @@ object.
 
 @defun slot-value object slot
 This function is mearly an alias for oref
+@end defun
+
+@defun set-slot-value object slot value
+This function is mearly an alias for oset.  It is not a CLOS functin,
+but is meant to mirror slot-value if you don't want to use the cl
+package.
 @end defun
 
 @defun slot-makeunbound object slot
