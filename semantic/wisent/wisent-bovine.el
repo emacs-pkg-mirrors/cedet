@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.25 2002/10/02 15:05:48 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.26 2003/03/13 08:33:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -343,6 +343,25 @@ Should be used in Semantic actions to build the bovine cache."
        (semantic-token-put (car l) 'reparse-symbol $nterm)
        (setq l (cdr l)))
      cooked))
+
+(defsubst wisent-raw-token (semantic-token)
+  "Return a raw token from given SEMANTIC-TOKEN.
+Should be used in semantic actions to build the Semantic parse tree."
+  (nconc semantic-token
+         (if (or $region
+                 (setq $region (nthcdr 2 wisent-input)))
+             (list (car $region) (cdr $region))
+           (list (point-max) (point-max)))))
+
+(defsubst wisent-cook-token (wisent-raw-token)
+  "Cook WISENT-RAW-TOKEN and return a list of cooked tokens.
+Should be used in semantic actions to build the Semantic parse tree."
+  (let* ((cooked (semantic-raw-to-cooked-token wisent-raw-token))
+         (l cooked))
+    (while l
+      (semantic-token-put (car l) 'reparse-symbol $nterm)
+      (setq l (cdr l)))
+    cooked))
 
 ;; Unmatched syntax collector
 ;;
