@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.46 2001/02/08 23:43:53 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.47 2001/02/09 11:54:18 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -719,13 +719,12 @@ STREAM is the list of tokens to complete from."
 ;; for tasks of that nature, and also provides reasonable defaults.
 
 (defvar semantic-override-table nil
-  "Buffer local semantic function overrides alist.
+  "Buffer local semantic function overrides obarray.
 These overrides provide a hook for a `major-mode' to override specific
 behaviors with respect to generated semantic toplevel nonterminals and
-things that these non-terminals are useful for.
-Each element must be of the form: (SYM . FUN)
-where SYM is the symbol to override, and FUN is the function to
-override it with.
+things that these non-terminals are useful for.  Use the function
+`semantic-install-function-overrides' to install overrides.
+
 Available override symbols:
 
   SYBMOL                  PARAMETERS         DESCRIPTION
@@ -735,6 +734,7 @@ Available override symbols:
  `abbreviate-nonterminal' (token & parent)   Return summary string.
  `summarize-nonterminal'  (token & parent)   Return summary string.
  `prototype-nonterminal'  (token)            Return a prototype string.
+ `concise-prototype-nonterminal' (token) Return a concise prototype string.
  `prototype-file'         (buffer)           Return a file in which
  	                                     prototypes are placed
  `nonterminal-children'   (token)            Return first rate children.
@@ -772,10 +772,36 @@ Parameters mean:
            information in it.")
 (make-variable-buffer-local 'semantic-override-table)
 
+(defun semantic-install-function-overrides (overrides &optional transient)
+  "Install function OVERRIDES in `semantic-override-table'.
+If optional TRANSIENT is non-nil installed overrides can in turn be
+overridden by next installation.  OVERRIDES must be an alist.  Each
+element must be of the form: (SYM . FUN) where SYM is the symbol to
+override, and FUN is the function to override it with."
+  (if (not (arrayp semantic-override-table))
+      (setq semantic-override-table (make-vector 13 nil)))
+  (let (sym sym-name fun override)
+    (while overrides
+      (setq override  (car overrides)
+            overrides (cdr overrides)
+            sym-name  (symbol-name (car override))
+            fun       (cdr override))
+      (if (setq sym (intern-soft sym-name semantic-override-table))
+          (if (get sym 'override)
+              (set sym fun)
+            (or (equal (symbol-value sym) fun)
+                (message "Current `%s' function #'%s not overrode by #'%s"
+                         sym (symbol-value sym) fun)))
+        (setq sym (intern sym-name semantic-override-table))
+        (set sym fun))
+      (put sym 'override transient))))
+
 (defun semantic-fetch-overload (sym)
-  "Find and return the overload function for SYM."
-  (let ((a (assq sym semantic-override-table)))
-    (cdr a)))
+  "Find and return the overload function for SYM.
+Return nil if not found."
+  (symbol-value
+   (and (arrayp semantic-override-table)
+        (intern-soft (symbol-name sym) semantic-override-table))))
 
 (defvar semantic-dependency-include-path nil
   "Defines the include path used when searching for files.
@@ -1026,6 +1052,45 @@ This functin must be overloaded, though it need not be used."
 		(semantic-token-name token)
 		(or args "")
 		(or array ""))))))
+
+(defun semantic-concise-prototype-nonterminal (token)
+  "Return a concise prototype for TOKEN.
+This function must be overloaded, though it need not be used."
+  (let ((s (semantic-fetch-overload 'concise-prototype-nonterminal)))
+    (if s
+	(funcall s token)
+      (semantic-concise-prototype-nonterminal-default token))))
+
+(defun semantic-concise-prototype-nonterminal-default (token)
+  "Return a concise prototype for TOKEN.
+This default cococt a cheap concise prototype using C like syntax."
+  (let ((tok (semantic-token-token token)))
+    (cond
+     ((eq tok 'type)
+      (concat (semantic-token-name token) "{}"))
+     ((eq tok 'function)
+      (let ((args (semantic-token-function-args token)))
+        (concat (semantic-token-name token)
+                "("
+                (if args
+                    (if (stringp (car args))
+                        (mapconcat (lambda (a) a) args ",")
+                      (mapconcat 'car args ","))
+                  "")
+                ")")))
+     ((eq tok 'variable)
+      (let* ((deref (semantic-token-variable-extra-spec
+                     token 'dereference))
+             (array "")
+             (suffix (semantic-token-variable-extra-spec
+                      token 'suffix)))
+        (while (and deref (/= deref 0))
+          (setq array (concat array "[]")
+                deref (1- deref)))
+        (concat (semantic-token-name token)
+                array)))
+     (t
+      (semantic-abbreviate-nonterminal token)))))
 
 (defun semantic-prototype-file (buffer)
   "Return a file in which prototypes belonging to BUFFER should be placed.
