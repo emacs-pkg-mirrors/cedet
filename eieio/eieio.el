@@ -6,9 +6,9 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.103 2001/05/12 13:57:44 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.104 2001/05/19 21:11:56 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "0.17beta1"
+(defvar eieio-version "0.17beta2"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -500,27 +500,24 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	      )
 	  )
 	;; If a writer is defined, then create a generic method of that
-	;; name whose purpose is to write out this slot value.
+	;; name whose purpose is to set the value of the slot.
 	(if writer
 	    (progn
-	      (eieio-defmethod writer
-		(list (list (list 'this cname))
-		      (format
-		       "Write the slot `%s' from object of class `%s'"
-		       name cname)
-		      (list 'eieio-override-prin1
-			    (list 'eieio-oref 'this (list 'quote name)))))
+	      (eieio-defmethod write
+		(list (list 'value (list 'this cname))
+		      (format "Set the slot `%s' of an object of class `%s'"
+			      name cname)
+		      `(setf (slot-value this ',name) value)))
 	      ))
 	;; If a reader is defined, then create a generic method
-	;; of that name whose purpose is to read this slot value.
+	;; of that name whose purpose is to access this slot value.
 	(if reader
 	    (progn
 	      (eieio-defmethod reader
 		(list (list (list 'this cname))
-		      (format
-		       "Read the slot `%s' from object of class `%s'"
-		       name cname)
-		      '(error "Not implemented")))))
+		      (format "Access the slot `%s' from object of class `%s'"
+			      name cname)
+		      `(slot-value this ',name)))))
 	)
       (setq fields (cdr fields)))
 
@@ -1115,21 +1112,22 @@ Fills in the default value in CLASS' in FIELD with VALUE."
 ;;; Handy CLOS macros
 ;;
 (defmacro with-slots (spec-list object &rest body)
-  "Create a lexical scope for slots in SPEC-LIST for OBJECT.
-Execute BODY within this lexical scope."
-  ;; Special thanks to Kevin Rodgers <kevinr@ihs.com> for helping me with this
-  (let ((object-var (make-symbol "with-slots-obj")))
-    `(let* ((,object-var ,object)
-	    ,@(mapcar (lambda (spec)
-			  (cond ((symbolp spec)
-				 `(,spec (slot-value ,object-var (quote ,spec))))
-				((consp spec)
-				 `(,(car spec)
-				   (slot-value ,object-var (quote ,(cadr spec)))))
-				(t (error "Invalid binding spec: %s" spec))))
-			spec-list))
-       ,@body)))
+  "The macro with-slots establishes a lexical environment for
+referring to the slots in the instance named by the given
+slot-names as though they were variables. Within such a context
+the value of the slot can be specified by using its slot name,
+as if it were a lexically bound variable. Both setf and setq
+can be used to set the value of the slot."
+  ;; Transform the spec-list into a symbol-macrolet spec-list.
+  (let ((mappings (mapcar (lambda (entry)
+			    (let ((var  (if (listp entry) (car entry) entry))
+				  (slot (if (listp entry) (cadr entry) entry)))
+			      (list var `(slot-value ,object ',slot))))
+			  spec-list)))
+    (append (list 'symbol-macrolet mappings)
+	    body)))
 (put 'with-slots 'lisp-indent-function 2)
+
 
 ;;; Simple generators, and query functions.  None of these would do
 ;;  well embedded into an object.
