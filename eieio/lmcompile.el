@@ -97,6 +97,16 @@ Do not permit multiple groups with the same NAME."
   (mapcar (lambda (e) (linemark-delete e))
 	  (oref lmcompile-error-group marks)))
 
+;; Compatibility
+(if (fboundp 'compile-reinitialize-errors)
+    (defalias 'lmcompile-reinitialize-errors 'compile-reinitialize-errors)
+  ;; Newer versions of Emacs:
+  (defun lmcompile-reinitialize-errors (&rest foo)
+    "Find out what this should be."
+    (error "Need replacement for `compile-reinitialize-errors")
+    )
+  )
+
 ;;;###autoload
 (defun lmcompile-do-highlight ()
   "Do compilation mode highlighting.
@@ -106,11 +116,11 @@ Works on grep, compile, or other type mode."
   ;; Flush out the old
   (lmcompile-clear)
 
-  ;; Set the buffer apropriately
+  ;; Set the buffer appropriately
   (setq compilation-last-buffer (compilation-find-buffer))
 
   ;; Get the list of errors to be activated.
-  (compile-reinitialize-errors nil)
+  (lmcompile-reinitialize-errors nil)
   
   (let ((marks
 	 (save-excursion
@@ -128,6 +138,11 @@ Works on grep, compile, or other type mode."
 	    )
 	(setq file (concat (car (cdr file))
 			   (car file)))
+
+	;; Sometimes the above doesn't work.  Use this version.
+	;; Originally suggested by: Markus Gritsch
+	(if (not (file-exists-p file))
+	    (setq file (car (nth 1 (car marks)))))
 
 	;; We've got the goods, lets add in an entry.
 	;; If we can't find the file, skip it.  It'll be
