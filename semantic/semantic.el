@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.7 1999/05/14 21:32:38 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.8 1999/05/17 17:30:15 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -164,6 +164,23 @@
 ;; that need to be passed in.  This is useful for decomposing complex
 ;; syntactic elements, such as semantic-list.
 ;;
+;; Token's and the VALS argument
+;; -----------------------------
+;;
+;; Not all syntactic tokens are represented by strings in the VALS argument
+;; to the match-list lambda expression.  Some are a dotted pair (START . END).
+;; The following are represented as strings:
+;;  1) symbols
+;;  2) punctuation
+;;  3) open/close-paren
+;;  4) charquote
+;;  5) strings
+;; The following are represented as a dotted-pair.
+;;  1) semantic-list
+;;  2) comments
+;; Nonterminals are always lists which are generated in the lambda
+;; expression.
+;;
 ;; Semantic Bovine Table Debugger
 ;; ------------------------------
 ;;
@@ -309,6 +326,13 @@ TOP-LEVEL ENTRIES:
 
 OTHER ENTRIES:")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table)
+
+(defvar semantic-expand-nonterminal nil
+  "Function to call for each returned Non-terminal.
+Return a list of non-terminals derived from the first argument, or nil
+if it does not need to be expanded.")
+(make-variable-buffer-local 'semantic-expand-nonterminal)
+
 
 ;;; Utility API functions
 ;;
@@ -351,6 +375,10 @@ OTHER ENTRIES:")
   "Retrieve the default value of TOKEN."
   `(nth 4 ,token))
 
+(defmacro semantic-token-variable-const (token)
+  "Retrieve the status of constantness from variable TOKEN."
+  `(nth 3 ,token))
+
 (defun semantic-bovinate-toplevel (&optional depth trashcomments)
   "Bovinate the entire current buffer to a list depth of DEPTH.
 DEPTH is optional, and defaults to 0.
@@ -363,11 +391,20 @@ stripped from the main list of synthesized tokens."
 	  (if (not (and trashcomments (eq (car (car ss)) 'comment)))
 	      (let ((nontermsym
 		     (semantic-bovinate-nonterminal
-		      ss semantic-toplevel-bovine-table)))
+		      ss semantic-toplevel-bovine-table))
+		    (tmpet nil))
 		(if (not nontermsym)
 		    (error "Parse error @ %d" (car (cdr (car ss)))))
 		(if (car (cdr nontermsym))
-		    (setq res (cons (car (cdr nontermsym)) res)))
+		    (progn
+		      (if semantic-expand-nonterminal
+			  (setq tmpet (funcall semantic-expand-nonterminal
+					       (car (cdr nontermsym)))))
+		      (if (not tmpet)
+			  (setq tmpet (list (car (cdr nontermsym)))))
+		      (setq res (append tmpet res)))
+		  ;(error "Parse error")
+		  )
 		;; Designated to ignore.
 		(setq ss (car nontermsym)))
 	    (setq ss (cdr ss)))
@@ -420,7 +457,7 @@ COLLECTION is the list of things collected so far."
 	  (setq ol1 (make-overlay (car (cdr lse)) (cdr (cdr lse))))
 	  (overlay-put ol1 'face 'highlight)
 	  (goto-char (car (cdr lse)))
-	  (sit-for 1)
+	  (if window-system nil (sit-for 1))
 	  (other-window 1)
 	  (set-buffer (marker-buffer semantic-bovinate-debug-table))
 	  (goto-char semantic-bovinate-debug-table)
@@ -531,6 +568,7 @@ list of semantic tokens found."
 	  (if (eq (car lte) (car lse))	;syntactic match
 	      (progn
 		(setq val (semantic-flex-text lse)
+		      valdot (cdr lse)
 		      lte (cdr lte))
 		(if (stringp (car lte))
 		    (progn
@@ -539,7 +577,10 @@ list of semantic tokens found."
 		      (if (string-match tev val)
 			  (setq cvl (cons val cvl)) ;append this value
 			(setq lte nil cvl nil))) ;clear the entry (exit)
-		  (setq cvl (cons val cvl))) ;append unchecked value.
+		  (setq cvl (cons
+			     (if (member (car lse)
+					 '(comment semantic-list))
+				 valdot val) cvl))) ;append unchecked value.
 		(setq end (cdr (cdr lse))))
 	    (setq lte nil cvl nil))))	;No more matches, exit
       (if (not cvl)			;lte=nil;  there was no match.
@@ -548,7 +589,8 @@ list of semantic tokens found."
 		      (apply (car lte)	;call matchlist fn on values
 			     (nreverse cvl) start (list end))
 		    (cond ((and (= (length cvl) 1)
-				(listp (car cvl)))
+				(listp (car cvl))
+				(not (numberp (car (car cvl)))) )
 			   (append (car cvl) (list start end)))
 			  (t
 			   (append (nreverse cvl) (list start end))))
