@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.153 1999/11/29 20:56:16 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.154 1999/11/29 21:04:06 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -4082,7 +4082,8 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 			       (save-excursion (end-of-line)
 					       (forward-char 1)
 					       (point))))
-  (speedbar-overlay-put speedbar-highlight-one-tag-line 'face 'highlight)
+  (speedbar-overlay-put speedbar-highlight-one-tag-line 'face
+			'speedbar-highlight-face)
   (add-hook 'pre-command-hook 'speedbar-unhighlight-one-tag-line)
   )
 
