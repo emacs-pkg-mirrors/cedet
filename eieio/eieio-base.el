@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.15 2002/06/27 03:00:56 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.16 2002/08/08 01:10:30 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -34,9 +34,6 @@
 ;; inherit from one or more of them.
 
 (require 'eieio)
-
-(if (not (fboundp 'compare-strings))
-    (require 'compare-strings))
 
 ;;; Code:
 
