@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.47 2002/02/23 22:28:09 zappo Exp $
+@c $Id: eieio.texi,v 1.48 2002/08/07 20:28:30 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -700,7 +700,7 @@ necessary.  Currently the argument list is unused.
 function into a generic function.
 @end defun
 
-@defun defmethod method [:BEFORE | :PRIMARY | :AFTER] arglist [doc-string] forms
+@defun defmethod method [:BEFORE | :PRIMARY | :AFTER | :STATIC ] arglist [doc-string] forms
 
 @var{method} is the name of the function to be created.
 
@@ -708,6 +708,12 @@ function into a generic function.
 neither of these symbols are present, then the default priority is,
 before @var{:AFTER}, after @var{:BEFORE}, and is represented in CLOS as
 @var{PRIMARY}.
+
+If @var{:STATIC} is used, then the first argument when calling this
+function can be a class or an object.  Never treat the first argument
+of a STATIC method as an object, always used @code{oref-default} or
+@code{oset-default}.  A Class' construction is defined as a static
+method.
 
 @code{arglist} is the argument list.  Unlike CLOS, only the FIRST
 argument may be type-cast, and it may only be type-cast to an EIEIO
@@ -742,8 +748,11 @@ they are executed in this order:
 
 @table @asis
 @item method :BEFORE
+@item generic :BEFORE
 @item method :PRIMARY
+@item generic :PRIMARY
 @item method :AFTER
+@item generic :AFTER
 @end table
 @end defun
 
