@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.wy,v 1.4 2002/02/28 21:25:10 ponced Exp $
+;; X-RCS: $Id: wisent-wy.wy,v 1.5 2002/03/03 23:05:40 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -379,36 +379,42 @@ lifo_rules:
 ;; rule token:
 ;; ----------
 ;; EMPTY rule
-;;    ("empty" 'rule nil nil ACTION PREC nil)
+;;    ("empty" 'rule nil nil PREC ACTION nil)
 ;; Other rule
-;;    (RULE-NAME 'rule nil ELEMENTS ACTION PREC nil)
+;;    (RULE-NAME 'rule nil ELEMENTS PREC ACTION nil)
 ;; where:
 ;;  ELEMENTS is a list of ([MID-ACTION|nil] . TERM)
-;;
-;; THIS GRAMMAR NOT ALLOWS A MID-RULE ACTION AT THE END OF A RULE!
 ;;
 rule:
  ;; EMPTY
     (wisent-token "empty" 'rule nil nil nil nil nil)
-  | action
-    (wisent-token "empty" 'rule nil nil $1 nil nil)
-  | level action
-    (wisent-token "empty" 'rule nil nil $2 $1 nil)
-  | elements action_opt
-    (let ((elts (nreverse $1)))
-      (wisent-token (mapconcat #'cdr elts " ")
-                    'rule nil elts $2 nil nil))
+  | level action_opt
+    (wisent-token "empty" 'rule nil nil $1 $2 nil)
+  | elements
+    (let (action name)
+      (if (consp (car $1))
+          ;; mid-rule action
+          (setq action (caar $1) $1 (nreverse (cdr $1)))
+        ;; item
+        (setq action nil $1 (nreverse $1)))
+      (setq name (if $1
+                     (mapconcat #'(lambda (e) (if (consp e) "{}" e))
+                                $1 " ")
+                   "empty"))
+      (wisent-token name 'rule nil $1 nil action nil))
   | elements level action_opt
-    (let ((elts (nreverse $1)))
-      (wisent-token (mapconcat #'cdr elts " ")
-                    'rule nil elts $3 $2 nil))
+    (let (name)
+      (setq $1 (nreverse $1)
+            name (mapconcat #'(lambda (e) (if (consp e) "{}" e))
+                            $1 " "))
+      (wisent-token name 'rule nil $1 $2 $3 nil))
   ;
 
 level:
     PERCENT PREC item
     (identity $3)
   ;
-       
+
 action_opt:
  ;; EMPTY
   | action
@@ -434,8 +440,9 @@ elements:
   ;
 
 element:
-    action_opt item
-    (cons $1 $2)
+    action
+    (list $1)
+  | item
   ;
 
 items:
