@@ -3,9 +3,9 @@
 ;; Copyright (C) 1997, 1998 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.1
+;; Version: 0.2.1
 ;; Keywords: tags, tools, w3
-;; X-RCS: $Id: sb-w3.el,v 1.5 1998/05/17 15:24:06 zappo Exp $
+;; X-RCS: $Id: sb-w3.el,v 1.6 1998/06/13 13:50:05 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
