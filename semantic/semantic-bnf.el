@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.12 2000/09/09 02:08:59 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.13 2000/09/13 21:31:26 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -266,16 +266,19 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
       ;; conversion upon it.
       (insert "\n")
       (indent-for-tab-command)
-      (insert ",(semantic-lambda\n")
-      (indent-for-tab-command)
       (cond ((eq (car slsr) 'EXPAND)
-	     (semantic-bnf-EXPAND slsr))
+	     (insert ",(lambda (vals start end)\n")
+	     (indent-for-tab-command)
+	     (semantic-bnf-EXPAND slsr)
+	     )
 	    ((and (listp (car slsr))
 		  (eq (car (car slsr)) 'EVAL))
 	     ;; The user wants to evaluate the following args.
 	     ;; Use a simpler expander
 	     )
 	    (t
+	     (insert ",(semantic-lambda\n")
+	     (indent-for-tab-command)
 	     (semantic-bnf-lambda-substitute slsr quotemode)
 	     ))
       (insert ")"))))
