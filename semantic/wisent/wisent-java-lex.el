@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-lex.el,v 1.5 2002/10/02 15:08:06 ponced Exp $
+;; X-RCS: $Id: wisent-java-lex.el,v 1.6 2003/02/17 08:50:32 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,29 +39,31 @@
 (define-lex-regex-analyzer wisent-java-lex-symbol
   "Detect and create identifier or keyword tokens."
   "\\(\\sw\\|\\s_\\)+"
-  (semantic-lex-token
-   (or (semantic-lex-keyword-p (match-string 0))
-       'IDENTIFIER)
-   (match-beginning 0)
-   (match-end 0)))
+  (semantic-lex-push-token
+   (semantic-lex-token
+    (or (semantic-lex-keyword-p (match-string 0))
+        'IDENTIFIER)
+    (match-beginning 0)
+    (match-end 0))))
 
 (define-lex-regex-analyzer wisent-java-lex-symbol2
   "Detect and create literal, identifier or keyword tokens."
   "\\(\\sw\\|\\s_\\)+"
   (let ((sy (match-string 0)))
-    (semantic-lex-token
-     (or (semantic-lex-keyword-p sy)
-         (cond
-          ((string-equal sy "null")
-           'NULL_LITERAL)
-          ((string-equal sy "true")
-           'BOOLEAN_LITERAL)
-          ((string-equal sy "false")
-           'BOOLEAN_LITERAL)
-          (t
-           'IDENTIFIER)))
-     (match-beginning 0)
-     (match-end 0))))
+    (semantic-lex-push-token
+     (semantic-lex-token
+      (or (semantic-lex-keyword-p sy)
+          (cond
+           ((string-equal sy "null")
+            'NULL_LITERAL)
+           ((string-equal sy "true")
+            'BOOLEAN_LITERAL)
+           ((string-equal sy "false")
+            'BOOLEAN_LITERAL)
+           (t
+            'IDENTIFIER)))
+      (match-beginning 0)
+      (match-end 0)))))
 
 (define-lex-simple-regex-analyzer wisent-java-lex-number
   "Detect and create number tokens."
@@ -71,20 +73,13 @@
   "Detect and create a string token."
   "\\s\""
   ;; Zing to the end of this string.
-  (semantic-lex-token
-   'STRING_LITERAL (point)
-   (save-excursion
-     (condition-case nil
-         (forward-sexp 1)
-       ;; This case makes lex
-       ;; robust to broken strings.
-       (error
-        (goto-char
-         (funcall
-          semantic-lex-unterminated-syntax-end-function
-          'string
-          start end))))
-     (point))))
+  (semantic-lex-push-token
+   (semantic-lex-token
+    'STRING_LITERAL (point)
+    (save-excursion
+      (semantic-lex-unterminated-syntax-protection 'STRING_LITERAL
+        (forward-sexp 1)
+        (point))))))
 
 (define-lex-block-analyzer wisent-java-lex-blocks
   "Detect and create a open, close or block token."
