@@ -672,8 +672,52 @@ information, @inforef{Start nonterminals, , wisent}, and
 @subsection use-macros Decl
 
 @deffn %-Decl %use-macros @var{library} @{@var{macro-name1} @dots{}@}
+Declare grammar macros local in this grammar.
+
+@table @var
+@item library
+Is a symbol identifying the Elisp library where to find the macro
+expanders.
+@item macro-name
+Is a symbol identifying a macro.  By convention it should be all
+upper case.
+@end table
+
+For more information on macros, @ref{Grammar Macros}.
 @end deffn
 
+When the Lisp code generator encounters a @code{%use-macros}
+declaration, it automatically loads (@code{require}) the specified
+@var{library} and associates to each @var{macro-name} an expander
+function named @var{library}-@var{macro-name}.
+ 
+For instance:
+
+@example
+%use-macros my-grammar-macros @{MY-MACRO@}
+@end example
+ 
+Tells the Lisp code generator to first @w{@samp{(require
+'my-grammar-macros)}}, then to call the function
+@code{my-grammar-macros-MY-MACRO} to expand calls to the
+@code{MY-MACRO} macro.
+ 
+Typically, the @file{my-grammar-macros.el} library should look like
+this:
+ 
+@lisp
+@dots{}
+
+(defun my-grammar-macros-MY-MACRO (&rest args)
+  "Grammar macro that passes ARGS to `format' and return a string."
+  `(format ,@@args))
+
+@dots{}
+
+;; Don't forget to provide myself!
+(provide 'my-grammar-macros)
+@end lisp
+ 
 @node Grammar Rules
 @section Grammar Rules
 
@@ -934,6 +978,15 @@ to start searching the macro implementation.  Lookup in included
 libraries, if necessary.
 Find a function tag (in current tags table) whose name contains @var{MACRO-NAME}.
 Select the buffer containing the tag's definition, and move point there.
+
+@table @strong
+@item Please note:
+Enabling the @code{global-semanticdb-minor-mode} is highly recommended
+because this command uses the @code{semanticdb-find} feature to
+automatically search for a macro expander function into included
+libraries.  For details on the Semantic Database @inforef{semanticdb,
+Semantic Database, semantic-user}.
+@end table
 @end deffn
 
 You can run the command @command{semantic-grammar-find-macro-expander}
@@ -975,7 +1028,6 @@ control it to produce the lexical rules needed to scan your language.
 
 @table @code
 @item syntax
-
 The value of the @code{syntax} property should be a @dfn{syntactic
 regexp}, that is a regexp that matches buffer data based on the
 current Emacs @dfn{syntax table}.
@@ -990,7 +1042,6 @@ value that should suit standard needs (@pxref{Predefined well-known
 types}).
 
 @item matchdatatype
-
 The value of the @code{matchdatatype} property is a symbol that
 specifies which algorithm to use to match the tokens of this type.
 These match algorithms are defined:
@@ -1026,7 +1077,39 @@ suffice to auto-generate a suitable lexical rule.
 @node Grammar Macros
 @section Grammar Macros
 
-@c This refers to ASSOC, EXPANDFULL, and TAG?
+To keep grammars relatively independent of contextual implementations
+you can use @dfn{grammar macros} in semantic actions, in place of
+direct calls to Emacs Lisp functions.
+
+The predefined @code{TAG} macro is a good example:
+
+@example
+(TAG $1 'nonterminal :children $4)
+@end example
+
+It offers a common syntax to produce a @semantic{} tag, even if the
+underlying implementation is different between @acronym{LALR} and
+@acronym{LL} grammars.
+
+A grammar macro is defined by a general @dfn{macro name} (for example,
+@code{TAG}) associated to possibly several @dfn{macro expanders}.
+
+A macro expander is an Emacs Lisp function that operates on the
+unevaluated expressions for the arguments, and returns a Lisp
+expression containing these argument expressions or parts of them.
+
+Macro names are used like Lisp function name in call expressions.  To
+help distinguish grammar macro calls from traditional Lisp function
+calls, macro names are automatically highlighted in semantic actions.
+
+For more goodies that might help in the development of macros,
+@xref{Editing grammars}.
+
+Commonly used macros are provided by the current grammar mode.
+@xref{Adding a new grammar mode}.
+
+There are also local macros that only affect the grammar where they
+are declared.  @xref{use-macros Decl}.
 
 @node BY grammars
 @section BY grammars
@@ -1054,7 +1137,6 @@ following @acronym{API}.  Implementations are done with
 
 @itemize
 @item A keyword table builder.
-
 Can use the default implementation provided.
 
 @defun semantic-grammar-keywordtable-builder
@@ -1065,7 +1147,6 @@ symbol @code{grammar-keywordtable-builder}.
 @end defun
 
 @item A token table builder.
-
 Can use the default implementation provided.
 
 @defun semantic-grammar-tokentable-builder
@@ -1076,7 +1157,6 @@ symbol @code{grammar-tokentable-builder}.
 @end defun
 
 @item A parser table builder
-
 Must be provided, there is no default implementation.
 
 @defun semantic-grammar-parsetable-builder
@@ -1087,7 +1167,6 @@ symbol @code{grammar-parsetable-builder}.
 @end defun
 
 @item A Parser setup code builder.
-
 Must be provided, there is no default implementation.
 
 @defun semantic-grammar-setupcode-builder
@@ -1097,9 +1176,11 @@ This function can be overriden in semantic using the
 symbol @code{grammar-setupcode-builder}.
 @end defun
 
-@item Grammar macros.
-
+@item Common grammar macros.
+@c This refers to ASSOC, EXPANDFULL, TAG, etc..
 A set of predefined macros is provided.
+
+For more information on macros, @ref{Grammar Macros}.
 
 @defvar semantic-grammar-macros
 @anchor{semantic-grammar-macros}
