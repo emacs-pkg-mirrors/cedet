@@ -4,6 +4,11 @@
   :name "bovinator"
   :file "Project.ede"
   :targets (list 
+   (semantic-ede-proj-target-grammar "by"
+    :name "by"
+    :path ""
+    :source '("c.by" "make.by" "scheme.by")
+    )
    (ede-proj-target-elisp "bovinator"
     :name "bovinator"
     :path ""
@@ -19,11 +24,6 @@
     :name "languages"
     :path ""
     :source '("semantic-c.el" "semantic-el.el" "semantic-make.el" "semantic-scm.el")
-    )
-   (ede-proj-target-makefile-miscelaneous "by"
-    :name "by"
-    :path ""
-    :source '("c.by" "make.by" "scheme.by")
     )
    )
   )
