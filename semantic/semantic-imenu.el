@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000, 2001 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.21 2001/01/06 16:10:48 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.22 2001/01/24 21:19:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,9 +35,24 @@
 ;;             ))
 
 (require 'semantic)
+(eval-when-compile (require 'semanticdb)
+		   (require 'working))
 (condition-case nil
-    (require 'imenu)
+    (progn
+      (require 'imenu)
+      (if (featurep 'xemacs)
+	  ;; From David Ponce <david@dponce.com>
+	  ;; Advice the XEmacs imenu function `imenu--create-menu-1' to
+	  ;; handle menu separators.
+	  (defadvice imenu--create-menu-1 (around semantic activate)
+	    ;; Create a menu separator item if first argument (title)
+	    ;; contains only hyphens and the second argument (list) is nil.
+	    (if (and (null (ad-get-arg 1))
+		     (not (string-match "[^-]" (ad-get-arg 0))))
+		(setq ad-return-value "-")
+	      ad-do-it)))
   (error nil))
+
 
 (defcustom semantic-imenu-summary-function 'semantic-abbreviate-nonterminal
   "*Function to use when creating items in Imenu.
@@ -80,26 +95,77 @@ Overriden to nil if `semantic-imenu-bucketize-file' is nil."
   :type 'function)
 (make-variable-buffer-local 'semantic-imenu-sort-bucket-function)
 
+(defcustom semantic-imenu-index-directory t
+  "*Non nil to index the entire directory for tags.
+Doesn't actually parse the entire directory, but displays tags for all files
+currently listed in the current Semantic database.
+This variable has no meaning if semanticdb is not active."
+  :group 'imenu
+  :group 'semantic
+  :type 'boolean)
+
+(defcustom semantic-imenu-auto-rebuild-directory-indexes t
+  "*If non-nil automatically rebuild directory index imenus.
+That is when a directory index imenu is updated, automatically rebuild
+other buffer local ones based on the same semanticdb."
+  :group 'semantic
+  :type 'boolean)
+
+(defvar semantic-imenu-directory-current-file nil
+  "When building a file index, this is the file name currently being built.")
+
 ;;; Code:
+(defun semantic-imenu-token-overlay (token)
+  "Return the overlay belonging to TOKEN.
+If TOKEN doesn't have an overlay, and instead as a vector of positions,
+concoct a combination of file name, and position."
+  (let ((o (semantic-token-overlay token)))
+    (if (not (semantic-overlay-p o))
+	(let ((v (make-vector 3 nil)))
+	  (aset v 0 semantic-imenu-directory-current-file)
+	  (aset v 1 (aref o 0))
+	  (aset v 2 (aref o 1))
+	  v)
+      o)))
+
 (defun semantic-imenu-goto-function (name position &optional rest)
   "Move point associated with NAME to POSITION.
 Used to override function `imenu-default-goto-function' so that we can continue
 to use overlays to maintain the current position.
 Optional argument REST is some extra stuff."
-  (let ((os (semantic-overlay-start position)))
-    (if os
-	(imenu-default-goto-function name os rest)
-      ;; This should never happen, but check anyway.
-      (message "Imenu is out of date, try again. (internal bug)")
-      (setq imenu--index-alist nil))))
+  (if (semantic-overlay-p position)
+      (let ((os (semantic-overlay-start position))
+	    (ob (semantic-overlay-buffer position)))
+	(if os
+	    (progn
+	      (if (not (eq ob (current-buffer)))
+		  (switch-to-buffer ob))
+	      (imenu-default-goto-function name os rest))
+	  ;; This should never happen, but check anyway.
+	  (message "Imenu is out of date, try again. (internal bug)")
+	  (setq imenu--index-alist nil)))
+    ;; When the POSITION is actually a pair of numbers in an array, then
+    ;; the file isn't loaded into the current buffer.
+    (if (vectorp position)
+	(let ((file (aref position 0))
+	      (pos (aref position 1)))
+	  (find-file file)
+	  (imenu-default-goto-function name pos rest))
+      (message "Semantic Imenu override problem. (Internal bug)")
+      (setq imenu--index-alist nil))
+     ))
 
-(defun semantic-imenu-flush-fcn ()
+(defun semantic-imenu-flush-fcn (&optional ignore)
   "This function is called as a hook to clear the imenu cache.
-This is added to `semantic-before-toplevel-cache-flush-hook'."
+This is added to `semantic-before-toplevel-cache-flush-hook' and
+`semantic-clean-token-hooks'.  IGNORE arguments."
   (if (eq imenu-create-index-function 'semantic-create-imenu-index)
       (setq imenu--index-alist nil))
   (remove-hook 'semantic-before-toplevel-cache-flush-hook
-	       'semantic-imenu-flush-fcn))
+	       'semantic-imenu-flush-fcn)
+  (remove-hook 'semantic-clean-token-hooks
+	       'semantic-imenu-flush-fcn)
+  )
 
 ;;;###autoload
 (defun semantic-create-imenu-index (&optional stream)
@@ -109,7 +175,51 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
   (setq imenu-default-goto-function 'semantic-imenu-goto-function)
   (add-hook 'semantic-before-toplevel-cache-flush-hook
 	    'semantic-imenu-flush-fcn nil t)
-  (semantic-create-imenu-index-1 stream))
+  (add-hook 'semantic-clean-token-hooks
+	    'semantic-imenu-flush-fcn nil t)
+  (if (and semantic-imenu-index-directory (featurep 'semanticdb)
+	   (semanticdb-minor-mode-p))
+      (semantic-create-imenu-directory-index stream)
+    (semantic-create-imenu-index-1 stream)))
+
+(defun semantic-create-imenu-directory-index (&optional stream)
+  "Create an IMENU tag index based on all files active in semanticdb.
+Optional argument STREAM is the stream of tokens for the current buffer."
+  (if (not semanticdb-current-database)
+      (semantic-create-imenu-index-1 stream)
+    ;; We have a database, list all files, with the current file on top.
+    (message "Building %s Semantic directory index imenu"
+             (buffer-name))
+    (let ((index (list
+		  (cons (oref semanticdb-current-table file)
+			(semantic-create-imenu-index-1 stream))))
+	  (tables (oref semanticdb-current-database tables)))
+      (working-status-forms "Imenu Directory Index" "done"
+	(while tables
+	  (let ((semantic-imenu-directory-current-file
+		 (oref (car tables) file)))
+	    (when (not (eq (car tables) semanticdb-current-table))
+	      (setq index (cons (cons semantic-imenu-directory-current-file
+				      (semantic-create-imenu-index-1
+				       (oref (car tables) tokens)))
+				index)))
+	    (setq tables (cdr tables)))
+	  (working-dynamic-status))
+	(working-dynamic-status t))
+      
+      ;; If enabled automatically rebuild other imenu directory
+      ;; indexes based on the same Semantic database
+      (or (not semantic-imenu-auto-rebuild-directory-indexes)
+          ;; If auto rebuild already in progress does nothing
+          semantic-imenu-auto-rebuild-running
+          (unwind-protect
+              (progn
+                (setq semantic-imenu-auto-rebuild-running t)
+                (semantic-imenu-rebuild-directory-indexes
+                 semanticdb-current-database))
+            (setq semantic-imenu-auto-rebuild-running nil)))
+      
+      (nreverse index))))
 
 (defun semantic-create-imenu-index-1 (&optional stream)
   "Create an imenu index for any buffer which supports Semantic.
@@ -177,16 +287,23 @@ Optional argument NOTYPECHECK specifies not to make subgroups under types."
                 index (cons (cons
                              (funcall semantic-imenu-summary-function token)
                              ;; Add a menu for getting at the type definitions
-			     (cons (cons "*typedef*" (semantic-token-overlay token))
-                                   (if parts
+			     (if (and parts
+				      ;; Note to self: enable menu items for sub parts
+				      ;; even if they are not proper tokens.
+				      (semantic-token-p (car parts)))
+				 (cons (cons "*typedef*" (semantic-imenu-token-overlay token))
                                        (if (and semantic-imenu-bucketize-type-parts
                                                 semantic-imenu-bucketize-file)
                                            (semantic-create-imenu-index-1 parts)
                                          (semantic-create-imenu-subindex
-                                          (reverse parts))))))
+                                          (reverse parts))))
+			       ;; There were no parts, or something like that, so
+			       ;; instead just put the definition here.
+			       (semantic-imenu-token-overlay token)
+			       ))
                             index))
         (setq index (cons (cons (funcall semantic-imenu-summary-function token)
-                                (semantic-token-overlay token))
+                                (semantic-imenu-token-overlay token))
                           index)))
       (setq tokens (cdr tokens)))
     (setq index
@@ -210,6 +327,39 @@ Optional argument NOTYPECHECK specifies not to make subgroups under types."
 		    (cons (format "From: %s" (caar menu)) menu)))
 		 (imenu--split index imenu-max-items)))))
     index))
+
+;;; directory imenu rebuilding.
+;;
+(defvar semantic-imenu-auto-rebuild-running nil
+  "Non-nil if `semantic-imenu-rebuild-directory-indexes' is running.")
+
+(defun semantic-imenu-rebuild-directory-indexes (db)
+  "Rebuild directory index imenus based on Semantic database DB."
+  (let ((l (buffer-list))
+        b)
+    (while l
+      (setq b (car l)
+            l (cdr l))
+      (if (and (not (eq b (current-buffer)))
+               (buffer-live-p b))
+          (with-current-buffer b
+            ;; If there is a buffer local Semantic index directory
+            ;; imenu
+            (when (and (eq imenu-create-index-function
+                           'semantic-create-imenu-index)
+                       semanticdb-current-database
+                       (eq semanticdb-current-database db))
+              (message "Building %s Semantic directory index imenu"
+                       (buffer-name b))
+              ;; Rebuild the imenu
+              (imenu--cleanup)
+              (setq imenu--index-alist nil)
+              (funcall
+               (if (fboundp 'imenu-menu-filter)
+                   ;; XEmacs imenu
+                   'imenu-menu-filter
+                 ;; Emacs imenu
+                 'imenu-update-menubar))))))))
 
 ;;; Interactive Utilities
 ;;
