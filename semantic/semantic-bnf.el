@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.29 2001/01/31 15:29:40 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.30 2001/02/02 04:11:29 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -128,6 +128,12 @@
      (LANGUAGEMODE symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'languagemode)))
+     (LANGUAGEMODE semantic-list
+	     ,(semantic-lambda
+	       (let ((r (buffer-substring
+			 (car (nth 1 vals))
+			 (cdr (nth 1 vals)))))
+		 (list r 'languagemode))))
      (SETUPFUNCTION symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'setupfunction)))
@@ -487,8 +493,11 @@ Argument TOKSTREAM is the list of tokens in which to find the file and
 parse table variable."
   (let ((mode (semantic-find-nonterminal-by-token 'languagemode tokstream)))
     (if mode
-	(intern (semantic-token-name (car mode)))
-      (semantic-bnf-find-languagemode-old))))
+	(let ((m (read (semantic-token-name (car mode)))))
+	  (if (listp m)
+	      m
+	    (list m)))
+      (list (semantic-bnf-find-languagemode-old)))))
 
 (defun semantic-bnf-find-setup-code (tokstream sourcefile)
   "Find the setup code based on TOKSTREAM.
@@ -560,6 +569,7 @@ SOURCEFILE is the file name from whence tokstream came."
 	 (mode (semantic-bnf-find-languagemode tok))
 	 (start (semantic-find-nonterminal-by-token 'start tok))
 	 (scopestart (semantic-find-nonterminal-by-token 'scopestart tok))
+	 (setup-fn (semantic-find-nonterminal-by-token 'setupfunction tok))
 	 )
     (if (not dest)
 	(error "You must specify a destination table in your BNF file"))
@@ -641,14 +651,19 @@ SOURCEFILE is the file name from whence tokstream came."
 			   nil)))
       (eval-defun nil))
     (message "Done.")
-    (if mode
-	(save-excursion
-	  (let ((bufs (buffer-list)))
-	    (while bufs
-	      (set-buffer (car bufs))
-	      (if (eq major-mode mode)
-		  (funcall mode))
-	      (setq bufs (cdr bufs))))))))
+    (when mode
+      (save-excursion
+	(let ((bufs (buffer-list)))
+	  (while bufs
+	    (set-buffer (car bufs))
+	    (if (member major-mode mode)
+		(progn
+		  (if setup-fn
+		      (funcall (intern (semantic-token-name (car setup-fn))))
+		    (funcall mode)))
+	      )
+	    (setq bufs (cdr bufs)))))
+      )))
 
 (defun semantic-bnf-generate-one-rule ()
   "Generate code for one rule in a temporary buffer."
