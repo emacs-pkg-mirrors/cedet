@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.10 2002/08/07 17:56:49 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.11 2002/08/08 16:04:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,10 +58,6 @@
 (require 'semantic)
 
 ;;; Code:
-(defvar semantic-edits-need-reparse nil
-  "This variable is set non-nil when a partial reparse is needed.")
-(make-variable-buffer-local 'semantic-edits-need-reparse)
-
 (defvar semantic-after-partial-cache-change-hook nil
   "Hooks run after the buffer token list has been updated.
 This list will change when the current token list has been partially
@@ -119,16 +115,6 @@ When this happens, the buffer is marked as needing a full reprase.")
 ;; Manage a series of overlays that define changes recently
 ;; made to the current buffer.
 
-(defun semantic-bovine-toplevel-partial-reparse-needed-p (&optional checkcache)
-  "Return non-nil if the current buffer needs a partial reparse.
-This only returns non-nil if `semantic-bovine-toplevel-full-reparse-needed-p'
-returns nil.
-Optional argument CHECKCACHE indicates if the cache check should be made
-when checking `semantic-bovine-toplevel-full-reparse-needed-p'."
-  (and semantic-toplevel-bovine-cache
-       (or semantic-dirty-tokens semantic-edits-need-reparse)
-       (not (semantic-bovine-toplevel-full-reparse-needed-p checkcache))))
-
 (defun semantic-changes-in-region (start end &optional buffer)
   "Find change overlays which exist in whole or in part between START and END.
 Optional argument BUFFER is the buffer to search for changes in."
@@ -144,6 +130,7 @@ Optional argument BUFFER is the buffer to search for changes in."
       (sort ret (lambda (a b) (< (semantic-overlay-start a)
 				 (semantic-overlay-start b)))))))
 
+;;;###autoload
 (defun semantic-edits-change-function-handle-changes  (start end length)
   "Run whenever a buffer controlled by `semantic-mode' change.
 Tracks when and how the buffer is re-parsed.
@@ -156,7 +143,7 @@ Argument START, END, and LENGTH specify the bounds of the change."
     (if (not changes-in-change)
 	(let ((o (semantic-make-overlay start end)))
 	  (semantic-overlay-put o 'semantic-change t)
-	  (setq semantic-edits-need-reparse t)
+          (semantic-parse-tree-set-needs-update)
 	  ;; Run the hooks safely.  When hooks blow it, our dirty
 	  ;; function will be removed from the list of active change
 	  ;; functions.
@@ -197,6 +184,7 @@ Argument START, END, and LENGTH specify the bounds of the change."
     (error nil))
   (semantic-overlay-delete change))
 
+;;;###autoload
 (defun semantic-edits-flush-changes ()
   "Flush the changes in the current buffer."
   (let ((changes (semantic-changes-in-region (point-min) (point-max))))
@@ -449,8 +437,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 (defsubst semantic-edits-incremental-fail ()
   "When the incremental parser fails, we mark that we need a full reparse."
   ;;(debug)
-  (setq semantic-toplevel-bovine-force-reparse t
-	semantic-edits-need-reparse nil)
+  (semantic-parse-tree-set-needs-rebuild)
   (message "Force full reparse (%s)" (buffer-name (current-buffer)))
   (run-hooks 'semantic-edits-incremental-reparse-failed-hooks)
   )
@@ -723,7 +710,7 @@ the semantic cache to see what needs to be changed."
        (semantic-edits-incremental-fail)))
       
     ;; Mark that we are done with this glop
-    (setq semantic-edits-need-reparse nil)
+    (semantic-parse-tree-set-up-to-date)
     ;; Return the list of tokens that changed.  The caller will
     ;; use this information to call hooks which can fix themselves.
     changed-tokens))
@@ -946,7 +933,7 @@ Argument START, END, and LENGTH specify the bounds of the change."
     (setq new (car (cdr new)))
     (if (not new)
         ;; Clever reparse failed, queuing full reparse.
-        (setq semantic-toplevel-bovine-cache-check t)
+        (semantic-parse-tree-set-needs-rebuild)
       (setq cooked (semantic-raw-to-cooked-token new))
       (if (not (eq new (car cooked)))
           (if (= (length cooked) 1)
@@ -955,8 +942,7 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	    ;; If cooking results in multiple things, do a full reparse.
 	    (semantic-edits-incremental-fail))))
     ;; Don't do much if we have to do a full recheck.
-    (if semantic-toplevel-bovine-cache-check
-        nil
+    (unless (semantic-parse-tree-needs-rebuild-p)
       (semantic-overlay-token new)
       (let ((oo (semantic-token-overlay token))
             (o (semantic-token-overlay new)))
@@ -996,12 +982,14 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	  (semantic-bovination-working-message (buffer-name))
 	  "done"
 	(while (and semantic-dirty-tokens
-		    (not (semantic-bovine-toplevel-full-reparse-needed-p t)))
+		    (not (semantic-parse-tree-needs-rebuild-p)))
 	  (semantic-rebovinate-token (car semantic-dirty-tokens))
 	  (setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
 	  (working-dynamic-status))
 	(working-dynamic-status t))
-      (setq semantic-dirty-tokens nil))
+      (setq semantic-dirty-tokens nil)
+      (or (semantic-parse-tree-needs-rebuild-p)
+          (semantic-parse-tree-set-up-to-date)))
     changes))
 
 
@@ -1014,40 +1002,44 @@ Argument START, END, and LENGTH specify the bounds of the change."
   "Run whenever a buffer controlled by `semantic-mode' changes.
 Tracks when and how the buffer is re-parsed.
 Argument START, END, and LENGTH specify the bounds of the change."
-  (when (and (not semantic-toplevel-bovine-cache-check)
-	     (not semantic-edits-are-safe))
+  (unless (or (semantic-parse-tree-needs-rebuild-p)
+              semantic-edits-are-safe)
     (let ((tl (condition-case nil
 		  (nreverse (semantic-find-nonterminal-by-overlay-in-region
 		   (1- start) (1+ end)))
 		(error nil))))
       (if tl
-	  (catch 'alldone
-	    ;; Loop over the token list
-	    (while tl
-	      (cond
-	       ;; If we are completely enclosed in this overlay.
-	       ((and (> start (semantic-token-start (car tl)))
-		     (< end (semantic-token-end (car tl))))
-		(if (semantic-token-get (car tl) 'dirty)
-		    nil
-		  (add-to-list 'semantic-dirty-tokens (car tl))
-		  (semantic-token-put (car tl) 'dirty t)
-		  (condition-case nil
-		      (run-hook-with-args 'semantic-dirty-token-hooks
-					  (car tl) start end)
-		    (error (if debug-on-error (debug)))))
+          (progn
+            (catch 'alldone
+              ;; Loop over the token list
+              (while tl
+                (cond
+                 ;; If we are completely enclosed in this overlay.
+                 ((and (> start (semantic-token-start (car tl)))
+                       (< end (semantic-token-end (car tl))))
+                  (if (semantic-token-get (car tl) 'dirty)
+                      nil
+                    (add-to-list 'semantic-dirty-tokens (car tl))
+                    (semantic-token-put (car tl) 'dirty t)
+                    (condition-case nil
+                        (run-hook-with-args 'semantic-dirty-token-hooks
+                                            (car tl) start end)
+                      (error (if debug-on-error (debug)))))
 		  (throw 'alldone t))
-	       ;; If we cover the beginning or end of this item, we must
-	       ;; reparse this object.  If there are more items coming, then postpone
-	       ;; this till later.
-	       ((not (cdr tl))
-		(setq semantic-toplevel-bovine-cache-check t)
-		(run-hooks 'semantic-reparse-needed-change-hook))
-	       (t nil))
-	      ;; next
-	      (setq tl (cdr tl))))
-	;; There was no hit, perhaps we need to reparse this intermediate area.
-	(setq semantic-toplevel-bovine-cache-check t)
+                 ;; If we cover the beginning or end of this item, we
+                 ;; must reparse this object.  If there are more items
+                 ;; coming, then postpone this till later.
+                 ((not (cdr tl))
+                  (semantic-parse-tree-set-needs-rebuild)
+                  (run-hooks 'semantic-reparse-needed-change-hook))
+                 (t nil))
+                ;; next
+                (setq tl (cdr tl))))
+            (or (semantic-parse-tree-needs-rebuild-p)
+                (semantic-parse-tree-set-needs-update)))
+	;; There was no hit, perhaps we need to reparse this
+	;; intermediate area.
+        (semantic-parse-tree-set-needs-rebuild)
 	)
       )))
 
