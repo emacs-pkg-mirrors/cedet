@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.47 2001/10/24 01:16:38 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.48 2001/10/28 00:51:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -47,7 +47,7 @@
  ) ; end declaration
  (bovine-inner-scope
  ( define)
- ( var-or-fun)
+ ( codeblock-var-or-fun)
  ( type)
  ) ; end codeblock
  (macro
@@ -121,9 +121,9 @@
  ( opt-class-protection opt-class-declmods symbol punctuation "\\b,\\b" class-parents
   ,(semantic-lambda
   ( cons (nth 2 vals) (nth 4 vals))))
- ( opt-class-protection symbol
+ ( opt-class-protection opt-class-declmods symbol
   ,(semantic-lambda
-  (list (nth 1 vals))))
+  (list (nth 2 vals))))
  ) ; end class-parents
  (opt-class-declmods
  ( class-declmods opt-class-declmods
@@ -187,7 +187,7 @@
  ( symbol)
  (
   ,(semantic-lambda
-  (list nil)))
+  (list "")))
  ) ; end opt-name
  (typesimple
  ( struct-or-class opt-name opt-class-parents semantic-list
@@ -259,8 +259,12 @@
  ( VIRTUAL)
  ) ; end METADECLMOD
  (opt-ref
- ( punctuation "\\b&\\b")
- ()
+ ( punctuation "\\b&\\b"
+  ,(semantic-lambda
+  (list 1)))
+ (
+  ,(semantic-lambda
+  (list 0)))
  ) ; end opt-ref
  (typeformbase
  ( typesimple
@@ -291,11 +295,16 @@
  ( FLOAT)
  ( DOUBLE)
  ) ; end builtintype
- (var-or-fun
+ (codeblock-var-or-fun
  ( declmods typeformbase metadeclmod opt-ref var-or-func-decl
   ,(semantic-lambda
   ( semantic-c-reconstitute-token (nth 4 vals) (nth 0 vals) (nth 1 vals))))
- ( declmods var-decl
+ ) ; end codeblock-var-or-fun
+ (var-or-fun
+ ( codeblock-var-or-fun
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ( declmods var-or-func-decl
   ,(semantic-lambda
   ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
  ) ; end var-or-fun
@@ -328,7 +337,7 @@
  ) ; end opt-under-p
  (opt-initializers
  ( punctuation "\\b:\\b" symbol semantic-list opt-initializers)
- ( punctuation "\\b,\\b" opt-initializers)
+ ( punctuation "\\b,\\b" symbol semantic-list opt-initializers)
  ()
  ) ; end opt-initializers
  (opt-post-fcn-modifiers
@@ -398,7 +407,7 @@
  (variablearg
  ( declmods typeformbase opt-stars opt-ref varname
   ,(semantic-lambda
-  (list ( car (nth 4 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'pointer ( car (nth 2 vals))) nil)))
+  (list ( car (nth 4 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'pointer ( car (nth 2 vals)) 'reference ( car (nth 3 vals))) nil)))
  ) ; end variablearg
  (varnamelist
  ( varname punctuation "\\b,\\b" varnamelist
@@ -511,28 +520,38 @@
   ,(semantic-lambda
   (list nil)))
  ) ; end opt-expression
+ (type-cast
+ ( semantic-list
+ ,(lambda (vals start end)
+ 
+ (semantic-bovinate-from-nonterminal (car (nth 0 vals)) (cdr (nth 0 vals)) 'type-cast-list)
+ ))
+ ) ; end type-cast
+ (type-cast-list
+ ( open-paren typeformbase close-paren)
+ ) ; end type-cast-list
  (expression
  ( number
   ,(semantic-lambda
- ))
+  (list ( identity start) ( identity end))))
  ( symbol
   ,(semantic-lambda
- ))
+  (list ( identity start) ( identity end))))
  ( string
   ,(semantic-lambda
- ))
- ( semantic-list expression
+  (list ( identity start) ( identity end))))
+ ( type-cast expression
   ,(semantic-lambda
- ))
+  (list ( identity start) ( identity end))))
  ( semantic-list
   ,(semantic-lambda
- ))
+  (list ( identity start) ( identity end))))
  ( punctuation "[-+*/%^|&]" expression
   ,(semantic-lambda
-  (list nil)))
+  (list ( identity start) ( identity end))))
  ) ; end expression
  )
-   "C language specification.")
+                  "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
@@ -564,6 +583,7 @@
 		   (mods (semantic-token-variable-extra-spec nonterm 'typemodifiers))
 		   (suffix "")
 		   (lst (semantic-token-name nonterm))
+		   (default nil)
 		   (cur nil))
 	       (while lst
 		 (setq suffix "" ty "")
@@ -573,12 +593,15 @@
 		 (if (= (length basety) 1)
 		     (setq ty (car basety))
 		   (setq ty basety))
+		 (setq default (nth 4 cur))
 		 (setq vl (cons
-			     (list
+			   (list
 			    (car cur)	;name
 			    'variable
 			    ty		;type
-			    (nth 4 cur) ;default value
+			    (if default
+				(buffer-substring-no-properties
+				 (car default) (car (cdr default))))
 			    (semantic-bovinate-make-assoc-list
 			     'const (semantic-token-variable-const nonterm)
 			     'suffix suffix
@@ -587,6 +610,7 @@
 			     'pointer (nth 1 cur)
 			     )
 			    (semantic-token-docstring nonterm) ;doc
+			    (semantic-token-properties nonterm) ;properties
 			    (semantic-token-overlay nonterm))
 			   vl))
 		 (setq lst (cdr lst)))
