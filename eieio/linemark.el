@@ -35,6 +35,44 @@
 (require 'eieio)
 
 ;;; Code:
+;; Compatibility
+(eval-and-compile
+  (if (featurep 'xemacs)
+      (progn
+	(defalias 'linemark-overlay-live-p 'extent-live-p)
+	(defalias 'linemark-make-overlay 'make-extent)
+	(defalias 'linemark-overlay-put 'set-extent-property)
+	(defalias 'linemark-overlay-get 'extent-property)
+	(defalias 'linemark-delete-overlay 'delete-extent)
+	(defalias 'linemark-overlays-at
+	  (lambda (pos) (extent-list nil pos pos)))
+	(defalias 'linemark-overlays-in 
+	  (lambda (beg end) (extent-list nil beg end)))
+	(defalias 'linemark-overlay-buffer 'extent-buffer)
+	(defalias 'linemark-overlay-start 'extent-start-position)
+	(defalias 'linemark-overlay-end 'extent-end-position)
+	(defalias 'linemark-next-overlay-change 'next-extent-change)
+	(defalias 'linemark-previous-overlay-change 'previous-extent-change)
+	(defalias 'linemark-overlay-lists
+	  (lambda () (list (extent-list))))
+	(defalias 'linemark-overlay-p 'extentp)
+	)
+    (defalias 'linemark-overlay-live-p 'overlay-buffer)
+    (defalias 'linemark-make-overlay 'make-overlay)
+    (defalias 'linemark-overlay-put 'overlay-put)
+    (defalias 'linemark-overlay-get 'overlay-get)
+    (defalias 'linemark-delete-overlay 'delete-overlay)
+    (defalias 'linemark-overlays-at 'overlays-at)
+    (defalias 'linemark-overlays-in 'overlays-in)
+    (defalias 'linemark-overlay-buffer 'overlay-buffer)
+    (defalias 'linemark-overlay-start 'overlay-start)
+    (defalias 'linemark-overlay-end 'overlay-end)
+    (defalias 'linemark-next-overlay-change 'next-overlay-change)
+    (defalias 'linemark-previous-overlay-change 'previous-overlay-change)
+    (defalias 'linemark-overlay-lists 'overlay-lists)
+    (defalias 'linemark-overlay-p 'overlayp)
+    ))
+
 (eval-and-compile
   ;; These faces need to exist to show up as valid default
   ;; entries in the classes defined below.
@@ -73,13 +111,13 @@
 	     :type number
 	     :documentation "Line number where the mark is.")
    (face     :initarg :face
-	     :type face
-	     :initarg linemark-caution-face
+;	     :type face
+	     :initform linemark-caution-face
 	     :documentation "The face to use for display.")
    (parent   :documentation "The parent `linemark-group' containing this."
 	     :type linemark-group)
    (overlay  :documentation "Overlay created to show this mark."
-	     :type (or overlay null)
+	     :type (or linemark-overlay null)
 	     :initform nil
 	     :protection protected))
   "Track a file/line associations with overlays used for display.")
@@ -91,50 +129,13 @@
 	  :documentation "List of `linemark-entries'.")
    (face :initarg :face
 	 :initform linemark-funny-face
-	 :type (or null face)
+;	 :type (or null face)
 	 :documentation "Default face used to create new `linemark-entries'.")
    (active :initarg :active
 	   :type boolean
 	   :initform t
 	   :documentation "Track if these marks are active or not."))
   "Track a common group of `linemark-entries'.")
-
-;; Compatibility
-(if (featurep 'xemacs)
-    (progn
-      (defalias 'linemark-overlay-live-p 'extent-live-p)
-      (defalias 'linemark-make-overlay 'make-extent)
-      (defalias 'linemark-overlay-put 'set-extent-property)
-      (defalias 'linemark-overlay-get 'extent-property)
-      (defalias 'linemark-delete-overlay 'delete-extent)
-      (defalias 'linemark-overlays-at
-        (lambda (pos) (extent-list nil pos pos)))
-      (defalias 'linemark-overlays-in 
-	(lambda (beg end) (extent-list nil beg end)))
-      (defalias 'linemark-overlay-buffer 'extent-buffer)
-      (defalias 'linemark-overlay-start 'extent-start-position)
-      (defalias 'linemark-overlay-end 'extent-end-position)
-      (defalias 'linemark-next-overlay-change 'next-extent-change)
-      (defalias 'linemark-previous-overlay-change 'previous-extent-change)
-      (defalias 'linemark-overlay-lists
-	(lambda () (list (extent-list))))
-      (defalias 'linemark-overlay-p 'extentp)
-      )
-  (defalias 'linemark-overlay-live-p 'overlay-buffer)
-  (defalias 'linemark-make-overlay 'make-overlay)
-  (defalias 'linemark-overlay-put 'overlay-put)
-  (defalias 'linemark-overlay-get 'overlay-get)
-  (defalias 'linemark-delete-overlay 'delete-overlay)
-  (defalias 'linemark-overlays-at 'overlays-at)
-  (defalias 'linemark-overlays-in 'overlays-in)
-  (defalias 'linemark-overlay-buffer 'overlay-buffer)
-  (defalias 'linemark-overlay-start 'overlay-start)
-  (defalias 'linemark-overlay-end 'overlay-end)
-  (defalias 'linemark-next-overlay-change 'next-overlay-change)
-  (defalias 'linemark-previous-overlay-change 'previous-overlay-change)
-  (defalias 'linemark-overlay-lists 'overlay-lists)
-  (defalias 'linemark-overlay-p 'overlayp)
-  )
 
 ;;; Functions
 ;;
@@ -274,7 +275,10 @@ Call the new entrie's activate method."
     (with-slots (overlay) e
       (if overlay
 	  (progn
-	    (linemark-delete-overlay overlay)
+	    (condition-case nil
+		;; During development of linemark programs, this is helpful
+		(linemark-delete-overlay overlay)
+	      (error nil))
 	    (oset e overlay nil))))))
 
 (defmethod linemark-delete ((g linemark-group))
@@ -395,10 +399,10 @@ Call the new entrie's activate method."
 (defun enable-visual-studio-bookmarks ()
   "Bind the viss bookmark functions to F2 related keys.
 \\<global-map>
-\\[viss-bookmark-toggle]     - Toggle a bookmark on this line.
-\\[viss-bookmark-next]   - Move to the next bookmark.
-\\[viss-bookmark-prev]   - Move to the previous bookmark.
-\\[viss-bookmark-clear-all] - Clear all bookmarks."
+\\[viss-bookmark-toggle]     - To=ggle a bookmark on this line.
+\\[viss-bookmark-next-buffer]   - Move to the next bookmark.
+\\[viss-bookmark-prev-buffer]   - Move to the previous bookmark.
+\\[viss-bookmark-clear-all-buffer] - Clear all bookmarks."
   (interactive)
   (define-key global-map [(f2)] 'viss-bookmark-toggle)
   (define-key global-map [(shift f2)] 'viss-bookmark-prev-buffer)
