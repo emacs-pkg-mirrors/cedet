@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.186 2004/06/24 08:07:55 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.187 2004/07/15 20:26:55 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -410,16 +410,21 @@ NONTERMINAL is the rule to start parsing at if it is known.
 DEPTH specifies the lexical depth to scan.
 RETURNONERROR specifies that parsing should end when encountering
 unterminated syntax."
-  (if (or (< end start) (> end (point-max)))
-      (error "Invalid bounds passed to `semantic-parse-region'"))
-  (let ((lexbits (semantic-lex start end depth))
-	tags)
-    ;; Init a dump
-    ;;    (if semantic-dump-parse
-    ;;	      (semantic-dump-buffer-init))
-    (setq tags (semantic-repeat-parse-whole-stream
-                lexbits nonterminal returnonerror))
-    (nreverse tags)))
+  (if (or (eq semantic--parse-table t)
+	  (eq semantic--parse-table nil))
+      ;; If there is no table, or it was set to t, then we are here
+      ;; by some other mistake.  Do not throw an error deep in the parser.
+      (error "`semantic-oarse-region-default' called in a buffer that does not support bovine parsing.")
+    (if (or (< end start) (> end (point-max)))
+	(error "Invalid bounds passed to `semantic-parse-region'"))
+    (let ((lexbits (semantic-lex start end depth))
+	  tags)
+      ;; Init a dump
+      ;;    (if semantic-dump-parse
+      ;;	      (semantic-dump-buffer-init))
+      (setq tags (semantic-repeat-parse-whole-stream
+		  lexbits nonterminal returnonerror))
+      (nreverse tags))))
 
 ;;; Parsing functions
 ;;
