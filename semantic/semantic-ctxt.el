@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.34 2004/03/28 01:33:57 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.35 2004/04/28 15:35:20 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -51,7 +51,7 @@ Used for identifying arguments to functions.")
 
 ;;; Local variable parsing.
 ;;
-(defun semantic-up-context (&optional point bounds-type)
+(define-overload semantic-up-context (&optional point bounds-type)
   "Move point up one context from POINT.
 Return non-nil if there are no more context levels.
 Overloaded functions using `up-context' take no parameters.
@@ -61,17 +61,12 @@ This will find the smallest tag of that class (function, variable,
 type, etc) and make sure non-nil is returned if you cannot
 go up past the bounds of that tag."
   (if point (goto-char point))
-  (let ((nar (semantic-current-tag-of-class (or bounds-type 'function)))
-	(s (semantic-fetch-overload 'up-context)))
+  (let ((nar (semantic-current-tag-of-class (or bounds-type 'function))))
     (if nar
-	(semantic-with-buffer-narrowed-to-token
-	    nar
-	  (if s (funcall s)
-	    (semantic-up-context-default)))
-      (if bounds-type (error "No context of type %s to advance in" bounds-type))
-      (if s (funcall s)
-	(semantic-up-context-default)))))
-(put 'semantic-up-context 'semantic-overload 'up-context)
+	(semantic-with-buffer-narrowed-to-tag nar (:override-with-args ()))
+      (when bounds-type
+        (error "No context of type %s to advance in" bounds-type))
+      (:override-with-args ()))))
 
 (defun semantic-up-context-default ()
   "Move the point up and out one context level.
@@ -139,7 +134,7 @@ Return non-nil if there is no upper context."
 	    (def-edebug-spec semantic-with-buffer-narrowed-to-context
 	      (def-body))))
 
-(defun semantic-get-local-variables (&optional point)
+(define-overload semantic-get-local-variables (&optional point)
   "Get the local variables based on POINT's context.
 Local variables are returned in Semantic tag format.
 This can be overriden with `get-local-variables'."
@@ -152,18 +147,13 @@ This can be overriden with `get-local-variables'."
       (let* ((semantic-working-type nil)
              ;; Disable parsing messages
              (working-status-dynamic-type nil)
-             (s (semantic-fetch-overload 'get-local-variables))
              (case-fold-search semantic-case-fold))
-        (if s
-            (funcall s)
-          (semantic-get-local-variables-default point))))))
-(put 'semantic-get-local-variables 'semantic-overload 'get-local-variables)
+        (:override-with-args ())))))
 
-(defun semantic-get-local-variables-default (&optional point)
+(defun semantic-get-local-variables-default ()
   "Get local values from a specific context.
 Uses the bovinator with the special top-symbol `bovine-inner-scope'
-to collect tags, such as local variables or prototypes.
-Optional argument POINT specifies where to scan from."
+to collect tags, such as local variables or prototypes."
   (let ((vars nil)
         ;; We want nothing to do with funny syntaxing while doing this.
         (semantic-unmatched-syntax-hook nil))
@@ -182,7 +172,7 @@ Optional argument POINT specifies where to scan from."
                       vars))))
     vars))
 
-(defun semantic-get-local-arguments (&optional point)
+(define-overload semantic-get-local-arguments (&optional point)
   "Get arguments (variables) from the current context at POINT.
 Parameters are available if the point is in a function or method.
 Return a list of tags unlinked from the originating buffer.
@@ -190,31 +180,30 @@ Arguments are obtained by overriding `get-local-arguments', or by the
 default function `semantic-get-local-arguments-default'.  This, must
 return a list of tags, or a list of strings that will be converted to
 tags."
-  (if point (goto-char point))
-  (let* ((case-fold-search semantic-case-fold)
-	 (args (funcall (or (semantic-fetch-overload 'get-local-arguments)
-                            'semantic-get-local-arguments-default)))
-	 arg tags)
-    ;; Convert unsafe arguments to the right thing.
-    (while args
-      (setq arg  (car args)
-            args (cdr args)
-            tags (cons (cond ((semantic-tag-p arg)
-                              ;; Return a copy of tag without overlay.
-                              ;; The overlay is preserved.
-                              (semantic-tag-copy arg))
-                             ((stringp arg)
-                              (semantic-tag-new-variable arg nil nil))
-                             (t
-                              (error "Unknown parameter element")))
-                       tags)))
-    (nreverse tags)))
-(put 'semantic-get-local-arguments 'semantic-overload 'get-local-arguments)
+  (save-excursion
+    (if point (goto-char point))
+    (let* ((case-fold-search semantic-case-fold)
+           (args (:override-with-args ()))
+           arg tags)
+      ;; Convert unsafe arguments to the right thing.
+      (while args
+        (setq arg  (car args)
+              args (cdr args)
+              tags (cons (cond
+                          ((semantic-tag-p arg)
+                           ;; Return a copy of tag without overlay.
+                           ;; The overlay is preserved.
+                           (semantic-tag-copy arg))
+                          ((stringp arg)
+                           (semantic-tag-new-variable arg nil nil))
+                          (t
+                           (error "Unknown parameter element %S" arg)))
+                         tags)))
+      (nreverse tags))))
 
-(defun semantic-get-local-arguments-default (&optional point)
+(defun semantic-get-local-arguments-default ()
   "Get arguments (variables) from the current context.
 Parameters are available if the point is in a function or method."
-  (if point (goto-char point))
   (let ((tag (semantic-current-tag)))
     (if (and tag (semantic-tag-of-class-p tag 'function))
 	(semantic-tag-function-arguments tag))))
