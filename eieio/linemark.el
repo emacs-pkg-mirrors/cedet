@@ -5,7 +5,7 @@
 ;; Created: Dec 1999
 ;; Keywords: lisp
 ;;
-;; Copyright (C) 1999, 2001 Eric M. Ludlam
+;; Copyright (C) 1999, 2001, 2002 Eric M. Ludlam
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@
    (overlay  :documentation "Overlay created to show this mark."
 	     :type (or overlay null)
 	     :initform nil
-	     :protection private))
+	     :protection protected))
   "Track a file/line associations with overlays used for display.")
 
 (defclass linemark-group ()
@@ -167,7 +167,7 @@ If GROUP, then make sure it also belongs to GROUP."
 	(found nil))
     (while (and o (not found))
       (let ((og (linemark-overlay-get (car o) 'obj)))
-	(if (and og (linemark-entry-p og))
+	(if (and og (linemark-entry-child-p og))
 	    (progn
 	      (setq found og)
 	      (if group
@@ -214,16 +214,24 @@ Call the new entrie's activate method."
   (if (not file) (setq file (buffer-file-name)))
   (if (not file) (error "You can only add marks to files."))
   (setq file (expand-file-name file))
-  (if (not line) (setq line (count-lines (point-min) (point))))
-  (if (bolp) (setq line (1+ line)))
-  (let ((new-entry (linemark-entry (format "%s %d" file line)
-				   :filename file
-				   :line line)))
+  (when (not line)
+    (setq line (count-lines (point-min) (point)))
+    (if (bolp) (setq line (1+ line))))
+  (let ((new-entry (linemark-new-entry g
+				       :filename file
+				       :line line)))
     (oset new-entry parent g)
     (oset new-entry face  (if face face (oref g face)))
     (oset g marks (cons new-entry (oref g marks)))
     (if (oref g active)
 	(linemark-display new-entry t))))
+
+(defmethod linemark-new-entry ((g linemark-group) &optional args)
+  "Create a new entry for G using init ARGS."
+  (let ((f (plist-get args :file))
+	(l (plist-get args :line)))
+    (apply 'linemark-entry (format "%s %d" f l)
+	   args)))
 
 (defmethod linemark-display ((g linemark-group) active-p)
   "Set object G to be active or inactive."
@@ -286,7 +294,7 @@ Call the new entrie's activate method."
 	(to nil))
     (while o
       (setq to (linemark-overlay-get (car o) 'obj))
-      (if (and to (linemark-entry-p to))
+      (if (and to (linemark-entry-child-p to))
 	  (linemark-display to nil))
       (setq o (cdr o)))))
 
