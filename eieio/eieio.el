@@ -6,8 +6,10 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.70 2000/08/02 00:09:46 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.71 2000/08/20 13:16:31 zappo Exp $
 ;; Keywords: OO, lisp
+(defvar eieio-version "0.15"
+  "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -44,8 +46,6 @@
 (eval-when-compile (require 'cl))
 
 ;;; Code:
-(defvar eieio-version "0.15"
-  "Current version of EIEIO.")
 (defun eieio-version ()
   "Display the current version of EIEIO."
   (interactive)
