@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.1 2002/07/04 03:08:12 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.2 2002/07/15 10:27:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -276,63 +276,6 @@ list of semantic tokens found."
        ;; On error just move forward the stream of lexical tokens
        (setq result (list (cdr starting-stream) nil))))
       result))
-
-
-;;; Bovine table functions
-;;
-;; These are functions that can be called from within a bovine table.
-;; Most of these have code auto-generated from other construct in the BNF.
-(defmacro semantic-lambda (&rest return-val)
-  "Create a lambda expression to return a list including RETURN-VAL.
-The return list is a lambda expression to be used in a bovine table."
-  `(lambda (vals start end)
-     (append ,@return-val (list start end))))
-
-(defun semantic-bovinate-from-nonterminal (start end nonterm
-						 &optional depth length)
-  "Bovinate from within a nonterminal lambda from START to END.
-Depends on the existing environment created by `semantic-bovinate-stream'.
-Argument NONTERM is the nonterminal symbol to start with.
-Optional argument DEPTH is the depth of lists to dive into.
-When used in a `lambda' of a MATCH-LIST, there is no need to include
-a START and END part.
-Optional argument LENGTH specifies we are only interested in LENGTH tokens."
-  (car-safe (cdr (semantic-bovinate-nonterminal
-		  (semantic-flex start end (or depth 1) length)
-		  ;; the byte compiler will complain about TABLE
-		  table
-		  nonterm))))
-
-(defun semantic-bovinate-from-nonterminal-full (start end nonterm
-						      &optional depth)
-  "Bovinate from within a nonterminal lambda from START to END.
-Iterates until all the space between START and END is exhausted.
-Depends on the existing environment created by `semantic-bovinate-stream'.
-Argument NONTERM is the nonterminal symbol to start with.
-If NONTERM is nil, use `bovine-block-toplevel'.
-Optional argument DEPTH is the depth of lists to dive into.
-When used in a `lambda' of a MATCH-LIST, there is no need to include
-a START and END part."
-  (nreverse
-   (semantic-bovinate-nonterminals (semantic-flex start end (or depth 1))
-				   nonterm
-				   depth)))
-
-(defun semantic-bovinate-region-until-error (start end nonterm &optional depth)
-  "Bovinate between START and END starting with NONTERM.
-Optional DEPTH specifies how many levels of parenthesis to enter.
-This command will parse until an error is encountered, and return
-the list of everything found until that moment.
-This is meant for finding variable definitions at the beginning of
-code blocks in methods.  If `bovine-inner-scope' can also support
-commands, use `semantic-bovinate-from-nonterminal-full'."
-  (nreverse
-   (semantic-bovinate-nonterminals (semantic-flex start end depth)
-				   nonterm
-				   depth
-				   ;; This says stop on an error.
-				   t)))
-
 
 ;;; Debugging in bovine tables
 ;;
@@ -458,7 +401,7 @@ COLLECTION is the list of things collected so far."
       (semantic-overlay-delete ol1)
       (semantic-overlay-delete ol2))
     ret))
-
+
 ;;; Reference Debugging
 ;;
 (defvar semantic-bovinate-create-reference nil
