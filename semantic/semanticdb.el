@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.17 2001/03/21 10:02:09 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.18 2001/03/26 05:54:26 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -403,7 +403,8 @@ Update the environment of Semantic enabled buffers accordingly."
   (name &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals with name NAME in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH."
+SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH.
+Return a list ((DB-TABLE . TOKEN) ...)."
   (semanticdb-find-nonterminal-by-function
    (lambda (stream sp si)
      (semantic-find-nonterminal-by-name name stream sp si))
@@ -413,7 +414,8 @@ SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH."
   (regex &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals with name matching REGEX in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH."
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-find-nonterminal-by-function
    (lambda (stream sp si)
      (semantic-find-nonterminal-by-name-regexp regex stream sp si))
@@ -423,7 +425,8 @@ SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH."
   (type &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all nonterminals with a type of TYPE in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH."
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-find-nonterminal-by-function
    (lambda (stream sp si)
      (semantic-find-nonterminal-by-type type stream sp si))
@@ -439,7 +442,8 @@ When SEARCH-INCLUDES is non-nil, the search will include dependency files.
 When DIFF-MODE is non-nil, search databases which are of a different mode.
 A Mode is the `major-mode' that file was in when it was last parsed.
 When FIND-FILE-MATCH is non-nil, the make sure any found token's file is
-in an Emacs buffer."
+in an Emacs buffer.
+Return a list ((DB-TABLE . TOKEN-OR-TOKEN-LIST) ...)."
   (if (not databases)
       ;; Calculate what database to use.
       ;; Something simple and dumb for now.
@@ -469,7 +473,7 @@ in an Emacs buffer."
 		;; In theory, the database is up-to-date with what is in the file, and
 		;; these tokens are ready to go.
 		;; There is a bug lurking here I don't have time to fix.
-		(setq ret (cons found ret))
+		(setq ret (cons (cons (car files) found) ret))
 		(setq found nil)))
 	  (setq files (cdr files))))
       (setq databases (cdr databases)))
