@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.6 2002/02/08 23:20:55 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.7 2002/02/11 13:28:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -332,8 +332,8 @@ Used when running without interactive terminal.")
   kernel-base kernel-end kernel-items last-reduction last-shift
   last-state lookaheads lookaheadset lookback maxrhs ngotos nitems
   nrules nshifts nstates nsyms ntokens nullable nvars rassoc redset
-  reduction-table ritem rlhs rprec rrc-count rrc-total rrhs
-  rule-table ruleset rulesetsize shift-symbol shift-table shiftset
+  reduction-table ritem rlhs rprec rrc-count rrc-total rrhs ruseful
+  rcode ruleset rulesetsize shift-symbol shift-table shiftset
   src-count src-total start-table state-table tags this-state to-state
   tokensetsize ;; nb of words req. to hold a bit for each rule
   varsetsize ;; nb of words req. to hold a bit for each variable
@@ -613,6 +613,59 @@ S must be a vector of integers."
       (setq i (1+ i)))
     ))
 
+(defun wisent-reduce-grammar-tables ()
+  "Disable useless productions."
+  (if (> nuseless-productions 0)
+      (let ((pn 1))
+        (while (<= pn nrules)
+          (aset ruseful pn (wisent-BITISSET P pn))
+          (setq pn (1+ pn))))))
+
+(defun wisent-nonterminals-reduce ()
+  "Remove useless nonterminals."
+  (let (i n r item nontermmap tags-sorted)
+    ;; Map the nonterminals to their new index: useful first, useless
+    ;; afterwards.  Kept for later report.
+    (setq nontermmap (make-vector nvars 0)
+          n ntokens
+          i ntokens)
+    (while (< i nsyms)
+      (when (wisent-BITISSET V i)
+        (aset nontermmap (- i ntokens) n)
+        (setq n (1+ n)))
+      (setq i (1+ i)))
+    (setq i ntokens)
+    (while (< i nsyms)
+      (unless (wisent-BITISSET V i)
+        (aset nontermmap (- i ntokens) n)
+        (setq n (1+ n)))
+      (setq i (1+ i)))
+    ;; Shuffle elements of tables indexed by symbol number
+    (setq tags-sorted (make-vector nvars nil)
+          i ntokens)
+    (while (< i nsyms)
+      (setq n (aref nontermmap (- i ntokens)))
+      (aset tags-sorted (- n ntokens) (aref tags i))
+      (setq i (1+ i)))
+    (setq i ntokens)
+    (while (< i nsyms)
+      (aset tags i (aref tags-sorted (- i ntokens)))
+      (setq i (1+ i)))
+    ;; Replace all symbol numbers in valid data structures.
+    (setq i 1)
+    (while (<= i nrules)
+      (aset rlhs i (aref nontermmap (- (aref rlhs i) ntokens)))
+      (setq i (1+ i)))
+    (setq r 0)
+    (while (setq item (aref ritem r))
+      (if (wisent-ISVAR item)
+          (aset ritem r (aref nontermmap (- item ntokens))))
+      (setq r (1+ r)))
+    (setq start-symbol (aref nontermmap (- start-symbol ntokens))
+          nsyms (- nsyms nuseless-nonterminals)
+          nvars (- nvars nuseless-nonterminals))
+    ))
+
 (defun wisent-total-useless ()
   "Report number of useless nonterminals and productions."
   (let* ((src (wisent-source))
@@ -647,7 +700,10 @@ S must be a vector of integers."
     (wisent-total-useless)
     (or (wisent-BITISSET N (- start-symbol ntokens))
         (error "Start symbol %s does not derive any sentence"
-               (aref tags start-symbol)))))
+               (aref tags start-symbol)))
+    (wisent-reduce-grammar-tables)
+    (if (> nuseless-nonterminals 0)
+        (wisent-nonterminals-reduce))))
 
 (defun wisent-print-useless ()
   "Output the detailed results of the reductions."
@@ -699,8 +755,8 @@ a list of rule numbers, terminated with -1."
     (setq p 0 ;; p = delts
           i nrules)
     (while (> i 0)
-      (setq lhs (aref rlhs i))
-      (when (>= lhs 0)
+      (when (aref ruseful i)
+        (setq lhs (aref rlhs i))
         ;; p->next = dset[lhs];
         ;; p->value = i;
         (aset delts p (cons i (aref dset (- lhs ntokens)))) ;; (value . next)
@@ -745,68 +801,66 @@ a list of rule numbers, terminated with -1."
   "Set up NULLABLE.
 A vector saying which nonterminals can expand into the null string.
 NULLABLE[i - NTOKENS] is nil if symbol I can do so."
-  (let (r s1 s2 ruleno symbol p squeue rcount rsets relts any-tokens r1)
-    (setq nullable (make-vector nvars nil)
-          squeue (make-vector nvars 0)
-          s1 0 s2 0 ;; s1 = s2 = squeue
+  (let (ruleno s1 s2 p r squeue rcount rsets relts item any-tokens)
+    (setq squeue (make-vector nvars 0)
           rcount (make-vector (1+ nrules) 0)
-          rsets  (make-vector nvars nil)
+          rsets  (make-vector nvars nil) ;; - ntokens
           relts  (make-vector (+ nitems nvars 1) nil)
-          p 0  ;; p = relts
-          r 0) ;; r = ritem
-    
-    (while (aref ritem r)
-      (if (< (aref ritem r) 0)
-          (progn
-            ;; symbol = rlhs[-(*r++)];
-            (setq symbol (aref rlhs (- (aref ritem r))))
-            (setq r (1+ r))
-            (when (and (>= symbol 0)
-                       (not (aref nullable (- symbol ntokens))))
-              (aset nullable (- symbol ntokens) t)
-              (aset squeue s2 symbol) ;; *s2++ = symbol
-              (setq s2 (1+ s2))))
-        (setq r1 r
-              any-tokens nil
-              symbol (aref ritem r)
-              r (1+ r))
-        (while (> symbol 0)
-          (if (wisent-ISTOKEN symbol)
-              (setq any-tokens t))
-          (setq symbol (aref ritem r)
-                r (1+ r)))
-        (when (not any-tokens)
-          (setq ruleno (- symbol)
-                r r1
-                symbol (aref ritem r)
-                r (1+ r))
-          (while (> symbol 0)
-            ;; rcount[ruleno]++;
-            (aset rcount ruleno (1+ (aref rcount ruleno)))
-            ;; p->next = rsets[symbol];
-            ;; p->value = ruleno;
-            (aset relts p (cons ruleno (aref rsets (- symbol ntokens))))
-            ;; rsets[symbol] = p;
-            (aset rsets (- symbol ntokens) p)
-            (setq p (1+ p)) ;; p++
-            (setq symbol (aref ritem r)
-                  r (1+ r))))))
+          nullable (make-vector nvars nil)) ;; - ntokens
+    (setq s1 0 s2 0 ;; s1 = s2 = squeue
+          p 0 ;; p = relts
+          ruleno 1)
+    (while (<= ruleno nrules)
+      (when (aref ruseful ruleno)
+        (if (> (aref ritem (aref rrhs ruleno)) 0)
+            (progn
+              ;; This rule has a non empty RHS.
+              (setq any-tokens nil
+                    r (aref rrhs ruleno))
+              (while (> (aref ritem r) 0)
+                (if (wisent-ISTOKEN (aref ritem r))
+                    (setq any-tokens t))
+                (setq r (1+ r)))
+
+              ;; This rule has only nonterminals: schedule it for the
+              ;; second pass.
+              (unless any-tokens
+                (setq r (aref rrhs ruleno))
+                (while (> (setq item (aref ritem r)) 0)
+                  (aset rcount ruleno (1+ (aref rcount ruleno)))
+                  ;; p->next = rsets[item];
+                  ;; p->value = ruleno;
+                  (aset relts p (cons ruleno (aref rsets (- item ntokens))))
+                  ;; rsets[item] = p;
+                  (aset rsets (- item ntokens) p)
+                  (setq p (1+ p)
+                        r (1+ r)))))
+          ;; This rule has an empty RHS.
+          ;; assert (ritem[rrhs[ruleno]] == -ruleno)
+          (when (and (aref ruseful ruleno)
+                     (setq item (aref rlhs ruleno))
+                     (not (aref nullable (- item ntokens))))
+            (aset nullable (- item ntokens) t)
+            (aset squeue s2 item)
+            (setq s2 (1+ s2)))
+          )
+        )
+      (setq ruleno (1+ ruleno)))
     
     (while (< s1 s2)
-      ;; p = rsets[*s1++];
+      ;; p = rsets[*s1++]
       (setq p (aref rsets (- (aref squeue s1) ntokens))
             s1 (1+ s1))
       (while p
         (setq p (aref relts p)
               ruleno (car p)
-              p (cdr p))
+              p (cdr p)) ;; p = p->next
         ;; if (--rcount[ruleno] == 0)
         (when (zerop (aset rcount ruleno (1- (aref rcount ruleno))))
-          (setq symbol (aref rlhs ruleno)) ;; symbol must be >= ntokens
-          (when (not (aref nullable (- symbol ntokens)))
-            (aset nullable (- symbol ntokens) t)
-            (aset squeue s2 symbol) ;; *s2++ = symbol
-            (setq s2 (1+ s2))))))
+          (setq item (aref rlhs ruleno))
+          (aset nullable (- item ntokens) t)
+          (aset squeue s2 item)
+          (setq s2 (1+ s2)))))
     
     (if wisent-debug-flag
         (wisent-print-nullable))
@@ -1035,8 +1089,11 @@ which represent units of input that could arrive next."
   "Allocate storage for itemsets."
   (let (symbol i count symbol-count)
     ;; Count the number of occurrences of all the symbols in RITEMS.
+    ;; Note that useless productions (hence useless nonterminals) are
+    ;; browsed too, hence we need to allocate room for _all_ the
+    ;; symbols.
     (setq count 0
-          symbol-count (make-vector nsyms 0)
+          symbol-count (make-vector (+ nsyms nuseless-nonterminals) 0)
           i 0)
     (while (setq symbol (aref ritem i))
       (when (> symbol 0)
@@ -2244,27 +2301,28 @@ there are any reduce/reduce conflicts.")
 ;;;; --------------------------------------
 (defun wisent-print-grammar ()
   "Print grammar."
-  (let (i j r lhs rhs break left-count right-count)
+  (let (i j r break left-count right-count)
     
     (wisent-log "\n\nGrammar\n\n  Number, Rule\n")
     (setq i 1)
     (while (<= i nrules)
-      (setq r   (car (aref rule-table i))
-            lhs (car r)
-            rhs (cdr r))
-      (wisent-log "  %s  %s -> %s\n"
-                  (wisent-pad-string (number-to-string i) 6)
-                  (aref tags lhs)
-                  (if rhs
-                      (mapconcat #'(lambda (i)
-                                     (symbol-name (aref tags i)))
-                                 rhs " ")
-                    "/* empty */"))
+      ;; Don't print rules disabled in `wisent-reduce-grammar-tables'.
+      (when (aref ruseful i)
+        (wisent-log "  %s  %s ->"
+                    (wisent-pad-string (number-to-string i) 6)
+                    (aref tags (aref rlhs i)))
+        (setq r (aref rrhs i))
+        (if (> (aref ritem r) 0)
+            (while (> (aref ritem r) 0)
+              (wisent-log " %s" (aref tags (aref ritem r)))
+              (setq r (1+ r)))
+          (wisent-log " /* empty */"))
+        (wisent-log "\n"))
       (setq i (1+ i)))
     
     (wisent-log "\n\nTerminals, with rules where they appear\n\n")
     (wisent-log "%s (-1)\n" (aref tags 0))
-    (setq i 2)
+    (setq i 1)
     (while (< i ntokens)
       (wisent-log "%s (%d)" (aref tags i) i)
       (setq j 1)
@@ -2810,67 +2868,67 @@ Return a cons (PHLDS . EEXPR) where:
       (cons phlds eexpr))))
 
 (defun wisent-semantic-action (r)
-  "Return an Elisp function from the semantic action body in rule R.
-
-An semantic action function receives three arguments:
+  "Transform semantic action body of rule R into an Elisp function.
+That function will receive three arguments:
 
 - the state/value stack
 - the top-of-stack index
 - the goto table
 
 And returns the updated top-of-stack index."
-  (if r
-      (let* ((nt/rh (car r))
-             (xa    (wisent-semantic-action-expand-body (cdr r)))
-             ($l    (car xa))           ; $<i> found in action
-             (expr  (cdr xa))           ; expanded form of action
-             (nt    (car nt/rh))        ; reduced nonterminal ID
-             (rh    (cdr nt/rh))        ; right hand side nt IDs
-             (n     (length rh))        ; number of values in stack
-             (vi    n)                  ; $<i> index
-             (spi   1)                  ; $<i> value index in stack
-             (rl    nil)                ; list of binded $region<i>
-             (bl    nil)                ; let* binding list
-             (i     1)
-             $i $ri)
-        (while (<= i n)
-          (setq $i  (intern (format "$%d" vi))
-                $ri (intern (format "$region%d" vi))
-                rl  (cons $ri rl)
-                bl  (cons `(,$ri (cdr (aref stack (- sp ,spi)))) bl))
-          (if (memq $i $l) ;; Only bind $<i> if used in action
-              (setq bl (cons `(,$i (car (aref stack (- sp ,spi)))) bl)))
-          (setq i   (1+ i)
-                vi  (1- vi)
-                spi (+ spi 2)))
-        (setq bl `(,@bl
-                   ($region (wisent-region ,@rl))
-                   ($nterm  ',(aref tags nt))))
-        `(lambda (stack sp gotos)
-           (let* ,bl
-             (wisent-push stack (- sp ,(1- spi)) ,nt gotos
-                          (cons ,expr $region))))
-        )))
-
-(defun wisent-byte-compile-semantic-actions (table)
-  "Byte compile semantic actions in TABLE.
-This significantly improves the performance of the parser!"
-  (let ((i 1)
-        (n (length table)))
-    (while (< i n)
-      (aset table i (byte-compile (aref table i)))
-      (setq i (1+ i)))))
+  (if (not (aref ruseful r))
+      (aset rcode r #'error)
+    (let* ((xa   (wisent-semantic-action-expand-body (aref rcode r)))
+           ($l   (car xa))              ; list of $I found in body
+           (expr (cdr xa))              ; expanded form of body
+           (nt   (aref rlhs r))         ; nonterminal item no.
+           (rl   nil)                   ; list of binded $regionI
+           (bl   nil)                   ; let* binding list
+           i n vi spi $i $ri n)
+      ;; Compute size of RHS for that rule.  It gives the number of
+      ;; values to pop from the stack.
+      (setq i (aref rrhs r)
+            n 0)
+      (while (> (aref ritem i) 0)
+        (setq n (1+ n)
+              i (1+ i)))
+      ;; Compute bindings
+      (setq vi  n                       ; index of $I
+            spi 1                       ; index in stack of $I value
+            i   1)
+      (while (<= i n)
+        (setq $i  (intern (format "$%d" vi))
+              $ri (intern (format "$region%d" vi))
+              rl  (cons $ri rl)
+              bl  (cons `(,$ri (cdr (aref stack (- sp ,spi)))) bl))
+        (if (memq $i $l) ;; Only bind $I if used in action
+            (setq bl (cons `(,$i (car (aref stack (- sp ,spi)))) bl)))
+        (setq i   (1+ i)
+              vi  (1- vi)
+              spi (+ spi 2)))
+      (setq bl `(,@bl
+                 ($region (wisent-region ,@rl))
+                 ($nterm  ',(aref tags nt))))
+      (aset rcode r
+            `(lambda (stack sp gotos)
+               (let* ,bl
+                 (wisent-push stack (- sp ,(1- spi)) ,nt gotos
+                              (cons ,expr $region)))))
+      (or wisent-debug-flag
+          ;; Byte-compile the function. This significantly improves
+          ;; the performance of the parser!
+          (aset rcode r (byte-compile (aref rcode r))))
+      )))
 
 (defun wisent-semantic-actions ()
-  "Turn semantic actions into Lisp functions.
-Return the semantic action table."
+  "Turn the body of semantic actions into a Lisp function.
+Return the table of functions."
   (working-dynamic-status "(building semantic actions)")
-  (let ((table (vconcat (mapcar #'wisent-semantic-action rule-table))))
-    (unless wisent-debug-flag
-      ;; Byte-compile the semantic action functions
-      (working-dynamic-status "(byte-compiling semantic actions)")
-      (wisent-byte-compile-semantic-actions table))
-    table))
+  (let ((i 1))
+    (while (<= i nrules)
+      (wisent-semantic-action i)
+      (setq i (1+ i)))
+    rcode))
 
 (defun wisent-token-translations ()
   "Build the translation table.
@@ -2955,25 +3013,30 @@ value ACTION is a semantic action statement.
 Return an internal form."
   (let ((nonterm (car def))
         (rules   (cdr def))
-        prod/acts rule rhs rest prod item items)
+        prods rule rhs rest prod item items)
     (or (consp rules)
         (error "At least one production needed for nonterminal %s"
                nonterm))
+    (setq nonterm (wisent-item-number nonterm))
     (while rules
       (setq rule  (car rules)
             rules (cdr rules)
             rhs   (car rule)
             rest  (cdr rule)
-            prod  (mapcar #'wisent-item-number (cons nonterm rhs))
+            prod  (mapcar #'wisent-item-number rhs)
             items rhs)
+      
+      ;; Check & count items
+      (setq nitems (1+ nitems)) ;; LHS item
       (while items
-        (setq item  (car items)
-              items (cdr items))
+        (setq item   (car items)
+              items  (cdr items)
+              nitems (1+ nitems)) ;; RHS items
         (or (memq item token-list)
             (memq item var-list)
             (error "Invalid terminal or nonterminal %s" item)))
       
-      ;; Rule has precedence level
+      ;; Check & collect rule precedence level
       (if (vectorp (car rest))
           (progn
             (setq item (car rest))
@@ -2985,35 +3048,23 @@ Return an internal form."
                   rest  (cdr rest)))
         ;; No precedence level
         (setq rprec (cons nil rprec)))
-
-      ;; Rule has semantic action
+      
+      ;; Check & collect semantic action body
       (if rest
           (progn
             (or (null (cdr rest))
-                (error "Invalid rule semantic action %S" rest))
-            (setq prod/acts (cons (cons prod (car rest)) prod/acts)))
-        (setq prod/acts (cons
-                         (cons prod
-                               (wisent-default-semantic-action-body
-                                (length rhs)))
-                         prod/acts))))
-    (nreverse prod/acts)))
-
-(defsubst wisent-grammar-production-lhs (def)
-  "Return the left hand side nonterminal number from DEF.
-DEF is the internal representation of a nonterminal definition."
-  (car (caar def)))
-
-(defsubst wisent-grammar-rule-rhs (r)
-  "Return the right hand side list of item numbers from rule R.
-R is in internal format."
-  (cdar r))
-
-(defsubst wisent-grammar-production (def)
-  "Return internal form of production for DEF.
-DEF is the internal representation of a nonterminal definition."
-  (cons (wisent-grammar-production-lhs def)
-        (mapcar #'wisent-grammar-rule-rhs def)))
+                (error "Invalid semantic action %S" rest))
+            (setq rcode (cons (car rest) rcode)))
+        (setq rcode (cons (wisent-default-semantic-action-body
+                           (length rhs))
+                          rcode)))
+      
+      ;; Push production.
+      (setq prods  (cons prod prods)
+            nrules (1+ nrules)))
+    
+    ;; Return internal form of the nonterminal definition
+    (cons nonterm (nreverse prods))))
 
 (defconst wisent-starts-nonterm '$STARTS
   "Main start symbol.
@@ -3071,7 +3122,7 @@ list of tokens which must have been declared in TOKENS."
   (or (and (consp grammar) (> (length grammar) 2))
       (error "Invalid grammar definition"))
   
-  (let (i r nt pl rhs pre lst start-var assoc gram
+  (let (i r nt pl rhs pre lst start-var assoc rules
           token var def tokens vars defs ep-token ep-var ep-def)
     
     ;; Built-in tokens
@@ -3210,29 +3261,24 @@ list of tokens which must have been declared in TOKENS."
     (setq tags (vconcat token-list var-list))
     
     ;; Build rules data
-    (setq rprec      nil
-          vars       (mapcar #'wisent-parse-nonterminal defs)
-          gram       (mapcar #'wisent-grammar-production vars)
-          rprec      (vconcat (cons nil (nreverse rprec)))
-          rule-table (vconcat (cons nil (apply #'nconc vars)))
-          nrules     (1- (length rule-table))
-          nitems     0)
-    
-    ;; Count items
-    (setq r 1)
-    (while (<= r nrules)
-      (setq nitems (+ nitems (length (car (aref rule-table r))))
-            r (1+ r)))
+    (setq rprec  nil
+          rcode  nil
+          nitems 0
+          nrules 0
+          rules  (mapcar #'wisent-parse-nonterminal defs)
+          rprec  (vconcat (cons nil (nreverse rprec)))
+          rcode  (vconcat (cons nil (nreverse rcode))))
     
     ;; Set up RLHS RRHS & RITEM data structures
-    (setq rlhs  (make-vector (1+ nrules) nil)
-          rrhs  (make-vector (1+ nrules) nil)
-          ritem (make-vector (1+ nitems) nil)
+    (setq ruseful (make-vector (1+ nrules) t)
+          rlhs    (make-vector (1+ nrules) nil)
+          rrhs    (make-vector (1+ nrules) nil)
+          ritem   (make-vector (1+ nitems) nil)
           i 0
           r 1)
-    (while gram
-      (setq nt (caar gram)
-            pl (cdar gram))
+    (while rules
+      (setq nt (caar rules)
+            pl (cdar rules))
       (while pl
         (aset rlhs r nt)
         (aset rrhs r i)
@@ -3257,7 +3303,7 @@ list of tokens which must have been declared in TOKENS."
         (setq i (1+ i)
               r (1+ r)
               pl (cdr pl)))
-      (setq gram (cdr gram)))
+      (setq rules (cdr rules)))
     ))
 
 (defalias 'wisent-compiled-grammar-p 'vectorp)
