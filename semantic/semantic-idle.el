@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.6 2004/01/09 21:07:59 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.7 2004/01/10 01:26:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,11 @@
 ;; the amount of work needed.  Any specialized idle tasks need not
 ;; ask for a fresh tags list.
 ;;
+;; NOTE ON SEMANTIC_ANALYZE
+;;
+;; Some of the idle modes use the semantic analyzer.  The analyzer
+;; automatically caches the created context, so it is shared amongst
+;; all idle modes that will need it.
 
 (require 'semantic-util-modes)
 (require 'timer)
@@ -231,7 +236,7 @@ call additional functions registered with the timer calls."
 	      (while queue
 		(semantic-throw-on-input 'idle-queue)
 		(funcall (car queue))
-		))
+		(setq queue (cdr queue))))
 	    )
 	(error (message "idle error: %S" err))))
     
@@ -466,14 +471,15 @@ Gets a symbol with `semantic-ctxt-current-thing' and then
 trys to find it with a deep targetted search."
   ;; Try the current "thing".
   (setq sym (car (semantic-ctxt-current-thing)))
-  (semantic-idle-summary-find-current-symbol-tag sym))
+  (when sym
+    (semantic-idle-summary-find-current-symbol-tag sym)))
 
 (defun semantic-idle-summary-current-symbol-keyword ()
   "Return a string message describing the current symbol.
 Returns a value only if it is a keyword."
   ;; Try the current "thing".
   (setq sym (car (semantic-ctxt-current-thing)))
-  (if (semantic-lex-keyword-p sym)
+  (if (and sym (semantic-lex-keyword-p sym))
       (semantic-lex-keyword-get sym 'summary)))
 
 (defun semantic-idle-summary-current-symbol-info-context ()
@@ -544,6 +550,76 @@ be override with `idle-summary-current-symbol-info'"
 			 'semantic-idle-summary-mode)
 (semantic-alias-obsolete 'global-semantic-summary-mode
 			 'global-semantic-idle-summary-mode)
+
+
+;;; Completion Popup Mode
+;;
+;; This mode uses tooltips to display a (hopefully) short list of possible
+;; completions available for the text under point.  It provides
+;; NO provision for actually filling in the values from those completions.
+
+(defcustom semantic-idle-completion-popup-max-size 5
+  "The maximum number of popup entries to display.
+The actuall number will actually be this value +1 when there
+are exactly that number.  The +1th slot will be replaced with
+an indicator that there are more entries for longer lists."
+  :group 'semantic
+  :type 'boolean)
+
+(defun semantic-idle-completion-popup-list (tags)
+  "Popup a list of TAGS in a separate window near the cursor."
+  (require 'tooltip)
+  (require 'avoid)
+  (let* ((displayed-tags
+	  (if (<= (length tags) (1+ semantic-idle-completion-popup-max-size))
+	      tags
+	    (let ((subtags nil)
+		  (cnt 0))
+	      (while (< cnt semantic-idle-completion-popup-max-size)
+		(setq subtags (cons (car tags) subtags))
+		(setq tags (cdr tags)
+		      subtags (cdr subtags)
+		      cnt (1+ cnt)))
+	      (nreverse subtags))))
+	 (text (mapconcat 'semantic-format-tag-name
+			  displayed-tags
+			  "\n"))
+	 (P (mouse-avoidance-point-position))
+	 (frame (car P))
+	 (x (cadr P))
+	 (y (cddr P))
+	 (oP (mouse-position))
+	 (oframe (car oP))
+	 (ox     (cadr oP))
+	 (oy     (cddr oP)))
+    (set-mouse-position frame x y)
+    (tooltip-show text)
+    (set-mouse-position frame (1+ x) y)
+    ))
+
+(defun semantic-idle-completion-list-default ()
+  "Calculate and display a list of completions."
+  (if (or (not (featurep 'tooltip)) tooltip-use-echo-area)
+      ;; If tooltips aren't available, turn this off.
+      (global-semantic-idle-completions-mode -1)
+    (save-excursion
+      (condition-case nil
+	  (let* ((context (semantic-analyze-current-context (point)))
+		 (prefix (reverse (oref context :prefix)))
+		 (completions nil))
+	    (when (stringp (car prefix))
+	      (setq completions
+		    (semantic-analyze-possible-completions context))
+	      (when completions
+		(semantic-idle-completion-popup-list
+		 (semantic-unique-tag-table-by-name completions))
+		)))
+	(error nil)))))
+
+(define-semantic-idle-service semantic-idle-completions
+  "Display a list of possible completions in a tooltip."
+  ;; Add the ability to override sometime.
+  (semantic-idle-completion-list-default))
 
 (provide 'semantic-idle)
 
