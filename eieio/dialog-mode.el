@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.7 1996/09/27 00:04:33 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.8 1996/10/17 02:48:52 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -111,12 +111,17 @@ key is any value between 0 and 128"
   (define-key dialog-mode-map "\C-l" nil)
   (define-key dialog-mode-map "\C-g" nil)
   (define-key dialog-mode-map "\C-u" nil)
+  ;; Some keys to capture only sometimes
+  (define-key dialog-mode-map "\C-n" 'dialog-handle-kbd-maybe)
+  (define-key dialog-mode-map "\C-p" 'dialog-handle-kbd-maybe)
+  (define-key dialog-mode-map "\C-f" 'dialog-handle-kbd-maybe)
+  (define-key dialog-mode-map "\C-b" 'dialog-handle-kbd-maybe)
   ;; Some keys in meta mat should not be overridden
   (define-key dialog-meta-map "x" nil)
   (define-key dialog-meta-map ":" nil)
   ;; Some keys have special meaning that we can grab at this level
-  (define-key dialog-mode-map "\M-n" 'dialog-next-widget)
-  (define-key dialog-mode-map "\M-p" 'dialog-prev-widget)
+  (define-key dialog-mode-map "\C-\M-n" 'dialog-next-widget)
+  (define-key dialog-mode-map "\C-\M-p" 'dialog-prev-widget)
   (define-key dialog-mode-map "\C-i" 'dialog-next-widget)
   (define-key dialog-mode-map "\M-\t" 'dialog-prev-widget)
   (define-key dialog-mode-map "\C-r" 'dialog-refresh)
@@ -126,38 +131,28 @@ key is any value between 0 and 128"
       (progn
 	;; some translations into text
 	(define-key dialog-mode-map 'tab 'dialog-next-widget)
-	(define-key dialog-mode-map 'up 'dialog-handle-kbd)
-	(define-key dialog-mode-map 'down 'dialog-handle-kbd)
-	(define-key dialog-mode-map 'right 'dialog-handle-kbd)
-	(define-key dialog-mode-map 'left 'dialog-handle-kbd)
-	(define-key dialog-mode-map 'next 'dialog-handle-kbd)
-	(define-key dialog-mode-map 'prev 'dialog-handle-kbd)
+	(define-key dialog-mode-map 'up 'dialog-handle-kbd-maybe)
+	(define-key dialog-mode-map 'down 'dialog-handle-kbd-maybe)
+	(define-key dialog-mode-map 'right 'dialog-handle-kbd-maybe)
+	(define-key dialog-mode-map 'left 'dialog-handle-kbd-maybe)
+	(define-key dialog-mode-map 'next 'dialog-handle-kbd-maybe)
+	(define-key dialog-mode-map 'prev 'dialog-handle-kbd-maybe)
+
 	;; Now some mouse events
-	(define-key dialog-mode-map 'button1 'dialog-handle-mouse)
 	(define-key dialog-mode-map 'button2 'dialog-handle-mouse)
-	(define-key dialog-mode-map 'button3 'dialog-handle-mouse)
-	;(define-key dialog-mode-map '(drag button1) 'dialog-handle-mouse)
-	;(define-key dialog-mode-map '(drag button2) 'dialog-handle-mouse)
-	;(define-key dialog-mode-map '(drag button3) 'dialog-handle-mouse)
 	)
     ;; some translations into text
     (define-key dialog-mode-map [tab] 'dialog-next-widget)
-    (define-key dialog-mode-map [up] 'dialog-handle-kbd)
-    (define-key dialog-mode-map [down] 'dialog-handle-kbd)
-    (define-key dialog-mode-map [right] 'dialog-handle-kbd)
-    (define-key dialog-mode-map [left] 'dialog-handle-kbd)
-    (define-key dialog-mode-map [next] 'dialog-handle-kbd)
-    (define-key dialog-mode-map [prev] 'dialog-handle-kbd)
+    (define-key dialog-mode-map [up] 'dialog-handle-kbd-maybe)
+    (define-key dialog-mode-map [down] 'dialog-handle-kbd-maybe)
+    (define-key dialog-mode-map [right] 'dialog-handle-kbd-maybe)
+    (define-key dialog-mode-map [left] 'dialog-handle-kbd-maybe)
+    (define-key dialog-mode-map [next] 'dialog-handle-kbd-maybe)
+    (define-key dialog-mode-map [prev] 'dialog-handle-kbd-maybe)
     ;; Now some mouse events
-    (define-key dialog-mode-map [mouse-1] 'dialog-handle-mouse)
     (define-key dialog-mode-map [mouse-2] 'dialog-handle-mouse)
-    (define-key dialog-mode-map [mouse-3] 'dialog-handle-mouse)
-    (define-key dialog-mode-map [down-mouse-1] 'dialog-handle-mouse)
     (define-key dialog-mode-map [down-mouse-2] 'dialog-handle-mouse)
-    (define-key dialog-mode-map [down-mouse-3] 'dialog-handle-mouse)
-    (define-key dialog-mode-map [drag-mouse-1] 'dialog-handle-mouse)
     (define-key dialog-mode-map [drag-mouse-2] 'dialog-handle-mouse)
-    (define-key dialog-mode-map [drag-mouse-3] 'dialog-handle-mouse)
     ))
   
 (defun dialog-load-color (sym l-fg l-bg d-fg d-bg &optional bold italic underline)
@@ -274,27 +269,65 @@ Navigation commands:
   (verify widget-toplevel-shell t)
   (run-hooks 'dialog-mode-hooks))
 
+(defmacro dialog-with-readable (&rest forms)
+  "Allow the buffer to be writable and evaluate forms.  Turn read-only back
+on when done."
+  (list 'let '((dialog-with-readable-buff (current-buffer)))
+	'(toggle-read-only -1)
+	(cons 'progn forms)
+	'(save-excursion (set-buffer dialog-with-readable-buff)
+			 (toggle-read-only 1))))
+
 (defun dialog-refresh () "Refresh all visible widgets in this buffer"
   (interactive)
-  (erase-buffer)
-  (draw widget-toplevel-shell))
+  (dialog-with-readable
+   (erase-buffer)
+   (draw widget-toplevel-shell)))
 
 (defun dialog-quit () "Quits a dialog."
   (bury-buffer))
 
+(defun dialog-lookup-key (keymap coe)
+  "Translate event COE into the command keybinding which sometimes
+requires translation into arrays and things."
+  (let ((cc (cond ((numberp coe)
+		   (char-to-string coe))
+		  ((stringp coe)
+		   coe)
+		  (t
+		   (or (lookup-key function-key-map (make-vector 1 coe))
+		       (make-vector 1 coe))))))
+    (lookup-key keymap cc t)))
+
 (defun dialog-handle-kbd () "Read the last kbd event, and handle it."
   (interactive)
-  (let ((dispatch (or (get-text-property (point) 'widget-object)
-		      widget-toplevel-shell)))
-    (input dispatch (if last-input-char last-input-char last-input-event))))
+  (dialog-with-readable
+   (let ((dispatch (or (get-text-property (point) 'widget-object)
+		       widget-toplevel-shell)))
+     (input dispatch (if last-input-char last-input-char last-input-event)))))
+
+(defun dialog-handle-kbd-maybe ()
+ "Read the last kbd event, and handle it. but only if a widget has
+registered with this area of text, otherwise run the default keybinding."
+  (interactive)
+  (dialog-with-readable
+   (let ((dispatch (get-text-property (point) 'widget-object)))
+     (if dispatch
+	 (input dispatch (if last-input-char last-input-char
+			   last-input-event))
+       (let ((command (dialog-lookup-key global-map
+					 (if last-input-char last-input-char
+					   last-input-event))))
+	 (command-execute command t))))))
 
 (defun dialog-handle-meta-kbd () "Read the last kbd event, and handle it as a meta key"
   (interactive)
-  (let ((dispatch (or (get-text-property (point) 'widget-object)
-		      widget-toplevel-shell)))
-    (input dispatch (if (numberp last-input-char)
-			(concat "\e" (char-to-string last-input-char))
-		      last-input-char))))
+  (dialog-with-readable
+   (let ((dispatch (or (get-text-property (point) 'widget-object)
+		       widget-toplevel-shell)))
+     (input dispatch (if (numberp last-input-char)
+			 (concat "\e" (char-to-string last-input-char))
+		       last-input-char)))))
 
 (defun dialog-next-widget (arg) "Move cursor to next logical widget"
   (interactive "P")
@@ -322,8 +355,9 @@ Navigation commands:
 
   (defun dialog-mouse-event-p (event)
     "Return t if the event is a mouse related event"
-    (if (member (event-basic-type event)
-		'(mouse-1 mouse-2 mouse-3))
+    (if (and (listp event)
+	     (member (event-basic-type event)
+		     '(mouse-1 mouse-2 mouse-3)))
 	t
       nil))
 
@@ -334,7 +368,8 @@ Navigation commands:
   ;; First, check to see where the click is, and go there.  The cursor
   ;; will act as our in the widget fields.
   (mouse-set-point event)
-  ( input widget-toplevel-shell event))
+  (dialog-with-readable
+   (input widget-toplevel-shell event)))
 
 (defun create-widget (name class parent &rest resources)
   "Create a dialog with name NAME of class CLASS.  PARENT will be the
