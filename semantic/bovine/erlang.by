@@ -21,7 +21,7 @@
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 ;;
-;; $Id: erlang.by,v 1.4 2003/08/31 15:06:44 ponced Exp $
+;; $Id: erlang.by,v 1.5 2004/03/10 19:32:06 ponced Exp $
 ;;
 
 %package semantic-erlang-by
@@ -1020,7 +1020,7 @@ macro-def
 macro-def-list
   : open-paren symbol macro-def-opt COMA macro-def-opt close-paren
  ;;( $2 variable nil $5 (ASSOC const t) nil)
-    (VARIABLE-TAG $2 nil $5 'const t)
+    (VARIABLE-TAG $2 nil $5 :constant-flag t)
   ;
 
 macro-def-opt
