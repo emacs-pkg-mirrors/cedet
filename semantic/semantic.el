@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.135 2001/12/12 01:49:17 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.136 2001/12/18 02:49:15 zappo Exp $
 
 (defvar semantic-version "1.4beta13"
   "Current version of Semantic.")
@@ -766,21 +766,21 @@ that, otherwise, do a full reparse."
     (garbage-collect)
     ;; Reparse the whole system
     (let ((gc-cons-threshold 10000000)
+	  ;; Capture the lexical tokens here so that if an error is
+	  ;; thrown, the cache is still safe.
+	  (lex (semantic-flex (point-min) (point-max)))
           res)
       ;; Init a dump
       (if semantic-dump-parse
           (semantic-dump-buffer-init))
+      ;; Clear the caches
+      (semantic-clear-toplevel-cache)
       ;; Parse!
       (working-status-forms (buffer-name) "done"
 	(setq res (semantic-bovinate-nonterminals
-                   (semantic-flex (point-min) (point-max))
-                   'bovine-toplevel semantic-flex-depth))
+                   lex 'bovine-toplevel semantic-flex-depth))
 	(working-status t))
       (setq res (nreverse res))
-      ;; Clear the cache just before setting the cache.  This way,
-      ;; if an error occurs, we can capture it, and leave the old state
-      ;; behind.
-      (semantic-clear-toplevel-cache)
       ;; Set up the new overlays, and then reset the cache.
       (semantic-overlay-list res)
       (semantic-set-toplevel-bovine-cache res)
