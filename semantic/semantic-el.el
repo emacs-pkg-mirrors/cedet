@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.24 2000/04/30 14:25:21 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.25 2000/04/30 22:44:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -57,17 +57,18 @@
      (comment) )
     ;; A function is anything that starts with a (defun
     (function
-     (open-paren symbol "defun\\|defmacro" symbol arg-list ; string
+     (open-paren symbol "defun\\|defmacro" symbol arg-list doc-string
 		 ,(lambda (vals start end)
-		    (list (nth 2 vals) 'function nil (nth 3 vals) nil ;(nth 4 vals)
+		    (list (nth 2 vals) 'function nil (nth 3 vals) nil
+			  (car-safe (nth 4 vals))
 			  start end))))
     ;; A variable can be a defvar or defconst.
     (variable
-     (open-paren symbol "defvar\\|defconst" symbol expression string
+     (open-paren symbol "defvar\\|defconst" symbol expression doc-string
 		 ,(lambda (vals start end)
 		    (list (nth 2 vals) 'variable nil
 			  (if (string= (nth 1 vals) "defconst") t nil)
-			  nil nil	;(nth 4 vals)
+			  nil nil (car-safe (nth 4 vals))
 			  start end))))
     ;; In elisp, an include is just the require statement.
     (include
@@ -91,6 +92,12 @@
 		      (if (and sym (fboundp sym))
 			  (list (nth 1 vals) 'code start end)
 			)))))
+    ;; Doc strings are sometimes optional, and always just return the
+    ;; start position.
+    (doc-string
+     (string ,(lambda (vals start end) (list start start end)))
+     (comment ,(lambda (vals start end) (list start start end)))
+     ())
     ;; Quotes are oft optional in some cases
     (quote (punctuation "'"))
     ;; Something that can be evaluated out to something.
@@ -100,6 +107,7 @@
      (semantic-list) (symbol) (string))
     ;; An argument list to a function
     (arg-list
+     (symbol "nil" ,(lambda (vals start end) (list nil)))
      (semantic-list ,(lambda (vals start end)
 		       (semantic-bovinate-from-nonterminal start end 'argsyms)
 		       ))
