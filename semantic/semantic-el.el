@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.42 2001/04/07 14:29:34 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.43 2001/04/21 14:43:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -60,9 +60,11 @@
 Return a bovination list to use."
   (let* ((rt (read (buffer-substring (car sl) (cdr sl)))) ; read text
 	 (ts (car rt)) ; type symbol
-	 (ss (if (listp (nth 1 rt))
-		 (nth 1 (nth 1 rt))
-		(nth 1 rt))) ; symbol name
+	 (tss (nth 1 rt))
+	 (ss (if (not (listp tss)) tss
+	       (if (eq (car tss) 'quote)
+		   (nth 1 tss)
+		 (car tss))))
 	 (sn (format "%S" ss))
 	 )
     (cond
@@ -133,8 +135,8 @@ Return a bovination list to use."
       )
      ((eq ts 'defstruct)
       ;; structs
-      (list sn 'type "struct" (semantic-elisp-desymbolify (nth 3 rt))
-	    (semantic-elisp-desymbolify (nth 2 rt))
+      (list sn 'type "struct" (semantic-elisp-desymbolify (nthcdr 2 rt))
+	    nil ;(semantic-elisp-desymbolify (nth 2 rt))
 	    nil (nth 4 rt))
       )
      ;; Now for other stuff
