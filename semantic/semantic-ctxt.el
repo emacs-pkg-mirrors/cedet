@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.2 2001/02/03 03:13:44 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.3 2001/02/09 19:48:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,11 +40,13 @@
  ";"
   "String which indicates the end of a command.
 Used for identifying the end of a single command.")
+(make-variable-buffer-local 'semantic-command-separation-character)
 
 (defvar semantic-function-argument-separation-character
  ","
   "String which indicates the end of a command.
 Used for identifying the end of a single command.")
+(make-variable-buffer-local 'semantic-function-argument-separation-character)
 
 ;;; Local variable parsing.
 ;;
@@ -171,7 +173,7 @@ Uses `semantic-beginning-of-context', `semantic-end-of-context',
 `semantic-up-context', and `semantic-get-local-variables' to collect
 this information."
   (let ((varlist nil)
-	(sublst nil))
+	(sublist nil))
     (save-excursion
       (while (not (semantic-beginning-of-context))
 	;; Get the local variables
@@ -354,6 +356,85 @@ Depends on `semantic-function-argument-separation-character'."
 		p t)
 	  (setq idx (1+ idx)))
 	idx))))
+
+;;; Context analysis routines
+;;
+;; These routines use the override methods to provides high level
+;; predicates, and to come up with intelligent suggestions about
+;; the current context.
+(defun semantic-suggest-lookup-item (name  &optional tokentype returntype)
+  "Find a token definition matching NAME with TOKENTYPE.
+Optional RETURNTYPE is a return value to match against also."
+  (let* ((locals (semantic-get-all-local-variables))
+	 (option
+	  (or (let ((found nil))
+		(while (and locals (not found))
+		  (setq found (semantic-find-nonterminal-by-name
+			       name (car locals) t)
+			locals (cdr locals)))
+		found)
+	      (semantic-find-nonterminal-by-name
+	       name (current-buffer) t)
+	      (and (featurep 'semanticdb)
+		   (semanticdb-minor-mode-p)
+		   (semanticdb-find-nonterminal-by-name name nil t nil t)))))
+    ;; This part is lame right now.  It needs to eventually
+    ;; do the tokentype and returntype filters across all databases.
+    ;; Some of the above return one token, instead of a list.  Deal with
+    ;; that too.
+    (if (listp option)
+	(if (semantic-token-p option)
+	    option
+	  (setq option (car option)))
+      (if (stringp option)
+	  (list option 'variable)
+	))))
+
+(defun semantic-suggest-variable-token-hierarchy ()
+  "Analyze the current line, and return a series of tokens.
+The tokens represent a hierarchy of dereferences.  For example, a
+variable name will return a list with one token representing that
+variable's declaration.  If that variable is being dereferenced, then
+return a list starting with the variable declaration, followed by all
+fields being extracted.
+
+For example, in c, \"foo->bar\" would return a list (VARTOKEN FIELDTOKEN)
+where VARTOKEN is a semantic token of the variable foo's declaration.
+FIELDTOKEN is either a string, or a semantic token representing
+the field in foo's type."
+  (let ((v (semantic-ctxt-current-symbol))
+	(name nil)
+	(tok nil)
+	(chil nil)
+	(toktype nil))
+    ;; First, take the first element of V, and find its type.
+    (setq tok (semantic-suggest-lookup-item (car v) 'variable))
+    ;; Now refer to it's type.
+    (setq toktype (semantic-token-type tok))
+    (if (and (semantic-token-p toktype)
+	     (not (semantic-token-type-parts toktype)))
+	(setq toktype (semantic-suggest-lookup-item
+		       (if (semantic-token-p toktype)
+			   (semantic-token-name toktype)
+			 (if (stringp toktype)
+			     toktype
+			   (error "Unknown token type")))
+		       'type)))
+    ;; We now have the originating type.  If there are no children, then
+    ;; this variable is all alone.  Otherwise, follow the chain.
+    (if (and toktype
+	     (semantic-token-p toktype)
+	     (setq chil (semantic-nonterminal-children toktype)))
+	(progn
+	  ;; Seek and destroy
+	  (list toktype)
+	  )
+      (list toktype))))
+
+(defun semantic-suggest-current-type ()
+  "Return the recommended type at the current location."
+  (let ((recommendation (semantic-suggest-variable-token-hierarchy)))
+    (car (nreverse recommendation))))
 
 (provide 'semantic-ctxt)
 
