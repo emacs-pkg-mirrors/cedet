@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.243 2005/02/03 14:10:19 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.244 2005/02/20 19:35:11 zappo Exp $
 
 (defvar speedbar-version "1.0"
   "The current version of speedbar.")
@@ -3453,7 +3453,7 @@ level."
 
 ;;; Loading files into the attached frame.
 ;;
-(defcustom speedbar-select-frame-method 1
+(defcustom speedbar-select-frame-method 'attached
   "*Specify how to select a frame for displaying a file.
 A value of 'attached means to use the attached frame (the frame
 that speedbar was started from.)  A number such as 1 or -1 means to
@@ -3467,9 +3467,6 @@ If the file is being displayed in a different frame already, then raise that
 frame instead."
   (let* ((buff (find-file-noselect file))
 	 (bwin (get-buffer-window buff 0)))
-
-;; something in here causes mouse to move.
-
     (if bwin
 	(progn
 	  (select-window bwin)
