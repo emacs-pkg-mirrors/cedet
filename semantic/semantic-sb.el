@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.11 2000/04/25 02:48:20 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.12 2000/04/25 16:22:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,6 @@
 ;; 
 
 (require 'semantic)
-(require 'semantic-inc)
 (require 'speedbar)
 
 ;;; Code:
@@ -248,23 +247,14 @@ TEXT TOKEN and INDENT are the details."
 	(parent (semantic-sb-detail-parent)))
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
-    (let ((tt (semantic-token-token token)))
-      (cond
-       ((eq tt 'include)
-	(let ((filename (semantic-inc-find token (current-buffer))))
-	  (if filename
-	      (speedbar-find-file-in-frame filename)
-	    (semantic-find-nonterminal (current-buffer) token parent)
-	    (run-hooks 'speedbar-visiting-tag-hook))))
-       (t
-	(semantic-find-nonterminal (current-buffer) token parent)
-	(run-hooks 'speedbar-visiting-tag-hook))))
+    (semantic-find-nonterminal (current-buffer) token parent)
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
     (speedbar-set-timer speedbar-update-speed)
     ;;(recenter)
     (speedbar-maybee-jump-to-attached-frame)
+    (run-hooks 'speedbar-visiting-tag-hook)))
     ))
 
 (defun semantic-sb-expand-group (text token indent)
