@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.16 2001/02/17 19:58:15 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.17 2001/04/27 00:28:29 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -164,7 +164,8 @@ Argument LEVEL is the current level of recursion we have hit."
 	 (anchor nil)
 	 )
     ;; doc of the class itself
-    (insert (eieiodoc-texify-docstring (aref cv 2) class) "\n\n@table @asis\n")
+    (insert (eieiodoc-texify-docstring (documentation class) class)
+	    "\n\n@table @asis\n")
     (if names
 	(progn
 	  (setq anchor (point))
@@ -338,7 +339,7 @@ that class.
  t          => @code{t}
  :tag       => @code{:tag}
  [ stuff ]  => @code{[ stuff ]}
- Key        => @kbd{Key}        (key is C-h, M-h, SPC, RET, TAB and the like)"
+ Key        => @kbd{Key}"
   (while (string-match "`\\([-a-zA-Z0-9]+\\)'" string)
     (let* ((vs (substring string (match-beginning 1) (match-end 1)))
 	   (v (intern-soft vs)))
