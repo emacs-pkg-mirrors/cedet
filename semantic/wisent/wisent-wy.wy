@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.wy,v 1.8 2002/07/16 21:17:37 ponced Exp $
+;; X-RCS: $Id: wisent-wy.wy,v 1.9 2002/07/30 19:59:27 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -52,14 +52,6 @@
      (rule         . default)
      )
    )
-  (semantic-install-function-overrides
-   '(
-     ;;(abbreviate-nonterminal    . wisent-wy-abbreviate-nonterminal)
-     ;;(summarize-nonterminal     . wisent-wy-summarize-nonterminal)
-     ;;(eldoc-current-symbol-info . wisent-wy-ecsi)
-     (nonterminal-children      . wisent-wy-nonterminal-children)
-     )
-   t)
   %}
 
 %outputfile    "wisent-wy.el"
@@ -232,7 +224,7 @@ token_decl:
   ;
 
 token_type_opt:
-  ;; EMPTY
+ ;; EMPTY
   | token_type
   ;
 
@@ -417,7 +409,7 @@ rule:
   ;
 
 rhs:
- ;; empty
+ ;; EMPTY
   | rhs item
     (cons $2 $1)
   | rhs action

@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.6 2002/07/20 08:07:38 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.7 2002/07/30 19:57:45 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -29,14 +29,6 @@
 ;; Settings
 ;; --------
 %{
-  ;; semantic overloaded functions
-  (semantic-install-function-overrides
-   '((prototype-nonterminal . semantic-java-prototype-nonterminal)
-     (find-documentation    . semantic-java-find-documentation)
-     (get-local-variables   . wisent-java-get-local-variables)
-     )
-   t ;; They can be changed in mode hook by more specific ones
-   )
   (setq
    ;; Lexical analysis
    semantic-lex-number-expression semantic-java-number-regexp
