@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.43 2003/09/04 19:32:01 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.44 2003/09/06 19:38:42 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -656,6 +656,7 @@ Optional argument FORCE will force items to be regenerated."
       (eieio-oset this tag val))
     (setq readstream (cdr (cdr readstream)))))
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("Project\\.ede" . emacs-lisp-mode))
 
 (provide 'ede-proj)
