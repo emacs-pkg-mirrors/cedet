@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.45 1999/09/05 18:50:56 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.46 1999/09/05 19:35:56 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -864,7 +864,7 @@ Fills in OBJ's FIELD with VALUE."
 	      (eieio-validate-class-slot-value (object-class-fast obj) c value)
 	      (aset (aref (class-v (aref obj object-class))
 			  class-class-allocation-values)
-		    c))
+		    c value))
 	  ;; See oref for comment on `slot-missing'
 	  (slot-missing obj field 'oset value)
 	  ;;(signal 'invalid-slot-name (list (object-name obj) field))
@@ -892,11 +892,11 @@ Fills in the default value in CLASS' in FIELD with VALUE."
 	(if (setq c (eieio-class-field-name-index class field))
 	    (progn
 	      ;; Oref that slot.
-	      (eieio-validate-class-slot-value (object-class-fast obj) c value)
+	      (eieio-validate-class-slot-value class c value)
 	      (aset (aref (class-v class) class-class-allocation-values) c
 		    value))
 	  (signal 'invalid-slot-name (list (class-name class) field)))
-      (eieio-validate-slot-value (object-class-fast obj) c value)
+      (eieio-validate-slot-value class c value)
       (setcar (nthcdr (- c 3) (aref (class-v class) class-public-d))
 	      value))))
 
@@ -1014,7 +1014,7 @@ Therefore `slot-boundp' is really a macro calling `slot-exists-p'"
 This actually just returns whatever SYMBOL has in it's value slot.
 If there is no class, nil is returned if ERRORP is nil."
   (if (not (class-p symbol))
-      (if errorp (signal 'wrong-type-argument (list 'class-p class))
+      (if errorp (signal 'wrong-type-argument (list 'class-p symbol))
 	nil)
     (class-v symbol)))
 
