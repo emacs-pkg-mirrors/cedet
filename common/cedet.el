@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.4 2003/09/23 15:12:48 ponced Exp $
+;; X-RCS: $Id: cedet.el,v 1.5 2003/09/24 17:38:37 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -83,9 +83,9 @@
   `(
     ;;PACKAGE   MIN-VERSION      INSTALLDIR
     (cedet      ,cedet-version   "common"  )
-    (cogre      "0.4"                      )
+    (cogre      "0.4beta1"                 )
     (ede        "1.0beta3"                 )
-    (eieio      "0.18"                     )
+    (eieio      "0.18beta1"                )
     (semantic   "2.0beta1"                 )
     (speedbar   "0.15beta1"                )
     )
