@@ -5,6 +5,13 @@
   :version "2.0beta1"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-elisp "maintenance"
+    :name "maintenance"
+    :path ""
+    :source '("semantic-ede-grammar.el")
+    :partofall 'nil
+    :aux-packages '("ede-proj" "eieio")
+    )
    (ede-proj-target-makefile-miscelaneous "wy"
     :name "wy"
     :path ""
@@ -28,7 +35,7 @@
     :rules (list 
      (ede-makefile-rule "Custom-new"
       :target "semantic-al.el"
-      :dependencies "$(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(init_LISP) $(wildcard bovine/*.el) $(wildcard wisent/*.el)"
+      :dependencies "$(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(init_LISP) $(maintenance_LISP) $(wildcard bovine/*.el) $(wildcard wisent/*.el)"
       :rules '("$(EMACS) -batch -l semantic-autogen.el -f semantic-hack-autoloads")
       )
      )
@@ -36,7 +43,7 @@
    (ede-proj-target-elisp "semantic"
     :name "semantic"
     :path ""
-    :source '("semantic.el" "semantic-util.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-edit.el" "semantic-fw.el" "semantic-grammar.el" "semantic-tag.el" "semantic-find.el" "semantic-format.el" "semantic-complete.el" "semantic-sort.el" "semantic-decorate.el" "semantic-tag-file.el" "semantic-doc.el" "semantic-tag-ls.el")
+    :source '("semantic.el" "semantic-util.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-edit.el" "semantic-fw.el" "semantic-grammar.el" "semantic-tag.el" "semantic-find.el" "semantic-format.el" "semantic-complete.el" "semantic-sort.el" "semantic-decorate.el" "semantic-tag-file.el" "semantic-doc.el" "semantic-tag-ls.el" "semantic-ast.el")
     :versionsource '("semantic.el")
     :aux-packages '("semantic-bovine" "wisent")
     )
