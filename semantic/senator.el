@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.66 2003/03/28 09:25:54 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.67 2003/04/01 13:07:57 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -187,7 +187,7 @@ langage behaviour."
 (defsubst senator-current-token ()
   "Return the current tag in the current buffer.
 Raise an error is there is no tag here."
-  (or (semantic-current-nonterminal)
+  (or (semantic-current-tag)
       (error "No semantic tag here")))
 
 (defun senator-momentary-highlight-token (tag)
@@ -221,7 +221,7 @@ Does nothing if `senator-highlight-found' is nil."
 Return nil otherwise."
   (if tag
       (let (parent parents)
-        (setq parents (semantic-find-nonterminal-by-overlay
+        (setq parents (semantic-find-tag-by-overlay
                        (semantic-tag-start tag)))
         (while (and parents (not parent))
           (setq parent  (car parents)
@@ -234,7 +234,7 @@ Return nil otherwise."
 
 (defun senator-previous-token-or-parent (pos)
   "Return the tag before POS or one of its parent where to step."
-  (let ((tag (semantic-find-nonterminal-by-overlay-prev pos)))
+  (let ((tag (semantic-find-tag-by-overlay-prev pos)))
     (or (senator-step-at-parent tag) tag)))
 
 (defun senator-full-token-name (tag parent)
@@ -395,8 +395,8 @@ sub tags are included too."
 
 (defun senator-current-type-context ()
   "Return tags in the type context at point or nil if not found."
-  (let ((context (semantic-find-nonterminal-by-token
-                  'type (semantic-find-nonterminal-by-overlay))))
+  (let ((context (semantic-find-tag-by-class
+                  'type (semantic-find-tag-by-overlay))))
     (if context
         (semantic-tag-type-members
          (nth (1- (length context)) context)))))
@@ -426,7 +426,7 @@ Uses `semanticdb' when available."
       ;; semanticdb version returns a list of (DB-TABLE . TAG)
       (semanticdb-find-nonterminal-by-name name nil t)
     ;; for semantic version just return TAG
-    (semantic-find-nonterminal-by-name name (current-buffer) t)))
+    (semantic-brute-find-first-tag-by-name name (current-buffer) t)))
 
 (defun senator-find-nonterminal-by-name-regexp (regexp)
   "Find all tags with a name matching REGEXP.
@@ -435,7 +435,7 @@ Uses `semanticdb' when available."
       ;; semanticdb version returns a list of (DB-TABLE . TAG-LIST)
       (semanticdb-find-nonterminal-by-name-regexp regexp nil t)
     ;; for semantic version just return TAG-LIST
-    (semantic-find-nonterminal-by-name-regexp regexp (current-buffer) t)))
+    (semantic-brute-find-tag-by-name-regexp regexp (current-buffer) t)))
 
 ;;;;
 ;;;; Search functions
@@ -474,7 +474,7 @@ See `search-forward' for the meaning of BOUND NOERROR and COUNT."
                     (setq next (funcall searcher what bound t step)))
           (setq sstart (match-beginning 0)
                 send   (match-end 0)
-                tag  (semantic-current-nonterminal))
+                tag  (semantic-current-tag))
         (if (= sstart send)
             (setq found t)
           (if tag
@@ -511,7 +511,7 @@ See `search-backward' for the meaning of BOUND NOERROR and COUNT."
                     (setq next (funcall searcher what bound t step)))
           (setq sstart (match-beginning 0)
                 send   (match-end 0)
-                tag  (semantic-current-nonterminal))
+                tag  (semantic-current-tag))
         (if (= sstart send)
             (setq found t)
           (if tag
@@ -543,7 +543,7 @@ See `search-backward' for the meaning of BOUND NOERROR and COUNT."
 Return the tag or nil if at end of buffer."
   (interactive)
   (let ((pos (point))
-        (tag (semantic-current-nonterminal))
+        (tag (semantic-current-tag))
         where)
     (if (and tag
              (not (senator-skip-p tag))
@@ -553,9 +553,9 @@ Return the tag or nil if at end of buffer."
         nil
       (if (setq tag (senator-step-at-parent tag))
           nil
-        (setq tag (semantic-find-nonterminal-by-overlay-next pos))
+        (setq tag (semantic-find-tag-by-overlay-next pos))
         (while (and tag (senator-skip-p tag))
-          (setq tag (semantic-find-nonterminal-by-overlay-next
+          (setq tag (semantic-find-tag-by-overlay-next
                        (semantic-tag-start tag))))))
     (if (not tag)
         (progn
@@ -582,7 +582,7 @@ Return the tag or nil if at end of buffer."
 Return the tag or nil if at beginning of buffer."
   (interactive)
   (let ((pos (point))
-        (tag (semantic-current-nonterminal))
+        (tag (semantic-current-tag))
         where)
     (if (and tag
              (not (senator-skip-p tag))
@@ -1653,9 +1653,9 @@ This is a buffer local variable.")
     (senator-menu-item
      [ "Read Only"
        senator-toggle-read-only
-       :active (semantic-current-nonterminal)
+       :active (semantic-current-tag)
        :style toggle
-       :selected (let ((tag (semantic-current-nonterminal)))
+       :selected (let ((tag (semantic-current-tag)))
                    (and tag (semantic-token-read-only-p tag)))
        :help "Make the current tag read-only"
        ])
@@ -1664,35 +1664,35 @@ This is a buffer local variable.")
        senator-toggle-intangible
        ;; XEmacs extent `intangible' property seems to not exists.
        :active (and (not (featurep 'xemacs))
-                    (semantic-current-nonterminal))
+                    (semantic-current-tag))
        :style toggle
        :selected (and (not (featurep 'xemacs))
-                      (let ((tag (semantic-current-nonterminal)))
+                      (let ((tag (semantic-current-tag)))
                         (and tag (semantic-token-intangible-p tag))))
        :help "Make the current tag intangible"
        ])
     (senator-menu-item
      [ "Set Tag Face"
        senator-set-face
-       :active (semantic-current-nonterminal)
+       :active (semantic-current-tag)
        :help "Set the face on the current tag"
        ])
     (senator-menu-item
      [ "Set Tag Foreground"
        senator-set-foreground
-       :active (semantic-current-nonterminal)
+       :active (semantic-current-tag)
        :help "Set the foreground color on the current tag"
        ])
     (senator-menu-item
      [ "Set Tag Background"
        senator-set-background
-       :active (semantic-current-nonterminal)
+       :active (semantic-current-tag)
        :help "Set the background color on the current tag"
        ])
     (senator-menu-item
      [ "Remove all properties"
        senator-clear-token
-       :active (semantic-current-nonterminal)
+       :active (semantic-current-tag)
        :help "Remove all special face properties on the current tag "
        ] )
     )
@@ -1701,13 +1701,13 @@ This is a buffer local variable.")
     (senator-menu-item
      [ "Copy Tag"
        senator-copy-token
-       :active (semantic-current-nonterminal)
+       :active (semantic-current-tag)
        :help "Copy the current tag to the tag ring"
        ])
     (senator-menu-item
      [ "Kill Tag"
        senator-kill-token
-       :active (semantic-current-nonterminal)
+       :active (semantic-current-tag)
        :help "Kill tag text to the kill ring, and copy the tag to the tag ring"
        ])
     (senator-menu-item
@@ -1719,7 +1719,7 @@ This is a buffer local variable.")
     (senator-menu-item
      [ "Copy Tag to Register"
        senator-copy-token-to-register
-       :active (semantic-current-nonterminal)
+       :active (semantic-current-tag)
        :help "Copy the current tag to a register"
        ])
     )
@@ -2156,7 +2156,7 @@ to find the name used by add log.")
 (defadvice add-log-current-defun (around senator activate)
   "Return name of function definition point is in, or nil."
   (if senator-minor-mode
-      (let ((cd (semantic-find-nonterminal-by-overlay))
+      (let ((cd (semantic-find-tag-by-overlay))
             (name nil))
         (while (and cd (not name))
           (if (member (semantic-tag-class (car cd)) senator-add-log-tokens)
@@ -2289,7 +2289,7 @@ versions of Emacs."
                           (cdr
                            (car (semanticdb-find-nonterminal-by-name
                                  (car sym) nil t)))
-                        (semantic-find-nonterminal-by-name
+                        (semantic-brute-find-first-tag-by-name
                          (car sym) (current-buffer) t)))
           (and (not found)
                (semantic-flex-keyword-p (car sym))
@@ -2305,7 +2305,7 @@ versions of Emacs."
                                 (cdr
                                  (car (semanticdb-find-nonterminal-by-name
                                        (car sym) nil t)))
-                              (semantic-find-nonterminal-by-name
+                              (semantic-brute-find-first-tag-by-name
                                (car sym) (current-buffer) t)))
                 (and (not found)
                      (semantic-flex-keyword-p (car sym))
