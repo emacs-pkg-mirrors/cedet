@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.39 2001/12/05 01:23:47 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.40 2002/12/23 17:39:07 emacsman Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 ;; rebuild.  The targets provided in ede-proj can be augmented with
 ;; additional target types inherited directly from `ede-proj-target'.
 
-(require 'ede)
+(eval-and-compile '(require 'ede))
 (require 'ede-proj-comp)
 
 ;;; Class Definitions:
