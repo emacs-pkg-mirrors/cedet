@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.2 2003/03/20 09:18:42 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.3 2003/03/20 14:25:05 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -357,16 +357,16 @@ ATTRIBUTES is a list of additional attributes belonging to this tag."
 
 ;;; Tag Cloning.
 ;;
-(defun semantic-tag-clone (tag)
+(defsubst semantic-tag-clone (tag &optional name)
   "Clone TAG, creating a new TAG.
-The actual values in TAG such as string names are not copied,
-but shared with the original.
-Use `semantic-tag-put-no-side-effect' to add properties to the clone.
-The clone has a 'clone property whose value is t."
+If optional argument NAME is not nil it specifies a new name for the
+cloned tag."
   ;; Right now, TAG is a list.
-  (let ((new (copy-sequence tag)))
-    (semantic--tag-put-property-no-side-effect new 'clone t)
-    new))
+  (list (or name (semantic-tag-name tag))
+        (semantic-tag-class tag)
+        (copy-sequence (semantic-tag-attributes tag))
+        (copy-sequence (semantic-tag-properties tag))
+        (semantic-tag-overlay tag)))
 
 ;;; Standard Tag Access
 ;;
