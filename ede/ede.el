@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.41 2000/10/11 03:06:59 zappo Exp $
+;; RCS: $Id: ede.el,v 1.42 2000/10/14 02:49:53 zappo Exp $
 (defconst ede-version "0.8 beta 2"
   "Current version of the Emacs EDE.")
 
@@ -269,7 +269,8 @@ and target specific elements such as build variables.")
 	  [ "Rescan Project Files" ede-rescan-toplevel t ]
 	  [ "Edit Projectfile" ede-edit-file-target
 	    (and ede-object
-		 (not (obj-of-class-p ede-object ede-project))) ])
+		 (or (listp ede-object)
+		     (not (obj-of-class-p ede-object ede-project)))) ])
 	 :documentation "Menu specialized to this type of target."
 	 :accessor ede-object-menu)
    )
@@ -385,6 +386,12 @@ Argument LIST-O-O is the list of objects to choose from."
 		       ede-minor-keymap))
     ))
 
+(defun ede-menu-obj-of-class-p (class)
+  "Return non-nil if some member of `ede-object' is a child of CLASS."
+  (if (listp ede-object)
+      (ede-or (mapcar (lambda (o) (obj-of-class-p o class)) ede-object))
+    (obj-of-class-p ede-object class)))
+
 (defun ede-build-forms-menu (menu-def)
   "Create a sub menu for building different parts of an EDE system.
 Argument MENU-DEF is the menu definition to use."
@@ -395,14 +402,17 @@ Argument MENU-DEF is the menu definition to use."
 	   (newmenu nil) ;'([ "Build Selected..." ede-compile-selected t ]))
 	   (targets (oref obj targets))
 	   targitems
+	   (ede-obj (if (listp ede-object) ede-object (list ede-object)))
 	   (tskip nil))
       ;; First, collect the build items from the project
       (setq newmenu (append newmenu (ede-menu-items-build obj t)))
       ;; Second, Declare the current target menu items
-      (if (and ede-object (obj-of-class-p ede-object ede-target))
-	  (setq newmenu (append newmenu
-				(ede-menu-items-build ede-object t))
-		tskip ede-object))
+      (if (and ede-obj (ede-menu-obj-of-class-p ede-target))
+	  (while ede-obj
+	    (setq newmenu (append newmenu
+				  (ede-menu-items-build (car ede-obj) t))
+		  tskip (car ede-obj)
+		  ede-obj (cdr ede-obj))))
       ;; Third, by name, enable builds for other local targets
       (while targets
 	(unless (eq tskip (car targets))
@@ -436,8 +446,12 @@ Argument MENU-DEF is the menu definition to use."
 	   (and ede-object
 		(or (listp ede-object)
 		    (not (obj-of-class-p ede-object ede-project)))) ])
-       (if (and obj (oref obj menu))
-	   (oref obj menu)))))))
+       (if (and (not (listp obj)) (oref obj menu))
+	   (oref obj menu)
+	 (when (listp obj)
+	   ;; This is bad, but I'm not sure what else to do.
+	   (oref (car obj) menu))))))))
+       
 
 (defun ede-project-forms-menu (menu-def)
   "Create a target MENU-DEF based on the object belonging to this buffer."
@@ -724,10 +738,7 @@ Optional argument FORCE forces the file to be removed without asking."
 	      (list ede-object))))
     (while eo
       (if (or force (y-or-n-p (format "Remove from %s? " (ede-name (car eo)))))
-	  (progn
-	    (project-remove-file (car eo)
-				 (ede-convert-path (ede-current-project)
-						   (buffer-file-name)))))
+	  (project-remove-file (car eo) (buffer-file-name)))
       (setq eo (cdr eo)))
     (setq ede-object nil)
     (setq ede-object (ede-buffer-object (current-buffer)))
@@ -983,7 +994,7 @@ Argument THIS is the project to convert PATH to."
 	      (lp (or (oref this path) "")))
 	  ;; Our target THIS may have path information.
 	  ;; strip this out of the conversion.
-	  (if (string= (substring p (length lp)) lp)
+	  (if (string-match (concat "^" (regexp-quote lp)) p)
 	      (substring p (length lp))
 	    p))
       (error "Parentless target %s" this))))
@@ -1263,11 +1274,7 @@ could become slow in time."
 (defmethod ede-target-buffer-in-sourcelist ((this ede-target) buffer source)
   "Return non-nil if object THIS is in BUFFER to a SOURCE list.
 Handles complex path issues."
-  (let* ((p (ede-convert-path this (buffer-file-name buffer)))
-	 (path (file-name-directory p))
-	 (file (file-name-nondirectory p)))
-    (and (or (not path) (string= path (oref this path)))
-	 (member file source))))
+  (member (ede-convert-path this (buffer-file-name buffer)) source))
 
 (defmethod ede-buffer-mine ((this ede-project) buffer)
   "Return non-nil if object THIS lays claim to the file in BUFFER."
