@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.23 2000/06/23 23:11:03 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.24 2000/07/07 20:30:10 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -361,7 +361,7 @@ FILE must be massaged by `ede-convert-path'."
   ;; I'm a lazy bum, so I'll make a makefile for doing this sort
   ;; of thing, and rely only on that small section of code.
   (let ((pm (ede-proj-dist-makefile this)))
-    (ede-proj-makefile-create-maybe this pm)
+    (ede-proj-setup-buildenvironment this)
     (compile (concat "make -f " pm " dist"))))
 
 (defmethod project-compile-project ((proj ede-proj-project) &optional command)
@@ -369,7 +369,7 @@ FILE must be massaged by `ede-convert-path'."
 Argument COMMAND is the command to use when compiling."
   (let ((pm (ede-proj-dist-makefile proj))
 	(default-directory (file-name-directory (oref proj file))))
-    (ede-proj-makefile-create-maybe proj pm)
+    (ede-proj-setup-buildenvironment proj)
     (compile (concat "make -f " pm " all"))))
 
 ;;; Target type specific compilations/debug
@@ -383,8 +383,7 @@ Argument COMMAND is the command to use for compiling the target."
 				   &optional command)
   "Compile the current target program OBJ.
 Optional argument COMMAND is the s the alternate command to use."
-  (ede-proj-makefile-create-maybe (ede-current-project)
-				  (oref obj makefile))
+  (ede-proj-setup-buildenvironment (ede-current-project))
   (compile (concat "make -f " (oref obj makefile) " " (ede-name obj))))
 
 (defmethod project-debug-target ((obj ede-proj-target))
@@ -394,21 +393,21 @@ Optional argument COMMAND is the s the alternate command to use."
 
 ;;; Target type specific autogenerating gobbldegook.
 ;;
-(defun ede-proj-makefile-type ()
+(defun ede-proj-makefile-type (&optional proj)
   "Makefile type of the current project."
-  (oref (ede-current-project) makefile-type))
+  (oref (or proj (ede-current-project)) makefile-type))
 
-(defun ede-proj-automake-p ()
+(defun ede-proj-automake-p (&optional proj)
   "Return non-nil if the current project is automake mode."
-  (eq (ede-proj-makefile-type) 'Makefile.am))
+  (eq (ede-proj-makefile-type proj) 'Makefile.am))
 
-(defun ede-proj-autoconf-p ()
+(defun ede-proj-autoconf-p (&optional proj)
   "Return non-nil if the current project is automake mode."
-  (eq (ede-proj-makefile-type) 'Makefile.in))
+  (eq (ede-proj-makefile-type proj) 'Makefile.in))
 
-(defun ede-proj-make-p ()
+(defun ede-proj-make-p (&optional proj)
   "Return non-nil if the current project is automake mode."
-  (eq (ede-proj-makefile-type) 'Makefile))
+  (eq (ede-proj-makefile-type proj) 'Makefile))
 
 (defmethod ede-proj-dist-makefile ((this ede-proj-project))
   "Return the name of the Makefile with the DIST target in it for THIS."
@@ -431,13 +430,10 @@ Optional argument COMMAND is the s the alternate command to use."
 (defun ede-proj-regenerate ()
   "Regenerate Makefiles for and edeproject project."
   (interactive)
-  (ede-proj-makefile-create
-   (ede-current-project)
-   ;; Just do this one for now.  Come up with a way to do all potential
-   ;; makefiles in the future.
-   (ede-proj-dist-makefile (ede-current-project))))
+  (ede-proj-setup-buildenvironment (ede-current-project) t))
 
-(eval-when-compile (require 'ede-pmake))
+(eval-when-compile (require 'ede-pmake)
+		   (require 'ede-pconf))
 
 (defmethod ede-proj-makefile-create-maybe ((this ede-proj-project) mfilename)
   "Create a Makefile for all Makefile targets in THIS if needed.
@@ -446,6 +442,26 @@ MFILENAME is the makefile to generate."
   (require 'ede-pmake)
   (if (file-newer-than-file-p (oref this file) mfilename)
       (ede-proj-makefile-create this mfilename)))
+
+(defmethod ede-proj-setup-buildenvironment ((this ede-proj-project)
+					    &optional force)
+  "Setup the build environment for project THIS.
+Handles the Makefile, or a Makefile.am configure.in combination.
+Optional argument FORCE will force items to be regenerated."
+  (if (not force)
+      (ede-proj-makefile-create-maybe this (ede-proj-dist-makefile this))
+    (require 'ede-pmake)
+    (ede-proj-makefile-create this (ede-proj-dist-makefile this)))
+  (if (ede-proj-automake-p this)
+      (progn
+	(require 'ede-pconf)
+	;; If the user wants to force this, do it some other way?
+	(ede-proj-configure-synchronize this)
+	;; Now run automake to fill in the blanks, autoconf, and other
+	;; auto thingies so that we can just say "make" when done.
+	
+	)))
+
 
 ;;; Lower level overloads
 ;;  
