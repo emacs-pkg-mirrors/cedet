@@ -39,3 +39,5 @@ The Visual Studio bookmark emulation uses the linemark library, so it
 has all the advantages of this library.  Bookmarks are remembered
 when a buffer is killed, and are restored when you return to that
 buffer later.  (Though not between Emacs Sessions.)
+
+<!--#include file="footer.fsf.shtml"-->

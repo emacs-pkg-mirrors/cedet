@@ -205,3 +205,5 @@ A) It first attempts to determine the type for the local context as
    datatype.
 
 </pre>
+
+<!--#include file="footer.fsf.shtml"-->
