@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.86 2001/02/22 02:46:19 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.87 2001/02/24 15:17:29 zappo Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -247,6 +247,10 @@ documented here are allowed.
      this signals that a function or variable is user visible.  In Emacs Lisp,
      this means a function is `interactive'.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table)
+
+(defvar semantic-toplevel-bovine-table-source nil
+  "The .bnf source file the current table was created from.")
+(make-variable-buffer-local 'semantic-toplevel-bovine-table-source)
 
 (defvar semantic-symbol->name-assoc-list
   '((variable . "Variables")
@@ -800,10 +804,10 @@ the current results on a parse error."
 	 (new (semantic-bovinate-nonterminal flexbits
 					     semantic-toplevel-bovine-table
 					     nonterminal)))
+    (setq new (car (cdr new)))
     (if (not new)
 	;; Clever reparse failed, queuing full reparse.
 	(setq semantic-toplevel-bovine-cache-check t)
-      (setq new (car (cdr new)))
       (semantic-raw-to-cooked-token new)
       (let ((oo (semantic-token-overlay token))
 	    (o (semantic-token-overlay new)))
@@ -821,6 +825,7 @@ the current results on a parse error."
 	  (while p
 	    (semantic-token-put new (car (car p)) (cdr (car p)))
 	    (setq p (cdr p))))
+	(semantic-token-put new 'reparse-symbol nonterminal)
 	(semantic-token-put new 'dirty nil)
 	;; Splice into the main list.
 	(setcdr token (cdr new))
@@ -1111,13 +1116,20 @@ Argument COMMENT is additional description."
 (defun semantic-bovinate-debug-buffer ()
   "Bovinate the current buffer in debug mode."
   (interactive)
-  (if (not semantic-bovinate-debug-table)
+  (if (and (not semantic-toplevel-bovine-table-source)
+	   (not semantic-bovinate-debug-table))
       (error
        "Call `semantic-bovinate-debug-set-table' from your semantic table"))
   (let ((semantic-edebug t))
     (delete-other-windows)
     (split-window-vertically)
-    (switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
+    (if semantic-bovinate-debug-table
+	(switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
+      (if (not semantic-toplevel-bovine-table-source)
+	  (error "No debuggable BNF source found"))
+      (require 'semantic-bnf)
+      (switch-to-buffer (semantic-bnf-find-source-on-load-path
+			 semantic-toplevel-bovine-table-source)))
     (other-window 1)
     (semantic-clear-toplevel-cache)
     (semantic-bovinate-toplevel)))
@@ -1130,7 +1142,9 @@ NONTERMINAL is the current nonterminal being parsed.
 MATCHLEN is the number of match lists tried.
 TOKENLEN is the number of match tokens tried.
 COLLECTION is the list of things collected so far."
-  (let ((ol1 nil) (ol2 nil) (ret nil))
+  (let ((ol1 nil) (ol2 nil) (ret nil)
+	(bnf-buffer (semantic-bnf-find-source-on-load-path
+		     semantic-toplevel-bovine-table-source)))
     (unwind-protect
 	(progn
 	  (goto-char (car (cdr lse)))
@@ -1139,18 +1153,35 @@ COLLECTION is the list of things collected so far."
 	  (goto-char (car (cdr lse)))
 	  (if window-system nil (sit-for 1))
 	  (other-window 1)
-	  (set-buffer (marker-buffer semantic-bovinate-debug-table))
-	  (goto-char semantic-bovinate-debug-table)
-	  (re-search-forward
-	   (concat "^\\s-*\\((\\|['`]((\\)\\(" (symbol-name nonterminal)
-		   "\\)[ \t\n]+(")
-	   nil t)
-	  (setq ol2 (semantic-make-overlay (match-beginning 2) (match-end 2)))
-	  (semantic-overlay-put ol2 'face 'highlight)
-	  (forward-char -2)
-	  (forward-list matchlen)
-	  (skip-chars-forward " \t\n(")
-	  (forward-sexp tokenlen)
+	  (let (s e)
+	    (if semantic-bovinate-debug-table
+		(progn
+		  (set-buffer (marker-buffer semantic-bovinate-debug-table))
+		  (goto-char semantic-bovinate-debug-table)
+		  (re-search-forward
+		   (concat "^\\s-*\\((\\|['`]((\\)\\(" (symbol-name nonterminal)
+			   "\\)[ \t\n]+(")
+		   nil t)
+		  (setq s (match-beginning 2)
+			e (match-end 2))
+		  (forward-char -2)
+		  (forward-list matchlen)
+		  (skip-chars-forward " \t\n(")
+		  (forward-sexp tokenlen)
+		  )
+	      ;; The user didn't specify a lisp level table.
+	      ;; go to the source...
+	      (set-buffer bnf-buffer)
+	      (semantic-bnf-find-state-position
+	       nonterminal matchlen tokenlen)
+	      (save-excursion
+		(goto-char (semantic-token-start (semantic-current-nonterminal)))
+		(setq s (point)
+		      e (progn (forward-sexp 1) (point))))
+	      )
+	    (setq ol2 (semantic-make-overlay s e))
+	    (semantic-overlay-put ol2 'face 'highlight)
+	    )
 	  (message "%s: %S" lse collection)
 	  (let ((e (read-event)))
 	    (cond ((eq e ?f)		;force a failure on this symbol.
