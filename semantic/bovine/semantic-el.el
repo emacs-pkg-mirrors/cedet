@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.10 2003/03/21 03:27:16 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.11 2003/03/27 13:59:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,8 +38,13 @@
   `((bovine-toplevel
      (semantic-list
       ,(lambda (vals start end)
-	 (append (semantic-elisp-use-read (car vals))
-		 (list start end)))))
+         (let ((tag (semantic-elisp-use-read (car vals))))
+           ;; At this point, if `semantic-elisp-use-read' returned an
+           ;; already expanded tag (from definitions parsed inside an
+           ;; eval and compile wrapper), just pass it!
+           (if (semantic--tag-expanded-p tag)
+               tag
+             (append tag (list start end)))))))
     )
   "Top level bovination table for elisp.")
 
@@ -73,31 +78,24 @@
        (t nil)))))
 
 (defun semantic-elisp-clos-args-to-semantic (partlist)
-  "Convert a list of CLOS class slot PARTLIST to `variable' tokens."
-  (let ((vars nil))
+  "Convert a list of CLOS class slot PARTLIST to `variable' tags."
+  (let (vars part v)
     (while partlist
-      (let ((part (car partlist)))
-	(setq vars
-	      (cons
-	       (list (symbol-name (car part))
-		     'variable
-		     (semantic-elisp-clos-slot-property-string
-		      part :type)
-		     (semantic-elisp-clos-slot-property-string
-		      part :initform)
-		     (semantic-bovinate-make-assoc-list
-		      'protection
-		      (semantic-elisp-clos-slot-property-string
-		       part :protection)
-		      'static
-		      (equal (semantic-elisp-clos-slot-property-string
-			      part :allocation)
-			     ":class")
-		      )
-		     (semantic-elisp-clos-slot-property-string
-		      part :documentation))
-	       vars)))
-      (setq partlist (cdr partlist)))
+      (setq part (car partlist)
+            partlist (cdr partlist)
+            v (semantic-tag-new-variable
+               (symbol-name (car part))
+               (semantic-elisp-clos-slot-property-string part :type)
+               (semantic-elisp-clos-slot-property-string part :initform)
+               ;; Attributes
+               'protection (semantic-elisp-clos-slot-property-string
+                            part :protection)
+               'static (equal (semantic-elisp-clos-slot-property-string
+                               part :allocation)
+                              ":class")
+               :documentation (semantic-elisp-clos-slot-property-string
+                               part :documentation))
+            vars (cons v vars)))
     (nreverse vars)))
 
 (defun semantic-elisp-form-to-doc-string (form)
@@ -256,23 +254,6 @@ Return a bovination list to use."
       (semantic-tag-new-code (symbol-name ts) nil)
       ))))
 
-(defun semantic-expand-elisp-nonterminal (nonterm)
-  "Expand Emacs Lisp nonterminals.
-Finds compound nonterminals embedded in sub-lists.
-Argument NONTERM is the nonterminal to test for expansion."
-  (if (semantic-token-p (car nonterm))
-      (progn
-        ;; Nuke the overlay from the end.
-        ;; For some reason, it takes token in reverse order.
-        (setq nonterm (nreverse nonterm))
-        ;; Don't forget to delete the overlay from its buffer!
-        ;; Otherwise `semantic-find-nonterminal-by-overlay' will
-        ;; return this invalid NONTERM as a token.
-        (if (semantic-overlay-p (car nonterm))
-            (semantic-overlay-delete (car nonterm)))
-      (cdr (cdr nonterm)))
-    nil))
-
 (define-lex semantic-emacs-lisp-lexer
   "A simple lexical analyzer for Emacs Lisp.
 This lexer ignores comments and whitespace, and will return
@@ -290,36 +271,36 @@ syntax as specified by the syntax table."
   semantic-lex-default-action)
 
 (define-mode-overload-implementation semantic-find-dependency
-  emacs-lisp-mode (token)
-  "Find the file BUFFER depends on described by TOKEN."
+  emacs-lisp-mode (tag)
+  "Find the file BUFFER depends on described by TAG."
   (let ((f (file-name-sans-extension
-	    (locate-library (semantic-token-name token)))))
+	    (locate-library (semantic-tag-name tag)))))
     (concat f ".el")))
 
 (define-mode-overload-implementation semantic-find-documentation
-  emacs-lisp-mode (token &optional nosnarf)
-  "Return the documentation string for TOKEN.
+  emacs-lisp-mode (tag &optional nosnarf)
+  "Return the documentation string for TAG.
 Optional argument NOSNARF is ignored."
-  (let ((d (semantic-token-docstring token)))
+  (let ((d (semantic-tag-docstring tag)))
     (if (and d (> (length d) 0) (= (aref d 0) ?*))
 	(substring d 1)
       d)))
 
 (define-mode-overload-implementation semantic-insert-foreign-token
-  emacs-lisp-mode (token tokenfile)
-  "Insert TOKEN from TOKENFILE at point.
-Attempts a simple prototype for calling or using TOKEN."
-  (cond ((eq (semantic-token-token token) 'function)
-	 (insert "(" (semantic-token-name token) " )")
+  emacs-lisp-mode (tag tagfile)
+  "Insert TAG from TAGFILE at point.
+Attempts a simple prototype for calling or using TAG."
+  (cond ((semantic-tag-of-class-p tag 'function)
+	 (insert "(" (semantic-tag-name tag) " )")
 	 (forward-char -1))
 	(t
-	 (insert (semantic-token-name token)))))
+	 (insert (semantic-tag-name tag)))))
 
 (define-mode-overload-implementation semantic-nonterminal-protection
-  emacs-lisp-mode (token &optional parent)
-  "Return the protection of TOKEN in PARENT.
+  emacs-lisp-mode (tag &optional parent)
+  "Return the protection of TAG in PARENT.
 Override function for `semantic-nonterminal-protection'."
-  (let ((prot (semantic-token-extra-spec token 'protection)))
+  (let ((prot (semantic-tag-get-attribute tag 'protection)))
     (cond
      ((not prot) 'public)
      ((string= prot ":public") 'public)
@@ -330,11 +311,11 @@ Override function for `semantic-nonterminal-protection'."
      ((string= prot "protected") 'protected))))
 
 (define-mode-overload-implementation semantic-elisp-nonterminal-static
-  emacs-lisp-mode (token &optional parent)
-  "Return non-nil if TOKEN is static in PARENT class.
+  emacs-lisp-mode (tag &optional parent)
+  "Return non-nil if TAG is static in PARENT class.
 Overrides `semantic-nonterminal-static'."
   ;; This can only be true (theoretically) in a class where it is assigned.
-  (semantic-token-extra-spec token 'static))
+  (semantic-tag-get-attribute tag 'static))
 
 ;;; Context parsing
 ;;
@@ -436,9 +417,6 @@ Don't implement this."
 
 (defvar-mode-local emacs-lisp-mode semantic-toplevel-bovine-table
   semantic-toplevel-elisp-bovine-table)
-
-(defvar-mode-local emacs-lisp-mode semantic-expand-nonterminal
-  'semantic-expand-elisp-nonterminal)
 
 (defvar-mode-local emacs-lisp-mode semantic-function-argument-separator
   " ")
