@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.4 2003/01/28 09:49:10 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.5 2003/01/29 03:41:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1601,7 +1601,7 @@
 
 (define-lex-regex-analyzer semantic-lex-c-if
   "Ignore various forms of #if/#else/#endif conditionals."
-  "^#\\(if\\(def\\)?\\|else\\|endif\\)"
+  "^#\\(if\\(def\\)?\\|el\\(if\\|se\\)\\|endif\\)"
   (when (bolp) (end-of-line))
   (setq end-point (point))
   nil)
