@@ -50,6 +50,18 @@ public:
 // template contains namespace
 typedef vector<CzkUtilities::Action*> ActionList;
 
+// declaration of some template-types
+map<XXX, Test::YYY>** map_var;
+
+map_with_size<XXX, Test::YYY, size> map_size_var;
+typedef map_with_size<XXX, Test::YYY, size> SizedMap;
+
+map_with_10_size<XXX, Test::YYY, 10>* pMap_size10_var;
+typedef map_with_10_size<XXX, Test::YYY, 10> Size10Map;
+
+// a function which such a template-argument
+void* test_function(map<ClassX, Test::ClassY, 10>* pMap);
+
 
 template <class T> class Vector <T*> : private Vector <void*>
 {
@@ -63,13 +75,13 @@ public:
 };
 
 // outside method implementation of a template-class
-template<class T> T*& Vector<T*>::elem(int i)
+template<class T> T& Vector<T*>::elem(int i)
 {
   return C;
 }
 
 // same but qualified with a namespace Testnamespace
-template<class T> T*& Testnamespace::Vector<T*>::elem(int i)
+template<class T> T& Testnamespace::Vector<T*>::elem(int i)
 {
   return C;
 }
