@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.27 1999/12/01 01:53:37 zappo Exp $
+;; RCS: $Id: ede.el,v 1.28 1999/12/04 17:32:35 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -942,7 +942,7 @@ This includes buffers controlled by a specific target of PROJECT."
   (mapcar proc (ede-target-buffers this)))
 
 ;; other types of mapping
-(defmethod ede-map-subproject ((this ede-project) proc)
+(defmethod ede-map-subprojects ((this ede-project) proc)
   "For object THIS, execute PROC on all subprojects."
   (mapcar proc (oref this subproj)))
 
