@@ -157,6 +157,24 @@ percentage display.  A number such as `2' means `2%'."
   :group 'working'
   :type 'number)
 
+;;; Mode line hacks
+;;
+;; When the user doesn't want messages in the minibuffer, hack the mode
+;; line of the current buffer.
+(if (featurep 'xemacs)
+    (defalias 'working-mode-line-update 'redraw-modeline)
+  (defalias 'working-mode-line-update 'force-mode-line-update))
+
+(defvar working-mode-line-message nil
+  "Message used by working when showing status in the mode line.")
+
+(setq minor-mode-alist (cons
+			'(working-mode-line-message working-mode-line-message)
+			minor-mode-alist))
+
+(defvar working-use-echo-area-p t
+  "Non-nil use the echo area to display working messages.")
+
 ;;; Variables used in stages
 ;;
 (defvar working-message nil
@@ -185,11 +203,20 @@ See the function `message' for details on ARGS."
         (apply 'message args))))
 
 (eval-and-compile
-  (defalias 'working-message
+  (defalias 'working-message-echo
     (if (boundp 'log-message-filter-function)
 	'working-message-xemacs
       'working-message-emacs))
   )
+
+(defun working-message (&rest args)
+  "Display a message using `working-message-echo' or in mode line.
+See the function `message' for details on ARGS."
+  (if working-use-echo-area-p
+      (apply 'working-message-echo args)
+    (setq working-mode-line-message (apply 'format args))
+    (working-mode-line-update)
+    ))
 
 ;;; Compatibility
 (cond ((fboundp 'run-with-timer)
@@ -215,7 +242,10 @@ to use when the functions `working-status' is called from FORMS."
 	 (working-donestring ,donestr)
 	 (working-ref1 0)
 	 (working-last-percent 0))
-     ,@forms))
+     (unwind-protect
+	 (progn ,@forms)
+       (setq working-mode-line-message nil)
+       )))
 (put 'working-status-forms 'lisp-indent-function 2)
 
 (defmacro working-status-timeout (timeout message donestr &rest forms)
@@ -234,7 +264,8 @@ to use when the functions `working-status' is called from FORMS."
      (unwind-protect
 	 (progn ,@forms)
        (working-cancel-timer working-timer))
-     (working-dynamic-status t)))
+     (working-dynamic-status t)
+     (setq working-mode-line-message nil)))
 (put 'working-status-timeout 'lisp-indent-function 3)
 
 (defun working-status-call-process
@@ -545,6 +576,15 @@ is t to display the done string, or the number to display."
   "Display funny graphics while waiting for sleep to sleep."
   (interactive)
   (working-status-call-process .1 "Zzzzz" "Snort" "sleep" nil nil nil "5"))
+
+(defun working-verify-mode-line ()
+  "Display graphics in the mode-line for timeout."
+  (interactive)
+  (let ((working-use-echo-area-p nil))
+    (message "Pres a Key")
+    (working-status-timeout .1 "" ""
+      (while (sit-for 10)))
+    ))
 
 (provide 'working)
 
