@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-archive.el,v 1.4 2000/07/11 23:12:16 zappo Exp $
+;; RCS: $Id: ede-proj-archive.el,v 1.5 2000/07/22 12:41:44 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -27,7 +27,7 @@
 ;;
 ;; Handle object code archives in and EDE Project file.
 
-(eval-and-compile (require 'ede-proj-obj))
+(require 'ede-proj-obj)
 
 ;;; Code:
 (defclass ede-proj-target-makefile-archive

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: ede-pconf.el,v 1.4 2000/07/12 14:15:36 zappo Exp $
+;; RCS: $Id: ede-pconf.el,v 1.5 2000/07/22 12:40:29 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -27,7 +27,7 @@
 ;; 
 ;; Code generator for autoconf configure.in, and support files.
 
-(eval-and-compile (require 'ede))
+(require 'ede)
 (require 'autoconf-edit)
 
 ;;; Code:
