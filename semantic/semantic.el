@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.64 2000/12/03 14:52:27 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.65 2000/12/07 04:48:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -337,22 +337,24 @@ The returned item may be an overlay or an unloaded buffer representation."
   `(let ((o (semantic-token-overlay ,token)))
      (if (semantic-overlay-p o)
 	 (list (semantic-overlay-start o) (semantic-overlay-end o))
-       (list (aref o 1) (aref o 2)))))
+       (list (aref o 0) (aref o 1)))))
 
 (defun semantic-token-start (token)
   "Retrieve the start location of TOKEN."
   (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-start o) (aref o 1))))
+    (if (semantic-overlay-p o) (semantic-overlay-start o) (aref o 0))))
 
 (defun semantic-token-end (token)
   "Retrieve the end location of TOKEN."
   (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-end o) (aref o 2))))
+    (if (semantic-overlay-p o) (semantic-overlay-end o) (aref o 1))))
 
 (defun semantic-token-buffer (token)
   "Retrieve the buffer TOKEN resides in."
   (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-buffer o) (aref over 0))))
+    (if (semantic-overlay-p o) (semantic-overlay-buffer o)
+      ;; We have no buffer for this token (It's not in Emacs right now.)
+      nil)))
 
 (defun semantic-token-p (token)
   "Return non-nil if TOKEN is most likely a semantic token."
@@ -452,6 +454,31 @@ there has been a size change."
 	   (list (nreverse res) (point-max)))
 	  (car semantic-toplevel-bovine-cache))))
     ))
+
+(eval-when-compile (require 'semanticdb))
+
+(defun semantic-file-token-stream (file &optional checkcache)
+  "Return a token stream for FILE.
+If it is loaded, return the stream after making sure it's ok.
+If FILE is not loaded, check to see if `semanticdb' feature exists,
+   and use it to get un
+If FILE is not loaded, and semanticdb is not available, find the file
+   and parse it.
+Optional argument CHECKCACHE is the same as that for
+`semantic-bovinate-toplevel'."
+  (if (get-file-buffer file)
+      (save-excursion
+	(set-buffer (get-file-buffer file))
+	(semantic-bovinate-toplevel checkcache))
+    ;; File not loaded
+    (if (and (fboundp 'semanticdb-minor-mode-p)
+	     (semanticdb-minor-mode-p))
+	;; semanticdb is around, use it.
+	(semanticdb-file-stream file)
+      ;; Get the stream ourselves.
+      (save-excursion
+	(set-buffer (find-file-noselect file))
+	(semantic-bovinate-toplevel checkcache)))))
 
 (defun semantic-set-toplevel-bovine-cache (tokenlist)
   "Set the toplevel bovine cache to TOKENLIST."
