@@ -1,4 +1,4 @@
-;;; wisent-python.el --- LALR grammar for Python
+;;; wisent-python.el --- Semantic support for Python
 ;;
 ;; Copyright (C) 2002, 2004 Richard Kim
 ;;
@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.45 2004/08/04 02:34:23 zappo Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.46 2004/09/15 07:26:36 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -27,33 +27,23 @@
 
 ;;; Commentary:
 ;;
-;; This file contains the python parser created from the grammar
-;; specified in wisent-python.wy file.  It also has some support code.
+;; This library contains Semantic support code for the Python
+;; programming language.  The LALR grammar used to parse Python
+;; sources is in the wisent-python.wy file.
+;;
+;; The official website for the Python language is at
+;; <http://python.org/>.
+;;
+;; An X/Emacs major mode for editing Python source code is available
+;; at <http://sourceforge.net/projects/python-mode/>.
 ;;
 ;;; Code:
 
 (require 'semantic-wisent)
 (require 'wisent-python-wy)
-
-;;;****************************************************************************
-;;;@ Support Code
-;;;****************************************************************************
+
+;;; Lexical analysis
 ;;
-;; Some of these need to come before `wisent-python-default-setup' so that
-;; symbols are defined before their first use.
-
-;; Indentation stack to keep track of INDENT tokens generated without
-;; matching DEDENT tokens. Generation of each INDENT token results in
-;; a new integer being added to the beginning of this list where the
-;; integer represents the indentation of the current line. Each time a
-;; DEDENT token is generated, the latest entry is popped off
-;; this list.
-(defvar wisent-python-lexer-indent-stack '(0))
-
-;; Variable set to t only by `semantic-lex-python-charquote' so that
-;; `semantic-lex-python-beginning-of-line' will not generate any
-;; INDENT or DEDENT tokens for continued lines.
-(defvar wisent-python-explicit-line-continuation nil)
 
 ;; Python strings are delimited by either single quotes or double
 ;; quotes, e.g., "I'm a string" and 'I too am s string'.
@@ -62,291 +52,260 @@
 ;; to be suppressed.  For example, r"01\n34" is a string with six
 ;; characters 0, 1, \, n, 3 and 4.  The 'u' prefix means the following
 ;; string is a unicode.
-(defconst wisent-python-string-re "[rR]?[uU]?['\"]"
+(defconst wisent-python-string-re
+  (concat (regexp-opt '("r" "u" "ur" "R" "U" "UR" "Ur" "uR") t)
+          "?['\"]")
   "Regexp matching beginning of a python string.")
 
-;;;****************************************************************************
-;;;@ Lexer
-;;;****************************************************************************
+(defsubst wisent-python-implicit-line-joining-p ()
+  "Return non-nil if implicit line joining is active.
+That is, if inside an expressions in parentheses, square brackets or
+curly braces."
+  (condition-case nil
+      (progn (scan-lists (point) -1 1) t)
+    (error nil)))
 
-;; Pop all items from the "indent stack" if we are at buffer end.
-(defun semantic-lex-python-pop-indent-stack ()
-  (if (eq (point) (cdr semantic-lex-analysis-bounds))
-      (while (> (car wisent-python-lexer-indent-stack) 0)
-        (semantic-lex-push-token
-         (semantic-lex-token 'DEDENT (point) (point)))
-        (pop wisent-python-lexer-indent-stack))))
+(defsubst wisent-python-forward-string ()
+  "Move point at the end of the python string at point."
+  (when (looking-at wisent-python-string-re)
+     ;; skip the prefix
+    (and (match-end 1) (goto-char (match-end 1)))
+    ;; skip the quoted part
+    (cond
+     ((looking-at "\"\"\"[^\"]")
+      (search-forward "\"\"\"" nil nil 2))
+     ((looking-at "'''[^']")
+      (search-forward "'''" nil nil 2))
+     ((forward-sexp 1)))))
 
-(define-lex-analyzer semantic-lex-python-beginning-of-line
-  "Handle beginning-of-line case, i.e., possibly generate INDENT or
-DEDENT tokens by comparing current indentation level with the previous
-indentation values stored in `wisent-python-lexer-indent-stack'
-stack."
-  (and (and (bolp) (not wisent-python-explicit-line-continuation))
-       (let ((last-indent (or (car wisent-python-lexer-indent-stack) 0))
-             (last-pos (point))
-             curr-indent)
-         (skip-chars-forward " \t")
-         (setq curr-indent (current-column))
-         (cond
-          ;; Blank or comment line => no indentation change
-          ((looking-at "\\(#\\|$\\)")
-           (forward-line 1)
-           (setq semantic-lex-end-point (point))
-           (semantic-lex-python-pop-indent-stack)
-           ;; Since position changed, returning t here won't result in
-           ;; infinite loop.
-           t)
-          ;; No change in indentation.
-          ((= curr-indent last-indent)
-           (setq semantic-lex-end-point (point))
-           ;; If pos did not change, then we must return nil so that
-           ;; other lexical analyzers can be run.
-           nil)
-          ;; Indentation increased
-          ((> curr-indent last-indent)
-           (if (or (not semantic-lex-maximum-depth)
-                   (< semantic-lex-current-depth semantic-lex-maximum-depth))
-               (progn
-                 ;; Return an INDENT lexical token
-                 (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
-                 (push curr-indent wisent-python-lexer-indent-stack)
-                 (semantic-lex-push-token
-                  (semantic-lex-token 'INDENT last-pos (point)))
-                 t)
-             ;; Add an INDENT_BLOCK token
+(defun wisent-python-forward-line ()
+  "Move point to the beginning of the next logical line.
+Usually this is simply the next physical line unless strings,
+implicit/explicit line continuation, blank lines, or comment lines are
+encountered.  This function skips over such items so that the point is
+at the beginning of the next logical line.  If the current logical
+line ends at the end of the buffer, leave the point there."
+  (while (not (eolp))
+    (when (= (point)
+             (progn
+               (cond
+                ;; skip over python strings
+                ((looking-at wisent-python-string-re)
+                 (wisent-python-forward-string))
+                ;; skip over lists, strings, etc
+                ((looking-at "\\(\\s(\\|\\s\"\\|\\s<\\)")
+                 (forward-sexp 1))
+                ;; At the explicit line continuation character
+                ;; (backslash) move to next line.
+                ((looking-at "\\s\\")
+                 (forward-line 1))
+                ;; skip over white space, word, symbol, punctuation,
+                ;; and paired delimiter (backquote) characters.
+                ((skip-syntax-forward "-w_.$)")))
+               (point)))
+      (error "python-forward-line endless loop detected")))
+  ;; The point is at eol, skip blank and comment lines.
+  (forward-comment (point-max))
+  ;; Goto the beginning of the next line.
+  (or (eobp) (beginning-of-line)))
+
+(defun wisent-python-forward-line-skip-indented ()
+  "Move point to the next logical line, skipping indented lines.
+That is the next line whose indentation is less than or equal to the
+identation of the current line."
+  (let ((indent (current-indentation)))
+    (while (progn (wisent-python-forward-line)
+                  (and (not (eobp))
+                       (> (current-indentation) indent))))))
+
+(defun wisent-python-end-of-block ()
+  "Move point to the end of the current block"
+  (let ((indent (current-indentation)))
+    (while (and (not (eobp)) (>= (current-indentation) indent))
+      (wisent-python-forward-line-skip-indented))
+    ;; Don't include final comments in current block bounds
+    (forward-comment (- (point-max)))
+    ))
+
+;; Indentation stack, what the Python (2.3) language spec. says:
+;;
+;; The indentation levels of consecutive lines are used to generate
+;; INDENT and DEDENT tokens, using a stack, as follows.
+;;
+;; Before the first line of the file is read, a single zero is pushed
+;; on the stack; this will never be popped off again. The numbers
+;; pushed on the stack will always be strictly increasing from bottom
+;; to top. At the beginning of each logical line, the line's
+;; indentation level is compared to the top of the stack. If it is
+;; equal, nothing happens. If it is larger, it is pushed on the stack,
+;; and one INDENT token is generated. If it is smaller, it must be one
+;; of the numbers occurring on the stack; all numbers on the stack
+;; that are larger are popped off, and for each number popped off a
+;; DEDENT token is generated. At the end of the file, a DEDENT token
+;; is generated for each number remaining on the stack that is larger
+;; than zero.
+(defvar wisent-python-indent-stack)
+
+(define-lex-analyzer wisent-python-lex-beginning-of-line
+  "Detect and create python indentation tokens at beginning of line."
+  (and
+   (bolp) (not (wisent-python-implicit-line-joining-p))
+   (let ((last-indent (car wisent-python-indent-stack))
+         (last-pos (point))
+         (curr-indent (current-indentation)))
+     (skip-syntax-forward "-")
+     (cond
+      ;; Skip comments and blank lines. No change in indentation.
+      ((or (eolp) (looking-at semantic-lex-comment-regex))
+       (forward-comment (point-max))
+       (or (eobp) (beginning-of-line))
+       (setq semantic-lex-end-point (point))
+       ;; Loop lexer to handle the next line.
+       t)
+      ;; No change in indentation.
+      ((= curr-indent last-indent)
+       (setq semantic-lex-end-point (point))
+       ;; Try next analyzers.
+       nil)
+      ;; Indentation increased
+      ((> curr-indent last-indent)
+       (if (or (not semantic-lex-maximum-depth)
+               (< semantic-lex-current-depth semantic-lex-maximum-depth))
+           (progn
+             ;; Return an INDENT lexical token
+             (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
+             (push curr-indent wisent-python-indent-stack)
              (semantic-lex-push-token
-              (semantic-lex-token
-               'INDENT_BLOCK
-               (progn (beginning-of-line) (point))
-               (save-excursion
-                 (semantic-lex-unterminated-syntax-protection
-                  'INDENT_BLOCK
-                  (let ((starting-indentation (current-indentation)))
-                    (while (>= (current-indentation) starting-indentation)
-                      (forward-list 1)
-                      (beginning-of-line)))
-                  (point)))))
-             t)
-           )
-          ;; Indentation decreased
-          (t
-           ;; Pop items from indentation stack
-           (while (< curr-indent last-indent)
-             (setq semantic-lex-current-depth (1- semantic-lex-current-depth))
-             (semantic-lex-push-token
-              (semantic-lex-token 'DEDENT last-pos (point)))
-             (pop wisent-python-lexer-indent-stack)
-             (setq last-indent (or (car wisent-python-lexer-indent-stack) 0)))
-           ;; If pos did not change, then we must return nil so that
-           ;; other lexical analyzers can be run.
-           (not (eq last-pos (point))))
-          )))
-  nil ;; all the work was done in the previous form
+              (semantic-lex-token 'INDENT last-pos (point))))
+         ;; Add an INDENT_BLOCK token
+         (semantic-lex-push-token
+          (semantic-lex-token
+           'INDENT_BLOCK
+           (progn (beginning-of-line) (point))
+           (semantic-lex-unterminated-syntax-protection 'INDENT_BLOCK
+             (wisent-python-end-of-block)
+             (point)))))
+       ;; Loop lexer to handle tokens in current line.
+       t)
+      ;; Indentation decreased
+      (t
+       ;; Pop items from indentation stack
+       (while (< curr-indent last-indent)
+         (pop wisent-python-indent-stack)
+         (setq semantic-lex-current-depth (1- semantic-lex-current-depth)
+               last-indent (car wisent-python-indent-stack))
+         (semantic-lex-push-token
+          (semantic-lex-token 'DEDENT last-pos (point))))
+       ;; If pos did not change, then we must return nil so that
+       ;; other lexical analyzers can be run.
+       (/= last-pos (point)))
+      )))
+  ;; All the work was done in the above analyzer matching condition.
   )
 
-(define-lex-analyzer semantic-lex-python-reset-continued-line
-  "Reset `wisent-python-explicit-line-continuation' back to nil."
-  (setq wisent-python-explicit-line-continuation nil)
-  ()
-  )
-
-(define-lex-analyzer semantic-lex-python-newline
-  "Handle NEWLINE syntactic tokens.
-If the following line is an implicit continuation of current line,
-then throw away any immediately following INDENT and DEDENT tokens."
-  (looking-at "\\(\n\\|\\s>\\)") ;; newline or end of buffer
-  (goto-char (match-end 0))
-  (semantic-lex-push-token
-   (semantic-lex-token 'NEWLINE (1- (point)) (point)))
-  (semantic-lex-python-pop-indent-stack))
-
-(define-lex-analyzer semantic-lex-python-string
-  "Handle python strings."
-  (looking-at wisent-python-string-re)
-  (let ((opos (point))
-        (e (semantic-lex-unterminated-syntax-protection
-            'STRING_LITERAL
-            ;; skip over "r" and/or "u" characters if any
-            (goto-char (1- (match-end 0)))
-            (cond
-             ((looking-at "\"\"\"")
-              (forward-char 3)
-              (search-forward "\"\"\""))
-             (t
-              (forward-sexp 1)))
-            (point))))
+(define-lex-regex-analyzer wisent-python-lex-end-of-line
+  "Detect and create python newline tokens.
+Just skip the newline character if the following line is an implicit
+continuation of current line."
+  "\\(\n\\|\\s>\\)"
+  (if (wisent-python-implicit-line-joining-p)
+      (setq semantic-lex-end-point (match-end 0))
     (semantic-lex-push-token
-     (semantic-lex-token 'STRING_LITERAL opos e))))
+     (semantic-lex-token 'NEWLINE (point) (match-end 0)))))
 
-(define-lex-analyzer semantic-lex-python-charquote
-  "Handle BACKSLASH syntactic tokens."
-  (looking-at "\\s\\")
-  (forward-char 1)
-  (when (looking-at "$")
-    (forward-char 1)
-    (skip-chars-forward " \t")
-    (setq wisent-python-explicit-line-continuation nil))
-  (setq semantic-lex-end-point (point)))
-
-;; This is same as wisent-java-lex-symbol except for using 'NAME token
-;; rather than 'IDENTIFIER. -ryk1/05/03.
-(define-lex-regex-analyzer semantic-lex-python-symbol
-  "Detect and create identifier or keyword tokens."
-  "\\(\\sw\\|\\s_\\)+"
+(define-lex-regex-analyzer wisent-python-lex-string
+  "Detect and create python string tokens."
+  wisent-python-string-re
   (semantic-lex-push-token
    (semantic-lex-token
-   (or (semantic-lex-keyword-p (match-string 0))
-       'NAME)
-   (match-beginning 0)
-   (match-end 0))))
+    'STRING_LITERAL
+    (point)
+    (semantic-lex-unterminated-syntax-protection 'STRING_LITERAL
+      (wisent-python-forward-string)
+      (point)))))
 
-;; Same as wisent-java-lex-number. -ryk1/05/03.
-(define-lex-simple-regex-analyzer semantic-lex-python-number
-  "Detect and create number tokens."
-  semantic-lex-number-expression 'NUMBER_LITERAL)
+(define-lex-regex-analyzer wisent-python-lex-ignore-backslash
+  "Detect and skip over backslash (explicit line joining) tokens.
+A backslash must be the last token of a physical line, it is illegal
+elsewhere on a line outside a string literal."
+  "\\s\\\\s-*$"
+  ;; Skip over the detected backslash and go to the first
+  ;; non-whitespace character in the next physical line.
+  (forward-line)
+  (skip-syntax-forward "-")
+  (setq semantic-lex-end-point (point)))
 
-;; Same as wisent-java-lex-blocks. -ryk1/05/03.
-(define-lex-block-analyzer semantic-lex-python-blocks
-  "Detect and create a open, close or block token."
-  (PAREN_BLOCK ("(" LPAREN) (")" RPAREN))
-  (BRACE_BLOCK ("{" LBRACE) ("}" RBRACE))
-  (BRACK_BLOCK ("[" LBRACK) ("]" RBRACK)))
-
-(define-lex semantic-python-lexer
+(define-lex wisent-python-lexer
   "Lexical Analyzer for Python code."
-  ;; semantic-lex-python-beginning-of-line needs to be the first so
-  ;; that we don't miss any DEDENT tokens at the beginning of lines.
-  semantic-lex-python-beginning-of-line
-  semantic-lex-python-reset-continued-line
-  ;; semantic-lex-python-string needs to come before symbols because
-  ;; of the "r" and/or "u" prefix.
-  semantic-lex-python-string
+  ;; Must analyze beginning of line first to handle indentation.
+  wisent-python-lex-beginning-of-line
+  wisent-python-lex-end-of-line
+  ;; Must analyze string before symbol to handle string prefix.
+  wisent-python-lex-string
+  ;; Analyzers auto-generated from grammar.
+  wisent-python-wy--<number>-regexp-analyzer
+  wisent-python-wy--<keyword>-keyword-analyzer
+  wisent-python-wy--<symbol>-regexp-analyzer
+  wisent-python-wy--<block>-block-analyzer
+  wisent-python-wy--<punctuation>-string-analyzer
+  ;; Ignored things.
+  wisent-python-lex-ignore-backslash
   semantic-lex-ignore-whitespace
-  semantic-lex-python-newline
-  semantic-lex-python-number    ;; rather than semantic-lex-number
-  semantic-lex-python-symbol    ;; rather than semantic-lex-symbol-or-keyword
-  semantic-lex-python-charquote
-  semantic-lex-python-blocks    ;; rather than semantic-lex-paren-or-list/semantic-lex-close-paren
   semantic-lex-ignore-comments
-  semantic-lex-punctuation-type ;; rather than semantic-lex-punctuation
-  semantic-lex-default-action
-  )
-
-(defun python-next-line ()
-  "Move the cursor to the next logical line to check for INDENT or DEDENT tokens.
-Usually this is simply the next physical line unless strings, lists, explicit
-line continuation, blank lines, or comment lines are encountered.
-This function skips over such items so that the cursor is at the beginning of
-the next logical line."
-  (let (beg)
-    (while (not (eolp))
-      (setq beg (point))
-      (cond
-       ;; skip over triple-quote string
-       ((looking-at "\"\"\"")
-        (forward-char 3)
-        ;; TODO: this probably should be protected with
-        ;; semantic-lex-unterminated-syntax-protection
-        ;; in case the closing triple quote is not found. -ryk2/17/03.
-        (search-forward "\"\"\""))
-       ;; skip over lists, strings, etc
-       ((looking-at "\\(\\s(\\|\\s\"\\|\\s<\\)")
-        (forward-sexp 1))
-       ;; backslash is the explicit line continuation character
-       ((looking-at "\\s\\")
-        (forward-line 1))
-       ;; skip over white space, word, symbol, punctuation, and paired
-       ;; delimiter (backquote) characters.
-       (t (skip-syntax-forward "-w_.$")))
-      (if (= (point) beg)
-          (error "You have found a bug in python-next-line")))
-    ;; the point now should be at the end of a line
-    (forward-line 1)
-    (while (looking-at "\\s-*\\(\\s<\\|$\\)")  ;; skip blank and comment lines
-      (forward-line 1)
-      (if (eobp) (error "Unterminated List."))
-      )))
-
-(defun python-scan-lists ( &optional target-column )
-  "Without actually changing the position, return the buffer position of
-the next line whose indentation is the same as the current line or less
-than current line."
-  (or target-column (setq target-column (current-indentation)))
-  (save-excursion
-    (python-next-line)
-    (while (> (current-indentation) target-column)
-      (python-next-line))
-    ;; Move the cursor to the original indentation level or first non-white
-    ;; character which ever comes first.
-    (skip-chars-forward " \t" (+ (point) target-column))
-    (point)))
-
-(defadvice scan-lists (around handle-python-mode activate compile)
-  "Use python mode specific function, python-scan-lists, if the
-current major mode is python-mode.
-Otherwise simply call the original function."
-  (if (and (eq major-mode 'python-mode)
-           (not (looking-at "\\s(")))
-      (setq ad-return-value (python-scan-lists))
-    ad-do-it))
-
-;;;****************************************************************************
-;;;@ Parser
-;;;****************************************************************************
-
-;; TODO: Is this really needed? -ryk2/9/03.
-(define-mode-local-override semantic-parse-region python-mode
-  (start end &optional nonterminal depth returnonerror)
-  "Over-ride in order to initialize some variables."
-  (let ((wisent-python-lexer-indent-stack '(0))
-        (wisent-python-explicit-line-continuation nil))
-    (semantic-parse-region-default
-     start end nonterminal depth returnonerror)))
-
-;; Commented this out after learning that there is no need to convert
-;; tokens to names.  See "(semantic)Style Guide". -ryk2/7/03.
-'(define-mode-local-override semantic-parse-region python-mode
-  (start end &optional nonterminal depth returnonerror)
-  "Over-ride so that 'paren_classes' non-terminal tokens can be intercepted
-then converted to simple names to comply with the semantic token style guide."
-  (let ((tokens (semantic-parse-region-default
-                 start end nonterminal depth returnonerror)))
-    (if (eq nonterminal 'paren_classes)
-        (mapcar #'semantic-token-name tokens)
-      tokens)))
+  ;; Signal error on unhandled syntax.
+  semantic-lex-default-action)
+
+;;; Overridden Semantic API.
+;;
+(define-mode-local-override semantic-lex python-mode
+  (start end &optional depth length)
+  "Lexically analyze python code in current buffer.
+See the function `semantic-lex' for the meaning of the START, END,
+DEPTH and LENGTH arguments.
+This function calls `wisent-python-lexer' to actually perform the
+lexical analysis, then emits the necessary python DEDENT tokens from
+what remains in the `wisent-python-indent-stack'."
+  (let* ((wisent-python-indent-stack (list 0))
+         (stream (wisent-python-lexer start end depth length))
+         (semantic-lex-token-stream nil))
+    ;; Emit DEDENT tokens if something remains in the INDENT stack.
+    (while (> (pop wisent-python-indent-stack) 0)
+      (semantic-lex-push-token (semantic-lex-token 'DEDENT end end)))
+    (nconc stream (nreverse semantic-lex-token-stream))))
 
 (define-mode-local-override semantic-get-local-variables python-mode ()
   "Get the local variables based on point's context.
 To be implemented for python!  For now just return nil."
   nil)
 
+;;; Enable Semantic in `python-mode'.
+;;
+
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
   (wisent-python-wy--install-parser)
+  (set (make-local-variable 'parse-sexp-ignore-comments) t)
   (setq
    ;; Character used to separation a parent/child relationship
    semantic-type-relation-separator-character '(".")
    semantic-command-separation-character ";"
-   wisent-python-lexer-indent-stack '(0)
-   semantic-lex-analyzer #'semantic-python-lexer
+   ;; The following is no more necessary as semantic-lex is overriden
+   ;; in python-mode.
+   ;; semantic-lex-analyzer 'wisent-python-lexer
    ))
 
 ;;;###autoload
-(add-hook 'python-mode-hook #'wisent-python-default-setup)
-
+(add-hook 'python-mode-hook 'wisent-python-default-setup)
+
 ;;; Test
 ;;
 (defun wisent-python-lex-buffer ()
-  "Run `semantic-python-lexer' on current buffer."
+  "Run `wisent-python-lexer' on current buffer."
   (interactive)
   (semantic-lex-init)
-  (setq semantic-lex-analyzer 'semantic-python-lexer)
-  (let ((token-stream
-         (semantic-lex (point-min) (point-max) 0)))
-    (with-current-buffer
-        (get-buffer-create "*semantic-python-lexer*")
+  (let ((token-stream (semantic-lex (point-min) (point-max) 0)))
+    (with-current-buffer (get-buffer-create "*wisent-python-lexer*")
       (erase-buffer)
       (pp token-stream (current-buffer))
       (goto-char (point-min))
