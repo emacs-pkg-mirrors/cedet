@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.30 2004/02/05 23:22:02 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.31 2004/03/05 03:12:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -445,6 +445,27 @@ for details on the return value."
   (or (semantic-ctxt-current-symbol)
       (semantic-ctxt-current-function)
       (semantic-ctxt-current-assignment)))
+
+(define-overload semantic-ctxt-current-class-list (&optional point)
+  "Return a list of tag classes that are allowed at POINT.
+If POINT is nil, the current buffer location is used.
+For example, in Emacs Lisp, the symbol after a ( is most likely
+a function.  In a makefile, symbols after a : are rules, and symbols
+after a $( are variables.")
+
+(defun semantic-ctxt-current-class-list-default (&optional point)
+  "Return a list of tag classes that are allowed at POINT.
+Assume a functional typed language.  Uses very simple rules."
+  (save-excursion
+    (if point (goto-char point))
+
+    (let ((tag (semantic-current-tag)))
+      (cond ((semantic-tag-of-class-p tag 'function)
+	     '(function variable))
+	    ((or (semantic-tag-of-class-p tag 'type)
+		 (semantic-tag-of-class-p tag 'variable))
+	     '(type))
+	    (t nil)))))
 
 
 ;;; Scoped Types
