@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.6 2003/03/14 02:59:31 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.7 2003/04/06 00:57:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -60,6 +60,33 @@
    (semanticdb-project-database-emacs-lisp "Emacs"))
   "Search Emacs core for symbols.")
 
+;;; Filename based methods
+;;
+(defmethod semanticdb-file-table ((obj semanticdb-project-database-emacs-lisp) filename)
+  "From OBJ, return FILENAME's associated table object.
+For Emacs Lisp, creates a specialized table."
+  ;; Scan for it on the load path.  Make a nice table for it.
+  (if (slot-boundp obj 'tables)
+      (car (oref obj tables))
+    (let ((newtable (semanticdb-table-emacs-lisp filename)))
+      (oset obj tables (list newtable))
+      (oset newtable parent-db obj)
+      (oset newtable tags nil)
+      newtable)))
+
+(defmethod semanticdb-get-tags ((table semanticdb-table-emacs-lisp ))
+  "Return the list of tags belonging to TABLE."
+  ;; specialty table ?  Probably derive tags at request time.
+  nil)
+
+(defmethod semanticdb-equivalent-mode ((table semanticdb-table-emacs-lisp) &optional buffer)
+  "Return non-nil if TABLE's mode is equivalent to BUFFER.
+Equivalent modes are specified by by `semantic-equivalent-major-modes'
+local variable."
+  (save-excursion
+    (set-buffer buffer)
+    (eq major-mode 'emacs-lisp-mode)))
+
 ;;; Conversion
 ;;
 (defun semanticdb-elisp-sym-function-arglist (sym)
@@ -88,279 +115,105 @@ This was snarfed out of eldoc."
                         (t nil))))
     arglist))
 
-(defun semanticdb-elisp-sym->nonterm (sym &optional toktype)
+(defun semanticdb-elisp-sym->tag (sym &optional toktype)
   "Convert SYM into a semantic token.
 TOKTYPE is a hint to the type of token desired."
-  (cond ((and (eq toktype 'function) (fboundp sym))
-	 (semantic-tag-new-function
-	  (symbol-name sym)
-	  nil ;; return type
-	  (semantic-elisp-desymbolify
-	   (semanticdb-elisp-sym-function-arglist sym)) ;; arg-list
-	  'user-visible (interactive-form sym)
-	  ))
-	((and (eq toktype 'variable) (boundp sym))
-	 (semantic-tag-new-variable
-	  (symbol-name sym)
-	  nil ;; type
-	  nil ;; value - ignore for now
-	  ))
-	((and (eq toktype 'type) (class-p sym))
-	 (semantic-tag-new-type
-	  (symbol-name sym)
-	  "class"
-	  (semantic-elisp-desymbolify
-	   (aref (class-v semanticdb-project-database)
-		 class-public-a)) ;; slots
-	  (semantic-elisp-desymbolify (class-parents sym)) ;; parents
-	  ))
-	((not toktype)
-	 ;; Figure it out on our own.
-	 (cond ((class-p sym)
-		(semanticdb-elisp-sym->nonterm sym 'type))
-	       ((fboundp sym)
-		(semanticdb-elisp-sym->nonterm sym 'function))
-	       ((boundp sym)
-		(semanticdb-elisp-sym->nonterm sym 'variable))
-	       (t nil))
-	 )
-	(t nil)))
+  (if (stringp sym)
+      (setq sym (intern-soft sym)))
+  (when sym
+    (cond ((and (eq toktype 'function) (fboundp sym))
+	   (semantic-tag-new-function
+	    (symbol-name sym)
+	    nil	;; return type
+	    (semantic-elisp-desymbolify
+	     (semanticdb-elisp-sym-function-arglist sym)) ;; arg-list
+	    'user-visible (interactive-form sym)
+	    ))
+	  ((and (eq toktype 'variable) (boundp sym))
+	   (semantic-tag-new-variable
+	    (symbol-name sym)
+	    nil	;; type
+	    nil	;; value - ignore for now
+	    ))
+	  ((and (eq toktype 'type) (class-p sym))
+	   (semantic-tag-new-type
+	    (symbol-name sym)
+	    "class"
+	    (semantic-elisp-desymbolify
+	     (aref (class-v semanticdb-project-database)
+		   class-public-a)) ;; slots
+	    (semantic-elisp-desymbolify (class-parents sym)) ;; parents
+	    ))
+	  ((not toktype)
+	   ;; Figure it out on our own.
+	   (cond ((class-p sym)
+		  (semanticdb-elisp-sym->tag sym 'type))
+		 ((fboundp sym)
+		  (semanticdb-elisp-sym->tag sym 'function))
+		 ((boundp sym)
+		  (semanticdb-elisp-sym->tag sym 'variable))
+		 (t nil))
+	   )
+	  (t nil))))
 
 ;;; Search Overrides
 ;;
 (defvar semanticdb-elisp-mapatom-collector nil
   "Variable used to collect mapatoms output.")
 
-(defmethod semanticdb-find-nonterminal-by-token-method
-  ((database semanticdb-project-database-emacs-lisp)
-   token search-parts search-includes diff-mode find-file-match)
-  "In DB, find all occurances of nonterminals with token TOKEN in DATABASE.
-See `semanticdb-find-symbol-by-function-method' for details on,
-SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (semanticdb-find-symbol-by-function-method
-   database
-   ;; Match each atom against the feature we want.
-   (cond ((eq token 'function)
-	  (lambda (atom)
-	    (when (fboundp atom)
-	      (setq semanticdb-elisp-mapatom-collector
-		    (cons (semanticdb-elisp-sym->nonterm atom 'function)
-			  semanticdb-elisp-mapatom-collector)))))
-	 ((eq token 'variable)
-	  (lambda (atom)
-	    (when (boundp atom)
-	      (setq semanticdb-elisp-mapatom-collector
-		    (cons (semanticdb-elisp-sym->nonterm atom 'variable)
-			  semanticdb-elisp-mapatom-collector)))))
-	 ((eq token 'type)
-	  (lambda (atom)
-	    (when (or (class-p atom)
-		      )
-	      (setq semanticdb-elisp-mapatom-collector
-		    (cons (semanticdb-elisp-sym->nonterm atom 'type)
-			  semanticdb-elisp-mapatom-collector)))))
-	 (t nil))
-   search-parts search-includes diff-mode find-file-match)
-  )
-
-(defmethod semanticdb-find-nonterminal-by-name-method
-  ((database semanticdb-project-database-emacs-lisp)
-   name search-parts search-includes diff-mode find-file-match)
-  "Find all occurances of nonterminals with name NAME in DATABASE.
+(defmethod semanticdb-find-tags-by-name-method
+  ((table semanticdb-table-emacs-lisp) name)
+  "Find all tags name NAME in TABLE.
 Uses `inter-soft' to match NAME to emacs symbols.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN) ...)."
+Return a list of tags."
   ;; No need to search.  Use `intern-soft' which does the same thing for us.
   (let* ((sym (intern-soft name))
-	 (fun (semanticdb-elisp-sym->nonterm sym 'function))
-	 (var (semanticdb-elisp-sym->nonterm sym 'variable))
-	 (typ (semanticdb-elisp-sym->nonterm sym 'type))
-	 (toklst nil)
-	 (newtable nil))
+	 (fun (semanticdb-elisp-sym->tag sym 'function))
+	 (var (semanticdb-elisp-sym->tag sym 'variable))
+	 (typ (semanticdb-elisp-sym->tag sym 'type))
+	 (taglst nil)a
+	 )
     (when (or fun var typ)
       ;; If the symbol is any of these things, build the search table.
-      (setq newtable (semanticdb-table-emacs-lisp "name search"))
-      (oset newtable parent-db database)
-      (when var	(setq toklst (cons var toklst)))
-      (when typ	(setq toklst (cons typ toklst)))
-      (when fun	(setq toklst (cons fun toklst)))
-      (oset newtable tokens toklst)
-      (list (cons newtable toklst))
+      (when var	(setq taglst (cons var taglst)))
+      (when typ	(setq taglst (cons typ taglst)))
+      (when fun	(setq taglst (cons fun taglst)))
+      taglst
       )))
 
-(defmethod semanticdb-find-nonterminal-by-name-regexp-method
-  ((database semanticdb-project-database-emacs-lisp)
-   regex search-parts search-includes diff-mode find-file-match)
-  "Find all occurrences of nonterminals with name matching REGEX in DATABASE.
+(defmethod semanticdb-find-tags-by-name-regexp-method
+  ((table semanticdb-table-emacs-lisp) regex)
+  "Find all tags with name matching REGEX in TABLE.
 Uses `apropos-internal' to find matches.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (let ((toklst (delq nil (mapcar 'semanticdb-elisp-sym->nonterm
-				  (apropos-internal regex)))))
-    (if toklst
-	;; Set up the table.
-	(let ((newtable (semanticdb-table-emacs-lisp "name regexp search")))
-	  (oset newtable parent-db database)
-	  (oset newtable tokens toklst)
-	  ;; Return the new table.
-	  (list (cons newtable toklst))))))
+Return a list of tags."
+  (delq nil (mapcar 'semanticdb-elisp-sym->tag
+		    (apropos-internal regex))))
 
-(defmethod semanticdb-find-nonterminal-by-type-method
-  ((database semanticdb-project-database-emacs-lisp)
-   type search-parts search-includes diff-mode find-file-match)
-  "Find all nonterminals with a type of TYPE in DATABASE.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  ;; We never have any types in Emacs Lisp.
-  ;; While we could derive this information, it is not really
-  ;; worth it.
-  nil
-  )
-
-(defmethod semanticdb-find-nonterminal-by-property-method
-  ((database semanticdb-project-database-emacs-lisp)
-   property value search-parts search-includes diff-mode find-file-match)
-  "Find all nonterminals with a PROPERTY equal to VALUE in DATABASE.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  ;; Properties are added after a symbol is parsed, by a user, for example.
-  ;; As such, these properties cannot be kept, so we won't allow
-  ;; searching either.
-  nil
-  )
-
-(defmethod semanticdb-find-nonterminal-by-extra-spec-method
-  ((database semanticdb-project-database-emacs-lisp)
-   spec search-parts search-includes diff-mode find-file-match)
-  "Find all nonterminals with a SPEC in database.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASE,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  ;; There is currently but one supported extra spec.
-  ;; Once we have more supported, it might be worth enhancing
-  ;; this function.
-  nil
-;;  (semanticdb-find-symbol-by-function-method
-;;   database
-;;   (lambda (atom)
-;;     
-;;     )
-;;   search-parts search-includes diff-mode find-file-match)
-  )
-
-(defmethod semanticdb-find-nonterminal-by-extra-spec-value-method
-  ((database semanticdb-project-database-emacs-lisp)
-   spec value search-parts search-includes diff-mode find-file-match)
-  "Find all nonterminals with a SPEC equal to VALUE in database.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  ;; See above.
-  nil
-  )
+(defmethod semanticdb-find-tags-for-completion-method
+  ((table semanticdb-table-emacs-lisp) prefix)
+  "In TABLE, find all occurances of tags matching PREFIX.
+Returns a table of all matching tags."
+  (delq nil (mapcar 'semanticdb-elisp-sym->tag
+		    (all-completions prefix obarray)))
+  z)
 
 ;;; Advanced Searches
 ;;
-(defmethod semanticdb-find-nonterminal-external-children-of-type-method
-  ((database semanticdb-project-database) type search-parts search-includes diff-mode find-file-match)
+(defmethod semanticdb-find-tags-external-children-of-type-method
+  ((table semanticdb-table-emacs-lisp) type)
   "Find all nonterminals which are child elements of TYPE
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
+Return a list of tags."
   ;; EIEIO is the only time this matters
   (when (featurep 'eieio)
     (let* ((class (intern-soft type))
-	   (toklst (when class
+	   (taglst (when class
 		     (delq nil
-			   (mapcar 'semanticdb-elisp-sym->nonterm
+			   (mapcar 'semanticdb-elisp-sym->tag
 				   ;; Fancy eieio function that knows all about
 				   ;; built in methods belonging to CLASS.
 				   (eieio-all-generic-functions class)))))
 	   )
-      (when toklst
-	;; Set up the table.
-	(let ((newtable (semanticdb-table-emacs-lisp "external children search")))
-	  (oset newtable parent-db database)
-	  (oset newtable tokens toklst)
-	  ;; Return the new table.
-	  (list (cons newtable toklst)))	
-	)
-      )))
-
-;;; Genric searches
-;;
-(defmethod semanticdb-find-symbol-by-function-method
-  ((database semanticdb-project-database-emacs-lisp)
-   predicate &optional search-parts search-includes diff-mode find-file-match)
-  "In DATABASE, find all occurances of nonterminals which match PREDICATE.
-PREDICATE accepts one Emacs Lisp symbol, and returns a semantic token.
-The PREDICATE must all append found tokens to `semanticdb-elisp-mapatom-collector'
-which gives each routine an opportunity to effect what kind of token
-is created.
-When SEARCH-PARTS is non-nil the search will include children of tokens.
-SEARCH-INCLUDES is ignored.
-When DIFF-MODE is non-nil, search databases which are in `emacs-lisp-mode'.
-A mode is the `major-mode' that file was in when it was last parsed.
-FIND-FILE-MATCH is is ignored.
-Return a list of matches."
-  (if (not (or diff-mode (eq major-mode 'emacs-lisp-mode)))
-      nil
-    (let ((newtable nil)
-	  (semanticdb-elisp-mapatom-collector nil)
-	  )
-      ;; Map across all atoms in `obarray', the master obarray for all emacs
-      ;; while running FUNCTION.
-      (mapatoms (lambda (sym)
-		  (funcall predicate sym)
-		  ))
-      ;; Interpret collection, and add to the database table.
-      (when semanticdb-elisp-mapatom-collector
-	(setq newtable (semanticdb-table-emacs-lisp "search-results"))
-	(oset newtable parent-db database)
-	(oset newtable tokens semanticdb-elisp-mapatom-collector)
-	;; We must return a list of all matching tables.
-	;; That is why we have two lists here.
-	(list (cons newtable semanticdb-elisp-mapatom-collector)))
-      )))
-
-(defmethod semanticdb-find-nonterminal-by-function-method
-  ((database semanticdb-project-database-emacs-lisp)
-   function &optional search-parts search-includes diff-mode find-file-match)
-  "In DATABASE, find all occurances of nonterminals which match FUNCTION.
-When SEARCH-PARTS is non-nil the search will include children of tokens.
-SEARCH-INCLUDES is ignored.
-When DIFF-MODE is non-nil, search databases which are in `emacs-lisp-mode'.
-A mode is the `major-mode' that file was in when it was last parsed.
-FIND-FILE-MATCH is is ignored.
-Return a list of matches."
-  (if nil
-      ;; This TOTALLY sucks as a mechanism for
-      ;; searching Emacs Lisp.  Make sure if such
-      ;; is needed by users, that we make a new
-      ;; search above which will work better.
-      ;; Otherwise, all such searches will be very
-      ;; slow. :(
-      (semanticdb-find-symbol-by-function-method
-       database
-       (lambda (atom)
-	 (let ((token (semanticdb-elisp-sym->nonterm atom)))
-	   (when token
-	     (if (funcall function
-			  token
-			  search-parts
-			  search-includes
-			  )
-		 (setq semanticdb-elisp-mapatom-collector
-		       (cons token semanticdb-elisp-mapatom-collector))
-	       )
-	     ))
-	 )
-       search-parts search-includes diff-mode find-file-match)))
+      taglst)))
 
 (provide 'semanticdb-el)
 
