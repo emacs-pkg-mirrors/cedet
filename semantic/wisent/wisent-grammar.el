@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.1 2002/09/05 13:30:22 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.2 2002/10/02 15:07:30 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -194,7 +194,7 @@ Keep order of declaration in the WY file without duplicates."
       (setq semantic-parser-name \"LALR\"\n\
             semantic-toplevel-bovine-table %s\n\
             semantic-flex-keywords-obarray %s\n\
-            semantic-lex-tokens-obarray %s)\n\
+            semantic-lex-types-obarray %s)\n\
       ;; Collect unmatched syntax lexical tokens\n\
       (semantic-make-local-hook 'wisent-discarding-token-functions)\n\
       (add-hook 'wisent-discarding-token-functions\n\
