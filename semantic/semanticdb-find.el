@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.25 2005/01/30 22:03:01 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.26 2005/02/02 13:49:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -335,7 +335,9 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 ;;
 (defun semanticdb-find-test-translate-path (&optional arg)
   "Call and output results of `semanticdb-find-translate-path'
-With ARG non-nil, specify a BRUTISH translation."
+With ARG non-nil, specify a BRUTISH translation.
+See `semanticdb-find-default-throttle' and `semanticdb-project-roots'
+for details on how this list is derived."
   (interactive "P")
   (let ((p (semanticdb-find-translate-path nil arg)))
     ;; Output the result
