@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.46 2000/09/19 04:23:53 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.47 2000/09/20 17:59:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -221,6 +221,30 @@
   )
 
 ;;; Code:
+
+;;; Compatibility
+;;
+(if (fboundp 'make-overlay)
+    (progn
+      (defalias 'semantic-make-overlay 'make-overlay)
+      (defalias 'semantic-overlay-put 'overlay-put)
+      (defalias 'semantic-overlay-get 'overlay-get)
+      (defalias 'semantic-overlay-delete 'delete-overlay)
+      (defalias 'semantic-overlays-at 'overlays-at)
+      (defalias 'semantic-overlay-buffer 'overlay-buffer)
+      (defalias 'semantic-overlay-start 'overlay-start)
+      (defalias 'semantic-overlay-end 'overlay-end)
+      )
+  (defalias 'semantic-make-overlay 'make-extent)
+  (defalias 'semantic-overlay-put 'set-extent-property)
+  (defalias 'semantic-overlay-get 'get-extent-property)
+  (defalias 'semantic-overlay-delete 'delete-extent)
+  (defalias 'semantic-overlays-at 'extents-at)
+  (defalias 'semantic-overlay-buffer 'extent-buffer)
+  (defalias 'semantic-overlay-start 'extent-start)
+  (defalias 'semantic-overlay-end 'extent-end)
+  )
+
 (defvar semantic-edebug nil
   "When non-nil, activate the interactive parsing debugger.
 Do not set this yourself.  Call `semantic-bovinate-buffer-debug'.")
@@ -278,7 +302,7 @@ GENERIC ENTRIES:
  Bovine table entry return elements are up to the table author.  It is
 recommended, however, that the following format be used.
 
- (\"NAME\" type-symbol [\"TYPE\"] ... \"DOCSTRING\" START END)
+ (\"NAME\" type-symbol [\"TYPE\"] ... \"DOCSTRING\" OVERLAY)
 
 Where type-symbol is the type of return token found, and NAME is it's
 name.  If there is any typing information needed to describe this
@@ -288,7 +312,10 @@ of DOCSTRING.  A docstring does not have to exist in the form used by
 Emacs Lisp.  It could be the text of a comment appearing just before a
 function call, or in line with a variable.
 
-The last two elements must be START and END.
+The last element must be OVERLAY.
+The OVERLAY is automatically created by semantic from an input that
+consists of START and END.  When building a parser table, use START
+and END as positions in the buffer.
 
 It may seem odd to place NAME in slot 0, and the type-symbol in slot
 1, but this turns the returned elements into a list which can be used
@@ -307,7 +334,7 @@ a type nonterminal.
 TOP-LEVEL ENTRIES:
 
  (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS [OPTSUFFIX] 
-           \"DOCSTRING\" START END)
+           \"DOCSTRING\" OVERLAY)
    The definition of a variable, or constant.
    CONST is a boolean representing if this variable is considered a constant.
    DEFAULT-VALUE can be something apropriate such a a string,
@@ -318,7 +345,7 @@ TOP-LEVEL ENTRIES:
    DOCSTRING is optional.
 
  (\"NAME\" function \"TYPE\" ( ARG-LIST ) MODIFIERS [THROWS]
-          \"DOCSTRING\" START END)
+          \"DOCSTRING\" OVERLAY)
    A function/procedure definition.
    ARG-LIST is a list of variable definitions.
    THROWS is an optional argument for functions or methods in languages
@@ -326,7 +353,7 @@ TOP-LEVEL ENTRIES:
    DOCSTRING is optional.
 
  (\"NAME\" type \"TYPE\" ( PART-LIST ) ( PARENTS ) MODIFIERS
-          \"DOCSTRING\" START END)
+          \"DOCSTRING\" OVERLAY)
    A type definition.
    TYPE of a type could be anything, such as (in C) struct, union, typedef,
    or class.
@@ -335,12 +362,12 @@ TOP-LEVEL ENTRIES:
    PARENTS is strictly for classes where there is inheritance.
    
 
- (\"FILE\" include SYSTEM \"DOCSTRING\" START END)
+ (\"FILE\" include SYSTEM \"DOCSTRING\" OVERLAY)
    In C, an #include statement.  In elisp, a require statement.
    Indicates additional locations of sources or definitions.
    SYSTEM is true if this include is part of a set of system includes.
 
- (\"NAME\" package DETAIL \"DOCSTRING\" START END)
+ (\"NAME\" package DETAIL \"DOCSTRING\" OVERLAY)
    In Emacs Lisp, a `provide' statement.  DETAIL might be an
    associated file name.
 
@@ -395,10 +422,39 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
 ;;
 ;; See semantic-util for a wider range of utility functions and macros.
 ;;
+(defvar semantic-overlay-error-recovery-stack nil
+  "List of overlays used during error recovery.")
+
+(defun semantic-overlay-stack-add (o)
+  "Add overlay O to the error recovery stack."
+  (setq semantic-overlay-error-recovery-stack
+	(if (listp o)
+	    (append o semantic-overlay-error-recovery-stack)
+	  (cons o semantic-overlay-error-recovery-stack))))
+
+(defun semantic-overlay-stack-clear ()
+  "Clear the overlay error recovery stack."
+  (while semantic-overlay-error-recovery-stack
+    (semantic-overlay-delete (car semantic-overlay-error-recovery-stack))
+    (setq semantic-overlay-error-recovery-stack
+	  (cdr semantic-overlay-error-recovery-stack))))
+
+(defun semantic-delete-overlay-maybe (overlay)
+  "Delete OVERLAY if it is a semantic token overlay."
+  (if (semantic-overlay-get overlay 'semantic)
+      (semantic-overlay-delete overlay)))
+
 (defun semantic-clear-toplevel-cache ()
   "Clear the toplevel bovin cache for the current buffer."
   (interactive)
-  (setq semantic-toplevel-bovine-cache nil))
+  (setq semantic-toplevel-bovine-cache nil)
+  ;; Nuke all semantic overlays.  This is faster than deleting based
+  ;; on our data structure.
+  (let ((l (overlay-lists)))
+    (mapcar 'semantic-delete-overlay-maybe (car l))
+    (mapcar 'semantic-delete-overlay-maybe (cdr l))
+    )
+  )
 
 (defmacro semantic-token-token (token)
   "Retrieve from TOKEN the token identifier.
@@ -420,17 +476,22 @@ If not provided, then only the POSITION can be provided."
 	  (semantic-flex-text (car (semantic-flex p (1+ p)))))
       p)))
 
+(defmacro semantic-token-overlay (token)
+  "Retrieve the OVERLAY part of TOKEN."
+  `(nth (- (length ,token) 1) ,token))
+
 (defmacro semantic-token-extent (token)
   "Retrieve the extent (START END) of TOKEN."
-  `(nthcdr (- (length ,token) 2) ,token))
+  `(let ((over (semantic-token-overlay ,token)))
+     (list (semantic-overlay-start over) (semantic-overlay-end over))))
 
 (defmacro semantic-token-start (token)
   "Retrieve the start location of TOKEN."
-  `(nth (- (length ,token) 2) ,token))
+  `(semantic-overlay-start (semantic-token-overlay ,token)))
 
 (defmacro semantic-token-end (token)
   "Retrieve the end location of TOKEN."
-  `(nth (- (length ,token) 1) ,token))
+  `(semantic-overlay-end (semantic-token-overlay ,token)))
 
 (defun semantic-token-p (token)
   "Return non-nil if TOKEN is most likely a semantic token."
@@ -455,22 +516,27 @@ there has been a size change."
     (funcall semantic-toplevel-bovinate-override depth trashcomments))
    ((and semantic-toplevel-bovine-cache
 	 (car semantic-toplevel-bovine-cache)
-	 ;; Add a rule that knows how to see if there have been "big chagnes"
+	 ;; Add a rule that knows how to see if there have
+	 ;; been "big chagnes"
 	 )
     (car semantic-toplevel-bovine-cache))
    (t
-    (let ((ss (semantic-flex (point-min) (point-max) (or depth 0)))
-	  (res nil))
+    (let ((ss (semantic-flex (point-min) (point-max)
+			     (or depth 0)))
+	  (res nil)
+	  (semantic-overlay-error-recovery-stack nil))
       ;; Init a dump
       (if semantic-dump-parse (semantic-dump-buffer-init))
       ;; Parse!
       (working-status-forms (buffer-name) "done"
 	(setq res
-	      (semantic-bovinate-nonterminals ss 'bovine-toplevel
-					      depth trashcomments))
+	      (semantic-bovinate-nonterminals
+	       ss 'bovine-toplevel depth trashcomments))
 	(working-status t))
-      (setq semantic-toplevel-bovine-cache (list (nreverse res) (point-max))
-	    semantic-toplevel-bovine-cache-check (point-max))
+      (setq semantic-toplevel-bovine-cache
+	    (list (nreverse res) (point-max))
+	    semantic-toplevel-bovine-cache-check
+	    (point-max))
       (car semantic-toplevel-bovine-cache)))))
 
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
@@ -486,20 +552,62 @@ the current results on a parse error."
   (let ((result nil) (case-fold-search semantic-case-fold))
     (while stream
       (if (not (and trashcomments (eq (car (car stream)) 'comment)))
-	  (let ((nontermsym
-		 (semantic-bovinate-nonterminal
-		  stream semantic-toplevel-bovine-table nonterm))
-		(tmpet nil))
+	  (let* ((nontermsym
+		  (semantic-bovinate-nonterminal
+		   stream semantic-toplevel-bovine-table nonterm))
+		 (stream-overlays (car (cdr (cdr nontermsym))))
+		 (tmpet nil)
+		 (token (car (cdr nontermsym)))
+		 (startcdr (nthcdr (- (length token) 2) token)))
 	    (if (not nontermsym)
 		(error "Parse error @ %d" (car (cdr (car stream)))))
-	    (if (car (cdr nontermsym))
-		(progn
-		  (if semantic-expand-nonterminal
-		      (setq tmpet (funcall semantic-expand-nonterminal
-					   (car (cdr nontermsym)))))
-		  (if (not tmpet)
-		      (setq tmpet (list (car (cdr nontermsym)))))
-		  (setq result (append tmpet result)))
+	    (semantic-overlay-stack-add stream-overlays)
+	    (if token
+		(let ((o
+		       (condition-case nil
+			   (semantic-make-overlay (car startcdr)
+						  (car (cdr startcdr))
+						  (current-buffer)
+						  ;; Examin start/rear
+						  ;; advance flags.
+						  )
+			 (error (debug token)
+				nil))))
+		  ;; Convert START/END into an overlay.
+		  (setcdr startcdr nil)
+		  (setcar startcdr o)
+		  (semantic-overlay-put o 'semantic token)
+		  ;; Expand based on local configuration
+		  (if (not semantic-expand-nonterminal)
+		      ;; no expanders
+		      (setq result (cons token result))
+		    ;; Glom generated tokens
+		    (setq tmpet (funcall semantic-expand-nonterminal token))
+		    (if (not tmpet)
+			(progn (setq result (cons token result))
+			       (semantic-overlay-stack-add o))
+		      ;; Fixup all overlays, start by deleting the old one
+		      (let ((motok tmpet) o start end)
+			(while motok
+			  (setq startcdr (nthcdr (- (length (car motok)) 1)
+						 (car motok))
+				;; this will support new overlays created by
+				;; the special function, or recycles
+				start (or (semantic-overlay-start
+					   (car startcdr)) start)
+				end (or (semantic-overlay-end
+					 (car startcdr)) end)
+				o (semantic-make-overlay start end
+							 (current-buffer)))
+			  (if (semantic-overlay-buffer (car startcdr))
+			      (semantic-overlay-delete (semantic-token-overlay
+							(car motok))))
+			  (semantic-overlay-stack-add o)
+			  (setcdr startcdr nil)
+			  (setcar startcdr o)
+			  (semantic-overlay-put o 'semantic (car motok))
+			  (setq motok (cdr motok))))
+		      (setq result (append tmpet result)))))
 	      (if returnonerror (setq stream nil))
 	      ;;(error "Parse error")
 	      )
@@ -574,8 +682,8 @@ COLLECTION is the list of things collected so far."
     (unwind-protect
 	(progn
 	  (goto-char (car (cdr lse)))
-	  (setq ol1 (make-overlay (car (cdr lse)) (cdr (cdr lse))))
-	  (overlay-put ol1 'face 'highlight)
+	  (setq ol1 (semantic-make-overlay (car (cdr lse)) (cdr (cdr lse))))
+	  (semantic-overlay-put ol1 'face 'highlight)
 	  (goto-char (car (cdr lse)))
 	  (if window-system nil (sit-for 1))
 	  (other-window 1)
@@ -585,8 +693,8 @@ COLLECTION is the list of things collected so far."
 	   (concat "^\\s-*\\((\\|['`]((\\)\\(" (symbol-name nonterminal)
 		   "\\)[ \t\n]+(")
 	   nil t)
-	  (setq ol2 (make-overlay (match-beginning 2) (match-end 2)))
-	  (overlay-put ol2 'face 'highlight)
+	  (setq ol2 (semantic-make-overlay (match-beginning 2) (match-end 2)))
+	  (semantic-overlay-put ol2 'face 'highlight)
 	  (forward-char -2)
 	  (forward-list matchlen)
 	  (skip-chars-forward " \t\n(")
@@ -598,8 +706,8 @@ COLLECTION is the list of things collected so far."
 		  (t nil)))
 	  (other-window 1)
 	  )
-      (delete-overlay ol1)
-      (delete-overlay ol2))
+      (semantic-delete-overlay ol1)
+      (semantic-delete-overlay ol2))
     ret))
 
 (eval-when-compile (require 'pp))
@@ -707,9 +815,10 @@ Use `bovine-toplevel' if it is not provided."
 This is the core routine for converting a stream into a table.
 See the variable `semantic-toplevel-bovine-table' for details on the
 format of MATCHLIST.
-Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
+Return the list (STREAM SEMANTIC-STREAM OVERLAYS) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
-list of semantic tokens found."
+list of semantic tokens found.  OVERLAYS is the list of overlays found
+so far, to be used in the error recovery stack."
   (let ((s   nil)			;Temp Stream Tracker
 	(lse nil)			;Local Semantic Element
 	(lte nil)			;Local matchlist element
@@ -722,10 +831,12 @@ list of semantic tokens found."
 	(end nil)
 	(db-mlen (length matchlist))
 	(db-tlen 0)
+	(semantic-overlay-error-recovery-stack nil) ;part of error recovery
 	)
     ;; prime the rollback stack
     (setq s-stack (cons stream s-stack)
-	  start (car (cdr (car stream))))
+	  start (car (cdr (car stream)))
+	  end (cdr (cdr (car stream))))
     (while matchlist
       (setq s (car s-stack)		;init s from the stack.
 	    cvl nil			;re-init the collected value list.
@@ -749,32 +860,13 @@ list of semantic tokens found."
 		     (setq lte '(trash 0 . 0)))
 		    (t nil))))
 	(cond
-	 ;; The special ITERATE keyword idicates a special recursion
-	 ;; removal sequence which can be iterated over.  Iteration
-	 ;; also simplifies some types of matching.
-	 ;; NOTE: Iterate always succeeds because an empty list is ok.
-	 ((eq (car lte) 'ITERATE)
-	  (let ((nontermout (semantic-bovinate-stream s table (cdr lte)))
-		)
-	    (setq s (car nontermout)
-		  val (car (cdr nontermout)))
-	    (if val
-		(let ((len (length val))
-		      (strip (nreverse (cdr (cdr (reverse val))))))
-		  (if semantic-dump-parse
-		      (semantic-dump-detail (cdr nontermout)
-					    (car lte)
-					    ""
-					    "Iterate Match"))
-		  (setq end (nth (1- len) val)
-			cvl (cons strip cvl))))
-	    (setq lte nil)
-	    ))
 	 ;; We have a nonterminal symbol.  Recurse inline.
 	 ((semantic-bovinate-symbol-nonterminal-p (car lte) table)
 	  (let ((nontermout (semantic-bovinate-nonterminal s table (car lte))))
 	    (setq s (car nontermout)
-		  val (car (cdr nontermout)))
+		  val (car (cdr nontermout))
+		  ov (car (cdr (cdr nontermout))))
+	    (if ov (semantic-overlay-stack-add ov))
 	    (if val
 		(let ((len (length val))
 		      (strip (nreverse (cdr (cdr (reverse val))))))
@@ -788,6 +880,7 @@ list of semantic tokens found."
 			lte (cdr lte)) ;update the local table entry
 		  )
 	      ;; No value means that we need to terminate this match.
+	      (semantic-overlay-stack-clear)
 	      (setq lte nil cvl nil)) ;No match, exit
 	    ))
 	 ;; Default case
@@ -820,16 +913,19 @@ list of semantic tokens found."
 			    lte (cdr lte))
 		      (if (string-match tev val)
 			  (setq cvl (cons val cvl)) ;append this value
+			(semantic-overlay-stack-clear)
 			(setq lte nil cvl nil))) ;clear the entry (exit)
 		  (setq cvl (cons
 			     (if (member (car lse)
 					 '(comment semantic-list))
 				 valdot val) cvl))) ;append unchecked value.
-		(setq end (cdr (cdr lse))))
+		(setq end (cdr (cdr lse)))
+		)
 	    (if (and semantic-dump-parse nil)
 		(semantic-dump-detail (car lte)
 				      nonterminal (semantic-flex-text lse)
 				      "Term Type Fail"))
+	    (semantic-overlay-stack-clear)
 	    (setq lte nil cvl nil)) 	;No more matches, exit
 	  )))
       (if (not cvl)			;lte=nil;  there was no match.
@@ -842,8 +938,8 @@ list of semantic tokens found."
 ; 			(if semantic-bovinate-compare-reference (semantic-bovinate-compare-against-reference o))
 ; 			o
 ; 			)
-		      (apply (car lte)	;call matchlist fn on values
-			     (nreverse cvl) start (list end))
+		      (funcall (car lte)	;call matchlist fn on values
+			       (nreverse cvl) start end)
 		    (cond ((and (= (length cvl) 1)
 				(listp (car cvl))
 				(not (numberp (car (car cvl)))) )
@@ -852,9 +948,10 @@ list of semantic tokens found."
 			   (append (nreverse cvl) (list start end))))
 		    )
 	      matchlist nil)		;generate exit condition
+	(if (not end) (setq out nil))
 	;; Nothin?
 	))
-    (list s out)))
+    (list s out semantic-overlay-error-recovery-stack)))
 
 
 ;;; Bovine table functions
@@ -874,11 +971,11 @@ Argument NONTERM is the nonterminal symbol to start with.
 Optional argument DEPTH is the depth of lists to dive into.
 Whan used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
-  (car (cdr (semantic-bovinate-nonterminal
-	     (semantic-flex start end (or depth 1))
-	     ;; the byte compiler will complain about TABLE
-	     table
-	     nonterm))))
+  (car-safe (cdr (semantic-bovinate-nonterminal
+		  (semantic-flex start end (or depth 1))
+		  ;; the byte compiler will complain about TABLE
+		  table
+		  nonterm))))
 
 (defun semantic-bovinate-from-nonterminal-full (start end nonterm
 						      &optional depth)
