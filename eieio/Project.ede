@@ -15,6 +15,7 @@
     :path ""
     :source '("eieio.el" "eieio-comp.el" "eieio-opt.el" "eieio-custom.el" "eieio-doc.el" "eieio-base.el")
     :versionsource '("eieio.el")
+    :aux-packages '("speedbar")
     )
    (ede-proj-target-elisp "examples"
     :name "examples"
