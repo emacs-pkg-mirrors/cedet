@@ -21,7 +21,7 @@ developer needs to know to perform all of the tasks just listed.
 
 @menu
 * Semantic Tags::               
-* Tag Tables::                  Working with streams of nonterminals.
+* Tag Tables::                  Working with tag tables.
 * Tags at Point::               Finding tags at point.
 * Tag Sorting::                 Reorganizing streams.
 * Tag Completion::              Completing read functions.
@@ -29,6 +29,7 @@ developer needs to know to perform all of the tasks just listed.
                                 conversion to text strings, language dependent
                                 queries and local context information
 * Parser Hooks::                How to know when tags change.
+* Semantic Database::           Persistant storage of tags.
 * Example Programs::            Simple programming examples.
 * Current Context::             
 @end menu
@@ -212,6 +213,18 @@ Optional @var{BUFFER} argument specifies the buffer to use.
 @obsolete{semantic-find-nonterminal-by-overlay-in-region,semantic-find-tag-by-overlay-in-region}
 @end defun
 
+@defun semantic-find-tag-by-overlay-next &optional start buffer
+Find the next tag after @var{START} in @var{BUFFER}.
+If @var{START} is in an overlay, find the tag which starts next,
+not the current tag.
+@end defun
+
+@defun semantic-find-tag-by-overlay-prev &optional start buffer
+Find the next tag before @var{START} in @var{BUFFER}.
+If @var{START} is in an overlay, find the tag which starts next,
+not the current tag.
+@end defun
+
 @defun semantic-current-tag
 Return the current tag in the current buffer.
 If there are more than one in the same location, return the
@@ -299,11 +312,693 @@ revised tag list.
 @end defvar
 
 @node Tag Completion
-@section tag completion
+@section Tag Completion
 
-These functions provide ways reading the names of items in a buffer with
-completion.
+Often time, it is useful to ask the user for the name of some tag.
+This can be as simple as just prompting for a name, but often time,
+the semantics can be quite complex.  If two tags have the same name,
+which do you choose?
 
+Semantic provides a completion engine for prompting for tags by name,
+and providing fancy ways to display completion lists that allow the
+user to choose a tag if several have the same name.
+
+To use a completion function in your interactive function, you can
+augment the @dfn{interactive} command like this:
+
+@example
+(defun my-function (tag)
+   "Do something to TAG."
+   (interactive (list (my-completion-function "Tag: ")))
+   ...)
+@end example
+
+@menu
+* Tag Completion Convenience Functions:: Provided functions
+* Custom Tag Completion Functions:: Build your own completion function
+* Old Tag Completion::          Completion functions from older releases
+@end menu
+
+@node Tag Completion Convenience Functions
+@subsection Tag Completion Convenience Functions
+
+There are some pre written completion functions that can be used in your
+programs.
+
+@defun semantic-complete-read-tag-buffer-deep prompt &optional default-tag initial-input history
+Ask for a tag by name from the current buffer.
+Available tags are from the current buffer, at any level.
+Completion options are presented in a traditional way, with highlighting
+to resolve same-name collisions.
+@var{PROMPT} is a string to prompt with.
+@var{DEFAULT-TAG} is a semantic tag or string to use as the default value.
+If @var{INITIAL-INPUT} is non-@code{nil}, insert it in the minibuffer initially.
+@var{HISTORY} is a symbol representing a variable to story the history in.
+@end defun
+
+@node Custom Tag Completion Functions
+@subsection Custom Tag Completion Functions
+
+There aren't many built in completion functions, but there are many
+parts that can be put together into custom completion functions.
+
+A completion function is built up of three important parts.
+
+@table @asis
+@item Tag Collection
+Something that selects tags, and provides some list of tags
+available, such as all functions, or all classes named ``bob''.
+@item Typing and selecting
+The prompt where you can type in the name of a tag.
+@item Displaying possible completion values
+A mechanism for displaying completion lists.
+@end table
+
+There is one typing and selecting routine that can be used to create
+your custom completion prompt.
+
+@defun semantic-complete-read-tag-engine collector displayor prompt default-tag initial-input history
+Read a semantic tag, and return a tag for the selection.
+Argument @var{COLLECTOR} is a function which can be used to to return
+a list of possible hits.  See @code{semantic-completion-collector-engine}
+for details on @var{COLLECTOR}.
+Argumeng @var{DISPLAYOR} is a function used to display a list of possible
+completions for a given prefix.  See@code{semantic-completion-display-engine}
+for details on @var{DISPLAYOR}.
+@var{PROMPT} is a string to prompt with.
+@var{DEFAULT-TAG} is a semantic tag or string to use as the default value.
+If @var{INITIAL-INPUT} is non-@code{nil}, insert it in the minibuffer initially.
+@var{HISTORY} is a symbol representing a variable to story the history in.
+@end defun
+
+As you can see, this takes one @dfn{collector}, and one
+@dfn{displayor}.  These are objects created for this prompt at
+runtime.  The completion engine then uses to perform their tasks.
+
+For example:
+
+@example
+(defun semantic-complete-read-tag-buffer-deep (prompt &optional
+						      default-tag initial-input history)
+  "Ask for a tag by name from the current buffer.
+PROMPT is a string to prompt with.
+DEFAULT-TAG is a semantic tag or string to use as the default value.
+If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
+HISTORY is a symbol representing a variable to story the history in."
+  (semantic-complete-read-tag-engine
+   (semantic-collector-buffer-deep prompt :buffer (current-buffer))
+   (semantic-displayor-traditional-with-focus-highlight "simple")
+   ;;(semantic-displayor-tooltip "simple")
+   prompt
+   default-tag
+   initial-input
+   history)
+  )
+@end example
+
+@menu
+* Tag Collectors::
+* Tag Displayors::
+@end menu
+
+@node Tag Collectors
+@subsubsection Tag Collectors
+
+A tag collector is an object that inherits from
+@dfn{semantic-collector-abstract}.  A new collector is needed for
+each specialized type of prompt that draws from a different selection
+of tags.
+
+You can have a collector that satisfies multiple purposes using slots
+filled in the initializer for that object.
+
+All collectors inherit from:
+
+@deftype semantic-collector-abstract
+Root class for completion engines.
+@end deftype
+
+Available instantiable classes are:
+
+@deftype semantic-collector-buffer-deep
+Completion engine for tags in the current buffer.
+Provides deep searches through types.
+@end deftype
+
+NOTE: Add sections for writing new collectors.
+
+@c (eieiodoc-class semantic-collector-abstract "cc")
+@menu
+* semantic-collector-abstract ::
+*  semantic-collector-buffer-abstract ::
+*   semantic-collector-buffer-deep ::
+@end menu
+
+
+@node semantic-collector-abstract, semantic-collector-buffer-abstract,  , Tag Collectors
+@subsubsection Tag Collectors
+
+A tag collector is an object that inherits from
+@dfn{semantic-collector-abstract}.  A new collector is needed for
+each specialized type of prompt that draws from a different selection
+of tags.
+
+You can have a collector that satisfies multiple purposes using slots
+filled in the initializer for that object.
+
+All collectors inherit from:
+
+@deftype semantic-collector-abstract
+Root class for completion engines.
+@end deftype
+
+Available instantiable classes are:
+
+@deftype semantic-collector-buffer-deep
+Completion engine for tags in the current buffer.
+Provides deep searches through types.
+@end deftype
+
+NOTE: Add sections for writing new collectors.
+
+@c (eieiodoc-class semantic-collector-abstract "cc")
+@comment  node-name,  next,  previous,  up
+@subsubsection semantic-collector-abstract
+@ccindex semantic-collector-abstract
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item semantic-collector-abstract
+@table @asis
+@item Children:
+@w{@xref{semantic-collector-buffer-abstract}.} 
+@end table
+
+@end table
+@end table
+
+  You cannot create a new object of type semantic-collector-abstract
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :buffer
+Type: @code{buffer}
+
+Originating buffer for this collector.
+Some collectors use a given buffer as a starting place while looking up
+tags.
+@refill
+
+@end table
+
+@end table
+@subsubsubsection Specialized Methods
+
+@deffn Method semantic-collector-all-completions :AFTER obj 
+For @var{OBJ}, retrieve all completions matching PREFIX.
+The returned list consists of all the tags currently
+matching PREFIX.
+@end deffn
+
+@deffn Method semantic-collector-calculate-completions :AFTER obj prefix 
+Calculate completions for prefix as setup for other queries.
+@end deffn
+
+@deffn Method semantic-collector-try-completion :AFTER obj 
+For @var{OBJ}, attempt to match PREFIX.
+See @dfn{try-completion} for details on how this works.
+Return @code{nil} for no match.
+Return a string for a partial match.
+For a unique match of PREFIX, return the list of all tags
+with that name.
+@end deffn
+
+@deffn Method semantic-collector-flush :AFTER this 
+Flush @var{THIS} collector object, clearing any caches and prefix.
+@end deffn
+
+@deffn Method semantic-collector-calculate-cache :AFTER obj 
+Calculate the completion cache for @var{OBJ}.
+@end deffn
+
+@deffn Method semantic-collector-next-action :AFTER obj 
+What should we do next?  @var{OBJ} can predict a next good action.
+@end deffn
+
+@deffn Method semantic-collector-last-prefix= :AFTER obj last-prefix 
+Return non-@code{nil} if @var{OBJ}'s prefix matches PREFIX.
+@end deffn
+
+
+@node semantic-collector-buffer-abstract, semantic-collector-buffer-deep, semantic-collector-abstract, Tag Collectors
+@subsubsection Tag Collectors
+
+A tag collector is an object that inherits from
+@dfn{semantic-collector-abstract}.  A new collector is needed for
+each specialized type of prompt that draws from a different selection
+of tags.
+
+You can have a collector that satisfies multiple purposes using slots
+filled in the initializer for that object.
+
+All collectors inherit from:
+
+@deftype semantic-collector-abstract
+Root class for completion engines.
+@end deftype
+
+Available instantiable classes are:
+
+@deftype semantic-collector-buffer-deep
+Completion engine for tags in the current buffer.
+Provides deep searches through types.
+@end deftype
+
+NOTE: Add sections for writing new collectors.
+
+@c (eieiodoc-class semantic-collector-abstract "cc")
+@comment  node-name,  next,  previous,  up
+@subsubsection semantic-collector-buffer-abstract
+@ccindex semantic-collector-buffer-abstract
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{semantic-collector-abstract}.}
+@table @code
+@item semantic-collector-buffer-abstract
+@table @asis
+@item Children:
+@w{@xref{semantic-collector-buffer-deep}.} 
+@end table
+
+@end table
+
+@end table
+@end table
+
+  You cannot create a new object of type semantic-collector-buffer-abstract
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :buffer
+Type: @code{buffer}
+
+Originating buffer for this collector.
+Some collectors use a given buffer as a starting place while looking up
+tags.
+@refill
+
+@end table
+
+@end table
+@subsubsubsection Specialized Methods
+
+@deffn Method semantic-collector-calculate-cache :AFTER obj 
+Calculate the completion cache for @var{OBJ}.
+Uses @dfn{semantic-flatten-tags-table}
+@end deffn
+
+@deffn Method constructor :BEFORE this newname &rest fields 
+Reuse previously created objects of this type in buffer.
+@end deffn
+
+
+@node semantic-collector-buffer-deep,  , semantic-collector-buffer-abstract, Tag Collectors
+@subsubsection Tag Collectors
+
+A tag collector is an object that inherits from
+@dfn{semantic-collector-abstract}.  A new collector is needed for
+each specialized type of prompt that draws from a different selection
+of tags.
+
+You can have a collector that satisfies multiple purposes using slots
+filled in the initializer for that object.
+
+All collectors inherit from:
+
+@deftype semantic-collector-abstract
+Root class for completion engines.
+@end deftype
+
+Available instantiable classes are:
+
+@deftype semantic-collector-buffer-deep
+Completion engine for tags in the current buffer.
+Provides deep searches through types.
+@end deftype
+
+NOTE: Add sections for writing new collectors.
+
+@c (eieiodoc-class semantic-collector-abstract "cc")
+@comment  node-name,  next,  previous,  up
+@subsubsection semantic-collector-buffer-deep
+@ccindex semantic-collector-buffer-deep
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{semantic-collector-abstract}.}
+@table @code
+@item @w{@xref{semantic-collector-buffer-abstract}.}
+@table @code
+@item semantic-collector-buffer-deep
+No children
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type semantic-collector-buffer-deep
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :buffer
+Type: @code{buffer}
+
+Originating buffer for this collector.
+Some collectors use a given buffer as a starting place while looking up
+tags.
+@refill
+
+@end table
+
+@end table
+
+
+@c END OF COLLECTOR
+
+@node Tag Displayors
+@subsubsection Tag Displayors
+
+When a user is interacting with the prompt, and requests completion,
+those tags are drawn from the collector.  If the user asks for a list
+of completion by hitting a complete key twice, then the list of
+completions heeds to be displayed in some way.
+
+Displayors can be used to manage the display of all tags currently
+available, AND often needs to be used to @b{focus} one one particular
+tag of many in a visible way.
+
+All displayors inherit from the displayor baseclass that defines the
+default behaviors:
+
+@deftype semantic-displayor-abstract
+Manages the display of some number of tags.
+@end deftype
+
+Distinct implementations of displayors include:
+
+@deftype semantic-displayor-traditional
+Traditional display mechanism for a list of possible completions.
+@end deftype
+
+@deftype semantic-displayor-traditional-with-focus-highlight
+A traditional displayor which can focus on a tag by showing it.
+@end deftype
+
+@deftype semantic-displayor-tooltip
+Display mechanism using tooltip for a list of possible completions.
+@end deftype
+
+NOTE: Add sections for writing new collectors.
+
+@c (eieiodoc-class semantic-displayor-abstract "cd")
+@menu
+* semantic-displayor-abstract ::
+*  semantic-displayor-traditional ::
+*   semantic-displayor-traditional-with-focus-highlight ::
+*  semantic-displayor-focus-abstract ::
+*   semantic-displayor-traditional-with-focus-highlight ::
+*  semantic-displayor-tooltip ::
+@end menu
+
+
+@node semantic-displayor-abstract, semantic-displayor-traditional,  , Tag Displayors
+@subsubsection Tag Displayors
+
+When a user is interacting with the prompt
+@comment  node-name,  next,  previous,  up
+@subsubsection semantic-displayor-abstract
+@cdindex semantic-displayor-abstract
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item semantic-displayor-abstract
+@table @asis
+@item Children:
+@w{@xref{semantic-displayor-traditional},} @w{@xref{semantic-displayor-focus-abstract},} @w{@xref{semantic-displayor-tooltip}.} 
+@end table
+
+@end table
+@end table
+
+  You cannot create a new object of type semantic-displayor-abstract
+
+@table @asis
+@end table
+@subsubsubsection Specialized Methods
+
+@deffn Method semantic-displayor-focus-request :AFTER obj 
+A request to for the displayor to focus on some tag option.
+@end deffn
+
+@deffn Method semantic-displayor-current-focus :AFTER obj 
+Return the tag currently in focus.
+@end deffn
+
+@deffn Method semantic-displayor-show-request :AFTER obj 
+A request to show the current tags table.
+@end deffn
+
+@deffn Method semantic-displayor-next-action :AFTER obj 
+The next action to take on the minibuffer related to display.
+@end deffn
+
+@deffn Method semantic-displayor-set-completions :AFTER obj table prefix 
+Set the list of tags to be completed over to @var{TABLE}.
+@end deffn
+
+
+@node semantic-displayor-traditional, semantic-displayor-traditional-with-focus-highlight, semantic-displayor-abstract, Tag Displayors
+@subsubsection Tag Displayors
+
+When a user is interacting with the prompt
+@comment  node-name,  next,  previous,  up
+@subsubsection semantic-displayor-traditional
+@cdindex semantic-displayor-traditional
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{semantic-displayor-abstract}.}
+@table @code
+@item semantic-displayor-traditional
+@table @asis
+@item Children:
+@w{@xref{semantic-displayor-traditional-with-focus-highlight}.} 
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type semantic-displayor-traditional
+
+@table @asis
+@end table
+
+@node semantic-displayor-traditional-with-focus-highlight, semantic-displayor-focus-abstract, semantic-displayor-traditional, Tag Displayors
+@subsubsection Tag Displayors
+
+When a user is interacting with the prompt
+@comment  node-name,  next,  previous,  up
+@subsubsection semantic-displayor-traditional-with-focus-highlight
+@cdindex semantic-displayor-traditional-with-focus-highlight
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{semantic-displayor-abstract}.}
+@table @code
+@item @w{@xref{semantic-displayor-traditional}.}
+@table @code
+@item semantic-displayor-traditional-with-focus-highlight
+No children
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type semantic-displayor-traditional-with-focus-highlight
+
+@table @asis
+@end table
+@subsubsubsection Specialized Methods
+
+@deffn Method semantic-displayor-focus-request :AFTER obj 
+Focus in on possible tag completions.
+Focus is performed by cycling through the tags and highlighting
+one in the source buffer.
+@end deffn
+
+
+@node semantic-displayor-focus-abstract, semantic-displayor-traditional-with-focus-highlight, semantic-displayor-traditional-with-focus-highlight, Tag Displayors
+@subsubsection Tag Displayors
+
+When a user is interacting with the prompt
+@comment  node-name,  next,  previous,  up
+@subsubsection semantic-displayor-focus-abstract
+@cdindex semantic-displayor-focus-abstract
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{semantic-displayor-abstract}.}
+@table @code
+@item semantic-displayor-focus-abstract
+@table @asis
+@item Children:
+@w{@xref{semantic-displayor-traditional-with-focus-highlight}.} 
+@end table
+
+@end table
+
+@end table
+@end table
+
+  You cannot create a new object of type semantic-displayor-focus-abstract
+
+@table @asis
+@end table
+@subsubsubsection Specialized Methods
+
+@deffn Method semantic-displayor-focus-next-tag :AFTER obj 
+Return the next tag @var{OBJ} should focus on.
+@end deffn
+
+@deffn Method semantic-displayor-current-focus :AFTER obj 
+Return the tag currently in focus.
+@end deffn
+
+@deffn Method semantic-displayor-set-completions :AFTER obj table prefix 
+Set the list of tags to be completed over to @var{TABLE}.
+@end deffn
+
+
+@node semantic-displayor-traditional-with-focus-highlight, semantic-displayor-tooltip, semantic-displayor-focus-abstract, Tag Displayors
+@subsubsection Tag Displayors
+
+When a user is interacting with the prompt
+@comment  node-name,  next,  previous,  up
+@subsubsection semantic-displayor-traditional-with-focus-highlight
+@cdindex semantic-displayor-traditional-with-focus-highlight
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{semantic-displayor-abstract}.}
+@table @code
+@item @w{@xref{semantic-displayor-traditional}.}
+@table @code
+@item semantic-displayor-traditional-with-focus-highlight
+No children
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type semantic-displayor-traditional-with-focus-highlight
+
+@table @asis
+@end table
+@subsubsubsection Specialized Methods
+
+@deffn Method semantic-displayor-focus-request :AFTER obj 
+Focus in on possible tag completions.
+Focus is performed by cycling through the tags and highlighting
+one in the source buffer.
+@end deffn
+
+
+@node semantic-displayor-tooltip,  , semantic-displayor-traditional-with-focus-highlight, Tag Displayors
+@subsubsection Tag Displayors
+
+When a user is interacting with the prompt
+@comment  node-name,  next,  previous,  up
+@subsubsection semantic-displayor-tooltip
+@cdindex semantic-displayor-tooltip
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{semantic-displayor-abstract}.}
+@table @code
+@item semantic-displayor-tooltip
+No children
+@end table
+
+@end table
+@end table
+
+  Create a new object with name NAME of class type semantic-displayor-tooltip
+
+@table @asis
+@item Slots:
+
+@table @code
+@item :max-tags
+Type: @code{integer} @*
+Default Value: @code{10}
+
+Max number of tags displayed on tooltip at once.
+If @code{force-show} is 1,  this value is ignored with typing @kbd{tab} or space twice continuously.
+if @code{force-show} is 0, this value is always ignored.
+@refill
+
+@item :force-show
+Type: @code{integer} @*
+Default Value: @code{1}
+
+Control the behavior of the number of tags is greater than @code{max-tags}.
+-1 means tags are never shown.
+0 means the tags are always shown.
+1 means tags are shown if space or @kbd{tab} is typed twice continuously.
+@refill
+
+@end table
+
+@end table
+@subsubsubsection Specialized Methods
+
+@deffn Method semantic-displayor-show-request :AFTER obj 
+A request to show the current tags table.
+@end deffn
+
+
+
+@c END OF DISPLAYOR
+
+
+@node Old Tag Completion
+@subsection Older Tag Completion functions
+
+These are older completion functions.  They may still be useful.
 
 @defun semantic-read-symbol prompt &optional default stream filter
 Read a symbol name from the user for the current buffer.
@@ -363,32 +1058,32 @@ be passed in via a variable.
 @node Format Tag
 @subsection Format Tag
 
-Any given token consists of Meta information which is best viewed in
-some textual form.  This could be as simple as the token's name, or as
+Any given tag consists of Meta information which is best viewed in
+some textual form.  This could be as simple as the tag's name, or as
 a prototype to be added to header file in C.  Not only are there
 several default converters from a Tag into text, but there is also
 some convenient variables that can be used with them.  Use these
 variables to allow options on output forms when displaying tags in
 your programs.
 
-@defvar semantic-format tag-functions
-List of functions which convert a token to text.
-Each function must take the parameters @var{TOKEN} &optional @var{PARENT} @var{COLOR}.
-@var{TOKEN} is the token to convert.
-@var{PARENT} is a parent token or name which refers to the structure
-or class which contains @var{TOKEN}.  @var{PARENT} is @var{NOT} a class which a @var{TOKEN}
+@defvar semantic-format-tag-functions
+List of functions which convert a tag to text.
+Each function must take the parameters @var{TAG} &optional @var{PARENT} @var{COLOR}.
+@var{TAG} is the tag to convert.
+@var{PARENT} is a parent tag or name which refers to the structure
+or class which contains @var{TAG}.  @var{PARENT} is @var{NOT} a class which a @var{TAG}
 would claim as a parent.
 @var{COLOR} indicates that the generated text should be colored using
 @code{font-lock}.
 @end defvar
 
-@defvar semantic-format tag-custom-list
-@var{A} List used by customizable variables to choose a token to text function.
+@defvar semantic-format-tag-custom-list
+@var{A} List used by customizeable variables to choose a tag to text function.
 Use this variable in the @code{:type} field of a customizable variable.
 @end defvar
 
-Every token to text conversion function must take the same parameters,
-which are @var{TOKEN}, the token to be converted, @var{PARENT}, the
+Every tag to text conversion function must take the same parameters,
+which are @var{TAG}, the tag to be converted, @var{PARENT}, the
 containing parent (like a structure which contains a variable), and
 @var{COLOR}, which is a flag specifying that color should be applied
 to the returned string.
@@ -397,16 +1092,16 @@ When creating, or using these strings, particularly with color, use
 @dfn{concat} to build up larger strings instead of @dfn{format}.  This
 will preserve text properties.
 
-@defun semantic-name-nonterminal token &optional parent color
-Return the name string describing @var{TOKEN}.
+@defun semantic-format-tag-name tag &optional parent color
+Return the name string describing @var{TAG}.
 The name is the shortest possible representation.
-Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
 Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
 @end defun
 
-@defun semantic-summarize-nonterminal token &optional parent color
-Summarize @var{TOKEN} in a reasonable way.
-Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+@defun semantic-format-tag-summarize tag &optional parent color
+Summarize @var{TAG} in a reasonable way.
+Optional argument @var{PARENT} is the parent type if @var{TAG} is a detail.
 Optional argument @var{COLOR} means highlight the prototype with font-lock colors.
 @end defun
 
@@ -782,6 +1477,46 @@ This hook is called before a corresponding
 @code{semantic-after-toplevel-cache-change-hook} which is also called
 during a flush when the cache is given a new value of nil.
 @end defvar
+
+@node Semantic Database
+@section Semantic Database
+
+@menu
+* Semanticdb in Programs::
+* Semanticdb Tag Queries::
+@end menu
+
+@node Semanticdb in Programs
+@subsection Semanticdb in Programs::
+
+If you write a program using semanticdb, you will probably want to
+make sure it is active in your program.
+
+@defun semanticdb-minor-mode-p
+Return non-@code{nil} if @code{semanticdb-minor-mode} is active.
+@end defun
+
+
+@node Semanticdb Tag Queries
+@subsection Semanticdb Tag Queries
+
+You can search for tokens in the database using the following
+functions.  It is important to note that database search functions do
+not return a plain list of tokens.  This is because some tokens may
+not be loaded in a buffer, which means that the found token would not
+have an overlay, and no way to determine where it came from.
+
+As such, all search functions return a list of the form:
+
+@example
+   ( (DATABASE TOKEN1 TOKEN2 ...) (DATABASE2 TOKEN3 TOKEN4 ...) ...)
+@end example
+
+@defun semanticdb-file-stream file
+Return a list of tokens belonging to @var{FILE}.
+If file has database tokens available in the database, return them.
+If file does not have tokens available, then load the file, and create them.
+@end defun
 
 @node Example Programs
 @section Programming Examples
