@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.33 2000/06/20 02:22:55 zappo Exp $
+;; RCS: $Id: ede.el,v 1.34 2000/07/07 20:32:14 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -180,9 +180,6 @@ type is required and the load function used.")
    (file :initarg :file
 	 :type string
 	 :documentation "File name where this project is stored.")
-   ;; No initarg.  We don't want this saved.
-   (root :initform nil
-	 :documentation "The root project file if this is a subproject.")
    ;; No initarg.  We don't want this saved in a file.
    (subproj :initform nil
 	    :type list
@@ -930,9 +927,11 @@ Argument DIR is the directory to trim upwards."
 	    (error "No project for %s, but passes project-p test" file))
 	found))))
 
-(defun ede-toplevel ()
-  "Return the ede project which is the root of the current project."
-  (let ((cp (ede-current-project)))
+(defun ede-toplevel (&optional subproj)
+  "Return the ede project which is the root of the current project.
+Optional argument SUBPROJ indicates a subproject to start from
+instead of the current project."
+  (let ((cp (or subproj (ede-current-project))))
     (while (ede-parent-project cp)
       (setq cp (ede-parent-project cp)))
     cp))
