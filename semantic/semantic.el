@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.32 2000/04/29 12:56:52 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.33 2000/04/30 22:52:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -296,11 +296,13 @@ recommended, however, that the following format be used.
 
 Where type-symbol is the type of return token found, and NAME is it's
 name.  If there is any typing information needed to describe this
-entry, make that come third.  Next, any aditional information follows
-the optional type.  The last data entry can be the DOCSTRING.  A
-docstring does not have to exist in the form used by Emacs Lisp.  It
-could be the text of a comment appearing just before a function call,
-or in line with a variable.  The last two elements must be START and END.
+entry, make that come third.  Next, any additional information follows
+the optional type.  The last data entry can be the position in the buffer
+of DOCSTRING.  A docstring does not have to exist in the form used by
+Emacs Lisp.  It could be the text of a comment appearing just before a
+function call, or in line with a variable.
+
+The last two elements must be START and END.
 
 It may seem odd to place NAME in slot 0, and the type-symbol in slot
 1, but this turns the returned elements into a list which can be used
@@ -361,6 +363,10 @@ If no significant changes have been made (based on the state) then
 this is returned instead of re-parsing the buffer.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache)
 
+(defvar semantic-toplevel-bovine-cache-check nil
+  "The size of the buffer when `semantic-toplevel-bovine-cache' was found.")
+(make-variable-buffer-local 'semantic-toplevel-bovine-cache-check)
+
 (defvar semantic-toplevel-bovinate-override nil
   "Local variable set by major modes which provide their own bovination.
 This function should behave as the function `semantic-bovinate-toplevel'.")
@@ -381,16 +387,24 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
   (setq semantic-toplevel-bovine-cache nil))
 
 (defmacro semantic-token-token (token)
-  "Retrieve from TOKEN the token identifier."
+  "Retrieve from TOKEN the token identifier.
+ie, the symbol 'variable, 'function, 'type, or other."
   `(nth 1 ,token))
 
 (defun semantic-token-name (token)
   "Retrieve the name of TOKEN."
   (car token))
 
-(defmacro semantic-token-docstring (token)
-  "Retrieve the doc string of TOKEN."
-  `(nth (- (length ,token) 3) ,token))
+(defun semantic-token-docstring (token &optional buffer)
+  "Retrieve the documentation of TOKEN.
+Optional argument BUFFER indicates where to get the text from.
+If not provided, then only the POSITION can be provided."
+  (let ((p (nth (- (length token) 3) token)))
+    (if (and p buffer)
+	(save-excursion
+	  (set-buffer buffer)
+	  (semantic-flex-text (car (semantic-flex p (1+ p)))))
+      p)))
 
 (defmacro semantic-token-start (token)
   "Retrieve the start location of TOKEN."
@@ -407,11 +421,17 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
        (symbolp (car (cdr token)))))
 
 ;;;###autoload
-(defun semantic-bovinate-toplevel (&optional depth trashcomments)
+(defun semantic-bovinate-toplevel (&optional depth trashcomments checkcache)
   "Bovinate the entire current buffer to a list depth of DEPTH.
 DEPTH is optional, and defaults to 0.
 Optional argument TRASHCOMMENTS indicates that comments should be
-stripped from the main list of synthesized tokens."
+stripped from the main list of synthesized tokens.
+If third argument CHECKCACHE is non-nil, then flush the cache iff
+there has been a size change."
+  (if (and semantic-toplevel-bovine-cache
+	   checkcache
+	   (not (eq (point-max) semantic-toplevel-bovine-cache-check)))
+      (semantic-clear-toplevel-cache))
   (cond
    (semantic-toplevel-bovinate-override
     (funcall semantic-toplevel-bovinate-override depth trashcomments))
@@ -431,7 +451,8 @@ stripped from the main list of synthesized tokens."
 	      (semantic-bovinate-nonterminals ss 'bovine-toplevel
 					      depth trashcomments))
 	(working-status t))
-      (setq semantic-toplevel-bovine-cache (list (nreverse res) (point-max)))
+      (setq semantic-toplevel-bovine-cache (list (nreverse res) (point-max))
+	    semantic-toplevel-bovine-cache-check (point-max))
       (car semantic-toplevel-bovine-cache)))))
 
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
@@ -845,7 +866,11 @@ Optional argument DEPTH is the depth to scan into lists."
 Semantically check between START and END.  Optional argument DEPTH
 indicates at what level to scan over entire lists.
 The return value is a token stream.  Each element being a list, such
-as (symbol start-expression .  end-expresssion)."
+as (symbol start-expression .  end-expresssion).
+END does not mark the end of text scanned, only the end of the beginning
+of text scanned.  Thus, if a string extended past END, the end of the
+return token will be larger than END.  To truly restrict scanning, using
+`narrow-to-region'."
   ;(message "Flexing muscles...")
   (let ((ts nil)
 	(sym nil)
