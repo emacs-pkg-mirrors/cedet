@@ -84,6 +84,7 @@ of this update of speedbar.
    ;; current stack display
    (autoload 'gud-speedbar-buttons "sb-gud" "GUD specific speedbar button generator.")
 
-   For an info mode in Emacs 20.x, it may be necessary to do this instead:
+   For an info mode in Emacs 20.x and XEmacs, it may be necessary to
+   do this instead:
 
-   (eval-after-load "info" (require 'sb-info))
+   (eval-after-load "info" '(require 'sb-info))
