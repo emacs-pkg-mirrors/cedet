@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.32 2000/09/21 01:46:39 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.33 2000/09/27 01:00:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,6 +48,7 @@
      (include)
      (package)
      (method)
+     (advice)
      (code)
      (comment) )
     ;; A type is defined by extended tools like CL, or EIEIO
@@ -71,6 +72,12 @@
 		 ,(semantic-lambda
 		    (list (nth 2 vals) 'function nil (nth 4 vals) nil
 			  (car-safe (nth 5 vals))))))
+    (advice
+     (open-paren symbol "defadvice" symbol arg-list
+		 doc-string
+		 ,(semantic-lambda
+		   (list (nth 2 vals) 'function nil (nth 3 vals) nil
+			 (car-safe (nth 4 vals))))))
     ;; A variable can be a defvar or defconst.
     (variable
      (open-paren symbol "defvar\\|defconst\\|defcustom\\|defface\\|defimage"
