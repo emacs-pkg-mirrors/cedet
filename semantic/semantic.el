@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.47 2000/09/20 17:59:36 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.48 2000/09/20 23:46:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -706,8 +706,8 @@ COLLECTION is the list of things collected so far."
 		  (t nil)))
 	  (other-window 1)
 	  )
-      (semantic-delete-overlay ol1)
-      (semantic-delete-overlay ol2))
+      (semantic-overlay-delete ol1)
+      (semantic-overlay-delete ol2))
     ret))
 
 (eval-when-compile (require 'pp))
