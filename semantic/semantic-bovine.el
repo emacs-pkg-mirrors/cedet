@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.2 2002/07/15 10:27:57 ponced Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.3 2002/08/02 01:37:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,6 +39,24 @@
 ;; The bovinator takes a state table, and converts the token stream
 ;; into a new semantic stream defined by the bovination table.
 ;;
+
+(defun semantic-bovinate-region-default (start end &optional reparse-symbol)
+  "Bovinate the area between START and END, and return any tokens found.
+If END needs to be extended due to a lexical token being too large,
+it will be silently ignored.
+Optional argument REPARSE-SYMBOL is the rule to start parsing at if it
+is known."
+  (let ((lexbits (semantic-lex start end))
+	tokens)
+    ;; Init a dump
+;    (if semantic-dump-parse
+;	(semantic-dump-buffer-init))
+    (setq tokens (semantic-bovinate-nonterminals
+		  lexbits
+		  reparse-symbol
+		  nil
+		  t))
+    (nreverse tokens)))
 
 (defsubst semantic-bovinate-symbol-nonterminal-p (sym table)
   "Return non-nil if SYM is in TABLE, indicating it is NONTERMINAL."
