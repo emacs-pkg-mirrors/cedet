@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.25 2004/02/05 23:22:35 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.26 2004/02/19 01:43:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -363,7 +363,7 @@ Override function for `semantic-tag-protection'."
 		  ((string= (semantic-tag-type parent) "struct") 'public)
 		  (t 'unknown))))
     (or prot
-	(if parent
+	(if (and parent (semantic-tag-of-class-p parent 'type))
 	    'public
 	  nil))))
 
