@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.16 2004/02/13 09:44:53 ponced Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.17 2004/02/26 08:34:16 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -330,9 +330,16 @@ manual."
          (format "semantic-equivalent-major-modes '%S\n" mode)
        ""))))
 
+(defvar bovine-grammar-menu
+  '("BY Grammar"
+    )
+  "BY mode specific grammar menu.
+Menu items are appended to the common grammar menu.")
+
 ;;;###autoload
 (define-derived-mode bovine-grammar-mode semantic-grammar-mode "BY"
   "Major mode for editing Bovine grammars."
+  (semantic-grammar-setup-menu bovine-grammar-menu)
   (semantic-install-function-overrides
    '((grammar-parsetable-builder . bovine-grammar-parsetable-builder)
      (grammar-setupcode-builder  . bovine-grammar-setupcode-builder)
