@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.22 2004/02/02 02:49:54 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.23 2004/02/12 02:02:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -862,6 +862,7 @@ This function is for internal use only."
           ;;  (error "Tag expansion failed"))
           )
       (error
+       (message "A Rule must return a single tag-line list!")
        (debug tag)
        nil))
     
@@ -875,6 +876,17 @@ This function is for internal use only."
         (or (funcall semantic-tag-expand-function tag)
             (list tag))
       (list tag))))
+
+;;; EDEBUG display support
+;;
+(eval-after-load "cedet-edebug"
+  '(progn
+     (cedet-edebug-add-print-override '(semantic-tag-p object)
+				      '(concat "#<TAG " (semantic-format-tag-name object) ">"))
+     (cedet-edebug-add-print-override '(and (listp object) (semantic-tag-p (car object)))
+				      '(cedet-edebug-prin1-recurse object) )
+     ))
+
 
 ;;; Compatibility
 ;;
