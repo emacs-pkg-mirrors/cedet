@@ -1,10 +1,10 @@
 ;;; semanticdb-system.el --- Build a file DB for some system files.
 
-;;; Copyright (C) 2002 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.1 2002/09/07 02:13:10 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.2 2003/04/09 01:10:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 ;; 
 ;;; Commentary:
 ;;
-;; A system database is a file based DB which contains tokens from a
+;; A system database is a file based DB which contains tags from a
 ;; system.  These files are ONLY ever loaded in, and can only be written
 ;; using a set of user initiated scripts.
 ;;
