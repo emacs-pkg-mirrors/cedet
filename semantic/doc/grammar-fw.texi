@@ -278,7 +278,6 @@ tokens (@pxref{Terminal and Nonterminal Symbols}).
 @c ??
 
 @deffn %-Decl %package library-name
-@sp 1
 Declare the Emacs Lisp library created from the grammar.
 
 This will generate an Emacs Lisp file named
@@ -308,7 +307,6 @@ For instance, the default library name for the grammar in the
 @subsection languagemode Decl
 
 @deffn %-Decl %languagemode @var{mode}...
-@sp 1
 Declare in which major modes Emacs edits the sources that @semantic{}
 parses using this grammar.
 
@@ -328,7 +326,6 @@ currently edited in those major modes.
 @subsection keyword Decl
 
 @deffn %-Decl %keyword @var{keyword-name} @var{keyword-value}
-@sp 1
 Declare a language keyword (a reserved word).
 
 @table @var
@@ -412,21 +409,13 @@ The @code{%put} statement assigns properties to keywords
 property assigns a help string to a keyword.  The help string is
 used by @code{semantic-idle-summary-mode} for on-the-fly help.
 
-@deffn %-Decl %put @var{keyword-name} @var{property value}
-@sp 1
-Give to @var{keyword-name} a single @var{property} with @var{value}.
-
+@deffn  %-Decl %put @var{keyword-name} @var{property value}
 @deffnx %-Decl %put @var{keyword-name} @{@var{property1} @var{value1} @dots{}@}
-@sp 1
-Give to @var{keyword-name} a set of @var{properties} with @var{values}.
-
 @deffnx %-Decl %put @{@var{keyword-name1} @dots{}@} @var{property} @var{value}
-@sp 1
-Give to several @var{keyword-name} a single @var{property} with @var{value}.
-
 @deffnx %-Decl %put @{@var{keyword-name1} @dots{}@} @{@var{property1} @var{value1} @dots{}@}
-@sp 1
-Give to several @var{keyword-name} a set of @var{property} with @var{value}.
+Give to @var{keyword-name}, or to several @var{keyword-name}s, a
+single @var{property} with @var{value}, or a set of @var{property}s
+with respective @var{value}s.
 
 @table @var
 @item keyword-name
@@ -460,14 +449,11 @@ For keyword with @var{NAME}, return its @var{PROPERTY} value.
 The @code{%token} statement declares a terminal symbol (a @dfn{token})
 which is not a keyword.
 
-@deffn %-Decl %token [<@var{type-name}>] @var{token-name} @var{token-value}
-@c Perhaps token-match instead of token-value?
-@sp 1
-Declare one token with an optional type, and a value.
-
+@deffn  %-Decl %token [<@var{type-name}>] @var{token-name} @var{match-value}
 @deffnx %-Decl %token [<@var{type-name}>] @var{token-name1} @dots{}
-@sp 1
-Declare several tokens with the optional same type, and no value.
+Respectively declare one token with an optional type, and a match
+value, or several tokens with the optional same type, and no match
+value.
 
 @table @var
 @item type-name
@@ -476,13 +462,12 @@ specifies (and implicitly declares) a @dfn{type} for this token
 (@pxref{type Decl}).  If omitted the token has no type.
 @item token-name
 Is the terminal symbol used in grammar rules to represent this token.
-@item token-value
-Is an optional token value as a string.  Depending on @var{type-name}
-properties, the string value will be interpreted as an ordinary
-string, a regular expression, or have a more elaborate meaning.  If
-omitted the token value will be @code{nil}, which means that this
-token will be considered as the default token of its type (@pxref{type
-Decl} for more information).
+@item match-value
+Is an optional string.  Depending on @var{type-name} properties, it
+will be interpreted as an ordinary string, a regular expression, or
+have a more elaborate meaning.  If omitted the match value will be
+@code{nil}, which means that this token will be considered as the
+default token of its type (@pxref{type Decl} for more information).
 @end table
 @end deffn
 
@@ -502,7 +487,6 @@ declared types (@pxref{type Decl}).
 @subsection type Decl
 
 @deffn %-Decl %type <@var{type-name}> [@var{property1} @var{value1} @dots{}]
-@sp 1
 @c ``type'' has a lot of different meanings in semantic, so you may
 @c want to define ``token type'' here.  In tags, we had changed the
 @c name to ``class'' for a similar feature.
@@ -605,7 +589,6 @@ If optional @var{PROPERTY} is non-@code{nil}, return only type symbols which hav
 @deffn  %-Decl %left [<@var{type-name}>] @var{token1} @dots{}
 @deffnx %-Decl %right [<@var{type-name}>] @var{token1} @dots{}
 @deffnx %-Decl %nonassoc [<@var{type-name}>] @var{token1} @dots{}
-@sp 1
 See also @code{%prec} in @ref{Grammar Rules}.
 
 Specify the precedence and associativity of grammar terminals.
@@ -626,7 +609,6 @@ for @semantic{} isn't usually necessary.
 
 @deffn  %-Decl %default-prec
 @deffnx %-Decl %no-default-prec
-@sp 1
 See also @code{%prec} in @ref{Grammar Rules}.
 
 @code{%no-default-prec} declares that you must specify precedence for
@@ -648,10 +630,9 @@ for @semantic{} isn't usually necessary.
 @subsection quotemode Decl
 
 @deffn %-Decl %quotemode @var{symbol}
-@sp 1
 This is a mechanism used to specify how quoting worked in optional
 lambda expressions.
-@inforef{Optional Lambda Expression, , bovine}
+@inforef{Optional Lambda Expression, , bovine}.
 @end deffn
 
 @table @strong
@@ -663,7 +644,6 @@ This information has meaning only in @dfn{bovine} grammars.
 @subsection scopestart Decl
 
 @deffn %-Decl %scopestart @var{nonterminal}
-@sp 1
 The @code{scopestart} declaration specifies the name of a nonterminal
 that is used for parsing the body of functional code.  This is used
 in the local context parser to find locally defined variables.
@@ -678,7 +658,6 @@ This information has meaning only in @dfn{bovine} grammars.
 @subsection start Decl
 
 @deffn %-Decl %start @var{nonterminal1} @dots{}
-@sp 1
 Declare the nonterminal symbols that the parser can use as its goal.
 @end deffn
 
@@ -693,7 +672,6 @@ information, @inforef{Start nonterminals, , wisent}, and
 @subsection use-macros Decl
 
 @deffn %-Decl %use-macros @var{library} @{@var{macro-name1} @dots{}@}
-@sp 1
 @end deffn
 
 @node Grammar Rules
