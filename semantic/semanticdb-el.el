@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.7 2003/04/06 00:57:48 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.8 2003/04/06 00:58:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -195,7 +195,7 @@ Return a list of tags."
 Returns a table of all matching tags."
   (delq nil (mapcar 'semanticdb-elisp-sym->tag
 		    (all-completions prefix obarray)))
-  z)
+  )
 
 ;;; Advanced Searches
 ;;
