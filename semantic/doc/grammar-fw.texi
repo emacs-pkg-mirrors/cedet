@@ -46,7 +46,7 @@ License''.
 @ifinfo
 @dircategory Emacs
 @direntry
-* Semantic Grammar Framework: (semantic-grammar-fw).
+* Semantic Grammar Framework: (grammar-fw).
 @end direntry
 @end ifinfo
 
@@ -155,38 +155,7 @@ forms handled by the @acronym{LALR} parser @emph{wisent}.
 Here is a quick view of the framework:
 
 @flushleft
-@example
-
- ^                        +-----------------+
- !                        | Common Semantic |
-Grammar                   |  Grammar Mode   |
-Frame-                    +-----------------+
-work                               |
- !                  +--------------+--------------+   ... ----------+
- !                  |                             |                 |
- !                  V                             V                 V
- !    
- !     .. "bovine" Parser ........   .. "wisent" Parser ........   ...
- !     :                         :   :                         :
- !     : +- "by" grammar mode -+ :   : +- "wy" grammar mode -+ :   ...
- !     : |                     | :   : |                     | :
- !     : | +-----------------+ | :   : | +-----------------+ | :
- !     : | | ELisp generator | | :   : | | ELisp generator | | :   ...
- !     : | +-----------------+ | :   : | +-----------------+ | :
- v     : +---------------------+ :   : +---------------------+ :
-       :            |            :   :            |            :
- ^     :            |            :   :            V            :
- !     :            |            :   :   +-----------------+   :
-Parser :            |            :   :   |  LALR Compiler  |   :   ...
-Frame- :            |            :   :   +-----------------+   :
-work   :            |            :   :            |            :
- !     :            V            :   :            V            :
- !     :   +-----------------+   :   :   +-----------------+   :
- !     :   | LL Parser Engine|   :   :   | LR Parser Engine|   :   ...
- !     :   +-----------------+   :   :   +-----------------+   :
- v     :.........................:   :.........................:
-
-@end example
+@image{grammar-fw-ov}
 @end flushleft
 
 @node Grammar File
@@ -918,46 +887,59 @@ following @acronym{API}.  Implementations are done with
 @emph{overload methods}.
 @inforef{Semantic Overload Mechanism, , semantic-langdev}.
 
-@itemize @minus
+@itemize
 @item A keyword table builder.
 
 Can use the default implementation provided.
 
-@example
-   (define-overload semantic-grammar-keywordtable-builder ()
-     "Return the keyword table table value.")
-@end example
+@defun semantic-grammar-keywordtable-builder
+@anchor{semantic-grammar-keywordtable-builder}
+Return the keyword table table value.
+This function can be overriden in semantic using the
+symbol @code{grammar-keywordtable-builder}.
+@end defun
 
 @item A token table builder.
 
 Can use the default implementation provided.
 
-@example
-   (define-overload semantic-grammar-tokentable-builder ()
-     "Return the value of the table of lexical tokens.")
-@end example
+@defun semantic-grammar-tokentable-builder
+@anchor{semantic-grammar-tokentable-builder}
+Return the value of the table of lexical tokens.
+This function can be overriden in semantic using the
+symbol @code{grammar-tokentable-builder}.
+@end defun
 
 @item A parser table builder
 
 Must be provided, there is no default implementation.
 
-@example
-   (define-overload semantic-grammar-parsetable-builder ()
-     "Return the parser table value.")
-@end example
+@defun semantic-grammar-parsetable-builder
+@anchor{semantic-grammar-parsetable-builder}
+Return the parser table value.
+This function can be overriden in semantic using the
+symbol @code{grammar-parsetable-builder}.
+@end defun
 
 @item A Parser setup code builder.
 
 Must be provided, there is no default implementation.
 
-@example
-   (define-overload semantic-grammar-setupcode-builder ()
-     "Return the parser setup code form.")
-@end example
+@defun semantic-grammar-setupcode-builder
+@anchor{semantic-grammar-setupcode-builder}
+Return the parser setup code form.
+This function can be overriden in semantic using the
+symbol @code{grammar-setupcode-builder}.
+@end defun
 
 @item Grammar macros.
 
 A set of predefined macros is provided.
+
+@defvar semantic-grammar-macros
+@anchor{semantic-grammar-macros}
+List of associations (@var{MACRO-NAME} . @var{EXPANDER}).
+@end defvar
 
 @end itemize
 
