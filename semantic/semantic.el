@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.103 2001/05/29 15:06:02 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.104 2001/06/03 14:25:03 zappo Exp $
 
-(defvar semantic-version "1.4beta5"
+(defvar semantic-version "1.4beta7"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -303,7 +303,13 @@ compound token and turn it into two tokens, one for A, and the other for B.")
 (defvar semantic-toplevel-bovine-cache nil
   "A cached copy of a recent bovination, plus state.
 If no significant changes have been made (based on the state) then
-this is returned instead of re-parsing the buffer.")
+this is returned instead of re-parsing the buffer.
+ 
+  DO NOT USE THIS VARIABLE IN PROGRAMS.
+
+If you need a token list, use `semantic-bovinate-toplevel'.  If you
+need the cached values for some reason, chances are you can, add a
+hook to `semantic-after-toplevel-tokens-change-hook'.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache)
 
 (defvar semantic-edits-are-safe nil
@@ -366,6 +372,15 @@ not need to be fully reparsed.
 This function is also called when the toplevel cache is flushed, and
 the cache is emptied.
 For language specific hooks, make sure you define this as a local hook.")
+
+(defvar semantic-after-toplevel-cache-change-hook nil
+  "Hooks run after the buffer token list has changed.
+This list will change when a buffer is reparsed, or when the token
+list in a buffer is cleared.  It is *NOT* called if the current token
+list partially reparsed.
+
+Hook functions must take one argument, which is the new list of
+tokens associated with this buffer.")
 
 (defvar semantic-before-toplevel-cache-flush-hook nil
   "Hooks run before the toplevel nonterminal cache is flushed.
@@ -633,7 +648,11 @@ stream is requested."
   (setq semantic-toplevel-bovine-force-reparse t)
   ;; Remove this hook which tracks if a buffer is up to date or not.
   (remove-hook 'after-change-functions 'semantic-change-function t)
-  (run-hooks 'semantic-after-toplevel-bovinate-hook))
+  ;; Old model.  Delete someday.
+  ;;(run-hooks 'semantic-after-toplevel-bovinate-hook)
+  (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
+		      semantic-toplevel-bovine-cache)
+  )
 
 (defvar semantic-bovination-working-type 'percent
   "*The type of working message to use when bovinating.
@@ -674,7 +693,8 @@ that, otherwise, do a full reparse."
     ;; Call a custom function
     (let ((res (funcall semantic-bovinate-toplevel-override checkcache)))
       (semantic-set-toplevel-bovine-cache res))
-    (run-hooks 'semantic-after-toplevel-bovinate-hook)
+    ;; Check: The below is not needed because of the -set- command above?
+    ;;(run-hooks 'semantic-after-toplevel-bovinate-hook)
     semantic-toplevel-bovine-cache
     )
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
@@ -723,7 +743,11 @@ that, otherwise, do a full reparse."
 	semantic-toplevel-bovine-force-reparse nil
         semantic-bovinate-nonterminal-check-obarray nil)
   (add-hook 'after-change-functions 'semantic-change-function nil t)
-  (run-hooks 'semantic-after-toplevel-bovinate-hook))
+  (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
+		      semantic-toplevel-bovine-cache)
+  ;; Old Semantic 1.3 hook API.  Maybe useful forever?
+  (run-hooks 'semantic-after-toplevel-bovinate-hook)
+  )
 
 (defun semantic-change-function (start end length)
   "Provide a mechanism for semantic token management.
@@ -953,7 +977,7 @@ considered."
             (if (= (length cooked) 1)
                 ;; Cooking did a 1 to 1 replacement.  Use it.
                 (setq new (car cooked))
-          ;; If cooking results in multiple things, do a full reparse.
+	      ;; If cooking results in multiple things, do a full reparse.
               (setq semantic-toplevel-bovine-cache-check t))))
       ;; Don't do much if we have to do a full recheck.
       (if semantic-toplevel-bovine-cache-check
