@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.20 2005/01/29 04:28:33 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.21 2005/01/30 22:03:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -63,10 +63,10 @@
   "Search Emacs core for symbols.")
 
 (defvar-mode-local emacs-lisp-mode semanticdb-find-default-throttle
-  '(project omnipotent)
-  "Search project files, then search this omnipotent database.
+  '(project omniscience)
+  "Search project files, then search this omniscience database.
 It is not necessary to to system or recursive searching because of
-the omnipotent database.")
+the omniscience database.")
 
 ;;; Filename based methods
 ;;
