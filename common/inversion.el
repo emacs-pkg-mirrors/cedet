@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.2 2002/09/03 23:39:40 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.3 2002/09/03 23:41:18 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta1"
@@ -61,7 +61,11 @@
 ;; Or modify to specify `inversion-require' instead.
 ;;
 ;; TODO:
-;;  Offer to download newer versions of a package.     
+;;  Offer to download newer versions of a package.
+
+;;; History:
+;; 
+;; Sept 3, 2002:  First general publication.
 
 (defvar inversion-decoder-ring
   '(
@@ -249,7 +253,7 @@ Optional argument RESERVED is saved for later use."
 		;; Test the tester on inversion
 		(not (inversion-test 'inversion inversion-version))
 		))
-      (error "Inversion tests failed.")
+      (error "Inversion tests failed")
     t))
 
 (provide 'inversion)
