@@ -11,7 +11,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.2 2001/08/02 15:09:24 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.3 2001/08/13 09:51:40 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -235,18 +235,6 @@ summary."
 ;;;; Global constants
 ;;;;
 
-(defvar wisent-debug-flag nil
-  "Enable some debug stuff when non-nil.")
-
-(defconst wisent-state-table-size 1009
-  "The size of `wisent--state-table'.")
-
-(defconst wisent-parse-max-stack-size 500
-  "The parser stack size.")
-
-(defconst wisent-parse-max-recover 3
-  "Number of tokens to shift before turning off error status.")
-
 ;; Reserved symbols
 (defconst wisent-start-nonterm    '$START
   "Start nonterminal.")
@@ -272,6 +260,36 @@ summary."
 ;; System dependant
 (defconst wisent-bits-per-word 24
   "Number of bits per word used in bit vector management.")
+
+;;;;
+;;;; Customization
+;;;;
+
+(defgroup wisent nil
+  "The Semantic bison like parser generator.
+
+                  /\\_.-^^^-._/\\
+                  \\__       __/
+                    `    `o `
+                     \\     `/
+                     (  D ,¨
+                      \"\"\""
+  :group 'semantic)
+
+(defcustom wisent-parse-max-stack-size 500
+  "*The parser stack size."
+  :type 'integer
+  :group 'wisent)
+
+(defcustom wisent-parse-max-recover 3
+  "*Number of tokens to shift before turning off error status."
+  :type 'integer
+  :group 'wisent)
+
+(defcustom wisent-state-table-size 1009
+  "The size of `wisent--state-table'."
+  :type 'integer
+  :group 'wisent)
 
 ;;;;
 ;;;; Bit vector management
@@ -510,6 +528,9 @@ logging buffer."
     (insert (apply #'format args))))
 
 ;; Debug
+(defvar wisent-debug-flag nil
+  "Enable some debug stuff when non-nil.")
+
 (defmacro wisent-show (v)
   "Show the value of variable V.
 That is insert (setq V <value-of-v>) in the current buffer."
