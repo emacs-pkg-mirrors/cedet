@@ -76,7 +76,6 @@
 (eval-when-compile (require 'compile) (require 'speedbar))
 
 ;; From custom web page for compatibility between versions of custom
-;; with help from ptype@dera.gov.uk (Proto Type)
 (eval-and-compile
   (condition-case ()
       (require 'custom)
