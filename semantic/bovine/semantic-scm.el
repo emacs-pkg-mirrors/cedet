@@ -1,9 +1,9 @@
 ;;; semantic-scm.el --- Semantic details for Scheme (guile)
 
-;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.10 2003/09/05 04:21:06 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.11 2004/03/20 14:31:38 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,7 +29,8 @@
 (require 'backquote)
 
 (eval-when-compile
-  (require 'document))
+  (require 'document)
+  (require 'semantic-format))
 
 ;;; Code:
 
