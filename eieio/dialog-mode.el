@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995, 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dialog-mode.el,v 1.15 1997/01/04 18:20:35 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.16 1997/01/10 23:07:15 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -131,6 +131,7 @@ key is any value between 0 and 128"
   (define-key dialog-mode-map "\C-\M-p" 'dialog-prev-widget)
   (define-key dialog-mode-map "\C-i" 'dialog-next-widget)
   (define-key dialog-mode-map "\C-c\C-r" 'dialog-refresh)
+  (define-key dialog-mode-map "\C-hW" 'dialog-widget-help)
 
   ;; Differences between Xemacs and Emacs keyboard
   (if (string-match "XEmacs" emacs-version)
@@ -147,6 +148,7 @@ key is any value between 0 and 128"
 
 	;; Now some mouse events
 	(define-key dialog-mode-map 'button2 'dialog-handle-mouse)
+	(define-key dialog-mode-map '(meta button2) 'dialog-mouse-widget-help)
 	)
     ;; some translations into text
     (define-key dialog-mode-map [tab] 'dialog-next-widget)
@@ -163,6 +165,8 @@ key is any value between 0 and 128"
     (define-key dialog-mode-map [mouse-2] 'dialog-handle-mouse)
     (define-key dialog-mode-map [down-mouse-2] 'dialog-handle-mouse)
     (define-key dialog-mode-map [drag-mouse-2] 'dialog-handle-mouse)
+    ;; Some interactive help on widgets
+    (define-key dialog-mode-map [M-mouse-2] 'dialog-mouse-widget-help)
     ))
   
 (defun dialog-load-color (sym l-fg l-bg d-fg d-bg &optional bold italic underline)
@@ -279,11 +283,18 @@ will insert a space into the character string.
 Reference the Info node @xref{(dialog)Top} for details about dialog mode
 and all the support widgets.
 
+Getting Help:
+  Some dialog boxes will offer widget-level help if you do not know what
+a widget is for.  To get at this help, hold down the META key while
+clicking with the middle mouse button, or press the command key `C-h W' 
+Where W is a capital.
+
 \\<dialog-mode-map>
 Commands:
   \\[dialog-next-widget]   - Move to next interactive widget
   \\[dialog-prev-widget] - Move to previous interactive widget
   \\[dialog-refresh] - Refresh the display
+  \\[dialog-widget-help] - Get help for widget under the cursor
 "
   (kill-all-local-variables)
   (setq mode-name "Dialog")
@@ -321,6 +332,19 @@ on when done."
 
 (defun dialog-quit () "Quits a dialog."
   (bury-buffer))
+
+(defun dialog-widget-help () "Gain help for the widget under the cursor"
+  (interactive)
+  (dialog-with-writeable
+    (let ((dispatch (or (get-text-property (point) 'widget-object)
+			widget-toplevel-shell)))
+      (help-actions dispatch nil))))
+  
+(defun dialog-mouse-widget-help (e)
+ "Go where the mouse clicks and call `dialog-widget-help'"
+ (interactive "e")
+ (mouse-set-point e)
+ (dialog-widget-help))
 
 (defun dialog-lookup-key (keymap coe)
   "Translate event COE into the command keybinding which sometimes
