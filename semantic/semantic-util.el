@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.1 2000/04/27 22:11:38 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.2 2000/04/28 18:59:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,37 +66,59 @@
   "Retrieve extra modifiers for the variable TOKEN."
   `(nth 5 ,token))
 
+(defmacro semantic-token-include-system (token)
+  "Retrieve the flat indicating if the include TOKEN is a sysmtem include."
+  `(nth 2 ,token))
+
 ;;; Searching APIs
 ;;
 ;; These functions search through lists of nonterminals which are in
 ;; standard form.
-(defun semantic-find-nonterminal-by-name (name stream)
-  "Find a nonterminal NAME within STREAM.  NAME is a string."
-  (let ((m (assoc name stream)))
+(defun semantic-find-nonterminal-by-name (name streamorbuffer)
+  "Find a nonterminal NAME within STREAMORBUFFER.  NAME is a string."
+  (let* ((stream (if (bufferp streamorbuffer)
+		     (save-excursion
+		       (set-buffer streamorbuffer)
+		       (semantic-bovinate-toplevel nil t))
+		   streamorbuffer))
+	 (m (assoc name stream)))
     (if m
 	m
       (let ((toklst (semantic-find-nonterminal-by-token 'type stream)))
 	(while (and (not m) toklst)
-	  (setq m (semantic-find-nonterminal-by-name
-		   name (semantic-token-type-parts (car toklst)))
-		toklst (cdr toklst)))
+	  (let ((parts (semantic-token-type-parts (car toklst))))
+	    (setq m (if (listp (car parts))
+			(semantic-find-nonterminal-by-name name parts)
+		      (car-safe (member name parts)))
+		  toklst (cdr toklst))))
 	(if (not m)
 	    ;; Go to dependencies, and search there.
 	    nil)
 	m))))
 
-(defun semantic-find-nonterminal-by-token (token stream)
-  "Find all nonterminals with a token TOKEN within STREAM.  TOKEN is a symbol."
-  (let ((nl nil))
+(defun semantic-find-nonterminal-by-token (token streamorbuffer)
+  "Find all nonterminals with a token TOKEN within STREAMORBUFFER.
+TOKEN is a symbol."
+  (let ((stream (if (bufferp streamorbuffer)
+		     (save-excursion
+		       (set-buffer streamorbuffer)
+		       (semantic-bovinate-toplevel nil t))
+		   streamorbuffer))
+	(nl nil))
     (while stream
       (if (eq token (semantic-token-token (car stream)))
 	  (setq nl (cons (car stream) nl)))
       (setq stream (cdr stream)))
     (nreverse nl)))
 
-(defun semantic-find-nonterminal-standard (stream)
-  "Find all nonterminals in STREAM which define well understood token types."
-  (let ((nl nil))
+(defun semantic-find-nonterminal-standard (streamorbuffer)
+  "Find all nonterminals in STREAMORBUFFER which define simple token types."
+  (let ((stream (if (bufferp streamorbuffer)
+		     (save-excursion
+		       (set-buffer streamorbuffer)
+		       (semantic-bovinate-toplevel nil t))
+		   streamorbuffer))
+	(nl nil))
     (while stream
       (if (member (semantic-token-token (car stream))
 		  '(function variable type))
@@ -108,9 +130,15 @@
   "For a given language, a set of built-in types.")
 (make-variable-buffer-local 'semantic-default-built-in-types)
 
-(defun semantic-find-nonterminal-by-type (type stream)
-  "Find all nonterminals with type TYPE within STREAM.  TYPE is a string."
-  (let ((nl nil) (ts nil))
+(defun semantic-find-nonterminal-by-type (type streamorbuffer)
+  "Find all nonterminals with type TYPE within STREAMORBUFFER.
+TYPE is a string."
+  (let ((stream (if (bufferp streamorbuffer)
+		     (save-excursion
+		       (set-buffer streamorbuffer)
+		       (semantic-bovinate-toplevel nil t))
+		   streamorbuffer))
+	(nl nil) (ts nil))
     (if (member type semantic-default-c-built-in-types)
 	(setq nl (list (list type 'type "built in")))
       (while stream
@@ -121,18 +149,71 @@
 	    (setq nl (cons (car stream) nl)))
 	(setq stream (cdr stream))))
     (nreverse nl)))
-  
-(defun semantic-find-nonterminal-by-function (function stream)
-  "Find all nonterminals which FUNCTION match within STREAM.
+
+(defun semantic-find-nonterminal-by-function (function streamorbuffer)
+  "Find all nonterminals which FUNCTION match within STREAMORBUFFER.
 FUNCTION must return non-nil if an element of STREAM will be included
 in the new list."
-  (let ((nl nil) (ts nil))
+  (let ((stream (if (bufferp streamorbuffer)
+		     (save-excursion
+		       (set-buffer streamorbuffer)
+		       (semantic-bovinate-toplevel nil t))
+		   streamorbuffer))
+	(nl nil) (ts nil))
     (while stream
       (if (funcall function (car stream))
 	  (setq nl (cons (car stream) nl)))
       (setq stream (cdr stream)))
     (nreverse nl)))
 
+(defun semantic-find-nonterminal-by-function-first-match (function
+							  streamorbuffer)
+  "Find the first nonterminal which FUNCTION match within STREAMORBUFFER.
+FUNCTION must return non-nil if an element of STREAM will be included
+in the new list."
+  (let ((stream (if (bufferp streamorbuffer)
+		     (save-excursion
+		       (set-buffer streamorbuffer)
+		       (semantic-bovinate-toplevel nil t))
+		   streamorbuffer))
+	(ts nil) (found nil))
+    (while (and (not found) stream)
+      (if (funcall function (car stream))
+	  (setq found (car stream)))
+      (setq stream (cdr stream)))
+    found))
+
+;;; Recursive searching through dependency trees
+;;
+;; This will depend on the general searching APIS defined above.
+;; but will add full recursion through the dependencies list per
+;; stream.
+(defun semantic-recursive-find-nonterminal-by-name (name buffer)
+  "Recursivly find the first occurance of NAME.
+Start search with BUFFER.  Recurse through all dependencies till found."
+  (save-excursion
+    (set-buffer buffer)
+    (let* ((stream (semantic-bovinate-toplevel nil t))
+	   (includelist (or (semantic-find-nonterminal-by-token 'include stream)
+			    "empty.silly.thing"))
+	   (found (semantic-find-nonterminal-by-name name stream))
+	   (unfound nil))
+      (while (and (not found) includelist)
+	(let ((fn (semantic-find-dependency buffer (car includelist))))
+	  (if (and fn (not (member fn unfound)))
+	      (save-excursion
+		(set-buffer (find-file-noselect fn))
+		(setq stream (semantic-bovinate-toplevel nil t))
+		(setq found (semantic-find-nonterminal-by-name name stream))
+		(if (not found)
+		    (setq includelist
+			  (append includelist
+				  (semantic-find-nonterminal-by-token
+				   'include stream))))
+		(setq unfound (cons fn unfound)))))
+	(setq includelist (cdr includelist)))
+      found)))
+  
 ;;; Completion APIs
 ;;
 ;; These functions provide minibuffer reading/completion for lists of
@@ -150,7 +231,7 @@ STREAM is the list of tokens to complete from.
 FILTER is provides a filter on the types of things to complete.
 FILTER must be a function to call on each element.  (See"
   (if (not default) (setq default (thing-at-point 'symbol)))
-  (if (not stream) (setq stream (semantic-bovinate-toplevel)))
+  (if (not stream) (setq stream (semantic-bovinate-toplevel nil t)))
   (setq stream
 	(if filter
 	    (semantic-find-nonterminal-by-function filter stream)
@@ -334,7 +415,8 @@ This functin must be overloaded, though it need not be used."
     (if s
 	;; Prototype is non-local
 	(funcall s token)
-      (error "No generic implementation for prototypeing nonterminals"))))
+      ;; Bad hack, but it should sorta work...
+      (semantic-summerize-nonterminal token) )))
 
 ;;; Hacks
 ;;
@@ -344,17 +426,24 @@ This functin must be overloaded, though it need not be used."
   "Disply info about something under the cursor using generic methods."
   (interactive)
   (let ((name (thing-at-point 'symbol))
-	(strm (cdr (semantic-bovinate-toplevel)))
+;	(strm (cdr (semantic-bovinate-toplevel nil t)))
 	(res nil))
     (if name
 	(setq res
 ;	      (semantic-find-nonterminal-by-name name strm)
-	      (semantic-find-nonterminal-by-type name strm)
+;	      (semantic-find-nonterminal-by-type name strm)
+	      (semantic-recursive-find-nonterminal-by-name name (current-buffer))
+	      
 	      ))
-    (pop-to-buffer "*SEMANTIC HACK RESULTS*")
-    (require 'pp)
-    (erase-buffer)
-    (insert (pp-to-string res))))
+    (if res
+	(progn
+	  (pop-to-buffer "*SEMANTIC HACK RESULTS*")
+	  (require 'pp)
+	  (erase-buffer)
+	  (insert (pp-to-string res) "\n")
+	  (goto-char (point-min))
+	  (shrink-window-if-larger-than-buffer))
+      (message "nil"))))
 
 (provide 'semantic-util)
 
