@@ -6,7 +6,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.8 2001/04/13 22:11:00 ponced Exp $
+# $Id: java.bnf,v 1.9 2001/04/26 07:08:28 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,28 +32,32 @@
 %languagemode  java-mode
 %setupfunction semantic-default-java-setup
 
-%(setq
-  ;; Java is case sensitive
-  semantic-case-fold nil
-  ;; special handling of multiple variable declarations/statement
-  semantic-expand-nonterminal 'semantic-expand-java-nonterminal
-  ;; function to use when creating items in imenu
-  semantic-imenu-summary-function 'semantic-prototype-nonterminal
-  ;; function to use for creating the imenu
-  imenu-create-index-function 'semantic-create-imenu-index
-  ;; Character used to separation a parent/child relationship
-  semantic-type-relation-separator-character '(".")
-  semantic-command-separation-character ";"
-  document-comment-start "/**"
-  document-comment-line-prefix " *"
-  document-comment-end " */"
-  ;; speedbar and imenu buckets name
-  semantic-symbol->name-assoc-list '((type     . "Classes")
-                                     (variable . "Variables")
-                                     (function . "Methods")
-                                     (include  . "Imports")
-                                     (package  . "Package"))
-     )%
+%(progn
+   (setq
+    ;; Java is case sensitive
+    semantic-case-fold nil
+    ;; special handling of multiple variable declarations/statement
+    semantic-expand-nonterminal 'semantic-expand-java-nonterminal
+    ;; function to use when creating items in imenu
+    semantic-imenu-summary-function 'semantic-prototype-nonterminal
+    ;; function to use for creating the imenu
+    imenu-create-index-function 'semantic-create-imenu-index
+    ;; Character used to separation a parent/child relationship
+    semantic-type-relation-separator-character '(".")
+    semantic-command-separation-character ";"
+    document-comment-start "/**"
+    document-comment-line-prefix " *"
+    document-comment-end " */"
+    ;; speedbar and imenu buckets name
+    semantic-symbol->name-assoc-list '((type     . "Classes")
+                                       (variable . "Variables")
+                                       (function . "Methods")
+                                       (include  . "Imports")
+                                       (package  . "Package"))
+    )
+   ;; Needed by `semantic-find-doc-snarf-comment'.
+   (set (make-local-variable 'block-comment-end) "\\s-*\\*/")
+   )%
 
 %token ABSTRACT     "abstract"
 %put ABSTRACT summary
@@ -240,6 +244,55 @@
 %put WHILE summary
 "while (<expr>) <stmt> | do <stmt> while (<expr>);"
   
+# --------------------------
+# Official javadoc line tags
+# --------------------------
+
+# Javadoc tags are identified by a 'javadoc' keyword property.  The
+# value of this property must be itself a property list where the
+# following properties are recognized:
+#
+# - `seq' (mandatory) is the tag sequence number used to check if tags
+#   are correctly ordered in a javadoc comment block.
+#
+# - `usage' (mandatory) is the list of token categories for which this
+#   documentation tag is allowed.
+#
+# - `opt' (optional) if non-nil indicates this is an optional tag.
+#   By default tags are mandatory.
+#
+# - `with-name' (optional) if non-nil indicates that this tag is
+#   followed by an identifier like in "@param <var-name> description"
+#   or "@exception <class-name> description".
+#
+# - `with-ref' (optional) if non-nil indicates that the tag is
+#   followed by a reference like in "@see <reference>".
+
+%token AUTHOR      "author"
+%put   AUTHOR      javadoc (seq 1 usage (type))
+%token VERSION     "version"
+%put   VERSION     javadoc (seq 2 usage (type) opt t) 
+%token PARAM       "param"
+%put   PARAM       javadoc (seq 3 usage (function) with-name t) 
+#%token RETURN      "return"
+%put   RETURN      javadoc (seq 4 usage (function)) 
+%token EXCEPTION   "exception"
+%put   EXCEPTION   javadoc (seq 5 usage (function) with-name t) 
+#%token THROWS      "throws"
+%put   THROWS      javadoc (seq 6 usage (function) with-name t) 
+%token SEE         "see"
+%put   SEE         javadoc (seq 7 usage (type function variable) opt t with-ref t) 
+%token SINCE       "since"
+%put   SINCE       javadoc (seq 8 usage (type function variable) opt t) 
+%token SERIAL      "serial"
+%put   SERIAL      javadoc (seq 9 usage (variable) opt t) 
+%token SERIALDATA  "serialData"
+%put   SERIALDATA  javadoc (seq 10 usage (function) opt t) 
+%token SERIALFIELD "serialField"
+%put   SERIALFIELD javadoc (seq 11 usage (variable) opt t) 
+%token DEPRECATED  "deprecated"
+%put   DEPRECATED  javadoc (seq 12 usage (type function variable) opt t) 
+
 # --------
 # Grammar
 # --------
@@ -596,6 +649,10 @@ expression: unary_expression operators_expression_opt
           ;
 
 # $Log: java.bnf,v $
+# Revision 1.9  2001/04/26 07:08:28  ponced
+# Added official javadoc line tag keywords.
+# Provided a value for `block-comment-end'.
+#
 # Revision 1.8  2001/04/13 22:11:00  ponced
 # Updated copyrights.
 #
