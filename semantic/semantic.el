@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.18 2000/04/14 21:32:37 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.19 2000/04/15 18:40:58 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -699,6 +699,61 @@ COLLECTION is the list of things collected so far."
     (erase-buffer)
     (insert (pp-to-string out))))
 
+;;; Reference Debugging
+;;
+(defvar semantic-bovinate-create-reference nil
+  "Non nil to create a reference.")
+
+(defvar semantic-bovinate-reference-token-list nil
+  "A list generated as a referece (assumed valid).
+A second pass comares return values against this list.")
+
+(defun semantic-bovinate-add-reference (ref)
+  "Add REF to the reference list."
+  (setq semantic-bovinate-reference-token-list
+	(cons ref semantic-bovinate-reference-token-list)))
+
+(defvar semantic-bovinate-compare-reference nil
+  "Non nil to compare against a reference list.")
+
+(defvar semantic-bovinate-reference-temp-list nil
+  "List used when doing a compare.")
+
+(defun semantic-bovinate-compare-against-reference (ref)
+  "Compare REF against what was returned last time."
+  (if (not (equal ref (car semantic-bovinate-reference-temp-list)))
+      (let ((debug-on-error t))
+	(error "Stop: %d %S != %S"
+	       (- (length semantic-bovinate-reference-token-list)
+		  (length semantic-bovinate-reference-temp-list))
+	       (car semantic-bovinate-reference-temp-list)
+	       ref))
+    (setq semantic-bovinate-reference-temp-list
+	  (cdr semantic-bovinate-reference-temp-list))))
+	   
+(defun bovinate-create-reference ()
+  "Create a reference list."
+  (interactive)
+  (condition-case nil
+      (progn
+	(semantic-clear-toplevel-cache)
+	(setq semantic-bovinate-create-reference t
+	      semantic-bovinate-reference-token-list nil)
+	(bovinate)
+	(setq semantic-bovinate-reference-token-list
+	      (nreverse semantic-bovinate-reference-token-list)))
+    (error nil))
+  (setq semantic-bovinate-create-reference nil))
+
+(defun bovinate-reference-compare ()
+  "Create a reference list."
+  (interactive)
+  (let ((semantic-bovinate-compare-reference t))
+    (semantic-clear-toplevel-cache)
+    (setq semantic-bovinate-reference-temp-list
+	  semantic-bovinate-reference-token-list)
+    (bovinate)))
+
 
 ;;; Semantic Bovination
 ;;
@@ -748,7 +803,8 @@ list of semantic tokens found."
 	    cvl nil			;re-init the collected value list.
 	    lte (car matchlist)		;Get the local matchlist entry.
 	    db-tlen (length lte))	;length of the local match.
-      (if (listp (car lte))
+      (if (or (byte-code-function-p (car lte))
+	      (listp (car lte)))
 	  ;; In this case, we have an EMPTY match!  Make stuff up.
 	  (setq cvl (list nil)))
       (while (and lte (not (or (byte-code-function-p (car lte))
@@ -828,6 +884,13 @@ list of semantic tokens found."
       (if (not cvl)			;lte=nil;  there was no match.
 	  (setq matchlist (cdr matchlist)) ;Move to next matchlist entry
 	(setq out (if (car lte)
+; REMOVE THIS TO USE THE REFERENCE/COMPARE CODE
+; 		      (let ((o (apply (car lte)	;call matchlist fn on values
+; 				      (nreverse cvl) start (list end))))
+; 			(if semantic-bovinate-create-reference (semantic-bovinate-add-reference o))
+; 			(if semantic-bovinate-compare-reference (semantic-bovinate-compare-against-reference o))
+; 			o
+; 			)
 		      (apply (car lte)	;call matchlist fn on values
 			     (nreverse cvl) start (list end))
 		    (cond ((and (= (length cvl) 1)
