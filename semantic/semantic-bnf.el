@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.52 2002/04/06 03:47:39 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.53 2002/05/09 04:24:16 emacsman Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1618,6 +1618,19 @@ and initial #."
 (eval-after-load "which-func"
   '(unless (eq which-func-modes t)
      '(add-to-list 'which-func-modes 'semantic-bnf-mode)))
+
+;; Add the necessary hooks so that `C-h C-i' of a BNF setting will
+;; launch the info browser and bring up the page describing the
+;; setting. 
+(eval-after-load "info-look"
+  '(let ()
+     (info-lookup-add-help
+      :mode 'semantic-bnf-mode
+      :regexp "%[_a-zA-Z][_a-zA-Z0-9]*"
+      :ignore-case t
+      :doc-spec '(
+		  ("(semantic)Index" nil
+		   "^[ \t]+- [^:]+:[ \t]*" "\\b")))))
 
 (provide 'semantic-bnf)
 
