@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.14 1999/03/10 19:24:06 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.15 1999/03/17 23:35:51 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -418,8 +418,8 @@ It does not check for existing project objects.  Use `project-am-load'."
   (or ede-object
     (if (ede-project-mine amf buffer)
 	amf
-      (let ((targ (oref amf :targets))
-	    (sobj (oref amf :subproj))
+      (let ((targ (oref amf targets))
+	    (sobj (oref amf subproj))
 	    (obj nil))
 	(while (and targ (not obj))
 	  (if (ede-project-mine (car targ) buffer)
@@ -432,12 +432,12 @@ It does not check for existing project objects.  Use `project-am-load'."
 
 (defmethod project-targets-for-file ((proj project-am-makefile))
   "Return a list of targets the project PROJ."
-  (oref proj :targets))
+  (oref proj targets))
 
 (defmethod project-rescan ((this project-am-makefile))
   "Rescan the makefile for all targets and sub targets."
-  (let ((osubproj (oref this :subproj))
-	(otargets (oref this :targets))
+  (let ((osubproj (oref this subproj))
+	(otargets (oref this targets))
 	(csubproj (or
 		   ;; If DIST_SUBDIRS doesn't exist, then go for the
 		   ;; static list of SUBDIRS.  The DIST version should
@@ -481,7 +481,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 	  (setq ntargets (cons tmp ntargets))))
     ;; Now that we have this new list, chuck the old targets
     ;; and replace it with the new list of targets I just created.
-    (oset this :targets (nreverse ntargets))
+    (oset this targets (nreverse ntargets))
     ;; We still have a list of targets.  For all buffers, make sure
     ;; their object still exists!
 
@@ -507,7 +507,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 	      ;; Tac tmp onto our list of things to keep
 	      (setq nsubproj (cons tmp nsubproj)))
 	    csubproj)
-    (oset this :subproj nsubproj)
+    (oset this subproj nsubproj)
     ;; All elements should be updated now.
     ))
 
@@ -556,8 +556,8 @@ nil means that this buffer belongs to no-one."
       nil
     (if (ede-project-mine amf buffer)
 	amf
-      (let ((targ (oref amf :targets))
-	    (sobj (oref amf :subproj))
+      (let ((targ (oref amf targets))
+	    (sobj (oref amf subproj))
 	    (obj nil))
 	(while (and targ (not obj))
 	  (if (ede-project-mine (car targ) buffer)
