@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.26 2004/03/20 00:10:42 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.27 2004/03/25 10:43:06 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -543,6 +543,11 @@ function does not appear in body of it's parent class."
   "Return non-nil if TAG describes a destructor function.
 That is the value of the `:destructor-flag' attribute."
   (semantic-tag-get-attribute tag :destructor-flag))
+
+(defsubst semantic-tag-function-constructor-p (tag)
+  "Return non-nil if TAG describes a constructor function.
+That is the value of the `:constructor-flag' attribute."
+  (semantic-tag-get-attribute tag :constructor-flag))
 
 ;;; Tags of class `variable'
 ;;
