@@ -1,12 +1,12 @@
 ;;; eieio.el --- Enhanced Implementation of Emacs Interpreted Objects
-;;              or maybe Eric's Implementation of Emacs Intrepreted Objects
+;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.87 2000/12/01 15:06:43 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.88 2000/12/02 01:53:29 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -604,11 +604,11 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 (defun eieio-perform-slot-validation-for-default (field spec value skipnil)
   "For FIELD, signal if SPEC does not match VALUE.
 If SKIPNIL is non-nil, then if VALUE is nil, return t."
-  (if (and (not eieio-skip-typecheck)
-	   (not (and skipnil (null value)))
-	   (not (eieio-perform-slot-validation spec value)))
-      (signal 'invalid-slot-type (list field spec value))))
-
+  (let ((val (eieio-default-eval-maybe value)))
+    (if (and (not eieio-skip-typecheck)
+	     (not (and skipnil (null val)))
+	     (not (eieio-perform-slot-validation spec val)))
+	(signal 'invalid-slot-type (list field spec val)))))
 
 (defun eieio-add-new-field (newc a d doc type cust label custg prot init alloc
 				 &optional defaultoverride skipnil)
@@ -966,7 +966,7 @@ created by the :initarg tag."
 (defmacro lambda-default (&rest cdr)
   "The same as `lambda' but is used as a default value in `defclass'.
 As such, the form (lambda-default ARGS DOCSTRING INTERACTIVE BODY) is
-self quoting.  This macro is mean for the sole purpose of quoting
+self quoting.  This macro is meant for the sole purpose of quoting
 lambda expressions into class defaults.  Any `lambda-default'
 expression is automatically transformed into a `lambda' expression
 when copied from the defaults into a new object.  The use of
@@ -1005,17 +1005,23 @@ Fills in OBJ's FIELD with it's default value."
 	  )
       (eieio-barf-if-slot-unbound
        (let ((val (nth (- c 3) (aref (class-v cl) class-public-d))))
-	 ;; check for functions to evaluate
-	 (if (or (and (listp val) (equal (car val) 'lambda))
-		 (and (symbolp val) (fboundp val)))
-	     (let ((this obj))
-	       (funcall val))
-	   ;; check for quoted things
-	   (if (and (listp val) (equal (car val) 'quote))
-	       (car (cdr val))
-	     ;; return it verbatim
-	     val)))
+	 (eieio-default-eval-maybe val))
        obj (aref obj object-class) 'oref-default))))
+
+(defun eieio-default-eval-maybe (val)
+  "Check VAL, and return what `oref-default' would provide."
+  ;; check for functions to evaluate
+  (if (and (listp val) (equal (car val) 'lambda))
+      (funcall val)
+    ;; check for quoted things, and unquote them
+    (if (and (listp val) (eq (car val) 'quote))
+	(car (cdr val))
+      ;; return it verbatim
+      (if (and (listp val) (eq (car val) 'lambda-default))
+	  (let ((s (copy-sequence val)))
+	    (setcar s 'lambda)
+	    s)
+	val))))
 
 ;;; Object Set macros
 ;;
