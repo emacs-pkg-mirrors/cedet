@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.49 2001/11/17 15:50:11 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.50 2001/11/30 02:49:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -97,8 +97,14 @@
   ,(semantic-lambda
   (list (nth 1 vals) 'variable nil (nth 2 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
  ) ; end define
+ (filename-prefix
+ ( symbol)
+ ( FLOAT
+  ,(semantic-lambda
+  (list "float")))
+ ) ; end filename-prefix
  (filename
- ( symbol punctuation "\\b\\.\\b" symbol
+ ( filename-prefix punctuation "\\b\\.\\b" symbol
   ,(semantic-lambda
   (list ( concat (nth 0 vals) (nth 1 vals) (nth 2 vals)))))
  ( symbol punctuation "\\b/\\b" filename
@@ -571,7 +577,7 @@
   (list ( identity start) ( identity end))))
  ) ; end expression
  )
-   "C language specification.")
+  "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
