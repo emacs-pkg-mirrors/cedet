@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.1 2001/06/03 14:18:54 zappo Exp $
+ * $Id: test.cpp,v 1.2 2001/08/08 01:02:02 zappo Exp $
  *
  */
 
@@ -95,6 +95,10 @@ char class3::method2_for_class3( int a, int b) throw ( exception1 )
 void *class3::method3_for_class3( int a, int b) throw ( exception1, exception2 )
 {
   return "Moose";
+}
+
+void *class3::method4_for_class3( int a, int b) reentrant
+{
 }
 
 /* Namespaces */
