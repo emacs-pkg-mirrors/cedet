@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.2 2002/08/11 20:30:25 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.3 2002/08/13 16:37:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1018,17 +1018,23 @@ removed from the result list."
   (semantic-java-doc-setup)
  )
 
-;; semantic overloaded functions
-(semantic-install-function-overrides
- '((prototype-nonterminal . semantic-java-prototype-nonterminal)
-   (find-documentation    . semantic-java-find-documentation)
-   (get-local-variables   . semantic-java-get-local-variables)
-   )
- t ;; They can be changed by more specific ones
- 'java-mode
- )
+;; Starting with Semantic 2.0, Wisent is the default parser for Java,
+;; it is setup in wisent-java-tags.el.
+;; The following lines are commented out to avoid setup conflicts
+;; between wisent-java-tags.el and this file.  Particularly when using
+;; the JDEE that (require 'semantic-java) in some places!
 
-(add-hook 'java-mode-hook 'semantic-default-java-setup)
+;; ;; semantic overloaded functions
+;; (semantic-install-function-overrides
+;;  '((prototype-nonterminal . semantic-java-prototype-nonterminal)
+;;    (find-documentation    . semantic-java-find-documentation)
+;;    (get-local-variables   . semantic-java-get-local-variables)
+;;    )
+;;  t ;; They can be changed by more specific ones
+;;  'java-mode
+;;  )
+
+;; (add-hook 'java-mode-hook 'semantic-default-java-setup)
 
 (provide 'semantic-java)
 
