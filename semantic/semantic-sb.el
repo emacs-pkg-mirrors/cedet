@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.30 2001/10/28 00:55:32 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.31 2001/10/31 16:06:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -317,20 +317,22 @@ to create much wiser decisions about how to sort and group these items."
 (defun semantic-fetch-dynamic-bovine (file)
   "Load FILE into a buffer, and generate tags using the Semantic Bovinator.
 Returns the tag list, or t for an error."
-  (let ((out (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p)
-		      (not speedbar-power-click))
-		 ;; If the database is loaded and running, try to get
-		 ;; tokens from it.
-		 (or (semanticdb-file-stream file)
-		     t)
-	       ;; No database, do it the old way.
-	       (save-excursion
-		 (set-buffer (find-file-noselect file))
-		 (if (or (not (featurep 'semantic))
-			 (not semantic-toplevel-bovine-table))
-		     t
-		   (if speedbar-power-click (semantic-clear-toplevel-cache))
-		   (semantic-bovinate-toplevel))))))
+  (let ((out nil))
+    (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p)
+	     (not speedbar-power-click)
+	     ;; If the database is loaded and running, try to get
+	     ;; tokens from it.
+	     (setq out (semanticdb-file-stream file)))
+	;; Successful DB query.
+	nil
+      ;; No database, do it the old way.
+      (save-excursion
+	(set-buffer (find-file-noselect file))
+	(if (or (not (featurep 'semantic))
+		(not semantic-toplevel-bovine-table))
+	    t
+	  (if speedbar-power-click (semantic-clear-toplevel-cache))
+	  (semantic-bovinate-toplevel))))
     (if (listp out)
 	(condition-case nil
 	    (semantic-bucketize out)
