@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.27 2002/08/08 16:04:57 ponced Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.28 2002/08/09 23:25:34 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,33 +24,11 @@
 ;;
 ;; Initialize semantic for all supported conditions.
 
+(load "semantic-al" nil t)
+
 ;;; Code:
-
-;;; Parser setup
 ;;
-(autoload 'semantic-parse-stream-default "semantic-bovine"
-  "Bovinate STREAM, starting at the first NONTERMINAL rule.")
-(autoload 'semantic-parse-changes-default "semantic-edit"
-  "Incrementally reparse the current buffer.")
-(autoload 'semantic-parse-region-default "semantic"
-  "Bovinate from BEGIN to END using optional NONTERMINAL.")
-(autoload 'semantic-lex-init "semantic-lex"
-  "Initialize any lexical state for this buffer.")
-(autoload 'semantic-lex "semantic-lex"
-  "Lexically analyze text in the current buffer.")
-(autoload 'define-lex "semantic-lex"
-  "Define a lexical analyzer." nil 'macro)
-(autoload 'define-lex-analyzer "semantic-lex"
-  "Create a single lexical anyzer." nil 'macro)
-(autoload 'define-lex-regex-analyzer "semantic-lex"
-  "Create a single lexical anyzer based on a regex." nil 'macro)
-(autoload 'define-lex-simple-regex-analyzer "semantic-lex"
-  "Create a single lexical anyzer based on a simple regex." nil 'macro)
-(autoload 'define-lex-block-analyzer "semantic-lex"
-  "Create a lexical analyzer NAME for paired delimiters blocks." nil 'macro)
 
-(autoload 'semantic-bnf-mode "semantic-bnf"
-  "Mode for Bovine Normal Form." t)
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
 (autoload 'wisent-wy-mode "wisent-wy"
   "Initialize a buffer for editing BNF code." t)
@@ -58,52 +36,11 @@
 
 ;;; Other applications
 ;;
-(autoload 'semantic-create-imenu-index "semantic-imenu"
-  "Create an imenu index for any buffer which supports Semantic.")
-(autoload 'senator-minor-mode "senator"
-  "Minor mode for the SEmantic NAvigaTOR." t)
-(autoload 'global-semanticdb-minor-mode "semanticdb"
-  "Mode saving token lists between sessions." t)
-
-
 (eval-after-load "speedbar"
   '(progn
      (speedbar-add-supported-extension ".bnf")
      (speedbar-add-supported-extension ".wy")
      ))
-
-(autoload 'semantic-default-c-setup "semantic-c")
-(add-hook 'c-mode-hook 'semantic-default-c-setup)
-(add-hook 'c++-mode-hook 'semantic-default-c-setup)
-
-(autoload 'semantic-default-elisp-setup "semantic-el")
-(add-hook 'emacs-lisp-mode-hook 'semantic-default-elisp-setup)
-
-(autoload 'semantic-default-scheme-setup "semantic-scm")
-(add-hook 'scheme-mode-hook 'semantic-default-scheme-setup)
-
-(autoload 'semantic-default-make-setup "semantic-make")
-(add-hook 'makefile-mode-hook 'semantic-default-make-setup)
-
-(autoload 'semantic-default-texi-setup "semantic-texi")
-(add-hook 'texinfo-mode-hook 'semantic-default-texi-setup)
-
-(autoload 'semantic-default-java-setup "semantic-java")
-(add-hook 'java-mode-hook 'semantic-default-java-setup)
-
-;;; Charts
-;;
-(autoload 'semantic-chart-nonterminals-by-token "semantic-chart" nil t)
-(autoload 'semantic-chart-nonterminal-complexity-token "semantic-chart" nil t)
-(autoload 'semantic-chart-database-size "semantic-chart" nil t)
-
-;;; Class browser data
-(autoload 'semantic-cb-speedbar-mode "semantic-cb")
-
-;;; Context analysis
-(autoload 'semantic-analyze-current-context "semantic-analyze")
-(autoload 'semantic-analyze-possible-completions "semantic-analyze")
-(autoload 'semantic-speedbar-analysis "semantic-ia-sb")
 
 ;;; Some speedbar major modes
 (eval-after-load "speedbar"
@@ -111,24 +48,7 @@
      (require 'semantic-cb)
      (require 'semantic-ia-sb)))
 
-
-;;; Minor modes
-;;
-
-;; semanticdb
-(autoload 'global-semanticdb-minor-mode "semanticdb" nil t)
-
-;; senator
-(autoload 'senator-minor-mode "senator"
-  "Toggle senator minor mode.
-With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled.
-
-\\{senator-mode-map}"
-  t nil)
-
+;;; Senator configuration.
 (defvar global-senator-minor-mode nil
   "*If non-nil enable global use of senator minor mode.")
 
@@ -137,38 +57,6 @@ minor mode is enabled.
                      'custom-variable)
 
 (custom-add-load 'global-senator-minor-mode 'senator)
-
-(autoload 'global-senator-minor-mode "senator"
-  "Toggle global use of senator minor mode.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  t nil)
-
-(autoload 'senator-try-expand-semantic "senator"
-  "Attempt inline completion at the cursor.
-Use Semantic, or the semantic database to look up possible
-completions.  The argument OLD has to be nil the first call of this
-function.  It returns t if a unique, possibly partial, completion is
-found, nil otherwise."
-  t nil)
-
-(autoload 'senator-complete-symbol "senator"
-  "Complete the current symbol under point.
-If optional argument CYCLE-ONCE is non-nil, only cycle through the list
-of completions once, doing nothing where there are no more matches."
-  t nil)
-
-;; semantic-show-dirty
-(autoload 'semantic-show-dirty-mode
-  "semantic-util-modes"
-  "Minor mode to display of dirty tokens.
-With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled.
-
-\\{semantic-show-dirty-mode-map}"
-  t nil)
 
 (defvar global-semantic-show-dirty-mode nil
   "*If non-nil enable global use of show-dirty mode.")
@@ -180,25 +68,6 @@ minor mode is enabled.
 (custom-add-load 'global-semantic-show-dirty-mode
                  'semantic-util-modes)
 
-(autoload 'global-semantic-show-dirty-mode
-  "semantic-util-modes"
-  "Toggle global use of show-dirty mode.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  t nil)
-
-;; semantic-show-unmatched-syntax
-(autoload 'semantic-show-unmatched-syntax-mode
-  "semantic-util-modes"
-  "Minor mode to display of unmatched-syntax tokens.
-With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled.
-
-\\{semantic-show-unmatched-syntax-mode-map}"
-  t nil)
-
 (defvar global-semantic-show-unmatched-syntax-mode nil
   "*If non-nil enable global use of show-unmatched-syntax mode.")
 
@@ -208,23 +77,6 @@ minor mode is enabled.
 
 (custom-add-load 'global-semantic-show-unmatched-syntax-mode
                  'semantic-util-modes)
-
-(autoload 'global-semantic-show-unmatched-syntax-mode
-  "semantic-util-modes"
-  "Toggle global use of show-unmatched-syntax mode'.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  t nil)
-
-;; semantic-auto-parse
-(autoload 'semantic-auto-parse-mode
-  "semantic-util-modes"
-  "Minor mode to auto parse buffer following changes.
-With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled."
-  t nil)
 
 (defvar global-semantic-auto-parse-mode nil
   "*If non-nil enable global use of auto-parse mode.")
@@ -236,27 +88,6 @@ minor mode is enabled."
 (custom-add-load 'global-semantic-auto-parse-mode
                  'semantic-util-modes)
 
-(autoload 'global-semantic-auto-parse-mode
-  "semantic-util-modes"
-  "Toggle global use of `semantic-auto-parse-mode'.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  t nil)
-
-;; semantic-summary
-(autoload 'semantic-summary-mode
-  "semantic-util-modes"
-  "Minor mode to show useful things about tokens in echo area.
-Enables/disables `eldoc-mode' which supplies the support functions for
-this minor mode.
-With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode can be turned on only if semantic feature is available and
-the current buffer was set up for parsing.  Return non-nil if the
-minor mode is enabled.
-
-\\{semantic-summary-mode-map}"
-  t nil)
-
 (defvar global-semantic-summary-mode nil
   "*If non-nil enable global use of summary mode.")
 
@@ -267,12 +98,6 @@ minor mode is enabled.
 (custom-add-load 'global-semantic-summary-mode
                  'semantic-util-modes)
 
-(autoload 'global-semantic-summary-mode
-  "semantic-util-modes"
-  "Toggle global use of `semantic-summary-mode'.
-If ARG is positive, enable, if it is negative, disable.
-If ARG is nil, then toggle."
-  t nil)
 
 ;;; This turns on semantic partial reparsing
 
@@ -281,13 +106,6 @@ If ARG is nil, then toggle."
 ;(setq semantic-bovinate-incremental-parser #'semantic-cleanup-dirty-tokens)
 
 ;; The new version
-(autoload 'semantic-edits-flush-changes
-  "semantic-edit"
-  "Flush the changes in the current buffer.")
-(autoload 'semantic-edits-change-function-handle-changes
-  "semantic-edit"
-  "Run whenever a buffer controlled by `semantic-mode' change.")
-
 (add-hook 'semantic-change-hooks
           #'semantic-edits-change-function-handle-changes)
 ;; This should be done in a more integral way, but this will work for now.
