@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.25 2001/01/10 06:48:16 zappo Exp $
+@c $Id: semantic.texi,v 1.26 2001/01/25 03:27:28 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -746,11 +746,12 @@ Some predefined nonterminals that can be used are:
 
 The definition of a variable, or constant.  @var{CONST} is a boolean
 representing if this variable is considered a constant.
-@var{DEFAULT-VALUE} can be something apropriate such a a string, or list
-of parsed elements.  @var{MODIFIERS} are details about a variable that
-are not covered in the @var{TYPE} field.  @var{OPTSUFFIX} is an optional
-field specifying traling modifiers such as array dimentions or bit
-fields. @var{DOCSTRING} is optional.
+@var{DEFAULT-VALUE} can be something apropriate such a a string, or
+list of parsed elements.  @var{MODIFIERS} are details about a variable
+that are not covered in the @var{TYPE} field.  See the Modifiers
+section below. @var{OPTSUFFIX} is an optional field specifying traling
+modifiers such as array dimentions or bit fields. @var{DOCSTRING} is
+optional.
 @refill
 
 @example
@@ -790,6 +791,39 @@ Indicates additional locations of sources or definitions.
 In Emacs Lisp, a `provide' statement.  @var{DETAIL} might be an associated
 file name.
 @refill
+
+@section MODIFIERS
+
+The MODIFIERS section of variables, functions, and types provide a
+location to place language specific details which are not accounted
+for by the base token type.  Because there is an arbitrary number of
+things that could be associated in the MODIFIERS section, this should
+be formatted as an association list.
+
+Here are some typed modifiers that may exist.  Any arbitrary number
+of modifiers may be created, and modifiers not documented here are
+allowed.
+
+@example
+  (parent . \"text\")
+@end example
+
+Name of a parent type/class.  C++ and CLOS allow the creation of a
+function outside the body of that type/class.
+
+@example
+(dereference . INT)
+@end example
+
+Number of levels of dereference.  In C, the number of `*' characters
+indicating pointers.
+
+@example
+(typemodifiers . \"text\")
+@end example
+
+Keyword modifiers for a type.  In C, such words would include
+`register', and `volatile'.
 
 @node Utilities, Tools, Non-Terminals, Top
 @chapter Utilities
@@ -863,6 +897,14 @@ On @var{token}, set @var{property} to @var{value}.
 For @var{token} get the value of @var{property}.
 @end defun
 
+@defun semantic-token-modifier token modifier
+Retrieve a modifier for the variable @var{TOKEN}.
+@var{MODIFIER} is the symbol whose modifier value to get.
+This function can get modifiers from any type of @var{TOKEN}.
+Do not use the function if you know what type of token you are dereferencing.
+Instead, use the function specific to that token type.  It will be faster.
+@end defun
+
 @defun semantic-token-type-parts token
 Retrieve the parts of the type @var{TOKEN}.
 @end defun
@@ -872,7 +914,12 @@ Retrieve the parent of the type @var{TOKEN}.
 @end defun
 
 @defun semantic-token-type-modifiers token
-Retrieve the non-type modifiers of type @var{TOKEN}.
+Retrieve the modifiers for the type @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-modifier token modifier
+Retrieve a modifier for the type @var{TOKEN}.
+@var{MODIFIER} is the symbol whose modifier value to get.
 @end defun
 
 @defun semantic-token-function-args token
@@ -880,12 +927,23 @@ Retrieve the arguments of the function @var{TOKEN}.
 @end defun
 
 @defun semantic-token-function-modifiers token
-Retrieve the non-type modifiers of the function @var{TOKEN}.
+Retrieve the modifiers of the function @var{TOKEN}.
+@end defun
+
+@defun semantic-token-function-modifier token modifier
+Retrieve a modifier for the function @var{TOKEN}.
+@var{MODIFIER} is the symbol whose modifier value to get.
 @end defun
 
 @defun semantic-token-function-throws token
 Retrieve the throws signal of the function @var{TOKEN}.
 This is an optional field, and returns @code{nil} if it doesn't exist.
+@end defun
+
+@defun semantic-token-function-parent token
+The parent of the function @var{TOKEN}.
+A function has a parent if it is a method of a class, and if the
+function does not appear in body of it's parent class.
 @end defun
 
 @defun semantic-token-variable-const token
@@ -897,13 +955,17 @@ Retrieve the default value of the variable @var{TOKEN}.
 @end defun
 
 @defun semantic-token-variable-modifiers token
-Retrieve extra non-type modifiers for the variable @var{TOKEN}.
+Retrieve modifiers for the variable @var{TOKEN}.
+@end defun
+
+@defun semantic-token-variable-modifier token modifier
+Retrieve a modifier for the variable @var{TOKEN}.
+@var{MODIFIER} is the symbol whose modifier value to get.
 @end defun
 
 @defun semantic-token-include-system token
 Retrieve the flag indicating if the include @var{TOKEN} is a sysmtem include.
 @end defun
-
 
 @node Nonterminal streams, Nonterminal completion, Nonterminal queryies, Utilities
 @section Nonterminal streams
@@ -921,6 +983,11 @@ Find a nonterminal @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a stri
 @defun semantic-find-nonterminal-by-property property value streamorbuffer
 Find all tokens where @var{property} equals @var{value}.
 Returns a list of all tokens with a match.
+@end defun
+
+@defun semantic-find-nonterminal-by-modifier modifier streamorbuffer
+Find all nonterminals with a given @var{MODIFIER} in @var{STREAMORBUFFER}.
+@var{MODIFIER} is a symbol key into the modifiers association list."
 @end defun
 
 @defun semantic-find-nonterminal-by-position position streamorbuffer &optional nomedian
