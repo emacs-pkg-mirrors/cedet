@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.27 2003/02/19 16:34:28 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.28 2003/06/29 12:48:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -120,6 +120,11 @@ hook.")
 This value is non-nil if the parser terminated because of an
 unrecoverable error.")
 
+;;;; Internal stuff
+
+;; The current parser action.  Stop parsing when set to nil.
+(defvar wisent-loop nil)
+
 ;;;; Variables and macros that are useful in grammar actions.
 
 (defvar wisent-parse-lexer-function nil
@@ -163,9 +168,15 @@ This is useful primarily in error rules."
 
 (defmacro wisent-clearin ()
   "Discard the current look-ahead token.
-This will cause a new token to be read.  This is useful primarily in
-error rules."
+This will cause a new token to be read.
+This is useful primarily in error rules."
   '(setq wisent-input nil))
+
+(defmacro wisent-abort ()
+  "Abort parsing and save the look-ahead token.
+This is useful primarily in error rules."
+  '(setq wisent-lookahead wisent-input
+         wisent-loop nil))
 
 (defmacro wisent-set-region (start end)
   "Change the region of text matched by the current nonterminal.
@@ -263,6 +274,12 @@ automaton has only one entry point."
           (list token (symbol-name token))
         (error "Invalid start symbol %s" start)))))
 
+(defvar wisent-pre-parse-hook nil
+  "Normal hook run just before entering the LR parser engine.")
+
+(defvar wisent-post-parse-hook nil
+  "Normal hook run just after the LR parser engine terminated.")
+
 (defun wisent-parse (automaton lexer &optional error start)
   "Parse input using the automaton specified in AUTOMATON.
 
@@ -279,13 +296,13 @@ automaton has only one entry point."
 - START specify the start symbol (nonterminal) used by the parser as
   its goal.  It defaults to the start symbol defined in the grammar
   \(see also `wisent-compile-grammar')."
-  (let* ((actions   (aref automaton 0))
-         (gotos     (aref automaton 1))
-         (starts    (aref automaton 2))
-         ;;(functions (aref automaton 3)) ;; Not used here
-         (stack     (make-vector wisent-parse-max-stack-size nil))
-         (sp     0)
-         (action t)
+  (run-hooks 'wisent-pre-parse-hook)
+  (let* ((actions (aref automaton 0))
+         (gotos   (aref automaton 1))
+         (starts  (aref automaton 2))
+         (stack (make-vector wisent-parse-max-stack-size nil))
+         (sp 0)
+         (wisent-loop t)
          (wisent-parse-error-function (or error #'error))
          (wisent-parse-lexer-function lexer)
          (wisent-recovering nil)
@@ -294,20 +311,20 @@ automaton has only one entry point."
     (setq wisent-nerrs     0 ;; Reset parse error counter
           wisent-lookahead nil) ;; and lookahead token
     (aset stack 0 0) ;; Initial state
-    (while action
-      (setq state  (aref stack sp)
-            tokid  (car wisent-input)
-            action (wisent-parse-action tokid (aref actions state)))
+    (while wisent-loop
+      (setq state (aref stack sp)
+            tokid (car wisent-input)
+            wisent-loop (wisent-parse-action tokid (aref actions state)))
       (cond
        
        ;; Input succesfully parsed
        ;; ------------------------
-       ((eq action wisent-accept-tag)
-        (setq action nil))
+       ((eq wisent-loop wisent-accept-tag)
+        (setq wisent-loop nil))
        
        ;; Syntax error in input
        ;; ---------------------
-       ((eq action wisent-error-tag)
+       ((eq wisent-loop wisent-error-tag)
         ;; Report this error if not already recovering from an error.
         (or wisent-recovering
             (wisent-error
@@ -323,7 +340,7 @@ automaton has only one entry point."
         ;; error, discard it.
         (if (eq wisent-recovering wisent-parse-max-recover)
             (if (eq tokid wisent-eoi-term)
-                (setq action nil) ;; Terminate if at end of input.
+                (setq wisent-loop nil) ;; Terminate if at end of input.
               (run-hook-with-args
                'wisent-discarding-token-functions wisent-input)
               (setq wisent-input (wisent-lexer)))
@@ -345,8 +362,7 @@ automaton has only one entry point."
           
           (if (not choice)
               ;; No 'error terminal was found.  Just terminate.
-              (setq wisent-lookahead wisent-input
-                    action nil)
+              (wisent-abort)
             
             ;; Try to recover and continue parsing.
             ;; Shift the error terminal.
@@ -374,7 +390,7 @@ automaton has only one entry point."
        
        ;; Shift current token on top of the stack
        ;; ---------------------------------------
-       ((natnump action)
+       ((natnump wisent-loop)
         ;; Count tokens shifted since error; after
         ;; `wisent-parse-max-recover', turn off error status.
         (setq wisent-recovering (and (natnump wisent-recovering)
@@ -382,14 +398,15 @@ automaton has only one entry point."
                                      (1- wisent-recovering)))
         (setq sp (+ sp 2))
         (aset stack (1- sp) (cdr wisent-input))
-        (aset stack sp action)
+        (aset stack sp wisent-loop)
         (setq wisent-input (wisent-lexer)))
        
-       ;; Reduce by rule (call action)
-       ;; ----------------------------
+       ;; Reduce by rule (call semantic action)
+       ;; -------------------------------------
        (t
-        (setq sp (funcall action stack sp gotos))
+        (setq sp (funcall wisent-loop stack sp gotos))
         (or wisent-input (setq wisent-input (wisent-lexer))))))
+    (run-hooks 'wisent-post-parse-hook)
     (car (aref stack 1))))
 
 ;;; wisent.el ends here
