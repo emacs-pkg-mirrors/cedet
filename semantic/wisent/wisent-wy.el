@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.4 2002/02/27 23:02:40 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.5 2002/02/28 21:24:16 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -55,7 +55,7 @@
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-27 20:39+0100
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-28 16:26+0100
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -100,19 +100,19 @@
         ((STRING)
          (read $1)))
        (setupfunction_decl
-        ((SETUPFUNCTION SYMBOL)
+        ((SETUPFUNCTION any_symbol)
          (list $2 'setupfunction nil nil)))
        (keywordtable_decl
-        ((KEYWORDTABLE SYMBOL)
+        ((KEYWORDTABLE any_symbol)
          (list $2 'keywordtable nil nil)))
        (parsetable_decl
-        ((PARSETABLE SYMBOL)
+        ((PARSETABLE any_symbol)
          (list $2 'parsetable nil nil)))
        (tokentable_decl
-        ((TOKENTABLE SYMBOL)
+        ((TOKENTABLE any_symbol)
          (list $2 'tokentable nil nil)))
        (token_decl
-        ((TOKEN token_type_opt SYMBOL string_value)
+        ((TOKEN token_type_opt any_symbol string_value)
          (list $3
                (if $2 'token 'keyword)
                $2 nil $4 nil))
@@ -126,7 +126,7 @@
         (nil)
         ((token_type)))
        (token_type
-        ((LT SYMBOL GT)
+        ((LT any_symbol GT)
          (identity $2)))
        (start_decl
         ((START symbols)
@@ -136,20 +136,20 @@
           (cdr $2)
           nil)))
        (left_decl
-        ((LEFT items)
-         (list $1 'assoc nil $2 nil)))
+        ((LEFT token_type_opt items)
+         (list $1 'assoc $2 $3 nil)))
        (right_decl
-        ((RIGHT items)
-         (list $1 'assoc nil $2 nil)))
+        ((RIGHT token_type_opt items)
+         (list $1 'assoc $2 $3 nil)))
        (nonassoc_decl
-        ((NONASSOC items)
-         (list $1 'assoc nil $2 nil)))
+        ((NONASSOC token_type_opt items)
+         (list $1 'assoc $2 $3 nil)))
        (put_decl
-        ((PUT SYMBOL put_value)
+        ((PUT any_symbol put_value)
          (list $2 'put nil nil
                (list $3)
                nil))
-        ((PUT SYMBOL put_value_list)
+        ((PUT any_symbol put_value_list)
          (let*
              ((vals
                (mapcar
@@ -194,7 +194,7 @@
          nil)
         ((RBRACE)
          nil)
-        ((SYMBOL)
+        ((any_symbol)
          (list
           (list $1 'put-name nil nil))))
        (put_value_list
@@ -212,23 +212,23 @@
          (list
           (list "" 'put-value nil $1 nil))))
        (put_value
-        ((SYMBOL any_value)
+        ((any_symbol any_value)
          (cons $1 $2)))
        (any_value
+        ((any_symbol))
         ((STRING))
-        ((SYMBOL))
         ((NUMBER))
         ((PAREN_BLOCK)))
        (symbols
         ((lifo_symbols)
          (nreverse $1)))
        (lifo_symbols
-        ((lifo_symbols SYMBOL)
+        ((lifo_symbols any_symbol)
          (cons $2 $1))
-        ((SYMBOL)
+        ((any_symbol)
          (list $1)))
        (nonterminal
-        ((SYMBOL COLON rules SEMI)
+        ((any_symbol COLON rules SEMI)
          (wisent-token $1 'nonterminal nil $3 nil))
         ((error SEMI)))
        (rules
@@ -301,15 +301,30 @@
         ((item)
          (list $1)))
        (item
+        ((any_symbol))
+        ((CHARACTER)))
+       (any_symbol
         ((SYMBOL))
-        ((CHARACTER))))
+        ((LEFT))
+        ((NONASSOC))
+        ((PREC))
+        ((PUT))
+        ((RIGHT))
+        ((START))
+        ((TOKEN))
+        ((LANGUAGEMODE))
+        ((OUTPUTFILE))
+        ((SETUPFUNCTION))
+        ((KEYWORDTABLE))
+        ((PARSETABLE))
+        ((TOKENTABLE))))
      '(grammar code declaration nonterminal rule put_names put_values))
     )
   "Parser automaton.")
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-27 20:39+0100
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-28 16:26+0100
    (semantic-flex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -330,7 +345,7 @@
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-27 20:39+0100
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-28 16:26+0100
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -362,7 +377,7 @@
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-27 20:39+0100
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-28 16:26+0100
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
           semantic-toplevel-bovine-table wisent-wy-automaton
@@ -640,9 +655,30 @@ That is an alist (TYPE . DEFS) where type is a %token <type> symbol
 and DEFS is an alist of (TOKEN . VALUE).  TOKEN is the terminal symbol
 identifying the token and VALUE is the string value of the token or
 nil."
-  (let ((tokens (semantic-find-nonterminal-by-token
-                 'token (current-buffer)))
-        alist assoc token type term names value)
+  (let (tokens alist assoc token type term names value)
+    
+    ;; Check for <type> in %left, %right & %nonassoc declarations
+    (setq tokens (semantic-find-nonterminal-by-token
+                 'assoc (current-buffer)))
+    (while tokens
+      (setq token  (car tokens)
+            tokens (cdr tokens))
+      (when (setq type (nth 2 token))
+        (setq names (nth 3 token)
+              assoc (assoc type alist))
+        (or assoc (setq assoc (list type)
+                        alist (cons assoc alist)))
+        (while names
+          (setq term  (car names)
+                names (cdr names))
+          (or (string-match wisent-wy-c-char-re term)
+              (setcdr assoc (cons (list (intern term))
+                                  (cdr assoc)))))))
+    
+    ;; Then process %token declarations so they can override any
+    ;; previous specifications
+    (setq tokens (semantic-find-nonterminal-by-token
+                  'token (current-buffer)))
     (while tokens
       (setq token  (car tokens)
             tokens (cdr tokens))
@@ -988,7 +1024,7 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     (,wisent-wy-c-char-re
      0 ,(if (boundp 'font-lock-constant-face)
             'font-lock-constant-face
-          'font-lock-string-face))
+          'font-lock-string-face) t)
     )
   "Font Lock keywords used to highlight WY buffer.")
 
@@ -1093,14 +1129,23 @@ the anchor is or nil if the point has not moved."
             (while (not found)
               (wisent-wy-skip-comments-backward)
               (cond
+               ((eq (char-before) ?\')
+                ;; `with-syntax-table' copy given syntax table
+                (with-syntax-table wisent-wy-syntax-table
+                  ;; Can't be is Lisp code here!  Temporarily consider
+                  ;; quote as a "paired delimiter", so `forward-sexp'
+                  ;; will skip the whole quoted expression.
+                  (modify-syntax-entry ?\' "$" (syntax-table))
+                  (forward-sexp -1)))
                ((eq (char-before) ?\%)
                 (or (looking-at "\\<prec\\>")
                     (setq found (point))))
                ((memq (char-before) '(?\: ?\;))
                 (setq found (point)))
                ((bobp)
-                (error "")))
-              (forward-sexp -1)))
+                (error ""))
+               (t
+                (forward-sexp -1)))))
           (goto-char found)
           (1- (current-column)))
       (error nil)))
@@ -1127,31 +1172,25 @@ If so move to POINT."
     (if (or (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
             (looking-at "\\s-*%"))
         0
-      ;; `with-syntax-table' copy given syntax table
-      (with-syntax-table wisent-wy-syntax-table
-        ;; Set up the C-like char delimiter (quote) to "paired
-        ;; delimiter" syntax class.  Thus `forward-sexp' will see a
-        ;; C-like char 'c' as a whole s-expression.
-        (modify-syntax-entry ?\' "$" (syntax-table))
-        (let* ((p (point))
-               (i (wisent-wy-goto-grammar-indent-anchor)))
-          (if (not (and i (eq (char-before) ?\:)))
-              (if (wisent-wy-between-name-and-colon-p p)
-                  (if (looking-at "\\s-*;;")
-                      1
-                    2)
-                0)
-            (if (or (looking-at "\\s-*$")
-                    (save-excursion (beginning-of-line)
-                                    (looking-at "\\s-*:")))
-                (setq i 2))
-            (goto-char p)
-            (cond ((looking-at "\\s-*;;")
-                   (1- i))
-                  ((looking-at "\\s-*[|;]")
-                   i)
-                  (t
-                   (+ i 2)))))))))
+      (let* ((p (point))
+             (i (wisent-wy-goto-grammar-indent-anchor)))
+        (if (not (and i (eq (char-before) ?\:)))
+            (if (wisent-wy-between-name-and-colon-p p)
+                (if (looking-at "\\s-*;;")
+                    1
+                  2)
+              0)
+          (if (or (looking-at "\\s-*$")
+                  (save-excursion (beginning-of-line)
+                                  (looking-at "\\s-*:")))
+              (setq i 2))
+          (goto-char p)
+          (cond ((looking-at "\\s-*;;")
+                 (1- i))
+                ((looking-at "\\s-*[|;]")
+                 i)
+                (t
+                 (+ i 2))))))))
       
 (defun wisent-wy-do-grammar-indent ()
   "Indent a line of grammar.
