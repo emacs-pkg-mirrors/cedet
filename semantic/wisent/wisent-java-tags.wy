@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.wy,v 1.14 2004/03/10 19:35:09 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.wy,v 1.15 2004/03/25 10:44:23 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -478,7 +478,10 @@ static_initializer
 ;; ("NAME" function "TYPE" ( ARG-LIST ) EXTRA-SPEC "DOCSTRING") 
 constructor_declaration
   : modifiers_opt constructor_declarator throwsc_opt constructor_body
-    (FUNCTION-TAG (car $2) nil (cdr $2) :typemodifiers $1 :throws $3)
+    (FUNCTION-TAG (car $2) nil (cdr $2)
+                  :typemodifiers $1
+                  :throws $3
+                  :constructor-flag t)
   ;
 
 constructor_declarator
