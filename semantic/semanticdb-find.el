@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.18 2004/03/19 03:27:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.19 2004/07/20 17:55:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -358,6 +358,18 @@ the TAG was found.  Sometimes TABLE can be nil."
       ;; Keep moving.
       (setq result (cdr result)))
     (cons ans anstable)))
+
+(defun semanticdb-find-result-test (result)
+  "Test RESULT by accessing all the tags in the list."
+  (if (not (semanticdb-find-results-p result))
+      (error "Does not pass `semanticdb-find-results-p.\n"))
+  (let ((len (semanticdb-find-result-length result))
+	(i 0))
+    (while (< i len)
+      (let ((tag (semanticdb-find-result-nth result i)))
+	(if (not (semantic-tag-p (car tag)))
+	    (error "%d entry is not a tag." i)))
+      (setq i (1+ i)))))
 
 (defun semanticdb-find-result-nth-in-buffer (result n)
   "In RESULT, return the Nth search result.
