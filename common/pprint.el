@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 06 Mar 2002
 ;; Keywords: lisp
-;; X-RCS: $Id: pprint.el,v 1.4 2002/03/11 06:11:57 ponced Exp $
+;; X-RCS: $Id: pprint.el,v 1.5 2002/03/11 21:51:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -292,11 +292,38 @@ representation will not start on a new line."
     (pprint-sexp t)) ;; VAL
   (pprint-close-list))
 
+(defun pprint-cond ()
+  "Standard printer for `cond' like forms."
+  (down-list 1)
+  (forward-sexp)
+  (while (not (looking-at "\\s)"))
+    (pprint-maybe-newline-and-indent)
+    (down-list 1)
+    (pprint-sexp t)
+    (pprint-sequence)
+    (pprint-close-list))
+  (pprint-close-list))
+
+(defun pprint-with ()
+  "Standard printer for `with-' like forms."
+  (let* ((withfun (intern-soft (match-string 1)))
+         (nobreak (or (get withfun 'lisp-indent-function) 0)))
+    (down-list 1)
+    (forward-sexp)
+    (while (> nobreak 0)
+      (pprint-sexp t)
+      (setq nobreak (1- nobreak)))
+    (pprint-sequence)
+    (pprint-close-list)))
+
 (defun pprint-setup-standard-printers ()
   "Setup standard printers."
   (pprint-clear-printers)
   ;; Printers are searched in sequence from last to first pushed one.
   ;; So it could be important to push the most generic printers first!
+  (pprint-push-printer 'pprint-with
+    (format "(%s\\>" "\\(with[-]\\(\\sw\\|\\s_\\)+\\)"
+            ))
   (pprint-push-printer 'pprint-defun
     (format "(%s\\>"
             (regexp-opt
@@ -331,15 +358,23 @@ representation will not start on a new line."
     (format "(%s\\>"
             (regexp-opt
              '(
-               "while" "with" "when" "unless"
+               "while" "when" "unless"
                "condition-case" "catch"
+               "dotimes"
+               ) t)))
+  (pprint-push-printer 'pprint-cond
+    (format "(%s\\>"
+            (regexp-opt
+             '(
+               "cond"
                ) t)))
   (pprint-push-printer 'pprint-progn
     (format "(%s\\>"
             (regexp-opt
              '(
-               "prog1" "progn" "cond"
+               "prog1" "progn"
                "save-excursion" "save-restriction"
+               "unwind-protect"
                ) t)))
   (pprint-push-printer 'pprint-setq
     (format "(%s\\>"
