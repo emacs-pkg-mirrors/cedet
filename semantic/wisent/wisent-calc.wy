@@ -1,12 +1,12 @@
 ;;; wisent-calc.wy --- Grammar of the infix notation calculator
 
-;; Copyright (C) 2002 David Ponce
+;; Copyright (C) 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.wy,v 1.4 2002/09/05 13:32:39 ponced Exp $
+;; X-RCS: $Id: wisent-calc.wy,v 1.5 2003/02/13 07:23:56 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,11 +45,11 @@
               "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
       semantic-lex-analyzer #'wisent-calc-lexer
       semantic-lex-depth nil
-      semantic-lex-syntax-modifications '((?\; ".") (?\= ".")
-                                          (?\+ ".") (?\- ".")
-                                          (?\* ".") (?\/ ".")
-                                          (?\^ ".")
-                                          )
+      semantic-lex-syntax-modifications
+      '((?\; ".") (?\= ".") (?\+ ".")
+        (?\- ".") (?\* ".") (?\/ ".")
+        (?\^ ".") (?\( ".") (?\) ".")
+        )
       )
 
 %token <number> NUM
