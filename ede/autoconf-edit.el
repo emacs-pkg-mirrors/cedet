@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: autoconf-edit.el,v 1.6 2000/09/24 15:17:25 zappo Exp $
+;; RCS: $Id: autoconf-edit.el,v 1.7 2000/09/25 01:42:53 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -345,6 +345,23 @@ of possible names."
 
 ;;; Scrappy little changes
 ;;
+(defvar autoconf-deleted-text nil
+  "Set to the last bit of text deleted during an edit.")
+
+(defvar autoconf-inserted-text nil
+  "Set to the last bit of text inserted during an edit.")
+
+(defmacro autoconf-edit-cycle (&rest body)
+  "Start an edit cycle, unsetting the modified flag if there is no change.
+Optional argument BODY is the code to execute which edits the autoconf file."
+  `(let ((autoconf-deleted-text nil)
+	 (autoconf-inserted-text nil)
+	 (mod (buffer-modified-p)))
+     ,@body
+     (if (and (not mod)
+	      (string= autoconf-deleted-text autoconf-inserted-text))
+	 (set-buffer-modified-p nil))))
+
 (defun autoconf-delete-parameter (index)
   "Delete the INDEXth parameter from the macro starting on the current line.
 Leaves the cursor where a new parameter can be inserted.
@@ -352,13 +369,19 @@ INDEX starts at 1."
   (beginning-of-line)
   (down-list 1)
   (re-search-forward ", ?" nil nil (1- index))
-  (delete-region (point)
-		 (progn
-		   (re-search-forward ",\\|)" (save-excursion
-						(end-of-line)
-						(point)))
-		   (forward-char -1)
-		   (point))))
+  (let ((end (save-excursion
+	       (re-search-forward ",\\|)" (save-excursion
+					    (end-of-line)
+					    (point)))
+	       (forward-char -1)
+	       (point))))
+    (setq autoconf-deleted-text (buffer-substring (point) end))
+    (delete-region (point) end)))
+
+(defun autoconf-insert (text)
+  "Insert TEXT."
+  (setq autoconf-inserted-text text)
+  (insert text))
 
 (defun autoconf-set-version (version)
   "Set the version used with automake to VERSION."
@@ -367,8 +390,9 @@ INDEX starts at 1."
   (if (not (autoconf-find-last-macro "AM_INIT_AUTOMAKE"))
       (error "Cannot update version")
     ;; Move to correct position.
-    (autoconf-delete-parameter 2)
-    (insert version)))
+    (autoconf-edit-cycle
+     (autoconf-delete-parameter 2)
+     (autoconf-insert version))))
 
 (defun autoconf-set-output (outputlist)
   "Set the files created in AC_OUTPUT to OUTPUTLIST.
@@ -376,8 +400,9 @@ OUTPUTLIST is a list of strings representing relative paths
 to Makefiles, or other files using Autoconf substitution."
   (if (not (autoconf-find-last-macro "AC_OUTPUT"))
       (error "Cannot update version")
-    (autoconf-delete-parameter 1)
-    (insert (mapconcat (lambda (a) a) outputlist " "))))
+    (autoconf-edit-cycle
+     (autoconf-delete-parameter 1)
+     (autoconf-insert (mapconcat (lambda (a) a) outputlist " ")))))
 
 (provide 'autoconf-edit)
 
