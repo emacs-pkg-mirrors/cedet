@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.29 2004/01/15 08:06:20 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.30 2004/01/16 08:56:43 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -259,7 +259,8 @@ PROPSPECS must be a list of (TYPE PROPERTY VALUE)."
     (while propspecs
       (setq spec (car propspecs)
             propspecs (cdr propspecs))
-      (semantic-lex-type-put (car spec) (nth 1 spec) (nth 2 spec)))
+      ;; Create the type if necessary.
+      (semantic-lex-type-put (car spec) (nth 1 spec) (nth 2 spec) t))
     semantic-lex-types-obarray))
 
 (defsubst semantic-lex-map-types (fun &optional property)
@@ -1203,6 +1204,36 @@ syntax as specified by the syntax table."
 
 ;;; Analyzers generated from grammar.
 ;;
+(defmacro define-lex-keyword-type-analyzer (name doc syntax)
+  "Define a keyword type analyzer NAME with DOC string.
+SYNTAX is the regexp that matches a keyword syntactic expression."
+  (let ((key (make-symbol "key")))
+    `(define-lex-analyzer ,name
+       ,doc
+       (and (looking-at ,syntax)
+            (let ((,key (semantic-lex-keyword-p (match-string 0))))
+              (when ,key
+                (semantic-lex-push-token
+                 (semantic-lex-token
+                  ,key (match-beginning 0) (match-end 0)))))))
+    ))
+
+(defmacro define-lex-sexp-type-analyzer (name doc syntax token)
+  "Define a sexp type analyzer NAME with DOC string.
+SYNTAX is the regexp that matches the beginning of the s-expression.
+TOKEN is the lexical token returned when SYNTAX matches."
+  `(define-lex-regex-analyzer ,name
+     ,doc
+     ,syntax
+     (semantic-lex-push-token
+      (semantic-lex-token
+       ,token (point)
+       (save-excursion
+         (semantic-lex-unterminated-syntax-protection ,token
+           (forward-sexp 1)
+           (point))))))
+  )
+
 (defmacro define-lex-regex-type-analyzer (name doc syntax matches default)
   "Define a regexp type analyzer NAME with DOC string.
 SYNTAX is the regexp that matches a syntactic expression.
