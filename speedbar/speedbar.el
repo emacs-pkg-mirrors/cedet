@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5.5
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.65 1997/11/21 00:21:23 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.66 1997/11/21 01:32:53 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@
 ;;
 ;;   If speedbar came to you as a part of Emacs, simply type
 ;; `M-x speedbar', and it will be autoloaded for you. A "Speedbar"
-;; submenu will be added under "Tools".
+;; submenu will be added under "Buffers" in XEmacs, or "Tools" in emacs.
 ;;
 ;;   If speedbar is not a part of your distribution, then add
 ;; this to your .emacs file:
@@ -303,6 +303,9 @@
 ;;       XEmacs fix for use of `local-variable-p'
 ;; 0.5.6 Folded in XEmacs suggestions from Hrvoje Niksic <hniksic@srce.hr>
 ;;         Several custom changes (group definitions, trim-method & others)
+;;         Keymap changes, and ways to add menu items.
+;;         Timer use changes for XEmacs 20.4
+;;         Regular expression enhancements.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -356,11 +359,6 @@
 (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
   "Non-nil if we are running in the XEmacs environment.")
 (defvar speedbar-xemacs20p (and speedbar-xemacsp (= emacs-major-version 20)))
-
-;; compatibility
-(if (fboundp 'char=)
-    (defalias 'speedbar-char= 'char=)
-  (defalias 'speedbar-char= '=))
 
 (defvar speedbar-initial-expansion-list
   '(speedbar-directory-buttons speedbar-default-directory-list)
@@ -585,7 +583,7 @@ All the preceding . are stripped for an optimized expression starting
 with . followed by extensions, followed by full-filenames."
   (let ((regex1 nil) (regex2 nil))
     (while extlist
-      (if (speedbar-char= (string-to-char (car extlist)) ?.)
+      (if (= (string-to-char (car extlist)) ?.)
 	  (setq regex1 (concat regex1 (if regex1 "\\|" "")
 			       (substring (car extlist) 1)))
 	(setq regex2 (concat regex2 (if regex2 "\\|" "") (car extlist))))
@@ -768,7 +766,7 @@ to toggle this value.")
 	(define-key speedbar-key-map '(meta button3) 'speedbar-mouse-item-info)
 	;; I hate myself for this unholy binding.
 	;;           -- Hrvoje Niksic <hniksic@srce.hr>
-	(define-key speedbar-key-map 'button1 'speedbar-click)
+	;; (define-key speedbar-key-map 'button1 'speedbar-click)
 	)
     ;; mouse bindings so we can manipulate the items on each line
     (define-key speedbar-key-map [down-mouse-1] 'speedbar-double-click)
@@ -890,7 +888,7 @@ supported at a time.
 `speedbar-before-delete-hook' is called before the frame is deleted."
   (interactive "P")
   (if (if (and speedbar-xemacsp (fboundp 'console-on-window-system-p))
-	  (funcall 'console-on-window-system-p)
+	  (not (console-on-window-system-p))
 	(not (symbol-value 'window-system)))
       (error "Speedbar is not useful outside of a windowing environment"))
   (if speedbar-xemacsp
@@ -901,7 +899,7 @@ supported at a time.
 				       (frame-live-p speedbar-frame)
 				       (frame-visible-p speedbar-frame))]
 		       "--")
-    (define-key-after (lookup-key global-map [menu-bar tools]) 
+    (define-key-after (lookup-key global-map [menu-bar tools])
       [speedbar] '("Speedbar" . speedbar-frame-mode) [calendar]))
   ;; toggle frame on and off.
   (if (not arg) (if (and (frame-live-p speedbar-frame)
@@ -996,14 +994,14 @@ supported at a time.
 (defun speedbar-frame-width ()
   "Return the width of the speedbar frame in characters.
 nil if it doesn't exist."
-  (and speedbar-frame 
+  (and speedbar-frame
        (if speedbar-xemacs20p
 	   (frame-property speedbar-frame 'width)
 	 (cdr (assoc 'width (frame-parameters speedbar-frame))))))
 
 ;; XEmacs 20 function only.
 (defun speedbar-needed-height (&optional frame)
-  "The needed height for the toolbar frame (in characters)."
+  "The needed height for the toolbar FRAME (in characters)."
   (or frame (setq frame (selected-frame)))
   (/ (frame-pixel-height frame)
      (face-height 'default frame)))
@@ -1121,8 +1119,7 @@ redirected into a window on the attached frame."
   "Reconfigure the menu-bar in a speedbar frame.
 Different menu items are displayed depending on the current display mode
 and the existence of packages."
-  (let ((cf (selected-frame))
-	(md (append speedbar-easymenu-definition-base
+  (let ((md (append speedbar-easymenu-definition-base
 		    (if speedbar-shown-directories
 			;; file display mode version
 			speedbar-easymenu-definition-special
@@ -1140,8 +1137,8 @@ and the existence of packages."
 	(save-excursion
 	  (set-buffer speedbar-buffer)
 	  ;; For the benefit of button3
-	  (if (and (not (assoc "Speedbar" mode-popup-menu))
-		   (easy-menu-add md)))
+	  (if (and (not (assoc "Speedbar" mode-popup-menu)))
+	      (easy-menu-add md))
 	  (set-buffer-menubar (list md)))
       (easy-menu-add md))))
 
@@ -1188,8 +1185,8 @@ mode-line.  This is only useful for non-XEmacs"
   (save-excursion
     (goto-char (event-closest-point event))
     (beginning-of-line)
-    (forward-char (min 5 (- (point-at-eol)
-			    (point-at-bol))))
+    (forward-char (min 5 (- (save-excursion (end-of-line) (point))
+			    (save-excursion (beginning-of-line) (point)))))
     (popup-mode-menu)
     ;; Wait for menu to bail out.  `popup-mode-menu' (and other popup
     ;; menu functions) return immediately.
@@ -1901,7 +1898,7 @@ This should only be used by modes classified as special."
 
     ;; XEmacs: this breaks itimers.  Use the RESTART argument to
     ;; start-itimer instead.
-    (or (fboundp 'start-itimer)
+    (or speedbar-xemacs20p
 	;; Other emacs get this successfully re-installed.
 	(speedbar-set-timer speedbar-update-speed))
     ;; Save all the match data so that we don't mess up executing fns
@@ -2149,11 +2146,11 @@ that will occur on your system."
    ;; RCS file name
    (file-exists-p (concat path "RCS/" name ",v"))
    ;; Local SCCS file name
-   (file-exists-p (concat path "SCCS/p." fn))
+   (file-exists-p (concat path "SCCS/p." name))
    ;; Remote SCCS file name
    (let ((proj-dir (getenv "PROJECTDIR")))
      (if proj-dir
-         (file-exists-p (concat proj-dir "/SCCS/p." fn))
+         (file-exists-p (concat proj-dir "/SCCS/p." name))
        nil))
    ;; User extension
    (run-hook-with-args 'speedbar-vc-in-control-hook path name)
@@ -2661,9 +2658,9 @@ Returns the tag list, or t for an error."
 ;;
 (defvar speedbar-fetch-etags-parse-list
   '(;; Note that java has the same parse-group as c
-    ("\\.\\([cChH]\\|c\\+\\+\\|cpp\\|cc\\|hh\\|java\\)\\'" . 
+    ("\\.\\([cChH]\\|c\\+\\+\\|cpp\\|cc\\|hh\\|java\\)\\'" .
      speedbar-parse-c-or-c++tag)
-    ("^\\.emacs$\\|.\\(el\\|l\\|lsp\\)\\'" . 
+    ("^\\.emacs$\\|.\\(el\\|l\\|lsp\\)\\'" .
      "def[^i]+\\s-+\\(\\(\\w\\|[-_]\\)+\\)\\s-*\C-?")
     ("\\.tex\\'" . speedbar-parse-tex-string)
     ("\\.p\\'" .
