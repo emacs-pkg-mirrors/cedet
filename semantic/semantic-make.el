@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.9 2001/10/03 00:29:38 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.10 2001/11/08 19:41:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,6 +37,9 @@
  ( rule)
  ( conditional)
  ( include)
+ ( newline
+  ,(semantic-lambda
+  (list nil)))
  ) ; end Makefile
  (variable
  ( symbol equals elements
@@ -103,7 +106,7 @@
  ))
  ) ; end commands
  )
- "Table for parsing Makefiles.")
+  "Table for parsing Makefiles.")
 
 (defvar semantic-make-keyword-table
   (semantic-flex-make-keyword-table 
