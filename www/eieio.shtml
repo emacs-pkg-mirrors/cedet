@@ -119,21 +119,21 @@ greater.  Please use EIEIO 0.12.</p>
 
 <h3>Older EIEIO Releases</h3>
 
-<p><A HREF="ftp://cedet.sourceforge.net/pub/cedet/eieio-0.15.tar.gz"> eieio-0.15.tar.gz</A> has
+<p><A HREF="ftp/eieio-0.15.tar.gz"> eieio-0.15.tar.gz</A> has
 better byte-compiler support, and much better help system support.
 The help support now lets eieio based programs load faster.</p>
 
-<p><A HREF="ftp://cedet.sourceforge.net/pub/cedet/eieio-0.14.1.tar.gz"> eieio-0.14.1.tar.gz</A>
+<p><A HREF="ftp/eieio-0.14.1.tar.gz"> eieio-0.14.1.tar.gz</A>
 fixes some compile time problems when used with EIEIO using
 packages.</p>
 
-<p><A HREF="ftp://cedet.sourceforge.net/pub/cedet/eieio-0.14.tar.gz"> eieio-0.14.tar.gz</A> adds
+<p><A HREF="ftp/eieio-0.14.tar.gz"> eieio-0.14.tar.gz</A> adds
 multiple inheritance.</p>
 
-<p><A HREF="ftp://cedet.sourceforge.net/pub/cedet/eieio-0.13.tar.gz"> eieio-0.13.tar.gz</A> adds
+<p><A HREF="ftp/eieio-0.13.tar.gz"> eieio-0.13.tar.gz</A> adds
 typechecking.</p>
 
-<p><A HREF="ftp://cedet.sourceforge.net/pub/cedet/eieio-0.12.tar.gz"> eieio-0.12.tar.gz</A>.</p>
+<p><A HREF="ftp/eieio-0.12.tar.gz"> eieio-0.12.tar.gz</A>.</p>
 
 <!--#include file="footer.fsf.shtml"-->
 
