@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.20 2001/04/27 00:22:40 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.21 2001/04/27 00:26:25 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -153,13 +153,13 @@ Argument DIR is the directory from which to derive the list of objects."
   (interactive)
   (let* ((file (speedbar-line-file))
 	 (buf (find-file-noselect file))
-	 (bwin (get-buffer-window buff 0)))
+	 (bwin (get-buffer-window buf 0)))
     (if bwin
 	(progn
 	  (select-window bwin)
 	  (raise-frame (window-frame bwin)))
       (dframe-select-attached-frame speedbar-frame)
-      (set-buffer buff)
+      (set-buffer buf)
       (ede-compile-target))))
 
 (defun ede-speedbar-make-distribution ()
