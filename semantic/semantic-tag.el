@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.3 2003/03/20 14:25:05 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.4 2003/03/21 03:13:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -457,13 +457,6 @@ That is the value of the attribute `:default-value'."
 That is the value of the attribute `const'."
   (semantic-tag-attribute tag 'const))
 
-(defsubst semantic-tag-variable-optsuffix (tag)
-  "Return the optional details of the variable that TAG describes.
-That is the value of the attribute `suffix'.
-Optional details tell if this variable has bit fields, or array
-dimentions."
-  (semantic-tag-attribute tag 'suffix))
-
 ;;; Tags of class `include'
 ;;
 (defsubst semantic-tag-include-system-p (tag)
@@ -477,6 +470,64 @@ That is the value of the attribute `:system-flag'."
   "Return detail information from code that TAG describes.
 That is the value of the attribute `:detail'."
   (semantic-tag-attribute tag :detail))
+
+;;; Language Specific Tag access via overload
+;;
+(define-overload semantic-tag-components (tag)
+  "Return a list of components for TAG.
+A Component is a part of TAG which itself may be a TAG.
+Examples include the elements of a structure in a `type tag,
+or the list of arguments to a 'function tag."
+  )
+
+(defun semantic-tag-components-default (tag)
+  "Return a list of components for TAG.
+Perform the described task in `semantic-tag-componenents'."
+  (cond ((eq class 'type)
+	 (semantic-tag-type-parts tag))
+	((eq class 'function)
+	 (semantic-tag-function-arguments tag))
+	(t nil)))
+
+(define-overload semantic-tag-components-with-overlays (tag)
+  "Return the list of top level components belonging to TAG.
+Children are any sub-tags which contain overlays.
+
+Default behavior is to get `semantic-tag-components' in addition
+to the components of an anonymous types (if applicable.)
+
+Note for language authors:
+  If a mode defines a language tag that has tags in it with overlays
+you should still return them with this function.
+Ignoring this step will prevent several features from working correctly."
+  )
+
+(defun semantic-tag-components-with-overlays-default (tag)
+  "Return the list of top level components belonging to TAG.
+Children are any sub-tags which contain overlays.
+The default action collects regular components of TAG, in addition
+to any components beloning to an anonymouse type."
+  (let ((class (semantic-tag-class token))
+	(explicit-children (semantic-tag-components tag))
+	(type (semantic-token-type token))
+	(anon-type-children nil)
+	(all-children nil))
+    ;; Identify if this token has an anonymous structure as
+    ;; its type.  This implies it may have children with overlays.
+    (when (and type (semantic-token-p type))
+      (setq anon-type-children (semantic-tag-components type))
+      ;; Add anonymouse children
+      (while anon-type-children
+	(when (semamantic-tag-with-position-p (car anon-type-children))
+	  (setq all-children (cons (car anon-type-children) all-children)))
+	(setq anon-type-children (cdr anon-type-children))))
+    ;; Add explicit children
+    (while explicit-children
+      (when (semamantic-tag-with-position-p (car explicit-children))
+	(setq all-children (cons (car explicit-children) all-children)))
+      (setq explicit-children (cdr explicit-children)))
+    ;; Return
+    all-children))
 
 ;;; Compatibility
 ;;
@@ -607,6 +658,10 @@ That is the value of the attribute `:detail'."
 
 (semantic-alias-obsolete 'semantic-tag-make-assoc-list
                          'semantic-tag-make-plist)
+
+(semantic-alias-obsolete 'semantic-nonterminal-children
+			 'semantic-tag-components-with-overlays)
+			 
 
 ;; Lets test this out during this short transition.
 (semantic-alias-obsolete 'semantic-clone-tag
