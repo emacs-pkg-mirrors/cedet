@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.18 2003/12/11 00:49:40 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.19 2003/12/13 02:21:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -486,6 +486,8 @@ If PARTIAL, do partial completion stopping at spaces."
        ((eq na 'focus)
 	(semantic-displayor-focus-request displayor)
 	)
+       ((eq na 'empty)
+	(semantic-completion-message " [No Match]"))
        (t nil)))))
 
 ;;; ------------------------------------------------------------
@@ -502,6 +504,7 @@ If there is nothing to complete, then the displayor determines if we are
 to show a completion list, scroll, or perhaps do a focus (if it is capable.)
 Expected return values are:
   done -> We have a singular match
+  empty -> There are no matches to the current text
   complete -> Perform a completion action
   complete-whitespace -> Complete next whitespace type character.
   display -> Show the list of completions
@@ -554,7 +557,7 @@ tags.")
 These tags are re-used during a completion session.
 Sometimes these tags are cached between completion sessions.")
    (last-all-completions :initarg nil
-			 :type semanticdb-find-result-with-nil
+			 :type semanticdb-find-results
 			 :documentation "Last result of `all-completions'.
 This result can be used for refined completions as `last-prefix' gets
 closer to a specific result.")
@@ -584,12 +587,17 @@ When tokens are matched, they are added to this list.")
 PARTIAL indicates if we are doing a partial completion."
   (if (and (slot-boundp obj 'last-completion)
 	   (string= (semantic-minibuffer-contents) (oref obj last-completion)))
-      (let ((cem (semantic-collector-current-exact-match obj)))
-	(if (and cem (= (semanticdb-find-result-length cem) 1))
-	    'done
-	  (if (and partial (semantic-collector-try-completion-whitespace 
-			    obj (semantic-minibuffer-contents)))
-	      'complete-whitespace)))
+      (let* ((cem (semantic-collector-current-exact-match obj))
+	     (cemlen (semanticdb-find-result-length cem)))
+	(cond ((and cem (= cemlen 1))
+	       'done)
+	      ((and (not cem) 
+		    (not (semantic-collector-all-completions 
+			  obj (semantic-minibuffer-contents))))
+	       'empty)
+	      ((and partial (semantic-collector-try-completion-whitespace 
+			     obj (semantic-minibuffer-contents)))
+	       'complete-whitespace)))
     'complete))
 
 (defmethod semantic-collector-last-prefix= ((obj semantic-collector-abstract)
@@ -610,7 +618,9 @@ Calculate the cache if there isn't one."
 Output must be in semanticdb Find result format."
   ;; Must output in semanticdb format
   (list
-   (cons nil
+   (cons (save-excursion
+	   (set-buffer (oref obj buffer))
+	   semanticdb-current-table)
 	 (semantic-find-tags-for-completion
 	  prefix
 	  ;; To do this kind of search with a pre-built completion
@@ -683,16 +693,24 @@ This function requires that `semantic-collector-calculate-completions'
 has been run first."
   (let* ((ac (semantic-collector-all-completions obj prefix))
 	 (matchme (concat "^" prefix "\\>"))
-	 (compare (semanticdb-find-tags-by-name-regexp matchme
-						       ac)))
+	 (compare (semanticdb-find-tags-by-name-regexp matchme ac))
+	 (numtag (semanticdb-find-result-length compare))
+	 )
     (if compare
-	;; If COMPARE has succeeded, then we should take the very
-	;; first match, and extend prefix by one character.
-	(oset obj last-whitespace-completion
-	      (substring (semantic-tag-name
-			  (car
-			   (semanticdb-find-result-nth compare 0)))
-			 0 (1+ (length prefix))))
+	(let* ((idx 0)
+	       (cutlen (1+ (length prefix)))
+	       (twws (semanticdb-find-result-nth compare idx)))
+	  ;; Is our tag with whitespace a match that has whitespace
+	  ;; after it, or just an already complete symbol?
+	  (while (and (< idx numtag)
+		      (< (length (semantic-tag-name (car twws))) cutlen))
+	    (setq idx (1+ idx)
+		  twws (semanticdb-find-result-nth compare idx)))
+	  ;; If COMPARE has succeeded, then we should take the very
+	  ;; first match, and extend prefix by one character.
+	  (oset obj last-whitespace-completion
+		(substring (semantic-tag-name (car twws))
+			   0 cutlen)))
       )))
 
 
@@ -806,7 +824,7 @@ Uses `semantic-flatten-tags-table'"
 	;; Must create it in SEMANTICDB find format.
 	;; ( ( DBTABLE TAG TAG ... ) ... )
 	(list
-	 (cons nil
+	 (cons semanticdb-current-table
 	       (semantic-flatten-tags-table (oref obj buffer))))))
 
 ;;; PROJECT SPECIFIC COMPLETION
@@ -1195,6 +1213,7 @@ HISTORY is a symbol representing a variable to story the history in."
     (semantic-complete-read-tag-project "Symbol: ")
     )))
 
+;;;###autoload
 (defun semantic-complete-jump-local ()
   "Jump to a semantic symbol."
   (interactive)
@@ -1207,7 +1226,7 @@ HISTORY is a symbol representing a variable to story the history in."
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)))))
 
-
+;;;###autoload
 (defun semantic-complete-jump ()
   "Jump to a semantic symbol."
   (interactive)
