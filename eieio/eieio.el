@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.84 2000/10/11 02:45:50 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.85 2000/10/11 02:50:28 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -1263,7 +1263,7 @@ If ITEM already exists in the list in SLOT, then it is not added.
 Comparison is done with `equal' through the `member' function call.
 If SLOT is unbound, bind it to the list containing ITEM."
   (let (ov)
-    (if (not (slot-boundp))
+    (if (not (slot-boundp object slot))
 	(setq ov (list item))
       (setq ov (eieio-oref object slot))
       (if (not (member item ov))
@@ -1278,7 +1278,7 @@ If SLOT is unbound, bind it to the list containing ITEM."
 If ITEM already exists in the list in SLOT, then it is not added.
 Comparison is done with `equal' through the `delete' function call.
 If SLOT is unbound, do nothing."
-  (if (not (slot-boundp))
+  (if (not (slot-boundp object slot))
       nil
     (eieio-oset object slot (delete item (eieio-oref object slot)))))
 
