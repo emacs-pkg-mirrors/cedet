@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.34 2004/03/15 12:33:48 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.35 2004/04/06 12:12:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -619,8 +619,11 @@ This macro should only be called within the bounds of
 analyzer variables `token-stream' and `semantic-lex-end-point'.
 If you need to move `semantic-lex-end-point' somewhere else, just modify this
 variable after calling `semantic-lex-token'."
-  `(setq semantic-lex-end-point (semantic-lex-token-end ,token)
-	 semantic-lex-token-stream (cons ,token semantic-lex-token-stream)))
+  `(setq semantic-lex-token-stream
+         (cons ,token semantic-lex-token-stream)
+         semantic-lex-end-point
+         ;; Don't eval TOKEN twice!
+         (semantic-lex-token-end (car semantic-lex-token-stream))))
 
 (defsubst semantic-lex-token-class (token)
   "Fetch the class of the lexical token TOKEN.
