@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.11 2003/04/01 03:26:20 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.12 2003/04/01 04:38:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -851,6 +851,9 @@ and `semantic-tag-type-interfaces' instead")
 
 (semantic-alias-obsolete 'semantic-token-function-destructor
                          'semantic-tag-function-destructor-p)
+
+(semantic-alias-obsolete 'semantic-token-variable-default
+			 'semantic-tag-variable-default)
 
 (semantic-alias-obsolete 'semantic-token-variable-extra-specs
                          'semantic-tag-attributes)
