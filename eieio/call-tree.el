@@ -5,7 +5,7 @@
 ;;
 ;; Author: <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
-;; RCS: $Id: call-tree.el,v 1.4 2001/02/17 14:47:56 zappo Exp $
+;; RCS: $Id: call-tree.el,v 1.5 2001/04/17 03:17:00 emacsman Exp $
 ;; Keywords: OO, tree, call-graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -76,6 +76,7 @@ This function is assumed to have been called from it's parent node")
 		  :name (symbol-name func)
 		  :symbol func))
 
+;;;###autoload
 (defun call-tree (func)
   "Build a call tree to show all functions called by FUNC."
   (interactive "aFunction: ")
