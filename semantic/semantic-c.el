@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.29 2001/06/03 14:02:26 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.30 2001/06/05 20:09:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -567,25 +567,6 @@ This is so we don't have to match the same starting text several times."
 	 )
 	))
 
-
-(defcustom semantic-default-c-path '("/usr/include" "/usr/dt/include"
-					 "/usr/X11R6/include")
-  "Default set of include paths for C code.
-Used by `semantic-inc' to define an include path.  This should
-probably do some sort of search to see what is actually on the local
-machine."
-  :group 'c
-  :type '(repeat (string :tag "Path")))
-
-(defcustom semantic-default-c-built-in-types
-  '("void" "char" "int"  "float" "double"
-    ;; Some psuedo types.
-    "const" "volatile" "static" "unsigned" "signed"
-    )
-  "Default set of built in types for C."
-  :group 'c
-  :type '(repeat (string :tag "Type")))
-
 (defvar semantic-c-keyword-table
   (semantic-flex-make-keyword-table 
    `( ("include" . INCLUDE)
@@ -666,6 +647,62 @@ machine."
      ))
   "Some keywords used in C.")
 
+
+;;; Override methods & Variables
+;;
+(defcustom semantic-default-c-path '("/usr/include" "/usr/dt/include"
+					 "/usr/X11R6/include")
+  "Default set of include paths for C code.
+Used by `semantic-inc' to define an include path.  This should
+probably do some sort of search to see what is actually on the local
+machine."
+  :group 'c
+  :type '(repeat (string :tag "Path")))
+
+(defcustom semantic-default-c-built-in-types
+  '("void" "char" "int"  "float" "double"
+    ;; Some psuedo types.
+    "const" "volatile" "static" "unsigned" "signed"
+    )
+  "Default set of built in types for C."
+  :group 'c
+  :type '(repeat (string :tag "Type")))
+
+(defun semantic-c-nonterminal-protection (token &optional parent)
+  "Return the protection of TOKEN in PARENT.
+Override function for `semantic-nonterminal-protection'."
+  (let ((mods (semantic-token-type-modifiers token))
+	(prot nil))
+    ;; Check the modifiers for protection if we are not a child
+    ;; of some class type.
+    (when (or (not parent) (not (eq (semantic-token-token parent) 'type)))
+      (while (and (not prot) mods)
+	(if (stringp (car mods))
+	    (let ((s (car mods)))
+	      ;; A few silly defaults to get things started.
+	      (cond ((or (string= s "extern")
+			 (string= s "export"))
+		     'public)
+		    ((string= s "static")
+		     'private))))
+	(setq mods (cdr mods))))
+    ;; If we have a typed parent, look for :public style labels.
+    (when (and parent (eq (semantic-token-token parent) 'type))
+      (let ((pp (semantic-token-type-parts parent)))
+	(while (and pp (not (eq (car pp) token)))
+	  (when (eq (semantic-token-token (car pp)) 'label)
+	    (setq prot
+		  (cond ((string= (semantic-token-name (car pp)) "public")
+			 'public)
+			((string= (semantic-token-name (car pp)) "private")
+			 'private)
+			((string= (semantic-token-name (car pp)) "friend")
+			 'friend)))
+	    )
+	  (setq pp (cdr pp)))))
+    prot))
+
+
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
   (setq semantic-default-built-in-types semantic-default-c-built-in-types)
@@ -674,6 +711,10 @@ machine."
 	semantic-toplevel-bovine-table-source "c.bnf")
   (setq semantic-flex-keywords-obarray semantic-c-keyword-table)
   (setq semantic-equivalent-major-modes '(c-mode c++-mode))
+  (semantic-install-function-overrides
+   '( (nonterminal-protection . semantic-c-nonterminal-protection)
+      )
+   nil)
   (setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
 	semantic-flex-extensions semantic-flex-c-extensions
 	semantic-dependency-include-path semantic-default-c-path
