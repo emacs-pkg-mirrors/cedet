@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.44 2004/03/20 00:15:16 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.45 2004/03/21 07:47:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -27,7 +27,7 @@
 
 ;;; Commentary:
 ;;
-;; Utility minor modes of the Semantic Bovinator.
+;;  Semantic utility minor modes.
 ;;
 
 ;;; History:

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.125 2004/03/20 00:14:41 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.126 2004/03/21 07:47:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,8 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; API for accessing and searching nonterminal streams from the
-;; Semantic Bovinator.
+;; Semantic utility API for use with semantic tag tables.
 ;;
 
 (require 'assoc)
