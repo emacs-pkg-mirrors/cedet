@@ -45,10 +45,10 @@ install scripts:
 
 3) Install load hooks into your .emacs file.
 
-;; Configuration variables here:
-(setq semantic-load-turn-useful-things-on t)
 ;; Load CEDET
 (load-file "~/cedet-VERSION/common/cedet.el")
+;; Enabling SEMANTIC minor modes.  See semantic/INSTALL for more ideas.
+(semantic-load-enable-code-helpers)
 
 4) Configuration:
 
