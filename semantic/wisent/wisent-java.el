@@ -7,7 +7,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.7 2001/08/16 15:13:42 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.8 2001/08/17 09:19:51 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1011,26 +1011,6 @@ FLOATING_POINT_LITERAL:
   | [0-9]+<EXPONENT>?[fFdD]
   ;")
 
-(defconst wisent-java-operator-regexp
-  ;; Because many operators start with the same characters they are
-  ;; sorted so that the longest ones are matched first.  I tried
-  ;; `regexp-opt' (Emacs 21) but the optimized regexp failed to match
-  ;; some operators like "~" and "+" :-(
-  (concat "\\("
-          (mapconcat #'(lambda (op)
-                         (regexp-quote (cdr op)))
-                     (sort (copy-sequence
-                            (semantic-flex-token-value
-                             wisent-java-tokens 'operator))
-                           #'(lambda (op1 op2)
-                               (let ((ops1 (cdr op1))
-                                     (ops2 (cdr op2)))
-                                 (or (< (length ops2) (length ops1))
-                                     (string-lessp ops2 ops1)))))
-                     "\\|")
-          "\\)")
-  "Lexer regexp to match Java operator terminals.")
-
 ;;;;
 ;;;; The Java Lexer
 ;;;;
@@ -1078,21 +1058,29 @@ positions of the token in input."
        ;; Punctuation
        ;; -----------
        ((eq ft 'punctuation)
-        (save-excursion
-          (setq x (semantic-flex-start tk))
-          (goto-char x)
-          (or (looking-at wisent-java-operator-regexp)
-              (error "Invalid punctuation %s in input"
-                     (semantic-flex-text tk)))
-          (setq y   (match-end 0)
-                lex (buffer-substring-no-properties x y))
-          ;; Adjust input stream.
-          (while (and tk (<= (semantic-flex-end tk) y))
-            (setq is (cdr is)
-                  tk (car is)))
-          (setq lex (cons (semantic-flex-token-key
-                           wisent-java-tokens 'operator lex)
-                          (cons lex (cons x y))))))
+        (setq x   (semantic-flex-text tk)
+              is2 (cdr is))
+        ;; Concat all successive punctuations
+        (while (and is2 (eq (caar is2) 'punctuation))
+          (setq x   (concat x (semantic-flex-text (car is2)))
+                is2 (cdr is2)))
+        ;; Starting with the longest punctuation string search if it
+        ;; matches a Java operator.
+        (while (and (> (length x) 0)
+                    (not (setq y (semantic-flex-token-key
+                                  wisent-java-tokens
+                                  'operator x))))
+          (setq x (substring x 0 -1)))
+        (or y (error "Invalid punctuation %s in input" x))
+        ;; Here x is the operator string value and y its terminal
+        ;; symbol.  Now build the lex token.
+        (setq lex (list (semantic-flex-start tk)) ;; (start . nil)
+              rl  (length x)
+              ;; Adjust input stream.
+              is  (nthcdr rl is))
+        (setcdr lex (+ (car lex) rl)) ;; (start . end)
+        ;; Finalize lex token: (term-symbol term-value start . end)
+        (setq lex (cons y (cons x lex))))
        
        ;; Parens
        ;; ------
