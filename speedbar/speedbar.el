@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.36 1997/03/19 00:19:33 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.37 1997/03/20 23:05:56 zappo Exp $
 ;;; Version: 0.4.5
 ;;; Keywords: file, tags, tools
 ;;;
@@ -720,8 +720,7 @@ supported at a time."
 		;;(make-local-variable 'current-menubar)
 		;;(setq current-menubar speedbar-menu)
 		;;(add-submenu nil speedbar-menu nil)
-		))
-	  (setq default-minibuffer-frame speedbar-attached-frame))
+		)))
 	(speedbar-set-timer speedbar-update-speed)
 	))))
 
@@ -806,6 +805,11 @@ Keybindings: \\<speedbar-key-map>
     (setq truncate-lines t)
     (make-local-variable 'frame-title-format)
     (setq frame-title-format "Speedbar")
+    ;; Set this up special just for the speedbar buffer
+    (if (null default-minibuffer-frame)
+	(progn
+	  (make-local-variable 'default-minibuffer-frame)
+	  (setq default-minibuffer-frame speedbar-attached-frame)))
     (make-local-variable 'temp-buffer-show-function)
     (setq temp-buffer-show-function 'speedbar-temp-buffer-show-function)
     (setq kill-buffer-hook '(lambda () (let ((skilling (boundp 'skilling)))
