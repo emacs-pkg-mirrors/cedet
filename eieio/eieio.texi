@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.18 1999/09/05 19:21:21 zappo Exp $
+@c $Id: eieio.texi,v 1.19 1999/09/06 10:24:20 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -177,6 +177,9 @@ is implemented correctly, but slots are not `unbound', and merely gain a
 value of @code{nil}
 @end table
 
+Defclass also supports class options, but does not currently use values
+of @code{:metaclass}, and @code{:default-initargs}.
+
 @item make-instance
 Make instance works as expected, however it just uses the EIEIO instance
 creator automatically created when a new class is generated.
@@ -223,15 +226,16 @@ In EIEIO tags are in lower case, not mixed case.
 A class in EIEIO has a similar structure to that found in other
 languages.  A new class is created with @code{defclass}
 
-@defun defclass class-name superclass-list field-list doc-string
+@defun defclass class-name superclass-list field-list options-and-doc
 
 The format for this defun is specified by CLOS, and EIEIO conforms in
 structure.
 
 Creates a new class called @code{class-name}. The created variable's
-documentation string is set to a modified version of @var{doc-string}.
-Each time a slot is defined the variables documentation string is
-updated to include the methods documentation as well.
+documentation string is set to a modified version of the doc string
+found in @var{options-or-doc}.  Each time a slot is defined the
+variables documentation string is updated to include the methods
+documentation as well.
 
 The parent class for @code{class-name} must be a list.  At this time
 only the first element of that list is used.  In the future, multiple
@@ -265,6 +269,31 @@ A custom :type specifier used when editing an object of this type.
 @item :protection
 A CLOS unsupported specifier which indicates that only methods of this
 class may access this slot.
+@end table
+
+Additionally, CLOS style class options are available.  These are various
+options attached to a class.  These options can occur in place or in
+addition to a documentation string.  If both occur, then the options
+appear before the documentation string.  In CLOS, documentation is one
+of the options available to a class, so the ability to have a standalone
+documentation string is specific to Emacs.
+
+Possible class options are:
+@table @code
+@item :documentation
+Doc string to use for this class.
+@item :allow-nil-initform
+This is not a CLOS option.
+
+If this option is non-nil, and the @code{:initform} is @code{nil}, but
+the @code{:type} is specifies something such as @code{string} then allow
+this to pass.  The default is to have this option be off.
+@item :metaclass
+Unsupported CLOS option.  Enables the use of a different base class other
+than @code{standard-class}.
+@item :default-initargs
+Unsupported CLOS option.  Specifies a list of initargs to be used when
+creating new objects.  This duplicates the function of @code{:initform}
 @end table
 
 @ref{CLOS compatibility}, for more details on CLOS tags versus EIEIO
@@ -303,7 +332,7 @@ parent class) will actually inherit from a special superclass stored in
 simple, but with it, certain default methods or attributes can be added
 to all objects at any time, without updating their code in the future
 (If there is a change).  In CLOS, this would be named
-@code{STANDARD-OBJECT} and is aliased.
+@code{STANDARD-CLASS} and is aliased.
 
 Currently, the default superclass is defined as follows:
 
