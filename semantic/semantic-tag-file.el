@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.2 2003/07/09 16:37:30 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.3 2003/08/01 17:28:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -83,6 +83,7 @@ depended on (see `semantic-go-to-tag--dependency'.."
 ;; Dependencies usually represent a file of some sort.
 ;; Find the file described by a dependency.
 ;;; Code:
+;;;###autoload
 (defvar semantic-dependency-include-path nil
   "Defines the include path used when searching for files.
 This should be a list of directories to search which is specific to
