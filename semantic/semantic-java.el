@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.22 2001/10/03 17:57:02 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.23 2001/10/08 20:32:21 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -933,37 +933,28 @@ removed from the result list."
 ;;;;
 
 (defun semantic-java-get-local-variables ()
-  "Get the local variables based on point's context.
-Local variables are returned in Semantic token format.  The function
-first search for a 'function or 'type token context at point moving up
-blocks using `semantic-up-context'.  Then it uses the parser with
-`field_declaration' to parse 'variable tokens in the context.
-
-For now the implementation only takes into account top level local
-variables, not those declared inside nested blocks (while, for, if,
-etc.).
-
+  "Get local values from a specific context.
+Uses the bovinator with the special top-symbol `field_declaration'
+to collect tokens, such as local variables or prototypes.
 This function is a Java specific `get-local-variables' override."
-  (let (token context semantic-bovination-working-type)
-    (while (not context)
-      (setq context
-            (if (and (setq token (semantic-current-nonterminal))
-                     (memq (semantic-token-token token)
-                           '(type function)))
-                token
-              (setq token nil)
-              (semantic-up-context))))
-    (if (not token)
-        nil
-      (goto-char (semantic-token-end token))
-      (backward-char)
-      (and (looking-at "}")
-           (not (semantic-beginning-of-context))
-           (working-status-forms "Local" "done"
-             (semantic-bovinate-from-nonterminal-full
-              (point)
-              (save-excursion (semantic-end-of-context) (point))
-              'field_declaration 0))))))
+  ;; The working status is to let the parser work properly
+  (working-status-forms "Local" "done"
+    (let ((semantic-bovination-working-type nil)
+          ;; We want nothing to do with funny syntaxing while doing this.
+          (semantic-unmatched-syntax-hook nil)
+          ;; Disable parsing messages
+          (working-status-dynamic-type nil)
+          (vars nil))
+      (while (not (semantic-up-context (point) 'function))
+        (save-excursion
+          (forward-char 1)
+          (setq vars
+                (append (semantic-bovinate-region-until-error
+                         (point)
+                         (save-excursion (semantic-end-of-context) (point))
+                         'field_declaration)
+                        vars))))
+      vars)))
 
 ;;;;
 ;;;; Mode Hook
