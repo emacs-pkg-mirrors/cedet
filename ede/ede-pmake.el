@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.28 2000/10/14 02:56:55 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.29 2001/01/10 06:55:23 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -306,8 +306,8 @@ sources variable."
 (defmethod ede-proj-makefile-garbage-patterns ((this ede-proj-project))
   "Return a list of patterns that are considred garbage to THIS.
 These are removed with make clean."
-  (let ((mc (mapcar (lambda (c) (ede-proj-makefile-garbage-patterns c))
-		    (oref this targets)))
+  (let ((mc (ede-map-targets
+	     this (lambda (c) (ede-proj-makefile-garbage-patterns c))))
 	(uniq nil))
     (setq mc (sort (apply 'append mc) 'string<))
     ;; Filter out duplicates from the targets.
