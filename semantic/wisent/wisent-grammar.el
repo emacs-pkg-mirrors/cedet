@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.2 2002/10/02 15:07:30 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.3 2003/02/17 09:13:24 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -193,6 +193,7 @@ Keep order of declaration in the WY file without duplicates."
        '((parse-stream . wisent-parse-stream)))\n\
       (setq semantic-parser-name \"LALR\"\n\
             semantic-toplevel-bovine-table %s\n\
+            semantic-debug-parser-source %S\n\
             semantic-flex-keywords-obarray %s\n\
             semantic-lex-types-obarray %s)\n\
       ;; Collect unmatched syntax lexical tokens\n\
@@ -201,6 +202,7 @@ Keep order of declaration in the WY file without duplicates."
                 'wisent-collect-unmatched-syntax nil t)\n\
      %s)"
    (semantic-grammar-parsetable)
+   (file-name-nondirectory (buffer-file-name))
    (semantic-grammar-keywordtable)
    (semantic-grammar-tokentable)
    (semantic-grammar-setupcode-text)))
