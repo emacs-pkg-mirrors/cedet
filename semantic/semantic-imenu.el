@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.32 2001/05/05 15:02:45 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.33 2001/05/14 16:28:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,6 +58,12 @@
 	      ad-do-it)))
       )
   (error nil))
+
+;; Because semantic imenu tokens will hose the current imenu handling
+;; code in speedbar, force semantic-sb in.
+(if (featurep 'speedbar)
+    (require 'semantic-sb)
+  (add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb))))
 
 (defgroup semantic-imenu nil
   "Parser Generator Imenu interface."
