@@ -4,7 +4,7 @@
 
 ;; Author:  <svg@surnet.ru>
 ;; Keywords: languages, docs
-;; $Id: erlang-edoc.el,v 1.2 2004/03/20 00:17:11 zappo Exp $
+;; $Id: erlang-edoc.el,v 1.3 2004/03/20 14:26:32 zappo Exp $
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -68,11 +68,15 @@
 %p - as is,
 %D - description.")
 
+(defsubst erlang-edoc--tag-name (nonterm)
+  "Nonterminal name."
+  (if (stringp nonterm) nonterm (semantic-tag-name nonterm)))
+
 (defun erlang-edoc-inline ()
   "Document the current nonterminal with an inline comment."
   (interactive)
   (semantic-fetch-tags)
-  (let ((ct (semantic-find-nonterminal-by-position (point) (current-buffer))))
+  (let ((ct (semantic-brute-find-tag-by-position (point) (current-buffer))))
     (erlang-edoc-insert-comment ct (current-buffer))))
 
 (defun erlang-edoc-insert-comment-new (nonterm template)
@@ -82,7 +86,7 @@
 	(zpnt 0)
 	)
     ;; nonterm should always be correct.
-    (goto-char (semantic-token-start nonterm))
+    (goto-char (semantic-tag-start nonterm))
     (setq st (point))
     (insert (funcall template nonterm 'zpnt 'pnt))
     (goto-char (+ zpnt st))
@@ -99,7 +103,7 @@
 
 (defun erlang-edoc-insert-comment (nonterm buffer)
   "Insert mode-comment documentation about NONTERM from BUFFER."
-  (let ((tt (semantic-token-token nonterm)))
+  (let ((tt (semantic-tag-class nonterm)))
     (cond
      ((eq tt 'function)
       (erlang-edoc-insert-comment-new nonterm #'erlang-edoc--function-template)
@@ -113,8 +117,8 @@
 
 (defun erlang-edoc--function-template (nonterm pref-var focus-var)
   "Generate NONTERM function template for insertion."
-  (let 	((fname (erlang-edoc--strip-arity (semantic-token-name nonterm)))
-	 (params (semantic-token-function-args nonterm)))
+  (let 	((fname (erlang-edoc--strip-arity (semantic-tag-name nonterm)))
+	 (params (semantic-tag-function-arguments nonterm)))
 	 (Sformat (list (list ?F fname)
 			(list ?P (erlang-edoc--param-specs params))
 			(list ?T '(lambda ()
@@ -132,8 +136,8 @@
 
 (defun erlang-edoc--record-template (nonterm pref-var focus-var)
   "Generate NONTERM record template for insertion."
-  (let ((tname (semantic-token-name nonterm))
-	(params (semantic-token-type-parts nonterm)))
+  (let ((tname (semantic-tag-name nonterm))
+	(params (semantic-tag-type-members nonterm)))
     (Sformat (list (list ?F tname)
 		   (list ?T '(lambda ()
 			       (erlang-edoc--type-specs
@@ -146,17 +150,17 @@
 	     erlang-edoc-record-comment)
     ))
 
-(defun erlang-edoc--strip-arity (nonterm-name)
-  "Strip arity from NONTERM-NAME"
+(defun erlang-edoc--strip-arity (tag-name)
+  "Strip arity from TAG-NAME"
   ;;stripping arity
-  (substring  nonterm-name 0 (string-match "/[0-9]+$" nonterm-name)))
+  (substring  tag-name 0 (string-match "/[0-9]+$" tag-name)))
 
 (defun erlang-edoc--param-specs (params)
   "Parameters specification string for PARAMS"
-  (apply 'concat (cons (erlang-edoc--nonterm-name (car params))
+  (apply 'concat (cons (erlang-edoc--tag-name (car params))
 		       (mapcar (lambda (p)
 				 (concat ", "
-					 (erlang-edoc--nonterm-name p)))
+					 (erlang-edoc--tag-name p)))
 			       (cdr params))))
   )
 
@@ -171,7 +175,7 @@
 	 (newp ""))
     (while newl
       (let* ((n (car newl))
-	     (nn (erlang-edoc--nonterm-name n))
+	     (nn (erlang-edoc--tag-name n))
 	     (nc (if add-comment
 		     (or (erlang-edoc--nonterm-comment n)
 			 "undocumented")
@@ -201,11 +205,11 @@
 (defun erlang-edoc--nonterm-comment (nonterm)
   "Extract inline comment for NONTERM."
   (cond ((stringp nonterm) nil)
-	((not (semantic-token-end nonterm)) nil)
-	((not (semantic-token-start nonterm)) nil)
+	((not (semantic-tag-end nonterm)) nil)
+	((not (semantic-tag-start nonterm)) nil)
 	(t
 	 (save-excursion
-	   (goto-char (semantic-token-start nonterm))
+	   (goto-char (semantic-tag-start nonterm))
 	   (let*
 	       ((le (line-end-position))
 		(ss (cond ((re-search-forward ",\\s-*" le t 1)
@@ -227,9 +231,5 @@
 		   ))
 	   ))))
 	      
-(defsubst erlang-edoc--nonterm-name (nonterm)
-  "Nonterminal name."
-  (if (stringp nonterm) nonterm (semantic-token-name nonterm)))
-
 (provide 'erlang-edoc)
 ;;; erlang-edoc.el ends here
