@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.32 2001/04/13 02:24:45 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.33 2001/04/21 14:37:55 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.33  2001/04/21 14:37:55  zappo
+# Spelling error for integer.
+#
 # Revision 1.32  2001/04/13 02:24:45  zappo
 # Added built in types (void, char, etc) and summaries.
 #
@@ -189,7 +192,7 @@
 %token SHORT "short"
 %put SHORT summary "Built in type: short  Small numeric value"
 %token INT "int"
-%put INT summary "Built in type: int  Numeric interger value"
+%put INT summary "Built in type: int  Numeric integer value"
 %token LONG "long"
 %put LONG summary "Built in type: long  Large numeric integer value"
 %token FLOAT "float"
