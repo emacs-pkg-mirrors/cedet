@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-html.el,v 1.5 2004/07/15 20:27:32 zappo Exp $
+;; X-RCS: $Id: semantic-html.el,v 1.6 2004/07/30 17:58:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -115,7 +115,7 @@ or
 (defun semantic-html-set-endpoint (metataglist pnt)
   "Set the end point of the first section tag in METATAGLIST to PNT.
 METATAGLIST is a list of tags in the intermediate tag format used by the
-texinfo parser.  PNT is the new point to set."
+html parser.  PNT is the new point to set."
   (let ((metatag nil))
     (while (and metataglist
 		(not (eq (semantic-tag-class (car metataglist)) 'section)))
@@ -208,7 +208,7 @@ tag with greater section value than LEVEL is found."
 		;; continue
 		(setq oldl (cdr tmp))
 		)
-	    (error "Problem finding section in semantic/texi parser"))
+	    (error "Problem finding section in semantic/html parser"))
 	  ;; (setq oldl (cdr oldl))
 	  )))
     (cons (nreverse newl) oldl)))
