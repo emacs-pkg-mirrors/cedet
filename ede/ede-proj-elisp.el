@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.10 2000/10/14 02:55:07 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.11 2000/10/21 02:04:48 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -68,13 +68,13 @@ Tag for methods dealing with load path stuff.")
    :name "emacs"
    :variables '(("EMACS" . "emacs"))
    :lpcommands
-   '("@echo \"(add-to-list 'load-path nil)\" > $@-compile-script"
-     "@for loadpath in ${LOADPATH}; do \\"
+   '("@for loadpath in ${LOADPATH}; do \\"
      "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
      " done"
      )
    :commands
-   '("@echo \"(setq debug-on-error t)\" >> $@-compile-script"
+   '("@echo \"(add-to-list 'load-path nil)\" > $@-compile-script"
+     "@echo \"(setq debug-on-error t)\" >> $@-compile-script"
      "$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^"
      )
    :autoconf '("AM_PATH_LISPDIR")
@@ -123,6 +123,31 @@ For targets, insert the commands needed by the chosen compiler."
 		    (byte-compile-file src))))
 	    (oref obj source)))
   (message "All Emacs Lisp sources are up to date in %s" (object-name obj)))
+
+(defmethod ede-update-version-in-source ((this ede-proj-target-elisp) version)
+  "In a Lisp file, updated a version string for THIS to VERSION.
+There are standards in Elisp files specifying how the version string
+is found, such as a `-version' variable, or the standard header."
+  (if (and (slot-boundp this 'versionsource)
+	   (oref this versionsource))
+      (let ((vs (oref this versionsource))
+	    (match nil))
+	(while vs
+	  (save-excursion
+	    (set-buffer (find-file-noselect
+			 (ede-expand-filename this (car vs))))
+	    (goto-char (point-min))
+	    (let ((case-fold-search t))
+	      (if (re-search-forward "-version\\s-+\"\\([^\"]+\\)\"" nil t)
+		  (progn
+		    (setq match t)
+		    (delete-region (match-beginning 1)
+				   (match-end 1))
+		    (goto-char (match-beginning 1))
+		    (insert version)))))
+	  (setq vs (cdr vs)))
+	(if (not match) (call-next-method)))))
+
 
 ;;; Makefile generation functions
 ;;
