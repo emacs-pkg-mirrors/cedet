@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.38 2001/01/24 21:17:38 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.39 2001/02/20 21:05:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -142,11 +142,26 @@ Return a bovination list to use."
 	    (locate-library (semantic-token-name token)))))
     (concat f ".el")))
 
+(defun semantic-elisp-prototype-nonterminal (token)
+  "Return a prototype for the Emacs Lisp nonterminal TOKEN."
+  (let* ((tok (semantic-token-token token))
+	 (args (semantic-nonterminal-children token))
+	 )
+    (if (eq tok 'function)
+	(concat (semantic-token-name token) " ("
+		(mapconcat (lambda (a) a) args " ")
+		")")
+      (semantic-prototype-nonterminal-default token))))
+
 (defun semantic-default-elisp-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
+  (semantic-install-function-overrides
+   '((find-dependency . semantic-elisp-find-dependency)
+     (prototype-nonterminal . semantic-elisp-prototype-nonterminal)
+     (concise-prototype-nonterminal . semantic-elisp-prototype-nonterminal)
+     )
+   t)
   (setq semantic-toplevel-bovine-table semantic-toplevel-elisp-bovine-table
-	semantic-override-table
-	'((find-dependency . semantic-elisp-find-dependency))
 	semantic-symbol->name-assoc-list
 	'( (variable . "Variables")
 	   (type     . "Types")
