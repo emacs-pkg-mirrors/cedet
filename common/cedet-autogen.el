@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: 22 Aug 2003
 ;; Keywords: maint
-;; X-CVS: $Id: cedet-autogen.el,v 1.2 2003/09/05 17:48:33 ponced Exp $
+;; X-CVS: $Id: cedet-autogen.el,v 1.3 2003/09/06 19:40:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -155,6 +155,7 @@ Return a list of directory names, relative to ROOT-DIR."
              (setq dirs (nconc dirs subdirs)))))
     dirs))
 
+;;;###autoload
 (defun cedet-update-autoloads (loaddefs &optional directory &rest directories)
   "Update autoloads in file LOADDEFS from sources.
 Optional argument DIRECTORY, specifies the directory to scan for
