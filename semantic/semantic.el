@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.162 2002/09/07 01:57:47 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.163 2002/09/13 03:24:34 zappo Exp $
 
 (defvar semantic-version "2.0alpha4"
   "Current version of Semantic.")
@@ -387,7 +387,17 @@ the output buffer."
   (interactive "P")
   (if clear (semantic-clear-toplevel-cache))
   (if (eq clear '-) (setq clear -1))
-  (let ((out (semantic-bovinate-toplevel t)))
+  (let* ((start (current-time))
+	 (out (semantic-bovinate-toplevel t))
+	 (end (current-time))
+	 (diffs (- (nth 1 end) (nth 1 start)))
+	 (diffm (- (nth 2 end) (nth 2 start)))
+	 )
+    (if (< 0 diffm)
+	(setq diffs (1+ diffs)
+	      diffm (+ 10000 diffm)))
+    (setq diffm (/ diffm 10000.0))
+    (message "Retrieving tokens took %d.%d seconds." diffs diffm)
     (when (not (and (numberp clear) (> 0 clear)))
       (pop-to-buffer "*BOVINATE*")
       (require 'pp)
