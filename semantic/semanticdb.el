@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.2 2000/12/07 04:46:00 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.3 2000/12/09 23:29:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,13 +33,20 @@
 ;; Eventually, use EDE to create databases on a per target basis, and
 ;; then use target dependencies to have them reference each other.
 
-(require 'eieio)
+(require 'eieio-base)
 
 ;;; Variables:
 (defcustom semanticdb-default-file-name "semantic.cache"
   "*File name of the semantic token cache."
   :group 'semantic
   :type 'string)
+
+(defcustom semanticdb-save-database-hooks nil
+  "*Hooks run after a database is saved.
+Each function is called with one argument, the object representing
+the database recently written."
+  :group 'semantic
+  :type 'hook)
 
 (defvar semanticdb-database-list nil
   "List of all active databases.")
@@ -82,6 +89,10 @@ load the file, and call `semantic-bovinate-toplevel'."
   ((file :initarg :file
 	 :documentation "File name relative to the parent database.
 This is for the file whose tags are stored in this TABLE object.")
+   (pointmax :initarg :pointmax
+	     :initform nil
+	     :documentation "Size of buffer when written to disk.
+Checked on retrieval to make sure the file is the same.")
    (tokens :initarg :tokens
 	   :documentation "The tokens belonging to this table."))
   "A single table of tokens belonging to a given file.")
@@ -116,11 +127,17 @@ If one isn't found, create one."
 (defun semanticdb-save-db (&optional DB)
   "Write out the database DB to its file.
 If DB is not specified, then use the current database."
-  (eieio-persistent-save (or DB semanticdb-current-database)))
+  (condition-case nil
+      (progn
+	(eieio-persistent-save (or DB semanticdb-current-database))
+	(run-hooks 'semanticdb-save-database-hooks DB))
+    (error nil)))
 
 (defun semanticdb-save-all-db ()
   "Save all semantic token databases."
-  (mapcar 'semanticdb-save-db semanticdb-database-list))
+  (message "Saving token summaries...")
+  (mapcar 'semanticdb-save-db semanticdb-database-list)
+  (message "Saving token summaries...done"))
 
 (defmethod object-write ((obj semanticdb-table))
   "When writing a table, we have to make sure we deoverlay it first.
@@ -129,6 +146,7 @@ Argument OBJ is the object to write."
   (let ((b (get-file-buffer (oref obj file))))
     (save-excursion
       (if b (progn (set-buffer b) (semantic-deoverlay-cache))))
+    (oset obj pointmax (point-max))
     (call-next-method)
     (save-excursion
       (if b (progn (set-buffer b) (semantic-overlay-cache))))
@@ -165,8 +183,15 @@ Sets up the semanticdb environment."
 			  ctbl
 			  t))
     (setq semanticdb-current-table ctbl)
-    (if (or (not (slot-boundp ctbl 'tokens)) (not (oref ctbl tokens)))
-	(semantic-bovinate-toplevel t)
+    (if (or (not (slot-boundp ctbl 'tokens)) (not (oref ctbl tokens))
+	    (/= (or (oref ctbl pointmax) 0) (point-max))
+	    )
+	(progn
+	  (semantic-clear-toplevel-cache)
+	  (condition-case nil
+	      (semantic-bovinate-toplevel t)
+	    (quit (message "semanticdb: Semantic Token generation halted."))
+	    (error (error "Semanticdb: bovination failed at startup"))))
       (semantic-set-toplevel-bovine-cache  (oref ctbl tokens))
       (semantic-overlay-cache))
     ))
@@ -183,7 +208,15 @@ it in our database.  If that buffer has not cache, ignore it, we'll
 handle it later if need be."
   (if (and semantic-toplevel-bovine-table
 	   semantic-toplevel-bovine-cache)
-      (semantic-deoverlay-cache)))
+      (progn
+	(oset semanticdb-current-table pointmax (point-max))
+	(condition-case nil
+	    (semantic-deoverlay-cache)
+	  ;; If this messes up, just clear the system
+	  (error
+	   (semantic-clear-toplevel-cache)
+	   (message "semanticdb: Failed to deoverlay token cache."))))
+    ))
 
 (defun semanticdb-kill-emacs-hook ()
   "Function called when Emacs is killed.
@@ -202,7 +235,7 @@ Save all the databases."
 
 (defun semanticdb-minor-mode-p ()
   "Return non-nil if `semanticdb-minor-mode' is active."
-  (member (car (car semanticdb-hooks))
+  (member (car (car semanticdb-hooks)) 
 	  (symbol-value (car (cdr (car semanticdb-hooks))))))
 
 (defun global-semanticdb-minor-mode (&optional arg)
@@ -222,6 +255,21 @@ If ARG is nil, then toggle."
     (while h
       (funcall fn (car (cdr (car h))) (car (car h)))
       (setq h (cdr h)))))
+
+;;; Commands
+;;
+;; User configurations
+
+;;; Utilities
+;;
+;; Line all the semantic-util 'find-nonterminal...' type functions, but
+;; trans file across the database.
+(defun semanticdb-find-nonterminal-by-name (name &optional database)
+  "Find a nonterminal with name NAME in our databases.
+Search for it in DATABASE if provided, otherwise search a range
+of databases."
+  
+  )
 
 (provide 'semanticdb)
 
