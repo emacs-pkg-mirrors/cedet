@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.5 2003/01/28 08:18:34 berndl Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.6 2003/01/29 09:14:00 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -806,7 +806,7 @@
 
 (defvar semantic-flex-c-extensions
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
-    ("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if)
+    ("^#\\(if\\(def\\)?\\|el\\(if\\|se\\)\\|endif\\)" . semantic-flex-c-if)
     ("<[^\n>]+>" . semantic-flex-c-include-system)
     ("\\(\\\\\n\\)" . semantic-flex-backslash-newline)
     )
