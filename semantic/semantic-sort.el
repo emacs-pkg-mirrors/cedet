@@ -1,10 +1,10 @@
 ;;; semantic-sort.el --- Utilities for sorting and re-arranging tag tables.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.9 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.10 2004/01/10 01:23:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -126,6 +126,32 @@ Return the sorted list."
   (sort tokens (lambda (a b)
 		 (semantic-string-lessp-ci (semantic-sort-tag-type b)
 					   (semantic-sort-tag-type a)))))
+
+
+;;; Unique
+;;
+;; Scan a list of tags, removing duplicates.
+;; This must first sort the tags by name alphabetically ascending.
+;;
+;; Useful for completion lists, or other situations where the
+;; other data isn't as useful.
+
+;;;###autoload
+(defun semantic-unique-tag-table-by-name (tags)
+  "Scan a list of TAGS, removing duplicates.
+This must first sort the tags by name alphabetically ascending."
+  (let ((copy (copy-sequence tags))
+	(sorted (semantic-sort-tokens-by-name-increasing tags))
+	(uniq nil))
+    (while sorted
+      (if (or (not uniq)
+	      (not (string= (semantic-tag-name (car sorted))
+			    (semantic-tag-name (car uniq)))))
+	  (setq uniq (cons (car sorted) uniq)))
+      (setq sorted (cdr sorted))
+      )
+    (nreverse uniq)))
+
 
 ;;; Tag Table Flattening
 ;;
