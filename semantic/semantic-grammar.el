@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.43.2.1 2003/10/22 15:55:50 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.43.2.2 2003/11/10 08:12:42 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -36,9 +36,9 @@
 (require 'wisent-bovine)
 (require 'semantic-grammar-wy)
 (require 'sformat)
+(require 'font-lock)
 
 (eval-when-compile
-  (require 'font-lock)
   (require 'semantic-edit)
   (require 'semantic-find)
   (require 'semantic-format))
@@ -259,7 +259,11 @@ That is tag names plus names defined in tag attribute `:rest'."
 (defsubst semantic-grammar-item-value (item)
   "Return symbol or character value of ITEM string."
   (if (string-match semantic-grammar-lex-c-char-re item)
-      (read (concat "?" (substring item 1 -1)))
+      (let ((c (read (concat "?" (substring item 1 -1)))))
+        (if (featurep 'xemacs)
+            ;; Handle characters as integers in XEmacs like in GNU Emacs.
+            (char-int c)
+          c))
     (intern item)))
 
 (defun semantic-grammar-prologue ()
@@ -321,11 +325,10 @@ package name derived from the grammar file name.  For example, the
 default package name for the grammar file foo.wy is foo-wy, and for
 foo.by it is foo-by."
   (or (semantic-grammar-first-tag-name 'package)
-      (let ((file (semantic-grammar-buffer-file)))
-        (if (string-match (format "\\([.]\\)%s\\'"
-                                  (file-name-extension file))
-                          file)
-            (replace-match "-" nil nil file 1)))))
+      (let* ((file (semantic-grammar-buffer-file))
+             (ext  (file-name-extension file))
+             (i    (string-match (format "\\([.]\\)%s\\'" ext) file)))
+        (concat (substring file 0 i) "-" ext))))
 
 (defsubst semantic-grammar-languagemode ()
   "Return the %languagemode value as a list of symbols or nil."
@@ -835,7 +838,7 @@ Return non-nil if there were no errors, nil if errors."
                   (max-lisp-eval-depth (max 1000 max-lisp-eval-depth))
                   )
               ;; byte compile the resultant file
-              (batch-byte-compile-file packagename))
+              (byte-compile-file packagename))
           t)))))
 
 ;;;###autoload
