@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.14 2001/11/08 15:52:55 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.15 2001/11/26 21:17:14 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -174,6 +174,37 @@ If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   t nil)
 
+;; semantic-summary
+(autoload 'semantic-summary-mode
+  "semantic-util-modes"
+  "Minor mode to show useful things about tokens in echo area.
+Enables/disables `eldoc-mode' which supplies the support functions for
+this minor mode.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled.
+
+\\{semantic-summary-mode-map}"
+  t nil)
+
+(defvar global-semantic-summary-mode nil
+  "*If non-nil enable global use of summary mode.")
+
+(custom-add-to-group 'semantic
+                     'global-semantic-summary-mode
+                     'custom-variable)
+
+(custom-add-load 'global-semantic-summary-mode
+                 'semantic-util-modes)
+
+(autoload 'global-semantic-summary-mode
+  "semantic-util-modes"
+  "Toggle global use of `semantic-summary-mode'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  t nil)
+
 
 ;; This turns on semantic partial reparsing
 (add-hook 'semantic-change-hooks #'semantic-change-function-mark-dirty)
@@ -182,7 +213,7 @@ If ARG is nil, then toggle."
   "Non-nil means turn on all features in the semantic package.")
 
 (when semantic-load-turn-everything-on
-  (add-hook 'semantic-init-hooks #'turn-on-eldoc-mode)
+  
   (if (fboundp #'which-func-mode)
       (add-hook 'semantic-init-hooks (lambda ()
 				       (which-func-mode 1))))
@@ -197,6 +228,7 @@ If ARG is nil, then toggle."
   (global-semantic-show-unmatched-syntax-mode 1)
   (global-semantic-auto-parse-mode 1)
   (global-semanticdb-minor-mode 1)
+  (global-semantic-summary-mode 1)
 
   (add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb)))
   )
