@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.47 2004/01/09 21:01:24 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.48 2004/01/14 09:52:48 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -37,6 +37,7 @@
 (require 'semantic-grammar-wy)
 (require 'sformat)
 (require 'font-lock)
+(require 'pp)
 
 (eval-when-compile
   (require 'semantic-edit)
@@ -429,30 +430,44 @@ nil."
         (setcdr assoc (cons (cons term value) (cdr assoc)))))
     alist))
 
-(defun semantic-grammar-token-properties (tokens)
-  "Return the list of properties of lexical tokens TOKENS."
-  (let ((puts (semantic-find-tags-by-class
-               'put (current-buffer)))
-        put keys key plist assoc pkey pval props)
-    (while puts
-      (setq put   (car puts)
-            puts  (cdr puts)
-            keys  (cons (semantic-tag-name put)
-                        (semantic-tag-get-attribute put :rest)))
-      (while keys
-        (setq key   (car keys)
-              keys  (cdr keys)
-              assoc (assoc key tokens))
-        (if (null assoc)
-            nil ;; (message "*** %%put to undefined token %s ignored" key)
-          (setq key   (car assoc)
-                plist (semantic-tag-get-attribute put :value))
-          (while plist
-            (setq pkey  (intern (caar plist))
-                  pval  (read (cdar plist))
-                  props (cons (list key pkey pval) props)
-                  plist (cdr plist))))))
+(defun semantic-grammar-token-%type-properties (tokens &optional props)
+  "For types found in TOKENS, return properties set by %type statements.
+If optional argument PROPS is non-nil, it is an existing list of
+properties where to add new properties."
+  (let (found type)
+    (dolist (tag (semantic-find-tags-by-class 'type (current-buffer)))
+      (setq type  (semantic-tag-name tag)
+            found (assoc type tokens))
+      (if (null found)
+          nil ;; %type <type> ignored, no token defined
+        (setq type (car found))
+        (dolist (e (semantic-tag-get-attribute tag :value))
+          (push (list type (intern (car e)) (read (or (cdr e) "nil")))
+                props))))
     props))
+
+(defun semantic-grammar-token-%put-properties (tokens)
+  "For types found in TOKENS, return properties set by %put statements."
+  (let (found type props)
+    (dolist (put (semantic-find-tags-by-class 'put (current-buffer)))
+      (dolist (type (cons (semantic-tag-name put)
+                          (semantic-tag-get-attribute put :rest)))
+        (setq found (assoc type tokens))
+        (if (null found)
+            nil ;; %put <type> ignored, no token defined
+          (setq type (car found))
+          (dolist (e (semantic-tag-get-attribute put :value))
+            (push (list type (intern (car e)) (read (or (cdr e) "nil")))
+                  props)))))
+    props))
+
+(defsubst semantic-grammar-token-properties (tokens)
+  "Return properties of types found in TOKENS.
+That is properties set to any <type> by %put and %type statements.
+Properties set by %type statements take precedence over those set by
+%put statements."
+  (let ((props (semantic-grammar-token-%put-properties tokens)))
+    (semantic-grammar-types-properties tokens props)))
 
 (defun semantic-grammar-use-macros ()
   "Return macro definitions from %use-macros statements.
@@ -566,7 +581,7 @@ Also load the specified macro libraries."
   "Return OBJECT as a string value."
   `(if (stringp ,object)
        ,object
-     (require 'pp)
+     ;;(require 'pp)
      (pp-to-string ,object)))
 
 (defun semantic-grammar-insert-defconst (name value docstring)
@@ -581,6 +596,23 @@ Also load the specified macro libraries."
   "Insert declaration of function NAME with BODY and DOCSTRING."
   (let ((start (point)))
     (insert (format "(defun %s ()\n%S\n%s)\n\n" name docstring body))
+    (save-excursion
+      (goto-char start)
+      (indent-sexp))))
+
+(defun semantic-grammar-insert-define (define)
+  "Insert the declaration specified by DEFINE expression.
+Typically a DEFINE expression should look like this:
+
+\(define-thing name docstring expression1 ...)"
+  ;;(require 'pp)
+  (let ((start (point)))
+    (insert (format "(%S %S" (car define) (nth 1 define)))
+    (dolist (item (nthcdr 2 define))
+      (insert "\n")
+      (delete-blank-lines)
+      (pp item (current-buffer)))
+    (insert ")\n\n")
     (save-excursion
       (goto-char start)
       (indent-sexp))))
@@ -693,7 +725,122 @@ Also load the specified macro libraries."
   "Return the parser setup code form as a string value."
   (semantic-grammar-as-string
    (semantic-grammar-setupcode-builder)))
+
+;;; Generation of lexical analyzers.
+;;
+(defvar semantic-grammar--lex-block-specs)
 
+(defsubst semantic-grammar--lex-delim-spec (block-spec)
+  "Return delimiters specification from BLOCK-SPEC."
+  (condition-case nil
+      (let* ((standard-input (cdr block-spec))
+             (delim-spec (read)))
+        (if (and (consp delim-spec)
+                 (car delim-spec) (symbolp (car delim-spec))
+                 (cadr delim-spec) (symbolp (cadr delim-spec)))
+            delim-spec
+          (error)))
+    (error
+     (error "Invalid delimiters specification %s in block token %s"
+            (cdr block-spec) (car block-spec)))))
+
+(defun semantic-grammar--lex-block-specs ()
+  "Compute lexical block specifications for the current buffer.
+Block definitions a read from the current table of lexical types."
+  (cond
+   ;; Block specifications have been parsed and are invalid.
+   ((eq semantic-grammar--lex-block-specs 'error)
+    nil
+    )
+   ;; Parse block specifications.
+   ((null semantic-grammar--lex-block-specs)
+    (condition-case nil
+        (let* ((blocks       (cdr (semantic-lex-type-value "block" t)))
+               (open-delims  (cdr (semantic-lex-type-value "open-paren" t)))
+               (close-delims (cdr (semantic-lex-type-value "close-paren" t)))
+               olist clist block-spec delim-spec open-spec close-spec)
+          (dolist (block-spec blocks)
+            (setq delim-spec (semantic-grammar--lex-delim-spec block-spec)
+                  open-spec  (assq (car  delim-spec) open-delims)
+                  close-spec (assq (cadr delim-spec) close-delims))
+            (or open-spec
+                (error "Missing open-paren token %s required by block %s"
+                       (car delim-spec) (car block-spec)))
+            (or close-spec
+                (error "Missing close-paren token %s required by block %s"
+                       (cdr delim-spec) (car block-spec)))
+            ;; build alist ((OPEN-DELIM OPEN-SYM BLOCK-SYM) ...)
+            (push (list (cdr open-spec) (car open-spec) (car block-spec))
+                  olist)
+            ;; build alist ((CLOSE-DELIM CLOSE-SYM) ...)
+            (push (list (cdr close-spec) (car close-spec))
+                  clist))
+          (setq semantic-grammar--lex-block-specs (cons olist clist)))
+      (error
+       (setq semantic-grammar--lex-block-specs 'error)
+       (message "%s" (error-message-string err))
+       nil))
+    )
+   ;; Block specifications already parsed.
+   (t
+    semantic-grammar--lex-block-specs)))
+
+(defun semantic-grammar-insert-defanalyzer (type)
+  "Insert declaration of the lexical analyzer defined with TYPE."
+  (let* ((type-name  (symbol-name type))
+         (type-value (symbol-value type))
+         (syntax     (get type 'syntax))
+         spec mtype prefix name doc)
+    ;; Generate an analyzer if at least syntactic/lexical matches are
+    ;; provided.
+    (when syntax
+      (setq prefix (file-name-sans-extension
+                    (semantic-grammar-buffer-file
+                     semantic--grammar-output-buffer))
+            mtype (or (get type 'matchdatatype) 'regexp)
+            name (intern (format "%s--%s-%s-analyzer" prefix type mtype))
+            doc (format "%s analyzer for <%s> tokens." mtype type))
+      (cond
+       ;; Regexp match analyzer
+       ((and (eq mtype 'regexp)
+             (setq spec (cdr type-value)))
+        (semantic-grammar-insert-define
+         `(define-lex-regex-type-analyzer ,name
+            ,doc ',syntax ',spec
+            ',(or (car type-value) (intern type-name))))
+        )
+       ;; String compare analyzer
+       ((and (eq mtype 'string)
+             (setq spec (cdr type-value)))
+        (semantic-grammar-insert-define
+         `(define-lex-string-type-analyzer ,name
+            ,doc ',syntax ',spec
+            ',(or (car type-value) (intern type-name))))
+        )
+       ;; Block analyzer
+       ((and (eq mtype 'block)
+             (setq spec (semantic-grammar--lex-block-specs)))
+        (semantic-grammar-insert-define
+         `(define-lex-block-type-analyzer ,name
+            ,doc ',syntax ',spec))
+        )))
+    ))
+
+(defun semantic-grammar-insert-defanalyzers ()
+  "Insert declarations of lexical analyzers."
+  (let (tokens props)
+    (with-current-buffer semantic--grammar-input-buffer
+      (setq tokens (semantic-grammar-tokens)
+            props  (semantic-grammar-token-properties tokens)))
+    (insert "(require 'semantic-lex)\n\n")
+    (let ((semantic-lex-types-obarray
+           (semantic-lex-make-type-table tokens props))
+          semantic-grammar--lex-block-specs)
+      (mapatoms 'semantic-grammar-insert-defanalyzer
+                semantic-lex-types-obarray))))
+
+;;; Generation of the grammar support file.
+;;
 (defcustom semantic-grammar-file-regexp "\\.[wb]y$"
   "Regexp which matches grammar source files."
   :group 'semantic
@@ -773,7 +920,12 @@ Also load the specified macro libraries."
          (with-current-buffer semantic--grammar-input-buffer
            (semantic-grammar-setup-data))
          "Setup the Semantic Parser.")
-        
+
+;;;; Analyzers
+        (insert "\n;;; Analyzers\n;;\n")
+
+        (semantic-grammar-insert-defanalyzers)
+
 ;;;; Epilogue & Footer
         
         (insert "\n;;; Epilogue\n;;\n"
