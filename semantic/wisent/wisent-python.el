@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.3 2002/06/21 10:16:23 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.4 2002/06/22 03:33:43 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -91,8 +91,9 @@
 ;;
 ;; * Enhance the lexer so that DEDENT, INDENT, and NEWLINE tokens are
 ;;   properly suppressed when a logical line continues on two or more
-;;   physical lines either explicitly via '\' or implicitly by missing
-;;   ')', ']', or '}'.
+;;   physical lines explicitly via '\'.
+;;
+;; * Figure out why "server_address = ('', port)" cannot be parsed!
 ;;
 ;; * Delete most semantic rules when the grammar is debugged.
 ;;
@@ -271,12 +272,10 @@ we get around ot it.")
     (setq end (point))
     (cons 'string (cons beg end))))
 
-;; Replace the default setup with `wisent-python-default-setup'.
 ;; This should be called everytime before parsing starts.
-;; I am trying `semantic-init-hooks' instead of `python-mode-hook' hoping
-;; that the former gets called more often than the latter. -ryk 6/20/02
-;;(add-hook 'python-mode-hook #'wisent-python-default-setup)
-(add-hook 'semantic-init-hooks #'wisent-python-default-setup)
+;; Is there a better hook than python-mode-hook which gets called
+;; at the start of every parse? -ryk6/21/02.
+(add-hook 'python-mode-hook #'wisent-python-default-setup)
 
 ;;;****************************************************************************
 ;;;@ Code Filled in by wisent-wy-update-outputfile
@@ -284,7 +283,7 @@ we get around ot it.")
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 19:46-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 13:12-0700
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -899,7 +898,7 @@ we get around ot it.")
 
 (defconst wisent-python-keywords
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 19:46-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 13:12-0700
    (semantic-flex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -963,7 +962,7 @@ we get around ot it.")
 
 (defconst wisent-python-tokens
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 19:46-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 13:12-0700
    (wisent-flex-make-token-table
     '(("bol"
        (DEDENT)
@@ -1038,7 +1037,7 @@ we get around ot it.")
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-20 19:46-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 13:12-0700
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
 	  semantic-toplevel-bovine-table wisent-python-parser-tables
