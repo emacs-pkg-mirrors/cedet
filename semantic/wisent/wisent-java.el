@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.46 2004/04/29 10:10:53 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.47 2004/08/25 06:20:39 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -88,6 +88,7 @@ names in scope."
    semantic-tag-expand-function 'wisent-java-expand-tag
    ;; Environment
    semantic-imenu-summary-function 'semantic-format-tag-prototype
+   semantic-imenu-expandable-tag-classes '(type variable)
    imenu-create-index-function 'semantic-create-imenu-index
    semantic-type-relation-separator-character '(".")
    semantic-command-separation-character ";"
@@ -115,6 +116,13 @@ names in scope."
 
 ;;; Overridden Semantic API.
 ;;
+(define-mode-local-override semantic-tag-components java-mode (tag)
+  "Return a list of components for TAG."
+  (if (semantic-tag-of-class-p tag 'function)
+      (semantic-tag-function-arguments tag)
+    ;; Simply return the value of the :members attribute.
+    (semantic-tag-get-attribute tag :members)))
+
 (define-mode-local-override semantic-get-local-variables
   java-mode ()
   "Get local variable declarations from the current context."
