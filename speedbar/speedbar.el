@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.6 1996/10/26 10:43:56 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.7 1996/10/30 02:48:50 zappo Exp $
 ;;; Version: 0.3
 ;;; Keywords: file, tags, tools
 ;;;
@@ -128,6 +128,11 @@
 ;;;       Fixed centering algorithm
 ;;;       Tried to choose background independent colors.  Made more robust.
 ;;;       Rearranged code into a more logical order
+;;; 0.3.1 Fixed doc & broken keybindings
+;;;       Added mode hooks.
+;;;       Improved face color selection
+;;;       `nil' passed to `speedbar-frame-mode' now toggles the frame as
+;;;         advertised in the doc string
 ;;;       
 ;;; TODO:
 ;;; 1) Rember contents of directories when leaving them so it's faster
@@ -181,6 +186,15 @@ and it will raise and lower itself when you put the pointer in it.")
 (defvar speedbar-use-imenu-package (not speedbar-xemacsp)
   "*Optionally use the imenu package instead of etags for parsing.  This
 is experimental for performace testing.")
+
+(defvar speedbar-before-delete-hook nil
+  "*Hooks called before deletiing the speedbar frame.")
+
+(defvar speedbar-mode-hook nil
+  "*Hooks called after creating a speedbar buffer")
+
+(defvar speedbar-timer-hook nil
+  "*Hooks called after running the speedbar timer function")
 
 (defvar speedbar-file-unshown-regexp
   (let ((nstr "") (noext completion-ignored-extensions))
@@ -255,7 +269,7 @@ speedbar buffer")
     (define-key speedbar-key-map [menu-bar help-menu] 'undefined)
 
     ;; This lets the user scroll as if we had a scrollbar... well maybe not
-    (global-set-key [mode-line mouse-2] 'speedbar-mouse-hscroll)
+    (define-key speedbar-key-map [mode-line mouse-2] 'speedbar-mouse-hscroll)
 
     ;; Create a menu for speedbar
     (setq speedbar-menu-map (make-sparse-keymap))
@@ -293,86 +307,24 @@ and such are displayed.")
 speedbar.")
 
 
-;; Hey there xemacs users.  I'm not sure how to make faces have default
-;; colors, so if someone out there would be nice, send me a patch, or
-;; just set their colors in your .Xdefaults.
-(cond (speedbar-xemacsp
-       (make-face 'speedbar-button-face)
-       ;;(make-face 'speedbar-file-face)
-       (copy-face 'bold 'speedbar-file-face)
-       (make-face 'speedbar-directory-face)
-       (make-face 'speedbar-tag-face)
-       ;;(make-face 'speedbar-selected-face)
-       (copy-face 'underline 'speedbar-selected-face)
-       ;;(make-face 'speedbar-highlight-face)
-       (copy-face 'highlight 'speedbar-highlight-face)
-
-       ;; Would an xemacs knowledgable person please email me a way to
-       ;; make these faces have nice colors as seen below in the emacs
-       ;; section.
-       )
-      (window-system
-       (require 'faces)
-
-       ;; Make the faces first
-       (make-face 'speedbar-button-face)
-       (make-face 'speedbar-file-face)
-       (make-face 'speedbar-directory-face)
-       (make-face 'speedbar-tag-face)
-       (make-face 'speedbar-selected-face)
-       (make-face 'speedbar-highlight-face)
-
-       (condition-case nil
-	   (progn
-	     ;; Now try to make them different colors
-	     (cond ((face-differs-from-default-p 'speedbar-button-face))
-		   ((x-display-color-p) (set-face-foreground 'speedbar-button-face 
-							     "green3"))
-		   (t (copy-face 'bold 'speedbar-button-face)))
-
-	     (cond ((face-differs-from-default-p 'speedbar-file-face))
-		   ((x-display-color-p) (set-face-foreground 'speedbar-file-face
-							     "cyan"))
-		   (t (copy-face 'bold 'speedbar-file-face)))
-
-	     (cond ((face-differs-from-default-p 'speedbar-directory-face))
-		   ((x-display-color-p) (set-face-foreground 'speedbar-directory-face
-							     "light blue"))
-		   (t (copy-face 'bold 'speedbar-directory-face)))
-       
-	     (cond ((face-differs-from-default-p 'speedbar-tag-face))
-		   ((x-display-color-p) (set-face-foreground 'speedbar-tag-face
-							     "yellow"))
-		   (t (copy-face 'italic 'speedbar-tag-face)))
-       
-	     (cond ((face-differs-from-default-p 'speedbar-selected-face))
-		   ((x-display-color-p)
-		    (set-face-foreground 'speedbar-selected-face "red")
-		    (set-face-underline-p 'speedbar-selected-face t))
-		   (t (copy-face 'bold 'speedbar-selected-face)))
-       
-	     (cond ((face-differs-from-default-p 'speedbar-highlight-face))
-		   ((x-display-color-p)
-		    (set-face-background 'speedbar-highlight-face "sea green"))
-		   (t (copy-face 'highlight 'speedbar-highlight-face)))
-	     )				; condition case
-	 (error (message "Error updating some faces.  Using defaults")))
-       )
-      (t (message "Error loading faces for some reason...")))
-
 ;;;
 ;;; Mode definitions/ user commands
 ;;;
 ;;;###autoload
 (defun speedbar-frame-mode (&optional arg)
   "Enable or disable use of a speedbar.  Positive number means turn
-on, nil means toggle.  Once the speedbar frame is activated, a buffer
-in `speedbar-mode' will be displayed."
-  (interactive "p")
+on, negative turns speedbar off, and nil means toggle.  Once the
+speedbar frame is activated, a buffer in `speedbar-mode' will be
+displayed.  Currently, only one speedbar is supported at a time."
+  (interactive "P")
   (if (not window-system)
       (error "Speedbar is not useful outside of a windowing environement"))
+  ;; toggle frame on and off.
+  (if (not arg) (if speedbar-frame (setq arg -1) (setq arg 1)))
+  ;; turn the frame off on neg number
   (if (and (numberp arg) (< arg 0))
       (progn
+	(run-hooks 'speedbar-before-delete-hook)
 	(if (and speedbar-frame (frame-live-p speedbar-frame))
 	    (delete-frame speedbar-frame))
 	(speedbar-set-timer nil)
@@ -422,12 +374,13 @@ in `speedbar-mode' will be displayed."
 (defun speedbar-mode ()
   "Create and return a SPEEDBAR buffer.  The speedbar buffer allows
 the user to manage a list of directories and paths at different
-depths.  The first like represends the default path of the speedbar
-frame.  Each directory is a button which goes to that frame.  Buttons
-are activated by clicking mouse-2.
+depths.  The first line represents the default path of the speedbar
+frame.  Each directory segment is a button which jumps speedbar's
+default directory to that path.  Buttons are activated by clicking
+mouse-2.
 
 Each line starting with <+> represents a directory.  Click on the <+>
-to insert the directory contents into the current tree.  Click on the
+to insert the directory listing into the current tree.  Click on the
 <-> to retract that list.  Click on the directory name to go to that
 directory as the default.
 
@@ -442,7 +395,7 @@ the [-] to retract the list.  Click on the file name to edit the file
 in the attached frame.
 
 If you open tags, you might find a node starting with {+}, which is a
-catagory of tags.  Click the {+} to expand the catagory.  Jumpable
+category of tags.  Click the {+} to expand the category.  Jumpable
 tags start with >.  Click the name of the tag to go to that position
 in the selected file.
 
@@ -463,6 +416,7 @@ Keybindings: \\<speedbar-key-map>
   (setq font-lock-keywords nil) ;; no font-locking please
   (setq truncate-lines t)
   (if (not speedbar-xemacsp) (setq auto-show-mode nil))	;no auto-show for FSF
+  (run-hooks 'speedbar-mode-hook)
   (speedbar-update-contents)
   )
 
@@ -753,7 +707,9 @@ function FIND-FUN and not token."
       ;; Reset the timer
       (speedbar-set-timer speedbar-update-speed)
       ;; Ok, un-underline old file, underline current file
-      (speedbar-update-current-file))))
+      (speedbar-update-current-file)))
+  (run-hooks 'speedbar-timer-hook)
+  )
 
 (defun speedbar-update-current-file ()
   "Find out what the current file is, and update our visuals to indicate
@@ -1318,6 +1274,111 @@ output using the regular expression EXPR"
 		 speedbar-tag-face
 		 speedbar-highlight-face
 		 speedbar-selected-face))))
+
+;;;
+;;; Color loading section  This is message *Blech!*
+;;;
+(defun speedbar-load-color (sym l-fg l-bg d-fg d-bg &optional bold italic underline)
+  "Create a color for SYM with a L-FG and L-BG color, or D-FG and
+D-BG. Optionally make BOLD, ITALIC, or UNDERLINED if applicable.  If
+the background attribute of the current frame is determined to be
+light (white, for example) then L-FG and L-BG is used.  If not, then
+D-FG and D-BG is used.  This will allocate the colors in the best
+possible mannor.  This will allow me to store multiple defaults and
+dynamically determine which colors to use."
+  (let* ((params (frame-parameters))
+	 (disp-res (if (fboundp 'x-get-resource)
+		       (if speedbar-xemacsp
+			   (x-get-resource ".displayType" "DisplayType" 'string)
+			 (x-get-resource ".displayType" "DisplayType"))
+		     nil))
+	 (display-type
+	  (cond (disp-res (intern (downcase disp-res)))
+		((and (fboundp 'x-display-color-p) (x-display-color-p)) 'color)
+		(t 'mono)))
+	 (bg-res (if (fboundp 'x-get-resource)
+		     (if speedbar-xemacsp
+			 (x-get-resource ".backgroundMode" "BackgroundMode" 'string)
+		       (x-get-resource ".backgroundMode" "BackgroundMode"))
+		   nil))
+	 (bgmode
+	  (cond (bg-res (intern (downcase bg-resource)))
+		((and params 
+		      (fboundp 'x-color-values)
+		      (< (apply '+ (x-color-values
+				    (cdr (assq 'background-color params))))
+			 (/ (apply '+ (x-color-values "white")) 3)))
+		 'dark)
+		(t 'light)))		;our default
+	 (set-p (function (lambda (face-name resource)
+			    (if speedbar-xemacsp
+				(x-get-resource 
+				 (concat face-name ".attribute" resource)
+				 (concat "Face.Attribute" resource)
+				 'string)
+			      (x-get-resource 
+			       (concat face-name ".attribute" resource)
+			       (concat "Face.Attribute" resource)))
+			    )))
+	 (nbg (cond ((eq bgmode 'dark) d-bg) 
+		    (t l-bg)))
+	 (nfg (cond ((eq bgmode 'dark) d-fg)
+		    (t l-fg))))
+
+    (if (not (eq display-type 'color))
+	;; we need a face of some sort, so just make due with default
+	(progn
+	  (copy-face 'default sym)
+	  (if bold (condition-case nil
+		       (make-face-bold sym)
+		     (error (message "Cannot make face %s bold!" 
+				     (symbol-name sym)))))
+	  (if italic (condition-case nil
+			 (make-face-italic sym)
+		       (error (message "Cannot make face %s italic!"
+				       (symbol-name sym)))))
+	  (set-face-underline-p sym underline)
+	  )
+      ;; make a colorized version of a face.  Be sure to check Xdefaults
+      ;; for possible overrides first!
+      (let ((newface (make-face sym)))
+	;; For each attribute, check if it might already be set by Xdefaults
+	(if (and nfg (not (funcall set-p (symbol-name sym) "Foreground")))
+	    (set-face-foreground sym nfg))
+	(if (and nbg (not (funcall set-p (symbol-name sym) "Background")))
+	    (set-face-background sym nbg))
+	
+	(if bold (condition-case nil
+		     (make-face-bold sym)
+		   (error (message "Cannot make face %s bold!"
+				       (symbol-name sym)))))
+	(if italic (condition-case nil
+		       (make-face-italic sym)
+		     (error (message "Cannot make face %s italic!"
+				     (symbol-name sym)))))
+	(set-face-underline-p sym underline)
+	))))
+
+(if (x-display-color-p)
+    (progn
+      (speedbar-load-color 'speedbar-button-face "green4" nil "green3" nil nil nil nil)
+      (speedbar-load-color 'speedbar-file-face "cyan4" nil "cyan" nil nil nil nil)
+      (speedbar-load-color 'speedbar-directory-face "blue4" nil "light blue" nil nil nil nil)
+      (speedbar-load-color 'speedbar-tag-face "brown" nil "yellow" nil nil nil nil)
+      (speedbar-load-color 'speedbar-selected-face "red" nil "red" nil nil nil t)
+      (speedbar-load-color 'speedbar-highlight-face nil "green" nil "sea green" nil nil nil)
+      ) ; color
+  (make-face 'speedbar-button-face)
+  ;;(make-face 'speedbar-file-face)
+  (copy-face 'bold 'speedbar-file-face)
+  (make-face 'speedbar-directory-face)
+  (make-face 'speedbar-tag-face)
+  ;;(make-face 'speedbar-selected-face)
+  (copy-face 'underline 'speedbar-selected-face)
+  ;;(make-face 'speedbar-highlight-face)
+  (copy-face 'highlight 'speedbar-highlight-face)
+
+  ) ;; monochrome
 
 ;;; end of lisp
 (provide 'speedbar)
