@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.47 2001/11/30 02:55:11 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.48 2001/12/15 23:25:51 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -549,7 +549,7 @@ EXPANDER is the Semantic function called to expand NONTERM"
             i (1+ (* 2 (1- i))))
       `(let ((,v (cdr (aref stack (- sp ,i)))))
          (if ,v
-             (,expander (car ,v) (cdr ,v) ,nonterm))))))
+             (,expander (car ,v) (cdr ,v) ',nonterm))))))
 
 (defun semantic-bnf-to-lalr-EXPAND ($i nonterm)
   "Return expansion of built-in EXPAND expression.
