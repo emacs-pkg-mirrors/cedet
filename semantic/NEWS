@@ -1,3 +1,7 @@
+* Changes for Semantic 1.4.1
+
+** This is a bug fix release only, without new features added.
+
 * Changes for Semantic 1.4
 
 ** New Non-recursive parser by David Ponce <david@dponce.com>
