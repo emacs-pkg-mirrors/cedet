@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.36 2000/12/08 21:15:10 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.37 2000/12/09 16:03:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -855,16 +855,24 @@ file prototypes belong in."
   "Specify that TOKEN should be highlighted.
 Optional FACE specifies the face to use."
   (let ((o (semantic-token-overlay token)))
-    (semantic-overlay-put o 'old-face (semantic-overlay-get o 'face))
+    (semantic-overlay-put o 'old-face
+			  (cons (semantic-overlay-get o 'face)
+				(semantic-overlay-get o 'old-face)))
     (semantic-overlay-put o 'face (or face 'highlight))))
 
 (defun semantic-unhighlight-token (token)
   "Unhighlight TOKEN, restoring it's previous face."
   (let ((o (semantic-token-overlay token)))
-    (semantic-overlay-put o 'face (semantic-overlay-get o 'old-face))
-    (semantic-overlay-put o 'old-face nil))
+    (semantic-overlay-put o 'face (car (semantic-overlay-get o 'old-face)))
+    (semantic-overlay-put o 'old-face (cdr (semantic-overlay-get o 'old-face))))
   (remove-hook 'pre-command-hook
 	       `(lambda () (semantic-unhighlight-token `,token))))
+
+(defun semantic-momentary-unhighlight-token (token)
+  "Unhighlight TOKEN, restoring it's previous face."
+  (semantic-unhighlight-token token)
+  (remove-hook 'pre-command-hook
+	       `(lambda () (semantic-momentary-unhighlight-token `,token))))
 
 (defun semantic-momentary-highlight-token (token &optional face)
   "Highlight TOKEN, removing highlighting when the user hits a key.
@@ -872,7 +880,7 @@ Optional argument FACE is the face to use for highlighting.
 If FACE is not specified, then `highlight' will be used."
   (semantic-highlight-token token face)
   (add-hook 'pre-command-hook
-	    `(lambda () (semantic-unhighlight-token ',token))))
+	    `(lambda () (semantic-momentary-unhighlight-token ',token))))
 
 (defun semantic-set-token-face (token face)
   "Specify that TOKEN should use FACE for display."
@@ -954,7 +962,7 @@ instead of read-only."
   (condition-case nil
       ;; In this unique case, we cannot call the usual toplevel fn.
       ;; because we don't want a reparse, we want the old overlays.
-      (semantic-overlay-list (car semantic-toplevel-bovine-cache))
+      (semantic-overlay-list semantic-toplevel-bovine-cache)
     ;; Recover when there is an error restoring the cache.
     (error (message "Error recovering token list.")
 	   (semantic-clear-toplevel-cache)
@@ -987,14 +995,6 @@ Optional argument CLEAR will clear the cache before bovinating."
     (erase-buffer)
     (insert (pp-to-string out))))
 
-(defun bovinate-nonterminal (&optional token)
-  "Bovinate the nonterminal TOKEN without reparsing the whole buffer.
-The newly created token is spliced into the cache and TOKEN is destroyed."
-  (interactive)
-  (if (not token) (setq token (semantic-current-nonterminal)))
-  (semantic-bovinate-toplevel t)
-  (if token (semantic-rebovinate-token token)))
-
 (defun semantic-describe-token (&optional token)
   "Describe TOKEN in the minibuffer.
 If TOKEN is nil, describe the token under the cursor."
@@ -1006,10 +1006,10 @@ If TOKEN is nil, describe the token under the cursor."
 
 ;;; Show dirty mode
 ;;
-(defface semantic-dirty-token-face  '((((class color) (background light))
-				       (:background "gray15"))
+(defface semantic-dirty-token-face  '((((class color) (background dark))
+				       (:background "gray10"))
 				      (((class color) (background light))
-				       (:background "gray95")))
+				       (:background "gray90")))
   "Face used to show dirty tokens in `semantic-show-dirty-token-mode'."
   :group 'semantic)
 
@@ -1051,11 +1051,11 @@ If ARG is nil, then toggle."
   "Display the curent token.
 Argument P is the point to search from in the current buffer."
   (interactive "d")
-  (message
-   (mapconcat
-    'semantic-abbreviate-nonterminal
-    (semantic-find-innermost-nonterminal-by-position p (current-buffer))
-    ",")))
+  (let ((tok (semantic-find-innermost-nonterminal-by-position
+	      p (current-buffer))))
+    (message (mapconcat 'semantic-abbreviate-nonterminal tok ","))
+    (car tok))
+  )
 
 (defun semantic-hack-search ()
   "Disply info about something under the cursor using generic methods."
