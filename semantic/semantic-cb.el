@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.1 2002/03/13 12:03:04 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.2 2002/03/16 15:21:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -271,6 +271,19 @@ PARENTOBJ is the CB token which hosts CHILDLIST."
 	  (setq sublist (cdr sublist))))
       (setq childlist (cdr childlist)))
     (nreverse newlist)))
+
+;;; Methods
+;;
+(defmethod initialize-instance :AFTER ((this semantic-cb-token) &rest fields)
+  "After initializing THIS, keep overlay properties up to date."
+  (let* ((tok (oref this token))
+	 (ol (semantic-token-overlay tok)))
+    ;; Ignore tokens that are in the database.
+    (when (semantic-overlay-p ol)
+      ;; Apply our object onto this overlay for fast
+      ;; reference.
+      (semantic-overlay-put ol 'semantic-cb this))))
+
 
 ;;; Speedbar specific methods
 ;;
@@ -322,7 +335,8 @@ Argument DIR is the directory speedbar is asking about."
   (speedbar-with-attached-buffer (semantic-cb-new-class-browser))
   (oref semantic-cb-current-project types))
 
-(defun semantic-cb-speedbar-mode-initilaize ()
+;;;###autoload
+(defun semantic-cb-speedbar-mode ()
   "documentation"
   (interactive)
   (speedbar-frame-mode 1)
