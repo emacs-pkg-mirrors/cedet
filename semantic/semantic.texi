@@ -1,9 +1,9 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.36 2001/04/25 18:05:13 zappo Exp $
+@c $Id: semantic.texi,v 1.37 2001/04/28 13:50:46 zappo Exp $
 @c
 @setfilename semantic.info
-@settitle Semantic parsing for Emacs
+@settitle Semantic Bovinator: Parser generation for Emacs
 
 @ifinfo
 @format
@@ -748,18 +748,6 @@ Clearing the cache will force a complete reparse next time a token
 stream is requested.
 @end deffn
 
-When programming, the following functions are useful.
-
-@defun semantic-bovine-toplevel-full-reparse-needed-p &optional checkcache
-Return non-@code{nil} if the current buffer needs a full reparse.
-Optional argument @var{CHECKCACHE} indicates if the cache check should be made.
-@end defun
-
-@defun semantic-bovine-toplevel-partial-reparse-needed-p &optional checkcache
-Return non-@code{nil} if the current buffer needs a full reparse.
-Optional argument @var{CHECKCACHE} indicates if the cache check should be made.
-@end defun
-
 @defun semantic-bovinate-toplevel &optional checkcache
 Bovinate the entire current buffer.
 If the optional argument @var{CHECKCACHE} is non-@code{nil}, then flush the cache iff
@@ -832,6 +820,7 @@ write programs that use the token stream most effectivly.
 * Nonterminal Streams::         Working with streams of nonterminals
 * Nonterminal Completion::      Completing read functions.
 * Override Methods::            Language dependent functions.
+* Parser Hooks::                How to know when tags change.
 @end menu
 
 @node Token Queries, Nonterminal Streams, Utilities, Utilities
@@ -1143,7 +1132,7 @@ from under point.
 @end defun
 
 
-@node Override Methods,  , Nonterminal Completion, Utilities
+@node Override Methods, Parser Hooks, Nonterminal Completion, Utilities
 @section Override Methods
 
 These functions are called `override methods' because they provide
@@ -1239,6 +1228,99 @@ Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
 Return a concise prototype for @var{TOKEN}.
 This function must be overloaded, though it need not be used.
 @end defun
+
+@node Parser Hooks, , Override Methods, Utilities
+@section Parser Hooks
+
+If you write a program that uses the stream of tokens in a persistent
+display or database, it is necessary to know when tokens change so
+that your displays can be updated.  This is especially important as
+tokens can be replaced, changed, or deleted, and the associated
+overlays will then throw errors when you try to use them.  Complete
+integration with token changes can be achieved via several very
+important hooks.
+
+One interesting way to interact with the parser is to let it know that
+changes you are going to make will not require reparsing.
+
+@defvar semantic-edits-are-safe
+When non-@code{nil}, modifications do not require a reparse.
+This prevents tokens from being marked dirty, and it
+prevents top level edits from causing a cache check.
+Use this when writing programs that could cause a full
+reparse, but will not change the tag structure, such
+as adding or updating top-level comments.
+@end defvar
+
+Next, it is sometimes useful to know what the current parsing state
+is.  These function can let you know what level of reparsing may be
+needed.  Careful choices on when to reparse can make your program much
+faster.
+
+@defun semantic-bovine-toplevel-full-reparse-needed-p &optional checkcache
+Return non-@code{nil} if the current buffer needs a full reparse.
+Optional argument @var{CHECKCACHE} indicates if the cache check should be made.
+@end defun
+
+@defun semantic-bovine-toplevel-partial-reparse-needed-p &optional checkcache
+Return non-@code{nil} if the current buffer needs a partial reparse.
+This only returns non-@code{nil} if @dfn{semantic-bovine-toplevel-full-reparse-needed-p}
+returns nil.
+Optional argument @var{CHECKCACHE} indicates if the cache check should be made
+when checking @dfn{semantic-bovine-toplevel-full-reparse-needed-p}.
+@end defun
+
+If you need very close interaction with the user's editing, then these
+two hooks can be used to find out when a given tag is being changed.
+These hooks could even be used to cut down on reparsing if used correctly.
+
+For all hooks, make sure you are careful to add it as a local hook if
+you only want to effect a single buffer.  Setting it globally can
+cause unwanted effects if your program is concerned with a single buffer.
+
+@defvar semantic-dirty-token-hooks
+Hooks run after when a token is marked as dirty (edited by the user).
+The functions must take @var{TOKEN}, @var{START}, and @var{END} as a parameters.
+This hook will only be called once when a token is first made dirty,
+subsequent edits will not cause this to run a second time unless that
+token is first cleaned.  Any token marked as dirty will
+also be called with @code{semantic-clean-token-hooks}, unless a full
+reprase is done instead.
+@end defvar
+
+@defvar semantic-clean-token-hooks
+Hooks run after a token is marked as clean (reparsed after user edits.)
+The functions must take a @var{TOKEN} as a parameter.
+Any token sent to this hook will have first been called with
+@code{semantic-dirty-token-hooks}.  This hook is not called for tokens
+marked dirty if the buffer is completely reparsed.  In that case, use
+@code{semantic-after-toplevel-bovinate-hook}.
+@end defvar
+
+@defvar semantic-change-hooks
+Hooks run when semantic detects a change in a buffer.
+Each hook function must take three arguments, identical to the
+common hook @code{after-change-function}.
+@end defvar
+
+Lastly, if you just want to know when a buffer changes, use this hook.
+
+@defvar semantic-after-toplevel-bovinate-hook
+Hooks run after a toplevel token parse.
+It is not run if the toplevel parse command is called, and buffer does
+not need to be fully reparsed.
+This function is also called when the toplevel cache is flushed, and
+the cache is emptied.
+For language specific hooks, make sure you define this as a local hook.
+@end defvar
+
+@defvar semantic-before-toplevel-cache-flush-hook
+Hooks run before the toplevel nonterminal cache is flushed.
+For language specific hooks, make sure you define this as a local hook.
+This hook is called before a corresponding
+@code{semantic-after-toplevel-bovinate-hook} which is also called during a
+flush when the cache is given a new value of nil.
+@end defvar
 
 @node Current Context, Tools, Utilities, Top
 @comment  node-name,  next,  previous,  up
