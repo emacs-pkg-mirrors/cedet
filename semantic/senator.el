@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.72 2003/05/19 07:23:16 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.73 2003/07/04 21:00:36 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -190,11 +190,11 @@ Raise an error is there is no tag here."
   (or (semantic-current-tag)
       (error "No semantic tag here")))
 
-(defun senator-momentary-highlight-token (tag)
+(defun senator-momentary-highlight-tag (tag)
   "Momentary highlight TAG.
 Does nothing if `senator-highlight-found' is nil."
   (and senator-highlight-found
-       (semantic-momentary-highlight-token
+       (semantic-momentary-highlight-tag
         tag 'senator-momentary-highlight-face)))
 
 (defun senator-step-at-start-end-p (tag)
@@ -566,7 +566,7 @@ Return the tag or nil if at end of buffer."
             (t
              (setq where "start")
              (goto-char (semantic-tag-start tag))))
-      (senator-momentary-highlight-token tag)
+      (senator-momentary-highlight-tag tag)
       (working-message "%S: %s (%s)"
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)
@@ -605,7 +605,7 @@ Return the tag or nil if at beginning of buffer."
             (t
              (setq where "end")
              (goto-char (semantic-tag-end tag))))
-      (senator-momentary-highlight-token tag)
+      (senator-momentary-highlight-tag tag)
       (working-message "%S: %s (%s)"
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)
@@ -696,7 +696,7 @@ NO-DEFAULT switches like this:
   (let ((tag (senator-jump-noselect sym no-default)))
     (when tag
       (switch-to-buffer (semantic-tag-buffer tag))
-      (senator-momentary-highlight-token tag)
+      (senator-momentary-highlight-tag tag)
       (working-message "%S: %s "
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)))))
@@ -721,7 +721,7 @@ NO-DEFAULT switches like this:
   (let ((tag (senator-jump-noselect symregex no-default)))
     (when tag
       (switch-to-buffer (semantic-tag-buffer tag))
-      (senator-momentary-highlight-token tag)
+      (senator-momentary-highlight-tag tag)
       (working-message "%S: %s "
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)))))
@@ -1139,8 +1139,8 @@ REGEXP says which ring to use."
   (interactive)
   (let* ((tag  (or tag (senator-current-token)))
          (read (semantic-token-read-only-p tag)))
-    (semantic-set-token-read-only tag read)
-    (semantic-set-token-face
+    (semantic-set-tag-read-only tag read)
+    (semantic-set-tag-face
      tag
      (if read nil 'senator-read-only-face))))
 
@@ -1148,9 +1148,9 @@ REGEXP says which ring to use."
   "Toggle the tangibility of the current TAG."
   (interactive)
   (let* ((tag (or tag (senator-current-token)))
-         (tang (semantic-token-intangible-p tag)))
-    (semantic-set-token-intangible tag tang)
-    (semantic-set-token-face
+         (tang (semantic-tag-intangible-p tag)))
+    (semantic-set-tag-intangible tag tang)
+    (semantic-set-tag-face
      tag
      (if tang nil 'senator-intangible-face))))
 
@@ -1162,7 +1162,7 @@ REGEXP says which ring to use."
                         ;; GNU Emacs already append ": "
                         "Face"))))
   (let ((tag (or tag (senator-current-token))))
-    (semantic-set-token-face tag face)))
+    (semantic-set-tag-face tag face)))
 
 (defun senator-set-foreground (color &optional tag)
   "Set the foreground COLOR of the current TAG."
@@ -1186,9 +1186,9 @@ REGEXP says which ring to use."
   "Clear all properties from TAG."
   (interactive)
   (let ((tag (or tag (senator-current-token))))
-    (semantic-set-token-read-only  tag t)
-    (semantic-set-token-intangible tag t)
-    (semantic-set-token-face       tag nil)))
+    (semantic-set-tag-read-only  tag t)
+    (semantic-set-tag-intangible tag t)
+    (semantic-set-tag-face       tag nil)))
 
 ;;;;
 ;;;; Misc. menu stuff.
@@ -1646,7 +1646,7 @@ This is a buffer local variable.")
        :active (semantic-current-tag)
        :style toggle
        :selected (let ((tag (semantic-current-tag)))
-                   (and tag (semantic-token-read-only-p tag)))
+                   (and tag (semantic-tag-read-only-p tag)))
        :help "Make the current tag read-only"
        ])
     (senator-menu-item
@@ -1658,7 +1658,7 @@ This is a buffer local variable.")
        :style toggle
        :selected (and (not (featurep 'xemacs))
                       (let ((tag (semantic-current-tag)))
-                        (and tag (semantic-token-intangible-p tag))))
+                        (and tag (semantic-tag-intangible-p tag))))
        :help "Make the current tag intangible"
        ])
     (senator-menu-item
