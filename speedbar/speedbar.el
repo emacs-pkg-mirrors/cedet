@@ -5,7 +5,9 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.6.2
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.70 1998/01/07 01:07:15 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.71 1998/01/07 02:05:03 zappo Exp $
+;;
+;; This file is part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

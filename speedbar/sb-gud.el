@@ -1,11 +1,13 @@
 ;;; sb-gud --- Speedbar support for the Grand Unified Debugger
 
-;; Copyright (C) 1997 Free Software Foundation
+;; Copyright (C) 1997, 1998 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: tools, gud
-;; X-RCS: $Id: sb-gud.el,v 1.2 1997/11/03 22:27:43 zappo Exp $
+;; X-RCS: $Id: sb-gud.el,v 1.3 1998/01/07 02:04:29 zappo Exp $
+;;
+;; This file is part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
