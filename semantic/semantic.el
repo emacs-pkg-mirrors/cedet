@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.159 2002/08/09 15:40:59 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.160 2002/08/10 14:20:22 ponced Exp $
 
 (defvar semantic-version "2.0alpha4"
   "Current version of Semantic.")
@@ -466,7 +466,7 @@ unterminated syntax."
     ;;    (if semantic-dump-parse
     ;;	      (semantic-dump-buffer-init))
     (setq tokens (semantic-repeat-parse-whole-stream
-                  lexbits nonterminal depth returnonerror))
+                  lexbits nonterminal returnonerror))
     (nreverse tokens)))
 
 ;;; Parsing functions
@@ -747,13 +747,11 @@ a list of cooked tokens."
 ;; other parser centric routines.
 ;;
 (defun semantic-repeat-parse-whole-stream
-  (stream nonterm &optional depth returnonerror)
+  (stream nonterm &optional returnonerror)
   "Bovinate the entire stream STREAM starting with NONTERM.
-DEPTH is optional, and defaults to 0.
 Optional argument RETURNONERROR indicates that the parser should exit
 with the current results on a parse error.
-This function returns tokens with overlays."
-  (if (not depth) (setq depth semantic-lex-depth))
+This function returns tokens without overlays."
   (let ((result nil)
 	(case-fold-search semantic-case-fold)
         nontermsym token)
