@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.10 2001/08/30 14:02:13 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.11 2001/08/31 11:58:29 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -96,85 +96,39 @@ variable NAME."
     (wisent-compile-grammar
       `(LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP NULL_LITERAL BOOLEAN_LITERAL STRING_LITERAL NUMBER_LITERAL IDENTIFIER ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED
         (goal
-         (compilation_unit)
-         :
-         (identity $1))
+         (compilation_unit))
         (literal
          (NULL_LITERAL)
-         :
-         (identity $1)
          (BOOLEAN_LITERAL)
-         :
-         (identity $1)
          (STRING_LITERAL)
-         :
-         (identity $1)
-         (NUMBER_LITERAL)
-         :
-         (identity $1))
+         (NUMBER_LITERAL))
         (type
          (reference_type)
-         :
-         (identity $1)
-         (primitive_type)
-         :
-         (identity $1))
+         (primitive_type))
         (primitive_type
          (BOOLEAN)
-         :
-         (identity $1)
-         (numeric_type)
-         :
-         (identity $1))
+         (numeric_type))
         (numeric_type
          (floating_point_type)
-         :
-         (identity $1)
-         (integral_type)
-         :
-         (identity $1))
+         (integral_type))
         (integral_type
          (CHAR)
-         :
-         (identity $1)
          (LONG)
-         :
-         (identity $1)
          (INT)
-         :
-         (identity $1)
          (SHORT)
-         :
-         (identity $1)
-         (BYTE)
-         :
-         (identity $1))
+         (BYTE))
         (floating_point_type
          (DOUBLE)
-         :
-         (identity $1)
-         (FLOAT)
-         :
-         (identity $1))
+         (FLOAT))
         (reference_type
          (array_type)
-         :
-         (identity $1)
-         (class_or_interface_type)
-         :
-         (identity $1))
+         (class_or_interface_type))
         (class_or_interface_type
-         (name)
-         :
-         (identity $1))
+         (name))
         (class_type
-         (class_or_interface_type)
-         :
-         (identity $1))
+         (class_or_interface_type))
         (interface_type
-         (class_or_interface_type)
-         :
-         (identity $1))
+         (class_or_interface_type))
         (array_type
          (name dims)
          :
@@ -184,15 +138,9 @@ variable NAME."
          (concat $1 $2))
         (name
          (qualified_name)
-         :
-         (identity $1)
-         (simple_name)
-         :
-         (identity $1))
+         (simple_name))
         (simple_name
-         (IDENTIFIER)
-         :
-         (identity $1))
+         (IDENTIFIER))
         (qualified_name
          (name DOT IDENTIFIER)
          :
@@ -201,16 +149,14 @@ variable NAME."
          (package_declaration_opt import_declarations_opt type_declarations_opt)
          :
          (nconc $1 $2 $3))
-        (package_declaration_opt nil : nil
-                                 (package_declaration)
-                                 :
-                                 (identity $1))
-        (import_declarations_opt nil : nil
+        (package_declaration_opt nil
+                                 (package_declaration))
+        (import_declarations_opt nil
                                  (import_declarations)
                                  :
                                  (apply 'nconc
                                         (nreverse $1)))
-        (type_declarations_opt nil : nil
+        (type_declarations_opt nil
                                (type_declarations)
                                :
                                (apply 'nconc
@@ -252,15 +198,11 @@ variable NAME."
          (SEMICOLON)
          : nil
          (interface_declaration)
-         :
-         (identity $1)
          (class_declaration)
-         :
-         (identity $1)
          (error)
          :
          (wisent-skip-token))
-        (modifiers_opt nil : nil
+        (modifiers_opt nil
                        (modifiers)
                        :
                        (nreverse $1))
@@ -273,38 +215,16 @@ variable NAME."
          (list $1))
         (modifier
          (STRICTFP)
-         :
-         (identity $1)
          (VOLATILE)
-         :
-         (identity $1)
          (TRANSIENT)
-         :
-         (identity $1)
          (SYNCHRONIZED)
-         :
-         (identity $1)
          (NATIVE)
-         :
-         (identity $1)
          (FINAL)
-         :
-         (identity $1)
          (ABSTRACT)
-         :
-         (identity $1)
          (STATIC)
-         :
-         (identity $1)
          (PRIVATE)
-         :
-         (identity $1)
          (PROTECTED)
-         :
-         (identity $1)
-         (PUBLIC)
-         :
-         (identity $1))
+         (PUBLIC))
         (class_declaration
          (modifiers_opt CLASS IDENTIFIER superc_opt interfaces_opt class_body)
          :
@@ -318,15 +238,13 @@ variable NAME."
          (EXTENDS class_type)
          :
          (identity $2))
-        (superc_opt nil : nil
-                    (superc)
-                    :
-                    (identity $1))
+        (superc_opt nil
+                    (superc))
         (interfaces
          (IMPLEMENTS interface_type_list)
          :
          (identity $2))
-        (interfaces_opt nil : nil
+        (interfaces_opt nil
                         (interfaces)
                         :
                         (nreverse $1))
@@ -341,7 +259,7 @@ variable NAME."
          (LBRACE class_body_declarations_opt RBRACE)
          :
          (identity $2))
-        (class_body_declarations_opt nil : nil
+        (class_body_declarations_opt nil
                                      (class_body_declarations)
                                      :
                                      (apply 'nconc
@@ -357,36 +275,25 @@ variable NAME."
          (block)
          : nil
          (constructor_declaration)
-         :
-         (identity $1)
          (static_initializer)
          : nil
          (class_member_declaration)
-         :
-         (identity $1)
          (error)
          :
          (wisent-skip-token))
         (class_member_declaration
          (interface_declaration)
-         :
-         (identity $1)
          (class_declaration)
-         :
-         (identity $1)
          (method_declaration)
-         :
-         (identity $1)
-         (field_declaration)
-         :
-         (wisent-java-expand-nonterminal
-          (car $1)))
+         (field_declaration))
         (field_declaration
          (modifiers_opt type variable_declarators SEMICOLON)
          :
-         (wisent-token $3 'variable $2 nil
-                       (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                       nil))
+         (wisent-java-expand-nonterminal
+          (car
+           (wisent-token $3 'variable $2 nil
+                         (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                         nil))))
         (variable_declarators
          (variable_declarators COMMA variable_declarator)
          :
@@ -405,9 +312,7 @@ variable NAME."
          (variable_declarator_id LBRACK RBRACK)
          :
          (concat $1 "[]")
-         (IDENTIFIER)
-         :
-         (identity $1))
+         (IDENTIFIER))
         (variable_initializer
          (array_initializer)
          (expression))
@@ -439,7 +344,7 @@ variable NAME."
          (IDENTIFIER LPAREN formal_parameter_list_opt RPAREN)
          :
          (cons $1 $3))
-        (formal_parameter_list_opt nil : nil
+        (formal_parameter_list_opt nil
                                    (formal_parameter_list)
                                    :
                                    (apply 'nconc
@@ -460,10 +365,8 @@ variable NAME."
          (type variable_declarator_id)
          :
          (wisent-token $2 'variable $1 nil nil nil))
-        (throwsc_opt nil : nil
-                     (throwsc)
-                     :
-                     (identity $1))
+        (throwsc_opt nil
+                     (throwsc))
         (throwsc
          (THROWS class_type_list)
          :
@@ -511,7 +414,7 @@ variable NAME."
                            (cons nil $4))
                        (semantic-bovinate-make-assoc-list 'typemodifiers $1)
                        nil))
-        (extends_interfaces_opt nil : nil
+        (extends_interfaces_opt nil
                                 (extends_interfaces)
                                 :
                                 (nreverse $1))
@@ -526,7 +429,7 @@ variable NAME."
          (LBRACE interface_member_declarations_opt RBRACE)
          :
          (identity $2))
-        (interface_member_declarations_opt nil : nil
+        (interface_member_declarations_opt nil
                                            (interface_member_declarations)
                                            :
                                            (apply 'nconc
@@ -540,24 +443,14 @@ variable NAME."
          (list $1))
         (interface_member_declaration
          (interface_declaration)
-         :
-         (identity $1)
          (class_declaration)
-         :
-         (identity $1)
          (abstract_method_declaration)
-         :
-         (identity $1)
          (constant_declaration)
-         :
-         (identity $1)
          (error)
          :
          (wisent-skip-token))
         (constant_declaration
-         (field_declaration)
-         :
-         (identity $1))
+         (field_declaration))
         (abstract_method_declaration
          (modifiers_opt VOID method_declarator throwsc_opt SEMICOLON)
          :
@@ -627,16 +520,14 @@ variable NAME."
          (wisent-skip-block))
         (dims_opt nil :
                   (identity "")
-                  (dims)
-                  :
-                  (identity $1))
+                  (dims))
         (dims
          (dims LBRACK RBRACK)
          :
-         (concat $1 "[]")
+         (concat $1 $2 $3)
          (LBRACK RBRACK)
          :
-         (identity "[]"))
+         (concat $1 $2))
         (field_access
          (name DOT SUPER DOT IDENTIFIER)
          (SUPER DOT IDENTIFIER)
