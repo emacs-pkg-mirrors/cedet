@@ -6,7 +6,7 @@
 ## Maintainer: David Ponce <david@dponce.com>
 ## Created: 07 Aug 2001
 ## Keywords: syntax
-## X-RCS: $Id: wisent-java.bnf,v 1.6 2001/08/31 11:57:54 ponced Exp $
+## X-RCS: $Id: wisent-java.bnf,v 1.7 2001/09/03 13:11:41 ponced Exp $
 ##
 ## This file is not part of GNU Emacs.
 ##
@@ -40,6 +40,7 @@
 %start package_declaration
 %start import_declaration
 %start class_declaration
+%start field_declarations_opt
 %start field_declaration
 %start method_declaration
 %start formal_parameter
@@ -52,7 +53,7 @@
    (semantic-install-function-overrides
     '((prototype-nonterminal . semantic-java-prototype-nonterminal)
       (find-documentation    . semantic-java-find-documentation)
-      (get-local-variables   . semantic-java-get-local-variables)
+      (get-local-variables   . wisent-java-get-local-variables)
       )
     t ;; They can be changed in mode hook by more specific ones
     )
@@ -631,6 +632,26 @@ class_member_declaration
   | class_declaration
   | method_declaration
   | field_declaration
+  ;
+
+field_declarations_opt
+  : EMPTY
+  | field_declarations
+    (apply 'nconc (nreverse $1))
+  ;
+
+field_declarations
+  : field_declarations field_declaration_maybe
+    (cons $2 $1)
+  | field_declaration_maybe
+    (list $1)
+  ;
+
+field_declaration_maybe
+  : field_declaration
+  | error
+  # On error skip token and loop to field_declarations
+    (wisent-skip-token)
   ;
 
 field_declaration
