@@ -1,10 +1,10 @@
-;;; ede-speedbar.el --- Speebar viewing of EDE projects
+;;; ede-speedbar.el --- Speedbar viewing of EDE projects
 
 ;;;  Copyright (C) 1998, 1999, 2000, 2001, 2003  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.24 2003/09/04 19:33:23 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.25 2003/09/17 16:57:31 ponced Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
