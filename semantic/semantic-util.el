@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.121 2003/08/25 17:13:31 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.122 2003/08/29 12:33:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -100,7 +100,7 @@ buffer, or a filename.  If SOMETHING is nil return nil."
       (semantic-bovinate-toplevel t)))
    ;; A Tag: Get that tag's buffer
    ((and (semantic-tag-with-position-p something)
-	 (semantic-tag-buffer))
+	 (semantic-tag-buffer something))
     (save-excursion
       (set-buffer (semantic-tag-buffer something))
       (semantic-bovinate-toplevel t)))
@@ -118,7 +118,7 @@ buffer, or a filename.  If SOMETHING is nil return nil."
    ((and (featurep 'semanticdb)
 	 (semanticdb-minor-mode-p)
 	 (semanticdb-abstract-table-p something))
-    (semanticdb-get-tags something tags))
+    (semanticdb-get-tags something something))
    ;; Use the current buffer for nil
 ;;   ((null something)
 ;;    (semantic-bovinate-toplevel t))
@@ -149,7 +149,7 @@ THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON.
 	   (found (semantic-find-first-tag-by-name name stream))
 	   (unfound nil))
       (while (and (not found) includelist)
-	(let ((fn (semantic-find-dependency (car includelist))))
+	(let ((fn (semantic-dependency-tag-file (car includelist))))
 	  (if (and fn (not (member fn unfound)))
 	      (save-excursion
 		(set-buffer (find-file-noselect fn))
