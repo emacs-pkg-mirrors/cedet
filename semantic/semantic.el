@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.90 2001/03/05 22:43:49 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.91 2001/03/14 12:41:41 ponced Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -70,12 +70,12 @@
       (defalias 'semantic-overlay-p 'extentp)
       (defun semantic-read-event ()
         (let ((event (next-command-event)))
-          (cond ((key-press-event-p event)
-                 (let ((c (event-to-character event)))
-                   (if (char-equal c (quit-char))
-                       (keyboard-quit)
-                     c)))
-                event)))
+          (if (key-press-event-p event)
+              (let ((c (event-to-character event)))
+                (if (char-equal c (quit-char))
+                    (keyboard-quit)
+                  c)))
+          event))
       )
   (defalias 'semantic-overlay-live-p 'overlay-buffer)
   (defalias 'semantic-make-overlay 'make-overlay)
@@ -818,54 +818,66 @@ the current results on a parse error."
 	 ;; different symbol.  Come up with a plan to solve this.
 	 (nonterminal (or (semantic-token-get token 'reparse-symbol)
 			  'bovine-toplevel))
-	 (new (semantic-bovinate-nonterminal flexbits
-					     semantic-toplevel-bovine-table
-					     nonterminal))
+	 (new (condition-case nil
+                  (semantic-bovinate-nonterminal
+                   flexbits
+                   semantic-toplevel-bovine-table
+                   nonterminal)
+                ;; Trap `read' errors which may temporarily occurs
+                ;; when re-parsing a dirty Elisp token.
+                (end-of-file 'delay)
+                (invalid-read-syntax 'delay)))
 	 (cooked nil)
 	 )
-    (setq new (car (cdr new)))
-    (if (not new)
-        ;; Clever reparse failed, queuing full reparse.
-        (setq semantic-toplevel-bovine-cache-check t)
-      (setq cooked (semantic-raw-to-cooked-token new))
-      (if (not (eq new (car cooked)))
-          (if (= (length cooked) 1)
-              ;; Cooking did a 1 to 1 replacement.  Use it.
-              (setq new (car cooked))
-            ;; If cooking results in multiple things, do a full reparse.
-            (setq semantic-toplevel-bovine-cache-check t))))
-    ;; Don't do much if we have to do a full recheck.
-    (if semantic-toplevel-bovine-cache-check
+    (if (eq new 'delay)
+        ;; If a `read' error occured during re-parsing of an Elisp
+        ;; token just delay rebovination.  Thus features like Semantic
+        ;; completion could continue to work until a clean syntax
+        ;; state is reached and re-parse succeeds.
         nil
-      (let ((oo (semantic-token-overlay token))
-	    (o (semantic-token-overlay new)))
-	;; Copy all properties of the old overlay here.
-	;; I think I can use plists in emacs, but not in XEmacs.
-	;; Ack!
-	(semantic-overlay-put o 'face (semantic-overlay-get oo 'face))
-	(semantic-overlay-put o 'old-face (semantic-overlay-get oo 'old-face))
-	(semantic-overlay-put o 'intangible (semantic-overlay-get oo 'intangible))
-	(semantic-overlay-put o 'invisible (semantic-overlay-get oo 'invisible))
-	;; Free the old overlay(s)
-	(semantic-deoverlay-token token)
-	;; Recover properties
-	(let ((p (semantic-token-properties token)))
-	  (while p
-	    (semantic-token-put new (car (car p)) (cdr (car p)))
-	    (setq p (cdr p))))
-	(if (not (eq nonterminal 'bovine-toplevel))
-	    (semantic-token-put new 'reparse-symbol nonterminal))
-	(semantic-token-put new 'dirty nil)
-	;; Splice into the main list.
-	(setcdr token (cdr new))
-	(setcar token (car new))
-	;; This important bit is because the CONS cell representing TOKEN
-	;; is what we need here, even though the whole thing is the same.
-	(semantic-overlay-put o 'semantic token)
-	;; Hooks
-	(run-hook-with-args 'semantic-clean-token-hooks token)
-	)
-      )))
+      (setq new (car (cdr new)))
+      (if (not new)
+          ;; Clever reparse failed, queuing full reparse.
+          (setq semantic-toplevel-bovine-cache-check t)
+        (setq cooked (semantic-raw-to-cooked-token new))
+        (if (not (eq new (car cooked)))
+            (if (= (length cooked) 1)
+                ;; Cooking did a 1 to 1 replacement.  Use it.
+                (setq new (car cooked))
+          ;; If cooking results in multiple things, do a full reparse.
+              (setq semantic-toplevel-bovine-cache-check t))))
+      ;; Don't do much if we have to do a full recheck.
+      (if semantic-toplevel-bovine-cache-check
+          nil
+        (let ((oo (semantic-token-overlay token))
+              (o (semantic-token-overlay new)))
+          ;; Copy all properties of the old overlay here.
+          ;; I think I can use plists in emacs, but not in XEmacs.
+          ;; Ack!
+          (semantic-overlay-put o 'face (semantic-overlay-get oo 'face))
+          (semantic-overlay-put o 'old-face (semantic-overlay-get oo 'old-face))
+          (semantic-overlay-put o 'intangible (semantic-overlay-get oo 'intangible))
+          (semantic-overlay-put o 'invisible (semantic-overlay-get oo 'invisible))
+          ;; Free the old overlay(s)
+          (semantic-deoverlay-token token)
+          ;; Recover properties
+          (let ((p (semantic-token-properties token)))
+            (while p
+              (semantic-token-put new (car (car p)) (cdr (car p)))
+              (setq p (cdr p))))
+          (if (not (eq nonterminal 'bovine-toplevel))
+              (semantic-token-put new 'reparse-symbol nonterminal))
+          (semantic-token-put new 'dirty nil)
+          ;; Splice into the main list.
+          (setcdr token (cdr new))
+          (setcar token (car new))
+     ;; This important bit is because the CONS cell representing TOKEN
+     ;; is what we need here, even though the whole thing is the same.
+          (semantic-overlay-put o 'semantic token)
+          ;; Hooks
+          (run-hook-with-args 'semantic-clean-token-hooks token)
+          )
+        ))))
 
 
 ;;; Semantic Bovination
@@ -1565,7 +1577,7 @@ LENGTH tokens."
 					     (forward-list 1)
 					   ;; This case makes flex robust
 					   ;; to broken lists.
-					   (error (goto-char (point-max))))
+					   (error (goto-char end)))
 					 (setq ep (point)))))
 				ts))))
 	      ;; Close parens
