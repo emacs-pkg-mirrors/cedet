@@ -1,10 +1,10 @@
 ;;; semanticdb.el --- Semantic token database manager
 
-;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.51 2003/02/03 08:45:46 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.52 2003/02/13 01:23:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -150,7 +150,7 @@ If the table for FILE does not exist, create one."
       ;; This implementation will satisfy autoloaded classes
       ;; for tables.
       (setq newtab (funcall (oref db new-table-class)
-			    (file-name-nondirectory filename)
+			    (file-name-nondirectory file)
 			    :file (file-name-nondirectory file)
 			    ))
       (oset newtab parent-db db)
