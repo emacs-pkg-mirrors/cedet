@@ -2,9 +2,14 @@
 ;; EDE project file.
 (ede-proj-project "ede-proj-project"
   :name "speedbar"
-  :version "0.14beta4"
+  :version "0.15beta1"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-elisp-autoloads "autoloads"
+    :name "autoloads"
+    :path ""
+    :autoload-file "speedbar-defs.el"
+    )
    (ede-proj-target-elisp "speedbar"
     :name "speedbar"
     :path ""
