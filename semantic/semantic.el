@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.129 2001/11/26 21:27:33 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.130 2001/11/30 03:25:44 zappo Exp $
 
 (defvar semantic-version "1.4beta12"
   "Current version of Semantic.")
@@ -44,8 +44,6 @@
 (defgroup semantic nil
   "Parser Generator/Parser."
   )
-
-;;; Code:
 
 ;;; Compatibility
 ;;
@@ -93,6 +91,14 @@
   (defalias 'semantic-overlay-p 'overlayp)
   (defalias 'semantic-read-event 'read-event)
   )
+
+(if (and (not (featurep 'xemacs))
+	 (>= emacs-major-version 21))
+    (defalias 'semantic-make-local-hook 'identity)
+  (defalias 'semantic-make-local-hook 'make-local-hook)
+  )
+
+;;; Code:
 
 (defvar semantic-edebug nil
   "When non-nil, activate the interactive parsing debugger.
@@ -774,7 +780,7 @@ that, otherwise, do a full reparse."
 	semantic-toplevel-bovine-force-reparse nil
         semantic-unmatched-syntax-cache-check nil
         semantic-bovinate-nonterminal-check-obarray nil)
-  (make-local-hook 'after-change-functions)
+  (semantic-make-local-hook 'after-change-functions)
   (add-hook 'after-change-functions 'semantic-change-function nil t)
   (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
 		      semantic-toplevel-bovine-cache)
