@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.8 2002/08/11 09:40:02 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.9 2002/09/05 13:32:12 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,8 +54,8 @@
 (require 'wisent-bovine)
 
 (defconst wisent-calc-automaton
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-09-05 14:46+0200
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-08-10 21:06+0200
     (wisent-compile-grammar
      '((NUM)
        ((nonassoc 61)
@@ -92,30 +92,43 @@
          (expt $1 $3))
         ((40 exp 41)
          (progn $2))))
-     'nil)
-    )
+     'nil))
   "Parser automaton.")
 
 (defconst wisent-calc-tokens
-  (identity
-   ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-08-10 21:06+0200
-   (wisent-lex-make-token-table
-    '(("number"
-       (NUM)))
-    'nil)
-   )
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-09-05 14:46+0200
+  (wisent-lex-make-token-table
+   '(("number"
+      (NUM)))
+   'nil)
   "Tokens.")
+
+(define-lex-simple-regex-analyzer wisent-calc-lex-number
+  "Detect and create number tokens."
+  semantic-lex-number-expression 'NUM)
+
+(define-lex-simple-regex-analyzer wisent-calc-lex-punctuation
+  "Detect and create punctuation tokens."
+  "\\(\\s.\\|\\s$\\|\\s'\\)" (char-after))
+
+(define-lex wisent-calc-lexer
+  "Calc lexical analyzer."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  wisent-calc-lex-number
+  wisent-calc-lex-punctuation
+  semantic-lex-default-action)
 
 (defun wisent-calc-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-08-10 21:06+0200
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-09-05 14:46+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-calc-automaton
           semantic-flex-keywords-obarray nil
-          wisent-lex-tokens-obarray wisent-calc-tokens)
+          semantic-lex-tokens-obarray wisent-calc-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
@@ -123,14 +136,14 @@
     (setq semantic-number-expression
           (concat "\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
                   "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
+          semantic-lex-analyzer #'wisent-calc-lexer
           semantic-lex-depth nil
           semantic-lex-syntax-modifications '((?\; ".") (?\= ".")
                                               (?\+ ".") (?\- ".")
                                               (?\* ".") (?\/ ".")
                                               (?\^ ".")
                                               )
-          ))
-  )
+          )))
 
 (defun wisent-calc (input)
   "Infix desktop calculator.
@@ -140,12 +153,13 @@ Parse INPUT string and output the result of computation."
       (setq input (concat input ";")))
   (with-temp-buffer
     (wisent-calc-setup-parser)
+    (semantic-lex-init)
     (insert input)
     (let ((wisent-lex-istream (semantic-lex-buffer)))
       (message "%s -> %s"
                input
                (wisent-parse wisent-calc-automaton
-                             #'wisent-flex
+                             #'wisent-lex
                              #'error)))))
 
 (provide 'wisent-calc)
