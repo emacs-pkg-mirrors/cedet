@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.14 2001/10/04 14:59:23 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.15 2001/10/05 02:09:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -161,6 +161,8 @@ Uses the bovinator with the special top-symbol `bovine-inner-scope'
 to collect tokens, such as local variables or prototypes."
   (working-status-forms "Local" "done"
     (let ((semantic-bovination-working-type nil)
+	  ;; We want nothing to do with funny syntaxing while doing this.
+	  (semantic-unmatched-syntax-hook nil)
 	  (vars nil))
       (while (not (semantic-up-context))
 	(save-excursion
