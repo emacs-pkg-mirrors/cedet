@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.58 1997/08/15 00:44:39 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.59 1997/09/12 21:45:55 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -253,6 +253,7 @@
 ;;         speedbar pulls up a file or tag in the attached frame.  Setting
 ;;         this to `reposition-window' will do nice things to function tags.
 ;;       Fixed text-cache default-directory bug.
+;;       Emacs 20 char= support.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -268,6 +269,11 @@
 ;;; Code:
 (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
   "Non-nil if we are running in the XEmacs environment.")
+
+;; compatibility
+(if (fboundp 'char=)
+    (defalias 'speedbar-char= 'char=)
+  (defalias 'speedbar-char= '=))
 
 (defvar speedbar-initial-expansion-list
   '(speedbar-directory-buttons speedbar-default-directory-list)
@@ -466,7 +472,7 @@ All the preceding . are stripped for an optimized expression starting
 with . followed by extensions, followed by full-filenames."
   (let ((regex1 nil) (regex2 nil))
     (while extlist
-      (if (= (string-to-char (car extlist)) ?.)
+      (if (speedbar-char= (string-to-char (car extlist)) ?.)
 	  (setq regex1 (concat regex1 (if regex1 "\\|" "")
 			       (substring (car extlist) 1)))
 	(setq regex2 (concat regex2 (if regex2 "\\|" "") (car extlist))))
