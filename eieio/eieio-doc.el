@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.8 1999/09/05 19:21:54 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.9 1999/09/05 19:45:55 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -192,7 +192,7 @@ validation is done on that slot."
       (setq set-me t)
       (insert "@item " (if priv "Private: " "")
 	      (symbol-name ia))
-      (if (and typeo (not (eq type t)))
+      (if (and type (not (eq type t)))
 	  (insert "\nType: @code{" (format "%S" type) "}"))
       (insert "\nDefault Value: @code{"(format "%S" deflt) "}\n\n")
       (if (eq pv 'default)
