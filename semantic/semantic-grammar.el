@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.44 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.45 2003/12/16 11:44:27 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -84,7 +84,7 @@
 
 (define-lex-regex-analyzer semantic-grammar-lex-symbol
   "Detect and create an identifier or keyword token."
-  "\\(\\sw\\|\\s_\\)+"
+  ":?\\(\\sw\\|\\s_\\)+"
   (semantic-lex-push-token
    (semantic-lex-token
     (or (semantic-lex-keyword-p (match-string 0))
@@ -1163,7 +1163,7 @@ whole quoted expression.")
         (cond
          ((bobp)
           (setq indent 0))
-         ((looking-at ":")
+         ((looking-at ":\\(\\s-\\|$\\)")
           (setq indent (current-column))
           (forward-char)
           (skip-syntax-forward "-")
