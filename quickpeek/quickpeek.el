@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tools
-;; X-RCS: $Id: quickpeek.el,v 1.5 2000/09/08 19:59:48 zappo Exp $
+;; X-RCS: $Id: quickpeek.el,v 1.6 2000/09/08 20:21:08 zappo Exp $
 
 (defvar quickpeek-version "0.5"
   "The current version of quickpeek.")
@@ -428,9 +428,12 @@ If it is not shown, force it to appear in the default window."
 	       (not (eq (selected-window) (minibuffer-window))))
 	  (let ((af (selected-frame)))
 	    (save-window-excursion
-	      ;; Other frame is magic for the previously reffed frame.
-	      (if (eq af quickpeek-frame) (other-frame -1))
-	      (quickpeek-update-contents)))))))
+	      ;; This is magic for the previously reffed frame
+	      ;; excludes other dedicated frame applications.
+	      (while dframe-attached-frame
+		(select-frame (previous-frame (selected-frame))))
+	      (quickpeek-update-contents)
+	      (select-frame af)))))))
 
 (defun quickpeek-refresh ()
   "Refresh the current `quickpeek' display, disposing of any cached data."
