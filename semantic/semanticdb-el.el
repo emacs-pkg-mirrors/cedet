@@ -1,10 +1,10 @@
 ;;; semanticdb-el.el --- Semantic database extensions for Emacs Lisp
 
-;;; Copyright (C) 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.15 2004/03/10 19:28:06 ponced Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.16 2004/03/11 02:31:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,7 +94,29 @@ Equivalent modes are specified by by `semantic-equivalent-major-modes'
 local variable."
   (save-excursion
     (set-buffer buffer)
-    (eq major-mode 'emacs-lisp-mode)))
+    (eq (or semantic-bindings-active-mode major-mode) 'emacs-lisp-mode)))
+
+;;; Usage
+;;
+;; Unlike other languages, Emacs Lisp always has the system database there
+;; even when there isn't a usage for it.
+
+(define-mode-overload-implementation semanticdb-find-translate-path emacs-lisp-mode
+  (path brutish)
+  "Return a list of semanticdb tables asociated with PATH.
+If brutish, do the default action.
+If not brutish, do the default action, and append the system
+database (if available.)"
+  (let ((default (semanticdb-find-translate-path-default path brutish)))
+    ;; Don't add anything if BRUTISH is on (it will be added in that fcn)
+    ;; or if we aren't supposed to search the system.
+    (if (or brutish (not semanticdb-search-system-databases))
+	default
+      (let ((tables (apply #'append
+			   (mapcar
+			    (lambda (db) (semanticdb-get-database-tables db))
+			    semanticdb-project-system-databases))))
+	(append default tables)))))
 
 ;;; Conversion
 ;;
