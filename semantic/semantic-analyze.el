@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.11 2003/03/26 20:23:50 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.12 2003/04/02 04:22:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,7 +38,8 @@
 ;;
 
 (require 'inversion)
-(inversion-require 'eieio "0.18")
+(eval-and-compile
+  (inversion-require 'eieio "0.18"))
 (require 'semantic-ctxt)
 (eval-when-compile (require 'semanticdb)
 		   (require 'semanticdb-search))
@@ -61,8 +62,8 @@ Almost all searches use the same arguments."
 	  (apply #'append (mapcar #'cdr dbans))
 	  )
       ;; Search just this file because there is no DB available.
-      (semantic-find-nonterminal-by-name-regexp
-       expr (current-buffer) nil t))))
+      (semantic-find-tags-by-name-regexp
+       expr (current-buffer)))))
   
 (defun semantic-analyze-find-nonterminal (name &optional tokentype)
   "Attempt to find a nonterminal with NAME.
@@ -78,16 +79,16 @@ Almost all searches use the same arguments."
 	;; Lame, grabbing the first file match
 	(cdr (car dbans)))
     ;; Search just this file
-    (semantic-find-nonterminal-by-name
-     name (current-buffer) nil t)))
+    (semantic-find-first-tag-by-name
+     name (current-buffer))))
 
 (defun semantic-analyze-token-type-to-name (token)
   "Get the name of TOKEN's type.
 The TYPE field in a token can be nil (return nil)
 or a string, or a non-positional token."
-  (let ((tt (semantic-token-type token)))
-    (cond ((semantic-token-p tt)
-	   (semantic-token-name tt))
+  (let ((tt (semantic-tag-type token)))
+    (cond ((semantic-tag-p tt)
+	   (semantic-tag-name tt))
 	  ((stringp tt)
 	   tt)
 	  ((listp tt)
@@ -112,15 +113,15 @@ Just a name, or short token will be ok.  It will be expanded here."
 	  ;; need to do some more work to look it up.
 	  (cond ((stringp ans)
 		 (semantic-analyze-find-nonterminal ans))
-		((and (semantic-token-p ans)
-		      (eq (semantic-token-token ans) 'type)
-		      (semantic-token-type-parts ans))
+		((and (semantic-tag-p ans)
+		      (eq (semantic-tag-class ans) 'type)
+		      (semantic-tag-type-members ans))
 		 ans)
-		((and (semantic-token-p ans)
-		      (eq (semantic-token-token ans) 'type)
-		      (not (semantic-token-type-parts ans)))
+		((and (semantic-tag-p ans)
+		      (eq (semantic-tag-class ans) 'type)
+		      (not (semantic-tag-type-members ans)))
 		 (semantic-analyze-find-nonterminal
-		  (semantic-token-name ans)))
+		  (semantic-tag-name ans)))
 		(t nil)))
       ;; Nothing fancy, just return type be default.
       type)))
@@ -131,15 +132,15 @@ TOKEN can be a variable, function or other type of token.
 The type of token (such as a class or struct) is a name.
 Lookup this name in database, and return all slots/fields
 within that types field.  Also handles anonymous types."
-  (let ((ttype (semantic-token-type token))
+  (let ((ttype (semantic-tag-type token))
 	(name nil)
 	(typetoken nil)
 	)
 
     ;; Is it an anonymous type?
     (if (and ttype
-	     (semantic-token-p ttype)
-	     (eq (semantic-token-token ttype) 'type)
+	     (semantic-tag-p ttype)
+	     (eq (semantic-tag-class ttype) 'type)
 	     (semantic-analyze-type-parts ttype)
 	     ;(semantic-nonterminal-children ttype)
 	     )
@@ -154,10 +155,10 @@ within that types field.  Also handles anonymous types."
 	  (setq typetoken (semantic-analyze-find-nonterminal name))
 	;; No name to look stuff up with.
 	(error "Semantic token %S has no type information"
-	       (semantic-token-name ttype)))
+	       (semantic-tag-name ttype)))
 
       ;; Handle lists of tokens.
-      (if (and (listp typetoken) (semantic-token-p (car typetoken)))
+      (if (and (listp typetoken) (semantic-tag-p (car typetoken)))
 
 	  (let ((toklist typetoken))
 	    (setq typetoken nil)
@@ -166,7 +167,7 @@ within that types field.  Also handles anonymous types."
 	    (while (and toklist (not typetoken))
 	      ;; FIXME: Do better matching.
 	      (if (and (car toklist)
-		       (eq (semantic-token-token (car toklist)) 'type))
+		       (eq (semantic-tag-class (car toklist)) 'type))
 		  (setq typetoken (car toklist)))
 	      (setq toklist (cdr toklist)))))
 
@@ -192,21 +193,22 @@ will be stored.  If nil, that data is thrown away."
     ;; For the first entry, it better be a variable, but it might
     ;; be in the local context too.
     ;; NOTE: Don't forget c++ namespace foo::bar.
-    (setq tmp (or (semantic-analyze-find-nonterminal (car s) 'variable)
-		  (semantic-find-nonterminal-by-name
-		   (car s) scope)
-		  (semantic-find-nonterminal-by-name
-		   (car s) (semantic-get-local-arguments))
-		  ;; This should be first, but bugs in the
-		  ;; C parser will turn function calls into
-		  ;; assumed int return function prototypes.  Yuck!
-		  (semantic-find-nonterminal-by-name
-		   (car s) localvar)))
+    (setq tmp (or
+	       ;; This should be first, but bugs in the
+	       ;; C parser will turn function calls into
+	       ;; assumed int return function prototypes.  Yuck!
+	       (semantic-find-tags-by-name
+		(car s) localvar)
+	       (semantic-find-tags-by-name
+		(car s) (semantic-get-local-arguments))
+	       (semantic-find-tags-by-name
+		(car s) scope)
+	       (semantic-analyze-find-nonterminal (car s) 'variable)))
 
-    (if (and (listp tmp) (semantic-token-p (car tmp)))
+    (if (and (listp tmp) (semantic-tag-p (car tmp)))
 	;; We should be smarter... :(
 	(setq tmp (car tmp)))
-    (if (not (semantic-token-p tmp))
+    (if (not (semantic-tag-p tmp))
 	(error "Cannot find definition for \"%s\"" (car s)))
     (setq s (cdr s))
     (setq tok (cons tmp tok))
@@ -224,10 +226,9 @@ will be stored.  If nil, that data is thrown away."
 	(setq slots (semantic-analyze-type-parts tmptype))
 
 	;; find (car s) in the list o slots
-	(setq tmp (semantic-find-nonterminal-by-name
-		   (car s) slots nil nil))
+	(setq tmp (semantic-find-first-tag-by-name (car s) slots))
 
-	(if (and (listp tmp) (semantic-token-p (car tmp)))
+	(if (and (listp tmp) (semantic-tag-p (car tmp)))
 	    ;; We should be smarter...  For example
 	    ;; search for an item only of 'variable if we know
 	    ;; the syntax is variable, or only 'function if we
@@ -237,7 +238,7 @@ will be stored.  If nil, that data is thrown away."
 	    (setq tmp (car tmp)))
 
 	;; Make sure we have a token.
-	(if (not (semantic-token-p tmp))
+	(if (not (semantic-tag-p tmp))
 	    (if (cdr s)
 		;; In the middle, we need to keep seeking our types out.
 		(error "Cannot find definition for \"%s\"" (car s))
@@ -258,8 +259,8 @@ will be stored.  If nil, that data is thrown away."
 This includes both the TYPE parts, and all functions found in all
 databases which have this type as a property."
   (let ((slots
-	 (semantic-nonterminal-children type)
-	 ;(semantic-token-type-parts type)
+	 (semantic-tag-components type)
+	 ;(semantic-tag-type-parts type)
 	 )
 	(extmeth (semantic-nonterminal-external-member-children type t)))
     ;; Flatten the database output.
@@ -283,27 +284,27 @@ This is based on what tokens exist at POSITION, and any associated
 types available."
   (save-excursion
     (if position (goto-char position))
-    (let ((tok (semantic-current-nonterminal))
+    (let ((tok (semantic-current-tag))
 	  (code-scoped-parents nil)
 	  (parent nil))
       (setq parent
 	    ;; This only makes sense in a function
-	    (when (and tok (eq (semantic-token-token tok) 'function))
+	    (when (and tok (eq (semantic-tag-class tok) 'function))
 	      ;; If TOK is a function, it may have a parent class.
 	      ;; Find it.
-	      (let ((p (semantic-token-function-parent tok)))
+	      (let ((p (semantic-tag-function-parent tok)))
 		(if p
 		    ;; We have a parent, search for it.
 		    (let ((ptok (semantic-analyze-find-nonterminal
 				 (cond ((stringp p) p)
-				       ((semantic-token-p p)
-					(semantic-token-name p))
+				       ((semantic-tag-p p)
+					(semantic-tag-name p))
 				       ((and (listp p) (stringp (car p)))
 					(car p))) 'type)))
 		      ptok)
 		  ;; No specified parent.  See if there is a parent by
 		  ;; position?
-		  (setq p (semantic-current-nonterminal-parent))
+		  (setq p (semantic-current-tag-parent))
 		  p))
 	      ;; Lets ask if any types are currently scoped.  Scoped
 	      ;; classes and types provide their public methods and types
@@ -456,8 +457,8 @@ Returns an object based on symbol `semantic-analyze-context'."
 	(when fntok
 	  (setq fntokend (car (reverse fntok))
 		argtok
-		(when (semantic-token-p fntokend)
-		  (nth (1- arg) (semantic-token-function-args fntokend)))
+		(when (semantic-tag-p fntokend)
+		  (nth (1- arg) (semantic-tag-function-arguments fntokend)))
 		)))
 
       (if fntok
@@ -524,15 +525,15 @@ Returns an object based on symbol `semantic-analyze-context'."
 Optional argument DESIRED-TYPE may be a non-type token to analyze."
   (when desired-type
     ;; Convert the desired type if needed.
-    (if (not (eq (semantic-token-token desired-type) 'type))
-	(setq desired-type (semantic-token-type desired-type)))
+    (if (not (eq (semantic-tag-class desired-type) 'type))
+	(setq desired-type (semantic-tag-type desired-type)))
     ;; Protect against plain strings
     (cond ((stringp desired-type)
 	   (setq desired-type (list desired-type 'type)))
 	  ((and (stringp (car desired-type))
-		(not (semantic-token-p desired-type)))
+		(not (semantic-tag-p desired-type)))
 	   (setq desired-type (list (car desired-type) 'type)))
-	  ((semantic-token-p desired-type)
+	  ((semantic-tag-p desired-type)
 	   ;; We have a token of some sort.  Yay!
 	   nil)
 	  (t (setq desired-type nil))
@@ -557,16 +558,16 @@ Used as options when completing."
 	;; We need the real type so that language files don't
 	;; need to know much about analysis.
 	(let* ((realtype (semantic-analyze-find-nonterminal
-			  (semantic-token-name type)))
+			  (semantic-tag-name type)))
 	       (ans (funcall s realtype))
 	       (out nil))
 	  (while ans
 	    (cond ((stringp (car ans))
 		   (setq out (cons (list (car ans)
 					 'variable
-					 (semantic-token-name type))
+					 (semantic-tag-name type))
 				   out)))
-		  ((semantic-token-p (car ans))
+		  ((semantic-tag-p (car ans))
 		   (setq out (cons (car ans) out)))
 		  (t nil))
 	    (setq ans (cdr ans)))
@@ -607,8 +608,8 @@ in a buffer."
     ;; Calculate what our prefix string is so that we can
     ;; find all our matching text.
     (setq completetext (car (reverse prefix)))
-    (if (semantic-token-p completetext)
-	(setq completetext (semantic-token-name completetext)))
+    (if (semantic-tag-p completetext)
+	(setq completetext (semantic-tag-name completetext)))
 
     (if (and (not completetext) (not desired-type))
 	(error "Nothing to complete"))
@@ -621,8 +622,8 @@ in a buffer."
     ;; item when calculating a sequence.
     (setq completetexttype (car (reverse prefixtypes)))
     (if (or (not completetexttype)
-	    (not (and (semantic-token-p completetexttype)
-		      (eq (semantic-token-token completetexttype) 'type))))
+	    (not (and (semantic-tag-p completetexttype)
+		      (eq (semantic-tag-class completetexttype) 'type))))
 	;; What should I do here?  I think this is an error condition.
 	(setq completetexttype nil))
 
@@ -630,11 +631,10 @@ in a buffer."
     ;; Here we go.
     (if completetexttype
 
-	(setq c (semantic-find-nonterminal-by-name-regexp
+	(setq c (semantic-find-tags-by-name-regexp
 		 (concat "^" completetext)
 		 (semantic-analyze-type-parts completetexttype)
-		 ;(semantic-nonterminal-children completetexttype)
-		 nil nil))
+		 ))
 	      
       (let ((expr (concat "^" completetext)))
 	;; No type based on the completetext.  This is a free-range
@@ -642,17 +642,12 @@ in a buffer."
 	;; scope into semanticdb, etc.
 	(setq c (append
 		 ;; Argument list
-		 (semantic-find-nonterminal-by-name-regexp
-		  expr fnargs
-		  nil nil)
+		 (semantic-find-tags-by-name-regexp expr fnargs)
 		 ;; Local variables
-		 (semantic-find-nonterminal-by-name-regexp
-		  expr (oref a localvariables)
-		  nil nil)
+		 (semantic-find-tags-by-name-regexp expr
+						    (oref a localvariables))
 		 ;; The current scope
-		 (semantic-find-nonterminal-by-name-regexp
-		  expr (oref a scope)
-		  nil nil)
+		 (semantic-find-tags-by-name-regexp expr (oref a scope))
 		 ;; The world
 		 (semantic-analyze-find-nonterminals-by-prefix
 		  completetext))
@@ -663,9 +658,8 @@ in a buffer."
     ;; we want to complete on.  Now filter that stream against the
     ;; type we want to search for.
     (if desired-type
-	(setq c (semantic-find-nonterminal-by-type
-		 (semantic-token-name desired-type)
-		 c nil nil)))
+	(setq c (semantic-find-tags-by-type (semantic-tag-name desired-type)
+					    c)))
 
     ;; Some types, like the enum in C, have special constant values that
     ;; we could complete with.  Thus, if the target is an enum, we can
@@ -677,9 +671,9 @@ in a buffer."
 	      (progn
 		;; Filter
 		(setq constants
-		      (semantic-find-nonterminal-by-name-regexp
+		      (semantic-find-tags-by-name-regexp
 		       (concat "^" completetext)
-		       constants nil nil))
+		       constants))
 		;; Add to the list
 		(setq c (append c constants)))
 	    )))
@@ -709,7 +703,7 @@ Some useful functions are found in `semantic-token->text-functions'."
 Use PREFIX as a label."
   (while sequence
     (princ prefix)
-    (if (semantic-token-p (car sequence))
+    (if (semantic-tag-p (car sequence))
 	(princ (funcall semantic-analyze-summary-function
 			(car sequence)))
       (if (stringp (car sequence))
