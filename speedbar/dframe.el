@@ -1,10 +1,10 @@
 ;;; dframe --- dedicate frame support modes
 
-;;; Copyright (C) 1996, 97, 98, 99, 2000, 01, 02 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 2000, 01, 02, 03 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.21 2002/11/28 13:11:03 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.22 2003/02/21 18:02:00 zappo Exp $
 
 (defvar dframe-version "1.3"
   "The current version of the dedicated frame library.")
@@ -248,7 +248,6 @@ Local to those buffers, as a function called that created it.")
 	(if (featurep 'infodoc)
 	    nil
 	  (define-key map 'button3 'dframe-xemacs-popup-kludge))
-	(define-key map '(meta button3) 'dframe-mouse-item-info)
 	)
 
     ;; mouse bindings so we can manipulate the items on each line
@@ -258,7 +257,6 @@ Local to those buffers, as a function called that created it.")
     (define-key map [S-mouse-2] 'dframe-power-click)
     ;; This adds a small unecessary visual effect
     ;;(define-key map [down-mouse-2] 'dframe-quick-mouse)
-    (define-key map [M-mouse-2] 'dframe-mouse-item-info)
 
     (define-key map [down-mouse-3] 'dframe-emacs-popup-kludge)
 
@@ -374,7 +372,6 @@ CREATE-HOOK are hooks to run after creating a frame."
       (setq temp-buffer-show-function 'dframe-temp-buffer-show-function)
       ;; If this buffer is killed, we must make sure that we destroy
       ;; the frame the dedicated window is in.
-      (make-local-hook 'kill-buffer-hook)
       (add-hook 'kill-buffer-hook `(lambda ()
 				     (let ((skilling (boundp 'skilling)))
 				       (if skilling
@@ -751,7 +748,7 @@ Argument PROMPT is the prompt to use."
   "List of client functions using the dframe timer.")
 
 (defun dframe-set-timer (timeout fn &optional null-on-error)
-  "Apply a timer TIMEOUT, to call FN, or remove a timer if TIMOUT is nil.
+  "Apply a timer with TIMEOUT, to call FN, or remove a timer if TIMEOUT is nil.
 TIMEOUT is the number of seconds until the dframe controled program
 timer is called again.  When TIMEOUT is nil, turn off all timeouts.
 This function must be called from the buffer belonging to the program
@@ -876,7 +873,7 @@ Must be bound to event E."
 (if dframe-xemacsp
     (defalias 'dframe-mouse-event-p 'button-press-event-p)
   (defun dframe-mouse-event-p (event)
-    "Return t if the event is a mouse related event"
+    "Return t if the event is a mouse related event."
     (if (and (listp event)
 	     (member (event-basic-type event)
 		     '(mouse-1 mouse-2 mouse-3)))
@@ -1030,7 +1027,7 @@ broken because of the dedicated frame."
 (defun dframe-mouse-hscroll (e)
   "Read a mouse event E from the mode line, and horizontally scroll.
 If the mouse is being clicked on the far left, or far right of the
-mode-line.  This is only useful for non-XEmacs"
+mode-line.  This is only useful for non-XEmacs."
   (interactive "e")
   (let* ((x-point (car (nth 2 (car (cdr e)))))
 	 (pixels-per-10-col (/ (* 10 (frame-pixel-width))
