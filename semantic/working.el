@@ -23,11 +23,26 @@
 
 ;;; Commentary:
 ;;
-;;  Working is an attempt to unify the many locations that display a
-;;  "working" message in the minibuffer, and permits cool
-;;  customizations which would then affect all other packages that use
-;;  this code.
+;; Working lets Emacs Lisp programmers easily display working messages.
+;; These messages typically come in the form of a percentile, or generic
+;; doodles if a maximum is unknown.
 ;;
+;; The working entry points are quite simple.  If you have a loop that needs
+;; to display a status as it goes along, it would look like this:
+;;
+;;  (working-status-forms "Doing stuff" "done"
+;;    (while condition
+;;  	(working-status (calc-percentile))
+;;  	(my-work))
+;;    (working-status t))
+;;
+;; If you cannot calculate a percentile, use the function
+;; `working-static-status' instead, and pass in what you know.  For
+;; both status printing functions, the first argument is optional,
+;; and you may pass in additional arguments as `format' elements
+;; to the first argument of `working-status-forms'.
+;;
+;; See the examples at the end of the buffer.
 
 ;;; Backwards Compatibility:
 ;;
@@ -37,7 +52,7 @@
 ;;
 ;;(condition-case nil
 ;;    (require 'working)
-;;  (error 
+;;  (error
 ;;   (progn
 ;;     (defmacro working-status-forms (message donestr &rest forms)
 ;;	 "Contain a block of code during which a working status is shown."
@@ -57,7 +72,7 @@
 ;;	 "Called within the macro `working-status-forms', show the status."
 ;;	 (message "%s%s" (apply 'format msg args)
 ;;		  (format "... %c" (aref [ ?- ?/ ?| ?\\ ] (% ref1 4))))
-;;	 (setq ref1 (1+ ref1))) 
+;;	 (setq ref1 (1+ ref1)))
 ;;  
 ;;     (put 'working-status-forms 'lisp-indent-function 2))))
 
@@ -106,15 +121,24 @@ it will take ahead of time.  Functions provided in `working' are:
 		 (const working-dotgrowth-display)
 		 (const working-celeron-display)))
 
+;;; Variables used in stages
+;;
+(defvar working-message nil
+  "Message stored when in a status loop.")
+(defvar working-donestring nil
+  "Done string stored when in a status loop.")
+(defvar working-working-ref1 nil
+  "A reference number used in a status loop.")
+
 ;;; Programmer functions
 ;;
 (defmacro working-status-forms (message donestr &rest forms)
   "Contain a block of code during which a working status is shown.
 MESSAGE is the message string to use and DONESTR is the completed text
 to use when the functions `working-status' is called from FORMS."
-  (list 'let (list (list 'msg message)
-		   (list 'dstr donestr)
-		   '(ref1 0))
+  (list 'let (list (list 'working-message message)
+		   (list 'working-donestring donestr)
+		   '(working-ref1 0))
 	(cons 'progn forms)))
 (put 'working-status-forms 'lisp-indent-function 2)
 
@@ -127,7 +151,7 @@ display this string where numbers would appear.
 Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
   (let* ((p (or percent (floor (* 100.0 (/ (float (point)) (point-max))))))
-	 (m1 (apply 'format msg args))
+	 (m1 (apply 'format working-message args))
 	 (m2 (funcall working-status-type (length m1) p)))
     (message "%s%s" m1 m2)))
 
@@ -138,29 +162,29 @@ is a number or float, use it as the raw percentile.  If it is a
 string, then consider the job done, and display this string where
 numbers would appear.  Additional ARGS are passed to fill on %
 elements of MESSAGE from the macro `working-status-forms'."
-  (let* ((n (or number ref1))
-	 (m1 (apply 'format msg args))
+  (let* ((n (or number working-ref1))
+	 (m1 (apply 'format working-message args))
 	 (m2 (funcall working-static-type (length m1) n)))
     (message "%s%s" m1 m2)
-    (setq ref1 (1+ ref1))))
+    (setq working-ref1 (1+ working-ref1))))
 
 ;;; Percentage display types.
 ;;
 (defun working-percent-display (length percent)
-  "Return the percentage of the buffer that is done.
+  "Return the percentage of the buffer that is done in a string.
 LENGTH is the amount of display that has been used.  PERCENT
-is t to display the done string, or the precentage to display."
-  (cond ((eq percent t) (concat "... " dstr))
+is t to display the done string, or the percentage to display."
+  (cond ((eq percent t) (concat "... " working-donestring))
 	;; All the % signs because it then gets passed to message.
 	(t (format "... %3d%%" percent))))
 
 (defun working-bar-display (length percent)
   "Return a string with a bar-graph showing percent.
 LENGTH is the amount of display that has been used.  PERCENT
-is t to display the done string, or the precentage to display."
+is t to display the done string, or the percentage to display."
   (let ((bs (- (frame-width) length 4)))
     (cond ((eq percent t)
-	   (concat ": [" (make-string bs ?#) "] " dstr))
+	   (concat ": [" (make-string bs ?#) "] " working-donestring))
 	  (t (let ((bsl (floor (* (/ percent 100.0) bs))))
 	       (concat ": ["
 		       (make-string bsl ?#)
@@ -168,44 +192,44 @@ is t to display the done string, or the precentage to display."
 		       "]"))))))
 
 (defun working-bar-percent-display (length percent)
-  "Return a string with a bar-graph showing percent.
+  "Return a string with a bar-graph and percentile showing percentage.
 LENGTH is the amount of display that has been used.  PERCENT
-is t to display the done string, or the precentage to display."
+is t to display the done string, or the percentage to display."
   (let* ((ps (if (eq percent t)
-		 (concat "... " dstr)
+		 (concat "... " working-donestring)
 	       (working-percent-display length percent)))
-	 (psl (+ 1 length (if (eq percent t) ref1 (length ps)))))
+	 (psl (+ 1 length (if (eq percent t) working-ref1 (length ps)))))
     (cond ((eq percent t)
 	   (concat (working-bar-display psl 100) " " ps))
 	  (t
-	   (setq ref1 (length ps))
+	   (setq working-ref1 (length ps))
 	   (concat (working-bar-display psl percent) " " ps)))))
 
 (defun working-percent-bar-display (length percent)
-  "Return a string with a bar-graph showing percent.
+  "Return a string with a percentile and bar-graph showing percentage.
 LENGTH is the amount of display that has been used.  PERCENT
-is t to display the done string, or the precentage to display."
+is t to display the done string, or the percentage to display."
   (let* ((ps (if (eq percent t)
-		 (concat "... " dstr)
+		 (concat "... " working-donestring)
 	       (working-percent-display length percent)))
-	 (psl (+ 1 length (if (eq percent t) ref1 (length ps)))))
+	 (psl (+ 1 length (if (eq percent t) working-ref1 (length ps)))))
     (cond ((eq percent t)
 	   (concat ps " " (working-bar-display psl 100)))
 	  (t
-	   (setq ref1 (length ps))
+	   (setq working-ref1 (length ps))
 	   (concat ps " " (working-bar-display psl percent))))))
 
 (defun working-celeron-percent-display (length percent)
   "Return a string with a celeron and string showing percent.
 LENGTH is the amount of display that has been used.  PERCENT
-is t to display the done string, or the precentage to display."
+is t to display the done string, or the percentage to display."
   (prog1
       (cond ((eq percent t) (working-celeron-display length t))
 	    ;; All the % signs because it then gets passed to message.
 	    (t (format "%s %3d%%"
 		       (working-celeron-display length 0)
 		       percent)))
-    (setq ref1 (1+ ref1))))
+    (setq working-ref1 (1+ working-ref1))))
 
 ;;; Static display types.
 ;;
@@ -213,7 +237,7 @@ is t to display the done string, or the precentage to display."
   "Return a string display the number of things that happened.
 LENGTH is the amount of display that has been used.  NUMBER
 is t to display the done string, or the number to display."
-  (cond ((eq number t) (concat "... " dstr))
+  (cond ((eq number t) (concat "... " working-donestring))
 	;; All the % signs because it then gets passed to message.
 	(t (format "... %d" number))))
 
@@ -221,17 +245,16 @@ is t to display the done string, or the number to display."
   "Return a string displaying a spinner based on a number.
 LENGTH is the amount of display that has been used.  NUMBER
 is t to display the done string, or the number to display."
-  (cond ((eq number t) (concat "... " dstr))
+  (cond ((eq number t) (concat "... " working-donestring))
 	;; All the % signs because it then gets passed to message.
-	(t (format "... %c" (aref [ ?- ?/ ?| ?\\ ] (% number 4))))))
+	(t (format "... %c" (aref [ ?- ?/ ?| ?\\ ] (% working-ref1 4))))))
 
 (defun working-dotgrowth-display (length number)
   "Return a string displaying growing dots due to activity.
 LENGTH is the amount of display that has been used.  NUMBER
 is t to display the done string, or the number to display."
-  ;; Always use ref1 because we count calls, not arbitrary numbers.
-  (concat " (" (make-string ref1 ?.) ")"
-	  (if (eq number t) (concat " " dstr) "")))
+  (concat " (" (make-string working-ref1 ?.) ")"
+	  (if (eq number t) (concat " " working-donestring) "")))
 
 (defvar working-celeron-strings
   [ "[O     ]" "[oO    ]" "[-oO   ]" "[ -oO  ]" "[  -oO ]" "[   -oO]"
@@ -244,48 +267,48 @@ is t to display the done string, or the number to display."
 LENGTH is the amount of display that has been used.  NUMBER
 is t to display the done string, or the number to display."
   (cond ((eq number t)
-	 (if (< (length dstr) 6)
+	 (if (< (length working-donestring) 6)
 	     (concat " ["
-		     (make-string (ceiling (/ (- 6.0 (length dstr)) 2)) ? )
-		     dstr
-		     (make-string (floor (/ (- 6.0 (length dstr)) 2)) ? )
+		     (make-string (ceiling (/ (- 6.0 (length working-donestring)) 2)) ? )
+		     working-donestring
+		     (make-string (floor (/ (- 6.0 (length working-donestring)) 2)) ? )
 		     "]")
 	   (concat " " (aref working-celeron-strings
-			     (% ref1 (length working-celeron-strings)))
-		   " " dstr)))
+			     (% working-ref1 (length working-celeron-strings)))
+		   " " working-donestring)))
 	;; All the % signs because it then gets passed to message.
 	(t (concat " " (aref working-celeron-strings
-			     (% ref1 (length working-celeron-strings)))))))
+			     (% working-ref1 (length working-celeron-strings)))))))
 
 ;;; Example function using `working'
 ;;
-;;(defun working-verify-parenthisis-a ()
-;;  "Verify all the parenthisis in an elisp program buffer."
-;;  (interactive)
-;;  (save-excursion
-;;    (goto-char (point-min))
-;;    (working-status-forms "Scanning" "done"
-;;	(while (not (eobp))
-;;	  ;; Use default buffer position.
-;;	  (working-status)
-;;	  (forward-sexp 1)
-;;	  (sleep-for 0.05)
-;;	  )
-;;	(working-status t))))
-;; 
-;;(defun working-verify-parenthisis-b ()
-;;  "Verify all the parenthisis in an elisp program buffer."
-;;  (interactive)
-;;  (save-excursion
-;;    (goto-char (point-min))
-;;    (working-status-forms "Scanning" "done"
-;;	(while (not (eobp))
-;;	  ;; Use default buffer position.
-;;	  (working-static-status)
-;;	  (forward-sexp 1)
-;;	  (sleep-for 0.05)
-;;	  )
-;;	(working-static-status t))))
+(defun working-verify-parenthisis-a ()
+  "Verify all the parenthisis in an elisp program buffer."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (working-status-forms "Scanning" "done"
+	(while (not (eobp))
+	  ;; Use default buffer position.
+	  (working-status)
+	  (forward-sexp 1)
+	  (sleep-for 0.05)
+	  )
+	(working-status t))))
+ 
+(defun working-verify-parenthisis-b ()
+  "Verify all the parenthisis in an elisp program buffer."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (working-status-forms "Scanning" "done"
+	(while (not (eobp))
+	  ;; Use default buffer position.
+	  (working-static-status)
+	  (forward-sexp 1)
+	  (sleep-for 0.05)
+	  )
+	(working-static-status t))))
 
 (provide 'working)
 
