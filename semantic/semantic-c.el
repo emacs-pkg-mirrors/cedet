@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.20 2001/03/10 16:19:13 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.21 2001/04/07 02:44:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,7 +111,7 @@
  ( define)
  ( opt-class-protection punctuation "\\b:\\b"
   ,(semantic-lambda
-  (list (nth 0 vals) 'protection)))
+  (nth 0 vals) (list 'protection)))
  ()
  ) ; end classsubparts
  (opt-class-parents
@@ -127,6 +127,27 @@
  ( PRIVATE)
  ( PROTECTED)
  ) ; end opt-class-protection
+ (namespaceparts
+ ( semantic-list
+  ,(semantic-lambda
+ 
+ (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'namespacesubparts)
+ ))
+ ) ; end namespaceparts
+ (namespacesubparts
+ ( open-paren "{"
+  ,(semantic-lambda
+  (list nil)))
+ ( close-paren "}"
+  ,(semantic-lambda
+  (list nil)))
+ ( type)
+ ( define)
+ ( opt-class-protection punctuation "\\b:\\b"
+  ,(semantic-lambda
+  (list (nth 0 vals) 'protection)))
+ ()
+ ) ; end namespacesubparts
  (enumparts
  ( semantic-list
   ,(semantic-lambda
@@ -167,6 +188,9 @@
  ( TYPEDEF typeform symbol
   ,(semantic-lambda
   (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
+ ( NAMESPACE symbol namespaceparts
+  ,(semantic-lambda
+  (list (nth 1 vals) 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
  ) ; end typesimple
  (type
  ( typesimple punctuation "\\b;\\b"
@@ -202,10 +226,14 @@
  ( VIRTUAL)
  ) ; end DECLMOD
  (typeform
- ( typeformbase opt-stars
+ ( typeformbase opt-stars opt-ref
   ,(semantic-lambda
   (nth 0 vals)))
  ) ; end typeform
+ (opt-ref
+ ( punctuation "\\b&\\b")
+ ()
+ ) ; end opt-ref
  (typeformbase
  ( typesimple
   ,(semantic-lambda
@@ -370,6 +398,7 @@
  ( punctuation "\\b\\+\\b")
  ( punctuation "\\b-\\b")
  ( punctuation "\\b/\\b")
+ ( punctuation "\\b=\\b")
  ) ; end operatorsym
  (functionname
  ( OPERATOR operatorsym
@@ -405,7 +434,7 @@
  ))
  ) ; end expression
  )
-                                   "C language specification.")
+ "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -534,6 +563,7 @@ machine."
       ("enum" . ENUM)
       ("typedef" . TYPEDEF)
       ("class" . CLASS)
+      ("namespace" . NAMESPACE)
       ("operator" . OPERATOR)
       ("public" . PUBLIC)
       ("private" . PRIVATE)
@@ -564,6 +594,7 @@ machine."
      ("enum" summary "Type Declaration: enum [name] { ... };")
      ("typedef" summary "Type Declaration: typedef <typedeclaration> <name>")
      ("class" summary "Type Declaration: class <name>[:parents] { ... };")
+     ("namespace" summary "Type Declaration: namespace <name> { ... };")
      ("if" summary "Conditional: if <condition> {code} [ else { coe } ]")
      ("else" summary "Conditional: if <condition> {code} [ else { coe } ]")
      ("do" summary "Loop: do { code } while <condition>;")
