@@ -1,6 +1,9 @@
 # Simple BNF notation for top-level C elements.
 #
 # $Log: c.bnf,v $
+# Revision 1.4  1999/12/17 20:53:16  zappo
+# Added a splice , for varnamelist.
+#
 # Revision 1.3  1999/06/06 14:20:24  zappo
 # Fixed up some language definitions.
 #
@@ -140,7 +143,7 @@ variablearg : declmods typeform varname
 	    ;
 
 varnamelist : varname  punctuation "," varnamelist
-	      ( (cons $1 $3) )
+	      ( ,(cons $1 $3) )
             | varname
 	      ( $1 )
 	    ;
