@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.38 2001/05/15 14:02:23 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.39 2001/05/16 14:42:57 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1794,6 +1794,28 @@ If semantic tokens are available, use them to navigate."
 (defvar senator-token-ring (make-ring 20)
   "Ring of tokens for use with cut and paste.")
 
+(defun senator-insert-foreign-token-default (token tokenfile)
+  "Insert TOKEN from a foreign buffer into the current buffer.
+This is the default behavior for `senator-insert-foreign-token'.
+Assumes the current buffer is a language file, and attempts to insert
+a prototype/function call.
+Argument TOKENFILE is the file from wence TOKEN came."
+  ;; Long term goal:
+  ;; Have a mechanism for a tempo-like template insert for the given
+  ;; token.
+  (insert (semantic-prototype-nonterminal token)))
+
+(defun senator-insert-foreign-token (token tokenfile)
+  "Insert TOKEN from a foreign buffer into the current buffer.
+TOKEN will have originated from TOKENFILE.
+This function is overridable with the symbol `insert-foreign-token'."
+  (if (or (not token) (not (semantic-token-p token)))
+      (signal 'wrong-type-argument (list token 'semantic-token-p)))
+  (let ((s (semantic-fetch-overload 'insert-foreign-token)))
+    (if s (funcall s token tokenfile)
+      (senator-insert-foreign-token-default token tokenfile))
+    (message (semantic-summarize-nonterminal token))))
+
 (defun senator-copy-token ()
   "Take the current token, and place it in the token ring."
   (interactive)
@@ -1852,28 +1874,6 @@ If senator is not active, use the original mechanism."
           (goto-char (semantic-token-start (car val))))
       ad-do-it)))
 
-(defun senator-insert-foreign-token (token tokenfile)
-  "Insert TOKEN from a foreign buffer into the current buffer.
-TOKEN will have originated from TOKENFILE.
-This function is overridable with the symbol `insert-foreign-token'."
-  (if (or (not token) (not (semantic-token-p token)))
-      (signal 'wrong-type-argument (list token 'semantic-token-p)))
-  (let ((s (semantic-fetch-overload 'insert-foreign-token)))
-    (if s (funcall s token tokenfile)
-      (senator-insert-foreign-token-default token tokenfile))
-    (message (semantic-summarize-nonterminal token))))
-
-(defun senator-insert-foreign-token-default (token tokenfile)
-  "Insert TOKEN from a foreign buffer into the current buffer.
-This is the default behavior for `senator-insert-foreign-token'.
-Assumes the current buffer is a language file, and attempts to insert
-a prototype/function call.
-Argument TOKENFILE is the file from wence TOKEN came."
-  ;; Long term goal:
-  ;; Have a mechanism for a tempo-like template insert for the given
-  ;; token.
-  (insert (semantic-prototype-nonterminal token)))
-
 ;;;;
 ;;;; Suggestion mode
 ;;;;
@@ -1890,32 +1890,6 @@ Colored text can be printed with the message command with some
 versions of Emacs."
   :group 'senator
   :type 'boolean)
-
-(defadvice eldoc-print-current-symbol-info (around senator activate)
-  "Enable ELDOC in non Emacs Lisp, but semantic-enabled modes."
-  (if (eq major-mode 'emacs-lisp-mode)
-      ad-do-it
-    (if (semantic-active-p)
-        (if (eldoc-display-message-p)
-            (senator-eldoc-print-current-symbol-info))
-      (eldoc-mode -1))))
-
-(defun senator-eldoc-print-current-symbol-info ()
-  "Print information using `eldoc-message' while in function `eldoc-mode'.
-You can override the info collecting part with `eldoc-current-symbol-info'."
-  (let* ((s (semantic-fetch-overload 'eldoc-current-symbol-info))
-         found)
-
-    (if s (setq found (funcall s))
-      (setq found (senator-eldoc-print-current-symbol-info-default)))
-
-    (eldoc-message
-     (cond ((stringp found)
-            found)
-           ((semantic-token-p found)
-            (semantic-summarize-nonterminal found nil senator-eldoc-use-color))
-           (t nil)
-           ))))
 
 (defun senator-eldoc-print-current-symbol-info-default ()
   "Return a string message describing the current context."
@@ -1950,6 +1924,32 @@ You can override the info collecting part with `eldoc-current-symbol-info'."
                 ))
           ))
     found))
+
+(defun senator-eldoc-print-current-symbol-info ()
+  "Print information using `eldoc-message' while in function `eldoc-mode'.
+You can override the info collecting part with `eldoc-current-symbol-info'."
+  (let* ((s (semantic-fetch-overload 'eldoc-current-symbol-info))
+         found)
+
+    (if s (setq found (funcall s))
+      (setq found (senator-eldoc-print-current-symbol-info-default)))
+
+    (eldoc-message
+     (cond ((stringp found)
+            found)
+           ((semantic-token-p found)
+            (semantic-summarize-nonterminal found nil senator-eldoc-use-color))
+           (t nil)
+           ))))
+
+(defadvice eldoc-print-current-symbol-info (around senator activate)
+  "Enable ELDOC in non Emacs Lisp, but semantic-enabled modes."
+  (if (eq major-mode 'emacs-lisp-mode)
+      ad-do-it
+    (if (semantic-active-p)
+        (if (eldoc-display-message-p)
+            (senator-eldoc-print-current-symbol-info))
+      (eldoc-mode -1))))
 
 ;;; HIPPIE EXPAND
 ;;
