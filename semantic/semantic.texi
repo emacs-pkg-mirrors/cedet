@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.50 2001/10/24 02:08:02 zappo Exp $
+@c $Id: semantic.texi,v 1.51 2001/10/24 23:07:03 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -2027,6 +2027,7 @@ Semantic.
 * semanticdb::                  Cache your parsed buffers between sessions.
 * senator::                     The Semantic Navigator
 * document::                    Document generation functions
+* charts::                      Charting code statistics
 * miscellaneous::
 @end menu
 
@@ -2052,6 +2053,9 @@ display them appropriately.  Tags from semantic will have additional
 details which can be seen, such as return type, or arguments to
 functions.
 
+If you use @file{semantic-load.el}, you do not need to add the above
+lines in your .emacs file.
+
 @node imenu, semanticdb, speedbar, Tools
 @comment  node-name,  next,  previous,  up
 @section Imenu support
@@ -2072,6 +2076,9 @@ in your @file{.emacs} file:
 Also supported is @dfn{which-func-mode}.  This usually uses imenu
 tags to show the current function.  The semantic support for this
 function uses overlays, which is much faster.
+
+If you use @file{semantic-load.el}, you do not need to add the above
+lines in your .emacs file.
 
 You can customize imenu with the following options:
 
@@ -2431,7 +2438,7 @@ only.
 Any comments, suggestions, bug reports or upgrade requests are
 welcome.  Please send them to David Ponce at david@@dponce.com
 
-@node document, miscellaneous, senator, Tools
+@node document, charts, senator, Tools
 @comment  node-name,  next,  previous,  up
 @section Document generation
 
@@ -2475,7 +2482,34 @@ Jump to the source for the definition in the texinfo file @var{TOKEN}.
 If @var{TOKEN} is @code{nil}, it is derived from the deffn under @var{POINT}.
 @end deffn
 
-@node miscellaneous,  , document, Tools
+@node charts, miscellaneous, document, Tools
+@comment  node-name,  next,  previous,  up
+@section Charting Commands
+
+Some commands to draw charts of statistics generated from parsing:
+
+@deffn Command semantic-chart-nonterminals-by-token &optional buffer-or-stream
+Create a bar chart representing the number of nonterminals for a token.
+Each bar represents how many toplevel nonterminal in @var{BUFFER-OR-STREAM}
+exist with a given token type.  See `semantic-symbol->name-assoc-list'
+for tokens which will be charted.
+@end deffn
+
+@deffn Command semantic-chart-database-size &optional buffer-or-stream
+Create a bar chart representing the size of each file in semanticdb.
+Each bar represents how many toplevel nonterminals in @var{BUFFER-OR-STREAM}
+exist in each database entry.
+@end deffn
+
+@deffn Command semantic-chart-nonterminal-complexity-token &optional symbol buffer-or-stream
+Create a bar chart representing the complexity of some tokens.
+Complexity is calculated for tokens with a token of @var{SYMBOL}.  Each bar
+represents the complexity of some nonterminal in @var{BUFFER-OR-STREAM}.
+Only the most complex items are charted.
+@end deffn
+
+
+@node miscellaneous,  , charts, Tools
 @comment  node-name,  next,  previous,  up
 @section Miscellaneous commands
 
