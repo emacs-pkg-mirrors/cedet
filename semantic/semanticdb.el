@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.23 2001/04/21 02:34:03 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.24 2001/04/25 18:03:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -420,6 +420,15 @@ Update the environment of Semantic enabled buffers accordingly."
 ;;
 ;; Line all the semantic-util 'find-nonterminal...' type functions, but
 ;; trans file across the database.
+(defun semanticdb-current-database ()
+  "Return the currently active database."
+  (or semanticdb-current-database
+      (and default-directory
+	   (semanticdb-get-database (concat default-directory
+					    semanticdb-default-file-name))
+	   )
+      nil))
+
 (defmethod semanticdb-equivalent-mode ((table semanticdb-table) &optional buffer)
   "Return non-nil if TABLE's mode is equivalent to BUFFER.
 Equivalent modes are specified by by `semantic-equivalent-major-modes'
@@ -467,6 +476,39 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
      (semantic-find-nonterminal-by-type type stream sp si))
    databases search-parts search-includes diff-mode find-file-match))
 
+(defun semanticdb-find-nonterminal-by-property
+  (property value &optional databases search-parts search-includes diff-mode find-file-match)
+  "Find all nonterminals with a PROPERTY equal to VALUE in databases.
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+Return a list ((DB-TABLE . TOKEN-LIST) ...)."
+  (semanticdb-find-nonterminal-by-function
+   (lambda (stream sp si)
+     (semantic-find-nonterminal-by-property property value stream sp si))
+   databases search-parts search-includes diff-mode find-file-match))
+
+(defun semanticdb-find-nonterminal-by-extra-spec
+  (spec &optional databases search-parts search-includes diff-mode find-file-match)
+  "Find all nonterminals with a SPEC in databases.
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+Return a list ((DB-TABLE . TOKEN-LIST) ...)."
+  (semanticdb-find-nonterminal-by-function
+   (lambda (stream sp si)
+     (semantic-find-nonterminal-by-extra-spec spec stream sp si))
+   databases search-parts search-includes diff-mode find-file-match))
+
+(defun semanticdb-find-nonterminal-by-extra-spec-value
+  (spec value &optional databases search-parts search-includes diff-mode find-file-match)
+  "Find all nonterminals with a SPEC equal to VALUE in databases.
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+Return a list ((DB-TABLE . TOKEN-LIST) ...)."
+  (semanticdb-find-nonterminal-by-function
+   (lambda (stream sp si)
+     (semantic-find-nonterminal-by-extra-spec-value spec value stream sp si))
+   databases search-parts search-includes diff-mode find-file-match))
+
 (defun semanticdb-find-nonterminal-by-function
   (function &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals which match FUNCTION.
@@ -482,7 +524,7 @@ Return a list ((DB-TABLE . TOKEN-OR-TOKEN-LIST) ...)."
   (if (not databases)
       ;; Calculate what database to use.
       ;; Something simple and dumb for now.
-      (setq databases (list semanticdb-current-database)))
+      (setq databases (list (semanticdb-current-database))))
   (let ((ret nil)
         (case-fold-search semantic-case-fold))
     (while databases
