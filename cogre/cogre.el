@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: cogre.el,v 1.2 2001/04/18 02:27:35 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.3 2001/04/23 18:18:42 zappo Exp $
 
 (defvar cogre-version "0.0"
   "Current version of Cogre.")
@@ -158,32 +158,29 @@ a status, or values.")
 (defclass cogre-link (cogre-graph-element)
   ((start :initarg :start
 	  :initform nil
-	  :type (or null string cogre-node)
+	  :type (or null string cogre-node-child)
 	  :documentation "The starting node.
 As a string, the name of the node we start on.
 As an object, the node we start on.")
    (end :initarg :end
 	  :initform nil
-	  :type (or null string cogre-node)
+	  :type (or null string cogre-node-child)
 	  :documentation "The ending node.
 As a string, the name of the node we end on.
 As an object, the node we end on.")
    (start-glyph :initarg :start-glyph
-		:initform nil
+		:initform [ nil nil nil nil ]
 		:allocation class
-		:type (or null string vector)
+		:type vector
 		:documentation "The starting glyph.
-A Glyph can be NULL, meaning nothing, a list, a string, or a vector.
-A list must represent a rectangle of text.
-Tbe string means a one-line block of text.
-For these single items, the same glyph is used for all four directions.
+A Glyph can be NULL, meaning nothing, or a vector.
 A Vector must be 4 elements long.  This represents glyphs on
 the [ TOP BOTTOM LEFT RIGHT ] of the attached node.
-Each element of the vector can be a list or string.")
+Each element of the vector must be a list representing a rectangle.")
    (end-glyph :initarg :end-glyph
-	      :initform nil
+	      :initform [ nil nil nil nil ]
 	      :allocation class
-	      :type (or null string)
+	      :type vector
 	      :documentation "The ending glyph.
 See slot `start-glyph'")
    (horizontal-preference-ratio
@@ -233,6 +230,9 @@ arrows or circles.")
   (define-key cogre-mode-map "N" 'cogre-new-node)
   (define-key cogre-mode-map "L" 'cogre-new-link)
   (define-key cogre-mode-map "D" 'cogre-delete)
+  ;; Changing and Setting Defaults
+  (define-key cogre-mode-map "\C-c\C-n" 'cogre-default-node)
+  (define-key cogre-mode-map "\C-c\C-l" 'cogre-default-link)
   ;; Modifications
   (define-key cogre-mode-map "n" 'cogre-set-element-name)
   (define-key cogre-mode-map "l" 'cogre-edit-label)
@@ -304,6 +304,70 @@ Throw an error if there is no node."
 	(error "No graph node under point")
       e)))
 
+;;; Default management
+;;
+;; Defaults provide a way of quickly creating a bunch of the same type
+;; of node/link, or whatever.  By using these functions in `interactive'
+;; commands, a set of defaults can be specified which are used
+;; continuously.
+(defvar cogre-node-history nil
+  "The history for reading in node class names.")
+
+(defvar cogre-default-node nil
+  "The last node type queried.
+Used as the default node type when a user wants a node, and no request
+to change it has been made.")
+
+(defun cogre-default-node (&optional node prefix)
+  "Return the default node type.
+If run interactively, query for a new node to make the default.
+If called non-interactivly there is no default, query for one.
+If NODE is supplied, use that.
+If there is a PREFIX argument, then force a query for one."
+  (interactive (list (eieio-read-subclass "Node Type: "
+					  cogre-node
+					  'cogre-node-history)
+		     current-prefix-arg))
+  ;; Save whatever is being set.
+  (if node (setq cogre-default-node node))
+  ;; If we are not interactive, then check the prefix.
+  (if (or prefix (not cogre-default-node))
+      (setq cogre-default-node (eieio-read-subclass "Node Type: "
+				      cogre-node
+				      'cogre-node-history)))
+  ;; Return the cached node.
+  cogre-default-node
+  )
+
+(defvar cogre-link-history nil
+  "The history for reading in link class names.")
+
+(defvar cogre-default-link nil
+  "The last link type queried.
+Used as the default link type when a user wants a link, and no request
+to change it has been made.")
+
+(defun cogre-default-link (&optional link prefix)
+  "Return the default link type.
+If run interactively, query for a new link to make the default.
+If called non-interactivly there is no default, query for one.
+If LINK is supplied, use that.
+If there is a PREFIX argument, then force a query for one."
+  (interactive (list (eieio-read-subclass "Link Type: "
+					  cogre-link
+					  'cogre-link-history)
+		     current-prefix-arg))
+  ;; Save whatever is being set.
+  (if link (setq cogre-default-link link))
+  ;; If we are not interactive, then check the prefix.
+  (if (or prefix (not cogre-default-link))
+      (setq cogre-default-link (eieio-read-subclass "Link Type: "
+				      cogre-link
+				      'cogre-link-history)))
+  ;; Return the cached link.
+  cogre-default-link
+  )
+
 ;;; Commands for Graph Mode
 ;;
 (defun cogre-refresh ()
@@ -311,17 +375,11 @@ Throw an error if there is no node."
   (interactive)
   (cogre-render-buffer cogre-graph t))
 
-(defvar cogre-node-history nil
-  "The history for reading in node class names.")
-
 (defun cogre-new-node (point nodetype)
   "Insert a new node at the current point.
 Argument POINT is a position to insert this node to.
 NODETYPE is the eieio class name for the node to insert."
-  (interactive (list (point)
-		     (eieio-read-subclass "Node Type: "
-					  cogre-node
-					  'cogre-node-history)))
+  (interactive (list (point) (cogre-default-node)))
   (save-excursion
     (goto-char point)
     (if (not nodetype) (setq nodetype 'cogre-node))
@@ -332,19 +390,14 @@ NODETYPE is the eieio class name for the node to insert."
       (cogre-render-buffer cogre-graph)
       )))
 
-(defvar cogre-link-history nil
-  "The history for reading in link class names.")
-
-(defun cogre-new-link (mark point linktype)
+(defun cogre-new-link (mark point &optional linktype)
   "Insert a new link from the node at MARK to POINT of LINKTYPE.
 MARK is the node within which the current mark is set.
 POINT is the node the cursor is in.
 LINKTYPE is the eieio class name for the link to insert."
   (interactive (list (cogre-node-at-point-interactive (mark))
 		     (cogre-node-at-point-interactive (point))
-		     (eieio-read-subclass "Link Type: "
-					  cogre-link
-					  'cogre-link-history)))
+		     (cogre-default-link)))
   (if (not linktype) (setq linktype cogre-link))
   (make-instance linktype "Link" :start mark :end point)
   (cogre-render-buffer cogre-graph)
@@ -605,6 +658,9 @@ Always make the width 2 greater than the widest string."
 	    title (cdr title)))
     (while slots
       (let ((sl (car slots)))
+	;; If a subnode has nil here, make sure we put in a blank
+	;; line placeholder.
+	(if (not sl) (setq sl (list "")))
 	(setq first t)
 	(while sl
 	  (setq rect (cons (cogre-string-with-face
@@ -729,6 +785,9 @@ The data returned is (X1 Y1 X2 Y2)."
 
 ;;; Links
 ;;
+(defvar cogre-erase-mode nil
+  "Non nil means we are in erase mode while rendering this link.")
+
 (defmethod cogre-erase ((link cogre-link))
   "Erase LINK from the screen."
   (let ((picture-rectangle-ctl ? )
@@ -740,7 +799,8 @@ The data returned is (X1 Y1 X2 Y2)."
     ;; Links use picture line drawing teqnique to wander about.
     ;; By setting the picture line characters to spaces, we can
     ;; erase the line with the render command.
-    (cogre-render link)
+    (let ((cogre-erase-mode t))
+      (cogre-render link))
     (call-next-method)))
 
 (defmethod cogre-render ((link cogre-link))
@@ -764,8 +824,51 @@ The data returned is (X1 Y1 X2 Y2)."
       (apply 'picture-draw-rectilinear-line
 	     (append linkcoords (list dir 'face nil 'element link)))
       ;; Handle start/end glyps.
-      ;; foo
-      ))
+      (if (and (not start-glyph) (not end-glyph))
+	  ;; We need to do nothing if we have no glyphs.
+	  nil
+	(let* (startrect endrect x1 y1 x2 y2)
+	  ;; Calculate the modificates needed to the end points for
+	  ;; creating the textual glyph.
+	  (setq x1 (nth 0 linkcoords)
+		y1 (nth 1 linkcoords)
+		x2 (nth 2 linkcoords)
+		y2 (nth 3 linkcoords))
+	  (if (eq dir 'horizontal)
+	      (progn
+		(if (< x1 x2)
+		    (setq startrect (aref start-glyph 2)
+			  endrect (aref end-glyph 3)
+			  x2 (- x2 -1 (length (car endrect))))
+		  (setq startrect (aref start-glyph 3)
+			endrect (aref end-glyph 2)
+			x1 (- x1 -1 (length (car startrect)))))
+		(setq y1 (- y1 (/ (length startrect) 2))
+		      y2 (- y2 (/ (length endrect) 2))))
+	    (if (< y1 y2)
+		(setq startrect (aref start-glyph 0)
+		      endrect (aref end-glyph 1)
+		      y2 (- y2 -1 (length endrect)))
+	      (setq startrect (aref start-glyph 1)
+		    endrect (aref end-glyph 0)
+		    y1 (- y1 -1 (length endrect))))
+	    (setq x1 (- x1 (/ (length (car startrect)) 2))
+		  x2 (- x2 (/ (length (car endrect)) 2))))
+	  ;; Ok, splat the glyph
+	  (if cogre-erase-mode
+	      (progn
+		(cogre-erase-rectangle x1 y1
+				       (length (car startrect))
+				       (length startrect))
+		(cogre-erase-rectangle x2 y2
+				       (length (car endrect))
+				       (length endrect)))
+	    (picture-goto-coordinate x1 y1)
+	    (picture-insert-rectangle startrect nil)
+	    (picture-goto-coordinate x2 y2)
+	    (picture-insert-rectangle endrect nil))
+
+	  ))))
   (call-next-method))
 
 ;;; Low Level Rendering and status
