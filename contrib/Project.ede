@@ -10,7 +10,7 @@
     :autoload-file "contrib-loaddefs.el"
     )
    (semantic-ede-proj-target-grammar "Wisent Languages"
-    :name "Wisent Languages"
+    :name "Wisent_Languages"
     :path ""
     :source '("wisent-csharp.wy")
     )
