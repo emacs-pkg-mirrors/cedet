@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.26 2003/02/22 15:37:20 ponced Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.27 2003/03/14 05:44:43 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -354,7 +354,7 @@ expr_stmt
     (if (and $2 (stringp $1) (string-match "^\\(\\sw\\|\\s_\\)+$" $1))
 	;; If this is an assignment statement and left side is a symbol,
 	;; then generate a 'variable token, else return 'code token.
-	(wisent-token $1 'variable nil nil nil nil)
+	(VARIABLE-TAG $1 nil nil)
       (wisent-token $1 'code nil nil))
   ;
 
@@ -494,9 +494,9 @@ zero_or_one_comma_test
 ;;               ('*' | import_as_name (',' import_as_name)*)
 import_stmt
   : IMPORT dotted_as_name_list
-    (wisent-token $2 'import nil nil)
+    (INCLUDE-TAG $2)
   | FROM dotted_name IMPORT star_or_import_as_name_list
-    (wisent-token $2 'import nil nil)
+    (INCLUDE-TAG $2)
   ;
 
 ;; dotted_as_name (',' dotted_as_name)*
@@ -719,8 +719,7 @@ zero_one_or_two_test
 ;; funcdef: 'def' NAME parameters ':' suite
 funcdef
   : DEF NAME function_parameter_list COLON suite
-    (wisent-token $2 'function nil
-		  $3 nil nil)
+    (FUNCTION-TAG $2 nil $3)
   ;
 
 function_parameter_list
@@ -741,11 +740,11 @@ function_parameters
 function_parameter
   : fpdef_opt_test
  ;;  : NAME
- ;;    (wisent-token $1 'variable nil nil nil nil)
+ ;;    (VARIABLE-TAG $1 nil nil)
   | MULT NAME
-    (wisent-token $2 'variable nil nil nil nil)
+    (VARIABLE-TAG $2 nil nil)
   | EXPONENT NAME
-    (wisent-token $2 'variable nil nil nil nil)
+    (VARIABLE-TAG $2 nil nil)
   ;
 
 ;;;============================================================================
@@ -755,7 +754,7 @@ function_parameter
 ;; classdef: 'class' NAME ['(' testlist ')'] ':' suite
 class_declaration
   : CLASS NAME paren_class_list_opt COLON suite
-    (wisent-token $2 'type $1 $5 $3 nil)
+    (TYPE-TAG $2 $1 $5 $3)
   ;
 
 ;; ['(' testlist ')']
@@ -776,9 +775,9 @@ paren_classes
   | RPAREN
     ()
   | paren_class COMMA
-    (wisent-token $1 'variable nil nil nil nil)
+    (VARIABLE-TAG $1 nil nil)
   | paren_class RPAREN
-    (wisent-token $1 'variable nil nil nil nil)
+    (VARIABLE-TAG $1 nil nil)
   ;
 
 ;; In general, the base class can be specified by a general expression
@@ -1009,16 +1008,16 @@ varargslist
 ;; ('*' NAME [',' '**' NAME] | '**' NAME)
 rest_args
   : MULT NAME multmult_name_opt
-    () ;;(wisent-token $2 'variable nil nil nil nil)
+    () ;;(VARIABLE-TAG $2 nil nil)
   | EXPONENT NAME
-    () ;;(wisent-token $2 'variable nil nil nil nil)
+    () ;;(VARIABLE-TAG $2 nil nil)
   ;
 
 ;; [',' '**' NAME]
 multmult_name_opt
   : ;;EMPTY
   | COMMA EXPONENT NAME
-    (wisent-token $3 'variable nil nil nil nil)
+    (VARIABLE-TAG $3 nil nil)
   ;
 
 fpdef_opt_test_list_comma_zom
@@ -1042,7 +1041,7 @@ fpdef_opt_test
 ;; fpdef: NAME | '(' fplist ')'
 fpdef
   : NAME
-    (wisent-token $1 'variable nil nil nil nil)
+    (VARIABLE-TAG $1 nil nil)
  ;; Below breaks the parser.  Don't know why, but my guess is that
  ;; LPAREN/RPAREN clashes with the ones in function_parameters.
  ;;  | LPAREN fplist RPAREN
