@@ -1,12 +1,12 @@
 ;;; semantic-grammar.wy -- LALR grammar of Semantic input grammars
 ;;
-;; Copyright (C) 2002 David Ponce
+;; Copyright (C) 2002, 2003 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.3 2002/09/12 09:26:41 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.4 2003/03/16 09:28:08 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -87,6 +87,7 @@
 %token <symbol>        SYMBOL
 %token <char>          CHARACTER
 %token <sexp>          SEXP
+%token <sexp>          PREFIXED_LIST "\\s'\\s-*("
 
 ;; Blocks
 %token <semantic-list> PAREN_BLOCK "^("
@@ -123,14 +124,14 @@ grammar:
 ;;
 code:
     PAREN_BLOCK
-    (wisent-token "code" 'code nil $1 nil)
+    (TAG "setupcode" 'code)
   | BRACE_BLOCK
-    (wisent-token "code" 'code nil $1 nil)
+    (TAG "setupcode" 'code)
   ;
 
 declaration:
     decl
-    (apply #'wisent-token $1)
+    (eval $1)
   ;
 
 decl:
@@ -156,7 +157,7 @@ decl:
 ;;
 languagemode_decl:
     LANGUAGEMODE symbols
-    (list (car $2) 'languagemode nil (cdr $2) nil)
+    `(TAG ',(car $2) 'languagemode :rest ',(cdr $2))
   ;
 
 ;; outputfile token:
@@ -165,7 +166,7 @@ languagemode_decl:
 ;;
 outputfile_decl:
     OUTPUTFILE string_value
-    (list $2 'outputfile nil nil)
+    `(TAG ',$2 'outputfile)
   ;
 
 string_value:
@@ -179,7 +180,7 @@ string_value:
 ;;
 setupfunction_decl:
     SETUPFUNCTION any_symbol
-    (list $2 'setupfunction nil nil)
+    `(TAG ',$2 'setupfunction)
   ;
 
 ;; keywordtable token:
@@ -188,7 +189,7 @@ setupfunction_decl:
 ;;
 keywordtable_decl:
     KEYWORDTABLE any_symbol
-    (list $2 'keywordtable nil nil)
+    `(TAG ',$2 'keywordtable)
   ;
 
 ;; parsetable token:
@@ -197,7 +198,7 @@ keywordtable_decl:
 ;;
 parsetable_decl:
     PARSETABLE any_symbol
-    (list $2 'parsetable nil nil)
+    `(TAG ',$2 'parsetable)
   ;
 
 ;; tokentable token:
@@ -206,7 +207,7 @@ parsetable_decl:
 ;;
 tokentable_decl:
     TOKENTABLE any_symbol
-    (list $2 'tokentable nil nil)
+    `(TAG ',$2 'tokentable)
   ;
 
 ;; token token:
@@ -219,9 +220,9 @@ tokentable_decl:
 ;;
 token_decl:
     TOKEN token_type_opt any_symbol string_value
-    (list $3 (if $2 'token 'keyword) $2 nil $4 nil)
+    `(TAG ',$3 ',(if $2 'token 'keyword) :type ',$2 :value ',$4)
   | TOKEN token_type_opt symbols
-    (list (car $3) 'token $2 (cdr $3) nil nil)
+    `(TAG ',(car $3) 'token :type ',$2 :rest ',(cdr $3))
   ;
 
 token_type_opt:
@@ -231,7 +232,7 @@ token_type_opt:
 
 token_type:
     LT any_symbol GT
-    (identity $2)
+    (progn $2)
   ;
 
 ;; start token:
@@ -240,7 +241,7 @@ token_type:
 ;;
 start_decl:
     START symbols
-    (list (car $2) 'start nil (cdr $2) nil)
+    `(TAG ',(car $2) 'start :rest ',(cdr $2))
   ;
 
 ;; scopestart token:
@@ -249,7 +250,7 @@ start_decl:
 ;;
 scopestart_decl:
     SCOPESTART any_symbol
-    (list $2 'scopestart nil nil)
+    `(TAG ',$2 'scopestart)
   ;
 
 ;; quotemode token:
@@ -258,7 +259,7 @@ scopestart_decl:
 ;;
 quotemode_decl:
     QUOTEMODE any_symbol
-    (list $2 'quotemode nil nil)
+    `(TAG ',$2 'quotemode)
   ;
 
 ;; left token:
@@ -267,7 +268,7 @@ quotemode_decl:
 ;;
 left_decl:
     LEFT token_type_opt items
-    (list $1 'assoc $2 $3 nil)
+    `(TAG ',$1 'assoc :type ',$2 :value ',$3)
   ;
 
 ;; right token:
@@ -276,7 +277,7 @@ left_decl:
 ;;
 right_decl:
     RIGHT token_type_opt items
-    (list $1 'assoc $2 $3 nil)
+    `(TAG ',$1 'assoc :type ',$2 :value ',$3)
   ;
 
 ;; nonassoc token:
@@ -285,7 +286,7 @@ right_decl:
 ;;
 nonassoc_decl:
     NONASSOC token_type_opt items
-    (list $1 'assoc $2 $3 nil)
+    `(TAG ',$1 'assoc :type ',$2 :value ',$3)
   ;
 
 ;; put token:
@@ -294,17 +295,17 @@ nonassoc_decl:
 ;;
 put_decl:
     PUT any_symbol put_value
-    (list $2 'put nil nil (list $3) nil)
+    `(TAG ',$2 'put :value ',(list $3))
   | PUT any_symbol put_value_list
-    (let* ((vals (mapcar #'(lambda (tok) (nth 3 tok)) $3)))
-      (list $2 'put nil nil vals nil))
+    (let* ((vals (mapcar 'semantic-token-name $3)))
+      `(TAG ',$2 'put :value ',vals))
   | PUT put_name_list put_value
-    (let* ((names (mapcar #'semantic-token-name $2)))
-      (list (car names) 'put nil (cdr names) (list $3) nil))
+    (let* ((names (mapcar 'semantic-token-name $2)))
+      `(TAG ',(car names) 'put :rest ',(cdr names) :value ',(list $3)))
   | PUT put_name_list put_value_list
-    (let* ((names (mapcar #'semantic-token-name $2))
-           (vals  (mapcar #'(lambda (tok) (nth 3 tok)) $3)))
-      (list (car names) 'put nil (cdr names) vals nil))
+    (let* ((names (mapcar 'semantic-token-name $2))
+           (vals  (mapcar 'semantic-token-name $3)))
+      `(TAG ',(car names) 'put :rest ',(cdr names) :value ',vals))
   ;
 
 put_name_list:
@@ -319,7 +320,7 @@ put_names:
     ()
   | any_symbol
  ;; Must return a list of Semantic tokens to EXPANDFULL!
-    (wisent-token $1 'put-name nil nil)
+    (TAG $1 'put-name)
   ;
 
 put_value_list:
@@ -334,7 +335,7 @@ put_values:
     ()
   | put_value
  ;; Must return a list of Semantic tokens to EXPANDFULL!
-    (wisent-token "" 'put-value nil $1 nil)
+    (TAG $1 'put-value)
   ;
 
 put_value:
@@ -347,6 +348,7 @@ any_value:
     any_symbol
   | STRING
   | PAREN_BLOCK
+  | PREFIXED_LIST
   | SEXP
   ;
 
@@ -368,7 +370,7 @@ lifo_symbols:
 ;;
 nonterminal:
     any_symbol COLON rules SEMI
-    (wisent-token $1 'nonterminal nil $3 nil)
+    (TAG $1 'nonterminal :children $3)
   ;
 
 rules:
@@ -423,7 +425,9 @@ rule:
                       #'(lambda (e) (if (consp e) "{}" e)) comps " "))
         (setq type "empty"
               name ";;EMPTY"))
-      (wisent-cooked-token name 'rule type comps prec action nil))
+      (EXPANDTAG
+       (TAG name 'rule :type type :value comps :prec prec :expr action)
+       ))
   ;
 
 rhs:
@@ -438,11 +442,12 @@ rhs:
 
 level:
     PERCENT PREC item
-    (identity $3)
+    (progn $3)
   ;
 
 action:
     PAREN_BLOCK
+  | PREFIXED_LIST
   | BRACE_BLOCK
     (format "(progn\n%s)"
             (let ((s $1))
