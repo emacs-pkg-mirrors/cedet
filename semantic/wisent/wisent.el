@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.17 2001/12/15 23:33:19 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.18 2001/12/18 06:49:15 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,8 +64,9 @@
 ;; - GRAMMAR is the CFG to process.
 ;;
 ;; - STARTS (optional) is a list of nonterminal symbols defined as
-;;   entry point in the grammar.  If nil the first nonterminal
-;;   specified in the grammar will be the only start symbol defined.
+;;   extra entry points in the grammar.  The first nonterminal
+;;   specified in the grammar is always defined as the main entry
+;;   point in the grammar.
 ;;
 ;; - STREAM (optional) is a `standard-output' stream where the tables
 ;;   will be pretty-printed.
