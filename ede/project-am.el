@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.12 1999/02/03 18:26:00 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.13 1999/03/02 15:53:55 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -39,7 +39,10 @@
 ;;; History:
 ;; 
 
-(require 'makefile "make-mode")
+;; Compatibility for makefile mode.
+(condition-case nil
+    (require 'makefile "make-mode")
+  (error (require 'make-mode)))
 (require 'eieio)
 (require 'ede)
 
@@ -237,8 +240,32 @@ buffer being in order to provide a smart default target type."
 ;;  This should be handled at the EDE level, calling a method of the
 ;; top most project.
 ;;
-(defmethod project-compile-project ((obj project-am-target)
-				       &optional command)
+(defmethod project-compile-project ((obj project-am-target) &optional command)
+  "Compile the entire current project.
+Argument COMMAND is the command to use when compiling."
+  (require 'compile)
+  (if (not command)
+      (setq
+       command
+       ;; This interactive statement was taken from compile, and I'll
+       ;; use the same command history too.
+       (progn
+	 (if (not project-am-compile-project-command)
+	     (setq project-am-compile-project-command compile-command))
+	 (if (or compilation-read-command current-prefix-arg)
+	     (read-from-minibuffer "Project compile command: "
+				   ;; hardcode make -k
+				   ;; This is compile project after all.
+				   project-am-compile-project-command
+				   nil nil '(compile-history . 1))
+	   project-am-compile-project-command))))
+  ;; When compile a project, we might be in a subdirectory,
+  ;; so we have to make sure we move all the way to the top.
+  (let* ((default-directory (project-am-find-topmost-level default-directory)))
+    (compile command)))
+
+(defmethod project-compile-project ((obj project-am-makefile) 
+				    &optional command)
   "Compile the entire current project.
 Argument COMMAND is the command to use when compiling."
   (require 'compile)
