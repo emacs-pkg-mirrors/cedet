@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.29 2001/02/28 00:59:25 zappo Exp $
+@c $Id: semantic.texi,v 1.30 2001/03/05 22:39:28 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -1544,6 +1544,10 @@ semantic language tokens in the current buffer.
 
 @subsection Commands
 
+The following user level commands are provided by Senator.
+
+@subsubsection Navigation
+
 @deffn Command senator-next-token
 Move to the next token in the current buffer.
 @end deffn
@@ -1558,12 +1562,15 @@ If called interactively and a prefix argument is supplied jump in the
 local type's context (see function @dfn{senator-current-type-context}).
 @end deffn
 
-@deffn Comamnd senator-complete-symbol
-Complete the current symbol under point.
-@end deffn
+@subsubsection Searching
 
-@deffn Comamnd senator-completion-menu-keyboard-popup
-Popup a completion menu for the symbol at point.
+Searching using senator mode restricts the search only to the
+definition text, such as the name of the functions or variables in a
+given buffer.
+
+@deffn Command senator-isearch-toggle-semantic-mode
+Toggles semantic search in isearch mode.  When semantic search is
+enabled, isearch is restricted to token names.
 @end deffn
 
 @deffn Command senator-search-forward string
@@ -1582,10 +1589,57 @@ Search forward and backward for a token matching the regular expression
 Search forward and backward for a token whose name matches @var{word}.
 @end deffn
 
-@deffn Command senator-isearch-toggle-semantic-mode
-Toggles semantic search in isearch mode.  When semantic search is
-enabled, isearch is restricted to token names.
+@subsubsection Completion
+
+Completion in senator scans all known definitions in the local file,
+and uses that information to provide the completion.
+
+@deffn Comamnd senator-complete-symbol
+Complete the current symbol under point.
 @end deffn
+
+@deffn Comamnd senator-completion-menu-keyboard-popup
+Popup a completion menu for the symbol at point.
+@end deffn
+
+@subsubsection Copy/Paste
+
+Token Copy/Paste is a high level form of the typical copy yank used by
+Emacs.  Copying a token saves the meta-information related to the
+function or item the cursor is currently in.  When that information is
+yanked into a new buffer, the form of the text created is based on the
+current status of the programming buffer.
+
+For example, pasting a function into a different file results in a
+function call template to be inserted.  In a Texinfo file, a @@deffn
+is created with documentation for that function or command.
+
+@deffn Comamnd senator-copy-token
+Take the current token, and place it in the token ring.
+@end deffn
+
+@deffn Comamnd senator-kill-token
+Take the current token, place it in the token ring, and kill it.
+Killing the token removes the text for that token, and places it into
+the kill ring.  Retrieve that text with @code{yank}.
+@end deffn
+
+@deffn Comamnd senator-yank-token
+Yank a token from the token ring.
+The form the token takes is differnet depending on where it is being
+yanked to.
+@end deffn
+
+@deffn Comamnd senator-copy-token-to-register register &optional kill-flag
+Copy the current token into @var{REGISTER}.
+Optional argument @var{KILL-FLAG} will delete the text of the token to the
+kill ring.
+@end deffn
+
+For programmers, to provide specialized pasting, created an override
+function for @code{insert-foreign-token}. @xref{Settings}.
+
+@subsubsection Minor Mode
 
 @deffn Command senator-minor-mode
 Toggle the SEmantic NAvigaTOR key bindings in the current buffer.
