@@ -1,9 +1,9 @@
 ;;; semantic-scm.el --- Semantic details for Scheme (guile)
 
-;;; Copyright (C) 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.1 2002/08/11 17:27:48 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.2 2003/02/02 01:16:17 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,76 +32,130 @@
 
 ;;; Code:
 (defvar semantic-toplevel-scheme-bovine-table
-`((bovine-toplevel
- ( semantic-list
- ,(lambda (vals start end)
- 
- (semantic-bovinate-from-nonterminal (car (nth 0 vals)) (cdr (nth 0 vals)) 'scheme-list)
- ))
- ) ; end scheme
- (scheme-list
- ( open-paren "(" scheme-in-list
-  ,(semantic-lambda
-  (nth 1 vals)))
- ) ; end scheme-list
- (scheme-in-list
- ( DEFINE symbol expression
-  ,(semantic-lambda
-  (list (nth 1 vals) 'variable nil (nth 2 vals) nil)))
- ( DEFINE name-args opt-doc
-  ,(semantic-lambda
-  (list ( car (nth 1 vals)) 'function ( cdr (nth 1 vals)) nil) (nth 2 vals)))
- ( DEFINE-MODULE name-args
-  ,(semantic-lambda
-  (list ( nth ( length (nth 1 vals)) (nth 1 vals)) 'provide nil)))
- ( LOAD string
-  ,(semantic-lambda
-  (list ( file-name-nondirectory ( read (nth 1 vals))) 'require ( read (nth 1 vals)))))
- ( symbol
-  ,(semantic-lambda
-  (list (nth 0 vals) 'code)))
- ) ; end scheme-in-list
- (name-args
- ( semantic-list
- ,(lambda (vals start end)
- 
- (semantic-bovinate-from-nonterminal (car (nth 0 vals)) (cdr (nth 0 vals)) 'name-arg-expand)
- ))
- ) ; end name-args
- (name-arg-expand
- ( open-paren name-arg-expand
-  ,(semantic-lambda
-  (nth 1 vals)))
- ( symbol name-arg-expand
-  ,(semantic-lambda
-  ( cons (nth 0 vals) (nth 1 vals))))
- (
-  ,(semantic-lambda
- ))
- ) ; end name-arg-expand
- (opt-doc
- ( string)
- ()
- ) ; end opt-doc
- (expression
- ( symbol)
- ( semantic-list)
- ( string)
- ) ; end expression
- )
- "Top level bovination table for scheme.")
+  ;;DO NOT EDIT! Generated from scheme.by - 2003-02-01 20:09-0500
+  `(
+    (bovine-toplevel ;;scheme
+     (semantic-list
+      ,(lambda (vals start end)
+	 (semantic-bovinate-from-nonterminal
+	  (car
+	   (nth 0 vals))
+	  (cdr
+	   (nth 0 vals))
+	  'scheme-list))
+      )
+     ) ;; end scheme
+
+    (scheme-list
+     (punctuation
+      "("
+      scheme-in-list
+      punctuation
+      ")"
+      ,(semantic-lambda
+	(nth 1 vals))
+      )
+     ) ;; end scheme-list
+
+    (scheme-in-list
+     (DEFINE
+       symbol
+       expression
+       ,(semantic-lambda
+	 (list
+	  (nth 1 vals) 'variable nil
+	  (nth 2 vals) nil))
+       )
+     (DEFINE
+       name-args
+       opt-doc
+       ,(semantic-lambda
+	 (list
+	  (car
+	   (nth 1 vals)) 'function
+	  (cdr
+	   (nth 1 vals)) nil)
+	 (nth 2 vals))
+       )
+     (DEFINE-MODULE
+       name-args
+       ,(semantic-lambda
+	 (list
+	  (nth
+	   (length
+	    (nth 1 vals))
+	   (nth 1 vals)) 'provide nil))
+       )
+     (LOAD
+      string
+      ,(semantic-lambda
+	(list
+	 (file-name-nondirectory
+	  (read
+	   (nth 1 vals))) 'require
+	 (read
+	  (nth 1 vals))))
+      )
+     (symbol
+      ,(semantic-lambda
+	(list
+	 (nth 0 vals) 'code))
+      )
+     ) ;; end scheme-in-list
+
+    (name-args
+     (semantic-list
+      ,(lambda (vals start end)
+	 (semantic-bovinate-from-nonterminal
+	  (car
+	   (nth 0 vals))
+	  (cdr
+	   (nth 0 vals))
+	  'name-arg-expand))
+      )
+     ) ;; end name-args
+
+    (name-arg-expand
+     (open-paren
+      name-arg-expand
+      ,(semantic-lambda
+	(nth 1 vals))
+      )
+     (symbol
+      name-arg-expand
+      ,(semantic-lambda
+	(cons
+	 (nth 0 vals)
+	 (nth 1 vals)))
+      )
+     ( ;;EMPTY
+      ,(semantic-lambda)
+      )
+     ) ;; end name-arg-expand
+
+    (opt-doc
+     (string)
+     ( ;;EMPTY
+      )
+     ) ;; end opt-doc
+
+    (expression
+     (symbol)
+     (semantic-list)
+     (string)
+     ) ;; end expression
+    )
+  "Top level bovination table for scheme.")
 
 (defvar semantic-scheme-keyword-table
-  (semantic-flex-make-keyword-table 
-   `( ("define" . DEFINE)
-      ("define-module" . DEFINE-MODULE)
-      ("load" . LOAD)
-      )
-   '(
-     ("define" summary "Function: (define symbol expression)")
+  ;;DO NOT EDIT! Generated from scheme.by - 2003-02-01 20:09-0500
+  (semantic-lex-make-keyword-table
+   '(("define" . DEFINE)
+     ("define-module" . DEFINE-MODULE)
+     ("load" . LOAD))
+   '(("load" summary "Function: (load \"filename\")")
      ("define-module" summary "Function: (define-module (name arg1 ...)) ")
-     ("load" summary "Function: (load \"filename\")")
-     ))
+     ("define" summary "Function: (define symbol expression)")))
   "Some keywords used in scheme.")
 
 (defcustom semantic-default-scheme-path '("/usr/share/guile/")
@@ -140,29 +194,44 @@ Attempts a simple prototype for calling or using TOKEN."
 	(t
 	 (insert (semantic-token-name token)))))
 
+(define-lex semantic-scheme-lexer
+  "A simple lexical analyzer that handles simple buffers.
+This lexer ignores comments and whitespace, and will return
+syntax as specified by the syntax table."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  semantic-lex-symbol-or-keyword
+  semantic-lex-charquote
+  semantic-lex-paren-or-list
+  semantic-lex-close-paren
+  semantic-lex-string
+  semantic-lex-ignore-comments
+  semantic-lex-punctuation
+  semantic-lex-default-action)
+
 ;;;###autoload
 (defun semantic-default-scheme-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
- ;; Code generated from scheme.bnf
-  (setq semantic-toplevel-bovine-table semantic-toplevel-scheme-bovine-table
-	semantic-toplevel-bovine-table-source "scheme.bnf")
-  (setq semantic-flex-keywords-obarray semantic-scheme-keyword-table)
-  (setq semantic-symbol->name-assoc-list '( (variable . "Variables")
-					    ;;(type     . "Types")
-					    (function . "Functions")
-					    (include  . "Loads")
-					    (package  . "DefinModule"))
-	semantic-number-expression nil
-	imenu-create-index-function 'semantic-create-imenu-index
-	semantic-dependency-include-path semantic-default-scheme-path
-	imenu-create-index-function 'semantic-create-imenu-index
-	document-comment-start ";;"
-	document-comment-line-prefix ";;"
-	document-comment-end "\n"
-	)
- 
- ;; End code generated from scheme.bnf
- )
+  ;;DO NOT EDIT! Generated from scheme.by - 2003-02-01 20:09-0500
+  (progn
+    (setq semantic-toplevel-bovine-table semantic-toplevel-scheme-bovine-table
+	  semantic-toplevel-bovine-table-source "scheme.by"
+	  semantic-flex-keywords-obarray semantic-scheme-keyword-table
+	  )
+    (setq semantic-symbol->name-assoc-list '( (variable . "Variables")
+					      ;;(type     . "Types")
+					      (function . "Functions")
+					      (include  . "Loads")
+					      (package  . "DefineModule"))
+	  imenu-create-index-function 'semantic-create-imenu-index
+	  semantic-dependency-include-path semantic-default-scheme-path
+	  imenu-create-index-function 'semantic-create-imenu-index
+	  document-comment-start ";;"
+	  document-comment-line-prefix ";;"
+	  document-comment-end "\n"
+	  ))
+  (setq semantic-lex-analyzer #'semantic-scheme-lexer)
+  )
 
 ;;;###autoload
 (add-hook 'scheme-mode-hook 'semantic-default-scheme-setup)
