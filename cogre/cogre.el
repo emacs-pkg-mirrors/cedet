@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.8 2001/05/19 22:16:59 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.9 2001/05/21 19:11:01 zappo Exp $
 
 (defvar cogre-version "0.0"
   "Current version of Cogre.")
@@ -1083,12 +1083,13 @@ Return the new string."
 			(t "")
 			))
 	     )
-	(let ((pm (plist-member preprops face)))
+	(let ((pm (plist-get preprops face)))
 	  (when pm
 	    ;; We don't want to modify the face on this based
 	    ;; on the first character.
 	    (setcar (cdr pm) 'face)
-	    (setq preprops (delq 'face preprops))))
+	    (setq preprops (delq 'face preprops))
+	    (setq preprops (delq pm preprops))))
 	(setq string (concat sws string ews))
 	(add-text-properties 0 (length string) preprops string)
 	))
