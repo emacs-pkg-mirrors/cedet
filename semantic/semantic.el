@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.163 2002/09/13 03:24:34 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.164 2002/10/26 13:43:20 zappo Exp $
 
 (defvar semantic-version "2.0alpha4"
   "Current version of Semantic.")
@@ -582,6 +582,8 @@ Do an incremental reparse if possible, otherwise do a full reparse.
 The optional argument CHECKCACHE is ignored.  It is maintained for
 compatibility with previous versions of Semantic."
   (and
+   ;; Is this a semantic enabled buffer?
+   (semantic-active-p)
    ;; Application hooks say the buffer is safe for parsing
    (run-hook-with-args-until-failure
     'semantic-before-toplevel-bovination-hook)
