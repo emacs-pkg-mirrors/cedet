@@ -140,18 +140,25 @@ tokens will continue to be recycled in the simple case, new cases
 where tokens are inserted or old tokens removed from the original list
 are handled.
 
-The old `semantic-rebovinate-token' function and associated
-`semantic-dirty-...' have been removed.
-
 *** Deprecated and removed API.
+
+The `semantic-flex' API is deprecated, and replaced by the new
+`semantic-lex' API.  The old API still exists for compatibility with
+Semantic 1.x.
 
 `semantic-parse-region' should be used instead of
 `semantic-bovinate-region-until-error' and
 `semantic-bovinate-from-nonterminal-full' which still exist for
 compatibility with the Semantic 1.x API.
 
+The old incremental parser `semantic-rebovinate-token' and associated
+`semantic-show-dirty-mode' have been removed and replaced respectively
+by new `semantic-edits-incremental-parser' and
+`semantic-highlight-edits-mode'.
+
 `semantic-bovinate-toplevel-override' is replaced by the new core
 parsing "overloads".
+
 `semantic-bovine-toplevel-full-reparse-needed-p' and
 `semantic-bovine-toplevel-partial-reparse-needed-p' are replaced by
 the new parse tree state management API.
@@ -171,7 +178,7 @@ by a particular parser.
 
 ** New "overloads" are provided to customize Elisp generation.
 
-`semantic-grammar-setupcode-builder'
+`grammar-setupcode-builder'
 That returns the setup code form.
 
 `grammar-parsetable-builder'
@@ -212,9 +219,6 @@ Find the parent of a nonterminal token by overlays.
 
 ** `semantic-show-parser-state-mode'
 Display the parser state in the modeline.
-
-** `semantic-show-dirty-mode'
-Has been replaced by...
 
 ** `semantic-highlight-edits-mode'
 Highlight areas that a user edits.
