@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.3 2004/06/17 08:23:43 ponced Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.4 2004/06/18 11:38:30 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,10 +232,12 @@ minor mode is enabled."
         (semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
         (add-hook 'semantic-after-toplevel-cache-change-hook
                   'semantic-decorate-tags-after-full-reparse nil t)
-        (semantic-decorate-add-decorations (semantic-fetch-tags))
+        ;; Add decorations to available tags.  The above hooks ensure
+        ;; that new tags will be decorated when they become available.
+        (semantic-decorate-add-decorations (semantic-fetch-available-tags))
         )
-    ;; Remove decorations
-    (semantic-decorate-clear-decorations (semantic-fetch-tags))
+    ;; Remove decorations from available tags.
+    (semantic-decorate-clear-decorations (semantic-fetch-available-tags))
     ;; Cleanup any leftover crap too.
     (semantic-decorate-flush-decorations)
     ;; Remove hooks
