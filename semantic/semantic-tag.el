@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.15 2003/04/05 03:00:00 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.16 2003/04/19 03:29:45 emacsman Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -237,7 +237,7 @@ That function is for internal use only."
   (plist-get (semantic-tag-properties tag) property))
 
 (defun semantic-tag-file-name (tag)
-  "Return the filename TAG is originating.
+  "Return the name of the file from which TAG originated.
 Return nil if that information can't be obtained."
   (let ((buffer (semantic-tag-buffer tag)))
     (if buffer
@@ -977,6 +977,9 @@ and `semantic-tag-type-interfaces' instead")
 
 (semantic-alias-obsolete 'semantic-token-new-package
                          'semantic-tag-new-package)
+
+(semantic-alias-obsolete 'semantic-equivalent-tokens-p
+                         'semantic-equivalent-tag-p)
 
 (provide 'semantic-tag)
 
