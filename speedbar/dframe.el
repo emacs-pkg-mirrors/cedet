@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.9 2000/09/22 02:27:03 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.10 2000/09/30 02:30:50 zappo Exp $
 
 (defvar dframe-version "1.0beta"
   "The current version of the dedicated frame library.")
@@ -231,7 +231,6 @@ Local to those buffers, as a function called that created it.")
 (defun dframe-update-keymap (map)
   "Update the keymap MAP for dframe default bindings."
   ;; Frame control
-  (define-key map "t" 'dframe-toggle-updates)
   (define-key map "q" 'dframe-close-frame)
   (define-key map "Q" 'delete-frame)
 
