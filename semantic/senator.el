@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.80 2003/08/27 12:25:22 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.81 2003/08/31 13:49:38 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2307,6 +2307,54 @@ If senator is not active, use the original mechanism."
           (find-file (cdr val))
           (goto-char (semantic-tag-start (car val))))
       ad-do-it)))
+
+(defun senator-transpose-tags-up ()
+  "Transpose the current tag, and the preceeding tag."
+  (interactive)
+  (senator-parse)
+  (let* ((current-tag (semantic-current-tag))
+	 (prev-tag (save-excursion
+		     (goto-char (semantic-tag-start current-tag))
+		     (semantic-find-tag-by-overlay-prev)))
+	 (ct-parent (semantic-find-tag-parent-by-overlay current-tag))
+	 (pt-parent (semantic-find-tag-parent-by-overlay prev-tag)))
+    (if (not (eq ct-parent pt-parent))
+	(error "Cannot transpose tags"))
+    (let ((txt (buffer-substring (semantic-tag-start current-tag)
+				 (semantic-tag-end current-tag)))
+	  (line (count-lines (semantic-tag-start current-tag)
+			     (point)))
+	  (insert-point nil)
+	  )
+      (delete-region (semantic-tag-start current-tag)
+		     (semantic-tag-end current-tag))
+      (delete-blank-lines)
+      (goto-char (semantic-tag-start prev-tag))
+      (setq insert-point (point))
+      (insert txt)
+      (if (/= (current-column) 0)
+	  (insert "\n"))
+      (insert "\n")
+      (goto-char insert-point)
+      (forward-line line)
+      )))
+
+(defun senator-transpose-tags-down ()
+  "Transpose the current tag, and the preceeding tag."
+  (interactive)
+  (senator-parse)
+  (let* ((current-tag (semantic-current-tag))
+	 (next-tag (save-excursion
+		     (goto-char (semantic-tag-end current-tag))
+		     (semantic-find-tag-by-overlay-next)))
+	 (end-pt (point-marker))
+	 )
+    (goto-char (semantic-tag-start next-tag))
+    (forward-char 1)
+    (senator-transpose-tags-up)
+    ;; I know that the above fcn deletes the next tag, so our pt marker
+    ;; will be stable.
+    (goto-char end-pt)))
 
 ;;;;
 ;;;; Summary mode
