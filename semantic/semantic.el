@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.136 2001/12/18 02:49:15 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.137 2001/12/18 17:37:16 emacsman Exp $
 
 (defvar semantic-version "1.4beta13"
   "Current version of Semantic.")
@@ -1613,6 +1613,57 @@ PROPERTY set."
 
 ;;; Lexical Analysis
 ;;
+(defvar semantic-flex-tokens 
+  '((charquote)
+    (close-paren)
+    (comment)
+    (newline)
+    (open-paren)
+    (punctuation)
+    (semantic-list)
+    (string)
+    (symbol))
+  "An alist of of semantic token types.
+As of December 2001 (semantic 1.4beta13), this variable is not used in any
+code.  The only use is to refer to the doc-string from elsewhere.
+
+The key to this alist is the symbol representing token type that
+\\[semantic-flex] returns. These are
+
+  - charquote:     String sequences that match `\\s\\+' regexp.
+
+  - close-paren:   Characters that match `\\s)' regexp.
+                   These are typically `)', `}', `]', etc.
+
+  - comment:       A comment chunk.  These token types are not
+                   produced by default.  They are produced only if the
+                   user set `semantic-ignore-comments' to `nil'. 
+
+  - newline        Characters matching `\\s-*\\(\n\\)' regexp.
+                   This token is produced only if the user set
+                   `semantic-flex-enable-newlines' to non-nil.
+
+  - open-paren:    Characters that match `\\s(' regexp.
+                   These are typically `(', `{', `[', etc.
+                   Note that these are not usually generated unless
+                   the `depth' argument to \\[semantic-flex] is
+                   greater than 0. 
+
+  - punctuation:   Characters matching `{\\(\\s.\\|\\s$\\|\\s'\\)' regexp.
+
+  - semantic-list: String delimited by matching parenthesis, braces,
+                   etc. that the lexer skipped over, because the
+                   `depth' parameter to \\[semantic-flex] was not high
+                   enough. 
+
+  - string:        Quoted strings, i.e., string sequences that start
+                   and end with characters matching `\\s\"'
+                   regexp. The lexer relies on @code{forward-sexp} to
+                   find the matching end.
+
+  - symbol:        String sequences that match `\\(\\sw\\|\\s_\\)+' regexp.
+")
+
 (defvar semantic-flex-unterminated-syntax-end-function
   (lambda (syntax syntax-start flex-end) flex-end)
   "Function called when unterminated syntax is encountered.
@@ -1708,7 +1759,9 @@ FLOATING_POINT_LITERAL:
 Semantically check between START and END.  Optional argument DEPTH
 indicates at what level to scan over entire lists.
 The return value is a token stream.  Each element is a list, such
-of the form (symbol start-expression .  end-expresssion).
+of the form (symbol start-expression .  end-expresssion) where
+SYMBOL denotes the token type.
+See `semantic-flex-tokens' variable for details on token types.
 END does not mark the end of the text scanned, only the end of the beginning
 of text scanned.  Thus, if a string extends past END, the end of the
 return token will be larger than END.  To truly restrict
