@@ -1,10 +1,10 @@
 ;;; ede.el --- Emacs Development Environment gloss
 
-;;;  Copyright (C) 1998, 99, 2000, 2001, 2002, 2003  Eric M. Ludlam
+;;;  Copyright (C) 1998-2005  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.63 2003/09/17 08:58:19 ponced Exp $
+;; RCS: $Id: ede.el,v 1.64 2005/01/12 21:33:40 zappo Exp $
 (defconst ede-version "1.0beta3"
   "Current version of the Emacs EDE.")
 
@@ -672,12 +672,9 @@ To be used in hook functions."
       (ede-minor-mode 1)))
 
 (defun ede-minor-mode (&optional arg)
-  "Project Automake minor mode.
-If this file is contained, or could be contained in an automake
+  "Project minor mode.
+If this file is contained, or could be contained in an EDE
 controlled project, then this mode should be active.
-
-Project Automake will manage your automake files, and make it very
-easy to edit your automake files.
 
 With argument ARG positive, turn on the mode.  Negative, turn off the
 mode.  nil means to toggle the mode."
