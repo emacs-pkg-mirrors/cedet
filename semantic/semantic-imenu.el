@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.15 2000/09/27 02:05:24 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.16 2000/09/27 14:54:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -51,7 +51,7 @@ Some useful functions are:
   "*Non-nil if tokens in a file are to be grouped into buckets."
   :group 'imenu
   :group 'semantic
-  :type 'bool)
+  :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-bucketize-file)
 
 (defcustom semantic-imenu-buckets-to-submenu t
@@ -59,7 +59,7 @@ Some useful functions are:
 This option is ignored if `semantic-imenu-bucketize-file' is nil."
   :group 'imenu
   :group 'semantic
-  :type 'bool)
+  :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-buckets-to-submenu)
 
 (defcustom semantic-imenu-bucketize-type-parts t
@@ -68,7 +68,7 @@ Nil means to keep them in the same order.
 Overriden to nil if `semantic-imenu-bucketize-file' is nil."
   :group 'imenu
   :group 'semantic
-  :type 'bool)
+  :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-bucketize-type-parts)
 
 (defcustom semantic-imenu-sort-bucket-function nil
