@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.3 1996/03/28 03:52:15 zappo Exp $
+@c $Id: eieio.texi,v 1.4 1996/06/17 23:18:24 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -21,7 +21,7 @@ Copyright @copyright{} 1995,1996 Eric M. Ludlam
 @end titlepage
 
 
-@node Top, , , dir
+@node Top, , , (dir)Top
 @comment  node-name,  next,  previous,  up
 
 EIEIO is an attempt to create a framework for writing object oriented
@@ -36,7 +36,7 @@ however, due to popular demand, it is beginning to conform to several
 aspects of CLOS.
 
 @menu
-* Introduction::          Why use eieio?  Basic overview.
+* Introduction::          Why use eieio?  Basic overview, samples list.
 * CLOS compatibility::    What are the differences?
 * Building Classes::      How to write out new class structures.
 * Default Superclass::    The grand-daddy of all superclasses.
@@ -106,6 +106,9 @@ browse your current eieio inheritance structure
 @item java-tree
 Use tree mode to create an inheritance tree for all classes in a java
 source directory.
+@item call-tree
+Pass it an elisp function (not byte compiled) to generate a call tree
+using the tree tool
 @item chart
 Uses eieio to manage charts/axis/sequences, and allows display of simple
 bar-charts.  Example programs are available displaying emacs memory
@@ -113,6 +116,20 @@ usage and list occupation, in addition to file counts and size charts.
 Theres even a sample that will display a chart of who sends you the most
 email!  See doc-string for `chart-bar-quickie' to make your own bar
 charts easilly.
+@item dbif
+Simple superclass to maintain a database connection, and return results.
+Can be used to get the results of SQL queries in simple lists.
+@item dbif-browse
+Uses dbif to display a simple browser.
+@item psql
+Subclass of dbif which implements an interface to the POSTGRES95
+database.
+@item dialog, widget-i, widget-d
+A simple widgeting system providing dialog buffers, labels, buttons,
+toggles, frames, and text fields.  Needs work, but is still pretty
+useful.
+@item dialog-tree
+Draw a tree of widgets in a dialog box.
 @end table
 
 @section EIEIO wish list
@@ -120,10 +137,6 @@ charts easilly.
 @enumerate
 @item
 More CLOS compatibility.
-@item
-Field and class-method references are currently looked up at runtime.
-This can be slow with big classes.  A way to speed this up would be very
-handy.
 @item
 Get edebug to correctly debug a defclassmethod and defmethod.  Currently
 debugging works, but you have to step through the creation of the method
@@ -137,10 +150,6 @@ added, the slower things get at run time. (See 2) It might be worthwhile
 to add these methods in as CLOS methods which would be much faster.
 @item
 Integrate in the desired built-in methods into the object browser.
-@item
-Have parts of eieio set up so @code{(format "%S" myobj)} uses a
-'print-construct method, so @code{(format "%s" myobj)} would output the
-value of @code{'class-name} and cool integrated stuff like that.
 @item
 Create some objects over pre-existing emacs-lisp stuff for fun, like
 faces, processes, buffers, frames and windows as examples.
@@ -165,8 +174,9 @@ single inheritance is currently supported
 @item make-instance
 Make instance works as expected, however it just uses the EIEIO instance
 creator automatically created when a new class is generated.
-@xref{Making New objects}
+@xref{Making New Objects}
 @item slot-value
+Accesses the value of a named slot within an object
 @item defgeneric
 Creates the desired symbol, and accepts most of the expected arguments
 @item defmethod
@@ -179,8 +189,8 @@ Inside a method, calls the next available method up the inheritance tree
 for the given object.
 @end table
 
-Some top-level CLOS functions which are not yet defined in EIEIO which
-are defined in CLOS.
+Some top-level CLOS functions which I am aware of but are not yet
+defined in EIEIO which are defined in CLOS.
 
 @table @asis
 @item describe
@@ -198,6 +208,8 @@ case, not mixed case.
 The initial value of an attribute
 @item :initarg
 A tag used in @code{make-instance} to assign a value to a field.
+@item :accessor
+A tag used to create a function which returns the value of the defined slot
 @end table
 
 EIEIO defclass keywords not in CLOS
@@ -205,10 +217,8 @@ EIEIO defclass keywords not in CLOS
 @item :protection
 Can be @code{private} or something else.  If it is set to private, then
 this field cannot be accessed via normal EIEIO means @code{oref}, and
-@code{oset}. (and @code{ocall} for methods).  When there is CLOS
-support for setting fields, then they will also be prevented from
-modifying fields.  These fields will then only be accessable to methods
-running from this object.
+@code{oset}. (and @code{ocall} for methods).  These fields will then
+only be accessable to methods running from this object.
 @item :method
 This means that the specified tag is going to be a method instead of an
 attribute.  This installs this name into a vector (instead of a series
@@ -251,6 +261,7 @@ valid tags are:
 @table @asis
 @item :initarg
 @item :initform
+@item :accessor
 @item :protection
 @item :method
 @end table
@@ -262,6 +273,7 @@ The whole definition may look like this.
 @example
 (defclass bird (animal)
    ((color :initarg :color
+           :accessor :get-color
            :initform "white")
     (fly :method t)
     (gender :initarg :gender
@@ -334,13 +346,12 @@ This creates and returns a new object.  This object is not assigned to
 anything, and will be garbage collected if not saved.  This object will
 be given the string name @var{object-name}.  There can be multiple
 objects of the same name, but the name field provides a handy way to
-keep track of your objects.  @var{fields} is just all the fields you wish
-to preset.  Any field set as such WILL NOT get it's default value, and
-any side effects from an attributes default function will not occur.  An
-example pair would appear simply as @code{'(gender mail)}.  Of course
-you can do any valid lispy thing you want with it, such as @code{(list
-'gender (if full-moon female male))} being sure to quote the attribute
-symbol.
+keep track of your objects.  @var{fields} is just all the fields you
+wish to preset.  Any field set as such WILL NOT get it's default value,
+and any side effects from an attributes default function will not occur.
+An example pair would appear simply as @code{:gender mail}.  Of course
+you can do any valid lispy thing you want with it, such as @code{:gender
+(if full-moon female male))}
 
 Example of creating an object from a class in @xref{Building Classes}:
 
@@ -381,10 +392,17 @@ class must be re-evaluated.
 
 @end defun
 
+@defun slot-value object field
+
+This function is mearly an alias for oref
+
+@end defun
+
 If the value behind @var{field} is a private, then the current scope of
 operation must be within a method of the calling object.  The scope is
 tracked with @code{let} statements within the variable @code{this}, and
-@code{scoped-class}.
+@code{scoped-class}.  The field @code{this} is only valid withing
+classmethods, not CLOS methods.
 
 @defun ocall object method &rest args
 
@@ -427,7 +445,7 @@ symbol upon which methods are attached.
 
 A generic function acts as a place holder for methods.  There is no need
 to call defgeneric yourself, as defmethod will call it if necessary.
-Current the argument list is unused.
+Currently the argument list is unused.
 
 The function part of a created generic function creates a couple local
 variables and then calls @code{eieio-generic-call}.  This is the engine
@@ -468,6 +486,14 @@ currently does not appear under an apropos.
 
 @end defun
 
+@defun call-next-method
+
+While running insided a CLOS method, calling this function will call the
+method associated with the parent of the class of the currently running
+method with the same parameters.
+
+@end defun
+
 In this implementation, not all features of CLOS exist.
 
 @enumerate
@@ -476,9 +502,6 @@ There is currently not :AROUND tag.
 @item
 CLOS allows multiple sets of type-cast arguments, where eieio only
 allows the first argument to be cast.
-@item
-If a method is defined for a parent class and it's child, and it is
-called upon a child object, only the child's method is called.
 @end enumerate
 
 @node Writing Class Methods, Predicates, Writing Methods, Top
@@ -488,7 +511,9 @@ called upon a child object, only the child's method is called.
 Writing a class method is just like writing a function, except you use
 @code{defclassmethod} instead.  Unlike CLOS methods, the local variable
 @code{this} is defined since the object to act upon is not passed in as
-a parameter.
+a parameter.  As most people don't like this construct, if you are just
+starting I suggest you do not use this implementation as it may someday
+be phased out.
 
 @defun defclassmethod method class arglist [doc-string] forms
 
@@ -543,7 +568,7 @@ is called (with ocall) edebug is started.
 
 Hopefully an edebug guru can help with this for a future release.
 
-@node Predicates, Browsing, Writing Methods, Top
+@node Predicates, Browsing, Writing Class Methods, Top
 @comment  node-name,  next,  previous,  up
 @chapter Predicates and Utilities
 
