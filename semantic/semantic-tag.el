@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.10 2003/03/27 12:22:06 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.11 2003/04/01 03:26:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -272,7 +272,7 @@ Use `eq' to test of two tags are the same.  Use this function if tags
 are being copied and regrouped to test for if two tags represent the
 same thing, but may be constructed of different cons cells."
   (and (equal (semantic-tag-name tag1) (semantic-tag-name tag2))
-       (semantic-tag-class-of-p tag1 (semantic-tag-class tag2))
+       (semantic-tag-of-class-p tag1 (semantic-tag-class tag2))
        (equal (semantic-tag-bounds tag1) (semantic-tag-bounds tag2))))
 
 ;;; Tag creation
@@ -447,7 +447,7 @@ If not provided, then only the POSITION can be provided."
   (let ((p (semantic-tag-get-attribute tag :documentation)))
     (if (and p buffer)
         (with-current-buffer buffer
-          (semantic-flex-text (car (semantic-lex p (1+ p)))))
+          (semantic-lex-token-text (car (semantic-lex p (1+ p)))))
       p)))
 
 ;;; Tags of class `type'
@@ -578,6 +578,16 @@ to any components beloning to an anonymous type."
       (setq explicit-children (cdr explicit-children)))
     ;; Return
     (nreverse all-children)))
+
+(defun semantic-tag-children-compatibility (tag &optional positiononly)
+  "Return children of TAG.
+If POSITIONONLY is nil, use `semantic-tag-components'.
+If POSITIONONLY is non-nil, use `semantic-tag-components-with-overlays'.
+DO NOT use this fcn in new code.  Use one of the above instead."
+  (if positiononly
+      (semantic-tag-components-with-overlays tag)
+    (semantic-tag-components tag)))
+
 
 ;;; Tags and Overlays
 ;;
@@ -870,7 +880,7 @@ and `semantic-tag-type-interfaces' instead")
                          'semantic-tag-make-plist)
 
 (semantic-alias-obsolete 'semantic-nonterminal-children
-			 'semantic-tag-components-with-overlays)
+			 'semantic-tag-children-compatibility)
 
 (semantic-alias-obsolete 'semantic-deoverlay-token
                          'semantic--tag-unlink-from-buffer)
