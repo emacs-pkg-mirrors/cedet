@@ -4,8 +4,8 @@
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
-;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-gud.el,v 1.1 1997/11/03 22:23:13 zappo Exp $
+;; Keywords: tools, gud
+;; X-RCS: $Id: sb-gud.el,v 1.2 1997/11/03 22:27:43 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -134,7 +134,7 @@ off the specialized speedbar mode."
 ;    (gud-gdb-run-command-fetch-lines "info args")
 ;
 ;    (gud-gdb-run-command-fetch-lines "info local")
-;   
+;
 ;    ))
 
 (defun gud-gdb-get-stackframe (buffer)
@@ -218,3 +218,6 @@ BUFFER is the GUD buffer in which to run the command."
     (progn
       (setq gud-gdb-complete-string string)
       "")))
+
+(provide 'sb-gud)
+;;; sb-gud.el ends here
