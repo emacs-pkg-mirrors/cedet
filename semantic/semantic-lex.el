@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.14 2003/01/09 07:08:50 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.15 2003/01/25 09:23:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -238,7 +238,8 @@ PROPSPECS must be a list of (TYPE PROPERTY VALUE)."
       (setq spec   (car specs)
             specs  (cdr specs)
             type   (car spec)
-            tokens (cdr spec))
+            tokens (cdr spec)
+            default nil)
       (while tokens
         (setq token  (car tokens)
               tokens (cdr tokens))
@@ -247,7 +248,7 @@ PROPSPECS must be a list of (TYPE PROPERTY VALUE)."
           (setq token (car token))
           (if default
               (message
-               "*** `%s' default matching spec %S redefined as %S"
+               "*Warning* default value of <%s> tokens changed to %S, was %S"
                type default token))
           (setq default token)))
       ;; Ensure the default matching spec is the first one.
