@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.19 2003/03/14 01:56:26 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.20 2003/04/01 03:23:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -462,6 +462,14 @@ If universal argument ARG, then try the whole buffer."
   (let ((result (semantic-lex
 		 (if arg (point-min) (point))
 		 (point-max))))
+    (message "%s: %S" semantic-lex-analyzer result))
+  )
+
+(defun semantic-lex-test-region (beg end)
+  "Test the semantic lexer in the current buffer.
+Analyze the area between BEG and END."
+  (interactive "r")
+  (let ((result (semantic-lex beg end)))
     (message "%s: %S" semantic-lex-analyzer result))
   )
 
