@@ -3,7 +3,7 @@
 # Copyright (C) 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: scheme.bnf,v 1.1 2001/02/24 03:57:40 zappo Exp $
+# X-RCS: $Id: scheme.bnf,v 1.2 2001/04/13 02:03:08 zappo Exp $
 #
 # This is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,8 +41,11 @@
        )%
 
 %token DEFINE "define"
+%put DEFINE summary "Function: (define symbol expression)"
 %token DEFINE-MODULE "define-module"
+%put DEFINE-MODULE summary "Function: (define-module (name arg1 ...)) "
 %token LOAD "load"
+%put LOAD summary "Function: (load \"filename\")"
 
 scheme : semantic-list
 	 (EXPAND $1 scheme-list 4)
