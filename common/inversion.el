@@ -3,10 +3,10 @@
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.5 2002/09/03 23:55:33 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.6 2002/09/03 23:59:10 zappo Exp $
 
 ;;; Code:
-(defvar inversion-version "1.0beta1"
+(defvar inversion-version "1.0beta2"
   "Current version of InVersion.")
 (defvar inversion-incompatible-version "0.0alpha1"
   "An earlier release which is incmpatible with this release.")
@@ -252,6 +252,9 @@ Optional argument RESERVED is saved for later use."
 		(not (inversion-< c5 c6))
 		;; Test the tester on inversion
 		(not (inversion-test 'inversion inversion-version))
+		;; Test that we throw an error
+		(inversion-test 'inversion "0.0.0")
+		(inversion-test 'inversion "1000.0")
 		))
       (error "Inversion tests failed")
     t))
