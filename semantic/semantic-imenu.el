@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.2 2000/06/14 15:26:42 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.3 2000/06/14 19:23:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,7 +85,7 @@ Uses the output of the Semantic Bovinator to create the index."
 			       (semantic-create-imenu-subindex
 				(semantic-token-type-parts token))))
 			    index))
-	(setq index (cons (cons (semantic-abbreviate-nonterminal token)
+	(setq index (cons (cons (funcall semantic-imenu-summary-function token)
 				(semantic-token-end token))
 			  index)))
       (setq tokens (cdr tokens)))
