@@ -1,12 +1,12 @@
 ;;; cedet.el --- Setup CEDET environment
 
-;; Copyright (C) 2002, 2003 by David Ponce
+;; Copyright (C) 2002, 2003, 2004 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.5 2003/09/24 17:38:37 ponced Exp $
+;; X-RCS: $Id: cedet.el,v 1.6 2004/02/12 02:16:47 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -76,7 +76,7 @@
 (eval-when-compile
   (require 'cl))
 
-(defconst cedet-version "1.0beta1"
+(defconst cedet-version "1.0beta2"
   "Current version of CEDET.")
 
 (defconst cedet-packages
