@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.3 2001/08/14 14:04:55 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.4 2001/09/11 14:59:22 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -162,6 +162,23 @@
      (PARSERMODE symbol
 		,(semantic-lambda
 		  (list (nth 1 vals) 'parsermode)))
+     (NONASSOC terms punctuation ";"
+               ,(semantic-lambda
+                 (list (nth 0 vals) 'assoc nil (nth 1 vals))))
+     (LEFT terms punctuation ";"
+           ,(semantic-lambda
+             (list (nth 0 vals) 'assoc nil (nth 1 vals))))
+     (RIGHT terms punctuation ";"
+            ,(semantic-lambda
+              (list (nth 0 vals) 'assoc nil (nth 1 vals))))
+     )
+    (terms
+     (symbol terms
+             ,(semantic-lambda
+               (cons (nth 0 vals) (nth 1 vals))))
+     (symbol
+      ,(semantic-lambda
+        (list (nth 0 vals))))
      )
     (put-name-list
      (open-paren ,(semantic-lambda (list nil)))
@@ -191,14 +208,25 @@
 			  (nth 3 vals))))
      (,(semantic-lambda nil)))
     (match-list
-     (symbol match-list
+     (match-list-1 prec
+                   ,(semantic-lambda
+                     (append (nth 0 vals) (nth 1 vals))))
+     (match-list-1)
+     )
+    (match-list-1
+     (symbol match-list-1
 	     ,(semantic-lambda
 	       (cons (nth 0 vals) (nth 1 vals))))
-     (string match-list
+     (string match-list-1
 	     ,(semantic-lambda
 	       (cons (nth 0 vals) (nth 1 vals))))
      (string)
      (symbol)
+     )
+    (prec
+     (punctuation "%" PREC symbol
+                  ,(semantic-lambda
+                    (list '%prec (nth 2 vals))))
      )
     (lambda-fn
      (semantic-list
@@ -222,6 +250,10 @@
       ("setupfunction" . SETUPFUNCTION)
       ("quotemode" . QUOTEMODE)
       ("parsermode" . PARSERMODE)
+      ("nonassoc" . NONASSOC)
+      ("left" . LEFT)
+      ("right" . RIGHT)
+      ("prec" . PREC)
       )
    `(("put" summary "%put <keyword> <lisp expression>")
      ("token" summary "%token <keyword> [syntax] \"matchtext\"")
@@ -229,6 +261,7 @@
      ("scopestart" summary "%scopestart <starting scope (code) rule name>")
      ("languagemode" summary "%languagemode [ lispsymbol | ( lispsym lispsym ...) ]")
      ("parsermode" summary "%parsermode <mode>")
+     ("prec" summary "rule precedence")
      ))
   "Keyword table used for Semantic BNF files.")
 
@@ -253,6 +286,11 @@
 
 (defmacro semantic-bnf-token-rule-matchlist (token)
   "Return the matching list of a 'rule TOKEN."
+  `(nth 3 ,token))
+
+(defmacro semantic-bnf-token-assoc-terms (token)
+  "Return the list of terminals from associativity TOKEN.
+Token must be of category 'assoc."
   `(nth 3 ,token))
 
 
@@ -483,14 +521,32 @@ Optional argument SCOPESTART is the token to start subscopes with."
 ;;
 (defun semantic-bnf-matching-to-lalr (matching)
   "Convert the rule MATCHING from BNF to LALR internal lisp form."
-  (cons (if (string-equal (cadr matching) "EMPTY")
-            nil
-          (mapcar #'intern (cdr matching)))
-        (condition-case nil
-            (list ': (car (read-from-string (car matching))))
-          (error
-           ;;(message "read error on %S" (car matching))
-           nil))))
+  (let* ((act (condition-case nil
+                  (read-from-string (car matching))
+                (error
+                 ;;(message "read error on %S" (car matching))
+                 nil)))
+         (l   (cdr matching))
+         ml prec)
+    (if (string-equal (car l) "EMPTY")
+        nil
+      (while (and l (not (eq (car l) '%prec)))
+        (setq ml (cons (intern (car l)) ml)
+              l  (cdr l)))
+      (setq ml (nreverse ml)))
+    (if (eq (car l) '%prec)
+        (setq prec (vector (intern (cadr l)))))
+    ;; Here `act' is nil if previous `read-from-string' failed of a
+    ;; cons (OBJECT-READ . FINAL-STRING-INDEX) otherwise.  This permit
+    ;; to distinguish if the semantic action is missing or is actually
+    ;; nil!
+    (if act
+        (if prec
+            (list ml prec (car act))
+          (list ml (car act)))
+      (if prec
+          (list ml prec)
+        (list ml)))))
 
 (defsubst semantic-bnf-terminal-token-p (token)
   "Return non-nil if BNF TOKEN is a terminal one.
@@ -540,6 +596,23 @@ produce the following table of tokens:
         (setq bins (cons (list ttype (cons tsymb tvalue)) bins))))
     bins))
 
+(defun semantic-bnf-find-terminal-assocs (tokstream)
+  "Return terminals associativity from TOKSTREAM.
+This is a list of elements of the form: (ASSOC-TYPE . TERMS) where
+ASSOC-TYPE is one of 'nonassoc, 'left or 'right.  And TERMS is a list
+of terminal symbols.  Elements are in the same order as the
+corresponding %nonassoc, %left and %right statements in the BNF file."
+  (let ((tokens (semantic-find-nonterminal-by-token
+                 'assoc tokstream))
+        assocs terms type)
+    (while tokens
+      (setq type (intern (semantic-token-name (car tokens)))
+            terms (mapcar #'intern (semantic-bnf-token-assoc-terms
+                                    (car tokens)))
+            assocs (cons (cons type terms) assocs)
+            tokens (cdr tokens)))
+    (nreverse assocs)))
+
 (defun semantic-bnf-to-lalr (&optional tokstream start)
   "Convert the BNF rules in TOKSTREAM to LALR internal lisp form.
 START is a list of 'start tokens defining alternate entry point in the
@@ -547,6 +620,7 @@ grammar.  The result is inserted at point in the current buffer."
   (setq tokstream (or tokstream (semantic-bovinate-toplevel t)))
   (let ((terms  (semantic-bnf-find-terminal-symbols tokstream))
         (starts (mapcar #'semantic-bnf-token-name-symbol start))
+        (assocs (semantic-bnf-find-terminal-assocs tokstream))
         vars tok lhs rhs gram)
     (while tokstream
       (setq tok       (car tokstream)
@@ -554,19 +628,19 @@ grammar.  The result is inserted at point in the current buffer."
       (if (not (eq (semantic-token-token tok) 'rule))
           nil
         (setq lhs  (semantic-bnf-token-name-symbol tok)
-              rhs  (apply #'nconc
-                          (mapcar
-                           #'semantic-bnf-matching-to-lalr
-                           (semantic-bnf-token-rule-matchlist tok)))
+              rhs  (mapcar #'semantic-bnf-matching-to-lalr
+                           (semantic-bnf-token-rule-matchlist tok))
               vars (cons (cons lhs rhs) vars))))
-    (setq gram (nconc terms (nreverse vars)))
+    (setq gram (cons terms (cons assocs (nreverse vars))))
     (require 'wisent) ;; `wisent-compile-grammar' must be defined!
     ;; Insert the grammar
-    (insert "  (eval-when-compile\n    (wisent-compile-grammar\n      `")
-    (pp gram (current-buffer))
-    (insert "      '")
-    (pp starts (current-buffer))
-    (insert "  ))\n")))
+    (indent-according-to-mode)
+    (pp (list 'eval-when-compile
+              (list 'wisent-compile-grammar
+                    (list 'quote gram)
+                    (list 'quote starts)))
+        (current-buffer))
+    ))
 
 
 ;;; Output File hacks
