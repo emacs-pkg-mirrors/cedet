@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.3 2003/08/01 17:28:20 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.4 2003/08/23 21:44:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -241,7 +241,7 @@ of orphaned members of a named type.")
 
 (defvar semantic-mark-external-member-function nil
   "Function called when an externally defined orphan is found.
-Be default, the token is always marked with the `adopted' property.
+By default, the token is always marked with the `adopted' property.
 This function should be locally bound by a program that needs
 to add additional behaviors into the token list.
 This function is called with two arguments.  The first is TOKEN which is
