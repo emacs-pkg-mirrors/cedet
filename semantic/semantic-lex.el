@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.20 2003/04/01 03:23:04 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.21 2003/08/26 14:24:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -707,8 +707,6 @@ CONDITION is an expression which returns t if FORMS should be run.
 Within the bounds of CONDITION and FORMS, the use of backquote
 can be used to evaluate expressions at compile time.
 While forms are running, the following variables will be locally bound:
- macro.  The macro will have access to
-some local lexical analysis variables, including:
   `semantic-lex-analysis-bounds' - The bounds of the current analysis.
                   of the form (START . END)
   `semantic-lex-maximum-depth' - The maximum depth of semantic-list
@@ -748,7 +746,7 @@ This can be done by using `semantic-lex-push-token'."
 
 ;;;###autoload
 (defmacro define-lex-regex-analyzer (name doc regexp &rest forms)
-  "Create a lexical analyzer with NAME and DOC that match REGEXP.
+  "Create a lexical analyzer with NAME and DOC that will match REGEXP.
 FORMS are evaluated upon a successful match.
 See `define-lex-analyzer' for more about analyzers."
   `(define-lex-analyzer ,name
@@ -906,7 +904,9 @@ they are comment end characters)."
   (setq semantic-lex-end-point (match-end 0)))
 
 (define-lex-simple-regex-analyzer semantic-lex-number
-  "Detect and create number tokens."
+  "Detect and create number tokens.
+See `semantic-lex-number-expression' for details on matching numbers,
+and number formats."
   semantic-lex-number-expression 'number)
 
 (define-lex-regex-analyzer semantic-lex-symbol-or-keyword
