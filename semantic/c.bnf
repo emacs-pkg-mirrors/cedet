@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.17 2000/09/19 04:22:31 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.18 2000/09/21 03:35:08 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.18  2000/09/21 03:35:08  zappo
+# Fixed up struct/union variable declaration section to use new lexical
+# tokens for struct/union.
+#
 # Revision 1.17  2000/09/19 04:22:31  zappo
 # Added %keywordtable
 #
@@ -188,7 +192,11 @@ typeform : typeformbase opt-stars
 
 typeformbase : typesimple
 	       ( ,$1 )
-	     | symbol "\\<\\(struct\\|union\\|enum\\)\\>" symbol
+	     | STRUCT symbol
+	       ( $2 type $1 )
+	     | UNION symbol
+	       ( $2 type $1 )
+	     | ENUM symbol
 	       ( $2 type $1 )
 	     | symbol
 	       ( $1 )
