@@ -117,6 +117,12 @@ Called to lexically analyze text in an area of the current buffer.
 
 *** API to manage a parse tree state.
 
+`semantic-parse-tree-set-unparseable'
+Indicate that there are lexical issues that prevent parsing.
+
+`semantic-parse-tree-set-unparseable-p'
+Return non-nil if  there are lexical issues that prevent parsing.
+
 `semantic-parse-tree-set-needs-update'
 Indicate that the current parse tree needs to be updated.
 
@@ -134,7 +140,7 @@ Indicate that the current parse tree is up to date.
 
 `semantic-parse-tree-up-to-date-p'
 Return non-nil if the current parse tree is up to date.
-   
+
 *** Core "overload" functions to abstract call to parsers.
 
 New parsers can be plugged-in easily by overriding the following
@@ -179,6 +185,11 @@ number of times a full re-parse needs to occur.  While overlays and
 tags will continue to be recycled in the simple case, new cases
 where tags are inserted or old tags removed from the original list
 are handled.
+
+*** Lexical Safety feature.
+
+You can protect code from reparsing the buffer if there are lexical
+errors with the `semantic-lex-catch-errors' macro.
 
 *** Deprecated and removed API.
 
@@ -392,6 +403,17 @@ Displays a boundary between tags.
 ** `semantic-highlight-by-attribute-mode'
 Colorizes tags based on attributes of those tags.
 Customizable to any type of comparison.
+
+** `semantic-auto-parse-mode' obsolete
+** `semantic-summary-mode' obsolete
+
+** `semantic-idle-scheduler-mode'
+Replaces semantic-auto-parse-mode.  Reparses all buffers.
+Also schedules additional functionality.
+
+** `semantic-idle-summary-mode'
+Replaces semantic-summary-mode.  Uses the new idle scheduler
+to execute itself.
 
 * Hooks.
 
