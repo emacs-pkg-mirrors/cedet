@@ -3,7 +3,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: make.by,v 1.5 2003/03/13 04:08:07 zappo Exp $
+;; X-RCS: $Id: make.by,v 1.6 2003/04/02 10:46:42 ponced Exp $
 ;;
 ;; make.bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 					  (function . "Rules")
 					  (include . "Dependencies"))
        semantic-case-fold t
-       semantic-expand-nonterminal 'semantic-expand-make-nonterminal
+       semantic-tag-expand-function 'semantic-expand-make-nonterminal
        semantic-lex-syntax-modifications '((?. "_")
 					   (?= ".")
 					   (?/ "_")
