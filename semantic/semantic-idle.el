@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.30 2005/02/13 15:01:11 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.31 2005/04/01 02:51:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -250,7 +250,13 @@ And also manages services that depend on tag values."
           (setq buffers others))
         ;; If re-parse of current buffer completed, evaluate all other
         ;; services.  Stop on keypress.
-        (when safe
+
+	;; NOTE ON COMMENTED SAFE HERE
+	;; We used to not execute the services if the buffer wsa
+	;; unparseable.  We now assume that they are lexically
+	;; safe to do, because we have marked the buffer unparseable
+	;; if there was a problem.
+	;;(when safe
           (save-excursion
             (dolist (service semantic-idle-scheduler-queue)
               (semantic-throw-on-input 'idle-queue)
@@ -259,7 +265,8 @@ And also manages services that depend on tag values."
               (funcall service)
 	      (when semantic-idle-scheduler-verbose-flag
 		(working-temp-message "IDLE: execture service %s...done" service))
-	      ))))
+	      )))
+	;;)
       ;; Finally loop over remaining buffers, trying to update them as
       ;; well.  Stop on keypress.
       (save-excursion
@@ -539,20 +546,9 @@ Returns a value only if it is a keyword."
 (defun semantic-idle-summary-current-symbol-info-context ()
   "Return a string message describing the current context.
 Use the semantic analyzer to find the symbol information."
-  (condition-case nil
-      (let ((analysis (semantic-analyze-current-context (point)))
-	    (prefix nil))
-	(when (and analysis (setq prefix (oref analysis :prefix)))
-	  (setq prefix (reverse prefix))
-	  (cond ((semantic-tag-p (car prefix))
-		 (car prefix))
-		((and (stringp (car prefix))
-		      (semantic-tag-p (car (cdr prefix))))
-		 (car (cdr prefix)))
-		(t
-		 nil))
-	  ))
-    (error nil)))
+  (let ((analysis (semantic-analyze-current-context (point))))
+    (semantic-analyze-interesting-tag analysis))
+  )
 
 (defun semantic-idle-summary-current-symbol-info-default ()
   "Return a string message describing the current context."
