@@ -44,11 +44,16 @@ specified.
 
 <p>The next step is to force Emacs to parse all your files into
   databases.  Unfortunately, this is currently best done by just
-  visiting all the files you care about, and running
+  visiting all the files you care about, and letting semantic parse
+  them.  Once you have visited all such files, execute:
 
 <pre>
 M-x semanticdb-save-all-db
 </pre>
+
+<p>which will write out the databases for use in future sessions.
+The database will be saved when you exit too, but I like saving my DB
+occasionally so information isn't lost in a crash or other problem.
 
 <p>Lastly, call
 
