@@ -986,7 +986,7 @@ For these @var{PROTECTION}s, true is returned if @var{TAG} is:
 @end table
 @end defun
 
-@defun semantic-tag-abstract tag &optional parent
+@defun semantic-tag-abstract-p tag &optional parent
 Return non @code{nil} if @var{TAG} is abstract.
 Optional @var{PARENT} is the parent tag of @var{TAG}.
 In @var{UML}, abstract methods and classes have special meaning and behavior
@@ -996,7 +996,7 @@ The default behavior (if not overridden with @code{tag-abstract}
 is to return true if @code{abstract} is in the type modifiers.
 @end defun
 
-@defun semantic-tag-leaf tag &optional parent
+@defun semantic-tag-leaf-p tag &optional parent
 Return non @code{nil} if @var{TAG} is leaf.
 Optional @var{PARENT} is the parent tag of @var{TAG}.
 In @var{UML}, leaf methods and classes have special meaning and behavior.
@@ -1005,7 +1005,7 @@ The default behavior (if not overridden with @code{tag-leaf}
 is to return true if @code{leaf} is in the type modifiers.
 @end defun
 
-@defun semantic-tag-static tag &optional parent
+@defun semantic-tag-static-p tag &optional parent
 Return non @code{nil} if @var{TAG} is static.
 Optional @var{PARENT} is the parent tag of @var{TAG}.
 In @var{UML}, static methods and attributes mean that they are allocated
