@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-skel.el,v 1.7 2000/09/24 15:52:01 zappo Exp $
+;; RCS: $Id: ede-proj-skel.el,v 1.8 2000/10/05 20:29:45 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -40,8 +40,8 @@
   (;; Use these two items to modify the target specificy menu.
    ;;(menu :initform nil)
    ;;(keybindings :initform nil)
+   (sourcetype :initform (ede-source-%NAME%))   
    ;;(availablecompilers :initform (ede-%NAME%-compiler))
-   ;;(sourcetype :initform (ede-%NAME%-source))   
    ;; Add your specialized fields here
    )
   "Class for ....")
@@ -49,6 +49,16 @@
 ;;; COMPILER SUPPORT
 ;;
 ;; Support for specialized compilers for your object.
+
+;; Create an instance of a source code type which knows how to
+;; recognize your sourcecode.  The symbol created is used to cross
+;; reference targets compilers, and source files.
+(defvar ede-source-%NAME%
+  (ede-sourcecode "ede-%NAME%-source"
+		  :name "%LONGNAME%"
+		  :sourcepattern "\\.%EXT%$"
+		  :garbagepattern '("*.%EXT%"))
+  "Emacs Lisp source code definition.")
 
 ;; It should be very rare to need to create a subclass of the `ede-compiler'
 ;; object.  Do this if you need to override any of the base methods following
@@ -63,9 +73,12 @@
 ;; from the class you create.
 ;; You may create as many compiler elements as may be available for the
 ;; type of source code you are starting with.
+;;
+;; If you have your own compiler class, then use the correct class initializer
+;; below.
 (defvar ede-%NAME%-compiler
   (ede-compiler 
-   "%NAME%"
+   "ede-%NAME%-compiler"
    :name "%NAME%"
    :variables '(("%NAME-COMPILER%" . "%compiler-and-flags%"))
    :commands
@@ -120,14 +133,14 @@
 ;;; EDE target smarts methods
 ;;
 
+;; NOTE: This method is not generally necessary because the work can be
+;;       accomplished with the :sourcetype class property.
 ;; This function lets you define what types of files you want to claim.
 ;; Defining this provides a convenience for uses by not offering your
 ;; target type for files you don't care about.
-;; This should usually be accomplished with the :sourcetype class
-;; property.
-;;(defmethod ede-want-file-p ((obj ede-proj-target-%NAME%) file)
+;; (defmethod ede-want-file-p ((obj ede-proj-target-%NAME%) file)
 ;;  "Return t if OBJ wants to own FILE."
-;;  (string match "\\.%MYEXTENSION%$" file))
+;;  (string-match "\\.%MYEXTENSION%$" file))
 
 ;; When a buffer is read in, EDE checks to see which target this
 ;; buffer belongs to.  The default method for all targets checks
