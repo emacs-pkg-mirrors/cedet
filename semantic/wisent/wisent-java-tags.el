@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.15 2002/08/08 16:06:45 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.16 2002/08/11 09:41:44 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -49,7 +49,7 @@
 
 (defconst wisent-java-parser-tables
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-07 15:18+0200
+    ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-10 21:15+0200
     (wisent-compile-grammar
      '((LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP IDENTIFIER STRING_LITERAL NUMBER_LITERAL ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED)
        nil
@@ -339,7 +339,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-07 15:18+0200
+   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-10 21:15+0200
    (semantic-lex-make-keyword-table
     '(("abstract" . ABSTRACT)
       ("boolean" . BOOLEAN)
@@ -495,8 +495,8 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-07 15:18+0200
-   (wisent-flex-make-token-table
+   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-10 21:15+0200
+   (wisent-lex-make-token-table
     '(("number"
        (NUMBER_LITERAL))
       ("string"
@@ -594,7 +594,7 @@ This function is a Java specific `get-local-variables' override."
                        (point)
                        (save-excursion (semantic-end-of-context) (point))
                        'field_declaration
-                       0)
+                       0 t)
                       vars))))
     vars))
 
@@ -605,14 +605,14 @@ This function is a Java specific `get-local-variables' override."
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-07 15:18+0200
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-10 21:15+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-java-parser-tables
           semantic-flex-keywords-obarray wisent-java-keywords
-          wisent-flex-tokens-obarray wisent-java-tokens)
+          wisent-lex-tokens-obarray wisent-java-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
@@ -621,7 +621,6 @@ Use the alternate LALR(1) parser."
      ;; Lexical analysis
      semantic-lex-number-expression semantic-java-number-regexp
      semantic-lex-analyzer 'wisent-java-tags-lexer
-     wisent-lexer-function 'wisent-lex
      ;; Parsing
      semantic-expand-nonterminal 'wisent-java-expand-nonterminal
      ;; Environment
