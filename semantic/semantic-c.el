@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.50 2001/11/30 02:49:30 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.51 2001/11/30 03:51:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -106,10 +106,10 @@
  (filename
  ( filename-prefix punctuation "\\b\\.\\b" symbol
   ,(semantic-lambda
-  (list ( concat (nth 0 vals) (nth 1 vals) (nth 2 vals)))))
- ( symbol punctuation "\\b/\\b" filename
+  (list ( concat ( car (nth 0 vals)) (nth 1 vals) (nth 2 vals)))))
+ ( filename-prefix punctuation "\\b/\\b" filename
   ,(semantic-lambda
-  (list ( concat (nth 0 vals) (nth 1 vals) ( car (nth 2 vals))))))
+  (list ( concat ( car (nth 0 vals)) (nth 1 vals) ( car (nth 2 vals))))))
  ) ; end filename
  (unionparts
  ( semantic-list
