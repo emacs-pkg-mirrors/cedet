@@ -1,10 +1,10 @@
 ;;; eieio-speedbar.el -- Classes for managing speedbar displays.
 
 ;;;
-;; Copyright (C) 1999 Eric M. Ludlam
+;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.6 1999/12/04 16:44:04 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.7 2000/07/19 02:22:54 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -62,8 +62,8 @@
 ;;    the method `eieio-speedbar-derive-line-path' which returns a
 ;;    path.
 ;;
-;; 6) Objects that do which to have a specialized behavior when
-;;    clicked should define the method `eieio-speedbar-handle-click'.
+;; 6) Objects that have a specialized behavior when clicked should
+;;    define the method `eieio-speedbar-handle-click'.
 ;;
 ;; To initialize a new eieio based speedbar display, do the following.
 ;;
@@ -96,8 +96,7 @@
 
 ;;; Code:
 (require 'eieio)
-
-(eval-when-compile (require 'speedbar))
+(require 'speedbar)
 
 ;;; Support a way of adding generic object based modes into speedbar.
 ;;

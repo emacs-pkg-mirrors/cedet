@@ -1,9 +1,9 @@
 ;;; eieio-opt.el -- eieio optional functions (debug, printing, speedbar)
 
-;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.9 1999/12/01 15:25:12 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.10 2000/07/19 02:22:29 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -186,7 +186,7 @@ function has no documentation, then return nil."
 (eval-when-compile
   (condition-case nil
       (require 'speedbar)
-    (error nil)))
+    (error (message "Error loading speedbar... ignored."))))
 
 (defvar eieio-class-speedbar-key-map nil
   "Keymap used when working with a project in speedbar.")
