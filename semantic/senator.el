@@ -1,3 +1,4 @@
+
 ;;; senator.el --- SEmantic NAvigaTOR
 
 ;; Copyright (C) 2000, 2001, 2002, 2003 by David Ponce
@@ -6,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.76 2003/08/01 17:29:45 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.77 2003/08/17 02:47:29 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1790,13 +1791,13 @@ This is a buffer local variable.")
     "Chart"
     (senator-menu-item
      [ "Chart Tags by Class"
-       semantic-chart-nonterminals-by-tag
+       semantic-chart-tags-by-class
        :active t
        :help "Catagorize all tags by class, and chart the volume for each class"
        ])
     (senator-menu-item
      [ "Chart Tags by Complexity"
-       semantic-chart-nonterminal-complexity-tag
+       semantic-chart-tag-complexity
        :active t
        :help "Choose the most complex tags, and chart them by complexity"
        ])
