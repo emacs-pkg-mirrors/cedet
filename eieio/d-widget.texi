@@ -1,6 +1,6 @@
 @c -*-texinfo-*-
 @c
-@c $Id: d-widget.texi,v 1.1 1996/11/17 23:56:24 zappo Exp $
+@c $Id: d-widget.texi,v 1.2 1996/11/18 00:01:05 zappo Exp $
 @c
 
 @c The next line is for the back-search to see what node this one
@@ -13,7 +13,7 @@
 @c on the expression below to rebuild the entire widget index (but only
 @c after loading in the dialog tool.)
 
-@c (cdoc-class widget-core "cw")
+@c (eieiodoc-class widget-core "cw")
 
 @menu
 * widget-core ::
