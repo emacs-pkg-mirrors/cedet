@@ -3,12 +3,14 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.4 2001/09/14 20:35:59 zappo Exp $
+ * $Id: test.cpp,v 1.5 2001/10/04 15:08:24 zappo Exp $
  *
  */
 
 /* An include test */
 #include "c++-test.hh"
+
+double var1 = 1.2;
 
 struct foo1 {
   int test;
@@ -16,7 +18,7 @@ struct foo1 {
 
 struct foo2 : public foo1 {
   const int foo21(int a, int b);
-  const int foo22(int a, int b) { return 1 };
+  const int foo22(int a, int b) { return 1 }
 };
 
 /* Classes */
@@ -107,6 +109,14 @@ void *class3::method5_for_class3( int a, int b) const
 {
 }
 
+// Stuff Klaus found.
+// Inheritance w/out a specifying for public.
+class class4 : class1 {
+  // Pure virtual methods.
+  void virtual print () const = 0;
+
+}
+
 /* Namespaces */
 namespace namespace1 {
   void ns_method1() { }
@@ -116,8 +126,9 @@ namespace namespace1 {
     void method11(int a) { }
   };
 
+  /* This shouldn't parse due to missing semicolon. */
   class _n_class2 : public n_class1 {
-    void n_c2_method1(int a, int b) { };
+    void n_c2_method1(int a, int b) { }
   }
     
 }

@@ -1,7 +1,7 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.4 2001/09/14 20:30:25 zappo Exp $
+ * $Id: test.c,v 1.5 2001/10/04 15:06:11 zappo Exp $
  *
  */
 /* types of include files */
@@ -152,13 +152,23 @@ enum myenum1 *funk2(arg_41, arg_42)
 }
 
 int funk3(arg_51, arg_53)
-     int arg_51, *arg_53;
+     int arg_51;
+     char arg_53;
 {
   char q = 'a';
   int sv = 6;
+  struct mystruct1 ms1;
 
-  funcall(sv, arg51);
-  fv = 7;
+  fun3(ms1.slot12, arg_51);
+  sv = 7;
+
+  ms1.slot11 = sv;
+}
+
+int funk4_fixme(arg_61, arg_62)
+     int arg_61, arg_62;
+{
+  
 }
 
 /* End of C tests */
