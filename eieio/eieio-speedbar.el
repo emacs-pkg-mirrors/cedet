@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.13 2002/02/23 03:19:34 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.14 2002/03/13 12:14:54 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -42,6 +42,7 @@
 ;;
 ;; 1) Objects that will have lists of items that can be expanded
 ;;    should also inherit from the classes:
+;;  * `eieio-speedbar'                  - specify your own button behavior
 ;;  * `eieio-speedbar-directory-button' - objects that behave like directories
 ;;  * `eieio-speedbar-file-button'      - objects that behave like files
 ;;
@@ -291,13 +292,21 @@ Argument DEPTH is the depth at which the tag line is inserted."
   (let ((children (eieio-speedbar-object-children object))
 	(exp (oref object expanded)))
     (if (not children)
-	(speedbar-make-tag-line (oref object buttontype)
-				?? nil nil
-				(eieio-speedbar-object-buttonname object)
-				'eieio-speedbar-object-click
-				object
-				(oref object buttonface)
-				depth)
+	(if (eq (oref object buttontype) 'expandtag)
+	    (speedbar-make-tag-line 'statictag
+				    ?  nil nil
+				    (eieio-speedbar-object-buttonname object)
+				    'eieio-speedbar-object-click
+				    object
+				    (oref object buttonface)
+				    depth)
+	  (speedbar-make-tag-line (oref object buttontype)
+				  ?  nil nil
+				  (eieio-speedbar-object-buttonname object)
+				  'eieio-speedbar-object-click
+				  object
+				  (oref object buttonface)
+				  depth))
       (speedbar-make-tag-line (oref object buttontype)
 			      (if exp ?- ?+)
 			      'eieio-speedbar-object-expand
@@ -312,7 +321,7 @@ Argument DEPTH is the depth at which the tag line is inserted."
 
 (defmethod eieio-speedbar-child-make-tag-lines ((object eieio-speedbar) depth)
   "Base method for creating tag lines for non-object children."
-  (error "You must implement `eieio-speedbar-child-make-tag-lnes' for %s"
+  (error "You must implement `eieio-speedbar-child-make-tag-lines' for %s"
 	 (object-name object)))
 
 (defmethod eieio-speedbar-expand ((object eieio-speedbar) depth)
@@ -324,7 +333,7 @@ OBJECT."
 	   (mapcar (lambda (car)
 		     (eieio-speedbar-make-tag-line car depth))
 		   children))
-	  (t (eieio-speedbar-child-make-tag-lines object depth)))))
+	  (children (eieio-speedbar-child-make-tag-lines object depth)))))
 
 
 ;;; Speedbar specific function callbacks.
