@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.21 2003/08/26 14:25:43 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.22 2003/09/16 19:05:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,7 +22,7 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-;; 
+;;
 ;; In Semantic 1.x, changes were handled in a simplistic manner, where
 ;; tokens that changed were reparsed one at a time.  Any other form of
 ;; edit were managed through a full reparse.
@@ -46,7 +46,7 @@
 ;;    overlay marking the region in themselves that contain the
 ;;    children.  This could be used to better improve splicing near
 ;;    the beginning and end of the child lists.
-;; 
+;;
 
 ;;; BUGS IN INCREMENTAL PARSER
 ;;
@@ -128,15 +128,15 @@ Argument START, END, and LENGTH specify the bounds of the change."
 Optional argument BUFFER is the buffer to search for changes in."
   (save-excursion
     (if buffer (set-buffer buffer))
-    (let ((ol (semantic-overlays-in start end))
+    (let ((ol (semantic-overlays-in (max start (point-min))
+				    (min end (point-max))))
 	  (ret nil))
       (while ol
-	(let ((tmp (semantic-overlay-get (car ol) 'semantic-change)))
-	  (when tmp
-	    (setq ret (cons (car ol) ret))))
+	(when (semantic-overlay-get (car ol) 'semantic-change)
+	  (setq ret (cons (car ol) ret)))
 	(setq ol (cdr ol)))
-      (sort ret (lambda (a b) (< (semantic-overlay-start a)
-				 (semantic-overlay-start b)))))))
+      (sort ret #'(lambda (a b) (< (semantic-overlay-start a)
+				   (semantic-overlay-start b)))))))
 
 ;;;###autoload
 (defun semantic-edits-change-function-handle-changes  (start end length)
@@ -416,7 +416,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	    ;; Ok, return the vector only if all TOKENS are
 	    ;; confirmed as the lineage of `overlapped-tokens'
 	    ;; which must have a value by now.
-		
+
 	    ;; Loop over the search list to find the preceeding CDR.
 	    ;; Fortunatly, (car overlapped-tokens) happens to be
 	    ;; the first token positionally.
@@ -425,7 +425,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 			  ;; Assume always (car (cdr list-to-search)).
 			  ;; A thrown error will be captured nicely, but
 			  ;; that case shouldn't happen.
-			      
+
 			  ;; We end when the start of the CDR is after the
 			  ;; end of our asked change.
 			  (< (semantic-tag-start (car (cdr list-to-search)))
@@ -624,7 +624,7 @@ the semantic cache to see what needs to be changed."
                )
               ;; Prepare for the next iteration.
               (setq changes (cdr changes)))
-            
+
             ;; By the time we get here, all TOKENS are children of
             ;; some parent.  They should all have the same start symbol
             ;; since that is how the multi-token parser works.  Grab
@@ -655,7 +655,7 @@ the semantic cache to see what needs to be changed."
               (while tmp
                 (semantic--tag-link-to-buffer (car tmp))
                 (setq tmp (cdr tmp))))
-            
+
             ;; See how this change lays out.
             (cond
 
@@ -693,7 +693,7 @@ the semantic cache to see what needs to be changed."
               (message "Deleted tokens: (%s)"
                        (semantic-format-tag-name (car tokens)))
               )
-             
+
 ;;;; One token was updated.
              ((and (= (length tokens) 1) (= (length newf-tokens) 1))
               ;; One old token was modified, and it is replaced by
@@ -711,25 +711,25 @@ the semantic cache to see what needs to be changed."
 
 ;;;; Some unhandled case.
              ((error "Don't know what to do")))
-          
+
             ;; We got this far, and we didn't flag a full reparse.
             ;; Clear out this change group.
             (while change-group
               (semantic-edits-flush-change (car change-group))
               (setq change-group (cdr change-group)))
-          
+
             ;; Don't increment change here because an earlier loop
             ;; created change-groups.
             (setq parse-start nil)
             )
           ;; Mark that we are done with this glop
           (semantic-parse-tree-set-up-to-date))
-      
+
       ;; Force a full reparse.
       (error
        (message (error-message-string errobj))
        (semantic-edits-incremental-fail)))
-      
+
     ;; Return the list of tokens that changed.  The caller will
     ;; use this information to call hooks which can fix themselves.
     changed-tokens))
