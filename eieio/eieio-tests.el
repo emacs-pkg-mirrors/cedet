@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.4 2000/08/20 21:59:04 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.5 2000/09/28 19:43:38 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -329,6 +329,15 @@ METHOD is the method that was attempting to be called."
 (if (eq (oref a classslot) (oref aa classslot))
     nil
   (error "Class slots are tracking between objects"))
+
+;;; Test different types in a class
+;;
+;(defclass class-typep ()
+;  ((slot1 :type function
+;	  :initform (lambda-default (a b) (< a b))
+;	  )
+;   )
+;  "Test different types in a class.")
 
 
 ;;; Inheritance status
