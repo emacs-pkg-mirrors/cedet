@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.35 2000/07/12 14:18:22 zappo Exp $
+;; RCS: $Id: ede.el,v 1.36 2000/07/22 12:50:11 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -96,30 +96,48 @@ target willing to take the file.  'never means never perform the check."
   :group 'ede
   :type 'sexp) ; make this be a list of options some day
 
-(eval-and-compile
-  (require 'eieio)
-  (require 'eieio-speedbar))
+(require 'eieio)
+(require 'eieio-speedbar)
 
 ;;; Top level classes for projects and targets
 ;;
 (defclass ede-project-autoload ()
-  ((name :initarg :name :documentation "Name of this project type")
-   (file :initarg :file :documentation "The lisp file belonging to this class.")
+  ((name :initarg :name
+	 :documentation "Name of this project type")
+   (file :initarg :file
+	 :documentation "The lisp file belonging to this class.")
    (proj-file :initarg :proj-file
 	      :documentation "Name of a project file of this type.")
+   (initializers :initarg :initializers
+		 :initform nil
+		 :documentation
+		 "Initializers passed to the project object.
+These are used so there can be multiple types of projects
+associated with a single object class, based on the initilizeres used.")
    (load-type :initarg :load-type
 	      :documentation "Fn symbol used to load this project file.")
    (class-sym :initarg :class-sym
-	      :documentation "Symbol representing the project class to use."))
+	      :documentation "Symbol representing the project class to use.")
+   (new-p :initarg :new-p
+	  :initform t
+	  :documentation
+	  "Non-nil if this is an option when a user creates a project.")
+   )
   "Class representing minimal knowledge set to run preliminary EDE functions.
 When more advanced functionality is needed from a project type, that projects
 type is required and the load function used.")
 
 (defvar ede-project-class-files
   (list
-   (ede-project-autoload "edeproject"
-			 :name "edeproject" :file 'ede-proj
+   (ede-project-autoload "edeproject-makefile"
+			 :name "Make" :file 'ede-proj
 			 :proj-file "Project.ede"
+			 :load-type 'ede-proj-load
+			 :class-sym 'ede-proj-project)
+   (ede-project-autoload "edeproject-automake"
+			 :name "Automake" :file 'ede-proj
+			 :proj-file "Project.ede"
+			 :initializers '(:makefile-type Makefile.am)
 			 :load-type 'ede-proj-load
 			 :class-sym 'ede-proj-project)
    (ede-project-autoload "automake"
@@ -664,6 +682,11 @@ Argument NEWVERSION is the version number to use in the current project."
   "Call this when a user finishes customizing TARGET."
   nil)
 
+(defmethod ede-commit-project ((proj ede-project))
+  "Commit any change to PROJ to its file."
+  nil
+  )
+
 
 ;;; EDE project target baseline methods.
 ;;
@@ -726,6 +749,10 @@ Argument COMMAND is the command to use for compiling the target."
   "Build a distribution for the project based on THIS target."
   (error "Make-dist not supported by %s" (object-name this)))
 
+(defmethod project-rescan ((this ede-project))
+  "Rescan the EDE proj project THIS."
+  (error "Rescanning a project is not supported by %s" (object-name this)))
+
 ;;; Default methods for EDE classes
 ;;
 ;; These are methods which you might want to override, but there is
@@ -765,6 +792,15 @@ Argument THIS is the project to convert PATH to."
     (if (string-match (regexp-quote pp) fp)
 	(substring fp (match-end 0))
       (error "Cannot convert relativize path %s" fp))))
+
+(defmethod ede-convert-path ((this ede-target) path)
+  "Convert path in a standard way for a given project.
+Default to making it project relative.
+Argument THIS is the project to convert PATH to."
+  (let ((proj (ede-target-parent this)))
+    (if proj
+	(ede-convert-path proj path)
+      (error "Parentless target %s" this))))
 
 (defmethod ede-want-file-p ((this ede-target) file)
   "Return non-nil if THIS target wants FILE."
@@ -995,6 +1031,30 @@ could become slow in time."
 	     (y-or-n-p "Checkout Makefile.am from VC? "))
 	(vc-toggle-read-only))))
 
+(defmethod ede-find-target ((proj ede-project) buffer)
+  "Fetch the target in PROJ belonging to BUFFER or nil."
+  (save-excursion
+    (set-buffer buffer)
+    (or ede-object
+	(if (ede-buffer-mine proj buffer)
+	    proj
+	  (let ((targets (oref proj targets))
+		(f nil))
+	    (while targets
+	      (if (ede-buffer-mine (car targets) buffer)
+		  (setq f (cons (car targets) f)))
+	      (setq targets (cdr targets)))
+	    f)))))
+
+(defmethod ede-buffer-mine ((this ede-project) buffer)
+  "Return non-nil if object THIS lays claim to the file in BUFFER."
+  nil)
+
+(defmethod ede-buffer-mine ((this ede-target) buffer)
+  "Return non-nil if object THIS lays claim to the file in BUFFER."
+  (member (ede-convert-path this (buffer-file-name buffer))
+	  (oref this source)))
+
 
 ;;; Project mapping
 ;;
@@ -1114,15 +1174,18 @@ If VARIABLE is not project local, just use set."
 	    (def-edebug-spec ede-with-projectfile
 	      (form def-body))))
 
-(autoload 'ede-speedbar "ede-speedbar" "Run speedbar in EDE project mode." t)
-(autoload 'ede-speedbar-file-setup "ede-speedbar" "EDE in Speedbar File mode hack." t)
+;; Prevent warnings w/out requiring ede-speedbar.
+(eval-and-compile
+  (autoload 'ede-speedbar "ede-speedbar" "Run speedbar in EDE project mode." t)
+  (autoload 'ede-speedbar-file-setup "ede-speedbar" "EDE in Speedbar File mode hack." t)
+)
 
-(eval-when-compile (require 'ede-speedbar))
+(provide 'ede)
 
+;; If this does not occur after the provide, we can get a recursive
+;; load.  Yuck!
 (if (featurep 'speedbar)
     (ede-speedbar-file-setup)
   (add-hook 'speedbar-load-hook 'ede-speedbar-file-setup))
-
-(provide 'ede)
 
 ;;; ede.el ends here
