@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.22 2004/03/30 10:12:50 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.23 2004/04/06 12:14:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2879,22 +2879,22 @@ data that matched this rule.  Return the goto table."
     (error nil)))
 
 (defun wisent-check-$N (x m)
-  "Return non-nil if X is a valid $N symbol.
-That is if X is a $N symbol with N >= 1 and N <= M.
+  "Return non-nil if X is a valid $N or $regionN symbol.
+That is if X is a $N or $regionN symbol with N >= 1 and N <= M.
 Also warn if X is a $N or $regionN symbol with N < 1 or N > M."
   (when (symbolp x)
-    (let ((n (symbol-name x))
-          i)
-      (when (string-match "^\\(\\$\\(region\\)?\\)\\([0-9]+\\)$" n)
-        (setq i (string-to-int (match-string 3 n))
-              n (match-string 1 n))
+    (let* ((n (symbol-name x))
+           (i (and (string-match "\\`\\$\\(region\\)?\\([0-9]+\\)\\'" n)
+                   (string-to-int (match-string 2 n)))))
+      (when i
         (if (and (>= i 1) (<= i m))
-            (string-equal n "$")
+            t
           (message
-           (if (< m 1)
-               "*** In %s, %s not found, no %sN variable are defined"
-             "*** In %s, %s not found in %s[1-%d] range")
-           NAME x n m)
+           "*** In %s, %s might be a free variable (rule has %s)"
+           NAME x (format (cond ((< m 1) "no component")
+                                ((= m 1) "%d component")
+                                ("%d components"))
+                          m))
           nil)))))
 
 (defun wisent-semantic-action-expand-body (body n &optional found)
@@ -2957,40 +2957,37 @@ And returns the updated top-of-stack index."
            (n    (aref actn 1))         ; nb of val avail. in stack
            (NAME (apply 'format "%s:%d" (aref actn 2)))
            (form (wisent-semantic-action-expand-body (aref actn 0) n))
-           ($l   (car form))            ; list of $I found in body
+           ($l   (car form))            ; list of $vars used in body
            (form (cdr form))            ; expanded form of body
            (nt   (aref rlhs r))         ; nonterminal item no.
-           (rl   nil)                   ; list of binded $regionI
            (bl   nil)                   ; `let*' binding list
-           (vi   n)                     ; index of $I
-           (spi  1)                     ; index in stack of $I value
-           (rhl  0)                     ; length of RHS of this rule
-           $i $ri i)
+           $v i j)
       
       ;; Compute $N and $regionN bindings
-      (setq i 1)
-      (while (<= i n)
-        (setq $i  (intern (format "$%d" vi))
-              $ri (intern (format "$region%d" vi))
-              rl  (cons $ri rl)
-              bl  (cons `(,$ri (cdr (aref ,stack (- ,sp ,spi)))) bl))
-        (if (memq $i $l) ;; Only bind $I if used in action
-            (setq bl (cons `(,$i (car (aref ,stack (- ,sp ,spi)))) bl)))
-        (setq i   (1+ i)
-              vi  (1- vi)
-              spi (+ spi 2)))
+      (setq i n)
+      (while (> i 0)
+        (setq j (1+ (* 2 (- n i))))
+        ;; Only bind $regionI if used in action
+        (setq $v (intern (format "$region%d" i)))
+        (if (memq $v $l)
+            (setq bl (cons `(,$v (cdr (aref ,stack (- ,sp ,j)))) bl)))
+        ;; Only bind $I if used in action
+        (setq $v (intern (format "$%d" i)))
+        (if (memq $v $l)
+            (setq bl (cons `(,$v (car (aref ,stack (- ,sp ,j)))) bl)))
+        (setq i (1- i)))
       
-      ;; Compute RHL, the length of rule's RHS.  It will give the
-      ;; current parser state at STACK[SP - 2*RHL], and where to push
+      ;; Compute J, the length of rule's RHS.  It will give the
+      ;; current parser state at STACK[SP - 2*J], and where to push
       ;; the new semantic value and the next state, respectively at:
-      ;; STACK[SP - 2*RHL + 1] and STACK[SP - 2*RHL + 2].
-      ;; Generally N, the maximum number of values available in the
-      ;; stack, is equal to RHL.  But, for mid-rule actions, N is the
-      ;; number of rule elements before the action and RHL is always 0
-      ;; (empty rule).
-      (setq i (aref rrhs r))
+      ;; STACK[SP - 2*J + 1] and STACK[SP - 2*J + 2].  Generally N,
+      ;; the maximum number of values available in the stack, is equal
+      ;; to J.  But, for mid-rule actions, N is the number of rule
+      ;; elements before the action and J is always 0 (empty rule).
+      (setq i (aref rrhs r)
+            j 0)
       (while (> (aref ritem i) 0)
-        (setq rhl (1+ rhl)
+        (setq j (1+ j)
               i (1+ i)))
       
       ;; Create the semantic action symbol.
@@ -3000,22 +2997,31 @@ And returns the updated top-of-stack index."
       ;; symbol.  It will be byte-compiled at automaton's compilation
       ;; time.  Using a byte-compiled automaton can significantly
       ;; speed up parsing!
-      (fset actn `(lambda (,stack ,sp ,gotos)
-                    (let* (,@bl
-                           ($region (wisent-region ,@rl))
-                           ($nterm  ',(aref tags nt))
-                           ($action ,NAME)
-                           ,state)
-                      (setq ,sp    (- ,sp ,(* rhl 2))
-                            ,gotos (aref ,gotos (aref ,stack ,sp))
-                            ,state (cdr (assq $nterm ,gotos))
-                            ,sp    (+ ,sp 2))
-                      ;; push next state
-                      (aset ,stack ,sp ,state)
-                      ;; push semantic value
-                      (aset ,stack (1- ,sp) (cons ,form $region))
-                      ;; return new top of stack
-                      ,sp)))
+      (fset actn
+            `(lambda (,stack ,sp ,gotos)
+               (let* (,@bl
+                      ($region
+                       ,(cond
+                         ((= n 1)
+                          (if (assq '$region1 bl)
+                              '$region1
+                            `(cdr (aref ,stack (1- ,sp)))))
+                         ((> n 1)
+                          `(wisent-production-bounds
+                            ,stack (- ,sp ,(1- (* 2 n))) (1- ,sp)))))
+                      ($action ,NAME)
+                      ($nterm  ',(aref tags nt))
+                      ,@(and (> j 0) `((,sp (- ,sp ,(* j 2)))))
+                      (,state (cdr (assq $nterm
+                                         (aref ,gotos
+                                               (aref ,stack ,sp))))))
+                 (setq ,sp (+ ,sp 2))
+                 ;; push semantic value
+                 (aset ,stack (1- ,sp) (cons ,form $region))
+                 ;; push next state
+                 (aset ,stack ,sp ,state)
+                 ;; return new top of stack
+                 ,sp)))
       
       ;; Return the semantic action symbol
       actn)))
