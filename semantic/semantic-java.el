@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.29 2002/08/09 23:20:17 zappo Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.30 2002/08/10 14:20:51 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1029,9 +1029,9 @@ removed from the result list."
  'java-mode
  )
 
+;;;###autoload
 (add-hook 'java-mode-hook 'semantic-default-java-setup)
 
-;;;###autoload
 (provide 'semantic-java)
 
 ;;; semantic-java.el ends here
