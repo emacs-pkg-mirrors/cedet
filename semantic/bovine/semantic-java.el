@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.6 2003/04/09 12:32:20 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.7 2003/09/05 10:32:12 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -92,7 +92,7 @@ FLOATING_POINT_LITERAL:
   "Return a function (method) prototype for TAG.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
-See also `semantic-java-prototype-tag'."
+See also `semantic-format-prototype-tag'."
   (let ((name (semantic-tag-name tag))
         (type (semantic-tag-type tag))
         (args (semantic-tag-function-arguments tag))
@@ -118,7 +118,7 @@ See also `semantic-java-prototype-tag'."
   "Return a variable (field) prototype for TAG.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
-See also `semantic-java-prototype-tag'."
+See also `semantic-format-prototype-tag'."
   (concat (if color
               (semantic--format-colorize-text
                (semantic-tag-type tag) 'type)
@@ -133,7 +133,7 @@ See also `semantic-java-prototype-tag'."
   "Return a type (class/interface) prototype for TAG.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
-See also `semantic-java-prototype-tag'."
+See also `semantic-format-prototype-tag'."
   (concat (semantic-tag-type tag)
           " "
           (if color
@@ -141,9 +141,9 @@ See also `semantic-java-prototype-tag'."
                (semantic-tag-name tag) 'type)
             (semantic-tag-name tag))))
 
-(defun semantic-java-prototype-tag (tag &optional parent color)
+(define-mode-overload-implementation semantic-format-prototype-tag
+  java-mode (tag &optional parent color)
   "Return a prototype for TOKEN.
-Override `semantic-format-tag-prototype'.
 Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in."
   (let ((f (intern-soft (format "semantic-java-prototype-%s"
@@ -163,44 +163,46 @@ Optional argument COLOR indicates that color should be mixed in."
   "Move point forward, skipping Java whitespaces."
   (skip-chars-forward " \n\r\t"))
 
-(defun semantic-java-find-documentation (&optional tag nosnarf)
+(define-mode-overload-implementation semantic-documentation-for-tag
+  java-mode (&optional tag nosnarf)
   "Find documentation from TAG and return it as a clean string.
 Java have documentation set in a comment preceeding TAG's definition.
 Attempt to strip out comment syntactic sugar, unless optional argument
 NOSNARF is non-nil.
-If NOSNARF is 'flex, then return the semantic lex token.
-Override `semantic-find-documentation'."
-  (if (or tag (setq tag (semantic-current-tag)))
-      (with-current-buffer (semantic-tag-buffer tag))
-    ;; Move the point at token start
-    (goto-char (semantic-tag-start tag))
-    (semantic-java-skip-spaces-forward)
-    ;; If the point already at "/**" (this occurs after a doc fix)
-    (if (looking-at "/\\*\\*")
-        nil
-      ;; Skip previous spaces
-      (semantic-java-skip-spaces-backward)
-      ;; Ensure point is after "*/" (javadoc block comment end)
-      (condition-case nil
-          (backward-char 2)
-        (error nil))
-      (when (looking-at "\\*/")
-        ;; Move the point backward across the comment
-        (forward-char 2)                ; return just after "*/"
-        (forward-comment -1)            ; to skip the entire block
-        ))
-    ;; Verify the point is at "/**" (javadoc block comment start)
-    (if (looking-at "/\\*\\*")
-        (let ((p (point))
-              (c (semantic-find-doc-snarf-comment 'flex)))
-          (when c
-            ;; Verify that the token just following the doc
-            ;; comment is the current one!
-            (goto-char (semantic-lex-token-end c))
-            (semantic-java-skip-spaces-forward)
-            (when (eq tag (semantic-current-tag))
-              (goto-char p)
-              (semantic-find-doc-snarf-comment nosnarf)))))))
+If NOSNARF is 'lex, then return the semantic lex token."
+  (when (or tag (setq tag (semantic-current-tag)))
+    (with-current-buffer (semantic-tag-buffer tag)
+      (save-excursion
+        ;; Move the point at token start
+        (goto-char (semantic-tag-start tag))
+        (semantic-java-skip-spaces-forward)
+        ;; If the point already at "/**" (this occurs after a doc fix)
+        (if (looking-at "/\\*\\*")
+            nil
+          ;; Skip previous spaces
+          (semantic-java-skip-spaces-backward)
+          ;; Ensure point is after "*/" (javadoc block comment end)
+          (condition-case nil
+              (backward-char 2)
+            (error nil))
+          (when (looking-at "\\*/")
+            ;; Move the point backward across the comment
+            (forward-char 2)              ; return just after "*/"
+            (forward-comment -1)          ; to skip the entire block
+            ))
+        ;; Verify the point is at "/**" (javadoc block comment start)
+        (if (looking-at "/\\*\\*")
+            (let ((p (point))
+                  (c (semantic-doc-snarf-comment-for-tag 'lex)))
+              (when c
+                ;; Verify that the token just following the doc
+                ;; comment is the current one!
+                (goto-char (semantic-lex-token-end c))
+                (semantic-java-skip-spaces-forward)
+                (when (eq tag (semantic-current-tag))
+                  (goto-char p)
+                  (semantic-doc-snarf-comment-for-tag nosnarf)))))
+        ))))
 
 ;;; Javadoc facilities
 ;;
