@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.80 2001/10/04 15:04:14 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.81 2001/10/05 19:27:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -568,15 +568,15 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDE are passed to
 TYPE is a string which is the name of the type of the token returned.
 Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 `semantic-find-nonterminal-by-function'."
-  (if (member type semantic-default-built-in-types)
-      (list (list type 'type "built in"))
-    (semantic-find-nonterminal-by-function
-     (lambda (tok)
-       (let ((ts (semantic-token-type tok)))
-	 (if (and (listp ts) (eq (semantic-token-token ts) 'type))
-	     (setq ts (semantic-token-name ts)))
-	 (equal type ts)))
-     streamorbuffer search-parts search-includes)))
+  (semantic-find-nonterminal-by-function
+   (lambda (tok)
+     (let ((ts (semantic-token-type tok)))
+       (if (and (listp ts)
+		(or (= (length ts) 1)
+		    (eq (semantic-token-token ts) 'type)))
+	   (setq ts (semantic-token-name ts)))
+       (equal type ts)))
+   streamorbuffer search-parts search-includes))
 
 (defun semantic-find-nonterminal-by-type-regexp
   (regexp streamorbuffer &optional search-parts search-includes)
