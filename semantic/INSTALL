@@ -38,3 +38,8 @@ How to install Semantic
    Investigate the file `semantic-load.el', and include those pieces
    you want to use.
 
+5) To send bug reports, or participate in discussions about sematnic,
+   use the mailing list cedet-semantic@@sourceforge.net via the URL:
+
+   http://lists.sourceforge.net/lists/listinfo/cedet-semantic
+
