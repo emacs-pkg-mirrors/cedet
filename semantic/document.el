@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.21 2004/02/17 14:03:10 ponced Exp $
+;; X-RCS: $Id: document.el,v 1.22 2004/03/03 12:36:58 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -819,9 +819,9 @@ that class.
 				 "@dfn{" "@code{")
 			     vs "}")
 		    nil t string)))))
-  (while (string-match "\\( \\|^\\)\\(nil\\|t\\|'[-a-zA-Z0-9]+\\|:[-a-zA-Z0-9]+\\)\\([ ,]\\|$\\)" string)
+  (while (string-match "\\( \\|^\\)\\(nil\\|t\\|'[-a-zA-Z0-9]+\\|:[-a-zA-Z0-9]+\\)\\([. ,]\\|$\\)" string)
     (setq string (replace-match "@code{\\2}" t nil string 2)))
-  (while (string-match "\\( \\|^\\)\\(\\(non-\\)\\(nil\\)\\)\\([ ,]\\|$\\)" string)
+  (while (string-match "\\( \\|^\\)\\(\\(non-\\)\\(nil\\)\\)\\([. ,]\\|$\\)" string)
     (setq string (replace-match "\\3@code{\\4}" t nil string 2)))
   (while (string-match "\\( \\|^\\)\\(\\[[^]]+\\]\\)\\( \\|$\\)" string)
     (setq string (replace-match "@code{\\2}" t nil string 2)))
