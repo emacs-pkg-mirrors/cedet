@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.8 2003/08/20 06:48:09 ponced Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.9 2003/08/29 16:11:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -335,7 +335,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
          (names (if parent
                     semantic-symbol->name-assoc-list-for-type-parts
                   semantic-symbol->name-assoc-list))
-         (tsymb (funcall semantic-bucketize-tag-class tag))
+         (tsymb (semantic-tag-class tag))
          (label (capitalize (or (cdr-safe (assoc tsymb names))
                                 (symbol-name tsymb)))))
     (if color
