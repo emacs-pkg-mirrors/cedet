@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.10 2003/10/02 13:56:25 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.11 2003/12/16 11:46:12 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,30 +34,24 @@
 ;; Reparse
 %start prologue epilogue declaration nonterminal rule
 ;; EXPANDFULL
-%start put_names put_values
+%start put_names put_values use_names
 
 ;; Keywords
-%token DEFAULT-PREC    "%default-prec"
-%token NO-DEFAULT-PREC "%no-default-prec"
-%token LANGUAGEMODE    "%languagemode"
-%token LEFT            "%left"
-%token NONASSOC        "%nonassoc"
-%token PACKAGE         "%package"
-%token PREC            "%prec"
-%token PUT             "%put"
-%token QUOTEMODE       "%quotemode"
-%token RIGHT           "%right"
-%token SCOPESTART      "%scopestart"
-%token START           "%start"
-%token TOKEN           "%token"
-%token USE-MACROS      "%use-macros"
-
-;; Obsolete keywords
-%token KEYWORDTABLE    "%keywordtable"
-%token OUTPUTFILE      "%outputfile"
-%token PARSETABLE      "%parsetable"
-%token SETUPFUNCTION   "%setupfunction"
-%token TOKENTABLE      "%tokentable"
+%keyword DEFAULT-PREC    "%default-prec"
+%keyword NO-DEFAULT-PREC "%no-default-prec"
+%keyword KEYWORD         "%keyword"
+%keyword LANGUAGEMODE    "%languagemode"
+%keyword LEFT            "%left"
+%keyword NONASSOC        "%nonassoc"
+%keyword PACKAGE         "%package"
+%keyword PREC            "%prec"
+%keyword PUT             "%put"
+%keyword QUOTEMODE       "%quotemode"
+%keyword RIGHT           "%right"
+%keyword SCOPESTART      "%scopestart"
+%keyword START           "%start"
+%keyword TOKEN           "%token"
+%keyword USE-MACROS      "%use-macros"
 
 ;; Literals
 %token <string>        STRING
@@ -123,14 +117,9 @@ decl:
   | quotemode_decl
   | scopestart_decl
   | start_decl
+  | keyword_decl
   | token_decl
   | use_macros_decl
- ;; Obsoletes declarations    
-  | keywordtable_decl
-  | outputfile_decl
-  | parsetable_decl
-  | setupfunction_decl
-  | tokentable_decl
   ;
 
 default_prec_decl:
@@ -168,9 +157,9 @@ associativity:
   ;
 
 put_decl:
-    PUT SYMBOL put_value
+    PUT put_name put_value
     `(TAG ',$2 'put :value ',(list $3))
-  | PUT SYMBOL put_value_list
+  | PUT put_name put_value_list
     (let* ((vals (mapcar 'semantic-tag-name $3)))
       `(TAG ',$2 'put :value ',vals))
   | PUT put_name_list put_value
@@ -192,9 +181,14 @@ put_names:
     ()
   | RBRACE
     ()
-  | SYMBOL
+  | put_name
  ;; Must return a list of Semantic tags to EXPANDFULL!
     (TAG $1 'put-name)
+  ;
+
+put_name:
+    SYMBOL
+  | token_type
   ;
 
 put_value_list:
@@ -232,6 +226,11 @@ start_decl:
     `(TAG ',(car $2) 'start :rest ',(cdr $2))
   ;
 
+keyword_decl:
+    KEYWORD SYMBOL string_value
+    `(TAG ',$2 'keyword :value ',$3)
+  ;
+
 token_decl:
     TOKEN token_type_opt SYMBOL string_value
     `(TAG ',$3 ',(if $2 'token 'keyword) :type ',$2 :value ',$4)
@@ -249,47 +248,25 @@ token_type:
     (progn $2)
   ;
 
+use_name_list:
+    BRACE_BLOCK
+    (EXPANDFULL $1 use_names)
+  ;
+
+use_names:
+    LBRACE
+    ()
+  | RBRACE
+    ()
+  | SYMBOL
+ ;; Must return a list of Semantic tags to EXPANDFULL!
+    (TAG $1 'use-name)
+  ;
+
 use_macros_decl:
-    USE-MACROS SYMBOL put_name_list
+    USE-MACROS SYMBOL use_name_list
     (let* ((names (mapcar 'semantic-tag-name $3)))
       `(TAG "macro" 'macro :type ',$2 :value ',names))
-  ;
-
-;;; OBSOLETE Declarations
-;;
-keywordtable_decl:
-    KEYWORDTABLE SYMBOL
-    (progn
-      (message "The %s keyword is obsolete and no more used" $1)
-      nil)
-  ;
-
-outputfile_decl:
-    OUTPUTFILE string_value
-    (progn
-      (message "The %s keyword is obsolete and no more used" $1)
-      nil)
-  ;
-
-parsetable_decl:
-    PARSETABLE SYMBOL
-    (progn
-      (message "The %s keyword is obsolete and no more used" $1)
-      nil)
-  ;
-
-setupfunction_decl:
-    SETUPFUNCTION SYMBOL
-    (progn
-      (message "The %s keyword is obsolete and no more used" $1)
-      nil)
-  ;
-
-tokentable_decl:
-    TOKENTABLE SYMBOL
-    (progn
-      (message "The %s keyword is obsolete and no more used" $1)
-      nil)
   ;
 
 string_value:
