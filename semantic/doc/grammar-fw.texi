@@ -203,12 +203,11 @@ Bison's convention recommends it should be all upper case.
 
 Terminal symbols are part of the lexical tokens returned by the
 function @code{semantic-lex-analyzer}.  They indicate what kind of
-token has been read.  For more on lexical analysis, see
-@inforef{Writing Lexers, ,semantic-langdev}.
+token has been read.  For more on lexical analysis, @inforef{Writing
+Lexers, ,semantic-langdev}.
 
-Terminal symbols are declared using @code{%keyword} (see
-@pxref{keyword Decl}) or @code{%token} (see @pxref{token Decl})
-statements.
+Terminal symbols are declared using @code{%keyword} (@pxref{keyword
+Decl}) or @code{%token} (@pxref{token Decl}) statements.
 
 @table @strong
 @item Please note:
@@ -216,7 +215,7 @@ Terminal symbols can be @dfn{literal characters} which have the same
 syntax used in C for character constants; for example, @code{'+'} is a
 @dfn{literal character token class}.  A character token class doesn't
 need to be declared, and can be used in precedence declarations like
-other terminal symbols (see @pxref{precedence Decl}).@*
+other terminal symbols (@pxref{precedence Decl}).@*
 For now @semantic{} lexers don't handle literal characters terminals.
 @end table
 
@@ -252,7 +251,7 @@ grammars you may not need any declarations.
 
 Declarations of terminal symbols defines the symbols used in
 formulating the grammar and the type associated to categories of
-tokens (see also @pxref{Terminal and Nonterminal Symbols}).
+tokens (@pxref{Terminal and Nonterminal Symbols}).
 
 @menu
 * package Decl::                
@@ -349,8 +348,8 @@ declared:
 %keyword ENDIF "endif"
 @end example
 
-Keywords have the implicit reserved type @code{keyword} (see
-@pxref{type Decl}).
+Keywords have the implicit reserved type @code{keyword}
+(@pxref{type Decl}).
 @end deffn
 
 In the generated library, keyword declarations are defined in the
@@ -401,7 +400,7 @@ as a @var{PROPERTY} value.  @var{FUN} receives a semantic keyword as argument.
 @anchor{semantic-lex-keywords}
 Return a list of semantic keywords.
 If optional @var{PROPERTY} is non-@code{nil}, return only keywords which have a
-@var{PROPERTY} set (see also @pxref{put Decl}).
+@var{PROPERTY} set (@pxref{put Decl}).
 @obsolete{semantic-flex-keywords,semantic-lex-keywords}
 @end defun
 
@@ -439,9 +438,9 @@ Is a property value, a valid Emacs Lisp constant expression.
 @end table
 @end deffn
 
-Keyword properties are stored in the keyword table (see also
-@pxref{keyword Decl}).  The following @acronym{API} can be used to
-handle properties at run time.
+Keyword properties are stored in the keyword table (@pxref{keyword
+Decl}).  The following @acronym{API} can be used to handle properties
+at run time.
 
 @defun semantic-lex-keyword-put name property value
 @anchor{semantic-lex-keyword-put}
@@ -473,8 +472,8 @@ Declare several tokens with the optional same type, and no value.
 @table @var
 @item type-name
 Is an optional symbol, enclosed between @code{<} and @code{>}, that
-specifies (and implicitly declares) a @dfn{type} for this token (see
-@pxref{type Decl}).  If omitted the token has no type.
+specifies (and implicitly declares) a @dfn{type} for this token
+(@pxref{type Decl}).  If omitted the token has no type.
 @item token-name
 Is the terminal symbol used in grammar rules to represent this token.
 @item token-value
@@ -482,8 +481,8 @@ Is an optional token value as a string.  Depending on @var{type-name}
 properties, the string value will be interpreted as an ordinary
 string, a regular expression, or have a more elaborate meaning.  If
 omitted the token value will be @code{nil}, which means that this
-token will be considered as the default token of its type (see
-@pxref{type Decl} for more information).
+token will be considered as the default token of its type (@pxref{type
+Decl} for more information).
 @end table
 @end deffn
 
@@ -497,7 +496,7 @@ highly recommend to use the latter to declare keywords!@refill
 @end table
 
 In the generated library, token definitions are stored in the table of
-declared types (see @pxref{type Decl}).
+declared types (@pxref{type Decl}).
 
 @node type Decl
 @subsection type Decl
@@ -526,7 +525,7 @@ every type:
 @itemize @minus
 @item To assign it properties.
 @item To auto-generate a lexical rule that detects tokens of this type.
-For more information, see @ref{Auto-generation of lexical rules}.
+For more information, @ref{Auto-generation of lexical rules}.
 @end itemize
 @end deffn
 
@@ -710,7 +709,7 @@ A grammar rule has the following general form:
 @var{result} is the nonterminal symbol that this rule describes, and
 @var{components} are the various terminal and nonterminal symbols
 that are put together by this rule
-(see @pxref{Terminal and Nonterminal Symbols}).
+(@pxref{Terminal and Nonterminal Symbols}).
 
 For example, this rule:
 
@@ -907,8 +906,8 @@ types, the @code{syntax} property value will probably be:
 @samp{"\\(\\sw\\|\\s_\\)+"}
 
 For well known types, the @code{syntax} property has a predefined
-value that should suit standard needs (see @pxref{Predefined
-well-known types}).
+value that should suit standard needs (@pxref{Predefined well-known
+types}).
 
 @item matchdatatype
 
