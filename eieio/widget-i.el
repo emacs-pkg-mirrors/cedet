@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.14 1996/11/09 23:24:28 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.15 1996/11/09 23:46:08 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -230,13 +230,15 @@ goes OUTSIDE the size specification of the widget itself, and does not
 count when being picked."
   ;; Draw a box around ourselves
   (if (oref this boxed)
-      (let* ((br (concat (char-to-string (aref (oref this box-char) 0))
-			 (make-string (oref this width) (aref (oref this box-char) 4))			 
-			 (char-to-string (aref (oref this box-char) 1))))
-	     (lr (concat (char-to-string (aref (oref this box-char) 2))
+      (let* ((s (oref this box-sides))
+	     (ls (aref s 0))
+	     (rs (aref s 1))
+	     (br (concat (if ls (char-to-string (aref (oref this box-char) 0)) "")
+			 (make-string (oref this width) (aref (oref this box-char) 4))
+			 (if rs (char-to-string (aref (oref this box-char) 1)) "")))
+	     (lr (concat (if ls (char-to-string (aref (oref this box-char) 2)) "")
 			 (make-string (oref this width) (aref (oref this box-char) 5))
-			 (char-to-string (aref (oref this box-char) 3))))
-	     (s (oref this box-sides))
+			 (if rs (char-to-string (aref (oref this box-char) 3)) "")))
 	     (yc 0)
 	     (x (oref this rx))
 	     (y (oref this ry)))
@@ -244,15 +246,15 @@ count when being picked."
 	;; to recieve input.
 	(if (aref s 2) 
 	    (progn
-	      (goto-xy (1- x) (1- y))
+	      (goto-xy (- x (if ls 1 0)) (1- y))
 	      (insert-overwrite-face br (oref this box-face))))
 	(while (< yc (oref this height))
-	  (if (aref s 0)
+	  (if ls
 	      (progn
 		(goto-xy (1- x) (+ y yc))
 		(insert-overwrite-face (char-to-string (aref (oref this box-char) 6))
 				       (oref this box-face))))
-	  (if (aref s 1)
+	  (if rs
 	      (progn
 		(goto-xy (+ x (oref this width)) (+ y yc))
 		(insert-overwrite-face (char-to-string (aref (oref this box-char) 7))
@@ -260,7 +262,7 @@ count when being picked."
 	  (setq yc (1+ yc)))
 	(if (aref s 3)
 	    (progn
-	      (goto-xy (1- x) (+ y (oref this height)))
+	      (goto-xy (- x (if ls 1 0)) (+ y (oref this height)))
 	      (insert-overwrite-face lr (oref this box-face)))))))
 
 (defmethod move-cursor-to ((this widget-square))
@@ -318,7 +320,8 @@ based on the number of children we have."
       (if (obj-of-class-p (car l) widget-group)
 	  (verify-size (car l)))
       (if (obj-of-class-p (car l) widget-visual)
-	  (let ((tw (+ (oref (car l) nx) (oref (car l) width) 1))
+	  (let ((tw (+ (oref (car l) nx) (oref (car l) width) 
+		       (if (eq 0 (oref (car l) x)) 0 1)))
 		(th (+ (oref (car l) ny) (oref (car l) height) 
 		       ;; vertical space is valueable. Only give extra space
 		       ;; for boxed widgets.
