@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.14 2004/02/10 01:49:06 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.15 2004/02/10 12:20:56 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -512,19 +512,40 @@ Use the semantic analyzer to find the symbol information."
    (semantic-idle-summary-current-symbol-info-brutish)
    ))
 
+(defvar semantic-idle-summary-out-of-context-faces
+  '(
+    font-lock-comment-face
+    font-lock-doc-string-face           ; XEmacs.
+    font-lock-doc-face                  ; Emacs 21 and later.
+    )
+  "List of font-lock faces that indicate a useless summary context.
+Those are generally faces used to highlight comments.
+
+It might be useful to override this variable to add comment faces
+specific to a major mode.  For example, in jde mode:
+
+\(defvar-mode-local jde-mode semantic-idle-summary-out-of-context-faces
+   (append (default-value 'semantic-idle-summary-out-of-context-faces)
+	   '(jde-java-font-lock-doc-tag-face
+	     jde-java-font-lock-link-face
+	     jde-java-font-lock-bold-face
+	     jde-java-font-lock-underline-face
+	     jde-java-font-lock-pre-face
+	     jde-java-font-lock-code-face)))")
+
 (defun semantic-idle-summary-useful-context-p ()
   "Non-nil of we should show a summary based on context."
   (if (and (boundp 'font-lock-mode)
 	   font-lock-mode
-	   (eq (get-text-property (point) 'face)
-	       'font-lock-comment-face))
+	   (memq (get-text-property (point) 'face)
+		 semantic-idle-summary-out-of-context-faces))
       ;; The best I can think of at the moment is to disable
       ;; in comments by detecting with font-lock.
       nil
     t))
 
 (define-semantic-idle-service semantic-idle-summary
-  "Display a tag summary of the lexcial token under the cursor.
+  "Display a tag summary of the lexical token under the cursor.
 The means for getting the current tag to display information can
 be override with `idle-summary-current-symbol-info'"
   (unless (or (eq major-mode 'emacs-lisp-mode)
