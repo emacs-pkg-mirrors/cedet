@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.11 2003/02/17 12:46:56 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.12 2003/03/11 01:15:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-02-17 07:41-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-03-10 20:01-0500
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -135,29 +135,28 @@
        opt-define-arglist
        macro-def
        ,(semantic-lambda
-	 (list
-	  (nth 1 vals) 'variable nil
-	  (nth 2 vals)
-	  (semantic-bovinate-make-assoc-list
-	   'const t) nil))
+	 (semantic-token-new-variable
+	  (nth 1 vals) nil
+	  (nth 3 vals)
+	  'const t))
        )
      (INCLUDE
       system-include
       ,(semantic-lambda
-	(list
+	(semantic-token-new-include
 	 (substring
 	  (nth 1 vals)
 	  1
 	  (1-
 	   (length
-	    (nth 1 vals)))) 'include t nil))
+	    (nth 1 vals)))) t))
       )
      (INCLUDE
       string
       ,(semantic-lambda
-	(list
+	(semantic-token-new-include
 	 (read
-	  (nth 1 vals)) 'include nil nil))
+	  (nth 1 vals)) nil))
       )
      ) ;; end macro-or-include
 
@@ -178,11 +177,10 @@
        opt-define-arglist
        macro-def
        ,(semantic-lambda
-	 (list
-	  (nth 2 vals) 'variable nil
+	 (semantic-token-new-variable
+	  (nth 2 vals) nil
 	  (nth 3 vals)
-	  (semantic-bovinate-make-assoc-list
-	   'const t) nil))
+	  'const t))
        )
       )	;; end define
 
@@ -356,13 +354,12 @@
      (symbol
       opt-assign
       ,(semantic-lambda
-	(list
-	 (nth 0 vals) 'variable
-	 "int")
-	(nth 1 vals)
-	(list
-	 (semantic-bovinate-make-assoc-list
-	  'const t) nil))
+	(semantic-token-new-variable
+	 (nth 0 vals)
+	 "int"
+	 (car
+	  (nth 1 vals))
+	 'const t))
       )
      (open-paren
       "{"
@@ -406,10 +403,11 @@
       opt-class-parents
       semantic-list
       ,(semantic-lambda
-	(nth 1 vals)
-	(list 'type)
-	(nth 0 vals)
-	(list
+	(semantic-token-new-type
+	 (car
+	  (nth 1 vals))
+	 (car
+	  (nth 0 vals))
 	 (let
 	     (
 	      (semantic-c-classname
@@ -426,41 +424,42 @@
 	    'classsubparts
 	    1))
 	 (nth 3 vals)
-	 (semantic-bovinate-make-assoc-list
-	  'template-specifier
-	  (nth 2 vals)) nil))
+	 'template-specifier
+	 (nth 2 vals)))
       )
      (struct-or-class
       opt-name
       opt-template-specifier
       opt-class-parents
       ,(semantic-lambda
-	(nth 1 vals)
-	(list 'type)
-	(nth 0 vals)
-	(list nil
-	      (nth 3 vals)
-	      (semantic-bovinate-make-assoc-list
-	       'template-specifier
-	       (nth 2 vals)) nil))
+	(semantic-token-new-type
+	 (car
+	  (nth 1 vals))
+	 (car
+	  (nth 0 vals)) nil
+	 (nth 3 vals)
+	 'template-specifier
+	 (nth 2 vals)))
       )
      (UNION
       opt-name
       unionparts
       ,(semantic-lambda
-	(nth 1 vals)
-	(list 'type
-	      (nth 0 vals)
-	      (nth 2 vals) nil nil nil))
+	(semantic-token-new-type
+	 (car
+	  (nth 1 vals))
+	 (nth 0 vals)
+	 (nth 2 vals) nil))
       )
      (ENUM
       opt-name
       enumparts
       ,(semantic-lambda
-	(nth 1 vals)
-	(list 'type
-	      (nth 0 vals)
-	      (nth 2 vals) nil nil nil))
+	(semantic-token-new-type
+	 (car
+	  (nth 1 vals))
+	 (nth 0 vals)
+	 (nth 2 vals) nil))
       )
      (TYPEDEF
       declmods
@@ -468,10 +467,10 @@
       cv-declmods
       typedef-symbol-list
       ,(semantic-lambda
-	(list
-	 (nth 4 vals) 'type
+	(semantic-token-new-type
+	 (nth 4 vals)
 	 (nth 0 vals) nil
-	 (nth 2 vals) nil nil))
+	 (nth 2 vals)))
       )
      ) ;; end typesimple
 
@@ -520,18 +519,18 @@
       symbol
       namespaceparts
       ,(semantic-lambda
-	(list
-	 (nth 1 vals) 'type
+	(semantic-token-new-type
+	 (nth 1 vals)
 	 (nth 0 vals)
-	 (nth 2 vals) nil nil nil))
+	 (nth 2 vals) nil))
       )
      (NAMESPACE
       namespaceparts
       ,(semantic-lambda
-	(list
-	 "unnamed" 'type
+	(semantic-token-new-type
+	 "unnamed"
 	 (nth 0 vals)
-	 (nth 1 vals) nil nil nil))
+	 (nth 1 vals) nil))
       )
      ) ;; end type
 
@@ -665,22 +664,22 @@
      (CLASS
       symbol
       ,(semantic-lambda
-	(list
-	 (nth 1 vals) 'type
+	(semantic-token-new-type
+	 (nth 1 vals)
 	 "class" nil nil))
       )
      (STRUCT
       symbol
       ,(semantic-lambda
-	(list
-	 (nth 1 vals) 'type
+	(semantic-token-new-type
+	 (nth 1 vals)
 	 "struct" nil nil))
       )
      (TYPENAME
       symbol
       ,(semantic-lambda
-	(list
-	 (nth 1 vals) 'type
+	(semantic-token-new-type
+	 (nth 1 vals)
 	 "class" nil nil))
       )
      (declmods
@@ -690,29 +689,28 @@
       opt-ref
       variablearg-opt-name
       ,(semantic-lambda
-	(list
+	(semantic-token-new-type
 	 (car
-	  (nth 1 vals)) 'type nil nil
-	 (semantic-bovinate-make-assoc-list
-	  'const
-	  (if
-	      (member
-	       "const"
-	       (append
-		(nth 0 vals)
-		(nth 2 vals))) t nil)
-	  'typemodifiers
-	  (delete
-	   "const"
-	   (append
-	    (nth 0 vals)
-	    (nth 2 vals)))
-	  'reference
-	  (car
-	   (nth 4 vals))
-	  'pointer
-	  (car
-	   (nth 3 vals)))))
+	  (nth 1 vals)) nil nil
+	 'const
+	 (if
+	     (member
+	      "const"
+	      (append
+	       (nth 0 vals)
+	       (nth 2 vals))) t nil)
+	 'typemodifiers
+	 (delete
+	  "const"
+	  (append
+	   (nth 0 vals)
+	   (nth 2 vals)))
+	 'reference
+	 (car
+	  (nth 4 vals))
+	 'pointer
+	 (car
+	  (nth 3 vals))))
       )
      ) ;; end template-type
 
@@ -1206,27 +1204,26 @@
       opt-ref
       variablearg-opt-name
       ,(semantic-lambda
-	(list
+	(semantic-token-new-variable
 	 (list
-	  (nth 4 vals)) 'variable
+	  (nth 4 vals))
 	 (nth 1 vals) nil
-	 (semantic-bovinate-make-assoc-list
-	  'const
-	  (if
-	      (member
-	       "const"
-	       (append
-		(nth 0 vals)
-		(nth 2 vals))) t nil)
-	  'typemodifiers
-	  (delete
-	   "const"
-	   (append
-	    (nth 0 vals)
-	    (nth 2 vals)))
-	  'reference
-	  (car
-	   (nth 3 vals))) nil))
+	 'const
+	 (if
+	     (member
+	      "const"
+	      (append
+	       (nth 0 vals)
+	       (nth 2 vals))) t nil)
+	 'typemodifiers
+	 (delete
+	  "const"
+	  (append
+	   (nth 0 vals)
+	   (nth 2 vals)))
+	 'reference
+	 (car
+	  (nth 3 vals))))
       )
      ) ;; end variablearg
 
@@ -1624,7 +1621,7 @@
       )
      ) ;; end expression
     )
-  "C language specification.")
+  )
 
 (define-lex-regex-analyzer semantic-lex-c-if-0
   "Block out code matched in an #if 0 condition."
@@ -1803,6 +1800,10 @@ or \"struct\".")
   "Reconstitute a token TOKENPART with DECLMODS and TYPEDECL.
 This is so we don't have to match the same starting text several times.
 Optional argument STAR and REF indicate the number of * and & in the typedef."
+  (when (and (listp typedecl)
+	     (= 1 (length typedecl))
+	     (stringp (car typedecl)))
+    (setq typedecl (car typedecl)))
   (cond ((eq (nth 1 tokenpart) 'variable)
 	 (list (car tokenpart)
 	       'variable
@@ -1871,7 +1872,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   def)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-02-17 07:41-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-03-10 20:01-0500
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -1934,7 +1935,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("char" summary "Integral Character Type: (0 to 256)")
      ("void" summary "Built in typeless type: void")
      ("sizeof" summary "Compile time macro: sizeof(<type or variable>) // size in bytes")
-     ("continue" summary "Non-local continue within a lool (for, do/while): continue;")
+     ("continue" summary "Non-local continue within a loop (for, do/while): continue;")
      ("break" summary "Non-local exit within a loop or switch (for, do/while, switch): break;")
      ("return" summary "return <value>;")
      ("default" summary "switch (<variable>) { case <constvalue>: code; ... default: code; }")
@@ -2127,7 +2128,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-02-17 07:41-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-03-10 20:01-0500
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
 	  semantic-debug-parser-source "c.by"
@@ -2167,7 +2168,9 @@ These are constants which are of type TYPE."
      (nonterminal-abstract . semantic-c-nonterminal-abstract)
      (analyze-dereference-metatype . semantic-c-analyze-dereference-metatype)
      (analyze-type-constants . semantic-c-analyze-type-constants)
-     ))
+     )
+   t ;; Set as t for now while developing.
+   )
   (setq semantic-lex-analyzer #'semantic-c-lexer))
 
 ;;;###autoload
