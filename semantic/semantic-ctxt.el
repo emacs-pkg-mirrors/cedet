@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.20 2002/05/07 01:31:15 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.21 2002/06/29 18:06:40 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -154,39 +154,38 @@ Be default, this calculates the current bounds using context blocks
 navigation, then uses the parser with `bovine-inner-scope' to
 parse tokens at the beginning of the context.
 This can be overriden with `get-local-variables'."
-  (save-excursion
-    (if point (goto-char point))
-    (let ((vars
-	   (let ((s (semantic-fetch-overload 'get-local-variables))
-		 (case-fold-search semantic-case-fold))
-	     (if s (funcall s)
-	       (semantic-get-local-variables-default)
-	       ))))
-      (semantic-deoverlay-list vars)
-      vars)))
+  ;; The working status is to let the parser work properly
+  (working-status-forms
+      (semantic-bovination-working-message "Local")
+      "done"
+    (save-excursion
+      (if point (goto-char point))
+      (let* ((semantic-bovination-working-type nil)
+             ;; Disable parsing messages
+             (working-status-dynamic-type nil)
+             (s (semantic-fetch-overload 'get-local-variables))
+             (case-fold-search semantic-case-fold))
+        (if s
+            (funcall s)
+          (semantic-get-local-variables-default))))))
 
 (defun semantic-get-local-variables-default ()
   "Get local values from a specific context.
 Uses the bovinator with the special top-symbol `bovine-inner-scope'
 to collect tokens, such as local variables or prototypes."
-  ;; The working status is to let the parser work properly
-  (working-status-forms "Local" "done"
-    (let ((semantic-bovination-working-type nil)
-	  ;; We want nothing to do with funny syntaxing while doing this.
-	  (semantic-unmatched-syntax-hook nil)
-	  ;; Disable parsing messages
-	  (working-status-dynamic-type nil)
-	  (vars nil))
-      (while (not (semantic-up-context (point) 'function))
-	(save-excursion
-	  (forward-char 1)
-	  (setq vars
-		(append (semantic-bovinate-region-until-error
-			 (point)
-			 (save-excursion (semantic-end-of-context) (point))
-			 'bovine-inner-scope)
-			vars))))
-      vars)))
+  (let ((vars nil)
+        ;; We want nothing to do with funny syntaxing while doing this.
+        (semantic-unmatched-syntax-hook nil))
+    (while (not (semantic-up-context (point) 'function))
+      (save-excursion
+        (forward-char 1)
+        (setq vars
+              (append (semantic-bovinate-region-until-error
+                       (point)
+                       (save-excursion (semantic-end-of-context) (point))
+                       'bovine-inner-scope)
+                      vars))))
+    vars))
 
 (defun semantic-get-local-arguments (&optional point)
   "Get arguments (variables) from the current context at POINT.
