@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.27 2003/09/05 10:33:15 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.28 2004/01/16 08:57:09 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,7 +35,6 @@
 
 (require 'wisent-bovine)
 (require 'wisent-java-tags-wy)
-(require 'wisent-java-lex)
 (require 'semantic-java)
 (eval-when-compile
   (require 'semantic-util)
