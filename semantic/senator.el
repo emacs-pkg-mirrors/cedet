@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.54 2001/11/21 19:32:42 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.55 2001/11/26 21:19:39 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -123,43 +123,11 @@
   :set (lambda (sym val)
          (global-senator-minor-mode (if val 1 -1))))
 
-(defcustom senator-minor-mode-name "n"
-  "*Name displayed in the mode line when senator minor mode is on.
-If nil nothing is displayed in the mode line.  A space is
-automatically added at the beginning of this string.
-
-The value of this variable is used when Senator mode is turned on."
-  :group 'senator
-  :type '(choice
-          (const  :tag "none" nil)
-          (string :tag "name")))
-
-(defcustom senator-minor-mode-isearch-suffix "i"
-  "*String appended to the mode name when senator isearch mode is on.
-If nil no suffix is added to the mode name.  Used only if
-`senator-minor-mode-name' is non-nil.
-
-The value of this variable is used when Senator mode is turned on."
-  :group 'senator
-  :type '(choice
-          (const  :tag "none" nil)
-          (string :tag "name")))
-
 (defcustom senator-minor-mode-hook nil
   "Hook run at the end of function `senator-minor-mode'."
   :group 'senator
   :type 'hook)
 
-(defcustom senator-minor-mode-on-hook nil
-  "Hook called when senator minor mode is turned on."
-  :group 'senator
-  :type 'hook)
-  
-(defcustom senator-minor-mode-off-hook nil
-  "Hook called when senator minor mode is turned off."
-  :group 'senator
-  :type 'hook)
-  
 (defcustom senator-step-at-token-ids nil
   "*List of token identifiers where to step.
 Token identifier is symbol 'variable, 'function, 'type, or other.  If
@@ -1467,6 +1435,45 @@ minor mode entry."
  )
 
 (senator-register-mode-menu-entry
+ "Summaries"
+ '(semantic-summary-mode
+   :help "Show useful things about the Semantic token near point."
+   )
+ '(global-semantic-summary-mode
+   :help "Automatically enable summary mode in all Semantic buffers."
+   :save global-semantic-summary-mode
+   )
+ )
+
+
+;;;;
+;;;; Global minor mode to show token names in the mode line
+;;;;
+
+(condition-case nil
+    (require 'which-func)
+  (error nil))
+
+(let ((select (cond
+               ;; Emacs 21
+               ((boundp 'which-function-mode)
+                'which-function-mode)
+               ;; Emacs < 21
+               ((boundp 'which-func-mode-global)
+                'which-func-mode-global)
+               (t nil))))
+  (if (and (fboundp 'which-func-mode) select)
+      (senator-register-mode-menu-entry
+       "Which Function"
+       nil
+       (list 'which-func-mode
+             :select select
+             :help "Enable `which-func-mode' and use it in Semantic buffers."
+             :save select
+             ))
+    ))
+
+(senator-register-mode-menu-entry
  "Semantic Database"
  nil
  '(semanticdb-toggle-global-mode
@@ -1858,6 +1865,13 @@ This is a buffer local variable.")
 Use the command `senator-minor-mode' to change this variable.")
 (make-variable-buffer-local 'senator-minor-mode)
 
+(defconst senator-minor-mode-name "n"
+  "Name shown in the mode line when senator minor mode is on.
+Not displayed if the minor mode is globally enabled.")
+
+(defconst senator-minor-mode-isearch-suffix "i"
+  "String appended to the mode name when senator isearch mode is on.")
+
 (defun senator-mode-line-update ()
   "Update the modeline to show the senator minor mode state.
 If `senator-isearch-semantic-mode' is non-nil append
@@ -1932,10 +1946,7 @@ minor mode is enabled.
              0)
           (not senator-minor-mode)))
   (senator-minor-mode-setup)
-  (run-hooks 'senator-minor-mode-hook
-             (if senator-minor-mode
-                 'senator-minor-mode-on-hook
-               'senator-minor-mode-off-hook))
+  (run-hooks 'senator-minor-mode-hook)
   (if (interactive-p)
       (message "Senator minor mode %sabled"
                (if senator-minor-mode "en" "dis")))
@@ -2179,7 +2190,7 @@ If senator is not active, use the original mechanism."
       ad-do-it)))
 
 ;;;;
-;;;; Suggestion mode
+;;;; Summary mode
 ;;;;
 
 ;; Since eldoc kicks butt for Emacs Lisp mode, this advice will let
