@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.15 2003/03/11 03:28:13 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.16 2003/03/11 12:54:38 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -664,11 +664,11 @@ Warn if other TYPE tokens exist."
   (intern (or (semantic-grammar-token-name 'keywordtable) "nil")))
 
 (defsubst semantic-grammar-languagemode ()
-  "Return the %languagemode value as a symbol or nil."
+  "Return the %languagemode value as a list of symbols or nil."
   (semantic-grammar-token-symbols 'languagemode))
 
 (defsubst semantic-grammar-start ()
-  "Return the %start value as a symbol list or nil."
+  "Return the %start value as a list of symbols or nil."
   (semantic-grammar-token-symbols 'start))
 
 (defsubst semantic-grammar-scopestart ()
@@ -1051,18 +1051,13 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     (semantic-grammar-update-parsetable)
     ;; The above functions each evaluate the tables created
     ;; into memory.  Now find all buffers that match the
-    ;; major mode we have created this language for, and
+    ;; major modes we have created this language for, and
     ;; force them to call our setup function again, refreshing
     ;; all semantic data, and enabling them to work with the
     ;; new code just created.
-    ;; Don't forget that languagemode can be a list.
-    (let ((modes (semantic-grammar-languagemode)))
-      (if (not (listp modes)) (setq modes (list modes)))
-      (while modes
-	(semantic-map-mode-buffers
-	 (semantic-grammar-setupfunction)
-	 (car modes))
-	(setq modes (cdr modes))))
+    (semantic-map-mode-buffers
+     (semantic-grammar-setupfunction)
+     (semantic-grammar-languagemode))
     ;; Make sure the file was required.  This solves the problem
     ;; of compiling a grammar, followed by loading a file and not
     ;; having the rest of the source loaded up.
@@ -1103,7 +1098,7 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
      (2 font-lock-keyword-face))
     ("^\\(\\(\\sw\\|\\s_\\)+\\)[ \n\r\t]*:"
      1 font-lock-function-name-face)
-    ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\)\\>"
+    ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\|\\([A-Z]+-\\)?TAG\\)\\>"
      1 ,(if (boundp 'font-lock-builtin-face)
             'font-lock-builtin-face
           'font-lock-preprocessor-face))
