@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.45 2003/12/16 11:44:27 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.46 2003/12/22 15:57:59 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1493,7 +1493,14 @@ Otherwise return nil."
        (t nil)))
     (or val (senator-eldoc-print-current-symbol-info-default))))
 
-(define-mode-overload-implementation semantic-abbreviate-nonterminal
+(define-mode-overload-implementation semantic-tag-boundary-p
+  semantic-grammar-mode (tag)
+  "Return non-nil for tags that should have a boundary drawn.
+Only tags of type 'nonterminal will be so marked."
+  (let ((c (semantic-tag-class tag)))
+    (eq c 'nonterminal)))
+
+(define-mode-overload-implementation semantic-format-tag-abbreviate
   semantic-grammar-mode (tag &optional parent color)
   "Return a string abbreviation of TAG.
 Optional PARENT is not used.
@@ -1510,7 +1517,7 @@ Optional COLOR is used to flag if color is added to the text."
      (t
       (concat "%" (symbol-name class) " " name)))))
 
-(define-mode-overload-implementation semantic-summarize-nonterminal
+(define-mode-overload-implementation semantic-format-tag-summarize
   semantic-grammar-mode (tag &optional parent color)
   "Return a string summarizing TAG.
 Optional PARENT is not used.
