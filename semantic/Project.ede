@@ -5,6 +5,11 @@
   :version "2.0beta1"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-elisp-autoloads "autoloads"
+    :name "autoloads"
+    :path ""
+    :autoload-file "semantic-al.el"
+    )
    (ede-proj-target-elisp "maintenance"
     :name "maintenance"
     :path ""
@@ -31,14 +36,6 @@
     :name "init"
     :path ""
     :source '("semantic-load.el" "semantic-autogen.el")
-    :auxsource '("semantic-al.el")
-    :rules (list 
-     (ede-makefile-rule "Custom-new"
-      :target "semantic-al.el"
-      :dependencies "$(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(init_LISP) $(maintenance_LISP) $(wildcard bovine/*.el) $(wildcard wisent/*.el)"
-      :rules '("$(EMACS) -batch -l semantic-autogen.el -f semantic-hack-autoloads")
-      )
-     )
     )
    (ede-proj-target-elisp "semantic"
     :name "semantic"
