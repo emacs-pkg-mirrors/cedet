@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.12 2002/02/26 18:51:11 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.13 2002/02/27 23:00:15 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -44,7 +44,6 @@
 ;;; Code:
 (require 'wisent)
 (require 'working)
-
 
 ;;;; -------------------
 ;;;; Misc. useful things
@@ -119,32 +118,6 @@ set-able `set-NAME-FIELD' accessors."
         (cons 'vector ',(nreverse ivals)))
       ,@accors)))
 (put 'wisent-struct 'lisp-indent-function 1)
-
-;; Symbol properties
-
-(defsubst wisent-item-number (x)
-  "Return the item number of symbol X."
-  (get x 'wisent--item-no))
-
-(defsubst wisent-set-item-number (x n)
-  "Set the item number of symbol X to N."
-  (put x 'wisent--item-no n))
-
-(defsubst wisent-assoc (x)
-  "Return the associativity of symbol X."
-  (get x 'wisent--assoc))
-
-(defsubst wisent-set-assoc (x a)
-  "Set the associativity of symbol X to A."
-  (put x 'wisent--assoc a))
-
-(defsubst wisent-prec (x)
-  "Return the precedence level of symbol X."
-  (get x 'wisent--prec))
-
-(defsubst wisent-set-prec (x p)
-  "Set the precedence level of symbol X to P."
-  (put x 'wisent--prec p))
 
 ;; Other utilities
 
@@ -339,6 +312,7 @@ Used when running without interactive terminal.")
   varsetsize ;; nb of words req. to hold a bit for each variable
   error-token-number start-symbol token-list var-list
   N P V V1 nuseless-nonterminals nuseless-productions
+  ptable ;; symbols & characters properties
   )
 
 (defmacro wisent-ISTOKEN (s)
@@ -350,6 +324,67 @@ That is if S < `ntokens'."
   "Return non-nil if item number S defines a nonterminal.
 That is if S >= `ntokens'."
   `(>= ,s ntokens))
+
+(defconst wisent-escape-sequence-tags
+  '(
+    (?\a . "'\\a'")                     ; C-g
+    (?\b . "'\\b'")                     ; backspace, BS, C-h
+    (?\t . "'\\t'")                     ; tab, TAB, C-i
+    (?\n  . "'\\n'")                    ; newline, C-j
+    (?\v . "'\\v'")                     ; vertical tab, C-k
+    (?\f . "'\\f'")                     ; formfeed character, C-l
+    (?\r . "'\\r'")                     ; carriage return, RET, C-m
+    (?\e . "'\\e'")                     ; escape character, ESC, C-[
+    (?\\ . "'\\'")                      ; backslash character, \
+    (?\d . "'\\d'")                     ; delete character, DEL
+    )
+  "Printed representation of usual escape sequences.")
+ 
+(defsubst wisent-tag (s)
+  "Return printable form of item number S."
+  (let ((tag (aref tags s)))
+    (if (char-valid-p tag)
+        (or (cdr (assq tag wisent-escape-sequence-tags))
+            (format "'%c'" tag))
+      tag)))
+
+;; Symbol and character properties
+
+(defsubst wisent-put (object propname value)
+  "Store OBJECT's PROPNAME property with value VALUE.
+Use `eq' to locate OBJECT."
+  (let ((entry (assq object ptable)))
+    (or entry (setq entry (list object) ptable (cons entry ptable)))
+    (setcdr entry (plist-put (cdr entry) propname value))))
+
+(defsubst wisent-get (object propname)
+  "Return the value of OBJECT's PROPNAME property.
+Use `eq' to locate OBJECT."
+  (plist-get (cdr (assq object ptable)) propname))
+
+(defsubst wisent-item-number (x)
+  "Return the item number of symbol X."
+  (wisent-get x 'wisent--item-no))
+
+(defsubst wisent-set-item-number (x n)
+  "Set the item number of symbol X to N."
+  (wisent-put x 'wisent--item-no n))
+
+(defsubst wisent-assoc (x)
+  "Return the associativity of symbol X."
+  (wisent-get x 'wisent--assoc))
+
+(defsubst wisent-set-assoc (x a)
+  "Set the associativity of symbol X to A."
+  (wisent-put x 'wisent--assoc a))
+
+(defsubst wisent-prec (x)
+  "Return the precedence level of symbol X."
+  (wisent-get x 'wisent--prec))
+
+(defsubst wisent-set-prec (x p)
+  "Set the precedence level of symbol X to P."
+  (wisent-put x 'wisent--prec p))
 
 ;;;; ----------------------------------------------------------
 ;;;; Type definitions for nondeterministic finite state machine
@@ -699,8 +734,8 @@ S must be a vector of integers."
   (when (> (+ nuseless-nonterminals nuseless-productions) 0)
     (wisent-total-useless)
     (or (wisent-BITISSET N (- start-symbol ntokens))
-        (error "Start symbol %s does not derive any sentence"
-               (aref tags start-symbol)))
+        (error "Start symbol `%s' does not derive any sentence"
+               (wisent-tag start-symbol)))
     (wisent-reduce-grammar-tables)
     (if (> nuseless-nonterminals 0)
         (wisent-nonterminals-reduce))))
@@ -713,7 +748,7 @@ S must be a vector of integers."
       (wisent-log "\n\nUseless nonterminals:\n\n")
       (setq i 0)
       (while (< i nuseless-nonterminals)
-        (wisent-log "   %s\n" (aref tags (+ nsyms i)))
+        (wisent-log "   %s\n" (wisent-tag (+ nsyms i)))
         (setq i (1+ i))))
     (setq b nil
           i 0)
@@ -722,7 +757,7 @@ S must be a vector of integers."
         (or b
             (wisent-log "\n\nTerminals which are not used:\n\n"))
         (setq b t)
-        (wisent-log "   %s\n" (aref tags i)))
+        (wisent-log "   %s\n" (wisent-tag i)))
       (setq i (1+ i)))
     (when (> nuseless-productions 0)
       (wisent-log "\n\nUseless rules:\n\n")
@@ -730,10 +765,10 @@ S must be a vector of integers."
       (while (<= i nrules)
         (unless (aref ruseful i)
           (wisent-log "#%s  " (wisent-pad-string (format "%d" i) 4))
-          (wisent-log "%s:" (aref tags (aref rlhs i)))
+          (wisent-log "%s:" (wisent-tag (aref rlhs i)))
           (setq r (aref rrhs i))
           (while (natnump (aref ritem r))
-            (wisent-log " %s" (aref tags (aref ritem r)))
+            (wisent-log " %s" (wisent-tag (aref ritem r)))
             (setq r (1+ r)))
           (wisent-log ";\n"))
         (setq i (1+ i))))
@@ -791,7 +826,7 @@ a list of rule numbers, terminated with -1."
     (wisent-log "NULLABLE\n")
     (setq i ntokens)
     (while (< i nsyms)
-      (wisent-log "\t%s: %s\n" (aref tags i)
+      (wisent-log "\t%s: %s\n" (wisent-tag i)
                   (if (aref nullable (- i ntokens))
                       "yes" : "no"))
       (setq i (1+ i)))
@@ -876,7 +911,7 @@ NULLABLE[i - NTOKENS] is nil if symbol I can do so."
     (wisent-log "\n\n\nFDERIVES\n")
     (setq i ntokens)
     (while (< i nsyms)
-      (wisent-log "\n\n%s derives\n\n" (aref tags i))
+      (wisent-log "\n\n%s derives\n\n" (wisent-tag i))
       (setq rp (aref fderives (- i ntokens))
             j  0)
       (while (<= j nrules)
@@ -925,13 +960,13 @@ of the rules for deriving symbol 8 is rule 4, then the
     (wisent-log "\n\n\nFIRSTS\n\n")
     (setq i ntokens)
     (while (< i nsyms)
-      (wisent-log "\n\n%s firsts\n\n" (aref tags i))
+      (wisent-log "\n\n%s firsts\n\n" (wisent-tag i))
       (setq v (aref firsts (- i ntokens))
             j 0)
       (while (< j nvars)
         (if (wisent-BITISSET v j)
             (wisent-log "\t\t%d (%s)\n"
-                        (+ j ntokens) (aref tags (+ j ntokens))))
+                        (+ j ntokens) (wisent-tag (+ j ntokens))))
         (setq j (1+ j)))
       (setq i (1+ i)))))
 
@@ -2023,7 +2058,7 @@ TOKEN, resolved as RESOLUTION."
   (if (or wisent-verbose-flag wisent-debug-flag)
       (wisent-log
        "Conflict in state %d between rule %d and token %s resolved as %s.\n"
-       state (aref LAruleno LAno) token resolution)))
+       state (aref LAruleno LAno) (wisent-tag token) resolution)))
 
 (defun wisent-flush-shift (state token)
   "Turn off the shift recorded in the specified STATE for TOKEN.
@@ -2065,13 +2100,13 @@ tables so that there is no longer a conflict."
         ;; I.
         (cond
          ((< sprec redprec)
-          (wisent-log-resolution state lookaheadnum token "reduce")
+          (wisent-log-resolution state lookaheadnum i "reduce")
           ;;  Flush the shift for this token
           (wisent-RESETBIT lookaheadset i)
           (wisent-flush-shift state i)
           )
          ((> sprec redprec)
-          (wisent-log-resolution state lookaheadnum token "shift")
+          (wisent-log-resolution state lookaheadnum i "shift")
           ;; Flush the reduce for this token
           (wisent-RESETBIT (aref LA lookaheadnum) i)
           )
@@ -2083,11 +2118,11 @@ tables so that there is no longer a conflict."
           (setq sassoc (wisent-assoc token))
           (cond
            ((eq sassoc 'right)
-            (wisent-log-resolution state lookaheadnum token "shift"))
+            (wisent-log-resolution state lookaheadnum i "shift"))
            ((eq sassoc 'left)
-            (wisent-log-resolution state lookaheadnum token "reduce"))
+            (wisent-log-resolution state lookaheadnum i "reduce"))
            ((eq sassoc 'nonassoc)
-            (wisent-log-resolution state lookaheadnum token "an error"))
+            (wisent-log-resolution state lookaheadnum i "an error"))
            )
           (when (not (eq sassoc 'right))
             ;; Flush the shift for this token
@@ -2310,21 +2345,21 @@ there are any reduce/reduce conflicts.")
       (when (aref ruseful i)
         (wisent-log "  %s  %s ->"
                     (wisent-pad-string (number-to-string i) 6)
-                    (aref tags (aref rlhs i)))
+                    (wisent-tag (aref rlhs i)))
         (setq r (aref rrhs i))
         (if (> (aref ritem r) 0)
             (while (> (aref ritem r) 0)
-              (wisent-log " %s" (aref tags (aref ritem r)))
+              (wisent-log " %s" (wisent-tag (aref ritem r)))
               (setq r (1+ r)))
           (wisent-log " /* empty */"))
         (wisent-log "\n"))
       (setq i (1+ i)))
     
     (wisent-log "\n\nTerminals, with rules where they appear\n\n")
-    (wisent-log "%s (-1)\n" (aref tags 0))
+    (wisent-log "%s (-1)\n" (wisent-tag 0))
     (setq i 1)
     (while (< i ntokens)
-      (wisent-log "%s (%d)" (aref tags i) i)
+      (wisent-log "%s (%d)" (wisent-tag i) i)
       (setq j 1)
       (while (<= j nrules)
         (setq r (aref rrhs j)
@@ -2354,7 +2389,7 @@ there are any reduce/reduce conflicts.")
                     break t)
             (setq r (1+ r))))
         (setq j (1+ j)))
-      (wisent-log "%s (%d)\n   " (aref tags i) i)
+      (wisent-log "%s (%d)\n   " (wisent-tag i) i)
       (when (> left-count 0)
         (wisent-log " on left:")
         (setq j 1)
@@ -2431,12 +2466,12 @@ there are any reduce/reduce conflicts.")
       (while (< i ntokens)
         (if (wisent-BITISSET lookaheadset i)
             (wisent-log "    %s\t[reduce using rule %d (%s)]\n"
-                        (aref tags i) default-rule
-                        (aref tags (aref rlhs default-rule))))
+                        (wisent-tag i) default-rule
+                        (wisent-tag (aref rlhs default-rule))))
         (setq i (1+ i)))
       (wisent-log "    $default\treduce using rule %d (%s)\n\n"
                   default-rule
-                  (aref tags (aref rlhs default-rule)))
+                  (wisent-tag (aref rlhs default-rule)))
       )
      ((>= (- n m) 1)
       (setq cmax 0
@@ -2496,20 +2531,20 @@ there are any reduce/reduce conflicts.")
                   (if (not (= j default-LA))
                       (wisent-log
                        "    %s\treduce using rule %d (%s)\n"
-                       (aref tags i) (aref LAruleno j)
-                       (aref tags (aref rlhs (aref LAruleno j))))
+                       (wisent-tag i) (aref LAruleno j)
+                       (wisent-tag (aref rlhs (aref LAruleno j))))
                     (setq defaulted t))
                   (setq count (1+ count)))
               (if defaulted
                   (wisent-log
                    "    %s\treduce using rule %d (%s)\n"
-                   (aref tags i) (aref LAruleno default-LA)
-                   (aref tags (aref rlhs (aref LAruleno default-LA)))))
+                   (wisent-tag i) (aref LAruleno default-LA)
+                   (wisent-tag (aref rlhs (aref LAruleno default-LA)))))
               (setq defaulted nil)
               (wisent-log
                "    %s\t[reduce using rule %d (%s)]\n"
-               (aref tags i) (aref LAruleno j)
-               (aref tags (aref rlhs (aref LAruleno j))))))
+               (wisent-tag i) (aref LAruleno j)
+               (wisent-tag (aref rlhs (aref LAruleno j))))))
           (setq j (1+ j)))
         (setq i (1+ i)))
             
@@ -2517,7 +2552,7 @@ there are any reduce/reduce conflicts.")
           (wisent-log
            "    $default\treduce using rule %d (%s)\n"
            default-rule
-           (aref tags (aref rlhs default-rule))))
+           (wisent-tag (aref rlhs default-rule))))
       ))))
 
 (defun wisent-print-actions (state)
@@ -2545,7 +2580,7 @@ there are any reduce/reduce conflicts.")
           (if (wisent-ISVAR symbol)
               (setq break t) ;; break
             (wisent-log "    %s\tshift, and go to state %d\n"
-                        (aref tags symbol) state1)
+                        (wisent-tag symbol) state1)
             (setq i (1+ i)))))
       (if (> i 0)
           (wisent-log "\n")))
@@ -2557,7 +2592,7 @@ there are any reduce/reduce conflicts.")
        (while (< j nerrs)
          (if (aref v j)
              (wisent-log "    %s\terror (nonassociative)\n"
-                         (aref tags (aref v j))))
+                         (wisent-tag (aref v j))))
          (setq j (1+ j)))
        (if (> j 0)
            (wisent-log "\n")))
@@ -2567,7 +2602,7 @@ there are any reduce/reduce conflicts.")
        (setq rule (aref (reductions-rules redp) 0)
              symbol (aref rlhs rule))
        (wisent-log "    $default\treduce using rule %d (%s)\n\n"
-                   rule (aref tags symbol))
+                   rule (wisent-tag symbol))
        )
       (redp
        (wisent-print-reductions state)
@@ -2579,7 +2614,7 @@ there are any reduce/reduce conflicts.")
          (when (setq state1 (aref v i))
            (setq symbol (aref accessing-symbol state1))
            (wisent-log "    %s\tgo to state %d\n"
-                       (aref tags symbol) state1))
+                       (wisent-tag symbol) state1))
          (setq i (1+ i)))
        (wisent-log "\n"))
      )))
@@ -2599,15 +2634,15 @@ there are any reduce/reduce conflicts.")
           (setq sp (1+ sp)))
 
         (setq rule (- (aref ritem sp)))
-        (wisent-log "    %s  ->  " (aref tags (aref rlhs rule)))
+        (wisent-log "    %s  ->  " (wisent-tag (aref rlhs rule)))
         
         (setq sp (aref rrhs rule))
         (while (< sp sp1)
-          (wisent-log "%s " (aref tags (aref ritem sp)))
+          (wisent-log "%s " (wisent-tag (aref ritem sp)))
           (setq sp (1+ sp)))
         (wisent-log ".")
         (while (> (aref ritem sp) 0)
-          (wisent-log " %s" (aref tags (aref ritem sp)))
+          (wisent-log " %s" (wisent-tag (aref ritem sp)))
           (setq sp (1+ sp)))
         (wisent-log "   (rule %d)\n" rule)
         (setq i (1+ i)))
@@ -3033,18 +3068,22 @@ That is don't add extra start rules to the grammar.  This is
 useful to compare the Wisent's generated automaton with the Bison's
 one.")
 
-(defmacro wisent-ISVALID (x)
-  "Return non-nil if X is an allowed symbol."
-  `(and ,x
-        (symbolp ,x)
-        (not (memq (aref (symbol-name ,x) 0) wisent-reserved-capitals))
-        (not (memq ,x wisent-reserved-symbols))))
+(defsubst wisent-ISVALID-VAR (x)
+  "Return non-nil if X is a character or an allowed symbol."
+  (and x (symbolp x)
+       (not (memq (aref (symbol-name x) 0) wisent-reserved-capitals))
+       (not (memq x wisent-reserved-symbols))))
+
+(defsubst wisent-ISVALID-TOKEN (x)
+  "Return non-nil if X is a character or an allowed symbol."
+  (or (char-valid-p x)
+      (wisent-ISVALID-VAR x)))
 
 (defun wisent-push-token (symbol &optional nocheck)
   "Push a new SYMBOL in the list of tokens.
 Bypass checking if NOCHECK is non-nil."
   ;; Check
-  (or nocheck (wisent-ISVALID symbol)
+  (or nocheck (wisent-ISVALID-TOKEN symbol)
       (error "Invalid terminal symbol `%s'" symbol))
   (if (memq symbol token-list)
       (message "Duplicate terminal `%s' ignored" symbol)
@@ -3061,7 +3100,7 @@ Bypass checking if NOCHECK is non-nil."
 Bypass checking if NOCHECK is non-nil."
   ;; Check
   (unless nocheck
-    (or (wisent-ISVALID symbol)
+    (or (wisent-ISVALID-VAR symbol)
         (error "Invalid nonterminal symbol `%s'" symbol))
     (if (memq symbol var-list)
         (error "Nonterminal already defined `%s'" symbol)))
@@ -3088,7 +3127,7 @@ Bypass checking if NOCHECK is non-nil."
             nprec   nil
             rhss    nil)
       (or (consp rlist)
-          (error "At least one production needed for nonterminal %s"
+          (error "At least one production needed for nonterminal `%s'"
                  nonterm))
       (while rlist
         (setq rule  (car rlist)
@@ -3119,10 +3158,13 @@ Bypass checking if NOCHECK is non-nil."
                       rules  (cons (list item nil) rules)
                       nitems (1+ nitems)
                       nrules (1+ nrules)))
-            ;; terminal or nonterminal symbol
-            (or (memq item token-list)
-                (memq item var-list)
-                (error "Invalid terminal or nonterminal %s" item)))
+            ;; Check terminal or nonterminal symbol
+            (cond
+             ((or (memq item token-list) (memq item var-list)))
+             ;; Create new literal character token
+             ((char-valid-p item) (wisent-push-token item t))
+             ((error "Invalid terminal or nonterminal `%s'" item)))
+            )
           (setq rhl (1+ rhl)
                 rhs (cons item rhs)))
       
@@ -3204,7 +3246,7 @@ list of tokens which must have been declared in TOKENS."
             lst    (cdr lst)
             pre    (1+ pre))
       (or (memq assoc '(left right nonassoc))
-          (error "Invalid associativity type %s" assoc))
+          (error "Invalid associativity type `%s'" assoc))
       (while tokens
         (setq token  (car tokens)
               tokens (cdr tokens))
@@ -3228,7 +3270,7 @@ list of tokens which must have been declared in TOKENS."
       (or (consp def)
           (error "Nonterminal definition must be a non-empty list"))
       (if (memq (car def) token-list)
-          (error "Nonterminal %s already defined as token" (car def)))
+          (error "Nonterminal `%s' already defined as token" (car def)))
       (wisent-push-var (car def))
       (setq defs (cons def defs)))
     (or defs
@@ -3249,7 +3291,7 @@ list of tokens which must have been declared in TOKENS."
      ((or wisent-single-start-flag (null (cdr start-list)))
       (setq start-var  (car start-list))
       (or (assq start-var defs)
-          (error "Start symbol %s not found" start-var)))
+          (error "Start symbol `%s' not found" start-var)))
  
      ;; 3. START-LIST contains more than one element.  All defines
      ;;    potential start symbols.  One of them (the first one by
@@ -3279,7 +3321,7 @@ list of tokens which must have been declared in TOKENS."
         (setq var (car lst)
               lst (cdr lst))
         (or (memq var var-list)
-            (error "Start symbol %s not found" var))
+            (error "Start symbol `%s' not found" var))
         (unless (assq var start-table) ;; Ignore duplicates
           ;; For each nt start symbol
           (setq ep-var   (make-symbol (format "$%s"  var))
@@ -3319,7 +3361,6 @@ list of tokens which must have been declared in TOKENS."
     ;; Keep symbols in the TAGS vector so that TAGS[I] is the symbol
     ;; associated to item number I.
     (setq tags (vconcat token-list var-list))
-    
     ;; Set up RLHS RRHS & RITEM data structures
     (setq rlhs    (make-vector (1+ nrules) nil)
           rrhs    (make-vector (1+ nrules) nil)
