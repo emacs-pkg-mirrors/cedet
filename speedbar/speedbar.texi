@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.11 2000/09/05 00:39:35 zappo Exp $
+@c $Id: speedbar.texi,v 1.12 2000/10/06 02:55:33 zappo Exp $
 @c
 
 @c This manual covers the tool "speedbar", and is a part of it's
@@ -45,8 +45,8 @@ Copyright @copyright{} 1999, 2000 Eric M. Ludlam
 Copyright @copyright{} 1999 Eric M. Ludlam
 
 Speedbar is a program for Emacs which can be used to summarize
-information about the current buffer.  It's original inspiration was the
-"explorer" often used in modern development environments, office
+information related to the current buffer.  Its original inspiration
+is the "explorer" often used in modern development environments, office
 packages, and web browsers.
 
 Speedbar displays a narrow frame in which a tree view is shown.  This
@@ -65,7 +65,7 @@ authors of other packages to provide speedbar summaries customized to
 the needs of that mode.
 
 Throughout this manual, activities are defined as "clicking on", or
-"expanding" items.  Clicking means using clicking @kbd{mouse-2} on a
+"expanding" items.  Clicking means using using @kbd{mouse-2} on a
 button.  Expanding refers to clicking on an expansion button to display
 an expanded summary of the entry the exapansion button is
 on. @xref{Basic Navigation}.
@@ -87,12 +87,12 @@ on. @xref{Basic Navigation}.
 @cindex introduction
 
 To start using speedbar use the command @kbd{M-x speedbar RET} or select
-it from the menu bar in versions of Emacs with speedbar installed by
+it from the Tools menu in versions of Emacs with speedbar installed by
 default.  This command will open a new frame to summarize the local
 files.  On X windows, or under Windows NT, speedbar's frame is twenty
 characters wide, and will mimic the height of the frame from which it
-was started.  It then places itself to the left or right of the frame
-you started it from.
+was started.  It positions itself to the left or right of the frame you
+started it from.
 
 To use speedbar effectivly, it is important to understand its
 relationship with the frame you started it from.  This frame is the
@@ -100,12 +100,12 @@ relationship with the frame you started it from.  This frame is the
 started speedbar will watch the contents of this frame, and attempts to
 make it's contents relevant to the buffer loaded into the attached
 frame.  In addition, all requests made in speedbar that require the
-display of some buffer will display in the attached frame.
+display of another buffer will display in the attached frame.
 
-If you use speedbar in terminal mode, the new frame appears the same
-size as the terminal.  Since it is not visible while working in the
-attached frame, speedbar will save time by using "slowbar" mode, where
-no tracking is done until speedbar is requested to show itself.
+When used in terminal mode, the new frame appears the same size as the
+terminal.  Since it is not visible while working in the attached frame,
+speedbar will save time by using "slowbar" mode, where no tracking is
+done until speedbar is requested to show itself.
 
 The function to use when switching between frames using the keyboard is
 @code{speedbar-get-focus}.  This function will toggle between frames, and
@@ -178,7 +178,7 @@ previous display mode is restored.
 @item f
 Switch into Files mode.
 @item r
-Switch back to the previous mode was.
+Switch back to the previous mode.
 @end table
 
 Some modes provide groups, lists and tags.  @xref{Basic Visuals}.  When
@@ -192,6 +192,8 @@ mode.  In general, files or buffers are opened in the attached frame,
 and directories or group nodes are expanded locally.
 @item +,=
 Expand the current group, displaying sub items.
+When used with a prefix argument, any data that may have been cached is
+flushed.  This is similar to a power click. @xref{Mouse Bindings}.
 @item -
 Contract the current group, hiding sub items.
 @end table
@@ -206,8 +208,8 @@ cues are used consistently across the different speedbar modes to make
 them easier to understand.
 
 At a high level, in Files mode, there are directory buttons, sub
-directory buttons, File buttons, tag buttons, and expansion buttons.
-This permits to to use the mouse to navigate a directory tree, and
+directory buttons, file buttons, tag buttons, and expansion buttons.
+This makes it easy to use the mouse to navigate a directory tree, and
 quickly view files, or a summary of those files.
 
 The most basic visual effect used to distinguis between these button
@@ -308,25 +310,26 @@ data.  The different textual cues provide buttons which can be clicked
 on @xref{Basic Visuals}.  Anything that highlights can be clicked on
 with the mouse, or effected by the menu.
 
-These are the bindings:
+The mouse bindings are:
 @table @kbd
 @item mouse-1
 Move cursor to that location
 @item mouse-2, double-mouse-1
-Activate the current button.   @kbd{double-mouse-1} is a basic double
-click, and useful for windows users with only two button mice.
+Activate the current button.  @kbd{double-mouse-1} is called a "double
+click" on other platforms, and is useful for windows users with two
+button mice.
 @item SHIFT-mouse-2, SHIFT-double-mouse-1
 @cindex power click
-Power click, which is the same as activate, except some other useful
-thing happens.  If a group @code{+} is clicked, any caches are flushed,
-and subitems re-read.  If it is a name, it will be opened in a new
-frame.
+This has the same effect as @kbd{mouse-2}, except it is called a power
+click.  This means that if a group with an expansion button @code{+} is
+clicked, any caches are flushed, and subitems re-read.  If it is a name,
+it will be opened in a new frame.
 @item mouse-3
-Activate speedbar menu.  The item selected effects the line clicked, not
-the line where the cursor was. 
+Activate the speedbar menu.  The item selected effects the line clicked,
+not the line where the cursor was.
 @item mode-line mouse-1
-Activate the menu.  This effects the item the cursor is on, since the
-mouse was not clicked on anything.
+Activate the menu.  This effects the item the cursor is on before the
+click, since the mouse was not clicked on anything.
 @item C-mouse-1
 Buffers sub-menu.  The buffer in the attached frame is switched.
 @end table
@@ -388,7 +391,7 @@ load that directory as the root directory for its display.  Clicking the
 
 Next, files are listed.  Files start with the group indicator @code{[+]}
 or @code{[?]}.  You can jump to a file in the attached frame by clicking
-on the file name.  You can expand a file and look at it's major tags by
+on the file name.  You can expand a file and look at it's tags by
 clicking on the @code{[+]} symbol near the file name.
 
 A typical session might look like this:
@@ -416,7 +419,7 @@ A typical session might look like this:
 
 In this example, you can see several directories.  The directory
 @file{speedbar} has been opened inline.  Inside the directory
-@file{speedbar} the file @file{speedbar.el} has it's tags exposed.
+@file{speedbar}, the file @file{speedbar.el} has it's tags exposed.
 These tags are extensive, and they are summarized into tag groups.
 
 Files get additional boolean flags associated with them.  Valid flags are:
@@ -436,7 +439,8 @@ This file has an out of date object file associated with it.
 A Tag group is prefixed with the symbol @samp{@{+@}}.  Clicking this
 symbol will show all symbols that have been organized into that group.
 Different types of files have unique tagging methods as defined by their
-major mode, and the package @file{imenu}.
+major mode.  Tags are generated with either the @file{imenu} package, or
+through an @file{etags} interface.
 
 Tag groups are defined in multiple ways which make it easier to find the
 tag you are looking for.  Imenu keywords explicitly create groups, and
@@ -461,7 +465,7 @@ are hidden from a regular directory listing because the user is not
 generally interested in them.
 
 In speedbar, a hidden file is a file which isn't very interesting and
-might just prove distracting to the user.  Any uninteresting files are
+might prove distracting to the user.  Any uninteresting files are
 removed from the File display.  There are two levels of interest in
 speedbar.  The first level of uninterest are files which have no
 expansion method, or way of extracting tags.  The second level is any
@@ -496,9 +500,9 @@ Display information in the minibuffer about this line.  This is the same
 information shown when navigating with @kbd{n} and @kbd{p}, or moving
 the mouse over an item.
 @item B
-Byte compile the emacs lisp file on this line.
+Byte compile the Emacs Lisp file on this line.
 @item L
-Load the emacs lisp file on this line.  If an elc file exists, optionally load
+Load the Emacs Lisp file on this line.  If an elc file exists, optionally load
 that.
 @item C
 Copy the current file to some other location.
@@ -524,7 +528,7 @@ means that it is a file, but that Emacs doesn't know how to expand it.
 
 Buffer mode is very similar to file mode, except that instead of
 tracking the current directory and all files available there, the
-current list of buffers already loaded into emacs is shown.
+current list of buffers already loaded into Emacs is shown.
 
 These buffers can have their tags expanded in the same way as files
 and uses the same unknown file indicator @xref{File Mode}.
@@ -605,7 +609,7 @@ jumped to by clicking the name.
 You can open these nodes with the @samp{[+]} button to see what sub-topics
 are available.  Since these sub-topics are not examined until you click
 the @samp{[+]} button, sometimes a @samp{[?]} will appear when you click on
-it, indicating that there are no sub-topics.
+a @samp{[+]}, indicating that there are no sub-topics.
 
 @node GDB, , Info, Minor Modes
 @comment  node-name,  next,  previous,  up
@@ -689,7 +693,7 @@ automatically added when speedbar is created, though you can override
 it.
 
 In XEmacs, change the plist @code{speedbar-frame-plist}.  This is the
-XEmacs way of updating.
+XEmacs way of doing the same thing.
 
 @node Tag Hierarchy Methods, Version Control, Frames and Faces, Customizing
 @comment  node-name,  next,  previous,  up
@@ -729,10 +733,11 @@ Some other control variables are:
 @item speedbar-tag-group-name-minimum-length
 Default Value: 4.
 
-The minimum length of a prefix group name before expanding.
-Thus, if the `speedbar-tag-hierarchy-method' includes `prefix-group'
-and one such group's common characters is less than this number of
-characters, then the group name will be changed to the form of:
+The minimum length of a prefix group name before expanding.  Thus, if
+the @code{speedbar-tag-hierarchy-method} includes
+@code{speedbar-prefix-group-tag-hierarchy} and one such group's common
+characters is less than this number of characters, then the group name
+will be changed to the form of:
 
 @example
 worda to wordb
@@ -783,13 +788,13 @@ scheme.  To make a directory "disappear" from the list, use the variable
 Next, you need to write entries for two hooks.  The first is
 @code{speedbar-vc-path-enable-hook} which will enable a VC check in the
 current directory for the group of files being checked.  Your hook
-function should take one parameter (the directory to check) return
+function should take one parameter (the directory to check) and return
 @code{t} if your VC method is in control here.
 
 The second function is @code{speedbar-vc-in-control-hook}.  This hook
-takes two parameters.  The PATH of the file to check, plus the FILE
-name.  Return @code{t} if you want to have the asterisk placed near this
-file.
+takes two parameters.  The @var{PATH} of the file to check, plus the
+@var{FILE} name.  Return @code{t} if you want to have the asterisk
+placed near this file.
 
 Lastly, you can change the VC indicator using the variable
 @code{speedbar-vc-indicator}, and specify a single character string.
@@ -839,8 +844,11 @@ data.
 
 These major and minor display modes are handled through an extension
 system which permits specialized keymaps and menu extensions, in
-addition to a unique rendering function.  In this chapter, you will
-learn how to write your own major or minor display mode.
+addition to a unique rendering function.  You can also specify a wide
+range of tagging functions.  The default uses @file{imenu}, but new
+tagginging methods can be easilly added.  In this chapter, you will
+learn how to write your own major or minor display modes, and how to
+create specialized tagging functions.
 
 @menu
 * Minor Display Modes::    How to create a minor display mode.
@@ -862,13 +870,13 @@ Examples that already exist for speedbar include RMAIL, Info, and gdb.
 These modes display information specific to the major mode shown in the
 attached frame.
 
-To enable a minor display mode in your favorite Major mode follow these
+To enable a minor display mode in your favorite Major mode, follow these
 steps.  The string @samp{<name>} is the name of the major mode being
 augmented with speedbar.
 
 @enumerate
 @item
-Create the keymap variable @code{<name>-speedbar-keymap}.
+Create the keymap variable @code{<name>-speedbar-key-map}.
 @item
 Create a function named whatever you like which assigns values into your
 keymap.  Use this command to create the keymap before assigning
@@ -886,6 +894,7 @@ Call your install function, or assign it to a hook like this:
 @end example
 @item
 Create an easymenu compatible vector named @code{<name>-speedbar-menu-items}.
+This will be spliced into speedbar's control menu.
 @item
 Create a function called @code{<name>-speedbar-buttons}.  This function
 should take one variable, which is the buffer for which it will create
@@ -895,8 +904,8 @@ uncleared speedbar buffer.
 
 When writing @code{<name>-speedbar-buttons}, the first thing you will
 want to do is execute a check to see if you need to re-create your
-display.  Once done, you need to erase the speedbar buffer yourself, and
-start drawing buttons. @xref{Creating a display}.
+display.  If it needs to be cleared, you need to erase the speedbar
+buffer yourself, and start drawing buttons. @xref{Creating a display}.
 
 @node Major Display Modes, Tagging Extentions, Minor Display Modes, Extending
 @section Major Display Modes
@@ -909,7 +918,7 @@ given any name, and are made the same way as in a minor display mode
 registered.
 
 Because this setup activity may or may not have speedbar available when
-being loaded, it is necessary to create an install function.  This
+it is being loaded, it is necessary to create an install function.  This
 function should create and initialize the keymap, and add your
 expansions into the customization tables.
 
@@ -928,8 +937,8 @@ With universal argument @key{C-u}, flush cached data before expanding.
 Contract the item under the cursor.
 @end table
 
-These function require that function `speedbar-line-path' be correctly
-overloaded to work.
+These function require that function @code{speedbar-line-path} be
+correctly overloaded to work.
 
 Next, register your extension like this;
 
@@ -942,7 +951,7 @@ Next, register your extension like this;
 
 There are no limitations to the names you use.
 
-the first parameter is the string representing your display mode.
+The first parameter is the string representing your display mode.
 The second parameter is a variable name containing an easymenu compatible
 menu definition.  This will be stuck in the middle of speedbar's menu.
 The third parameter is the variable name containing the keymap we
@@ -1015,7 +1024,7 @@ Your custom function might look like this:
   (or (speedbar-item-info-tag-helper)
       (message "Interesting detail.")))
 
-Once you have done all this, speedbar will show a little entry in the
+Once you have done all this, speedbar will show an entry in the
 Displays menu declaring that your extension is available.
 
 @node Tagging Extentions, Creating a display, Major Display Modes, Extending
@@ -1030,8 +1039,8 @@ Parse @var{file} for a list of tags.  Return the list, or t if there was
 an error.
 @end defun
 
-The return value can be anything, as long as it can be inserted by it's
-paired function:
+The non-error return value can be anything, as long as it can be
+inserted by it's paired function:
 
 @defun my-insert-tag-list level lst
 Insert a list of tags @var{lst} started at indentation level
@@ -1131,7 +1140,7 @@ Each element of the list can have one of these forms:
 one tag at this level
 @item ("name" ("name" . marker-or-number) ("name" . marker-or-number) ... )
 One group of tags
-@item ("name" mon ("name" . marker-or-number) ... )
+@item ("name" marker-or-number ("name" . marker-or-number) ... )
 One Group of tags where the group has a starting position
 @end table
 
@@ -1144,7 +1153,7 @@ obvious is @code{speedbar-tag-hierarchy-method}.
 This is the button type used for groups of tags, weather expanded,
 or added in via a hierarchy method.  Two good values are
 @code{'curly} and @code{'expandtag}.  Curly is the default button, and
-@code{'expandtag} is useful if the group also has a position.
+@code{'expandtag} is useful if the groups also has a position.
 @end defvar
 
 @defvar speedbar-generic-list-tag-button-type
