@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.14 2002/02/23 03:18:02 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.15 2002/06/27 03:00:56 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -125,6 +125,31 @@ Optional argument FIELDS are the initialization arguments."
   "Find KEY as an element of FIELD in the objects in LIST-SYMBOL.
 Returns the first match."
   (object-assoc key field (symbol-value list-symbol)))
+
+;;; eieio-singleton
+;;
+;; The singleton Design Pattern specifies that there is but one object
+;; of a given class ever created.  The EIEIO singleton base class defines
+;; a CLASS allocated slot which contains the instance used.  All calls to
+;; `make-instance' will either create a new instance and store it in this
+;; slot, or it will just return what is there.
+(defclass eieio-singleton ()
+  ((singleton :type eieio-singleton
+	      :allocation :class
+	      :documentation
+	      "The only instance of this class that will be instantiated.
+Multiple calls to `make-instance' will return this object."))
+  "This special class causes subclasses to be singletons.
+A singleton is a class which will only ever have one instace."
+  :abstract t)
+
+(defmethod constructor :STATIC ((class eieio-singleton) name &rest fields)
+  "Constructor for singleton CLASS.
+NAME and FIELDS initialize the new object.
+This constructor guarantees that no matter how many you request,
+only one object ever exists."
+  (let ((old (oref-default class singleton)))
+    (or old (call-next-method))))
 
 
 ;;; eieio-persistent
