@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.32 2000/10/05 20:37:20 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.33 2000/10/11 03:01:52 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -46,6 +46,28 @@ distributed, and each should have a corresponding rule to build it.")
    (dirty :initform nil
 	  :type boolean
 	  :documentation "Non-nil when generated files needs updating.")
+   (compiler :initarg :compiler
+	     :initform nil
+	     :type (or null symbol)
+	     ;;:custom (choice list o compilers)
+	     :label "Compiler for building sources"
+	     :group make
+	     :documentation
+	     "The compiler to be used to compile this object.
+This should be a symbol, which contains the object defining the compiler.
+This enables save/restore to do so by name, permitting the sharing
+of these compiler resources, and global customization thereof.")
+   (linker :initarg :linker
+	     :initform nil
+	     :type (or null symbol)
+	     ;;:custom (choice list o linkers)
+	     :label "Linker for combining intermediate object files."
+	     :group make
+	     :documentation
+	     "The linker to be used to link compled sources for this object.
+This should be a symbol, which contains the object defining the linker.
+This enables save/restore to do so by name, permitting the sharing
+of these linker resources, and global customization thereof.")
    ;; Class allocated slots
    (availablecompilers :allocation :class
 		       :initform nil
@@ -54,6 +76,13 @@ distributed, and each should have a corresponding rule to build it.")
 		       "A list of `ede-compiler' objects.
 These are the compilers the user can choose from when setting the
 `compiler' slot.")
+   (availablelinkers :allocation :class
+		     :initform nil
+		     :type (or null list)
+		     :documentation
+		     "A list of `ede-linker' objects.
+These are the linkers the user can choose from when setting the
+`linker' slot.")
    )
   "Abstract class for ede-proj targets.")
 
@@ -75,17 +104,6 @@ These are the compilers the user can choose from when setting the
 	      "Non nil means the rule created is part of the all target.
 Setting this to nil creates the rule to build this item, but does not
 include it in the ALL`all:' rule.")
-   (compiler :initarg :compiler
-	     :initform nil
-	     :type (or null symbol)
-	     ;;:custom (choice list o compilers)
-	     :label "Compiler for building sources"
-	     :group make
-	     :documentation
-	     "The compiler to be used to compile this object.
-This should be a symbol, which contains the object defining the compiler.
-This enables save/restore to do so by name, permitting the sharing
-of these compiler resources, and global customization thereof.")
    (configuration-variables
     :initarg :configuration-variables
     :initform nil
@@ -233,7 +251,7 @@ These variables are used in the makefile when a configuration becomes active.")
 	    (let ((standard-output (current-buffer)))
 	      (oset project file (file-name-nondirectory cfn))
 	      (object-write project ";; EDE project file."))
-	    (write-file (oref project file) nil)
+	    (write-file cfn nil)
 	    )
 	;; Restore the :file on exit.
 	(oset project file cfn)
@@ -262,7 +280,7 @@ Argument TARGET is the project we are completing customization on."
 (defmethod ede-buffer-mine ((this ede-proj-project) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (let ((f (ede-convert-path this (buffer-file-name buffer))))
-    (or (string= (oref this file) f)
+    (or (string= (file-name-nondirectory (oref this file)) f)
 	(string= (ede-proj-dist-makefile this) f)
 	(string-match "Makefile\\(\\.\\(in\\|am\\)\\)?" f)
 	(string-match "config\\(ure\\.in\\|\\.stutus\\)?" f)
@@ -271,8 +289,7 @@ Argument TARGET is the project we are completing customization on."
 (defmethod ede-buffer-mine ((this ede-proj-target) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
   (or (call-next-method)
-      (member (ede-convert-path this (buffer-file-name buffer))
-	      (oref this auxsource))))
+      (ede-target-buffer-in-sourcelist this buffer (oref this auxsource))))
 
 
 ;;; EDE command functions
@@ -336,17 +353,15 @@ Argument TARGET is the project we are completing customization on."
 
 (defmethod project-add-file ((this ede-proj-target) file)
   "Add to target THIS the current buffer represented as FILE."
-  (setq file (file-name-nondirectory file))
-  (if (not (member file (oref this source)))
-      (oset this source (append (oref this source) (list file))))
+  (setq file (ede-convert-path this file))
+  (object-add-to-list this 'source file t)
   (ede-proj-save (ede-current-project)))
 
 (defmethod project-remove-file ((target ede-proj-target) file)
   "For TARGET, remove FILE.
 FILE must be massaged by `ede-convert-path'."
   ;; Speedy delete should be safe.
-  (oset target source (delete (file-name-nondirectory file)
-			       (oref target source)))
+  (object-remove-from-list target 'source (ede-convert-path target file))
   (ede-proj-save))
 
 (defmethod project-update-version ((this ede-proj-project))
@@ -420,6 +435,25 @@ Converts all symbols into the objects to be used."
 	    (setq st (cdr st)))))
       ;; Return the disovered compilers
       comp)))
+
+(defmethod ede-proj-linkers ((obj ede-proj-target))
+  "List of linkers being used by OBJ.
+If the `linker' slot is empty, concoct one on a first match found
+basis for any given type from the `availablelinkers' slot.
+Otherwise, return the `linker' slot.
+Converts all symbols into the objects to be used."
+  (when (slot-exists-p obj 'linker)
+    (let ((link (oref obj linker)))
+      (if link
+	  ;; Now that we have a pre-set linkers to use, convert type symbols
+	  ;; into objects for ease of use
+	  (setq link (mapcar 'symbol-value link))
+	(let ((avail (mapcar 'symbol-value (oref obj availablelinkers))))
+	  ;; LINK is not specified, so generate a list from the available
+	  ;; linkers list.
+	  (setq link (symbol-value (car avail)))))
+      ;; Return the disovered linkers
+      link)))
     
 
 ;;; Target type specific autogenerating gobbldegook.
@@ -474,7 +508,8 @@ Converts all symbols into the objects to be used."
 MFILENAME is the makefile to generate."
   ;; For now, pass through until dirty is implemented.
   (require 'ede-pmake)
-  (if (file-newer-than-file-p (oref this file) mfilename)
+  (if (or (not (file-exists-p mfilename))
+	  (file-newer-than-file-p (oref this file) mfilename))
       (ede-proj-makefile-create this mfilename)))
 
 (defmethod ede-proj-setup-buildenvironment ((this ede-proj-project)
