@@ -1,11 +1,11 @@
 ;;; sb-gud --- Speedbar support for the Grand Unified Debugger
 
-;; Copyright (C) 1997, 1998 Free Software Foundation
+;; Copyright (C) 1997, 1998, 2001 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: tools, gud
-;; X-RCS: $Id: sb-gud.el,v 1.7 1998/08/03 18:05:51 zappo Exp $
+;; X-RCS: $Id: sb-gud.el,v 1.8 2002/02/06 18:56:17 zappo Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -78,6 +78,7 @@ t means that there is no stack, and we are in display-file mode.")
     (gud-install-speedbar-variables)
   (add-hook 'speedbar-load-hook 'gud-install-speedbar-variables))
 
+;;;###autoload
 (defun gud-speedbar-buttons (buffer)
   "Create a speedbar display based on the current state of GUD.
 If the GUD BUFFER is not running a supported debugger, then turn
