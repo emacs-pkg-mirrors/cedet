@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.7 2001/05/18 03:00:49 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.8 2001/05/19 22:16:59 zappo Exp $
 
 (defvar cogre-version "0.0"
   "Current version of Cogre.")
@@ -147,8 +147,9 @@ Graph elements have a method for marking themselves dirty.")
   ((position :initarg :position
 	     :initform [ 0 0 ]
 	     :type vector
+	     :custom (vector integer integer)
 	     :documentation
-	     "The X,Y (COL, ROW) position as a vector for this node.
+	     "The X,Y [COL ROW] position as a vector for this node.
 The Width/Height if this node is determined by RECTANGLE, which is
 a list of strings representing the body of the node."
 	     )
@@ -250,12 +251,15 @@ arrows or circles.")
   "Keymap used for COGRE mode.")
 
 (defun cogre-substitute (oldfun newfun)
-  "Substitue a key binding in ghe `cogre-mode-map'."
+  "Substitue a key binding in ghe `cogre-mode-map'.
+Argument OLDFUN is removed NEWFUN is substituted in."
   (substitute-key-definition oldfun newfun cogre-mode-map global-map))
 
 (if cogre-mode-map
     nil
   (setq cogre-mode-map (make-keymap))
+  ;; Structure Information
+  (define-key cogre-mode-map "\C-m" 'cogre-activate-element)
   ;; Structure changes
   (define-key cogre-mode-map "R" 'cogre-refresh)
   (define-key cogre-mode-map "N" 'cogre-new-node)
@@ -303,6 +307,10 @@ arrows or circles.")
     [ "Refresh" cogre-refresh t ]
     ))
 
+(defmethod cogre-insert-class-list ((graph cogre-graph))
+  "Return a list of classes GRAPH will accept."
+  (eieio-build-class-alist 'cogre-graph-element))
+
 (defun cogre-insert-forms-menu (menu-def)
   "Create a menu for cogre INSERT item.
 Argument MENU-DEF is the easy-menu definition."
@@ -310,7 +318,7 @@ Argument MENU-DEF is the easy-menu definition."
    (easy-menu-create-menu
     "Insert Forms"
     (let ((obj (cogre-current-element))
-	  (elements (eieio-build-class-alist 'cogre-graph-element))
+	  (elements (cogre-insert-class-list cogre-graph))
 	  (newmenu nil))
       (while elements
 	;; Added (car elements) to the menu.
@@ -325,8 +333,8 @@ Argument MENU-DEF is the easy-menu definition."
 			       t)
 		       newmenu))
 	(setq elements (cdr elements)))
-      (append  (list [ "New Node" cogre-new-node t ]
-		     [ "New Link" cogre-new-link t ]
+      (append  (list [ "New Link" cogre-new-link t ]
+		     [ "New Node" cogre-new-node t ]
 		     )
 	       (nreverse newmenu))
       ))))
@@ -339,18 +347,22 @@ Argument MENU-DEF is the easy-menu definition."
     "Change Forms"
     (let* ((obj (cogre-current-element))
 	   (newmenu (if obj (oref obj menu))))
-      (append  '( [ "Name" cogre-set-element-name t ]
+      (append  '( [ "Name" cogre-set-element-name (cogre-current-element) ] 
+		  [ "View/Edit" cogre-activate-element (cogre-current-element) ]
 		  )
 	       (nreverse newmenu))
       ))))
 
 ;;; Buffer initialization
 ;;
-(defun cogre (name)
+(defun cogre (name &optional graph-class)
   "Create a new graph with the Connected Graph Editor.
-The new graph will be given NAME.  See `cogre-mode' for details."
+The new graph will be given NAME.  See `cogre-mode' for details.
+Optional argument GRAPH-CLASS indicates the type of graph to create."
   (interactive "sGraph Name: ")
-  (let ((newgraph (cogre-graph name :name name)))
+  (let ((newgraph (if graph-class
+		      (funcall graph-class name :name name)
+		    (cogre-graph name :name name))))
     (switch-to-buffer (get-buffer-create (concat "*Graph " name "*")))
     (setq cogre-graph newgraph)
     ;;(toggle-read-only 1)
@@ -394,6 +406,16 @@ Throw an error if there is no node."
     (if (not e)
 	(error "No graph node under point")
       e)))
+
+;;; Edit/View elements
+;;
+(defun cogre-activate-element (element)
+  "View/Edit the ELEMENT.
+The default ELEMENT is the one found under the cursor."
+  (interactive (list (cogre-current-element)))
+  (if element
+      (cogre-activate element)
+    (error "The cursor is not on an object")))
 
 ;;; Default management
 ;;
@@ -611,6 +633,20 @@ If ARG is unspecified, assume 1."
 
 ;;; State Management
 ;;
+(defmethod cogre-activate ((element cogre-graph-element))
+  "Activate ELEMENT.
+This could be as simple as displaying the current state,
+customizing the object, or performing some complex task."
+  (require 'eieio-custom)
+  (customize-object element)
+  )
+
+(defmethod eieio-done-customizing ((element cogre-graph-element))
+  "Finish customizing a graph element."
+  (cogre-set-dirty element t)
+  (cogre-render-buffer cogre-graph)
+  )
+
 (defmethod cogre-add-element ((graph cogre-graph) elt)
   "Add to GRAPH a new element ELT."
   (object-add-to-list graph 'elements elt t))
