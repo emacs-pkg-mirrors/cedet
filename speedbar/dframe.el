@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.14 2001/04/27 00:46:49 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.15 2001/05/08 17:28:07 zappo Exp $
 
 (defvar dframe-version "1.1"
   "The current version of the dedicated frame library.")
@@ -911,7 +911,7 @@ This overrides the default behavior of `switch-to-buffer' which is
 broken because of the dedicated frame."
   (interactive)
   ;; Assume we are in the dedicated frame.
-  (other-window 0)
+  (other-frame 1)
   ;; Now switch buffers
   (if buffer
       (switch-to-buffer buffer)
