@@ -1,10 +1,10 @@
-;;; pucture-hack.el --- Updates to picture mode
+;;; picture-hack.el --- Updates to picture mode
 
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: picture
-;; X-RCS: $Id: picture-hack.el,v 1.1 2001/04/18 02:23:54 zappo Exp $
+;; X-RCS: $Id: picture-hack.el,v 1.2 2001/06/06 16:26:21 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -33,6 +33,45 @@
 
 ;;; Code:
 
+;;; XEmacs is missing some stuff
+;;
+(unless (fboundp 'picture-current-line)
+  ;; copied from Emacs 20.6:
+  (defun picture-current-line ()
+    "Return the vertical position of point.  Top line is 1."
+    (+ (count-lines (point-min) (point))
+       (if (= (current-column) 0) 1 0))))
+
+(unless (fboundp 'picture-update-desired-column)
+  ;; copied from Emacs 20.6:
+  ;; If the value of picture-desired-column is far from the current
+  ;; column, or if the arg ADJUST-TO-CURRENT is non-nil, set it to the
+  ;; current column.   Return the current column.
+  (defun picture-update-desired-column (adjust-to-current)
+    (let ((current-column (current-column)))
+      (if (or adjust-to-current
+              (< picture-desired-column (1- current-column))
+              (> picture-desired-column (1+ current-column)))
+          (setq picture-desired-column current-column))
+      current-column)))
+
+(unless (fboundp 'char-width)
+  (defun char-width (CH)
+    "XEmacs doesn't have this, always return 1."
+    1))
+
+(unless (boundp 'picture-rectangle-v)
+  (defcustom picture-rectangle-v   ?|
+    "*Character `picture-draw-rectangle' uses for vertical lines."
+    :type 'character
+    :group 'picture))
+
+(unless (boundp 'picture-rectangle-h)
+  (defcustom picture-rectangle-h   ?-
+    "*Character `picture-draw-rectangle' uses for horizontal lines."
+    :type 'character
+    :group 'picture))
+
 ;;; Changes to exsiting functions
 ;;
 (defun picture-insert-rectangle (rectangle &optional insertp)
@@ -44,7 +83,8 @@ Leaves the region surrounding the rectangle."
 	(save-excursion
 	  (delete-rectangle (point)
 			    (progn
-			      (picture-forward-column (length (car rectangle)))
+			      (picture-forward-column
+			       (length (car rectangle)))
 			      (picture-move-down (1- (length rectangle)))
 			      (point)))))
     (if (interactive-p) (push-mark))
