@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.50 2003/01/28 08:20:23 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.51 2003/02/03 08:45:46 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -203,7 +203,7 @@ form."
 
 ;;; Directory Project support
 ;;
-(defvar semanticdb-project-predicates nil
+(defvar semanticdb-project-predicate-functions nil
   "List of predicates to try that indicate a directory belongs to a project.
 This list is used when `semanticdb-persistent-path' contains the value
 'project.  If the predicate list is nil, then presume all paths are valid.
@@ -299,14 +299,12 @@ Always append `semanticdb-project-system-databases' if
 `semanticdb-search-system' is non-nil."
   (let ((root nil)			; found root directory
 	(dbs nil)			; collected databases
-	(func semanticdb-project-root-functions) ;special project functions
 	(roots semanticdb-project-roots) ;all user roots
-	(adb semanticdb-database-list)	; all databases
 	)
     ;; Find the root based on project functions.
-    (while (and func (not root))
-      (setq root (funcall (car func) default-directory)
-	    func (cdr func)))
+    (setq root (run-hook-with-args-until-success
+		'semanticdb-project-root-functions
+		default-directory))
     ;; Find roots based on strings
     (while (and roots (not root))
       (if (string-match (concat "^"
@@ -316,14 +314,16 @@ Always append `semanticdb-project-system-databases' if
 	  (setq root (car roots)))
       (setq roots (cdr roots)))
     ;; Find databases based on the root directory.
-    (if root
-        (let ((regexp (concat "^" (regexp-quote (expand-file-name root)))))
-          (while (and root adb)
-	    ;; I don't like this part, but close enough.
-            (if (and (slot-exists-p (car adb) 'file)
-		     (string-match regexp (oref (car adb) file)))
-                (setq dbs (cons (car adb) dbs)))
-            (setq adb (cdr adb)))))
+    (when root
+      (let ((regexp (concat "^" (regexp-quote (expand-file-name root))))
+	    (adb semanticdb-database-list) ; all databases
+	    )
+	(while adb
+	  ;; I don't like this part, but close enough.
+	  (if (and (slot-exists-p (car adb) 'file)
+		   (string-match regexp (oref (car adb) file)))
+	      (setq dbs (cons (car adb) dbs)))
+	  (setq adb (cdr adb)))))
     ;; Add in system databases
     (when semanticdb-search-system-databases
       (setq dbs (append dbs semanticdb-project-system-databases)))
