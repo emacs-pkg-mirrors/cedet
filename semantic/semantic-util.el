@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.7 2000/05/04 02:45:13 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.8 2000/05/04 03:34:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -429,7 +429,8 @@ TOKEN might have DOCUMENTATION set in it already.  If not, there may be
 some documentation in a comment preceeding TOKEN's definition which we
 cal look for.  When appropriate, this can be overridden by a language specific
 enhancement.
-Optional argument NOSNARF means to only return the flex token for it."
+Optional argument NOSNARF means to only return the flex token for it.
+If nosnarf if 'flex, then only return the flex token."
   (if (or (not (bufferp buffer)) (not token))
       (error "Semantic-find-documentation: specify BUFFER and TOKEN"))
   (let ((s (semantic-fetch-overload 'find-documentation)))
@@ -459,29 +460,32 @@ Optional argument NOSNARF means to only return the flex token for it."
 (defun semantic-find-doc-snarf-comment (nosnarf)
   "Snarf up the comment at POINT for `semantic-find-documentation'.
 Attempt to strip out comment syntactic sugar.
-Argument NOSNARF means don't modify the found text."
-  (let ((ct (semantic-flex-text (car (semantic-flex (point) (1+ (point)))))))
-    (if nosnarf
-	nil
-      ;; ok, try to clean the text up.
-      ;; Comment start thingy
-      (while (string-match (concat "^\\s-*" comment-start-skip) ct)
-	(setq ct (concat (substring ct 0 (match-beginning 0))
-			 (substring ct (match-end 0)))))
-      ;; Arbitrary punctuation at the beginning of each line.
-      (while (string-match "^\\s-*\\s.+\\s-*" ct)
-	(setq ct (concat (substring ct 0 (match-beginning 0))
-			 (substring ct (match-end 0)))))
-      ;; End of a block comment.
-      (if (and block-comment-end (string-match block-comment-end ct))
+Argument NOSNARF means don't modify the found text.
+If NOSNARF is 'flex, then return the flex token."
+  (if (eq nosnarf 'flex)
+      (car (semantic-flex (point) (1+ (point))))
+    (let ((ct (semantic-flex-text (car (semantic-flex (point) (1+ (point)))))))
+      (if nosnarf
+	  nil
+	;; ok, try to clean the text up.
+	;; Comment start thingy
+	(while (string-match (concat "^\\s-*" comment-start-skip) ct)
 	  (setq ct (concat (substring ct 0 (match-beginning 0))
 			   (substring ct (match-end 0)))))
-      ;; In case it's a real string, STRIPIT.
-      (while (string-match "\\s-*\\s\"+\\s-*" ct)
-	(setq ct (concat (substring ct 0 (match-beginning 0))
-			 (substring ct (match-end 0))))))
-    ;; Now return the text.
-    ct))
+	;; Arbitrary punctuation at the beginning of each line.
+	(while (string-match "^\\s-*\\s.+\\s-*" ct)
+	  (setq ct (concat (substring ct 0 (match-beginning 0))
+			   (substring ct (match-end 0)))))
+	;; End of a block comment.
+	(if (and block-comment-end (string-match block-comment-end ct))
+	    (setq ct (concat (substring ct 0 (match-beginning 0))
+			     (substring ct (match-end 0)))))
+	;; In case it's a real string, STRIPIT.
+	(while (string-match "\\s-*\\s\"+\\s-*" ct)
+	  (setq ct (concat (substring ct 0 (match-beginning 0))
+			   (substring ct (match-end 0))))))
+      ;; Now return the text.
+      ct)))
 
 (defun semantic-summerize-nonterminal (token &optional parent)
   "Summerize TOKEN in a reasonable way.
