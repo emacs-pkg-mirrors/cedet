@@ -1,6 +1,6 @@
 <!-- -*- html -*- -->
 <tt>
-<table border=2 align=right><tr><td>
+<table align=right cellspacing=0 cellpadding=0 class=SPEEDBAR><tr><td>
 <table bgcolor=white cellspacing=0 cellpadding=1 width=210>
 
 <tr><td align=center>&nbsp<a href="/"    ><b><font size=+1>CEDET</font></b></a>&nbsp</td></tr>
