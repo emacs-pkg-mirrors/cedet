@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.30 2000/04/27 22:10:34 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.31 2000/04/28 18:59:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -337,9 +337,10 @@ TOP-LEVEL ENTRIES:
    that these be variables, functions or types).  PARENTS is strictly for
    classes where there is inheritance.
 
- (\"FILE\" include \"DOCSTRING\" START END)
+ (\"FILE\" include SYSTEM \"DOCSTRING\" START END)
    In C, an #include statement.  In elisp, a require statement.
    Indicates additional locations of sources or definitions.
+   SYSTEM is true if this include is part of a set of system includes.
 
  (\"NAME\" package DETAIL \"DOCSTRING\" START END)
    In Emacs Lisp, a `provide' statement.  DETAIL might be an
