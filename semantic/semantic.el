@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.179 2004/03/21 07:45:05 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.180 2004/03/28 01:34:51 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -537,13 +537,14 @@ string.  See also the function `working-status-forms'."
 ;; API functions which plug-in parsers can take advantage of.
 
 ;;;###autoload
-(defun semantic-fetch-tags (&optional checkcache)
+(defun semantic-fetch-tags ()
   "Fetch semantic tags from the current buffer.
-If necessary, do an incremental reparse if possible, otherwise do a
-full reparse.
-
-The optional argument CHECKCACHE is ignored.  It is maintained for
-compatibility with previous versions of Semantic."
+If the buffer cache is up to date, return that.
+If the buffer cache is out of date, attempt an incremental reparse.
+If the buffer has not been parsed before, or if the incremental reparse
+fails, then parse the entire buffer.
+If a lexcial error had been previously discovered and the buffer
+was marked unparseable, then do nothing, and return the cache."
   (and
    ;; Is this a semantic enabled buffer?
    (semantic-active-p)
