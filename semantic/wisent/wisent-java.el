@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.17 2001/10/03 18:00:02 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.18 2001/10/10 19:08:49 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -916,62 +916,28 @@ MSG is the message string to report."
 ;;;;
 
 (defun wisent-java-get-local-variables ()
-  "Get the local variables based on point's context.
-Local variables are returned in Semantic token format without overlay.
-The function first search for a 'function or 'type token context at
-point moving up blocks using `semantic-up-context'.  When a 'type
-token is found return the local variables from existing 'variable
-child tokens.  Otherwise call the parser with `field_declarations_opt'
-to find 'variable tokens in the function body.
-
+  "Get local values from a specific context.
+Uses the bovinator with the special top-symbol `field_declaration'
+to collect tokens, such as local variables or prototypes.
 This function is a Java specific `get-local-variables' override."
-  (let (token context)
-    (while (not context)
-      (setq context
-            (if (and (setq token (semantic-current-nonterminal))
-                     (memq (semantic-token-token token)
-                           '(type function)))
-                token
-              (setq token nil)
-              (semantic-up-context))))
-    (cond
-     ;; no context
-     ((not token)
-      nil)
-     ;; class/interface declaration context
-     ((eq (semantic-token-token token) 'type)
-      ;; To avoid reparse use 'variable child tokens
-      (let ((locals (semantic-find-nonterminal-by-token
-                     'variable
-                     (semantic-nonterminal-children token))))
-        ;; Return a copy of each 'variable token without overlay.
-        ;; `semantic-deoverlay-list' can't be used here because the
-        ;; original overlay must be kept!
-        (mapcar
-         #'(lambda (tok)
-             (let ((tok-no-ovl (copy-sequence tok))
-                   (tok-region (vector (semantic-token-start tok)
-                                       (semantic-token-end tok))))
-               (setcar (semantic-token-overlay-cdr tok-no-ovl)
-                       tok-region)
-               tok-no-ovl))
-         locals)))
-     ;; method/constructor body context
-     (t
-      (goto-char (semantic-token-end token))
-      (backward-char)
-      (and (looking-at "}")
-           (not (semantic-beginning-of-context))
-           ;; need to parse the block
-           (working-status-forms
-               (format "%s [LALR:local variables]" (buffer-name))
-               "done"
-             (let ((semantic-flex-depth nil)
-                   (semantic-bovination-working-type nil))
-               (wisent-bovinate-from-nonterminal-full
-                (point)
-                (save-excursion (semantic-end-of-context) (point))
-                'field_declarations_opt))))))))
+  ;; The working status is to let the parser work properly
+  (working-status-forms "LALR:Local" "done"
+    (let ((semantic-bovination-working-type nil)
+          ;; We want nothing to do with funny syntaxing while doing this.
+          (semantic-unmatched-syntax-hook nil)
+          ;; Disable parsing messages
+          (working-status-dynamic-type nil)
+          (vars nil))
+      (while (not (semantic-up-context (point) 'function))
+        (save-excursion
+          (forward-char 1)
+          (setq vars
+                (append (wisent-bovinate-region-until-error
+                         (point)
+                         (save-excursion (semantic-end-of-context) (point))
+                         'field_declarations_opt)
+                        vars))))
+      vars)))
 
 ;;;;
 ;;;; Semantic integration of the Java LALR parser
