@@ -1,11 +1,11 @@
 ;;; ede-dired.el --- EDE extensions to dired.
 
-;;;  Copyright (C) 1998, 99  Eric M. Ludlam
+;;;  Copyright (C) 1998, 99, 00  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede-dired.el,v 1.2 1999/12/04 17:28:49 zappo Exp $
+;; RCS: $Id: ede-dired.el,v 1.3 2000/06/20 02:16:56 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -49,6 +49,7 @@
   (define-key ede-dired-keymap ".t" 'ede-new-target)
   (define-key ede-dired-keymap ".s" 'ede-speedbar)
   (define-key ede-dired-keymap ".C" 'ede-compile-project)
+  (define-key ede-dired-keymap ".d" 'ede-make-dist)
   
   (easy-menu-define
    ede-dired-menu ede-dired-keymap "EDE Dired Minor Mode Menu"
@@ -56,9 +57,10 @@
      ["Create a new target" ede-new-target (ede-current-project) ]
      ["Add files to project" ede-dired-add-to-target (ede-current-project) ]
      ["Compile project" ede-compile-project (ede-current-project) ]
+     ["Make distribution" ede-make-dist (ede-current-project) ]
      "---"
      ["Speedbar project" ede-speedbar (ede-current-project) ]
-     [ "Customize Project" ede-customize-project (ede-current-project) ]
+     ["Customize Project" ede-customize-project (ede-current-project) ]
      ))
   )
 
