@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.30 2000/08/20 22:55:57 zappo Exp $
+@c $Id: eieio.texi,v 1.31 2000/08/20 22:56:52 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -642,6 +642,7 @@ they are executed in this order:
 @item generic :PRIMARY
 @item method :AFTER
 @item generic :AFTER
+@end table
 @end defun
 
 See the file @file{eieio-test.el} for an example testing these
