@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.8 2002/05/07 01:31:14 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.9 2002/08/08 16:05:21 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -24,9 +24,10 @@
 
 ;;; Commentary:
 ;;
-;; Example using semantic's `semantic-toplevel-bovinate-override'
-;; using texinfo files.
-;;
+;; Parse Texinfo buffers using regular expressions.  The core parser
+;; engine is the function `semantic-texi-bovinate-headings'.  The
+;; parser plug-in is the function `semantic-texi-parse-region' that
+;; overrides `semantic-parse-region'.
 
 (require 'semantic)
 (require 'texinfo)
@@ -57,20 +58,25 @@ The field position is the field number (based at 1) where the
 name of this section is.")
 
 ;;; Code:
-(defun semantic-texi-bovinate-toplevel (checkcache)
+(defun semantic-texi-parse-region (&rest ignore)
   "Parse the current texinfo buffer for bovine tokens.
-If CHECKCACHE is non-nil, then check to see if the cache needs
-to be flushed.  (ignored)
+IGNORE any arguments, always parse the whole buffer.
 Each token returned is of the form:
  (\"NAME\" section children DOC OVERLAY)
 or
- (\"NAME\" def DOC OVERLAY)"
+ (\"NAME\" def DOC OVERLAY)
+
+It is an override of 'parse-region and must be installed by the
+function `semantic-install-function-overrides'."
   ;;(semantic-texi-bovinate-headings)
-  (let ((lst (mapcar 'semantic-texi-raw-to-cooked-token
-		     (semantic-texi-bovinate-headings))))
-    (semantic-overlay-list lst)
-    lst)
-  )
+  (mapcar 'semantic-texi-raw-to-cooked-token
+          (semantic-texi-bovinate-headings)))
+
+(defun semantic-texi-parse-changes ()
+  "Parse changes in the current texinfo buffer."
+  ;; NOTE: For now, just schedule a full reparse.
+  ;;       To be implemented later.
+  (semantic-parse-tree-set-needs-rebuild))
 
 (defun semantic-texi-raw-to-cooked-token (token)
   "Cook the texinfo token TOKEN."
@@ -189,8 +195,13 @@ thingy from it using the `document' tool."
 (defun semantic-default-texi-setup ()
   "Set up a buffer for parsing of Texinfo files."
   ;; This will use our parser.
-  (setq semantic-bovinate-toplevel-override #'semantic-texi-bovinate-toplevel
-	imenu-create-index-function 'semantic-create-imenu-index
+  (semantic-install-function-overrides
+   '((parse-region . semantic-texi-parse-region)
+     (parse-changes . semantic-texi-parse-changes)))
+  (setq semantic-parser-name "TEXI"
+        ;; Setup a dummy parser table to enable parsing!
+        semantic-toplevel-bovine-table t
+        imenu-create-index-function 'semantic-create-imenu-index
 	semantic-command-separation-character "@"
 	semantic-type-relation-separator-character '(":")
 	semantic-symbol->name-assoc-list '((section . "Section")
