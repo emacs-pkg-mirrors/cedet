@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.1 2001/04/24 19:25:49 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.2 2001/04/25 02:46:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,7 +34,8 @@
 ;;; Code
 
 (defclass cogre-package (cogre-node)
-  ((blank-lines-top :initform 0)
+  ((name :initform "Package")
+   (blank-lines-top :initform 0)
    (blank-lines-bottom :initform 0)
    (subgraph :initarg :subgraph
 	     :initform nil
@@ -55,7 +56,8 @@ The `subgraph' slot must be scanned for this information."
   )
 
 (defclass cogre-class (cogre-node)
-  ((blank-lines-top :initform 0)
+  ((name :initform "Class")
+   (blank-lines-top :initform 0)
    (blank-lines-bottom :initform 0)
    (attributes :initarg :attributes
 	       :initform nil
@@ -76,6 +78,55 @@ See `attribute' slot for details on the form of each token in this list.")
 Class nodes represent a class, and can list the attributes and methods
 within them.  Classes can have attribute links, and class hierarchy links.")
 
+(defmethod initialize-instance ((this cogre-class) &optional fields)
+  "When interactively creating a class node THIS, query for the class name.
+Optional argument FIELDS are not used."
+  (call-next-method)
+  (if (string-match "^Class[0-9]*" (oref this name))
+      ;; In this case, we have a default class name, so try and query
+      ;; for the real class (from sources) which we want to use.
+      (let* ((class (cogre-read-class-name))
+	     (tok (cdr (car (semanticdb-find-nonterminal-by-name
+			     class nil nil nil t))))
+	     )
+	(if (and tok (eq (semantic-token-token tok) 'type)
+		 (string= (semantic-token-type tok) "class"))
+	    (let ((slots (semantic-token-type-parts tok))
+		  (extmeth (semanticdb-find-nonterminal-by-extra-spec-value
+			    'parent (semantic-token-name tok) nil nil nil t))
+		  attrib method)
+	      ;; Bin them up
+	      (while slots
+		(cond 
+		 ;; A plain string, a simple language, just do attributes.
+		 ((stringp (car slots))
+		  (setq attrib (cons (list (car slots) 'variable nil)
+				     attrib))
+		  )
+		 ;; Variable decl is an attribute
+		 ((eq (semantic-token-token (car slots)) 'variable)
+		  (setq attrib (cons (car slots) attrib)))
+		 ;; A function decle is a method.
+		 ((eq (semantic-token-token (car slots)) 'function)
+		  (setq method (cons (car slots) method)))
+		 )
+		(setq slots (cdr slots)))
+	      ;; Add in all those extra methods
+	      (while extmeth
+		(let ((sl (cdr (car extmeth))))
+		  (while sl
+		    (if (eq (semantic-token-token (car sl)) 'function)
+			(setq method (cons (car sl) method)))
+		    (setq sl (cdr sl))))
+		(setq extmeth (cdr extmeth)))
+	      ;; Put them into the class.
+	      (oset this name class)
+	      (oset this attributes attrib)
+	      (oset this methods method)
+	      ;; Tada!
+	      ))))
+  this)
+
 (defmethod cogre-node-slots ((class cogre-class))
   "Return a list of each section, including title, attributes, and methods.
 Argument CLASS is the class whose slots are referenced."
@@ -90,7 +141,7 @@ Argument CLASS is the class whose slots are referenced."
 			  ("_|_" "\\ /" " V ")
 			  ("<|")
 			  ("|>") ])
-   (horizontal-preference-ration :initform .1)
+   (horizontal-preference-ratio :initform .1)
    )
   "This type of link indicates that the two nodes reference infer inheritance.
 The `start' node is the child, and the `end' node is the parent.
@@ -100,7 +151,7 @@ This is supposed to infer that START inherits from END.")
   ((start-glyph :initform [ (" ^ " "< >" " V ")
 			    (" ^ " "< >" " V ")
 			    ("<>") ("<>") ])
-   (horizontal-preference-ration :initform 1)
+   (horizontal-preference-ratio :initform 1)
    )
   "This type of link indicates aggregation.
 The `start' node is the owner of the aggregation, the `end' node is
@@ -116,15 +167,27 @@ This is supposed to infer that START contains END.")
 (defun cogre-read-class-name ()
   "Read in a class name to be used by a cogre node."
   (let ((finddefaultlist (semantic-find-nonterminal-by-overlay))
-	class prompt
+	class prompt stream
 	)
     ;; Assume the top most item is the all encompassing class.
     (if finddefaultlist
 	(setq class (car finddefaultlist)))
+    ;; Make sure our class is really a class
+    (if (not (and
+	      class
+	      (eq (semantic-token-token class) 'type)
+	      (string= (semantic-token-type class) "class")))
+	(setq class nil))
     ;; Create a prompt
     (setq prompt (if class (concat "Class (default " class "): ") "Class: "))
+    ;; Get the stream used for completion.
+    (setq stream
+	  (apply #'append
+		 (mapcar #'cdr
+			 (semanticdb-find-nonterminal-by-type
+			  "class" nil nil nil t))))
     ;; Do the query
-    (completing-read prompt (semanticdb-find-nonterminal-by-type "class")
+    (completing-read prompt stream
 		     nil nil nil 'cogre-class-history
 		     class)
     ))
@@ -134,5 +197,9 @@ This is supposed to infer that START contains END.")
   "Create a new UML diagram, with CLASS as the root node.
 CLASS must be a type in the current project."
   (interactive (list (cogre-read-class-name)))
-  
-  )
+  (let ((root (cdr (car (semanticdb-find-nonterminal-by-name class))))
+	)
+    
+    ))
+
+
