@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.4 2001/02/09 11:53:34 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.5 2001/02/09 15:52:09 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -573,8 +573,7 @@ Handle multiple variable declarations in the same statement."
                            vl)))
               ;; Workaround: delete the old token overlay
               (if vl
-                  (semantic-overlay-delete
-                   (semantic-token-overlay token)))
+                  (semantic-deoverlay-token token))
               )
             
           ;; Only one variable declared.  Just replace the
