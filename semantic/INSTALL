@@ -9,18 +9,9 @@ How to install Semantic
 
 3) Install load hooks into your .emacs file.
 
-(add-to-list 'load-path "~/semantic-#.#") ; so Emacs can find semantic
-					; change to actual install area.
+(setq semantic-load-turn-everything-on t)
+(load-file "/path/to/semantic/semantic-load.el")
 
-(require 'semantic-c) ; for C code integration
-(require 'semantic-el) ; for Emacs Lisp code integration
-(require 'semantic-make) ; for Makefile integration
-(require 'semantic-imenu) ; if you use imenu or wich-function
-(add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb)))
-			; for speedbar integration
-(autoload 'semantic-bnf-mode "semantic-bnf" "Mode for Bovine Normal Form." t)
-(add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
-			; for editing .bnf parser files.
-(autoload 'semantic-minor-mode "semantic-mode" "Mode managing semantic parsing." t)
-			; for semantic-minor-mode
 
+4) If turning everything on is too much, remove the first line setting
+   the variable that turns everything on.
