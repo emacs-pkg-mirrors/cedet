@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.56 2003/04/02 02:44:56 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.57 2003/04/06 00:46:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,10 +94,11 @@ mechanism.")
 	       :documentation "Major mode this table belongs to.
 Sometimes it is important for a program to know if a given table has the
 same major mode as the current buffer.")
-   (tokens :initarg :tokens
-	   :documentation "The tokens belonging to this table.")
+   (tags :initarg :tags
+	 :accessor semanticdb-get-tags
+	 :documentation "The tags belonging to this table.")
    )
-  "A simple table for semantic tokens.
+  "A simple table for semantic tags.
 This table is the root of tables, and contains the minimum needed
 for a new table not associated with a buffer."
   :abstract t)
@@ -114,7 +115,7 @@ Checked on retrieval to make sure the file is the same.")
 		     :documentation
 		     "List of vectors specifying unmatched syntax.")
    )
-  "A single table of tokens derived from file.")
+  "A single table of tags derived from file.")
 
 (defclass semanticdb-project-database (eieio-instance-tracker)
   ((tracking-symbol :initform semanticdb-database-list)
@@ -163,15 +164,14 @@ If the table for FILE does not exist, create one."
 (defun semanticdb-get-database (filename)
   "Get a database for FILENAME.
 If one isn't found, create one."
-  (or (semanticdb-file-loaded-p filename)
-      (semanticdb-create-database filename)))
+  (semanticdb-create-database semanticdb-new-database-class filename))
 
 (defun semanticdb-directory-loaded-p (path)
   "Return the project belonging to PATH if it was already loaded."
   (eieio-instance-tracker-find path 'reference-directory 'semanticdb-database-list))
 
 (defmethod semanticdb-file-table ((obj semanticdb-project-database) filename)
-  "From OBJ, return FILENAMEs associated table object."
+  "From OBJ, return FILENAME's associated table object."
   (object-assoc (file-relative-name (expand-file-name filename)
   				    (oref obj reference-directory))
 		'file (oref obj tables)))
@@ -209,8 +209,8 @@ The file associated with OBJ does not need to be in a buffer."
       (let* ((stats (file-attributes (semanticdb-full-filename obj)))
 	     (actualmax (aref stats 7)))
 
-	(or (not (slot-boundp obj 'tokens))
-	    (not (oref obj tokens))
+	(or (not (slot-boundp obj 'tags))
+	    (not (oref obj tags))
 	    (/= (or (oref obj pointmax) 0) actualmax)
 	    )
 	))))
@@ -264,6 +264,12 @@ Uses `semanticdb-persistent-path' to determine the return value."
 				       default-directory)
 	   )
       nil))
+
+(defmethod semanticdb-equivalent-mode ((table semanticdb-abstract-table) &optional buffer)
+  "Return non-nil if TABLE's mode is equivalent to BUFFER.
+Equivalent modes are specified by by `semantic-equivalent-major-modes'
+local variable."
+  nil)
 
 (defmethod semanticdb-equivalent-mode ((table semanticdb-table) &optional buffer)
   "Return non-nil if TABLE's mode is equivalent to BUFFER.
@@ -390,8 +396,8 @@ Sets up the semanticdb environment."
     (oset ctbl major-mode major-mode)
     ;; Local state
     (setq semanticdb-current-table ctbl)
-    ;; Try to swap in saved tokens
-    (if (or (not (slot-boundp ctbl 'tokens)) (not (oref ctbl tokens))
+    ;; Try to swap in saved tags
+    (if (or (not (slot-boundp ctbl 'tags)) (not (oref ctbl tags))
 	    (/= (or (oref ctbl pointmax) 0) (point-max))
 	    )
 	(semantic-clear-toplevel-cache)
@@ -405,16 +411,16 @@ Sets up the semanticdb environment."
 	 ;; Make sure it has a value.
 	 (oset ctbl unmatched-syntax nil)
 	 ))
-      (semantic-set-toplevel-bovine-cache (oref ctbl tokens))
+      (semantic-set-toplevel-bovine-cache (oref ctbl tags))
       (semantic--tag-link-cache-to-buffer)
       )
     ))
 
 (defun semanticdb-post-bovination (new-table)
   "Function run after a bovination.
-Argument NEW-TABLE is the new table of tokens."
+Argument NEW-TABLE is the new table of tags."
   (if semanticdb-current-table
-      (oset semanticdb-current-table tokens new-table)))
+      (oset semanticdb-current-table tags new-table)))
 
 (defun semanticdb-post-bovination-unmatched-syntax (new-un-tax)
   "Function run after a bovination w/ unmatched syntax.
@@ -500,7 +506,7 @@ Update the environment of Semantic enabled buffers accordingly."
 ;;; Validate the semantic database
 ;;
 (defun semanticdb-table-oob-sanity-check (cache)
-  "Validate that CACHE tokens do not have any overlays in them."
+  "Validate that CACHE tags do not have any overlays in them."
   (while cache
     (when (semantic-overlay-p (semantic-tag-overlay cache))
       (message "Token %s has an erroneous overlay!"
@@ -520,7 +526,7 @@ Update the environment of Semantic enabled buffers accordingly."
 	  (set-buffer buff)
 	  (semantic-sanity-check))
       ;; We can't use the usual semantic validity check, so hack our own.
-      (semanticdb-table-oob-sanity-check (oref table tokens)))))
+      (semanticdb-table-oob-sanity-check (semanticdb-get-tags table)))))
 
 (defun semanticdb-database-sanity-check ()
   "Validate the current semantic database."
@@ -532,29 +538,31 @@ Update the environment of Semantic enabled buffers accordingly."
     ))
 
 ;;;###autoload
+(defun semanticdb-file-table-object (file)
+  "Return a semanticdb table belonging to FILE.
+If file has database tags available in the database, return it.
+If file does not have tags available, then load the file, and create a new
+table object for it."
+  (setq file (expand-file-name file))
+  (when (file-exists-p file)
+    (let* ((default-directory (file-name-directory file))
+	   (db (semanticdb-get-database default-directory))
+	   )
+      (or (semanticdb-file-table db file)
+	  ;; We must load the file.
+	  (save-excursion
+	    (set-buffer (find-file-noselect file))
+	    ;; Find file should automatically do this for us.
+	    semanticdb-current-table)))))
+
+;;;###autoload
 (defun semanticdb-file-stream (file)
-  "Return a list of tokens belonging to FILE.
-If file has database tokens available in the database, return them.
-If file does not have tokens available, then load the file, and create them."
-  (let* ((default-directory (file-name-directory file))
-         (fo (semanticdb-create-database semanticdb-new-database-class
-                                         default-directory))
-         to)
-    ;; The `reference-directory' slot is not persistent, ensure here
-    ;; that it is initialized!
-    (or (slot-boundp fo 'reference-directory)
-        (oset fo reference-directory default-directory))
-    (if (setq to (semanticdb-file-table fo file))
-	(oref to tokens) ;; get them.
-      ;; We must load the file.
-      (save-excursion
-	(set-buffer (find-file-noselect file))
-	;; Find file should automatically do this for us.
-	(if semanticdb-current-table
-	    (oref semanticdb-current-table tokens)
-	  ;; if not, just do it.
-	  (semantic-bovinate-toplevel t))))
-    ))
+  "Return a list of tags belonging to FILE.
+If file has database tags available in the database, return them.
+If file does not have tags available, then load the file, and create them."
+  (let ((table (semanticdb-file-table-object file)))
+    (when table
+      (semanticdb-get-tags table))))
 
 (provide 'semanticdb)
 
