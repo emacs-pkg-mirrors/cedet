@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.29 2004/10/05 10:59:01 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.30 2005/01/06 12:17:45 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -589,6 +589,34 @@ Returns `semantic-tag-name'."
   "Return detail information from code that TAG describes.
 That is the value of the attribute `:detail'."
   (semantic-tag-get-attribute tag :detail))
+
+;;; Tags of class `alias'
+;;
+(defsubst semantic-tag-new-alias (name meta-tag-class value &rest attributes)
+  "Create a semantic tag of class alias.
+NAME is a name for this alias.
+META-TAG-CLASS is the class of the tag this tag is an alias.
+VALUE is the aliased definition.
+ATTRIBUTES is a list of additional attributes belonging to this tag."
+  (apply 'semantic-tag name 'alias
+         :aliasclass meta-tag-class
+         :definition value
+         attributes))
+
+(defsubst semantic-tag-alias-class (tag)
+  "Return the class of tag TAG is an alias."
+  (semantic-tag-get-attribute tag :aliasclass))
+
+;;;###autoload
+(define-overload semantic-tag-alias-definition (tag)
+  "Return the definition TAG is an alias.
+The returned value is a tag of the class that
+`semantic-tag-alias-class' returns for TAG.
+The default is to return the value of the :definition attribute.
+Return nil if TAG is not of class 'alias."
+  (when (semantic-tag-of-class-p tag 'alias)
+    (:override
+     (semantic-tag-get-attribute tag :definition))))
 
 ;;; Language Specific Tag access via overload
 ;;
