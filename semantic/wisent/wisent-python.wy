@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.3 2002/06/21 07:46:19 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.4 2002/06/21 07:50:01 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -46,7 +46,7 @@
    semantic-type-relation-separator-character '(".")
    semantic-command-separation-character ";"
    ;; Init indentation stack
-   wisent-python-lexer-indent-stack nil
+   wisent-python-lexer-indent-stack '(0)
 
    semantic-flex-python-extensions
    '(("\"\"\"" . semantic-flex-python-triple-quotes))
@@ -377,12 +377,11 @@ fpdef_list
     (format "%s, %s" $1 $3)
   ;
 
-;; TODO: It seems like the Grammar file is wrong here! -ryk 6/17/02
 ;; stmt: simple_stmt | compound_stmt
-stmt : single_input ;
-;;  : simple_stmt
-;;  | compound_stmt
-;;  ;
+stmt
+  : simple_stmt
+  | compound_stmt
+  ;
 
 ;; simple_stmt: small_stmt (';' small_stmt)* [';'] NEWLINE
 simple_stmt
@@ -863,19 +862,20 @@ prefix_operators
 
 ;; power: atom trailer* ('**' factor)*
 power
-  : atom trailer_opt exponent_opt
+  : atom trailer_zom exponent_zom
     (format "%s %s %s" $1 (or $2 "") (or $3 ""))
   ;
 
-trailer_opt
+trailer_zom
   : ;;EMPTY
-  | trailer
+  | trailer_zom trailer
+    (format "%s %s" (or $1 "") $2)
   ;
 
-exponent_opt
+exponent_zom
   : ;;EMPTY
-  | EXPONENT factor
-    (format "** %s" $2)
+  | exponent_zom EXPONENT factor
+    (format "%s ** %s" (or $1 "") $3)
   ;
 
 ;; atom: '(' [testlist] ')' | '[' [listmaker] ']' | '{' [dictmaker] '}' | '`' testlist '`' | NAME | NUMBER | STRING+
@@ -1126,10 +1126,16 @@ comma_mult_mult_test_opt
     (format ", ** %s" (or $3 ""))
   ;
 
+;; TODO: The rule from the Grammar file was substituted with
+;; TODO: argument: test ['=' test]
+;; TODO: in order to successfully parse expression such as f(x).
+;;
 ;; argument: [test '='] test	# Really [keyword '='] test
+ ;;  : test_eq_opt test
+ ;;    (format "%s %s" (or $1 "") $2)
 argument
-  : test_eq_opt test
-    (format "%s %s" (or $1 "") $2)
+  : test eq_test_opt
+    (format "%s" $2)
   ;
 
 ;; [test '=']
