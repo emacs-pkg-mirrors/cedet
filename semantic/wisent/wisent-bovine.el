@@ -1,12 +1,12 @@
 ;;; wisent-bovine.el --- Wisent - Semantic gateway
 
-;; Copyright (C) 2001 David Ponce
+;; Copyright (C) 2001, 2002 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.17 2002/06/30 22:23:10 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.18 2002/07/20 08:06:16 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,6 +35,7 @@
 
 ;;; Code:
 
+(provide 'wisent-bovine)
 (require 'semantic)
 (require 'wisent)
 (require 'wisent-flex)
@@ -50,16 +51,16 @@ Should be used in Semantic actions to build the bovine cache."
              (list (car $region) (cdr $region))
            (list (point-max) (point-max)))))
 
-(defsubst wisent-cooked-token (&rest return-val)
+(defmacro wisent-cooked-token (&rest return-val)
   "Return a cooked Semantic token including RETURN-VAL.
 Should be used in Semantic actions to build the bovine cache."
-  (let* ((cooked (semantic-raw-to-cooked-token
-                  (apply 'wisent-token return-val)))
-         (l cooked))
-    (while l
-      (semantic-token-put (car l) 'reparse-symbol $nterm)
-      (setq l (cdr l)))
-    cooked))
+  `(let* ((cooked (semantic-raw-to-cooked-token
+                   (wisent-token ,@return-val)))
+          (l cooked))
+     (while l
+       (semantic-token-put (car l) 'reparse-symbol $nterm)
+       (setq l (cdr l)))
+     cooked))
 
 ;;; Bovination
 ;;
@@ -68,23 +69,13 @@ Should be used in Semantic actions to build the bovine cache."
 (make-variable-buffer-local 'wisent-error-function)
 
 (defvar wisent-lexer-function #'wisent-flex
-  "Function used to get the next lexical token in input.
-This function does not have argument and must pop tokens from
-`wisent-flex-istream'.")
+  "Function used to obtain the next lexical token in input.
+Should be a lexical analyzer created with `define-wisent-lexer'.")
 (make-variable-buffer-local 'wisent-lexer-function)
 
 (defvar wisent-lexer-lookahead nil
   "Extra lookahead token.
-When non-nil it is directly returned by `wisent-lexer-wrapper'.")
-
-(defun wisent-lexer-wrapper ()
-  "Return the next lexical input available.
-Used as a wrapper to call `wisent-lexer-function' to safely handle
-`wisent-lexer-lookahead'."
-  (or (prog1
-          wisent-lexer-lookahead
-        (setq wisent-lexer-lookahead nil))
-      (funcall wisent-lexer-function)))
+When non-nil it is directly returned by `wisent-lexer-function'.")
 
 (defun wisent-collect-unmatched-syntax (input)
   "Add INPUT lexical token to the cache of unmatched tokens.
@@ -111,7 +102,7 @@ list of semantic tokens found."
     (setq wisent-flex-istream stream
           cache (condition-case nil
                     (wisent-parse table
-                                  #'wisent-lexer-wrapper
+                                  wisent-lexer-function
                                   wisent-error-function
                                   nonterminal)
                   (error nil)))
@@ -124,13 +115,12 @@ list of semantic tokens found."
                'wisent-discarding-token-functions lookahead)
               )
           ;; push back the lookahead token
-          (setq wisent-flex-istream (cons (cons (vector wisent-lookahead)
-                                                (cddr wisent-lookahead))
-                                          wisent-flex-istream))))
+          (setq wisent-flex-istream
+                (cons (cons (vector wisent-lookahead)
+                            (cddr wisent-lookahead))
+                      wisent-flex-istream))))
     (list wisent-flex-istream
           (if (consp cache) cache '(nil))
           )))
-
-(provide 'wisent-bovine)
 
 ;;; wisent-bovine.el ends here
