@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.175 2004/02/12 02:08:06 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.176 2004/03/19 23:31:41 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -36,9 +36,9 @@
 ;; API for determining semantic content of a buffer.  The mode using
 ;; semantic must be a deterministic programming language.
 ;;
-;; The output of a semantic bovine parse is parse tree.  While it is
-;; possible to assign actions in the bovine-table in a similar fashion
-;; to bison, this is not it's end goal.
+;; The semantic API provides an interface to a series of different parser
+;; implementations.  Each parser outputs a parse tree in a similar format
+;; designed to handle typical functional and object oriented languages.
 
 (require 'working)
 (require 'assoc)
@@ -73,11 +73,13 @@ introduced."
 
 ;;; Variables and Configuration
 ;;
-(defvar semantic-toplevel-bovine-table nil
+(defvar semantic--parse-table nil
   "Variable that defines how to parse top level items in a buffer.
 This variable is for internal use only, and its content depends on the
 external parser used.")
-(make-variable-buffer-local 'semantic-toplevel-bovine-table)
+(make-variable-buffer-local 'semantic--parse-table)
+(semantic-varalias-obsolete 'semantic-toplevel-bovine-table
+			    'semantic--parse-table)
 
 (defvar semantic-symbol->name-assoc-list
   '((type     . "Types")
@@ -117,17 +119,19 @@ is easily parsed into one token.  This function should take this
 compound token and turn it into two tokens, one for A, and the other for B.")
 (make-variable-buffer-local 'semantic-expand-nonterminal)
 
-(defvar semantic-toplevel-bovine-cache nil
-  "A cached copy of a recent bovination, plus state.
+(defvar semantic--buffer-cache nil
+  "A cache of the fully parsed buffer.
 If no significant changes have been made (based on the state) then
 this is returned instead of re-parsing the buffer.
  
   DO NOT USE THIS VARIABLE IN PROGRAMS.
 
-If you need a token list, use `semantic-bovinate-toplevel'.  If you
+If you need a token list, use `semantic-fetch-tags'.  If you
 need the cached values for some reason, chances are you can, add a
 hook to `semantic-after-toplevel-cache-change-hook'.")
-(make-variable-buffer-local 'semantic-toplevel-bovine-cache)
+(make-variable-buffer-local 'semantic--buffer-cache)
+(semantic-varalias-obsolete 'semantic-toplevel-bovine-cache
+			    'semantic--buffer-cache)
 
 (defvar semantic-unmatched-syntax-cache nil
   "A cached copy of unmatched syntax tokens.")
@@ -144,11 +148,7 @@ This prevents tokens from being marked dirty, and it
 prevents top level edits from causing a cache check.
 Use this when writing programs that could cause a full
 reparse, but will not change the tag structure, such
-as adding or updating top-level comments.")
-
-(defvar semantic-bovinate-nonterminal-check-obarray nil
-  "Obarray of streams already parsed for nonterminal symbols.")
-(make-variable-buffer-local 'semantic-bovinate-nonterminal-check-obarray)
+as adding or updating `top-level' comments.")
 
 (defvar semantic-unmatched-syntax-hook nil
   "Hooks run when semantic detects syntax not matched in a grammar.
@@ -161,12 +161,14 @@ syntax tokens created by the semantic lexer.  Use the functions
 `semantic-lex-token-text' to get information about these tokens.  The
 current buffer is the buffer these tokens are derived from.")
 
-(defvar semantic-before-toplevel-bovination-hook nil
-  "Hooks run before a toplevel token parse.
+(defvar semantic--before-fetch-tags-hook nil
+  "Hooks run before a buffer is parses for tags.
 It is called before any request for tokens is made via the function
-`semantic-bovinate-toplevel' by an application.
+`semantic-fetch-tags' by an application.
 If any hook returns a nil value, the cached value is returned
 immediately, even if it is empty.")
+(semantic-varalias-obsolete 'semantic-before-toplevel-bovination-hook
+			    'semantic--before-fetch-tags-hook)
 
 (defvar semantic-after-toplevel-bovinate-hook nil
   "Hooks run after a toplevel token parse.
@@ -176,6 +178,7 @@ For language specific hooks, make sure you define this as a local hook.
 
 This hook should not be used any more.
 Use `semantic-after-toplevel-cache-change-hook' instead.")
+(make-obsolete-variable 'semantic-after-toplevel-bovinate-hook)
 
 (defvar semantic-after-toplevel-cache-change-hook nil
   "Hooks run after the buffer token list has changed.
@@ -265,7 +268,7 @@ a parse of the buffer.")
   "Return non-nil if the current buffer was set up for parsing."
   semantic-new-buffer-fcn-was-run)
 
-(defsubst semantic-bovine-umatched-syntax-refresh-needed-p  ()
+(defsubst semantic--umatched-syntax-needs-refresh-p  ()
   "Return non-nil if the unmatched syntax cache needs a refresh.
 That is if it is dirty or if the current parse tree isn't up to date."
   (or semantic-unmatched-syntax-cache-check
@@ -277,7 +280,7 @@ Runs `semantic-init-hook' if the major mode is setup to use Semantic."
   ;; Make sure variables are set up for this mode.
   (semantic-activate-mode-bindings)
   ;; Do stuff if semantic was activated by a mode hook in this buffer.
-  (when semantic-toplevel-bovine-table
+  (when semantic--parse-table
     ;; Force this buffer to have its cache refreshed.
     (semantic-clear-toplevel-cache)
     ;; Here are some buffer local variables we can initialize ourselves
@@ -324,15 +327,15 @@ This makes sure semantic-init type stuff can occur."
 ;; Test the above hook.
 ;;(add-hook 'semantic-init-hooks (lambda () (message "init for semantic")))
 
-(defun semantic-rebovinate-quickly-hook ()
+(defun semantic-fetch-tags-fast ()
   "For use in a hook.  When only a partial reparse is needed, reparse."
   (condition-case nil
       (if (semantic-parse-tree-needs-update-p)
-	  (semantic-bovinate-toplevel))
+	  (semantic-fetch-tags))
     (error nil)))
 
 (if (boundp 'eval-defun-hooks)
-    (add-hook 'eval-defun-hooks 'semantic-rebovinate-quickly-hook))
+    (add-hook 'eval-defun-hooks 'semantic-fetch-tags-fast))
 
 ;;; Parsing Commands
 ;;
@@ -341,7 +344,7 @@ This makes sure semantic-init type stuff can occur."
 
 (defvar semantic-edebug nil
   "When non-nil, activate the interactive parsing debugger.
-Do not set this yourself.  Call `semantic-bovinate-buffer-debug'.")
+Do not set this yourself.  Call `semantic-debug'.")
 
 (defun semantic-elapsed-time (start end)
   "Copied from elp.el.  Was elp-elapsed-time.
@@ -351,30 +354,24 @@ Argument START and END bound the time being calculated."
      (/ (- (car (cdr (cdr end))) (car (cdr (cdr start)))) 1000000.0)))
 
 (defun bovinate (&optional clear)
-  "Bovinate the current buffer.  Show output in a temp buffer.
-Optional argument CLEAR will clear the cache before bovinating.
+  "Parse the current buffer.  Show output in a temp buffer.
+Optional argument CLEAR will clear the cache before parsing.
 If CLEAR is negative, it will do a full reparse, and also not display
 the output buffer."
   (interactive "P")
   (if clear (semantic-clear-toplevel-cache))
   (if (eq clear '-) (setq clear -1))
   (let* ((start (current-time))
-	 (out (semantic-bovinate-toplevel t))
+	 (out (semantic-fetch-tags))
 	 (end (current-time)))
     (message "Retrieving tokens took %.2f seconds."
 	     (semantic-elapsed-time start end))
     (when (or (null clear) (not (listp clear)))
-      (pop-to-buffer "*BOVINATE*")
+      (pop-to-buffer "*Parser Output*")
       (require 'pp)
       (erase-buffer)
       (insert (pp-to-string out))
       (goto-char (point-min)))))
-
-(defun bovinate-debug ()
-  "Bovinate the current buffer and run in debug mode."
-  (interactive)
-  (error "Depricated: Use `semantic-debug' instead")
-  )
 
 
 ;;; Functions of the parser plug-in API
@@ -387,7 +384,7 @@ For bovine and wisent based parsers, STREAM is from the output of
 `semantic-lex', and NONTERMINAL is a rule in the apropriate language
 specific rules file.
 The default parser table used for bovine or wisent based parsers is
-`semantic-toplevel-bovine-table'.
+`semantic--parse-table'.
 
 Must return a list: (STREAM NONTERMINALTOKENS)
 where STREAM is the unused elements from STREAM, and NONTERMINALTOKENS
@@ -459,30 +456,30 @@ Argument UNMATCHED-SYNTAX is the syntax to set into the cache."
   (setq semantic-unmatched-syntax-cache nil
         semantic-unmatched-syntax-cache-check t))
 
-(defun semantic-bovinate-unmatched-syntax ()
+(defun semantic-unmatched-syntax-tokens ()
   "Return the list of unmatched syntax tokens."
   ;; If the cache need refresh then do a full re-parse.
-  (if (semantic-bovine-umatched-syntax-refresh-needed-p)
+  (if (semantic--umatched-syntax-needs-refresh-p)
       ;; To avoid a recursive call, temporarily disable
       ;; `semantic-unmatched-syntax-hook'.
       (let (semantic-unmatched-syntax-hook)
         (condition-case nil
             (progn
               (semantic-clear-toplevel-cache)
-              (semantic-bovinate-toplevel))
+              (semantic-fetch-tags))
           (quit
-           (message "semantic-bovinate-unmatched-syntax:\
+           (message "semantic-unmatched-syntax-tokens:\
  parsing of buffer canceled"))
           )))
     semantic-unmatched-syntax-cache)
 
 (defun semantic-clear-toplevel-cache ()
-  "Clear the toplevel bovine cache for the current buffer.
+  "Clear the toplevel tag cache for the current buffer.
 Clearing the cache will force a complete reparse next time a token
 stream is requested."
   (interactive)
   (run-hooks 'semantic-before-toplevel-cache-flush-hook)
-  (setq semantic-toplevel-bovine-cache nil)
+  (setq semantic--buffer-cache nil)
   (semantic-clear-unmatched-syntax-cache)
   ;; Nuke all semantic overlays.  This is faster than deleting based
   ;; on our data structure.
@@ -497,19 +494,20 @@ stream is requested."
   ;;(run-hooks 'semantic-after-toplevel-bovinate-hook)
 
   (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
-		      semantic-toplevel-bovine-cache)
+		      semantic--buffer-cache)
   )
 
-(defun semantic-set-toplevel-bovine-cache (tokenlist)
-  "Set the toplevel bovine cache to TOKENLIST."
-  (setq semantic-toplevel-bovine-cache tokenlist
+(defun semantic--set-buffer-cache (tagtable)
+  "Set the toplevel cache cache to TAGTABLE."
+  (setq semantic--buffer-cache tagtable
         semantic-unmatched-syntax-cache-check nil
+	;; This is specific to the bovine parser.
         semantic-bovinate-nonterminal-check-obarray nil)
   (semantic-parse-tree-set-up-to-date)
   (semantic-make-local-hook 'after-change-functions)
   (add-hook 'after-change-functions 'semantic-change-function nil t)
   (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
-		      semantic-toplevel-bovine-cache)
+		      semantic--buffer-cache)
   ;; Refresh the display of unmatched syntax tokens if enabled
   (run-hook-with-args 'semantic-unmatched-syntax-hook
                       semantic-unmatched-syntax-cache)
@@ -517,12 +515,14 @@ stream is requested."
   (run-hooks 'semantic-after-toplevel-bovinate-hook)
   )
 
-(defvar semantic-bovination-working-type 'percent
-  "*The type of working message to use when bovinating.
+(defvar semantic-working-type 'percent
+  "*The type of working message to use when parsing.
 'percent means we are doing a linear parse through the buffer.
-'dynamic means we are rebovinating specific tokens.")
+'dynamic means we are reparsing specific tokens.")
+(semantic-varalias-obsolete 'semantic-bovination-working-type
+			    'semanic-working-type)
 
-(defsubst semantic-bovination-working-message (&optional arg)
+(defsubst semantic-parser-working-message (&optional arg)
   "Return the message string displayed while parsing.
 If optional argument ARG is non-nil it is appended to the message
 string.  See also the function `working-status-forms'."
@@ -533,11 +533,11 @@ string.  See also the function `working-status-forms'."
 ;;; Application Parser Entry Point
 ;;
 ;; The best way to call the parser from programs is via
-;; `semantic-bovinate-toplevel'.  This, in turn, uses other internal
+;; `semantic-fetch-tags'.  This, in turn, uses other internal
 ;; API functions which plug-in parsers can take advantage of.
 
 ;;;###autoload
-(defun semantic-bovinate-toplevel (&optional checkcache)
+(defun semantic-fetch-tags (&optional checkcache)
   "Bovinate the entire current buffer.
 Do an incremental reparse if possible, otherwise do a full reparse.
 
@@ -549,6 +549,8 @@ compatibility with previous versions of Semantic."
    ;; Application hooks say the buffer is safe for parsing
    (run-hook-with-args-until-failure
     'semantic-before-toplevel-bovination-hook)
+   (run-hook-with-args-until-failure
+    'semantic--before-fetch-tags-hook)
    ;; If the buffer was previously marked unparseable,
    ;; then don't waste our time.
    (not (semantic-parse-tree-unparseable-p))
@@ -565,7 +567,7 @@ compatibility with previous versions of Semantic."
       (setq res (semantic-parse-changes))
       (if (semantic-parse-tree-needs-rebuild-p)
           ;; If the partial reparse fails, jump to a full reparse.
-          (semantic-bovinate-toplevel)
+          (semantic-fetch-tags)
         ;; Clear the cache of unmatched syntax tokens
         ;;
         ;; NOTE TO SELF:
@@ -580,7 +582,7 @@ compatibility with previous versions of Semantic."
 ;;;; Parse the whole system.
      ((semantic-parse-tree-needs-rebuild-p)
       (working-status-forms
-          (semantic-bovination-working-message (buffer-name)) "done"
+          (semantic-parser-working-message (buffer-name)) "done"
         (setq res (semantic-parse-region (point-min) (point-max)))
         (working-status t))
       ;; Clear the caches when we see there were no errors.
@@ -591,11 +593,11 @@ compatibility with previous versions of Semantic."
       ;; Set up the new overlays
       (semantic--tag-link-list-to-buffer res)
       ;; Set up the cache with the new results
-      (semantic-set-toplevel-bovine-cache res)
+      (semantic--set-buffer-cache res)
       ))))
   
   ;; Always return the current parse tree.
-  semantic-toplevel-bovine-cache)
+  semantic--buffer-cache)
 
 ;;; Iterative parser helper function
 ;;
@@ -646,7 +648,7 @@ This function returns tokens without overlays."
       ;; Designated to ignore.
       (setq stream (car nontermsym))
       (if stream
-	  (if (eq semantic-bovination-working-type 'percent)
+	  (if (eq semantic-working-type 'percent)
 	      (working-status
                (/ (* 100 (semantic-lex-token-start (car stream)))
                   (point-max)))
