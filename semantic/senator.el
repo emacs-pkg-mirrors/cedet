@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.50 2001/11/08 15:54:19 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.51 2001/11/12 19:51:33 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1234,6 +1234,31 @@ REGEXP says which ring to use."
     (semantic-set-token-face       tok nil)))
 
 ;;;;
+;;;; Global setup of Semantic minor modes
+;;;;
+
+(defconst senator-global-mode-options
+  '(global-semantic-auto-parse-mode
+    global-semantic-show-dirty-mode
+    global-semantic-show-unmatched-syntax-mode
+    global-senator-minor-mode
+    semanticdb-global-mode
+    )
+  "List of Semantic minor modes which can be enabled globally.
+This must be a list of custom variables.")
+
+(defun senator-global-mode-options-save ()
+  "Save current values of `senator-global-mode-options' using Custom.
+These options correspond to Modes global menu items."
+  (interactive)
+  (let ((opts senator-global-mode-options)
+        opt)
+    (while opts
+      (setq opt  (car opts)
+            opts (cdr opts))
+      (customize-save-variable opt (default-value opt)))))
+
+;;;;
 ;;;; Senator minor mode
 ;;;;
 
@@ -1474,8 +1499,33 @@ That is remove the unsupported :help stuff."
     )
    (list
     "Modes"
+    ;; Please keep the extra trailing spaces in the "_ In this buffer"
+    ;; and "_ Globally" following menu items.  They are needed by
+    ;; Emacs 20.7 (at least the Windows port) which seems to not allow
+    ;; duplicates menu item names!  Also keep the leading underscore
+    ;; to get the same look for these menu items in XEmacs (at least
+    ;; the Windows port) which underlines the first character of each
+    ;; menu item name!
+    "Senator"
     (senator-menu-item
-     [ "Highlight Dirty Tokens"
+     [ "_ In this buffer"
+       senator-minor-mode
+       :active t
+       :style toggle
+       :selected senator-mode
+       :help "Turn off Senator minor mode."
+       ])
+    (senator-menu-item
+     [ "_ Globally"
+       global-senator-minor-mode
+       :active t
+       :style toggle
+       :selected global-senator-minor-mode
+       :help "Automatically turn on Senator on all Semantic buffers."
+       ])
+    "Highlight Dirty Tokens"
+    (senator-menu-item
+     [ "_ In this buffer " ;; Keep leading _ and trailing spaces
        semantic-show-dirty-mode
        :active t
        :style toggle
@@ -1483,7 +1533,16 @@ That is remove the unsupported :help stuff."
        :help "Highlight tokens in the current buffer which need to be reparsed."
        ])
     (senator-menu-item
-     [ "Highlight Unmatched Syntax"
+     [ "_ Globally " ;; Keep leading _ and trailing spaces
+       global-semantic-show-dirty-mode
+       :active t
+       :style toggle
+       :selected global-semantic-show-dirty-mode
+       :help "Automatically highlight dirty tokens in all Semantic buffers."
+       ])
+    "Highlight Unmatched Syntax"
+    (senator-menu-item
+     [ "_ In this buffer  " ;; Keep leading _ and trailing spaces
        semantic-show-unmatched-syntax-mode
        :active t
        :style toggle
@@ -1491,7 +1550,16 @@ That is remove the unsupported :help stuff."
        :help "Highlight syntax which is not recognized valid syntax."
        ])
     (senator-menu-item
-     [ "Auto parse"
+     [ "_ Globally  " ;; Keep leading _ and trailing spaces
+       global-semantic-show-unmatched-syntax-mode
+       :active t
+       :style toggle
+       :selected global-semantic-show-unmatched-syntax-mode
+       :help "Automatically highlight unmatched syntax in all Semantic buffers."
+       ])
+    "Auto parse"
+    (senator-menu-item
+     [ "_ In this buffer   " ;; Keep leading _ and trailing spaces
        semantic-auto-parse-mode
        :active t
        :style toggle
@@ -1499,12 +1567,27 @@ That is remove the unsupported :help stuff."
        :help "Automatically parse buffer following changes."
        ])
     (senator-menu-item
-     [ "Semantic Database"
+     [ "_ Globally   " ;; Keep leading _ and trailing spaces
+       global-semantic-auto-parse-mode
+       :active t
+       :style toggle
+       :selected global-semantic-auto-parse-mode
+       :help "Automatically parse all Semantic buffer following changes."
+       ])
+    "Semantic Database"
+    (senator-menu-item
+     [ "_ Globally    " ;; Keep leading _ and trailing spaces
        semanticdb-toggle-global-mode
        :active (featurep 'semanticdb)
        :style toggle
        :selected (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
        :help "Cache tokens for killed buffers and between sessions."
+       ])
+    "-"
+    (senator-menu-item
+     [ "Save global settings"
+       senator-global-mode-options-save
+       :help "Save global settings of Sematic minor modes in your init file."
        ])
     )
    "-"
