@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "ede-proj-project"
   :name "speedbar"
-  :version "0.14"
+  :version "0.14beta1"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-elisp "(dframe.el speedbar.el)"
@@ -19,7 +19,7 @@
    (ede-proj-target-elisp "opt"
     :name "opt"
     :path ""
-    :source '("rpm.el" "sb-gud.el" "sb-info.el" "sb-rmail.el" "sb-w3.el" "sb-texinfo.el" "bigclock.el")
+    :source '("rpm.el" "sb-gud.el" "sb-info.el" "sb-rmail.el" "sb-w3.el" "sb-texinfo.el" "bigclock.el" "sb-html.el")
     :partofall 'nil
     )
    (ede-proj-target-aux "aux"
@@ -30,7 +30,7 @@
    (ede-proj-target-makefile-miscelaneous "images"
     :name "images"
     :path ""
-    :source '("sb-dir-plus.xpm" "sb-dir-minus.xpm" "sb-dir.xpm" "sb-pg-plus.xpm" "sb-pg-minus.xpm" "sb-pg.xpm" "sb-mail.xpm" "sb-tag-plus.xpm" "sb-tag-minus.xpm" "sb-tag.xpm" "sb-tag-gt.xpm" "sb-tag-v.xpm" "sb-tag-type.xpm" "sb-image.el")
+    :source '("sb-dir-plus.xpm" "sb-dir-minus.xpm" "sb-dir.xpm" "sb-pg-plus.xpm" "sb-pg-minus.xpm" "sb-pg.xpm" "sb-mail.xpm" "sb-tag-plus.xpm" "sb-tag-minus.xpm" "sb-tag.xpm" "sb-tag-gt.xpm" "sb-tag-v.xpm" "sb-tag-type.xpm" "sb-image.el" "sb-obj.xpm" "sb-chk.xpm" "sb-objod.xpm")
     :partofall 'nil
     )
    )
