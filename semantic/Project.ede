@@ -20,7 +20,7 @@
     :path ""
     :source '("semantic-example.el")
     )
-   (ede-proj-target-elisp "nil"
+   (ede-proj-target-elisp "init"
     :name "init"
     :path ""
     :source '("semantic-load.el" "semantic-autogen.el")
@@ -59,7 +59,7 @@
    (ede-proj-target-aux "misc"
     :name "misc"
     :path ""
-    :source '("INSTALL" "NEWS" "ChangeLog")
+    :source '("INSTALL" "NEWS" "ChangeLog" "AUTHORS")
     )
    (ede-proj-target-makefile-info "info"
     :name "info"
