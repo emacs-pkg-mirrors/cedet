@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.21 2003/06/05 13:11:04 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.22 2003/08/01 16:40:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2256,7 +2256,7 @@ These are constants which are of type TYPE."
           document-comment-line-prefix " *"
           document-comment-end " */"
           ;; Semantic navigation inside 'type children
-          senator-step-at-token-ids '(function variable)
+          senator-step-at-tag-classes '(function variable)
           ))
   (semantic-install-function-overrides
    '((nonterminal-protection . semantic-c-nonterminal-protection)
