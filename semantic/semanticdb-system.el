@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.5 2005/01/29 04:33:34 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.6 2005/02/04 19:29:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,6 +45,12 @@ write permission to such paths."
                  :menu-tag "System-Save-Directory"
                  (const :tag "Use current directory" :value nil)
                  (directory)))
+
+(defcustom semanticdb-system-database-warn-level 50
+  "*Number of files to be added to a system DB that causes us to warn.
+If this number is exceeded, warn the users that it could take a while."
+  :group 'semanticdb
+  :type 'boolean)
 
 (defvar semanticdb-system-force-save nil
   "When non-nil, the system DB will save itself.
@@ -159,6 +165,9 @@ of symbol `semanticdb-project-database-system' are accepted."
       (setq f (cdr f)))
     ))
 
+(defvar semanticdb-system-db-directory-search-recursed nil
+  "Track if we recursed for directory files.")
+
 (defmethod semanticdb-load-system-database :STATIC
   ((dbclass semanticdb-project-database-system) path)
   "Load a system database of type DBCLASS starting at PATH.
@@ -173,12 +182,28 @@ and parsed. After the database is created, save it, and return the DB."
   ;; 3) Load the file.  Allow normal semantic initialization.
   ;; 4) Force a reparse.
   ;; 5) Kill file if it wasn't already in a buffer.
-  (let ((files (semanticdb-collect-matching-filenames
-		path (oref-default dbclass file-match-regex)))
-	(sysdb (semanticdb-create-database dbclass path))
-	;; 2) Set up to use this database when loading.
-	(semanticdb-new-database-class dbclass)
-	)
+  (let* ((semanticdb-system-db-directory-search-recursed nil)
+	 (files (semanticdb-collect-matching-filenames
+		 path (oref-default dbclass file-match-regex)))
+	 (sysdb (semanticdb-create-database dbclass path))
+	 ;; 2) Set up to use this database when loading.
+	 (semanticdb-new-database-class dbclass)
+	 )
+    (if (and (> (length files) semanticdb-system-database-warn-level)
+	     semanticdb-system-db-directory-search-recursed
+	     (y-or-n-p 
+	      (format
+	       "%d files found.  Try again without scanning subdirectories?"
+	       (length files))))
+	(setq files (semanticdb-collect-matching-filenames
+		     path (oref-default dbclass file-match-regex) t)))
+    (when (> (length files) semanticdb-system-database-warn-level)
+      (if (y-or-n-p
+	   (format
+	    "There are %d files which could a long time to parse.  Proceed?"
+	    (length files)))
+	  nil ;; Okie dokie
+	(error "")))
     (oset sysdb reference-directory path)
     (while files
       (let ((table (semanticdb-file-table sysdb (car files)))
@@ -216,7 +241,7 @@ and parsed. After the database is created, save it, and return the DB."
     ;; Return it.
     sysdb))
 
-(defun semanticdb-collect-matching-filenames (path regexp)
+(defun semanticdb-collect-matching-filenames (path regexp &optional not-recursive)
   "Collect a list of all filenames starting at PATH matching REGEXP."
   (let ((returnfiles nil)
 	(dirs (list path))
@@ -225,13 +250,15 @@ and parsed. After the database is created, save it, and return the DB."
     (while dirs
 
       ;; First, look for more subdirectories.
-      (setq files (directory-files (car dirs) t "^[^.]" t))
-      (while files
-	(let ((attr (file-attributes (car files))))
-	  ;; String in (car attr) is a symlink.
-	  (if (and attr (car attr) (not (stringp (car attr))))
-	      (setq dirs (append dirs (list (car files)))))
-	  (setq files (cdr files))))
+      (when (not not-recursive)
+	(setq files (directory-files (car dirs) t "^[^.]" t))
+	(while files
+	  (let ((attr (file-attributes (car files))))
+	    ;; String in (car attr) is a symlink.
+	    (if (and attr (car attr) (not (stringp (car attr))))
+		(setq dirs (append dirs (list (car files)))
+		      semanticdb-system-db-directory-search-recursed t))
+	    (setq files (cdr files)))))
 
       ;; Now get the list of files we are returning.
       (setq returnfiles
