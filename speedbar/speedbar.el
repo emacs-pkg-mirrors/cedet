@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.47 1997/05/14 01:20:15 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.48 1997/05/26 12:51:23 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -324,8 +324,8 @@ Parameters not listed here which will be added automatically are
 is attached to.  To add more frame defaults, `cons' new alist members
 onto this variable through the `speedbar-load-hook'")
 
-(defvar speedbar-use-imenu-package (stringp (locate-library "imenu"))
-  "*t to use imenu for file parsing.  nil to use etags.
+(defvar speedbar-use-imenu-flag (stringp (locate-library "imenu"))
+  "*Non-nil means use imenu for file parsing.  nil to use etags.
 XEmacs doesn't support imenu, therefore the default is to use etags
 instead.  Etags support is not as robust as imenu support.")
 
@@ -392,7 +392,7 @@ It is generated from the variable `completion-ignored-extensions'")
 (defvar speedbar-supported-extension-expressions
   (append '(".[CcHh]\\(++\\|pp\\|c\\|h\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".p")
-	  (if speedbar-use-imenu-package
+	  (if speedbar-use-imenu-flag
 	      '(".java" ".f90" ".ada" ".pl" ".tcl" ".m"
 		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
@@ -438,7 +438,7 @@ Created from `speedbar-supported-extension-expression' with the
 function `speedbar-extension-list-to-regex'")
 
 (defun speedbar-add-supported-extension (extension)
-  "Adds EXTENSION as a new supported extention for speedbar tagging.
+  "Add EXTENSION as a new supported extention for speedbar tagging.
 This should start with a `.' if it is not a complete file name, and
 the dot should NOT be quoted in with \\.  Other regular expression
 matchers are allowed however.  EXTENSION may be a single string or a
@@ -454,7 +454,7 @@ list of strings."
 			      speedbar-supported-extension-expressions)))
 
 (defun speedbar-add-ignored-path-regexp (path-expression)
-  "Adds PATH-EXPRESSION as a new ignored path for speedbar tracking.
+  "Add PATH-EXPRESSION as a new ignored path for speedbar tracking.
 This function will modify `speedbar-ignored-path-regexp' and add
 PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
   (if (not (listp path-expression))
@@ -758,7 +758,7 @@ nil if it doesn't exist."
   (and speedbar-frame (cdr (assoc 'width (frame-parameters speedbar-frame)))))
 
 (defun speedbar-mode ()
-  "The speedbar allows the user to manage a list of directories and tags.
+  "Major mode for managing a display of directories and tags.
 \\<speedbar-key-map>
 The first line represents the default path of the speedbar frame.
 Each directory segment is a button which jumps speedbar's default
@@ -825,7 +825,7 @@ in the selected file.
   speedbar-buffer)
 
 (defun speedbar-set-mode-line-format ()
-  "Sets the format of the mode line based on the current speedbar environment.
+  "Set the format of the mode line based on the current speedbar environment.
 This gives visual indications of what is up.  It EXPECTS the speedbar
 frame and window to be the currently active frame and window."
   (if (frame-live-p speedbar-frame)
@@ -905,7 +905,7 @@ modeline.  This is only useful for non-XEmacs"
     ))
 
 (defun speedbar-get-focus ()
-  "Changes frame focus to or from the speedbar frame.
+  "Change frame focus to or from the speedbar frame.
 If the selected frame is not speedbar, then speedbar frame is
 selected.  If the speedbar frame is active, then select the attached frame."
   (interactive)
@@ -1325,7 +1325,7 @@ INDEX is not used, but is required by the caller."
 			       exp-button-data
 			       tag-button tag-button-function tag-button-data
 			       tag-button-face depth)
-  "Creates a tag line with EXP-BUTTON-TYPE for the small expansion button.
+  "Create a tag line with EXP-BUTTON-TYPE for the small expansion button.
 This is the button that expands or contracts a node (if applicable),
 and EXP-BUTTON-CHAR the character in it (+, -, ?, etc).  EXP-BUTTON-FUNCTION
 is the function to call if it's clicked on.  Button types are
@@ -2063,7 +2063,7 @@ indentation leve."
   (cond ((string-match "+" text)	;we have to expand this file
 	 (let* ((fn (expand-file-name (concat (speedbar-line-path indent)
 					      token)))
-		(lst (if speedbar-use-imenu-package
+		(lst (if speedbar-use-imenu-flag
 			(let ((tim (speedbar-fetch-dynamic-imenu fn)))
 			  (if (eq tim t)
 			      (speedbar-fetch-dynamic-etags fn)
@@ -2238,19 +2238,19 @@ extract an element from the tags output.  If the output is complex,
 use a function symbol instead of regexp.  The function should expect
 to be at the beginning of a line in the etags buffer.
 
-This variable is ignored if `speedbar-use-imenu-package' is t")
+This variable is ignored if `speedbar-use-imenu-flag' is t")
 
 (defvar speedbar-fetch-etags-command "etags"
   "*Command used to create an etags file.
 
-This variable is ignored if `speedbar-use-imenu-package' is t")
+This variable is ignored if `speedbar-use-imenu-flag' is t")
 
 (defvar speedbar-fetch-etags-arguments '("-D" "-I" "-o" "-")
   "*List of arguments to use with `speedbar-fetch-etags-command'.
 This creates an etags output buffer.  Use `speedbar-toggle-etags' to
 modify this list conveniently.
 
-This variable is ignored if `speedbar-use-imenu-package' is t")
+This variable is ignored if `speedbar-use-imenu-flag' is t")
 
 (defun speedbar-toggle-etags (flag)
   "Toggle FLAG in `speedbar-fetch-etags-arguments'.
