@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.25 2003/12/28 17:49:44 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.26 2004/01/03 20:48:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -503,7 +503,7 @@ Return the overlay."
 	  (progn
 	    (when token
 	      (setq o (semantic-lex-highlight-token token)))
-	    (read-char
+	    (semantic-read-event
 	     (format "%S :: SPC - continue" token))
 	    )
 	(when o
