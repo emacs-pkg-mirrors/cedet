@@ -1,10 +1,39 @@
-;;;
-;;; Major mode for configure.in scripts
-;;;
+;;; autoconf-edit.el --- Keymap for autoconf
 
+;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+
+;; Author: Eric M. Ludlam <zappo@gnu.org>
+;; Keywords: project
+;; RCS: $Id: autoconf-edit.el,v 1.3 2000/07/11 23:10:20 zappo Exp $
+
+;; This file is NOT part of GNU Emacs.
+
+;; GNU Emacs is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+
+;; GNU Emacs is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+;;; Commentary:
+;; 
+;; Autoconf editing and modification support, and compatibility layer
+;; for Emacses w/out autoconf mode built in.
+
+;;; Code:
 (if (locate-library "autoconf")
 
-    (require 'autoconf)
+    (condition-case nil
+	(require 'autoconf)
+      (error (require 'autoconf-mode "autoconf")))
 
 ;; Only use this copy of autoconf.el in Emacs21 if it isn't already
 ;; available.
@@ -92,7 +121,7 @@ AM_INIT_AUTOMAKE(%s, 0)
 AM_CONFIG_HEADER(config.h)
 
 dnl End the configure script.
-AC_OUTPUT(Makefile, [date > stamp-h] );\n"
+AC_OUTPUT(Makefile, [date > stamp-h] )\n"
   "This string is used to initialize a new configure.in.
 The default is designed to be used with automake.
 The first %s will be filled with the test file.
@@ -163,6 +192,7 @@ configure the initial configure script using `autoconf-new-automake-string'"
     ;; System Services
     ;; Other
     "AM_PATH_LISPDIR"
+    "AM_INIT_GUILE_MODULE"
     ;; AC_OUTPUT is always last
     "AC_OUTPUT"
     )
@@ -207,7 +237,7 @@ The last macro is usually the one in which we would like to insert more
 items such as CHECK_HEADERS."
   (let ((op (point)))
     (goto-char (point-max))
-    (if (re-search-backward (concat "^" (regexp-quote macro) "\\s-*(") nil t)
+    (if (re-search-backward (concat "^" (regexp-quote macro) "\\s-*\\((\\|$\\)") nil t)
 	(progn
 	  (beginning-of-line)
 	  (point))
@@ -239,9 +269,10 @@ the ordering list `autoconf-preferred-macro-order'."
 	(if (< (current-column) 3) (insert " dnl")))))
     
 (defun autoconf-insert-new-macro (macro &optional param)
-  "Adds a call to MACRO in the current autoconf file.  Deals with
-macro order.  See `autoconf-preferred-macro-order' and
-`autoconf-multi-macros'."
+  "Add a call to MACRO in the current autoconf file.
+Deals with macro order.  See `autoconf-preferred-macro-order' and
+`autoconf-multi-macros'.
+Optional argument PARAM is the parameter to pass to the macro as one string."
   (cond ((member macro autoconf-multiple-macros)
 	 ;; This occurs multiple times
 	 (or (autoconf-find-last-macro macro)
@@ -270,7 +301,7 @@ macro order.  See `autoconf-preferred-macro-order' and
 	     (end-of-line)
 	     (insert "\n")
 	     (autoconf-insert-macro-at-point macro param))))
-	((autoconf-find-last-macro)
+	((autoconf-find-last-macro macro)
 	 ;; If it isn't one of the multi's, it's a singleton.
 	 ;; If it exists, ignore it.
 	 nil)
@@ -308,7 +339,7 @@ macro order.  See `autoconf-preferred-macro-order' and
 
 
 (defun autoconf-find-query-for-func (func)
-  "Position the cursor where func is queried."
+  "Position the cursor where FUNC is queried."
   (interactive "sFunction: ")
   (let ((op (point))
 	(found t))
@@ -417,5 +448,6 @@ to Makefiles, or other files using Autoconf substitution."
     (autoconf-delete-parameter 1)
     (insert (mapconcat (lambda (a) a) outputlist " "))))
 
-;;; end of lisp
 (provide 'autoconf-edit)
+
+;;; autoconf-edit.el ends here
