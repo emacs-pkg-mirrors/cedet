@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.46 2001/05/05 14:56:34 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.47 2001/05/07 11:33:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -176,8 +176,7 @@ PARENT and COLOR as for `semantic-prototype-nonterminal'."
 	(concat (semantic-name-nonterminal token parent color) " ("
 		(mapconcat (lambda (a)
 			     (if color
-				 (semantic-colorize-text
-				  a font-lock-variable-name-face)
+				 (semantic-colorize-text a 'variable)
 			       a))
 			   args " ")
 		")")
