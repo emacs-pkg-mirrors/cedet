@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.1
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.23 2001/02/21 11:27:59 ponced Exp $
+;; VC: $Id: senator.el,v 1.24 2001/02/22 21:43:17 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -66,6 +66,9 @@
 ;;    C-c , TAB       `senator-complete-symbol'
 ;;    C-c , SPC       `senator-completion-menu-keyboard-popup'
 ;;    S-mouse-3       `senator-completion-menu-mouse-popup'
+;;    C-c , C-y       `senator-yank-token'
+;;    C-c , C-w       `senator-kill-token'
+;;    C-c , M-w       `senator-copy-token'
 ;;
 ;; To install, put this file on your Emacs-Lisp load path and add
 ;;   (require 'senator)
@@ -98,6 +101,20 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.24  2001/02/22 21:43:17  ponced
+;; Added token Copy, Cut & Paste and Register feature.
+;;
+;; Improvement to the senator-jump completion stuff:
+;;
+;; o The completion list is now cached (buffer local) and reused when
+;;   possible.  The cache is refreshed when parsing or partial parsing
+;;   occurs.
+;;
+;; o Greatly simplified the way completion name are handled.  Now only
+;;   duplicated names are suffixed by parent names :-)
+;;
+;; Some minor `checkdoc' fixes.
+;;
 ;; Revision 1.23  2001/02/21 11:27:59  ponced
 ;; `senator-minor-mode-setup' now uses the `semantic-active-p' function
 ;; to check if the current buffer is set up for parsing.
@@ -304,7 +321,7 @@ navigation."
 (defcustom senator-step-at-start-end-token-ids '(function)
   "*List of token identifiers where to step at start and end.
 Token identifier is symbol 'variable, 'function, 'type, or other.  If
-nil navigation only step at beginning of tokens.  If `t' step at start
+nil navigation only step at beginning of tokens.  If t step at start
 and end of any token where it is allowed to step.  Also, stepping at
 start and end of a token prevent stepping inside its children.  This
 is a buffer local variable.  It can be set in a mode hook to get a
@@ -333,7 +350,7 @@ langage behaviour."
 REGEXP says which ring to use."
       (if (> (length string) 0)
           ;; Update the ring data.
-          (if regexp 
+          (if regexp
               (if (not (setq regexp-search-ring-yank-pointer
                              (member string regexp-search-ring)))
                   (progn
@@ -450,30 +467,77 @@ reverse order."
             parent (cdr parent)))
     (concat (semantic-token-name token) name)))
 
-(defun senator-completion-stream (stream parent full-name-p &optional top-level)
-  "Return a useful completion list from STREAM.
-That is a flat alist of all tokens available.  The key part of each
-association is the token name.  If FULL-NAME-P is non nil PARENT token
+(defvar senator-completion-cache nil
+  "The latest full completion list is cached here.")
+(make-variable-buffer-local 'senator-completion-cache)
+
+(defun senator-completion-cache-flush-fcn (&optional ignore)
+  "Function called as a hook to clear the completion list cache.
+This is added to `semantic-before-toplevel-cache-flush-hook' and
+`semantic-clean-token-hooks'.  IGNORE arguments."
+  (setq senator-completion-cache nil))
+
+(defun senator-completion-flatten-stream (stream parents &optional top-level)
+  "Return a flat list of all tokens available in STREAM.
+PARENTS is the list of parent tokens.  Each element of the list is a
+pair (TOKEN . PARENTS) where PARENTS is the list of TOKEN parent
+tokens or nil.  If TOP-LEVEL is non-nil the completion list will
+contain only tokens at top level.  Otherwise all children tokens are
+included too."
+  (let (fs e token children)
+    (while stream
+      (setq token  (car stream)
+            stream (cdr stream)
+            e      (cons token parents)
+            fs     (cons e fs))
+      (and (not top-level)
+           (setq children (semantic-nonterminal-children token t))
+           (setq fs (append fs (senator-completion-flatten-stream
+                                children e)))))
+    fs))
+
+(defun senator-completion-stream (stream &optional top-level)
+  "Return a useful completion list from tokens in STREAM.
+That is an alist of all (COMPLETION-NAME . TOKEN) available.
+COMPLETION-NAME is the token name.  If it is duplicated, parent token
 names, separated by `semantic-type-relation-separator-character', are
-appended to the token name in reverse order.  This helps to
-distinguish between token children with the same name.  The value part
+appended in reverse order to the token name.  This helps to
+distinguish between children tokens with the same name.  The value part
 of each association is the full token itself.  If TOP-LEVEL is non-nil
 the completion list will contain only tokens at top level.  Otherwise
 all sub tokens are included too."
-  (let (cs token children)
-    (while stream
-      (setq token  (car stream))
-      (setq stream (cdr stream))
-      (setq cs (cons (cons (senator-full-token-name token parent)
-                           token)
-                     cs))
-      (and (not top-level)
-           (setq children (semantic-nonterminal-children token t))
-           (setq cs (append cs (senator-completion-stream
-                                children
-                                (and full-name-p (cons token parent))
-                                t)))))
-    cs))
+  (let ((fs (senator-completion-flatten-stream stream nil top-level))
+        token parents saw e clst)
+    (while fs
+      (setq token   (car (car fs))
+            parents (cdr (car fs))
+            name    (semantic-token-name token)
+            e       (assoc name saw)
+            fs      (cdr fs))
+      (if e
+          ;; This is a duplicated completion name.
+          (progn
+            ;; Append parent names to the token name.
+            (setq clst (cons (cons (senator-full-token-name token parents)
+                                   token)
+                             clst))
+            ;; Don't forget to append parent names to the completion
+            ;; name of the first token found with this name!
+            (when (cdr e)
+              (setq parents (cdr (cdr e))
+                    token   (cdr (car (cdr e))))
+              (setcar (car (cdr e))
+                      (senator-full-token-name token parents))
+              ;; Don't update again this completion name.
+              (setcdr e nil))
+            )
+        ;; This is a new completion name.
+        (setq e    (cons name token)
+              clst (cons e clst)
+              ;; Record the token name, completion element and parents
+              ;; in an alist.
+              saw  (cons (cons name (cons e parents)) saw))))
+    clst))
 
 (defun senator-current-type-context ()
   "Return tokens in the type context at point or nil if not found."
@@ -485,18 +549,19 @@ all sub tokens are included too."
 
 (defun senator-completion-list (&optional in-context)
   "Return a useful completion list from tokens in current buffer.
-That is a flat list of all tokens available.  If IN-CONTEXT is not nil
-return only the top level tokens in the type context at point or the
-top level tokens in the current buffer if no type context exists at
-point."
-  (let (stream full-name-p)
+If IN-CONTEXT is non-nil return only the top level tokens in the type
+context at point or the top level tokens in the current buffer if no
+type context exists at point."
+  (let (stream)
     (if in-context
         (setq stream (senator-current-type-context)))
     (or stream (setq stream (senator-parse)))
-    (setq full-name-p (and (not in-context)
-                           (cdr (semantic-find-nonterminal-by-token
-                                 'type stream))))
-    (senator-completion-stream stream nil full-name-p in-context)))
+    ;; IN-CONTEXT completion doesn't use nor set the cache.
+    (or (and (not in-context) senator-completion-cache)
+        (let ((clst (senator-completion-stream stream in-context)))
+          (or in-context
+              (setq senator-completion-cache clst))
+          clst))))
 
 ;;; Senator stream searching functions:
 ;;
@@ -686,7 +751,7 @@ local type's context (see function `senator-current-type-context')."
 
 (defvar senator-last-completion-stats nil
   "The last senator completion was here.
- Of the form (BUFFER STARTPOS INDEX REGEX COMPLIST...)")
+Of the form (BUFFER STARTPOS INDEX REGEX COMPLIST...)")
 
 ;;;###autoload
 (defun senator-complete-symbol ()
@@ -963,6 +1028,7 @@ implementation."
 ;;;;
 ;;;; Senator minor mode
 ;;;;
+
 (defvar senator-mode nil
   "Name of the minor mode, if non-nil.")
 (make-variable-buffer-local 'senator-mode)
@@ -983,6 +1049,9 @@ This is a buffer local variable.")
     (define-key km "n" 'senator-next-token)
     (define-key km "\t" 'senator-complete-symbol)
     (define-key km " " 'senator-completion-menu-keyboard-popup)
+    (define-key km "\C-w" 'senator-kill-token)
+    (define-key km "\M-w" 'senator-copy-token)
+    (define-key km "\C-y" 'senator-yank-token)
     km)
   "Default key bindings in senator minor mode.")
 
@@ -1130,13 +1199,24 @@ non-nil if the minor mode is enabled."
             (easy-menu-add senator-minor-menu senator-mode-map))
         ;; Parse the current buffer if needed
 	(condition-case nil
-	    (senator-parse)
+            (progn
+              (senator-parse)
+              ;; Add completion hooks
+              (add-hook 'semantic-before-toplevel-cache-flush-hook
+                        'senator-completion-cache-flush-fcn nil t)
+              (add-hook 'semantic-clean-token-hooks
+                        'senator-completion-cache-flush-fcn nil t))
 	  (quit (message "senator-minor-mode: parsing of buffer canceled.")))
         (senator-show-status)
         )
     ;; XEmacs needs this
     (if (featurep 'xemacs)
         (easy-menu-remove senator-minor-menu))
+    ;; Remove completion hooks
+    (remove-hook 'semantic-before-toplevel-cache-flush-hook
+                 'senator-completion-cache-flush-fcn)
+    (remove-hook 'semantic-clean-token-hooks
+                 'senator-completion-cache-flush-fcn)
     ;; Disable semantic isearch
     (setq senator-isearch-semantic-mode nil))
   senator-minor-mode)
@@ -1321,6 +1401,103 @@ If semantic tokens are available, use them to navigate."
     ad-do-it))
 
 ;;;;
+;;;; Token Cut & Paste
+;;;;
+
+;; To copy a token, means to put a token definition into the token
+;; ring.  To kill a token, put the token into the token ring AND put
+;; the body of the token into the kill-ring.
+;;
+;; To retrieve a killed token's text, use C-y (yank), but to retrieve
+;; the token as a reference of some sort, use senator-yank-token.
+
+(defvar senator-token-ring (make-ring 20)
+  "Ring of tokens for use with cut and paste.")
+
+(defun senator-copy-token ()
+  "Take the current token, and place it in the token ring."
+  (interactive)
+  (senator-parse)
+  (let ((ct (semantic-current-nonterminal)))
+    (if (not ct)
+        (error "No semantic tokens here"))
+    (ring-insert senator-token-ring (cons ct (buffer-file-name)))
+    (message (semantic-summarize-nonterminal ct))))
+
+(defun senator-kill-token ()
+  "Take the current token, place it in the token ring, and kill it.
+Killing the token removes the text for that token, and places it into
+the kill ring.  Retrieve that text with \\[yank\\]."
+  (interactive)
+  (senator-copy-token) ;; this handles the reparse for us.
+  (let ((ct (semantic-current-nonterminal)))
+    (kill-region (semantic-token-start ct)
+                 (semantic-token-end ct))))
+
+(defun senator-yank-token ()
+  "Yank a token from the token ring.
+The form the token takes is differnet depending on where it is being
+yanked to."
+  (interactive)
+  (let ((tok (ring-ref senator-token-ring 0)))
+    (senator-insert-foreign-token (car tok) (cdr tok))))
+
+(defun senator-copy-token-to-register (register &optional kill-flag)
+  "Copy the current token into REGISTER.
+Optional argument KILL-FLAG will delete the text of the token to the
+kill ring."
+  (interactive "cToken to register: \nP")
+  (let ((ct (semantic-current-nonterminal)))
+    (if (not ct)
+        (error "No semantic tokens here"))
+    (set-register register (cons ct (buffer-file-name)))
+    (if kill-flag
+        (kill-region (semantic-token-start ct)
+                     (semantic-token-end ct)))))
+
+(defadvice insert-register (around senator activate)
+  "Insert contents of register REGISTER as a token.
+If senator is not active, use the original mechanism."
+  (let ((val (get-register register)))
+    (if (and senator-minor-mode (interactive-p)
+             (listp val) (semantic-token-p (car val)))
+        (senator-insert-foreign-token (car val) (cdr val))
+      ad-do-it)))
+
+(defadvice jump-to-register (around senator activate)
+  "Insert contents of register REGISTER as a token.
+If senator is not active, use the original mechanism."
+  (let ((val (get-register register)))
+    (if (and senator-minor-mode (interactive-p)
+             (listp val) (semantic-token-p (car val)))
+        (progn
+          (find-file (cdr val))
+          (goto-char (semantic-token-start (car val))))
+      ad-do-it)))
+
+(defun senator-insert-foreign-token (token tokenfile)
+  "Insert TOKEN from a foreign buffer into the current buffer.
+TOKEN will have originated from TOKENFILE.
+This function is overridable."
+  (if (or (not token) (not (semantic-token-p token)))
+      (signal 'wrong-type-argument (list token 'semantic-token-p)))
+  (let ((s (semantic-fetch-overload 'insert-foreign-token)))
+    (if s (funcall s token tokenfile)
+      (senator-insert-foreign-token-default token tokenfile))
+    (message (semantic-summarize-nonterminal token))))
+
+(defun senator-insert-foreign-token-default (token tokenfile)
+  "Insert TOKEN from a foreign buffer into the current buffer.
+This is the default behavior for `senator-insert-foreign-token'.
+Assumes the current buffer is a language file, and attempts to insert
+a prototype/function call.
+Argument TOKENFILE is the file from wence TOKEN came."
+  ;; Long term goal:
+  ;; Have a mechanism for a tempo-like template insert for the given
+  ;; token.
+  (insert (semantic-prototype-nonterminal token)))
+
+;;;;
 ;;;; Using semantic search in isearch mode
 ;;;;
 
@@ -1363,8 +1540,8 @@ If semantic tokens are available, use them to navigate."
 
 (defmacro senator-define-search-advice (searcher)
   "Advice the built-in SEARCHER function to do semantic search.
-That is to call the Senator counterpart searcher when `isearch-mode'
-and `senator-isearch-semantic-mode' are on."
+That is to call the Senator counterpart searcher when variables
+`isearch-mode' and `senator-isearch-semantic-mode' are non-nil."
   (let ((senator-searcher (intern (format "senator-%s" searcher))))
     `(defadvice ,searcher (around senator activate)
        (if (and isearch-mode senator-isearch-semantic-mode
