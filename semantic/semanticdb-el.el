@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.11 2003/08/29 16:09:18 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.12 2003/09/07 02:53:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -197,6 +197,12 @@ Return a list of tags."
 Returns a table of all matching tags."
   (delq nil (mapcar 'semanticdb-elisp-sym->tag
 		    (all-completions prefix obarray))))
+
+(defmethod semanticdb-find-tags-by-class-method ((table semanticdb-table-emacs-lisp) class)
+  "In TABLE, find all occurances of tags of CLASS.
+Returns a table of all matching tags."
+  ;; We could implement this, but it could be massy.
+  nil)
 
 ;;; Deep Searches
 ;;
