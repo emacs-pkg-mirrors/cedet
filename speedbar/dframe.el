@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.26 2004/12/29 01:18:45 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.27 2005/02/06 17:02:45 berndl Exp $
 
 (defvar dframe-version "1.3"
   "The current version of the dedicated frame library.")
@@ -192,6 +192,11 @@ Thus, if a file is selected for edit, the buffer will appear in the
 selected frame and the focus will change to that frame."
   :group 'dframe
   :type 'boolean)
+
+(defcustom dframe-after-select-attached-frame-hook nil
+  "*Hook run after dframe has selected the attached frame."
+  :group 'dframe
+  :type 'hook)
 
 (defvar dframe-track-mouse-function nil
   "*A function to call when the mouse is moved in the given frame.
@@ -647,7 +652,7 @@ selecting FRAME."
   (interactive)
   (if (eq (selected-frame) (symbol-value frame-var))
       (if (frame-live-p dframe-attached-frame)
-	  (select-frame dframe-attached-frame))
+	  (dframe-select-attached-frame))
     ;; make sure we have a frame
     (if (not (frame-live-p (symbol-value frame-var)))
 	(funcall activator 1))
@@ -679,33 +684,40 @@ If the current frame's buffer uses DESIRED-MAJOR-MODE, then use that frame."
 	(symbol-value frame-var))
     (symbol-value frame-var)))
 
-(defun dframe-attached-frame (frame)
-  "Return the attached frame belonging to the dframe controlled frame FRAME."
+(defun dframe-attached-frame (&optional frame)
+  "Return the attached frame belonging to the dframe controlled frame FRAME.
+If optional arg FRAME is nil just return `dframe-attached-frame'."
   (save-excursion
     (if frame (select-frame frame))
     dframe-attached-frame))
 
-(defun dframe-select-attached-frame (frame)
-  "Switch to the frame the dframe controled frame FRAME was started from."
+(defun dframe-select-attached-frame (&optional frame)
+  "Switch to the frame the dframe controlled frame FRAME was started from. If
+optional arg FRAME is nil assume the attached frame is already selected and
+just run the hooks `dframe-after-select-attached-frame-hook'. Return the
+attached frame."
   (let ((frame (dframe-attached-frame frame)))
-    (if frame (select-frame frame) nil)))
+    (if frame (select-frame frame))
+    (prog1 frame
+      (run-hooks 'dframe-after-select-attached-frame-hook))))
 
 (defmacro dframe-with-attached-buffer (&rest forms)
   "Execute FORMS in the attached frame's special buffer.
 Optionally select that frame if necessary."
   `(save-selected-window
      ;;(speedbar-set-timer speedbar-update-speed)
-     (select-frame dframe-attached-frame)
+     (dframe-select-attached-frame)
      ,@forms
      (dframe-maybee-jump-to-attached-frame)))
 
 (defun dframe-maybee-jump-to-attached-frame ()
   "Jump to the attached frame ONLY if this was not a mouse event."
-  (if (or (not (dframe-mouse-event-p last-input-event))
-	  dframe-activity-change-focus-flag)
-      (progn
-	;(select-frame dframe-attached-frame)
-	(other-frame 0))))
+  (when (or (not (dframe-mouse-event-p last-input-event))
+            dframe-activity-change-focus-flag)
+    (dframe-select-attached-frame)
+    ;; KB: For what is this - raising the frame?? 
+    (other-frame 0)))
+
 
 (defvar dframe-suppress-message-flag nil
   "Non-nil means that `dframe-message' should just return a string.")
@@ -717,6 +729,7 @@ Argument FMT is the format string, and ARGS are the arguments for message."
     (if dframe-suppress-message-flag
 	(apply 'format fmt args)
       (if dframe-attached-frame
+          ;; KB: Here we do not need calling `dframe-select-attached-frame'
 	  (select-frame dframe-attached-frame))
       (apply 'message fmt args))))
 
@@ -728,6 +741,7 @@ Argument PROMPT is the prompt to use."
 	     dframe-attached-frame
 	     ;;(not (eq default-minibuffer-frame dframe-attached-frame))
 	     )
+        ;; KB: Here we do not need calling `dframe-select-attached-frame'
 	(select-frame dframe-attached-frame))
     (y-or-n-p prompt)))
 
@@ -975,7 +989,7 @@ This should be bound to mouse event E."
   "Placed in the variable `temp-buffer-show-function' in dedicated frames.
 If a user requests help using \\[help-command] <Key> the temp BUFFER will be
 redirected into a window on the attached frame."
-  (if dframe-attached-frame (select-frame dframe-attached-frame))
+  (if dframe-attached-frame (dframe-select-attached-frame))
   (pop-to-buffer buffer nil)
   (other-window -1)
   ;; Fix for using this hook on some platforms: Bob Weiner
