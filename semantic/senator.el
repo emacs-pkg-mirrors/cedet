@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.53 2001/11/17 23:01:21 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.54 2001/11/21 19:32:42 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -123,7 +123,7 @@
   :set (lambda (sym val)
          (global-senator-minor-mode (if val 1 -1))))
 
-(defcustom senator-minor-mode-name "Senator"
+(defcustom senator-minor-mode-name "n"
   "*Name displayed in the mode line when senator minor mode is on.
 If nil nothing is displayed in the mode line.  A space is
 automatically added at the beginning of this string.
@@ -134,7 +134,7 @@ The value of this variable is used when Senator mode is turned on."
           (const  :tag "none" nil)
           (string :tag "name")))
 
-(defcustom senator-minor-mode-isearch-suffix "/is"
+(defcustom senator-minor-mode-isearch-suffix "i"
   "*String appended to the mode name when senator isearch mode is on.
 If nil no suffix is added to the mode name.  Used only if
 `senator-minor-mode-name' is non-nil.
@@ -744,6 +744,7 @@ NO-DEFAULT switches like this:
                        (semantic-token-token tok)
                        (semantic-token-name  tok)))))
 
+;;;###autoload
 (defun senator-jump-regexp (symregex &optional in-context no-default)
   "Jump to the semantic symbol SYMREGEX.
 SYMREGEX is treated as a regular expression.
@@ -1424,7 +1425,6 @@ minor mode entry."
 (senator-register-mode-menu-entry
  "Senator"
  '(senator-minor-mode
-   :selected senator-mode
    :help "Turn off Senator minor mode."
    )
  '(global-senator-minor-mode
@@ -1487,9 +1487,9 @@ minor mode entry."
 ;;;; Senator minor mode
 ;;;;
 
-(defvar senator-mode nil
-  "Name of the minor mode, if non-nil.")
-(make-variable-buffer-local 'senator-mode)
+(defvar senator-status nil
+  "Minor mode status displayed in the mode line.")
+(make-variable-buffer-local 'senator-status)
 
 (defvar senator-isearch-semantic-mode nil
   "Non-nil if isearch does semantic search.
@@ -1858,26 +1858,19 @@ This is a buffer local variable.")
 Use the command `senator-minor-mode' to change this variable.")
 (make-variable-buffer-local 'senator-minor-mode)
 
-(defun senator-show-status ()
+(defun senator-mode-line-update ()
   "Update the modeline to show the senator minor mode state.
 If `senator-isearch-semantic-mode' is non-nil append
 `senator-minor-mode-isearch-suffix' to the value of the variable
 `senator-minor-mode-name'."
   (if (not (and senator-minor-mode senator-minor-mode-name))
-      (setq senator-mode "")
-    (setq senator-mode
-          (format " %s%s" senator-minor-mode-name
+      (setq senator-status "")
+    (setq senator-status
+          (format "%s%s" senator-minor-mode-name
                   (if senator-isearch-semantic-mode
                       (or senator-minor-mode-isearch-suffix "")
-                    "")))
-;;; Emacs 21 goodies
-    (and (not (featurep 'xemacs))
-         (> emacs-major-version 20)
-         (setq senator-mode
-               (propertize senator-mode
-                           'help-echo "mouse-3: minor mode menu"
-                           'local-map mode-line-minor-mode-keymap))))
-  (force-mode-line-update))
+                    ""))))
+  (semantic-mode-line-update))
 
 (defun senator-minor-mode-setup ()
   "Actually setup the senator minor mode.
@@ -1906,9 +1899,8 @@ minor mode is enabled."
               (make-local-hook 'semantic-clean-token-hooks)
               (add-hook 'semantic-clean-token-hooks
                         'senator-completion-cache-flush-fcn nil t))
-          (quit (message "senator-minor-mode: parsing of buffer canceled.")))
-        (senator-show-status)
-        )
+          (quit
+           (message "senator-minor-mode: parsing of buffer canceled."))))
     ;; XEmacs needs this
     (if (featurep 'xemacs)
         (easy-menu-remove senator-minor-menu))
@@ -1947,13 +1939,17 @@ minor mode is enabled.
   (if (interactive-p)
       (message "Senator minor mode %sabled"
                (if senator-minor-mode "en" "dis")))
-  (force-mode-line-update)
+  (senator-mode-line-update)
   senator-minor-mode)
 
 (semantic-add-minor-mode 'senator-minor-mode
-                         'senator-mode
+                         'senator-status
                          senator-mode-map)
 
+;; To show senator isearch mode in the mode line
+(semantic-add-minor-mode 'senator-isearch-semantic-mode
+                         'senator-status
+                         nil)
 ;;; Emacs 21 goodies
 (and (not (featurep 'xemacs))
      (> emacs-major-version 20)
@@ -2406,7 +2402,7 @@ That is to call the Senator counterpart searcher when variables
   (when senator-minor-mode
     (setq senator-isearch-semantic-mode
           (not senator-isearch-semantic-mode))
-    (senator-show-status)
+    (senator-mode-line-update)
     (if isearch-mode
         ;; force lazy highlight update
         (senator-lazy-highlight-update)
@@ -2428,7 +2424,7 @@ That is to call the Senator counterpart searcher when variables
   "Isearch mode hook to setup semantic searching."
   (or senator-minor-mode
       (setq senator-isearch-semantic-mode nil))
-  (senator-show-status))
+  (senator-mode-line-update))
 
 (add-hook 'isearch-mode-hook 'senator-isearch-mode-hook)
 
