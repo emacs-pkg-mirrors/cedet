@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.16 2000/10/14 01:32:04 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.17 2000/10/21 01:38:06 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -90,6 +90,57 @@ of these.")
 (defvar eieio-cog nil
   "Buffer local variable in object customize buffers for the current group.")
 
+(define-widget 'object-slot 'group
+  "Abstractly modify a single slot in an object."
+  :tag "Slot"
+  :format "%t %v%h\n"
+  :convert-widget 'widget-types-convert-widget
+  :value-create 'eieio-slot-value-create
+  :value-get 'eieio-slot-value-get
+  :value-delete 'widget-children-value-delete
+  :validate 'widget-children-validate
+  :match 'eieio-object-match ;; same
+  )
+
+(defun eieio-slot-value-create (widget)
+  "Create the value of WIDGET."
+  (let ((chil nil)
+	)
+;    (setq chil (cons (widget-create-child-and-convert
+;		      widget 'visibility
+;		      :help-echo "Hide the value of this option."
+;		      :action 'eieio-custom-toggle-parent
+;		      t)
+;		     chil))
+    (setq chil (cons
+		(widget-create-child-and-convert
+		 widget (widget-get widget :childtype)
+		 :tag ""
+		 :value (widget-get widget :value))
+		chil))
+    (widget-put widget :children chil)))
+
+(defun eieio-slot-value-get (widget)
+  "Get the value of WIDGET."
+  (widget-value (car (widget-get widget :children))))
+
+(defun eieio-custom-toggle-hide (widget)
+  "Toggle visibility of WIDGET."
+  (let ((vc (car (widget-get widget :children))))
+    (cond ((eq (widget-get vc :eieio-custom-state) 'hidden)
+	   (widget-put vc :eieio-custom-state 'visible)
+	   (widget-put vc :value-face (widget-get vc :orig-face)))
+	  (t
+	   (widget-put vc :eieio-custom-state 'hidden)
+	   (widget-put vc :orig-face (widget-get vc :value-face))
+	   (widget-put vc :value-face 'invisible)
+	   ))
+    (widget-value-set vc (widget-value vc))))
+
+(defun eieio-custom-toggle-parent (widget &rest ignore)
+  "Toggle visibility of parent of WIDGET.
+Optional argument IGNORE is an extraneous parameter."
+  (eieio-custom-toggle-hide (widget-get widget :parent)))
 
 (define-widget 'object-edit 'group
   "Abstractly modify a CLOS object."
@@ -198,13 +249,14 @@ of these.")
 			choices (cdr choices)))
 		(setq type (nreverse newtype))))
 	  (setq chil (cons (widget-create-child-and-convert
-			    widget type
+			    widget 'object-slot
+			    :childtype type
+			    :sample-face 'eieio-custom-slot-tag-face
 			    :tag
 			    (concat
 			     (make-string
 			      (or (widget-get widget :indent) 0)
 			      ? )
-			     ;;"Slot "
 			     (if (car flabel)
 				 (car flabel)
 			       (let ((s (symbol-name
@@ -218,18 +270,12 @@ of these.")
 				      (substring s (match-end 0))
 				    s)))))
 			    :value (slot-value obj (car fields))
-			    :sample-face 'eieio-custom-slot-tag-face
+			    :doc  (if (car fdoc) (car fdoc)
+				    "Slot not Documented.")
+			    :eieio-custom-visibility 'visible
 			    )
-			   chil)))
-	(setq chil (cons (widget-create-child-and-convert
-			  widget 'documentation-string
-			  :format "%t   %v\n"
-			  :tag (make-string
-				(or (widget-get widget :indent) 0)
-				? )
-			  :value (if (car fdoc) (car fdoc)
-				   "Slot not Documented."))
-			 chil))
+			   chil))
+	  )
 	)
       (setq fields (cdr fields)
 	    fdoc (cdr fdoc)
@@ -247,7 +293,8 @@ of these.")
 	 (fgroup (aref cv class-public-custom-group))
 	 (wids (widget-get widget :children))
 	 (name (car (widget-apply (car wids) :value-inline)))
-	 (chil (nthcdr 1 wids))
+	 (chil (if (widget-get widget :eieio-show-name)
+		   (nthcdr 1 wids) wids))
 	 (cv (class-v (object-class-fast obj)))
 	 (fields (aref cv class-public-a))
 	 (fcust (aref cv class-public-custom)))
@@ -262,11 +309,10 @@ of these.")
 	    ;; Only customized fields have widgets
 	    (eieio-oset obj (car fields)
 			(car (widget-apply (car chil) :value-inline)))
-	    ;; Two widets per field.  The slot value, and the doc.
-	    (setq chil (cdr (cdr chil)))))
+	    (setq chil (cdr chil))))
       (setq fields (cdr fields)
-	    fgroup (cdr fcust))
-	    fcust (cdr fcust))
+	    fgroup (cdr fgroup)
+	    fcust (cdr fcust)))
     ;; Set any name updates on it.
     (aset obj object-name name)
     ;; This is the same object we had before.
@@ -323,7 +369,7 @@ These groups are specified with the `:group' slot flag."
     (make-local-variable 'eieio-co)
     (setq eieio-co obj)
     (make-local-variable 'eieio-cog)
-    (setq eieio-cog obj group)))
+    (setq eieio-cog group)))
 
 (defmethod eieio-custom-object-apply-reset ((obj eieio-default-superclass))
   "Insert an Apply and Reset button into the object editor.
