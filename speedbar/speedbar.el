@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7g
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.105 1998/05/16 12:13:25 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.106 1998/05/16 12:57:49 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -136,6 +136,67 @@
 ;; emacs*speedbar-file-face.attributeForeground:	green3
 ;; emacs*speedbar-highlight-face.attributeBackground:	sea green
 ;; emacs*speedbar-tag-face.attributeForeground:		yellow
+;;
+;;; Developing for speedbar
+;;
+;; Adding a speedbar specialized display mode:
+;;
+;; Speedbar can be configured to create a special display for certain
+;; modes that do not display tradition file/tag data.  Rmail, Info,
+;; and the debugger are examples.  These modes can, however, benefit
+;; from a speedbar style display in their own way.
+;;
+;; If your `major-mode' is `foo-mode', the only requirement is to
+;; create a function called `foo-speedbar-buttons' which takes one
+;; argument, BUFFER.  BUFFER will be the buffer speedbar wants filled.
+;; In `foo-speedbar-buttons' there are several functions that make
+;; building a speedbar display easy.  See the documentation for
+;; `speedbar-with-writable' (needed because the buffer is usually
+;; read-only) `speedbar-make-tag-line', `speedbar-insert-button', and
+;; `speedbar-insert-generic-list'. If you use
+;; `speedbar-insert-generic-list', also read the doc for
+;; `speedbar-tag-hierarchy-method' in case you wish to override it.
+;; The function `speedbar-with-attached-buffer' brings you back to the
+;; buffer speedbar is displaying for.
+;;
+;; For those functions that make buttons, the "function" should be a
+;; symbol that is the function to call when clicked on.  The "token"
+;; is extra data you can pass along.  The "function" must take three
+;; parameters.  They are (TEXT TOKEN INDENT).  TEXT is the text of the
+;; button clicked on.  TOKEN is the data passed in when you create the
+;; button. INDENT is an indentation level, or 0.  You can store
+;; indentation levels with `speedbar-make-tag-line' which creates a
+;; line with an expander (eg. [+]) and a text button.
+;;
+;; Some useful functions when writing expand functions, and click
+;; functions are `speedbar-change-expand-button-char',
+;; `speedbar-delete-subblock', and `speedbar-center-buffer-smartly'.
+;; The variable `speedbar-power-click' is set to t in your functions
+;; when the user shift-clicks.  This indications anything from
+;; refreshing cached data to making a buffer appear in a new frame.
+;;
+;; If you wish to add to the default speedbar menu for the case of
+;; `foo-mode', create a variable `foo-speedbar-menu-items'.  This
+;; should be a list compatible with the `easymenu' package.  It will
+;; be spliced into the main menu.  (Available with click-mouse-3).  If
+;; you wish to have extra key bindings in your special mode, create a
+;; variable `foo-speedbar-key-map'.  Instead of using `make-keymap',
+;; or `make-sparse-keymap', use the function
+;; `speedbar-make-specialized-keymap'.  This lets you inherit all of
+;; speedbar's default bindings with low overhead.
+;;
+;; Adding a speedbar top-level display mode:
+;;
+;; Unlike the specialized modes, there are no name requirements,
+;; however the methods for writing a button display, menu, and keymap
+;; are the same.  Once you create these items, you can call the
+;; function `speedbar-add-expansion-list'.  It takes one parameter
+;; which is a list element of the form (NAME MENU KEYMAP &rest
+;; BUTTON-FUNCTIONS). NAME is a string that will show up in the
+;; Displays menu item.  MENU is a symbol containing the menu items to
+;; splice in.  KEYMAP is a symbol holding the keymap to use, and
+;; BUTTON-FUNCTIONS are the function names to call, in order, to create
+;; the display.
 
 ;;; Speedbar updates can be found at:
 ;; ftp://ftp.ultranet.com/pub/zappo/speedbar*.tar.gz
@@ -363,6 +424,7 @@
 ;;         Part of info-displaying system when mouse passes over text.
 ;;       Enabled mouse-tracking in the speedbar frame.  Display's information
 ;;         about the line the mouse is on in the attached frame's minibuffer.
+;;       Added big commentary section on developing speedbar modes.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
