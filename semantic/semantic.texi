@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.47 2001/10/03 01:07:26 zappo Exp $
+@c $Id: semantic.texi,v 1.48 2001/10/05 21:04:05 ponced Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -636,7 +636,7 @@ A string, including starting and ending delimiters.
 @item comment
 A comment.  This can be stripped from the stream if
 @var{semantic-ignore-comments} is non-nil.
-@var punctuation
+@item punctuation
 Punctuation characters, such as operators, period, and coma.
 @end table
 
