@@ -128,41 +128,42 @@ Works on grep, compile, or other type mode."
 	   compilation-error-list))
 	)
     (while marks
-      (let ((errmark (nth 0 (car marks)))
-	    (destmark (cdr (car marks)))
-	    (file nil)
-	    (line nil)
-	    (face nil)
-	    (case-fold-search t)
-	    (entry nil)
-	    (txt nil)
-	    )
+      (let (errmark
+            file
+            line
+            (face nil)
+            (case-fold-search t)
+            (entry nil)
+            (txt nil)
+            )
 
-	(cond ((consp destmark)
-	       (setq file (nth 0 destmark)
-		     line (nth 1 destmark))
-	       (setq file (concat (car (cdr file))
-				  (car file)))
-	       )
-	      ((markerp destmark)
-	       (setq file (buffer-file-name (marker-buffer destmark)))
-	       (save-excursion
-		 (set-buffer (marker-buffer destmark))
-		 (save-excursion
-		   (goto-char destmark)
-		   (setq lines (count-lines (point-min) (point))))))
-	      (t
-	       (error "don't know how to interpret error structure.")))
+        (setq errmark (car (car marks)))
+        (if (listp (cdr (car marks)))
+            (progn ; So a list containing filename, linenumber, ... like (grep) provides is used.
+              (setq file (nth 1 (car marks)))
+              (setq line (nth 2 (car marks)))
 
-	;; Sometimes the above doesn't work.  Use this version.
-	;; Originally suggested by: Markus Gritsch
-	(if (not (file-exists-p file))
-	    (setq file (car (nth 1 (car marks)))))
+              (setq file (concat (car (cdr file))
+                                 (car file)))
+
+              ;; In case file contains an absolute path, the above doesn't work, at least not on Win32.  Use this version.
+              ;; Originally suggested by: Markus Gritsch
+              (if (not (file-exists-p file))
+                  (setq file (car (nth 1 (car marks))))))
+
+          (progn ; Otherwise we assume that we have a marker, which works also on buffers which have no file associated.
+            (setq file (buffer-name (marker-buffer (cdr (car marks)))))
+
+            (setq line (save-excursion
+                         (set-buffer (marker-buffer (cdr (car marks))))
+                         (save-excursion
+                           (goto-char (cdr (car marks)))
+                           (count-lines 1 (1+ (point))))))))
 
 	;; We've got the goods, lets add in an entry.
 	;; If we can't find the file, skip it.  It'll be
 	;; found eventually.
-	(when (file-exists-p file)
+	(when (or (file-exists-p file) (bufferp (marker-buffer (cdr (car marks)))))
 
 	  (condition-case nil
 	      (save-excursion
@@ -179,8 +180,6 @@ Works on grep, compile, or other type mode."
 			       'linemark-go-face)))))
 	    (error nil))
 
-	  ;; Second condition case in case of issues with the previous
-	  ;; attempt.
 	  (condition-case nil
 	      (save-excursion
 		(set-buffer (marker-buffer errmark))
