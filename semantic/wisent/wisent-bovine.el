@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.7 2001/10/03 17:58:05 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.8 2001/10/10 19:07:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -223,6 +223,21 @@ into. It defaults to `wisent-flex-depth'."
   (wisent-bovinate-nonterminals
    (semantic-flex start end (or depth wisent-flex-depth))
    nonterm))
+
+(defun wisent-bovinate-region-until-error (start end nonterm
+                                                 &optional depth)
+  "Bovinate between START and END starting with NONTERM.
+Optinal DEPTH specifies how many levels of parenthesis to enter.  It
+defaults to `wisent-flex-depth'.  This command will parse until an
+error is encountered, and return the list of everything found until
+that moment.  This is meant for finding variable definitions at the
+beginning of code blocks in methods.  If NONTERM can also support
+commands, use `wisent-bovinate-from-nonterminal-full'."
+  (wisent-bovinate-nonterminals
+   (semantic-flex start end (or depth wisent-flex-depth))
+   nonterm
+   ;; This says stop on an error.
+   t))
 
 (defun wisent-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer with the LALR parser.
