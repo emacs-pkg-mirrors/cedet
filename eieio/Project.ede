@@ -8,7 +8,7 @@
    (ede-proj-target-elisp "eieio"
     :name "eieio"
     :path ""
-    :source '("eieio.el" "eieio-comp.el" "eieio-opt.el" "eieio-custom.el" "eieio-doc.el" "eieio-base.el" "compare-strings.el")
+    :source '("eieio.el" "eieio-comp.el" "eieio-opt.el" "eieio-custom.el" "eieio-doc.el" "eieio-base.el")
     :versionsource '("eieio.el")
     )
    (ede-proj-target-elisp "examples"
