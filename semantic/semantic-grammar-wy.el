@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: 2004-02-20 13:13:23+0100
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.13 2004/02/20 12:19:02 ponced Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.14 2004/03/19 23:55:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -417,7 +417,7 @@
   (semantic-install-function-overrides
    '((parse-stream . wisent-parse-stream)))
   (setq semantic-parser-name "LALR"
-        semantic-toplevel-bovine-table semantic-grammar-wy--parse-table
+        semantic--parse-table semantic-grammar-wy--parse-table
         semantic-debug-parser-source "semantic-grammar.wy"
         semantic-flex-keywords-obarray semantic-grammar-wy--keyword-table
         semantic-lex-types-obarray semantic-grammar-wy--token-table)
