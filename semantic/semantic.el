@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.180 2004/03/28 01:34:51 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.180.2.1 2004/04/01 13:22:35 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -600,9 +600,14 @@ was marked unparseable, then do nothing, and return the cache."
   
   ;; Always return the current parse tree.
   semantic--buffer-cache)
+
 ;;;###autoload
-(semantic-alias-obsolete 'semantic-bovinate-toplevel
-                         'semantic-fetch-tags)
+(defun semantic-bovinate-toplevel (&optional ignored)
+  "Backward Compatibility Function."
+  (semantic-fetch-tags))
+;;;###autoload
+(make-obsolete 'semantic-bovinate-toplevel 'semantic-fetch-tags)
+
 
 ;;; Iterative parser helper function
 ;;
