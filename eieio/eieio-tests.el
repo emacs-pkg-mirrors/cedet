@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.12 2001/05/07 20:31:12 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.13 2001/05/14 16:27:21 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -190,6 +190,7 @@ METHOD is the method that was attempting to be called."
 
 ;; Try the self referencing test
 (oset a self a)
+(oset ab self ab)
 
 
 ;;; Test the BEFORE, PRIMARY, and AFTER method tags.
@@ -326,6 +327,12 @@ METHOD is the method that was attempting to be called."
 (if (eq (oref a water) (oref-default a water))
     nil
   (error "oset-default -> oref/oref-default comparison failed."))
+
+(defmethod slot-unbound ((a class-a) &rest foo)
+  "If a slot in A is unbound, ignore FOO."
+  ;; Disable the old slot-unbound so we can run this test
+  ;; more than once
+  (call-next-method))
 
 ;; Slot type checking
 (condition-case nil
