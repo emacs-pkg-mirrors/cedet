@@ -1,0 +1,29 @@
+;; Object ede-proj-project
+;; EDE project file.
+(ede-proj-project "ede-proj-project"
+  :name "bovinator"
+  :file "Project.ede"
+  :targets (list 
+   (ede-proj-target-elisp "bovinator"
+    :name "bovinator"
+    :path ""
+    :source '("semantic-bnf.el" "semantic-bovine.el")
+    :aux-packages '("semantic" "speedbar")
+    )
+   (ede-proj-target-makefile-miscelaneous "examples"
+    :name "examples"
+    :path ""
+    :source '("skeleton.bnf" "semantic-skel.el")
+    )
+   (ede-proj-target-elisp "languages"
+    :name "languages"
+    :path ""
+    :source '("semantic-c.el" "semantic-el.el" "semantic-java.el" "semantic-make.el" "semantic-scm.el")
+    )
+   (ede-proj-target-makefile-miscelaneous "bnf"
+    :name "bnf"
+    :path ""
+    :source '("c.bnf" "java.bnf" "make.bnf" "scheme.bnf")
+    )
+   )
+  )
