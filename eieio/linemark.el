@@ -58,9 +58,9 @@
   "*Face used to indicate a GO, or OK type line.")
 
 (defface linemark-funny-face '((((class color) (background light))
-				(:background "blue"))
+				(:background "cyan"))
 			       (((class color) (background dark))
-				(:background "cyan")))
+				(:background "blue")))
   "*Face used to indicate a GO, or OK type line.")
 
 )
@@ -186,7 +186,7 @@ the buffer."
 	(nc (point))
 	(oll nil)
 	(dir (if (< 0 arg) 1 -1))
-	(ofun (if (< 0 arg)
+	(ofun (if (> 0 arg)
 		  'linemark-previous-overlay-change
 		'linemark-next-overlay-change))
 	(bounds (if (< 0 arg) (point-min) (point-max)))
