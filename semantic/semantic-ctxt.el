@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.3 2001/02/09 19:48:29 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.4 2001/02/20 21:35:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -257,18 +257,33 @@ This will include a list of type/field names when applicable."
   "Return the current symbol the cursor is on at POINT in a list.
 This will include a list of type/field names when applicable.
 Depends on `semantic-type-relation-separator-character'."
-  (let ((fieldsep (mapconcat (lambda (a) (regexp-quote a))
-			     semantic-type-relation-separator-character
-			     "\\|"))
-	(symlist nil)
-	end begin)
+  (let* ((fieldsep1 (mapconcat (lambda (a) (regexp-quote a))
+			       semantic-type-relation-separator-character
+			       "\\|"))
+	 (fieldsep (concat "\\(" fieldsep1 "\\)\\(\\w\\|\\s_\\)"))
+	 (symlist nil)
+	 end begin)
     (save-excursion
       (if (looking-at "\\w\\|\\s_")
-	  (forward-sexp 1))
+	  (forward-sexp 1)
+	;; Not on a sym, are we at a separator char with no field
+	;; specified yet?
+	(when (or (looking-at fieldsep1)
+		  (save-excursion
+		    (and (condition-case nil
+			     (progn (forward-sexp -1)
+				    (forward-sexp 1)
+				    t)
+			   (error nil))
+			 (looking-at fieldsep1))))
+	  (setq symlist (list ""))
+	  (forward-sexp -1)
+	  (forward-sexp 1)))
       (setq end (point))
-      (forward-char -1)
       (condition-case nil
-	  (while (looking-at "\\w\\|\\s_")
+	  (while (save-excursion
+		   (forward-char -1)
+		   (looking-at "\\w\\|\\s_"))
 	    ;; We have a symbol.. Do symbol things
 	    (forward-sexp -1)
 	    (setq symlist (cons (buffer-substring-no-properties (point) end)
@@ -276,9 +291,9 @@ Depends on `semantic-type-relation-separator-character'."
 	    ;; Skip the next syntactic expression backwards, then go forwards.
 	    (forward-sexp -1)
 	    (forward-sexp 1)
-	    (when (looking-at fieldsep)
-	      (setq end (point))
-	      (forward-char -1))
+	    (if (looking-at fieldsep)
+		(setq end (point))
+	      (error nil))
 	    )
 	(error nil)))
     symlist))
@@ -420,16 +435,25 @@ the field in foo's type."
 			     toktype
 			   (error "Unknown token type")))
 		       'type)))
-    ;; We now have the originating type.  If there are no children, then
-    ;; this variable is all alone.  Otherwise, follow the chain.
-    (if (and toktype
-	     (semantic-token-p toktype)
-	     (setq chil (semantic-nonterminal-children toktype)))
-	(progn
-	  ;; Seek and destroy
-	  (list toktype)
-	  )
-      (list toktype))))
+    (if toktype
+	(cond ((and (semantic-token-p toktype)
+		    (setq chil (semantic-nonterminal-children toktype)))
+	       ;; We now have the type of the start variable.  Now we
+	       ;; have to match the list of additional fields with the
+	       ;; children of the type we found.
+	       (let ((chosenfields (cdr tok))
+		     (returnlist (list toktype)))
+		 (while chosenfields
+		   ;; Find this field in the current toktype
+		   
+		   (setq chosenfields (cdr chosenfields)))
+		 (nreverse returnlist))
+	       )
+	      ((semantic-token-p toktype)
+	       (list toktype))
+	      ((stringp toktype)
+	       (list (list toktype 'type)))
+	      (t nil)))))
 
 (defun semantic-suggest-current-type ()
   "Return the recommended type at the current location."
