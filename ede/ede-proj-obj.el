@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-obj.el,v 1.3 1999/12/01 01:55:09 zappo Exp $
+;; RCS: $Id: ede-proj-obj.el,v 1.4 1999/12/04 17:30:02 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -113,40 +113,41 @@ These are removed with make clean."
   ((this ede-proj-target-makefile-objectcode))
   "Insert rules needed by THIS target."
   (call-next-method)
-  (insert (ede-name this) ": $(" (ede-pmake-varname this) "_OBJ)\n"
-	  ;; Compile line
-	  (if have-libtool
-	      "\t$(LTLINK) "
-	    "\t$(LINK) ")
-	  ;; Shared flag if needed
-	  (if (and
-	       (obj-of-class-p this 'ede-proj-target-makefile-shared-object)
-	       (not have-libtool))
-	      "-shared "
-	    "")
-	  ;; Additional linker flags
-	  (if (and (obj-of-class-p this 'ede-proj-target-makefile-program)
-		   (oref this ldflags))
-	      (concat (mapconcat (lambda (c) c) (oref this ldflags) " ") " ")
-	    "")
-	  ;; The objects to link
-	  "$(" (ede-pmake-varname this) "_OBJ)"
-	  ;; Separate this out later.
-	  (if (obj-of-class-p this 'ede-proj-target-makefile-program)
-	      ;; Some libaries
-	      (concat " "
-		      (mapconcat (lambda (c)
-				   (if (= (aref c 0) ?$)
-				       c
-				     (concat "-l" c)))
-				 (oref this ldlibs) " "))
-	    "")
-	  "\n\n"))
+  (let ((have-libtool (oref this libtool)))
+    (insert (ede-name this) ": $(" (ede-pmake-varname this) "_OBJ)\n"
+	    ;; Compile line
+	    (if have-libtool
+		"\t$(LTLINK) "
+	      "\t$(LINK) ")
+	    ;; Shared flag if needed
+	    (if (and
+		 (obj-of-class-p this 'ede-proj-target-makefile-shared-object)
+		 (not have-libtool))
+		"-shared "
+	      "")
+	    ;; Additional linker flags
+	    (if (and (obj-of-class-p this 'ede-proj-target-makefile-program)
+		     (oref this ldflags))
+		(concat (mapconcat (lambda (c) c) (oref this ldflags) " ") " ")
+	      "")
+	    ;; The objects to link
+	    "$(" (ede-pmake-varname this) "_OBJ)"
+	    ;; Separate this out later.
+	    (if (obj-of-class-p this 'ede-proj-target-makefile-program)
+		;; Some libaries
+		(concat " "
+			(mapconcat (lambda (c)
+				     (if (= (aref c 0) ?$)
+					 c
+				       (concat "-l" c)))
+				   (oref this ldlibs) " "))
+	      "")
+	    "\n\n")))
 
 ;;; Speedbar options:
 ;;
 (defmethod eieio-speedbar-child-make-tag-lines
-  ((this ede-proj-target-makefile-objectcode))
+  ((this ede-proj-target-makefile-objectcode) depth)
   "Expand an object code node in speedbar.
 This is special for additional headers."
   (call-next-method)
