@@ -18,7 +18,7 @@ How to install Semantic
 
    -OR-
 
-   a) run: make LOADPATH="<path to eieio> <path to speedbar>"
+   a) run: make "LOADPATH=<path to eieio> <path to speedbar>"
 
    If byte compilation fails fails:
     a) Follow step 3:
