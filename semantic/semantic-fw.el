@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.21 2003/07/22 18:26:01 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.22 2003/09/02 16:12:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -421,6 +421,13 @@ later installation should be done in MODE hook."
                  (list 'constant (not transient) 'override t)
                  mode))
 
+(defun semantic-overload-symbol-from-function (name)
+  "Return the symbol for overload used by NAME, the defined symbol."
+  (let ((sym-name (symbol-name name)))
+    (if (string-match "^semantic-" sym-name)
+	(intern (substring sym-name (match-end 0)))
+      name)))
+
 (defmacro define-overload (name args docstring &rest body)
   "Define a new function, as with `defun' which can be overloaded.
 NAME is the name of the function to create.  If it is of the form
@@ -438,16 +445,12 @@ work, write that yourself without `define-overload'.  See the info
 manual for details."
   (let* ((fastargs (delq '&rest (delq '&optional (copy-sequence args))))
          (sym-name (symbol-name name))
-         (overload (if (string-match "^semantic-" sym-name)
-                       (intern (substring sym-name (match-end 0)))
-                     name)))
+         (overload (semantic-overload-symbol-from-function name)))
     (or body (setq body `((,(intern (concat sym-name "-default"))
                            ,@fastargs))))
     `(eval-and-compile
        (defun ,name ,args
-         ,(format "%s\n
-This function can be overloaded using the symbol `%s'."
-                  docstring overload)
+         ,docstring
          (let ((s (semantic-fetch-overload ',overload)))
            (if s
                (funcall s ,@fastargs)
@@ -488,6 +491,12 @@ This function is an implementation for %s"
   "The symbol that SYMBOL can be overriden with, or nil."
   (get symbol 'semantic-overload))
 
+(defun semantic-overload-docstring-extension (name)
+  "Return the documentation string used to augment an overloaded function.
+The augmented string is NAME."
+  (concat "\nThis function can be overriden in semantic using the
+symbol `" (symbol-name name) "'."))
+
 (defun semantic-augment-function-help (symbol)
   "Augment the *Help* buffer for SYMBOL.
 SYMBOL is a function that can be overriden with semantic."
@@ -499,8 +508,10 @@ SYMBOL is a function that can be overriden with semantic."
 	  (goto-char (point-max))
 	  (beginning-of-line)
 	  (forward-line -1)
-	  (insert "\nThis function can be overriden in semantic with
-the symbol `" (symbol-name (semantic-function-overload-p symbol)) "'.\n")
+	  (insert
+	   (semantic-overload-docstring-extension
+	    (semantic-function-overload-p symbol))
+	   "\n")
 	  ;; NOTE TO SELF:
 	  ;; LIST ALL LOADED OVERRIDES FOR SYMBOL HERE
 	  )
