@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.10
-;; RCS: $Id: eieio.el,v 1.35 1999/02/02 20:59:31 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.36 1999/02/13 12:31:50 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -93,79 +93,6 @@
 ;; this method is defined, or `generic' if it isn't defined.  In this
 ;; way, all implementations can be quickly found and run.
 
-;;; History:
-;;
-;; 0.1 - 0.5  Comments removed to shorten file.  They referred to
-;;             things that have been long since removed.
-;;
-;; 0.6  - Fixed up the defgeneric default call to handle arguments better.
-;;        Added `call-next-method' (calls parent's method)
-;;        Fixed `make-instance' so it's no longer a macro
-;;        Fixed edebug hooks so they work better
-;;        Fixed storage duplication for inherited classes, which also
-;;           fixed default-value inheritance bug
-;;        Added some error messages to help in debugging programs using eieio.
-;;        Fixed class scoping troubles
-;;        Added `eieio-thing-to-string' which behaves like (format "%S" ..)
-;;           so objects and classes don't appear as symbols and vectors in
-;;           your output.
-;;        Added `eieio-describe-class' command which creates a buffer
-;;           and displays the entire contents of a class or object.
-;;        Turned field names into properties on the class to reduce
-;;           the lookup times.  Old list is still there because it is
-;;           needed for generating sub-classes, and for doing
-;;           browsing things.
-;; 0.7    Added :accessor as new tag creating a function which can
-;;           access a given field.
-;;        Added :docstring modifiers for generic function calls to
-;;           allow browsing of all specific style methods.
-;;        Changed what was once plist associations into a single obarray
-;;           in the hopes of allowing faster searches.
-;;        Changed plist storage of method definitions first into a single
-;;           plist element, `eieio-method-tree', and
-;;           `eieio-method-obarrays' a vector of 6 elements.  This
-;;           vector contains 6 types of functions, specific :BEFORE,
-;;           :PRIMARY and :AFTER elements, and then the :BEFORE,
-;;           :PRIMARY and :AFTER generic calls.  Lastly turned lists
-;;           of associations into OBARRAYs and symbols.
-;; 0.8    Added ability to byte compile methods.  This is implemented
-;;           for both XEmacs and GNU emacs.  This will only work with
-;;           the modern byte-compiler for these systems.  Routines to
-;;           do this are in eieio-comp.el.
-;;        Removed all reference to classmethods as no one liked them,
-;;           and were wasting space in here.
-;;        Added `oset-default' to modify existing classes default values.
-;;        `oref-default' can now take a class or object to retrieve
-;;           the default value.
-;;        Optimized several convenience functions as macros, and made some
-;;           signals arise from more logical locations.
-;;        Created and used signal symbols `no-method-definition' for
-;;           method calls that do not resolve, and `invalid-slot-name'
-;;           when the user tries to access an invalid slot name.
-;;        Added `eieio-attribute-to-initarg' for reverse translation
-;;           init arguments during document generation.
-;;        Added new `replacement-args' to `call-next-method'.  It is
-;;           still CLOS compatible, but now is more powerful.
-;;        Added new default method `object-print' which is used by
-;;           the functions in eieio-opt.  You can now specify
-;;           additional summary information for object names if
-;;           `object-print' is used instead of `object-name'.
-;;        Better edebug integration with new spec's for all macros,
-;;           plus new override `eieio-edebug-prin1-to-string' to
-;;           print the summary with `class-name' and `object-print'.
-;;        Added default-object-cache to class definition.  This may
-;;           mess up object default functions.  At the moment
-;;           however, (copy-sequence VECTOR) is much faster than the
-;;           old (make-vector...) (eieio-set-defaults ...) ever was.
-;;        Fixed problems with `lambda-default' used to create functions
-;;           to be stored as default values, instead of evaluated at
-;;           creation time.
-;;        New `eieio-doc' file will create texinfo documentation
-;;           describing a class hierarchy
-;;        Modifies existing `lisp-imenu-generic-expression' to include
-;;           defmethod.
-;;        Fixed up comments and doc strings.
-;;        `oref' and `oset' can now take the :initarg values if desired.
 
 ;;;
 ;; Variable declarations.  These variables are used to hold the call
