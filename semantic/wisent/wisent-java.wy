@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.21 2004/06/15 18:20:39 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.22 2004/08/25 06:21:25 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -50,6 +50,8 @@
 %{
   ;; Stack of enum names in scope.
   (defvar wisent-java-wy--enums nil)
+  ;; Stack of anonymous class declarations found in an expression.
+  (defvar wisent-java-wy--anons nil)
   }
 
 %package wisent-java-wy
@@ -866,10 +868,13 @@ enum_body_declarations_opt
 ;;
 field_declaration
   : modifiers_opt type variable_declarators SEMICOLON
-    (EXPANDTAG
-     (VARIABLE-TAG $3 $2 nil
-                   :typemodifiers $1)
-     )
+    (let* ((decls (mapcar 'car $3))
+           (anons (apply 'nconc (nreverse (mapcar 'cdr $3)))))
+      (EXPANDTAG
+       (VARIABLE-TAG decls $2 nil
+                     :typemodifiers $1
+                     :members anons)
+       ))
   ;
 
 variable_declarators
@@ -881,9 +886,12 @@ variable_declarators
 
 variable_declarator
   : variable_declarator_id
-    (cons $1 $region)
-  | variable_declarator_id EQ variable_initializer
-    (cons $1 $region)
+    (cons (cons $1 $region) nil)
+  | variable_declarator_id
+ ;; Clean-up the stack of anonymous class declarations
+    (setq wisent-java-wy--anons nil)
+    EQ variable_initializer
+    (cons (cons $1 $region) wisent-java-wy--anons)
   ;
 
 variable_declarator_id
@@ -1475,12 +1483,38 @@ primary_no_new_array
   ;
 
 class_instance_creation_expression
-  : NEW class_or_interface_type LPAREN argument_list_opt RPAREN class_body_opt
-  | NEW type_arguments class_or_interface_type LPAREN argument_list_opt RPAREN class_body_opt
+  : NEW class_or_interface_type
+    LPAREN argument_list_opt RPAREN class_body_opt
+    (when $6
+      (setq wisent-java-wy--anons
+            (nconc wisent-java-wy--anons
+                   (EXPANDTAG
+                    (TYPE-TAG (concat $2 "$") "class" $6 nil))))
+      )
+  | NEW type_arguments class_or_interface_type
+    LPAREN argument_list_opt RPAREN class_body_opt
+    (when $7
+      (setq wisent-java-wy--anons
+            (nconc wisent-java-wy--anons
+                   (EXPANDTAG
+                    (TYPE-TAG (concat $3 "$") "class" $7 nil))))
+      )
   | primary DOT NEW type_arguments_opt IDENTIFIER type_arguments_opt
     LPAREN argument_list_opt RPAREN class_body_opt
+    (when $10
+      (setq wisent-java-wy--anons
+            (nconc wisent-java-wy--anons
+                   (EXPANDTAG
+                    (TYPE-TAG (concat $5 "$") "class" $10 nil))))
+      )
   | name DOT NEW type_arguments_opt IDENTIFIER type_arguments_opt
     LPAREN argument_list_opt RPAREN class_body_opt
+    (when $10
+      (setq wisent-java-wy--anons
+            (nconc wisent-java-wy--anons
+                   (EXPANDTAG
+                    (TYPE-TAG (concat $5 "$") "class" $10 nil))))
+      )
   ;
 
 argument_list_opt
