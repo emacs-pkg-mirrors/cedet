@@ -1,12 +1,12 @@
 ;;; wisent-grammar.el --- Wisent's input grammar mode
 ;;
-;; Copyright (C) 2002 David Ponce
+;; Copyright (C) 2002, 2003 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.6 2003/03/14 08:18:37 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.7 2003/03/16 09:30:18 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,6 +34,7 @@
 
 ;;; Code:
 (require 'semantic-grammar)
+(require 'cl) ;; `cl-macroexpand-all'
 
 (defsubst wisent-grammar-region-placeholder ($n)
   "Return $regionN placeholder symbol corresponding to given $N one.
@@ -65,7 +66,7 @@ NONTERM is the nonterminal symbol to start with."
 (defun wisent-grammar-TAG (&rest args)
   "Return expansion of built-in TAG expression.
 ARGS are the arguments passed to the expanded form."
-  `(wisent-raw-tag (semantic-token ,@args)))
+  `(wisent-raw-tag (semantic-tag ,@args)))
 
 (defun wisent-grammar-VARIABLE-TAG (&rest args)
   "Return expansion of built-in VARIABLE-TAG expression.
@@ -115,39 +116,31 @@ ARGS are the arguments passed to the expanded form."
     )
   "Expanders of Semantic built-in functions in LALR grammar.")
 
+(defun wisent-grammar-expand-builtins (expr)
+  "Return expanded form of the expression EXPR.
+Semantic built-in function calls are expanded.  The variable
+`wisent-grammar-builtins' defines built-in functions and corresponding
+expanders."
+  (if (or (atom expr) (semantic-grammar-quote-p (car expr)))
+      expr ;; Just return atom or quoted expression.
+    (let* ((args (mapcar 'wisent-grammar-expand-builtins (cdr expr)))
+           (bltn (assq (car expr) wisent-grammar-builtins)))
+      (if bltn ;; Expand Semantic built-in.
+          (apply (cdr bltn) args)
+        (cons (car expr) args)))))
+
 (defun wisent-grammar-expand-sexpr (expr)
   "Return expanded form of the expression EXPR.
-`backquote' expressions and Semantic built-in function calls are
-expanded.  The variable `wisent-grammar-builtins' defines
-built-in functions and corresponding expanders."
-  (if (not (listp expr))
-      ;; EXPR is an atom, no expansion needed
-      expr
-    ;; EXPR is a list, expand inside it
-    (let (eexpr sexpr bltn)
-      ;; If backquote expand it first
-      (if (semantic-grammar-backquote-p (car expr))
-          (setq expr (macroexpand expr)))
-      ;; Expand builtins
-      (if (setq bltn (assq (car expr) wisent-grammar-builtins))
-          (setq expr (apply (cdr bltn) (cdr expr))))
-      (while expr
-        (setq sexpr (car expr)
-              expr  (cdr expr))
-        ;; Recursively expand function call but quote expression
-        (and (consp sexpr)
-             (not (semantic-grammar-quote-p (car sexpr)))
-             (setq sexpr (wisent-grammar-expand-sexpr sexpr)))
-        ;; Accumulate expanded forms
-        (setq eexpr (nconc eexpr (list sexpr))))
-      eexpr)))
+Macro and Semantic built-in function calls are expanded."
+  (cl-macroexpand-all (wisent-grammar-expand-builtins expr)))
 
 (defun wisent-grammar-assocs ()
   "Return associativity and precedence level definitions."
   (mapcar
    #'(lambda (token)
        (cons (intern (semantic-token-name token))
-             (mapcar #'semantic-grammar-item-value (nth 3 token))))
+             (mapcar #'semantic-grammar-item-value
+                     (semantic-token-extra-spec token :value))))
    (semantic-find-nonterminal-by-token 'assoc (current-buffer))))
 
 (defun wisent-grammar-terminals ()
@@ -158,7 +151,8 @@ Keep order of declaration in the WY file without duplicates."
      #'(lambda (tok)
          (mapcar #'(lambda (name)
                      (add-to-list 'terms (intern name)))
-                 (cons (semantic-token-name tok) (nth 3 tok))))
+                 (cons (semantic-token-name tok)
+                       (semantic-token-extra-spec tok :rest))))
      (semantic-find-nonterminal-by-function
       #'(lambda (tok)
           (memq (semantic-token-token tok ) '(token keyword)))
@@ -174,9 +168,9 @@ Keep order of declaration in the WY file without duplicates."
       (setq rltoks (semantic-nonterminal-children (car nttoks))
             rules  nil)
       (while rltoks
-        (setq elems (nth 3 (car rltoks))
-              prec  (nth 4 (car rltoks))
-              actn  (nth 5 (car rltoks))
+        (setq elems (semantic-token-extra-spec (car rltoks) :value)
+              prec  (semantic-token-extra-spec (car rltoks) :prec)
+              actn  (semantic-token-extra-spec (car rltoks) :expr)
               rule  nil)
         (when elems ;; not an EMPTY rule
           (while elems
