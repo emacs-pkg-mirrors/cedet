@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.52 2001/09/14 07:31:11 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.53 2001/09/18 18:18:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -237,25 +237,6 @@ Argument NONTERM is the nonterminal to test for expansion."
 	    (locate-library (semantic-token-name token)))))
     (concat f ".el")))
 
-(defun semantic-elisp-prototype-nonterminal (token &optional parent color)
-  "Return a prototype for the Emacs Lisp nonterminal TOKEN.
-PARENT and COLOR as for `semantic-prototype-nonterminal'."
-  (let* ((tok (semantic-token-token token))
-	 (args (semantic-nonterminal-children token))
-	 )
-    (if (eq tok 'function)
-	(concat (semantic-name-nonterminal token parent color) " ("
-		(mapconcat (lambda (a)
-			     (if color
-				 (if (string-match "^&" a)
-				     ;; This is a keyword
-				     (semantic-colorize-text a 'keyword)
-				   (semantic-colorize-text a 'variable))
-			       a))
-			   args " ")
-		")")
-      (semantic-prototype-nonterminal-default token parent color))))
-
 (defun semantic-elisp-find-documentation (token &optional nosnarf)
   "Return the documentation string for TOKEN.
 Optional argument NOSNARF is ignored."
@@ -290,8 +271,6 @@ Override function for `semantic-nonterminal-protection'."
   "Setup hook function for Emacs Lisp files and Semantic."
   (semantic-install-function-overrides
    '((find-dependency . semantic-elisp-find-dependency)
-     (prototype-nonterminal . semantic-elisp-prototype-nonterminal)
-     (concise-prototype-nonterminal . semantic-elisp-prototype-nonterminal)
      (find-documentation . semantic-elisp-find-documentation)
      (insert-foreign-token . semantic-elisp-insert-foreign-token)
      (nonterminal-protection . semantic-elisp-nonterminal-protection)
@@ -299,6 +278,8 @@ Override function for `semantic-nonterminal-protection'."
    t)
   (setq semantic-toplevel-bovine-table semantic-toplevel-elisp-bovine-table
 	semantic-expand-nonterminal 'semantic-expand-elisp-nonterminal
+	semantic-function-argument-separator " "
+	semantic-function-argument-separation-character " "
 	semantic-symbol->name-assoc-list
 	'( (variable . "Variables")
 	   (type     . "Types")
