@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.12 2003/02/19 16:28:07 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.13 2003/03/16 09:29:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,7 +54,7 @@
 (require 'wisent-bovine)
 
 (defconst wisent-calc-automaton
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-18 22:45+0100
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-03-14 17:31+0100
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -71,7 +71,7 @@
          (format "%s %s" $1 $2)))
        (line
         ((59)
-         (progn ";"))
+         ";")
         ((exp 59)
          (format "%s;" $1)))
        (exp
@@ -93,12 +93,12 @@
         ((exp 94 exp)
          (expt $1 $3))
         ((40 exp 41)
-         (progn $2))))
+         $2)))
      'nil))
   "Parser automaton.")
 
 (defconst wisent-calc-tokens
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-18 22:45+0100
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-03-14 17:31+0100
   (wisent-lex-make-token-table
    '(("number"
       (NUM)))
@@ -123,7 +123,7 @@
 
 (defun wisent-calc-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-18 22:45+0100
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-03-14 17:31+0100
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
