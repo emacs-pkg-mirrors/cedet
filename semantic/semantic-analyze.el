@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.26 2004/02/06 00:41:33 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.27 2004/02/06 14:11:43 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,48 +54,43 @@
   "Attempt to find a tag with PREFIX.
 This is a wrapper on top of semanticdb, and semantic search functions.
 Almost all searches use the same arguments."
-  (let ((expr (concat "^" (regexp-quote prefix))))
-    (if (and (fboundp 'semanticdb-minor-mode-p)
-	     (semanticdb-minor-mode-p))
-	;; Search the database
-	(let ((dbans (semanticdb-find-tags-for-completion
-		      prefix nil t)))
-	  ;; Concatenate all matches together.
-	  (apply #'append (mapcar #'cdr dbans))
-	  )
-      ;; Search just this file because there is no DB available.
-      (semantic-find-tags-by-name-regexp
-       expr (current-buffer)))))
+  (if (and (fboundp 'semanticdb-minor-mode-p)
+           (semanticdb-minor-mode-p))
+      ;; Search the database & concatenate all matches together.
+      (semanticdb-strip-find-results
+       (semanticdb-find-tags-for-completion
+        prefix nil t))
+    ;; Search just this file because there is no DB available.
+    (semantic-find-tags-for-completion
+     prefix (current-buffer))))
  
 (defun semantic-analyze-find-tag (name &optional tagclass scope)
-  "Attempt to find a tag with NAME.
-Optional argument TAGCLASS specifies the class of tag to
-return, such as 'function or 'variable.
-Optional argument SCOPE specifies additional type tags which
-are in SCOPE and do not need prefixing to find.
+  "Return the first tag found with NAME or nil if not found.
+Optional argument TAGCLASS specifies the class of tag to return, such
+as 'function or 'variable.
+Optional argument SCOPE specifies additional type tags which are in
+SCOPE and do not need prefixing to find.
 This is a wrapper on top of semanticdb, and semantic search functions.
-Almost all searches use the same arguments.
-
-NOTE: TAGCLASS isn't being used right now.  Fix?"
-  (let ((ret nil) (retlist nil))
-    (if scope
-	(setq retlist (semantic-find-tags-by-name name scope)))
-    (when (not retlist)
-      (setq retlist
-	    (if (and (fboundp 'semanticdb-minor-mode-p)
-		     (semanticdb-minor-mode-p))
-		;; Search the database
-		(semanticdb-strip-find-results
-		 (semanticdb-find-tags-by-name
-		  name nil t))
-	      ;; Search just this file
-	      (semantic-find-tags-by-name
-	       name (current-buffer)))))
-    ;; Scan only for tags of a given class.
-    (while (and retlist (not ret))
-      (when (semantic-tag-of-class-p (car retlist) tagclass)
-	(setq ret (car retlist)))
-      (setq retlist (cdr retlist)))
+Almost all searches use the same arguments."
+  (let ((retlist
+         (or (and scope (semantic-find-tags-by-name name scope))
+             (if (and (fboundp 'semanticdb-minor-mode-p)
+                      (semanticdb-minor-mode-p))
+                 ;; Search the database
+                 (semanticdb-strip-find-results
+                  (semanticdb-find-tags-by-name name nil t))
+               ;; Search just this file
+               (semantic-find-tags-by-name
+                name (current-buffer)))))
+        ret)
+    (if tagclass
+        ;; Scan only for tags of a given class.
+        (while (and retlist (not ret))
+          (if (semantic-tag-of-class-p (car retlist) tagclass)
+              (setq ret (car retlist))
+            (setq retlist (cdr retlist))))
+      ;; Just get the first tag found.
+      (setq ret (car retlist)))
     ret))
 
 (defun semantic-analyze-tag-type-to-name (tag)
