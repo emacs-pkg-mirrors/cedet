@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.15 2001/10/31 01:30:03 zappo Exp $
+@c $Id: speedbar.texi,v 1.16 2002/02/28 16:34:28 zappo Exp $
 @c
 
 @c This file is part of GNU Emacs
@@ -27,7 +27,7 @@
 * Speedbar: (speedbar).        File/Tag summarizing utility.
 @end direntry
 @ifnottex
-Copyright @copyright{} 1999, 2000, 2001 Free Software Foundation, Inc.
+Copyright @copyright{} 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.1 or
@@ -523,10 +523,14 @@ In speedbar, a hidden file is a file which isn't very interesting and
 might prove distracting to the user.  Any uninteresting files are
 removed from the File display.  There are two levels of uninterest in
 speedbar.  The first level of uninterest are files which have no
-expansion method, or way of extracting tags.  The second level is any
-file that matches the same pattern used for completion in
+expansion method, or way of extracting tags.  You can define which
+files are interesting with
+@code{speedbar-supported-extension-expressions}.  The second level is
+any file that matches the same pattern used for completion in
 @code{find-file}.  This is derived from the variable
-@code{completion-ignored-extensions}.
+@code{completion-ignored-extensions}.  This filter will override the
+supported extensions, so beif you add something to be supported, and
+it doesn't appear, check for this.
 
 You can toggle the display of uninteresting files from the toggle menu
 item @samp{Show All Files}.  This will display all level one hidden files.
