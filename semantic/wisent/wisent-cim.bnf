@@ -1,0 +1,495 @@
+## ----------------- ##
+## GNU Cim Grammar.  ##
+## ----------------- ##
+
+# GNU Cim, the GNU Simula 87 Compiler.
+
+# --------
+# Settings
+# --------
+%parsermode    lalr ## Generate tables for the LALR parser
+%outputfile    wisent-cim.el
+%parsetable    wisent-cim-parser-tables
+%keywordtable  wisent-cim-keywords
+%tokentable    wisent-cim-tokens
+%languagemode  cim-mode
+%setupfunction wisent-cim-default-setup
+
+%start MAIN_MODULE
+
+# ---------
+# Terminals
+# ---------
+%token HACTIVATE ""
+%token HAFTER ""
+%token HARRAY ""
+%token HAT ""
+%token HBEFORE ""
+%token HBEGIN ""
+%token HBOOLEAN ""
+%token HCHARACTER ""
+%token HCLASS ""
+%token HCONC ""
+%token HDELAY ""
+%token HDO ""
+%token HELSE ""
+%token HEND ""
+%token HEXTERNAL ""
+%token HFOR ""
+%token HGO ""
+%token HGOTO ""
+%token HHIDDEN ""
+%token HIF ""
+%token HINNER ""
+%token HINSPECT ""
+%token HINTEGER ""
+%token HLABEL ""
+%token HLONG ""
+%token HNAME ""
+%token HNEW ""
+%token HNONE ""
+%token HOTHERWISE ""
+%token HPRIOR ""
+%token HPROCEDURE ""
+%token HPROTECTED ""
+%token HQUA ""
+%token HREACTIVATE ""
+%token HREAL ""
+%token HREF ""
+%token HSHORT ""
+%token HSTEP ""
+%token HSWITCH ""
+%token HTEXT ""
+%token HTHEN ""
+%token HTHIS ""
+%token HTO ""
+%token HUNTIL ""
+%token HVALUE ""
+%token HVAR ""
+%token HVIRTUAL ""
+%token HWHEN ""
+%token HWHILE ""
+%token HPAREXPSEPARATOR ""
+%token HLABELSEPARATOR ""
+%token HSTATEMENTSEPARATOR ""
+%token HBEGPAR ""
+%token HENDPAR ""
+%token HDOTDOTDOT ""
+%token HIDENTIFIER ""
+%token HBOOLEANKONST ""
+%token HINTEGERKONST ""
+%token HCHARACTERKONST ""
+%token HREALKONST ""
+%token HTEXTKONST ""
+%token HASSIGN ""
+%token HEQV ""
+%token HIMP ""
+%token HOR ""
+%token HAND ""
+%token HNOT ""
+%token HVALRELOPERATOR ""
+%token HREFRELOPERATOR ""
+%token HOBJRELOPERATOR ""
+%token HTERMOPERATOR ""
+%token HFACTOROPERATOR ""
+%token HPRIMARYOPERATOR ""
+%token HDOT ""
+
+# ---------------------------
+# Resolution of S/R conflicts
+# ---------------------------
+#
+# Contains 73 shift/reduce conflicts and 12 reduce/reduce conflicts
+#
+# State 60 contains 14 shift/reduce conflicts.
+# State 111 contains 1 shift/reduce conflict.
+# State 112 contains 1 shift/reduce conflict.
+# State 173 contains 1 shift/reduce conflict.
+# State 191 contains 14 shift/reduce conflicts.
+# State 192 contains 14 shift/reduce conflicts.
+# State 247 contains 9 shift/reduce conflicts and 2 reduce/reduce conflicts.
+# State 260 contains 6 reduce/reduce conflicts.
+# State 290 contains 1 shift/reduce conflict.
+# State 294 contains 9 shift/reduce conflicts and 2 reduce/reduce conflicts.
+# State 361 contains 9 shift/reduce conflicts and 2 reduce/reduce conflicts.
+
+%right HASSIGN;
+%left  HORELSE;
+%left  HANDTHEN;
+%left  HEQV;
+%left  HIMP;
+%left  HOR;
+%left  HAND;
+%left  HNOT;
+%left  HVALRELOPERATOR HREFRELOPERATOR HOBJRELOPERATOR;
+%left  HCONC;
+%left  HTERMOPERATOR;
+%left  UNEAR;
+%left  HFACTOROPERATOR;
+%left  HPRIMARYOPERATOR;
+%left  HQUA;
+%left  HDOT;
+
+%%
+# -------
+# Grammar
+# -------
+
+MAIN_MODULE: MODULS
+           | error HSTATEMENTSEPARATOR MBEE_DECLSTMS
+           ;
+
+EXT_DECLARATION: HEXTERNAL MBEE_TYPE HPROCEDURE EXT_LIST
+               | HEXTERNAL HIDENTIFIER HPROCEDURE HIDENTIFIER EXTERNAL_KIND_ITEM
+               | HEXTERNAL HCLASS EXT_LIST
+               ;
+
+EXTERNAL_KIND_ITEM: EXT_IDENT HOBJRELOPERATOR MBEE_TYPE HPROCEDURE HIDENTIFIER HEADING EMPTY_BLOCK
+                  ;
+
+EMPTY_BLOCK: EMPTY
+           | HBEGIN HEND
+           ;
+
+EXT_LIST: EXT_ITEM
+        | EXT_LIST HPAREXPSEPARATOR EXT_ITEM
+        ;
+
+EXT_ITEM: HIDENTIFIER EXT_IDENT
+        ;
+
+EXT_IDENT: EMPTY
+         | HVALRELOPERATOR HTEXTKONST
+         ;
+
+NO_TYPE: EMPTY
+       ;
+
+MBEE_TYPE: NO_TYPE
+         | TYPE
+         ;
+
+TYPE: HREF HBEGPAR HIDENTIFIER HENDPAR
+    | HTEXT
+    | HBOOLEAN
+    | HCHARACTER
+    | HSHORT HINTEGER
+    | HINTEGER
+    | HREAL
+    | HLONG HREAL
+    ;
+
+MBEE_ELSE_PART: EMPTY
+              | HELSE BLOCK
+              ;
+
+FOR_LIST: FOR_LIST_ELEMENT
+        | FOR_LIST_ELEMENT HPAREXPSEPARATOR FOR_LIST
+        ;
+
+FOR_LIST_ELEMENT: EXPRESSION MBEE_F_L_EL_R_PT
+                ;
+
+MBEE_F_L_EL_R_PT: EMPTY
+                | HWHILE EXPRESSION
+                | HSTEP EXPRESSION HUNTIL EXPRESSION
+                ;
+
+GOTO: HGO HTO
+    | HGOTO
+    ;
+
+CONN_STATE_R_PT: WHEN_CLAUSE_LIST
+               | HDO BLOCK
+               ;
+
+WHEN_CLAUSE_LIST: HWHEN HIDENTIFIER HDO BLOCK
+                | WHEN_CLAUSE_LIST HWHEN HIDENTIFIER HDO BLOCK
+                ;
+
+MBEE_OTWI_CLAUS: EMPTY
+               | HOTHERWISE BLOCK
+               ;
+
+ACTIVATOR: HACTIVATE
+         | HREACTIVATE
+         ;
+
+SCHEDULE: EMPTY
+        | ATDELAY EXPRESSION PRIOR
+        | BEFOREAFTER EXPRESSION
+        ;
+
+ATDELAY: HAT
+       | HDELAY
+       ;
+
+BEFOREAFTER: HBEFORE
+           | HAFTER
+           ;
+
+PRIOR: EMPTY
+     | HPRIOR
+     ;
+
+MODULSTATEMENT: HWHILE EXPRESSION HDO BLOCK
+              | HIF EXPRESSION HTHEN BLOCK MBEE_ELSE_PART
+              | HFOR HIDENTIFIER HASSIGN FOR_LIST HDO BLOCK
+              | GOTO EXPRESSION
+              | HINSPECT EXPRESSION CONN_STATE_R_PT MBEE_OTWI_CLAUS
+              | HINNER
+              | HIDENTIFIER HLABELSEPARATOR DECLSTATEMENT
+              | EXPRESSION_SIMP HBEGIN IMPORT_SPEC_MODULE MBEE_DECLSTMS HEND
+              | EXPRESSION_SIMP HBEGIN error HSTATEMENTSEPARATOR MBEE_DECLSTMS HEND
+              | EXPRESSION_SIMP HBEGIN error HEND
+              | EXPRESSION_SIMP
+              | ACTIVATOR EXPRESSION SCHEDULE
+              | HBEGIN MBEE_DECLSTMS HEND
+              | MBEE_TYPE HPROCEDURE HIDENTIFIER HEADING BLOCK
+              | HIDENTIFIER HCLASS NO_TYPE IMPORT_SPEC_MODULE HIDENTIFIER HEADING BLOCK
+              | HCLASS NO_TYPE HIDENTIFIER HEADING BLOCK
+              | EXT_DECLARATION
+              | EMPTY
+              ;
+
+IMPORT_SPEC_MODULE: EMPTY
+                  ;
+
+DECLSTATEMENT: MODULSTATEMENT
+             | TYPE HIDENTIFIER MBEE_CONSTANT HPAREXPSEPARATOR IDENTIFIER_LISTC
+             | TYPE HIDENTIFIER MBEE_CONSTANT
+             | MBEE_TYPE HARRAY ARR_SEGMENT_LIST
+             | HSWITCH HIDENTIFIER HASSIGN SWITCH_LIST
+             ;
+
+BLOCK: DECLSTATEMENT
+     | HBEGIN MBEE_DECLSTMS HEND
+     | HBEGIN error HSTATEMENTSEPARATOR MBEE_DECLSTMS HEND
+     | HBEGIN error HEND
+     ;
+
+MBEE_DECLSTMS: MBEE_DECLSTMSU
+             ;
+
+MBEE_DECLSTMSU: DECLSTATEMENT
+              | MBEE_DECLSTMSU HSTATEMENTSEPARATOR DECLSTATEMENT
+              ;
+
+MODULS: MODULSTATEMENT
+      | MODULS HSTATEMENTSEPARATOR MODULSTATEMENT
+      ;
+
+ARR_SEGMENT_LIST: ARR_SEGMENT
+                | ARR_SEGMENT_LIST HPAREXPSEPARATOR ARR_SEGMENT
+                ;
+
+ARR_SEGMENT: ARRAY_SEGMENT HBEGPAR BAUND_PAIR_LIST HENDPAR
+           ;
+
+ARRAY_SEGMENT: ARRAY_SEGMENT_EL
+             | ARRAY_SEGMENT_EL HPAREXPSEPARATOR ARRAY_SEGMENT
+             ;
+
+ARRAY_SEGMENT_EL: HIDENTIFIER
+                ;
+
+BAUND_PAIR_LIST: BAUND_PAIR
+               | BAUND_PAIR HPAREXPSEPARATOR BAUND_PAIR_LIST
+               ;
+
+BAUND_PAIR: EXPRESSION HLABELSEPARATOR EXPRESSION
+          ;
+
+SWITCH_LIST: EXPRESSION
+           | EXPRESSION HPAREXPSEPARATOR SWITCH_LIST
+           ;
+
+HEADING: MBEE_FMAL_PAR_P HSTATEMENTSEPARATOR MBEE_MODE_PART MBEE_SPEC_PART MBEE_PROT_PART MBEE_VIRT_PART
+       ;
+
+MBEE_FMAL_PAR_P: EMPTY
+               | FMAL_PAR_PART
+               ;
+
+FMAL_PAR_PART: HBEGPAR NO_TYPE MBEE_LISTV HENDPAR
+             ;
+
+MBEE_LISTV: EMPTY
+          | LISTV
+          ;
+
+LISTV: HIDENTIFIER
+     | FPP_CATEG HDOTDOTDOT
+     | HIDENTIFIER HPAREXPSEPARATOR LISTV
+     | FPP_SPEC
+     | FPP_SPEC HPAREXPSEPARATOR LISTV
+     ;
+
+FPP_HEADING: HBEGPAR NO_TYPE FPP_MBEE_LISTV HENDPAR
+           ;
+
+FPP_MBEE_LISTV: EMPTY
+              | FPP_LISTV
+              ;
+
+FPP_LISTV: FPP_CATEG HDOTDOTDOT
+         | FPP_SPEC
+         | FPP_SPEC HPAREXPSEPARATOR LISTV
+         ;
+
+FPP_SPEC: FPP_CATEG SPECIFIER HIDENTIFIER
+        | FPP_CATEG FPP_PROC_DECL_IN_SPEC
+        ;
+
+FPP_CATEG: HNAME HLABELSEPARATOR
+         | HVALUE HLABELSEPARATOR
+         | HVAR HLABELSEPARATOR
+         | EMPTY
+         ;
+
+FPP_PROC_DECL_IN_SPEC: MBEE_TYPE HPROCEDURE HIDENTIFIER FPP_HEADING
+                     ;
+
+IDENTIFIER_LISTV: HIDENTIFIER
+                | HDOTDOTDOT
+                | HIDENTIFIER HPAREXPSEPARATOR IDENTIFIER_LISTV
+                ;
+
+MBEE_MODE_PART: EMPTY
+              | MODE_PART
+              ;
+
+MODE_PART: NAME_PART
+         | VALUE_PART
+         | VAR_PART
+         | NAME_PART VALUE_PART
+         | VALUE_PART NAME_PART
+         | NAME_PART VAR_PART
+         | VAR_PART NAME_PART
+         | VALUE_PART VAR_PART
+         | VAR_PART VALUE_PART
+         | VAR_PART NAME_PART VALUE_PART
+         | NAME_PART VAR_PART VALUE_PART
+         | NAME_PART VALUE_PART VAR_PART
+         | VAR_PART VALUE_PART NAME_PART
+         | VALUE_PART VAR_PART NAME_PART
+         | VALUE_PART NAME_PART VAR_PART
+         ;
+
+NAME_PART: HNAME IDENTIFIER_LISTV HSTATEMENTSEPARATOR
+         ;
+
+VAR_PART: HVAR IDENTIFIER_LISTV HSTATEMENTSEPARATOR
+        ;
+
+VALUE_PART: HVALUE IDENTIFIER_LISTV HSTATEMENTSEPARATOR
+          ;
+
+MBEE_SPEC_PART: EMPTY
+              | SPEC_PART
+              ;
+
+SPEC_PART: ONE_SPEC
+         | SPEC_PART ONE_SPEC
+         ;
+
+ONE_SPEC: SPECIFIER IDENTIFIER_LIST HSTATEMENTSEPARATOR
+        | NO_TYPE HPROCEDURE HIDENTIFIER HOBJRELOPERATOR PROC_DECL_IN_SPEC HSTATEMENTSEPARATOR
+        | FPP_PROC_DECL_IN_SPEC HSTATEMENTSEPARATOR
+        | MBEE_TYPE HPROCEDURE HIDENTIFIER HSTATEMENTSEPARATOR
+        | MBEE_TYPE HPROCEDURE HIDENTIFIER HPAREXPSEPARATOR IDENTIFIER_LIST HSTATEMENTSEPARATOR
+        ;
+
+SPECIFIER: TYPE
+         | MBEE_TYPE HARRAY
+         | HLABEL
+         | HSWITCH
+         ;
+
+PROC_DECL_IN_SPEC: MBEE_TYPE HPROCEDURE HIDENTIFIER HEADING MBEE_BEGIN_END
+                 ;
+
+MBEE_BEGIN_END: EMPTY
+              | HBEGIN HEND
+              ;
+
+MBEE_PROT_PART: EMPTY
+              | PROTECTION_PART
+              ;
+
+PROTECTION_PART: PROT_SPECIFIER IDENTIFIER_LIST HSTATEMENTSEPARATOR
+               | PROTECTION_PART PROT_SPECIFIER IDENTIFIER_LIST HSTATEMENTSEPARATOR
+               ;
+
+PROT_SPECIFIER: HHIDDEN
+              | HPROTECTED
+              | HHIDDEN HPROTECTED
+              | HPROTECTED HHIDDEN
+              ;
+
+MBEE_VIRT_PART: EMPTY
+              | VIRTUAL_PART
+              ;
+
+VIRTUAL_PART: HVIRTUAL HLABELSEPARATOR MBEE_SPEC_PART
+            ;
+
+IDENTIFIER_LIST: HIDENTIFIER
+               | IDENTIFIER_LIST HPAREXPSEPARATOR HIDENTIFIER
+               ;
+
+IDENTIFIER_LISTC: HIDENTIFIER MBEE_CONSTANT
+                | IDENTIFIER_LISTC HPAREXPSEPARATOR HIDENTIFIER MBEE_CONSTANT
+                ;
+
+MBEE_CONSTANT: EMPTY
+             | HVALRELOPERATOR EXPRESSION
+             ;
+
+EXPRESSION: EXPRESSION_SIMP
+          | HIF EXPRESSION HTHEN EXPRESSION HELSE EXPRESSION
+          ;
+
+EXPRESSION_SIMP: EXPRESSION_SIMP HASSIGN EXPRESSION
+               | EXPRESSION_SIMP HCONC EXPRESSION_SIMP
+               | EXPRESSION_SIMP HOR HELSE EXPRESSION_SIMP
+               | EXPRESSION_SIMP HAND HTHEN EXPRESSION_SIMP
+               | EXPRESSION_SIMP HEQV EXPRESSION_SIMP
+               | EXPRESSION_SIMP HIMP EXPRESSION_SIMP
+               | EXPRESSION_SIMP HOR EXPRESSION_SIMP
+               | EXPRESSION_SIMP HAND EXPRESSION_SIMP
+               | HNOT EXPRESSION_SIMP
+               | EXPRESSION_SIMP HVALRELOPERATOR EXPRESSION_SIMP
+               | EXPRESSION_SIMP HREFRELOPERATOR EXPRESSION_SIMP
+               | EXPRESSION_SIMP HOBJRELOPERATOR EXPRESSION_SIMP
+               | HTERMOPERATOR EXPRESSION_SIMP
+               | EXPRESSION_SIMP HTERMOPERATOR EXPRESSION_SIMP
+               | EXPRESSION_SIMP HFACTOROPERATOR EXPRESSION_SIMP
+               | EXPRESSION_SIMP HPRIMARYOPERATOR EXPRESSION_SIMP
+               | HBEGPAR EXPRESSION HENDPAR
+               | HTEXTKONST
+               | HCHARACTERKONST
+               | HREALKONST
+               | HINTEGERKONST
+               | HBOOLEANKONST
+               | HNONE
+               | HIDENTIFIER MBEE_ARG_R_PT
+               | HTHIS HIDENTIFIER
+               | HNEW HIDENTIFIER ARG_R_PT
+               | EXPRESSION_SIMP HDOT EXPRESSION_SIMP
+               | EXPRESSION_SIMP HQUA HIDENTIFIER
+               ;
+
+ARG_R_PT: EMPTY
+        | HBEGPAR ARGUMENT_LIST HENDPAR
+        ;
+
+MBEE_ARG_R_PT: EMPTY
+             | HBEGPAR ARGUMENT_LIST HENDPAR
+             ;
+
+ARGUMENT_LIST: EXPRESSION
+             | EXPRESSION HPAREXPSEPARATOR ARGUMENT_LIST
+             ;
+
+%%
