@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.38 2000/10/03 03:57:59 zappo Exp $
+;; RCS: $Id: ede.el,v 1.39 2000/10/04 02:51:28 zappo Exp $
 (defconst ede-version "0.8"
   "Current version of the Emacs EDE.")
 
@@ -707,27 +707,38 @@ Argument NEWVERSION is the version number to use in the current project."
   "The old variables for a project.")
 
 (defalias 'customize-project 'ede-customize-project)
-(defun ede-customize-project ()
-  "Edit fields of the current project through EIEIO & Custom."
-  (interactive)
+(defun ede-customize-project (&optional group)
+  "Edit fields of the current project through EIEIO & Custom.
+Optional GROUP specifies the subgroup of slots to customize."
+  (interactive "P")
   (require 'eieio-custom)
-  (let ((ov (oref (ede-current-project) local-variables))
-	(cp (ede-current-project)))
-    (eieio-customize-object cp)
+  (let* ((ov (oref (ede-current-project) local-variables))
+	 (cp (ede-current-project))
+	 (group (if group (eieio-read-customization-group cp))))
+    (eieio-customize-object cp group)
     (make-local-variable 'eieio-ede-old-variables)
     (setq eieio-ede-old-variables ov)))
 
-(defalias 'customize-target 'ede-customize-target)
-(defun ede-customize-target (&optional obj)
+(defalias 'customize-target 'ede-customize-current-target)
+(defun ede-customize-current-target(&optional group)
   "Edit fields of the current target through EIEIO & Custom.
-Optional argument OBJ is the target object to customize"
-  (interactive)
-  (setq obj (or obj ede-object))
+Optional argument OBJ is the target object to customize.
+Optional argument GROUP is the slot group to display."
+  (interactive "P")
   (require 'eieio-custom)
-  (if (and obj
-	   (obj-of-class-p obj ede-project))
+  (if (not (obj-of-class-p ede-object ede-target))
+      (error "Current file is not part of a target."))
+  (let ((group (if group (eieio-read-customization-group ede-object))))
+    (ede-customize-target ede-object group)))
+
+(defun ede-customize-target (obj group)
+  "Edit fields of the current target through EIEIO & Custom.
+Optional argument OBJ is the target object to customize.
+Optional argument GROUP is the slot group to display."
+  (require 'eieio-custom)
+  (if (and obj (not (obj-of-class-p obj ede-target)))
       (error "No logical target to customize"))
-  (eieio-customize-object obj))
+  (eieio-customize-object obj (or group 'default)))
 
 (defmethod eieio-done-customizing ((proj ede-project))
   "Call this when a user finishes customizing PROJ."
