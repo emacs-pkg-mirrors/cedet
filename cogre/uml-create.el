@@ -1,10 +1,10 @@
 ;;; cogre-uml.el --- UML support for COGRE
 
-;;; Copyright (C) 2001 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.7 2001/12/05 01:48:20 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.8 2003/02/25 21:20:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -72,8 +72,7 @@ Optional argument FIELDS are not used."
 		 (or (string= (semantic-token-type tok) "class")
 		     (string= (semantic-token-type tok) "struct")))
 	    (let ((slots (semantic-token-type-parts tok))
-		  (extmeth (semanticdb-find-nonterminal-by-extra-spec-value
-			    'parent (semantic-token-name tok) nil nil nil t))
+		  (extmeth (semantic-nonterminal-external-member-children tok t))
 		  attrib method)
 	      ;; Bin them up
 	      (while slots
@@ -113,7 +112,7 @@ Optional argument FIELDS are not used."
 		((and (listp class)
 		      (stringp (car class)))
 		 (oset this object-name (car class)))
-		(t inl))	    
+		(t inl))
 	  (oset this class nil)
 	  (oset this attributes nil)
 	  (oset this methods nil)
@@ -360,7 +359,7 @@ The parent to CLASS, CLASS, and all of CLASSes children will be shown."
     ;; Create all the parent nodes in the graph, and align them.
     (while parent
       (setq parent-nodes
-	    (cons (make-instance 'cogre-semantic-class
+	    (cons (make-instance cogre-semantic-class
 				 :position (vector x-accum y-accum)
 				 :class (car parent))
 		  parent-nodes))
