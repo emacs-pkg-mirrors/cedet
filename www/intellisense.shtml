@@ -132,11 +132,6 @@ Smart Completion
 </td>
 </table>
 
-<p>
-<b>NOTE:</b> At this time, beta 2 is being put together in CVS.  Please use
-the CVS version of Semantic to get these features.
-</p>
-
 <p>In Semantic 2.0 starting with beta2, there are two new ways for
 smart completion to be accessed.  Please read the Info manual on
 these topics.
