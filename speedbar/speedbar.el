@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.7b
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.83 1998/03/12 20:15:59 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.84 1998/03/12 20:29:25 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -1946,7 +1946,8 @@ cell of the form ( 'DIRLIST . 'FILELIST )"
 			      (car dirs) 'speedbar-dir-follow nil
 			      'speedbar-directory-face level)
       (setq dirs (cdr dirs))))
-  (let ((lst (car (cdr files))))
+  (let ((lst (car (cdr files)))
+	(case-fold-search t))
     (while lst
       (let* ((known (string-match speedbar-file-regexp (car lst)))
 	     (expchar (if known ?+ ??))
@@ -2245,7 +2246,8 @@ updated."
 		     rf)))
 	 (newcf (if newcfd (file-name-nondirectory newcfd)))
 	 (lastb (current-buffer))
-	 (sucf-recursive (boundp 'sucf-recursive)))
+	 (sucf-recursive (boundp 'sucf-recursive))
+	 (case-fold-search t))
     (if (and newcf
 	     ;; check here, that way we won't refresh to newcf until
 	     ;; its been written, thus saving ourselves some time
