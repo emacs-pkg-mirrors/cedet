@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.11 2003/08/29 16:06:01 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.12 2003/09/02 16:09:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,7 +232,7 @@ PARENTOBJ is the CB object which is the parent of TOKEN"
 		;; This makes a mock DB list
 		(cons db (semantic-tag-type-members token))
 		;; External children in DB form.
-		(semantic-nonterminal-external-member-children
+		(semantic-tag-external-member-children
 		 token t)))
 	 ;; This is a created CB object which will represent
 	 ;; this type.
