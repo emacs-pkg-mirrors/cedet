@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.6.3.b
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.78 1998/03/06 23:05:33 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.79 1998/03/06 23:11:55 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -405,11 +405,6 @@ frame."
 (defvar speedbar-special-mode-expansion-list nil
   "Default function list for creating specialized button lists.
 Similar to `speedbar-initial-expansion-list'.")
-
-(defvar speedbar-easymenu-definition-special nil
-  "Default easymeny definition for specialized speedbar displays.
-Used as the center part of the speedbar meny in specialized speedbar
-modes.")
 
 (defcustom speedbar-visiting-file-hook nil
   "Hooks run when speedbar visits a file in the selected frame."
