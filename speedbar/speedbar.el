@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.7d
+;; Version: 0.7e
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.88 1998/03/18 18:29:50 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.89 1998/04/15 13:48:25 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -101,7 +101,13 @@
 ;; The delay time before this happens is in
 ;; `speedbar-navigating-speed', and defaults to 10 seconds.
 ;;
-;;    Users XEmacs previous to 20 may want to change the default
+;;    Tag layout can be modified through `speedbar-tag-hierarchy-method',
+;; which controls how tags are layed out.  It is actually a list of
+;; functions that filter the data.  The default groups large tag lists
+;; into sub-lists.  A long flat list can be used instead if needed.
+;; Other filters could be easily added.
+;;
+;;    Users of XEmacs previous to 20 may want to change the default
 ;; timeouts for `speedbar-update-speed' to something longer as XEmacs
 ;; doesn't have idle timers, the speedbar timer keeps going off
 ;; arbitrarily while you're typing.  It's quite pesky.
@@ -335,12 +341,16 @@
 ;;       Added fortran expressions ftom Bruce Ravelravel@phys.washington.edu
 ;;       It is now possible to manage multiple expansion lists for
 ;;         speedbar and reference them by string.
+;;       Added new 'buffers' and 'quickbuffers' major display modes
+;;         for speedbar.  Quickbuffers auto-restores the previous
+;;         display mode.  Both show the buffer list, and lets the user
+;;         click on the desired buffer to bring it to the front.
 ;;       Added new tag grouping code.  It is controlled through
-;;        `speedbar-tag-hierarchy-method' & `speedbar-tag-split-minimum-length'
+;;        `speedbar-tag-hierarchy-method', `speedbar-tag-split-minimum-length',
+;;        and `speedbar-tag-regroup-maximum-length'
 
 ;;; TODO:
 ;; - More functions to create buttons and options
-;; - filtering algorithms to reduce the number of tags/files displayed.
 ;; - Timeout directories we haven't visited in a while.
 ;; - Remeber tags when refreshing the display.  (Refresh tags too?)
 ;; - More 'special mode support.
@@ -391,25 +401,37 @@
 (defvar speedbar-xemacs20p (and speedbar-xemacsp (= emacs-major-version 20)))
 
 (defvar speedbar-initial-expansion-mode-alist
-  '(("file" speedbar-directory-buttons speedbar-default-directory-list))
+  '(("files" speedbar-easymenu-definition-special
+     speedbar-directory-buttons speedbar-default-directory-list)
+    ("buffers" speedbar-buffer-easymenu-definition
+     speedbar-buffer-buttons)
+    ("quick buffers" speedbar-buffer-easymenu-definition
+     speedbar-buffer-buttons-temp)
+    )
   "List of named expansion elements for filling the speedbar frame.
 These expansion lists are only valid for regular files.  Special modes
 still get to override this list on a mode-by-mode basis.  This list of
-lists is of the form (NAME FN1 FN2 ...).  NAME is a string
-representing the types of things to be displayed.  FN1 ... are
-functions that will be called in order.  These functions will always
-get the default directory to use passed in as the first parameter, and
-a 0 as the second parameter.  The 0 indicates the uppermost
-indentation level.  They must assume that the cursor is at the
-position where they start inserting buttons.")
+lists is of the form (NAME MENU FN1 FN2 ...).  NAME is a string
+representing the types of things to be displayed.  MENU is an easymenu
+structure used when in this mode.  FN1 ... are functions that will be
+called in order.  These functions will always get the default
+directory to use passed in as the first parameter, and a 0 as the
+second parameter.  The 0 indicates the uppermost indentation level.
+They must assume that the cursor is at the position where they start
+inserting buttons.")
 
-(defcustom speedbar-initial-expansion-list-name "file"
+(defcustom speedbar-initial-expansion-list-name "files"
   "A symbol name representing the expansion list to use.
 The expansion list `speedbar-initial-expansion-mode-alist' contains
 the names and associated functions to use for buttons in speedbar."
   :group 'speedbar
   :type '(radio (const :tag "File Directorys" file)
 	       ))
+
+(defvar speedbar-previously-used-expansion-list-name "files"
+  "Save the last expansion list method.
+This is used for returning to a previous expansion list method when
+the user is done with the current expansion list.")
 
 (defvar speedbar-stealthy-function-list
   '(speedbar-update-current-file speedbar-check-vc speedbar-check-objects)
@@ -519,7 +541,8 @@ use etags instead.  Etags support is not as robust as imenu support."
   :group 'speedbar
   :type 'boolean)
 
-(defcustom speedbar-tag-hierarchy-method '(prefix-group trim-words)
+(defcustom speedbar-tag-hierarchy-method
+  '(prefix-group trim-words)
   "*List of methods which speedbar will use to organize tags into groups.
 Groups are defined as expandable meta-tags.  Imenu supports such
 things in some languages, such as separating variables from functions.
@@ -538,10 +561,18 @@ Available methods are:
 	   (const :tag "Group loose tags into their own group." simple-group))
 	  ))
 
-(defcustom speedbar-tag-split-minimum-length 10
+(defcustom speedbar-tag-split-minimum-length 20
   "*Minimum length before we stop trying to create sub-lists in tags.
 This is used by all tag-hierarchy methods that break large lists into
 sub-lists."
+  :group 'speedbar
+  :type 'integer)
+
+(defcustom speedbar-tag-regroup-maximum-length 10
+  "*Maximum length of submenus that are regrouped.
+If the regrouping option is used, then if two or more short subgroups
+are next to eachother, then they are combined until this number of
+items is reached."
   :group 'speedbar
   :type 'integer)
 
@@ -747,7 +778,7 @@ It is generated from the variable `completion-ignored-extensions'")
   (append '(".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".l" ".lsp" ".p" ".java" ".f\\(90\\|77\\|or\\)?")
 	  (if speedbar-use-imenu-flag
-	      '(".ada" ".pl" ".tcl" ".m" ".scm" ".pm"
+	      '(".ada" ".pl" ".tcl" ".m" ".scm" ".pm" ".py"
 		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
@@ -950,12 +981,10 @@ to toggle this value.")
   "Additional menu items while in file-mode.")
  
 (defvar speedbar-easymenu-definition-trailer
-  (if (and (featurep 'custom) (fboundp 'custom-declare-variable))
-      '("----"
-	["Customize..." speedbar-customize t]
-	["Close" speedbar-close-frame t])
-    '("----"
-      ["Close" speedbar-close-frame t]))
+  (list
+   (if (and (featurep 'custom) (fboundp 'custom-declare-variable))
+       ["Customize..." speedbar-customize t])
+   ["Close" speedbar-close-frame t])
   "Menu items appearing at the end of the speedbar menu.")
 
 (defvar speedbar-desired-buffer nil
@@ -1263,19 +1292,37 @@ redirected into a window on the attached frame."
   "Reconfigure the menu-bar in a speedbar frame.
 Different menu items are displayed depending on the current display mode
 and the existence of packages."
-  (let ((md (append speedbar-easymenu-definition-base
-		    (if speedbar-shown-directories
-			;; file display mode version
-			speedbar-easymenu-definition-special
-		      (save-excursion
-			(select-frame speedbar-attached-frame)
-			(if (local-variable-p
-			     'speedbar-easymenu-definition-special
-			     (current-buffer))
-			    ;; If bound locally, we can use it
-			    speedbar-easymenu-definition-special)))
-		    ;; The trailer
-		    speedbar-easymenu-definition-trailer)))
+  (let ((md (append
+	     speedbar-easymenu-definition-base
+	     (if speedbar-shown-directories
+		 ;; file display mode version
+		 (speedbar-initial-menu)
+	       (save-excursion
+		 (select-frame speedbar-attached-frame)
+		 (if (local-variable-p
+		      'speedbar-easymenu-definition-special
+		      (current-buffer))
+		     ;; If bound locally, we can use it
+		     speedbar-easymenu-definition-special)))
+	     ;; Dynamic menu stuff
+	     '("-")
+	    (list (cons "Displays"
+			(let ((displays nil)
+			      (alist speedbar-initial-expansion-mode-alist))
+			  (while alist
+			    (setq displays
+				  (cons
+				   (vector
+				    (capitalize (car (car alist)))
+				    (list
+				     'speedbar-change-initial-expansion-list
+				     (car (car alist)))
+				    t)
+				   displays))
+			    (setq alist (cdr alist)))
+			  displays)))
+	    ;; The trailer
+	    speedbar-easymenu-definition-trailer)))
     (easy-menu-define speedbar-menu-map speedbar-key-map "Speedbar menu" md)
     (if speedbar-xemacsp
 	(save-excursion
@@ -1765,8 +1812,17 @@ will be run with the TOKEN parameter (any lisp object)"
   "Return the current default expansion list.
 This is based on `speedbar-initial-expansion-list-name' referencing
 `speedbar-initial-expansion-mode-alist'."
-  (cdr (assoc speedbar-initial-expansion-list-name
-	      speedbar-initial-expansion-mode-alist)))
+  ;; cdr1 - name, cdr2 - menu
+  (cdr (cdr (assoc speedbar-initial-expansion-list-name
+		   speedbar-initial-expansion-mode-alist))))
+
+(defun speedbar-initial-menu ()
+  "Return the current default menu data.
+This is based on `speedbar-initial-expansion-list-name' referencing
+`speedbar-initial-expansion-mode-alist'."
+  (symbol-value
+   (car (cdr (assoc speedbar-initial-expansion-list-name
+		    speedbar-initial-expansion-mode-alist)))))
 
 (defun speedbar-add-expansion-list (new-list)
   "Add NEW-LIST to the list of expansion lists."
@@ -1777,14 +1833,17 @@ This is based on `speedbar-initial-expansion-list-name' referencing
   "Change speedbar's default expansion list to NEW-DEFAULT."
   (interactive
    (list
-    (completing-read "Speedbar Mode: "
+    (completing-read (format "Speedbar Mode (default %s): "
+			     speedbar-previously-used-expansion-list-name)
 		     speedbar-initial-expansion-mode-alist
-		     nil t speedbar-initial-expansion-list-name)))
-  (setq speedbar-initial-expansion-list-name new-default)
+		     nil t "" nil
+		     speedbar-previously-used-expansion-list-name)))
+  (setq speedbar-previously-used-expansion-list-name
+	speedbar-initial-expansion-list-name
+	speedbar-initial-expansion-list-name new-default)
   (speedbar-refresh)
-  ;; If we start a temp mode, then we update the speed.
-  (if (string-match "temp" new-default)
-      (speedbar-set-timer speedbar-navigating-speed)))
+  (speedbar-reconfigure-menubar))
+
 
 ;;; Special speedbar display management
 ;;
@@ -2056,103 +2115,172 @@ cell of the form ( 'DIRLIST . 'FILELIST )"
 
 (defun speedbar-apply-one-tag-hierarchy-method (lst method)
   "Adjust the tag hierarchy LST by METHOD."
-  (cond ((eq method 'sort)
-	 (sort (copy-alist lst)
-	       (lambda (a b) (string< (car a) (car b))))
-	 )
-	((eq method 'prefix-group)
-	 (let ((newlst nil)
-	       (sublst nil)
-	       (work-list nil)
-	       (junk-list nil)
-	       (bins (make-vector 256 nil))
-	       (diff-idx 0))
-	   ;; Break out sub-lists
-	   (while lst
-	     (if (listp (cdr-safe (car-safe lst)))
-		 (setq newlst (cons (car lst) newlst))
-	       (setq sublst (cons (car lst) sublst)))
-	     (setq lst (cdr lst)))
-	   ;; Now, first find out how long our list is.  Never let a
-	   ;; list get-shorter than our minimum.
-	   (if (<= (length sublst) speedbar-tag-split-minimum-length)
-	       (setq work-list (nreverse sublst))
-	     (setq diff-idx (length (try-completion "" sublst)))
-	     ;; Sort the whole list into bins.
-	     (while sublst
-	       (let ((e (car sublst))
-		     (s (car (car sublst))))
-		 (cond ((<= (length s) diff-idx)
-			;; 0 storage bin for shorty.
-			(aset bins 0 (cons e (aref bins 0))))
-		       (t
-			;; stuff into a bin based on ascii value at diff
-			(aset bins (aref s diff-idx)
-			      (cons e (aref bins (aref s diff-idx)))))))
-	       (setq sublst (cdr sublst)))
-	     ;; Go through all our bins  Stick singles into our
-	     ;; junk-list, everything else as sublsts in work-list
-	     (setq diff-idx 0)
-	     (while (> 256 diff-idx)
-	       (let ((l (aref bins diff-idx)))
-		 (if l
-		     (if (= (length l) 1)
-			 (setq junk-list (append junk-list l))
-		       (setq work-list
-			     (cons (cons (try-completion "" l) l)
-				   work-list)))))
-	       (setq diff-idx (1+ diff-idx))))
-	   ;; Now, stick our new list onto the end of
-	   (if work-list
-	       (if junk-list
-		   (append (nreverse newlst)
-			   (nreverse work-list)
-			   junk-list)
-		 (append (nreverse newlst)
-			 (nreverse work-list)))
-	     (append (nreverse newlst) junk-list))))
-	((eq method 'trim-words)
-	 (let ((newlst nil)
-	       (sublst nil)
-	       (trim-prefix nil)
-	       (trim-chars 0)
-	       (trimlst nil))
-	   (while lst
-	     (if (listp (cdr-safe (car-safe lst)))
-		 (setq newlst (cons (car lst) newlst))
-	       (setq sublst (cons (car lst) sublst)))
-	     (setq lst (cdr lst)))
-	   ;; Get the prefix to trim by.  Make sure that we don't trim
-	   ;; off silly pieces, only complete understandable words.
-	   (setq trim-prefix (try-completion "" sublst))
-	   (if (or (= (length sublst) 1)
-		   (not trim-prefix)
-		   (not (string-match "\\(\\w+\\W+\\)+" trim-prefix)))
-	       (append (nreverse newlst) (nreverse sublst))
-	     (setq trim-prefix (substring trim-prefix (match-beginning 0)
-					  (match-end 0)))
-	     (setq trim-chars (length trim-prefix))
-	     (while sublst
-	       (setq trimlst (cons
-			       (cons (substring (car (car sublst)) trim-chars)
-				     (cdr (car sublst)))
-			       trimlst)
-		     sublst (cdr sublst)))
-	     ;; Put the lists together
-	     (append (nreverse newlst) trimlst))))
-	((eq method 'simple-group)
-	 (let ((newlst nil)
-	       (sublst nil))
-	   (while lst
-	     (if (listp (cdr-safe (car-safe lst)))
-		 (setq newlst (cons (car lst) newlst))
-	       (setq sublst (cons (car lst) sublst)))
-	     (setq lst (cdr lst)))
-	   (if (not newlst)
-	       (nreverse sublst)
-	     (setq newlst (cons (cons "Tags" (nreverse sublst)) newlst))
-	     (nreverse newlst))))
-	(t lst)))
+  (cond
+   ((eq method 'sort)
+    (sort (copy-alist lst)
+	  (lambda (a b) (string< (car a) (car b)))))
+   ((eq method 'prefix-group)
+    (let ((newlst nil)
+	  (sublst nil)
+	  (work-list nil)
+	  (junk-list nil)
+	  (short-group-list nil)
+	  (short-start-name nil)
+	  (short-end-name nil)
+	  (num-shorts-grouped 0)
+	  (bins (make-vector 256 nil))
+	  (diff-idx 0))
+      ;; Break out sub-lists
+      (while lst
+	(if (listp (cdr-safe (car-safe lst)))
+	    (setq newlst (cons (car lst) newlst))
+	  (setq sublst (cons (car lst) sublst)))
+	(setq lst (cdr lst)))
+      ;; Now, first find out how long our list is.  Never let a
+      ;; list get-shorter than our minimum.
+      (if (<= (length sublst) speedbar-tag-split-minimum-length)
+	  (setq work-list (nreverse sublst))
+	(setq diff-idx (length (try-completion "" sublst)))
+	;; Sort the whole list into bins.
+	(while sublst
+	  (let ((e (car sublst))
+		(s (car (car sublst))))
+	    (cond ((<= (length s) diff-idx)
+		   ;; 0 storage bin for shorty.
+		   (aset bins 0 (cons e (aref bins 0))))
+		  (t
+		   ;; stuff into a bin based on ascii value at diff
+		   (aset bins (aref s diff-idx)
+			 (cons e (aref bins (aref s diff-idx)))))))
+	  (setq sublst (cdr sublst)))
+	;; Go through all our bins  Stick singles into our
+	;; junk-list, everything else as sublsts in work-list.
+	;; If two neighboring lists are both small, make a grouped
+	;; group combinding those two sub-lists.
+	(setq diff-idx 0)
+	(while (> 256 diff-idx)
+	  (let ((l (aref bins diff-idx)))
+	    (if l
+		(let ((tmp (cons (try-completion "" l) l)))
+		  (if (or (> (length l) speedbar-tag-regroup-maximum-length)
+			  (> (+ (length l) (length short-group-list))
+			     speedbar-tag-split-minimum-length))
+		      (progn
+			;; We have reached a longer list, so we
+			;; must finish off a grouped group.
+			(cond
+			 ((and short-group-list
+			       (= (length short-group-list)
+				  num-shorts-grouped))
+			  ;; All singles?  Junk list
+			  (setq junk-list (append short-group-list
+						  junk-list)))
+			 ((= num-shorts-grouped 1)
+			  ;; Only one short group?  Just stick it in
+			  ;; there by itself.
+			  (setq work-list
+				(cons (cons (try-completion
+					     "" short-group-list)
+					    (nreverse short-group-list))
+				      work-list)))
+			 (short-group-list
+			  ;; Multiple groups to be named in a special
+			  ;; way by displaying the range over which we
+			  ;; have grouped them.
+			  (setq work-list
+				(cons (cons (concat short-start-name
+						    " to "
+						    short-end-name)
+					    (nreverse short-group-list))
+				      work-list))))
+			;; Reset short group list information every time.
+			(setq short-group-list nil
+			      short-start-name nil
+			      short-end-name nil
+				num-shorts-grouped 0)))
+		  ;; Ok, now that we cleaned up the short-group-list,
+		  ;; we can deal with this new list, to decide if it
+		  ;; should go on one of these sub-lists or not.
+		  (if (< (length l) speedbar-tag-regroup-maximum-length)
+		      (setq short-group-list (append short-group-list l)
+			    num-shorts-grouped (1+ num-shorts-grouped)
+			    short-end-name (car tmp)
+			    short-start-name (if short-start-name
+						 short-start-name
+					       (car tmp)))
+		    (setq work-list (cons tmp work-list))))))
+	  (setq diff-idx (1+ diff-idx))))
+      ;; Did we run out of things?  Drop our new list onto the end.
+      (cond
+       ((and short-group-list (= (length short-group-list) num-shorts-grouped))
+	;; All singles?  Junk list
+	(setq junk-list (append short-group-list junk-list)))
+       ((= num-shorts-grouped 1)
+	;; Only one short group?  Just stick it in
+	;; there by itself.
+	(setq work-list
+	      (cons (cons (try-completion "" short-group-list)
+			  (nreverse short-group-list))
+		    work-list)))
+       (short-group-list
+	;; Multiple groups to be named in a special
+	;; way by displaying the range over which we
+	;; have grouped them.
+	(setq work-list
+	      (cons (cons (concat short-start-name " to " short-end-name)
+			  (nreverse short-group-list))
+		    work-list))))
+      ;; Now, stick our new list onto the end of
+      (if work-list
+	  (if junk-list
+	      (append (nreverse newlst)
+		      (nreverse work-list)
+		      junk-list)
+	    (append (nreverse newlst)
+		    (nreverse work-list)))
+	(append (nreverse newlst) junk-list))))
+   ((eq method 'trim-words)
+    (let ((newlst nil)
+	  (sublst nil)
+	  (trim-prefix nil)
+	  (trim-chars 0)
+	  (trimlst nil))
+      (while lst
+	(if (listp (cdr-safe (car-safe lst)))
+	    (setq newlst (cons (car lst) newlst))
+	  (setq sublst (cons (car lst) sublst)))
+	(setq lst (cdr lst)))
+      ;; Get the prefix to trim by.  Make sure that we don't trim
+      ;; off silly pieces, only complete understandable words.
+      (setq trim-prefix (try-completion "" sublst))
+      (if (or (= (length sublst) 1)
+	      (not trim-prefix)
+	      (not (string-match "\\(\\w+\\W+\\)+" trim-prefix)))
+	  (append (nreverse newlst) (nreverse sublst))
+	(setq trim-prefix (substring trim-prefix (match-beginning 0)
+				     (match-end 0)))
+	(setq trim-chars (length trim-prefix))
+	(while sublst
+	  (setq trimlst (cons
+			 (cons (substring (car (car sublst)) trim-chars)
+			       (cdr (car sublst)))
+			 trimlst)
+		sublst (cdr sublst)))
+	;; Put the lists together
+	(append (nreverse newlst) trimlst))))
+   ((eq method 'simple-group)
+    (let ((newlst nil)
+	  (sublst nil))
+      (while lst
+	(if (listp (cdr-safe (car-safe lst)))
+	    (setq newlst (cons (car lst) newlst))
+	  (setq sublst (cons (car lst) sublst)))
+	(setq lst (cdr lst)))
+      (if (not newlst)
+	  (nreverse sublst)
+	(setq newlst (cons (cons "Tags" (nreverse sublst)) newlst))
+	(nreverse newlst))))
+   (t lst)))
 
 (defun speedbar-create-tag-hierarchy (lst)
   "Adjust the tag hierarchy in LST, and return it.
@@ -3076,7 +3204,7 @@ frame instead."
 	  (let ((pop-up-frames t)) (select-window (display-buffer buff)))
 	(select-frame speedbar-attached-frame)
 	(switch-to-buffer buff))))
-  )
+ )
 
 ;;; Centering Utility
 ;;
@@ -3361,6 +3489,76 @@ strict standard."
 	     (buffer-substring-no-properties (match-beginning 0)
 					     (match-end 0)))
 	    (t nil)))))
+
+
+;;; BUFFER DISPLAY mode.
+;;
+(defvar speedbar-buffer-easymenu-definition
+  '(["Jump to buffer" speedbar-edit-line t]
+    )
+  "Menu item elements shown when displaying a buffer list.")
+
+(defun speedbar-buffer-buttons (directory zero)
+  "Create speedbar buttons based on the buffers currently loaded.
+DIRECTORY is the path to the currently active buffer, and ZERO is 0."
+  (speedbar-buffer-buttons-engine nil))
+
+(defun speedbar-buffer-buttons-temp (directory zero)
+  "Create speedbar buttons based on the buffers currently loaded.
+DIRECTORY is the path to the currently active buffer, and ZERO is 0."
+  (speedbar-buffer-buttons-engine t))
+
+(defun speedbar-buffer-buttons-engine (temp)
+  "Create speedbar buffer buttons.
+If TEMP is non-nil, then clicking on a buffer restores the previous display."
+  (insert "Active Buffers:\n")
+  (let ((bl (buffer-list)))
+    (while bl
+      (if (string-match "^[ *]" (buffer-name (car bl)))
+	  nil
+	(speedbar-make-tag-line 'bracket
+				(if (string-match speedbar-file-regexp
+						  (buffer-name (car bl)))
+				    ?+  ??)
+				nil nil
+				(buffer-name (car bl))
+				'speedbar-buffer-click temp
+				'speedbar-file-face 0))
+      (setq bl (cdr bl)))
+    (setq bl (buffer-list))
+    (insert "Scratch Buffers:\n")
+    (while bl
+      (if (not (string-match "^\\*" (buffer-name (car bl))))
+	  nil
+	(if (eq (car bl) speedbar-buffer)
+	    nil
+	  (speedbar-make-tag-line 'bracket ?? nil nil
+				  (buffer-name (car bl))
+				  'speedbar-buffer-click temp
+				  'speedbar-file-face 0)))
+      (setq bl (cdr bl)))
+    (setq bl (buffer-list))
+    (insert "Hidden Buffers:\n")
+    (while bl
+      (if (not (string-match "^ " (buffer-name (car bl))))
+	  nil
+	(if (eq (car bl) speedbar-buffer)
+	    nil
+	  (speedbar-make-tag-line 'bracket ?? nil nil
+				  (buffer-name (car bl))
+				  'speedbar-buffer-click temp
+				  'speedbar-file-face 0)))
+      (setq bl (cdr bl)))))
+
+(defun speedbar-buffer-click (text token indent)
+  "When the users clicks on a buffer-button in speedbar.
+TEXT is the buffer's name, TOKEN and INDENT are unused."
+  (if speedbar-power-click
+      (let ((pop-up-frames t)) (select-window (display-buffer text)))
+    (select-frame speedbar-attached-frame)
+    (switch-to-buffer text)
+    (if token (speedbar-change-initial-expansion-list
+	       speedbar-previously-used-expansion-list-name))))
 
 
 ;;; Color loading section  This is messy *Blech!*
