@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.wy,v 1.1 2003/03/26 03:20:58 zappo Exp $
+;; X-RCS: $Id: wisent-dot.wy,v 1.2 2003/03/26 04:05:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -77,6 +77,10 @@
 %put STYLE summary "style=<style-spec>"
 %token LEN 	"len"
 %put LEN summary "len=<value>"
+%token FONTNAME "fontname"
+%put FONTNAME summary "fontname=<font-spec>"
+%token FONTSIZE "fontsize"
+%put FONTSIZE summary "fontsize=<font-size-number>"
 %token WIDTH 	"width"
 ;;%put WIDTH summary ""
 %token HEIGHT 	"height"
@@ -86,13 +90,14 @@
 %token OVERLAP 	"overlap"
 ;;%put OVERLAP summary ""
 
-%token  DILINK 	"->"
+%token  <punctuation> DILINK 	"->"
 %put DILINK summary "<node> -> <node>;    Directed link"
-%token  LINK 	"--"
+%token  <punctuation> LINK 	"--"
 %put LINK summary "<node> -- <node>;   Link"
 
 %token <symbol> symbol
 %token <string> string
+%token <number> number
 
 %token <punctuation> EQUAL 	"="
 %token <punctuation> SEMI 	";"
@@ -131,6 +136,7 @@ graph-contents
     ()
   | label
   | style
+  | graph-attributes
   | subgraph
   | node
   | named-node
@@ -157,6 +163,11 @@ node
     (TAG "NODE" 'generic-node :attributes (EXPANDFULL $2 node-description))
   ;
 
+graph-attributes
+  : GRAPH BRACKET_BLOCK SEMI
+    (TAG "GRAPH" 'graph-attributes :attributes (EXPANDFULL $2 node-description))
+  ;
+
 named-node
   : symbol BRACKET_BLOCK SEMI
     (TAG $1 'node :attributes (EXPANDFULL $2 node-description))
@@ -173,15 +184,33 @@ node-description
     (TAG $1 'attribute :value $3)
   | LABEL EQUAL string
     (TAG $1 'attribute :value $3)
+  | FONTNAME EQUAL string
+    (TAG $1 'attribute :value $3)
+  | FONTSIZE EQUAL number
+    (TAG $1 'attribute :value $3)
+ ;; This is a catch-all in case we miss some keyword.
+  | symbol EQUAL symbol
+    (TAG $1 'attribute :value $3)
   ;
 
 links
-  : symbol DILINK symbol SEMI
-    (TAG $1 'link :to $3)
+  : symbol DILINK symbol opt-link-attributes opt-semi
+    (TAG $1 'link :to $3 :attributes $4)
   | BRACE_BLOCK
  ;; Links in braces get properties.  Deal with this later.
   ;
 
+opt-semi
+  : SEMI
+    ()
+  | ;; Empty
+  ;
+
+opt-link-attributes
+  : BRACKET_BLOCK
+    (EXPANDFULL $1 node-description)
+  | ;; Empty
+  ;
 
 %%
 
