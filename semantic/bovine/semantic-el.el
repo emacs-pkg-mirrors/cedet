@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.7 2003/02/13 07:14:59 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.8 2003/03/13 02:16:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -127,7 +127,8 @@ Return a bovination list to use."
      ((listp ts)
       ;; If the first elt is a list, then it is some arbitrary code.
       (list "anonymous" 'code))
-     ((eq ts 'eval-and-compile)
+     ((or (eq ts 'eval-and-compile)
+	  (eq ts 'eval-when-compile))
       ;; Eval and compile can be wrapped around definitions, such as in
       ;; eieio.el, so splice it's parts back into the main list.
       (condition-case foo
@@ -142,15 +143,15 @@ Return a bovination list to use."
 	  (eq ts 'defimage))
       (let ((doc (semantic-elisp-form-to-doc-string (nth 3 rt))))
         ;; Variables and constants
-        (list sn 'variable nil (nth 2 rt)
-              (semantic-bovinate-make-assoc-list
-               'const (if (eq ts 'defconst) t nil)
-               'user-visible (and doc
-                                  (> (length doc) 0)
-                                  (= (aref doc 0) ?*))
-               )
-              doc)
-        ))
+	(semantic-token-new-variable
+         sn nil (nth 2 rt)
+	 'const (if (eq ts 'defconst) t nil)
+	 'user-visible (and doc
+			    (> (length doc) 0)
+			    (= (aref doc 0) ?*))
+	 )
+	;doc
+	))
      ((or (eq ts 'defun)
 	  (eq ts 'defun*)
 	  (eq ts 'defsubst)
@@ -158,21 +159,20 @@ Return a bovination list to use."
 	  (eq ts 'define-overload)
 	  )
       ;; functions and macros
-      (list sn 'function nil (semantic-elisp-desymbolify (nth 2 rt))
-	    (semantic-bovinate-make-assoc-list
-	     'user-visible (equal (car-safe (nth 4 rt)) 'interactive)
-	     )
-	    (nth 3 rt))
+      (semantic-token-new-function
+       sn nil (semantic-elisp-desymbolify (nth 2 rt))
+       'user-visible (equal (car-safe (nth 4 rt)) 'interactive)
+       )
+      ;; (nth 3 rt) ; doc string
       )
      ((eq ts 'autoload)
-      (list (format "%S" (car (cdr (car (cdr rt)))))
-	    'function
-	    nil nil
-	    (semantic-bovinate-make-assoc-list
-	     'use-visible (and (nth 4 rt)
-			       (not (eq (nth 4 rt) 'nil)))
-	     'prototype t)
-	    (nth 3 rt))
+      (semantic-token-new-function
+       (format "%S" (car (cdr (car (cdr rt)))))
+       nil nil
+       'use-visible (and (nth 4 rt)
+			 (not (eq (nth 4 rt) 'nil)))
+       'prototype t)
+      ;; (nth 3 rt) ; doc string
       )
      ((or (eq ts 'defmethod)
 	  (eq ts 'defgeneric))
@@ -181,75 +181,79 @@ Return a bovination list to use."
 	     (a3 (nth 3 rt))
 	     (args (if (listp a2) a2 a3))
 	     (doc (nth (if (listp a2) 3 4) rt)))
-	(list sn 'function nil
-	      (if (listp (car args))
-		  (cons (symbol-name (car (car args)))
-			(semantic-elisp-desymbolify (cdr args)))
-		(semantic-elisp-desymbolify (cdr args)))
-	      (semantic-bovinate-make-assoc-list
-	       'parent (symbol-name
-			(if (listp (car args)) (car (cdr (car args))))))
-	      doc)
+	(semantic-token-new-function
+	 sn nil
+	 (if (listp (car args))
+	     (cons (symbol-name (car (car args)))
+		   (semantic-elisp-desymbolify (cdr args)))
+	   (semantic-elisp-desymbolify (cdr args)))
+	 'parent (symbol-name
+		  (if (listp (car args)) (car (cdr (car args))))))
+	;; doc
 	))
      ((eq ts 'defadvice)
       ;; Advice
-      (list sn 'function nil (semantic-elisp-desymbolify (nth 2 rt))
-	    nil (nth 3 rt)))
+      (semantic-token-new-function
+       sn nil (semantic-elisp-desymbolify (nth 2 rt))
+       )
+       ;; (nth 3 rt) doc string
+      )
      ((eq ts 'defclass)
       ;; classes
       (let ((docpart (nthcdr 4 rt)))
-	(list sn 'type "class"
-	      (semantic-elisp-clos-args-to-semantic (nth 3 rt))
-	      (semantic-elisp-desymbolify (nth 2 rt))
-	      (semantic-bovinate-make-assoc-list
-	       'typemodifiers
-	       (semantic-elisp-desymbolify
-		(if (not (stringp docpart))
-		    docpart))
-	       )
-	      (if (stringp (car docpart))
-		  (car docpart)
-		(car (cdr (member :documentation docpart))))))
-      )
+	(semantic-token-new-type
+	 sn "class"
+	 (semantic-elisp-clos-args-to-semantic (nth 3 rt))
+	 (semantic-elisp-desymbolify (nth 2 rt))
+	 'typemodifiers (semantic-elisp-desymbolify
+			 (if (not (stringp docpart))
+			     docpart))
+	 )
+	;; (if (stringp (car docpart)) (car docpart) (car (cdr (member :documentation docpart))))
+	))
      ((eq ts 'defstruct)
       ;; structs
-      (list sn 'type "struct" (semantic-elisp-desymbolify (nthcdr 2 rt))
-	    nil ;(semantic-elisp-desymbolify (nth 2 rt))
-	    nil (nth 4 rt))
+      (semantic-token-new-type
+       sn "struct" (semantic-elisp-desymbolify (nthcdr 2 rt))
+       nil ;(semantic-elisp-desymbolify (nth 2 rt))
+       )
+      ;; (nth 4 rt) doc string
       )
      ;; Now about a few Semantic specials?
      ((eq ts 'define-lex)
-      (list sn 'function nil nil
-	    (semantic-bovinate-make-assoc-list
-	     'lexical-analyzer t)
-	    nil))
+      (semantic-token-new-function
+       sn nil nil
+       'lexical-analyzer t)
+      )
      ((eq ts 'define-mode-overload-implementation)
       (let ((args (nth 3 rt))
 	    )
-	(list sn 'function nil
-	      (when (listp args)
-		(semantic-elisp-desymbolify args))
-	      (semantic-bovinate-make-assoc-list
-	       'override-function t
-	       'parent (format "%S" (nth 2 rt))
-	       )
-	      nil)))
+	(semantic-token-new-function
+	 sn nil
+	 (when (listp args) (semantic-elisp-desymbolify args))
+	 'override-function t
+	 'parent (format "%S" (nth 2 rt))
+	 )
+	))
      ((eq ts 'defvar-mode-local)
-      (list (format "%S" (nth 2 rt)) 'variable nil
-	    (nth 3 rt) ; default value
-	    (semantic-bovinate-make-assoc-list
-	     'override-variable t
-	     'parent sn
-	     )
-	    (nth 4 rt)))
+      (semantic-token-new-variable
+       (format "%S" (nth 2 rt)) nil
+       (nth 3 rt) ; default value
+       'override-variable t
+       'parent sn
+       )
+      ;; (nth 4 rt) doc string
+      )
      ;; Now for other stuff
      ((eq ts 'require)
-      (list sn 'include nil nil))
+      (semantic-token-new-include
+       sn nil))
      ((eq ts 'provide)
-      (list sn 'package (nth 3 rt) nil))
+      (semantic-token-new-package
+       sn (nth 3 rt)))
      (t
       ;; Other stuff
-      (list (symbol-name ts) 'code)
+      (semantic-token (symbol-name ts) 'code)
       ))))
 
 (defun semantic-expand-elisp-nonterminal (nonterm)
