@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.11 2003/04/04 12:19:37 berndl Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.12 2003/06/06 06:49:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -239,20 +239,20 @@
  ()
  ) ; end opt-class-declmods
  (typesimple
- ( struct-or-class opt-name opt-template-specifier opt-class-parents semantic-list
+ ( struct-or-class opt-class opt-name opt-template-specifier opt-class-parents semantic-list
   ,(semantic-lambda
-  (nth 1 vals) (list 'type) (nth 0 vals) (list ( let ( ( semantic-c-classname ( cons ( car (nth 1 vals)) ( car (nth 0 vals)))))
- (semantic-bovinate-from-nonterminal-full (car (nth 4 vals)) (cdr (nth 4 vals)) 'classsubparts)
- ) (nth 3 vals) ( semantic-bovinate-make-assoc-list (append 'template-specifier) (nth 2 vals)) nil)))
- ( struct-or-class opt-name opt-template-specifier opt-class-parents
+  (nth 2 vals) (list 'type) (nth 0 vals) (list ( let ( ( semantic-c-classname ( cons ( car (nth 2 vals)) ( car (nth 0 vals)))))
+ (semantic-bovinate-from-nonterminal-full (car (nth 5 vals)) (cdr (nth 5 vals)) 'classsubparts)
+ ) (nth 4 vals) ( semantic-bovinate-make-assoc-list (append 'template-specifier) (nth 3 vals) (append 'parent) ( car (nth 1 vals))) nil)))
+ ( struct-or-class opt-class opt-name opt-template-specifier opt-class-parents
   ,(semantic-lambda
-  (nth 1 vals) (list 'type) (nth 0 vals) (list nil (nth 3 vals) ( semantic-bovinate-make-assoc-list (append 'template-specifier) (nth 2 vals)) nil)))
- ( UNION opt-name unionparts
+  (nth 2 vals) (list 'type) (nth 0 vals) (list nil (nth 4 vals) ( semantic-bovinate-make-assoc-list (append 'template-specifier) (nth 3 vals) (append 'parent) ( car (nth 1 vals))) nil)))
+ ( UNION opt-class opt-name unionparts
   ,(semantic-lambda
-  (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
- ( ENUM opt-name enumparts
+  (nth 2 vals) (list 'type (nth 0 vals) (nth 3 vals) nil ( semantic-bovinate-make-assoc-list (append 'parent) ( car (nth 1 vals))) nil)))
+ ( ENUM opt-class opt-name enumparts
   ,(semantic-lambda
-  (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
+  (nth 2 vals) (list 'type (nth 0 vals) (nth 3 vals) nil ( semantic-bovinate-make-assoc-list (append 'parent) ( car (nth 1 vals))) nil)))
  ( TYPEDEF declmods typeformbase cv-declmods typedef-symbol-list
   ,(semantic-lambda
   (list (nth 4 vals) 'type (nth 0 vals) nil (nth 2 vals) nil nil)))
@@ -478,6 +478,9 @@
  ( VOID)
  ( CHAR)
  ( WCHAR)
+ ( SHORT INT
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) " " (nth 1 vals)))))
  ( SHORT)
  ( INT)
  ( LONG INT
