@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.1 2002/08/11 17:27:16 zappo Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.2 2002/08/11 20:30:25 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -974,7 +974,6 @@ removed from the result list."
   
   )
 
-;;;###autoload
 (defun semantic-default-java-setup ()
   "Set up a buffer for semantic parsing of the Java language."
 
@@ -1029,7 +1028,6 @@ removed from the result list."
  'java-mode
  )
 
-;;;###autoload
 (add-hook 'java-mode-hook 'semantic-default-java-setup)
 
 (provide 'semantic-java)
