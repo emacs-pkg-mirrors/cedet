@@ -1,10 +1,10 @@
 ;;; wisent-dot.el --- GraphViz DOT parser
 
-;; Copyright (C) 2003 Eric M. Ludlam
+;; Copyright (C) 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.el,v 1.4 2003/09/14 08:29:01 ponced Exp $
+;; X-RCS: $Id: wisent-dot.el,v 1.5 2004/01/15 01:30:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -59,12 +59,6 @@
 (require 'semantic)
 (require 'wisent-dot-wy)
 
-(define-lex-block-analyzer semantic-lex-dot-blocks
-  "Detect and create a open, close or block token."
-  (PAREN_BLOCK ("(" LPAREN) (")" RPAREN))
-  (BRACE_BLOCK ("{" LBRACE) ("}" RBRACE))
-  (BRACKET_BLOCK ("[" LBRACKET) ("]" RBRACKET)))
-
 (define-lex wisent-dot-lexer
   "Lexical analyzer that handles DOT buffers.
 It ignores whitespace, newlines nad comments."
@@ -73,11 +67,10 @@ It ignores whitespace, newlines nad comments."
   semantic-lex-ignore-comments
   semantic-lex-number
   semantic-lex-symbol-or-keyword
-  semantic-lex-dot-blocks
-  semantic-lex-close-paren
+  wisent-dot-wy--block-block-analyzer
+  ;; ?? semantic-lex-close-paren
   semantic-lex-string
-  semantic-lex-punctuation-type
-  semantic-lex-punctuation
+  wisent-dot-wy--punctuation-string-analyzer
   semantic-lex-default-action)
 
 ;;;###autoload
