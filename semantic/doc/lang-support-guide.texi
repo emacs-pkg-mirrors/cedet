@@ -11,7 +11,6 @@ However one of the primary gols of semantic is to provide a framework
 in which anyone can add support for other languages easily.
 
 @ignore
-
 This chapter is for those who would like to add a new parser to the
 growing family of parsers.
 This chapter should
@@ -22,7 +21,6 @@ This chapter should
 * describe grammar file formats, semantic actions.
 * describe how to write lexers
 * give examples such as wisent-awk, wisent-calc, etc
-
 @end ignore
 
 @menu
@@ -527,6 +525,149 @@ Please see the documentation for the variable
 @code{semantic-toplevel-bovine-table} for details on its format.
 
 * add more doc here *
+
+@menu
+* Grammar Files::               
+@end menu
+
+@node Grammar Files
+@subsection Grammar Files
+
+@menu
+* %start::                      
+* %languagemode::               
+* %token::                      
+@end menu
+
+@node %start
+@subsubsection %start
+
+In Bison, one and only one nonterminal is designated as the
+``start'' symbol.
+In semantic, one or more nonterminals can be designated as the
+``start'' symbol.
+
+One or more start symbols can be explicitly declared following
+the @b{%start}  keyword separated by spaces.
+
+If no @b{%start} keyword is used in a grammar, then the very
+first non-terminal in the grammar file is implicitly designated as the
+``start'' symbol.
+
+If one or more explicit ``start'' symbols are declared, then
+the very first non-terminal is not a ``start'' symbol unless
+it is explicitly declared as such.
+
+@ignore
+Submitted By: Joseph Kiniry (kiniry)
+>Assigned to: Richard Y. Kim (emacsman)
+Summary: Semantics of %start and %scopestart settings still unclear.
+
+Initial Comment:
+The rule specified with %start is a legal topmost
+production rule, but the first rule in a BNF file is
+still used as bovine-toplevel.  This is not made clear.
+
+If a rule is specified with %scopestart then that rule
+is not used/generated in the corresponding table.  This
+leads to an erroneous disconnected grammar
+specification.  I think that the use of this variable
+needs to be reviewed and its documentation needs to be
+clarified.
+@end ignore
+
+@defvar wisent-single-start-flag
+Non-nil means allows only one start symbol like in Bison.
+That is don't add extra start rules to the grammar.  This is
+useful to compare the Wisent's generated automaton with the Bison's
+one.
+@end defvar
+
+bovine-toplevel
+
+@node %languagemode
+@subsubsection %languagemode
+
+@c >   A while back, I updated semantic-grammer.el to auto-run the setup
+@c > function in all modes of the correct type.  It uses %languagemode to
+@c > figure out what buffers to look in.  %languagemode doesn't seem to be
+@c > used in wisent though.  I'm not sure if it should be or not.  Perhaps
+@c > no cases call for it yet.
+@c 
+@c %languagemode is not used by the parser itself, but is used by
+@c grammar tools, when the grammar provides it (wisent-java-tags.wy
+@c for example).
+@c 
+@c >   Anyway, what got me more was that the setup function calls
+@c > `semantic-install-function-overrides' without specifying `transient'.
+@c > The effect is that I cannot get those buffers to update themselves to
+@c > a new language because it throws an error.  Is there some trick I am
+@c > missing?  I had to hack semantic-fw to turn off this feature while
+@c > developing.
+@c > 
+@c >   I'm not sure what the right approach there is.  It is nice to
+@c > protect some key overrides from accidental assignment later.  On the
+@c > other hand, causing consternation during development is a bit
+@c > annoying.  Perhaps it can quietly ignore you iff you are setting it
+@c > to a value it already has.
+@c 
+@c I think that is a good idea.  Does the following patch works for you?
+@c 
+@c David
+@c 
+@c Index: semantic-fw.el
+@c ===================================================================
+@c RCS file: /cvsroot/cedet/cedet/semantic/semantic-fw.el,v
+@c retrieving revision 1.16
+@c diff -c -r1.16 semantic-fw.el
+@c *** semantic-fw.el	15 Mar 2003 20:06:46 -0000	1.16
+@c --- semantic-fw.el	26 Mar 2003 09:03:47 -0000
+@c ***************
+@c *** 227,232 ****
+@c --- 227,235 ----
+@c             ;; Binding already exists
+@c             ;; Check rebind consistency
+@c             (cond
+@c +            ((equal (symbol-value variable) value)
+@c +             ;; Just ignore rebind with the same value.
+@c +             )
+@c              ((get variable 'constant)
+@c               (error "Can't change the value of constant `%s'"
+@c                      variable))
+
+@node %token
+@subsubsection %token
+
+%token
+%left
+%right
+
+%token FOO
+is a simple token without type or value
+
+%token BAR "bar"
+is a keyword
+
+@c David said
+%keyword for language keywords?
+
+%token <symbol> symbol
+@c David said:
+@c I admit that "%token <symbol> symbol" can seem strange, but it is a
+@c valid syntax, that defines the lexical token `symbol' for tokens of
+@c type <symbol>.  The confusion here is due to
+@c `semantic-lex-symbol-or-keyword', that return `symbol' tokens.
+
+@c > 3) graphviz-dot-mode's syntax table things -, >, and other items were
+@c >    of syntax type symbol, not punctuation.  Many of my %token entries
+@c >    where then ignored.  I've since patched graphviz-dot-mode to use
+@c >    better syntax entries.
+@c 
+@c That is a constraint introduced by default lexical analyzers that
+@c uses Emacs syntax classes (things like "\\s<code>") in regexps.  I also
+@c encountered that sort of problem when I wrote the semantic-grammar
+@c lexer, and I had to concoct a `semantic-grammar-syntax-table' ;-)
+
 
 @node BNF conversion
 @section Using the BNF converter to make bovine tables
@@ -1155,7 +1296,7 @@ expansion function via @code{semantic-expand-nonterminal}.
 
 The @var{OVERLAY} property is accessed via several functions returning
 the beginning, end, and buffer of a token.  Use these functions unless
-the overlay is really needed (see @ref{Token Queries}).  Depending on the
+the overlay is really needed (see @ref{Tag Queries}).  Depending on the
 overlay in a program can be dangerous because sometimes the overlay is
 replaced with an integer pair
 @example

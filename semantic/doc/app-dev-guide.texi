@@ -5,26 +5,20 @@
 @c proper menus for this chapter.
 @end ignore
 
-Once a source file has been parsed, the following APIs can be used to
-write programs that use the token stream most effectively.
+A semantic application takes the semantic tags generated
+by semantic parsers then provides useful services to the user.
+See @ref{Semantic User's Guide} for a list of such applications.
 
-@ignore
+An application developer needs to know how to generate or regenerate
+tag lists, retrieve tags, get details from tags, extract and
+search those lists with and without the database, and convert tags
+into displayable text strings in one of the many different formats.
 
-This chapter is for developers of semantic applications
-such as JDEE and ECB.
-
-An application developer section needs to know how to get token lists,
-get details from tokens, extract and search those lists with and
-without the database, and convert tokens into displayable text
-strings in one of the many different formats.
-
-Most of the stuff from @ref{Programming,,,semantic}
-would go here.
-
-@end ignore
+This chapter describes semantic fuctions an application developer can
+use to perform all of the tasks just listed.
 
 @menu
-* Token Queries::               Getting info about a parsed token (nonterminal).
+* Tag Queries::                 Getting info about a parsed tag (nonterminal).
 * Nonterminal Streams::         Working with streams of nonterminals.
 * Nonterminals at point::       Finding nonterminals at point.
 * Nonterminal Sorting::         Reorganizing streams.
@@ -37,266 +31,348 @@ would go here.
 * Current Context::             
 @end menu
 
-@node Token Queries
-@section Token Queries
+@node Tag Queries
+@section Tag Queries
 
 When writing programs that use the bovinator, the following functions
 are needed to get details out of a nonterminal.
 
-@defun semantic-equivalent-tokens-p token1 token2
-Compare @var{TOKEN1} and @var{TOKEN2} and return non-@code{nil} if they are equivalent.
-Use @dfn{eq} to test of two tokens are the same.  Use this function if tokens
-are being copied and regrouped to test for if two tokens represent the same
-thing, but may be constructed of different cons cells.
+@defun semantic-tag-name tag
+Return the name of @var{TAG}.
+
+@obsolete{semantic-token-name,semantic-tag-name}
 @end defun
 
-@defun semantic-token-token token
-Retrieve from @var{TOKEN} the token identifier.
-i.e., the symbol @code{'variable}, @code{'function}, @code{'type}, or other.
+@defun semantic-tag-class tag
+Return the class of @var{TAG}.
+That is, the symbol @code{'variable}, @code{'function}, @code{'type}, or other.
+
+@obsolete{semantic-token-token,semantic-tag-class}
 @end defun
 
-@defun semantic-token-name token
-Retrieve the name of @var{TOKEN}.
-@end defun
-
-@defun semantic-token-docstring token &optional buffer
-Retrieve the documentation of @var{TOKEN}.
+@defun semantic-tag-docstring tag &optional buffer
+Return the documentation of @var{TAG}.
+That is the value defined by the `:documentation' attribute.
 Optional argument @var{BUFFER} indicates where to get the text from.
 If not provided, then only the @var{POSITION} can be provided.
+
+@obsolete{semantic-token-docstring,semantic-tag-docstring}
 @end defun
 
-@defun semantic-token-overlay token
-Retrieve the @var{OVERLAY} part of @var{TOKEN}.
-The returned item may be an overlay or an unloaded buffer representation.
+@defun semantic-tag-overlay tag
+Return the @var{OVERLAY} part of @var{TAG}.
+That is, an overlay or an unloaded buffer representation.
+
+@obsolete{semantic-token-overlay,semantic-tag-overlay}
 @end defun
 
-@defun semantic-token-extent token
-Retrieve the extent (@var{START} @var{END}) of @var{TOKEN}.
+@defun semantic-tag-bounds tag
+Return the location (@var{START} @var{END}) of data @var{TAG} describes.
+
+@obsolete{semantic-token-extent,semantic-tag-bounds}
 @end defun
 
-@defun semantic-token-start token
-Retrieve the start location of @var{TOKEN}.
+@defun semantic-tag-start tag
+Return the start location of @var{TAG}.
+
+@obsolete{semantic-token-start,semantic-tag-start}
 @end defun
 
-@defun semantic-token-end token
-Retrieve the end location of @var{TOKEN}.
+@defun semantic-tag-end tag
+Return the end location of @var{TAG}.
+
+@obsolete{semantic-token-end,semantic-tag-end}
 @end defun
 
-@defun semantic-token-type token
-Retrieve the type of @var{TOKEN}.
+@defun semantic-tag-type tag
+Return the value of the `:type' attribute of @var{TAG}.
+
+@obsolete{semantic-token-type,semantic-tag-type}
 @end defun
 
-@defun semantic-token-put token property value
-On @var{token}, set @var{property} to @var{value}.
+@defun semantic--tag-put-property tag property value
+Change value in @var{TAG} of @var{PROPERTY} to @var{VALUE}.
+If @var{PROPERTY} already exists, its value is set to @var{VALUE},
+otherwise the new @var{PROPERTY} @var{VALUE} pair is added.
+Return @var{TAG}.
+That function is for internal use only.
+
+@obsolete{semantic-token-put,semantic--tag-put-property}
 @end defun
 
-@defun semantic-token-get token property
-For @var{token} get the value of @var{property}.
+@defun semantic--tag-get-property tag property
+From @var{TAG}, extract the value of @var{PROPERTY}.
+Return the value found, or @code{nil} if @var{PROPERTY} is not one of the
+properties of @var{TAG}.
+That function is for internal use only.
+
+@obsolete{semantic-token-get,semantic--tag-get-property}
 @end defun
 
-@defun semantic-token-extra-spec token spec
-Retrieve a specifier for the variable @var{TOKEN}.
-@var{SPC} is the symbol whose modifier value to get.
-This function can get specifiers from any type of @var{TOKEN}.
-Do not use this function if you know what type of token you are dereferencing.
-Instead, use the function specific to that token type.  It will be faster.
+@defun semantic-tag-get-attribute tag attribute
+From @var{TAG}, return the value of @var{ATTRIBUTE}.
+@var{ATTRIBUTE} is a symbol whose specification value to get.
+Return the value found, or @code{nil} if @var{ATTRIBUTE} is not one of the
+attributes of @var{TAG}.
+
+@obsolete{semantic-token-extra-spec,semantic-tag-get-attribute}
+@obsolete{semantic-token-function-extra-spec,semantic-tag-get-attribute}
+@obsolete{semantic-token-variable-extra-spec,semantic-tag-get-attribute}
 @end defun
 
-@defun semantic-token-type-parts token
-Retrieve the parts of the type @var{TOKEN}.
+@defun semantic-tag-type-members tag
+Return the members of the type that @var{TAG} describes.
+That is the value of the `:members' attribute.
+
+@obsolete{semantic-token-type-parts,semantic-tag-type-members}
 @end defun
 
-@defun semantic-token-type-parent token
-Retrieve the parent of the type @var{TOKEN}.
-The return value is a list.  @var{A} value of @code{nil} means no parents.
-The @dfn{car} of the list is either the parent class, or a list
-of parent classes.  The @dfn{cdr} of the list is the list of
-interfaces, or abstract classes which are parents of @var{TOKEN}.
+@defun semantic-tag-type-superclasses tag
+Return the list of superclasses of the type that @var{TAG} describes.
+
+@obsolete{semantic-token-type-parent,semantic-tag-type-superclasses}
 @end defun
 
-@defun semantic-token-type-parent-superclass token
-Retrieve the parent super classes of type type @var{TOKEN}.
+@defun semantic-tag-type-interfaces tag
+Return the list of interfaces of the type that @var{TAG} describes.
+
+@obsolete{semantic-token-type-parent,semantic-tag-type-interfaces}
+@obsolete{semantic-token-type-parent-implement,semantic-tag-type-interfaces}
 @end defun
 
-@defun semantic-token-type-parent-implement token
-Retrieve the parent interfaces of type type @var{TOKEN}.
+@defun semantic-tag-type-superclasses tag
+Return the list of superclasses of the type that @var{TAG} describes.
+
+@obsolete{semantic-token-type-parent-superclass,semantic-tag-type-superclasses}
+@obsolete{semantic-token-type-parent,semantic-tag-type-superclasses}
 @end defun
 
-@defun semantic-token-type-modifiers token
-Retrieve the type modifiers for the type @var{TOKEN}.
+@defun semantic-tag-modifiers tag
+Return the value of the @code{'modifiers} attribute of @var{TAG}.
+
+@obsolete{semantic-token-type-modifiers,semantic-tag-modifiers}
 @end defun
 
-@defun semantic-token-type-extra-specs token
-Retrieve the extra specifiers for the type @var{TOKEN}.
+@defun semantic-tag-attributes tag
+Return the list of public attributes of @var{TAG}.
+That is a property list: (@var{ATTRIBUTE-1} @var{VALUE-1}
+@var{ATTRIBUTE-2} @var{VALUE-2}...).
+
+@obsolete{semantic-token-function-extra-specs,semantic-tag-attributes}
+@obsolete{semantic-token-variable-extra-specs,semantic-tag-attributes}
+@obsolete{semantic-token-type-extra-specs,semantic-tag-attributes}
 @end defun
 
-@defun semantic-token-type-extra-spec token spec
-Retrieve a extra specifier for the type @var{TOKEN}.
-@var{SPEC} is the symbol whose modifier value to get.
+@defun semantic-tag-function-arguments tag
+Return the arguments of the function that @var{TAG} describes.
+That is the value of the `:arguments' attribute.
+
+@obsolete{semantic-token-function-args,semantic-tag-function-arguments}
 @end defun
 
-@defun semantic-token-function-args token
-Retrieve the arguments of the function @var{TOKEN}.
+@defun semantic-tag-modifiers tag
+Return the value of the @code{'modifiers} attribute of @var{TAG}.
+
+@obsolete{semantic-token-variable-modifiers,semantic-tag-modifiers}
+@obsolete{semantic-token-function-modifiers,semantic-tag-modifiers}
 @end defun
 
-@defun semantic-token-function-modifiers token
-Retrieve the type modifiers of the function @var{TOKEN}.
+@defun semantic-tag-function-destructor-p tag
+Return non-@code{nil} if @var{TAG} describes a destructor function.
+That is the value of the @dfn{destructor} attribute.
+
+@obsolete{semantic-token-function-destructor token,semantic-tag-function-destructor-p}
 @end defun
 
-@defun semantic-token-function-destructor token
-Non-@code{nil} if @var{TOKEN} is a destructor function.
+@defun semantic-tag-function-throws tag
+Return the exceptions the function that @var{TAG} describes can throw.
+That is the value of the @code{throws} attribute.
+
+@obsolete{semantic-token-function-throws,semantic-tag-function-throws}
 @end defun
 
-@defun semantic-token-function-extra-specs token
-Retrieve the extra specifiers of the function @var{TOKEN}.
+@defun semantic-tag-function-parent tag
+Return the parent of the function that @var{TAG} describes.
+That is the value of the @code{parent} attribute.
+@var{A} function has a parent if it is a method of a class, and if the
+function does not appear in body of it's parent class.
+
+@obsolete{semantic-token-function-parent,semantic-tag-function-parent}
 @end defun
 
-@defun semantic-token-function-extra-spec token spec
-Retrieve a specifier for the function @var{TOKEN}.
-@var{SPEC} is a symbol whose specifier value to get.
+@defun semantic-tag-variable-constant-p tag
+Return non-@code{nil} if the variable that @var{TAG} describes is a constant.
+That is the value of the attribute @code{const}.
+
+@obsolete{semantic-token-variable-const,semantic-tag-variable-constant-p}
 @end defun
 
-@defun semantic-token-function-throws token
-Retrieve the throws signal of the function @var{TOKEN}.
-This is an optional field, and returns @code{nil} if it doesn't exist.
+@defun semantic-tag-variable-default tag
+Return the default value of the variable that @var{TAG} describes.
+That is the value of the attribute `:default-value'.
+
+@obsolete{semantic-token-variable-default token,semantic-tag-variable-default}
 @end defun
 
-@defun semantic-token-function-parent token
-The parent of the function @var{TOKEN}.
-A function has a parent if it is a method of a class, and if the
-function does not appear in body of its parent class.
+@defun semantic-tag-include-system-p tag
+Return non-@code{nil} if the include that @var{TAG} describes is a
+system include.
+That is the value of the attribute `:system-flag'.
+
+@obsolete{semantic-token-include-system,semantic-tag-include-system-p}
 @end defun
 
-@defun semantic-token-variable-const token
-Retrieve the status of constantness from the variable @var{TOKEN}.
+@defun semantic-equivalent-tag-p tag1 tag2
+Compare @var{TAG1} and @var{TAG2} and return non-@code{nil} if they
+are equivalent.
+Use @dfn{eq} to test of two tags are the same.  Use this function if tags
+are being copied and regrouped to test for if two tags represent the
+same thing, but may be constructed of different cons cells.
+
+@obsolete{semantic-equivalent-tokens-p,semantic-equivalent-tag-p}
 @end defun
 
-@defun semantic-token-variable-default token
-Retrieve the default value of the variable @var{TOKEN}.
-@end defun
-
-@defun semantic-token-variable-modifiers token
-Retrieve type modifiers for the variable @var{TOKEN}.
-@end defun
-
-@defun semantic-token-variable-extra-specs token
-Retrieve extra specifiers for the variable @var{TOKEN}.
-@end defun
-
-@defun semantic-token-variable-extra-spec token spec
-Retrieve a specifier value for the variable @var{TOKEN}.
-@var{SPEC} is the symbol whose specifier value to get.
-@end defun
-
-@defun semantic-token-include-system token
-Retrieve the flag indicating if the include @var{TOKEN} is a system include.
-@end defun
-
-For override methods that query a token, see @xref{Token Details}.
+For override methods that query a tag, see @xref{Token Details}.
 
 @node Nonterminal Streams
 @section Nonterminal streams
 
 These functions take some key, and returns information found inside
-the nonterminal stream.  Some will return one token (the first
+the nonterminal stream.  Some will return one tag (the first
 matching item found.)  Others will return a list of all items matching
 a given criterion.  All these functions work regardless of a buffer
 being in memory or not.
 
-@defun semantic-find-nonterminal-by-name name streamorbuffer &optional search-parts search-include
-Find a nonterminal @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a string.
-If @var{SEARCH-PARTS} is non-@code{nil}, search children of tokens.
+@defun semantic-brute-find-first-tag-by-name name streamorbuffer &optional search-parts search-include
+Find a tag @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a string.
+If @var{SEARCH-PARTS} is non-@code{nil}, search children of tags.
 If @var{SEARCH-INCLUDE} is non-@code{nil}, search include files.
+
+Use @dfn{semantic-find-first-tag-by-name} instead.
+
+@obsolete{semantic-find-nonterminal-by-name,semantic-brute-find-first-tag-by-name}
 @end defun
 
-@defun semantic-find-nonterminal-by-property property value streamorbuffer &optional search-parts search-includes
-Find all nonterminals with @var{PROPERTY} equal to @var{VALUE} in @var{STREAMORBUFFER}.
-Properties can be added with @dfn{semantic-token-put}.
+@defun semantic-brute-find-tag-by-property property value streamorbuffer &optional search-parts search-includes
+Find all tags with @var{PROPERTY} equal to @var{VALUE} in @var{STREAMORBUFFER}.
 Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
-@dfn{semantic-find-nonterminal-by-function}.
+@dfn{semantic-brute-find-tag-by-function}.
+
+@obsolete{semantic-find-nonterminal-by-property,semantic-brute-find-tag-by-property}
 @end defun
 
-@defun semantic-find-nonterminal-by-extra-spec spec streamorbuffer &optional search-parts search-includes
-Find all nonterminals with a given @var{SPEC} in @var{STREAMORBUFFER}.
-@var{SPEC} is a symbol key into the modifiers association list.
+@defun semantic-brute-find-tag-by-attribute attr streamorbuffer &optional search-parts search-includes
+Find all tags with a given @var{ATTR} in @var{STREAMORBUFFER}.
+@var{ATTR} is a symbol key into the attributes list.
 Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
-@dfn{semantic-find-nonterminal-by-function}.
+@dfn{semantic-brute-find-tag-by-function}.
+
+@obsolete{semantic-find-nonterminal-by-extra-spec,semantic-brute-find-tag-by-attribute}
 @end defun
 
-@defun semantic-find-nonterminal-by-extra-spec-value spec value streamorbuffer &optional search-parts search-includes
-Find all nonterminals with a given @var{SPEC} equal to @var{VALUE} in @var{STREAMORBUFFER}.
-@var{SPEC} is a symbol key into the modifiers association list.
-@var{VALUE} is the value that @var{SPEC} should match.
+@defun semantic-brute-find-tag-by-attribute-value attr value streamorbuffer &optional search-parts search-includes
+Find all tags with a given @var{ATTR} equal to @var{VALUE} in @var{STREAMORBUFFER}.
+@var{ATTR} is a symbol key into the attributes list.
+@var{VALUE} is the value that @var{ATTR} should match.
 Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
-@dfn{semantic-find-nonterminal-by-function}.
+@dfn{semantic-brute-find-tag-by-function}.
+
+@obsolete{semantic-find-nonterminal-by-extra-spec-value,semantic-brute-find-tag-by-attribute-value}
 @end defun
 
-@defun semantic-find-nonterminal-by-position position streamorbuffer &optional nomedian
+@defun semantic-brute-find-tag-by-position position streamorbuffer &optional nomedian
 Find a nonterminal covering @var{POSITION} within @var{STREAMORBUFFER}.
 @var{POSITION} is a number, or marker.  If @var{NOMEDIAN} is non-@code{nil}, don't do
 the median calculation, and return nil.
+
+@obsolete{semantic-find-nonterminal-by-position,semantic-brute-find-tag-by-position}
 @end defun
 
-@defun semantic-find-innermost-nonterminal-by-position position streamorbuffer &optional nomedian
-Find a list of nonterminals covering @var{POSITION} within @var{STREAMORBUFFER}.
+@defun semantic-brute-find-innermost-tag-by-position position streamorbuffer &optional nomedian
+Find a list of tags covering @var{POSITION} within @var{STREAMORBUFFER}.
 @var{POSITION} is a number, or marker.  If @var{NOMEDIAN} is non-@code{nil}, don't do
 the median calculation, and return nil.
 This function will find the topmost item, and recurse until no more
 details are available of findable.
+
+@obsolete{semantic-find-innermost-nonterminal-by-position,semantic-brute-find-innermost-tag-by-position}
 @end defun
 
-@defun semantic-find-nonterminal-by-token token streamorbuffer &optional search-parts search-includes
-Find all nonterminals with a token @var{TOKEN} within @var{STREAMORBUFFER}.
-@var{TOKEN} is a symbol representing the type of the tokens to find.
-Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDE} are passed to
-@dfn{semantic-find-nonterminal-by-function}.
-@end defun
-
-@defun semantic-find-nonterminal-standard streamorbuffer &optional search-parts search-includes
-Find all nonterminals in @var{STREAMORBUFFER} which define simple token types.
-Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDE} are passed to
-@dfn{semantic-find-nonterminal-by-function}.
-@end defun
-
-@defun semantic-find-nonterminal-by-type type streamorbuffer &optional search-parts search-includes
-Find all nonterminals with type @var{TYPE} within @var{STREAMORBUFFER}.
-@var{TYPE} is a string which is the name of the type of the token returned.
+@defun semantic-brute-find-tag-by-class class streamorbuffer &optional search-parts search-includes
+Find all tags with a class @var{CLASS} within @var{STREAMORBUFFER}.
+@var{CLASS} is a symbol representing the class of the tags to find.
+See @dfn{semantic-tag-class}.
 Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
-@dfn{semantic-find-nonterminal-by-function}.
+@dfn{semantic-brute-find-tag-by-function}.
+
+Use @code{semantic-find-tag-by-class} instead.
+
+@obsolete{semantic-find-nonterminal-by-token,semantic-brute-find-tag-by-class}
 @end defun
 
-@defun semantic-find-nonterminal-by-function function streamorbuffer &optional search-parts search-includes
-Find all nonterminals in which @var{FUNCTION} match within @var{STREAMORBUFFER}.
+@defun semantic-brute-find-tag-standard streamorbuffer &optional search-parts search-includes
+Find all tags in @var{STREAMORBUFFER} which define simple class types.
+See @dfn{semantic-tag-class}.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-brute-find-tag-by-function}.
+
+@obsolete{semantic-find-nonterminal-standard,semantic-brute-find-tag-standard}
+@end defun
+
+@defun semantic-brute-find-tag-by-type type streamorbuffer &optional search-parts search-includes
+Find all tags with type @var{TYPE} within @var{STREAMORBUFFER}.
+@var{TYPE} is a string which is the name of the type of the tags returned.
+See @dfn{semantic-tag-type}.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-brute-find-tag-by-function}.
+
+@obsolete{semantic-find-nonterminal-by-type,semantic-brute-find-tag-by-type}
+@end defun
+
+@defun semantic-brute-find-tag-by-function function streamorbuffer &optional search-parts search-includes
+Find all tags for which FUNCTION's value is non-@code{nil} within @var{STREAMORBUFFER}.
 @var{FUNCTION} must return non-@code{nil} if an element of @var{STREAM} will be included
 in the new list.
 
-If optional argument @var{SEARCH-PARTS} is non-@code{nil}, all sub-parts of tokens
-are searched.  The over-loadable function @dfn{semantic-nonterminal-children} is
+If optional argument @var{SEARCH-PARTS} is non-@code{nil}, all sub-parts of tags
+are searched.  The overloadable function @code{semantic-tag-componenets} is
 used for the searching child lists.  If @var{SEARCH-PARTS} is the symbol
 @code{'positiononly}, then only children that have positional information are
 searched.
 
 If @var{SEARCH-INCLUDES} is non-@code{nil}, then all include files are also
-searched for matches.
+searched for matches.  This parameter hasn't be active for a while
+and is obsolete.
+
+@obsolete{semantic-find-nonterminal-by-function,semantic-brute-find-tag-by-function}
 @end defun
 
-@defun semantic-find-nonterminal-by-function-first-match function streamorbuffer &optional search-parts search-includes
+@defun semantic-brute-find-first-tag-by-function function streamorbuffer &optional search-parts search-includes
 Find the first nonterminal which @var{FUNCTION} match within @var{STREAMORBUFFER}.
 @var{FUNCTION} must return non-@code{nil} if an element of @var{STREAM} will be included
 in the new list.
-If optional argument @var{SEARCH-PARTS}, all sub-parts of tokens are searched.
-The over-loadable function @dfn{semantic-nonterminal-children} is used for
+
+The following parameters were never implemented.
+
+If optional argument @var{SEARCH-PARTS}, all sub-parts of tags are searched.
+The overloadable function @dfn{semantic-tag-components} is used for
 searching.
 If @var{SEARCH-INCLUDES} is non-@code{nil}, then all include files are also
 searched for matches.
+
+@obsolete{semantic-find-nonterminal-by-function-first-match,semantic-brute-find-first-tag-by-function}
 @end defun
 
-@defun semantic-recursive-find-nonterminal-by-name name buffer
-Recursively find the first occurrence of @var{NAME}.
-Start search with @var{BUFFER}.  Recurse through all dependencies till found.
-The return item is of the form (@var{BUFFER} @var{TOKEN}) where @var{BUFFER} is the buffer
-in which @var{TOKEN} (the token found to match @var{NAME}) was found.
-@end defun
+@c @defun semantic-recursive-find-nonterminal-by-name name buffer
+@c Recursivly find the first occurance of @var{NAME}.
+@c Start search with @var{BUFFER}.  Recurse through all dependencies till
+@c found.  The return item is of the form (@var{BUFFER} @var{TOKEN})
+@c where @var{BUFFER} is the buffer in which @var{TOKEN} (the token found
+@c to match @var{NAME}) was found.
+@c 
+@c @var{THIS} ISN'T @var{USED} @var{IN} @var{SEMANTIC}.  @var{DELETE}
+@c @var{ME} @var{SOON}.
+@c @end defun
 
 @node Nonterminals at point
 @section Nonterminals at point
@@ -309,55 +385,63 @@ This provides for very rapid retrieval of what function or variable
 the cursor is currently in.
 @refill
 
-These functions query the current buffer's overlay system for tokens.
+These functions query the current buffer's overlay system for tags.
 
-@defun semantic-find-nonterminal-by-overlay &optional positionormarker buffer
-Find all nonterminals covering @var{POSITIONORMARKER} by using overlays.
+@defun semantic-find-tag-by-overlay &optional positionormarker buffer
+Find all tags covering @var{POSITIONORMARKER} by using overlays.
 If @var{POSITIONORMARKER} is @code{nil}, use the current point.
 Optional @var{BUFFER} is used if @var{POSITIONORMARKER} is a number, otherwise the current
-buffer is used.  This finds all tokens covering the specified position
+buffer is used.  This finds all tags covering the specified position
 by checking for all overlays covering the current spot.  They are then sorted
 from largest to smallest via the start location.
+
+@obsolete{semantic-find-nonterminal-by-overlay,semantic-find-tag-by-overlay}
 @end defun
 
-@defun semantic-find-nonterminal-by-overlay-in-region start end &optional buffer
-Find all nonterminals which exist in whole or in part between @var{START} and @var{END}.
-Uses overlays to determine position.
+@defun semantic-find-tag-by-overlay-in-region start end &optional buffer
+Find all tags which exist in whole or in part between @var{START} and @var{END}.
+Uses overlays to determine positin.
 Optional @var{BUFFER} argument specifies the buffer to use.
+
+@obsolete{semantic-find-nonterminal-by-overlay-in-region,semantic-find-tag-by-overlay-in-region}
 @end defun
 
-@defun semantic-current-nonterminal
-Return the current nonterminal in the current buffer.
+@defun semantic-current-tag
+Return the current tag in the current buffer.
 If there are more than one in the same location, return the
-smallest token.
+smallest tag.  Return @code{nil} if there is no tag here.
+
+@obsolete{semantic-current-nonterminal,semantic-current-tag}
 @end defun
 
-@defun semantic-current-nonterminal-parent
-Return the current nonterminals parent in the current buffer.
-@var{A} token's parent would be a containing structure, such as a type
+@defun semantic-current-tag-parent
+Return the current tags parent in the current buffer.
+@var{A} tag's parent would be a containing structure, such as a type
 containing a field.  Return @code{nil} if there is no parent.
+
+@obsolete{semantic-current-nonterminal-parent,semantic-current-tag-parent}
 @end defun
 
 @node Nonterminal Sorting
 @section Nonterminal sorting
 
-Sometimes it is important to reorganize a token stream into a form
+Sometimes it is important to reorganize a tag stream into a form
 that is better for display to a user.  It is important to not use
 functions with side effects when doing this, and that could effect
-the token cache.
+the tag cache.
 
 There are some existing utility functions which will reorganize the
-token list for you.
+tag list for you.
 
-@defun semantic-bucketize tokens &optional parent filter
-Sort @var{TOKENS} into a group of buckets based on token type.
-Unknown types are placed in a Misc bucket.
+@defun semantic-bucketize tags &optional parent filter
+Sort @var{TAGS} into a group of buckets based on tag class.
+Unknown classes are placed in a Misc bucket.
 Type bucket names are defined by either `semantic-symbol->name-assoc-list'.
-If @var{PARENT} is specified, then @var{TOKENS} belong to this @var{PARENT} in some way.
+If @var{PARENT} is specified, then @var{TAGS} belong to this @var{PARENT} in some way.
 This will use `semantic-symbol->name-assoc-list-for-type-parts' to
 generate bucket names.
 Optional argument @var{FILTER} is a filter function to be applied to each bucket.
-The filter function will take one argument, which is a list of tokens, and
+The filter function will take one argument, which is a list of tags, and
 may re-organize the list with side-effects.
 @end defun
 
@@ -372,8 +456,8 @@ To create new bins for an application augment
 to setting this variable (locally in your function).
 @end defvar
 
-@defun semantic-adopt-external-members tokens
-Rebuild @var{TOKENS} so that externally defined members are regrouped.
+@defun semantic-adopt-external-members tags
+Rebuild @var{TAGS} so that externally defined members are regrouped.
 Some languages such as @var{C}++ and @var{CLOS} permit the declaration of member
 functions outside the definition of the class.  It is easier to study
 the structure of a program when such methods are grouped together
@@ -382,31 +466,31 @@ more logically.
 This function uses @dfn{semantic-nonterminal-external-member-p} to
 determine when a potential child is an externally defined member.
 
-Note: Applications which use this function must account for token
+Note: Applications which use this function must account for tag
 types which do not have a position, but have children which *do*
 have positions.
 
 Applications should use @code{semantic-mark-external-member-function}
-to modify all tokens which are found as externally defined to some
-type.  For example, changing the token type for generating extra
+to modify all tags which are found as externally defined to some
+type.  For example, changing the tag type for generating extra
 buckets with the bucket function.
 @end defun
 
 @defvar semantic-orphaned-member-metaparent-type
 In @dfn{semantic-adopt-external-members}, the type of @code{'type} for metaparents.
-@var{A} metaparent is a made-up type semantic token used to hold the child list
+@var{A} metaparent is a made-up type semantic tag used to hold the child list
 of orphaned members of a named type.
 @end defvar
 
 @defvar semantic-mark-external-member-function
 Function called when an externally defined orphan is found.
-Be default, the token is always marked with the @code{adopted} property.
+Be default, the tag is always marked with the @code{adopted} property.
 This function should be locally bound by a program that needs
-to add additional behaviors into the token list.
+to add additional behaviors into the tag list.
 This function is called with one argument which is a shallow copy
-of the token to be modified.  This function should return the
-token (or a copy of it) which is then integrated into the
-revised token list.
+of the tag to be modified.  This function should return the
+tag (or a copy of it) which is then integrated into the
+revised tag list.
 @end defvar
 
 @node Nonterminal Completion
@@ -422,7 +506,7 @@ Read a symbol name from the user for the current buffer.
 Optional arguments:
 @var{DEFAULT} is the default choice.  If no default is given, one is read
 from under point.
-@var{STREAM} is the list of tokens to complete from.
+@var{STREAM} is the list of tags to complete from.
 @var{FILTER} is provides a filter on the types of things to complete.
 @var{FILTER} must be a function to call on each element.  (See !!!
 @end defun
@@ -433,7 +517,7 @@ Read a variable name from the user for the current buffer.
 Optional arguments:
 @var{DEFAULT} is the default choice.  If no default is given, one is read
 from under point.
-@var{STREAM} is the list of tokens to complete from.
+@var{STREAM} is the list of tags to complete from.
 @end defun
 
 @defun semantic-read-function prompt &optional default stream
@@ -442,7 +526,7 @@ Read a function name from the user for the current buffer.
 Optional arguments:
 @var{DEFAULT} is the default choice.  If no default is given, one is read
 from under point.
-@var{STREAM} is the list of tokens to complete from.
+@var{STREAM} is the list of tags to complete from.
 @end defun
 
 @defun semantic-read-type prompt &optional default stream
@@ -451,7 +535,7 @@ Read a type name from the user for the current buffer.
 Optional arguments:
 @var{DEFAULT} is the default choice.  If no default is given, one is read
 from under point.
-@var{STREAM} is the list of tokens to complete from.
+@var{STREAM} is the list of tags to complete from.
 @end defun
 
 @node Override Methods
@@ -477,9 +561,9 @@ be passed in via a variable.
 Any given token consists of Meta information which is best viewed in
 some textual form.  This could be as simple as the token's name, or as
 a prototype to be added to header file in C.  Not only are there
-several default converters from a Token into text, but there is also
+several default converters from a Tag into text, but there is also
 some convenient variables that can be used with them.  Use these
-variables to allow options on output forms when displaying tokens in
+variables to allow options on output forms when displaying tags in
 your programs.
 
 @defvar semantic-token->text-functions

@@ -82,6 +82,10 @@ Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam, David Ponce
 @b{\kw\}
 @end macro
 
+@macro obsolete{old,new}
+Prior to Semantic version 2.0, @code{\new\} was known as @code{\old\}.
+@end macro
+
 @c *************************************************************************
 @c @ Document
 @c *************************************************************************
@@ -164,6 +168,8 @@ use the mailing list cedet-semantic@@sourceforge.net via the URL:
 @end iftex
 
 @bye
+
+@c Following comments are for the benefit of ispell.
 
 @c LocalWords: alist API APIs arg argc args argv asis assoc autoload
 @c LocalWords: backquote bnf bovinate bovinates

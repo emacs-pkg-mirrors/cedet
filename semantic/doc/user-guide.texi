@@ -5,21 +5,12 @@
 @c proper menus for this chapter.
 @end ignore
 
-@ignore
-Several tools come with Semantic which would not be possible without it.
-In general, these tools will work with any language supported by
-Semantic.
-@end ignore
-
-This chapter describes how to use semantic for the end user.
-Hopefully not much elisp knowledge is required for the
-target audience of this chapter.
-
-Also describe each of the applications that come with semantic
-as well as mention third party applications such as jdee and ecb.
+This chapter describes how to use @b{applications} enabled by
+semantic.
+Many of these come with semantic, but others are distributed apart
+from semantic.
 
 @menu
-* semanticdb::                  Cache your parsed buffers between sessions.
 * speedbar::                    How to use Semantic speedbar support
 * imenu::                       Special support for Imenu.
 * senator::                     The Semantic Navigator
@@ -28,133 +19,9 @@ as well as mention third party applications such as jdee and ecb.
 * document::                    Document generation functions
 * charts::                      Charting code statistics
 * Minor Modes::                 Useful minor modes
+* semanticdb::                  Cache your parsed buffers between sessions.
 * Customizing::                 
 @end menu
-
-@node semanticdb
-@section semanticdb
-@cindex semanticdb
-
-Semanticdb is a utility which tracks your parsed files, and saves the
-parsed information to files.  When you reload your source files,
-semanticdb automatically associates the file with the cached copy,
-saving time by not re-parsing your buffer.
-
-Semanticdb also provides an API for programs to use.  These functions
-will return token information without loading the source file into
-memory by checking the disk cache.
-
-To use semanticdb, add the following to your @file{.emacs} file:
-
-@example
-(require 'semanticdb)
-(global-semanticdb-minor-mode 1)
-@end example
-
-If you have a tool which optionally uses the semantic database, it may
-be important to track if the database mode is turned on or off.
-
-@deffn Option semanticdb-mode-hooks
-Hooks run whenever @dfn{global-semanticdb-minor-mode} is run.
-Use @dfn{semanticdb-minor-mode-p} to determine if the mode has been turned
-on or off.
-@end deffn
-
-@deffn Option semanticdb-persistent-path
-List of valid paths that semanticdb will cache tokens to.
-When @dfn{global-semanticdb-minor-mode} is active, token lists will
-be saved to disk when Emacs exits.  Not all directories will have
-tokens that should be saved.
-The value should be a list of valid paths.  @var{A} path can be a string,
-indicating a directory in which to save a variable.  An element in the
-list can also be a symbol.  Valid symbols are @code{never}, which will
-disable any saving anywhere, @code{always}, which enables saving
-everywhere, or @code{project}, which enables saving in any directory that
-passes a list of predicates in @code{semantic-project-predicates}.
-@end deffn
-
-@deffn Option semanticdb-project-roots
-List of directories, where each directory is the root of some project.
-All subdirectories of a root project are considered a part of one project.
-Values in this string can be overridden by project management programs
-via the @code{semanticdb-project-root-functions} variable.
-@end deffn
-
-The important difference between these two is that you may put just
-``~'' in @code{semanticdb-persistent-path}, but you may put individual
-project directories into @code{semanticdb-project-roots} so that
-different database lists don't get cross referenced incorrectly.
-
-@subsection Searching
-
-You can search for tokens in the database using the following
-functions.  It is important to note that database search functions do
-not return a plain list of tokens.  This is because some tokens may
-not be loaded in a buffer, which means that the found token would not
-have an overlay, and no way to determine where it came from.
-
-As such, all search functions return a list of the form:
-
-@example
-   ( (DATABASE TOKEN1 TOKEN2 ...) (DATABASE2 TOKEN3 TOKEN4 ...) ...)
-@end example
-
-@defun semanticdb-find-nonterminal-by-function function &optional databases search-parts search-includes diff-mode find-file-match
-Find all occurrences of nonterminals which match @var{FUNCTION}.
-Search in all @var{DATABASES}.  If @var{DATABASES} is @code{nil}, search a range of
-associated databases.
-When @var{SEARCH-PARTS} is non-@code{nil} the search will include children of tokens.
-When @var{SEARCH-INCLUDES} is non-@code{nil}, the search will include dependency files.
-When @var{DIFF-MODE} is non-@code{nil}, search databases which are of a different mode.
-@var{A} Mode is the @code{major-mode} that file was in when it was last parsed.
-When @var{FIND-@var{FILE}-MATCH} is non-@code{nil}, the make sure any found token's file is
-in an Emacs buffer.
-@end defun
-
-@defun semanticdb-find-nonterminal-by-name name &optional databases search-parts search-includes diff-mode find-file-match
-Find all occurrences of nonterminals with name @var{NAME} in databases.
-See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
-@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES}, @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
-@end defun
-
-@defun semanticdb-find-nonterminal-by-name-regexp regex &optional databases search-parts search-includes diff-mode find-file-match
-Find all occurrences of nonterminals with name matching @var{REGEX} in databases.
-See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
-@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
-@end defun
-
-@defun semanticdb-find-nonterminal-by-type type &optional databases search-parts search-includes diff-mode find-file-match
-Find all nonterminals with a type of @var{TYPE} in databases.
-See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
-@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
-@end defun
-
-@defun semanticdb-find-nonterminal-by-property property value &optional databases search-parts search-includes diff-mode find-file-match
-Find all nonterminals with a @var{PROPERTY} equal to @var{VALUE} in databases.
-See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
-@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
-Return a list ((@var{DB-TABLE} . @var{TOKEN-LIST}) ...).
-@end defun
-
-@defun semanticdb-find-nonterminal-by-extra-spec spec &optional databases search-parts search-includes diff-mode find-file-match
-Find all nonterminals with a @var{SPEC} in databases.
-See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
-@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
-Return a list ((@var{DB-TABLE} . @var{TOKEN-LIST}) ...).
-@end defun
-
-@defun semanticdb-find-nonterminal-by-extra-spec-value spec value &optional databases search-parts search-includes diff-mode find-file-match
-Find all nonterminals with a @var{SPEC} equal to @var{VALUE} in databases.
-See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
-@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
-Return a list ((@var{DB-TABLE} . @var{TOKEN-LIST}) ...).
-@end defun
-
-@defun semanticdb-file-stream file
-Return a list of tokens belonging to @var{FILE}.
-If file has database tokens available in the database, return them.
-If file does not have tokens available, then load the file, and create them.
-@end defun
 
 @node speedbar
 @section speedbar
@@ -768,6 +635,131 @@ Maximum size in bytes of buffers automatically re-parsed.
 If this value is less than or equal to @var{0} buffers are automatically
 re-parsed regardless of their size.
 @end deffn
+
+@node semanticdb
+@section semanticdb
+@cindex semanticdb
+
+Semanticdb is a utility which tracks your parsed files, and saves the
+parsed information to files.  When you reload your source files,
+semanticdb automatically associates the file with the cached copy,
+saving time by not re-parsing your buffer.
+
+Semanticdb also provides an API for programs to use.  These functions
+will return token information without loading the source file into
+memory by checking the disk cache.
+
+To use semanticdb, add the following to your @file{.emacs} file:
+
+@example
+(require 'semanticdb)
+(global-semanticdb-minor-mode 1)
+@end example
+
+If you have a tool which optionally uses the semantic database, it may
+be important to track if the database mode is turned on or off.
+
+@deffn Option semanticdb-mode-hooks
+Hooks run whenever @dfn{global-semanticdb-minor-mode} is run.
+Use @dfn{semanticdb-minor-mode-p} to determine if the mode has been turned
+on or off.
+@end deffn
+
+@deffn Option semanticdb-persistent-path
+List of valid paths that semanticdb will cache tokens to.
+When @dfn{global-semanticdb-minor-mode} is active, token lists will
+be saved to disk when Emacs exits.  Not all directories will have
+tokens that should be saved.
+The value should be a list of valid paths.  @var{A} path can be a string,
+indicating a directory in which to save a variable.  An element in the
+list can also be a symbol.  Valid symbols are @code{never}, which will
+disable any saving anywhere, @code{always}, which enables saving
+everywhere, or @code{project}, which enables saving in any directory that
+passes a list of predicates in @code{semantic-project-predicates}.
+@end deffn
+
+@deffn Option semanticdb-project-roots
+List of directories, where each directory is the root of some project.
+All subdirectories of a root project are considered a part of one project.
+Values in this string can be overridden by project management programs
+via the @code{semanticdb-project-root-functions} variable.
+@end deffn
+
+The important difference between these two is that you may put just
+``~'' in @code{semanticdb-persistent-path}, but you may put individual
+project directories into @code{semanticdb-project-roots} so that
+different database lists don't get cross referenced incorrectly.
+
+@subsection Searching
+
+You can search for tokens in the database using the following
+functions.  It is important to note that database search functions do
+not return a plain list of tokens.  This is because some tokens may
+not be loaded in a buffer, which means that the found token would not
+have an overlay, and no way to determine where it came from.
+
+As such, all search functions return a list of the form:
+
+@example
+   ( (DATABASE TOKEN1 TOKEN2 ...) (DATABASE2 TOKEN3 TOKEN4 ...) ...)
+@end example
+
+@defun semanticdb-find-nonterminal-by-function function &optional databases search-parts search-includes diff-mode find-file-match
+Find all occurrences of nonterminals which match @var{FUNCTION}.
+Search in all @var{DATABASES}.  If @var{DATABASES} is @code{nil}, search a range of
+associated databases.
+When @var{SEARCH-PARTS} is non-@code{nil} the search will include children of tokens.
+When @var{SEARCH-INCLUDES} is non-@code{nil}, the search will include dependency files.
+When @var{DIFF-MODE} is non-@code{nil}, search databases which are of a different mode.
+@var{A} Mode is the @code{major-mode} that file was in when it was last parsed.
+When @var{FIND-@var{FILE}-MATCH} is non-@code{nil}, the make sure any found token's file is
+in an Emacs buffer.
+@end defun
+
+@defun semanticdb-find-nonterminal-by-name name &optional databases search-parts search-includes diff-mode find-file-match
+Find all occurrences of nonterminals with name @var{NAME} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES}, @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+@end defun
+
+@defun semanticdb-find-nonterminal-by-name-regexp regex &optional databases search-parts search-includes diff-mode find-file-match
+Find all occurrences of nonterminals with name matching @var{REGEX} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+@end defun
+
+@defun semanticdb-find-nonterminal-by-type type &optional databases search-parts search-includes diff-mode find-file-match
+Find all nonterminals with a type of @var{TYPE} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+@end defun
+
+@defun semanticdb-find-nonterminal-by-property property value &optional databases search-parts search-includes diff-mode find-file-match
+Find all nonterminals with a @var{PROPERTY} equal to @var{VALUE} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+Return a list ((@var{DB-TABLE} . @var{TOKEN-LIST}) ...).
+@end defun
+
+@defun semanticdb-find-nonterminal-by-extra-spec spec &optional databases search-parts search-includes diff-mode find-file-match
+Find all nonterminals with a @var{SPEC} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+Return a list ((@var{DB-TABLE} . @var{TOKEN-LIST}) ...).
+@end defun
+
+@defun semanticdb-find-nonterminal-by-extra-spec-value spec value &optional databases search-parts search-includes diff-mode find-file-match
+Find all nonterminals with a @var{SPEC} equal to @var{VALUE} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+Return a list ((@var{DB-TABLE} . @var{TOKEN-LIST}) ...).
+@end defun
+
+@defun semanticdb-file-stream file
+Return a list of tokens belonging to @var{FILE}.
+If file has database tokens available in the database, return them.
+If file does not have tokens available, then load the file, and create them.
+@end defun
 
 @node Customizing
 @section Customizing

@@ -11,25 +11,26 @@
 
 @keyword{bovine lambda}
 
+@keyword{context}
+
 @keyword{LALR}
 
 @keyword{lexer}
 
-@keyword{lexical tokens}
-The output of the lexer as well as the input to the parser.
-
 @keyword{LL}
+
+@keyword{nonterminal}
 
 @keyword{overloadable}
 Some functions are defined via @code{define-overload}.
 These can be overloaded via ....
 
 @keyword{parser}
-A program that converts @ref{lexical tokens} to
-@ref{semantic tokens}.
+A program that converts @b{tokens} to @b{tags}.
 
-@keyword{semantic tokens}
+@keyword{tag}
+
+@keyword{tokens}
+The output of the lexer as well as the input to the parser.
 
 @keyword{wisent parser}
-
-@keyword{}
