@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.12
-;; RCS: $Id: eieio.el,v 1.40 1999/07/12 12:52:29 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.41 1999/09/04 12:29:24 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -134,22 +134,23 @@ loaded or not.")
 (defconst class-public-a 6 "Class public attribute index.")
 (defconst class-public-d 7 "Class public attribute defaults index.")
 (defconst class-public-doc 8 "Class public documentation strings for attributes.")
-(defconst class-public-allocation 9 "Class public allocation type for a slot.")
-(defconst class-public-type 10 "Class public type for a slot.")
-(defconst class-public-custom 11 "Class public type for a slot.")
-(defconst class-private-a 12 "Class private attribute index.")
-(defconst class-private-d 13 "Class private attribute defaults index.")
-(defconst class-private-doc 14 "Class private documentation strings for attributes.")
-(defconst class-private-allocation 15 "Class public allocation type for a slot.")
-(defconst class-private-type 16 "Class public type for a slot.")
-(defconst class-initarg-tuples 17 "Class initarg tuples list.")
-(defconst class-default-object-cache 18
+(defconst class-public-type 9 "Class public type for a slot.")
+(defconst class-public-custom 10 "Class public type for a slot.")
+(defconst class-protection 11 "Class protection for a slot.")
+(defconst class-initarg-tuples 12 "Class initarg tuples list.")
+(defconst class-class-allocation-a 13 "Class allocated attributes.")
+(defconst class-class-allocation-doc 14 "Class allocated documentation.")
+(defconst class-class-allocation-type 15 "Class allocated value type.")
+(defconst class-class-allocation-custom 16 "Class allocated custom descriptor.")
+(defconst class-class-allocation-protection 17 "Class allocated protection list.")
+(defconst class-class-allocation-values 18 "Class allocated value vector.")
+(defconst class-default-object-cache 19
   "Cache index of what a newly created object would look like.
 This will speed up instantiation time as only a `copy-sequence' will
 be needed, instead of looping over all the values and setting them
 from the default.")
 
-(defconst class-num-fields 19
+(defconst class-num-fields 20
   "Number of fields in the class definition object.")
 
 (defconst object-class 1 "Index in an object vector where the class is stored.")
@@ -216,6 +217,7 @@ yet supported.  Supported tags are:
   :initform   - initializing form
   :initarg    - tag used during initialization
   :accessor   - tag used to create a function to access this field
+  :allocation - defaults to :instance, but could also be :class
   :writer     - a function symbol which will `write' an object's slot
   :reader     - a function symbol which will `read' an object
   :type       - the type of data allowed in this slot (see `typep')
@@ -224,17 +226,13 @@ yet supported.  Supported tags are:
 
 The following are extensions on CLOS:
   :protection - non-nil means a private slot (accessible when THIS is set)
-  :custom     - When customizing an object, the custom :type.  Public only.
-
-The following are accepted, and stored, but have no implementation:
-
-  :allocation - defaults to :instance, but could also be :class"
+  :custom     - When customizing an object, the custom :type.  Public only."
   (list 'defclass-engine (list 'quote name) (list 'quote superclass)
 	(list 'quote fields) doc-string))
 
-(defun defclass-engine (cname superclass fields doc-string)
+(defun defclass-engine (cname superclasses fields doc-string)
   "See `defclass' for more information.
-Define CNAME as a new subclass of SUPERCLASS, with FIELDS being the
+Define CNAME as a new subclass of SUPERCLASSES, with FIELDS being the
 fields residing in that class definition, and with DOC-STRING as the
 toplevel documentation for this class."
   ;; Run our eieio-hook each time, and clear it when we are done.
@@ -246,54 +244,49 @@ toplevel documentation for this class."
   (if (not (featurep 'cl)) (add-hook 'eieio-hook 'eieio-cl-run-defsetf))
 
   (if (not (symbolp cname)) (signal 'wrong-type-argument '(symbolp cname)))
-  (if (not (listp superclass)) (signal 'wrong-type-argument '(listp superclass)))
-  (let* ((pname (if superclass (car superclass) nil))
+  (if (not (listp superclasses)) (signal 'wrong-type-argument '(listp superclasses)))
+
+  (let* ((pname (if superclasses superclasses nil))
 	 (newc (make-vector class-num-fields nil))
 	 (clearparent nil))
+
     (aset newc 0 'defclass)
     (aset newc class-symbol cname)
     (aset newc class-doc doc-string)
-    (if (and pname (symbolp pname))
-	(if (not (class-p pname))
-	    ;; bad class
-	    (error "Given parent class %s is not a class" pname)
-	  ;; good parent class...
-	  ;; save new child in parent
-	  (if (not (member cname (aref (class-v pname) class-children)))
-	      (aset (class-v pname) class-children (cons cname (aref (class-v pname) class-children))))
-	  ;; save parent in child
-	  (aset newc class-parent pname))
-      (if pname
-	  ;; pname has no value
-	  (error "Invalid parent class %s" pname)
-	(if (eq cname 'eieio-default-superclass)
-	    ;; In this case, we have absolutly no parent...
-	    (message "Bootstrapping objects...")
-	  ;; adopt the default parent here, but clear it later...
-	  (setq clearparent t)
-	  ;; save new child in parent
-	  (if (not (member cname (aref (class-v 'eieio-default-superclass) class-children)))
-	      (aset (class-v 'eieio-default-superclass) class-children
-		    (cons cname (aref (class-v 'eieio-default-superclass) class-children))))
-	  ;; save parent in child
-	  (aset newc class-parent eieio-default-superclass))))
+
+    (if pname
+	(while pname
+	  (if (and (car pname) (symbolp (car pname)))
+	      (if (not (class-p (car pname)))
+		  ;; bad class
+		  (error "Given parent class %s is not a class" (car pname))
+		;; good parent class...
+		;; save new child in parent
+		(if (not (member cname (aref (class-v (car pname)) class-children)))
+		    (aset (class-v (car pname)) class-children
+			  (cons cname (aref (class-v (car pname)) class-children))))
+		;; save parent in child
+		(aset newc class-parent (cons (car pname) (aref newc class-parent))))
+	    (error "Invalid parent class %s" pname))
+	  (setq pname (cdr pname)))
+      ;; If there is nothing to loop over, then inherit from the
+      ;; default superclass.
+      (if (eq cname 'eieio-default-superclass)
+	  ;; In this case, we have absolutly no parent, so we can ssy safely
+	  ;; that the parent classes are being bootstrapped.
+	  (message "Bootstrapping objects...")
+	;; adopt the default parent here, but clear it later...
+	(setq clearparent t)
+	;; save new child in parent
+	(if (not (member cname (aref (class-v 'eieio-default-superclass) class-children)))
+	    (aset (class-v 'eieio-default-superclass) class-children
+		  (cons cname (aref (class-v 'eieio-default-superclass) class-children))))
+	;; save parent in child
+	(aset newc class-parent (list eieio-default-superclass))))
     
     ;; before adding new fields, lets add all the methods and classes
     ;; in from the parent class
-    (if (aref newc class-parent)
-	(progn
-	  (aset newc class-private-a (copy-sequence (aref (class-v (aref newc class-parent)) class-private-a)))
-	  (aset newc class-private-d (copy-sequence (aref (class-v (aref newc class-parent)) class-private-d)))
-	  (aset newc class-private-doc (copy-sequence (aref (class-v (aref newc class-parent)) class-private-doc)))
-	  (aset newc class-private-allocation (copy-sequence (aref (class-v (aref newc class-parent)) class-private-allocation)))
-	  (aset newc class-private-type (copy-sequence (aref (class-v (aref newc class-parent)) class-private-type)))
-	  (aset newc class-public-a (copy-sequence (aref (class-v (aref newc class-parent)) class-public-a)))
-	  (aset newc class-public-d (copy-sequence (aref (class-v (aref newc class-parent)) class-public-d)))
-	  (aset newc class-public-doc (copy-sequence (aref (class-v (aref newc class-parent)) class-public-doc)))
-	  (aset newc class-public-allocation (copy-sequence (aref (class-v (aref newc class-parent)) class-public-allocation)))
-	  (aset newc class-public-type (copy-sequence (aref (class-v (aref newc class-parent)) class-public-type)))
-	  (aset newc class-public-custom (copy-sequence (aref (class-v (aref newc class-parent)) class-public-custom)))
-	  (aset newc class-initarg-tuples (copy-sequence (aref (class-v (aref newc class-parent)) class-initarg-tuples)))))
+    (eieio-copy-parents-into-subclass newc superclasses)
 
     ;; Store the new class vector definition into the symbol.  We need to
     ;; do this first so that we can call defmethod for the accessor.
@@ -318,99 +311,84 @@ toplevel documentation for this class."
 	     (type (member ':type field))
 	     (custom (car (cdr (member ':custom field))))
 	     )
+	;; Clean up the meaning of protection.
+	(cond ((eq prot 'public) (setq prot nil))
+	      ((eq prot 'private) (setq prot t))
+	      ((eq prot nil) nil)
+	      (t (signal 'invalid-slot-type (list ':protection prot))))
 
 	;; The default type specifier is supposed to be t, meaning anything.
 	(if (not type) (setq type t)
 	  (setq type (car (cdr type))))
+	
+	;; intern the symbol so we can use it blankly
+	(if initarg (set initarg initarg))
 
-	(let* ((-a (if (eq prot 'private) class-private-a class-public-a))
-	       (-d (if (eq prot 'private) class-private-d class-public-d))
-	       (-doc (if (eq prot 'private) class-private-doc class-public-doc))
-	       (-alloc (if (eq prot 'private) class-private-allocation class-public-allocation))
-	       (-type (if (eq prot 'private) class-private-type class-public-type))
-	       (-custom (if (eq prot 'private) nil class-public-custom))
-	       (-al (aref newc -a))
-	       (-dl (aref newc -d))
-	       (-docl (aref newc -doc))
-	       (-allocl (aref newc -alloc))
-	       (-typel (aref newc -type))
-	       (-customl (if -custom (aref newc -custom) nil))
-	       (np (member name -al))
-	       (dp (if np (nthcdr (- (length -al) (length np)) -dl) nil)))
-	  (if np
-	      (progn
-		;; If we have a repeat, only update the initarg...
-		(setcar dp init)
-		)
-	    (aset newc -a (append -al (list name)))
-	    (aset newc -d (append -dl (list init)))
-	    (aset newc -doc (append -docl (list docstr)))
-	    ;; Should the following slot types be updated always?  Hmm.
-	    (aset newc -alloc (append -allocl (list alloc)))
-	    (aset newc -type (append -typel (list type)))
-	    (if -custom (aset newc -custom (append -customl (list custom))))
-	    )
-	  ;; public and privates both can install new initargs
-	  (if initarg
-	      (progn
-		;; intern the symbol so we can use it blankly
-		(set initarg initarg)
-		;; find old occurance
-		(let ((a (assoc initarg (aref newc class-initarg-tuples))))
-		  ;; set the new arg only if not already set...
-		  (if (not a)
-		      (aset newc class-initarg-tuples
-			    (append (aref newc class-initarg-tuples)
-				    (list (cons initarg name))))))))
-	  ;; anyone can have an accessor function.  This creates a function
-	  ;; of the specified name, and also performs a `defsetf' if applicable
-	  ;; so that users can `setf' the space returned by this function
-	  (if acces
-	      (progn
-		(defmethod-engine acces
-		  (list (list (list 'this cname))
-			(format
-			 "Retrieves the slot `%s' from an object of class `%s'"
-			 name cname)
-			(list 'oref-engine 'this (list 'quote name))))
-		;; It turns out that using the setf macro with a
-		;; generic method form is impossible because almost
-		;; any type of form could be created for disparaging
-		;; objects.  Yuck!  Therefore, we shouldn't try to make
-		;; setf calls to accessors.
-		;; Create a setf definition for this accessor.
-		;(eieio-cl-defsetf acces '(widget)
-		;		  '(store)
-		;		  (list 'oset-engine 'widget
-		;			(list 'quote cname)
-		;			'store))
-		)
-	    )
-	  ;; If a writer is defined, then create a generic method of that
-	  ;; name whose purpose is to write out this slot value.
-	  (if writer
-	      (progn
-		(defmethod-engine writer
-		  (list (list (list 'this cname))
-			(format
-			 "Write the slot `%s' from object of class `%s'"
-			 name cname)
-			(list 'eieio-override-prin1
-			      (list 'oref-engine 'this (list 'quote name)))))
-		))
-	  ;; If a reader is defined, then create a generic method
-	  ;; of that name whose purpose is to read this slot value.
-	  (if reader
-	      (progn
-		(defmethod-engine reader
-		  (list (list (list 'this cname))
-			(format
-			 "Read the slot `%s' from object of class `%s'"
-			 name cname)
-			'(error "Not implemented")))))
+	;; First up, add this field into our new class.
+	(eieio-add-new-field newc name init docstr type custom
+			     prot initarg alloc 'defaultoverride)
+
+	;; anyone can have an accessor function.  This creates a function
+	;; of the specified name, and also performs a `defsetf' if applicable
+	;; so that users can `setf' the space returned by this function
+	(if acces
+	    (progn
+	      (defmethod-engine acces
+		(list (list (list 'this cname))
+		      (format
+		       "Retrieves the slot `%s' from an object of class `%s'"
+		       name cname)
+		      (list 'oref-engine 'this (list 'quote name))))
+	      ;; It turns out that using the setf macro with a
+	      ;; generic method form is impossible because almost
+	      ;; any type of form could be created for disparaging
+	      ;; objects.  Yuck!  Therefore, we shouldn't try to make
+	      ;; setf calls to accessors.
+	      ;; Create a setf definition for this accessor.
+	      ;;(eieio-cl-defsetf acces '(widget)
+	      ;;		  '(store)
+	      ;;		  (list 'oset-engine 'widget
+	      ;;			(list 'quote cname)
+	      ;;			'store))
+	      )
 	  )
+	;; If a writer is defined, then create a generic method of that
+	;; name whose purpose is to write out this slot value.
+	(if writer
+	    (progn
+	      (defmethod-engine writer
+		(list (list (list 'this cname))
+		      (format
+		       "Write the slot `%s' from object of class `%s'"
+		       name cname)
+		      (list 'eieio-override-prin1
+			    (list 'oref-engine 'this (list 'quote name)))))
+	      ))
+	;; If a reader is defined, then create a generic method
+	;; of that name whose purpose is to read this slot value.
+	(if reader
+	    (progn
+	      (defmethod-engine reader
+		(list (list (list 'this cname))
+		      (format
+		       "Read the slot `%s' from object of class `%s'"
+		       name cname)
+		      '(error "Not implemented")))))
 	)
       (setq fields (cdr fields)))
+
+    ;; Now that everything has been loaded up, all our lists are backwards!  Fix that up now.
+    (aset newc class-public-a (nreverse (aref newc class-public-a)))
+    (aset newc class-public-d (nreverse (aref newc class-public-d)))
+    (aset newc class-public-doc (nreverse (aref newc class-public-doc)))
+    (aset newc class-public-type (nreverse (aref newc class-public-type)))
+    (aset newc class-public-custom (nreverse (aref newc class-public-custom)))
+    (aset newc class-protection (nreverse (aref newc class-protection)))
+    (aset newc class-initarg-tuples (nreverse (aref newc class-initarg-tuples)))
+
+    ;; Also, take class allocated values, and vectorize them for speed.
+    (aset newc class-class-allocation-values
+	  (apply 'vector (aref newc class-class-allocation-values)))
 
     ;; turn this into a useable self-pointing symbol
     (set cname cname)
@@ -425,8 +403,8 @@ toplevel documentation for this class."
     ;; to save space, and also optimal for the number of items we have.
     (let* ((cnt 0)
 	   (pubsyms (aref newc class-public-a))
-	   (privsyms (aref newc class-private-a))
-	   (l (+ (length pubsyms) (length privsyms)))
+	   (prots (aref newc class-protection))
+	   (l (length pubsyms))
 	   (vl (let ((primes '( 3 5 7 11 13 17 19 23 29 31 37 41 43 47
 				  53 59 61 67 71 73 79 83 89 97 101 )))
 		 (while (and primes (< (car primes) l))
@@ -435,15 +413,12 @@ toplevel documentation for this class."
 	   (oa (make-vector vl 0))
 	   (newsym))
       (while pubsyms
-	(set (intern (symbol-name (car pubsyms)) oa) cnt)
-	(setq cnt (1+ cnt))
-	(setq pubsyms (cdr pubsyms)))
-      (while privsyms
-	(setq newsym (intern (symbol-name (car privsyms)) oa))
+	(setq newsym (intern (symbol-name (car pubsyms)) oa))
 	(set newsym cnt)
-	(put newsym 'private t)
 	(setq cnt (1+ cnt))
-	(setq privsyms (cdr privsyms)))
+	(if (car prots) (put newsym 'private (car prots)))
+	(setq pubsyms (cdr pubsyms)
+	      prots (cdr prots)))
       (aset newc class-symbol-obarray oa)
       )
 
@@ -478,16 +453,143 @@ toplevel documentation for this class."
 
     ;; Create the cached default object.
     (let ((cache (make-vector (+ (length (aref newc class-public-a))
-				 (length (aref newc class-private-a))
 				 3) nil)))
-	  (aset cache 0 'object)
-	  (aset cache object-class cname)
-	  (aset cache object-name 'default-cache-object)
-	  (eieio-set-defaults cache t)
-	  (aset newc class-default-object-cache cache))
+      (aset cache 0 'object)
+      (aset cache object-class cname)
+      (aset cache object-name 'default-cache-object)
+      (eieio-set-defaults cache t)
+      (aset newc class-default-object-cache cache))
 
     ;; Return our new class object
     newc
+    ))
+
+(defun eieio-add-new-field (newc a d doc type cust prot init alloc
+				 &optional defaultoverride)
+  "Add into NEWC attribute A.
+If A already exists in NEWC, then do nothing.  If it doesn't exist,
+then also add in D (defualt), DOC, TYPE, CUST, PROT, and INIT arg.
+Argument ALLOC specifies if the field is allocated per instance, or per class.
+If optional DEFAULTOVERRIDE is non-nil, then if A exists in NEWC,
+we must override it's value for a default."
+  ;; Make sure we duplicate those items that are sequences.
+  (if (sequencep d) (setq d (copy-sequence d)))
+  (if (sequencep type) (setq type (copy-sequence type)))
+  (if (sequencep cust) (setq cust (copy-sequence cust)))
+
+  ;; To prevent override information w/out specification of storage,
+  ;; we need to do this little hack.
+  (if (member a (aref newc class-class-allocation-a)) (setq alloc ':class))
+
+  (if (or (not alloc) (and (symbolp alloc) (eq alloc ':instance)))
+      ;; In this case, we modify the INSTANCE version of a given slot.
+      ;; Only add this element if it is so-far unique
+      (if (not (member a (aref newc class-public-a)))
+	  (progn
+	    (aset newc class-public-a (cons a (aref newc class-public-a)))
+	    (aset newc class-public-d (cons d (aref newc class-public-d)))
+	    (aset newc class-public-doc (cons doc (aref newc class-public-doc)))
+	    (aset newc class-public-type (cons type (aref newc class-public-type)))
+	    (aset newc class-public-custom (cons cust (aref newc class-public-custom)))
+	    (aset newc class-protection (cons prot (aref newc class-protection)))
+	    (aset newc class-initarg-tuples (cons (cons init a) (aref newc class-initarg-tuples)))
+	    )
+	;; When defaultoverride is true, we are usually adding new local
+	;; attributes which must override the default value of any field
+	;; passed in by one of the parent classes.
+	(if defaultoverride
+	    (progn
+	      ;; There is a match, and we must override the old value.
+	      (let* ((ca (aref newc class-public-a))
+		     (np (member a ca))
+		     (dp (if np (nthcdr (- (length ca) (length np))
+					(aref newc class-public-d))
+			   nil)))
+		(if (not np)
+		    (error "Eieio internal error overriding default value for %s"
+			   a)
+		  ;; If we have a repeat, only update the initarg...
+		  (setcar dp d)
+		  )))))
+    (if (not (member a (aref newc class-class-allocation-a)))
+	(progn
+	  ;; Here we have found a :class version of a slot.  This
+	  ;; requires a very different aproach.
+	  (aset newc class-class-allocation-a (cons a (aref newc class-class-allocation-a)))
+	  (aset newc class-class-allocation-doc (cons doc (aref newc class-class-allocation-doc)))
+	  (aset newc class-class-allocation-type (cons type (aref newc class-class-allocation-type)))
+	  (aset newc class-class-allocation-custom (cons cust (aref newc class-class-allocation-custom)))
+	  (aset newc class-class-allocation-protection (cons prot (aref newc class-class-allocation-protection)))
+	  ;; Default value is stored in the 'values section, since new objects
+	  ;; can't initialize from this element.
+	  (aset newc class-class-allocation-values (cons d (aref newc class-class-allocation-values))))
+      (if defaultoverride
+	  (progn
+	    ;; There is a match, and we must override the old value.
+	    (let* ((ca (aref newc class-class-allocation-a))
+		   (np (member a ca))
+		   (dp (if np (nthcdr (- (length ca) (length np))
+				      (aref newc class-class-allocation-values))
+			 nil)))
+	      (if (not np)
+		  (error "Eieio internal error overriding default value for %s"
+			 a)
+		;; If we have a repeat, only update the vlaue...
+		(setcar dp d) )))))
+    ))
+
+(defun eieio-copy-parents-into-subclass (newc parents)
+  "Copy into NEWC the fields of PARENTS.
+Follow the rules of not overwritting early parents when applying to
+the new child class."
+  (let ((ps (aref newc class-parent)))
+    (while ps
+      ;; First, duplicate all the fields of the parent.
+      (let ((pcv (class-v (car ps))))
+	(let ((pa (aref pcv class-public-a))
+	      (pd (aref pcv class-public-d))
+	      (pdoc (aref pcv class-public-doc))
+	      (ptype (aref pcv class-public-type))
+	      (pcust (aref pcv class-public-custom))
+	      (pprot (aref pcv class-protection))
+	      (pinit (aref pcv class-initarg-tuples)))
+	  (while pa
+	    (eieio-add-new-field newc
+				 (car pa) (car pd) (car pdoc)
+				 (car ptype) (car pcust) (car pprot)
+				 (car-safe (car pinit)) nil)
+	    ;; Increment each value.
+	    (setq pa (cdr pa)
+		  pd (cdr pd)
+		  pdoc (cdr pdoc)
+		  ptype (cdr ptype)
+		  pcust (cdr pcust)
+		  pprot (cdr pprot)
+		  pinit (cdr pinit))
+	    )) ;; while/let
+	;; Now duplicate all the class alloc fields.
+	(let ((pa (aref pcv class-class-allocation-a))
+	      (pdoc (aref pcv class-class-allocation-doc))
+	      (ptype (aref pcv class-class-allocation-type))
+	      (pcust (aref pcv class-class-allocation-custom))
+	      (pprot (aref pcv class-class-allocation-protection))
+	      (pval (aref pcv class-class-allocation-values))
+	      (i 0))
+	  (while pa
+	    (eieio-add-new-field newc
+				 (car pa) (aref pval i) (car pdoc)
+				 (car ptype) (car pcust) (car pprot)
+				 nil ':class)
+	    ;; Increment each value.
+	    (setq pa (cdr pa)
+		  pdoc (cdr pdoc)
+		  ptype (cdr ptype)
+		  pcust (cdr pcust)
+		  pprot (cdr pprot)
+		  i (1+ i))
+	    ))) ;; while/let
+      ;; Loop over each parent class
+      (setq ps (cdr ps)))
     ))
 
 ;;; CLOS style implementation of object creators.
@@ -598,10 +700,20 @@ created by the :initarg tag."
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (aref obj object-class) field)))
     (if (not c)
-	(slot-missing obj field 'oref)
-	;;(signal 'invalid-slot-name (list (object-name obj) field))
-      )
-    (aref obj c)))
+	;; It might be missing because it is a :class allocated field.
+	;; Lets check that info out.
+	(if (setq c
+		  (eieio-class-field-name-index (aref obj object-class) field))
+	    ;; Oref that slot.
+	    (aref (aref (class-v (aref obj object-class)) class-class-allocation-values)
+		  c)
+	  ;; The slot-missing method is a cool way of allowing an object author
+	  ;; to intercept missing slot definitions.  Since it is also the LAST
+	  ;; thing called in this fn, it's return value would be retrieved.
+	  (slot-missing obj field 'oref)
+	  ;;(signal 'invalid-slot-name (list (object-name obj) field))
+	  )
+      (aref obj c))))
 
 (defalias 'slot-value 'oref-engine)
 
@@ -635,25 +747,29 @@ Fills in OBJ's FIELD with it's default value."
   (if (not (or (object-p obj) (class-p obj))) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let* ((cl (if (object-p obj) (aref obj object-class) obj))
-	 (c (eieio-field-name-index cl field))
-	 (nump (length (aref (class-v cl) class-public-a))))
+	 (c (eieio-field-name-index cl field)))
     (if (not c)
-	(slot-missing obj field 'oref-default)
-	;;(signal 'invalid-slot-name (list (class-name cl) field))
-      )
-    (let ((val (if (< c (+ 3 nump))
-		   (nth (- c 3) (aref (class-v cl) class-public-d))
-		 (nth (- c nump 3) (aref (class-v cl) class-private-d)))))
-      ;; check for functions to evaluate
-      (if (or (and (listp val) (equal (car val) 'lambda))
-	      (and (symbolp val) (fboundp val)))
-	  (let ((this obj))
-	    (funcall val))
-	;; check for quoted things
-	(if (and (listp val) (equal (car val) 'quote))
-	    (car (cdr val))
-	  ;; return it verbatim
-	  val)))))
+	;; It might be missing because it is a :class allocated field.
+	;; Lets check that info out.
+	(if (setq c
+		  (eieio-class-field-name-index (aref obj object-class) field))
+	    ;; Oref that slot.
+	    (aref (aref (class-v (aref obj object-class)) class-class-allocation-values)
+		  c)
+	  (slot-missing obj field 'oref-default)
+	  ;;(signal 'invalid-slot-name (list (class-name cl) field))
+	  )
+      (let ((val (nth (- c 3) (aref (class-v cl) class-public-d))))
+	;; check for functions to evaluate
+	(if (or (and (listp val) (equal (car val) 'lambda))
+		(and (symbolp val) (fboundp val)))
+	    (let ((this obj))
+	      (funcall val))
+	  ;; check for quoted things
+	  (if (and (listp val) (equal (car val) 'quote))
+	      (car (cdr val))
+	    ;; return it verbatim
+	    val))))))
 
 (defun eieio-perform-slot-validation (spec value)
   "Signal if SPEC does not match VALUE."
@@ -667,13 +783,7 @@ Checks the :type specifier."
   (setq field-idx (- field-idx 3))
   (let ((s (aref (class-v class) class-public-a)))
     (if (not (eieio-perform-slot-validation
-	      (if (< field-idx (length s))
-		  ;; It's public
-		  (nth field-idx (aref (class-v class) class-public-type))
-		;; It's private.  Adjust lists, and zero in.
-		(setq s (aref (class-v class) class-private-a)
-		      field-idx (- field-idx (length s)))
-		(nth field-idx (aref (class-v class) class-private-type)))
+	      (nth field-idx (aref (class-v class) class-public-type))
 	      value))
 	(signal 'invalid-slot-type '(list 'oset value)))))
 
@@ -690,10 +800,18 @@ Fills in OBJ's FIELD with VALUE."
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (object-class-fast obj) field)))
     (if (not c)
-	(slot-missing obj field 'oset value)
-	;;(signal 'invalid-slot-name (list (object-name obj) field))
-      )
-    (aset obj c value)))
+	;; It might be missing because it is a :class allocated field.
+	;; Lets check that info out.
+	(if (setq c
+		  (eieio-class-field-name-index (aref obj object-class) field))
+	    ;; Oref that slot.
+	    (aref (aref (class-v (aref obj object-class)) class-class-allocation-values)
+		  c)
+	  ;; See oref for comment on `slot-missing'
+	  (slot-missing obj field 'oset value)
+	  ;;(signal 'invalid-slot-name (list (object-name obj) field))
+	  )
+      (aset obj c value))))
 
 (defmacro oset-default (class field value)
   "Set the default slot in CLASS for FIELD to VALUE.
@@ -708,14 +826,17 @@ Fills in the default value in CLASS' in FIELD with VALUE."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let* ((scoped-class class)
-	 (c (eieio-field-name-index class field))
-	 (nump (length (aref (class-v class) class-public-a))))
-    (if (not c) (signal 'invalid-slot-name (list (class-name class) field)))
-    (setcar
-     (if (< c (+ 3 nump))
-	 (nthcdr (- c 3) (aref (class-v class) class-public-d))
-       (nthcdr (- c nump 3) (aref (class-v class) class-private-d)))
-     value)))
+	 (c (eieio-field-name-index class field)))
+    (if (not c)
+	;; It might be missing because it is a :class allocated field.
+	;; Lets check that info out.
+	(if (setq c
+		  (eieio-class-field-name-index class field))
+	    ;; Oref that slot.
+	    (aset (aref (class-v class) class-class-allocation-values) c value)
+	  (signal 'invalid-slot-name (list (class-name class) field)))
+      (setcar (nthcdr (- c 3) (aref (class-v class) class-public-d))
+	      value))))
 
 (defmacro with-slots (spec-list object &rest body)
   "Create a lexical scope for slots in SPEC-LIST for OBJECT.
@@ -766,12 +887,18 @@ If EXTRA, include that in the string returned to represent the symbol."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (class-name (object-class-fast obj)))
 
-(defmacro class-parent-fast (class) "Return parent class to CLASS with no check."
+(defmacro class-parents-fast (class) "Return parent classes to CLASS with no check."
   (list 'aref (list 'class-v class) class-parent))
 
-(defun class-parent (class) "Return parent class to CLASS.  (overload of variable)."
+(defun class-parents (class) "Return parent classes to CLASS.  (overload of variable)."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
-  (class-parent-fast class))
+  (class-parents-fast class))
+
+(defmacro class-parent-fast (class) "Return first parent class to CLASS with no check."
+  (list 'car (list 'class-parents-fast class)))
+
+(defmacro class-parent (class) "Return first parent class to CLASS.  (overload of variable)."
+  (list 'car (list 'class-parents class)))
 
 (defmacro same-class-fast-p (obj class) "Return t if OBJ is of class-type CLASS with no error checking."
   (list 'eq (list 'aref obj object-class) class))
@@ -790,7 +917,8 @@ If EXTRA, include that in the string returned to represent the symbol."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (class-p child)) (signal 'wrong-type-argument (list 'class-p child)))
   (while (and child (not (eq child class)))
-    (setq child (aref (class-v child) 3)))
+    ;; The car below is because parents is a list.  Fix for multi-inherit
+    (setq child (car (aref (class-v child) class-parent))))
   child)
 
 (defun obj-fields (obj) "List of fields available in OBJ."
@@ -817,8 +945,7 @@ Therefore `slot-boundp' is really a macro calling `slot-exists-p'"
 (defun slot-exists-p (object slot)
   "Non-nil if OBJECT contains SLOT."
   (let ((cv (class-v (object-class object))))
-    (or (memq slot (aref cv class-public-a))
-	(memq slot (aref cv class-private-a)))))
+    (memq slot (aref cv class-public-a))))
 
 ;;; Slightly more complex utility functions for objects
 ;;
@@ -882,6 +1009,21 @@ reverse-lookup that name, and recurse with the associated slot value."
 	  nil)
       (let ((fn (eieio-initarg-to-attribute class field)))
 	(if fn (eieio-field-name-index class fn) nil)))))
+
+(defun eieio-class-field-name-index (class field)
+  "In CLASS find the index of the named FIELD.
+The field is a symbol which is installed in CLASS by the `defclass'
+call.  If FIELD is the value created with :initarg instead,
+reverse-lookup that name, and recurse with the associated slot value."
+  ;; This will happen less often, and with fewer slots.  Do this the
+  ;; storage cheap way.
+  (let* ((a (aref (class-v class) class-class-allocation-a))
+	 (l1 (length a))
+	 (af (memq field a))
+	 (l2 (length af)))
+    ;; Slot # is length of the total list, minus the remaining list of
+    ;; the found slot.
+    (if af (- l1 l2))))
 
 ;;; CLOS generics internal function handling
 ;;
@@ -1125,8 +1267,7 @@ If SET-ALL is non-nil, then when a default is nil, that value is
 reset.  If SET-ALL is nil, the fields are only reset if the default is
 not nil."
   (let ((scoped-class (aref obj object-class))
-	(pub (aref (class-v (aref obj object-class)) class-public-a))
-	(priv (aref (class-v (aref obj object-class)) class-private-a)))
+	(pub (aref (class-v (aref obj object-class)) class-public-a)))
     (while pub
       (let ((df (oref-default-engine obj (car pub))))
 	(if (and (listp df) (eq (car df) 'lambda-default))
@@ -1135,16 +1276,7 @@ not nil."
 	      (setcar df 'lambda)))
 	(if (or df set-all)
 	    (oset-engine obj (car pub) df)))
-      (setq pub (cdr pub)))
-    (while priv
-      (let ((df (oref-default-engine obj (car priv))))
-	(if (and (listp df) (eq (car df) 'lambda-default))
-	    (progn
-	      (setq df (copy-sequence df))
-	      (setcar df 'lambda)))
-	(if (or df set-all)
-	    (oset-engine obj (car priv) df)))
-      (setq priv (cdr priv)))))
+      (setq pub (cdr pub)))))
 
 (defun eieio-initarg-to-attribute (class initarg)
   "For CLASS, convert INITARG to the actual attribute name.
@@ -1174,26 +1306,32 @@ viewing by apropos, and describe-variables, and the like."
 	 (docs (aref cv class-public-doc))
 	 (names (aref cv class-public-a))
 	 (deflt (aref cv class-public-d))
-	 (pdocs (aref cv class-private-doc))
-	 (pnames (aref cv class-private-a))
-	 (pdeflt (aref cv class-private-d))
+	 (prot (aref cv class-protection))
 	 )
+    (setq newdoc (concat newdoc "\n\nInstance Allocated Slots:"))
     (while names
-      (setq newdoc (concat newdoc "\n\nSlot: " (symbol-name (car names))
+      (setq newdoc (concat newdoc "\n\n"
+			   (if (car prot) "Private " "")
+			   "Slot: " (symbol-name (car names))
 			   "    default = " (format "%S" (car deflt))
-			   (if (car docs) (concat "\n" (car docs)) "")))
+			   (if (car docs) (concat "\n  " (car docs)) "")))
       (setq names (cdr names)
 	    docs (cdr docs)
-	    deflt (cdr deflt)))
-    (if pnames (setq newdoc (concat newdoc "\n\nPrivate Fields:")))
-    (while pnames
-      (setq newdoc (concat newdoc "\n\nSlot: " (symbol-name (car pnames))
-			   "    default = " (format "%S" (car pdeflt))
-			   (if (car pdocs) (concat "\n" (car pdocs)) "")))
-      (setq pnames (cdr pnames)
-	    pdocs (cdr pdocs)
-	    pdeflt (cdr pdeflt)))
-    ;; only store this on the variable.  The doc-string in the vector
+	    deflt (cdr deflt)
+	    prot (cdr prot)))
+    (setq docs (aref cv class-class-allocation-doc)
+	  names (aref cv class-class-allocation-a)
+	  prot (aref cv class-class-allocation-protection))
+    (if names
+	(setq newdoc (concat newdoc "\n\nClass Allocated Slots:")))
+    (while names
+      (setq newdoc (concat newdoc "\n\n"
+			   (if (car prot) "Private " "")
+			   "Slot: " (symbol-name (car names))
+			   (if (car docs) (concat "\n  " (car docs)) "")))
+      (setq names (cdr names)
+	    docs (cdr docs)
+	    prot (cdr prot)))    ;; only store this on the variable.  The doc-string in the vector
     ;; is ONLY the top level doc for this class.  The value found via
     ;; emacs needs to be more descriptive.
     (put class 'variable-documentation newdoc)))
