@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7.2a
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.121 1998/08/19 01:47:55 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.122 1998/08/20 13:45:27 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -759,7 +759,7 @@ to toggle this value.")
   (define-key speedbar-key-map "g" 'speedbar-refresh)
   (define-key speedbar-key-map "t" 'speedbar-toggle-updates)
   (define-key speedbar-key-map "q" 'speedbar-close-frame)
-  (define-key speedbar-key-map "Q" 'delete c-frame)
+  (define-key speedbar-key-map "Q" 'delete-frame)
 
   ;; navigation
   (define-key speedbar-key-map "n" 'speedbar-next)
