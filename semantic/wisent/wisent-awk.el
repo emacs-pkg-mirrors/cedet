@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Jan 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-awk.el,v 1.4 2002/06/29 18:08:36 ponced Exp $
+;; X-RCS: $Id: wisent-awk.el,v 1.5 2002/06/30 22:24:35 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,7 +39,7 @@
 
 (defconst wisent-awk-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-06-11 11:11+0200
+    ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-06-30 23:24+0200
     (wisent-compile-grammar
      '((FUNC_CALL NAME REGEXP ERROR YNUMBER YSTRING RELOP APPEND_OP ASSIGNOP MATCHOP NEWLINE CONCAT_OP LEX_BEGIN LEX_END LEX_IF LEX_ELSE LEX_RETURN LEX_DELETE LEX_WHILE LEX_DO LEX_FOR LEX_BREAK LEX_CONTINUE LEX_PRINT LEX_PRINTF LEX_NEXT LEX_EXIT LEX_FUNCTION LEX_GETLINE LEX_NEXTFILE LEX_IN LEX_AND LEX_OR INCREMENT DECREMENT LEX_BUILTIN LEX_LENGTH)
        ((right ASSIGNOP)
@@ -282,14 +282,14 @@
 
 (defconst wisent-awk-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-06-11 11:11+0200
+   ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-06-30 23:24+0200
    (semantic-flex-make-keyword-table 'nil 'nil)
    )
   "Keywords.")
 
 (defconst wisent-awk-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-06-11 11:11+0200
+   ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-06-30 23:24+0200
    (wisent-flex-make-token-table
     '(("<no-type>"
        (LEX_LENGTH)
@@ -335,12 +335,17 @@
 
 (defun wisent-awk-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-06-11 11:11+0200
+  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-06-30 23:24+0200
   (progn
     (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
+          semantic-bovinate-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-awk-automaton
           semantic-flex-keywords-obarray wisent-awk-keywords
           wisent-flex-tokens-obarray wisent-awk-tokens)
+    ;; Collect unmatched syntax lexical tokens
+    (semantic-make-local-hook 'wisent-discarding-token-functions)
+    (add-hook 'wisent-discarding-token-functions
+              'wisent-collect-unmatched-syntax nil t)
     )
   )
 
