@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.13 2002/02/13 09:43:37 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.14 2002/02/20 17:49:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -62,8 +62,7 @@ function `semantic-bnf-token-table'."
 ;;
 (defsubst wisent-token (&rest return-val)
   "Return a Semantic token including RETURN-VAL.
-To be used in Wisent LALR(1) grammar actions to build the
-`semantic-toplevel-bovine-cache'."
+Should be used in Semantic actions to build the bovine cache."
   ;; To avoid calling:
   ;;   (semantic-token-put return-val 'reparse-symbol $nterm)
   ;; the token property list with the 'reparse-symbol property is
@@ -71,7 +70,10 @@ To be used in Wisent LALR(1) grammar actions to build the
   (list (nconc return-val
                (list
                 (list (cons 'reparse-symbol $nterm))
-                (vector (car $region) (cdr $region))))))
+                (if (or $region
+                        (setq $region (nthcdr 2 wisent-input)))
+                    (vector (car $region) (cdr $region))
+                  (vector (point-max) (point-max)))))))
 
 ;;; Unmatched syntax
 ;;
@@ -133,18 +135,17 @@ Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
 list of semantic tokens found."
   (let* ((wisent-flex-istream stream)
-         (cache (wisent-parse table
-                              #'wisent-lexer-wrapper
-                              wisent-error-function
-                              nonterminal)))
-    (list wisent-flex-istream
-          ;; Ensure to get only valid Semantic tokens from the LALR
-          ;; parser!
-          (delq nil
-                (mapcar #'(lambda (tok)
-                            (if (semantic-token-p tok)
-                                tok))
-                        cache)))))
+         (cache (condition-case nil
+                    ;; Must return a list of Semantic tokens
+                    (delq nil (mapcar
+                               #'(lambda (tok)
+                                   (if (semantic-token-p tok) tok))
+                               (wisent-parse table
+                                             #'wisent-lexer-wrapper
+                                             wisent-error-function
+                                             nonterminal)))
+                  (error nil))))
+    (list wisent-flex-istream cache)))
 
 (defun wisent-bovinate-nonterminals (stream nonterm
                                             &optional returnonerror)
