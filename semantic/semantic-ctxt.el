@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.5 2001/02/22 02:44:58 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.6 2001/03/26 05:54:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -420,7 +420,9 @@ Optional RETURNTYPE is a return value to match against also."
     (if (listp option)
 	(if (semantic-token-p option)
 	    option
-	  (setq option (car option)))
+          ;; `semanticdb-find-nonterminal-by-name' returns a list
+          ;; ((DB-TABLE . TOKEN) ...)
+	  (setq option (cdr (car option))))
       (if (stringp option)
 	  (list option 'variable)
 	))))
