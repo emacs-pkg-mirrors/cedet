@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.33 2004/06/24 00:18:02 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.34 2004/07/16 01:59:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -302,7 +302,7 @@ HISTORY is a symbol representing a variable to story the history in."
 		   semantic-completion-collector-engine)))
 	  (when ml
 	    ;; We don't care about uniqueness.  Just guess for convenience
-	    (setq tag (semanticdb-find-result-nth ml 0))))
+	    (setq tag (car (semanticdb-find-result-nth ml 0)))))
 	;; save it
 	(setq semantic-complete-active-default tag)
 	;; Return it.. .whatever it may be
@@ -796,7 +796,7 @@ tags.")
 These tags are re-used during a completion session.
 Sometimes these tags are cached between completion sessions.")
    (last-all-completions :initarg nil
-			 :type semanticdb-find-results
+			 :type semanticdb-find-result-with-nil
 			 :documentation "Last result of `all-completions'.
 This result can be used for refined completions as `last-prefix' gets
 closer to a specific result.")
@@ -856,15 +856,17 @@ Calculate the cache if there isn't one."
   "Calculate the completions for prefix from completionlist.
 Output must be in semanticdb Find result format."
   ;; Must output in semanticdb format
-  (list
-   (cons (save-excursion
-	   (set-buffer (oref obj buffer))
-	   semanticdb-current-table)
-	 (semantic-find-tags-for-completion
-	  prefix
-	  ;; To do this kind of search with a pre-built completion
-	  ;; list, we need to strip it first.
-	  (semanticdb-strip-find-results completionlist)))))
+  (let ((table (save-excursion
+		 (set-buffer (oref obj buffer))
+		 semanticdb-current-table))
+	(result (semantic-find-tags-for-completion
+		 prefix
+		 ;; To do this kind of search with a pre-built completion
+		 ;; list, we need to strip it first.
+		 (semanticdb-strip-find-results completionlist)))
+	)
+    (if result
+	(list (cons table result)))))
 
 (defmethod semantic-collector-calculate-completions
   ((obj semantic-collector-abstract) prefix partial)
@@ -889,6 +891,7 @@ Output must be in semanticdb Find result format."
 	 (completion nil)
 	 (complete-not-uniq nil)
 	 )
+    ;;(semanticdb-find-result-test answer)
     (when (not same-prefix-p)
       ;; Save results if it is interesting and beneficial
       (oset obj last-prefix prefix)
@@ -899,27 +902,30 @@ Output must be in semanticdb Find result format."
 		      (semanticdb-strip-find-results answer)))
     (oset obj last-whitespace-completion nil)
     (oset obj current-exact-match nil)
-    (oset obj last-completion
-	  (cond
-	   ;; Unique match in AC.  Last completion is a match.
-	   ;; Also set the current-exact-match.
-	   ((eq completion t)
-	    (oset obj current-exact-match answer)
-	    prefix)
-	   ;; It may be complete (a symbol) but still not unique.
-	   ;; We can capture a match
-	   ((setq complete-not-uniq
-		  (semanticdb-find-tags-by-name
-		   prefix
-		   (semanticdb-strip-find-results answer)))
-	    (oset obj current-exact-match 
-		  complete-not-uniq)
-	    prefix
-	    )
-	   ;; Non unique match, return the string that handles
-	   ;; completion
-	   (t (or completion prefix))
-	   ))
+    ;; Only do this if a completion was found.  Letting a nil in
+    ;; could cause a full semanticdb search by accident.
+    (when completion
+      (oset obj last-completion
+	    (cond
+	     ;; Unique match in AC.  Last completion is a match.
+	     ;; Also set the current-exact-match.
+	     ((eq completion t)
+	      (oset obj current-exact-match answer)
+	      prefix)
+	     ;; It may be complete (a symbol) but still not unique.
+	     ;; We can capture a match
+	     ((setq complete-not-uniq
+		    (semanticdb-find-tags-by-name
+		     prefix
+		     answer))
+	      (oset obj current-exact-match 
+		    complete-not-uniq)
+	      prefix
+	      )
+	     ;; Non unique match, return the string that handles
+	     ;; completion
+	     (t (or completion prefix))
+	     )))
     ))
 
 (defmethod semantic-collector-try-completion-whitespace
