@@ -4,7 +4,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-comp.el,v 1.6 2000/07/19 02:32:19 zappo Exp $
+;; RCS: $Id: eieio-comp.el,v 1.7 2000/08/20 17:00:00 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -38,8 +38,9 @@
 ;; It will output a function call to `eieio-defmethod' with the byte
 ;; compiled function as a parameter.
 
-;; Some compatibility stuff
 ;;; Code:
+
+;; Some compatibility stuff
 (if (not (fboundp 'byte-compile-compiled-obj-to-list))
     (defun byte-compile-compiled-obj-to-list (moose) nil))
 
