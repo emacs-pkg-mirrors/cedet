@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.167 2003/02/17 01:35:51 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.168 2003/02/27 02:53:44 zappo Exp $
 
 (defvar semantic-version "2.0beta1"
   "Current version of Semantic.")
@@ -37,6 +37,7 @@
 
 (require 'working)
 (require 'assoc)
+(require 'semantic-token)
 (require 'semantic-lex)
 
 (defun semantic-require-version (major minor &optional beta)
@@ -280,13 +281,6 @@ The parse tree must be rebuilt by `semantic-parse-region'."
 (defmacro semantic-parse-tree-up-to-date-p ()
   "Return non-nil if the current parse tree is up to date."
   `(null semantic-parse-tree-state))
-
-;;; Overlay.
-;;
-(defun semantic-delete-overlay-maybe (overlay)
-  "Delete OVERLAY if it is a semantic token overlay."
-  (if (semantic-overlay-get overlay 'semantic)
-      (semantic-overlay-delete overlay)))
 
 ;;; Interfacing with the system
 ;;
