@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.6 2004/06/28 07:06:30 ponced Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.7 2004/06/28 13:57:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,6 +42,19 @@
 (require 'semantic-decorate)
 (require 'semantic-util-modes)
 (eval-when-compile (require 'cl))
+
+;;; Styles List
+;;
+(defcustom semantic-decoration-styles nil
+  "*List of active decoration styles.
+It is an alist of \(NAME . FLAG) elements, where NAME is a style name
+and FLAG is non-nil if the style is enabled.
+See also `define-semantic-decoration-style' which will automatically
+add items to this list."
+  :group 'semantic
+  :type '(repeat (cons (string :tag "Decoration Name")
+		       (boolean :tag "Enabled")))
+  )
 
 ;;; Misc.
 ;;
@@ -207,6 +220,7 @@ If ARG is nil, then toggle."
 When this mode is activated, decorations specified by
 `semantic-decoration-styles'."
   :group 'semantic
+  :group 'semantic-modes
   :type 'boolean
   :require 'semantic-decorate-mode
   :initialize 'custom-initialize-default
@@ -359,7 +373,7 @@ To add other kind of decorations on a tag, `NAME-highlight' must use
 decoration API found in this library."
   (let ((predicate   (semantic-decorate-style-predicate   name))
         (highlighter (semantic-decorate-style-highlighter name)))
-    `(eval-and-compile
+    `(progn
        ;; Create an override method to specify if a given tag belongs
        ;; to this type of decoration
        (define-overload ,predicate (tag)
