@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.16 2002/03/23 01:42:32 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.17 2002/11/28 13:31:23 ponced Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -77,11 +77,12 @@ A lisp target may be one general program with many separate lisp files in it.")
 ;;; Emacs Lisp Target
 (defun ede-proj-elisp-packages-to-loadpath (packages)
   "Convert a list of PACKAGES, to a list of load path."
-  (let ((paths nil))
+  (let ((paths nil)
+	(ldir nil))
     (while packages
-      (if (not (locate-library (car packages)))
+      (or (setq ldir (locate-library (car packages)))
 	  (error "Cannot find package %s" (car packages)))
-      (setq paths (cons (file-name-directory (locate-library (car packages)))
+      (setq paths (cons (file-relative-name (file-name-directory ldir))
 			paths)
 	    packages (cdr packages)))
     paths))
