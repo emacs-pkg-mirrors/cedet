@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.16 2003/12/04 22:33:27 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.17 2003/12/04 23:02:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -310,7 +310,7 @@ Return value can be:
        ;; One match from the collector
        ((setq matchlist (semantic-collector-current-exact-match collector))
 	(if (= (semanticdb-find-result-length matchlist) 1)
-	    (setq answer (semanticdb-find-result-nth matchlist 0))
+	    (setq answer (semanticdb-find-result-nth-in-buffer matchlist 0))
 	  (if (semantic-displayor-focus-abstract-child-p displayor)
 	      ;; For focusing displayors, we can claim this is
 	      ;; not unique.  Multiple focuses can choose the correct
@@ -320,26 +320,32 @@ Return value can be:
 	    ;; graceful.  First, see if all the matches have the same name.
 	    (let ((allsame t)
 		  (firstname (semantic-tag-name
-			      (semanticdb-find-result-nth matchlist 0)))
+			      (car
+			       (semanticdb-find-result-nth matchlist 0)))
+			     )
 		  (cnt 1)
 		  (max (semanticdb-find-result-length matchlist)))
 	      (while (and allsame (< cnt max))
-		(if (not (string= firstname
-				  (semantic-tag-name
-				   (semanticdb-find-result-nth matchlist cnt))))
+		(if (not (string=
+			  firstname
+			  (semantic-tag-name
+			   (car
+			    (semanticdb-find-result-nth matchlist cnt)))))
 		    (setq allsame nil))
 		(setq cnt (1+ cnt))
 		)
 	      ;; Now we know if they are all the same.  If they are, just
 	      ;; accept the first, otherwise complain.
 	      (if allsame
-		  (setq answer (semanticdb-find-result-nth matchlist 0))
+		  (setq answer (semanticdb-find-result-nth-in-buffer
+				matchlist 0))
 		(setq answer "Not Unique"))
 	      ))))
        ;; No match
        (t
 	(setq answer "No Match")))
       )
+    ;; Set it into our completion target.
     (when (semantic-tag-p answer)
       (setq semantic-complete-current-matched-tag answer)
       ;; Make sure it is up to date by clearing it if the user dares
@@ -1110,13 +1116,28 @@ HISTORY is a symbol representing a variable to story the history in."
     (semantic-complete-read-tag-project "Symbol: ")
     )))
 
-(defun semantic-complete-jump ()
+(defun semantic-complete-jump-local ()
   "Jump to a semantic symbol."
   (interactive)
   (let ((tag (semantic-complete-read-tag-buffer-deep "Symbol: ")))
     (when (semantic-tag-p tag)
       (push-mark)
       (goto-char (semantic-tag-start tag))
+      (semantic-momentary-highlight-tag tag)
+      (working-message "%S: %s "
+                       (semantic-tag-class tag)
+                       (semantic-tag-name  tag)))))
+
+
+(defun semantic-complete-jump ()
+  "Jump to a semantic symbol."
+  (interactive)
+  (let* ((semanticdb-search-system-databases nil)
+	 (tag (semantic-complete-read-tag-project "Symbol: ")))
+    (when (semantic-tag-p tag)
+      (push-mark)
+      (semantic-go-to-tag tag)
+      (switch-to-buffer (current-buffer))
       (semantic-momentary-highlight-tag tag)
       (working-message "%S: %s "
                        (semantic-tag-class tag)
