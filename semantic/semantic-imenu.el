@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.51 2004/03/21 07:45:33 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.52 2004/08/25 06:18:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -155,13 +155,14 @@ other buffer local ones based on the same semanticdb."
 (defvar semantic-imenu-auto-rebuild-running nil
   "Non-nil if `semantic-imenu-rebuild-directory-indexes' is running.")
 
-(defvar semantic-imenu-expandable-tag-class 'type
-  "Tags of this class will be given submenu with children.
-By default, a `type' has interesting children.  In Texinfo, however,
-a `section' has interesting children.")
-(make-variable-buffer-local 'semantic-imenu-expandable-tag)
+(defvar semantic-imenu-expandable-tag-classes '(type)
+  "List of expandable tag classes.
+Tags of those classes will be given submenu with children.
+By default, a `type' has interesting children.  In Texinfo, however, a
+`section' has interesting children.")
+(make-variable-buffer-local 'semantic-imenu-expandable-tag-classes)
 (semantic-varalias-obsolete 'semantic-imenu-expandable-token
-                            'semantic-imenu-expandable-tag-class)
+                            'semantic-imenu-expandable-tag-classes)
 
 ;;; Code:
 (defun semantic-imenu-tag-overlay (tag)
@@ -343,8 +344,8 @@ Optional argument PARENT is a tag parent of STREAM."
 			  (append index
 				  ;; do not create a menu separator in the parent menu
 				  ;; when creating a sub-menu
-				  (if (eq (semantic-tag-class (car item))
-					  semantic-imenu-expandable-tag-class)
+				  (if (memq (semantic-tag-class (car item))
+                                            semantic-imenu-expandable-tag-classes)
 				      (semantic-create-imenu-subindex item)
 				    (cons
 				     '("---")
@@ -369,8 +370,8 @@ Optional argument PARENT is a tag parent of STREAM."
       (setq tag (car tags)
 	    children (semantic-tag-components-with-overlays tag))
       (if (and (not notypecheck)
-               (eq (semantic-tag-class tag)
-                   semantic-imenu-expandable-tag-class)
+               (memq (semantic-tag-class tag)
+                     semantic-imenu-expandable-tag-classes)
 	       children
                )
           ;; to keep an homogeneous menu organisation, type menu items
@@ -515,8 +516,8 @@ in which case it concatenates them together."
   (cond ((eq (length taglist) 1)
 	 (semantic-format-tag-abbreviate
           (car taglist) nil semantic-which-function-use-color))
-	((eq (semantic-tag-class (car taglist))
-	     semantic-imenu-expandable-tag-class)
+	((memq (semantic-tag-class (car taglist))
+               semantic-imenu-expandable-tag-classes)
 	 (concat (semantic-format-tag-name
                   (car taglist) semantic-which-function-use-color) "."
 		 ;; recurse until we no longer have a type
