@@ -513,13 +513,13 @@ non-@code{nil}.
 Characters that match @code{\\s(}.
 These are typically @code{(}, @code{@{}, @code{[}, etc.
 Note that these are not usually generated unless the @var{depth}
-argument to @ref{semantic-flex} is greater than 0.
+argument to @ref{semantic-lex} is greater than 0.
 @item punctuation
 Characters matching @code{\\(\\s.\\|\\s$\\|\\s'\\)}.
 @item semantic-list
 String delimited by matching parenthesis, braces, etc. that
 the lexer skipped over, because the @var{depth} parameter
-to @ref{semantic-flex} was not high enough.
+to @ref{semantic-lex} was not high enough.
 @item string
 Quoted strings, i.e., string sequences that start and end with
 characters matching @code{\\s\"}.
