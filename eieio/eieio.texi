@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.28 1999/12/01 14:00:08 zappo Exp $
+@c $Id: eieio.texi,v 1.29 2000/07/16 21:43:44 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{eieio}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1995,1996,1998, 1999 Eric M. Ludlam
+Copyright @copyright{} 1995,1996,1998, 1999, 2000 Eric M. Ludlam
 @end titlepage
 
 
@@ -220,7 +220,7 @@ In EIEIO tags are in lower case, not mixed case.
 A class in EIEIO has a similar structure to that found in other
 languages.  A new class is created with @code{defclass}
 
-@defun defclass class-name superclass-list slot-list options-and-doc
+@defun defclass class-name superclass-list slot-list options-or-doc
 
 This function is specified by CLOS, and EIEIO conforms in structure.
 
@@ -338,6 +338,11 @@ object maintains."
 
 @end defun
 
+@defvar eieio-error-unsupported-class-tags
+If Non-nil, then @code{defclass} will throw an error if a tag
+in a slot specifier is unsupported.
+@end defvar
+
 @node Default Superclass, Making New Objects, Building Classes, Top
 @comment  node-name,  next,  previous,  up
 @chapter Default Superclass
@@ -370,7 +375,7 @@ When creating an object of any type, you can use it's constructor, or
 @defun initialize-instance obj &rest slots
 Initialize @var{obj}.  Sets slots of @var{obj} with @var{slots} which
 is a list of name/value pairs.  These are actually just passed to
-@code{shared-initialize}.  This method 
+@code{shared-initialize}.
 @end defun
 
 @defun shared-initialize obj &rest slots
