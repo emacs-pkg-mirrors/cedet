@@ -5,7 +5,7 @@
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
-;; X-RCS: $Id: c.by,v 1.10 2003/04/02 01:41:30 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.11 2003/04/02 04:18:09 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -572,7 +572,7 @@ template-type
 ;; type stuff is needed.
   | declmods typeformbase cv-declmods opt-stars
     opt-ref variablearg-opt-name
-    (TYPE-TAG (car $2) nil nil
+    (TYPE-TAG (car $2) nil nil nil
 	      'const (if (member "const" (append $1 $3)) t nil)
 	      'typemodifiers (delete "const" (append $1 $3))
 	      'reference (car ,$5)
@@ -674,19 +674,18 @@ typeformbase
   : typesimple
     ( ,$1 )
   | STRUCT symbol
-    ( $2 type $1 )
+    (TYPE-TAG $2 $1 nil nil )
   | UNION symbol
-    ( $2 type $1 )
+    (TYPE-TAG $2 $1 nil nil )
   | ENUM symbol
-    ( $2 type $1 )
+    (TYPE-TAG $2 $1 nil nil )
   | builtintype
     ( ,$1 )
  ;;| symbol template-specifier
  ;;  ( $1 type "class" )
  ;;| namespace-symbol opt-stars opt-template-specifier
   | namespace-symbol opt-template-specifier
- ;;  ( ,$1  )
-    ( ,$1 type "class" )
+    (TYPE-TAG (car $1) "class" nil nil)
   | symbol
     ( $1 )
   ;
