@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.15 2004/03/28 01:37:13 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.16 2004/03/31 13:15:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -71,18 +71,11 @@
   "Expand TAG into a list of equivalent tags, or nil."
   (let ((name (semantic-tag-name tag))
         xpand)
-    (when (consp name)
-      (cond
-       ((semantic-tag-of-class-p tag 'function)
-        (while name
-          (setq xpand (cons (semantic-tag-clone tag (car name)) xpand)
-                name  (cdr name)))
-        )
-       ((semantic-tag-of-class-p tag 'include)
-        (while name
-          (setq xpand (cons (semantic-tag-clone tag (caar name)) xpand)
-                name  (cdr name)))
-        )))
+    (and (consp name)
+         (memq (semantic-tag-class tag) '(function include))
+         (while name
+           (setq xpand (cons (semantic-tag-clone tag (car name)) xpand)
+                 name  (cdr name))))
     xpand))
 
 (define-mode-overload-implementation semantic-get-local-variables
