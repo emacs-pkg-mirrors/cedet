@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.63 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.64 2003/11/20 14:48:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -129,6 +129,10 @@ this database contains symbols for.")
 		    "New tables created for this database are of this class.")
    (tables :initarg :tables
 	   :type list
+	   ;; Need this protection so apps don't try to access
+	   ;; the tables without using the accessor.
+	   :accessor semanticdb-get-database-tables
+	   :protection :protected
 	   :documentation "List of `semantic-db-table' objects."))
   "Database of file tables.")
 
@@ -146,6 +150,10 @@ If DIRECTORY doesn't exist, create a new one."
       ;; would be saved, and we want DB files to be portable.
       (oset db reference-directory directory))
     db))
+
+(defmethod semanticdb-flush-database-tables ((db semanticdb-project-database))
+  "Reset the tables in DB to be empty."
+  (oset db tables nil))
 
 (defmethod semanticdb-create-table ((db semanticdb-project-database) file)
   "Create a new table in DB for FILE and return it.
@@ -377,6 +385,7 @@ Always append `semanticdb-project-system-databases' if
 	(while adb
 	  ;; I don't like this part, but close enough.
 	  (if (and (slot-exists-p (car adb) 'file)
+		   (slot-boundp (car adb) 'reference-directory)
 		   (string-match regexp (oref (car adb) reference-directory)))
 	      (setq dbs (cons (car adb) dbs)))
 	  (setq adb (cdr adb)))))
@@ -543,7 +552,8 @@ Update the environment of Semantic enabled buffers accordingly."
 (defun semanticdb-database-sanity-check ()
   "Validate the current semantic database."
   (interactive)
-  (let ((tables (oref semanticdb-current-database tables)))
+  (let ((tables (semanticdb-get-database-tables
+		 semanticdb-current-database)))
     (while tables
       (semanticdb-table-sanity-check (car tables))
       (setq tables (cdr tables)))
