@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.11 2001/12/15 23:27:12 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.12 2001/12/19 10:53:32 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,11 +37,9 @@
 
 (require 'semantic)
 (require 'wisent)
-
-;;;;
-;;;; These two functions should be moved to semantic.el
-;;;;
-
+
+;;; These two functions should be moved to semantic.el
+;;
 (defsubst semantic-flex-token-value (table category &optional key)
   "Return %token values from the token table TABLE.
 CATEGORY is a symbol identifying a token category.  If the symbol KEY
@@ -59,11 +57,9 @@ CATEGORY is a symbol identifying a token category.  VALUE is the value
 of the token to search for.  If not found return nil.  See also the
 function `semantic-bnf-token-table'."
   (car (rassoc value (cdr (assq category table)))))
-
-;;;;
-;;;; Token production
-;;;;
-
+
+;;; Token production
+;;
 (defsubst wisent-token (&rest return-val)
   "Return a Semantic token including RETURN-VAL.
 To be used in Wisent LALR(1) grammar actions to build the
@@ -77,10 +73,21 @@ To be used in Wisent LALR(1) grammar actions to build the
                 (list (cons 'reparse-symbol $nterm))
                 (vector (car $region) (cdr $region))))))
 
-;;;;
-;;;; Bovination
-;;;;
-
+;;; Unmatched syntax
+;;
+(defun wisent-collect-unmatched-syntax (input)
+  "Add INPUT lexical token to the cache of unmatched tokens.
+Run as `wisent-skip-token-hook' hook function.
+See also the variable `semantic-unmatched-syntax-cache'."
+  (let ((region (cddr input)))
+    (and (number-or-marker-p (car region))
+         (number-or-marker-p (cdr region))
+         (setq semantic-unmatched-syntax-cache
+               (cons (cons (car input) region)
+                     semantic-unmatched-syntax-cache)))))
+
+;;; Bovination
+;;
 (defvar wisent-flex-istream nil
   "Input stream of `semantic-flex' lexical tokens.
 The actual value of this variable is local to
@@ -117,17 +124,6 @@ working goodies."
           wisent-lexer-lookahead
         (setq wisent-lexer-lookahead nil))
       (funcall wisent-lexer-function)))
-
-(defun wisent-collect-unmatched-syntax (input)
-  "Add INPUT lexical token to the cache of unmatched tokens.
-Run as `wisent-skip-token-hook' hook function.
-See also the variable `semantic-unmatched-syntax-cache'."
-  (let ((region (cddr input)))
-    (and (number-or-marker-p (car region))
-         (number-or-marker-p (cdr region))
-         (setq semantic-unmatched-syntax-cache
-               (cons (cons (car input) region)
-                     semantic-unmatched-syntax-cache)))))
 
 (defun wisent-bovinate-nonterminal (stream table lexer error
                                            &optional nonterminal)
@@ -169,7 +165,7 @@ with the current results on a parse error."
             stream     (car nontermsym)
             sstream    (nth 1 nontermsym))
       (if (and wisent-lookahead (eq lookahead wisent-lookahead))
-          (wisent-collect-unmatched-syntax lookahead)
+          (run-hook-with-args 'wisent-skip-token-hook lookahead)
         (setq wisent-lexer-lookahead wisent-lookahead))
       (if sstream
           (setq result (nconc sstream result))
@@ -238,33 +234,6 @@ with the current results on a parse error."
         (run-hook-with-args 'semantic-clean-token-hooks token)
         ))))
 
-(defsubst wisent-bovinate-from-nonterminal-full (start end nonterm
-                                                       &optional depth)
-  "Bovinate from within a nonterminal from START to END.
-Iterates until all the space between START and END is exhausted.
-Argument NONTERM is the nonterminal symbol to start with or nil for
-default goal.  Optional argument DEPTH is the depth of lists to dive
-into.  It defaults to `wisent-flex-depth'."
-  (nreverse
-   (wisent-bovinate-nonterminals
-    (semantic-flex start end (or depth 1))
-    nonterm)))
-
-(defun wisent-bovinate-region-until-error (start end nonterm
-                                                 &optional depth)
-  "Bovinate between START and END starting with NONTERM.
-Optinal DEPTH specifies how many levels of parenthesis to enter.  It
-defaults to `wisent-flex-depth'.  This command will parse until an
-error is encountered, and return the list of everything found until
-that moment.  This is meant for finding variable definitions at the
-beginning of code blocks in methods.  If NONTERM can also support
-commands, use `wisent-bovinate-from-nonterminal-full'."
-  (nreverse (wisent-bovinate-nonterminals
-             (semantic-flex start end (or depth wisent-flex-depth))
-             nonterm
-             ;; This says stop on an error.
-             t)))
-
 (defun wisent-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer with the LALR parser.
 If the optional argument CHECKCACHE is non-nil, then make sure the
@@ -309,27 +278,25 @@ that, otherwise, do a full reparse."
    ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
     (garbage-collect)
     ;; Reparse the whole system
-    (let ((gc-cons-threshold 10000000)
-          (semantic-flex-depth wisent-flex-depth)
-          cache)
+    (let* ((gc-cons-threshold 10000000)
+           (semantic-flex-depth wisent-flex-depth)
+           ;; Capture the lexical tokens here so that if an error is
+           ;; thrown, the cache is still safe.
+           (lex (semantic-flex (point-min) (point-max)))
+           res)
       ;; Init a dump
       ;;(if semantic-dump-parse
       ;;    (semantic-dump-buffer-init))
+      ;; Clear the caches
+      (semantic-clear-toplevel-cache)
       ;; Parse!
       (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
-        (setq cache (nreverse
-                     (wisent-bovinate-nonterminals
-                      (semantic-flex (point-min) (point-max)) nil)))
+        (setq res (wisent-bovinate-nonterminals lex nil))
         (working-status t))
-      ;; Clear the cache just before setting the cache.  This way, if
-      ;; an error occurs, we can capture it, and leave the old state
-      ;; behind.  Preserve the new unmatched syntax cache.
-      (let ((unmatched-syntax semantic-unmatched-syntax-cache))
-        (semantic-clear-toplevel-cache)
-        (setq semantic-unmatched-syntax-cache unmatched-syntax))
+      (setq res (nreverse res))
       ;; Set up the new overlays, and then reset the cache.
-      (semantic-overlay-list cache)
-      (semantic-set-toplevel-bovine-cache cache)
+      (semantic-overlay-list res)
+      (semantic-set-toplevel-bovine-cache res)
       semantic-toplevel-bovine-cache))
 
    ;; No parse needed
@@ -345,6 +312,37 @@ So `wisent-bovinate-toplevel' can handle partial reparse too!"
   (if (eq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel)
       (setq ad-return-value (wisent-bovinate-toplevel (ad-get-arg 0)))
     ad-do-it))
+
+;;; Bovine table functions
+;;
+;; These are functions that can be called from within a bovine table.
+;; Most of these have code auto-generated from other construct in the
+;; BNF.
+(defsubst wisent-bovinate-from-nonterminal-full (start end nonterm
+                                                       &optional depth)
+  "Bovinate from within a nonterminal from START to END.
+Iterates until all the space between START and END is exhausted.
+Argument NONTERM is the nonterminal symbol to start with or nil for
+the default goal.  Optional argument DEPTH is the depth of lists to
+dive into.  It defaults to 1."
+  (nreverse
+   (wisent-bovinate-nonterminals (semantic-flex start end (or depth 1))
+                                 nonterm)))
+
+(defun wisent-bovinate-region-until-error (start end nonterm
+                                                 &optional depth)
+  "Bovinate between START and END starting with NONTERM.
+Optinal DEPTH specifies how many levels of parenthesis to enter.  This
+command will parse until an error is encountered, and return the list
+of everything found until that moment.
+This is meant for finding variable definitions at the beginning of
+code blocks in methods.  If NONTERM can also support commands, use
+`wisent-bovinate-from-nonterminal-full'."
+  (nreverse
+   (wisent-bovinate-nonterminals (semantic-flex start end depth)
+                                 nonterm
+                                 ;; This says stop on an error.
+                                 t)))
 
 (provide 'wisent-bovine)
 
