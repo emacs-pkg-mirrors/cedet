@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.178 2004/03/20 11:30:58 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.179 2004/03/21 07:45:05 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -538,8 +538,9 @@ string.  See also the function `working-status-forms'."
 
 ;;;###autoload
 (defun semantic-fetch-tags (&optional checkcache)
-  "Bovinate the entire current buffer.
-Do an incremental reparse if possible, otherwise do a full reparse.
+  "Fetch semantic tags from the current buffer.
+If necessary, do an incremental reparse if possible, otherwise do a
+full reparse.
 
 The optional argument CHECKCACHE is ignored.  It is maintained for
 compatibility with previous versions of Semantic."
@@ -598,6 +599,9 @@ compatibility with previous versions of Semantic."
   
   ;; Always return the current parse tree.
   semantic--buffer-cache)
+;;;###autoload
+(semantic-alias-obsolete 'semantic-bovinate-toplevel
+                         'semantic-fetch-tags)
 
 ;;; Iterative parser helper function
 ;;
@@ -609,32 +613,32 @@ compatibility with previous versions of Semantic."
 ;;
 (defun semantic-repeat-parse-whole-stream
   (stream nonterm &optional returnonerror)
-  "Bovinate the entire stream STREAM starting with NONTERM.
+  "Iteratively parse the entire stream STREAM starting with NONTERM.
 Optional argument RETURNONERROR indicates that the parser should exit
 with the current results on a parse error.
-This function returns tokens without overlays."
+This function returns semantic tags without overlays."
   (let ((result nil)
-	(case-fold-search semantic-case-fold)
-        nontermsym token)
+        (case-fold-search semantic-case-fold)
+        nontermsym tag)
     (while stream
       (setq nontermsym (semantic-parse-stream stream nonterm)
-            token (car (cdr nontermsym)))
+            tag (car (cdr nontermsym)))
       (if (not nontermsym)
           (error "Parse error @ %d" (car (cdr (car stream)))))
-      (if token
-          (if (car token)
-              (setq token (mapcar
-                           #'(lambda (token)
-                               ;; Set the 'reparse-symbol property to
-                               ;; NONTERM unless it was already setup
-                               ;; by a token expander
-                               (or (semantic--tag-get-property
-                                    token 'reparse-symbol)
-                                   (semantic--tag-put-property
-                                    token 'reparse-symbol nonterm))
-                               token)
-                           (semantic--tag-expand token))
-                    result (append token result))
+      (if tag
+          (if (car tag)
+              (setq tag (mapcar
+                         #'(lambda (tag)
+                             ;; Set the 'reparse-symbol property to
+                             ;; NONTERM unless it was already setup
+                             ;; by a tag expander
+                             (or (semantic--tag-get-property
+                                  tag 'reparse-symbol)
+                                 (semantic--tag-put-property
+                                  tag 'reparse-symbol nonterm))
+                             tag)
+                         (semantic--tag-expand tag))
+                    result (append tag result))
             ;; No error in this case, a purposeful nil means don't
             ;; store anything.
             )
@@ -648,11 +652,11 @@ This function returns tokens without overlays."
       ;; Designated to ignore.
       (setq stream (car nontermsym))
       (if stream
-	  (if (eq semantic-working-type 'percent)
-	      (working-status
+          (if (eq semantic-working-type 'percent)
+              (working-status
                (/ (* 100 (semantic-lex-token-start (car stream)))
                   (point-max)))
-	    (working-dynamic-status))))
+            (working-dynamic-status))))
     result))
 
 ;;; Compatibility:
