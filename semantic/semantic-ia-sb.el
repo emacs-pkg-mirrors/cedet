@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.13 2004/02/22 21:41:40 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.14 2004/02/26 15:31:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -194,7 +194,7 @@ Each button will use FACE, and be activated with FUNCTION."
 			 (t "foo"))))
       (if (semantic-tag-p (car list))
 	  (speedbar-make-tag-line 'angle ?i
-				  'semantic-ia-sb-token-info (car list)
+				  'semantic-ia-sb-tag-info (car list)
 				  string (if usefn function) (car list) face
 				  0)
 	(speedbar-make-tag-line 'statictag ??
@@ -216,7 +216,7 @@ Each button will use FACE, and be activated with FUNCTION."
 			(t "foo"))))
       (if documentable
 	  (speedbar-make-tag-line 'angle ?i
-				  'semantic-ia-sb-token-info
+				  'semantic-ia-sb-tag-info
 				  (car list)
 				  string function (car list) face
 				  0)
@@ -257,7 +257,7 @@ TEXT, TAG, and INDENT are speedbar function arguments."
 	    (let ((typetok
 		   (save-excursion
 		     (set-buffer ob)
-		     (semantic-analyze-token-type tag))))
+		     (semantic-analyze-tag-type tag))))
 	      (if typetok
 		  (insert (semantic-format-tag-prototype
 			   typetok nil t))
