@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.98 2002/07/29 17:24:28 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.99 2002/08/04 02:03:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -235,20 +235,6 @@ If TOKEN is of an unknown type, then nil is returned."
 
 ;;; Misc. utilities
 ;;
-(defun semantic-map-buffers (fun)
-  "Run function FUN for each Semantic enabled buffer found.
-FUN does not have arguments.  When FUN is entered `current-buffer' is
-the current Semantic enabled buffer found."
-  (let ((bl (buffer-list))
-        b)
-    (while bl
-      (setq b  (car bl)
-            bl (cdr bl))
-      (if (and (buffer-live-p b)
-               (buffer-file-name b))
-          (with-current-buffer b
-            (if (semantic-active-p)
-                (funcall fun)))))))
 
 ;; These semanticdb calls will throw warnings in the byte compiler.
 ;; Doing the right thing to make them available at compile time
