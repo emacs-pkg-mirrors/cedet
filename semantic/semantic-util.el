@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.29 2000/10/04 12:25:53 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.30 2000/10/04 12:28:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -87,7 +87,7 @@ Determines if it is available based on the length of TOKEN."
 (defmacro semantic-token-variable-optsuffix (token)
   "Optional details if this variable has bit fields, or array dimentions.
 Determines if it is available based on the length of TOKEN."
-  `(if (>= (length ,token) (+ 7 3))
+  `(if (>= (length ,token) (+ 7 2))
        (nth 6 ,token)
      nil))
 
