@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.89 2001/03/05 08:07:07 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.90 2001/03/05 22:43:49 ponced Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -68,6 +68,14 @@
       (defalias 'semantic-overlay-lists
 	(lambda () (list (extent-list))))
       (defalias 'semantic-overlay-p 'extentp)
+      (defun semantic-read-event ()
+        (let ((event (next-command-event)))
+          (cond ((key-press-event-p event)
+                 (let ((c (event-to-character event)))
+                   (if (char-equal c (quit-char))
+                       (keyboard-quit)
+                     c)))
+                event)))
       )
   (defalias 'semantic-overlay-live-p 'overlay-buffer)
   (defalias 'semantic-make-overlay 'make-overlay)
@@ -83,6 +91,7 @@
   (defalias 'semantic-overlay-previous-change 'previous-overlay-change)
   (defalias 'semantic-overlay-lists 'overlay-lists)
   (defalias 'semantic-overlay-p 'overlayp)
+  (defalias 'semantic-read-event 'read-event)
   )
 
 (defvar semantic-edebug nil
@@ -1265,7 +1274,7 @@ COLLECTION is the list of things collected so far."
 	    (semantic-overlay-put ol2 'face 'highlight)
 	    )
 	  (message "%s: %S" lse collection)
-	  (let ((e (read-event)))
+	  (let ((e (semantic-read-event)))
 	    (cond ((eq e ?f)		;force a failure on this symbol.
 		   (setq ret 'fail))
 		  (t nil)))
