@@ -1,229 +1,230 @@
 ;;; speedbar --- quick access to files and tags -*-byte-compile-warnings:nil;-*-
-;;;
-;;; Copyright (C) 1996, 1997 Eric M. Ludlam
-;;;
-;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.39 1997/03/30 03:51:55 zappo Exp $
-;;; Version: 0.4.5
-;;; Keywords: file, tags, tools
-;;;
-;;; This program is free software; you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 2, or (at your option)
-;;; any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program; if not, you can either send email to this
-;;; program's author (see below) or write to:
-;;;
-;;;              The Free Software Foundation, Inc.
-;;;              675 Mass Ave.
-;;;              Cambridge, MA 02139, USA. 
-;;;
-;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
-;;;
+;;
+;; Copyright (C) 1996, 1997 Eric M. Ludlam
+;;
+;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
+;; RCS: $Id: speedbar.el,v 1.40 1997/04/01 14:30:03 zappo Exp $
+;; Version: 0.4.5
+;; Keywords: file, tags, tools
+;;
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, you can either send email to this
+;; program's author (see below) or write to:
+;;
+;;              The Free Software Foundation, Inc.
+;;              675 Mass Ave.
+;;              Cambridge, MA 02139, USA. 
+;;
+;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
+;;
 
-;;; Commentary: 
-;;;
-;;;   The speedbar provides a frame in which files, and locations in
-;;; files are displayed.  These items can be clicked on with mouse-2
-;;; in order to make the last active frame display that file location.
-;;;
-;;;   To use speedbar, add this to your .emacs file:
-;;;;
-;;;   (autoload 'speedbar-frame-mode "speedbar" "Popup a speedbar frame" t)
-;;;   (autoload 'speedbar-get-focus "speedbar" "Jump to speedbar frame" t)
-;;;
-;;;   If you want to choose it from a menu or something, do this:
-;;;
-;;;   (define-key-after (lookup-key global-map [menu-bar tools])
-;;;      [speedbar] '("Speedbar" . speedbar-frame-mode) [calendar])
-;;;
-;;;   If you want to access speedbar using only the keyboard, do this:
-;;;
-;;;   (define-key global-map [f4] 'speedbar-get-focus)
-;;;
-;;;   This will let you hit f4 (or whatever key you choose) to jump
-;;; focus to the speedbar frame.  Pressing RET or e to jump to a file
-;;; or tag will move you back to the attached frame.  The command
-;;; `speedbar-get-fucus' will also create a speedbar frame if it does
-;;; not exist.
-;;;
-;;;   Once a speedbar frame is active, it takes advantage of idle time
-;;; to keep it's contents updated.  The contents is usually a list of
-;;; files in the directory of the currently active buffer.  When
-;;; applicable, tags in the active file can be expanded.
-;;;
-;;;   To add new files types into the speedbar, use the function
-;;; `speedbar-add-supported-extension' If speedbar complains that the
-;;; file type is not supported, that means there is no built in
-;;; support from imenu, and the etags part wasn't set up correctly.  You
-;;; may add elements to `speedbar-supported-extension-expressions' as long
-;;; as it is done before speedbar is loaded.
-;;;
-;;;   To prevent speedbar from following you into certain directories
-;;; use the function `speedbar-add-ignored-path-regexp' too add a new
-;;; regular expression matching a type of path.  You may add list
-;;; elements to `speedbar-ignored-path-expressions' as long as it is
-;;; done before speedbar is loaded.
-;;;
-;;;   To add new file types to imenu, see the documentation in the
-;;; file imenu.el that comes with emacs.  To add new file types which
-;;; etags supports, you need to modify the variable
-;;; `speedbar-fetch-etags-parse-list'.
-;;;
-;;;    If the updates are going too slow for you, modify the variable
-;;; `speedbar-update-speed' to a longer idle time before updates.
-;;;
-;;;    If you navigate directories, you will probably notice that you
-;;; will navigate to a directory which is eventually replaced after
-;;; you go back to editing a file (unless you pull up a new file.)
-;;; The delay time before this happens is in
-;;; `speedbar-navigating-speed', and defaults to 10 seconds.
-;;;
-;;;    XEmacs users may want to change the default timeouts for
-;;; `speedbar-update-speed' to something longer as XEmacs doesn't have
-;;; idle timers, the speedbar timer keeps going off arbitrarilly while
-;;; you're typing.  It's quite pesky.
-;;;
-;;;    Users of emacs previous to to v 19.31 (when idle timers
-;;; where introduced) will not have speedbar updating automatically.
-;;; Use "r" to refresh the display after changing directories.
-;;; Remember, do not interrupt the stealthy updates or you display may
-;;; not be completely refreshed.
-;;;
-;;;    See optional file `speedbcfg.el' for interactive buffers
-;;; allowing simple configuration of colors and features of speedbar.
-;;;
-;;;    AUC-TEX users: The imenu tags for AUC-TEX mode don't work very
-;;; well.  Use the imenu keywords from tex-mode.el for better results.
+;;; Commentary:
+;;
+;;   The speedbar provides a frame in which files, and locations in
+;; files are displayed.  These items can be clicked on with mouse-2
+;; in order to make the last active frame display that file location.
+;;
+;;   To use speedbar, add this to your .emacs file:
+;;
+;;   (autoload 'speedbar-frame-mode "speedbar" "Popup a speedbar frame" t)
+;;   (autoload 'speedbar-get-focus "speedbar" "Jump to speedbar frame" t)
+;;
+;;   If you want to choose it from a menu or something, do this:
+;;
+;;   (define-key-after (lookup-key global-map [menu-bar tools])
+;;      [speedbar] '("Speedbar" . speedbar-frame-mode) [calendar])
+;;
+;;   If you want to access speedbar using only the keyboard, do this:
+;;
+;;   (define-key global-map [f4] 'speedbar-get-focus)
+;;
+;;   This will let you hit f4 (or whatever key you choose) to jump
+;; focus to the speedbar frame.  Pressing RET or e to jump to a file
+;; or tag will move you back to the attached frame.  The command
+;; `speedbar-get-fucus' will also create a speedbar frame if it does
+;; not exist.
+;;
+;;   Once a speedbar frame is active, it takes advantage of idle time
+;; to keep it's contents updated.  The contents is usually a list of
+;; files in the directory of the currently active buffer.  When
+;; applicable, tags in the active file can be expanded.
+;;
+;;   To add new files types into the speedbar, use the function
+;; `speedbar-add-supported-extension' If speedbar complains that the
+;; file type is not supported, that means there is no built in
+;; support from imenu, and the etags part wasn't set up correctly.  You
+;; may add elements to `speedbar-supported-extension-expressions' as long
+;; as it is done before speedbar is loaded.
+;;
+;;   To prevent speedbar from following you into certain directories
+;; use the function `speedbar-add-ignored-path-regexp' too add a new
+;; regular expression matching a type of path.  You may add list
+;; elements to `speedbar-ignored-path-expressions' as long as it is
+;; done before speedbar is loaded.
+;;
+;;   To add new file types to imenu, see the documentation in the
+;; file imenu.el that comes with emacs.  To add new file types which
+;; etags supports, you need to modify the variable
+;; `speedbar-fetch-etags-parse-list'.
+;;
+;;    If the updates are going too slow for you, modify the variable
+;; `speedbar-update-speed' to a longer idle time before updates.
+;;
+;;    If you navigate directories, you will probably notice that you
+;; will navigate to a directory which is eventually replaced after
+;; you go back to editing a file (unless you pull up a new file.)
+;; The delay time before this happens is in
+;; `speedbar-navigating-speed', and defaults to 10 seconds.
+;;
+;;    XEmacs users may want to change the default timeouts for
+;; `speedbar-update-speed' to something longer as XEmacs doesn't have
+;; idle timers, the speedbar timer keeps going off arbitrarilly while
+;; you're typing.  It's quite pesky.
+;;
+;;    Users of emacs previous to to v 19.31 (when idle timers
+;; where introduced) will not have speedbar updating automatically.
+;; Use "r" to refresh the display after changing directories.
+;; Remember, do not interrupt the stealthy updates or you display may
+;; not be completely refreshed.
+;;
+;;    See optional file `speedbcfg.el' for interactive buffers
+;; allowing simple configuration of colors and features of speedbar.
+;;
+;;    AUC-TEX users: The imenu tags for AUC-TEX mode don't work very
+;; well.  Use the imenu keywords from tex-mode.el for better results.
 
 ;;; Speedbar updates can be found at:
-;;; ftp://ftp.ultranet.com/pub/zappo/speedbar*.el
-;;;
+;; ftp://ftp.ultranet.com/pub/zappo/speedbar*.el
+;;
 
 ;;; Change log:
-;;; 0.1   Initial Revision
-;;; 0.2   Fixed problem with x-pointer-shape causing future frames not
-;;;         to be created.
-;;;       Fixed annoying habit of `speedbar-update-contents' to make
-;;;         it possible to accidentally kill the speedbar buffer.
-;;;       Clicking directory names now only changes the contents of
-;;;         the speedbar, and does not cause a dired mode to appear.
-;;;         Clicking the <+> next to the directory does cause dired to
-;;;         be run.
-;;;       Added XEmacs support, which means timer support moved to a
-;;;         platform independant call.
-;;;       Added imenu support.  Now modes are supported by imenu
-;;;         first, and etags only if the imenu call doesn't work.
-;;;         Imenu is a little faster than etags, and is more emacs
-;;;         friendly.
-;;;       Added more user control variables described in the commentary.
-;;;       Added smart recentering when nodes are opened and closed.
-;;; 0.3   x-pointer-shape fixed for emacs 19.35, so I put that check in.
-;;;       Added invisible codes to the beginning of each line.
-;;;       Added list aproach to node expansion for easier addition of new
-;;;         types of things to expand by
-;;;       Added multi-level path name support
-;;;       Added multi-level tag name support.
-;;;       Only mouse-2 is now used for node expansion
-;;;       Added keys e + - to edit expand, and contract node lines
-;;;       Added longer legal file regexp for all those modes which support
-;;;         imenu. (pascal, fortran90, ada, pearl)
-;;;       Added pascal support to etags from Dave Penkler <dave_penkler@grenoble.hp.com>
-;;;       Fixed centering algorithm
-;;;       Tried to choose background independent colors.  Made more robust.
-;;;       Rearranged code into a more logical order
-;;; 0.3.1 Fixed doc & broken keybindings
-;;;       Added mode hooks.
-;;;       Improved color selection to be background mode smart
-;;;       `nil' passed to `speedbar-frame-mode' now toggles the frame as
-;;;         advertised in the doc string
-;;; 0.4a  Added modified patch from Dan Schmidt <dfan@lglass.com> allowing a
-;;;         directory cache to be maintained speeding up revisiting of files.
-;;;       Default raise-lower behavior is now off by default.
-;;;       Added some menu items for edit expand and contract.
-;;;       Pre 19.31 emacsen can run without idle timers.
-;;;       Added some patch information from Farzin Guilak <farzin@protocol.com>
-;;;         adding xemacs specifics, and some etags upgrades.
-;;;       Added ability to set a faces symbol-value to a string
-;;;         representing the desired foreground color.  (idea from
-;;;         Farzin Guilak, but implemented differently)
-;;;       Fixed problem with 1 character buttons.
-;;;       Added support for new Imenu marker technique.
-;;;       Added `speedbar-load-hooks' for things to run only once on
-;;;         load such as updating one of the many lists.
-;;;       Added `speedbar-supported-extension-expressions' which is a
-;;;         list of extensions that speedbar will tag.  This variable
-;;;         should only be updated with `speedbar-add-supported-extension'
-;;;       Moved configure dialog support to a separate file so
-;;;         speedbar is not dependant on eieio to run
-;;;       Fixed list-contraction problem when the item was at the end
-;;;         of a sublist.
-;;;       Fixed XEmacs multi-frame timer selecting bug problem.
-;;;       Added `speedbar-ignored-modes' which is a list of major modes
-;;;         speedbar will not follow when it is displayed in the selected frame
-;;; 0.4   When the file being edited is not in the list, and is a file
-;;;         that should be in the list, the speedbar cache is replaced.     
-;;;       Temp buffers are now shown in the attached frame not the
-;;;         speedbar frame
-;;;       New variables `speedbar-vc-*' and `speedbar-stealthy-function-list'
-;;;         added.  `speedbar-update-current-file' is now a member of
-;;;         the stealthy list.  New function `speedbar-check-vc' will
-;;;         examine each file and mark it if it is checked out.  To
-;;;         add new version control types, override the function
-;;;         `speedbar-this-file-in-vc' and `speedbar-vc-check-dir-p'.
-;;;         The stealth list is interruptible so that long operations
-;;;         do not interrupt someones editing flow.  Other long
-;;;         speedbar updates will be added to the stealthy list in the
-;;;         future should interesting ones be needed.
-;;;       Added many new functions including:
-;;;         `speedbar-item-byte-compile' `speedbar-item-load'
-;;;         `speedbar-item-copy' `speedbar-item-rename' `speedbar-item-delete'
-;;;         and `speedbar-item-info'
-;;;       If the user kills the speedbar buffer in some way, the frame will
-;;;         be removed.
-;;; 0.4.1 Bug fixes
-;;;       <mark.jeffries@nomura.co.uk> added `speedbar-do-updates',
-;;;         XEmacs fixes for menus, and tag sorting, and quit key.
-;;;       Modeline now updates itself based on window-width.
-;;;       Frame is cached when closed to make pulling it up again faster.
-;;;       Speedbars window is now marked as dedicated.
-;;;       Added bindings: <grossjoh@charly.informatik.uni-dortmund.de>
-;;;       Long directories are now span multiple lines autmoatically
-;;;       Added `speedbar-directory-button-trim-method' to specify how to
-;;;         sorten the directory button to fit on the screen.
-;;; 0.4.2 Add one level of full-text cache.
-;;;       Add `speedbar-get-focus' to switchto/raise the speedbar frame.
-;;;       Editing thing-on-line will auto-raise the attached frame.
-;;;       Bound `U' to `speedbar-up-directory' command.
-;;;       Refresh will now maintain all subdirectories that were open
-;;;        when the refresh was requested.  (This does not include the
-;;;        tags, only the directories)
-;;; 0.4.3 Bug fixes
-;;; 0.4.4 Added `speedbar-ignored-path-expressions' and friends.
-;;;       Configuration menu items not displayed if dialog-mode not present
-;;;       Speedbar buffer now starts with a space, and is not deleted
-;;;        ewhen the speedbar frame is closed.  This prevents the invisible
-;;;        frame from preventing buffer switches with other buffers.
-;;;       Fixed very bad bug in the -add-[extension|path] functions.
-;;;       Added `speedbar-find-file-in-frame' which will always pop up a frame
-;;;        that is already display a buffer selected in the speedbar buffer.
-;;;       Added S-mouse2 as "power click" for always poping up a new frame.
-;;;        and always rescanning with imenu (ditching the imenu cache), and
-;;;        always rescanning directories.
-;;; 0.4.5 XEmacs bugfixes and enhancements.
-;;;       Window Title simplified.
-;;;
+;; 0.1   Initial Revision
+;; 0.2   Fixed problem with x-pointer-shape causing future frames not
+;;         to be created.
+;;       Fixed annoying habit of `speedbar-update-contents' to make
+;;         it possible to accidentally kill the speedbar buffer.
+;;       Clicking directory names now only changes the contents of
+;;         the speedbar, and does not cause a dired mode to appear.
+;;         Clicking the <+> next to the directory does cause dired to
+;;         be run.
+;;       Added XEmacs support, which means timer support moved to a
+;;         platform independant call.
+;;       Added imenu support.  Now modes are supported by imenu
+;;         first, and etags only if the imenu call doesn't work.
+;;         Imenu is a little faster than etags, and is more emacs
+;;         friendly.
+;;       Added more user control variables described in the commentary.
+;;       Added smart recentering when nodes are opened and closed.
+;; 0.3   x-pointer-shape fixed for emacs 19.35, so I put that check in.
+;;       Added invisible codes to the beginning of each line.
+;;       Added list aproach to node expansion for easier addition of new
+;;         types of things to expand by
+;;       Added multi-level path name support
+;;       Added multi-level tag name support.
+;;       Only mouse-2 is now used for node expansion
+;;       Added keys e + - to edit expand, and contract node lines
+;;       Added longer legal file regexp for all those modes which support
+;;         imenu. (pascal, fortran90, ada, pearl)
+;;       Added pascal support to etags from Dave Penkler <dave_penkler@grenoble.hp.com>
+;;       Fixed centering algorithm
+;;       Tried to choose background independent colors.  Made more robust.
+;;       Rearranged code into a more logical order
+;; 0.3.1 Fixed doc & broken keybindings
+;;       Added mode hooks.
+;;       Improved color selection to be background mode smart
+;;       `nil' passed to `speedbar-frame-mode' now toggles the frame as
+;;         advertised in the doc string
+;; 0.4a  Added modified patch from Dan Schmidt <dfan@lglass.com> allowing a
+;;         directory cache to be maintained speeding up revisiting of files.
+;;       Default raise-lower behavior is now off by default.
+;;       Added some menu items for edit expand and contract.
+;;       Pre 19.31 emacsen can run without idle timers.
+;;       Added some patch information from Farzin Guilak <farzin@protocol.com>
+;;         adding xemacs specifics, and some etags upgrades.
+;;       Added ability to set a faces symbol-value to a string
+;;         representing the desired foreground color.  (idea from
+;;         Farzin Guilak, but implemented differently)
+;;       Fixed problem with 1 character buttons.
+;;       Added support for new Imenu marker technique.
+;;       Added `speedbar-load-hooks' for things to run only once on
+;;         load such as updating one of the many lists.
+;;       Added `speedbar-supported-extension-expressions' which is a
+;;         list of extensions that speedbar will tag.  This variable
+;;         should only be updated with `speedbar-add-supported-extension'
+;;       Moved configure dialog support to a separate file so
+;;         speedbar is not dependant on eieio to run
+;;       Fixed list-contraction problem when the item was at the end
+;;         of a sublist.
+;;       Fixed XEmacs multi-frame timer selecting bug problem.
+;;       Added `speedbar-ignored-modes' which is a list of major modes
+;;         speedbar will not follow when it is displayed in the selected frame
+;; 0.4   When the file being edited is not in the list, and is a file
+;;         that should be in the list, the speedbar cache is replaced.     
+;;       Temp buffers are now shown in the attached frame not the
+;;         speedbar frame
+;;       New variables `speedbar-vc-*' and `speedbar-stealthy-function-list'
+;;         added.  `speedbar-update-current-file' is now a member of
+;;         the stealthy list.  New function `speedbar-check-vc' will
+;;         examine each file and mark it if it is checked out.  To
+;;         add new version control types, override the function
+;;         `speedbar-this-file-in-vc' and `speedbar-vc-check-dir-p'.
+;;         The stealth list is interruptible so that long operations
+;;         do not interrupt someones editing flow.  Other long
+;;         speedbar updates will be added to the stealthy list in the
+;;         future should interesting ones be needed.
+;;       Added many new functions including:
+;;         `speedbar-item-byte-compile' `speedbar-item-load'
+;;         `speedbar-item-copy' `speedbar-item-rename' `speedbar-item-delete'
+;;         and `speedbar-item-info'
+;;       If the user kills the speedbar buffer in some way, the frame will
+;;         be removed.
+;; 0.4.1 Bug fixes
+;;       <mark.jeffries@nomura.co.uk> added `speedbar-do-updates',
+;;         XEmacs fixes for menus, and tag sorting, and quit key.
+;;       Modeline now updates itself based on window-width.
+;;       Frame is cached when closed to make pulling it up again faster.
+;;       Speedbars window is now marked as dedicated.
+;;       Added bindings: <grossjoh@charly.informatik.uni-dortmund.de>
+;;       Long directories are now span multiple lines autmoatically
+;;       Added `speedbar-directory-button-trim-method' to specify how to
+;;         sorten the directory button to fit on the screen.
+;; 0.4.2 Add one level of full-text cache.
+;;       Add `speedbar-get-focus' to switchto/raise the speedbar frame.
+;;       Editing thing-on-line will auto-raise the attached frame.
+;;       Bound `U' to `speedbar-up-directory' command.
+;;       Refresh will now maintain all subdirectories that were open
+;;        when the refresh was requested.  (This does not include the
+;;        tags, only the directories)
+;; 0.4.3 Bug fixes
+;; 0.4.4 Added `speedbar-ignored-path-expressions' and friends.
+;;       Configuration menu items not displayed if dialog-mode not present
+;;       Speedbar buffer now starts with a space, and is not deleted
+;;        ewhen the speedbar frame is closed.  This prevents the invisible
+;;        frame from preventing buffer switches with other buffers.
+;;       Fixed very bad bug in the -add-[extension|path] functions.
+;;       Added `speedbar-find-file-in-frame' which will always pop up a frame
+;;        that is already display a buffer selected in the speedbar buffer.
+;;       Added S-mouse2 as "power click" for always poping up a new frame.
+;;        and always rescanning with imenu (ditching the imenu cache), and
+;;        always rescanning directories.
+;; 0.4.5 XEmacs bugfixes and enhancements.
+;;       Window Title simplified.
+;;       Fixed errors reported by checkdoc.
+
 ;;; TODO:
-;;; 1) More functions to create buttons and options
-;;; 2) filtering algoritms to reduce the number of tags/files displayed.
-;;; 3) Timeout directories we haven't visited in a while.
+;; 1) More functions to create buttons and options
+;; 2) filtering algoritms to reduce the number of tags/files displayed.
+;; 3) Timeout directories we haven't visited in a while.
 
 ;;; Code:
 (require 'assoc)
@@ -646,10 +647,9 @@ directories.")
   "Never set this by hand.  Value is t when S-mouse activity occurs.")
 
 
-;;;
 ;;; Mode definitions/ user commands
-;;;
-;;;###autoload
+;;
+;;###autoload
 (defalias 'speedbar 'speedbar-frame-mode)
 (defun speedbar-frame-mode (&optional arg)
   "Enable or disable speedbar.  Positive ARG means turn on, negative turns off.
@@ -865,9 +865,8 @@ redirected into a window on the attached frame."
   (other-window -1)
   (run-hooks 'temp-buffer-show-hook))
 
-;;;
 ;;; User Input stuff
-;;;
+;;
 (defun speedbar-mouse-hscroll (e)
   "Read a mouse event from the mode line, and horizontally scroll.
 If the mouse is being clicked on the far left, or far right of the
@@ -931,9 +930,8 @@ Assumes that the current buffer is the speedbar buffer"
   (setq default-directory (expand-file-name (concat default-directory "../")))
   (speedbar-update-contents))
 
-;;;
 ;;; Speedbar file activity
-;;;
+;;
 (defun speedbar-refresh ()
   "Refresh the current speedbar display, disposing of any cahced data."
   (interactive)
@@ -1097,9 +1095,8 @@ Files can be renamed to new names or moved to new directories."
       (speedbar-disable-update)
     (speedbar-enable-update)))
 
-;;;
 ;;; Utility functions
-;;;
+;;
 (defun speedbar-set-timer (timeout)
   "Unset an old timer (if there is one) and activate a new timer with TIMEOUT.
 TIMEOUT is the number of seconds until the speedbar timer is called
@@ -1151,9 +1148,8 @@ will be run with the TOKEN parameter (any lisp object)"
   (if token (put-text-property start end 'speedbar-token token))
   )
 
-;;;
 ;;; File button management
-;;;
+;;
 (defun speedbar-file-lists (directory)
   "Create file lists for DIRECTORY.
 The car is the list of directories, the cdr is list of files not
@@ -1314,9 +1310,8 @@ position to insert a new item, and that the new item will end with a CR"
 	  (insert-char char 1 t)))))
 
 
-;;;
 ;;; Build button lists
-;;;
+;;
 (defun speedbar-insert-files-at-point (files level)
   "Insert list of FILES starting at point, and indenting all files to LEVEL.
 Tag exapndable items with a +, otherwise a ?.  Don't highlight ? as we
@@ -1393,9 +1388,8 @@ name will have the function FIND-FUN and not token."
 	  (t (message "Ooops!")))
     (setq lst (cdr lst))))
 
-;;;
 ;;; Timed functions
-;;;
+;;
 (defun speedbar-update-contents ()
   "Update the contents of the speedbar buffer."
   (interactive)
@@ -1486,9 +1480,8 @@ name will have the function FIND-FUN and not token."
   )
 
 
-;;;
 ;;; Stealthy activities
-;;;
+;;
 (defun speedbar-stealthy-updates ()
   "For a given speedbar, run all items in the stealthy function list.
 Each item returns t if it completes successfully, or nil if
@@ -1664,9 +1657,8 @@ that will occur on your system."
    ;;(file-exists-p (concat (getenv "SCCSPATHTHING") "/SCCS/," fn))
    ))
 
-;;;
 ;;; Clicking Activity
-;;;
+;;
 (defun speedbar-quick-mouse (e)
   "Since mouse events are strange, this will keep the mouse nicely positioned.
 This should be bound to mouse event E."
@@ -1725,9 +1717,8 @@ a function if apropriate"
     (and fn (funcall fn txt tok dent)))
   (speedbar-position-cursor-on-line))
 
-;;;
 ;;; Reading info from the speedbar buffer
-;;;
+;;
 (defun speedbar-line-file (&optional p)
   "Retrieve the file or whatever from the line at P point.
 The return value is a string representing the file.  If it is a
@@ -1998,9 +1989,8 @@ level."
 	(t (error "Ooops... not sure what to do.")))
   (speedbar-center-buffer-smartly))
 
-;;;
 ;;; Loading files into the attached frame.
-;;;
+;;
 (defun speedbar-find-file-in-frame (file)
   "This will load FILE into the speedbar attached frame.
 If the file is being displayed in a different frame already, then raise that
@@ -2017,9 +2007,8 @@ frame instead."
 	(switch-to-buffer buff))))
   )
 
-;;;
 ;;; Centering Utility
-;;;
+;;
 (defun speedbar-center-buffer-smartly ()
   "Recenters a speedbar buffer so the current indentation level is all visible.
 This assumes that the cursor is on a file, or tag of a file which the user is
@@ -2080,9 +2069,8 @@ interested in."
 	(goto-char cp)))))
 
 
-;;;
 ;;; Tag Management -- Imenu
-;;;
+;;
 (if  (string-match "XEmacs" emacs-version)
 
     nil
@@ -2101,9 +2089,8 @@ Returns the tag list, or t for an error."
       (error t))))
 )
 
-;;;
 ;;; Tag Management -- etags  (XEmacs compatibility part)
-;;;
+;;
 (defvar speedbar-fetch-etags-parse-list
   '(("\\.\\([cChH]\\|c++\\|cpp\\|cc\\|hh\\)$" . speedbar-parse-c-or-c++tag)
     ("\\.el\\|\\.emacs" . "defun\\s-+\\(\\(\\w\\|[-_]\\)+\\)\\s-*\C-?")
@@ -2262,9 +2249,8 @@ regular expression EXPR"
 	    (t nil)))))
 
 
-;;;
 ;;; Color loading section  This is messy *Blech!*
-;;;
+;;
 (defun speedbar-load-color (sym l-fg l-bg d-fg d-bg &optional bold italic underline)
   "Create a color for SYM with a L-FG and L-BG color, or D-FG and D-BG.
 Optionally make BOLD, ITALIC, or UNDERLINED if applicable.  If the background
