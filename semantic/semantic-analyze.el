@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.39 2004/04/28 15:34:42 ponced Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.40 2004/04/29 10:12:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -160,36 +160,34 @@ or a string, or a non-positional tag."
 	   (car tt))
 	  (t nil))))
 
-(defun semantic-analyze-dereference-metatype (type)
+(define-overload semantic-analyze-dereference-metatype (type)
   "Return a concrete type tag based on input TYPE tag.
 A concrete type is an actual declaration of a memory description,
 such as a structure, or class.  A meta type is an alias,
 or a typedef in C or C++.  If TYPE is concrete, it
 is returned.  If it is a meta type, it will return the concrete
 type defined by TYPE.
-The behavior can be overriden using `analyze-derefernce-metatype'.
 The default behavior always returns TYPE.
 Override functions need not return a real semantic tag.
 Just a name, or short tag will be ok.  It will be expanded here."
-  (let* ((s (semantic-fetch-overload 'analyze-dereference-metatype)))
-    (if s
-	(let ((ans (funcall s type)))
-	  ;; If ANS is a string, or if ANS is a short tag, we
-	  ;; need to do some more work to look it up.
-	  (cond ((stringp ans)
-		 (semantic-analyze-find-tag ans))
-		((and (semantic-tag-p ans)
-		      (eq (semantic-tag-class ans) 'type)
-		      (semantic-tag-type-members ans))
-		 ans)
-		((and (semantic-tag-p ans)
-		      (eq (semantic-tag-class ans) 'type)
-		      (not (semantic-tag-type-members ans)))
-		 (semantic-analyze-find-tag
-		  (semantic-tag-name ans)))
-		(t nil)))
-      ;; Nothing fancy, just return type be default.
-      type)))
+  (catch 'default-behavior
+    (let ((ans (:override
+                ;; Nothing fancy, just return type be default.
+                (throw 'default-behavior type))))
+      ;; If ANS is a string, or if ANS is a short tag, we
+      ;; need to do some more work to look it up.
+      (cond ((stringp ans)
+             (semantic-analyze-find-tag ans))
+            ((and (semantic-tag-p ans)
+                  (eq (semantic-tag-class ans) 'type)
+                  (semantic-tag-type-members ans))
+             ans)
+            ((and (semantic-tag-p ans)
+                  (eq (semantic-tag-class ans) 'type)
+                  (not (semantic-tag-type-members ans)))
+             (semantic-analyze-find-tag
+              (semantic-tag-name ans)))
+            (t nil)))))
 
 (defun semantic-analyze-tag-type (tag)
   "Return the semantic tag for a type within the type of TAG.
@@ -764,30 +762,25 @@ Optional argument DESIRED-TYPE may be a non-type tag to analyze."
   "Return a type constraint for completing :prefix in CONTEXT."
   (call-next-method context (car (reverse (oref context assignee)))))
 
-(defun semantic-analyze-type-constants (type)
+(define-overload semantic-analyze-type-constants (type)
   "For the tag TYPE, return any constant symbols of TYPE.
 Used as options when completing."
-  (let* ((s (semantic-fetch-overload 'analyze-type-constants)))
-    (if s
-	;; We need the real type so that language files don't
-	;; need to know much about analysis.
-	(let* ((realtype (semantic-analyze-find-tag
-			  (semantic-tag-name type)))
-	       (ans (funcall s realtype))
-	       (out nil))
-	  (while ans
-	    (cond ((stringp (car ans))
-		   (setq out (cons (list (car ans)
-					 'variable
-					 (semantic-tag-name type))
-				   out)))
-		  ((semantic-tag-p (car ans))
-		   (setq out (cons (car ans) out)))
-		  (t nil))
-	    (setq ans (cdr ans)))
-	  (nreverse out))
-      ;; Be default, we don't know.
-      nil)))
+  (let ((ans
+         (:override-with-args
+             ((semantic-analyze-find-tag (semantic-tag-name type)))
+           ;; Be default, we don't know.
+           nil))
+        (out nil))
+    (dolist (elt ans)
+      (cond
+       ((stringp elt)
+        (push (semantic-tag-new-variable
+               elt (semantic-tag-name type) nil)
+              out))
+       ((semantic-tag-p elt)
+        (push elt out))
+       (t nil)))
+    (nreverse out)))
 
 (defun semantic-analyze-tags-of-class-list (tags classlist)
   "Return the tags in TAGS that are of classes in CLASSLIST."
