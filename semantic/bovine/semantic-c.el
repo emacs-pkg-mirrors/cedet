@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.14 2003/03/30 01:32:07 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.15 2003/04/02 02:00:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-03-29 20:23-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 20:20-0500
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -77,6 +77,7 @@
       semantic-list
       ,(semantic-lambda
 	(semantic-tag
+	 "C"
 	 'extern :members
 	 (semantic-parse-region
 	  (car
@@ -221,7 +222,8 @@
       "\\b[:]\\b"
       ,(semantic-lambda
 	(semantic-tag
-	 (nth 0 vals)
+	 (car
+	  (nth 0 vals))
 	 'label))
       )
      (var-or-fun)
@@ -327,7 +329,8 @@
       "\\b[:]\\b"
       ,(semantic-lambda
 	(semantic-tag
-	 (nth 0 vals)
+	 (car
+	  (nth 0 vals))
 	 'label))
       )
      (template)
@@ -1698,8 +1701,14 @@ Go to the next line."
   "Expand NONTERM into a list of equivalent nonterminals, or nil."
   (cond ((eq (semantic-tag-class nonterm) 'extern)
 	 ;; We have hit an exter "C" command with a list after it.
-	 (semantic-tag-get-attribute nonterm :members)
-	 )
+	 (let* ((mb (semantic-tag-get-attribute nonterm :members))
+		(ret mb))
+	   (while mb
+	     (let ((mods (semantic-tag-get-attribute (car mb) 'typemodifiers)))
+	       (setq mods (cons "extern" (cons "\"C\"" mods)))
+	       (semantic-tag-put-attribute (car mb) 'typemodifiers mods))
+	     (setq mb (cdr mb)))
+	   ret))
 	((listp (car nonterm))
 	 (cond ((eq (semantic-tag-class nonterm) 'variable)
 		;; The name part comes back in the form of:
@@ -1866,7 +1875,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   tag)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-03-29 20:23-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 20:20-0500
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -2122,7 +2131,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-03-29 20:23-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 20:20-0500
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
 	  semantic-debug-parser-source "c.by"
