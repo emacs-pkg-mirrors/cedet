@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.40 2001/02/19 13:31:28 zappo Exp $
+@c $Id: eieio.texi,v 1.41 2001/05/20 12:42:16 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -779,8 +779,8 @@ Return non-@code{nil} if @var{class} is a class type.
 Return non-@code{nil} if @var{obj} is an object.
 @end defun
 
-@defun slot-exists-p obj slot
-Return Non-@code{nil} if @var{obj} contains @var{slot} in its class.
+@defun slot-exists-p obj-or-class slot
+Return Non-@code{nil} if @var{obj-or-class} contains @var{slot} in its class.
 @end defun
 
 @defun slot-boundp obj slot
