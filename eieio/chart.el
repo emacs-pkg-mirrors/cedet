@@ -4,7 +4,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.2
-;; RCS: $Id: chart.el,v 1.11 2001/02/19 17:42:20 zappo Exp $
+;; RCS: $Id: chart.el,v 1.12 2001/08/31 17:29:50 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -286,6 +286,7 @@ MARGIN, ZONE, START, and END specify restrictions in chart space."
 	 ;; want to jump by units of 5 spaces or so
 	 (j (/ rng (/  (chart-size-in-dir (oref a chart) dir) 4)))
 	 p1)
+    (if (= j 0) (setq j 1))
     (while (<= i e)
       (setq s
 	    (cond ((> i 999999)
