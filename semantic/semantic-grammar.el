@@ -1,12 +1,12 @@
 ;;; semantic-grammar.el --- Major mode framework for Semantic grammars
 ;;
-;; Copyright (C) 2002, 2003, 2004 David Ponce
+;; Copyright (C) 2002-2005 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.64 2004/07/20 17:58:03 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.65 2005/01/11 17:09:53 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1579,6 +1579,7 @@ Select the buffer containing the tag's definition, and move point there."
     ("INCLUDE-TAG" . "(INCLUDE-TAG <name> <system-flag> [ :key value ]*)")
     ("PACKAGE-TAG" . "(PACKAGE-TAG <name> <detail> [ :key value ]*)")
     ("CODE-TAG" . "(CODE-TAG <name> <detail> [ :key value ]*)")
+    ("ALIAS-TAG" . "(ALIAS-TAG <name> <aliasclass> <definition> [:key value]*)")
     ;; Special value macros
     ("$1" . "Match Value: Value from match list in slot 1")
     ("$2" . "Match Value: Value from match list in slot 2")
