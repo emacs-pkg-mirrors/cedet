@@ -1,11 +1,13 @@
 <TITLE>Speedbar Homepage</TITLE>
 
-<table width=100% bgcolor=#000099>
-<tr><td><h2><font color=yellow>Speedbar:</font></h2></td></tr>
-<tr><td><font color=yellow>"Floating Everything Browser"</font></td></tr>
+<!--#include file="pagestart.php"-->
+
+<table width=100% bgcolor="lightgreen">
+<tr><td><h2><font color=black>Speedbar:</font></h2></td>
+<td><font color=black>"Floating Everything Browser."</font></td></tr>
 </table>
-<img src=speedbar-3.jpg align=left>
-<!--#include file="rightcol.php"-->
+<img src=speedbar-3.jpg align=right>
+
 
 <P>Speedbar is an <B>Emacs Lisp</B> program which allows you to create a
 special skinny frame with a specialized directory listing in it.  This
@@ -52,7 +54,9 @@ Different Modes for Speedbar
 </ul>
 </p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>About the picture</h2>
+</td></tr></table>
 
 <P>Starting with Speedbar 0.11, images are now supported to represent
   files and tags.  This screen shot was taken using Emacs 21, using
@@ -60,16 +64,22 @@ Different Modes for Speedbar
  of XEmacs should generate a similar picture.
 </p>
 
-<P>Speedbar works with Emacs 19.3x, 20.x, and 21 pre-release.  It also works with XEmacs 20.x, and 21.x.
+<P>Speedbar works with Emacs 19.3x, 20.x without images, and 21.x
+  with images on platforms for which image display is available.
+  It also works with images for XEmacs 20.x, and 21.x.
 </p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Read the docs:</h2>
+</td></tr></table>
 
 <P>You can read the 
    <a href=info/speedbar.html>html documentation</a>
    created from the texinfo file.</p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Speedbar Enabled tools:</h2>
+</td></tr></table>
 
 <P>There are several speedbar enabled tools above and beyond those
    implicitly supported by default.</p>
@@ -98,7 +108,7 @@ Different Modes for Speedbar
     <a href="http://www.emacswiki.org/cgi-bin/wiki.pl?ErcSpeedbar">
     speedbar display mode</a>
     for showing servers and channels.
-<li><a href="http://www.esat.kuleuven.ac.be/~vdplas/emacs/">
+<li><a href="http://spice-mode.4t.com/index.html">
     ELDO & SPICE modes</a> support speedbar tagging through
     imenu and speedbar configurations.
 <li>Check the <a href="http://ctags.sourceforge.net/faq.html">
@@ -121,7 +131,9 @@ Different Modes for Speedbar
 <br clear=both>
 <!--#include file="download.php"-->
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Downloading Earlier versions of speedbar</h2>
+</td></tr></table>
 
 <P>
 It was a beta that was stable for a long time.
