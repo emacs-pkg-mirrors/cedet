@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.53 2004/01/18 15:42:56 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.54 2004/01/19 18:50:31 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,7 +34,6 @@
 
 ;;; Code:
 (require 'wisent-bovine)
-(require 'semantic-grammar-wy)
 (require 'sformat)
 (require 'font-lock)
 (require 'pp)
@@ -48,7 +47,11 @@
 ;;;; Set up lexer
 ;;;;
 
-;;; Analyzers
+(defconst semantic-grammar-lex-c-char-re "'\\s\\?.'"
+  "Regexp matching C-like character literals.")
+
+;; Most of the analyzers are auto-generated from the grammar, but the
+;; following which need special handling code.
 ;;
 (define-lex-regex-analyzer semantic-grammar-lex-prologue
   "Detect and create a prologue token."
@@ -83,88 +86,8 @@
     (semantic-lex-push-token
      (semantic-lex-token class start end))))
 
-(define-lex-regex-analyzer semantic-grammar-lex-symbol
-  "Detect and create an identifier or keyword token."
-  ":?\\(\\sw\\|\\s_\\)+"
-  (semantic-lex-push-token
-   (semantic-lex-token
-    (or (semantic-lex-keyword-p (match-string 0))
-        'SYMBOL)
-    (match-beginning 0)
-    (match-end 0))))
-
-(define-lex-regex-analyzer semantic-grammar-lex-string
-  "Detect and create a string token."
-  "\\s\""
-  ;; Zing to the end of this string.
-  (semantic-lex-push-token
-   (semantic-lex-token
-    'STRING (point)
-    (save-excursion
-      (semantic-lex-unterminated-syntax-protection 'STRING
-        (forward-sexp 1)
-        (point))))))
-
-(defconst semantic-grammar-lex-c-char-re "'\\s\\?.'"
-  "Regexp matching C-like character literals.")
-
-(define-lex-simple-regex-analyzer semantic-grammar-lex-char
-  "Detect and create a C-like character token."
-  semantic-grammar-lex-c-char-re 'CHARACTER)
-
-(define-lex-block-analyzer semantic-grammar-lex-blocks
-  "Detect and create a open, close or block token."
-  (PAREN_BLOCK ("(" LPAREN) (")" RPAREN))
-  (BRACE_BLOCK ("{" LBRACE) ("}" RBRACE)))
-
-(define-lex-analyzer semantic-grammar-lex-sexp
-  "Detect and create an s-expression token."
-  t
-  (semantic-lex-push-token
-   (semantic-lex-token
-    'SEXP
-    (match-beginning 0)
-    (save-excursion
-      (semantic-lex-unterminated-syntax-protection 'SEXP
-        (forward-sexp 1)
-        (point))))))
-
-(define-lex-regex-analyzer semantic-grammar-lex-prefixed-list
-  "Detect and create a prefixed list token."
-  "\\s'\\s-*("
-  (semantic-lex-push-token
-   (semantic-lex-token
-    'PREFIXED_LIST
-    (match-beginning 0)
-    (save-excursion
-      (semantic-lex-unterminated-syntax-protection 'PREFIXED_LIST
-        (forward-sexp 1)
-        (point))))))
-
-;;; Lexer
-;;
-(define-lex semantic-grammar-lexer
-  "Lexical analyzer that handles Semantic grammar buffers.
-It ignores whitespaces, newlines and comments."
-  semantic-lex-ignore-newline
-  semantic-lex-ignore-whitespace
-  ;; Must detect prologue/epilogue before other symbols/keywords!
-  semantic-grammar-lex-prologue
-  semantic-grammar-lex-epilogue
-  semantic-grammar-lex-symbol
-  semantic-grammar-lex-char
-  semantic-grammar-lex-string
-  ;; Must detect comments after strings because `comment-start-skip'
-  ;; regexp match semicolons inside strings!
-  semantic-lex-ignore-comments
-  ;; Must detect prefixed list before punctuation because prefix chars
-  ;; are also punctuations!
-  semantic-grammar-lex-prefixed-list
-  ;; Must detect punctuations after comments because the semicolon can
-  ;; be a punctuation or a comment start!
-  semantic-lex-punctuation-type
-  semantic-grammar-lex-blocks
-  semantic-grammar-lex-sexp)
+;; Provide auto-generated analyzers and the lexer.
+(require 'semantic-grammar-wy)
 
 ;;; Test the lexer
 ;;
