@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.12 2000/07/01 19:15:33 zappo Exp $
+@c $Id: semantic.texi,v 1.13 2000/07/03 13:59:27 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -484,7 +484,7 @@ Retrieve the default value of the variable @var{TOKEN}.
 @end defun
 
 @defun semantic-token-variable-modifiers token
-Retrieve extra modifiers for the variable @var{TOKEN}.
+Retrieve extra non-type modifiers for the variable @var{TOKEN}.
 @end defun
 
 @defun semantic-token-include-system token
