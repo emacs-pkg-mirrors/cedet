@@ -1,7 +1,7 @@
 ;;; Sformat --- souped up format
 ;;
 ;; Author: Eric Ludlam (zappo@gnu.org)
-;; Version: 1.3
+;; Version: 1.4
 ;; Keywords: extensions
 ;;
 ;; Copyright (C) 1994, 1996, 1998, 1999, 2000 Free Software Foundation
@@ -36,12 +36,15 @@
 ;; Sformat fills that need making the creation of such functions
 ;; quite simple.
 
+;;; v 1.3
+;; If no args are passed, then don't attempt to post-format the string.
+
 ;;; v 1.2
 ;; Sformat has been sped up by using string commands (string-match,
 ;; and substring) to quickly scan over plain text, and then a slower
 ;; character by character scan to handle tokens.
 
-;;; $Id: sformat.el,v 1.1 2000/05/01 21:29:23 zappo Exp $
+;;; $Id: sformat.el,v 1.2 2000/05/04 02:46:42 zappo Exp $
 ;;
 ;; History
 ;;
@@ -111,7 +114,7 @@ Viable formats would be:
    %10.2v %10:2v - 10 chars, pad right for first 2 words
    %03v          - at least 3 chars, padded w/ zeros at beginning
 
-   where v is some format character.  Note that . and : are interchangeable
+   where v is some format character.  Note that .  and : are interchangeable
 
       (Sformat extensions fmt &rest args)"
 
@@ -152,7 +155,7 @@ Viable formats would be:
 	  (cond
 	   ((or (= tc ?.) (= tc ?:))	;. such as %1.2F
 	    (if dot
-		(error "Too many . or : in %% formatter!")
+		(error "Too many .  or : in %% formatter!")
 	      (setq dot t)))
 	   ((= tc ?-)			;- such as %-1F
 	    (if dot
@@ -231,7 +234,7 @@ Viable formats would be:
 	)
       (setq fmt (substring fmt cnt))
       )
-    (eval (cons 'format (cons newstr args)))
+    (if args (funcall 'format newstr args) newstr)
     ))
 
 (defun Sformat-default-format-method (str A1 A2 A1def A2def)
