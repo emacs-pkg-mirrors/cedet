@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.24 2001/04/25 18:03:41 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.25 2001/04/26 01:43:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -348,7 +348,7 @@ Sets up the semanticdb environment."
 If there is a semantic cache, slurp out the overlays, an store
 it in our database.  If that buffer has not cache, ignore it, we'll
 handle it later if need be."
-  (if (and semantic-toplevel-bovine-table
+  (if (and (semantic-active-p)
 	   semantic-toplevel-bovine-cache
 	   semanticdb-current-table)
       (progn
