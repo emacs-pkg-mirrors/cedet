@@ -4,7 +4,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-comp.el,v 1.10 2001/02/17 19:51:29 zappo Exp $
+;; RCS: $Id: eieio-comp.el,v 1.11 2001/05/31 00:18:28 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -120,7 +120,7 @@ that is called but rarely.  Argument FORM is the body of the method."
 Lets do it right on both platforms
 Argument CODE is the code to output.
 Argument OUTBUFFER is the buffer to dump the created code to."
-  (if (eval-when-compile (not (string-match "XEmacs" emacs-version)))
+  (if (eval-when-compile (not (featurep 'xemacs)))
       ;; FSF emacs
       (prin1 code outbuffer)
     ;; XEmacs
