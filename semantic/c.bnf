@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.39 2001/08/17 21:02:13 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.40 2001/08/18 04:06:50 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.40  2001/08/18 04:06:50  zappo
+# Fixed the inclusion of * in variables and functions.
+#
 # Revision 1.39  2001/08/17 21:02:13  zappo
 # Added register.
 # Added template w/ comment, but don't use it.
@@ -375,7 +378,7 @@ typesimple : struct-or-class opt-name opt-class-parents classparts
 	     ( ,$2 type $1 $3 nil nil nil )
 	   | ENUM opt-name enumparts
 	     ( ,$2 type $1 $3 nil nil nil )	
-           | TYPEDEF typeform symbol
+           | TYPEDEF typeformbase opt-stars symbol
 	     ( $3 type $1 nil $2 nil nil )
            ;
 
@@ -414,11 +417,6 @@ DECLMOD : EXTERN
 	| REGISTER
 	;
 
-# Don't deal with the stars or reference just yet.
-typeform : typeformbase opt-stars opt-ref
-	   ( ,$1 )
-	 ;
-
 # C++: A type can be modified into a reference by "&"
 opt-ref : AMPERSAND
 	| EMPTY
@@ -447,22 +445,22 @@ builtintype : VOID
 	    | DOUBLE
 	    ;
 
-var-or-fun : declmods typeform var-or-func-decl
-	     ( ,(semantic-c-reconstitute-token ,$3 $1 $2 ) )
+var-or-fun : declmods typeformbase opt-ref var-or-func-decl
+	     ( ,(semantic-c-reconstitute-token ,$4 $1 $2 ) )
 	   # it is possible for a function to not have a type, and
 	   # it is then assumed to be an int.  How annoying.
 	   | declmods var-or-func-decl
 	     ( ,(semantic-c-reconstitute-token ,$2 $1 nil ) )
 	   ;
 
-var-or-func-decl : opt-class opt-destructor functionname arg-list 
+var-or-func-decl : opt-stars opt-class opt-destructor functionname arg-list 
 		   opt-reentrant opt-throw
 		   fun-or-proto-end
-		   ( ,$3 'function 
+		   ( ,$4 'function 
 			 ;; Extra stuff goes in here.
 			 ;; Continue with the stuff we found in
 			 ;; this definition
-			$1 $2 $4 $6 $5)
+			$2 $3 $5 $7 $6 ,$1)
 		 | varnamelist  SEMICOLON
 		   ( $1 'variable )
 		 ;
@@ -514,10 +512,12 @@ varname : opt-stars opt-restrict symbol opt-bits opt-array opt-assign
 	;
 
 # I should store more in this def, but leave it simple for now.
-variablearg : declmods typeform varname
-	      ( (car $3) variable $2 nil
+variablearg : declmods typeformbase opt-stars opt-ref varname
+	      ( (car $5) variable $2 nil
 		 (ASSOC const (if (member "const" $1) t nil)
-			typemodifiers (delete "const" $1))
+			typemodifiers (delete "const" $1)
+			pointer (car ,$3)
+			)
 		 nil
 		 )
 	    ;
