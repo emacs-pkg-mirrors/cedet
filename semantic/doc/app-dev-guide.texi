@@ -25,7 +25,7 @@
 @copying
 This manual documents Application Development with Semantic.
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -104,6 +104,7 @@ developer needs to know to perform all of the tasks just listed.
 * Semantic Tags::               
 * Searching Tag Tables::        Searching tag tables.
 * Tags at Point::               Finding tags at point.
+* Tag Decoration::              Decorating tags
 * Tag Sorting::                 Reorganizing streams.
 * Tag Completion::              Completing read functions.
 * Override Methods::            Language dependent functions covering
@@ -455,6 +456,181 @@ Return the current tags parent in the current buffer.
 containing a field.  Return @code{nil} if there is no parent.
 
 @obsolete{semantic-current-nonterminal-parent,semantic-current-tag-parent}
+@end defun
+
+@node Tag Decoration
+@chapter Tag Decoration
+
+Tags can be decorated in different ways.  One way a user can control
+it is through @code{semantic-decoration-mode}.
+@inforef{semantic-user,,Tag Decoration Mode}
+
+Applications can use the same routines to decorate tags as well.
+
+@menu
+* Tag Highlighting::            Highlighting a tag
+* Tag Visible Properties::      Invisible, intangible and read only
+* Tag Secondary Overlays::      Decorating parts of a tag text
+* Tag Folding::                 Visibly Folding up tags
+@end menu
+
+@node Tag Highlighting
+@section Highlighting
+
+@defun semantic-highlight-tag tag &optional face
+@anchor{semantic-highlight-tag}
+Specify that @var{tag} should be highlighted.
+Optional @var{face} specifies the face to use.
+@obsolete{semantic-highlight-token,semantic-highlight-tag}
+@end defun
+
+@defun semantic-unhighlight-tag tag
+@anchor{semantic-unhighlight-tag}
+Unhighlight @var{tag}, restoring it's previous face.
+@obsolete{semantic-unhighlight-token,semantic-unhighlight-tag}
+@end defun
+
+@defun semantic-momentary-highlight-tag tag &optional face
+@anchor{semantic-momentary-highlight-tag}
+Highlight @var{tag}, removing highlighting when the user hits a key.
+Optional argument @var{face} is the face to use for highlighting.
+If @var{face} is not specified, then @code{highlight} will be used.
+@obsolete{semantic-momentary-highlight-token,semantic-momentary-highlight-tag}
+@end defun
+
+The highlighting routines do their work by changing the face property
+of the tag overlay.  The raw routine is:
+
+@defun semantic-set-tag-face tag face
+@anchor{semantic-set-tag-face}
+Specify that @var{tag} should use @var{face} for display.
+@obsolete{semantic-set-token-face,semantic-set-tag-face}
+@end defun
+
+@node Tag Visible Properties
+@section Changing a tag's visible properties
+
+You can give a tag other properties as well, such as making it
+invisible or intangible.  You can control how code is edited
+programatically through these routines.
+
+@defun semantic-set-tag-invisible tag &optional visible
+@anchor{semantic-set-tag-invisible}
+Enable the text in @var{tag} to be made invisible.
+If @var{visible} is non-@code{nil}, make the text visible.
+@obsolete{semantic-set-token-invisible,semantic-set-tag-invisible}
+@end defun
+
+@defun semantic-tag-invisible-p tag
+@anchor{semantic-tag-invisible-p}
+Return non-@code{nil} if @var{tag} is invisible.
+@obsolete{semantic-token-invisible-p,semantic-tag-invisible-p}
+@end defun
+
+@defun semantic-set-tag-intangible tag &optional tangible
+@anchor{semantic-set-tag-intangible}
+Enable the text in @var{tag} to be made intangible.
+If @var{tangible} is non-@code{nil}, make the text visible.
+This function does not have meaning in XEmacs because it seems that
+the extent 'intangible' property does not exist.
+@obsolete{semantic-set-token-intangible,semantic-set-tag-intangible}
+@end defun
+
+@defun semantic-tag-intangible-p tag
+@anchor{semantic-tag-intangible-p}
+Return non-@code{nil} if @var{tag} is intangible.
+This function does not have meaning in XEmacs because it seems that
+the extent 'intangible' property does not exist.
+@obsolete{semantic-token-intangible-p,semantic-tag-intangible-p}
+@end defun
+
+@defun semantic-set-tag-read-only tag &optional writable
+@anchor{semantic-set-tag-read-only}
+Enable the text in @var{tag} to be made read-only.
+Optional argument @var{writable} should be non-@code{nil} to make the text writable
+instead of read-only.
+@obsolete{semantic-set-token-read-only,semantic-set-tag-read-only}
+@end defun
+
+@defun semantic-tag-read-only-p tag
+@anchor{semantic-tag-read-only-p}
+Return non-@code{nil} if the current @var{tag} is marked read only.
+@obsolete{semantic-token-read-only-p,semantic-tag-read-only-p}
+@end defun
+
+@node Tag Secondary Overlays
+@section Secondary Overlays
+
+Each tag which is being visited in a buffer has one overlay.  This
+overlay is used to track where the tag is while a user is editing, and
+can also be used for fast tag identification, and some simple
+decoration techniques.
+
+A secondary overlay associates a new overlay object with a tag which
+does not cover the entire body of a tag.  You can then put visible
+features on that overlay to decorate portions of a tag.  This is how
+tag boundaries are drawn.
+
+@subsection Creation and Deletion
+
+@defun semantic-tag-create-secondary-overlay tag &optional link-hook
+@anchor{semantic-tag-create-secondary-overlay}
+Create a secondary overlay for @var{tag}.
+Returns an overlay.  The overlay is also saved in @var{tag}.
+@var{link-hook} is a function called whenever @var{tag} is to be linked into
+a buffer.  It should take @var{tag} and @var{overlay} as arguments.
+The @var{link-hook} should be used to position and set properties on the
+generated secondary overlay.
+@end defun
+
+@defun semantic-tag-delete-secondary-overlay tag overlay-or-property
+@anchor{semantic-tag-delete-secondary-overlay}
+Delete from @var{tag} the secondary overlay @var{overlay-or-property}.
+If @var{overlay-or-property} is an overlay, delete that overlay.
+If @var{overlay-or-property} is a symbol, find the overlay with that property.
+@end defun
+
+@subsection Queries
+
+@defun semantic-tag-get-secondary-overlay tag property
+@anchor{semantic-tag-get-secondary-overlay}
+Return secondary overlays from @var{tag} with @var{property}.
+@var{property} is a symbol and all overlays with that symbol are returned..
+@end defun
+
+@defun semantic-tag-secondary-overlays tag
+@anchor{semantic-tag-secondary-overlays}
+Return a list of secondary overlays active on @var{tag}.
+@end defun
+
+@subsection Linking and Unlinking
+
+When a tag's file is put in a buffer, that tag is ``linked'' into the
+buffer.  When the buffer is deleted, the tag is ``unlinked''.  This
+process adds and removes the default overlay on the tag.  Secondary
+overlays use @code{semantic-tag-add-hook} and
+@code{semantic-tag-remove-hook} too apply link and unlink hooks.
+
+This allows the secondary overlays to be automatically removed or
+added by the seconary overlay system whenever a tag's file goes in or
+out of a buffer.
+
+@node Tag Folding
+@section Folding
+
+Using secondary overlays, a set of tag folding routines are made
+available.  These routines are similar to the tag visible properties.
+
+@defun semantic-set-tag-folded tag &optional folded
+@anchor{semantic-set-tag-folded}
+Fold @var{tag}, such that only the first line of text is shown.
+Optional argument @var{folded} should be non-@code{nil} to fold the tag.
+@code{nil} implies the tag should be fully shown.
+@end defun
+
+@defun semantic-tag-folded-p tag
+@anchor{semantic-tag-folded-p}
+Non-@code{nil} if @var{tag} is currently folded.
 @end defun
 
 @node Tag Sorting
@@ -1293,11 +1469,11 @@ If file does not have tags available, then load the file, and create them.
 @node Semanticdb Tag Queries
 @section Semanticdb Tag Queries
 
-You can search for tokens in the database using the following
-functions.  It is important to note that database search functions do
-not return a plain list of tokens.  This is because some tokens may
-not be loaded in a buffer, which means that the found token would not
-have an overlay, and no way to determine where it came from.
+You can search for tags in the semantic database using the
+semanticdb-find API.  It is important to note that database search
+functions do not return a plain list of tags.  This is because some
+tags may not be loaded in a buffer, which means that the found tag
+would not have an overlay, and no way to determine where it came from.
 
 As such, all search functions return a special Database Results list.
 
@@ -1316,50 +1492,14 @@ included, imported, or otherwise indicated in the source file
 itself.  While not always true for interpreted languages (such as
 Emacs Lisp), it is common among declaritive languages.
 
-Sometimes a brute force aproach is needed, scanning every file
+Sometimes a brute force approach is needed, scanning every file
 available to the database.  You may want to do this if your
-application is collecting some large database unrelated to a file
-currently being worked on.
-
-As such, you can determine the full path of all files to search using
-the following override method:
-
-@defun semanticdb-find-translate-path path brutish
-Translate @var{PATH} into a list of semantic tables.
-Path translation involves identifying the @var{PATH} input argument
-in one of the following ways:
- @code{nil} - Take the current buffer, and use it's include list
- buffer - Use that buffer's include list.
- filename - Use that file's include list.  If the file is not
-     in a buffer, see of there is a semanticdb table for it.  If
-     not, read that file into a buffer.
- tag - Get that tag's buffer of file file.  See above.
- table - Search that table, and it's include list.
-In addition, once the base path is found, there is the possibility of
-each added table adding yet more tables to the path, so this routine
-can return a lengthy list.
-If argument @var{BRUTISH} is non-@code{nil}, then instead of using the include
-list, use all tables found in the parent project of the table
-identified by translating @var{PATH}.  Such searches use brute force to
-scan every available table.
-This routine uses @dfn{semanticdb-find-table-for-include} to translate
-specific include tags into a semanticdb table.
-This function can be overriden in semantic using the
-symbol @dfn{semanticdb-find-translate-path}.
-@end defun
-
-@defun semanticdb-find-table-for-include includetag &optional table
-For a single @var{INCLUDETAG} found in @var{TABLE}, find a @dfn{semanticdb-table} object
-@var{INCLUDETAG} is a semantic @var{TAG} of class 'include.
-@var{TABLE} as defined by @dfn{semantic-something-to-tag-table} to identify
-where the tag came from.  @var{TABLE} is optional if @var{INCLUDETAG} has an
-overlay of @code{:filename} attribute.
-This function can be overriden in semantic using the
-symbol @dfn{semanticdb-find-table-for-include}.
-@end defun
+application is collecting data unrelated to a file currently being
+worked on.
 
 @menu
 * DB Results::                  Accessing the results of a search.
+* DB Search Paths::             The list of tables to search.
 * DB Basic Name Search::        Searches based on name.
 * DB Basic Brute Search::       Searches on common tag attributes.
 * DB Advanced Search::          Complex searches on associations
@@ -1373,7 +1513,7 @@ The successful results of a search returns a special list of the
 following form:
 
 @example
-   ( (DATABASE TOKEN1 TOKEN2 ...) (DATABASE2 TOKEN3 TOKEN4 ...) ...)
+   ( (DATABASE TAG1 TAG2 ...) (DATABASE2 TAG3 TAG4 ...) ...)
 @end example
 
 It should not be necessary to access the results in this way,
@@ -1433,6 +1573,103 @@ Like @dfn{semanticdb-find-result-nth}, except that only the @var{TAG}
 is returned, and the buffer it is found it will be made current.
 If the result tag has no position information, the originating buffer
 is still made current.
+@end defun
+
+@node DB Search Paths
+@subsection DB Search Paths
+
+For searches based on an include path (non-brutish) a path of tables
+needs to be generated.  Searching a lot of tables is slow, which is
+why a brutish search is not always recommended.  An include-based
+approach can also generate a lot of tables, so you can control how
+detailed a search is with a throttle variable.
+
+Ideally, each language mode will have a mode-specific value for
+this throttle value.  A user can also specify their own values if the
+default is not good enough.
+
+@defvar semanticdb-find-default-throttle
+@anchor{semanticdb-find-default-throttle}
+The default throttle for @code{semanticdb-find} routines.
+The throttle controls how detailed the list of database
+tables is for a symbol lookup.  The value is a list with
+the following keys:
+
+@table @code
+@item file
+The file the search is being performed from.  This option is here for
+completeness only, and is assumed to always be on.
+@item local
+Tables from the same local directory are included.  This includes
+files directly referenced by a file name which might be in a different
+directory.
+@item project
+Tables from the same local project are included If @code{project} is
+specified, then @code{local} is assumed.
+@item unloaded
+If a table is not in memory, load it.  If it is not cached on disk
+either, get the source, parse it, and create the table.
+@item system
+Tables from system databases.  These are specifically tables
+from system header files, or language equivalent.
+@item recursive
+For include based searches, includes tables referenced by included
+files.
+@item omniscience
+Included system databases which are omniscience, or somehow know
+everything.  Omniscience databases are found in
+@code{semanticdb-project-system-databases}.  The Emacs Lisp system
+@var{db} is an omniscience database.
+@end table
+
+@end defvar
+
+
+
+You can use the command @code{semanticdb-find-test-translate-path} to
+interactively test out how the path translator is working.  The path
+translation routines are:
+
+@defun semanticdb-find-translate-path path brutish
+@anchor{semanticdb-find-translate-path}
+Translate @var{path} into a list of semantic tables.
+Path translation involves identifying the @var{path} input argument
+in one of the following ways:
+  @code{nil} - Take the current buffer, and use it's include list
+  buffer - Use that buffer's include list.
+  filename - Use that file's include list.  If the file is not
+      in a buffer, see of there is a semanticdb table for it.  If
+      not, read that file into a buffer.
+  tag - Get that tag's buffer of file file.  See above.
+  table - Search that table, and it's include list.
+  find result - Search the results of a previous find.
+
+In addition, once the base path is found, there is the possibility of
+each added table adding yet more tables to the path, so this routine
+can return a lengthy list.
+
+If argument @var{brutish} is non-@code{nil}, then instead of using the include
+list, use all tables found in the parent project of the table
+identified by translating @var{path}.  Such searches use brute force to
+scan every available table.
+
+The return value is a list of objects of type @dfn{semanticdb-table} or
+it's children.  In the case of passing in a find result, the result
+is returned unchanged.
+
+This routine uses @dfn{semanticdb-find-table-for-include} to translate
+specific include tags into a semanticdb table.
+This function can be overloaded (see @dfn{define-mode-local-override} for details).
+@end defun
+
+@defun semanticdb-find-table-for-include includetag &optional table
+@anchor{semanticdb-find-table-for-include}
+For a single @var{includetag} found in @var{table}, find a @dfn{semanticdb-table} object
+@var{includetag} is a semantic @var{tag} of class @code{'include}.
+@var{table} as defined by @dfn{semantic-something-to-tag-table} to identify
+where the tag came from.  @var{table} is optional if @var{includetag} has an
+overlay of @code{:filename} attribute.
+This function can be overloaded (see @dfn{define-mode-local-override} for details).
 @end defun
 
 @node DB Basic Name Search
