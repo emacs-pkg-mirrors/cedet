@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.4 1999/02/03 18:24:54 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.5 1999/02/26 02:50:01 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -36,7 +36,16 @@
 
 ;;; Class Definitions:
 (defclass ede-proj-target (ede-target)
-  ((dirty :initform nil
+  ((rules :initarg :rules
+	  :initform nil
+	  :custom (repeat (object :objecttype ede-makefile-rule))
+	  :documentation "Arbitrary rules needed to make this target.")
+   (auxsource :initarg :auxsource
+	      :custom (repeat (string :tag "File"))
+	      :documentation "Auxilliary source files included in this target.
+Each of these is considered equivalent to a source file, but it is not
+distributed, and each should have a corresponding rule to build it.")
+   (dirty :initform nil
 	  :documentation "Non-nil when generated files needs updating.")
    )
   "Abstract class for ede-proj targets.")
@@ -52,7 +61,7 @@
 (defclass ede-proj-target-makefile-objectcode (ede-proj-target-makefile)
   ((ldflags :initarg :ldflags
 	    :initform nil
-	    :custom (repeat (string :tag "Flag: "))
+	    :custom (repeat (string :tag "Flag"))
 	    :documentation "Additional flags to pass to the linker.")
    )
   "Abstract class for Makefile based object code generating targets.
@@ -61,8 +70,13 @@ file.")
 
 (defclass ede-proj-target-makefile-program
   (ede-proj-target-makefile-objectcode)
-  ()
-  "This target is an executable program.")
+  ((ldlibs :initarg :ldlibs
+	   :initform nil
+	   :custom (repeat (string :tag "Library"))
+	   :documentation
+	   "Libraries, such as \"m\" or \"Xt\" which this program dependso on."
+	   ))
+   "This target is an executable program.")
 
 (defclass ede-proj-target-makefile-archive
   (ede-proj-target-makefile-objectcode)
@@ -94,16 +108,51 @@ A lisp target may be one general program with many separate lisp files in it.")
     )
   "Alist of names to class types for available project target classes.")
 
+(defclass ede-makefile-rule ()
+  ((target :initarg :target
+	   :initform ""
+	   :custom string
+	   :documentation "The target pattern.")
+   (dependencies :initarg :dependencies
+		 :initform ""
+		 :custom string
+		 :documentation "Dependencies on this target.")
+   (rules :initarg :rules
+	  :initform nil
+	  :custom (repeat string)
+	  :documentation "Scripts to execute.")
+   (phony :initarg :phony
+	  :initform nil
+	  :custom boolean
+	  :documentation "Is this a phony rule?"))
+  "A single rule for building some target.")
+
+(defclass ede-makefile-inference-rule (ede-makefile-rule)
+  nil
+  "A single inference rule.")
+
 (defclass ede-proj-project (ede-project)
   ((makefile-type :initarg :makefile-type
 		  :initform 'Makefile
 		  :custom (choice (const Makefile)
-				  (const Makefile.in)
-				  (const Makefile.am))
+				  ;(const Makefile.in)
+				  (const Makefile.am)
+				  ;(const cook)
+				  )
 		  :documentation "The type of Makefile to generate.
 Can be one of 'Makefile, 'Makefile.in, or 'Makefile.am.
 If this value is NOT 'Makefile, then that overrides the :makefile slot
 in targets.")
+   (variables :initarg :variables
+	      :initform nil
+	      :custom (repeat (cons (string :tag "Name")
+				    (string :tag "Value")))
+	      :documentation "Variables to set in this Makefile.")
+   (inference-rules :initarg :inference-rules
+		    :initform nil
+		    :custom (repeat 
+			     (object :objecttype ede-makefile-inference-rule))
+		    :documentation "Inference rules to add to the makefile.")
    )
   "The EDE-PROJ project definition class.")
 
@@ -122,7 +171,7 @@ in targets.")
 	    (if (not (eq (car ret) 'ede-proj-project))
 		(error "Corrupt project file"))
 	    (setq ret (eval ret))
-	    (oset ret :file (concat project "Project.ede")))
+	    (oset ret file (concat project "Project.ede")))
 	(kill-buffer " *tmp proj read*"))
       ret)))
 
@@ -131,17 +180,17 @@ in targets.")
   (save-excursion
     (if (not project) (setq project (ede-current-project)))
     (let ((b (set-buffer (get-buffer-create " *tmp proj write*")))
-	  (cfn (oref project :file)))
+	  (cfn (oref project file)))
       (unwind-protect
 	  (save-excursion
 	    (erase-buffer)
 	    (let ((standard-output (current-buffer)))
-	      (oset project :file (file-name-nondirectory cfn))
+	      (oset project file (file-name-nondirectory cfn))
 	      (object-write project ";; EDE project file."))
-	    (write-file (oref project :file) nil)
+	    (write-file (oref project file) nil)
 	    )
 	;; Restore the :file on exit.
-	(oset project :file cfn)
+	(oset project file cfn)
 	(kill-buffer b)))))
 
 (defmethod eieio-done-customizing ((proj ede-proj-project))
@@ -149,8 +198,9 @@ in targets.")
   (ede-proj-save proj))
 
 (defmethod eieio-done-customizing ((proj ede-proj-target))
-  "Call this when a user finishes customizing this object."
-  (eieio-done-customizing (ede-target-parent)))
+  "Call this when a user finishes customizing this object.
+Argument PROJ is the project we are completing customization on."
+  (eieio-done-customizing (ede-target-parent proj)))
 
 (defmethod ede-commit-project ((proj ede-proj-project))
   "Commit any change to PROJ to its file."
@@ -161,18 +211,18 @@ in targets.")
   (or ede-object
       (if (ede-buffer-mine proj buffer)
 	  proj
-	(let ((targets (oref proj :targets))
+	(let ((targets (oref proj targets))
 	      (f nil))
 	  (while (and targets (not f))
 	    (if (member (ede-convert-path proj (buffer-file-name buffer))
-			(oref (car targets) :source))
+			(oref (car targets) source))
 		(setq f (car targets)))
 	    (setq targets (cdr targets)))
 	  f))))
 
 (defmethod ede-buffer-mine ((this ede-proj-project) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
-  (string= (oref this :file)
+  (string= (oref this file)
 	   (ede-convert-path this (buffer-file-name buffer))))
 
 ;;; EDE command functions
@@ -194,18 +244,18 @@ in targets.")
     ;; If we added it, set the local buffer's object.
     (if src (setq ede-obj ot))
     ;; Add it to the project object
-    (oset this :targets (cons ot (oref this :targets)))
+    (oset this targets (cons ot (oref this targets)))
     ;; And save
     (ede-proj-save this)))
 
 (defmethod project-delete-target ((this ede-proj-target))
   "Delete the current target THIS from it's parent project."
   (let ((p (ede-current-project))
-	(ts (oref this :source)))
+	(ts (oref this source)))
     ;; Loop across all sources.  If it exists in a buffer,
     ;; clear it's object.
     (while ts
-      (let* ((default-directory (oref this :path))
+      (let* ((default-directory (oref this path))
 	     (b (get-file-buffer (car ts))))
 	(if b
 	    (save-excursion
@@ -215,21 +265,21 @@ in targets.")
       (setq ts (cdr ts)))
     ;; Remove THIS from it's parent.
     ;; The two vectors should be pointer equivalent.
-    (oset p :targets (delq this (oref p :targets)))))
+    (oset p targets (delq this (oref p targets)))))
 
 (defmethod project-add-file ((this ede-proj-target) file)
   "Add to target THIS the current buffer represented as FILE."
   (setq file (file-name-nondirectory file))
   (if (not (member file (oref this source)))
-      (oset this :source (append (oref this source) (list file))))
+      (oset this source (append (oref this source) (list file))))
   (ede-proj-save (ede-current-project)))
 
 (defmethod project-remove-file ((target ede-proj-target) file)
   "For TARGET, remove FILE.
 FILE must be massaged by `ede-convert-path'."
   ;; Speedy delete should be safe.
-  (oset target :source (delete (file-name-nondirectory file)
-			       (oref target :source)))
+  (oset target source (delete (file-name-nondirectory file)
+			       (oref target source)))
   (ede-proj-save))
 
 (defmethod project-make-dist ((this ede-proj-project))
@@ -243,8 +293,8 @@ FILE must be massaged by `ede-convert-path'."
 (defmethod project-compile-project ((proj ede-proj-project) &optional command)
   "Compile the entire current project PROJ.
 Argument COMMAND is the command to use when compiling."
-  (let ((pm (ede-proj-dist-makefile this)))
-    (ede-proj-makefile-create-maybe this pm)
+  (let ((pm (ede-proj-dist-makefile proj)))
+    (ede-proj-makefile-create-maybe proj pm)
     (compile (concat "make -f " pm " all"))))
 
 ;;; Target type specific compilations/debug
@@ -261,19 +311,37 @@ Argument COMMAND is the command to use for compiling the target."
 	      (if (or (not (file-exists-p elc))
 		      (file-newer-than-file-p src elc))
 		  (byte-compile-file src))))
-	  (oref obj :source)))
+	  (oref obj source)))
 
 (defmethod project-compile-target ((obj ede-proj-target-makefile)
 				   &optional command)
   "Compile the current target program OBJ.
 Optional argument COMMAND is the s the alternate command to use."
   (ede-proj-makefile-create-maybe (ede-current-project)
-				  (oref obj :makefile))
-  (compile (concat "make -f " (oref obj :makefile) " " (ede-name obj))))
+				  (oref obj makefile))
+  (compile (concat "make -f " (oref obj makefile) " " (ede-name obj))))
 
 (defmethod project-debug-target ((obj ede-proj-target))
   "Run the current project target OBJ in a debugger."
   (error "Debug-target not supported by %s" (object-name obj)))
+
+(defmethod project-debug-target ((obj ede-proj-target-makefile-program))
+  "Debug a program target OBJ."
+  (let ((tb (get-buffer-create " *padt*"))
+	(dd (if (not (string= (oref obj path) ""))
+		(oref obj path)
+	      default-directory))
+	(cmd nil))
+    (unwind-protect
+	(progn
+	  (set-buffer tb)
+	  (setq default-directory dd)
+	  (setq cmd (read-from-minibuffer
+		     "Run (like this): "
+		     (concat (symbol-name ede-debug-program-function)
+			     " " (ede-target-name obj))))
+	  (funcall ede-debug-program-function cmd))
+      (kill-buffer tb))))
 
 
 ;;; Target type specific autogenerating gobbldegook.
@@ -300,7 +368,7 @@ Optional argument COMMAND is the s the alternate command to use."
 	 "Makefile.am")
 	((eq (oref this makefile-type) 'Makefile.in)
 	 "Makefile.in")
-	((object-assoc "Makefile" :makefile (oref this :targets))
+	((object-assoc "Makefile" 'makefile (oref this targets))
 	 (setq mfilename "Makefile"))
 	(t
 	 (with-slots (targets) this
@@ -309,136 +377,15 @@ Optional argument COMMAND is the s the alternate command to use."
 					    'ede-proj-target-makefile)))
 	     (setq targets (cdr targets)))
 	   (setq mfilename
-		 (if targets (oref (car targets) :makefile)
+		 (if targets (oref (car targets) makefile)
 		   "Makefile"))))))
 
 (defmethod ede-proj-makefile-create-maybe ((this ede-proj-project) mfilename)
   "Create a Makefile for all Makefile targets in THIS if needed.
 MFILENAME is the makefile to generate."
   ;; For now, pass through until dirty is implemented.
+  (require 'ede-pmake)
   (ede-proj-makefile-create this mfilename))
-
-(defmethod ede-proj-makefile-create ((this ede-proj-project) mfilename)
-  "Create a Makefile for all Makefile targets in THIS.
-MFILENAME is the makefile to generate."
-  (let ((mt nil) tmp
-	(isdist (string= mfilename (ede-proj-dist-makefile this))))
-    ;; Collect the targets that belong in a makefile.
-    (with-slots (targets) this
-      (while targets
-	(if (and (obj-of-class-p (car targets) 'ede-proj-target-makefile)
-		 (string= (oref (car targets) :makefile) mfilename))
-	    (setq mt (cons (car targets) mt)))
-	(setq targets (cdr targets))))
-    (save-excursion
-      (set-buffer (find-file-noselect mfilename))
-      (erase-buffer)
-      (insert
-       "# Automatically Generated " (file-name-nondirectory mfilename)
-       " by EDE.\n"
-       "# For use with: "
-       (with-slots (makefile-type) this
-	 (cond ((eq makefile-type 'Makefile) "make")
-	       ((eq makefile-type 'Makefile.in) "autoconf")
-	       ((eq makefile-type 'Makefile.am) "automake")
-	       (t (error ":makefile-type in project invalid"))))
-       "\n#\n"
-       "# DO NOT MODIFY THIS FILE UNLESS YOU DO NOT PLAN ON USING EDE FOR\n"
-       "# FUTURE DEVELOPMENT.  EDE is the Emacs Development Environment.\n"
-       "# \n")
-      (cond
-       ((eq (oref this makefile-type) 'Makefile)
-	(insert "DISTDIR=" (oref this name) "-" (oref this version) "\n")
-	(if isdist
-	    (setq tmp (oref this targets))
-	  (setq tmp mt))
-	(while tmp
-	  (ede-proj-makefile-insert-variables (car tmp))
-	  (setq tmp (cdr tmp)))
-	(setq tmp mt)
-	(while tmp
-	  (ede-proj-makefile-insert-inference (car tmp))
-	  (setq tmp (cdr tmp)))
-	(setq tmp mt)
-	(insert "\n\nall:")
-	(while tmp (insert " " (oref (car tmp) name))
-	       (setq tmp (cdr tmp)))
-	(insert "\n\n")
-	(setq tmp mt)
-	(while tmp
-	  (ede-proj-makefile-insert-rules (car tmp))
-	  (setq tmp (cdr tmp)))
-	(if isdist
-	    (progn
-	      ;; Build DIST, TAG, and other rules here.
-	      (insert "\ndist:\n")
-	      (insert "\trm -rf $(DISTDIR)\n")
-	      (insert "\tmkdir $(DISTDIR)\n")
-	      (setq tmp (oref this targets))
-	      (insert "\tcp")
-	      (while tmp (insert " $(" (ede-proj-makefile-sourcevar (car tmp))
-				 ")")
-		     (setq tmp (cdr tmp)))
-	      (insert " $(DISTDIR)\n")
-	      (insert "\ttar -cvzf $(DISTDIR).tar.gz $(DISTDIR)\n\n")
-	      (insert "\n\n# End of Makefile\n"))))
-       ((eq (oref this makefile-type) 'Makefile.in)
-	)
-       ((eq (oref this makefile-type 'Makefile.am))
-	)
-       (t (error "Unknown makefile type when generating Makefile")))
-      (save-buffer))))
-
-(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target))
-  "Return the variable name for THIS's sources."
-  (concat (oref this :name) "_AUX"))
-
-(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-objectcode))
-  "Return the variable name for THIS's sources."
-  (concat (oref this :name) "_SOURCE"))
-
-(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-info))
-  "Return the variable name for THIS's sources."
-  (concat (oref this :name) "_INFOS"))
-
-(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-lisp))
-  "Return the variable name for THIS's sources."
-  (cond ((ede-proj-automake-p)
-	 "lisp_LISP")
-	(t (concat (oref this :name) "_LISP"))))
-
-(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target))
-  "Insert variables needed by target THIS."
-  (insert (ede-proj-makefile-sourcevar this) "="
-	  (mapconcat (lambda (a) a) (oref this :source) " ")
-	  "\n"))
-
-(defmethod ede-proj-makefile-insert-variables
-  ((this ede-proj-target-makefile-objectcode))
-  "Insert variables needed by target THIS."
-  (call-next-method)
-  (insert (ede-name this) "_OBJ="
-	  (mapconcat (lambda (a)
-		       (concat (file-name-sans-extension a) ".o"))
-		     (oref this :source) " ")
-	  "\n"))
-
-(defmethod ede-proj-makefile-insert-inference ((this ede-proj-target))
-  "Insert inference rules needed by THIS target." nil)
-
-(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target))
-  "Insert inference rules needed by THIS target." nil)
-
-(defmethod ede-proj-makefile-insert-rules
-  ((this ede-proj-target-makefile-objectcode))
-  "Insert inference rules needed by THIS target."
-  (insert (ede-name this) ": $(" (ede-name this) "_OBJ)\n"
-	  ;; Compile line
-	  "\t$(CC) -o $@ $(" (ede-name this) "_OBJ)"
-	  ;; Extra link flags
-	  " $(LDFLAGS)"
-	  "\n\n"))
-
 
 ;;; Lower level overloads
 ;;  
@@ -457,19 +404,19 @@ MFILENAME is the makefile to generate."
 	(setq fields (cdr fields)))
       (while l
 	(let ((field (car l)) (val (car (cdr l))))
-	  (cond ((eq field :targets)
-		 (let ((targets (oref this :targets))
+	  (cond ((eq field targets)
+		 (let ((targets (oref this targets))
 		       (newtarg nil))
 		   (setq val (cdr val)) ;; skip the `list'
 		   (while val
 		     (let ((o (object-assoc (car (cdr (car val))) ; name
-					    :name targets)))
+					    'name targets)))
 		       (if o
 			   (project-rescan o (car val))
 			 (setq o (eval (car val))))
 		       (setq newtarg (cons o newtarg)))
 		     (setq val (cdr val)))
-		   (oset this :targets newtarg)))
+		   (oset this targets newtarg)))
 		(t
 		 (oset-engine this field val))))
 	(setq l (cdr (cdr l))))))) ;; field/value
