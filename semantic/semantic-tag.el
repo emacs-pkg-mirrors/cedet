@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.18 2003/07/16 14:07:32 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.19 2003/09/12 14:39:39 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -670,30 +670,46 @@ DO NOT use this fcn in new code.  Use one of the above instead."
 ;; Semantic may want to provide special hooks when specific operations
 ;; are about to happen on a given tag.  These routines allow for hook
 ;; maintenance on a tag.
-(defun semantic-tag-add-hook (tag hook value &optional append)
-  "Add onto TAG a HOOK with VALUE."
-  (let ((pl (semantic--tag-get-property tag hook)))
-    (setq pl (add-to-list 'pl value append))
-    (semantic--tag-put-property tag hook pl)))
 
-(defun semantic-tag-remove-hook (tag hook value)
-  "Remove from TAG the HOOK with VALUE."
-  (let ((pl (semantic--tag-get-property tag hook)))
-    (setq pl (delete value pl))
-    (semantic--tag-put-property tag hook pl)))
+;; Internal global variable used to manage tag hooks.  For example,
+;; some implementation of `remove-hook' checks that the hook variable
+;; is `default-boundp'.
+(defvar semantic--tag-hook-value)
+
+(defun semantic-tag-add-hook (tag hook function &optional append)
+  "Onto TAG, add to the value of HOOK the function FUNCTION.
+FUNCTION is added (if necessary) at the beginning of the hook list
+unless the optional argument APPEND is non-nil, in which case
+FUNCTION is added at the end.
+HOOK should be a symbol, and FUNCTION may be any valid function.
+See also the function `add-hook'."
+  (let ((semantic--tag-hook-value (semantic--tag-get-property tag hook)))
+    (add-hook 'semantic--tag-hook-value function append)
+    (semantic--tag-put-property tag hook semantic--tag-hook-value)
+    semantic--tag-hook-value))
+
+(defun semantic-tag-remove-hook (tag hook function)
+  "Onto TAG, remove from the value of HOOK the function FUNCTION.
+HOOK should be a symbol, and FUNCTION may be any valid function.  If
+FUNCTION isn't the value of HOOK, or, if FUNCTION doesn't appear in
+the list of hooks to run in HOOK, then nothing is done.
+See also the function `remove-hook'."
+  (let ((semantic--tag-hook-value (semantic--tag-get-property tag hook)))
+    (remove-hook 'semantic--tag-hook-value function)
+    (semantic--tag-put-property tag hook semantic--tag-hook-value)
+    semantic--tag-hook-value))
 
 (defun semantic--tag-run-hooks (tag hook &rest args)
   "Run for TAG all expressions saved on the property HOOK.
 Each hook expression must take at least one argument, the TAG.
 For any given situation, additional ARGS may be passed."
-  (let ((pl (semantic--tag-get-property tag hook))
+  (let ((semantic--tag-hook-value (semantic--tag-get-property tag hook))
 	(arglist (cons tag args)))
     (condition-case err
 	;; If a hook bombs, ignore it!  Usually this is tied into
 	;; some sort of critical system.
-	(apply 'run-hook-with-args 'pl arglist)
+	(apply 'run-hook-with-args 'semantic--tag-hook-value arglist)
       (error (message "Error: %S" err)))))
-
 
 ;;; Tags and Overlays
 ;;
