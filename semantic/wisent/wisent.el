@@ -1,14 +1,12 @@
-;;; wisent.el --- GNU Bison for Emacs
+;;; wisent.el --- GNU Bison for Emacs - Runtime
 
-;; Copyright (C) 2002 David Ponce
-;; Copyright 1984, 1986, 1989, 1992, 1995, 2000, 2001
-;; Free Software Foundation, Inc. (Bison)
+;; Copyright (C) 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.26 2002/07/26 12:59:35 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.27 2003/02/19 16:34:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,6 +27,8 @@
 
 ;;; Commentary:
 ;;
+;; Parser engine and runtime of Wisent.
+;;
 ;; Wisent (the European Bison ;-) is an Elisp implementation of the
 ;; GNU Compiler Compiler Bison.  The Elisp code is a port of the C
 ;; code of GNU Bison 1.28 & 1.31.
@@ -39,7 +39,7 @@
 ;; For more details on Wisent itself read the Wisent manual.
 
 ;;; History:
-;; 
+;;
 
 ;;; Code:
 (provide 'wisent)
@@ -72,46 +72,23 @@
 
 (defconst wisent-error-tag 'error
   "Process a syntax error.")
+
+;;;; --------------
+;;;; Runtime stuff.
+;;;; --------------
 
-;; The parser generator is a big piece of code so load it only when
-;; needed.
-
-;;;### (autoloads (wisent-compile-grammar) "wisent-comp" "wisent-comp.el"
-;;;;;;  (15450 21758))
-;;; Generated autoloads from wisent-comp.el
-
-(autoload (quote wisent-compile-grammar) "wisent-comp" "\
-Compile GRAMMAR and return the tables needed by the parser.
-Optional argument START-LIST is a list of extra start symbols
-\(nonterminals).  The first nonterminal defined in the grammar is
-always the default start symbol.
-
-Return an LALR automaton of the form:
-
-\[ACTIONS GOTOS FUNCTIONS TRANSLATE STARTS]
-
-- ACTIONS a state/token matrix telling the parser what to do at every
-  state based on the current lookahead token.  That is shift, reduce,
-  accept or error.
-
-- GOTOS a state/nonterminal matrix telling the parser the next state
-  to go to after reducing with each rule.
-
-- FUNCTIONS a vector of semantic actions.  A semantic action is
-  actually an Elisp function (lambda expression).  By default these
-  functions are byte-compiled to achieve best performance of the
-  parser.
-
-- TRANSLATE an alist which maps tokens returned by lexical analysis
-  into item numbers used internally.
-
-- STARTS an alist which maps the allowed start symbols (nonterminal)
-  to tokens that will be first shifted into the parser stack." nil nil)
-
-;;;***
+(defun wisent-automaton-p (obj)
+  "Return non-nil if OBJ is a LALR automaton.
+If OBJ is a symbol check its value."
+  (and obj (symbolp obj) (boundp obj)
+       (setq obj (symbol-value obj)))
+  (and (vectorp obj) (= 4 (length obj))
+       (vectorp (aref obj 0)) (vectorp (aref obj 1))
+       (= (length (aref obj 0)) (length (aref obj 1)))
+       (listp (aref obj 2)) (vectorp (aref obj 3))))
 
 ;;;; --------------------
-;;;; The LR parser driver
+;;;; The LR parser engine
 ;;;; --------------------
 
 (defcustom wisent-parse-max-stack-size 500
@@ -178,12 +155,12 @@ The actual value of this variable is local to each semantic action.")
 (defmacro wisent-error (msg)
   "Call the user supplied error reporting function with messsage MSG."
   `(funcall wisent-parse-error-function ,msg))
-  
+
 (defmacro wisent-errok ()
   "Resume generating error messages immediately for subsequent syntax errors.
 This is useful primarily in error rules."
   '(setq wisent-recovering nil))
-  
+
 (defmacro wisent-clearin ()
   "Discard the current look-ahead token.
 This will cause a new token to be read.  This is useful primarily in
@@ -263,16 +240,6 @@ POSITIONS are available."
         (cons (apply #'min (mapcar #'car pl))
               (apply #'max (mapcar #'cdr pl))))))
 
-(defmacro wisent-translate (token translate)
-  "Return the item number of the terminal symbol TOKEN.
-TRANSLATE maps tokens to item numbers."
-  `(car (rassq ,token ,translate)))
-
-(defmacro wisent-untranslate (item translate)
-  "Return the terminal symbol associated to ITEM number.
-TRANSLATE maps tokens to item numbers."
-  `(cdr (assq ,item ,translate)))
-
 (defmacro wisent-parse-action (i al)
   "Return the next parser action.
 I is a token item number and AL is the list of (item . action)
@@ -314,10 +281,8 @@ automaton has only one entry point."
   \(see also `wisent-compile-grammar')."
   (let* ((actions   (aref automaton 0))
          (gotos     (aref automaton 1))
-         (functions (aref automaton 2))
-         (translate (aref automaton 3))
-         (starts    (aref automaton 4))
-         (erritem   (wisent-translate wisent-error-term translate))
+         (starts    (aref automaton 2))
+         ;;(functions (aref automaton 3)) ;; Not used here
          (stack     (make-vector wisent-parse-max-stack-size nil))
          (sp     0)
          (action t)
@@ -331,7 +296,7 @@ automaton has only one entry point."
     (aset stack 0 0) ;; Initial state
     (while action
       (setq state  (aref stack sp)
-            tokid  (wisent-translate (car wisent-input) translate)
+            tokid  (car wisent-input)
             action (wisent-parse-action tokid (aref actions state)))
       (cond
        
@@ -347,7 +312,7 @@ automaton has only one entry point."
         (or wisent-recovering
             (wisent-error
              (format "Parse error - unexpected token %s(%S)%s"
-                     (car wisent-input)
+                     tokid
                      (cadr wisent-input)
                      (if (cddr wisent-input)
                          (format " at %s" (cddr wisent-input))
@@ -357,12 +322,12 @@ automaton has only one entry point."
         ;; If just tried and failed to reuse lookahead token after an
         ;; error, discard it.
         (if (eq wisent-recovering wisent-parse-max-recover)
-            (if (eq (car wisent-input) wisent-eoi-term)
+            (if (eq tokid wisent-eoi-term)
                 (setq action nil) ;; Terminate if at end of input.
               (run-hook-with-args
                'wisent-discarding-token-functions wisent-input)
               (setq wisent-input (wisent-lexer)))
-
+          
           ;; Else will try to reuse lookahead token after shifting the
           ;; error token.
           
@@ -374,11 +339,10 @@ automaton has only one entry point."
           (while (and (>= sp 0)
                       (not (and (setq state   (aref stack sp)
                                       choices (aref actions state)
-                                      choice  (assq erritem choices))
-                                (numberp (cdr choice))
-                                (>= (cdr choice) 0))))
+                                      choice  (assq wisent-error-term choices))
+                                (natnump (cdr choice)))))
             (setq sp (- sp 2)))
-
+          
           (if (not choice)
               ;; No 'error terminal was found.  Just terminate.
               (setq wisent-lookahead wisent-input
@@ -403,15 +367,14 @@ automaton has only one entry point."
                           (setq wisent-input (wisent-lexer)
                                 choice (car wisent-input)))
                       (not (or (eq wisent-eoi-term choice)
-                               (assq (wisent-translate
-                                      choice translate) choices))))
+                               (assq choice choices))))
                   (run-hook-with-args
                    'wisent-discarding-token-functions wisent-input)
                   (setq wisent-input nil))))))
-        
+       
        ;; Shift current token on top of the stack
        ;; ---------------------------------------
-       ((>= action 0)
+       ((natnump action)
         ;; Count tokens shifted since error; after
         ;; `wisent-parse-max-recover', turn off error status.
         (setq wisent-recovering (and (natnump wisent-recovering)
@@ -422,10 +385,10 @@ automaton has only one entry point."
         (aset stack sp action)
         (setq wisent-input (wisent-lexer)))
        
-       ;; Reduce by rule (- action)
-       ;; -------------------------
+       ;; Reduce by rule (call action)
+       ;; ----------------------------
        (t
-        (setq sp (funcall (aref functions (- action)) stack sp gotos))
+        (setq sp (funcall action stack sp gotos))
         (or wisent-input (setq wisent-input (wisent-lexer))))))
     (car (aref stack 1))))
 
