@@ -12,6 +12,7 @@ from semantic.
 
 @menu
 * speedbar::                    How to use Semantic speedbar support
+* ECB::                         Emacs Code Browser
 * imenu::                       Special support for Imenu.
 * senator::                     The Semantic Navigator
 * analyzer::                    Analyze local context
@@ -40,7 +41,7 @@ or you can simply add:
 (require 'semantic-sb)
 @end example
 
-Once installed, speedbar will use semantic to find tokens, and will
+Once installed, speedbar will use semantic to find tags, and will
 display them appropriately.  Tags from semantic will have additional
 details which can be seen, such as return type, or arguments to
 functions.
@@ -49,7 +50,20 @@ If you use @file{semantic-load.el}, you do not need to add the above
 lines in your .emacs file.
 
 Two additional speedbar modes are described in @ref{Speedbar Analysis}, and
-@ref{class browser}.
+@ref{Class Browser}.
+
+@node ECB
+@section ECB
+@cindex ECB
+
+From the ECB Website: @url{http://ecb.sourceforge.net}:
+
+@example
+ECB is a source code browser for Emacs. It is a global minor-mode
+which displays a couple of windows that can be used to browse
+directories, files and file-contents like methods and variables.
+@end example
+
 
 @node imenu
 @section imenu
@@ -65,7 +79,7 @@ in your @file{.emacs} file:
 
 @example
 (add-hook 'semantic-init-hooks (lambda ()
-                               	   (imenu-add-to-menubar "TOKENS")))
+                               	   (imenu-add-to-menubar "TAGS")))
 @end example
 
 Also supported is @dfn{which-func-mode}.  This usually uses imenu
@@ -79,33 +93,31 @@ You can customize imenu with the following options:
 
 @deffn Option semantic-imenu-summary-function
 Function to use when creating items in Imenu.
-Some useful functions are:
-@dfn{semantic-abbreviate-nonterminal}
-@dfn{semantic-summarize-nonterminal}
-@dfn{semantic-prototype-nonterminal}
+Some useful functions are found in @code{semantic-format-tag-functions}.
 @end deffn
 
 @deffn Option semantic-imenu-bucketize-file
-Non-@code{nil} if tokens in a file are to be grouped into buckets.
+Non-@code{nil} if tags in a file are to be grouped into buckets.
 @end deffn
 
 @deffn Option semantic-imenu-buckets-to-submenu
-Non-@code{nil} if buckets of tokens are to be turned into submenus.
+Non-@code{nil} if buckets of tags are to be turned into submenus.
 This option is ignored if @code{semantic-imenu-bucketize-file} is nil.
 @end deffn
 
-@deffn Option semantic-imenu-expand-type-parts
-Non-@code{nil} if types should have submenus with parts in it.
+@deffn Option semantic-imenu-expand-type-members
+Non-@code{nil} if types should have submenus with members in them.
 @end deffn
 
-@deffn Option semantic-imenu-bucketize-type-parts
-Non-@code{nil} if elements of a type should be placed grouped into buckets.
-@code{Nil} means to keep them in the same order.
-Overridden to @code{nil} if @code{semantic-imenu-bucketize-file} is nil.
+@deffn Option semantic-imenu-bucketize-type-members
+Non-@code{nil} if members of a type should be grouped into buckets.
+@code{nil} means to keep them in the same order.
+Overriden to @code{nil} if @code{semantic-imenu-bucketize-file} is nil.
 @end deffn
 
 @deffn Option semantic-imenu-sort-bucket-function
 Function to use when sorting tags in the buckets of functions.
+See @dfn{semantic-bucketize} and the @var{FILTER} argument for more details on this function.
 @end deffn
 
 @deffn Option semantic-imenu-index-directory
@@ -123,8 +135,8 @@ other buffer local ones based on the same semanticdb.
 
 When adding support to a language, this variable may need to be set:
 
-@defvar semantic-imenu-expandable-token
-Tokens of this token type will be given submenu with children.
+@defvar semantic-imenu-expandable-tag-class
+Tags of this class will be given submenu with children.
 By default, a @code{type} has interesting children.  In Texinfo, however,
 a @code{section} has interesting children.
 @end defvar
@@ -135,8 +147,8 @@ a @code{section} has interesting children.
 
 Senator stands for SEmantic NAvigaTOR and was written by David Ponce.
 
-This library defines commands and a minor mode to navigate between
-semantic language tokens in the current buffer.
+This library defines commands and a minor mode to navigate and manage
+semantic language tags in the current buffer.
 
 @subsection Commands
 
@@ -144,19 +156,30 @@ The following user level commands are provided by Senator.
 
 @subsubsection Navigation
 
-@deffn Command senator-next-token
-Move to the next token in the current buffer.
-@end deffn
+@defun senator-next-tag
+Navigate to the next Semantic tag.
+Return the tag or @code{nil} if at end of buffer.
+@end defun
 
-@deffn Command senator-previous-token
-Move to the previous token in the current buffer.
-@end deffn
+@defun senator-previous-tag
+Navigate to the previous Semantic tag.
+Return the tag or @code{nil} if at beginning of buffer.
+@end defun
 
-@deffn Command senator-jump sym
+@defun senator-jump
 Jump to the semantic symbol @var{SYM}.
-If called interactively and a prefix argument is supplied jump in the
-local type's context (see function @dfn{senator-current-type-context}).
-@end deffn
+
+If optional @var{IN-CONTEXT} is non-@code{nil} jump in the local type's context
+(see function @dfn{senator-current-type-context}).  If optional
+@var{NO-DEFAULT} is non-@code{nil} do not provide a default value.
+
+When called interactively you can combine the @var{IN-CONTEXT} and
+@var{NO-DEFAULT} switches like this:
+
+- \[universal-argument]       @var{IN-CONTEXT}.
+- \[universal-argument] -     @var{NO-DEFAULT}.
+- \[universal-argument] \[universal-argument]   @var{IN-CONTEXT} + @var{NO-DEFAULT}.
+@end defun
 
 @subsubsection Searching
 
@@ -165,13 +188,16 @@ definition text, such as the name of the functions or variables in a
 given buffer.
 
 @deffn Command senator-isearch-toggle-semantic-mode
-Toggles semantic search in isearch mode.  When semantic search is
-enabled, isearch is restricted to token names.
+Toggle semantic searching on or off in isearch mode.
+@kbd{C-c , i} toggle semantic searching.
 @end deffn
 
-@deffn Command senator-search-forward string
-@deffnx Command senator-search-backward string
-Search forward and backward for a token matching @var{string}.
+@deffn Command senator-search-forward what &optional bound noerror count
+@deffnx Command senator-search-backward what &optional bound noerror count
+Search semantic tags forward or backward from point for string @var{WHAT}.
+Set point to the end of the occurrence found, and return point.  See
+@dfn{search-forward} for details and the meaning of @var{BOUND} @var{NOERROR} and
+@var{COUNT}.  @var{COUNT} is just ignored in the current implementation.
 @end deffn
 
 @deffn Command re-search-forward regex
@@ -190,18 +216,23 @@ Search forward and backward for a token whose name matches @var{word}.
 Completion in senator scans all known definitions in the local file,
 and uses that information to provide the completion.
 
-@deffn Command senator-complete-symbol
+@deffn Command senator-complete-symbol &optional cycle-once
 Complete the current symbol under point.
+If optional argument @var{CYCLE-ONCE} is non-@code{nil}, only cycle through the list
+of completions once, doing nothing where there are no more matches.
 @end deffn
 
-@deffn Command senator-completion-menu-keyboard-popup
+@deffn Command senator-completion-menu-popup
 Popup a completion menu for the symbol at point.
+The popup menu displays all of the possible completions for the symbol
+it was invoked on.  To automatically split large menus this function
+use @dfn{imenu--mouse-menu} to handle the popup menu.
 @end deffn
 
 @subsubsection Copy/Paste
 
 Token Copy/Paste is a high level form of the typical copy yank used by
-Emacs.  Copying a token saves the meta-information related to the
+Emacs.  Copying a tag saves the meta-information related to the
 function or item the cursor is currently in.  When that information is
 yanked into a new buffer, the form of the text created is based on the
 current status of the programming buffer.
@@ -210,30 +241,30 @@ For example, pasting a function into a different file results in a
 function call template to be inserted.  In a Texinfo file, a @@deffn
 is created with documentation for that function or command.
 
-@deffn Command senator-copy-token
-Take the current token, and place it in the token ring.
+@deffn Command senator-copy-tag
+Take the current tag, and place it in the tag ring.
 @end deffn
 
-@deffn Command senator-kill-token
-Take the current token, place it in the token ring, and kill it.
-Killing the token removes the text for that token, and places it into
-the kill ring.  Retrieve that text with @code{yank}.
+@deffn Command senator-kill-tag
+Take the current tag, place it in the tag ring, and kill it.
+Killing the tag removes the text for that tag, and places it into
+the kill ring.  Retrieve that text with @kbd{C-y}.
 @end deffn
 
-@deffn Command senator-yank-token
-Yank a token from the token ring.
-The form the token takes is different depending on where it is being
+@deffn Command senator-yank-tag
+Yank a tag from the tag ring.
+The form the tag takes is differnet depending on where it is being
 yanked to.
 @end deffn
 
-@deffn Command senator-copy-token-to-register register &optional kill-flag
-Copy the current token into @var{REGISTER}.
-Optional argument @var{KILL-FLAG} will delete the text of the token to the
+@deffn Command senator-copy-tag-to-register register &optional kill-flag
+Copy the current tag into @var{REGISTER}.
+Optional argument @var{KILL-FLAG} will delete the text of the tag to the
 kill ring.
 @end deffn
 
 For programmers, to provide specialized pasting, created an override
-function for @code{insert-foreign-token} (see @xref{Settings}.)
+function for @code{insert-foreign-tag} (see @xref{Settings}.)
 
 @subsubsection Minor Mode
 
