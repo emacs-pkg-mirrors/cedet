@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.13 2001/08/17 21:34:54 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.14 2001/12/05 01:42:22 zappo Exp $
 
 (defvar cogre-version "0.3"
   "Current version of Cogre.")
@@ -93,7 +93,8 @@ within a box."
 
 ;;; Classes
 (defclass cogre-graph (eieio-persistent)
-  ((name :initarg :name
+  ((extension :initform ".cgr") ;; Override the default
+   (name :initarg :name
 	 :initform "NewGraph"
 	 :type string
 	 :custom string
@@ -167,8 +168,7 @@ a list of strings representing the body of the node."
 	      :allocation :class
 	      :documentation
 	      "Alignment of text when displayed in the box.")
-   (rectangle :initarg :rectangle
-	      :initform nil
+   (rectangle :initform nil
 	      :type list
 	      :documentation
 	      "A List of strings representing an Emacs rectangle.
@@ -190,13 +190,12 @@ a status, or values.")
 As a string, the object-name of the node we start on.
 As an object, the node we start on.")
    (end :initarg :end
-	  :initform nil
-	  :type (or null string cogre-node)
-	  :documentation "The ending node.
+	:initform nil
+	:type (or null string cogre-node)
+	:documentation "The ending node.
 As a string, the object-name of the node we end on.
 As an object, the node we end on.")
-   (start-glyph :initarg :start-glyph
-		:initform [ nil nil nil nil ]
+   (start-glyph :initform [ nil nil nil nil ]
 		:allocation :class
 		:type vector
 		:documentation "The starting glyph.
@@ -204,8 +203,7 @@ A Glyph can be NULL, meaning nothing, or a vector.
 A Vector must be 4 elements long.  This represents glyphs on
 the [ TOP BOTTOM LEFT RIGHT ] of the attached node.
 Each element of the vector must be a list representing a rectangle.")
-   (end-glyph :initarg :end-glyph
-	      :initform [ nil nil nil nil ]
+   (end-glyph :initform [ nil nil nil nil ]
 	      :allocation :class
 	      :type vector
 	      :documentation "The ending glyph.
@@ -239,6 +237,9 @@ arrows or circles.")
 
 ;;; Connecte Graph variables
 ;;
+(defvar cogre-loading-from-file nil
+  "Flag indicating that we are loading a graph from a file.")
+
 (defcustom cogre-mode-hooks nil
   "Hooks run in `cogre-mode'."
   :group 'cogre
@@ -259,6 +260,7 @@ Argument OLDFUN is removed NEWFUN is substituted in."
 (if cogre-mode-map
     nil
   (setq cogre-mode-map (make-keymap))
+  (suppress-keymap cogre-mode-map)
   ;; Structure Information
   (define-key cogre-mode-map "\C-m" 'cogre-activate-element)
   ;; Structure changes
@@ -288,6 +290,9 @@ Argument OLDFUN is removed NEWFUN is substituted in."
   (cogre-substitute 'backward-char 'picture-backward-column)
   (cogre-substitute 'next-line     'picture-move-down)
   (cogre-substitute 'previous-line 'picture-move-up)
+  ;; File IO
+  (define-key cogre-mode-map "\C-x\C-s" 'cogre-save-graph)
+
   )
 
 (easy-menu-define
@@ -306,6 +311,8 @@ Argument OLDFUN is removed NEWFUN is substituted in."
     "--"
     [ "Delete" cogre-delete (cogre-current-element) ]
     [ "Refresh" cogre-refresh t ]
+    [ "Save Graph" cogre-save-graph t ]
+    [ "Save Graph As" cogre-save-graph-as t ]
     ))
 
 (defmethod cogre-insert-class-list ((graph cogre-graph))
@@ -631,6 +638,18 @@ If ARG is unspecified, assume 1."
     (if (interactive-p)
 	(cogre-render-buffer cogre-graph))))
 
+;;; Utilities
+;;
+(defun cogre-map-elements (function)
+  "Map FUNCTION onto all current graph elements."
+  (cogre-map-graph-elements cogre-graph function))
+
+(defun cogre-map-graph-elements (graph function)
+  "For elements of GRAPH, call FUNCTION.
+Function must take one argument, which is the element.
+This function can also be a method.
+Returns a list of return values from each call of function."
+  (mapcar function (oref graph elements)))
 
 ;;; State Management
 ;;
@@ -686,18 +705,20 @@ customizing the object, or performing some complex task."
 
 (defmethod initialize-instance ((elt cogre-graph-element) fields)
   "Initialize ELT's name before the main FIELDS are initialized."
-  (let ((n (oref elt name-default)))
-    (object-set-name-string elt n))
+  (unless cogre-loading-from-file
+    (let ((n (oref elt name-default)))
+      (object-set-name-string elt n)))
   (call-next-method))
 
 (defmethod initialize-instance :AFTER ((elt cogre-graph-element) fields)
   "When creating a new element, add it to the current graph.
 Argument ELT is the element being created.
 Argument FIELDS are ignored."
-  (let ((n (oref elt object-name)))
-    ;; make sure our name is unique.
-    (oset elt object-name (cogre-unique-name cogre-graph n)))
-  (cogre-add-element cogre-graph elt))
+  (unless cogre-loading-from-file
+    (let ((n (oref elt object-name)))
+      ;; make sure our name is unique.
+      (oset elt object-name (cogre-unique-name cogre-graph n)))
+    (cogre-add-element cogre-graph elt)))
 
 ;;; Buffer Rendering
 ;;
@@ -708,15 +729,14 @@ and render everything.  If ERASE is nil, then only redraw items
 with dirty flags set."
   (let ((inhibit-read-only t)
 	(x (current-column))
-	(y (1- (picture-current-line))))
-    (let ((inhibit-point-motion-hooks t))
-      (save-excursion
-	(with-slots (elements) graph
-	  (if erase
-	      (progn
-		(erase-buffer)
-		(mapcar (lambda (e) (cogre-set-dirty e t)) elements)))
-	  (mapcar (lambda (e) (cogre-render e)) elements))))
+	(y (1- (picture-current-line)))
+	(inhibit-point-motion-hooks t))
+    (save-excursion
+      (if erase
+	  (progn
+	    (erase-buffer)
+	    (cogre-map-elements (lambda (e) (cogre-set-dirty e t)))))
+      (cogre-map-elements 'cogre-render))
     (picture-goto-coordinate x y)))
 
 (defmethod cogre-render ((element cogre-graph-element))
@@ -730,6 +750,18 @@ are called from `call-next-method', so reset our dirty flag."
 By default, an ELEMENT has nothing to erase, but assume we
 are called from `call-next-method', so set our dirty flag."
   (cogre-set-dirty element t))
+
+(defmethod cogre-element-pre-serialize ((elt cogre-graph-element))
+  "Prepare the current node to be serialized.
+Remove all pointers to objects (such as links), and replace
+with something reversable."
+  )
+
+(defmethod cogre-element-post-serialize ((elt cogre-graph-element))
+  "Restore object pointers after being loaded from disk.
+Also called after a graph was saved to restore all objects.
+Reverses `cogre-graph-pre-serialize'."
+  )
 
 (defmethod cogre-entered ((element cogre-graph-element) start end)
   "Method called when the cursor enters ELEMENT.
@@ -965,6 +997,34 @@ The data returned is (X1 Y1 X2 Y2)."
 
 ;;; Links
 ;;
+(defmethod cogre-element-pre-serialize ((link cogre-link))
+  "Prepare the current node to be serialized.
+Remove all pointers to objects (such as links), and replace
+with something reversable."
+  (call-next-method)
+  ;; Remove the node objects from ourselves, and remove ourselves
+  ;; from the nodes we point to.
+  (with-slots (start end) link
+    (setf start (oref start :object-name))
+    (setf end (oref end :object-name))
+    )
+  )
+
+(defmethod cogre-element-post-serialize ((link cogre-link))
+  "Restore object pointers in LINK after being loaded from disk.
+Also called after a graph was saved to restore all objects.
+Reverses `cogre-graph-pre-serialize'."
+  (call-next-method)
+  ;; Convert the textual names back to object references from the
+  ;; current graphs element list.
+  (with-slots (start end) link
+    (setf start
+	  (object-assoc start :object-name (oref cogre-graph elements)))
+    (setf end
+	  (object-assoc end :object-name (oref cogre-graph elements)))
+    )
+  )
+
 (defvar cogre-erase-mode nil
   "Non nil means we are in erase mode while rendering this link.")
 
@@ -1051,6 +1111,46 @@ The data returned is (X1 Y1 X2 Y2)."
 	    )
 	  ))))
   (call-next-method))
+
+;;; Files
+;;
+;; Save and restore graphs to disk
+(defun cogre-save-graph-as (file)
+  "Save the current graph into FILE.
+This can change the current file assocaited with the current graph."
+  (interactive "fFile: ")
+  (oset cogre-graph file file)
+  (cogre-save cogre-graph))
+
+(defun cogre-save-graph (file)
+  "Save the current graph to FILE."
+  (interactive (list
+		(eieio-persistent-save-interactive cogre-graph
+						   "Save In: "
+						   (oref cogre-graph name))))
+  (cogre-save cogre-graph))
+
+(defmethod cogre-save ((graph cogre-graph))
+  "Save the current graph."
+  (cogre-map-elements 'cogre-element-pre-serialize)
+  (unwind-protect
+      (eieio-persistent-save cogre-graph)
+    (cogre-map-elements 'cogre-element-post-serialize))
+  )
+
+(defun cogre-load-graph (file)
+  "Load a graph from FILE into a new graph buffer."
+  (interactive "fFile: ")
+  (let ((graph nil)
+	(cogre-loading-from-file t))
+    (let ((cogre-graph (cogre-graph "temp" :name "temp")))
+      (save-excursion
+	(setq graph (eieio-persistent-read file))))
+    (oset graph file file)
+    (cogre (oref graph name))
+    (setq cogre-graph graph)
+    (cogre-map-elements 'cogre-element-post-serialize)
+    (cogre-render-buffer graph t)))
 
 ;;; Low Level Rendering and status
 ;;
