@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.9 2002/08/05 21:46:16 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.10 2002/08/07 17:56:49 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -113,16 +113,6 @@ incremental reparse.")
 (defvar semantic-edits-incremental-reparse-failed-hooks nil
   "Hooks run after the incremental parser fails.
 When this happens, the buffer is marked as needing a full reprase.")
-
-;;; API function
-;;
-;; This is the incremental parser API.
-;;
-(define-overload semantic-bovinate-incremental-parser ()
-  "Incrementally reparse the current buffer based on edits.
-The list of changes are tracked as a series of overlays in the
-buffer.  When overloading this function, use `semantic-changes-in-region'
-to analyze.")
 
 ;;; Change State management
 ;;
@@ -465,7 +455,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
   (run-hooks 'semantic-edits-incremental-reparse-failed-hooks)
   )
 
-(defun semantic-bovinate-incremental-parser-default ()
+(defun semantic-edits-incremental-parser ()
   "Incrementally reparse the current buffer.
 Incremental parser allows semantic to only reparse those sections of
 the buffer that have changed.  This function depends on
@@ -650,7 +640,7 @@ the semantic cache to see what needs to be changed."
                       ;; children.
                       (semantic-nonterminal-children parent-token nil)))
             ;; Use the boundary to calculate the new tokens found.
-            (setq newf-tokens (semantic-bovinate-region
+            (setq newf-tokens (semantic-parse-region
                                parse-start parse-end reparse-symbol))
             ;; Make sure all these tokens are given overlays.
             ;; They have already been cooked by the bovinator and just
@@ -737,6 +727,11 @@ the semantic cache to see what needs to be changed."
     ;; Return the list of tokens that changed.  The caller will
     ;; use this information to call hooks which can fix themselves.
     changed-tokens))
+
+;; Make it the default changes parser
+;;;###autoload
+(defalias 'semantic-parse-changes-default
+  'semantic-edits-incremental-parser)
 
 ;;; Cache Splicing
 ;;
@@ -945,9 +940,7 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	 ;; For embedded tokens (type parts, for example) we need a
 	 ;; different symbol.  Come up with a plan to solve this.
 	 (nonterminal (semantic-token-get token 'reparse-symbol))
-	 (new (semantic-bovinate-nonterminal
-               lexbits
-               nonterminal))
+	 (new (semantic-parse-stream lexbits nonterminal))
 	 (cooked nil)
 	 )
     (setq new (car (cdr new)))
