@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.116 2002/02/21 21:22:26 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.117 2002/02/22 22:25:05 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17"
   "Current version of EIEIO.")
@@ -1075,9 +1075,9 @@ Fills in OBJ's FIELD with it's default value."
 	;; It might be missing because it is a :class allocated field.
 	;; Lets check that info out.
 	(if (setq c
-		  (eieio-class-field-name-index (aref obj object-class) field))
+		  (eieio-class-field-name-index cl field))
 	    ;; Oref that slot.
-	    (aref (aref (class-v (aref obj object-class)) class-class-allocation-values)
+	    (aref (aref (class-v cl) class-class-allocation-values)
 		  c)
 	  (slot-missing obj field 'oref-default)
 	  ;;(signal 'invalid-slot-name (list (class-name cl) field))
@@ -1290,11 +1290,16 @@ If EXTRA, include that in the string returned to represent the symbol."
 (defun slot-boundp (object slot)
   "Non-nil if OBJECT's SLOT is bound.
 Setting a slot's value makes it bound.  Calling `slot-makeunbound' will
-make a slot unbound."
+make a slot unbound.
+OBJECT can be an instance or a class."
   ;; Skip typechecking while retrieving this value.
   (let ((eieio-skip-typecheck t))
     ;; Return nil if the magic symbol is in there.
-    (if (eq (eieio-oref object slot) eieio-unbound) nil t)))
+    (if (object-p object)
+	(if (eq (eieio-oref object slot) eieio-unbound) nil t)
+      (if (class-p object)
+	  (if (eq (eieio-oref-default object slot) eieio-unbound) nil t)
+	(signal 'wrong-type-argument (list 'object-p object))))))
 
 (defun slot-makeunbound (object slot)
   "In OBJECT, make SLOT unbound."
