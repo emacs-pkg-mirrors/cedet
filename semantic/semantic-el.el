@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.45 2001/04/30 13:32:16 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.46 2001/05/05 14:56:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -166,16 +166,22 @@ Return a bovination list to use."
 	    (locate-library (semantic-token-name token)))))
     (concat f ".el")))
 
-(defun semantic-elisp-prototype-nonterminal (token)
-  "Return a prototype for the Emacs Lisp nonterminal TOKEN."
+(defun semantic-elisp-prototype-nonterminal (token &optional parent color)
+  "Return a prototype for the Emacs Lisp nonterminal TOKEN.
+PARENT and COLOR as for `semantic-prototype-nonterminal'."
   (let* ((tok (semantic-token-token token))
 	 (args (semantic-nonterminal-children token))
 	 )
     (if (eq tok 'function)
-	(concat (semantic-token-name token) " ("
-		(mapconcat (lambda (a) a) args " ")
+	(concat (semantic-name-nonterminal token parent color) " ("
+		(mapconcat (lambda (a)
+			     (if color
+				 (semantic-colorize-text
+				  a font-lock-variable-name-face)
+			       a))
+			   args " ")
 		")")
-      (semantic-prototype-nonterminal-default token))))
+      (semantic-prototype-nonterminal-default token parent color))))
 
 (defun semantic-elisp-find-documentation (token &optional nosnarf)
   "Return the documentation string for TOKEN.
