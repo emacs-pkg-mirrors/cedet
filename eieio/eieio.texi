@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.10 1998/10/27 16:52:48 zappo Exp $
+@c $Id: eieio.texi,v 1.11 1998/10/27 17:16:31 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -118,13 +118,6 @@ usage and list occupation, in addition to file counts and size charts.
 Theres even a sample that will display a chart of who sends you the most
 email!  See doc-string for `chart-bar-quickie' to make your own bar
 charts easily.
-@item dialog, widget-i, widget-d
-A simple widgeting system providing dialog buffers, labels, buttons,
-toggles, frames, and text fields.  Needs work, but is still pretty
-useful.
-@item dialog-tree
-Draw a tree of widgets in a dialog box, and browse the values of all
-objects in the tree. Great for debugging your dialogs.
 @end table
 
 @section EIEIO wish list
@@ -266,8 +259,7 @@ valid tags are:
 @xref{CLOS compatibility} for more details on CLOS tags versus EIEIO
 specific tags.
 
-The whole definition may look like this (As found in the widget-d
-example code):
+The whole definition may look like this:
 @example
 (defclass data-object ()
   ((value :initarg :value
@@ -283,10 +275,7 @@ object maintains."
 `value' is modified."
 	      :protection private)
    )
-  "This defines a `data-object' which is used for all widgets
-maintaining some value.  For example, a `widget-label' displays a
-string or number, and a `widget-scrollbar' edits a number.  These
-widgets will use data-object to store their data.")
+  "Data object which tracks referencers.")
 @end example
 
 @end defun
@@ -732,56 +721,6 @@ eieio-default-superclass
 
 Note that we start with eieio-default-superclass.  @xref{Default Superclass}
 
-Here is the tree after our example, and after the self-managing
-text-based widget library I am playing with has been loaded.
-
-@example
-eieio-default-superclass
-  +--widget-core
-  |    +--widget-visual
-  |    |    +--widget-square
-  |    |         +--widget-text-field
-  |    |         |    +--widget-text-box
-  |    |         +--widget-label
-  |    |         |    +--widget-button
-  |    |         |         +--widget-toggle-button
-  |    |         |         |    +--widget-radio-button
-  |    |         |         +--widget-option-button
-  |    |         |         |    +--widget-option-button-dlg-font-style
-  |    |         |         +--widget-arrow-button
-  |    |         |         +--widget-push-button
-  |    |         +--widget-group
-  |    |              +--widget-scale
-  |    |              |    +--widget-scrollbar
-  |    |              +--widget-scrolled-text
-  |    |              +--widget-option-text
-  |    |              +--widget-labeled-text
-  |    |              +--widget-frame
-  |    |              |    +--widget-radio-frame
-  |    |              +--widget-toplevel
-  |    +--widget-gadget-translator
-  +--data-object
-       +--data-symbol
-       +--data-face-object
-       |    +--data-face-emphasis-object
-       |    +--data-face-underline-object
-       |    +--data-face-background-object
-       |    +--data-face-foreground-object
-       +--data-object-command-option
-       +--data-object-symbol
-            +--data-object-symbol-disabled
-            +--data-object-symbol-hook
-            +--data-object-symbol-feature
-            +--data-object-symbol-default
-            +--data-object-symbol-lisp-expression
-            +--data-object-symbol-list-index
-            +--data-object-symbol-string-to-int
-            +--data-object-symbol-translated
-@end example
-
-As you can see, it is possible to create quite large and complex trees
-of classes.  
-
 Note: new classes are consed into the inheritance lists, so the tree
 comes out upside-down.
 
@@ -860,25 +799,11 @@ programs providing some useful functionality.  The file, and
 functionality of these appear below:
 
 @table @code
-@item widget-d widget-i dialog
-These files provide widget definitions and functionality.  Dialog mode
-provides the functional interface to creating a dialog box, and several
-convenience functions for creating widgets in those dialog buffers.
-@xref{(dialog)Top}
-@item dlg-config dlg-class e-config
-This file provides another layer on dialog mode, plus some new widgets
-and @code{data-object} types.  These widgets are designed specifically
-for modifying configurations in a running emacs, and modifying the
-corresponding .emacs file for variable values.  It also provides fancy
-face editing, which modifies the corresponding .Xdefaults file.
 @item tree
 Maintains and displays a tree structure in a buffer.  Nodes in the tree
 can be clicked on for editing, node expansion, and simple information.
 Includes a sample program for showing directory trees, and to draw trees
 of the eieio class structures.
-@item dialog-tree
-Uses tree mode to display the parent/child relationship of widgets in a
-dialog box.
 @item call-tree
 Parses a non-byte-compiled function, and generates a call tree from it,
 and all sub-non-byte-compiled functions.  Provides protection from
@@ -886,7 +811,9 @@ recursive functions.
 @item chart
 Draw bar charts from data.  Examples include displaying sizes of emacs
 values, file distribution, and rmail distributions.
+@item dbif
+Database interface object for emacs.  So far, on psql (PostgreSQL) is
+supported with @file{psql.el}
 @end table
-
 
 @bye
