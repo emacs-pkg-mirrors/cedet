@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.145 1999/05/18 15:54:10 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.146 1999/05/18 17:30:25 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -3640,7 +3640,7 @@ Returns the tag list, or t for an error."
   (require 'semantic)
   (save-excursion
     (set-buffer (find-file-noselect file))
-    ;(if speedbar-power-click (setq imenu--index-alist nil))
+    (if speedbar-power-click (setq semantic-toplevel-bovine-cache))
     (if (not semantic-toplevel-bovine-table)
 	t
       (condition-case nil
