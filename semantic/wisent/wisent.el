@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.7 2001/08/30 14:01:35 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.8 2001/09/06 14:30:34 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -487,21 +487,26 @@ N is the number of elements to process.  The result is stored in V1."
 (defvar wisent--f               nil
   "")
 (defvar wisent--action-table    nil
-  "")
+  "Action table.")
+(defvar wisent--rules           nil
+  "Vector of grammar rules in internal format.")
+(defvar wisent--conflicts-by-state nil
+  "Number of conflicts by state.
+This is a vector of pairs (SR-conflicts . RR-conflicts).")
 
 ;; Variables
 (defvar wisent--nitems          nil
-  "")
+  "Number of items.")
 (defvar wisent--nrules          nil
-  "")
+  "Number of grammar rules.")
 (defvar wisent--nvars           nil
-  "")
+  "Number of non terminals.")
 (defvar wisent--nterms          nil
-  "")
+  "Number of terminals.")
 (defvar wisent--nsyms           nil
   "")
 (defvar wisent--nstates         nil
-  "")
+  "Number of states.")
 (defvar wisent--first-state     nil
   "")
 (defvar wisent--last-state      nil
@@ -524,6 +529,22 @@ N is the number of elements to process.  The result is stored in V1."
   "")
 (defvar wisent--token-set-size  nil
   "")
+(defvar wisent--conflicts nil
+  "Total number of conflicts found.
+The value is a pair (SR-conflicts . RR-conflicts).")
+
+;; Symbol access
+(defsubst wisent-terminal-symbol (sym)
+  "Return symbol value of terminal ID SYM."
+  (if (numberp sym)
+      (elt wisent--terms sym)
+    sym))
+
+(defsubst wisent-item-symbol (i)
+  "Return symbol value of item number I."
+  (if (>= i wisent--nvars)
+      (elt wisent--terms (- i wisent--nvars))
+    (elt wisent--vars i)))
 
 ;; Logging/Output
 (defvar wisent-log-buffer nil
@@ -550,6 +571,115 @@ logging buffer."
   (with-current-buffer (wisent-log-buffer)
     (insert (apply #'format args))))
 
+(defun wisent-log-starts (starts)
+  "Log the list of start nonterminals.
+STARTS is the table of defined entry points."
+  (with-current-buffer (wisent-log-buffer)
+    (wisent-output "\n;;; entry point nonterminals:\n")
+    (while starts
+      (wisent-output ";; %s\n" (caar starts))
+      (setq starts (cdr starts)))))
+
+(defun wisent-log-nullables ()
+  "Log the list of nullable nonterminals."
+  (with-current-buffer (wisent-log-buffer)
+    (wisent-output "\n;;; nullable nonterminals:\n")
+    (let ((i 0))
+      (while (< i wisent--nvars)
+        (if (aref wisent--nullable i)
+            (wisent-output ";; %d - %s\n" i (elt wisent--vars i)))
+        (setq i (1+ i))))))
+
+(defun wisent-log-rules ()
+  "Log grammar rules."
+  (let ((i 1)
+        lhs rhs)
+    (with-current-buffer (wisent-log-buffer)
+      (wisent-output "\n;;; rules:\n")
+      (while (< i wisent--nrules)
+        (wisent-output ";; %d - " i)
+        (setq lhs (car (aref wisent--rules i))
+              rhs (cdr (aref wisent--rules i)))
+        (wisent-output "%s -> %s\n"
+                       (elt wisent--vars lhs)
+                       (if rhs
+                           (mapconcat
+                            #'(lambda (i)
+                                (format "%s" (wisent-item-symbol i)))
+                            rhs
+                            " ")
+                         "/* empty */"))
+        (setq i (1+ i))))))
+
+(defun wisent-log-conflicts ()
+  "Log summary of grammar conflicts."
+  (if wisent--conflicts
+      (with-current-buffer (wisent-log-buffer)
+        (let ((sr (car wisent--conflicts))
+              (rr (cdr wisent--conflicts))
+              (i 0))
+          (wisent-output "\nGrammar contains ")
+          (if (> sr 0)
+              (wisent-output "%d shift/reduce conflict%s%s"
+                             sr
+                             (if (> sr 1) "s" "")
+                             (if (> rr 0) " and " ".\n\n")))
+          (if (> rr 0)
+              (wisent-output "%d reduce/reduce conflict%s.\n\n"
+                             rr
+                             (if (> rr 1) "s" "")))
+          (while (< i wisent--nstates)
+            (if (aref wisent--conflicts-by-state i)
+                (progn
+                  (setq sr (car (aref wisent--conflicts-by-state i))
+                        rr (cdr (aref wisent--conflicts-by-state i)))
+                  (wisent-output "State %d contains " i)
+                  (if (> sr 0)
+                      (wisent-output "%d shift/reduce conflict%s%s"
+                                     sr
+                                     (if (> sr 1) "s" "")
+                                     (if (> rr 0) " and " ".\n")))
+                  (if (> rr 0)
+                      (wisent-output "%d reduce/reduce conflict%s.\n"
+                                     rr
+                                     (if (> rr 1) "s" "")))))
+            (setq i (1+ i)))))))
+
+(defun wisent-log-rr-conflict (state termid r1 r2 rs)
+  "Log a reduce/reduce conflict.
+STATE is the state at which the conflict occurs.  TERMID is the
+terminal id which raises the conflict.  R1 and R2 are the rule numbers
+in conflict.  RS is the rule number used to solve the conflict."
+  (let ((conflicts (aref wisent--conflicts-by-state state)))
+    (if (consp conflicts)
+        (setcdr conflicts (1+ (cdr conflicts)))
+      (aset wisent--conflicts-by-state state (cons 0 1)))
+    (if (consp wisent--conflicts)
+        (setcdr wisent--conflicts (1+ (cdr wisent--conflicts)))
+      (setq wisent--conflicts (cons 0 1))))
+  (wisent-log
+   "Conflict in state %d between rules %d and %d on token %s\
+ resolved as rule %d.\n"
+   state r1 r2 (wisent-terminal-symbol termid) rs))
+
+(defun wisent-log-sr-conflict (state termid r1 r2 rs)
+  "Log a shift/reduce conflict.
+STATE is the state at which the conflict occurs.  TERMID is the
+terminal id which which raises the conflict.  R1 is the shift rule
+number.  R2 is the reduce rule number in conflict with TERMID.  RS
+describes the resolve choice, that is \"shift\" or \"reduce\"."
+  (let ((conflicts (aref wisent--conflicts-by-state state)))
+    (if (consp conflicts)
+        (setcar conflicts (1+ (car conflicts)))
+      (aset wisent--conflicts-by-state state (cons 1 0)))
+    (if (consp wisent--conflicts)
+        (setcar wisent--conflicts (1+ (car wisent--conflicts)))
+      (setq wisent--conflicts (cons 1 0))))
+  (wisent-log
+   "Conflict in state %d between rule %d and token %s\
+ resolved as %s.\n"
+   state r2 (wisent-terminal-symbol termid) rs))
+   
 ;; Debug
 (defvar wisent-debug-flag nil
   "Enable some debug stuff when non-nil.")
@@ -561,25 +691,6 @@ That is insert (setq V <value-of-v>) in the current buffer."
      (wisent-output "(setq %s\n" ',v)
      (pp ,v)
      (wisent-output ")\n")))
-
-(defun wisent-show-nullable ()
-  "Log the list of nullable nonterminals."
-  (with-current-buffer (wisent-log-buffer)
-    (wisent-output "\n;;; nullable nonterminals:\n")
-    (let ((i 0))
-      (while (< i wisent--nvars)
-        (if (aref wisent--nullable i)
-            (wisent-output ";; %d - %s\n" i (elt wisent--vars i)))
-        (setq i (1+ i))))))
-
-(defun wisent-show-starts (starts)
-  "Log the list of start nonterminals.
-STARTS is the table of defined entry points."
-  (with-current-buffer (wisent-log-buffer)
-    (wisent-output "\n;;; entry point nonterminals:\n")
-    (while starts
-      (wisent-output ";; %s\n" (caar starts))
-      (setq starts (cdr starts)))))
 
 (defun wisent-show-all (title)
   "Log TITLE string followed by the values all global variables."
@@ -1531,6 +1642,7 @@ tokens they accept.
       (setq i (1+ i)))))
 
 (defun wisent-add-action (st sym act)
+  "Add at state ST on terminal SYM action ACT."
   (let* ((x (aref wisent--action-table st))
          (y (assoc sym x)))
     (if y
@@ -1538,18 +1650,18 @@ tokens they accept.
             ;; -- there is a conflict
             (if (and (<= (cdr y) 0) (<= act 0))
                 (progn
-                  (wisent-log "\
-Reduce/Reduce conflict (reduce %s, reduce %s) on %s in state %s\n"
-                   (- act) (- (cdr y)) sym st)
+                  (wisent-log-rr-conflict
+                   st sym (- act) (- (cdr y)) (- (max (cdr y) act)))
                   (setcdr y (max (cdr y) act)))
-              (wisent-log "\
-Shift/Reduce conflict (shift %s, reduce %s) on %s in state %s\n"
-               act (- (cdr y)) sym st)
+              (wisent-log-sr-conflict st sym act (- (cdr y)) "shift")
               (setcdr y act)))
       (aset wisent--action-table st (cons (cons sym act) x)))))
         
 (defun wisent-build-states ()
-  (setq wisent--action-table (make-vector wisent--nstates nil))
+  "Build states in the action table."
+  (setq wisent--action-table       (make-vector wisent--nstates nil)
+        wisent--conflicts-by-state (make-vector wisent--nstates nil)
+        wisent--conflicts          nil)
   (let ((i 0)
         red k j x y z rule lav token shiftp state symbol)
     (while (< i wisent--nstates)
@@ -1740,6 +1852,8 @@ the tables."
   (setq wisent--nterms (length wisent--terms))
   (setq wisent--nvars  (length wisent--vars))
   (setq wisent--nsyms  (+ wisent--nterms wisent--nvars))
+  (setq wisent--rules  (apply #'vector
+                              (cons nil (mapcar #'car gram/acts))))
   (let ((no-of-rules (length gram/acts))
         (no-of-items 0)
         (l gram/acts)
@@ -1747,14 +1861,12 @@ the tables."
     (while l
       (setq no-of-items (+ no-of-items (length (caar l)))
             l (cdr l)))
-    (wisent-show-starts starts) ;; DEBUG
     (wisent-working-step " (pack-grammar)")
     (wisent-pack-grammar no-of-rules no-of-items gram)
     (wisent-working-step " (set-derives)")
     (wisent-set-derives)
     (wisent-working-step " (set-nullable)")
     (wisent-set-nullable)
-    (wisent-show-nullable) ;; DEBUG
     (wisent-working-step " (generate-states)")
     (wisent-generate-states)
     (wisent-working-step " (lalr)")
@@ -1770,6 +1882,14 @@ the tables."
                       (wisent-build-reduction-table gram/acts)
                       (wisent-build-terminal-table)
                       starts))
+      (if wisent--conflicts
+          (wisent-log-conflicts))
+      (if (or wisent--conflicts wisent-debug-flag)
+          (progn
+            (wisent-log "\n\nGrammar\n")
+            (wisent-log-starts starts)
+            (wisent-log-nullables)
+            (wisent-log-rules)))
       (if stream
           (save-excursion
             (wisent-working-step
