@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.49 2001/04/30 17:32:08 zappo Exp $
+;; RCS: $Id: ede.el,v 1.50 2001/05/07 18:47:38 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -589,10 +589,12 @@ If ARG is negative, disable.  Toggle otherwise."
 	(progn
 	  (add-hook 'semanticdb-project-predicates 'ede-directory-project-p)
 	  (add-hook 'semanticdb-project-root-functions 'ede-toplevel-project-or-nil)
+	  (add-hook 'ecb-source-path-functions 'ede-ecb-project-paths)
 	  (add-hook 'find-file-hooks 'ede-turn-on-hook)
 	  (add-hook 'dired-mode-hook 'ede-turn-on-hook))
       (remove-hook 'semanticdb-project-predicates 'ede-directory-project-p)
       (remove-hook 'semanticdb-project-root-functions 'ede-toplevel-project-or-nil)
+      (remove-hook 'ecb-source-path-functions 'ede-ecb-project-paths)
       (remove-hook 'find-file-hooks 'ede-turn-on-hook)
       (remove-hook 'dired-mode-hook 'ede-turn-on-hook))
     (let ((b (buffer-list)))
@@ -1130,6 +1132,16 @@ Documentation is not for object THIS, but is provided by THIS for other
 files in the project."
   nil)
 
+(defun ede-ecb-project-paths ()
+  "Return a list of all paths for all active EDE projects.
+This functions is meant for use with ECB."
+  (let ((p ede-projects)
+	(d nil))
+    (while p
+      (setq d (cons (file-name-directory (oref (car p) file))
+		    d)
+	    p (cdr p)))
+    d))
 
 ;;; EDE project-autoload methods
 ;;
