@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.52 2004/01/16 15:43:18 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.53 2004/01/18 15:42:56 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -438,6 +438,8 @@ properties where to add new properties."
   (let (type)
     (dolist (tag (semantic-find-tags-by-class 'type (current-buffer)))
       (setq type (semantic-tag-name tag))
+      ;; Indicate to auto-generate the analyzer for this type
+      (push (list type :declared t) props)
       (dolist (e (semantic-tag-get-attribute tag :value))
         (push (list type (intern (car e)) (read (or (cdr e) "nil")))
               props)))
@@ -796,10 +798,12 @@ Block definitions are read from the current table of lexical types."
   (let* ((type-name  (symbol-name type))
          (type-value (symbol-value type))
          (syntax     (get type 'syntax))
+         (declared   (get type :declared))
          spec mtype prefix name doc)
-    ;; Generate an analyzer if at least syntactic/lexical matches are
-    ;; provided.
-    (when syntax
+    ;; Generate an analyzer if the corresponding type has been
+    ;; explicitly declared in a %type statement, and if at least the
+    ;; syntax property has been provided.
+    (when (and declared syntax)
       (setq prefix (file-name-sans-extension
                     (semantic-grammar-buffer-file
                      semantic--grammar-output-buffer))
@@ -873,9 +877,13 @@ Block definitions are read from the current table of lexical types."
       (noninteractive)
     noninteractive))
 
-(defun semantic-grammar-create-package ()
-  "Create package Lisp code from grammar in current buffer."
-  (interactive)
+(defun semantic-grammar-create-package (&optional force)
+  "Create package Lisp code from grammar in current buffer.
+Does nothing if the Lisp code seems up to date.
+If optional argument FORCE is non-nil, unconditionally re-generate the
+Lisp code."
+  (interactive "P")
+  (setq force (or force current-prefix-arg))
   (semantic-bovinate-toplevel t)
   (let* (
          ;; Values of the following local variables are obtained from
@@ -890,7 +898,8 @@ Block definitions are read from the current table of lexical types."
          (epilogue (semantic-grammar-epilogue))
          (footer   (semantic-grammar-footer))
          )
-    (if (and (not (buffer-modified-p))
+    (if (and (not force)
+             (not (buffer-modified-p))
              (file-newer-than-file-p
               (buffer-file-name semantic--grammar-output-buffer)
               (buffer-file-name semantic--grammar-input-buffer)))
