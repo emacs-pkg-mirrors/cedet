@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.32 1997/03/01 15:08:52 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.33 1997/03/01 16:08:07 zappo Exp $
 ;;; Version: 0.4.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -215,7 +215,8 @@
 ;;;       Added `speedbar-find-file-in-frame' which will always pop up a frame
 ;;;        that is already display a buffer selected in the speedbar buffer.
 ;;;       Added S-mouse2 as "power click" for always poping up a new frame.
-;;;        and always rescanning with imenu (ditching the imenu cache)
+;;;        and always rescanning with imenu (ditching the imenu cache), and
+;;;        always rescanning directories.
 ;;;
 ;;; TODO:
 ;;; 1) More functions to create buttons and options
@@ -730,6 +731,8 @@ nil if it doesn't exist."
 The first line represents the default path of the speedbar frame.
 Each directory segment is a button which jumps speedbar's default
 directory to that path.  Buttons are activated by clicking mouse-2.
+In some situations using S-mouse-2 is a `power click' which will
+rescan cached items, or pop up new frames.
 
 Each line starting with <+> represents a directory.  Click on the <+>
 to insert the directory listing into the current tree.  Click on the
@@ -758,6 +761,7 @@ in the selected file.
 
 Keybindings: \\<speedbar-key-map>
 \\[speedbar-click]  Activate the button under the mouse.
+\\[speedbar-power-click]  Activate the button under the mouse with 'power' options
 \\[speedbar-edit-line]      Edit the file/directory on this line.  Same as clicking 
          on the name on the selected line.
 \\[speedbar-up-directory]        Navigate up one directory.
@@ -1133,6 +1137,11 @@ matching ignored headers.  Cache any directory files found in
 `speedbar-directory-contents-alist' and use that cache before scanning
 the filesystem"
   (setq directory (expand-file-name directory))
+  ;; If in powerclick mode, then the directory we are getting
+  ;; should be rescanned.
+  (if speedbar-power-click
+      (adelete 'speedbar-directory-contents-alist directory))
+  ;; find the directory, either in the cache, or build it.
   (or (cdr-safe (assoc directory speedbar-directory-contents-alist))
       (let ((default-directory directory)
 	    (dir (directory-files directory nil))
