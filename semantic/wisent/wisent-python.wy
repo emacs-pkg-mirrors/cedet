@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.20 2003/01/31 05:23:09 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.21 2003/01/31 05:26:26 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -36,7 +36,7 @@
 ;;   generate INDENT_BLOCK tokens such as PAREN_BLOCK tokens rather than
 ;;   generating whole bunch of lexical tokens.
 ;;
-;; * Parse base-class parameters of class definitions.
+;; * Verify that \ character is handled properly by the lexer and parser.
 
 ;; --------
 ;; Settings
@@ -747,14 +747,15 @@ function_parameter
 ;; classdef: 'class' NAME ['(' testlist ')'] ':' suite
 classdef
   : CLASS NAME paren_testlist_opt COLON suite
-    (wisent-token $2 'type $1 $5 nil)
+    (wisent-token $2 'type $1 $5 $3)
   ;
 
 ;; ['(' testlist ')']
+;; function_parameter_list is way too general for baseclass list, but
+;; hey it works!
 paren_testlist_opt
   : ;;EMPTY
- ;;| LPAREN testlist RPAREN
-  | PAREN_BLOCK
+  | function_parameter_list
   ;
 
 ;;;****************************************************************************
