@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.181 2004/04/01 13:19:54 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.182 2004/04/28 15:37:15 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -277,8 +277,6 @@ That is if it is dirty or if the current parse tree isn't up to date."
 (defun semantic-new-buffer-fcn ()
   "Setup Semantic in the current buffer.
 Runs `semantic-init-hook' if the major mode is setup to use Semantic."
-  ;; Make sure variables are set up for this mode.
-  (semantic-activate-mode-bindings)
   ;; Do stuff if semantic was activated by a mode hook in this buffer.
   (when semantic--parse-table
     ;; Force this buffer to have its cache refreshed.
@@ -296,33 +294,7 @@ Runs `semantic-init-hook' if the major mode is setup to use Semantic."
     (run-hooks 'semantic-init-hooks)
     ))
 
-(defvar semantic-changed-mode-buffers nil
-  "List of buffers whose `major-mode' has changed recently.")
-
-(defun semantic-post-change-major-mode-function ()
-  "`post-command-hook' run when there is a `major-mode' change.
-This makes sure semantic-init type stuff can occur."
-  (remove-hook 'post-command-hook
-               'semantic-post-change-major-mode-function)
-  (let (buf)
-    (while semantic-changed-mode-buffers
-      (setq buf (car semantic-changed-mode-buffers)
-            semantic-changed-mode-buffers
-            (cdr semantic-changed-mode-buffers))
-      (and (buffer-live-p buf)
-           (buffer-file-name buf)
-           (with-current-buffer buf
-             (semantic-new-buffer-fcn))))))
-
-(defun semantic-change-major-mode-hook-function ()
-  "Function called in `change-major-mode-hook'."
-  (add-to-list 'semantic-changed-mode-buffers (current-buffer))
-  (add-hook 'post-command-hook 'semantic-post-change-major-mode-function))
-
-(add-hook 'find-file-hooks
-          'semantic-post-change-major-mode-function)
-(add-hook 'change-major-mode-hook
-          'semantic-change-major-mode-hook-function)
+(add-hook 'mode-local-init-hook 'semantic-new-buffer-fcn)
 
 ;; Test the above hook.
 ;;(add-hook 'semantic-init-hooks (lambda () (message "init for semantic")))
@@ -372,7 +344,6 @@ the output buffer."
       (erase-buffer)
       (insert (pp-to-string out))
       (goto-char (point-min)))))
-
 
 ;;; Functions of the parser plug-in API
 ;;
