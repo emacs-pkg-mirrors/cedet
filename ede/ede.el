@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.3 1999/01/21 13:55:28 zappo Exp $
+;; RCS: $Id: ede.el,v 1.4 1999/01/21 21:29:25 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -117,13 +117,16 @@ type is required and the load function used.")
 	 :custom string
 	 :docstring "Name of this target.")
    (path :initarg :path
+	 :custom string
 	 :docstring "The path to this target.")
    (takes-compile-command
     :initarg :takes-compile-command
     :initform nil
-    :docstring "Non-nil if this target takes requires a user approved command."
+    :docstring "Non-nil if this target requires a user approved command."
     :allocation :class)
-   )
+   (source :initarg :source
+	   :custom (repeat object)
+	   :documentation "Source files in this target.")   )
   "A top level target to build.")
 
 (defclass ede-project ()
@@ -356,7 +359,7 @@ ARGS are additional arguments to pass to method sym."
   "Remove the current file from targets."
   (interactive)
   (if (not ede-object)
-      (error "Cannot invoke %s for %s" (symbol-name sym) (buffer-name)))
+      (error "Cannot invoke remove-file for %s" (buffer-name)))
   (if (y-or-n-p (format "Remove from %s? " (ede-name ede-object)))
       (progn
 	(project-remove-file ede-object (ede-convert-path (ede-current-project)
@@ -461,7 +464,18 @@ Argument COMMAND is the command to use for compiling the target."
 (defmethod ede-name ((this ede-project))
   "Return a short-name for this project file.
 Do this by extracting the lowest directory name."
-  (oref this :file))
+  (oref this :name))
+
+(defmethod ede-description ((this ede-project))
+  "Return a description suitible for the minibuffer about THIS."
+  (format "Project %s: %d subprojects, %d targets."
+	  (ede-name this) (length (oref this :subproj)) 
+	  (length (oref this :targets))))
+
+(defmethod ede-description ((this ede-target))
+  "Return a description suitible for the minibuffer about THIS."
+  (format "Target %s: with %d source files."
+	  (ede-name this) (length (oref this :source))))
 
 (defmethod ede-convert-path ((this ede-project) path)
   "Convert path in a standard way for a given project.
