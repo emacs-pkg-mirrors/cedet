@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.53 2001/12/04 19:08:56 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.54 2001/12/07 19:55:25 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -158,8 +158,8 @@
 
 %token UNDERP "_P"
 %token UNDERUNDERP "__P"
-%put UNDERP summary "Common macro to elimitate prototype compatibility on some compilers"
-%put UNDERUNDERP summary "Common macro to elimitate prototype compatibility on some compilers"
+%put UNDERP summary "Common macro to eliminate prototype compatibility on some compilers"
+%put UNDERUNDERP summary "Common macro to eliminate prototype compatibility on some compilers"
 
 declaration : macro
 	    | type
@@ -353,11 +353,20 @@ type : typesimple SEMICOLON
        ( $2 type $1 $3 nil nil nil )
      ;
 
-opt-stars : STAR opt-stars
-	    ( (1+ (car $2)) )
+opt-stars :  STAR opt-starmod opt-stars
+	    ( (1+ (car $3)) )
 	  | EMPTY
 	    ( 0 )
           ;
+
+opt-starmod : STARMOD opt-starmod
+	      ( ,(cons (,car ,$1) $2) )
+	    | EMPTY
+	      ()
+	    ;
+
+STARMOD : CONST
+	;
 
 declmods : DECLMOD declmods
 	   ( ,(cons ,(car ,$1) $2 ) )
@@ -447,10 +456,10 @@ func-decl : opt-stars opt-class opt-destructor functionname opt-under-p arg-list
 	    opt-initializers
 	    fun-or-proto-end
 	    ( ,$4 'function 
-		   ;; Extra stuff goes in here.
+		  ;; Extra stuff goes in here.
 		  ;; Continue with the stuff we found in
 		  ;; this definition
-		  $2 $3 $6 $8 ,$7 ,$1 ,$10)
+		  $2 $3 $6 $8 $7 ,$1 ,$10)
 	  ;
 
 var-decl :  varnamelist  SEMICOLON
@@ -522,12 +531,11 @@ varname : opt-stars opt-restrict symbol opt-bits opt-array opt-assign
 	;
 
 # I should store more in this def, but leave it simple for now.
-variablearg : declmods typeformbase opt-stars opt-ref varname
-	      ( (car $5) variable $2 nil
+variablearg : declmods typeformbase opt-ref varname
+	      ( (list $4) variable $2 nil
 		 (ASSOC const (if (member "const" $1) t nil)
 			typemodifiers (delete "const" $1)
-			pointer (car ,$3)
-			reference (car ,$4)
+			reference (car ,$3)
 			)
 		 nil
 		 )
@@ -555,6 +563,8 @@ arg-list : semantic-list "^(" knr-arguments
 	   ( ,$2 )
 	 | semantic-list "^("
 	   (EXPANDFULL $1 arg-sub-list)
+	 | semantic-list "^(void)$"
+	   ( )
 	 ;
 
 knr-arguments : variablearg SEMICOLON knr-arguments
@@ -608,7 +618,7 @@ fun-or-proto-end: SEMICOLON
 		  ( nil )
 		# Here is an anoying feature of C++ pure virtual methods
 		| EQUAL number "^0$" SEMICOLON
-		  ( t )
+		  ( 'pure-virtual )
 		;
 
 opt-expression : expression
