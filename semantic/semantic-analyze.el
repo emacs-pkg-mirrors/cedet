@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.30 2004/02/10 01:52:13 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.31 2004/02/19 01:20:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -570,116 +570,125 @@ Returns an object based on symbol `semantic-analyze-context'."
   (interactive "d")
   (save-excursion
     (goto-char position)
-    (let* ((context-return nil)
-	   (startpoint (point))
-	   (prefix (semantic-ctxt-current-symbol))
-	   (endsym (car (reverse prefix)))
-	   (bounds (save-excursion
-		     (cond ((string= endsym "")
-			    (cons (point) (point))
-			    )
-			   ((and prefix (looking-at endsym))
-			    (cons (point) (progn
-					    (condition-case nil
-						(forward-sexp 1)
-					      (error nil))
-					    (point))))
-			   (prefix
-			    (condition-case nil
-				(cons (progn (forward-sexp -1) (point))
-				      (progn (forward-sexp 1) (point)))
-			      (error nil)))
-			   (t nil))))
-	   (prefixtypes nil)
-	   (scopetypes (semantic-analyze-scoped-types position))
-	   (scope (if scopetypes
-		      (semantic-analyze-scoped-tags scopetypes)))
-	   (localvar (semantic-get-local-variables))
-	   (function (semantic-ctxt-current-function))
-	   (fntag nil)
-	   arg fntagend argtag
-	   )
+    (or
+     (semantic-get-cache-data 'current-context)
+     (let* ((context-return nil)
+	    (startpoint (point))
+	    (prefix (semantic-ctxt-current-symbol))
+	    (endsym (car (reverse prefix)))
+	    (bounds (save-excursion
+		      (cond ((string= endsym "")
+			     (cons (point) (point))
+			     )
+			    ((and prefix (looking-at endsym))
+			     (cons (point) (progn
+					     (condition-case nil
+						 (forward-sexp 1)
+					       (error nil))
+					     (point))))
+			    (prefix
+			     (condition-case nil
+				 (cons (progn (forward-sexp -1) (point))
+				       (progn (forward-sexp 1) (point)))
+			       (error nil)))
+			    (t nil))))
+	    (prefixtypes nil)
+	    (scopetypes (semantic-analyze-scoped-types position))
+	    (scope (if scopetypes
+		       (semantic-analyze-scoped-tags scopetypes)))
+	    (localvar (semantic-get-local-variables))
+	    (function (semantic-ctxt-current-function))
+	    (fntag nil)
+	    arg fntagend argtag
+	    )
 
-      (condition-case nil
-	  ;; If we are on lame stuff, it won't be found!
-	  (setq prefix (semantic-analyze-find-tag-sequence
-			prefix localvar scope 'prefixtypes))
-	(error nil))
+       (condition-case nil
+	   ;; If we are on lame stuff, it won't be found!
+	   (setq prefix (semantic-analyze-find-tag-sequence
+			 prefix localvar scope 'prefixtypes))
+	 (error nil))
 
-      (when function
-	;; If we have a function, then we can get the argument
-	(setq arg (semantic-ctxt-current-argument))
+       (when function
+	 ;; If we have a function, then we can get the argument
+	 (setq arg (semantic-ctxt-current-argument))
 
-	(condition-case nil
-	    (setq fntag
-		  (semantic-analyze-find-tag-sequence
-		   function localvar scope))
-	  (error nil))
+	 (condition-case nil
+	     (setq fntag
+		   (semantic-analyze-find-tag-sequence
+		    function localvar scope))
+	   (error nil))
 
-	(when fntag
-	  (setq fntagend (car (reverse fntag))
-		argtag
-		(when (semantic-tag-p fntagend)
-		  (nth (1- arg) (semantic-tag-function-arguments fntagend)))
-		)))
+	 (when fntag
+	   (setq fntagend (car (reverse fntag))
+		 argtag
+		 (when (semantic-tag-p fntagend)
+		   (nth (1- arg) (semantic-tag-function-arguments fntagend)))
+		 )))
 
-      (if fntag
-	  ;; If we found a tag for our function, we can go into
-	  ;; functional context analysis mode, meaning we have a type
-	  ;; for the argument.
-	  (setq context-return
-		  (semantic-analyze-context-functionarg
-		   "functionargument"
-		   :buffer (current-buffer)
-		   :function fntag
-		   :index arg
-		   :argument (list argtag)
-		   :scope scope
-		   :scopetypes scopetypes
-		   :localvariables localvar
-		   :prefix prefix
-		   :bounds bounds
-		   :prefixtypes prefixtypes))
+       (if fntag
+	   ;; If we found a tag for our function, we can go into
+	   ;; functional context analysis mode, meaning we have a type
+	   ;; for the argument.
+	   (setq context-return
+		 (semantic-analyze-context-functionarg
+		  "functionargument"
+		  :buffer (current-buffer)
+		  :function fntag
+		  :index arg
+		  :argument (list argtag)
+		  :scope scope
+		  :scopetypes scopetypes
+		  :localvariables localvar
+		  :prefix prefix
+		  :bounds bounds
+		  :prefixtypes prefixtypes))
 
-	;; No function, try assignment
-	(let ((assign (semantic-ctxt-current-assignment))
-	      (asstag nil))
-	  (if assign
-	      ;; We have an assignment
-	      (setq asstag (semantic-analyze-find-tag-sequence
-			    assign localvar scope)))
-	  (if asstag
-	      (setq context-return
-		    (semantic-analyze-context-assignment
-		     "assignment"
-		     :buffer (current-buffer)
-		     :assignee asstag
-		     :scope scope
-		     :scopetypes scopetypes
-		     :localvariables localvar
-		     :bounds bounds
-		     :prefix prefix
-		     :prefixtypes prefixtypes))
+	 ;; No function, try assignment
+	 (let ((assign (semantic-ctxt-current-assignment))
+	       (asstag nil))
+	   (if assign
+	       ;; We have an assignment
+	       (setq asstag (semantic-analyze-find-tag-sequence
+			     assign localvar scope)))
+	   (if asstag
+	       (setq context-return
+		     (semantic-analyze-context-assignment
+		      "assignment"
+		      :buffer (current-buffer)
+		      :assignee asstag
+		      :scope scope
+		      :scopetypes scopetypes
+		      :localvariables localvar
+		      :bounds bounds
+		      :prefix prefix
+		      :prefixtypes prefixtypes))
 	  
-	    ;; TODO: Identify return value condition.
+	     ;; TODO: Identify return value condition.
 
-	    ;; Nothing in particular
-	    (setq context-return
-		  (semantic-analyze-context
-		   "context"
-		   :buffer (current-buffer)
-		   :scope scope
-		   :scopetypes scopetypes
-		   :localvariables localvar
-		   :bounds bounds
-		   :prefix prefix
-		   :prefixtypes prefixtypes)))))
+	     ;; Nothing in particular
+	     (setq context-return
+		   (semantic-analyze-context
+		    "context"
+		    :buffer (current-buffer)
+		    :scope scope
+		    :scopetypes scopetypes
+		    :localvariables localvar
+		    :bounds bounds
+		    :prefix prefix
+		    :prefixtypes prefixtypes)))))
 
-      ;; Check for interactivity
-      (if (interactive-p)
-	  (semantic-analyze-pop-to-context context-return))
-      ;; Return our context.
-      context-return)))
+       ;; Check for interactivity
+       (if (interactive-p)
+	   (semantic-analyze-pop-to-context context-return))
+       ;; Add this to a buffer cache
+       (semantic-cache-data-to-buffer (current-buffer)
+				      (car bounds)
+				      (cdr bounds)
+				      context-return
+				      'current-context
+				      'exit-cache-zone)
+       ;; Return our context.
+       context-return))))
 
 
 ;;; Context Analysis Completion
