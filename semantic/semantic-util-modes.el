@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.9 2001/11/13 19:52:29 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.10 2001/11/14 01:49:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -127,17 +127,17 @@ If ARG is nil, then toggle."
          (global-semantic-show-dirty-mode (if val 1 -1))))
 
 (defcustom semantic-show-dirty-mode-hook nil
-  "Hook run at the end of function `semantic-show-dirty-mode'."
+  "*Hook run at the end of function `semantic-show-dirty-mode'."
   :group 'semantic
   :type 'hook)
 
 (defcustom semantic-show-dirty-mode-on-hook nil
-  "Hook run when show-dirty minor mode is turned on."
+  "*Hook run when show-dirty minor mode is turned on."
   :group 'semantic
   :type 'hook)
   
 (defcustom semantic-show-dirty-mode-off-hook nil
-  "Hook run when show-dirty minor mode is turned off."
+  "*Hook run when show-dirty minor mode is turned off."
   :group 'semantic
   :type 'hook)
 
@@ -261,17 +261,17 @@ If ARG is nil, then toggle."
          (global-semantic-show-unmatched-syntax-mode (if val 1 -1))))
 
 (defcustom semantic-show-unmatched-syntax-mode-hook nil
-  "Hook run at the end of function `semantic-show-unmatched-syntax-mode'."
+  "*Hook run at the end of function `semantic-show-unmatched-syntax-mode'."
   :group 'semantic
   :type 'hook)
 
 (defcustom semantic-show-unmatched-syntax-mode-on-hook nil
-  "Hook called when show-unmatched-syntax minor mode is turned on."
+  "*Hook called when show-unmatched-syntax minor mode is turned on."
   :group 'semantic
   :type 'hook)
   
 (defcustom semantic-show-unmatched-syntax-mode-off-hook nil
-  "Hook called when show-unmatched-syntax minor mode is turned off."
+  "*Hook called when show-unmatched-syntax minor mode is turned off."
   :group 'semantic
   :type 'hook)
 
@@ -280,7 +280,7 @@ If ARG is nil, then toggle."
      (:underline "red"))
     (((class color) (background light))
      (:underline "red")))
-  "Face used to show unmatched-syntax in.
+  "*Face used to show unmatched-syntax in.
 The face is used in  `semantic-show-unmatched-syntax-mode'."
   :group 'semantic)
 
@@ -487,17 +487,17 @@ If ARG is nil, then toggle."
          'semantic-auto-parse-mode arg)))
 
 (defcustom semantic-auto-parse-mode-hook nil
-  "Hook run at the end of function `semantic-show-dirty-mode'."
+  "*Hook run at the end of function `semantic-show-dirty-mode'."
   :group 'semantic
   :type 'hook)
 
 (defcustom semantic-auto-parse-mode-on-hook nil
-  "Hook run when auto-parse minor mode is turned on."
+  "*Hook run when auto-parse minor mode is turned on."
   :group 'semantic
   :type 'hook)
   
 (defcustom semantic-auto-parse-mode-off-hook nil
-  "Hook run when auto-parse minor mode is turned off."
+  "*Hook run when auto-parse minor mode is turned off."
   :group 'semantic
   :type 'hook)
 
