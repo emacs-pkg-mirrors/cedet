@@ -1,6 +1,10 @@
 # Simple BNF notation for top-level C elements.
 #
 # $Log: c.bnf,v $
+# Revision 1.6  2000/04/20 23:55:03  zappo
+# Macros split from 'variable' nt.
+# Added knr-argument parsing.
+#
 # Revision 1.5  2000/04/16 22:34:07  zappo
 # Added `filename' for include rules.
 #
@@ -18,12 +22,14 @@
 #
 
 # TABLE: semantic-ex.el:semantic-toplevel-c-bovine-table
+# MODE: c-mode
 
 bovine-toplevel : include
+		| macro
 		| comment
 		| variable
-                | prototype
                 | function
+                | prototype
                 | type
                 | define
                 ;
@@ -131,10 +137,12 @@ opt-assign : punctuation "=" expression
 	     ( nil )
 	   ;
 
+macro : punctuation "#" symbol "define" symbol opt-expression
+	( $3 variable nil t $4 nil nil )
+      ;
+
 variable : variabledef punctuation ";"
 	   ( ,$1 )
-         | punctuation "#" symbol "define" symbol opt-expression
-	   ( $3 variable nil t $4 nil nil )
 	 ;
 
 variabledef : declmods typeform varnamelist
@@ -157,9 +165,17 @@ varnamelist : varname  punctuation "," varnamelist
 	      ( $1 )
 	    ;
 
-arg-list : semantic-list
+arg-list : semantic-list knr-arguments
+	   ( ,$2 )
+	 | semantic-list
 	   (EXPAND $1 arg-sub-list)
 	 ;
+
+knr-arguments : variablearg punctuation ";" knr-arguments
+		( ,(cons $1 $3) )
+	      | variablearg punctuation ";"
+		( $1 )
+	      ;
 
 arg-sub-list : open-paren "(" close-paren ")"
 	       ( nil )
@@ -173,11 +189,11 @@ arg-sub-list : open-paren "(" close-paren ")"
 	       ( $1 )
 	     ;
 
-functiondef : typeform symbol arg-list
-	      ( $2 function $1 $3 nil )
+functiondef : declmods typeform symbol arg-list
+	      ( $3 function $2 $4 nil )
             ;
 
-prototype : functiondef ";"
+prototype : functiondef punctuation ";"
 	    ( ,$1 )
 	  ;
 
