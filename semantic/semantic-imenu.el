@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.34 2001/09/12 04:47:49 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.35 2001/09/18 19:21:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -319,64 +319,51 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
 (defun semantic-create-imenu-subindex (tokens)
   "From TOKENS, create an imenu index of interesting things."
   (let ((notypecheck (not semantic-imenu-expand-type-parts))
-	index token parts)
+        index token parts)
     (while tokens
       (setq token (car tokens))
       (if (and (not notypecheck)
-	       (eq (semantic-token-token token)
-		   semantic-imenu-expandable-token)
-	       (semantic-token-with-position-p
-		(car (semantic-nonterminal-children token)))
-	       )
+               (eq (semantic-token-token token)
+                   semantic-imenu-expandable-token)
+               (semantic-token-with-position-p
+                (car (semantic-nonterminal-children token)))
+               )
           ;; to keep an homogeneous menu organisation, type menu items
-          ;; always have a sub-menu with at least the *typedef* item
-          ;; (even if the token has no type parts)
+          ;; always have a sub-menu with at least the *definition*
+          ;; item (even if the token has no type parts)
           (setq parts (semantic-nonterminal-children token)
                 index
-		(cons
-		 (cons
-		  (funcall semantic-imenu-summary-function token)
-		  ;; Add a menu for getting at the type definitions
-		  (if (and parts
-			   ;; Note to self: enable menu items for sub parts
-			   ;; even if they are not proper tokens.
-			   (semantic-token-p (car parts)))
-		      (cons (cons "*definition*"
-				  (semantic-imenu-token-overlay token))
-			    (if (and semantic-imenu-bucketize-type-parts
-				     semantic-imenu-bucketize-file)
-				(semantic-create-imenu-index-1 parts)
-			      (semantic-create-imenu-subindex parts)))
-		    ;; There were no parts, or something like that, so
-		    ;; instead just put the definition here.
-		    (semantic-imenu-token-overlay token)
-		    ))
-		 index))
-        (setq index (cons (cons (funcall semantic-imenu-summary-function token)
-                                (semantic-imenu-token-overlay token))
-                          index)))
+                (cons
+                 (cons
+                  (funcall semantic-imenu-summary-function token)
+                  ;; Add a menu for getting at the type definitions
+                  (if (and parts
+                           ;; Note to self: enable menu items for sub
+                           ;; parts even if they are not proper
+                           ;; tokens.
+                           (semantic-token-p (car parts)))
+                      (cons
+                       (cons "*definition*"
+                             (semantic-imenu-token-overlay token))
+                       (if (and semantic-imenu-bucketize-type-parts
+                                semantic-imenu-bucketize-file)
+                           (semantic-create-imenu-index-1 parts)
+                         (semantic-create-imenu-subindex parts)))
+                    ;; There were no parts, or something like that, so
+                    ;; instead just put the definition here.
+                    (semantic-imenu-token-overlay token)
+                    ))
+                 index))
+        (setq index (cons
+                     (cons
+                      (funcall semantic-imenu-summary-function token)
+                      (semantic-imenu-token-overlay token))
+                     index)))
       (setq tokens (cdr tokens)))
-    (setq index
-	  ;; Imenu wasn't capturing this, so add the code from imenu.el
-	  ;; into this sub-sub section.
-	  (if imenu-sort-function
-	      (sort (let ((res nil)
-			  (oldlist index))
-		      ;; Copy list method from the cl package `copy-list'
-		      (while (consp oldlist) (push (pop oldlist) res))
-		      (if res	  ; in case, e.g. no functions defined
-			  (prog1 (nreverse res) (setcdr res oldlist))))
-		    imenu-sort-function)
-	    (nreverse index)))
-    (if (> (length index) imenu-max-items)
-	(let ((count 0))
-	  (setq index
-		(mapcar
-		 (function
-		  (lambda (menu)
-		    (cons (format "From: %s" (caar menu)) menu)))
-		 (imenu--split index imenu-max-items)))))
-    index))
+    ;; `imenu--split-submenus' sort submenus according to
+    ;; `imenu-sort-function' setting and split them up if they are
+    ;; longer than `imenu-max-items'.
+    (imenu--split-submenus (nreverse index))))
 
 ;;; directory imenu rebuilding.
 ;;
