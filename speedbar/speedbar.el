@@ -5,7 +5,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.210 2002/02/26 11:53:52 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.211 2002/02/26 12:11:28 zappo Exp $
 
 (defvar speedbar-version "0.14beta2"
   "The current version of speedbar.")
@@ -246,7 +246,8 @@ attached to and added to this list before the new frame is initialized."
   '(minibuffer nil width 20 border-width 0
 	       internal-border-width 0 unsplittable t
 	       default-toolbar-visible-p nil has-modeline-p nil
-	       menubar-visible-p nil)
+	       menubar-visible-p nil
+	       default-gutter-visible-p nil)
   "*Parameters to use when creating the speedbar frame in XEmacs.
 Parameters not listed here which will be added automatically are
 `height' which will be initialized to the height of the frame speedbar
@@ -547,7 +548,7 @@ It is generated from the variable `completion-ignored-extensions'")
 		;; html is not supported by default, but an imenu tags package
 		;; is available.  Also, html files are nice to be able to see.
 		".s?html"
-		"[Mm]akefile\\(\\.in\\)?")))
+		".ma?k" "[Mm]akefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
 will be stripped by a simplified optimizer when compiled into a
@@ -2694,7 +2695,9 @@ to add more types of version control systems."
 		      ;; efs support: Bob Weiner
 		      (and (featurep 'efs)
 			   (string-match
-			    (car efs-path-regexp)
+			    (if (stringp efs-path-regexp)
+				efs-path-regexp
+			      (car efs-path-regexp))
 			    (expand-file-name default-directory))))))
 	(setq speedbar-vc-to-do-point 0))
     (if (numberp speedbar-vc-to-do-point)
@@ -3627,7 +3630,8 @@ DIRECTORY is the path to the currently active buffer, and ZERO is 0."
   "Create speedbar buffer buttons.
 If TEMP is non-nil, then clicking on a buffer restores the previous display."
   (insert "Active Buffers:\n")
-  (let ((bl (buffer-list)))
+  (let ((bl (buffer-list))
+	(case-fold-search t))
     (while bl
       (if (string-match "^[ *]" (buffer-name (car bl)))
 	  nil
