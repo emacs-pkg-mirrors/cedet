@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: amusement
-;; X-RCS: $Id: bigclock.el,v 1.2 2000/09/04 00:10:36 zappo Exp $
+;; X-RCS: $Id: bigclock.el,v 1.3 2000/09/05 01:05:01 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -113,8 +113,8 @@ Optional argument ARG enables or disables the bigclock frame."
 		     bigclock-after-create-hook)
   ;; Start up the timer
   (if (not bigclock-frame)
-      (dframe-set-timer nil 'bigclock-timer-fn 'bigclock-update-flag)
-    (dframe-set-timer 60 'bigclock-timer-fn 'bigclock-update-flag)
+      (dframe-set-timer nil #'bigclock-timer-fn 'bigclock-update-flag)
+    (dframe-set-timer 60 #'bigclock-timer-fn 'bigclock-update-flag)
     ))
 
 (defun bigclock-get-focus ()
@@ -145,7 +145,7 @@ selected.  If the bigclock frame is active, then select the attached frame."
 	  dframe-mouse-click-function nil
 	  dframe-mouse-position-function nil)
     ;;no auto-show for Emacs
-    (run-hooks 'bigclock-mode-hook)))
+    (run-hooks 'bigclock-mode-hook))
 
 (defun bigclock-timer-fn ()
   "Run whenever Emacs is idle to update bigclock."
