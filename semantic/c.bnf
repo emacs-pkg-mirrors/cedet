@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.59 2002/06/13 15:05:21 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.60 2002/08/11 17:20:21 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@
 %setupfunction semantic-default-c-setup
 
 %(setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
-       semantic-flex-extensions semantic-flex-c-extensions
        semantic-dependency-include-path semantic-default-c-path
        semantic-orphaned-member-metaparent-type "struct"
        semantic-symbol->name-assoc-list
