@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: picture
-;; X-RCS: $Id: picture-hack.el,v 1.4 2001/08/14 14:20:42 zappo Exp $
+;; X-RCS: $Id: picture-hack.el,v 1.5 2001/08/17 21:35:59 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -130,7 +130,7 @@ Apply TEXTPROPERTIES to the character inserted."
       (let ((col (+ picture-desired-column width)))
 	(or (eolp)
 	    (let ((pos (point)))
-	      (move-to-column-force col t)
+	      (move-to-column col t)
 	      (delete-region pos (point)))))
       (insert ch)
       (forward-char -1)
