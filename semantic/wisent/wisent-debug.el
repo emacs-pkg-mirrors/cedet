@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 February 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-debug.el,v 1.1 2003/02/19 16:37:09 ponced Exp $
+;; X-RCS: $Id: wisent-debug.el,v 1.2 2003/02/20 08:29:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -122,7 +122,8 @@ FUNCTION must be a semantic action symbol that exists in AUTOMATON."
 
 (condition-case nil
     (require 'pprint)
-  (error nil))
+  (error
+   (require 'pp)))
 
 (if (fboundp 'pprint-to-string)
     (defalias 'wisent-debug-pp-to-string 'pprint-to-string)
