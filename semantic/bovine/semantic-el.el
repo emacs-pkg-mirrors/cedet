@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.6 2003/01/29 03:43:44 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.7 2003/02/13 07:14:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -387,7 +387,9 @@ In emacs lisp this is easilly defined by parenthisis bounding."
   (save-excursion
     (if point (goto-char point))
     (require 'thingatpt)
-    (thing-at-point 'symbol)))
+    (let ((sym (thing-at-point 'symbol)))
+      (if sym (list sym)))
+    ))
 
 (define-mode-overload-implementation semantic-ctxt-current-assignment emacs-lisp-mode
   (&optional point)
@@ -401,7 +403,8 @@ Don't implement this."
   (save-excursion
     (if point (goto-char point))
     (semantic-beginning-of-command)
-    (function-at-point)
+    (let ((fun (function-at-point)))
+      (if fun (list fun)))
     ))
 
 (define-mode-overload-implementation semantic-ctxt-current-argument emacs-lisp-mode
