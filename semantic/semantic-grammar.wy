@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.13 2004/01/18 15:43:30 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.14 2004/01/19 18:51:18 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -44,6 +44,7 @@ Used internally to retrieve value of EXPADFULL tags."
 %start put_names put_values use_names
 
 ;; Keywords
+%type    <keyword>
 %keyword DEFAULT-PREC    "%default-prec"
 %keyword NO-DEFAULT-PREC "%no-default-prec"
 %keyword KEYWORD         "%keyword"
@@ -62,29 +63,42 @@ Used internally to retrieve value of EXPADFULL tags."
 %keyword USE-MACROS      "%use-macros"
 
 ;; Literals
-%token <string>        STRING
-%token <symbol>        SYMBOL
-%token <symbol>        PERCENT_PERCENT "%%"
-%token <char>          CHARACTER
-%token <sexp>          SEXP
-%token <sexp>          PREFIXED_LIST "\\s'\\s-*("
-%token <code>          PROLOGUE "%{...%}"
-%token <code>          EPILOGUE "%%...EOF"
+%type  <string>
+%token <string>      STRING
 
-;; Blocks
-%token <semantic-list> PAREN_BLOCK "^("
-%token <semantic-list> BRACE_BLOCK "^{"
+%type  <symbol>      syntax ":?\\(\\sw\\|\\s_\\)+"
+%token <symbol>      SYMBOL
+%token <symbol>      PERCENT_PERCENT "\\`%%\\'"
 
-;; Parens
-%token <open-paren>    LBRACE      "{"
-%token <close-paren>   RBRACE      "}"
+%type  <char>        syntax semantic-grammar-lex-c-char-re
+%token <char>        CHARACTER
+
+%type  <qlist>       matchdatatype sexp syntax "\\s'\\s-*("
+%token <qlist>       PREFIXED_LIST
+
+%type  <sexp>        matchdatatype sexp syntax "\\="
+%token <sexp>        SEXP
+
+;; Don't generate these analyzers which needs special handling code.
+%token <code>        PROLOGUE "%{...%}"
+%token <code>        EPILOGUE "%%...EOF"
+
+;; Blocks & Parenthesis
+%type  <block>
+%token <block>       PAREN_BLOCK "(LPAREN RPAREN)"
+%token <block>       BRACE_BLOCK "(LBRACE RBRACE)"
+%token <open-paren>  LPAREN      "("
+%token <close-paren> RPAREN      ")"
+%token <open-paren>  LBRACE      "{"
+%token <close-paren> RBRACE      "}"
 
 ;; Punctuations
-%token <punctuation>   COLON       ":"
-%token <punctuation>   SEMI        ";"
-%token <punctuation>   OR          "|"
-%token <punctuation>   LT          "<"
-%token <punctuation>   GT          ">"
+%type  <punctuation>
+%token <punctuation> COLON       ":"
+%token <punctuation> SEMI        ";"
+%token <punctuation> OR          "|"
+%token <punctuation> LT          "<"
+%token <punctuation> GT          ">"
 
 %%
 
@@ -414,4 +428,32 @@ item:
   | CHARACTER
   ;
 
+%%
+
+(define-lex semantic-grammar-lexer
+  "Lexical analyzer that handles Semantic grammar buffers.
+It ignores whitespaces, newlines and comments."
+  semantic-lex-ignore-newline
+  semantic-lex-ignore-whitespace
+  ;; Must detect prologue/epilogue before other symbols/keywords!
+  semantic-grammar-lex-prologue
+  semantic-grammar-lex-epilogue
+  semantic-grammar-wy--<keyword>-keyword-analyzer
+  semantic-grammar-wy--<symbol>-regexp-analyzer
+  semantic-grammar-wy--<char>-regexp-analyzer
+  semantic-grammar-wy--<string>-sexp-analyzer
+  ;; Must detect comments after strings because `comment-start-skip'
+  ;; regexp match semicolons inside strings!
+  semantic-lex-ignore-comments
+  ;; Must detect prefixed list before punctuation because prefix chars
+  ;; are also punctuations!
+  semantic-grammar-wy--<qlist>-sexp-analyzer
+  ;; Must detect punctuations after comments because the semicolon can
+  ;; be a punctuation or a comment start!
+  semantic-grammar-wy--<punctuation>-string-analyzer
+  semantic-grammar-wy--<block>-block-analyzer
+  semantic-grammar-wy--<sexp>-sexp-analyzer
+  )
+
 ;;; semantic-grammar.wy ends here
+
