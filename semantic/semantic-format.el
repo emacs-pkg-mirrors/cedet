@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.2 2003/04/08 03:26:27 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.3 2003/04/09 12:11:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -181,7 +181,7 @@ variable for details on adding new types."
 
 ;;; Function Arguments
 ;;
-(defun semantic--format-tag-arguments(args formatter color)
+(defun semantic--format-tag-arguments (args formatter color)
   "Format the argument list ARGS with FORMATTER.
 FORMATTER is a function used to format a tag.
 COLOR specifies if color should be used."
@@ -349,14 +349,13 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	 (name (semantic-format-tag-name tag parent color))
 	 (type (if (member class '(function variable type))
 		   (semantic-format-tag-type tag color)))
-	 (args (semantic--format-tag-arguments
-		(cond ((eq class 'function)
-		       (semantic-tag-function-arguments tag))
-		      ((eq class 'type)
-		       (semantic-tag-type-members tag))
-		      (t nil))
-		#'semantic-format-tag-prototype
-		color))
+	 (args (if (member class '(function type))
+                   (semantic--format-tag-arguments
+                    (if (eq class 'function)
+                        (semantic-tag-function-arguments tag)
+                      (semantic-tag-type-members tag))
+                    #'semantic-format-tag-prototype
+                    color)))
 	 (const (semantic-tag-get-attribute tag 'const))
 	 (mods (append
 		(if const '("const") nil)
