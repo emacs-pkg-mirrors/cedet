@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.86 2000/11/30 22:39:54 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.87 2000/12/01 15:06:43 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -1846,6 +1846,51 @@ this object."
       (setq list (cdr list)))
     (princ (make-string (* eieio-print-depth 2) ? ))
     (princ ")")))
+
+
+;;; eieio-instance-inheritor
+;;
+(defclass eieio-instance-inheritor ()
+  ((parent-instance :initarg :parent-instance
+		    :type eieio-instance-inheritor
+		    :documentation
+		    "The parent of this instance.
+If a slot of this class is reference, and is unbound, then  the parent
+is checked for a value.")
+   )
+  "This special class can enable instance inheritance.
+Use `clone' to make a new object that does instance inheritance from
+a parent instance.  When a slot in the child is referenced, and has
+not been set, use values from the parent.")
+
+(defmethod slot-unbound ((object eieio-instance-inheritor) class slot-name fn)
+  "If a slot OBJECT in this CLASS is unbound, try to inherit, or throw a signal.
+SLOT-NAME, is the offending slot.  FN is the function signalling the error."
+  (if (slot-boundp object 'parent-instance)
+      (eieio-oref (oref object parent-instance) slot-name)
+    (call-next-method)))
+
+(defmethod clone ((obj eieio-instance-inheritor) &rest params)
+  "Clone OBJ, initializing `:parent' to OBJ.
+All slots are unbound, except those initialized with PARAMS."
+  (let ((nobj (make-vector (length obj) eieio-unbound))
+	(nm (aref obj object-name))
+	(passname (and params (stringp (car params))))
+	(num 1))
+    (aset nobj 0 'object)
+    (aset nobj object-class (aref obj object-class))
+    ;; The following was copied from the default clone.
+    (if (not passname)
+	(save-match-data
+	  (if (string-match "-\\([0-9]+\\)" nm)
+	      (setq num (1+ (string-to-int (match-string 1 nm)))
+		    nm (substring nm 0 (match-beginning 0))))
+	  (aset nobj object-name (concat nm "-" (int-to-string num))))
+      (aset nobj object-name (car params)))
+    ;; Now initialize from params.
+    (if params (shared-initialize nobj (if passname (cdr params) params)))
+    (oset nobj parent-instance obj)
+    nobj))
 
 
 ;;; Unimplemented functions from CLOS
