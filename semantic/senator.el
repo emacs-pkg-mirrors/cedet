@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.27 2001/03/12 19:55:56 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.28 2001/03/21 09:57:18 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -100,6 +100,35 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.28  2001/03/21 09:57:18  ponced
+;; (senator-find-nonterminal-by-name,
+;; senator-find-nonterminal-by-name-regexp): return the complete list of
+;; tokens found instead of the ones from the first semanticdb table.
+;;
+;; (senator-completion-menu-do-complete, senator-completion-menu-item):
+;; use a one element array to pass and receive token instead of the token
+;; overlay.  Thus can handle tokens without overlay, returned by
+;; semanticdb.
+;;
+;; (senator-completion-menu-point-as-event): New function that returns
+;; the text cursor position as an event.
+;;
+;; (senator-completion-menu-popup): Now a command.  Uses
+;; `senator-completion-menu-point-as-event' to popup the menu at
+;; completion point.
+;;
+;; (senator-completion-menu-mouse-popup,
+;; senator-completion-menu-keyboard-popup): deleted.  Replaced by
+;; `senator-completion-menu-popup'.
+;;
+;; (senator-prefix-map, senator-mode-map): updated to use
+;; `senator-completion-menu-popup'.
+;;
+;; (senator-menu-bar): Uses `senator-minor-mode-name' as menu title.
+;; Fixed typos.  Replaced `global-semanticdb-minor-mode' by
+;; `semanticdb-toggle-global-mode' to enable/disable the Semantic
+;; Database feature.
+;;
 ;; Revision 1.27  2001/03/12 19:55:56  ponced
 ;; New faster core search engine.
 ;;
@@ -587,7 +616,7 @@ type context exists at point."
 Uses `semanticdb' when available."
   (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
       ;; semanticdb version returns a list..
-      (car (semanticdb-find-nonterminal-by-name name nil t))
+      (apply #'append (semanticdb-find-nonterminal-by-name name nil t))
     (semantic-find-nonterminal-by-name name (current-buffer) t)))
 
 (defun senator-find-nonterminal-by-name-regexp (regexp)
@@ -595,7 +624,7 @@ Uses `semanticdb' when available."
 Uses `semanticdb' when available."
   (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
       ;; semanticdb version returns a list..
-      (car (semanticdb-find-nonterminal-by-name-regexp regexp nil t))
+      (apply #'append (semanticdb-find-nonterminal-by-name-regexp regexp nil t))
     (semantic-find-nonterminal-by-name-regexp regexp (current-buffer) t)))
 
 ;;;;
@@ -959,11 +988,11 @@ It will receive a Semantic token as argument."
   "Insert a text representation of TOKEN at point."
   (insert (semantic-token-name token)))
 
-(defun senator-completion-menu-do-complete (token-overlay)
+(defun senator-completion-menu-do-complete (token-array)
   "Replace the current syntactic expression with a chosen completion.
-Argument TOKEN-OVERLAY is the overlay of the token chosen from the
-completion menu."
-  (let ((token (semantic-overlay-get token-overlay 'semantic))
+Argument TOKEN-ARRAY is an array of one element containting the token
+choosen from the completion menu."
+  (let ((token (aref token-array 0))
         (symstart (senator-current-symbol-start))
         (finsert (if (fboundp senator-completion-menu-insert-function)
                      senator-completion-menu-insert-function
@@ -975,19 +1004,50 @@ completion menu."
 
 (defun senator-completion-menu-item (token)
   "Return a completion menu item from TOKEN.
-That is a pair (MENU-ITEM-TEXT . TOKEN-OVERLAY).  Can return nil to
-discard a menu item."
+That is a pair (MENU-ITEM-TEXT . TOKEN-ARRAY).  TOKEN-ARRAY is an
+array of one element containting TOKEN.  Can return nil to discard a
+menu item."
   (cons (funcall (if (fboundp senator-completion-menu-summary-function)
                      senator-completion-menu-summary-function
                    #'semantic-prototype-nonterminal) token)
-        (semantic-token-overlay token)))
+        (vector token)))
 
-(defun senator-completion-menu-popup (event)
+(defun senator-completion-menu-point-as-event()
+  "Returns the text cursor position as an event.
+Also move the mouse pointer to the cursor position."
+  (let* ((w (get-buffer-window (current-buffer)))
+         (x (mod (- (current-column) (window-hscroll))
+                 (window-width)))
+         (y (save-excursion
+              (save-restriction
+                (widen)
+                (narrow-to-region (window-start) (point))
+                (goto-char (point-min))
+                (1+ (vertical-motion (buffer-size))))))
+         )
+    (if (featurep 'xemacs)
+        (let* ((at (progn (set-mouse-position w x (1- y))
+                          (cdr (mouse-pixel-position))))
+               (x  (car at))
+               (y  (cdr at)))
+          (make-event 'button-press
+                      (list 'button 3
+                            'modifiers nil
+                            'x x
+                            'y y)))
+      (set-mouse-pixel-position (window-frame w)
+                                (* x (frame-char-width))
+                                (* y (frame-char-height)))
+      ;;(list (list x y) window)
+      t)))
+
+;;;###autoload
+(defun senator-completion-menu-popup ()
   "Popup a completion menu for the symbol at point.
 The popup menu displays all of the possible completions for the symbol
 it was invoked on.  To automatically split large menus this function
-use `imenu--mouse-menu' to handle the popup menu.  EVENT is the
-parametrized event that invoked this command."
+use `imenu--mouse-menu' to handle the popup menu."
+  (interactive)
   (let ((symstart (senator-current-symbol-start))
         symbol regexp complst)
     (if symstart
@@ -1004,42 +1064,13 @@ parametrized event that invoked this command."
                       ;; Delegates menu handling to imenu :-)
                       (imenu--mouse-menu
                        index
-                       event ;; popup at mouse position
+                       ;; popup at point
+                       (senator-completion-menu-point-as-event)
                        (format "%S completion" symbol))
                     ;; Only one item match, return it
                     (car index))))
       (if item
           (senator-completion-menu-do-complete (cdr item))))))
-
-;;;###autoload
-(defun senator-completion-menu-mouse-popup (event)
-  "Popup a completion menu for the symbol at point.
-EVENT is the parametrized event that invoked this command."
-  (interactive "e")
-  (senator-completion-menu-popup event))
-
-;;;###autoload
-(defun senator-completion-menu-keyboard-popup ()
-  "Popup a completion menu for the symbol at point."
-  (interactive)
-  (let ((event (if (featurep 'xemacs)
-                   ;; In XEmacs must build an event to popup the menu
-                   ;; at mouse position
-                   (let* ((edge (window-pixel-edges))
-                          (left (car edge))
-                          (top  (car (cdr edge)))
-                          (at   (cdr (mouse-pixel-position)))
-                          (x    (+ (or (car at) 0) left))
-                          (y    (+ (or (cdr at) 0) top)))
-                     (make-event 'button-press
-                                 (list 'channel (selected-frame)
-                                       'button 3
-                                       'x x
-                                       'y y)))
-                 ;; In Emacs just use t to popup the menu at mouse
-                 ;; position
-                 t)))
-    (senator-completion-menu-popup event)))
 
 ;;;;
 ;;;; Search commands
@@ -1279,7 +1310,7 @@ This is a buffer local variable.")
     (define-key km "p" 'senator-previous-token)
     (define-key km "n" 'senator-next-token)
     (define-key km "\t" 'senator-complete-symbol)
-    (define-key km " " 'senator-completion-menu-keyboard-popup)
+    (define-key km " " 'senator-completion-menu-popup)
     (define-key km "\C-w" 'senator-kill-token)
     (define-key km "\M-w" 'senator-copy-token)
     (define-key km "\C-y" 'senator-yank-token)
@@ -1305,7 +1336,7 @@ That is remove the unsupported :help stuff."
 
 (defvar senator-menu-bar
   (list
-   "Senator"
+   senator-minor-mode-name
    (list
     "Navigate"
     (senator-menu-item
@@ -1468,7 +1499,7 @@ That is remove the unsupported :help stuff."
        ])
     (senator-menu-item
      [ "Copy Token to Register"
-       senator-copy-token
+       senator-copy-token-to-register
        :active (semantic-current-nonterminal)
        :help "Copy the current token to a register"
        ])
@@ -1480,7 +1511,7 @@ That is remove the unsupported :help stuff."
      "Token Sorting Function"
      (senator-menu-item
       [ "Do not sort"
-        (setq semantic-imenu-sort-bucket-functin nil)
+        (setq semantic-imenu-sort-bucket-function nil)
         :active t
         :style radio
         :selected (eq semantic-imenu-sort-bucket-function nil)
@@ -1488,7 +1519,7 @@ That is remove the unsupported :help stuff."
         ])
      (senator-menu-item
       [ "Increasing by name"
-        (setq semantic-imenu-sort-bucket-functin
+        (setq semantic-imenu-sort-bucket-function
               'semantic-sort-tokens-by-name-increasing)
         :active t
         :style radio
@@ -1498,7 +1529,7 @@ That is remove the unsupported :help stuff."
         ])
      (senator-menu-item
       [ "Decreasing by name"
-        (setq semantic-imenu-sort-bucket-functin
+        (setq semantic-imenu-sort-bucket-function
               'semantic-sort-tokens-by-name-decreasing)
         :active t
         :style radio
@@ -1508,7 +1539,7 @@ That is remove the unsupported :help stuff."
         ])
      (senator-menu-item
       [ "Increasing Case Insensitive by Name"
-        (setq semantic-imenu-sort-bucket-functin
+        (setq semantic-imenu-sort-bucket-function
               'semantic-sort-tokens-by-name-increasing-ci)
         :active t
         :style radio
@@ -1518,7 +1549,7 @@ That is remove the unsupported :help stuff."
         ])
      (senator-menu-item
       [ "Decreasing Case Insensitive by Name"
-        (setq semantic-imenu-sort-bucket-functin
+        (setq semantic-imenu-sort-bucket-function
               'semantic-sort-tokens-by-name-decreasing-ci)
         :active t
         :style radio
@@ -1574,8 +1605,8 @@ That is remove the unsupported :help stuff."
     )
    (senator-menu-item
     [ "Semantic Database"
-      (global-semanticdb-minor-mode)
-      :active t
+      semanticdb-toggle-global-mode
+      :active (featurep 'semanticdb)
       :style toggle
       :selected (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
       :help "Cache tokens for killed buffers and between sessions."
@@ -1614,7 +1645,7 @@ That is remove the unsupported :help stuff."
 (defvar senator-mode-map
   (let ((km (make-sparse-keymap)))
     (define-key km senator-prefix-key senator-prefix-map)
-    (define-key km [(shift mouse-3)] 'senator-completion-menu-mouse-popup)
+    (define-key km [(shift mouse-3)] 'senator-completion-menu-popup)
     (easy-menu-define senator-minor-menu km "Senator Minor Mode Menu"
                       senator-menu-bar)
     km)
