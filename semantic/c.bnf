@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.28 2001/02/20 20:36:19 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.29 2001/02/24 15:24:24 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.29  2001/02/24 15:24:24  zappo
+# Added a few optimizations for structure parts.
+# Used some %tokens in a few spots where I wasn't using them before.
+#
 # Revision 1.28  2001/02/20 20:36:19  zappo
 # Removed unused %put calls.
 #
@@ -82,9 +86,9 @@
        document-comment-end " */"
        )%
 
-%token HASH punctuation "#"
 %token INCLUDE "include"
 %token DEFINE "define"
+%token HASH punctuation "#"
 %token PERIOD punctuation "."
 %token COLON punctuation ":"
 %token SEMICOLON punctuation ";"
@@ -133,7 +137,7 @@ codeblock : macro
 	  | type # type is less likely to be used here.
 	  ;
 		
-include : HASH INCLUDE punctuation "<" filename punctuation ">"
+include : HASH INCLUDE LESS filename GREATER
 	  ( ,$4 include t nil )
         | HASH INCLUDE string
 	  ( (read $3) include nil nil )
@@ -141,7 +145,7 @@ include : HASH INCLUDE punctuation "<" filename punctuation ">"
 
 filename : symbol PERIOD symbol
 	   ( (concat $1 $2 $3) )
-         | symbol punctuation "/" filename
+         | symbol DIVIDE filename
 	   ( (concat $1 $2 (car $3)) )
 	 ;
 
@@ -149,12 +153,12 @@ structparts : semantic-list
 	      (EXPANDFULL $1 structsubparts)
 	    ;
 
-structsubparts : variable
-	       | define
-	       | open-paren "{"
+structsubparts : open-paren "{"
 		 ( nil )
 	       | close-paren "}"
 		 ( nil )
+	       | variable
+	       | define
 	       # sometimes there are defines in structs.
 	       ;
 
@@ -162,17 +166,17 @@ classparts : semantic-list
 	     (EXPANDFULL $1 classsubparts)
 	    ;
 
-classsubparts : variable
+classsubparts : open-paren "{"
+		( nil )
+	      | close-paren "}"
+		( nil )
+	      | variable
 	      | define
 	      | function
 	      | opt-class-protection COLON
 	      # In C++, this label in a classsubpart represents
 	      # PUBLIC or PRIVATE bits.  Ignore them for now.
-		(nil)
-	      | open-paren "{"
-		( nil )
-	      | close-paren "}"
-		( nil )
+	      | 
 	      ;
 
 opt-class-parents : COLON opt-class-protection symbol
