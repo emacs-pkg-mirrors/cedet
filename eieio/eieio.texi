@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.42 2001/05/31 16:35:16 zappo Exp $
+@c $Id: eieio.texi,v 1.43 2001/07/17 19:13:43 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -48,6 +48,7 @@ wrong!
 * Class Values::          Displaying information about a class or object.
 * Customizing::           Customizing objects.
 * Documentation::         Automatically creating texinfo documentation
+* Naming Conventions::    Name your objects in an Emacs friendly way.
 * Demo Programs::         Some examples using eieio.
 * Function Index::
 @end menu
@@ -340,8 +341,22 @@ A CLOS unsupported specifier which indicates that only methods of this
 class may access this slot.
 
 When using a slot referencing function, if the value behind @var{slot}
-is private, then the current scope of operation must be within a method
-of the calling object.
+is private or protected, then the current scope of operation must be
+within a method of the calling object.
+
+Valid values are:
+
+@table @code
+@item :public
+Anyone may access this slot from any scope.
+@item :protected
+Only methods of the same class, or of a child class may access this
+slot.
+@item :private
+Only methods of the same class as this slot's definition may access
+this slot.
+@end table
+
 @end table
 
 Additionally, CLOS style class options are available.  These are various
@@ -386,17 +401,18 @@ The whole definition may look like this:
   ((value :initarg :value
 	  :initform nil
 	  :accessor get-value
-	  :documentation "Lisp object which represents the data this 
-object maintains."
-	  :protection private)
+	  :documentation
+          "Lisp object which represents the data this object maintains."
+	  :protection :protected)
    (reference :initarg :reference
 	      :initform nil
               :type list
               :custom (repeat object)
-	      :documentation "List of objects looking at me.  The method 
-`update-symbol' is called for each member of `reference' whenever 
+	      :documentation
+              "List of objects looking at this object.
+The method `update-symbol' is called for each member of `reference' whenever 
 `value' is modified."
-	      :protection private)
+	      :protection :protected)
    )
   "Data object which tracks referencers.")
 @end example
@@ -1307,7 +1323,7 @@ above example is converted into:
 This is useful when a given item needs to be selected from a list of
 items defined in this second slot.
 
-@node Documentation, Demo Programs, Customizing, Top
+@node Documentation, Naming Conventions, Customizing, Top
 @comment  node-name,  next,  previous,  up
 @chapter Documentation
 
@@ -1349,7 +1365,34 @@ Only classes loaded into emacs' memory can be documented.
 
 @end deffn
 
-@node Demo Programs, Function Index, Documentation, Top
+@node Naming Conventions, Demo Programs, Documentation, Top
+@comment  node-name,  next,  previous,  up
+@chapter Naming Conventions
+
+The Emacs Lisp programming manual has a great chapter programming
+conventions that help keep each Emacs package working nicely with the
+entire system.  @ref{(elisp)Standards} An EIEIO based program needs to
+follow these conventions, while simultaneously taking advantage of the
+Object Oriented features.
+
+The below tips are things that I do when I program an EIEIO based
+package.
+
+@itemize
+@item Come up with a package prefix that is relatively short.  Prefix
+all classes, and methods with your prefix.  This is a standard
+convention for functions and variables in Emacs.
+@item Do not prefix method names with the class name.  All methods in
+EIEIO are ``virtual'', and are dynamically dispatched.  Anyone can
+override your methods at any time.  Your methods should be prefixed
+with your package name.
+@item Do not prefix slots in your class.  The slots are always locally
+scoped to your class, and need no prefixing.
+@item If your library inherits from another libraries classes, you
+must ``require'' that library with the @code{require} command.
+@end itemize
+
+@node Demo Programs, Function Index, Naming Conventions, Top
 @comment  node-name,  next,  previous,  up
 @chapter Demo Programs
 
