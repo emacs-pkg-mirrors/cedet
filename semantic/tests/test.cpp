@@ -3,12 +3,14 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.10 2002/02/27 13:37:35 zappo Exp $
+ * $Id: test.cpp,v 1.11 2002/06/14 13:17:12 zappo Exp $
  *
  */
 
 /* An include test */
 #include "c++-test.hh"
+
+#include <c++-test.hh>
 
 double var1 = 1.2;
 
@@ -64,14 +66,14 @@ class class3 {
   /* A class with strange things in it */
 public:
   class3(); /* A constructor */
-  enum embedded_enum {
+  enum embedded_foo_enum {
     a, b, c
   };
-  struct embedded_struct {
+  struct embedded_bar_struct {
     int a;
     int b;
   };
-  class embedded_class {
+  class embedded_baz_class {
     embedded_class();
     ~embedded_class();
   };
@@ -95,11 +97,14 @@ class3::class3()
 
 int class3::method1_for_class3( int a, int &b)
 {
-  int a;
+  int c;
   class3 foo;
 
   // Completion testing line should find external members.
   a = foo.m;
+
+  if (foo.fo) {
+  }
 
   return 1;
 }
@@ -110,6 +115,12 @@ char class3::method2_for_class3( int a, int b) throw ( exception1 )
 }
 
 void *class3::method3_for_class3( int a, int b) throw ( exception1, exception2 )
+{
+  int q = a;
+  return "Moose";
+}
+
+void *class3::method31_for_class3( int a, int b) throw ( )
 {
   int q = a;
   return "Moose";
@@ -135,6 +146,11 @@ class class5 : public virtual class4 {
   // Virtual inheritance
 };
 
+class class6 : class1 {
+  // Mutable
+  mutable int i;
+};
+
 /* Namespaces */
 namespace namespace1 {
   void ns_method1() { }
@@ -148,7 +164,20 @@ namespace namespace1 {
   class _n_class2 : public n_class1 {
     void n_c2_method1(int a, int b) { }
   }
+
+  // Macros in the namespace
+#define NSMACRO 1
+
+  // Template in the namespace
+  template<class T> T nsti1(const Foo& foo);
+  template<> int nsti1<int>(const Foo& foo);
     
+}
+
+namespace namespace2 {
+
+  using namespace1::n_class1;
+
 }
 
 /* Initializers */
@@ -191,3 +220,6 @@ class TemplateUsingClass
 
   map<int, int> mapclassvarthingy;
 };
+
+template<class T> T ti1(const Foo& foo);
+template<> int ti1<int>(const Foo& foo);
