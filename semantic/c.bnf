@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.56 2002/01/19 20:49:55 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.57 2002/02/06 03:10:54 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -346,9 +346,13 @@ typesimple : struct-or-class opt-name opt-template-specifier
 	     ( ,$2 type ,$1 
 		   (let ((semantic-c-classname (cons (car ,$2) (car ,$1))))
 		       (EXPANDFULL $5 classsubparts))
-		   ,$4 nil nil )
+		   $4
+		   (ASSOC 'template-specifier $3)
+		   nil )
 	   | struct-or-class opt-name opt-template-specifier opt-class-parents
-	     ( ,$2 type ,$1 nil ,$4 nil nil )
+	     ( ,$2 type ,$1 nil $4 
+		   (ASSOC 'template-specifier $3)
+		    nil )
 	   | UNION opt-name unionparts
 	     ( ,$2 type $1 $3 nil nil nil )
 	   | ENUM opt-name enumparts
@@ -396,19 +400,19 @@ template-var : template-type opt-stars opt-template-equal
 	       ( ,$1 )
 	     ;
 
-opt-template-equal : EQUAL symbol LESS template-specifier-type-list GREATER
+opt-template-equal : EQUAL symbol LESS template-specifier-type GREATER
 		     ( $2 )
 		   | EMPTY
 		   ;
 
 template-type : CLASS symbol
-		( $2 'type "class" )
+		( $2 type "class" )
 	      | STRUCT symbol
-		( $2 'type "struct" )
+		( $2 type "struct" )
 	      | builtintype
-		( $1 'type )
+		( ,$1 type nil)
 	      | symbol
-		( $1 )
+		( $1 type nil )
 	      ;
 
 template-definition : type
@@ -576,7 +580,7 @@ throw-exception-list : symbol COMA throw-exception-list
 		       ( ,$2 )
 		     ;
 
-opt-bits : COLON symbol
+opt-bits : COLON number
 	   ( $2 )
 	 | EMPTY
 	   ( nil )
