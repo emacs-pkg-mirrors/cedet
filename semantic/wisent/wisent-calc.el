@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.3 2002/02/27 22:51:17 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.4 2002/06/29 18:09:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 
 (defconst wisent-calc-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-02-27 23:40+0100
+    ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-06-11 10:47+0200
     (wisent-compile-grammar
      '((NUM)
        ((nonassoc 61)
@@ -98,7 +98,7 @@
 
 (defconst wisent-calc-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-02-27 23:40+0100
+   ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-06-11 10:47+0200
    (wisent-flex-make-token-table
     '(("number"
        (NUM)))
@@ -108,9 +108,9 @@
 
 (defun wisent-calc-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-02-27 23:40+0100
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-06-11 10:47+0200
   (progn
-    (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
+    (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
           semantic-toplevel-bovine-table wisent-calc-automaton
           semantic-flex-keywords-obarray nil
           wisent-flex-tokens-obarray wisent-calc-tokens)
