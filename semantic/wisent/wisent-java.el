@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.25 2002/07/16 21:17:03 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.26 2002/07/20 08:07:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -49,7 +49,7 @@
 
 (defconst wisent-java-parser-tables
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-16 22:08+0200
+    ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-19 15:03+0200
     (wisent-compile-grammar
      '((LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP NULL_LITERAL BOOLEAN_LITERAL IDENTIFIER STRING_LITERAL NUMBER_LITERAL ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED)
        nil
@@ -431,7 +431,9 @@
         ((argument_list COMMA expression))
         ((expression)))
        (array_creation_expression
+        ((NEW class_or_interface_type dim_exprs array_initializer))
         ((NEW class_or_interface_type dim_exprs))
+        ((NEW primitive_type dim_exprs array_initializer))
         ((NEW primitive_type dim_exprs)))
        (dim_exprs
         ((dim_exprs dim_expr))
@@ -569,8 +571,8 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-16 22:08+0200
-   (semantic-flex-make-keyword-table
+   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-19 15:03+0200
+   (semantic-lex-make-keyword-table
     '(("abstract" . ABSTRACT)
       ("boolean" . BOOLEAN)
       ("break" . BREAK)
@@ -725,7 +727,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-16 22:08+0200
+   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-19 15:03+0200
    (wisent-flex-make-token-table
     '(("number"
        (NUMBER_LITERAL))
@@ -792,7 +794,7 @@ unnecessary stuff to improve performance.")
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-16 22:08+0200
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-07-19 15:03+0200
   (progn
     (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
           semantic-bovinate-parser-name "LALR"
