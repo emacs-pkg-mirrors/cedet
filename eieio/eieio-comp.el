@@ -1,10 +1,10 @@
 ;;; eieio-comp.el -- eieio routines to help with byte compilation
 
 ;;;
-;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
+;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-comp.el,v 1.9 2000/08/20 21:59:29 zappo Exp $
+;; RCS: $Id: eieio-comp.el,v 1.10 2001/02/17 19:51:29 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -26,9 +26,6 @@
 ;;              Cambridge, MA 02139, USA.
 ;;
 ;; Please send bug reports, etc. to zappo@gnu.org
-;;
-;; Updates can be found at:
-;;    ftp://ftp.ultranet.com/pub/zappo
 
 ;;; Commentary:
 ;;  
