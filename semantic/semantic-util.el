@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.126 2004/03/21 07:47:11 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.127 2004/03/28 11:34:10 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -59,18 +59,17 @@ A value of nil means that the current major mode is the only one.")
 ;; These semanticdb calls will throw warnings in the byte compiler.
 ;; Doing the right thing to make them available at compile time
 ;; really messes up the compilation sequence.
-(defun semantic-file-tag-table (file &optional checkcache)
+(defun semantic-file-tag-table (file)
   "Return a tag table for FILE.
 If it is loaded, return the stream after making sure it's ok.
 If FILE is not loaded, check to see if `semanticdb' feature exists,
    and use it to get tags from files not in memory.
 If FILE is not loaded, and semanticdb is not available, find the file
-   and parse it.
-Optional argument CHECKCACHE is passed to `semantic-fetch-tags'."
+   and parse it."
   (if (get-file-buffer file)
       (save-excursion
 	(set-buffer (get-file-buffer file))
-	(semantic-fetch-tags checkcache))
+	(semantic-fetch-tags))
     ;; File not loaded
     (if (and (fboundp 'semanticdb-minor-mode-p)
 	     (semanticdb-minor-mode-p))
@@ -113,7 +112,7 @@ buffer, or a filename.  If SOMETHING is nil return nil."
    ;; A file name
    ((and (stringp something)
 	 (file-exists-p something))
-    (semantic-file-tag-table something nil))
+    (semantic-file-tag-table something))
    ;; A Semanticdb table
    ((and (featurep 'semanticdb)
 	 (semanticdb-minor-mode-p)
