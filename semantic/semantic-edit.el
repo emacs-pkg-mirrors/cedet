@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.8 2002/08/04 02:11:15 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.9 2002/08/05 21:46:16 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -724,6 +724,7 @@ the semantic cache to see what needs to be changed."
           
             ;; Don't increment change here because an earlier loop
             ;; created change-groups.
+            (setq parse-start nil)
             ))
       
       ;; Force a full reparse.
