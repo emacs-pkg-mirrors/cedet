@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.18 2003/08/25 17:14:40 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.19 2003/08/26 20:10:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -224,9 +224,9 @@ thingy from it using the `document' tool."
 	semantic-symbol->name-assoc-list '((section . "Section")
 					   (def . "Definition")
 					   )
-	semantic-imenu-expandable-token 'section
+	semantic-imenu-expandable-tag-class 'section
 	semantic-imenu-bucketize-file nil
-	semantic-imenu-bucketize-type-parts nil
+	semantic-imenu-bucketize-type-members nil
 	senator-step-at-start-end-tag-classes '(section)
 	)
   (semantic-install-function-overrides
@@ -312,7 +312,9 @@ If TAG is nil, determine a tag based on the current position."
 		 ;; list ((DB-TABLE . TOKEN) ...)
 		 (semanticdb-brute-deep-find-tags-by-name name nil t))))
 	 (docstring nil)
-	 (doctag nil))
+	 (docstringproto nil)
+	 (doctag nil)
+	 )
     (save-excursion
       (while (and tags (not docstring))
 	(let ((sourcetag (car tags)))
@@ -320,9 +322,18 @@ If TAG is nil, determine a tag based on the current position."
 	  ;; solution someday.
 	  (set-buffer (semantic-tag-buffer sourcetag))
 	  (unless (eq major-mode 'texinfo-mode)
-	    (setq docstring (semantic-documentation-for-tag sourcetag)
-		  doctag (if docstring sourcetag nil)))
+	    (if (semantic-tag-get-attribute sourcetag 'prototype)
+		;; If we found a match with doc that is a prototype, then store
+		;; that, but don't exit till we find the real deal.
+		(setq docstringproto (semantic-documentation-for-tag sourcetag))
+	      (setq docstring (semantic-documentation-for-tag sourcetag)))
+	    (setq doctag (if docstring sourcetag nil)))
 	  (setq tags (cdr tags)))))
+    ;; If we found a prototype of the function that has some doc, but not the
+    ;; actual function, lets make due with that.
+    (if (and (not docstring) (stringp docstringproto))
+	(setq docstring docstringproto))
+    ;; Test for doc string
     (unless docstring
       (error "Could not find documentation for %s" (semantic-tag-name tag)))
     ;; If we have a string, do the replacement.
