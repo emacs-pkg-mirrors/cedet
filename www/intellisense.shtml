@@ -1,8 +1,71 @@
 <title>Using Semantic Bovinator for Intellisense</title>
 
-<!--#include file="rightcol.php"-->
+<!--#include file="pagestart.php"-->
 
-<h1>Setting up Semantic for Intellisense</h1>
+<table width=100% bgcolor="lightgreen">
+<tr><td><h2><font color=black>Intellisense</font></h2></td>
+<td><font color=black>"Using Semantic for Intellisense"</font></td></tr>
+</table>
+
+<p>
+Intellisense is a term coined for (I think) Microsoft Visual Studio.
+It represents a set of behaviors that aids a developer write code by
+providing reminders of what possible classes and variables are
+available.  Another way to describe this is simply "Smart Completion".
+</p>
+
+<p>
+It is possible for Smart Completion to be provided via the tools made
+available in Semantic.
+</p>
+
+<table width=100% bgcolor="lightgreen"><tr><td>
+<h3>In version 2.0 beta2 or later</h3>
+</td></tr></table>
+
+<table align=right>
+<td>
+<a href=inlinecompletion.png>
+<center>
+<img src=inlinecompletion.png alt=call-tree.jpg width=100 height=100>
+</a>
+<br>
+<font size=-2>
+Intellisense
+</font>
+</center>
+</td>
+</table>
+
+<p>In Semantic 2.0 starting with beta2, there are two new ways for
+smart completion to be accessed.  Please read the Info manual on
+these topics.
+</p>
+
+<p><b>semantic-complete-analyze-inline</b><br>
+
+This is a new command that does inline completion (underlining the
+target symbol) and allows TAB to be used for completion purposes.
+It uses the semantic analyzer to provide the list of completions.
+</p>
+
+<p><b>semantic-idle-completions-mode</b><br>
+This is a minor mode which  starts
+<tt>semantic-complete-analyze-inline</tt>
+during idle time.  This has the additional effect of showing a list
+of completions in a tooltip if you leave Emacs alone for too long.
+</p>
+
+<p>In addition to these two methods, the mechanism from Semantic 1.4x
+still work, and have been enhanced.  You will need to follow the
+directions form version 1.4x in setting up the database for semantic
+2.0 as well.
+</p>
+
+<br clear="both">
+<table width=100% bgcolor="lightgreen"><tr><td>
+<h3>In Version 1.4x</h3>
+</td></tr></table>
 
 <p>Semantic can be set up to have Intellisense like behavior for C and
 C++.  It also works for Java, but too much of Java is in core
@@ -98,10 +161,14 @@ A2) The context analyzer has a bug that requires at least on symbol
    function context.  It could be a part of the symbol completing, or
    just some other command on another line.
 
+A3) In your favorite language, rebind "." to a new command that both
+   inserts the ".", and starts your favorite intelligent completion
+   mechanism.
+
 Q) I've typed in a new function, and the analyzer does nothing or
    throws an error.
 
-A) The new code must be parsed by semantic at least once to identify
+A) The new code must be parsed by Semantic at least once to identify
    that you are in a function.  You can force this to occur using
    the command "M-x bovinate RET".
 
@@ -118,6 +185,6 @@ A) It first attempts to determine the type for the local context as
    It determines the type of "c", and collects a list of available
    members.  It then filters all those members starting with "f" in
    this case, and filters again to only those members of the desired
-   type.
+   datatype.
 
 </pre>
