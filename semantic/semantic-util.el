@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.110 2003/04/01 03:46:34 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.111 2003/04/01 04:16:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -137,11 +137,11 @@ To create new bins for an application augment
 `semantic-symbol->name-assoc-list-for-type-parts' in addition
 to setting this variable (locally in your function).")
 
-(defun semantic-bucketize (tokens &optional parent filter)
-  "Sort TOKENS into a group of buckets based on token type.
-Unknown types are placed in a Misc bucket.
+(defun semantic-bucketize (tags &optional parent filter)
+  "Sort TAGS into a group of buckets based on tag class.
+Unknown classes are placed in a Misc bucket.
 Type bucket names are defined by either `semantic-symbol->name-assoc-list'.
-If PARENT is specified, then TOKENS belong to this PARENT in some way.
+If PARENT is specified, then TAGS belong to this PARENT in some way.
 This will use `semantic-symbol->name-assoc-list-for-type-parts' to
 generate bucket names.
 Optional argument FILTER is a filter function to be applied to each bucket.
@@ -152,7 +152,7 @@ may re-organize the list with side-effects."
 		      semantic-symbol->name-assoc-list))
 	 (sn name-list)
 	 (bins (make-vector (1+ (length sn)) nil))
-	 ask toktype
+	 ask tagtype
 	 (nsn nil)
 	 (num 1)
 	 (out nil))
@@ -162,12 +162,12 @@ may re-organize the list with side-effects."
 	    sn (cdr sn)
 	    num (1+ num)))
     ;; Place into buckets
-    (while tokens
-      (setq toktype (funcall semantic-bucketize-token-token (car tokens))
-	    ask (assq toktype nsn)
+    (while tags
+      (setq tagtype (funcall semantic-bucketize-token-token (car tags))
+	    ask (assq tagtype nsn)
 	    num (or (cdr ask) 0))
-      (aset bins num (cons (car tokens) (aref bins num)))
-      (setq tokens (cdr tokens)))
+      (aset bins num (cons (car tags) (aref bins num)))
+      (setq tags (cdr tags)))
     ;; Remove from buckets into a list.
     (setq num 1)
     (while (< num (length bins))
@@ -415,7 +415,7 @@ THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON.
 		    (setq found (cons (current-buffer) (list found)))
 		  (setq includelist
 			(append includelist
-				(semantic-find-tags-by-token
+				(semantic-find-tags-by-class
 				 'include stream))))
 		(setq unfound (cons fn unfound)))))
 	(setq includelist (cdr includelist)))
@@ -441,7 +441,7 @@ FILTER must be a function to call on each element."
   (if (not stream) (setq stream (semantic-bovinate-toplevel)))
   (setq stream
 	(if filter
-	    (semantic-brute-find-tags-by-function filter stream)
+	    (semantic--find-tags-by-function filter stream)
 	  (semantic-brute-find-tag-standard stream)))
   (if (and default (string-match ":" prompt))
       (setq prompt
@@ -1296,12 +1296,12 @@ See `semantic-nonterminal-external-member-children' for details."
       (let ((m (semanticdb-find-nonterminal-external-children-of-type
 		(semantic-tag-name token))))
 	(if m (apply #'append (mapcar #'cdr m))))
-    (semantic-find-nonterminal-by-function
+    (semantic--find-tags-by-function
      `(lambda (tok)
 	;; This bit of annoying backquote forces the contents of
 	;; token into the generated lambda.
        (semantic-nonterminal-external-member-p ',token tok))
-     (current-buffer) nil nil)
+     (current-buffer))
     ))
 
 (defun semantic-nonterminal-protection (token &optional parent)
@@ -1594,7 +1594,7 @@ If TOKEN is not specified, use the token at point."
   "Display the curent token.
 Argument P is the point to search from in the current buffer."
   (interactive "d")
-  (let ((tok (semantic-find-innermost-nonterminal-by-position
+  (let ((tok (semantic-brute-find-innermost-tag-by-position
 	      p (current-buffer))))
     (message (mapconcat 'semantic-abbreviate-nonterminal tok ","))
     (car tok))
