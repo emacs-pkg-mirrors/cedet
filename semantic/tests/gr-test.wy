@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 13 Jan 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: gr-test.wy,v 1.1 2004/01/14 09:51:25 ponced Exp $
+;; X-RCS: $Id: gr-test.wy,v 1.2 2004/01/15 09:08:47 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -75,7 +75,7 @@
 %token <punctuation>   COMP       "~"
 
 ;; Generate a block analyzer for paren-like blocks
-%type <block> syntax "\\(\\s(\\|\\s)\\)" matchdatatype block
+%type <block> syntax "\\s(\\|\\s)" matchdatatype block
 
 %token <open-paren>   LPAREN      "("
 %token <close-paren>  RPAREN      ")"
