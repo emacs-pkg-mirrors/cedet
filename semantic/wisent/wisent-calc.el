@@ -1,12 +1,12 @@
 ;;; wisent-calc.el --- Infix notation calculator
 
-;; Copyright (C) 2001, 2002 David Ponce
+;; Copyright (C) 2001, 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.10 2002/10/02 15:06:20 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.11 2003/02/13 07:24:27 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,7 +54,7 @@
 (require 'wisent-bovine)
 
 (defconst wisent-calc-automaton
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-10-02 15:43+0200
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-13 08:25+0100
   (eval-when-compile
     (wisent-compile-grammar
      '((NUM)
@@ -96,7 +96,7 @@
   "Parser automaton.")
 
 (defconst wisent-calc-tokens
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-10-02 15:43+0200
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-13 08:25+0100
   (wisent-lex-make-token-table
    '(("number"
       (NUM)))
@@ -121,7 +121,7 @@
 
 (defun wisent-calc-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-10-02 15:43+0200
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-13 08:25+0100
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -138,11 +138,11 @@
                   "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
           semantic-lex-analyzer #'wisent-calc-lexer
           semantic-lex-depth nil
-          semantic-lex-syntax-modifications '((?\; ".") (?\= ".")
-                                              (?\+ ".") (?\- ".")
-                                              (?\* ".") (?\/ ".")
-                                              (?\^ ".")
-                                              )
+          semantic-lex-syntax-modifications
+          '((?\; ".") (?\= ".") (?\+ ".")
+            (?\- ".") (?\* ".") (?\/ ".")
+            (?\^ ".") (?\( ".") (?\) ".")
+            )
           )))
 
 (defun wisent-calc (input)
