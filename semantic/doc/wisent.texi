@@ -1151,6 +1151,19 @@ It defaults to the start symbol defined in the grammar
 @end table
 @end defun
 
+The following two normal hooks permit to do some useful processing
+respectively before to start parsing, and after the parser terminated.
+
+@defvar wisent-pre-parse-hook
+@anchor{wisent-pre-parse-hook}
+Normal hook run just before entering the @var{LR} parser engine.
+@end defvar
+
+@defvar wisent-post-parse-hook
+@anchor{wisent-post-parse-hook}
+Normal hook run just after the @var{LR} parser engine terminated.
+@end defvar
+
 @menu
 * Writing a lexer::             
 * Actions goodies::             
@@ -1354,6 +1367,12 @@ be discarded with @code{wisent-clearin}.
 
 See implementation of the function @code{wisent-skip-token} below, for
 an example of use.
+@end defun
+
+@findex wisent-abort
+@defun wisent-abort
+Abort parsing and save the look-ahead token.
+This is useful primarily in error rules.
 @end defun
 
 @findex wisent-set-region
