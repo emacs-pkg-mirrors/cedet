@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.19 2001/04/07 13:42:31 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.20 2001/04/10 13:47:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -471,7 +471,8 @@ Return a list ((DB-TABLE . TOKEN-OR-TOKEN-LIST) ...)."
       ;; Calculate what database to use.
       ;; Something simple and dumb for now.
       (setq databases (list semanticdb-current-database)))
-  (let ((ret nil))
+  (let ((ret nil)
+        (case-fold-search semantic-case-fold))
     (while databases
       (let* ((files (oref (car databases) tables))
 	     (found nil)
