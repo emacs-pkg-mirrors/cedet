@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.16 2002/06/30 13:44:01 ponced Exp $
+@c $Id: wisent.texi,v 1.17 2002/07/03 14:15:05 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle Wisent: the Bison-compatible Parser Generator for Emacs
@@ -132,6 +132,7 @@ Grammar styles
 * Bison style::                 
 * Mixed style::                 
 * Start nonterminals::          
+* Useful functions::            
 
 @end detailmenu
 @end menu
@@ -1215,8 +1216,8 @@ opening-delimiter that has already been parsed:
 @end example
 @br{}
 Note that error recovery rules may have actions, just as any other
-rules can.  Here are some predefined variables and functions or macros
-useful in such actions:
+rules can.  Here are some predefined hooks, variables, functions or
+macros, useful in such actions:
 @br{}
 @vindex wisent-nerrs
 @defvar wisent-nerrs
@@ -1286,6 +1287,23 @@ uses it to safely set the region to the start/end positions of the
 current block of code.
 @end defun
 @br{}
+@vindex wisent-discarding-token-functions
+@defvar wisent-discarding-token-functions
+List of functions to be called when discarding a lexical token.@*
+These functions receive the lexical token discarded.@*
+When the parser encounters unexpected tokens, it can discards them,
+based on what directed by error recovery rules.  Either when the
+parser reads tokens until one is found that can be shifted, or when an
+semantic action calls the function @code{wisent-skip-token} or
+@code{wisent-skip-block}.@*
+For language specific hooks, make sure you define this as a local
+hook.
+@br{}
+For example, in Semantic, this hook is set to the function
+@code{wisent-collect-unmatched-syntax} to collect unmatched lexical
+tokens (@pxref{Useful functions}).
+@end defvar
+@br{}
 @findex wisent-skip-token
 @defun wisent-skip-token
 Skip an invalid token and try to continue parsing.
@@ -1301,7 +1319,8 @@ To be used in grammar recovery actions."
   (if (eq (car wisent-input) wisent-eoi-term)
       ;; does nothing at EOI to avoid infinite recovery loop
       nil
-    (run-hook-with-args 'wisent-skip-token-hook wisent-input)
+    (run-hook-with-args
+     'wisent-discarding-token-functions wisent-input)
     (wisent-clearin)
     (wisent-errok)))
 @end lisp
@@ -1750,6 +1769,7 @@ it can be worth a mix of the two styles!
 * Bison style::                 
 * Mixed style::                 
 * Start nonterminals::          
+* Useful functions::            
 @end menu
 
 @node Bovine style
@@ -1838,13 +1858,13 @@ for example) or unexpected input data.
 @subsection Bison style
 
 @cindex Grammar Bison style
-What we call the @dfn{Bison style} is actually the traditional style
-of Bison's grammars.  Compared to bovine style, it is not
-straightforward to use grammars written in Bison style in Semantic.
-Mainly because such grammars are designed to parse the whole input
-data in one pass, and don't use the bovinator back-end mechanism
-(@pxref{Bovine style}).  With Bison style the parser is called once to
-parse the grammar start nonterminal.
+What we call the @dfn{Bison style} is the traditional style of Bison's
+grammars.  Compared to bovine style, it is not straightforward to use
+grammars written in Bison style in Semantic.  Mainly because such
+grammars are designed to parse the whole input data in one pass, and
+don't use the bovinator back-end mechanism (@pxref{Bovine style}).
+With Bison style the parser is called once to parse the grammar start
+nonterminal.
 @br{}
 The following example is a snippet of the Bison style Java grammar
 provided in the Semantic distribution in the file
@@ -1875,9 +1895,9 @@ at the grammar level, providing error recovery rules to skip
 unexpected input data.
 @br{}
 The second consequence is that the bovinator can't do automatic raw to
-cooked token translation, excepted for the start nonterminal value.
-So it is also necessary to explicitly return cooked semantic tokens
-from concerned semantic actions by calling the function
+cooked token translation, except for the start nonterminal value.  It
+is necessary to explicitly return cooked semantic tokens from
+concerned semantic actions by calling the function
 @code{wisent-cooked-token} with the appropriate parameters.@*
 @xref{Start nonterminals}, for partial re-parse considerations.
 @br{}
@@ -1974,6 +1994,11 @@ rules:
 In such cases, when it is difficult for Emacs to obtain
 @code{semantic-list} syntactic tokens, the best solution is to use
 traditional Bison style with error recovery!
+@br{}
+In some extreme cases, it can also be convenient to extend the lexer,
+@code{wisent-flex} (@pxref{Wisent Flex}).  It might be necessary too
+to extend the Semantic lexer, @code{semantic-flex}, to deliver new
+syntactic tokens to @code{wisent-flex} extensions.
 
 @node Start nonterminals
 @subsection Start nonterminals
@@ -2063,6 +2088,21 @@ Set the @code{reparse-symbol} property of the cooked token to
 @strong{Every nonterminal having any rule that calls
 @code{wisent-cooked-token} in a semantic action, should be declared as
 a start symbol!}
+
+@node Useful functions
+@subsection Useful functions
+
+Here is a description of some predefined functions it might be useful
+to know when writing new code to use Wisent in Semantic:
+@br{}
+@findex wisent-collect-unmatched-syntax
+@defun wisent-collect-unmatched-syntax input
+Add @var{INPUT} lexical token to the cache of unmatched tokens, in
+variable @code{semantic-unmatched-syntax-cache}.
+@br{}
+See implementation of the function @code{wisent-skip-token}
+(@pxref{Error recovery}), for an example of use.
+@end defun
 
 @node Wisent Flex
 @section The Wisent Flex lexer
