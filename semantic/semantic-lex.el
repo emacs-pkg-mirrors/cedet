@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.24 2003/12/10 14:39:13 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.25 2003/12/28 17:49:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1200,6 +1200,43 @@ syntax as specified by the syntax table."
   semantic-lex-ignore-comments
   semantic-lex-punctuation
   semantic-lex-default-action)
+
+
+;;; Lexical Safety
+;;
+;; The semantic lexers, unlike other lexers, can throw errors on 
+;; unbalanced syntax.  Since editing is all about changeging test
+;; we need to provide a convenient way to protect against syntactic
+;; inequalities.
+
+(defmacro semantic-lex-catch-errors (symbol &rest forms)
+  "Using SYMBOL, execute FORMS catching lexical errors.
+If FORMS results in a call to the parser that throws a lexical error,
+the error will be caught here without the buffer's cache being thrown
+out of date.
+If there is an error, the syntax that failed is returned.
+If there is no error, then the last value of FORMS is returned."
+  `(let ((semantic-lex-unterminated-syntax-end-function
+	  (lambda (syntax start end) (throw ',symbol syntax)))
+	 ;; Delete the below when semantic-flex is fully retired.
+	 (semantic-flex-unterminated-syntax-end-function
+	  (lambda (syntax start end) (throw ',symbol syntax)))
+	 ret)
+     (setq ret (catch ',symbol
+		 (progn
+		   ,@forms
+		   nil)))
+     ;; Great Sadness.  Assume that FORMS execute within the
+     ;; confines of the current buffer only!  Mark this thing
+     ;; unparseable iff the special symbol was thrown.  This
+     ;; will prevent future calls from parsing, but will allow
+     ;; then to still return the cache.
+     (when ret
+       (message "Buffer not currently parsable.")
+       (semantic-parse-tree-unparseable))
+     ret))
+(put 'semantic-lex-catch-errors 'lisp-indent-function 1)
+
 
 ;;; Interfacing with edebug
 ;;
@@ -1221,6 +1258,9 @@ syntax as specified by the syntax table."
        )
      (def-edebug-spec define-lex-block-analyzer
        (&define name stringp form (&rest form))
+       )
+     (def-edebug-spec semantic-lex-catch-errors
+       (symbolp def-body)
        )
      
      ))
