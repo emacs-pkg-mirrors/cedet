@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-mode.el,v 1.1 2000/09/22 02:01:57 zappo Exp $
+;; X-RCS: $Id: semantic-mode.el,v 1.2 2000/09/25 11:04:36 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -103,8 +103,8 @@
 (let ((a (assoc 'semantic-minor-mode minor-mode-map-alist)))
   (if a
       (setcdr a semantic-mode-map)
-    (checkdoc-add-to-list 'minor-mode-map-alist (cons 'semantic-minor-mode
-						      semantic-mode-map))))
+    (add-to-list 'minor-mode-map-alist (cons 'semantic-minor-mode
+					     semantic-mode-map))))
 
 ;;;###autoload
 (defun semantic-minor-mode (&optional arg)
