@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.5 2003/04/01 13:03:49 ponced Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.6 2003/04/02 02:19:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -674,7 +674,7 @@ details are available of findable."
 			 'semantic-current-tag-parent)
 
 ;;;###autoload
-(semantic-alias-obsolete 'semantic-current-nonterminal-of-class
+(semantic-alias-obsolete 'semantic-current-nonterminal-of-type
 			 'semantic-current-tag-of-class)
 
 ;;;###autoload
