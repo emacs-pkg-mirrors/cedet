@@ -1,10 +1,10 @@
 ;;; tree.el --- Draw a tree with text characters an manipulate it.
 
-;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.3
-;; RCS: $Id: tree.el,v 1.8 1999/01/21 14:49:01 zappo Exp $
+;; RCS: $Id: tree.el,v 1.9 2001/02/17 14:48:18 zappo Exp $
 ;; Keywords: OO, tree
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -26,9 +26,6 @@
 ;;              Cambridge, MA 02139, USA.
 ;;
 ;; Please send bug reports, etc. to zappo@gnu.org
-;;
-;; Tree can be found in the eieio distribution on:
-;;  ftp://ftp.ultranet.com/pub/zappo
 
 ;;; Commentary:
 ;;   Many new IDEs provide a tree of some structure-or-other to express the
