@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.7a
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.80 1998/03/09 16:08:37 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.81 1998/03/10 11:57:50 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -323,7 +323,7 @@
 ;;         specific depth of files.
 ;;       Merge the speedbspec file into this file, and simplify the
 ;;         method of setting up the special modes.
-;;       Added scheme .scm support.
+;;       Added scheme .scm and .pm support.
 ;;       Added `speedbar-hide-button-brackets-flag' to hide the brackets
 ;;         around the + or - for emacsspeak.
 
@@ -688,7 +688,7 @@ It is generated from the variable `completion-ignored-extensions'")
   (append '(".[CcHh]\\(\\+\\+\\|pp\\|c\\|h\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".l" ".lsp" ".p" ".java")
 	  (if speedbar-use-imenu-flag
-	      '(".f90" ".ada" ".pl" ".tcl" ".m" ".scm"
+	      '(".f90" ".ada" ".pl" ".tcl" ".m" ".scm" ".pm"
 		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
