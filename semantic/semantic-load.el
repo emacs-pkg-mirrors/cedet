@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.6 2001/09/14 19:43:33 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.7 2001/09/27 03:29:13 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -53,6 +53,7 @@
 (autoload 'global-semanticdb-minor-mode "semanticdb" nil t)
 (autoload 'semantic-show-dirty-mode "semantic-util" nil t)
 (autoload 'semantic-change-function-mark-dirty "semantic-util")
+(autoload 'semantic-show-unmatched-syntax-mode "semantic-util" nil t)
 
 (autoload 'semantic-chart-nonterminals-by-token "semantic-chart" nil t)
 
@@ -76,6 +77,7 @@
 				     (imenu-add-to-menubar "TOKENS"))))
 
   (semantic-show-dirty-mode 1)
+  (semantic-show-unmatched-syntax-mode 1)
   (global-semanticdb-minor-mode 1)
 
   (add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb)))
