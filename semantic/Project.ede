@@ -19,7 +19,7 @@
    (ede-proj-target-elisp "semantic"
     :name "semantic"
     :path ""
-    :source '("semantic.el" "semantic-util.el" "semantic-bnf.el" "semantic-ctxt.el")
+    :source '("semantic.el" "semantic-util.el" "semantic-bnf.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-bovine.el" "semantic-edit.el" "semantic-fw.el")
     :versionsource '("semantic.el")
     )
    (ede-proj-target-elisp "Languages"
