@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.19 2000/09/29 03:08:36 zappo Exp $
+@c $Id: semantic.texi,v 1.20 2000/10/05 13:03:41 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -847,6 +847,29 @@ Find a list of nonterminals covering @var{POSITION} within
 @var{NOMEDIAN} is non-@code{nil}, don't do the median calculation, and
 return nil.  This function will find the topmost item, and recurse until
 no more details are available of findable.
+@end defun
+
+@defun semantic-find-nonterminal-by-overlay positionormarker buffer
+Find all nonterminals covering @var{POSITIONORMARKER} by using overlays.
+If @var{POSITIONORMARKER} is nil, use the current point.  Optional
+@var{BUFFER} is used if @var{POSITIONORMARKER} is a number, otherwise
+the current buffer is used.  This finds all tokens covering the
+specified position by checking for all overlays covering the current
+spot.  They are then sorted from largest to smallest via the start
+location.
+@end defun
+
+@defun semantic-find-nonterminal-by-overlay-in-region start end buffer
+Find all nonterminals which exist in whole or in part between
+@var{START} and @var{END}.
+Uses overlays to determine positin.
+Optional @var{BUFFER} argument specifies the buffer to use.
+@end defun
+
+@defun semantic-current-nonterminal
+Return the current nonterminal in the current buffer.
+If there are more than one in the same location, return the
+smallest token.
 @end defun
 
 @defun semantic-find-nonterminal-by-token token streamorbuffer
