@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.11 2000/11/13 21:06:19 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.12 2000/12/10 22:27:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -118,10 +118,10 @@
 	(list 0)))
      )					; end opt-stars
     (declmods
-     ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)" declmods
+     ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)" declmods
 	      ,(semantic-lambda
 		( cons (nth 0 vals) (nth 1 vals))))
-     ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)"
+     ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)"
 	      ,(semantic-lambda
 		(list (nth 0 vals))))
      (
