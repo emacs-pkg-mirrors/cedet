@@ -1,106 +1,201 @@
-* Changes for Semantic 1.4
+Semantic 2.0 is a major new version.
 
-** New Non-recursive parser by David Ponce <david@dponce.com>
+* API changes
 
-** Changed contents of some nonterminals to make them language agnostic
+** Lexical analysis.
 
-*** Variables no longer contain an explicit constant flag.
+*** The old `semantic-flex' API is deprecated.
 
-*** Modifiers field for variable, function, and types is now an association
-    list.
+The lexical analysis toolkit has been completely rewritten as a new
+`semantic-lex' API.
 
-** Semantic Context Analysis library
+*** Lexical token management.
 
-*** Analyzizes via type information the local context
+`semantic-lex-token'
+Create a new lexical token.
 
-*** Provides smart completion information
+`semantic-lex-token-class'
+Fetch the class of a lexical token.
 
-*** Speedbar mode for using analysis information.
+`semantic-lex-token-bounds'
+Fetch the start and end locations of a lexical token.
 
-** Semantic Class Browser structure generator
+`semantic-lex-token-start' and `semantic-lex-token-end'
+Respectively fetch the start and end position of a lexical token.
 
-*** Generates objects representing a browsable class structure
-    which links parents and subclasses and externally defined
-    methods into an easilly navigated (programatically) structure.
+`semantic-lex-token-text'
+Fetch the text associated with a lexical token.
 
-*** Speedbar interface to browser structure (simple)
+*** Macros to easily build custom lexers.
 
-** User Visible Features
+`define-lex'
+Define a new lexer as a set of single lexical analyzers.
 
-*** semantic-load.el simplifies installation.
+`define-lex-analyzer'
+Base macro to create a single lexical analyzer.
 
-*** Added partial reparseing of buffers where only token contents have changed.
+`define-lex-regex-analyzer' and `define-lex-simple-regex-analyzer'
+Create single lexical analyzers that match a regexp.
 
-*** Added `semantic-show-dirty-mode'.
+`define-lex-block-analyzer'
+Create a single lexical analyzer for paired delimiters blocks.
 
-*** Added `semantic-show-unmatched-syntax-mode'
+*** A set of useful single analyzers is predefined.
 
-*** Added `semantic-auto-reparse-mode'
+`semantic-lex-beginning-of-line'
+`semantic-lex-newline'
+`semantic-lex-newline-as-whitespace'
+`semantic-lex-ignore-newline'
+`semantic-lex-whitespace'
+`semantic-lex-ignore-whitespace'
+`semantic-lex-number'
+`semantic-lex-symbol-or-keyword'
+`semantic-lex-charquote'
+`semantic-lex-punctuation'
+`semantic-lex-punctuation-type'
+`semantic-lex-paren-or-list'
+`semantic-lex-open-paren'
+`semantic-lex-close-paren'
+`semantic-lex-string'
+`semantic-lex-comments'
+`semantic-lex-comments-as-whitespace'
+`semantic-lex-ignore-comments'
+`semantic-lex-default-action'
 
-*** Added new tool, `semanticdb'.
-    Semanticdb caches token lists between sessions with a specific file.
+*** Some lexers are predefined too.
 
-*** Added semantic-texi for parsing texinfo files.
+A comment lexer: `semantic-comment-lexer' that handles comments.
+A `semantic-simple-lexer' that ignores comments and whitespace, and
+returns tokens corresponding to syntax as specified by the syntax
+table.
 
-**** Commands for creating @deffn sections from source
+*** `semantic-lex' core "overload" function.
 
-**** Commands for updating an entire document with the source.
+Called to lexically analyze text in an area of the current buffer.
 
-*** Added semantic-scm for parsing Scheme (guile) scripts
+** Parsing
 
-*** semantic-el now has a much faster Emacs Lisp parser.
-    It uses the built in Emacs read command.
+*** API to manage a parse tree state
 
-*** semantic-c updates
+`semantic-parse-tree-set-needs-update'
+Indicate that the current parse tree needs to be updated.
 
-**** Handles most of C++, including templates
+`semantic-parse-tree-needs-update-p'
+Return non-nil if the current parse tree needs to be updated.
 
-**** Faster type parsing
+`semantic-parse-tree-set-needs-rebuild'
+Indicate that the current parse tree needs to be rebuilt.
 
-**** Faster function/variable parsing
+`semantic-parse-tree-needs-rebuild-p'
+Return non-nil if the current parse tree needs to be rebuilt.
 
-**** Summary text for keywords for eldoc
+`semantic-parse-tree-set-up-to-date'
+Indicate that the current parse tree is up to date.
 
-*** Added Senator (Semantic Navigator) by David Ponce <david@dponce.com>
+`semantic-parse-tree-up-to-date-p'
+Return non-nil if the current parse tree is up to date.
+   
+*** Core "overload" functions to abstract call to parsers.
 
-**** Provides a minor mode keymap and menu.
+New parsers can be plugged-in easily by overriding the following
+core functions:
 
-**** Search and Isearch in token names.
+`semantic-parse-stream' called to parse a given stream, starting at a
+given nonterminal rule.
 
-**** Jump to functions by name
+`semantic-parse-changes' called to reparse changes in the current
+buffer.
 
-**** Token Completion, and completion menu.
+`semantic-parse-region' called to parse a buffer's area.
 
-**** eldoc support for languages supported by semantic.
+*** Four core parsers are available.
 
-**** hippie expand try function for token names.
+- Two general parsers
 
-*** Added Java.bnf by David Ponce <david@dponce.com>
+  - The Semantic "bovinator".
+  - A new LALR(1) parser: Wisent, port of Bison 1.3 in Elisp.
 
-**** java.bnf from JDE by Paul Kinnucan and David Ponce
+- Two specific parsers
 
-**** semantic-java.el derived from JDE.
+  - The Elisp parser based on the Emacs built-in function `read'.
+  - A regexp parser used in `texinfo-mode'.
 
-**** eldoc support in bnf modes.
+*** Iterative parser.
 
-*** semantic-imenu can now tags for all files that had been loaded in
-    emacs in a directory if semanticdb is active
+Iterative parsers are better than rule-based iterative functions
+in that they can handle obscure errors more cleanly.
 
-*** Imenu and speedbar group externally defined methods together.
+The new `semantic-repeat-parse-whole-stream' helper function abstracts
+this action for other parser centric routines.
 
-** bnf-mode: Language Author Features
+*** Incremental parser.
 
-*** Parsing with `semantic-toplevel-bovinate-override' is better supported.
+In Semantic 1.x, changes were handled in a simplistic manner, where
+tokens that changed were reparsed one at a time.  Any other form of
+edit were managed through a full re-parse.
 
-*** Fixed BNF indentation engine to handle Optional Lambda Expressions
-   in a much cleaner way.
+The new `semantic-edits-incremental-parser' attempts to minimize the
+number of times a full re-parse needs to occur.  While overlays and
+tokens will continue to be recycled in the simple case, new cases
+where tokens are inserted or old tokens removed from the original list
+are handled.
 
-*** Keyword table for a language can be generated using %token specifiers
-    and queried using `semantic-flex-map-keywords'.
+The old `semantic-rebovinate-token' function and associated
+`semantic-dirty-...' have been removed.
 
-*** Source level debugging in the .bnf file
+*** Deprecated and removed API.
 
-*** skeleton.bnf as a good starting point for new languages.
+`semantic-parse-region' should be used instead of
+`semantic-bovinate-region-until-error' and
+`semantic-bovinate-from-nonterminal-full' which still exist for
+compatibility with the Semantic 1.x API.
+
+`semantic-bovinate-toplevel-override' is replaced by the new core
+parsing "overloads".
+`semantic-bovine-toplevel-full-reparse-needed-p' and
+`semantic-bovine-toplevel-partial-reparse-needed-p' are replaced by
+the new parse tree state management API.
+
+* Grammar framework.
+
+TBD.
+
+* Database.
+
+TBD.
+
+* Utilities.
+
+** `semantic-find-nonterminal-parent-by-overlay'
+Find the parent of a nonterminal token by overlays.
+    
+* Minor modes.
+
+** `semantic-show-parser-state-mode'
+Display the parser state in the modeline.
+
+** `semantic-show-dirty-mode'
+Has been replaced by...
+
+** `semantic-highlight-edits-mode'
+Highlight areas that a user edits.
+
+* Hooks.
+
+** `semantic-before-auto-parse-hooks'
+Run before option `semantic-auto-parse-mode' begins parsing.
+
+** `semantic-after-auto-parse-hooks'
+Run after option `semantic-auto-parse-mode' has parsed.
+
+* Setup.
+
+A lot of things are now auto-loaded on demand.
+
+* Languages.
+
+TBD.
+
 
 Local variables:
 mode: outline
