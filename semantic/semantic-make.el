@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.12 2001/12/07 01:36:51 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.13 2001/12/18 02:21:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,6 +61,12 @@
  ( IFNDEF symbol newline
   ,(semantic-lambda
  ))
+ ( IFEQ expression newline
+  ,(semantic-lambda
+ ))
+ ( IFNEQ expression newline
+  ,(semantic-lambda
+ ))
  ( ELSE newline
   ,(semantic-lambda
  ))
@@ -68,6 +74,9 @@
   ,(semantic-lambda
  ))
  ) ; end conditional
+ (expression
+ ( semantic-list)
+ ) ; end expression
  (include
  ( INCLUDE symbol elements
   ,(semantic-lambda
@@ -93,16 +102,28 @@
  ))
  ) ; end colons
  (elements
- ( symbol elements
+ ( element elements
   ,(semantic-lambda
   (list (nth 0 vals)) (nth 1 vals)))
- ( symbol newline
+ ( element punctuation "\\b\\\\\\b" newline elements
+  ,(semantic-lambda
+  (list (nth 0 vals)) (nth 1 vals)))
+ ( element newline
   ,(semantic-lambda
   (list (nth 0 vals))))
  ( newline
   ,(semantic-lambda
  ))
  ) ; end elements
+ (element
+ ( symbol)
+ ( varref)
+ ) ; end element
+ (varref
+ ( punctuation "\\b\\$\\b" semantic-list
+  ,(semantic-lambda
+  (list ( buffer-substring-no-properties ( identity start) ( identity end)))))
+ ) ; end varref
  (commands
  ( shell-command newline commands
   ,(semantic-lambda
@@ -112,13 +133,15 @@
  ))
  ) ; end commands
  )
-   "Table for parsing Makefiles.")
+ "Table for parsing Makefiles.")
 
 (defvar semantic-make-keyword-table
   (semantic-flex-make-keyword-table 
    `( ("if" . IF)
       ("ifdef" . IFDEF)
       ("ifndef" . IFNDEF)
+      ("ifeq" . IFEQ)
+      ("ifneq" . IFNEQ)
       ("else" . ELSE)
       ("endif" . ENDIF)
       ("include" . INCLUDE)
@@ -129,6 +152,8 @@
      ("endif" summary "Conditional: if (expression) ... else ... endif")
      ("ifdef" summary "Conditional: ifdef (expression) ... else ... endif")
      ("ifndef" summary "Conditional: ifndef (expression) ... else ... endif")
+     ("ifeq" summary "Conditional: ifeq (expression) ... else ... endif")
+     ("ifneq" summary "Conditional: ifneq (expression) ... else ... endif")
      ("include" summary "Macro: include filename1 filename2 ...")
      ))
   "Keyword table for Makefiles.")
@@ -170,11 +195,7 @@ These command lines continue to additional lines when the end with \\"
 					     (?= ".")
 					     (?/ "_")
 					     (?\t ".")
-					     (?( "_")
-					       (?) "_")
-					     (?{ "_")
-					     (?} "_")
-					     (?$ "_")
+					     (?$ ".")
 					     )
 	semantic-flex-enable-newlines t
 	imenu-create-index-function 'semantic-create-imenu-index
