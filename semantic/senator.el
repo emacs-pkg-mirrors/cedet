@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.1
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.17 2001/01/24 21:28:40 zappo Exp $
+;; VC: $Id: senator.el,v 1.18 2001/02/01 02:25:58 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -96,8 +96,23 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
-;; Revision 1.17  2001/01/24 21:28:40  zappo
-;; Added some completion functions.
+;; Revision 1.18  2001/02/01 02:25:58  zappo
+;; Removed compatibility code.
+;; Added isearch code, which was in `senator-isearch'.  Made that shorter.
+;; `senator-step-at-start-end-p' fixed up.
+;; Use `semantic-nonterminal-children' instead of querying for type and
+;; then getting the parts.
+;; Use semantic's separator character.
+;; Added senator-find-nonterminal- .. functions.  Uses semanticdb if loaded.
+;; When completing, use `senator-find...'.
+;; Also do a little more to track if we are doing the same completion.
+;;
+;; Revision 1.18  2001/01/31 00:54:06  zappo
+;; senator-isearch was merged in.  Isearch fns are now much simpler.
+;; Updated documentation.
+;; Added xemacs `isearch-update-ring' compatibility function.
+;; Use `semantic-nonterminal-children' instead of checking for 'type.
+;; Fixed up `senator-complete-symbol'.
 ;;
 ;; Revision 1.16  2001/01/10 08:09:16  david_ponce
 ;; Fixed undeclared local variable 'slot' in `senator-menu-item'.
@@ -214,7 +229,6 @@
 
 ;;; Code:
 (require 'semantic)
-(require 'senator-isearch)       ; Needed isearch advices
 
 (defgroup senator nil
   "SEmantic NAvigaTOR."
@@ -245,9 +259,10 @@ navigation."
 (defcustom senator-step-at-start-end-token-ids '(function)
   "*List of token identifiers where to step at start and end.
 Token identifier is symbol 'variable, 'function, 'type, or other.  If
-nil navigation only step at beginning of tokens.  This is a buffer
-local variable.  It can be set in a mode hook to get a specific
-langage navigation."
+nil navigation only step at beginning of tokens.  Also, stepping at
+start and end of a token prevent stepping inside its children.  This
+is a buffer local variable.  It can be set in a mode hook to get a
+specific langage navigation."
   :group 'senator
   :type '(repeat (symbol)))
 (make-variable-buffer-local 'senator-step-at-start-end-token-ids)
@@ -261,51 +276,43 @@ langage behaviour."
   :type 'boolean)
 (make-variable-buffer-local 'senator-highlight-found)
 
-(defcustom senator-separator-char ?#
-  "*Character separator used to compose token full name."
-  :group 'senator
-  :type 'character)
-(make-variable-buffer-local 'senator-separator-char)
-
 ;;; Compatibility
-(cond ((fboundp 'semantic-momentary-highlight-token)
-       ;; semantic 1.3
-       (defun senator-parse ()
-         "Parse the current buffer and return the tokens where to navigate."
-         (semantic-bovinate-toplevel t))
-       )
-      (t
-       ;; semantic before 1.3
-       (defun semantic-momentary-highlight-token (&rest ignore)
-         "Highlight a token, removing highlighting when the user hits a key.
-Not implemented in this version of the Semantic Bovinator.  IGNORE
-arguments and always return nil."
-         nil)
-       (defun semantic-find-nonterminal-by-overlay (&rest ignore)
-         "Find all nonterminals covering a position by using overlays.
-Not implemented in this version of the Semantic Bovinator.  IGNORE
-arguments and always return nil."
-         nil)
-       (defun senator-parse ()
-         "Parse the current buffer and return the tokens where to navigate."
-         (semantic-bovinate-toplevel nil nil t))
-       ))
-
-(if (not (boundp 'semantic-find-nonterminal-by-name-regexp))
+(if (featurep 'xemacs)
     
-    ;; before Semantic 1.4
-    (defun semantic-find-nonterminal-by-name-regexp (regex streamorbuffer)
-      "Find all nonterminals whose name match REGEX in STREAMORBUFFER."
-      (semantic-find-nonterminal-by-function
-       (lambda (tok) (string-match regex (semantic-token-name tok)))
-       streamorbuffer)
-      )
-  )
+    ;; Provide `isearch-update-ring' function (from 21.1.9 isearch-mode.el)
+    (defun isearch-update-ring (string &optional regexp)
+      "Add STRING to the beginning of the search ring.
+REGEXP says which ring to use."
+      (if (> (length string) 0)
+          ;; Update the ring data.
+          (if regexp 
+              (if (not (setq regexp-search-ring-yank-pointer
+                             (member string regexp-search-ring)))
+                  (progn
+                    (setq regexp-search-ring
+                          (cons string regexp-search-ring)
+                          regexp-search-ring-yank-pointer regexp-search-ring)
+                    (if (> (length regexp-search-ring) regexp-search-ring-max)
+                        (setcdr (nthcdr (1- regexp-search-ring-max) regexp-search-ring)
+                                nil))))
+            (if (not (setq search-ring-yank-pointer
+                           ;; really need equal test instead of eq.
+                           (member string search-ring)))
+                (progn
+                  (setq search-ring (cons string search-ring)
+                        search-ring-yank-pointer search-ring)
+                  (if (> (length search-ring) search-ring-max)
+                      (setcdr (nthcdr (1- search-ring-max) search-ring) nil)))))))
 
+  )
 
 ;;;;
 ;;;; Common functions
 ;;;;
+
+(defun senator-parse ()
+  "Parse the current buffer and return the tokens where to navigate."
+  (semantic-bovinate-toplevel t))
 
 (defun senator-momentary-highlight-token (token)
   "Momentary highlight TOKEN.
@@ -324,10 +331,9 @@ is bellow 1.3."
 
 (defun senator-step-at-start-end-p (token)
   "Return non-nil if must step at start and end of TOKEN."
-  (if token
-      (let ((categ (semantic-token-token token)))
-        (and (not (eq categ 'type))
-             (memq categ senator-step-at-start-end-token-ids)))))
+  (and token
+       (memq (semantic-token-token token)
+             senator-step-at-start-end-token-ids)))
 
 (defun senator-skip-p (token)
   "Return non-nil if must skip TOKEN."
@@ -342,16 +348,15 @@ COMP is the function used to compare a current visited token start
 position to POS.  That is `>=' to return the token before POS or `>'
 to return the token at or before POS.  PREV is the last token found or
 nil."
-  (let (token)
+  (let (token children)
     (while tokens
       (setq token (car tokens))
       (if (funcall comp (semantic-token-start token) pos)
           (throw 'found prev))
       (or (senator-skip-p token)
           (setq prev token))
-      (if (eq (semantic-token-token token) 'type)
-          (setq prev (senator-find-token-before
-                      (semantic-token-type-parts token) pos comp prev)))
+      (if (setq children (semantic-nonterminal-children token t))
+          (setq prev (senator-find-token-before children pos comp prev)))
       (setq tokens (cdr tokens)))
     prev))
 
@@ -365,7 +370,7 @@ nil."
 
 (defun senator-find-next-token (tokens pos)
   "Visit TOKENS and return the token after POS."
-  (let (token found)
+  (let (token children found)
     (while (and tokens (not found))
       (setq token (car tokens))
       (if (and (not (senator-skip-p token))
@@ -373,9 +378,8 @@ nil."
                         (> (semantic-token-end token) pos))
                    (> (semantic-token-start token) pos)))
           (setq found token)
-        (if (eq (semantic-token-token token) 'type)
-            (setq found (senator-find-next-token
-                         (semantic-token-type-parts token) pos))))
+        (if (setq children (semantic-nonterminal-children token t))
+            (setq found (senator-find-next-token children pos))))
       (setq tokens (cdr tokens)))
     found))
 
@@ -386,9 +390,9 @@ nil."
 
 (defun senator-full-token-name (token parent)
   "Compose a full name from TOKEN name and names in its PARENT list.
-A `senator-separator-char' separates each token name.  The parent list
-is in reverse order."
-  (let ((sep  (char-to-string senator-separator-char))
+A `semantic-type-relation-separator-character' separates each token
+name.  The parent list is in reverse order."
+  (let ((sep  semantic-type-relation-separator-character)
         (name ""))
     (while parent
       (setq name (concat (semantic-token-name (car parent))
@@ -399,11 +403,12 @@ is in reverse order."
 
 (defun senator-last-name (full-name)
   "Return the last name from FULL-NAME.
-That is the name after the last `senator-separator-char' or FULL-NAME
-itself if it does not contain any separator character."
-  (and (string-match (format "[%c]?\\([^%c]+\\)\\'"
-                             senator-separator-char
-                             senator-separator-char)
+That is the name after the last
+`semantic-type-relation-separator-character' or FULL-NAME itself if it
+does not contain any separator character."
+  (and (string-match (format "[%s]?\\([^%s]+\\)\\'"
+                             semantic-type-relation-separator-character
+                             semantic-type-relation-separator-character)
                      full-name)
        (match-string 1 full-name)))
 
@@ -415,7 +420,7 @@ This helps to distinguish between tokens in multiple top level type
 declarations or in sub type declarations.  If TOP-LEVEL is non-nil the
 completion list will contain only tokens at top level.  Otherwise all
 sub type tokens are included too."
-  (let (cs token)
+  (let (cs token children)
     (while stream
       (setq token  (car stream))
       (setq stream (cdr stream))
@@ -423,9 +428,9 @@ sub type tokens are included too."
                            (cdr token))
                      cs))
       (and (not top-level)
-           (eq (semantic-token-token token) 'type)
+           (setq children (semantic-nonterminal-children token t))
            (setq cs (append cs (senator-completion-stream
-                                (semantic-token-type-parts token)
+                                children
                                 (and full-name-p (cons token parent))
                                 t)))))
     cs))
@@ -453,6 +458,24 @@ point."
                                  'type stream))))
     (senator-completion-stream stream nil full-name-p in-context)))
 
+;;; Senator stream searching functions:
+;;
+(defun senator-find-nonterminal-by-name (name)
+  "Find a token with NAME.
+Uses `semanticdb' when available."
+  (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+      ;; semanticdb version returns a list..
+      (car (semanticdb-find-nonterminal-by-name name nil t))
+    (semantic-find-nonterminal-by-name name (current-buffer) t)))
+
+(defun senator-find-nonterminal-by-name-regexp (regexp)
+  "Find all tokens with a name matching REGEXP.
+Uses `semanticdb' when available."
+  (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+      ;; semanticdb version returns a list..
+      (car (semanticdb-find-nonterminal-by-name-regexp regexp nil t))
+    (semantic-find-nonterminal-by-name-regexp regexp (current-buffer) t)))
+
 ;;;;
 ;;;; Search functions
 ;;;;
@@ -464,7 +487,9 @@ beginning of the name use (match-beginning 0)."
   (let ((name (semantic-token-name token)))
     (goto-char (semantic-token-start token))
     (re-search-forward (concat
-                        "\\b"
+                        ;; the token name is at the beginning of a
+                        ;; word or after a whitespace or a punctuation
+                        "\\(\\<\\|\\s-\\|\\s.\\)"
                         (regexp-quote
                          (if (string-match "\\`\\([^[]+\\)[[]" name)
                              (match-string 1 name)
@@ -609,7 +634,8 @@ local type's context (see function `senator-current-type-context')."
   (when sym
     (let ((token
            (semantic-find-nonterminal-by-name (senator-last-name sym)
-                                              (current-buffer))))
+                                              (current-buffer)
+                                              t)))
       (goto-char (semantic-token-start  token))
       (senator-momentary-highlight-token token)
       (senator-message "%S: %s "
@@ -618,38 +644,36 @@ local type's context (see function `senator-current-type-context')."
 
 (defvar senator-last-completion-stats nil
   "The last senator completion was here.
-Of the form (BUFFER STARTPOS INDEX COMPLIST...)")
+ Of the form (BUFFER STARTPOS INDEX COMPLIST...)")
 
 ;;;###autoload
 (defun senator-complete-symbol ()
   "Complete the current symbol under point."
   (interactive)
   (let* ((symstart (save-excursion (forward-sexp -1) (point)))
-	 regex complst newstr index)
+         regex complst newstr index)
     ;; Get old stats if apropriate.
     (if (and senator-last-completion-stats
-	     (eq (car senator-last-completion-stats) (current-buffer))
-	     (= (nth 1 senator-last-completion-stats) symstart))
+             (eq (car senator-last-completion-stats) (current-buffer))
+             (= (nth 1 senator-last-completion-stats) symstart))
 
-	(setq complst (cdr (cdr (cdr senator-last-completion-stats))))
+        (setq complst (cdr (cdr (cdr senator-last-completion-stats))))
 
       (setq regex (regexp-quote (buffer-substring symstart (point)))
-	    complst (semantic-find-nonterminal-by-name-regexp
-		     regex (senator-parse))
-	    senator-last-completion-stats (append (list (current-buffer)
-							symstart
-							0)
-						  complst)))
-						
+            complst (senator-find-nonterminal-by-name-regexp regex)
+            senator-last-completion-stats (append (list (current-buffer)
+                                                        symstart
+                                                        0)
+                                                  complst)))
     ;; Do the completion if apropriate.
     (when complst
       ;; get the new string
       (setq index (nth 2 senator-last-completion-stats)
-	    newstr (nth index complst))
+            newstr (nth index complst))
       ;; Update the index
       (if (< index (1- (length complst)))
-	  (setcar (nthcdr 2 senator-last-completion-stats) (1+ index))
-	(setcar (nthcdr 2 senator-last-completion-stats) 0))
+          (setcar (nthcdr 2 senator-last-completion-stats) (1+ index))
+        (setcar (nthcdr 2 senator-last-completion-stats) 0))
       ;; Replace the string
       (delete-region symstart (point))
       (insert (semantic-token-name newstr)))))
@@ -1137,29 +1161,77 @@ If semantic tokens are available, use them to navigate."
 ;;;; Using semantic search in isearch mode
 ;;;;
 
-(defun senator-isearch-search-handler ()
-  "Return the actual search function used by `isearch-search'.
-If `senator-isearch-semantic-mode' is nil it delegates to the
-function `isearch-default-search-handler'.  Otherwise it returns one
-of the functions `senator-search-forward', `senator-search-backward',
-`senator-word-search-forward', `senator-word-search-backward',
-`senator-re-search-forward' or `senator-re-search-backward' depending
-on current values of the variables `isearch-forward', `isearch-regexp'
-and `isearch-word'."
-  (if senator-isearch-semantic-mode
-      (cond (isearch-word
-             (if isearch-forward
-                 'senator-word-search-forward
-               'senator-word-search-backward))
-            (isearch-regexp
-             (if isearch-forward
-                 'senator-re-search-forward
-               'senator-re-search-backward))
-            (t
-             (if isearch-forward
-                 'senator-search-forward
-               'senator-search-backward)))
-    (isearch-default-search-handler)))
+;;; Compatibility
+(cond
+ (;; GNU Emacs 21.0 lazy highlighting
+  (fboundp 'isearch-lazy-highlight-cleanup)
+
+  ;; Provide this function used by senator
+  (defun senator-lazy-highlight-update ()
+    "Force lazy highlight update."
+    (funcall 'isearch-lazy-highlight-cleanup t)
+    (set 'isearch-lazy-highlight-last-string nil)
+    (setq isearch-adjusted t)
+    (isearch-update))
+
+  ) ;; End of GNU Emacs 21 lazy highlighting
+
+ (;; GNU Emacs 20 lazy highlighting via ishl
+  (fboundp 'ishl-cleanup)
+       
+  ;; Provide this function used by senator
+  (defun senator-lazy-highlight-update ()
+    "Force lazy highlight update."
+    (funcall 'ishl-cleanup t)
+    (set 'ishl-last-string nil)
+    (setq isearch-adjusted t)
+    (isearch-update))
+
+  ) ;; End of GNU Emacs 20 lazy highlighting
+
+ (t ;; No lazy highlighting
+
+  ;; Ignore this function used by senator
+  (defalias 'senator-lazy-highlight-update 'ignore)
+
+  )
+      
+ ) ;; End of compatibility stuff
+
+(defmacro senator-define-search-advice (searcher)
+  "Advice the built-in SEARCHER function to do semantic search.
+That is to call the Senator counterpart searcher when `isearch-mode'
+and `senator-isearch-semantic-mode' are on."
+  (let ((senator-searcher (intern (format "senator-%s" searcher))))
+    `(defadvice ,searcher (around senator activate)
+       (if (and isearch-mode senator-isearch-semantic-mode
+                ;; The following condition ensure to do a senator
+                ;; semantic search on the `isearch-string' only!
+                (string-equal (ad-get-arg 0) isearch-string))
+           (unwind-protect
+               (progn
+                 ;; Temporarily set `senator-isearch-semantic-mode' to
+                 ;; nil to avoid an infinite recursive call of the
+                 ;; senator semantic search function!
+                 (setq senator-isearch-semantic-mode nil)
+                 (setq ad-return-value
+                       (funcall ',senator-searcher
+                                (ad-get-arg 0) ; string
+                                (ad-get-arg 1) ; bound
+                                (ad-get-arg 2) ; no-error
+                                (ad-get-arg 3) ; count
+                                )))
+             (setq senator-isearch-semantic-mode t))
+         ad-do-it))))
+
+;; Advice the built-in search functions to do semantic search when
+;; `isearch-mode' and `senator-isearch-semantic-mode' are on.
+(senator-define-search-advice search-forward)
+(senator-define-search-advice re-search-forward)
+(senator-define-search-advice word-search-forward)
+(senator-define-search-advice search-backward)
+(senator-define-search-advice re-search-backward)
+(senator-define-search-advice word-search-backward)
 
 (defun senator-isearch-toggle-semantic-mode ()
   "Toggle semantic searching on or off in isearch mode.
@@ -1182,11 +1254,12 @@ and `isearch-word'."
 (put 'senator-isearch-toggle-semantic-mode 'isearch-command t)
 
 ;; Keyboard shortcut to toggle semantic search in isearch mode.
-(define-key isearch-mode-map [(control ?,)] 'senator-isearch-toggle-semantic-mode)
+(define-key isearch-mode-map
+  [(control ?,)]
+  'senator-isearch-toggle-semantic-mode)
 
 (defun senator-isearch-mode-hook ()
   "Isearch mode hook to setup semantic searching."
-  (setq isearch-search-handler-provider #'senator-isearch-search-handler)
   (or senator-minor-mode
       (setq senator-isearch-semantic-mode nil))
   (senator-show-status))
