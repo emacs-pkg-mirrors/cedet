@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.17 2000/04/14 17:58:29 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.18 2000/04/14 21:32:37 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -237,6 +237,12 @@
   "When non-nil, activate the interactive parsing debugger.
 Do not set this yourself.  Call `semantic-bovinate-buffer-debug'.")
 
+
+(defcustom semantic-dump-parse nil
+  "When non-nil, dump parsing information."
+  :group 'semantic
+  :type 'boolean)
+
 (defvar semantic-toplevel-bovine-table nil
   "Variable that defines how to bovinate top level items in a buffer.
 Set this in your major mode to return function and variable semantic
@@ -439,6 +445,9 @@ stripped from the main list of synthesized tokens."
    (t
     (let ((ss (semantic-flex (point-min) (point-max) (or depth 0)))
 	  (res nil))
+      ;; Init a dump
+      (if semantic-dump-parse (semantic-dump-buffer-init))
+      ;; Parse!
       (working-status-forms "Scanning" "done"
 	(while ss
 	  (if (not (and trashcomments (eq (car (car ss)) 'comment)))
@@ -584,6 +593,29 @@ This functin must be overloaded, though it need not be used."
 
 ;;; Semantic Table debugging
 ;;
+(defun semantic-dump-buffer-init ()
+  "Initialize the semantic dump buffer."
+  (save-excursion
+    (let ((obn (buffer-name)))
+      (set-buffer (get-buffer-create "*Semantic Dump*"))
+      (erase-buffer)
+      (insert "Parse dump of " obn "\n\n")
+      (insert (format "%-15s %-15s %10s %s\n\n"
+		      "Nonterm" "Comment" "Text" "Context"))
+      )))
+
+(defun semantic-dump-detail (lse nonterminal text comment)
+  "Dump info about this match.
+Argument LSE is the current syntactic element.
+Argument NONTERMINAL is the nonterminal matched.
+Argument TEXT is the text to match.
+Argument COMMENT is additional description."
+  (save-excursion
+    (set-buffer "*Semantic Dump*")
+    (goto-char (point-max))
+    (insert (format "%-15S %-15s %10s %S\n" nonterminal comment text lse)))
+  )
+
 (defvar semantic-bovinate-debug-table nil
   "A marker where the current table we are debugging is.")
 
@@ -610,6 +642,7 @@ This functin must be overloaded, though it need not be used."
 
 (defun semantic-bovinate-show (lse nonterminal matchlen tokenlen collection)
   "Display some info about the current parse.
+Returns 'fail if the user quits, nil otherwise.
 LSE is the current listed syntax element.
 NONTERMINAL is the current nonterminal being parsed.
 MATCHLEN is the number of match lists tried.
@@ -739,11 +772,19 @@ list of semantic tokens found."
 	      (if val
 		  (let ((len (length val))
 			(strip (nreverse (cdr (cdr (reverse val))))))
+		    (if semantic-dump-parse
+			(semantic-dump-detail (cdr nontermout)
+					      (car lte)
+					      ""
+					      "NonTerm Match"))
 		    (setq end (nth (1- len) val) ;reset end to the end of exp
 			  cvl (cons strip cvl) ;prepend value of exp
-			  lte (cdr lte))) ;update the local table entry
+			  lte (cdr lte)) ;update the local table entry
+		    )
 		;; No value means that we need to terminate this match.
-		(setq lte nil cvl nil))) ;No match, exit
+		(setq lte nil cvl nil)) ;No match, exit
+	      )
+
 	  (setq lse (car s)		;Get the local stream element
 		s (cdr s))		;update stream.
 	  ;; trash comments if it's turned on
@@ -752,8 +793,20 @@ list of semantic tokens found."
 	  ;; Do the compare
 	  (if (eq (car lte) (car lse))	;syntactic match
 	      (let ((valdot (cdr lse)))
-		(setq val (semantic-flex-text lse)
-		      lte (cdr lte))
+		(setq val (semantic-flex-text lse))
+		;; DEBUG SECTION
+		(if semantic-dump-parse
+		    (semantic-dump-detail
+		     (if (stringp (car (cdr lte)))
+			 (list (car (cdr lte)) (car lte))
+		       (list (car lte)))
+		     nonterminal val
+		     (if (stringp (car (cdr lte)))
+			 (if (string-match (car (cdr lte)) val)
+			     "Term Match" "Term Fail")
+		       "Term Type=")))
+		;; END DEBUG SECTION
+		(setq lte (cdr lte))
 		(if (stringp (car lte))
 		    (progn
 		      (setq tev (car lte)
@@ -766,7 +819,12 @@ list of semantic tokens found."
 					 '(comment semantic-list))
 				 valdot val) cvl))) ;append unchecked value.
 		(setq end (cdr (cdr lse))))
-	    (setq lte nil cvl nil))))	;No more matches, exit
+	    (if (and semantic-dump-parse nil)
+		(semantic-dump-detail (car lte)
+				      nonterminal (semantic-flex-text lse)
+				      "Term Type Fail"))
+	    (setq lte nil cvl nil)) 	;No more matches, exit
+	  ))
       (if (not cvl)			;lte=nil;  there was no match.
 	  (setq matchlist (cdr matchlist)) ;Move to next matchlist entry
 	(setq out (if (car lte)
