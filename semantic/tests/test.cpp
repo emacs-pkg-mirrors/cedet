@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.8 2001/11/17 23:48:56 zappo Exp $
+ * $Id: test.cpp,v 1.9 2001/12/18 02:50:40 zappo Exp $
  *
  */
 
@@ -84,6 +84,8 @@ public:
   /* Operators */
   class3& operator= (const class3& something);
 
+  /* Funny declmods */
+  const class3 * const method_const_ptr_ptr(const int * const argconst) const = 0;
 };
 
 class3::class3()
@@ -166,3 +168,20 @@ extern "C" {
   }
 
 }
+
+/*
+ * Ok, how about some template stuff.
+ */
+template <class CT, class container = vector<CT> >
+const CT& max (const CT& a, const CT& b)
+{
+  return a < b ? b : a;
+}
+
+class TemplateUsingClass
+{
+  typedef map<long, long> TestClassMap;
+  typedef TestClassMap::iterator iterator;
+
+  map<int, int> mapclassvarthingy;
+};
