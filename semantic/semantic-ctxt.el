@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.33 2004/03/19 23:38:06 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.34 2004/03/28 01:33:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -142,9 +142,6 @@ Return non-nil if there is no upper context."
 (defun semantic-get-local-variables (&optional point)
   "Get the local variables based on POINT's context.
 Local variables are returned in Semantic tag format.
-Be default, this calculates the current bounds using context blocks
-navigation, then uses the parser with `bovine-inner-scope' to
-parse tags at the beginning of the context.
 This can be overriden with `get-local-variables'."
   ;; The working status is to let the parser work properly
   (working-status-forms
