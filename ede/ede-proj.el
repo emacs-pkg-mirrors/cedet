@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.18 1999/09/22 14:08:58 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.19 1999/11/09 11:11:04 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -76,124 +76,28 @@ It is safe to leave this blank.")
    )
   "Abstract class for Makefile based targets.")
 
-(defclass ede-proj-target-makefile-miscelaneous (ede-proj-target-makefile)
-  ((submakefile :initarg :submakefile
-		:initform "makefile.misc"
-		:type string
-		:custom string
-		:documentation
-		"Miscelaneous sources which have a specialized makefile.
-The sub-makefile is used to build this target.")
-   )
-   "Miscelaneous target type.
-A user-written makefile is used to build this target.
-All listed sources are included in the distribution.")
-
-(defclass ede-proj-target-makefile-objectcode (ede-proj-target-makefile)
-  (;; Give this a new default
-   (configuration-variables :initform ("debug" . (("CFLAGS" . "-g")
-						  ("LDFLAGS" . "-g"))))
-   (headers :initarg :headers
-	    :initform nil
-	    :type list
-	    :custom (repeat (string :tag "Header"))
-	    :documentation "Header files included in the distribution.
-EDE generated Makefiles make all sources dependent on all header files.
-In automake mode, these headers are ignored, but automake generates
-dependencies automatically.")
-   )
-  "Abstract class for Makefile based object code generating targets.
-Belonging to this group assumes you could make a .o from an element source
-file.")
-
-(defclass ede-proj-target-makefile-program
-  (ede-proj-target-makefile-objectcode)
-  ((ldlibs :initarg :ldlibs
-	   :initform nil
-	   :type list
-	   :custom (repeat (string :tag "Library"))
-	   :documentation
-	   "Libraries, such as \"m\" or \"Xt\" which this program dependso on.
-The linker flag \"-l\" is automatically prepended.  Do not include a \"lib\"
-prefix, or a \".so\" suffix."
-	   )
-   (ldflags :initarg :ldflags
-	    :initform nil
-	    :type list
-	    :custom (repeat (string :tag "Link Flag"))
-	    :documentation
-	    "Additional flags to add when linking this target.
-Use ldlibs to add addition libraries.  Use this to specify specific
-options to the linker.")
-   )
-   "This target is an executable program.")
-
-(defclass ede-proj-target-makefile-archive
-  (ede-proj-target-makefile-objectcode)
-  ()
-  "This target generates an object code archive.")
-
-(defclass ede-proj-target-makefile-shared-object
-  (ede-proj-target-makefile-program)
-  ((ldflags :custom (repeat (string :tag "Libtool flag"))
-	    :documentation
-	    "Additional flags to add when linking this target with libtool.
-Use ldlibs to add addition libraries.")
-   (libtool :initarg :libtool
-	    :initform nil
-	    :custom boolean
-	    :documentation
-	    "Non-nil if libtool should be used to generate the library.")
-   )
-  "This target generates a shared library using libtool.")
-
-(defclass ede-proj-target-makefile-info (ede-proj-target-makefile)
-  ((mainmenu :initarg :mainmenu
-	     :initform ""
-	     :type string
-	     :custom string
-	     :documentation "The main menu resides in this file.
-All other sources should be included independently."))
-  "Target for a single info file.")
-   
-(defclass ede-proj-target-lisp (ede-proj-target-makefile)
-  ((load-path :initarg :load-path
-	      :initform nil
-	      :type list
-	      :custom (repeat string)
-	      :documentation "Additional load-path arguments.
-When compiling from the command line, these are added to the makefile.
-When compiling from within emacs, these are ignored.")
-   (requirements :initarg :requirements
-		 :initform nil
-		 :type list
-		 :custom (repeat string)
-		 :documentation
-		 "Additional packages that should be loaded before building.
-When using eieio, tools generally need to be loaded before you can compile
-them safely.")
-   )
-  "This target consists of a group of lisp files.
-A lisp target may be one general program with many separate lisp files in it.")
-
-(defclass ede-proj-target-scheme (ede-proj-target)
-  ((interpreter :initarg :interpreter
-		:initform "guile"
-		:type string
-		:custom string
-		:documentation "The preferred interpreter for this code.")
-   )
-  "This target consists of scheme files.")
-
-(defclass ede-proj-target-aux (ede-proj-target)
-  ()
-  "This target consists of aux files such as READMEs and COPYING.")
+(autoload 'ede-proj-target-aux "ede-proj-aux" 
+  "Target class for a group of lisp files." nil 'variable)
+(autoload 'ede-proj-target-elisp "ede-proj-elisp" 
+  "Target class for a group of lisp files." nil 'variable)
+(autoload 'ede-proj-target-scheme "ede-proj-scheme" 
+  "Target class for a group of lisp files." nil 'variable)
+(autoload 'ede-proj-target-makefile-miscelaneous "ede-proj-misc" 
+  "Target class for a group of miscelaneous w/ a special makefile." nil 'variable)
+(autoload 'ede-proj-target-makefile-program "ede-proj-prog" 
+  "Target class for building a program." nil 'variable)
+(autoload 'ede-proj-target-makefile-archive "ede-proj-archive" 
+  "Target class for building an archive of object code." nil 'variable)
+(autoload 'ede-proj-target-makefile-shared-object "ede-proj-shared" 
+  "Target class for building a shared object." nil 'variable)
+(autoload 'ede-proj-target-makefile-info "ede-proj-info" 
+  "Target class for info files." nil 'variable)
 
 (defvar ede-proj-target-alist
   '(("program" . ede-proj-target-makefile-program)
     ("archive" . ede-proj-target-makefile-archive)
     ("sharedobject" . ede-proj-target-makefile-shared-object)
-    ("emacs lisp" . ede-proj-target-lisp)
+    ("emacs lisp" . ede-proj-target-elisp)
     ("info" . ede-proj-target-makefile-info)
     ("auxiliary" . ede-proj-target-aux)
     ("scheme" . ede-proj-target-scheme)
@@ -372,31 +276,9 @@ Argument TARGET is the project we are completing customization on."
 
 ;;; Desireous methods
 ;;
-(defmethod ede-want-file-p ((obj ede-proj-target-aux) file)
+(defmethod ede-want-file-p ((obj ede-proj-target) file)
   "Return t if OBJ wants to own FILE."
-  (string-match "README\\|\\.txt$" file))
-
-(defmethod ede-want-file-p ((obj ede-proj-target-scheme) file)
-  "Return t if OBJ wants to own FILE."
-  (string-match "\\.scm$" file))
-
-(defmethod ede-want-file-p ((obj ede-proj-target-lisp) file)
-  "Return t if OBJ wants to own FILE."
-  (string-match "\\.el$" file))
-
-(defmethod ede-want-file-p ((obj ede-proj-target-makefile-info) file)
-  "Return t if OBJ wants to own FILE."
-  (string-match "\\.texi?$" file))
-
-(defmethod ede-want-file-p ((obj ede-proj-target-makefile-objectcode) file)
-  "Return t if OBJ wants to own FILE."
-  ;; Only C targets for now.  I'll figure out more later.
-  (string-match "\\.\\(c\\|C\\|cc\\|cpp\\|CPP\\|h\\|hh\\|hpp\\)$"
-		file))
-
-(defmethod ede-want-file-p ((obj ede-proj-target-makefile-miscelaneous) file)
-  "Return t if OBJ wants to own FILE."
-  (string-match "\\.texi?$" file))
+  nil)
 
 
 ;;; EDE command functions
@@ -456,17 +338,6 @@ Argument TARGET is the project we are completing customization on."
       (oset this source (append (oref this source) (list file))))
   (ede-proj-save (ede-current-project)))
 
-(defmethod project-add-file ((this ede-proj-target-makefile-objectcode) file)
-  "Add to target THIS the current buffer represented as FILE."
-  (setq file (file-name-nondirectory file))
-  ;; Header files go into auxiliary sources.  Add more for more languages.
-  (if (not (string-match "\\.\\(h\\|hh\\)$" file))
-      ;; No match, add to regular sources.
-      (call-next-method)
-    (if (not (member file (oref this headers)))
-	(oset this headers (append (oref this headers) (list file))))
-    (ede-proj-save (ede-current-project))))
-
 (defmethod project-remove-file ((target ede-proj-target) file)
   "For TARGET, remove FILE.
 FILE must be massaged by `ede-convert-path'."
@@ -474,16 +345,6 @@ FILE must be massaged by `ede-convert-path'."
   (oset target source (delete (file-name-nondirectory file)
 			       (oref target source)))
   (ede-proj-save))
-
-(defmethod project-remove-file ((target ede-proj-target-makefile-objectcode)
-				file)
-  "For TARGET, remove FILE.
-FILE must be massaged by `ede-convert-path'."
-  ;; Speedy delete should be safe.
-  (oset target headers (delete (file-name-nondirectory file)
-			       (oref target headers)))
-  ;; This will do sources, and save the project for us.
-  (call-next-method))
 
 (defmethod project-make-dist ((this ede-proj-project))
   "Build a distribution for the project based on THIS target."
@@ -508,15 +369,6 @@ Argument COMMAND is the command to use when compiling."
 Argument COMMAND is the command to use for compiling the target."
   (project-compile-project (ede-current-project) command))
 
-(defmethod project-compile-target ((obj ede-proj-target-lisp))
-  "Compile all sources in a Lisp target OBJ."
-  (mapcar (lambda (src)
-	    (let ((elc (concat (file-name-sans-extension src) ".elc")))
-	      (if (or (not (file-exists-p elc))
-		      (file-newer-than-file-p src elc))
-		  (byte-compile-file src))))
-	  (oref obj source)))
-
 (defmethod project-compile-target ((obj ede-proj-target-makefile)
 				   &optional command)
   "Compile the current target program OBJ.
@@ -528,24 +380,6 @@ Optional argument COMMAND is the s the alternate command to use."
 (defmethod project-debug-target ((obj ede-proj-target))
   "Run the current project target OBJ in a debugger."
   (error "Debug-target not supported by %s" (object-name obj)))
-
-(defmethod project-debug-target ((obj ede-proj-target-makefile-program))
-  "Debug a program target OBJ."
-  (let ((tb (get-buffer-create " *padt*"))
-	(dd (if (not (string= (oref obj path) ""))
-		(oref obj path)
-	      default-directory))
-	(cmd nil))
-    (unwind-protect
-	(progn
-	  (set-buffer tb)
-	  (setq default-directory dd)
-	  (setq cmd (read-from-minibuffer
-		     "Run (like this): "
-		     (concat (symbol-name ede-debug-program-function)
-			     " " (ede-target-name obj))))
-	  (funcall ede-debug-program-function cmd))
-      (kill-buffer tb))))
 
 
 ;;; Target type specific autogenerating gobbldegook.

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.17 1999/11/08 18:41:04 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.18 1999/11/09 11:10:58 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -220,30 +220,7 @@ MFILENAME is the makefile to generate."
 
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target))
   "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_AUX"))
-
-(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-objectcode))
-  "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_SOURCE"))
-
-; This variable is used in automake for listing active libraries.
-;(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-shared-object))
-;  "Return the variable name for THIS's sources."
-;  (concat (oref this name) "_LTLIBRARIES"))
-
-(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-info))
-  "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_INFOS"))
-
-(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-lisp))
-  "Return the variable name for THIS's sources."
-  (cond ((ede-proj-automake-p)
-	 "lisp_LISP")
-	(t (concat (ede-pmake-varname this) "_LISP"))))
-
-(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-miscelaneous))
-  "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_MISC"))
+  (concat (ede-pmake-varname this) "_YOU_FOUND_A_BUG"))
 
 ;;; DEPENDENCY FILE GENERATOR LISTS
 ;;
@@ -251,17 +228,6 @@ MFILENAME is the makefile to generate."
   "Return a list of source files to convert to dependencies.
 Argument THIS is the target to get sources from."
   nil)
-
-(defmethod ede-proj-makefile-dependency-files
-  ((this ede-proj-target-makefile-objectcode))
-  "Return a list of source files to convert to dependencies.
-Argument THIS is the target to get sources from."
-  (append (oref this source) (oref this auxsource)))
-
-(defmethod ede-proj-makefile-dependency-files
-  ((this ede-proj-target-makefile-miscelaneous))
-  "Return a list of files which THIS target depends on."
-  (list (oref this submakefile)))
 
 ;;; GENERIC VARIABLES
 ;;
@@ -306,33 +272,6 @@ sources variable."
       (insert " \\\n   " (mapconcat (lambda (a) a) moresource " ") ""))
   (insert "\n"))
 
-(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-lisp))
-  "Insert variables needed by target THIS."
-  (call-next-method this)
-  (insert "EMACS=" (car command-line-args) "\n")
-  (if (oref this load-path)
-      (insert "LOADPATH=" (mapconcat (lambda (a) a) (oref this load-path) " ")
-	      "\n")))
-
-(defmethod ede-proj-makefile-insert-variables
-  ((this ede-proj-target-makefile-objectcode))
-  "Insert variables needed by target THIS."
-  (call-next-method this (oref this headers))
-  (let ((obj-ext
-	 (if (and (obj-of-class-p this 'ede-proj-target-makefile-shared-object)
-		  (oref this libtool))
-	     ".lo" ".o")))
-    (insert (ede-pmake-varname this) "_OBJ="
-	    (mapconcat (lambda (a)
-			 (concat (file-name-sans-extension a) obj-ext))
-		       (oref this source) " ")
-	    " "
-	    (mapconcat (lambda (a)
-			 (concat (file-name-sans-extension a) obj-ext))
-		       (oref this auxsource) " ")
-	    "\n")
-    ))
-
 ;;; GARBAGE PATTERNS
 ;;
 (defmethod ede-proj-makefile-garbage-patterns ((this ede-proj-project))
@@ -354,26 +293,6 @@ These are removed with make clean."
   "Return a list of patterns that are considred garbage to THIS.
 These are removed with make clean."
   nil)
-  
-(defmethod ede-proj-makefile-garbage-patterns
-  ((this ede-proj-target-makefile-objectcode))
-  "Return a list of patterns that are considred garbage to THIS.
-These are removed with make clean."
-  ;; This is constant.  Oh well.
-  '("*.o" ".deps/*.P"))
-
-(defmethod ede-proj-makefile-garbage-patterns ((this ede-proj-target-lisp))
-  "Return a list of patterns that are considred garbage to THIS.
-These are removed with make clean."
-  '("*.elc")
-  )
-
-(defmethod ede-proj-makefile-garbage-patterns
-  ((this ede-proj-target-makefile-info))
-  "Return a list of patterns that are considred garbage to THIS.
-These are removed with make clean."
-  '("*.info")
-  )
 
 ;;; RULES
 ;;
@@ -391,95 +310,6 @@ These are removed with make clean."
   (insert (oref this target) ": " (oref this dependencies) "\n\t"
 	  (mapconcat (lambda (c) c) (oref this rules) "\n\t")
 	  "\n\n"))
-
-(defmethod ede-proj-makefile-insert-rules
-  ((this ede-proj-target-makefile-objectcode))
-  "Insert rules needed by THIS target."
-  (call-next-method)
-  (insert (ede-name this) ": $(" (ede-pmake-varname this) "_OBJ)\n"
-	  ;; Compile line
-	  (if have-libtool
-	      "\t$(LTLINK) "
-	    "\t$(LINK) ")
-	  ;; Shared flag if needed
-	  (if (and
-	       (obj-of-class-p this 'ede-proj-target-makefile-shared-object)
-	       (not have-libtool))
-	      "-shared "
-	    "")
-	  ;; Additional linker flags
-	  (if (and (obj-of-class-p this 'ede-proj-target-makefile-program)
-		   (oref this ldflags))
-	      (concat (mapconcat (lambda (c) c) (oref this ldflags) " ") " ")
-	    "")
-	  ;; The objects to link
-	  "$(" (ede-pmake-varname this) "_OBJ)"
-	  ;; Separate this out later.
-	  (if (obj-of-class-p this 'ede-proj-target-makefile-program)
-	      ;; Some libaries
-	      (concat " "
-		      (mapconcat (lambda (c)
-				   (if (= (aref c 0) ?$)
-				       c
-				     (concat "-l" c)))
-				 (oref this ldlibs) " "))
-	    "")
-	  "\n\n"))
-
-(defmethod ede-proj-makefile-insert-rules
-  ((this ede-proj-target-makefile-archive))
-  "Create the make rule needed to create an archive for THIS."
-  (call-next-method)
-  (insert "# Sorry, rule for making archive " (ede-name this)
-	  "has not yet been implemented.\n\n")
-  )
-
-(defmethod ede-proj-makefile-insert-rules
-  ((this ede-proj-target-makefile-shared-object))
-  "Create the make rule needed to create an archive for THIS."
-  (call-next-method)
-  )
-
-(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-lisp))
-  "Insert rules to build THIS set of Emacs Lisp files."
-  (call-next-method)
-  (insert (ede-name this) ":\n"
-	  "\t@echo \"(add-to-list 'load-path \\\"$(PWD)\\\")\" > "
-	  (ede-name this) "-compile-script\n")
-  (if (oref this load-path)
-      (progn
-	(insert "\t@for loadpath in ${LOADPATH}; do \\\n")
-	(insert "\t  echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> "
-		(ede-name this) "-compile-script; \\\n")
-	(insert "\t  done\n")))
-;  (let ((lp (oref this load-path)))
-;    (while lp
-;      (insert "\t@echo \"(add-to-list 'load-path \\\"" (car lp) "\\\")\" >> "
-;	      (ede-name this) "-comp\n")
-;      (setq lp (cdr lp))))
-  (let ((ar (oref this requirements)))
-    (while ar
-      (insert "\t@echo \"(require '" (car ar) ")\" >> " (ede-name this)
-	      "-compile-script\n")
-      (setq ar (cdr ar))))
-  (insert "\t$(EMACS) -batch -l " (ede-name this) "-compile-script "
-	  "-f batch-byte-compile  $(" (ede-proj-makefile-sourcevar this)
-	  ")\n"))
-
-(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile-info))
-  "Insert rules to build THIS set of texinfo documentation files."
-  (call-next-method)
-  (let ((mm (oref this mainmenu)))
-    (if (or (string= mm "") (not mm))
-	(setq mm (car (oref this source))))
-    (insert "\n" (ede-name this) ": $(" (ede-pmake-varname this) "_INFOS)\n"
-	    "\tmakeinfo " mm "\n")))
-
-(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile-miscelaneous))
-  "Create the make rule needed to create an archive for THIS."
-  (call-next-method)
-  (insert (ede-name this) ": " (oref this submakefile) "\n"
-	  "\t$(MAKE) -f " (oref this submakefile) "\n\n"))
 
 ;; Tags
 (defmethod ede-proj-makefile-tags ((this ede-proj-project) targets)
