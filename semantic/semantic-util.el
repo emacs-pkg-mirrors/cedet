@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.45 2001/02/03 03:33:45 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.46 2001/02/08 23:43:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +38,7 @@ in variable field dereferencing.  The first character will be used for
 display.  In C, a type field is separated like this: \"type.field\"
 thus, the character is a \".\".  In C, and additional value of \"->\"
 would be in the list, so that \"type->field\" could be found.")
+(make-variable-buffer-local 'semantic-type-relation-separator-character)
 
 ;;; Simple APIs
 ;;
@@ -331,7 +332,7 @@ If SEARCH-INCLUDE is non-nil, search include files."
 	(while (and (not m) toklst)
 	  (if search-parts
 	      (progn
-		(setq children (semantic-nonterminal-children (car toklst)))
+		(setq children (semantic-nonterminal-children (car toklst) t))
 		(if children
 		    (setq m (semantic-find-nonterminal-by-name
 			     name children search-parts search-include)))))
