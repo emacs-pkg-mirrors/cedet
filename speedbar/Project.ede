@@ -2,10 +2,10 @@
 ;; EDE project file.
 (ede-proj-project "ede-proj-project"
   :name "speedbar"
-  :version "0.14beta1"
+  :version "0.14beta2"
   :file "Project.ede"
   :targets (list 
-   (ede-proj-target-elisp "(dframe.el speedbar.el)"
+   (ede-proj-target-elisp "speedbar"
     :name "speedbar"
     :path ""
     :source '("dframe.el" "speedbar.el")
@@ -19,7 +19,7 @@
    (ede-proj-target-elisp "opt"
     :name "opt"
     :path ""
-    :source '("rpm.el" "sb-gud.el" "sb-info.el" "sb-rmail.el" "sb-w3.el" "sb-texinfo.el" "bigclock.el" "sb-html.el")
+    :source '("rpm.el" "sb-gud.el" "sb-info.el" "sb-rmail.el" "sb-w3.el" "sb-texinfo.el" "bigclock.el" "sb-html.el" "sb-ant.el")
     :partofall 'nil
     )
    (ede-proj-target-aux "aux"
