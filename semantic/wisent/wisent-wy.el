@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.19 2002/08/11 20:31:57 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.20 2002/08/15 18:27:47 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -45,7 +45,7 @@
 ;;; Analyzers
 ;;
 (define-lex-regex-analyzer wisent-wy-lex-symbol
-  "Detect and create identifier or keyword tokens."
+  "Detect and create an identifier or keyword token."
   "\\(\\sw\\|\\s_\\)+"
   (semantic-lex-token
    (or (semantic-lex-keyword-p (match-string 0))
@@ -54,7 +54,7 @@
    (match-end 0)))
 
 (define-lex-simple-regex-analyzer wisent-wy-lex-number
-  "Detect and create number tokens."
+  "Detect and create a number token."
   semantic-lex-number-expression 'NUMBER)
 
 (define-lex-regex-analyzer wisent-wy-lex-string
@@ -89,6 +89,23 @@
   (BRACE_BLOCK ("{" LBRACE) ("}" RBRACE))
   )
 
+(define-lex-regex-analyzer wisent-wy-lex-prefixed-expression
+  "Detect and create a prefixed expression token."
+  "\\s'"
+  (semantic-lex-token
+   'PREFIX-EXP
+   (match-beginning 0)
+   (save-excursion
+     (condition-case nil
+         (forward-sexp)
+       ;; This case makes lex robust
+       ;; to broken syntax.
+       (error
+        (goto-char
+         (funcall semantic-lex-unterminated-syntax-end-function
+                  'PREFIX-EXP start end))))
+     (point))))
+
 ;;; Lexer
 ;;
 (define-lex wisent-wy-lexer
@@ -99,6 +116,9 @@ It ignores whitespaces, newlines and comments."
   wisent-wy-lex-symbol
   wisent-wy-lex-number
   wisent-wy-lex-char
+  ;; Must detect prefix characters before punctuations because the
+  ;; punctuation regexp also matches them!
+  wisent-wy-lex-prefixed-expression
   wisent-wy-lex-string
   ;; Must detect comments after strings because `comment-start-skip'
   ;; regexp match semicolons inside strings!
@@ -115,7 +135,7 @@ It ignores whitespaces, newlines and comments."
   "Run `wisent-wy-lex' on current buffer."
   (interactive)
   (semantic-lex-init)
-  (setq semantic-lex-analyzer 'wisent-wy-lex)
+  (setq semantic-lex-analyzer 'wisent-wy-lexer)
   (let ((token-stream
          (semantic-lex (point-min) (point-max))))
     (with-current-buffer (get-buffer-create "*wisent-wy-lex*")
@@ -130,9 +150,9 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-10 20:59+0200
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-15 15:26+0200
     (wisent-compile-grammar
-     '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
+     '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PREFIX-EXP PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
        (grammar
         ((PERCENT)
@@ -291,6 +311,7 @@ It ignores whitespaces, newlines and comments."
         ((any_symbol))
         ((STRING))
         ((NUMBER))
+        ((PREFIX-EXP))
         ((PAREN_BLOCK)))
        (symbols
         ((lifo_symbols)
@@ -302,8 +323,7 @@ It ignores whitespaces, newlines and comments."
          (list $1)))
        (nonterminal
         ((any_symbol COLON rules SEMI)
-         (wisent-token $1 'nonterminal nil $3 nil))
-        ((error SEMI)))
+         (wisent-token $1 'nonterminal nil $3 nil)))
        (rules
         ((lifo_rules)
          (apply #'nconc
@@ -414,7 +434,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-10 20:59+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-15 15:26+0200
    (semantic-lex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -435,7 +455,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-10 20:59+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-15 15:26+0200
    (wisent-lex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -451,6 +471,8 @@ It ignores whitespaces, newlines and comments."
       ("semantic-list"
        (BRACE_BLOCK . "^{")
        (PAREN_BLOCK . "^("))
+      ("sexp"
+       (PREFIX-EXP))
       ("char"
        (CHARACTER))
       ("number"
@@ -465,7 +487,7 @@ It ignores whitespaces, newlines and comments."
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-10 20:59+0200
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-15 15:26+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -1102,6 +1124,10 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     (modify-syntax-entry ?\n ">"     table) ;; Comment end
     (modify-syntax-entry ?\" "\""    table) ;; String
     (modify-syntax-entry ?\- "_"     table) ;; Symbol
+    (modify-syntax-entry ?\` "'   "  table) ;; Prefix ` (backquote)
+    (modify-syntax-entry ?\' "'   "  table) ;; Prefix ' (quote)
+    (modify-syntax-entry ?\, "'   "  table) ;; Prefix , (comma)
+    (modify-syntax-entry ?\# "'   "  table) ;; Prefix # (sharp)
     table)
   "Syntax table used in a WY buffer.")
 
