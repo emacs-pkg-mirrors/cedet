@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.13 2004/03/19 23:44:38 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.14 2004/07/15 20:45:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -67,7 +67,7 @@ indicating a directory in which to save a variable.  An element in the
 list can also be a symbol.  Valid symbols are `never', which will
 disable any saving anywhere, `always', which enables saving
 everywhere, or `project', which enables saving in any directory that
-passes a list of predicates in `semantic-project-predicates'."
+passes a list of predicates in `semanticdb-project-predicate-functions'."
   :group 'semanticdb
   :type nil)
 
