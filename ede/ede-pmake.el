@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.11 1999/06/14 14:21:23 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.12 1999/06/24 13:25:12 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -35,8 +35,7 @@ MFILENAME is the makefile to generate."
 	(isdist (string= mfilename (ede-proj-dist-makefile this)))
 	(depth 0)
 	(tmp this)
-	(have-libtool
-	 (assoc t (object-assoc-list-safe 'libtool (oref this targets))))
+	(have-libtool (object-assoc t 'libtool (oref this targets)))
 	)
     ;; Find out how deep this project is.
     (while (ede-parent-project tmp)
@@ -64,8 +63,8 @@ MFILENAME is the makefile to generate."
 	       ((eq makefile-type 'Makefile.am) "automake")
 	       (t (error ":makefile-type in project invalid"))))
        "\n#\n"
-       "# DO NOT MODIFY THIS FILE UNLESS YOU DO NOT PLAN ON USING EDE FOR\n"
-       "# FUTURE DEVELOPMENT.  EDE is the Emacs Development Environment.\n"
+       "# DO NOT MODIFY THIS FILE OR YOUR CHANGES MAY BE LOST.\n"
+       "# EDE is the Emacs Development Environment.\n"
        "# \n")
       (ede-proj-makefile-insert-variables this)
       ;; Space
@@ -210,7 +209,7 @@ MFILENAME is the makefile to generate."
 ;;; SOURCE VARIABLE NAME CONSTRUCTION
 ;;
 (defun ede-pmake-varname (obj)
-  "Convert NAME into a variable name name, which converts .  to _."
+  "Convert OBJ into a variable name name, which converts .  to _."
   (let ((name (oref obj name)))
     (while (string-match "\\." name)
       (setq name (replace-match "_" nil t name)))
@@ -415,17 +414,17 @@ These are removed with make clean."
 	    "")
 	  "\n\n"))
 
-(defmethod ede-proj-makefile-insert-rules 
+(defmethod ede-proj-makefile-insert-rules
   ((this ede-proj-target-makefile-archive))
-  "Create the rule needed to create an archive."
+  "Create the make rule needed to create an archive for THIS."
   (call-next-method)
   (insert "# Sorry, rule for making archive " (ede-name this)
 	  "has not yet been implemented.\n\n")
   )
 
-(defmethod ede-proj-makefile-insert-rules 
+(defmethod ede-proj-makefile-insert-rules
   ((this ede-proj-target-makefile-shared-object))
-  "Create the rule needed to create an archive."
+  "Create the make rule needed to create an archive for THIS."
   (call-next-method)
   )
 
