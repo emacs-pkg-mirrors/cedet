@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.13 2004/03/06 20:04:44 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.14 2004/03/06 20:12:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -104,7 +104,7 @@ We never have local variables in Makefiles."
 	     ;; Note: variables are handled above.
 	     '(function filename))
 	    ((semantic-tag-of-class-p tag 'variable)
-	     '(variable filename))
+	     '(function filename))
 	    ))))
 
 (define-mode-overload-implementation semantic-format-tag-abbreviate
@@ -115,7 +115,7 @@ We never have local variables in Makefiles."
 	)
     (cond ((eq class 'function)
 	   (concat name ":"))
-	  ((eq class 'file)
+	  ((eq class 'filename)
 	   (concat "./" name))
 	  (t
 	   (semantic-format-tag-abbreviate-default tag parent color)))))
@@ -136,7 +136,7 @@ We never have local variables in Makefiles."
 		    (semantic-tag-function-arguments tag)
 		    #'semantic-format-tag-prototype
 		    color)))
-	  ((eq class 'file)
+	  ((eq class 'filename)
 	   (concat "./" name))
 	  (t
 	   (semantic-format-tag-prototype-default tag parent color)))))
@@ -160,18 +160,22 @@ Uses default implementation, and also gets a list of filenames."
   (save-excursion
     (set-buffer (oref context buffer))
     (let* ((normal (semantic-analyze-possible-completions-default context))
-	   (prefix (car (oref context :prefix)))
-	   (completetext (cond ((semantic-tag-p prefix)
-				(semantic-tag-name prefix))
-			       ((stringp prefix)
-				prefix)
-			       ((stringp (car prefix))
-				(car prefix))))
-	   (files (directory-files default-directory nil
-				   (concat "^" completetext)))
-	   (filetags (mapcar (lambda (f) (semantic-tag f 'file))
-			     files)))
-      
+	   (classes (oref context :prefixclass))
+	   (filetags nil))
+      (when (memq 'filename classes)
+	(let* ((prefix (car (oref context :prefix)))
+	       (completetext (cond ((semantic-tag-p prefix)
+				    (semantic-tag-name prefix))
+				   ((stringp prefix)
+				    prefix)
+				   ((stringp (car prefix))
+				    (car prefix))))
+	       (files (directory-files default-directory nil
+				       (concat "^" completetext))))
+	  (setq filetags (mapcar (lambda (f) (semantic-tag f 'filename))
+				 files))))
+      ;; Return the normal completions found, plus any filenames
+      ;; that match.
       (append normal filetags)
       )))
 
