@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.1 1998/12/16 13:59:12 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.2 1999/01/21 13:57:16 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -37,6 +37,8 @@
 
 ;;; Code:
 (eval-when-compile (require 'speedbar))
+
+(require 'project-am)
 
 ;;; Speedbar support mode
 ;;
@@ -72,24 +74,24 @@
   (speedbar-add-expansion-list '("EDE"
 				 ede-speedbar-menu
 				 ede-speedbar-key-map
-				 ede-speedbar))
+				 ede-speedbar-buttons))
   ;; Now, throw us into EDE mode on speedbar.
   (speedbar-change-initial-expansion-list "EDE")
   ;; Now flip over to the speedbar frame
   (speedbar-get-focus)
   )
 
-
-(defun ede-speedbar (dir-or-object depth)
+(defun ede-speedbar-buttons (dir-or-object depth)
   "Create buttons in speedbar that represents the current project.
 DIR-OR-OBJECT is the object to expand, or nil, and DEPTH is the current
 expansion depth."
-  (let ((obj (if (stringp dir-or-object)
+  (let ((obj (if (and (stringp dir-or-object)
+		      (ede-load-project-file dir-or-object))
 		 ;; For any project ALWAYS start at the top
 		 ;; when we first start.  (When we have a string)
-		 (ede-load (ede-find-topmost-level
-				   dir-or-object))
-	       dir-or-object)))
+		 (ede-load-project-file (ede-toplevel-project
+					 dir-or-object))
+	       nil)))
     (if (not obj)
 	(speedbar-make-tag-line nil nil nil nil "No Project" nil nil
 				nil (1+ depth))
@@ -135,7 +137,7 @@ expansion depth."
 				  (oref this :name))
 			  'speedbar-file-face depth))
 
-(defmethod ede-sb-button ((this poject-am-man) depth)
+(defmethod ede-sb-button ((this project-am-man) depth)
   "Create a speedbar button for object THIS at DEPTH."
   (speedbar-make-tag-line 'bracket ?? nil nil
 			  (ede-name this)
