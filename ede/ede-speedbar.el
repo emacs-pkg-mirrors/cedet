@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.5 1999/11/10 15:28:44 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.6 1999/11/23 20:53:56 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -33,158 +33,94 @@
 ;; `ede-sb-expand' - Create the list of sub-buttons under your button
 ;;                          when it is expanded.
 
-(require 'ede)
-
 ;;; Code:
-(eval-when-compile (require 'speedbar))
+(require 'ede)
+(require 'eieio-speedbar)
 
 ;;; Speedbar support mode
 ;;
-(defvar ede-speedbar-key-map nil
-  "Keymap used when working with a project in speedbar.")
-
-(defun ede-speedbar-make-map ()
-  "Make a keymap for ede under speedbar."
-  (setq ede-speedbar-key-map (speedbar-make-specialized-keymap))
-    
-  ;; General viewing pleasure...
-  (define-key ede-speedbar-key-map "\C-m" 'speedbar-edit-line)
-  (define-key ede-speedbar-key-map "+" 'speedbar-expand-line)
-  (define-key ede-speedbar-key-map "-" 'speedbar-contract-line)
-  )
-
-(if ede-speedbar-key-map
-    nil
-  (if (featurep 'speedbar)
-      (ede-speedbar-make-map)
-    (add-hook 'speedbar-load-hook 'ede-speedbar-make-map)))
-
-(defvar ede-speedbar-menu
-  ()
-  "Menu part in easymenu format that is used in speedbar while in `ede' mode.")
+(eieio-speedbar-create 'eieio-speedbar-make-map
+		       'eieio-speedbar-key-map
+		       'eieio-speedbar-menu
+		       "EDE"
+		       'ede-speedbar-toplevel-buttons)
 
 (defun ede-speedbar ()
   "EDE development environment project browser for speedbar."
   (interactive)
-  ;; Make sure that speedbar is active
   (speedbar-frame-mode 1)
-  ;; Make sure our special speedbar major mode is loaded
-  (speedbar-add-expansion-list '("EDE"
-				 ede-speedbar-menu
-				 ede-speedbar-key-map
-				 ede-speedbar-buttons))
-  ;; Overload those functions that we care about.
-  (speedbar-add-mode-functions-list
-   '("EDE"
-     (speedbar-item-info . ede-speedbar-item-info)
-     (speedbar-line-path . ede-speedbar-line-path)))
-  ;; Now, throw us into EDE mode on speedbar.
   (speedbar-change-initial-expansion-list "EDE")
-  ;; Now flip over to the speedbar frame
   (speedbar-get-focus)
   )
 
-(defun ede-speedbar-item-info ()
-  "Display info for the current line when in EDE display mode."
-  (or (speedbar-item-info-tag-helper)
-      (let ((tok (speedbar-line-token)))
-	(cond ((object-p tok)
-	       (message (ede-description tok)))
-	      ((stringp tok)
-	       (speedbar-item-info-file-helper tok))
-	      (t nil)))))
-
-(defun ede-speedbar-line-path (&optional depth)
-  "Return the path to the file the cursor is on.
-Optional DEPTH is the depth we start at."
-  (file-name-nondirectory (or (speedbar-line-token) "")))
-
-(defun ede-speedbar-buttons (dir-or-object depth)
-  "Create buttons in speedbar that represents the current project.
-DIR-OR-OBJECT is the object to expand, or nil, and DEPTH is the current
-expansion depth."
-  (let ((obj (if (and (stringp dir-or-object)
-		      (ede-load-project-file dir-or-object))
-		 ;; For any project ALWAYS start at the top
-		 ;; when we first start.  (When we have a string)
-		 (ede-load-project-file (ede-toplevel-project
-					 dir-or-object))
-	       nil)))
-    (if (not obj)
-	(speedbar-make-tag-line nil nil nil nil "No Project" nil nil
-				nil (1+ depth))
-      ;; Depend on the object method for expansion rules.
-      (ede-sb-expand obj depth))))
+(defun ede-speedbar-toplevel-buttons (dir)
+  "Return a list of objects to display in speedbar.
+Argument DIR is the directory from which to derive the list of objects."
+  ;(list (ede-load-project-file dir))
+  (ede-load-project-file dir)
+  ede-projects
+  )
 
 ;;; Speedbar Project Methods
 ;;
-(defmethod ede-sb-button ((this ede-project) depth)
-  "Create a speedbar button for object THIS at DEPTH."
-  (speedbar-make-tag-line 'angle ?+
-			  'ede-object-expand
-			  this
-			  (ede-name this)
-			  'ede-file-find
-			  (oref this :file)
-			  'speedbar-directory-face depth))
+(defmethod eieio-speedbar-derive-line-path ((obj ede-project) &optional depth)
+  "Return the path to OBJ.
+Optional DEPTH is the depth we start at."
+  (file-name-directory (oref obj file))
+  )
 
-(defmethod ede-sb-button ((this ede-target) depth)
-  "The default speedbar button for any target."
-  (speedbar-make-tag-line 'angle ?+
-			  'ede-object-expand
-			  this (ede-name this)
-			  nil this  ; nothing to jump to
-			  'speedbar-file-face depth))
+(defmethod eieio-speedbar-derive-line-path ((obj ede-target) &optional depth)
+  "Return the path to OBJ.
+Optional DEPTH is the depth we start at."
+  (let ((proj (ede-target-parent obj)))
+    (eieio-speedbar-derive-line-path proj)))
 
-(defun ede-object-expand (text token indent)
-  "Expand an object.
-TEXT is the text clicked on.  TOKEN is the object we are expanding from.
-INDENT is the current indentation level.
-This function will maintain the state of the +,- and call the objects'
-method for the actual text."
-  (cond ((string-match "+" text)	;we have to expand this file
-	 (speedbar-change-expand-button-char ?-)
-	 (speedbar-with-writable
-	   (save-excursion
-	     (end-of-line) (forward-char 1)
-	     (let ((speedbar-tag-hierarchy-method '(sort)))
-	       (ede-sb-expand token (1+ indent))))))
-	((string-match "-" text)	;we have to contract this node
-	 (speedbar-change-expand-button-char ?+)
-	 (speedbar-delete-subblock indent))
-	(t (error "Ooops... not sure what to do")))
-  (speedbar-center-buffer-smartly))
+(defmethod eieio-speedbar-description ((obj ede-project))
+  "Provide a speedbar description for OBJ."
+  (ede-description obj))
 
-(defmethod ede-sb-expand ((this ede-project) depth)
-  "Expand THIS logically at DEPTH."
+(defmethod eieio-speedbar-description ((obj ede-target))
+  "Provide a speedbar description for OBJ."
+  (ede-description obj))
+
+(defmethod eieio-speedbar-object-buttonname ((object ede-project))
+  "Return a string to use as a speedbar button for OBJECT."
+  (concat (ede-name object) " " (oref object version)))
+
+(defmethod eieio-speedbar-object-buttonname ((object ede-target))
+  "Return a string to use as a speedbar button for OBJECT."
+  (ede-name object))
+
+(defmethod eieio-speedbar-object-children ((this ede-project))
+  "Return the list of speedbar display children for THIS."
   (with-slots (subproj targets) this
-    (if (and (= 1 (+ (length subproj) (length targets)))
-	     (string= (ede-name this)
-		      (ede-name (or (car subproj)
-					   (car targets)))))
-	;; If there is only one target, and it has the same name
-	;; as the directory, then expand that target instead.
-	(ede-sb-expand (or (car subproj) (car targets)) depth)
-      (mapcar (lambda (car) (ede-sb-button car depth)) subproj)
-      (mapcar (lambda (car) (ede-sb-button car depth)) targets))))
+    (append subproj targets)))
 
-(defmethod ede-sb-expand ((this ede-target) depth)
-  "Create buttons for items belonging to target THIS at DEPTH."
+(defmethod eieio-speedbar-object-children ((this ede-target))
+  "Return the list of speedbar display children for THIS."
+  (oref this source))
+
+(defmethod eieio-speedbar-child-make-tag-lines ((this ede-target))
+  "Create a speedbar tag line for a child of THIS.
+It has string CHILD-STRING, and depth DEPTH."
   (with-slots (source) this
     (mapcar (lambda (car)
-	      (speedbar-make-tag-line 'bracket ?+
-				      'ede-tag-file
-				      (concat (oref this :path) car)
-				      car
-				      'ede-file-find
-				      (concat (oref this :path) car)
-				      'speedbar-file-face depth))
+ 	      (speedbar-make-tag-line 'bracket ?+
+ 				      'ede-tag-file
+ 				      (concat (oref this :path) car)
+ 				      car
+ 				      'ede-file-find
+ 				      (concat (oref this :path) car)
+ 				      'speedbar-file-face depth))
 	    source)))
 
+;;; Generic file management for TARGETS
+;;
 (defun ede-file-find (text token indent)
   "Find the file TEXT at path TOKEN.
 INDENT is the current indentation level."
-  (speedbar-find-file-in-frame token))
+  (speedbar-find-file-in-frame
+   (concat (speedbar-line-path) token)))
 
 (defun ede-create-tag-buttons (filename indent)
   "Create the tag buttons associated with FILENAME at INDENT."
@@ -214,7 +150,7 @@ level."
 	 (speedbar-with-writable
 	   (save-excursion
 	     (end-of-line) (forward-char 1)
-	     (ede-create-tag-buttons token (1+ indent)))))
+	     (ede-create-tag-buttons (speedbar-line-file) (1+ indent)))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
