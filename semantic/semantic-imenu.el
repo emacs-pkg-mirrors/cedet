@@ -1,10 +1,10 @@
 ;;; semantic-imenu.el --- Use the Bovinator as a imenu tag generator
 
-;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
+;;; Copyright (C) 2000, 2001 Paul Kinnucan & Eric Ludlam
 ;;; Copyright (C) 2001 Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.24 2001/01/25 19:08:52 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.25 2001/02/20 20:23:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -81,6 +81,13 @@ This option is ignored if `semantic-imenu-bucketize-file' is nil."
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-buckets-to-submenu)
 
+(defcustom semantic-imenu-expand-type-parts t
+  "*Non-nil if types should have submenus with parts in it."
+  :group 'imenu
+  :group 'semantic
+  :type 'boolean)
+(make-variable-buffer-local 'semantic-imenu-expand-type-parts)
+
 (defcustom semantic-imenu-bucketize-type-parts t
   "*Non-nil if elements of a type should be placed grouped into buckets.
 Nil means to keep them in the same order.
@@ -118,6 +125,12 @@ other buffer local ones based on the same semanticdb."
 
 (defvar semantic-imenu-auto-rebuild-running nil
   "Non-nil if `semantic-imenu-rebuild-directory-indexes' is running.")
+
+(defvar semantic-imenu-expandable-token 'type
+  "Tokens of this token type will be given submenu with children.
+By default, a `type' has interesting children.  In Texinfo, however,
+a `section' has interesting children.")
+(make-variable-buffer-local 'semantic-imenu-expandable-token)
 
 ;;; Code:
 (defun semantic-imenu-token-overlay (token)
@@ -277,7 +290,8 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
 			  (append index
 				  ;; do not create a menu separator in the parent menu
 				  ;; when creating a sub-menu
-				  (if (eq (semantic-token-token (car item)) 'type)
+				  (if (eq (semantic-token-token (car item))
+					  semantic-imenu-expandable-token)
 				      (semantic-create-imenu-subindex item)
 				    (cons
 				     '("---")
@@ -292,39 +306,43 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
 		  item (cdr (car buckets)))
 	    (semantic-create-imenu-subindex item))))
       ;; Else, group everything together
-      (semantic-create-imenu-subindex tokens t))))
+      (semantic-create-imenu-subindex tokens))))
     
 
-(defun semantic-create-imenu-subindex (tokens &optional notypecheck)
-  "From TOKENS, create an imenu index of interesting things.
-Optional argument NOTYPECHECK specifies not to make subgroups under types."
-  (let (index token parts)
+(defun semantic-create-imenu-subindex (tokens)
+  "From TOKENS, create an imenu index of interesting things."
+  (let ((notypecheck (not semantic-imenu-expand-type-parts))
+	index token parts)
     (while tokens
       (setq token (car tokens))
       (if (and (not notypecheck)
-	       (eq (semantic-token-token token) 'type))
+	       (eq (semantic-token-token token)
+		   semantic-imenu-expandable-token))
           ;; to keep an homogeneous menu organisation, type menu items
           ;; always have a sub-menu with at least the *typedef* item
           ;; (even if the token has no type parts)
-          (setq parts (semantic-token-type-parts token)
-                index (cons (cons
-                             (funcall semantic-imenu-summary-function token)
-                             ;; Add a menu for getting at the type definitions
-			     (if (and parts
-				      ;; Note to self: enable menu items for sub parts
-				      ;; even if they are not proper tokens.
-				      (semantic-token-p (car parts)))
-				 (cons (cons "*typedef*" (semantic-imenu-token-overlay token))
-                                       (if (and semantic-imenu-bucketize-type-parts
-                                                semantic-imenu-bucketize-file)
-                                           (semantic-create-imenu-index-1 parts)
-                                         (semantic-create-imenu-subindex
-                                          (reverse parts))))
-			       ;; There were no parts, or something like that, so
-			       ;; instead just put the definition here.
-			       (semantic-imenu-token-overlay token)
-			       ))
-                            index))
+          (setq parts (semantic-nonterminal-children token)
+                index
+		(cons
+		 (cons
+		  (funcall semantic-imenu-summary-function token)
+		  ;; Add a menu for getting at the type definitions
+		  (if (and parts
+			   ;; Note to self: enable menu items for sub parts
+			   ;; even if they are not proper tokens.
+			   (semantic-token-p (car parts)))
+		      (cons (cons "*definition*" 
+				  (semantic-imenu-token-overlay token))
+			    (if (and semantic-imenu-bucketize-type-parts
+				     semantic-imenu-bucketize-file)
+				(semantic-create-imenu-index-1 parts)
+			      (semantic-create-imenu-subindex
+			       (reverse parts))))
+		    ;; There were no parts, or something like that, so
+		    ;; instead just put the definition here.
+		    (semantic-imenu-token-overlay token)
+		    ))
+		 index))
         (setq index (cons (cons (funcall semantic-imenu-summary-function token)
                                 (semantic-imenu-token-overlay token))
                           index)))
@@ -422,7 +440,8 @@ Returns the first token name in the list, unless it is a type,
 in which case it concatenates them together."
   (cond ((eq (length tokenlist) 1)
 	 (semantic-abbreviate-nonterminal (car tokenlist)))
-	((eq (semantic-token-token (car tokenlist)) 'type)
+	((eq (semantic-token-token (car tokenlist))
+	     semantic-imenu-expandable-token)
 	 (concat (semantic-token-name (car tokenlist)) "."
 		 ;; recurse until we no longer have a type
 		 ;; or any tokens left.
