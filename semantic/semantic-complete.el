@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.26 2004/02/05 03:54:06 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.27 2004/02/06 04:11:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -479,7 +479,8 @@ If PARTIAL, do partial completion stopping at spaces."
         (insert comp))
       )
      ((and (listp comp) (semantic-tag-p (car comp)))
-      (unless (string= (buffer-string) (semantic-tag-name (car comp)))
+      (unless (string= (semantic-completion-text)
+		       (semantic-tag-name (car comp)))
         ;; A fully unique completion was available.
         (semantic-completion-delete-text)
         (insert (semantic-tag-name (car comp))))
