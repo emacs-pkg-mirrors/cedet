@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.27 2003/01/23 18:33:09 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.28 2003/09/10 16:59:36 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -591,7 +591,18 @@ METHOD is the method that was attempting to be called."
   (invalid-slot-type nil))
 
 ;; Slot protection
-(defclass prot-1 ()
+(defclass prot-0 ()
+  ()
+  "Protection testing baseclass.")
+
+(defmethod prot0-slot-2 ((s2 prot-0))
+  "Try to access slot-2 from this class which doesn't have it.
+The object S2 passed in will be of class prot-1, which does have
+the slot.  This could be allowed, and currently is in EIEIO.
+Needed by the eieio persistant base class."
+  (oref s2 slot-2))
+
+(defclass prot-1 (prot-0)
   ((slot-1 :initarg :slot-1
 	   :initform nil
 	   :protection :public)
@@ -651,6 +662,9 @@ Do not override for `prot-2'."
 (condition-case nil
     (prot1-slot-2 p2)
   (error (error "Error accessing protected slot in a subclass method.")))
+(condition-case nil
+    (prot0-slot-2 p1)
+  (error (error "Error accessing protected slot from parent class method.")))
 
 (condition-case nil
     (progn
