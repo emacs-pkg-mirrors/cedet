@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.10 2001/09/12 10:24:24 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.11 2001/09/12 15:41:35 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2430,7 +2430,7 @@ symbol specified at compilation time (see `wisent-compile-grammar')."
                      (car wisent-input)
                      (cadr wisent-input)
                      (if (cddr wisent-input)
-                         (format "at %s" (cddr wisent-input))
+                         (format " at %s" (cddr wisent-input))
                        ""))))
         ;; Increment the error counter
         (setq wisent-nerrs (1+ wisent-nerrs))
