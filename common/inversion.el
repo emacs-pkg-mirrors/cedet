@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.13 2003/03/02 14:04:22 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.14 2003/03/02 14:05:34 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta4"
@@ -243,7 +243,7 @@ Return:
      ;; Check failed
      (t t))))
 
-(Defun inversion-test (package minimum &rest reserved)
+(defun inversion-test (package minimum &rest reserved)
   "Test that PACKAGE meets the MINIMUM version requirement.
 PACKAGE is a symbol, similar to what is passed to `require'.
 MINIMUM is of similar format to return entries of
