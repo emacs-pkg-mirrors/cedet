@@ -1,9 +1,9 @@
 # Simple BNF notation for top-level C elements.
 #
-# Copyright (C) 1999, 2000 Eric M. Ludlam
+# Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.21 2000/12/10 20:53:08 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.22 2001/01/06 14:35:40 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,13 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.22  2001/01/06 14:35:40  zappo
+# Put `type' `t' onto some tokens.
+# Struct and enums now match the braces, and return nil.
+# Enum parts now have a token type of 'enum.
+# Added ... to fuction arg lists.
+# Match parens for arg lists.
+#
 # Revision 1.21  2000/12/10 20:53:08  zappo
 # Fix spelling errors.
 #
@@ -115,11 +122,15 @@
 %token STAR punctuation "*"
 %token EQUAL punctuation "="
 %token COMA punctuation ","
+
 %token STRUCT "struct"
 %token UNION "union"
 %token ENUM "enum"
 %token TYPEDEF "typedef"
 
+%put STRUCT type t
+%put UNION type t
+%put TYPEDEF type t
 
 declaration : include
 	    | macro
@@ -148,16 +159,23 @@ structparts : semantic-list
 
 structsubparts : variable
 	       | define
+	       | open-paren "{"
+		 ( nil )
+	       | close-paren "}"
+		 ( nil )
 	       # sometimes there are defines in structs.
 	       ;
-
 
 enumparts : semantic-list
 	    (EXPANDFULL $1 enumsubparts)
 	  ;
 
 enumsubparts : symbol opt-assign
-	       ( $1 )
+	       ( $1 enum )
+	     | open-paren "{"
+	       ( nil )
+	     | close-paren "}"
+	       ( nil )
 	     ;
 
 opt-name : symbol
@@ -284,9 +302,12 @@ arg-list-p : open-paren "(" semantic-list close-paren ")"
 
 arg-sub-list : variablearg
 	       ( ,$1 )
-	     | PERIOD PERIOD PERIOD
-	       close-paren ")"
+	     | PERIOD PERIOD PERIOD close-paren ")"
 	       ( "..." )
+	     | open-paren "("
+	       ( nil )
+	     | close-paren ")"
+	       ( nil )
 	     ;
 
 functiondef : declmods typeform symbol arg-list
