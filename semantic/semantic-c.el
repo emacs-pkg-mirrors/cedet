@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.43 2001/10/04 15:01:25 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.44 2001/10/05 02:04:49 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,7 +56,7 @@
   (nth 1 vals)))
  ) ; end macro
  (macro-or-include
- ( DEFINE symbol opt-expression
+ ( DEFINE symbol opt-define-arglist opt-expression
   ,(semantic-lambda
   (list (nth 1 vals) 'variable nil (nth 2 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
  ( INCLUDE punctuation "\\b<\\b" filename punctuation "\\b>\\b"
@@ -66,6 +66,12 @@
   ,(semantic-lambda
   (list ( read (nth 1 vals)) 'include nil nil)))
  ) ; end macro-or-include
+ (opt-define-arglist
+ ( semantic-list
+  ,(semantic-lambda
+  (list nil)))
+ ()
+ ) ; end opt-define-arglist
  (define
  ( punctuation "\\b#\\b" DEFINE symbol opt-expression
   ,(semantic-lambda
@@ -283,13 +289,22 @@
   ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
  ) ; end var-or-fun
  (var-or-func-decl
- ( opt-stars opt-class opt-destructor functionname arg-list opt-post-fcn-modifiers opt-throw opt-initializers fun-or-proto-end
+ ( opt-stars opt-class opt-destructor functionname opt-under-p arg-list opt-post-fcn-modifiers opt-throw opt-initializers fun-or-proto-end
   ,(semantic-lambda
-  (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 4 vals) (nth 6 vals)) (nth 5 vals) (nth 0 vals) (nth 8 vals)))
+  (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 5 vals) (nth 7 vals)) (nth 6 vals) (nth 0 vals) (nth 9 vals)))
  ( varnamelist punctuation "\\b;\\b"
   ,(semantic-lambda
   (list (nth 0 vals) 'variable)))
  ) ; end var-or-func-decl
+ (opt-under-p
+ ( UNDERP
+  ,(semantic-lambda
+  (list nil)))
+ ( UNDERUNDERP
+  ,(semantic-lambda
+  (list nil)))
+ ()
+ ) ; end opt-under-p
  (opt-initializers
  ( punctuation "\\b:\\b" symbol semantic-list opt-initializers)
  ( punctuation "\\b,\\b" symbol semantic-list opt-initializers)
@@ -389,11 +404,6 @@
   (list nil)))
  ) ; end opt-destructor
  (arg-list
- ( symbol "\\<__?P\\>" semantic-list
- ,(lambda (vals start end)
- 
- (semantic-bovinate-from-nonterminal (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-list-p)
- ))
  ( semantic-list "^(" knr-arguments
   ,(semantic-lambda
   (nth 1 vals)))
@@ -411,13 +421,6 @@
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end knr-arguments
- (arg-list-p
- ( open-paren "(" semantic-list close-paren ")"
-  ,(semantic-lambda
- 
- (semantic-bovinate-from-nonterminal-full (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-sub-list)
- ))
- ) ; end arg-list-p
  (arg-sub-list
  ( variablearg
   ,(semantic-lambda
@@ -491,6 +494,9 @@
  ( number
   ,(semantic-lambda
  ))
+ ( symbol
+  ,(semantic-lambda
+ ))
  ( string
   ,(semantic-lambda
  ))
@@ -500,7 +506,7 @@
  ( punctuation "[-+*/%^|&]" expression)
  ) ; end expression
  )
-  "C language specification.")
+ "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -648,6 +654,8 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
       ("long" . LONG)
       ("float" . FLOAT)
       ("double" . DOUBLE)
+      ("_P" . UNDERP)
+      ("__P" . UNDERUNDERP)
       )
    '(
      ("extern" summary "Declaration Modifier: extern <type> <name> ...")
@@ -687,6 +695,8 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
      ("float" summary "Primitive floating-point type (single-precision 32-bit IEEE 754)")
      ("double" summary "Primitive floating-point type (double-precision 64-bit IEEE 754)")
+     ("_P" summary "Common macro to elimitate prototype compatibility on some compilers")
+     ("__P" summary "Common macro to elimitate prototype compatibility on some compilers")
      ))
   "Some keywords used in C.")
 
