@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.17 2001/10/27 21:03:52 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.18 2001/10/28 00:00:10 zappo Exp $
 
 (defvar dframe-version "1.2"
   "The current version of the dedicated frame library.")
@@ -335,16 +335,18 @@ CREATE-HOOK are hooks to run after creating a frame."
 	    (set (make-local-variable 'track-mouse) t))	;this could be messy.
 	;; disable auto-show-mode for Emacs
 	(setq auto-show-mode nil))
-      ;; Set this up special just for the passed in buffer
-      ;; Terminal minibuffer stuff does not require this.
-      (if (and (or (assoc 'minibuffer parameters)
-		   ;; XEmacs plist is not an association list
-		   (member 'minibuffer parameters))
-	       window-system (not (eq window-system 'pc))
-	       (null default-minibuffer-frame))
-	  (progn
-	    (make-local-variable 'default-minibuffer-frame)
-	    (setq default-minibuffer-frame dframe-attached-frame)))
+;;;; DISABLED: This causes problems for users with multiple frames.
+;;;;       ;; Set this up special just for the passed in buffer
+;;;;       ;; Terminal minibuffer stuff does not require this.
+;;;;       (if (and (or (assoc 'minibuffer parameters)
+;;;; 		   ;; XEmacs plist is not an association list
+;;;; 		   (member 'minibuffer parameters))
+;;;; 	       window-system (not (eq window-system 'pc))
+;;;; 	       (null default-minibuffer-frame))
+;;;; 	  (progn
+;;;; 	    (make-local-variable 'default-minibuffer-frame)
+;;;; 	    (setq default-minibuffer-frame dframe-attached-frame))
+;;;; 	)
       ;; Override `temp-buffer-show-hook' so that help and such
       ;; put their stuff into a frame other than our own.
       ;; Correct use of `temp-buffer-show-function': Bob Weiner
@@ -701,9 +703,10 @@ Argument FMT is the format string, and ARGS are the arguments for message."
   "Like `y-or-n-p', but for use in a dedicated frame.
 Argument PROMPT is the prompt to use."
   (save-selected-window
-    (if (and default-minibuffer-frame
+    (if (and ;;default-minibuffer-frame
 	     dframe-attached-frame
-	     (not (eq default-minibuffer-frame dframe-attached-frame)))
+	     ;;(not (eq default-minibuffer-frame dframe-attached-frame))
+	     )
 	(select-frame dframe-attached-frame))
     (y-or-n-p prompt)))
 
