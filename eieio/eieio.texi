@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.31 2000/08/20 22:56:52 zappo Exp $
+@c $Id: eieio.texi,v 1.32 2000/09/30 02:25:14 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -276,10 +276,14 @@ Some tags which are unique to EIEIO are:
 
 @table @code
 @item :custom
-A custom :type specifier used when editing an object of this type.
+A custom @code{:type} specifier used when editing an object of this type.
+@item :group
+A symbol representing a group this slot belongs to.  When customizing
+an option, slots are organized based on the @code{:groups} they are
+assigned to.
 @item :protection
-A CLOS unsupported specifier which indicates that only methods of this
-class may access this slot.
+A specifier which indicates that only methods of this class may access
+this slot.
 
 When using a slot referencing function, if the value behind @var{slot}
 is private, then the current scope of operation must be within a method
@@ -298,6 +302,13 @@ Possible class options are:
 @item :documentation
 Doc string to use for this class.  If an Emacs style documentation
 string is also provided, then this option is ignored.
+@item :custom-groups
+This is not a CLOS option.
+
+This lets you specify a list of customization groups the slots in this
+project belong to.  It is generally unnecessary to specify this in
+code, as it is auto-generated from the @code{:group} specifier in the
+slot description.
 @item :allow-nil-initform
 This is not a CLOS option.
 
@@ -720,6 +731,17 @@ unbound if it has no :initform, and was never set.
 Return a string of the form #<class myclassname> which should look
 similar to other lisp objects like buffers and processes.  Printing a
 class results only in a symbol.  
+@end defun
+
+@defun class-option class option
+Return the value in @var{CLASS} of a given @var{OPTION}.
+For example:
+
+@example
+(class-option eieio-default-superclass :documentation)
+@end example
+
+Will fetch the documentation string for @code{eieio-default-superclass}.
 @end defun
 
 @defun class-constructor class
