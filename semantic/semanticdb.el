@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.31 2001/10/24 00:55:00 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.32 2001/10/28 02:00:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -125,7 +125,11 @@ Checked on retrieval to make sure the file is the same.")
 Sometimes it is important for a program to know if a given table has the
 same major mode as the current buffer.")
    (tokens :initarg :tokens
-	   :documentation "The tokens belonging to this table."))
+	   :documentation "The tokens belonging to this table.")
+   (unmatched-syntax :initarg :unmatched-syntax
+		     :documentation
+		     "List of vectors specifying unmatched syntax.")
+   )
   "A single table of tokens belonging to a given file.")
 
 ;;; Code:
@@ -345,8 +349,10 @@ Sets up the semanticdb environment."
 	    (quit (message "semanticdb: Semantic Token generation halted."))
 	    (error (error "Semanticdb: bovination failed at startup")))
 	  )
+      (semantic-set-unmatched-syntax-cache (oref ctbl unmatched-syntax))
       (semantic-set-toplevel-bovine-cache  (oref ctbl tokens))
-      (semantic-overlay-cache))
+      (semantic-overlay-cache)
+      )
     ))
 
 (defun semanticdb-post-bovination (new-table)
@@ -354,6 +360,12 @@ Sets up the semanticdb environment."
 Argument NEW-TABLE is the new table of tokens."
   (if semanticdb-current-table
       (oset semanticdb-current-table tokens new-table)))
+
+(defun semanticdb-post-bovination-unmatched-syntax (new-un-tax)
+  "Function run after a bovination w/ unmatched syntax.
+Argument NEW-UN-TAX is the new unmatched syntax table."
+  (if semanticdb-current-table
+      (oset semanticdb-current-table unmatched-syntax new-un-tax)))
 
 (defun semanticdb-kill-hook ()
   "Function run when a buffer is killed.
@@ -381,8 +393,9 @@ Save all the databases."
 ;;; Start/Stop database use
 ;;
 (defvar semanticdb-hooks
-  '((semanticdb-semantic-init-hook-fcn semantic-init-hooks)
+  '((semanticdb-semantic-init-hook-fcn semantic-init-db-hooks)
     (semanticdb-post-bovination semantic-after-toplevel-cache-change-hook)
+    (semanticdb-post-bovination-unmatched-syntax semantic-unmatched-syntax-hook)
     (semanticdb-kill-hook kill-buffer-hook)
     (semanticdb-kill-emacs-hook kill-emacs-hook)
     )
