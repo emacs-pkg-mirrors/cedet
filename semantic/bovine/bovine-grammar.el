@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.6 2003/03/13 02:23:58 zappo Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.7 2003/03/15 19:25:03 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -69,7 +69,7 @@ QUOTEMODE is the current mode of quotation."
 PARMS is the parameter list.
 QUOTEMODE is the current mode of quotation."
   (bovine-grammar-expand-form
-   `(semantic-token ,@parms)
+   `(semantic-tag ,@parms)
    quotemode t))
 
 (defsubst bovine-grammar-expand-VARIABLE-TAG (parms quotemode)
@@ -77,7 +77,7 @@ QUOTEMODE is the current mode of quotation."
 PARMS is the parameter list.
 QUOTEMODE is the current mode of quotation."
   (bovine-grammar-expand-form
-   `(semantic-token-new-variable ,@parms)
+   `(semantic-tag-new-variable ,@parms)
    quotemode t))
 
 (defsubst bovine-grammar-expand-FUNCTION-TAG (parms quotemode)
@@ -85,7 +85,7 @@ QUOTEMODE is the current mode of quotation."
 PARMS is the parameter list.
 QUOTEMODE is the current mode of quotation."
   (bovine-grammar-expand-form
-   `(semantic-token-new-function ,@parms)
+   `(semantic-tag-new-function ,@parms)
    quotemode t))
 
 (defsubst bovine-grammar-expand-TYPE-TAG (parms quotemode)
@@ -93,7 +93,7 @@ QUOTEMODE is the current mode of quotation."
 PARMS is the parameter list.
 QUOTEMODE is the current mode of quotation."
   (bovine-grammar-expand-form
-   `(semantic-token-new-type ,@parms)
+   `(semantic-tag-new-type ,@parms)
    quotemode t))
 
 (defsubst bovine-grammar-expand-INCLUDE-TAG (parms quotemode)
@@ -101,7 +101,7 @@ QUOTEMODE is the current mode of quotation."
 PARMS is the parameter list.
 QUOTEMODE is the current mode of quotation."
   (bovine-grammar-expand-form
-   `(semantic-token-new-include ,@parms)
+   `(semantic-tag-new-include ,@parms)
    quotemode t))
 
 (defsubst bovine-grammar-expand-PACKAGE-TAG (parms quotemode)
@@ -109,7 +109,7 @@ QUOTEMODE is the current mode of quotation."
 PARMS is the parameter list.
 QUOTEMODE is the current mode of quotation."
   (bovine-grammar-expand-form
-   `(semantic-token-new-package ,@parms)
+   `(semantic-tag-new-package ,@parms)
    quotemode t))
 
 (defun bovine-grammar-expand-form (form quotemode &optional inplace)
