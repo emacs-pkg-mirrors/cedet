@@ -264,7 +264,7 @@ kill ring.
 @end deffn
 
 For programmers, to provide specialized pasting, created an override
-function for @code{insert-foreign-tag} (see @xref{Settings}.)
+function for @code{insert-foreign-tag} (see @ref{Writing Parsers}.)
 
 @subsubsection Minor Mode
 
