@@ -1,10 +1,10 @@
 ;;; semantic-util.el --- Utilities for use with semantic token streams
 
-;;; Copyright (C) 1999, 2000 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.39 2000/12/11 23:49:21 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.40 2001/01/06 14:39:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -544,7 +544,7 @@ FILTER must be a function to call on each element."
 	    (semantic-find-nonterminal-by-function filter stream)
 	  (semantic-find-nonterminal-standard stream)))
   (completing-read prompt stream nil t ""
-		   'semantic-read-symbol-history default))
+		   'semantic-read-symbol-history))
 
 (defun semantic-read-variable (prompt &optional default stream)
   "Read a variable name from the user for the current buffer.
@@ -602,6 +602,10 @@ Available override symbols:
  `prototype-nonterminal'  (token)            Return a prototype string.
  `prototype-file'         (buffer)           Return a file in which
  	                                     prototypes are placed
+ `nonterminal-children'   (token)            Return first rate children.
+					     These are children which may
+					     contain overlays.
+
 Parameters mean:
 
   &      - Following parameters are optional
@@ -761,6 +765,11 @@ If NOSNARF is 'flex, then return the flex token."
 	;; Now return the text.
 	ct))))
 
+(defvar semantic-type-relation-separator-character "."
+  "Character used to separation a parent/child relationship.
+In C, a type field is separated like this: \"type.field\"
+thus, the character is a \".\"")
+
 (defun semantic-abbreviate-nonterminal (token &optional parent)
   "Return an abbreviated string describing TOKEN.
 The abbreviation is to be short, with possible symbols indicating
@@ -772,14 +781,22 @@ Optional argument PARENT is the parent type if TOKEN is a detail."
 	(funcall s token parent)
       ;; Do lots of complex stuff here.
       (let ((tok (semantic-token-token token))
-	    (name (semantic-token-name token)))
-	(concat name
-		(cond ((eq tok 'function) "()")
-		      ((eq tok 'include) "<>")
-		      ((and (eq tok 'variable)
-			    (semantic-token-variable-default token))
-		       "=")))
-	))))
+	    (name (semantic-token-name token))
+	    str)
+	(setq str
+	      (concat name
+		      (cond ((eq tok 'function) "()")
+			    ((eq tok 'include) "<>")
+			    ((and (eq tok 'variable)
+				  (semantic-token-variable-default token))
+			     "=")
+			    )))
+	(if parent
+	    (setq str
+		  (concat (semantic-token-name parent)
+			  semantic-type-relation-separator-character
+			  str)))
+	str))))
 
 ;; Semantic 1.2.x had this misspelling.  Keep it for backwards compatibiity.
 (defalias 'semantic-summerize-nonterminal 'semantic-summarize-nonterminal)
@@ -861,6 +878,34 @@ file prototypes belong in."
 	  (if (re-search-forward "::Header:: \\([a-zA-Z0-9.]+\\)" nil t)
 	      (match-string 1)))))))
 
+(defun semantic-nonterminal-children (token)
+  "Return the list of top level children belonging to TOKEN.
+Children are any sub-tokens which contain overlays.
+The default behavior (if not overriden with `nonterminal-children'
+is to return type parts for a type, and arguments for a function.
+
+If this function is overrideb, use `semantic-nonterminal-children-default'
+to also include the default behavior, and merely extend your own.
+
+Note for language authors:
+  If a mode defines a language that has tokens in it with overlays that
+should not be considered children, you should still return them with
+this function."
+  (let ((s (semantic-fetch-overload 'nonterminal-children)))
+    (if s
+	(funcall s token)
+      (semantic-nonterminal-children-default token))))
+
+(defun semantic-nonterminal-children-default (token)
+  "Return the children of TOKEN.
+For types, return the type parts.
+For functions return the argument list."
+  (cond ((eq (semantic-token-token token) 'type)
+	 (semantic-token-type-parts token))
+	((eq (semantic-token-token token) 'function)
+	 (semantic-token-function-args token))
+	(t nil)))
+
 ;;; Do some fancy stuff with overlays
 ;;
 (defun semantic-highlight-token (token &optional face)
@@ -935,27 +980,32 @@ instead of read-only."
 ;;
 (defun semantic-deoverlay-token (token)
   "Convert TOKEN from using an overlay to using an overlay proxy."
-  (let* ((c (semantic-token-overlay-cdr token))
-	 (a (vector (semantic-overlay-start (car c))
-		    (semantic-overlay-end (car c)))))
-    (semantic-overlay-delete (car c))
-    (setcar c a)
-    ;; Fix the children of types.
-    (if (eq (semantic-token-token token) 'type)
-	(semantic-deoverlay-list (semantic-token-type-parts token)))
-    ))
+  (when (semantic-token-p token)
+    (let ((c (semantic-token-overlay-cdr token))
+	  a)
+      (when (and c (semantic-overlay-p (car c)))
+	(setq a (vector (semantic-overlay-start (car c))
+			(semantic-overlay-end (car c))))
+	(semantic-overlay-delete (car c))
+	(setcar c a)
+	;; Fix the children of this token
+	(semantic-deoverlay-list (semantic-nonterminal-children token)))
+      )))
 
 (defun semantic-overlay-token (token)
   "Convert TOKEN from using an overlay proxy to using an overlay."
-  (let* ((c (semantic-token-overlay-cdr token))
-	 (o (semantic-make-overlay (aref (car c) 0)
-				   (aref (car c) 1)
-				   (current-buffer))))
-    (setcar c o)
-    (semantic-overlay-put o 'semantic token)
-    (if (eq (semantic-token-token token) 'type)
-	(semantic-overlay-list (semantic-token-type-parts token)))
-    ))
+  (when (semantic-token-p token)
+    (let ((c (semantic-token-overlay-cdr token))
+	  o)
+      (when (and c (vectorp (car c)) (= (length (car c)) 2))
+	(setq o (semantic-make-overlay (aref (car c) 0)
+				       (aref (car c) 1)
+				       (current-buffer)))
+	(setcar c o)
+	(semantic-overlay-put o 'semantic token)
+	;; Fix overlays in children of this token
+	(semantic-overlay-list (semantic-nonterminal-children token))
+	))))
 
 (defun semantic-deoverlay-list (l)
   "Remove overlays from the list L."
