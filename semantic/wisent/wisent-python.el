@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.26 2003/02/02 04:18:08 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.27 2003/02/02 04:49:14 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -49,19 +49,21 @@
 ;; this list.
 (defvar wisent-python-lexer-indent-stack '(0))
 
+;; Python strings are delimited by either single quotes or double
+;; quotes, e.g., "I'm a string" and 'I too am s string'.
+;; In addition a string can have either a 'r' and/or 'u' prefix.
+;; The 'r' prefix means raw, i.e., normal backslash substitutions are
+;; to be suppressed.  For example, r"01\n34" is a string with six
+;; characters 0, 1, \, n, 3 and 4.  The 'u' prefix means the following
+;; string is a unicode.
 (defconst wisent-python-string-re "[rR]?[uU]?['\"]"
   "Regexp matching beginning of a python string.")
-
-;; Limit string to 16 chars.
-(defun wisent-python-truncate-string (s)
-  (let ((len (length s)))
-    (substring s 0 (if (> len 16) 16 len))))
 
 ;;;****************************************************************************
 ;;;@ Lexer
 ;;;****************************************************************************
 
-;; Pop all items from the "indent stack" if we are at end of region to parse.
+;; Pop all items from the "indent stack" if we are at buffer end.
 ;; This assumes that `end' variable is set.
 (defun semantic-lex-python-pop-indent-stack ()
   (if (eq (point) end)
@@ -72,7 +74,7 @@
 (define-lex-analyzer semantic-lex-python-beginning-of-line
   "Handle beginning-of-line case, i.e., possibly generate INDENT or
 DEDENT tokens by comparing current indentation level with the previous
-indentation values stored in the wisent-python-lexer-indent-stack
+indentation values stored in `wisent-python-lexer-indent-stack'
 stack."
   (and (bolp)
        (let ((last-indent (or (car wisent-python-lexer-indent-stack) 0))
@@ -80,53 +82,46 @@ stack."
 	     curr-indent)
 	 (skip-chars-forward " \t")
 	 (setq curr-indent (current-column))
-	 ;;(message "semantic-lex-python-beginning-of-lin")
 	 (cond
 	  ;; Blank or comment line => no indentation change
 	  ((looking-at "\\(#\\|$\\)")
 	   (forward-line 1)
 	   (setq end-point (point))
 	   (semantic-lex-python-pop-indent-stack)
-	   ;;(message "bol1: %s %s" start end-point)
-	   t	;; Pos changed, so it is ok to return t here.
-	   )
+	   ;; Since position changed, returning t here won't result in
+	   ;; infinite loop.
+	   t)
 	  ;; No change in indentation.
 	  ((= curr-indent last-indent)
 	   (setq end-point (point))
 	   ;; If pos did not change, then we must return nil so that
 	   ;; other lexical analyzers can be run.
-	   ;;(message "bol2: %s %s" start end-point)
 	   nil)
 	  ;; Indentation increased
 	  ((> curr-indent last-indent)
 	   ;; Return an INDENT lexical token
 	   (push curr-indent wisent-python-lexer-indent-stack)
 	   (semantic-lex-token 'INDENT last-pos (point))
-	   ;;(message "bol3: %s %s" start end-point)
-	   t	;; pos must have changed, so it is ok to return t.
-	   )
+	   t)
 	  ;; Indentation decreased
 	  (t
-	   ;; Pop one item from indentation stack
+	   ;; Pop items from indentation stack
 	   (while (< curr-indent last-indent)
 	     (semantic-lex-token 'DEDENT last-pos (point))
 	     (pop wisent-python-lexer-indent-stack)
-	     (setq last-indent (or (car wisent-python-lexer-indent-stack) 0))
-	     )
+	     (setq last-indent (or (car wisent-python-lexer-indent-stack) 0)))
 	   ;; If pos did not change, then we must return nil so that
 	   ;; other lexical analyzers can be run.
-	   ;;(message "bol4: %s %s" start end-point)
 	   (not (eq last-pos (point))))
 	  )))
-  nil	;; all the work was done in the previous form
+  nil ;; all the work was done in the previous form
   )
 
 (define-lex-analyzer semantic-lex-python-newline
   "Handle NEWLINE syntactic tokens.
 If the following line is an implicit continuation of current line,
 then throw away any immediately following INDENT and DEDENT tokens."
-  (looking-at "\\(\n\\|\\s>\\)")
-  ;;(message "semantic-lex-python-newline")
+  (looking-at "\\(\n\\|\\s>\\)") ;; newline char or end of buffer
   (goto-char (match-end 0))
   (cond
    ;; If an unmatched open-paren exists, then no NEWLINE, INDENT, nor
@@ -135,10 +130,8 @@ then throw away any immediately following INDENT and DEDENT tokens."
     (skip-chars-forward " \t")
     (setq end-point (point)))
    (t
-    (semantic-lex-token 'NEWLINE (1- (point)) (point)))
-   )
-  (semantic-lex-python-pop-indent-stack)
-  )
+    (semantic-lex-token 'NEWLINE (1- (point)) (point))))
+  (semantic-lex-python-pop-indent-stack))
 
 (define-lex-analyzer semantic-lex-python-string
   "Handle python strings."
@@ -155,8 +148,7 @@ then throw away any immediately following INDENT and DEDENT tokens."
 		  (t
 		   (forward-sexp 1)))
 		 (point))
-	     ;; This case makes flex
-	     ;; robust to broken strings.
+	     ;; This case makes robust to broken strings.
 	     (error
 	      (progn
 		(goto-char
@@ -170,7 +162,6 @@ then throw away any immediately following INDENT and DEDENT tokens."
 (define-lex-analyzer semantic-lex-python-charquote
   "Handle BACKSLASH syntactic tokens."
   (looking-at "\\s\\+")
-  (message "semantic-lex-python-charquote")
   (forward-char 1)
   (semantic-lex-token 'BACKSLASH (1- (point)) (point))
   (when (looking-at "\n")
@@ -199,8 +190,7 @@ then throw away any immediately following INDENT and DEDENT tokens."
   "Detect and create a open, close or block token."
   (PAREN_BLOCK ("(" LPAREN) (")" RPAREN))
   (BRACE_BLOCK ("{" LBRACE) ("}" RBRACE))
-  (BRACK_BLOCK ("[" LBRACK) ("]" RBRACK))
-  )
+  (BRACK_BLOCK ("[" LBRACK) ("]" RBRACK)))
 
 (define-lex semantic-python-lexer
   "Lexical Analyzer for Python code."
@@ -269,46 +259,6 @@ Otherwise simply call the original function."
       (setq ad-return-value (python-scan-lists))
     ad-do-it))
 
-(define-wisent-lexer wisent-python-lex
-  "Return the next available lexical token in Wisent's form for Python.
-The variable `wisent-lex-istream' contains the list of lexical tokens
-produced by `semantic-lex'.  Pop the next token available and convert
-it to a form suitable for the Wisent's parser."
-  (let* ((tk (car wisent-lex-istream))
-	 (tk-class (semantic-lex-token-class tk))
-	 )
-    (setq wisent-lex-istream (cdr wisent-lex-istream))
-    (cond
-     ((and (eq tk-class 'INDENT)
-	   depth
-	   (>= current-depth depth))
-      (let ((beg (car (semantic-lex-token-bounds tk)))
-	    (indent-count 1)
-	    tk2 tk2-class end)
-	(catch 'done
-	  (while wisent-lex-istream
-	    (setq tk2 (car wisent-lex-istream))
-	    (cond
-	     ((eq (semantic-lex-token-class tk2) 'DEDENT)
-	      (setq indent-count (1- indent-count))
-	      (when (= indent-count 0)
-		(setq end (cdr (semantic-lex-token-bounds tk)))
-		(throw 'done
-		       (cons 'semantic-list
-			     (cons (buffer-substring beg end)
-				   (cons beg end))))))
-	     ((eq (semantic-lex-token-class tk2) 'INDENT)
-	      (setq indent-count (1+ indent-count)))
-	     )
-	    (setq wisent-lex-istream (cdr wisent-lex-istream)))
-	  (error "Python lexer encountered an INDENT token without matching DEDENT")
-	  )))
-     (t
-      (cons token-class
-	    (cons (semantic-lex-token-text tk)
-		  (semantic-lex-token-bounds tk))))
-     )))
-
 ;;;****************************************************************************
 ;;;@ Parser
 ;;;****************************************************************************
@@ -324,10 +274,6 @@ then converted to simple names to comply with the semantic token style guide."
 	(mapcar #'semantic-token-name tokens)
       tokens)))
 
-;; This should be called everytime before parsing starts.
-;; Is there a better hook than python-mode-hook which gets called
-;; at the start of every parse? -ryk6/21/02.
-
 ;;;###autoload
 (add-hook 'python-mode-hook #'wisent-python-default-setup)
 
@@ -336,7 +282,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:12-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:41-0800
   (eval-when-compile
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
@@ -727,11 +673,9 @@ then converted to simple names to comply with the semantic token style guide."
 	((comma_sep_test_list COMMA test)
 	 (format "%s, %s" $1 $3)))
        (one_or_more_string
-	((STRING_LITERAL)
-	 (wisent-python-truncate-string $1))
+	((STRING_LITERAL))
 	((one_or_more_string STRING_LITERAL)
-	 (wisent-python-truncate-string
-	  (concat $1 $2))))
+	 (concat $1 $2)))
        (lambdef
 	((LAMBDA varargslist_opt COLON test)
 	 (format "%s %s" $1
@@ -784,7 +728,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:12-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:41-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -846,7 +790,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:12-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:41-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -918,7 +862,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:12-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:41-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
