@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98, 99 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.8
+;; Version: 0.8.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.136 1999/01/11 16:36:02 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.137 1999/01/21 21:28:16 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -923,11 +923,12 @@ This basically creates a sparse keymap, and makes it's parent be
   "Additional menu items while in file-mode.")
  
 (defvar speedbar-easymenu-definition-trailer
-  (list
+  (append
    (if (and (featurep 'custom) (fboundp 'custom-declare-variable))
-       ["Customize..." speedbar-customize t])
-   ["Close" speedbar-close-frame t]
-   ["Quit" delete-frame t] )
+       (list ["Customize..." speedbar-customize t]))
+   (list
+    ["Close" speedbar-close-frame t]
+    ["Quit" delete-frame t] ))
   "Menu items appearing at the end of the speedbar menu.")
 
 (defvar speedbar-desired-buffer nil
@@ -1692,10 +1693,11 @@ This function can be replaced in `speedbar-mode-functions-list' as
   (funcall (or (speedbar-fetch-replacement-function 'speedbar-item-info)
 	       'speedbar-generic-item-info)))
 
-(defun speedbar-item-info-file-helper ()
+(defun speedbar-item-info-file-helper (&optional filename)
   "Display info about a file that is on the current line.
-nil if not applicable."
-  (let* ((item (speedbar-line-file))
+nil if not applicable.  If FILENAME, then use that instead of reading
+it from the speedbar buffer."
+  (let* ((item (or filename (speedbar-line-file)))
 	 (attr (if item (file-attributes item) nil)))
     (if (and item attr) (message "%s %-6d %s" (nth 8 attr) (nth 7 attr) item)
       nil)))
@@ -2037,7 +2039,8 @@ for FUNCTION."
 			  speedbar-mode-functions-list)))))
 
 (defun speedbar-add-mode-functions-list (new-list)
-  "Add NEW-LIST to the list of mode functions."
+  "Add NEW-LIST to the list of mode functions.
+See `speedbar-mode-functions-list' for details."
   (add-to-list 'speedbar-mode-functions-list new-list))
 
 
@@ -3153,6 +3156,20 @@ Optional argument P is where to start the search from."
 	(match-string 2)
       nil)))
 
+(defun speedbar-line-token (&optional p)
+  "Retrieve the token information after the prefix junk for the current line.
+Optional argument P is where to start the search from."
+  (save-excursion
+    (if p (goto-char p))
+    (beginning-of-line)
+    (if (looking-at (concat
+		     "\\([0-9]+\\): *[[<][-+?][]>] \\([^ \n]+\\)\\("
+		     speedbar-indicator-regex "\\)?"))
+	(progn
+	  (goto-char (match-beginning 2))
+	  (get-text-property (point) 'speedbar-token))
+      nil)))	  
+
 (defun speedbar-line-file (&optional p)
   "Retrieve the file or whatever from the line at P point.
 The return value is a string representing the file.  If it is a
@@ -3391,7 +3408,7 @@ expanded.  INDENT is the current indentation level."
 	     (if (not (string-match (concat "^" (regexp-quote td)) (car oldl)))
 		 (setq newl (cons (car oldl) newl)))
 	     (setq oldl (cdr oldl)))
-	   (setq speedbar-shown-directories newl))
+	   (setq speedbar-shown-directories (nreverse newl)))
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent)
 	 )
