@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-doc.el,v 1.2 2003/08/29 16:10:24 zappo Exp $
+;; X-RCS: $Id: semantic-doc.el,v 1.3 2003/09/05 10:31:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -82,7 +82,7 @@ Argument NOSNARF means don't modify the found text.
 If NOSNARF is 'lex, then return the lex token."
   (let* ((semantic-ignore-comments nil)
 	 (semantic-lex-analyzer #'semantic-comment-lexer))
-    (if (eq nosnarf 'flex)
+    (if (memq nosnarf '(lex flex)) ;; keep `flex' for compatibility
 	(car (semantic-lex (point) (1+ (point))))
       (let ((ct (semantic-lex-token-text
 		 (car (semantic-lex (point) (1+ (point)))))))
@@ -108,6 +108,9 @@ If NOSNARF is 'lex, then return the lex token."
 	;; Now return the text.
 	ct))))
 
+;;;###autoload
+(semantic-alias-obsolete 'semantic-find-documentation
+                         'semantic-documentation-for-tag)
 
 (provide 'semantic-doc)
 
