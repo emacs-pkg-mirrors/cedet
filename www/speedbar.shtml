@@ -1,9 +1,11 @@
 <TITLE>Speedbar Homepage</TITLE>
 
 <!--#include file="rightcol.php"-->
+<table width=100% bgcolor=#000099>
+<tr><td><h2><font color=yellow>Speedbar:</font></h2></td></tr>
+<tr><td><font color=yellow>"Floating Everything Browser"</font></td></tr>
+</table>
 <img src=speedbar-3.jpg align=left>
-
-<h2>Speedbar for Emacs</h2>
 
 <P>Speedbar is an <B>Emacs Lisp</B> program which allows you to create a
 special skinny frame with a specialized directory listing in it.  This
