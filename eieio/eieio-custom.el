@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.18 2001/02/17 19:55:24 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.19 2001/08/17 21:26:15 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -288,7 +288,9 @@ Optional argument IGNORE is an extraneous parameter."
 	 (cv (class-v (object-class-fast obj)))
 	 (fgroup (aref cv class-public-custom-group))
 	 (wids (widget-get widget :children))
-	 (name (car (widget-apply (car wids) :value-inline)))
+	 (name (if (widget-get widget :eieio-show-name)
+		   (car (widget-apply (car wids) :value-inline))
+		 nil))
 	 (chil (if (widget-get widget :eieio-show-name)
 		   (nthcdr 1 wids) wids))
 	 (cv (class-v (object-class-fast obj)))
@@ -310,7 +312,7 @@ Optional argument IGNORE is an extraneous parameter."
 	    fgroup (cdr fgroup)
 	    fcust (cdr fcust)))
     ;; Set any name updates on it.
-    (aset obj object-name name)
+    (if name (aset obj object-name name))
     ;; This is the same object we had before.
     obj))
 
