@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.28 2004/02/16 20:21:35 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.29 2004/02/22 21:47:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1338,8 +1338,10 @@ one in the source buffer."
 ;; 
 ;; Written and contributed by Masatake YAMATO <jet@gyve.org>
 ;;
-;; Modified by Eric Ludlam for safe compatibility for tooltip
-;; free systems.
+;; Modified by Eric Ludlam for
+;; * Safe compatibility for tooltip free systems.
+;; * Don't use 'avoid package for tooltip positioning.
+
 (defclass semantic-displayor-tooltip (semantic-displayor-traditional)
   ((max-tags     :type integer
 		 :initarg :max-tags
