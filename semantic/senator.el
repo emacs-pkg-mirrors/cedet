@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.62 2002/09/16 01:45:03 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.59.2.1 2003/04/04 08:28:31 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -82,8 +82,7 @@
 ;; Customize `senator-step-at-start-end-token-ids' to stop at the
 ;; start and end of the specified token types.
 
-;; To have a mode specific customization, do something like this in a
-;; hook:
+;; To have a mode specific customization, do something like this in a hook:
 ;;
 ;; (add-hook 'mode-hook
 ;;           (lambda ()
@@ -264,9 +263,9 @@ reverse order."
 (make-variable-buffer-local 'senator-completion-cache)
 
 (defun senator-completion-cache-flush-fcn (&optional ignore)
-  "Hook run to clear the completion list cache.
-It is called each time the token cache is changed.
-IGNORE arguments."
+  "Function called as a hook to clear the completion list cache.
+This is added to `semantic-before-toplevel-cache-flush-hook' and
+`semantic-clean-token-hooks'.  IGNORE arguments."
   (setq senator-completion-cache nil))
 
 (defun senator-completion-flatten-stream (stream parents &optional top-level)
@@ -1427,24 +1426,13 @@ minor mode entry."
  )
 
 (senator-register-mode-menu-entry
- "Highlight changes"
- '(semantic-highlight-edits-mode
-   :help "Highlight changes tracked by Semantic."
+ "Highlight Dirty Tokens"
+ '(semantic-show-dirty-mode
+   :help "Highlight tokens in the current buffer which need to be reparsed."
    )
- '(global-semantic-highlight-edits-mode
-   :help "Automatically highlight changes in all Semantic buffers."
-   :save global-semantic-highlight-edits-mode
-   )
- )
-
-(senator-register-mode-menu-entry
- "Show parser state"
- '(semantic-show-parser-state-mode
-   :help "`-': OK, `!': will parse all, `~': will parse part, `@': running."
-   )
- '(global-semantic-show-parser-state-mode
-   :help "Automatically show parser state in all Semantic buffers."
-   :save global-semantic-show-parser-state-mode
+ '(global-semantic-show-dirty-mode
+   :help "Automatically highlight dirty tokens in all Semantic buffers."
+   :save global-semantic-show-dirty-mode
    )
  )
 
@@ -1970,13 +1958,11 @@ minor mode is enabled."
             (progn
               (senator-parse)
               ;; Add completion hooks
-              (semantic-make-local-hook
-               'semantic-after-toplevel-cache-change-hook)
-              (add-hook 'semantic-after-toplevel-cache-change-hook
+              (semantic-make-local-hook 'semantic-before-toplevel-cache-flush-hook)
+              (add-hook 'semantic-before-toplevel-cache-flush-hook
                         'senator-completion-cache-flush-fcn nil t)
-              (semantic-make-local-hook
-               'semantic-after-partial-cache-change-hook)
-              (add-hook 'semantic-after-partial-cache-change-hook
+              (semantic-make-local-hook 'semantic-clean-token-hooks)
+              (add-hook 'semantic-clean-token-hooks
                         'senator-completion-cache-flush-fcn nil t))
           (quit
            (message "senator-minor-mode: parsing of buffer canceled."))))
@@ -1984,10 +1970,10 @@ minor mode is enabled."
     (if (featurep 'xemacs)
         (easy-menu-remove senator-minor-menu))
     ;; Remove completion hooks
-    (remove-hook 'semantic-after-toplevel-cache-change-hook
-                 'senator-completion-cache-flush-fcn t)
-    (remove-hook 'semantic-after-partial-cache-change-hook
-                 'senator-completion-cache-flush-fcn t)
+    (remove-hook 'semantic-before-toplevel-cache-flush-hook
+                 'senator-completion-cache-flush-fcn)
+    (remove-hook 'semantic-clean-token-hooks
+                 'senator-completion-cache-flush-fcn)
     ;; Disable semantic isearch
     (setq senator-isearch-semantic-mode nil))
   senator-minor-mode)
@@ -2369,10 +2355,7 @@ Depending on the value of the variable `senator-minor-mode'.  Run as
               (delq 'senator-try-expand-semantic
                     hippie-expand-try-functions-list)))))
 
-;; Setup semantic completion after hippie-exp was [auto]loaded
-(eval-after-load 'hippie-exp
-  '(add-hook 'senator-minor-mode-hook 'senator-hippie-expand-hook)
-  )
+(add-hook 'senator-minor-mode-hook 'senator-hippie-expand-hook)
 
 ;;;###autoload
 (defun senator-try-expand-semantic (old)
