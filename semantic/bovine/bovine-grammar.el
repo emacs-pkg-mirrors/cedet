@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.5 2003/03/11 00:51:28 zappo Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.6 2003/03/13 02:23:58 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -152,7 +152,7 @@ expanded from elsewhere."
    ((eq (car form) 'VARIABLE-TAG)
     (bovine-grammar-expand-VARIABLE-TAG (cdr form) quotemode)
     )
-   ((eq (car form) 'FINCTION-TAG)
+   ((eq (car form) 'FUNCTION-TAG)
     (bovine-grammar-expand-FUNCTION-TAG (cdr form) quotemode)
     )
    ((eq (car form) 'TYPE-TAG)
