@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.31 2001/05/19 22:55:33 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.32 2001/05/31 00:21:10 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -188,7 +188,9 @@ Execute BODY in a location where a value can be placed."
 	       (forward-char 1)
 	       (end-of-line))
 	     (if (< (current-column) 40)
-		 (insert " ")
+		 (if (and (/= (preceding-char) ?=)
+			  (/= (preceding-char) ? ))
+		     (insert " "))
 	       (insert "\\\n   "))
 	     (setq addcr nil))
 	 (insert v "="))
