@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.176 2004/03/19 23:31:41 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.177 2004/03/19 23:33:08 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -178,7 +178,7 @@ For language specific hooks, make sure you define this as a local hook.
 
 This hook should not be used any more.
 Use `semantic-after-toplevel-cache-change-hook' instead.")
-(make-obsolete-variable 'semantic-after-toplevel-bovinate-hook)
+(make-obsolete-variable 'semantic-after-toplevel-bovinate-hook nil)
 
 (defvar semantic-after-toplevel-cache-change-hook nil
   "Hooks run after the buffer token list has changed.
