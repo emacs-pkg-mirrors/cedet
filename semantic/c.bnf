@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.33 2001/04/21 14:37:55 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.34 2001/05/01 16:52:40 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.34  2001/05/01 16:52:40  zappo
+# Revamped lots of summary strings.
+# Added `type' as a possible expansion in classsubparts.
+#
 # Revision 1.33  2001/04/21 14:37:55  zappo
 # Spelling error for integer.
 #
@@ -120,33 +124,33 @@
 %token TILDE punctuation "~"
 
 %token EXTERN "extern"
-%put EXTERN summary "Declaration Modifier: extern <type> <declaration>"
+%put EXTERN summary "Declaration Modifier: extern <type> <name> ..."
 %token STATIC "static"
-%put STATIC summary "Declaration Modifier: static <type> <declaration>"
+%put STATIC summary "Declaration Modifier: static <type> <name> ..."
 %token CONST "const"
-%put CONST summary "Declaration Modifier: const <type> <declaration>"
+%put CONST summary "Declaration Modifier: const <type> <name> ..."
 %token VOLATILE "volatile"
-%put VOLATILE summary "Declaration Modifier: volatile <type> <declaration>"
+%put VOLATILE summary "Declaration Modifier: volatile <type> <name> ..."
 %token SIGNED "signed"
-%put SIGNED summary "Numeric Type Modifier: signed <numeric type> ..."
+%put SIGNED summary "Numeric Type Modifier: signed <numeric type> <name> ..."
 %token UNSIGNED "unsigned"
-%put UNSIGNED summary "Numeric Type Modifier: unsigned <numeric type> ..."
+%put UNSIGNED summary "Numeric Type Modifier: unsigned <numeric type> <name> ..."
 
 %token VIRTUAL "virtual"
-%put VIRTUAL summary "Method Modifier: virtual <type> <fnname>(...)"
+%put VIRTUAL summary "Method Modifier: virtual <type> <name>(...) ..."
 
 %token STRUCT "struct"
-%put STRUCT summary "Type Declaration: struct [name] { ... };"
+%put STRUCT summary "Structure Type Declaration: struct [name] { ... };"
 %token UNION "union"
-%put UNION summary "Type Declaration: union [name] { ... };"
+%put UNION summary "Union Type Declaration: union [name] { ... };"
 %token ENUM "enum"
-%put ENUM summary "Type Declaration: enum [name] { ... };"
+%put ENUM summary "Enumeration Type Declaration: enum [name] { ... };"
 %token TYPEDEF "typedef"
-%put TYPEDEF summary "Type Declaration: typedef <typedeclaration> <name>"
+%put TYPEDEF summary "Arbitrary Type Declaration: typedef <typedeclaration> <name>;"
 %token CLASS "class"
-%put CLASS summary "Type Declaration: class <name>[:parents] { ... };"
+%put CLASS summary "Class Declaration: class <name>[:parents] { ... };"
 %token NAMESPACE "namespace"
-%put NAMESPACE summary "Type Declaration: namespace <name> { ... };"
+%put NAMESPACE summary "Namespace Declaration: namespace <name> { ... };"
 
 # Leave these alone for now.
 %token OPERATOR "operator"
@@ -157,48 +161,48 @@
 # These aren't used for parsing, but is a useful place to describe the keywords.
 %token IF "if"
 %token ELSE "else"
-%put {IF ELSE} summary  "Conditional: if <condition> {code} [ else { coe } ]"
+%put {IF ELSE} summary  "if (<condition>) { code } [ else { code } ]"
 
 %token DO "do"
 %token WHILE "while"
-%put DO summary "Loop: do { code } while <condition>;"
-%put WHILE summary "Loop: do { code } while <condition>; or while <condition> { code };"
+%put DO summary " do { code } while (<condition>);"
+%put WHILE summary "do { code } while (<condition>); or while (<condition>) { code };"
 
 %token FOR "for"
-%put FOR summary "Loop: for(<init>; <condition>; <increment>) { code }"
+%put FOR summary "for(<init>; <condition>; <increment>) { code }"
 
 %token SWITCH "switch"
 %token CASE "case"
 %token DEFAULT "default"
 %put {SWITCH CASE DEFAULT} summary
-"Conditional: switch (<variable>) { case <constvalue>: code; ... default: code; }"
+"switch (<variable>) { case <constvalue>: code; ... default: code; }"
 
 %token RETURN "return"
 %put RETURN summary "return <value>;"
 
 %token BREAK "break"
-%put BREAK summary "Non-local exit: break;"
+%put BREAK summary "Non-local exit within a loop or switch (for, do/while, switch): break;"
 %token CONTINUE "continue"
-%put CONTINUE summary "Non-local continue: continue;"
+%put CONTINUE summary "Non-local continue within a lool (for, do/while): continue;"
 
 %token SIZEOF "sizeof"
-%put SIZEOF summary "Function: sizeof(<type or variable>) // size in bytes"
+%put SIZEOF summary "Compile time macro: sizeof(<type or variable>) // size in bytes"
 
 # Types
 %token VOID "void"
-%put VOID summary "Built in type: void  No type"
+%put VOID summary "Built in typeless type: void"
 %token CHAR "char"
-%put CHAR summary "Built in type: char  Character, or 8 bit numeric value"
+%put CHAR summary "Integral Character Type: (0 to 256)"
 %token SHORT "short"
-%put SHORT summary "Built in type: short  Small numeric value"
+%put SHORT summary "Integral Primitive Type: (-32768 to 32767)"
 %token INT "int"
-%put INT summary "Built in type: int  Numeric integer value"
+%put INT summary "Integral Primitive Type: (-2147483648 to 2147483647)"
 %token LONG "long"
-%put LONG summary "Built in type: long  Large numeric integer value"
+%put LONG summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)"
 %token FLOAT "float"
-%put FLOAT summary "Built in type: float  Numeric floating point value"
+%put FLOAT summary "Primitive floating-point type (single-precision 32-bit IEEE 754)"
 %token DOUBLE "double"
-%put DOUBLE summary "Built in type: double  Large floating point value"
+%put DOUBLE summary "Primitive floating-point type (double-precision 64-bit IEEE 754)"
 
 declaration : macro
 	    | type
@@ -261,9 +265,10 @@ classsubparts : open-paren "{"
 		( nil )
 	      | close-paren "}"
 		( nil )
-	      | var-or-fun
-	      | define
 	      | opt-class-protection COLON
+	      | var-or-fun
+	      | type
+	      | define	      
 		( ,$1 protection )
 	      # In C++, this label in a classsubpart represents
 	      # PUBLIC or PRIVATE bits.  Ignore them for now.
