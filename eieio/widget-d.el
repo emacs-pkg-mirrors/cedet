@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-d.el,v 1.1 1996/03/28 03:50:19 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.2 1996/06/17 22:32:54 zappo Exp $
 ;;; Keywords: OO widget
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -97,8 +97,7 @@ field GADGET-CALLBACK with value of symbol changes")
 	     :initform nil		; t if currently active
 	     :protection private)
    (handle-io :initarg :handle-io
-	      :initform  nil		; t if widget handles IO
-	      :protection private)
+	      :initform  nil)		; t if widget handles IO
    (rx :initarg :rx
        :protection private)
    (ry :initarg :ry
@@ -139,16 +138,14 @@ widgets which contain children")
   ((buffer :initarg :buffer
 	   :initform current-buffer)
    (handle-io :initarg :handle-io
-	      :initform t
-	      :protection private)
+	      :initform t)
    )
   "Definition for a toplevel shell, which contains all children widget
 for a given buffer.")
 
 (defclass widget-frame (widget-group)
   ((handle-io :initarg :handle-io
-	      :initform t
-	      :protection private)
+	      :initform t)
     (boxed :initarg :boxed
 	   :initform t 
 	   :protection private)
@@ -172,6 +169,8 @@ in a labeled box.")
    (justification :initarg :justification
 		  :initform center)		;how to justify the text
 					;'left, 'center, 'right
+   (focus-face :initarg :focus-face
+	       :initform nil)			;face used when under mouse
    (leftmargin :initarg :leftmargin
 	       :initform 0)
    (rightmargin :initarg :rightmargin
@@ -190,6 +189,8 @@ formated to text with the format value.  There are no IO events.")
 (defclass widget-button (widget-label)
   ((arm-face :initarg :arm-face
 	     :initform highlight)		; face used when armed
+   (focus-face :initarg :focus-face
+	       :initform bold)			;face used when under mouse
    (boxed :initarg :boxed
 	  :initform t
 	  :protection private)			; we want to show a box
