@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.28 2001/01/25 18:26:08 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.29 2001/01/31 15:29:40 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -88,47 +88,50 @@
 ;     (symbol "token" symbol symbol
 ;	     ,(semantic-lambda
 ;	       (list (nth 1 vals) 'token (nth 2 vals))))
-     (symbol "start" symbol
+     (START symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'start)))
-     (symbol "token" symbol string
+     (SCOPESTART symbol
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'scopestart)))
+     (TOKEN symbol string
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'keyword "symbol" (nth 2 vals))))
-     (symbol "token" symbol symbol string
+     (TOKEN symbol symbol string
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'token
 		     (nth 2 vals)  (nth 3 vals))))
-     (symbol "put" symbol symbol symbol
+     (PUT symbol symbol symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'put
 		     (nth 2 vals)
 		     (nth 3 vals))))
-     (symbol "put" symbol symbol string
+     (PUT symbol symbol string
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'put
 		     (nth 2 vals)
 		     (nth 3 vals))))
-     (symbol "put" symbol symbol semantic-list
+     (PUT symbol symbol semantic-list
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'put
 		     (nth 2 vals)
 		     (semantic-flex-text (cons 1 (nth 3 vals))))))
-     (symbol "outputfile" symbol punctuation "." symbol "\\bel\\b"
+     (OUTPUTFILE symbol punctuation "." symbol "\\bel\\b"
 	     ,(semantic-lambda
 	       (list (concat (nth 1 vals) ".el") 'outputfile)))
-     (symbol "parsetable" symbol
+     (PARSETABLE symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'parsetable)))
-     (symbol "keywordtable" symbol
+     (KEYWORDTABLE symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'keywordtable)))
-     (symbol "languagemode" symbol
+     (LANGUAGEMODE symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'languagemode)))
-     (symbol "setupfunction" symbol
+     (SETUPFUNCTION symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'setupfunction)))
-     (symbol "quotemode" symbol
+     (QUOTEMODE symbol
 	     ,(semantic-lambda
 	       (list (nth 1 vals) 'quotemode)))
      )
@@ -161,6 +164,22 @@
     )
 "Bovine table used to convert a BNF language file into a bovine table.")
 
+(defvar semantic-bnf-keyword-table
+  (semantic-flex-make-keyword-table
+   `( ("start" . START)
+      ("scopestart" . SCOPESTART)
+      ("token" . TOKEN)
+      ("put" . PUT)
+      ("outputfile" . OUTPUTFILE)
+      ("parsetable" . PARSETABLE)
+      ("keywordtable" . KEYWORDTABLE)
+      ("languagemode" . LANGUAGEMODE)
+      ("setupfunction" . SETUPFUNCTION)
+      ("quotemode" . QUOTEMODE)
+      )
+   nil)
+  "Keyword table used for Semantic BNF files.")
+
 
 ;;; Conversion routines
 ;;
@@ -189,20 +208,20 @@
 (defun semantic-bnf-ASSOC (lst quotemode)
   "Handle an ASSOC list based on LST.
 QUOTEMODE is the current mode of quotation."
-  (setq lst (cdr lst))
-  (insert "\n ")
-  (insert "(semantic-bovinate-make-assoc-list ")
-  (while lst
-    ;; The key
-    (insert "'" (symbol-name (car lst)))
-    (setq lst (cdr lst))
-    ;; the value
-    (if (listp (car lst))
-	(semantic-bnf-lambda-substitute (car lst) quotemode t)
-      (insert (format "%S" (car lst))))
-    ;; next
-    (setq lst (cdr lst)))
-  (insert ")\n"))
+  (let ((lst (cdr lst))
+	l)
+    (while lst
+      ;; quote the key
+      (setq l   (cons (list 'quote (car lst)) l)
+	    lst (cdr lst))
+      ;; push the value
+      (if lst
+	  (setq l   (cons (car lst) l)
+		lst (cdr lst))))
+    ;; substitute ASSOC by call to semantic-bovinate-make-assoc-list
+    ;; and do BNF lambda substitution on the whole expression
+    (semantic-bnf-lambda-substitute
+     (cons 'semantic-bovinate-make-assoc-list (nreverse l)) quotemode t)))
 
 (defun semantic-bnf-lambda-substitute (lst quotemode &optional inplace)
   "Insert LST substituting based on rules for the BNF converter.
@@ -220,7 +239,7 @@ Optional INPLACE indicates that the list is being expanded from elsewhere."
 	      (setq lst nil inplace nil))
 	  (if (and (= (length lst) 1) (symbolp (car lst)))
 	      (progn
-		(insert "'" (symbol-name (car lst)))
+		(insert " '" (symbol-name (car lst)))
 		(setq lst nil inplace nil))
 	    (insert "(list")
 	    (setq inplace t))
@@ -329,9 +348,10 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
 	     ))
       (insert ")"))))
 
-(defun semantic-bnf-to-bovine (tokstream &optional start)
+(defun semantic-bnf-to-bovine (tokstream &optional start scopestart)
   "Insert the BNF TOKSTREAM into the current buffer as a bovine table.
-Optional argument START is the token to start with."
+Optional argument START is the token to start with.
+Optional argument SCOPESTART is the token to start subscopes with."
   (interactive "FBNF file: ")
   (let ((tl (float (length tokstream)))
 	(tokens (semantic-find-nonterminal-by-token 'token tokstream))
@@ -348,9 +368,12 @@ Optional argument START is the token to start with."
 	       (matches (car (cdr (cdr (cdr rule))))))
 	  (when (eq (car (cdr rule)) 'rule)
 	    (insert "(")
-	    (if (and start (string= start (car rule)))
-		(insert "bovine-toplevel")
-	      (insert (car rule)))
+	    (cond ((and start (string= start (car rule)))
+		   (insert "bovine-toplevel"))
+		  ((and scopestart (string= scopestart (car rule)))
+		   (insert "bovine-inner-scope"))
+		  (t
+		   (insert (car rule))))
 	    (insert "\n ")
 	    (while matches
 	      (let* ((mla (car matches))
@@ -536,6 +559,7 @@ SOURCEFILE is the file name from whence tokstream came."
 	 (keydest (semantic-bnf-find-keyword-destination tok))
 	 (mode (semantic-bnf-find-languagemode tok))
 	 (start (semantic-find-nonterminal-by-token 'start tok))
+	 (scopestart (semantic-find-nonterminal-by-token 'scopestart tok))
 	 )
     (if (not dest)
 	(error "You must specify a destination table in your BNF file"))
@@ -604,7 +628,9 @@ SOURCEFILE is the file name from whence tokstream came."
       (if (looking-at "\\s-*\\(`?(\\|nil\\)")
 	  (delete-region (point) (save-excursion (forward-sexp 1) (point))))
       (delete-blank-lines)
-      (semantic-bnf-to-bovine tok (if start (semantic-token-name (car start))))
+      (semantic-bnf-to-bovine
+       tok (if start (semantic-token-name (car start)))
+       (if scopestart (semantic-token-name (car scopestart))))
       (if semantic-bnf-indent-table
 	  (save-excursion
 	    (message "Indenting table....")
@@ -707,8 +733,8 @@ SOURCEFILE is the file name from whence tokstream came."
   (setq comment-start-skip "# *")
   (set-syntax-table semantic-bnf-syntax-table)
   (use-local-map semantic-bnf-map)
-  (make-local-variable 'semantic-toplevel-bovine-table)
   (setq semantic-toplevel-bovine-table semantic-bovine-bnf-table)
+  (setq semantic-flex-keywords-obarray semantic-bnf-keyword-table)
   (make-local-variable 'indent-line-function)
   (setq indent-line-function 'semantic-bnf-indent)
   (make-local-variable 'font-lock-defaults)
@@ -768,7 +794,8 @@ Optional PARENT is no used."
 	      (up-list -1))
 	  (error nil))
 	(end-of-line)
-	(<= (point) point))
+	(< (point) point)
+	)
     (error nil)))
 
 (defun semantic-bnf-previous-colon-indentation ()
