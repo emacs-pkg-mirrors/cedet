@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.5 2003/05/02 03:04:38 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.6 2003/05/10 02:34:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -322,6 +322,7 @@ HISTORY is a symbol representing a variable to story the history in."
   (semantic-complete-read-tag-engine
    (semantic-collector-buffer-deep prompt :buffer (current-buffer))
    (semantic-displayor-traditional-with-focus-highlight "simple")
+   ;;(semantic-displayor-tooltip "simple")
    prompt
    default-tag
    initial-input
@@ -638,6 +639,92 @@ one in the source buffer."
 		(select-window (minibuffer-window))))))
     ))
 
+;;; Tooltip completion lister
+;; 
+;; Written and contributed by Masatake YAMATO <jet@gyve.org>
+;;
+(defclass semantic-displayor-tooltip (semantic-displayor-abstract)
+  ((max-tags     :type integer
+		 :initarg :max-tags
+		 :initform 10
+		 :custom integer
+		 :documentation 
+		 "Max number of tags displayed on tooltip at once.
+If `force-show' is 1,  this value is ignored with typing tab or space twice continuously.
+if `force-show' is 0, this value is always ignored.")
+   (force-show   :type integer
+		 :initarg :force-show
+	         :initform 1
+		 :custom (choice (const 
+				  :tag "Show when double typing"
+				  1)
+				 (const
+				  :tag "Show always"
+				  0)
+				 (const 
+				  :tag "Show if the number of tags is less than `max-tags'." 
+				  -1))
+	         :documentation
+		 "Control the behavior of the number of tags is greater than `max-tags'.
+-1 means tags are never shown. 
+0 means the tags are always shown. 
+1 means tags are shown if space or tab is typed twice continuously.")
+   (typing-count :type integer
+		 :initform 0
+		 :documentation 
+		 "Counter holding how many times the user types space or tab continuously before showing tags.")
+   (shown        :type boolean
+		 :initform nil
+		 :documentation
+		 "Flag representing whether tags is shown once or not.")
+   )
+  "Display mechanism using tooltip for a list of possible completions.")
+
+(defmethod semantic-displayor-show-request ((obj semantic-displayor-tooltip))
+  "A request to show the current tags table."
+  (let* ((l (mapcar semantic-completion-displayor-format-tag-function
+		    (oref obj table)))
+	 (ll (length l))
+	 (typing-count (oref obj typing-count))
+	 (force-show (oref obj force-show))
+	 msg)
+    (if (or (oref obj shown)
+	    (< ll (oref obj max-tags)) 
+	    (and (<= 0 force-show)
+		 (< (1- force-show) typing-count)))
+	(progn 
+	  (oset obj typing-count 0)
+	  (oset obj shown t)
+	  (if (eq 1 ll)
+	      (setq msg "SOLE COMPLETION")
+	    (setq msg (mapconcat 'identity l "\n"))
+	    (if (eq 0 (length msg))
+		(setq msg "NO MORE COMPLETIONS"))) 
+	  (semantic-displayor-tooltip-show msg))
+      (oset obj typing-count (1+ typing-count))
+      (cond
+       ((= force-show -1)
+	(semantic-displayor-tooltip-show "TOO MANY"))
+       ((= force-show 1)
+	(semantic-displayor-tooltip-show 
+	 "TOO MANY (Type TAB or SPACE again to show force)"))))))
+
+(defun semantic-displayor-tooltip-show (text)
+  (require 'tooltip)
+  (require 'avoid)
+  (let* ((P (mouse-avoidance-point-position))
+	 (frame (car P))
+	 (x (cadr P))
+	 (y (cddr P))
+	 (oP (mouse-position))
+	 (oframe (car oP))
+	 (ox     (cadr oP))
+	 (oy     (cddr oP)))
+    (set-mouse-position frame x y)
+    (tooltip-show text)
+    (set-mouse-position frame (1+ x) y)))
+
+;; End code contributed by Masatake YAMATO <jet@gyve.org>
 
 
 ;;; Testing
