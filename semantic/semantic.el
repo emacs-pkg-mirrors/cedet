@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.41 2000/07/01 17:52:03 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.42 2000/07/05 14:39:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -324,13 +324,16 @@ a type nonterminal.
 
 TOP-LEVEL ENTRIES:
 
- (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS \"DOCSTRING\"
-           START END)
-   The definition of a variable, or constant.  CONST is a boolean representing
-   if this variable is considered a constant.  DEFAULT-VALUE can be
-   something apropriate such a a string, or list of parsed elements.
-   MODIFIERS are details about a variable that are not covered in the TYPE
-   field.  DOCSTRING is optional.
+ (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS [OPTSUFFIX] 
+           \"DOCSTRING\" START END)
+   The definition of a variable, or constant.
+   CONST is a boolean representing if this variable is considered a constant.
+   DEFAULT-VALUE can be something apropriate such a a string,
+                 or list of parsed elements.
+   MODIFIERS are details about a variable that are not covered in the TYPE.
+   OPTSUFFIX is an optional field specifying trailing modifiers such as
+             array dimentions or bit fields.
+   DOCSTRING is optional.
 
  (\"NAME\" function \"TYPE\" ( ARG-LIST ) MODIFIERS [THROWS]
           \"DOCSTRING\" START END)
