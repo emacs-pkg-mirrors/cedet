@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.5 1999/02/03 18:14:58 zappo Exp $
+;; RCS: $Id: ede.el,v 1.6 1999/02/26 02:47:30 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -77,6 +77,11 @@
   :group 'convenience
   )
 
+(defcustom ede-debug-program-function 'gdb
+  "*Default Emacs command used to debug a target."
+  :group 'ede
+  :type 'sexp) ; make this be a list of options some day
+
 (require 'eieio)
 
 ;;; Top level classes for projects and targets
@@ -126,7 +131,8 @@ type is required and the load function used.")
    (source :initarg :source
 	   :type 'list
 	   :custom (repeat (string :tag "File"))
-	   :documentation "Source files in this target.")   )
+	   :documentation "Source files in this target.")
+   )
   "A top level target to build.")
 
 (defclass ede-project ()
@@ -180,10 +186,10 @@ Do not set this to non-nil globally.  It is used internally.")
 			   (list 'if (list 'obj-of-class-p
 					   obj 'ede-target)
 				 (list 'ede-load-project-file
-				       (list 'oref obj :path))
+				       (list 'oref obj path))
 				 obj))
-		     '(dbka (get-file-buffer (oref pf :file))))
-	      '(if (not dbka) (find-file (oref pf :file))
+		     '(dbka (get-file-buffer (oref pf file))))
+	      '(if (not dbka) (find-file (oref pf file))
 		 (switch-to-buffer dbka))
 	      (cons 'progn forms)
 	      '(if (not dbka) (kill-buffer (current-buffer))))))
@@ -223,15 +229,14 @@ Do not set this to non-nil globally.  It is used internally.")
        [ "Create a new project" ede-new (not ede-object) ]
        [ "Load a project" ede t ]
        [ "Rescan Project Files" ede-rescan-toplevel t ]
-       [ "Customize Project" ede-customize (ede-current-project) ]
        "---"
        [ "Create New Target" ede-new-target (ede-current-project) ]
        [ "Delete Target" ede-delete-target ede-object ]
        [ "Add to Target" ede-add-file (ede-current-project) ]
-       [ "Modify Target" ede-edit-file-target
+       [ "Remove from Target" ede-remove-file
 	 (and ede-object
 	      (not (obj-of-class-p ede-object ede-project))) ]
-       [ "Remove from Target" ede-remove-file
+       [ "Edit Projectfile" ede-edit-file-target
 	 (and ede-object
 	      (not (obj-of-class-p ede-object ede-project))) ]
        "---"
@@ -309,12 +314,12 @@ Argument FILE is the file or directory to load a project from."
   "Create a new project starting of project type TYPE."
   (interactive
    (list (completing-read "Project Type: "
-			  (object-assoc-list :name ede-project-class-files)
+			  (object-assoc-list name ede-project-class-files)
 			  nil t)))
-  (let* ((obj (object-assoc type :name ede-project-class-files))
-	 (nobj (make-instance (oref obj :class-sym)
+  (let* ((obj (object-assoc type name ede-project-class-files))
+	 (nobj (make-instance (oref obj class-sym)
 			      :name (read-string "Name: ")
-			      :file (oref obj :proj-file))))
+			      :file (oref obj proj-file))))
     (ede-commit-project nobj))
   (message "Project created and saved.  You may now create targets."))
 
@@ -332,11 +337,6 @@ ARGS are additional arguments to pass to method sym."
   (let ((toppath (ede-toplevel-project default-directory))
 	(ede-deep-rescan t))
     (project-rescan (ede-load-project-file toppath))))
-
-(defun ede-customize ()
-  "Customize the current project file."
-  (interactive)
-  (eieio-customize (ede-current-project)))
 
 (defun ede-new-target ()
   "Create a new target specific to this type of project file."
@@ -400,12 +400,14 @@ ARGS are additional arguments to pass to method sym."
 
 (eval-when-compile (require 'eieio-custom))
 
+(defalias 'customize-project 'ede-customize-project)
 (defun ede-customize-project ()
   "Edit fields of the current project through EIEIO & Custom."
   (interactive)
   (require 'eieio-custom)
   (eieio-customize-object (ede-current-project)))
 
+(defalias 'customize-target 'ede-customize-target)
 (defun ede-customize-target ()
   "Edit fields of the current target through EIEIO & Custom."
   (interactive)
@@ -429,7 +431,7 @@ ARGS are additional arguments to pass to method sym."
 (defmethod project-interactive-select-target ((this ede-project) prompt)
   "Interactivly query for a target that exists in project THIS.
 Argument PROMPT is the prompt to use when querying the user for a target."
-  (let ((ob (object-assoc-list :name (oref this :targets))))
+  (let ((ob (object-assoc-list name (oref this targets))))
     (cdr (assoc (completing-read prompt ob nil t) ob))))
 
 (defmethod project-add-file ((ot ede-target) file)
@@ -444,7 +446,7 @@ Argument FNND is an argument."
 
 (defmethod project-edit-file-target ((ot ede-target))
   "Edit the target OT associated w/ this file."
-  (find-file (oref (ede-current-project) :file)))
+  (find-file (oref (ede-current-project) file)))
 
 (defmethod project-new-target ((proj ede-project))
   "Create a new target.  It is up to the project PROG to get the name."
@@ -480,32 +482,32 @@ Argument COMMAND is the command to use for compiling the target."
 
 (defmethod ede-name ((this ede-target))
   "Return the name of this targt."
-  (oref this :name))
+  (oref this name))
 
 (defmethod ede-target-name ((this ede-target))
   "Return the name of this target, suitable for make or debug style commands."
-  (oref this :name))
+  (oref this name))
 
 (defmethod ede-name ((this ede-project))
   "Return a short-name for this project file.
 Do this by extracting the lowest directory name."
-  (oref this :name))
+  (oref this name))
 
 (defmethod ede-description ((this ede-project))
   "Return a description suitible for the minibuffer about THIS."
   (format "Project %s: %d subprojects, %d targets."
-	  (ede-name this) (length (oref this :subproj))
-	  (length (oref this :targets))))
+	  (ede-name this) (length (oref this subproj))
+	  (length (oref this targets))))
 
 (defmethod ede-description ((this ede-target))
   "Return a description suitible for the minibuffer about THIS."
   (format "Target %s: with %d source files."
-	  (ede-name this) (length (oref this :source))))
+	  (ede-name this) (length (oref this source))))
 
 (defmethod ede-convert-path ((this ede-project) path)
   "Convert path in a standard way for a given project.
 Default to making it project relative."
-  (let ((pp (file-name-directory (expand-file-name (oref this :file))))
+  (let ((pp (file-name-directory (expand-file-name (oref this file))))
 	(fp (expand-file-name path)))
     (if (string-match (regexp-quote pp) fp)
 	(substring fp (match-end 0))
@@ -516,7 +518,7 @@ Default to making it project relative."
 (defmethod ede-dir-to-projectfile ((this ede-project-autoload) dir)
   "Return a full file name of the project file found in DIR for THIS.
 Return nil if the project file does not exist."
-  (let ((f (concat dir (oref this :proj-file))))
+  (let ((f (concat dir (oref this proj-file))))
     (and (file-exists-p f) f)))
 
 ;;; EDE basic functions
@@ -531,7 +533,7 @@ This depends on an up to day `ede-project-class-files' variable."
       (if (ede-dir-to-projectfile (car types) dir)
 	  (progn
 	    ;; We found one!  Require it now since we will need it.
-	    (require (oref (car types) :file))
+	    (require (oref (car types) file))
 	    (setq ret (car types))))
       (setq types (cdr types)))
     ret))
@@ -562,22 +564,22 @@ This depends on an up to day `ede-project-class-files' variable."
       ;; have an object defining it's project.
       (setq pfc (ede-directory-project-p toppath))
       ;; See if it's been loaded before
-      (setq o (object-assoc (ede-dir-to-projectfile pfc toppath) :file
+      (setq o (object-assoc (ede-dir-to-projectfile pfc toppath) 'file
 			    ede-projects))
       (if (not o)
 	  ;; If not, get it now.
 	  (let ((ede-constructing t) (afo nil))
-	    (setq o (funcall (oref pfc :load-type) toppath))
+	    (setq o (funcall (oref pfc load-type) toppath))
 	    (setq ede-projects (cons o ede-projects))))
       (let (tocheck found)
 	;; Now find the project file belonging to FILE!
 	(setq tocheck (list o))
 	(setq file (ede-dir-to-projectfile pfc (expand-file-name path)))
 	(while (and tocheck (not found))
-	  (if (string= file (oref (car tocheck) :file))
+	  (if (string= file (oref (car tocheck) file))
 	      (setq found (car tocheck)))
 	  (setq tocheck
-		(append (cdr tocheck) (oref (car tocheck) :subproj))))
+		(append (cdr tocheck) (oref (car tocheck) subproj))))
 	(if (not found)
 	    (error "No project for %s, but passes project-p test" file))
 	found))))
@@ -595,7 +597,7 @@ This depends on an up to day `ede-project-class-files' variable."
 (defmethod ede-target-in-project-p ((proj ede-project) target)
   "Is PROJ the parent of TARGET?
 If TARGET belongs to a subproject, return that project file."
-  (if (assoc target (oref proj targets))
+  (if (member target (oref proj targets))
       proj
     (let ((s (oref proj subproj))
 	  (ans nil))
@@ -609,7 +611,9 @@ It is recommended you track the project a different way as this function
 could become slow in time."
   (let ((ans nil) (projs ede-projects))
     (while (and (not ans) projs)
-      (setq ans (ede-target-in-project-p (car projs) target)))))
+      (setq ans (ede-target-in-project-p (car projs) target)
+	    projs (cdr projs)))
+    ans))
 
 (defun ede-maybe-checkout (&optional buffer)
   "Check BUFFER out of VC if necessary."
