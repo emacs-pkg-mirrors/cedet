@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.9 2003/03/24 01:08:35 zappo Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.10 2003/03/31 07:48:09 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -151,10 +151,10 @@ Macro and Semantic built-in function calls are expanded."
 (defun wisent-grammar-assocs ()
   "Return associativity and precedence level definitions."
   (mapcar
-   #'(lambda (token)
-       (cons (intern (semantic-token-name token))
+   #'(lambda (tag)
+       (cons (intern (semantic-tag-name tag))
              (mapcar #'semantic-grammar-item-value
-                     (semantic-token-extra-spec token :value))))
+                     (semantic-tag-get-attribute tag :value))))
    (semantic-find-nonterminal-by-token 'assoc (current-buffer))))
 
 (defun wisent-grammar-terminals ()
@@ -162,29 +162,29 @@ Macro and Semantic built-in function calls are expanded."
 Keep order of declaration in the WY file without duplicates."
   (let (terms)
     (mapcar
-     #'(lambda (tok)
+     #'(lambda (tag)
          (mapcar #'(lambda (name)
                      (add-to-list 'terms (intern name)))
-                 (cons (semantic-token-name tok)
-                       (semantic-token-extra-spec tok :rest))))
+                 (cons (semantic-tag-name tag)
+                       (semantic-tag-get-attribute tag :rest))))
      (semantic-find-nonterminal-by-function
-      #'(lambda (tok)
-          (memq (semantic-token-token tok ) '(token keyword)))
+      #'(lambda (tag)
+          (memq (semantic-tag-class tag) '(token keyword)))
       (current-buffer)))
     (nreverse terms)))
 
 (defun wisent-grammar-nonterminals ()
   "Return the list form of nonterminal definitions."
-  (let ((nttoks (semantic-find-nonterminal-by-token
+  (let ((nttags (semantic-find-nonterminal-by-token
                  'nonterminal (current-buffer)))
-        rltoks nterms rules rule elems elem actn sexp prec)
-    (while nttoks
-      (setq rltoks (semantic-nonterminal-children (car nttoks))
+        rltags nterms rules rule elems elem actn sexp prec)
+    (while nttags
+      (setq rltags (semantic-tag-components (car nttags))
             rules  nil)
-      (while rltoks
-        (setq elems (semantic-token-extra-spec (car rltoks) :value)
-              prec  (semantic-token-extra-spec (car rltoks) :prec)
-              actn  (semantic-token-extra-spec (car rltoks) :expr)
+      (while rltags
+        (setq elems (semantic-tag-get-attribute (car rltags) :value)
+              prec  (semantic-tag-get-attribute (car rltags) :prec)
+              actn  (semantic-tag-get-attribute (car rltags) :expr)
               rule  nil)
         (when elems ;; not an EMPTY rule
           (while elems
@@ -207,11 +207,11 @@ Keep order of declaration in the WY file without duplicates."
                          (list rule prec)
                        (list rule))))
         (setq rules (cons rule rules)
-              rltoks (cdr rltoks)))
-      (setq nterms (cons (cons (intern (semantic-token-name (car nttoks)))
+              rltags (cdr rltags)))
+      (setq nterms (cons (cons (intern (semantic-tag-name (car nttags)))
                                (nreverse rules))
                          nterms)
-            nttoks (cdr nttoks)))
+            nttags (cdr nttags)))
     (nreverse nterms)))
 
 (defun wisent-grammar-grammar ()
