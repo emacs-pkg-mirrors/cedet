@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.10 2002/08/21 01:59:44 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.11 2002/09/07 02:01:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,6 +29,8 @@
 ;; semantic flexible and compatible amongst different Emacs platforms.
 
 ;;; No Requirements.
+
+(load "semantic-al" nil t)
 
 ;;; Code:
 ;;
