@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.26 2003/06/04 05:46:42 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.27 2003/06/19 20:09:09 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -26,11 +26,11 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-;; 
+;;
 ;; Major mode framework for editing Semantic's input grammar files.
 
 ;;; History:
-;; 
+;;
 
 ;;; Code:
 (require 'wisent-bovine)
@@ -51,7 +51,7 @@
   (semantic-lex-push-token
    (semantic-lex-token
     (or (semantic-lex-keyword-p (match-string 0))
-	'SYMBOL)
+        'SYMBOL)
     (match-beginning 0)
     (match-end 0))))
 
@@ -64,8 +64,8 @@
     'STRING (point)
     (save-excursion
       (semantic-lex-unterminated-syntax-protection 'STRING
-	(forward-sexp 1)
-	(point))
+        (forward-sexp 1)
+        (point))
       )))
   )
 
@@ -91,8 +91,8 @@
     (match-beginning 0)
     (save-excursion
       (semantic-lex-unterminated-syntax-protection 'SEXP
-	(forward-sexp 1)
-	(point))
+        (forward-sexp 1)
+        (point))
       ))))
 
 (define-lex-regex-analyzer semantic-grammar-lex-prefixed-list
@@ -104,8 +104,8 @@
     (match-beginning 0)
     (save-excursion
       (semantic-lex-unterminated-syntax-protection 'PREFIXED_LIST
-	(forward-sexp 1)
-	(point))
+        (forward-sexp 1)
+        (point))
       ))))
 
 ;;; Lexer
@@ -621,7 +621,7 @@ the change bounds to encompass the whole nonterminal tag."
                                (semantic-tag-start outer)
                                (semantic-tag-end outer)))))
 
-;;;; 
+;;;;
 ;;;; Semantic action expansion
 ;;;;
 
@@ -812,7 +812,7 @@ and DEFS is an alist of (TOKEN . VALUE).  TOKEN is the terminal symbol
 identifying the token and VALUE is the string value of the token or
 nil."
   (let (tags alist assoc tag type term names value)
-    
+
     ;; Check for <type> in %left, %right & %nonassoc declarations
     (setq tags (semantic-find-tags-by-class
                 'assoc (current-buffer)))
@@ -830,7 +830,7 @@ nil."
           (or (string-match semantic-grammar-lex-c-char-re term)
               (setcdr assoc (cons (list (intern term))
                                   (cdr assoc)))))))
-    
+
     ;; Then process %token declarations so they can override any
     ;; previous specifications
     (setq tags (semantic-find-tags-by-class
@@ -975,7 +975,7 @@ of the first line of comment."
 
 (define-overload semantic-grammar-setupcode-builder ()
   "Return the setup code form.")
-  
+
 (defsubst semantic-grammar-setupcode-value ()
   "Return the setup code form as a string value."
   (semantic-grammar-as-string
@@ -990,7 +990,7 @@ of the first line of comment."
 
 (define-overload semantic-grammar-parsetable-builder ()
   "Return the parser table value.")
-  
+
 (defsubst semantic-grammar-parsetable-value ()
   "Return the parser table as a string value."
   (format "%s\n%s"
@@ -1007,10 +1007,10 @@ of the first line of comment."
     `(semantic-lex-make-keyword-table
       ',keywords
       ',(semantic-grammar-keyword-properties keywords))))
-  
+
 (define-overload semantic-grammar-keywordtable-builder ()
   "Return the keyword table table value.")
-  
+
 (defsubst semantic-grammar-keywordtable-value ()
   "Return the string value of the table of keywords."
   (format "%s\n%s"
@@ -1030,7 +1030,7 @@ of the first line of comment."
 
 (define-overload semantic-grammar-tokentable-builder ()
   "Return the value of the table of lexical tokens.")
-  
+
 (defsubst semantic-grammar-tokentable-value ()
   "Return the string value of the table of lexical tokens."
   (format "%s\n%s"
@@ -1074,7 +1074,7 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
        (re-search-backward "^(def\\(var\\|const\\)\\s-+")
        (indent-sexp)
        (eval-defun nil)))))
-  
+
 (defsubst semantic-grammar-update-parsetable ()
   "Create or update the parsetable Lisp declaration."
   (semantic-grammar-update-def 'parsetable "Parser automaton."))
@@ -1221,19 +1221,19 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
 
 (defvar semantic-grammar-map
   (let ((km (make-sparse-keymap)))
-    
+
     (define-key km "|" 'semantic-grammar-electric-punctuation)
     (define-key km ";" 'semantic-grammar-electric-punctuation)
     (define-key km "%" 'semantic-grammar-electric-punctuation)
     (define-key km "(" 'semantic-grammar-electric-punctuation)
     (define-key km ")" 'semantic-grammar-electric-punctuation)
-    
+
     (define-key km "\t"       'semantic-grammar-indent)
     (define-key km "\M-\t"    'semantic-grammar-complete)
     (define-key km "\C-c\C-c" 'semantic-grammar-update-outputfile)
 ;;  (define-key km "\C-cc"    'semantic-grammar-generate-and-load)
 ;;  (define-key km "\C-cr"    'semantic-grammar-generate-one-rule)
-    
+
     km)
   "Keymap used in `semantic-grammar-mode'.")
 
@@ -1242,7 +1242,9 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
   (interactive)
   (kill-all-local-variables)
   (setq major-mode 'semantic-grammar-mode
-	mode-name "Semantic Grammar Framework")
+        mode-name "Semantic Grammar Framework")
+  (make-local-variable 'parse-sexp-ignore-comments)
+  (setq parse-sexp-ignore-comments t)
   (make-local-variable 'comment-start)
   (setq comment-start ";;")
   (make-local-variable 'comment-start-skip)
@@ -1322,9 +1324,10 @@ the anchor is or nil if the point has not moved."
                     ;; whole quoted expression.
                     semantic-grammar-skip-quoted-syntax-table
                   (forward-sexp -1)))
-               ((and (eq (char-before) ?\%)
-                     (not (looking-at "\\<prec\\>")))
-                (setq found (point)))
+               ((eq (char-before) ?\%)
+                (if (looking-at "\\<prec\\>")
+                    (backward-char)
+                  (setq found (point))))
                ((memq (char-before) '(?\: ?\;))
                 (setq found (point)))
                ((bobp)
@@ -1349,13 +1352,14 @@ If so move to POINT."
               (beginning-of-line)
               (and (> point name-end) (<= point (point))))))
         (goto-char point))))
-      
+
 (defun semantic-grammar-grammar-compute-indentation ()
   "Compute indentation of the current line of grammar."
   (save-excursion
     (beginning-of-line)
     (if (or (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
-            (looking-at "\\s-*%"))
+            (and (looking-at "\\s-*%")
+                 (not (looking-at "\\s-*%prec\\>"))))
         0
       (let* ((p (point))
              (i (semantic-grammar-goto-grammar-indent-anchor)))
@@ -1376,7 +1380,7 @@ If so move to POINT."
                  i)
                 (t
                  (+ i 2))))))))
-      
+
 (defun semantic-grammar-do-grammar-indent ()
   "Indent a line of grammar.
 When called the point is not in Lisp code."
@@ -1447,30 +1451,30 @@ Use the Lisp or grammar indenter depending on point location."
   "Attempt to complete the current symbol."
   (interactive)
   (if (condition-case nil
-	  (progn (up-list -1) t)
-	(error nil))
+          (progn (up-list -1) t)
+        (error nil))
       ;; We are in lisp code.  Do lisp completion.
       (lisp-complete-symbol)
     ;; We are not in lisp code.  Do rule completion.
     (let* ((nonterms (semantic-find-tags-by-class 'nonterminal (current-buffer)))
-	   (sym (car (semantic-ctxt-current-symbol)))
-	   (ans (try-completion sym nonterms)))
+           (sym (car (semantic-ctxt-current-symbol)))
+           (ans (try-completion sym nonterms)))
       (cond ((eq ans t)
-	     ;; All done
-	     (message "Symbols is already complete"))
-	    ((and (stringp ans) (string= ans sym))
-	     ;; Max matchable.  Show completions.
-	     (let ((all (all-completions sym nonterms)))
-	       (with-output-to-temp-buffer "*Completions*"
-		 (display-completion-list (all-completions sym nonterms)))
-	       ))
-	    ((stringp ans)
-	     ;; Expand the completions
-	     (forward-sexp -1)
-	     (delete-region (point) (progn (forward-sexp 1) (point)))
-	     (insert ans))
-	    (t (message "No Completions."))
-	    ))
+             ;; All done
+             (message "Symbols is already complete"))
+            ((and (stringp ans) (string= ans sym))
+             ;; Max matchable.  Show completions.
+             (let ((all (all-completions sym nonterms)))
+               (with-output-to-temp-buffer "*Completions*"
+                 (display-completion-list (all-completions sym nonterms)))
+               ))
+            ((stringp ans)
+             ;; Expand the completions
+             (forward-sexp -1)
+             (delete-region (point) (progn (forward-sexp 1) (point)))
+             (insert ans))
+            (t (message "No Completions."))
+            ))
     ))
 
 ;;; Additional help
@@ -1527,18 +1531,18 @@ Use the Lisp or grammar indenter depending on point location."
   semantic-grammar-mode ()
   "Display additional eldoc information about keywords in `semantic-grammar-syntax-help'."
   (let* ((sym (semantic-ctxt-current-symbol))
-	 (summ (assoc (car sym) semantic-grammar-syntax-help))
-	 (esym (when sym (intern-soft (car sym))))
-	 (found (cdr summ)))
+         (summ (assoc (car sym) semantic-grammar-syntax-help))
+         (esym (when sym (intern-soft (car sym))))
+         (found (cdr summ)))
     (cond (found
-	   found)
-	  ((and esym (fboundp esym))
-	   (eldoc-get-fnsym-args-string esym))
-	  ((and esym (boundp esym))
-	   (eldoc-get-var-docstring esym))
-	  (t
-	   (senator-eldoc-print-current-symbol-info-default)
-	   ))))
+           found)
+          ((and esym (fboundp esym))
+           (eldoc-get-fnsym-args-string esym))
+          ((and esym (boundp esym))
+           (eldoc-get-var-docstring esym))
+          (t
+           (senator-eldoc-print-current-symbol-info-default)
+           ))))
 
 (define-mode-overload-implementation semantic-abbreviate-nonterminal
   semantic-grammar-mode (tag &optional parent color)
@@ -1546,7 +1550,7 @@ Use the Lisp or grammar indenter depending on point location."
 Optional PARENT is not used.
 Optional COLOR is used to flag if color is added to the text."
   (let ((class (semantic-tag-class tag))
-	(name (semantic-name-nonterminal tag parent color)))
+        (name (semantic-name-nonterminal tag parent color)))
     (cond
      ((eq class 'nonterminal)
       (concat name ":"))
@@ -1563,13 +1567,13 @@ Optional COLOR is used to flag if color is added to the text."
 Optional PARENT is not used.
 Optional argument COLOR determines if color is added to the text."
   (let ((class (semantic-tag-class tag))
-	(name (semantic-name-nonterminal tag parent color))
-	(label nil)
-	(desc nil))
+        (name (semantic-name-nonterminal tag parent color))
+        (label nil)
+        (desc nil))
     (cond
      ((eq class 'nonterminal)
       (setq label "Nonterminal: "
-	    desc (format
+            desc (format
                   " with %d match lists."
                   (length (semantic-tag-components tag)))))
      ((eq class 'keyword)
@@ -1585,7 +1589,7 @@ Optional argument COLOR determines if color is added to the text."
          (semantic-find-tags-by-name-regexp
           (regexp-quote (semantic-tag-name tag))
           (semantic-find-tags-by-class 'put (current-buffer))))
-	(setq desc (concat " = "
+        (setq desc (concat " = "
                            (semantic-tag-get-attribute tag :value)
                            (if summary
                                (concat " - " (read summary))
@@ -1618,11 +1622,11 @@ Optional argument COLOR determines if color is added to the text."
      (t
       (setq desc (semantic-abbreviate-nonterminal tag parent color))))
     (if (and color label)
-	(setq label (semantic-colorize-text label 'label)))
+        (setq label (semantic-colorize-text label 'label)))
     (if (and color label desc)
-	(setq desc (semantic-colorize-text desc 'comment)))
+        (setq desc (semantic-colorize-text desc 'comment)))
     (if label
-	(concat label name desc)
+        (concat label name desc)
       ;; Just a description is the abbreviated version
       desc)))
 
