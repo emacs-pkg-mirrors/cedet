@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.96 2001/02/15 16:45:37 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.97 2001/02/17 14:36:08 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -279,12 +279,21 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 
   (let* ((pname (if superclasses superclasses nil))
 	 (newc (make-vector class-num-fields nil))
+	 (oldc (when (class-p cname) (class-v cname)))
 	 (groups nil) ;; list of groups id'd from slots
 	 (options nil)
 	 (clearparent nil))
 
     (aset newc 0 'defclass)
     (aset newc class-symbol cname)
+
+    ;; If this class already existed, and we are updating it's structure,
+    ;; make sure we keep the old child list.  This can cause bugs, but
+    ;; if no new slots are created, it also saves time, and prevents
+    ;; method table breakage, particularly when the users is only
+    ;; byte compiling an EIEIO file.
+    (when oldc
+      (aset newc class-children (aref oldc class-children)))
 
     (cond ((< 2 (length options-and-doc))
 	   (error "Too many arguments to `defclass'"))
