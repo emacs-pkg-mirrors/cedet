@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.71 2000/12/10 20:21:41 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.72 2000/12/16 02:47:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1178,9 +1178,11 @@ Useful for languages where the newline is a special case terminator.
 Only set this on a per mode basis, not globally.")
 (make-variable-buffer-local 'semantic-flex-enable-newlines)
 
-(defun semantic-flex-make-keyword-table (keywords)
+(defun semantic-flex-make-keyword-table (keywords &optional propertyalist)
   "Convert a list of KEYWORDS into an obarray.
-Save the obarry into `semantic-flex-keywords-obarray'."
+Save the obarry into `semantic-flex-keywords-obarray'.
+If optional argument PROPERTYALIST is non nil, then interpret it, and
+apply those properties"
   ;; Create the symbol hash table
   (let ((obarray (make-vector 13 nil)))
     ;; fill it with stuff
@@ -1188,12 +1190,31 @@ Save the obarry into `semantic-flex-keywords-obarray'."
       (set (intern (car (car keywords)) obarray)
 	   (cdr (car keywords)))
       (setq keywords (cdr keywords)))
+    ;; Apply all properties
+    (let ((semantic-flex-keywords-obarray obarray))
+      (while propertyalist
+	(semantic-flex-keyword-put (car (car propertyalist))
+				   (nth 1 (car propertyalist))
+				   (nth 2 (car propertyalist)))
+	(setq propertyalist (cdr propertyalist))))
     obarray))
 
 (defun semantic-flex-is-keyword (text)
   "Return a symbol if TEXT is a keyword."
   (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
     (if sym (symbol-value sym))))
+
+(defun semantic-flex-keyword-put (text property value)
+  "For keyword TEXT, set PROPERTY to have VALUE."
+  (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
+    (if (not sym) (signal 'wrong-type-argument (list text 'keyword)))
+    (put sym property value)))
+
+(defun semantic-flex-keyword-get (text property)
+  "For keyword TEXT, get the value of PROPERTY."
+  (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
+    (if (not sym) (signal 'wrong-type-argument (list text 'keyword)))
+    (get sym property)))
 
 (defun semantic-flex-buffer (&optional depth)
   "Sematically flex the current buffer.
