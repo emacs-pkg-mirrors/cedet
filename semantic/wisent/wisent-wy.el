@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.16 2002/08/07 18:01:22 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.17 2002/08/08 16:07:18 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -535,7 +535,7 @@ ARGS are ASSOC's key value list."
 (defsubst wisent-wy-region-placeholder ($n)
   "Return $regionN placeholder symbol corresponding to given $N one.
 Return nil if $N is not a valid placeholder symbol."
-  (let ((n (symbol-name $i)))
+  (let ((n (symbol-name $n)))
     (if (string-match "^[$]\\([1-9][0-9]*\\)$" n)
         (intern (concat "$region" (match-string 1 n))))))
 
