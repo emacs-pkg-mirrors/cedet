@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.24 2003/11/20 04:11:34 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.25 2003/12/23 02:07:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,10 +116,15 @@ will throw a warning when it encounters this symbol."
   (condition-case err
       (defvaralias oldvaralias newvar)
     (error
-     (message "+++ %s\n\
+     ;; Only throw this warning when byte compiling things.
+     (when (and (boundp 'byte-compile-current-file)
+		byte-compile-current-file)
+       (message "+++ %s\n\
 *** Compatibility with Semantic 2 might be broken:\n\
     can't make obsolete variable `%s'\n\
-    alias of `%s'." (error-message-string err) oldvaralias newvar)))
+    alias of `%s'." (error-message-string err) oldvaralias newvar)
+       )))
+
   (make-obsolete-variable oldvaralias newvar))
 
 
@@ -540,6 +545,42 @@ Returns the documentation as a string, also."
     (if (semantic-function-overload-p (ad-get-arg 0))
 	(semantic-augment-function-help (ad-get-arg 0)))))
 
+
+;;; User Interrupe handling
+;;
+(defvar semantic-current-input-throw-symbol nil
+  "The current throw symbol for `semantic-exit-on-input'.")
+
+(defmacro semantic-exit-on-input (symbol &rest forms)
+  "Using SYMBOL as an argument to `throw', execute FORMS.
+If FORMS includes a call to `semantic-thow-on-input', then
+if a user presses any key during execution, this form macro
+will exit with the value passed to `semantic-throw-on-input'.
+If FORMS completes, then the return value is the same as `progn'."
+  `(let ((semantic-current-input-throw-symbol ,symbol))
+     (catch ,symbol
+       ,@forms)))
+(put 'semantic-exit-on-input 'lisp-indent-function 1)
+
+(defmacro semantic-throw-on-input (from)
+  "Exit with `throw' when in `semantic-exit-on-input' on user input.
+FROM is an indication of where this function is called from as a value
+to pass to `throw'.  It is recommended to use the name of the function
+calling this one."
+  `(when (and semantic-current-input-throw-symbol (input-pending-p))
+     (throw semantic-current-input-throw-symbol ,from)))
+
+(defun semantic-test-throw-on-input ()
+  "Test that throw on input will work."
+  (interactive)
+  (message "Exit Code: %s"
+	   (semantic-exit-on-input 'testing
+	     (let ((inhibit-quit nil)
+		   (message-log-max nil))
+	       (while (sit-for 0)
+		 (message "Looping ...")
+		 (semantic-throw-on-input 'test-inner-loop))
+	       'exit))))
 
 
 ;;; Editor goodies ;-)
@@ -622,6 +663,9 @@ Returns the documentation as a string, also."
        )
      (def-edebug-spec define-mode-overload-implementation
        (&define name symbolp lambda-list stringp def-body)
+       )
+     (def-edebug-spec semantic-exit-on-input
+       (symbolp def-body)
        )
      
      ))
