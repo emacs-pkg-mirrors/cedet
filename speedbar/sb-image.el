@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-image.el,v 1.1 2000/09/02 02:36:16 zappo Exp $
+;; X-RCS: $Id: sb-image.el,v 1.2 2000/12/11 23:33:56 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -33,7 +33,7 @@
 ;; By splitting out that hard part into this file, and avoiding byte
 ;; compilation, one copy speedbar can support all these platforms together.
 ;;
-;; This file require the `image' package if it is available.
+;; This file requires the `image' package if it is available.
 
 (condition-case nil
     (require 'image)
