@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.124 2001/10/26 19:40:49 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.125 2001/10/28 01:59:06 zappo Exp $
 
 (defvar semantic-version "1.4beta12"
   "Current version of Semantic.")
@@ -485,6 +485,12 @@ The returned item may be an overlay or an unloaded buffer representation."
 (defvar semantic-init-hooks nil
   "*Hooks run when a buffer is initialized with a parsing table.")
 
+(defvar semantic-init-db-hooks nil
+  "Hooks run when a buffer is initialized with a parsing table for DBs.
+This hook is for database functions which intend to swap in a token table.
+This guarantees that the DB will go before other modes that require
+a parse of the buffer.")
+
 (defun semantic-active-p ()
   "Return non-nil if the current buffer was set up for parsing."
   (or semantic-toplevel-bovine-table
@@ -523,6 +529,8 @@ Runs `semantic-init-hook' if the major mode is setup to use Semantic."
   (when (semantic-active-p)
     (semantic-clear-toplevel-cache)
     (setq semantic-toplevel-bovine-force-reparse t)
+    ;; Call DB hooks before regular init hooks
+    (run-hooks 'semantic-init-db-hooks)
     (run-hooks 'semantic-init-hooks)))
 
 (defvar semantic-changed-mode-buffers nil
@@ -595,6 +603,17 @@ Optional argument CLEAR will clear the cache before bovinating."
 
 ;;; Parsing functions
 ;;
+(defun semantic-set-unmatched-syntax-cache (unmatched-syntax)
+  "Set the unmatched syntax cache.
+Argument UNMATCHED-SYNTAX is the syntax to set into the cache."
+  ;; This function is not actually called by the main parse loop.
+  ;; This is intended for use by semanticdb.
+  (setq semantic-unmatched-syntax-cache unmatched-syntax
+	semantic-unmatched-syntax-cache-check nil)
+    ;; Refresh the display of unmatched syntax tokens if enabled
+  (run-hook-with-args 'semantic-unmatched-syntax-hook
+                      semantic-unmatched-syntax-cache))
+
 (defun semantic-clear-unmatched-syntax-cache ()
   "Clear the cache of unmatched syntax tokens."
   (setq semantic-unmatched-syntax-cache nil
@@ -895,7 +914,7 @@ the current results on a parse error."
 	    ;; The current item in the stream didn't match, so add it to
 	    ;; the list of syntax items which didn't match.
 	    (setq semantic-unmatched-syntax-cache
-                  (cons (car stream) semantic-unmatched-syntax-cache))
+		  (cons (car stream) semantic-unmatched-syntax-cache))
 	    ))
 	;; Designated to ignore.
 	(setq stream (car nontermsym)))
