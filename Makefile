@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.4 2003/10/02 01:35:49 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.5 2003/10/22 15:12:31 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -48,6 +48,7 @@ FIND=find
 
 ############### Internal part of the Makefile ###############
 CEDET_VERSION=1.0beta1
+CEDET_FILES=Makefile INSTALL
 DIST_ROOT=cedet-$(CEDET_VERSION)
 DIST_DIR=$(CEDET_HOME)/$(DIST_ROOT)
 DIST_FILE=$(DIST_DIR).tar.gz
@@ -118,6 +119,7 @@ clean-all: clean clean-elc clean-info clean-grammars clean-autoloads
 dist: # $(CEDET_PACKAGES)
 	rm -rf $(DIST_DIR)
 	mkdir $(DIST_DIR)
+	cp $(CEDET_FILES) $(DIST_DIR)
 	for package in ${CEDET_PACKAGES}; do \
 	   make -C $$package $(MFLAGS) DISTDIR=$(DIST_DIR)/$$package dist; \
 	done;
