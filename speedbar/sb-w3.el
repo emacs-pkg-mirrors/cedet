@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2.1
 ;; Keywords: tags, tools, w3
-;; X-RCS: $Id: sb-w3.el,v 1.6 1998/06/13 13:50:05 zappo Exp $
+;; X-RCS: $Id: sb-w3.el,v 1.7 1998/06/13 14:00:25 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -65,9 +65,9 @@
   (setq w3-speedbar-key-map (speedbar-make-specialized-keymap))
 
   ;; Basic features.
-  (define-key rmail-speedbar-key-map "e" 'speedbar-edit-line)
-  (define-key rmail-speedbar-key-map "r" 'speedbar-edit-line)
-  (define-key rmail-speedbar-key-map "\C-m" 'speedbar-edit-line)
+  (define-key w3-speedbar-key-map "e" 'speedbar-edit-line)
+  (define-key w3-speedbar-key-map "r" 'speedbar-edit-line)
+  (define-key w3-speedbar-key-map "\C-m" 'speedbar-edit-line)
   )
 
 (defvar w3-speedbar-menu-items
