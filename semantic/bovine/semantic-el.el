@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.29 2004/06/24 00:22:19 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.30 2004/09/21 10:51:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,6 +35,27 @@
   )
 
 ;;; Code:
+
+;;; Lexer
+;;
+(define-lex semantic-emacs-lisp-lexer
+  "A simple lexical analyzer for Emacs Lisp.
+This lexer ignores comments and whitespace, and will return
+syntax as specified by the syntax table."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  semantic-lex-number
+  semantic-lex-symbol-or-keyword
+  semantic-lex-charquote
+  semantic-lex-paren-or-list
+  semantic-lex-close-paren
+  semantic-lex-string
+  semantic-lex-ignore-comments
+  semantic-lex-punctuation
+  semantic-lex-default-action)
+
+;;; Parser
+;;
 (defvar semantic--elisp-parse-table
   `((bovine-toplevel
      (semantic-list
@@ -118,176 +139,238 @@ at compile time, permitting compound strings."
   (when semantic-elisp-store-documentation-in-tag
     (semantic-elisp-form-to-doc-string str)))
 
+(defmacro semantic-elisp-setup-form-parser (parser &rest symbols)
+  "Install the function PARSER as the form parser for SYMBOLS.
+SYMBOLS is a list of symbols identifying the forms to parse.
+PARSER is called on every forms whose first element (car FORM) is
+found in SYMBOLS.  It is passed the parameters FORM, START, END,
+where:
+
+- FORM is an Elisp form read from the current buffer.
+- START and END are the beginning and end location of the
+  corresponding data in the current buffer."
+  (let ((sym (make-symbol "sym")))
+    `(dolist (,sym ',symbols)
+       (put ,sym 'semantic-elisp-form-parser #',parser))))
+(put 'semantic-elisp-setup-form-parser 'lisp-indent-function 1)
+
+(defmacro semantic-elisp-reuse-form-parser (symbol &rest symbols)
+  "Reuse the form parser of SYMBOL for forms identified by SYMBOLS.
+See also `semantic-elisp-setup-form-parser'."
+  (let ((parser (make-symbol "parser"))
+        (sym (make-symbol "sym")))
+    `(let ((,parser (get ',symbol 'semantic-elisp-form-parser)))
+       (or ,parser
+           (signal 'wrong-type-argument
+                   '(semantic-elisp-form-parser ,symbol)))
+       (dolist (,sym ',symbols)
+         (put ,sym 'semantic-elisp-form-parser ,parser)))))
+
 (defun semantic-elisp-use-read (sl)
   "Use `read' on the semantic list SL.
 Return a bovination list to use."
-  (let* ((rt (read (buffer-substring (car sl) (cdr sl)))) ; read text
-	 (ts (car rt)) ; type symbol
-	 (tss (nth 1 rt))
-	 (ss (if (not (listp tss)) tss
-	       (if (eq (car tss) 'quote)
-		   (nth 1 tss)
-		 (car tss))))
-	 (sn (format "%S" ss))
-	 )
+  (let* ((start (car sl))
+         (end   (cdr sl))
+         (form  (read (buffer-substring start end))))
     (cond
-     ((listp ts)
-      ;; If the first elt is a list, then it is some arbitrary code.
-      (semantic-tag-new-code "anonymous" nil))
-     ((or (eq ts 'eval-and-compile)
-	  (eq ts 'eval-when-compile))
-      ;; Eval and compile can be wrapped around definitions, such as in
-      ;; eieio.el, so splice it's parts back into the main list.
-      (condition-case foo
-	  (semantic-parse-region (car sl) (cdr sl) nil 1)
-	(error (message "MUNGE: %S" foo)
-	       nil))
+     ;; If the first elt is a list, then it is some arbitrary code.
+     ((listp (car form))
+      (semantic-tag-new-code "anonymous" nil)
       )
-     ((or (eq ts 'defvar)
-	  (eq ts 'defconst)
-	  (eq ts 'defcustom)
-	  (eq ts 'defface)
-	  (eq ts 'defimage))
-      (let ((doc (semantic-elisp-form-to-doc-string (nth 3 rt))))
-	;; Variables and constants
-	(semantic-tag-new-variable
-	 sn nil (nth 2 rt)
-	 :user-visible-flag (and doc
-			    (> (length doc) 0)
-			    (= (aref doc 0) ?*))
-	 :constant-flag (if (eq ts 'defconst) t nil)
-	 :documentation (semantic-elisp-do-doc doc)
-	 )
-	))
-     ((or (eq ts 'defun)
-	  (eq ts 'defun*)
-	  (eq ts 'defsubst)
-	  (eq ts 'defmacro)
-	  (eq ts 'define-overload)
-	  )
-      ;; functions and macros
-      (semantic-tag-new-function
-       sn nil (semantic-elisp-desymbolify (nth 2 rt))
-       :user-visible-flag (equal (car-safe (nth 4 rt)) 'interactive)
-       :documentation (semantic-elisp-do-doc (nth 3 rt))
-       :overloadable (eq ts 'define-overload)
-       )
-      )
-     ((eq ts 'autoload)
-      (semantic-tag-new-function
-       (format "%S" (car (cdr (car (cdr rt)))))
-       nil nil
-       :user-visible-flag (and (nth 4 rt)
-			       (not (eq (nth 4 rt) 'nil)))
-       :prototype-flag t
-       :documentation (semantic-elisp-do-doc (nth 3 rt)))
-      )
-     ((or (eq ts 'defmethod)
-	  (eq ts 'defgeneric))
-      ;; methods
-      (let* ((a2 (nth 2 rt))
-	     (a3 (nth 3 rt))
-	     (args (if (listp a2) a2 a3))
-	     (doc (nth (if (listp a2) 3 4) rt)))
-	(semantic-tag-new-function
-	 sn nil
-	 (if (listp (car args))
-	     (cons (symbol-name (car (car args)))
-		   (semantic-elisp-desymbolify (cdr args)))
-	   (semantic-elisp-desymbolify (cdr args)))
-	 :parent (symbol-name
-		  (if (listp (car args)) (car (cdr (car args)))))
-	 :documentation (semantic-elisp-do-doc doc)
-	 )))
-     ((eq ts 'defadvice)
-      ;; Advice
-      (semantic-tag-new-function
-       sn nil (semantic-elisp-desymbolify (nth 2 rt))
-       )
-       ;; (nth 3 rt) doc string
-      )
-     ((eq ts 'defclass)
-      ;; classes
-      (let ((docpart (nthcdr 4 rt)))
-	(semantic-tag-new-type
-	 sn "class"
-	 (semantic-elisp-clos-args-to-semantic (nth 3 rt))
-	 (semantic-elisp-desymbolify (nth 2 rt))
-	 :typemodifiers (semantic-elisp-desymbolify
-			 (if (not (stringp docpart))
-			     docpart))
-	 :documentation
-	 (semantic-elisp-do-doc
-	  (if (stringp (car docpart))
-	      (car docpart)
-	    (car (cdr (member :documentation docpart)))))
-	 )
-	))
-     ((eq ts 'defstruct)
-      ;; structs
-      (semantic-tag-new-type
-       sn "struct" (semantic-elisp-desymbolify (nthcdr 2 rt))
-       nil ;(semantic-elisp-desymbolify (nth 2 rt))
-       )
-      ;; (nth 4 rt) doc string
-      )
-     ;; Now about a few Semantic specials?
-     ((eq ts 'define-lex)
-      (semantic-tag-new-function
-       sn nil nil
-       :lexical-analyzer-flag t
-       :documentation (semantic-elisp-do-doc (nth 2 rt))
-       )
-      )
-     ((memq ts '( define-mode-overload-implementation
-                  define-mode-local-override ))
-      (let ((args (nth 3 rt))
-	    )
-	(semantic-tag-new-function
-	 sn nil
-	 (when (listp args) (semantic-elisp-desymbolify args))
-	 :override-function-flag t
-	 :parent (format "%S" (nth 2 rt))
-	 :documentation (semantic-elisp-do-doc (nth 4 rt))
-	 )
-	))
-     ((eq ts 'defvar-mode-local)
-      (semantic-tag-new-variable
-       (format "%S" (nth 2 rt)) nil
-       (nth 3 rt) ; default value
-       :override-variable-flag t
-       :parent sn
-       :documentation (semantic-elisp-do-doc (nth 4 rt))
-       )
-      )
-     ;; Now for other stuff
-     ((eq ts 'require)
-      (semantic-tag-new-include
-       sn nil :directory (nth 2 rt)))
-     ((eq ts 'provide)
-      (semantic-tag-new-package
-       sn (nth 3 rt)))
+     ;; A special form parser is provided, use it.
+     ((and (car form) (symbolp (car form))
+           (get (car form) 'semantic-elisp-form-parser))
+      (funcall (get (car form) 'semantic-elisp-form-parser)
+               form start end))
+     ;; Produce a generic code tag by default.
      (t
-      ;; Other stuff
-      (semantic-tag-new-code (symbol-name ts) nil)
+      (semantic-tag-new-code (format "%S" (car form)) nil)
       ))))
+
+;;; Form parsers
+;;
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (condition-case foo
+          (semantic-parse-region start end nil 1)
+        (error (message "MUNGE: %S" foo)
+               nil)))
+  eval-and-compile
+  eval-when-compile
+  )
 
-(define-lex semantic-emacs-lisp-lexer
-  "A simple lexical analyzer for Emacs Lisp.
-This lexer ignores comments and whitespace, and will return
-syntax as specified by the syntax table."
-  semantic-lex-ignore-whitespace
-  semantic-lex-ignore-newline
-  semantic-lex-number
-  semantic-lex-symbol-or-keyword
-  semantic-lex-charquote
-  semantic-lex-paren-or-list
-  semantic-lex-close-paren
-  semantic-lex-string
-  semantic-lex-ignore-comments
-  semantic-lex-punctuation
-  semantic-lex-default-action)
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (semantic-tag-new-function
+       (symbol-name (nth 1 form))
+       nil
+       (semantic-elisp-desymbolify (nth 2 form))
+       :user-visible-flag (eq (car-safe (nth 4 form)) 'interactive)
+       :documentation (semantic-elisp-do-doc (nth 3 form))
+       :overloadable (eq (car form) 'define-overload)
+       ))
+  defun
+  defun*
+  defsubst
+  defmacro
+  define-overload
+  )
 
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (let ((doc (semantic-elisp-form-to-doc-string (nth 3 form))))
+        (semantic-tag-new-variable
+         (symbol-name (nth 1 form))
+         nil
+         (nth 2 form)
+         :user-visible-flag (and doc
+                                 (> (length doc) 0)
+                                 (= (aref doc 0) ?*))
+         :constant-flag (eq (car form) 'defconst)
+         :documentation (semantic-elisp-do-doc doc)
+         )))
+  defvar
+  defconst
+  defcustom
+  defface
+  defimage
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (semantic-tag-new-function
+       (symbol-name (cadr (cadr form)))
+       nil nil
+       :user-visible-flag (and (nth 4 form)
+                               (not (eq (nth 4 form) 'nil)))
+       :prototype-flag t
+       :documentation (semantic-elisp-do-doc (nth 3 form))))
+  autoload
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (let* ((a2 (nth 2 form))
+             (a3 (nth 3 form))
+             (args (if (listp a2) a2 a3))
+             (doc (nth (if (listp a2) 3 4) form)))
+        (semantic-tag-new-function
+         (symbol-name (nth 1 form))
+         nil
+         (if (listp (car args))
+             (cons (symbol-name (caar args))
+                   (semantic-elisp-desymbolify (cdr args)))
+           (semantic-elisp-desymbolify (cdr args)))
+         :parent (symbol-name (if (listp (car args)) (cadr (car args))))
+         :documentation (semantic-elisp-do-doc doc)
+         )))
+  defmethod
+  defgeneric
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (semantic-tag-new-function
+       (symbol-name (nth 1 form))
+       nil
+       (semantic-elisp-desymbolify (nth 2 form))
+       ))
+  defadvice
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (let ((docpart (nthcdr 4 form)))
+	(semantic-tag-new-type
+	 (symbol-name (nth 1 form))
+         "class"
+	 (semantic-elisp-clos-args-to-semantic (nth 3 form))
+	 (semantic-elisp-desymbolify (nth 2 form))
+	 :typemodifiers (semantic-elisp-desymbolify
+			 (unless (stringp (car docpart)) docpart))
+	 :documentation (semantic-elisp-do-doc
+                         (if (stringp (car docpart))
+                             (car docpart)
+                           (cadr (member :documentation docpart))))
+	 )))
+  defclass
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (semantic-tag-new-type
+       (symbol-name (car (nth 1 form)))
+       "struct"
+       (semantic-elisp-desymbolify (nthcdr 2 form))
+       nil ;(semantic-elisp-desymbolify (nth 2 form))
+       ))
+  defstruct
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (semantic-tag-new-function
+       (symbol-name (nth 1 form))
+       nil nil
+       :lexical-analyzer-flag t
+       :documentation (semantic-elisp-do-doc (nth 2 form))
+       ))
+  define-lex
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (let ((args (nth 3 form)))
+	(semantic-tag-new-function
+	 (symbol-name (nth 1 form))
+         nil
+	 (and (listp args) (semantic-elisp-desymbolify args))
+	 :override-function-flag t
+	 :parent (symbol-name (nth 2 form))
+	 :documentation (semantic-elisp-do-doc (nth 4 form))
+	 )))
+  define-mode-overload-implementation
+  define-mode-local-override
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (semantic-tag-new-variable
+       (symbol-name (nth 2 form))
+       nil
+       (nth 3 form)                     ; default value
+       :override-variable-flag t
+       :parent (symbol-name (nth 1 form))
+       :documentation (semantic-elisp-do-doc (nth 4 form))
+       ))
+  defvar-mode-local
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (let ((name (nth 1 form)))
+        (semantic-tag-new-include
+         (symbol-name (if (eq (car-safe name) 'quote)
+                          (nth 1 name)
+                        name))
+         nil
+         :directory (nth 2 form))))
+  require
+  )
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
+      (let ((name (nth 1 form)))
+        (semantic-tag-new-package
+         (symbol-name (if (eq (car-safe name) 'quote)
+                          (nth 1 name)
+                        name))
+         (nth 3 form))))
+  provide
+  )
+
+;;; Mode setup
+;;
 (define-mode-local-override semantic-find-dependency
   emacs-lisp-mode (tag)
   "Find the file BUFFER depends on described by TAG."
@@ -515,8 +598,8 @@ In emacs lisp this is easilly defined by parenthisis bounding."
 	  (point (point)))
       ;; We should never get lists from here.
       (if fn (setq fn (car fn)))
-      (cond 
-       ;; SETQ 
+      (cond
+       ;; SETQ
        ((and fn (or (string= fn "setq") (string= fn "set")))
 	(save-excursion
 	  (condition-case nil
@@ -541,7 +624,7 @@ In emacs lisp this is easilly defined by parenthisis bounding."
 	    (error nil))))
        ;; This obscure thing finds let statements.
        ((condition-case nil
-	    (and 
+	    (and
 	     (save-excursion
 	       (up-list -2)
 	       (looking-at "(("))
@@ -553,7 +636,7 @@ In emacs lisp this is easilly defined by parenthisis bounding."
 	  (semantic-beginning-of-command)
 	  ;; Use func finding code, since it is the same format.
 	  (semantic-ctxt-current-symbol)))
-       ;; 
+       ;;
        ;; DEFAULT- nothing
        (t nil))
       )))
@@ -620,7 +703,7 @@ If there is a detail, prepend that directory."
       (concat "(" name ")"))
      (t
       (semantic-format-tag-abbreviate-default tag parent color)))))
-  
+
 (define-mode-local-override semantic-format-tag-prototype emacs-lisp-mode
   (tag &optional parent color)
   "Return a prototype string describing tag.
@@ -648,13 +731,13 @@ a real Emacs Lisp protype, we can fix it then."
   "Return a concise prototype string describing tag.
 See `semantic-format-tag-prototype' for Emacs Lisp for more details."
   (semantic-format-tag-prototype tag parent color))
-  
+
 (define-mode-local-override semantic-format-tag-uml-prototype emacs-lisp-mode
   (tag &optional parent color)
   "Return a uml prototype string describing tag.
 See `semantic-format-tag-prototype' for Emacs Lisp for more details."
   (semantic-format-tag-prototype tag parent color))
-  
+
 (defvar-mode-local emacs-lisp-mode semantic-lex-analyzer
   'semantic-emacs-lisp-lexer)
 
