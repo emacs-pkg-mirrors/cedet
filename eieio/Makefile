@@ -13,8 +13,9 @@ EMACS=emacs
 LOADPATH=../common/ ../speedbar/ 
 LOADDEFS=eieio-loaddefs.el
 LOADDIRS=.
-eieio_LISP=eieio.el eieio-comp.el eieio-opt.el eieio-custom.el eieio-doc.el eieio-base.el
+init_LISP=eieio-load.el
 EMACS=emacs
+eieio_LISP=eieio.el eieio-comp.el eieio-opt.el eieio-custom.el eieio-doc.el eieio-base.el
 examples_LISP=tree.el call-tree.el chart.el eieio-speedbar.el linemark.el lmcompile.el
 eieio_info_TEXINFOS=eieio.texi
 MAKEINFO=makeinfo
@@ -25,7 +26,7 @@ DISTDIR=$(top)eieio-$(VERSION)
 
 
 
-all: autoloads eieio examples eieio.info
+all: autoloads init eieio examples eieio.info
 
 .PHONY: autoloads
 autoloads: 
@@ -35,6 +36,15 @@ autoloads:
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
 	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
+
+.PHONY: init
+init: $(init_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: eieio
 eieio: $(eieio_LISP)
@@ -79,7 +89,7 @@ clean:
 dist: eieio.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(LOADDEFS) $(eieio_LISP) $(examples_LISP) $(eieio_info_TEXINFOS) eieio.info* $(test_LISP) $(Misc_MISC) $(ede_FILES) $(DISTDIR)
+	cp $(LOADDEFS) $(init_LISP) $(eieio_LISP) $(examples_LISP) $(eieio_info_TEXINFOS) eieio.info* $(test_LISP) $(Misc_MISC) $(ede_FILES) $(DISTDIR)
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 

@@ -17,8 +17,9 @@ wisent_SAMENATIC_GRAMMAR_EL=wisent-dot-wy.el
 EMACS=emacs
 LOADDEFS=cogre-loaddefs.el
 LOADDIRS=.
-dot_LISP=wisent-dot.el
+init_LISP=cogre-load.el
 EMACS=emacs
+dot_LISP=wisent-dot.el
 Mode_LISP=cogre-mode.el
 info_TEXINFOS=cogre.texi
 MAKEINFO=makeinfo
@@ -30,7 +31,7 @@ DISTDIR=$(top)COGRE-$(VERSION)
 
 
 
-all: wisent autoloads dot Mode cogre.info misc hacks COGRE
+all: wisent autoloads init dot Mode cogre.info misc hacks COGRE
 
 .PHONY: wisent
 wisent: $(wisent_SEMANTIC_GRAMMAR)
@@ -50,6 +51,15 @@ autoloads:
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
 	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
+
+.PHONY: init
+init: $(init_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: dot
 dot: $(dot_LISP)
@@ -103,7 +113,7 @@ clean:
 dist: $(wisent_SAMENATIC_GRAMMAR_EL) cogre.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(wisent_SEMANTIC_GRAMMAR) $(wisent_SAMENATIC_GRAMMAR_EL) $(LOADDEFS) $(dot_LISP) $(Mode_LISP) $(info_TEXINFOS) cogre.info* $(misc_MISC) $(hacks_LISP) $(COGRE_LISP) $(ede_FILES) $(DISTDIR)
+	cp $(wisent_SEMANTIC_GRAMMAR) $(wisent_SAMENATIC_GRAMMAR_EL) $(LOADDEFS) $(init_LISP) $(dot_LISP) $(Mode_LISP) $(info_TEXINFOS) cogre.info* $(misc_MISC) $(hacks_LISP) $(COGRE_LISP) $(ede_FILES) $(DISTDIR)
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 

@@ -13,8 +13,9 @@ EMACS=emacs
 LOADPATH=../common/ ../common/ 
 LOADDEFS=speedbar-loaddefs.el
 LOADDIRS=.
-speedbar_LISP=dframe.el speedbar.el
+init_LISP=speedbar-load.el
 EMACS=emacs
+speedbar_LISP=dframe.el speedbar.el
 info_TEXINFOS=speedbar.texi
 MAKEINFO=makeinfo
 opt_LISP=rpm.el sb-gud.el sb-info.el sb-rmail.el sb-w3.el sb-texinfo.el bigclock.el sb-html.el sb-ant.el
@@ -25,7 +26,7 @@ DISTDIR=$(top)speedbar-$(VERSION)
 
 
 
-all: autoloads speedbar speedbar.info
+all: autoloads init speedbar speedbar.info
 
 .PHONY: autoloads
 autoloads: 
@@ -35,6 +36,15 @@ autoloads:
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
 	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
+
+.PHONY: init
+init: $(init_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: speedbar
 speedbar: $(speedbar_LISP)
@@ -70,7 +80,7 @@ clean:
 dist: speedbar.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(LOADDEFS) $(speedbar_LISP) $(info_TEXINFOS) speedbar.info* $(opt_LISP) $(aux_AUX) $(images_MISC) $(ede_FILES) $(DISTDIR)
+	cp $(LOADDEFS) $(init_LISP) $(speedbar_LISP) $(info_TEXINFOS) speedbar.info* $(opt_LISP) $(aux_AUX) $(images_MISC) $(ede_FILES) $(DISTDIR)
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 

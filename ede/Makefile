@@ -14,8 +14,9 @@ LOADPATH=../common/ ../speedbar/ ../eieio/\
    
 LOADDEFS=ede-loaddefs.el
 LOADDIRS=.
-ede_LISP=project-am.el ede.el ede-pmake.el ede-pconf.el ede-proj.el ede-dired.el ede-proj-elisp.el ede-proj-misc.el ede-proj-obj.el ede-proj-prog.el ede-proj-archive.el ede-proj-shared.el ede-proj-info.el ede-proj-scheme.el ede-proj-aux.el ede-proj-comp.el ede-source.el ede-util.el ede-system.el ede-speedbar.el
+init_LISP=ede-load.el
 EMACS=emacs
+ede_LISP=project-am.el ede.el ede-pmake.el ede-pconf.el ede-proj.el ede-dired.el ede-proj-elisp.el ede-proj-misc.el ede-proj-obj.el ede-proj-prog.el ede-proj-archive.el ede-proj-shared.el ede-proj-info.el ede-proj-scheme.el ede-proj-aux.el ede-proj-comp.el ede-source.el ede-util.el ede-system.el ede-speedbar.el
 aux-lisp_LISP=autoconf-edit.el autoconf-compat.el
 misc_AUX=NEWS README TODO ede-proj-skel.el
 ede_info_TEXINFOS=ede.texi ede-projects.texi ede-targets.texi ede-sourcecode.texi ede-compilers.texi
@@ -26,7 +27,7 @@ DISTDIR=$(top)EDE-$(VERSION)
 
 
 
-all: autoloads ede aux-lisp ede.info
+all: autoloads init ede aux-lisp ede.info
 
 .PHONY: autoloads
 autoloads: 
@@ -36,6 +37,15 @@ autoloads:
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
 	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
+
+.PHONY: init
+init: $(init_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: ede
 ede: $(ede_LISP)
@@ -68,7 +78,7 @@ clean:
 dist: ede.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(LOADDEFS) $(ede_LISP) $(aux-lisp_LISP) $(misc_AUX) $(ede_info_TEXINFOS) ede.info* $(test_AUX) $(ede_FILES) $(DISTDIR)
+	cp $(LOADDEFS) $(init_LISP) $(ede_LISP) $(aux-lisp_LISP) $(misc_AUX) $(ede_info_TEXINFOS) ede.info* $(test_AUX) $(ede_FILES) $(DISTDIR)
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 
