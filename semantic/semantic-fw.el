@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.43 2004/07/20 17:59:29 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.44 2004/07/29 02:31:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -344,34 +344,33 @@ calling this one."
   (eval-when-compile
     (let* (
            ;; Variable declarations
-           (kv (regexp-opt
-                '(
-                  ) t))
+	   (vl nil)
+           (kv (if vl (regexp-opt vl t) ""))
            ;; Function declarations
-           (kf (regexp-opt
-                '(
-                  "define-lex"
-                  "define-lex-analyzer"
-                  "define-lex-block-analyzer"
-                  "define-lex-regex-analyzer"
-                  "define-lex-simple-regex-analyzer"
-                  "define-lex-keyword-type-analyzer"
-                  "define-lex-sexp-type-analyzer"
-                  "define-lex-regex-type-analyzer"
-                  "define-lex-string-type-analyzer"
-                  "define-lex-block-type-analyzer"
-                  ;;"define-mode-overload-implementation"
-                  ;;"define-semantic-child-mode"
-                  "define-semantic-idle-service"
-                  "define-semantic-decoration-style"
-                  "define-wisent-lexer"
-                  "semantic-alias-obsolete"
-                  "semantic-varalias-obsolete"
-                  "semantic-make-obsolete-overload"
-                  ) t))
+	   (vf '(
+		 "define-lex"
+		 "define-lex-analyzer"
+		 "define-lex-block-analyzer"
+		 "define-lex-regex-analyzer"
+		 "define-lex-simple-regex-analyzer"
+		 "define-lex-keyword-type-analyzer"
+		 "define-lex-sexp-type-analyzer"
+		 "define-lex-regex-type-analyzer"
+		 "define-lex-string-type-analyzer"
+		 "define-lex-block-type-analyzer"
+		 ;;"define-mode-overload-implementation"
+		 ;;"define-semantic-child-mode"
+		 "define-semantic-idle-service"
+		 "define-semantic-decoration-style"
+		 "define-wisent-lexer"
+		 "semantic-alias-obsolete"
+		 "semantic-varalias-obsolete"
+		 "semantic-make-obsolete-overload"
+		 ))
+           (kf (if vf (regexp-opt vf t) ""))
            ;; Regexp depths
-           (kv-depth (regexp-opt-depth kv))
-           (kf-depth (regexp-opt-depth kf))
+           (kv-depth (if kv (regexp-opt-depth kv) nil))
+           (kf-depth (if kf (regexp-opt-depth kf) nil))
            )
       `((,(concat
            ;; Declarative things
