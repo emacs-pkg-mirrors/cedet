@@ -4,6 +4,11 @@
   :name "wisent"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-elisp "tools"
+    :name "tools"
+    :path ""
+    :source '("bison-wisent.el")
+    )
    (ede-proj-target-makefile-info "doc"
     :name "doc"
     :path ""
