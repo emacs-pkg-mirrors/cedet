@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.22 2002/08/15 18:27:22 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.23 2002/09/05 13:31:51 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -44,74 +44,30 @@
 (defvar wisent-lex-istream nil
   "Input stream of `semantic-lex' syntactic tokens.")
 
-(defvar wisent-lex-tokens-obarray nil
-  "Buffer local token obarray.")
-(make-variable-buffer-local 'wisent-lex-tokens-obarray)
-
 (defvar wisent-lex-lookahead nil
   "Extra lookahead token.
 When non-nil it is directly returned by `wisent-lex-function'.")
 
-(defsubst wisent-lex-token-rules (token)
-  "Return matching rules of TOKEN."
-  (symbol-value
-   (intern-soft (symbol-name token) wisent-lex-tokens-obarray)))
+(defsubst wisent-lex-token-rules (symbol)
+  "Return matching rules of token class SYMBOL."
+  (semantic-lex-token-value (symbol-name symbol) 'noerror))
 
-(defsubst wisent-lex-token-get (token property)
-  "For token TOKEN, get the value of PROPERTY."
-  (get (intern-soft (symbol-name token) wisent-lex-tokens-obarray)
-       property))
+(defsubst wisent-lex-token-get (symbol property)
+  "For token class SYMBOL, return its PROPERTY value or nil."
+  (semantic-lex-token-get (symbol-name symbol) property 'noerror))
 
-(defun wisent-lex-add-token (token obarray)
-  "Check and add TOKEN to OBARRAY."
-  (let* ((stok  (intern (car token) obarray))
-         (rules (cdr token))
-         rule entry entries default)
-    (while rules
-      (setq rule  (car rules)
-            rules (cdr rules))
-      (if (cdr rule)
-          (setq entries (cons rule entries))
-        (setq rule (car rule))
-        (if default
-            (message "*** `%s' default rule %S redefined as %S"
-                     stok default rule))
-        (setq default rule)))
-    ;; Ensure that the default rule is the first one.
-    (set stok (cons default (nreverse entries)))))
-
-(defsubst wisent-lex-put-default (name property value obarray)
-  "Set NAME's PROPERTY to VALUE.
-Define NAME in OBARRAY if it does not already exist."
-  (let ((symbol (intern-soft name obarray)))
-    (or symbol (set (setq symbol (intern name obarray)) nil))
-    (put symbol property value)))
-
-(defun wisent-lex-make-token-table (tokens &optional propertyalist)
-  "Convert a list of TOKENS into an obarray and return it.
-If optional argument PROPERTYALIST is non nil, then interpret it, and
-apply those properties"
-  ;; Create the symbol hash table
-  (let* ((obarray (make-vector 13 0))
-         property)
-    ;; fill it with stuff
-    (while tokens
-      (wisent-lex-add-token (car tokens) obarray)
-      (setq tokens (cdr tokens)))
+(defun wisent-lex-make-token-table (specs &optional propspecs)
+  "Convert token SPECS into an obarray and return it.
+If optional argument PROPSPECS is non nil, then interpret it, and
+apply those properties (see `semantic-lex-make-token-table' for
+details)."
+  (let ((semantic-lex-tokens-obarray
+         (semantic-lex-make-token-table specs propspecs)))
     ;; Set up some useful default properties
-    (wisent-lex-put-default "punctuation" 'char-literal t obarray)
-    (wisent-lex-put-default "open-paren"  'char-literal t obarray)
-    (wisent-lex-put-default "close-paren" 'char-literal t obarray)
-    ;; Apply all properties
-    (while propertyalist
-      (setq property      (car propertyalist)
-            propertyalist (cdr propertyalist))
-      (put (or (intern-soft (car property) obarray)
-               (signal 'wrong-type-argument
-                       (list (car property) 'token)))
-           (nth 1 property)
-           (nth 2 property)))
-    obarray))
+    (semantic-lex-token-put "punctuation" 'char-literal t 'add)
+    (semantic-lex-token-put "open-paren"  'char-literal t 'add)
+    (semantic-lex-token-put "close-paren" 'char-literal t 'add)
+    semantic-lex-tokens-obarray))
 
 (defsubst wisent-lex-match (text default rules &optional usequal)
   "Return lexical symbol matching TEXT or DEFAULT if not found.
@@ -208,7 +164,7 @@ tables:
 
   - The keyword table in variable `semantic-lex-keywords-obarray';
 
-  - The token table in variable `wisent-lex-tokens-obarray'.
+  - The token table in variable `semantic-lex-tokens-obarray'.
 
 Keywords are directly mapped to equivalent Wisent's lexical tokens
 like this (SL- prefix means `semantic-lex', WL- `wisent-lex'):
