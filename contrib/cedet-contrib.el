@@ -1,9 +1,12 @@
-;;; cedet-contrib.el --- Load definitions for CEDET's contributed libraries
+;;; cedet-contrib.el --- Setup CEDET's contrib environment
 
 ;;; Copyright (C) 2004 Eric Ludlam
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: cedet-contrib.el,v 1.1 2004/03/28 01:23:43 zappo Exp $
+;; X-RCS: $Id: cedet-contrib.el,v 1.2 2004/03/28 11:29:01 ponced Exp $
+
+(defvar cedet-contrib-version "0.0"
+  "Current version of contributed libraries.")
 
 ;; CEDET is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -22,15 +25,11 @@
 
 ;;; Commentary:
 ;;
-;; Initialize CEDET's contributed libraries for all supported conditions.
+;; Setup environment of CEDET's contributed libraries.
 
 ;;; Code:
 ;;
 
-;;; Contrib autoloads
-;;
-(load "contrib-loaddefs" nil t)
-
 (provide 'cedet-contrib)
 
-;;; cedet-load.el ends here
+;;; cedet-contrib.el ends here
