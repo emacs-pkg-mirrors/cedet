@@ -1,10 +1,10 @@
 ;;; document-vars.el --- Default settings for the document package.
 
-;;; Copyright (C) 2000 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document-vars.el,v 1.1 2000/05/04 03:32:22 zappo Exp $
+;; X-RCS: $Id: document-vars.el,v 1.2 2001/05/01 16:51:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,7 +34,7 @@
 (defcustom document-copyright-notice-file nil
   "*A file name containing a copyright notice.
 It will be reformatted in the header to have the correct prefix character.
-See the %N token in document-file-comment"
+See the %N token in `document-file-comment'"
   :group 'document
   :type 'file)
 
