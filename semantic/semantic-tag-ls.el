@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.4 2004/02/12 02:05:46 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.5 2004/02/22 21:38:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -52,9 +52,10 @@ search locally, then semanticdb for that tag (when enabled.)")
   "Attempt to calculate the parent of TAG."
   (save-excursion
     (set-buffer (semantic-tag-buffer tag))
-    (goto-char (semantic-tag-start tag))
-    (semantic-current-tag-parent))
-  )
+    (save-excursion
+      (goto-char (semantic-tag-start tag))
+      (semantic-current-tag-parent))
+    ))
 
 ;;;###autoload
 (defun semantic-tag-protection (tag &optional parent)
