@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.52 2001/10/28 01:01:41 zappo Exp $
+@c $Id: semantic.texi,v 1.53 2001/11/10 13:05:06 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -2524,6 +2524,19 @@ If @var{ARG} is positive, enable, if it is negative, disable.
 If @var{ARG} is @code{nil}, then toggle.
 @end deffn
 
+@deffn Command global-semantic-auto-parse-mode &optional arg
+Toggle global use of @dfn{semantic-auto-parse-mode}.
+If @var{ARG} is positive, enable, if it is negative, disable.
+If @var{ARG} is @code{nil}, then toggle.
+@end deffn
+
+@deffn Command semantic-auto-parse-mode &optional arg
+Minor mode to auto parse buffer following changes.
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
 
 @node Index,  , Tools, Top
 @comment  node-name,  next,  previous,  up
