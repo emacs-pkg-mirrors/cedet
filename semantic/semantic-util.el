@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.2 2000/04/28 18:59:10 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.3 2000/04/28 22:57:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -287,7 +287,7 @@ override it with.
 Available override symbols:
 
   SYBMOL                 PARAMETERS              DESCRIPTION
- `find-dependency'       (buffer token & parent)  find the dependency file
+ `find-dependency'       (buffer token)           find the dependency file
  `find-nonterminal'      (buffer token & parent)  find token in buffer.
  `summerize-nonterminal' (token & parent)         return summery string.
  `prototype-nonterminal' (token)                  return a prototype string.
@@ -316,7 +316,7 @@ function, it will be called with one arguments, the file to find as a
 string, and  it should return the full path to that file, or nil.")
 (make-variable-buffer-local `semantic-dependency-include-path)
 
-(defun semantic-find-dependency (buffer token &optional parent)
+(defun semantic-find-dependency (buffer token)
   "Find the filename represented from BUFFER's TOKEN.
 TOKEN may be a stripped element, in which case PARENT specifies a
 parent token that has positinal information.
@@ -324,25 +324,32 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 `.' first, then searches additional paths."
   (if (or (not (bufferp buffer)) (not token))
       (error "Semantic-find-nonterminal: specify BUFFER and TOKEN"))
+
+  ;; First, see if this file exists in the current EDE projecy
+  (if (and (fboundp 'ede-expand-filename) ede-minor-mode
+	   (ede-expand-filename (ede-toplevel)
+				(semantic-token-name token)))
+      (ede-expand-filename (ede-toplevel)
+			   (semantic-token-name token))
   
-  (let ((s (semantic-fetch-overload 'find-dependency)))
-    (if s (funcall s buffer token)
-      (save-excursion
-	(set-buffer buffer)
-	(let ((name (semantic-token-name token)))
-	  (cond ((file-exists-p name)
-		 (expand-file-name name))
-		((and (symbolp semantic-dependency-include-path)
-		      (fboundp semantic-dependency-include-path))
-		 (funcall semantic-dependency-include-path name))
-		(t
-		 (let ((p semantic-dependency-include-path)
-		       (found nil))
-		   (while (and p (not found))
-		     (if (file-exists-p (concat (car p) "/" name))
-			 (setq found (concat (car p) "/" name)))
-		     (setq p (cdr p)))
-		   found))))))))
+    (let ((s (semantic-fetch-overload 'find-dependency)))
+      (if s (funcall s buffer token)
+	(save-excursion
+	  (set-buffer buffer)
+	  (let ((name (semantic-token-name token)))
+	    (cond ((file-exists-p name)
+		   (expand-file-name name))
+		  ((and (symbolp semantic-dependency-include-path)
+			(fboundp semantic-dependency-include-path))
+		   (funcall semantic-dependency-include-path name))
+		  (t
+		   (let ((p semantic-dependency-include-path)
+			 (found nil))
+		     (while (and p (not found))
+		       (if (file-exists-p (concat (car p) "/" name))
+			   (setq found (concat (car p) "/" name)))
+		       (setq p (cdr p)))
+		     found)))))))))
 
 (defun semantic-find-nonterminal (buffer token &optional parent)
   "Find the location from BUFFER belonging to TOKEN.
@@ -355,7 +362,7 @@ depended on, and functions will move to the specified definition."
       (error "Semantic-find-nonterminal: specify BUFFER and TOKEN"))
   
   (if (and (eq (semantic-token-token token) 'include)
-	   (let ((f (semantic-find-dependency buffer token parent)))
+	   (let ((f (semantic-find-dependency buffer token)))
 	     (if f (find-file f))))
       nil
     (let ((s (semantic-fetch-overload 'find-nonterminal)))
