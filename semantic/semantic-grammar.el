@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.3 2002/09/11 10:22:00 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.4 2002/09/12 09:27:19 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -47,7 +47,7 @@
 ;;
 (define-lex-regex-analyzer semantic-grammar-lex-symbol
   "Detect and create an identifier or keyword token."
-  "\\([.]\\|\\sw\\|\\s_\\)+"
+  "\\(\\sw\\|\\s_\\)+"
   (semantic-lex-token
    (or (semantic-lex-keyword-p (match-string 0))
        'SYMBOL)
@@ -63,8 +63,7 @@
    (save-excursion
      (condition-case nil
          (forward-sexp 1)
-       ;; This case makes lex
-       ;; robust to broken strings.
+       ;; This case makes lex robust to broken strings.
        (error
         (goto-char
          (funcall
@@ -95,8 +94,7 @@
    (save-excursion
      (condition-case nil
          (forward-sexp)
-       ;; This case makes lex robust
-       ;; to broken syntax.
+       ;; This case makes lex robust to broken syntax.
        (error
         (goto-char
          (funcall semantic-lex-unterminated-syntax-end-function
@@ -142,7 +140,7 @@ It ignores whitespaces, newlines and comments."
 ;;;;
 
 (defconst semantic-grammar-automaton
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-11 10:25+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-12 11:25+0200
   (eval-when-compile
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START SCOPESTART QUOTEMODE TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL CHARACTER SEXP PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
@@ -434,7 +432,7 @@ It ignores whitespaces, newlines and comments."
   "Parser automaton.")
 
 (defconst semantic-grammar-keywords
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-11 10:25+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-12 11:25+0200
   (semantic-lex-make-keyword-table
    '(("left" . LEFT)
      ("nonassoc" . NONASSOC)
@@ -455,7 +453,7 @@ It ignores whitespaces, newlines and comments."
   "Keywords.")
 
 (defconst semantic-grammar-tokens
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-11 10:25+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-12 11:25+0200
   (wisent-lex-make-token-table
    '(("punctuation"
       (PERCENT . "%")
@@ -484,7 +482,7 @@ It ignores whitespaces, newlines and comments."
 
 (defun semantic-grammar-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-11 10:25+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-12 11:25+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -498,6 +496,7 @@ It ignores whitespaces, newlines and comments."
               'wisent-collect-unmatched-syntax nil t)
     (setq
      ;; Lexical analysis
+     semantic-lex-comment-regex ";;"
      semantic-lex-analyzer 'semantic-grammar-lexer
      ;; Environment
      semantic-type-relation-separator-character '(":")
@@ -1071,10 +1070,13 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     (modify-syntax-entry ?\n ">"     table) ;; Comment end
     (modify-syntax-entry ?\" "\""    table) ;; String
     (modify-syntax-entry ?\- "_"     table) ;; Symbol
-    (modify-syntax-entry ?\` "'   "  table) ;; Prefix ` (backquote)
-    (modify-syntax-entry ?\' "'   "  table) ;; Prefix ' (quote)
-    (modify-syntax-entry ?\, "'   "  table) ;; Prefix , (comma)
-    (modify-syntax-entry ?\# "'   "  table) ;; Prefix # (sharp)
+    (modify-syntax-entry ?\. "_"     table) ;; Symbol
+    (modify-syntax-entry ?\\ "\\"    table) ;; Quote
+    (modify-syntax-entry ?\? "\\"    table) ;; Quote
+    (modify-syntax-entry ?\` "'"     table) ;; Prefix ` (backquote)
+    (modify-syntax-entry ?\' "'"     table) ;; Prefix ' (quote)
+    (modify-syntax-entry ?\, "'"     table) ;; Prefix , (comma)
+    (modify-syntax-entry ?\# "'"     table) ;; Prefix # (sharp)
     table)
   "Syntax table used in a Semantic grammar buffers.")
 
@@ -1082,10 +1084,11 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
   "Hook run when starting Semantic grammar mode.")
 
 (defvar semantic-grammar-mode-keywords-1
-  `(("\\(%\\)\\(\\w+\\)"
+  `(("\\(%\\)\\(\\(\\sw\\|\\s_\\)+\\)"
      (1 font-lock-reference-face)
      (2 font-lock-keyword-face))
-    ("^\\(\\w+\\)[ \n\r\t]*:" 1 font-lock-function-name-face)
+    ("^\\(\\(\\sw\\|\\s_\\)+\\)[ \n\r\t]*:"
+     1 font-lock-function-name-face)
     ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\)\\>"
      1 ,(if (boundp 'font-lock-builtin-face)
             'font-lock-builtin-face
