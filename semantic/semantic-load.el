@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.33 2003/03/17 01:17:49 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.34 2003/04/01 13:07:02 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 ;;; Code:
 ;;
 
-(eval-and-compile (load "semantic-al" nil t))
+(require 'semantic-fw)
 
 ;;; Add parser directories
 ;;
