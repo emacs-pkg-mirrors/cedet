@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.5 2001/09/17 15:26:06 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.6 2001/09/18 14:49:53 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -578,17 +578,33 @@ NONTERM is the nonterminal symbol to start with."
     )
   "Expanders of Semantic built-in functions in LALR grammar.")
 
+(defsubst semantic-bnf-quote-p (sym)
+  "Return non-nil if SYM is bound to the `quote' function."
+  (condition-case nil
+      (eq (indirect-function sym)
+          (indirect-function 'quote))
+    (error nil)))
+
+(defsubst semantic-bnf-backquote-p (sym)
+  "Return non-nil if SYM is bound to the `backquote' function."
+  (condition-case nil
+      (eq (indirect-function sym)
+          (indirect-function 'backquote))
+    (error nil)))
+
 (defun semantic-bnf-to-lalr-action (expr)
   "Return expanded form of the semantic action expression EXPR.
-Macros are expanded and calls to built-in functions were replaced by
-their expansion as specified in `semantic-bnf-to-lalr-builtins'."
+`backquote' expressions and Semantic built-in function calls are
+expanded.  The variable `semantic-bnf-to-lalr-builtins' defines
+built-in functions and corresponding expanders."
   (if (not (listp expr))
       ;; EXPR is an atom, no expansion needed
       expr
     ;; EXPR is a list, expand inside it
     (let (eexpr sexpr bltn)
-      ;; If macro expand it first
-      (setq expr (macroexpand expr))
+      ;; If backquote expand it first
+      (if (semantic-bnf-backquote-p (car expr))
+          (setq expr (macroexpand expr)))
       ;; Expand builtins
       (if (setq bltn (assq (car expr) semantic-bnf-to-lalr-builtins))
           (setq expr (apply (cdr bltn) (cdr expr))))
@@ -597,7 +613,7 @@ their expansion as specified in `semantic-bnf-to-lalr-builtins'."
               expr  (cdr expr))
         ;; Recursively expand function call but quote expression
         (and (consp sexpr)
-             (not (eq (car sexpr) 'quote))
+             (not (semantic-bnf-quote-p (car sexpr)))
              (setq sexpr (semantic-bnf-to-lalr-action sexpr)))
         ;; Accumulate expanded forms
         (setq eexpr (nconc eexpr (list sexpr))))
