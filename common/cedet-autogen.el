@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: 22 Aug 2003
 ;; Keywords: maint
-;; X-CVS: $Id: cedet-autogen.el,v 1.1 2003/09/03 16:56:30 ponced Exp $
+;; X-CVS: $Id: cedet-autogen.el,v 1.2 2003/09/05 17:48:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -155,20 +155,23 @@ Return a list of directory names, relative to ROOT-DIR."
              (setq dirs (nconc dirs subdirs)))))
     dirs))
 
-(defun cedet-update-autoloads (loaddefs &optional directory)
+(defun cedet-update-autoloads (loaddefs &optional directory &rest directories)
   "Update autoloads in file LOADDEFS from sources.
 Optional argument DIRECTORY, specifies the directory to scan for
 autoloads.  It defaults to the current directory.
-Also scan sub directories of DIRECTORY where exists a
-`cedet-autogen-tagfile' file."
+DIRECTORIES is a list of extra directory to scan.  Those directory
+names are relative to DIRECTORY.  If DIRECTORIES is nil try to scan
+sub directories of DIRECTORY where a `cedet-autogen-tagfile' file
+exists."
   (interactive "FLoaddefs file: \nDDirectory: ")
   (let* ((generated-autoload-file (expand-file-name loaddefs))
          (default-directory
            (file-name-as-directory
             (expand-file-name (or directory default-directory))))
-         (subdirs (cedet-autogen-subdirs default-directory))
+         (extra-dirs (or directories
+                         (cedet-autogen-subdirs default-directory)))
          (write-contents-hooks '(cedet-autogen-update-header))
-         (command-line-args-left (cons default-directory subdirs))
+         (command-line-args-left (cons default-directory extra-dirs))
          )
     ;; If file don't exist, and is not automatically created...
     (unless (or (file-exists-p generated-autoload-file)
