@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.31 2004/05/22 14:42:40 zappo Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.32 2004/05/26 08:50:24 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -626,7 +626,7 @@ suite
   : simple_stmt
     (list $1)
   | NEWLINE indented_block
-    (list $2)
+    (progn $2)
   ;
 
 indented_block
