@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.42 2004/06/22 14:59:33 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.43 2004/07/20 17:59:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,9 +101,10 @@
       (semantic-overlay-delete overlay)))
 
 (defalias 'semantic-compile-warn
-  (if (fboundp 'byte-compile-warn)
-      'byte-compile-warn
-    'message))
+  (eval-when-compile
+    (if (fboundp 'byte-compile-warn)
+	'byte-compile-warn
+      'message)))
 
 ;;; Positional Data Cache
 ;;
