@@ -203,13 +203,15 @@ Is the list of terminal symbols used in the grammar.
 
 @cindex associativity
 @item assocs
-Specify the associativity of terminals.  It is @code{nil} when there
-is no associativity defined, or a list of elements of the form:
+Specify the associativity of @var{terminals}.  It is @code{nil} when
+there is no associativity defined, or an alist of @*
+@code{(@var{assoc-type} . @var{assoc-value})} elements.
 
-@code{(@var{assoc-type} . @var{assoc-terms})}
-
-Where @var{assoc-type} is the symbol @code{nonassoc}, @code{left} or
-@code{right}, and @var{assoc-terms} is a list of terminal items.
+@var{assoc-type} must be one of the @code{default-prec},
+@code{nonassoc}, @code{left} or @code{right} symbols.  When
+@var{assoc-type} is @code{default-prec}, @var{assoc-value} must be
+@code{nil} or @code{t} (the default).  Otherwise it is a list of
+tokens which must have been previously declared in @var{terminals}.
 
 For details, see @ref{Contextual Precedence, , , bison}, in the
 Bison manual.
@@ -280,7 +282,61 @@ Is an optional vector of one terminal item.  The rule will be given
 the precedence level of this terminal.  Notice that only terminals
 declared in @var{assocs} have a precedence level.  By default the rule
 precedence is the one of the last terminal in it.
-For details, see @ref{Contextual Precedence, , , bison}, in the
+
+Its effect is to assign the rule the precedence of the given terminal
+item, overriding the precedence that would be deduced for it in the
+ordinary way.  The altered rule precedence then affects how conflicts
+involving that rule are resolved.
+
+Here is how @var{precedence} solves the problem of unary minus.
+First, declare a precedence for a fictitious terminal symbol named
+@code{UMINUS}.  There are no tokens of this type, but the symbol
+serves to stand for its precedence:
+
+@example
+@dots{}
+((default-prec t) ;; This is the default
+ (left '+' '-')
+ (left '*')
+ (left UMINUS))
+@end example
+
+Now the precedence of @code{UMINUS} can be used in specific rules:
+
+@example
+@group
+(exp    @dots{}                  ;; exp:    @dots{}
+         ((exp ?- exp))      ;;         | exp '-' exp
+        @dots{}                  ;;         @dots{}
+         ((?- exp) [UMINUS]) ;;         | '-' exp %prec UMINUS
+        @dots{}                  ;;         @dots{}
+        )                    ;;         ;
+@end group
+@end example
+
+If you forget to append @code{[UMINUS]} to the rule for unary minus,
+Wisent silently assumes that minus has its usual precedence.  This
+kind of problem can be tricky to debug, since one typically discovers
+the mistake only by testing the code.
+
+Using @code{(default-prec nil)} declaration makes it easier to
+discover this kind of problem systematically.  It causes rules that
+lack a @var{precedence} modifier to have no precedence, even if the
+last terminal symbol mentioned in their components has a declared
+precedence.
+
+If @code{(default-prec nil)} is in effect, you must specify
+@var{precedence} for all rules that participate in precedence conflict
+resolution.  Then you will see any shift/reduce conflict until you
+tell Wisent how to resolve it, either by changing your grammar or by
+adding an explicit precedence.  This will probably add declarations to
+the grammar, but it helps to protect against incorrect rule
+precedences.
+
+The effect of @code{(default-prec nil)} can be reversed by giving
+@code{(default-prec t)}, which is the default.
+
+For more details, see @ref{Contextual Precedence, , , bison}, in the
 Bison manual.
 
 It is important to understand that @var{assocs} declarations defines
