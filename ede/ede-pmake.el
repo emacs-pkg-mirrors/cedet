@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.16 1999/09/22 14:08:22 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.17 1999/11/08 18:41:04 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -243,7 +243,7 @@ MFILENAME is the makefile to generate."
 
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-miscelaneous))
   "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_MISC"))))
+  (concat (ede-pmake-varname this) "_MISC"))
 
 ;;; DEPENDENCY FILE GENERATOR LISTS
 ;;
