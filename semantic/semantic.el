@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.120 2001/09/29 23:58:46 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.121 2001/10/03 00:28:21 zappo Exp $
 
-(defvar semantic-version "1.4beta11"
+(defvar semantic-version "1.4beta12"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -238,6 +238,14 @@ subsequent edits will not cause this to run a second time unless that
 token is first cleaned.  Any token marked as dirty will
 also be called with `semantic-clean-token-hooks', unless a full
 reparse is done instead.")
+
+(defvar semantic-pre-clean-token-hooks nil
+  "Hooks run before a token is reparsed.
+The functions must take a TOKEN as a parameter.
+Any token sent to this hook is about to be cleaned, or reparsed.
+The overlay may change, but many features and properties will
+persist unless a full reparse is later required.
+See `semantic-dirty-token-hooks' and `semantic-clean-token-hooks'.")
 
 (defvar semantic-clean-token-hooks nil
   "Hooks run after a token is marked as clean (reparsed after user edits.)
@@ -902,6 +910,9 @@ the current results on a parse error."
 
 (defun semantic-rebovinate-token (token)
   "Use TOKEN for extents, and reparse it, splicing it back into the cache."
+  ;; Pre Hooks
+  (run-hook-with-args 'semantic-pre-clean-token-hooks token)
+
   (let* ((flexbits (semantic-flex (semantic-token-start token)
 				  (semantic-token-end token)))
 	 ;; For embeded tokens (type parts, for example) we need a
@@ -1608,6 +1619,13 @@ Useful for languages where the newline is a special case terminator.
 Only set this on a per mode basis, not globally.")
 (make-variable-buffer-local 'semantic-flex-enable-newlines)
 
+(defvar semantic-number-expression "^[0-9]+\\(e[0-9]+\\)?$"
+  "Regular expression for matching a number.
+If this value is nil, no number extraction is done during lex.
+Symbols which match this expression are returned as `number'
+tokens instead of `symbol' tokens.")
+(make-variable-buffer-local 'semantic-number-expression)
+
 (defun semantic-flex (start end &optional depth length)
   "Using the syntax table, do something roughly equivalent to flex.
 Semantically check between START and END.  Optional argument DEPTH
@@ -1668,7 +1686,11 @@ LENGTH tokens."
 	       (setq ts (cons (cons
 			       ;; Get info on if this is a keyword or not
 			       (or (semantic-flex-keyword-p (match-string 0))
-				   'symbol)
+				   (save-match-data
+				     (if (and semantic-number-expression
+					      (string-match semantic-number-expression (match-string 0)))
+					 'number
+				       'symbol)))
 			       (cons (match-beginning 0) (match-end 0)))
 			      ts)))
 	      ;; Character quoting characters (ie, \n as newline)
