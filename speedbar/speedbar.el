@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7f
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.102 1998/05/15 03:14:00 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.103 1998/05/15 03:16:04 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -1646,7 +1646,7 @@ Assumes that the current buffer is the speedbar buffer"
       (progn
 	(message "Refreshing speedbar...done")
 	(sit-for 0)
-	(message nil)))))
+	(message nil))))
 
 (defun speedbar-item-load ()
   "Load the item under the cursor or mouse if it is a lisp file."
