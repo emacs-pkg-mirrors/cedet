@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.6 2001/02/04 01:39:17 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.7 2001/04/21 02:32:48 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -177,6 +177,7 @@ Optional argument COMMENT is a header line comment."
 
 (defmethod eieio-persistent-path-relative ((this eieio-persistent) file)
   "For object THIS, make absolute file name FILE relative."
+  ;; Woah!  Look at `file-relative-name' as a solution.
   (let* ((src (expand-file-name file))
 	 (dest (file-name-directory (oref this file)))
 	 (cs1  (compare-strings src 0 nil dest 0 nil))
@@ -217,6 +218,7 @@ instance."
 	    (write-file cfn nil))
 	;; Restore :file, and kill the tmp buffer
 	(oset this file cfn)
+	(setq buffer-file-name nil)
 	(kill-buffer b)))))
 
 ;; Notes on the persistent object:
