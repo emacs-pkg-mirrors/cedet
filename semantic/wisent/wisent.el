@@ -11,7 +11,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.1 2001/07/20 11:07:33 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.1.1.1 2001/07/20 11:07:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
