@@ -224,6 +224,7 @@ No longer saves itself to a file.
 
 ** semanticdb-file.el
 New routines for databases saved to disk in plain EIEIO save files.
+Depends on `inversion' for save file compatibility tests.
 
 *** `semanticdb-project-database-file'
 File based project database type.
