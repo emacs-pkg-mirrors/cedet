@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.14 2004/07/15 20:45:43 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.15 2004/10/26 00:49:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -304,7 +304,7 @@ File name excludes any directory part."
         ;; Make the name unique by substituting directory
         ;; separators.  It may not really be worth bothering about
         ;; doubling `!'s in the original name...
-        (setq file (subst-char-in-string
+        (setq file (semantic-subst-char-in-string
                     semanticdb-dir-sep-char ?!
                     (replace-regexp-in-string "!" "!!" file)))
         ;; Now create a filename for the cache file in
