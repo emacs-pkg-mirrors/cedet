@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.22 2003/08/31 02:12:47 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.23 2003/11/20 15:01:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -282,7 +282,8 @@ thingy from it using the `document' tool."
 	   )
 	  ((and (featurep 'semanticdb) (semanticdb-minor-mode-p))
 	   ;; See what texinfo files we have loaded in the database
-	   (let ((tabs (oref semanticdb-current-database tables))
+	   (let ((tabs (semanticdb-get-database-tables
+			semanticdb-current-database))
 		 (r nil))
 	     (while tabs
 	       (if (eq (oref (car tabs) major-mode) 'texinfo-mode)
