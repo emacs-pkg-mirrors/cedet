@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.1 2003/02/04 02:19:56 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.2 2003/02/04 02:29:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -108,14 +108,18 @@ These buffers are brought into view when layout occurs.")
   )
 
 (defclass semantic-debug-frame ()
-  ((rule :initarg :rule
-	 :type string
+  ((nonterm :initarg :nonterm
+	    :type symbol
+	    :documentation
+	    "The name of the semantic nonterminal for this frame.")
+   (rule :initarg :rule
+	 :type number
 	 :documentation
-	 "The name of the semantic rule for this frame.")
+	 "The index into NONTERM's rule list.  0 based.")
    (match :initarg :match
 	  :type number
 	  :documentation
-	  "The index into the current list of matches for `rule'.")
+	  "The index into NONTERM's RULE's match.  0 based..")
    (lextoken :initarg :lextoken
 	     :type list
 	     :documentation
@@ -125,20 +129,28 @@ This is the lexical token being matched by the parser.")
   "One frame representation.")
 
 (defmethod semantic-debug-create-frame ((iface semantic-debug-interface)
-					rule matchindex lextoken)
+					nonterm rule match
+					&optional lextoken)
   "Create one frame.
-RULE is the name of a rule we are currently parsing.
-MATCHINDEX is the index into the list of matches.
+NONTERM is the name of a rule we are currently parsing.
+RULE is the index into the list of rules in NONTERM.
+MATCH is the index into the list of matches in RULE.
 For example:
-  this: that other thing ;
-The rule is THIS.
-The match item THAT is the 1st entry with an index of 0
-The third argument is LEXTOKEN, which is a token returned by the lexer
+  this: that 
+      | other thing
+      | here
+      ;
+The NONTERM is THIS.
+The RULE is for \"thing\" is 1.
+The MATCH for \"thing\" is 1.
+The optional argument LEXTOKEN, is a token returned by the lexer
 which is being matched."
-  ;; Simple, yes. but it may become more complex.
-  (semantic-debug-frame rule :rule rule :match matchindex
-			:lextoken lextoken)
-  )
+  (let ((frame (semantic-debug-frame rule
+				     :nonterm nonterm
+				     :rule rule
+				     :match matchindex)))
+    (when lextoken (oset frame :lextoken lextoken))
+    frame))
 
 (defmethod semantic-debug-frame-highlight ((iface semantic-debug-frame))
   "Highlight one parser frame."
