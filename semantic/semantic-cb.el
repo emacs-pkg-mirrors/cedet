@@ -1,10 +1,10 @@
 ;;; semantic-cb.el --- Manage and maintain a Class Browser database
 
-;;; Copyright (C) 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.16 2005/01/04 00:47:53 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.17 2005/01/20 13:42:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -27,7 +27,7 @@
 ;;
 ;; Files in an OO language don't always properly represent the structure
 ;; of classes available.  This Class Browser analyzer can create
-;; and maintain a database where types and tokens are linked together
+;; and maintain a database where types and tags are linked together
 ;; so that the program structure can be programatically navigated
 ;; or displayed.
 ;;
@@ -53,29 +53,29 @@
 The project will consist of top-level types, classes, namespaces,
 or whatever is used in that language as a representaton.")
 
-(defclass semantic-cb-token (eieio-named eieio-speedbar)
+(defclass semantic-cb-tag (eieio-named eieio-speedbar)
   ((buttontype :initform statictag)
    (buttonface :initform speedbar-tag-face)
-   (token :initarg :token
-	  :type semantic-tag
-	  :documentation
-	  "Semantic token which represents a type.")
+   (tag :initarg :tag
+	:type semantic-tag
+	:documentation
+	"Semantic tag which represents a type.")
    (table :initarg :table
 	  :type semanticdb-abstract-table
 	  :documentation
-	  "This is the database table that `token' was found in.
-Be sure to use this field when loading a token's file into memory.")
+	  "This is the database table that `tag' was found in.
+Be sure to use this field when loading a tag's file into memory.")
    (container :initarg :container
-	      :type (or null semantic-cb-token)
+	      :type (or null semantic-cb-tag)
 	      :documentation
-	      "This is the CB object containing this token.
+	      "This is the CB object containing this tag.
 CB Containers are usually types with attributes of methods.")
    )
-  "A single semantic token.
-Tokens represented in the Class Browser database may not be loaded
+  "A single semantic tag.
+Tags represented in the Class Browser database may not be loaded
 in memory, so this forms the structure needed to access them.")
 
-(defclass semantic-cb-type (semantic-cb-token)
+(defclass semantic-cb-type (semantic-cb-tag)
   ((buttontype :initform expandtag)
    (buttonface :initform speedbar-tag-face)
    (parents :type list
@@ -92,19 +92,19 @@ These are also `semantic-cb-type' objects.")
    (children :type list
 	     :initform nil
 	     :documentation
-	     "List of CB token children, both embedded and external.
+	     "List of CB tag children, both embedded and external.
 Embedded children are defined within the scope of this types declaration.
 External children are defined within some other scope, and are labeled
 as children of this type.
-Children are of type `semantic-cb-token'.")
+Children are of type `semantic-cb-tag'.")
    )
   "One type object for a given project.
 Because some connections are derived, or take a while to find,
 details which are derivable will be cached in the fields
 of a type object.
-In addition, type objects will contain the actual tokens created by
+In addition, type objects will contain the actual tags created by
 semantic, external methods and such will be cached in this object, not
-in the semantic token itself.")
+in the semantic tag itself.")
 
 (defvar semantic-cb-incomplete-types nil
   "During construction, the list of types that need work.
@@ -116,12 +116,12 @@ We need to go back later and fill them in from this list.")
 Types are created without CB objects for parent or interfaces.
 We need to go back later and fill them in from this list.")
 
-(defun semantic-cb-add-incomplete-type (cbtoken)
-  "Add CBTOKEN to the list of incomplete types."
-  (add-to-list (if (oref cbtoken :container)
+(defun semantic-cb-add-incomplete-type (cbtag)
+  "Add CBTAG to the list of incomplete types."
+  (add-to-list (if (oref cbtag :container)
 		   'semantic-cb-incomplete-scoped-types
 		 'semantic-cb-incomplete-types)
-	       cbtoken))
+	       cbtag))
 
 (defvar semantic-cb-current-project nil
   "The current project's class structure.")
@@ -135,7 +135,7 @@ We need to go back later and fill them in from this list.")
   "Create an object representing this project's organization.
 The object returned is of type `semantic-cb-project', which contains
 the slot `:types', a list of all top-level types.  Each element is a
-class of type `semantic-cb-token', or `semantic-cb-type'."
+class of type `semantic-cb-tag', or `semantic-cb-type'."
   (let* ((semanticdb-search-system-databases nil)
 	 (alldbtype (semanticdb-brute-find-tags-by-class
 		    'type
@@ -183,24 +183,24 @@ class of type `semantic-cb-token', or `semantic-cb-type'."
     ;; Return it
     semantic-cb-current-project))
 
-(defun semantic-cb-complete-type (cbtoken possibleparents)
-  "Complete CBTOKEN, an object which needs to be completed.
+(defun semantic-cb-complete-type (cbtag possibleparents)
+  "Complete CBTAG, an object which needs to be completed.
 POSSIBLEPARENTS is the list of types which are eligible
-to be parents of CBTOKEN."
-  (let* ((parents (semantic-tag-type-superclasses (oref cbtoken token)))
-	 (interface (semantic-tag-type-interfaces (oref cbtoken token)))
+to be parents of CBTAG."
+  (let* ((parents (semantic-tag-type-superclasses (oref cbtag tag)))
+	 (interface (semantic-tag-type-interfaces (oref cbtag tag)))
 	 )
     (if (or (not (listp parents))
 	    (semantic-tag-p parents))
 	(setq parents (list parents)))
     (while parents
-      (semantic-cb-find-parent cbtoken (car parents) possibleparents)
+      (semantic-cb-find-parent cbtag (car parents) possibleparents)
       (setq parents (cdr parents)))
     (if (or (not (listp interface))
 	    (semantic-tag-p interface))
 	(setq interface (list interface)))
     (while interface
-      (semantic-cb-find-parent cbtoken (car interface) possibleparents)
+      (semantic-cb-find-parent cbtag (car interface) possibleparents)
       (setq interface (cdr interface)))
     ))
 
@@ -225,25 +225,25 @@ If a valid CB object is found, link CBT to the found object."
       (object-add-to-list po 'subclasses cbt t)
       )))
 
-(defun semantic-cb-convert-type (token db parentobj)
-  "Convert the semantic TOKEN to a type object.
-DB is the semantic database that TOKEN is derived from.
-PARENTOBJ is the CB object which is the parent of TOKEN"
+(defun semantic-cb-convert-type (tag db parentobj)
+  "Convert the semantic TAG to a type object.
+DB is the semantic database that TAG is derived from.
+PARENTOBJ is the CB object which is the parent of TAG"
   (let* ((chil (cons
 		;; This makes a mock DB list
-		(cons db (semantic-tag-type-members token))
+		(cons db (semantic-tag-type-members tag))
 		;; External children in DB form.
 		(semantic-tag-external-member-children
-		 token t)))
+		 tag t)))
 	 ;; This is a created CB object which will represent
 	 ;; this type.
 	 (tobj (semantic-cb-type
-		(semantic-tag-name token) ; name
-		 :token token		; The token
+		(semantic-tag-name tag) ; name
+		 :tag tag		; The tag
 		 :table db		; database table we came from
 		 :container parentobj	; parent container
 		 )))
-    ;; We now have a token in TOBJ.  Conver the child list
+    ;; We now have a tag in TOBJ.  Conver the child list
     ;; we just got into a form suitable for a tobj child list.
     (setq chil (semantic-cb-convert-children chil tobj))
     (oset tobj children chil)
@@ -256,7 +256,7 @@ PARENTOBJ is the CB object which is the parent of TOKEN"
   "Convert CHILDLIST from semantic format to cb objects.
 CHILDLIST is in semanticdb search format, such that each
 element of the list starts with a database table object.
-PARENTOBJ is the CB token which hosts CHILDLIST."
+PARENTOBJ is the CB tag which hosts CHILDLIST."
   (let ((newlist nil))
     (while childlist
       (let ((sublist (cdr (car childlist)))
@@ -269,12 +269,12 @@ PARENTOBJ is the CB token which hosts CHILDLIST."
 			   'type)
 		       (semantic-cb-convert-type (car sublist) db parentobj))
 		      (t
-		       (semantic-cb-token
+		       (semantic-cb-tag
 			(semantic-tag-name (car sublist))
-			:token (car sublist)
+			:tag (car sublist)
 			:table db
 			:container parentobj)))))
-		;; We have a new object representing the token.
+		;; We have a new object representing the tag.
 		;; add it to the new list.
 		(setq newlist (cons newtok newlist))))
 	  (setq sublist (cdr sublist))))
@@ -283,11 +283,11 @@ PARENTOBJ is the CB token which hosts CHILDLIST."
 
 ;;; Methods
 ;;
-(defmethod initialize-instance :AFTER ((this semantic-cb-token) &rest fields)
+(defmethod initialize-instance :AFTER ((this semantic-cb-tag) &rest fields)
   "After initializing THIS, keep overlay properties up to date."
-  (let* ((tok (oref this token))
+  (let* ((tok (oref this tag))
 	 (ol (semantic-tag-overlay tok)))
-    ;; Ignore tokens that are in the database.
+    ;; Ignore tags that are in the database.
     (when (semantic-overlay-p ol)
       ;; Apply our object onto this overlay for fast
       ;; reference.
@@ -365,12 +365,12 @@ digraph uml_" diagramname " {\n")
       (insert "\tgraph [ fontname = \"Helvetica\",
 	fontsize = 24,
 	label = \""
-	      (semantic-dot-token-name node)
+	      (semantic-dot-tag-name node)
 	      " and decedents\",
 	];\n")
 
       ;; All the nodes
-      (semantic-dot-insert-token node)
+      (semantic-dot-insert-tag node)
 
       ;; Finish
       (insert "}")
@@ -386,29 +386,29 @@ digraph uml_" diagramname " {\n")
 
     ))
 
-(defmethod semantic-dot-token-name ((this semantic-cb-token))
-  "Return DOT code for THIS token's name."
+(defmethod semantic-dot-tag-name ((this semantic-cb-tag))
+  "Return DOT code for THIS tag's name."
   (let ((n (oref this object-name)))
     (while (string-match "-" n)
       (setq n (replace-match "_" t t n)))
     n))
 
-(defmethod semantic-dot-insert-token ((this semantic-cb-token))
-  "Insert DOT code for THIS token."
+(defmethod semantic-dot-insert-tag ((this semantic-cb-tag))
+  "Insert DOT code for THIS tag."
   (let ((children (oref this subclasses)))
     ;; Insert a way to draw this object.
     (insert "\t"
-	    (semantic-dot-token-name this)
+	    (semantic-dot-tag-name this)
 	    " [shape=record,label=\"{"
-	    (semantic-dot-token-name this)
+	    (semantic-dot-tag-name this)
 	    "||}\",fontsize=12];\n")
     ;; Insert all the links for this child.
     (while children
-      (insert "\t" (semantic-dot-token-name this)
-	      "-> " (semantic-dot-token-name (car children))
+      (insert "\t" (semantic-dot-tag-name this)
+	      "-> " (semantic-dot-tag-name (car children))
 	      "[ arrowhead=none arrowtail=empty ]"
 	      "\n")
-      (semantic-dot-insert-token (car children))
+      (semantic-dot-insert-tag (car children))
       (setq children (cdr children)))
     ))
 
@@ -419,20 +419,20 @@ digraph uml_" diagramname " {\n")
   "Return children for OBJECT."
   (oref object subclasses))
 
-;(defmethod eieio-speedbar-object-children ((object semantic-cb-token))
+;(defmethod eieio-speedbar-object-children ((object semantic-cb-tag))
 ;  "Return children of this type."
 ;  (oref object children))
 
-(defmethod eieio-speedbar-description ((object semantic-cb-token))
+(defmethod eieio-speedbar-description ((object semantic-cb-tag))
   "Descriptive text for OBJECT."
-  (semantic-format-tag-summarize (oref object token)))
+  (semantic-format-tag-summarize (oref object tag)))
 
-(defmethod eieio-speedbar-derive-line-path ((object semantic-cb-token))
+(defmethod eieio-speedbar-derive-line-path ((object semantic-cb-tag))
   "Get the path to OBJECT's instantiation."
   (oref (oref object table) file))
 
-(defmethod eieio-speedbar-handle-click ((object semantic-cb-token))
-  "When clicking on a token OBJECT, jump to its definition."
+(defmethod eieio-speedbar-handle-click ((object semantic-cb-tag))
+  "When clicking on a tag OBJECT, jump to its definition."
   (let ((tag (oref object tag)))
     (speedbar-find-file-in-frame
      (semanticdb-full-filename (oref object table)))
@@ -445,8 +445,7 @@ digraph uml_" diagramname " {\n")
 
 ;;; Speedbar initialization
 ;;
-(defvar semantic-cb-speedbar-key-map
-  eieio-speedbar-key-map
+(defvar semantic-cb-speedbar-key-map (eieio-speedbar-make-map)
   "Extra keybindings used when speedbar displays our class tree.")
 
 (defun semantic-cb-make-map ()
