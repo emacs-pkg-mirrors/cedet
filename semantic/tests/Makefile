@@ -19,6 +19,7 @@ all:
 
 tags: 
 
+.PHONY: dist
 
 dist:
 	mkdir $(DISTDIR)

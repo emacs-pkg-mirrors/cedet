@@ -68,6 +68,7 @@ tags:
 clean:
 	rm -f *.elc
 
+.PHONY: dist
 
 dist: $(taggers_SAMENATIC_GRAMMAR_EL)
 	mkdir $(DISTDIR)

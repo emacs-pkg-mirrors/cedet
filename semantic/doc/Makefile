@@ -27,6 +27,7 @@ tags:
 clean:
 	rm -f *.html *.info
 
+.PHONY: dist
 
 dist: semantic.info
 	mkdir $(DISTDIR)
