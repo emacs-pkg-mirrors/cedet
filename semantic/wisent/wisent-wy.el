@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.11 2002/07/17 10:00:53 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.12 2002/07/30 19:59:05 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -130,7 +130,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-16 22:18+0200
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-30 20:32+0200
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -414,8 +414,8 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-16 22:18+0200
-   (semantic-flex-make-keyword-table
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-30 20:32+0200
+   (semantic-lex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
       ("prec" . PREC)
@@ -435,7 +435,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-16 22:18+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-30 20:32+0200
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -465,7 +465,7 @@ It ignores whitespaces, newlines and comments."
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-16 22:18+0200
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-30 20:32+0200
   (progn
     (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
           semantic-bovinate-parser-name "LALR"
@@ -501,16 +501,18 @@ It ignores whitespaces, newlines and comments."
        (nonterminal  . font-lock-function-name-face)
        (rule         . default)
        )
-     )
-    (semantic-install-function-overrides
-     '(
-       ;;(abbreviate-nonterminal    . wisent-wy-abbreviate-nonterminal)
-       ;;(summarize-nonterminal     . wisent-wy-summarize-nonterminal)
-       ;;(eldoc-current-symbol-info . wisent-wy-ecsi)
-       (nonterminal-children      . wisent-wy-nonterminal-children)
-       )
-     t))
+     ))
   )
+
+;; semantic overloaded functions
+(semantic-install-function-overrides
+ '(
+   ;;(abbreviate-nonterminal    . wisent-wy-abbreviate-nonterminal)
+   ;;(summarize-nonterminal     . wisent-wy-summarize-nonterminal)
+   ;;(eldoc-current-symbol-info . wisent-wy-ecsi)
+   (nonterminal-children      . wisent-wy-nonterminal-children)
+   )
+ t 'wisent-wy-mode)
 
 ;;;; 
 ;;;; Semantic action expansion
@@ -1193,9 +1195,6 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
   ;; Set up Semantic environment
   (wisent-wy-setup-semantic)
   (run-hooks 'wy-mode-hook))
-
-(add-to-list 'auto-mode-alist '("\\.wy$" . wisent-wy-mode))
-(eval-after-load "speedbar" '(speedbar-add-supported-extension ".wy"))
 
 ;;;;
 ;;;; Useful commands
