@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.1 1996/02/25 19:47:41 zappo Exp $
+@c $Id: eieio.texi,v 1.2 1996/03/10 15:17:25 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -36,17 +36,20 @@ however, due to popular demand, it is beginning to conform to several
 aspects of CLOS.
 
 @menu
-* Introduction::         Why use eieio?  Basic overview.
-* CLOS compatibility::   What are the differences?
-* Building Classes::     How to write out new class structures.
-* Default Superclass::   The grand-daddy of all superclasses.
-* Making New Objects::   How to construct new objects.
-* Accessing Fields::     How to access a field, or call a method.
-* Writing Methods::      How to write a method.
-* Predicates::           Class-p, Object-p, etc-p.
-* Browsing::             Browsing your class lists.
+* Introduction::          Why use eieio?  Basic overview.
+* CLOS compatibility::    What are the differences?
+* Building Classes::      How to write out new class structures.
+* Default Superclass::    The grand-daddy of all superclasses.
+* Making New Objects::    How to construct new objects.
+* Accessing Fields::      How to access a field, or call a method.
+* Writing Methods::       How to write a CLOS style method.
+* Writing Class Methods:: How to write an embedded class method.
+* Predicates::            Class-p, Object-p, etc-p.
+* Browsing::              Browsing your class lists.
 @end menu
 
+As of this writing, updates can be found at:
+  ftp://ftp.ultranet.com/pub/zappo
 
 @node Introduction, CLOS compatibility, Top, Top
 @comment  node-name,  next,  previous,  up
@@ -73,6 +76,9 @@ A structured framework for creation of basic classes with public and
 private attributes and methods with singular inheritance similar to CLOS
 but only representing a small subset.
 @item
+Method definitions similar to CLOS, in addition to class embeded method
+which does not appear of CLOS.
+@item
 Simple class browser.
 @item
 Edebug support.
@@ -84,17 +90,6 @@ Edebug support.
 @item Multiple inheritance
 We could say EIEIO is still in the Fungus stages of development as a
 class can have but one parent.
-@item Friend attributes
-But this is cheating anyway.. Right?
-@item Polymorphism
-Only one version of a method is allowed per class.  If you use the
-@code{&rest} qualifier, and (cond ((... )) ) your actions, however, you
-can get the right effect.  It may be implemented in the future if I hear
-a lot about it.  (However, subclasses can have overriding definitions of
-a method)  The concept in CLOS of a generic-function is not used at all.
-@item Private vs Protected
-C++ users will find that the Private fields behave like Protected
-fields.  Hmm!  Any object gurus, please send me opinions.
 @end table
 
 @section EIEIO wish list
@@ -104,37 +99,27 @@ fields.  Hmm!  Any object gurus, please send me opinions.
 More CLOS compatibility.
 @item
 Field and method references are currently looked up at runtime.  This
-can be slow with big classes.  I'd like to update the reference macro's
-to do the indexed lookup at compile time, and assignment/reference only
-at runtime.  I may need the help of someone who knows macros better than
-I.
+can be slow with big classes.  A way to speed this up would be very
+handy.
 @item
-Byte compile methods for defclass and defclassmethod.  The regular byte
-compiler occasionally gets upset with eieio using functions.
-@item
-Get edebug to correctly debug a defclassmethod.  Currently debugging works,
-but you have to step through the creation of the method definition
-first.
+Get edebug to correctly debug a defclassmethod and defmethod.  Currently
+debugging works, but you have to step through the creation of the method
+definition first.
 @item
 More built-in methods similar to 'constructor and 'destructor, like
 'print-construct, 'print, 'save, and 'load with defaults performing
 basic structural storage, which can be over-loaded to read/write
 anything in any format.  I have not done this because the more methods
-added, the slower things get at run time. (See 1)
+added, the slower things get at run time. (See 2)
 @item
 Integrate in the desired built-in methods into the object browser.
 @item
-Have parts of eieio built into the emacs binary so @code{(format "%S"
-myobj)} uses a 'print-construct method, so @code{(format "%s" myobj)}
-would output the value of @code{'class-name} and cool integrated stuff
-like that.
+Have parts of eieio set up so @code{(format "%S" myobj)} uses a
+'print-construct method, so @code{(format "%s" myobj)} would output the
+value of @code{'class-name} and cool integrated stuff like that.
 @item
 Create some objects over pre-existing emacs-lisp stuff for fun, like
 faces, processes, buffers, frames and windows as examples.
-@item
-Create simple widget-like system based in emacs text to aid in
-development of better configuration tools based on a fresco-like model.
-(1/2 implemented)
 @end enumerate
 
 @node CLOS compatibility, Building Classes, Introduction, Top
@@ -158,6 +143,13 @@ Make instance works as expected, however it just uses the EIEIO instance
 creator automatically created when a new class is generated.
 @xref{Making New objects}
 @item slot-value
+@item defgeneric
+Creates the desired symbol, and accepts most of the expected arguments
+@item defmethod
+Calls defgeneric, and accepts most of the expected arguments.  Only the
+first argument to the created method may be typecast, though any
+argument can be syntactically typecast.  (And promptly ignored)  To
+typecast against a class, the class must exist before defmethod is called.
 @end table
 
 Some top-level CLOS functions which are not yet defined in EIEIO which
@@ -165,13 +157,7 @@ are defined in CLOS.
 
 @table @asis
 @item describe
-@item defgeneric
-Since EIEIO methods are embedded in the class itself, there is no need
-for a generic function until CLOS methods are implemented.
-@item defmethod
-The defclassmethod in eieio defines methods which must be specified in the
-class definition.  In CLOS defmethod multiplexes one function across
-multiple perameter combinations.
+Pretty print an object.
 @item call-next-method
 Similar to @code{ocall-parent}
 @end table
@@ -179,7 +165,8 @@ Similar to @code{ocall-parent}
 When creating a new class @xref{Building Classes} there are several
 keywords supported by EIEIO.
 
-CLOS keywords supported by EIEIO.  In EIEIO tags are in lower case.
+CLOS keywords supported by EIEIO's defclass.  In EIEIO tags are in lower
+case, not mixed case.
 @table @asis
 @item :initform
 The initial value of an attribute
@@ -187,7 +174,7 @@ The initial value of an attribute
 A tag used in @code{make-instance} to assign a value to a field.
 @end table
 
-EIEIO keywords not in CLOS
+EIEIO defclass keywords not in CLOS
 @table @asis
 @item :protection
 Can be @code{private} or something else.  If it is set to private, then
@@ -204,11 +191,7 @@ private.  Any @code{defclassmethod} of a method defined such will NOT HAVE A
 GENERIC FUNCTION ASSOCIATED WITH IT, and will be referenced via ocall only.
 @end table
 
-Any tags not understood are summarily ignored.
-
-The functions @code{defgeneric} and @code{defmethod} for CLOS have not
-been defined.  Methods are defined in EIEIO with @code{defclassmethod},
-which takes different arguments, and allows embeded methods.
+Any tags not understood are summarily ignored (in addition to it's parameter)
 
 @node Building Classes, Default Superclass, CLOS compatibility, Top
 @comment  node-name,  next,  previous,  up
@@ -295,9 +278,10 @@ method assigns elements from this list into the fields of the current
 object (Even though they are not defined by the default class. Cool
 huh?)  If you want something to happen every time an object of your
 class is created, set this method to something, and make the very first
-line be: @code{(ocall-parent)}.  Thus you can get it's functionality,
-plus be able to add your own.  Make sure your method takes a @var{field}
-parameter. @xref{CLOS compatibility} for info about @code{call-next-method}
+line be: @code{(ocall-parent [params])}.  Thus you can get it's
+functionality, plus be able to add your own.  Make sure your method
+takes a @var{field} parameter. @xref{CLOS compatibility} for info about
+@code{call-next-method}
 
 Currently @code{destructor} does nothing, and is never called.  I haven't
 quite figured out what to do with it yet.
@@ -395,12 +379,89 @@ of the same name under the parent class.
 
 @end defun
 
-@node Writing Methods, Predicates, Accessing Fields, Top
+@node Writing Methods, Writing Class Methods, Accessing Fields, Top
 @comment  node-name,  next,  previous,  up
 @chapter Writing Methods
 
-Writing a method is just like writing a function, except you use
-@code{defclassmethod} instead.
+Writing a CLOS style method is similar to writing a function, except
+some extra options are made available, and there can be multiple
+implementations of a single method which interact interestingly with
+each other.
+
+Each method created verifies that there is a @dfn{generic method}
+available to attach to.  A generic method has no body, and is mearly a
+symbol upon which methods are attached.
+
+@defun defgeneric method arglist [doc-string]
+
+@var{method} is the symbol to turn into a function.
+@var{arglist} is the default list of arguments to use (not implemented yet)
+@var{doc-string} is the documentation used for this symbol
+
+A generic function acts as a place holder for methods.  There is no need
+to call defgeneric yourself, as defmethod will call it if necessary.
+Current the argument list is unused.
+
+The function part of a created generic function creates a couple local
+variables and then calls @code{eieio-generic-call}.  This is the engine
+that makes sure that different method implementations are called in the
+correct order.
+
+@code{defgeneric} will prevent you from turning an existing emacs lisp
+function into a generic function.
+@end defun
+
+@defun defmethod method [:BEFORE | :AFTER] arglist [doc-string] forms
+
+@var{method} is the name of the function to be created.
+
+@var{:BEFORE | :AFTER} represent when this form is to be called.  
+If neither of these symbols are present, then the default priority is
+before :AFTER and after :BEFORE.
+
+@code{arglist} is the argument list.  Unlike CLOS, only the FIRST
+argument may be type-cast, and it may only be type-cast to an eieio
+object.  An arglist such as @code{(a b)} would classify the function as
+generic call, which has no object it can talk to (none is passed in) and
+mearly allows the creation of side-effects.  If the arglist appears as
+@code{((mt MyType) b)} then the form is stored as belonging to the class
+@code{MyType}.  If two @code{defmethods} appear with arglists such as
+@code{(a b)} and @code{(c d)} then one of the implementations will be
+overwritten, but generic and multiple type cast arglists can co-exist.
+
+When called, if there is a method cast against the objects parent class,
+but not for that objects class, the parents method will be called,
+however, if there is a method defined for both, only the child's method
+is called.
+
+@var{doc-string} is the doc string attached to the implementation.  It
+currently does not appear under an apropos.
+
+@var{forms} is the body of the function.
+
+@end defun
+
+In this implementation, not all features of CLOS exist.
+
+@enumerate
+@item
+There is currently not :AROUND tag.
+@item
+CLOS allows multiple sets of type-cast arguments, where eieio only
+allows the first argument to be cast.
+@item
+If a method is defined for a parent class and it's child, and it is
+called upon a child object, only the child's method is called.
+@end enumerate
+
+@node Writing Class Methods, Predicates, Writing Methods, Top
+@comment  node-name,  next,  previous,  up
+@chapter Writing Class Methods
+
+Writing a class method is just like writing a function, except you use
+@code{defclassmethod} instead.  Unlike CLOS methods, the local variable
+@code{this} is defined since the object to act upon is not passed in as
+a parameter.
 
 @defun defclassmethod method class arglist [doc-string] forms
 
@@ -513,6 +574,11 @@ is different from @code{same-class-p} because it checks for inheritance.
 
 @defun child-of-class-p child class
 Returns @code{t} if @var{child} is a subclass of @var{class}.
+@end defun
+
+@defun generic-p method-symbol
+Returns @code{t} if @code{method-symbol} is a generic function, as
+opposed to a regular emacs list function.
 @end defun
 
 It is also important to note, that for every created class, a predicate
