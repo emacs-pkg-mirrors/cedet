@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.3 1999/11/10 14:18:38 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.4 1999/11/19 19:41:14 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -42,6 +42,12 @@ All other sources should be included independently."))
 (defmethod ede-want-file-p ((obj ede-proj-target-makefile-info) file)
   "Return t if OBJ wants to own FILE."
   (string-match "\\.texi?$" file))
+
+;;; Makefile generation
+;;
+(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-info))
+  "Return the variable name for THIS's sources."
+  (concat (ede-pmake-varname this) "_INFOS"))
 
 (defmethod ede-proj-makefile-garbage-patterns
   ((this ede-proj-target-makefile-info))
