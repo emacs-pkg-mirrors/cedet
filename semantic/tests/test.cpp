@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.6 2001/10/04 15:08:53 zappo Exp $
+ * $Id: test.cpp,v 1.7 2001/10/28 01:04:09 zappo Exp $
  *
  */
 
@@ -86,7 +86,12 @@ public:
 
 };
 
-int class3::method1_for_class3( int a, int b)
+class3::class3()
+{
+  /* Constructor outside the definition. */
+}
+
+int class3::method1_for_class3( int a, int &b)
 {
   return 1;
 }
@@ -98,6 +103,7 @@ char class3::method2_for_class3( int a, int b) throw ( exception1 )
 
 void *class3::method3_for_class3( int a, int b) throw ( exception1, exception2 )
 {
+  int q = a;
   return "Moose";
 }
 
@@ -115,6 +121,10 @@ class class4 : class1 {
   // Pure virtual methods.
   void virtual print () const = 0;
 
+};
+
+class class5 : public virtual class4 {
+  // Virtual inheritance
 };
 
 /* Namespaces */
