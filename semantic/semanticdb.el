@@ -1,10 +1,10 @@
-;;; semanticdb.el --- Semantic token database manager
+;;; semanticdb.el --- Semantic tag database manager
 
 ;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.59 2003/06/08 23:35:54 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.60 2003/07/25 17:33:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -182,7 +182,7 @@ If OBJ's file is not loaded, read it in first."
   (set-buffer (find-file-noselect (semanticdb-full-filename obj))))
 
 (defmethod semanticdb-refresh-table ((obj semanticdb-table))
-  "If the token list associated with OBJ is loaded, refresh it.
+  "If the tag list associated with OBJ is loaded, refresh it.
 This will call `semantic-bovinate-toplevel' if that file is in memory."
   (let ((ff (semanticdb-full-filename obj)))
     (if (get-file-buffer ff)
@@ -191,7 +191,7 @@ This will call `semantic-bovinate-toplevel' if that file is in memory."
 	  (semantic-bovinate-toplevel t)))))
 
 (defmethod semanticdb-needs-refresh-p ((obj semanticdb-table))
-  "Return non-nil of OBJ's token list is out of date.
+  "Return non-nil of OBJ's tag list is out of date.
 The file associated with OBJ does not need to be in a buffer."
   (let ((buff (get-file-buffer (semanticdb-full-filename obj)))
 	)
@@ -223,18 +223,18 @@ form."
   nil)
 
 (defun semanticdb-save-current-db ()
-  "Save the current token database."
+  "Save the current tag database."
   (interactive)
-  (message "Saving current token summaries...")
+  (message "Saving current tag summaries...")
   (semanticdb-save-db semanticdb-current-database)
-  (message "Saving current token summaries...done"))
+  (message "Saving current tag summaries...done"))
 
 (defun semanticdb-save-all-db ()
-  "Save all semantic token databases."
+  "Save all semantic tag databases."
   (interactive)
-  (message "Saving token summaries...")
+  (message "Saving tag summaries...")
   (mapcar 'semanticdb-save-db semanticdb-database-list)
-  (message "Saving token summaries...done"))
+  (message "Saving tag summaries...done"))
 
 ;;; Directory Project support
 ;;
@@ -244,7 +244,7 @@ This list is used when `semanticdb-persistent-path' contains the value
 'project.  If the predicate list is nil, then presume all paths are valid.
 
 Project Management software (such as EDE and JDE) should add their own
-predicates with `add-hook' to this variable, and semanticdb will save token
+predicates with `add-hook' to this variable, and semanticdb will save tag
 caches in directories controlled by them.")
 
 (defmethod semanticdb-write-directory-p ((obj semanticdb-project-database))
@@ -443,7 +443,7 @@ handle it later if need be."
 	  ;; If this messes up, just clear the system
 	  (error
 	   (semantic-clear-toplevel-cache)
-	   (message "semanticdb: Failed to deoverlay token cache."))))
+	   (message "semanticdb: Failed to deoverlay tag cache."))))
     ))
 
 (defun semanticdb-kill-emacs-hook ()
@@ -509,7 +509,7 @@ Update the environment of Semantic enabled buffers accordingly."
   "Validate that CACHE tags do not have any overlays in them."
   (while cache
     (when (semantic-overlay-p (semantic-tag-overlay cache))
-      (message "Token %s has an erroneous overlay!"
+      (message "Tag %s has an erroneous overlay!"
 	       (semantic-format-tag-summarize (car cache))))
     (semanticdb-table-oob-sanity-check
      (semantic-tag-components-with-overlays (car cache)))
