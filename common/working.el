@@ -207,17 +207,19 @@ percentage display.  A number such as `2' means `2%'."
 ;;
 (eval-when-compile
   (cond
-   ((boundp 'noninteractive)
-    ;; Silence the Emacs byte compiler
-    (defun noninteractive nil)
-    (defsubst working-noninteractive ()
-      "Return non-nil if running without interactive terminal."
-      noninteractive))
    ((fboundp 'noninteractive)
     ;; Silence the XEmacs byte compiler
-    (defvar noninteractive)
-    (defalias 'working-noninteractive 'noninteractive))
+    (defvar noninteractive))
+   ((boundp 'noninteractive)
+    ;; Silence the Emacs byte compiler
+    (defun noninteractive nil))
    ))
+
+(defsubst working-noninteractive ()
+  "Return non-nil if running without interactive terminal."
+  (if (boundp 'noninteractive)
+      noninteractive
+    (noninteractive)))
 
 (defun working-message-echo (&rest args)
   "Print but don't log a one-line message at the bottom of the screen.
