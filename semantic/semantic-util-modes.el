@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.42 2004/02/12 02:06:09 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.43 2004/03/10 19:31:03 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1004,7 +1004,7 @@ minor mode is enabled."
       (eq c 'type)
       ;; Functions which aren't prototypes get a line.
       (and (eq (semantic-tag-class tag) 'function)
-	   (not (semantic-tag-get-attribute tag 'prototype)))
+	   (not (semantic-tag-get-attribute tag :prototype-flag)))
       )
      ;; Nothing smaller than a few lines
      (> (- (semantic-tag-end tag) (semantic-tag-start tag)) 150)
