@@ -3,8 +3,8 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.2
-;;; RCS: $Id: tree.el,v 1.4 1996/03/28 03:51:52 zappo Exp $
+;;; Version: 0.3
+;;; RCS: $Id: tree.el,v 1.5 1996/04/10 22:49:15 zappo Exp $
 ;;; Keywords: OO, tree                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -100,6 +100,15 @@
   "The root node of a tree in a given tree buffer")
 (make-variable-buffer-local 'tree-root-node)
 
+(defvar tree-buffer-mode 'tree-center-box-1
+  "Current mode of this tree buffer.  Valid values are:
+'tree-center-box-1 - nodes are boxed w/ 1 line of text in center of region
+                     this is default if this value is unknown
+'tree-top-box-1    - nodes are boxed w/ 1 line of text @ top of region
+'tree-bottom-box-1 - nodes are boxed w/ 1 line of text @ bottom of region
+")
+(make-variable-buffer-local 'tree-buffer-mode)
+
 (defvar tree-face 'bold
   "Face used inside tree-boxes")
 
@@ -165,12 +174,36 @@ current buffer"
   )
 
 (defun tree-draw-node (node first last width toprow leftmargin)
+  "Draw the single NODE and it's children at a correct estimated position.
+Really calls a function based upon `tree-buffer-mode'."
+  (funcall tree-buffer-mode node first last width toprow leftmargin))
+
+(defun tree-center-box-1 (node first last width toprow leftmargin)
+  "As `tree-draw-node' except that we draw 1-line text w/ a box around it
+and in a the node centered in the allocated space"
+  (tree-box-1 node first last width toprow leftmargin 'center))
+
+(defun tree-top-box-1 (node first last width toprow leftmargin)
+  "As `tree-draw-node' except that we draw 1-line text w/ a box around it
+and in a the node centered in the allocated space"
+  (tree-box-1 node first last width toprow leftmargin 'top))
+
+(defun tree-bottom-box-1 (node first last width toprow leftmargin)
+  "As `tree-draw-node' except that we draw 1-line text w/ a box around it
+and in a the node centered in the allocated space"
+  (tree-box-1 node first last width toprow leftmargin 'bottom))
+
+(defun tree-box-1 (node first last width toprow leftmargin &optional pos)
   "Draw a single NODE and it's children at a correct estimated
 position.  WIDTH specifies how much space this row will take. TOPROW
 specifies what row this node starts at, and LEFTMARGIN specifies how
 far out on the left this node can draw itself."
   (let* ((h (oref node height))
-	 (cent (- (/ h 2) 1))
+	 (tpos 
+	  (cond ((eq pos 'center) (- (/ h 2) 1))
+		((eq pos 'top) 0)
+		((eq pos 'bottom) (- h 3))
+		(t (error "Illegal call to tree-box-1"))))
 	 (kids (oref node children))
 	 (p (oref node parent))
 	 (l 0)
@@ -178,12 +211,12 @@ far out on the left this node can draw itself."
 	 (ex (oref node expand)))
     ;;(message "Refreshing tree...[%s]" nm)
     ;; draw the box
-    (tree-goto-xy leftmargin (+ cent toprow))
+    (tree-goto-xy leftmargin (+ tpos toprow))
     (insert (if p " " "") tree-ul-char)
     (insert (make-string (- (tree-node-width node) 2)
 			 (aref tree-horizontal-char 0)))
     (insert tree-ur-char)
-    (tree-goto-xy leftmargin (+ cent toprow 1))
+    (tree-goto-xy leftmargin (+ tpos toprow 1))
     (insert (if p "-" "") tree-vertical-char)
     (let ((p1 (point)))
       (insert nm)
@@ -200,7 +233,7 @@ far out on the left this node can draw itself."
 	  (while (< l nd)
 	    (insert "-")
 	    (setq l (1+ l)))))
-    (tree-goto-xy leftmargin (+ cent toprow 2))
+    (tree-goto-xy leftmargin (+ tpos toprow 2))
     (insert (if p " " "") tree-ll-char)
     (insert (make-string (- (tree-node-width node) 2)
 			 (aref tree-horizontal-char 0)))
@@ -225,7 +258,7 @@ far out on the left this node can draw itself."
 	    (delete-char 1)
 	    (setq i (1+ i))
 	    )))
-    (tree-goto-xy (+ leftmargin 2) (+ cent toprow 1))
+    (tree-goto-xy (+ leftmargin 2) (+ tpos toprow 1))
     (oset node currentpos (point))
   ))
 
@@ -525,11 +558,12 @@ widget field"
   "Create a new directory tree node"
   (dirtree-node name :name name :path path))
 
-(defun directory-tree-thing ()
+(defun directory-tree-thing (ppath)
   "Start at the current directory, and build a giant tree of files"
-  (interactive)
-  (let ((toppath (substring default-directory 0 
-			    (1- (length default-directory)))))
+  (interactive "fDirectory to graph: ")
+  (let ((toppath (if (string-match "/$" ppath)
+		     (substring ppath 0 (1- (length ppath)))
+		   ppath)))
     (switch-to-buffer 
      (tree-new-buffer (format "TREE: %s" (file-name-nondirectory toppath))))
     (erase-buffer)
@@ -539,6 +573,7 @@ widget field"
 				)))
 	  (path-path (file-name-directory toppath)))
       (directory-tree-more-nodes node 2))
+    (setq tree-buffer-mode 'tree-top-box-1)
     (message "Refreshing tree...")
     (tree-refresh-tree)
     ))
