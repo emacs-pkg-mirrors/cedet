@@ -1,10 +1,10 @@
 ;;; semantic-cb.el --- Manage and maintain a Class Browser database
 
-;;; Copyright (C) 2002 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.6 2002/12/20 02:06:41 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.7 2003/03/16 01:14:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -212,7 +212,10 @@ If a valid CB object is found, link CBT to the found object."
 		      parentobj)
 		     ((semantic-token-p parentobj)
 		      (semantic-token-name parentobj))
-		     (t (error "Unknown parent object type"))))
+		     (t
+		      ;;(error "Unknown parent object type")
+		      ;; Concoct a reasonable default
+		      "Cannot Find Parent")))
 	 (po (object-assoc pstr :object-name possibleparents))
 	 )
     (when po
@@ -230,7 +233,7 @@ PARENTOBJ is the CB object which is the parent of TOKEN"
 		;; This makes a mock DB list
 		(cons db (semantic-token-type-parts token))
 		;; External children in DB form.
-		(semantic-nonterminal-external-member-children-db
+		(semantic-nonterminal-external-member-children
 		 token t)))
 	 ;; This is a created CB object which will represent
 	 ;; this type.
