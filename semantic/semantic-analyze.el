@@ -1,10 +1,10 @@
 ;;; semantic-analyze.el --- Analyze semantic tags against local context
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.40 2004/04/29 10:12:54 ponced Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.41 2005/04/01 02:48:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -761,6 +761,33 @@ Optional argument DESIRED-TYPE may be a non-type tag to analyze."
   ((context semantic-analyze-context-assignment))
   "Return a type constraint for completing :prefix in CONTEXT."
   (call-next-method context (car (reverse (oref context assignee)))))
+
+(defmethod semantic-analyze-interesting-tag
+  ((context semantic-analyze-context))
+  "Return a tag from CONTEXT that would be most interesting to a user."
+  (let ((prefix (oref context :prefix)))
+    (cond ((semantic-tag-p (car prefix))
+	   ;; If the prefix is a tag, that is interesting.
+	   (car prefix))
+	  ((and (stringp (car prefix))
+		(semantic-tag-p (car (cdr prefix))))
+	   ;; Well, if it is a string, the predecessor might be
+	   ;; interesting.
+	   (car (cdr prefix)))
+	  (t 
+	   ;; Nope, nothing good.
+	   nil))
+    ))
+
+(defmethod semantic-analyze-interesting-tag
+  ((context semantic-analyze-context-functionarg))
+  "Try the base, and if that fails, return what we are assigning into."
+  (or (call-next-method) (car-safe (oref context :function))))
+
+(defmethod semantic-analyze-interesting-tag
+  ((context semantic-analyze-context-assignment))
+  "Try the base, and if that fails, return what we are assigning into."
+  (or (call-next-method) (car-safe (oref context :assignee))))
 
 (define-overload semantic-analyze-type-constants (type)
   "For the tag TYPE, return any constant symbols of TYPE.
