@@ -1,11 +1,11 @@
 ;;; semantic-bnf.el --- Semantic details for some languages
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.2 2002/08/11 20:30:04 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.3 2003/04/05 15:50:15 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -195,7 +195,7 @@
      (symbol ,(semantic-lambda (list (nth 0 vals))))
      (string ,(semantic-lambda (list (nth 0 vals))))
      (semantic-list
-      ,(semantic-lambda (list (semantic-flex-text (cons 1 (nth 0 vals)))))))
+      ,(semantic-lambda (list (semantic-lex-token-text (cons 1 (nth 0 vals)))))))
     (rule-list
      (match-list lambda-fn rule-or-list
 		 ,(semantic-lambda
@@ -237,7 +237,7 @@
 "Bovine table used to convert a BNF language file into a bovine table.")
 
 (defvar semantic-bnf-keyword-table
-  (semantic-flex-make-keyword-table
+  (semantic-lex-make-keyword-table
    `( ("start" . START)
       ("scopestart" . SCOPESTART)
       ("token" . TOKEN)
@@ -270,7 +270,7 @@
 ;;
 (defsubst semantic-bnf-token-name-symbol (token)
   "Return TOKEN name as an interned symbol."
-  (intern (semantic-token-name token)))
+  (intern (semantic-tag-name token)))
 
 (defmacro semantic-bnf-token-token-type (token)
   "Return type of a 'token TOKEN."
@@ -334,7 +334,7 @@ QUOTEMODE is the current mode of quotation."
     ;; substitute ASSOC by call to semantic-bovinate-make-assoc-list
     ;; and do BNF lambda substitution on the whole expression
     (semantic-bnf-lambda-substitute
-     (cons 'semantic-bovinate-make-assoc-list (nreverse l)) quotemode t)))
+     (cons 'semantic-tag-make-assoc-list (nreverse l)) quotemode t)))
 
 (defun semantic-bnf-lambda-substitute (lst quotemode &optional inplace)
   "Insert LST substituting based on rules for the BNF converter.
@@ -467,8 +467,8 @@ Optional argument START is the token to start with.
 Optional argument SCOPESTART is the token to start subscopes with."
   (interactive "FBNF file: ")
   (let ((tl (float (length tokstream)))
-	(tokens (semantic-find-nonterminal-by-token 'token tokstream))
-	(quotemode (if (semantic-find-nonterminal-by-token 'quotemode tokstream)
+	(tokens (semantic-find-tags-by-class 'token tokstream))
+	(quotemode (if (semantic-find-tags-by-class 'quotemode tokstream)
 		       t nil)))
     (insert "`(")
     (working-status-forms "Building bovine table" "done"
@@ -523,7 +523,7 @@ Optional argument SCOPESTART is the token to start subscopes with."
   "Return expansion of built-in ASSOC expression.
 ARGS are ASSOC's key value list."
   (let ((key t))
-    `(semantic-bovinate-make-assoc-list
+    `(semantic-tag-make-assoc-list
       ,@(mapcar #'(lambda (i)
                     (prog1
                         (if key
@@ -645,11 +645,11 @@ built-in functions and corresponding expanders."
 (defsubst semantic-bnf-terminal-token-p (token)
   "Return non-nil if BNF TOKEN is a terminal one.
 That is a token of 'keyword or 'token category."
-  (memq (semantic-token-token token) '(token keyword)))
+  (memq (semantic-tag-class token) '(token keyword)))
 
 (defsubst semantic-bnf-find-terminals (tokstream)
   "Return the list of terminal tokens from TOKSTREAM."
-  (semantic-find-nonterminal-by-function
+  (semantic--find-tags-by-function
    #'semantic-bnf-terminal-token-p tokstream))
 
 (defsubst semantic-bnf-find-terminal-symbols (tokstream)
@@ -676,7 +676,7 @@ produce the following table of tokens:
               (LT . \"<\"))
     (paren (LPAREN . \"(\")
            (RPAREN . \")\")))"
-  (let ((tokens (semantic-find-nonterminal-by-token 'token tokstream))
+  (let ((tokens (semantic-find-tags-by-class 'token tokstream))
         token tsymb ttype tvalue bin bins)
     (while tokens
       (setq token  (car tokens)
@@ -696,11 +696,11 @@ This is a list of elements of the form: (ASSOC-TYPE . TERMS) where
 ASSOC-TYPE is one of 'nonassoc, 'left or 'right.  And TERMS is a list
 of terminal symbols.  Elements are in the same order as the
 corresponding %nonassoc, %left and %right statements in the BNF file."
-  (let ((tokens (semantic-find-nonterminal-by-token
+  (let ((tokens (semantic-find-tags-by-class
                  'assoc tokstream))
         assocs terms type)
     (while tokens
-      (setq type (intern (semantic-token-name (car tokens)))
+      (setq type (intern (semantic-tag-name (car tokens)))
             terms (mapcar #'intern (semantic-bnf-token-assoc-terms
                                     (car tokens)))
             assocs (cons (cons type terms) assocs)
@@ -719,7 +719,7 @@ grammar.  The result is inserted at point in the current buffer."
     (while tokstream
       (setq tok       (car tokstream)
             tokstream (cdr tokstream))
-      (if (not (eq (semantic-token-token tok) 'rule))
+      (if (not (eq (semantic-tag-class tok) 'rule))
           nil
         (setq lhs  (semantic-bnf-token-name-symbol tok)
               rhs  (mapcar #'semantic-bnf-matching-to-lalr
@@ -797,13 +797,13 @@ grammar.  The result is inserted at point in the current buffer."
 Argument TOKSTREAM is the list of tokens in which to find the file and
 parse table variable."
   (save-excursion
-    (let ((file (semantic-find-nonterminal-by-token 'outputfile tokstream))
-	  (var (semantic-find-nonterminal-by-token 'parsetable tokstream)))
+    (let ((file (semantic-find-tags-by-class 'outputfile tokstream))
+	  (var (semantic-find-tags-by-class 'parsetable tokstream)))
       (if (or (not file) (not var))
 	  (semantic-bnf-find-table-destination-old)
 	;; Fix file/var to strings
-	(setq file (semantic-token-name (car file))
-	      var (semantic-token-name (car var)))
+	(setq file (semantic-tag-name (car file))
+	      var (semantic-tag-name (car var)))
 	;; Look these items up.
 	(set-buffer (find-file-noselect file))
 	(goto-char (point-min))
@@ -821,13 +821,13 @@ parse table variable."
 Argument TOKSTREAM is the list of tokens in which to find the file and
 keyword table variable."
   (save-excursion
-    (let ((file (semantic-find-nonterminal-by-token 'outputfile tokstream))
-	  (var (semantic-find-nonterminal-by-token 'keywordtable tokstream)))
+    (let ((file (semantic-find-tags-by-class 'outputfile tokstream))
+	  (var (semantic-find-tags-by-class 'keywordtable tokstream)))
       (if (or (not file) (not var))
 	  nil
 	;; Fix file/var to strings
-	(setq file (semantic-token-name (car file))
-	      var (semantic-token-name (car var)))
+	(setq file (semantic-tag-name (car file))
+	      var (semantic-tag-name (car var)))
 	;; Look these items up.
 	(set-buffer (find-file-noselect file))
 	(goto-char (point-min))
@@ -855,9 +855,9 @@ keyword table variable."
   "Find the language mode for this BNF file.
 Argument TOKSTREAM is the list of tokens in which to find the file and
 parse table variable."
-  (let ((mode (semantic-find-nonterminal-by-token 'languagemode tokstream)))
+  (let ((mode (semantic-find-tags-by-class 'languagemode tokstream)))
     (if mode
-	(let ((m (read (semantic-token-name (car mode)))))
+	(let ((m (read (semantic-tag-name (car mode)))))
 	  (if (listp m)
 	      m
 	    (list m)))
@@ -867,17 +867,17 @@ parse table variable."
   "Find the setup code based on TOKSTREAM.
 Return a marker where the code is to be inserted.
 SOURCEFILE is the file name from whence tokstream came."
-  (let ((setfn (semantic-find-nonterminal-by-token 'setupfunction tokstream)))
+  (let ((setfn (semantic-find-tags-by-class 'setupfunction tokstream)))
     (if (not setfn)
 	nil
       ;; The setup function
       (goto-char (point-min))
       (if (not (re-search-forward (concat "(defun\\s-+"
-					  (semantic-token-name (car setfn))
+					  (semantic-tag-name (car setfn))
 					  "\\s-+\\(()\\|nil\\)")
 				  nil t))
 	  (error "Setup function %s not found in %s"
-		 (semantic-token-name (car setfn)) (buffer-file-name))
+		 (semantic-tag-name (car setfn)) (buffer-file-name))
 	;; Scan for setup text, and remove old stuff, insert new.
 	(let ((e (save-excursion (end-of-defun) (point))))
 	  (if (re-search-forward (car semantic-setup-code-delimiters)
@@ -911,7 +911,7 @@ SOURCEFILE is the file name from whence tokstream came."
 (defsubst semantic-bnf-find-parser-mode (tok)
   "Find the parser mode symbol in this BNF file.
 If not found return nil."
-  (let ((gm (semantic-find-nonterminal-by-token 'parsermode tok)))
+  (let ((gm (semantic-find-tags-by-class 'parsermode tok)))
     (if gm
         (semantic-bnf-token-name-symbol (car gm)))))
 
@@ -920,13 +920,13 @@ If not found return nil."
 Argument TOKSTREAM is the list of tokens in which to find the file and
 token table variable."
   (save-excursion
-    (let ((file (semantic-find-nonterminal-by-token 'outputfile tokstream))
-	  (var (semantic-find-nonterminal-by-token 'tokentable tokstream)))
+    (let ((file (semantic-find-tags-by-class 'outputfile tokstream))
+	  (var (semantic-find-tags-by-class 'tokentable tokstream)))
       (if (or (not file) (not var))
 	  nil
 	;; Fix file/var to strings
-	(setq file (semantic-token-name (car file))
-	      var (semantic-token-name (car var)))
+	(setq file (semantic-tag-name (car file))
+	      var (semantic-tag-name (car var)))
 	;; Look these items up.
 	(set-buffer (find-file-noselect file))
 	(goto-char (point-min))
@@ -962,9 +962,9 @@ token table variable."
 	 (keydest (semantic-bnf-find-keyword-destination tok))
 	 (tokdest (semantic-bnf-find-token-destination tok))
 	 (mode (semantic-bnf-find-languagemode tok))
-	 (start (semantic-find-nonterminal-by-token 'start tok))
-	 (scopestart (semantic-find-nonterminal-by-token 'scopestart tok))
-	 (setup-fn (semantic-find-nonterminal-by-token 'setupfunction tok))
+	 (start (semantic-find-tags-by-class 'start tok))
+	 (scopestart (semantic-find-tags-by-class 'scopestart tok))
+	 (setup-fn (semantic-find-tags-by-class 'setupfunction tok))
          (pmode (semantic-bnf-find-parser-mode tok))
 	 )
     (if (not dest)
@@ -978,9 +978,9 @@ token table variable."
 	(if (looking-at "\\s-*\\(nil\\|(semantic-flex-make-keyword-table\\)")
 	    (delete-region (point) (save-excursion (forward-sexp 1) (point))))
 	(delete-blank-lines)
-	(let ((key (semantic-find-nonterminal-by-token 'keyword tok))
+	(let ((key (semantic-find-tags-by-class 'keyword tok))
 	      keys
-	      (put (semantic-find-nonterminal-by-token 'put tok))
+	      (put (semantic-find-tags-by-class 'put tok))
 	      (start (point)))
 	  (if (not key)
 	      (insert "nil\n ")
@@ -994,7 +994,7 @@ token table variable."
 	    (while put
 	      (setq keys (nth 2 (car put)))
 	      (while keys
-		(setq key (semantic-find-nonterminal-by-token 'keyword tok))
+		(setq key (semantic-find-tags-by-class 'keyword tok))
 		(let ((a (assoc (if (listp (car keys))
 				    (car (car keys))
 				  (car keys))
@@ -1035,25 +1035,25 @@ token table variable."
 	;; Add in the bovine table to be used
 	(indent-region
 	 (point)
-	 (let ((var (semantic-find-nonterminal-by-token 'parsetable tok))
-	       (key (semantic-find-nonterminal-by-token 'keywordtable tok)))
+	 (let ((var (semantic-find-tags-by-class 'parsetable tok))
+	       (key (semantic-find-tags-by-class 'keywordtable tok)))
 	   (when var
 	     ;; The bovine table
 	     (insert "(setq semantic-toplevel-bovine-table "
-		     (semantic-token-name (car var)) "\n ")
+		     (semantic-tag-name (car var)) "\n ")
 	     (insert "semantic-toplevel-bovine-table-source \""
 		     fname "\")\n")
 	     )
 	   ;; Keytable setup
 	   (when key
 	     (insert "(setq semantic-flex-keywords-obarray "
-		     (semantic-token-name (car key)) ")\n "))
+		     (semantic-tag-name (car key)) ")\n "))
 	   ;; Is there more than one major mode?
 	   (if (and (listp mode) (> (length mode) 1))
 	       (insert "(setq semantic-equivalent-major-modes '"
 		       (format "%S" mode) ")\n"))
 	   ;; Add in user specified settings
-	   (let ((settings (semantic-find-nonterminal-by-token 'setting tok)))
+	   (let ((settings (semantic-find-tags-by-class 'setting tok)))
 	     (while settings
 	       (insert (nth 2 (car settings)))
 	       (insert "\n ")
@@ -1074,8 +1074,8 @@ token table variable."
        (t
         ;; generate table for the default parser
         (semantic-bnf-to-bovine
-         tok (if start (semantic-token-name (car start)))
-         (if scopestart (semantic-token-name (car scopestart))))))
+         tok (if start (semantic-tag-name (car start)))
+         (if scopestart (semantic-tag-name (car scopestart))))))
       (if semantic-bnf-indent-table
           (save-excursion
             (message "Indenting table....")
@@ -1094,7 +1094,7 @@ token table variable."
   	    (if (member major-mode mode)
   		(progn
   		  (if setup-fn
-  		      (funcall (intern (semantic-token-name (car setup-fn))))
+  		      (funcall (intern (semantic-tag-name (car setup-fn))))
   		    (funcall mode)))
   	      )
   	    (setq bufs (cdr bufs))))))))
@@ -1103,14 +1103,14 @@ token table variable."
   "Generate code for one rule in a temporary buffer."
   (interactive)
   (semantic-bovinate-toplevel t)
-  (let ((r (semantic-current-nonterminal)))
-    (if (or (not r) (not (eq (semantic-token-token r) 'rule)))
+  (let ((r (semantic-current-tag)))
+    (if (or (not r) (not (eq (semantic-tag-class r) 'rule)))
 	(error "No rule to expand nearby"))
     (pop-to-buffer "*Rule Expansion*" t)
     (save-excursion
       (set-buffer "*Rule Expansion*")
       (erase-buffer)
-      (insert "Expanding rule [" (semantic-token-name r) "]\n\n")
+      (insert "Expanding rule [" (semantic-tag-name r) "]\n\n")
       (semantic-bnf-to-bovine (list r)))))
 
 ;;; Debugging support
@@ -1136,17 +1136,17 @@ token table variable."
 RULE is a symbol representing the rule name we are currently in.
 MATCHLISTINDEX is the index to the current match list being tested.
 MATCHINDEX is the index into the matchlist being tested."
-  (let* ((start (car (semantic-find-nonterminal-by-token 'start (current-buffer))))
+  (let* ((start (car (semantic-find-tags-by-class 'start (current-buffer))))
 	 (findme (if (and start (eq rule 'bovine-toplevel))
-		     (semantic-token-name start)
+		     (semantic-tag-name start)
 		   (symbol-name rule)))
-	 (r (semantic-find-nonterminal-by-name
-	     findme (semantic-find-nonterminal-by-token
+	 (r (semantic-find-first-tag-by-name
+	     findme (semantic-find-tags-by-class
 		     'rule (current-buffer)))))
     (if (not r)
 	(error "Semantic debugger error: Cannot find rule %s" findme))
     ;; Find the rule
-    (goto-char (semantic-token-start r))
+    (goto-char (semantic-tag-start r))
     ;; find the matchlist
     (re-search-forward ":\\s-*")
     (while (/= matchlistindex 0)
@@ -1171,9 +1171,9 @@ MATCHINDEX is the index into the matchlist being tested."
   "Return non-nil if the token following the cursor is a %token.
 Some tokens are keywords.  Make sure we know the difference."
   (when (looking-at "\\s-*\\(\\(\\w\\|\\s_\\)+\\)")
-    (semantic-find-nonterminal-by-name
+    (semantic-find-first-tag-by-name
      (match-string 1)
-     (semantic-find-nonterminal-by-token 'token (current-buffer)))))
+     (semantic-find-tags-by-class 'token (current-buffer)))))
 
 (defun semantic-bnf-find-source-on-load-path (sourcefile)
   "Find the BNF file SOURCEFILE on the Emacs `load-path'.
@@ -1279,7 +1279,7 @@ Once found, put it in a buffer, and return it."
    '( (abbreviate-nonterminal . semantic-bnf-abbreviate-nonterminal)
       (summarize-nonterminal . semantic-bnf-summarize-nonterminal)
       (eldoc-current-symbol-info . semantic-bnf-ecsi)
-      (nonterminal-children . semantic-bnf-nonterminal-children)
+      (tag-components . semantic-bnf-tag-components)
       )
    t)
   (make-local-variable 'semantic-face-alist)
@@ -1292,29 +1292,29 @@ Once found, put it in a buffer, and return it."
 		    
   (run-hooks 'semantic-bnf-mode-hook))
 
-(defun semantic-bnf-nonterminal-children (token &optional positiononly)
+(defun semantic-bnf-tag-components (token &optional positiononly)
   "Return the children belonging to TOKEN.
 These children may or not be full tokens for bnf files, but will have
 overlays associated with them.
 Optional argument POSITIONONLY is passed to the default function but is not
 used locally."
-  (if (eq (semantic-token-token token) 'put)
+  (if (eq (semantic-tag-class token) 'put)
       (let ((a (nth 2 token))
 	    (b (nth 3 token)))
-	(if (not (semantic-token-with-position-p (car a)))
+	(if (not (semantic-tag-with-position-p (car a)))
 	    (setq a nil))
-	(if (not (semantic-token-with-position-p (car b)))
+	(if (not (semantic-tag-with-position-p (car b)))
 	    (setq b nil))
 	(append a b)
 	)
-    (semantic-nonterminal-children-default token))
+    (semantic-tag-components-default token))
   )
 
 (defun semantic-bnf-abbreviate-nonterminal (token &optional parent color)
   "Return a string abbreviation of TOKEN.
 Optional PARENT is not used.
 Optional COLOR is used to flag if color is added to the text."
-  (let ((tok (semantic-token-token token))
+  (let ((tok (semantic-tag-class token))
 	(name (semantic-name-nonterminal token parent color)))
     (cond
      ((eq tok 'rule) (concat name ":"))
@@ -1326,7 +1326,7 @@ Optional COLOR is used to flag if color is added to the text."
   "Return a string summarizing TOKEN.
 Optional PARENT is not used.
 Optional argument COLOR determines if color is added to the text."
-  (let ((tok (semantic-token-token token))
+  (let ((tok (semantic-tag-class token))
 	(name (semantic-name-nonterminal token parent color))
 	(label nil)
 	(desc nil))
