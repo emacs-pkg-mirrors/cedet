@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.8 1999/09/10 10:22:12 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.9 1999/12/01 15:25:12 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -188,40 +188,40 @@ function has no documentation, then return nil."
       (require 'speedbar)
     (error nil)))
 
-(defvar eieio-speedbar-key-map nil
+(defvar eieio-class-speedbar-key-map nil
   "Keymap used when working with a project in speedbar.")
 
-(defun eieio-speedbar-make-map ()
+(defun eieio-class-speedbar-make-map ()
   "Make a keymap for eieio under speedbar."
-  (setq eieio-speedbar-key-map (speedbar-make-specialized-keymap))
+  (setq eieio-class-speedbar-key-map (speedbar-make-specialized-keymap))
 
   ;; General viewing stuff
-  (define-key eieio-speedbar-key-map "\C-m" 'speedbar-edit-line)
-  (define-key eieio-speedbar-key-map "+" 'speedbar-expand-line)
-  (define-key eieio-speedbar-key-map "-" 'speedbar-contract-line)
+  (define-key eieio-class-speedbar-key-map "\C-m" 'speedbar-edit-line)
+  (define-key eieio-class-speedbar-key-map "+" 'speedbar-expand-line)
+  (define-key eieio-class-speedbar-key-map "-" 'speedbar-contract-line)
   )
 
-(if eieio-speedbar-key-map
+(if eieio-class-speedbar-key-map
     nil
   (if (not (featurep 'speedbar))
       (add-hook 'speedbar-load-hook (lambda ()
-				      (eieio-speedbar-make-map)
+				      (eieio-class-speedbar-make-map)
 				      (speedbar-add-expansion-list
 				       '("EIEIO"
-					 eieio-speedbar-menu
-					 eieio-speedbar-key-map
-					 eieio-speedbar))))
-    (eieio-speedbar-make-map)
+					 eieio-class-speedbar-menu
+					 eieio-class-speedbar-key-map
+					 eieio-class-speedbar))))
+    (eieio-class-speedbar-make-map)
     (speedbar-add-expansion-list '("EIEIO"
-				   eieio-speedbar-menu
-				   eieio-speedbar-key-map
-				   eieio-speedbar))))
+				   eieio-class-speedbar-menu
+				   eieio-class-speedbar-key-map
+				   eieio-class-speedbar))))
 
-(defvar eieio-speedbar-menu
+(defvar eieio-class-speedbar-menu
   ()
   "Menu part in easymenu format used in speedbar while in `eieio' mode.")
 
-(defun eieio-speedbar (dir-or-object depth)
+(defun eieio-class-speedbar (dir-or-object depth)
   "Create buttons in speedbar that represents the current project.
 DIR-OR-OBJECT is the object to expand, or nil, and DEPTH is the current
 expansion depth."
