@@ -4,40 +4,11 @@ The following updates to your .emacs file will help you get the most out
 of this update of speedbar.
 
 1) Build speedbar
-
-   On the unix command line, type:
-
-   $ make
-
-   If you want to use the optional packages, such as support for Info files,
-   or RPM files, you may also want to execute the command
-
-  $ make opt
-
-   On windows NT, you will need to byte compile each file from within
-   emacs, or you can leave everything unbyte compiled.
-
-   If you use the rmail, info, or gud displays, and you are using
-   Emacs 2x, then you will also need to re byte compile rmail.el,
-   info.el, and gud.el because speedbar macros changed.
-
-   Any other programs you use that define speedbar display modes will
-   also need to be re byte compiled when shifting from speedbar 0.12
-   or less up to speedbar 0.13.
-
 2) Add speedbar's directory to your load path.
 
-   (add-to-list 'load-path "~/speedbar-#.#")
-
-   Be sure to replace the directory above with the actual path to where
-   speedbar was unpacked.  This will make sure the latest version of
-   speedbar superceeds any version already installed on your system.
-
+   Follow the INSTALL file in the top level of this distribution.
 
 3) Add bindings to make it easier to use speedbar.
-
-   (autoload 'speedbar-frame-mode "speedbar" "Popup a speedbar frame" t)
-   (autoload 'speedbar-get-focus "speedbar" "Jump to speedbar frame" t)
 
    If you want to choose it from a menu, such as "Tools", and it doesn't
    already exist in your version of Emacs:
@@ -54,6 +25,8 @@ of this update of speedbar.
 				      (frame-live-p speedbar-frame)
 				      (frame-visible-p speedbar-frame))]
 		      "--")
+
+   Note: New versions of Emacs already have this in the menu.
 
    If you want to access speedbar using only the keyboard, do this:
 

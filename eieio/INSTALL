@@ -1,37 +1,14 @@
-Installation instructions for Eieio
+Installation instructions for EIEIO
 
 The following updates to your .emacs file will help you get the most out of this
 update of eieio.
 
 1) Byte compile EIEIO
-
-   a) Edit Makefile, and change LOADPATH to include the path to
-	 Speedbar.
-   b) run "make"
-
-   -OR-
-
-   a) run: make "LOADPATH=<path to speedbar>"
-
-   If byte compilation fails fails:
-    a) Follow step 3:
-    b) byte compile the files individually and interactivly from
-	Emacs or XEmacs.
-
-   It is not necessary to use Speedbar with EIEIO, but EIEIO does
-   support speedbar, and it is needed to compile those few files.
-
 2) Add eieio's directory to your load path.
 
-   (add-to-list 'load-path "~/eieio-X.XX")
+   Follow the INSTALL file in the top level of this distribution.
 
-   Be sure to replace the directory above with the actual path to
-   where eieio was unpacked.  This will make sure the latest version
-   of eieio superceeds any version already installed on your system.
+3) To send bug reports, or participate in discussions about semantic,
+   use the mailing list cedet-eieio@@sourceforge.net via the URL:
 
-
-3) Upgrading EIEIO.
-
-   New versions of EIEIO can be found here:
-
-   http://cedet.sourceforge.net/eieio.shtml
+   http://lists.sourceforge.net/lists/listinfo/cedet-eieio

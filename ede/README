@@ -2,24 +2,13 @@ EDE - Emacs Development Environment
 
 Compiling instructions:
 
-EDE depends on both EIEIO and SPEEDBAR while compiling.  As such, the
-makefile included may not work if they are not in site-lisp, or other
-system install area.
+   Follow the INSTALL file in the top level of this distribution.
 
-You can fetch the latest SPEEDBAR here (Version 0.8.1 or better):
+To use the Web Site management features:
 
-http://www.ultranet.com/~zappo/speedbar.shtml
-
-You can fetch the latest EIEIO here (Version 0.11 or better):
-
-http://www.ultranet.com/~zappo/eieio.shtml
-
-Once unpacked, you will need to tweek the Makefile to change the
-LOADPATH variable to be correct for your situation.
-
-To use the Web Site management features, local file names are needed
-for copying distribution, and web pages.  You can use ange-ftp or EFS
-for accessing FTP sites.  If some locations are accessible only
-through scp, or rcp, you can use TRAMP to copy files.
+Local file names are needed for copying distribution, and web pages.
+You can use ange-ftp or EFS for accessing FTP sites.  If some
+locations are accessible only through scp, or rcp, you can use TRAMP
+to copy files.
 
 http://ls6-www.informatik.uni-dortmund.de/~grossjoh/emacs/tramp.html

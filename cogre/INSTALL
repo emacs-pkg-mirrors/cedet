@@ -1,30 +1,6 @@
 How to install COGRE
 
-1) Copy source files somewhere.
+1) Byte compile COGRE (optional, but recommended)
 
-1.1) Install EIEIO CLOS library package from:
-	http://cedet.sourceforge.net/eieio.shtml
-
-2) Byte compile COGRE (optional, but recommended)
-
-   a) Edit Makefile, and change LOADPATH to include the proper path to
-	 EIEIO
-   b) run "make"
-
-   -OR-
-
-   a) run: make LOADPATH="<path to eieio>"
-
-   If byte compilation fails fails:
-    a) Follow step 3:
-    b) byte compile the files individually and interactivly from
-	Emacs or XEmacs.
-
-3) Install load hooks into your .emacs file.
-
-(add-to-list 'load-path "/path/to/cogre")
-(require 'cogre)
-
-  You may also need to require other COGRE tool files until a
-  formalized install process is made.
+   Follow the INSTALL file in the top level of this distribution.
 
