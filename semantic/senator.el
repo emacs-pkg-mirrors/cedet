@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.90 2003/12/29 01:25:14 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.91 2004/01/08 08:19:47 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -96,6 +96,7 @@
 (require 'semantic-imenu)
 (eval-when-compile
   (require 'semanticdb)
+  (require 'cl)
   )
 
 ;;; Customization
@@ -1379,12 +1380,10 @@ The setting is saved by Custom.  See the function
 `senator-register-mode-menu-entry' for details on how to register a
 minor mode entry."
   (interactive)
-  (let ((opts senator-registered-mode-settings)
-        opt)
-    (while opts
-      (setq opt  (car opts)
-            opts (cdr opts))
-      (customize-save-variable opt (default-value opt)))))
+  (dolist (opt senator-registered-mode-settings)
+    (condition-case nil
+        (customize-save-variable opt (default-value opt))
+      (error nil))))
 
 ;; Register the various minor modes settings used by Semantic.
 (senator-register-mode-menu-entry
