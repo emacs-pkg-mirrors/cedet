@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.97 2001/04/25 18:56:23 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.98 2001/04/28 13:52:52 zappo Exp $
 
 (defvar semantic-version "1.4beta3"
   "Current version of Semantic.")
@@ -307,9 +307,12 @@ this is returned instead of re-parsing the buffer.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache)
 
 (defvar semantic-edits-are-safe nil
-  "When non-nil, modifications to not require a reparse.
-It prevents tokens from being marked dirty, and it
-prevents top level edits from causing a cache check.")
+  "When non-nil, modifications do not require a reparse.
+This prevents tokens from being marked dirty, and it
+prevents top level edits from causing a cache check.
+Use this when writing programs that could cause a full
+reparse, but will not change the tag structure, such
+as adding or updating top-level comments.")
 
 (defvar semantic-toplevel-bovine-cache-check nil
   "Non nil if the bovine cache is out of date.
@@ -326,12 +329,21 @@ Dirty functions can then be reparsed, and spliced back into the main list.")
 (make-variable-buffer-local 'semantic-dirty-tokens)
 
 (defvar semantic-dirty-token-hooks nil
-  "Hooks run after when a token is marked as dirty.
-The functions must take TOKEN, START, and END as a parameters.")
+  "Hooks run after when a token is marked as dirty (edited by the user).
+The functions must take TOKEN, START, and END as a parameters.
+This hook will only be called once when a token is first made dirty,
+subsequent edits will not cause this to run a second time unless that
+token is first cleaned.  Any token marked as dirty will
+also be called with `semantic-clean-token-hooks', unless a full
+reprase is done instead.")
 
 (defvar semantic-clean-token-hooks nil
-  "Hooks run after when a token is marked as clean.
-The functions must take a TOKEN as a parameter.")
+  "Hooks run after a token is marked as clean (reparsed after user edits.)
+The functions must take a TOKEN as a parameter.
+Any token sent to this hook will have first been called with
+`semantic-dirty-token-hooks'.  This hook is not called for tokens
+marked dirty if the buffer is completely reparsed.  In that case, use
+`semantic-after-toplevel-bovinate-hook'.")
 
 (defvar semantic-change-hooks nil
   "Hooks run when semantic detects a change in a buffer.
@@ -346,21 +358,30 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
 (defvar semantic-after-toplevel-bovinate-hook nil
   "Hooks run after a toplevel token parse.
 It is not run if the toplevel parse command is called, and buffer does
-not need to be reparsed.
+not need to be fully reparsed.
+This function is also called when the toplevel cache is flushed, and
+the cache is emptied.
 For language specific hooks, make sure you define this as a local hook.")
 
 (defvar semantic-before-toplevel-cache-flush-hook nil
   "Hooks run before the toplevel nonterminal cache is flushed.
-For language specific hooks, make sure you define this as a local hook.")
+For language specific hooks, make sure you define this as a local hook.
+This hook is called before a corresponding
+`semantic-after-toplevel-bovinate-hook' which is also called during a
+flush when the cache is given a new value of nil.")
 
 (defvar semantic-reparse-needed-change-hook nil
   "Hooks run when a user edit is detected as needing a reparse.
-For language specific hooks, make sure you define this as a local hook.")
+For language specific hooks, make sure you define this as a local
+hook.
+Not used yet; part of the next generation reparse mechanism")
 
 (defvar semantic-no-reparse-needed-change-hook nil
   "Hooks run when a user edit is detected as not needing a reparse.
 If the hook returns non-nil, then declare that a reparse is needed.
-For language specific hooks, make sure you define this as a local hook.")
+For language specific hooks, make sure you define this as a local
+hook.
+Not used yet; part of the next generation reparse mechanism.")
 
 
 ;;; Primitive Token access system:
@@ -623,8 +644,11 @@ Optional argument CHECKCACHE indicates if the cache check should be made."
        semantic-toplevel-bovine-cache-check)))
 
 (defun semantic-bovine-toplevel-partial-reparse-needed-p (&optional checkcache)
-  "Return non-nil if the current buffer needs a full reparse.
-Optional argument CHECKCACHE indicates if the cache check should be made."
+  "Return non-nil if the current buffer needs a partial reparse.
+This only returns non-nil if `semantic-bovine-toplevel-full-reparse-needed-p'
+returns nil.
+Optional argument CHECKCACHE indicates if the cache check should be made
+when checking `semantic-bovine-toplevel-full-reparse-needed-p'."
   (and semantic-toplevel-bovine-cache
        semantic-dirty-tokens
        (not (semantic-bovine-toplevel-full-reparse-needed-p checkcache))))
@@ -926,8 +950,8 @@ the current results on a parse error."
           ;; Splice into the main list.
           (setcdr token (cdr new))
           (setcar token (car new))
-     ;; This important bit is because the CONS cell representing TOKEN
-     ;; is what we need here, even though the whole thing is the same.
+	  ;; This important bit is because the CONS cell representing TOKEN
+	  ;; is what we need here, even though the whole thing is the same.
           (semantic-overlay-put o 'semantic token)
           ;; Hooks
           (run-hook-with-args 'semantic-clean-token-hooks token)
