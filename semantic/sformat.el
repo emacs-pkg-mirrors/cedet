@@ -37,14 +37,16 @@
 ;; quite simple.
 
 ;;; v 1.3
-;; If no args are passed, then don't attempt to post-format the string.
+;; * If no args are passed, then don't attempt to post-format the string.
+;; * Format reversing functions `sformat-just-before-token-regexp' and
+;;   `sformat-just-after-token-regexp'
 
 ;;; v 1.2
 ;; Sformat has been sped up by using string commands (string-match,
 ;; and substring) to quickly scan over plain text, and then a slower
 ;; character by character scan to handle tokens.
 
-;;; $Id: sformat.el,v 1.2 2000/05/04 02:46:42 zappo Exp $
+;;; $Id: sformat.el,v 1.3 2000/05/06 01:34:32 zappo Exp $
 ;;
 ;; History
 ;;
@@ -345,6 +347,44 @@ not choochoo ultranet com."
      
      rstr)
    )
+
+
+;;; Sformat string managers
+;;
+;; These two routines find the string between different % tokens, and
+;; returns them as regular expressions vie regexp-quote.  The result
+;; will allow a program to find text surrounding major parts within a
+;; format string.
+;;
+;; This is useful if you want to examine text inserted with sformat
+;; and extract data stuck in originally.
+
+(defun sformat-just-before-token-regexp (token format)
+  "Return a search expression for text before TOKEN in FORMAT.
+This search string can be used to find the text residing in TOKEN
+if it were inserted with FORMAT in the past."
+  (let ((rs nil) (case-fold-search nil))
+    (if (string-match (concat "\\(%" (char-to-string token) "\\)") format)
+	(progn
+	  (setq rs (substring format 0 (match-beginning 1)))
+	  ;; scan for previous tokens and shorten
+	  (while (string-match "\\(%\\)" rs)
+	    (setq rs (substring rs (+ (match-end 1) 1))))
+	  (regexp-quote rs))
+      nil)))
+
+(defun sformat-just-after-token-regexp (token format)
+  "Return a search expression for text after TOKEN in FORMAT.
+This search string can be used to find the text residing in TOKEN
+if it were inserted with FORMAT in the past."
+  (let ((rs nil) (case-fold-search nil))
+    (if (string-match (concat "\\(%" (char-to-string token) "\\)") format)
+	(progn
+	  (setq rs (substring format (match-end 1)))
+	  (if (string-match "\\(%\\)" rs)
+	      (setq rs (substring rs 0 (match-beginning 1))))
+	  (regexp-quote rs))
+      nil)))
 
 (provide 'sformat)
 ;;; sformat ends here
