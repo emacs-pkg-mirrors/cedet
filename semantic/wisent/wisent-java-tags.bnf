@@ -1,4 +1,4 @@
-### wisent-java-tags.bnf -- LALR BNF grammar for Java
+### wisent-java-tags.bnf -- Semantic LALR grammar for Java
 ##
 ## Copyright (C) 2001 David Ponce
 ##
@@ -6,7 +6,7 @@
 ## Maintainer: David Ponce <david@dponce.com>
 ## Created: 15 Dec 2001
 ## Keywords: syntax
-## X-RCS: $Id: wisent-java-tags.bnf,v 1.1 2001/12/15 23:36:18 ponced Exp $
+## X-RCS: $Id: wisent-java-tags.bnf,v 1.2 2001/12/18 06:50:25 ponced Exp $
 ##
 ## This file is not part of GNU Emacs.
 ##
@@ -104,12 +104,12 @@
 %token LBRACK          paren "["
 %token RBRACK          paren "]"
 
-# ------------------
-# Blocks
-# ------------------
-%token PAREN_BLOCK    block "()"
-%token BRACE_BLOCK    block "{}"
-%token BRACK_BLOCK    block "[]"
+# ---------------
+# Block terminals
+# ---------------
+%token PAREN_BLOCK     block "()"
+%token BRACE_BLOCK     block "{}"
+%token BRACK_BLOCK     block "[]"
 
 # ------------------
 # Operator terminals
@@ -405,61 +405,26 @@
 # LALR Grammar
 # ------------
 
+# This grammar is not designed to fully parse correct Java syntax.  It
+# is optimized to work in an interactive environment to extract tokens
+# (tags) needed by Semantic.  In some cases a syntax not allowed by
+# the Java Language Specification will be accepted by this grammar.
+
 compilation_unit
   : package_declaration
   | import_declaration
   | type_declaration
   ;
 
-literal
-  : NULL_LITERAL
-  | BOOLEAN_LITERAL
-  | STRING_LITERAL
-  | NUMBER_LITERAL
-  ;
-
-type
-  : qualified_name dims_opt
-    (concat $1 $2)
-  | primitive_type dims_opt
-    (concat $1 $2)
-  ;
-
-primitive_type
-  : BOOLEAN
-  | CHAR
-  | LONG
-  | INT
-  | SHORT
-  | BYTE
-  | DOUBLE
-  | FLOAT
-  ;
-
-qualified_name
-  : qualified_name DOT IDENTIFIER
-    (concat $1 "." $3)
-  | IDENTIFIER
-  ;
-
-dims_opt
-  : EMPTY
-    (identity "")
-  | dims
-  ;
-
-dims
-  : dims BRACK_BLOCK
-    (concat $1 "[]")
-  | BRACK_BLOCK
-    (identity "[]")
-  ;
-
+### Package statement token
+## ("NAME" package DETAIL "DOCSTRING")
 package_declaration
   : PACKAGE qualified_name SEMICOLON
     (wisent-token $2 'package nil nil)
   ;
 
+### Include file token
+## ("FILE" include SYSTEM "DOCSTRING") 
 import_declaration
   : IMPORT qualified_name SEMICOLON
     (wisent-token $2 'include nil nil)
@@ -470,37 +435,12 @@ import_declaration
 type_declaration
   : SEMICOLON
     ()
-  | interface_declaration
   | class_declaration
+  | interface_declaration
   ;
 
-modifiers_opt
-  : EMPTY
-  | modifiers
-    (nreverse $1)
-  ;
-
-modifiers
-  : modifiers modifier
-    (cons $2 $1)
-  | modifier
-    (list $1)
-  ;
-
-modifier
-  : STRICTFP
-  | VOLATILE
-  | TRANSIENT
-  | SYNCHRONIZED
-  | NATIVE
-  | FINAL
-  | ABSTRACT
-  | STATIC
-  | PRIVATE
-  | PROTECTED
-  | PUBLIC
-  ;
-
+### Type Declaration token
+## ("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC "DOCSTRING")
 class_declaration
   : modifiers_opt CLASS qualified_name superc_opt interfaces_opt class_body
     (wisent-token $3 'type $2 $6 (if (or $4 $5) (cons $4 $5))
@@ -508,25 +448,114 @@ class_declaration
                   nil)
   ;
 
-superc
-  : EXTENDS qualified_name
-    (identity $2)
-  ;
-
 superc_opt
   : EMPTY
-  | superc
-  ;
-
-interfaces
-  : IMPLEMENTS qualified_name_list
+  | EXTENDS qualified_name
     (identity $2)
   ;
 
 interfaces_opt
   : EMPTY
-  | interfaces
-    (nreverse $1)
+  | IMPLEMENTS qualified_name_list
+    (nreverse $2)
+  ;
+
+class_body
+  : BRACE_BLOCK
+    (EXPANDFULL $1 class_member_declaration)
+  ;
+
+class_member_declaration
+  : LBRACE
+    ()
+  | RBRACE
+    ()
+  | block
+    ()
+  | static_initializer
+    ()
+  | constructor_declaration
+  | interface_declaration
+  | class_declaration
+  | method_declaration
+  | field_declaration
+  ;
+
+### Type Declaration token
+## ("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC "DOCSTRING")
+interface_declaration
+  : modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body
+    (wisent-token $3 'type $2 $5 (if $4 (cons nil $4))
+                  (ASSOC typemodifiers $1)
+                  nil)
+  ;
+
+extends_interfaces_opt
+  : EMPTY
+  | EXTENDS qualified_name_list
+    (identity $2)
+  ;
+
+interface_body
+  : BRACE_BLOCK
+    (EXPANDFULL $1 interface_member_declaration)
+  ;
+
+interface_member_declaration
+  : LBRACE
+    ()
+  | RBRACE
+    ()
+  | interface_declaration
+  | class_declaration
+  | method_declaration
+  | field_declaration
+  ;
+
+static_initializer
+  : STATIC block
+  ;
+
+### Function token
+## ("NAME" function "TYPE" ( ARG-LIST ) EXTRA-SPEC "DOCSTRING") 
+constructor_declaration
+  : modifiers_opt constructor_declarator throwsc_opt constructor_body
+    (wisent-token (car $2) 'function nil (cdr $2)
+                  (ASSOC typemodifiers $1 throws $3)
+                  nil)
+  ;
+
+constructor_declarator
+  : IDENTIFIER formal_parameter_list
+    (cons $1 $2)
+  ;
+
+constructor_body
+  : block 
+  ;
+
+### Function token
+## ("NAME" function "TYPE" ( ARG-LIST ) EXTRA-SPEC "DOCSTRING") 
+method_declaration
+  : modifiers_opt VOID method_declarator throwsc_opt method_body
+    (wisent-token (car $3) 'function $2 (cdr $3)
+                  (ASSOC typemodifiers $1 throws $4)
+                   nil)
+  | modifiers_opt type method_declarator throwsc_opt method_body
+    (wisent-token (car $3) 'function $2 (cdr $3)
+                  (ASSOC typemodifiers $1 throws $4)
+                  nil)
+  ;
+
+method_declarator
+  : IDENTIFIER formal_parameter_list dims_opt
+    (cons (concat $1 $3) $2)
+  ;
+
+throwsc_opt
+  : EMPTY
+  | THROWS qualified_name_list
+    (nreverse $2)
   ;
 
 qualified_name_list
@@ -536,27 +565,45 @@ qualified_name_list
     (list $1)
   ;
 
-class_body
+method_body
+  : SEMICOLON
+  | block
+  ;
+
+# Just eat {...} block!
+block
   : BRACE_BLOCK
-    (EXPANDFULL $1 class_member_declaration)
   ;
 
-class_member_declaration
-  : block
-    ()
-  | static_initializer
-    ()
-  | LBRACE
-    ()
-  | RBRACE
-    ()
-  | constructor_declaration
-  | interface_declaration
-  | class_declaration
-  | method_declaration
-  | field_declaration
+formal_parameter_list
+  : PAREN_BLOCK
+    (EXPANDFULL $1 formal_parameters)
   ;
 
+formal_parameters
+  : LPAREN
+    ()
+  | formal_parameter COMMA
+  | formal_parameter RPAREN
+  ;
+
+### Variable token
+## ("NAME" variable "TYPE" DEFAULT-VALUE EXTRA-SPEC "DOCSTRING")
+formal_parameter
+  : formal_parameter_modifier_opt type variable_declarator_id
+    (wisent-token $3 'variable $2 nil
+                  (ASSOC typemodifiers $1)
+                  nil)
+  ;
+
+formal_parameter_modifier_opt
+  : EMPTY
+  | FINAL
+    (list $1)
+  ;
+
+### Variable token
+## ("NAME" variable "TYPE" DEFAULT-VALUE EXTRA-SPEC "DOCSTRING")
 field_declaration
   : modifiers_opt type variable_declarators SEMICOLON
     (wisent-java-expand-nonterminal
@@ -588,110 +635,6 @@ variable_initializer
   : expression
   ;
 
-method_declaration
-  : modifiers_opt VOID method_declarator throwsc_opt method_body
-    (wisent-token (car $3) 'function $2 (cdr $3)
-                  (ASSOC typemodifiers $1 throws $4)
-                   nil)
-  | modifiers_opt type method_declarator throwsc_opt method_body
-    (wisent-token (car $3) 'function $2 (cdr $3)
-                  (ASSOC typemodifiers $1 throws $4)
-                  nil)
-  ;
-
-method_declarator
-  : IDENTIFIER formal_parameter_list dims_opt
-    (cons (concat $1 $3) $2)
-  ;
-
-formal_parameter_list
-  : PAREN_BLOCK
-    (EXPANDFULL $1 formal_parameters)
-  ;
-
-formal_parameters
-  : LPAREN
-    ()
-  | formal_parameter COMMA
-  | formal_parameter RPAREN
-  ;
-
-formal_parameter
-  : FINAL type variable_declarator_id
-    (wisent-token $3 'variable $2 nil
-                  (ASSOC typemodifiers $1)
-                  nil)
-  | type variable_declarator_id
-    (wisent-token $2 'variable $1 nil
-                  nil
-                  nil)
-  ;
-
-throwsc_opt
-  : EMPTY
-  | THROWS qualified_name_list
-    (nreverse $2)
-  ;
-
-method_body
-  : SEMICOLON
-  | block
-  ;
-
-static_initializer
-  : STATIC block
-  ;
-
-constructor_declaration
-  : modifiers_opt constructor_declarator throwsc_opt constructor_body
-    (wisent-token (car $2) 'function nil (cdr $2)
-                  (ASSOC typemodifiers $1 throws $3)
-                  nil)
-  ;
-
-constructor_declarator
-  : IDENTIFIER formal_parameter_list
-    (cons $1 $2)
-  ;
-
-constructor_body
-  : block 
-  ;
-
-interface_declaration
-  : modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body
-    (wisent-token $3 'type $2 $5 (if $4 (cons nil $4))
-                  (ASSOC typemodifiers $1)
-                  nil)
-  ;
-
-extends_interfaces_opt
-  : EMPTY
-  | EXTENDS qualified_name_list
-    (identity $2)
-  ;
-
-interface_body
-  : BRACE_BLOCK
-    (EXPANDFULL $1 interface_member_declaration)
-  ;
-
-interface_member_declaration
-  : LBRACE
-    ()
-  | RBRACE
-    ()
-  | interface_declaration
-  | class_declaration
-  | method_declaration
-  | field_declaration
-  ;
-
-# Just eat {...} block!
-block
-  : BRACE_BLOCK
-  ;
-
 # Just eat expression!
 expression
   : expression term
@@ -710,6 +653,13 @@ term
   | CLASS
   | THIS
   | SUPER
+  ;
+
+literal
+  : NULL_LITERAL
+  | BOOLEAN_LITERAL
+  | STRING_LITERAL
+  | NUMBER_LITERAL
   ;
 
 operator
@@ -751,6 +701,70 @@ operator
   | OROR
   | COMP
   | INSTANCEOF
+  ;
+
+primitive_type
+  : BOOLEAN
+  | CHAR
+  | LONG
+  | INT
+  | SHORT
+  | BYTE
+  | DOUBLE
+  | FLOAT
+  ;
+
+modifiers_opt
+  : EMPTY
+  | modifiers
+    (nreverse $1)
+  ;
+
+modifiers
+  : modifiers modifier
+    (cons $2 $1)
+  | modifier
+    (list $1)
+  ;
+
+modifier
+  : STRICTFP
+  | VOLATILE
+  | TRANSIENT
+  | SYNCHRONIZED
+  | NATIVE
+  | FINAL
+  | ABSTRACT
+  | STATIC
+  | PRIVATE
+  | PROTECTED
+  | PUBLIC
+  ;
+
+type
+  : qualified_name dims_opt
+    (concat $1 $2)
+  | primitive_type dims_opt
+    (concat $1 $2)
+  ;
+
+qualified_name
+  : qualified_name DOT IDENTIFIER
+    (concat $1 $2 $3)
+  | IDENTIFIER
+  ;
+
+dims_opt
+  : EMPTY
+    (identity "")
+  | dims
+  ;
+
+dims
+  : dims BRACK_BLOCK
+    (concat $1 "[]")
+  | BRACK_BLOCK
+    (identity "[]")
   ;
 
 ### wisent-java-tags.bnf ends here
