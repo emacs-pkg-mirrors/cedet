@@ -109,20 +109,6 @@
   :group 'lisp
   )
 
-;;; Compatibility
-(cond ((fboundp 'run-with-timer)
-       (defalias 'working-run-with-timer 'run-with-timer)
-       (defalias 'working-cancel-timer 'cancel-timer)
-       )
-      ;;Add compatibility here
-      (t 
-       ;; This gets the message out but has no timers.
-       (defun working-run-with-timer (&rest foo) (message working-message))
-       (defun working-cancel-timer (&rest foo) (message "%s%s"
-							working-message
-							working-donestring)))
-      )
-
 ;;; User configurable variables
 ;;
 (defcustom working-status-percentage-type 'working-bar-percent-display
@@ -187,14 +173,16 @@ percentage display.  A number such as `2' means `2%'."
 (defun working-message-emacs (&rest args)
   "Print but no log a one-line message at the bottom of the screen.
 See the function `message' for details on ARGS."
-  (let ((message-log-max nil)) ;; No logging
-    (apply 'message args)))
+  (or noninteractive
+      (let ((message-log-max nil)) ;; No logging
+        (apply 'message args))))
 
 (defun working-message-xemacs (&rest args)
   "Print but no log a one-line message at the bottom of the screen.
 See the function `message' for details on ARGS."
-  (let ((log-message-filter-function #'ignore)) ;; No logging
-    (apply 'message args)))
+  (or (noninteractive)
+      (let ((log-message-filter-function #'ignore)) ;; No logging
+        (apply 'message args))))
 
 (eval-and-compile
   (defalias 'working-message
@@ -202,6 +190,22 @@ See the function `message' for details on ARGS."
 	'working-message-xemacs
       'working-message-emacs))
   )
+
+;;; Compatibility
+(cond ((fboundp 'run-with-timer)
+       (defalias 'working-run-with-timer 'run-with-timer)
+       (defalias 'working-cancel-timer 'cancel-timer)
+       )
+      ;;Add compatibility here
+      (t 
+       ;; This gets the message out but has no timers.
+       (defun working-run-with-timer (&rest foo)
+         (working-message working-message))
+       (defun working-cancel-timer (&rest foo)
+         (working-message "%s%s"
+                          working-message
+                          working-donestring)))
+      )
 
 (defmacro working-status-forms (message donestr &rest forms)
   "Contain a block of code during which a working status is shown.
