@@ -1,6 +1,9 @@
 # Simple BNF notation for top-level C elements.
 #
 # $Log: c.bnf,v $
+# Revision 1.2  1999/05/18 14:08:56  zappo
+# Fixed up the returns of some nonterminals.
+#
 # Revision 1.1  1999/05/17 17:28:30  zappo
 # Initial revision
 #
@@ -34,7 +37,7 @@ structsubparts: open-paren "{" close-paren "}"
 	      | variabledef punctuation ";" structsubparts
 		( ,(append (semantic-expand-c-nonterminal $1) $3) )
 	      | variabledef punctuation ";" close-paren "}"
-		( (semantic-expand-c-nonterminal $1) )
+		( ,(semantic-expand-c-nonterminal $1) )
 	      ;
 
 
@@ -99,7 +102,7 @@ opt-bits : punctuation ":" symbol
 	   ( nil )
 	 ;
 
-opt-array : semantic-list opt-array
+opt-array : semantic-list "^\\[.*\\]$" opt-array
 	  # Eventually we want to replace the 1 below with a size
 	  # (if available)
 	    ( (cons 1 (car ,$2) ) )
@@ -135,7 +138,7 @@ varnamelist : symbol opt-bits opt-array opt-assign punctuation "," varnamelist
 	    ;
 
 arg-list : semantic-list
-	   ( (semantic-expand-c-nonterminal (EXPAND $1 arg-sub-list ) ) )
+	   (EXPAND $1 arg-sub-list)
 	 ;
 
 arg-sub-list : open-paren "(" close-paren ")"
@@ -145,9 +148,9 @@ arg-sub-list : open-paren "(" close-paren ")"
 	     | open-paren "(" arg-sub-list
 	       ( ,$2 )
 	     | variablearg punctuation "," arg-sub-list
-	       ( (cons $1 $3) )
+	       (  ,(cons $1 $3 ) )
 	     | variablearg close-paren ")"
-	       ( '$1 )
+	       ( $1 )
 	     ;
 
 functiondef : typeform symbol arg-list
