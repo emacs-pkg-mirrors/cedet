@@ -4,16 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.26 2000/07/22 12:47:07 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.27 2000/09/24 15:55:31 zappo Exp $
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -32,6 +30,7 @@
 ;; additional target types inherited directly from `ede-proj-target'.
 
 (require 'ede)
+(require 'ede-proj-comp)
 
 ;;; Class Definitions:
 (defclass ede-proj-target (ede-target)
@@ -45,6 +44,14 @@ distributed, and each should have a corresponding rule to build it.")
    (dirty :initform nil
 	  :type boolean
 	  :documentation "Non-nil when generated files needs updating.")
+   ;; Class allocated slots
+   (availablecompilers :allocation :class
+		       :initform nil
+		       :type (or null list)
+		       :documentation
+		       "A list of `ede-compiler' objects.
+These are the compilers the user can choose from when setting the
+`compiler' slot.")
    )
   "Abstract class for ede-proj targets.")
 
@@ -62,6 +69,15 @@ distributed, and each should have a corresponding rule to build it.")
 	      "Non nil means the rule created is part of the all target.
 Setting this to nil creates the rule to build this item, but does not
 include it in the ALL`all:' rule.")
+   (compiler :initarg :compiler
+	     :initform nil
+	     :type (or null symbol)
+	     ;;:custom (choice list o compilers)
+	     :documentation
+	     "The compiler to be used to compile this object.
+This should be a symbol, which contains the object defining the compiler.
+This enables save/restore to do so by name, permitting the sharing
+of these compiler resources, and global customization thereof.")
    (configuration-variables
     :initarg :configuration-variables
     :initform nil
@@ -112,39 +128,6 @@ It is safe to leave this blank.")
     ("miscelaneous" . ede-proj-target-makefile-miscelaneous)
     )
   "Alist of names to class types for available project target classes.")
-
-(defclass ede-makefile-rule ()
-  ((target :initarg :target
-	   :initform ""
-	   :type string
-	   :custom string
-	   :documentation "The target pattern.
-A pattern of \"%.o\" is used for inference rules, and would match object files.
-A target of \"foo.o\" explicitly matches the file foo.o.")
-   (dependencies :initarg :dependencies
-		 :initform ""
-		 :type string
-		 :custom string
-		 :documentation "Dependencies on this target.
-A pattern of \"%.o\" would match a file of the same prefix as the target
-if that target is also an inference rule pattern.
-A dependency of \"foo.c\" explicitly lists foo.c as a dependency.
-A variable such as $(name_SOURCES) will list all the source files
-belonging to the target name.")
-   (rules :initarg :rules
-	  :initform nil
-	  :type list
-	  :custom (repeat string)
-	  :documentation "Scripts to execute.
-These scripst will be executed in sh (Unless the SHELL variable is overriden).
-Do not prefix with TAB.")
-   (phony :initarg :phony
-	  :initform nil
-	  :type boolean
-	  :custom boolean
-	  :documentation "Is this a phony rule?
-Adds this rule to a .PHONY list."))
-  "A single rule for building some target.")
 
 (defclass ede-proj-project (ede-project)
   ((makefile-type :initarg :makefile-type
@@ -266,11 +249,6 @@ Argument TARGET is the project we are completing customization on."
   (or (call-next-method)
       (member (ede-convert-path this (buffer-file-name buffer))
 	      (oref this auxsource))))
-;;; Desireous methods
-;;
-(defmethod ede-want-file-p ((obj ede-proj-target) file)
-  "Return t if OBJ wants to own FILE."
-  nil)
 
 
 ;;; EDE command functions
@@ -377,7 +355,34 @@ Optional argument COMMAND is the s the alternate command to use."
 (defmethod project-debug-target ((obj ede-proj-target))
   "Run the current project target OBJ in a debugger."
   (error "Debug-target not supported by %s" (object-name obj)))
-
+
+;;; Compiler and source code generators
+;;
+(defmethod ede-proj-compilers ((obj ede-proj-target))
+  "List of compilers being used by OBJ.
+If the `compiler' slot is empty, concoct one on a first match found
+basis for any given type from the `availablecompilers' slot.
+Otherwise, return the `compiler' slot.
+Converts all symbols into the objects to be used."
+  (when (slot-exists-p obj 'compiler)
+    (let ((comp (oref obj compiler)))
+      (if comp
+	  ;; Now that we have a pre-set compilers to use, convert tye symbols
+	  ;; into objects for ease of use
+	  (setq comp (mapcar 'symbol-value comp))
+	(let ((avail (mapcar 'symbol-value (oref obj availablecompilers)))
+	      (st (oref obj sourcetype))
+	      (sources (oref obj source)))
+	  ;; COMP is not specified, so generate a list from the available
+	  ;; compilers list.
+	  (while st
+	    (if (ede-want-any-source-files-p (symbol-value (car st)) sources)
+		(let ((c (ede-proj-find-compiler avail (car st))))
+		  (if c (setq comp (cons c comp)))))
+	    (setq st (cdr st)))))
+      ;; Return the disovered compilers
+      comp)))
+    
 
 ;;; Target type specific autogenerating gobbldegook.
 ;;
@@ -388,19 +393,19 @@ Optional argument COMMAND is the s the alternate command to use."
   (require 'ede-pconf "ede-pconf.el"))
 
 (defun ede-proj-makefile-type (&optional proj)
-  "Makefile type of the current project."
+  "Makefile type of the current project PROJ."
   (oref (or proj (ede-current-project)) makefile-type))
 
 (defun ede-proj-automake-p (&optional proj)
-  "Return non-nil if the current project is automake mode."
+  "Return non-nil if the current project PROJ is automake mode."
   (eq (ede-proj-makefile-type proj) 'Makefile.am))
 
 (defun ede-proj-autoconf-p (&optional proj)
-  "Return non-nil if the current project is automake mode."
+  "Return non-nil if the current project PROJ is automake mode."
   (eq (ede-proj-makefile-type proj) 'Makefile.in))
 
 (defun ede-proj-make-p (&optional proj)
-  "Return non-nil if the current project is automake mode."
+  "Return non-nil if the current project PROJ is automake mode."
   (eq (ede-proj-makefile-type proj) 'Makefile))
 
 (defmethod ede-proj-dist-makefile ((this ede-proj-project))
