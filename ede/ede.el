@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.30 2000/04/29 15:00:32 zappo Exp $
+;; RCS: $Id: ede.el,v 1.31 2000/05/01 02:25:34 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -778,11 +778,11 @@ Not all buffers need headers, so return nil if no applicable."
       (ede-buffer-header-file ede-object (current-buffer))
     nil))
 
-(defmethod ede-buffer-header-file((this ede-project) buffer)
+(defmethod ede-buffer-header-file ((this ede-project) buffer)
   "Return nil, projects don't have header files."
   nil)
 
-(defmethod ede-buffer-header-file((this ede-target) buffer)
+(defmethod ede-buffer-header-file ((this ede-target) buffer)
   "There are no default header files in EDE.
 Do a quick check to see if there is a Header tag in this buffer."
   (save-excursion
@@ -790,6 +790,52 @@ Do a quick check to see if there is a Header tag in this buffer."
     (if (re-search-forward "::Header:: \\([a-zA-Z0-9.]+\\)" nil t)
 	(buffer-substring-no-properties (match-beginning 1)
 					(match-end 1)))))
+
+(defun ede-documentation-files ()
+  "Return the documentation files for the current buffer.
+Not all buffers need documentations, so return nil if no applicable.
+Some projects may have multiple documentation files, so return a list."
+  (if ede-object
+      (ede-buffer-documentation-files ede-object (current-buffer))
+    nil))
+
+(defmethod ede-buffer-documentation-files ((this ede-project) buffer)
+  "Return all documentation in project THIS based on BUFFER."
+  ;; Find the info node.
+  (ede-documentation this))
+
+(defmethod ede-buffer-documentation-files ((this ede-target) buffer)
+  "Check for some documenation files for THIS.
+Also do a quick check to see if there is a Documentation tag in this BUFFER."
+  (save-excursion
+    (set-buffer buffer)
+    (if (re-search-forward "::Documentation:: \\([a-zA-Z0-9.]+\\)" nil t)
+	(buffer-substring-no-properties (match-beginning 1)
+					(match-end 1))
+      ;; Check the master project
+      (let ((cp (ede-toplevel)))
+	(ede-buffer-documentation-files cp (current-buffer))))))
+
+(defmethod ede-documentation ((this ede-project))
+  "Return a list of files that provides documentation.
+Documentation is not for object THIS, but is provided by THIS for other
+files in the project."
+  (let ((targ (oref this targets))
+	(proj (oref this subproj))
+	(found nil))
+    (while targ
+      (setq found (append (ede-documentation (car targ)) found)
+	    targ (cdr targ)))
+    (while proj
+      (setq found (append (ede-documentation (car proj)) found)
+	    proj (cdr proj)))
+    found))
+
+(defmethod ede-documentation ((this ede-target))
+  "Return a list of files that provides documentation.
+Documentation is not for object THIS, but is provided by THIS for other
+files in the project."
+  nil)
 
 
 ;;; EDE project-autoload methods
