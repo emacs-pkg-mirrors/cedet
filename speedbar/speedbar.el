@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.10
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.156 2000/01/25 03:25:13 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.157 2000/02/09 02:56:46 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -3956,7 +3956,8 @@ If TEMP is non-nil, then clicking on a buffer restores the previous display."
 	       (fn (if known 'speedbar-tag-file nil))
 	       (fname (save-excursion (set-buffer (car bl))
 				      (buffer-file-name))))
-	  (speedbar-make-tag-line 'bracket expchar fn fname
+	  (speedbar-make-tag-line 'bracket expchar fn
+				  (if fname (file-name-nondirectory fname))
 				  (buffer-name (car bl))
 				  'speedbar-buffer-click temp
 				  'speedbar-file-face 0)))
