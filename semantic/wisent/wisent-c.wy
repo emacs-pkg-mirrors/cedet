@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 13 Jun 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-c.wy,v 1.2 2003/08/02 08:17:50 ponced Exp $
+;; X-RCS: $Id: wisent-c.wy,v 1.3 2004/03/10 19:34:13 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -227,7 +227,7 @@ declaration:
       ;; Function prototypes in `decl-list' will be expanded as
       ;; function tag by `wisent-c-expand-tag'.
       (EXPANDTAG
-       (VARIABLE-TAG decl type nil 'typemodifiers spec))
+       (VARIABLE-TAG decl type nil :typemodifiers spec))
       )
   ;
 
@@ -429,7 +429,7 @@ parameter-declaration:
       ;; Function prototypes in `decl-list' will be expanded as
       ;; function tag by `wisent-c-expand-tag'.
       (EXPANDTAG
-       (VARIABLE-TAG decl type nil 'typemodifiers spec))
+       (VARIABLE-TAG decl type nil :typemodifiers spec))
       )
   | declaration-specifiers
     (let ((ast $1))
@@ -438,7 +438,7 @@ parameter-declaration:
         "*empty*"
         (AST-GET-STRING ast :type)
         nil                     ;; TBD: default-value
-        'typemodifiers (AST-GET ast :specifiers))
+        :typemodifiers (AST-GET ast :specifiers))
        ))
   ;
 
@@ -507,7 +507,7 @@ function-definition:
            (args (AST-GET1       $1 :parms))
            (spec (AST-GET        $1 :specifiers)))
       (EXPANDTAG
-       (FUNCTION-TAG name type args 'typemodifiers spec))
+       (FUNCTION-TAG name type args :typemodifiers spec))
       )
   ;
 
