@@ -26,7 +26,11 @@
 
 @c Simple macro to help document obsoleted functions.
 @macro obsolete{old,new}
-
+@sp 1
+@strong{Compatibility}:
 @code{\new\} introduced in @semantic{} version 2.0 supercedes
 @code{\old\} which is now obsolete.
 @end macro
+
+@c Common settings
+@paragraphindent none
