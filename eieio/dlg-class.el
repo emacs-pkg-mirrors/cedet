@@ -1,9 +1,9 @@
 ;;; dlg-class - Class definitions and implementations for config widgets
 ;;;
-;;; Copyright (C) 1996, 1997 Eric M. Ludlam
+;;; Copyright (C) 1996, 1997, 1999 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-class.el,v 1.11 1997/02/23 14:02:25 zappo Exp $
+;;; RCS: $Id: dlg-class.el,v 1.12 1999/02/18 18:14:06 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -84,7 +84,7 @@ initialized."
   (if (and (not (oref this symbol)) (symbolp (object-name-string this)))
       (oset this symbol (object-name-string this))))
 
-(defmethod constructor :AFTER ((this data-object-symbol) &rest fields)
+(defmethod initialize-instance :AFTER ((this data-object-symbol) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
   (dlg-init-symbol this)
@@ -150,7 +150,7 @@ nil indicates that only whole numbers are allowed"
 string it maintains will be translated back into a number whenever it
 is set back into `symbol'")
 
-(defmethod constructor :AFTER ((this data-object-symbol-string-to-int) &rest fields)
+(defmethod initialize-instance :AFTER ((this data-object-symbol-string-to-int) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
   (dlg-init-symbol this)
@@ -167,7 +167,7 @@ variable associated with the symbol field.  The symbol will be
 assigned a value from this string list while the `value' slot
 maintains a number.")
 
-(defmethod constructor :AFTER ((this data-object-symbol-list-index) &rest fields)
+(defmethod initialize-instance :AFTER ((this data-object-symbol-list-index) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
   (dlg-init-symbol this))
@@ -179,7 +179,7 @@ variable associated with the symbol field while `value' remains as a
 string.  `read' us used to translate the string, and `symbol' will not
 be changed if the read fails.")
 
-(defmethod constructor :AFTER ((this data-object-symbol-lisp-expression) &rest fields)
+(defmethod initialize-instance :AFTER ((this data-object-symbol-lisp-expression) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing."
   (dlg-init-symbol this)
@@ -195,7 +195,7 @@ based upon the symbol we are editing."
   "This type of object uses set-default for the given symbol instead
 of set as used by `data-object-symbol'")
 
-(defmethod constructor :AFTER ((this data-object-symbol-default) &rest fields)
+(defmethod initialize-instance :AFTER ((this data-object-symbol-default) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
   (dlg-init-symbol this)
@@ -212,7 +212,7 @@ turn the feature off before it is unloaded."
 symbol.  Some features turn themselves on automatically, which is why
 :unload-commands are needed to turn them off.")
 
-(defmethod constructor :AFTER ((this data-object-symbol-feature) &rest fields)
+(defmethod initialize-instance :AFTER ((this data-object-symbol-feature) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
   (dlg-init-symbol this)
@@ -231,7 +231,7 @@ The hook value us interpreted by `read' before installation."
 	    :protection private))
   "This type of object uses add/remove-hook for the given symbol")
 
-(defmethod constructor :AFTER ((this data-object-symbol-hook) &rest fields)
+(defmethod initialize-instance :AFTER ((this data-object-symbol-hook) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we want to add a hook to."
   (dlg-init-symbol this)
@@ -253,7 +253,7 @@ based upon the symbol we want to add a hook to."
   "This type of object uses (put ... 'disabled ...) for the given
 symbol so that emacs will warn the user before they use it.")
 
-(defmethod constructor :AFTER ((this data-object-symbol-disabled) &rest fields)
+(defmethod initialize-instance :AFTER ((this data-object-symbol-disabled) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we want to disable"
   (dlg-init-symbol this)
@@ -282,7 +282,7 @@ file.  It will also run the command to turn a given feature on or off.")
   (if (not (oref this command))
       (oset this command (object-name-string this))))
 
-(defmethod constructor :AFTER ((this data-object-command-option) &rest fields)
+(defmethod initialize-instance :AFTER ((this data-object-command-option) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
   (dlg-init-command this)
