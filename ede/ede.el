@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.31 2000/05/01 02:25:34 zappo Exp $
+;; RCS: $Id: ede.el,v 1.32 2000/06/20 02:21:45 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -42,7 +42,7 @@
 ;;  (global-ede-mode t)
 
 ;;; Code:
-(defvar ede-version "0.7"
+(defconst ede-version "0.8"
   "Current version of the Emacs EDE.")
 
 (defun ede-version ()
@@ -318,7 +318,7 @@ Argument LIST-O-O is the list of objects to choose from."
 		(or (listp ede-object)
 		    (not (obj-of-class-p ede-object ede-project)))) ]
 	 "---"
-	 [ "Select Active Target" nil nil ]
+	 [ "Select Active Target" 'undefined nil ]
 	 [ "Add Target" ede-new-target (ede-current-project) ]
 	 [ "Remove Target" ede-delete-target ede-object ]
 	 ( "Target Options" :filter ede-target-forms-menu )
@@ -332,6 +332,7 @@ Argument LIST-O-O is the list of objects to choose from."
 	 [ "Edit Projectfile" ede-edit-file-target
 	   (and ede-object
 		(not (obj-of-class-p ede-object ede-project))) ]
+	 [ "Update Version" ede-update-version ede-object ]
 	 [ "Make distribution" ede-make-dist t ]
 	 "---"
 	 [ "View Project Tree" ede-speedbar t ]
@@ -607,6 +608,17 @@ Optional argument FORCE forces the file to be removed without asking."
   (let ((ede-object (ede-current-project)))
     (ede-invoke-method 'project-make-dist)))
 
+(defun ede-update-version (newversion)
+  "Update the current projects main version number.
+Argument NEWVERSION is the version number to use in the current project."
+  (interactive (list (let* ((o (ede-toplevel))
+			    (v (oref o version)))
+		       (read-string (format "Update Version (was %s): " v)
+				  v nil v))))
+  (let ((ede-object (ede-toplevel)))
+    (oset ede-object :version newversion)
+    (project-update-version ede-object)))
+
 (eval-when-compile (require 'eieio-custom))
 
 (defvar eieio-ede-old-variables nil
@@ -679,6 +691,11 @@ Argument FILE is the file to add."
   "Remove the current buffer from project target OT.
 Argument FNND is an argument."
   (error "remove-file not supported by %s" (object-name ot)))
+
+(defmethod project-update-version ((ot ede-project))
+  "The :version of the project OT has been updated.
+Handle saving, or other detail."
+  (error "project-update-version not supported by %s" (object-name ot)))
 
 (defmethod project-edit-file-target ((ot ede-target))
   "Edit the target OT associated w/ this file."
@@ -1092,6 +1109,11 @@ If VARIABLE is not project local, just use set."
 	      (form def-body))))
 
 (autoload 'ede-speedbar "ede-speedbar" "Run speedbar in EDE project mode." t)
+(autoload 'ede-speedbar-file-setup "ede-speedbar" "EDE in Speedbar File mode hack." t)
+
+(if (featurep 'speedbar)
+    (ede-speedbar-file-setup)
+  (add-hook 'speedbar-load-hook 'ede-speedbar-file-setup))
 
 (provide 'ede)
 
