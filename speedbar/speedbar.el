@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.219 2002/03/22 20:50:54 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.220 2002/03/27 01:03:38 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -2013,8 +2013,8 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 		(if (looking-at "[0-9]+:[ ]*<")
 		    (progn
 		      (goto-char (match-end 0))
-		  (speedbar-do-function-pointer)))
-		(setq sf (cdr sf)))))
+		      (speedbar-do-function-pointer)))))
+	  (setq sf (cdr sf)))
 	)))
 ;;; Generic List support
 ;;
