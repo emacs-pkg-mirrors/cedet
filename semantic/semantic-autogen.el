@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-autogen.el,v 1.8 2003/02/15 09:38:04 ponced Exp $
+;; X-CVS: $Id: semantic-autogen.el,v 1.9 2003/03/18 16:22:10 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -104,6 +104,17 @@ the true `make-autoload' function."
 (defvar semantic-autogen-subdirs '("wisent" "bovine")
   "Sub-directories to scan for autoloads.")
 
+(defun semantic-autogen-kill-xemacs-autoloads-feature ()
+  "Remove Xemacs autoloads feature from this buffer."
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "semantic-autoloads" nil t)
+      (condition-case nil
+          (while t (up-list -1))
+        (error nil))
+      (kill-region (point) (save-excursion (forward-list) (point)))
+      )))
+
 (defun semantic-autogen-update-header ()
   "Update header of the auto-generated autoloads file.
 Run as `write-contents-hooks'."
@@ -124,6 +135,8 @@ Run as `write-contents-hooks'."
         ))
       (insert tag " " semantic-autogen-header)
       (newline)
+      (when (featurep 'xemacs)
+        (semantic-autogen-kill-xemacs-autoloads-feature))
       (message "Updating header...done")
       nil ;; Say not already written.
       )))
