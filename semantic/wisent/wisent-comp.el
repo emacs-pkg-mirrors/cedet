@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.4 2002/02/06 20:03:41 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.5 2002/02/07 22:23:03 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -119,6 +119,32 @@ set-able `set-NAME-FIELD' accessors."
         (cons 'vector ',(nreverse ivals)))
       ,@accors)))
 (put 'wisent-struct 'lisp-indent-function 1)
+
+;; Symbol properties
+
+(defsubst wisent-item-number (x)
+  "Return the item number of symbol X."
+  (get x 'wisent--item-no))
+
+(defsubst wisent-set-item-number (x n)
+  "Set the item number of symbol X to N."
+  (put x 'wisent--item-no n))
+
+(defsubst wisent-assoc (x)
+  "Return the associativity of symbol X."
+  (get x 'wisent--assoc))
+
+(defsubst wisent-set-assoc (x a)
+  "Set the associativity of symbol X to A."
+  (put x 'wisent--assoc a))
+
+(defsubst wisent-prec (x)
+  "Return the precedence level of symbol X."
+  (get x 'wisent--prec))
+
+(defsubst wisent-set-prec (x p)
+  "Set the precedence level of symbol X to P."
+  (put x 'wisent--prec p))
 
 ;; Other utilities
 
@@ -1731,7 +1757,7 @@ tables so that there is no longer a conflict."
       (setq token (aref tags i))
       (when (and (wisent-BITISSET (aref LA lookaheadnum) i)
                  (wisent-BITISSET lookaheadset i)
-                 (setq sprec (get token 'wisent--prec)))
+                 (setq sprec (wisent-prec token)))
         ;; Shift-reduce conflict occurs for token number I and it has
         ;; a precedence.  The precedence of shifting is that of token
         ;; I.
@@ -1752,7 +1778,7 @@ tables so that there is no longer a conflict."
           ;; For left association, keep only the reduction.
           ;; For right association, keep only the shift.
           ;; For nonassociation, keep neither.
-          (setq sassoc (get token 'wisent--assoc))
+          (setq sassoc (wisent-assoc token))
           (cond
            ((eq sassoc 'right)
             (wisent-log-resolution state lookaheadnum token "shift"))
@@ -1907,10 +1933,11 @@ tables so that there is no longer a conflict."
         (while (< j n)
           (if (wisent-BITISSET (aref LA j) i)
               (setq count (1+ count)))
-          (setq j (1+ j))
-          (if (>= count 2)
-              (setq rrc-count (1+ rrc-count)))
-          (setq i (1+ i)))))
+          (setq j (1+ j)))
+        
+        (if (>= count 2)
+            (setq rrc-count (1+ rrc-count)))
+        (setq i (1+ i))))
     rrc-count))
 
 (defvar wisent-expected-conflicts nil
@@ -1963,7 +1990,7 @@ there are any reduce/reduce conflicts.")
 
         (if (> rrc-count 0)
             (wisent-log " %d reduce/reduce conflict%s"
-                        i rrc-count (if (> rrc-count 1) "s" "")))
+                        rrc-count (if (> rrc-count 1) "s" "")))
         
         (wisent-log ".\n"))
       (setq i (1+ i)))
@@ -1995,18 +2022,18 @@ there are any reduce/reduce conflicts.")
   "Print reductions on STATE."
   (let (i j k v rule symbol mask m n defaulted
           default-LA default-rule cmax count shiftp errp nodefault)
-    (setq default-rule 0
-          nodefault nil
+    (setq nodefault nil
           i 0)
     (fillarray shiftset 0)
+    
     (setq shiftp (aref shift-table state))
     (when shiftp
       (setq k (shifts-nshifts shiftp)
             v (shifts-shifts  shiftp)
             i 0)
       (while (< i k)
-        (when (aref v i)
-          (setq symbol (aref accessing-symbol(aref v i)))
+        (when (not (zerop (aref v i)))
+          (setq symbol (aref accessing-symbol (aref v i)))
           (if (wisent-ISVAR symbol)
               (setq i k) ;; break
             ;; If this state has a shift for the error token, don't
@@ -2022,7 +2049,7 @@ there are any reduce/reduce conflicts.")
             v (errs-errs errp)
             i 0)
       (while (< i k)
-        (if (setq symbol (aref v i))
+        (if (not (zerop (setq symbol (aref v i))))
             (wisent-SETBIT shiftset symbol))
         (setq i (1+ i))))
     
@@ -2089,8 +2116,8 @@ there are any reduce/reduce conflicts.")
               v (shifts-shifts  shiftp)
               i 0)
         (while (< i k)
-          (when (aref v i)
-            (setq symbol (aref accessing-symbol(aref v i)))
+          (when (not (zerop (aref v i)))
+            (setq symbol (aref accessing-symbol (aref v i)))
             (if (wisent-ISVAR symbol)
                 (setq i k) ;; break
               (wisent-SETBIT shiftset symbol)))
@@ -2119,7 +2146,7 @@ there are any reduce/reduce conflicts.")
                    (aref tags (aref rlhs (aref LAruleno default-LA)))))
               (setq defaulted nil)
               (wisent-log
-               "    %s\treduce using rule %d (%s)\n"
+               "    %s\t[reduce using rule %d (%s)]\n"
                (aref tags i) (aref LAruleno j)
                (aref tags (aref rlhs (aref LAruleno j))))))
           (setq j (1+ j)))
@@ -2582,34 +2609,6 @@ in internal format.  STARTS defines the start symbols."
 ;;;; Parse input grammar
 ;;;; -------------------
 
-(wisent-defcontext item-numbers
-  var-no    ;; Must be initialised with ntokens
-  token-no) ;; Must be initialised with 0
-
-(defsubst wisent-item-number (x)
-  "Return the item number of symbol X."
-  (get x 'wisent--item-no))
-
-(defun wisent-set-token-item-number (x)
-  "Set up the item number of terminal symbol X."
-  (or (wisent-item-number x)
-      (progn
-        (put x 'wisent--item-no token-no)
-        (setq token-no (1+ token-no)))))
-
-(defun wisent-set-var-item-number (x)
-  "Set up the item number of nonterminal symbol X."
-  (or (wisent-item-number x)
-      (progn
-        (put x 'wisent--item-no var-no)
-        (setq var-no (1+ var-no)))))
-
-(defun wisent-clear-properties (x)
-  "Clear the properties of symbol X."
-  (put x 'wisent--prec  nil)            ; precedence
-  (put x 'wisent--assoc nil)            ; associativity
-  (put x 'wisent--item-no nil))         ; item number
-
 (defconst wisent-reserved-symbols (list wisent-error-term)
   "The list of reserved symbols.
 Also all symbol starting with '$' are reserved for internal use.")
@@ -2669,9 +2668,8 @@ Return an internal form."
             (setq item (car rest))
             (or (and (= (length item) 1) (memq (aref item 0) token-list))
                 (error "Invalid rule precedence level %S" item))
-            (setq rprec (cons (get (aref item 0) 'wisent--prec)
-                                      rprec)
-                  rest (cdr rest)))
+            (setq rprec (cons (wisent-prec (aref item 0)) rprec)
+                  rest  (cdr rest)))
         ;; No precedence level
         (setq rprec (cons nil rprec)))
 
@@ -2708,15 +2706,47 @@ DEF is the internal representation of a nonterminal definition."
   "Main start symbol.
 It gives the rules for start symbols.")
 
-(defvar wisent-no-xstarts-flag nil
-  "Non-nil means disable extra start symbols.
+(defvar wisent-single-start-flag nil
+  "Non-nil means allows only one start symbol like in Bison.
 That is don't add extra start rules to the grammar.  This is
 useful to compare the Wisent's generated automaton with the Bison's
 one.")
 
+(defun wisent-push-token (symbol &optional nocheck)
+  "Push a new SYMBOL in the list of tokens.
+Bypass checking if NOCHECK is non-nil."
+  ;; Check
+  (unless nocheck
+    (or (wisent-ISVALID symbol)
+        (error "Invalid terminal symbol %s" symbol))
+    (if (memq symbol token-list)
+        (error "Terminal already defined %s" symbol)))
+  ;; Set up properties
+  (wisent-set-prec        symbol nil)
+  (wisent-set-assoc       symbol nil)
+  (wisent-set-item-number symbol ntokens)
+  ;; Add
+  (setq ntokens (1+ ntokens)
+        token-list (cons symbol token-list)))
+
+(defun wisent-push-var (symbol &optional nocheck)
+  "Push a new SYMBOL in the list of nonterminals.
+Bypass checking if NOCHECK is non-nil."
+  ;; Check
+  (unless nocheck
+    (or (wisent-ISVALID symbol)
+        (error "Invalid nonterminal symbol %s" symbol))
+    (if (memq symbol var-list)
+        (error "Nonterminal already defined %s" symbol)))
+  ;; Set up properties
+  (wisent-set-item-number symbol nvars)
+  ;; Add
+  (setq nvars (1+ nvars)
+        var-list (cons symbol var-list)))
+
 (defun wisent-parse-grammar (grammar &optional start-list)
   "Parse GRAMMAR and build a suitable internal representation.
-Optional argument START-LIST is a list of extra start symbols.
+Optional argument START-LIST defines the start symbols.
 GRAMMAR is a list of form: (TOKENS ASSOCS . NONTERMS) where TOKENS is
 a list of terminal symbols (tokens), ASSOCS is a list describing the
 associativity of terminals or nil.  And NONTERMS is the list of non
@@ -2727,130 +2757,148 @@ list of tokens which must have been declared in TOKENS."
   (working-dynamic-status "(parse input grammar)")
   (or (and (consp grammar) (> (length grammar) 2))
       (error "Invalid grammar definition"))
-  (let (i r nt pl rhs pre lst lastprec a-type a-tokens
-          gram ep-token token tokens ep-var var vars ep-def def defs)
+  
+  (let (i r nt pl rhs pre lst start-var assoc gram
+          token var def tokens vars defs ep-token ep-var ep-def)
     
-    ;; terminals
+    ;; Built-in tokens
+    (setq ntokens 0 nvars 0)
+    (wisent-push-token wisent-eoi-term t)
+    (wisent-push-token wisent-error-term t)
+    
+    ;; Check/collect terminals
     (setq lst (car grammar))
     (while lst
-      (setq token (car lst)
-            lst  (cdr lst))
-      (or (wisent-ISVALID token)
-          (error "Invalid terminal symbol %s" token))
-      (if (memq token tokens)
-          (error "Terminal previously defined %s" token))
-      (setq tokens (cons token tokens)))
+      (wisent-push-token (car lst))
+      (setq lst (cdr lst)))
 
-    ;; nonterminals
-    (setq lst  (nthcdr 2 grammar)
+    ;; Check/Set up tokens precedence & associativity
+    (setq lst  (nth 1 grammar)
+          pre  0
           defs nil)
+    (while lst
+      (setq def    (car lst)
+            assoc  (car def)
+            tokens (cdr def)
+            lst    (cdr lst)
+            pre    (1+ pre))
+      (or (memq assoc '(left right nonassoc))
+          (error "Invalid associativity type %s" assoc))
+      (while tokens
+        (setq token  (car tokens)
+              tokens (cdr tokens))
+        (if (memq token defs)
+            (message "Redefining precedence of %s" token))
+        (or (memq token token-list)
+            ;; Define token not previously declared.
+            (wisent-push-token token))
+        (setq defs (cons token defs))
+        ;; Record the precedence and associativity of the terminal.
+        (wisent-set-prec  token pre)
+        (wisent-set-assoc token assoc)))
+    
+    ;; Check/Collect nonterminals
+    (setq lst  (nthcdr 2 grammar)
+          defs nil
+          vars nil)
     (while lst
       (setq def (car lst)
             lst (cdr lst))
       (or (consp def)
           (error "Nonterminal definition must be a non-empty list"))
-      (setq var (car def))
-      (or (wisent-ISVALID var)
-          (error "Invalid nonterminal symbol %s" var))
-      (if (or (memq var tokens) (assq var defs))
-          (error "Nonterminal previously defined %s" var))
+      (if (memq (car def) token-list)
+          (error "Nonterminal %s already defined as token" (car def)))
+      (wisent-push-var (car def))
       (setq defs (cons def defs)))
-    (if (= (length defs) 0)
+    (or defs
         (error "Grammar must contain at least one nonterminal"))
+    (setq defs (nreverse defs))
     
-    (setq defs (nreverse defs)
-          start-table nil)
-    
-    ;; Parse extra start symbols if feature enabled.
-    (unless wisent-no-xstarts-flag
-      ;; STARTS is a list of symbols '(nt0 ... ntN).
-      ;;
-      ;; Build and push extra start rules in the grammar.  That is
-      ;; something like this:
-      ;;
-      ;; ($STARTS ((nt0) $1) ... ((ntN) $1))
-      ;;
+    ;; Set up the start symbol.
+    (setq start-table nil)
+    (cond
+     
+     ;; 1. START-LIST is nil, the start symbol is the first
+     ;;    nonterminal defined in the grammar (Bison like).
+     ((null start-list)
+      (setq start-var (caar defs)))
+     
+     ;; 2. START-LIST contains only one element, it is the start
+     ;;    symbol (Bison like).
+     ((or wisent-single-start-flag (null (cdr start-list)))
+      (setq start-var  (car start-list))
+      (or (assq start-var defs)
+          (error "Start symbol %s not found" start-var)))
+ 
+     ;; 3. START-LIST contains more than one element.  All defines
+     ;;    potential start symbols.  One of them (the first one by
+     ;;    default) will be given at parse time to be the parser goal.
+     ;;    If `wisent-single-start-flag' is non-nil that feature is
+     ;;    disabled and the first nonterminal in START-LIST defines
+     ;;    the start symbol, like in case 2 above.
+     ((not wisent-single-start-flag)
+  
+      ;; START-LIST is a list of nonterminals '(nt0 ... ntN).
+      ;; Build and push ad hoc start rules in the grammar:
+  
+      ;; ($STARTS ((nt0) $1) ((nt1) $1) ... ((ntN) $1))
       ;; ($nt1    (($$nt1 nt1) $2))
       ;; ...
       ;; ($ntN    (($$ntN ntN) $2))
-
-      (setq lst (nreverse (cons (caar defs) start-list)))
+  
+      ;; Where internal symbols $ntI and $$ntI are respectively
+      ;; nonterminals and terminals.
+  
+      ;; The internal start symbol $STARTS is used to build the LALR
+      ;; automaton.  The true default start symbol used by the parser
+      ;; is the first nonterminal in START-LIST (nt0).
+      (setq start-var wisent-starts-nonterm
+            lst       (nreverse start-list))
       (while lst
         (setq var (car lst)
               lst (cdr lst))
-        (or (assq var defs)
+        (or (memq var var-list)
             (error "Start symbol %s not found" var))
-        (or (assq var start-table) ;; Ignore duplicates
-            ;; For each nt start symbol
-            (setq ep-var   (make-symbol (format "$%s"  var))
-                  ep-token (make-symbol (format "$$%s" var))
-                  tokens   (cons ep-token tokens)
-                  ;; Add entry (nt . $$nt) to start-table
-                  start-table (cons (cons var ep-token) start-table)
-                  ;; Add rule ($nt (($$nt nt) $2))
-                  defs (cons (list ep-var (list (list ep-token var) '$2))
-                             defs)
-                  ;; Add start rule (($nt) $1)
-                  ep-def (cons (list (list ep-var) '$1) ep-def))))
+        (unless (assq var start-table) ;; Ignore duplicates
+          ;; For each nt start symbol
+          (setq ep-var   (make-symbol (format "$%s"  var))
+                ep-token (make-symbol (format "$$%s" var)))
+          (wisent-push-token ep-token t)
+          (wisent-push-var   ep-var   t)
+          (setq
+           ;; Add entry (nt . $$nt) to start-table
+           start-table (cons (cons var ep-token) start-table)
+           ;; Add rule ($nt (($$nt nt) $2))
+           defs (cons (list ep-var (list (list ep-token var) '$2)) defs)
+           ;; Add start rule (($nt) $1)
+           ep-def (cons (list (list ep-var) '$1) ep-def))
+          ))
+      (wisent-push-var start-var t) 
+      (setq defs (cons (cons start-var ep-def) defs))))
     
-      (setq defs (cons (cons wisent-starts-nonterm ep-def) defs)))
-    
-    ;; Concoct an ad hoc internal representation mapping symbols with
-    ;; item numbers.  Build the token and nonterminal lists.  Keep
-    ;; symbols in the TAGS vector so that TAGS[I] is the symbol
-    ;; associated to item number I.
-    
-    (setq tokens     (nreverse (cons wisent-error-term tokens))
-          token-list (cons wisent-eoi-term tokens)
-          var-list   (mapcar #'car defs)
-          ntokens    (length token-list)
-          nvars      (length var-list)
-          nsyms      (+ ntokens nvars)
-          tags       (vconcat token-list var-list)
-          rprec      nil)
-    
-    ;; Cleanup all used symbol properties
-    (mapcar #'wisent-clear-properties tags)
-    
-    ;; Set up token precedence & assocativity
-    (setq lst (nth 1 grammar)
-          lastprec 0
-          tokens nil)
+    ;; Set up the terminal & nonterminal lists.
+    (setq nsyms      (+ ntokens nvars)
+          token-list (nreverse token-list)
+          lst        var-list
+          var-list   nil)
     (while lst
-      (setq def      (car lst)
-            a-type   (car def)
-            a-tokens (cdr def)
-            lst      (cdr lst)
-            lastprec (1+ lastprec))
-      (or (memq a-type '(left right nonassoc))
-          (error "Invalid associativity type %s" a-type))
-      (while a-tokens
-        (setq token    (car a-tokens)
-              a-tokens (cdr a-tokens))
-        (or (memq token token-list)
-            (error "Invalid associativity, terminal %s undefined" token))
-        (if (memq token tokens)
-            (error "Duplicate associativity for terminal %s" token))
-        (setq tokens (cons token tokens))
-        ;; Record the precedence and associativity of the terminal in
-        ;; respectively the `wisent--prec' and `wisent--assoc' symbol
-        ;; properties.
-        (put token 'wisent--prec  lastprec)
-        (put token 'wisent--assoc a-type)))
-    
-    ;; Setup item numbers
-    (wisent-with-context item-numbers
-      (setq var-no ntokens
-            token-no 0)
-      (mapcar #'wisent-set-token-item-number token-list)
-      (mapcar #'wisent-set-var-item-number var-list))
+      (setq var (car lst)
+            lst (cdr lst)
+            var-list (cons var var-list))
+      (wisent-set-item-number ;; adjust nonterminal item number to
+       var (+ ntokens (wisent-item-number var)))) ;; I += NTOKENS
     
     ;; Store special item numbers
     (setq error-token-number (wisent-item-number wisent-error-term)
-          start-symbol       (wisent-item-number (car var-list)))
+          start-symbol       (wisent-item-number start-var))
           
-    ;; Build rule data
-    (setq vars       (mapcar #'wisent-parse-nonterminal defs)
+    ;; Keep symbols in the TAGS vector so that TAGS[I] is the symbol
+    ;; associated to item number I.
+    (setq tags (vconcat token-list var-list))
+    
+    ;; Build rules data
+    (setq rprec      nil
+          vars       (mapcar #'wisent-parse-nonterminal defs)
           gram       (mapcar #'wisent-grammar-production vars)
           rprec      (vconcat (cons nil (nreverse rprec)))
           rule-table (vconcat (cons nil (apply #'nconc vars)))
@@ -2881,7 +2929,7 @@ list of tokens which must have been declared in TOKENS."
           ;; Get default precedence level of rule, that is the
           ;; precedence of the last terminal in it.
           (if (wisent-ISTOKEN (car rhs))
-              (setq pre (get (aref tags (car rhs)) 'wisent--prec)))
+              (setq pre (wisent-prec (aref tags (car rhs)))))
           
           (aset ritem i (car rhs))
           (setq i (1+ i)
@@ -2902,9 +2950,13 @@ list of tokens which must have been declared in TOKENS."
 ;;;###autoload
 (defun wisent-compile-grammar (grammar &optional start-list)
   "Compile GRAMMAR and return the tables needed by the parser.
-Optional argument START-LIST is a list of extra start symbols
-\(nonterminals).  The first nonterminal defined in the grammar is
-always the default start symbol.
+Optional argument START-LIST is a list of start symbols
+\(nonterminals).  If nil the first nonterminal defined in the grammar
+is the default start symbol.  If START-LIST contains only one element,
+it defines the start symbol.  If START-LIST contains more than one
+element, all will be defined as potential start symbols, unless
+`wisent-single-start-flag' is non-nil.  In that case the first element
+of START-LIST defines the start symbol and others are ignored.
 
 Return an LALR automaton of the form:
 
