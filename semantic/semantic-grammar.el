@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.34 2003/08/20 06:50:37 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.35 2003/08/20 08:50:59 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1437,7 +1437,7 @@ Otherwise return nil."
         (setq val (eldoc-get-fnsym-args-string elt)))
        ;; Variable
        ((and elt (boundp elt))
-        (setq val (eldoc-get-var-docstring val)))
+        (setq val (eldoc-get-var-docstring elt)))
        (t nil)))
     (or val (senator-eldoc-print-current-symbol-info-default))))
 
