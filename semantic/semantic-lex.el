@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.30 2004/01/16 08:56:43 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.31 2004/01/18 15:44:20 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -26,7 +26,7 @@
 ;; In semantic 1.x, the lexical analyzer was an all purpose routine.
 ;; To boost efficiency, the analyzer is now a series of routines that
 ;; are constructed at build time into a single routine.  This will
-;; eliminate uneeded if statements to speed the lexer.
+;; eliminate unneeded if statements to speed the lexer.
 
 (require 'semantic-fw)
 ;;; Code:
@@ -217,6 +217,22 @@ TYPE name does not exist.  Otherwise signal an error."
       (unless noerror
         (semantic-lex-type-invalid type)))))
 
+(defun semantic-lex-preset-default-types ()
+  "Install useful default properties for well known types."
+  (semantic-lex-type-put "punctuation" 'matchdatatype 'string t)
+  (semantic-lex-type-put "punctuation" 'syntax "\\s.\\|\\s$\\|\\s'")
+  (semantic-lex-type-put "keyword" 'matchdatatype 'keyword t)
+  (semantic-lex-type-put "keyword" 'syntax "\\(\\sw\\|\\s_\\)+")
+  (semantic-lex-type-put "symbol"  'matchdatatype 'regexp t)
+  (semantic-lex-type-put "symbol"  'syntax "\\(\\sw\\|\\s_\\)+")
+  (semantic-lex-type-put "string"  'matchdatatype 'sexp t)
+  (semantic-lex-type-put "string"  'syntax "\\s\"")
+  (semantic-lex-type-put "number"  'matchdatatype 'regexp t)
+  (semantic-lex-type-put "number"  'syntax 'semantic-lex-number-expression)
+  (semantic-lex-type-put "block"   'matchdatatype 'block t)
+  (semantic-lex-type-put "block"   'syntax "\\s(\\|\\s)")
+  )
+
 (defun semantic-lex-make-type-table (specs &optional propspecs)
   "Convert type SPECS into an obarray and return it.
 SPECS must be a list of (TYPE . TOKENS) elements, where:
@@ -255,6 +271,8 @@ PROPSPECS must be a list of (TYPE PROPERTY VALUE)."
           (setq default token)))
       ;; Ensure the default matching spec is the first one.
       (semantic-lex-type-set type (cons default (nreverse alist))))
+    ;; Install useful default types & properties
+    (semantic-lex-preset-default-types)
     ;; Apply all properties
     (while propspecs
       (setq spec (car propspecs)
