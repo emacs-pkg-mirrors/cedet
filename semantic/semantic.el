@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.156 2002/08/04 17:11:54 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.157 2002/08/07 17:58:07 ponced Exp $
 
-(defvar semantic-version "2.0alpha2"
+(defvar semantic-version "2.0alpha3"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -259,9 +259,9 @@ during a flush when the cache is given a new value of nil.")
   :group 'semantic
   :type 'boolean)
 
-(defvar semantic-bovinate-parser-name "LL"
+(defvar semantic-parser-name "LL"
   "Optional name of the parser used to parse input stream.")
-(make-variable-buffer-local 'semantic-bovinate-parser-name)
+(make-variable-buffer-local 'semantic-parser-name)
 
 ;;; Overlay.
 ;;
@@ -488,8 +488,8 @@ stream is requested."
   "Return the message string displayed while parsing.
 If optional argument ARG is non-nil it is appended to the message
 string.  See also the function `working-status-forms'."
-  (if semantic-bovinate-parser-name
-      (format "%s/%s" semantic-bovinate-parser-name (or arg ""))
+  (if semantic-parser-name
+      (format "%s/%s" semantic-parser-name (or arg ""))
     (format "%s" (or arg ""))))
 
 
@@ -529,7 +529,7 @@ that, otherwise, do a full reparse."
     ;; Use the incremental parser to do a fast update.
     (garbage-collect)
     (let* ((gc-cons-threshold 10000000)
-           (changes (semantic-bovinate-incremental-parser)))
+           (changes (semantic-parse-changes)))
       (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
           ;; If the partial reparse fails, jump to a full reparse.
           (semantic-bovinate-toplevel checkcache)
@@ -555,7 +555,7 @@ that, otherwise, do a full reparse."
       (working-status-forms
           (semantic-bovination-working-message (buffer-name))
           "done"
-	(setq res (semantic-bovinate-region (point-min) (point-max)))
+	(setq res (semantic-parse-region (point-min) (point-max)))
 	(working-status t))
       ;; Clear the caches when we see there were no errors.
       ;;
@@ -579,35 +579,65 @@ that, otherwise, do a full reparse."
 ;;
 ;; Overload these functions to create new types of parsers.
 ;;
-(define-overload semantic-bovinate-region
-  (start end &optional parse-symbol depth returnonerror)
-  "Bovinate the area between START and END, and return any tokens found.
-If END needs to be extended due to a lexical token being too large,
-it will be silently ignored.
-Optional argument PARSE-SYMBOL is the rule to start parsing at if it
-is known. 
-Argument DEPTH specifies the lexical depth to decend for parser that
-use lexical analysis as their first step.
-RETURNONERROR specifies that parsing should stop on the first unmatched
-syntax encountered.  When nil, parsing skips the syntax, adding it to
-the unmatched syntax cache.
-This function returns tokens wich have been cooked (repositioned properly)
-but which DO NOT HAVE OVERLAYS associated with them.")
+(define-overload semantic-parse-stream (stream nonterminal)
+  "Parse STREAM, starting at the first NONTERMINAL rule.
+For bovine and wisent based parsers, STREAM is from the output of
+`semantic-lex', and NONTERMINAL is a rule in the apropriate language
+specific rules file.
+The default parser table used for bovine or wisent based parsers is
+`semantic-toplevel-bovine-table'.
 
-(define-overload semantic-bovinate-nonterminal (stream nonterminal)
-  "Parse a single new nonterminal from STREAM.
-Start using the rule NONTERMINAL.
-For bovine and wisent based parsers, STREAM is from the output
-of `semantic-lex', and NONTERMINAL is a rule in the apropriate
-language specific rules file.
-The default parser table used for bovine or wisent based parsers
-is `semantic-toplevel-bovine-table'.
-The return argument is a list consisting of:
-  (STREAM NONTERMINALTOKENS)
+Must return a list: (STREAM NONTERMINALTOKENS)
 where STREAM is the unused elements from STREAM, and NONTERMINALTOKENS
 is the list of nonterminals found, usually only one token is returned
 with the exception of compound statements")
 
+(define-overload semantic-parse-changes ()
+  "Reparse changes in the current buffer.
+The list of changes are tracked as a series of overlays in the buffer.
+When overloading this function, use `semantic-changes-in-region' to
+analyze.")
+
+(define-overload semantic-parse-region
+  (start end &optional nonterminal depth returnonerror)
+  "Parse the area between START and END, and return any tokens found.
+If END needs to be extended due to a lexical token being too large, it
+will be silently ignored.
+
+Optional arguments:
+NONTERMINAL is the rule to start parsing at. 
+DEPTH specifies the lexical depth to decend for parser that use
+lexical analysis as their first step.
+RETURNONERROR specifies that parsing should stop on the first
+unmatched syntax encountered.  When nil, parsing skips the syntax,
+adding it to the unmatched syntax cache.
+
+Must return a list of tokens wich have been cooked (repositioned
+properly) but which DO NOT HAVE OVERLAYS associated with them.  When
+overloading this function, use `semantic-raw-to-cooked-token' to cook
+tokens.")
+
+;;;###autoload
+(defun semantic-parse-region-default
+  (start end &optional nonterminal depth returnonerror)
+  "Parse the area between START and END, and return any tokens found.
+If END needs to be extended due to a lexical token being too large, it
+will be silently ignored.
+Optional arguments:
+NONTERMINAL is the rule to start parsing at if it is known.
+DEPTH specifies the lexical depth to scan.
+RETURNONERROR specifies that parsing should end when encountering
+unterminated syntax."
+  (if (or (< end start) (> end (point-max)))
+      (error "Invalid bounds passed to `semantic-parse-region'"))
+  (let ((lexbits (semantic-lex start end depth))
+	tokens)
+    ;; Init a dump
+    ;;    (if semantic-dump-parse
+    ;;	      (semantic-dump-buffer-init))
+    (setq tokens (semantic-repeat-parse-whole-stream
+                  lexbits nonterminal depth returnonerror))
+    (nreverse tokens)))
 
 ;;; Tokens and Overlays
 ;;
@@ -731,11 +761,11 @@ a list of cooked tokens."
 ;; Iterative parsers are better than rule-based iterative functions
 ;; in that they can handle obscure errors more cleanly.
 ;;
-;; `semantic-bovinate-nonterminals' abstracts this action for other
-;; parser centric routines.
+;; `semantic-repeat-parse-whole-stream' abstracts this action for
+;; other parser centric routines.
 ;;
-(defun semantic-bovinate-nonterminals (stream nonterm &optional
-					      depth returnonerror)
+(defun semantic-repeat-parse-whole-stream
+  (stream nonterm &optional depth returnonerror)
   "Bovinate the entire stream STREAM starting with NONTERM.
 DEPTH is optional, and defaults to 0.
 Optional argument RETURNONERROR indicates that the parser should exit
@@ -746,8 +776,7 @@ This function returns tokens with overlays."
 	(case-fold-search semantic-case-fold)
         nontermsym token)
     (while stream
-      (setq nontermsym (semantic-bovinate-nonterminal
-                        stream nonterm)
+      (setq nontermsym (semantic-parse-stream stream nonterm)
             token (car (cdr nontermsym)))
       (if (not nontermsym)
           (error "Parse error @ %d" (car (cdr (car stream)))))
@@ -825,7 +854,7 @@ The return list is a lambda expression to be used in a bovine table."
 ;;
 (defsubst semantic-bovinate-region-until-error
   (start end nonterm &optional depth)
-  "NOTE: Use `semantic-bovinate-region' instead.
+  "NOTE: Use `semantic-parse-region' instead.
 
 Bovinate between START and END starting with NONTERM.
 Optional DEPTH specifies how many levels of parenthesis to enter.
@@ -834,18 +863,17 @@ the list of everything found until that moment.
 This is meant for finding variable definitions at the beginning of
 code blocks in methods.  If `bovine-inner-scope' can also support
 commands, use `semantic-bovinate-from-nonterminal-full'."
-  (semantic-bovinate-region start end nonterm depth t))
+  (semantic-parse-region start end nonterm depth t))
 
 (defsubst semantic-bovinate-from-nonterminal (start end nonterm
 						 &optional depth length)
   "Bovinate from within a nonterminal lambda from START to END.
-Depends on the existing environment created by `semantic-bovinate-stream'.
 Argument NONTERM is the nonterminal symbol to start with.
 Optional argument DEPTH is the depth of lists to dive into.
 When used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part.
 Optional argument LENGTH specifies we are only interested in LENGTH tokens."
-  (car-safe (cdr (semantic-bovinate-nonterminal
+  (car-safe (cdr (semantic-parse-stream
 		  (semantic-lex start end (or depth 1) length)
 		  nonterm))))
 
@@ -853,13 +881,12 @@ Optional argument LENGTH specifies we are only interested in LENGTH tokens."
 						      &optional depth)
   "Bovinate from within a nonterminal lambda from START to END.
 Iterates until all the space between START and END is exhausted.
-Depends on the existing environment created by `semantic-bovinate-stream'.
 Argument NONTERM is the nonterminal symbol to start with.
 If NONTERM is nil, use `bovine-block-toplevel'.
 Optional argument DEPTH is the depth of lists to dive into.
 When used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
-  (semantic-bovinate-region start end nonterm (or depth 1)))
+  (semantic-parse-region start end nonterm (or depth 1)))
 
 (provide 'semantic)
 
