@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98, 99, 00 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.10
+;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.162 2000/04/14 03:21:59 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.163 2000/04/22 20:05:03 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -4270,6 +4270,18 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
   ((:type xpm :file "sb-tag-.xpm"))
   "Image used for open tag groups.")
 
+(defimage-speedbar speedbar-tag-gt
+  ((:type xpm :file "sb-tag-gt.xpm"))
+  "Image used for open tag groups.")
+
+(defimage-speedbar speedbar-tag-v
+  ((:type xpm :file "sb-tag-v.xpm"))
+  "Image used for open tag groups.")
+
+(defimage-speedbar speedbar-tag-type
+  ((:type xpm :file "sb-tag-type.xpm"))
+  "Image used for open tag groups.")
+
 (defimage-speedbar speedbar-mail
   ((:type xpm :file "sb-mail.xpm"))
   "Image used for open tag groups.")
@@ -4283,7 +4295,12 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
     ("{+}" . speedbar-tag-+)
     ("{-}" . speedbar-tag--)
     ("<M>" . speedbar-mail)
+    (" =>" . speedbar-tag-)
+    (" +>" . speedbar-tag-gt)
+    (" ->" . speedbar-tag-v)
     (">" . speedbar-tag-)
+    ("@" . speedbar-tag-type)
+    ("  @" . speedbar-tag-type)
     )
   "List of text and image associations.")
 
@@ -4308,7 +4325,8 @@ If we have an image associated with it, use that image."
 					   'detachable t))
 	      (add-text-properties start (+ start (length bt))
 				   (list 'display (symbol-value (cdr a))
-					 'rear-nonsticky (list 'display))))))))
+					 'rear-nonsticky (list 'display))))
+	  (message "Bad text [%s]" (buffer-substring start (+ start length)))))))
 
 
 ;; some edebug hooks
