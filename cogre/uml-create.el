@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.5 2001/08/17 21:37:36 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.6 2001/08/17 21:52:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -151,6 +151,22 @@ location that is to be displayed."
 		 (const 'cogre-uml-source-display-top)
 		 ))
 
+(defcustom cogre-uml-browse-token-hook nil
+  "*Hooks run when a token is browsed by the COGRE graph.
+Each hook takes one argument, and one optional argument, the token
+being browsed too, and a containing parent token, if available.
+This is run when the token is first found, not during the actual
+browse.  The token will be under point when this hook is called.
+Changing window configurations is not recommended."
+  :group 'cogre
+  :type 'function
+  )
+
+(defun cogre-uml-browse-token-highlight-hook-fn (tok &optional parent)
+  "Momentarilly highlight TOK.  Ignore PARENT.
+Function useable by `cogre-uml-browse-token-hook'."
+  (semantic-momentary-highlight-token tok))
+
 (defmethod cogre-uml-source-marker ((class cogre-semantic-class) token)
   "Return a marker position for a CLASS containing TOKEN.
 This returned marker will be in the source file of the attribute,
@@ -160,19 +176,25 @@ method, or class definition.  nil if there is not match."
     (cond ((and token (semantic-token-with-position-p token))
 	   (setq p (save-excursion
 		     (semantic-find-nonterminal token)
-		     (semantic-momentary-highlight-token token)
+		     (run-hook-with-args
+		      'cogre-uml-browse-token-hook
+		      token)
 		     (point-marker))
 		 ))
 	  ((and token (semantic-token-with-position-p semc))
 	   (setq p (save-excursion
 		     (semantic-find-nonterminal token semc)
-		     (semantic-momentary-highlight-token token)
+		     (run-hook-with-args
+		      'cogre-uml-browse-token-hook
+		      token semc)
 		     (point-marker))
 		 ))
 	  ((and semc (semantic-token-with-position-p semc))
 	   (setq p (save-excursion
 		     (semantic-find-nonterminal semc)
-		     (semantic-momentary-highlight-token semc)
+		     (run-hook-with-args
+		      'cogre-uml-browse-token-hook
+		      semc)
 		     (point-marker))
 		 ))
 	  (t nil))
