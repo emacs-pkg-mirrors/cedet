@@ -544,6 +544,8 @@ finding a dependency file in Emacs lisp can be done with the
 a dependency can be found by searching a generic search path which can
 be passed in via a variable.
 
+For more on override methods, @ref{Semantic Overload Mechanism}.
+
 @menu
 * Format Tag::                  Converting Tokens into text strings
 * Tag Members::                 Tags in tags
@@ -776,12 +778,15 @@ path is most likely ignored.
 @end defvar
 
 @defun semantic-dependency-tag-file &optional tag
+@anchor{semantic-dependency-tag-file}
 Find the filename represented from @var{TAG}.
 Depends on @code{semantic-dependency-include-path} for searching.  Always searches
 @code{.} first, then searches additional paths.
+@obsolete{semantic-find-dependency,semantic-dependency-tag-file}
 @end defun
 
 @defun semantic-prototype-file buffer
+@anchor{semantic-prototype-file}
 Return a file in which prototypes belonging to @var{BUFFER} should be placed.
 Default behavior (if not overridden) looks for a token specifying the
 prototype file, or the existence of an @var{EDE} variable indicating which
@@ -789,12 +794,14 @@ file prototypes belong in.
 @end defun
 
 @defun semantic-go-to-tag &optional tag parent
+@anchor{semantic-go-to-tag}
 Go to the location of @var{TAG}.
 @var{TAG} may be a stripped element, in which case @var{PARENT} specifies a
 parent tag that has position information.
 Different behaviors are provided depending on the type of tag.
 For example, dependencies (includes) will seek out the file that is
-depended on (see @dfn{semantic-dependency-tag-file}..
+depended on (see @dfn{semantic-dependency-tag-file}.
+@obsolete{semantic-find-nonterminal,semantic-go-to-tag}
 @end defun
 
 @defun semantic-texi-find-documentation name &optional type
@@ -1261,6 +1268,7 @@ possible return value.
 At this time, there is only one type:
 
 @deffn Type semanticdb-project-database-emacs-lisp
+@anchor{semanticdb-project-database-emacs-lisp}
 Database representing Emacs core.
 @end deffn
 
