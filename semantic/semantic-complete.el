@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.31 2004/03/03 03:32:01 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.32 2004/03/28 01:33:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1209,6 +1209,9 @@ This object type doesn't do focus, so will never have a focus object."
 
 (defmethod semantic-displayor-show-request ((obj semantic-displayor-abstract))
   "A request to show the current tags table."
+
+  ;; NOTE TO SELF.  Find the character to type next, and emphesize it.
+
   (with-output-to-temp-buffer "*Completions*"
     (display-completion-list
      (mapcar semantic-completion-displayor-format-tag-function
