@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.61 2001/05/05 14:54:43 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.62 2001/05/07 11:22:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -993,16 +993,41 @@ COLOR indicates that the generated text should be colored using
   "A List used by customizeable variables to choose a token to text function.
 Use this variable in the :type field of a customizable variable.")
 
-(defun semantic-colorize-text (text face)
-  "Apply onto TEXT the FACE containing the desired colors."
-  (let ((newtext (concat text)))
+
+(defvar semantic-face-alist
+  `( (function . font-lock-function-name-face)
+     (variable . font-lock-variable-name-face)
+     (type . font-lock-type-face)
+     ;; These are different between Emacsen.
+     (include . ,(if (featurep 'xemacs)
+		     'font-lock-preprocessor-face
+		   'font-lock-constant-face))
+     (package . ,(if (featurep 'xemacs)
+		     'font-lock-preprocessor-face
+		   'font-lock-constant-face))
+     ;; Not a token, but instead a feature of output
+     (label . font-lock-string-face)
+     (comment . font-lock-comment-face)
+     )
+  "Face used to colorize tokens of different types.
+Override the value locally if a language supports other token types.
+Faces used are generated in `font-lock' for consistency, and will not
+be used unless font lock is a feature.")
+
+;;; Coloring Functions
+(defun semantic-colorize-text (text face-class)
+  "Apply onto TEXT a color associated with FACE-CLASS.
+FACE-CLASS is a token type returned by the parser."
+  (let ((face (cdr-safe (assoc face-class semantic-face-alist)))
+	(newtext (concat text)))
     (put-text-property 0 (length text) 'face face newtext)
     newtext)
   )
 
+;;; The token->text functions
 (defun semantic-name-nonterminal (token &optional parent color)
   "Return the name string describing TOKEN.
-The name is the short est possible representation.
+The name is the shortest possible representation.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let ((s (semantic-fetch-overload 'name-nonterminal))
@@ -1017,23 +1042,9 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   "Return an abbreviated string describing TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  ;; Do lots of complex stuff here.
-  (let ((tok (semantic-token-token token))
-	(name (semantic-token-name token))
-	(face nil)
-	)
-    (cond ((eq tok 'function)
-	   (setq face font-lock-function-name-face))
-	  ((eq tok 'include)
-	   (setq face font-lock-constant-face))
-	  ((eq tok 'variable)
-	   (setq face font-lock-variable-name-face))
-	  ((eq tok 'type)
-	   (setq face font-lock-type-face))
-	  ((eq tok 'provide)
-	   (setq face font-lock-constant-face))
-	  )
-    (if color (setq name (semantic-colorize-text name face)))
+  (let ((name (semantic-token-name token)))
+    (if color
+	(setq name (semantic-colorize-text name (semantic-token-token token))))
     name))
 
 (defun semantic-abbreviate-nonterminal (token &optional parent color)
@@ -1101,13 +1112,15 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 				     semantic-symbol->name-assoc-list))
 		    (symbol-name (semantic-token-token token))))))
     (if color
-	(setq label (semantic-colorize-text label font-lock-string-face)))
+	(setq label (semantic-colorize-text label 'label)))
     (concat label ": " proto))
   )
 
 (defun semantic-prototype-nonterminal (token &optional parent color)
   "Return a prototype for TOKEN.
-This functin must be overloaded, though it need not be used.
+This function should be overloaded, though it need not be used.
+This is because it can be used to create code by language independent
+tools.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let ((s (semantic-fetch-overload 'prototype-nonterminal)))
@@ -1127,8 +1140,7 @@ COLOR specifies if these arguments should be colored or not."
       (cond ((stringp (car args))
 	     (let ((a (car args)))
 	       (if color
-		   (setq a (semantic-colorize-text
-			    a font-lock-variable-name-face)))
+		   (setq a (semantic-colorize-text a 'variable)))
 	       (setq out (cons a out))
 	       ))
 	    ((semantic-token-p (car args))
@@ -1173,9 +1185,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
     (if (and (listp mods) mods)
 	(setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
     (if (and mods color)
-	(setq mods (semantic-colorize-text
-		    mods
-		    font-lock-type-face)))
+	(setq mods (semantic-colorize-text mods 'type)))
     (if args
 	(setq args
 	      (concat " "
@@ -1188,7 +1198,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	  (if (listp type)
 	      (setq type (car type)))
 	  (if color
-	      (setq type (semantic-colorize-text type font-lock-type-face)))))
+	      (setq type (semantic-colorize-text type 'type)))))
     (concat (or mods "")
 	    (if type (concat type " "))
 	    name
@@ -1197,7 +1207,6 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 
 (defun semantic-concise-prototype-nonterminal (token &optional parent color)
   "Return a concise prototype for TOKEN.
-This function must be overloaded, though it need not be used.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let ((s (semantic-fetch-overload 'concise-prototype-nonterminal)))
@@ -1207,7 +1216,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 
 (defun semantic-concise-prototype-nonterminal-default (token &optional parent color)
   "Return a concise prototype for TOKEN.
-This default cococt a cheap concise prototype using C like syntax.
+This default function will make a cheap concise prototype using C like syntax.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let ((tok (semantic-token-token token)))
@@ -1223,7 +1232,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 			   (mapconcat
 			    (if color
 				(lambda (a) (semantic-colorize-text
-					     a font-lock-variable-name-face))
+					     a 'variable))
 			      'identity)
 			    args ","))
 			  ((semantic-token-p (car args))
@@ -1231,16 +1240,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 			    (lambda (a)
 			      (let ((ty (semantic-token-type a)))
 				(cond ((and (stringp ty) color)
-				       (semantic-colorize-text
-					ty font-lock-type-face))
+				       (semantic-colorize-text ty 'type))
 				      ((stringp ty)
 				       ty)
 				      ((semantic-token-p ty)
 				       (semantic-prototype-nonterminal
 					ty parent nil))
 				      ((and (consp ty) color)
-				       (semantic-colorize-text
-					(car ty) font-lock-type-face))
+				       (semantic-colorize-text (car ty) 'type))
 				      ((consp ty)
 				       (car ty))
 				      (t (error "Concice-prototype")))))
@@ -1249,8 +1256,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 			   (mapconcat
 			    (if color
 				(lambda (a)
-				  (semantic-colorize-text
-				   (car a) font-lock-type-face))
+				  (semantic-colorize-text (car a) 'type))
 			      'car)
 			    args ","))
 			  (t (error "Concice-prototype")))
@@ -1272,7 +1278,6 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 
 (defun semantic-uml-abbreviate-nonterminal (token &optional parent color)
   "Return a UML style abbreviation for TOKEN.
-This function must be overloaded, though it need not be used.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let ((s (semantic-fetch-overload 'uml-abbreviate-nonterminal)))
@@ -1282,7 +1287,6 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 
 (defun semantic-uml-abbreviate-nonterminal-default (token &optional parent color)
   "Return a UML style abbreviation for TOKEN.
-This default cococt a cheap concise prototype using C like syntax.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((tok (semantic-token-token token))
@@ -1296,7 +1300,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	  (if (listp type)
 	      (setq type (car type)))
 	  (if color
-	      (setq type (semantic-colorize-text type font-lock-type-face)))))
+	      (setq type (semantic-colorize-text type 'type)))))
     (if type
 	(concat name ":" type)
       name)
