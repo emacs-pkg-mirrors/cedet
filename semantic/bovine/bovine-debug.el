@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: bovine-debug.el,v 1.2 2003/03/13 02:23:14 zappo Exp $
+;; X-RCS: $Id: bovine-debug.el,v 1.3 2003/04/05 15:53:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,7 +94,7 @@ LEXTOKEN, is a token returned by the lexer which is being matched."
 	)
     ;; Make sure we get a good rule name, and that it is a string
     (if (and (eq nonterm 'bovine-toplevel) start)
-	(setq nonterm (semantic-token-name (car start)))
+	(setq nonterm (semantic-tag-name (car start)))
       (setq nonterm (symbol-name nonterm)))
 
     (semantic-debug-highlight-rule semantic-debug-current-interface
