@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.11 2000/12/11 07:07:09 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.12 2000/12/11 14:05:06 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -92,6 +92,14 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.12  2000/12/11 14:05:06  david_ponce
+;; Code cleanup and optimization.
+;; `senator-next-token' and `senator-previous-token' now correctly work
+;; when not binded to keyboard shortcuts.
+;; `beginning-of-defun' and `end-of-defun' advices no more need to be
+;; called interactively.  So `narrow-to-defun' can use these advices when
+;; `senator-minor-mode' is enabled.
+;;
 ;; Revision 1.11  2000/12/11 07:07:09  david_ponce
 ;; Applied Eric Ludlam's patch.  It adds a special face for senator to
 ;; use for momentary highlight (requires latest semantic-util.el).  If
@@ -247,36 +255,42 @@ is bellow 1.3."
        (not (memq (semantic-token-token token)
                   senator-step-at-token-ids))))
 
-(defun senator-find-previous-token-aux (tokens pos &optional prev)
-  "Visit TOKENS and return the token just before POS.
-Optional PREV is the previous visited token.  This is an helper
-function for `senator-find-previous-token'."
+(defun senator-find-token-before (tokens pos comp &optional prev)
+  "Visit TOKENS and return the last one found at or before POS.
+COMP is the function used to compare a current visited token start
+position to POS.  That is `>=' to return the token before POS or `>'
+to return the token at or before POS.  PREV is the last token found or
+nil."
   (let (token)
     (while tokens
       (setq token (car tokens))
-      (if (>= (semantic-token-start token) pos)
+      (if (funcall comp (semantic-token-start token) pos)
           (throw 'found prev))
       (or (senator-skip-p token)
           (setq prev token))
       (if (eq (semantic-token-token token) 'type)
-          (setq prev (senator-find-previous-token-aux
-                      (semantic-token-type-parts token) pos prev)))
+          (setq prev (senator-find-token-before
+                      (semantic-token-type-parts token) pos comp prev)))
       (setq tokens (cdr tokens)))
     prev))
 
 (defun senator-find-previous-token (tokens pos)
-  "Visit TOKENS and return the token just before POS."
-  (catch 'found (senator-find-previous-token-aux tokens pos)))
+  "Visit TOKENS and return the token before POS."
+  (catch 'found (senator-find-token-before tokens pos #'>=)))
+
+(defun senator-find-last-token (tokens pos)
+  "Visit TOKENS and return the token at or before POS."
+  (catch 'found (senator-find-token-before tokens pos #'>)))
 
 (defun senator-find-next-token (tokens pos)
-  "Visit TOKENS and return the token at or just after POS."
+  "Visit TOKENS and return the token after POS."
   (let (token found)
     (while (and tokens (not found))
       (setq token (car tokens))
       (if (and (not (senator-skip-p token))
                (or (and (senator-step-at-start-end-p token)
                         (> (semantic-token-end token) pos))
-                   (>= (semantic-token-start token) pos)))
+                   (> (semantic-token-start token) pos)))
           (setq found token)
         (if (eq (semantic-token-token token) 'type)
             (setq found (senator-find-next-token
@@ -307,32 +321,17 @@ beginning of the name use (match-beginning 0)."
                            name)))
                        (semantic-token-end token))))
 
-(defun senator-search-previous-token ()
-  "Return the semantic token before the point or nil if not found."
-  (let ((tokens (senator-parse)))
-    (senator-find-previous-token tokens (point))))
-
-(defun senator-search-next-token (&optional from-previous)
-  "Return the semantic token after the point or nil if not found.
-If optional FROM-PREVIOUS is non-nil start searching from token before
-the point."
-  (let ((tokens (senator-parse)))
-    (if from-previous
-        (let ((found (senator-find-previous-token tokens (point))))
-          (if found
-              (goto-char (semantic-token-start found))
-            (goto-char (point-min)))))
-    (senator-find-next-token tokens (point))))
-
 (defun senator-search-forward-raw (searcher what &optional bound noerror count)
   "Use SEARCHER to search WHAT in semantic tokens after point.
 See `search-forward' for the meaning of BOUND NOERROR and COUNT.
 BOUND and COUNT are just ignored in the current implementation."
   (let ((origin (point))
+        (tokens (senator-parse))
         (senator-step-at-start-end-token-ids nil)
         token pos start limit)
     (save-excursion
-      (setq token (senator-search-next-token t))
+      (setq token (or (senator-find-last-token tokens origin)
+                      (senator-find-next-token tokens origin)))
       (while (and token (not pos))
         (setq limit (senator-search-token-name token))
         (setq start (match-beginning 0))
@@ -343,8 +342,7 @@ BOUND and COUNT are just ignored in the current implementation."
         (if (and pos (>= (match-beginning 0) origin))
             nil
           (setq pos nil)
-          (forward-char)
-          (setq token (senator-search-next-token)))))
+          (setq token (senator-find-next-token tokens (point))))))
     (if pos
         (goto-char start)
       (setq limit (point)))
@@ -356,10 +354,11 @@ See `search-backward' for the meaning of BOUND NOERROR and
 COUNT.  BOUND and COUNT are just ignored in the current
 implementation."
   (let ((origin (point))
+        (tokens (senator-parse))
         (senator-step-at-start-end-token-ids nil)
         token pos start limit)
     (save-excursion
-      (setq token (senator-search-previous-token))
+      (setq token (senator-find-previous-token tokens origin))
       (while (and token (not pos))
         (setq start (senator-search-token-name token))
         (setq limit (match-beginning 0))
@@ -371,7 +370,7 @@ implementation."
             nil
           (setq pos nil)
           (goto-char (semantic-token-start token))
-          (setq token (senator-search-previous-token)))))
+          (setq token (senator-find-previous-token tokens (point))))))
     (if pos
         (goto-char start)
       (setq limit (point)))
@@ -389,9 +388,6 @@ Return the semantic token or nil if at end of buffer."
   (let ((pos    (point))
         (tokens (senator-parse))
         found where)
-    (if (memq last-command
-              '(senator-previous-token senator-next-token))
-        (forward-char))
     (setq found (senator-find-next-token tokens (point)))
     (if (not found)
         (progn
@@ -420,8 +416,6 @@ Return the semantic token or nil if at beginning of buffer."
   (let ((pos    (point))
         (tokens (senator-parse))
         found where)
-    (if (eq last-command 'senator-previous-token)
-        (backward-char))
     (setq found (senator-find-previous-token tokens (point)))
     (if (not found)
         (progn
@@ -816,16 +810,18 @@ Return non-nil if the minor mode is enabled.
 
 (defadvice beginning-of-defun (around senator activate)
   "If semantic tokens are available, use them to navigate."
-  (if (and senator-minor-mode (interactive-p))
-      (let ((senator-step-at-start-end-token-ids nil)
+  (if senator-minor-mode
+      (let ((senator-highlight-found nil)
+            (senator-step-at-start-end-token-ids nil)
             (senator-step-at-token-ids '(function)))
         (senator-previous-token))
     ad-do-it))
 
 (defadvice end-of-defun (around senator activate)
   "If semantic tokens are available, use them to navigate."
-  (if (and senator-minor-mode (interactive-p))
-      (let* ((senator-step-at-start-end-token-ids '(function))
+  (if senator-minor-mode
+      (let* ((senator-highlight-found nil)
+             (senator-step-at-start-end-token-ids '(function))
              (senator-step-at-token-ids '(function))
              (token (senator-next-token)))
         (when (and token
