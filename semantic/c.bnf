@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.40 2001/08/18 04:06:50 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.41 2001/09/12 04:42:54 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,12 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.41  2001/09/12 04:42:54  zappo
+# (var-or-func-decl): Change to host multiple postfix fcn modifiers, and
+# initializers.
+# (opt-reentrant): deleted
+# (opt-initializers, opt-post-fcn-modifiers, post-fcn-modifiers): New rules
+#
 # Revision 1.40  2001/08/18 04:06:50  zappo
 # Fixed the inclusion of * in variables and functions.
 #
@@ -454,20 +460,33 @@ var-or-fun : declmods typeformbase opt-ref var-or-func-decl
 	   ;
 
 var-or-func-decl : opt-stars opt-class opt-destructor functionname arg-list 
-		   opt-reentrant opt-throw
+		   opt-post-fcn-modifiers
+		   opt-throw
+		   opt-initializers
 		   fun-or-proto-end
 		   ( ,$4 'function 
 			 ;; Extra stuff goes in here.
 			 ;; Continue with the stuff we found in
 			 ;; this definition
-			$2 $3 $5 $7 $6 ,$1)
+			$2 $3 $5 $7 ,$6 ,$1 ,$9)
 		 | varnamelist  SEMICOLON
 		   ( $1 'variable )
 		 ;
 
-opt-reentrant : REENTRANT
-	      | EMPTY
-	      ;
+opt-initializers: COLON symbol semantic-list opt-initializers
+		| COMA symbol semantic-list opt-initializers
+		| EMPTY
+		;
+
+opt-post-fcn-modifiers : post-fcn-modifiers opt-post-fcn-modifiers
+			 ( ,(cons ,$1 $2) )
+		       | EMPTY
+			 ( nil )
+		       ;
+
+post-fcn-modifiers : REENTRANT
+		   | CONST
+		   ;
 
 opt-throw : THROW semantic-list
 	     ( EXPAND $2 throw-exception-list )
