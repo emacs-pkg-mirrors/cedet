@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.5 2001/09/20 11:49:57 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.6 2001/09/21 14:31:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -229,6 +229,7 @@ that, otherwise, do a full reparse."
   (cond
    ;; Partial reparse
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
+    (garbage-collect)
     (let* ((gc-cons-threshold 10000000)
            (changes (semantic-remove-dirty-children)))
       ;; We have a cache, and some dirty tokens
@@ -253,6 +254,7 @@ that, otherwise, do a full reparse."
    
    ;; Full parse
    ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
+    (garbage-collect)
     ;; Reparse the whole system
     (let ((gc-cons-threshold 10000000)
           (semantic-flex-depth wisent-flex-depth)
