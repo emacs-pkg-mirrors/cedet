@@ -1,9 +1,9 @@
-;; Skeleton for creating BNF files.
+;; Skeleton for creating BY files.
 ;;
 ;; Copyright (C) 2001, 2003 Eric M. Ludlam
 ;;
 ;; Author: 
-;; X-RCS: $Id: skeleton.by,v 1.1 2003/02/02 02:03:48 zappo Exp $
+;; X-RCS: $Id: skeleton.by,v 1.2 2003/02/02 02:07:57 zappo Exp $
 ;;
 ;; .bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -66,6 +66,7 @@
 ;; This does not effect lexical analysis or accuracy,
 ;; but does make your file more readable.
 %token <punctuation> PERIOD "\\b[.]\\b"
+%token <punctuation> OPERATORS "[-+*/%^|&]"
 
 starting_rule : something
 	      ;
@@ -93,6 +94,6 @@ expression : number
 	     ( )
            | semantic-list
 	     ( )
-	   | punctuation "[-+*/%^|&]" expression
+	   | OPERATORS expression
 	   ;; ( nil )
 	   ;
