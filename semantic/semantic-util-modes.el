@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.2 2001/10/03 00:55:45 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.3 2001/10/05 02:11:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -312,9 +312,39 @@ This will highlight elements in SYNTAX as unmatched-syntax."
       )
     (setq syntax (cdr syntax))))
 
+(defun semantic-next-unmatched-syntax (point &optional bound)
+  "Find the next overlay for unmatched syntax after POINT.
+Do not search past BOUND if non-nil."
+  (save-excursion
+    (goto-char point)
+    (let ((os point) (ol nil))
+      (while (and os (< os (or bound (point-max))) (not ol))
+	(setq os (semantic-overlay-next-change os))
+	(when os
+	  ;; Get overlays at position
+	  (setq ol (semantic-overlays-at os))
+	  ;; find the overlay that belongs to semantic
+	  ;; and starts at the found position.
+	  (while (and ol (listp ol))
+	    (if (and (semantic-overlay-get (car ol) 'semantic)
+		     (eq (semantic-overlay-get (car ol) 'semantic) 'unmatched)
+		     (= (semantic-overlay-start (car ol)) os))
+		(setq ol (car ol)))
+	    (when (listp ol) (setq ol (cdr ol))))))
+      ol)))
+
 (defun semantic-clean-unmatched-syntax-in-region (beg end)
   "Remove all unmatched syntax overlays between BEG and END."
-  )
+  (let ((ol (semantic-overlays-in beg end)))
+    (while ol
+      (if (equal (semantic-overlay-get (car ol) 'semantic) 'unmatched)
+	  (semantic-overlay-delete (car ol)))
+      (setq ol (cdr ol)))))
+
+(defun semantic-clean-token-of-unmatched-syntax (token)
+  "Clean the area covered by TOKEN of unmatched syntax markers."
+  (semantic-clean-unmatched-syntax-in-region
+   (semantic-token-start token) (semantic-token-end token)))
 
 (defun semantic-hide-unmatched-syntax ()
   "Un-highlight unmatched-syntax elements.
@@ -330,8 +360,9 @@ That is delete unmatched-syntax overlays found in current buffer."
 
 (defvar semantic-show-unmatched-syntax-mode-map
   (let ((km (make-sparse-keymap)))
+    (define-key km "\C-c,`" 'semantic-show-unmatched-syntax-next)
     km)
-  "Keymap for `semantic-show-unmatched-syntax-mode'.")
+  "Keymap for command `semantic-show-unmatched-syntax-mode'.")
 
 (defvar semantic-show-unmatched-syntax-mode nil
   "Non-nil if show-unmatched-syntax minor mode is enabled.
@@ -356,6 +387,9 @@ minor mode is enabled."
         (make-local-hook 'semantic-unmatched-syntax-hook)
         (add-hook 'semantic-unmatched-syntax-hook
                   'semantic-show-unmatched-syntax nil t)
+	(make-local-hook 'semantic-pre-clean-token-hooks)
+	(add-hook 'semantic-pre-clean-token-hooks
+		  'semantic-clean-token-of-unmatched-syntax nil t)
         ;; Parse the current buffer if needed
         (or (semantic-showing-unmatched-syntax-p)
             (condition-case nil
@@ -369,6 +403,8 @@ semantic-show-unmatched-syntax-mode: parsing of buffer canceled.")))
     ;; Remove hooks
     (remove-hook 'semantic-unmatched-syntax-hook
                  'semantic-show-unmatched-syntax t)
+    (remove-hook 'semantic-pre-clean-token-hooks
+		 'semantic-clean-token-of-unmatched-syntax t)
     ;; Cleanup unmatched-syntax highlighting
     (semantic-hide-unmatched-syntax))
   semantic-show-unmatched-syntax-mode)
@@ -405,6 +441,13 @@ minor mode is enabled.
 (semantic-add-minor-mode 'semantic-show-unmatched-syntax-mode
                          ""
                          semantic-show-unmatched-syntax-mode-map)
+
+(defun semantic-show-unmatched-syntax-next ()
+  "Move forward to the next occurance of unmatched syntax."
+  (interactive)
+  (let ((o (semantic-next-unmatched-syntax (point))))
+    (if o
+	(goto-char (semantic-overlay-start o)))))
 
 (provide 'semantic-util-modes)
 
