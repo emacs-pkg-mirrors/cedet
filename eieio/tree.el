@@ -1,81 +1,83 @@
-;;; tree.el - Draw a tree with text characters an manipulate it.
-;;;
-;;; Copyright (C) 1996 Eric M. Ludlam
-;;;
-;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.3
-;;; RCS: $Id: tree.el,v 1.6 1997/01/24 01:18:52 zappo Exp $
-;;; Keywords: OO, tree                                           
-;;;                                                                          
-;;; This program is free software; you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 2, or (at your option)
-;;; any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program; if not, you can either send email to this
-;;; program's author (see below) or write to:
-;;;
-;;;              The Free Software Foundation, Inc.
-;;;              675 Mass Ave.
-;;;              Cambridge, MA 02139, USA. 
-;;;
-;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
-;;;
-;;; Tree can be found in the eieio distribution on:
-;;;  ftp://ftp.ultranet.com/pub/zappo
-;;;
+;;; tree.el --- Draw a tree with text characters an manipulate it.
+
+;;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;
+;; Author: <zappo@gnu.org>
+;; Version: 0.3
+;; RCS: $Id: tree.el,v 1.7 1998/10/27 19:12:55 zappo Exp $
+;; Keywords: OO, tree
+;;                                                                          
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, you can either send email to this
+;; program's author (see below) or write to:
+;;
+;;              The Free Software Foundation, Inc.
+;;              675 Mass Ave.
+;;              Cambridge, MA 02139, USA.
+;;
+;; Please send bug reports, etc. to zappo@gnu.org
+;;
+;; Tree can be found in the eieio distribution on:
+;;  ftp://ftp.ultranet.com/pub/zappo
+
 ;;; Commentary:
-;;;   Many new IDEs provide a tree of some structure-or-other to express the
-;;; structural organization of data.  This is a feature lacking in emacs,
-;;; and this is some code to provide that functionality.
-;;;
-;;;  The interactive command `tree-test-it-all' will display a demo tree,
-;;; and `directory-tree-thing' will display a directory hierarchy from
-;;; the default directory of the current buffer.
-;;;
-;;; You can access general tree commands to play with this mode using
-;;; the functions:
-;;; tree-test-it-all  - bogus data that lets you see how tree-mode works
-;;; eieio-class-tree  - show all currently defined eieio classes and
-;;;                     their current inheritance organization
-;;; directory-tree-thing - Draw a tree corresponding to the current
-;;;                     directory.
-;;; 
-;;; In all tree modes: 
-;;; RET & mouse-1
-;;;       will select a node: usually printing something simple in the
-;;;       minibuffer.
-;;; e & mouse-2
-;;;       will edit a node: bring up a file/directory/editor for that
-;;;       object.
-;;; x & mouse-3
-;;;       expand or deflate a node and it's children.  Shrunken nodes
-;;;       will have elipses `...' in them to indicate that more data
-;;;       could be expanded.
-;;;
-;;; Creating a new tree mode:
-;;; 1) Look at an example
-;;; 2) Create a new tree-node class and add whatever slots you need
-;;; 3) Create a place to make a tree with `tree-new-buffer'
-;;; 4) Set root of tree ith `tree-set-root'
-;;; 5) Add nodes ass you see fit with `tree-add-child'
-;;; 6) Draw the tree with `tree-refresh-tree'
-;;; 7) Modify select, edit, and change-scope to do whatever you need.   
-;;;
-;;; REQUIRES: emacs 19.30 or better and eieio
+;;   Many new IDEs provide a tree of some structure-or-other to express the
+;; structural organization of data.  This is a feature lacking in Emacs,
+;; and this is some code to provide that functionality.
+;;
+;;  The interactive command `tree-test-it-all' will display a demo tree,
+;; and `directory-tree-thing' will display a directory hierarchy from
+;; the default directory of the current buffer.
+;;
+;; You can access general tree commands to play with this mode using
+;; the functions:
+;; tree-test-it-all  - bogus data that lets you see how tree-mode works
+;; eieio-class-tree  - show all currently defined eieio classes and
+;;                     their current inheritance organization
+;; directory-tree-thing - Draw a tree corresponding to the current
+;;                     directory.
+;; 
+;; In all tree modes:
+;; RET & mouse-1
+;;       will select a node: usually printing something simple in the
+;;       minibuffer.
+;; e & mouse-2
+;;       will edit a node: bring up a file/directory/editor for that
+;;       object.
+;; x & mouse-3
+;;       expand or deflate a node and it's children.  Shrunken nodes
+;;       will have elipses `...' in them to indicate that more data
+;;       could be expanded.
+;;
+;; Creating a new tree mode:
+;; 1) Look at an example
+;; 2) Create a new tree-node class and add whatever slots you need
+;; 3) Create a place to make a tree with `tree-new-buffer'
+;; 4) Set root of tree ith `tree-set-root'
+;; 5) Add nodes ass you see fit with `tree-add-child'
+;; 6) Draw the tree with `tree-refresh-tree'
+;; 7) Modify select, edit, and change-scope to do whatever you need.
+;;
+;; REQUIRES: Emacs 19.30 or better and eieio
 
 ;; requires emacs 19 with arbitrary text-properties
+
 (require 'eieio)
 
 ;;;
-;;; Variable definitions
-;;;
+;; Variable definitions
+
+;;; Code:
 (defvar tree-map nil "Keymap used in tree mode.")
 (if tree-map
     ()
@@ -97,7 +99,7 @@
 (defconst tree-horizontal-char "-")
 
 (defvar tree-root-node nil
-  "The root node of a tree in a given tree buffer")
+  "The root node of a tree in a given tree buffer.")
 (make-variable-buffer-local 'tree-root-node)
 
 (defvar tree-buffer-mode 'tree-center-box-1
@@ -107,18 +109,17 @@ Valid values are:
 'tree-center-box-1 - nodes are boxed w/ 1 line of text in center of region
                      this is default if this value is unknown
 'tree-top-box-1    - nodes are boxed w/ 1 line of text @ top of region
-'tree-bottom-box-1 - nodes are boxed w/ 1 line of text @ bottom of region
-")
+'tree-bottom-box-1 - nodes are boxed w/ 1 line of text @ bottom of region")
 (make-variable-buffer-local 'tree-buffer-mode)
 
 (defvar tree-face 'bold
-  "Face used inside tree-boxes")
+  "Face used inside tree-boxes.")
 
 ;;;
-;;; Mode management
-;;;
+;; Mode management
+;;
 (defun tree-mode ()
-  "Takes the current buffer, and initializes tree mode upon it."
+  "Takes the current buffer, and initialize tree mode upon it."
   (kill-all-local-variables)
   (use-local-map tree-map)
   (setq major-mode 'tree-mode
@@ -133,16 +134,16 @@ Valid values are:
 )
 
 (defun tree-new-buffer (name)
-  "Create a new buffer called NAME in which we will display some tree
-type things.  Returns the newly created buffer"
+  "Create a buffer called NAME to display some tree type things.
+Return the newly created buffer."
   (save-excursion
     (set-buffer (get-buffer-create name))
     (tree-mode)
     (current-buffer)))
 
 (defun tree-new-frame (name)
-  "Create a new frame called NAME and return it which is set up to use
-handle graphic characters.  Returns the newly created frame"
+  "Create a new frame NAME and set it up to use graphic characters.
+Returns the newly created frame"
   (let ((nf (make-frame (list
 			 (cons 'name name)
 			 '(height . 30)
@@ -159,8 +160,8 @@ handle graphic characters.  Returns the newly created frame"
     nf))
 
 ;;;
-;;; display management
-;;;
+;; display management
+;;
 (defun tree-refresh-tree ()
   "Refresh the tree structure which is currently active in this buffer."
   (message "Refreshing tree...")
@@ -176,31 +177,34 @@ handle graphic characters.  Returns the newly created frame"
 
 (defun tree-draw-node (node first last width toprow leftmargin)
   "Draw the single NODE and it's children at a correct estimated position.
-Really calls a function based upon `tree-buffer-mode'."
+Really calls a function based upon `tree-buffer-mode'.
+FIRST LAST WIDTH TOPROW and LEFTMARGIN are passed along."
   (funcall tree-buffer-mode node first last width toprow leftmargin))
 
 (defun tree-center-box-1 (node first last width toprow leftmargin)
-  "As `tree-draw-node' except that we draw 1-line text w/ a box around it
-and in a the node centered in the allocated space"
+  "As `tree-draw-node' except that we draw 1-line text w/ a box around it.
+NODE FIRST LAST WIDTH TOPROW and LEFTMARGIN are passed along."
   (tree-box-1 node first last width toprow leftmargin 'center))
 
 (defun tree-top-box-1 (node first last width toprow leftmargin)
-  "As `tree-draw-node' except that we draw 1-line text w/ a box around it
-and in a the node centered in the allocated space"
+  "As `tree-draw-node' except that we draw 1-line text w/ a box around it.
+NODE FIRST LAST WIDTH TOPROW and LEFTMARGIN are passed along."
   (tree-box-1 node first last width toprow leftmargin 'top))
 
 (defun tree-bottom-box-1 (node first last width toprow leftmargin)
-  "As `tree-draw-node' except that we draw 1-line text w/ a box around it
-and in a the node centered in the allocated space"
+  "As `tree-draw-node' except that we draw 1-line text w/ a box around it.
+NODE FIRST LAST WIDTH TOPROW and LEFTMARGIN are passed along."
   (tree-box-1 node first last width toprow leftmargin 'bottom))
 
 (defun tree-box-1 (node first last width toprow leftmargin &optional pos)
-  "Draw a single NODE and it's children at a correct estimated
-position.  WIDTH specifies how much space this row will take. TOPROW
-specifies what row this node starts at, and LEFTMARGIN specifies how
-far out on the left this node can draw itself."
+  "Draw a single NODE and it's children at a correct estimated position.
+FIRST and LAST are not used.  WIDTH specifies how much space this row
+will take.  TOPROW specifies what row this node starts at, and
+LEFTMARGIN specifies how far out on the left this node can draw
+itself.
+Optional argument POS is a postion."
   (let* ((h (oref node height))
-	 (tpos 
+	 (tpos
 	  (cond ((eq pos 'center) (- (/ h 2) 1))
 		((eq pos 'top) 0)
 		((eq pos 'bottom) (- h 3))
@@ -264,8 +268,7 @@ far out on the left this node can draw itself."
   ))
 
 (defun tree-goto-xy (x y)
-  "Move cursor to position X Y in buffer, and add spaces and CRs if
-needed."
+  "Move cursor to position X Y in buffer, and add spaces and CRs if needed."
   (let ((indent-tabs-mode nil)
 	(num (goto-line y)))
     (if (and (= 0 num) (/= 0 (current-column))) (newline 1))
@@ -275,8 +278,8 @@ needed."
 
 
 ;;;
-;;; Tree data-structure management
-;;;
+;; Tree data-structure management
+;;
 (defclass tree-node ()
   ((name :initarg :name
 	 :initform nil)
@@ -315,23 +318,23 @@ needed."
 	)))
 
 (defun tree-set-root (node)
-  "Create a new tree node with the specified name, and make it the root"
+  "Create a new tree NODE with the specified name, and make it the root."
   (setq tree-root-node node)
   )
 
 (defun tree-new-node (name)
-  "Create a new tree node with specified text NAME"
+  "Create a new tree node with specified text NAME."
   (tree-node name :name name))
 
 (defun tree-add-child (parent child)
-  "Add to PARENT tree-node the tree-node CHILD.  Returns child to aid
-in building quick trees."
+  "Add to PARENT variable `tree-node' the variable `tree-node' CHILD.
+Returns child to aid in building quick trees."
   (oset child parent parent)
   (oset parent children (append (oref parent children) (list child)))
   child)
 
 (defun tree-sort-elements (node)
-  "Sort all children of node, recurse"
+  "Sort all children of NODE, recurse."
   (let ((k (oref node children)))
     (setq k (sort k '(lambda (a b) (string< (oref a name) (oref b name)))))
     (oset node children k)
@@ -340,7 +343,7 @@ in building quick trees."
       (setq k (cdr k)))))
 
 (defun tree-trim-below (node depth)
-  "Set the expand field to nil for all nodes below DEPTH."
+  "Set the expand field for NODE to nil for all nodes below DEPTH."
   (let ((k (oref node children)))
     (if (and k (<= depth 1)) (oset node expand nil))
     (while k
@@ -349,15 +352,15 @@ in building quick trees."
 
 
 ;;;
-;;; Tree node statistics
-;;;
+;; Tree node statistics
+;;
 
 (defun tree-node-width (node)
-  "Return the width of NODE"
+  "Return the width of NODE."
   (+ (length (oref node name)) 2 (if (not (oref node expand)) 3 0)))
 
 (defun tree-level-width (node)
-  "Return the widest box to appear under NODE"
+  "Return the widest box to appear under NODE."
   (let ((kids (oref node children))
 	(w 0))
     (while kids
@@ -368,8 +371,8 @@ in building quick trees."
     w))
 
 (defun tree-level-height (node)
-  "Return the total height in chars of all nodes under NODE. Cache the
-height into each node for later use"
+  "Return the total height in chars of all nodes under NODE.
+Cache the height into each node for later use"
   (let ((kids (oref node children))
 	(h 0))
     (if (or (not kids) (not (oref node expand)))
@@ -382,12 +385,12 @@ height into each node for later use"
 
 
 ;;;
-;;; Tree keyboard commands
-;;;
+;; Tree keyboard commands
+;;
 
 (defun tree-select-node ()
-  "Activate the node currently under (point), or bell if none.  Requires
-text-properties"
+  "Activate the node currently under (point), or bell if none.
+Requires text-properties"
   (interactive)
   (let ((node (get-text-property (point) 'node-object)))
     (if node
@@ -395,8 +398,8 @@ text-properties"
       (error "There is no tree-node under point"))))
 
 (defun tree-select-node-mouse ()
-  "Activate the node currently under (point), or bell if none.  Requires
-text-properties"
+  "Activate the node currently under (point), or bell if none.
+Requires text-properties"
   (interactive)
   (call-interactively 'mouse-set-point)
   (let ((node (get-text-property (point) 'node-object)))
@@ -405,8 +408,8 @@ text-properties"
       (error "There is no tree-node under point"))))
 
 (defun tree-edit-node ()
-  "Activate the node currently under (point), or bell if none.  Requires
-text-properties"
+  "Activate the node currently under (point), or bell if none.
+Requires text-properties"
   (interactive)
   (let ((node (get-text-property (point) 'node-object)))
     (if node
@@ -414,8 +417,8 @@ text-properties"
       (error "There is no tree-node under point"))))
 
 (defun tree-edit-node-mouse ()
-  "Activate the node currently under (point), or bell if none.  Requires
-text-properties"
+  "Activate the node currently under (point), or bell if none.
+Requires text-properties"
   (interactive)
   (call-interactively 'mouse-set-point)
   (let ((node (get-text-property (point) 'node-object)))
@@ -424,8 +427,8 @@ text-properties"
       (error "There is no tree-node under point"))))
 
 (defun tree-expand-or-contract-node ()
-  "Activate the node currently under (point), or bell if none.  Requires
-text-properties"
+  "Activate the node currently under (point), or bell if none.
+Requires text-properties"
   (interactive)
   (let ((node (get-text-property (point) 'node-object)))
     (if node
@@ -433,8 +436,8 @@ text-properties"
       (error "There is no tree-node under point"))))
 
 (defun tree-expand-or-contract-node-mouse ()
-  "Activate the node currently under (point), or bell if none.  Requires
-text-properties"
+  "Activate the node currently under (point), or bell if none.
+Requires text-properties"
   (interactive)
   (call-interactively 'mouse-set-point)
   (let ((node (get-text-property (point) 'node-object)))
@@ -444,11 +447,11 @@ text-properties"
 
 
 ;;;
-;;; Tree test case
-;;;
+;; Tree test case
+;;
 
 (defun tree-test-it-all ()
-  "Try using various features of tree mode in a demo of it's display"
+  "Try using various features of tree mode in a demo of it's display."
   (interactive)
   ;; create a new buffer
   (switch-to-buffer (tree-new-buffer "*TREE DEMO*"))
@@ -473,8 +476,8 @@ text-properties"
 
 
 ;;;
-;;; Tree demo using eieio class structures
-;;;
+;; Tree demo using eieio class structures
+;;
 (defclass eieio-tree-node (tree-node)
   ((class :initarg :class
 	  :initform nil))
@@ -491,14 +494,16 @@ text-properties"
   )
 
 (defun eieio-new-node (class)
-  "Creates a new widget tree node with the specified WIDGET slot"
+  "Create a new widget tree node with the specified WIDGET slot.
+Argument CLASS is the class we are displaying."
   (eieio-tree-node (symbol-name class)
 		   :name (symbol-name class)
 		   :class class)
   )
 
 (defun eieio-class-tree (&optional root-class)
-  "Displays a class tree using the TREE package in another buffer."
+  "Displays a class tree using the TREE package in another buffer.
+Optional argument ROOT-CLASS is the starting point."
   (interactive)
   (if (not root-class) (setq root-class 'eieio-default-superclass))
   (switch-to-buffer (tree-new-buffer "*EIEIO CLASS TREE*"))
@@ -508,8 +513,7 @@ text-properties"
   (tree-refresh-tree))
 
 (defun eieio-tree-grow (node)
-  "Adds to NODE all children belonging to the widget specified in it's
-widget field"
+  "Add to NODE all children."
   (let* ((wk (aref (class-v (oref node class)) class-children))
 	 nn)
     (while wk
@@ -521,8 +525,8 @@ widget field"
 
 
 ;;;
-;;; Tree demos using directories
-;;;
+;; Tree demos using directories
+;;
 (defclass dirtree-node (tree-node)
   ((pathname :initarg :path
 	     :initform nil)
@@ -556,19 +560,22 @@ widget field"
     ))
 
 (defun dirtree-new (name path)
-  "Create a new directory tree node"
+  "Create a new directory tree node.
+Argument NAME is the name of the tree node.
+Argument PATH is the path to that file."
   (dirtree-node name :name name :path path))
 
 (defun directory-tree-thing (ppath)
-  "Start at the current directory, and build a giant tree of files"
+  "Start at the current directory, and build a giant tree of files.
+Argument PPATH is the path to the directory we are going to analyze."
   (interactive "fDirectory to graph: ")
   (let ((toppath (if (string-match "/$" ppath)
 		     (substring ppath 0 (1- (length ppath)))
 		   ppath)))
-    (switch-to-buffer 
+    (switch-to-buffer
      (tree-new-buffer (format "TREE: %s" (file-name-nondirectory toppath))))
     (erase-buffer)
-    (let ((node (tree-set-root (dirtree-new 
+    (let ((node (tree-set-root (dirtree-new
 				(file-name-nondirectory toppath)
 				(file-name-directory toppath)
 				)))
@@ -580,7 +587,8 @@ widget field"
     ))
 
 (defun directory-tree-more-nodes (node dokids)
-  "Find more parts of this directory.  Do not expand kids if dokids = 0"
+  "Find more parts of this directory.  Do not expand kids if dokids = 0.
+Argument NODE is the node to display.  DOKIDS is a flag to display children."
   (message "Tracing directory... [%s]" (oref node name))
   ;; mark that we checked this guy
   (oset node haschildren 'known)
@@ -591,7 +599,7 @@ widget field"
       (if (or (string= "." (car files))
 	      (string= ".." (car files)))
 	  ()
-	(if (file-accessible-directory-p (concat path-path nm "/" 
+	(if (file-accessible-directory-p (concat path-path nm "/"
 						 (car files)))
 	    (let ((path-path (concat path-path nm "/"))
 		  (newnode (tree-add-child node (dirtree-new
@@ -618,5 +626,6 @@ widget field"
     )
   )
 
-;; end of lisp
 (provide 'tree)
+
+;;; tree.el ends here
