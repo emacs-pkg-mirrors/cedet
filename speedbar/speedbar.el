@@ -3,9 +3,9 @@
 ;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.5
+;; Version: 0.5.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.52 1997/06/06 23:10:28 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.53 1997/06/14 02:53:18 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@
 ;;
 ;;    XEmacs users may want to change the default timeouts for
 ;; `speedbar-update-speed' to something longer as XEmacs doesn't have
-;; idle timers, the speedbar timer keeps going off arbitrarilly while
+;; idle timers, the speedbar timer keeps going off arbitrarily while
 ;; you're typing.  It's quite pesky.
 ;;
 ;;    Users of emacs previous to to v 19.31 (when idle timers
@@ -235,6 +235,11 @@
 ;;       Quit auto-selects the attached frame.
 ;;       Ranamed `speedbar-do-updates' to `speedbar-update-flag'
 ;;       Passes checkdoc.
+;; 0.5.1 Advice from ptype@dra.hmg.gb:
+;;          Use `post-command-idle-hook' in older emacsen
+;;         `speedbar-sort-tags' now works with imenu.
+;;       `speedbar-vc-*-hook's for easilly adding new version control systems.
+;;       Checkin/out w/ vc will reset the scanners and update the * marker.
 
 ;;; TODO:
 ;; 1) More functions to create buttons and options
@@ -334,8 +339,7 @@ XEmacs doesn't support imenu, therefore the default is to use etags
 instead.  Etags support is not as robust as imenu support.")
 
 (defvar speedbar-sort-tags nil
-  "*If Non-nil, sort tags in the speedbar display.  (Etags only)
-See imenu.el source for how imenu does sorting.")
+  "*If Non-nil, sort tags in the speedbar display.")
 
 (defvar speedbar-directory-button-trim-method 'span
   "*Indicates how the directory button will be displayed.
@@ -367,6 +371,21 @@ added by examining the function `speedbar-this-file-in-vc' and
 (defvar speedbar-vc-do-check t
   "*Non-nil check all files in speedbar to see if they have been checked out.
 Any file checked out is marked with `speedbar-vc-indicator'")
+
+(defvar speedbar-vc-path-enable-hook nil
+  "*Return non-nil if the current path should be checked for Version Control.
+Functions in this hook must accept one paramter which is the path
+being checked.")
+
+(defvar speedbar-scanner-reset-hook nil
+  "*Hook called whenever generic scanners are reset.
+Set this to implement your own scanning / rescan safe functions with
+state data.")
+
+(defvar speedbar-vc-in-control-hook nil
+  "*Return non-nil if the specified file is under Version Control.
+Functions in this hook must accept two paramters.  The PATH of the
+current file, and the FILENAME of the file being checked.")
 
 (defvar speedbar-vc-to-do-point nil
   "Local variable maintaining the current version control check position.")
@@ -472,8 +491,9 @@ PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
   (setq speedbar-ignored-path-regexp (speedbar-extension-list-to-regex
 				      speedbar-ignored-path-expressions)))
 
-(defvar speedbar-update-flag (or (not (fboundp 'run-with-idle-timer))
-			       (not (fboundp 'start-itimer)))
+(defvar speedbar-update-flag (or (fboundp 'run-with-idle-timer)
+				 (fboundp 'start-itimer)
+				 (boundp 'post-command-idle-hook))
   "*Non-nil means to automatically update the display.
 When this is nil then speedbar will not follow the attached frame's path.
 When speedbar is active, use:
@@ -1131,9 +1151,12 @@ Files can be renamed to new names or moved to new directories."
 ;;; Utility functions
 ;;
 (defun speedbar-set-timer (timeout)
-  "Unset an old timer (if there is one) and activate a new timer with TIMEOUT.
+  "Apply a timer with TIMEOUT, or remove a timer if TIMOUT is nil.
 TIMEOUT is the number of seconds until the speedbar timer is called
-again."
+again.  When TIMEOUT is nil, turn off all timeouts.
+This function will also enable or disable the `vc-checkin-hook' used
+to track file check ins, and will change the mode line to match
+`speedbar-update-flag'."
   (cond
    ;; Xemacs
    (speedbar-xemacsp
@@ -1153,11 +1176,23 @@ again."
     (if timeout
 	(setq speedbar-timer
 	      (run-with-idle-timer timeout nil 'speedbar-timer-fn))))
+   ;; Emacs 19.30 (Thanks twice: ptype@dra.hmg.gb)
+   ((fboundp 'post-command-idle-hook)
+    (if timeout
+	(add-hook 'post-command-idle-hook 'speedbar-timer-fn)
+      (remove-hook 'post-command-idle-hook 'speedbar-timer-fn)))
    ;; Older or other Emacsen with no timers.  Set up so that it's
    ;; obvious this emacs can't handle the updates
    (t
     (setq speedbar-update-flag nil)))
-   ;; change this if it changed for some reason
+  ;; Apply a revert hook that will reset the scanners.  We attach to revert
+  ;; because most reverts occur during VC state change, and this lets our
+  ;; VC scanner fix itself.
+  (if timeout
+      (add-hook 'after-revert-hook 'speedbar-reset-scanners)
+    (remove-hook 'after-revert-hook 'speedbar-reset-scanners)
+    )
+  ;; change this if it changed for some reason
   (speedbar-set-mode-line-format))
 
 (defmacro speedbar-with-writable (&rest forms)
@@ -1626,6 +1661,7 @@ interrupted by the user."
   "Reset any variables used by functions in the stealthy list as state.
 If new functions are added, their state needs to be updated here."
   (setq speedbar-vc-to-do-point t)
+  (run-hooks 'speedbar-scanner-reset-hook)
   )
 
 (defun speedbar-clear-current-file ()
@@ -1648,7 +1684,7 @@ If new functions are added, their state needs to be updated here."
 				 'speedbar-file-face))))))
 
 (defun speedbar-update-current-file ()
-  "Find the current file is, and update our visuals to indicate its name.
+  "Find the current file, and update our visuals to indicate its name.
 This is specific to file names.  If the file name doesn't show up, but
 it should be in the list, then the directory cache needs to be
 updated."
@@ -1739,11 +1775,15 @@ to add more types of version control systems."
 	(progn
 	  (goto-char speedbar-vc-to-do-point)
 	  (while (and (not (input-pending-p))
-		      (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-]\\] " nil t))
+		      (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-]\\] "
+					 nil t))
 	    (setq speedbar-vc-to-do-point (point))
-	    (if (speedbar-check-vc-this-line)
-		(speedbar-with-writable
-		  (insert speedbar-vc-indicator))))
+	    (if (speedbar-check-vc-this-line (match-string 1))
+		(if (not (looking-at (regexp-quote speedbar-vc-indicator)))
+		    (speedbar-with-writable (insert speedbar-vc-indicator)))
+	      (if (looking-at (regexp-quote speedbar-vc-indicator))
+		  (speedbar-with-writable
+		    (delete-region (match-beginning 0) (match-end 0))))))
 	  (if (input-pending-p)
 	      ;; return that we are incomplete
 	      nil
@@ -1753,15 +1793,19 @@ to add more types of version control systems."
 	    t))
       t)))
 
-(defun speedbar-check-vc-this-line ()
+(defun speedbar-check-vc-this-line (depth)
   "Return t if the file on this line is check of of a version control system.
-The one caller-requirement is that the last regexp matching operation
-has the current depth stored in (MATCHSTRING 1), and that the cursor
-is right in front of the file name."
-  (let* ((d (string-to-int (match-string 1)))
+Parameter DEPTH is a string with the current depth of indentation of
+the file being checked."
+  (let* ((d (string-to-int depth))
 	 (f (speedbar-line-path d))
 	 (fn (buffer-substring-no-properties
-	      (point) (progn (end-of-line) (point))))
+	      ;; Skip-chars: thanks ptype@dra.hmg.gb
+	      (point) (progn
+			(skip-chars-forward "^ "
+					    (save-excursion (end-of-line)
+							    (point)))
+			(point))))
 	 (fulln (concat f fn)))
     (if (<= 2 speedbar-verbosity-level)
 	(message "Speedbar vc check...%s" fulln))
@@ -1772,10 +1816,17 @@ is right in front of the file name."
   "Return t if we should bother checking PATH for version control files.
 This can be overloaded to add new types of version control systems."
   (or
+   ;; Local RCS
    (file-exists-p (concat path "RCS/"))
-   ;; If SCCS is added in `speedbar-this-file-in-vc'
-   ;; (file-exists-p (concat path "SCCS/"))
-   ;; (file-exists-p (getenv "SCCSPATHTHINGIDONTREMEMBER"))
+   ;; Local SCCS
+   (file-exists-p (concat path "SCCS/"))
+   ;; Remote SCCS project
+   (let ((proj-dir (getenv "PROJECTDIR")))
+     (if proj-dir
+	 (file-exists-p (concat proj-dir "/SCCS"))
+       nil))
+   ;; User extension
+   (run-hook-with-args 'speedbar-vc-path-enable-hook path)
    ))
 
 (defun speedbar-this-file-in-vc (path name)
@@ -1784,10 +1835,17 @@ You can add new VC systems by overriding this function.  You can
 optimize this function by overriding it and only doing those checks
 that will occur on your system."
   (or
+   ;; RCS file name
    (file-exists-p (concat path "RCS/" name ",v"))
-   ;; Is this right?  I don't recall
-   ;;(file-exists-p (concat path "SCCS/," fn))
-   ;;(file-exists-p (concat (getenv "SCCSPATHTHING") "/SCCS/," fn))
+   ;; Local SCCS file name
+   (file-exists-p (concat path "SCCS/p." fn))
+   ;; Remote SCCS file name
+   (let ((proj-dir (getenv "PROJECTDIR")))
+     (if proj-dir
+         (file-exists-p (concat proj-dir "/SCCS/p." fn))
+       nil))
+   ;; User extension
+   (run-hook-with-args 'speedbar-vc-in-control-hook path name)
    ))
 
 ;;; Clicking Activity
@@ -2220,10 +2278,13 @@ Returns the tag list, or t for an error."
   (require 'imenu)
   (save-excursion
     (set-buffer (find-file-noselect file))
+    (if speedbar-power-click (setq imenu--index-alist nil))
     (condition-case nil
-	(progn
-	  (if speedbar-power-click (setq imenu--index-alist nil))
-	  (imenu--make-index-alist t))
+	(let ((index-alist (imenu--make-index-alist t)))
+	  (if speedbar-sort-tags
+	      (sort (copy-alist index-alist)
+		    (lambda (a b) (string< (car a) (car b))))
+	    index-alist))
       (error t))))
 )
 
@@ -2508,8 +2569,8 @@ multiple defaults and dynamically determine which colors to use."
 	  (lambda ()
 	    (def-edebug-spec speedbar-with-writable def-body)))
 
-;; run load-time hooks
-(run-hooks 'speedbar-load-hook)
-
 (provide 'speedbar)
 ;;; speedbar ends here
+
+;; run load-time hooks
+(run-hooks 'speedbar-load-hook)
