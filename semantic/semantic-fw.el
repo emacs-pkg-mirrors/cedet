@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.5 2002/07/31 19:46:16 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.6 2002/08/04 01:50:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -234,6 +234,38 @@ The returned item may be an overlay or an unloaded buffer representation."
 	     (and (arrayp o)
 		  (not (stringp o)))))))
 
+;;; Misc utilities
+;;
+(defun semantic-map-buffers (fun)
+  "Run function FUN for each Semantic enabled buffer found.
+FUN does not have arguments.  When FUN is entered `current-buffer' is
+the current Semantic enabled buffer found."
+  (let ((bl (buffer-list))
+        b)
+    (while bl
+      (setq b  (car bl)
+            bl (cdr bl))
+      (if (and (buffer-live-p b)
+               (buffer-file-name b))
+          (with-current-buffer b
+            (if (semantic-active-p)
+                (funcall fun)))))))
+
+(defun semantic-map-mode-buffers (fun mode)
+  "Run function FUN for each MODE enabled buffer found.
+FUN does not have arguments.  When FUN is entered `current-buffer' is
+the current MODE controlled buffer found."
+  (let ((bl (buffer-list))
+        b)
+    (while bl
+      (setq b  (car bl)
+            bl (cdr bl))
+      (if (and (buffer-live-p b)
+               (buffer-file-name b))
+          (with-current-buffer b
+            (if (eq major-mode mode)
+                (funcall fun)))))))
+
 
 ;;; Behavioral APIs
 ;;
@@ -373,6 +405,87 @@ This function can be overloaded using the symbol `%s'."
              ;; Else, perform some default behaviors
              ,@body)))
        (put ',name 'semantic-overload ',overload))))
+
+(defmacro define-mode-overload-implementation
+  (name mode args docstring &rest body)
+  "Define a new function overload, as with `defun' that has an implementation.
+Function implementations are only useful for functions created with
+`define-overload'.
+NAME is the name of the function being overloaded.
+MODE is the major mode this override is being defined for.
+ARGS are the function arguments, which should match those of the same
+named function created with `define-overload'.
+DOCSTRING is the documentation string.
+BODY is the implementation of this function."
+  (let* ((sym-name (symbol-name name))
+         (overload (if (string-match "^semantic-" sym-name)
+                       (intern (substring sym-name (match-end 0)))
+                     name))
+	 (newname (intern (concat sym-name "-" (symbol-name mode)))))
+    `(eval-and-compile
+       (defun ,newname ,args
+	 ,(format "%s\n
+This function is an implementation for %s"
+		  docstring overload)
+	 ;; The body for this implementation
+	 ,@body)
+       (semantic-install-function-overrides '((,overload . ,newname)) nil ',mode)
+       )))
+
+;;; MODE VARIABLES
+;;
+;; There are buffer local variables, and frame local variables.
+;; These routines give the illusion of mode specific variables.
+;;
+;; They work like this:
+;; a symbol, like `c-mode' has a `semantic-variables' property which
+;; is a list of variables set for this mode.
+;; A variable with a mode value appears in that list, AND it has
+;; a property matching the mode name.  This property contains the value
+;; of that variable for that mode.
+;;
+;; Why?  Some tokens have values specific to a major mode, but their buffer
+;; might not be loaded.  This lets them run as though they were in a buffer
+;; of the apropriate type.
+;;
+(defun semantic-symbol-value-for-mode (variable mode)
+  "Retrieve the value of VARIABLE (a symbol) for MODE."
+  (if (memq mode (get mode 'semantic-variables))
+      (get variable mode)
+    (symbol-value variable)))
+
+(defun semantic-symbol-value-mode-assign ()
+  "For the current major mode, set values of variables into local variables.
+To be called by semantic init function."
+  (let ((vars (get major-mode 'semantic-variables)))
+    (while vars
+      (set (car vars) (get (car vars) major-mode))
+      (setq vars (cdr vars)))))
+
+(defun semantic-setq-major-mode (varname modename value)
+  "Perform the work of `setq-major-mode'.
+VARNAME is the variable name, MODENAME is the major mode, and VALUE is the
+new value."
+  ;; Force this value into MODENAME for later extraction
+  (let ((plist (get modename 'semantic-variables)))
+    (add-to-list 'plist varname)
+    (put modename 'semantic-variables plist))
+  ;; Make this assignment into the mode part.
+  (put varname modename value)
+  ;; Assign to all existing buffers.
+  (semantic-map-mode-buffers (lambda () (set varname value))
+			     modename)
+  )
+
+(defmacro setq-major-mode (varname modename value)
+  "Assign into VARNAME for all modes of MODENAME a new VALUE.
+VARNAME is a symbol (unquoted).
+MODENAME must be a major mode variable, or the assignment is useless.
+VALUE is the new value to be assigned.
+The assignments is saved for new buffers created of class MODENAME,
+and assigned into those modes.
+All existing modes of a given type will be given VALUE also."
+  `(semantic-setq-major-mode ',varname ',modename ,value))
 
 (provide 'semantic-fw)
 
