@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.39 2000/10/04 02:51:28 zappo Exp $
+;; RCS: $Id: ede.el,v 1.40 2000/10/04 03:38:26 zappo Exp $
 (defconst ede-version "0.8"
   "Current version of the Emacs EDE.")
 
@@ -231,7 +231,7 @@ and querying them will cause the actual project to get loaded.")
 For Automake based projects, each directory is treated as a project.")
    (targets :initarg :targets
 	    :type list
-	    :custom (repeat object)
+	    :custom (repeat (object :objectcreatefcn ede-new-target-custom))
 	    :label "Local Targets"
 	    :group (targets)
 	    :documentation "List of top level targets in this project.")
@@ -603,6 +603,11 @@ ARGS are additional arguments to pass to method sym."
   (setq ede-object (ede-buffer-object (current-buffer)))
   (ede-apply-object-keymap))
 
+(defun ede-new-target-custom ()
+  "Create a new target specific to this type of project file."
+  (interactive)
+  (project-new-target-custom (ede-current-project)))
+
 (defun ede-delete-target (target)
   "Delete TARGET from the current project."
   (interactive (list
@@ -823,6 +828,10 @@ Handle saving, or other detail."
 (defmethod project-new-target ((proj ede-project))
   "Create a new target.  It is up to the project PROJ to get the name."
   (error "new-target not supported by %s" (object-name proj)))
+
+(defmethod project-new-target-custom ((proj ede-project))
+  "Create a new target.  It is up to the project PROJ to get the name."
+  (error "New-target-custom not supported by %s" (object-name proj)))
 
 (defmethod project-delete-target ((ot ede-target))
   "Delete the current target OT from it's parent project."
