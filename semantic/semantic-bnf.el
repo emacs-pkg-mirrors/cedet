@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.53 2002/05/09 04:24:16 emacsman Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.54 2002/05/13 04:54:57 emacsman Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -852,7 +852,7 @@ keyword table variable."
       nil)))
 
 (defun semantic-bnf-find-languagemode (tokstream)
-  "Find the lanugage mode for this BNF file.
+  "Find the language mode for this BNF file.
 Argument TOKSTREAM is the list of tokens in which to find the file and
 parse table variable."
   (let ((mode (semantic-find-nonterminal-by-token 'languagemode tokstream)))
@@ -943,7 +943,7 @@ token table variable."
   "Non nil means to indent the large table during creation.")
 
 (defun semantic-bnf-generate-and-load-no-indent ()
-  "Call `semantic-bnf-genrate-and-load' without indenting the table."
+  "Call `semantic-bnf-generate-and-load' without indenting the table."
   (interactive)
   (let ((semantic-bnf-indent-table nil))
     (semantic-bnf-generate-and-load)))
@@ -1268,7 +1268,7 @@ Once found, put it in a buffer, and return it."
   (setq font-lock-defaults '((semantic-bnf-mode-keywords)
 			     nil ; do not do string/comment highlighting
 			     nil ; keywords are case insensitive.
-			     ;; This puts _ & - as a word constituant,
+			     ;; This puts _ & - as a word constituent,
 			     ;; simplifying our keywords significantly
 			     ((?_ . "w") (?- . "w"))))
   (setq semantic-symbol->name-assoc-list
@@ -1361,9 +1361,9 @@ Optional argument COLOR determines if color is added to the text."
      ("number" . "Syntax: Numeric characters.")
      ("punctuation" . "Syntax: Punctuation character.")
      ("semantic-list" . "Syntax: A list delimited by any valid list characters")
-     ("open-paren" . "Syntax: Open Parenthisis character")
-     ("close-paren" . "Syntax: Close Parenthisis character")
-     ("string" . "Syntax: String character delemeted text")
+     ("open-paren" . "Syntax: Open Parenthesis character")
+     ("close-paren" . "Syntax: Close Parenthesis character")
+     ("string" . "Syntax: String character delimited text")
      ("comment" . "Syntax: Comment character delimited text")
      ("EMPTY" . "Syntax: Match empty text")
      ("ASSOC" . "Lambda Key: (ASSOC key1 value1 key2 value2 ...)")
@@ -1393,7 +1393,7 @@ Optional argument COLOR determines if color is added to the text."
       )))
 
 (defun semantic-bnf-electric-punctuation ()
-  "Insert and reindent for the symbol just typed in."
+  "Insert and re-indent for the symbol just typed in."
   (interactive)
   (self-insert-command 1)
   (semantic-bnf-indent))

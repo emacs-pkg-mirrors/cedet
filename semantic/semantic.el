@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.139 2002/05/07 01:31:14 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.140 2002/05/13 04:54:56 emacsman Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -332,7 +332,7 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
 It is called before any request for tokens is made via the function
 `semantic-bovinate-toplevel' by an application.
 If any hook returns a nil value, the cached value is returned
-immediatly, even if it is empty.")
+immediately, even if it is empty.")
 
 (defvar semantic-after-toplevel-bovinate-hook nil
   "Hooks run after a toplevel token parse.
@@ -704,7 +704,7 @@ cached token list is up to date."
     semantic-unmatched-syntax-cache)
 
 (defun semantic-clear-toplevel-cache ()
-  "Clear the toplevel bovin cache for the current buffer.
+  "Clear the toplevel bovine cache for the current buffer.
 Clearing the cache will force a complete reparse next time a token
 stream is requested."
   (interactive)
@@ -1011,7 +1011,7 @@ the current results on a parse error."
 
   (let* ((flexbits (semantic-flex (semantic-token-start token)
 				  (semantic-token-end token)))
-	 ;; For embeded tokens (type parts, for example) we need a
+	 ;; For embedded tokens (type parts, for example) we need a
 	 ;; different symbol.  Come up with a plan to solve this.
 	 (nonterminal (or (semantic-token-get token 'reparse-symbol)
 			  'bovine-toplevel))
@@ -1327,7 +1327,7 @@ The return list is a lambda expression to be used in a bovine table."
 Depends on the existing environment created by `semantic-bovinate-stream'.
 Argument NONTERM is the nonterminal symbol to start with.
 Optional argument DEPTH is the depth of lists to dive into.
-Whan used in a `lambda' of a MATCH-LIST, there is no need to include
+When used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part.
 Optional argument LENGTH specifies we are only interested in LENGTH tokens."
   (car-safe (cdr (semantic-bovinate-nonterminal
@@ -1344,7 +1344,7 @@ Depends on the existing environment created by `semantic-bovinate-stream'.
 Argument NONTERM is the nonterminal symbol to start with.
 If NONTERM is nil, use `bovine-block-toplevel'.
 Optional argument DEPTH is the depth of lists to dive into.
-Whan used in a `lambda' of a MATCH-LIST, there is no need to include
+When used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
   (nreverse
    (semantic-bovinate-nonterminals (semantic-flex start end (or depth 1))
@@ -1353,7 +1353,7 @@ a START and END part."
 
 (defun semantic-bovinate-region-until-error (start end nonterm &optional depth)
   "Bovinate between START and END starting with NONTERM.
-Optinal DEPTH specifies how many levels of parenthesis to enter.
+Optional DEPTH specifies how many levels of parenthesis to enter.
 This command will parse until an error is encountered, and return
 the list of everything found until that moment.
 This is meant for finding variable definitions at the beginning of
@@ -1515,8 +1515,8 @@ COLLECTION is the list of things collected so far."
   "Non nil to create a reference.")
 
 (defvar semantic-bovinate-reference-token-list nil
-  "A list generated as a referece (assumed valid).
-A second pass comares return values against this list.")
+  "A list generated as a reference (assumed valid).
+A second pass compares return values against this list.")
 
 (defun semantic-bovinate-add-reference (ref)
   "Add REF to the reference list."
@@ -1607,7 +1607,7 @@ These keywords are matched explicitly, and converted into special symbols.")
 
 (defun semantic-flex-make-keyword-table (keywords &optional propertyalist)
   "Convert a list of KEYWORDS into an obarray.
-Save the obarry into `semantic-flex-keywords-obarray'.
+Save the obarray into `semantic-flex-keywords-obarray'.
 If optional argument PROPERTYALIST is non nil, then interpret it, and
 apply those properties"
   ;; Create the symbol hash table
@@ -1824,7 +1824,7 @@ FLOATING_POINT_LITERAL:
 Semantically check between START and END.  Optional argument DEPTH
 indicates at what level to scan over entire lists.
 The return value is a token stream.  Each element is a list, such
-of the form (symbol start-expression .  end-expresssion) where
+of the form (symbol start-expression .  end-expression) where
 SYMBOL denotes the token type.
 See `semantic-flex-tokens' variable for details on token types.
 END does not mark the end of the text scanned, only the end of the beginning
@@ -1861,7 +1861,7 @@ LENGTH tokens."
 		     ts (cons (cons 'newline
 				    (cons (match-beginning 1) ep))
 			      ts)))
-	      ;; special extentions, sometimes includes some whitespace.
+	      ;; special extensions, sometimes includes some whitespace.
 	      ((and semantic-flex-extensions
 		    (let ((fe semantic-flex-extensions)
 			  (r nil))
@@ -1991,7 +1991,7 @@ LENGTH tokens."
     (nreverse ts)))
 
 (defsubst semantic-flex-buffer (&optional depth)
-  "Sematically flex the current buffer.
+  "Semantically flex the current buffer.
 Optional argument DEPTH is the depth to scan into lists."
   (semantic-flex (point-min) (point-max) depth))
 
