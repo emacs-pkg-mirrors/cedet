@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.35 2004/03/06 15:08:05 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.36 2004/03/06 20:13:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -609,23 +609,24 @@ if a cached copy of the return object is found."
     (goto-char position)
     (let* ((s (semantic-fetch-overload 'analyze-current-context))
 	   (answer (semantic-get-cache-data 'current-context)))
-      (when (not answer)
-	(setq answer
-	      (if s (funcall s position)
-		(semantic-analyze-current-context-default position)))
-	(when (and answer (oref answer bounds))
-	  (with-slots (bounds) answer
-	    (semantic-cache-data-to-buffer (current-buffer)
-					   (car bounds)
-					   (cdr bounds)
-					   answer
-					   'current-context
-					   'exit-cache-zone))
-	  ;; Check for interactivity
-	  (if (interactive-p)
-	      (semantic-analyze-pop-to-context answer))))
+      (with-syntax-table semantic-lex-syntax-table
+	(when (not answer)
+	  (setq answer
+		(if s (funcall s position)
+		  (semantic-analyze-current-context-default position)))
+	  (when (and answer (oref answer bounds))
+	    (with-slots (bounds) answer
+	      (semantic-cache-data-to-buffer (current-buffer)
+					     (car bounds)
+					     (cdr bounds)
+					     answer
+					     'current-context
+					     'exit-cache-zone))
+	    ;; Check for interactivity
+	    (if (interactive-p)
+		(semantic-analyze-pop-to-context answer))))
       
-      answer)))
+	answer))))
 
 (put 'semantic-analyze-current-context 'semantic-overload
      'analyze-current-context)
@@ -819,24 +820,25 @@ Context type matching can identify the following:
 When called interactively, displays the list of possible completions
 in a buffer."
   (interactive "d")
-  (let* ((context
-	  (if (semantic-analyze-context-child-p context) context
-	    (semantic-analyze-current-context context)))
-	 (s (semantic-fetch-overload 'analyze-possible-completions))
-	 (ans
-	  (if s (funcall s context)
-	    (semantic-analyze-possible-completions-default context))))
+  (with-syntax-table semantic-lex-syntax-table
+    (let* ((context
+	    (if (semantic-analyze-context-child-p context) context
+	      (semantic-analyze-current-context context)))
+	   (s (semantic-fetch-overload 'analyze-possible-completions))
+	   (ans
+	    (if s (funcall s context)
+	      (semantic-analyze-possible-completions-default context))))
     
-    ;; If interactive, display them.
-    (when (interactive-p)
-      (with-output-to-temp-buffer "*Possible Completions*"
-	(semantic-analyze-princ-sequence ans "" (current-buffer)))
-      (shrink-window-if-larger-than-buffer
-       (get-buffer-window "*Possible Completions*"))
-      )
+      ;; If interactive, display them.
+      (when (interactive-p)
+	(with-output-to-temp-buffer "*Possible Completions*"
+	  (semantic-analyze-princ-sequence ans "" (current-buffer)))
+	(shrink-window-if-larger-than-buffer
+	 (get-buffer-window "*Possible Completions*"))
+	)
     
-    ans
-    ))
+      ans
+      )))
 
 (put 'semantic-analyze-possible-completions 'semantic-overload
      'analyze-possible-completions)
