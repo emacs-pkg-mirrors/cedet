@@ -3,8 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.4
-;;; RCS: $Id: widget-d.el,v 1.8 1996/11/07 19:10:26 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.9 1996/11/18 00:21:46 zappo Exp $
 ;;; Keywords: OO widget
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -40,7 +39,7 @@
 
 (defvar widget-d-load-hooks nil
   "List of hooks run after this file is loaded.  Permits users to
-customize the default widget behaviour using `oset-default'")
+customize the default widget behavior using `oset-default'")
          
 ;;; Data object definition
 ;;;      
@@ -54,18 +53,18 @@ customize the default widget behaviour using `oset-default'")
   ((value :initarg :value
 	  :initform nil
 	  :accessor get-value
-	  :docstring "Normal lisp value of any type"
+	  :docstring "Lisp object which represents the data this object maintains."
 	  :protection private)
    (reference :initarg :reference
 	      :initform nil
 	      :docstring "List of objects looking at me.  The method `update-symbol' is called
-for each object whenever the value is modified."
+for each member of `reference' whenever `value' is modified."
 	      :protection private)
    )
-  "This defines a data-object which is uses for all dynamic viewers.
-A label displays a string or number, and a scrollbar edits and
-displays a number.  These widgets will use data-object to store thier
-data")
+  "This defines a `data-object' which is used for all widgets
+maintaining some value.  For example, a `widget-label' displays a
+string or number, and a `widget-scrollbar' edits a number.  These
+widgets will use data-object to store their data.")
 
 ;;; Widget definitions for the base set of widgets
 ;;;
@@ -74,15 +73,14 @@ data")
   ((parent :initarg :parent
 	   :initform nil
 	   :accessor get-parent
-	   :docstring "The parent widget conting this widget."
-	   :protection private)
+	   :docstring "A widget of type `widget-group' of which this is a child.")
    (managed :initarg :managed
 	    :initform t
-	    :docstring "True if this widget is active (unused)"
+	    :docstring "(unused) t if this widget is active."
 	    :protection private)
    (watched-symbols :initarg :watched-symbols
 		    :initform nil
-		    "List of symbols I watch (unused)"
+		    :docstring "List of symbols this widget cares about."
 		    :protection private)
    )
   "Class for core widget.  This is the widget all other widgets are 
@@ -90,67 +88,63 @@ based from.")
 
 (defclass widget-gadget-translator (widget-core)
   ((watch :initarg :watch
-	  :docstring "A data-object to watch.  When it changes, run the translator")
+	  :docstring "A `data-object' to watch.  When it changes, run the translator function.")
    (change :initarg :change
-	   :docstring "A data-object to change whenever watch is modified.")
+	   :docstring "A `data-object' to change whenever `watch' is modified.")
    (translate-function :initarg :translate-function
-		       :initarg (lambda-default (watch change)
-				  nil)
+		       :initform (lambda-default (watch change) nil)
 		       :docstring
-		       "Function to call when `watch' changes.  It should modify the data object
+		       "Function to call when `watch' changes.  It should modify the `data-object'
 `change' from it's value.  It takes two parameters WATCH and CHANGE.")
    )
-  "Non-visible class for a gadget translator.  The translators job is
-to convert the data-object in `watch' to some new value, and store it
+  "Non-visible class for a gadget translator.  The translator's job is
+to convert the `data-object' in `watch' to some new value, and store it
 in `change'.  This is useful for translating indices into descriptions
 or something like that.")
 
 (defclass widget-visual (widget-core)
   ((x :initarg :x
       :initform nil
-      :docstring "The associative X position in a buffer to parent") 
+      :docstring "The X position in a buffer relative to parent.")
    (y :initarg :y
       :initform nil
-      :docstring "The associative Y position in a buffer to parent")
+      :docstring "The Y position in a buffer relative to parent.")
    (resizeable :initarg :resizeable
 	       :initform nil
-	       :docstring "t if this widget has a tendency to resize itself.")
+	       :docstring "(unused) t if this widget has a tendency to resize itself.")
    (nx :initform 0
-       :docstring "The normalized X position relative to parent.")
+       :docstring "The normalized X position relative to parent. (After geometry management)")
    (ny :initform 0
-       :docstring "The normalized Y position relative to parent.")
+       :docstring "The normalized Y position relative to parent. (After geometry management)")
    (marker :initarg :marker
 	   :initform nil
 	   :protection private
-	   :docstring "Marker in the dialog buffer from which all drawing commands are based.")
+	   :docstring "(Unused) Marker in the dialog buffer from which all drawing commands are based.")
    (face :initarg :face
 	 :initform widget-default-face
 	 :protection private
-	 :docstring "Face used to draw this widget")
-   (selected :initarg :selected
-	     :initform nil
-	     :docstring "(unused)"
-	     :protection private)
+	 :docstring "Face used to draw this widget.")
    (handle-io :initarg :handle-io
 	      :initform  nil
-	      :docstring "t if this widget accepts input")
+	      :docstring "t if this widget accepts keyboard or mouse input.")
    (handle-motion :initform nil
 		  :docstring "t if this widget handles it's own motion events")
-   (rx :initarg :rx
-       :docstring "Real S position in buffer"
+   (rx :docstring "Real X position in buffer"
        :protection private)
-   (ry :initarg :ry
-       :docstring "Real Y position in buffer"
+   (ry :docstring "Real Y position in buffer"
        :protection private)
    )
-  "Class for visual widget.  This is the widget all visible
-displayed widgets are derived from")
+  "Class for visual widget.  This is the widget all visible widgets
+are derived from. Its definition includes an X,Y position which
+defines it's offset inside the parent, and can include its offset from
+other widgets which are children of `parent'.
+@xref{(dialog) Geometry Management}") 
 
 (defclass widget-square (widget-visual)
   ((width :initarg :width
-	  :docstring "Width of the square widget")
+	  :docstring "Width in characters")
    (height :initarg :height
-	   :docstring "Height of the square widget")
+	   :docstring "Height in characters")
    (boxed :initarg :boxed
 	  :initform nil
 	  :docstring "t if a box is to be drawn around this widget")
@@ -161,16 +155,17 @@ displayed widgets are derived from")
    (box-char :initarg :box-char
 	     :initform [?+ ?+ ?+ ?+ ?- ?- ?| ?|]
 	     :docstring "Character set used the draw the box.  The vector is 
- [ upperright upperleft bottomright bottomleft horizontal vertical ]"
+[ upper-right upper-left bottom-right bottom-left horizontal vertical ]"
 	     :protection private)
    (box-sides :initarg :box-sides
 	      :initform [ t t t t ]
-	      :docstring "For Left, Right, Top, Bottom, a vector which
-represents those sides of the box which will be drawn, and those which
-will not.")
+	      :docstring "Vector which represents those sides of the
+box which will be drawn, where a t in a position indicates the side is
+to be drawn.  The vector is of the form [ left right top bottom ]")
    )
-  "This is the definition for square widgets.  This is created 
-`just-in-case' we decide to have non-square widgets later")
+  "This is the definition for visible widgets which have a square
+shape.  This provides basic sizing schemes and box drawing utilities
+for widgets that are square.")
 
 ;;
 ;; Some group types
@@ -184,78 +179,89 @@ will not.")
    )
   "Definition for the group widget.  This is an intermediary type
 whose job is to provide basic child management for higher level
-widgets which contain children")
+widgets which contain children such as `widget-toplevel' and
+`widget-frame'.  This widget knows how to add new children, and manage
+its size based on the positions and sizes of it's children.  It also
+knows how to create navigation lists.")
 
 (defclass widget-toplevel (widget-group)
-  ((buffer :initarg :buffer
+  ((rx :initarg :rx)			;create initargs for real parts
+   (ry :initarg :ry)			;for toplevel only
+   (buffer :initarg :buffer
 	   :initform current-buffer
-	   :docstring "Buffer this dialog resides in")
-   (logical-child-list :initform nil
-		       :docstring 
-		       "Maintained by the top-level shell, this slot contains a list of all the children in thier logical order
-for the purpose of tab-stepping across them"
-		       :protection private)
+	   :docstring "The buffer this dialog resides in.")
+   (logical-child-list 
+    :initform nil
+    :docstring 
+    "Contains a list of all the children and grand-children in their
+logical order for the purpose of tab-stepping across them"
+    :protection private)
    (handle-io :initform t)
    )
-  "Definition for a toplevel shell, which contains all children widget
-for a given buffer.")
+  "Definition for a top-level shell. This maintains the interface to
+emacs' buffer, and is a parent of all children displayed in the
+buffer.  This will be created automatically with a call to
+`dialog-mode' when designing a screen.")
 
 (defclass widget-frame (widget-group)
   ((handle-io :initform t)
    (boxed :initform t)
    (frame-label :initarg :frame-label
 		:initform t
-		:docstring "Label to place on the edge of our frame.  An initial value of t
-means to use the object name.  An initial value of nil means no title."
+		:docstring 
+		"Label to place on the edge of our frame.  An initial value of t means
+to use the object name.  An initial value of nil means no title.  If
+this is initialized with a string, then that string is used as the
+label's string.  The created widget will be a `widget-label'.  If this
+is a widget, then that widget is positioned on the edge of the
+screen."
 		:protection private)
    (position :initarg :position
 	     :initform top-left
 	     :docstring "Where the `frame-label' will reside.  Valid values are symbols
-consisting of substrings of left, right, center, top, and bottom.
-top-left is assumed if valid values are not found."
-	      :protection private)
-    )
+consisting of substrings of left, right, center, top, and bottom."
+	     :protection private)
+   )
   "Definition for a frame, which can contain several children grouped
-in a labeled box.")
+in a box with a `widget-label' on one edge (covering a part of the box).")
 
 (defclass widget-radio-frame (widget-frame)
   ((state :initarg :state
 	  :initform 0
-	  :docstring "Current index of the select radio button")
+	  :docstring "Current index of the selected radio button")
    )
   "Special frame class which behaves as a radio box.  Designed to only
-contain widgets of type widget-radio-button.")
+contain widgets of type `widget-radio-button'.")
 
 (defclass widget-labeled-text (widget-group)
   ((handle-io :initform t)
    (label :initarg :label
 	  :initform nil
-	  :docstring "Text object displayed before an editable text field.")
+	  :docstring "Text object displayed with a `widget-label' before a `widget-text-field'.")
    (unit :initarg :unit
 	 :initform nil
-	 :docstring "Text object displayed after the editable text field, used for items which
-have some sort of typing which would be useful to know.")
+	 :docstring "Text object displayed with a `widget-label' after the `widget-text-field'
+which represents some sort of typing which would be useful to know.")
    (value :initarg :value
 	  :initform nil
-	  :docstring "The string we are edit with a text widget")
+	  :docstring "The `data-object' we are going to edit with the text widget")
    (text-length :initarg :text-length
 		:initform 20
-		:docstring "The visible length of the text field")
+		:docstring "The width passed to the `widget-text-field'")
    )
   "Special group widget which makes creating text fields with labels next to
-them more convenient to create")
+them more convenient.")
 
 ;;
 ;; The important label type
 ;;
-
 (defclass widget-label (widget-square)
   ((label-value :initarg :label-value
 		:initform nil
-		:docstring "The object to display on ourselves")
+		:docstring "The `data-object' to display on ourselves")
    (label-list :initarg nil
 	       :initform nil
-	       :docstring "The label value is transformed into this list, which is broken
+	       :docstring "The `label-value' is transformed into this list, which is broken
 into substrings around carriage returns."
 	       :protection private)
    (justification :initarg :justification
@@ -263,7 +269,7 @@ into substrings around carriage returns."
 		  :docstring "how to justify the text.  Valid values are 'left, 'center, 'right")
    (focus-face :initarg :focus-face
 	       :initform nil
-	       :docstring "Face used when mouse passes over this text"
+	       :docstring "Face used when mouse passes over `label-value'"
 	       :protection private)
    (leftmargin :initarg :leftmargin
 	       :initform 0
@@ -276,10 +282,12 @@ into substrings around carriage returns."
 	      :docstring "Size of space above this label to format around")
    (bottommargin :initarg :bottommargin
 		 :initform 0
-		 :docstring "Size of space below this labe to format around.")
+		 :docstring "Size of space below this label to format around.")
    )
-  "Class for label widget.  This widget displays some value, which is
-formated to text with the format value.  There are no IO events.")
+  "Class for displaying labels.  The value of the label is determined
+by the `data-object' stored in `label-value' which can be initialized
+with a string, number, or other lisp object.  Supports strings with
+carriage returns in them.")
 
 ;;
 ;; Button types
@@ -297,16 +305,17 @@ formated to text with the format value.  There are no IO events.")
 		  :docstring "Function to call when a user clicks this button")
    (help-hook :initarg :help-hook
 	      :initform nil
-	      :docstring "Function to call when clicked with the last mouse button which will
-display some help in the minibuffer.")
+	      :docstring "Function to call when help is requested
+about this button.  Default value is to display instructions about the
+operation of this widget in the minibuffer.")
    (handle-io :initarg :handle-io
 	      :initform t)
    )
   "Class for a button widget.  This is the starting point for all
 interactive buttons.  This button will be CLICKED on, or will have RET
-or SPC pressed while selected, and it will then call activate-hook.
+or SPC pressed while selected, and it will then call `activate-hook'.
 If a push button is desired, it is better to use a widget of type
-`widget-push-button' instead as it has a better visual effect.")
+`widget-push-button' instead as it has a better visual effects.")
 
 (defclass widget-push-button (widget-button)
   ((boxed :initarg :boxed
@@ -325,14 +334,14 @@ If a push button is desired, it is better to use a widget of type
 		:initform 1)
    )
   "Class for a push button.  This button behaves as a `widget-button'
-but with a differnt visual effect.  This is the preferred widget to
-use as the `widget-button' is used primerilly as a starting point for
-all button types.")
+but with a different visual effect.  This is the preferred widget to
+use as the `widget-button' is used as a starting point for all button
+types.")
 
 (defclass widget-option-button (widget-button)
   ((option-indicator :initarg :option-indicator
 		     :initform "<=>"
-		     :docstring "String used to show this is an option button")
+		     :docstring "String printed to the left of the label in `left-margin' used to show this is an option button.")
    (option-list :initarg :option-list
 		:initform nil
 		:docstring "List of strings which are the options")
@@ -341,18 +350,19 @@ all button types.")
 		   :docstring "Obarray used for command line reading of symbols")
    (ind-face :initarg :ind-face
 	     :initform widget-indicator-face
-	     :docstring "Face used on the `option-indicator'"
+	     :docstring "Face used on the `option-indicator' string"
 	     :protection private)
    (justification :initarg :justification
 		  :initform left)
    (boxed :initform nil)
    (state :initarg :state
 	  :initform 0
-	  :docstring "Numerical index into list of strings representing the current value.")
+	  :docstring "`data-object' used as a numerical index into
+list of strings representing the current value.")
    )
   "Class for option button widget.  This button will provide a menu
 when clicked on.  The menu will consist of those items in
-`option-list', and the chosen item will appear in the button.")
+`option-list', and the chosen item will appear in the button's text.")
 
 (defclass widget-toggle-button (widget-button)
   ((boxed :initform nil)
@@ -367,22 +377,25 @@ when clicked on.  The menu will consist of those items in
 	    :initform [ "[ ]" "[X]" ]
 	    :docstring "Vector [ false true ] of strings used to show the state")
    )
-  "Class for toggle button widget:initform  This button will be CLICKED, and
+  "Class for toggle button widget.  This button will be CLICKED, and
 when successful clicks occur, a boolean value will be turned ON or
-OFF, and a visible piece will be modified.")
+OFF, and a visible piece will be modified based on `showvec'.")
 
 (defclass widget-radio-button (widget-toggle-button)
   ((radio-index :initarg :radioindex
 		:initform 0
-		:docstring "Index referencing the parent's state, which then lets us know if we
-are toggled on or off")
+		:docstring "Index indexing the parent's state, which then lets us know if we
+are toggled on or off.  ie, if the parent's state is 1, and our index
+is 0, then the state of this button will become nil.  This value does
+not change during use.")
    (parent-state :initform nil
 		 :docstring "Data object pointing the parent's state"
 		 :protection private)
    (showvec :initform [ "< >" "<O>" ])	;change type of indicator
    )
-  "Class of toggle button which knows how to talk with several other
-versions of itself in order to radio between different values.")
+  "Subclass of `widget-toggle-button' which knows how to talk with
+several other instantiations of itself in order to radio between different
+values.")
 
 ;;
 ;; Scrollbar types
@@ -409,7 +422,9 @@ versions of itself in order to radio between different values.")
 	   :initform "#"
 	   :docstring "Character used to draw the value indicator")
    )
-  "Class of scale.  A scale is mearly a thumb marker displaying the current
+  "Not Implemented Completely Yet.
+
+Class of scale.  A scale is merely a thumb marker displaying the current
 value of some number graphically across some random number of text 
 characters.")
 
@@ -419,8 +434,10 @@ characters.")
    (range :initarg :range
 	  :initform 10
 	  :docstring "Range of currently viewable area"))
-  "Class for a scrollbar.  A scrollbar also will have a visual range
-where the thumbtac changes size based on RANGE.")
+  "Not Implemented Completely Yet.
+
+Class for a scrollbar.  A scrollbar also will have a visual range
+where the thumbtack changes size based on RANGE.")
    
 
 ;;
@@ -436,26 +453,31 @@ where the thumbtac changes size based on RANGE.")
 	 :protection private)
    (spface :initarg :spface
 	   :initform widget-text-button-face
-	   :docstring "Face used on text buttons (scroll left/right/down/up)"
+	   :docstring "Face used on text buttons which appear to the
+left and right of the editable text.  They indicate unseen text to the
+left or right of the field."
 	   :protection private)
    (focus-face :initarg :focus-face
 	       :initform widget-text-focus-face
 	       :protection private)
    (keymap :initarg :keymap
 	   :initform nil
-	   :docstring "Keymap used to interpret text")
-   (disppos :initarg :disppos
-	    :initform 0
-	    :docstring "Current position in the screen to display info from")
-   (keycache :initarg :keycache
-	     :initform nil
+	   :docstring "Keymap used to interpret text.  By default, the
+global map is used when this value is nil.  Otherwise, additional
+mode-specific keymaps could be substituted to lend additional
+behaviors.")
+   (disppos :initform 0
+	    :docstring "Current position in the text value to display info from")
+   (keycache :initform nil
 	     :docstring "Collecting keypresses for multi keystroke keys.")
    (value :initarg :value
 	  :initform nil
-	  :docstring "The string we are editing")
+	  :docstring "A `data-object' representing the string we are editing.")
    )
-  "Class for a text field widget.  This will accept user-typed text,
-and stuff like that for only one line of text.")
+  "Class for a text field widget.  This will accept user-typed text
+which is no more than 1 line high.  Extra text will not be printed,
+but characters on either side of the field will display `<' or `>' to
+indicate that there is more to see outside of the visible part.")
 
 (run-hooks 'widget-d-load-hooks)
 
