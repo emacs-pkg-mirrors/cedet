@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.33 2003/08/15 13:05:37 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.34 2003/08/20 06:50:37 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -561,8 +561,7 @@ Also load the specified macro libraries."
     (insert (format "(defconst %s\n%s%S)\n\n" name value docstring))
     (save-excursion
       (goto-char start)
-      (indent-sexp)
-      (eval-defun nil))))
+      (indent-sexp))))
 
 (defun semantic-grammar-insert-defun (name body docstring)
   "Insert declaration of function NAME with BODY and DOCSTRING."
@@ -570,8 +569,7 @@ Also load the specified macro libraries."
     (insert (format "(defun %s ()\n%S\n%s)\n\n" name docstring body))
     (save-excursion
       (goto-char start)
-      (indent-sexp)
-      (eval-defun nil))))
+      (indent-sexp))))
 
 (defconst semantic-grammar-header-template
   "\
@@ -680,8 +678,19 @@ Also load the specified macro libraries."
   (semantic-grammar-as-string
    (semantic-grammar-setupcode-builder)))
 
+(defcustom semantic-grammar-file-regexp "\\.[wb]y$"
+  "Regexp which matches grammar source files."
+  :group 'semantic
+  :type 'regexp)
+
+(defsubst semantic-grammar-noninteractive ()
+  "Return non-nil if running without interactive terminal."
+  (if (featurep 'xemacs)
+      (noninteractive)
+    noninteractive))
+
 (defun semantic-grammar-create-package ()
-  "Create the grammar Lisp code in given package."
+  "Create package Lisp code from grammar in current buffer."
   (interactive)
   (semantic-bovinate-toplevel t)
   (let* (
@@ -696,7 +705,7 @@ Also load the specified macro libraries."
          (epilogue (semantic-grammar-epilogue))
          (footer   (semantic-grammar-footer))
          )
-    (pop-to-buffer semantic--grammar-output-buffer)
+    (set-buffer semantic--grammar-output-buffer)
     (erase-buffer)
     (unless (eq major-mode 'emacs-lisp-mode)
       (emacs-lisp-mode))
@@ -708,72 +717,116 @@ Also load the specified macro libraries."
             prologue
             "\n;;; Declarations\n;;\n"
             )
-    
-    ;; Evaluate the prologue now, because libraries might be required
-    ;; to evaluate the remaining of code.  Particularly if they
-    ;; provide the definition of grammar macro expanders!
+    ;; Evaluate the prologue now, because it might provide definition
+    ;; of grammar macro expanders.
     (eval-region (point-min) (point))
     
-;;;; Declarations & Rules
-    
-    ;; These definitions are automatically evaluated when inserted.
-    (semantic-grammar-insert-defconst
-     (semantic-grammar-keywordtable)
-     (with-current-buffer semantic--grammar-input-buffer
-       (semantic-grammar-keyword-data))
-     "Table of language keywords.")
-    
-    (semantic-grammar-insert-defconst
-     (semantic-grammar-tokentable)
-     (with-current-buffer semantic--grammar-input-buffer
-       (semantic-grammar-token-data))
-     "Table of lexical tokens.")
-    
-    (semantic-grammar-insert-defconst
-     (semantic-grammar-parsetable)
-     (with-current-buffer semantic--grammar-input-buffer
-       (semantic-grammar-parser-data))
-     "Parser table.")
-    
-    (semantic-grammar-insert-defun
-     (semantic-grammar-setupfunction)
-     (with-current-buffer semantic--grammar-input-buffer
-       (semantic-grammar-setup-data))
-     "Setup the Semantic Parser.")
-    
+    (save-excursion
+      
+;;;; Declarations
+      
+      ;; `eval-defun' is not necessary to reset `defconst' values.
+      (semantic-grammar-insert-defconst
+       (semantic-grammar-keywordtable)
+       (with-current-buffer semantic--grammar-input-buffer
+         (semantic-grammar-keyword-data))
+       "Table of language keywords.")
+       
+      (semantic-grammar-insert-defconst
+       (semantic-grammar-tokentable)
+       (with-current-buffer semantic--grammar-input-buffer
+         (semantic-grammar-token-data))
+       "Table of lexical tokens.")
+       
+      (semantic-grammar-insert-defconst
+       (semantic-grammar-parsetable)
+       (with-current-buffer semantic--grammar-input-buffer
+         (semantic-grammar-parser-data))
+       "Parser table.")
+       
+      (semantic-grammar-insert-defun
+       (semantic-grammar-setupfunction)
+       (with-current-buffer semantic--grammar-input-buffer
+         (semantic-grammar-setup-data))
+       "Setup the Semantic Parser.")
+       
 ;;;; Epilogue & Footer
+       
+      (insert "\n;;; Epilogue\n;;\n"
+              epilogue
+              footer
+              )
+       
+      )
     
-    ;; Eval epilogue code to make sure the file was required.  This
-    ;; solves the problem of compiling a grammar, followed by loading
-    ;; a file and not having the rest of the source loaded up.
-    (eval-region
-     (point)
-     (progn
-       (insert "\n;;; Epilogue\n;;\n"
-               epilogue
-               footer
-               )
-       (point)))
-    
-    (goto-char (point-min))
-    
-    ;; The above functions each evaluate the tables created
-    ;; into memory.  Now find all buffers that match the
-    ;; major modes we have created this language for, and
-    ;; force them to call our setup function again, refreshing
-    ;; all semantic data, and enabling them to work with the
-    ;; new code just created.
-    
+    ;; If running in batch mode, there is nothing more to do.
+    ;; Save the generated file and quit.
+    (if (semantic-grammar-noninteractive)
+        (let ((version-control t)
+              (delete-old-versions t)
+              (make-backup-files t)
+              (vc-make-backup-files t))
+          (save-buffer 16)
+          (kill-buffer (current-buffer)))
+      ;; If running interactively, eval declarations and epilogue
+      ;; code, then pop to the buffer visiting the generated file.
+      (eval-region (point) (point-max))
+      (goto-char (point-min))
+      (pop-to-buffer (current-buffer))
+      ;; The generated code has been evaluated and updated into
+      ;; memory.  Now find all buffers that match the major modes we
+      ;; have created this language for, and force them to call our
+      ;; setup function again, refreshing all semantic data, and
+      ;; enabling them to work with the new code just created.
 ;;;; FIXME?
-    
-    ;; At this point, I don't know any user's defined setup code :-(
-    ;; At least, what I can do for now, is to run the generated
-    ;; parser-install function.
-    (semantic-map-mode-buffers
-     (semantic-grammar-setupfunction)
-     (semantic-grammar-languagemode))
-    
+      ;; At this point, I don't know any user's defined setup code :-(
+      ;; At least, what I can do for now, is to run the generated
+      ;; parser-install function.
+      (semantic-map-mode-buffers
+       (semantic-grammar-setupfunction)
+       (semantic-grammar-languagemode)))
     ))
+
+(defun semantic-grammar-create-package-from-file (file)
+  "Create package Lisp code from grammar in FILE.
+Return t if successful or nil if an error occurred."
+  (condition-case err
+      (with-current-buffer (find-file-noselect file)
+        (semantic-grammar-create-package)
+        t)
+    (error
+     (message "%s" (error-message-string err)))))
+
+;;;###autoload
+(defun semantic-grammar-batch-create-package ()
+  "Create package Lisp code from grammar files on the command line.
+That is, run `semantic-grammar-create-package-from-file' for each files.
+Each file is processed even if an error occurred previously.
+Must be used from the command line, with `-batch'.
+For example, to process grammar files in current directory, invoke:
+
+  \"emacs -batch -f semantic-grammar-batch-create-package .\".
+
+See also the variable `semantic-grammar-file-regexp'."
+  (or (semantic-grammar-noninteractive)
+      (error "\
+`semantic-grammar-batch-create-package' must be used with -batch"
+             ))
+  (let ((status 0))
+    (dolist (arg command-line-args-left)
+      (setq arg (expand-file-name arg))
+      (if (file-directory-p arg)
+	  ;; Directory as argument.
+          (dolist (src (directory-files
+                        arg nil semantic-grammar-file-regexp))
+            (or (auto-save-file-name-p src)
+                (semantic-grammar-create-package-from-file
+                 (expand-file-name src arg))
+                (setq status 1)))
+	;; Specific file argument
+        (or (semantic-grammar-create-package-from-file arg)
+            (setq status 1))))
+    (kill-emacs status)))
 
 ;;;;
 ;;;; Macros highlighting
@@ -1002,7 +1055,7 @@ the change bounds to encompass the whole nonterminal tag."
           (nonterminal  . "Nonterminal")
           (rule         . "Rule")
           )
-        semantic-face-alist
+        semantic-format-face-alist
         '(
           (code         . default)
           (keyword      . font-lock-keyword-face)
@@ -1315,22 +1368,78 @@ Select the buffer containing the tag's definition, and move point there."
     )
   "Association of syntax elements, and the corresponding help.")
 
+(eval-when-compile
+  (require 'eldoc)
+  (require 'semantic-ctxt)
+  (cond
+   ((fboundp 'eldoc-function-argstring-from-docstring)
+    (defalias 'semantic-grammar-function-argstring-from-docstring
+      'eldoc-function-argstring-from-docstring)
+    )
+   ((fboundp 'help-split-fundoc)
+    (defsubst semantic-grammar-function-argstring-from-docstring (fun)
+      (help-split-fundoc (documentation fun t) fun))
+    )
+   (t
+    (defalias 'semantic-grammar-function-argstring-from-docstring
+      'ignore)
+    )
+   ))
+
+(defun semantic-grammar-eldoc-get-macro-docstring (macro expander)
+  "Return a one-line docstring for the given grammar MACRO.
+EXPANDER is the name of the function that expands MACRO."
+  (if (and (eq expander (aref eldoc-last-data 0))
+           (eq 'function (aref eldoc-last-data 2)))
+      (aref eldoc-last-data 1)
+    (let ((doc (semantic-grammar-function-argstring-from-docstring expander)))
+      (cond
+       (doc
+        (setq doc (car doc))
+        (string-match "\\`[^ )]* ?" doc)
+        (setq doc (concat "(" (substring doc (match-end 0)))))
+       (t
+        (setq doc (eldoc-function-argstring expander))))
+      (when doc
+        (setq doc (eldoc-docstring-format-sym-doc
+                   macro (format "==> %s %s" expander doc)))
+        (eldoc-last-data-store expander doc 'function))
+      doc)))
+
 (define-mode-overload-implementation eldoc-current-symbol-info
   semantic-grammar-mode ()
-  "Display additional eldoc information about keywords in `semantic-grammar-syntax-help'."
-  (let* ((sym (semantic-ctxt-current-symbol))
-         (summ (assoc (car sym) semantic-grammar-syntax-help))
-         (esym (when sym (intern-soft (car sym))))
-         (found (cdr summ)))
-    (cond (found
-           found)
-          ((and esym (fboundp esym))
-           (eldoc-get-fnsym-args-string esym))
-          ((and esym (boundp esym))
-           (eldoc-get-var-docstring esym))
-          (t
-           (senator-eldoc-print-current-symbol-info-default)
-           ))))
+  "Display additional eldoc information about grammar syntax elements.
+Syntax element is the current symbol at point.
+If it is associated a help string in `semantic-grammar-syntax-help',
+return that string.
+If it is a macro name, return a description of the associated expander
+function parameter list.
+If it is a function name, return a description of this function
+parameter list.
+It it is a variable name, return a brief (one-line) documentation
+string for the variable.
+If a default description of the current context can be obtained,
+return it.
+Otherwise return nil."
+  (let* ((elt (car (semantic-ctxt-current-symbol)))
+         (val (and elt (cdr (assoc elt semantic-grammar-syntax-help)))))
+    (when (and (not val) elt (semantic-grammar-in-lisp-p))
+      ;; Ensure to load macro definitions before doing `intern-soft'.
+      (setq val (semantic-grammar-macros)
+            elt (intern-soft elt)
+            val (and elt (cdr (assq elt val))))
+      (cond
+       ;; Grammar macro
+       ((and val (fboundp val))
+        (setq val (semantic-grammar-eldoc-get-macro-docstring elt val)))
+       ;; Function
+       ((and elt (fboundp elt))
+        (setq val (eldoc-get-fnsym-args-string elt)))
+       ;; Variable
+       ((and elt (boundp elt))
+        (setq val (eldoc-get-var-docstring val)))
+       (t nil)))
+    (or val (senator-eldoc-print-current-symbol-info-default))))
 
 (define-mode-overload-implementation semantic-abbreviate-nonterminal
   semantic-grammar-mode (tag &optional parent color)
@@ -1338,7 +1447,7 @@ Select the buffer containing the tag's definition, and move point there."
 Optional PARENT is not used.
 Optional COLOR is used to flag if color is added to the text."
   (let ((class (semantic-tag-class tag))
-        (name (semantic-name-nonterminal tag parent color)))
+        (name (semantic-format-tag-name tag parent color)))
     (cond
      ((eq class 'nonterminal)
       (concat name ":"))
@@ -1355,7 +1464,7 @@ Optional COLOR is used to flag if color is added to the text."
 Optional PARENT is not used.
 Optional argument COLOR determines if color is added to the text."
   (let ((class (semantic-tag-class tag))
-        (name (semantic-name-nonterminal tag parent color))
+        (name (semantic-format-tag-name tag parent color))
         (label nil)
         (desc nil))
     (cond
@@ -1408,11 +1517,11 @@ Optional argument COLOR determines if color is added to the text."
                         (concat " " (mapconcat 'identity val " "))
                       "")))))
      (t
-      (setq desc (semantic-abbreviate-nonterminal tag parent color))))
+      (setq desc (semantic-format-tag-abbreviate tag parent color))))
     (if (and color label)
-        (setq label (semantic-colorize-text label 'label)))
+        (setq label (semantic--format-colorize-text label 'label)))
     (if (and color label desc)
-        (setq desc (semantic-colorize-text desc 'comment)))
+        (setq desc (semantic--format-colorize-text desc 'comment)))
     (if label
         (concat label name desc)
       ;; Just a description is the abbreviated version
