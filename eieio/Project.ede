@@ -5,6 +5,11 @@
   :version "0.18"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-elisp-autoloads "autoloads"
+    :name "autoloads"
+    :path ""
+    :autoload-file "eieio-defs.el"
+    )
    (ede-proj-target-elisp "eieio"
     :name "eieio"
     :path ""
@@ -21,7 +26,7 @@
     :path ""
     :source '("eieio.texi")
     )
-   (ede-proj-target-elisp "nil"
+   (ede-proj-target-elisp "test"
     :name "test"
     :path ""
     :source '("eieio-tests.el")
