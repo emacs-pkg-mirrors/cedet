@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.13 2004/02/08 20:04:23 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.14 2004/02/10 01:49:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -512,11 +512,23 @@ Use the semantic analyzer to find the symbol information."
    (semantic-idle-summary-current-symbol-info-brutish)
    ))
 
+(defun semantic-idle-summary-useful-context-p ()
+  "Non-nil of we should show a summary based on context."
+  (if (and (boundp 'font-lock-mode)
+	   font-lock-mode
+	   (eq (get-text-property (point) 'face)
+	       'font-lock-comment-face))
+      ;; The best I can think of at the moment is to disable
+      ;; in comments by detecting with font-lock.
+      nil
+    t))
+
 (define-semantic-idle-service semantic-idle-summary
   "Display a tag summary of the lexcial token under the cursor.
 The means for getting the current tag to display information can
 be override with `idle-summary-current-symbol-info'"
-  (unless (eq major-mode 'emacs-lisp-mode)
+  (unless (or (eq major-mode 'emacs-lisp-mode)
+	      (not (semantic-idle-summary-useful-context-p)))
 
     ;; Double overload symbols for backward compatibility
     (let ((s (or (semantic-fetch-overload 'idle-summary-current-symbol-info)
@@ -564,16 +576,17 @@ be override with `idle-summary-current-symbol-info'"
   (if (or (not (featurep 'tooltip)) tooltip-use-echo-area)
       ;; If tooltips aren't available, turn this off.
       (global-semantic-idle-completions-mode -1)
-    ;; This mode can be fragile.  Ignore problems.
-    ;; If something doesn't do what you expect, run
-    ;; the below command by hand instead.
-    (condition-case nil
-	(progn
-	  (semantic-complete-analyze-inline)
-	  (when (semantic-completion-inline-active-p)
-	    (semantic-complete-inline-force-display)))
-      (error nil))
-    ))
+    (when (semantic-idle-summary-useful-context-p)
+      ;; This mode can be fragile.  Ignore problems.
+      ;; If something doesn't do what you expect, run
+      ;; the below command by hand instead.
+      (condition-case nil
+	  (progn
+	    (semantic-complete-analyze-inline)
+	    (when (semantic-completion-inline-active-p)
+	      (semantic-complete-inline-force-display)))
+	(error nil))
+      )))
 
 (define-semantic-idle-service semantic-idle-completions
   "Display a list of possible completions in a tooltip."
