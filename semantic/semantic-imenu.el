@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.4 2000/07/04 18:33:53 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.5 2000/09/15 17:10:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,9 +53,11 @@ Nil means to keep them in the same order."
   :type 'bool)
 
 ;;; Code:
+;;;###autoload
 (defun semantic-create-imenu-index (&optional stream)
   "Create an imenu index for any buffer which supports Semantic.
-Uses the output of the Semantic Bovinator to create the index."
+Uses the output of the Semantic Bovinator to create the index.
+Optional argument STREAM STREAM is an optional stream of tokens used to create menus."
   (let* ((tokens (or stream (semantic-bovinate-toplevel nil t t)))
 	 (buckets (semantic-bucketize tokens))
 	 item name
@@ -63,20 +65,29 @@ Uses the output of the Semantic Bovinator to create the index."
 	 index)
   (while buckets
     (setq name (car (car buckets))
-	  item (cdr (car buckets))
-	  index (if item
+	  item (cdr (car buckets)))
+    ;; If we have types, then first make a bucket of types,
+    ;; then the bucket of submenues full of types
+    (if (and item (eq (semantic-token-token (car item)) 'type))
+	(setq index (cons (cons (concat "*" name "Def*")
+				(semantic-create-imenu-subindex item t))
+			  index)))
+    ;; Add the sublist of items
+    (setq index (if item
 		    (cons (cons name (semantic-create-imenu-subindex item))
 			  index)
 		  index)
 	  buckets (cdr buckets)))
   (nreverse index)))
 	    
-(defun semantic-create-imenu-subindex (tokens)
-  "From TOKENS, create an imenu index of interesting things."
+(defun semantic-create-imenu-subindex (tokens &optional notypecheck)
+  "From TOKENS, create an imenu index of interesting things.
+Optional argument NOTYPECHECK specifies not to make subgroups under types."
   (let (index token parts)
     (while tokens
       (setq token (car tokens))
-      (if (and (eq (semantic-token-token token) 'type)
+      (if (and (not notypecheck)
+	       (eq (semantic-token-token token) 'type)
                (setq parts (semantic-token-type-parts token)))
           (setq index (cons (cons
                              (funcall semantic-imenu-summary-function
@@ -86,10 +97,20 @@ Uses the output of the Semantic Bovinator to create the index."
                                (semantic-create-imenu-subindex parts)))
                             index))
         (setq index (cons (cons (funcall semantic-imenu-summary-function token)
-                                (semantic-token-end token))
+                                (semantic-token-start token))
                           index)))
       (setq tokens (cdr tokens)))
-    (nreverse index)))
+    ;; Imenu wasn't capturing this, so add the code from imenu.el
+    ;; into this sub-sub section.
+    (if imenu-sort-function
+	(sort (let ((res nil)
+		    (oldlist index))
+		;; Copy list method from the cl package `copy-list'
+		(while (consp oldlist) (push (pop oldlist) res))
+		(if res		; in case, e.g. no functions defined
+		    (prog1 (nreverse res) (setcdr res oldlist))))
+	      imenu-sort-function)
+      index)))
 
 (provide 'semantic-imenu)
 
