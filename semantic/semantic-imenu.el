@@ -4,7 +4,7 @@
 ;;; Copyright (C) 2001 Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.25 2001/02/20 20:23:48 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.26 2001/02/21 20:55:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -307,7 +307,6 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
 	    (semantic-create-imenu-subindex item))))
       ;; Else, group everything together
       (semantic-create-imenu-subindex tokens))))
-    
 
 (defun semantic-create-imenu-subindex (tokens)
   "From TOKENS, create an imenu index of interesting things."
@@ -331,13 +330,12 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
 			   ;; Note to self: enable menu items for sub parts
 			   ;; even if they are not proper tokens.
 			   (semantic-token-p (car parts)))
-		      (cons (cons "*definition*" 
+		      (cons (cons "*definition*"
 				  (semantic-imenu-token-overlay token))
 			    (if (and semantic-imenu-bucketize-type-parts
 				     semantic-imenu-bucketize-file)
 				(semantic-create-imenu-index-1 parts)
-			      (semantic-create-imenu-subindex
-			       (reverse parts))))
+			      (semantic-create-imenu-subindex parts)))
 		    ;; There were no parts, or something like that, so
 		    ;; instead just put the definition here.
 		    (semantic-imenu-token-overlay token)
