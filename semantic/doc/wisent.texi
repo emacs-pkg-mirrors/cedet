@@ -248,8 +248,8 @@ Is the list of terminal symbols used in the grammar.
 @cindex associativity
 @item assocs
 Specify the associativity of @var{terminals}.  It is @code{nil} when
-there is no associativity defined, or an alist of @*
-@code{(@var{assoc-type} . @var{assoc-value})} elements.
+there is no associativity defined, or an alist of
+@w{@code{(@var{assoc-type} . @var{assoc-value})}} elements.
 
 @var{assoc-type} must be one of the @code{default-prec},
 @code{nonassoc}, @code{left} or @code{right} symbols.  When
@@ -404,20 +404,21 @@ defined:
 
 @table @code
 @vindex $N
-@item $N
+@item $@var{n}
 Where @var{n} is a positive integer.  Like in Bison, the value of
-@code{$N} is the semantic value of the @var{n}th element of
-@var{components}, starting from @code{1}.  It can be of any Lisp data
+@code{$@var{n}} is the semantic value of the @var{n}th element of
+@var{components}, starting from 1.  It can be of any Lisp data
 type.
 
-@vindex $regionN
+@vindex $region@var{n}
 @item $regionN
-Where @var{n} is a positive integer.  For each @code{$N} variable
-defined there is a corresponding @code{$regionN} variable.  Its value
-is a pair @code{(@var{start-pos} .  @var{end-pos})} that represent the
-start and end positions (in the lexical input stream) of the @code{$N}
-value.  It can be @code{nil} when the component positions are not
-available, like for an empty string component for example.
+Where @var{n} is a positive integer.  For each @code{$@var{n}}
+variable defined there is a corresponding @code{$region@var{n}}
+variable.  Its value is a pair @code{(@var{start-pos} .
+@var{end-pos})} that represent the start and end positions (in the
+lexical input stream) of the @code{$@var{n}} value.  It can be
+@code{nil} when the component positions are not available, like for an
+empty string component for example.
 
 @vindex $region
 @item $region
@@ -431,20 +432,20 @@ matched by all @var{components} in the rule.  This is a pair
 This variable is initialized with the nonterminal symbol
 (@var{nonterm}) the rule belongs to.  It could be useful to improve
 error reporting or debugging.  It is also used to automatically
-provide the @code{reparse-symbol} property of a @semantic{} tag
+provide incremental re-parse entry points for @semantic{} tags
 (@pxref{Wisent Semantic}).
 
 @vindex $action
 @item $action
-The value of @code{$action} is a string: the symbolic name of the
-current semantic action (@pxref{Debugging actions}).
+The value of @code{$action} is the symbolic name of the current
+semantic action (@pxref{Debugging actions}).
 @end table
 
 When an action is not specified a default value is supplied, it is
 @code{(identity $1)}.  This means that the default semantic value of a
 rule is the value of its first component.  Excepted for a rule
 matching the empty string, for which the default action is to return
-@code{nil}: @code{(identity nil)}.
+@code{nil}.
 @end table
 @end table
 
@@ -481,6 +482,8 @@ Here is an example to parse simple infix arithmetic expressions.  See
     (progn ";"))
    ((exp ?;)
     (format "%s;" $1))
+   ((error ?;)
+    (progn "Error;")))
    )
 
   (exp
@@ -533,6 +536,8 @@ line:
     @{";"@}
   | exp ';'
     (format "%s;" $1)
+  | error ';'
+    @{"Error;"@}
   ;
 
 exp:
@@ -572,19 +577,19 @@ must be @dfn{LALR(1)}.
 
 @cindex LALR(1) grammar
 @cindex look-ahead token
-A grammar is LALR(1) if it is possible to tell how to parse any
-portion of an input string with just a single token of look-ahead: the
-@dfn{look-ahead token}.  See @ref{Language and Grammar, , , bison}, in
-the Bison manual for more information.
+A grammar is @acronym{LALR(1)} if it is possible to tell how to parse
+any portion of an input string with just a single token of look-ahead:
+the @dfn{look-ahead token}.  See @ref{Language and Grammar, , ,
+bison}, in the Bison manual for more information.
 
 @cindex grammar compilation
 Grammar translation (compilation) is achieved by the function:
 
 @cindex compiling a grammar
-@findex wisent-compile-grammar
 @vindex wisent-single-start-flag
+@findex wisent-compile-grammar
 @defun wisent-compile-grammar grammar &optional start-list
-Compile @var{grammar} and return an LALR(1) automaton.
+Compile @var{grammar} and return an @acronym{LALR(1)} automaton.
 
 Optional argument @var{start-list} is a list of start symbols
 (nonterminals).  If @code{nil} the first nonterminal defined in the
@@ -595,7 +600,7 @@ symbols, unless @code{wisent-single-start-flag} is non-@code{nil}.  In
 that case the first element of @var{start-list} defines the start
 symbol and others are ignored.
 
-The LALR(1) automaton is a vector of the form:
+The @acronym{LALR(1)} automaton is a vector of the form:
 
 @code{[@var{actions gotos starts functions}]}
 
@@ -674,16 +679,25 @@ information.
 
 @cindex grammar debugging
 @cindex grammar verbose description
-To help writing a new grammar, it is possible to tell
-@code{wisent-compile-grammar} to produce a report containing verbose
-descriptions of the grammar and parser (it is equivalent to the
-@option{--verbose} option for Bison), by setting to non-@code{nil} this
+To help writing a new grammar, @code{wisent-compile-grammar} can
+produce a verbose report containing a detailed description of the
+grammar and parser (equivalent to what Bison reports with the
+@option{--verbose} option).
+
+To enable the verbose report you can set to non-@code{nil} the
 variable:
 
 @vindex wisent-verbose-flag
-@defvar wisent-verbose-flag
+@deffn Option wisent-verbose-flag
 non-@code{nil} means to report verbose information on generated parser.
-@end defvar
+@end deffn
+
+Or interactively use the command:
+
+@findex wisent-toggle-verbose-flag
+@deffn Command wisent-toggle-verbose-flag
+Toggle whether to report verbose information on generated parser.
+@end deffn
 
 The verbose report is printed in the temporary buffer
 @code{*wisent-log*} when running interactively, or in file
@@ -700,14 +714,16 @@ where @var{source-file} is the name of the Emacs Lisp file from which
 the grammar was read.  See @ref{Understanding the automaton}, for
 details on the verbose report.
 
-@vindex wisent-debug-flag
-To help debugging the grammar compiler itself, set the variable
-@code{wisent-debug-flag} to report the content of some internal data
-structures.
+@table @strong
+@item Please Note
+To help debugging the grammar compiler itself, you can set this
+variable to print the content of some internal data structures:
 
+@vindex wisent-debug-flag
 @defvar wisent-debug-flag
 non-@code{nil} means enable some debug stuff.
 @end defvar
+@end table
 
 @node Understanding the automaton
 @subsection Understanding the automaton
@@ -986,9 +1002,10 @@ the sentence @samp{NUM + NUM / NUM} can be parsed as @samp{NUM + (NUM
 / NUM)}, which corresponds to shifting @samp{/}, or as @samp{(NUM +
 NUM) / NUM}, which corresponds to reducing rule 1.
 
-Because in LALR(1) parsing a single decision can be made, Wisent
-arbitrarily chose to disable the reduction, see @ref{Conflicts}.
-Discarded actions are reported in between square brackets.
+Because in @acronym{LALR(1)} parsing a single decision can be made,
+Wisent arbitrarily chose to disable the reduction, see
+@ref{Conflicts}.  Discarded actions are reported in between square
+brackets.
 
 Note that all the previous states had a single possible action: either
 shifting the next token and going to the corresponding state, or
@@ -1120,8 +1137,9 @@ calls a recovery routine to try to resume parsing.
 @end table
 
 @cindex table-driven parser
-The above elementary actions are driven by the LALR(1) automaton built
-by @code{wisent-compile-grammar} from a context-free grammar.
+The above elementary actions are driven by the @acronym{LALR(1)}
+automaton built by @code{wisent-compile-grammar} from a context-free
+grammar.
 
 The Wisent's parser is entered by calling the function:
 
@@ -1131,8 +1149,8 @@ Parse input using the automaton specified in @var{automaton}.
 
 @table @var
 @item automaton
-Is an LALR(1) automaton generated by @code{wisent-compile-grammar}
-(@pxref{Wisent Grammar}).
+Is an @acronym{LALR(1)} automaton generated by
+@code{wisent-compile-grammar} (@pxref{Wisent Grammar}).
 
 @item lexer
 Is a function with no argument called by the parser to obtain the next
@@ -1141,7 +1159,7 @@ terminal (token) in input (@pxref{Writing a lexer}).
 @item error
 Is an optional reporting function called when a parse error occurs.
 It receives a message string to report.  It defaults to the function
-@code{error} (@pxref{Report errors}).
+@code{wisent-message} (@pxref{Report errors}).
 
 @item start
 Specify the start symbol (nonterminal) used by the parser as its goal.
@@ -1153,13 +1171,13 @@ It defaults to the start symbol defined in the grammar
 The following two normal hooks permit to do some useful processing
 respectively before to start parsing, and after the parser terminated.
 
+@vindex wisent-pre-parse-hook
 @defvar wisent-pre-parse-hook
-@anchor{wisent-pre-parse-hook}
 Normal hook run just before entering the @var{LR} parser engine.
 @end defvar
 
+@vindex wisent-post-parse-hook
 @defvar wisent-post-parse-hook
-@anchor{wisent-post-parse-hook}
 Normal hook run just after the @var{LR} parser engine terminated.
 @end defvar
 
@@ -1208,10 +1226,10 @@ Are the optionals beginning and end positions of @var{value} in the
 input stream.
 @end table
 
-@vindex wisent-eoi-term
 When there are no more tokens to read the lexer must return the token
 @code{(list wisent-eoi-term)} to each request.
 
+@vindex wisent-eoi-term
 @defvar wisent-eoi-term
 Predefined constant, End-Of-Input terminal symbol.
 @end defvar
@@ -1229,7 +1247,7 @@ To call the lexer in a semantic action use the function
 @vindex wisent-input
 @defvar wisent-input
 The last token read.
-The actual value of this variable is local to the parser.
+This variable only has meaning in the scope of @code{wisent-parse}.
 @end defvar
 
 @findex wisent-lexer
@@ -1239,11 +1257,12 @@ Obtain the next terminal in input.
 
 @findex wisent-region
 @defun wisent-region &rest positions
-Return the start/end positions of the region including @var{positions}.
-Each element of @var{positions} is a pair (@var{start-pos} .
-@var{end-pos}) or @code{nil}.  The returned value is the pair
-(@var{min-start-pos} . @var{max-end-pos}) or @code{nil} if no
-@var{positions} are available.
+Return the start/end positions of the region including
+@var{positions}.  Each element of @var{positions} is a pair
+@w{@code{(@var{start-pos} .  @var{end-pos})}} or @code{nil}.  The
+returned value is the pair @w{@code{(@var{min-start-pos} .
+@var{max-end-pos})}} or @code{nil} if no @var{positions} are
+available.
 @end defun
 
 @node Report errors
@@ -1254,11 +1273,46 @@ When the parser encounters a syntax error it calls a user-defined
 function.  It must be an Emacs Lisp function with one argument: a
 string containing the message to report.
 
-By default the parser uses the standard Emacs Lisp function
-@code{error} to report error message and terminate.
+By default the parser uses this function to report error messages:
 
-At this point the variable @code{wisent-input} contains the unexpected
-token as returned by the lexer.
+@findex wisent-message
+@defun wisent-message string &rest args
+Print a one-line message if @code{wisent-parse-verbose-flag} is set.
+Pass @var{string} and @var{args} arguments to @dfn{message}.
+@end defun
+
+@table @strong
+@item Please Note:
+@code{wisent-message} uses the following function to print lexical
+tokens:
+
+@defun wisent-token-to-string token
+Return a printed representation of lexical token @var{token}.
+@end defun
+
+The general printed form of a lexical token is:
+
+@w{@code{@var{token}(@var{value})@@@var{location}}}
+@end table
+
+To control the verbosity of the parser you can set to non-@code{nil}
+this variable:
+
+@vindex wisent-parse-verbose-flag
+@deffn Option wisent-parse-verbose-flag
+non-@code{nil} means to issue more messages while parsing.
+@end deffn
+
+Or interactively use the command:
+
+@findex wisent-parse-toggle-verbose-flag
+@deffn Command wisent-parse-toggle-verbose-flag
+Toggle whether to issue more messages while parsing.
+@end deffn
+
+When the error reporting function is entered the variable
+@code{wisent-input} contains the unexpected token as returned by the
+lexer.
 
 The error reporting function can be called from a semantic action too
 using the special macro @code{wisent-error}.  When called from a
@@ -1270,8 +1324,8 @@ value of the variable @code{wisent-recovering} is non-@code{nil}.
 
 @cindex error recovery
 The error recovery mechanism of the Wisent's parser conforms to the
-one Bison uses.  See @ref{Error Recovery, , , bison}, in the
-Bison manual for details.
+one Bison uses.  See @ref{Error Recovery, , , bison}, in the Bison
+manual for details.
 
 @cindex error token
 To recover from a syntax error you must write rules to recognize the
@@ -1320,17 +1374,16 @@ The number of parse errors encountered so far.
 
 @vindex wisent-recovering
 @defvar wisent-recovering
-non-@code{nil} when the parser is recovering.
-The actual value of this variable is local to the parser.
+non-@code{nil} means that the parser is recovering.
+This variable only has meaning in the scope of @code{wisent-parse}.
 @end defvar
 
 @findex wisent-error
 @defun wisent-error msg
-Call the language specific error reporting function with message
+Call the user supplied error reporting function with message
 @var{msg} (@pxref{Report errors}).
 
-See implementation of the function @code{wisent-skip-token} below, for
-an example of use.
+For an example of use, @xref{wisent-skip-token}.
 @end defun
 
 @findex wisent-errok
@@ -1346,32 +1399,29 @@ Calling @code{wisent-errok} in an action, make error messages resume
 immediately.  No error messages will be suppressed if you call it in
 an error rule's action.
 
-See implementation of the function @code{wisent-skip-token} below, for
-an example of use.
+For an example of use, @xref{wisent-skip-token}.
 @end defun
 
 @findex wisent-clearin
 @defun wisent-clearin
-Discard the current look-ahead token.
-This will cause a new token to be read.
+Discard the current lookahead token.
+This will cause a new lexical token to be read.
 
-In an error rule's action the previous look-ahead token is reanalyzed
+In an error rule's action the previous lookahead token is reanalyzed
 immediately.  @code{wisent-clearin} may be called to clear this token.
 
 For example, suppose that on a parse error, an error handling routine
 is called that advances the input stream to some point where parsing
 should once again commence.  The next symbol returned by the lexical
-scanner is probably correct.  The previous look-ahead token ought to
+scanner is probably correct.  The previous lookahead token ought to
 be discarded with @code{wisent-clearin}.
 
-See implementation of the function @code{wisent-skip-token} below, for
-an example of use.
+For an example of use, @xref{wisent-skip-token}.
 @end defun
 
 @findex wisent-abort
 @defun wisent-abort
-Abort parsing and save the look-ahead token.
-This is useful primarily in error rules.
+Abort parsing and save the lookahead token.
 @end defun
 
 @findex wisent-set-region
@@ -1382,20 +1432,18 @@ positions of the region occupied by the group of components associated
 to this nonterminal.  If @var{start} or @var{end} values are not a
 valid positions the region is set to @code{nil}.
 
-For example, the function @code{wisent-skip-block} described below
-uses it to safely set the region to the start/end positions of the
-current block of code.
+For an example of use, @xref{wisent-skip-token}.
 @end defun
 
 @vindex wisent-discarding-token-functions
 @defvar wisent-discarding-token-functions
-List of functions to be called when discarding a lexical token.@*
-These functions receive the lexical token discarded.@*
+List of functions to be called when discarding a lexical token.
+These functions receive the lexical token discarded.
 When the parser encounters unexpected tokens, it can discards them,
 based on what directed by error recovery rules.  Either when the
 parser reads tokens until one is found that can be shifted, or when an
 semantic action calls the function @code{wisent-skip-token} or
-@code{wisent-skip-block}.@*
+@code{wisent-skip-block}.
 For language specific hooks, make sure you define this as a local
 hook.
 
@@ -1406,31 +1454,31 @@ tokens (@pxref{Useful functions}).
 
 @findex wisent-skip-token
 @defun wisent-skip-token
-Skip an invalid token and try to continue parsing.
+@anchor{wisent-skip-token}
+Skip the lookahead token in order to resume parsing.
+Return nil.
+Must be used in error recovery semantic actions.
 
-It is implemented like this:
+It typically looks like this:
 
 @lisp
 @group
-(defsubst wisent-skip-token ()
-  "Skip an invalid token and try to continue parsing.
-To be used in grammar recovery actions."
-  (wisent-error (format "Skipping invalid '%s'" $nterm))
-  ;; Clear the lookahead token
-  (if (eq (car wisent-input) wisent-eoi-term)
-      ;; does nothing at EOI to avoid infinite recovery loop
-      nil
-    (run-hook-with-args
-     'wisent-discarding-token-functions wisent-input)
-    (wisent-clearin)
-    (wisent-errok)))
+(wisent-message "%s: skip %s" $action
+                (wisent-token-to-string wisent-input))
+(run-hook-with-args
+ 'wisent-discarding-token-functions wisent-input)
+(wisent-clearin)
+(wisent-errok)))
 @end group
 @end lisp
 @end defun
 
 @findex wisent-skip-block
 @defun wisent-skip-block
-Safely skip a block and try to continue parsing.
+Safely skip a block in order to resume parsing.
+Return nil.
+Must be used in error recovery semantic actions.
+
 A block is data between an open-delimiter (syntax class @code{(}) and
 a matching close-delimiter (syntax class @code{)}):
 
@@ -1444,11 +1492,13 @@ a matching close-delimiter (syntax class @code{)}):
 
 The following example uses @code{wisent-skip-block} to safely skip a
 block delimited by @samp{LBRACE} (@code{@{}) and @samp{RBRACE}
-(@code{@}}) tokens:
+(@code{@}}) tokens, when a syntax error occurs in
+@samp{other-components}:
 
 @example
 @group
-(block ((LBRACE RBRACE))
+(block ((LBRACE other-components RBRACE))
+       ((LBRACE RBRACE))
        ((LBRACE error)
         (wisent-skip-block))
        )
@@ -1460,16 +1510,16 @@ block delimited by @samp{LBRACE} (@code{@{}) and @samp{RBRACE}
 @section Debugging semantic actions
 
 @cindex semantic action symbols
-Each semantic action is represented by a symbol interned in an obarray
-that is part of the LALR automaton (@pxref{Compiling a grammar}).
-@code{symbol-function} on a semantic action symbol return the semantic
-action lambda expression.
+Each semantic action is represented by a symbol interned in an
+@dfn{obarray} that is part of the @acronym{LALR(1)} automaton
+(@pxref{Compiling a grammar}).  @code{symbol-function} on a semantic
+action symbol return the semantic action lambda expression.
 
 A semantic action symbol name has the form
-@var{nonterminal}:@var{index}, where @var{nonterminal} is the name of
-the nonterminal symbol the action belongs to, and @var{index} is an
-action sequence number within the scope of @var{nonterminal}.  For
-example, this nonterminal definition:
+@code{@var{nonterminal}:@var{index}}, where @var{nonterminal} is the
+name of the nonterminal symbol the action belongs to, and @var{index}
+is an action sequence number within the scope of @var{nonterminal}.
+For example, this nonterminal definition:
 
 @example
 @group
@@ -1485,7 +1535,7 @@ Will produce two semantic actions, and associated symbols:
 
 @table @code
 @item input:0
-A default action that returns $1.
+A default action that returns @code{$1}.
 
 @item input:1
 That returns @code{(format "%s %s" $1 $2)}.
@@ -1536,7 +1586,7 @@ data types, classes, includes, grammar rules, etc..
 @cindex WY grammar format
 To use the Wisent parser with @semantic{} you have to define
 your grammar in @dfn{WY} form, a grammar format very close
-to the one used by Bison.@*
+to the one used by Bison.
 
 Please @inforef{top, Semantic Grammar Framework Manual, grammar-fw}
 for more information on @semantic{} grammars.
@@ -1957,13 +2007,13 @@ different form (@pxref{Writing a lexer}):
 @end example
 
 @cindex lexical token mapping
-@findex wisent-lex
 @code{wisent-lex} is the default Wisent's lexer used in @semantic{}.
 
+@vindex wisent-lex-istream
+@findex wisent-lex
 @defun wisent-lex
 Return the next available lexical token in Wisent's form.
 
-@vindex wisent-lex-istream
 The variable @code{wisent-lex-istream} contains the list of lexical
 tokens produced by @code{semantic-lex}.  Pop the next token available
 and convert it to a form suitable for the Wisent's parser.
@@ -2000,4 +2050,4 @@ equivalent Wisent lexical tokens is straightforward:
 
 @c Following comments are for the benefit of ispell.
 
-@c  LocalWords:  Wisent automagically wisent Wisent's
+@c  LocalWords:  Wisent automagically wisent Wisent's LALR obarray
