@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.11 2002/06/14 13:17:12 zappo Exp $
+ * $Id: test.cpp,v 1.11.2.1 2003/01/24 12:32:40 berndl Exp $
  *
  */
 
@@ -204,6 +204,50 @@ extern "C" {
 
 }
 
+// Some operator stuff
+class Action
+{
+  // Problems!! operator() and operator[] can not be parsed with semantic
+  // 1.4.2 but with latest c.bnf
+  virtual void operator()(int i, int j ) = 0;
+  virtual String& operator[]() = 0;
+  virtual void operator!() = 0;
+  virtual void operator->() = 0;
+};
+
+// class with namespace qualified parents
+class Multiinherit : public virtual POA::Parent,
+                     public virtual POA::Parent1,
+                     Parent
+{
+private:
+  int i;
+
+public:
+  Multiinherit();
+  ~Multiinherit();
+
+  // method with a list of qualified exceptions
+  void* throwtest()
+    throw(Exception0,
+          Testnamespace::Exception1,
+          Testnamespace::Excpetion2,
+          Testnamespace::testnamespace1::Exception3);
+  
+};
+
+void*
+Multiinherit::throwtest()
+  throw (Exception0,
+         Testnamespace::Exception1,
+         Testnamespace::Excpetion2,
+         Testnamespace::testnamespace1::Exception3)
+{
+  return;
+}
+
+
+
 /*
  * Ok, how about some template stuff.
  */
@@ -223,3 +267,192 @@ class TemplateUsingClass
 
 template<class T> T ti1(const Foo& foo);
 template<> int ti1<int>(const Foo& foo);
+
+
+// -----------------------------------
+// Now some namespace and related stuff
+// -----------------------------------
+
+using CORBA::LEX::get_token;
+using Namespace1;
+
+using namespace POA::std;
+using namespace Test;
+
+
+
+namespace Parser
+{
+  namespace
+  {
+    using Lexer::get_test;
+    string str = "";
+  }
+  
+  namespace XXX
+  {
+    
+    class Foobar : public virtual POA::Parent,
+                   public virtual POA::Parent1
+    {
+      ini i;
+    public:
+      
+      Foobar();
+      ~Foobar();
+    };
+  }
+  
+
+  void test_function(int i);
+    
+};
+
+// unnamed namespaces - even nested
+namespace
+{
+  namespace
+  {
+    using Lexer::get_test;
+    string str = "";
+  }
+
+  // some builtin types
+  long long ll = 0;
+  long double d = 0.0;
+  unsigned test;
+  unsigned long int uli = 0;
+  signed si = 0;
+  signed short ss = 0;  
+  
+  // expressions with namespace/class-qualifyiers
+  ORB_var cGlobalOrb = ORB::_nil();
+  ORB_var1 cGlobalOrb1 = ORB::_test;
+
+  class Testclass
+  {
+    #define TEST 0
+    ini i;
+
+  public:
+
+    Testclass();
+    ~Testclass();
+  };
+
+  static void test_function(unsigned int i);
+
+};
+
+
+// outside method implementations which should be grouped to type Test
+XXX&
+Test::waiting()
+{
+  return;
+}
+
+void
+Test::print()
+{
+  return;
+}
+
+// outside method implementations with namespaces which should be grouped to
+// their complete (incl. namespace) types
+void*
+Parser::XXX::Foobar::wait(int i)
+{
+  return;
+}
+
+void*
+Namespace1::Test::wait1(int i)
+{
+  return;
+}
+
+int
+Namespace1::Test::waiting(int i)
+{
+  return;
+}
+
+// a class with some outside implementations which should all be grouped to
+// this class declaration
+class ClassWithExternals
+{
+private:
+  int i;
+
+public:
+  ClassWithExternals();
+  ~ClassWithExternals();
+  void non_nil();
+};
+
+
+// Foobar is not displayed; seems that semantic tries to add this to the class
+// Foobar but can not find/display it, because contained in the namespace above.
+void
+Foobar::non_nil()
+{
+  return;
+}
+
+// are correctly grouped to the ClassWithExternals class
+void
+ClassWithExternals::non_nil()
+{
+  String s = "lödfjg dlfgkdlfkgjdl";
+  return;
+}
+
+ClassWithExternals::ClassWithExternals()
+{
+  return;
+}
+
+void
+ClassWithExternals::~ClassWithExternals()
+{
+  return;
+}
+
+
+// -------------------------------
+// Now some macro and define stuff
+// -------------------------------
+
+#define TEST 0
+#define TEST1 "String"
+
+// The first backslash makes this macro unmatched syntax with semantic 1.4.2!
+// With flexing \+newline as nothing all is working fine!
+#define MZK_ENTER(METHOD) \
+{ \
+  CzkMethodLog lMethodLog(METHOD,"Framework");\
+}
+
+#define ZK_ASSERTM(METHOD,ASSERTION,MESSAGE) \
+   { if(!(ASSERTION))\
+      {\
+	std::ostringstream lMesgStream; \
+        lMesgStream << "Assertion failed: " \
+	<< MESSAGE; \
+        CzkLogManager::doLog(CzkLogManager::FATAL,"",METHOD, \
+        "Assert",lMesgStream); \
+        assert(ASSERTION);\
+      }\
+   }
+
+// Test if not newline-backslashes are handled correctly
+string s = "My \"quoted\" string";
+
+// parsed fine as macro
+#define FOO (arg) method(arg, "foo");
+
+// With semantic 1.4.2 this parsed as macro BAR *and* function method.
+// With latest c.bnf at least one-liner macros can be parsed correctly.
+#define BAR (arg) CzkMessageLog method(arg, "bar");
+
