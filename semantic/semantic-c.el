@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.4 2003/01/24 12:31:47 berndl Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.5 2003/01/28 08:18:34 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -253,9 +253,9 @@
  ( ENUM opt-name enumparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
- ( TYPEDEF typeformbase typedef-symbol-list
+ ( TYPEDEF declmods typeformbase cv-declmods typedef-symbol-list
   ,(semantic-lambda
-  (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
+  (list (nth 4 vals) 'type (nth 0 vals) nil (nth 2 vals) nil nil)))
  ) ; end typesimple
  (typedef-symbol-list
  ( typedefname punctuation "\\b,\\b" typedef-symbol-list
@@ -404,8 +404,7 @@
  (DECLMOD
  ( EXTERN)
  ( STATIC)
- ( CONST)
- ( VOLATILE)
+ ( CVDECLMOD)
  ( INLINE)
  ( REGISTER)
  ( FRIEND)
@@ -421,6 +420,21 @@
   ,(semantic-lambda
  ))
  ) ; end metadeclmod
+ (CVDECLMOD
+ ( CONST)
+ ( VOLATILE)
+ ) ; end CVDECLMOD
+ (cv-declmods
+ ( CVDECLMOD cv-declmods
+  ,(semantic-lambda
+  ( cons ( car (nth 0 vals)) (nth 1 vals))))
+ ( CVDECLMOD
+  ,(semantic-lambda
+  (nth 0 vals)))
+ (
+  ,(semantic-lambda
+ ))
+ ) ; end cv-declmods
  (METADECLMOD
  ( VIRTUAL)
  ( MUTABLE)
@@ -493,7 +507,7 @@
   (list ( concat ( car (nth 0 vals)) " int"))))
  ) ; end builtintype
  (codeblock-var-or-fun
- ( declmods typeformbase metadeclmod opt-ref var-or-func-decl
+ ( declmods typeformbase declmods opt-ref var-or-func-decl
   ,(semantic-lambda
   ( semantic-c-reconstitute-token (nth 4 vals) (nth 0 vals) (nth 1 vals))))
  ) ; end codeblock-var-or-fun
@@ -605,9 +619,9 @@
   (nth 2 vals) (nth 0 vals) (nth 3 vals) (nth 4 vals) (nth 5 vals)))
  ) ; end varname
  (variablearg
- ( declmods typeformbase opt-ref opt-stars variablearg-opt-name
+ ( declmods typeformbase cv-declmods opt-ref opt-stars variablearg-opt-name
   ,(semantic-lambda
-  (list ( list (nth 4 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'reference ( car (nth 2 vals))) nil)))
+  (list ( list (nth 5 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'reference ( car (nth 3 vals))) nil)))
  ) ; end variablearg
  (variablearg-opt-name
  ( varname
