@@ -153,21 +153,34 @@
   "List of groups we need to track.")
 
 (defun linemark-create-group (name &optional defaultface)
-  "Create a group object for tracking linemark entries.
-Do not permit multiple groups with the same name."
-  (let ((newgroup (if (facep defaultface)
-		      (linemark-group name :face defaultface)
-		    (linemark-group name)))
+  "*Obsolete*.
+Create a group object for tracking linemark entries.
+Do not permit multiple groups with the same NAME.
+Optional argument DEFAULTFACE is the :face slot for the object."
+  (linemark-new-group 'linemark-group name :face defaultface)
+  )
+
+(defun linemark-new-group (class name &rest args)
+  "Create a new linemark group based on the linemark CLASS.
+Give this group NAME.  ARGS are slot/value pairs for
+the new instantiation."
+  (let ((newgroup nil)
 	(foundgroup nil)
 	(lmg linemark-groups))
+    ;; Find an old group.
     (while (and (not foundgroup) lmg)
       (if (string= name (object-name-string (car lmg)))
 	  (setq foundgroup (car lmg)))
       (setq lmg (cdr lmg)))
+    ;; Which group to use.
     (if foundgroup
+	;; Recycle the old group
 	(setq newgroup foundgroup)
-      (setq linemark-groups (cons newgroup linemark-groups))
-      newgroup)))
+      ;; Create a new group
+      (setq newgroup (apply 'make-instance class name args))
+      (setq linemark-groups (cons newgroup linemark-groups)))
+    ;; Return the group
+    newgroup))
 
 (defun linemark-at-point (&optional pos group)
   "Return the current variable `linemark-entry' at point.
@@ -243,10 +256,12 @@ Call the new entrie's activate method."
     (setq args (plist-put args :line line))
     (let ((new-entry (apply 'linemark-new-entry g args)))
       (oset new-entry parent g)
-      (oset new-entry face (oref g face))
+      (oset new-entry face (or face (oref g face)))
       (oset g marks (cons new-entry (oref g marks)))
       (if (oref g active)
-	    (linemark-display new-entry t)))))
+	    (linemark-display new-entry t))
+      new-entry)
+    ))
 
 (defmethod linemark-new-entry ((g linemark-group) &rest args)
   "Create a new entry for G using init ARGS."
@@ -338,7 +353,7 @@ Call the new entrie's activate method."
 
 ;;; Demo mark tool: Emulate MS Visual Studio bookmarks
 ;;
-(defvar viss-bookmark-group (linemark-create-group "viss")
+(defvar viss-bookmark-group (linemark-new-group 'linemark-group "viss")
   "The VISS bookmark group object.")
 
 (defun viss-bookmark-toggle ()
