@@ -1,9 +1,9 @@
 ;;; qp-base.el --- Base classes for the quickpeek display system
 
-;;; Copyright (C) 2000 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: qp-base.el,v 1.1 2001/01/10 07:05:10 zappo Exp $
+;; X-RCS: $Id: qp-base.el,v 1.2 2001/01/25 19:27:00 zappo Exp $
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,8 +29,6 @@
 ;; elements needed.  If you language supports the Semantic Bovinator,
 ;; inherit instead from `quickpeek-semantic', which in turn inherits
 ;; from `quickpeek-language.'
-
-
 
 (eval-and-compile
   (condition-case nil
@@ -84,11 +82,11 @@ show up in a top level parse, but must be searched anyway.")
 (defmethod quickpeek-thing-bounds ((obj quickpeek-default) &optional thing)
   "For OBJ, get the bounds of the THING at/near point.
 Uses `thing-at-point' library, version safe."
-  (if (not type) (setq type 'sexp))
+  (if (not thing) (setq thing 'sexp))
   (if (featurep 'thingatpt)
-      (bounds-of-thing-at-point type)
+      (bounds-of-thing-at-point thing)
     ;; The xemacs version
-    (let ((newsym (intern (concat "thing-" (symbol-name type)))))
+    (let ((newsym (intern (concat "thing-" (symbol-name thing)))))
       (funcall newsym (point)))))
 
 (defmethod quickpeek-thing ((obj quickpeek-default) &optional type)
@@ -153,8 +151,8 @@ Is safe against bad formatting."
 
 (defmethod quickpeek-collect ((obj quickpeek-language))
   "Collect information from the current point for OBJ."
-  (oset current-thing (quickpeek-save-current-thing obj))
-  (oset current-fn (quickpeek-current-function obj))
+  (oset obj current-thing (quickpeek-save-current-thing obj))
+  (oset obj current-fn (quickpeek-current-function obj))
   )
 
 (defmethod quickpeek-insert-context ((obj quickpeek-language))
@@ -163,8 +161,8 @@ Is safe against bad formatting."
 
 (defmethod quickpeek-insert-description ((obj quickpeek-language))
   "Insert a description of OBJ's current thing."
-  (quickpeek-plain-string-insert ("Thing: " bold)
-				 (oref obj current-thing)))
+  (quickpeek-plain-string-insert (list '("Thing: " bold)
+				       (oref obj current-thing))))
 
 (defmethod quickpeek-insert-completions ((obj quickpeek-language))
   "Insert a collection of completions for the OBJ's current thing."
@@ -212,7 +210,7 @@ Uses default token knowledge to perform colorization."
 
 (defmethod quickpeek-insert-context ((obj quickpeek-semantic))
   "Insert a description of our current defun."
-  (quickpeek-insert-token obj (oref current-thing)))
+  (quickpeek-insert-token obj (oref obj current-thing)))
 
 (defmethod quickpeek-insert-description ((obj quickpeek-semantic))
   "Insert a description of OBJ's stored thing."
