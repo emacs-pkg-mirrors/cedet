@@ -5,7 +5,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.3 2001/02/05 14:39:33 ponced Exp $
+# $Id: java.bnf,v 1.4 2001/02/09 11:53:34 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,10 +32,6 @@
 %setupfunction semantic-default-java-setup
 
 %(progn
-   ;; Character used to separation a parent/child relationship
-   (set (make-local-variable
-         'semantic-type-relation-separator-character)
-        '("."))
    ;; Java is case sensitive
    (setq semantic-case-fold nil)
    )%
@@ -442,6 +438,9 @@ expression: unary_expression operators_expression_opt
           ;
 
 # $Log: java.bnf,v $
+# Revision 1.4  2001/02/09 11:53:34  ponced
+# Honour last changes in semantic-util.el.
+#
 # Revision 1.3  2001/02/05 14:39:33  ponced
 # Use new `semantic-type-relation-separator-character' format.
 #

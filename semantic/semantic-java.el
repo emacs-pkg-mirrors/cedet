@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.3 2001/02/05 14:39:33 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.4 2001/02/09 11:53:34 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -423,7 +423,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-         "Java language specification.")
+          "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -535,12 +535,12 @@ See also `semantic-prototype-nonterminal'."
   (semantic-token-name token))
 
 (defun semantic-expand-java-nonterminal (token)
-  "Expand NONTERM into a list of equivalent nonterminals, or nil."
-  (let ((names (semantic-token-name token))
-        vl)
+  "Expand TOKEN into a list of equivalent nonterminals, or nil.
+Handle multiple variable declarations in the same statement."
+  (let (names vl)
     (if (and (eq (semantic-token-token token) 'variable)
-             (listp names))
-        (if (> (length names) 1)
+             (listp (setq names (semantic-token-name token))))
+        (if (cdr names)
             
             ;; There are multiple declarations in the same variable
             ;; token, so reparse the declaration using
@@ -570,19 +570,25 @@ See also `semantic-prototype-nonterminal'."
                             ds          ; docstring
                             pr          ; properties
                             (semantic-token-overlay tok))
-                           vl))))
+                           vl)))
+              ;; Workaround: delete the old token overlay
+              (if vl
+                  (semantic-overlay-delete
+                   (semantic-token-overlay token)))
+              )
             
           ;; Only one variable declared.  Just replace the
           ;; variable name list by the name itself!
-          (setcar token (car names))
-          (setq vl (list token))))
+          (setcar token (car names))))
     vl))
 
 ;; Mode Hook
 (defun semantic-default-java-setup ()
   "Set up a buffer for semantic parsing of the Java language."
 
-  (setq semantic-expand-nonterminal 'semantic-expand-java-nonterminal)
+  ;; special handling of multiple variable declarations/statement.
+  (setq semantic-expand-nonterminal
+        'semantic-expand-java-nonterminal)
 
   ;; function to use when creating items in imenu.
   (setq semantic-imenu-summary-function
@@ -601,17 +607,18 @@ See also `semantic-prototype-nonterminal'."
           (package  . "Package")))
 
   ;; semantic overloaded functions
-  (setq semantic-override-table
-        '((prototype-nonterminal . semantic-java-prototype-nonterminal)))
+  (semantic-install-function-overrides
+   '((prototype-nonterminal . semantic-java-prototype-nonterminal))
+   t ;; They can be changed in mode hook by more specific ones
+   )
 
- ;; Code generated from java.bnf
+  ;; Character used to separation a parent/child relationship
+  (setq semantic-type-relation-separator-character '("."))
+  
+  ;; Code generated from java.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-java-bovine-table)
   (setq semantic-flex-keywords-obarray semantic-java-keyword-table)
   (progn
-    ;; Character used to separation a parent/child relationship
-    (set (make-local-variable
-          'semantic-type-relation-separator-character)
-         '("."))
     ;; Java is case sensitive
     (setq semantic-case-fold nil)
     )
