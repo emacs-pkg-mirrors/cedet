@@ -708,6 +708,14 @@ the current buffer was set up for parsing.  Return non-@code{nil} if the
 minor mode is enabled.
 @end deffn
 
+NOTE: This option should change to not be in senator.
+
+@deffn Option senator-eldoc-summary-function
+@anchor{senator-eldoc-summary-function}
+Function to use when displaying tag information with eldoc.
+Some useful functions are found in @code{semantic-format-tag-functions}.
+@end deffn
+
 @subsection Sticky Function Headers
 
 @deffn Command semantic-stickyfunc-mode &optional arg
