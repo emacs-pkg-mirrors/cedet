@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.35 2004/08/03 01:46:04 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.36 2004/12/18 15:28:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -302,7 +302,7 @@ HISTORY is a symbol representing a variable to story the history in."
 		   semantic-completion-collector-engine)))
 	  (when ml
 	    ;; We don't care about uniqueness.  Just guess for convenience
-	    (setq tag (car (semanticdb-find-result-nth ml 0)))))
+	    (setq tag (semanticdb-find-result-nth-in-buffer ml 0))))
 	;; save it
 	(setq semantic-complete-active-default tag)
 	;; Return it.. .whatever it may be
@@ -1340,7 +1340,7 @@ one in the source buffer."
 	     (ftn (semantic-tag-name tag))
 	     (diff (substring ftn (length mbc))))
 	(semantic-completion-message 
-	 (format "%s [%d of %d matches]" diff (oref obj focus) tablelength)))
+	 (format "%s [%d of %d matches]" diff (1+ (oref obj focus)) tablelength)))
       )))
 
 ;;; Tooltip completion lister
