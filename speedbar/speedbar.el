@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.116 1998/08/03 18:02:47 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.117 1998/08/03 18:06:31 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -398,7 +398,6 @@ Parameters not listed here which will be added automatically are
 is attached to."
   :group 'speedbar
   :type '(repeat (sexp :tag "Parameter")))
-)
 
 (defcustom speedbar-use-imenu-flag (stringp (locate-library "imenu"))
   "*Non-nil means use imenu for file parsing.  nil to use etags.
