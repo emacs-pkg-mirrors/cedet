@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.41 2001/08/13 13:28:20 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.42 2001/10/03 00:31:28 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -833,7 +833,7 @@ Once found, put it in a buffer, and return it."
 (defvar semantic-bnf-mode-keywords
   `((";\\s-*[^#\n ].*$" 0 font-lock-comment-face)
     ("^\\(\\w+\\)\\s-*:" 1 font-lock-function-name-face)
-    ("\\<\\(EMPTY\\|symbol\\|punctuation\\|string\\|semantic-list\
+    ("\\<\\(EMPTY\\|symbol\\|number\\|punctuation\\|string\\|semantic-list\
 \\|\\(open\\|close\\)-paren\\|comment\\)\\>"
      1 font-lock-keyword-face)
     ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\)\\>"
