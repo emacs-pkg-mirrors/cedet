@@ -36,14 +36,14 @@ DISTDIR=$(top)semantic-$(VERSION)
 all: metagrammar autoloads scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
 
 .PHONY: metagrammar
-metagrammar: $(metagrammar_SEMANTIC_GRAMMAR)
+metagrammar: autoloads $(metagrammar_SEMANTIC_GRAMMAR)
 	@echo "(add-to-list 'load-path nil)" > grammar-make-script
 	@for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> grammar-make-script; \
 	done;
 	@echo "(require 'semantic-load)" >> grammar-make-script
 	@echo "(require 'semantic-grammar)" >> grammar-make-script
-	${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $^
+	${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $(metagrammar_SEMANTIC_GRAMMAR)
 
 .PHONY: autoloads
 autoloads: 
