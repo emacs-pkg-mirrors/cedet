@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.24 2003/04/01 03:39:17 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.25 2003/04/01 13:05:34 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1575,7 +1575,7 @@ Optional argument COLOR determines if color is added to the text."
      ((eq class 'keyword)
       (setq label "Keyword: ")
       (let (summary)
-        (semantic-brute-find-tag-by-function
+        (semantic--find-tags-by-function
          #'(lambda (put)
              (unless summary
                (setq summary (cdr (assoc "summary"
