@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.12 2000/10/03 03:56:10 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.13 2000/10/04 02:50:00 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -135,7 +135,7 @@ of these.")
 				  "Custom-new")))
   (let* ((chil nil)
 	 (obj (widget-get widget :value))
-	 (master-group (or (widget-get widget :eieio-group) 'default))
+	 (master-group (widget-get widget :eieio-group))
 	 (cv (class-v (object-class-fast obj)))
 	 (fields (aref cv class-public-a))
 	 (flabel (aref cv class-public-custom-label))
@@ -150,12 +150,27 @@ of these.")
 			  (object-name-string obj))
 			 chil)))
     ;; Display information about the group being shown
-    (if master-group
-	(widget-insert "Configuring Group " (symbol-name master-group) "\n\n"))
+    (when master-group
+      (let ((groups (class-option (object-class-fast obj) :custom-groups)))
+	(widget-insert "Groups:")
+	(while groups
+	  (widget-insert "  ")
+	  (if (eq (car groups) master-group)
+	      (widget-insert "*" (capitalize (symbol-name master-group)) "*")
+	    (widget-create 'push-button
+			   :thing (cons obj (car groups))
+			   :notify (lambda (widget &rest stuff)
+				     (eieio-customize-object
+				      (car (widget-get widget :thing))
+				      (cdr (widget-get widget :thing))))
+			   (capitalize (symbol-name (car groups)))))
+	  (setq groups (cdr groups)))
+	(widget-insert "\n\n")))
     ;; Loop over all the fields, creating child widgets.
     (while fields
       ;; Output this slot if it has a customize flag associated with it.
-      (when (and (car fcust) (member master-group (car fgroup))
+      (when (and (car fcust)
+		 (or (not master-group) (member master-group (car fgroup)))
 		 (slot-boundp obj (car fields)))
 	;; In this case, this field has a custom type.  Create it's
 	;; children widgets.
@@ -249,8 +264,11 @@ object widget.
 Optional argument GROUP specifies a subgroup of slots to edit as a symbol.
 These groups are specified with the `:group' slot flag."
   ;; Insert check for multiple edits here.
-  (let ((b (switch-to-buffer (get-buffer-create
-			      (concat "*CUSTOMIZE " (object-name obj) "*")))))
+  (let* ((g (or group 'default))
+	 (b (switch-to-buffer (get-buffer-create
+			       (concat "*CUSTOMIZE "
+				       (object-name obj) " "
+				       (symbol-name g) "*")))))
     (toggle-read-only -1)
     (kill-all-local-variables)
     (erase-buffer)
@@ -264,14 +282,14 @@ These groups are specified with the `:group' slot flag."
     (widget-insert "Edit object " (object-name obj) "\n\n")
     ;; Create the widget editing the object.
     (make-local-variable 'eieio-wo)
-    (setq eieio-wo (eieio-custom-widget-insert obj :eieio-group group))
+    (setq eieio-wo (eieio-custom-widget-insert obj :eieio-group g))
     ;;Now generate the apply buttons
     (widget-insert "\n")
     (eieio-custom-object-apply-reset obj)
     ;; Now initialize the buffer
     (use-local-map widget-keymap)
     (widget-setup)
-    ;(widget-minor-mode)
+					;(widget-minor-mode)
     (goto-char (point-min))
     (widget-forward 3)
     (make-local-variable 'eieio-co)
@@ -294,7 +312,12 @@ Argument OBJ os the object being customized."
 		 :notify (lambda (&rest ignore)
 			   (message "Resetting.")
 			   (eieio-customize-object eieio-co))
-		 "Reset"))
+		 "Reset")
+  (widget-insert "   ")
+  (widget-create 'push-button
+		 :notify (lambda (&rest ignore)
+			   (bury-buffer))
+		 "Cancel"))
 
 (defmethod eieio-custom-widget-insert ((obj eieio-default-superclass)
 				       &rest flags)
@@ -320,7 +343,7 @@ Must return the created widget."
   value)
 
 
-;;; Easymenu filter subsections
+;;; customization group functions
 ;;
 ;; These functions provide the ability to create dynamic menus to
 ;; customize specific sections of an object.  The do not hook directly
@@ -332,6 +355,23 @@ Must return the created widget."
 		    (list 'customize-object obj (list 'quote group))
 		    t))
 	  (class-option (object-class-fast obj) :custom-groups)))
+
+(defvar eieio-read-custom-group-history nil
+  "History for the custom group reader.")
+
+(defmethod eieio-read-customization-group ((obj eieio-default-superclass))
+  "Do a completing read on the name of a customization group in OBJ.
+Return the symbol for the group, or nil"
+  (let ((g (class-option (object-class-fast obj) :custom-groups)))
+    (if (= (length g) 1)
+	(car g)
+      ;; Make the association list
+      (setq g (mapcar (lambda (g) (cons (symbol-name g) g)) g))
+      (cdr (assoc
+	    (completing-read (concat (oref obj name)  " Custom Group: ")
+			     g nil t nil 'eieio-read-custom-group-history)
+	    g)))))
+    
 
 (provide 'eieio-custom)
 
