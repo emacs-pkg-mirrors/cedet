@@ -4,9 +4,9 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-d.el,v 1.2 1996/06/17 22:32:54 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.3 1996/07/28 18:34:23 zappo Exp $
 ;;; Keywords: OO widget
-;;;      
+;;;
 ;;; This program is free software; you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation; either version 2, or (at your option)
@@ -91,7 +91,7 @@ field GADGET-CALLBACK with value of symbol changes")
    (y :initarg :y
       :initform 0)			; positions
    (face :initarg :face
-	 :initform default
+	 :initform widget-default-face
 	 :protection private)			; face used to draw widget
    (selected :initarg :selected
 	     :initform nil		; t if currently active
@@ -113,7 +113,7 @@ displayed widgets are derived from")
 	  :initform nil			; t if we display a box
 	  :protection private)
    (box-face :initarg :box-face
-	     :initform nil			; face used to draw the box
+	     :initform widget-box-face		; face used to draw the box
 	     :protection private)
    (box-char :initarg :box-char
 	     :initform [?+ ?+ ?+ ?+ ?- ?|]	; chars used to draw a box
@@ -159,6 +159,13 @@ for a given buffer.")
   "Definition for a frame, which can contain several children grouped
 in a labeled box.")
 
+(defclass widget-radio-frame (widget-frame)
+  ((state :initarg :state
+	  :initform nil)		;state used by our radio buttons
+   )
+  "Special frame class which behaves as a radio box.  Designed to only
+contain widgets of type widget-radio-button.")
+
 ;;
 ;; The important label type
 ;;
@@ -188,14 +195,16 @@ formated to text with the format value.  There are no IO events.")
 ;;
 (defclass widget-button (widget-label)
   ((arm-face :initarg :arm-face
-	     :initform highlight)		; face used when armed
+	     :initform widget-arm-face)		; face used when armed
    (focus-face :initarg :focus-face
-	       :initform bold)			;face used when under mouse
+	       :initform widget-focus-face) ;face used when under mouse
    (boxed :initarg :boxed
 	  :initform t
 	  :protection private)			; we want to show a box
    (activate-hook :initarg :activate-hook
 		  :initform nil)
+   (help-hook :initarg :help-hook
+	      :initform nil)
    (handle-io :initarg :handle-io
 	      :initform t)			; inherited from visual, new default
    )
@@ -203,20 +212,46 @@ formated to text with the format value.  There are no IO events.")
 have RET or SPC pressed while selected, and it will then call
 activate-hook.")
 
+(defclass widget-option-button (widget-button)
+  ((option-indicator :initarg :option-indicator	;indicator for option button
+		     :initform "<=>")
+   (option-list :initarg :option-list	;list of items to choose from
+		:initform nil)
+   (option-obarray :initform nil	;option list converted to obarray
+		   :protection private)
+   (ind-face :initarg :ind-face		;face used on indicator
+	     :initform widget-indicator-face)
+   (state :initarg :state		;index into option
+	  :initform 0)
+   )
+  "Class for option button widget.  This button will provide a menu
+when clicked on.  The menu will consist of those items in
+`option-list', and the chosen item will appear in the button.")
+
 (defclass widget-toggle-button (widget-button)
   ((boxed :initarg :boxed
 	  :initform nil
-	  :protection private)			;turn button box off now
+	  :protection private)		;turn button box off now
    (state :initarg :state
 	  :initform nil)
    (ind-face :initarg :ind-face
-	     :initform nil)			;face used on indicator
+	     :initform widget-indicator-face) ;face used on indicator
    (showvec :initarg :showvec
 	    :initform [ "[ ]" "[X]" ])	;how to represent ON/OFF cases
    )
   "Class for toggle button widget:initform  This button will be CLICKED, and
 when successful clicks occur, a boolean value will be turned ON or
 OFF, and a visible piece will be modified.")
+
+(defclass widget-radio-button (widget-toggle-button)
+  ((radio-index :initarg :radioindex	;our index for parent's state
+		:initform 0)
+   (parent-state :initform nil		;pointer to parent's state
+		 :protection private)
+   (showvec :initform [ "< >" "<O>" ])	;change type of indicator
+   )
+  "Class of toggle button which knows how to talk with several other
+versions of itself in order to radio between different values.")
 
 ;;
 ;; Text types
@@ -225,9 +260,11 @@ OFF, and a visible piece will be modified.")
   ((handle-io :initarg :handle-io
 	      :initform t)
    (face :initarg :face
-	 :initform underline)
+	 :initform widget-text-face)
    (spface :initarg :spface
-	   :initform secondary-selection)
+	   :initform widget-text-button-face)
+   (focus-face :initarg :focus-face
+	       :initform widget-text-focus-face) ;face used when under mouse
    (keymap :initarg :keymap
 	   :initform nil)
    (disppos :initarg :disppos
