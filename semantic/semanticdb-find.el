@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.12 2003/12/11 00:56:36 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.13 2003/12/17 14:50:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -280,7 +280,8 @@ but should be good enough for debugging assertions."
   (and (listp resultp)
        (listp (car resultp))
        (semanticdb-abstract-table-child-p (car (car resultp)))
-       (semantic-tag-p (car (cdr (car resultp))))))
+       (or (semantic-tag-p (car (cdr (car resultp))))
+	   (null (car (cdr (car resultp)))))))
 
 (defun semanticdb-find-result-prin1-to-string (result)
   "Presuming RESULT satisfies `semanticdb-find-results-p', provide a shirt PRIN1 output."
@@ -302,9 +303,11 @@ but should be good enough for debugging assertions."
        (listp (car resultp))
        (let ((tag-to-test (car-safe (cdr (car resultp)))))
 	 (or (and (semanticdb-abstract-table-child-p (car (car resultp)))
-		  (semantic-tag-p tag-to-test))
-	     (null (car (car resultp)))
-	     (semantic-tag-with-position-p tag-to-test))
+		  (or (semantic-tag-p tag-to-test)
+		      (null tag-to-test)))
+	     (and (null (car (car resultp)))
+		  (or (semantic-tag-with-position-p tag-to-test)
+		      (null tag-to-test))))
 	 )))
 
 (defun semanticdb-find-result-length (result)
