@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.1 2001/05/18 03:04:21 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.2 2001/05/19 22:22:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,16 @@
 (require 'semanticdb)
 
 ;;; Code:
+(defclass cogre-semantic-uml-graph (cogre-graph)
+  nil
+  "This graph is for semantic oriented UML diagrams.")
+
+(defmethod cogre-insert-class-list ((graph cogre-semantic-uml-graph))
+  "Return a list of classes GRAPH will accept."
+  (append (eieio-build-class-alist 'cogre-link)
+	  (eieio-build-class-alist 'cogre-semantic-class)
+	  (eieio-build-class-alist 'cogre-package)))
+
 (defclass cogre-semantic-class (cogre-class)
   nil
   "A Class node linked to semantic parsed buffers.
@@ -130,35 +140,55 @@ location that is to be displayed."
 		 (const 'cogre-uml-source-display-top)
 		 ))
 
+(defmethod cogre-uml-source-marker ((class cogre-semantic-class) token)
+  "Return a marker position for a CLASS containing TOKEN.
+This returned marker will be in the source file of the attribute,
+method, or class definition.  nil if there is not match."
+  (let ((semc (oref class class))
+	(p nil))
+    (cond ((and token (semantic-token-with-position-p token))
+	   (setq p (save-excursion
+		     (semantic-find-nonterminal token)
+		     (point-marker))
+		 ))
+	  ((and token (semantic-token-with-position-p semc))
+	   (setq p (save-excursion
+		     (semantic-find-nonterminal token semc)
+		     (point-marker))
+		 ))
+	  ((and semc (semantic-token-with-position-p semc))
+	   (setq p (save-excursion
+		     (semantic-find-nonterminal semc)
+		     (point-marker))
+		 ))
+	  (t nil))
+    p))
+
 (defmethod cogre-uml-source-display ((class cogre-semantic-class) point)
   "Display source code associated with CLASS based on text at POINT.
 The text must be handled by an overlay of some sort which has the
 semantic token we need as a property.  If not, then nothing happens.
 Uses `cogre-uml-source-display-method'."
-  (let ((sem (get-text-property point 'semantic))
-	(semc (oref class class))
-	(h nil)
-	(p nil))
-    (cond ((and sem (semantic-token-with-position-p sem))
-	   (setq p (save-excursion
-		     (semantic-find-nonterminal sem)
-		     (point-marker))
-		 h sem))
-	  ((and sem (semantic-token-with-position-p semc))
-	   (setq p (save-excursion
-		     (semantic-find-nonterminal sem semc)
-		     (point-marker))
-		 h semc))
-	  ((and semc (semantic-token-with-position-p semc))
-	   (setq p (save-excursion
-		     (semantic-find-nonterminal semc)
-		     (point-marker))
-		 h semc))
-	  (t nil))
+  (let* ((sem (get-text-property point 'semantic))
+	 (p (cogre-uml-source-marker class sem)))
     (when p
       (save-excursion
 	(funcall cogre-uml-source-display-method p))
-      (semantic-momentary-highlight-token h 'semantic-dirty-token-face)
+      ))
+  )
+
+(defmethod cogre-activate ((class cogre-semantic-class))
+  "Activate CLASS.
+This could be as simple as displaying the current state,
+customizing the object, or performing some complex task."
+  (let* ((sem (get-text-property (point) 'semantic))
+	 (p (cogre-uml-source-marker class sem))
+	 (cp (point-marker)))
+    (if (not p)
+	(error "No source to jump to")
+      ;; Activating is the reverse of just showing the sorce
+      (switch-to-buffer (marker-buffer p))
+      (funcall cogre-uml-source-display-method cp)
       ))
   )
 
@@ -231,7 +261,7 @@ Uses `cogre-uml-source-display-method'."
 The parent to CLASS, CLASS, and all of CLASSes children will be shown."
   (interactive (list (cogre-read-class-name)))
   (let* ((class-tok (cdr (car (semanticdb-find-nonterminal-by-name
-			       class nil nil nil t))))
+			       class nil nil nil t t))))
 	 (class-node nil)
 	 (parent (semantic-token-type-parent class-tok))
 	 (parent-nodes nil)
@@ -242,14 +272,14 @@ The parent to CLASS, CLASS, and all of CLASSes children will be shown."
 			 (and (eq (semantic-token-token tok) 'type)
 			      (member class (semantic-token-type-parent tok))))
 		       stream sp si))
-		    nil nil nil t))
+		    nil nil nil t t))
 	 (children-nodes nil)
 	 (ymax 0)
 	 (xmax 0)
 	 (x-accum 0)
 	 (y-accum 0))
     ;; Create a new graph
-    (cogre class)
+    (cogre class 'cogre-semantic-uml-graph)
     (goto-char (point-min))
     ;; Create all the parent nodes in the graph, and align them.
     (while parent
