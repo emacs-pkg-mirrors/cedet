@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.7 2000/09/08 19:51:23 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.8 2000/09/09 11:13:43 zappo Exp $
 
 (defvar dframe-version "1.0beta"
   "The current version of the dedicated frame library.")
@@ -697,7 +697,7 @@ If NULL-ON-ERROR is a symbol, set it to nil if we cannot create a timer."
   "Called due to the dframe timer.
 Evaluates all cached timer functions in sequence."
   (let ((l dframe-client-functions))
-    (while l
+    (while (and l (sit-for 0))
       (condition-case er
 	  (funcall (car l))
 	(error (message "DFRAME TIMER ERROR: %S" er)))
