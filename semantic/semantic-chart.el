@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.1 2001/09/14 19:42:32 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.2 2001/09/26 01:03:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -86,12 +86,15 @@ Only the most complex items are charted."
 		    (semantic-bovinate-toplevel t)))
 		 (t buffer-or-stream))
 	   t nil))
+	 (name (cond ((semantic-token-with-position-p (car stream))
+		      (buffer-name (semantic-token-buffer (car stream))))
+		     (t "")))
 	 (cplx (mapcar (lambda (tok)
 			 (cons tok (semantic-chart-token-complexity tok)))
 		       stream))
 	 (names nil)
 	 (nums nil))
-    (setq cplx (sort cplx (lambda (a b) (< (cdr a) (cdr b)))))
+    (setq cplx (sort cplx (lambda (a b) (> (cdr a) (cdr b)))))
     (while (and cplx (<= (length names) (/ (- (frame-height) 7) 4)))
       (setq names (cons (semantic-token-name (car (car cplx)))
 			names)
@@ -101,7 +104,7 @@ Only the most complex items are charted."
 ;; ;; 			  (substring str (- (length str) 10)))
 ;; ;; 			names))
     (chart-bar-quickie 'horizontal
-		       "Semantic Toplevel Token Volume"
+		       (format "Function Complexity in %s" name)
 		       names (symbol-name sym)
 		       nums "Complexity (Lines of code)")
     ))
