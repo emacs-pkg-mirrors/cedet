@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: psql.el,v 1.2 1996/04/11 21:59:23 zappo Exp $
+;;; RCS: $Id: psql.el,v 1.3 1996/06/01 14:50:20 zappo Exp $
 ;;; Keywords: OO postgres95 database
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -112,7 +112,7 @@ Use the USER to connect to DATABASE"
   "Returns a psql-tuple object containing information about the tables
 in this database."
   (save-excursion
-    (dbif-exec dbbuff (format "\\d %s" tablename))))
+    (dbif-exec dbbuff (format "\\\\d %s" tablename))))
 
 (defmethod dbif-get-table-list ((dbbuff psql-connection))
   "Get a list of available tables from the database specified in dbbuff"
@@ -139,7 +139,7 @@ is supplied by comint-mode"
       (accept-process-output (get-buffer-process (current-buffer))))
     ;; Insert the command to be executed.  Always place the "execute" part
     ;; into the command.
-    (insert command (if (string-match "\\d" command) "" ";"))
+    (insert command (if (string-match "^\\\\d" command) "" ";"))
     (let ((start-pos (1+ (point))) (tt 0) tvv)
       (comint-send-input)
       ;; wait for the prompt to come back
@@ -200,30 +200,20 @@ separated by lines of ---- and cols of |"
 	      (setq numrow (1+ numrow))
 	      (while (< colcnt numcol)
 		(if (looking-at
-		     "[ ]*|[ ]+\\([^|]*[^ \t|]\\)[ ]*\\(|\\)")
+		     "[ ]*|[ ]+\\([^|]*[^ \t\n|]\\)[ ]*\\(|\\)")
 		    (progn
 		      (setq sublst (cons
 				    (buffer-substring (match-beginning 1)
 						      (match-end 1))
 				    sublst))
 		      (goto-char (match-beginning 2)))
-		  ;; In this case, there may be an embeded CR
-		  ;; in the field just printed...
-		  (if (looking-at
-		       "|[ ]+\\([^|]*[^ \t\n]\\)[ ]*\\(|\\)")
+		  ;; In this case, there may be nothing in between pipes
+		  ;; at all!
+		  (if (looking-at "|[ \t]+\\(|\\)")
 		      (progn
-			(setq sublst (cons
-				      (buffer-substring (match-beginning 1)
-							(match-end 1))
-				      sublst))
-			(goto-char (match-end 1)))
-		    ;; In this case, there may be nothing in between pipes
-		    ;; at all!
-		    (if (looking-at "|[ \t\n]+\\(|\\)")
-			(progn
-			  (setq sublst (cons "" sublst))
-			  (goto-char (match-beginning 1)))
-		      (error "psql-parse-table: could not parse table!"))))
+			(setq sublst (cons "" sublst))
+			(goto-char (match-beginning 1)))
+		    (error "psql-parse-table: could not parse table!")))
 		;; an error prevents us from getting here...
 		(if (< (nth colcnt sizelst) (length (car sublst)))
 		    (setcar (nthcdr colcnt sizelst) (length (car sublst))))
