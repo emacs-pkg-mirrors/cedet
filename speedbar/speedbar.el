@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.54 1997/06/27 22:59:16 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.55 1997/08/02 19:19:50 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -242,6 +242,11 @@
 ;;            file commands.
 ;;       `speedbar-vc-*-hook's for easilly adding new version control systems.
 ;;       Checkin/out w/ vc will reset the scanners and update the * marker.
+;;       Fixed ange-ftp require compile time problem.
+;;       Fixed XEmacs menu bar bug.
+;;       Added `speedbar-activity-change-focus-flag' to control if the
+;;         focus changes w/ mouse events.
+;;       Added `speedbar-sort-tags' toggle to the menubar.
 
 ;;; TODO:
 ;; 1) More functions to create buttons and options
@@ -344,12 +349,23 @@ instead.  Etags support is not as robust as imenu support.")
 (defvar speedbar-sort-tags nil
   "*If Non-nil, sort tags in the speedbar display.")
 
+(defvar speedbar-activity-change-focus-flag nil
+  "*Non-nil means the selected frame will change based on activity.
+Thus, if a file is selected for edit, the buffer will appear in the
+selected frame and the focus will change to that frame.")
+
 (defvar speedbar-directory-button-trim-method 'span
   "*Indicates how the directory button will be displayed.
 Possible values are:
  'span - span large directories over multiple lines.
  'trim - trim large directories to only show the last few.
  nil   - no trimming.")
+
+(defvar speedbar-smart-directory-expand-flag t
+  "*Non-nil means speedbar should use smart expansion.
+When smart expansion is enabled, then if speedbar is asked to display
+a new buffers location which is not in the current directory
+hierarchy, but it could be added, then it will be.")
 
 (defvar speedbar-before-delete-hook nil
   "*Hooks called before deleting the speedbar frame.")
@@ -639,6 +655,8 @@ to toggle this value.")
     ["Contract Item" speedbar-contract-line
      (save-excursion (beginning-of-line)
 		     (looking-at "[0-9]+: *.-. "))]
+    ["Sort Tags" speedbar-toggle-sorting
+     :style toggle :selected speedbar-sort-tags]
     "----"
     ["Item Information" speedbar-item-info t]
     ["Load Lisp File" speedbar-item-load
@@ -895,8 +913,7 @@ redirected into a window on the attached frame."
   "Reconfigure the menu-bar in a speedbar frame.
 Different menu items are displayed depending on the current display mode
 and the existence of packages."
-  (let ((km (make-sparse-keymap))
-	(cf (selected-frame))
+  (let ((cf (selected-frame))
 	(md (append speedbar-easymenu-definition-base
 		    (if speedbar-shown-directories
 			;; file display mode version
@@ -910,7 +927,10 @@ and the existence of packages."
 		    ;; The trailer
 		    speedbar-easymenu-definition-trailer)))
     (easy-menu-define speedbar-menu-map speedbar-key-map "Speedbar menu" md)
-    (if speedbar-xemacsp (set-buffer-menubar (list km)))))
+    (if speedbar-xemacsp
+	(save-excursion
+	  (set-buffer speedbar-buffer)
+	  (set-buffer-menubar (list md))))))
 
 
 ;;; User Input stuff
@@ -1144,6 +1164,11 @@ Files can be renamed to new names or moved to new directories."
   (if speedbar-update-flag
       (speedbar-disable-update)
     (speedbar-enable-update)))
+
+(defun speedbar-toggle-sorting ()
+  "Toggle automatic update for the speedbar frame."
+  (interactive)
+  (setq speedbar-sort-tags (not speedbar-sort-tags)))
 
 (defun speedbar-toggle-show-all-files ()
   "Toggle display of files speedbar can not tag."
@@ -1533,7 +1558,7 @@ name will have the function FIND-FUN and not token."
 	(inhibit-quit nil))
     (save-excursion
       (set-buffer speedbar-buffer)
-      ;; If we are updating contents to a where we are, then this is
+      ;; If we are updating contents to where we are, then this is
       ;; really a request to update existing contents, so we must be
       ;; careful with our text cache!
       (if (member cbd speedbar-shown-directories)
@@ -1754,8 +1779,9 @@ updated."
   ;; return that we are done with this activity.
   t)
 
-;; Steven L Baur <steve@xemacs.org> said this was important
-(or (featurep 'xemacs) (require 'ange-ftp))
+;; Load ange-ftp only if compiling to remove errors.
+;; Steven L Baur <steve@xemacs.org> said this was important:
+(eval-when-compile (or (featurep 'xemacs) (require 'ange-ftp)))
 
 (defun speedbar-check-vc ()
   "Scan all files in a directory, and for each see if it's checked out.
@@ -2022,9 +2048,21 @@ directory with these items."
   (forward-char -2)
   (speedbar-do-function-pointer))
 
+(if speedbar-xemacsp
+    (defalias 'speedbar-mouse-event-p 'button-press-event-p)
+  (defun speedbar-mouse-event-p (event)
+    "Return t if the event is a mouse related event"
+    ;; And Emacs does it this way
+    (if (and (listp event)
+	     (member (event-basic-type event)
+		     '(mouse-1 mouse-2 mouse-3)))
+	t
+      nil)))
+
 (defun speedbar-maybee-jump-to-attached-frame ()
   "Jump to the attached frame ONLY if this was not a mouse event."
-  (if (numberp last-input-char)
+  (if (or (not (speedbar-mouse-event-p last-input-event))
+	  speedbar-activity-change-focus-flag)
       (progn
 	(select-frame speedbar-attached-frame)
 	(other-frame 0))))
@@ -2446,7 +2484,7 @@ regular expression EXPR"
   "Parse a Tex string.  Only find data which is relevant."
   (save-excursion
     (let ((bound (save-excursion (end-of-line) (point))))
-      (cond ((re-search-forward "\\(section\\|chapter\\|cite\\)\\s-*{[^\C-?}]*}?" bound t)
+      (cond ((re-search-forward "\\(\\(sub\\)?section\\|chapter\\|cite\\)\\s-*{[^\C-?}]*}?" bound t)
 	     (buffer-substring-no-properties (match-beginning 0)
 					     (match-end 0)))
 	    (t nil)))))
