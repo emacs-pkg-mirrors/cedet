@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.19 1999/11/09 11:11:04 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.20 1999/11/10 13:48:06 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -77,21 +77,21 @@ It is safe to leave this blank.")
   "Abstract class for Makefile based targets.")
 
 (autoload 'ede-proj-target-aux "ede-proj-aux" 
-  "Target class for a group of lisp files." nil 'variable)
+  "Target class for a group of lisp files." nil nil)
 (autoload 'ede-proj-target-elisp "ede-proj-elisp" 
-  "Target class for a group of lisp files." nil 'variable)
+  "Target class for a group of lisp files." nil nil)
 (autoload 'ede-proj-target-scheme "ede-proj-scheme" 
-  "Target class for a group of lisp files." nil 'variable)
+  "Target class for a group of lisp files." nil nil)
 (autoload 'ede-proj-target-makefile-miscelaneous "ede-proj-misc" 
-  "Target class for a group of miscelaneous w/ a special makefile." nil 'variable)
+  "Target class for a group of miscelaneous w/ a special makefile." nil nil)
 (autoload 'ede-proj-target-makefile-program "ede-proj-prog" 
-  "Target class for building a program." nil 'variable)
+  "Target class for building a program." nil nil)
 (autoload 'ede-proj-target-makefile-archive "ede-proj-archive" 
-  "Target class for building an archive of object code." nil 'variable)
+  "Target class for building an archive of object code." nil nil)
 (autoload 'ede-proj-target-makefile-shared-object "ede-proj-shared" 
-  "Target class for building a shared object." nil 'variable)
+  "Target class for building a shared object." nil nil)
 (autoload 'ede-proj-target-makefile-info "ede-proj-info" 
-  "Target class for info files." nil 'variable)
+  "Target class for info files." nil nil)
 
 (defvar ede-proj-target-alist
   '(("program" . ede-proj-target-makefile-program)
