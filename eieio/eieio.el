@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.5
-;;; RCS: $Id: eieio.el,v 1.3 1996/03/23 19:40:31 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.4 1996/03/28 03:39:19 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -133,11 +133,20 @@
 ;;;        Renamed defmethod to defclassmethod
 ;;;        Added CLOS functions `make-instance' and `slot-value'
 ;;; 0.5  - Finally figured out how to fix macros so they byte compile
-;;;      - Added CLOS style `defmethod' and `defgeneric'
+;;;        Added CLOS style `defmethod' and `defgeneric'
 ;;; 0.6  - Fixed up the defgeneric default call to handle arguments better.
-;;;      - Added `call-next-method' (calls parent's method)
-;;;      - Fixed `make-instance' so it's no longer a macro
-;;;      - Fixed edebug hooks so they work better
+;;;        Added `call-next-method' (calls parent's method)
+;;;        Fixed `make-instance' so it's no longer a macro
+;;;        Fixed edebug hooks so they work better
+;;;        Fixed storage duplication for inherited classes, which also
+;;;           fixed default-value inheritance bug
+;;;        Added some error messages to help in debugging programs using eieio.
+;;;        Fixed class scoping troubles
+;;;        Added `eieio-thing-to-string' which behaves like (format "%S" ..)
+;;;           so objects and classes don't appear as symbols and vectors in 
+;;;           your output.
+;;;        Added `eieio-describe-class' command which creates a buffer
+;;;           and displays the entire contents of a class or object.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -272,33 +281,32 @@ in that class definition.  See defclass for more information"
 		      (append (aref newc class-public-m)
 			      (list name)))
 		))
-	  (if (eq prot 'private)
-	      ;; define attribute as private
-	      (progn
-		(aset newc class-private-a
-		      (append (aref newc class-private-a)
-			      (list name)))
-		(aset newc class-private-d
-		      (append (aref newc class-private-d)
-			      (list init)))
-		)
-	    ;; define attributes as public
-	    (aset newc class-public-a
-		  (append (aref newc class-public-a)
-			  (list name)))
-	    (aset newc class-public-d
-		  (append (aref newc class-public-d)
-			  (list init)))
+	  (let* ((-a (if (eq prot 'private) class-private-a class-public-a))
+		 (-d (if (eq prot 'private) class-private-d class-public-d))
+		 (-al (aref newc -a))
+		 (-dl (aref newc -d))
+		 (np (member name -al))
+		 (dp (if np (nthcdr (- (length -al) (length np)) -dl) nil)))
+	    (if np
+		(progn
+		  ;; If we have a repeat, only update the initarg...
+		  (setcar dp init)
+		  )
+	      (aset newc -a (append -al (list name)))
+	      (aset newc -d (append -dl (list init))))
 	    )
 	  ;; public and privates both can install new initargs
 	  (if initarg
 	      (progn
 		;; intern the symbol so we can use it blankly
 		(set initarg initarg)
-		;; set the new arg
-		(aset newc class-initarg-tuples
-		      (append (aref newc class-initarg-tuples)
-			      (list (cons initarg name))))))
+		;; find old occurance
+		(let ((a (assoc initarg (aref newc class-initarg-tuples))))
+		  ;; set the new arg only if not already set...
+		  (if (not a)
+		      (aset newc class-initarg-tuples
+			    (append (aref newc class-initarg-tuples)
+				    (list (cons initarg name))))))))
 	  )
 	)
       (setq fields (cdr fields)))
@@ -462,8 +470,10 @@ the body, such as:
     ;; under the type `primary' which is a non-specific calling of the
     ;; function.
     (setq firstarg (car args))
-    (if (and (listp firstarg) (class-p (nth 1 firstarg)))
-	(setq typesym (symbol-name (aref (class-v (nth 1 firstarg)) 1)))
+    (if (listp firstarg)
+	(if (class-p (nth 1 firstarg))
+	    (setq typesym (symbol-name (aref (class-v (nth 1 firstarg)) 1)))
+	  (error "Unknown class type %s in method parameters" (nth 1 firstarg)))
       (setq typesym "generic"))
     (setq bindsym (intern (concat (symbol-name key) "-" typesym)))
     ;; Put this lambda into the symbol so we can find it
@@ -693,7 +703,6 @@ available methods which may be programmed in."
   ;; We must expand our arguments first as they are always
   ;; passed in as quoted symbols
   (let ((newargs nil) (forms nil) (mclass nil)  (lambdas nil)
-	(scope-to nil)
 	(eieio-generic-call-methodname method)
 	(eieio-generic-call-arglst args))
     ;; get a copy 
@@ -708,54 +717,44 @@ available methods which may be programmed in."
     ;; 2) Only call specifics if the definition allows for them.
     ;; 3) Call in order based on :BEFORE, :PRIMARY, and :AFTER
     (if (not scoped-class)
-	(progn
-	  (setq lambdas (cons (eieio-generic-form method ":AFTER-" nil) lambdas))
-	  (setq scope-to (cons nil scope-to))))
+	(setq lambdas (cons (eieio-generic-form method ":AFTER-" nil) lambdas)))
     (if mclass
-	(progn
-	  (setq lambdas (cons (eieio-generic-form method ":AFTER-" mclass)
-			      lambdas))
-	  (setq scope-to (cons mclass scope-to))))
+	(setq lambdas (cons (eieio-generic-form method ":AFTER-" mclass)
+			    lambdas)))
     (if (not scoped-class)
-	(progn
-	  (setq lambdas (cons (eieio-generic-form method ":PRIMARY-" nil) lambdas))
-	  (setq scope-to (cons nil scope-to))))
+	(setq lambdas (cons (eieio-generic-form method ":PRIMARY-" nil) lambdas)))
     (if mclass
-	(progn
-	  (setq lambdas (cons (eieio-generic-form method ":PRIMARY-" mclass)
-			      lambdas))
-	  (setq scope-to (cons mclass scope-to))))
+	(setq lambdas (cons (eieio-generic-form method ":PRIMARY-" mclass)
+			    lambdas)))
     (if (not scoped-class)
-	(progn
-	  (setq lambdas (cons (eieio-generic-form method ":BEFORE-" nil) lambdas))
-	  (setq scope-to (cons nil scope-to))))
+	(setq lambdas (cons (eieio-generic-form method ":BEFORE-" nil) lambdas)))
     (if mclass
-	(progn
-	  (setq lambdas (cons (eieio-generic-form method ":BEFORE-" mclass)
-			      lambdas))
-	  (setq scope-to (cons mclass scope-to))))
+	(setq lambdas (cons (eieio-generic-form method ":BEFORE-" mclass)
+			    lambdas)))
 
     ;; Now loop through all occurances forms which we must execute
     ;; (which are happilly sorted now) and execute them all!
     (let ((rval nil))
       (while lambdas
 	(if (car lambdas)
-	    (let ((scoped-class (car scope-to)))
-	      (setq rval (apply (car lambdas) newargs))))
+	    (let ((scoped-class (cdr (car lambdas))))
+	      (setq rval (apply (car (car lambdas)) newargs))))
 	(setq lambdas (cdr lambdas)))
       rval)))
 
 (defun call-next-method ()
   "When inside a call to a method belonging to some object, call the
 method belong to the parent class"
+  (if (not scoped-class)
+      (error "call-next-method not called within a class specific method"))
   (let ((newargs eieio-generic-call-arglst) (lambdas nil)
 	(mclass (class-parent scoped-class)))
     ;; lookup the form to use for the PRIMARY object for the next level
     (setq lambdas (eieio-generic-form eieio-generic-call-methodname
 				      ":PRIMARY-" mclass))
     ;; Setup calling environment, and apply arguments...
-    (let ((scoped-class mclass))
-      (apply lambdas newargs))))
+    (let ((scoped-class (cdr lambdas)))
+      (apply (car lambdas) newargs))))
 
 (defun eieio-generic-form (method tag class)
  "Return the lambda form belonging to METHOD using TAG based upon
@@ -764,7 +763,7 @@ has no form, but has a parent class, then trace to that parent class"
  (if (class-p class)
      (let ((sym (intern (concat tag (symbol-name (aref (class-v class) 1))))))
        (if (get method sym)
-	   (get method sym)
+	   (cons (get method sym) (aref (class-v class) 1))
 	 (if (class-parent class)
 	     (eieio-generic-form method tag (class-parent class))
 	   nil)))
@@ -931,6 +930,90 @@ the screen."
     (if chl
 	(eieio-browse-tree (car chl) fprefix lprefix))
     ))
+
+(defun eieio-thing-to-string (thing)
+  "Convert THING into a string.  If THING is an object, use
+`object-name' instead, if THING is a class, then use `class-name'
+instead, if THING is a list of stuff, try those."
+  (if (object-p thing) (object-name thing)
+    (if (class-p thing) (class-name thing)
+      (if (and thing (listp thing))
+	  (let ((op "("))
+	    (while thing
+	      (setq op (concat op " " (eieio-thing-to-string (car thing))))
+	      (setq thing (cdr thing)))
+	    (concat op ")"))
+	(format "%S" thing))))
+  )
+
+(defun eieio-describe-class (class)
+  "Describe a CLASS defined by a string or symbol.  If CLASS is actually
+an object, then also display current values of that obect."
+  (interactive "sClass: ")
+  (switch-to-buffer (get-buffer-create "*EIEIO OBJECT DESCRIBE*"))
+  (erase-buffer)
+  (let* ((cv (cond ((stringp class) (class-v (read class)))
+		   ((symbolp class) (class-v class))
+		   ((object-p class) (class-v (object-class class)))
+		   (t (error "Can't find class info from parameter"))))
+	 (this (if (object-p class) class this))
+	 (scoped-class (if (object-p class) (object-class class) scoped-class))
+	 (priva (aref cv class-private-a))
+	 (publa (aref cv class-public-a))
+	 (privd (aref cv class-private-d))
+	 (publd (aref cv class-public-d)))
+    (insert "Description of")
+    (if (object-p class)
+	(insert " object `" (aref class 2) "'"))
+    (insert " class `" (symbol-name (aref cv 1)) "'\n")
+    (insert "\nPRIVATE\n")
+    (put-text-property (point)
+		       (progn (insert "Field:\t\t\tdefault value"
+				      (if (object-p class)
+					  "\t\tCurrent Value" ""))
+			      (point))
+		       'face 'underline)
+    (insert "\n")
+    (while priva
+      (let ((dvs (eieio-thing-to-string (car privd))))
+	(insert (symbol-name (car priva)) "\t" 
+		(if (< (length (symbol-name (car priva))) 8) "\t" "")
+		(if (< (length (symbol-name (car priva))) 16) "\t" "")
+		dvs
+		(if (object-p class)
+		    (concat
+		     "\t"
+		     (if (< (length dvs) 8) "\t" "")
+		     (if (< (length dvs) 16) "\t" "")
+		     (eieio-thing-to-string (oref-engine class (car priva))))
+		  "")
+		"\n"))
+      (setq priva (cdr priva)
+	    privd (cdr privd)))
+    (insert "\nPUBLIC\n")
+    (put-text-property (point)
+		       (progn (insert "Field:\t\t\tdefault value"
+				      (if (object-p class)
+					  "\t\tCurrent Value" ""))
+			      (point))
+		       'face 'underline)
+    (insert "\n")
+    (while publa
+      (let ((dvs (eieio-thing-to-string (car publd))))
+	(insert (symbol-name (car publa)) "\t"
+		(if (< (length (symbol-name (car publa))) 8) "\t" "")
+		(if (< (length (symbol-name (car publa))) 16) "\t" "")
+		dvs
+		(if (object-p class)
+		    (concat
+		     "\t"
+		     (if (< (length dvs) 8) "\t" "")
+		     (if (< (length dvs) 16) "\t" "")
+		     (eieio-thing-to-string (oref-engine class (car publa))))
+		  "")
+		"\n"))
+      (setq publa (cdr publa)
+	    publd (cdr publd)))))
 
 ;; Now lets support edebug in reguard to defmethod forms.
 ;; reguardless of if edebug is running, this hook is re-eveluated so
