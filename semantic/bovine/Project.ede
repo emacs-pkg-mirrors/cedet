@@ -18,7 +18,7 @@
    (ede-proj-target-elisp "languages"
     :name "languages"
     :path ""
-    :source '("semantic-c.el" "semantic-el.el" "semantic-java.el" "semantic-make.el" "semantic-scm.el")
+    :source '("semantic-c.el" "semantic-el.el" "semantic-make.el" "semantic-scm.el")
     )
    (ede-proj-target-makefile-miscelaneous "by"
     :name "by"
