@@ -44,6 +44,7 @@ A bad parse tree is for example:
 @menu
 * Tag Basics::
 * Tag Query::
+* Tag Hooks::
 * Tag Overlay::
 * Misc Tag Functions::
 * Tag Internals::
@@ -367,6 +368,47 @@ The default action collects regular components of @var{TAG}, in addition
 to any components belonging to an anonymous type.
 @end defun
 
+@node Tag Hooks
+@section Tag Hooks
+@cindex Tag Hooks
+
+Individual tags can have hooks associated with them.  Hooks are saved
+as properties, but can cause specific tags to have special behaviors
+after a hook is added.
+
+You can manipulate tag hooks with these functions:
+
+@defun semantic-tag-add-hook tag hook value &optional append
+Add onto @var{TAG} a @var{HOOK} with @var{VALUE}.
+@end defun
+
+@defun semantic-tag-remove-hook tag hook value
+Remove from @var{TAG} the @var{HOOK} with @var{VALUE}.
+@end defun
+
+For a developer, if you have an application for which you want to
+support a special kind of hook on a per tag basis, you can use this
+to run those hooks.
+
+@defun semantic--tag-run-hooks tag hook &rest args
+Run for @var{TAG} all expressions saved on the property @var{HOOK}.
+Each hook expression must take at least one argument, the @var{TAG}.
+For any given situation, additional @var{ARGS} may be passed.
+@end defun
+
+Semantic supports two TAG specific hooks at this time:
+
+@table @code
+@item link-hook
+This hook is run whenever a tag is linked into a buffer.  This occurs
+just after parsing, and whenever a tag is loaded into memory.  This
+hook also executes after a datase save, when all tags are first
+unlinked from the current buffer before the save.
+@item unlink-hook
+This hook is run whenever a tag is unlinked from a buffer.  This
+ocucrs during a database save.
+@end table
+
 @node Misc Tag Functions
 @section Misc Tag Functions
 @cindex Misc Tag Functions
@@ -678,12 +720,14 @@ For any given situation, additional @var{ARGS} may be passed.
 
 @defun semantic--tag-unlink-from-buffer tag
 Convert @var{TAG} from using an overlay to using an overlay proxy.
-This function is for internal use only.
+This function is for internal use only.  This runs the tag hook
+'unlink-hook'.  @ref{Tag Hooks}
 @end defun
 
 @defun semantic--tag-link-to-buffer tag
 Convert @var{TAG} from using an overlay proxy to using an overlay.
-This function is for internal use only.
+This function is for internal use only.  This runs the tag hook
+'link-hook'.  @ref{Tag Hooks}
 @end defun
 
 @defun semantic--tag-unlink-list-from-buffer tags
