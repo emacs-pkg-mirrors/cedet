@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.7 2001/02/26 15:19:22 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.8 2001/02/28 22:24:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -374,8 +374,8 @@
  ( NEW qualified_name semantic-list "\\`(")
  ) ; end class_instance_creation_expression
  (array_creation_expression
- ( NEW qualified_name dims array_initializer)
- ( NEW qualified_name dims)
+ ( NEW array_type array_initializer)
+ ( NEW array_type)
  ) ; end array_creation_expression
  (dims_opt
  ( dims
@@ -423,7 +423,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-    "Java language specification.")
+      "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table

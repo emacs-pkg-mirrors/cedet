@@ -5,7 +5,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.5 2001/02/22 20:01:57 ponced Exp $
+# $Id: java.bnf,v 1.6 2001/02/28 22:24:22 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -409,8 +409,11 @@ class_instance_creation_expression : NEW qualified_name semantic-list "\\`("
                                    | NEW qualified_name semantic-list "\\`("
                                    ;
   
-array_creation_expression : NEW qualified_name dims array_initializer
-                          | NEW qualified_name dims #dim_exprs dims_opt
+## array_creation_expression : NEW qualified_name dims array_initializer
+##                           | NEW qualified_name dims #dim_exprs dims_opt
+##                           ;
+array_creation_expression : NEW array_type array_initializer
+                          | NEW array_type #dim_exprs dims_opt
                           ;
   
 dims_opt : dims
@@ -456,6 +459,10 @@ expression: unary_expression operators_expression_opt
           ;
 
 # $Log: java.bnf,v $
+# Revision 1.6  2001/02/28 22:24:22  ponced
+# Fixed a bug on 'array_creation_expression' non-terminal which didn't
+# match primitive type arrays.
+#
 # Revision 1.5  2001/02/22 20:01:57  ponced
 # Moved setup of Semantic variables from semantic-java.el.
 #
