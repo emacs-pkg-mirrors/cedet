@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.152 1999/11/29 20:39:05 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.153 1999/11/29 20:56:16 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -664,7 +664,7 @@ Use the function `speedbar-add-ignored-path-regexp', or customize the
 variable `speedbar-ignored-path-expressions' to modify this variable.")
 
 (defcustom speedbar-ignored-path-expressions
-  '("/logs?/\\'")
+  '("[/\\]logs?[/\\]\\'")
   "*List of regular expressions matching directories speedbar will ignore.
 They should included paths to directories which are notoriously very
 large and take a long time to load in.  Use the function
@@ -1844,7 +1844,7 @@ Files can be copied to new names or places."
 	(if (file-directory-p rt)
 	    (setq rt
 		  (concat (expand-file-name rt)
-			  (if (string-match "/$" rt) "" "/")
+			  (if (string-match "[/\\]$" rt) "" "/")
 			  (file-name-nondirectory f))))
 	(if (or (not (file-exists-p rt))
 		(speedbar-y-or-n-p (format "Overwrite %s with %s? " rt f)))
@@ -1873,7 +1873,7 @@ Files can be renamed to new names or moved to new directories."
 	  (if (file-directory-p rt)
 	      (setq rt
 		    (concat (expand-file-name rt)
-			    (if (string-match "/\\'" rt) "" "/")
+			    (if (string-match "[/\\]\\'" rt) "" "/")
 			    (file-name-nondirectory f))))
 	  (if (or (not (file-exists-p rt))
 		  (speedbar-y-or-n-p (format "Overwrite %s with %s? " rt f)))
@@ -2222,11 +2222,11 @@ INDEX is not used, but is required by the caller."
 			(concat "~/" (substring dd (match-end 0)))
 		      dd))
 	 (p (point)))
-    (if (string-match "^~/?\\'" displayme) (setq displayme tilde))
+    (if (string-match "^~[/\\]?\\'" displayme) (setq displayme tilde))
     (insert displayme)
     (save-excursion
       (goto-char p)
-      (while (re-search-forward "\\([^/]+\\)/" nil t)
+      (while (re-search-forward "\\([^/\\]+\\)[/\\]" nil t)
 	(speedbar-make-button (match-beginning 1) (match-end 1)
 			      'speedbar-directory-face
 			      'speedbar-highlight-face
@@ -2242,14 +2242,14 @@ INDEX is not used, but is required by the caller."
 	     (let ((ww (or (speedbar-frame-width) 20)))
 	       (move-to-column ww nil)
 	       (while (>= (current-column) ww)
-		 (re-search-backward "/" nil t)
+		 (re-search-backward "[/\\]" nil t)
 		 (if (<= (current-column) 2)
 		     (progn
-		       (re-search-forward "/" nil t)
+		       (re-search-forward "[/\\]" nil t)
 		       (if (< (current-column) 4)
-			   (re-search-forward "/" nil t))
+			   (re-search-forward "[/\\]" nil t))
 		       (forward-char -1)))
-		 (if (looking-at "/?$")
+		 (if (looking-at "[/\\]?$")
 		     (beginning-of-line)
 		   (insert "/...\n ")
 		   (move-to-column ww nil)))))
@@ -2260,13 +2260,13 @@ INDEX is not used, but is required by the caller."
 	       (if (< ww tl)
 		   (progn
 		     (move-to-column (- tl ww))
-		     (if (re-search-backward "/" nil t)
+		     (if (re-search-backward "[/\\]" nil t)
 			 (progn
 			   (delete-region (point-min) (point))
 			   (insert "$")
 			   )))))))
       )
-    (if (string-match "\\`/[^/]+/\\'" displayme)
+    (if (string-match "\\`[/\\][^/\\]+[/\\]\\'" displayme)
 	(progn
 	  (insert "  ")
 	  (let ((p (point)))
@@ -2695,7 +2695,7 @@ to create much wiser decisions about how to sort and group these items."
 	(if (and speedbar-smart-directory-expand-flag
 		 (save-match-data
 		   (setq cbd-parent cbd)
-		   (if (string-match "/$" cbd-parent)
+		   (if (string-match "[/\\]$" cbd-parent)
 		       (setq cbd-parent (substring cbd-parent 0
 						   (match-beginning 0))))
 		   (setq cbd-parent (file-name-directory cbd-parent)))
@@ -3291,7 +3291,7 @@ Otherwise do not move and return nil."
       (goto-char (point-min))
       ;; scan all the directories
       (while (and path (not (eq path t)))
-	(if (string-match "^/?\\([^/]+\\)" path)
+	(if (string-match "^[/\\]?\\([^/\\]+\\)" path)
 	    (let ((pp (match-string 1 path)))
 	      (if (save-match-data
 		    (re-search-forward (concat "> " (regexp-quote pp) "$")
@@ -3362,7 +3362,7 @@ directory with these items."
 (defun speedbar-path-line (path)
   "Position the cursor on the line specified by PATH."
   (save-match-data
-    (if (string-match "/$" path)
+    (if (string-match "[/\\]$" path)
 	(setq path (substring path 0 (match-beginning 0))))
     (let ((nomatch t) (depth 0)
 	  (fname (file-name-nondirectory path))
@@ -4099,8 +4099,8 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
   (recenter 1))
 
 (defun speedbar-recenter ()
-  "Recenter the current buffer so POINT is on the top of the window."
-  (recenter (window-hight (/ (selected-window)) 2)))
+  "Recenter the current buffer so POINT is in the center of the window."
+  (recenter (window-hight (/ (selected-window) 2))))
 
 
 ;;; Color loading section.
