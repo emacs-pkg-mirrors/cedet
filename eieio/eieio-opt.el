@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.24 2003/09/07 02:05:08 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.25 2003/12/11 00:53:39 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -524,7 +524,7 @@ expansion depth."
 				class
 				'speedbar-directory-face
 				depth)
-      (speedbar-make-tag-line 'angle ? nil nil
+      (speedbar-make-tag-line 'angle ?  nil nil
 			      (symbol-name class)
 			      'eieio-describe-class-sb
 			      class
