@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.8 2000/09/28 17:58:07 zappo Exp $
+@c $Id: ede.texi,v 1.9 2001/01/10 07:02:50 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -326,11 +326,11 @@ Here is an example for an instantiation of an Emacs Lisp source code object:
 
 @xref{Sourcecode}.
 
-@section Compiler objects
+@section Compiler and Linker objects
 
 The EDE project class creates makefiles.  In order for a target to
-create a makefile, it must know how to compile the sources into the
-program, or desired data file.
+create a @file{Makefile}, it must know how to compile the sources into
+the program or desired data file, and possibly link them together.
 
 A compiler object instantiation is used to link a given target with a
 given source code type.  Some targets can handle many types of sources,
@@ -352,33 +352,31 @@ project output mechanism to work more efficiently.
 Targets will also have a special "compiler" slot which lets a user
 explicitly choose the compiler they want to use.
 
-Here is an example for Emacs Lisp:
+Here is an example for texinfo:
 
 @example
-(defvar ede-emacs-compiler
+(defvar ede-makeinfo-compiler
   (ede-compiler
-   "ede-emacs-compiler"
-   :name "emacs"
-   :variables '(("EMACS" . "emacs"))
-   :commands
-   '("@@echo \"(add-to-list 'load-path nil)\" > $@@-compile-script"
-     "@@for loadpath in $@{LOADPATH@}; do \\"
-     "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@@-compile-script; \\"
-     " done"
-     "@@echo \"(setq debug-on-error t)\" >> $@@-compile-script"
-     "$(EMACS) -batch -l $@@-compile-script -f batch-byte-compile $^"
-     )
-   :autoconf '("AM_PATH_LISPDIR")
-   :sourcetype '(ede-source-emacs)
-   :objectextention ".elc"
+   "ede-makeinfo-compiler"
+   :name "makeinfo"
+   :variables '(("MAKEINFO" . "makeinfo"))
+   :commands '("makeinfo -o $@ $<")
+   :autoconf '(("AC_CHECK_PROG" . "MAKEINFO, makeinfo"))
+   :sourcetype '(ede-makeinfo-source)
    )
-  "Compile Emacs Lisp programs.")
+  "Compile texinfo files into info files.")
 @end example
 
 @xref{Compilers}.
 
-When creating a compiler instatiations, it may be useful to @code{clone}
+When creating compiler instatiations, it may be useful to @code{clone}
 an existing compiler variable.
+
+The second important object is the linker class.  The linker is similar
+to the compiler, except several compilers might be used to create some
+object files, and only one linker is used to link those objects together.
+
+See @file{ede-proj-obj.el} for examples of the combination.
 
 @section Class hierarchies
 
