@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.85.2.1 2003/10/27 14:45:35 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.85.2.2 2003/10/29 15:08:06 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -909,7 +909,9 @@ it was invoked on.  To automatically split large menus this function
 use `imenu--mouse-menu' to handle the popup menu."
   (interactive)
   (let ((symstart (senator-current-symbol-start))
-        symbol regexp complst)
+        symbol regexp complst
+	;; Turn off tag jumping for this menu.
+	(imenu-default-goto-function (lambda (name pos &optional rest) pos)))
     (if symstart
         (setq symbol  (buffer-substring-no-properties symstart (point))
               regexp  (regexp-quote symbol)
