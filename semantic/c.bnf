@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.57 2002/02/06 03:10:54 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.57.2.1 2002/02/20 16:59:42 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -397,7 +397,8 @@ template-specifier-type-list : COMA template-specifier-types
 			     ;
 
 template-var : template-type opt-stars opt-template-equal
-	       ( ,$1 )
+	       ( ,(cons (concat (car $1) (make-string (car ,$2) ?*))
+			      (cdr $1)))
 	     ;
 
 opt-template-equal : EQUAL symbol LESS template-specifier-type GREATER
@@ -406,13 +407,13 @@ opt-template-equal : EQUAL symbol LESS template-specifier-type GREATER
 		   ;
 
 template-type : CLASS symbol
-		( $2 type "class" )
+		( $2 type "class" nil nil)
 	      | STRUCT symbol
-		( $2 type "struct" )
+		( $2 type "struct" nil nil)
 	      | builtintype
-		( ,$1 type nil)
+		( ,$1 type nil nil nil)
 	      | symbol
-		( $1 type nil )
+		( $1 type nil nil nil)
 	      ;
 
 template-definition : type
