@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.11 1997/01/04 15:44:54 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.12 1997/01/08 00:17:06 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -78,6 +78,8 @@
 ;;;    See optional file `speedbcfg.el' for interactive buffers
 ;;; allowing simple configuration of colors and features of speedbar.
 ;;;
+;;;    AUC-TEX users: The imenu tags for AUC-TEX mode don't work very
+;;; well.  Use the imenu keywords from tex-mode.el for better results.
 
 ;;; Speedbar updates can be found at:
 ;;; ftp://ftp.ultranet.com/pub/zappo/speedbar*.el
