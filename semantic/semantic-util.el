@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.38 2000/12/10 20:25:34 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.39 2000/12/11 23:49:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -676,7 +676,11 @@ depended on, and functions will move to the specified definition."
       nil
     (let ((s (semantic-fetch-overload 'find-nonterminal)))
       (if s (funcall s token parent)
-	(set-buffer (semantic-token-buffer token))
+	(if (semantic-token-buffer token)
+	    ;; If the token has no buffer, it may be deoverlayed.
+	    ;; Assume the tool doing the finding knows that we came
+	    ;; in from a database, and use the current buffer.
+	    (set-buffer (semantic-token-buffer token)))
 	(let ((start (semantic-token-start token)))
 	  (if (numberp start)
 	      ;; If it's a number, go there
