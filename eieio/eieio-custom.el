@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.15 2000/10/04 03:39:03 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.16 2000/10/14 01:32:04 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -181,34 +181,49 @@ of these.")
 		 (slot-boundp obj (car fields)))
 	;; In this case, this field has a custom type.  Create it's
 	;; children widgets.
-	(setq chil (cons (widget-create-child-and-convert
-			  widget
-			  (eieio-filter-slot-type widget (car fcust))
-			  :tag
-			  (concat
-			   (make-string
-			    (or (widget-get widget :indent) 0)
-			    ? )
-			   ;;"Slot "
-			   (if (car flabel)
-			       (car flabel)
-			     (let ((s (symbol-name
-				       (or
-					(class-slot-initarg
-					 (object-class-fast obj)
-					 (car fields))
-					(car fields)))))
-			       (capitalize
-				(if (string-match "^:" s)
-				    (substring s (match-end 0))
-				  s)))))
-			  :value (slot-value obj (car fields))
-			  :sample-face 'eieio-custom-slot-tag-face
-			  )
-			 chil))
+	(let ((type (eieio-filter-slot-type widget (car fcust)))
+	      (stuff nil))
+	  ;; This next bit is an evil hack to get some EDE functions
+	  ;; working the way I like.
+	  (if (and (listp type)
+		   (setq stuff (member :slotofchoices type)))
+	      (let ((choices (eieio-oref obj (car (cdr stuff))))
+		    (newtype nil))
+		(while (not (eq (car type) :slotofchoices))
+		  (setq newtype (cons (car type) newtype)
+			type (cdr type)))
+		(while choices
+		  (setq newtype (cons (list 'const (car choices))
+				      newtype)
+			choices (cdr choices)))
+		(setq type (nreverse newtype))))
+	  (setq chil (cons (widget-create-child-and-convert
+			    widget type
+			    :tag
+			    (concat
+			     (make-string
+			      (or (widget-get widget :indent) 0)
+			      ? )
+			     ;;"Slot "
+			     (if (car flabel)
+				 (car flabel)
+			       (let ((s (symbol-name
+					 (or
+					  (class-slot-initarg
+					   (object-class-fast obj)
+					   (car fields))
+					  (car fields)))))
+				 (capitalize
+				  (if (string-match "^:" s)
+				      (substring s (match-end 0))
+				    s)))))
+			    :value (slot-value obj (car fields))
+			    :sample-face 'eieio-custom-slot-tag-face
+			    )
+			   chil)))
 	(setq chil (cons (widget-create-child-and-convert
 			  widget 'documentation-string
-			  :format "%t   %v"
+			  :format "%t   %v\n"
 			  :tag (make-string
 				(or (widget-get widget :indent) 0)
 				? )
