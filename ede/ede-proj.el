@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.25 2000/07/12 14:17:04 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.26 2000/07/22 12:47:07 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -31,7 +31,7 @@
 ;; rebuild.  The targets provided in ede-proj can be augmented with
 ;; additional target types inherited directly from `ede-proj-target'.
 
-(eval-and-compile (require 'ede))
+(require 'ede)
 
 ;;; Class Definitions:
 (defclass ede-proj-target (ede-target)
@@ -255,33 +255,17 @@ Argument TARGET is the project we are completing customization on."
   "Commit any change to PROJ to its file."
   (ede-proj-save proj))
 
-(defmethod ede-find-target ((proj ede-proj-project) buffer)
-  "Fetch the target in PROJ belonging to BUFFER or nil."
-  (or ede-object
-      (if (ede-buffer-mine proj buffer)
-	  proj
-	(let ((targets (oref proj targets))
-	      (f nil))
-	  (while targets
-	    (if (or (member (ede-convert-path proj (buffer-file-name buffer))
-			    (oref (car targets) source))
-		    (and (slot-exists-p (car targets) 'headers)
-			 (member
-			  (ede-convert-path proj (buffer-file-name buffer))
-			  (oref (car targets) headers)))
-		    (and (slot-exists-p (car targets) 'auxsource)
-			 (member
-			  (ede-convert-path proj (buffer-file-name buffer))
-			  (oref (car targets) auxsource))))
-		(setq f (cons (car targets) f)))
-	    (setq targets (cdr targets)))
-	  f))))
-
 (defmethod ede-buffer-mine ((this ede-proj-project) buffer)
   "Return t if object THIS lays claim to the file in BUFFER."
-  (string= (oref this file)
-	   (ede-convert-path this (buffer-file-name buffer))))
+  (let ((f (ede-convert-path this (buffer-file-name buffer))))
+    (or (string= (oref this file) f)
+	(string= (ede-proj-dist-makefile this) f))))
 
+(defmethod ede-buffer-mine ((this ede-proj-target) buffer)
+  "Return t if object THIS lays claim to the file in BUFFER."
+  (or (call-next-method)
+      (member (ede-convert-path this (buffer-file-name buffer))
+	      (oref this auxsource))))
 ;;; Desireous methods
 ;;
 (defmethod ede-want-file-p ((obj ede-proj-target) file)
@@ -397,6 +381,12 @@ Optional argument COMMAND is the s the alternate command to use."
 
 ;;; Target type specific autogenerating gobbldegook.
 ;;
+(eval-when-compile 
+  ;; This provides prevents recursive loading during a compile
+  (provide 'ede-proj)
+  (require 'ede-pmake "ede-pmake.el")
+  (require 'ede-pconf "ede-pconf.el"))
+
 (defun ede-proj-makefile-type (&optional proj)
   "Makefile type of the current project."
   (oref (or proj (ede-current-project)) makefile-type))
@@ -435,12 +425,6 @@ Optional argument COMMAND is the s the alternate command to use."
   "Regenerate Makefiles for and edeproject project."
   (interactive)
   (ede-proj-setup-buildenvironment (ede-current-project) t))
-
-(eval-when-compile 
-  ;; This prevents recursive loading
-  (provide 'ede-proj)
-  (require 'ede-pmake)
-  (require 'ede-pconf))
 
 (defmethod ede-proj-makefile-create-maybe ((this ede-proj-project) mfilename)
   "Create a Makefile for all Makefile targets in THIS if needed.
