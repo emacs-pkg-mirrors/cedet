@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.1 2001/12/15 23:36:18 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.2 2001/12/18 06:52:29 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -104,38 +104,6 @@ variable NAME."
       ((package_declaration))
       ((import_declaration))
       ((type_declaration)))
-     (literal
-      ((NULL_LITERAL))
-      ((BOOLEAN_LITERAL))
-      ((STRING_LITERAL))
-      ((NUMBER_LITERAL)))
-     (type
-      ((qualified_name dims_opt)
-       (concat $1 $2))
-      ((primitive_type dims_opt)
-       (concat $1 $2)))
-     (primitive_type
-      ((BOOLEAN))
-      ((CHAR))
-      ((LONG))
-      ((INT))
-      ((SHORT))
-      ((BYTE))
-      ((DOUBLE))
-      ((FLOAT)))
-     (qualified_name
-      ((qualified_name DOT IDENTIFIER)
-       (concat $1 "." $3))
-      ((IDENTIFIER)))
-     (dims_opt
-      (nil
-       (identity ""))
-      ((dims)))
-     (dims
-      ((dims BRACK_BLOCK)
-       (concat $1 "[]"))
-      ((BRACK_BLOCK)
-       (identity "[]")))
      (package_declaration
       ((PACKAGE qualified_name SEMICOLON)
        (wisent-token $2 'package nil nil)))
@@ -149,29 +117,8 @@ variable NAME."
      (type_declaration
       ((SEMICOLON)
        nil)
-      ((interface_declaration))
-      ((class_declaration)))
-     (modifiers_opt
-      (nil)
-      ((modifiers)
-       (nreverse $1)))
-     (modifiers
-      ((modifiers modifier)
-       (cons $2 $1))
-      ((modifier)
-       (list $1)))
-     (modifier
-      ((STRICTFP))
-      ((VOLATILE))
-      ((TRANSIENT))
-      ((SYNCHRONIZED))
-      ((NATIVE))
-      ((FINAL))
-      ((ABSTRACT))
-      ((STATIC))
-      ((PRIVATE))
-      ((PROTECTED))
-      ((PUBLIC)))
+      ((class_declaration))
+      ((interface_declaration)))
      (class_declaration
       ((modifiers_opt CLASS qualified_name superc_opt interfaces_opt class_body)
        (wisent-token $3 'type $2 $6
@@ -180,24 +127,14 @@ variable NAME."
                          (cons $4 $5))
                      (semantic-bovinate-make-assoc-list 'typemodifiers $1)
                      nil)))
-     (superc
-      ((EXTENDS qualified_name)
-       (identity $2)))
      (superc_opt
       (nil)
-      ((superc)))
-     (interfaces
-      ((IMPLEMENTS qualified_name_list)
+      ((EXTENDS qualified_name)
        (identity $2)))
      (interfaces_opt
       (nil)
-      ((interfaces)
-       (nreverse $1)))
-     (qualified_name_list
-      ((qualified_name_list COMMA qualified_name)
-       (cons $3 $1))
-      ((qualified_name)
-       (list $1)))
+      ((IMPLEMENTS qualified_name_list)
+       (nreverse $2)))
      (class_body
       ((BRACE_BLOCK)
        (let
@@ -211,107 +148,19 @@ variable NAME."
               (cdr $region1)
               'class_member_declaration)))))
      (class_member_declaration
-      ((block)
-       nil)
-      ((static_initializer)
-       nil)
       ((LBRACE)
        nil)
       ((RBRACE)
+       nil)
+      ((block)
+       nil)
+      ((static_initializer)
        nil)
       ((constructor_declaration))
       ((interface_declaration))
       ((class_declaration))
       ((method_declaration))
       ((field_declaration)))
-     (field_declaration
-      ((modifiers_opt type variable_declarators SEMICOLON)
-       (wisent-java-expand-nonterminal
-        (car
-         (wisent-token $3 'variable $2 nil
-                       (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                       nil)))))
-     (variable_declarators
-      ((variable_declarators COMMA variable_declarator)
-       (cons $3 $1))
-      ((variable_declarator)
-       (list $1)))
-     (variable_declarator
-      ((variable_declarator_id EQ variable_initializer)
-       (cons $1 $region))
-      ((variable_declarator_id)
-       (cons $1 $region)))
-     (variable_declarator_id
-      ((IDENTIFIER dims_opt)
-       (concat $1 $2)))
-     (variable_initializer
-      ((expression)))
-     (method_declaration
-      ((modifiers_opt VOID method_declarator throwsc_opt method_body)
-       (wisent-token
-        (car $3)
-        'function $2
-        (cdr $3)
-        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-        nil))
-      ((modifiers_opt type method_declarator throwsc_opt method_body)
-       (wisent-token
-        (car $3)
-        'function $2
-        (cdr $3)
-        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-        nil)))
-     (method_declarator
-      ((IDENTIFIER formal_parameter_list dims_opt)
-       (cons
-        (concat $1 $3)
-        $2)))
-     (formal_parameter_list
-      ((PAREN_BLOCK)
-       (let
-           (($region1
-             (cdr
-              (aref stack
-                    (- sp 1)))))
-         (if $region1
-             (wisent-bovinate-from-nonterminal-full
-              (car $region1)
-              (cdr $region1)
-              'formal_parameters)))))
-     (formal_parameters
-      ((LPAREN)
-       nil)
-      ((formal_parameter COMMA))
-      ((formal_parameter RPAREN)))
-     (formal_parameter
-      ((FINAL type variable_declarator_id)
-       (wisent-token $3 'variable $2 nil
-                     (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                     nil))
-      ((type variable_declarator_id)
-       (wisent-token $2 'variable $1 nil nil nil)))
-     (throwsc_opt
-      (nil)
-      ((THROWS qualified_name_list)
-       (nreverse $2)))
-     (method_body
-      ((SEMICOLON))
-      ((block)))
-     (static_initializer
-      ((STATIC block)))
-     (constructor_declaration
-      ((modifiers_opt constructor_declarator throwsc_opt constructor_body)
-       (wisent-token
-        (car $2)
-        'function nil
-        (cdr $2)
-        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $3)
-        nil)))
-     (constructor_declarator
-      ((IDENTIFIER formal_parameter_list)
-       (cons $1 $2)))
-     (constructor_body
-      ((block)))
      (interface_declaration
       ((modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body)
        (wisent-token $3 'type $2 $5
@@ -344,8 +193,103 @@ variable NAME."
       ((class_declaration))
       ((method_declaration))
       ((field_declaration)))
+     (static_initializer
+      ((STATIC block)))
+     (constructor_declaration
+      ((modifiers_opt constructor_declarator throwsc_opt constructor_body)
+       (wisent-token
+        (car $2)
+        'function nil
+        (cdr $2)
+        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $3)
+        nil)))
+     (constructor_declarator
+      ((IDENTIFIER formal_parameter_list)
+       (cons $1 $2)))
+     (constructor_body
+      ((block)))
+     (method_declaration
+      ((modifiers_opt VOID method_declarator throwsc_opt method_body)
+       (wisent-token
+        (car $3)
+        'function $2
+        (cdr $3)
+        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
+        nil))
+      ((modifiers_opt type method_declarator throwsc_opt method_body)
+       (wisent-token
+        (car $3)
+        'function $2
+        (cdr $3)
+        (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
+        nil)))
+     (method_declarator
+      ((IDENTIFIER formal_parameter_list dims_opt)
+       (cons
+        (concat $1 $3)
+        $2)))
+     (throwsc_opt
+      (nil)
+      ((THROWS qualified_name_list)
+       (nreverse $2)))
+     (qualified_name_list
+      ((qualified_name_list COMMA qualified_name)
+       (cons $3 $1))
+      ((qualified_name)
+       (list $1)))
+     (method_body
+      ((SEMICOLON))
+      ((block)))
      (block
          ((BRACE_BLOCK)))
+     (formal_parameter_list
+      ((PAREN_BLOCK)
+       (let
+           (($region1
+             (cdr
+              (aref stack
+                    (- sp 1)))))
+         (if $region1
+             (wisent-bovinate-from-nonterminal-full
+              (car $region1)
+              (cdr $region1)
+              'formal_parameters)))))
+     (formal_parameters
+      ((LPAREN)
+       nil)
+      ((formal_parameter COMMA))
+      ((formal_parameter RPAREN)))
+     (formal_parameter
+      ((formal_parameter_modifier_opt type variable_declarator_id)
+       (wisent-token $3 'variable $2 nil
+                     (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                     nil)))
+     (formal_parameter_modifier_opt
+      (nil)
+      ((FINAL)
+       (list $1)))
+     (field_declaration
+      ((modifiers_opt type variable_declarators SEMICOLON)
+       (wisent-java-expand-nonterminal
+        (car
+         (wisent-token $3 'variable $2 nil
+                       (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                       nil)))))
+     (variable_declarators
+      ((variable_declarators COMMA variable_declarator)
+       (cons $3 $1))
+      ((variable_declarator)
+       (list $1)))
+     (variable_declarator
+      ((variable_declarator_id EQ variable_initializer)
+       (cons $1 $region))
+      ((variable_declarator_id)
+       (cons $1 $region)))
+     (variable_declarator_id
+      ((IDENTIFIER dims_opt)
+       (concat $1 $2)))
+     (variable_initializer
+      ((expression)))
      (expression
       ((expression term))
       ((term)))
@@ -361,6 +305,11 @@ variable NAME."
       ((CLASS))
       ((THIS))
       ((SUPER)))
+     (literal
+      ((NULL_LITERAL))
+      ((BOOLEAN_LITERAL))
+      ((STRING_LITERAL))
+      ((NUMBER_LITERAL)))
      (operator
       ((NOT))
       ((PLUS))
@@ -399,7 +348,55 @@ variable NAME."
       ((OREQ))
       ((OROR))
       ((COMP))
-      ((INSTANCEOF))))
+      ((INSTANCEOF)))
+     (primitive_type
+      ((BOOLEAN))
+      ((CHAR))
+      ((LONG))
+      ((INT))
+      ((SHORT))
+      ((BYTE))
+      ((DOUBLE))
+      ((FLOAT)))
+     (modifiers_opt
+      (nil)
+      ((modifiers)
+       (nreverse $1)))
+     (modifiers
+      ((modifiers modifier)
+       (cons $2 $1))
+      ((modifier)
+       (list $1)))
+     (modifier
+      ((STRICTFP))
+      ((VOLATILE))
+      ((TRANSIENT))
+      ((SYNCHRONIZED))
+      ((NATIVE))
+      ((FINAL))
+      ((ABSTRACT))
+      ((STATIC))
+      ((PRIVATE))
+      ((PROTECTED))
+      ((PUBLIC)))
+     (type
+      ((qualified_name dims_opt)
+       (concat $1 $2))
+      ((primitive_type dims_opt)
+       (concat $1 $2)))
+     (qualified_name
+      ((qualified_name DOT IDENTIFIER)
+       (concat $1 $2 $3))
+      ((IDENTIFIER)))
+     (dims_opt
+      (nil
+       (identity ""))
+      ((dims)))
+     (dims
+      ((dims BRACK_BLOCK)
+       (concat $1 "[]"))
+      ((BRACK_BLOCK)
+       (identity "[]"))))
    '(package_declaration import_declaration class_declaration field_declaration method_declaration formal_parameter constructor_declaration interface_declaration class_member_declaration interface_member_declaration formal_parameters)))
 "Wisent LALR(1) grammar for Semantic.
 Tweaked for Semantic needs.  That is to avoid full parsing of

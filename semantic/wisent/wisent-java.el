@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.18 2001/10/10 19:08:49 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.19 2001/12/18 06:53:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,7 +101,8 @@ variable NAME."
    '((LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP NULL_LITERAL BOOLEAN_LITERAL STRING_LITERAL NUMBER_LITERAL IDENTIFIER ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED)
      nil
      (goal
-      ((compilation_unit)))
+      ((compilation_unit)
+       (nreverse $1)))
      (literal
       ((NULL_LITERAL))
       ((BOOLEAN_LITERAL))
@@ -341,12 +342,14 @@ variable NAME."
       ((formal_parameter)
        (list $1)))
      (formal_parameter
-      ((FINAL type variable_declarator_id)
+      ((formal_parameter_modifier_opt type variable_declarator_id)
        (wisent-token $3 'variable $2 nil
                      (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                     nil))
-      ((type variable_declarator_id)
-       (wisent-token $2 'variable $1 nil nil nil)))
+                     nil)))
+     (formal_parameter_modifier_opt
+      (nil)
+      ((FINAL)
+       (list $1)))
      (throwsc_opt
       (nil)
       ((throwsc)))
