@@ -1,12 +1,12 @@
 ;;; semantic-grammar.el --- Major mode framework for Semantic grammars
 ;;
-;; Copyright (C) 2002 David Ponce
+;; Copyright (C) 2002, 2003 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.6 2002/10/30 15:56:40 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.7 2003/02/01 03:13:36 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -989,7 +989,8 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
           (format "(defconst %s\n%s%S)\n\n"
                   table (funcall def-value-fun) comment)))
        (re-search-backward "^(def\\(var\\|const\\)\\s-+")
-       (indent-sexp)))))
+       (indent-sexp)
+       (eval-defun nil)))))
   
 (defsubst semantic-grammar-update-parsetable ()
   "Create or update the parsetable Lisp declaration."
@@ -1043,7 +1044,8 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
                   fun "Setup buffer for parse."
                   (semantic-grammar-autogen-cookie) code)))
        (re-search-backward "^(defun\\s-+")
-       (indent-sexp)))))
+       (indent-sexp)
+       (eval-defun nil)))))
 
 (defun semantic-grammar-update-outputfile ()
   "Create or update grammar Lisp code in outputfile."
@@ -1053,7 +1055,23 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     (semantic-grammar-update-setupfunction)
     (semantic-grammar-update-tokentable)
     (semantic-grammar-update-keywordtable)
-    (semantic-grammar-update-parsetable)))
+    (semantic-grammar-update-parsetable)
+    ;; The above functions each evaluate the tables created
+    ;; into memory.  Now find all buffers that match the
+    ;; major mode we have created this language for, and
+    ;; force them to call our setup function again, refreshing
+    ;; all semantic data, and enabling them to work with the
+    ;; new code just created.
+    (let ((mode (semantic-grammar-languagemode))
+	  (setup (semantic-grammar-setupfunction))
+	  (buf (buffer-list)))
+      (while buf
+	(save-excursion
+	  (set-buffer (car buf))
+	  (if (eq major-mode mode)
+	      (funcall setup)))
+	(setq buf (cdr buf))
+	))))
 
 ;;;;
 ;;;; Define major mode
