@@ -1,9 +1,9 @@
-;;; eieio-opt.el -- eieio optional functions (debug, printing, etc)
+;;; eieio-opt.el -- eieio optional functions (debug, printing, speedbar)
 
 ;;; Copyright (C) 1996, 1998 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.3 1998/10/27 18:51:50 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.4 1998/12/16 13:54:58 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -114,30 +114,32 @@ If CLASS is actually an object, then also display current values of that obect."
     (if (object-p class)
 	(insert " object `" (aref class 2) "'"))
     (insert " class `" (symbol-name (aref cv 1)) "'\n")
-    (insert "\nPRIVATE\n")
-    (put-text-property (point)
-		       (progn (insert "Field:\t\t\tdefault value"
-				      (if (object-p class)
-					  "\t\tCurrent Value" ""))
-			      (point))
-		       'face 'underline)
-    (insert "\n")
-    (while priva
-      (let ((dvs (eieio-thing-to-string (car privd))))
-	(insert (symbol-name (car priva)) "\t"
-		(if (< (length (symbol-name (car priva))) 8) "\t" "")
-		(if (< (length (symbol-name (car priva))) 16) "\t" "")
-		dvs
-		(if (object-p class)
-		    (concat
-		     "\t"
-		     (if (< (length dvs) 8) "\t" "")
-		     (if (< (length dvs) 16) "\t" "")
-		     (eieio-thing-to-string (oref-engine class (car priva))))
-		  "")
-		"\n"))
-      (setq priva (cdr priva)
-	    privd (cdr privd)))
+    (if (not priva)
+	nil
+      (insert "\nPRIVATE\n")
+      (put-text-property (point)
+			 (progn (insert "Field:\t\t\tdefault value"
+					(if (object-p class)
+					    "\t\tCurrent Value" ""))
+				(point))
+			 'face 'underline)
+      (insert "\n")
+      (while priva
+	(let ((dvs (eieio-thing-to-string (car privd))))
+	  (insert (symbol-name (car priva)) "\t"
+		  (if (< (length (symbol-name (car priva))) 8) "\t" "")
+		  (if (< (length (symbol-name (car priva))) 16) "\t" "")
+		  dvs
+		  (if (object-p class)
+		      (concat
+		       "\t"
+		       (if (< (length dvs) 8) "\t" "")
+		       (if (< (length dvs) 16) "\t" "")
+		       (eieio-thing-to-string (oref-engine class (car priva))))
+		    "")
+		  "\n"))
+	(setq priva (cdr priva)
+	      privd (cdr privd))))
     (insert "\nPUBLIC\n")
     (put-text-property (point)
 		       (progn (insert "Field:\t\t\tdefault value"
@@ -176,6 +178,93 @@ Optional argument BUILDLIST is more list to attach."
       (setq buildlist (eieio-build-class-alist (car sublst) buildlist))
       (setq sublst (cdr sublst)))
     buildlist))
+
+;;; How about showing the hierarchy in speedbar?  Cool!
+;;
+(eval-when-compile
+  (condition-case nil
+      (require 'speedbar)
+    (error nil)))
+
+(defvar eieio-speedbar-key-map nil
+  "Keymap used when working with a project in speedbar.")
+
+(defun eieio-speedbar-make-map ()
+  "Make a keymap for eieio under speedbar."
+  (setq eieio-speedbar-key-map (speedbar-make-specialized-keymap))
+
+  ;; General viewing stuff
+  (define-key eieio-speedbar-key-map "\C-m" 'speedbar-edit-line)
+  (define-key eieio-speedbar-key-map "+" 'speedbar-expand-line)
+  (define-key eieio-speedbar-key-map "-" 'speedbar-contract-line)
+  )
+
+(if eieio-speedbar-key-map
+    nil
+  (if (not (featurep 'speedbar))
+      (add-hook 'speedbar-load-hook (lambda ()
+				      (eieio-speedbar-make-map)
+				      (speedbar-add-expansion-list
+				       '("EIEIO"
+					 eieio-speedbar-menu
+					 eieio-speedbar-key-map
+					 eieio-speedbar))))
+    (eieio-speedbar-make-map)
+    (speedbar-add-expansion-list '("EIEIO"
+				   eieio-speedbar-menu
+				   eieio-speedbar-key-map
+				   eieio-speedbar))))
+
+(defvar eieio-speedbar-menu
+  ()
+  "Menu part in easymenu format used in speedbar while in `eieio' mode.")
+
+(defun eieio-speedbar (dir-or-object depth)
+  "Create buttons in speedbar that represents the current project.
+DIR-OR-OBJECT is the object to expand, or nil, and DEPTH is the current
+expansion depth."
+  ;; This function is only called once, to start the whole deal.
+  ;; Ceate, and expand the default object.
+  (eieio-class-button eieio-default-superclass 0)
+  (forward-line -1)
+  (speedbar-expand-line))
+
+(defun eieio-class-button (class depth)
+  "Draw a speedbar button at the current point for CLASS at DEPTH."
+  (if (not (class-p class))
+      (signal 'wrong-type-argument (list 'class-p class)))
+  (speedbar-make-tag-line 'angle ?+
+			  'eieio-sb-expand
+			  class
+			  (symbol-name class)
+			  'eieio-describe-class-sb
+			  class
+			  'speedbar-directory-face
+			  depth))
+
+(defun eieio-sb-expand (text class indent)
+  "For button TEXT, expand CLASS at the current location.
+Argument INDENT is the depth of indentation."
+  (cond ((string-match "+" text)	;we have to expand this file
+	 (speedbar-change-expand-button-char ?-)
+	 (speedbar-with-writable
+	   (save-excursion
+	     (end-of-line) (forward-char 1)
+	     (let ((subclasses (aref (class-v class) class-children)))
+	       (while subclasses
+		 (eieio-class-button (car subclasses) (1+ indent))
+		 (setq subclasses (cdr subclasses)))))))
+	((string-match "-" text)	;we have to contract this node
+	 (speedbar-change-expand-button-char ?+)
+	 (speedbar-delete-subblock indent))
+	(t (error "Ooops...  not sure what to do")))
+  (speedbar-center-buffer-smartly))
+
+(defun eieio-describe-class-sb (text token indent)
+  "Describe the class TEXT in TOKEN.
+INDENT is the current indentation level."
+  (select-frame speedbar-attached-frame)
+  (eieio-describe-class token))
 
 (provide 'eieio-opt)
 
