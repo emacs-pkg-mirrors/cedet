@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-prog.el,v 1.4 2000/09/24 15:43:40 zappo Exp $
+;; RCS: $Id: ede-proj-prog.el,v 1.5 2000/09/28 18:41:11 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,7 +25,8 @@
 ;;
 ;; Handle building programs from object files in and EDE Project file.
 
-(eval-and-compile (require 'ede-proj-obj))
+(require 'ede-pmake)
+(require 'ede-proj-obj)
 
 ;;; Code:
 (defclass ede-proj-target-makefile-program

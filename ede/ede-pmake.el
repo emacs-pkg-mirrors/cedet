@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.26 2000/09/28 02:02:54 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.27 2000/09/28 18:40:23 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -333,7 +333,7 @@ These are removed with make clean."
   )
 
 (defmethod ede-proj-makefile-insert-dist-rules ((this ede-proj-project))
-  "Insert distribution rules for a Makefile, such as CLEAN and DIST."
+  "Insert distribution rules for THIS in a Makefile, such as CLEAN and DIST."
   (let ((junk (ede-proj-makefile-garbage-patterns this))
 	tmp)
     ;; Build CLEAN, DIST, TAG, and other rules here.
@@ -407,9 +407,9 @@ automake."
 Some compilers only use the first element in the dependencies, others
 have a list of intermediates (object files), and others don't care.
 This allows customization of how these elements appear."
-  (let ((c (ede-proj-compilers this))
-	(io (ede-or (mapcar 'ede-compiler-intermediate-objects-p c)))
-	(out nil))
+  (let* ((c (ede-proj-compilers this))
+	 (io (ede-or (mapcar 'ede-compiler-intermediate-objects-p c)))
+	 (out nil))
     (if io
 	(progn
 	  (while c
@@ -423,10 +423,6 @@ This allows customization of how these elements appear."
 	(if (and (stringp sv) (not (string= sv "")))
 	    (concat "$(" sv ")")
 	  "")))))
-
-(defmethod ede-proj-makefile-target-name ((this ede-proj-target-makefile))
-  "Return the name of the main target for THIS target."
-  (ede-name this))
 
 ;; Tags
 (defmethod ede-proj-makefile-tags ((this ede-proj-project) targets)

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-shared.el,v 1.6 2000/09/25 01:24:42 zappo Exp $
+;; RCS: $Id: ede-proj-shared.el,v 1.7 2000/09/28 18:41:26 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 ;; Handle shared object libraries in and EDE Project file.
 ;; Tries to deal with libtool and non-libtool situations.
 
+(require 'ede-pmake)
 (require 'ede-proj-prog)
 
 ;;; Code:
