@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.1
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.21 2001/02/05 14:46:00 ponced Exp $
+;; VC: $Id: senator.el,v 1.22 2001/02/09 11:55:01 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -64,6 +64,8 @@
 ;;    C-c , j         `senator-jump'
 ;;    C-c , i         `senator-isearch-toggle-semantic-mode'
 ;;    C-c , TAB       `senator-complete-symbol'
+;;    C-c , SPC       `senator-completion-menu-keyboard-popup'
+;;    S-mouse-3       `senator-completion-menu-mouse-popup'
 ;;
 ;; To install, put this file on your Emacs-Lisp load path and add
 ;;   (require 'senator)
@@ -96,6 +98,10 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.22  2001/02/09 11:55:01  ponced
+;; New implementation of completion menu to allow customization of menu
+;; item text and insert function.
+;;
 ;; Revision 1.21  2001/02/05 14:46:00  ponced
 ;; Use new `semantic-type-relation-separator-character' format.
 ;; New completion popup menu.
@@ -699,51 +705,95 @@ local type's context (see function `senator-current-type-context')."
       (delete-region symstart (point))
       (insert (semantic-token-name newstr)))))
 
-(defun senator-do-menu-complete (newtext)
-  "Replace the current syntactic expression with a chosen completion.
-Argument NEWTEXT is the text chosen from a completion menu."
-    (let ((symstart (save-excursion (forward-sexp -1) (point))))
-      (delete-region symstart (point))
-      (insert newtext)))
+;;;;
+;;;; Completion menu
+;;;;
 
-(defun senator-popup-completion-menu (event)
+(defcustom senator-completion-menu-summary-function
+  'semantic-concise-prototype-nonterminal
+  "*Function to use when creating items in completion menu.
+Some useful functions are:
+`semantic-concise-prototype-nonterminal'
+`semantic-abbreviate-nonterminal'
+`semantic-summarize-nonterminal'
+`semantic-prototype-nonterminal'"
+  :group 'senator
+  :type 'function)
+(make-variable-buffer-local 'senator-completion-menu-summary-function)
+
+(defcustom senator-completion-menu-insert-function
+  'senator-completion-menu-insert-default
+  "*Function to use to insert an item from completion menu.
+It will receive a Semantic token as argument."
+  :group 'senator
+  :type 'function)
+(make-variable-buffer-local 'senator-completion-menu-insert-function)
+
+(defun senator-completion-menu-insert-default (token)
+  "Insert a text representation of TOKEN at point."
+  (insert (semantic-token-name token)))
+
+(defun senator-completion-menu-do-complete (token-overlay)
+  "Replace the current syntactic expression with a chosen completion.
+Argument TOKEN-OVERLAY is the overlay of the token chosen from the
+completion menu."
+  (let ((token (semantic-overlay-get token-overlay 'semantic))
+        (symstart (save-excursion (forward-sexp -1) (point)))
+        (finsert (if (fboundp senator-completion-menu-insert-function)
+                     senator-completion-menu-insert-function
+                   #'senator-completion-menu-insert-default)))
+      (delete-region symstart (point))
+      (funcall finsert token)))
+
+(defun senator-completion-menu-item (token)
+  "Return a completion menu item from TOKEN.
+That is a pair (MENU-ITEM-TEXT . TOKEN-OVERLAY).  Can return nil to
+discard a menu item."
+  (cons (funcall (if (fboundp senator-completion-menu-summary-function)
+                     senator-completion-menu-summary-function
+                   #'semantic-prototype-nonterminal) token)
+        (semantic-token-overlay token)))
+
+(defun senator-completion-menu-popup (event)
   "Popup a completion menu for the symbol at point.
 The popup menu displays all of the possible completions for the symbol
 it was invoked on.  To automatically split large menus this function
 use `imenu--mouse-menu' to handle the popup menu.  EVENT is the
 parametrized event that invoked this command."
-  (let* ((symstart (save-excursion (forward-sexp -1) (point)))
-         (symbol   (buffer-substring-no-properties symstart (point)))
-         (regexp   (concat "^" (regexp-quote symbol)))
-         (complst  (senator-find-nonterminal-by-name-regexp regexp)))
-    ;; We have a completion list, build a menu
+  (let ((symstart (condition-case nil
+                      (save-excursion (forward-sexp -1) (point))
+                    (error nil)))
+        symbol regexp complst)
+    (if symstart
+        (setq symbol  (buffer-substring-no-properties symstart (point))
+              regexp  (concat "^" (regexp-quote symbol))
+              complst (senator-find-nonterminal-by-name-regexp regexp)))
     (if (not complst)
-        (message "No completions available")
-      (let* ((index (mapcar (function
-                             (lambda (token)
-                               (let ((name (semantic-token-name token)))
-                                 (cons name name))))
-                            complst))
-             (item  (if (cdr index)
-                        ;; Delegates menu handling to imenu :-)
-                        (imenu--mouse-menu
-                         index
-                         event ;; maybe popup at mouse position
-                         (format "%S completion" symbol))
-                      ;; Only one item match, return it 
-                      (car index))))
-        (if item
-            (senator-do-menu-complete (cdr item)))))))
+        (error "No completions available"))
+    ;; We have a completion list, build a menu
+    (let* ((index (delq nil
+                        (mapcar #'senator-completion-menu-item
+                                complst)))
+           (item  (if (cdr index)
+                      ;; Delegates menu handling to imenu :-)
+                      (imenu--mouse-menu
+                       index
+                       event ;; popup at mouse position
+                       (format "%S completion" symbol))
+                    ;; Only one item match, return it
+                    (car index))))
+      (if item
+          (senator-completion-menu-do-complete (cdr item))))))
 
 ;;;###autoload
-(defun senator-mouse-popup-completion-menu (event)
-  "Popup a completion menu for the symbol at point.  EVENT is the
-parametrized event that invoked this command."
+(defun senator-completion-menu-mouse-popup (event)
+  "Popup a completion menu for the symbol at point.
+EVENT is the parametrized event that invoked this command."
   (interactive "e")
-  (senator-popup-completion-menu event))
+  (senator-completion-menu-popup event))
 
 ;;;###autoload
-(defun senator-keyboard-popup-completion-menu ()
+(defun senator-completion-menu-keyboard-popup ()
   "Popup a completion menu for the symbol at point."
   (interactive)
   (let ((event (if (featurep 'xemacs)
@@ -763,7 +813,7 @@ parametrized event that invoked this command."
                  ;; In Emacs just use t to popup the menu at mouse
                  ;; position
                  t)))
-    (senator-popup-completion-menu event)))
+    (senator-completion-menu-popup event)))
 
 ;;;;
 ;;;; Search commands
@@ -910,7 +960,7 @@ This is a buffer local variable.")
     (define-key km "p" 'senator-previous-token)
     (define-key km "n" 'senator-next-token)
     (define-key km "\t" 'senator-complete-symbol)
-    (define-key km " " 'senator-keyboard-popup-completion-menu)
+    (define-key km " " 'senator-completion-menu-keyboard-popup)
     km)
   "Default key bindings in senator minor mode.")
 
@@ -1027,7 +1077,7 @@ That is remove the unsupported :help stuff."
 (defvar senator-mode-map
   (let ((km (make-sparse-keymap)))
     (define-key km senator-prefix-key senator-prefix-map)
-    (define-key km [(shift mouse-3)] 'senator-mouse-popup-completion-menu)
+    (define-key km [(shift mouse-3)] 'senator-completion-menu-mouse-popup)
     (easy-menu-define senator-minor-menu km "Senator Minor Mode Menu"
                       senator-menu-bar)
     km)
