@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.36 2004/04/20 09:09:36 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.37 2004/04/23 18:04:49 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,7 +22,7 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-;; 
+;;
 ;; Semantic has several core features shared across it's lex/parse/util
 ;; stages.  This used to clutter semantic.el some.  These routines are all
 ;; simple things that are not parser specific, but aid in making
@@ -298,7 +298,7 @@ local variables have been defined."
 
 (defsubst semantic-get-parent-mode (mode)
   "Return the mode parent of the major mode MODE.
- Return nil if MODE has no parent."
+Return nil if MODE has no parent."
   (or (get mode 'semantic-mode-parent)
       (get mode 'derived-mode-parent)))
 
@@ -318,36 +318,9 @@ behaviors.  Use the function `semantic-bind' to define new bindings.")
 (defvar semantic-bindings-active-mode nil
    "Major mode in which bindings are active.")
 
-(defsubst semantic-current-bindings (&optional mode)
-   "Return the current semantic symbol table.
-That is `semantic-symbol-table' if locally set, or the symbol table of
-current active mode or its parents.
-By default the active mode is the current major mode.
-If optional argument MODE is specified return the symbol table of that
-mode or its parents."
-   (let (table)
-     (or mode
-         (setq mode  semantic-bindings-active-mode)
-         (setq table semantic-symbol-table
-               mode  major-mode))
-     (while (and mode (not table))
-       (or (setq table (get mode 'semantic-symbol-table))
-           (setq mode  (semantic-get-parent-mode mode))))
-     table))
-
-(defun semantic-new-bindings (&optional table)
-  "Return a new semantic symbol table.
-If optional argument TABLE is non-nil, it must be another symbol
-table, and its content is copied into the new table."
-  (let ((new-table (make-vector 13 0)))
-    (if table
-        (mapatoms
-         #'(lambda (sym)
-             (let ((new-sym (intern (symbol-name sym) new-table)))
-               (set new-sym (symbol-value sym))
-               (setplist new-sym (symbol-plist sym))))
-         table))
-    new-table))
+(defsubst semantic-new-bindings ()
+  "Return a new empty semantic symbol table."
+  (make-vector 13 0))
 
 (defun semantic-bind (bindings &optional plist mode)
   "Define BINDINGS in the specified environment.
@@ -373,23 +346,19 @@ hook."
   (let (table variable varname value binding)
     (if mode
         (progn
-          (setq table
-                ;; Install in given MODE symbol table
-                (or (get mode 'semantic-symbol-table)
-                    ;; Or in a new one inherited from MODE parents
-                    (semantic-new-bindings
-                     (semantic-current-bindings mode))))
+          ;; Install in given MODE symbol table.  Create a new one if
+          ;; needed.
+          (setq table (or (get mode 'semantic-symbol-table)
+                          (semantic-new-bindings)))
           (put mode 'semantic-symbol-table table))
       ;; Fail if trying to bind mode variables in local context!
       (if (plist-get plist 'mode-var)
           (error "Mode required to bind mode variables"))
-      ;; Install in buffer local symbol table
-      (or semantic-symbol-table
-          ;; Or in a new one inherited from `major-mode' or parents
-          (setq semantic-symbol-table
-                (semantic-new-bindings
-                 (semantic-current-bindings))))
-      (setq table semantic-symbol-table))
+      ;; Install in buffer local symbol table.  Create a new one if
+      ;; needed.
+      (setq table (or semantic-symbol-table
+                      (setq semantic-symbol-table
+                            (semantic-new-bindings)))))
     (while bindings
       (setq binding  (car bindings)
             bindings (cdr bindings)
@@ -425,38 +394,36 @@ hook."
     ;; Return the symbol table used
     table))
 
-(defsubst semantic-symbol (sym &optional mode)
-  "Return the semantic symbol SYM or nil if not found.
-Fetch SYM from `semantic-symbol-table' if locally set, or from
-the symbol table of the current active mode or its parents.
-By default the active mode is the current major mode.
-When MODE is nil and there is no explicit active mode, set the buffer
-local value of `semantic-symbol-table' to the current symbol table
-found."
-  (or (and sym (symbolp sym)) (error "Invalid symbol %S" sym))
-  (or (symbolp mode) (error "Invalid major mode symbol %S" mode))
-  (let ((table (semantic-current-bindings mode)))
-    (and (arrayp table)
-         (or mode
-             semantic-bindings-active-mode
-             (setq semantic-symbol-table table))
-         (intern-soft (symbol-name sym) table))))
-  
-  
-(defsubst semantic-symbol-value (sym &optional mode property)
-  "Return the current semantic value of SYM, or nil if not found.
-If optional argument PROPERTY is non-nil check that SYM has that
-property set.
-See also `semantic-symbol'."
-  (and (setq sym (semantic-symbol sym mode))
-       (or (not property) (get sym property))
-       (symbol-value sym)))
+(defsubst semantic-symbol (symbol &optional mode)
+  "Return the semantic symbol bound with SYMBOL's name.
+Return nil if the semantic symbol doesn't exist.
+If optional argument MODE is nil, lookup first into locally bound
+symbols, then in those bound in current `major-mode' and its parents.
+If MODE is non-nil, lookup into symbols bound in that major mode and
+its parents."
+  (let ((name (symbol-name symbol)) bind)
+    (or mode
+        (setq mode semantic-bindings-active-mode)
+        (setq mode major-mode
+              bind (and semantic-symbol-table
+                        (intern-soft name semantic-symbol-table))))
+    (while (and mode (not bind))
+      (or (and (get mode 'semantic-symbol-table)
+               (setq bind (intern-soft
+                           name (get mode 'semantic-symbol-table))))
+          (setq mode (semantic-get-parent-mode mode))))
+    bind))
 
-(defsubst semantic-set-local-variable (sym val)
-  "Set variable SYM to VAL locally in current buffer.
-BUFFER defaults to the current buffer."
-  (set (make-local-variable sym) val))
-
+(defsubst semantic-symbol-value (symbol &optional mode property)
+  "Return the value of the semantic symbol bound with SYMBOL's name.
+If optional argument MODE is non-nil, restrict lookup to that mode and
+its parents (see the function `semantic-symbol' for more details).
+If optional argument PROPERTY is non-nil the semantic symbol must have
+that property set.
+Return nil if the symbol doesn't exist, or doesn't have PROPERTY set."
+  (and (setq symbol (semantic-symbol symbol mode))
+       (or (not property) (get symbol property))
+       (symbol-value symbol)))
 
 ;;; Mode local variables API
 ;;
@@ -467,6 +434,11 @@ BUFFER defaults to the current buffer."
 ;; might not be loaded.  This lets them run as though they were in a buffer
 ;; of the apropriate type.
 ;;
+(defsubst semantic-set-local-variable (sym val)
+  "Set variable SYM to VAL locally in current buffer.
+BUFFER defaults to the current buffer."
+  (set (make-local-variable sym) val))
+
 (defun semantic-activate-mode-bindings (&optional mode)
   "Activate variables defined locally in MODE and its parents.
 That is, copy mode local bindings into corresponding buffer local
@@ -682,37 +654,32 @@ OVERARGS is a list of arguments passed to the override and
 
 (defmacro define-mode-overload-implementation
   (name mode args docstring &rest body)
-  "Define a new function overload, as with `defun' that has an implementation.
-Function implementations are only useful for functions created with
-`define-overload'.
-NAME is the name of the function being overloaded.
+  "Define a mode specific override of the function overload NAME.
+Has meaning only if NAME has been created with `define-overload'.
 MODE is the major mode this override is being defined for.
 ARGS are the function arguments, which should match those of the same
 named function created with `define-overload'.
 DOCSTRING is the documentation string.
 BODY is the implementation of this function."
-  (let* ((sym-name (symbol-name name))
-         (overload (if (string-match "^semantic-" sym-name)
-                       (intern (substring sym-name (match-end 0)))
-                     name))
-	 (newname (intern (concat sym-name "-" (symbol-name mode)))))
+  (let ((overload (semantic-overload-symbol-from-function name))
+        (newname (intern (format "%s-%s" name mode))))
     `(progn
        (eval-and-compile
 	 (defun ,newname ,args
-	   ,(format "%s\n
-This function is an implementation for %s"
-		    docstring overload)
+	   ,(format "%s\n\nOverride %s in `%s' buffers."
+		    docstring overload mode)
 	   ;; The body for this implementation
 	   ,@body))
-       (semantic-install-function-overrides '((,overload . ,newname)) t ',mode)
-       )))
+       (semantic-install-function-overrides
+        '((,overload . ,newname)) t ',mode))
+    ))
 
 ;;; Temporary Mode Local settings
 ;;
 ;; Use this to use a tag from a buffer that may not be of the
 ;; same major mode as the originator.
 (defmacro semantic-with-mode-bindings (mode &rest body)
-   "Evaluate BODY with the local bindings of MODE.
+   "With the local bindings of MODE, evaluate BODY.
 The current mode bindings are saved, BODY is evaluated, and the saved
 bindings are restored, even in case of an abnormal exit.
 Value is what BODY returns."
@@ -770,6 +737,121 @@ Returns the documentation as a string, also."
     (if (semantic-function-overload-p (ad-get-arg 0))
 	(semantic-augment-function-help (ad-get-arg 0)))))
 
+;; Help for semantic bindings.
+(defun semantic-print-binding (symbol)
+  "Print the SYMBOL binding."
+  (let ((value (symbol-value symbol)))
+    (princ (format "\n     `%s' value is\n       " symbol))
+    (if (and value (symbolp value))
+        (princ (format "`%s'" value))
+      (let ((pt (point)))
+        (pp value)
+        (save-excursion
+          (goto-char pt)
+          (indent-sexp))))
+    (or (bolp) (princ "\n"))))
+
+(defun semantic-print-bindings (table)
+  "Print bindings in TABLE."
+  (let (us ;; List of unpecified symbols
+        mc ;; List of mode local constants
+        mv ;; List of mode local variables
+        ov ;; List of overloaded functions
+        fo ;; List of final overloaded functions
+        )
+    ;; Order symbols by type
+    (mapatoms
+     #'(lambda (s)
+         (add-to-list (cond
+                       ((get s 'mode-var)
+                        (if (get s 'contant) 'mc 'mv))
+                       ((get s 'override)
+                        (if (get s 'contant) 'fo 'ov))
+                       ('us))
+                      s))
+     table)
+    ;; Print symbols by type
+    (when us
+      (princ "\n  !! Unpecified symbols\n")
+      (mapc 'semantic-print-binding us))
+    (when mc
+      (princ "\n  ** Mode local constants\n")
+      (mapc 'semantic-print-binding mc))
+    (when mv
+      (princ "\n  ** Mode local variables\n")
+      (mapc 'semantic-print-binding mv))
+    (when fo
+      (princ "\n  ** Final overloaded functions\n")
+      (mapc 'semantic-print-binding fo))
+    (when ov
+      (princ "\n  ** Overloaded functions\n")
+      (mapc 'semantic-print-binding ov))
+    ))
+
+(defun semantic-describe-bindings-2 (buffer-or-mode)
+  "Display semantic bindings active in BUFFER-OR-MODE."
+  (let (table mode)
+    (princ "Semantic bindings active in ")
+    (cond
+     ((bufferp buffer-or-mode)
+      (with-current-buffer buffer-or-mode
+        (setq table semantic-symbol-table
+              mode major-mode))
+      (princ (format "%S\n" buffer-or-mode))
+      )
+     ((symbolp buffer-or-mode)
+      (setq mode buffer-or-mode)
+      (princ (format "`%s'\n" buffer-or-mode))
+      )
+     ((signal 'wrong-type-argument
+              (list 'buffer-or-mode buffer-or-mode))))
+    (when table
+      (princ "\n- Buffer local\n")
+      (semantic-print-bindings table))
+    (while mode
+      (setq table (get mode 'semantic-symbol-table))
+      (when table
+        (princ (format "\n- From `%s'\n" mode))
+        (semantic-print-bindings table))
+      (setq mode (semantic-get-parent-mode mode)))))
+
+(defun semantic-describe-bindings-1 (buffer-or-mode &optional interactive-p)
+  "Display semantic bindings active in BUFFER-OR-MODE.
+Optional argument INTERACTIVE-P is non-nil if the calling command was
+invoked interactively."
+  (if (fboundp 'with-displaying-help-buffer)
+      ;; XEmacs
+      (with-displaying-help-buffer
+       #'(lambda ()
+           (with-current-buffer standard-output
+             (semantic-describe-bindings-2 buffer-or-mode)
+             (when (fboundp 'frob-help-extents)
+               (goto-char (point-min))
+               (frob-help-extents standard-output)))))
+    ;; GNU Emacs
+    (when (fboundp 'help-setup-xref)
+      (help-setup-xref
+       (list 'semantic-describe-bindings-1 buffer-or-mode)
+       interactive-p))
+    (with-output-to-temp-buffer "*Help*"
+      (with-current-buffer standard-output
+        (semantic-describe-bindings-2 buffer-or-mode)))))
+
+(defun semantic-describe-buffer-bindings (buffer)
+  "Display semantic bindings active in BUFFER."
+  (interactive "b")
+  (when (setq buffer (get-buffer buffer))
+    (semantic-describe-bindings-1 buffer (interactive-p))))
+
+(defun semantic-describe-mode-bindings (mode)
+  "Display semantic bindings active in MODE hierarchy."
+  (interactive
+   (list (completing-read
+          "Mode: " obarray
+          #'(lambda (s) (get s 'semantic-symbol-table))
+          t (symbol-name major-mode))))
+  (when (setq mode (intern-soft mode))
+    (semantic-describe-bindings-1 mode (interactive-p))))
 
 ;;; User Interrupt handling
 ;;
@@ -880,7 +962,7 @@ calling this one."
 (add-hook
  'edebug-setup-hook
  #'(lambda ()
-     
+
      (def-edebug-spec setq-mode-local
        (symbolp (&rest symbolp form))
        )
@@ -899,7 +981,7 @@ calling this one."
      (def-edebug-spec semantic-exit-on-input
        (symbolp def-body)
        )
-     
+
      ))
 
 (provide 'semantic-fw)
