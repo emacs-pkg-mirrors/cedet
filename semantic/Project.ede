@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "ede-proj-project"
   :name "semantic"
-  :version "1.4"
+  :version "1.4beta1"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-elisp "nil"
@@ -11,7 +11,7 @@
     :source '("semantic-load.el")
     :partofall 'nil
     )
-   (ede-proj-target-elisp "(semantic-bnf.el semantic.el semantic-util.el)"
+   (ede-proj-target-elisp "semantic"
     :name "semantic"
     :path ""
     :source '("semantic.el" "semantic-util.el" "semantic-bnf.el" "semantic-ctxt.el")
@@ -25,7 +25,8 @@
    (ede-proj-target-elisp "tools"
     :name "tools"
     :path ""
-    :source '( "semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el")
+    :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el")
+    :aux-packages '("eieio")
     )
    (ede-proj-target-elisp "senator"
     :name "senator"
