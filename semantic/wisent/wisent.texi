@@ -1,46 +1,24 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.17 2002/07/03 14:15:05 ponced Exp $
+@c $Id: wisent.texi,v 1.18 2003/02/23 14:15:40 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle Wisent: the Bison-compatible Parser Generator for Emacs
-@c Combine indices.
-@synindex cp fn
-@syncodeindex vr fn
-@syncodeindex ky fn
-@syncodeindex pg fn
 
-@paragraphindent 0
-@exampleindent   3
-
-@c ----------------------------
-@c TEXI2HTML COMPATIBILITY CODE
-@c ----------------------------
-
-@c Call texi2html with the ``-D=texi2html'' option to enable
-@c compatibility code and better HTML formatting!
-
-@c The ``-D=texi2html'' option prevents expansion @br{} put in the
-@c text.  These tags are directly handled by texi2html (1.64) which
-@c translates them into HTML paragraph breaks (<sp>).  Without that
-@c option texi2html produces ugly HTML without any paragraph break!
-@c Without the ``-D=texi2html'' option, @br{} is like a blank line.
-@ifclear texi2html
-@macro br
-
-@end macro
-@end ifclear
-
-@c Print copyright and license
-@macro legalstuff
+@copying
 This manual documents Wisent, the Bison-compatible Parser Generator
-for Emacs.  @br{} Some texts are borrowed or adapted from the manual
-of Bison version 1.35.  The text in section entitled ``Understanding
-the automaton'' is adapted from the section ``Understanding Your
-Parser'' in the manual of Bison version 1.49.  @br{} Copyright
-@copyright{} 2001, 2002 David Ponce@* Copyright @copyright{} 1988,
-1989, 1990, 1991, 1992, 1993, 1995, 1998, 1999, 2000, 2001, 2002 Free
-Software Foundation, Inc.  @br{}
+for Emacs.
+
+Copyright @copyright{} 2001, 2002, 2003 David Ponce
+
+Some texts are borrowed or adapted from the manual of Bison version
+1.35.  The text in section entitled ``Understanding the automaton'' is
+adapted from the section ``Understanding Your Parser'' in the manual
+of Bison version 1.49.
+
+Copyright @copyright{} 1988, 1989, 1990, 1991, 1992, 1993, 1995, 1998,
+1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+
 @quotation
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.1 or
@@ -50,21 +28,6 @@ being list, and with the Back-Cover Texts being list.  A copy of the
 license is included in the section entitled ``GNU Free Documentation
 License''.
 @end quotation
-@end macro
-
-@c Emulate @insertcopying, not supported by texi2html
-@ifset texi2html
-@macro insertcopying
-@legalstuff{}
-@end macro
-@end ifset
-
-@c -----------------------------------
-@c END OF TEXI2HTML COMPATIBILITY CODE
-@c -----------------------------------
-
-@copying
-@legalstuff{}
 @end copying
 
 @dircategory Emacs
@@ -72,24 +35,41 @@ License''.
 * Wisent: (wisent).	The Bison-compatible Parser Generator for Emacs
 @end direntry
 
+@c Combine indices.
+@synindex cp fn
+@syncodeindex vr fn
+@syncodeindex ky fn
+@syncodeindex pg fn
+
 @titlepage
-@br{}0
-@center @titlefont{Wisent}
+@sp 6
+@center @titlefont{Wisent Manual}
+@sp 4
 @author David Ponce (@email{david@dponce.com})
+@page
 @vskip 0pt plus 1 fill
 @insertcopying
 @end titlepage
+@page
 
 @node Top
 @top Wisent
 
-@insertcopying
+Wisent (the European Bison ;-) is an Emacs Lisp implementation of the
+GNU Compiler Compiler Bison.
+
+This manual describes how to use Wisent to develop grammars for
+programming languages, and how to use grammars to parse language
+source in Emacs buffers.
+
+It also describes how Wisent is used with the Semantic tool set
+described in the @ref{Top, Semantic Manual, Semantic Manual, semantic}.
 
 @menu
 * Overview::                    
 * Grammar::                     
 * Parsing::                     
-* Wisent Bovine::               
+* Wisent Semantic::             
 * GNU Free Documentation License::  
 * Index::                       
 
@@ -114,13 +94,14 @@ Parsing
 * Actions goodies::             
 * Report errors::               
 * Error recovery::              
+* Debugging actions::           
 
 How to use Wisent with Semantic
 
 * WY grammar format::           
 * WY Major Mode::               
 * Grammar styles::              
-* Wisent Flex::                 
+* Wisent Lex::                  
 
 WY grammar format
 
@@ -128,7 +109,7 @@ WY grammar format
 
 Grammar styles
 
-* Bovine style::                
+* Iterative style::             
 * Bison style::                 
 * Mixed style::                 
 * Start nonterminals::          
@@ -140,26 +121,21 @@ Grammar styles
 @node Overview
 @chapter Overview
 
-@cindex Wisent overview
-@cindex Wisent vs. Bison
 @dfn{Wisent} (the European Bison) is an implementation in Emacs Lisp
 of the GNU Compiler Compiler Bison. Its code is a port of the C code
 of GNU Bison 1.28 & 1.31.
-@br{}
+
 For more details on the basic concepts for understanding Wisent, it is
-worthwhile to read the Bison Manual.@*
+worthwhile to read the @ref{Top, Bison Manual, bison}.
 @ifhtml
 @uref{http://www.gnu.org/manual/bison/html_node/index.html}.
 @end ifhtml
-@ifinfo
-@inforef{Top, , bison.info}.
-@end ifinfo
-@br{}
-Wisent can generate compilers compatible with the Semantic tool set.@*
-@inforef{Top, , semantic.info}.
-@br{}
+
+Wisent can generate compilers compatible with the Semantic tool set.
+See the @ref{Top, Semantic Manual, , semantic}.
+
 It benefits of the main Bison's features:
-@br{}
+
 @itemize @bullet
 @item 
 It uses a fast but not so space-efficient encoding for the parse
@@ -168,7 +144,7 @@ tables, described in Corbett's PhD thesis from Berkeley:
 @cite{Static Semantics in Compiler Error Recovery}@*
 June 1985, Report No. UCB/CSD 85/251.
 @end quotation
-@br{}
+
 @item 
 For generating the lookahead sets, Wisent uses the well-known
 technique of F. DeRemer and A. Pennello they described in:
@@ -176,25 +152,25 @@ technique of F. DeRemer and A. Pennello they described in:
 @cite{Efficient Construction of LALR(1) Lookahead Sets}@*
 October 1982, ACM TOPLS Vol 4 No 4.
 @end quotation
-@br{}
+
 @item 
 Wisent resolves shift/reduce conflicts using operator precedence and
 associativity.
-@br{}
+
 @item 
 Parser error recovery is accomplished using rules which match the
 special token @code{error}.
 @end itemize
-@br{}
+
 Nevertheless there are some fundamental differences between Bison and
 Wisent.
-@br{}
+
 @itemize
 @item
 Wisent is intended to be used in Emacs.  It reads and produces Emacs
 Lisp data structures.  All the additional code used in grammars is
 Emacs Lisp code.
-@br{}
+
 @item
 Contrary to Bison, Wisent does not generate a parser which combines
 Emacs Lisp code and grammar constructs.  They exist separately.
@@ -202,54 +178,58 @@ Wisent reads the grammar from a Lisp data structure and then generates
 grammar constructs as tables.  Afterward, the derived tables can be
 included and byte-compiled in separate Emacs Lisp files, and be used
 at a later time by the Wisent's parser engine.
-@br{}
+
 @item
 Wisent allows multiple start nonterminals and allows a call to the
 parsing function to be made for a particular start nonterminal.  For
 example, this is particularly useful to parse a region of an Emacs
 buffer.  Semantic heavily depends on the availability of this feature.
 @end itemize
-@br{}
+
 @node Grammar
 @chapter Grammar
 
-@cindex Context-free grammar
-@cindex Nonterminal
-@cindex Rule
-@cindex Terminal
-@cindex Token
+@cindex context-free grammar
+@cindex rule
 In order for Wisent to parse a language, it must be described by a
 @dfn{context-free grammar}.  That is a grammar specified as rules that
-can be applied regardless of context.@*
-Also @inforef{Language and Grammar, , bison.info}.
-@br{}
+can be applied regardless of context.  For more information, see
+@ref{Language and Grammar, , , bison}, in the Bison manual.
+
+@cindex terminal
+@cindex nonterminal
 The formal grammar is formulated using @dfn{terminal} and
 @dfn{nonterminal} items.  Terminals can be Emacs Lisp symbols or
 characters, and nonterminals are symbols only.
-@br{}
+
+@cindex token
 Terminals (also known as @dfn{tokens}) represent the lexical
 elements of the language like numbers, strings, etc..
-@br{}
+
 For example @samp{PLUS} can represent the operator @samp{+}.
-@br{}
+
 Nonterminal symbols are described by rules:
-@br{}
+
 @example
-RESULT @result{} COMPONENTS@dots{}
+@group
+RESULT @equiv{} COMPONENTS@dots{}
+@end group
 @end example
-@br{}
-@var{RESULT} is a nonterminal that this rule describes and
-@var{COMPONENTS} are various terminals and nonterminals that are put
+
+@samp{RESULT} is a nonterminal that this rule describes and
+@samp{COMPONENTS} are various terminals and nonterminals that are put
 together by this rule.
-@br{}
+
 For example, this rule:
-@br{}
+
 @example
-exp @result{} exp PLUS exp
+@group
+exp @equiv{} exp PLUS exp
+@end group
 @end example
-@br{}
-says that two groupings of type @samp{exp}, with a @samp{PLUS} token in
-between, can be combined into a larger grouping of type @samp{exp}.
+
+Says that two groupings of type @samp{exp}, with a @samp{PLUS} token
+in between, can be combined into a larger grouping of type @samp{exp}.
  
 @menu
 * Grammar format::              
@@ -261,62 +241,61 @@ between, can be combined into a larger grouping of type @samp{exp}.
 @node Grammar format
 @section Grammar format
 
-@cindex Grammar format
-@cindex Grammar coding conventions
-@cindex Semantic actions
-@cindex Middle-rule actions
-@cindex Precedence level
-@cindex Associativity
+@cindex grammar format
 To be acceptable by Wisent a context-free grammars must respect a
 particular format.  That is, must be represented as an Emacs Lisp list
 of the form:
-@br{}
-@code{(@var{TERMINALS} @var{ASSOCS} . @var{NON-TERMINALS})}
-@br{}
+
+@code{(@var{terminals} @var{assocs} . @var{non-terminals})}
+
 @table @var
-@item TERMINALS
+@item terminals
 Is the list of terminal symbols used in the grammar.
-@br{}
-@item ASSOCS
-Specify the associativity of terminals like do the @code{%nonassoc},
-@code{%left} and @code{%right} Bison's statements.@*
-@inforef{Contextual Precedence, , bison.info}, for details.
-@br{}
-It is @code{nil} or a list of elements of the form:
-@br{}
-@code{(@var{ASSOC-TYPE} . @var{ASSOC-TERMS})}
-@br{}
-where @var{ASSOC-TYPE} is the symbol @code{nonassoc}, @code{left} or
-@code{right}, and @var{ASSOC-TERMS} is a list of terminal items.
-@br{}
-@item NON-TERMINALS
+
+@cindex associativity
+@item assocs
+Specify the associativity of terminals.  It is @code{nil} when there
+is no associativity defined, or a list of elements of the form:
+
+@code{(@var{assoc-type} . @var{assoc-terms})}
+
+Where @var{assoc-type} is the symbol @code{nonassoc}, @code{left} or
+@code{right}, and @var{assoc-terms} is a list of terminal items.
+
+For details, see @ref{Contextual Precedence, , , bison}, in the
+Bison manual.
+
+@item non-terminals
 Is the list of nonterminal definitions.  Each definition has the form:
-@br{}
-@code{(@var{NONTERM} . @var{RULES})}
-@br{}
-where @var{NONTERM} is the nonterminal symbol defined and
-@var{RULES} the list of rules that describe this nonterminal.  Each
+
+@code{(@var{nonterm} . @var{rules})}
+
+Where @var{nonterm} is the nonterminal symbol defined and
+@var{rules} the list of rules that describe this nonterminal.  Each
 rule is a list:
-@br{}
-@code{(@var{COMPONENTS} [@var{PRECEDENCE}] [@var{ACTION}])}
-@br{}
-where:
-@br{}
+
+@code{(@var{components} [@var{precedence}] [@var{action}])}
+
+Where:
+
 @table @var
-@item COMPONENTS
+@item components
 Is a list of various terminals and nonterminals that are put together
 by this rule.
-@br{}
+
 For example,
-@br{}
+
 @example
+@group
 (exp ((exp ?+ exp))          ;; exp: exp '+' exp
      )                       ;;    ;
+@end group
 @end example
-@br{}
-says that two groupings of type @samp{exp}, with a @samp{+} token in
+
+Says that two groupings of type @samp{exp}, with a @samp{+} token in
 between, can be combined into a larger grouping of type @samp{exp}.
  
+@cindex grammar coding conventions
 By convention, a nonterminal symbol should be in lower case, such as
 @samp{exp}, @samp{stmt} or @samp{declaration}.  Terminal symbols
 should be upper case to distinguish them from nonterminals: for
@@ -325,15 +304,17 @@ example, @samp{INTEGER}, @samp{IDENTIFIER}, @samp{IF} or
 in the language is conventionally the same as that keyword converted
 to upper case.  The terminal symbol @code{error} is reserved for error
 recovery.
-@br{}
+
+@cindex middle-rule actions
 Scattered among the components can be @dfn{middle-rule} actions.
-Usually only @var{ACTION} is provided (@pxref{action}).
-@br{}
-If @var{COMPONENTS} in a rule is @code{nil}, it means that the rule
+Usually only @var{action} is provided (@pxref{action}).
+
+If @var{components} in a rule is @code{nil}, it means that the rule
 can match the empty string.  For example, here is how to define a
 comma-separated sequence of zero or more @samp{exp} groupings:
-@br{}
+
 @example
+@group
 (expseq  (nil)               ;; expseq: ;; empty
          ((expseq1))         ;;       | expseq1
          )                   ;;       ;
@@ -341,69 +322,78 @@ comma-separated sequence of zero or more @samp{exp} groupings:
 (expseq1 ((exp))             ;; expseq1: exp
          ((expseq1 ?, exp))  ;;        | expseq1 ',' exp
          )                   ;;        ;
+@end group
 @end example
-@br{}
-@item PRECEDENCE
+
+@cindex precedence level
+@item precedence
 Is an optional vector of one terminal item.  The rule will be given
 the precedence level of this terminal.  Notice that only terminals
-declared in @var{ASSOCS} have a precedence level.  By default the rule
-precedence is the one of the last terminal in it.@*
-@inforef{Contextual Precedence, ,bison.info}, for more details.
-@br{}
-It is important to understand that @var{ASSOCS} declarations defines
+declared in @var{assocs} have a precedence level.  By default the rule
+precedence is the one of the last terminal in it.
+For details, see @ref{Contextual Precedence, , , bison}, in the
+Bison manual.
+
+It is important to understand that @var{assocs} declarations defines
 associativity but also assign a precedence level to terminals.  All
 terminals declared in the same @code{left}, @code{right} or
 @code{nonassoc} association get the same precedence level.  The
 precedence level is increased at each new association.
-@br{}
-On the other hand, @var{PRECEDENCE} explicitly assign the precedence
+
+On the other hand, @var{precedence} explicitly assign the precedence
 level of the given terminal to a rule.
-@br{}
-@item @anchor{action}ACTION
+
+@cindex semantic actions
+@item @anchor{action}action
 An action is an optional Emacs Lisp function call, like this:
-@br{}
+
 @code{(identity $1)}
-@br{}
+
 The result of an action determines the semantic value of a rule.
-@br{}
+
 From an implementation standpoint, the function call will be embedded
 in a lambda expression, and several useful local variables will be
 defined:
-@br{}
-@vindex $N
-@vindex $regionN
-@vindex $region
-@vindex $nterm
+
 @table @code
+@vindex $N
 @item $N
-Where @var{N} is a positive integer.  Like in Bison, the value of
-@code{$N} is the semantic value of the @var{N}th element of
-@var{COMPONENTS}, starting from @code{1}.  It can be of any Lisp data
+Where @var{n} is a positive integer.  Like in Bison, the value of
+@code{$N} is the semantic value of the @var{n}th element of
+@var{components}, starting from @code{1}.  It can be of any Lisp data
 type.
-@br{}
+
+@vindex $regionN
 @item $regionN
-Where @var{N} is a positive integer.  For each @code{$N} variable
+Where @var{n} is a positive integer.  For each @code{$N} variable
 defined there is a corresponding @code{$regionN} variable.  Its value
-is a pair @code{(@var{START-POS} .  @var{END-POS})} that represent the
+is a pair @code{(@var{start-pos} .  @var{end-pos})} that represent the
 start and end positions (in the lexical input stream) of the @code{$N}
 value.  It can be @code{nil} when the component positions are not
 available, like for an empty string component for example.
-@br{}
+
+@vindex $region
 @item $region
 Its value is the leftmost and rightmost positions of input data
-matched by all @var{COMPONENTS} in the rule.  This is a pair
-@code{(@var{LEFTMOST-POS} .  @var{RIGHTMOST-POS})}.  It can be
+matched by all @var{components} in the rule.  This is a pair
+@code{(@var{leftmost-pos} .  @var{rightmost-pos})}.  It can be
 @code{nil} when components positions are not available.
-@br{}
+
+@vindex $nterm
 @item $nterm
 This variable is initialized with the nonterminal symbol
-(@var{NONTERM}) the rule belongs to.  It could be useful to improve
+(@var{nonterm}) the rule belongs to.  It could be useful to improve
 error reporting or debugging.  It is used too, to automatically
 provide the @code{reparse-symbol} property of a Semantic token
-generated by the function @code{wisent-cooked-token}.@*
-@xref{Wisent Bovine}, for details.
+generated by the function @code{wisent-cooked-token}.  See
+@ref{Wisent Semantic}, for details.
+
+@vindex $action
+@item $action
+The value of @code{$action} is a string: the symbolic name of the
+current semantic action (@pxref{Debugging actions}).
 @end table
-@br{}
+
 When an action is not specified a default value is supplied, it is
 @code{(identity $1)}.  This means that the default semantic value of a
 rule is the value of its first component.  Excepted for a rule
@@ -415,14 +405,15 @@ matching the empty string, for which the default action is to return
 @node Example
 @section Example
 
-@cindex Grammar example
-Here is an example to parse simple infix arithmetic expressions.@*
-@inforef{Infix Calc, , bison.info}, for more details.
-@br{}
-The full grammar in @dfn{WY} format (See @ref{WY grammar format}) is
+@cindex grammar example
+Here is an example to parse simple infix arithmetic expressions.  See
+@ref{Infix Calc, , , bison}, in the Bison manual for details.
+
+The full grammar in @dfn{WY} format (@pxref{WY grammar format}) is
 available in the file @file{wisent-calc.wy}.
-@br{}
+
 @example
+@group
 %token <number> NUM
 
 %nonassoc '=' ;; comparison
@@ -468,11 +459,13 @@ exp:
   ;
 
 %%
+@end group
 @end example
-@br{}
+
 Here is the corresponding Lisp form accepted by Wisent:
-@br{}
+
 @lisp
+@group
 '(
   ;; Terminals
   (NUM)
@@ -519,32 +512,34 @@ Here is the corresponding Lisp form accepted by Wisent:
     (progn $2))
    )
   )
+@end group
 @end lisp
 
 @node Compiling a grammar
 @section Compiling a grammar
 
-@cindex LALR(1) grammar
-@cindex Grammar compilation
-@cindex Compiling a grammar
-@cindex Look-ahead token
+@cindex automaton
 After providing a context-free grammar in a suitable format, it must
-be translated into a set of tables (an automaton) that will be used to
-drive the parser.  Like Bison, Wisent translates grammars that must be
-@dfn{LALR(1)}.
-@br{}
+be translated into a set of tables (an @dfn{automaton}) that will be
+used to drive the parser.  Like Bison, Wisent translates grammars that
+must be @dfn{LALR(1)}.
+
+@cindex LALR(1) grammar
+@cindex look-ahead token
 A grammar is LALR(1) if it is possible to tell how to parse any
 portion of an input string with just a single token of look-ahead: the
-@dfn{look-ahead token}.@*
-@inforef{Language and Grammar, , bison.info}, for more information.
-@br{}
+@dfn{look-ahead token}.  See @ref{Language and Grammar, , , bison}, in
+the Bison manual for more information.
+
+@cindex grammar compilation
 Grammar translation (compilation) is achieved by the function:
-@br{}
+
+@cindex compiling a grammar
 @findex wisent-compile-grammar
 @vindex wisent-single-start-flag
 @defun wisent-compile-grammar grammar &optional start-list
-Compile @var{GRAMMAR} and return an LALR(1) automaton.
-@br{}
+Compile @var{grammar} and return an LALR(1) automaton.
+
 Optional argument @var{start-list} is a list of start symbols
 (nonterminals).  If @code{nil} the first nonterminal defined in the
 grammar is the default start symbol.  If @var{start-list} contains
@@ -553,73 +548,73 @@ contains more than one element, all are defined as potential start
 symbols, unless @code{wisent-single-start-flag} is non-@code{nil}.  In
 that case the first element of @var{start-list} defines the start
 symbol and others are ignored.
-@br{}
+
 The LALR(1) automaton is a vector of the form:
-@br{}
-@code{[@var{ACTIONS GOTOS FUNCTIONS TRANSLATE STARTS}]}
-@br{}
+
+@code{[@var{actions gotos starts functions}]}
+
 @table @var
-@item ACTIONS
+@item actions
 A state/token matrix telling the parser what to do at every state
 based on the current look-ahead token.  That is shift, reduce, accept
 or error.  See also @ref{Parsing}.
-@item GOTOS
+
+@item gotos
 A state/nonterminal matrix telling the parser the next state to go to
 after reducing with each rule.
-@item FUNCTIONS
-A vector of semantic actions.  A semantic action is actually an Emacs
-Lisp function (lambda expression).  By default these functions are
-byte-compiled to achieve best performance.  See also @ref{Grammar
-Debugging}.
-@item TRANSLATE
-An alist which maps tokens returned by lexical analysis into item
-numbers used internally.
-@item STARTS
+
+@item starts
 An alist which maps the allowed start symbols (nonterminals) to
 lexical tokens that will be first shifted into the parser stack.
+
+@item functions
+An obarray of semantic action symbols.  A semantic action is actually
+an Emacs Lisp function (lambda expression).
 @end table
 @end defun
 
 @node Conflicts
 @section Conflicts
 
-@cindex Grammar conflicts
-@cindex Ambiguous grammar
-@cindex Conflicts resolution
-@cindex Shift/Reduce conflicts
-@cindex Reduce/Reduce conflicts
 Normally, a grammar should produce an automaton where at each state
-the parser has only one action to do.@*
-See @ref{Parsing}, for more information on parser actions.
-@br{}
+the parser has only one action to do (@pxref{Parsing}).
+
+@cindex ambiguous grammar
 In certain cases, a grammar can produce an automaton where, at some
 states, there are more than one action possible.  A such grammar is
 @dfn{ambiguous}, and generated @dfn{conflicts}.
-@br{}
+
+@cindex deterministic automaton
 The parser can't be driven by an automaton which isn't completely
 @dfn{deterministic}, that is which contains conflicts.  It is
 necessary to resolve the conflicts to eliminate them.  Wisent resolves
 conflicts like Bison does.
-@br{}
+
+@cindex grammar conflicts
+@cindex conflicts resolution
 There are two sorts of conflicts:
-@br{}
+
 @table @dfn
+@cindex shift/reduce conflicts
 @item shift/reduce conflicts
 When either a shift or a reduction would be valid at the same state.
-@br{}
+
 Such conflicts are resolved by choosing to shift, unless otherwise
-directed by operator precedence declarations.@*
-@inforef{Shift/Reduce , , bison.info}, for more information.
-@br{}
+directed by operator precedence declarations.
+See @ref{Shift/Reduce , , , bison}, in the Bison manual for more
+information.
+
+@cindex reduce/reduce conflicts
 @item reduce/reduce conflicts
 That occurs if there are two or more rules that apply to the same
 sequence of input.  This usually indicates a serious error in the
 grammar.
-@br{}
+
 Such conflicts are resolved by choosing to use the rule that appears
 first in the grammar, but it is very risky to rely on this.  Every
-reduce/reduce conflict must be studied and usually eliminated.@*
-@inforef{Reduce/Reduce , , bison.info}, for more information.
+reduce/reduce conflict must be studied and usually eliminated.  See
+@ref{Reduce/Reduce , , , bison}, in the Bison manual for more
+information.
 @end table
 
 @menu
@@ -630,56 +625,55 @@ reduce/reduce conflict must be studied and usually eliminated.@*
 @node Grammar Debugging
 @subsection Grammar debugging
 
-@cindex Grammar debugging
+@cindex grammar debugging
+@cindex grammar verbose description
 To help writing a new grammar, it is possible to tell
 @code{wisent-compile-grammar} to produce a report containing verbose
 descriptions of the grammar and parser (it is equivalent to the
 @option{--verbose} option for Bison), by setting to non-@code{nil} this
 variable:
-@br{}
+
 @vindex wisent-verbose-flag
 @defvar wisent-verbose-flag
 non-@code{nil} means to report verbose information on generated parser.
 @end defvar
-@br{}
+
 The verbose report is printed in the temporary buffer
 @code{*wisent-log*} when running interactively, or in file
 @file{wisent.output} when running in batch mode.  Different
 reports are separated from each other by a line like this:
-@br{}
+
 @example
-*** Wisent @var{SOURCE-FILE} - 2002-06-27 17:33
+@group
+*** Wisent @var{source-file} - 2002-06-27 17:33
+@end group
 @end example
-@br{}
-where @var{SOURCE-FILE} is the name of the Emacs Lisp file from which
-the grammar was read.@*
-@xref{Understanding the automaton}, for details on the verbose report.
-@br{}
-For performance reason, the code of semantic actions is byte-compiled
-by default.  It is useful to prevent byte-compilation when you want to
-debug action code by including calls to the Emacs debugger.  For that
-you must set to non-@code{nil} this variable:
-@br{}
+
+where @var{source-file} is the name of the Emacs Lisp file from which
+the grammar was read.  See @ref{Understanding the automaton}, for
+details on the verbose report.
+
 @vindex wisent-debug-flag
+To help debugging the grammar compiler itself, set the variable
+@code{wisent-debug-flag} to report the content of some internal data
+structures.
+
 @defvar wisent-debug-flag
 non-@code{nil} means enable some debug stuff.
 @end defvar
-@br{}
-Note that when non-@code{nil}, @code{wisent-debug-flag} also enables
-reporting of the content of some internal data structures.  This is
-mainly useful to debug the grammar compiler itself.
 
 @node Understanding the automaton
 @subsection Understanding the automaton
 
-@cindex Understanding the automaton
+@cindex understanding the automaton
 This section (took from the manual of Bison 1.49) describes how to use
 the verbose report printed by @code{wisent-compile-grammar} to
 understand the generated automaton, to tune or fix a grammar.
-@br{}
+
 We will use the following example:
-@br{}
+
 @example
+@group
 (let ((wisent-verbose-flag t)) ;; Print a verbose report!
   (wisent-compile-grammar
    '((NUM STR)                          ; %token NUM STR
@@ -701,22 +695,26 @@ We will use the following example:
      )
    'nil)                                ; no %start declarations
   )
+@end group
 @end example
-@br{}
+
 When evaluating the above expression, grammar compilation first issues
 the following two clear messages:
-@br{}
+
 @example
+@group
 Grammar contains 1 useless nonterminals and 1 useless rules
 Grammar contains 7 shift/reduce conflicts
+@end group
 @end example
-@br{}
+
 The @samp{*wisent-log*} buffer details things!
-@br{}
+
 The first section reports conflicts that were solved using precedence
 and/or associativity:
-@br{}
+
 @example
+@group
 Conflict in state 7 between rule 1 and token '+' resolved as reduce.
 Conflict in state 7 between rule 1 and token '-' resolved as reduce.
 Conflict in state 7 between rule 1 and token '*' resolved as shift.
@@ -726,12 +724,14 @@ Conflict in state 8 between rule 2 and token '*' resolved as shift.
 Conflict in state 9 between rule 3 and token '+' resolved as reduce.
 Conflict in state 9 between rule 3 and token '-' resolved as reduce.
 Conflict in state 9 between rule 3 and token '*' resolved as reduce.
+@end group
 @end example
-@br{}
+
 The next section reports useless tokens, nonterminal and rules (note
 that useless tokens might be used by the scanner):
-@br{}
+
 @example
+@group
 Useless nonterminals:
 
    useless
@@ -745,20 +745,24 @@ Terminals which are not used:
 Useless rules:
 
 #6     useless: STR;
+@end group
 @end example
-@br{}
+
 The next section lists states that still have conflicts:
-@br{}
+
 @example
+@group
 State 7 contains 1 shift/reduce conflict.
 State 8 contains 1 shift/reduce conflict.
 State 9 contains 1 shift/reduce conflict.
 State 10 contains 4 shift/reduce conflicts.
+@end group
 @end example
-@br{}
+
 The next section reproduces the grammar used:
-@br{}
+
 @example
+@group
 Grammar
 
   Number, Rule
@@ -767,11 +771,13 @@ Grammar
   3       exp -> exp '*' exp
   4       exp -> exp '/' exp
   5       exp -> NUM
+@end group
 @end example
-@br{}
+
 And reports the uses of the symbols:
-@br{}
+
 @example
+@group
 Terminals, with rules where they appear
 
 $EOI (-1)
@@ -788,21 +794,24 @@ Nonterminals, with rules where they appear
 
 exp (8)
     on left: 1 2 3 4 5, on right: 1 2 3 4
+@end group
 @end example
-@br{}
+
 The report then details the automaton itself, describing each state
 with it set of @dfn{items}, also known as @dfn{pointed rules}.  Each
 item is a production rule together with a point (marked by @samp{.})
 that the input cursor.
-@br{}
+
 @example
+@group
 state 0
 
     NUM	shift, and go to state 1
 
     exp	go to state 2
+@end group
 @end example
-@br{}
+
 State 0 corresponds to being at the very beginning of the parsing, in
 the initial rule, right before the start symbol (@samp{exp}).  When
 the parser returns to this state right after having reduced a rule
@@ -810,23 +819,26 @@ that produced an @samp{exp}, it jumps to state 2.  If there is no such
 transition on a nonterminal symbol, and the lookahead is a @samp{NUM},
 then this token is shifted on the parse stack, and the control flow
 jumps to state 1.  Any other lookahead triggers a parse error.
-@br{}
+
 In the state 1...
-@br{}
+
 @example
+@group
 state 1
 
     exp  ->  NUM .   (rule 5)
 
     $default	reduce using rule 5 (exp)
+@end group
 @end example
-@br{}
+
 the rule 5, @samp{exp: NUM;}, is completed.  Whatever the lookahead
 (@samp{$default}), the parser will reduce it.  If it was coming from
 state 0, then, after this reduction it will return to state 0, and
 will jump to state 2 (@samp{exp: go to state 2}).
-@br{}
+
 @example
+@group
 state 2
 
     exp  ->  exp . '+' exp   (rule 1)
@@ -839,15 +851,17 @@ state 2
     '-'	shift, and go to state 4
     '*'	shift, and go to state 5
     '/'	shift, and go to state 6
+@end group
 @end example
-@br{}
+
 In state 2, the automaton can only shift a symbol.  For instance,
 because of the item @samp{exp -> exp . '+' exp}, if the lookahead if
 @samp{+}, it will be shifted on the parse stack, and the automaton
 control will jump to state 3, corresponding to the item
 @samp{exp -> exp . '+' exp}:
-@br{}
+
 @example
+@group
 state 3
 
     exp  ->  exp '+' . exp   (rule 1)
@@ -855,14 +869,16 @@ state 3
     NUM	shift, and go to state 1
 
     exp	go to state 7
+@end group
 @end example
-@br{}
+
 Since there is no default action, any other token than those listed
 above will trigger a parse error.
-@br{}
+
 The interpretation of states 4 to 6 is straightforward:
-@br{}
+
 @example
+@group
 state 4
 
     exp  ->  exp '-' . exp   (rule 2)
@@ -890,12 +906,14 @@ state 6
     NUM	shift, and go to state 1
 
     exp	go to state 10
+@end group
 @end example
-@br{}
+
 As was announced in beginning of the report, @samp{State 7 contains 1
 shift/reduce conflict.}:
-@br{}
+
 @example
+@group
 state 7
 
     exp  ->  exp . '+' exp   (rule 1)
@@ -909,8 +927,9 @@ state 7
 
     '/'	[reduce using rule 1 (exp)]
     $default	reduce using rule 1 (exp)
+@end group
 @end example
-@br{}
+
 Indeed, there are two actions associated to the lookahead @samp{/}:
 either shifting (and going to state 6), or reducing rule 1.  The
 conflict means that either the grammar is ambiguous, or the parser
@@ -919,11 +938,11 @@ ambiguous, as, since we did not specify the precedence of @samp{/},
 the sentence @samp{NUM + NUM / NUM} can be parsed as @samp{NUM + (NUM
 / NUM)}, which corresponds to shifting @samp{/}, or as @samp{(NUM +
 NUM) / NUM}, which corresponds to reducing rule 1.
-@br{}
+
 Because in LALR(1) parsing a single decision can be made, Wisent
 arbitrarily chose to disable the reduction, see @ref{Conflicts}.
 Discarded actions are reported in between square brackets.
-@br{}
+
 Note that all the previous states had a single possible action: either
 shifting the next token and going to the corresponding state, or
 reducing a single rule.  In the other cases, i.e., when shifting
@@ -935,10 +954,11 @@ words, the first two items, corresponding to rule 1, are not eligible
 when the lookahead is @samp{*}, since we specified that @samp{*} has
 higher precedence that @samp{+}.  More generally, some items are
 eligible only with some set of possible lookaheads.
-@br{}
+
 States 8 to 10 are similar:
-@br{}
+
 @example
+@group
 state 8
 
     exp  ->  exp . '+' exp   (rule 1)
@@ -988,16 +1008,18 @@ state 10
     '*'	[reduce using rule 4 (exp)]
     '/'	[reduce using rule 4 (exp)]
     $default	reduce using rule 4 (exp)
+@end group
 @end example
-@br{}
+
 Observe that state 10 contains conflicts due to the lack of precedence
 of @samp{/} wrt @samp{+}, @samp{-}, and @samp{*}, but also because the
 associativity of @samp{/} is not specified.
-@br{}
+
 Finally, the state 11 (plus 12) is named the @dfn{final state}, or the
 @dfn{accepting state}:
-@br{}
+
 @example
+@group
 state 11
 
     $EOI	shift, and go to state 12
@@ -1007,71 +1029,77 @@ state 11
 state 12
 
     $default	accept
+@end group
 @end example
-@br{}
+
 The end of input is shifted @samp{$EOI shift,} and the parser exits
 successfully (@samp{go to state 12}, that terminates).
 
 @node Parsing
 @chapter Parsing
 
-@cindex Bottom-Up parser
-@cindex Shift-Reduce parser
-@cindex Table-driven parser
-@cindex Shift
-@cindex Reduce
+@cindex bottom-up parser
+@cindex shift-reduce parser
 The Wisent's parser is what is called a @dfn{bottom-up} or
 @dfn{shift-reduce} parser which repeatedly:
-@br{}
+
 @table @dfn
+@cindex shift
 @item shift
 That is pushes the value of the last lexical token read (the
 look-ahead token) into a value stack, and reads a new one.
+
+@cindex reduce
 @item reduce
 That is replaces a nonterminal by its semantic value.  The values of
 the components which form the right hand side of a rule are popped
 from the value stack and reduced by the semantic action of this rule.
 The result is pushed back on top of value stack.
 @end table
-@br{}
+
 The parser will stop on:
-@br{}
+
 @table @dfn
+@cindex accept
 @item accept
 When all input has been successfully parsed.  The semantic value of
 the start nonterminal is on top of the value stack.
+
+@cindex syntax error
 @item error
 When a syntax error (an unexpected token in input) has been detected.
 At this point the parser issues an error message and either stops or
 calls a recovery routine to try to resume parsing.
 @end table
-@br{}
+
+@cindex table-driven parser
 The above elementary actions are driven by the LALR(1) automaton built
 by @code{wisent-compile-grammar} from a context-free grammar.
-@br{}
+
 The Wisent's parser is entered by calling the function:
-@br{}
+
 @findex wisent-parse
 @defun wisent-parse automaton lexer &optional error start
 Parse input using the automaton specified in @var{automaton}.
-@br{}
+
 @table @var
 @item automaton
-Is an LALR(1) automaton generated by @code{wisent-compile-grammar}.@*
-@xref{Grammar}.
+Is an LALR(1) automaton generated by @code{wisent-compile-grammar}
+(@pxref{Grammar}).
+
 @item lexer
 Is a function with no argument called by the parser to obtain the next
-terminal (token) in input.@*
-@xref{Writing a lexer}.
+terminal (token) in input (@pxref{Writing a lexer}).
+
 @item error
 Is an optional reporting function called when a parse error occurs.
 It receives a message string to report.  It defaults to the function
-@code{error}.@*
-@xref{Report errors}.
+@code{error} (@pxref{Report errors}).
+
 @item start
 Specify the start symbol (nonterminal) used by the parser as its goal.
-It defaults to the start symbol defined in the grammar.@*
-@xref{Grammar}.
+It defaults to the start symbol defined in the grammar
+(@pxref{Grammar}).
 @end table
 @end defun
 
@@ -1080,96 +1108,98 @@ It defaults to the start symbol defined in the grammar.@*
 * Actions goodies::             
 * Report errors::               
 * Error recovery::              
+* Debugging actions::           
 @end menu
 
 @node Writing a lexer
 @section What the parser must receive
 
-@cindex Lexical analysis
-@cindex Lexical tokens
-@cindex Lexer
-@cindex Scanner
 It is important to understand that the parser does not parse
 characters, but lexical tokens, and does not know anything about
 characters and streams!
-@br{}
+
+@cindex lexical analysis
+@cindex lexer
+@cindex scanner
 Reading input data to produce lexical tokens is performed by a lexer
 (also called a scanner) in a lexical analysis step, before the syntax
 analysis step performed by the parser.  The parser automatically calls
 the lexer when it needs the next token to parse.
-@br{}
+
+@cindex lexical tokens
 A Wisent's lexer is an Emacs Lisp function with no argument.  It must
 return a valid lexical token of the form:
-@br{}
-@code{(@var{SYMBOL VALUE} [@var{START} . @var{END}])}
-@br{}
+
+@code{(@var{token-class value} [@var{start} . @var{end}])}
+
 @table @var
-@item symbol
-Is the unique symbol or character value identifying a terminal as
-specified in the grammar (@pxref{Grammar}).
+@item token-class
+Is a category of lexical token identifying a terminal as specified in
+the grammar (@pxref{Grammar}).  It can be a symbol or a character
+literal.
+
 @item value
-Is the actual value of @var{symbol}.  It can be of any valid Emacs
-Lisp data type.
+Is the value of the lexical token.  It can be of any valid Emacs Lisp
+data type.
+
 @item start
 @itemx end
 Are the optionals beginning and end positions of @var{value} in the
 input stream.
 @end table
-@br{}
+
 @vindex wisent-eoi-term
 When there are no more tokens to read the lexer must return the token
 @code{(list wisent-eoi-term)} to each request.
-@br{}
+
 @defvar wisent-eoi-term
 Predefined constant, End-Of-Input terminal symbol.
 @end defvar
-@br{}
-@code{wisent-flex} is an example of a lexer that reads Semantic's
-syntactic tokens and produces lexical tokens.@*
-@xref{Wisent Flex}.
-@br{}
+
+@code{wisent-lex} is an example of a lexer that reads lexical tokens
+produced by a Semantic lexer, and translates them into lexical tokens
+suitable to the Wisent parser.  See also @ref{Wisent Lex}.
+
 To call the lexer in a semantic action use the function
-@code{wisent-lexer}.@*
-@xref{Actions goodies}.
+@code{wisent-lexer}.  See also @ref{Actions goodies}.
 
 @node Actions goodies
 @section Variables and macros useful in grammar actions.
 
-@cindex Action goodies
 @vindex wisent-input
 @defvar wisent-input
 The last token read.
 The actual value of this variable is local to the parser.
 @end defvar
-@br{}
+
 @findex wisent-lexer
 @defun wisent-lexer
 Obtain the next terminal in input.
 @end defun
-@br{}
+
 @findex wisent-region
 @defun wisent-region &rest positions
-Return the start/end positions of the region including @var{POSITIONS}.
-Each element of @var{POSITIONS} is a pair (@var{START-POS} .
-@var{END-POS}) or @code{nil}.  The returned value is the pair
-(@var{MIN-START-POS} . @var{MAX-END-POS}) or @code{nil} if no
-@var{POSITIONS} are available.
+Return the start/end positions of the region including @var{positions}.
+Each element of @var{positions} is a pair (@var{start-pos} .
+@var{end-pos}) or @code{nil}.  The returned value is the pair
+(@var{min-start-pos} . @var{max-end-pos}) or @code{nil} if no
+@var{positions} are available.
 @end defun
 
 @node Report errors
 @section The error reporting function
 
-@cindex Error reporting
+@cindex error reporting
 When the parser encounters a syntax error it calls a user-defined
 function.  It must be an Emacs Lisp function with one argument: a
 string containing the message to report.
-@br{}
+
 By default the parser uses the standard Emacs Lisp function
 @code{error} to report error message and terminate.
-@br{}
+
 At this point the variable @code{wisent-input} contains the unexpected
 token as returned by the lexer.
-@br{}
+
 The error reporting function can be called from a semantic action too
 using the special macro @code{wisent-error}.  When called from a
 semantic action entered by error recovery (@pxref{Error recovery}) the
@@ -1178,115 +1208,119 @@ value of the variable @code{wisent-recovering} is non-@code{nil}.
 @node Error recovery
 @section Error recovery
 
-@cindex Error recovery
-@cindex Error recovery strategy
-@cindex Error recovery actions
-@cindex error token
+@cindex error recovery
 The error recovery mechanism of the Wisent's parser conforms to the
-one Bison uses.@*
-@inforef{Error Recovery, , bison.info}, for details.
-@br{}
+one Bison uses.  See @ref{Error Recovery, , , bison}, in the
+Bison manual for details.
+
+@cindex error token
 To recover from a syntax error you must write rules to recognize the
 special token @code{error}.  This is a terminal symbol that is
 automatically defined and reserved for error handling.
-@br{}
+
 When the parser encounters a syntax error, it pops the state stack
 until it finds a state that allows shifting the @code{error} token.
 After it has been shifted, if the old look-ahead token is not
 acceptable to be shifted next, the parser reads tokens and discards
 them until it finds a token which is acceptable.
-@br{}
+
+@cindex error recovery strategy
 Strategies for error recovery depend on the choice of error rules in
 the grammar.  A simple and useful strategy is simply to skip the rest
 of the current statement if an error is detected:
-@br{}
+
 @example
+@group
 (stmnt (( error ?; )) ;; on error, skip until ';' is read
        )
+@end group
 @end example
-@br{}
+
 It is also useful to recover to the matching close-delimiter of an
 opening-delimiter that has already been parsed:
-@br{}
+
 @example
+@group
 (primary (( ?@{ expr  ?@} ))
          (( ?@{ error ?@} ))
          @dots{}
          )
+@end group
 @end example
-@br{}
+
+@cindex error recovery actions
 Note that error recovery rules may have actions, just as any other
 rules can.  Here are some predefined hooks, variables, functions or
 macros, useful in such actions:
-@br{}
+
 @vindex wisent-nerrs
 @defvar wisent-nerrs
 The number of parse errors encountered so far.
 @end defvar
-@br{}
+
 @vindex wisent-recovering
 @defvar wisent-recovering
 non-@code{nil} when the parser is recovering.
 The actual value of this variable is local to the parser.
 @end defvar
-@br{}
+
 @findex wisent-error
 @defun wisent-error msg
 Call the language specific error reporting function with message
-@var{MSG} (@pxref{Report errors}).
-@br{}
+@var{msg} (@pxref{Report errors}).
+
 See implementation of the function @code{wisent-skip-token} below, for
 an example of use.
 @end defun
-@br{}
+
 @findex wisent-errok
 @defun wisent-errok
 Resume generating error messages immediately for subsequent syntax
 errors.
-@br{}
+
 The parser suppress error message for syntax errors that happens
 shortly after the first, until three consecutive input tokens have
 been successfully shifted.
-@br{}
+
 Calling @code{wisent-errok} in an action, make error messages resume
 immediately.  No error messages will be suppressed if you call it in
 an error rule's action.
-@br{}
+
 See implementation of the function @code{wisent-skip-token} below, for
 an example of use.
 @end defun
-@br{}
+
 @findex wisent-clearin
 @defun wisent-clearin
 Discard the current look-ahead token.
 This will cause a new token to be read.
-@br{}
+
 In an error rule's action the previous look-ahead token is reanalyzed
 immediately.  @code{wisent-clearin} may be called to clear this token.
-@br{}
+
 For example, suppose that on a parse error, an error handling routine
 is called that advances the input stream to some point where parsing
 should once again commence.  The next symbol returned by the lexical
 scanner is probably correct.  The previous look-ahead token ought to
 be discarded with @code{wisent-clearin}.
-@br{}
+
 See implementation of the function @code{wisent-skip-token} below, for
 an example of use.
 @end defun
-@br{}
+
 @findex wisent-set-region
 @defun wisent-set-region start end
 Change the region of text matched by the current nonterminal.
-@var{START} and @var{END} are respectively the beginning and end
+@var{start} and @var{end} are respectively the beginning and end
 positions of the region occupied by the group of components associated
-to this nonterminal.  If @var{START} or @var{END} values are not a
+to this nonterminal.  If @var{start} or @var{end} values are not a
 valid positions the region is set to @code{nil}.
-@br{}
+
 For example, the function @code{wisent-skip-block} described below
 uses it to safely set the region to the start/end positions of the
 current block of code.
 @end defun
-@br{}
+
 @vindex wisent-discarding-token-functions
 @defvar wisent-discarding-token-functions
 List of functions to be called when discarding a lexical token.@*
@@ -1298,19 +1332,20 @@ semantic action calls the function @code{wisent-skip-token} or
 @code{wisent-skip-block}.@*
 For language specific hooks, make sure you define this as a local
 hook.
-@br{}
+
 For example, in Semantic, this hook is set to the function
 @code{wisent-collect-unmatched-syntax} to collect unmatched lexical
 tokens (@pxref{Useful functions}).
 @end defvar
-@br{}
+
 @findex wisent-skip-token
 @defun wisent-skip-token
 Skip an invalid token and try to continue parsing.
-@br{}
+
 It is implemented like this:
-@br{}
+
 @lisp
+@group
 (defsubst wisent-skip-token ()
   "Skip an invalid token and try to continue parsing.
 To be used in grammar recovery actions."
@@ -1323,43 +1358,112 @@ To be used in grammar recovery actions."
      'wisent-discarding-token-functions wisent-input)
     (wisent-clearin)
     (wisent-errok)))
+@end group
 @end lisp
 @end defun
-@br{}
+
 @findex wisent-skip-block
 @defun wisent-skip-block
 Safely skip a block and try to continue parsing.
 A block is data between an open-delimiter (syntax class @code{(}) and
 a matching close-delimiter (syntax class @code{)}):
-@br{}
+
 @example
+@group
 (a parenthesized block)
 [a block between brackets]
 @{a block between braces@}
+@end group
 @end example
-@br{}
+
 The following example uses @code{wisent-skip-block} to safely skip a
 block delimited by @samp{LBRACE} (@code{@{}) and @samp{RBRACE}
 (@code{@}}) tokens:
-@br{}
+
 @example
+@group
 (block ((LBRACE RBRACE))
        ((LBRACE error)
         (wisent-skip-block))
        )
+@end group
 @end example
 @end defun
 
-@node Wisent Bovine
+@node Debugging actions
+@section Debugging semantic actions
+
+@cindex semantic action symbols
+Each semantic action is represented by a symbol interned in an obarray
+that is part of the LALR automaton (@pxref{Compiling a grammar}).
+@code{symbol-function} on a semantic action symbol return the semantic
+action lambda expression.
+
+A semantic action symbol name has the form
+@var{nonterminal}:@var{index}, where @var{nonterminal} is the name of
+the nonterminal symbol the action belongs to, and @var{index} is an
+action sequence number within the scope of @var{nonterminal}.  For
+example, this nonterminal definition:
+
+@example
+@group
+input:
+   line                     [@code{input:0}]
+ | input line
+   (format "%s %s" $1 $2)   [@code{input:1}]
+ ;
+@end group
+@end example
+
+Will produce two semantic actions, and associated symbols:
+
+@table @code
+@item input:0
+A default action that returns $1.
+
+@item input:1
+That returns @code{(format "%s %s" $1 $2)}.
+@end table
+
+@cindex debugging semantic actions
+Debugging uses the Lisp debugger to investigate what is happening
+during execution of semantic actions.
+Three commands are available to debug semantic actions.  They receive
+two arguments:
+
+@itemize @bullet
+@item The automaton that contains the semantic action.
+
+@item The semantic action symbol.
+@end itemize
+
+@findex wisent-debug-on-entry
+@deffn Command wisent-debug-on-entry automaton function
+Request @var{automaton}'s @var{function} to invoke debugger each time it is called.
+@var{function} must be a semantic action symbol that exists in @var{automaton}.
+@end deffn
+
+@findex wisent-cancel-debug-on-entry
+@deffn Command wisent-cancel-debug-on-entry automaton function
+Undo effect of @code{wisent-debug-on-entry} on AUTOMATON's @var{function}.
+@var{function} must be a semantic action symbol that exists in @var{automaton}.
+@end deffn
+
+@findex wisent-debug-show-entry
+@deffn Command wisent-debug-show-entry automaton function
+Show the source of @var{automaton}'s semantic action @var{function}.
+@var{function} must be a semantic action symbol that exists in @var{automaton}.
+@end deffn
+
+@node Wisent Semantic
 @chapter How to use Wisent with Semantic
 
-@cindex How to use Wisent with Semantic
-@cindex Wisent vs. Semantic
-@cindex Semantic parse tree
-@cindex Semantic token
+@cindex semantic parse tree
 This chapter presents how the Wisent's parser can be used to produce
 @dfn{parse trees} for the Semantic tool set.
-@br{}
+
+@cindex semantic token
+@cindex semantic tags
 A Semantic parse tree is a hierarchy of Emacs Lisp data structures,
 called @dfn{Semantic tokens}, that describes a program in a way
 independent of programming languages.  Semantic tokens can be seen as
@@ -1370,34 +1474,36 @@ variables, data types, classes, includes, grammar rules, etc..
 * WY grammar format::           
 * WY Major Mode::               
 * Grammar styles::              
-* Wisent Flex::                 
+* Wisent Lex::                  
 @end menu
 
 @node WY grammar format
 @section WY grammar format
 
 @cindex WY grammar format
-@cindex WY grammar specification
 A convenient way to use the Wisent parser with Semantic is to define
 your grammar in @dfn{WY} form.  The WY grammar format is very close
 to the format used to describe a Bison's grammar.  The main
 differences are:
-@br{}
+
 @itemize @bullet
 @item
 The use of Emacs Lisp syntax in place of C like syntax.
+
 @item
 Semantic specific Percent-keywords.
 @end itemize
-@br{}
+
 So, if you are already familiar with Bison and have some knowledge of
-Emacs Lisp, writing WY grammars is straightforward ;-)@*
-See also @ref{WY Major Mode}.
-@br{}
+Emacs Lisp, writing WY grammars should be straightforward (@pxref{WY
+Major Mode}).
+
+@cindex WY grammar specification
 A good way to describe the WY grammar format, and to see how it looks,
 is to show its specification as a WY grammar:
-@br{}
+
 @example
+@group
 %start grammar
 
 ;; Keywords
@@ -1618,22 +1724,24 @@ any_symbol:
   | PARSETABLE
   | TOKENTABLE
   ;
+@end group
 @end example
-@br{}
+
 Notice that comments are like Emacs Lisp ones but start with two
 consecutive semicolons (@samp{;;}) instead of a single one.  Because
 the single semicolon (@samp{;}) is the end of rule delimiter.
-@br{}
-Also the WY grammar accepts single character literals as terminals
-in C-like syntax  (the
-@samp{CHARACTER} tokens in the above grammar).  For
+
+Also the WY grammar accepts single character literals as terminals in
+C-like syntax (the @samp{CHARACTER} tokens in the above grammar).  For
 example, the following are valid character literals:
-@br{}
+
 @example
+@group
 '+', '-', ')', ';'    ;; punctuations
 '\n', ' '             ;; whitespaces
+@end group
 @end example
-@br{}
+
 See also @ref{Example}.
 
 @menu
@@ -1643,169 +1751,177 @@ See also @ref{Example}.
 @node Percent-keywords
 @subsection Percent-keywords
 
-@cindex %keywordtable
-@cindex %languagemode
-@cindex %left
-@cindex %nonassoc
-@cindex %outputfile
-@cindex %parsetable
-@cindex %prec
-@cindex %put
-@cindex %right
-@cindex %setupfunction
-@cindex %start
-@cindex %token
-@cindex %tokentable
 @table @code
+@cindex %outputfile
 @item %outputfile @var{file-name}
 Required declaration that specifies the name of an Emacs Lisp source
 file where to put Lisp code generated from the current grammar.
 @var{file-name} must be a string.
-@br{}
+
+@cindex %parsetable
 @item %parsetable @var{variable-name}
 Name of the variable set with the generated parser automaton.
-@br{}
+
+@cindex %keywordtable
 @item %keywordtable @var{variable-name}
 Name of the variable set with the generated table of keywords.
-@br{}
+
+@cindex %tokentable
 @item %tokentable @var{variable-name}
 Name of the variable set with the generated table of tokens.
-@br{}
+
+@cindex %setupfunction
 @item %setupfunction @var{function-name}
 Name of the function where to put the generated setup code.
-@br{}
+
+@cindex %languagemode
 @item %languagemode @var{mode-name}@dots{}
 Names of major modes where Semantic uses the Wisent's parser with this
 grammar.
-@br{}
+
+@cindex %start
 @item %start @var{nonterminal}@dots{}
 Declare the nonterminal start symbols.
-@br{}
+
+@cindex %token
 @item %token @var{terminal} @var{string-value}
 Declare language keywords.  These terminal symbols are stored in the
 variable declared by @code{%keywordtable}.
-@br{}
+
 @item %token <@var{type}> @var{terminal} [@var{string-value}]
 @itemx %token [<@var{type}>] @var{terminal}@dots{}
 Declare terminal symbols that aren't keywords.  They are stored in
 the variable declared by @code{%tokentable}.
-@br{}
+
+@cindex %put
 @item %put @{@var{terminal}@dots{}@} @{@var{property value}@dots{}@}
 @itemx %put @var{terminal} @{@var{property value}@dots{}@}
 @itemx %put @{@var{terminal}@dots{}@} @var{property value}
 @itemx %put @var{terminal} @var{property value}
 Give properties to tokens.
-@br{}
+
+@cindex %left
+@cindex %right
+@cindex %nonassoc
 @item %left @var{terminal}@dots{}
 @itemx %right @var{terminal}@dots{}
 @itemx %nonassoc @var{terminal}@dots{}
 Assign associativity and precedence level to terminals.
-@br{}
+
+@cindex %prec
 @item %prec @var{terminal}
 Assign @var{terminal} precedence level to current rule.  @code{%prec}
 must be only used in a rule, like this:
-@br{}
+
 @example
+@group
 exp:
   @dots{}
   | '-' exp %prec NEG
   @dots{}
   ;
+@end group
 @end example
 @end table
 
 @node WY Major Mode
 @section WY Major Mode
 
-@cindex WY Major Mode
 @findex wy-mode
 @findex wisent-wy-mode
 A major mode (@code{wy-mode} or @code{wisent-wy-mode}) provides syntax
 highlighting, automatic indentation, and useful commands to help
 writing WY files with Emacs, and to automatically generate the grammar
 in Lisp form with the declarations needed by Semantic.
-@br{}
+
 An interesting feature is that @code{wy-mode} is Semantic-enabled and
-the WY grammar is defined in a WY file: @file{wisent-wy.wy}!
-@br{}
-The following commands are defined:
-@br{}
-@findex wisent-wy-update-outputfile
-@deffn Command wisent-wy-update-outputfile
+the WY grammar is defined in a WY file: @file{semantic-grammar.wy}!
+
+@findex semantic-grammar-update-outputfile
+To generate the Emacs Lisp code that Semantic requires to parse
+buffers use the command @code{semantic-grammar-update-outputfile}.
+
+@deffn Command semantic-grammar-update-outputfile
 Create or update grammar Lisp code in output file.
-@br{}
+
 Use this command to automatically update or generate the file
 specified in the @code{%outputfile} statement of the WY grammar in the
 current buffer.
-@br{}
+
 The variables named by the @code{%parsetable}, @code{%keywordtable}
 and @code{%tokentable} declarations are updated with Lisp data
 generated from the rules, the @code{%start}, @code{%left},
 @code{%right}, @code{%nonassoc} and @code{%token}/@code{%put}
-declarations found in the grammar.
-@br{}
+declarations found in the grammar (@pxref{Percent-keywords}).
+
 The function named by the @code{%setupfunction} declaration is updated
 with the Emacs Lisp open code (not in rule actions) found in the
 grammar.  It can be Lisp function calls enclosed in @samp{(@dots{})}
 or blocks (equivalent of @code{(progn @dots{})}) enclosed in
 @samp{@{@dots{}@}}.  Also Semantic is configured to use the Wisent
 parser instead of its default one.  Normally, the
-@code{%setupfunction} will be run as a major mode hook to enable
-Semantic for this particular programming language.
+@code{%setupfunction} should be installed in a major mode hook to
+enable Semantic for this particular programming language.
 @end deffn
 
 @node Grammar styles
 @section Grammar styles
 
-@cindex Grammar styles
-Semantic bovination heavily depends on how you wrote the grammar.
+@cindex grammar styles
+Semantic parsing heavily depends on how you wrote the grammar.
 There are mainly two styles to write a Wisent's grammar intended to be
-used with the Semantic tool set: the @dfn{Bovine style} and the
+used with the Semantic tool set: the @dfn{Iterative style} and the
 @dfn{Bison style}.  Each one has pros and cons, and in certain cases
 it can be worth a mix of the two styles!
 
 @menu
-* Bovine style::                
+* Iterative style::             
 * Bison style::                 
 * Mixed style::                 
 * Start nonterminals::          
 * Useful functions::            
 @end menu
 
-@node Bovine style
-@subsection Bovine style
+@node Iterative style
+@subsection Iterative style
 
-@cindex Grammar bovine style
-@cindex Semantic token, Raw
-@cindex Semantic token, Cooked
-The @dfn{bovine style} is the preferred style to use with Semantic.
-It relies on the bovinator back-end mechanism which parses start
+@cindex grammar iterative style
+The @dfn{iterative style} is the preferred style to use with Semantic.
+It relies on an iterative parser back-end mechanism which parses start
 nonterminals one at a time and automagically skip unexpected lexical
 tokens in input.
-@br{}
+
+Compared to rule-based iterative functions (@pxref{Bison style}),
+iterative parsers are better in that they can handle obscure errors
+more cleanly.
+
+@cindex semantic token, raw
+@cindex raw semantic token
 Each start nonterminal must produces a @dfn{raw semantic token} by
 calling the function @code{wisent-token} with the appropriate
-parameters.@*
-@xref{Start nonterminals}, for more informations.
-@br{}
-Bovination then automatically translate raw tokens into @dfn{cooked
-semantic tokens}, updating the raw token structure with internal
-properties and buffer related data.
-@br{}
+parameters.  See @ref{Start nonterminals}, for more informations.
+
+@cindex semantic token, cooked
+@cindex cooked semantic tokens
+Then, each parsing iteration automatically translate raw tokens into
+@dfn{cooked semantic tokens}, updating the raw token structure with
+internal properties and buffer related data.
+
 After parsing completed it results in a list of cooked tokens which
 becomes the value of @code{semantic-toplevel-bovine-cache}.
-@br{}
+
 @findex wisent-token
 @defun wisent-token &rest return-val
-Return a raw Semantic token including @var{RETURN-VAL}.
+Return a raw Semantic token including @var{return-val}.
 Should be used in Semantic actions to build the bovine cache.
 @end defun
-@br{}
-The following example is a snippet of the bovine style Java grammar
+
+The following example is a snippet of the iterative style Java grammar
 provided in the Semantic distribution in the file
 @file{wisent-java-tags.wy}.
-@br{}
+
 @example
+@group
 %start formal_parameter_list
 @dots{}
 
@@ -1829,27 +1945,27 @@ formal_parameter
                   (ASSOC typemodifiers $1)
                   nil)
   ;
+@end group
 @end example
-@br{}
+
+@findex EXPANDFULL
 It shows the use of the @code{EXPANDFULL} built-in function to parse a
 @samp{PAREN_BLOCK} which contains a @samp{formal_parameter_list}.
-Actually, @code{EXPANDFULL} tells to recursively bovinate
-@samp{formal_parameters} inside @samp{PAREN_BLOCK}.  The parser then
-iterates until it digested all available input data inside the
-@samp{PAREN_BLOCK}, trying to match any of the
-@samp{formal_parameters} rules:
-@br{}
+@code{EXPANDFULL} tells to recursively parse @samp{formal_parameters}
+inside @samp{PAREN_BLOCK}.  The parser iterates until it digested all
+available input data inside the @samp{PAREN_BLOCK}, trying to match
+any of the @samp{formal_parameters} rules:
+
 @itemize
-@item
-@samp{LPAREN}
-@item
-@samp{RPAREN}
-@item
-@samp{formal_parameter COMMA}
-@item
-@samp{formal_parameter RPAREN}
+@item @samp{LPAREN}
+
+@item @samp{RPAREN}
+
+@item @samp{formal_parameter COMMA}
+
+@item @samp{formal_parameter RPAREN}
 @end itemize
-@br{}
+
 At each iteration it will return a @samp{formal_parameter} raw token,
 or @code{nil} to skip unwanted (single @samp{LPAREN} or @samp{RPAREN}
 for example) or unexpected input data.
@@ -1857,20 +1973,21 @@ for example) or unexpected input data.
 @node Bison style
 @subsection Bison style
 
-@cindex Grammar Bison style
+@cindex grammar bison style
 What we call the @dfn{Bison style} is the traditional style of Bison's
-grammars.  Compared to bovine style, it is not straightforward to use
-grammars written in Bison style in Semantic.  Mainly because such
+grammars.  Compared to iterative style, it is not straightforward to
+use grammars written in Bison style in Semantic.  Mainly because such
 grammars are designed to parse the whole input data in one pass, and
-don't use the bovinator back-end mechanism (@pxref{Bovine style}).
-With Bison style the parser is called once to parse the grammar start
-nonterminal.
-@br{}
+don't use the iterative parser back-end mechanism (@pxref{Iterative
+style}).  With Bison style the parser is called once to parse the
+grammar start nonterminal.
+
 The following example is a snippet of the Bison style Java grammar
 provided in the Semantic distribution in the file
 @file{wisent-java.wy}.
-@br{}
+
 @example
+@group
 %start formal_parameter_list
 @dots{}
 
@@ -1887,34 +2004,33 @@ formal_parameter
                          (ASSOC typemodifiers $1)
                          nil)
   ;
+@end group
 @end example
-@br{}
+
 The first consequence is that syntax errors are not automatically
 handled by Semantic.  Thus, it is necessary to explicitly handle them
 at the grammar level, providing error recovery rules to skip
 unexpected input data.
-@br{}
-The second consequence is that the bovinator can't do automatic raw to
-cooked token translation, except for the start nonterminal value.  It
-is necessary to explicitly return cooked semantic tokens from
-concerned semantic actions by calling the function
-@code{wisent-cooked-token} with the appropriate parameters.@*
-@xref{Start nonterminals}, for partial re-parse considerations.
-@br{}
+
+The second consequence is that the iterative parser can't do automatic
+raw to cooked token translation, except for the start nonterminal
+value.  It is necessary to explicitly return cooked semantic tokens
+from concerned semantic actions by calling the function
+@code{wisent-cooked-token} with the appropriate parameters.  See
+@ref{Start nonterminals}, for incremental re-parse considerations.
+
 @findex wisent-cooked-token
 @defun wisent-cooked-token &rest return-val
-Return a cooked Semantic token including @var{RETURN-VAL}.
+Return a cooked Semantic token including @var{return-val}.
 Should be used in Semantic actions to build the bovine cache.
 @end defun
 
 @node Mixed style
 @subsection Mixed style
 
-@cindex Grammar mixed style
-The following example is a snippet of the WY format grammar provided
-in the Semantic distribution in the file @file{wisent-wy.wy}.
-@br{}
+@cindex grammar mixed style
 @example
+@group
 %start grammar
 @dots{}
 
@@ -1947,27 +2063,29 @@ rule:
     @dots{}
     (wisent-cooked-token name 'rule type comps prec action nil)
   ;
+@end group
 @end example
-@br{}
-This example shows how Bovine and Bison styles can be combined in the
-same grammar to obtain a good compromise between grammar complexity
-and an efficient parsing strategy in an interactive environment.
-@br{}
-@samp{nonterminal} is parsed using normal bovination via the main
+
+This example shows how Iterative and Bison styles can be combined in
+the same grammar to obtain a good compromise between grammar
+complexity and an efficient parsing strategy in an interactive
+environment.
+
+@samp{nonterminal} is parsed using iterative style via the main
 @samp{grammar} rule.  The semantic action calls @code{wisent-token} to
 produce a Semantic raw token, automagically cooked by Semantic.
-@br{}
+
 But @samp{rules} part is parsed in Bison style! Why?
-@br{}
+
 Rule delimiters are the colon (@samp{:}), that follows the nonterminal
 name, and a final semicolon (@samp{;}).  Unfortunately these
-delimiters naturally are not @code{open-paren}/@code{close-paren}
-type, and Emacs syntactic analyzer can't easily isolate data between
-them to produce a @code{semantic-list} token.  Consequently it is not
-possible to use @code{EXPANDFULL} to bovinate @samp{RULES_PART}, like
-this:
-@br{}
+delimiters are not @code{open-paren}/@code{close-paren} type, and
+Emacs syntactic analyzer can't easily isolate data between them to
+produce a @code{semantic-list} token.  Consequently it is not possible
+to use @code{EXPANDFULL} to iterate in @samp{RULES_PART}, like this:
+
 @example
+@group
 nonterminal:
     any_symbol COLON rules SEMI
     (wisent-token $1 'nonterminal nil $3 nil)
@@ -1989,102 +2107,109 @@ rules:
     @dots{}
     (wisent-token name 'rule type comps prec action nil)
   ;
+@end group
 @end example
-@br{}
+
 In such cases, when it is difficult for Emacs to obtain
 @code{semantic-list} syntactic tokens, the best solution is to use
 traditional Bison style with error recovery!
-@br{}
+
 In some extreme cases, it can also be convenient to extend the lexer,
-@code{wisent-flex} (@pxref{Wisent Flex}).  It might be necessary too
-to extend the Semantic lexer, @code{semantic-flex}, to deliver new
-syntactic tokens to @code{wisent-flex} extensions.
+to deliver new syntactic tokens, to simplify the grammar.
 
 @node Start nonterminals
 @subsection Start nonterminals
 
-@cindex Start nonterminals
-@cindex Partial re-parse
+@cindex start nonterminals
 @cindex @code{reparse-symbol} property
 When you write a grammar for Semantic, it is important to carefully
 indicate the start nonterminals.  Each one defines an entry point in
 the grammar, and after parsing its semantic value is returned to the
-bovinator.  Consequently:
-@br{}
+back-end iterative engine.  Consequently:
+
 @strong{The semantic value of a start nonterminal must be a valid
 Semantic token}.
-@br{}
+
 Start nonterminals are declared by @code{%start} statements.  When
 nothing is specified the first nonterminal that appears in the grammar
 is the start nonterminal.
-@br{}
+
 Generally, the following nonterminals must be declared as start
 symbols:
-@br{}
+
 @itemize @bullet
 @item The main grammar entry point
 @quotation
 Of course!
 @end quotation
+
 @item nonterminals passed to @code{EXPAND}/@code{EXPANDFULL}
 @quotation
 These built-in functions recursively parse a part of input data, based
 on rules of the given nonterminal.
-@br{}
+
 For example, the following will parse @samp{PAREN_BLOCK} data using
 the @samp{formal_parameters} rules:
-@br{}
+
 @example
+@group
 formal_parameter_list
   : PAREN_BLOCK
     (EXPANDFULL $1 formal_parameters)
   ;
+@end group
 @end example
-@br{}
+
 The semantic value of @samp{formal_parameters} becomes the value of
 the @code{EXPANDFULL} expression.  It is a list of Semantic tokens
 spliced in the parse tree.
-@br{}
+
 To allow that the automaton must know that @samp{formal_parameters} is
 a start symbol.  It must be declared:
-@br{}
+
 @example
+@group
 %start formal_parameters
+@end group
 @end example
 @end quotation
 @end itemize
-@br{}
+
+@cindex incremental re-parse
+@cindex reparse-symbol
 The @code{EXPANDFULL} built-in function has a side effect it is
-important to know, related to the partial re-parse mechanism of
+important to know, related to the incremental re-parse mechanism of
 Semantic.  The nonterminal symbol parameter passed to
 @code{EXPANDFULL} also becomes the @code{reparse-symbol} property of
 the Semantic tokens returned by the @code{EXPANDFULL} expression.
-@br{}
+
 When buffer's data mapped by one of these tokens is modified, Semantic
-schedules a partial re-parse of that data, using the token's
+schedules an incremental re-parse of that data, using the token's
 @code{reparse-symbol} property as start nonterminal.  So the rules
 associated to this start symbol must be carefully reviewed to ensure
 that partial re-parse will work!
-@br{}
+
 Things are a little bit different when the grammar is written in
 Bison style and uses the function @code{wisent-cooked-token} to directly
 produce cooked Semantic tokens.  In a such case, the @code{reparse-symbol}
 property is set with the nonterminal symbol the current rule belongs
 to.
-@br{}
+
 For example,
-@br{}
+
 @example
+@group
 rule:
     rhs
     @dots{}
     (wisent-cooked-token name 'rule type comps prec action nil)
   ;
+@end group
 @end example
-@br{}
+
 Set the @code{reparse-symbol} property of the cooked token to
 @samp{rule}.  A important consequence is that:
-@br{}
+
 @strong{Every nonterminal having any rule that calls
 @code{wisent-cooked-token} in a semantic action, should be declared as
 a start symbol!}
@@ -2094,149 +2219,76 @@ a start symbol!}
 
 Here is a description of some predefined functions it might be useful
 to know when writing new code to use Wisent in Semantic:
-@br{}
+
 @findex wisent-collect-unmatched-syntax
 @defun wisent-collect-unmatched-syntax input
-Add @var{INPUT} lexical token to the cache of unmatched tokens, in
+Add @var{input} lexical token to the cache of unmatched tokens, in
 variable @code{semantic-unmatched-syntax-cache}.
-@br{}
-See implementation of the function @code{wisent-skip-token}
-(@pxref{Error recovery}), for an example of use.
+
+See implementation of the function @code{wisent-skip-token} in
+@ref{Error recovery}, for an example of use.
 @end defun
 
-@node Wisent Flex
-@section The Wisent Flex lexer
+@node Wisent Lex
+@section The Wisent Lex lexer
 
-@cindex Wisent Flex lexer
-@cindex Token mapping
-@cindex wisent-flex vs. semantic-flex
-@cindex Token table
-@cindex Keyword table
-@cindex Token mapping properties
-@findex wisent-flex
-@defun wisent-flex
-Return the next available lexical token.
-@br{}
-@vindex wisent-flex-istream
-Eat syntactic tokens produced by @code{semantic-flex}, available in
-variable @code{wisent-flex-istream}, and return Wisent's lexical
-tokens.
-@br{}
-See documentation of @code{semantic-flex-tokens} for details on the
-syntactic tokens returned by @code{semantic-flex}.
-@br{}
-In most cases one syntactic token is mapped to one lexical token.  But
-in certain cases several successive syntactic tokens can be mapped to
-one lexical tokens.  A common case is given by arithmetic operators
-which can be made of multiple punctuations.
-@br{}
-Also the mapping between syntactic tokens and lexical ones uses regexp
-match by default, but can use string comparison too.
-@end defun
-@br{}
-The rules specifying how to do the mapping are defined in the
-following two symbol tables:
-@br{}
-@vindex semantic-flex-keywords-obarray
-@defvar semantic-flex-keywords-obarray
-The keyword table.
-@end defvar
-@br{}
-@vindex wisent-flex-tokens-obarray
-@defvar wisent-flex-tokens-obarray
-The token table.
-@end defvar
-@br{}
-Keywords are directly mapped to equivalent Wisent's lexical tokens
-like this (@var{SF}- prefix means @code{semantic-flex}, @var{WF}-
-@code{wisent-flex}):
-@br{}
+@findex semantic-lex
+The lexical analysis step of Semantic is performed by the general
+function @code{semantic-lex}, that produces tokens of the form:
+
+@cindex semantic-lex tokens
 @example
-@w{(@var{SF-KEYWORD start} . @var{end})
-@result{} (@var{WF-KEYWORD} "name" @var{start} . @var{end})}
+@group
+@code{(@var{semantic-lex-token-class start} . @var{end})}
+@end group
 @end example
-@br{}
-Mapping of other tokens obeys to rules in the token table.  Here is an
-example on how to define the mapping of @code{punctuation} syntactic
-tokens.
-@br{}
-@enumerate
-@item
-Add (@code{intern}) the symbol @code{punctuation} into the token
-table.
-@br{}
-@item
-Set its value to the mapping rules to use.  Mapping rules are an alist
-of @code{(@var{WF-TOKEN} . @var{MATCHER})} elements.  @var{WF-TOKEN} is the
-category of the Wisent's lexical token (for example @samp{'OPERATOR}).
-@var{MATCHER} is the regular expression used to filter input data (for
-example @samp{"[+-]"}).  The first element of the mapping rule alist
-defines a default matching rule. It must be @code{nil} or have the
-form @code{(@var{WF-TOKEN})}.  When there is no mapping rule that matches
-the syntactic token value, the default @var{WF-TOKEN} or @code{nil} is
-returned.
-@br{}
-Thus, if the syntactic token symbol @code{punctuation} has the
-mapping rules @code{(nil (OPERATOR . "[+-]"))}, the following token:
-@br{}
-@example
-(punctuation 1 . 2)
-@end example
-@br{}
-will be mapped to the lexical token
-@br{}
-@example
-(OPERATOR "+" 1 . 2)
-@end example
-@br{}
-if the buffer contained @samp{+} between positions 1 and 2.
-@br{}
-To define multiple matchers for the same @var{WF-TOKEN} just give
-several @code{(@var{WF-TOKEN} . @var{MATCHER})} values.
-@var{MATCHER}s will be tried in sequence until one matches.
-@br{}
-@item
-Optionally customize how @code{wisent-flex} will interpret mapping
-rules, using symbol properties.
-@br{}
-The following properties are recognized:
-@br{}
-@table @code
-@item string
-If non-@code{nil} MATCHERs are interpreted as strings instead of
-regexps, and matching uses direct string comparison.  This could speed
-up things in certain cases.
-@br{}
-@item multiple
-non-@code{nil} indicates to lookup at multiple successive syntactic
-tokens and try to match the longest one.
-@br{}
-@item char-literal
-non-@code{nil} indicates to return the first character of the
-syntactic token value as the lexical token category.  It is the
-default for punctuation, open-paren and close-paren syntactic tokens.
-Use this property when grammar contains references to character
-literals.
-@br{}
-@item handler
-If non-@code{nil} must specify a function with no argument that will
-be called first to map the syntactic token.  It must return a lexical
-token or @code{nil}, and update the input stream in variable
-@code{wisent-flex-istream} accordingly.
+
+@table @var
+@item semantic-lex-token-class
+Is a symbol that identifies a category of tokens, like @code{symbol},
+@code{string} or @code{number}.  See the documentation of variable
+@code{semantic-lex-tokens} for a list of common token categories that
+@code{semantic-lex} returns.
+
+@item start
+@itemx end
+Are the bounds of the token in the current buffer.
 @end table
-@br{}
-The following example maps multiple punctuations to operators and use
-string comparison:
-@br{}
+ 
+Unfortunately, the Wisent's parser requires that lexical tokens have a
+different form (@pxref{Writing a lexer}):
+
 @example
-(let ((entry (intern 'punctuation token-table)))
-  (set entry '(nil ;; No default mapping
-               (LSHIFT . "<<") (RSHIFT . ">>")
-               (LT     . "<")  (GT     . ">")))
-  (put entry 'string   t)
-  (put entry 'multiple t))
+@group
+@code{(@var{token-class value} [@var{start} . @var{end}])}
+@end group
 @end example
-@end enumerate
+
+@cindex token mapping
+@findex wisent-lex
+The Wisent lexer used in Semantic: @code{wisent-lex}, is just a
+convenient function that translates lexical tokens as produced by
+@code{semantic-lex} into an equivalent Wisent form.  Mapping is
+straightforward:
+
+@example
+@group
+(@var{semantic-lex-token-class start} . @var{end})
+     @result{} (@var{semantic-lex-token-class value start} . @var{end})
+@end group
+@end example
+
+@var{value} is the @code{buffer-substring} from @var{start} to
+@var{end}.
+
+@defun wisent-lex
+Return the next available lexical token in Wisent's form.
+
+@vindex wisent-lex-istream
+The variable @code{wisent-lex-istream} contains the list of lexical
+tokens produced by @code{semantic-lex}.  Pop the next token available
+and convert it to a form suitable for the Wisent's parser.
+@end defun
 
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
@@ -2254,4 +2306,4 @@ string comparison:
 @c That's all
 @bye
 
-@c  LocalWords:  Wisent automagically bovination bovinate bovinator
+@c  LocalWords:  Wisent automagically wisent
