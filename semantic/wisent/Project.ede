@@ -12,8 +12,8 @@
    (ede-proj-target-elisp "wisent"
     :name "wisent"
     :path ""
-    :source '("wisent.el" "wisent-bovine.el" "wisent-comp.el" "wisent-expr.el" "wisent-grammar.el" "wisent-debug.el" "wisent-grammar-macros.el")
-    :aux-packages '("semantic" "semantic-java" "inversion")
+    :source '("wisent.el" "semantic-wisent.el" "wisent-comp.el" "wisent-expr.el" "wisent-grammar.el" "wisent-debug.el" "wisent-grammar-macros.el")
+    :aux-packages '("semantic" "semantic-java" "inversion" "speedbar")
     )
    (semantic-ede-proj-target-grammar "taggers"
     :name "taggers"
