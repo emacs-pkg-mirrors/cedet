@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.13 2000/08/20 16:54:23 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.14 2000/08/20 17:11:20 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -394,6 +394,15 @@ Optional argument HISTORYVAR is the variable to use as history."
 		       (setcar help-data 'eieio-describe-generic))
 		      (t nil))
 		))))))))
+
+(defun eieio-help-augment-keymap ()
+  "Augment the help keymap for cool EIEIO stuff."
+  (define-key help-map "g" 'describe-generic)
+  (define-key help-map "C" 'describe-class))
+
+(if (and (boundp 'help-map) help-map)
+    (eieio-help-augment-keymap)
+  (eval-after-load 'help 'eieio-help-augment-keymap))
 
 ;;; How about showing the hierarchy in speedbar?  Cool!
 ;;
