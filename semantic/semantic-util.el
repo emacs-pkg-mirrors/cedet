@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.33 2000/12/05 02:25:30 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.34 2000/12/07 04:50:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -589,8 +589,8 @@ Available override symbols:
  `find-dependency'        (token)            Find the dependency file
  `find-nonterminal'       (token & parent)   Find token in buffer.
  `find-documentation'     (token & nosnarf)  Find doc comments.
- `abbreviate-nonterminal' (token & parent)   Return summery string.
- `summerize-nonterminal'  (token & parent)   Return summery string.
+ `abbreviate-nonterminal' (token & parent)   Return summary string.
+ `summarize-nonterminal'  (token & parent)   Return summary string.
  `prototype-nonterminal'  (token)            Return a prototype string.
  `prototype-file'         (buffer)           Return a file in which
  	                                     prototypes are placed
@@ -769,10 +769,13 @@ Optional argument PARENT is the parent type if TOKEN is a detail."
 		       "=")))
 	))))
 
-(defun semantic-summerize-nonterminal (token &optional parent)
-  "Summerize TOKEN in a reasonable way.
+;; Semantic 1.2.x had this misspelling.  Keep it for backwards compatibiity.
+(defalias 'semantic-summerize-nonterminal 'semantic-summarize-nonterminal)
+
+(defun semantic-summarize-nonterminal (token &optional parent)
+  "Summarize TOKEN in a reasonable way.
 Optional argument PARENT is the parent type if TOKEN is a detail."
-  (let ((s (semantic-fetch-overload 'summerize-nonterminal)))
+  (let ((s (semantic-fetch-overload 'summarize-nonterminal)))
     (if s
 	(funcall s token parent)
       ;; FLESH THIS OUT MORE
@@ -913,27 +916,43 @@ instead of read-only."
 (defun semantic-deoverlay-token (token)
   "Convert TOKEN from using an overlay to using an overlay proxy."
   (let* ((c (semantic-token-overlay-cdr token))
-	 (a (vector (semantic-overlay-buffer (car c))
-		    (semantic-overlay-start (car c))
+	 (a (vector (semantic-overlay-start (car c))
 		    (semantic-overlay-end (car c)))))
     (semantic-overlay-delete (car c))
-    (setcar c a)))
+    (setcar c a)
+    ;; Fix the children of types.
+    (if (eq (semantic-token-token token) 'type)
+	(semantic-deoverlay-list (semantic-token-type-parts token)))
+    ))
 
 (defun semantic-overlay-token (token)
   "Convert TOKEN from using an overlay proxy to using an overlay."
   (let* ((c (semantic-token-overlay-cdr token))
-	 (o (semantic-make-overlay (aref (car c) 1)
-				   (aref (car c) 2)
-				   (aref (car c) 0))))
-    (setcar c o)))
+	 (o (semantic-make-overlay (aref (car c) 0)
+				   (aref (car c) 1)
+				   (current-buffer))))
+    (setcar c o)
+    (if (eq (semantic-token-token token) 'type)
+	(semantic-overlay-list (semantic-token-type-parts token)))
+    ))
+
+(defun semantic-deoverlay-list (l)
+  "Remove overlays from the list L."
+  (mapcar 'semantic-deoverlay-token l))
+
+(defun semantic-overlay-list (l)
+  "Convert numbers to  overlays from the list L."
+  (mapcar 'semantic-overlay-token l))
 
 (defun semantic-deoverlay-cache ()
   "Convert all tokens in the current cache to use overlay proxies."
-  )
+  (semantic-deoverlay-list (semantic-bovinate-toplevel)))
 
 (defun semantic-overlay-cache ()
   "Convert all tokens in the current cache to use overlays."
-  )
+  ;; In this unique case, we cannot call the usual toplevel fn.
+  ;; because we don't want a reparse, we want the old overlays.
+  (semantic-overlay-list (car semantic-toplevel-bovine-cache)))
 
 ;;; Interactive Functions for bovination
 ;;
