@@ -1,10 +1,10 @@
 ;;; ede-proj-%NAME%.el --- EDE Generic Project ...
 
-;;;  Copyright (C) 1999  Eric M. Ludlam
+;;;  Copyright (C) 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-skel.el,v 1.2 1999/12/01 01:47:09 zappo Exp $
+;; RCS: $Id: ede-proj-skel.el,v 1.3 2000/04/29 14:47:42 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -156,6 +156,15 @@
   (call-next-method) ;; catch user-rules case.
   (insert ... ;; Code to create a rule for THIS.
 	  ))
+
+;; This function us used to find a header file in which prototypes from
+;; BUFFER go.  This is used by advanced features for which this type
+;; of behavior is useful.  This feature is used mainly by tools
+;; using the SEMANTIC BOVINATOR http://www.ultranet.com/~zappo/semantic.shtml
+;; to perform advanced language specific actions.
+(defmethod ede-buffer-header-file((this ede-proj-target-%NAME%) buffer)
+  "Return the name of a file in which prototypes go."
+  (oref this ...))
 
 ;;; EDE speedbar browsing enhancements
 ;;
