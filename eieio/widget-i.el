@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.10 1996/10/17 02:47:38 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.11 1996/10/19 14:40:00 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -97,6 +97,12 @@ fixable fields are adjusted, otherwise an error occurs."
       (error "%s has no parent!" (object-name this)))
   )
 
+(defmethod verify-position ((this widget-core) prev)
+  "Sets all the size parameters for THIS to be correct in the rx/ry cache
+fields for a visual widget.  No action is take for CORE"
+  nil
+  )
+
 (defmethod update-symbol ((this widget-core) sym)
   "Backup for update-symbol so we don't get errors if it's not defined for some 
 broken reason."
@@ -111,6 +117,13 @@ broken reason."
   "Verifies a visual widget to make sure it's values are allowed.  If
 FIX then fix fields which are adjustable.  Call core verify when
 done."
+  ;; Now make sure core parts are valid
+  (call-next-method))
+
+(defmethod verify-position ((this widget-visual) prev)
+  "Sets all the size parameters for THIS to be correct in the rx/ry cache
+fields for a visual widget.  Uses PREV as the widget just previous to us
+in widget order."
   ;; If X or Y is a symbol like AFTER then determine it's value
   ;; Use -2 to find last item because THIS has recently been added.
   ;; Subtract one from new value so -1 means the line directly under
@@ -118,45 +131,46 @@ done."
   
   ;; We will find and install LO, even though it may not always be used
   ;; to speed up dynamically created widgets.
-  (let ((lo (get-children (get-parent this))))
-    (setq lo (nth (- (length lo) 2) lo))
-    (if (not (eq this lo))
+  (let ((px (if prev (oref prev nx) 1))
+	(pw (if prev (oref prev width) 0))
+	(py (if prev (oref prev ny) 1))
+	(ph (if prev (oref prev height) 0))
+	(tx (oref this x))
+	(ty (oref this y)))
+
+    (if (eq tx t)
+	(setq tx px)
+      (if (listp tx)
+	  (setq tx (eval tx))
+	(if (> 0 tx)
+	    (setq tx (+ px pw -1 (- tx))))))
+
+    (if (eq ty t)
+	(setq ty py)
+      (if (listp ty)
+	  (setq ty (eval ty))
+	(if (> 0 ty)
+	    (setq ty (+ py ph -1 (- ty))))))
+
+    ;; Fix up RX and RY with parent coords, and our normalized coordinates
+    (if (and (object-p (get-parent this))
+	     (object-p (get-parent this))
+	     (oref (get-parent this) rx))
 	(progn
-	  (verify-size lo)
-
-	  (if (eq (oref this x) t)
-		(oset this x (oref lo x))
-	    (if (> 0 (oref this x))
-		(oset this x 
-		      (+ (oref lo x) (oref lo width) -1 
-			 (- (oref this x))))))
-
-	  (if (eq (oref this y) t)
-	      (oset this y (oref lo y))
-	    (if (> 0 (oref this y))
-		(oset this y 
-		      (+ (oref lo y) (oref lo height) -1 
-			 (- (oref this y)))))))))
-
-  ;; Fix up RX and RY with parent coords
-  (if (and fix (object-p (get-parent this))
-	   (object-p (get-parent this))
-	   (oref (get-parent this) rx))
-      (progn
-	(oset this rx (+ (oref this x) (oref (get-parent this) rx)))
-	(oset this ry (+ (oref this y) (oref (get-parent this) ry)))
-	)
-    (if (and fix (object-p (get-parent this)))
-	(progn
-	  (message "Parent %s rx is %s %s" 
-		   (object-name (get-parent this))
-		   (oref (get-parent this) rx)
-		   (oref (get-parent this) ry))
-	  (error "Could not set real XY positions for object %s"
-		 (object-name this)))))
-
-  ;; Now make sure core parts are valid
-  (call-next-method))
+	  (oset this nx tx)
+	  (oset this rx (+ tx (oref (get-parent this) rx)))
+	  (oset this ny ty)
+	  (oset this ry (+ ty (oref (get-parent this) ry)))
+	  )
+      (if (object-p (get-parent this))
+	  (progn
+	    (message "Parent %s rx is %s %s" 
+		     (object-name (get-parent this))
+		     (oref (get-parent this) rx)
+		     (oref (get-parent this) ry))
+	    (error "Could not set real XY positions for object %s"
+		   (object-name this))))))
+    (call-next-method))
 
 (defmethod picked ((this widget-visual) x y)
   "Is this widget picked under X Y"
@@ -191,6 +205,8 @@ count when being picked."
 	     (x (oref this rx))
 	     (y (oref this ry)))
 	(goto-xy (1- x) (1- y))
+	;; We don't store ourselves on top of the box because we don't want
+	;; to recieve input.
 	(insert-overwrite-face br (oref this box-face))
 	(while (< yc (oref this height))
 	  (goto-xy (1- x) (+ y yc))
@@ -251,20 +267,27 @@ count when being picked."
 based on the number of children we have."
   (let ((maxw (oref this width))
 	(maxh (oref this height))
-	(l (oref this child-list)))
+	(l (oref this child-list))
+	(prev nil))
     (while l
-      (let ((tw (+ (oref (car l) x) (oref (car l) width) 2))
-	    (th (+ (oref (car l) y) (oref (car l) height) 1)))
+      (verify-position (car l) prev)
+      (if (obj-of-class-p (car l) widget-group)
+	  (verify-size (car l)))
+      (let ((tw (+ (oref (car l) nx) (oref (car l) width) 2))
+	    (th (+ (oref (car l) ny) (oref (car l) height) 1)))
 	(if (< maxw tw) (setq maxw tw))
 	(if (< maxh th) (setq maxh th)))
-      (setq l (cdr l)))
+      (setq prev (car l)
+	    l (cdr l)))
     (oset this width maxw)
     (oset this height maxh)))
 
-(defmethod add-child ((this widget-group) child)
+(defmethod add-child ((this widget-group) child &optional first)
   "Add widget CHILD to our personal list of child widgets"
   ;; Add to our list
-  (oset this child-list (append (oref this child-list) (list child)))
+  (oset this child-list (if first
+			    (cons child (oref this child-list))
+			  (append (oref this child-list) (list child))))
   ;; make sure we are marked as that widgets parent.  To do this, we
   ;; must cheat so that THIS is set to child, and then we may set that
   ;; widgets field, and the scoped class to allow us access to private
@@ -283,7 +306,9 @@ based on the number of children we have."
 (defmethod input ((this widget-group) char-or-event)
   "Handles the input event char-or-event by passing it to it's
 children.  If it is passed to a child, return t, else return nil"
-  (input (selected-widget this) char-or-event))
+  ;; New methodology no longer necessitates input dispatch from this level
+  )
+  ;;(input (selected-widget this) char-or-event))
 
 (defmethod selected-widget ((this widget-group))
   "Return the widget who is currently selected within myself, as well
@@ -304,8 +329,6 @@ as the next logical widget after myself"
 (defmethod draw ((this widget-group))
   "Draw the basic group widget.  Basically all our children, with
 their X,Y offset by our X,Y"
-  ;; Now resize ourselves just to make sure
-  (verify-size this)
   ;;draw any visuals we have
   (call-next-method)
   ;; draw our children
@@ -410,47 +433,57 @@ to the ARGth widget in some direction."
 (defmethod verify ((this widget-frame) fix)
   "Verify a frame widget"
   ;; call parent's verify first to set our position, etc
-  (call-next-method)  
+  (call-next-method))
+
+(defmethod verify-size ((this widget-frame))
+  "Verify the size of the frame.  First we find out how big we are based
+on our children, then we create our label widget once this information
+is known."
+  (call-next-method)			;find out our size
   ;; now fix up our label...
   (let* ((tol (oref this frame-label))
 	 (lw (if (and (object-p tol) 
 		      (obj-of-class-p tol widget-label))
 		 ;; it's already a label of some sort
 		 tol
-	       (if (and (not fix) (not (stringp tol)))
+	       (if (and (not (stringp tol)))
 		   ;; it's not a string
 		   nil
 		 ;; Its a string... make a label of some sort
 		 (save-match-data
-		   (let ((posstr (symbol-name (oref this position))))
-		     (create-widget (format "label on %s" (object-name this))
-				    widget-label this 
-				    :label-value tol
-				    :face 'widget-frame-label-face
-				    :justification
-				    (cond 
-				     ((string-match "center" posstr)
-				      'center)
-				     ((string-match "right" posstr)
-				      'right)
-				     (t
-				      'left))
-				    :x (cond 
-					((string-match "center" posstr)
-					 (/ (- (oref this width)
-					       (length tol))
-					    2))
-					((string-match "right" posstr)
-					 (- (oref this width)
-					    (length tol)
-					    2))
-					(t
-					 2))
-				    :y (if (string-match "top" posstr)
-					   -1
-					 (1+ (oref this height))))))))))
-    (if (and lw fix)
-	(oset this frame-label lw))))
+		   (let* ((posstr (symbol-name (oref this position)))
+			  (nlw (create-widget-first
+				(format "label on %s" (object-name this))
+				widget-label this 
+				:label-value tol
+				:face 'widget-frame-label-face
+				:justification
+				(cond 
+				 ((string-match "center" posstr)
+				  'center)
+				 ((string-match "right" posstr)
+				  'right)
+				 (t
+				  'left))
+				:x (cond 
+				    ((string-match "center" posstr)
+				     (/ (- (oref this width)
+					   (length tol))
+					2))
+				    ((string-match "right" posstr)
+				     (- (oref this width)
+					(length tol)
+					2))
+				    (t
+				     2))
+				:y (if (string-match "top" posstr)
+				       '(- 1)
+				     (oref this height)))))
+		     (verify-position nlw nil)
+		     nlw))))))
+    (if (> (length (render (oref lw label-value))) (oref this width))
+	(oset this width (+ 2 (length tol))))
+    (if lw (oset this frame-label lw))))
 
 ;;
 ;; radio frame
@@ -466,11 +499,10 @@ to the ARGth widget in some direction."
       (error "State variable for toggle %s is not a data-object!"
 	     (object-name this)))))
 
-(defmethod add-child ((this widget-radio-frame) child)
+(defmethod add-child ((this widget-radio-frame) child &optional first)
   "Add widget CHILD which must be a radio button to ourselves"
-  ;; check for radioness
-  (if (and (not (obj-of-class-p child widget-radio-button))
-	   (get-children this))
+  ;; check for radioness.  Labels are ok too.
+  (if (not (or (obj-of-class-p child widget-radio-button) first))
       (error "Widget %s is not a radio button!" (object-name child)))
   ;; really do the add
   (call-next-method)
@@ -550,7 +582,7 @@ String to optimally fill that area."
       (setq s (length (car ll)))
       ;; First, clear anything that might be in the way
       (goto-xy x y)
-      (insert-overwrite-face (make-string w ? ) nil nil)
+      (insert-overwrite-face (make-string w ? ) nil (oref this focus-face) this)
       ;; Now find the centering mechanism, and draw the string
       (cond ((eq j 'center)
 	     (setq tx (+ x (/ (- w s) 2))))
@@ -560,7 +592,7 @@ String to optimally fill that area."
 	     )
 	    (t (error "Internal label error")))
       (goto-xy tx y)
-      (insert-overwrite-face (car ll) (oref this face) (oref this focus-face))
+      (insert-overwrite-face (car ll) (oref this face) (oref this focus-face) this)
       (setq ll (cdr ll)
 	    y (1+ y))
       ))
@@ -578,15 +610,20 @@ String to optimally fill that area."
   ;; Now verify the rest
   (call-next-method))
 
-(defmethod show-arm ((this widget-button) onoff)
+(defmethod show-arm ((this widget-button) onoff &optional mouse)
   "Show the arming of the widget based on ONOFF"
-  (save-excursion
+  (let ((pnt (point)))
     (if onoff
 	(let ((oface (oref this face)))
-	  (oset this face (oref this arm-face))
+	  (if mouse
+	      (oset this focus-face (oref this arm-face))
+	    (oset this face (oref this arm-face)))
 	  (draw this)
-	  (oset this face oface))
-      (draw this))))
+	  (if mouse
+	      (oset this focus-face oface)
+	    (oset this face oface)))
+      (draw this))
+    (goto-char pnt)))
 
 (defmethod input ((this widget-button) coe)
   "What to do if clicked upon by the mouse"
@@ -594,8 +631,7 @@ String to optimally fill that area."
       (let ((omf (oref this focus-face)))
 	(unwind-protect
 	    (let ((cb (current-buffer)))
-	      (oset this focus-face (oref this arm-face))
-	      (draw this) ; set that...
+	      (show-arm this t t)
 	      (widget-lock-over this)	;visually display arming
 	      (let ((x (current-column))
 		    (y (count-lines (point-min) (point)))
@@ -614,7 +650,7 @@ String to optimally fill that area."
 		  (oset this boxed ob)))
 	      (oset this focus-face omf)
 	      (if (equal (current-buffer) cb)
-		  (draw this)))))
+		  (show-arm this nil t)))))
     (if (member coe '(return ?  ?\n ?\f))
 	(progn
 	  (show-arm this t)
@@ -642,8 +678,7 @@ help about this widget."
 (defmethod draw ((this widget-button))
   "Draw the button widget to the display"
   ;; now draw the label part
-  (save-excursion
-    (call-next-method)))
+  (call-next-method))
 
 ;;
 ;; Option Button
@@ -683,7 +718,10 @@ help about this widget."
 	;; now draw the indicator
 	(goto-xy (oref this rx) (oref this ry))
 	(insert-overwrite-face (oref this option-indicator) 
-			       (oref this ind-face))
+			       (oref this ind-face) 
+			       (oref this focus-face)
+			       this)
+	(insert-overwrite-face " " nil (oref this focus-face) this)
 	;; draw the rest
 	(call-next-method))))
 
@@ -770,21 +808,22 @@ help about this widget."
 
 (defmethod update-symbol ((this widget-toggle-button) sym)
   "If sym is STATE field, then update ourselves"
-  (if (eq sym (oref this state))
-      (draw this)
-    (call-next-method)))
+  (save-excursion
+    (if (eq sym (oref this state))
+	(draw this)
+      (call-next-method))))
 
 (defmethod draw ((this widget-toggle-button))
   "Draws a toggle button to the display"
-  (save-excursion
-    ;; now draw the indicator
-    (let* ((val1 (oref this state))
-	   (val2 (get-value val1)))
-      (goto-xy (oref this rx) (oref this ry))
-      (insert-overwrite-face (aref (oref this showvec) (if val2 1 0))
-			     (oref this ind-face)))
-    ;; draw the rest
-    (call-next-method)))
+  ;; now draw the indicator
+  (let* ((val1 (oref this state))
+	 (val2 (get-value val1)))
+    (goto-xy (oref this rx) (oref this ry))
+    (insert-overwrite-face (aref (oref this showvec) (if val2 1 0))
+			   (oref this ind-face) (oref this focus-face) this)
+    (insert-overwrite-face " " nil (oref this focus-face) this))
+  ;; draw the rest
+  (call-next-method))
 
 (defmethod move-cursor-to ((this widget-toggle-button))
   "Move the cursor so that it sits at a useful location inside this widget"
@@ -944,7 +983,7 @@ help about this widget."
     (goto-xy (1- (oref this rx)) (oref this ry))
     ;; check for characters off to the left
     (insert-overwrite-face (if (> (oref this disppos) 0) "<" " ")
-			   (oref this spface))
+			   (oref this spface) this)
     ;; check for newline inside string
     (if (string-match "\\(\n\\)" os)
 	(setq nflag t
@@ -993,7 +1032,7 @@ help about this widget."
 	      (next-line-add-newlines nil))
 	  ;; do the simulated edit in a seperate buffer
 	  (save-window-excursion
-	    (switch-to-buffer (get-buffer-create "*Text Widget Scratch*"))
+	    (switch-to-buffer (get-buffer-create "*Text Widget Scratch*") t)
 	    (erase-buffer)
 	    (insert (get-value mo))
 	    (goto-char (+ cp (oref this disppos) 1))
