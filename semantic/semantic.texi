@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.53 2001/11/10 13:05:06 zappo Exp $
+@c $Id: semantic.texi,v 1.54 2001/11/14 01:51:47 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -2011,7 +2011,7 @@ Semantic.
 * senator::                     The Semantic Navigator
 * document::                    Document generation functions
 * charts::                      Charting code statistics
-* miscellaneous::
+* minor modes::                 Useful minor modes
 @end menu
 
 @node speedbar, imenu, Tools, Tools
@@ -2465,7 +2465,7 @@ Jump to the source for the definition in the texinfo file @var{TOKEN}.
 If @var{TOKEN} is @code{nil}, it is derived from the deffn under @var{POINT}.
 @end deffn
 
-@node charts, miscellaneous, document, Tools
+@node charts, minor modes, document, Tools
 @comment  node-name,  next,  previous,  up
 @section Charting Commands
 
@@ -2492,9 +2492,9 @@ Only the most complex items are charted.
 @end deffn
 
 
-@node miscellaneous,  , charts, Tools
+@node minor modes,  , charts, Tools
 @comment  node-name,  next,  previous,  up
-@section Miscellaneous commands
+@section Minor Modes
 
 @deffn Command semantic-show-dirty-mode &optional arg
 Minor mode for highlighting dirty tokens.
@@ -2508,6 +2508,10 @@ minor mode is enabled.
 Toggle global use of @code{semantic-show-dirty-mode}.
 If @var{ARG} is positive, enable, if it is negative, disable.
 If @var{ARG} is @code{nil}, then toggle.
+@end deffn
+
+@deffn Option semantic-dirty-token-face
+Face used to show dirty tokens in @code{semantic-show-dirty-token-mode}.
 @end deffn
 
 @deffn Command semantic-show-unmatched-syntax-mode &optional arg
@@ -2524,6 +2528,11 @@ If @var{ARG} is positive, enable, if it is negative, disable.
 If @var{ARG} is @code{nil}, then toggle.
 @end deffn
 
+@deffn Option semantic-unmatched-syntax-face
+Face used to show unmatched-syntax in.
+The face is used in  @dfn{semantic-show-unmatched-syntax-mode}.
+@end deffn
+
 @deffn Command global-semantic-auto-parse-mode &optional arg
 Toggle global use of @dfn{semantic-auto-parse-mode}.
 If @var{ARG} is positive, enable, if it is negative, disable.
@@ -2536,6 +2545,22 @@ With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-@code{nil} if the
 minor mode is enabled.
+@end deffn
+
+@deffn Option semantic-auto-parse-no-working-message
+Non-@code{nil} disable display of working message during parse.
+@end deffn
+
+@deffn Option semantic-auto-parse-idle-time
+Time in seconds of idle time before auto-reparse.
+This time should be short enough to ensure that auto-parse will be
+run as soon as Emacs is idle.
+@end deffn
+
+@deffn Option semantic-auto-parse-max-buffer-size
+Maximum size in bytes of buffers automatically reparsed.
+If this value is less than or equal to @var{0} buffers are automatically
+reparsed regardless of their size.
 @end deffn
 
 @node Index,  , Tools, Top
