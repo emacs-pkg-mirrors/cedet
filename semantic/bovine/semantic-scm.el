@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.6 2003/03/15 19:30:29 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.7 2003/03/21 03:25:16 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-scheme-bovine-table
-  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-13 20:18-0500
+  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-20 22:23-0500
   `(
     (bovine-toplevel ;;scheme
      (semantic-list
@@ -98,9 +98,8 @@
       )
      (symbol
       ,(semantic-lambda
-	(semantic-tag
-	 (nth 0 vals)
-	 'code))
+	(semantic-tag-new-code
+	 (nth 0 vals) nil))
       )
      ) ;; end scheme-in-list
 
@@ -155,7 +154,7 @@
   "Top level bovination table for scheme.")
 
 (defvar semantic-scheme-keyword-table
-  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-13 20:18-0500
+  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-20 22:23-0500
   (semantic-lex-make-keyword-table
    '(("define" . DEFINE)
      ("define-module" . DEFINE-MODULE)
@@ -219,7 +218,7 @@ syntax as specified by the syntax table."
 ;;;###autoload
 (defun semantic-default-scheme-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
-  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-13 20:18-0500
+  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-20 22:23-0500
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-scheme-bovine-table
 	  semantic-debug-parser-source "scheme.by"
