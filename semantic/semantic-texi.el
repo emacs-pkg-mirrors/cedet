@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.16 2003/08/01 16:39:19 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.17 2003/08/23 21:45:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -308,7 +308,7 @@ If TAG is nil, determine a tag based on the current position."
                 #'cdr
                 ;; `semanticdb-find-first-tag-by-name' returns a
                 ;; list ((DB-TABLE . TOKEN) ...)
-                (semanticdb-deep-find-tags-by-name name nil t)))
+                (semanticdb-brute-deep-find-tags-by-name name nil t)))
 	 (docstring nil)
 	 (doctag nil))
     (save-excursion
