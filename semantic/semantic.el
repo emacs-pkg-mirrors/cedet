@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.4
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.77 2001/01/10 06:48:52 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.78 2001/01/24 21:06:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -182,30 +182,26 @@ a type nonterminal.
 
 TOP-LEVEL ENTRIES:
 
- (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS [OPTSUFFIX]
-           \"DOCSTRING\" PROPERTIES OVERLAY)
+ (\"NAME\" variable \"TYPE\" DEFAULT-VALUE MODIFIERS 
+         \"DOCSTRING\" PROPERTIES OVERLAY)
    The definition of a variable, or constant.
-   CONST is a boolean representing if this variable is considered a constant.
    DEFAULT-VALUE can be something apropriate such a a string,
                  or list of parsed elements.
    MODIFIERS are details about a variable that are not covered in the TYPE.
-   OPTSUFFIX is an optional field specifying trailing modifiers such as
-             array dimentions or bit fields.
+             See detail on MODIFIERS after entries section.
    DOCSTRING is optional.
 
- (\"NAME\" function \"TYPE\" ( ARG-LIST ) MODIFIERS [THROWS]
+ (\"NAME\" function \"TYPE\" ( ARG-LIST ) MODIFIERS
           \"DOCSTRING\" PROPERTIES OVERLAY)
    A function/procedure definition.
    ARG-LIST is a list of variable definitions.
-   THROWS is an optional argument for functions or methods in languages
-   that support typed signal throwing.
    DOCSTRING is optional.
 
  (\"NAME\" type \"TYPE\" ( PART-LIST ) ( PARENTS ) MODIFIERS
           \"DOCSTRING\" PROPERTIES OVERLAY)
    A type definition.
    TYPE of a type could be anything, such as (in C) struct, union, typedef,
-   or class.
+        or class.
    PART-LIST is only useful for structs that have multiple individual parts.
             (It is recommended that these be variables, functions or types).
    PARENTS is strictly for classes where there is inheritance.
@@ -218,7 +214,34 @@ TOP-LEVEL ENTRIES:
 
  (\"NAME\" package DETAIL \"DOCSTRING\" PROPERTIES OVERLAY)
    In Emacs Lisp, a `provide' statement.  DETAIL might be an
-   associated file name.")
+   associated file name.  In Java, this is a package statement.
+
+MODIFIERS:
+
+  The MODIFIERS section of variables, functions, and types provide a
+location to place language specific details which are not accounted
+for by the base token type.  Because there is an arbitrary number of
+things that could be associated in the MODIFIERS section, this should
+be formatted as an association list.
+
+  Here are some typed modifiers that may exist.  Any arbitrary number of
+modifiers may be created, and modifiers not documented here are allowed.
+
+  (parent .  \"text\") - Name of a parent type/class.  C++ and CLOS allow
+     the creation of a function outside the body of that type/class.
+
+  (dereference .  INT) - Number of levels of dereference.  In C, the number
+     of `*' characters indicating pointers.
+
+  (typemodifiers .  \"text\") - Keyword modifiers for a type.  In C, such
+     words would include `register', and `volatile'.
+
+  (suffix . \"text\") - Suffix information for a variable.
+
+  (const .  t) - This exists if the variable or return value is constant.
+
+  (throws .  \"text\") - For functions or methods in languages that support
+     typed signal throwing.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table)
 
 (defvar semantic-symbol->name-assoc-list
@@ -993,6 +1016,23 @@ commands, use `semantic-bovinate-from-nonterminal-full'."
 				   ;; This says stop on an error.
 				   t)))
 
+(defun semantic-bovinate-make-assoc-list (&rest args)
+  "Create an association list with ARGS.
+Args are of the form (KEY1 VALUE1 ... KEYN VALUEN).
+The return value will be of the form: ((KEY1 .  VALUE1) ... (KEYN . VALUEN))
+Where KEY is a symbol, and VALUE is the value for that symbol.
+If VALUE is nil, then KEY is excluded from the return association list."
+  (let ((ret nil))
+    (while args
+      (let ((value (car-safe (cdr args))))
+	(if (and value
+		 (or (not (stringp value))
+		     (not (string= value "")))
+		 (or (not (numberp value))
+		     (not (= value 0))))
+	    (setq ret (cons (cons (car args) (car (cdr args))) ret)))
+	(setq args (cdr (cdr args)))))
+    (nreverse ret)))
 
 ;;; Debugging in bovine tables
 ;;
