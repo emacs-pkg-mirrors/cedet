@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.2 1999/01/21 14:01:37 zappo Exp $
+@c $Id: ede.texi,v 1.3 1999/03/09 17:29:22 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -37,18 +37,134 @@ to learn and adopt the GNU ways of doing things.
 * Creating a project::      Creating a project.
 * Modifying your project::  Adding and removing files and targets.
 * Building and Debugging::  Initiating a build or debug session.
+* Miscellaneous commands::   Other project related commands.
+* Project types::           There are different types of projects.
 @end menu
 
 @node EDE Mode, Creating a project, Top, Top
 @chapter EDE Mode
 
+EDE is implemented as a minor-mode, which augments other modes such as C
+mode, and Texinfo mode.  You can turn EDE on for all buffers by running
+the command @code{global-ede-mode}, or by putting this in your
+@file{~/.emacs} file.
+
+@example
+(global-ode-mode)
+@end example
+
+When EDE is active for a given buffer, the menu item ``Project''
+appears.  This menu contains several high-level functions to make
+working on a code set easier.  These items and keybindings never change
+regardless of the type of project you are actually working on.
+
+EDE makes use of EIEIO, the CLOS package for Emacs.  This lets EDE
+define two object superclasses, specifically the PROJECT and TARGET.
+All commands in EDE are usually meant to address the current project, or
+current target.
+
+All specific projects in EDE derive subclasses of the EDE superclasses.
+In this way, specific behaviors such as how a project is saved, or how a
+target is compiled can be customized by a project author in detail.  EDE
+communicates to these project objects via methods.  The commands you use
+in EDE mode are high-level functional wrappers over these
+methods. @xref{Project types} for details on different types of projects.
+
 @node Creating a project, Modifying your project, EDE Mode, Top
 @chapter Creating a project
+
+EDE can support many different types of projects.  When creating a new
+project with the command `ede-new' (found in the menu) you must choose
+the type of project you would like to create.  @xref{Project types}
+
+Each type has it's own benefits or language specific enhancements.  You
+will be prompted for the type of project you would like to create.  The
+simplest and most language agnostic project type is ``edeproject''.
+
+Not all project types need or can be created in this way.  The
+``automake'' project type does not have a project initialization method,
+but will read existing @file{Makefile.in} files.
 
 @node Modifying your project, Building and Debugging, Creating a project, Top
 @chapter Modifying your project
 
-@node Building and Debugging, , Modifying your project, Top
+A project, and it's targets, are objects, with data fields containing
+important information related to your work.  Of note is that a project
+has a list of subprojects (sub directories), and targets (things to
+build from sources).
+
+In this respect, a project conceptually mirrors a Makefile build tree.
+You can create a new target with the @code{ede-new-target} command
+@kbd{C-c . t}.  Once created, you can now put source files into this
+target.  You can remove a target with the command @code{ede-delete-taget}.
+
+You can add and remove files into targets with the command
+@code{ede-add-file} and @code{ede-remove-file} bound to @kbd{C-c . a}
+and @kbd{C-c . d} respectivly.  If a project is active, and a new file
+is loaded, EDE will attempt to auto-add that file to a target of your
+choice.
+
+If these high-level functions aren't enough, you can tweak all
+user-customizable fields at any time by running the command
+@code{customize-project} or @code{customize-target}.  This will load the
+given object into an immediate-mode customization buffer where you tweak
+individual slots.  This is usually necessary for project modes that are
+very complex.
+
+Other project modes do not have a project file, but directly read a
+Makefile, or existing item.  Instead of letting you directly edit the
+object, you can edit the file.  Use the command
+@code{ede-edit-file-target} bound to @kbd{C-c . e}.
+
+@node Building and Debugging, Miscellaneous commands, Modifying your project, Top
 @chapter Building and Debugging
+
+EDE assumes you are writing some sort of program, so attempts to
+facilitate this activity.  By associating the current buffer with a
+target, certain assumptions can be made about how to compile or debug a
+given source file.
+
+The following commands are quite straight forwards.
+
+@table @kbd
+@item C-c . c
+Compile the current target.
+@item C-c . C
+Compile the entire project.
+@item c-c . D
+Debug the current target.
+@item ede-make-dist
+Build a distribution file for your project.
+@end table
+
+@node Miscellaneous commands, Project types, Building and Debugging, Top
+@chapter Miscellaneous commands
+
+EDE also supports the speedbar package.  While speedbar works great
+against directories already, EDE provides a project display mode.  This
+lets you look at your source files as they are structured in your
+project.  Thus, where many files may be clumpled together in one
+directory, the Project view will provide a hierarchical view of your
+files as grouped by target.
+
+You can activate speedbar in this mode with the command @code{ede-speedbar}.
+
+@node Project types, , Miscellaneous commands, Top
+@chapter Project types
+
+There are two types of project modes currently.  One is defined as
+``edeproject'' in @file{ede-proj}, and the other is ``automake'' in
+@file{project-am.el}.
+
+Edeproject creates a file called Project.ede in a given project
+directory.  This is used to track your information.  When compiling,
+this project will autogenerate a Makefile.  Plans for supporting
+automake are in the works.
+
+The automake project is derived from the sources of the original
+project-am mode I wrote.  This mode eventually became ede.  The automake
+project will read existing automake files, but will not generate them
+automatically, or create new ones.  As such, it is useful as a browsing
+tool, and can add simple files to target lists.
 
 @bye
