@@ -1,10 +1,10 @@
 ;;; document.el --- Use the bovinator to aid in generating documentation.
 
-;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.14 2003/04/01 15:18:16 ponced Exp $
+;; X-RCS: $Id: document.el,v 1.15 2003/04/02 02:25:34 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -86,7 +86,7 @@ When non-nil, query for a new documentation file."
 			    (current-buffer) t)))))
   ;; First, garner some information from Semantic.
   (semantic-bovinate-toplevel t)
-  (let ((cdi (semantic-find-nonterminal-by-position (point) (current-buffer)))
+  (let ((cdi (semantic-brute-find-tag-by-position (point) (current-buffer)))
 	(cdib (current-buffer)))
     ;; Make sure we have a file.
     (document-locate-file (current-buffer))
@@ -105,35 +105,35 @@ When non-nil, query for a new documentation file."
   "Document the current function with an inline comment."
   (interactive)
   (semantic-bovinate-toplevel t)
-  (let ((cf (semantic-find-nonterminal-by-position (point) (current-buffer))))
+  (let ((cf (semantic-brute-find-tag-by-position (point) (current-buffer))))
     (document-insert-defun-comment cf (current-buffer))))
 
 ;;; Documentation insertion functions
 ;;
 (defun document-insert-texinfo (nonterm buffer)
   "Insert texinfo documentation about NONTERM from BUFFER."
-  (let ((tt (semantic-token-token nonterm)))
+  (let ((tt (semantic-tag-class nonterm)))
     (insert "@"
 	    (cond ((eq tt 'variable)
-		   (if (semantic-token-extra-spec nonterm 'user-visible)
+		   (if (semantic-tag-get-attribute nonterm 'user-visible)
 		       "deffn Option"
 		     "defvar"))
 		  ((eq tt 'function)
-		   (if (semantic-token-extra-spec nonterm 'user-visible)
+		   (if (semantic-tag-get-attribute nonterm 'user-visible)
 		       "deffn Command"
 		     "defun"))
 		  ((eq tt 'type)
 		   "deftype")
 		  (t (error "Don't know how to document that")))
 	    " "
-	    (semantic-token-name nonterm))
+	    (semantic-tag-name nonterm))
     (if (eq tt 'function)
-	(let ((args (semantic-token-function-args nonterm)))
+	(let ((args (semantic-tag-function-arguments nonterm)))
 	  (while args
 	    (insert " ")
 	    (if (stringp (car args))
 		(insert (car args))
-	      (insert (semantic-token-name (car args))))
+	      (insert (semantic-tag-name (car args))))
 	    (setq args (cdr args)))))
     (insert "\n")
     (insert (document-massage-to-texinfo
@@ -142,11 +142,11 @@ When non-nil, query for a new documentation file."
 	     (document-generate-documentation nonterm buffer)))
     (insert "\n@end "
 	    (cond ((eq tt 'variable)
-		   (if (semantic-token-extra-spec nonterm 'user-visible)
+		   (if (semantic-tag-get-attribute nonterm 'user-visible)
 		       "deffn"
 		     "defvar"))
 		  ((eq tt 'function)
-		   (if (semantic-token-extra-spec nonterm 'user-visible)
+		   (if (semantic-tag-get-attribute nonterm 'user-visible)
 		       "deffn"
 		     "defun"))
 		  ((eq tt 'type)
@@ -157,7 +157,7 @@ When non-nil, query for a new documentation file."
   "Insert mode-comment documentation about NONTERM from BUFFER."
   (interactive)
   (let ((document-runflags nil)
-	(tt (semantic-token-token nonterm)))
+	(tt (semantic-tag-class nonterm)))
     (cond
      ((eq tt 'function)
       (if (semantic-find-documentation nonterm t)
@@ -173,7 +173,7 @@ When non-nil, query for a new documentation file."
     (save-excursion
       (document-update-paramlist nonterm comment))
     (semantic-bovinate-toplevel t)
-    (let ((ct (semantic-find-nonterminal-by-position
+    (let ((ct (semantic-brute-find-tag-by-position
 	       (point) (current-buffer))))
       (setq comment (semantic-find-documentation nonterm 'flex))
       (document-update-history comment (document-get-history-elt "")))))
@@ -301,15 +301,15 @@ This will create a new documentation string from scratch."
 	(upnt 0)
 	(st 0)
 	(zpnt 0)
-	(fname (semantic-token-name nonterm))
-	(returns (semantic-token-type nonterm))
-	(params (semantic-token-function-args nonterm))
+	(fname (semantic-tag-name nonterm))
+	(returns (semantic-tag-type nonterm))
+	(params (semantic-tag-function-args nonterm))
 	)
     (if (listp returns)
 	;; convert a type list into a long string to analyze.
 	(setq returns (car returns)))
     ;; nonterm should always be correct.
-    (goto-char (semantic-token-start nonterm))
+    (goto-char (semantic-tag-start nonterm))
     (setq st (point))
     (insert (Sformat (list (list ?F fname)
 			   (list ?f '(lambda () (setq zpnt (Sformat-point)) ""))
@@ -346,8 +346,8 @@ allocating something based on its type."
 	(dropit nil)
 	(tailit nil)
 	(news "")
-	(fname (semantic-token-name nonterm))
-	(retval (or (semantic-token-type nonterm) "")))
+	(fname (semantic-tag-name nonterm))
+	(retval (or (semantic-tag-type nonterm) "")))
     (if (listp retval)
 	;; convert a type list into a long string to analyze.
 	(setq retval (car retval)))
@@ -424,9 +424,9 @@ Optional COMMENTLIST is a list of previously known parts with comments."
 	 (newp ""))
     (while newl
       (let* ((n (car newl))
-	     (nn (if (stringp n) n (semantic-token-name n)))
-	     (al (if (stringp n) nil (semantic-token-variable-modifiers n)))
-	     (nt (if (stringp n) "" (semantic-token-type n))))
+	     (nn (if (stringp n) n (semantic-tag-name n)))
+	     (al (if (stringp n) nil (semantic-tag-modifiers n)))
+	     (nt (if (stringp n) "" (semantic-tag-type n))))
 	(if (listp nt)
 	    ;; make sure this is a string.
 	    (setq nt (car nt)))
@@ -469,11 +469,11 @@ standard names, then englishify it instead."
   (let ((cmt "")
 	(aso document-autocomment-param-alist)
 	(fnd nil)
-	(name (if (stringp param) param (semantic-token-name param)))
-	(tt (if (stringp param) nil (semantic-token-type param))))
+	(name (if (stringp param) param (semantic-tag-name param)))
+	(tt (if (stringp param) nil (semantic-tag-type param))))
     ;; Make sure the type is a string.
     (if (listp tt)
-	(setq tt (semantic-token-name tt)))
+	(setq tt (semantic-tag-name tt)))
     ;; Find name description parts.
     (while aso
       (if (string-match (car (car aso)) name)
@@ -484,7 +484,7 @@ standard names, then englishify it instead."
     (if (/= (length cmt) 0)
 	nil
       ;; finally check for array parts
-      (if (and (not (stringp param)) (semantic-token-variable-modifiers param))
+      (if (and (not (stringp param)) (semantic-tag-variable-modifiers param))
 	  (setq cmt (concat cmt "array of ")))
       (setq aso document-autocomment-param-type-alist)
       (while (and aso tt)
@@ -576,8 +576,8 @@ COMMENT is a flex token."
 (defun document-argument-name (arg)
   "Return a string representing the name of ARG.
 Arguments can be semantic tokens, or strings."
-  (cond ((semantic-token-p arg)
-	 (semantic-token-name arg))
+  (cond ((semantic-tag-p arg)
+	 (semantic-tag-name arg))
 	((stringp arg)
 	 arg)
 	(t (format "%s" arg))))
@@ -586,7 +586,7 @@ Arguments can be semantic tokens, or strings."
   "Update NONTERM's comment found in the flex token COMMENT."
   (let ((endpos 0) st en (il nil)
 	(case-fold-search nil)
-	(l (semantic-token-function-args nonterm)))
+	(l (semantic-tag-function-args nonterm)))
     (save-excursion
       (goto-char (semantic-lex-token-start comment))
       (let ((s (document-just-after-token-regexp ?P document-function-comment))
@@ -661,7 +661,7 @@ Arguments can be semantic tokens, or strings."
 	(nn nil))
     (while list
       (setq nn (if (stringp (car list)) (car list)
-		 (semantic-token-name (car list))))
+		 (semantic-tag-name (car list))))
       (if (< longest (length nn))
 	  (setq longest (length nn)))
       (setq list (cdr list)))
