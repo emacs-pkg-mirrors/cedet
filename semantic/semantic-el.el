@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.6 1999/05/18 16:00:11 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.7 1999/05/23 13:29:37 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -197,7 +197,7 @@
 	      (lambda (vals start end)
 		(append  (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil)
 			 (list start end))))
-     ( symbol "typedef" type symbol
+     ( symbol "typedef" typeform symbol
 	      (lambda (vals start end)
 		(append  (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil)
 			 (list start end))))
