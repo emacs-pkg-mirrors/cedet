@@ -1,3 +1,8 @@
+* Changes for Semantic 1.4.4
+
+** New `semantic-stickyfunc-mode'.  Displays the function header at top of
+   window in the Emacs 21 header-line.
+
 * Changes for Semantic 1.4.3
 
 ** Much better C/C++ grammar (almost complete) - now complex C++ can be parsed
