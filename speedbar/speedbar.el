@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.26 1997/02/10 03:15:48 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.27 1997/02/12 02:50:50 zappo Exp $
 ;;; Version: 0.4.2
 ;;; Keywords: file, tags, tools
 ;;;
@@ -197,6 +197,7 @@
 ;;;       Refresh will now maintain all subdirectories that were open
 ;;;        when the refresh was requested.  (This does not include the
 ;;;        tags, only the directories)
+;;; 0.4.3 Bug fixes
 ;;;
 ;;; TODO:
 ;;; 1) Implement SHIFT-mouse2 to rescan buffers with imenu.
@@ -617,6 +618,7 @@ supported at a time."
 	  (speedbar-mode)
 	  (select-frame speedbar-frame)
 	  (switch-to-buffer speedbar-buffer)
+	  (set-window-dedicated-p (selected-window) t)
 	  (raise-frame speedbar-frame)
 	  (speedbar-set-timer speedbar-update-speed)
 	  )
@@ -853,7 +855,6 @@ Assumes that the current buffer is the speedbar buffer"
     (while dl
       (adelete 'speedbar-directory-contents-alist (car dl))
       (setq dl (cdr dl))))
-  (setq speedbar-full-text-cache nil)
   (if (<= 1 speedbar-verbosity-level) (message "Refreshing speedbar..."))
   (speedbar-update-contents)
   (speedbar-stealthy-updates)
@@ -1282,29 +1283,45 @@ name will have the function FIND-FUN and not token."
 (defun speedbar-update-contents ()
   "Update the contents of the speedbar buffer."
   (interactive)
-  (setq speedbar-last-selected-file nil)
-  (let ((cbd default-directory)
+  (let ((cbd (expand-file-name default-directory))
 	(funclst speedbar-initial-expansion-list)
 	(cache speedbar-full-text-cache)
 	;; disable stealth during update
-	(speedbar-stealthy-function-list nil))
+	(speedbar-stealthy-function-list nil)
+	(use-cache nil)
+	;; Because there is a bug I can't find just yet 
+	(inhibit-quit nil))
     (save-excursion
       (set-buffer speedbar-buffer)
-      ;; If we `moved' erase the shown directories, otherwise we need it
-      ;; Only cache the text of this window if we are moving as well.
-      (if (not (member (expand-file-name default-directory)
-		       speedbar-shown-directories))
-	  (progn
-	    (setq speedbar-shown-directories 
-		  (list (expand-file-name default-directory))
-		  cache nil)
-	    (if (> (point-max) 1)
-		(setq speedbar-full-text-cache
-		      (cons default-directory (buffer-string))))))
+      ;; If we are updating contents to a where we are, then this is 
+      ;; really a request to update existing contents, so we must be
+      ;; careful with our text cache!
+      (if (member cbd speedbar-shown-directories)
+	  (setq cache nil)
+	;; If this directory is NOT in the current list of available
+	;; paths, then use the cache, and set the cache to our new
+	;; value.  Make sure to unhighlight the current file, or if we
+	;; come back to this directory, it might be a different file
+	;; and then we get a mess!
+	(if (> (point-max) 1)
+	    (progn
+	      (speedbar-clear-current-file)
+	      (setq speedbar-full-text-cache
+		    (cons speedbar-shown-directories (buffer-string)))))
+	  
+	;; Check if our new directory is in the list of directories
+	;; show in the text-cahce
+	(if (member cbd (car cache))
+	    (setq speedbar-shown-directories (car cache)
+		  use-cache t)
+	  ;; default the shown directories to this list...
+	  (setq speedbar-shown-directories (list cbd)))
+	)
+      (setq speedbar-last-selected-file nil)
       (speedbar-with-writable
 	(setq default-directory cbd)
 	(erase-buffer)
-	(if (and (car cache) (string= default-directory (car cache)))
+	(if use-cache
 	    (insert (cdr cache))
 	  (while funclst
 	    (funcall (car funclst) cbd 0)
@@ -1372,6 +1389,25 @@ If new functions are added, their state needs to be updated here."
   (setq speedbar-vc-to-do-point t)
   )
 
+(defun speedbar-clear-current-file ()
+  "Locate the file thought to be current, and unhighlight it."
+  (save-excursion
+    (set-buffer speedbar-buffer)
+    (if speedbar-last-selected-file
+	(speedbar-with-writable
+	  (goto-char (point-min))
+	  (if (and 
+	       speedbar-last-selected-file
+	       (re-search-forward 
+		(concat " \\(" (regexp-quote speedbar-last-selected-file) 
+			"\\)\\(" (regexp-quote speedbar-vc-indicator)
+			"\\)?\n")
+		nil t))
+	      (put-text-property (match-beginning 1)
+				 (match-end 1)
+				 'face
+				 'speedbar-file-face))))))
+
 (defun speedbar-update-current-file ()
   "Find the current file is, and update our visuals to indicate its name.
 This is specific to file names.  If the file name doesn't show up, but
@@ -1379,12 +1415,12 @@ it should be in the list, then the directory cache needs to be
 updated."
   (let* ((lastf (selected-frame))
 	 (newcfd (save-excursion
-		  (select-frame speedbar-attached-frame)
-		  (let ((rf (if (buffer-file-name)
-				(buffer-file-name)
-			      nil)))
-		    (select-frame lastf)
-		    rf)))
+		   (select-frame speedbar-attached-frame)
+		   (let ((rf (if (buffer-file-name)
+				 (buffer-file-name)
+			       nil)))
+		     (select-frame lastf)
+		     rf)))
 	 (newcf (if newcfd (file-name-nondirectory newcfd)))
 	 (lastb (current-buffer))
 	 (sucf-recursive (boundp 'sucf-recursive)))
@@ -1394,21 +1430,11 @@ updated."
 	     (file-exists-p newcf)
 	     (not (string= newcf speedbar-last-selected-file)))
 	(progn
-	  (select-frame speedbar-frame)
+	  ;; Remove the old file...
+	  (speedbar-clear-current-file)
+	  ;; now highlight the new one.
 	  (set-buffer speedbar-buffer)
 	  (speedbar-with-writable
-	    (goto-char (point-min))
-	    (if (and 
-		 speedbar-last-selected-file
-		 (re-search-forward 
-		  (concat " \\(" (regexp-quote speedbar-last-selected-file) 
-			  "\\)\\(" (regexp-quote speedbar-vc-indicator)
-			  "\\)?\n")
-		  nil t))
-		(put-text-property (match-beginning 1)
-				   (match-end 1)
-				   'face
-				   'speedbar-file-face))
 	    (goto-char (point-min))
 	    (if (re-search-forward 
 		 (concat " \\(" (regexp-quote newcf) "\\)\\("
@@ -1441,7 +1467,7 @@ updated."
 		(forward-line -1)
 		(speedbar-position-cursor-on-line)))
 	  (set-buffer lastb)
-	  (select-frame lastf))))
+	  )))
   ;; return that we are done with this activity.
   t)
 
@@ -1579,8 +1605,8 @@ and return nil."
 	;; find the file part
 	(let ((nd (file-name-nondirectory file)))
 	  (if (re-search-forward 
-	       (concat "] " (regexp-quote nd)
-		       "\\(" (regexp-quote speedbar-vc-indicator) "\\)?$")
+	       (concat "] \\(" (regexp-quote nd)
+		       "\\)\\(" (regexp-quote speedbar-vc-indicator) "\\)?$")
 	       nil t)
 	      (progn
 		(speedbar-position-cursor-on-line)
@@ -2211,6 +2237,11 @@ multiple defaults and dynamically determine which colors to use."
   (copy-face 'highlight 'speedbar-highlight-face)
 
   ) ;; monochrome
+
+;; some edebug hooks
+(add-hook 'edebug-setup-hook
+	  (lambda () 
+	    (def-edebug-spec speedbar-with-writeable def-body)))
 
 ;; run load-time hooks
 (run-hooks 'speedbar-load-hooks)
