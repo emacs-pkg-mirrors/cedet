@@ -1,10 +1,10 @@
 ;;; tree.el --- Draw a tree with text characters an manipulate it.
 
-;;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.3
-;; RCS: $Id: tree.el,v 1.7 1998/10/27 19:12:55 zappo Exp $
+;; RCS: $Id: tree.el,v 1.8 1999/01/21 14:49:01 zappo Exp $
 ;; Keywords: OO, tree
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -203,69 +203,66 @@ will take.  TOPROW specifies what row this node starts at, and
 LEFTMARGIN specifies how far out on the left this node can draw
 itself.
 Optional argument POS is a postion."
-  (let* ((h (oref node height))
-	 (tpos
-	  (cond ((eq pos 'center) (- (/ h 2) 1))
-		((eq pos 'top) 0)
-		((eq pos 'bottom) (- h 3))
-		(t (error "Illegal call to tree-box-1"))))
-	 (kids (oref node children))
-	 (p (oref node parent))
-	 (l 0)
-	 (nm (oref node name))
-	 (ex (oref node expand)))
-    ;;(message "Refreshing tree...[%s]" nm)
-    ;; draw the box
-    (tree-goto-xy leftmargin (+ tpos toprow))
-    (insert (if p " " "") tree-ul-char)
-    (insert (make-string (- (tree-node-width node) 2)
-			 (aref tree-horizontal-char 0)))
-    (insert tree-ur-char)
-    (tree-goto-xy leftmargin (+ tpos toprow 1))
-    (insert (if p "-" "") tree-vertical-char)
-    (let ((p1 (point)))
-      (insert nm)
-      (put-text-property p1 (point) 'face tree-face)
-      (put-text-property p1 (point) 'node-object node)
-      (put-text-property p1 (point) 'mouse-face 'highlight)
-      )
-    (insert (if (oref node expand) "" "..."))
-    (insert tree-vertical-char)
-    (if (and kids ex)
-	(let* ((mn (tree-node-width node))
-	       (nd (- width mn (if p 2 1)))
-	       (l 0))
-	  (while (< l nd)
-	    (insert "-")
-	    (setq l (1+ l)))))
-    (tree-goto-xy leftmargin (+ tpos toprow 2))
-    (insert (if p " " "") tree-ll-char)
-    (insert (make-string (- (tree-node-width node) 2)
-			 (aref tree-horizontal-char 0)))
-    (insert tree-lr-char)
-    ;; draw all the kids
-    (while (and kids ex)
-      (tree-draw-node (car kids) (= l 0) (cdr kids)
-		      (+ (tree-level-width node) 3)
-		      (+ toprow l) (+ leftmargin width))
-      (setq l (+ l (oref (car kids) height)))
-      (setq kids (cdr kids)))
-    ;; draw the connecting lines
-    (setq kids (oref node children))
-    (if (and kids (oref node expand))
-	(let ((i 1) (ok nil) (h (1- h)))
-	  (while (and (< i h) kids)
-	    (tree-goto-xy (+ leftmargin width -1) (+ toprow i))
-	    (insert
-	     (cond ((looking-at " -") (setq ok t kids (cdr kids)) "+")
-		   (ok "|")
-		   (t " ")))
-	    (delete-char 1)
-	    (setq i (1+ i))
-	    )))
-    (tree-goto-xy (+ leftmargin 2) (+ tpos toprow 1))
-    (oset node currentpos (point))
-  ))
+  (with-slots ((h height) (kids children) (p parent) (nm name) (ex expand))
+      node
+    (let ((tpos
+	    (cond ((eq pos 'center) (- (/ h 2) 1))
+		  ((eq pos 'top) 0)
+		  ((eq pos 'bottom) (- h 3))
+		  (t (error "Illegal call to tree-box-1"))))
+	   (l 0))
+      ;;(message "Refreshing tree...[%s]" nm)
+      ;; draw the box
+      (tree-goto-xy leftmargin (+ tpos toprow))
+      (insert (if p " " "") tree-ul-char)
+      (insert (make-string (- (tree-node-width node) 2)
+			   (aref tree-horizontal-char 0)))
+      (insert tree-ur-char)
+      (tree-goto-xy leftmargin (+ tpos toprow 1))
+      (insert (if p "-" "") tree-vertical-char)
+      (let ((p1 (point)))
+	(insert nm)
+	(put-text-property p1 (point) 'face tree-face)
+	(put-text-property p1 (point) 'node-object node)
+	(put-text-property p1 (point) 'mouse-face 'highlight)
+	)
+      (insert (if (oref node expand) "" "..."))
+      (insert tree-vertical-char)
+      (if (and kids ex)
+	  (let* ((mn (tree-node-width node))
+		 (nd (- width mn (if p 2 1)))
+		 (l 0))
+	    (while (< l nd)
+	      (insert "-")
+	      (setq l (1+ l)))))
+      (tree-goto-xy leftmargin (+ tpos toprow 2))
+      (insert (if p " " "") tree-ll-char)
+      (insert (make-string (- (tree-node-width node) 2)
+			   (aref tree-horizontal-char 0)))
+      (insert tree-lr-char)
+      ;; draw all the kids
+      (while (and kids ex)
+	(tree-draw-node (car kids) (= l 0) (cdr kids)
+			(+ (tree-level-width node) 3)
+			(+ toprow l) (+ leftmargin width))
+	(setq l (+ l (oref (car kids) height)))
+	(setq kids (cdr kids)))
+      ;; draw the connecting lines
+      (setq kids (oref node children))
+      (if (and kids (oref node expand))
+	  (let ((i 1) (ok nil) (h (1- h)))
+	    (while (and (< i h) kids)
+	      (tree-goto-xy (+ leftmargin width -1) (+ toprow i))
+	      (insert
+	       (cond ((looking-at " -") (setq ok t kids (cdr kids)) "+")
+		     (ok "|")
+		     (t " ")))
+	      (delete-char 1)
+	      (setq i (1+ i))
+	      )))
+      (tree-goto-xy (+ leftmargin 2) (+ tpos toprow 1))
+      (oset node currentpos (point))
+      )))
 
 (defun tree-goto-xy (x y)
   "Move cursor to position X Y in buffer, and add spaces and CRs if needed."
