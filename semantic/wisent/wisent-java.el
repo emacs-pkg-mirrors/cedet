@@ -7,7 +7,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.8 2001/08/17 09:19:51 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.9 2001/08/30 07:18:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1174,7 +1174,9 @@ Use the alternate LALR(1) parser."
     ;; semantic overloaded functions
     (semantic-install-function-overrides
      '((prototype-nonterminal . semantic-java-prototype-nonterminal)
-       (find-documentation    . semantic-java-find-documentation))
+       (find-documentation    . semantic-java-find-documentation)
+       (get-local-variables   . semantic-java-get-local-variables)
+       )
      t ;; They can be changed in mode hook by more specific ones
      )
     (setq
