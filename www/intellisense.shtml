@@ -74,7 +74,9 @@ Q) When I type the name of a struct or class and press "." nothing
    happens:
 
 A) The context analyzer has a bug that requires at least on symbol
-   character to appear after the "."
+   character to appear after the "." and before the end of the
+   function context.  It could be a part of the symbol completing, or
+   just some other command on another line.
 
 Q) I've typed in a new function, and the analyzer does nothing or
    throws an error.
