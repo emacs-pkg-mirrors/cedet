@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.27 2001/05/09 03:26:09 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.28 2001/05/25 01:12:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -449,12 +449,15 @@
  ( punctuation "[!*&~]" symbol
   ,(semantic-lambda
  ))
+ ( string
+  ,(semantic-lambda
+ ))
  ( semantic-list
   ,(semantic-lambda
  ))
  ) ; end expression
  )
-     "C language specification.")
+      "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
