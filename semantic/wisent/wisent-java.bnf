@@ -6,7 +6,7 @@
 ## Maintainer: David Ponce <david@dponce.com>
 ## Created: 07 Aug 2001
 ## Keywords: syntax
-## X-RCS: $Id: wisent-java.bnf,v 1.7 2001/09/03 13:11:41 ponced Exp $
+## X-RCS: $Id: wisent-java.bnf,v 1.8 2001/09/17 15:26:44 ponced Exp $
 ##
 ## This file is not part of GNU Emacs.
 ##
@@ -564,8 +564,7 @@ modifier
 class_declaration
   : modifiers_opt CLASS IDENTIFIER superc_opt interfaces_opt class_body
     (wisent-token $3 'type $2 $6 (if (or $4 $5) (cons $4 $5))
-                  (semantic-bovinate-make-assoc-list
-                   'typemodifiers $1)
+                  (ASSOC typemodifiers $1)
                   nil)
   ;
 
@@ -658,8 +657,7 @@ field_declaration
   : modifiers_opt type variable_declarators SEMICOLON
     (wisent-java-expand-nonterminal
       (car (wisent-token $3 'variable $2 nil
-                         (semantic-bovinate-make-assoc-list
-                          'typemodifiers $1)
+                         (ASSOC typemodifiers $1)
                          nil)))
   ;
 
@@ -691,15 +689,11 @@ variable_initializer
 method_declaration
   : modifiers_opt VOID method_declarator throwsc_opt method_body
     (wisent-token (car $3) 'function $2 (cdr $3)
-                  (semantic-bovinate-make-assoc-list
-                         'typemodifiers $1
-                         'throws $4)
+                  (ASSOC typemodifiers $1 throws $4)
                    nil)
   | modifiers_opt type method_declarator throwsc_opt method_body
     (wisent-token (car $3) 'function $2 (cdr $3)
-                  (semantic-bovinate-make-assoc-list
-                        'typemodifiers $1
-                        'throws $4)
+                  (ASSOC typemodifiers $1 throws $4)
                   nil)
   ;
 
@@ -726,8 +720,7 @@ formal_parameter_list
 formal_parameter
   : FINAL type variable_declarator_id
     (wisent-token $3 'variable $2 nil
-                  (semantic-bovinate-make-assoc-list
-                   'typemodifiers $1)
+                  (ASSOC typemodifiers $1)
                   nil)
   | type variable_declarator_id
     (wisent-token $2 'variable $1 nil
@@ -764,9 +757,7 @@ static_initializer
 constructor_declaration
   : modifiers_opt constructor_declarator throwsc_opt constructor_body
     (wisent-token (car $2) 'function nil (cdr $2)
-                  (semantic-bovinate-make-assoc-list
-                   'typemodifiers $1
-                   'throws $3)
+                  (ASSOC typemodifiers $1 throws $3)
                   nil)
   ;
 
@@ -799,8 +790,7 @@ explicit_constructor_invocation
 interface_declaration
   : modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body
     (wisent-token $3 'type $2 $5 (if $4 (cons nil $4))
-                  (semantic-bovinate-make-assoc-list
-                   'typemodifiers $1)
+                  (ASSOC typemodifiers $1)
                   nil)
   ;
 
@@ -852,15 +842,11 @@ constant_declaration
 abstract_method_declaration
   : modifiers_opt VOID method_declarator throwsc_opt SEMICOLON
     (wisent-token (car $3) 'function $2 (cdr $3)
-                  (semantic-bovinate-make-assoc-list
-                   'typemodifiers $1
-                   'throws $4)
+                  (ASSOC typemodifiers $1 throws $4)
                   nil)
   | modifiers_opt type method_declarator throwsc_opt SEMICOLON
     (wisent-token (car $3) 'function $2 (cdr $3)
-                  (semantic-bovinate-make-assoc-list
-                   'typemodifiers $1
-                   'throws $4)
+                  (ASSOC typemodifiers $1 throws $4)
                   nil)
   ;
 
