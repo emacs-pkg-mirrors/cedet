@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.43 2004/06/24 08:06:50 ponced Exp $
+;; RCS: $Id: ede-pmake.el,v 1.44 2004/12/15 04:26:12 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -73,6 +73,11 @@ MFILENAME is the makefile to generate."
     ;; Add in the header part of the Makefile*
     (save-excursion
       (set-buffer (find-file-noselect mfilename))
+      (beginning-of-buffer)
+      (if (not (looking-at "# Automatically Generated \\w+ by EDE."))
+	  (if (not (y-or-n-p (format "Really replace %s?" mfilename)))
+	      (error "Not replacing Makefile."))
+	(message "Replace EDE Makefile"))
       (erase-buffer)
       ;; Insert a giant pile of stuff that is common between
       ;; one of our Makefiles, and a Makefile.in
