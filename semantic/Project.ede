@@ -64,7 +64,7 @@
    (ede-proj-target-aux "misc"
     :name "misc"
     :path ""
-    :source '("INSTALL" "NEWS" "ChangeLog" "AUTHORS")
+    :source '("INSTALL" "NEWS" "ChangeLog" "AUTHORS" "ONEWS")
     )
    )
   :web-site-url "http://cedet.sourceforge.net/semantic.shtml"
