@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.13 2003/07/22 18:26:41 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.14 2003/08/25 17:16:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -109,6 +109,14 @@ at compile time, permitting compound strings."
 	 (nth 1 form))
 	(t nil)))
 
+(defvar semantic-elisp-store-documentation-in-tag nil
+  "*When non-nil, store documentation strings in the created tags.")
+
+(defun semantic-elisp-do-doc (str)
+  "Return STR as a documentation string IF they are enabled."
+  (when semantic-elisp-store-documentation-in-tag
+    (semantic-elisp-form-to-doc-string str)))
+
 (defun semantic-elisp-use-read (sl)
   "Use `read' on the semantic list SL.
 Return a bovination list to use."
@@ -147,8 +155,8 @@ Return a bovination list to use."
 			    (> (length doc) 0)
 			    (= (aref doc 0) ?*))
 	 'const (if (eq ts 'defconst) t nil)
+	 :documentation (semantic-elisp-do-doc doc)
 	 )
-	;;doc
 	))
      ((or (eq ts 'defun)
 	  (eq ts 'defun*)
@@ -160,8 +168,8 @@ Return a bovination list to use."
       (semantic-tag-new-function
        sn nil (semantic-elisp-desymbolify (nth 2 rt))
        'user-visible (equal (car-safe (nth 4 rt)) 'interactive)
+       :documentation (semantic-elisp-do-doc (nth 3 rt))
        )
-      ;; (nth 3 rt) ; doc string
       )
      ((eq ts 'autoload)
       (semantic-tag-new-function
@@ -169,8 +177,8 @@ Return a bovination list to use."
        nil nil
        'use-visible (and (nth 4 rt)
 			 (not (eq (nth 4 rt) 'nil)))
-       'prototype t)
-      ;; (nth 3 rt) ; doc string
+       'prototype t
+       :documentation (semantic-elisp-do-doc (nth 3 rt)))
       )
      ((or (eq ts 'defmethod)
 	  (eq ts 'defgeneric))
@@ -186,9 +194,9 @@ Return a bovination list to use."
 		   (semantic-elisp-desymbolify (cdr args)))
 	   (semantic-elisp-desymbolify (cdr args)))
 	 'parent (symbol-name
-		  (if (listp (car args)) (car (cdr (car args))))))
-	;; doc
-	))
+		  (if (listp (car args)) (car (cdr (car args)))))
+	 :documentation (semantic-elisp-do-doc doc)
+	 )))
      ((eq ts 'defadvice)
       ;; Advice
       (semantic-tag-new-function
@@ -206,8 +214,12 @@ Return a bovination list to use."
 	 'typemodifiers (semantic-elisp-desymbolify
 			 (if (not (stringp docpart))
 			     docpart))
+	 :documentation
+	 (semantic-elisp-do-doc
+	  (if (stringp (car docpart))
+	      (car docpart)
+	    (car (cdr (member :documentation docpart)))))
 	 )
-	;; (if (stringp (car docpart)) (car docpart) (car (cdr (member :documentation docpart))))
 	))
      ((eq ts 'defstruct)
       ;; structs
@@ -221,7 +233,9 @@ Return a bovination list to use."
      ((eq ts 'define-lex)
       (semantic-tag-new-function
        sn nil nil
-       'lexical-analyzer t)
+       'lexical-analyzer t
+       :documentation (semantic-elisp-do-doc (nth 2 rt))
+       )
       )
      ((eq ts 'define-mode-overload-implementation)
       (let ((args (nth 3 rt))
@@ -231,6 +245,7 @@ Return a bovination list to use."
 	 (when (listp args) (semantic-elisp-desymbolify args))
 	 'override-function t
 	 'parent (format "%S" (nth 2 rt))
+	 :documentation (semantic-elisp-do-doc (nth 4 rt))
 	 )
 	))
      ((eq ts 'defvar-mode-local)
@@ -239,8 +254,8 @@ Return a bovination list to use."
        (nth 3 rt) ; default value
        'override-variable t
        'parent sn
+       :documentation (semantic-elisp-do-doc (nth 4 rt))
        )
-      ;; (nth 4 rt) doc string
       )
      ;; Now for other stuff
      ((eq ts 'require)
@@ -277,14 +292,29 @@ syntax as specified by the syntax table."
 	    (locate-library (semantic-tag-name tag)))))
     (concat f ".el")))
 
-(define-mode-overload-implementation semantic-find-documentation
+(define-mode-overload-implementation semantic-documentation-for-tag
   emacs-lisp-mode (tag &optional nosnarf)
   "Return the documentation string for TAG.
 Optional argument NOSNARF is ignored."
   (let ((d (semantic-tag-docstring tag)))
-    (if (and d (> (length d) 0) (= (aref d 0) ?*))
-	(substring d 1)
-      d)))
+    (if d
+	(if (and (> (length d) 0) (= (aref d 0) ?*))
+	    (substring d 1)
+	  d)
+      ;; doc isn't in the tag itself.  Lets pull it out of the sources.
+      ;; If the tag isn't cooked, then we had just recursed.
+      (when (semantic-overlay-p (semantic-tag-overlay tag))
+	(let* ((semantic-elisp-store-documentation-in-tag t)
+	       (newtag
+		(save-excursion
+		  (set-buffer (semantic-tag-buffer tag))
+		  (goto-char (semantic-tag-start tag))
+		  (semantic-elisp-use-read
+		   ;; concoct a lexical token.
+		   (cons (semantic-tag-start tag)
+			 (semantic-tag-end tag))))))
+	  ;; We are passing down an uncooked token!
+	  (semantic-documentation-for-tag newtag))))))
 
 (define-mode-overload-implementation semantic-insert-foreign-token
   emacs-lisp-mode (tag tagfile)
