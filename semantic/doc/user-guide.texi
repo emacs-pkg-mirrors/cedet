@@ -969,8 +969,9 @@ To use semanticdb, add the following to your @file{.emacs} file:
 (global-semanticdb-minor-mode 1)
 @end example
 
-If you use @file{semantic-load.el}, you do not need to add the above
-lines in your @file{.emacs} file.
+If you use @file{semantic-load.el}, or the default CEDET install
+mechanism, you do not need to add the above lines in your
+@file{.emacs} file.
 
 The Semantic Database has several user level configuration options
 that controls it's use.  From the user perspective, it appears to be
@@ -1071,6 +1072,55 @@ root directories in a more complex system).  This variable should be used
 by project management programs like @var{ede} or @var{jde}.
 @end defvar
 
+The semanticdb find throttle is a configuration variable that may
+often be configured by a language support author.  If you need to
+customize this for yourself, you may need to override the mode values
+in a mode support hook.
+
+@defvar semanticdb-find-default-throttle
+@anchor{semanticdb-find-default-throttle}
+The default throttle for @code{semanticdb-find} routines.
+The throttle controls how detailed the list of database
+tables is for a symbol lookup.  The value is a list with
+the following keys:
+
+@table @code
+@item file
+The file the search is being performed from.  This option is here for
+completeness only, and is assumed to always be on.
+@item local
+Tables from the same local directory are included.  This includes
+files directly referenced by a file name which might be in a different
+directory.
+@item project
+Tables from the same local project are included If @code{project} is
+specified, then @code{local} is assumed.
+@item unloaded
+If a table is not in memory, load it.  If it is not cached on disk
+either, get the source, parse it, and create the table.
+@item system
+Tables from system databases.  These are specifically tables
+from system header files, or language equivalent.
+@item recursive
+For include based searches, includes tables referenced by included
+files.
+@item omniscience
+Included system databases which are omniscience, or somehow know
+everything.  Omniscience databases are found in
+@code{semanticdb-project-system-databases}.  The Emacs Lisp system
+@var{db} is an omniscience database.
+@end table
+
+@end defvar
+
+To test the throttle varuable, use this command.
+
+@deffn Command semanticdb-find-test-translate-path &optional arg
+@anchor{semanticdb-find-test-translate-path}
+Call and output results of @dfn{semanticdb-find-translate-path}
+With @var{arg} non-@code{nil}, specify a @var{brutish} translation.
+@end deffn
+
 @subsection Semanticdb System Backends
 
 @defvar semanticdb-project-system-databases
@@ -1082,10 +1132,17 @@ Put those into this variable as a buffer-local, or mode-local
 value.
 @end defvar
 
+These system databases are a part of the `omniscience' throttle value.
+
+While these are enabled with @code{semanticdb-find-default-throttle},
+a secondary flag is needed for internal controls that prevent
+recursive duplication.
+
 @defvar semanticdb-search-system-databases
 @anchor{semanticdb-search-system-databases}
 Non @code{nil} if search routines are to include a system database.
 @end defvar
+
 
 @subsection Changing Backends
 
