@@ -1,11 +1,11 @@
 ;;; sb-html.el --- provide hierarchical speedbar menu's for HTML files
 
-;; Copyright (c) 2001 Richard Y. Kim
+;; Copyright (c) 2001, 2002 Richard Y. Kim
 
 ;; Author: Richard Y. Kim, <ryk@dspwiz.com>
 ;; Maintainer: Richard Y. Kim, <ryk@dspwiz.com>
 ;; Created: Mon Apr 09 09:44:06 2001
-;; Version: $Id: sb-html.el,v 1.1 2001/04/27 00:54:48 zappo Exp $
+;; Version: $Id: sb-html.el,v 1.2 2002/03/17 02:48:03 zappo Exp $
 ;; Keywords: speedbar, html
 
 ;; This program is free software; you can redistribute it and/or
@@ -108,7 +108,7 @@
 (fset 'speedbar-format-html-list 'speedbar-format-texinfo-list)
 
 (defun speedbar-insert-html-list (indent lst)
-  (speedbar-insert-generic-list indent (speedbar-format-html-list lst indent)
+  (speedbar-insert-generic-list indent (speedbar-format-html-list lst 0)
 				'speedbar-tag-expand
 				'speedbar-tag-find))
 
