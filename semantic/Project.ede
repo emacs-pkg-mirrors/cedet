@@ -18,7 +18,7 @@
     :rules (list 
      (ede-makefile-rule "Custom-new"
       :target "semantic-al.el"
-      :dependencies "semantic"
+      :dependencies "$(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP)"
       :rules '("$(EMACS) -batch -l semantic-autogen.el -f semantic-hack-autoloads")
       )
      )
