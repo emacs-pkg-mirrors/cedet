@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.7 2001/10/28 01:04:09 zappo Exp $
+ * $Id: test.cpp,v 1.8 2001/11/17 23:48:56 zappo Exp $
  *
  */
 
@@ -148,4 +148,21 @@ void tinitializers1(): inita1(False),
 		       inita2(False)
 {
   inita1= 1;
+}
+
+/* How about Extern C type things. */
+
+extern "C"
+int extern_c_1(int a, int b)
+{
+  return 1;
+}
+
+extern "C" {
+
+  int extern_c_2(int a, int b)
+  {
+    return 1;
+  }
+
 }
