@@ -52,7 +52,7 @@ metagrammar: $(metagrammar_SEMANTIC_GRAMMAR)
 	done;
 	@echo "(require 'semantic-load)" >> grammar-make-script
 	@echo "(require 'semantic-grammar)" >> grammar-make-script
-	${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $^
+	${EMACS} -batch --no-site-file -l grammar-make-script -f semantic-grammar-batch-build-packages $^
 
 .PHONY: maintenance
 maintenance: $(maintenance_LISP)
