@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.14 1999/06/06 13:56:36 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.15 1999/12/17 20:53:51 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -506,7 +506,7 @@ Parameters mean:
 
 (defun semantic-fetch-overload (sym)
   "Find and return the overload function for SYM."
-  (let ((a (assoc sym semantic-override-table)))
+  (let ((a (assq sym semantic-override-table)))
     (cdr a)))
 
 (defun semantic-find-nonterminal (buffer token &optional parent)
@@ -678,12 +678,13 @@ COLLECTION is the list of things collected so far."
 Optional argument NONTERMINAL is the nonterminal symbol to start with.
 Use `bovine-toplevel' if it is not provided."
   (if (not nonterminal) (setq nonterminal 'bovine-toplevel))
-  (let ((ml (assoc nonterminal table)))
+  (let ((ml (assq nonterminal table)))
     (semantic-bovinate-stream stream (cdr ml) table)))
 
 (defun semantic-bovinate-symbol-nonterminal-p (sym table)
   "Return non-nil if SYM is in TABLE, indicating it is NONTERMINAL."
-  (if (assoc sym table) t nil))
+  ;; sym is always a sym, so assq should be ok.
+  (if (assq sym table) t nil))
 
 (defun semantic-bovinate-stream (stream matchlist table)
   "Bovinate STREAM using MATCHLIST resolving nonterminals with TABLE.
