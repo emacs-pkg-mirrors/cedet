@@ -1,12 +1,12 @@
 ;;; bovine-grammar.el --- Bovine's input grammar mode
 ;;
-;; Copyright (C) 2002, 2003 David Ponce
+;; Copyright (C) 2002, 2003, 2004 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.17 2004/02/26 08:34:16 ponced Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.18 2004/03/20 00:16:51 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -316,7 +316,7 @@ manual."
 (defun bovine-grammar-setupcode-builder ()
   "Return the text of the setup code."
   (format
-   "(setq semantic-toplevel-bovine-table %s\n\
+   "(setq semantic--parse-table %s\n\
           semantic-debug-parser-source %S\n\
           semantic-debug-parser-class 'semantic-bovine-debug-parser
           semantic-flex-keywords-obarray %s\n\
