@@ -4,16 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.23 2000/07/22 12:41:31 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.24 2000/09/24 15:31:32 zappo Exp $
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -26,9 +24,29 @@
 ;;; Commentary:
 ;; 
 ;; Code generator for Makefiles.
+;;
+;; Here is how it should work:
+;; 1) Collect information about the project and targets
+;; 2) Insert header into the Makefile
+;; 3) Insert basic variables (target/source)
+;; 4) Conditional
+;;    a) Makefile
+;;       1) Insert support variables (compiler variables, etc)
+;;       2) Insert VERSION and DISTDIR
+;;       3) Specify top build dir if necessary
+;;       4) Specify compile/link commands (c, etc)
+;;       5) Specify dependency files
+;;       6) Specify all: target
+;;       7) Include dependency files
+;;       8) Insert commonized target specify rules
+;;       9) Insert clean: and dist: rules
+;;    b) Automake file
+;;       1) Insert distribution source variables for targets
+;;       2) Insert user requested rules
 
 (require 'ede-proj)
 (require 'ede-proj-obj)
+(require 'ede-proj-comp)
 
 ;;; Code:
 (defmethod ede-proj-makefile-create ((this ede-proj-project) mfilename)
@@ -38,16 +56,6 @@ MFILENAME is the makefile to generate."
 	(isdist (string= mfilename (ede-proj-dist-makefile this)))
 	(depth 0)
 	(tmp this)
-	(have-cfiles
-	 (with-slots (targets) this
-	   (while (and targets
-		       (not
-			(obj-of-class-p
-			 (car targets)
-			 'ede-proj-target-makefile-objectcode)))
-	     (setq targets (cdr targets)))
-	   targets))
-	(have-libtool (object-assoc t 'libtool (oref this targets)))
 	)
     ;; Find out how deep this project is.
     (while (ede-parent-project tmp)
@@ -62,6 +70,7 @@ MFILENAME is the makefile to generate."
 	(setq targets (cdr targets))))
     ;; Fix the order so things compile in the right direction.
     (setq mt (nreverse mt))
+    ;; Add in the header part of the Makefile*
     (save-excursion
       (set-buffer (find-file-noselect mfilename))
       (erase-buffer)
@@ -81,22 +90,20 @@ MFILENAME is the makefile to generate."
        "# EDE is the Emacs Development Environment.\n"
        "# http://www.ultranet.com/~zappo/ede.shtml\n"
        "# \n")
+      ;; Just this project's variables
       (ede-proj-makefile-insert-variables this)
       ;; Space
       (insert "\n")
-      ;; Distribution variables
-      (if isdist
-	  (setq tmp (oref this targets))
-	(setq tmp mt))
-      (while tmp
-	(ede-proj-makefile-insert-variables (car tmp))
-	(setq tmp (cdr tmp)))
       (cond
        ((eq (oref this makefile-type) 'Makefile)
-	(let ((df (apply 'append
-			 (mapcar (lambda (tg)
-				   (ede-proj-makefile-dependency-files tg))
-				 mt))))
+	(let* ((targ (if isdist (oref this targets) mt))
+	       (df (apply 'append
+			  (mapcar (lambda (tg)
+				    (ede-proj-makefile-dependency-files tg))
+				  targ))))
+	  ;; Distribution variables
+	  (ede-compiler-begin-unique
+	    (mapcar 'ede-proj-makefile-insert-variables targ))
 	  ;; Only add the distribution stuff in when depth != 0
 	  (if (= depth 0)
 	      (insert "VERSION=" (oref this version) "\n"
@@ -109,25 +116,11 @@ MFILENAME is the makefile to generate."
 		  (setq tc (1- tc))
 		  (insert "..")
 		  (if (/= tc 0) (insert "/")))
-		(insert "\n")
-		(if have-cfiles
-		    (insert
-		     ;;"LIBTOOL = $(SHELL) $(top_builddir)/libtool\n"
-		     "COMPILE = $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) "
-		     "$(CFLAGS)\n"
-		     "LINK = $(CC) $(CFLAGS) $(LDFLAGS) -o $@\n")
-		  (if have-libtool
-		      (insert
-		       "LIBTOOL = $(SHELL) libtool\n"
-		       "LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) "
-		       "$(INCLUDES) $(CPPFLAGS) $(CFLAGS)\n"
-		       "LTLINK = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) "
-		       "$(LDFLAGS) -o $@\n"))
-		  )))
+		(insert "\n")))
 	  (insert "\n")
 	  ;; Create a variable with all the dependency files to include
 	  ;; These methods borrowed from automake.
-	  (if df
+	  (if (and (oref this automatic-dependencies) df)
 	      (progn
 		(insert "DEP_FILES="
 			(mapconcat (lambda (f)
@@ -136,103 +129,73 @@ MFILENAME is the makefile to generate."
 					      (file-name-sans-extension
 					       f)) ".P"))
 				   df " "))))
-	  ;; The all target
-	  (setq tmp mt)
+	  ;; 
+	  ;; Insert Rules
+	  ;;
 	  (insert "\n\nall:")
-	  (while tmp
-	    (if (oref (car tmp) partofall)
-		;; Only insert this rule if it is a part of ALL.
-		(insert " " (oref (car tmp) name)))
-	    (setq tmp (cdr tmp)))
+	  (mapcar (lambda (c)
+		    (if (and (slot-exists-p c 'partofall) (oref c partofall))
+			;; Only insert this rule if it is a part of ALL.
+			(insert " " (ede-proj-makefile-target-name c))))
+		  targ)
 	  (insert "\n\n")
 	  ;; Some C inference rules
 	  ;; Dependency rules borrowed from automake.
-	  (if df
-	      (progn
-		(if (oref this automatic-dependencies)
-		    (insert "DEPS_MAGIC := $(shell mkdir .deps > /dev/null "
-			    "2>&1 || :)\n"
-			    "-include $(DEP_FILES)\n\n"))
-		(insert ;; These C to O rules create dependencies
-		 "%.o: %.c\n"
-		 "\t@echo '$(COMPILE) -c $<'; \\\n"
-		 "\t$(COMPILE)"
-		 (if (oref this automatic-dependencies)
-		     " -Wp,-MD,.deps/$(*F).P"
-		   "")
-		 " -c $<\n\n")
-		(if have-libtool
-		    (insert ;; These C to shared o rules create pic code.
-		     "%.lo: %.c\n"
-		     "\t@echo '$(LTCOMPILE) -c $<'; \\\n"
-		     "\t$(LTCOMPILE) -Wp,-MD,.deps/$(*F).p -c $<\n"
-		     "\t@-sed -e 's/^\([^:]*\)\.o:/\1.lo \1.o:/' \\\n"
-		     "\t      < .deps/$(*F).p > .deps/$(*F).P\n"
-		     "\t@-rm -f .deps/$(*F).p\n\n"))
-		))
-	  ;; General makefile rules stored in the object
-	  (ede-proj-makefile-insert-rules this)
-	  (setq tmp mt)
-	  (while tmp
-	    (ede-proj-makefile-insert-rules (car tmp))
-	    (setq tmp (cdr tmp)))
-	  (if isdist
-	      (let ((junk (ede-proj-makefile-garbage-patterns this)))
-		;; Build CLEAN, DIST, TAG, and other rules here.
-		(if junk
-		    (insert "\nclean:\n"
-			    "\trm -f "
-			    (mapconcat (lambda (c) c) junk " ")
-			    "\n\n"))
-		(insert "\ndist:\n"
-			"\trm -rf $(DISTDIR)\n"
-			"\tmkdir $(DISTDIR)\n")
-		(setq tmp (oref this targets))
-		(insert "\tcp")
-		(while tmp
-		  (let ((sv (ede-proj-makefile-sourcevar (car tmp))))
-		    (if (listp sv)
-			;; Handle special case variables.
-			(cond ((eq (cdr sv) 'share)
-			       ;; This variable may be shared between multiple targets.
-			       (if (re-search-backward (concat "\\$(" (car sv) ")")
-						       (save-excursion
-							 (beginning-of-line)
-							 (point))
-						       t)
-				   ;; If its already in the dist target, then skip it.
-				   nil
-				 (setq sv (car sv))))
-			      (t (setq sv (car sv)))))
-		    (if (stringp sv)
-			(insert " $(" sv ")"))
-		    (setq tmp (cdr tmp))))
-		(insert " $(ede_FILES) $(DISTDIR)\n"
-			"\ttar -cvzf $(DISTDIR).tar.gz $(DISTDIR)\n"
-			"\trm -rf $(DISTDIR)\n\n")
-		(ede-proj-makefile-tags this mt)
-		;; Add rules here for subprojects!
-		(insert mfilename ": "
-			(file-name-nondirectory (oref this file)) "\n"
-			"\t@echo Makefile is out of date!  "
-			"It needs to be regenerated by EDE.\n"
-			"\t@false\n\n"
-			"\n\n# End of Makefile\n"))))
+	  (if (and (oref this automatic-dependencies) df)
+	      (insert "DEPS_MAGIC := $(shell mkdir .deps > /dev/null "
+		      "2>&1 || :)\n"
+		      "-include $(DEP_FILES)\n\n"))
+	  ;; General makefile rules stored in the individual targets
+	  (ede-compiler-begin-unique
+	    (ede-proj-makefile-insert-rules this)
+	    (mapcar 'ede-proj-makefile-insert-rules targ))
+	  ;; Distribution rules such as CLEAN and DIST
+	  (when isdist
+	    (ede-proj-makefile-tags this mt)
+	    (ede-proj-makefile-insert-dist-rules this)))
 	(save-buffer))
        ((eq (oref this makefile-type) 'Makefile.in)
 	(error "Makefile.in is not supported"))
        ((eq (oref this makefile-type) 'Makefile.am)
 	(require 'ede-pconf)
-	;; Suprisingly, an automake file doesn't take much more.  Lets
-	;; just slip in the rules the user specifically requested,
-	;; and go on our merry way!
-	(ede-proj-makefile-insert-user-rules this)
-	(insert "\n# End of Makefile.am\n")
-	(save-buffer)
+	;; Distribution variables
+	(let ((targ (if isdist (oref this targets) mt)))
+	  (ede-compiler-begin-unique
+	    (mapcar 'ede-proj-makefile-insert-automake-pre-variables targ))
+	  (ede-compiler-begin-unique
+	    (mapcar 'ede-proj-makefile-insert-source-variables targ))
+	  (ede-compiler-begin-unique
+	    (mapcar 'ede-proj-makefile-insert-automake-post-variables targ))
+	  (ede-compiler-begin-unique
+	    (ede-proj-makefile-insert-user-rules this))
+	  (insert "\n# End of Makefile.am\n")
+	  (save-buffer))
 	)
        (t (error "Unknown makefile type when generating Makefile")))
       ;; Put the cursor in a nice place
       (goto-char (point-min)))))
+
+;;; VARIABLE insertion
+;;
+(defmacro ede-pmake-insert-variable-shared (varname &rest body)
+  "Add VARNAME into the current Makefile.
+Execute BODY in a location where a value can be placed."
+  `(let ((addcr t) (v ,varname))
+       (if (re-search-backward (concat "^" v "\\s-*=") nil t)
+	   (progn
+	     (end-of-line)
+	     (while (= (following-char) ?\\)
+	       (forward-char 1)
+	       (end-of-line))
+	     (if (< (current-column) 40)
+		 (insert " ")
+	       (insert "\\\n   "))
+	     (setq addcr nil))
+	 (insert v "="))
+       ,@body
+       (if addcr (insert "\n"))
+       (goto-char (point-max))))
+(put 'ede-pmake-insert-variable-shared 'lisp-indent-function 1)
 
 ;;; SOURCE VARIABLE NAME CONSTRUCTION
 ;;
@@ -286,34 +249,53 @@ Use CONFIGURATION as the current configuration to query."
   (insert "\nede_FILES=" (file-name-nondirectory (oref this file)) " "
 	  (ede-proj-dist-makefile this) "\n"))
 
+(defmethod ede-proj-makefile-insert-source-variables ((this ede-proj-target)
+						      &optional
+						      moresource)
+  "Insert the source variables needed by THIS.
+Optional argument MORESOURCE is a list of additional sources to add to the
+sources variable."
+  (let ((sv (ede-proj-makefile-sourcevar this))
+	(addcr t))
+    ;; This variable may be shared between targets
+    (ede-pmake-insert-variable-shared (cond ((listp sv) (car sv))
+					    (t sv))
+      (insert (mapconcat (lambda (a) a) (oref this source) " "))
+      (if moresource
+	  (insert " \\\n   " (mapconcat (lambda (a) a) moresource " ") "")))))
+
 (defmethod ede-proj-makefile-insert-variables ((this ede-proj-target) &optional
 					       moresource)
   "Insert variables needed by target THIS.
 Optional argument MORESOURCE is a list of additional sources to add to the
 sources variable."
-  (let ((sv (ede-proj-makefile-sourcevar this))
-	(addcr t))
-    (cond ((and (listp sv) (eq (cdr sv) 'share))
-	   ;; This variable may be shared between targets
-	   (if (re-search-backward (concat "^" (car sv) "=") nil t)
-	       (progn
-		 (end-of-line)
-		 (while (= (following-char) ?\\)
-		   (forward-char 1)
-		   (end-of-line))
-		 (insert "\\\n   ")
-		 (setq addcr nil))
-	     (insert (car sv) "="))
-	   )
-	  ((listp sv)
-	   (insert (car sv) "="))
-	  (t
-	   (insert sv "=")))
-    (insert (mapconcat (lambda (a) a) (oref this source) " "))
-    (if moresource
-	(insert " \\\n   " (mapconcat (lambda (a) a) moresource " ") ""))
-    (if addcr (insert "\n"))
-    (goto-char (point-max))))
+  (ede-proj-makefile-insert-source-variables this moresource)
+  )
+
+(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-makefile)
+					       &optional moresource)
+  "Insert variables needed by target THIS.
+Optional argument MORESOURCE is a list of additional sources to add to the
+sources variable."
+  (call-next-method)
+  (let ((comp (ede-proj-compilers this))
+	(name (ede-proj-makefile-target-name this))
+	(src (oref this source)))
+    (while comp
+      (ede-compiler-only-once (car comp)
+	(ede-proj-makefile-insert-object-variables (car comp) name src)
+	(ede-proj-makefile-insert-variables (car comp)))
+      (setq comp (cdr comp)))))
+
+(defmethod ede-proj-makefile-insert-automake-pre-variables
+  ((this ede-proj-target))
+  "Insert variables needed by target THIS in Makefile.am before SOURCES."
+  nil)
+
+(defmethod ede-proj-makefile-insert-automake-post-variables
+  ((this ede-proj-target))
+  "Insert variables needed by target THIS in Makefile.am after SOURCES."
+  nil)
 
 ;;; GARBAGE PATTERNS
 ;;
@@ -335,17 +317,80 @@ These are removed with make clean."
 (defmethod ede-proj-makefile-garbage-patterns ((this ede-proj-target))
   "Return a list of patterns that are considred garbage to THIS.
 These are removed with make clean."
-  nil)
+  ;; Get the  the source object from THIS, and use the specified garbage.
+  (let ((src (ede-target-sourcecode this))
+	(garb nil))
+    (while src
+      (setq garb (append (oref (car src) garbagepattern) garb)
+	    src (cdr src)))
+    garb))
+    
 
 ;;; RULES
 ;;
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-project))
   "Insert rules needed by THIS target."
-  (mapcar 'ede-proj-makefile-insert-rules (oref this inference-rules)))
+  (mapcar 'ede-proj-makefile-insert-rules (oref this inference-rules))
+  )
+
+(defmethod ede-proj-makefile-insert-dist-rules ((this ede-proj-project))
+  "Insert distribution rules for a Makefile, such as CLEAN and DIST."
+  (let ((junk (ede-proj-makefile-garbage-patterns this))
+	tmp)
+    ;; Build CLEAN, DIST, TAG, and other rules here.
+    (if junk
+	(insert "\nclean:\n"
+		"\trm -f "
+		(mapconcat (lambda (c) c) junk " ")
+		"\n\n"))
+    (insert "\ndist:\n"
+	    "\trm -rf $(DISTDIR)\n"
+	    "\tmkdir $(DISTDIR)\n")
+    (setq tmp (oref this targets))
+    (insert "\tcp")
+    (while tmp
+      (let ((sv (ede-proj-makefile-sourcevar (car tmp))))
+	(if (listp sv)
+	    ;; Handle special case variables.
+	    (cond ((eq (cdr sv) 'share)
+		   ;; This variable may be shared between multiple targets.
+		   (if (re-search-backward (concat "\\$(" (car sv) ")")
+					   (save-excursion
+					     (beginning-of-line)
+					     (point))
+					   t)
+		       ;; If its already in the dist target, then skip it.
+		       nil
+		     (setq sv (car sv))))
+		  (t (setq sv (car sv)))))
+	(if (stringp sv)
+	    (insert " $(" sv ")"))
+	(setq tmp (cdr tmp))))
+    (insert " $(ede_FILES) $(DISTDIR)\n"
+	    "\ttar -cvzf $(DISTDIR).tar.gz $(DISTDIR)\n"
+	    "\trm -rf $(DISTDIR)\n\n")
+    ;; Add rules here for subprojects!
+    (insert (file-name-nondirectory (buffer-file-name)) ": "
+	    (file-name-nondirectory (oref this file)) "\n"
+	    "\t@echo Makefile is out of date!  "
+	    "It needs to be regenerated by EDE.\n"
+	    "\t@false\n\n"
+	    "\n\n# End of Makefile\n")))
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-target))
   "Insert rules needed by THIS target."
-  (mapcar 'ede-proj-makefile-insert-rules (oref this rules)))
+  nil)
+
+(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile))
+  "Insert rules needed by THIS target."
+  (mapcar 'ede-proj-makefile-insert-rules (oref this rules))
+  (let ((c (ede-proj-compilers this)))
+    (when c
+      (mapcar 'ede-proj-makefile-insert-rules c)
+      (insert (ede-proj-makefile-target-name this) ": "
+	      (ede-proj-makefile-dependencies this) "\n")
+      (mapcar 'ede-proj-makefile-insert-commands c)
+      )))
 
 (defmethod ede-proj-makefile-insert-user-rules ((this ede-proj-project))
   "Insert user specified rules needed by THIS target.
@@ -358,12 +403,31 @@ automake."
   "Insert user specified rules needed by THIS target."
   (mapcar 'ede-proj-makefile-insert-rules (oref this rules)))
 
-(defmethod ede-proj-makefile-insert-rules ((this ede-makefile-rule))
-  "Insert rules needed for THIS rule object."
-  (if (oref this phony) (insert ".PHONY: (oref this target)\n"))
-  (insert (oref this target) ": " (oref this dependencies) "\n\t"
-	  (mapconcat (lambda (c) c) (oref this rules) "\n\t")
-	  "\n\n"))
+(defmethod ede-proj-makefile-dependencies ((this ede-proj-target-makefile))
+  "Return a string representing the dependencies for THIS.
+Some compilers only use the first element in the dependencies, others
+have a list of intermediates (object files), and others don't care.
+This allows customization of how these elements appear."
+  (let ((c (ede-proj-compilers this))
+	(io (ede-or (mapcar 'ede-compiler-intermediate-objects-p c)))
+	(out nil))
+    (if io
+	(progn
+	  (while c
+	    (setq out
+		  (concat out "$(" (ede-compiler-intermediate-object-variable
+				    (car c)
+				    (ede-target-name this)) ")")
+		  c (cdr c)))
+	  out)
+      (let ((sv (ede-proj-makefile-sourcevar this)))
+	(if (and (stringp sv) (not (string= sv "")))
+	    (concat "$(" sv ")")
+	  "")))))
+
+(defmethod ede-proj-makefile-target-name ((this ede-proj-target-makefile))
+  "Return the name of the main target for THIS target."
+  (ede-name this))
 
 ;; Tags
 (defmethod ede-proj-makefile-tags ((this ede-proj-project) targets)
