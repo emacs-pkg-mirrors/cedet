@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.21 2003/08/29 16:13:24 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.22 2003/08/31 02:12:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -258,6 +258,7 @@ thingy from it using the `document' tool."
      (insert-foreign-tag . semantic-texi-insert-foreign-tag)
      )
    t)
+  (local-set-key [(f9)] 'semantic-texi-update-doc-from-texi)
   )
 
 ;;;###autoload
