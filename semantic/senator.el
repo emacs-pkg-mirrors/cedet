@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.70 2003/04/07 08:27:39 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.71 2003/04/09 12:12:20 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -798,11 +798,11 @@ of completions once, doing nothing where there are no more matches."
 ;;;;
 
 (defcustom senator-completion-menu-summary-function
-  'semantic-concise-prototype-nonterminal
+  'semantic-format-tag-concise-prototype
   "*Function to use when creating items in completion menu.
-Some useful functions are in `semantic-token->text-functions'."
+Some useful functions are in `semantic-format-tag-functions'."
   :group 'senator
-  :type semantic-token->text-custom-list)
+  :type semantic-format-tag-custom-list)
 (make-variable-buffer-local 'senator-completion-menu-summary-function)
 
 (defcustom senator-completion-menu-insert-function
@@ -840,7 +840,7 @@ menu item."
   (if (semantic-tag-p tag)
       (cons (funcall (if (fboundp senator-completion-menu-summary-function)
                          senator-completion-menu-summary-function
-                       #'semantic-prototype-nonterminal) tag)
+                       #'semantic-format-tag-prototype) tag)
             (vector tag))
     (cons (file-name-sans-extension (oref (car tag) file))
           (delq nil
@@ -2144,9 +2144,9 @@ If semantic tags are available, use them to navigate."
     ad-do-it))
 
 (defvar senator-add-log-tokens '(function variable type)
-  "When advising `add-log-current-defun', nonterminal tags used.
-Semantic nonterminals that are of these toke types will be used
-to find the name used by add log.")
+  "When advising `add-log-current-defun', tag classes used.
+Semantic tags that are of these classses will be used to find the name
+used by add log.")
 
 (defadvice add-log-current-defun (around senator activate)
   "Return name of function definition point is in, or nil."
@@ -2185,7 +2185,7 @@ Argument TAGFILE is the file from wence TAG came."
   ;; Long term goal:
   ;; Have a mechanism for a tempo-like template insert for the given
   ;; tag.
-  (insert (semantic-prototype-nonterminal tag)))
+  (insert (semantic-format-tag-prototype tag)))
 
 (defun senator-insert-foreign-token (tag tagfile)
   "Insert TAG from a foreign buffer into the current buffer.
@@ -2196,7 +2196,7 @@ This function is overridable with the symbol `insert-foreign-token'."
   (let ((s (semantic-fetch-overload 'insert-foreign-token)))
     (if s (funcall s tag tagfile)
       (senator-insert-foreign-token-default tag tagfile))
-    (message (semantic-summarize-nonterminal tag))))
+    (message (semantic-format-tag-summarize tag))))
 
 (defun senator-copy-token ()
   "Take the current tag, and place it in the tag ring."
@@ -2204,7 +2204,7 @@ This function is overridable with the symbol `insert-foreign-token'."
   (senator-parse)
   (let ((ct (senator-current-token)))
     (ring-insert senator-token-ring (cons ct (buffer-file-name)))
-    (message (semantic-summarize-nonterminal ct))
+    (message (semantic-format-tag-summarize ct))
     ct))
 
 (defun senator-kill-token ()
@@ -2273,40 +2273,29 @@ versions of Emacs."
   :group 'senator
   :type 'boolean)
 
+(defsubst senator-find-current-symbol-tag (sym)
+  "Search for a semantic tag with name SYM.
+Return the tag found or nil if not found."
+  (car (if (and (featurep 'semanticdb) semanticdb-current-database)
+           (cdar (semanticdb-deep-find-tags-by-name sym))
+         (semantic-deep-find-tags-by-name sym (current-buffer)))))
+
 (defun senator-eldoc-print-current-symbol-info-default ()
   "Return a string message describing the current context."
-  (let ((sym (semantic-ctxt-current-symbol))
-        found)
-    (if sym
-        (progn
-          (setq found (if (and (featurep 'semanticdb)
-                               semanticdb-current-database)
-                          (cdr
-                           (car (semanticdb-find-nonterminal-by-name
-                                 (car sym) nil t)))
-                        (semantic-brute-find-first-tag-by-name
-                         (car sym) (current-buffer) t)))
-          (and (not found)
-               (semantic-lex-keyword-p (car sym))
-               (setq found (semantic-lex-keyword-get (car sym) 'summary)))
-          ))
-    (or found
-        (progn
-          (setq sym (semantic-ctxt-current-function))
-          (if sym
-              (progn
-                (setq found (if (and (featurep 'semanticdb)
-                                     semanticdb-current-database)
-                                (cdr
-                                 (car (semanticdb-find-nonterminal-by-name
-                                       (car sym) nil t)))
-                              (semantic-brute-find-first-tag-by-name
-                               (car sym) (current-buffer) t)))
-                (and (not found)
-                     (semantic-lex-keyword-p (car sym))
-                     (setq found (semantic-lex-keyword-get (car sym) 'summary)))
-                ))
-          ))
+  (let (sym found)
+    (and
+     ;; 1- Look for a tag with current symbol name
+     (setq sym (car (semantic-ctxt-current-symbol)))
+     (not (setq found (senator-find-current-symbol-tag sym)))
+     ;; 2- Look for a keyword with that name
+     (semantic-lex-keyword-p sym)
+     (not (setq found (semantic-lex-keyword-get sym 'summary)))
+     ;; 3- Look for a tag with current function name
+     (setq sym (car (semantic-ctxt-current-function)))
+     (not (setq found (senator-find-current-symbol-tag sym)))
+     ;; 4- Look for a keyword with that name
+     (semantic-lex-keyword-p sym)
+     (setq found (semantic-lex-keyword-get sym 'summary)))
     found))
 
 (defun senator-eldoc-print-current-symbol-info ()
@@ -2322,7 +2311,7 @@ You can override the info collecting part with `eldoc-current-symbol-info'."
      (cond ((stringp found)
             found)
            ((semantic-tag-p found)
-            (semantic-summarize-nonterminal found nil senator-eldoc-use-color))
+            (semantic-format-tag-summarize found nil senator-eldoc-use-color))
            (t nil)
            ))))
 
