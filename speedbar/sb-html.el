@@ -5,7 +5,7 @@
 ;; Author: Richard Y. Kim, <ryk@dspwiz.com>
 ;; Maintainer: Richard Y. Kim, <ryk@dspwiz.com>
 ;; Created: Mon Apr 09 09:44:06 2001
-;; Version: $Id: sb-html.el,v 1.2 2002/03/17 02:48:03 zappo Exp $
+;; Version: $Id: sb-html.el,v 1.3 2002/03/17 02:52:32 zappo Exp $
 ;; Keywords: speedbar, html
 
 ;; This program is free software; you can redistribute it and/or
@@ -71,7 +71,8 @@
 ;; This function is based on `speedbar-fetch-dynamic-texinfo'.
 (defun speedbar-fetch-dynamic-html ( filename )
   (set-buffer (find-file-noselect filename))
-  (if (not (eq major-mode 'html-helper-mode))
+  (if (not (or (eq major-mode 'html-helper-mode)
+	       (eq major-mode 'html-mode)))
       t
     (condition-case nil
 	(save-excursion
