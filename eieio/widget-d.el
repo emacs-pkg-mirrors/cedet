@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-d.el,v 1.5 1996/09/21 15:55:25 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.6 1996/10/19 14:41:09 zappo Exp $
 ;;; Keywords: OO widget
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -85,10 +85,14 @@ based from.")
 (defclass widget-visual (widget-core)
   ((x :initarg :x
       :initform 0
-      :docstring "The relative X position in a buffer to parent") 
+      :docstring "The associative X position in a buffer to parent") 
    (y :initarg :y
       :initform 0
-      :docstring "The relative Y position in a buffer to parent")
+      :docstring "The associative Y position in a buffer to parent")
+   (nx :initform 0
+       :docstring "The normalized X position relative to parent.")
+   (ny :initform 0
+       :docstring "The normalized Y position relative to parent.")
    (face :initarg :face
 	 :initform widget-default-face
 	 :protection private
@@ -100,6 +104,8 @@ based from.")
    (handle-io :initarg :handle-io
 	      :initform  nil
 	      :docstring "t if this widget accepts input")
+   (handle-motion :initform nil
+		  :docstring "t if this widget handles it's own motion events")
    (rx :initarg :rx
        :docstring "Real S position in buffer"
        :protection private)
@@ -348,6 +354,7 @@ where the thumbtac changes size based on RANGE.")
 (defclass widget-text-field (widget-square)
   ((handle-io :initarg :handle-io
 	      :initform t)
+   (handle-motion :initform t)
    (face :initarg :face
 	 :initform widget-text-face
 	 :protection private)
