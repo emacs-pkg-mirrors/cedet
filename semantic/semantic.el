@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.166 2003/02/01 02:49:34 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.167 2003/02/17 01:35:51 zappo Exp $
 
 (defvar semantic-version "2.0beta1"
   "Current version of Semantic.")
@@ -409,12 +409,9 @@ the output buffer."
 (defun bovinate-debug ()
   "Bovinate the current buffer and run in debug mode."
   (interactive)
-  (let ((semantic-edebug t)
-	(out (semantic-bovinate-debug-buffer)))
-    (pop-to-buffer "*BOVINATE*")
-    (require 'pp)
-    (erase-buffer)
-    (insert (pp-to-string out))))
+  (error "Depricated: Use `semantic-debug' instead")
+  )
+
 
 ;;; Functions of the parser plug-in API
 ;;
