@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.5.3
+;; Version: 0.5.4
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.61 1997/11/03 22:28:39 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.62 1997/11/05 03:05:42 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -263,10 +263,13 @@
 ;;       Fixed serious problem w/ 0.5.2 and ignored paths.
 ;;       `condition-case' no longer used in timer fcn.
 ;;       `speedbar-edit-line' is now smarter w/ special modes.
+;; 0.5.4 Fixed more problems for Emacs 20 so speedbar loads correctly.
+;;       Updated some documentation strings.
+;;       Added customization menu item, and customized some more variables.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
-;; - filtering algoritms to reduce the number of tags/files displayed.
+;; - filtering algorithms to reduce the number of tags/files displayed.
 ;; - Timeout directories we haven't visited in a while.
 ;; - Remeber tags when refreshing the display.  (Refresh tags too?)
 ;; - More 'special mode support.
@@ -355,14 +358,20 @@ allows a mode to update it's contents regularly.
 speedbar, and with one parameter; the buffer requesting
 the speedbar display.")
 
-(defvar speedbar-visiting-file-hook nil
-  "Hooks run when speedbar visits a file in the selected frame.")
+(defcustom speedbar-visiting-file-hook nil
+  "Hooks run when speedbar visits a file in the selected frame."
+  :group 'speedbar
+  :type 'hook)
 
-(defvar speedbar-visiting-tag-hook nil
-  "Hooks run when speedbar visits a tag in the selected frame.")
+(defcustom speedbar-visiting-tag-hook nil
+  "Hooks run when speedbar visits a tag in the selected frame."
+  :group 'speedbar
+  :type 'hook)
 
-(defvar speedbar-load-hook nil
-  "Hooks run when speedbar is loaded.")
+(defcustom speedbar-load-hook nil
+  "Hooks run when speedbar is loaded."
+  :group 'speedbar
+  :type 'hook)
 
 (defcustom speedbar-show-unknown-files nil
   "*Non-nil show files we can't expand with a ? in the expand button.
@@ -371,7 +380,7 @@ nil means don't show the file in the list."
   :type 'boolean)
 
 ;; Xemacs timers aren't based on idleness.  Therefore tune it down a little
-;; or suffer mightilly!
+;; or suffer mightily!
 (defcustom speedbar-update-speed (if speedbar-xemacsp 5 1)
   "*Idle time in seconds needed before speedbar will update itself.
 Updates occur to allow speedbar to display directory information
@@ -429,9 +438,11 @@ Possible values are:
 
 (defcustom speedbar-smart-directory-expand-flag t
   "*Non-nil means speedbar should use smart expansion.
-When smart expansion is enabled, then if speedbar is asked to display
-a new buffers location which is not in the current directory
-hierarchy, but it could be added, then it will be."
+Smart expansion only affects when speedbar wants to display a
+directory for a file in the attached frame.  When smart expansion is
+enabled, new directories which are children of a displayed directory
+are expanded in the current framework.  If nil, then the current
+heirarchy would be replaced with the new directory."
   :group 'speedbar
   :type 'boolean)
 
@@ -501,6 +512,25 @@ current file, and the FILENAME of the file being checked."
 (defvar speedbar-ignored-modes nil
   "*List of major modes which speedbar will not switch directories for.")
 
+(defun speedbar-extension-list-to-regex (extlist)
+  "Takes EXTLIST, a list of extensions and transforms it into regexp.
+All the preceding . are stripped for an optimized expression starting
+with . followed by extensions, followed by full-filenames."
+  (let ((regex1 nil) (regex2 nil))
+    (while extlist
+      (if (speedbar-char= (string-to-char (car extlist)) ?.)
+	  (setq regex1 (concat regex1 (if regex1 "\\|" "")
+			       (substring (car extlist) 1)))
+	(setq regex2 (concat regex2 (if regex2 "\\|" "") (car extlist))))
+      (setq extlist (cdr extlist)))
+    ;; concat all the sub-exressions together, making sure all types
+    ;; of parts exist during concatination.
+    (concat "\\("
+	    (if regex1 (concat "\\(\\.\\(" regex1 "\\)\\)") "")
+	    (if (and regex1 regex2) "\\|" "")
+	    (if regex2 (concat "\\(" regex2 "\\)") "")
+	    "\\)$")))
+
 (defcustom speedbar-ignored-path-expressions
   '("/logs?/$")
   "*List of regular expressions matching directories speedbar will ignore.
@@ -525,25 +555,6 @@ before speedbar has been loaded."
     (concat nstr "\\|#[^#]+#$\\|\\.\\.?$"))
   "*Regexp matching files we don't want displayed in a speedbar buffer.
 It is generated from the variable `completion-ignored-extensions'")
-
-(defun speedbar-extension-list-to-regex (extlist)
-  "Takes EXTLIST, a list of extensions and transforms it into regexp.
-All the preceding . are stripped for an optimized expression starting
-with . followed by extensions, followed by full-filenames."
-  (let ((regex1 nil) (regex2 nil))
-    (while extlist
-      (if (speedbar-char= (string-to-char (car extlist)) ?.)
-	  (setq regex1 (concat regex1 (if regex1 "\\|" "")
-			       (substring (car extlist) 1)))
-	(setq regex2 (concat regex2 (if regex2 "\\|" "") (car extlist))))
-      (setq extlist (cdr extlist)))
-    ;; concat all the sub-exressions together, making sure all types
-    ;; of parts exist during concatination.
-    (concat "\\("
-	    (if regex1 (concat "\\(\\.\\(" regex1 "\\)\\)") "")
-	    (if (and regex1 regex2) "\\|" "")
-	    (if regex2 (concat "\\(" regex2 "\\)") "")
-	    "\\)$")))
 
 (defvar speedbar-ignored-path-regexp nil
   "Regular expression matching paths speedbar will not switch to.
@@ -784,8 +795,12 @@ to toggle this value.")
   "Additional menu items while in file-mode.")
  
 (defvar speedbar-easymenu-definition-trailer
-  '("----"
-    ["Close" speedbar-close-frame t])
+  (if (and (featurep 'custom) (fboundp 'custom-declare-variable))
+      '("----"
+	["Customize" speedbar-customize t]
+	["Close" speedbar-close-frame t])
+    '("----"
+      ["Close" speedbar-close-frame t]))
   "Menu items appearing at the end of the speedbar menu.")
 
 (defvar speedbar-desired-buffer nil
@@ -1068,6 +1083,15 @@ mode-line.  This is only useful for non-XEmacs"
 	  (t (message "Click on the edge of the modeline to scroll left/right")))
     ;;(message "X: Pixel %d Char Pixels %d On char %d" xp cpw oc)
     ))
+
+(defun speedbar-customize ()
+  "Customize speedbar using the Custom package."
+  (interactive)
+  (let ((sf (selected-frame)))
+    (select-frame speedbar-attached-frame)
+    (funcall 'customize-group 'speedbar)
+    (select-frame sf))
+  (speedbar-maybee-jump-to-attached-frame))
 
 (defun speedbar-get-focus ()
   "Change frame focus to or from the speedbar frame.
