@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.9 2001/09/11 15:01:10 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.10 2001/09/12 10:24:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -204,10 +204,10 @@
 ;;   (TERM TERM-VALUE [TERM-START . TERM-END]) or (`wisent-eoi-term')
 ;;   when at the end of the input.  TERM is the unique symbol
 ;;   identifying a terminal as specified in the grammar.  TERM-VALUE
-;;   is the actual string value of the terminal and TERM-START,
-;;   TERM-END are the start and end positions of the terminal value in
-;;   the input stream.  You can use the macro `wisent-lexer' to call
-;;   LEXER in semantic actions.
+;;   is the actual value of the terminal and optionals TERM-START,
+;;   TERM-END are the start and end positions of the terminal string
+;;   value in the input stream.  You can use the macro `wisent-lexer'
+;;   to call LEXER in semantic actions.
 ;;
 ;; - ERROR-FUNCTION is a reporting function called when a parse error
 ;;   occurs.  It receives a message string to report.  When
@@ -2001,7 +2001,7 @@ value ACTION is a semantic action statement."
   (setq wisent-nonterm-count (length wisent--vars))
   (let ((nonterm (car def))
         (rules   (cdr def))
-        prod/acts rhs rest prod item items)
+        prod/acts rule rhs rest prod item items)
     (or (consp rules)
         (error "At least one production needed for nonterminal %s"
                nonterm))
@@ -2426,10 +2426,12 @@ symbol specified at compilation time (see `wisent-compile-grammar')."
         ;; Report this error if not already recovering from an error.
         (or wisent-recovering
             (wisent-error
-             (format "Parse error - unexpected token %s(%S) at %s"
+             (format "Parse error - unexpected token %s(%S)%s"
                      (car wisent-input)
-                     (nth 1 wisent-input)
-                     (nth 2 wisent-input))))
+                     (cadr wisent-input)
+                     (if (cddr wisent-input)
+                         (format "at %s" (cddr wisent-input))
+                       ""))))
         ;; Increment the error counter
         (setq wisent-nerrs (1+ wisent-nerrs))
         ;; If just tried and failed to reuse lookahead token after an
