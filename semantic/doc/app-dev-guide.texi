@@ -1008,9 +1008,20 @@ during a flush when the cache is given a new value of nil.
 @node Semantic Database
 @section Semantic Database
 
+Semanticdb is a database mechanism for storing tags parsed by
+@semantic{}.  The database operates in the background, saving tags as
+they are parsed between sessions.  When a file is read in, and there
+is a previously created set of tags available for it, sematnicdb will
+save time by not parsing the file, and using the cached copy.
+
+In applications, semanticdb can provide access to the sum of all tags
+in a project or in the basic system.  This database can they be
+searched using a set of special routines.
+
 @menu
-* Semanticdb in Programs::
-* Semanticdb Tag Queries::
+* Semanticdb in Programs::      Basic usage.
+* Semanticdb Tag Queries::      Searching for tokens in the databases.
+* System Databases::            Special kinds of databases for system tags.
 @end menu
 
 @node Semanticdb in Programs
@@ -1023,6 +1034,19 @@ make sure it is active in your program.
 Return non-@code{nil} if @code{semanticdb-minor-mode} is active.
 @end defun
 
+Since semanticdb is optional, it is best if a program can gracefully
+degrade service when semanticdb is not available, or to throw an
+error letting the user know it is required to be active.
+
+At the simplest level, you can ask if a given file is in the
+database, recieving a tag table.  Semanticdb will give you an
+accurate set of tags just by asking.
+
+@defun semanticdb-file-stream file
+Return a list of tags belonging to @var{FILE}.
+If file has database tags available in the database, return them.
+If file does not have tags available, then load the file, and create them.
+@end defun
 
 @node Semanticdb Tag Queries
 @subsection Semanticdb Tag Queries
@@ -1039,11 +1063,214 @@ As such, all search functions return a list of the form:
    ( (DATABASE TOKEN1 TOKEN2 ...) (DATABASE2 TOKEN3 TOKEN4 ...) ...)
 @end example
 
-@defun semanticdb-file-stream file
-Return a list of tokens belonging to @var{FILE}.
-If file has database tokens available in the database, return them.
-If file does not have tokens available, then load the file, and create them.
+There are several types of searches, divided into groups by
+implementation.  While it is possible to add new types of searches,
+or write custom searches, the built in searches are usually the only
+ones available in system backends @ref{System Databases}.
+
+When the term @b{brute} or @b{brutish} is used as a search criteria,
+that is distinguishing between an include-path based search, and a
+search that scans everything available in a project.
+
+Non-brute force searches assume that all symbols available in a given
+buffer are on the search path, or in some file that has been
+included, imported, or otherwise indicated in the source file
+itself.  While not always true for interpreted languages (such as
+Emacs Lisp), it is common among declaritive languages.
+
+Sometimes a brute force aproach is needed, scanning every file
+available to the database.  You may want to do this if your
+application is collecting some large database unrelated to a file
+currently being worked on.
+
+As such, you can determine the full path of all files to search using
+the following override method:
+
+@defun semanticdb-find-translate-path path brutish
+Translate @var{PATH} into a list of semantic tables.
+Path translation involves identifying the @var{PATH} input argument
+in one of the following ways:
+ @code{nil} - Take the current buffer, and use it's include list
+ buffer - Use that buffer's include list.
+ filename - Use that file's include list.  If the file is not
+     in a buffer, see of there is a semanticdb table for it.  If
+     not, read that file into a buffer.
+ tag - Get that tag's buffer of file file.  See above.
+ table - Search that table, and it's include list.
+In addition, once the base path is found, there is the possibility of
+each added table adding yet more tables to the path, so this routine
+can return a lengthy list.
+If argument @var{BRUTISH} is non-@code{nil}, then instead of using the include
+list, use all tables found in the parent project of the table
+identified by translating @var{PATH}.  Such searches use brute force to
+scan every available table.
+This routine uses @dfn{semanticdb-find-table-for-include} to translate
+specific include tags into a semanticdb table.
+This function can be overriden in semantic using the
+symbol @dfn{semanticdb-find-translate-path}.
 @end defun
+
+@defun semanticdb-find-table-for-include includetag &optional table
+For a single @var{INCLUDETAG} found in @var{TABLE}, find a @dfn{semanticdb-table} object
+@var{INCLUDETAG} is a semantic @var{TAG} of class 'include.
+@var{TABLE} as defined by @dfn{semantic-something-to-tag-table} to identify
+where the tag came from.  @var{TABLE} is optional if @var{INCLUDETAG} has an
+overlay of @code{:filename} attribute.
+This function can be overriden in semantic using the
+symbol @dfn{semanticdb-find-table-for-include}.
+@end defun
+
+@menu
+* DB Basic Name Search::        Searches based on name.
+* DB Basic Brute Search::       Searches on common tag attributes.
+* DB Advanced Search::          Complex searches on associations
+* DB Generic Brute Search::     Do It Yourself search criteria
+@end menu
+
+@node DB Basic Name Search
+@subsubsection DB Basic Name Search
+
+ These searches scan a database table collection for tags based on
+name.  They are divided into normal and deep searches.  A deep
+search, as with in buffer tag scanning, implies that all entries are
+scanned, including those in type declarations.
+
+Normal Searches:
+
+@defun semanticdb-find-tags-by-name name &optional path find-file-match
+Search for all tags matching @var{NAME} on @var{PATH}.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+@var{FIND-FILE-MATCH} indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer.
+@end defun
+
+@defun semanticdb-find-tags-by-name-regexp regexp &optional path find-file-match
+Search for all tags matching @var{REGEXP} on @var{PATH}.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+@var{FIND-FILE-MATCH} indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer.
+@end defun
+
+@defun semanticdb-find-tags-for-completion prefix &optional path find-file-match
+Search for all tags matching @var{PREFIX} on @var{PATH}.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+@var{FIND-FILE-MATCH} indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer.
+@end defun
+
+@defun semanticdb-find-tags-by-class class &optional path find-file-match
+Search for all tags of @var{CLASS} on @var{PATH}.
+Search also in all components of top level tags founds.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+@var{FIND-FILE-MATCH} indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer.
+@end defun
+
+Deep Searches:
+
+@defun semanticdb-deep-find-tags-by-name name &optional path find-file-match
+Search for all tags matching @var{NAME} on @var{PATH}.
+Search also in all components of top level tags founds.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+@var{FIND-FILE-MATCH} indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer.
+@end defun
+
+@defun semanticdb-deep-find-tags-by-name-regexp regexp &optional path find-file-match
+Search for all tags matching @var{REGEXP} on @var{PATH}.
+Search also in all components of top level tags founds.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+@var{FIND-FILE-MATCH} indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer.
+@end defun
+
+@defun semanticdb-deep-find-tags-for-completion prefix &optional path find-file-match
+Search for all tags matching @var{PREFIX} on @var{PATH}.
+Search also in all components of top level tags founds.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+@var{FIND-FILE-MATCH} indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer.
+@end defun
+
+@node DB Basic Brute Search
+@subsubsection DB Basic Brute Search
+
+ These searches allow searching on specific attributes of tags,
+ such as name, type, or other attribute.
+
+@defun semanticdb-brute-deep-find-tags-by-name name &optional path find-file-match
+Search for all tags matching @var{NAME} on @var{PATH}.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+The argument @var{BRUTISH} will be set so that searching includes all tables
+in the current project.
+@var{FIND-FILE-MATCH} indicates that any time a matchi is found, the file
+associated wit that tag should be loaded into a buffer.
+@end defun
+
+@node DB Advanced Search
+@subsubsection DB Advanced Search
+
+ These are searches that were needed to accomplish some
+ specialized tasks as discovered in utilities.  Advanced searches
+ include matching methods defined outside some parent class.
+
+ The reason for advanced searches are so that external
+ repositories such as the Emacs obarray, or java @file{.class} files can
+ quickly answer these needed questions without dumping the entire
+ symbol list into Emacs for a regular semanticdb search.
+
+@defun semanticdb-find-tags-external-children-of-type type &optional path find-file-match
+Search for all tags defined outside of @var{TYPE} w/ @var{TYPE} as a parent.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+@var{FIND-FILE-MATCH} indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer.
+@end defun
+
+@node DB Generic Brute Search
+@subsubsection DB Generic Brute Search
+
+ The generic search, @dfn{semanticdb-find-nonterminal-by-function}
+ will call your function with every tag available.  (Very slow for
+ system databases.)
+
+NOTE:  There is no such function.  Hopefully we can get away without
+implementing one, which will make system databases more useful.  If
+you are really stuck, you can use the following, though I don't
+recommend it.
+
+@defun semanticdb-find-tags-collector function &optional path find-file-match brutish
+Search for all tags returned by @var{FUNCTION} over @var{PATH}.
+See @dfn{semanticdb-find-translate-path} for details on @var{PATH}.
+@var{FIND-FILE-MATCH} indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer.
+If optional argument @var{BRUTISH} is non-@code{nil}, then ignore include statements,
+and search all tables in this project tree.
+@end defun
+
+@node System Databases
+@subsection System Databases
+
+System Databases are special implementations of the database and
+table API which make some external tag source appear as though it
+were a normal buffer with semantic parsed tags available.
+
+Search routines for these databases return a special type of table
+not associated with a file.  It is important to be aware of this
+possible return value.
+
+At this time, there is only one type:
+
+@deffn Type semanticdb-project-database-emacs-lisp
+Database representing Emacs core.
+@end deffn
+
+@subsection Semantic Prased System Databases
+
+Another kind of system database is one created by the semantic tools,
+but saved in a special way.  These databases are created with a
+script, or at some other convenient time.  They can then be searched
+normally.  They will appear on the same list of system databases as
+back ends that refer to object files indirectly.
 
 @node Example Programs
 @section Programming Examples
