@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-token.el,v 1.4 2003/03/13 16:47:28 ponced Exp $
+;; X-CVS: $Id: semantic-token.el,v 1.5 2003/03/14 01:58:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -363,7 +363,7 @@ thing, but may be constructed of different cons cells."
 
 ;;; Token Creation
 ;;
-(defun semantic-token-make-assoc-list (args)
+(defun semantic-tag-make-assoc-list (args)
   "Create an association list with ARGS.
 Args is a list of the form (KEY1 VALUE1 ... KEYN VALUEN).
 The return value will be of the form: ((KEY1 .  VALUE1) ... (KEYN . VALUEN))
@@ -381,18 +381,18 @@ If VALUE is nil, then KEY is excluded from the return association list."
 	(setq args (cdr (cdr args)))))
     (nreverse ret)))
 
-(defun semantic-token (name type-symbol &rest plist)
+(defun semantic-tag (name type-symbol &rest plist)
   "Create generic semantic token.
 NAME is a string representing the name of this token.
 TYPE-SYMBOL is the symbol that represents the type of token this is,
 such as 'variable, or 'function.
 PLIST is a property list of additional values belonging to this token."
   (list name type-symbol
-	(semantic-token-make-assoc-list plist)
+	(semantic-tag-make-assoc-list plist)
 	nil)
   )
 
-(defun semantic-token-new-variable (name type default-value &rest extra-specifiers)
+(defun semantic-tag-new-variable (name type default-value &rest extra-specifiers)
   "Create semantic token of type variable.
 NAME is a string representing the name of this token.
 TYPE is a string or semantic token representing the type of this token.
@@ -400,11 +400,11 @@ DEFAULT-VALUE is a string representing the default value of this variable.
 EXTRA-SPECIFIERS is a property list of additional features of this token.
 Any property with a value of nil is not stored in the list."
   (list name 'variable type default-value
-	(semantic-token-make-assoc-list extra-specifiers)
+	(semantic-tag-make-assoc-list extra-specifiers)
 	nil)
   )
 
-(defun semantic-token-new-function (name type arg-list &rest extra-specifiers)
+(defun semantic-tag-new-function (name type arg-list &rest extra-specifiers)
   "Create semantic token of type function.
 NAME is a string representing the name of this token.
 TYPE is a string or semantic token representing the type of this token.
@@ -413,11 +413,11 @@ argument list of this function.
 EXTRA-SPECIFIERS is a property list of additional features of this token.
 Any property with a value of nil is not stored in the list."
   (list name 'function type arg-list
-	(semantic-token-make-assoc-list extra-specifiers)
+	(semantic-tag-make-assoc-list extra-specifiers)
 	nil)
   )
 
-(defun semantic-token-new-type (name type part-list parents &rest extra-specifiers)
+(defun semantic-tag-new-type (name type part-list parents &rest extra-specifiers)
   "Create semantic token of type function.
 NAME is a string representing the name of this token.
 TYPE is a string or semantic token representing the type of this token.
@@ -439,11 +439,11 @@ interface.
 EXTRA-SPECIFIERS is a property list of additional features of this token.
 Any property with a value of nil is not stored in the list."
   (list name 'type type part-list parents
-	(semantic-token-make-assoc-list extra-specifiers)
+	(semantic-tag-make-assoc-list extra-specifiers)
 	nil)
   )
 
-(defun semantic-token-new-include (name system-flag &rest extra-specifiers)
+(defun semantic-tag-new-include (name system-flag &rest extra-specifiers)
   "Create semantic token of type function.
 NAME is a string representing the name of this token.
 SYSTEM-FLAG represents that we were able to identify this include as belonging
@@ -454,7 +454,7 @@ Any property with a value of nil is not stored in the list."
   (list name 'include system-flag nil)
   )
 
-(defun semantic-token-new-package (name detail &rest extra-specifiers)
+(defun semantic-tag-new-package (name detail &rest extra-specifiers)
   "Create semantic token of type function.
 NAME is a string representing the name of this token.
 DETAIL is extra information about this package, such as a location where
@@ -464,6 +464,14 @@ Any property with a value of nil is not stored in the list."
   (list name 'package detail nil)
   )
 
+;; Lets test this out during this short transition.
+(require 'semantic-fw)
+(semantic-alias-obsolete 'semantic-token              'semantic-tag	        )
+(semantic-alias-obsolete 'semantic-token-new-variable 'semantic-tag-new-variable)
+(semantic-alias-obsolete 'semantic-token-new-function 'semantic-tag-new-function)
+(semantic-alias-obsolete 'semantic-token-new-type     'semantic-tag-new-type    )
+(semantic-alias-obsolete 'semantic-token-new-include  'semantic-tag-new-include )
+(semantic-alias-obsolete 'semantic-token-new-package  'semantic-tag-new-package )
 
 (provide 'semantic-token)
 
