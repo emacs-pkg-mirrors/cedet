@@ -1,10 +1,10 @@
  ;;; cogre-uml.el --- UML support for COGRE
 
-;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.9 2003/09/07 02:00:07 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.10 2004/09/28 11:36:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -144,7 +144,7 @@ Optional argument FIELDS are not used."
 (defcustom cogre-token->uml-function 'semantic-uml-abbreviate-nonterminal
   "Function to use to create strings for tokens in CLASS nodes."
   :group 'cogre
-  :type semantic-tag->text-custom-list)
+  :type semantic-format-tag-functions)
 
 
 (defmethod cogre-uml-stoken->uml ((class cogre-semantic-class) stoken &optional text)
