@@ -26,7 +26,7 @@
 This manual documents Application Development with Semantic.
 
 Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
-Copyright @copyright{} 2001, 2002, 2003 David Ponce
+Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
 @quotation
@@ -58,7 +58,7 @@ License''.
 This file documents Application Development with Semantic.
 @emph{Infrastructure for parser based text analysis in Emacs}
 
-Copyright @copyright{} 2002 @value{AUTHOR}
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
 @end ifinfo
 
 @titlepage
@@ -66,7 +66,7 @@ Copyright @copyright{} 2002 @value{AUTHOR}
 @title @value{TITLE}
 @author by @value{AUTHOR}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
 @page
 @vskip 0pt plus 1 fill
 @insertcopying
@@ -86,7 +86,8 @@ Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
 
 A @semantic{} application takes the semantic tags generated
 by semantic parsers then provides useful services to the user.
-See @inforef{Semantic User's Guide, , user-guide} for a list of such applications.
+For a list of such applications,
+@inforef{the Semantic User's Guide, , semantic-user}.
 
 An application developer needs to know
 @itemize @bullet
@@ -112,6 +113,8 @@ developer needs to know to perform all of the tasks just listed.
 * Idle Scheduling::             Scheduling jobs in idle time.
 * Example Programs::            Simple programming examples.
 * Current Context::             
+* GNU Free Documentation License::  
+* Index::                       
 @end menu
 
 @node Semantic Tags
@@ -133,10 +136,10 @@ overload method will need to execute in a buffer of the same mode as
 the tags being searched.
 
 @menu
-* Breadth Search::      Searching only one level of tags.
-* Deep Search::         Deep searches into types or argument lists.
-* Specialty Search::    Specialty Searches.
-* Custom Search::       Write custom search routines.
+* Breadth Search::              Searching only one level of tags.
+* Deep Search::                 Deep searches into types or argument lists.
+* Specialty Search::            Specialty Searches.
+* Custom Search::               Write custom search routines.
 @end menu
 
 @node Breadth Search
@@ -560,8 +563,8 @@ augment the @dfn{interactive} command like this:
 @end example
 
 @menu
-* Tag Completion Convenience Functions:: Provided functions
-* Custom Tag Completion Functions:: Build your own completion function
+* Tag Completion Convenience Functions::  Provided functions
+* Custom Tag Completion Functions::  Build your own completion function
 * Old Tag Completion::          Completion functions from older releases
 @end menu
 
@@ -643,8 +646,8 @@ HISTORY is a symbol representing a variable to story the history in."
 @end example
 
 @menu
-* Tag Collectors::
-* Tag Displayors::
+* Tag Collectors::              
+* Tag Displayors::              
 @end menu
 
 @node Tag Collectors
@@ -1218,10 +1221,10 @@ The semantic parser has many features and hooks that applications can
 use to provide a good user experience.
 
 @menu
-* Editing Buffers::     Let the parser know you are changing a buffer.
-* Parser State::        Knowing if the tag table is out of date
-* Parser Hooks::        Knowing when tags change
-* Lexical Safety::      Preventing lexical errors from making a mess
+* Editing Buffers::             Let the parser know you are changing a buffer.
+* Parser State::                Knowing if the tag table is out of date
+* Parser Hooks::                Knowing when tags change
+* Lexical Safety::              Preventing lexical errors from making a mess
 @end menu
 
 @node Editing Buffers
@@ -2021,9 +2024,9 @@ Analysis is done at @var{POINT}.
 @end deffn
 
 @menu
-* Analysis Overview::   A description of how the analyzer works.
-* Analysis Objects::    What is in the analysis object.
-* Completion Overview:: How completions are calculated.
+* Analysis Overview::           A description of how the analyzer works.
+* Analysis Objects::            What is in the analysis object.
+* Completion Overview::         How completions are calculated.
 @end menu
 
 @node Analysis Overview
@@ -2074,4 +2077,22 @@ a summary of the return value.  This is useful when debugging.
 @node Completion Overview
 @subsection Completion Overview
 
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@include fdl.texi
+
+@node Index
+@unnumbered Index
+@printindex cp
+
+@iftex
+@contents
+@summarycontents
+@end iftex
+
+@bye
+
+@c Following comments are for the benefit of ispell.
 
