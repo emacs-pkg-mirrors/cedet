@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.2 2001/08/30 14:51:58 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.3 2001/08/31 11:57:14 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -68,9 +68,14 @@ function `semantic-bnf-token-table'."
   "Return a Semantic token including RETURN-VAL.
 To be used in Wisent LALR(1) grammar actions to build the
 `semantic-toplevel-bovine-cache'."
-  (list
-   (nconc return-val
-          (list nil (vector (car $region) (cdr $region))))))
+  ;; To avoid calling:
+  ;;   (semantic-token-put return-val 'reparse-symbol $nterm)
+  ;; the token property list with the 'reparse-symbol property is
+  ;; setup "on the fly" ;)
+  (list (nconc return-val
+               (list
+                (list (cons 'reparse-symbol $nterm))
+                (vector (car $region) (cdr $region))))))
 
 ;;;;
 ;;;; Bovination
@@ -116,7 +121,14 @@ list of semantic tokens found."
   (let* ((gc-cons-threshold 10000000)
          (wisent-flex-istream stream)
          (cache (wisent-parse table lexer error nonterminal)))
-    (list wisent-flex-istream cache)))
+    (list wisent-flex-istream
+          ;; Ensure to get only valid Semantic tokens from the LALR
+          ;; parser!
+          (delq nil
+                (mapcar #'(lambda (tok)
+                            (if (semantic-token-p tok)
+                                tok))
+                        cache)))))
 
 (defun wisent-bovinate-nonterminals (stream nonterm
                                             &optional returnonerror)
@@ -142,24 +154,120 @@ with the current results on a parse error."
 	  )))
     result))
 
-(defun wisent-bovinate-toplevel (&optional checkcache)
-  "Semantic alternate Java LALR(1) parser.
-The optional argument CHECKCACHE is ignored."
-  ;; Reparse the whole system
+(defun wisent-rebovinate-token (token)
+  "Use TOKEN for extents, and reparse it, splicing it back into the cache."
   (let* ((semantic-flex-depth nil)
-         (stream (semantic-flex (point-min) (point-max)))
-         (cache nil))
-    ;; Init a dump
-    ;;(if semantic-dump-parse
-    ;;    (semantic-dump-buffer-init))
-    ;; Parse!
-    (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
-      (setq cache (wisent-bovinate-nonterminals stream nil))
-      (working-status t))
-    (semantic-overlay-list cache)
-    ;;(semantic-set-toplevel-bovine-cache cache)
-    ;;semantic-toplevel-bovine-cache))
-    cache))
+         (stream (semantic-flex (semantic-token-start token)
+                                (semantic-token-end token)))
+	 ;; For embeded tokens (type parts, for example) we need a
+	 ;; different symbol.  Come up with a plan to solve this.
+	 (nonterminal (semantic-token-get token 'reparse-symbol))
+	 (new (and nonterminal
+                   (nth 1 (condition-case nil
+                              (wisent-bovinate-nonterminal
+                               stream
+                               semantic-toplevel-bovine-table
+                               #'wisent-lexer-wrapper
+                               wisent-error-function
+                               nonterminal)
+                            (error nil))))))
+    (if (or (null (car new))            ; Clever reparse failed
+            (> (length new) 1))         ; or returned multiple tokens
+        ;; Don't do much, we have to do a full recheck.
+        (setq semantic-toplevel-bovine-cache-check t)
+
+      ;; Update the cache with the new token
+      (semantic-overlay-list new)       ; Setup overlays
+      (setq new (car new))              ; Get the new token
+      (let ((oo (semantic-token-overlay token))
+            (o (semantic-token-overlay new)))
+        ;; Copy all properties of the old overlay here.  I think I can
+        ;; use plists in emacs, but not in XEmacs.  Ack!
+        (semantic-overlay-put o 'face (semantic-overlay-get oo 'face))
+        (semantic-overlay-put o 'old-face (semantic-overlay-get oo 'old-face))
+        (semantic-overlay-put o 'intangible (semantic-overlay-get oo 'intangible))
+        (semantic-overlay-put o 'invisible (semantic-overlay-get oo 'invisible))
+        ;; Free the old overlay(s)
+        (semantic-deoverlay-token token)
+        ;; Recover properties
+        (let ((p (semantic-token-properties token)))
+          (while p
+            (semantic-token-put new (car (car p)) (cdr (car p)))
+            (setq p (cdr p))))
+        (semantic-token-put new 'reparse-symbol nonterminal)
+        (semantic-token-put new 'dirty nil)
+        ;; Splice into the main list.
+        (setcdr token (cdr new))
+        (setcar token (car new))
+        ;; This important bit is because the CONS cell representing
+        ;; TOKEN is what we need here, even though the whole thing is
+        ;; the same.
+        (semantic-overlay-put o 'semantic token)
+        ;; Hooks
+        (run-hook-with-args 'semantic-clean-token-hooks token)
+        ))))
+
+(defun wisent-bovinate-toplevel (&optional checkcache)
+  "Bovinate the entire current buffer with the LALR parser.
+If the optional argument CHECKCACHE is non-nil, then make sure the
+cached token list is up to date.  If a partial reparse is possible, do
+that, otherwise, do a full reparse."
+  (cond
+   ;; Partial reparse
+   ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
+    (let ((changes (semantic-remove-dirty-children)))
+      ;; We have a cache, and some dirty tokens
+      (let ((semantic-bovination-working-type 'dynamic))
+        (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
+          (while (and semantic-dirty-tokens
+                      (not (semantic-bovine-toplevel-full-reparse-needed-p
+                            checkcache)))
+            (wisent-rebovinate-token (car semantic-dirty-tokens))
+            (setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
+            (working-dynamic-status))
+          (working-dynamic-status t))
+        (setq semantic-dirty-tokens nil))
+      
+      (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
+          ;; If the partial reparse fails, jump to a full reparse.
+          (wisent-bovinate-toplevel checkcache)
+        ;; After partial reparse completed, let hooks know the updated
+        ;; tokens
+        (run-hook-with-args 'semantic-after-partial-cache-change-hook
+                            changes)
+        semantic-toplevel-bovine-cache)))
+   
+   ;; Full parse
+   ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
+    (semantic-clear-toplevel-cache)
+    ;; Reparse the whole system
+    (let* ((semantic-flex-depth nil)
+           (stream (semantic-flex (point-min) (point-max)))
+           (cache nil))
+      ;; Init a dump
+      ;;(if semantic-dump-parse
+      ;;    (semantic-dump-buffer-init))
+      ;; Parse!
+      (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
+        (setq cache (wisent-bovinate-nonterminals stream nil))
+        (working-status t))
+      (semantic-overlay-list cache)
+      (semantic-set-toplevel-bovine-cache cache)
+      semantic-toplevel-bovine-cache))
+
+   ;; No parse needed
+   (t
+    ;; We have a cache with stuff in it, so return it
+    semantic-toplevel-bovine-cache)
+   
+   ))
+
+(defadvice semantic-bovinate-toplevel (around wisent-bovine activate)
+  "Bypass `semantic-bovinate-toplevel-override' handling.
+So `wisent-bovinate-toplevel' can handle partial reparse too!"
+  (if (eq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel)
+      (setq ad-return-value (wisent-bovinate-toplevel (ad-get-arg 0)))
+    ad-do-it))
 
 (provide 'wisent-bovine)
 
