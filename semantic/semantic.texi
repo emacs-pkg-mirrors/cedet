@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.43 2001/08/17 21:11:09 zappo Exp $
+@c $Id: semantic.texi,v 1.44 2001/08/28 12:52:38 ponced Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -1753,7 +1753,7 @@ The functions must take a @var{TOKEN} as a parameter.
 Any token sent to this hook will have first been called with
 @code{semantic-dirty-token-hooks}.  This hook is not called for tokens
 marked dirty if the buffer is completely reparsed.  In that case, use
-@code{semantic-after-toplevel-bovinate-hook}.
+@code{semantic-after-toplevel-cache-change-hook}.
 @end defvar
 
 @defvar semantic-change-hooks
@@ -1771,14 +1771,40 @@ not need to be fully reparsed.
 This function is also called when the toplevel cache is flushed, and
 the cache is emptied.
 For language specific hooks, make sure you define this as a local hook.
+
+This hook should not be used any more.
+Use @code{semantic-after-toplevel-cache-change-hook} instead.
+@end defvar
+
+@defvar semantic-after-toplevel-cache-change-hook
+Hooks run after the buffer token list has changed.
+This list will change when a buffer is reparsed, or when the token
+list in a buffer is cleared.  It is *NOT* called if the current token
+list partially reparsed.
+
+Hook functions must take one argument, which is the new list of
+tokens associated with this buffer.
+
+For language specific hooks, make sure you define this as a local hook.
+@end defvar
+
+@defvar semantic-after-partial-cache-change-hook
+Hooks run after the buffer token list has been updated.
+This list will change when the current token list has been partially
+reparsed.
+
+Hook functions must take one argument, which is the list of tokens
+updated among the ones associated with this buffer.
+
+For language specific hooks, make sure you define this as a local hook.
 @end defvar
 
 @defvar semantic-before-toplevel-cache-flush-hook
 Hooks run before the toplevel nonterminal cache is flushed.
 For language specific hooks, make sure you define this as a local hook.
 This hook is called before a corresponding
-@code{semantic-after-toplevel-bovinate-hook} which is also called during a
-flush when the cache is given a new value of nil.
+@code{semantic-after-toplevel-cache-change-hook} which is also called
+during a flush when the cache is given a new value of nil.
 @end defvar
 
 @node Current Context, Tools, Utilities, Top
