@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.26 2003/08/02 08:22:28 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.27 2003/09/05 10:33:15 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -62,7 +62,8 @@ MSG is the message string to report."
 ;;;; Local context
 ;;;;
 
-(defun wisent-java-get-local-variables ()
+(define-mode-overload-implementation semantic-get-local-variables
+  java-mode ()
   "Get local values from a specific context.
 Parse the current context for `field_declaration' nonterminals to
 collect tags, such as local variables or prototypes.
@@ -121,15 +122,6 @@ Use the alternate LALR(1) parser."
    )
   ;; Setup javadoc stuff
   (semantic-java-doc-setup))
-
-;; semantic overloaded functions
-(semantic-install-function-overrides
- '((format-tag-prototype  . semantic-java-prototype-tag)
-   (find-documentation    . semantic-java-find-documentation)
-   (get-local-variables   . wisent-java-get-local-variables)
-   )
- t ;; They can be changed in mode hook by more specific ones
- 'java-mode)
 
 (defun wisent-java-expand-tag (tag)
   "Expand TAG into a list of equivalent tags, or nil.
