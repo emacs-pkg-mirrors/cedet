@@ -1,10 +1,10 @@
 ;;; ede.el --- Emacs Development Environment gloss
 
-;;;  Copyright (C) 1998, 99, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 99, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.45 2001/01/10 07:01:46 zappo Exp $
+;; RCS: $Id: ede.el,v 1.46 2001/01/24 19:08:23 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -346,7 +346,7 @@ Argument LIST-O-O is the list of objects to choose from."
 ;;; Menu and Keymap
 ;;
 (defvar ede-minor-mode nil
-  "Non-nil in `emacs-lisp-mode' for automatic documentation checking.")
+  "Non-nil in EDE controlled buffers.")
 (make-variable-buffer-local 'ede-minor-mode)
 
 ;; We don't want to waste space.  There is a menu after all.
