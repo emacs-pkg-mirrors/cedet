@@ -1,9 +1,9 @@
 ;;; semantic-html.el --- Semantic details for html files
 
-;;; Copyright (C) 2004 Eric M. Ludlam
+;;; Copyright (C) 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-html.el,v 1.6 2004/07/30 17:58:48 zappo Exp $
+;; X-RCS: $Id: semantic-html.el,v 1.7 2005/01/07 02:02:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,16 +38,12 @@
 
 ;;; Code:
 (eval-when-compile
-  (require 'semanticdb)
-  (require 'semanticdb-find)
   (require 'semantic-ctxt)
   (require 'semantic-imenu)
-  (require 'semantic-doc)
-  (require 'document)
   (require 'senator))
 
 (defvar semantic-html-super-regex
-  "<\\(h[1-9]\\|title\\|script\\|body\\|a\\)\\>"
+  "<\\(h[1-9]\\|title\\|script\\|body\\|a +href\\)\\>"
   "Regular expression used to find special sections in an HTML file.")
 
 (defvar semantic-html-section-list
@@ -150,11 +146,13 @@ need the name from."
       )
     (let ((start (point))
 	  (end nil))
-      (re-search-forward "</")
-      (goto-char (match-beginning 0))
-      (skip-chars-backward " \n\t")
-      (setq end (point))
-      (buffer-substring-no-properties start end))
+      (if (re-search-forward "</" nil t)
+	  (progn
+	    (goto-char (match-beginning 0))
+	    (skip-chars-backward " \n\t")
+	    (setq end (point))
+	    (buffer-substring-no-properties start end))
+	""))
     ))
 
 (defun semantic-html-recursive-combobulate-list (sectionlist level)
