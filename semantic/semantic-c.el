@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.9 2003/01/30 13:41:37 berndl Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.10 2003/02/01 18:16:39 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -330,15 +330,18 @@
  ))
  ) ; end template-specifier-type-list
  (template-var
- ( template-type opt-stars opt-template-equal
+ ( template-type opt-template-equal
   ,(semantic-lambda
-  ( cons ( concat ( car (nth 0 vals)) ( make-string ( car (nth 1 vals)) 42)) ( cdr (nth 0 vals)))))
+  ( cons ( car (nth 0 vals)) ( cdr (nth 0 vals)))))
  ( string
   ,(semantic-lambda
   (list (nth 0 vals))))
  ( number
   ,(semantic-lambda
   (list (nth 0 vals))))
+ ( opt-stars opt-ref namespace-symbol
+  ,(semantic-lambda
+  (nth 2 vals)))
  ) ; end template-var
  (opt-template-equal
  ( punctuation "\\b=\\b" symbol punctuation "\\b<\\b" template-specifier-types punctuation "\\b>\\b"
@@ -355,19 +358,10 @@
   (list (nth 1 vals) 'type "struct" nil nil)))
  ( TYPENAME symbol
   ,(semantic-lambda
-  (list (nth 1 vals) 'type "struct" nil nil)))
- ( builtintype symbol
+  (list (nth 1 vals) 'type "class" nil nil)))
+ ( declmods typeformbase cv-declmods opt-stars opt-ref variablearg-opt-name
   ,(semantic-lambda
-  (nth 0 vals) (list 'type nil nil nil)))
- ( builtintype
-  ,(semantic-lambda
-  (nth 0 vals) (list 'type nil nil nil)))
- ( namespace-symbol symbol
-  ,(semantic-lambda
-  (nth 0 vals) (list 'type nil nil nil)))
- ( namespace-symbol
-  ,(semantic-lambda
-  (nth 0 vals) (list 'type nil nil nil)))
+  (list ( car (nth 1 vals)) 'type nil nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" ( append (nth 0 vals) (nth 2 vals))) t nil) 'typemodifiers ( delete "const" ( append (nth 0 vals) (nth 2 vals))) 'reference ( car (nth 4 vals)) 'pointer ( car (nth 3 vals))))))
  ) ; end template-type
  (template-definition
  ( type
