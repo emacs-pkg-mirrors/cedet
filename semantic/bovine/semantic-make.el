@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.12 2004/01/12 21:13:29 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.13 2004/03/06 20:04:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -86,13 +86,107 @@
 We never have local variables in Makefiles."
   nil)
 
+(define-mode-overload-implementation semantic-ctxt-current-class-list
+  makefile-mode (&optional point)
+  "List of classes that are valid to place at point."
+  (let ((tag (semantic-current-tag)))
+    (when tag
+      (cond ((condition-case nil
+		 (save-excursion
+		   (condition-case nil (forward-sexp -1)
+		     (error nil))
+		   (forward-char -2)
+		   (looking-at "\\$\\s("))
+	       (error nil))
+	     ;; We are in a variable reference
+	     '(variable))
+	    ((semantic-tag-of-class-p tag 'function)
+	     ;; Note: variables are handled above.
+	     '(function filename))
+	    ((semantic-tag-of-class-p tag 'variable)
+	     '(variable filename))
+	    ))))
+
+(define-mode-overload-implementation semantic-format-tag-abbreviate
+  makefile-mode (tag &optional parent color)
+  "Return an abbreviated string describing tag for Makefiles."
+  (let ((class (semantic-tag-class tag))
+	(name (semantic-format-tag-name tag parent color))
+	)
+    (cond ((eq class 'function)
+	   (concat name ":"))
+	  ((eq class 'file)
+	   (concat "./" name))
+	  (t
+	   (semantic-format-tag-abbreviate-default tag parent color)))))
+
+(defvar-mode-local makefile-mode semantic-function-argument-separator
+  " "
+  "Separator used between dependencies to rules.")
+
+(define-mode-overload-implementation semantic-format-tag-prototype
+  makefile-mode (tag &optional parent color)
+  "Return a prototype string describing tag for Makefiles."
+  (let* ((class (semantic-tag-class tag))
+	 (name (semantic-format-tag-name tag parent color))
+	 )
+    (cond ((eq class 'function)
+	   (concat name ": "
+		   (semantic--format-tag-arguments 
+		    (semantic-tag-function-arguments tag)
+		    #'semantic-format-tag-prototype
+		    color)))
+	  ((eq class 'file)
+	   (concat "./" name))
+	  (t
+	   (semantic-format-tag-prototype-default tag parent color)))))
+
+(define-mode-overload-implementation semantic-format-tag-concise-prototype
+  makefile-mode (tag &optional parent color)
+  "Return a concise prototype string describing tag for Makefiles.
+This is the same as a regular prototype."
+  (semantic-format-tag-prototype tag parent color))
+
+(define-mode-overload-implementation semantic-format-tag-uml-prototype
+  makefile-mode (tag &optional parent color)
+  "Return a UML prototype string describing tag for Makefiles.
+This is the same as a regular prototype."
+  (semantic-format-tag-prototype tag parent color))
+
+(define-mode-overload-implementation semantic-analyze-possible-completions
+  makefile-mode (context)
+  "Return a list of possible completions in a Makefile.
+Uses default implementation, and also gets a list of filenames."
+  (save-excursion
+    (set-buffer (oref context buffer))
+    (let* ((normal (semantic-analyze-possible-completions-default context))
+	   (prefix (car (oref context :prefix)))
+	   (completetext (cond ((semantic-tag-p prefix)
+				(semantic-tag-name prefix))
+			       ((stringp prefix)
+				prefix)
+			       ((stringp (car prefix))
+				(car prefix))))
+	   (files (directory-files default-directory nil
+				   (concat "^" completetext)))
+	   (filetags (mapcar (lambda (f) (semantic-tag f 'file))
+			     files)))
+      
+      (append normal filetags)
+      )))
+
+
 ;;;###autoload
 (defun semantic-default-make-setup ()
   "Set up a Makefile buffer for parsing with semantic."
   (semantic-make-by--install-parser)
   (setq semantic-symbol->name-assoc-list '((variable . "Variables")
                                            (function . "Rules")
-                                           (include . "Dependencies"))
+                                           (include . "Dependencies")
+					   ;; File is a meta-type created
+					   ;; to represent completions
+					   ;; but not actually parsed.
+					   (file . "File"))
         semantic-case-fold t
         semantic-tag-expand-function 'semantic-make-expand-tag
         semantic-lex-syntax-modifications '((?. "_")
