@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.16 2001/07/12 19:49:22 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.17 2001/07/17 20:04:36 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -464,6 +464,75 @@ METHOD is the method that was attempting to be called."
       (class-c "C2" :moose "not a symbol")
       (error "A string was set on a symbol slot during init."))
   (invalid-slot-type nil))
+
+;; Slot protection
+(defclass prot-1 ()
+  ((slot-1 :initarg :slot-1
+	   :initform nil
+	   :protection :public)
+   (slot-2 :initarg :slot-2
+	   :initform nil
+	   :protection :protected)
+   (slot-3 :initarg :slot-3
+	   :initform nil
+	   :protection :private))
+  "A class for testing the :protection option.")
+
+(defclass prot-2 (prot-1)
+  nil
+  "A class for testing the :protection option.")
+
+(defmethod prot1-slot-2 ((s2 prot-1))
+  "Try to access slot-2 in S2."
+  (oref s2 slot-2))
+
+(defmethod prot1-slot-2 ((s2 prot-2))
+  "Try to access slot-2 in S2."
+  (oref s2 slot-2))
+
+(defmethod prot1-slot-3 ((s2 prot-1))
+  "Try to access slot-2 in S2."
+  (oref s2 slot-2))
+
+(defmethod prot1-slot-3 ((s2 prot-2))
+  "Try to access slot-2 in S2."
+  (oref s2 slot-2))
+
+(defvar p1 (prot-1 ""))
+(defvar p2 (prot-2 ""))
+
+(condition-case nil
+    (oref p1 slot-1)
+  (error (error "Error accessing public slot.")))
+(condition-case nil
+    (oref p2 slot-1)
+  (error (error "Error accessing public slot.")))
+
+(condition-case nil
+    (progn
+      (oref p1 slot-2)
+      (error "Accessing protected slot out of context succeeded."))
+  (error nil))
+(condition-case nil
+    (prot1-slot-2 p1)
+  (error (error "Error accessing protected slot in a method.")))
+(condition-case nil
+    (prot1-slot-2 p2)
+  (error (error "Error accessing protected slot in a subclass method.")))
+
+(condition-case nil
+    (progn
+      (oref p1 slot-3)
+      (error "Accessing private slot out of context succeeded."))
+  (error nil))
+(condition-case nil
+    (prot1-slot-3 p1)
+  (error (error "Error accessing private slot in a method.")))
+(condition-case nil
+    (progn
+      (prot1-slot-3 p2)
+      (error "Accessing private slot in a subclass method succeeded."))
+  (error nil))
 
 ;;; eieio-instance-inheritor
 ;; Test to make sure this works.
