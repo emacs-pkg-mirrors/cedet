@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.9 1999/12/01 01:54:41 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.10 1999/12/02 20:34:41 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -113,6 +113,7 @@ Argument DIR is the directory from which to derive the list of objects."
 ;;
 (defun ede-speedbar-remove-file-from-target ()
   "Remove the file at point from it's target."
+  (interactive)
   (if (stringp (speedbar-line-token))
       (progn
 	(speedbar-edit-line)
@@ -120,36 +121,41 @@ Argument DIR is the directory from which to derive the list of objects."
 
 (defun ede-speedbar-compile-line ()
   "Compile/Build the project or target on this line."
+  (interactive)
   (let ((obj (eieio-speedbar-find-nearest-object)))
     (if (not (object-p obj))
 	nil
-      (cond ((child-of-class-p obj ede-project)
+      (cond ((obj-of-class-p obj ede-project)
 	     (project-compile-project obj))
-	    ((child-of-class-p obj ede-target)
+	    ((obj-of-class-p obj ede-target)
 	     (project-compile-target obj))
 	    (t (error "Error in speedbar structure"))))))
 
 (defun ede-speedbar-get-top-project-for-line ()
   "Return a project object for this line."
+  (interactive)
   (let ((obj (eieio-speedbar-find-nearest-object)))
     (if (not (object-p obj))
 	(error "Error in speedbar or ede structure")
-      (if (child-of-class-p obj ede-target)
+      (if (obj-of-class-p obj ede-target)
 	  (setq obj (ede-target-parent obj)))
-      (if (child-of-class-p obj ede-project)
+      (if (obj-of-class-p obj ede-project)
 	  obj
 	(error "Error in speedbar or ede structure")))))
 
 (defun ede-speedbar-compile-project ()
   "Compile/Build the project which owns this line."
+  (interactive)
   (project-compile-project (ede-speedbar-get-top-project-for-line)))
 
 (defun ede-speedbar-make-distribution ()
   "Edit the project file based on this line."
+  (interactive)
   (project-make-dist (ede-speedbar-get-top-project-for-line)))
 
 (defun ede-speedbar-edit-projectfile ()
   "Edit the project file based on this line."
+  (interactive)
   (project-edit-file-target (ede-speedbar-get-top-project-for-line)))
 
 ;;; Speedbar Project Methods
