@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.7 2002/02/11 13:28:11 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.8 2002/02/13 10:19:15 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -709,11 +709,11 @@ S must be a vector of integers."
   "Output the detailed results of the reductions."
   (let (i b r)
     (when (> nuseless-nonterminals 0)
+      ;; Useless nonterminals have been moved after useful ones.
       (wisent-log "\n\nUseless nonterminals:\n\n")
-      (setq i ntokens)
-      (while (< i nsyms)
-        (or (wisent-BITISSET V i)
-            (wisent-log "   %s\n" (aref tags i)))
+      (setq i 0)
+      (while (< i nuseless-nonterminals)
+        (wisent-log "   %s\n" (aref tags (+ nsyms i)))
         (setq i (1+ i))))
     (setq b nil
           i 0)
@@ -728,7 +728,7 @@ S must be a vector of integers."
       (wisent-log "\n\nUseless rules:\n\n")
       (setq i 1)
       (while (<= i nrules)
-        (unless (wisent-BITISSET P i)
+        (unless (aref ruseful i)
           (wisent-log "#%s  " (wisent-pad-string (format "%d" i) 4))
           (wisent-log "%s:" (aref tags (aref rlhs i)))
           (setq r (aref rrhs i))
