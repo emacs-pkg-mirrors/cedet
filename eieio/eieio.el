@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.10
-;; RCS: $Id: eieio.el,v 1.31 1999/01/15 21:19:27 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.32 1999/01/15 21:21:13 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1389,7 +1389,8 @@ dynamically set from FIELDS."
 SLOT-NAME is the name of the failed slot, OPERATION is the type of access
 that was requested, and optional NEW-VALUE is the value that was desired
 to be set."
-  (signal 'invalid-slot-name (list (class-name class) field)))
+  (signal 'invalid-slot-name (list (class-name (object-class class))
+				   slot-name)))
 
 (defmethod object-print ((this eieio-default-superclass) &rest strings)
   "Pretty printer for any object.  Calls `object-name' with STRINGS.
