@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.21 2002/08/11 09:39:45 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.22 2002/08/15 18:27:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -433,7 +433,7 @@ and will be collected in `semantic-lex' form: (SYMBOL START . END)."
 ;; - `wisent-parse-region' designed to override the standard function
 ;;   `semantic-parse-region'.
 ;;
-;; The latter should be faster because it eliminates a lot of function
+;; Maybe the latter is faster because it eliminates a lot of function
 ;; call.
 ;;
 (defun wisent-parse-stream (stream goal)
@@ -447,11 +447,46 @@ The LALR parser automaton must be available in buffer local variable
 
 Must be installed by `semantic-install-function-overrides' to override
 the standard function `semantic-parse-stream'."
-  (let (wisent-lex-istream wisent-lex-lookahead lookahead cache)
-    (if (vectorp (caar stream))
-        (setq lookahead (aref (caar stream) 0)
-              wisent-lex-lookahead lookahead
-              stream (cdr stream)))
+  (let (wisent-lex-istream wisent-lex-lookahead la-elt cache)
+    
+    ;; IMPLEMENTATION NOTES:
+    ;; `wisent-parse' returns a lookahead token when it stopped
+    ;; parsing before encountering the end of input.  To re-enter the
+    ;; parser it is necessary to push back in the lexical input stream
+    ;; the last lookahead token issued.  Because the format of
+    ;; lookahead tokens and tokens in STREAM can be different the
+    ;; lookahead token is put in the variable `wisent-lex-lookahead'
+    ;; before calling `wisent-parse'.  Wisent's lexers always pop the
+    ;; next lexical token from that variable when non nil, then from
+    ;; the lexical input stream.
+    ;;
+    ;; The first element of STREAM is used to keep lookahead tokens
+    ;; across successive calls to `wisent-parse-stream'.  In fact
+    ;; what is kept is a stack of lookaheads encountered so far.  It
+    ;; is cleared when `wisent-parse' returns a valid semantic token,
+    ;; or twice the same lookahead token!  The latter indicates that
+    ;; there is a syntax error on that token.  If so, tokens currently
+    ;; in the lookahead stack have not been used, and are moved into
+    ;; `semantic-unmatched-syntax-cache'.  When the parser will be
+    ;; re-entered, a new lexical token will be read from STREAM.
+    ;;
+    ;; The first element of STREAM that contains the lookahead stack
+    ;; has this format (compatible with the format of `semantic-lex'
+    ;; tokens):
+    ;;
+    ;; (LOOKAHEAD-STACK START . END)
+    ;;
+    ;; where LOOKAHEAD-STACK is a list of lookahead tokens.  And
+    ;; START/END are the bounds of the lookahead at top of stack.
+    
+    ;; Retrieve lookahead token from stack
+    (setq la-elt (car stream))
+    (if (consp (car la-elt))
+        ;; The first elt of STREAM contains a lookahead stack
+        (setq wisent-lex-lookahead (caar la-elt)
+              stream (cdr stream))
+      (setq la-elt nil))
+    ;; Parse
     (setq wisent-lex-istream stream
           cache (condition-case nil
                     (wisent-parse semantic-toplevel-bovine-table
@@ -459,19 +494,29 @@ the standard function `semantic-parse-stream'."
                                   wisent-error-function
                                   goal)
                   (error nil)))
+    ;; Manage returned lookahead token
     (if wisent-lookahead
-        (if (eq lookahead wisent-lookahead)
+        (if (eq (caar la-elt) wisent-lookahead)
+            ;; It is already at top of lookahead stack
             (progn
-              (setq cache nil)
-              ;; collect unmatched token here
-              (run-hook-with-args
-               'wisent-discarding-token-functions lookahead)
-              )
-          ;; push back the lookahead token
-          (setq wisent-lex-istream
-                (cons (cons (vector wisent-lookahead)
-                            (cddr wisent-lookahead))
-                      wisent-lex-istream))))
+              (setq cache nil
+                    la-elt (car la-elt))
+              (while la-elt
+                ;; Collect unmatched tokens from the stack
+                (run-hook-with-args
+                 'wisent-discarding-token-functions (car la-elt))
+                (setq la-elt (cdr la-elt))))
+          ;; New lookahead token
+          (if (or (consp cache) ;; Clear the stack if parse succeeded
+                  (null la-elt))
+              (setq la-elt (cons nil nil)))
+          ;; Push it into the stack
+          (setcar la-elt (cons wisent-lookahead (car la-elt)))
+          ;; Update START/END
+          (setcdr la-elt (cddr wisent-lookahead))
+          ;; Push (LOOKAHEAD-STACK START . END) in STREAM
+          (setq wisent-lex-istream (cons la-elt wisent-lex-istream))))
+    ;; Return (STREAM SEMANTIC-STREAM)
     (list wisent-lex-istream
           (if (consp cache) cache '(nil))
           )))
@@ -492,29 +537,36 @@ the standard function `semantic-parse-region'."
              start end))
   (let* ((case-fold-search semantic-case-fold)
          (wisent-lex-istream (semantic-lex start end depth))
-         ptree token cooked oldla wisent-lex-lookahead)
+         ptree token cooked lstack wisent-lex-lookahead)
+    ;; Loop while there are lexical tokens available
     (while wisent-lex-istream
-      ;; parse
-      (setq oldla wisent-lex-lookahead
+      ;; Parse
+      (setq  wisent-lex-lookahead (car lstack)
             token (condition-case nil
                       (wisent-parse semantic-toplevel-bovine-table
                                     wisent-lexer-function
                                     wisent-error-function
                                     goal)
                     (error nil)))
-      ;; manage the lookahead token
-      (if (and wisent-lookahead (eq oldla wisent-lookahead))
-          (progn
-            (setq wisent-lex-lookahead nil
-                  token nil)
-            ;; collect unmatched token here
-            (run-hook-with-args
-             'wisent-discarding-token-functions wisent-lookahead))
-        (setq wisent-lex-lookahead wisent-lookahead))
-      ;; cook result or return on syntax error
+      ;; Manage returned lookahead token
+      (if wisent-lookahead
+          (if (eq (car lstack) wisent-lookahead)
+              ;; It is already at top of lookahead stack
+              (progn
+                (setq token nil)
+                (while lstack
+                  ;; Collect unmatched tokens from lookahead stack
+                  (run-hook-with-args
+                   'wisent-discarding-token-functions (car lstack))
+                  (setq lstack (cdr lstack))))
+            ;; Push new lookahead token into the stack
+            (setq lstack (cons wisent-lookahead lstack))))
+      ;; Manage the parser result
       (cond
+       ;; Parse succeeded, cook result
        ((consp token)
-        (setq cooked (semantic-raw-to-cooked-token token)
+        (setq lstack nil ;; Clear the lookahead stack
+              cooked (semantic-raw-to-cooked-token token)
               ptree (append cooked ptree))
         (while cooked
           (setq token  (car cooked)
@@ -522,10 +574,11 @@ the standard function `semantic-parse-region'."
           (or (semantic-token-get token 'reparse-symbol)
               (semantic-token-put token 'reparse-symbol goal)))
         )
+       ;; Return on error if requested
        (returnonerror
         (setq wisent-lex-istream nil)
         ))
-      ;; work in progress...
+      ;; Work in progress...
       (if wisent-lex-istream
 	  (if (eq semantic-bovination-working-type 'percent)
 	      (working-status
@@ -533,8 +586,20 @@ the standard function `semantic-parse-region'."
                           (car wisent-lex-istream)))
                   (point-max)))
 	    (working-dynamic-status))))
-    ;; return parse tree
+    ;; Return parse tree
     (nreverse ptree)))
+
+;;; Interfacing with edebug
+;;
+(add-hook
+ 'edebug-setup-hook
+ #'(lambda ()
+     
+     (def-edebug-spec define-wisent-lexer
+       (&define name stringp def-body)
+       )
+     
+     ))
 
 (provide 'wisent-bovine)
 
