@@ -9,14 +9,15 @@
 top=
 ede_FILES=Project.ede Makefile
 
+maintenance_LISP=semantic-ede-grammar.el
+EMACS=emacs
+LOADPATH=../eieio/ ../ede/ wisent/ bovine/\
+   ../common/ ../speedbar/ ../eieio/ 
 wy_MISC=semantic-grammar.wy
 scripts_MISC=semanticdb.sh
 example_MISC=semantic-example.el
 init_LISP=semantic-load.el semantic-autogen.el
-EMACS=emacs
-LOADPATH=wisent/ bovine/ ../common/ ../speedbar/ ../eieio/\
-   
-semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el semantic-tag.el semantic-find.el semantic-format.el semantic-complete.el semantic-sort.el semantic-decorate.el semantic-tag-file.el semantic-doc.el semantic-tag-ls.el
+semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el semantic-tag.el semantic-find.el semantic-format.el semantic-complete.el semantic-sort.el semantic-decorate.el semantic-tag-file.el semantic-doc.el semantic-tag-ls.el semantic-ast.el
 Languages_LISP=semantic-texi.el
 tools_LISP=semantic-imenu.el semantic-sb.el working.el semanticdb.el document.el document-vars.el sformat.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el
 senator_LISP=senator.el
@@ -30,6 +31,15 @@ DISTDIR=$(top)semantic-$(VERSION)
 
 all: wy scripts example init semantic Languages tools senator semantic.info wisent Tests Documentation bovinator
 
+.PHONY: maintenance
+maintenance: $(maintenance_LISP)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(setq debug-on-error t)" >> $@-compile-script
+	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
+
 wy: 
 	@
 
@@ -39,7 +49,7 @@ scripts:
 example: 
 	@
 
-semantic-al.el: $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(init_LISP) $(wildcard bovine/*.el) $(wildcard wisent/*.el)
+semantic-al.el: $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(init_LISP) $(maintenance_LISP) $(wildcard bovine/*.el) $(wildcard wisent/*.el)
 	$(EMACS) -batch -l semantic-autogen.el -f semantic-hack-autoloads
 
 .PHONY: init
@@ -120,7 +130,7 @@ clean:
 dist: semantic.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(wy_MISC) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(info_TEXINFOS) semantic.info* $(ede_FILES) $(DISTDIR)
+	cp $(maintenance_LISP) $(wy_MISC) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(info_TEXINFOS) semantic.info* $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) dist
 	cd tests; $(MAKE) dist
 	cd doc; $(MAKE) dist
