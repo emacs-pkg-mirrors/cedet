@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 02 Aug 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar-macros.el,v 1.2 2003/08/31 15:08:30 ponced Exp $
+;; X-RCS: $Id: wisent-grammar-macros.el,v 1.3 2005/01/12 07:55:49 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -127,6 +127,14 @@ NAME, DETAIL and ATTRIBUTES."
   `(wisent-raw-tag
     (semantic-tag-new-code ,name ,detail ,@attributes)))
 
+(defun wisent-grammar-ALIAS-TAG (name aliasclass definition &rest attributes)
+  "Expand call to ALIAS-TAG grammar macro.
+Return the form to create a semantic tag of class alias.
+See the function `semantic-tag-new-alias' for the meaning of arguments
+NAME, ALIASCLASS, DEFINITION and ATTRIBUTES."
+  `(wisent-raw-tag
+    (semantic-tag-new-alias ,name ,aliasclass ,definition ,@attributes)))
+
 (defun wisent-grammar-EXPANDTAG (raw-tag)
   "Expand call to EXPANDTAG grammar macro.
 Return the form to produce a list of cooked tags from raw form of
@@ -185,6 +193,7 @@ See also the function `semantic-ast-merge'."
     (PACKAGE-TAG    . wisent-grammar-PACKAGE-TAG)
     (EXPANDTAG      . wisent-grammar-EXPANDTAG)
     (CODE-TAG       . wisent-grammar-CODE-TAG)
+    (ALIAS-TAG      . wisent-grammar-ALIAS-TAG)
     (AST-ADD        . wisent-grammar-AST-ADD)
     (AST-PUT        . wisent-grammar-AST-PUT)
     (AST-GET        . wisent-grammar-AST-GET)
