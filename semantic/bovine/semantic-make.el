@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.15 2002/08/09 23:20:53 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.1 2002/08/11 17:29:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
