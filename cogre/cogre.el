@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.12 2001/08/08 00:41:57 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.13 2001/08/17 21:34:54 zappo Exp $
 
-(defvar cogre-version "0.2"
+(defvar cogre-version "0.3"
   "Current version of Cogre.")
 
 ;; This file is not part of GNU Emacs.
@@ -45,6 +45,7 @@
 
 (require 'eieio)
 (require 'eieio-opt)
+(require 'eieio-base)
 (require 'semantic)
 (require 'picture-hack)
 
@@ -633,18 +634,26 @@ If ARG is unspecified, assume 1."
 
 ;;; State Management
 ;;
+(defvar cogre-custom-originating-graph-buffer nil
+  "The graph from which a custom buffer originated.")
+(make-variable-buffer-local 'cogre-custom-originating-graph-buffer)
+
 (defmethod cogre-activate ((element cogre-graph-element))
   "Activate ELEMENT.
 This could be as simple as displaying the current state,
 customizing the object, or performing some complex task."
-  (require 'eieio-custom)
-  (customize-object element)
+  (let ((b (current-buffer)))
+    (require 'eieio-custom)
+    (customize-object element)
+    (setq cogre-custom-originating-graph-buffer b))
   )
 
 (defmethod eieio-done-customizing ((element cogre-graph-element))
   "Finish customizing a graph element."
   (cogre-set-dirty element t)
-  (cogre-render-buffer cogre-graph)
+  (save-excursion
+    (set-buffer cogre-custom-originating-graph-buffer)
+    (cogre-render-buffer cogre-graph))
   )
 
 (defmethod cogre-add-element ((graph cogre-graph) elt)
