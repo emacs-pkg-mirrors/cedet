@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.3 2002/08/02 01:37:12 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.4 2002/08/04 01:57:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,22 +40,28 @@
 ;; into a new semantic stream defined by the bovination table.
 ;;
 
-(defun semantic-bovinate-region-default (start end &optional reparse-symbol)
+(defun semantic-bovinate-region-default
+  (start end &optional reparse-symbol depth returnonerror)
   "Bovinate the area between START and END, and return any tokens found.
 If END needs to be extended due to a lexical token being too large,
 it will be silently ignored.
 Optional argument REPARSE-SYMBOL is the rule to start parsing at if it
-is known."
-  (let ((lexbits (semantic-lex start end))
+is known.
+Optional argument DEPTH specifies the lexical depth to scan.
+Optional argument RETURNONERROR specifies that parsing should end
+when encountering unterminaled syntax."
+  (if (or (< end start) (> end (point-max)))
+      (error "Invalid bounds passed to `semantic-bovinate-region'"))
+  (let ((lexbits (semantic-lex start end depth))
 	tokens)
     ;; Init a dump
-;    (if semantic-dump-parse
-;	(semantic-dump-buffer-init))
+    ;;    (if semantic-dump-parse
+    ;;	      (semantic-dump-buffer-init))
     (setq tokens (semantic-bovinate-nonterminals
 		  lexbits
 		  reparse-symbol
-		  nil
-		  t))
+		  depth
+		  returnonerror))
     (nreverse tokens)))
 
 (defsubst semantic-bovinate-symbol-nonterminal-p (sym table)
@@ -90,7 +96,7 @@ If so abort because an infinite recursive parse is suspected."
       (set (intern nt semantic-bovinate-nonterminal-check-obarray)
            (cons stream vs)))))
 
-(defun semantic-bovinate-nonterminal-default (stream table &optional nonterminal)
+(defun semantic-bovinate-nonterminal-default (stream &optional nonterminal)
   "Bovinate STREAM based on the TABLE of nonterminal symbols.
 Optional argument NONTERMINAL is the nonterminal symbol to start with.
 Use `bovine-toplevel' if it is not provided.
@@ -105,21 +111,22 @@ list of semantic tokens found."
   (or semantic-toplevel-bovine-cache
       (semantic-bovinate-nonterminal-check stream nonterminal))
 
-  (let ((matchlist (cdr (assq nonterminal table)))
-	(starting-stream stream)
-        (nt-loop  t)             ;non-terminal loop condition
-        nt-popup                 ;non-nil if return from nt recursion
-        nt-stack                 ;non-terminal recursion stack
-        s                        ;Temp Stream Tracker
-        lse                      ;Local Semantic Element
-        lte                      ;Local matchlist element
-        tev                      ;Matchlist entry values from buffer
-        val                      ;Value found in buffer.
-        cvl                      ;collected values list.
-        out                      ;Output
-        end                      ;End of match
-        result
-        )
+  (let* ((table semantic-toplevel-bovine-table)
+	 (matchlist (cdr (assq nonterminal table)))
+	 (starting-stream stream)
+	 (nt-loop  t)		  ;non-terminal loop condition
+	 nt-popup                 ;non-nil if return from nt recursion
+	 nt-stack		  ;non-terminal recursion stack
+	 s			  ;Temp Stream Tracker
+	 lse			  ;Local Semantic Element
+	 lte			  ;Local matchlist element
+	 tev			  ;Matchlist entry values from buffer
+	 val			  ;Value found in buffer.
+	 cvl			  ;collected values list.
+	 out			  ;Output
+	 end			  ;End of match
+	 result
+	 )
     (condition-case nil
         (while nt-loop
           (catch 'push-non-terminal
