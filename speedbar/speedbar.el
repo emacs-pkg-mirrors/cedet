@@ -1,9 +1,9 @@
-;;; speedbar - quick access to files and tags -*-byte-compile-warnings:nil;-*-
+;;; speedbar --- quick access to files and tags -*-byte-compile-warnings:nil;-*-
 ;;;
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.38 1997/03/27 04:31:05 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.39 1997/03/30 03:51:55 zappo Exp $
 ;;; Version: 0.4.5
 ;;; Keywords: file, tags, tools
 ;;;
@@ -107,7 +107,7 @@
 ;;; ftp://ftp.ultranet.com/pub/zappo/speedbar*.el
 ;;;
 
-;;; HISTORY:
+;;; Change log:
 ;;; 0.1   Initial Revision
 ;;; 0.2   Fixed problem with x-pointer-shape causing future frames not
 ;;;         to be created.
@@ -225,6 +225,7 @@
 ;;; 2) filtering algoritms to reduce the number of tags/files displayed.
 ;;; 3) Timeout directories we haven't visited in a while.
 
+;;; Code:
 (require 'assoc)
 
 (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version))
@@ -242,7 +243,7 @@ buttons.")
 (defvar speedbar-stealthy-function-list
   '(speedbar-update-current-file speedbar-check-vc)
   "*List of functions to periodically call stealthely.
-Each function must return `nil' if interrupted, or `t' if completed.
+Each function must return nil if interrupted, or t if completed.
 Stealthy functions which have a single operation should always return
 t.  Functions which take a long time should maintain a state (where
 they are in their speedbar related calculations) and permit
@@ -331,9 +332,9 @@ Any file checked out is marked with `speedbar-vc-indicator'")
 
 (defvar speedbar-ignored-path-expressions
   '("/log/$")
-  "*List of regular expressions to match directories we do not want speedbar
-to switch to.  They should included paths to directories which are notoriously
-very large and take a long time to load in.  Use the function
+  "*List of regular expressions matching directories speedbar will ignore.
+They should included paths to directories which are notoriously very
+large and take a long time to load in.  Use the function
 `speedbar-add-ignored-path-regexp' to add new items to this list after
 speedbar is loaded.  You may place anything you like in this list
 before speedbar has been loaded.")
@@ -651,7 +652,7 @@ directories.")
 ;;;###autoload
 (defalias 'speedbar 'speedbar-frame-mode)
 (defun speedbar-frame-mode (&optional arg)
-  "Enable or disable speedbar.  Positive # means turn on, negative turns off.
+  "Enable or disable speedbar.  Positive ARG means turn on, negative turns off.
 nil means toggle.  Once the speedbar frame is activated, a buffer in
 `speedbar-mode' will be displayed.  Currently, only one speedbar is
 supported at a time."
@@ -794,8 +795,7 @@ Keybindings: \\<speedbar-key-map>
 \\[speedbar-item-byte-compile]   Byte compile file under cursor
 \\[speedbar-item-copy]   Copy the item under cursor somewhere
 \\[speedbar-item-rename]   Rename the item under cursor
-\\[speedbar-item-delete]   Delete the item under cursor
-"
+\\[speedbar-item-delete]   Delete the item under cursor"
   ;; NOT interactive
   (save-excursion
     (setq speedbar-buffer (set-buffer (get-buffer-create " SPEEDBAR")))
@@ -858,7 +858,7 @@ frame and window to be the currently active frame and window."
   
 (defun speedbar-temp-buffer-show-function (buffer)
   "Placed in the variable `temp-buffer-show-function' in speedbar-mode.
-If a user requests help using \\[help-command] <Key> the temp buffer will be
+If a user requests help using \\[help-command] <Key> the temp BUFFER will be
 redirected into a window on the attached frame."
   (if speedbar-attached-frame (select-frame speedbar-attached-frame))
   (pop-to-buffer buffer nil)
@@ -901,25 +901,25 @@ selected.  If the speedbar frame is active, then select the attached frame."
   (other-frame 0))
 
 (defun speedbar-next (arg)
-  "Move to the next line in a speedbar buffer."
+  "Move to the next ARGth line in a speedbar buffer."
   (interactive "p")
   (forward-line (or arg 1))
   (speedbar-item-info)
   (speedbar-position-cursor-on-line))
 
 (defun speedbar-prev (arg)
-  "Move to the previous line in a speedbar buffer."
+  "Move to the previous ARGth line in a speedbar buffer."
   (interactive "p")
   (speedbar-next (if arg (- arg) -1)))
 
 (defun speedbar-scroll-up (&optional arg)
-  "Page down one screenfull of the speedbar."
+  "Page down one screenfull of the speedbar, or ARG lines."
   (interactive "P")
   (scroll-up arg)
   (speedbar-position-cursor-on-line))
 
 (defun speedbar-scroll-down (&optional arg)
-  "Page up one screenfull of the speedbar."
+  "Page up one screenfull of the speedbar, or ARG lines."
   (interactive "P")
   (scroll-down arg)
   (speedbar-position-cursor-on-line))
@@ -973,7 +973,8 @@ Assumes that the current buffer is the speedbar buffer"
     ))
 
 (defun speedbar-mouse-item-info (event)
-  "Provide information about what the user clicked on."
+  "Provide information about what the user clicked on.
+This should be bound to a mouse EVENT."
   (interactive "e")
   (mouse-set-point event)
   (speedbar-item-info))
@@ -1184,7 +1185,8 @@ the filesystem"
 (defun speedbar-directory-buttons (directory index)
   "Inserts a single button group at point for DIRECTORY.
 Each directory path part is a different button.  If part of the path
-matches the user directory ~, then it is replaced with a ~"
+matches the user directory ~, then it is replaced with a ~.
+INDEX is not used, but is required by the caller."
   (let* ((tilde (expand-file-name "~"))
 	 (dd (expand-file-name directory))
 	 (junk (string-match (regexp-quote tilde) dd))
@@ -1253,16 +1255,17 @@ matches the user directory ~, then it is replaced with a ~"
 			       exp-button-data
 			       tag-button tag-button-function tag-button-data
 			       tag-button-face depth)
-  "Creates a tag line with BUTTON-TYPE for the small expansion button.
+  "Creates a tag line with EXP-BUTTON-TYPE for the small expansion button.
 This is the button that expands or contracts a node (if applicable),
-and BUTTON-CHAR the character in it (+, -, ?, etc).  BUTTON-FUNCTION
+and EXP-BUTTON-CHAR the character in it (+, -, ?, etc).  EXP-BUTTON-FUNCTION
 is the function to call if it's clicked on.  Button types are
-'bracket, 'angle, 'curly, or nil.
+'bracket, 'angle, 'curly, or nil.  EXP-BUTTON-DATA is extra data
+attached to the text forming the expansion button.
 
-Next, TAG-BUTTON is the text of the tag.  TAG-FUNCTION is the function
-to call if clicked on, and TAG-DATA is the data to attach to the text
-field (such a tag positioning, etc).  TAG-FACE is a face used for this
-type of tag.
+Next, TAG-BUTTON is the text of the tag.  TAG-BUTTON-FUNCTION is the
+function to call if clicked on, and TAG-BUTTON-DATA is the data to
+attach to the text field (such a tag positioning, etc).
+TAG-BUTTON-FACE is a face used for this type of tag.
 
 Lastly, DEPTH shows the depth of expansion.
 
@@ -1363,7 +1366,7 @@ cell of the form ( 'DIRLIST . 'FILELIST )"
 	)))
 
 (defun speedbar-insert-generic-list (level lst expand-fun find-fun)
-  "At LEVEL, inserts a generic multi-level alist LIST.
+  "At LEVEL, inserts a generic multi-level alist LST.
 Associations with lists get {+} tags (to expand into more nodes) and
 those with positions just get a > as the indicator.  {+} buttons will
 have the function EXPAND-FUN and the token is the CDR list.  The token
@@ -1665,7 +1668,8 @@ that will occur on your system."
 ;;; Clicking Activity
 ;;;
 (defun speedbar-quick-mouse (e)
-  "Since mouse events are strange, this will keep the mouse nicely positioned."
+  "Since mouse events are strange, this will keep the mouse nicely positioned.
+This should be bound to mouse event E."
   (interactive "e")
   (mouse-set-point e)
   (speedbar-position-cursor-on-line)
@@ -1680,7 +1684,8 @@ that will occur on your system."
       (goto-char oldpos))))
 
 (defun speedbar-power-click (e)
-  "Activate any speedbar button as a power click."
+  "Activate any speedbar button as a power click.
+This should be bound to mouse event E."
   (interactive "e")
   (let ((speedbar-power-click t))
     (speedbar-click e)))
@@ -1688,7 +1693,8 @@ that will occur on your system."
 (defun speedbar-click (e)
   "Activate any speedbar buttons where the mouse is clicked.
 This must be bound to a mouse event.  A button is any location of text
-with a mouse face that has a text property called `speedbar-function'."
+with a mouse face that has a text property called `speedbar-function'.
+This should be bound to mouse event E."
   (interactive "e")
   (mouse-set-point e)
   (speedbar-do-function-pointer)
@@ -1779,7 +1785,7 @@ Otherwise do not move and return nil."
 
 (defun speedbar-line-path (depth)
   "Retrieve the pathname associated with the current line.
-This may require traversing backwards and combinding the default
+This may require traversing backwards from DEPTH and combinding the default
 directory with these items."
   (save-excursion
     (save-match-data
@@ -1837,7 +1843,9 @@ directory with these items."
 
 (defun speedbar-find-file (text token indent)
   "Speedbar click handler for filenames.
-Clicking the filename loads that file into the attached buffer."
+TEXT, the file will be displayed in the attached frame.
+TOKEN is unused, but required by the click handler.  INDENT is the
+current indentation leve.;"
   (let ((cdd (speedbar-line-path indent)))
     (speedbar-find-file-in-frame (concat cdd text))
     (speedbar-stealthy-updates)
@@ -1850,7 +1858,8 @@ Clicking the filename loads that file into the attached buffer."
 (defun speedbar-dir-follow (text token indent)
   "Speedbar click handler for directory names.
 Clicking a directory will cause the speedbar to list files in the
-selected subdirectory."
+the subdirectory TEXT.  TOKEN is an unused requirement.  The
+subdirectory chosen will be at INDENT level."
   (setq default-directory 
 	(concat (expand-file-name (concat (speedbar-line-path indent) text))
 		"/"))
@@ -1879,7 +1888,9 @@ Handles end-of-sublist smartly."
 
 (defun speedbar-dired (text token indent)
   "Speedbar click handler for directory expand button.
-Clicking this button expands or contracts a directory."
+Clicking this button expands or contracts a directory.  TEXT is the
+button clicked wich has either a + or -.  TOKEN is the directory to be
+expanded.  INDENT is the current indentation level."
   (cond ((string-match "+" text)	;we have to expand this dir
 	 (setq speedbar-shown-directories 
 	       (cons (expand-file-name 
@@ -1912,8 +1923,10 @@ Clicking this button expands or contracts a directory."
   (setq speedbar-last-selected-file nil)
   (save-excursion (speedbar-stealthy-updates)))
 
-(defun speedbar-directory-buttons-follow (text token ident)
-  "Speedbar click handler for default directory buttons."
+(defun speedbar-directory-buttons-follow (text token indent)
+  "Speedbar click handler for default directory buttons.
+TEXT is the button clicked on.  TOKEN is the directory to follow.
+INDENT is the current indentation level and is unused."
   (setq default-directory token)
   ;; Because we leave speedbar as the current buffer,
   ;; update contents will change directory without
@@ -1923,8 +1936,9 @@ Clicking this button expands or contracts a directory."
 
 (defun speedbar-tag-file (text token indent)
   "The cursor is on a selected line.  Expand the tags in the specified file.
-The parameter TXT and TOK are required, where TXT is the button clicked, and
-TOK is the file to expand."
+The parameter TEXT and TOKEN are required, where TEXT is the button
+clicked, and TOKEN is the file to expand.  INDENT is the current
+indentation leve."
   (cond ((string-match "+" text)	;we have to expand this file
 	 (let* ((fn (expand-file-name (concat (speedbar-line-path indent)
 					      token)))
@@ -1951,7 +1965,8 @@ TOK is the file to expand."
   (speedbar-center-buffer-smartly))
 
 (defun speedbar-tag-find (text token indent)
-  "For the tag in a file, goto that position"
+  "For the tag TEXT in a file TOKEN, goto that position.
+INDENT is the current indentation level."
   (let ((file (speedbar-line-path indent)))
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
@@ -1966,7 +1981,9 @@ TOK is the file to expand."
 
 (defun speedbar-tag-expand (text token indent)
   "Expand a tag sublist.  Imenu will return sub-lists of specialized tag types.
-Etags does not support this feature."
+Etags does not support this feature.  TEXT will bhe the button
+string.  TOKEN will be the list, and INDENT is the current indentation
+level."
   (cond ((string-match "+" text)	;we have to expand this file
 	 (speedbar-change-expand-button-char ?-)
 	 (speedbar-with-writable
@@ -2095,13 +2112,12 @@ Returns the tag list, or t for an error."
      "\\(\\(FUNCTION\\|function\\|PROCEDURE\\|procedure\\)\\s-+\\([a-zA-Z0-9_.:]+\\)\\)\\s-*(?^?")
 
     )
-  "*Alist matching extension vs an expression which will extract the
-symbol name we wish to display as match 1.  To add a new file type, you
-would want to add a new association to the list, where the car
-is the file match, and the cdr is the way to extract an element from
-the tags output.  If the output is complex, use a function symbol
-instead of regexp.  The function should expect to be at the beginning
-of a line in the etags buffer.
+  "Associations of file extensions and expressions for extracting tags.
+To add a new file type, you would want to add a new association to the
+list, where the car is the file match, and the cdr is the way to
+extract an element from the tags output.  If the output is complex,
+use a function symbol instead of regexp.  The function should expect
+to be at the beginning of a line in the etags buffer.
 
 This variable is ignored if `speedbar-use-imenu-package' is t")
 
@@ -2370,5 +2386,5 @@ multiple defaults and dynamically determine which colors to use."
 ;; run load-time hooks
 (run-hooks 'speedbar-load-hooks)
 
-;;; end of lisp
 (provide 'speedbar)
+;;; speedbar.el ends here
