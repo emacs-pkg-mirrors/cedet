@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.22 2003/09/02 16:12:48 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.23 2003/09/17 09:00:27 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -113,7 +113,7 @@ will throw a warning when it encounters this symbol."
 ;;
 ;; Load semantic-al after compatibility code, to allow to use it in
 ;; autoloads without infinite recursive load problems.
-(load "semantic-al" nil t)
+(load "semantic-loaddefs" nil t)
 
 ;;; Misc utilities
 ;;
