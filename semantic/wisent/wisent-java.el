@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.11 2001/08/31 11:58:29 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.12 2001/09/03 13:12:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -286,6 +286,23 @@ variable NAME."
          (class_declaration)
          (method_declaration)
          (field_declaration))
+        (field_declarations_opt nil
+                                (field_declarations)
+                                :
+                                (apply 'nconc
+                                       (nreverse $1)))
+        (field_declarations
+         (field_declarations field_declaration_maybe)
+         :
+         (cons $2 $1)
+         (field_declaration_maybe)
+         :
+         (list $1))
+        (field_declaration_maybe
+         (field_declaration)
+         (error)
+         :
+         (wisent-skip-token))
         (field_declaration
          (modifiers_opt type variable_declarators SEMICOLON)
          :
@@ -639,7 +656,7 @@ variable NAME."
          (assignment_expression))
         (constant_expression
          (expression)))
-      '(package_declaration import_declaration class_declaration field_declaration method_declaration formal_parameter constructor_declaration interface_declaration abstract_method_declaration)
+      '(package_declaration import_declaration class_declaration field_declarations_opt field_declaration method_declaration formal_parameter constructor_declaration interface_declaration abstract_method_declaration)
   ))
   "Wisent LALR(1) grammar for Semantic.
 Tweaked for Semantic needs.  That is to avoid full parsing of
@@ -976,11 +993,15 @@ positions of the token in input."
                         'IDENTIFIER))
               lex (cons y (cons x (cdr tk)))
               is  (cdr is)))
-       
+
        ;; Unhandled
        ;; ---------
        (t
-        (error "Invalid input form %s" ft)))
+        ;; Other flex tokens are not yet used by the parser so for now
+        ;; just return a lexical token: (ft nil start . end).  I think
+        ;; this is better than raising a lexer error ;)
+        (setq lex (cons ft (cons nil (cdr tk)))
+              is  (cdr is))))
       
       (setq wisent-flex-istream is)
       lex)))
@@ -1000,6 +1021,68 @@ MSG is the message string to report."
   )
 
 ;;;;
+;;;; Local context
+;;;;
+
+(defun wisent-java-get-local-variables ()
+  "Get the local variables based on point's context.
+Local variables are returned in Semantic token format without overlay.
+The function first search for a 'function or 'type token context at
+point moving up blocks using `semantic-up-context'.  When a 'type
+token is found return the local variables from existing 'variable
+child tokens.  Otherwise call the parser with `field_declarations_opt'
+to find 'variable tokens in the function body.
+
+This function is a Java specific `get-local-variables' override."
+  (let (token context)
+    (while (not context)
+      (setq context
+            (if (and (setq token (semantic-current-nonterminal))
+                     (memq (semantic-token-token token)
+                           '(type function)))
+                token
+              (setq token nil)
+              (semantic-up-context))))
+    (cond
+     ;; no context
+     ((not token)
+      nil)
+     ;; class/interface declaration context
+     ((eq (semantic-token-token token) 'type)
+      ;; To avoid reparse use 'variable child tokens
+      (let ((locals (semantic-find-nonterminal-by-token
+                     'variable
+                     (semantic-nonterminal-children token))))
+        ;; Return a copy of each 'variable token without overlay.
+        ;; `semantic-deoverlay-list' can't be used here because the
+        ;; original overlay must be kept!
+        (mapcar
+         #'(lambda (tok)
+             (let ((tok-no-ovl (copy-sequence tok))
+                   (tok-region (vector (semantic-token-start tok)
+                                       (semantic-token-end tok))))
+               (setcar (semantic-token-overlay-cdr tok-no-ovl)
+                       tok-region)
+               tok-no-ovl))
+         locals)))
+     ;; method/constructor body context
+     (t
+      (goto-char (semantic-token-end token))
+      (backward-char)
+      (and (looking-at "}")
+           (not (semantic-beginning-of-context))
+           ;; need to parse the block
+           (working-status-forms
+               (format "%s [LALR:local variables]" (buffer-name))
+               "done"
+             (let ((semantic-flex-depth nil)
+                   (semantic-bovination-working-type nil))
+               (wisent-bovinate-from-nonterminal-full
+                (point)
+                (save-excursion (semantic-end-of-context) (point))
+                'field_declarations_opt))))))))
+
+;;;;
 ;;;; Semantic integration of the Java LALR parser
 ;;;;
 
@@ -1017,7 +1100,7 @@ Use the alternate LALR(1) parser."
     (semantic-install-function-overrides
      '((prototype-nonterminal . semantic-java-prototype-nonterminal)
        (find-documentation    . semantic-java-find-documentation)
-       (get-local-variables   . semantic-java-get-local-variables)
+       (get-local-variables   . wisent-java-get-local-variables)
        )
      t ;; They can be changed in mode hook by more specific ones
      )
