@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.2 1999/03/02 15:52:48 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.3 1999/03/10 19:22:49 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -95,7 +95,7 @@ MFILENAME is the makefile to generate."
 	      (insert "\n\n# End of Makefile\n"))))
        ((eq (oref this makefile-type) 'Makefile.in)
 	)
-       ((eq (oref this makefile-type 'Makefile.am))
+       ((eq (oref this makefile-type) 'Makefile.am)
 	)
        (t (error "Unknown makefile type when generating Makefile")))
       (goto-char (point-min))
