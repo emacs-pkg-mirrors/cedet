@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.30 2004/03/28 11:34:47 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.31 2004/03/30 10:13:27 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -130,6 +130,8 @@ POSITIONS are available."
               (apply #'max (mapcar #'cdr pl))))))
 
 ;;; Reporting
+
+;;;###autoload
 (defvar wisent-parse-verbose-flag nil
   "*non-nil means to issue more messages while parsing.")
 
