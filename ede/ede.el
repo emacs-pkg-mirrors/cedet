@@ -3,9 +3,8 @@
 ;;;  Copyright (C) 1998, 99  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.18 1999/06/07 13:01:48 zappo Exp $
+;; RCS: $Id: ede.el,v 1.19 1999/09/03 13:37:16 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -261,6 +260,7 @@ Argument LIST-O-O is the list of objects to choose from."
     (define-key pmap "l" 'ede-load-project-file)
     (define-key pmap "C" 'ede-compile-project)
     (define-key pmap "c" 'ede-compile-target)
+    (define-key pmap "\C-c" 'ede-compile-selected)
     (define-key pmap "D" 'ede-debug-target)
     ;; bind our submap into map
     (define-key map "\C-c." pmap)
@@ -268,38 +268,50 @@ Argument LIST-O-O is the list of objects to choose from."
   "Keymap used in project minor mode.")
 
 (if ede-minor-keymap
-    (easy-menu-define
-     ede-minor-menu ede-minor-keymap "Project Minor Mode Menu"
-     '("Project"
-       [ "Create a new project" ede-new (not ede-object) ]
-       [ "Load a project" ede t ]
-       [ "Rescan Project Files" ede-rescan-toplevel t ]
-       "---"
-       [ "Create New Target" ede-new-target (ede-current-project) ]
-       [ "Delete Target" ede-delete-target ede-object ]
-       [ "Add to Target" ede-add-file (ede-current-project) ]
-       [ "Remove from Target" ede-remove-file
-	 (and ede-object
-	      (or (listp ede-object)
-		  (not (obj-of-class-p ede-object ede-project)))) ]
-       [ "Edit Projectfile" ede-edit-file-target
-	 (and ede-object
-	      (not (obj-of-class-p ede-object ede-project))) ]
-       "---"
-       [ "Compile project" ede-compile-project t ]
-       [ "Compile target" ede-compile-target t ]
-       [ "Debug target" ede-debug-target
-	 (and ede-object
-	      (obj-of-class-p ede-object ede-target)) ]
-       [ "Make distribution" ede-make-dist t ]
-       "---"
-       [ "Speedbar" speedbar t ]
-       [ "Speedbar Project" ede-speedbar t ]
-       [ "Customize Project" ede-customize-project (ede-current-project) ]
-       [ "Customize Target" ede-customize-target
-	 (and ede-object
-              (not (obj-of-class-p ede-object ede-project))) ]
-       )))
+    (progn
+      (easy-menu-define
+       ede-minor-menu-2 ede-minor-keymap "Project Minor Mode Menu 2"
+       '("Target"
+	 [ "Debug target" ede-debug-target
+	   (and ede-object
+		(obj-of-class-p ede-object ede-target)) ]
+	 )
+       )
+      (easy-menu-define
+       ede-minor-menu ede-minor-keymap "Project Minor Mode Menu"
+       '("Project"
+	 [ "Build all" ede-compile-project nil ]
+	 [ "Build Active Project" ede-compile-project t ]
+	 [ "Build Active Target" ede-compile-target t ]
+	 [ "Build Selected..." ede-compile-selected t ]
+	 "---"
+	 [ "Add File" ede-add-file (ede-current-project) ]
+	 [ "Remove File" ede-remove-file
+	   (and ede-object
+		(or (listp ede-object)
+		    (not (obj-of-class-p ede-object ede-project)))) ]
+	 "---"
+	 [ "Select Active Target" nil nil ]
+	 [ "Add Target" ede-new-target (ede-current-project) ]
+	 [ "Remove Target" ede-delete-target ede-object ]
+	 [ "Target Preferences..." ede-customize-target
+	   (and ede-object
+		(not (obj-of-class-p ede-object ede-project))) ]
+	 "---"
+	 [ "Select Active Project" nil nil ]
+	 [ "Create Project" ede-new (not ede-object) ]
+	 [ "Remove Project" nil nil ]
+	 [ "Load a project" ede t ]
+	 [ "Rescan Project Files" ede-rescan-toplevel t ]
+	 [ "Customize Project" ede-customize-project (ede-current-project) ]
+	 [ "Edit Projectfile" ede-edit-file-target
+	   (and ede-object
+		(not (obj-of-class-p ede-object ede-project))) ]
+	 [ "Make distribution" ede-make-dist t ]
+	 "---"
+	 [ "View Project Tree" ede-speedbar t ]
+	 ))
+      ))
 
 ;; Allow re-insertion of a new keymap
 (let ((a (assoc 'ede-minor-mode minor-mode-map-alist)))
@@ -513,6 +525,12 @@ Optional argument FORCE forces the file to be removed without asking."
       (setq cp (ede-parent-project cp)))
     (let ((ede-object cp))
       (ede-invoke-method 'project-compile-project))))
+
+(defun ede-compile-selected (target)
+  "Compile some TARGET from the current project."
+  (interactive (list (project-interactive-select-target (ede-current-project)
+							"Target to Build: ")))
+  (project-compile-target target))
 
 (defun ede-compile-target ()
   "Compile the current buffer's associated target."
