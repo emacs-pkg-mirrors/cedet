@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.48 2001/12/15 23:25:51 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.49 2002/01/15 06:35:54 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -537,19 +537,11 @@ ARGS are ASSOC's key value list."
 $I is the placeholder value to expand.
 NONTERM is the nonterminal symbol to start with.
 EXPANDER is the Semantic function called to expand NONTERM"
-  (let ((i (and (symbolp $i)
-                (string-match "^[$]\\([1-9][0-9]*\\)$"
-                              (symbol-name $i))
-                (string-to-int
-                 (match-string 1 (symbol-name $i)))))
-        v)
-    (if (not i)
-        nil
-      (setq v (intern (format "$region%d" i))
-            i (1+ (* 2 (1- i))))
-      `(let ((,v (cdr (aref stack (- sp ,i)))))
-         (if ,v
-             (,expander (car ,v) (cdr ,v) ',nonterm))))))
+  (let* ((n   (symbol-name $i))
+         ($ri (and (string-match "^[$]\\([1-9][0-9]*\\)$" n)
+                   (intern (concat "$region" (match-string 1 n))))))
+    (if $ri
+        `(,expander (car ,$ri) (cdr ,$ri) ',nonterm))))
 
 (defun semantic-bnf-to-lalr-EXPAND ($i nonterm)
   "Return expansion of built-in EXPAND expression.
