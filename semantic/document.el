@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.22 2004/03/03 12:36:58 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.23 2004/03/10 19:26:53 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -115,11 +115,11 @@ When non-nil, query for a new documentation file."
   (let ((tt (semantic-tag-class tag)))
     (insert "@"
 	    (cond ((eq tt 'variable)
-		   (if (semantic-tag-get-attribute tag 'user-visible)
+		   (if (semantic-tag-get-attribute tag :user-visible-flag)
 		       "deffn Option"
 		     "defvar"))
 		  ((eq tt 'function)
-		   (if (semantic-tag-get-attribute tag 'user-visible)
+		   (if (semantic-tag-get-attribute tag :user-visible-flag)
 		       "deffn Command"
 		     "defun"))
 		  ((eq tt 'type)
@@ -142,11 +142,11 @@ When non-nil, query for a new documentation file."
 	     (document-generate-documentation tag buffer)))
     (insert "\n@end "
 	    (cond ((eq tt 'variable)
-		   (if (semantic-tag-get-attribute tag 'user-visible)
+		   (if (semantic-tag-get-attribute tag :user-visible-flag)
 		       "deffn"
 		     "defvar"))
 		  ((eq tt 'function)
-		   (if (semantic-tag-get-attribute tag 'user-visible)
+		   (if (semantic-tag-get-attribute tag :user-visible-flag)
 		       "deffn"
 		     "defun"))
 		  ((eq tt 'type)
