@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.13 2003/08/02 08:12:42 ponced Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.14 2003/08/11 06:36:33 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -26,99 +26,18 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-;; 
+;;
 ;; Major mode for editing Bovine's input grammar (.by) files.
 
 ;;; History:
-;; 
+;;
 
 ;;; Code:
 (require 'semantic-grammar)
+(require 'bovine-grammar-macros)
 
-;;; Conversion routines
-;;
-(defsubst bovine-grammar-expand-EXPAND (parms quotemode)
-  "Expand built-in EXPAND expression.
-PARMS is EXPAND's parameter list.
-QUOTEMODE is the current mode of quotation."
-  (bovine-grammar-expand-form
-   `(semantic-bovinate-from-nonterminal
-     (car ,(car parms)) (cdr ,(car parms)) ',(cadr parms))
-   quotemode t))
-
-(defsubst bovine-grammar-expand-EXPANDFULL (parms quotemode)
-  "Expand built-in EXPANDFULL expression.
-PARMS is EXPANDFULL's parameter list.
-QUOTEMODE is the current mode of quotation."
-  (bovine-grammar-expand-form
-   `(semantic-parse-region
-     (car ,(car parms)) (cdr ,(car parms)) ',(cadr parms) 1)
-   quotemode t))
-
-(defsubst bovine-grammar-expand-ASSOC (parms quotemode)
-  "Expand built-in ASSOC expression.
-PARMS is ASSOC's parameter list.
-QUOTEMODE is the current mode of quotation."
-  ;; Substitute ASSOC by call to `semantic-bovinate-make-assoc-list'
-  ;; and expand the whole expression.
-  (bovine-grammar-expand-form
-   (apply #'semantic-grammar-ASSOC parms) quotemode t))
-
-(defsubst bovine-grammar-expand-TAG (parms quotemode)
-  "Expand TAG expression.
-PARMS is the parameter list.
-QUOTEMODE is the current mode of quotation."
-  (bovine-grammar-expand-form
-   `(semantic-tag ,@parms)
-   quotemode t))
-
-(defsubst bovine-grammar-expand-VARIABLE-TAG (parms quotemode)
-  "Expand built-in VARIABLE-TAG expression.
-PARMS is the parameter list.
-QUOTEMODE is the current mode of quotation."
-  (bovine-grammar-expand-form
-   `(semantic-tag-new-variable ,@parms)
-   quotemode t))
-
-(defsubst bovine-grammar-expand-FUNCTION-TAG (parms quotemode)
-  "Expand built-in FUNCTION-TAG expression.
-PARMS is the parameter list.
-QUOTEMODE is the current mode of quotation."
-  (bovine-grammar-expand-form
-   `(semantic-tag-new-function ,@parms)
-   quotemode t))
-
-(defsubst bovine-grammar-expand-TYPE-TAG (parms quotemode)
-  "Expand built-in TYPE-TAG expression.
-PARMS is the parameter list.
-QUOTEMODE is the current mode of quotation."
-  (bovine-grammar-expand-form
-   `(semantic-tag-new-type ,@parms)
-   quotemode t))
-
-(defsubst bovine-grammar-expand-INCLUDE-TAG (parms quotemode)
-  "Expand built-in INCLUDE-TAG expression.
-PARMS is the parameter list.
-QUOTEMODE is the current mode of quotation."
-  (bovine-grammar-expand-form
-   `(semantic-tag-new-include ,@parms)
-   quotemode t))
-
-(defsubst bovine-grammar-expand-PACKAGE-TAG (parms quotemode)
-  "Expand built-in PACKAGE-TAG expression.
-PARMS is the parameter list.
-QUOTEMODE is the current mode of quotation."
-  (bovine-grammar-expand-form
-   `(semantic-tag-new-package ,@parms)
-   quotemode t))
-
-(defsubst bovine-grammar-expand-CODE-TAG (parms quotemode)
-  "Expand built-in PACKAGE-TAG expression.
-PARMS is the parameter list.
-QUOTEMODE is the current mode of quotation."
-  (bovine-grammar-expand-form
-   `(semantic-tag-new-code ,@parms)
-   quotemode t))
+;; Cache of macro definitions currently in use.
+(defvar bovine--grammar-macros nil)
 
 (defun bovine-grammar-expand-form (form quotemode &optional inplace)
   "Expand FORM into a new one suitable to the bovine parser.
@@ -142,42 +61,14 @@ expanded from elsewhere."
      (t
       (insert "\n(list")
       (setq inplace t)
-      )
-     ))
-  (cond
-   ((eq (car form) 'EXPAND)
-    (bovine-grammar-expand-EXPAND (cdr form) quotemode)
-    )
-   ((eq (car form) 'EXPANDFULL)
-    (bovine-grammar-expand-EXPANDFULL (cdr form) quotemode)
-    )
-   ((eq (car form) 'ASSOC)
-    (bovine-grammar-expand-ASSOC (cdr form) quotemode)
-    )
-   ((eq (car form) 'TAG)
-    (bovine-grammar-expand-TAG (cdr form) quotemode)
-    )
-   ((eq (car form) 'VARIABLE-TAG)
-    (bovine-grammar-expand-VARIABLE-TAG (cdr form) quotemode)
-    )
-   ((eq (car form) 'FUNCTION-TAG)
-    (bovine-grammar-expand-FUNCTION-TAG (cdr form) quotemode)
-    )
-   ((eq (car form) 'TYPE-TAG)
-    (bovine-grammar-expand-TYPE-TAG (cdr form) quotemode)
-    )
-   ((eq (car form) 'INCLUDE-TAG)
-    (bovine-grammar-expand-INCLUDE-TAG (cdr form) quotemode)
-    )
-   ((eq (car form) 'PACKAGE-TAG)
-    (bovine-grammar-expand-PACKAGE-TAG (cdr form) quotemode)
-    )
-   ((eq (car form) 'CODE-TAG)
-    (bovine-grammar-expand-CODE-TAG (cdr form) quotemode)
-    )
-   (t
-    (if inplace (insert "\n("))
-    (let (inlist first n q x val)
+      )))
+  (let ((macro (assq (car form) bovine--grammar-macros))
+        inlist first n q x val)
+    (if macro
+        (bovine-grammar-expand-form
+         (apply (cdr macro) (cdr form))
+         quotemode t)
+      (if inplace (insert "\n("))
       (while form
         (setq first (car form)
               form  (cdr form))
@@ -257,10 +148,9 @@ expanded from elsewhere."
           (insert (format "\n%S" first))
           )
          ))
-      (if inlist (insert ")")))
-    (if inplace (insert ")"))
-    )
-   ))
+      (if inlist (insert ")"))
+      (if inplace (insert ")")))
+    ))
 
 (defun bovine-grammar-expand-action (textform quotemode)
   "Expand semantic action string TEXTFORM into Lisp code.
@@ -275,7 +165,10 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
       (cond
        ((eq (car sexp) 'EXPAND)
         (insert ",(lambda (vals start end)")
-        (bovine-grammar-expand-EXPAND (cdr sexp) quotemode)
+        ;; The EXPAND macro definition is mandatory
+        (bovine-grammar-expand-form
+         (apply (cdr (assq 'EXPAND bovine--grammar-macros)) (cdr sexp))
+         quotemode t)
         )
        ((and (listp (car sexp)) (eq (caar sexp) 'EVAL))
         ;; The user wants to evaluate the following args.
@@ -296,6 +189,8 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
                       'token (current-buffer)))
          (nterms     (semantic-find-tags-by-class
                       'nonterminal (current-buffer)))
+         ;; Setup the cache of macro definitions.
+         (bovine--grammar-macros (semantic-grammar-macros))
          nterm rules items item actn prec tag type regex)
     (when start
       (if (cdr start)
