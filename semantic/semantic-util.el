@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.26 2000/09/27 01:35:38 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.27 2000/09/28 03:19:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -104,7 +104,7 @@ Determines if it is available based on the length of TOKEN."
   (let* ((stream (if (bufferp streamorbuffer)
 		     (save-excursion
 		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel nil t))
+		       (semantic-bovinate-toplevel))
 		   streamorbuffer))
 	 (m (assoc name stream)))
     (if m
@@ -131,7 +131,7 @@ the median calculation, and return nil."
     (let* ((stream (if (bufferp streamorbuffer)
 		       (save-excursion
 			 (set-buffer streamorbuffer)
-			 (semantic-bovinate-toplevel nil t))
+			 (semantic-bovinate-toplevel))
 		     streamorbuffer))
 	   (prev nil)
 	   (found nil))
@@ -275,7 +275,7 @@ TOKEN is a symbol."
   (let ((stream (if (bufferp streamorbuffer)
 		     (save-excursion
 		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel nil t))
+		       (semantic-bovinate-toplevel))
 		   streamorbuffer))
 	(nl nil))
     (while stream
@@ -289,7 +289,7 @@ TOKEN is a symbol."
   (let ((stream (if (bufferp streamorbuffer)
 		     (save-excursion
 		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel nil t))
+		       (semantic-bovinate-toplevel))
 		   streamorbuffer))
 	(nl nil))
     (while stream
@@ -309,7 +309,7 @@ TYPE is a string."
   (let ((stream (if (bufferp streamorbuffer)
 		     (save-excursion
 		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel nil t))
+		       (semantic-bovinate-toplevel))
 		   streamorbuffer))
 	(nl nil) (ts nil))
     (if (member type semantic-default-built-in-types)
@@ -330,7 +330,7 @@ in the new list."
   (let ((stream (if (bufferp streamorbuffer)
 		     (save-excursion
 		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel nil t))
+		       (semantic-bovinate-toplevel))
 		   streamorbuffer))
 	(nl nil) (ts nil))
     (while stream
@@ -347,7 +347,7 @@ in the new list."
   (let ((stream (if (bufferp streamorbuffer)
 		     (save-excursion
 		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel nil t))
+		       (semantic-bovinate-toplevel))
 		   streamorbuffer))
 	(ts nil) (found nil))
     (while (and (not found) stream)
@@ -484,7 +484,7 @@ The return item is of the form (BUFFER TOKEN) where BUFFER is the buffer
 in which TOKEN (the token found to match NAME) was found."
   (save-excursion
     (set-buffer buffer)
-    (let* ((stream (semantic-bovinate-toplevel nil t))
+    (let* ((stream (semantic-bovinate-toplevel))
 	   (includelist (or (semantic-find-nonterminal-by-token 'include stream)
 			    "empty.silly.thing"))
 	   (found (semantic-find-nonterminal-by-name name stream))
@@ -495,7 +495,7 @@ in which TOKEN (the token found to match NAME) was found."
 	      (save-excursion
 		(set-buffer (find-file-noselect fn))
 		(message "Scanning %s" (buffer-file-name))
-		(setq stream (semantic-bovinate-toplevel nil t))
+		(setq stream (semantic-bovinate-toplevel))
 		(setq found (semantic-find-nonterminal-by-name name stream))
 		(if found
 		    (setq found (cons (current-buffer) (list found)))
@@ -524,7 +524,7 @@ STREAM is the list of tokens to complete from.
 FILTER is provides a filter on the types of things to complete.
 FILTER must be a function to call on each element."
   (if (not default) (setq default (thing-at-point 'symbol)))
-  (if (not stream) (setq stream (semantic-bovinate-toplevel nil t)))
+  (if (not stream) (setq stream (semantic-bovinate-toplevel)))
   (setq stream
 	(if filter
 	    (semantic-find-nonterminal-by-function filter stream)
@@ -908,7 +908,7 @@ instead of read-only."
 Optional argument CLEAR will clear the cache before bovinating."
   (interactive "P")
   (if clear (semantic-clear-toplevel-cache))
-  (let ((out (semantic-bovinate-toplevel nil t)))
+  (let ((out (semantic-bovinate-toplevel)))
     (pop-to-buffer "*BOVINATE*")
     (require 'pp)
     (erase-buffer)
@@ -943,7 +943,7 @@ Argument P is the point to search from in the current buffer."
   (interactive)
   (let (
 	;(name (thing-at-point 'symbol))
-	(strm (cdr (semantic-bovinate-toplevel nil t)))
+	(strm (cdr (semantic-bovinate-toplevel)))
 	(res nil))
 ;    (if name
 	(setq res

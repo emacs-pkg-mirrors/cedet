@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.21 2000/09/08 22:22:31 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.22 2000/09/28 03:19:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -336,7 +336,7 @@ Returns the tag list, or t for an error."
 	t
       (condition-case nil
 	  (semantic-bucketize
-	   (semantic-bovinate-toplevel nil t))
+	   (semantic-bovinate-toplevel))
 	(error t)))))
 
 ;; Link ourselves into the tagging process.

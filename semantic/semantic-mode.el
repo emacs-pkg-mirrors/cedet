@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-mode.el,v 1.4 2000/09/27 01:32:56 zappo Exp $
+;; X-RCS: $Id: semantic-mode.el,v 1.5 2000/09/28 03:19:53 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -161,13 +161,13 @@ tokens, highlighting them, or making functions read only.
 (defun semantic-mode-parse ()
   "Parse the current buffer only if it needs it."
   (interactive)
-  (semantic-bovinate-toplevel 0 t t))
+  (semantic-bovinate-toplevel t))
 
 (defun semantic-mode-reparse ()
   "Force a reparse of the current buffer."
   (interactive)
   (semantic-clear-toplevel-cache)
-  (semantic-bovinate-toplevel 0 t t))
+  (semantic-bovinate-toplevel t))
 
 (defun semantic-mode-make-visible (token)
   "Select an invisible TOKEN to be made visible."

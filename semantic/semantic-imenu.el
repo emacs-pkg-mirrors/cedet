@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.16 2000/09/27 14:54:38 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.17 2000/09/28 03:20:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -93,7 +93,7 @@ Optional argument REST is some extra stuff."
 Uses the output of the Semantic Bovinator to create the index.
 Optional argument STREAM STREAM is an optional stream of tokens used to create menus."
   (setq imenu-default-goto-function 'semantic-imenu-goto-function)
-  (let ((tokens (or stream (semantic-bovinate-toplevel nil t t))))
+  (let ((tokens (or stream (semantic-bovinate-toplevel t))))
     (if semantic-imenu-bucketize-file
 	(let ((buckets (semantic-bucketize
 			tokens semantic-imenu-sort-bucket-function))
