@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.el,v 1.5 2004/01/15 01:30:58 zappo Exp $
+;; X-RCS: $Id: wisent-dot.el,v 1.6 2004/01/23 14:58:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,20 +58,6 @@
 (require 'wisent-bovine)
 (require 'semantic)
 (require 'wisent-dot-wy)
-
-(define-lex wisent-dot-lexer
-  "Lexical analyzer that handles DOT buffers.
-It ignores whitespace, newlines nad comments."
-  semantic-lex-ignore-whitespace
-  semantic-lex-ignore-newline
-  semantic-lex-ignore-comments
-  semantic-lex-number
-  semantic-lex-symbol-or-keyword
-  wisent-dot-wy--block-block-analyzer
-  ;; ?? semantic-lex-close-paren
-  semantic-lex-string
-  wisent-dot-wy--punctuation-string-analyzer
-  semantic-lex-default-action)
 
 ;;;###autoload
 (defun wisent-dot-setup-parser ()
