@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.48 2001/10/05 21:04:05 ponced Exp $
+@c $Id: semantic.texi,v 1.49 2001/10/08 20:40:08 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -32,7 +32,7 @@ behaviors as yacc or bison.  Since it is not designed to be as feature
 rich as these tools, it uses the term ``bovine'' for cow, a lesser
 cousin of the yak and bison.
 
-In it's current state, the bovinator is both fast (because it uses Emacs
+In its current state, the bovinator is both fast (because it uses Emacs
 tricks) and slow (it is recursive, and not table (array) based).  If you
 have experience with compiler compilers (bison, yacc, etc) your help to
 make these updates would be greatly appreciated.
@@ -48,7 +48,7 @@ make these updates would be greatly appreciated.
 * Utilities::                   How to use the nonterminal stream.
 * Current Context::             How to get the current code context.
 * Tools::                       User Tools which use semantic.
-* Index::                       
+* Index::
 @end menu
 
 @node Install, Lexing, Top, Top
@@ -101,7 +101,7 @@ Updates to the syntax table for a given buffer.
 These changes are active only while this file is being flexed.
 This is a list where each element is of the form:
 @example
-(CHAR CLASS) 
+(CHAR CLASS)
 @end example
 
 Where CHAR is the char passed to `modify-syntax-entry',
@@ -112,7 +112,7 @@ what class of syntax CHAR is.
 (setq semantic-flex-syntax-modifications '((?. "_"))
 @end example
 
-Will convert the period @asis{.} to be a symbol constituant.  (ie, if
+Will convert the period @asis{.} to be a symbol constituent.  (i.e., if
 filenames are prevalent as in Makefiles.)
 @end defvar
 
@@ -124,9 +124,9 @@ Only set this on a per mode basis, not globally.
 
 @section Keywords
 
-Another important piece of the lexer is the keyword table. @ref{Settings}.
-You language will want to set up a keyword table for fast conversion of
-symbol strings to language terminals.
+Another important piece of the lexer is the keyword table (see
+@ref{Settings}).  You language will want to set up a keyword table for
+fast conversion of symbol strings to language terminals.
 
 The keywords table can also be used to store additional information
 about those keywords.  The following programming functions can be useful
@@ -174,7 +174,7 @@ rules are stored in the buffer local variable
 @code{semantic-toplevel-bovine-table}.
 
 While it is certainly possible to write this table yourself, it is most
-likely you will want to use the BNF converter.  @xref{BNF conversion}.
+likely you will want to use the BNF converter (see @xref{BNF conversion}).
 This is an easier method for specifying your rules.  You will still need
 to specify a variable in your language for the table, however.  A good
 rule of thumb is to call it @code{language-toplevel-bovine-table} if it
@@ -190,7 +190,7 @@ Since it is important to know the format of the table when debugging ,
 you should still attempt to understand the basics of the table.
 
 Please see the documentation for the variable
-@code{semantic-toplevel-bovine-table} for details on it's format.
+@code{semantic-toplevel-bovine-table} for details on its format.
 
 * add more doc here *
 
@@ -204,7 +204,7 @@ include token precedence rules, and several other features needed to make
 real parser generators.
 
 It is important to have an Emacs Lisp file with a variable ready to take
-the output of your table @xref{Bovinating}.  Also, make sure that the
+the output of your table (see @xref{Bovinating}).  Also, make sure that the
 file @file{semantic-bnf.el} is loaded.  Give your language file the
 extension @file{.bnf} and you are ready.
 
@@ -217,7 +217,7 @@ do.  Use the shortcut @kbd{C-c c} to do the same thing, but spend
 extra time indenting the table nicely.
 
 Make sure that you create the variable specified in the
-@code{%parsetable} token before trying to convert the bnf file.  A
+@code{%parsetable} token before trying to convert the BNF file.  A
 simple definition like this is sufficient.
 
 @example
@@ -247,7 +247,7 @@ the second is the language definition, or list of semantic rules.
 * Optional Lambda Expression::  Actions to take when a rule is matched
 * Examples::                    Simple Samples
 * Style Guide::                 What the tokens mean, and how to use them.
-            
+
 @end menu
 
 @node Settings, Rules, BNF conversion, BNF conversion
@@ -263,11 +263,13 @@ They are:
 @item %start <nonterminal>
 Specify an alternative to @code{bovine-toplevel}.  (See below)
 @item %scopestart <nonterminal>
-Specify an alternitive to @code{bovine-inner-scope}.
+Specify an alternative to @code{bovine-inner-scope}.
 @item %outputfile <filename>
 Required.  Specifies the file into which this files output is stored.
 @item %parsetable <lisp-variable-name>
 Required.  Specifies a lisp variable into which the output is stored.
+@item %setupfunction <lisp-function-name>
+Required.  Name of a function into which setup code is to be inserted.
 @item %keywordtable <lisp-variable-name>
 Required if there are @code{%token} keywords.
 Specifies a lisp variable into which the output of a keyword table is
@@ -287,7 +289,7 @@ flex tokens, but are converted back to @var{TYPE} "text" internally.
 @itemx %put ( <NAME1> <NAME2>...) symbol <VALUE>
 Tokens created without a type are considered keywords, and placed in a
 keyword table.  Use @code{%put} to apply properties to that keyword.
-@ref{Lexing}.
+(see @ref{Lexing}).
 @item %languagemode <lisp-function-name>
 @itemx %languagemode ( <lisp-function-name1> <lisp-function-name2> ... )
 Optional.  Specifies the Emacs major mode associated with the language
@@ -296,8 +298,6 @@ mode will get the new table installed.
 @item %quotemode backquote
 Optional.  Specifies how symbol quoting is handled in the Optional
 Lambda Expressions. (See below)
-@item %setupfunction <lisp-function-name>
-Name of a function into which setup code is to be inserted.
 @item %( <lisp-expression> )%
 Specify setup code to be inserted into the @code{%setupfunction}.
 It will be inserted between two specifier strings, or added to
@@ -418,7 +418,7 @@ override it with.
 Available override symbols:
 
 @multitable {@code{abbreviate-nonterminal}} {(token & nosnarf)} {Find token in buffer}
-@item SYBMOL                 @tab PARAMETERS        @tab DESCRIPTION
+@item SYMBOL                 @tab PARAMETERS        @tab DESCRIPTION
 @item find-dependency        @tab (token)           @tab Find the dependency file
 @item find-nonterminal       @tab (token & parent)  @tab Find token in buffer.
 @item find-documentation     @tab (token & nosnarf) @tab Find doc comments.
@@ -453,7 +453,7 @@ Available override symbols:
                                                          the current function the cursor
                                                          is in.
 @end multitable
-                                                   
+
 Parameters mean:
 
 @table @code
@@ -464,7 +464,7 @@ The buffer in which a token was found.
 @item token
 The nonterminal token we are doing stuff with
 @item parent
-If a TOKEN is stripped (of positional infomration) then this will be the
+If a TOKEN is stripped (of positional information) then this will be the
 parent token which should have positional information in it.
 @end table
 
@@ -532,7 +532,7 @@ RESULT : MATCH1 (optional-lambda-expression)
        ;
 @end example
 
-@var{RESULT} is a non-terminal, or a token synthisized in your grammar.
+@var{RESULT} is a non-terminal, or a token synthesized in your grammar.
 @var{MATCH} is a list of elements that are to be matched if @var{RESULT}
 is to be made.  The optional lambda expression is a list containing
 simplified rules for concocting the parse tree.
@@ -574,7 +574,7 @@ token @var{MOOSE}.  In this case, the @var{MOOSE} token would appear.
 For the bovinator, this task was mixed into the language definition to
 simplify implementation, though Bison's technique is more efficient.
 
-To make a symbol match explicity for keywords, for example, you can use
+To make a symbol match explicitly for keywords, for example, you can use
 the @code{%token} command in the settings section to create new symbols.
 
 @example
@@ -602,7 +602,7 @@ then @code{MOOSE} will match the string "moose" explicitly, but it won't
 do so at the lexical level, allowing use of the text "moose" in other
 forms of regular expressions.
 
-Non symbol tokens are also alowed.  For example:
+Non symbol tokens are also allowed.  For example:
 
 @example
 %token PERIOD punctuation "."
@@ -644,8 +644,8 @@ Punctuation characters, such as operators, period, and coma.
 @section Optional Lambda Expressions
 
 The OLE (Optional Lambda Expression) is converted into a bovine lambda
-@xref{Bovinating}. This lambda has special short-cuts to simplify
-reading the emacs bnf definition.  An OLE like this:
+(see @xref{Bovinating}). This lambda has special short-cuts to simplify
+reading the emacs BNF definition.  An OLE like this:
 
 @example
 ( $1 )
@@ -659,7 +659,7 @@ An OLE like this:
 ( ,(foo $1) )
 @end example
 
-executes `foo' on the first argument, and then splices it's return
+executes `foo' on the first argument, and then splices its return
 into the return list whereas:
 
 @example
@@ -676,7 +676,7 @@ the first object matched.
 the first object spliced into the list (assuming it is a list from a
 non-terminal)
 @item '$1
-the first object matched, placed in a list.  ie ( $1 )
+the first object matched, placed in a list.  i.e. ( $1 )
 @item foo
 the symbol foo (exactly as displayed)
 @item (foo)
@@ -740,7 +740,7 @@ If this rule were used like this:
 
 @example
 ASSIGN: SYMBOL punctuation "=" SYMBOL
-        ( $1 $# )
+        ( $1 $3 )
 @end example
 
 it would match "A=B", and return
@@ -767,7 +767,7 @@ which would return
 @end example
 
 @node Style Guide , , Examples, BNF conversion
-@section Sematnic Token Style Guide
+@section Semantic Token Style Guide
 
 In order for a generalized program using Semantic to work with
 multiple languages, it is important to have a consistent meaning for
@@ -775,7 +775,7 @@ the contents of the tokens returned.  The variable
 @code{semantic-toplevel-bovine-table} is documented with the complete
 list of a tokens that a functional or OO language may use.  While any
 given laguage is free to create their own tokens, such a language
-definition would not produce a stream of tokens useable by a
+definition would not produce a stream of tokens usable by a
 generalized tool.
 
 @section Minimum Requirements
@@ -807,7 +807,7 @@ nearby.  In these cases, DOCSTRING is nil, and the function
 `semantic-find-documentation'.
 
 @var{PROPERTIES} is a slot generated by the semantic parser harness,
-and need not be provided by a language author.  Programatically access
+and need not be provided by a language author.  Programmatically access
 nonterminal properties with @code{semantic-token-put} and
 @code{semantic-token-get} to access properties.
 
@@ -818,7 +818,7 @@ expansion function via @code{semantic-expand-nonterminal}.
 
 The @var{OVERLAY} property is accessed via several functions returning
 the beginning, end, and buffer of a token.  Use these functions unless
-the overlay is really needed. @ref{Token Queries}.  Depending on the
+the overlay is really needed (see @ref{Token Queries}).  Depending on the
 overlay in a program can be dangerous because sometimes the overlay is
 replaced with an integer pair
 @example
@@ -843,7 +843,7 @@ a string representing the default type for that language.
 
 @var{DEFAULT-VALUE} can be a string, or something pre-parsed and
 langauge specific.  Hopefully this slot will be better defined in
-future versions of Sematnic.
+future versions of Semantic.
 
 @var{EXTRA-SPEC} are extra specifiers.  See below.
 
@@ -873,10 +873,10 @@ langauges.
 @item Type Declaration
 @itemx @code{ ("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC}
 @itemx @code{          "DOCSTRING" PROPERTIES OVERLAY)}
-@var{TYPE} a string representing the of the type, such as (in C) 
+@var{TYPE} a string representing the of the type, such as (in C)
 ``struct'', ``union'', ``enum'', ``typedef'', or ``class''.
 The @var{TYPE} for a type token should not be nil, as even untyped
-langauges with structures have type types.
+languages with structures have type types.
 
 @var{PART-LIST} is the list of individual entries inside compound
 types.  Structures, for example, can contain several fields which can
@@ -893,13 +893,13 @@ langauges.
 @end table
 
 @var{PARENTS} represents a list of parents of this type.  Parents are used
-in two situations.  
+in two situations.
 @table @asis
 @item Inheritance
 For types which inherit from other types of the same type-type (Such
-as classes).  
+as classes).
 @item Aliases
-For types which are aliasts of other types, the parent type is the
+For types which are aliases of other types, the parent type is the
 type being aliased.  The Types' type is the command specifying that it
 is an alias (Such as ``typedef'' in C or C++).
 @end table
@@ -932,13 +932,13 @@ In this case, instead of @var{NAME}, a @var{FILE} is specified.
 @var{FILE} can be a subset of the actual file to be loaded.
 
 @var{SYSTEM} is true if this include is part of a set of system
-includes.  This field isn't currenlty being used and may be
+includes.  This field isn't currently being used and may be
 eliminated.
 
 
 @item Package & Provide statements
 @itemx @code{("NAME" package DETAIL "DOCSTRING" PROPERTIES OVERLAY)}
-A statement which declairs a given file is part of a package, such as
+A statement which declares a given file is part of a package, such as
 the Java @code{package} statement, or a @code{provide} in Emacs Lisp.
 
 @var{DETAIL} might be an associated file name, or some other language
@@ -962,11 +962,11 @@ specifier to a plain text string which is the name of that parent.
 
 @item (dereference .  INT)
 Number of levels of dereference.
-In C, the number of array dimentions.
+In C, the number of array dimensions.
 
 @item (pointer . INT)
 Number of levels of pointers.
-In C, the number of @code{*} characrers.
+In C, the number of @code{*} characters.
 
 @item (typemodifiers .  ( "text" ... ))
 Keyword modifiers for a type.  In C, such words would include
@@ -984,8 +984,13 @@ throwing, this is a list of exceptions that can be thrown.
 
 @item (destructor . t)
 This exists for functions which are destructor methods in a class
-definition.  In C, a destructor's name excludes the ~ character.  When
+definition.  In C++, a destructor's name excludes the ~ character.  When
 producing the name of the function, the ~ is added back in.
+
+@item (constructor . t)
+This exists for functions which are constructors in a class
+definition.  In C++ this is t when the name of this function is
+the same as the name of the parent class.
 
 @item (user-visible . t)
 For functions in interpreted languages such as Emacs Lisp, this
@@ -1020,7 +1025,7 @@ Optional argument @var{CLEAR} will clear the cache before bovinating.
 @end deffn
 
 @deffn Command semantic-clear-toplevel-cache
-Clear the toplevel bovin cache for the current buffer.
+Clear the toplevel bovine cache for the current buffer.
 Clearing the cache will force a complete reparse next time a token
 stream is requested.
 @end deffn
@@ -1089,8 +1094,8 @@ fancier types of debugging.
 @comment  node-name,  next,  previous,  up
 @chapter Utilities
 
-Once a source file has been parsed, the follwing APIs can be used to
-write programs that use the token stream most effectivly.
+Once a source file has been parsed, the following APIs can be used to
+write programs that use the token stream most effectively.
 
 @menu
 * Token Queries::               Getting info about a parsed token (nonterminal).
@@ -1109,7 +1114,7 @@ are needed to find get details out of a nonterminal.
 
 @defun semantic-token-token token
 Retrieve from @var{TOKEN} the token identifier.
-ie, the symbol @code{'variable}, @code{'function}, @code{'type}, or other.
+i.e., the symbol @code{'variable}, @code{'function}, @code{'type}, or other.
 @end defun
 
 @defun semantic-token-name token
@@ -1221,7 +1226,7 @@ This is an optional field, and returns @code{nil} if it doesn't exist.
 @defun semantic-token-function-parent token
 The parent of the function @var{TOKEN}.
 A function has a parent if it is a method of a class, and if the
-function does not appear in body of it's parent class.
+function does not appear in body of its parent class.
 @end defun
 
 @defun semantic-token-variable-const token
@@ -1246,10 +1251,10 @@ Retrieve a specifier value for the variable @var{TOKEN}.
 @end defun
 
 @defun semantic-token-include-system token
-Retrieve the flag indicating if the include @var{TOKEN} is a sysmtem include.
+Retrieve the flag indicating if the include @var{TOKEN} is a system include.
 @end defun
 
-For override methods that query a token, see @xref{Token Details}. 
+For override methods that query a token, see @xref{Token Details}.
 
 @node Nonterminal Streams, Nonterminal Completion, Token Queries, Utilities
 @section Nonterminal streams
@@ -1272,7 +1277,7 @@ from largest to smallest via the start location.
 
 @defun semantic-find-nonterminal-by-overlay-in-region start end &optional buffer
 Find all nonterminals which exist in whole or in part between @var{START} and @var{END}.
-Uses overlays to determine positin.
+Uses overlays to determine position.
 Optional @var{BUFFER} argument specifies the buffer to use.
 @end defun
 
@@ -1380,7 +1385,7 @@ searched for matches.
 @end defun
 
 @defun semantic-recursive-find-nonterminal-by-name name buffer
-Recursivly find the first occurance of @var{NAME}.
+Recursively find the first occurence of @var{NAME}.
 Start search with @var{BUFFER}.  Recurse through all dependencies till found.
 The return item is of the form (@var{BUFFER} @var{TOKEN}) where @var{BUFFER} is the buffer
 in which @var{TOKEN} (the token found to match @var{NAME}) was found.
@@ -1402,7 +1407,7 @@ Optional arguments:
 from under point.
 @var{STREAM} is the list of tokens to complete from.
 @var{FILTER} is provides a filter on the types of things to complete.
-@var{FILTER} must be a function to call on each element.  (See
+@var{FILTER} must be a function to call on each element.  (See !!!
 @end defun
 
 @defun semantic-read-variable prompt &optional default stream
@@ -1446,8 +1451,7 @@ be passed in via a variable.
 @menu
 * Token->Text:: Converting Tokens into text strings
 * Token Details:: Arbitrary token detail fetching
-* Local Context:: Deriving information about a language specific local
-                  context.
+* Local Context:: Deriving information about a language specific local context.
 * Making New Methods:: How to add your own methods for a tool
 @end menu
 
@@ -1512,7 +1516,7 @@ Optional argument @var{COLOR} means highlight the prototype with font-lock color
 
 @defun semantic-prototype-file buffer
 Return a file in which prototypes belonging to @var{BUFFER} should be placed.
-Default behavior (if not overriden) looks for a token specifying the
+Default behavior (if not overridden) looks for a token specifying the
 prototype file, or the existence of an @var{EDE} variable indicating which
 file prototypes belong in.
 @end defun
@@ -1546,14 +1550,14 @@ be obvious for non-traditional languages with their own token types.
 @defun semantic-nonterminal-children token &optional positionalonly
 Return the list of top level children belonging to @var{TOKEN}.
 Children are any sub-tokens which may contain overlays.
-The default behavior (if not overriden with @code{nonterminal-children}
+The default behavior (if not overridden with @code{nonterminal-children}
 is to return type parts for a type, and arguments for a function.
 
 If optional argument @var{POSITIONALONLY} is non-@code{nil}, then only return valid
 children if they contain positions.  Some languages may choose to create
 lists of children without position/overlay information.
 
-If this function is overriden, use @dfn{semantic-nonterminal-children-default}
+If this function is overridden, use @dfn{semantic-nonterminal-children-default}
 to also include the default behavior, and merely extend your own.
 
 Note for language authors:
@@ -1574,14 +1578,14 @@ This function returns on of the following symbols:
 Some languages may choose to provide additional return symbols specific
 to themselves.  Use of this function should allow for this.
 
-The default behavior (if not overriden with @code{nonterminal-children}
+The default behavior (if not overridden with @code{nonterminal-children}
 is to return a symbol based on type modifiers.
 @end defun
 
 @defun semantic-find-dependency token
 Find the filename represented from @var{TOKEN}.
 @var{TOKEN} may be a stripped element, in which case @var{PARENT} specifies a
-parent token that has positinal information.
+parent token that has positional information.
 Depends on @code{semantic-dependency-include-path} for searching.  Always searches
 `.' first, then searches additional paths.
 
@@ -1612,7 +1616,7 @@ depended on, and functions will move to the specified definition.
 Find documentation from @var{TOKEN} and return it as a clean string.
 @var{TOKEN} might have @var{DOCUMENTATION} set in it already.  If not, there may be
 some documentation in a comment preceding TOKEN's definition which we
-cal look for.  When appropriate, this can be overridden by a language specific
+can look for.  When appropriate, this can be overridden by a language specific
 enhancement.
 @end defun
 
@@ -1645,7 +1649,7 @@ Local variables are returned in Semantic token format.
 Be default, this calculates the current bounds using context blocks
 navigation, then uses the parser with @code{bovine-inner-scope} to
 parse tokens at the beginning of the context.
-This can be overriden with @code{get-local-variables}.
+This can be overridden with @code{get-local-variables}.
 @end defun
 
 @defun semantic-get-local-arguments &optional point
@@ -1706,7 +1710,7 @@ Override with @code{ctxt-current-argument}.
 @end defun
 
 Local Context analysis functions can look at the local context,
-and return informatin such as the type of the data that should be
+and return information such as the type of the data that should be
 entered where the cursor is.  As of this writing, these functions
 need some more work.
 
@@ -1789,7 +1793,7 @@ This hook will only be called once when a token is first made dirty,
 subsequent edits will not cause this to run a second time unless that
 token is first cleaned.  Any token marked as dirty will
 also be called with @code{semantic-clean-token-hooks}, unless a full
-reprase is done instead.
+reparse is done instead.
 @end defvar
 
 @defvar semantic-clean-token-hooks
@@ -1857,7 +1861,7 @@ during a flush when the cache is given a new value of nil.
 @chapter Deriving the Current Context
 
 This chapter deals with how to derive the current context, and also
-how a language maintainter can get the current context API to work
+how a language maintainer can get the current context API to work
 with their language.
 
 By default, the behavior will function in C like languages.  This
@@ -1865,7 +1869,7 @@ means languages with parenthetical blocks, and type dereferencing
 which uses a similar form.
 
 @menu
-* Blocks::                      
+* Blocks::
 * Local Variables::             Getting lists of local variables.
 * Derived Context::             What goes at a given location?
 * Suggestions::                 Get suggestions on one goes in a derived context.
@@ -1927,7 +1931,7 @@ Local variables are returned in Semantic token format.
 Be default, this calculates the current bounds using context blocks
 navigation, then uses the parser with @code{bovine-inner-scope} to
 parse tokens at the beginning of the context.
-This can be overriden with @code{get-local-variables}.
+This can be overridden with @code{get-local-variables}.
 @end defun
 
 @defun semantic-get-local-arguments &optional point
@@ -1950,7 +1954,7 @@ This can be overridden with @code{get-all-local-variables}.
 
 While a context has already been used to describe blocks of code,
 other context include more local details, such as the symbol the
-cursor is on, or the fact we are assinging into some other variable.
+cursor is on, or the fact we are assigning into some other variable.
 
 These context deriving functions can be overridden to provide language
 specific behavior.  By default, it assumes a C like language.
@@ -1988,7 +1992,7 @@ intelligent guesses as to what belongs in a given location.  These
 functions can be used to create smart completion mechanisms, or
 displays.
 
-Unfortunatly, they are not fully implemented in Semantic 1.4.
+Unfortunately, they are not fully implemented in Semantic 1.4.
 
 
 @node Tools, Index, Current Context, Top
@@ -2005,7 +2009,7 @@ Semantic.
 * semanticdb::                  Cache your parsed buffers between sessions.
 * senator::                     The Semantic Navigator
 * document::                    Document generation functions
-* miscellaneous::               
+* miscellaneous::
 @end menu
 
 @node speedbar, imenu, Tools, Tools
@@ -2077,7 +2081,7 @@ Non-@code{nil} if types should have submenus with parts in it.
 @deffn Option semantic-imenu-bucketize-type-parts
 Non-@code{nil} if elements of a type should be placed grouped into buckets.
 @code{Nil} means to keep them in the same order.
-Overriden to @code{nil} if @code{semantic-imenu-bucketize-file} is nil.
+Overridden to @code{nil} if @code{semantic-imenu-bucketize-file} is nil.
 @end deffn
 
 @deffn Option semantic-imenu-sort-bucket-function
@@ -2151,7 +2155,7 @@ passes a list of predicates in @code{semantic-project-predicates}.
 @deffn Option semanticdb-project-roots
 List of directories, where each directory is the root of some project.
 All subdirectories of a root project are considered a part of one project.
-Values in this string can be overriden by project management programs
+Values in this string can be overridden by project management programs
 via the @code{semanticdb-project-root-functions} variable.
 @end deffn
 
@@ -2315,7 +2319,7 @@ the kill ring.  Retrieve that text with @code{yank}.
 
 @deffn Command senator-yank-token
 Yank a token from the token ring.
-The form the token takes is differnet depending on where it is being
+The form the token takes is different depending on where it is being
 yanked to.
 @end deffn
 
@@ -2326,7 +2330,7 @@ kill ring.
 @end deffn
 
 For programmers, to provide specialized pasting, created an override
-function for @code{insert-foreign-token}. @xref{Settings}.
+function for @code{insert-foreign-token} (see @xref{Settings}).
 
 @subsubsection Minor Mode
 
@@ -2356,7 +2360,7 @@ senator-yank-token
 senator-kill-token
 @item C-c , M-w
 senator-copy-token
-@item C-c , 
+@item C-c ,
 @end table
 @end deffn
 
