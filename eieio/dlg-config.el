@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: dlg-config.el,v 1.3 1996/09/21 15:50:16 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.4 1996/10/12 10:22:53 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -37,6 +37,7 @@
 ;;;           
 (require 'eieio)
 (require 'dialog)
+(require 'loadhist)			;for feature loading/dumping
 
 (defvar dlg-config-file "~/.emacs"
   "The config file dlg mode will edit if dlg-auto-edit is t.")
@@ -172,15 +173,14 @@ variable associated with the symbol field")
   "When this data object value is set, set this as the new default."
   (if value
       (require (oref this symbol))
-    (require 'loadhist)
-      (if (oref this unload-commands)
-	  (let* ((file (feature-file (oref this symbol)))
-		 (dependents (delete file (copy-sequence (file-dependents file)))))
-	    (eval (oref this unload-commands))
-	    (if dependents
-		(message "cannot unload: %s depends on that feature" dependents)
-	      (unload-feature (oref this symbol))))
-	(message "You shouldn't unload this feature")))
+    (if (oref this unload-commands)
+	(let* ((file (feature-file (oref this symbol)))
+	       (dependents (delete file (copy-sequence (file-dependents file)))))
+	  (eval (oref this unload-commands))
+	  (if dependents
+	      (message "cannot unload: %s depends on that feature" dependents)
+	    (unload-feature (oref this symbol))))
+      (message "You shouldn't unload this feature")))
   (dlg-edit-config-file this))
 
 (defclass data-object-symbol-hook (data-object-symbol)
@@ -327,10 +327,11 @@ instantiated.")
   (let ((ecframe (create-widget "Toggle Frame dlg" widget-frame
 				widget-toplevel-shell
 				:x 2 :y 2
+				;;:position 'topright
 				:frame-label "Emacs Config Options"))
 	)
     (create-widget "config-file" widget-label ecframe
-		   :x 1 :y 1 :label-value "Config File  :")
+		   :x 1 :y 0 :label-value "Config File  :")
     (create-widget "config-file" widget-text-field ecframe
 		   :width 40 :height 1 :x -2 :y t 
 		   :value (data-object-symbol "config-file"
@@ -472,7 +473,7 @@ default to a list of simple faces."
 	  (dlg-face-box (car list-o-faces) nil
 			(if even 2 -4)
 			(if even -3 t)))
-      (setq once t even (not even) list-o-faces (cdr list-o-faces))))
+      (setq even (not even) list-o-faces (cdr list-o-faces))))
   (dlg-end)
   (dialog-refresh)
   )
@@ -517,7 +518,7 @@ the variables we are editing."
 	    nb pnt)
 	(setq nb (set-buffer (find-file-noselect dlg-config-file)))
 	(goto-char (point-min))
-	(dlg-edit-config-file-object object)
+	(setq pnt (dlg-edit-config-file-object object))
 	(set-buffer ob)
 	(dlg-show-an-edit nb pnt))))
 
@@ -545,7 +546,7 @@ the variables we are editing."
 		      (symbol-name (oref this symbol))
 		      val))))
   (beginning-of-line)
-  (setq pnt (point)))
+  (point))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-list-index))
   "Reads the currently stored config-file, and starts saving
@@ -567,7 +568,7 @@ the variables we are editing."
 		    (symbol-name (oref this symbol))
 		    (nth (oref this value) (oref this string-list)))))
   (beginning-of-line)
-  (setq pnt (point)))
+  (point))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-lisp-expression))
   "Reads the currently stored config-file, and starts saving
@@ -585,7 +586,7 @@ the variables we are editing."
 		    (symbol-name (oref this symbol))
 		    (oref this value))))
   (beginning-of-line)
-  (setq pnt (point)))
+  (point))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-string-to-int))
   "Reads the currently stored config-file, and starts saving
@@ -603,7 +604,7 @@ the variables we are editing."
 		    (symbol-name (oref this symbol))
 		    (string-to-int (oref this value)))))
   (beginning-of-line)
-  (setq pnt (point)))
+  (point))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-hook))
   "Reads the currently stored config-file, and starts saving
@@ -621,7 +622,7 @@ the hooks we are editing."
 	(insert "\n(add-hook '" (symbol-name (oref this symbol))
 		" '" (oref this command) ")")))
   (beginning-of-line)
-  (setq pnt (point)))
+  (point))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-feature))
   "Reads the currently stored config-file, and starts saving
@@ -636,7 +637,7 @@ the features we are editing."
     (if (oref this value)
 	(insert "\n(require '" (symbol-name (oref this symbol)) ")")))
   (beginning-of-line)
-  (setq pnt (point)))
+  (point))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-default))
   "Reads the currently stored config-file, and starts saving
@@ -658,7 +659,7 @@ the variables we are editing."
 		    (symbol-name (oref this symbol))
 		    (oref this value))))
   (beginning-of-line)
-  (setq pnt (point)))
+  (point))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-disabled))
   "Reads the currently stored config-file, and starts saving
@@ -677,7 +678,7 @@ the variables we are editing."
 		    (symbol-name (oref this symbol))
 		    (oref this value))))
   (beginning-of-line)
-  (setq pnt (point)))
+  (point))
 
 (defmethod dlg-edit-config-file-object ((this data-object-command-option))
   "Reads the currently stored config-file, and enters the command here"
@@ -693,7 +694,7 @@ the variables we are editing."
     (if (oref this value)
 	(insert "\n" (oref this command))))
   (beginning-of-line)
-  (setq pnt (point)))
+  (point))
 
 (defmethod dlg-edit-xdefaults ((this data-face-object) token val)
   "Open and edit the chosen Xdefaults file and store this face

@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.7 1996/09/27 00:04:58 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.8 1996/10/12 10:21:58 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -896,7 +896,7 @@ help about this widget."
 	   )
 	  ((eq (oref this direction) 'vertical)
 	   (if (not w) (oset this width 1))
-	   (if (not h) (oset this height (width 2)))
+	   (if (not h) (oset this height length))
 	   )
 	  (t
 	   (error "Value %S for field direction in %s invalid"

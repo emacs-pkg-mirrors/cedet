@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: dbif-browse.el,v 1.2 1996/03/28 03:55:56 zappo Exp $
+;;; RCS: $Id: dbif-browse.el,v 1.3 1996/10/12 10:22:20 zappo Exp $
 ;;; Keywords: OO database
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -74,23 +74,23 @@
 (defmethod dbif-browse ((conn dbif-connection) name)
   "Handle maintenance of windows and reading from generic database 
 connection type." 
-  (if (or (not database) (string= database ""))
-      (setq database (user-login-name)))
+  ;;(if (or (not database) (string= database ""))
+  ;;    (setq database (user-login-name)))
   (let ((table-buffer (get-buffer-create (format "TABLES: %s" name)))
 	(schema-buffer (get-buffer-create (format "SCHEMA: %s" name)))
 	(sample-buffer (get-buffer-create (format "SAMPLE: %s" name))))
     ;; Now setup the windows nicely
     (delete-other-windows)
     (switch-to-buffer table-buffer)
-    (dbif-browse-table-mode dbbuff schema-buffer sample-buffer)
+    (dbif-browse-table-mode conn schema-buffer sample-buffer)
     (split-window (selected-window) 10)
     (split-window (selected-window) 40 t)
     (other-window 1)
     (switch-to-buffer schema-buffer)
-    (dbif-browse-schema-mode dbbuff table-buffer)
+    (dbif-browse-schema-mode conn table-buffer)
     (other-window 1)
     (switch-to-buffer sample-buffer)
-    (dbif-browse-sample-mode dbbuff schema-buffer)
+    (dbif-browse-sample-mode conn schema-buffer)
     (other-window 1)
     (sit-for 0)
     ))

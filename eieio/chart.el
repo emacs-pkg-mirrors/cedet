@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: chart.el,v 1.1 1996/03/27 23:10:50 zappo Exp $
+;;; RCS: $Id: chart.el,v 1.2 1996/10/12 10:22:30 zappo Exp $
 ;;; Keywords: OO, chart, graph                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -103,7 +103,9 @@ if new emacs is used on B&W display")
 	  (set-face-background nf "white"))
 	(set-face-foreground nf "black")
 	(if (fboundp 'set-face-background-pixmap)
-	    (set-face-background-pixmap nf (car pl)))
+	    (condition-case nil
+		(set-face-background-pixmap nf (car pl))
+	      (error (message "Cannot set background pixmap %s" (car pl)))))
 	(setq chart-face-list (cons nf chart-face-list))
 	(setq cl (cdr cl)
 	      pl (cdr pl)))))
@@ -352,13 +354,13 @@ the nth name resides.  Automatically compensates for for direction."
 	(let ((i 0)
 	      (seq (oref (car data) data)))
 	  (while seq
-	    (let ((rng (chart-translate-namezone c i))
-		  (dp (if (eq dir 'vertical)
-			  (setq dp (chart-translate-ypos c (car seq)))
-			(setq dp (chart-translate-xpos c (car seq)))))
+	    (let* ((rng (chart-translate-namezone c i))
+		   (dp (if (eq dir 'vertical)
+			   (chart-translate-ypos c (car seq))
+			 (chart-translate-xpos c (car seq))))
 		  (zp (if (eq dir 'vertical)
-			  (setq dp (chart-translate-ypos c 0))
-			(setq dp (chart-translate-xpos c 0))))
+			  (chart-translate-ypos c 0)
+			(chart-translate-xpos c 0)))
 		  (fc (nth (% i (length chart-face-list)) chart-face-list))
 		  )
 	      (if (< dp zp)

@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: e-config.el,v 1.1 1996/09/21 16:03:20 zappo Exp $
+;;; RCS: $Id: e-config.el,v 1.2 1996/10/12 10:22:41 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -194,6 +194,7 @@ for emacs."
 		   :state (data-object-symbol "require-final-newline"
 					      :value require-final-newline
 					      :symbol 'require-final-newline))
+    (if (not (boundp 'text-mode-hook)) (setq text-mode-hook nil))
     (create-widget "autofilltxt" widget-toggle-button oframe
 		   :x 1 :y -1 :label-value "Auto fill in all text modes"
 		   :state (data-object-symbol-hook
@@ -208,7 +209,7 @@ for emacs."
 			       :frame-label "Suggested Disabled Commands"))
 	)
     (create-widget "eval-expression" widget-toggle-button oframe
-		   :x 1 :y 1 :label-value "Evaluate Expression < M-: >"
+		   :x 1 :y 1 :label-value "Evaluate Expression  < M-: >"
 		   :state (data-object-symbol-disabled
 			   "eval-expression"
 			   :value (get 'eval-expression 'disabled)
@@ -669,7 +670,8 @@ useful for ps-print."
 			   "font-lock-support-mode-lazy"
 			   :value (or
 				   (equal font-lock-support-mode 'lazy-lock-mode)
-				   (member 'lazy-lock-mode font-lock-support-mode))
+				   (and (listp font-lock-support-mode)
+					(member 'lazy-lock-mode font-lock-support-mode)))
 			   :symbol 'font-lock-support-mode
 			   :command "lazy-lock-mode"))
 
@@ -679,7 +681,9 @@ useful for ps-print."
 			   "font-lock-support-mode-fast"
 			   :value (or
 				   (equal font-lock-support-mode 'fast-lock-mode)
-				   (member 'fast-lock-mode font-lock-support-mode))
+				   (and
+				    (list font-lock-support-mode)
+				    (member 'fast-lock-mode font-lock-support-mode)))
 			   :symbol 'font-lock-support-mode
 			   :command "fast-lock-mode"))
     )
