@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.16 2002/06/29 18:09:18 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.17 2002/06/30 22:23:10 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -118,10 +118,10 @@ list of semantic tokens found."
     (if wisent-lookahead
         (if (eq lookahead wisent-lookahead)
             (progn
-              ;; collect unmatched token here
-              (wisent-collect-unmatched-syntax lookahead)
               (setq cache nil)
-              ;;(run-hook-with-args 'wisent-skip-token-hook lookahead)
+              ;; collect unmatched token here
+              (run-hook-with-args
+               'wisent-discarding-token-functions lookahead)
               )
           ;; push back the lookahead token
           (setq wisent-flex-istream (cons (cons (vector wisent-lookahead)
