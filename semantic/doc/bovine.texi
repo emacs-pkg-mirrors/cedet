@@ -1,0 +1,354 @@
+@ignore
+@node Bovine Parsers
+@subsection Bovine Parsers
+@c This ignore section fools texinfo-all-menus-update into creating
+@c the proper menus for this chapter.
+@end ignore
+
+The bovine parser is the original semantic parser, and is an
+implementation of an LL parser.  It is good for simple langauges.  It
+has many conveniences making grammar writing easy.  The conveniences
+make it less flexible than a full LALR @emph{bison} style grammar.
+
+Bovine parsers are stored in files with a @file{.by} extension.
+When compiled, the contents is converted into a file of the form
+@file{NAME-by.el}.  This, in turn is byte compiled.
+@ref{Grammer Programming Environment}.
+
+A bovine parser file has the following top level structure.
+Text in <angle> brackes should be replaced with apropriate values.
+
+@example
+%package <language>
+%languagemode  <mode name>
+%start         <starting rule>
+%scopestart    <scope starting rule>
+
+<DECLARATIONS>
+
+%%
+
+<RULES>
+@end example
+
+The comment character is @asis{;}, as with Emacs Lisp.
+
+@menu
+* %start::                      The starting rules for the grammar.
+* %languagemode::               The Emacs major mode associate with your grammar.
+* %token::                      Defining new lexical tokens
+* Bovine Grammar Rules::        Rules used to parse a language
+* Optional Lambda Expression::  Actions to take when a rule is matched
+* Bovine Examples::             Simple Samples
+@end menu
+
+@node %start
+@subsection %start
+
+In Bison, one and only one nonterminal is designated as the
+``start'' symbol.
+In @semantic{}, one or more nonterminals can be designated as the
+``start'' symbol.
+
+One or more start symbols can be explicitly declared following
+the @b{%start}  keyword separated by spaces.
+
+If no @b{%start} keyword is used in a grammar, then the start token
+is called @b{bovine-toplevel}.  When it is used, then the rule named
+by the @b{%start} token is renamed internally to @b{bovine-toplevel}
+so it can be found by the parser harness.
+
+If one or more explicit @b{start} symbols are declared, then
+the very first is used.
+
+@ignore
+Submitted By: Joseph Kiniry (kiniry)
+>Assigned to: Richard Y. Kim (emacsman)
+Summary: Semantics of %start and %scopestart settings still unclear.
+
+Initial Comment:
+The rule specified with %start is a legal topmost
+production rule, but the first rule in a BNF file is
+still used as bovine-toplevel.  This is not made clear.
+
+If a rule is specified with %scopestart then that rule
+is not used/generated in the corresponding table.  This
+leads to an erroneous disconnected grammar
+specification.  I think that the use of this variable
+needs to be reviewed and its documentation needs to be
+clarified.
+@end ignore
+
+@node %languagemode
+@subsection %languagemode
+
+@c >   A while back, I updated semantic-grammer.el to auto-run the setup
+@c > function in all modes of the correct type.  It uses %languagemode to
+@c > figure out what buffers to look in.  %languagemode doesn't seem to be
+@c > used in wisent though.  I'm not sure if it should be or not.  Perhaps
+@c > no cases call for it yet.
+@c 
+@c %languagemode is not used by the parser itself, but is used by
+@c grammar tools, when the grammar provides it (wisent-java-tags.wy
+@c for example).
+@c 
+
+@node %token
+@subsection %token
+
+In the bovine parser, the @b{%token} and related @b{%put} command
+control the creation of additional lexical tokens types called
+@emph{keywords}.
+
+The @b{%token} has two forms.
+
+@table @asis
+@item %token NAME ``name''
+In this form, the new lexical token @var{NAME} is declared matched to the
+keyword ``name'', a string.  ``name'' must be a valid @emph{symbol}
+token @ref{Writing Lexers}.
+@item %token <LEXICALTYPE> NAME ``regexp''
+In this form, the new lexical token @var{NAME} is created which consists of
+characters of the lexical type @var{LEXICALTYPE}.  The <angle> brackets are
+a part of the syntax.  These lexical characters are matched against
+@var{REGEXP}.
+@end table
+
+Internally, symbol tokens created with the first form are added to a
+lexical keyword table @ref{Keywords}.  The other types of lexical
+tokens are substitued into the rules, and do not appear in the Emacs
+Lisp representation of the grammar.
+
+A related command to @b{%token} is @b{%put}.  This works much the
+same way as the Emacs Lisp command @dfn{put}, in that it associates a
+property with a value on the named token.
+
+@defun Fcn %put NAME PROPERTY VALUE
+@var{NAME} is the name of the token to add a value to.
+@var{PROPERTY} is a symbol representing the property whose value is
+to be modified.
+@var{VALUE} is an Emacs Lisp form to be used as a value on that
+property.
+@end defun
+
+@node Bovine Grammar Rules
+@subsection Bovine Grammar Rules
+
+The rules are what allow the compiler to create tags from a language
+file.  Once the setup is done in the prologue, you can start writing
+rules.
+
+@example
+RESULT : MATCH1 (optional-lambda-expression)
+       | MATCH2 (optional-lambda-expression)
+       ;
+@end example
+
+@var{RESULT} is a non-terminal, or a token synthesized in your grammar.
+@var{MATCH} is a list of elements that are to be matched if @var{RESULT}
+is to be made.  The optional lambda expression is a list containing
+simplified rules for concocting the parse tree.
+
+In bison, each time an element of a @var{MATCH} is found, it is
+"shifted" onto the parser stack.  (The stack of matched elements.)  When
+all of @var{MATCH1}'s elements have been matched, it is "reduced" to
+@var{RESULT}.  @xref{(bison)Algorithm}.
+
+The first @var{RESULT} written into your language specification should
+be @code{bovine-toplevel}, or the symbol specified with @code{%start}.
+When starting a parse for a file, this is the default token iterated
+over.  You can use any token you want in place of @code{bovine-toplevel}
+if you specify what that nonterminal will be with a @code{%start} token
+in the settings section.
+
+@var{MATCH} is made up of symbols and strings.  A symbol such as
+@code{foo} means that a syntactic token of type @code{foo} must be
+matched.  A string in the mix means that the previous symbol must have
+the additional constraint of exactly matching it.  Thus, the
+combination:
+
+@example
+symbol "moose"
+@end example
+
+means that a symbol must first be encountered, and then it must
+@code{string-match "moose"}.  Be especially careful to remember that the
+string is a regular expression.  The code:
+
+@example
+punctuation "."
+@end example
+
+will match any punctuation.
+
+For the above example in bison, a LEX rule would be used to create a new
+token @var{MOOSE}.  In this case, the @var{MOOSE} token would appear.
+For the bovinator, this task was mixed into the language definition to
+simplify implementation, though Bison's technique is more efficient.
+
+To make a symbol match explicitly for keywords, for example, you can use
+the @code{%token} command in the settings section to create new symbols.
+
+@example
+%token MOOSE "moose"
+
+find_a_moose: MOOSE
+            ;
+@end example
+
+will match ``moose'' explicitly, unlike the previous example where moose
+need only appear in the symbol.  This is because ``moose'' will be
+converted to @var{MOOSE} in the lexical analysis stage.  Thus the symbol
+@var{MOOSE} won't be available any other way.
+
+If we specify our token in this way:
+
+@example
+%token MOOSE symbol "moose"
+
+find_a_moose: MOOSE
+            ;
+@end example
+
+then @code{MOOSE} will match the string "moose" explicitly, but it won't
+do so at the lexical level, allowing use of the text "moose" in other
+forms of regular expressions.
+
+Non symbol tokens are also allowed.  For example:
+
+@example
+%token PERIOD punctuation "."
+
+filename : symbol PERIOD symbol
+         ;
+@end example
+
+will explicitly match one period when used in the above rule.
+
+@c @xref{Default syntactic tokens}.
+
+@node Optional Lambda Expression
+@subsection Optional Lambda Expressions
+
+The OLE (Optional Lambda Expression) is converted into a bovine lambda
+(see @xref{Writing Parsers}.) This lambda has special short-cuts to simplify
+reading the Emacs BNF definition.  An OLE like this:
+
+@example
+( $1 )
+@end example
+
+results in a lambda return which consists entirely of the string
+or object found by matching the first (zeroth) element of match.
+An OLE like this:
+
+@example
+( ,(foo $1) )
+@end example
+
+executes `foo' on the first argument, and then splices its return
+into the return list whereas:
+
+@example
+( (foo $1) )
+@end example
+
+executes foo, and that is placed in the return list.
+
+Here are other things that can appear inline:
+@table @code
+@item $1
+the first object matched.
+@item ,$1
+the first object spliced into the list (assuming it is a list from a
+non-terminal)
+@item '$1
+the first object matched, placed in a list.  i.e. ( $1 )
+@item foo
+the symbol foo (exactly as displayed)
+@item (foo)
+a function call to foo which is stuck into the return list.
+@item ,(foo)
+a function call to foo which is spliced into the return list.
+@item '(foo)
+a function call to foo which is stuck into the return list in a list.
+@item (EXPAND $1 nonterminal depth)
+a list starting with EXPAND performs a recursive parse on the token
+passed to it (represented by $1 above.)  The semantic list is a common
+token to expand, as there are often interesting things in the list.
+The @var{nonterminal} is a symbol in your table which the bovinator will
+start with when parsing.  @var{nonterminal}'s definition is the same as
+any other nonterminal.  @var{depth} should be at least 1 when
+descending into a semantic list.
+@item (EXPANDFULL $1 nonterminal depth)
+is like EXPAND, except that the parser will iterate over
+@var{nonterminal} until there are no more matches.  (The same way the
+parser iterates over @code{bovine-toplevel}. This lets you have
+much simpler rules in this specific case, and also lets you have
+positional information in the returned tokens, and error skipping.
+@item (ASSOC symbol1 value1 symbol2 value2 ... )
+This is used for creating an association list.  Each @var{SYMBOL} is
+included in the list if the associated @var{VALUE} is non-nil.  While
+the items are all listed explicitly, the created structure is an
+association list of the form:
+@example
+( ( symbol1 . value1) (symbol2 . value2) ... )
+@end example
+@end table
+
+If the symbol @code{%quotemode backquote} is specified, then use
+@code{,@@} to splice a list in, and @code{,} to evaluate the expression.
+This lets you send @code{$1} as a symbol into a list instead of having
+it expanded inline.
+
+@node Bovine Examples
+@subsubsection Examples
+
+The rule:
+
+@example
+SYMBOL : symbol
+@end example
+
+is equivalent to
+
+@example
+SYMBOL : symbol
+         ( $1 )
+@end example
+
+which, if it matched the string "A", would return
+
+@example
+( "A" )
+@end example
+
+If this rule were used like this:
+
+@example
+ASSIGN: SYMBOL punctuation "=" SYMBOL
+        ( $1 $3 )
+@end example
+
+it would match "A=B", and return
+
+@example
+( ("A") ("B") )
+@end example
+
+The letters A and B come back in lists because SYMBOL is a nonterminal,
+not an actual lexical element.
+
+to get a better result with nonterminals, use @asis{,} to splice lists
+in like this;
+
+@example
+ASSIGN: SYMBOL punctuation "=" SYMBOL
+        ( ,$1 ,$3 )
+@end example
+
+which would return
+
+@example
+( "A" "B" )
+@end example
