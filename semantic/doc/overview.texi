@@ -5,50 +5,45 @@
 @c proper menus for this chapter.
 @end ignore
 
-This chapter gives the overview of semantic and its goals.
-Things to mention here could be:
+This chapter gives the overview of @semantic{} and its goals.
+
+With Emacs, regular expressions (and syntax tables) are the basis of
+identifying components in a programming language source for purposes
+such as color highlighting.  This approach has proved is usefulness,
+but have limitations.
+
+@semantic{} provides a new intrastructure that goes far beyond text
+analysis based on regular expressions.
+
+@semantic{} uses @dfn{parsers} to analyze programming language
+sources.  For languages that can be described using a context-free
+grammar, parsers can be based on the grammar of the language.  Or they
+can be @dfn{external parsers} implemented using any means.  This
+allows the use of a regular expression parser for non-regular
+languages, or external programs for speed.
+
+@semantic{} provides extensive tools to help support a new language.
+An original @acronym{LL} parser, and a Bison-like @acronym{LALR}
+parser are included.  So, for a regular language, all that the
+developer needs to do is write a grammar file along with appropriate
+semantic rules.
+
+@semantic{} allows an uniform representation of language components,
+and provides a common @acronym{API} so that programmers can develop
+applications that work for all languages.  The distribution includes
+good set of tools and examples for the application writers, that
+demonstrate the usefulness of @semantic{}.
+
+The following diagram illustrates the benefits of using @semantic{}:
+
+@table @strong
+@item Please Note:
+The words in all-capital are those that @semantic{} itself provides.
+Others are current or future languages or applications that are not
+distributed along with @semantic{}.
+@end table
 
 @example
-* regular expressions (and syntax tables) are the basis of identifying
-  components of a buffer for purposes such as color highlighting
-* regexp is useful but has limitations
-* semantic provides new intrastructure that goes far beyond regexp
-  based text analysis by
-  - parsing each buffer based on the grammar of the language
-  - define a uniform structure of the parse tree mostly independent of
-    any one language
-  - define an API so that programmers can develop applications based
-    on that API so that work for all languages
-  - provide bison-like parser generator so that new languages can be
-    supported easily
-  - provide a set of applications that demonstrate the usefulness
-    of semantic.
-
-The following diagram illustrates the benefits of using semantic:
-
-* Semantic parses a language (for which a parser is available) and
-  produces a common parse tree regardless of the original source
-  language.
-
-* Semantic provides a common API based on which applications can be
-  written in a language independent way.  This means that the
-  application will work for ALL languages for which a semantic parser
-  can be witten.
-
-* Semantic provids good set of tools and examples for the appplication
-  writers.
-
-* Semantic also provies extensive tools for the parser developers as well.
-  For many languages, those that can be described using a context-free
-  grammer, all that one needs to do is write a grammar file along with
-  appropriate semantic rules.
-
-
-The words in all-capital are those that semantic itself provides.
-Others are current or future languages or applications that are not
-distributed along with semantic.
-
-
                                                              Applications
                                                                  and
                                                               Utilities
@@ -190,13 +185,13 @@ are listed in @ref{Tools} section.
 @node Semantic Components
 @section Semantic Components
 
-This chapter gives an overview of major components
-of semantic and how they interact with each other to perform its job.
+This chapter gives an overview of major components of @semantic{} and
+how they interact with each other to perform its job.
 
-The first step of parsing is to break up the input file into
-its fundamental components.
-This step is called lexing.
-The output of the lexer is a list of tokens that make up the file.
+The first step of parsing is to break up the input file into its
+fundamental components.  This step is called lexical analysis.  The
+output of the lexical analyzer is a list of tokens that make up the
+file.
 
 @example
         syntax table, keywords list, and options
@@ -217,14 +212,16 @@ The next step is the parsing shown below.
 
 The end result, the parse tree, is created based on the parser tables,
 which are in the internal representation of the language grammar used by
-semantic.
+@semantic{}.
 
-Semantic database provides caching of the parse trees by saving them
-into files named @file{semantic.cache} automatically then loading them
+The @semantic{} database provides caching of the parse trees by saving them
+into files named @file{semantic.cache} automatically when loading them
 when appropriate instead of re-parsing.  The reason for this is to save the
 time it takes to parse a file which could take several seconds or more
 for large files.
 
-Finally, semantic provides an API for the Emacs-Lisp programmer to access the
-information in the parse tree.
+Finally, @semantic{} provides an @acronym{API} for the Emacs Lisp
+programmer to access the information in the parse tree.
 
+
+@c  LocalWords:  API LALR
