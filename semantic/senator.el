@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.33 2001/04/12 08:19:38 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.34 2001/04/19 13:08:22 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1933,6 +1933,19 @@ found, nil otherwise."
     (isearch-update))
 
   ) ;; End of GNU Emacs 21 lazy highlighting
+
+ (;; XEmacs 21.4 lazy highlighting
+  (fboundp 'isearch-highlight-all-cleanup)
+       
+  ;; Provide this function used by senator
+  (defun senator-lazy-highlight-update ()
+    "Force lazy highlight update."
+    (funcall 'isearch-highlight-all-cleanup)
+    (set 'isearch-highlight-last-string nil)
+    (setq isearch-adjusted t)
+    (isearch-update))
+
+  ) ;; End of XEmacs 21.4 lazy highlighting
 
  (;; GNU Emacs 20 lazy highlighting via ishl
   (fboundp 'ishl-cleanup)
