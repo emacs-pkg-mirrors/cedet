@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.2 2003/09/17 08:54:34 ponced Exp $
+## X-RCS: $Id: Makefile,v 1.3 2003/09/23 15:13:57 ponced Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -29,6 +29,7 @@ CEDET_HOME=$(CURDIR)
 
 ## The CEDET's packages installed
 CEDET_PACKAGES=\
+common \
 ede \
 speedbar \
 eieio \
@@ -46,9 +47,8 @@ FIND=find
 #RM = rm -f
 
 ############### Internal part of the Makefile ###############
-__LOADDEFS=$(patsubst %,%-loaddefs.el,$(CEDET_PACKAGES))
 __BUILD_AUTOLOADS=$(patsubst %,%-autoloads,$(CEDET_PACKAGES))
-__CLEAN_AUTOLOADS=$(patsubst %,clean-%,$(__LOADDEFS))
+__CLEAN_AUTOLOADS=$(patsubst %,clean-%,$(__BUILD_AUTOLOADS))
 __DOMAKE=$(MAKE) $(MFLAGS) EMACS="$(EMACS)" SHELL="$(SHELL)"
 
 ## Build
@@ -82,7 +82,9 @@ clean-autoloads: $(__CLEAN_AUTOLOADS)
 
 .PHONY: $(__CLEAN_AUTOLOADS)
 $(__CLEAN_AUTOLOADS):
-	$(RM) $(CEDET_HOME)/$(word 2,$(subst -, ,$@))/$(subst clean-,,$@)
+	$(FIND) $(CEDET_HOME)/$(word 2,$(subst -, ,$@)) -type f \
+	-name "*-loaddefs.el" \
+	-print -exec $(RM) {} \;
 
 .PHONY: clean-grammars
 clean-grammars:
