@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.26 2001/01/25 03:27:28 zappo Exp $
+@c $Id: semantic.texi,v 1.27 2001/01/31 16:42:10 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -46,6 +46,7 @@ make these updates would be greatly appreciated.
 * Compiling::           Running the bovinator on a source file.
 * Debugging::           Using the bovine table debugger.
 * Non-Terminals::       How to use the nonterminal stream.
+* Current Context::     How to get the current code context.
 * Utilities::           Utilities for querying the nonterminal stream.
 * Tools::               Tools which use semantic.
 * Index::
@@ -709,7 +710,7 @@ Throws an error for the first difference, with details as to what was
 broken.
 @end deffn
 
-@node Non-Terminals, Utilities, Debugging, Top
+@node Non-Terminals, Current Context, Debugging, Top
 @chapter Using the Non-Termianal Stream
 
 The list of nonterminals returned from the parser is always language
@@ -740,22 +741,22 @@ object in Emacs, and an extent in XEmacs.
 Some predefined nonterminals that can be used are:
 
 @example
-("NAME" variable "TYPE" CONST DEFAULT-VALUE MODIFIERS [OPTSUFFIX]
+("NAME" variable "TYPE" CONST DEFAULT-VALUE EXTRA-SPEC [OPTSUFFIX]
         "DOCSTRING")
 @end example
 
 The definition of a variable, or constant.  @var{CONST} is a boolean
 representing if this variable is considered a constant.
 @var{DEFAULT-VALUE} can be something apropriate such a a string, or
-list of parsed elements.  @var{MODIFIERS} are details about a variable
-that are not covered in the @var{TYPE} field.  See the Modifiers
+list of parsed elements.  @var{EXTRA-SPEC} are details about a variable
+that are not covered in the @var{TYPE} field.  See the Extra-Spec
 section below. @var{OPTSUFFIX} is an optional field specifying traling
-modifiers such as array dimentions or bit fields. @var{DOCSTRING} is
+extra-spec such as array dimentions or bit fields. @var{DOCSTRING} is
 optional.
 @refill
 
 @example
-("NAME" function "TYPE" ( ARG-LIST ) MODIFIERS [THROWS] 
+("NAME" function "TYPE" ( ARG-LIST ) EXTRA-SPEC [THROWS] 
         "DOCSTRING")
 @end example
 
@@ -766,7 +767,7 @@ that support typed signal throwing.
 @var{DOCSTRING} is optional.
 
 @example
-("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) MODIFIERS "DOCSTRING")
+("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC "DOCSTRING")
 @end example
 
 A type definition.
@@ -792,17 +793,17 @@ In Emacs Lisp, a `provide' statement.  @var{DETAIL} might be an associated
 file name.
 @refill
 
-@section MODIFIERS
+@section EXTRA-SPEC
 
-The MODIFIERS section of variables, functions, and types provide a
+The EXTRA-SPEC section of variables, functions, and types provide a
 location to place language specific details which are not accounted
 for by the base token type.  Because there is an arbitrary number of
-things that could be associated in the MODIFIERS section, this should
+things that could be associated in the EXTRA-SPEC section, this should
 be formatted as an association list.
 
-Here are some typed modifiers that may exist.  Any arbitrary number
-of modifiers may be created, and modifiers not documented here are
-allowed.
+Here are some typed extra specifiers that may exist.  Any arbitrary
+number of extra specifiers may be created, and specifiers not
+documented here are allowed.
 
 @example
   (parent . \"text\")
@@ -825,7 +826,12 @@ indicating pointers.
 Keyword modifiers for a type.  In C, such words would include
 `register', and `volatile'.
 
-@node Utilities, Tools, Non-Terminals, Top
+@node Current Context, Utilities, Non-Terminals, Top
+@chapter The Current Context
+
+** Add text here about semantic-ctxt.el **
+
+@node Utilities, Tools, Current Context, Top
 @chapter Utilities
 
 There are many utilities which can be used in programs that use the
@@ -897,11 +903,11 @@ On @var{token}, set @var{property} to @var{value}.
 For @var{token} get the value of @var{property}.
 @end defun
 
-@defun semantic-token-modifier token modifier
-Retrieve a modifier for the variable @var{TOKEN}.
-@var{MODIFIER} is the symbol whose modifier value to get.
-This function can get modifiers from any type of @var{TOKEN}.
-Do not use the function if you know what type of token you are dereferencing.
+@defun semantic-token-extra-spec token spec
+Retrieve a specifier for the variable @var{TOKEN}.
+@var{SPC} is the symbol whose modifier value to get.
+This function can get specifiers from any type of @var{TOKEN}.
+Do not use this function if you know what type of token you are dereferencing.
 Instead, use the function specific to that token type.  It will be faster.
 @end defun
 
@@ -914,12 +920,16 @@ Retrieve the parent of the type @var{TOKEN}.
 @end defun
 
 @defun semantic-token-type-modifiers token
-Retrieve the modifiers for the type @var{TOKEN}.
+Retrieve the type modifiers for the type @var{TOKEN}.
 @end defun
 
-@defun semantic-token-type-modifier token modifier
-Retrieve a modifier for the type @var{TOKEN}.
-@var{MODIFIER} is the symbol whose modifier value to get.
+@defun semantic-token-type-extra-specs token
+Retrieve the extra specifiers for the type @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-extra-spec token spec
+Retrieve a extra specifier for the type @var{TOKEN}.
+@var{SPEC} is the symbol whose modifier value to get.
 @end defun
 
 @defun semantic-token-function-args token
@@ -927,12 +937,16 @@ Retrieve the arguments of the function @var{TOKEN}.
 @end defun
 
 @defun semantic-token-function-modifiers token
-Retrieve the modifiers of the function @var{TOKEN}.
+Retrieve the type modifiers of the function @var{TOKEN}.
 @end defun
 
-@defun semantic-token-function-modifier token modifier
-Retrieve a modifier for the function @var{TOKEN}.
-@var{MODIFIER} is the symbol whose modifier value to get.
+@defun semantic-token-function-extra-specs token
+Retrieve the extra specifiers of the function @var{TOKEN}.
+@end defun
+
+@defun semantic-token-function-extra-spec token spec
+Retrieve a specifier for the function @var{TOKEN}.
+@var{SPEC} is a symbol whose specifier value to get.
 @end defun
 
 @defun semantic-token-function-throws token
@@ -955,12 +969,16 @@ Retrieve the default value of the variable @var{TOKEN}.
 @end defun
 
 @defun semantic-token-variable-modifiers token
-Retrieve modifiers for the variable @var{TOKEN}.
+Retrieve type modifiers for the variable @var{TOKEN}.
 @end defun
 
-@defun semantic-token-variable-modifier token modifier
-Retrieve a modifier for the variable @var{TOKEN}.
-@var{MODIFIER} is the symbol whose modifier value to get.
+@defun semantic-token-variable-extra-specs token
+Retrieve extra specifiers for the variable @var{TOKEN}.
+@end defun
+
+@defun semantic-token-variable-extra-spec token spec
+Retrieve a specifier value for the variable @var{TOKEN}.
+@var{SPEC} is the symbol whose specifier value to get.
 @end defun
 
 @defun semantic-token-include-system token
