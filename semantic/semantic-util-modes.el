@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.47 2004/06/10 17:27:39 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.48 2004/06/10 18:27:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -458,8 +458,9 @@ minor mode is enabled."
 	(add-hook 'semantic-pre-clean-token-hooks
 		  'semantic-clean-token-of-unmatched-syntax nil t)
         ;; Show unmatched syntax elements
-        (semantic-show-unmatched-syntax
-         (semantic-unmatched-syntax-tokens)))
+	(if (not (semantic--umatched-syntax-needs-refresh-p))
+	    (semantic-show-unmatched-syntax
+	     (semantic-unmatched-syntax-tokens))))
     ;; Remove hooks
     (remove-hook 'semantic-unmatched-syntax-hook
                  'semantic-show-unmatched-syntax t)
@@ -923,13 +924,13 @@ The face is used in  `semantic-show-tag-boundaries-mode'."
   :group 'semantic)
 
 (defvar semantic-show-tag-boundaries-mode nil
-  "Non-nil if show-unmatched-syntax minor mode is enabled.
+  "Non-nil if show-tag-boundaries minor mode is enabled.
 Use the command `semantic-show-tag-boundaries-mode' to change this
 variable.")
 (make-variable-buffer-local 'semantic-show-tag-boundaries-mode)
 
 (defun semantic-show-tag-boundaries-setup ()
-  "Setup the `semantic-show-unmatched-syntax' minor mode.
+  "Setup the `semantic-show-tag-boundaries-mode' minor mode.
 The minor mode can be turned on only if the semantic feature is available
 and the current buffer was set up for parsing.  Return non-nil if the
 minor mode is enabled."
@@ -1152,7 +1153,7 @@ The face is used in  `semantic-highlight-by-attribute-mode'."
   :group 'semantic)
 
 (defvar semantic-highlight-by-attribute-mode nil
-  "Non-nil if show-unmatched-syntax minor mode is enabled.
+  "Non-nil if show-highlight-by-attribute minor mode is enabled.
 Use the command `semantic-highlight-by-attribute-mode' to change this
 variable.")
 (make-variable-buffer-local 'semantic-highlight-by-attribute-mode)
