@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.13 2001/04/27 00:16:33 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.14 2001/05/14 17:44:13 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -139,7 +139,8 @@ is found, such as a `-version' variable, or the standard header."
 				     (ede-proj-elisp-packages-to-loadpath
 				      (oref this aux-packages))
 				     " ")
-	      "\n")))
+	      "\n")
+    (insert "LOADPATH=\n")))
 
 (defun ede-proj-elisp-add-path (path)
   "Add path PATH into the file if it isn't already there."
