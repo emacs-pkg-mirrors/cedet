@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.6
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.68 1997/12/14 13:29:50 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.69 1997/12/23 15:00:43 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -312,6 +312,7 @@
 ;;       Default speedbar has no menubar, mouse-3 is popup menu,
 ;;       XEmacs double-click capability (Hrvoje Niksic <hniksic@srce.hr>)
 ;;       General documentation fixup.
+;; 0.6.1 Fixed button-3 menu for Emacs 20.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -1210,7 +1211,9 @@ Must be bound to event E."
     ;; This gets the cursor where the user can see it.
     (if (not (bolp)) (forward-char -1))
     (sit-for 0)
-    (mouse-major-mode-menu e)))
+    (if (< emacs-major-version 20)
+	(mouse-major-mode-menu e)
+      (mouse-major-mode-menu e nil))))
 
 (defun speedbar-get-focus ()
   "Change frame focus to or from the speedbar frame.
