@@ -3,7 +3,7 @@
 ;; Copyright (C) 2001, 2003 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: scheme.by,v 1.5 2003/03/13 04:09:05 zappo Exp $
+;; X-RCS: $Id: scheme.by,v 1.6 2003/03/21 03:24:48 zappo Exp $
 ;;
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ scheme-in-list: DEFINE symbol expression
 	      | LOAD string
 		(INCLUDE-TAG (file-name-nondirectory (read $2)) (read $2) )
 	      | symbol
-		(TAG $1 'code)
+		(CODE-TAG $1 nil)
 	      ;
 
 name-args: semantic-list
