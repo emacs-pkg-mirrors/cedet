@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.3 1999/03/09 17:29:22 zappo Exp $
+@c $Id: ede.texi,v 1.4 1999/03/17 23:35:04 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -37,8 +37,9 @@ to learn and adopt the GNU ways of doing things.
 * Creating a project::      Creating a project.
 * Modifying your project::  Adding and removing files and targets.
 * Building and Debugging::  Initiating a build or debug session.
-* Miscellaneous commands::   Other project related commands.
+* Miscellaneous commands::  Other project related commands.
 * Project types::           There are different types of projects.
+* Extending EDE::           Programming tips when extending.
 @end menu
 
 @node EDE Mode, Creating a project, Top, Top
@@ -50,25 +51,13 @@ the command @code{global-ede-mode}, or by putting this in your
 @file{~/.emacs} file.
 
 @example
-(global-ode-mode)
+(global-ede-mode)
 @end example
 
 When EDE is active for a given buffer, the menu item ``Project''
 appears.  This menu contains several high-level functions to make
 working on a code set easier.  These items and keybindings never change
 regardless of the type of project you are actually working on.
-
-EDE makes use of EIEIO, the CLOS package for Emacs.  This lets EDE
-define two object superclasses, specifically the PROJECT and TARGET.
-All commands in EDE are usually meant to address the current project, or
-current target.
-
-All specific projects in EDE derive subclasses of the EDE superclasses.
-In this way, specific behaviors such as how a project is saved, or how a
-target is compiled can be customized by a project author in detail.  EDE
-communicates to these project objects via methods.  The commands you use
-in EDE mode are high-level functional wrappers over these
-methods. @xref{Project types} for details on different types of projects.
 
 @node Creating a project, Modifying your project, EDE Mode, Top
 @chapter Creating a project
@@ -96,11 +85,12 @@ build from sources).
 In this respect, a project conceptually mirrors a Makefile build tree.
 You can create a new target with the @code{ede-new-target} command
 @kbd{C-c . t}.  Once created, you can now put source files into this
-target.  You can remove a target with the command @code{ede-delete-taget}.
+target.  You can remove a target with the command
+@code{ede-delete-target}.
 
 You can add and remove files into targets with the command
 @code{ede-add-file} and @code{ede-remove-file} bound to @kbd{C-c . a}
-and @kbd{C-c . d} respectivly.  If a project is active, and a new file
+and @kbd{C-c . d} respectively.  If a project is active, and a new file
 is loaded, EDE will attempt to auto-add that file to a target of your
 choice.
 
@@ -143,13 +133,13 @@ Build a distribution file for your project.
 EDE also supports the speedbar package.  While speedbar works great
 against directories already, EDE provides a project display mode.  This
 lets you look at your source files as they are structured in your
-project.  Thus, where many files may be clumpled together in one
+project.  Thus, where many files may be clumped together in one
 directory, the Project view will provide a hierarchical view of your
 files as grouped by target.
 
 You can activate speedbar in this mode with the command @code{ede-speedbar}.
 
-@node Project types, , Miscellaneous commands, Top
+@node Project types, Extending EDE, Miscellaneous commands, Top
 @chapter Project types
 
 There are two types of project modes currently.  One is defined as
@@ -166,5 +156,74 @@ project-am mode I wrote.  This mode eventually became ede.  The automake
 project will read existing automake files, but will not generate them
 automatically, or create new ones.  As such, it is useful as a browsing
 tool, and can add simple files to target lists.
+
+@node Extending EDE, ,Project types, Top
+@chapter Project types
+
+EDE makes use of EIEIO, the CLOS package for Emacs.  This lets EDE
+define two object superclasses, specifically the PROJECT and TARGET.
+All commands in EDE are usually meant to address the current project, or
+current target.
+
+All specific projects in EDE derive subclasses of the EDE superclasses.
+In this way, specific behaviors such as how a project is saved, or how a
+target is compiled can be customized by a project author in detail.  EDE
+communicates to these project objects via methods.  The commands you use
+in EDE mode are high-level functional wrappers over these
+methods. @xref{Project types} for details on different types of projects.
+@xref{(eieio)Top} For details on using EIEIO to extending classes, and
+writing methods.
+
+It is most likely that a new target type is needed in one of the
+existing project types.  For the edeproject type, the core target class
+is called @code{ede-proj-target}.  Inheriting from this will give you
+everything you need to start, including adding your sources into the
+makefile.  If you also need additional rules in the makefile, you will
+want to inherit from @code{ede-proj-target-makefile}.  You may want to
+also add new fields to track important information.
+
+Once your new class exists, you will want to fill in some basic methods.
+See the @file{ede-proj.el} and @file{ede-pmake.el} files for examples of
+these.
+
+These methods are core behaviors associated with user commands.
+
+@table @code
+@item project-add-file
+Add a file to your project.  Override this if you want to put new
+sources into different fields depending on extension, or other details.
+@item project-remove-file
+Reverse of project-add-file.
+@item project-compile-target
+Override this if you want to do something special when the user
+"compiles" this target.  The default is probably fine.
+@item project-debug-target
+What to do when a user wants to debug your target.
+@end table
+
+These methods are unique to the edeproject type.
+
+@table @code
+@item ede-want-file-p
+Return true if an unclaimed file would go well in this target. (Used
+during auto-add)
+@item ede-proj-makefile-sourcevar
+Return a string which is name of the Makefile variable containing the
+sources.
+@item ede-proj-makefile-insert-variables
+Override this if you have extra variables you need to insert beyond the
+source variable.
+@item ede-proj-makefile-insert-rules
+Override this if you need to insert specialty rules to build your
+target.
+@end table
+
+When worrying about rules, the class @code{ede-proj-makefile-target}
+includes a rules slot.  The user can put arbitrary rules in here if
+needed.
+
+The additional class @code{ede-makefile-rule} is a specialty class for
+tracking simple information about a rule.  This class is designed for
+user modifications, but can also be used in your class if needed.
 
 @bye
