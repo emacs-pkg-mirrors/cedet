@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.6 2003/08/01 17:27:39 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.7 2003/08/14 19:05:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -144,25 +144,23 @@ Default action as described in `semanticdb-find-translate-path'."
 		(semantic-find-tags-included (semanticdb-get-tags path)))
 	       (t (semantic-find-tags-included path))))
 	(matchedtables (list semanticdb-current-table))
-	)
+	nexttable)
     ;; Loop over all include tags adding to matchedtables
     (while includetags
-      (let* ((nexttable (semanticdb-find-table-for-include (car includetags)))
-	     (moreincludes nil))
-	;; (message "Scanning %s" (semantic-tag-name (car includetags)))
-	(when (and nexttable
-		   (not (memq nexttable matchedtables))
-		   (semanticdb-equivalent-mode nexttable (current-buffer))
-		   )
-	  (setq moreincludes (semantic-find-tags-included (semanticdb-get-tags nexttable)))
-	  ;; Add to list of tables
-	  (add-to-list 'matchedtables nexttable t)
-	  ;; Add new includes to list
-	  (setq includetags (append includetags moreincludes))
-	  ))
-      (setq includetags (cdr includetags))
-      )
-    matchedtables))
+      (setq nexttable (semanticdb-find-table-for-include (car includetags)))
+      ;; (message "Scanning %s" (semantic-tag-name (car includetags)))
+      (when (and nexttable
+		 (not (memq nexttable matchedtables))
+		 (semanticdb-equivalent-mode nexttable (current-buffer))
+		 )
+	;; Add to list of tables
+	(push nexttable matchedtables)
+	;; Queue new includes to list
+	(setq includetags (append includetags
+				  (semantic-find-tags-included
+				   (semanticdb-get-tags nexttable)))))
+      (setq includetags (cdr includetags)))
+    (nreverse matchedtables)))
 
 ;;;###autoload
 (define-overload semanticdb-find-table-for-include (includetag &optional table)
@@ -224,16 +222,16 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 See `semanticdb-find-translate-path' for details on PATH.
 FIND-FILE-MATCH indicates that any time a match is found, the file
 associated with that tag should be loaded into a buffer."
-  (let ((tables (semanticdb-find-translate-path path))
-	(found nil))
-    (while tables
-      (let ((match (funcall function (car tables))))
-	(when match
+  (let (found match)
+    (dolist (table (semanticdb-find-translate-path path))
+      ;; If FIND-FILE-MATCH is non-nil, skip tables of class
+      ;; `semanticdb-search-results-table', not associated to a file.
+      (unless (and find-file-match
+		   (obj-of-class-p table semanticdb-search-results-table))
+	(when (setq match (funcall function table))
 	  (when find-file-match
-	    (save-excursion (semanticdb-set-buffer (car tables))))
-	  (setq found (cons (cons (car tables) match) found))
-	  ))
-      (setq tables (cdr tables)))
+	    (save-excursion (semanticdb-set-buffer table)))
+	  (push (cons table match) found))))
     found))
 
 ;;;###autoload
