@@ -1,10 +1,10 @@
 ;;; erlang-edoc.el --- Erlang programs documenting support for Semantic
 
-;; Copyright (C) 2002 Vladimir G. Sekissov
+;; Copyright (C) 2002, 2004 Vladimir G. Sekissov
 
 ;; Author:  <svg@surnet.ru>
 ;; Keywords: languages, docs
-;; $Id: erlang-edoc.el,v 1.1 2003/01/30 12:00:13 zappo Exp $
+;; $Id: erlang-edoc.el,v 1.2 2004/03/20 00:17:11 zappo Exp $
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@
 (defun erlang-edoc-inline ()
   "Document the current nonterminal with an inline comment."
   (interactive)
-  (semantic-bovinate-toplevel t)
+  (semantic-fetch-tags)
   (let ((ct (semantic-find-nonterminal-by-position (point) (current-buffer))))
     (erlang-edoc-insert-comment ct (current-buffer))))
 
