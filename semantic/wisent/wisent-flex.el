@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 23 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-flex.el,v 1.3 2002/06/07 18:25:56 ponced Exp $
+;; X-RCS: $Id: wisent-flex.el,v 1.4 2002/06/11 17:48:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -240,7 +240,11 @@ example on how to define the mapping of 'punctuation syntactic tokens.
         
         ;; Token
         ;; -----
-        (when (setq rules (wisent-flex-token-rules stok))
+        (if (null (setq rules (wisent-flex-token-rules stok)))
+            ;; Eat input stream
+            (setq wisent-flex-istream (cdr is))
+          
+          ;; Map syntactic token following RULES
           (setq default (car rules)
                 rules   (cdr rules))
           (cond
@@ -277,7 +281,8 @@ example on how to define the mapping of 'punctuation syntactic tokens.
                   (setq wlex (cons term (cons text (cons beg end)))
                         ;; Eat input stream
                         wisent-flex-istream (nthcdr n is))
-                (setq ends (cdr ends)))))
+                (setq n    (1- n)
+                      ends (cdr ends)))))
            
            ;; One/one token mapping
            ((setq usequal (wisent-flex-token-get stok 'string)
