@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.30 2001/07/20 13:11:37 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.31 2001/10/24 00:55:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -302,15 +302,19 @@ Uses `semanticdb-persistent-path' to determine the return value."
 Sets up the semanticdb environment."
   (let ((cdb nil)
 	(ctbl nil))
+    ;; Allow a database override function
     (if (not (and semanticdb-semantic-init-hook-overload
 		  (setq cdb (run-hooks 'semanticdb-semantic-init-hook-overload))))
 	(setq cdb
 	      (semanticdb-get-database
 	       (concat (file-name-directory (buffer-file-name))
 		       semanticdb-default-file-name))))
+    ;; Get the current DB for this directory
     (setq semanticdb-current-database cdb)
+    ;; Get a table for this file.
     (setq ctbl (semanticdb-file-table cdb (buffer-file-name)))
     (unless ctbl
+      ;; Create a table if none exists.
       (setq ctbl
  	    (semanticdb-table
 	     (eieio-persistent-path-relative
@@ -323,17 +327,24 @@ Sets up the semanticdb environment."
 			  'tables
 			  ctbl
 			  t))
+    ;; Local state
     (setq semanticdb-current-table ctbl)
     (oset semanticdb-current-table major-mode major-mode)
+    ;; Try to swap in saved tokens
     (if (or (not (slot-boundp ctbl 'tokens)) (not (oref ctbl tokens))
 	    (/= (or (oref ctbl pointmax) 0) (point-max))
 	    )
 	(progn
 	  (semantic-clear-toplevel-cache)
+	  ;; Do not parse the buffer here.  Leave the table cleared
+	  ;; and wait for some other app to request a reparse.
+	  ;; At that time, tokens will be generated and inserted into
+	  ;; the database.
 	  (condition-case nil
 	      (semantic-bovinate-toplevel t)
 	    (quit (message "semanticdb: Semantic Token generation halted."))
-	    (error (error "Semanticdb: bovination failed at startup"))))
+	    (error (error "Semanticdb: bovination failed at startup")))
+	  )
       (semantic-set-toplevel-bovine-cache  (oref ctbl tokens))
       (semantic-overlay-cache))
     ))
