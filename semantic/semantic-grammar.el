@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.28 2003/06/20 08:58:00 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.29 2003/06/29 12:48:00 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1186,6 +1186,8 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
   `(("\\(%\\)\\(\\(\\sw\\|\\s_\\)+\\)"
      (1 font-lock-reference-face)
      (2 font-lock-keyword-face))
+    ("\\<error\\>"
+     0 (unless (semantic-grammar-in-lisp-p) 'bold))
     ("^\\(\\(\\sw\\|\\s_\\)+\\)[ \n\r\t]*:"
      1 font-lock-function-name-face)
     ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\|\\([A-Z][A-Z-]*\\)?TAG\\)\\>"
@@ -1236,6 +1238,14 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
 
     km)
   "Keymap used in `semantic-grammar-mode'.")
+
+(defsubst semantic-grammar-in-lisp-p ()
+  "Return non-nil if point is in Lisp code."
+  (condition-case nil
+      (save-excursion
+        (up-list -1)
+        t)
+    (error nil)))
 
 (defun semantic-grammar-mode ()
   "Initialize a buffer for editing Semantic grammars."
