@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.20 2000/09/20 17:45:52 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.21 2000/09/22 02:08:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -375,7 +375,7 @@ DEFAULT is the default choice.  If no default is given, one is read
 from under point.
 STREAM is the list of tokens to complete from.
 FILTER is provides a filter on the types of things to complete.
-FILTER must be a function to call on each element.  (See"
+FILTER must be a function to call on each element."
   (if (not default) (setq default (thing-at-point 'symbol)))
   (if (not stream) (setq stream (semantic-bovinate-toplevel nil t)))
   (setq stream
@@ -691,6 +691,66 @@ file prototypes belong in."
 	  (set-buffer buffer)
 	  (if (re-search-forward "::Header:: \\([a-zA-Z0-9.]+\\)" nil t)
 	      (match-string 1)))))))
+
+;;; Do some fancy stuff with overlays
+;;
+(defun semantic-highlight-token (token &optional face)
+  "Specify that TOKEN should be highlighted.
+Optional FACE specifies the face to use."
+  (let ((o (semantic-token-overlay token)))
+    (semantic-overlay-put o 'old-face (semantic-overlay-get o 'face))
+    (semantic-overlay-put o 'face (or face 'highlight))))
+
+(defun semantic-unhighlight-token (token)
+  "Unhighlight TOKEN, restoring it's previous face."
+  (let ((o (semantic-token-overlay token)))
+    (semantic-overlay-put o 'face (semantic-overlay-get o 'old-face))
+    (semantic-overlay-put o 'old-face nil))
+  (remove-hook 'pre-command-hook
+	       `(lambda () (semantic-unhighlight-token `,token))))
+
+(defun semantic-momentary-highlight-token (token)
+  "Highlight TOKEN, removing highlighting when the user hits a key."
+  (semantic-highlight-token token)
+  (add-hook 'pre-command-hook
+	    `(lambda () (semantic-unhighlight-token ',token))))
+
+(defun semantic-set-token-face (token face)
+  "Specify that TOKEN should use FACE for display."
+  (semantic-overlay-put (semantic-token-overlay token) 'face face))
+
+(defun semantic-set-token-invisible (token &optional visible)
+  "Enable the text in TOKEN to be made invisible.
+If VISIBLE is non-nil, make the text visible."
+  (semantic-overlay-put (semantic-token-overlay token) 'invisible
+			(not visible)))
+
+(defun semantic-set-token-intangible (token &optional tangible)
+  "Enable the text in TOKEN to be made intangible.
+If TANGIBLE is non-nil, make the text visible."
+  (semantic-overlay-put (semantic-token-overlay token) 'intangible
+			(not tangible)))
+
+(defun semantic-overlay-signal-read-only
+  (overlay after start end &optional len)
+  "Hook used in modification hooks to preventi modification.
+Allows deletion of the entire text.
+Argument OVERLAY, AFTER, START, END, and LEN are passed in by the system."
+  ;; Stolen blithly from cpp.el in Emacs 21.1
+  (if (and (not after)
+	   (or (< (semantic-overlay-start overlay) start)
+	       (> (semantic-overlay-end overlay) end)))
+      (error "This text is read only")))
+
+(defun semantic-set-token-read-only (token &optional writable)
+  "Enable the text in TOKEN to be made read-only.
+Optional argument WRITABLE should be non-nil to make the text writable.
+instead of read-only."
+  (let ((o (semantic-token-overlay token))
+	(hook (if writable nil '(semantic-overlay-signal-read-only))))
+    (semantic-overlay-put o 'modification-hooks hook)
+    (semantic-overlay-put o 'insert-in-front-hooks hook)
+    (semantic-overlay-put o 'insert-behind-hooks hook)))
 
 ;;; Hacks
 ;;
