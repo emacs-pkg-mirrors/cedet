@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.18 2000/09/28 18:00:10 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.19 2000/10/14 02:58:12 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -211,7 +211,9 @@ A plain child is a child element which is not an EIEIO object."
 
 (defmethod eieio-speedbar-object-buttonname ((object ede-project))
   "Return a string to use as a speedbar button for OBJECT."
-  (concat (ede-name object) " " (oref object version)))
+  (if (ede-parent-project object)
+      (ede-name object)
+    (concat (ede-name object) " " (oref object version))))
 
 (defmethod eieio-speedbar-object-buttonname ((object ede-target))
   "Return a string to use as a speedbar button for OBJECT."
