@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.12 1999/01/21 14:48:23 zappo Exp $
+@c $Id: eieio.texi,v 1.13 1999/01/28 16:17:02 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -46,6 +46,7 @@ wrong!
 * Signals::               When you make errors
 * Browsing::              Browsing your class lists.
 * Class Values::          Displaying information about a class or object.
+* Customizing::           Customizing objects.
 * Documentation::         Automatically creating texinfo documentation
 * Demo Programs::         Some examples using eieio.
 @end menu
@@ -199,7 +200,7 @@ A tag used in @code{make-instance} to assign a value to a field.
 A tag used to create a function which returns the value of the defined
 slot.  If the common-lisp subsystem is loaded, you can use @code{setf}
 to assign a value into a slot through the accessor.
-@item :docstring
+@item :documentation
 Documentation which is mixed in with the variable documentation for the
 class.
 @end table
@@ -221,35 +222,51 @@ Any tags not understood are summarily ignored (in addition to it's parameter)
 @chapter Building Classes
 
 A class in EIEIO has a similar structure to that found in other
-languages, but there is currently no typing support.  A new class is
-created with @code{defclass}
+languages.  A new class is created with @code{defclass}
 
 @defun defclass class-name superclass-list field-list doc-string
 
 The format for this defun is specified by CLOS, and EIEIO conforms in
 structure.
 
-Creates a new class called @code{class-name} The created variable's
+Creates a new class called @code{class-name}. The created variable's
 documentation string is set to a modified version of @var{doc-string}.
-Each time a method is defined the variables documentation string is
-updated to include the methods documentation as well. (internal methods
-are not attached to their own symbols)
+Each time a slot is defined the variables documentation string is
+updated to include the methods documentation as well.
 
 The parent class for @code{class-name} must be a list, however, at this
 time, only the first element of that list is used.  In the future,
-multiple inheritance will be supported.
+multiple inheritance may be supported.
 
-The field list is a list of lists.  Each sublist defines an attribute,
-or a method.  (Methods are not supported by CLOS).  These lists are of
-the form @code{(name :tag1 value1 :tag2 value2 :tagn valuen)}.  Some
-valid tags are:
+The field list is a list of lists.  Each sublist defines an attribute.
+These lists are of the form @code{(name :tag1 value1 :tag2 value2 :tagn
+valuen)}.  Some valid tags are:
 
 @table @asis
 @item :initarg
+The argument used during initialization. @xref{Making New Objects}
 @item :initform
+A lisp expression used to generate the default value for this slot.
+this class.
 @item :accessor
-@item :docstring
+Name of a generic function which can be used to fetch the value of this slot.
+@item :writer
+Name of a generic function which will write this slot.
+@item :reader
+Name of a generic function which will read this slot.
+@item :type
+A type specifier used to validate data set into this slot.  See
+@code{typep} for details on it's format.
+@item :allocation
+Unsupported: Either :class or :instance (defaults to :instance) used to
+specify how data is stored.
+@item :documentation
+Documentation detailing the use of this slot.
+@item :custom
+A custom :type specifier used when editing an object of this type.
 @item :protection
+A CLOS unsupported specifier which indicates that only methods of this
+class may access this slot.
 @end table
 
 @xref{CLOS compatibility} for more details on CLOS tags versus EIEIO
@@ -261,12 +278,13 @@ The whole definition may look like this:
   ((value :initarg :value
 	  :initform nil
 	  :accessor get-value
-	  :docstring "Lisp object which represents the data this 
+	  :documentation "Lisp object which represents the data this 
 object maintains."
 	  :protection private)
    (reference :initarg :reference
 	      :initform nil
-	      :docstring "List of objects looking at me.  The method 
+              :custom (repeate object)
+	      :documentation "List of objects looking at me.  The method 
 `update-symbol' is called for each member of `reference' whenever 
 `value' is modified."
 	      :protection private)
@@ -304,14 +322,13 @@ When creating an object of any type, you can use it's constructor, or
 @code{make-instance}.  This, in turns calls @code{shared-initialize}.
 
 @defun initialize-instance obj &rest fields
-Initialize @var{obj}.  Sets fields of @var{obj} with @obj{fields} which
+Initialize @var{obj}.  Sets fields of @var{obj} with @var{fields} which
 is a list of name/value pairs.  These are actually just passed to
 @code{shared-initialize}.
 @end defun
 
-@defun 
 @defun shared-initialize obj &rest fields
-Sets fields of @var{obj} with @obj{fields} which is a list of name/value
+Sets fields of @var{obj} with @var{fields} which is a list of name/value
 pairs.
 @end defun
 
@@ -325,11 +342,11 @@ format as the @var{fields} of @code{initialize-instance}.  The only
 other change is to modify the name with an incrementing numeric.
 @end defun
 
-@defn object-print obj &rest strings
+@defun object-print obj &rest strings
 Construct a printing lisp symbol for @var{OBJ}.  This would look like:
 @example
  #<class-name "objname">
-@end example.
+@end example
 STRINGS are additional parameters passed in by overloading functions to
 add more data into the printing abbreviation.
 
@@ -715,7 +732,7 @@ For the given @var{class} return the :initarg associated with
 nil.
 @end defun
 
-@node Signals, Browsing, Association Lists, Top
+@node Signals, Browsing, Introspection, Top
 @comment  node-name,  next,  previous,  up
 @chapter Signals
 
@@ -764,7 +781,7 @@ It is also possible to use the function @code{eieio-class-tree} in the
 on nodes will allow expansion/contraction of branches, or editing of a
 class.  @xref{Class Values}
 
-@node Class Values, Documentation, Browsing, Top
+@node Class Values, Customizing, Browsing, Top
 @comment  node-name,  next,  previous,  up
 @chapter Class Values
 
@@ -782,7 +799,35 @@ function on a node calls this function.  This function is also useful
 when used with edebug while attempting to determine what is wrong with
 method.
 
-@node Documentation, Demo Programs, Class Values, Top
+@node Customizing, Documentation, Class Values, Top
+@comment node-name, next, previous, up
+@chapter Customizing Objects
+
+In Emacs 20 a useful customization utility became available called
+`custom'.  EIEIO supports custom through two new widget types.  If a
+variable is declaired as type 'object, then full editing of slots via
+the widgets is made possible.  This should be used carefully, however,
+because objects modified are cloned, so if there are other references to
+these objects, they will no longer be linked together.
+
+If you want in place editing of objects, use the following methods:
+
+@defun eieio-customize-object object
+Create a custom buffer and insert a widget for editing @var{object}.  At
+the end, an @code{Apply} and @code{Reset} button are available.  This
+will edit the object "in place" so references to it are also changed.
+There is no effort to prevent multiple edits of a singular object, so
+care must be taken by the user of this function.
+@end defun
+
+@defun eieio-custom-widget-insert object flags
+This method inserts an edit object into the current buffer in place.
+It's sole code is @code{(widget-create 'object-edit :value object)} and
+is provided as a locale for adding tracking, or specializing the widget
+insert procedure for any object.
+@end defun
+
+@node Documentation, Demo Programs, Customizing, Top
 @comment  node-name,  next,  previous,  up
 @chapter Documentation
 
