@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.42 1999/09/04 17:01:00 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.43 1999/09/05 11:08:49 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -381,10 +381,16 @@ toplevel documentation for this class."
     (aset newc class-public-a (nreverse (aref newc class-public-a)))
     (aset newc class-public-d (nreverse (aref newc class-public-d)))
     (aset newc class-public-doc (nreverse (aref newc class-public-doc)))
-    (aset newc class-public-type (nreverse (aref newc class-public-type)))
+    (aset newc class-public-type
+	  (apply 'vector (nreverse (aref newc class-public-type))))
     (aset newc class-public-custom (nreverse (aref newc class-public-custom)))
     (aset newc class-protection (nreverse (aref newc class-protection)))
     (aset newc class-initarg-tuples (nreverse (aref newc class-initarg-tuples)))
+
+    ;; The storage for class-class-allocation-type needs to be turned into
+    ;; a vector now.
+    (aset newc class-class-allocation-type
+	  (apply 'vector (aref newc class-class-allocation-type)))
 
     ;; Also, take class allocated values, and vectorize them for speed.
     (aset newc class-class-allocation-values
@@ -464,6 +470,12 @@ toplevel documentation for this class."
     newc
     ))
 
+(defun eieio-perform-slot-validation-for-default (field spec value)
+  "For FIELD, signal if SPEC does not match VALUE."
+  (if (not (eieio-perform-slot-validation spec value))
+      (signal 'invalid-slot-type (list field spec value))))
+
+
 (defun eieio-add-new-field (newc a d doc type cust prot init alloc
 				 &optional defaultoverride)
   "Add into NEWC attribute A.
@@ -486,6 +498,7 @@ we must override it's value for a default."
       ;; Only add this element if it is so-far unique
       (if (not (member a (aref newc class-public-a)))
 	  (progn
+	    (eieio-perform-slot-validation-for-default a type d)
 	    (aset newc class-public-a (cons a (aref newc class-public-a)))
 	    (aset newc class-public-d (cons d (aref newc class-public-d)))
 	    (aset newc class-public-doc (cons doc (aref newc class-public-doc)))
@@ -502,17 +515,26 @@ we must override it's value for a default."
 	      ;; There is a match, and we must override the old value.
 	      (let* ((ca (aref newc class-public-a))
 		     (np (member a ca))
-		     (dp (if np (nthcdr (- (length ca) (length np))
-					(aref newc class-public-d))
-			   nil)))
+		     (num (- (length ca) (length np)))
+		     (dp (if np (nthcdr num (aref newc class-public-d))
+			   nil))
+		     (tp (if np (nth num (aref newc class-public-type)))))
 		(if (not np)
 		    (error "Eieio internal error overriding default value for %s"
 			   a)
+		  ;; If type is passed in, is it the same?
+		  (if (not (eq type t))
+		      (if (not (equal type tp))
+			  (error
+			   "Child slot type `%s' does not match inherited type `%s' for `%s'"
+			   type tp a)))
 		  ;; If we have a repeat, only update the initarg...
+		  (eieio-perform-slot-validation-for-default a tp d)
 		  (setcar dp d)
 		  )))))
     (if (not (member a (aref newc class-class-allocation-a)))
 	(progn
+	  (eieio-perform-slot-validation-for-default a type d)
 	  ;; Here we have found a :class version of a slot.  This
 	  ;; requires a very different aproach.
 	  (aset newc class-class-allocation-a (cons a (aref newc class-class-allocation-a)))
@@ -528,14 +550,25 @@ we must override it's value for a default."
 	    ;; There is a match, and we must override the old value.
 	    (let* ((ca (aref newc class-class-allocation-a))
 		   (np (member a ca))
-		   (dp (if np (nthcdr (- (length ca) (length np))
-				      (aref newc class-class-allocation-values))
+		   (num (- (length ca) (length np)))
+		   (dp (if np
+			   (nthcdr num
+				   (aref newc class-class-allocation-values))
+			 nil))
+		   (tp (if np (nth num (aref newc class-class-allocation-type))
 			 nil)))
 	      (if (not np)
 		  (error "Eieio internal error overriding default value for %s"
 			 a)
+		;; If type is passed in, is it the same?
+		(if (not (eq type t))
+		    (if (not (equal type tp))
+			(error
+			 "Child slot type `%s' does not match inherited type `%s' for `%s'"
+			 type tp a)))
 		;; If we have a repeat, only update the vlaue...
-		(setcar dp d) )))))
+		(eieio-perform-slot-validation-for-default a tp d)
+		(setcar dp d))))))
     ))
 
 (defun eieio-copy-parents-into-subclass (newc parents)
@@ -552,17 +585,18 @@ the new child class."
 	      (ptype (aref pcv class-public-type))
 	      (pcust (aref pcv class-public-custom))
 	      (pprot (aref pcv class-protection))
-	      (pinit (aref pcv class-initarg-tuples)))
+	      (pinit (aref pcv class-initarg-tuples))
+	      (i 0))
 	  (while pa
 	    (eieio-add-new-field newc
 				 (car pa) (car pd) (car pdoc)
-				 (car ptype) (car pcust) (car pprot)
+				 (aref ptype i) (car pcust) (car pprot)
 				 (car-safe (car pinit)) nil)
 	    ;; Increment each value.
 	    (setq pa (cdr pa)
 		  pd (cdr pd)
 		  pdoc (cdr pdoc)
-		  ptype (cdr ptype)
+		  i (1+ i)
 		  pcust (cdr pcust)
 		  pprot (cdr pprot)
 		  pinit (cdr pinit))
@@ -578,12 +612,11 @@ the new child class."
 	  (while pa
 	    (eieio-add-new-field newc
 				 (car pa) (aref pval i) (car pdoc)
-				 (car ptype) (car pcust) (car pprot)
+				 (aref ptype i) (car pcust) (car pprot)
 				 nil ':class)
 	    ;; Increment each value.
 	    (setq pa (cdr pa)
 		  pdoc (cdr pdoc)
-		  ptype (cdr ptype)
 		  pcust (cdr pcust)
 		  pprot (cdr pprot)
 		  i (1+ i))
@@ -774,18 +807,30 @@ Fills in OBJ's FIELD with it's default value."
 (defun eieio-perform-slot-validation (spec value)
   "Signal if SPEC does not match VALUE."
   ;; typep is in cl-macs
-  (or (eq spec t) (typep value spec)))
+  (or (eq spec t)
+      (if (class-p spec)
+	  (or (child-of-class-p value spec)
+	      (obj-of-class-p value spec))
+	(typep value spec))))
 
 (defun eieio-validate-slot-value (class field-idx value)
   "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
 Checks the :type specifier."
-  ;; Trim off object IDX junk.
+  ;; Trim off object IDX junk added in for the object index.
   (setq field-idx (- field-idx 3))
-  (let ((s (aref (class-v class) class-public-a)))
-    (if (not (eieio-perform-slot-validation
-	      (nth field-idx (aref (class-v class) class-public-type))
-	      value))
-	(signal 'invalid-slot-type '(list 'oset value)))))
+  (let ((st (aref (aref (class-v class) class-public-type) field-idx)))
+    (if (not (eieio-perform-slot-validation st value))
+	(signal 'invalid-slot-type (list st value)))))
+
+(defun eieio-validate-class-slot-value (class field-idx value)
+  "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
+Checks the :type specifier."
+  ;; Trim off object IDX junk added in for the object index.
+  (setq field-idx (- field-idx 3))
+  (let ((st (aref (aref (class-v class) class-class-allocation-type)
+		  field-idx)))
+    (if (not (eieio-perform-slot-validation st value))
+	(signal 'invalid-slot-type (list st value)))))
 
 (defmacro oset (obj field value)
   "Set the value in OBJ for slot FIELD to VALUE.
@@ -805,12 +850,16 @@ Fills in OBJ's FIELD with VALUE."
 	(if (setq c
 		  (eieio-class-field-name-index (aref obj object-class) field))
 	    ;; Oref that slot.
-	    (aref (aref (class-v (aref obj object-class)) class-class-allocation-values)
-		  c)
+	    (progn
+	      (eieio-validate-class-slot-value (object-class-fast obj) c value)
+	      (aset (aref (class-v (aref obj object-class))
+			  class-class-allocation-values)
+		    c))
 	  ;; See oref for comment on `slot-missing'
 	  (slot-missing obj field 'oset value)
 	  ;;(signal 'invalid-slot-name (list (object-name obj) field))
 	  )
+      (eieio-validate-slot-value (object-class-fast obj) c value)
       (aset obj c value))))
 
 (defmacro oset-default (class field value)
@@ -830,11 +879,14 @@ Fills in the default value in CLASS' in FIELD with VALUE."
     (if (not c)
 	;; It might be missing because it is a :class allocated field.
 	;; Lets check that info out.
-	(if (setq c
-		  (eieio-class-field-name-index class field))
-	    ;; Oref that slot.
-	    (aset (aref (class-v class) class-class-allocation-values) c value)
+	(if (setq c (eieio-class-field-name-index class field))
+	    (progn
+	      ;; Oref that slot.
+	      (eieio-validate-class-slot-value (object-class-fast obj) c value)
+	      (aset (aref (class-v class) class-class-allocation-values) c
+		    value))
 	  (signal 'invalid-slot-name (list (class-name class) field)))
+      (eieio-validate-slot-value (object-class-fast obj) c value)
       (setcar (nthcdr (- c 3) (aref (class-v class) class-public-d))
 	      value))))
 
