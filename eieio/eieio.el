@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.76 2000/08/20 19:36:18 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.77 2000/08/20 23:03:03 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.15"
   "Current version of EIEIO.")
@@ -808,7 +808,7 @@ doc string, and eventually the body, such as:
       (setq key (+ key method-num-lists)))
     ;; Put this lambda into the symbol so we can find it
     (if (byte-code-function-p (car-safe body))
-	(eieiomt-add method (car-safe body) key (nth 1 firstarg))
+	(eieiomt-add method (car-safe body) key argclass)
       (eieiomt-add method (append (list 'lambda (reverse argfix)) body)
 		   key argclass))
     )
