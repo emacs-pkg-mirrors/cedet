@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.53 2001/12/07 19:58:17 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.54 2001/12/18 02:40:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,6 +45,7 @@
  ( var-or-fun)
  ( define)
  ( extern-c)
+ ( template)
  ) ; end declaration
  (bovine-inner-scope
  ( define)
@@ -243,6 +244,47 @@
   ,(semantic-lambda
   (list (nth 1 vals) 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
  ) ; end type
+ (template
+ ( TEMPLATE template-specifier template-definition
+  ,(semantic-lambda
+  (nth 2 vals)))
+ ) ; end template
+ (template-specifier
+ ( punctuation "\\b<\\b" template-specifier-type-list punctuation "\\b>\\b"
+  ,(semantic-lambda
+  (nth 1 vals)))
+ ) ; end template-specifier
+ (template-specifier-type-list
+ ( template-var punctuation "\\b,\\b" template-specifier-type-list
+  ,(semantic-lambda
+  ( cons ( car (nth 0 vals)) (nth 2 vals))))
+ ( template-var
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ) ; end template-specifier-type-list
+ (template-var
+ ( template-type opt-template-equal
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ) ; end template-var
+ (opt-template-equal
+ ( punctuation "\\b=\\b" symbol punctuation "\\b<\\b" template-specifier-type-list punctuation "\\b>\\b")
+ ()
+ ) ; end opt-template-equal
+ (template-type
+ ( CLASS symbol)
+ ( STRUCT symbol)
+ ( builtintype)
+ ( symbol)
+ ) ; end template-type
+ (template-definition
+ ( type
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ( var-or-fun
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ) ; end template-definition
  (opt-stars
  ( punctuation "\\b\\*\\b" opt-starmod opt-stars
   ,(semantic-lambda
@@ -319,10 +361,24 @@
  ( builtintype
   ,(semantic-lambda
   (nth 0 vals)))
+ ( symbol template-specifier
+  ,(semantic-lambda
+  (list (nth 0 vals) 'type "class")))
+ ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b" typeformclassbase
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) "::" ( car (nth 3 vals))))))
  ( symbol
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end typeformbase
+ (typeformclassbase
+ ( symbol punctuation "\\b:\\b" punctuation "\\b:\\b" typeformclassbase
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) "::" ( car (nth 3 vals))))))
+ ( symbol
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ) ; end typeformclassbase
  (builtintype
  ( VOID)
  ( CHAR)
@@ -591,7 +647,7 @@
   (list ( identity start) ( identity end))))
  ) ; end expression
  )
-            "C language specification.")
+ "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
@@ -765,6 +821,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
       ("class" . CLASS)
       ("namespace" . NAMESPACE)
       ("template" . TEMPLATE)
+      ("template" . TEMPLATE)
       ("throw" . THROW)
       ("reentrant" . REENTRANT)
       ("operator" . OPERATOR)
@@ -809,6 +866,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("typedef" summary "Arbitrary Type Declaration: typedef <typedeclaration> <name>;")
      ("class" summary "Class Declaration: class <name>[:parents] { ... };")
      ("namespace" summary "Namespace Declaration: namespace <name> { ... };")
+     ("template" summary "template <TYPE> [other definition]")
      ("template" summary "template <class TYPE ...> TYPE_OR_FUNCTION")
      ("throw" summary "<type> <methoddef> (<method args>) throw (<exception>) ...")
      ("reentrant" summary "<type> <methoddef> (<method args>) reentrant ...")
@@ -883,7 +941,8 @@ Override function for `semantic-nonterminal-protection'."
     (when (and (not prot) (eq (semantic-token-token parent) 'type))
       (setq prot
 	    (cond ((string= (semantic-token-type parent) "class") 'private)
-		  ((string= (semantic-token-type parent) "struct") 'public))))
+		  ((string= (semantic-token-type parent) "struct") 'public)
+		  (t 'unknown))))
     (or prot 'public)))
 
 (defun semantic-c-nonterminal-children (token)
