@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.3 1999/05/23 13:30:19 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.4 1999/06/06 14:20:49 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -30,52 +30,7 @@
 ;;
 ;; Major mode for BNF-for-emacs editing.
 ;;
-;;; Writing BNFs for conversion to Bovine Tables:
-;;
-;; Writing the rules should be very similar to bison for basic syntax.
-;; Each rule is of the form
-;;
-;; RESULT : MATCH1 (optional-lambda-expression)
-;;        | MATCH2 (optional-lambda-expression)
-;;        ;
-;;
-;; RESULT is a non-terminal, or a token synthisized in your grammar.
-;; MATCH is a list of elements that are to be matched if RESULT is
-;; to be made.  The optional lambda expression is a list containing
-;; simplified rules for concocting the parse tree.
-;;
-;; MATCH is made up of symbols and strings.  A symbol such as
-;; `foo' means that a syntactic token of type `foo' must be matched.
-;; A string in the mix means that the previous symbol must have the
-;; additional constraint of exactly matching it.  Thus, the
-;; combination:
-;;   symbol "moose"
-;; means that a symbol must first be encountered, and then it must
-;; `string-match' "moose".
-;;
-;; The ole (optional lambda expression) is converted into a bovine
-;; lambda.  This lambda has special short-cuts to simplify reading the
-;; emacs bnf definition.  An ole like this:
-;;  ( $1 )
-;; results in a lambda return which consists entirely of the string
-;; or object found by matching the first (zeroeth) element of match.
-;; An ole like this:
-;; ( ,(foo $1) )
-;; executes `foo' on the first argument, and then splices it's return
-;; into the return list whereas:
-;; ( (foo $1) )
-;; executes foo, and that is placed in the return list.
-;;
-;; Here are other things that can appear inline:
-;; $1     - the first object matched.
-;; ,$1    - the first object spliced into the list (assuming it is a
-;;           list from a non-terminal)
-;; '$1    - the first argument in a list.
-;; foo    - the symbol foo (exactly as displayed)
-;; (foo)  - a function call to foo which is stuck into the return list.
-;; ,(foo) - a function call to foo which is spliced into the return list.
-;; '(foo) - a function call to foo which is stuck into the return list
-;;          in a list.
+;; See the semantic info file for details.
 
 ;;; History:
 ;; 
