@@ -5,6 +5,11 @@
   :version "1.4beta12"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-makefile-miscelaneous "example"
+    :name "example"
+    :path ""
+    :source '("semantic-skel.el" "skeleton.bnf")
+    )
    (ede-proj-target-elisp "nil"
     :name "init"
     :path ""
