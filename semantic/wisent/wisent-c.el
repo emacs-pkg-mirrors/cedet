@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 13 Jun 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-c.el,v 1.3 2003/08/17 10:23:58 ponced Exp $
+;; X-RCS: $Id: wisent-c.el,v 1.4 2004/03/10 19:33:53 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -337,7 +337,7 @@ following nodes:
    ;; Expand compound declarations.
    ((consp (semantic-tag-name tag))
     (let ((items (semantic-tag-name tag))
-          (tmods (semantic-tag-get-attribute tag 'typemodifiers))
+          (tmods (semantic-tag-get-attribute tag :typemodifiers))
           ast name args spec bnds start end clone xpand)
       (while items
         ;; For each compound declaration, derive TAG to a new variable
@@ -359,7 +359,7 @@ following nodes:
               xpand (cons clone xpand))
         ;; Merge the attributes.
         (semantic-tag-put-attribute
-         clone 'typemodifiers (append tmods spec))
+         clone :typemodifiers (append tmods spec))
         ;; Set the bounds.
         (semantic-tag-set-bounds clone start end))
       (nreverse xpand))
