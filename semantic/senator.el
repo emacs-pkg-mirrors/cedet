@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.93 2004/01/27 15:10:27 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.94 2004/02/10 01:51:12 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2407,7 +2407,7 @@ found, nil otherwise."
         ;; do completion with senator's mechanism.
         (when (or old symstart)
 	  ;; This bit will turn off parsing on lexical errors.
-	  (semantic-lex-catch-errors 'senator-hippie-expand
+	  (semantic-lex-catch-errors senator-hippie-expand
 	    (semantic-bovinate-toplevel t))
 	  ;; Do the completion
 	  (let ((ret (senator-complete-symbol t)))
