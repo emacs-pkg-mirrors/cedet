@@ -23,7 +23,7 @@
    (ede-proj-target-elisp "wisent"
     :name "wisent"
     :path ""
-    :source '("wisent.el" "wisent-bovine.el" "wisent-comp.el" "wisent-expr.el" "wisent-grammar.el")
+    :source '("wisent.el" "wisent-bovine.el" "wisent-comp.el" "wisent-expr.el" "wisent-grammar.el" "wisent-debug.el")
     :aux-packages '("semantic" "semantic-java")
     )
    (ede-proj-target-elisp "languages"
