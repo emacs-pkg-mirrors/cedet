@@ -3,8 +3,8 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.1
-;;; RCS: $Id: tree.el,v 1.2 1996/03/10 15:23:22 zappo Exp $
+;;; Version: 0.2
+;;; RCS: $Id: tree.el,v 1.3 1996/03/10 15:24:25 zappo Exp $
 ;;; Keywords: OO, tree                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
