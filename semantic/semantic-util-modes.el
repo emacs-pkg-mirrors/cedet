@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.32 2003/05/29 01:00:35 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.33 2003/07/18 05:23:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -202,7 +202,7 @@ If ARG is nil, then toggle."
 
 ;;;###autoload
 (defcustom global-semantic-highlight-edits-mode nil
-  "*If non-nil enable global use of `semantic-highlight-edits-mode'.
+  "*If non-nil enable global use of variable `semantic-highlight-edits-mode'.
 When this mode is enabled, changes made to a buffer are highlighted
 until the buffer is reparsed."
   :group 'semantic
@@ -1087,7 +1087,7 @@ If there is no function, disable the header line."
 		 (buffer-substring (point-at-bol) (point-at-eol))
 	       ;; Get it
 	       (goto-char (semantic-tag-start tag))
-               ;; Klaus Berndl <klaus.berndl@sdm.de>: 
+               ;; Klaus Berndl <klaus.berndl@sdm.de>:
                ;; goto the tag name; this is especially needed for languages
                ;; like c++ where a often used style is like:
                ;;     void
@@ -1110,6 +1110,350 @@ If there is no function, disable the header line."
 (semantic-add-minor-mode 'semantic-stickyfunc-mode
                          "" ;; Don't need indicator.  It's quite visible
                          semantic-stickyfunc-mode-map)
+
+
+;;;;
+;;;; Minor mode to show some sort of boundary line in front of tags.
+;;;;
+
+;;;###autoload
+(defun global-semantic-show-tag-boundaries-mode (&optional arg)
+  "Toggle global use of option `semantic-show-tag-boundaries-mode'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  (interactive "P")
+  (setq global-semantic-show-tag-boundaries-mode
+        (semantic-toggle-minor-mode-globally
+         'semantic-show-tag-boundaries-mode arg)))
+
+;;;###autoload
+(defcustom global-semantic-show-tag-boundaries-mode nil
+  "*If non-nil, enable global use of `semantic-show-tag-boundaries-mode'.
+When this mode is enabled, a boundary line is displayed at the beginning
+of some tags to highlight where they start."
+  :group 'semantic
+  :type 'boolean
+  :require 'semantic-util-modes
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (global-semantic-show-tag-boundaries-mode (if val 1 -1))))
+
+(defcustom semantic-show-tag-boundaries-hook nil
+  "*Hook run at the end of function `semantic-show-tag-boundaries-mode'."
+  :group 'semantic
+  :type 'hook)
+
+(defface semantic-tag-boundary-face
+  '((((class color) (background dark))
+     (:overline "cyan"))
+    (((class color) (background light))
+     (:overline "blue")))
+  "*Face used to show unmatched syntax in.
+The face is used in  `semantic-show-tag-boundaries-mode'."
+  :group 'semantic)
+
+(defvar semantic-show-tag-boundaries-mode nil
+  "Non-nil if show-unmatched-syntax minor mode is enabled.
+Use the command `semantic-show-tag-boundaries-mode' to change this
+variable.")
+(make-variable-buffer-local 'semantic-show-tag-boundaries-mode)
+
+(defun semantic-show-tag-boundaries-setup ()
+  "Setup the `semantic-show-unmatched-syntax' minor mode.
+The minor mode can be turned on only if the semantic feature is available
+and the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled."
+  (if semantic-show-tag-boundaries-mode
+      (if (not (and (featurep 'semantic) (semantic-active-p)))
+          (progn
+            ;; Disable minor mode if semantic stuff not available
+            (setq semantic-show-tag-boundaries-mode nil)
+            (error "Buffer %s was not set up for parsing"
+                   (buffer-name)))
+        ;; Add hooks
+	(semantic-make-local-hook 'semantic-after-partial-cache-change-hook)
+	(add-hook 'semantic-after-partial-cache-change-hook
+		  'semantic-stb-reparse-hook nil t)
+	(semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
+	(add-hook 'semantic-after-toplevel-cache-change-hook
+		  'semantic-stb-reparse-hook nil t)
+	(semantic-stb-reparse-hook (semantic-bovinate-toplevel))
+	)
+    ;; Cleanup tag boundaries highlighting
+    (semantic-stb-clear-boundaries (semantic-bovinate-toplevel))
+    ;; Remove hooks
+    (remove-hook 'semantic-after-partial-cache-change-hook
+		 'semantic-stb-reparse-hook t)
+    (remove-hook 'semantic-after-toplevel-cache-change-hook
+		 'semantic-stb-reparse-hook t)
+    )
+  semantic-show-tag-boundaries-mode)
+  
+;;;###autoload
+(defun semantic-show-tag-boundaries-mode (&optional arg)
+  "Minor mode to display a boundary in front of tags.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled."
+;;
+;;\\{semantic-show-tag-boundaries-map}"
+  (interactive
+   (list (or current-prefix-arg
+             (if semantic-show-tag-boundaries-mode 0 1))))
+  (setq semantic-show-tag-boundaries-mode
+        (if arg
+            (>
+             (prefix-numeric-value arg)
+             0)
+          (not semantic-show-tag-boundaries-mode)))
+  (semantic-show-tag-boundaries-setup)
+  (run-hooks 'semantic-show-tag-boundaries-hook)
+  (if (interactive-p)
+      (message "show-tag-boundary-mode minor mode %sabled"
+               (if semantic-show-tag-boundaries-mode "en" "dis")))
+  (semantic-mode-line-update)
+  semantic-show-tag-boundaries-mode)
+
+(define-overload semantic-tag-boundary-p (tag)
+  "Return non-nil of TAG should have a boundary placed on it.")
+
+(defun semantic-tag-boundary-p-default (tag)
+  "Non nil of TAG is a type, or a non-prototype function."
+  (let ((c (semantic-tag-class tag)))
+
+    (and
+     (or
+      ;; All types get a line?
+      (eq c 'type)
+      ;; Functions which aren't prototypes get a line.
+      (and (eq (semantic-tag-class tag) 'function)
+	   (not (semantic-tag-get-attribute tag 'prototype)))
+      )
+     ;; Nothing smaller than a few lines
+     (> (- (semantic-tag-end tag) (semantic-tag-start tag)) 150)
+     ;; Random truth
+     t
+     )))
+
+(defun semantic-tag-boundary-overlay-p (ol)
+  "Non nil of OL is an overlay that is a tag boundary."
+  (semantic-overlay-get ol 'semantic-stb))
+
+(defun semantic-stb-clear-boundaries (tag-list)
+  "Clear boundaries off from TAG-LIST."
+  (while tag-list
+    (semantic-tag-delete-secondary-overlay (car tag-list)
+					   'semantic-stb)
+
+    ;; recurse over children
+    (semantic-stb-clear-boundaries
+     (semantic-tag-components-with-overlays (car tag-list)))
+    
+    (setq tag-list (cdr tag-list)))
+  )
+
+(defun semantic-stb-reparse-hook (tag-list)
+  "Called when the new tags TAG-LIST are created in a buffer.
+Adds decorations on them to help show tag boundaries."
+  (while tag-list
+    ;; Only line up certain classes of tag.
+    (when (semantic-tag-boundary-p (car tag-list))
+      (semantic-stb-highlight-tag-line1 (car tag-list)))
+    ;; recurse over children
+    (semantic-stb-reparse-hook
+     (semantic-tag-components-with-overlays (car tag-list)))
+
+    (setq tag-list (cdr tag-list)))
+  )
+
+(defun semantic-stb-highlight-tag-line1 (tag)
+  "Highlight the first line of TAG as a boundary."
+  (let ((o (semantic-tag-create-secondary-overlay tag)))
+    ;; We do not use the unlink property because we do not want to
+    ;; save the highlighting informatin in the DB.
+    (semantic-overlay-put o 'face 'semantic-tag-boundary-face)
+    (semantic-overlay-put o 'semantic-stb t)
+    (semantic-overlay-move o (semantic-tag-start tag)
+			   (save-excursion
+			     (set-buffer (semantic-tag-buffer tag))
+			     (goto-char (semantic-tag-start tag))
+			     (end-of-line)
+			     (forward-char 1)
+			     (point)))
+    
+    ))
+
+(semantic-add-minor-mode 'semantic-show-tag-boundaries-mode
+                         ""
+                         nil)
+
+
+;;;;
+;;;; Minor mode to show some sort of boundary line in front of tags.
+;;;;
+
+;;;###autoload
+(defun global-semantic-highlight-by-attribute-mode (&optional arg)
+  "Toggle global use of option `semantic-highlight-by-attribute-mode'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  (interactive "P")
+  (setq global-semantic-highlight-by-attribute-mode
+        (semantic-toggle-minor-mode-globally
+         'semantic-highlight-by-attribute-mode arg)))
+
+;;;###autoload
+(defcustom global-semantic-highlight-by-attribute-mode nil
+  "*If non-nil, enable global use of `semantic-highlight-by-attribute-mode'.
+When this mode is enabled tags are auto-highlighted based on attributes of the tag.
+See `semantic-highlight-attribute-alist' for customization."
+  :group 'semantic
+  :type 'boolean
+  :require 'semantic-util-modes
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (global-semantic-highlight-by-attribute-mode (if val 1 -1))))
+
+(defcustom semantic-highlight-by-attribute-hook nil
+  "*Hook run at the end of function `semantic-highlight-by-attribute-mode'."
+  :group 'semantic
+  :type 'hook)
+
+(defcustom semantic-highlight-attribute-alist
+  '(
+    ((lambda (tag) (and (member (semantic-tag-class tag) '(function variable))
+			(eq (semantic-tag-protection tag) 'private))) .
+     semantic-highlight-attribute-face-private)
+    ((lambda (tag) (and (member (semantic-tag-class tag) '(function variable))
+			(eq (semantic-tag-protection tag) 'protected))) .
+     semantic-highlight-attribute-face-protected)
+    )
+  "List of functions testing attributes of a tag and associated faces.
+Each function must take one argument, the tag.
+Each face will be applied to those tags for which the function returns true."
+  :group 'semantic
+  :type '(list (cons function face)))
+
+(defface semantic-highlight-attribute-face-private
+  '((((class color) (background dark))
+     (:background "#500000"))
+    (((class color) (background light))
+     (:overline "#8aaaaa")))
+  "*Face used to show privatly scoped tags in.
+The face is used in  `semantic-highlight-by-attribute-mode'."
+  :group 'semantic)
+
+(defface semantic-highlight-attribute-face-protected
+  '((((class color) (background dark))
+     (:background "#000050"))
+    (((class color) (background light))
+     (:overline "#aaaaa8")))
+  "*Face used to show protected scoped tags in.
+The face is used in  `semantic-highlight-by-attribute-mode'."
+  :group 'semantic)
+
+(defvar semantic-highlight-by-attribute-mode nil
+  "Non-nil if show-unmatched-syntax minor mode is enabled.
+Use the command `semantic-highlight-by-attribute-mode' to change this
+variable.")
+(make-variable-buffer-local 'semantic-highlight-by-attribute-mode)
+
+(defun semantic-highlight-by-attribute-setup ()
+  "Setup the `semantic-show-unmatched-syntax' minor mode.
+The minor mode can be turned on only if the semantic feature is available
+and the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled."
+  (if semantic-highlight-by-attribute-mode
+      (if (not (and (featurep 'semantic) (semantic-active-p)))
+          (progn
+            ;; Disable minor mode if semantic stuff not available
+            (setq semantic-highlight-by-attribute-mode nil)
+            (error "Buffer %s was not set up for parsing"
+                   (buffer-name)))
+        ;; Add hooks
+	(semantic-make-local-hook 'semantic-after-partial-cache-change-hook)
+	(add-hook 'semantic-after-partial-cache-change-hook
+		  'semantic-hba-reparse-hook nil t)
+	(semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
+	(add-hook 'semantic-after-toplevel-cache-change-hook
+		  'semantic-hba-reparse-hook nil t)
+	(semantic-hba-reparse-hook (semantic-bovinate-toplevel))
+	)
+    ;; Cleanup tag boundaries highlighting
+    (semantic-hba-clear-highlighting (semantic-bovinate-toplevel))
+    ;; Remove hooks
+    (remove-hook 'semantic-after-partial-cache-change-hook
+		 'semantic-hba-reparse-hook t)
+    (remove-hook 'semantic-after-toplevel-cache-change-hook
+		 'semantic-hba-reparse-hook t)
+    )
+  semantic-highlight-by-attribute-mode)
+  
+;;;###autoload
+(defun semantic-highlight-by-attribute-mode (&optional arg)
+  "Minor mode to display a boundary in front of tags.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled."
+;;
+;;\\{semantic-highlight-by-attribute-map}"
+  (interactive
+   (list (or current-prefix-arg
+             (if semantic-highlight-by-attribute-mode 0 1))))
+  (setq semantic-highlight-by-attribute-mode
+        (if arg
+            (>
+             (prefix-numeric-value arg)
+             0)
+          (not semantic-highlight-by-attribute-mode)))
+  (semantic-highlight-by-attribute-setup)
+  (run-hooks 'semantic-highlight-by-attribute-hook)
+  (if (interactive-p)
+      (message "highlight-by-attribute minor mode %sabled"
+               (if semantic-highlight-by-attribute-mode "en" "dis")))
+  (semantic-mode-line-update)
+  semantic-highlight-by-attribute-mode)
+
+(defun semantic-hba-clear-highlighting (tag-list)
+  "Clear highlighting off from TAG-LIST."
+  (while tag-list
+
+    ;; This isn't very smart, but should be ok for the short term.
+    ;; What to do when our face is deep in the stack of highlights
+    ;; for this tag?
+    (semantic-unhighlight-tag (car tag-list))
+    
+    (setq tag-list (cdr tag-list)))
+  )
+
+(defun semantic-hba-reparse-hook (tag-list)
+  "Called when the new tags TAG-LIST are created in a buffer.
+Adds decorations on them to help show tag boundaries."
+  (while tag-list
+    ;; Only line up certain classes of tag.
+    (semantic-hba-highlight-tag (car tag-list))
+    ;; recurse over children
+    (semantic-hba-reparse-hook
+     (semantic-tag-components-with-overlays (car tag-list)))
+
+    (setq tag-list (cdr tag-list)))
+  )
+
+(defun semantic-hba-highlight-tag (tag)
+  "Highlight TAG based on it's attributes."
+  (let ((aa semantic-highlight-attribute-alist))
+    (while aa
+      (when (funcall (car (car aa)) tag)
+	(semantic-highlight-tag tag (cdr (car aa))))
+      (setq aa (cdr aa))))
+  )
+
+(semantic-add-minor-mode 'semantic-highlight-by-attribute-mode
+                         ""
+                         nil)
+
 
 (provide 'semantic-util-modes)
 
