@@ -4,7 +4,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-comp.el,v 1.5 2000/07/16 21:18:19 zappo Exp $
+;; RCS: $Id: eieio-comp.el,v 1.6 2000/07/19 02:32:19 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -95,22 +95,20 @@ that is called but rarely.  Argument FORM is the body of the method."
       (princ " " my-outbuffer)
       (eieio-byte-compile-princ-code code my-outbuffer)
       (princ "))" my-outbuffer)
-      nil
       )
-    (unless (fboundp meth)
-      ;; Now add this function to the list of known functions by defining
-      ;; it in Emacs proper.  This is the wrong way to do it.
-      ;; Technically, I should be using `byte-compile-function-environment'
-      ;; and updating stuff there, but it has some strange behaviors I
-      ;; don't like or understand, and various newsgroups don't seem to
-      ;; unserstand it either.
-      (eieio-defgeneric meth (cdr form))
-      ;; Remove it from the undefined list if it is there.
-      (let ((elt (assq meth byte-compile-unresolved-functions)))
-	(if elt
-	    (setq byte-compile-unresolved-functions
-		  (delq elt byte-compile-unresolved-functions))))
-      )))
+    ;; Now add this function to the list of known functions.
+    ;; Don't bother with a doc string.   Not relevant here.
+    (add-to-list 'byte-compile-function-environment
+		 (cons meth
+		       (eieio-defgeneric-form meth "")))
+    
+    ;; Remove it from the undefined list if it is there.
+    (let ((elt (assq meth byte-compile-unresolved-functions)))
+      (if elt (setq byte-compile-unresolved-functions
+		    (delq elt byte-compile-unresolved-functions))))
+
+    ;; nil prevents cruft from appearing in the output buffer.
+    nil))
 
 
 (defun eieio-byte-compile-princ-code (code outbuffer)
