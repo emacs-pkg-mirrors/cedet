@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.26 2004/01/03 20:48:54 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.27 2004/01/08 18:53:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1223,7 +1223,7 @@ If there is no error, then the last value of FORMS is returned."
 	  (lambda (syntax start end) (throw ',symbol syntax)))
 	 ret)
      (setq ret (catch ',symbol
-		 (progn
+		 (save-excursion
 		   ,@forms
 		   nil)))
      ;; Great Sadness.  Assume that FORMS execute within the
