@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.41 2004/02/10 01:50:34 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.42 2004/02/12 02:06:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -274,6 +274,8 @@ minor mode is enabled."
   "Minor mode for highlighting changes made in a buffer.
 Changes are tracked by semantic so that the incremental parser can work
 properly.
+This mode will highlight those changes as they are made, and clear them
+when the incremental parser accounts for those edits.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
@@ -472,7 +474,7 @@ minor mode is enabled."
   
 ;;;###autoload
 (defun semantic-show-unmatched-syntax-mode (&optional arg)
-  "Minor mode to highlight unmatched syntax tokens.
+  "Minor mode to highlight unmatched lexical syntax tokens.
 When a parser executes, some elements in the buffer may not match any
 parser rules.  These text characters are considered unmatched syntax.
 Often time, the display of unmatched syntax can expose coding
