@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 06 Mar 2002
 ;; Keywords: lisp
-;; X-RCS: $Id: pprint.el,v 1.2 2002/03/10 09:12:32 ponced Exp $
+;; X-RCS: $Id: pprint.el,v 1.3 2002/03/10 12:08:23 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -129,56 +129,52 @@ Return non-nil if a printer was found."
       (funcall printer)
       t)))
 
-(defsubst pprint-sexp-width (room)
-  "Return the width needed to pretty print current expression.
-ROOM specifies the available width."
-  (save-excursion
-    (save-restriction
-      (narrow-to-region (point) (progn (forward-sexp) (point)))
-      (let* ((old-sexp (buffer-string))
-             (pprint-width room)
-             (width 0))
-        (goto-char (point-min))
-        (pprint-sexp)
-        (goto-char (point-min))
-        (while (not (eobp))
-          (end-of-line)
-          (setq width (max width (current-column)))
-          (forward-line))
-        (kill-region (point-min) (point-max))
-        (insert old-sexp)
-        width))))
+(defsubst pprint-sexp-try (room)
+  "Try to pretty print current expression.
+Return nil if the width needed to pretty print current expression goes
+beyond specified ROOM."
+  (save-restriction
+    (narrow-to-region (point) (progn (forward-sexp) (point)))
+    (let* ((old-sexp (buffer-string))
+           (pprint-width room)
+           (nobreak t))
+      (goto-char (point-min))
+      (pprint-sexp)
+      (goto-char (point-min))
+      (end-of-line)
+      (while (and (setq nobreak (<= (current-column) room))
+                  (not (eobp)))
+        (end-of-line 2))
+      (delete-region (point-min) (point-max))
+      (insert old-sexp)
+      nobreak)))
 
 (defsubst pprint-list ()
   "Built-in list printer."
-  (if (pprint-no-break-p (forward-sexp))
-      (progn
-        (forward-sexp)
-        (down-list -1))
-    (if (and (prog1 (looking-at "(\\sw+")
-               (down-list 1)
-               (pprint-sexp t)) ;; never break after an open paren
-             (not (looking-at "\\s)")))
-        (let* ((room (- pprint-width (current-column)))
-               (width 0))
-          (save-excursion
-            (while (and (not (looking-at "\\s)")) (<= width room))
-              (setq width (max width (pprint-sexp-width room)))
-              (forward-sexp)))
-          (if (<= width room)
-              (pprint-sexp t))
-          (pprint-maybe-newline-and-indent)))))
+  (down-list 1)
+  (pprint-sexp t) ;; never break after an open paren
+  (let* ((room (- pprint-width (current-column)))
+         (nobreak (>= room pprint-min-width)))
+    (save-excursion
+      (while (and nobreak (not (looking-at "\\s)")))
+        (setq nobreak (pprint-sexp-try room))))
+    (or nobreak (pprint-maybe-newline-and-indent))
+    (while (not (looking-at "\\s)"))
+      (pprint-sexp nobreak)
+      (setq nobreak nil)))
+  (pprint-close-list))
 
 (defsubst pprint-close-list ()
   "Built-in printer to process close parenthesis characters."
   (up-list 1)
-  (or (looking-at "\\s)")
-      (eobp)
-      (= (save-excursion
-           (beginning-of-line) (point))
-         (save-excursion
-           (forward-list -1) (beginning-of-line) (point)))
-      (pprint-maybe-newline-and-indent)))
+;;   (or (looking-at "\\s)")
+;;       (eobp)
+;;       (= (save-excursion
+;;            (beginning-of-line) (point))
+;;          (save-excursion
+;;            (forward-list -1) (beginning-of-line) (point)))
+;;       (pprint-maybe-newline-and-indent))
+  )
 
 (defsubst pprint-sequence ()
   "Built-in printer of a sequence of expressions.
@@ -196,25 +192,26 @@ nothing.")
   "Pretty print S-expression at point.
 If optional argument PPRINT-NO-BREAK is non-nil the pretty-printed
 representation will not start on a new line."
-  (when (>= pprint-width pprint-min-width)
+  (if (or (> pprint-min-width pprint-width)
+          (pprint-no-break-p (forward-sexp)))
+      (forward-sexp)
+    (or pprint-no-break (pprint-maybe-newline-and-indent))
     (let ((old-mark (copy-marker (mark-marker))))
-      (set-marker (mark-marker) (save-excursion (forward-sexp) (point)))
+      (set-marker
+       (mark-marker) (save-excursion (forward-sexp) (point)))
       (while (< (point) (marker-position (mark-marker)))
-        (condition-case nil
-            (or pprint-no-break
-                (pprint-no-break-p (forward-sexp))
-                (pprint-maybe-newline-and-indent))
-          (error nil))
-        (setq pprint-no-break nil)
         (skip-syntax-forward "-'")
         (cond
+         ((pprint-no-break-p (forward-sexp))
+          (forward-sexp))
          ((pprint-dispatch-printer))
          ((looking-at "\\s(")
           (pprint-list))
          ((looking-at "\\s)")
           (pprint-close-list))
          (t
-          (forward-sexp))))
+          (forward-sexp)))
+        )
       (set-marker (mark-marker) (marker-position old-mark))
       (set-marker old-mark nil))))
 
