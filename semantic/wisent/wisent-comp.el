@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.14 2002/02/28 21:23:30 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.15 2002/07/26 12:58:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2920,6 +2920,12 @@ Return a cons ($N-LIST . XBODY) where:
         (setq xbody (nconc xbody (list sexpr))))
       (cons $n-list xbody))))
 
+;; These variables only exist locally in the function
+;; `wisent-semantic-actions' and are shared by all other nested
+;; callees.  They contain uninterned symbols used in code generation.
+(wisent-defcontext semantic-actions
+  stack sp gotos state)
+
 (defun wisent-semantic-action (r)
   "Set up the Elisp function for semantic action at rule R.
 On entry RCODE[R] contains a pair (BODY . N) where BODY is the body of
@@ -2933,7 +2939,7 @@ arguments:
 
 that returns the updated top-of-stack index."
   (if (not (aref ruseful r))
-      (aset rcode r #'error)
+      (aset rcode r nil)
     (let* ((n    (cdr (aref rcode r)))  ; nb of val avail. in stack
            (body (wisent-semantic-action-expand-body
                   (car (aref rcode r)) n))
@@ -2953,24 +2959,21 @@ that returns the updated top-of-stack index."
         (setq $i  (intern (format "$%d" vi))
               $ri (intern (format "$region%d" vi))
               rl  (cons $ri rl)
-              bl  (cons `(,$ri (cdr (aref stack (- sp ,spi)))) bl))
+              bl  (cons `(,$ri (cdr (aref ,stack (- ,sp ,spi)))) bl))
         (if (memq $i $l) ;; Only bind $I if used in action
-            (setq bl (cons `(,$i (car (aref stack (- sp ,spi)))) bl)))
+            (setq bl (cons `(,$i (car (aref ,stack (- ,sp ,spi)))) bl)))
         (setq i   (1+ i)
               vi  (1- vi)
               spi (+ spi 2)))
-      (setq bl `(,@bl
-                 ($region (wisent-region ,@rl))
-                 ($nterm  ',(aref tags nt))))
       
       ;; Compute RHL, the length of rule's RHS.  It will give the
-      ;; parser state at STACK[top - 2*RHL].  And where to push the
-      ;; result of the semantic action at STACK[top - 2*RHL -1] (see
-      ;; the function `wisent-push').
+      ;; current parser state at STACK[SP - 2*RHL], and where to push
+      ;; the new semantic value and the next state, respectively at:
+      ;; STACK[SP - 2*RHL + 1] and STACK[SP - 2*RHL + 2].
       ;; Generally N, the maximum number of values available in the
-      ;; stack, is equal to RHL.  But for mid-rule actions N, the
-      ;; number of rule elements before the action, is greater than or
-      ;; equal to RHL which is always 0 (empty rule).
+      ;; stack, is equal to RHL.  But, for mid-rule actions, N is the
+      ;; number of rule elements before the action and RHL is always 0
+      ;; (empty rule).
       (setq i (aref rrhs r))
       (while (> (aref ritem i) 0)
         (setq rhl (1+ rhl)
@@ -2978,10 +2981,19 @@ that returns the updated top-of-stack index."
       
       ;; Generate the semantic action function.
       (aset rcode r
-            `(lambda (stack sp gotos)
-               (let* ,bl
-                 (wisent-push stack (- sp ,(* rhl 2)) ,nt gotos
-                              (cons ,body $region)))))
+            `(lambda (,stack ,sp ,gotos)
+               (let* (,@bl
+                      ($region (wisent-region ,@rl))
+                      ($nterm  ',(aref tags nt))
+                      (,sp     (- ,sp ,(* rhl 2)))
+                      (,state  (aref ,stack ,sp)))
+                 ;; push semantic value
+                 (aset ,stack (setq ,sp (1+ ,sp))
+                       (cons ,body $region))
+                 ;; push next state got from goto table
+                 (aset ,stack (setq ,sp (1+ ,sp))
+                       (cdr (assq ,nt (aref ,gotos ,state))))
+                 ,sp)))
       
       ;; Unless debugging, byte-compile the function. This
       ;; significantly improves the performance of the parser!
@@ -2994,11 +3006,16 @@ that returns the updated top-of-stack index."
   "Return the table of semantic actions.
 Turn the body of semantic actions into a Lisp function."
   (working-dynamic-status "(building semantic actions)")
-  (let ((i 1))
-    (while (<= i nrules)
-      (wisent-semantic-action i)
-      (setq i (1+ i)))
-    rcode))
+  (wisent-with-context semantic-actions
+    (setq stack (make-symbol "stack")
+          sp    (make-symbol "sp")
+          gotos (make-symbol "gotos")
+          state (make-symbol "state"))
+    (let ((i 1))
+      (while (<= i nrules)
+        (wisent-semantic-action i)
+        (setq i (1+ i)))
+      rcode)))
 
 (defun wisent-token-translations ()
   "Build the translation table.
