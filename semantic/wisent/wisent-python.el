@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.14 2002/08/07 18:00:50 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.15 2002/08/11 09:43:13 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -143,9 +143,9 @@
   (save-excursion
     (goto-char pos)
     (cond ((eobp)
-	   '(setq wisent-flex-istream
+	   '(setq wisent-lex-istream
 		 (cons (cons 'newline (cons (point) (point)))
-		       wisent-flex-istream))
+		       wisent-lex-istream))
 	   0)
 	  ((looking-at "\\s-*\\(#\\|$\\)") -1)
 	  (t (current-indentation)))))
@@ -219,7 +219,7 @@
 (defun wisent-python-lex-bol ()
   "Handle BOL syntactic tokens.
 Produce corresponding INDENT or DEDENT python's lexical tokens."
-  (let* ((is          wisent-flex-istream)
+  (let* ((is          wisent-lex-istream)
 	 (stok        (car is))
 	 (curr-indent (string-indentation (cadr stok)))
 	 (last-indent (or (car wisent-python-lexer-indent-stack) 0)))
@@ -227,19 +227,19 @@ Produce corresponding INDENT or DEDENT python's lexical tokens."
      ;; No indentation change
      ((= curr-indent -1)
       ;; Eat 'bol token
-      (setq wisent-flex-istream (cdr is))
+      (setq wisent-lex-istream (cdr is))
       ;; Eat the next NEWLINE token
-      (if (eq (caar wisent-flex-istream) 'newline)
-	  (setq wisent-flex-istream (cdr wisent-flex-istream)))
+      (if (eq (caar wisent-lex-istream) 'newline)
+	  (setq wisent-lex-istream (cdr wisent-lex-istream)))
       (wisent-flex))
      ((= curr-indent last-indent)
       ;;  Just eat 'bol token
-      (setq wisent-flex-istream (cdr is))
+      (setq wisent-lex-istream (cdr is))
       (wisent-flex))
      ;; Indentation increased
      ((> curr-indent last-indent)
       ;; Eat 'bol token
-      (setq wisent-flex-istream (cdr is))
+      (setq wisent-lex-istream (cdr is))
       ;; Return an INDENT lexical token
       (push curr-indent wisent-python-lexer-indent-stack)
       (list 'INDENT curr-indent))
@@ -252,9 +252,9 @@ Produce corresponding INDENT or DEDENT python's lexical tokens."
       (list 'DEDENT last-indent)))))
 
 (defun wisent-python-lex-open-paren ()
-  (let* ((stok (car wisent-flex-istream))
+  (let* ((stok (car wisent-lex-istream))
 	 (tok-string (buffer-substring-no-properties (cadr stok) (cddr stok))))
-    (setq wisent-flex-istream (cdr wisent-flex-istream))
+    (setq wisent-lex-istream (cdr wisent-lex-istream))
     (cond
      ((string= tok-string "(")
       (setq wisent-python-matching-pair-stack
@@ -270,7 +270,7 @@ Produce corresponding INDENT or DEDENT python's lexical tokens."
       (cons 'LBRACE (cons "{" (cdr stok)))))))
 
 (defun wisent-python-lex-close-paren ()
-  (let* ((stok (car wisent-flex-istream))
+  (let* ((stok (car wisent-lex-istream))
 	 (tok-string (buffer-substring-no-properties (cadr stok) (cddr stok))))
     ;; If matching delimiter, then pop it off the stack, else error.
     (if (string= (car wisent-python-matching-pair-stack) tok-string)
@@ -278,7 +278,7 @@ Produce corresponding INDENT or DEDENT python's lexical tokens."
 	      (cdr wisent-python-matching-pair-stack))
       (error "Expected %s token, but got %s"
 	     (car wisent-python-matching-pair-stack) tok-string))
-    (setq wisent-flex-istream (cdr wisent-flex-istream))
+    (setq wisent-lex-istream (cdr wisent-lex-istream))
     (cond
      ((string= tok-string ")")
       (cons 'RPAREN (cons ")" (cdr stok))))
@@ -291,15 +291,15 @@ Produce corresponding INDENT or DEDENT python's lexical tokens."
   "Handle NEWLINE syntactic tokens.
 If the following line is an implicit continuation of current line,
 then throw away any immediately following INDENT and DEDENT tokens."
-  (let ((stok (car wisent-flex-istream)))
+  (let ((stok (car wisent-lex-istream)))
     ;; Pop the current 'newline token
-    (setq wisent-flex-istream (cdr wisent-flex-istream))
+    (setq wisent-lex-istream (cdr wisent-lex-istream))
     ;; If implicit line continuation,
     (cond
      (wisent-python-matching-pair-stack
       ;; Pop the immediately following `bol' and `newline' tokens.
-      (while (memq (caar wisent-flex-istream) '(bol newline))
-	(setq wisent-flex-istream (cdr wisent-flex-istream)))
+      (while (memq (caar wisent-lex-istream) '(bol newline))
+	(setq wisent-lex-istream (cdr wisent-lex-istream)))
       (wisent-flex))
      (t
       ;; Replace 'newline semantic token with NEWLINE wisnet token, then
@@ -308,19 +308,19 @@ then throw away any immediately following INDENT and DEDENT tokens."
 
 (defun wisent-python-lex-backslash ()
   "Handle BACKSLASH syntactic tokens."
-  (let ((stok (car wisent-flex-istream)))
+  (let ((stok (car wisent-lex-istream)))
     ;; Throw away the BACKSLASH token.
-    (setq wisent-flex-istream (cdr wisent-flex-istream))
+    (setq wisent-lex-istream (cdr wisent-lex-istream))
 
     ;; Simply return a BACKSLASH token if the next token is not NEWLINE.
-    (if (not (eq (caar wisent-flex-istream) 'newline))
+    (if (not (eq (caar wisent-lex-istream) 'newline))
 	(cons 'BACKSLASH (cons "\\" (cd stok)))
       ;; Throw away the 'newline token.
-      (setq wisent-flex-istream (cdr wisent-flex-istream))
+      (setq wisent-lex-istream (cdr wisent-lex-istream))
       ;; Throw away the following 'bol token as well to prevent DEDENT
       ;; or INDENT token from being generated.
-      (if (eq (caar wisent-flex-istream) 'bol)
-	  (setq wisent-flex-istream (cdr wisent-flex-istream)))
+      (if (eq (caar wisent-lex-istream) 'bol)
+	  (setq wisent-lex-istream (cdr wisent-lex-istream)))
       (wisent-flex))))
 
 (defconst semantic-python-number-regexp
@@ -389,8 +389,8 @@ Return a 'raw-string syntactic token."
 
 (defun wisent-python-raw-string-handler ()
   "`wisent-flex' handler of 'raw-string syntactic tokens."
-  (let ((stok (car wisent-flex-istream)))
-    (setq wisent-flex-istream (cdr wisent-flex-istream))
+  (let ((stok (car wisent-lex-istream)))
+    (setq wisent-lex-istream (cdr wisent-lex-istream))
     (cons 'STRING_LITERAL
           (cons
            ;; Remove r
@@ -408,7 +408,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-07 15:19+0200
+    ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-10 21:30+0200
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT RAW_STRING_LITERAL AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -1014,7 +1014,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-07 15:19+0200
+   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-10 21:30+0200
    (semantic-lex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -1078,8 +1078,8 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-07 15:19+0200
-   (wisent-flex-make-token-table
+   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-10 21:30+0200
+   (wisent-lex-make-token-table
     '(("raw-string"
        (RAW_STRING_LITERAL))
       ("bol"
@@ -1159,14 +1159,14 @@ Return a 'raw-string syntactic token."
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-07 15:19+0200
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-10 21:30+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-python-parser-tables
           semantic-flex-keywords-obarray wisent-python-keywords
-          wisent-flex-tokens-obarray wisent-python-tokens)
+          wisent-lex-tokens-obarray wisent-python-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
@@ -1198,6 +1198,7 @@ Return a 'raw-string syntactic token."
      semantic-flex-extensions semantic-flex-python-extensions
 
      semantic-lex-analyzer #'semantic-python-lexer
+     wisent-lexer-function #'wisent-flex
      ))
   )
 
