@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.13 1999/03/02 15:53:55 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.14 1999/03/10 19:24:06 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -102,8 +102,6 @@
 
 (defclass project-am-texinfo (project-am-target)
   ((include :initarg :include
-	    ;; We cheat here.  I happen to know that THIS
-	    ;; is defined in eieio.
 	    :initform nil
 	    :documentation "Additional texinfo included in this one."))
   "A top level texinfo file to build.")
@@ -124,15 +122,15 @@
   "Add the current buffer into a project.
 OT is the object target.  DIR is the directory to start in."
   (let* ((target (if ede-object (error "Already assocated w/ a target")
-		  (let ((amf (project-am-load default-directory)))
-		    (if (not amf) (error "No project file"))
-		    (completing-read "Target: "
-				     (object-assoc-list :name
-							(oref amf :targets))
-				     nil t))))
+		   (let ((amf (project-am-load default-directory)))
+		     (if (not amf) (error "No project file"))
+		     (completing-read "Target: "
+				      (object-assoc-list 'name
+							 (oref amf targets))
+				      nil t))))
 	 ;; The input target might be new.  See if we can find it.
-	 (amf (ede-load-project-file (oref ot :path)))
-	 (ot (object-assoc target :name (oref amf :targets)))
+	 (amf (ede-load-project-file (oref ot path)))
+	 (ot (object-assoc target 'name (oref amf targets)))
 	 (ofn (file-name-nondirectory (buffer-file-name))))
     (if (not ot)
 	(setq ot
@@ -165,7 +163,7 @@ OT is the object target.  DIR is the directory to start in."
 
 (defmethod project-edit-file-target ((obj project-am-target))
   "Edit the target associated w/ this file."
-  (find-file (concat (oref obj :path) "Makefile.am"))
+  (find-file (concat (oref obj path) "Makefile.am"))
   (goto-char (point-min))
   (makefile-move-to-macro (project-am-macro obj))
   (if (= (point-min) (point))
@@ -321,7 +319,7 @@ Argument COMMAND is the command to use for compiling the target."
 (defmethod project-debug-target ((obj project-am-objectcode))
   "Run the current project target in a debugger."
   (let ((tb (get-buffer-create " *padt*"))
-	(dd (oref obj :path))
+	(dd (oref obj path))
 	(cmd nil))
     (unwind-protect
 	(progn
@@ -363,7 +361,7 @@ but return the project for the directory given."
 		    ""))
 	 (subdir nil))
     (setq amo (object-assoc (concat fn "Makefile.am")
-			    :file ede-projects))
+			    'file ede-projects))
     (if amo
 	(error "synchronous error in ede/project-am objects.")
       (let ((project-am-constructiong t))
@@ -464,7 +462,7 @@ It does not check for existing project objects.  Use `project-am-load'."
      (lambda (typecar)
        ;; Map all the found objects
        (mapcar (lambda (lstcar)
-		 (setq tmp (object-assoc lstcar :name otargets))
+		 (setq tmp (object-assoc lstcar 'name otargets))
 		 (if (not tmp)
 		     (setq tmp (apply (cdr typecar) lstcar
 				      :name lstcar
@@ -496,7 +494,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 	      ;; rescan value for behavior patterns.
 	      (setq tmp (object-assoc
 			 (concat default-directory sp "/Makefile.am")
-			 :file osubproj))
+			 'file osubproj))
 	      (if (not tmp)
 		  ;; No tmp?  Create a new one.  Don't bother with
 		  ;; non-deep business since we need this object.
@@ -596,7 +594,7 @@ nil means that this buffer belongs to no-one."
 
 (defmethod project-am-subtree ((ampf project-am-makefile) subpath)
   "Return the sub project in AMPF specified by SUBPATH."
-  (object-assoc (expand-file-name subpath) :file (oref ampf subproj)))
+  (object-assoc (expand-file-name subpath) 'file (oref ampf subproj)))
 
 (defmethod project-compile-target-command ((this project-am-target))
   "Default target to use when compiling a given target."
