@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.32 2001/11/14 22:29:57 ponced Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.33 2001/11/22 17:08:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -330,7 +330,7 @@ Returns the tag list, or t for an error."
 	(set-buffer (find-file-noselect file))
 	(if (or (not (featurep 'semantic))
 		(not semantic-toplevel-bovine-table))
-	    t
+	    (setq out t)
 	  (if speedbar-power-click (semantic-clear-toplevel-cache))
 	  (setq out (semantic-bovinate-toplevel)))))
     (if (listp out)
