@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.43 2004/04/29 10:10:53 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.44 2004/06/28 12:53:35 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -314,6 +314,11 @@ then converted to simple names to comply with the semantic token style guide."
     (if (eq nonterminal 'paren_classes)
         (mapcar #'semantic-token-name tokens)
       tokens)))
+
+(define-mode-local-override semantic-get-local-variables python-mode ()
+  "Get the local variables based on point's context.
+To be implemented for python!  For now just return nil."
+  nil)
 
 ;;;###autoload
 (defun wisent-python-default-setup ()
