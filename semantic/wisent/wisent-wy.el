@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.5 2002/02/28 21:24:16 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.6 2002/03/03 23:04:42 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -55,7 +55,7 @@
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-28 16:26+0100
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-03-03 22:01+0100
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -243,24 +243,46 @@
        (rule
         (nil
          (wisent-token "empty" 'rule nil nil nil nil nil))
-        ((action)
-         (wisent-token "empty" 'rule nil nil $1 nil nil))
-        ((level action)
-         (wisent-token "empty" 'rule nil nil $2 $1 nil))
-        ((elements action_opt)
+        ((level action_opt)
+         (wisent-token "empty" 'rule nil nil $1 $2 nil))
+        ((elements)
          (let
-             ((elts
-               (nreverse $1)))
-           (wisent-token
-            (mapconcat #'cdr elts " ")
-            'rule nil elts $2 nil nil)))
+             (action name)
+           (if
+               (consp
+                (car $1))
+               (setq action
+                     (caar $1)
+                     $1
+                     (nreverse
+                      (cdr $1)))
+             (setq action nil $1
+                   (nreverse $1)))
+           (setq name
+                 (if $1
+                     (mapconcat
+                      #'(lambda
+                          (e)
+                          (if
+                              (consp e)
+                              "{}" e))
+                      $1 " ")
+                   "empty"))
+           (wisent-token name 'rule nil $1 nil action nil)))
         ((elements level action_opt)
          (let
-             ((elts
-               (nreverse $1)))
-           (wisent-token
-            (mapconcat #'cdr elts " ")
-            'rule nil elts $3 $2 nil))))
+             (name)
+           (setq $1
+                 (nreverse $1)
+                 name
+                 (mapconcat
+                  #'(lambda
+                      (e)
+                      (if
+                          (consp e)
+                          "{}" e))
+                  $1 " "))
+           (wisent-token name 'rule nil $1 $2 $3 nil))))
        (level
         ((PERCENT PREC item)
          (identity $3)))
@@ -290,8 +312,9 @@
         ((element)
          (list $1)))
        (element
-        ((action_opt item)
-         (cons $1 $2)))
+        ((action)
+         (list $1))
+        ((item)))
        (items
         ((lifo_items)
          (nreverse $1)))
@@ -324,7 +347,7 @@
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-28 16:26+0100
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-03-03 22:01+0100
    (semantic-flex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -345,7 +368,7 @@
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-28 16:26+0100
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-03-03 22:01+0100
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -377,7 +400,7 @@
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-28 16:26+0100
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-03-03 22:01+0100
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
           semantic-toplevel-bovine-table wisent-wy-automaton
@@ -737,24 +760,24 @@ Keep order of declaration in the WY file without duplicates."
   "Return the list form of nonterminal definitions."
   (let ((nttoks (semantic-find-nonterminal-by-token
                  'nonterminal (current-buffer)))
-        rltoks nterms rules rule elems actn sexp prec)
+        rltoks nterms rules rule elems elem actn sexp prec)
     (while nttoks
       (setq rltoks (semantic-nonterminal-children (car nttoks))
             rules  nil)
       (while rltoks
-        (setq elems  (nth 3 (car rltoks))
-              rule   nil)
-        (if (not elems)
-            nil ;; EMPTY rule
+        (setq elems (nth 3 (car rltoks))
+              prec  (nth 4 (car rltoks))
+              actn  (nth 5 (car rltoks))
+              rule  nil)
+        (when elems ;; not an EMPTY rule
           (while elems
-            (if (caar elems)
-                (setq actn (wisent-wy-expand-sexpr (read (caar elems)))
-                      rule (cons actn rule)))
-            (setq rule (cons (wisent-wy-item-value (cdar elems)) rule)
-                  elems (cdr elems)))
+            (setq elem  (car elems)
+                  elems (cdr elems))
+            (setq elem (if (consp elem) ;; mid-rule action
+                           (wisent-wy-expand-sexpr (read (car elem)))
+                         (wisent-wy-item-value elem)) ;; item
+                  rule (cons elem rule)))
           (setq rule (nreverse rule)))
-        (setq actn (nth 4 (car rltoks))
-              prec (nth 5 (car rltoks)))
         (if prec
             (setq prec (vector (wisent-wy-item-value prec))))
         (if actn
