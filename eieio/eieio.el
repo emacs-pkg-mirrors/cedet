@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.46 1999/09/05 19:35:56 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.47 1999/09/06 10:18:07 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -122,6 +122,12 @@ The immediate effect is that I can safely keep track of common-lisp
 this variable without worrying about weather this package has been
 loaded or not.")
 
+(defvar eieio-skip-typecheck nil
+  "*If non-nil, skip all slot typechecking.
+Set this to t permanently if a program is functioning well to get a
+small speed increase.  This variable is also used internally to handle
+default setting for optimization purposes.")
+
 ;; This is a bootstrap for eieio-default-superclass so it has a value
 ;; while it is being built itself.
 (defvar eieio-default-superclass nil)
@@ -149,8 +155,11 @@ loaded or not.")
 This will speed up instantiation time as only a `copy-sequence' will
 be needed, instead of looping over all the values and setting them
 from the default.")
+(defconst class-options 20
+  "Storage location of tagged class options.
+Stored outright without modifications or stripping.")
 
-(defconst class-num-fields 20
+(defconst class-num-fields 21
   "Number of fields in the class definition object.")
 
 (defconst object-class 1 "Index in an object vector where the class is stored.")
@@ -203,12 +212,21 @@ Only methods have the symbol `eieio-method-tree' as a property (which
 contains a list of all bindings to that method type.)"
   (list 'and (list 'fboundp method) (list 'get method ''eieio-method-obarray)))
 
+(defmacro class-option-assoc (list option)
+  "Return from LIST the found OPTION.  Nil if it doesn't exist."
+  `(car-safe (cdr (memq ,option ,list))))
+
+(defmacro class-option (class option)
+  "Return the value stored for CLASS' OPTION.
+Return nil if that option doesn't exist."
+  `(class-option-assoc ',option (aref (class-v ,class) class-options)))
+
 
 ;;; Defining a new class
 ;;
-(defmacro defclass (name superclass fields doc-string)
+(defmacro defclass (name superclass fields &rest options-and-doc)
   "Define NAME as a new class derived from SUPERCLASS with FIELDS.
-DOC-STRING is used as the class' base documentation.
+OPTIONS-AND-DOC is used as the class' options and base documentation.
 SUPERCLASS is a list of superclasses to inherit from, with FIELDS
 being the fields residing in that class definition.  NOTE: Currently
 only one field may exist in SUPERCLASS as multiple inheritance is not
@@ -226,15 +244,33 @@ yet supported.  Supported tags are:
 
 The following are extensions on CLOS:
   :protection - non-nil means a private slot (accessible when THIS is set)
-  :custom     - When customizing an object, the custom :type.  Public only."
-  (list 'defclass-engine (list 'quote name) (list 'quote superclass)
-	(list 'quote fields) doc-string))
+  :custom     - When customizing an object, the custom :type.  Public only.
 
-(defun defclass-engine (cname superclasses fields doc-string)
+A class can also have optional options.  These options happen in place
+of documentation, (including a :documentation tag) in addition to
+documentation, or not at all.  Supported options are:
+
+  :documentation - The doc-string used for this class.
+
+Options added to EIEIO:
+
+  :allow-nil-initform - Non-nil to skip typechecking of initforms if nil.
+
+Options in CLOS not supported in EIEIO:
+
+  :metaclass - Class to use in place of `standard-class'
+  :default-initargs - Initargs to use when initializing new objects of
+                      this class.
+
+Due to the way class options are set up, you can add any tags in you
+wish, and reference them using the function `class-option'."
+  `(defclass-engine ',name ',superclass ',fields ',options-and-doc))
+
+(defun defclass-engine (cname superclasses fields options-and-doc)
   "See `defclass' for more information.
 Define CNAME as a new subclass of SUPERCLASSES, with FIELDS being the
-fields residing in that class definition, and with DOC-STRING as the
-toplevel documentation for this class."
+fields residing in that class definition, and with options or documentation
+OPTIONS-AND-DOC as the toplevel documentation for this class."
   ;; Run our eieio-hook each time, and clear it when we are done.
   ;; This way people can add hooks safely if they want to modify eieio
   ;; or add definitions when eieio is loaded or something like that.
@@ -252,7 +288,20 @@ toplevel documentation for this class."
 
     (aset newc 0 'defclass)
     (aset newc class-symbol cname)
-    (aset newc class-doc doc-string)
+
+    ;; Snarf out documentation, or options here:
+    (if (stringp (car options-and-doc))
+	(progn
+	  (aset newc class-doc (car options-and-doc))
+	  (if (< 1 (length options-and-doc))
+	      (error "Too many arguments to `defclass'")))
+      (let* ((co (car options-and-doc))
+	     (ds (car-safe (cdr options-and-doc)))
+	     (od (class-option-assoc co :documentation)))
+	(aset newc class-options co)
+	(if (and ds od)
+	    (error "Documentation provided in options and in doc-string position")
+	(aset newc class-doc (or ds od)))))
 
     (if pname
 	(while pname
@@ -301,7 +350,8 @@ toplevel documentation for this class."
 	     (name (car field1))
 	     (field (cdr field1))
 	     (acces (car (cdr (member ':accessor field))))
-	     (init (car (cdr (member ':initform field))))
+	     (init-l (member ':initform field))
+	     (init (car (cdr init-l)))
 	     (initarg (car (cdr (member ':initarg field))))
 	     (docstr (car (cdr (member ':documentation field))))
 	     (prot (car (cdr (member ':protection field))))
@@ -310,6 +360,9 @@ toplevel documentation for this class."
 	     (alloc (car (cdr (member ':allocation field))))
 	     (type (member ':type field))
 	     (custom (car (cdr (member ':custom field))))
+	     
+	     (skip-nil (class-option-assoc (aref newc class-options)
+					   :allow-nil-initform))
 	     )
 	;; Clean up the meaning of protection.
 	(cond ((eq prot 'public) (setq prot nil))
@@ -326,7 +379,7 @@ toplevel documentation for this class."
 
 	;; First up, add this field into our new class.
 	(eieio-add-new-field newc name init docstr type custom
-			     prot initarg alloc 'defaultoverride)
+			     prot initarg alloc 'defaultoverride skip-nil)
 
 	;; anyone can have an accessor function.  This creates a function
 	;; of the specified name, and also performs a `defsetf' if applicable
@@ -463,27 +516,35 @@ toplevel documentation for this class."
       (aset cache 0 'object)
       (aset cache object-class cname)
       (aset cache object-name 'default-cache-object)
-      (eieio-set-defaults cache t)
+      (let ((eieio-skip-typecheck t))
+	;; All type-checking has been done to our satisfaction
+	;; before this call.  Don't waste our time in this call..
+	(eieio-set-defaults cache t))
       (aset newc class-default-object-cache cache))
 
     ;; Return our new class object
     newc
     ))
 
-(defun eieio-perform-slot-validation-for-default (field spec value)
-  "For FIELD, signal if SPEC does not match VALUE."
-  (if (not (eieio-perform-slot-validation spec value))
+(defun eieio-perform-slot-validation-for-default (field spec value skipnil)
+  "For FIELD, signal if SPEC does not match VALUE.
+If SKIPNIL is non-nil, then if VALUE is nil, return t."
+  (if (and (not eieio-skip-typecheck)
+	   (not (and skipnil (null value)))
+	   (not (eieio-perform-slot-validation spec value)))
       (signal 'invalid-slot-type (list field spec value))))
 
 
 (defun eieio-add-new-field (newc a d doc type cust prot init alloc
-				 &optional defaultoverride)
+				 &optional defaultoverride skipnil)
   "Add into NEWC attribute A.
 If A already exists in NEWC, then do nothing.  If it doesn't exist,
 then also add in D (defualt), DOC, TYPE, CUST, PROT, and INIT arg.
 Argument ALLOC specifies if the field is allocated per instance, or per class.
 If optional DEFAULTOVERRIDE is non-nil, then if A exists in NEWC,
-we must override it's value for a default."
+we must override it's value for a default.
+Optional argument SKIPNIL indicates if type checking should be skipped
+if default value is nil."
   ;; Make sure we duplicate those items that are sequences.
   (if (sequencep d) (setq d (copy-sequence d)))
   (if (sequencep type) (setq type (copy-sequence type)))
@@ -498,7 +559,7 @@ we must override it's value for a default."
       ;; Only add this element if it is so-far unique
       (if (not (member a (aref newc class-public-a)))
 	  (progn
-	    (eieio-perform-slot-validation-for-default a type d)
+	    (eieio-perform-slot-validation-for-default a type d skipnil)
 	    (aset newc class-public-a (cons a (aref newc class-public-a)))
 	    (aset newc class-public-d (cons d (aref newc class-public-d)))
 	    (aset newc class-public-doc (cons doc (aref newc class-public-doc)))
@@ -529,12 +590,12 @@ we must override it's value for a default."
 			   "Child slot type `%s' does not match inherited type `%s' for `%s'"
 			   type tp a)))
 		  ;; If we have a repeat, only update the initarg...
-		  (eieio-perform-slot-validation-for-default a tp d)
+		  (eieio-perform-slot-validation-for-default a tp d skipnil)
 		  (setcar dp d)
 		  )))))
     (if (not (member a (aref newc class-class-allocation-a)))
 	(progn
-	  (eieio-perform-slot-validation-for-default a type d)
+	  (eieio-perform-slot-validation-for-default a type d skipnil)
 	  ;; Here we have found a :class version of a slot.  This
 	  ;; requires a very different aproach.
 	  (aset newc class-class-allocation-a (cons a (aref newc class-class-allocation-a)))
@@ -567,7 +628,7 @@ we must override it's value for a default."
 			 "Child slot type `%s' does not match inherited type `%s' for `%s'"
 			 type tp a)))
 		;; If we have a repeat, only update the vlaue...
-		(eieio-perform-slot-validation-for-default a tp d)
+		(eieio-perform-slot-validation-for-default a tp d skipnil)
 		(setcar dp d))))))
     ))
 
@@ -575,7 +636,9 @@ we must override it's value for a default."
   "Copy into NEWC the fields of PARENTS.
 Follow the rules of not overwritting early parents when applying to
 the new child class."
-  (let ((ps (aref newc class-parent)))
+  (let ((ps (aref newc class-parent))
+	(sn (class-option-assoc (aref newc class-options)
+				':allow-nil-initform)))
     (while ps
       ;; First, duplicate all the fields of the parent.
       (let ((pcv (class-v (car ps))))
@@ -591,7 +654,7 @@ the new child class."
 	    (eieio-add-new-field newc
 				 (car pa) (car pd) (car pdoc)
 				 (aref ptype i) (car pcust) (car pprot)
-				 (car-safe (car pinit)) nil)
+				 (car-safe (car pinit)) nil nil sn)
 	    ;; Increment each value.
 	    (setq pa (cdr pa)
 		  pd (cdr pd)
@@ -613,7 +676,7 @@ the new child class."
 	    (eieio-add-new-field newc
 				 (car pa) (aref pval i) (car pdoc)
 				 (aref ptype i) (car pcust) (car pprot)
-				 nil ':class)
+				 nil ':class sn)
 	    ;; Increment each value.
 	    (setq pa (cdr pa)
 		  pdoc (cdr pdoc)
@@ -818,21 +881,25 @@ Fills in OBJ's FIELD with it's default value."
 (defun eieio-validate-slot-value (class field-idx value)
   "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
 Checks the :type specifier."
-  ;; Trim off object IDX junk added in for the object index.
-  (setq field-idx (- field-idx 3))
-  (let ((st (aref (aref (class-v class) class-public-type) field-idx)))
-    (if (not (eieio-perform-slot-validation st value))
-	(signal 'invalid-slot-type (list st value)))))
+  (if eieio-skip-typecheck
+      nil
+    ;; Trim off object IDX junk added in for the object index.
+    (setq field-idx (- field-idx 3))
+    (let ((st (aref (aref (class-v class) class-public-type) field-idx)))
+      (if (not (eieio-perform-slot-validation st value))
+	  (signal 'invalid-slot-type (list st value))))))
 
 (defun eieio-validate-class-slot-value (class field-idx value)
   "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
 Checks the :type specifier."
-  ;; Trim off object IDX junk added in for the object index.
-  (setq field-idx (- field-idx 3))
-  (let ((st (aref (aref (class-v class) class-class-allocation-type)
-		  field-idx)))
-    (if (not (eieio-perform-slot-validation st value))
-	(signal 'invalid-slot-type (list st value)))))
+  (if eieio-skip-typecheck
+      nil
+    ;; Trim off object IDX junk added in for the object index.
+    (setq field-idx (- field-idx 3))
+    (let ((st (aref (aref (class-v class) class-class-allocation-type)
+		    field-idx)))
+      (if (not (eieio-perform-slot-validation st value))
+	  (signal 'invalid-slot-type (list st value))))))
 
 ;;; Missing types that are useful to me.
 ;;
@@ -1436,7 +1503,7 @@ associated with this symbol.  Current method specific code is:")
       (let ((gm (aref (get sym 'eieio-method-tree) i)))
 	(if gm
 	    (setq newdoc (concat newdoc "\n\nGeneric " (aref prefix (- i 3))
-				 "\n" 
+				 "\n"
 				 (if (nth 2 gm) (nth 2 gm) "Undocumented")))))
       (setq i (1+ i)))
     (setq i 0)
@@ -1572,7 +1639,7 @@ ignored parameters."
   )
 
 (defmethod object-print ((this eieio-default-superclass) &rest strings)
-  "Pretty printer for any object.  Calls function `object-name' with STRINGS.
+  "Pretty printer for object THIS.  Calls function `object-name' with STRINGS.
 The default method for printing object THIS is to use the
 function `object-name'.  At times it could be useful to put a summary
 of the object into the default #<notation> string.  Overload this
