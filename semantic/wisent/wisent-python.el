@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.39 2003/04/08 12:26:20 zappo Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.40 2003/04/09 12:34:41 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -340,7 +340,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-31 08:22-0500
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-04-08 17:35+0200
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -348,485 +348,480 @@ then converted to simple names to comply with the semantic token style guide."
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK INDENT_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
        (goal
-	((NEWLINE))
-	((simple_stmt))
-	((compound_stmt)))
+        ((NEWLINE))
+        ((simple_stmt))
+        ((compound_stmt)))
        (simple_stmt
-	((small_stmt_list semicolon_opt NEWLINE)))
+        ((small_stmt_list semicolon_opt NEWLINE)))
        (small_stmt_list
-	((small_stmt))
-	((small_stmt_list SEMICOLON small_stmt)))
+        ((small_stmt))
+        ((small_stmt_list SEMICOLON small_stmt)))
        (small_stmt
-	((expr_stmt))
-	((print_stmt))
-	((del_stmt))
-	((pass_stmt))
-	((flow_stmt))
-	((import_stmt))
-	((global_stmt))
-	((exec_stmt))
-	((assert_stmt)))
+        ((expr_stmt))
+        ((print_stmt))
+        ((del_stmt))
+        ((pass_stmt))
+        ((flow_stmt))
+        ((import_stmt))
+        ((global_stmt))
+        ((exec_stmt))
+        ((assert_stmt)))
        (print_stmt
-	((PRINT print_stmt_trailer)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((PRINT print_stmt_trailer)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (print_stmt_trailer
-	((test_list_opt)
-	 nil)
-	((GTGT test trailing_test_list_with_opt_comma_opt)
-	 nil))
+        ((test_list_opt)
+         nil)
+        ((GTGT test trailing_test_list_with_opt_comma_opt)
+         nil))
        (trailing_test_list_with_opt_comma_opt
-	(nil)
-	((trailing_test_list comma_opt)
-	 nil))
+        (nil)
+        ((trailing_test_list comma_opt)
+         nil))
        (trailing_test_list
-	((COMMA test)
-	 nil)
-	((trailing_test_list COMMA test)
-	 nil))
+        ((COMMA test)
+         nil)
+        ((trailing_test_list COMMA test)
+         nil))
        (expr_stmt
-	((testlist expr_stmt_trailer)
-	 (if
-	     (and $2
-		  (stringp $1)
-		  (string-match "^\\(\\sw\\|\\s_\\)+$" $1))
-	     (wisent-raw-tag
-	      (semantic-tag $1 'variable :type nil :default-value nil))
-	   (wisent-raw-tag
-	    (semantic-tag name 'code :detail nil)))))
+        ((testlist expr_stmt_trailer)
+         (if
+             (and $2
+                  (stringp $1)
+                  (string-match "^\\(\\sw\\|\\s_\\)+$" $1))
+             (wisent-raw-tag
+              (semantic-tag-new-variable $1 nil nil))
+           (wisent-raw-tag
+            (semantic-tag-new-code name nil)))))
        (expr_stmt_trailer
-	((augassign testlist))
-	((eq_testlist_zom)))
+        ((augassign testlist))
+        ((eq_testlist_zom)))
        (eq_testlist_zom
-	(nil)
-	((eq_testlist_zom ASSIGN testlist)
-	 (identity $3)))
+        (nil)
+        ((eq_testlist_zom ASSIGN testlist)
+         (identity $3)))
        (augassign
-	((PLUSEQ))
-	((MINUSEQ))
-	((MULTEQ))
-	((DIVEQ))
-	((MODEQ))
-	((AMPEQ))
-	((OREQ))
-	((HATEQ))
-	((LTLTEQ))
-	((GTGTEQ))
-	((EXPEQ))
-	((DIVDIVEQ)))
+        ((PLUSEQ))
+        ((MINUSEQ))
+        ((MULTEQ))
+        ((DIVEQ))
+        ((MODEQ))
+        ((AMPEQ))
+        ((OREQ))
+        ((HATEQ))
+        ((LTLTEQ))
+        ((GTGTEQ))
+        ((EXPEQ))
+        ((DIVDIVEQ)))
        (del_stmt
-	((DEL exprlist)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((DEL exprlist)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (exprlist
-	((expr_list comma_opt)
-	 nil))
+        ((expr_list comma_opt)
+         nil))
        (expr_list
-	((expr)
-	 nil)
-	((expr_list COMMA expr)
-	 nil))
+        ((expr)
+         nil)
+        ((expr_list COMMA expr)
+         nil))
        (pass_stmt
-	((PASS)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((PASS)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (flow_stmt
-	((break_stmt))
-	((continue_stmt))
-	((return_stmt))
-	((raise_stmt))
-	((yield_stmt)))
+        ((break_stmt))
+        ((continue_stmt))
+        ((return_stmt))
+        ((raise_stmt))
+        ((yield_stmt)))
        (break_stmt
-	((BREAK)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((BREAK)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (continue_stmt
-	((CONTINUE)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((CONTINUE)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (return_stmt
-	((RETURN testlist_opt)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((RETURN testlist_opt)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (testlist_opt
-	(nil)
-	((testlist)
-	 nil))
+        (nil)
+        ((testlist)
+         nil))
        (yield_stmt
-	((YIELD testlist)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((YIELD testlist)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (raise_stmt
-	((RAISE zero_one_two_or_three_tests)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((RAISE zero_one_two_or_three_tests)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (zero_one_two_or_three_tests
-	(nil)
-	((test zero_one_or_two_tests)
-	 nil))
+        (nil)
+        ((test zero_one_or_two_tests)
+         nil))
        (zero_one_or_two_tests
-	(nil)
-	((COMMA test zero_or_one_comma_test)
-	 nil))
+        (nil)
+        ((COMMA test zero_or_one_comma_test)
+         nil))
        (zero_or_one_comma_test
-	(nil)
-	((COMMA test)
-	 nil))
+        (nil)
+        ((COMMA test)
+         nil))
        (import_stmt
-	((IMPORT dotted_as_name_list)
-	 (wisent-raw-tag
-	  (semantic-tag $2 'include :system-flag nil)))
-	((FROM dotted_name IMPORT star_or_import_as_name_list)
-	 (wisent-raw-tag
-	  (semantic-tag $2 'include :system-flag nil))))
+        ((IMPORT dotted_as_name_list)
+         (wisent-raw-tag
+          (semantic-tag-new-include $2 nil)))
+        ((FROM dotted_name IMPORT star_or_import_as_name_list)
+         (wisent-raw-tag
+          (semantic-tag-new-include $2 nil))))
        (dotted_as_name_list
-	((dotted_as_name))
-	((dotted_as_name_list COMMA dotted_as_name)))
+        ((dotted_as_name))
+        ((dotted_as_name_list COMMA dotted_as_name)))
        (star_or_import_as_name_list
-	((MULT)
-	 nil)
-	((import_as_name_list)
-	 nil))
+        ((MULT)
+         nil)
+        ((import_as_name_list)
+         nil))
        (import_as_name_list
-	((import_as_name)
-	 nil)
-	((import_as_name_list COMMA import_as_name)
-	 nil))
+        ((import_as_name)
+         nil)
+        ((import_as_name_list COMMA import_as_name)
+         nil))
        (import_as_name
-	((NAME name_name_opt)
-	 nil))
+        ((NAME name_name_opt)
+         nil))
        (dotted_as_name
-	((dotted_name name_name_opt)))
+        ((dotted_name name_name_opt)))
        (name_name_opt
-	(nil)
-	((NAME NAME)
-	 nil))
+        (nil)
+        ((NAME NAME)
+         nil))
        (dotted_name
-	((NAME))
-	((dotted_name PERIOD NAME)
-	 (format "%s.%s" $1 $3)))
+        ((NAME))
+        ((dotted_name PERIOD NAME)
+         (format "%s.%s" $1 $3)))
        (global_stmt
-	((GLOBAL comma_sep_name_list)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((GLOBAL comma_sep_name_list)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (comma_sep_name_list
-	((NAME))
-	((comma_sep_name_list COMMA NAME)))
+        ((NAME))
+        ((comma_sep_name_list COMMA NAME)))
        (exec_stmt
-	((EXEC expr exec_trailer)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((EXEC expr exec_trailer)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (exec_trailer
-	(nil)
-	((IN test comma_test_opt)
-	 nil))
+        (nil)
+        ((IN test comma_test_opt)
+         nil))
        (comma_test_opt
-	(nil)
-	((COMMA test)
-	 nil))
+        (nil)
+        ((COMMA test)
+         nil))
        (assert_stmt
-	((ASSERT test comma_test_opt)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((ASSERT test comma_test_opt)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (compound_stmt
-	((if_stmt))
-	((while_stmt))
-	((for_stmt))
-	((try_stmt))
-	((funcdef))
-	((class_declaration)))
+        ((if_stmt))
+        ((while_stmt))
+        ((for_stmt))
+        ((try_stmt))
+        ((funcdef))
+        ((class_declaration)))
        (if_stmt
-	((IF test COLON suite elif_suite_pair_list else_suite_pair_opt)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((IF test COLON suite elif_suite_pair_list else_suite_pair_opt)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (elif_suite_pair_list
-	(nil)
-	((elif_suite_pair_list ELIF test COLON suite)
-	 nil))
+        (nil)
+        ((elif_suite_pair_list ELIF test COLON suite)
+         nil))
        (else_suite_pair_opt
-	(nil)
-	((ELSE COLON suite)
-	 nil))
+        (nil)
+        ((ELSE COLON suite)
+         nil))
        (suite
-	((simple_stmt)
-	 (list $1))
-	((NEWLINE indented_block)
-	 (nreverse $2)))
+        ((simple_stmt)
+         (list $1))
+        ((NEWLINE indented_block)
+         (nreverse $2)))
        (indented_block
-	((INDENT_BLOCK)
-	 (semantic-parse-region
-	  (car $region1)
-	  (cdr $region1)
-	  'indented_block_body 1)))
+        ((INDENT_BLOCK)
+         (semantic-parse-region
+          (car $region1)
+          (cdr $region1)
+          'indented_block_body 1)))
        (indented_block_body
-	((INDENT)
-	 nil)
-	((DEDENT)
-	 nil)
-	((simple_stmt))
-	((compound_stmt)))
+        ((INDENT)
+         nil)
+        ((DEDENT)
+         nil)
+        ((simple_stmt))
+        ((compound_stmt)))
        (while_stmt
-	((WHILE test COLON suite else_suite_pair_opt)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((WHILE test COLON suite else_suite_pair_opt)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (for_stmt
-	((FOR exprlist IN testlist COLON suite else_suite_pair_opt)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((FOR exprlist IN testlist COLON suite else_suite_pair_opt)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (try_stmt
-	((TRY COLON suite except_clause_suite_pair_list else_suite_pair_opt)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil)))
-	((TRY COLON suite FINALLY COLON suite)
-	 (wisent-raw-tag
-	  (semantic-tag name 'code :detail nil))))
+        ((TRY COLON suite except_clause_suite_pair_list else_suite_pair_opt)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil)))
+        ((TRY COLON suite FINALLY COLON suite)
+         (wisent-raw-tag
+          (semantic-tag-new-code name nil))))
        (except_clause_suite_pair_list
-	((except_clause COLON suite)
-	 nil)
-	((except_clause_suite_pair_list except_clause COLON suite)
-	 nil))
+        ((except_clause COLON suite)
+         nil)
+        ((except_clause_suite_pair_list except_clause COLON suite)
+         nil))
        (except_clause
-	((EXCEPT zero_one_or_two_test)
-	 nil))
+        ((EXCEPT zero_one_or_two_test)
+         nil))
        (zero_one_or_two_test
-	(nil)
-	((test zero_or_one_comma_test)
-	 nil))
+        (nil)
+        ((test zero_or_one_comma_test)
+         nil))
        (funcdef
-	((DEF NAME function_parameter_list COLON suite)
-	 (wisent-raw-tag
-	  (semantic-tag $2 'function :type nil :arguments $3))))
+        ((DEF NAME function_parameter_list COLON suite)
+         (wisent-raw-tag
+          (semantic-tag-new-function $2 nil $3))))
        (function_parameter_list
-	((PAREN_BLOCK)
-	 (semantic-parse-region
-	  (car $region1)
-	  (cdr $region1)
-	  'function_parameters 1)))
+        ((PAREN_BLOCK)
+         (semantic-parse-region
+          (car $region1)
+          (cdr $region1)
+          'function_parameters 1)))
        (function_parameters
-	((LPAREN)
-	 nil)
-	((RPAREN)
-	 nil)
-	((function_parameter COMMA))
-	((function_parameter RPAREN)))
+        ((LPAREN)
+         nil)
+        ((RPAREN)
+         nil)
+        ((function_parameter COMMA))
+        ((function_parameter RPAREN)))
        (function_parameter
-	((fpdef_opt_test))
-	((MULT NAME)
-	 (wisent-raw-tag
-	  (semantic-tag $2 'variable :type nil :default-value nil)))
-	((EXPONENT NAME)
-	 (wisent-raw-tag
-	  (semantic-tag $2 'variable :type nil :default-value nil))))
+        ((fpdef_opt_test))
+        ((MULT NAME)
+         (wisent-raw-tag
+          (semantic-tag-new-variable $2 nil nil)))
+        ((EXPONENT NAME)
+         (wisent-raw-tag
+          (semantic-tag-new-variable $2 nil nil))))
        (class_declaration
-	((CLASS NAME paren_class_list_opt COLON suite)
-	 (wisent-raw-tag
-	  (let
-	      ((parents $3))
-	    (semantic-tag $2 'type :type $1 :members $5 :superclasses
-			  (car parents)
-			  :interfaces
-			  (cdr parents))))))
+        ((CLASS NAME paren_class_list_opt COLON suite)
+         (wisent-raw-tag
+          (semantic-tag-new-type $2 $1 $5 $3))))
        (paren_class_list_opt
-	(nil)
-	((paren_class_list)))
+        (nil)
+        ((paren_class_list)))
        (paren_class_list
-	((PAREN_BLOCK)
-	 (semantic-parse-region
-	  (car $region1)
-	  (cdr $region1)
-	  'paren_classes 1)))
+        ((PAREN_BLOCK)
+         (semantic-parse-region
+          (car $region1)
+          (cdr $region1)
+          'paren_classes 1)))
        (paren_classes
-	((LPAREN)
-	 nil)
-	((RPAREN)
-	 nil)
-	((paren_class COMMA)
-	 (wisent-raw-tag
-	  (semantic-tag $1 'variable :type nil :default-value nil)))
-	((paren_class RPAREN)
-	 (wisent-raw-tag
-	  (semantic-tag $1 'variable :type nil :default-value nil))))
+        ((LPAREN)
+         nil)
+        ((RPAREN)
+         nil)
+        ((paren_class COMMA)
+         (wisent-raw-tag
+          (semantic-tag-new-variable $1 nil nil)))
+        ((paren_class RPAREN)
+         (wisent-raw-tag
+          (semantic-tag-new-variable $1 nil nil))))
        (paren_class
-	((NAME)))
+        ((NAME)))
        (test
-	((test_test))
-	((lambdef)))
+        ((test_test))
+        ((lambdef)))
        (test_test
-	((and_test))
-	((test_test OR and_test)
-	 nil))
+        ((and_test))
+        ((test_test OR and_test)
+         nil))
        (and_test
-	((not_test))
-	((and_test AND not_test)
-	 nil))
+        ((not_test))
+        ((and_test AND not_test)
+         nil))
        (not_test
-	((NOT not_test)
-	 nil)
-	((comparison)))
+        ((NOT not_test)
+         nil)
+        ((comparison)))
        (comparison
-	((expr))
-	((comparison comp_op expr)
-	 nil))
+        ((expr))
+        ((comparison comp_op expr)
+         nil))
        (comp_op
-	((LT))
-	((GT))
-	((EQ))
-	((GE))
-	((LE))
-	((LTGT))
-	((NE))
-	((IN))
-	((NOT IN))
-	((IS))
-	((IS NOT)))
+        ((LT))
+        ((GT))
+        ((EQ))
+        ((GE))
+        ((LE))
+        ((LTGT))
+        ((NE))
+        ((IN))
+        ((NOT IN))
+        ((IS))
+        ((IS NOT)))
        (expr
-	((xor_expr))
-	((expr BAR xor_expr)
-	 nil))
+        ((xor_expr))
+        ((expr BAR xor_expr)
+         nil))
        (xor_expr
-	((and_expr))
-	((xor_expr HAT and_expr)
-	 nil))
+        ((and_expr))
+        ((xor_expr HAT and_expr)
+         nil))
        (and_expr
-	((shift_expr))
-	((and_expr AMP shift_expr)
-	 nil))
+        ((shift_expr))
+        ((and_expr AMP shift_expr)
+         nil))
        (shift_expr
-	((arith_expr))
-	((shift_expr shift_expr_operators arith_expr)
-	 nil))
+        ((arith_expr))
+        ((shift_expr shift_expr_operators arith_expr)
+         nil))
        (shift_expr_operators
-	((LTLT))
-	((GTGT)))
+        ((LTLT))
+        ((GTGT)))
        (arith_expr
-	((term))
-	((arith_expr plus_or_minus term)
-	 nil))
+        ((term))
+        ((arith_expr plus_or_minus term)
+         nil))
        (plus_or_minus
-	((PLUS))
-	((MINUS)))
+        ((PLUS))
+        ((MINUS)))
        (term
-	((factor))
-	((term term_operator factor)
-	 nil))
+        ((factor))
+        ((term term_operator factor)
+         nil))
        (term_operator
-	((MULT))
-	((DIV))
-	((MOD))
-	((DIVDIV)))
+        ((MULT))
+        ((DIV))
+        ((MOD))
+        ((DIVDIV)))
        (factor
-	((prefix_operators factor)
-	 nil)
-	((power)))
+        ((prefix_operators factor)
+         nil)
+        ((power)))
        (prefix_operators
-	((PLUS))
-	((MINUS))
-	((TILDE)))
+        ((PLUS))
+        ((MINUS))
+        ((TILDE)))
        (power
-	((atom trailer_zom exponent_zom)
-	 (concat $1
-		 (if $2
-		     (concat " " $2 " ")
-		   "")
-		 (if $3
-		     (concat " " $3)
-		   ""))))
+        ((atom trailer_zom exponent_zom)
+         (concat $1
+                 (if $2
+                     (concat " " $2 " ")
+                   "")
+                 (if $3
+                     (concat " " $3)
+                   ""))))
        (trailer_zom
-	(nil)
-	((trailer_zom trailer)
-	 nil))
+        (nil)
+        ((trailer_zom trailer)
+         nil))
        (exponent_zom
-	(nil)
-	((exponent_zom EXPONENT factor)
-	 nil))
+        (nil)
+        ((exponent_zom EXPONENT factor)
+         nil))
        (trailer
-	((PAREN_BLOCK)
-	 nil)
-	((BRACK_BLOCK)
-	 nil)
-	((PERIOD NAME)
-	 nil))
+        ((PAREN_BLOCK)
+         nil)
+        ((BRACK_BLOCK)
+         nil)
+        ((PERIOD NAME)
+         nil))
        (atom
-	((PAREN_BLOCK)
-	 nil)
-	((BRACK_BLOCK)
-	 nil)
-	((BRACE_BLOCK)
-	 nil)
-	((BACKQUOTE testlist BACKQUOTE)
-	 nil)
-	((NAME))
-	((NUMBER_LITERAL))
-	((one_or_more_string)))
+        ((PAREN_BLOCK)
+         nil)
+        ((BRACK_BLOCK)
+         nil)
+        ((BRACE_BLOCK)
+         nil)
+        ((BACKQUOTE testlist BACKQUOTE)
+         nil)
+        ((NAME))
+        ((NUMBER_LITERAL))
+        ((one_or_more_string)))
        (test_list_opt
-	(nil)
-	((testlist)
-	 nil))
+        (nil)
+        ((testlist)
+         nil))
        (testlist
-	((comma_sep_test_list comma_opt)))
+        ((comma_sep_test_list comma_opt)))
        (comma_sep_test_list
-	((test))
-	((comma_sep_test_list COMMA test)
-	 (format "%s, %s" $1 $3)))
+        ((test))
+        ((comma_sep_test_list COMMA test)
+         (format "%s, %s" $1 $3)))
        (one_or_more_string
-	((STRING_LITERAL))
-	((one_or_more_string STRING_LITERAL)
-	 (concat $1 $2)))
+        ((STRING_LITERAL))
+        ((one_or_more_string STRING_LITERAL)
+         (concat $1 $2)))
        (lambdef
-	((LAMBDA varargslist_opt COLON test)
-	 (format "%s %s" $1
-		 (or $2 ""))))
+        ((LAMBDA varargslist_opt COLON test)
+         (format "%s %s" $1
+                 (or $2 ""))))
        (varargslist_opt
-	(nil)
-	((varargslist)))
+        (nil)
+        ((varargslist)))
        (varargslist
-	((fpdef_opt_test_list_comma_zom rest_args)
-	 (nconc $2 $1))
-	((fpdef_opt_test_list comma_opt)))
+        ((fpdef_opt_test_list_comma_zom rest_args)
+         (nconc $2 $1))
+        ((fpdef_opt_test_list comma_opt)))
        (rest_args
-	((MULT NAME multmult_name_opt)
-	 nil)
-	((EXPONENT NAME)
-	 nil))
+        ((MULT NAME multmult_name_opt)
+         nil)
+        ((EXPONENT NAME)
+         nil))
        (multmult_name_opt
-	(nil)
-	((COMMA EXPONENT NAME)
-	 (wisent-raw-tag
-	  (semantic-tag $3 'variable :type nil :default-value nil))))
+        (nil)
+        ((COMMA EXPONENT NAME)
+         (wisent-raw-tag
+          (semantic-tag-new-variable $3 nil nil))))
        (fpdef_opt_test_list_comma_zom
-	(nil)
-	((fpdef_opt_test_list_comma_zom fpdef_opt_test COMMA)
-	 (nconc $2 $1)))
+        (nil)
+        ((fpdef_opt_test_list_comma_zom fpdef_opt_test COMMA)
+         (nconc $2 $1)))
        (fpdef_opt_test_list
-	((fpdef_opt_test))
-	((fpdef_opt_test_list COMMA fpdef_opt_test)
-	 (nconc $3 $1)))
+        ((fpdef_opt_test))
+        ((fpdef_opt_test_list COMMA fpdef_opt_test)
+         (nconc $3 $1)))
        (fpdef_opt_test
-	((fpdef eq_test_opt)))
+        ((fpdef eq_test_opt)))
        (fpdef
-	((NAME)
-	 (wisent-raw-tag
-	  (semantic-tag $1 'variable :type nil :default-value nil))))
+        ((NAME)
+         (wisent-raw-tag
+          (semantic-tag-new-variable $1 nil nil))))
        (fplist
-	((fpdef_list comma_opt)))
+        ((fpdef_list comma_opt)))
        (fpdef_list
-	((fpdef))
-	((fpdef_list COMMA fpdef)))
+        ((fpdef))
+        ((fpdef_list COMMA fpdef)))
        (eq_test_opt
-	(nil)
-	((ASSIGN test)
-	 nil))
+        (nil)
+        ((ASSIGN test)
+         nil))
        (comma_opt
-	(nil)
-	((COMMA)))
+        (nil)
+        ((COMMA)))
        (semicolon_opt
-	(nil)
-	((SEMICOLON))))
+        (nil)
+        ((SEMICOLON))))
      '(goal function_parameter paren_class indented_block function_parameters paren_classes indented_block_body)))
-  )
+  "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-31 08:22-0500
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-04-08 17:35+0200
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -888,7 +883,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-31 08:22-0500
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-04-08 17:35+0200
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -961,19 +956,19 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-31 08:22-0500
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-04-08 17:35+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
-	  semantic-toplevel-bovine-table wisent-python-parser-tables
-	  semantic-debug-parser-source "wisent-python.wy"
-	  semantic-flex-keywords-obarray wisent-python-keywords
-	  semantic-lex-types-obarray wisent-python-tokens)
+          semantic-toplevel-bovine-table wisent-python-parser-tables
+          semantic-debug-parser-source "wisent-python.wy"
+          semantic-flex-keywords-obarray wisent-python-keywords
+          semantic-lex-types-obarray wisent-python-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
-	      'wisent-collect-unmatched-syntax nil t)
+              'wisent-collect-unmatched-syntax nil t)
     (setq
      ;; Character used to separation a parent/child relationship
      semantic-type-relation-separator-character '(".")
