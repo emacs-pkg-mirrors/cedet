@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.57 2000/10/12 22:15:58 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.58 2000/10/16 13:06:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -433,6 +433,8 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
 
 (defvar semantic-after-toplevel-bovinate-hook nil
   "Hooks run after a toplevel token parse.
+It is not run if the toplevel parse command is called, and buffer does
+not need to be reparsed.
 For language specific hooks, make sure you define this as a local hook.")
 
 (defvar semantic-before-toplevel-cache-flush-hook nil
@@ -579,8 +581,9 @@ there has been a size change."
 		(list (nreverse res) (point-max))
 		semantic-toplevel-bovine-cache-check nil)
 	  (add-hook 'after-change-functions 'semantic-change-function nil t)
+	  (run-hooks 'semantic-after-toplevel-bovinate-hook)
 	  (car semantic-toplevel-bovine-cache))))
-    (run-hooks 'semantic-after-toplevel-bovinate-hook)))
+    ))
 
 (defun semantic-change-function (start end length)
   "Run whenever a buffer controlled by `semantic-mode' change.
