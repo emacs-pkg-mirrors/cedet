@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.37 2000/06/11 18:50:14 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.38 2000/06/13 14:41:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -606,9 +606,11 @@ COLLECTION is the list of things collected so far."
       (delete-overlay ol2))
     ret))
 
-(defun bovinate ()
-  "Bovinate the current buffer.  Show output in a temp buffer."
-  (interactive)
+(defun bovinate (&optional clear)
+  "Bovinate the current buffer.  Show output in a temp buffer.
+Optional argument CLEAR will clear the cache before bovinating."
+  (interactive "P")
+  (if clear (semantic-clear-toplevel-cache))
   (let ((out (semantic-bovinate-toplevel nil t)))
     (pop-to-buffer "*BOVINATE*")
     (require 'pp)
