@@ -1,10 +1,10 @@
 ;;; dbif.e --  Generic Database superclass for handling unique databases
 ;;
-;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;; Copyright (C) 1996, 1998, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.1
-;; RCS: $Id: dbif.el,v 1.2 1998/10/27 18:13:34 zappo Exp $
+;; RCS: $Id: dbif.el,v 1.3 2001/01/11 18:48:26 zappo Exp $
 ;; Keywords: OO database
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -65,14 +65,10 @@
 If nil, find everything.")
 
 (defclass dbif-tuple ()
-  ((headers :initarg :headers
-	    :initform nil)
-   (maxwidths :initarg :maxwidths
-	      :initform nil)
-   (values :initarg :values
+  ((values :initarg :values
 	   :initform nil))
-  "Definition for a DBIF tuple. Contains data about fields such as
-names and dimentions.")
+  "Definition for a DBIF tuple.
+Contains data about fields such as names and dimentions.")
 
 (defclass dbif-connection ()
   ((buffer :initarg :buffer
@@ -83,23 +79,29 @@ the buffer output goes.")
 
 (defmethod dbif-tuple-num-fields ((tuple dbif-tuple))
   "Returns the number of fields in TUPLE"
-  (length (oref tuple headers)))
+  (error "Unimplemented method dbif-get-table-info for %s"
+	 (object-name dbbuff)))
+;  (length (oref tuple headers)))
 
 (defmethod dbif-tuple-field-index ((tuple dbif-tuple) field)
   "Returns the index (usable by command nth) of the field list.  This
 is equivalent to a column number."
-  (let ((ix 0)
-	(sl (oref tuple headers)))
-    (while sl
-      (if (string= (car sl) field)
-	  (setq sl nil)
-	(setq sl (cdr sl))
-	(setq ix (1+ ix))))
-    ix))
+  (error "Unimplemented method dbif-get-table-info for %s"
+	 (object-name dbbuff)))
+;;  (let ((ix 0)
+;;	(sl (oref tuple headers)))
+;;    (while sl
+;;      (if (string= (car sl) field)
+;;	  (setq sl nil)
+;;	(setq sl (cdr sl))
+;;	(setq ix (1+ ix))))
+;;    ix))
 
 (defmethod dbif-tuple-value ((tuple dbif-tuple) field index)
   "Extracts from TUPLE the FIELD value in the INDEXED column"
-  (nth (dbif-tuple-field-index tuple field) (nth index (oref tuple values))))
+  (error "Unimplemented method dbif-get-table-info for %s"
+	 (object-name dbbuff)))
+;  (nth (dbif-tuple-field-index tuple field) (nth index (oref tuple values))))
 
 (defmethod dbif-get-table-info ((dbbuff dbif-connection) tablename)
   "Returns a dbif-tuple object containing information about the tables
