@@ -21,28 +21,45 @@ expert's in their language, to provide a parser for those tool
 authors, without knowing anything about those tools.</p>
 
 <h3>Semantic 1.4 is made up of these important pieces:</h3>
-<ol>
-<li>lexer: Converts a language into a token stream
-<li>parser: Converts a token stream into a stream of nonterminals
+<dl>
+<dt>lexer
+<dd>Converts a language into a token stream
+<dt>parser
+<dd>Converts a token stream into a stream of nonterminals
             defined by the language.
-<li>parser-generator: Converts a language definition into a table
+<dt>parser-generator
+<dd>Converts a language definition into a table
             usable by the parser.  (Written using the Semantic Bovinator)
-<li>language definitions: Parsers already existing for the parser
+<dt>language definitions
+<dd>Parsers already existing for the parser
             generator language (Bovine Normal Form), Emacs Lisp, and
 	    C.
-<li>database: Persistent storage of parsed information.  Speeds load
+<dt>database
+<dd>Persistent storage of parsed information.  Speeds load
 	time and provides standard way of cross referencing files.
-<li>navigator: Senator is a navigator that permits simple navigation
+<dt>imenu support
+<dd>Create hierarchical imenu menus from parsed files.
+<dt>navigator
+<dd>Senator is a navigator that permits simple navigation
 	    through the parsed language.
-<li>analyzer: Examines code, and references those names against a
+<dt>analyzer
+<dd>Examines code, and references those names against a
 	database of pre-parsed files to provide detailed information.
-<li>imenu support: Create hierarchical imenu menus from parsed files.
-<li>speedbar browser: Code for browsing a generated nonterminal list
+<dt>smart completion
+<dd>Completes using symbols actually available in a
+    given context via the semantic-analyze.el
+<dt>speedbar browser
+<dd>Code for browsing a generated nonterminal list
             with Speedbar.
-<li>Documentation generator: Identifies inline documentation in source
+<dt>Documentation generator
+<dd>Identifies inline documentation in source
             code, and can convert it to texinfo.  It can also create
 	    inline documenation.
-</ol>
+<dt>charting
+<dd>Draw a chart of some things semantic can quantify.
+<dt>Highlight bad code
+<dd>text which does not fit the language is underlined.
+</dl>
 
 <br clear=both>
 <table align=right>
@@ -59,31 +76,44 @@ Complexity of semantic.el
 </td>
 </table>
 
-<h3>Experimental tools in 1.4 beta</h3>
-<ol>
-<li>charting: Draw a chart of some things semantic can quantify.
-<li>smart completion of symbols actually available in a given context
-via the semantic-analyze.el
-</ol>
+<h3>What's coming in Semantic 2.0?</h3>
+<dl>
+<dt>Bison ported to Emacs
+<dd>David Ponce has ported Bison to Emacs Lisp.  Languages supported
+  via the new <em>wisent</em> parser will run faster.  New langauges
+  will be easier to support as you can port directly from <tt>.y</tt>
+  sources.
+<dt>Improved incremental parser
+<dd>Fixes the token cache in more situations than the previous
+  mechanism reducing the frequency a full reparse is needed.
+<dt>Improved lex API
+<dd>New programmers interface to the lexical analysis phase produces
+  slightly faster lexers, with more flexibility.
+<dt>Language configuration improvements
+<dd>Programmers supporting a language will find the new method for
+  configuring semantic for their language is much improved.
+</dl>
 
-<h3>Tools planned for future versions of Semantic:</h3>
-<ol>
-<li>Faster parsing: David Ponce is working on a bison port to Emacs Lisp.
-<li>Dynamic highlighting for invalid code.
-<li>type analysis library: Analyze the types (structures & classes) in a given
-	  project. (See also <a href=cogre.shtml>COGRE</a>)
-<li>dependency analysis: Determine if a given dependency is really needed,
+<h3>Tools I'd like to see in future versions of Semantic:</h3>
+<dl>
+<dt>dependency analysis
+<dd>Determine if a given dependency is really needed,
 	  or if a dependency is missing.
-<li>comment generation: Create comment templates based on the current
+<dt>comment generation
+<dd>Create comment templates based on the current
 	  context.
-<li>header file manager: For languages with header files (c, c++), maintain
+<dt>header file manager
+<dd>For languages with header files (c, c++), maintain
 	  them from the originating sources.
-<li>Call tree management: Find out where types and functions are used.
-<li>Unit Test generation: Analyze an API, and automatically create
+<dt>Call tree management
+<dd>Find out where types and functions are used.
+<dt>Unit Test generation
+<dd>Analyze an API, and automatically create
           unit tests for it.
-<li>smart templates: Insert code fragments based based intrinsically
+<dt>smart templates
+<dd>Insert code fragments based based intrinsically
 	  upon the language definition, and available variables and types.
-</ol>
+</dl>
 
 <h2>Read the docs:</h2>
 
@@ -104,6 +134,8 @@ via the semantic-analyze.el
     scheme or C++.
 <li>Test semantic and send in bugs.
 <li>Help with documentation
+<li>Help create releases.
+<li>Keep semantic compatible with the many versions of [X]Emacs
 </ul>
 
 <h2>Join the mailing list</h2>
