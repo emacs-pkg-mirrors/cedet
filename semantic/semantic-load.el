@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.2 2001/03/10 01:55:34 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.3 2001/03/10 02:10:43 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -57,10 +57,12 @@
   "Non-nil means turn on all features in the semantic package.")
 
 (when semantic-load-turn-everything-on
-  (add-hook 'semantic-init-hooks 'senator-minor-mode)
+  (add-hook 'semantic-init-hooks (lambda ()
+				   (senator-minor-mode 1)))
   (add-hook 'semantic-init-hooks 'turn-on-eldoc-mode)
   (if (fboundp 'which-func-mode)
-      (add-hook 'semantic-init-hooks 'which-funct-mode))
+      (add-hook 'semantic-init-hooks (lambda ()
+				       (which-func-mode 1))))
 
   (when (eq window-system 'x)
     (add-hook 'semantic-init-hooks (lambda ()
