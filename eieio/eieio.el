@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.10
-;; RCS: $Id: eieio.el,v 1.32 1999/01/15 21:21:13 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.33 1999/01/21 14:25:59 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -808,7 +808,7 @@ Execute BODY within this lexical scope."
 				(t (error "Invalid binding spec: %s" spec))))
 			spec-list))
        ,@body)))
-
+(put 'with-slots 'lisp-indent-function 2)
 
 ;;; Simple generators, and query functions.  None of these would do
 ;;  well embedded into an object.
@@ -902,7 +902,10 @@ Therefore `slot-boundp' is really a macro calling `slot-exists-p'"
   "Return non-nil if KEY is `equal' to the FIELD of the car of objects in LIST.
 The value is actually the element of LIST whose field equals KEY."
   (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
-  (while (and list (not (equal key (oref-engine (car list) field))))
+  (while (and list (not (condition-case nil
+			    ;; This prevents errors for missing slots.
+			    (equal key (oref-engine (car list) field))
+			  (error nil))))
     (setq list (cdr list)))
   (car list))
 
@@ -1211,7 +1214,7 @@ need be.. May remove that later...)"
   (let ((tuple (assoc initarg (aref (class-v class) class-initarg-tuples))))
     (if tuple
 	(cdr tuple)
-      initarg)))
+      nil)))
 
 (defun eieio-attribute-to-initarg (class attribute)
   "In CLASS, convert the ATTRIBUTE into the corresponding init argument tag.
@@ -1356,8 +1359,6 @@ Called from the constructor routine."
 	(oset-engine obj rn (car (cdr fields))))
       (setq fields (cdr (cdr fields))))))
 
-
-;;; We want our superclass to define it's own methods.
 (defmethod initialize-instance ((this eieio-default-superclass)
 				&optional fields)
     "Constructs the new object THIS based on FIELDS.
@@ -1368,20 +1369,7 @@ you overload the initialize-instance, there you will need to call
 have this constructor called automatically.  If these steps are not
 taken, then new objects of your class will not have their values
 dynamically set from FIELDS."
-    ;; Historical note:  The constructor used to set the defaults.
-    ;; This is a silly place to do this because the user could turn
-    ;; defaults off by accident by overloading `constructor'.  The
-    ;; defaults will now be handled by the class cache value.
-    ;; Load in the defaults
-    ;; (eieio-set-defaults this t)
-    ;; Set fields for ourselves from the list of fields
-    (shared-initialize this fields)
-    )
-
-(defmethod destructor ((this eieio-default-superclass) &rest params)
-  "Destructor for cleaning up any dynamic links to our object."
-  ;; No cleanup... yet.
-  )
+    (shared-initialize this fields))
 
 (defmethod slot-missing ((object eieio-default-superclass) slot-name
 			 operation &optional new-value)
@@ -1389,8 +1377,29 @@ dynamically set from FIELDS."
 SLOT-NAME is the name of the failed slot, OPERATION is the type of access
 that was requested, and optional NEW-VALUE is the value that was desired
 to be set."
-  (signal 'invalid-slot-name (list (class-name (object-class class))
+  (signal 'invalid-slot-name (list (class-name (object-class object))
 				   slot-name)))
+
+(defmethod clone ((obj eieio-default-superclass) &rest params)
+  "Make a deep copy of OBJ, and then apply PARAMS.
+PARAMS is a parameter list of the same form as INITIALIZE-INSTANCE
+which are applied to change the object.  When overloading `clone', be
+sure to call `call-next-method' first and modify the returned object."
+  (let ((nobj (copy-sequence obj))
+	(nm (aref obj object-name))
+	(num 1))
+    (if params (shared-initialize obj params))
+    (save-match-data
+      (if (string-match "-\\([0-9]+\\)" nm)
+	  (setq num (1+ (string-to-int (match-string 1 nm)))
+		nm (substring nm 0 (match-beginning 0)))))
+    (aset nobj object-name (concat nm "-" (int-to-string num)))
+    nobj))
+
+(defmethod destructor ((this eieio-default-superclass) &rest params)
+  "Destructor for cleaning up any dynamic links to our object."
+  ;; No cleanup... yet.
+  )
 
 (defmethod object-print ((this eieio-default-superclass) &rest strings)
   "Pretty printer for any object.  Calls `object-name' with STRINGS.
@@ -1466,6 +1475,7 @@ this object."
     (if (object-p (car list))
 	(object-write (car list))
       (prin1 (car list)))
+    (insert " ")
     (setq list (cdr list)))
   (princ (make-string (* eieio-print-depth 2) ? ))
   (princ ")"))
