@@ -16,9 +16,9 @@ init_LISP=semantic-load.el semantic-autogen.el
 EMACS=emacs
 LOADPATH=wisent/ bovine/ ../common/ ../speedbar/ ../eieio/\
    
-semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el semantic-tag.el semantic-find.el semantic-format.el
+semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el semantic-tag.el semantic-find.el semantic-format.el semantic-complete.el semantic-sort.el
 Languages_LISP=semantic-texi.el
-tools_LISP=semantic-imenu.el semantic-sb.el working.el semanticdb.el document.el document-vars.el sformat.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el
+tools_LISP=semantic-imenu.el semantic-sb.el working.el semanticdb.el document.el document-vars.el sformat.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el
 senator_LISP=senator.el
 misc_AUX=INSTALL NEWS ChangeLog AUTHORS
 info_TEXINFOS=semantic.texi
@@ -28,7 +28,7 @@ DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: wy scripts example init semantic Languages tools senator semantic.info wisent Tests bovinator
+all: wy scripts example init semantic Languages tools senator semantic.info wisent Tests Documentation bovinator
 
 wy: 
 	@
@@ -98,6 +98,10 @@ wisent:
 Tests:
 	cd tests; $(MAKE)
 
+.PHONY:Documentation
+Documentation:
+	cd doc; $(MAKE)
+
 .PHONY:bovinator
 bovinator:
 	cd bovine; $(MAKE)
@@ -105,6 +109,7 @@ bovinator:
 tags: 
 	cd wisent/; make $@
 	cd tests/; make $@
+	cd doc/; make $@
 	cd bovine/; make $@
 
 
@@ -118,6 +123,7 @@ dist: semantic.info
 	cp $(wy_MISC) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(info_TEXINFOS) semantic.info* $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) dist
 	cd tests; $(MAKE) dist
+	cd doc; $(MAKE) dist
 	cd bovine; $(MAKE) dist
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
