@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.109 2003/04/01 03:34:38 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.110 2003/04/01 03:46:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -410,12 +410,12 @@ THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON.
 		(set-buffer (find-file-noselect fn))
 		(message "Scanning %s" (buffer-file-name))
 		(setq stream (semantic-bovinate-toplevel))
-		(setq found (semantic-find-nonterminal-by-name name stream))
+		(setq found (semantic-find-first-tag-by-name name stream))
 		(if found
 		    (setq found (cons (current-buffer) (list found)))
 		  (setq includelist
 			(append includelist
-				(semantic-find-nonterminal-by-token
+				(semantic-find-tags-by-token
 				 'include stream))))
 		(setq unfound (cons fn unfound)))))
 	(setq includelist (cdr includelist)))
@@ -441,8 +441,8 @@ FILTER must be a function to call on each element."
   (if (not stream) (setq stream (semantic-bovinate-toplevel)))
   (setq stream
 	(if filter
-	    (semantic-find-nonterminal-by-function filter stream)
-	  (semantic-find-nonterminal-standard stream)))
+	    (semantic-brute-find-tags-by-function filter stream)
+	  (semantic-brute-find-tag-standard stream)))
   (if (and default (string-match ":" prompt))
       (setq prompt
 	    (concat (substring prompt 0 (match-end 0))
@@ -536,7 +536,7 @@ Output is generated from the function under `point'."
   (let* ((tok (semantic-current-tag))
 	 (par (or (semantic-current-tag-parent)
 		  (if (semantic-tag-function-parent tok)
-		      (semantic-find-nonterminal-by-name
+		      (semantic-find-first-tag-by-name
 		       (semantic-tag-function-parent tok)
 		       (current-buffer)))
 		  ))
@@ -1052,7 +1052,7 @@ parent token that has positinal information.
 Depends on `semantic-dependency-include-path' for searching.  Always searches
 `.' first, then searches additional paths."
   (if (not token)
-      (setq token (car (semantic-find-nonterminal-by-overlay nil))))
+      (setq token (car (semantic-find-tag-by-overlay nil))))
 
   (if (not (eq (semantic-tag-class token) 'include))
       (signal 'wrong-type-argument (list token 'include)))
@@ -1092,7 +1092,7 @@ Different behaviors are provided depending on the type of token.
 For example, dependencies (includes) will seek out the file that is
 depended on, and functions will move to the specified definition."
   (if (not token)
-      (setq token (car (semantic-find-nonterminal-by-overlay nil))))
+      (setq token (car (semantic-find-tag-by-overlay nil))))
   (if (and (eq (semantic-tag-class token) 'include)
 	   (let ((f (semantic-find-dependency token)))
 	     (if f (find-file f))))
@@ -1133,7 +1133,7 @@ enhancement.
 Optional argument NOSNARF means to only return the flex token for it.
 If nosnarf if 'flex, then only return the flex token."
   (if (not token)
-      (setq token (car (semantic-find-nonterminal-by-overlay nil))))
+      (setq token (car (semantic-find-tag-by-overlay nil))))
   (let ((s (semantic-fetch-overload 'find-documentation)))
     (if s (funcall s token nosnarf)
       ;; No override.  Try something simple to find documentation nearby
@@ -1150,7 +1150,7 @@ If nosnarf if 'flex, then only return the flex token."
 	 ;; Check just before the definition.
 	 (save-excursion
 	   (re-search-backward comment-start-skip nil t)
-	   (if (not (semantic-find-nonterminal-by-position
+	   (if (not (semantic-brute-find-tag-by-position
 		     (point) (current-buffer) t))
 	       ;; We found a comment that doesn't belong to the body
 	       ;; of a function.
@@ -1612,7 +1612,7 @@ Argument P is the point to search from in the current buffer."
 ;	      (semantic-find-nonterminal-by-name name strm)
 ;	      (semantic-find-nonterminal-by-type name strm)
 ;	      (semantic-recursive-find-nonterminal-by-name name (current-buffer))
-	      (semantic-find-nonterminal-by-position (point) strm)
+	      (semantic-brute-find-tag-by-position (point) strm)
 	      
 	      )
 ;	)
