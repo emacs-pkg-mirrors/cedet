@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.36 2001/04/26 07:04:48 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.37 2001/05/06 15:50:45 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -733,13 +733,9 @@ of completions once, doing nothing where there are no more matches."
 (defcustom senator-completion-menu-summary-function
   'semantic-concise-prototype-nonterminal
   "*Function to use when creating items in completion menu.
-Some useful functions are:
-`semantic-concise-prototype-nonterminal'
-`semantic-abbreviate-nonterminal'
-`semantic-summarize-nonterminal'
-`semantic-prototype-nonterminal'"
+Some useful functions are in `semantic-token->text-functions'."
   :group 'senator
-  :type 'function)
+  :type semantic-token->text-custom-list)
 (make-variable-buffer-local 'senator-completion-menu-summary-function)
 
 (defcustom senator-completion-menu-insert-function
@@ -747,7 +743,8 @@ Some useful functions are:
   "*Function to use to insert an item from completion menu.
 It will receive a Semantic token as argument."
   :group 'senator
-  :type 'function)
+  :type '(radio (const senator-completion-menu-insert-default)
+                (function)))
 (make-variable-buffer-local 'senator-completion-menu-insert-function)
 
 (defun senator-completion-menu-insert-default (token)
@@ -786,7 +783,7 @@ menu item."
 (defun senator-completion-menu-window-offsets (&optional window)
   "Return offsets of WINDOW relative to WINDOW's frame.
 Return a cons cell (XOFFSET . YOFFSET) so the position (X . Y) in
-WINDOW is equal to the position ((+ X XOFFSET) . (+ Y YOFFSET)) in
+WINDOW is equal to the position ((+ X XOFFSET) .  (+ Y YOFFSET)) in
 WINDOW'S frame."
   (let* ((window  (or window (selected-window)))
          (w       (window-width window))
@@ -818,9 +815,9 @@ WINDOW'S frame."
                           'header-line)
                       (setq yoffset (+ yoffset cy)))
                   (setcdr wpos (+ (cdr wpos) cy)))
-                (setq xoffset (+ xoffset
-                                 (or (car (window-margins window))
-                                     0)))))
+                (setq xoffset (floor (+ xoffset
+                                        (or (car (window-margins window))
+                                            0))))))
           (setq yoffset (floor yoffset))))
     (cons xoffset yoffset)))
 
@@ -1507,12 +1504,12 @@ the value of the variable `senator-minor-mode-name'."
   :type 'hook)
 
 (defcustom senator-minor-mode-on-hook nil
-  "Hook called when senator minor mode is turned on"
+  "Hook called when senator minor mode is turned on."
   :group 'senator
   :type 'hook)
   
 (defcustom senator-minor-mode-off-hook nil
-  "Hook called when senator minor mode is turned off"
+  "Hook called when senator minor mode is turned off."
   :group 'senator
   :type 'hook)
   
@@ -1815,6 +1812,14 @@ Argument TOKENFILE is the file from wence TOKEN came."
 (eval-when-compile (require 'eldoc)
                    (require 'semantic-ctxt))
 
+(defcustom senator-eldoc-use-color (or (featurep 'xemacs)
+                                       (>= emacs-major-version 21))
+  "*Use color for eldoc strings generated with semantic.
+Colored text can be printed with the message command with some
+versions of Emacs."
+  :group 'senator
+  :type 'boolean)
+
 (defadvice eldoc-print-current-symbol-info (around senator activate)
   "Enable ELDOC in non Emacs Lisp, but semantic-enabled modes."
   (if (eq major-mode 'emacs-lisp-mode)
@@ -1837,7 +1842,7 @@ You can override the info collecting part with `eldoc-current-symbol-info'."
      (cond ((stringp found)
             found)
            ((semantic-token-p found)
-            (semantic-summarize-nonterminal found))
+            (semantic-summarize-nonterminal found nil senator-eldoc-use-color))
            (t nil)
            ))))
 
