@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.54 2001/11/14 01:51:47 zappo Exp $
+@c $Id: semantic.texi,v 1.55 2001/11/19 04:12:02 emacsman Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -74,12 +74,34 @@ In order to reduce a source file into a token list, it must first be
 converted into a token stream.  Tokens are syntactic elements such as
 whitespace, symbols, strings, lists, and punctuation.
 
-The lexer uses the major-mode's syntax table for conversion.  As long
-as that is set up correctly (along with the important
+The lexer uses the major-mode's syntax table for conversion.
+@xref{Syntax Tables,,,elisp}.
+As long as that is set up correctly (along with the important
 @code{comment-start} and @code{comment-start-skip} variable) the lexer
 should already work for your language.
 
-There are three ways to extend the lexer.
+The primary entry point of the lexer is @dfn{semantic-flex} function
+shown below.
+Normally, you do not need to call this function.
+It is usually called by @emph{semantic-bovinate-toplevel} for you.
+
+@defun semantic-flex start end &optional depth length
+Using the syntax table, do something roughly equivalent to
+flex. Semantically check between @var{START} and @var{END}.  Optional
+argument @var{DEPTH} indicates at what level to scan over entire
+lists. The return value is a token stream.  Each element being a list,
+such as (symbol start-expression .  end-expresssion). @var{END} does
+not mark the end of text scanned, only the end of the beginning of
+text scanned.  Thus, if a string extended past @var{END}, the end of
+the return token will be larger than @var{END}.  To truly restrict
+scanning, using narrow-to-region'. The last argument, @var{LENGTH}
+specifies that @dfn{semantic-flex} should only return
+@var{LENGTH} tokens.
+@end defun
+
+Although most lexer functions are called for you by other semantic
+functions, there are ways for you to extend or customize the lexer.
+Three variables shown below are for that purpose.
 
 @defvar semantic-flex-extensions
 Buffer local extensions to the lexical analyzer.
@@ -2426,7 +2448,44 @@ welcome.  Please send them to David Ponce at david@@dponce.com
 @section Document generation
 
 The document program uses semantic token streams to aid in the
-creation of texinfo documentation.  The main entry point for the
+creation of texinfo documentation.
+For example, the following is a code fragment from @file{document.el}
+that comes with semantic:
+
+@lisp
+(defun document (&optional resetfile)
+  "Document the function or variable the cursor is in.
+Optional argument RESETFILE is provided w/ universal argument.
+When non-nil, query for a new documentation file."
+  ...
+  )
+@end lisp
+
+While visiting @file{document.el}, put the cursor somewhere within the
+function shown above. Then type @kbd{M-x document}.
+After asking for the texinfo file name, which in this case is
+@file{semantic.texi}, this will update the texinfo
+documentation of the @code{document} function in that file.
+The result is that the following texinfo text will be either created
+or updated in @file{semantic.texi} file:
+
+@example
+@@deffn Command document &optional resetfile
+Document the function or variable the cursor is in.
+Optional argument @@var@{RESETFILE@} is provided w/ universal argument.
+When non-@@code@{nil@}, query for a new documentation file.
+@@end deffn
+@end example
+
+Note that the function name, arguments and documentation string
+is put in the right place.
+Within the doc-string, the function arguments are marked with
+the @@var command and the @code{nil} code fragment is marked with
+@@code command.
+This example provides just a glimpse of what is possible with the
+syntactic information provided by semantic.
+
+The main entry point for the
 documentation generator are the following commands:
 
 @deffn Command document &optional resetfile
