@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.91 2001/03/14 12:41:41 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.92 2001/04/07 14:10:32 zappo Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -42,7 +42,7 @@
 (require 'semantic-util)
 
 (defgroup semantic nil
-  "Parser Generator."
+  "Parser Generator/Parser."
   )
 
 ;;; Code:
@@ -264,9 +264,9 @@ documented here are allowed.
 (defvar semantic-symbol->name-assoc-list
   '((variable . "Variables")
     (function . "Functions")
-    (type . "Types")
-    (include . "Dependencies")
-    (package . "Provides"))
+    (type     . "Types")
+    (include  . "Dependencies")
+    (package  . "Provides"))
   "Association between symbols returned, and a string.
 The string is used to represent a group of objects of the given type.
 It is sometimes useful for a language to use a different string
@@ -359,120 +359,6 @@ If the hook returns non-nil, then declare that a reparse is needed.
 For language specific hooks, make sure you define this as a local hook.")
 
 
-;;; Utility API functions
-;;
-;; These functions use the flex and bovination engines to perform some
-;; simple tasks useful to other programs.  These are just the most
-;; critical entries.
-;;
-;; See semantic-util for a wider range of utility functions and macros.
-;;
-;; TFE = Token From End
-(defconst semantic-tfe-overlay 1
-  "Amount to subtract from the length of the token to get the overlay.")
-(defconst semantic-tfe-properties 2
-  "Amount to subtract from the length of the token to get the property list.")
-(defconst semantic-tfe-docstring 3
-  "Amount to subtract from the length of the token to get the doc string.")
-(defconst semantic-tfe-number 2
-  "The number of required end elements.")
-
-(defmacro semantic-token-token (token)
-  "Retrieve from TOKEN the token identifier.
-ie, the symbol 'variable, 'function, 'type, or other."
-  `(nth 1 ,token))
-
-(defun semantic-token-name (token)
-  "Retrieve the name of TOKEN."
-  (car token))
-
-(defun semantic-token-docstring (token &optional buffer)
-  "Retrieve the documentation of TOKEN.
-Optional argument BUFFER indicates where to get the text from.
-If not provided, then only the POSITION can be provided."
-  (let ((p (nth (- (length token) semantic-tfe-docstring) token)))
-    (if (and p buffer)
-	(save-excursion
-	  (set-buffer buffer)
-	  (semantic-flex-text (car (semantic-flex p (1+ p)))))
-      p)))
-
-(defmacro semantic-token-properties (token)
-  "Retrieve the PROPERTIES part of TOKEN.
-The returned item is an ALIST of (KEY . VALUE) pairs."
-  `(nth (- (length ,token) semantic-tfe-properties) ,token))
-
-(defmacro semantic-token-properties-cdr (token)
-  "Retrieve the cons cell for the PROPERTIES part of TOKEN."
-  `(nthcdr (- (length ,token) semantic-tfe-properties) ,token))
-
-(defun semantic-token-put (token key value)
-  "For TOKEN, put the property KEY on it with VALUE.
-If VALUE is nil, then remove the property from TOKEN."
-  (let* ((c (semantic-token-properties-cdr token))
-	 (al (car c))
-	 (a (assoc key (car c))))
-    (if a
-	(if value
-	    (setcdr a value)
-	  (adelete 'al key)
-	  (setcar c al))
-      (if value
-	  (setcar c (cons (cons key value) (car c)))))
-    ))
-
-(defun semantic-token-get (token key)
-  "For TOKEN, get the value for property KEY."
-  (cdr (assoc key (semantic-token-properties token))))
-
-(defmacro semantic-token-overlay (token)
-  "Retrieve the OVERLAY part of TOKEN.
-The returned item may be an overlay or an unloaded buffer representation."
-  `(nth (- (length ,token) semantic-tfe-overlay) ,token))
-
-(defmacro semantic-token-overlay-cdr (token)
-  "Retrieve the cons cell containing the OVERLAY part of TOKEN."
-  `(nthcdr (- (length ,token) semantic-tfe-overlay) ,token))
-
-(defmacro semantic-token-extent (token)
-  "Retrieve the extent (START END) of TOKEN."
-  `(let ((o (semantic-token-overlay ,token)))
-     (if (semantic-overlay-p o)
-	 (list (semantic-overlay-start o) (semantic-overlay-end o))
-       (list (aref o 0) (aref o 1)))))
-
-(defun semantic-token-start (token)
-  "Retrieve the start location of TOKEN."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-start o) (aref o 0))))
-
-(defun semantic-token-end (token)
-  "Retrieve the end location of TOKEN."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-end o) (aref o 1))))
-
-(defun semantic-token-buffer (token)
-  "Retrieve the buffer TOKEN resides in."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-buffer o)
-      ;; We have no buffer for this token (It's not in Emacs right now.)
-      nil)))
-
-(defun semantic-token-p (token)
-  "Return non-nil if TOKEN is most likely a semantic token."
-  (and (listp token)
-       (stringp (car token))
-       (symbolp (car (cdr token)))))
-
-(defun semantic-token-with-position-p (token)
-  "Return non-nil if TOKEN is a semantic token with positional information."
-  (and (listp token)
-       (stringp (car token))
-       (symbolp (car (cdr token)))
-       (let ((o (semantic-token-overlay token)))
-	 (or (semantic-overlay-p o)
-	     (arrayp o)))))
-
 ;;; Overlay and error stacks.
 ;;
 (defvar semantic-overlay-error-recovery-stack nil
@@ -529,6 +415,33 @@ Runs `semantic-init-hook' if the major mode is setup to use semantic."
 
 (if (boundp 'eval-defun-hooks)
     (add-hook 'eval-defun-hooks 'semantic-eval-defun-hook))
+
+;;; Parsing Commands
+;;
+(eval-when-compile
+  (condition-case nil (require 'pp) (error nil)))
+
+(defun bovinate (&optional clear)
+  "Bovinate the current buffer.  Show output in a temp buffer.
+Optional argument CLEAR will clear the cache before bovinating."
+  (interactive "P")
+  (if clear (semantic-clear-toplevel-cache))
+  (let ((out (semantic-bovinate-toplevel t)))
+    (pop-to-buffer "*BOVINATE*")
+    (require 'pp)
+    (erase-buffer)
+    (insert (pp-to-string out))
+    (goto-char (point-min))))
+
+(defun bovinate-debug ()
+  "Bovinate the current buffer and run in debug mode."
+  (interactive)
+  (let ((semantic-edebug t)
+	(out (semantic-bovinate-debug-buffer)))
+    (pop-to-buffer "*BOVINATE*")
+    (require 'pp)
+    (erase-buffer)
+    (insert (pp-to-string out))))
 
 ;;; Parsing functions
 ;;
