@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.37 2001/09/14 19:32:58 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.38 2001/09/18 18:21:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -722,10 +722,11 @@ Override function for `semantic-nonterminal-protection'."
 			 'protected)))
 	    )
 	  (setq pp (cdr pp)))))
-    (or prot
-	(cond ((string= (semantic-token-type token) "class") 'private)
-	      ((string= (semantic-token-type token) "struct") 'public)))
-    ))
+    (when (and (not prot) (eq (semantic-token-token parent) 'type))
+      (setq prot
+	    (cond ((string= (semantic-token-type parent) "class") 'private)
+		  ((string= (semantic-token-type parent) "struct") 'public))))
+    (or prot 'public)))
 
 
 (defun semantic-default-c-setup ()
