@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.9 1996/10/17 01:39:27 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.10 1996/10/17 02:47:38 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -709,12 +709,12 @@ help about this widget."
 			this)
 	     (reset-option-label this))
 	   (show-arm this nil))
-	  ((member coe '(up down ?\C-n ?\C-p))
+	  ((member coe '(up down "\M-n" "\C-[n" "\M-p" "\C-[p"))
 	   (let ((len (length (oref this option-list)))
 		 (nv (get-value (oref this state))))
-	     (cond ((member coe '(up ?\C-p))
+	     (cond ((member coe '(up "\M-p" "\C-[p"))
 		    (setq nv (1- nv)))
-		   ((member coe '(down ?\C-n))
+		   ((member coe '(down "\M-n" "\C-[n"))
 		    (setq nv (1+ nv))))
 	     (cond ((< nv 0)
 		    (setq nv (1- len)))
@@ -982,52 +982,41 @@ help about this widget."
 (defmethod input ((this widget-text-field) coe)
   "Handle user input events in the text field"
   ;; first find out if we will be doing any edits at all
-  (if (dialog-mouse-event-p coe)
-      ()				;ignore it for now
-    (let ((cc (cond ((numberp coe)
-		     (char-to-string coe))
-		    ((stringp coe)
-		     coe)
-		    (t
-		     (or (lookup-key function-key-map (make-vector 1 coe))
-			 (make-vector 1 coe))))
-	      ))
-      (if (and cc (fboundp (global-key-binding cc)))
-	  ;; In this case, we have a one-keystroke edit
-	  (let ((cp (- (current-column) (oref this rx)))
-		(mo (oref this value))
-		(mv nil)
-		(rp nil)
-		;; make sure no new lines are added
-		(next-line-add-newlines nil))
-	    ;; do the simulated edit in a seperate buffer
-	    (save-excursion
-	      (set-buffer (get-buffer-create "*Text Widget Scratch*"))
-	      (erase-buffer)
-	      (insert (get-value mo))
-	      (goto-char (+ cp (oref this disppos) 1))
-	      (command-execute (lookup-key global-map cc))
-	      (setq rp (1- (point)))
-	      (setq mv (buffer-string)))
-	    ;; reposition disppos based on cursor position
-	    (if (and (/= (oref this disppos) 0)
-		     (>= (oref this disppos) rp))
-		(let ((newsize (if (< (- rp 1) 0) 0 (- rp 1))))
-		  (oset this disppos newsize)))
-	    (if (>= (1+ rp) (+ (oref this disppos) (oref this width)))
-		(let ((newsize  (- rp (oref this width) -2)))
-		  (oset this disppos newsize)))
-	    ;; Now redraw the text if needed
-	    (save-excursion
-	      (set-value mo mv this)
-	      (draw this))
-	    ;; place the cursor
-	    ;;(message "disppos is %d rp is %d " (oref this disppos) rp)
-	    (goto-xy (+ (oref this rx) (- rp (oref this disppos)))
-		     (oref this ry))
-	    (sit-for 1)
-	    ;; make sure the value changed, then call the hook.
-	    )))))
+  (let ((com (dialog-lookup-key global-map coe)))
+    (if (and com (fboundp com))
+	;; In this case, we have a one-keystroke edit
+	(let ((cp (- (current-column) (oref this rx)))
+	      (mo (oref this value))
+	      (mv nil)
+	      (rp nil)
+	      ;; make sure no new lines are added
+	      (next-line-add-newlines nil))
+	  ;; do the simulated edit in a seperate buffer
+	  (save-window-excursion
+	    (switch-to-buffer (get-buffer-create "*Text Widget Scratch*"))
+	    (erase-buffer)
+	    (insert (get-value mo))
+	    (goto-char (+ cp (oref this disppos) 1))
+	    (command-execute com)
+	    (setq rp (1- (point)))
+	    (setq mv (buffer-string)))
+	  ;; reposition disppos based on cursor position
+	  (if (and (/= (oref this disppos) 0)
+		   (>= (oref this disppos) rp))
+	      (let ((newsize (if (< (- rp 1) 0) 0 (- rp 1))))
+		(oset this disppos newsize)))
+	  (if (>= (1+ rp) (+ (oref this disppos) (oref this width)))
+	      (let ((newsize  (- rp (oref this width) -2)))
+		(oset this disppos newsize)))
+	  ;; Now redraw the text if needed
+	  (save-excursion
+	    (set-value mo mv this)
+	    (draw this))
+	  ;; place the cursor
+	  (goto-xy (+ (oref this rx) (- rp (oref this disppos)))
+		   (oref this ry))
+	  ;; make sure the value changed, then call the hook.
+	  ))))
 
 ;;; end of lisp
 (provide 'widget-i)
