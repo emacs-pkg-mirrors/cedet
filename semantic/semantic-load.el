@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.24 2002/08/02 01:41:38 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.25 2002/08/04 02:02:31 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -51,6 +51,16 @@
 (autoload 'wisent-wy-mode "wisent-wy"
   "Initialize a buffer for editing BNF code." t)
 (add-to-list 'auto-mode-alist '("\\.wy$" . wisent-wy-mode))
+
+;;; Other applications
+;;
+(autoload 'semantic-create-imenu-index "semantic-imenu"
+  "Create an imenu index for any buffer which supports Semantic.")
+(autoload 'senator-minor-mode "senator"
+  "Minor mode for the SEmantic NAvigaTOR." t)
+(autoload 'global-semanticdb-minor-mode "semanticdb"
+  "Mode saving token lists between sessions." t)
+
 
 (eval-after-load "speedbar"
   '(progn
