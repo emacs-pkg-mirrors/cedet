@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.27 2000/09/28 03:19:11 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.28 2000/09/29 03:02:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -490,7 +490,7 @@ in which TOKEN (the token found to match NAME) was found."
 	   (found (semantic-find-nonterminal-by-name name stream))
 	   (unfound nil))
       (while (and (not found) includelist)
-	(let ((fn (semantic-find-dependency buffer (car includelist))))
+	(let ((fn (semantic-find-dependency (car includelist))))
 	  (if (and fn (not (member fn unfound)))
 	      (save-excursion
 		(set-buffer (find-file-noselect fn))
@@ -579,15 +579,15 @@ where SYM is the symbol to override, and FUN is the function to
 override it with.
 Available override symbols:
 
-  SYBMOL                  PARAMETERS              DESCRIPTION
- `find-dependency'        (buffer token)           Find the dependency file
- `find-nonterminal'       (buffer token & parent)  Find token in buffer.
- `find-documentation'     (buffer token & nosnarf) Find doc comments.
- `abbreviate-nonterminal' (token & parent)         Return summery string.
- `summerize-nonterminal'  (token & parent)         Return summery string.
- `prototype-nonterminal'  (token)                  Return a prototype string.
- `prototype-file'         (buffer)                 Return a file in which
- 	                                           prototypes are placed
+  SYBMOL                  PARAMETERS         DESCRIPTION
+ `find-dependency'        (token)            Find the dependency file
+ `find-nonterminal'       (token & parent)   Find token in buffer.
+ `find-documentation'     (token & nosnarf)  Find doc comments.
+ `abbreviate-nonterminal' (token & parent)   Return summery string.
+ `summerize-nonterminal'  (token & parent)   Return summery string.
+ `prototype-nonterminal'  (token)            Return a prototype string.
+ `prototype-file'         (buffer)           Return a file in which
+ 	                                     prototypes are placed
 Parameters mean:
 
   &      - Following parameters are optional
@@ -612,14 +612,14 @@ function, it will be called with one arguments, the file to find as a
 string, and  it should return the full path to that file, or nil.")
 (make-variable-buffer-local `semantic-dependency-include-path)
 
-(defun semantic-find-dependency (buffer token)
-  "Find the filename represented from BUFFER's TOKEN.
+(defun semantic-find-dependency (&optional token)
+  "Find the filename represented from TOKEN.
 TOKEN may be a stripped element, in which case PARENT specifies a
 parent token that has positinal information.
 Depends on `semantic-dependency-include-path' for searching.  Always searches
 `.' first, then searches additional paths."
-  (if (or (not (bufferp buffer)) (not token))
-      (error "Semantic-find-nonterminal: specify BUFFER and TOKEN"))
+  (if (not token)
+      (setq token (car (semantic-find-nonterminal-by-overlay nil))))
 
   ;; First, see if this file exists in the current EDE projecy
   (if (and (fboundp 'ede-expand-filename) ede-minor-mode
@@ -629,9 +629,9 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 			   (semantic-token-name token))
   
     (let ((s (semantic-fetch-overload 'find-dependency)))
-      (if s (funcall s buffer token)
+      (if s (funcall s token)
 	(save-excursion
-	  (set-buffer buffer)
+	  (set-buffer (semantic-token-buffer token))
 	  (let ((name (semantic-token-name token)))
 	    (cond ((file-exists-p name)
 		   (expand-file-name name))
@@ -647,23 +647,22 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 		       (setq p (cdr p)))
 		     found)))))))))
 
-(defun semantic-find-nonterminal (buffer token &optional parent)
-  "Find the location from BUFFER belonging to TOKEN.
+(defun semantic-find-nonterminal (&optional token parent)
+  "Find the location of TOKEN.
 TOKEN may be a stripped element, in which case PARENT specifies a
 parent token that has position information.
 Different behaviors are provided depending on the type of token.
 For example, dependencies (includes) will seek out the file that is
 depended on, and functions will move to the specified definition."
-  (if (or (not (bufferp buffer)) (not token))
-      (error "Semantic-find-nonterminal: specify BUFFER and TOKEN"))
-  
+  (if (not token)
+      (setq token (car (semantic-find-nonterminal-by-overlay nil))))
   (if (and (eq (semantic-token-token token) 'include)
-	   (let ((f (semantic-find-dependency buffer token)))
+	   (let ((f (semantic-find-dependency token)))
 	     (if f (find-file f))))
       nil
     (let ((s (semantic-fetch-overload 'find-nonterminal)))
-      (if s (funcall s buffer token)
-	(set-buffer buffer)
+      (if s (funcall s token)
+	(set-buffer (semantic-token-buffer token))
 	(let ((start (semantic-token-start token)))
 	  (if (numberp start)
 	      ;; If it's a number, go there
@@ -678,22 +677,22 @@ depended on, and functions will move to the specified definition."
 	      ;; in the buffer.
 	      (re-search-forward (semantic-token-name token) nil t))))))))
 
-(defun semantic-find-documentation (buffer token &optional nosnarf)
-  "Find documentation from BUFFER/TOKEN and return it as a clean string.
+(defun semantic-find-documentation (&optional token nosnarf)
+  "Find documentation from TOKEN and return it as a clean string.
 TOKEN might have DOCUMENTATION set in it already.  If not, there may be
 some documentation in a comment preceeding TOKEN's definition which we
 cal look for.  When appropriate, this can be overridden by a language specific
 enhancement.
 Optional argument NOSNARF means to only return the flex token for it.
 If nosnarf if 'flex, then only return the flex token."
-  (if (or (not (bufferp buffer)) (not token))
-      (error "Semantic-find-documentation: specify BUFFER and TOKEN"))
+  (if (not token)
+      (setq token (car (semantic-find-nonterminal-by-overlay nil))))
   (let ((s (semantic-fetch-overload 'find-documentation)))
-    (if s (funcall s buffer token)
-      ;; No override.  Try something simple to find documentation in
-      ;; BUFFER.
+    (if s (funcall s token)
+      ;; No override.  Try something simple to find documentation nearby
       (save-excursion
-	(semantic-find-nonterminal buffer token)
+	(set-buffer (semantic-token-buffer token))
+	(semantic-find-nonterminal token)
 	(or
 	 ;; Is there doc in the token???
 	 (if (semantic-token-docstring token)
@@ -717,30 +716,32 @@ If nosnarf if 'flex, then only return the flex token."
 Attempt to strip out comment syntactic sugar.
 Argument NOSNARF means don't modify the found text.
 If NOSNARF is 'flex, then return the flex token."
-  (if (eq nosnarf 'flex)
-      (car (semantic-flex (point) (1+ (point))))
-    (let ((ct (semantic-flex-text (car (semantic-flex (point) (1+ (point)))))))
-      (if nosnarf
-	  nil
-	;; ok, try to clean the text up.
-	;; Comment start thingy
-	(while (string-match (concat "^\\s-*" comment-start-skip) ct)
-	  (setq ct (concat (substring ct 0 (match-beginning 0))
-			   (substring ct (match-end 0)))))
-	;; Arbitrary punctuation at the beginning of each line.
-	(while (string-match "^\\s-*\\s.+\\s-*" ct)
-	  (setq ct (concat (substring ct 0 (match-beginning 0))
-			   (substring ct (match-end 0)))))
-	;; End of a block comment.
-	(if (and block-comment-end (string-match block-comment-end ct))
+  (let ((semantic-ignore-comments nil))
+    (if (eq nosnarf 'flex)
+	(car (semantic-flex (point) (1+ (point))))
+      (let ((ct (semantic-flex-text
+		 (car (semantic-flex (point) (1+ (point)))))))
+	(if nosnarf
+	    nil
+	  ;; ok, try to clean the text up.
+	  ;; Comment start thingy
+	  (while (string-match (concat "^\\s-*" comment-start-skip) ct)
 	    (setq ct (concat (substring ct 0 (match-beginning 0))
 			     (substring ct (match-end 0)))))
-	;; In case it's a real string, STRIPIT.
-	(while (string-match "\\s-*\\s\"+\\s-*" ct)
-	  (setq ct (concat (substring ct 0 (match-beginning 0))
-			   (substring ct (match-end 0))))))
-      ;; Now return the text.
-      ct)))
+	  ;; Arbitrary punctuation at the beginning of each line.
+	  (while (string-match "^\\s-*\\s.+\\s-*" ct)
+	    (setq ct (concat (substring ct 0 (match-beginning 0))
+			     (substring ct (match-end 0)))))
+	  ;; End of a block comment.
+	  (if (and block-comment-end (string-match block-comment-end ct))
+	      (setq ct (concat (substring ct 0 (match-beginning 0))
+			       (substring ct (match-end 0)))))
+	  ;; In case it's a real string, STRIPIT.
+	  (while (string-match "\\s-*\\s\"+\\s-*" ct)
+	    (setq ct (concat (substring ct 0 (match-beginning 0))
+			     (substring ct (match-end 0))))))
+	;; Now return the text.
+	ct))))
 
 (defun semantic-abbreviate-nonterminal (token &optional parent)
   "Return an abbreviated string describing TOKEN.
