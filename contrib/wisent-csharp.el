@@ -33,7 +33,7 @@
 ;;
 ;;; Code:
 
-(require 'wisent-bovine)
+(require 'semantic-wisent)
 (require 'wisent-csharp-wy)
 
 

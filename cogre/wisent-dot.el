@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.el,v 1.7 2004/02/02 09:18:17 ponced Exp $
+;; X-RCS: $Id: wisent-dot.el,v 1.8 2004/03/25 07:50:30 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 
 
 ;;; Code:
-(require 'wisent-bovine)
+(require 'semantic-wisent)
 (require 'semantic)
 (require 'wisent-dot-wy)
 
