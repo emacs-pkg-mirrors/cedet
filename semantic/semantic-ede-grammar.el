@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.5 2004/01/19 20:59:40 zappo Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.6 2004/03/28 01:34:17 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ parsing different languages.")
 
 (defclass semantic-ede-grammar-compiler-class (ede-compiler)
   nil
-  "Specialized compiler for semamtic grammars.")
+  "Specialized compiler for semantic grammars.")
 
 (defvar semantic-ede-grammar-compiler-wisent
   (semantic-ede-grammar-compiler-class
