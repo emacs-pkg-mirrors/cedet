@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.37 2001/11/21 19:30:26 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.38 2001/11/30 02:59:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -338,17 +338,7 @@ Sets up the semanticdb environment."
     (if (or (not (slot-boundp ctbl 'tokens)) (not (oref ctbl tokens))
 	    (/= (or (oref ctbl pointmax) 0) (point-max))
 	    )
-	(progn
-	  (semantic-clear-toplevel-cache)
-	  ;; Do not parse the buffer here.  Leave the table cleared
-	  ;; and wait for some other app to request a reparse.
-	  ;; At that time, tokens will be generated and inserted into
-	  ;; the database.
-	  (condition-case nil
-	      (semantic-bovinate-toplevel t)
-	    (quit (message "semanticdb: Semantic Token generation halted."))
-	    (error (error "Semanticdb: bovination failed at startup")))
-	  )
+	(semantic-clear-toplevel-cache)
       (condition-case nil
           (semantic-set-unmatched-syntax-cache
            (oref ctbl unmatched-syntax))
