@@ -59,7 +59,10 @@ Semantic
       
       M-x global-semantic-highlight-edits-mode RET
       - Edit a file.  See the highlight of newly inserted text.
+      - Customize `semantic-edits-verbose-flag' to be non-nil.
       - Wait for the idle scheduler, it should clean up the edits.
+        - observe messages from incremental parser.  Do they relate
+	  to the edits?
       - M-x bovinate RET - verify your changes are reflected.
 
       Visit the menu Senator->Modes
@@ -69,9 +72,12 @@ Semantic
       - Test aspects of the Senator navigation menu.
 
       M-x semantic-analyze-current-context RET
-       - do this in different contexts in your language
+       - Do this in different contexts in your language
          files.   Verify that reasonable results are returned
          such as identification of assignments, function arguments, etc.
+
+       - At a location with incomplete syntax (a list of arguments
+         with no close paren for instance: repeat previous step. 
 
       M-x semanticdb-find-test-translate-path RET
        - Verify the list matches the include files.
