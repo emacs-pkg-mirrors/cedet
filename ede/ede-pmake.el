@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.10 1999/06/07 15:28:03 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.11 1999/06/14 14:21:23 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -457,8 +457,9 @@ These are removed with make clean."
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile-info))
   "Insert rules to build THIS set of texinfo documentation files."
   (call-next-method)
-  (insert (ede-name this) ": $(" (ede-pmake-varname this) "_INFOS)\n"
-	  "\tmakeinfo $(" (ede-pmake-varname this) "_INFOS)\n"))
+  (insert "\n" (ede-name this) ": $(" (ede-pmake-varname this) "_INFOS)\n"
+	  "\tmakeinfo " (or (oref this mainmenu) (car (oref this source)))
+	  "\n"))
 
 (provide 'ede-pmake)
 
