@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.81 2000/09/30 02:23:44 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.82 2000/09/30 02:47:01 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -627,7 +627,7 @@ if default value is nil."
 	    (aset newc class-public-doc (cons doc (aref newc class-public-doc)))
 	    (aset newc class-public-type (cons type (aref newc class-public-type)))
 	    (aset newc class-public-custom (cons cust (aref newc class-public-custom)))
-	    (aset newc class-public-custom-group (cons cust (aref newc class-public-custom-group)))
+	    (aset newc class-public-custom-group (cons custg (aref newc class-public-custom-group)))
 	    (aset newc class-protection (cons prot (aref newc class-protection)))
 	    (aset newc class-initarg-tuples (cons (cons init a) (aref newc class-initarg-tuples)))
 	    )
@@ -665,7 +665,7 @@ if default value is nil."
 	  (aset newc class-class-allocation-doc (cons doc (aref newc class-class-allocation-doc)))
 	  (aset newc class-class-allocation-type (cons type (aref newc class-class-allocation-type)))
 	  (aset newc class-class-allocation-custom (cons cust (aref newc class-class-allocation-custom)))
-	  (aset newc class-class-allocation-custom-group (cons cust (aref newc class-class-allocation-custom-group)))
+	  (aset newc class-class-allocation-custom-group (cons custg (aref newc class-class-allocation-custom-group)))
 	  (aset newc class-class-allocation-protection (cons prot (aref newc class-class-allocation-protection)))
 	  ;; Default value is stored in the 'values section, since new objects
 	  ;; can't initialize from this element.
