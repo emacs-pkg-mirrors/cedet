@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.2 2003/04/06 00:51:02 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.3 2003/04/07 08:26:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -207,10 +207,13 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 
 	(setq roots (cdr roots))))
     ans))
-
+
 ;;; API Functions
 ;;
 ;; These routines are apropriate for applications to use.
+
+;;; Top level Searches
+;;
 (defun semanticdb-find-tags-collector (function &optional path find-file-match)
   "Search for all tags returned by FUNCTION over PATH.
 See `semanticdb-find-translate-path' for details on PATH.
@@ -258,6 +261,41 @@ associated with that tag should be loaded into a buffer."
      (semanticdb-find-tags-for-completion-method table prefix))
    path find-file-match))
 
+;;; Deep Searches
+;;
+(defun semanticdb-deep-find-tags-by-name (name &optional path find-file-match)
+  "Search for all tags matching NAME on PATH.
+Search also in all components of top level tags founds.
+See `semanticdb-find-translate-path' for details on PATH.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-deep-find-tags-by-name-method table name))
+   path find-file-match))
+
+(defun semanticdb-deep-find-tags-by-name-regexp (regexp &optional path find-file-match)
+  "Search for all tags matching REGEXP on PATH.
+Search also in all components of top level tags founds.
+See `semanticdb-find-translate-path' for details on PATH.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-deep-find-tags-by-name-regexp-method table regexp))
+   path find-file-match))
+
+(defun semanticdb-deep-find-tags-for-completion (prefix &optional path find-file-match)
+  "Search for all tags matching PREFIX on PATH.
+Search also in all components of top level tags founds.
+See `semanticdb-find-translate-path' for details on PATH.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-deep-find-tags-for-completion-method table prefix))
+   path find-file-match))
+
 ;;; Specialty Search Routines
 ;;
 (defun semanticdb-find-tags-external-children-of-type
@@ -270,12 +308,13 @@ associated with that tag should be loaded into a buffer."
    (lambda (table)
      (semanticdb-find-tags-external-children-of-type-method table type))
    path find-file-match))
-
+
 ;;; METHODS
 ;;
 ;; Default methods for semanticdb database and table objects.
 ;; Override these with system databases to as new types of back ends.
 
+;;; Top level Searches
 (defmethod semanticdb-find-tags-by-name-method ((table semanticdb-table) name)
   "In TABLE, find all occurances of tags with NAME.
 Returns a table of all matching tags."
@@ -297,6 +336,37 @@ Returns a table of all matching tags."
 Returns a table of all matching tags."
    (semantic-find-tags-external-children-of-type
     parent (semanticdb-get-tags table)))
+
+;;; Deep Searches
+(defmethod semanticdb-deep-find-tags-by-name-method ((table semanticdb-table) name)
+  "In TABLE, find all occurances of tags with NAME.
+Search in all tags in TABLE, and all components of top level tags in
+TABLE.
+Return a table of all matching tags."
+  (semantic-find-tags-by-name
+   name
+   (semantic-flatten-tags-table
+    (semanticdb-get-tags table))))
+
+(defmethod semanticdb-deep-find-tags-by-name-regexp-method ((table semanticdb-table) regexp)
+  "In TABLE, find all occurances of tags matching REGEXP.
+Search in all tags in TABLE, and all components of top level tags in
+TABLE.
+Return a table of all matching tags."
+  (semantic-find-tags-by-name-regexp
+   regexp
+   (semantic-flatten-tags-table
+    (semanticdb-get-tags table))))
+
+(defmethod semanticdb-deep-find-tags-for-completion-method ((table semanticdb-table) prefix)
+  "In TABLE, find all occurances of tags matching PREFIX.
+Search in all tags in TABLE, and all components of top level tags in
+TABLE.
+Return a table of all matching tags."
+  (semantic-find-tags-for-completion
+   prefix
+   (semantic-flatten-tags-table
+    (semanticdb-get-tags table))))
 
 (provide 'semanticdb-find)
 
