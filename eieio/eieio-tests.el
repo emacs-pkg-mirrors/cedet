@@ -1,10 +1,10 @@
 ;;; eieio-tests.el -- eieio tests routines
 
 ;;;
-;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.26 2002/12/10 01:38:28 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.27 2003/01/23 18:33:09 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -121,6 +121,24 @@
 	  t)
       (error nil))
     (error "Instantiation of an abstract class allowed."))
+
+;;; Generics (and the definition therof)
+;;
+(defun anormalfunction () "A plain function for error testing." nil)
+
+(if (condition-case nil
+	(defgeneric anormalfunction () 
+	  "Attempt to turn it into a generic.")
+      (error nil))
+    (error "Generic function created over an existing function."))
+
+(defgeneric generic1 () "First generic function")
+
+(if (not (generic-p 'generic1))
+    (error "defgeneric did not make a generic method."))
+
+(defmethod generic1 ((c class-a))
+  "Method on generic1.")
 
 ;;; Class with a static method
 ;;
