@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.19 2002/07/31 19:46:38 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.20 2002/08/04 02:03:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -341,7 +341,7 @@ If ARG is nil, then toggle."
 (defface semantic-highlight-edits-face
   '((((class color) (background dark))
      ;; Put this back to something closer to black later.
-     (:background "gray50"))
+     (:background "gray20"))
     (((class color) (background light))
      (:background "gray90")))
   "*Face used to show dirty tokens in `semantic-highlight-edits-token-mode'."
