@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.141 2002/05/31 18:42:25 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.142 2002/06/14 13:13:01 zappo Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -34,9 +34,6 @@
 ;; The output of a semantic bovine parse is parse tree.  While it is
 ;; possible to assign actions in the bovine-table in a similar fashion
 ;; to bison, this is not it's end goal.
-
-;;; History:
-;; 
 
 (require 'working)
 (require 'assoc)
@@ -1704,7 +1701,7 @@ The key to this alist is the symbol representing token type that
 
   - comment:       A comment chunk.  These token types are not
                    produced by default.  They are produced only if the
-                   user set `semantic-ignore-comments' to `nil'. 
+                   user set `semantic-ignore-comments' to `nil'.
 
   - newline        Characters matching `\\s-*\\(\n\\|\\s>\\)' regexp.
                    This token is produced only if the user set
@@ -1714,7 +1711,7 @@ The key to this alist is the symbol representing token type that
                    These are typically `(', `{', `[', etc.
                    Note that these are not usually generated unless
                    the `depth' argument to \\[semantic-flex] is
-                   greater than 0. 
+                   greater than 0.
 
   - punctuation:   Characters matching `{\\(\\s.\\|\\s$\\|\\s'\\)'
                    regexp.
@@ -1722,7 +1719,7 @@ The key to this alist is the symbol representing token type that
   - semantic-list: String delimited by matching parenthesis, braces,
                    etc. that the lexer skipped over, because the
                    `depth' parameter to \\[semantic-flex] was not high
-                   enough. 
+                   enough.
 
   - string:        Quoted strings, i.e., string sequences that start
                    and end with characters matching `\\s\"'
@@ -1732,7 +1729,7 @@ The key to this alist is the symbol representing token type that
   - symbol:        String sequences that match `\\(\\sw\\|\\s_\\)+'
                    regexp.
 
-  - whitespace:    Characters that match `\\s-+' regexp. 
+  - whitespace:    Characters that match `\\s-+' regexp.
                    This token is produced only if the user set
                    `semantic-flex-enable-whitespace' to non-nil.
                    If `semantic-ignore-comments' is non-nil too
