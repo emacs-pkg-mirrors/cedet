@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.28 2003/03/18 05:44:48 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.29 2003/04/08 12:25:22 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -318,7 +318,7 @@ small_stmt
 ;;           | '>>' test [ (',' test)+ [','] ]
 print_stmt
   : PRINT print_stmt_trailer
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ]
@@ -355,7 +355,7 @@ expr_stmt
 	;; If this is an assignment statement and left side is a symbol,
 	;; then generate a 'variable token, else return 'code token.
 	(VARIABLE-TAG $1 nil nil)
-      (CODE-TAG $1))
+      (CODE-TAG $1 nil))
   ;
 
 ;; Could be EMPTY because of eq_testlist_zom.
@@ -388,7 +388,7 @@ augassign
 ;; del_stmt: 'del' exprlist
 del_stmt
   : DEL exprlist
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; exprlist: expr (',' expr)* [',']
@@ -412,7 +412,7 @@ expr_list
 ;; pass_stmt: 'pass'
 pass_stmt
   : PASS
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;;;============================================================================
@@ -430,19 +430,19 @@ flow_stmt
 ;; break_stmt: 'break'
 break_stmt
   : BREAK
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; continue_stmt: 'continue'
 continue_stmt
   : CONTINUE
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; return_stmt: 'return' [testlist]
 return_stmt
   : RETURN testlist_opt
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; [testlist]
@@ -455,13 +455,13 @@ testlist_opt
 ;; yield_stmt: 'yield' testlist
 yield_stmt
   : YIELD testlist
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; raise_stmt: 'raise' [test [',' test [',' test]]]
 raise_stmt
   : RAISE zero_one_two_or_three_tests
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; [test [',' test [',' test]]]
@@ -494,9 +494,9 @@ zero_or_one_comma_test
 ;;               ('*' | import_as_name (',' import_as_name)*)
 import_stmt
   : IMPORT dotted_as_name_list
-    (INCLUDE-TAG $2)
+    (INCLUDE-TAG $2 nil)
   | FROM dotted_name IMPORT star_or_import_as_name_list
-    (INCLUDE-TAG $2)
+    (INCLUDE-TAG $2 nil)
   ;
 
 ;; dotted_as_name (',' dotted_as_name)*
@@ -553,7 +553,7 @@ dotted_name
 ;; global_stmt: 'global' NAME (',' NAME)*
 global_stmt
   : GLOBAL comma_sep_name_list
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; NAME (',' NAME)*
@@ -569,7 +569,7 @@ comma_sep_name_list
 ;; exec_stmt: 'exec' expr ['in' test [',' test]]
 exec_stmt
   : EXEC expr exec_trailer
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; ['in' test [',' test]]
@@ -593,7 +593,7 @@ comma_test_opt
 ;; assert_stmt: 'assert' test [',' test]
 assert_stmt
   : ASSERT test comma_test_opt
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;;;****************************************************************************
@@ -616,7 +616,7 @@ compound_stmt
 ;; if_stmt: 'if' test ':' suite ('elif' test ':' suite)* ['else' ':' suite]
 if_stmt
   : IF test COLON suite elif_suite_pair_list else_suite_pair_opt
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; ('elif' test ':' suite)*
@@ -663,7 +663,7 @@ indented_block_body
 ;; while_stmt: 'while' test ':' suite ['else' ':' suite]
 while_stmt
   : WHILE test COLON suite else_suite_pair_opt
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;;;============================================================================
@@ -673,7 +673,7 @@ while_stmt
 ;; for_stmt: 'for' exprlist 'in' testlist ':' suite ['else' ':' suite]
 for_stmt
   : FOR exprlist IN testlist COLON suite else_suite_pair_opt
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;;;============================================================================
@@ -684,9 +684,9 @@ for_stmt
 ;;            ['else' ':' suite] | 'try' ':' suite 'finally' ':' suite)
 try_stmt
   : TRY COLON suite except_clause_suite_pair_list else_suite_pair_opt
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   | TRY COLON suite FINALLY COLON suite
-    (CODE-TAG $1)
+    (CODE-TAG $1 nil)
   ;
 
 ;; (except_clause ':' suite)+
