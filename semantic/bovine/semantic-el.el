@@ -1,9 +1,9 @@
 ;;; semantic-el.el --- Semantic details for Emacs Lisp
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.18 2003/12/11 01:08:33 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.19 2004/02/19 01:39:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -366,7 +366,9 @@ Attempts a simple prototype for calling or using TAG."
 Override function for `semantic-nonterminal-protection'."
   (let ((prot (semantic-tag-get-attribute tag 'protection)))
     (cond
-     ((not prot) 'public)
+     ;; If a protection is not specified, AND there is a parent
+     ;; data type, then it is public.
+     ((and (not prot) parent) 'public)
      ((string= prot ":public") 'public)
      ((string= prot "public") 'public)
      ((string= prot ":private") 'private)
