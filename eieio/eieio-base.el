@@ -1,10 +1,10 @@
 ;;; eieio-base.el --- Base classes for EIEIO.
 
 ;;;
-;; Copyright (C) 2000 Eric M. Ludlam
+;; Copyright (C) 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.4 2001/01/10 06:52:02 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.5 2001/01/24 21:02:03 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -34,6 +34,9 @@
 ;; inherit from one or more of them.
 
 (require 'eieio)
+
+(if (not (fboundp 'compare-strings))
+    (require 'compare-strings))
 
 ;;; Code:
 
