@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.9 2001/11/07 20:20:12 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.10 2001/12/07 21:13:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -261,6 +261,13 @@ If the optional argument CHECKCACHE is non-nil, then make sure the
 cached token list is up to date.  If a partial reparse is possible, do
 that, otherwise, do a full reparse."
   (cond
+   ;; Check if before bovination hooks allow to parse
+   ((not (run-hook-with-args-until-failure
+	  'semantic-before-toplevel-bovination-hook))
+    ;; If any hook returns nil, we must return the cache as the buffer
+    ;; is supposedly unsafe for parsing.
+    semantic-toplevel-bovine-cache)
+   
    ;; Partial reparse
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
     (garbage-collect)
@@ -295,7 +302,6 @@ that, otherwise, do a full reparse."
     (let ((gc-cons-threshold 10000000)
           (semantic-flex-depth wisent-flex-depth)
           cache)
-      (semantic-clear-toplevel-cache)
       ;; Init a dump
       ;;(if semantic-dump-parse
       ;;    (semantic-dump-buffer-init))
@@ -304,6 +310,11 @@ that, otherwise, do a full reparse."
         (setq cache (wisent-bovinate-nonterminals
                      (semantic-flex (point-min) (point-max)) nil))
         (working-status t))
+      ;; Clear the cache just before setting the cache.  This way,
+      ;; if an error occurs, we can capture it, and leave the old state
+      ;; behind.
+      (semantic-clear-toplevel-cache)
+      ;; Set up the new overlays, and then reset the cache.
       (semantic-overlay-list cache)
       (semantic-set-toplevel-bovine-cache cache)
       semantic-toplevel-bovine-cache))
