@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.41 2003/01/29 03:17:58 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.42 2003/08/25 17:06:54 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -210,6 +210,12 @@ These variables are used in the makefile when a configuration becomes active.")
 		    :custom (repeat
 			     (object :objecttype ede-makefile-rule))
 		    :documentation "Inference rules to add to the makefile.")
+   (include-file :initarg :include-file
+		 :initform nil
+		 :custom (repeat
+			  (string :tag "Include File"))
+		 :documentation "Additional files to include.
+These files can contain additional rules, variables, and customizations.")
    (automatic-dependencies
     :initarg :automatic-dependencies
     :initform t
