@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.48 2001/10/03 17:54:07 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.49 2001/11/02 21:35:20 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1491,6 +1491,14 @@ That is remove the unsupported :help stuff."
        :help "Highlight syntax which is not recognized valid syntax."
        ])
     (senator-menu-item
+     [ "Auto parse"
+       semantic-auto-parse-mode
+       :active t
+       :style toggle
+       :selected semantic-auto-parse-mode
+       :help "Automatically parse buffer following changes."
+       ])
+    (senator-menu-item
      [ "Semantic Database"
        semanticdb-toggle-global-mode
        :active (featurep 'semanticdb)
@@ -1687,8 +1695,10 @@ minor mode is enabled."
             (progn
               (senator-parse)
               ;; Add completion hooks
+              (make-local-hook 'semantic-before-toplevel-cache-flush-hook)
               (add-hook 'semantic-before-toplevel-cache-flush-hook
                         'senator-completion-cache-flush-fcn nil t)
+              (make-local-hook 'semantic-clean-token-hooks)
               (add-hook 'semantic-clean-token-hooks
                         'senator-completion-cache-flush-fcn nil t))
           (quit (message "senator-minor-mode: parsing of buffer canceled.")))
