@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.23 1997/02/07 03:59:18 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.24 1997/02/07 04:28:26 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -322,7 +322,9 @@ with . followed by extensions, followed by full-filenames."
 	(setq regex2 (concat regex2 (if regex2 "\\|" "") (car extlist))))
       (setq extlist (cdr extlist)))
     ;; concat all the sub-exressions together.
-    (concat "\\(\\(\\.\\(" regex1 "\\)\\)\\|\\(" regex2 "\\)\\)$")))
+    (concat "\\(\\(\\.\\(" regex1 "\\)\\)"
+	(if regex2 (concat "\\|\\(" regex2 "\\)") "")
+	"\\)$")))
 	  
 (defvar speedbar-file-regexp 
   (speedbar-extension-list-to-regex speedbar-supported-extension-expressions)
@@ -436,8 +438,9 @@ this is `nil' then speedbar will not follow the attached frame's path.")
 	     (speedbar-toggle-etags "-S")
 	     :style toggle
 	     :selected (not (member "-S" speedbar-fetch-etags-arguments))]))
- 		
-	(add-submenu nil (append '("Speedbar") (copy-tree speedbar-menu)))
+	
+	(add-submenu '("Tools") speedbar-menu nil)
+	;;(add-submenu nil (append '("Speedbar") (copy-tree speedbar-menu)))
 	)
     ;; bind mouse bindings so we can manipulate the items on each line
     (define-key speedbar-key-map [mouse-2] 'speedbar-click)
@@ -567,7 +570,8 @@ supported at a time."
       (progn
 	(run-hooks 'speedbar-before-delete-hook)
 	(if (and speedbar-frame (frame-live-p speedbar-frame))
-	    (progn
+	    (if speedbar-xemacsp
+		(delete-frame speedbar-frame)
 	      (setq speedbar-cached-frame speedbar-frame)
 	      (modify-frame-parameters speedbar-frame '((visibility . nil)))))
 	(setq speedbar-frame nil)
@@ -609,11 +613,10 @@ supported at a time."
 	  (if speedbar-xemacsp
 	      (progn
 		(set-specifier default-toolbar-visible-p (cons (selected-frame) nil))
-		(add-submenu '("Tools") speedbar-menu nil)
+		(set-specifier menubar-visible-p (cons (selected-frame) nil))
 		(make-local-variable 'current-menubar)
-		(setq current-menubar speedbar-menubar)
+		(setq current-menubar speedbar-menu)
 		(add-submenu nil speedbar-menu nil)
-		;;(setq mode-line-format '("<<    SPEEDBAR    >>"))
 		))
 	  (setq default-minibuffer-frame speedbar-attached-frame))
 	(speedbar-set-timer speedbar-update-speed)
@@ -710,7 +713,7 @@ the speedbar frame and window to be the currently active frame and window."
 	       (p5 ">>")
 	       (p3 (if speedbar-do-update "SPEEDBAR" "SLOWBAR"))
 	       (blank (- w (length p1) (length p3) (length p5)
-			 (if line-number-mode 4)))
+			 (if line-number-mode 4 0)))
 	       (p2 (make-string (/ blank 2) ? ))
 	       (p4 (make-string (+ (/ blank 2) (% blank 2)) ? ))
 	       (tf
