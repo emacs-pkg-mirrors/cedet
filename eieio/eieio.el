@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.75 2000/08/20 17:11:05 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.76 2000/08/20 19:36:18 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.15"
   "Current version of EIEIO.")
@@ -757,15 +757,15 @@ DOC-STRING is the documentation attached to METHOD."
 
 (defmacro defmethod (method &rest args)
   "Create a new METHOD through `defgeneric' with ARGS.
-ARGS lists any keys (such as :BEFORE or :AFTER), the arglst, and
+ARGS lists any keys (such as :BEFORE, :PRIMARY or :AFTER), the arglst, and
 doc string, and eventually the body, such as:
 
-  (defmethod mymethod [:BEFORE | :AFTER] (args) doc-string body)"
+  (defmethod mymethod [:BEFORE | :PRIMARY | :AFTER] (args) doc-string body)"
   `(eieio-defmethod (quote ,method) (quote ,args)))
 
 (defun eieio-defmethod (method args)
   "Work part of the `defmethod' macro defining METHOD with ARGS."
-  (let ((key nil) (body nil) (firstarg nil) (argfix nil) loopa)
+  (let ((key nil) (body nil) (firstarg nil) (argfix nil) (argclass nil) loopa)
     ;; find optional keys
     (setq key
 	  (cond ((eq ':BEFORE (car args))
@@ -774,6 +774,9 @@ doc string, and eventually the body, such as:
 		((eq ':AFTER (car args))
 		 (setq args (cdr args))
 		 2)
+		((eq ':PRIMARY (car args))
+		 (setq args (cdr args))
+		 1)
 		(t 1)))
     ;; get body, and fix contents of args to be the arguments of the fn.
     (setq body (cdr args)
@@ -796,15 +799,18 @@ doc string, and eventually the body, such as:
     ;; function.
     (setq firstarg (car args))
     (if (listp firstarg)
-	(if (not (class-p (nth 1 firstarg)))
-	    (error "Unknown class type %s in method parameters" (nth 1 firstarg)))
+	(progn
+	  (setq argclass  (nth 1 firstarg))
+	  (if (not (class-p argclass))
+	      (error "Unknown class type %s in method parameters"
+		     (nth 1 firstarg))))
       ;; generics are higher
-      (setq key (+ key method-num-fields)))
+      (setq key (+ key method-num-lists)))
     ;; Put this lambda into the symbol so we can find it
     (if (byte-code-function-p (car-safe body))
 	(eieiomt-add method (car-safe body) key (nth 1 firstarg))
       (eieiomt-add method (append (list 'lambda (reverse argfix)) body)
-		   key (nth 1 firstarg)))
+		   key argclass))
     )
   method)
 
@@ -1361,8 +1367,8 @@ TAG is an integer (see comment in eieio.el near this function) which
 is associated with the :BEFORE :PRIMARY and :AFTER tags and weather
 CLASS is defined or not.  CLASS is the class this method is associated
 with."
-  (if (or (>= tag method-num-fields) (< tag 0))
-      (error "eieiomt-add: method tag error!"))
+  (if (or (> tag method-num-fields) (< tag 0))
+      (error "Eieiomt-add: method tag error!"))
   (let ((emtv (get method-name 'eieio-method-tree))
 	(emto (get method-name 'eieio-method-obarray)))
     (if (or (not emtv) (not emto))
@@ -1476,7 +1482,9 @@ memoized for future faster use."
      (let ((emtl (aref (get method 'eieio-method-tree)
 		       (if class tag (+ tag 3)))))
        (if emtl
-	 (cons emtl nil)
+	   ;; The car of EMTL is supposed to be a class, which in this
+	   ;; case is nil, so skip it.
+	   (cons (cdr (car emtl)) nil)
 	 nil)))))
 
 ;;;
@@ -1829,6 +1837,8 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 (autoload 'eieio-browse "eieio-opt" "Create an object browser window" t)
 (autoload 'eieio-describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
 (autoload 'describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
+(autoload 'eieio-describe-generic "eieio-opt" "Describe GENERIC defined by a string or symbol" t)
+(autoload 'describe-generic "eieio-opt" "Describe GENERIC defined by a string or symbol" t)
 (autoload 'eieiodoc-class "eieio-doc" "Create texinfo documentation about a class hierarchy." t)
 
 (autoload 'eieio-customize-object "eieio-custom" "Create a custom buffer editing OBJ.")
