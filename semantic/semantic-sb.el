@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.15 2000/04/28 18:58:33 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.16 2000/05/04 02:44:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,12 @@
 
 (require 'semantic)
 (require 'speedbar)
+
+(defcustom semantic-sb-autoexpand-length 1
+  "*Length of a semantic bucket to autoexpand in place.
+This will replace the named bucket that would have usually occured here."
+  :group 'speedbar
+  :type 'integer)
 
 ;;; Code:
 
@@ -73,7 +79,6 @@ Optional PREFIX is used to specify special marker characters."
 	 (end (progn
 		(insert (int-to-string depth) ":")
 		(point))))
-    (put-text-property start end 'invisible t)
     (insert-char ?  (1- depth) nil)
     ;; take care of edata = (nil) -- a yucky but hard to clean case
     (if (and edata (listp edata) (and (<= (length edata) 1) (not (car edata))))
@@ -119,7 +124,13 @@ Optional PREFIX is used to specify special marker characters."
 		 ((and (eq type 'include)
 		       (semantic-token-include-system token))
 		  (speedbar-insert-button "<>" nil nil nil nil t))
-		 )))))
+		 )))
+    ;; This is very bizarre.  When this was just after the insertion
+    ;; of the depth: text, the : would get erased, but only for the
+    ;; auto-expanded short- buckets.  Move back for a later version
+    ;; version of Emacs 21 CVS
+    (put-text-property start end 'invisible t)
+    ))
   
 (defun semantic-sb-speedbar-data-line (depth button text &optional
 					     text-fun text-data)
@@ -279,33 +290,30 @@ TEXT TOKEN and INDENT are the details."
 
 (defun semantic-sb-buttons-plain (level tokens)
   "Create buttons at LEVEL using TOKENS."
-  (save-excursion
-   (set-buffer speedbar-buffer)
-   (let ((sordid (speedbar-create-tag-hierarchy tokens)))
-     (while sordid
-       (cond ((null (car-safe sordid)) nil)
-	     ((consp (car-safe (cdr-safe (car-safe sordid))))
-	      ;; A group!
-	      (speedbar-make-tag-line 'curly ?+ 'semantic-sb-expand-group
-				      (cdr (car sordid))
-				      (car (car sordid))
-				      nil nil 'speedbar-tag-face
-				      level))
-	     (t ;; Assume that this is a token.
-	      (semantic-sb-one-button (car sordid) level)))
-       (setq sordid (cdr sordid))))))
+  (let ((sordid (speedbar-create-tag-hierarchy tokens)))
+    (while sordid
+      (cond ((null (car-safe sordid)) nil)
+	    ((consp (car-safe (cdr-safe (car-safe sordid))))
+	     ;; A group!
+	     (speedbar-make-tag-line 'curly ?+ 'semantic-sb-expand-group
+				     (cdr (car sordid))
+				     (car (car sordid))
+				     nil nil 'speedbar-tag-face
+				     level))
+	    (t ;; Assume that this is a token.
+	     (semantic-sb-one-button (car sordid) level)))
+      (setq sordid (cdr sordid)))))
 
 (defun semantic-insert-bovine-list (level lst)
   "At LEVEL, insert the bovine parsed list LST.
 Use arcane knowledge about the semantic tokens in the tagged elements
 to create much wiser decisions about how to sort and group these items."
-  ;; The bovinator logic is *very* complex.  Do this elsewhere.
   (semantic-sb-buttons level lst))
 
 (defun semantic-sb-buttons (level tokens)
   "Create buttons at LEVEL using TOKENS sorting into type buckets."
   (save-restriction
-    (narrow-to-region (point) (point))
+    (narrow-to-region (point-min) (point))
     (let ((buckets (semantic-sb-buckets tokens))
 	  (names '(nil "Package" "Types" "Variables" "Functions"
 		       "Dependencies" "Misc"))
@@ -315,11 +323,14 @@ to create much wiser decisions about how to sort and group these items."
 	      buckets (cdr buckets)
 	      names (cdr names))
 	(if tmp
-	    (speedbar-make-tag-line 'curly ?+ 'semantic-sb-expand-group
-				    tmp
-				    (car names)
-				    nil nil 'speedbar-tag-face
-				    (1+ level)))))))
+	    (if (<= (length tmp) semantic-sb-autoexpand-length)
+		(semantic-sb-buttons-plain (1+ level) tmp)
+	      (speedbar-make-tag-line 'curly ?+ 'semantic-sb-expand-group
+				      tmp
+				      (car names)
+				      nil nil 'speedbar-tag-face
+				      (1+ level))
+	      ))))))
 
 (defun semantic-sb-buckets (tokens)
   "Sort TOKENS into a group of buckets based on type, and toss the rest."
