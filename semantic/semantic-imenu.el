@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.3 2000/06/14 19:23:25 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.4 2000/07/04 18:33:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -73,21 +73,21 @@ Uses the output of the Semantic Bovinator to create the index."
 	    
 (defun semantic-create-imenu-subindex (tokens)
   "From TOKENS, create an imenu index of interesting things."
-  (let (index token)
+  (let (index token parts)
     (while tokens
       (setq token (car tokens))
-      (if (eq (semantic-token-token token) 'type)
-	  (setq index (cons (cons
-			     (funcall semantic-imenu-summary-function token)
-			     (if semantic-imenu-bucketize-type-parts
-				 (semantic-create-imenu-index
-				  (semantic-token-type-parts token))
-			       (semantic-create-imenu-subindex
-				(semantic-token-type-parts token))))
-			    index))
-	(setq index (cons (cons (funcall semantic-imenu-summary-function token)
-				(semantic-token-end token))
-			  index)))
+      (if (and (eq (semantic-token-token token) 'type)
+               (setq parts (semantic-token-type-parts token)))
+          (setq index (cons (cons
+                             (funcall semantic-imenu-summary-function
+				      token)
+                             (if semantic-imenu-bucketize-type-parts
+                                 (semantic-create-imenu-index parts)
+                               (semantic-create-imenu-subindex parts)))
+                            index))
+        (setq index (cons (cons (funcall semantic-imenu-summary-function token)
+                                (semantic-token-end token))
+                          index)))
       (setq tokens (cdr tokens)))
     (nreverse index)))
 
