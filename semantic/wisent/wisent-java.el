@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.33 2003/02/19 16:33:07 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.34 2003/03/13 08:39:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,7 +48,7 @@
 ;;;;
 
 (defconst wisent-java-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-02-18 22:41+0100
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-03-12 14:40+0100
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -57,7 +57,8 @@
        nil
        (goal
         ((compilation_unit)
-         (wisent-token "goal" 'goal $1 nil)))
+         (wisent-raw-token
+          (semantic-token "goal" 'goal 'tree $1))))
        (literal
         ((NULL_LITERAL))
         ((BOOLEAN_LITERAL))
@@ -131,16 +132,22 @@
          (list $1)))
        (package_declaration
         ((PACKAGE name SEMICOLON)
-         (wisent-cooked-token $2 'package nil nil))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-package $2 nil))))
         ((error)
          (wisent-skip-token)))
        (import_declaration
         ((IMPORT name SEMICOLON)
-         (wisent-cooked-token $2 'include nil nil))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-include $2 nil))))
         ((IMPORT name DOT MULT SEMICOLON)
-         (wisent-cooked-token
-          (concat $2 $3 $4)
-          'include nil nil))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-include
+            (concat $2 $3 $4)
+            nil))))
         ((error)
          (wisent-skip-token)))
        (type_declaration
@@ -173,12 +180,13 @@
         ((PUBLIC)))
        (class_declaration
         ((modifiers_opt CLASS IDENTIFIER superc_opt interfaces_opt class_body)
-         (wisent-cooked-token $3 'type $2 $6
-                              (if
-                                  (or $4 $5)
-                                  (cons $4 $5))
-                              (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                              nil)))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-type $3 $2 $6
+                                    (if
+                                        (or $4 $5)
+                                        (cons $4 $5))
+                                    'typemodifiers $1)))))
        (superc
         ((EXTENDS class_type)
          (identity $2)))
@@ -227,10 +235,10 @@
        (field_declarations_opt
         (nil)
         ((field_declarations)
-         (wisent-token "goal" 'goal
-                       (apply 'nconc
-                              (nreverse $1))
-                       nil)))
+         (wisent-raw-token
+          (semantic-token "goal" 'goal 'tree
+                          (apply 'nconc
+                                 (nreverse $1))))))
        (field_declarations
         ((field_declarations field_declaration_maybe)
          (cons $2 $1))
@@ -242,9 +250,9 @@
          (wisent-skip-token)))
        (field_declaration
         ((modifiers_opt type variable_declarators SEMICOLON)
-         (wisent-cooked-token $3 'variable $2 nil
-                              (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                              nil)))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-variable $3 $2 nil 'typemodifiers $1)))))
        (variable_declarators
         ((variable_declarators COMMA variable_declarator)
          (cons $3 $1))
@@ -264,19 +272,21 @@
         ((expression)))
        (method_declaration
         ((modifiers_opt VOID method_declarator throwsc_opt method_body)
-         (wisent-cooked-token
-          (car $3)
-          'function $2
-          (cdr $3)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-          nil))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-function
+            (car $3)
+            $2
+            (cdr $3)
+            'typemodifiers $1 'throws $4))))
         ((modifiers_opt type method_declarator throwsc_opt method_body)
-         (wisent-cooked-token
-          (car $3)
-          'function $2
-          (cdr $3)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-          nil)))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-function
+            (car $3)
+            $2
+            (cdr $3)
+            'typemodifiers $1 'throws $4)))))
        (method_declarator
         ((method_declarator LBRACK RBRACK)
          (cons
@@ -298,9 +308,9 @@
          (list $1)))
        (formal_parameter
         ((formal_parameter_modifier_opt type variable_declarator_id)
-         (wisent-cooked-token $3 'variable $2 nil
-                              (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                              nil)))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-variable $3 $2 nil 'typemodifiers $1)))))
        (formal_parameter_modifier_opt
         (nil)
         ((FINAL)
@@ -323,12 +333,13 @@
         ((STATIC block)))
        (constructor_declaration
         ((modifiers_opt constructor_declarator throwsc_opt constructor_body)
-         (wisent-cooked-token
-          (car $2)
-          'function nil
-          (cdr $2)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $3)
-          nil)))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-function
+            (car $2)
+            nil
+            (cdr $2)
+            'typemodifiers $1 'throws $3)))))
        (constructor_declarator
         ((simple_name LPAREN formal_parameter_list_opt RPAREN)
          (cons $1 $3)))
@@ -343,11 +354,12 @@
         ((THIS LPAREN argument_list_opt RPAREN SEMICOLON)))
        (interface_declaration
         ((modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body)
-         (wisent-cooked-token $3 'type $2 $5
-                              (if $4
-                                  (cons nil $4))
-                              (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                              nil)))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-type $3 $2 $5
+                                    (if $4
+                                        (cons nil $4))
+                                    'typemodifiers $1)))))
        (extends_interfaces_opt
         (nil)
         ((extends_interfaces)
@@ -381,19 +393,21 @@
         ((field_declaration)))
        (abstract_method_declaration
         ((modifiers_opt VOID method_declarator throwsc_opt SEMICOLON)
-         (wisent-cooked-token
-          (car $3)
-          'function $2
-          (cdr $3)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-          nil))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-function
+            (car $3)
+            $2
+            (cdr $3)
+            'typemodifiers $1 'throws $4))))
         ((modifiers_opt type method_declarator throwsc_opt SEMICOLON)
-         (wisent-cooked-token
-          (car $3)
-          'function $2
-          (cdr $3)
-          (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
-          nil)))
+         (wisent-cook-token
+          (wisent-raw-token
+           (semantic-token-new-function
+            (car $3)
+            $2
+            (cdr $3)
+            'typemodifiers $1 'throws $4)))))
        (array_initializer
         ((LBRACE RBRACE))
         ((LBRACE error)
@@ -571,7 +585,7 @@ Tweaked for Semantic needs.  That is to avoid full parsing of
 unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-02-18 22:41+0100
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-03-12 14:40+0100
   (semantic-lex-make-keyword-table
    '(("abstract" . ABSTRACT)
      ("boolean" . BOOLEAN)
@@ -725,7 +739,7 @@ unnecessary stuff to improve performance.")
   "Java keywords.")
 
 (defconst wisent-java-tokens
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-02-18 22:41+0100
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-03-12 14:40+0100
   (wisent-lex-make-token-table
    '(("number"
       (NUMBER_LITERAL))
@@ -791,7 +805,7 @@ unnecessary stuff to improve performance.")
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-02-18 22:41+0100
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-03-12 14:40+0100
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -850,7 +864,7 @@ Use the alternate LALR(1) parser."
 Expand special raw tokens 'goal into a list of nonterminals.  A 'goal
 raw token has the form:
 
-\(\"goal\" 'goal NONTERMS DOCSTRING PROPS OVERLAY)
+\(\"goal\" 'goal ((tree . NONTERMS)) DOCSTRING PROPS OVERLAY)
 
 where NONTERMS is a list of cooked nonterminal tokens in reverse
 order.  The DOCSTRING, PROPS and OVERLAY elements have no meaning.
@@ -871,7 +885,7 @@ variable NAME."
      
      ;; Expand a goal
      ((eq cat 'goal)
-      (nreverse (nth 2 token)))
+      (nreverse (cdr (assq 'tree (nth 2 token)))))
      
      ;; Expand multiple names in the same variable declaration.
      ((and (eq cat 'variable)
