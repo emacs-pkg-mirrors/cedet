@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.89 2003/12/22 15:56:12 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.90 2003/12/29 01:25:14 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2329,90 +2329,6 @@ If senator is not active, use the original mechanism."
     ;; will be stable.
     (goto-char end-pt)))
 
-;;;;
-;;;; Summary mode
-;;;;
-
-;; Since eldoc kicks butt for Emacs Lisp mode, this advice will let
-;; us do eldoc like things for other languages.
-(eval-when-compile (require 'eldoc)
-                   (require 'semantic-ctxt))
-
-(defcustom senator-eldoc-use-color (or (featurep 'xemacs)
-                                       (>= emacs-major-version 21))
-  "*Use color for eldoc strings generated with semantic.
-Colored text can be printed with the message command with some
-versions of Emacs."
-  :group 'senator
-  :type 'boolean)
-
-(defcustom senator-eldoc-summary-function 'semantic-format-tag-summarize
-  "*Function to use when displaying tag information with eldoc.
-Some useful functions are found in `semantic-format-tag-functions'."
-  :group 'semantic-senator
-  :type semantic-format-tag-custom-list)
-(make-variable-buffer-local 'senator-eldoc-summary-function)
-
-(defsubst senator-find-current-symbol-tag (sym)
-  "Search for a semantic tag with name SYM.
-Return the tag found or nil if not found."
-  (car (if (and (featurep 'semanticdb) semanticdb-current-database)
-           (cdar (semanticdb-deep-find-tags-by-name sym))
-         (semantic-deep-find-tags-by-name sym (current-buffer)))))
-
-(defun senator-eldoc-print-current-symbol-info-default ()
-  "Return a string message describing the current context."
-  (let (sym found)
-    (and
-     ;; 1- Look for a tag with current symbol name
-     (setq sym (car (semantic-ctxt-current-symbol)))
-     (not (setq found (senator-find-current-symbol-tag sym)))
-     ;; 2- Look for a keyword with that name
-     (semantic-lex-keyword-p sym)
-     (not (setq found (semantic-lex-keyword-get sym 'summary)))
-     ;; 3- Look for a tag with current function name
-     (setq sym (car (semantic-ctxt-current-function)))
-     (not (setq found (senator-find-current-symbol-tag sym)))
-     ;; 4- Look for a keyword with that name
-     (semantic-lex-keyword-p sym)
-     (setq found (semantic-lex-keyword-get sym 'summary)))
-    found))
-
-(defun senator-eldoc-print-current-symbol-info ()
-  "Print information using `eldoc-message' while in function `eldoc-mode'.
-You can override the info collecting part with `eldoc-current-symbol-info'."
-  (let* ((s (semantic-fetch-overload 'eldoc-current-symbol-info))
-         found
-	 str)
-    
-    (if s (setq found (funcall s))
-      (setq found (senator-eldoc-print-current-symbol-info-default)))
-
-    (setq str (cond ((stringp found)
-		     found)
-		    ((semantic-tag-p found)
-		     (funcall senator-eldoc-summary-function
-			      found nil senator-eldoc-use-color))
-		    (t nil)
-		    ))
-
-    (unless (and (boundp 'eldoc-echo-area-use-multiline-p)
-		 eldoc-echo-area-use-multiline-p)
-      (let ((w (1- (window-width (minibuffer-window)))))
-	(if (> (length str) w)
-	    (setq str (substring str 0 w)))))
-      
-    (eldoc-message str)))
-
-(defadvice eldoc-print-current-symbol-info (around senator activate)
-  "Enable ELDOC in non Emacs Lisp, but semantic-enabled modes."
-  (if (eq major-mode 'emacs-lisp-mode)
-      ad-do-it
-    (if (semantic-active-p)
-        (if (eldoc-display-message-p)
-            (senator-eldoc-print-current-symbol-info))
-      (eldoc-mode -1))))
-
 ;;; HIPPIE EXPAND
 ;;
 ;; Senator has a nice completion mechanism.  Use it to add a new
@@ -2467,21 +2383,25 @@ found, nil otherwise."
                   (he-init-string symstart (point))
                   (setq senator-last-completion-stats nil))))
         ;; do completion with senator's mechanism.
-        (if (or old symstart)
-            (let ((ret (senator-complete-symbol t)))
-              (cond (ret
-                     ;; Found a new completion, update the end marker.
-                     (set-marker he-string-end (point))
-                     ;; Update the tried table so other hippie expand
-                     ;; try functions can see whether an expansion has
-                     ;; already been tried.
-                     (setq he-tried-table (cons ret he-tried-table)))
-                    ;; No more completion
-                    (old
-                     ;; Reset the initial completed string for other
-                     ;; hippie-expand try functions.
-                     (he-reset-string)))
-              ret)))))
+        (when (or old symstart)
+	  ;; This bit will turn off parsing on lexical errors.
+	  (semantic-lex-catch-errors 'senator-hippie-expand
+	    (semantic-bovinate-toplevel t))
+	  ;; Do the completion
+	  (let ((ret (senator-complete-symbol t)))
+	    (cond (ret
+		   ;; Found a new completion, update the end marker.
+		   (set-marker he-string-end (point))
+		   ;; Update the tried table so other hippie expand
+		   ;; try functions can see whether an expansion has
+		   ;; already been tried.
+		   (setq he-tried-table (cons ret he-tried-table)))
+		  ;; No more completion
+		  (old
+		   ;; Reset the initial completed string for other
+		   ;; hippie-expand try functions.
+		   (he-reset-string)))
+	    ret)))))
 
 ;;;;
 ;;;; Using semantic search in isearch mode
