@@ -1,9 +1,11 @@
 # C/C++ BNF language specification
 #
-# Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+# Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.59.2.10 2003/04/04 12:19:38 berndl Exp $
+#         Klaus Berndl <klaus.berndl@sdm.de>
+#
+# X-RCS: $Id: c.bnf,v 1.59.2.11 2003/06/06 06:49:26 ponced Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -380,22 +382,22 @@ opt-class-declmods : symbol declespec semantic-list
 		   | EMPTY
 		   ;
 
-typesimple : struct-or-class opt-name opt-template-specifier
+typesimple : struct-or-class opt-class opt-name opt-template-specifier
 	     opt-class-parents semantic-list
-	     ( ,$2 type ,$1 
-		   (let ((semantic-c-classname (cons (car ,$2) (car ,$1))))
-		       (EXPANDFULL $5 classsubparts))
-		   $4
-		   (ASSOC 'template-specifier $3)
+	     ( ,$3 type ,$1 
+		   (let ((semantic-c-classname (cons (car ,$3) (car ,$1))))
+		       (EXPANDFULL $6 classsubparts))
+		   $5
+		   (ASSOC 'template-specifier $4 'parent (car ,$2))
 		   nil )
-	   | struct-or-class opt-name opt-template-specifier opt-class-parents
-	     ( ,$2 type ,$1 nil $4 
-		   (ASSOC 'template-specifier $3)
+	   | struct-or-class opt-class opt-name opt-template-specifier opt-class-parents
+	     ( ,$3 type ,$1 nil $5
+		   (ASSOC 'template-specifier $4 'parent (car ,$2))
 		    nil )
-	   | UNION opt-name unionparts
-	     ( ,$2 type $1 $3 nil nil nil )
-	   | ENUM opt-name enumparts
-	     ( ,$2 type $1 $3 nil nil nil )
+	   | UNION opt-class opt-name unionparts
+	     ( ,$3 type $1 $4 nil (ASSOC 'parent (car ,$2)) nil )
+	   | ENUM opt-class opt-name enumparts
+	     ( ,$3 type $1 $4 nil (ASSOC 'parent (car ,$2)) nil )
 # Klaus Berndl <klaus.berndl@sdm.de>: a typedef can be a typeformbase
 # with all this declmods stuff.
            | TYPEDEF declmods typeformbase cv-declmods typedef-symbol-list
@@ -640,6 +642,8 @@ builtintype-types : VOID
                   | CHAR
 # Klaus Berndl <klaus.berndl@sdm.de>: Added WCHAR
                   | WCHAR
+		  | SHORT INT
+		    ( (concat $1 " " $2) )
                   | SHORT
                   | INT
 		  | LONG INT
