@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.95 2004/03/09 11:40:13 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.96 2004/03/20 00:16:14 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -189,7 +189,7 @@ langage behaviour."
 
 (defsubst senator-parse ()
   "Parse the current buffer and return the tags where to navigate."
-  (semantic-bovinate-toplevel t))
+  (semantic-fetch-tags))
 
 (defsubst senator-current-tag ()
   "Return the current tag in the current buffer.
@@ -2408,7 +2408,7 @@ found, nil otherwise."
         (when (or old symstart)
 	  ;; This bit will turn off parsing on lexical errors.
 	  (semantic-lex-catch-errors senator-hippie-expand
-	    (semantic-bovinate-toplevel t))
+	    (semantic-fetch-tags))
 	  ;; Do the completion
 	  (let ((ret (senator-complete-symbol t)))
 	    (cond (ret
