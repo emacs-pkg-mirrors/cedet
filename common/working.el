@@ -263,7 +263,7 @@ See the function `message' for details on ARGS."
       (cancel-timer working-temp-message-timer)
       (setq working-temp-message-timer nil))
     (when working-temp-message-saved
-      (working-message-echo working-temp-message-saved)
+      (working-message-echo "%s" working-temp-message-saved)
       (setq working-temp-message-saved nil)))
   
   (defun working-temp-message (string &rest args)
