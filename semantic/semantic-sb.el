@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.48 2004/03/20 00:09:48 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.49 2004/03/21 07:46:16 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -363,7 +363,7 @@ to create much wiser decisions about how to sort and group these items."
 	(setq lst (cdr lst))))))
 
 (defun semantic-sb-fetch-tag-table (file)
-  "Load FILE into a buffer, and generate tags using the Semantic Bovinator.
+  "Load FILE into a buffer, and generate tags using the Semantic parser.
 Returns the tag list, or t for an error."
   (let ((out nil))
     (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p)
