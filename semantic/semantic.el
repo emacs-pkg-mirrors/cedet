@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.88 2001/02/28 00:43:22 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.89 2001/03/05 08:07:07 ponced Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -865,163 +865,224 @@ the current results on a parse error."
 ;; The bovinator takes a state table, and converts the token stream
 ;; into a new semantic stream defined by the bovination table.
 ;;
-(defun semantic-bovinate-nonterminal (stream table &optional nonterminal)
-  "Bovinate STREAM based on the TABLE of nonterminal symbols.
-Optional argument NONTERMINAL is the nonterminal symbol to start with.
-Use `bovine-toplevel' if it is not provided."
-  (if (not nonterminal) (setq nonterminal 'bovine-toplevel))
-  (let ((ml (assq nonterminal table)))
-    (semantic-bovinate-stream stream (cdr ml) table)))
-
 (defsubst semantic-bovinate-symbol-nonterminal-p (sym table)
   "Return non-nil if SYM is in TABLE, indicating it is NONTERMINAL."
   ;; sym is always a sym, so assq should be ok.
   (if (assq sym table) t nil))
 
-(defun semantic-bovinate-stream (stream matchlist table)
-  "Bovinate STREAM using MATCHLIST resolving nonterminals with TABLE.
+(defmacro semantic-bovinate-nonterminal-db-nt ()
+  "Return the current nonterminal symbol.
+Part of the BNF source debugger.  Depends on the existing environment
+of `semantic-bovinate-nonterminal'."
+  `(if nt-stack
+       (car (aref (car nt-stack) 2))
+     nonterminal))
+
+(defun semantic-bovinate-nonterminal (stream table &optional nonterminal)
+  "Bovinate STREAM based on the TABLE of nonterminal symbols.
+Optional argument NONTERMINAL is the nonterminal symbol to start with.
+Use `bovine-toplevel' if it is not provided.
 This is the core routine for converting a stream into a table.
-See the variable `semantic-toplevel-bovine-table' for details on the
-format of MATCHLIST.
 Return the list (STREAM SEMANTIC-STREAM OVERLAYS) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
 list of semantic tokens found.  OVERLAYS is the list of overlays found
 so far, to be used in the error recovery stack."
-  (let ((s   nil)			;Temp Stream Tracker
-	(lse nil)			;Local Semantic Element
-	(lte nil)			;Local matchlist element
-	(tev nil)			;Matchlist entry values from buffer
-	(val nil)			;Value found in buffer.
-	(cvl nil)			;collected values list.
-	(out nil)			;Output
-	(ov nil)			;Overlay
-	(s-stack nil)			;rollback stream stack
-	(start nil)			;the beginning and end.
-	(end nil)
-	(db-mlen (length matchlist))
-	(db-tlen 0)
-	(semantic-overlay-error-recovery-stack nil) ;part of error recovery
-	)
-    ;; prime the rollback stack
-    (setq s-stack (cons stream s-stack)
-	  start (car (cdr (car stream)))
-	  end (cdr (cdr (car stream))))
-    (while matchlist
-      (setq s (car s-stack)		;init s from the stack.
-	    cvl nil			;re-init the collected value list.
-	    lte (car matchlist)		;Get the local matchlist entry.
-	    db-tlen (length lte))	;length of the local match.
-      (if (or (byte-code-function-p (car lte))
-	      (listp (car lte)))
-	  ;; In this case, we have an EMPTY match!  Make stuff up.
-	  (setq cvl (list nil)))
-      (while (and lte (not (or (byte-code-function-p (car lte))
-			       (listp (car lte)))))
-	;; debugging!
-	(if (and lte semantic-edebug)
-	    ;; The below reference to nonterminal is a hack and the byte
-	    ;; compiler will complain about it.
-	    (let ((r (semantic-bovinate-show (car s) nonterminal
-					     (- db-mlen (length matchlist))
-					     (- db-tlen (length lte))
-					     cvl)))
-	      (cond ((eq r 'fail)
-		     (setq lte '(trash 0 . 0)))
-		    (t nil))))
-	(cond
-	 ;; We have a nonterminal symbol.  Recurse inline.
-	 ((semantic-bovinate-symbol-nonterminal-p (car lte) table)
-	  (let ((nontermout (semantic-bovinate-nonterminal s table (car lte))))
-	    (setq s (car nontermout)
-		  val (car (cdr nontermout))
-		  ov (car (cdr (cdr nontermout))))
-	    (if ov (semantic-overlay-stack-add ov))
-	    (if val
-		(let ((len (length val))
-		      (strip (nreverse (cdr (cdr (reverse val))))))
-		  (if semantic-dump-parse
-		      (semantic-dump-detail (cdr nontermout)
-					    (car lte)
-					    ""
-					    "NonTerm Match"))
-		  (setq end (nth (1- len) val) ;reset end to the end of exp
-			cvl (cons strip cvl) ;prepend value of exp
-			lte (cdr lte)) ;update the local table entry
-		  )
-	      ;; No value means that we need to terminate this match.
-	      (semantic-overlay-stack-clear)
-	      (setq lte nil cvl nil)) ;No match, exit
-	    ))
-	 ;; Default case
-	 (t
-	  (setq lse (car s)		;Get the local stream element
-		s (cdr s))		;update stream.
-	  ;; Do the compare
-	  (if (eq (car lte) (car lse))	;syntactic match
-	      (let ((valdot (cdr lse)))
-		(setq val (semantic-flex-text lse))
-		;; DEBUG SECTION
-		(if semantic-dump-parse
-		    (semantic-dump-detail
-		     (if (stringp (car (cdr lte)))
-			 (list (car (cdr lte)) (car lte))
-		       (list (car lte)))
-		     nonterminal val
-		     (if (stringp (car (cdr lte)))
-			 (if (string-match (car (cdr lte)) val)
-			     "Term Match" "Term Fail")
-		       "Term Type=")))
-		;; END DEBUG SECTION
-		(setq lte (cdr lte))
-		(if (stringp (car lte))
-		    (progn
-		      (setq tev (car lte)
-			    lte (cdr lte))
-		      (if (string-match tev val)
-			  (setq cvl (cons
-				     (if (member (car lse)
-						 '(comment semantic-list))
-					 valdot val)
-				     cvl)) ;append this value
-			(semantic-overlay-stack-clear)
-			(setq lte nil cvl nil))) ;clear the entry (exit)
-		  (setq cvl (cons
-			     (if (member (car lse)
-					 '(comment semantic-list))
-				 valdot val) cvl))) ;append unchecked value.
-		(setq end (cdr (cdr lse)))
-		)
-	    (if (and semantic-dump-parse nil)
-		(semantic-dump-detail (car lte)
-				      nonterminal (semantic-flex-text lse)
-				      "Term Type Fail"))
-	    (semantic-overlay-stack-clear)
-	    (setq lte nil cvl nil)) 	;No more matches, exit
-	  )))
-      (if (not cvl)			;lte=nil;  there was no match.
-	  (setq matchlist (cdr matchlist)) ;Move to next matchlist entry
-	(setq out (if (car lte)
-; REMOVE THIS TO USE THE REFERENCE/COMPARE CODE
-; 		      (let ((o (apply (car lte)	;call matchlist fn on values
-; 				      (nreverse cvl) start (list end))))
-; 			(if semantic-bovinate-create-reference (semantic-bovinate-add-reference o))
-; 			(if semantic-bovinate-compare-reference (semantic-bovinate-compare-against-reference o))
-; 			o
-; 			)
-		      (funcall (car lte)	;call matchlist fn on values
-			       (nreverse cvl) start end)
-		    (cond ((and (= (length cvl) 1)
-				(listp (car cvl))
-				(not (numberp (car (car cvl)))) )
-			   (append (car cvl) (list start end)))
-			  (t
-			   (append (nreverse cvl) (list start end))))
-		    )
-	      matchlist nil)		;generate exit condition
-	(if (not end) (setq out nil))
-	;; Nothin?
-	))
-    (list s out semantic-overlay-error-recovery-stack)))
+  (if (not nonterminal)
+      (setq nonterminal 'bovine-toplevel))
+  (let ((matchlist (cdr (assq nonterminal table)))
+        (nt-loop  t)             ;non-terminal loop condition
+        nt-popup                 ;non-nil if return from nt recursion
+        nt-stack                 ;non-terminal recursion stack
+        s                        ;Temp Stream Tracker
+        lse                      ;Local Semantic Element
+        lte                      ;Local matchlist element
+        tev                      ;Matchlist entry values from buffer
+        val                      ;Value found in buffer.
+        cvl                      ;collected values list.
+        out                      ;Output
+        end                      ;End of match
+        result
+        semantic-overlay-error-recovery-stack ;part of error recovery
+        )
+    (while nt-loop
+      (catch 'push-non-terminal
+        (setq semantic-overlay-error-recovery-stack nil
+              nt-popup nil
+              end (cdr (cdr (car stream))))
+        (while (or nt-loop nt-popup)
+          (setq nt-loop nil
+                out     nil)
+          (while (or nt-popup matchlist)
+            (if nt-popup
+                ;; End of a non-terminal recursion
+                (setq nt-popup nil)
+              ;; New matching process
+              (setq s   stream           ;init s from stream.
+                    cvl nil              ;re-init the collected value list.
+                    lte (car matchlist)  ;Get the local matchlist entry.
+                    )
+              (if (or (byte-code-function-p (car lte))
+                      (listp (car lte)))
+                  ;; In this case, we have an EMPTY match!  Make stuff
+                  ;; up.
+                  (setq cvl (list nil))))
+            
+            (while (and lte
+                        (not (byte-code-function-p (car lte)))
+                        (not (listp (car lte))))
+
+              ;; BNF SOURCE DEBUGGING!
+              (if semantic-edebug
+                  (let* ((db-nt   (semantic-bovinate-nonterminal-db-nt))
+                         (db-ml   (cdr (assq db-nt table)))
+                         (db-mlen (length db-ml))
+                         (db-midx (- db-mlen (length matchlist)))
+                         (db-tlen (length (nth db-midx db-ml)))
+                         (db-tidx (- db-tlen (length lte))))
+                    (if (eq 'fail
+                            (semantic-bovinate-show
+                             (car s) db-nt db-midx db-tidx cvl))
+                        (setq lte '(trash 0 . 0)))))
+              ;; END BNF SOURCE DEBUGGING!
+              
+              (cond
+               ;; We have a nonterminal symbol.  Recurse inline.
+               ((setq nt-loop (assq (car lte) table))
+          
+                (setq
+                 ;; push state into the nt-stack
+                 nt-stack (cons (vector matchlist cvl lte stream end
+                                        ;; error recovery
+                                        semantic-overlay-error-recovery-stack
+                                        )
+                                nt-stack)
+                 ;; new non-terminal matchlist
+                 matchlist   (cdr nt-loop)
+                 ;; new non-terminal stream
+                 stream      s)
+               
+                (throw 'push-non-terminal t)
+
+                )
+               ;; Default case
+               (t
+                (setq lse (car s)       ;Get the local stream element
+                      s   (cdr s))      ;update stream.
+                ;; Do the compare
+                (if (eq (car lte) (car lse)) ;syntactic match
+                    (let ((valdot (cdr lse)))
+                      (setq val (semantic-flex-text lse))
+                      ;; DEBUG SECTION
+                      (if semantic-dump-parse
+                          (semantic-dump-detail
+                           (if (stringp (car (cdr lte)))
+                               (list (car (cdr lte)) (car lte))
+                             (list (car lte)))
+                           (semantic-bovinate-nonterminal-db-nt)
+                           val
+                           (if (stringp (car (cdr lte)))
+                               (if (string-match (car (cdr lte)) val)
+                                   "Term Match" "Term Fail")
+                             "Term Type=")))
+                      ;; END DEBUG SECTION
+                      (setq lte (cdr lte))
+                      (if (stringp (car lte))
+                          (progn
+                            (setq tev (car lte)
+                                  lte (cdr lte))
+                            (if (string-match tev val)
+                                (setq cvl (cons
+                                           (if (memq (car lse)
+                                                     '(comment semantic-list))
+                                               valdot val)
+                                           cvl)) ;append this value
+                              (semantic-overlay-stack-clear)
+                              (setq lte nil cvl nil))) ;clear the entry (exit)
+                        (setq cvl (cons
+                                   (if (memq (car lse)
+                                             '(comment semantic-list))
+                                       valdot val) cvl))) ;append unchecked value.
+                      (setq end (cdr (cdr lse)))
+                      )
+                  (if (and semantic-dump-parse nil)
+                      (semantic-dump-detail (car lte)
+                                            (semantic-bovinate-nonterminal-db-nt)
+                                            (semantic-flex-text lse)
+                                            "Term Type Fail"))
+                  (semantic-overlay-stack-clear)
+                  (setq lte nil cvl nil)) ;No more matches, exit
+                )))
+            (if (not cvl)               ;lte=nil;  there was no match.
+                (setq matchlist (cdr matchlist)) ;Move to next matchlist entry
+              (let ((start (car (cdr (car stream)))))
+                (setq out (cond
+                           ((car lte)
+                        
+                            ;; REMOVE THIS TO USE THE REFERENCE/COMPARE CODE
+                            ;;(let ((o (apply (car lte) ;call matchlist fn on values
+                            ;;                (nreverse cvl) start (list end))))
+                            ;;  (if semantic-bovinate-create-reference
+                            ;;      (semantic-bovinate-add-reference o))
+                            ;;  (if semantic-bovinate-compare-reference
+                            ;;      (semantic-bovinate-compare-against-reference o))
+                            ;;  o
+                            ;;  )
+                            
+                            (funcall (car lte) ;call matchlist fn on values
+                                     (nreverse cvl) start end))
+                           ((and (= (length cvl) 1)
+                                 (listp (car cvl))
+                                 (not (numberp (car (car cvl)))))
+                            (append (car cvl) (list start end)))
+                           (t
+                            ;;(append (nreverse cvl) (list start end))))
+                            ;; MAYBE THE FOLLOWING NEEDS LESS CONS
+                            ;; CELLS THAN THE ABOVE?
+                            (nreverse (cons end (cons start cvl)))))
+                      matchlist nil) ;;generate exit condition
+                (if (not end)
+                    (setq out nil)))
+              ;; Nothin?
+              ))
+          (setq result (list s out semantic-overlay-error-recovery-stack))
+          (if nt-stack
+              ;; pop previous state from the nt-stack
+              (let ((state (car nt-stack))
+                    (ov semantic-overlay-error-recovery-stack))
+
+                (setq nt-popup    t
+                      ;; pop actual parser state
+                      matchlist   (aref state 0)
+                      cvl         (aref state 1)
+                      lte         (aref state 2)
+                      stream      (aref state 3)
+                      end         (aref state 4)
+                      ;; pop error recovery state
+                      semantic-overlay-error-recovery-stack (aref state 5)
+                      ;; update the stack
+                      nt-stack    (cdr nt-stack))
+                
+                (if ov
+                    (semantic-overlay-stack-add ov))
+                
+                (if out
+                    (let ((len (length out))
+                          (strip (nreverse (cdr (cdr (reverse out))))))
+                      (if semantic-dump-parse
+                          (semantic-dump-detail (cdr result)
+                                                (car lte)
+                                                ""
+                                                "NonTerm Match"))
+                      (setq end (nth (1- len) out) ;reset end to the end of exp
+                            cvl (cons strip cvl) ;prepend value of exp
+                            lte (cdr lte)) ;update the local table entry
+                      )
+                  ;; No value means that we need to terminate this
+                  ;; match.
+                  (semantic-overlay-stack-clear)
+                  (setq lte nil cvl nil)) ;No match, exit
+                )))))
+    result))
 
 
 ;;; Bovine table functions
@@ -1140,18 +1201,18 @@ Argument COMMENT is additional description."
 	   (not semantic-bovinate-debug-table))
       (error
        "Call `semantic-bovinate-debug-set-table' from your semantic table"))
+  (delete-other-windows)
+  (split-window-vertically)
+  (if semantic-bovinate-debug-table
+      (switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
+    (if (not semantic-toplevel-bovine-table-source)
+        (error "No debuggable BNF source found"))
+    (require 'semantic-bnf)
+    (switch-to-buffer (semantic-bnf-find-source-on-load-path
+                       semantic-toplevel-bovine-table-source)))
+  (other-window 1)
+  (semantic-clear-toplevel-cache)
   (let ((semantic-edebug t))
-    (delete-other-windows)
-    (split-window-vertically)
-    (if semantic-bovinate-debug-table
-	(switch-to-buffer (marker-buffer semantic-bovinate-debug-table))
-      (if (not semantic-toplevel-bovine-table-source)
-	  (error "No debuggable BNF source found"))
-      (require 'semantic-bnf)
-      (switch-to-buffer (semantic-bnf-find-source-on-load-path
-			 semantic-toplevel-bovine-table-source)))
-    (other-window 1)
-    (semantic-clear-toplevel-cache)
     (semantic-bovinate-toplevel)))
 
 (defun semantic-bovinate-show (lse nonterminal matchlen tokenlen collection)
@@ -1162,9 +1223,10 @@ NONTERMINAL is the current nonterminal being parsed.
 MATCHLEN is the number of match lists tried.
 TOKENLEN is the number of match tokens tried.
 COLLECTION is the list of things collected so far."
-  (let ((ol1 nil) (ol2 nil) (ret nil)
-	(bnf-buffer (semantic-bnf-find-source-on-load-path
-		     semantic-toplevel-bovine-table-source)))
+  (let* ((semantic-edebug nil)
+         (ol1 nil) (ol2 nil) (ret nil)
+         (bnf-buffer (semantic-bnf-find-source-on-load-path
+                      semantic-toplevel-bovine-table-source)))
     (unwind-protect
 	(progn
 	  (goto-char (car (cdr lse)))
