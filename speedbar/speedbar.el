@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.7
+;; Version: 0.7e
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.96 1998/05/05 02:08:53 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.97 1998/05/06 01:28:50 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -365,7 +365,7 @@
 
 (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
   "Non-nil if we are running in the XEmacs environment.")
-(defvar speedbar-xemacs20p (and speedbar-xemacsp 
+(defvar speedbar-xemacs20p (and speedbar-xemacsp
 				(= emacs-major-version 20)))
 
 ;; From custom web page for compatibility between versions of custom:
