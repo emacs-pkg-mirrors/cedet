@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.107 2001/07/05 15:41:11 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.108 2001/07/12 18:47:34 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta2"
   "Current version of EIEIO.")
@@ -223,7 +223,8 @@ yet supported.  Supported tags are:
   :initform   - initializing form
   :initarg    - tag used during initialization
   :accessor   - tag used to create a function to access this field
-  :allocation - defaults to :instance, but could also be :class
+  :allocation - specify where the value is stored.
+                defaults to `:instance', but could also be `:class'
   :writer     - a function symbol which will `write' an object's slot
   :reader     - a function symbol which will `read' an object
   :type       - the type of data allowed in this slot (see `typep')
@@ -231,7 +232,7 @@ yet supported.  Supported tags are:
               - A string documenting use of this slot.
 
 The following are extensions on CLOS:
-  :protection - non-nil means a private slot (accessible when THIS is set)
+  :protection - Specify protection for this slot.  `:public' or `:private'
   :custom     - When customizing an object, the custom :type.  Public only.
   :label      - A text string label used for a slot when customizing.
   :group      - Name of a customization group this slot belongs in.
@@ -442,10 +443,14 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		(setq tmp (cdr (cdr tmp))))))
 
 	;; Clean up the meaning of protection.
-	(cond ((eq prot 'public) (setq prot nil))
-	      ((eq prot 'private) (setq prot t))
+	(cond ((or (eq prot 'public) (eq prot :public)) (setq prot nil))
+	      ((or (eq prot 'private) (eq prot :private)) (setq prot t))
 	      ((eq prot nil) nil)
 	      (t (signal 'invalid-slot-type (list ':protection prot))))
+
+	;; Make sure the :allocation parameter has a valid value.
+	(if (not (or (not alloc) (eq alloc :class) (eq alloc :instance)))
+	    (signal 'invalid-slot-type (list ':allocation alloc)))
 
 	;; The default type specifier is supposed to be t, meaning anything.
 	(if (not type) (setq type t))
@@ -570,17 +575,19 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 
     ;; Create the constructor function
     (fset cname
-	  (list 'lambda (list 'newname '&rest 'fields)
-		(format "Create a new object with name NAME of class type %s" cname)
-		(list
-		 'let (list (list 'no
-				  (list 'copy-sequence
-					(list 'aref
-					      (list 'class-v cname)
-					      'class-default-object-cache))))
-		 '(aset no object-name newname)
-		 '(initialize-instance no fields)
-		 'no)))
+	  `(lambda (newname &rest fields)
+	     ,(format "Create a new object with name NAME of class type %s" cname)
+	     (let ((no
+		    ;; Copying is very fast.  Unfortunatly, it also prevents
+		    ;; evaluation of lambda's at creation time.
+		    (copy-sequence (aref (class-v ,cname)
+					 class-default-object-cache))))
+	       ;; Update the name
+	       (aset no object-name newname)
+	       ;; Call the initialize method on the new object with the
+	       ;; built in fields.
+	       (initialize-instance no fields)
+	       no)))
 
     ;; Set up a specialized doc string.
     ;; Use stored value since it is calculated in a non-trivial way
@@ -693,45 +700,46 @@ if default value is nil."
 		  (eieio-perform-slot-validation-for-default a tp d skipnil)
 		  (setcar dp d)
 		  )))))
-    (if (not (member a (aref newc class-class-allocation-a)))
-	(progn
-	  (eieio-perform-slot-validation-for-default a type d skipnil)
-	  ;; Here we have found a :class version of a slot.  This
-	  ;; requires a very different aproach.
-	  (aset newc class-class-allocation-a (cons a (aref newc class-class-allocation-a)))
-	  (aset newc class-class-allocation-doc (cons doc (aref newc class-class-allocation-doc)))
-	  (aset newc class-class-allocation-type (cons type (aref newc class-class-allocation-type)))
-	  (aset newc class-class-allocation-custom (cons cust (aref newc class-class-allocation-custom)))
-	  (aset newc class-class-allocation-custom-label (cons label (aref newc class-class-allocation-custom-label)))
-	  (aset newc class-class-allocation-custom-group (cons custg (aref newc class-class-allocation-custom-group)))
-	  (aset newc class-class-allocation-protection (cons prot (aref newc class-class-allocation-protection)))
-	  ;; Default value is stored in the 'values section, since new objects
-	  ;; can't initialize from this element.
-	  (aset newc class-class-allocation-values (cons d (aref newc class-class-allocation-values))))
-      (if defaultoverride
+    (let ((value (eieio-default-eval-maybe d)))
+      (if (not (member a (aref newc class-class-allocation-a)))
 	  (progn
-	    ;; There is a match, and we must override the old value.
-	    (let* ((ca (aref newc class-class-allocation-a))
-		   (np (member a ca))
-		   (num (- (length ca) (length np)))
-		   (dp (if np
-			   (nthcdr num
-				   (aref newc class-class-allocation-values))
-			 nil))
-		   (tp (if np (nth num (aref newc class-class-allocation-type))
-			 nil)))
-	      (if (not np)
-		  (error "Eieio internal error overriding default value for %s"
-			 a)
-		;; If type is passed in, is it the same?
-		(if (not (eq type t))
-		    (if (not (equal type tp))
-			(error
-			 "Child slot type `%s' does not match inherited type `%s' for `%s'"
-			 type tp a)))
-		;; If we have a repeat, only update the vlaue...
-		(eieio-perform-slot-validation-for-default a tp d skipnil)
-		(setcar dp d))))))
+	    (eieio-perform-slot-validation-for-default a type value skipnil)
+	    ;; Here we have found a :class version of a slot.  This
+	    ;; requires a very different aproach.
+	    (aset newc class-class-allocation-a (cons a (aref newc class-class-allocation-a)))
+	    (aset newc class-class-allocation-doc (cons doc (aref newc class-class-allocation-doc)))
+	    (aset newc class-class-allocation-type (cons type (aref newc class-class-allocation-type)))
+	    (aset newc class-class-allocation-custom (cons cust (aref newc class-class-allocation-custom)))
+	    (aset newc class-class-allocation-custom-label (cons label (aref newc class-class-allocation-custom-label)))
+	    (aset newc class-class-allocation-custom-group (cons custg (aref newc class-class-allocation-custom-group)))
+	    (aset newc class-class-allocation-protection (cons prot (aref newc class-class-allocation-protection)))
+  ;; Default value is stored in the 'values section, since new objects
+	    ;; can't initialize from this element.
+	    (aset newc class-class-allocation-values (cons value (aref newc class-class-allocation-values))))
+	(if defaultoverride
+	    (progn
+	      ;; There is a match, and we must override the old value.
+	      (let* ((ca (aref newc class-class-allocation-a))
+		     (np (member a ca))
+		     (num (- (length ca) (length np)))
+		     (dp (if np
+			     (nthcdr num
+				     (aref newc class-class-allocation-values))
+			   nil))
+		     (tp (if np (nth num (aref newc class-class-allocation-type))
+			   nil)))
+		(if (not np)
+		    (error "Eieio internal error overriding default value for %s"
+			   a)
+		  ;; If type is passed in, is it the same?
+		  (if (not (eq type t))
+		      (if (not (equal type tp))
+			  (error
+			   "Child slot type `%s' does not match inherited type `%s' for `%s'"
+			   type tp a)))
+		  ;; If we have a repeat, only update the vlaue...
+		  (eieio-perform-slot-validation-for-default a tp value skipnil)
+		  (setcar dp value)))))))
     ))
 
 (defun eieio-copy-parents-into-subclass (newc parents)
@@ -1751,6 +1759,18 @@ you overload the `initialize-instance', there you will need to call
 have this constructor called automatically.  If these steps are not
 taken, then new objects of your class will not have their values
 dynamically set from FIELDS."
+    ;; First, see if any of our defaults are `lambda', and
+    ;; re-evaluate them and apply the value to our slots.
+    (let* ((scoped-class (class-v (aref this object-class)))
+	   (slot (aref scoped-class class-public-a))
+	   (defaults (aref scoped-class class-public-d)))
+      (while slot
+	(if (and (listp (car defaults))
+		 (eq 'lambda (car (car defaults))))
+	    (eieio-oset this (car slot) (funcall (car defaults))))
+	(setq slot (cdr slot)
+	      defaults (cdr defaults))))
+    ;; Shared initialize will parse our fields for us.
     (shared-initialize this fields))
 
 (defmethod slot-missing ((object eieio-default-superclass) slot-name
