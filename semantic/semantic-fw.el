@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.3 2002/07/29 17:23:23 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.4 2002/07/30 19:56:40 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -292,7 +292,7 @@ variable `semantic-override-table'.  This later installation should be
 done in MODE hook."
   (let (table overload overname function override)
     (if mode
-        (or (get mode 'semantic-override-table)
+        (or (setq table (get mode 'semantic-override-table))
             (put mode 'semantic-override-table
                  (setq table (semantic-new-overrides))))
       (or semantic-override-table
