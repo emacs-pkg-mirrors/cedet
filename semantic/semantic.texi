@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.61 2002/02/28 01:11:30 zappo Exp $
+@c $Id: semantic.texi,v 1.62 2002/03/16 15:46:53 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -1515,6 +1515,13 @@ write programs that use the token stream most effectively.
 
 When writing programs that use the bovinator, the following functions
 are needed to find get details out of a nonterminal.
+
+@defun semantic-equivalent-tokens-p token1 token2
+Compare @var{TOKEN1} and @var{TOKEN2} and return non-@code{nil} if they are equivalent.
+Use @dfn{eq} to test of two tokens are the same.  Use this function if tokens
+are being copied and regrouped to test for if two tokens represent the same
+thing, but may be constructed of different cons cells.
+@end defun
 
 @defun semantic-token-token token
 Retrieve from @var{TOKEN} the token identifier.
