@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.2 2003/09/08 12:44:44 ponced Exp $
+;; X-RCS: $Id: cedet.el,v 1.3 2003/09/17 08:56:12 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -81,12 +81,12 @@
 
 (defconst cedet-packages
   '(
-    ;;PACKAGE   MIN-VERSION   SETUP
-    (cogre      "0.4"         "cogre-defs"    )
-    (ede        "1.0beta3"    "ede-loaddefs"  )
-    (eieio      "0.18"        "eieio-defs"    )
-    (semantic   "2.0beta1"    "semantic-load" )
-    (speedbar   "0.15beta1"   "speedbar-defs" )
+    ;;PACKAGE   MIN-VERSION
+    (cogre      "0.4"       )
+    (ede        "1.0beta3"  )
+    (eieio      "0.18"      )
+    (semantic   "2.0beta1"  )
+    (speedbar   "0.15beta1" )
     )
   "Table of CEDET packages to install.")
 
@@ -108,12 +108,10 @@
     ;; necessary, and do specific setup.
     (dolist (package cedet-packages)
       (inversion-add-to-load-path (car package) (cadr package))
-      (when (nth 2 package)
-        (condition-case err
-            (load (nth 2 package))
-          (error
-           (message "%s" (error-message-string err))))
-        ))
+      (condition-case err
+          (require (intern (format "%s-load" (car package))))
+        (error
+         (message "%s" (error-message-string err)))))
     ))
 
 (provide 'cedet)
