@@ -1,0 +1,188 @@
+;;; wisent-dot.wy --- GraphViz DOT file parser
+
+;; Copyright (C) 2003 Eric M. Ludlam
+
+;; Author: Eric Ludlam <zappo@gnu.org>
+;; Keywords: syntax
+;; X-RCS: $Id: wisent-dot.wy,v 1.1 2003/03/26 03:20:58 zappo Exp $
+
+;; This file is not part of GNU Emacs.
+
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
+
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+;;; Commentary:
+;;
+;; Parser for GraphViz DOT language.
+;; The language is declaritive and the whole thing is parsed.
+;; The result could be used as a data structure representing a graph.
+
+%outputfile    "wisent-dot.el"
+%parsetable    wisent-dot-automaton
+%keywordtable  wisent-dot-keywords
+%tokentable    wisent-dot-tokens
+%setupfunction wisent-dot-setup-parser
+
+%start dot_file
+;; Needed for EXPANDFULL
+%start graph-contents
+%start node-description
+
+%{
+  (setq 
+   ;; Lexical Analysis
+   semantic-lex-analyzer 'wisent-dot-lexer
+   ;; Parsing
+   ;; Environment
+   semantic-imenu-summary-function 'semantic-name-nonterminal
+   imenu-create-index-function 'semantic-create-imenu-index
+   semantic-command-separation-character ";"
+   ;; Speedbar
+   semantic-symbol->name-assoc-list
+   '((graph . "Graph")
+     (digraph . "Directed Graph")
+     (node . "Node")
+     )
+   senator-step-at-token-ids '(graph digraph)
+   )
+  }%
+
+%token DIGRAPH 	"digraph"
+%put DIGRAPH summary "digraph <name> { <graph elements> ... }"
+%token GRAPH 	"graph"
+%put GRAPH summary "graph <name> { <graph elements> ... }"
+%token SUBGRAPH "subgraph"
+%put SUBGRAPH summary "subgraph <name> { <graph elements> ... }"
+%token NODE 	"node"
+%put NODE summary "node [<attribute>...];"
+%token SHAPE 	"shape"
+%put SHAPE summary "shape=<shape-type>"
+%token LABEL    "label"
+%put LABEL summary "label=\"string\""
+%token COLOR 	"color"
+%put COLOR summary "color=<color-spec>"
+%token STYLE 	"style"
+%put STYLE summary "style=<style-spec>"
+%token LEN 	"len"
+%put LEN summary "len=<value>"
+%token WIDTH 	"width"
+;;%put WIDTH summary ""
+%token HEIGHT 	"height"
+;;%put HEIGHT summary ""
+%token SPLINES 	"splines"
+;;%put SPLINES summary ""
+%token OVERLAP 	"overlap"
+;;%put OVERLAP summary ""
+
+%token  DILINK 	"->"
+%put DILINK summary "<node> -> <node>;    Directed link"
+%token  LINK 	"--"
+%put LINK summary "<node> -- <node>;   Link"
+
+%token <symbol> symbol
+%token <string> string
+
+%token <punctuation> EQUAL 	"="
+%token <punctuation> SEMI 	";"
+%token <punctuation> COMMA 	","
+
+%token <semantic-list> BRACKET_BLOCK     "^\\["
+%token <semantic-list> BRACE_BLOCK     "^{"
+
+%token <open-paren> LBRACE "{"
+%token <close-paren> RBRACE "}"
+%token <open-paren> LBRACKET "["
+%token <close-paren> RBRACKET "]"
+
+
+%%
+
+dot_file
+  : digraph
+  | graph
+  ;
+
+digraph
+  : DIGRAPH symbol BRACE_BLOCK
+    (TAG $2 'digraph :members (EXPANDFULL $3 graph-contents))
+  ;
+
+graph
+  : GRAPH symbol BRACE_BLOCK
+    (TAG $2 'graph :members (EXPANDFULL $3 graph-contents))
+  ;
+
+graph-contents
+  : LBRACE
+    ()
+  | RBRACE
+    ()
+  | label
+  | style
+  | subgraph
+  | node
+  | named-node
+  | links
+  ;
+
+label
+  : LABEL EQUAL string SEMI
+    (TAG $3 'label)
+  ;
+
+style
+  : STYLE EQUAL symbol SEMI
+    (TAG $3 'style)
+  ;
+
+subgraph
+  : SUBGRAPH symbol BRACE_BLOCK
+    (TAG $2 'graph :members (EXPANDFULL $3 graph-contents))
+  ;
+
+node
+  : NODE BRACKET_BLOCK SEMI
+    (TAG "NODE" 'generic-node :attributes (EXPANDFULL $2 node-description))
+  ;
+
+named-node
+  : symbol BRACKET_BLOCK SEMI
+    (TAG $1 'node :attributes (EXPANDFULL $2 node-description))
+  ;
+
+node-description
+  : LBRACKET 
+    ()
+  | RBRACKET
+    ()
+  | COMMA
+    ()
+  | SHAPE EQUAL symbol
+    (TAG $1 'attribute :value $3)
+  | LABEL EQUAL string
+    (TAG $1 'attribute :value $3)
+  ;
+
+links
+  : symbol DILINK symbol SEMI
+    (TAG $1 'link :to $3)
+  | BRACE_BLOCK
+ ;; Links in braces get properties.  Deal with this later.
+  ;
+
+
+%%
+
+;;; wisent-dot.wy ends here
