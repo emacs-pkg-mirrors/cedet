@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.35 2004/04/06 12:12:19 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.36 2004/09/15 07:24:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -655,21 +655,16 @@ See also the function `semantic-lex-token'."
 ;;;###autoload
 (defun semantic-lex-init ()
   "Initialize any lexical state for this buffer."
-  (when (not semantic-lex-comment-regex)
+  (unless semantic-lex-comment-regex
     (setq semantic-lex-comment-regex
 	  (if comment-start-skip
 	      (concat "\\(\\s<\\|" comment-start-skip "\\)")
-	    (concat "\\(\\s<\\)"))
-	  ))
+	    "\\(\\s<\\)")))
   ;; Setup the lexer syntax-table
   (setq semantic-lex-syntax-table (copy-syntax-table (syntax-table)))
-  (let* ((mods semantic-lex-syntax-modifications)
-	 mod)
-	 (while mods
-	   (setq mod  (car mods)
-		 mods (cdr mods))
-	   (modify-syntax-entry
-	    (car mod) (nth 1 mod) semantic-lex-syntax-table))))
+  (dolist (mod semantic-lex-syntax-modifications)
+    (modify-syntax-entry
+     (car mod) (nth 1 mod) semantic-lex-syntax-table)))
 
 ;;;###autoload
 (define-overload semantic-lex (start end &optional depth length)
@@ -718,12 +713,16 @@ so that analysis can continue, if possible."
 If FORMS throws an error, treat this as a syntax problem, and
 execute the unterminated syntax code.  FORMS should return a position.
 Irreguardless of an error, the cursor should be moved to the end of
-the desired syntax, and a position returned."
-  `(condition-case nil
+the desired syntax, and a position returned.
+If `debug-on-error' is set, errors are not caught, so that you can
+debug them.
+Avoid using a large FORMS since it is duplicated."
+  `(if debug-on-error
        (progn ,@forms)
-     (error
-      (semantic-lex-unterminated-syntax-detected ,syntax)))
-  )
+     (condition-case nil
+         (progn ,@forms)
+       (error
+        (semantic-lex-unterminated-syntax-detected ,syntax)))))
 (put 'semantic-lex-unterminated-syntax-protection
      'lisp-indent-function 1)
 
@@ -1329,25 +1328,29 @@ the error will be caught here without the buffer's cache being thrown
 out of date.
 If there is an error, the syntax that failed is returned.
 If there is no error, then the last value of FORMS is returned."
-  `(let ((semantic-lex-unterminated-syntax-end-function
-	  (lambda (syntax start end) (throw ',symbol syntax)))
-	 ;; Delete the below when semantic-flex is fully retired.
-	 (semantic-flex-unterminated-syntax-end-function
-	  (lambda (syntax start end) (throw ',symbol syntax)))
-	 ret)
-     (setq ret (catch ',symbol
-		 (save-excursion
-		   ,@forms
-		   nil)))
-     ;; Great Sadness.  Assume that FORMS execute within the
-     ;; confines of the current buffer only!  Mark this thing
-     ;; unparseable iff the special symbol was thrown.  This
-     ;; will prevent future calls from parsing, but will allow
-     ;; then to still return the cache.
-     (when ret
-       (message "Buffer not currently parsable.")
-       (semantic-parse-tree-unparseable))
-     ret))
+  (let ((ret (make-symbol "ret"))
+        (syntax (make-symbol "syntax"))
+        (start (make-symbol "start"))
+        (end (make-symbol "end")))
+    `(let* ((semantic-lex-unterminated-syntax-end-function
+             (lambda (,syntax ,start ,end)
+               (throw ',symbol ,syntax)))
+            ;; Delete the below when semantic-flex is fully retired.
+            (semantic-flex-unterminated-syntax-end-function
+             semantic-lex-unterminated-syntax-end-function)
+            (,ret (catch ',symbol
+                    (save-excursion
+                      ,@forms
+                      nil))))
+       ;; Great Sadness.  Assume that FORMS execute within the
+       ;; confines of the current buffer only!  Mark this thing
+       ;; unparseable iff the special symbol was thrown.  This
+       ;; will prevent future calls from parsing, but will allow
+       ;; then to still return the cache.
+       (when ,ret
+         (message "Buffer not currently parsable (%S)." ,ret)
+         (semantic-parse-tree-unparseable))
+       ,ret)))
 (put 'semantic-lex-catch-errors 'lisp-indent-function 1)
 
 
