@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.8
-;;; RCS: $Id: eieio.el,v 1.18 1996/11/22 03:56:12 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.19 1996/11/27 03:39:30 zappo Exp $
 ;;; Keywords: OO, lisp
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -148,6 +148,12 @@
 ;;;           when the user tries to access an invalid slot name.
 ;;;        Added `eieio-attribute-to-initarg' for reverse translation
 ;;;           init arguments during document generation.
+;;;        Added new `replacement-args' to `call-next-method'.  It is
+;;;           still CLOS compatible, but now is more powerful.
+;;;        Added new default method `object-print' which is used by
+;;;           the functions in eieio-opt.  You can now specify
+;;;           additional summary information for object names if
+;;;           `object-print' is used instead of `object-name'.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -649,9 +655,12 @@ VALUE.  This does not affect any existing objects of type CLASS"
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (format "#<class %s>" (symbol-name class)))
 
-(defun object-name (obj) "Return a lisp like symbol string for object OBJ"
+(defun object-name (obj &optional extra)
+  "Return a lisp like symbol string for object OBJ.  If EXTRA, include that
+in the string returned to represent the symbol."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (format "#<%s %s>" (symbol-name (object-class-fast obj)) (aref obj 2)))
+  (format "#<%s %s%s>" (symbol-name (object-class-fast obj)) (aref obj 2)
+	  (or extra "")))
 
 (defun object-name-string (obj) "Return a string which is OBJs name"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
@@ -775,12 +784,15 @@ available methods which may be programmed in."
 			       args))))
       rval)))
 
-(defun call-next-method ()
+(defun call-next-method (&rest replacement-args)
   "When inside a call to a method belonging to some object, call the
-method belong to the parent class"
+method belong to the parent class.  If REPLACEMENT-ARGS is non-nil,
+then use them instead of `eieio-generic-call-arglst'.  The generic
+arglist are the arguments passed in at the top level."
   (if (not scoped-class)
       (error "call-next-method not called within a class specific method"))
-  (let ((newargs eieio-generic-call-arglst) (lambdas nil)
+  (let ((newargs (or replacement-args eieio-generic-call-arglst))
+	(lambdas nil)
 	(mclass (eieiomt-next scoped-class)))
     ;; lookup the form to use for the PRIMARY object for the next level
     (setq lambdas (eieio-generic-form eieio-generic-call-methodname
@@ -1111,6 +1123,16 @@ of your class will not have their values dynamically set from FIELDS."
   "Destructor for cleaning up any dynamic links to our object."
   ;; No cleanup... yet.
   )
+
+(defmethod object-print ((this eieio-default-superclass) &rest strings)
+  "Pretty priniter.  The default method for printing an object is to use
+the `object-name' function.  At times it could be useful to put a summary of
+the object into the default #<notation> string.  Overload this function to
+allow summaries of your objects to be used by eieio browsing tools.  The
+optional parameter STRINGS is for additional summary parts to put into the
+name string.  When passint in extra strings from child classes, always
+remember  to prepend a space."
+  (object-name this (apply 'concat strings)))
 
 
 ;;;
