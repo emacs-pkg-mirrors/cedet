@@ -23,7 +23,7 @@
    (ede-proj-target-elisp "languages"
     :name "languages"
     :path ""
-    :source '("wisent-calc.el" "wisent-java.el" "wisent-java-tags.el" "wisent-python.el" "wisent-java-lex.el")
+    :source '("wisent-calc.el" "wisent-java.el" "wisent-java-tags.el" "wisent-python.el")
     )
    )
   :configuration-variables 'nil
