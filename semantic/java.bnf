@@ -5,7 +5,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.1 2001/01/31 16:51:07 zappo Exp $
+# $Id: java.bnf,v 1.2 2001/02/01 02:16:41 zappo Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -230,12 +230,27 @@ field_declaration : modifiers_opt type variable_declarators punctuation ";"
                          (ASSOC typemodifiers $1)
                           nil)
                   ;
-  
+
+## The following rule is used by `semantic-expand-java-nonterminal' to
+## reparse declaration of multiple variables in the same statement.
+## Reparsing is done with `semantic-bovinate-from-nonterminal-full' to
+## get correct START END information for each variable token.
+field_declaration_multi : modifiers_opt type variable_declarator punctuation ","
+                          (,$3)
+                        | modifiers_opt type variable_declarator punctuation ";"
+                          (,$3)
+                        | variable_declarator punctuation ","
+                          (,$1)
+                        | variable_declarator punctuation ";"
+                          (,$1)
+                        ;
+                         
 variable_declarators : variable_declarator variable_declarators_opt
-                       (,$1)
+                       ((cons (car $1) (car $2)))
                      ;
 
 variable_declarators_opt: punctuation "," variable_declarators
+                          (,$2)
                         | EMPTY
                         ;
 
@@ -427,8 +442,8 @@ expression: unary_expression operators_expression_opt
           ;
 
 # $Log: java.bnf,v $
-# Revision 1.1  2001/01/31 16:51:07  zappo
-# Java bnf file developed for JDE.
+# Revision 1.2  2001/02/01 02:16:41  zappo
+# Parses variables with more than one declaration, such as "int i, k;".
 #
 # Revision 1.16  2000/10/25 04:31:37  paulk
 # Modified to reflect new location of generated files.
