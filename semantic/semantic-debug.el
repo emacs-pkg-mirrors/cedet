@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.2 2003/02/04 02:29:30 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.3 2003/02/13 02:44:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,10 +43,30 @@
 (require 'eieio)
 
 ;;; Code:
+;;;###autoload
 (defvar semantic-debug-parser-source nil
   "For any buffer, the file name (no path) of the parser.
 This would be a parser for a specific language, not the source
 to one of the parser generators.")
+;;;###autoload
+(make-variable-buffer-local 'semantic-debug-parser-source)
+
+;;;###autoload
+(defvar semantic-debug-parser-class nil
+  "Class to create when building a debug parser object.")
+;;;###autoload
+(make-variable-buffer-local 'semantic-debug-parser-class)
+
+;;;###autoload
+(defvar semantic-debug-enabled nil
+  "Non-nil when debugging a parser.")
+
+;;; Variables used during a debug session.
+(defvar semantic-debug-current-interface nil
+  "The debugger interface currently active for this buffer.")
+
+(defvar semantic-debug-current-parser nil
+  "The parser current active for this buffer.")
 
 ;;; User Interface Portion
 ;;
@@ -59,6 +79,9 @@ to one of the parser generators.")
 		     :type keymap
 		     :documentation
 		     "The local keymap originally in the PARSER buffer.")
+   (parser-location :type marker
+		    :documentation
+		    "A marker representing where we are in the parser buffer.")
    (source-buffer :initarg :source-buffer
 		  :type buffer
 		  :documentation
@@ -69,24 +92,54 @@ The :parser-buffer defines a parser that can parse the text in the
 		     :type keymap
 		     :documentation
 		     "The local keymap originally in the SOURCE buffer.")
+   (source-location :type marker
+		    :documentation
+		    "A marker representing where we are in the parser buffer.")
    (data-buffer :initarg :data-buffer
 		:type buffer
 		:documentation
 		"Buffer being used to display some useful data.
 These buffers are brought into view when layout occurs.")
-   (frame-type :allocation :class
-	       :initform 'semantic-debug-frame
-	       :documentation
-	       "The class used to represent a frame.")
+   (current-frame :type semantic-debug-frame
+		  :documentation
+		  "The currently displayed frame.")
+   (overlays :type list
+	     :initarg nil
+	     :documentation
+	     "Any active overlays being used to show the debug position.")
    )
   "Controls action when in `semantic-debug-mode'")
 
 ;; Methods
+(defmethod semantic-debug-set-frame ((iface semantic-debug-interface) frame)
+  "Set the current frame on IFACE to FRAME."
+  (if frame
+      (oset iface current-frame frame)
+    (slot-makeunbound iface 'current-frame)))
+
+(defmethod semantic-debug-set-parser-location ((iface semantic-debug-interface) point)
+  "Set the parser location in IFACE to POINT."
+  (save-excursion
+    (set-buffer (oref iface parser-buffer))
+    (if (not (slot-boundp iface 'parser-location))
+	(oset iface parser-location (make-marker)))
+    (move-marker (oref iface parser-location) point))
+  )
+
+(defmethod semantic-debug-set-source-location ((iface semantic-debug-interface) point)
+  "Set the source location in IFACE to POINT."
+  (save-excursion
+    (set-buffer (oref iface source-buffer))
+    (if (not (slot-boundp iface 'source-location))
+	(oset iface source-location (make-marker)))
+    (move-marker (oref iface source-location) point))
+  )
+
 (defmethod semantic-debug-interface-layout ((iface semantic-debug-interface))
   "Layout windows in the current frame to facilitate debugging."
   (delete-other-windows)
   ;; Deal with the data buffer
-  (when (oref iface data-buffer)
+  (when (slot-boundp iface 'data-buffer)
     (let ((lines (/ (frame-height (selected-frame)) 3))
 	  (cnt (save-excursion
 		 (set-buffer (oref iface data-buffer))
@@ -101,59 +154,128 @@ These buffers are brought into view when layout occurs.")
     (other-window 1))
   ;; Parser
   (switch-to-buffer (oref iface parser-buffer))
+  (when (slot-boundp iface 'parser-location)
+    (goto-char (oref iface parser-location)))
   (split-window-vertically)
   (other-window 1)
   ;; Source
   (switch-to-buffer (oref iface source-buffer))
+  (when (slot-boundp iface 'source-location)
+    (goto-char (oref iface source-location)))
   )
 
+(defmethod semantic-debug-highlight-lexical-token ((iface semantic-debug-interface) token)
+  "For IFACE, highlight TOKEN in the source buffer .
+TOKEN is a lexical token."
+  (set-buffer (oref iface :source-buffer))
+
+  (let ((o (semantic-make-overlay (semantic-lex-token-start token)
+				  (semantic-lex-token-end token))))
+    (semantic-overlay-put o 'face 'highlight)
+    
+    (object-add-to-list iface 'overlays o)
+
+    (semantic-debug-set-source-location iface (semantic-lex-token-start token))
+    
+    ))
+
+(defmethod semantic-debug-highlight-rule ((iface semantic-debug-interface) nonterm &optional rule match)
+  "For IFACE, highlight NONTERM in the parser buffer.
+NONTERM is the name of the rule currently being processed that shows up
+as a nonterminal (or tag) in the source buffer.
+If RULE and MATCH indicies are specified, highlight those also."
+  (set-buffer (oref iface :parser-buffer))
+  
+  (let* ((rules (semantic-find-nonterminal-by-token 'nonterminal (current-buffer)))
+	 (nt (semantic-find-nonterminal-by-name nonterm rules))
+	 (o nil)
+	 )
+    (when nt
+      ;; I know it is the first symbol appearing in the body of this token.
+      (goto-char (semantic-token-start nt))
+	
+      (setq o (semantic-make-overlay (point) (progn (forward-sexp 1) (point))))
+      (semantic-overlay-put o 'face 'highlight)
+
+      (object-add-to-list iface 'overlays o)
+
+      (semantic-debug-set-parser-location iface (semantic-overlay-start o))
+
+      (when (and rule match)
+
+	;; Rule, an int, is the rule inside the nonterminal we are following.
+	(re-search-forward ":\\s-*")
+	(while (/= 0 rule)
+	  (re-search-forward "\\s-*|\\s-*")
+	  (setq rule (1- rule)))
+
+	;; Now find the match inside the rule
+	(while (/= 0 match)
+	  (forward-sexp 1)
+	  (skip-chars-forward " \t")
+	  (setq match (1- match)))
+
+	;; Now highlight the thingy we find there.
+	(setq o (semantic-make-overlay (point) (progn (forward-sexp 1) (point))))
+	(semantic-overlay-put o 'face 'highlight)
+
+	(object-add-to-list iface 'overlays o)
+
+	))))
+
+(defmethod semantic-debug-unhighlight ((iface semantic-debug-interface))
+  "Remove all debugging overlays."
+  (mapcar 'semantic-overlay-delete (oref iface overlays))
+  (oset iface overlays nil))
+
+;; Call from the parser at a breakpoint
+(defvar semantic-debug-user-command nil
+  "The command the user is requesting.")
+
+;;;###autoload
+(defun semantic-debug-break (frame)
+  "Stop parsing now at FRAME.
+FRAME is an object that represents the parser's view of the
+current state of the world.
+This function enters a recursive edit.  It returns
+on an `exit-recursive-edit', or if someone uses one
+of the `semantic-debug-mode' commands.
+It returns the command specified.  Parsers need to take action
+on different types of return values."
+  (save-window-excursion
+    ;; Set up displaying information
+    (semantic-debug-mode t)
+    (unwind-protect
+	(progn
+	  (semantic-debug-frame-highlight frame)
+	  (semantic-debug-interface-layout semantic-debug-current-interface)
+	  (condition-case nil
+	      ;; Enter recursive edit... wait for user command.
+	      (recursive-edit)
+	    (error nil)))
+      (semantic-debug-unhighlight semantic-debug-current-interface)
+      (semantic-debug-mode nil))
+    ;; Find the requested user state.  Do something.
+    (let ((returnstate semantic-debug-user-command))
+      (setq semantic-debug-user-command nil)
+      returnstate)
+    ))
+
+;;; Frame
+;;
+;; A frame can represent the state at a break point.
 (defclass semantic-debug-frame ()
-  ((nonterm :initarg :nonterm
-	    :type symbol
-	    :documentation
-	    "The name of the semantic nonterminal for this frame.")
-   (rule :initarg :rule
-	 :type number
-	 :documentation
-	 "The index into NONTERM's rule list.  0 based.")
-   (match :initarg :match
-	  :type number
-	  :documentation
-	  "The index into NONTERM's RULE's match.  0 based..")
-   (lextoken :initarg :lextoken
-	     :type list
-	     :documentation
-	     "A Token created by `semantic-lex-token'.
-This is the lexical token being matched by the parser.")
+  (
    )
   "One frame representation.")
 
-(defmethod semantic-debug-create-frame ((iface semantic-debug-interface)
-					nonterm rule match
-					&optional lextoken)
-  "Create one frame.
-NONTERM is the name of a rule we are currently parsing.
-RULE is the index into the list of rules in NONTERM.
-MATCH is the index into the list of matches in RULE.
-For example:
-  this: that 
-      | other thing
-      | here
-      ;
-The NONTERM is THIS.
-The RULE is for \"thing\" is 1.
-The MATCH for \"thing\" is 1.
-The optional argument LEXTOKEN, is a token returned by the lexer
-which is being matched."
-  (let ((frame (semantic-debug-frame rule
-				     :nonterm nonterm
-				     :rule rule
-				     :match matchindex)))
-    (when lextoken (oset frame :lextoken lextoken))
-    frame))
-
-(defmethod semantic-debug-frame-highlight ((iface semantic-debug-frame))
+(defmethod semantic-debug-frame-highlight ((frame semantic-debug-frame))
   "Highlight one parser frame."
+  
+  )
+
+(defmethod semantic-debug-frame-info ((frame semantic-debug-frame))
+  "Display info about this one parser frame."
   
   )
 
@@ -162,6 +284,7 @@ which is being matched."
 (defvar semantic-debug-mode-map
   (let ((km (make-sparse-keymap)))
     (define-key km "n" 'semantic-debug-next)
+    (define-key km " " 'semantic-debug-next)
     (define-key km "s" 'semantic-debug-step)
     (define-key km "u" 'semantic-debug-up)
     (define-key km "d" 'semantic-debug-down)
@@ -170,72 +293,86 @@ which is being matched."
     (define-key km "s" 'semantic-debug-jump-to-source)
     (define-key km "p" 'semantic-debug-jump-to-parser)
     (define-key km "q" 'semantic-debug-quit)
+    (define-key km "a" 'semantic-debug-abort)
     (define-key km "g" 'semantic-debug-go)
-    (define-key km "b" 'semantic-debug-break)
+    (define-key km "b" 'semantic-debug-set-breakpoint)
     
     km)
   "Keymap used when in semantic-debug-node.")
 
-(defvar semantic-debug-current-interface nil
-  "The debugger interface currently active for this buffer.")
-
-(defvar semantic-debug-current-parser nil
-  "The parser current active for this buffer.")
-
 (defun semantic-debug-mode (onoff)
   "Turn `semantic-debug-mode' on and off.
 Argument ONOFF is non-nil when we are entering debug mode."
-  (if onoff
-      (let ((parserb (semantic-debug-find-parser-source))
-	    (pmap nil)
-	    )
+  (let ((iface semantic-debug-current-interface))
+    (if onoff
 	;; Turn it on
 	(save-excursion
-	  (set-buffer parserb)
-	  ;; Get the map
-	  (setq pmap (current-local-map))
+	  (set-buffer (oref iface parser-buffer))
 	  ;; Install our map onto this buffer
 	  (use-local-map semantic-debug-mode-map)
+	  ;; Make the buffer read only
+	  (toggle-read-only 1)
+	  
+	  (set-buffer (oref iface source-buffer))
+	  ;; Use our map in the source buffer also
+	  (use-local-map semantic-debug-mode-map)
+	  ;; Make the buffer read only
+	  (toggle-read-only 1)
+	  ;; Hooks
+	  (run-hooks 'semantic-debug-mode-hooks)
 	  )
-	(setq semantic-debug-current-interface
-	      (semantic-debug-interface
-	       "Debug Interface"
-	       :parser-buffer parserb
-	       :parser-local-map pmap
-	       :source-buffer (current-buffer)
-	       :source-local-map (current-local-map)
-	       ))
-	;; Use our map in the source buffer also
-	(use-local-map semantic-debug-mode-map)
-	;; Hooks
-	(run-hooks 'semantic-debug-mode-hooks)
+      ;; Restore old mode information
+      (save-excursion
+	(set-buffer
+	 (oref semantic-debug-current-interface parser-buffer))
+	(use-local-map
+	 (oref semantic-debug-current-interface parser-local-map))
 	)
-    ;; Restore old mode information
-    (save-excursion
-      (set-buffer
-       (oref semantic-debug-current-interface parser-buffer))
-      (use-local-map
-       (oref semantic-debug-current-interface parser-local-map))
-      )
-    (save-excursion
-      (set-buffer
-       (oref semantic-debug-current-interface source-buffer))
-      (use-local-map
-       (oref semantic-debug-current-interface source-local-map))
-      )
-    (run-hooks 'semantic-debug-exit-hooks)
-    ))
+      (save-excursion
+	(set-buffer
+	 (oref semantic-debug-current-interface source-buffer))
+	(use-local-map
+	 (oref semantic-debug-current-interface source-local-map))
+	)
+      (run-hooks 'semantic-debug-exit-hooks)
+      )))
 
+;;;###autoload
 (defun semantic-debug ()
   "Parse the current buffer and run in debug mode."
   (interactive)
   (if semantic-debug-current-interface
-      (error "You are already in a debug session."))
-  (semantic-debug-mode t)
-  ;; Kick off a parse.  Make sure it does work.
+      (error "You are already in a debug session"))
+  (if (not semantic-debug-parser-class)
+      (error "This major mode does not support parser debugging"))
+  ;; Clear the cache to force a full reparse.
   (semantic-clear-toplevel-cache)
-  (semantic-bovinate-toplevel)
-  )
+  ;; Turn off the auto-parser for this buffer.
+  (semantic-auto-parse-mode -1)
+  ;; Do the parse
+  (let ((semantic-debug-enabled t)
+	;; Create an interface
+	(semantic-debug-current-interface
+	 (let ((parserb  (semantic-debug-find-parser-source)))
+	   (semantic-debug-interface
+	    "Debug Interface"
+	    :parser-buffer parserb
+	    :parser-local-map (save-excursion
+				(set-buffer parserb)
+				(current-local-map))
+	    :source-buffer (current-buffer)
+	    :source-local-map (current-local-map)
+	    )))
+	;; Create a parser debug interface
+	(semantic-debug-current-parser
+	 (funcall semantic-debug-parser-class "parser"))
+	)
+    ;; We could recurse into a parser while debugging.
+    ;; Is that a problem?
+    (semantic-bovinate-toplevel)
+    ;; We should turn the auto-parser back on, but don't do it for
+    ;; now until the debugger is working well.
+    ))
 
 (defun semantic-debug-find-parser-source ()
   "Return a buffer containing the parser source file for the current buffer.
@@ -260,6 +397,7 @@ In other parsers, this may be just like `semantic-debug-step'."
   (interactive)
   (let ((parser semantic-debug-current-parser))
     (semantic-debug-parser-next parser)
+    (exit-recursive-edit)
     )
   )
 
@@ -268,6 +406,7 @@ In other parsers, this may be just like `semantic-debug-step'."
   (interactive)
   (let ((parser semantic-debug-current-parser))
     (semantic-debug-parser-step parser)
+    (exit-recursive-edit)
     )
   )
 
@@ -286,8 +425,11 @@ In other parsers, this may be just like `semantic-debug-step'."
 (defun semantic-debug-fail-match ()
   "Artificially fail the current match."
   (interactive)
-  (message "Not implemented yet.") 
- )
+  (let ((parser semantic-debug-current-parser))
+    (semantic-debug-parser-fail parser)
+    (exit-recursive-edit)
+    )
+  )
 
 (defun semantic-debug-print-state ()
   "Show interesting parser state."
@@ -329,8 +471,19 @@ In other parsers, this may be just like `semantic-debug-step'."
   "Exit debug mode, blowing all stack, and leaving the parse incomplete.
 Do not update any tokens already parsed."
   (interactive)
-  (semantic-debug-mode nil)
-  (exit-recursive-edit)
+  (let ((parser semantic-debug-current-parser))
+    (semantic-debug-parser-quit parser)
+    (exit-recursive-edit)
+    )
+  )
+
+(defun semantic-debug-abort ()
+  "Abort one level of debug mode, blowing all stack."
+  (interactive)
+  (let ((parser semantic-debug-current-parser))
+    (semantic-debug-parser-abort parser)
+    (exit-recursive-edit)
+    )
   )
 
 (defun semantic-debug-go ()
@@ -338,10 +491,11 @@ Do not update any tokens already parsed."
   (interactive)
   (let ((parser semantic-debug-current-parser))
     (semantic-debug-parser-go parser)
+    (exit-recursive-edit)
     )
   )
 
-(defun semantic-debug-break ()
+(defun semantic-debug-set-breakpoint ()
   "Set a breakpoint at the current rule location."
   (interactive)
   (let ((parser semantic-debug-current-parser)
@@ -360,32 +514,52 @@ Do not update any tokens already parsed."
 (defclass semantic-debug-parser ()
   (
    )
-  "Represents a parser and its state."
+  "Represents a parser and its state.
+When implementing the debug parser you can add extra functionality
+by overriding one of the command methods.  Be sure to use
+`call-next-method' so that the debug command is saved, and passed
+down to your parser later."
   :abstract t)
 
 (defmethod semantic-debug-parser-next ((parser semantic-debug-parser))
   "Execute next for this PARSER."
-  (error "NEXT not implemented in %s" (object-name parser))
+  (setq semantic-debug-user-command 'next)
   )
 
 (defmethod semantic-debug-parser-step ((parser semantic-debug-parser))
-  "Execute next for this PARSER."
-  (error "STEP not implemented in %s" (object-name parser))
-  )
-
-(defmethod semantic-debug-parser-print-state ((parser semantic-debug-parser))
-  "Execute next for this PARSER."
-  (error "PRINT-STATE not implemented in %s" (object-name parser))
+  "Execute a step for this PARSER."
+  (setq semantic-debug-user-command 'step)
   )
 
 (defmethod semantic-debug-parser-go ((parser semantic-debug-parser))
-  "Execute next for this PARSER."
-  (error "GO not implemented in %s" (object-name parser))
+  "Continue executiong in this PARSER until the next breakpoint."
+  (setq semantic-debug-user-command 'go)
   )
 
+(defmethod semantic-debug-parser-fail ((parser semantic-debug-parser))
+  "Continue executiong in this PARSER until the next breakpoint."
+  (setq semantic-debug-user-command 'fail)
+  )
+
+(defmethod semantic-debug-parser-quit ((parser semantic-debug-parser))
+  "Continue executiong in this PARSER until the next breakpoint."
+  (setq semantic-debug-user-command 'quit)
+  )
+
+(defmethod semantic-debug-parser-abort ((parser semantic-debug-parser))
+  "Continue executiong in this PARSER until the next breakpoint."
+  (setq semantic-debug-user-command 'abort)
+  )
+
+(defmethod semantic-debug-parser-print-state ((parser semantic-debug-parser))
+  "Print state for this PARSER at the current breakpoint."
+  (with-slots (current-frame) semantic-debug-current-interface
+    (when current-frame
+      (semantic-debug-frame-info current-frame)
+      )))
+
 (defmethod semantic-debug-parser-break ((parser semantic-debug-parser))
-  "Execute next for this PARSER."
-  (error "BREAK not implemented in %s" (object-name parser))
+  "Set a breakpoint for this PARSER."
   )
 
 ;; Stack stuff
