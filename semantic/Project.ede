@@ -36,7 +36,7 @@
    (ede-proj-target-elisp "init"
     :name "init"
     :path ""
-    :source '("semantic-load.el" "semantic-autogen.el")
+    :source '("semantic-load.el")
     )
    (ede-proj-target-elisp "semantic"
     :name "semantic"
