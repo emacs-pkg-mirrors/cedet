@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.29 2004/02/19 01:17:52 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.30 2004/02/19 17:06:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -104,10 +104,10 @@
 (defvar semantic-cache-data-overlays nil
   "List of all overlays waiting to be flushed.")
 
-(defun semantic-cache-data-to-buffer (buffer start end value tag &optional lifespan)
+(defun semantic-cache-data-to-buffer (buffer start end value name &optional lifespan)
   "In BUFFER over the region START END, remember VALUE.
-TAG specifies a special name that can be searched for later to
-recover the cached data with `sematnic-get-cache-data'.
+NAME specifies a special name that can be searched for later to
+recover the cached data with `semantic-get-cache-data'.
 LIFESPAN indicates how long the data cache will be remembered.
 The default LIFESPAN is 'end-of-command.
 Possible Lifespans are:
@@ -115,59 +115,58 @@ Possible Lifespans are:
                     executing command.
   'exit-cache-zone - Remove when point leaves the overlay at the
                     end of the currently executing command."
-  (let ((o (semantic-make-overlay start end buffer))
-	(life (or lifespan 'end-of-command))
-	)
+  ;; Check if LIFESPAN is valid before to create any overlay
+  (or lifespan (setq lifespan 'end-of-command))
+  (or (memq lifespan '(end-of-command exit-cache-zone))
+      (error "semantic-cache-data-to-buffer: Unknown LIFESPAN: %s"
+             lifespan))
+  (let ((o (semantic-make-overlay start end buffer)))
+    (semantic-overlay-put o 'cache-name   name)
     (semantic-overlay-put o 'cached-value value)
-    (semantic-overlay-put o 'lifespan life)
-    (semantic-overlay-put o 'tag tag)
+    (semantic-overlay-put o 'lifespan     lifespan)
     (setq semantic-cache-data-overlays
-	  (cons o semantic-cache-data-overlays))
+          (cons o semantic-cache-data-overlays))
     ;;(message "Adding to cache: %s" o)
-    (cond
-     ((or (eq life 'end-of-command)
-	  (eq life 'exit-cache-zone))
-      (add-hook 'post-command-hook 'semantic-cache-data-post-command-hook)
-      )
-     (t (error "Semantic-cache-data-to-buffer: Unknown LIFESPAN: %s" life)))
+    (add-hook 'post-command-hook 'semantic-cache-data-post-command-hook)
     ))
 
 (defun semantic-cache-data-post-command-hook ()
   "Flush `semantic-cache-data-overlays' based 'lifespan property.
 Remove self from `post-command-hook' if it is empty."
   (let ((newcache nil)
-	(oldcache semantic-cache-data-overlays))
+        (oldcache semantic-cache-data-overlays))
     (while oldcache
-      (let* ((o  (car semantic-cache-data-overlays))
-	     (life (semantic-overlay-get o 'lifespan))
-	     )
-	(if (or (eq life 'end-of-command)
-		(and (eq life 'exit-cache-zone)
-		     (not (member o (semantic-overlays-at (point))))))
-	    (progn
-	      ;;(message "Removing from cache: %s" (car semantic-cache-data-overlays))
-	      (semantic-overlay-delete o)
-	      )
-	  (setq newcache (cons o newcache))))
+      (let* ((o    (car oldcache))
+             (life (semantic-overlay-get o 'lifespan))
+             )
+        (if (or (eq life 'end-of-command)
+                (and (eq life 'exit-cache-zone)
+                     (not (member o (semantic-overlays-at (point))))))
+            (progn
+              ;;(message "Removing from cache: %s" o)
+              (semantic-overlay-delete o)
+              )
+          (setq newcache (cons o newcache))))
       (setq oldcache (cdr oldcache)))
-    (setq semantic-cache-data-overlays
-	  (nreverse newcache)))
+    (setq semantic-cache-data-overlays (nreverse newcache)))
 
   ;; Remove ourselves if we have removed all overlays.
   (unless semantic-cache-data-overlays
-    (remove-hook 'post-command-hook 'semantic-cache-data-post-command-hook)))
+    (remove-hook 'post-command-hook
+                 'semantic-cache-data-post-command-hook)))
 
-(defun semantic-get-cache-data (tag &optional point)
-  "Get cached data with TAG from optional POINT."
+(defun semantic-get-cache-data (name &optional point)
+  "Get cached data with NAME from optional POINT."
   (save-excursion
     (if point (goto-char point))
     (let ((o (semantic-overlays-at (point)))
-	  (ans nil))
+          (ans nil))
       (while (and (not ans) o)
-	(when (equal (semantic-overlay-get (car o) 'tag) tag)
-	  (setq ans (car o)))
-	(setq o (cdr o)))
-      (when ans (semantic-overlay-get ans 'cached-value)))))
+        (if (equal (semantic-overlay-get (car o) 'cache-name) name)
+            (setq ans (car o))
+          (setq o (cdr o))))
+      (when ans
+        (semantic-overlay-get ans 'cached-value)))))
 
 (defun semantic-test-data-cache ()
   "Test the data cache."
