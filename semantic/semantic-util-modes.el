@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.1 2001/10/02 18:49:28 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.2 2001/10/03 00:55:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -108,7 +108,7 @@ function used to toggle the mode."
 
 ;;;###autoload
 (defun global-semantic-show-dirty-mode (&optional arg)
-  "Toggle global use of show-dirty mode.
+  "Toggle global use of `semantic-show-dirty' mode.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
@@ -171,7 +171,7 @@ Use the command `semantic-show-dirty-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-show-dirty-mode)
 
 (defun semantic-show-dirty-mode-setup ()
-  "Actually setup the show-dirty minor mode.
+  "Setup `semantic-show-dirty-mode'.
 The minor mode can be turned on only if semantic feature is available
 and the current buffer was set up for parsing.  When minor mode is
 enabled parse the current buffer if needed.  Return non-nil if the
@@ -204,7 +204,7 @@ minor mode is enabled."
 
 ;;;###autoload
 (defun semantic-show-dirty-mode (&optional arg)
-  "Minor mode to display of dirty tokens.
+  "Minor mode for highlighting dirty tokens.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
@@ -242,7 +242,7 @@ minor mode is enabled.
 
 ;;;###autoload
 (defun global-semantic-show-unmatched-syntax-mode (&optional arg)
-  "Toggle global use of show-unmatched-syntax mode'.
+  "Toggle global use of `semantic-show-unmatched-syntax-mode'.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
@@ -312,6 +312,10 @@ This will highlight elements in SYNTAX as unmatched-syntax."
       )
     (setq syntax (cdr syntax))))
 
+(defun semantic-clean-unmatched-syntax-in-region (beg end)
+  "Remove all unmatched syntax overlays between BEG and END."
+  )
+
 (defun semantic-hide-unmatched-syntax ()
   "Un-highlight unmatched-syntax elements.
 That is delete unmatched-syntax overlays found in current buffer."
@@ -327,7 +331,7 @@ That is delete unmatched-syntax overlays found in current buffer."
 (defvar semantic-show-unmatched-syntax-mode-map
   (let ((km (make-sparse-keymap)))
     km)
-  "Keymap for show-unmatched-syntax minor mode.")
+  "Keymap for `semantic-show-unmatched-syntax-mode'.")
 
 (defvar semantic-show-unmatched-syntax-mode nil
   "Non-nil if show-unmatched-syntax minor mode is enabled.
@@ -336,7 +340,7 @@ variable.")
 (make-variable-buffer-local 'semantic-show-unmatched-syntax-mode)
 
 (defun semantic-show-unmatched-syntax-mode-setup ()
-  "Actually setup the show-unmatched-syntax minor mode.
+  "Setup the `semantic-show-unmatched-syntax' minor mode.
 The minor mode can be turned on only if semantic feature is available
 and the current buffer was set up for parsing.  When minor mode is
 enabled parse the current buffer if needed.  Return non-nil if the
@@ -371,7 +375,7 @@ semantic-show-unmatched-syntax-mode: parsing of buffer canceled.")))
   
 ;;;###autoload
 (defun semantic-show-unmatched-syntax-mode (&optional arg)
-  "Minor mode to display of unmatched-syntax tokens.
+  "Minor mode to highlight unmatched-syntax tokens.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
