@@ -1,15 +1,15 @@
 ;;; semantic.el --- Semantic buffer evaluator.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.190 2005/01/10 07:42:08 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.191 2005/01/20 13:44:03 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
 
-  (defvar semantic-version "2.0beta3"
+  (defvar semantic-version "2.0"
     "Current version of Semantic.")
 
   )
@@ -630,6 +630,8 @@ This function returns semantic tags without overlays."
             tag (car (cdr nontermsym)))
       (if (not nontermsym)
           (error "Parse error @ %d" (car (cdr (car stream)))))
+      (if (eq (car nontermsym) stream)
+	  (error "Parser error: Infinite loop?"))
       (if tag
           (if (car tag)
               (setq tag (mapcar
