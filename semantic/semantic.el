@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.4 1999/05/06 20:44:52 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.5 1999/05/06 21:55:18 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -78,7 +78,7 @@
 ;;
 ;; Lastly, you can also have STRING LITERALS in your rules, though
 ;; these are different from Bison.  As can be seen above, a literal is
-;; a constant flex symbol, such as `punctuation', followed by a string
+;; a constant lexed symbol, such as `punctuation', followed by a string
 ;; which is a *regular expression* which must match, or this rule will
 ;; fail.
 ;;
@@ -164,7 +164,25 @@
 ;; that need to be passed in.  This is useful for decomposing complex
 ;; syntactic elements, such as semantic-list.
 ;;
+;; Semantic Bovine Table Debugger
+;; ------------------------------
+;;
+;; The bovinator also includes a primitive debugger.  This debugger
+;; walks through the parsing process and see how it's being
+;; interpretted.  There are two steps in debuggin a bovine table.
+;;
+;; First, place the cursor in the source code where the table is
+;; defined.  Execute the command `semantic-bovinate-debug-set-table'.
+;; This tells the debugger where you table is.
+;;
+;; Next, place the cursor in a buffer you which to run the bovinator
+;; on, and execute the command `semantic-bovinate-buffer-debug'.  This
+;; will parse the table, and highlight the relevant areas and walk
+;; through the match list with the cursor, displaying the current list
+;; of values (which is always backwards.)
+;;
 ;; DESIGN ISSUES:
+;; -------------
 ;;
 ;;  At the moment, the only thing I really dislike is the RESULT
 ;;  LAMBDA format.  While having some good defaults is nice, the use
