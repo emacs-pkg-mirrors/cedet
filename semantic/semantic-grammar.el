@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.11 2003/02/19 16:25:29 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.12 2003/02/20 08:28:48 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -879,6 +879,7 @@ of the first line of comment."
   "Return object as a string value."
   `(if (stringp ,object)
        ,object
+     (require 'pp)
      (pp-to-string ,object)))
 
 ;;; Setup code generation
