@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.76 2001/09/26 21:06:34 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.77 2001/09/27 00:28:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -303,7 +303,10 @@ from largest to smallest via the start location."
 	  (ret nil))
       (while ol
 	(let ((tmp (semantic-overlay-get (car ol) 'semantic)))
-	  (when tmp
+	  (when (and tmp
+		     ;; We don't need with-position because no token w/out
+		     ;; a position could exist in an overlay.
+		     (semantic-token-p tmp))
 	    (setq ret (cons tmp ret))))
 	(setq ol (cdr ol)))
       (sort ret (lambda (a b) (< (semantic-token-start a)
@@ -319,7 +322,9 @@ Optional BUFFER argument specifies the buffer to use."
 	  (ret nil))
       (while ol
 	(let ((tmp (semantic-overlay-get (car ol) 'semantic)))
-	  (when tmp
+	  (when (and tmp
+		     ;; See above about position
+		     (semantic-token-p tmp))
 	    (setq ret (cons tmp ret))))
 	(setq ol (cdr ol)))
       (sort ret (lambda (a b) (< (semantic-token-start a)
@@ -342,11 +347,13 @@ not the current token."
 	  ;; and starts at the found position.
 	  (while (and ol (listp ol))
 	    (if (and (semantic-overlay-get (car ol) 'semantic)
+		     (semantic-token-p
+		      (semantic-overlay-get (car ol) 'semantic))
 		     (= (semantic-overlay-start (car ol)) os))
 		(setq ol (car ol)))
 	    (when (listp ol) (setq ol (cdr ol))))))
       ;; convert ol to a token
-      (when ol
+      (when (and ol (semantic-token-p (semantic-overlay-get ol 'semantic)))
 	(semantic-overlay-get ol 'semantic)))))
 
 (defun semantic-find-nonterminal-by-overlay-prev (&optional start buffer)
@@ -366,11 +373,14 @@ not the current token."
 	  ;; and starts at the found position.
 	  (while (and ol (listp ol))
 	    (if (and (semantic-overlay-get (car ol) 'semantic)
+		     (semantic-token-p
+		      (semantic-overlay-get (car ol) 'semantic))
 		     (= (semantic-overlay-start (car ol)) os))
 		(setq ol (car ol)))
 	    (when (listp ol) (setq ol (cdr ol))))))
       ;; convert ol to a token
-      (when ol
+      (when (and ol
+		 (semantic-token-p (semantic-overlay-get ol 'semantic)))
 	(semantic-overlay-get ol 'semantic)))))
 
 (defun semantic-current-nonterminal ()
@@ -1954,6 +1964,65 @@ If ARG is nil, then toggle."
     (add-hook 'semantic-dirty-token-hooks 'semantic-show-dirty-token-hook-fcn)
     (add-hook 'semantic-clean-token-hooks 'semantic-show-clean-token-hook-fcn)
     (add-hook 'after-save-hook 'semantic-rebovinate-quickly-hook)
+    ))
+
+
+;;; Show unmatched-syntax mode
+;;
+;;;###autoload
+(defcustom semantic-show-unmatched-syntax-mode nil
+  "*If non-nil enable the use of `semantic-show-unmatched-syntax-mode'."
+  :group 'semantic
+  :type 'boolean
+  :require 'semantic-util
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (semantic-show-unmatched-syntax-mode (if val 1 -1))
+         (custom-set-default sym val)))
+
+(defface semantic-unmatched-syntax-face
+  '((((class color) (background dark))
+     (:underline "red"))
+    (((class color) (background light))
+     (:underline "red")))
+  "Face used to show unmatched-syntax in.
+The face is used in  `semantic-show-unmatched-syntax-mode'."
+  :group 'semantic)
+
+(defun semantic-show-unmatched-syntax (syntax)
+  "Function set into `semantic-unmatched-syntax-hooks'.
+This will highlight elements in SYNTAX as unmatched-syntax."
+  ;; This is called during parsing.  Highlight the unmatched syntax,
+  ;; and then add a semantic property to that overlay so we can add
+  ;; it to the official list of semantic supported overlays.
+  ;; This gets it cleaned up for errors, buffer cleaning, and the like.
+  (while syntax
+    (let ((o (semantic-make-overlay (semantic-flex-start (car syntax))
+				    (semantic-flex-end (car syntax)))))
+      (semantic-overlay-put o 'semantic 'unmatched)
+      (semantic-overlay-put o 'face 'semantic-unmatched-syntax-face)
+      (semantic-overlay-stack-add o)
+      )
+    (setq syntax (cdr syntax))))
+
+(defun semantic-show-unmatched-syntax-mode (&optional arg)
+  "Enable the display of unmatched-syntax tokens.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+    (interactive "P")
+  (if (not arg)
+      (if (member #'semantic-show-unmatched-syntax
+		  semantic-unmatched-syntax-hook)
+	  (setq arg -1)
+	(setq arg 1)))
+  (if (< arg 0)
+      (progn
+	;; Remove hooks
+	(remove-hook 'semantic-unmatched-syntax-hook
+		     'semantic-show-unmatched-syntax)
+	)
+    (add-hook 'semantic-unmatched-syntax-hook
+	      'semantic-show-unmatched-syntax)
     ))
 
 ;;; Hacks
