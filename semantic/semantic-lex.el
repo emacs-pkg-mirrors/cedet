@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.16 2003/01/31 13:48:29 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.17 2003/02/07 12:23:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -763,8 +763,10 @@ they are comment end characters)."
   "\\s-+"
   ;; Language wants whitespaces, link them together.
   (if (eq (semantic-lex-token-class (car token-stream)) 'whitespace)
-      (setcdr (semantic-lex-token-bounds (car token-stream))
-              (match-end 0))
+      (progn
+        (setq end-point (match-end 0))
+        (setcdr (semantic-lex-token-bounds (car token-stream))
+                end-point))
     (semantic-lex-token
      'whitespace (match-beginning 0) (match-end 0))))
 
