@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.8 2003/04/06 00:53:09 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.9 2003/04/09 01:08:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -50,6 +50,7 @@
 ;;  format.  Most external searches cannot perform this search.
 
 (require 'semanticdb)
+(require 'semantic-find)
 
 ;;; Code:
 ;;
@@ -297,7 +298,7 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (let ((goofy-token-name token))
     (semanticdb-find-nonterminal-by-function-method
      database (lambda (stream sp si)
-		(semantic-find-nonterminal-by-token goofy-token-name stream sp si))
+		(semantic-brute-find-tag-by-class goofy-token-name stream sp si))
      search-parts search-includes diff-mode find-file-match)))
 
 (defmethod semanticdb-find-nonterminal-by-name-method
@@ -309,7 +310,7 @@ Return a list ((DB-TABLE . TOKEN) ...)."
   (semanticdb-find-nonterminal-by-function-method
    database
    (lambda (stream sp si)
-     (semantic-find-nonterminal-by-name name stream sp si))
+     (semantic-brute-find-first-tag-by-name name stream sp si))
    search-parts search-includes diff-mode find-file-match))
 
 (defmethod semanticdb-find-nonterminal-by-name-regexp-method
@@ -321,7 +322,7 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-find-nonterminal-by-function-method
    database
    (lambda (stream sp si)
-     (semantic-find-nonterminal-by-name-regexp regex stream sp si))
+     (semantic-brute-find-tag-by-name-regexp regex stream sp si))
    search-parts search-includes diff-mode find-file-match))
 
 (defmethod semanticdb-find-nonterminal-by-type-method
@@ -333,7 +334,7 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-find-nonterminal-by-function-method
    database
    (lambda (stream sp si)
-     (semantic-find-nonterminal-by-type type stream sp si))
+     (semantic-brute-find-tag-by-type type stream sp si))
    search-parts search-includes diff-mode find-file-match))
 
 (defmethod semanticdb-find-nonterminal-by-property-method
@@ -345,7 +346,7 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-find-nonterminal-by-function-method
    database
    (lambda (stream sp si)
-     (semantic-find-nonterminal-by-property property value stream sp si))
+     (semantic-brute-find-tag-by-property property value stream sp si))
    search-parts search-includes diff-mode find-file-match))
 
 (defmethod semanticdb-find-nonterminal-by-extra-spec-method
@@ -357,7 +358,7 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-find-nonterminal-by-function-method
    database
    (lambda (stream sp si)
-     (semantic-find-nonterminal-by-extra-spec spec stream sp si))
+     (semantic-brute-find-tag-by-attribute spec stream sp si))
    search-parts search-includes diff-mode find-file-match))
 
 (defmethod semanticdb-find-nonterminal-by-extra-spec-value-method
@@ -369,7 +370,7 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-find-nonterminal-by-function-method
    database
    (lambda (stream sp si)
-     (semantic-find-nonterminal-by-extra-spec-value spec value stream sp si))
+     (semantic-brute-find-tag-by-attribute-value spec value stream sp si))
    search-parts search-includes diff-mode find-file-match))
 
 ;;; Advanced Searches
@@ -383,7 +384,7 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-find-nonterminal-by-function-method
    database
    `(lambda (stream sp si)
-      (semantic-find-nonterminal-by-function
+      (semantic-brute-find-tag-by-function
        (lambda (tok)
 	 (let ((p (semantic-nonterminal-external-member-parent tok)))
 	   (and (stringp p) (string= ,type p)))
