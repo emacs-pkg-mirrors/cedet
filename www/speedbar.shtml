@@ -81,8 +81,8 @@ Different Modes for Speedbar
 <h2>Speedbar Enabled tools:</h2>
 </td></tr></table>
 
-<P>There are several speedbar enabled tools above and beyond those
-   implicitly supported by default.</p>
+<P>There are several speedbar enabled tools that you can download
+   which may not come with your installed Emacs distribution.</p>
 
 <ul>
 <li><a href="eieio.shtml">EIEIO</a> can use speedbar to display
