@@ -4,16 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-skel.el,v 1.6 2000/07/22 12:45:27 zappo Exp $
+;; RCS: $Id: ede-proj-skel.el,v 1.7 2000/09/24 15:52:01 zappo Exp $
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -42,9 +40,71 @@
   (;; Use these two items to modify the target specificy menu.
    ;;(menu :initform nil)
    ;;(keybindings :initform nil)
+   ;;(availablecompilers :initform (ede-%NAME%-compiler))
+   ;;(sourcetype :initform (ede-%NAME%-source))   
    ;; Add your specialized fields here
    )
   "Class for ....")
+
+;;; COMPILER SUPPORT
+;;
+;; Support for specialized compilers for your object.
+
+;; It should be very rare to need to create a subclass of the `ede-compiler'
+;; object.  Do this if you need to override any of the base methods following
+;; this definition.
+;;(defclass ede-compiler-%NAME% (ede-compiler)
+;;  ()
+;;  "Specialized compiler for %NAME%")
+
+;; This variable is important to set if you are planning on supporting 
+;; a compiled form of your sources via a Makefile or Makefile.am
+;; If you do not create or use a compiler, remove the compiler init line
+;; from the class you create.
+;; You may create as many compiler elements as may be available for the
+;; type of source code you are starting with.
+(defvar ede-%NAME%-compiler
+  (ede-compiler 
+   "%NAME%"
+   :name "%NAME%"
+   :variables '(("%NAME-COMPILER%" . "%compiler-and-flags%"))
+   :commands
+   (list "$(%NAME-COMPILER%) -o $@ $^"
+	 )
+   :autoconf '("AC_%COMPILER-MACRO-FOR-AUTONAME-OR-nil%"))
+  "Compiler that can be used with `ede-proj-target-%NAME%'.")
+
+;;(defmethod ede-proj-tweak-autoconf ((this ede-compiler-%NAME%))
+;;  "Tweak the configure file (current buffer) to accomodate THIS."
+;;  (%do-stuff%)
+;;  (call-next-method)
+;;  (%do-other-stuff%))
+;;
+;;(defmethod ede-proj-flush-autoconf ((this ede-compiler-%NAME%))
+;;  "Flush the configure file (current buffer) to accomodate THIS."
+;;  (%do-stuff%)
+;;  (call-next-method)
+;;  (%do-other-stuff%))
+;;
+;;(defmethod ede-proj-makefile-insert-variables ((this ede-compiler-%NAME%))
+;;  "Insert variables needed by the compiler THIS."
+;;  (call-next-method)
+;;  (ede-compiler-only-once
+;;     (%do-stuff%)))
+;;
+;;(defmethod ede-proj-makefile-insert-rules ((this ede-compiler-%NAME%))
+;;  "Insert rules needed for THIS compiler object."
+;;  (call-next-method)
+;;  (ede-compiler-only-once
+;;     (%do-stuff%)))
+;;
+;; This is the method you are most likely to need to override if
+;; you need to create your own compiler class.
+;;(defmethod ede-proj-makefile-insert-commands ((this ede-compiler-%NAME%))
+;;  "Insert the commands needed to use compiler THIS."
+;;  (%do-stuff%)
+;;  (call-next-method)
+;;  (%do-other-stuff%))
 
 ;;; EIEIO maintenance methods
 ;;
@@ -63,9 +123,11 @@
 ;; This function lets you define what types of files you want to claim.
 ;; Defining this provides a convenience for uses by not offering your
 ;; target type for files you don't care about.
-(defmethod ede-want-file-p ((obj ede-proj-target-%NAME%) file)
-  "Return t if OBJ wants to own FILE."
-  (string match "\\.%MYEXTENSION%$" file))
+;; This should usually be accomplished with the :sourcetype class
+;; property.
+;;(defmethod ede-want-file-p ((obj ede-proj-target-%NAME%) file)
+;;  "Return t if OBJ wants to own FILE."
+;;  (string match "\\.%MYEXTENSION%$" file))
 
 ;; When a buffer is read in, EDE checks to see which target this
 ;; buffer belongs to.  The default method for all targets checks
@@ -136,7 +198,7 @@
 ;; port when/if automake is supported by ede-proj.
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-%NAME%))
   "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_%MAKEVARIABLECONVENTION%"))
+  (concat (ede-pmake-varname this) "_%AUTOMAKE-VARIABLE-CONVENTION%"))
 
 ;; Your main target in the Makefile may depend on additional source
 ;; dependencies.  Use this to add more stuff.
@@ -147,28 +209,40 @@
 
 ;; This is a clever way of packing more files into your main source
 ;; variable.  Only works if your "next" method is ede-proj-target.
-;;(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-%NAME%))
+;;(defmethod ede-proj-makefile-insert-source-variables
+;;           ((this ede-proj-target-%NAME%) &optional moresource)
 ;;  "Insert variables needed by target THIS."
 ;;  (call-next-method this (oref this headers))
 
-;; This method adds a list of new shell file patterns to a clean rule
-;; which deletes object and temp files.
-(defmethod ede-proj-makefile-garbage-patterns ((this ede-proj-target-%NAME%))
-  "Return a list of patterns that are considered garbage by THIS."
-  '("*.%foo%"))
+;; This method lets you add more variables specific to your type of target.
+;;(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-%NAME%)
+;;                                                &optional moresource)
+;;  "Insert variables needed by target THIS."
+;;  (call-next-method)
+;;  (insert "other variable thing"))
+
+;; This returns a string for the dependencies as they 
+(defmethod ede-proj-makefile-dependencies ((this ede-proj-target-%NAME%))
+  "Return a string representing the dependencies for THIS."
+  (or (call-next-method)
+      (%do-some-stuff%)))
 
 ;; This is one of the most important methods which defines rules to
 ;; place into a makefile for building.  If you inherit from
 ;; `ede-proj-target-makefile', then this is the primary build
-;; mechanism.  If you have an emacs-centric build method, then this
+;; mechanism.  If you can create a compiler object instead, then
+;; you probably don't have to do anything with this method.
+;; If you have an emacs-centric build method, then this
 ;; is a secondary build method (for a distribution, for example.)
-;; It could also contain auxiliary make commands in addition to
-;; the main rules needed.
-(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-%NAME%))
-  "Insert rules needed by THIS target."
-  (call-next-method) ;; catch user-rules case.
-  (insert ... ;; Code to create a rule for THIS.
-	  ))
+;; It can also contain auxiliary make commands in addition to
+;; the main rules needed if not covered by the compiler object.
+;;(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-%NAME%))
+;;  "Insert rules needed by THIS target."
+;;  (insert ... ;; Create aux rules here
+;;        )
+;;  (call-next-method) ;; catch user-rules case and build main rules
+;;  (insert ... ;; Code to fill in the commands, or add more rules later.
+;;	  ))
 
 ;; This function allows modifictions to configure.in.
 ;; Only useful when a user specifies automake mode in EDE project.
