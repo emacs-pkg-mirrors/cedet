@@ -1,0 +1,16 @@
+@c -*-texinfo-*-
+@c
+@c $Id: ede-compilers.texi,v 1.1 2001/04/04 02:18:34 zappo Exp $
+@c
+
+@c The next line is for the back-search to see what node this one
+@c resides in.
+
+@c @node Compilers,
+@c @chapter Compilers
+
+@c This command is a convenience to help rebuild this file.  Use C-x C-e
+@c on the expression below to rebuild the entire index (but only
+@c after loading in all relevant source files.)
+
+@c (eieiodoc-class ede-compilation-program "cm")
