@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: e-config.el,v 1.3 1996/11/07 19:07:29 zappo Exp $
+;;; RCS: $Id: e-config.el,v 1.4 1996/11/10 14:16:03 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -47,7 +47,7 @@
   "Creates a configure window with variables modifying the visual interface
 for emacs."
   (interactive)
-  (dlg-init)
+  (dlg-init 'dot-emacs)
   (dialog-build-group (create-widget "Interface Options" widget-frame)
     (create-widget "linenumber" widget-toggle-button
 		   :label-value "Display Line Number in Modeline"
@@ -141,7 +141,7 @@ for emacs."
   "Creates a configure window with variables modifying the editing interface
 for emacs."
   (interactive)
-  (dlg-init)
+  (dlg-init 'dot-emacs)
   (dialog-build-group (create-widget "Behavior Options" widget-frame)
 
     (create-widget "Mouse Yanks to Cursor (not mouse)" widget-toggle-button
@@ -204,7 +204,7 @@ for emacs."
   "Creates a configure window with variables modifying variables
 useful for programmers."
   (interactive)
-  (dlg-init)
+  (dlg-init 'dot-emacs)
   (dialog-build-group (create-widget "Program Editing Options" widget-frame)
 
     (create-widget "Enable Local Variables" widget-toggle-button
@@ -252,7 +252,7 @@ useful for programmers."
   "Creates a configure window with variables modifying variables
 useful for sending email."
   (interactive)
-  (dlg-init)
+  (dlg-init 'dot-emacs)
   (require 'rmail)
   (dialog-build-group (create-widget "Rmail Options" widget-frame)
 
@@ -372,7 +372,7 @@ useful for sending email."
   "Creates a configure window with variables modifying variables
 useful calendar mode."
   (interactive)
-  (dlg-init)
+  (dlg-init 'dot-emacs)
   (dialog-build-group (create-widget "Calendar Options" widget-frame)
 
     (create-widget "Latitude :" widget-labeled-text
@@ -449,7 +449,7 @@ useful calendar mode."
   "Creates a configure window with variables modifying variables
 useful for ps-print."
   (interactive)
-  (dlg-init)
+  (dlg-init 'dot-emacs)
   (require 'ps-print)
   (dialog-build-group (create-widget "Postscript Printing Options" widget-frame)
 
@@ -485,7 +485,7 @@ useful for ps-print."
 (defun econfig-flock-options ()
   "Creates a configure window with variables modifying how font lock is used."
   (interactive)
-  (dlg-init)
+  (dlg-init 'dot-emacs)
   (dialog-build-group (create-widget "Font Lock Options" widget-frame)
 
     (create-widget  "Always activate font-lock" widget-toggle-button
@@ -512,6 +512,7 @@ useful for ps-print."
 				       ;; it will behave like a separator
 				       :box-sides [nil nil t nil]
 				       :position 'top-right
+				       :x 0
 				       :state
 				       (data-object-symbol-list-index
 					"lazy-or-fast"
