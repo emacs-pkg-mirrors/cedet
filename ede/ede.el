@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.1 1998/12/16 13:57:35 zappo Exp $
+;; RCS: $Id: ede.el,v 1.2 1999/01/05 02:44:41 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -187,7 +187,6 @@ Do not set this to non-nil globally.  It is used internally.")
      '("Project"
        [ "Create a new project" ede-new (not ede-object) ]
        [ "Load a project" ede t ]
-       [ "Speedbar Project" ede-speedbar t ]
        [ "Rescan Project Files" ede-rescan-toplevel t ]
        "---"
        [ "Create New Target" ede-new-target ede-object ]
@@ -204,8 +203,10 @@ Do not set this to non-nil globally.  It is used internally.")
        [ "Debug target" ede-debug-target
 	 (and ede-object
 	      (obj-of-class-p ede-object ede-target)) ]
-       "---"
        [ "Make distribution" ede-make-dist t ]
+       "---"
+       [ "Speedbar" speedbar t ]
+       [ "Speedbar Project" ede-speedbar t ]
        )))
 
 ;; Allow re-insertion of a new keymap
@@ -235,16 +236,23 @@ mode.  nil means to toggle the mode."
 	(setq ede-object (ede-buffer-object)))))
   
 (defun global-ede-mode (arg)
-  "Turn on `ede-minor-mode' mode when ARG is positive.
+  "Turn on variable `ede-minor-mode' mode when ARG is positive.
 If ARG is negative, disable.  Toggle otherwise."
-  (interactive "p")
+  (interactive "P")
   (if (not arg)
       (if (member 'ede-minor-mode find-file-hooks)
 	  (global-ede-mode -1)
 	(global-ede-mode 1))
     (if (or (eq arg t) (> arg 0))
 	(add-hook 'find-file-hooks 'ede-minor-mode)
-      (remove-hook 'find-file-hooks 'ede-minor-mode))))
+      (remove-hook 'find-file-hooks 'ede-minor-mode))
+    (let ((b (buffer-list)))
+      (while b
+	(if (buffer-file-name (car b))
+	    (save-excursion
+	      (set-buffer (car b))
+	      (ede-minor-mode arg)))
+	(setq b (cdr b))))))
 
 ;;; Interactive method invocations
 ;;
@@ -437,7 +445,7 @@ This depends on an up to day `ede-project-class-files' variable."
 
 (defun ede-load-project-file (file)
   "Project file independent way to read in FILE."
-  (let* ((path (expand-file-name (file-name-directory (buffer-file-name))))
+  (let* ((path (expand-file-name (file-name-directory file)))
 	 (pfc (ede-directory-project-p path))
 	 (projtoload nil)
 	 (toppath nil)
@@ -487,7 +495,7 @@ This depends on an up to day `ede-project-class-files' variable."
 	(vc-toggle-read-only))))
     
 
-;;; Hooks
+;;; Hooks & Autoloads
 ;;
 ;;  These let us watch various activities, and respond apropriatly.
 
@@ -495,6 +503,8 @@ This depends on an up to day `ede-project-class-files' variable."
 	  (lambda ()
 	    (def-edebug-spec project-am-with-projectfile
 	      (form def-body))))
+
+(autoload 'ede-speedbar "ede-speedbar" "Run speedbar in EDE project mode." t)
 
 (provide 'ede)
 
