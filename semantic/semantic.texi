@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.39 2001/06/05 20:07:52 zappo Exp $
+@c $Id: semantic.texi,v 1.40 2001/06/11 18:38:41 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -192,7 +192,7 @@ you should still attempt to understand the basics of the table.
 Please see the documentation for the variable
 @code{semantic-toplevel-bovine-table} for details on it's format.
 
-* fix this *
+* add more doc here *
 
 @node BNF conversion, Compiling, Bovinating, Top
 @chapter Using the BNF converter to make bovine tables
@@ -889,6 +889,18 @@ Retrieve the parts of the type @var{TOKEN}.
 
 @defun semantic-token-type-parent token
 Retrieve the parent of the type @var{TOKEN}.
+The return value is a list.  @var{A} value of @code{nil} means no parents.
+The @dfn{car} of the list is either the parent class, or a list
+of parent classes.  The @dfn{cdr} of the list is the list of
+interfaces, or abstract classes which are parents of @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-parent-superclass token
+Retrieve the parent superclasses of type type @var{TOKEN}.
+@end defun
+
+@defun semantic-token-type-parent-implement token
+Retrieve the parent interfaces of type type @var{TOKEN}.
 @end defun
 
 @defun semantic-token-type-modifiers token
