@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.198 2001/04/29 12:51:00 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.199 2001/05/08 16:17:24 zappo Exp $
 
 (defvar speedbar-version "0.14"
   "The current version of speedbar.")
@@ -3609,8 +3609,9 @@ Optional argument DEPTH specifies the current depth of the back search."
 	      (if (save-excursion
 		    (end-of-line)
 		    (eq start (point)))
-		  (file-name-directory (or (buffer-file-name buffer)
-					   ""))
+		  (or (save-excursion (set-buffer buffer)
+				      default-directory)
+		      "")
 		(buffer-file-name buffer))))))))
 
 (defun speedbar-buffer-click (text token indent)
