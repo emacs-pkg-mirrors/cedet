@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.45 2000/09/15 23:27:32 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.46 2000/09/19 04:23:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -976,15 +976,16 @@ Only set this on a per mode basis, not globally.")
 (make-variable-buffer-local 'semantic-flex-enable-newlines)
 
 (defun semantic-flex-make-keyword-table (keywords)
-  "Convert a list of keywords into an obarray.
+  "Convert a list of KEYWORDS into an obarray.
 Save the obarry into `semantic-flex-keywords-obarray'."
   ;; Create the symbol hash table
-  (setq semantic-flex-keywords-obarray (make-vector 13 nil))
-  ;; fill it with stuff
-  (while keywords
-    (set (intern (car (car keywords)) semantic-flex-keywords-obarray)
-	 (cdr (car keywords)))
-    (setq keywords (cdr keywords))))
+  (let ((obarray (make-vector 13 nil)))
+    ;; fill it with stuff
+    (while keywords
+      (set (intern (car (car keywords)) obarray)
+	   (cdr (car keywords)))
+      (setq keywords (cdr keywords)))
+    obarray))
 
 (defun semantic-flex-is-keyword (text)
   "Return a symbol if TEXT is a keyword."
