@@ -10,13 +10,12 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH=../common/ ../common/ ../semantic/ ../eieio/\
-   ../speedbar/ ../common/ ../semantic/wisent/ ../semantic/
+LOADPATH=../../../cedet/common/ ../../../cedet/common/ ../../../cedet/semantic/ ../../../cedet/eieio/\
+   ../../../cedet/speedbar/ ../../../cedet/common/ ../../../cedet/semantic/wisent/ ../../../cedet/semantic/
 LOADDEFS=contrib-loaddefs.el
 LOADDIRS=.
 init_LISP=cedet-contrib-load.el
 EMACS=emacs
-setup_LISP=cedet-contrib.el
 wy_SEMANTIC_GRAMMAR=wisent-csharp.wy
 EMACS=emacs
 wy_SAMENATIC_GRAMMAR_EL=wisent-csharp-wy.el
@@ -26,7 +25,7 @@ DISTDIR=$(top)Contrib-$(VERSION)
 
 
 
-all: autoloads init setup wy lisp
+all: autoloads init wy lisp
 
 .PHONY: autoloads
 autoloads: 
@@ -39,15 +38,6 @@ autoloads:
 
 .PHONY: init
 init: $(init_LISP)
-	@echo "(add-to-list 'load-path nil)" > $@-compile-script
-	for loadpath in . ${LOADPATH}; do \
-	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
-	done;
-	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
-
-.PHONY: setup
-setup: $(setup_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
@@ -85,7 +75,7 @@ clean:
 dist: $(wy_SAMENATIC_GRAMMAR_EL)
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(init_LISP) $(setup_LISP) $(wy_SEMANTIC_GRAMMAR) $(wy_SAMENATIC_GRAMMAR_EL) $(lisp_LISP) $(ede_FILES) $(DISTDIR)
+	cp $(init_LISP) $(wy_SEMANTIC_GRAMMAR) $(wy_SAMENATIC_GRAMMAR_EL) $(lisp_LISP) $(ede_FILES) $(DISTDIR)
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 

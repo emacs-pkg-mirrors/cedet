@@ -15,12 +15,6 @@
     :path ""
     :source '("cedet-contrib-load.el")
     )
-   (ede-proj-target-elisp "setup"
-    :name "setup"
-    :path ""
-    :source '("cedet-contrib.el")
-    :versionsource '("cedet-contrib.el")
-    )
    (semantic-ede-proj-target-grammar "wy"
     :name "wy"
     :path ""
