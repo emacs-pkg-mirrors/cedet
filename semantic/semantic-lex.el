@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.31 2004/01/18 15:44:20 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.32 2004/01/23 08:33:29 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -510,9 +510,7 @@ Return the overlay."
   (let ((o (semantic-make-overlay (semantic-lex-token-start token)
 				  (semantic-lex-token-end token))))
     (semantic-overlay-put o 'face 'highlight)
-    
-    o
-    ))
+    o))
 
 (defsubst semantic-lex-debug-break (token)
   "Break during lexical analysis at TOKEN."
@@ -979,119 +977,6 @@ types, as the value of the `punctuation' token type."
              ;; Nothing match
              )))))
 
-(defvar semantic--lex-block-specs nil)
-(make-variable-buffer-local 'semantic--lex-block-specs)
-
-(defsubst semantic--lex-delim-spec (block-spec)
-  "Return delimiters specification from BLOCK-SPEC."
-  (condition-case nil
-      (let* ((standard-input (cdr block-spec))
-             (delim-spec (read)))
-        (if (and (consp delim-spec)
-                 (car delim-spec) (symbolp (car delim-spec))
-                 (cadr delim-spec) (symbolp (cadr delim-spec)))
-            delim-spec
-          (error)))
-    (error
-     (error "Invalid delimiters specification %s in block token %s"
-            (cdr block-spec) (car block-spec)))))
-
-(defun semantic--lex-block-specs ()
-  "Compute lexical block specifications for the current buffer.
-Block definitions a read from the current table of lexical types."
-  (let ((blocks       (cdr (semantic-lex-type-value "block" t)))
-        (open-delims  (cdr (semantic-lex-type-value "open-paren" t)))
-        (close-delims (cdr (semantic-lex-type-value "close-paren" t)))
-        olist clist block-spec delim-spec open-spec close-spec)
-    (dolist (block-spec blocks)
-      (setq delim-spec (semantic--lex-delim-spec block-spec)
-            open-spec  (assq (car  delim-spec) open-delims)
-            close-spec (assq (cadr delim-spec) close-delims))
-      (or open-spec
-          (error "Missing open-paren token %s required by block %s"
-                 (car delim-spec) (car block-spec)))
-      (or close-spec
-          (error "Missing close-paren token %s required by block %s"
-                 (cdr delim-spec) (car block-spec)))
-      ;; build alist ((OPEN-DELIM OPEN-SYM BLOCK-SYM) ...)
-      (push (list (cdr open-spec) (car open-spec) (car block-spec))
-            olist)
-      ;; build alist ((CLOSE-DELIM CLOSE-SYM) ...)
-      (push (list (cdr close-spec) (car close-spec))
-            clist))
-    (setq semantic--lex-block-specs (cons olist clist))))
-
-(define-lex-analyzer semantic-lex-block-type
-  "Detect and create a block type token.
-Recognized blocks are defined in the current table of lexical types,
-as sets of `block', `open-paren' and `close-paren' token types.
-
-A `block' token defines a token returned when the value of
-`semantic-lex-current-depth' is greater than or equal to the maximum
-depth of parenthesis tracking (see also the function `semantic-lex').
-The value of a block token must be a string that contains a readable
-sexp of the form:
-
-  \"(OPEN-PAREN-TOKEN CLOSE-PAREN-TOKEN)\"
-
-OPEN-PAREN-TOKEN and CLOSE-PAREN-TOKEN represent the block delimiters,
-and must be lexical tokens of respectively type `open-paren' and
-`close-paren'.  Their value is a string that contain the corresponding
-delimiter character.  Notice that block delimiters must be of the
-open (`\\\\s(') or close (`\\\\s)') parenthesis syntax class.
-OPEN-PAREN-TOKEN and CLOSE-PAREN-TOKEN tokens are returned when the
-value of `semantic-lex-current-depth' is less than the maximum depth
-of parenthesis tracking.
-
-Here is a small example to analyse a parenthesis block:
-
-  %token <block>       PAREN_BLOCK \"(LPAREN RPAREN)\"
-  %token <open-paren>  LPAREN      \"(\"
-  %token <close-paren> RPAREN      \")\"
-
-When the lexer encounters the open-paren delimiter \"(\":
-
- - If the maximum depth of parenthesis tracking is not reached (that
-   is, current depth < max depth), it returns a (LPAREN start .  end)
-   token, then continue analysis inside the block.  Later, when the
-   corresponding close-paren delimiter \")\" will be encountered, it
-   will return a (RPAREN start . end) token.
-
- - If the maximum depth of parenthesis tracking is reached (current
-   depth >= max depth), it returns the whole parenthesis block as
-   a (PAREN_BLOCK start . end) token."
-  (and
-   (looking-at "\\(\\s(\\|\\s)\\)")
-   (let ((specs (or semantic--lex-block-specs
-                    (semantic--lex-block-specs)))
-         (text  (match-string 0))
-         match)
-     (cond
-      ((setq match (assoc text (car specs)))
-       (if (or (not semantic-lex-maximum-depth)
-               (< semantic-lex-current-depth semantic-lex-maximum-depth))
-           (progn
-             (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
-             (semantic-lex-push-token
-              (semantic-lex-token
-               (nth 1 match)
-               (match-beginning 0) (match-end 0))))
-         (semantic-lex-push-token
-          (semantic-lex-token
-           (nth 2 match)
-           (match-beginning 0)
-           (save-excursion
-             (semantic-lex-unterminated-syntax-protection (nth 2 match)
-               (forward-list 1)
-               (point)))))))
-      ((setq match (assoc text (cdr specs)))
-       (setq semantic-lex-current-depth (1- semantic-lex-current-depth))
-       (semantic-lex-push-token
-        (semantic-lex-token
-         (nth 1 match)
-         (match-beginning 0) (match-end 0))))
-      ))))
-
 (define-lex-regex-analyzer semantic-lex-paren-or-list
   "Detect open parenthesis.
 Return either a paren token or a semantic list token depending on
@@ -1324,9 +1209,69 @@ DEFAULT is the default lexical token returned when no MATCHES."
 
 (defmacro define-lex-block-type-analyzer (name doc syntax matches)
   "Define a block type analyzer NAME with DOC string.
-SYNTAX is the regexp that matches a syntactic expression.
-MATCHES is an alist of lexical elements used to refine the syntactic
-expression."
+
+SYNTAX is the regexp that matches block delimiters,  typically the
+open (`\\\\s(') and close (`\\\\s)') parenthesis syntax classes.
+
+MATCHES is a pair (OPEN-SPECS . CLOSE-SPECS) that defines blocks.
+
+  OPEN-SPECS is a list of (OPEN-DELIM OPEN-TOKEN BLOCK-TOKEN) elements
+  where:
+
+    OPEN-DELIM is a string: the block open delimiter character.
+
+    OPEN-TOKEN is the lexical token class associated to the OPEN-DELIM
+    delimiter.
+
+    BLOCK-TOKEN is the lexical token class associated to the block
+    that starts at the OPEN-DELIM delimiter.
+
+  CLOSE-SPECS is a list of (CLOSE-DELIM CLOSE-TOKEN) elements where:
+
+    CLOSE-DELIM is a string: the block end delimiter character.
+
+    CLOSE-TOKEN is the lexical token class associated to the
+    CLOSE-DELIM delimiter.
+
+Each element in OPEN-SPECS must have a corresponding element in
+CLOSE-SPECS.
+
+The lexer will return a BLOCK-TOKEN token when the value of
+`semantic-lex-current-depth' is greater than or equal to the maximum
+depth of parenthesis tracking (see also the function `semantic-lex').
+Otherwise it will return OPEN-TOKEN and CLOSE-TOKEN tokens.
+
+TO DO: Put the following in the developer's guide and just put a
+reference here.
+
+In the grammar:
+
+The value of a block token must be a string that contains a readable
+sexp of the form:
+
+  \"(OPEN-TOKEN CLOSE-TOKEN)\"
+
+OPEN-TOKEN and CLOSE-TOKEN represent the block delimiters, and must be
+lexical tokens of respectively `open-paren' and `close-paren' types.
+Their value is the corresponding delimiter character as a string.
+
+Here is a small example to analyze a parenthesis block:
+
+  %token <block>       PAREN_BLOCK \"(LPAREN RPAREN)\"
+  %token <open-paren>  LPAREN      \"(\"
+  %token <close-paren> RPAREN      \")\"
+
+When the lexer encounters the open-paren delimiter \"(\":
+
+ - If the maximum depth of parenthesis tracking is not reached (that
+   is, current depth < max depth), it returns a (LPAREN start .  end)
+   token, then continue analysis inside the block.  Later, when the
+   corresponding close-paren delimiter \")\" will be encountered, it
+   will return a (RPAREN start . end) token.
+
+ - If the maximum depth of parenthesis tracking is reached (current
+   depth >= max depth), it returns the whole parenthesis block as
+   a (PAREN_BLOCK start . end) token."
   (let* ((val (make-symbol "val"))
          (lst (make-symbol "lst"))
          (elt (make-symbol "elt")))
@@ -1366,7 +1311,7 @@ expression."
 
 ;;; Lexical Safety
 ;;
-;; The semantic lexers, unlike other lexers, can throw errors on 
+;; The semantic lexers, unlike other lexers, can throw errors on
 ;; unbalanced syntax.  Since editing is all about changeging test
 ;; we need to provide a convenient way to protect against syntactic
 ;; inequalities.
