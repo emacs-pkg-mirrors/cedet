@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.21 2000/04/27 22:08:30 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.22 2000/04/28 18:58:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -140,11 +140,11 @@
     (include
      ( punctuation "#" symbol "include" punctuation "<" filename punctuation ">"
 		   ,(lambda (vals start end)
-		      (append  (nth 3 vals) (list 'include nil)
+		      (append  (nth 3 vals) (list 'include 't nil)
 			       (list start end))))
      ( punctuation "#" symbol "include" string
 		   ,(lambda (vals start end)
-		      (append  (list ( read (nth 2 vals)) 'include nil)
+		      (append  (list ( read (nth 2 vals)) 'include nil nil)
 			       (list start end))))
      ) ; end include
     (filename
@@ -160,7 +160,7 @@
     (structparts
      ( semantic-list
        ,(lambda (vals start end)
-	  (append
+	  (append 
 	   (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'structsubparts)
 	   
 	   (list start end))))
