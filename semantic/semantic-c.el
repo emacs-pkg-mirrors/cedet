@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.25 2001/04/21 14:38:45 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.26 2001/05/02 01:32:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,9 +111,10 @@
  ( close-paren "}"
   ,(semantic-lambda
   (list nil)))
+ ( opt-class-protection punctuation "\\b:\\b")
  ( var-or-fun)
- ( define)
- ( opt-class-protection punctuation "\\b:\\b"
+ ( type)
+ ( define
   ,(semantic-lambda
   (nth 0 vals) (list 'protection)))
  ()
@@ -450,7 +451,7 @@
  ))
  ) ; end expression
  )
-    "C language specification.")
+  "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -605,38 +606,38 @@ machine."
       ("double" . DOUBLE)
       )
    '(
-     ("extern" summary "Declaration Modifier: extern <type> <declaration>")
-     ("static" summary "Declaration Modifier: static <type> <declaration>")
-     ("const" summary "Declaration Modifier: const <type> <declaration>")
-     ("volatile" summary "Declaration Modifier: volatile <type> <declaration>")
-     ("signed" summary "Numeric Type Modifier: signed <numeric type> ...")
-     ("unsigned" summary "Numeric Type Modifier: unsigned <numeric type> ...")
-     ("virtual" summary "Method Modifier: virtual <type> <fnname>(...)")
-     ("struct" summary "Type Declaration: struct [name] { ... };")
-     ("union" summary "Type Declaration: union [name] { ... };")
-     ("enum" summary "Type Declaration: enum [name] { ... };")
-     ("typedef" summary "Type Declaration: typedef <typedeclaration> <name>")
-     ("class" summary "Type Declaration: class <name>[:parents] { ... };")
-     ("namespace" summary "Type Declaration: namespace <name> { ... };")
-     ("if" summary "Conditional: if <condition> {code} [ else { coe } ]")
-     ("else" summary "Conditional: if <condition> {code} [ else { coe } ]")
-     ("do" summary "Loop: do { code } while <condition>;")
-     ("while" summary "Loop: do { code } while <condition>; or while <condition> { code };")
-     ("for" summary "Loop: for(<init>; <condition>; <increment>) { code }")
-     ("switch" summary "Conditional: switch (<variable>) { case <constvalue>: code; ... default: code; }")
-     ("case" summary "Conditional: switch (<variable>) { case <constvalue>: code; ... default: code; }")
-     ("default" summary "Conditional: switch (<variable>) { case <constvalue>: code; ... default: code; }")
+     ("extern" summary "Declaration Modifier: extern <type> <name> ...")
+     ("static" summary "Declaration Modifier: static <type> <name> ...")
+     ("const" summary "Declaration Modifier: const <type> <name> ...")
+     ("volatile" summary "Declaration Modifier: volatile <type> <name> ...")
+     ("signed" summary "Numeric Type Modifier: signed <numeric type> <name> ...")
+     ("unsigned" summary "Numeric Type Modifier: unsigned <numeric type> <name> ...")
+     ("virtual" summary "Method Modifier: virtual <type> <name>(...) ...")
+     ("struct" summary "Structure Type Declaration: struct [name] { ... };")
+     ("union" summary "Union Type Declaration: union [name] { ... };")
+     ("enum" summary "Enumeration Type Declaration: enum [name] { ... };")
+     ("typedef" summary "Arbitrary Type Declaration: typedef <typedeclaration> <name>;")
+     ("class" summary "Class Declaration: class <name>[:parents] { ... };")
+     ("namespace" summary "Namespace Declaration: namespace <name> { ... };")
+     ("if" summary "if (<condition>) { code } [ else { code } ]")
+     ("else" summary "if (<condition>) { code } [ else { code } ]")
+     ("do" summary " do { code } while (<condition>);")
+     ("while" summary "do { code } while (<condition>); or while (<condition>) { code };")
+     ("for" summary "for(<init>; <condition>; <increment>) { code }")
+     ("switch" summary "switch (<variable>) { case <constvalue>: code; ... default: code; }")
+     ("case" summary "switch (<variable>) { case <constvalue>: code; ... default: code; }")
+     ("default" summary "switch (<variable>) { case <constvalue>: code; ... default: code; }")
      ("return" summary "return <value>;")
-     ("break" summary "Non-local exit: break;")
-     ("continue" summary "Non-local continue: continue;")
-     ("sizeof" summary "Function: sizeof(<type or variable>) // size in bytes")
-     ("void" summary "Built in type: void  No type")
-     ("char" summary "Built in type: char  Character, or 8 bit numeric value")
-     ("short" summary "Built in type: short  Small numeric value")
-     ("int" summary "Built in type: int  Numeric integer value")
-     ("long" summary "Built in type: long  Large numeric integer value")
-     ("float" summary "Built in type: float  Numeric floating point value")
-     ("double" summary "Built in type: double  Large floating point value")
+     ("break" summary "Non-local exit within a loop or switch (for, do/while, switch): break;")
+     ("continue" summary "Non-local continue within a lool (for, do/while): continue;")
+     ("sizeof" summary "Compile time macro: sizeof(<type or variable>) // size in bytes")
+     ("void" summary "Built in typeless type: void")
+     ("char" summary "Integral Character Type: (0 to 256)")
+     ("short" summary "Integral Primitive Type: (-32768 to 32767)")
+     ("int" summary "Integral Primitive Type: (-2147483648 to 2147483647)")
+     ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
+     ("float" summary "Primitive floating-point type (single-precision 32-bit IEEE 754)")
+     ("double" summary "Primitive floating-point type (double-precision 64-bit IEEE 754)")
      ))
   "Some keywords used in C.")
 
