@@ -1,9 +1,9 @@
 ;;; eieio-doc.el --- create texinfo documentation for an eieio class
 
-;;; Copyright (C) 1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2004 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.17 2001/04/27 00:28:29 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.18 2004/03/01 02:03:05 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -62,7 +62,7 @@ The first job is to create an indented menu of all the classes
 starting with `root-class' and including all it's children.  Once this
 is done, @nodes are created for all the subclasses.  Each node is then
 documented with a description of the class, a brief inheritance tree
-(with xrefs) and a list of all slots in a big table.  Where each slot
+\(with xrefs) and a list of all slots in a big table.  Where each slot
 is inherited from is also documented.  In addition, each class is
 documented in the index referenced by INDEXSTRING, a two letter code
 described in the texinfo manual.
@@ -73,6 +73,8 @@ into any menus, nodes or lists."
    (list (intern-soft
 	  (completing-read "Class: " (eieio-build-class-alist) nil t))
 	 (read-string "Index name (2 chars): ")))
+  (if (looking-at "[ \t\n]+@end ignore")
+      (goto-char (match-end 0)))
   (save-excursion
     (setq eieiodoc-currently-in-node
 	  (if (re-search-backward "@node \\([^,]+\\)" nil t)
