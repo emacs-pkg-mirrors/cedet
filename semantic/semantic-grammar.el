@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.51 2004/01/16 13:12:28 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.52 2004/01/16 15:43:18 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -745,7 +745,7 @@ Typically a DEFINE expression should look like this:
 
 (defun semantic-grammar--lex-block-specs ()
   "Compute lexical block specifications for the current buffer.
-Block definitions a read from the current table of lexical types."
+Block definitions are read from the current table of lexical types."
   (cond
    ;; Block specifications have been parsed and are invalid.
    ((eq semantic-grammar--lex-block-specs 'error)
@@ -753,7 +753,7 @@ Block definitions a read from the current table of lexical types."
     )
    ;; Parse block specifications.
    ((null semantic-grammar--lex-block-specs)
-    (condition-case nil
+    (condition-case err
         (let* ((blocks       (cdr (semantic-lex-type-value "block" t)))
                (open-delims  (cdr (semantic-lex-type-value "open-paren" t)))
                (close-delims (cdr (semantic-lex-type-value "close-paren" t)))
