@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.115 2001/09/12 13:28:09 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.116 2001/09/12 15:53:06 ponced Exp $
 
 (defvar semantic-version "1.4beta10"
   "Current version of Semantic.")
@@ -490,7 +490,7 @@ This makes sure semantic-init type stuff can occur."
   (add-hook 'post-command-hook 'semantic-post-change-major-mode-function))
 
 (add-hook 'find-file-hooks
-          'semantic-change-major-mode-hook-function)
+          'semantic-post-change-major-mode-function)
 (add-hook 'change-major-mode-hook
           'semantic-change-major-mode-hook-function)
 
