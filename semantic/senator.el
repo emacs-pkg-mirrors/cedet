@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.29 2001/03/26 05:55:56 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.30 2001/03/27 09:50:45 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -100,6 +100,11 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.30  2001/03/27 09:50:45  ponced
+;; (senator-completion-menu-popup): Fixed error when handling a simple
+;; list of menu items returned when the Semantic Database feature is
+;; disabled.
+;;
 ;; Revision 1.29  2001/03/26 05:55:56  ponced
 ;; (senator-find-nonterminal-by-name,
 ;; senator-find-nonterminal-by-name-regexp, senator-complete-symbol,
@@ -1084,27 +1089,32 @@ use `imenu--mouse-menu' to handle the popup menu."
                        (mapcar #'senator-completion-menu-item
                                complst)))
           title item)
-      (if (semantic-token-p (car index))
-          ;; No sub-menus.
-          (if (cdr index)
-              ;; Multiple matches, setup the popup title.
-              (setq title (format "%S completion" symbol))
-            ;; Only one match, no need to popup a menu.
-            (setq item (car index)))
+      (cond ;; Here index is a menu structure like:
+       
+       ;; -1- (("menu-item1" . [token1]) ...)
+       ((vectorp (cdr (car index)))
+        ;; There are more than one item, setup the popup title.
+        (if (cdr index)
+            (setq title (format "%S completion" symbol))
+          ;; Only one item , no need to popup the menu.
+          (setq item (car index))))
+       
+       ;; -2- (("menu-title1" ("menu-item1" . [token1]) ...) ...)
+       (t
         ;; There are sub-menus.
         (if (cdr index)
             ;; Several sub-menus, setup the popup title.
             (setq title (format "%S completion" symbol))
-          ;; One sub-menu, display it as a main menu.
+          ;; Only one sub-menu, convert it to a main menu and add the
+          ;; sub-menu title (filename) to the popup title.
           (setq title (format "%S completion (%s)"
-                              symbol
-                              ;; And add file name to the title.
-                              (car (car index)))
+                              symbol (car (car index)))
                 index (cdr (car index)))
           ;; But...
           (or (cdr index)
-              ;; ... If only one match, no need to popup the menu.
-              (setq item (car index)))))
+              ;; ... If only one menu item, no need to popup the menu.
+              (setq item (car index))))))
+      
       (or item
           (setq item ;; Delegates menu handling to imenu :-)
                 (imenu--mouse-menu
