@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.11 2002/08/10 14:20:51 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.12 2002/12/29 18:02:30 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,7 +42,7 @@
 (defvar semantic-texi-super-regex
   "^@\\(chapter\\|\\(sub\\)*section\\|unnumbered\\(\\(sub\\)*sec\\)?\\|\
 \\(chap\\|\\(sub\\)+\\|major\\)?heading\\|appendix\\(\\(sub\\)*sec\\)?\\|\
-centerchap\\|def\\(var\\|un\\|fn\\)x?\\)"
+centerchap\\|def\\(var\\|un\\|fn\\|opt\\)x?\\)"
   "Regular expression used to find special sections in a Texinfo file.")
 
 (defvar semantic-texi-name-field-list
@@ -50,6 +50,7 @@ centerchap\\|def\\(var\\|un\\|fn\\)x?\\)"
      ("defvarx" . 1)
      ("defun" . 1)
      ("defunx" . 1)
+     ("defopt" . 1)
      ("deffn" . 2)
      ("deffnx" . 2)
      )
@@ -104,9 +105,9 @@ function `semantic-install-function-overrides'."
     ))
 
 (defun semantic-texi-recursive-combobulate-list (sectionlist level)
-  "Re-arrange SECTIONLIST to be a hierarchical token list starting at LEVEL.
-Return the re-arranged new list, with all remaining tokens from
-SECTIOLIST starting at ELT 2.  Sections not are not dealt with as soon as a
+  "Rearrange SECTIONLIST to be a hierarchical token list starting at LEVEL.
+Return the rearranged new list, with all remaining tokens from
+SECTIONLIST starting at ELT 2.  Sections not are not dealt with as soon as a
 token with greater section value than LEVEL is found."
   (let ((newl nil)
 	(oldl sectionlist)
