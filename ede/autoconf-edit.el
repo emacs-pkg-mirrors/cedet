@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: autoconf-edit.el,v 1.4 2000/07/22 12:40:05 zappo Exp $
+;; RCS: $Id: autoconf-edit.el,v 1.5 2000/07/22 13:08:17 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -35,33 +35,11 @@
 	(require 'autoconf)
       (error (require 'autoconf-mode "autoconf")))
 
-  (eval-and-compile (if (not (fboundp 'with-syntax-table))
-			
-;; Copied from Emacs 21 for compatibility with released Emacses.
-(defmacro with-syntax-table (table &rest body)
-  "Evaluate BODY with syntax table of current buffer set to a copy of TABLE.
-The syntax table of the current buffer is saved, BODY is evaluated, and the
-saved table is restored, even in case of an abnormal exit.
-Value is what BODY returns."
-  (let ((old-table (make-symbol "table"))
-	(old-buffer (make-symbol "buffer")))
-    `(let ((,old-table (syntax-table))
-	   (,old-buffer (current-buffer)))
-       (unwind-protect
-	   (progn
-	     (set-syntax-table (copy-syntax-table ,table))
-	     ,@body)
-	 (save-current-buffer
-	   (set-buffer ,old-buffer)
-	   (set-syntax-table ,old-table))))))
+  (require 'autoconf-compat)
 
-)
-
-(require 'autoconf-compat)
-
-;; This part is not in autoconf.el
-(add-to-list 'auto-mode-alist '("\\<configure\\.in$" . autoconf-mode))
-)
+  ;; This part is not in autoconf.el
+  (add-to-list 'auto-mode-alist '("\\<configure\\.in$" . autoconf-mode))
+  )
 
 (defvar autoconf-new-automake-string
   "dnl Process this file with autoconf to produce a configure script
