@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.5 1999/09/04 12:30:51 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.6 1999/09/05 19:43:56 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -123,15 +123,15 @@ If CLASS is actually an object, then also display current values of that obect."
 			      (point))
 		       'face 'underline)
     (insert "\n")
-    (eieio-describe-slots publa publd publdoc prot)
+    (eieio-describe-slots class publa publd publdoc prot)
     (setq publdoc (aref cv class-class-allocation-doc)
 	  publa (aref cv class-class-allocation-a)
 	  prot (aref cv class-class-allocation-protection))
     (if publa (insert "\nClass allocated slots:\n"))
-    (eieio-describe-slots publa nil publdoc prot)
+    (eieio-describe-slots class publa nil publdoc prot)
     ))
 
-(defun eieio-describe-slots (publa publd publdoc prot)
+(defun eieio-describe-slots (class publa publd publdoc prot)
   "Insert into a DESCRIBE CLASS buffer descriptions of the fields.
 PUBLA is the list of attributes.  PUBLD is the list of defaults.
 PUBLDOC is the list of doc strings.  PROT is the list of protection flags."
