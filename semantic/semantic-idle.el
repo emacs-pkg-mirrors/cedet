@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.2 2003/12/19 03:24:58 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.3 2003/12/21 02:13:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -163,6 +163,11 @@ minor mode is enabled."
 (semantic-add-minor-mode 'semantic-idle-scheduler-mode
                          "ARP"
                          nil)
+
+(semantic-alias-obsolete 'semantic-auto-parse-mode
+			 'semantic-idle-scheduler-mode)
+(semantic-alias-obsolete 'global-semantic-auto-parse-mode
+			 'global-semantic-idle-scheduler-mode)
 
 
 ;;; SERVICES services
@@ -438,13 +443,13 @@ minor mode is enabled.")
 		   (>
 		    (prefix-numeric-value arg)
 		    0)
-		 (not semantic-summary-mode)))
+		 (not ,mode)))
 	 (,setup)
 	 (run-hooks ,hook)
 	 (if (interactive-p)
 	     (message "%s %sabled"
 		      (symbol-name ',mode)
-		      (if semantic-summary-mode "en" "dis")))
+		      (if ,mode "en" "dis")))
 	 (semantic-mode-line-update)
 	 ,mode)
 
@@ -497,18 +502,27 @@ Return the tag found or nil if not found."
     found))
 
 (define-semantic-idle-service semantic-idle-summary
-  "Display a tag summary of the lexcial token under the cursor."
+  "Display a tag summary of the lexcial token under the cursor.
+The means for getting the current tag to display information can
+be override with `idle-summary-current-symbol-info'"
   (unless (eq major-mode 'emacs-lisp-mode)
 
-    (let* ((found (senator-eldoc-print-current-symbol-info-default))
-	   (str (cond ((stringp found)
+    ;; Double overload symbols for backward compatibility
+    (let ((s (or (semantic-fetch-overload 'idle-summary-current-symbol-info)
+		 (semantic-fetch-overload 'eldoc-current-symbol-info)))
+	  found str
+	  )
+      
+      (if s (setq found (funcall s))
+	(setq found (semantic-idle-summary-current-symbol-info-default)))
+
+      (setq str (cond ((stringp found)
 		       found)
 		      ((semantic-tag-p found)
-		       (funcall senator-eldoc-summary-function
-				found nil senator-eldoc-use-color))
+		       (funcall semantic-idle-summary-function
+				found nil t))
 		      (t nil)
 		      ))
-	   )
 
       (unless (and (boundp 'eldoc-echo-area-use-multiline-p)
 		   eldoc-echo-area-use-multiline-p)
@@ -519,6 +533,10 @@ Return the tag found or nil if not found."
       (eldoc-message str))  
     ))
  
+(semantic-alias-obsolete 'semantic-summary-mode
+			 'semantic-idle-summary-mode)
+(semantic-alias-obsolete 'global-semantic-summary-mode
+			 'global-semantic-idle-summary-mode)
 
 (provide 'semantic-idle)
 
