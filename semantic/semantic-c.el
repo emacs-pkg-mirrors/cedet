@@ -3,11 +3,11 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.17 2001/02/09 11:48:09 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.18 2001/02/20 20:37:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
-;; Semantic-ex is free software; you can redistribute it and/or modify
+;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
@@ -297,10 +297,10 @@
  
  (semantic-bovinate-from-nonterminal (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-list-p)
  ))
- ( semantic-list knr-arguments
+ ( semantic-list "^(" knr-arguments
   ,(semantic-lambda
   (nth 1 vals)))
- ( semantic-list
+ ( semantic-list "^("
   ,(semantic-lambda
  
  (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
@@ -410,7 +410,7 @@
  ))
  ) ; end expression
  )
-  "C language specification.")
+           "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -517,13 +517,8 @@ machine."
       ("protected" . PROTECTED)
       )
    '(
-     ("struct" type t)
-     ("union" type t)
-     ("typedef" type t)
-     ("class" type t)
      ))
   "Some keywords used in C.")
-
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
   (setq semantic-default-built-in-types semantic-default-c-built-in-types)
