@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.14 1999/02/03 20:31:46 zappo Exp $
+@c $Id: eieio.texi,v 1.15 1999/02/18 20:13:42 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -189,34 +189,6 @@ keywords supported by EIEIO.
 
 In EIEIO tags are in lower case, not mixed case.
 
-CLOS keywords supported by EIEIO's defclass:
-
-@table @asis
-@item :initform
-The initial value of an attribute
-@item :initarg
-A tag used in @code{make-instance} to assign a value to a field.
-@item :accessor
-A tag used to create a function which returns the value of the defined
-slot.  If the common-lisp subsystem is loaded, you can use @code{setf}
-to assign a value into a slot through the accessor.
-@item :documentation
-Documentation which is mixed in with the variable documentation for the
-class.
-@end table
-
-EIEIO defclass keywords not in CLOS
-@table @asis
-@item :protection
-Can be @code{private} or something else.  If it is set to private, then
-this field cannot be accessed via normal EIEIO means @code{oref}, and
-@code{oset}..  These fields will then only be accessable to methods
-running from this object.  This is determined if you define a method
-@xref{Writing Methods} where the object paramater name is @code{this}.
-@end table
-
-Any tags not understood are summarily ignored (in addition to it's parameter)
-
 @node Building Classes, Default Superclass, CLOS compatibility, Top
 @comment  node-name,  next,  previous,  up
 @chapter Building Classes
@@ -234,9 +206,9 @@ documentation string is set to a modified version of @var{doc-string}.
 Each time a slot is defined the variables documentation string is
 updated to include the methods documentation as well.
 
-The parent class for @code{class-name} must be a list, however, at this
-time, only the first element of that list is used.  In the future,
-multiple inheritance may be supported.
+The parent class for @code{class-name} must be a list.  At this time
+only the first element of that list is used.  In the future, multiple
+inheritance may be supported.
 
 The field list is a list of lists.  Each sublist defines an attribute.
 These lists are of the form @code{(name :tag1 value1 :tag2 value2 :tagn
@@ -247,7 +219,6 @@ valuen)}.  Some valid tags are:
 The argument used during initialization. @xref{Making New Objects}
 @item :initform
 A lisp expression used to generate the default value for this slot.
-this class.
 @item :accessor
 Name of a generic function which can be used to fetch the value of this slot.
 @item :writer
@@ -283,7 +254,7 @@ object maintains."
 	  :protection private)
    (reference :initarg :reference
 	      :initform nil
-              :custom (repeate object)
+              :custom (repeat object)
 	      :documentation "List of objects looking at me.  The method 
 `update-symbol' is called for each member of `reference' whenever 
 `value' is modified."
@@ -331,9 +302,6 @@ is a list of name/value pairs.  These are actually just passed to
 Sets fields of @var{obj} with @var{fields} which is a list of name/value
 pairs.
 @end defun
-
-In addition, there are several other default methods.  The last one
-implemented for EIEIO is @code{slot-missing} @xref{Accessing Fields}.
 
 @defun clone obj &rest params
 Make a deep copy of @var{obj}.  Once this copy is made, make
@@ -418,8 +386,7 @@ methods are all accounted for.
 @defun oset object field value
 
 This sets the value behind @var{field} to @var{value} in @var{object}.
-Currently, no type checking is performed, and value can be any lisp
-object.  @code{oset} returns @var{value}.
+@code{oset} returns @var{value}.
 @end defun
 
 @defun oset-default class field value
@@ -459,13 +426,12 @@ object.
 This function is mearly an alias for oref
 @end defun
 
-If the value behind @var{field} is private, then the current scope of
-operation must be within a method of the calling object.  The scope is
-tracked with the variable @code{this}.  You can set the field
-@code{this} by making it the name of your object passed into your
-methods.  It is not necessary to name your object @code{this}, or to use
-private fields.  It's not CLOS compatible, but I find it useful in the
-dialog example system.
+When using @code{oref} or @code {oset}, if the value behind @var{field}
+is private, then the current scope of operation must be within a method
+of the calling object.  The scope is tracked with the variable
+@code{this}.  You can set the field @code{this} by making it the name of
+your object passed into your methods.  It is not necessary to name your
+object @code{this}, or to use private fields.
 
 @defun with-slots entries object forms
 Bind ENTRIES lexically to the specified slot values in OBJECT, and
@@ -605,8 +571,8 @@ Return Non-@code{nil} if @var{obj} contains @var{slot} in its class.
 @end defun
 
 @defun slot-boundp obj slot
-In CLOS, an object can have an unbound slot.  Since EIEIO binds all
-slots at instantiation time.  Thus, this function is a macro that calls
+In CLOS, an object can have an unbound slot.  EIEIO binds all
+slots at instantiation time, thus this function is a macro that calls
 @code{slot-exists-p}
 @end defun
 
