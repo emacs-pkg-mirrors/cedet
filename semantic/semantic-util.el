@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.19 2000/09/19 03:43:30 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.20 2000/09/20 17:45:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -179,6 +179,29 @@ details are available of findable."
 				(semantic-token-type-parts current)
 			      nil))))
     (nreverse (cons current returnme))))
+
+(defun semantic-find-nonterminal-by-overlay (&optional positionormarker buffer)
+  "Find all nonterminals covering POSITIONORMARKER by using overlays.
+If POSITIONORMARKER is nil, use the current point.
+Optional BUFFER is used if POSITIONORMARKER is a number, otherwise the current
+buffer is used.  This finds all tokens covering the specified position
+by checking for all overlays covering the current spot.  They are then sorted
+from largest to smallest via the start location."
+  (save-excursion
+    (when positionormarker
+      (if (markerp positionormarker)
+	  (set-buffer (marker-buffer positionormarker))
+	(if (bufferp buffer)
+	    (set-buffer buffer))))
+    (let ((ol (semantic-overlays-at (or positionormarker (point))))
+	  (ret nil))
+      (while ol
+	(let ((tmp (semantic-overlay-get (car ol) 'semantic)))
+	  (when tmp
+	    (setq ret (cons tmp ret))))
+	(setq ol (cdr ol)))
+      (sort ret (lambda (a b) (< (semantic-token-start a) (semantic-token-start b))))
+      )))
 
 (defun semantic-find-nonterminal-by-token (token streamorbuffer)
   "Find all nonterminals with a token TOKEN within STREAMORBUFFER.
