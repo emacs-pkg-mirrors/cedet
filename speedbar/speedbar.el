@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.241 2004/03/13 16:54:18 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.242 2004/10/05 14:16:07 berndl Exp $
 
 (defvar speedbar-version "0.15beta2"
   "The current version of speedbar.")
@@ -2913,7 +2913,8 @@ This can be overloaded to add new types of version control systems."
 	 (file-exists-p (concat proj-dir "/SCCS"))
        nil))
    ;; User extension
-   (run-hook-with-args 'speedbar-vc-directory-enable-hook directory)
+   (run-hook-with-args-until-success 'speedbar-vc-directory-enable-hook
+                                     directory)
    ))
 
 (defun speedbar-this-file-in-vc (directory name)
