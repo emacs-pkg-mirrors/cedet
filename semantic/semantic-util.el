@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.65 2001/05/18 02:56:50 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.66 2001/06/05 20:06:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -900,6 +900,7 @@ Available override symbols:
  `nonterminal-children'   (token)            Return first rate children.
 					     These are children which may
 					     contain overlays.
+ `nonterminal-protection' (token & parent)   Protection (as a symbol)
 
   CONTEXT FUNCTIONS:
  `beginning-of-context'   (& point)          Move to the beginning of the
@@ -1293,6 +1294,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	 (name (semantic-name-nonterminal token parent color))
 	 (type (if (member tok '(function variable type))
 		   (semantic-token-type token) ""))
+	 (prot (semantic-nonterminal-protection token parent))
 	 )
     (if type
 	(if (semantic-token-p type)
@@ -1301,11 +1303,22 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	      (setq type (car type)))
 	  (if color
 	      (setq type (semantic-colorize-text type 'type)))))
+    (setq prot
+	  (cond ((eq prot 'public)
+		 "+")
+		((eq prot 'private)
+		 "-")
+		((eq prot 'friend)
+		 "-")
+		(t " ")))
     (if type
-	(concat name ":" type)
+	(concat prot name ":" type)
       name)
     ))
 
+
+;;; Multi-file Token information
+;;
 (defvar semantic-dependency-include-path nil
   "Defines the include path used when searching for files.
 This should be a list of directories to search which is specific to
@@ -1479,6 +1492,9 @@ file prototypes belong in."
 	  (if (re-search-forward "::Header:: \\([a-zA-Z0-9.]+\\)" nil t)
 	      (match-string 1)))))))
 
+
+;;;; Mode-specific Token information
+;;
 (defun semantic-nonterminal-children (token &optional positionalonly)
   "Return the list of top level children belonging to TOKEN.
 Children are any sub-tokens which may contain overlays.
@@ -1514,6 +1530,45 @@ For functions return the argument list."
 	 (semantic-token-function-args token))
 	(t nil)))
 
+(defun semantic-nonterminal-protection (token &optional parent)
+  "Return protection information about TOKEN with optional PARENT.
+This function returns on of the following symbols:
+   nil      - No special protection.  Language dependent.
+   'public  - Anyone can access this TOKEN.
+   'private - Only methods in the local scope can access TOKEN.
+   'friend  - Like private, except some outer scopes are allowed
+              access to token.
+Some languages may choose to provide additional return symbols specific
+to themselves.  Use of this function should allow for this.
+
+The default behavior (if not overriden with `nonterminal-children'
+is to return a symbol based on type modifiers."
+  (let* ((s (semantic-fetch-overload 'nonterminal-protection)))
+    (if s (funcall s token parent)
+      (semantic-nonterminal-protection-default token parent))))
+
+(defun semantic-nonterminal-protection-default (token &optional parent)
+  "Return the protection of TOKEN as a child of PARENT default action.
+See `semantic-nonterminal-protection'."
+  (let ((mods (semantic-token-type-modifiers token))
+	(prot nil))
+    (while (and (not prot) mods)
+      (if (stringp (car mods))
+	  (let ((s (car mods)))
+	    ;; A few silly defaults to get things started.
+	    (cond ((or (string= s "public")
+		       (string= s "extern")
+		       (string= s "export"))
+		   'public)
+		  ((or (string= s "private")
+		       (string= s "static"))
+		   'private)
+		  ((string= s "friend")
+		   'friend))))
+      (setq mods (cdr mods)))
+    prot))
+
+
 ;;; Do some fancy stuff with overlays
 ;;
 (defun semantic-highlight-token (token &optional face)
