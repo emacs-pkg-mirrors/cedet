@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.9 2000/09/25 01:41:31 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.10 2000/09/28 18:05:49 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -56,9 +56,6 @@ All other sources should be included independently."))
    :commands '("makeinfo -o $@ $<")
    :autoconf '(("AC_CHECK_PROG" . "MAKEINFO, makeinfo"))
    :sourcetype '(ede-makeinfo-source)
-   ;; the extention keys off if we want intermediate files or not,
-   ;; not what the actual extention is.
-   :objectextention ".info"
    )
   "Compile texinfo files into info files.")
 
