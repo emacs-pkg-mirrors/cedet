@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 03 Mar 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-cim.wy,v 1.1 2002/03/14 21:53:28 ponced Exp $
+;; X-RCS: $Id: wisent-cim.wy,v 1.2 2002/06/29 18:10:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,7 +38,7 @@
 ;;; History:
 ;; 
 
-%outputfile    "wisent-cim-wy.el"
+%outputfile    "wisent-cim.el"
 %parsetable    wisent-cim-automaton
 %keywordtable  wisent-cim-keywords
 %tokentable    wisent-cim-tokens
