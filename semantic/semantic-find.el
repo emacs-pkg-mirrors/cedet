@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.11 2003/04/07 08:26:04 ponced Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.12 2003/05/29 00:57:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -398,7 +398,10 @@ unmodified as components of their parent tags."
     (mapc (lambda (tag)
 	    (let ((components (semantic-tag-components tag)))
 	      (if (and components
-		       (semantic-tag-p (car components)))
+		       ;; unpositined tags can be hazardous to
+		       ;; completion.  Do we need any type of tag
+		       ;; here?  - EL
+		       (semantic-tag-with-position-p (car components)))
 		  (setq lists (cons
 			       (semantic-flatten-tags-table components)
 			       lists)))))
