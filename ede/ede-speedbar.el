@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.21 2001/04/27 00:26:25 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.22 2001/12/05 01:25:05 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -51,6 +51,7 @@
   (define-key ede-speedbar-key-map "+" 'speedbar-expand-line)
   (define-key ede-speedbar-key-map "=" 'speedbar-expand-line)
   (define-key ede-speedbar-key-map "-" 'speedbar-contract-line)
+  (define-key ede-speedbar-key-map " " 'speedbar-toggle-line-expansion)
 
   ;; Some object based things
   (define-key ede-speedbar-key-map "C" 'eieio-speedbar-customize-line)
