@@ -1,12 +1,10 @@
 ;;; document.el --- Use the bovinator to aid in generating documentation.
 
-;;; Copyright (C) 2000 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.5 2000/09/29 03:09:43 zappo Exp $
-
-;; This file is not part of GNU Emacs.
+;; X-RCS: $Id: document.el,v 1.6 2001/02/21 20:53:35 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -99,7 +97,9 @@ When non-nil, query for a new documentation file."
 	(error "No file found for your documentation"))
     (set-buffer (marker-buffer document-current-output-file))
     (goto-char document-current-output-file)
+    (insert "\n")
     (document-insert-texinfo cdi cdib)
+    (insert "\n")
     (setq document-current-output-file (point-marker))
     ))
 
@@ -114,13 +114,16 @@ When non-nil, query for a new documentation file."
 ;;
 (defun document-insert-texinfo (nonterm buffer)
   "Insert texinfo documentation about NONTERM from BUFFER."
-  (insert "\n")
   (let ((tt (semantic-token-token nonterm)))
     (insert "@"
 	    (cond ((eq tt 'variable)
-		   "defvar")
+		   (if (semantic-token-extra-spec nonterm 'user-visible)
+		       "deffn Option"
+		     "defvar"))
 		  ((eq tt 'function)
-		   "defun")
+		   (if (semantic-token-extra-spec nonterm 'user-visible)
+		       "deffn Comamnd"
+		     "defun"))
 		  ((eq tt 'type)
 		   "deftype")
 		  (t (error "Don't know how to document that")))
@@ -141,12 +144,16 @@ When non-nil, query for a new documentation file."
 	     (document-generate-documentation nonterm buffer)))
     (insert "\n@end "
 	    (cond ((eq tt 'variable)
-		   "defvar")
+		   (if (semantic-token-extra-spec nonterm 'user-visible)
+		       "deffn"
+		     "defvar"))
 		  ((eq tt 'function)
-		   "defun")
+		   (if (semantic-token-extra-spec nonterm 'user-visible)
+		       "deffn"
+		     "defun"))
 		  ((eq tt 'type)
 		   "deftype"))
-	    "\n")))
+	    )))
 
 (defun document-insert-defun-comment (nonterm buffer)
   "Insert mode-comment documentation about NONTERM from BUFFER."
@@ -266,18 +273,20 @@ Adds the comment line PREFIX to each line."
 ;;
 (defun document-generate-documentation (nonterm buffer)
   "Return a plain string documenting NONTERM from BUFFER."
-  (let ((doc ;; Second, does this thing have docs in the source buffer which
-	 ;; an override method might be able to find?
-	 (semantic-find-documentation nonterm)
-	 ))
-    (if (not doc)
-	(document-generate-new-documentation nonterm buffer)
-      ;; Ok, now lets see what sort of formatting there might be,
-      ;; and see about removing some of it.. (Tables of arguments,
-      ;; and that sort of thing.)
-      nil
-      ;; Return the string.
-      doc)))
+  (save-excursion
+    (set-buffer buffer)
+    (let ((doc ;; Second, does this thing have docs in the source buffer which
+	   ;; an override method might be able to find?
+	   (semantic-find-documentation nonterm)
+	   ))
+      (if (not doc)
+	  (document-generate-new-documentation nonterm buffer)
+	;; Ok, now lets see what sort of formatting there might be,
+	;; and see about removing some of it.. (Tables of arguments,
+	;; and that sort of thing.)
+	nil
+	;; Return the string.
+	doc))))
 
 (defun document-generate-new-documentation (nonterm buffer)
   "Look at elements of NONTERM in BUFFER to make documentation.
