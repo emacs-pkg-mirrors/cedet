@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.14 2004/03/30 12:48:55 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.15 2004/03/30 14:51:10 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ All other sources should be included independently."))
   (ede-sourcecode "ede-makeinfo-source"
 		  :name "Texinfo"
 		  :sourcepattern "\\.texi?$"
-		  :garbagepattern '("*.info" "*.html"))
+		  :garbagepattern '("*.info*" "*.html"))
   "Texinfo source code definition.")
 
 (defvar ede-makeinfo-compiler
@@ -104,13 +104,28 @@ when working in Automake mode."
       (if moresource
 	  (error "Texinfo files should not have moresource")))))
 
+(defun ede-makeinfo-find-info-filename (source)
+  "Find the info filename produced by SOURCE texinfo file."
+  (let ((opened (get-file-buffer source))
+	(buffer (find-file-noselect source nil t))
+	info)
+    (with-current-buffer buffer
+      (save-excursion
+	(goto-char (point-min))
+	(and (re-search-forward "^@setfilename\\s-+\\([^.]+\\)" nil t)
+	     (setq info (match-string 1)))))
+    (unless (eq buffer opened)
+      (kill-buffer buffer))
+    info))
+
 (defmethod ede-proj-makefile-target-name ((this ede-proj-target-makefile-info))
   "Return the name of the main target for THIS target."
   ;; The target should be the main-menu file name translated to .info.
-  (let ((mm (if (not (string= (oref this mainmenu) ""))
-		(oref this mainmenu)
-	      (car (oref this source)))))
-    (concat (file-name-sans-extension mm) ".info")))
+  (let* ((source (if (not (string= (oref this mainmenu) ""))
+ 		     (oref this mainmenu)
+ 		   (car (oref this source))))
+ 	 (info (ede-makeinfo-find-info-filename source)))
+    (concat (or info (file-name-sans-extension source)) ".info")))
 
 (defmethod ede-proj-makefile-insert-dist-dependencies ((this ede-proj-target-makefile-info))
   "Insert any symbols that the DIST rule should depend on.
@@ -127,7 +142,7 @@ Texinfo files want to insert generated `.info' files.
 Argument THIS is the target which needs to insert an info file."
   ;; In some cases, this is ONLY the index file.  That should generally
   ;; be ok.
-  (insert " $(wildcard " (ede-proj-makefile-target-name this) "*)")
+  (insert " " (ede-proj-makefile-target-name this) "*")
   )
 
 ;  (let ((n (ede-name this)))
