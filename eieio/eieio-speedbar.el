@@ -1,10 +1,10 @@
 ;;; eieio-speedbar.el -- Classes for managing speedbar displays.
 
 ;;;
-;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2005 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.15 2003/02/22 15:31:16 ponced Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.16 2005/01/20 13:39:55 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -101,22 +101,22 @@
 
 ;;; Support a way of adding generic object based modes into speedbar.
 ;;
-(defvar eieio-speedbar-key-map nil
-  "A Generic object based speedbar display keymap.")
-
 (defun eieio-speedbar-make-map ()
   "Make the generic object based speedbar keymap."
-  (setq eieio-speedbar-key-map (speedbar-make-specialized-keymap))
+  (let ((map (speedbar-make-specialized-keymap)))
 
-  ;; General viewing things
-  (define-key eieio-speedbar-key-map "\C-m" 'speedbar-edit-line)
-  (define-key eieio-speedbar-key-map "+" 'speedbar-expand-line)
-  (define-key eieio-speedbar-key-map "=" 'speedbar-expand-line)
-  (define-key eieio-speedbar-key-map "-" 'speedbar-contract-line)
+    ;; General viewing things
+    (define-key map "\C-m" 'speedbar-edit-line)
+    (define-key map "+" 'speedbar-expand-line)
+    (define-key map "=" 'speedbar-expand-line)
+    (define-key map "-" 'speedbar-contract-line)
 
-  ;; Some object based things
-  (define-key eieio-speedbar-key-map "C" 'eieio-speedbar-customize-line)
-  )
+    ;; Some object based things
+    (define-key map "C" 'eieio-speedbar-customize-line)
+    map))
+
+(defvar eieio-speedbar-key-map (eieio-speedbar-make-map)
+  "A Generic object based speedbar display keymap.")
 
 (defvar eieio-speedbar-menu
   '([ "Edit Object/Field" speedbar-edit-line t]
@@ -132,6 +132,7 @@
     )
   "Menu part in easymenu format used in speedbar while browsing objects.")
 
+;; Note to self:  Fix this silly thing!
 (defalias 'eieio-speedbar-customize-line  'speedbar-edit-line)
 
 (defun eieio-speedbar-create (map-fn map-var menu-var modename fetcher)
