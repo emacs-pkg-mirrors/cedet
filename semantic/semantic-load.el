@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.19 2002/07/03 15:12:17 ponced Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.20 2002/07/04 03:09:53 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -28,6 +28,11 @@
 
 ;;; Parser setup
 ;;
+(autoload 'semantic-bovinate-nonterminal "semantic-bovine"
+  "Bovinate STREAM based on the TABLE of nonterminal symbols.")
+(autoload 'semantic-lex-init "semantic-lex"
+  "Initialize any lexical state for this buffer.")
+
 (autoload 'semantic-bnf-mode "semantic-bnf"
   "Mode for Bovine Normal Form." t)
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
