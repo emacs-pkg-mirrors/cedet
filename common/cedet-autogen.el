@@ -5,7 +5,7 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: 22 Aug 2003
 ;; Keywords: maint
-;; X-CVS: $Id: cedet-autogen.el,v 1.3 2003/09/06 19:40:24 zappo Exp $
+;; X-CVS: $Id: cedet-autogen.el,v 1.3.2.1 2003/11/14 06:56:05 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -107,7 +107,7 @@ the true `make-autoload' function."
   "Remove Xemacs autoloads feature from this buffer."
   (save-excursion
     (goto-char (point-min))
-    (while (re-search-forward "cedet-autoloads" nil t)
+    (while (re-search-forward "(\\(featurep\\|provide\\) '\\sw+-autoloads" nil t)
       (condition-case nil
           (while t (up-list -1))
         (error nil))
@@ -155,6 +155,32 @@ Return a list of directory names, relative to ROOT-DIR."
              (setq dirs (nconc dirs subdirs)))))
     dirs))
 
+(defun cedet-autogen-ensure-default-file (file)
+  "Make sure that the autoload file FILE exists and if not create it."
+  ;; If file don't exist, and is not automatically created...
+  (unless (or (file-exists-p file)
+              (fboundp 'autoload-ensure-default-file))
+    ;; Create a file buffer.
+    (find-file file)
+    ;; Use Unix EOLs, so that the file is portable to all platforms.
+    (setq buffer-file-coding-system 'raw-text-unix)
+    (unless (featurep 'xemacs)
+      ;; Insert a GNU Emacs loaddefs skeleton.
+      (insert ";;; " (file-name-nondirectory file)
+              " --- automatically extracted autoloads\n"
+              ";;\n"
+              ";;; Code:\n\n"
+              "\n;; Local Variables:\n"
+              ";; version-control: never\n"
+              ";; no-byte-compile: t\n"
+              ";; no-update-autoloads: t\n"
+              ";; End:\n"
+              ";;; " (file-name-nondirectory file)
+              " ends here\n"))
+    ;; Insert the header so that the buffer is not empty.
+    (cedet-autogen-update-header))
+  file)
+
 ;;;###autoload
 (defun cedet-update-autoloads (loaddefs &optional directory &rest directories)
   "Update autoloads in file LOADDEFS from sources.
@@ -174,15 +200,7 @@ exists."
          (write-contents-hooks '(cedet-autogen-update-header))
          (command-line-args-left (cons default-directory extra-dirs))
          )
-    ;; If file don't exist, and is not automatically created...
-    (unless (or (file-exists-p generated-autoload-file)
-                (fboundp 'autoload-ensure-default-file))
-      ;; Create a file buffer.
-      (find-file generated-autoload-file)
-      ;; Use Unix EOLs, so that the file is portable to all platforms.
-      (setq buffer-file-coding-system 'raw-text-unix)
-      ;; Insert the header so that the buffer is not empty.
-      (cedet-autogen-update-header))
+    (cedet-autogen-ensure-default-file generated-autoload-file)
     (batch-update-autoloads)))
 
 (defun cedet-batch-update-autoloads ()
