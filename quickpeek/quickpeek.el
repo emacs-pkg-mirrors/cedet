@@ -1,10 +1,10 @@
 ;;; quickpeek.el --- display info about current cursor context
 
-;;; Copyright (C) 1999, 2000 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tools
-;; X-RCS: $Id: quickpeek.el,v 1.7 2001/01/10 07:04:57 zappo Exp $
+;; X-RCS: $Id: quickpeek.el,v 1.8 2001/01/25 19:17:55 zappo Exp $
 
 (defvar quickpeek-version "0.5"
   "The current version of quickpeek.")
@@ -396,7 +396,58 @@ If it is not shown, force it to appear in the default window."
     (quickpeek-set-timer quickpeek-update-speed)
     (message "Refreshing quickpeek...done")
     (if (boundp 'deactivate-mark) (setq deactivate-mark dm))))
+
+;;; Quick Peek Minor Mode
+;;
+(defvar quickpeek-minor-mode nil
+  "Non-nil in quickpeek enabled buffers.
+Enables the quickpeek keymap.")
+(make-variable-buffer-local 'quickpeek-minor-mode)
 
+;; We don't want to waste space.  There is a menu after all.
+(add-to-list 'minor-mode-alist '(quickpeek-minor-mode ""))
+
+(defvar quickpeek-minor-keymap
+  (let ((map (make-sparse-keymap))
+	(pmap (make-sparse-keymap)))
+    (define-key pmap "h" 'quickpeek-edit-file-target)
+    ;; bind our submap into map
+    (define-key map "\C-c/" pmap)
+    map)
+  "Keymap used in quickpeek minor mode.")
+
+(if quickpeek-minor-keymap
+    (progn
+      (easy-menu-define
+       quickpeek-minor-menu quickpeek-minor-keymap "QuickPeek Minor Mode Menu"
+       '("QP"
+	 [ "Show Context Information" quickpeek-help ]
+	 ))
+      ))
+
+;; Allow re-insertion of a new keymap
+(let ((a (assoc 'quickpeek-minor-mode minor-mode-map-alist)))
+  (if a
+      (setcdr a quickpeek-minor-keymap)
+    (add-to-list 'minor-mode-map-alist
+		 (cons 'quickpeek-minor-mode
+		       quickpeek-minor-keymap))
+    ))
+
+(defun quickpeek-minor-mode (arg)
+  "Enable or disable Quickpeek minor mode.
+When this mode is enabled, a menu and keymap are available to access
+quickpeek functionality without a quickpeek frame being visible."
+  (interactive "P")
+  (setq quickpeek-minor-mode
+ 	(not (or (and (null arg) quickpeek-minor-mode)
+ 		 (<= (prefix-numeric-value arg) 0))))
+  (and dframe-xemacs-p
+       (if quickpeek-minor-mode
+ 	   (easy-menu-add quickpeek-minor-menu)
+ 	 (easy-menu-remove quickpeek-minor-menu)))
+  )
+
 ;;; The real deal for any quickpeek mode.
 ;;
 (defun quickpeek-collect-data ()
