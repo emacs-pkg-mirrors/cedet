@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.24 2000/09/26 15:08:50 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.25 2000/09/27 00:58:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -200,8 +200,74 @@ from largest to smallest via the start location."
 	  (when tmp
 	    (setq ret (cons tmp ret))))
 	(setq ol (cdr ol)))
-      (sort ret (lambda (a b) (< (semantic-token-start a) (semantic-token-start b))))
-      )))
+      (sort ret (lambda (a b) (< (semantic-token-start a)
+				 (semantic-token-start b)))))))
+
+(defun semantic-find-nonterminal-by-overlay-in-region (start end &optional buffer)
+  "Find all nonterminals which exist in whole or in part between START and END.
+Uses overlays to determine positin.
+Optional BUFFER argument specifies the buffer to use."
+  (save-excursion
+    (if buffer (set-buffer buffer))
+    (let ((ol (semantic-overlays-in start end))
+	  (ret nil))
+      (while ol
+	(let ((tmp (semantic-overlay-get (car ol) 'semantic)))
+	  (when tmp
+	    (setq ret (cons tmp ret))))
+	(setq ol (cdr ol)))
+      (sort ret (lambda (a b) (< (semantic-token-start a)
+				 (semantic-token-start b)))))))
+
+(defun semantic-find-nonterminal-by-overlay-next (&optional start buffer)
+  "Find the next nonterminal after START in BUFFER.
+If START is in an overlay, find the token which starts next,
+not the current token.
+UNTRUSTED"
+  (save-excursion
+    (if buffer (set-buffer buffer))
+    (if (not start) (setq start (point)))
+    (let ((os start) (ol nil))
+      (while (and os (not ol))
+	(setq os (semantic-overlay-next-change os))
+	(when os
+	  ;; Get overlays at position
+	  (setq ol (semantic-overlays-at os))
+	  ;; find the overlay that belongs to semantic
+	  ;; and starts at the found position.
+	  (while (and ol (listp ol))
+	    (if (and (semantic-overlay-get (car ol) 'semantic)
+		     (= (semantic-overlay-start (car ol)) os))
+		(setq ol (car ol)))
+	    (when (listp ol) (setq ol (cdr ol))))))
+      ;; convert ol to a token
+      (when ol
+	(semantic-overlay-get ol 'semantic)))))
+
+(defun semantic-find-nonterminal-by-overlay-prev (&optional start buffer)
+  "Find the next nonterminal after START in BUFFER.
+If START is in an overlay, find the token which starts next,
+not the current token.
+UNTRUSTED"
+  (save-excursion
+    (if buffer (set-buffer buffer))
+    (if (not start) (setq start (point)))
+    (let ((os start) (ol nil))
+      (while (and os (not ol))
+	(setq os (semantic-overlay-previous-change os))
+	(when os
+	  ;; Get overlays at position
+	  (setq ol (semantic-overlays-at os))
+	  ;; find the overlay that belongs to semantic
+	  ;; and starts at the found position.
+	  (while (and ol (listp ol))
+	    (if (and (semantic-overlay-get (car ol) 'semantic)
+		     (= (semantic-overlay-start (car ol)) os))
+		(setq ol (car ol)))
+	    (when (listp ol) (setq ol (cdr ol))))))
+      ;; convert ol to a token
+      (when ol
+	(semantic-overlay-get ol 'semantic)))))
 
 (defun semantic-find-nonterminal-by-token (token streamorbuffer)
   "Find all nonterminals with a token TOKEN within STREAMORBUFFER.
