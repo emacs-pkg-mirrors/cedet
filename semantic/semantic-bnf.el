@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.21 2000/09/28 03:06:28 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.22 2000/10/10 00:48:29 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -616,6 +616,10 @@ SOURCEFILE is the file name from whence tokstream came."
   (kill-all-local-variables)
   (setq major-mode 'semantic-bnf-mode
 	mode-name "BNF")
+  (make-local-variable 'comment-start)
+  (setq comment-start "#")
+  (make-local-variable 'comment-start-skip)
+  (setq comment-start-skip "# *")
   (set-syntax-table semantic-bnf-syntax-table)
   (use-local-map semantic-bnf-map)
   (make-local-variable 'semantic-toplevel-bovine-table)
