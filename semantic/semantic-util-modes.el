@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.17.4.2 2003/04/07 22:07:03 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.17.4.3 2003/04/11 07:53:24 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -853,6 +853,7 @@ minor mode is enabled.
   '(function type)
   "List of tag classes which sticky func will display in the header line.")
 
+
 (defun semantic-stickyfunc-fetch-stickyline ()
   "Make the function at the top of the current window sticky.
 Capture it's function declaration, and place it in the header line.
@@ -871,7 +872,18 @@ If there is no function, disable the header line."
 		 (buffer-substring (point-at-bol) (point-at-eol))
 	       ;; Get it
 	       (goto-char (semantic-token-start tag))
-	       (buffer-substring (point-at-bol) (point-at-eol))
+               ;; Klaus Berndl <klaus.berndl@sdm.de>: 
+               ;; goto the tag name; this is especially needed for languages
+               ;; like c++ where a often used style is like:
+               ;;     void
+               ;;     ClassX::methodM(arg1...)
+               ;;     {
+               ;;       ...
+               ;;     }
+               ;; Without going to the tag-name we would get"void" in the
+               ;; header line which is IMHO not really useful
+               (search-forward (semantic-token-name tag) nil t)
+               (buffer-substring (point-at-bol) (point-at-eol))
 	       ))))
 	(start 0))
     (while (string-match "%" str start)
