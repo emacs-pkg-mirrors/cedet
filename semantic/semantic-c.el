@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.2 2000/07/01 18:15:48 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.3 2000/07/05 14:40:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -130,11 +130,18 @@
 		  (list start end))))
      ) ; end opt-stars
     (declmods
-     ( symbol "\\(__\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)+")
+     ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)" declmods
+	      ,(lambda (vals start end)
+		 (append  ( cons (nth 0 vals) (nth 1 vals))
+			  (list start end))))
+     ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)"
+	      ,(lambda (vals start end)
+		 (append  (list (nth 0 vals))
+			  (list start end))))
      (
       ,(lambda (vals start end)
-	 (append  (list "")
-		  (list start end))))
+	 (append 
+	  (list start end))))
      ) ; end declmods
     (typeform
      ( typeformbase opt-stars
@@ -201,7 +208,7 @@
     (variabledef
      ( declmods typeform varnamelist
 		,(lambda (vals start end)
-		   (append  (list (nth 2 vals) 'variable (nth 1 vals) ( string-match "const" ( car (nth 0 vals))) nil nil nil)
+		   (append  (list (nth 2 vals) 'variable (nth 1 vals) ( if (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) nil ( if ( and (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) ( cdr (nth 0 vals)) (nth 0 vals)) nil)
 			    (list start end))))
      ) ; end variabledef
     (opt-restrict
@@ -217,7 +224,7 @@
     (variablearg
      ( declmods typeform varname
 		,(lambda (vals start end)
-		   (append  (list ( car (nth 2 vals)) 'variable (nth 1 vals) ( string-match "const" ( car (nth 0 vals))) nil nil nil)
+		   (append  (list ( car (nth 2 vals)) 'variable (nth 1 vals) ( if (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) nil ( if ( and (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) ( cdr (nth 0 vals)) (nth 0 vals)) nil)
 			    (list start end))))
      ) ; end variablearg
     (varnamelist
@@ -337,19 +344,20 @@
 	     (let ((vl nil)
 		   (basety (semantic-token-type nonterm))
 		   (ty "")
-		   (mods "")
+		   (mods (semantic-token-variable-modifiers nonterm))
+		   (suffix "")
 		   (lst (semantic-token-name nonterm))
 		   (cur nil)
 		   (cnt 0))
 	       (while lst
-		 (setq mods "" ty "")
+		 (setq suffix "" ty "")
 		 (setq cur (car lst))
 		 (if (nth 2 cur)
-		     (setq mods (concat ":" (nth 2 cur))))
+		     (setq suffix (concat ":" (nth 2 cur))))
 		 (if (nth 3 cur)
-		     (setq mods (concat mods
-					"[" (int-to-string
-					     (length (nth 3 cur))) "]")))
+		     (setq suffix (concat suffix
+					  "[" (int-to-string
+					       (length (nth 3 cur))) "]")))
 		 (if (= (length basety) 1)
 		     (progn
 		       (setq ty (car basety))
@@ -362,6 +370,7 @@
 				      (semantic-token-variable-const nonterm)
 				      (nth 4 cur)
 				      mods
+				      suffix
 				      (semantic-token-docstring nonterm)
 				      (semantic-token-start nonterm)
 				      (semantic-token-end nonterm))
