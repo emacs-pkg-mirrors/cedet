@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.8 1999/03/09 14:28:08 zappo Exp $
+;; RCS: $Id: ede.el,v 1.9 1999/03/09 16:10:01 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -173,6 +173,8 @@ type is required and the load function used.")
 For Automake based projects, each directory is treated as a project.")
    (local-variables :initarg :local-variables
 		    :initform nil
+		    :custom (repeat (cons (sexp :tag "Variable")
+					  (sexp :tag "Value")))
 		    :documentation "Project local variables")
    )
   "Top level EDE project specification.
@@ -300,7 +302,9 @@ mode.  nil means to toggle the mode."
 	(ede-load-project-file default-directory)
 	(setq ede-object (ede-buffer-object))
 	(if (and (not ede-object) (ede-current-project))
-	    (ede-auto-add-to-target)))))
+	    (ede-auto-add-to-target))
+	(if (ede-current-project)
+	    (ede-set-project-variables (ede-current-project))))))
   
 (defun global-ede-mode (arg)
   "Turn on variable `ede-minor-mode' mode when ARG is positive.
@@ -460,12 +464,19 @@ Optional argument FORCE forces the file to be removed without asking."
 
 (eval-when-compile (require 'eieio-custom))
 
+(defvar eieio-ede-old-variables nil
+  "The old variables for a project.")
+
 (defalias 'customize-project 'ede-customize-project)
 (defun ede-customize-project ()
   "Edit fields of the current project through EIEIO & Custom."
   (interactive)
   (require 'eieio-custom)
-  (eieio-customize-object (ede-current-project)))
+  (let ((ov (oref (ede-current-project) local-variables))
+	(cp (ede-current-project)))
+    (eieio-customize-object cp)
+    (make-local-variable 'eieio-ede-old-variables)
+    (setq eieio-ede-old-variables ov)))
 
 (defalias 'customize-target 'ede-customize-target)
 (defun ede-customize-target ()
@@ -476,6 +487,26 @@ Optional argument FORCE forces the file to be removed without asking."
 	   (obj-of-class-p ede-object ede-project))
       (error "No logical target to customize"))
   (eieio-customize-object ede-object))
+
+(defmethod eieio-done-customizing ((proj ede-project))
+  "Call this when a user finishes customizing PROJ."
+  (let ((ov eieio-ede-old-variables)
+	(nv (oref proj local-variables)))
+    (setq eieio-ede-old-variables nil)
+    (while ov
+      (if (not (assoc (car (car ov)) nv))
+	  (save-excursion
+	    (mapcar (lambda (b)
+		      (set-buffer b)
+		      (kill-local-variable (car (car ov))))
+		    (ede-project-buffers proj))))
+      (setq ov (cdr ov)))
+    (mapcar (lambda (b) (ede-set-project-variables proj b))
+	    (ede-project-buffers proj))))
+
+(defmethod eieio-done-customizing ((target ede-target))
+  "Call this when a user finishes customizing TARGET."
+  nil)
 
 
 ;;; EDE project target baseline methods.
@@ -727,6 +758,7 @@ This includes buffers controlled by a specific target of PROJECT."
    (mapcar (lambda (v)
 	     (make-local-variable (car v))
 	     ;; set it's value here?
+	     (set (car v) (cdr v))
 	     )
 	   (oref project local-variables))))
 
@@ -734,14 +766,20 @@ This includes buffers controlled by a specific target of PROJECT."
   "Set the project local VARIABLE to VALUE.
 If VARIABLE is not project local, just use set."
   (let ((p (ede-current-project)) a)
-    (if (and p (setq a (assoc varaible (oref p local-variables))))
+    (if (and p (setq a (assoc variable (oref p local-variables))))
 	(progn
 	  (setcdr a value)
 	  (mapcar (lambda (b) (save-excursion
 				(set-buffer b)
 				(set variable value)))
 		  (ede-project-buffers p)))
-      (set variable value))))
+      (set variable value))
+    (ede-commit-local-variables p))
+  value)
+
+(defmethod ede-commit-local-variables ((proj ede-project))
+  "Commit change to local variables in PROJ."
+  nil)
 
 
 ;;; Hooks & Autoloads
