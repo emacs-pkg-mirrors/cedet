@@ -1,10 +1,10 @@
 ;;; semanticdb-find.el --- Searching through semantic databases.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.14 2003/12/23 18:50:45 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.15 2004/01/09 20:56:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -231,11 +231,14 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 
      ;; On the path somewhere
 ;;;; THIS NEEDS WORK!
-;     ((setq tmp (semantic-dependency-tag-file includetag))
-;      (setq ans (semanticdb-file-table-object tmp))
-;      ;; If we don't load this, then finding include tags within
-;      ;; the table could fail!
-;      (when ans (save-excursion (semanticdb-set-buffer ans))))
+;;;; NOTES: Separate system includes from local includes.
+;;;;        Use only system databases for system includes.
+     ;((setq tmp (semantic-dependency-tag-file includetag))
+     ; (setq ans (semanticdb-file-table-object tmp))
+      ;; If we don't load this, then finding include tags within
+      ;; the table could fail!
+      ;; (when ans (save-excursion (semanticdb-set-buffer ans)))
+      )
      (t
       ;; Somewhere in our project hierarchy
       ;; Remember: Roots includes system databases which can create
@@ -244,13 +247,14 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 	(let* ((ref (if (slot-boundp (car roots) 'reference-directory)
 			(oref (car roots) reference-directory)))
 	       (fname (cond ((null ref) nil)
-			    ((file-exists-p (concat ref name))
-			     (concat ref name))
-			    ((file-exists-p (concat ref (file-name-nondirectory name)))
-			     (concat ref (file-name-nondirectory name))))))
+			    ((file-exists-p (expand-file-name name ref))
+			     (expand-file-name name ref))
+			    ((file-exists-p (expand-file-name (file-name-nondirectory name) ref))
+			     (expand-file-name (file-name-nondirectory name) ref)))))
 	  (if ref
-	      ;; There is an actual file.  Grab it.
-	      (setq ans (semanticdb-file-table-object name))
+	      (when fname
+		;; There is an actual file.  Grab it.
+		(setq ans (semanticdb-file-table-object fname)))
 	    ;; No reference directory  Probably a system database
 	    ;; NOTE: Systemdb will need to override `semanticdb-file-table'.
 	    (setq ans (semanticdb-file-table
@@ -358,6 +362,64 @@ is still made current."
     ;; Return the tag.
     ans))
 
+;;; Search Logging
+;;
+;; Basic logging to see what the search routines are doing.
+(defvar semanticdb-find-log-flag nil
+  "Non-nil means log the process of searches.")
+
+(defvar semanticdb-find-log-buffer-name "*SemanticDB Find Log*"
+  "The name of the logging buffer.")
+
+(defun semanticdb-find-toggle-logging ()
+  "Toggle sematnicdb logging."
+  (interactive)
+  (setq semanticdb-find-log-flag (null semanticdb-find-log-flag))
+  (message "Semanticdb find logging is %sabled"
+	   (if semanticdb-find-log-flag "en" "dis")))
+
+(defun semanticdb-reset-log ()
+  "Reset the log buffer."
+  (interactive)
+  (when semanticdb-find-log-flag
+    (save-excursion
+      (set-buffer (get-buffer-create semanticdb-find-log-buffer-name))
+      (erase-buffer)
+      )))
+
+(defun semanticdb-find-log-move-to-end ()
+  "Move to the end of the semantic log."
+  (let ((cb (current-buffer))
+	(cw (selected-window)))
+    (unwind-protect
+	(progn
+	  (set-buffer semanticdb-find-log-buffer-name)
+	  (if (get-buffer-window (current-buffer) 'visible)
+	      (select-window (get-buffer-window (current-buffer) 'visible)))
+	  (goto-char (point-max)))
+      (if cw (select-window cw))
+      (set-buffer cb))))
+
+(defun semanticdb-find-log-new-search (forwhat)
+  "Start a new search FORWHAT."
+  (when semanticdb-find-log-flag
+    (save-excursion
+      (set-buffer (get-buffer-create semanticdb-find-log-buffer-name))
+      (insert (format "New Search: %S\n" forwhat))
+      )
+    (semanticdb-find-log-move-to-end)))
+
+(defun semanticdb-find-log-activity (table result)
+  "Log that TABLE has been searched and RESULT was found."
+  (when semanticdb-find-log-flag
+    (save-excursion
+      (set-buffer semanticdb-find-log-buffer-name)
+      (insert "Table: " (object-print table)
+	      " Result: " (int-to-string (length result)) " tags"
+	      "\n")
+      )
+    (semanticdb-find-log-move-to-end)))
+
 ;;; Semanticdb find API functions
 ;;
 ;; These are the routines actually used to perform searches.
@@ -392,6 +454,8 @@ and search all tables in this project tree."
 		  (save-excursion (semanticdb-set-buffer (car tableandtags))))
 		(push (cons (car tableandtags) match) found)))
     	    )
+	;; Only log searches across data bases.
+	(semanticdb-find-log-new-search nil)
 	;; If we get something else, scan the list of tables resulting
 	;; from translating it into a list of objects.
 	(dolist (table (semanticdb-find-translate-path path brutish))
@@ -402,6 +466,7 @@ and search all tables in this project tree."
 	  (unless (and find-file-match
 		       (obj-of-class-p table semanticdb-search-results-table))
 	    (when (and table (setq match (funcall function table nil)))
+	      (semanticdb-find-log-activity table match)
 	      (when find-file-match
 		(save-excursion (semanticdb-set-buffer table)))
 	      (push (cons table match) found))))))
