@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.96 2004/03/20 00:16:14 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.97 2004/04/28 15:41:18 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -2216,9 +2216,9 @@ used by add log.")
 (defvar senator-tag-ring (make-ring 20)
   "Ring of tags for use with cut and paste.")
 
-(defun senator-insert-foreign-tag-default (tag tagfile)
+(defun semantic-insert-foreign-tag-default (tag tagfile)
   "Insert TAG from a foreign buffer into the current buffer.
-This is the default behavior for `senator-insert-foreign-tag'.
+This is the default behavior for `semantic-insert-foreign-tag'.
 Assumes the current buffer is a language file, and attempts to insert
 a prototype/function call.
 Argument TAGFILE is the file from wence TAG came."
@@ -2227,18 +2227,20 @@ Argument TAGFILE is the file from wence TAG came."
   ;; tag.
   (insert (semantic-format-tag-prototype tag)))
 
-(defun senator-insert-foreign-tag (tag tagfile)
+(define-overload semantic-insert-foreign-tag (tag tagfile)
   "Insert TAG from a foreign buffer into the current buffer.
 TAG will have originated from TAGFILE.
 This function is overridable with the symbol `insert-foreign-tag'."
   (if (or (not tag) (not (semantic-tag-p tag)))
       (signal 'wrong-type-argument (list tag 'semantic-tag-p)))
-  (let ((s (semantic-fetch-overload 'insert-foreign-tag)))
-    (if s (funcall s tag tagfile)
-      (senator-insert-foreign-tag-default tag tagfile))
-    (message (semantic-format-tag-summarize tag))))
+  (:override)
+  (message (semantic-format-tag-summarize tag)))
+
+(make-obsolete-overload 'semantic-insert-foreign-token
+                        'semantic-insert-foreign-tag)
+
 (semantic-alias-obsolete 'senator-insert-foreign-token
-                         'senator-insert-foreign-tag)
+                         'semantic-insert-foreign-tag)
 
 (defun senator-copy-tag ()
   "Take the current tag, and place it in the tag ring."
@@ -2267,7 +2269,7 @@ yanked to."
   (interactive)
   (or (ring-empty-p senator-tag-ring)
       (let ((tag (ring-ref senator-tag-ring 0)))
-        (senator-insert-foreign-tag (car tag) (cdr tag)))))
+        (semantic-insert-foreign-tag (car tag) (cdr tag)))))
 (semantic-alias-obsolete 'senator-yank-token 'senator-yank-tag)
 
 (defun senator-copy-tag-to-register (register &optional kill-flag)
@@ -2289,7 +2291,7 @@ If senator is not active, use the original mechanism."
   (let ((val (get-register (ad-get-arg 0))))
     (if (and senator-minor-mode (interactive-p)
              (listp val) (semantic-tag-p (car val)))
-        (senator-insert-foreign-tag (car val) (cdr val))
+        (semantic-insert-foreign-tag (car val) (cdr val))
       ad-do-it)))
 
 (defadvice jump-to-register (around senator activate)
