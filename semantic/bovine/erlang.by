@@ -21,7 +21,7 @@
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 ;;
-;; $Id: erlang.by,v 1.1 2003/08/28 11:00:14 ponced Exp $
+;; $Id: erlang.by,v 1.2 2003/08/28 12:46:01 ponced Exp $
 ;;
 
 %package semantic-erlang-by
@@ -266,8 +266,8 @@ binary-segment
 ;;   ;
 
 binary-segment-rest
-  : COLON integer-literal DIVIDE binary-type-spec-list
-  | COLON integer-literal
+  : COLON basic-type DIVIDE binary-type-spec-list
+  | COLON basic-type
   | DIVIDE binary-type-spec-list
   | ;;EMPTY
   ;
@@ -292,7 +292,7 @@ binary-endian
   ;
 
 binary-unit
-  : UNIT COLON integer-literal
+  : UNIT COLON basic-type
   ;
 
 binary-type-spec
