@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.1 2001/10/04 14:52:44 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.2 2001/10/05 19:40:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,6 +41,31 @@
 (eval-when-compile (require 'semanticdb))
 
 ;;; Code:
+
+(defvar semantic-analyze-current-local-variables nil
+  "The current set of local variables.
+Bound in the outer scope of a function using local variables
+to optimize out the need to calculate them multiple times.")
+
+;;; Context Analysis
+;;
+(defun semantic-analyze-find-nonterminals-by-prefix (prefix)
+  "Attempt to find a nonterminal with PREFIX.
+This is a wrapper on top of semanticdb, and semantic search functions.
+Almost all searches use the same arguments."
+  (let ((expr (concat "^" (regexp-quote prefix))))
+    (if (and (fboundp 'semanticdb-minor-mode-p)
+	     (semanticdb-minor-mode-p))
+	;; Search the database
+	(let ((dbans (semanticdb-find-nonterminal-by-name-regexp
+		      expr  nil nil t nil t)))
+	  ;; Concatenate all matches together.
+	  (apply #'append (mapcar #'cdr dbans))
+	  )
+      ;; Search just this file because there is no DB available.
+      (semantic-find-nonterminal-by-name-regexp
+       expr (current-buffer) nil t))))
+  
 (defun semantic-analyze-find-nonterminal (name &optional tokentype)
   "Attempt to find a nonterminal with NAME.
 Optional argument TOKENTYPE specifies tye type of token to
@@ -71,15 +96,18 @@ or a string, or a non-positional token."
 	   (car tt))
 	  (t nil))))
 
-(defun semantic-analyze-find-nonterminal-sequence (sequence &optional lasttokentype)
+(defun semantic-analyze-find-nonterminal-sequence (sequence &optional typereturn)
   "Attempt to find all nonterminals in SEQUENCE.
-Optional argument LASTTOKENTYPE is the tokentype of the last
-entry in SEQUENCE, such as 'variable, or 'function."
+Optional argument TYPERETURN is a symbol ini which the types of all found
+will be stored.  If nil, that data is thrown away."
   (let ((s sequence)			;copy of the sequence
 	(tmp nil)			;tmp find variable
 	(nexttype nil)			;a token for the type next in sequence
 	(tok nil)			;token return list
-	(localvar (semantic-get-local-variables))
+	(toktype nil)			;token types return list
+	(localvar
+	 (or semantic-analyze-current-local-variables
+	     (semantic-get-local-variables)))
 	)
     ;; For the first entry, it better be a variable, but it might
     ;; be in the local context too.
@@ -148,18 +176,20 @@ entry in SEQUENCE, such as 'variable, or 'function."
 	      (setq tmp (car s))))
 
 	(setq tok (cons tmp tok))
+	(setq toktype (cons tmptypetok toktype))
 	)
       (setq s (cdr s)))
 
+    (if typereturn (set typereturn (nreverse toktype)))
     ;; Return the mess
     (nreverse tok)))
 
-(defun semantic-analyze-current-context (&optional position)
+(defun semantic-analyze-current-context (position)
   "Analyze the current context at POSITION.
 If called interactively, display interesting information about POSITION
 in a separate buffer.
 Returns a list structured in one of the following ways:
-  (assignment TOKEN PREFIX)
+  (assignment TOKEN PREFIX PREFIXTYPES)
     - Positioned where a value in an assignment belongs.
       TOKEN is a semantic token representing the item being assigned
             into.  (A variable)
@@ -167,8 +197,10 @@ Returns a list structured in one of the following ways:
        	    `semantic-analyze-find-nonterminal-sequence' or a string
        	    representing text already at POSITION which can be used to
        	    narrow down possible matches to that context.
+      PREFIXTYPES is a list of semantic tokens representing the types
+            of elements in PREFIX.
 
-  (functionarg TOKEN1 INDEX TOKEN2 PREFIX)
+  (functionarg TOKEN1 INDEX TOKEN2 PREFIX PREFIXTYPES)
     - Positioned where an argument to a function belongs.
       TOKEN1 is a list of semantic tokens for the function definition
              foo.fun() results in a definition for the variable/class FOO
@@ -177,59 +209,208 @@ Returns a list structured in one of the following ways:
       TOKEN2 is a list of semantic tokens represeing the argument
              definition.
       PREFIX See above.
+      PREFIXTYPES See above.
 
-  (nocontext PREFIX)
+  (nocontext PREFIX PREFIXTYPES)
     - No particular context.
-      PREFIX See above."
-  (interactive)
-  (let ((context-return nil)
-	(prefix (semantic-ctxt-current-symbol))
-	(function (semantic-ctxt-current-function)))
+      PREFIX See above.
+      PREFIXTYPES See above."
+  (interactive "d")
+  (save-excursion
+    (goto-char position)
+    (let ((context-return nil)
+	  (prefix (semantic-ctxt-current-symbol))
+	  (prefixtypes nil)
+	  (function (semantic-ctxt-current-function)))
 
-    (condition-case nil
-	;; If we are on lame stuff, it won't be found!
-	(setq prefix (semantic-analyze-find-nonterminal-sequence prefix))
-      (error nil))
+      (condition-case nil
+	  ;; If we are on lame stuff, it won't be found!
+	  (setq prefix (semantic-analyze-find-nonterminal-sequence
+			prefix 'prefixtypes))
+	(error nil))
 
-    (if function
-	;; If we have a function, then we can get the argument
-	(let ((arg (semantic-ctxt-current-argument))
-	      (fntok (semantic-analyze-find-nonterminal-sequence function))
-	      (argtok nil))
-	  ;; Find the token belonging to our function
-	  (setq argtok (nth (1- arg)
-			    (semantic-token-function-args fntok)))
+      (if function
+	  ;; If we have a function, then we can get the argument
+	  (let* ((arg (semantic-ctxt-current-argument))
+		 (fntok (semantic-analyze-find-nonterminal-sequence function))
+		 (fntokend (car (reverse fntok)))
+		 (argtok (nth (1- arg)
+			      (semantic-token-function-args fntokend))))
 
-	  (setq context-return
-		(list 'functionarg
-		      fntok
-		      arg
-		      argtok
-		      prefix))
-	  )
-      ;; No function, try assignment
-      (let ((assign (semantic-ctxt-current-assignment)))
-	(if assign
-	    ;; We have an assignment
-	    (let ((asstok (semantic-analyze-find-nonterminal-sequence
-			   assign)))
-	      (setq context-return
-		    (list 'assignment
-			  ;; Just the last entry from the list.
-			  ;; thus foo.bar.a returns the type info for
-			  ;; a only.
-			  asstok
-			  prefix)))
-	  ;; Nothing in particular
-	  (setq context-return
-		(list 'nocontext prefix)))))
+	    (setq context-return
+		  (list 'functionarg
+			fntok
+			arg
+			(list argtok)
+			prefix
+			prefixtypes))
+	    )
+	;; No function, try assignment
+	(let ((assign (semantic-ctxt-current-assignment)))
+	  (if assign
+	      ;; We have an assignment
+	      (let ((asstok (semantic-analyze-find-nonterminal-sequence
+			     assign)))
+		(setq context-return
+		      (list 'assignment
+			    ;; Just the last entry from the list.
+			   ;; thus foo.bar.a returns the type info for
+			    ;; a only.
+			    asstok
+			    prefix
+			    prefixtypes)))
+	    ;; Nothing in particular
+	    (setq context-return
+		  (list 'nocontext prefix prefixtypes)))))
 
-    ;; Check for interactivity
-    (if (interactive-p)
-	(semantic-analyze-pop-to-context context-return))
-    ;; Return our context.
-    context-return))
+      ;; Check for interactivity
+      (if (interactive-p)
+	  (semantic-analyze-pop-to-context context-return))
+      ;; Return our context.
+      context-return)))
 
+
+;;; Context Analysis Results
+;;
+;; Use the current context to provide useful token streams
+(defun semantic-analyze-possible-completions (point)
+  "Return a list of semantic tokens which are possible completions.
+Analysis is done at POINT."
+  (interactive "d")
+  (let ((a (semantic-analyze-current-context point))
+	(semantic-analyze-current-local-variables
+	 (semantic-get-local-variables point))
+	(fnargs (semantic-get-local-arguments point))
+	(desired-type nil)
+	(prefix nil)
+	(prefixtypes nil)
+	(completetext nil)
+	(completetexttype nil)
+	(c nil))
+    ;; Calculate the completions
+    (cond ((eq (car a) 'functionarg)
+	   ;; The desired type of function arg is based on the
+	   ;; type of the argument in the 3rd pos
+	   (setq desired-type (car (nth 3 a)))
+	   ;; Prefix data
+	   (setq prefix (nth 4 a))
+	   (setq prefixtypes (nth 5 a))
+	   )
+	  ((eq (car a) 'assignment)
+	   ;; The desired type is the type of the final entry in the
+	   ;; assignee slot in the 1st position
+	   (setq desired-type (car (reverse (nth 1 a))))
+	   ;; Prefix data
+	   (setq prefix (nth 2 a))
+	   (setq prefixtypes (nth 3 a))
+	   )
+	  (t
+	   ;; There is no desired type.
+	   (setq desired-type nil)
+	   ;; Prefix data
+	   (setq prefix (car (cdr a)))
+	   (setq prefixtypes (car (cdr a)))
+	   ))
+
+    (when desired-type
+      ;; Convert the desired type if needed.
+      (if (not (eq (semantic-token-token desired-type) 'type))
+	  (setq desired-type (semantic-token-type desired-type)))
+      ;; Protect against plain strings
+      (cond ((stringp desired-type)
+	     (setq desired-type (list desired-type 'type)))
+	    ((and (stringp (car desired-type))
+		  (not (semantic-token-p desired-type)))
+	     (setq desired-type (list (car desired-type) 'type)))
+	    (t (setq desired-type nil))
+	    ))
+
+    ;; Calculate what our prefix string is so that we can
+    ;; find all our matching text.
+    (setq completetext (car (reverse prefix)))
+    (if (semantic-token-p completetext)
+	(setq completetext (semantic-token-name completetext)))
+
+    (if (and (not completetext) (not desired-type))
+	(error "Nothing to complete"))
+
+    (if (not completetext) (setq completetext ""))
+
+    ;; This better be a reasonable type, or we should fry it.
+    ;; The prefixtypes should always be at least 1 less than
+    ;; the prefix since the type is never looked up for the last
+    ;; item when calculating a sequence.
+    (setq completetexttype (car (reverse prefixtypes)))
+    (if (or (not completetexttype)
+	    (not (and (semantic-token-p completetexttype)
+		      (eq (semantic-token-token completetexttype) 'type))))
+	;; What should I do here?  I think this is an error condition.
+	(setq completetexttype nil))
+
+    ;; There are many places to get our completion stream for.
+    ;; Here we go.
+    (if completetexttype
+	;; We have a type of the text preceeding our completetext.
+	;; Lets set that as our stream.
+	(let ((stream (semantic-token-type-parts completetexttype))
+	      )
+		
+	  (while stream
+
+	    ;; Find all the bits.
+	    (setq c (append (semantic-find-nonterminal-by-name-regexp
+			     (concat "^" completetext)
+			     stream nil nil)
+			    c))
+
+	    ;; Once this stream is analyzed, find the parent of the current
+	    ;; type, and repeat the process.
+	    (setq completetexttype
+		  (semantic-analyze-find-nonterminal
+		   (semantic-token-type-parent completetexttype))
+		  stream (semantic-token-type-parts completetexttype))))
+
+      (let ((expr (concat "^" completetext)))
+	;; No type based on the completetext.  This is a free-range
+	;; var or function.  We need to expand our search beyond this
+	;; scope into semanticdb, etc.
+	(setq c (append
+		 ;; Argument list
+		 (semantic-find-nonterminal-by-name-regexp
+		  expr fnargs
+		  nil nil)
+		 ;; Local variables
+		 (semantic-find-nonterminal-by-name-regexp
+		  expr semantic-analyze-current-local-variables
+		  nil nil)
+		 ;; The world
+		 (semantic-analyze-find-nonterminals-by-prefix
+		  completetext))
+	      )
+	))
+
+    ;; Ok, we now have a completion list based on the text we found
+    ;; we want to complete on.  Now filter that stream against the
+    ;; type we want to search for.
+    (if desired-type
+	(setq c (semantic-find-nonterminal-by-type
+		 (semantic-token-name desired-type)
+		 c nil nil)))
+
+    ;; All done!
+
+    ;; If interactive, display them.
+    (when (interactive-p)
+      (with-output-to-temp-buffer "*Possible Completions*"
+	(semantic-analyze-princ-sequence c ""))
+      (shrink-window-if-larger-than-buffer
+       (get-buffer-window "*Possible Completions*"))
+      )
+    c))
+
+
+;;; Friendly output of a context analysis.
+;;
 (defcustom semantic-analyze-summary-function 'semantic-prototype-nonterminal
   "*Function to use when creating items in Imenu.
 Some useful functions are found in `semantic-token->text-functions'."
@@ -256,7 +437,8 @@ Use PREFIX as a label."
   "Display CONTEXT in a temporary buffer.
 CONTEXT's content is described in `semantic-analyze-current-context'."
   (with-output-to-temp-buffer "*Semantic Context Analysis*"
-    (let ((prefix nil))
+    (let ((prefix nil)
+	  (prefixtypes nil))
       (princ "Context Type: ")
       (princ (car context))
       (princ "\n")
@@ -269,15 +451,19 @@ CONTEXT's content is described in `semantic-analyze-current-context'."
 	     (semantic-analyze-princ-sequence (nth 3 context)
 					      "Argument: ")
 	     (setq prefix (nth 4 context))
+	     (setq prefixtypes (nth 5 context))
 	     )
 	    ((eq (car context) 'assignment)
 	     (semantic-analyze-princ-sequence (nth 1 context)
 					      "Assignee: ")
 	     (setq prefix (nth 2 context))
+	     (setq prefixtypes (nth 3 context))
 	     )
-	    (t (setq prefix (car (cdr context)))))
+	    (t (setq prefix (car (cdr context)))
+	       (setq prefixtypes (car (cdr (cdr context))))))
       ;; Deal with the prefix
       (semantic-analyze-princ-sequence prefix "Prefix: ")
+      (semantic-analyze-princ-sequence prefixtypes "PrefixTypes: ")
       ))
   (shrink-window-if-larger-than-buffer
    (get-buffer-window "*Semantic Context Analysis*"))
