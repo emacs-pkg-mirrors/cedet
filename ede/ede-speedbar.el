@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.16 2000/07/22 12:47:32 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.17 2000/08/20 22:08:56 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -289,7 +289,7 @@ INDENT is the current indentation level."
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
-    (speedbar-set-timer speedbar-update-speed)
+;    (speedbar-set-timer speedbar-update-speed)
     (goto-char token)
     (run-hooks 'speedbar-visiting-tag-hook)
     ;;(recenter)
