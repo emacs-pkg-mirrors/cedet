@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.51 1997/06/04 02:29:09 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.52 1997/06/06 23:10:28 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -195,7 +195,7 @@
 ;;       If the user kills the speedbar buffer in some way, the frame will
 ;;         be removed.
 ;; 0.4.1 Bug fixes
-;;       <mark.jeffries@nomura.co.uk> added `speedbar-do-updates',
+;;       <mark.jeffries@nomura.co.uk> added `speedbar-update-flag',
 ;;         XEmacs fixes for menus, and tag sorting, and quit key.
 ;;       Modeline now updates itself based on window-width.
 ;;       Frame is cached when closed to make pulling it up again faster.
@@ -233,6 +233,8 @@
 ;;       `speedbar-load-hook' name change and pointer check against
 ;;         major-mode.  Suggested by Sam Steingold <sds@ptc.com>
 ;;       Quit auto-selects the attached frame.
+;;       Ranamed `speedbar-do-updates' to `speedbar-update-flag'
+;;       Passes checkdoc.
 
 ;;; TODO:
 ;; 1) More functions to create buttons and options
@@ -293,7 +295,7 @@ the speedbar display.")
 In this case it is the originating buffer.")
 
 (defvar speedbar-show-unknown-files nil
-  "*Non-nil shows files we can't expand with a ? in the expand button.
+  "*Non-nil show files we can't expand with a ? in the expand button.
 nil means don't show the file in the list.")
 
 ;; Xemacs timers aren't based on idleness.  Therefore tune it down a little
@@ -470,9 +472,9 @@ PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
   (setq speedbar-ignored-path-regexp (speedbar-extension-list-to-regex
 				      speedbar-ignored-path-expressions)))
 
-(defvar speedbar-do-update (or (not (fboundp 'run-with-idle-timer))
+(defvar speedbar-update-flag (or (not (fboundp 'run-with-idle-timer))
 			       (not (fboundp 'start-itimer)))
-  "*Indicate whether the speedbar should do automatic updates.
+  "*Non-nil means to automatically update the display.
 When this is nil then speedbar will not follow the attached frame's path.
 When speedbar is active, use:
 
@@ -546,7 +548,7 @@ to toggle this value.")
 	    ["Allow Auto Updates"
 	     speedbar-toggle-updates
 	     :style toggle
-	     :selected speedbar-do-update]
+	     :selected speedbar-update-flag]
 	    "-----"
 	    ["Sort etags in Speedbar"
 	     (speedbar-toggle-etags "sort")
@@ -600,7 +602,7 @@ to toggle this value.")
   '("Speedbar"
     ["Update" speedbar-refresh t]
     ["Auto Update" speedbar-toggle-updates
-     :style toggle :selected speedbar-do-update]
+     :style toggle :selected speedbar-update-flag]
     )
   "Base part of the speedbar menu.")
 
@@ -673,7 +675,7 @@ directories.")
 ;;###autoload
 (defalias 'speedbar 'speedbar-frame-mode)
 (defun speedbar-frame-mode (&optional arg)
-  "Enable or disable speedbar.  Positive ARG means turn on, negative turns off.
+  "Enable or disable speedbar.  Positive ARG means turn on, negative turn off.
 nil means toggle.  Once the speedbar frame is activated, a buffer in
 `speedbar-mode' will be displayed.  Currently, only one speedbar is
 supported at a time."
@@ -838,7 +840,7 @@ frame and window to be the currently active frame and window."
 	(let* ((w (or (speedbar-frame-width) 20))
 	       (p1 "<<")
 	       (p5 ">>")
-	       (p3 (if speedbar-do-update "SPEEDBAR" "SLOWBAR"))
+	       (p3 (if speedbar-update-flag "SPEEDBAR" "SLOWBAR"))
 	       (blank (- w (length p1) (length p3) (length p5)
 			 (if line-number-mode 4 0)))
 	       (p2 (if (> blank 0)
@@ -858,7 +860,7 @@ frame and window to be the currently active frame and window."
 		(force-mode-line-update)))))))
 
 (defun speedbar-temp-buffer-show-function (buffer)
-  "Placed in the variable `temp-buffer-show-function' in speedbar-mode.
+  "Placed in the variable `temp-buffer-show-function' in `speedbar-mode'.
 If a user requests help using \\[help-command] <Key> the temp BUFFER will be
 redirected into a window on the attached frame."
   (if speedbar-attached-frame (select-frame speedbar-attached-frame))
@@ -1102,26 +1104,26 @@ Files can be renamed to new names or moved to new directories."
 (defun speedbar-enable-update ()
   "Enable automatic updating in speedbar via timers."
   (interactive)
-  (setq speedbar-do-update t)
+  (setq speedbar-update-flag t)
   (speedbar-set-mode-line-format)
   (speedbar-set-timer speedbar-update-speed))
 
 (defun speedbar-disable-update ()
   "Disable automatic updating and stop consuming resources."
   (interactive)
-  (setq speedbar-do-update nil)
+  (setq speedbar-update-flag nil)
   (speedbar-set-mode-line-format)
   (speedbar-set-timer nil))
 
 (defun speedbar-toggle-updates ()
-  "Toggles whether updates are done automatically."
+  "Toggle automatic update for the speedbar frame."
   (interactive)
-  (if speedbar-do-update
+  (if speedbar-update-flag
       (speedbar-disable-update)
     (speedbar-enable-update)))
 
 (defun speedbar-toggle-show-all-files ()
-  "Toggles whether updates are done automatically."
+  "Toggle display of files speedbar can not tag."
   (interactive)
   (setq speedbar-show-unknown-files (not speedbar-show-unknown-files))
   (speedbar-refresh))
@@ -1154,7 +1156,7 @@ again."
    ;; Older or other Emacsen with no timers.  Set up so that it's
    ;; obvious this emacs can't handle the updates
    (t
-    (setq speedbar-do-update nil)))
+    (setq speedbar-update-flag nil)))
    ;; change this if it changed for some reason
   (speedbar-set-mode-line-format))
 
@@ -1257,7 +1259,7 @@ the file-system"
       ))
 
 (defun speedbar-directory-buttons (directory index)
-  "Inserts a single button group at point for DIRECTORY.
+  "Insert a single button group at point for DIRECTORY.
 Each directory path part is a different button.  If part of the path
 matches the user directory ~, then it is replaced with a ~.
 INDEX is not used, but is required by the caller."
@@ -1414,7 +1416,7 @@ cell of the form ( 'DIRLIST . 'FILELIST )"
       (setq lst (cdr lst)))))
 
 (defun speedbar-default-directory-list (directory index)
-  "Inserts files for DIRECTORY with level INDEX at point."
+  "Insert files for DIRECTORY with level INDEX at point."
   (speedbar-insert-files-at-point
    (speedbar-file-lists directory) index)
   (speedbar-reset-scanners)
@@ -1439,7 +1441,7 @@ cell of the form ( 'DIRLIST . 'FILELIST )"
 	)))
 
 (defun speedbar-insert-generic-list (level lst expand-fun find-fun)
-  "At LEVEL, inserts a generic multi-level alist LST.
+  "At LEVEL, insert a generic multi-level alist LST.
 Associations with lists get {+} tags (to expand into more nodes) and
 those with positions just get a > as the indicator.  {+} buttons will
 have the function EXPAND-FUN and the token is the CDR list.  The token
@@ -1564,7 +1566,7 @@ This should only be used by modes classified as special."
     (condition-case nil
 	;; Save all the match data so that we don't mess up executing fns
 	(save-match-data
-	  (if (and (frame-visible-p speedbar-frame) speedbar-do-update)
+	  (if (and (frame-visible-p speedbar-frame) speedbar-update-flag)
 	      (let ((af (selected-frame)))
 		(save-window-excursion
 		  (select-frame speedbar-attached-frame)
@@ -1621,7 +1623,7 @@ interrupted by the user."
       )))
 
 (defun speedbar-reset-scanners ()
-  "Resets any variables used by functions in the stealthy list as state.
+  "Reset any variables used by functions in the stealthy list as state.
 If new functions are added, their state needs to be updated here."
   (setq speedbar-vc-to-do-point t)
   )
@@ -2144,7 +2146,7 @@ frame instead."
 ;;; Centering Utility
 ;;
 (defun speedbar-center-buffer-smartly ()
-  "Recenters a speedbar buffer so the current indentation level is all visible.
+  "Recenter a speedbar buffer so the current indentation level is all visible.
 This assumes that the cursor is on a file, or tag of a file which the user is
 interested in."
   (if (<= (count-lines (point-min) (point-max))
