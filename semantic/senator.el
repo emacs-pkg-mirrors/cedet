@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.79 2003/08/26 20:11:22 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.80 2003/08/27 12:25:22 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -963,59 +963,58 @@ use `imenu--mouse-menu' to handle the popup menu."
 ;;;;
 
 ;;;###autoload
-(defun senator-search-forward (what &optional bound noerror count)
-  "Search semantic tags forward from point for string WHAT.
-Set point to the end of the occurrence found, and return point.  See
-`search-forward' for details and the meaning of BOUND NOERROR and
-COUNT.  COUNT is just ignored in the current implementation."
+(defun senator-search-forward (string &optional bound noerror count)
+  "Search in tag names forward from point for STRING.
+Set point to the end of the occurrence found, and return point.
+See also the function `search-forward' for details on the BOUND,
+NOERROR and COUNT arguments."
   (interactive "sSemantic search: ")
-  (senator-search 'search-forward what bound noerror count))
+  (senator-search 'search-forward string bound noerror count))
 
 ;;;###autoload
-(defun senator-re-search-forward (what &optional bound noerror count)
-  "Search semantic tags forward from point for regexp WHAT.
-Set point to the end of the occurrence found, and return point.  See
-`re-search-forward' for details and the meaning of BOUND NOERROR and
-COUNT.  COUNT is just ignored in the current implementation."
+(defun senator-re-search-forward (regexp &optional bound noerror count)
+  "Search in tag names forward from point for regular expression REGEXP.
+Set point to the end of the occurrence found, and return point.
+See also the function `re-search-forward' for details on the BOUND,
+NOERROR and COUNT arguments."
   (interactive "sSemantic regexp search: ")
-  (senator-search 're-search-forward what bound noerror count))
+  (senator-search 're-search-forward regexp bound noerror count))
 
 ;;;###autoload
-(defun senator-word-search-forward (what &optional bound noerror count)
-  "Search semantic tags forward from point for word WHAT.
-Set point to the end of the occurrence found, and return point.  See
-`word-search-forward' for details and the meaning of BOUND NOERROR and
-COUNT.  COUNT is just ignored in the current implementation."
+(defun senator-word-search-forward (word &optional bound noerror count)
+  "Search in tag names forward from point for WORD.
+Set point to the end of the occurrence found, and return point.
+See also the function `word-search-forward' for details on the BOUND,
+NOERROR and COUNT arguments."
   (interactive "sSemantic word search: ")
-  (senator-search 'word-search-forward what bound noerror count))
+  (senator-search 'word-search-forward word bound noerror count))
 
 ;;;###autoload
-(defun senator-search-backward (what &optional bound noerror count)
-  "Search semantic tags backward from point for string WHAT.
+(defun senator-search-backward (string &optional bound noerror count)
+  "Search in tag names backward from point for STRING.
 Set point to the beginning of the occurrence found, and return point.
-See `search-backward' for details and the meaning of BOUND NOERROR and
-COUNT.  COUNT is just ignored in the current implementation."
+See also the function `search-backward' for details on the BOUND,
+NOERROR and COUNT arguments."
   (interactive "sSemantic backward search: ")
-  (senator-search 'search-backward what bound noerror count))
+  (senator-search 'search-backward string bound noerror count))
 
 ;;;###autoload
-(defun senator-re-search-backward (what &optional bound noerror count)
-  "Search semantic tags backward from point for regexp WHAT.
+(defun senator-re-search-backward (regexp &optional bound noerror count)
+  "Search in tag names backward from point for regular expression REGEXP.
 Set point to the beginning of the occurrence found, and return point.
-See `re-search-backward' for details and the meaning of BOUND NOERROR
-and COUNT.  COUNT is just ignored in the current implementation."
+See also the function `re-search-backward' for details on the BOUND,
+NOERROR and COUNT arguments."
   (interactive "sSemantic backward regexp search: ")
-  (senator-search 're-search-backward what bound noerror count))
+  (senator-search 're-search-backward regexp bound noerror count))
 
 ;;;###autoload
-(defun senator-word-search-backward (what &optional bound noerror count)
-  "Search semantic tags backward from point for word WHAT.
+(defun senator-word-search-backward (word &optional bound noerror count)
+  "Search in tag names backward from point for WORD.
 Set point to the beginning of the occurrence found, and return point.
-See `word-search-backward' for details and the meaning of BOUND
-NOERROR and COUNT.  COUNT is just ignored in the current
-implementation."
+See also the function `word-search-backward' for details on the BOUND,
+NOERROR and COUNT arguments."
   (interactive "sSemantic backward word search: ")
-  (senator-search 'word-search-backward what bound noerror count))
+  (senator-search 'word-search-backward word bound noerror count))
 
 ;;;;
 ;;;; Others useful search commands (minor mode menu)
@@ -1893,11 +1892,11 @@ This is a buffer local variable.")
        ])
     (senator-menu-item
      [ "Bin tags in components"
-       (setq semantic-imenu-bucketize-type-parts
-             (not semantic-imenu-bucketize-type-parts))
+       (setq semantic-imenu-bucketize-type-members
+             (not semantic-imenu-bucketize-type-members))
        :active t
        :style toggle
-       :selected semantic-imenu-bucketize-type-parts
+       :selected semantic-imenu-bucketize-type-members
        :help "When listing tags inside another tag; bin by tag class"
        ])
     (senator-menu-item
