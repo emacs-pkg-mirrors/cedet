@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.112 2003/04/02 02:22:59 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.113 2003/04/06 01:03:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -114,6 +114,11 @@ buffer, or a filename.  If SOMETHING is nil, use the current buffer."
    ((and (stringp something)
 	 (file-exists-p something))
     (semantic-file-tag-table something nil))
+   ;; A Semanticdb table
+   ((and (featurep 'semanticdb)
+	 (semanticdb-minor-mode-p)
+	 (semanticdb-abstract-table-p something))
+    (oref something tags))
    ;; Use the current buffer for nil
 ;;   ((null something)
 ;;    (semantic-bovinate-toplevel t))
@@ -1047,30 +1052,28 @@ function, it will be called with one arguments, the file to find as a
 string, and  it should return the full path to that file, or nil.")
 (make-variable-buffer-local `semantic-dependency-include-path)
 
-(defun semantic-find-dependency (&optional token)
-  "Find the filename represented from TOKEN.
-TOKEN may be a stripped element, in which case PARENT specifies a
-parent token that has positinal information.
+(defun semantic-find-dependency (&optional tag)
+  "Find the filename represented from TAG.
 Depends on `semantic-dependency-include-path' for searching.  Always searches
 `.' first, then searches additional paths."
-  (if (not token)
-      (setq token (car (semantic-find-tag-by-overlay nil))))
+  (if (not tag)
+      (setq tag (car (semantic-find-tag-by-overlay nil))))
 
-  (if (not (eq (semantic-tag-class token) 'include))
-      (signal 'wrong-type-argument (list token 'include)))
+  (if (not (eq (semantic-tag-class tag) 'include))
+      (signal 'wrong-type-argument (list tag 'include)))
 
   ;; First, see if this file exists in the current EDE projecy
   (if (and (fboundp 'ede-expand-filename) ede-minor-mode
 	   (ede-expand-filename (ede-toplevel)
-				(semantic-tag-name token)))
+				(semantic-tag-name tag)))
       (ede-expand-filename (ede-toplevel)
-			   (semantic-tag-name token))
+			   (semantic-tag-name tag))
   
     (let ((s (semantic-fetch-overload 'find-dependency)))
-      (if s (funcall s token)
+      (if s (funcall s tag)
 	(save-excursion
-	  (set-buffer (semantic-tag-buffer token))
-	  (let ((name (semantic-tag-name token)))
+	  (set-buffer (semantic-tag-buffer tag))
+	  (let ((name (semantic-tag-name tag)))
 	    (cond ((file-exists-p name)
 		   (expand-file-name name))
 		  ((and (symbolp semantic-dependency-include-path)
@@ -1295,7 +1298,7 @@ See `semantic-nonterminal-external-member-children' for details."
   (if (and usedb
 	   (fboundp 'semanticdb-minor-mode-p)
 	   (semanticdb-minor-mode-p))
-      (let ((m (semanticdb-find-nonterminal-external-children-of-type
+      (let ((m (semanticdb-find-tags-external-children-of-type
 		(semantic-tag-name token))))
 	(if m (apply #'append (mapcar #'cdr m))))
     (semantic--find-tags-by-function
