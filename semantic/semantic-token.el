@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-token.el,v 1.5 2003/03/14 01:58:32 zappo Exp $
+;; X-CVS: $Id: semantic-token.el,v 1.6 2003/03/14 02:28:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,6 +43,9 @@
 ;;
 ;; III. Token Comparison.  Allows explicit or comparitive tests to see
 ;;      if two tokens are the same.
+
+;; Keep this only so long as we have obsolete fcns.
+(require 'semantic-fw)
 
 (defvar semantic-token-version semantic-version
   "Version string of semantic tokens made with this code.")
@@ -138,7 +141,7 @@ The returned item is an ALIST of (KEY . VALUE) pairs."
   "Retrieve the cons cell for the PROPERTIES part of TOKEN."
   `(nthcdr (- (length ,token) semantic-tfe-properties) ,token))
 
-(defun semantic-token-put (token key value)
+(defun semantic-tag-put (token key value)
   "For TOKEN, put the property KEY on it with VALUE.
 If VALUE is nil, then remove the property from TOKEN."
   (let* ((c (semantic-token-properties-cdr token))
@@ -153,7 +156,7 @@ If VALUE is nil, then remove the property from TOKEN."
 	  (setcar c (cons (cons key value) (car c)))))
     ))
 
-(defun semantic-token-put-no-side-effect (token key value)
+(defun semantic-tag-put-no-side-effect (token key value)
   "For TOKEN, put the property KEY on it with VALUE without side effects.
 If VALUE is nil, then remove the property from TOKEN.
 All cons cells in the property list are replicated so that there
@@ -172,10 +175,13 @@ are no side effects if TOKEN is in shared lists."
 	  (setcar c (cons (cons key value) (car c)))))
     ))
 
-(defsubst semantic-token-get (token key)
+(defsubst semantic-tag-get (token key)
   "For TOKEN, get the value for property KEY."
   (cdr (assoc key (semantic-token-properties token))))
 
+(semantic-alias-obsolete 'semantic-token-put 'semantic-tag-put)
+(semantic-alias-obsolete 'semantic-token-put-no-side-effect 'semantic-tag-put-no-side-effect)
+(semantic-alias-obsolete 'semantic-token-get 'semantic-tag-get)
 
 ;;; Standard Token Access
 ;;
@@ -465,13 +471,25 @@ Any property with a value of nil is not stored in the list."
   )
 
 ;; Lets test this out during this short transition.
-(require 'semantic-fw)
 (semantic-alias-obsolete 'semantic-token              'semantic-tag	        )
 (semantic-alias-obsolete 'semantic-token-new-variable 'semantic-tag-new-variable)
 (semantic-alias-obsolete 'semantic-token-new-function 'semantic-tag-new-function)
 (semantic-alias-obsolete 'semantic-token-new-type     'semantic-tag-new-type    )
 (semantic-alias-obsolete 'semantic-token-new-include  'semantic-tag-new-include )
 (semantic-alias-obsolete 'semantic-token-new-package  'semantic-tag-new-package )
+
+;;; Token Cloning.
+;;
+(defun semantic-clone-tag (tag)
+  "Clone TAG, creating a new TAG.
+The actual values in TAG such as string names are not copied,
+but shared with the original.
+Use `semantic-tag-put-no-side-effect' to add properties to the clone.
+The clone has a 'clone property whose value is t."
+  ;; Right now, TAG is a list.
+  (let ((new (copy-sequence tag)))
+    (semantic-tag-put-no-side-effect new 'clone t)
+    new))
 
 (provide 'semantic-token)
 
