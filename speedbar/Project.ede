@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "ede-proj-project"
   :name "speedbar"
-  :version "0.14beta3"
+  :version "0.14beta4"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-elisp "speedbar"
@@ -30,7 +30,7 @@
    (ede-proj-target-makefile-miscelaneous "images"
     :name "images"
     :path ""
-    :source '("sb-dir-plus.xpm" "sb-dir-minus.xpm" "sb-dir.xpm" "sb-pg-plus.xpm" "sb-pg-minus.xpm" "sb-pg.xpm" "sb-mail.xpm" "sb-tag-plus.xpm" "sb-tag-minus.xpm" "sb-tag.xpm" "sb-tag-gt.xpm" "sb-tag-v.xpm" "sb-tag-type.xpm" "sb-image.el" "sb-obj.xpm" "sb-chk.xpm" "sb-objod.xpm")
+    :source '("sb-dir-plus.xpm" "sb-dir-minus.xpm" "sb-dir.xpm" "sb-pg-plus.xpm" "sb-pg-minus.xpm" "sb-pg.xpm" "sb-mail.xpm" "sb-tag-plus.xpm" "sb-tag-minus.xpm" "sb-tag.xpm" "sb-tag-gt.xpm" "sb-tag-v.xpm" "sb-tag-type.xpm" "sb-image.el" "sb-obj.xpm" "sb-chk.xpm" "sb-objod.xpm" "sb-label.xpm" "sb-ro.xpm" "sb-doc.xpm" "sb-info.xpm" "sb-doc-plus.xpm" "sb-doc-minus.xpm")
     :partofall 'nil
     )
    )
