@@ -4,9 +4,9 @@
 ;;;
 ;; Copyright (C) 1995,1996, 1998 Eric M. Ludlam
 ;;
-;; Author: <zappo@gnu.ai.mit.edu>
-;; Version: 0.8
-;; RCS: $Id: eieio.el,v 1.28 1998/10/27 17:17:29 zappo Exp $
+;; Author: <zappo@gnu.org>
+;; Version: 0.9
+;; RCS: $Id: eieio.el,v 1.29 1998/10/27 19:00:23 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -27,17 +27,17 @@
 ;;              675 Mass Ave.
 ;;              Cambridge, MA 02139, USA.
 ;;
-;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
+;; Please send bug reports, etc. to zappo@gnu.org
 ;;
 ;; Updates can be found at:
 ;;    ftp://ftp.ultranet.com/pub/zappo
 
 ;;; Commentary:
 ;;
-;; EIEIO is a series of lisp routines which provide a class structure
+;; EIEIO is a series of Lisp routines which provide a class structure
 ;; methodology which implements a small subset of CLOS, the Common
 ;; Lisp Object System.  In addition, eieio also adds a few new
-;; features which help it integrate more strongly with the emacs
+;; features which help it integrate more strongly with the Emacs
 ;; running environment.
 ;;
 ;; Classes can inherit (singly) from other classes, and attributes
@@ -179,7 +179,7 @@
   "Inside a method, this variable is the object in question.
 DO NOT SET THIS YOURSELF unless you are trying to simulate friendly fields.
 
-Note: Embeded methods are no longer supported.  The variable THIS is
+Note: Embedded methods are no longer supported.  The variable THIS is
 still set for CLOS methods for the sake of routines like
 `call-next-method'")
 
@@ -191,7 +191,7 @@ execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
 (defvar eieio-hook nil
   "*This hook is executed, then cleared each time `defclass' is called.
 The immediate effect is that I can safely keep track of common-lisp
-`setf' definitions reguardless of the order.  Users can add hooks to
+`setf' definitions regardless of the order.  Users can add hooks to
 this variable without worrying about weather this package has been
 loaded or not.")
 
@@ -502,7 +502,7 @@ toplevel documentation for this class."
 ;;
 (defun make-instance (class &rest initargs)
   "Make a new instance of CLASS with initialization based on INITARGS.
-INITARGS starts with a name for the class.  This can be any valid lisp
+INITARGS starts with a name for the class.  This can be any valid Lisp
 object, but is generally a string.  The rest of the init args are
 label/value pairs.  The label's are the symbols created with the
 :initarg tag from the `defclass' call.  The value is the value stored
@@ -539,7 +539,7 @@ top level documentation to a method."
 (defmacro defmethod (method &rest args)
   "Create a new METHOD through `defgeneric' with ARGS.
 ARGS lists any keys (such as :BEFORE or :AFTER), the arglst, and
-docstring, and eventually the body, such as:
+doc string, and eventually the body, such as:
 
   (defmethod mymethod [:BEFORE | :AFTER] (args) doc-string body)"
   (list 'defmethod-engine
@@ -660,7 +660,7 @@ Fills in OBJ's FIELD with it's default value."
 (defmacro oset (obj field value)
   "Set the value in OBJ for slot FIELD to VALUE.
 FIELD is the slot name as specified in `defclass' or the tag created
-with in the :initarg slot.  VALUE can be any lisp object."
+with in the :initarg slot.  VALUE can be any Lisp object."
   (list 'oset-engine obj (list 'quote field) value))
 
 (defun oset-engine (obj field value)
@@ -701,12 +701,12 @@ Fills in the default value in CLASS' in FIELD with VALUE."
 (defmacro object-class-fast (obj) "Return the class struct defining OBJ with no check."
   (list 'aref obj object-class))
   
-(defun class-name (class) "Return a lisp like symbol name for CLASS."
+(defun class-name (class) "Return a Lisp like symbol name for CLASS."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (format "#<class %s>" (symbol-name class)))
 
 (defun object-name (obj &optional extra)
-  "Return a lisp like symbol string for object OBJ.
+  "Return a Lisp like symbol string for object OBJ.
 If EXTRA, include that in the string returned to represent the symbol."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (format "#<%s %s%s>" (symbol-name (object-class-fast obj))
@@ -720,14 +720,14 @@ If EXTRA, include that in the string returned to represent the symbol."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (object-class-fast obj))
 
-(defun object-class-name (obj) "Return a lisp like symbol name for OBJ's class."
+(defun object-class-name (obj) "Return a Lisp like symbol name for OBJ's class."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (class-name (object-class-fast obj)))
 
 (defmacro class-parent-fast (class) "Return parent class to CLASS with no check."
   (list 'aref (list 'class-v class) class-parent))
 
-(defun class-parent (class) "Return parent class to CLASS. (overload of variable)."
+(defun class-parent (class) "Return parent class to CLASS.  (overload of variable)."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (class-parent-fast class))
 
@@ -863,9 +863,9 @@ This should only be called from a generic function."
   "Call the next logical method from another method.
 The next logical method is the method belong to the parent class of
 the currently running method.  If REPLACEMENT-ARGS is non-nil, then
-use them instead of `eieio-generic-call-arglst'.  The generic arglist
+use them instead of `eieio-generic-call-arglst'.  The generic arg list
 are the arguments passed in at the top level."
-  (if (not scoped-class)
+  (if (not 1scoped-class)
       (error "call-next-method not called within a class specific method"))
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
 	(lambdas nil)
@@ -955,9 +955,9 @@ See `eieiomt-add' for details on how these are set."
 
 (defun eieiomt-next (class)
   "Return the next parent class for CLASS.
-If CLASS is a superclass, return `eieio-default-superclass'.  If CLASS
-is `eieio-default-superclass' then return nil.  This is different from
-`class-parent' as class parent returns nil for superclasses.  This
+If CLASS is a superclass, return variable `eieio-default-superclass'.  If CLASS
+is variable `eieio-default-superclass' then return nil.  This is different from
+function `class-parent' as class parent returns nil for superclasses.  This
 function performs no type checking!"
   ;; No type-checking because all calls are made from functions which
   ;; are safe and do checking for us.
@@ -1256,6 +1256,8 @@ this object."
 ;;; Interfacing with edebug
 ;;
 (defun eieio-edebug-prin1-to-string (object &optional noescape)
+  "Display eieio OBJECT in fancy format.  Overrides the edebug default.
+Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
   (cond ((class-p object) (class-name object))
 	((object-p object) (object-print object))
 	(t (prin1-to-string object noescape))))
