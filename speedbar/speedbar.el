@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.149 1999/05/27 01:44:30 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.150 1999/09/19 12:53:14 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -363,6 +363,11 @@ effective when it's display is shown.")
   :group 'speedbar
   :type 'hook)
 
+(defcustom speedbar-reconfigure-keymaps-hook nil
+  "Hooks run when the keymaps are regenerated."
+  :group 'speedbar
+  :type 'hook)
+
 (defcustom speedbar-show-unknown-files nil
   "*Non-nil show files we can't expand with a ? in the expand button.
 nil means don't show the file in the list."
@@ -560,9 +565,8 @@ Any file checked out is marked with `speedbar-vc-indicator'"
 
 (defvar speedbar-vc-indicator "*"
   "Text used to mark files which are currently checked out.
-Currently only RCS is supported.  Other version control systems can be
-added by examining the function `speedbar-this-file-in-vc' and
-`speedbar-vc-check-dir-p'")
+Other version control systems can be added by examining the function
+`speedbar-vc-path-enable-hook' and `speedbar-vc-in-control-hook'.")
 
 (defcustom speedbar-vc-path-enable-hook nil
   "*Return non-nil if the current path should be checked for Version Control.
@@ -692,11 +696,11 @@ It is generated from the variable `completion-ignored-extensions'")
   (append '(".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".l" ".lsp" ".p" ".java" ".f\\(90\\|77\\|or\\)?")
 	  (if speedbar-use-imenu-flag
-	      '(".ada" ".pl" ".tcl" ".m" ".scm" ".pm" ".py"
+	      '(".ada" ".p[lm]" ".tcl" ".m" ".scm" ".pm" ".py"
 		;; html is not supported by default, but an imenu tags package
 		;; is available.  Also, html files are nice to be able to see.
 		".s?html"
-		"Makefile\\(\\.in\\)?")))
+		"[Mm]akefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
 will be stripped by a simplified optimizer when compiled into a
@@ -1436,7 +1440,8 @@ and the existence of packages."
 	  (easy-menu-define speedbar-menu-map (current-local-map)
 			    "Speedbar menu" md)
 	(easy-menu-add md (current-local-map))
-	(set-buffer-menubar (list md))))))
+	(set-buffer-menubar (list md))))
+    (run-hooks 'speedbar-reconfigure-keymaps-hook)))
 
 
 ;;; User Input stuff
@@ -1551,10 +1556,11 @@ Argument E is the event causing this activity."
 	  (set-window-dedicated-p (selected-window) nil)
 	  (call-interactively fn)
 	  (setq newbuff (current-buffer)))
-      (switch-to-buffer " SPEEDBAR")
+      (switch-to-buffer speedbar-buffer)
       (set-window-dedicated-p (selected-window) t))
-    (speedbar-with-attached-buffer
-     (switch-to-buffer newbuff))))
+    (if (not (eq newbuff speedbar-buffer))
+	(speedbar-with-attached-buffer
+	 (switch-to-buffer newbuff)))))
 
 (defun speedbar-next (arg)
   "Move to the next ARGth line in a speedbar buffer."
@@ -2188,14 +2194,14 @@ the file-system"
 Each directory path part is a different button.  If part of the path
 matches the user directory ~, then it is replaced with a ~.
 INDEX is not used, but is required by the caller."
-  (let* ((tilde (expand-file-name "~"))
+  (let* ((tilde (expand-file-name "~/"))
 	 (dd (expand-file-name directory))
 	 (junk (string-match (regexp-quote tilde) dd))
 	 (displayme (if junk
-			(concat "~" (substring dd (match-end 0)))
+			(concat "~/" (substring dd (match-end 0)))
 		      dd))
 	 (p (point)))
-    (if (string-match "^~/?\\'" displayme) (setq displayme (concat tilde "/")))
+    (if (string-match "^~/?\\'" displayme) (setq displayme tilde))
     (insert displayme)
     (save-excursion
       (goto-char p)
@@ -2204,7 +2210,8 @@ INDEX is not used, but is required by the caller."
 			      'speedbar-directory-face
 			      'speedbar-highlight-face
 			      'speedbar-directory-buttons-follow
-			      (if (= (match-beginning 1) p)
+			      (if (and (= (match-beginning 1) p)
+				       (not (char-equal (char-after (+ p 1)) ?:)))
 				  (expand-file-name "~/")  ;the tilde
 				(buffer-substring-no-properties
 				 p (match-end 0)))))
@@ -3896,6 +3903,12 @@ regular expression EXPR"
     ["Contract File Tags" speedbar-contract-line
      (save-excursion (beginning-of-line)
 		     (looking-at "[0-9]+: *.-. "))]
+    ["Kill Buffer" speedbar-buffer-kill-buffer
+     (save-excursion (beginning-of-line)
+		     (looking-at "[0-9]+: *.-. "))]
+    ["Revert Buffer" speedbar-buffer-revert-buffer
+     (save-excursion (beginning-of-line)
+		     (looking-at "[0-9]+: *.-. "))]
     )
   "Menu item elements shown when displaying a buffer list.")
 
@@ -4084,7 +4097,7 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 ;; some edebug hooks
 (add-hook 'edebug-setup-hook
 	  (lambda ()
-	    (def-edebug-spec speedbar-with-writable def-body)))
+	    (def-edebug-spec 'speedbar-with-writable def-body)))
 
 (provide 'speedbar)
 ;;; speedbar ends here
