@@ -1,10 +1,10 @@
 ;;; semantic-ctxt.el --- Context calculations for Semantic tools.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.25 2003/03/28 08:54:20 ponced Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.26 2003/04/02 02:27:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,7 +61,7 @@ This will find the smallest tag of that class (function, variable,
 type, etc) and make sure non-nil is returned if you cannot
 go up past the bounds of that tag."
   (if point (goto-char point))
-  (let ((nar (semantic-current-nonterminal-of-type (or bounds-type 'function)))
+  (let ((nar (semantic-current-tag-of-class (or bounds-type 'function)))
 	(s (semantic-fetch-overload 'up-context)))
     (if nar
 	(semantic-with-buffer-narrowed-to-token
@@ -213,7 +213,7 @@ tags."
   "Get arguments (variables) from the current context.
 Parameters are available if the point is in a function or method."
   (if point (goto-char point))
-  (let ((tag (semantic-current-nonterminal)))
+  (let ((tag (semantic-current-tag)))
     (if (and tag (semantic-tag-of-class-p tag 'function))
 	(semantic-tag-function-arguments tag))))
 
