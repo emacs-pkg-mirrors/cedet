@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.22 2004/03/19 23:59:09 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.23 2004/04/20 09:10:21 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -564,47 +564,34 @@ specific to a major mode.  For example, in jde mode:
       nil
     t))
 
+(define-overload semantic-idle-summary-current-symbol-info ()
+  "Return a string message describing the current context.")
+
+(semantic-make-obsolete-overload 'eldoc-current-symbol-info
+                                 'idle-summary-current-symbol-info)
+
 (define-semantic-idle-service semantic-idle-summary
   "Display a tag summary of the lexical token under the cursor.
-The means for getting the current tag to display information can
-be override with `idle-summary-current-symbol-info'"
-  (unless (or (eq major-mode 'emacs-lisp-mode)
-	      (not (semantic-idle-summary-useful-context-p)))
+Call `semantic-idle-summary-current-symbol-info' for getting the
+current tag to display information."
+  (or (eq major-mode 'emacs-lisp-mode)
+      (not (semantic-idle-summary-useful-context-p))
+      (let* ((found (semantic-idle-summary-current-symbol-info))
+             (str (cond ((stringp found) found)
+                        ((semantic-tag-p found)
+                         (funcall semantic-idle-summary-function
+                                  found nil t)))))      
+        (unless (and str (boundp 'eldoc-echo-area-use-multiline-p)
+                     eldoc-echo-area-use-multiline-p)
+          (let ((w (1- (window-width (minibuffer-window)))))
+            (if (> (length str) w)
+                (setq str (substring str 0 w)))))
+        (eldoc-message str))))
 
-    ;; Double overload symbols for backward compatibility
-    (let ((s (or (semantic-fetch-overload 'idle-summary-current-symbol-info)
-		 (semantic-fetch-overload 'eldoc-current-symbol-info)))
-	  found str
-	  )
-      
-      (if s (setq found (funcall s))
-	(setq found (semantic-idle-summary-current-symbol-info-default)))
-
-      (setq str (cond ((stringp found)
-		       found)
-		      ((semantic-tag-p found)
-		       (funcall semantic-idle-summary-function
-				found nil t))
-		      (t nil)
-		      ))
-
-      (unless (and (boundp 'eldoc-echo-area-use-multiline-p)
-		   eldoc-echo-area-use-multiline-p)
-	(let ((w (1- (window-width (minibuffer-window)))))
-	  (if (> (length str) w)
-	      (setq str (substring str 0 w)))))
-      
-      (eldoc-message str))
-    ))
-
-(put 'semantic-idle-summary-idle-function 'semantic-overload
-     'idle-summary-current-symbol-info)
- 
 (semantic-alias-obsolete 'semantic-summary-mode
 			 'semantic-idle-summary-mode)
 (semantic-alias-obsolete 'global-semantic-summary-mode
 			 'global-semantic-idle-summary-mode)
-
 
 ;;; Completion Popup Mode
 ;;
