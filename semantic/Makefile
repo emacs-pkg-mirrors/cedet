@@ -16,7 +16,7 @@ init_LISP=semantic-load.el semantic-autogen.el
 EMACS=emacs
 LOADPATH=wisent/ bovine/ ../common/ ../speedbar/ ../eieio/\
    
-semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el semantic-tag.el semantic-find.el
+semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el semantic-tag.el semantic-find.el semantic-format.el
 Languages_LISP=semantic-texi.el
 tools_LISP=semantic-imenu.el semantic-sb.el working.el semanticdb.el document.el document-vars.el sformat.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el
 senator_LISP=senator.el
