@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.17 2002/05/07 01:31:14 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.18 2002/06/18 21:31:02 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -102,6 +102,20 @@ minor mode is enabled.
   "Toggle global use of senator minor mode.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
+  t nil)
+
+(autoload 'senator-try-expand-semantic "senator"
+  "Attempt inline completion at the cursor.
+Use Semantic, or the semantic database to look up possible
+completions.  The argument OLD has to be nil the first call of this
+function.  It returns t if a unique, possibly partial, completion is
+found, nil otherwise."
+  t nil)
+
+(autoload 'senator-complete-symbol "senator"
+  "Complete the current symbol under point.
+If optional argument CYCLE-ONCE is non-nil, only cycle through the list
+of completions once, doing nothing where there are no more matches."
   t nil)
 
 ;; semantic-show-dirty
