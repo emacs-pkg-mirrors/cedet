@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.7a
+;; Version: 0.7b
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.82 1998/03/10 14:34:47 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.83 1998/03/12 20:15:59 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -332,6 +332,7 @@
 ;;       Added `speedbar-[forward|backward]-list' and bound them to
 ;;         C-M-[f|p].  This lets you quickly navigate over the directory
 ;;         list to the file list, and vice-versa.
+;;       Added fortran expressions ftom Bruce Ravelravel@phys.washington.edu
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -611,6 +612,7 @@ The expression `speedbar-obj-alist' defines who gets tagged.")
   '(("\\.\\([cpC]\\|cpp\\|cc\\)$" . ".o")
     ("\\.el$" . ".elc")
     ("\\.java$" . ".class")
+    ("\\.f\\(or\\|90\\|77\\)$" . ".o")
     ("\\.tex$" . ".dvi")
     ("\\.texi$" . ".info"))
   "Alist of file extensions, and their corresponding object file type.")
@@ -698,10 +700,10 @@ It is generated from the variable `completion-ignored-extensions'")
 ;; this is dangerous to customize, because the defaults will probably
 ;; change in the future.
 (defcustom speedbar-supported-extension-expressions
-  (append '(".[CcHh]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".tex\\(i\\(nfo\\)?\\)?"
+  (append '(".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".l" ".lsp" ".p" ".java")
 	  (if speedbar-use-imenu-flag
-	      '(".f90" ".ada" ".pl" ".tcl" ".m" ".scm" ".pm"
+	      '(".f\\(90\\|77\\|or]" ".ada" ".pl" ".tcl" ".m" ".scm" ".pm"
 		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
@@ -2986,6 +2988,8 @@ Returns the tag list, or t for an error."
      speedbar-parse-c-or-c++tag)
     ("^\\.emacs$\\|.\\(el\\|l\\|lsp\\)\\'" .
      "def[^i]+\\s-+\\(\\(\\w\\|[-_]\\)+\\)\\s-*\C-?")
+    ("\\.\\([fF]\\|for\\|FOR\\|77\\|90\\)\\'" .
+      speedbar-parse-fortran77-tag)
     ("\\.tex\\'" . speedbar-parse-tex-string)
     ("\\.p\\'" .
      "\\(\\(FUNCTION\\|function\\|PROCEDURE\\|procedure\\)\\s-+\\([a-zA-Z0-9_.:]+\\)\\)\\s-*(?^?")
@@ -3127,6 +3131,36 @@ regular expression EXPR"
 	    ((re-search-forward "\\<\\([^ \t(]+\\)\\s-*(\C-?" bound t)
 	     (buffer-substring-no-properties (match-beginning 1)
 					     (match-end 1)))
+	    (t nil))
+      )))
+
+;; written Mar 12 1998 by Bruce Ravel <ravel@phys.washington.edu>
+(defun speedbar-parse-fortran77-tag ()
+  "Parse a fortran 77 tag.
+This recognizes all 21 valid types of named subprograms in F77.
+It does not recognize unnamed main programs.  It returns the name
+of the subprogram (which may be longer than 6 characters, although
+that is not standard F77) preceded by one of `main', `fn.  ', `sub. ',
+or `b.d.' to indicate the type of subprogram.  This is
+case-insensitive --- another deviation from the strict standard."
+  (save-excursion
+    (let ((bound (save-excursion (end-of-line) (point)))
+	  (case-fold-search t) type name
+	  (fortran-subprogram "^ \\{6,\\}\\(b\\(lock data\\|yte function\\)\\|c\\(haracter\\*[0-9]\\{0,3\\} function\\|omplex\\( function\\|\\*16 function\\)\\)\\|double precision function\\|function\\|integer\\( function\\|\\*\\(1 function\\|2 function\\|4 function\\)\\)\\|logical\\( function\\|\\*\\(1 function\\|2 function\\|4 function\\)\\)\\|program\\|real\\( function\\|\\*\\(4 function\\|8 function\\)\\)\\|subroutine\\) +\\([a-z][a-z_0-9]\\{1,5\\}\\)") )
+      (cond ((re-search-forward fortran-subprogram bound t)
+	     (setq type (buffer-substring-no-properties (match-beginning 1)
+							(match-end 1)) )
+	     (setq name (buffer-substring-no-properties (match-beginning 11)
+							(match-end 11)) )
+	     (cond ((string-match "subroutine" type)
+		    (setq type "sub. "))
+		   ((string-match "function" type)
+		    (setq type "fn.  "))
+		   ((string-match "block" type)
+		    (setq type "b.d. "))
+		   ((string-match "program" type)
+		    (setq type "main ")))
+	     (concat type name) )
 	    (t nil))
       )))
 
