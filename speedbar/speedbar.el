@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.217 2002/03/17 02:47:02 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.218 2002/03/17 11:45:37 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -3675,10 +3675,10 @@ regular expression EXPR"
 		     (looking-at "[0-9]+: *.-. "))]
     ["Kill Buffer" speedbar-buffer-kill-buffer
      (save-excursion (beginning-of-line)
-		     (looking-at "[0-9]+: *.-. "))]
+		     (looking-at "[0-9]+: *.[-+?]. "))]
     ["Revert Buffer" speedbar-buffer-revert-buffer
      (save-excursion (beginning-of-line)
-		     (looking-at "[0-9]+: *.-. "))]
+		     (looking-at "[0-9]+: *.[-+?]. "))]
     )
   "Menu item elements shown when displaying a buffer list.")
 
@@ -3799,21 +3799,11 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
   "Kill the buffer the cursor is on in the speedbar buffer."
   (interactive)
   (or (save-excursion
-	(beginning-of-line)
-	;; If this fails, then it is a non-standard click, and as such,
-	;; perfectly allowed.
-	(if (re-search-forward "[]>?}] [^ ]"
-			       (save-excursion (end-of-line) (point))
-			       t)
-	    (let ((text (progn
-			  (forward-char -1)
-			  (buffer-substring (point) (save-excursion
-						      (end-of-line)
-						      (point))))))
-	      (if (and (get-buffer text)
-		       (speedbar-y-or-n-p (format "Kill buffer %s? " text)))
-		  (kill-buffer text))
-	      (speedbar-refresh))))))
+	(let ((text (speedbar-line-text)))
+	  (if (and (get-buffer text)
+		   (speedbar-y-or-n-p (format "Kill buffer %s? " text)))
+	      (kill-buffer text))
+	  (speedbar-refresh)))))
 
 (defun speedbar-buffer-revert-buffer ()
   "Revert the buffer the cursor is on in the speedbar buffer."
