@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.1 2002/02/23 08:57:09 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.2 2002/02/26 18:53:28 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,6 +34,7 @@
 
 ;;; Code:
 (require 'wisent-bovine)
+
 (eval-when-compile
   (require 'font-lock))
 
@@ -43,9 +44,9 @@
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-22 21:11+0100
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-26 09:55+0100
     (wisent-compile-grammar
-     '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE COLON GT LT OR PERCENT SEMI PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE NUMBER STRING SYMBOL)
+     '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
        (grammar
         ((PERCENT)
@@ -103,9 +104,13 @@
         ((TOKEN token_type_opt SYMBOL string_value)
          (list $3
                (if $2 'token 'keyword)
-               $2 $4 nil))
+               $2 nil $4 nil))
         ((TOKEN token_type_opt symbols)
-         (list "" 'token $2 $3 nil)))
+         (list
+          (car $3)
+          'token $2
+          (cdr $3)
+          nil nil)))
        (token_type_opt
         (nil)
         ((token_type)))
@@ -241,7 +246,7 @@
          (wisent-token "empty" 'rule nil nil nil nil nil))
         ((action)
          (wisent-token "empty" 'rule nil nil $1 nil nil))
-        ((prec action)
+        ((level action)
          (wisent-token "empty" 'rule nil nil $2 $1 nil))
         ((elements action_opt)
          (let
@@ -250,14 +255,14 @@
            (wisent-token
             (mapconcat #'cdr elts " ")
             'rule nil elts $2 nil nil)))
-        ((elements prec action_opt)
+        ((elements level action_opt)
          (let
              ((elts
                (nreverse $1)))
            (wisent-token
             (mapconcat #'cdr elts " ")
             'rule nil elts $3 $2 nil))))
-       (prec
+       (level
         ((PERCENT PREC SYMBOL)
          (identity $3)))
        (action_opt
@@ -270,14 +275,12 @@
                  (let
                      ((s $1))
                    (if
-                       (string-match "^{[
-\n	 ]*" s)
+                       (string-match "^{[\n	 ]*" s)
                        (setq s
                              (substring s
                                         (match-end 0))))
                    (if
-                       (string-match "[
-\n	 ]*}$" s)
+                       (string-match "[\n	 ]*}$" s)
                        (setq s
                              (substring s 0
                                         (match-beginning 0))))
@@ -296,7 +299,7 @@
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-22 21:11+0100
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-26 09:55+0100
    (semantic-flex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -315,27 +318,48 @@
    )
   "Keywords.")
 
+(defconst wisent-wy-tokens
+  (identity
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-26 09:55+0100
+   (wisent-flex-make-token-table
+    '(("punctuation"
+       (PERCENT . "%")
+       (GT . ">")
+       (LT . "<")
+       (OR . "|")
+       (SEMI . ";")
+       (COLON . ":"))
+      ("close-paren"
+       (RBRACE . "}"))
+      ("open-paren"
+       (LBRACE . "{"))
+      ("semantic-list"
+       (BRACE_BLOCK . "^{")
+       (PAREN_BLOCK . "^("))
+      ("number"
+       (NUMBER))
+      ("symbol"
+       (SYMBOL))
+      ("string"
+       (STRING)))
+    '(("close-paren" string t)
+      ("open-paren" string t)
+      ("punctuation" string t)))
+   )
+  "Tokens.")
+
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-22 21:11+0100
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-26 09:55+0100
   (progn
-    (setq semantic-toplevel-bovine-table wisent-wy-automaton
-          ;; Use the Wisent's parser.
-          semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
-          ;; Language keywords
+    (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
+          semantic-toplevel-bovine-table wisent-wy-automaton
           semantic-flex-keywords-obarray wisent-wy-keywords
+          wisent-flex-tokens-obarray wisent-wy-tokens)
+    (setq semantic-number-expression
           ;; Numbers
-          semantic-number-expression
           (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
                   "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
-          ;; Define the lexer
-          wisent-lexer-function 'wisent-wy-lex
-          ;; How `semantic-flex' will setup the lexer input stream.
-          wisent-flex-depth 0
-          ;; Case sensitive
-          semantic-case-fold nil
-          ;; Disable reporting of parse errors
-          wisent-error-function 'ignore
           ;; Parent/Child separator
           semantic-type-relation-separator-character '(":")
           ;; Names
@@ -367,101 +391,6 @@
        )
      t))
   )
-
-;;;;
-;;;; The lexer
-;;;;
-
-(defun wisent-wy-lex ()
-  "Return the next wisent grammar lexical token in input.
-When the end of input is reached return (`wisent-eoi-term').  Each
-lexical token has the form (TERMINAL VALUE START . END) where TERMINAL
-is the terminal symbol for this token, VALUE is the string value of
-the token, START and END are respectively the beginning and end
-positions of the token in input."
-  (if (null wisent-flex-istream)
-      ;; End of input
-      (list wisent-eoi-term)
-    (let* ((is wisent-flex-istream)
-           (tk (car is))
-           (ft (car tk))
-           lex x y)
-      (cond
-       
-       ;; Keyword
-       ;; -------
-       ((setq x (semantic-flex-text tk)
-              y (semantic-flex-keyword-p x))
-        ;; Only a %thing is a true keyword
-        (or (equal ?\% (char-before (semantic-flex-start tk)))
-            (setq y 'SYMBOL))
-        (setq lex (cons y (cons x (cdr tk)))
-              is  (cdr is)))
-       
-       ;; Symbol
-       ;; ------
-       ((eq ft 'symbol)
-        (setq x   (semantic-flex-text tk)
-              lex (cons 'SYMBOL (cons x (cdr tk)))
-              is  (cdr is)))
-       
-       ;; String
-       ;; ------
-       ((eq ft 'string)
-        (setq x   (semantic-flex-text tk)
-              lex (cons 'STRING (cons x (cdr tk)))
-              is  (cdr is)))
-       
-       ;; Number
-       ;; ------
-       ((eq ft 'number)
-        (setq x   (semantic-flex-text tk)
-              lex (cons 'NUMBER (cons x (cdr tk)))
-              is  (cdr is)))
-       
-       ;; Punctuation
-       ;; -----------
-       ((and (eq ft 'punctuation)
-             (setq x (char-after (semantic-flex-start tk))
-                   y (cond ((eq x ?\:) 'COLON)
-                           ((eq x ?\;) 'SEMI)
-                           ((eq x ?\|) 'OR)
-                           ((eq x ?\<) 'LT)
-                           ((eq x ?\>) 'GT)
-                           ((eq x ?\%) 'PERCENT))))
-        (setq lex (cons y (cons x (cdr tk)))
-              is (cdr is)))
-       
-       ;; Block
-       ;; -----
-       ((and (eq ft 'semantic-list)
-             (setq x (char-after (semantic-flex-start tk))
-                   y (cond ((eq x ?\() 'PAREN_BLOCK)
-                           ((eq x ?\{) 'BRACE_BLOCK))))
-        (setq x   (semantic-flex-text tk)
-              lex (cons y (cons x (cdr tk)))
-              is  (cdr is)))
-              
-       ;; Paren
-       ;; -----
-       ((and (memq ft '(open-paren close-paren))
-             (setq x (char-after (semantic-flex-start tk))
-                   y (cond ((eq x ?\{) 'LBRACE)
-                           ((eq x ?\}) 'RBRACE))))
-        (setq lex (cons y (cons x (cdr tk)))
-              is  (cdr is)))
-       
-       ;; Unhandled
-       ;; ---------
-       (t
-        ;; Other flex tokens are not yet used by the parser so for now
-        ;; just return a lexical token: (ft nil start . end).  I think
-        ;; this is better than raising a lexer error ;)
-        (setq lex (cons ft (cons nil (cdr tk)))
-              is  (cdr is))))
-      
-      (setq wisent-flex-istream is)
-      lex)))
 
 ;;;; 
 ;;;; Semantic action expansion
@@ -597,17 +526,26 @@ Warn if other TYPE tokens exist."
 
 (defun wisent-wy-setupcode ()
   "Return setupcode expressions as a string."
-  (format "(progn\n%s)"
-          (mapconcat
-           #'(lambda (code)
-               (let ((s (nth 3 code)))
-                 (if (string-match "^{[\r\n\t ]*" s)
-                     (setq s (substring s (match-end 0))))
-                 (if (string-match "[\r\n\t ]*%?}$" s)
-                     (setq s (substring s 0 (match-beginning 0))))
-                 s))
-           (semantic-find-nonterminal-by-token 'code (current-buffer))
-           "\n")))
+  (format
+   "(progn\n\
+      (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel\n\
+            semantic-toplevel-bovine-table %s\n\
+            semantic-flex-keywords-obarray %s\n\
+            wisent-flex-tokens-obarray %s)\n\
+     %s)"
+   (wisent-wy-parsetable)
+   (wisent-wy-keywordtable)
+   (wisent-wy-tokentable)
+   (mapconcat
+    #'(lambda (code)
+        (let ((s (nth 3 code)))
+          (if (string-match "^{[\r\n\t ]*" s)
+              (setq s (substring s (match-end 0))))
+          (if (string-match "[\r\n\t ]*%?}$" s)
+              (setq s (substring s 0 (match-beginning 0))))
+          s))
+    (semantic-find-nonterminal-by-token 'code (current-buffer))
+    "\n")))
 
 (defun wisent-wy-tokentable ()
   "Return the %tokentable value as a symbol or nil."
@@ -650,7 +588,8 @@ Warn if other TYPE tokens exist."
 That is an alist of (VALUE . TOKEN) where VALUE is the string value of
 the keyword and TOKEN is the terminal symbol identifying the keyword."
   (mapcar
-   #'(lambda (k) (cons (nth 3 k) (intern (semantic-token-name k))))
+   #'(lambda (key)
+       (cons (nth 4 key) (intern (semantic-token-name key))))
    (semantic-find-nonterminal-by-token 'keyword (current-buffer))))
 
 (defun wisent-wy-keyword-properties (keywords)
@@ -669,7 +608,7 @@ the keyword and TOKEN is the terminal symbol identifying the keyword."
               keys  (cdr keys)
               assoc (rassq key keywords))
         (if (null assoc)
-            (message "*** %%put to undefined keyword %s ignored" key)
+            nil ;;(message "*** %%put to undefined keyword %s ignored" key)
           (setq key   (car assoc)
                 plist (nth 4 put))
           (while plist
@@ -687,48 +626,60 @@ identifying the token and VALUE is the string value of the token or
 nil."
   (let ((tokens (semantic-find-nonterminal-by-token
                  'token (current-buffer)))
-        alist assoc token type name value)
+        alist assoc token type term names value)
     (while tokens
       (setq token  (car tokens)
             tokens (cdr tokens))
-        (setq name  (semantic-token-name token)
+        (setq names (cons (semantic-token-name token) (nth 3 token))
               type  (nth 2 token)
-              value (nth 3 token)
-              type  (if type (intern type))
-              assoc (assq type alist))
+              value (nth 4 token)
+              assoc (assoc type alist))
         (or assoc (setq assoc (list type)
                         alist (cons assoc alist)))
-        (if (string-equal name "")
-            ;; multiple token in one declaration
-            (while value
-              (setq name  (intern (car value))
-                    value (cdr value))
-              (setcdr assoc (cons (list name) (cdr assoc))))
-          (setcdr assoc (cons (cons (intern name) value)
-                              (cdr assoc)))))
+        (while names
+          (setq term  (intern (car names))
+                names (cdr names))
+          (setcdr assoc (cons (cons term value) (cdr assoc)))))
     alist))
 
+(defun wisent-wy-token-properties (tokens)
+  "Return the list of TOKENS properties."
+  (let ((puts (semantic-find-nonterminal-by-token
+               'put (current-buffer)))
+        put keys key plist assoc pkey pval props)
+    (while puts
+      (setq put   (car puts)
+            puts  (cdr puts)
+            keys  (cons (semantic-token-name put) (nth 3 put)))
+      (while keys
+        (setq key   (car keys)
+              keys  (cdr keys)
+              assoc (assoc key tokens))
+        (if (null assoc)
+            nil ;; (message "*** %%put to undefined token %s ignored" key)
+          (setq key   (car assoc)
+                plist (nth 4 put))
+          (while plist
+            (setq pkey  (intern (caar plist))
+                  pval  (read (cdar plist))
+                  props (cons (list key pkey pval) props)
+                  plist (cdr plist))))))
+    props))
+
 (defun wisent-wy-terminals ()
-  "Return the list of terminal symbols."
-  (let ((tokens (semantic-find-nonterminal-by-token
-                 'token (current-buffer)))
-        token name terms)
-    (while tokens
-      (setq token  (car tokens)
-            tokens (cdr tokens)
-            name   (semantic-token-name token))
-      (if (string-equal name "")
-          (progn
-            (setq name (nth 3 token))
-            (while name
-              (setq terms (cons (intern (car name)) terms)
-                    name  (cdr name))))
-        (setq terms (cons (intern name) terms))))
-    (nconc
-     (mapcar
-      #'(lambda (k) (intern (semantic-token-name k)))
-      (semantic-find-nonterminal-by-token 'keyword (current-buffer)))
-     (nreverse terms))))
+  "Return the list of terminal symbols.
+Keep order of declaration in the WY file without duplicates."
+  (let (terms)
+    (mapcar
+     #'(lambda (tok)
+         (mapcar #'(lambda (name)
+                     (add-to-list 'terms (intern name)))
+                 (cons (semantic-token-name tok) (nth 3 tok))))
+     (semantic-find-nonterminal-by-function
+      #'(lambda (tok)
+          (memq (semantic-token-token tok ) '(token keyword)))
+      (current-buffer)))
+    (nreverse terms)))
 
 (defun wisent-wy-nonterminals ()
   "Return the list form of nonterminal definitions."
@@ -894,11 +845,14 @@ of the first line of comment."
 
 (defun wisent-wy-tokentable-value ()
   "Return the string value of the table of tokens."
-   (format "(identity\n%s\n%s)\n"
-           (wisent-wy-autogen-cookie)
-           (pp-to-string
-            (wisent-wy-with-wy-buffer
-             `(quote ,(wisent-wy-tokens))))))
+  (format "(identity\n%s\n%s)\n"
+          (wisent-wy-autogen-cookie)
+          (pp-to-string
+           (wisent-wy-with-wy-buffer
+            (let ((tokens (wisent-wy-tokens)))
+              `(wisent-flex-make-token-table
+                ',tokens
+                ',(wisent-wy-token-properties tokens)))))))
 
 (defun wisent-wy-update-def (def comment &optional noerror)
   "Create or update the Lisp declaration for %DEF.
@@ -977,8 +931,8 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
          (wisent-wy-beginning-of-code)
          (insert
           (format "(defun %s ()\n%S\n%s\n%s\n)\n\n"
-                  "Setup buffer for parse."
-                  fun (wisent-wy-autogen-cookie) code)))
+                  fun "Setup buffer for parse."
+                  (wisent-wy-autogen-cookie) code)))
        (re-search-backward "^(defun\\s-+")
        (indent-sexp)))))
 
@@ -1023,14 +977,17 @@ brackets considered as parenthesis.")
   "Hook run when starting WY mode.")
 
 (defvar wisent-wy-mode-keywords-1
-  `(("^\\(\\w+\\)[ \n\r\t]*:" 1 font-lock-function-name-face)
+  `(("\\(%\\)\\(\\w+\\)"
+     (1 font-lock-reference-face)
+     (2 font-lock-type-face))
+    ("^\\(\\w+\\)[ \n\r\t]*:" 1 font-lock-function-name-face)
     ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\)\\>"
      1 ,(if (featurep 'xemacs)
             'font-lock-preprocessor-face
           'font-lock-builtin-face))
     ("\\$\\(\\sw\\|\\s_\\)*" 0 font-lock-variable-name-face)
     ("%" 0 font-lock-reference-face)
-    ("%\\(\\w+\\)" 1 font-lock-type-face)
+    ("<\\(\\(\\sw\\|\\s_\\)+\\)>" 1 font-lock-type-face)
     )
   "Font Lock keywords used to highlight WY buffer.")
 
