@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.19 2002/08/04 16:15:32 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.20 2002/08/07 17:58:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -417,16 +417,16 @@ See also the variable `semantic-unmatched-syntax-cache'."
                (cons (cons (car input) region)
                      semantic-unmatched-syntax-cache)))))
 
-(defun wisent-bovinate-nonterminal (stream nonterminal)
-  "Bovinate STREAM using Wisent LALR parser.
-Optional argument NONTERMINAL is the nonterminal symbol to start with.
+(defun wisent-parse-stream (stream nonterminal)
+  "Parse STREAM using the Wisent LALR parser.
+NONTERMINAL is the nonterminal symbol to start with.
 The parser automaton is in variable `semantic-toplevel-bovine-table'.
 Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
 list of semantic tokens found.
 
-This function is an override of 'bovinate-nonterminal and must be
-installed by the function `semantic-install-function-overrides'."
+It is an override of 'parse-stream and must be installed by the
+function `semantic-install-function-overrides'."
   (let (wisent-flex-istream wisent-lexer-lookahead lookahead cache)
     (if (vectorp (caar stream))
         (setq lookahead (aref (caar stream) 0)
