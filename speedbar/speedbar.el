@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.182 2000/09/05 00:40:33 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.183 2000/09/07 22:08:14 zappo Exp $
 
-(defvar speedbar-version "0.13beta1"
+(defvar speedbar-version "0.13beta2"
   "The current version of speedbar.")
 
 ;; This file is part of GNU Emacs.
@@ -707,7 +707,7 @@ When speedbar is active, use:
 to toggle this value.")
 
 (defvar speedbar-update-flag-disable nil
-  "Permanently disable chaning of the update flag.")
+  "Permanently disable changing of the update flag.")
 
 (defvar speedbar-syntax-table nil
   "Syntax-table used on the speedbar.")
@@ -884,6 +884,9 @@ Each sublist was returned by `speedbar-file-lists'.  This list is
 maintained to speed up the refresh rate when switching between
 directories.")
 
+(defvar speedbar-power-click nil
+  "Never set this by hand.  Value is t when S-mouse activity occurs.")
+
 
 ;;; Compatibility
 ;;
@@ -990,6 +993,10 @@ selected.  If the speedbar frame is active, then select the attached frame."
 				   (let ((speedbar-update-flag t))
 				     (speedbar-timer-fn)))))
   )
+
+(defsubst speedbar-current-frame ()
+  "Return the frame to use for speedbar based on current context."
+  (dframe-current-frame 'speedbar-frame 'speedbar-mode))
 
 (defmacro speedbar-frame-width ()
   "Return the width of the speedbar frame in characters.
@@ -2844,7 +2851,9 @@ the file being checked."
 This must be bound to a mouse event.  A button is any location of text
 with a mouse face that has a text property called `speedbar-function'.
 Argument E is the click event."
-  (speedbar-do-function-pointer)
+  ;; Backward compatibility let statement.
+  (let ((speedbar-power-click dframe-power-click))
+    (speedbar-do-function-pointer))
   (dframe-quick-mouse e))
 
 (defun speedbar-do-function-pointer ()
