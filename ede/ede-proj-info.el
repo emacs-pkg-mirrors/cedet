@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.13 2004/01/08 20:32:50 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.14 2004/03/30 12:48:55 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -127,7 +127,7 @@ Texinfo files want to insert generated `.info' files.
 Argument THIS is the target which needs to insert an info file."
   ;; In some cases, this is ONLY the index file.  That should generally
   ;; be ok.
-  (insert " " (ede-proj-makefile-target-name this) "*")
+  (insert " $(wildcard " (ede-proj-makefile-target-name this) "*)")
   )
 
 ;  (let ((n (ede-name this)))
