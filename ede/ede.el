@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.24 1999/11/10 14:18:15 zappo Exp $
+;; RCS: $Id: ede.el,v 1.25 1999/11/23 20:57:43 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -102,6 +102,7 @@ target willing to take the file.  'never means never perform the check."
   :type 'sexp) ; make this be a list of options some day
 
 (require 'eieio)
+(require 'eieio-speedbar)
 
 ;;; Top level classes for projects and targets
 ;;
@@ -135,8 +136,9 @@ type is required and the load function used.")
 
 ;;; Generic project information manager objects
 ;;
-(defclass ede-target ()
-  ((name :initarg :name
+(defclass ede-target (eieio-speedbar-directory-button)
+  ((buttonface :initform speedbar-file-face) ;override for superclass
+   (name :initarg :name
 	 :type string
 	 :custom string
 	 :documentation "Name of this target.")
@@ -169,7 +171,7 @@ type is required and the load function used.")
    )
   "A top level target to build.")
 
-(defclass ede-project ()
+(defclass ede-project (eieio-speedbar-directory-button)
   ((name :initarg :name
 	 :initform "Untitled"
 	 :type string
@@ -361,7 +363,7 @@ Argument LIST-O-O is the list of objects to choose from."
 		  (and ede-object
 		       (not (obj-of-class-p ede-object ede-project))) ]
 		)))
-      (if (oref obj menu)
+      (if (and obj (oref obj menu))
 	  (append defaultitems (oref obj menu))
 	defaultitems)))))
 
