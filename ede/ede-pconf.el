@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: ede-pconf.el,v 1.7 2000/09/24 15:26:37 zappo Exp $
+;; RCS: $Id: ede-pconf.el,v 1.8 2000/09/25 01:43:28 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -107,7 +107,7 @@
 	    (save-excursion
 	      (set-buffer (find-file-noselect
 			   (ede-expand-filename (ede-toplevel this)
-						"Makefile" t)))
+						"Makefile" t) t))
 	      (goto-char (point-min))
 	      ;; Here is the unique piece for our makefiles.
 	      (re-search-forward "For use with: make" nil t)))
