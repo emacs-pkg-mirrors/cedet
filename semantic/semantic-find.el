@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.9 2003/04/05 03:02:15 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.10 2003/04/06 00:52:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -331,6 +331,19 @@ TABLE is a tag table.  See `semantic-something-to-tag-table'."
   "Find all tags in TABLE that are of the 'include class.
 TABLE is a tag table.  See `semantic-something-to-tag-table'."
   (semantic-find-tags-by-class 'include table))
+
+
+;;; Specialty Searches
+;;
+(defun semantic-find-tags-external-children-of-type (type &optional table)
+  "Find all tags in whose parent is TYPE in TABLE.
+These tags are defined outside the scope of the original TYPE declaration.
+TABLE is a tag table.  See `semantic-something-to-tag-table'."
+  (semantic--find-tags-by-macro
+   (equal (semantic-nonterminal-external-member-parent (car tags))
+	  type)
+   table)
+)
 
 ;;; Tag Table Flattening
 ;;
@@ -731,8 +744,8 @@ details are available of findable."
 			 'semantic-brute-find-tag-by-attribute)
 
 ;;;###autoload
-(semantic-alias-obsolete 'semantic-find-nonterminal-by-attribute-value
-			 'semantic-brute-find-tag-by-extra-spec-value)
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-extra-spec-value
+			 'semantic-brute-find-tag-by-attribute-value)
 
 ;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-function
