@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.39 2001/02/20 21:05:44 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.40 2001/02/21 21:19:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -74,7 +74,10 @@ Return a bovination list to use."
       ;; Variables and constants
       (list sn 'variable nil (nth 2 rt)
 	    (semantic-bovinate-make-assoc-list
-	     'const (if (eq ts 'defconst) t nil))
+	     'const (if (eq ts 'defconst) t nil)
+	     'user-visible (and (nth 3 rt)
+				(= (aref (nth 3 rt) 0) ?*))
+	     )
 	    (nth 3 rt))
       )
      ((or (eq ts 'defun)
@@ -82,7 +85,10 @@ Return a bovination list to use."
 	  (eq ts 'defmacro))
       ;; functions and macros
       (list sn 'function nil (semantic-elisp-desymbolify (nth 2 rt))
-	    nil (nth 3 rt))
+	    (semantic-bovinate-make-assoc-list
+	     'user-visible (equal (car-safe (nth 4 rt)) 'interactive)
+	     )
+	    (nth 3 rt))
       )
      ((or (eq ts 'defmethod)
 	  (eq ts 'defgeneric))
@@ -153,12 +159,31 @@ Return a bovination list to use."
 		")")
       (semantic-prototype-nonterminal-default token))))
 
+(defun semantic-elisp-find-documentation (token &optional nosnarf)
+  "Return the documentation string for TOKEN.
+Optional argument NOSNARF is ignored."
+  (let ((d (semantic-token-docstring token)))
+    (if (= (aref d 0) ?*)
+	(substring d 1)
+      d)))
+
+(defun semantic-elisp-insert-foreign-token (token tokenfile)
+  "Insert TOKEN from TOKENFILE at point.
+Attempts a simple prototype for calling or using TOKEN."
+  (cond ((eq (semantic-token-token token) 'function)
+	 (insert "(" (semantic-token-name token) " )")
+	 (forward-char -1))
+	(t
+	 (insert (semantic-token-name token)))))
+
 (defun semantic-default-elisp-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
   (semantic-install-function-overrides
    '((find-dependency . semantic-elisp-find-dependency)
      (prototype-nonterminal . semantic-elisp-prototype-nonterminal)
      (concise-prototype-nonterminal . semantic-elisp-prototype-nonterminal)
+     (find-documentation . semantic-elisp-find-documentation)
+     (insert-foreign-token . semantic-elisp-insert-foreign-token)
      )
    t)
   (setq semantic-toplevel-bovine-table semantic-toplevel-elisp-bovine-table
