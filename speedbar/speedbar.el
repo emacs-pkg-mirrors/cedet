@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.12
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.175 2000/07/19 01:17:57 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.176 2000/07/22 12:34:05 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -1219,13 +1219,23 @@ Doing this allows the creation of a second speedbar."
     ;; funny stuff later...
     ))
 
+(defun speedbar-current-frame ()
+  "Return the frame to use for speedbar based on current context."
+  (if (not (eq (selected-frame) speedbar-frame))
+      (if (and (eq major-mode 'speedbar-mode)
+	       (get-buffer-window (current-buffer))
+	       (window-frame (get-buffer-window (current-buffer))))
+	  (window-frame (get-buffer-window (current-buffer)))
+	speedbar-frame)
+    speedbar-frame))
+
 ;;;###autoload
 (defun speedbar-get-focus ()
   "Change frame focus to or from the speedbar frame.
 If the selected frame is not speedbar, then speedbar frame is
 selected.  If the speedbar frame is active, then select the attached frame."
   (interactive)
-  (if (eq (selected-frame) speedbar-frame)
+  (if (eq (selected-frame) (speedbar-current-frame))
       (if (frame-live-p speedbar-attached-frame)
 	  (select-frame speedbar-attached-frame))
     ;; If updates are off, then refresh the frame (they want it now...)
@@ -1242,9 +1252,16 @@ selected.  If the speedbar frame is active, then select the attached frame."
 (defun speedbar-close-frame ()
   "Turn off a currently active speedbar."
   (interactive)
-  (speedbar-frame-mode -1)
-  (select-frame speedbar-attached-frame)
-  (other-frame 0))
+  (if (not (eq speedbar-frame (speedbar-current-frame)))
+      (let ((buf (current-buffer))
+	    (fr (selected-frame)))
+	;; In this condition, the selected frame and buffer are
+	;; a detatched speedbar.
+	(kill-buffer buf)
+	(delete-frame fr))
+    (speedbar-frame-mode -1)
+    (select-frame speedbar-attached-frame)
+    (other-frame 0)))
 
 (defun speedbar-switch-buffer-attached-frame (&optional buffer)
   "Switch to BUFFER in speedbar's attached frame, and raise that frame.
@@ -1261,7 +1278,7 @@ broken because of the dedicated speedbar frame."
 (defmacro speedbar-frame-width ()
   "Return the width of the speedbar frame in characters.
 nil if it doesn't exist."
-  '(frame-width speedbar-frame))
+  '(frame-width (speedbar-current-frame)))
 
 ;; XEmacs function only.
 (defun speedbar-needed-height (&optional frame)
@@ -1413,7 +1430,7 @@ Optional EVENT is currently not used."
   "Set the format of the mode line based on the current speedbar environment.
 This gives visual indications of what is up.  It EXPECTS the speedbar
 frame and window to be the currently active frame and window."
-  (if (and (frame-live-p speedbar-frame)
+  (if (and (frame-live-p (speedbar-current-frame))
 	   (or (not speedbar-xemacsp)
 	       (specifier-instance has-modeline-p)))
       (save-excursion
@@ -1754,6 +1771,7 @@ Assumes that the current buffer is the speedbar buffer"
   (interactive)
   (let ((dl speedbar-shown-directories)
 	(dm (and (boundp 'deactivate-mark) deactivate-mark)))
+    ;; We need to hack something so this works in detatched frames.
     (while dl
       (adelete 'speedbar-directory-contents-alist (car dl))
       (setq dl (cdr dl)))
@@ -2175,7 +2193,7 @@ This is based on `speedbar-initial-expansion-list-name' referencing
   (setq speedbar-previously-used-expansion-list-name
 	speedbar-initial-expansion-list-name
 	speedbar-initial-expansion-list-name new-default)
-  (if (and speedbar-frame (frame-live-p speedbar-frame))
+  (if (and (speedbar-current-frame) (frame-live-p (speedbar-current-frame)))
       (progn
 	(speedbar-refresh)
 	(speedbar-reconfigure-keymaps))))
@@ -2920,7 +2938,7 @@ This should only be used by modes classified as special."
 
 (defun speedbar-timer-fn ()
   "Run whenever Emacs is idle to update the speedbar item."
-  (if (not (and (frame-live-p speedbar-frame)
+  (if (not (and (frame-live-p (speedbar-current-frame))
 		(frame-live-p speedbar-attached-frame)))
       (speedbar-set-timer nil)
     ;; Save all the match data so that we don't mess up executing fns
@@ -2928,8 +2946,8 @@ This should only be used by modes classified as special."
       ;; Only do stuff if the frame is visible, not an icon, and if
       ;; it is currently flagged to do something.
       (if (and speedbar-update-flag
-	       (frame-visible-p speedbar-frame)
-	       (not (eq (frame-visible-p speedbar-frame) 'icon)))
+	       (frame-visible-p (speedbar-current-frame))
+	       (not (eq (frame-visible-p (speedbar-current-frame)) 'icon)))
 	  (let ((af (selected-frame)))
 	    (save-window-excursion
 	      (select-frame speedbar-attached-frame)
@@ -2967,7 +2985,7 @@ This should only be used by modes classified as special."
 				speedbar-ignored-path-regexp
 				(expand-file-name default-directory)))
 			  (member major-mode speedbar-ignored-modes)
-			  (eq af speedbar-frame)
+			  (eq af (speedbar-current-frame))
 			  (not (buffer-file-name)))
 		      nil
 		    (if (<= 1 speedbar-verbosity-level)
@@ -3076,7 +3094,7 @@ updated."
 	  ;; It is important to select the frame, otherwise the window
 	  ;; we want the cursor to move in will not be updated by the
 	  ;; search-forward command.
-	  (select-frame speedbar-frame)
+	  (select-frame (speedbar-current-frame))
 	  ;; Remove the old file...
 	  (speedbar-clear-current-file)
 	  ;; now highlight the new one.
@@ -3383,7 +3401,8 @@ This should be bound to mouse event E."
   "Look under the cursor and examine the text properties.
 From this extract the file/tag name, token, indentation level and call
 a function if appropriate"
-  (let* ((fn (get-text-property (point) 'speedbar-function))
+  (let* ((speedbar-frame (speedbar-current-frame))
+	 (fn (get-text-property (point) 'speedbar-function))
 	 (tok (get-text-property (point) 'speedbar-token))
 	 ;; The 1-,+ is safe because scaning starts AFTER the point
 	 ;; specified.  This lets the search include the character the
