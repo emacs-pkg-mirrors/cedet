@@ -26,6 +26,11 @@
 ;;  This package uses the compile package, and the linemark package to
 ;; highlight all lines showing errors.
 
+;;; Notes:
+;;
+;; Thanks to Markus Gritsch for adding support for grep-buffers, where
+;; no file is associated with a buffer.  (Similar work in linemark.el)
+
 (require 'linemark)
 
 ;;; Code:
