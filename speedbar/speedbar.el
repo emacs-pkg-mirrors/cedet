@@ -3,8 +3,8 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.27 1997/02/12 02:50:50 zappo Exp $
-;;; Version: 0.4.2
+;;; RCS: $Id: speedbar.el,v 1.28 1997/02/26 02:50:07 zappo Exp $
+;;; Version: 0.4.4
 ;;; Keywords: file, tags, tools
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -62,7 +62,15 @@
 ;;;   To add new files types into the speedbar, use the function
 ;;; `speedbar-add-supported-extension' If speedbar complains that the
 ;;; file type is not supported, that means there is no built in
-;;; support from imenu, and the etags part wasn't set up correctly.
+;;; support from imenu, and the etags part wasn't set up correctly.  You
+;;; may add elements to `speedbar-supported-extension-expressions' as long
+;;; as it is done before speedbar is loaded.
+;;;
+;;;   To prevent speedbar from following you into certain directories
+;;; use the function `speedbar-add-ignored-path-regexp' too add a new
+;;; regular expression matching a type of path.  You may add list
+;;; elements to `speedbar-ignored-path-expressions' as long as it is
+;;; done before speedbar is loaded.
 ;;;
 ;;;   To add new file types to imenu, see the documentation in the
 ;;; file imenu.el that comes with emacs.  To add new file types which
@@ -198,6 +206,7 @@
 ;;;        when the refresh was requested.  (This does not include the
 ;;;        tags, only the directories)
 ;;; 0.4.3 Bug fixes
+;;; 0.4.4 Added `speedbar-ignored-path-expressions' and friends.
 ;;;
 ;;; TODO:
 ;;; 1) Implement SHIFT-mouse2 to rescan buffers with imenu.
@@ -306,6 +315,15 @@ examination of version control")
   '(Info-mode rmail-mode)
   "*List of major modes which speedbar will not switch directories for.")
 
+(defvar speedbar-ignored-path-expressions
+  '("/log/$")
+  "*List of regular expressions to match directories we do not want speedbar
+to switch to.  They should included paths to directories which are notoriously
+very large and take a long time to load in.  Use the function
+`speedbar-add-ignored-path-regexp' to add new items to this list after
+speedbar is loaded.  You may place anything you like in this list
+before speedbar has been loaded.")
+
 (defvar speedbar-file-unshown-regexp
   (let ((nstr "") (noext completion-ignored-extensions))
     (while noext
@@ -341,10 +359,21 @@ with . followed by extensions, followed by full-filenames."
 			       (substring (car extlist) 1)))
 	(setq regex2 (concat regex2 (if regex2 "\\|" "") (car extlist))))
       (setq extlist (cdr extlist)))
-    ;; concat all the sub-exressions together.
-    (concat "\\(\\(\\.\\(" regex1 "\\)\\)"
-	(if regex2 (concat "\\|\\(" regex2 "\\)") "")
-	"\\)$")))
+    ;; concat all the sub-exressions together, making sure all types
+    ;; of parts exist during concatination.
+    (concat "\\("
+	    (if regex1 (concat "\\(\\.\\(" regex1 "\\)\\)") "")
+	    (if (and regex1 regex2) "\\|" "")
+	    (if regex2 (concat "\\(" regex2 "\\)") "")
+	    "\\)$")))
+
+(defvar speedbar-ignored-path-regexp
+  (speedbar-extension-list-to-regex speedbar-ignored-path-expressions)
+  "Regular expression matching paths speedbar will not switch to.
+Created from `speedbar-ignored-path-expressions' with the function
+`speedbar-extension-list-to-regex' (A missnamed function in this case.)
+Use the function `speedbar-add-ignored-path-regexp' to modify this
+variable.")
 	  
 (defvar speedbar-file-regexp 
   (speedbar-extension-list-to-regex speedbar-supported-extension-expressions)
@@ -367,6 +396,20 @@ list of strings."
 	  speedbar-file-regexp
 	  (speedbar-extension-list-to-regex
 	   speedbar-supported-extension-expressions)))))
+
+(defun speedbar-add-ignored-path-regexp (path-exp)
+  "Adds PATH-EXPRESSION as a new ignored path for speedbar tracking.
+This function will modify `speedbar-ignored-path-regexp' and add
+PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
+  (if (not (listp ext)) (setq ext (list ext)))
+  (while ext
+    (if (member (car ext) speedbar-supported-extension-expressions)
+      nil
+    (setq speedbar-ignored-path-expressions
+	  (cons (car ext) speedbar-ignored-path-expressions)
+	  speedbar-ignored-path-regexp
+	  (speedbar-extension-list-to-regex
+	   speedbar-ignored-path-expressions)))))
 
 (defvar speedbar-do-update t
   "*Indicate wether the speedbar should do automatic updates.
@@ -1347,6 +1390,8 @@ name will have the function FIND-FUN and not token."
 		  ;; Update all the contents if directories change!
 		  (if (or (member (expand-file-name default-directory)
 				  speedbar-shown-directories)
+			  (string-match speedbar-ignored-path-regexp
+					(expand-file-name default-directory))
 			  (member major-mode speedbar-ignored-modes)
 			  (eq af speedbar-frame)
 			  (not (buffer-file-name))
@@ -1430,6 +1475,10 @@ updated."
 	     (file-exists-p newcf)
 	     (not (string= newcf speedbar-last-selected-file)))
 	(progn
+	  ;; It is important to select the frame, otherwise the window
+	  ;; we want the cursor to move in will not be updated by the
+	  ;; search-forward command.
+	  (select-frame speedbar-frame)
 	  ;; Remove the old file...
 	  (speedbar-clear-current-file)
 	  ;; now highlight the new one.
@@ -1440,17 +1489,21 @@ updated."
 		 (concat " \\(" (regexp-quote newcf) "\\)\\("
 			 (regexp-quote speedbar-vc-indicator)
 			 "\\)?\n") nil t)
-		;; put the property on it
-		(put-text-property (match-beginning 1)
-				   (match-end 1)
-				   'face 
-				   'speedbar-selected-face)
+		(progn
+		  ;; put the property on it
+		  (put-text-property (match-beginning 1)
+				     (match-end 1)
+				     'face 
+				     'speedbar-selected-face)
+		  (message "found...")
+		  )
 	      ;; Oops, it's not in the list.  Should it be?
 	      (if (and (string-match speedbar-file-regexp newcf)
 		       (string= (file-name-directory newcfd)
 				(expand-file-name default-directory)))
 		  ;; yes, it is (we will ignore unknowns for now...)
 		  (progn
+		    (message "Refreshing...")
 		    (speedbar-refresh)
 		    (if (re-search-forward 
 			 (concat " \\(" (regexp-quote newcf) "\\)\n") nil t)
@@ -1467,6 +1520,7 @@ updated."
 		(forward-line -1)
 		(speedbar-position-cursor-on-line)))
 	  (set-buffer lastb)
+	  (select-frame lastf)
 	  )))
   ;; return that we are done with this activity.
   t)
@@ -2241,7 +2295,7 @@ multiple defaults and dynamically determine which colors to use."
 ;; some edebug hooks
 (add-hook 'edebug-setup-hook
 	  (lambda () 
-	    (def-edebug-spec speedbar-with-writeable def-body)))
+	    (def-edebug-spec speedbar-with-writable def-body)))
 
 ;; run load-time hooks
 (run-hooks 'speedbar-load-hooks)
