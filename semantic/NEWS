@@ -211,7 +211,53 @@ file extension.
 
 * Database.
 
-TBD.
+** semanticdb.el
+
+*** `semanticdb-abstract-table'
+New base class for all tables of tokens lists.
+
+*** `semantidb-table'
+Inherits from the abstract table.
+
+*** `semanticdb-project-database'
+No longer saves itself to a file.
+
+** semanticdb-file.el
+New routines for databases saved to disk in plain EIEIO save files.
+
+*** `semanticdb-project-database-file'
+File based project database type.
+
+** semanticdb-search.el
+All search routines have been moved into this file.
+All search routines are now methods.
+
+*** `semanticdb-search-results-table'
+Class for any search in a database with no tables of its own.
+
+** semanticdb-system.el
+Representation of a database belonging to system libraries.
+These databases may not come from source code, and can represent
+object files, header file libraries and the like.
+
+*** `semanticdb-project-database-system'
+Baseclass for any system database.
+
+*** `semanticdb-project-database-system-c'
+Class for C libraries of header files.
+
+** semanticdb-el.el
+Special system database representing Emacs' internal state.
+Implements all search routines optimized as much as possible.
+
+*** `semanticdb-table-emacs-lisp'
+Table representing search results for Emacs Lisp symbols.
+
+*** `semanticdb-project-database-emacs-lisp'
+Database representing Emacs' internal symbol obarray.
+
+** semanticdb-mk
+Routines for building semantic.cache files from a command line script.
 
 * Utilities.
 
@@ -244,6 +290,9 @@ A lot of things are now auto-loaded on demand.
 The LALR grammar is based on the official grammar with slight
 modifications.  The tokens generated are formatted similar to
 those produced by the Java parser.
+
+** Erlang parser added.
+The grammar was written for semantic 1.4 in BNF format.
 
 TBD.
 
