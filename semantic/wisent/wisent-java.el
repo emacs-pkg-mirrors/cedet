@@ -7,7 +7,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.6 2001/08/16 14:24:52 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.7 2001/08/16 15:13:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +38,32 @@
 (require 'semantic-java)
 (eval-when-compile
   (require 'document))
+
+;;;;
+;;;; These two functions should be moved to semantic.el
+;;;;
+
+(defsubst semantic-flex-token-value (table category &optional key)
+  "Return %token values from the token table TABLE.
+CATEGORY is a symbol identifying a token category.  If the symbol KEY
+is specified the function returns the particular value of this token.
+Otherwise the function returns the alist of (KEY . VALUE) for this
+category.  See also the function `semantic-bnf-token-table'."
+  (let ((cat-alist (cdr (assq category table))))
+    (if key
+        (cdr (assq key cat-alist))
+      cat-alist)))
+
+(defsubst semantic-flex-token-key (table category value)
+  "Search for a %token symbol in the token table TABLE.
+CATEGORY is a symbol identifying a token category.  VALUE is the value
+of the token to search for.  If not found return nil.  See also the
+function `semantic-bnf-token-table'."
+  (car (rassoc value (cdr (assq category table)))))
+
+;;;;
+;;;; Global stuff
+;;;;
 
 (defvar wisent-java-lex-istream nil
   "The java lexer stream of Semantic flex tokens.")
@@ -990,43 +1016,20 @@ FLOATING_POINT_LITERAL:
   ;; sorted so that the longest ones are matched first.  I tried
   ;; `regexp-opt' (Emacs 21) but the optimized regexp failed to match
   ;; some operators like "~" and "+" :-(
-  (eval-when-compile
-    (concat "\\("
-            (mapconcat #'(lambda (op)
-                           (regexp-quote (cdr op)))
-                       (sort (copy-sequence
-                              (semantic-flex-token-value
-                               wisent-java-tokens 'operator))
-                             #'(lambda (op1 op2)
-                                 (let ((ops1 (cdr op1))
-                                       (ops2 (cdr op2)))
-                                   (or (< (length ops2) (length ops1))
-                                       (string-lessp ops2 ops1)))))
-                       "\\|")
-            "\\)"))
+  (concat "\\("
+          (mapconcat #'(lambda (op)
+                         (regexp-quote (cdr op)))
+                     (sort (copy-sequence
+                            (semantic-flex-token-value
+                             wisent-java-tokens 'operator))
+                           #'(lambda (op1 op2)
+                               (let ((ops1 (cdr op1))
+                                     (ops2 (cdr op2)))
+                                 (or (< (length ops2) (length ops1))
+                                     (string-lessp ops2 ops1)))))
+                     "\\|")
+          "\\)")
   "Lexer regexp to match Java operator terminals.")
-
-;;;;
-;;;; These two functions should be moved to semantic.el
-;;;;
-
-(defsubst semantic-flex-token-value (table category &optional key)
-  "Return %token values from the token table TABLE.
-CATEGORY is a symbol identifying a token category.  If the symbol KEY
-is specified the function returns the particular value of this token.
-Otherwise the function returns the alist of (KEY . VALUE) for this
-category.  See also the function `semantic-bnf-token-table'."
-  (let ((cat-alist (cdr (assq category table))))
-    (if key
-        (cdr (assq key cat-alist))
-      cat-alist)))
-
-(defsubst semantic-flex-token-key (table category value)
-  "Search for a %token symbol in the token table TABLE.
-CATEGORY is a symbol identifying a token category.  VALUE is the value
-of the token to search for.  If not found return nil.  See also the
-function `semantic-bnf-token-table'."
-  (car (rassoc value (cdr (assq category table)))))
 
 ;;;;
 ;;;; The Java Lexer
