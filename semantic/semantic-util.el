@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.106 2003/03/14 02:29:41 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.107 2003/03/17 01:19:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -837,7 +837,10 @@ DEFAULT is the default choice.  If no default is given, one is read
 from under point.
 STREAM is the list of tokens to complete from."
   (semantic-read-symbol
-   prompt default (semantic-find-nonterminal-by-type 'variable stream)))
+   prompt default
+   (or (semantic-find-nonterminal-by-token
+	'variable (or stream (current-buffer)))
+       (error "No local variables"))))
 
 (defun semantic-read-function (prompt &optional default stream)
   "Read a function name from the user for the current buffer.
@@ -847,7 +850,10 @@ DEFAULT is the default choice.  If no default is given, one is read
 from under point.
 STREAM is the list of tokens to complete from."
   (semantic-read-symbol
-   prompt default (semantic-find-nonterminal-by-type 'function stream)))
+   prompt default
+   (or (semantic-find-nonterminal-by-token
+	'function (or stream (current-buffer)))
+       (error "No local functions"))))
 
 (defun semantic-read-type (prompt &optional default stream)
   "Read a type name from the user for the current buffer.
@@ -857,7 +863,10 @@ DEFAULT is the default choice.  If no default is given, one is read
 from under point.
 STREAM is the list of tokens to complete from."
   (semantic-read-symbol
-   prompt default (semantic-find-nonterminal-by-type 'type stream)))
+   prompt default
+   (or (semantic-find-nonterminal-by-token
+	'type (or stream (current-buffer)))
+       (error "No local types"))))
 
 
 ;;; Token to text overload functions
