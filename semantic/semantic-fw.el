@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.35 2004/03/08 14:03:57 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.36 2004/04/20 09:09:36 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -204,6 +204,20 @@ will throw a warning when it encounters this symbol."
     alias of `%s'." (error-message-string err) oldvaralias newvar)
        )))
   (make-obsolete-variable oldvaralias newvar))
+
+(defun semantic-make-obsolete-overload (old new)
+  "Mark OLD overload as obsoleted by NEW overload.
+If OLD or NEW are of the form `semantic-NAME'.  The function will
+strip `semantic-' from the front as the name of the overload symbol."
+  (let ((old (semantic-overload-symbol-from-function old))
+        (new (semantic-overload-symbol-from-function new)))
+    (put old 'semantic-overload-obsoleted-by new)
+    (put new 'semantic-overload-obsolete old)))
+
+(defsubst semantic-obsolete-overload (overload)
+  "Get the overload symbol obsoleted by OVERLOAD.
+Return the obsolete symbol or nil if not found."
+  (get overload 'semantic-overload-obsolete))
 
 ;;; Semantic autoloads
 ;;
@@ -554,7 +568,11 @@ Fetch OVERLOAD from `semantic-override-table' if locally set, or from
 the override table of current major mode or its parents.  Set the
 buffer local value of `semantic-override-table' to the current
 override table found."
-  (semantic-symbol-value overload nil 'override))
+  (or (semantic-symbol-value overload nil 'override)
+      ;; If an obsolete overload symbol exists, try it.
+      (and (semantic-obsolete-overload overload)
+           (semantic-symbol-value
+            (semantic-obsolete-overload overload) nil 'override))))
 
 (defsubst semantic-install-function-overrides (overrides &optional transient mode)
   "Install the function OVERRIDES in the specified environment.
@@ -578,6 +596,56 @@ later installation should be done in MODE hook."
 	(intern (substring sym-name (match-end 0)))
       name)))
 
+(defun semantic--override (name args body)
+  "Return the form that handles overloading of function NAME.
+ARGS are the arguments to the function.
+BODY is code that would be run when there is no override defined.  The
+default is to call the function `NAME-default' with the appropriate
+arguments.
+See also the function `define-overload'."
+  (let* ((default (intern (format "%s-default" name)))
+         (overargs (delq '&rest (delq '&optional (copy-sequence args))))
+         (overload (semantic-overload-symbol-from-function name))
+         (override (make-symbol "override")))
+    `(let ((,override (semantic-fetch-overload ',overload)))
+       (if ,override
+           (funcall ,override ,@overargs)
+         ,@(or body `((,default ,@overargs)))))
+    ))
+
+(defun semantic--expand-overrides (name args body)
+  "Expand override forms that overload function NAME.
+ARGS are the arguments to the function NAME.
+BODY is code where override forms are searched for expansion.
+Return result of expansion, or BODY if no expansion occurred.
+See also the function `define-overload'."
+  (let ((forms body)
+        (ditto t)
+        form xbody)
+    (while forms
+      (setq form (car forms))
+      (cond
+       ((atom form))
+       ((eq (car form) :override)
+        (setq form (semantic--override name args (cdr form))))
+       ((eq (car form) :override-with-args)
+        (setq form (semantic--override name (cadr form) (cddr form))))
+       ((setq form (semantic--expand-overrides name args form))))
+      (setq ditto (and ditto (eq (car forms) form))
+            xbody (cons form xbody)
+            forms (cdr forms)))
+    (if ditto body (nreverse xbody))))
+
+(defun semantic--overload-body (name args body)
+  "Return the code that implements overloading of function NAME.
+ARGS are the arguments to the function NAME.
+BODY specifies the overload code.
+See also the function `define-overload'."
+  (let ((result (semantic--expand-overrides name args body)))
+    (if (eq body result)
+        (list (semantic--override name args body))
+      result)))
+
 (defmacro define-overload (name args docstring &rest body)
   "Define a new function, as with `defun' which can be overloaded.
 NAME is the name of the function to create.  If it is of the form
@@ -587,26 +655,30 @@ ARGS are the arguments to the function.
 DOCSTRING is a documentation string to describe the function.  The
 docstring will automatically had details about its overload symbol
 appended to the end.
-BODY is code that would be run as a default if this function is not
-overloaded for a specific mode.  The default is to call the function
-`NAME-default' with the appropriate ARGS.
-If you want the main function of an overloadable function to do extra
-work, write that yourself without `define-overload'.  See the info
-manual for details."
-  (let* ((fastargs (delq '&rest (delq '&optional (copy-sequence args))))
-         (sym-name (symbol-name name))
-         (overload (semantic-overload-symbol-from-function name)))
-    (or body (setq body `((,(intern (concat sym-name "-default"))
-                           ,@fastargs))))
-    `(eval-and-compile
-       (defun ,name ,args
-         ,docstring
-         (let ((s (semantic-fetch-overload ',overload)))
-           (if s
-               (funcall s ,@fastargs)
-             ;; Else, perform some default behaviors
-             ,@body)))
-       (put ',name 'semantic-overload ',overload))))
+BODY is code that would be run when there is no override defined.  The
+default is to call the function `NAME-default' with the appropriate
+arguments.
+
+BODY can also include an override form that specifies which part of
+BODY is specifically overridden.  This permits to specify common code
+run for both default and overridden implementations.
+An override form is one of:
+
+  1. (:override [OVERBODY])
+  2. (:override-with-args OVERARGS [OVERBODY])
+
+OVERBODY is the code that would be run when there is no override
+defined.  The default is to call the function `NAME-default' with the
+appropriate arguments deduced from ARGS.
+OVERARGS is a list of arguments passed to the override and
+`NAME-default' function, in place of those deduced from ARGS."
+  `(eval-and-compile
+     (defun ,name ,args
+       ,docstring
+       ,@(semantic--overload-body name args body))
+     (put ',name 'semantic-overload
+          ',(semantic-overload-symbol-from-function name))))
+(put :override-with-args 'lisp-indent-function 1)
 
 (defmacro define-mode-overload-implementation
   (name mode args docstring &rest body)
@@ -634,7 +706,6 @@ This function is an implementation for %s"
 	   ,@body))
        (semantic-install-function-overrides '((,overload . ,newname)) t ',mode)
        )))
-
 
 ;;; Temporary Mode Local settings
 ;;
@@ -736,7 +807,6 @@ calling this one."
 		 (message "Looping ...")
 		 (semantic-throw-on-input 'test-inner-loop))
 	       'exit))))
-
 
 ;;; Editor goodies ;-)
 ;;
@@ -772,6 +842,7 @@ calling this one."
                   "define-wisent-lexer"
                   "semantic-alias-obsolete"
                   "semantic-varalias-obsolete"
+                  "semantic-make-obsolete-overload"
                   ) t))
            ;; Regexp depths
            (kv-depth (regexp-opt-depth kv))
