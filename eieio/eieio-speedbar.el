@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.9 2000/09/30 02:46:45 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.10 2000/12/05 03:11:21 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -252,8 +252,8 @@ and take the apropriate action."
 	       :type symbol
 	       :documentation
 	       "The type of expansion button used for objects of this class.
-Possible values are 'bracket, 'angle, 'curly, and nil.
-See `speedbar-make-tag-line' for details."
+Possible values are those symbols supported by the `exp-button-type' argument
+to `speedbar-make-tag-line'."
 	       :allocation class)
    (buttonface :initform speedbar-tag-face
 	       :type (or symbol face)
