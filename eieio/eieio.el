@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.98 2001/02/17 15:00:54 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.99 2001/02/19 02:32:22 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -30,9 +30,6 @@
 ;;              Cambridge, MA 02139, USA.
 ;;
 ;; Please send bug reports, etc. to zappo@gnu.org
-;;
-;; Updates can be found at:
-;;    ftp://ftp.ultranet.com/pub/zappo
 
 ;;; Commentary:
 ;;

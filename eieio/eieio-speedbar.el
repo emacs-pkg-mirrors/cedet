@@ -1,10 +1,10 @@
 ;;; eieio-speedbar.el -- Classes for managing speedbar displays.
 
 ;;;
-;; Copyright (C) 1999, 2000 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.10 2000/12/05 03:11:21 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.11 2001/02/19 02:33:34 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -26,9 +26,6 @@
 ;;              Cambridge, MA 02139, USA.
 ;;
 ;; Please send bug reports, etc. to zappo@gnu.org
-;;
-;; Updates can be found at:
-;;    ftp://ftp.ultranet.com/pub/zappo
 
 ;;; Commentary:
 ;;  

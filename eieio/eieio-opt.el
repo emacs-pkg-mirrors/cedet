@@ -1,9 +1,9 @@
 ;;; eieio-opt.el -- eieio optional functions (debug, printing, speedbar)
 
-;;; Copyright (C) 1996, 1998, 1999, 2000 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.16 2000/12/16 15:37:31 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.17 2001/02/19 02:29:39 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -25,9 +25,6 @@
 ;;              Cambridge, MA 02139, USA.
 ;;
 ;; Please send bug reports, etc. to zappo@gnu.org
-;;
-;; Updates can be found at:
-;;    ftp://ftp.ultranet.com/pub/zappo
 
 ;;; Commentary:
 ;;
