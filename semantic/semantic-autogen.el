@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-autogen.el,v 1.1 2002/08/08 17:46:04 zappo Exp $
+;; X-CVS: $Id: semantic-autogen.el,v 1.2 2002/08/08 18:28:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,7 +30,8 @@
 ;;; Code
 ;;
 
-;;;###autoload
+(add-to-list 'load-path ".")
+
 (defun semantic-hack-autoloads ()
   "Create semantic autoloads from sources."
   (interactive)
@@ -40,10 +41,11 @@
     (find-file (concat dir "semantic-al.el"))
     (erase-buffer)
 
-    (insert ";;; semantic-al.el --- Auto-generated file filled with autoloads.\n\n")
+    (insert ";;; semantic-al.el --- Auto-generated file filled with autoloads.")
     (update-autoloads-from-directories dir)
     )
-  (newline 2))
+  (newline 2)
+  (save-buffer))
 
 (provide 'semantic-autogen)
 
