@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.18 2001/05/28 06:51:29 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.19 2001/08/10 12:46:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -429,7 +429,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-              "Java language specification.")
+                "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -482,16 +482,18 @@
       ("void" . VOID)
       ("volatile" . VOLATILE)
       ("while" . WHILE)
-      ("author" . AUTHOR)
-      ("version" . VERSION)
-      ("param" . PARAM)
-      ("exception" . EXCEPTION)
-      ("see" . SEE)
-      ("since" . SINCE)
-      ("serial" . SERIAL)
-      ("serialData" . SERIALDATA)
-      ("serialField" . SERIALFIELD)
-      ("deprecated" . DEPRECATED)
+      ("@author" . _AUTHOR)
+      ("@version" . _VERSION)
+      ("@param" . _PARAM)
+      ("@return" . _RETURN)
+      ("@exception" . _EXCEPTION)
+      ("@throws" . _THROWS)
+      ("@see" . _SEE)
+      ("@since" . _SINCE)
+      ("@serial" . _SERIAL)
+      ("@serialData" . _SERIALDATA)
+      ("@serialField" . _SERIALFIELD)
+      ("@deprecated" . _DEPRECATED)
       )
    '(
      ("abstract" summary "Class|Method declaration modifier: abstract {class|<type>} <name> ...")
@@ -538,18 +540,18 @@
      ("void" summary "Method return type: void <name> ...")
      ("volatile" summary "Field declaration modifier: volatile <type> <name> ...")
      ("while" summary "while (<expr>) <stmt> | do <stmt> while (<expr>);")
-     ("author" javadoc (seq 1 usage (type)))
-     ("version" javadoc (seq 2 usage (type)))
-     ("param" javadoc (seq 3 usage (function) with-name t))
-     ("return" javadoc (seq 4 usage (function)))
-     ("exception" javadoc (seq 5 usage (function) with-name t))
-     ("throws" javadoc (seq 6 usage (function) with-name t))
-     ("see" javadoc (seq 7 usage (type function variable) opt t with-ref t))
-     ("since" javadoc (seq 8 usage (type function variable) opt t))
-     ("serial" javadoc (seq 9 usage (variable) opt t))
-     ("serialData" javadoc (seq 10 usage (function) opt t))
-     ("serialField" javadoc (seq 11 usage (variable) opt t))
-     ("deprecated" javadoc (seq 12 usage (type function variable) opt t))
+     ("@author" javadoc (seq 1 usage (type)))
+     ("@version" javadoc (seq 2 usage (type)))
+     ("@param" javadoc (seq 3 usage (function) with-name t))
+     ("@return" javadoc (seq 4 usage (function)))
+     ("@exception" javadoc (seq 5 usage (function) with-name t))
+     ("@throws" javadoc (seq 6 usage (function) with-name t))
+     ("@see" javadoc (seq 7 usage (type function variable) opt t with-ref t))
+     ("@since" javadoc (seq 8 usage (type function variable) opt t))
+     ("@serial" javadoc (seq 9 usage (variable) opt t))
+     ("@serialData" javadoc (seq 10 usage (function) opt t))
+     ("@serialField" javadoc (seq 11 usage (variable) opt t))
+     ("@deprecated" javadoc (seq 12 usage (type function variable) opt t))
      ))
   "Java keywords.")
 
@@ -772,14 +774,26 @@ Ordered following Sun's Tag Convention.")
   "Tags allowed in field documentation.
 Ordered following Sun's Tag Convention.")
 
+(defmacro semantic-java-doc-tag (name)
+  "Return doc tag from NAME.
+That is @NAME."
+  `(concat "@" ,name))
+
+(defsubst semantic-java-doc-tag-name (tag)
+  "Return name of the doc TAG symbol.
+That is TAG `symbol-name' without the leading '@'."
+  (substring (symbol-name tag) 1))
+
 (defun semantic-java-doc-keyword-before-p (k1 k2)
   "Return non-nil if javadoc keyword K1 is before K2."
-  (let ((seq1 (and (semantic-flex-keyword-p k1)
-                   (plist-get (semantic-flex-keyword-get k1 'javadoc)
-                              'seq)))
-        (seq2 (and (semantic-flex-keyword-p k2)
-                   (plist-get (semantic-flex-keyword-get k2 'javadoc)
-                              'seq))))
+  (let* ((t1   (semantic-java-doc-tag k1))
+         (t2   (semantic-java-doc-tag k2))
+         (seq1 (and (semantic-flex-keyword-p t1)
+                    (plist-get (semantic-flex-keyword-get t1 'javadoc)
+                               'seq)))
+         (seq2 (and (semantic-flex-keyword-p t2)
+                    (plist-get (semantic-flex-keyword-get t2 'javadoc)
+                               'seq))))
     (if (and (numberp seq1) (numberp seq2))
         (<= seq1 seq2)
       ;; Unknown tags (probably custom ones) are always after official
@@ -797,7 +811,8 @@ removed from the result list."
   (delq nil
         (mapcar
          #'(lambda (k)
-             (let ((plist (semantic-flex-keyword-get k 'javadoc)))
+             (let* ((tag   (semantic-java-doc-tag k))
+                    (plist (semantic-flex-keyword-get tag 'javadoc)))
                (if (or (not property) (plist-get plist property))
                    (funcall fun k plist))))
          semantic-java-doc-line-tags)))
@@ -806,7 +821,7 @@ removed from the result list."
   "Lazy initialization of javadoc elements."
   (or semantic-java-doc-line-tags
       (setq semantic-java-doc-line-tags
-            (sort (mapcar #'symbol-name
+            (sort (mapcar #'semantic-java-doc-tag-name
                           (semantic-flex-keywords 'javadoc))
                   #'semantic-java-doc-keyword-before-p)))
 
