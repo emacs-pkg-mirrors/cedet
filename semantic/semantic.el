@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.142 2002/06/14 13:13:01 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.143 2002/06/29 18:07:55 ponced Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -131,6 +131,16 @@ Do not set this yourself.  Call `semantic-bovinate-buffer-debug'.")
   "When non-nil, dump parsing information."
   :group 'semantic
   :type 'boolean)
+
+(defvar semantic-bovinate-parser nil
+  "Function used to parse input stream.
+See the default parser `semantic-bovinate-nonterminal-default' for
+details.")
+(make-variable-buffer-local 'semantic-bovinate-parser)
+
+(defvar semantic-bovinate-parser-name nil
+  "Optional name of the parser used to parse input stream.")
+(make-variable-buffer-local 'semantic-bovinate-parser-name)
 
 (defvar semantic-toplevel-bovine-table nil
   "Variable that defines how to bovinate top level items in a buffer.
@@ -731,6 +741,14 @@ stream is requested."
 'percent means we are doing a linear parse through the buffer.
 'dynamic means we are rebovinating specific tokens.")
 
+(defsubst semantic-bovination-working-message (&optional arg)
+  "Return the message string displayed while parsing.
+If optional argument ARG is non-nil it is appended to the message
+string.  See also the function `working-status-forms'."
+  (if semantic-bovinate-parser-name
+      (format "%s/%s" semantic-bovinate-parser-name (or arg ""))
+    (format "%s" (or arg ""))))
+
 (defun semantic-remove-dirty-children-internal (token dirties)
   "Remove TOKEN children from DIRTIES.
 Return the new value of DIRTIES."
@@ -791,7 +809,9 @@ that, otherwise, do a full reparse."
 	   (changes (semantic-remove-dirty-children)))
       ;; We have a cache, and some dirty tokens
       (let ((semantic-bovination-working-type 'dynamic))
-        (working-status-forms (buffer-name) "done"
+        (working-status-forms
+            (semantic-bovination-working-message (buffer-name))
+            "done"
           (while (and semantic-dirty-tokens
                       (not (semantic-bovine-toplevel-full-reparse-needed-p
                             checkcache)))
@@ -826,9 +846,11 @@ that, otherwise, do a full reparse."
       ;; Clear the caches
       (semantic-clear-toplevel-cache)
       ;; Parse!
-      (working-status-forms (buffer-name) "done"
+      (working-status-forms
+          (semantic-bovination-working-message (buffer-name))
+          "done"
 	(setq res (semantic-bovinate-nonterminals
-                   lex 'bovine-toplevel semantic-flex-depth))
+                   lex nil semantic-flex-depth))
 	(working-status t))
       (setq res (nreverse res))
       ;; Set up the new overlays, and then reset the cache.
@@ -925,74 +947,97 @@ Argument START, END, and LENGTH specify the bounds of the change."
 
 ;;; Token parsing utilities
 ;;
+(defsubst semantic-cooked-token-p (token)
+  "Return non-nil if TOKEN is a cooked one.
+See also the function `semantic-raw-to-cooked-token'."
+  ;; In fact a cooked token is actually a list of cooked tokens
+  ;; because a raw token can be expanded in several cooked ones!
+  (when (consp token)
+    (while (and (semantic-token-p (car token))
+                (vectorp (semantic-token-overlay (car token))))
+      (setq token (cdr token)))
+    (null token)))
+
 (defun semantic-raw-to-cooked-token (token)
   "Convert TOKEN from a raw state to a cooked state.
 The parser returns raw tokens with positional data START/END.  We
 convert it from that to a cooked state with a property list and a
-vector [START END].  Change the token with side effects and returns
-TOKEN."
-  (let* ((ncdr    (- (length token) 2))
-	 (propcdr (if (natnump ncdr) (nthcdr ncdr token)))
-	 (rngecdr (cdr propcdr))
-	 ;; propcdr is the CDR containing the START from the token.
-	 ;; rngecdr is the CDR containing the END from the token.
-	 ;; PROPCDR will contain the property list after cooking.
-	 ;; RNGECDR will contain the [START END] vector after cooking.
-	 (range   (condition-case nil
-                      (vector (car propcdr) (car rngecdr))
-                    (error (debug token)
-                           nil)))
-         result expandedtokens)
-    ;; Convert START/END into PROPERTIES/[START END].
-    (setcar rngecdr range)
-    (setcar propcdr nil)
-    ;; Expand based on local configuration
-    (if (not semantic-expand-nonterminal)
-	;; No expanders
-	(setq result (cons token result))
-      ;; Glom generated tokens.  THESE TOKENS MUST BE VALID ONES!
-      (setq expandedtokens (funcall semantic-expand-nonterminal token)
-            result (if expandedtokens
-                       (append expandedtokens result)
-                     (cons token result))))
-    result))
+vector [START END].  The raw token is changed with side effects and
+maybe expanded in several cooked tokens when the variable
+`semantic-expand-nonterminal' is set.  So this function always returns
+a list of cooked tokens."
+  ;; Because some parsers can return tokens already cooked (wisent is
+  ;; an example), check if TOKEN was already cooked to just return it.
+  (if (semantic-cooked-token-p token)
+      token
+    (let* ((ncdr    (- (length token) 2))
+           (propcdr (if (natnump ncdr) (nthcdr ncdr token)))
+           (rngecdr (cdr propcdr))
+           ;; propcdr is the CDR containing the START from the token.
+           ;; rngecdr is the CDR containing the END from the token.
+           ;; PROPCDR will contain the property list after cooking.
+           ;; RNGECDR will contain the [START END] vector after cooking.
+           (range   (condition-case nil
+                        (vector (car propcdr) (car rngecdr))
+                      (error (debug token)
+                             nil)))
+           result expandedtokens)
+      ;; Convert START/END into PROPERTIES/[START END].
+      (setcar rngecdr range)
+      (setcar propcdr nil)
+      ;; Expand based on local configuration
+      (if (not semantic-expand-nonterminal)
+          ;; No expanders
+          (setq result (cons token result))
+        ;; Glom generated tokens.  THESE TOKENS MUST BE VALID ONES!
+        (setq expandedtokens (funcall semantic-expand-nonterminal token)
+              result (if expandedtokens
+                         (append expandedtokens result)
+                       (cons token result))))
+      result)))
 
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
 					      depth returnonerror)
   "Bovinate the entire stream STREAM starting with NONTERM.
 DEPTH is optional, and defaults to 0.
-Optional argument RETURNONERROR indicates that the parser should exit with
-the current results on a parse error."
+Optional argument RETURNONERROR indicates that the parser should exit
+with the current results on a parse error."
   (if (not depth) (setq depth semantic-flex-depth))
   (let ((result nil)
-	(case-fold-search semantic-case-fold))
+	(case-fold-search semantic-case-fold)
+        nontermsym token)
     (while stream
-      (let* ((nontermsym
-	      (semantic-bovinate-nonterminal
-	       stream semantic-toplevel-bovine-table nonterm))
-	     (token (car (cdr nontermsym))))
-	(if (not nontermsym)
-	    (error "Parse error @ %d" (car (cdr (car stream)))))
-	(if token
-	    (if (car token)
-		(progn
-		  (setq result (append (semantic-raw-to-cooked-token token)
-				       result))
-		  ;; Place the nonterm into the token.
-		  (if (not (eq nonterm 'bovine-toplevel))
-		      (semantic-token-put token 'reparse-symbol nonterm)))
-	      ;; No error in this case, a purposeful nil means don't store
-	      ;; anything.
-	      )
-	  (if returnonerror
-	      (setq stream nil)
-	    ;; The current item in the stream didn't match, so add it to
-	    ;; the list of syntax items which didn't match.
-	    (setq semantic-unmatched-syntax-cache
-		  (cons (car stream) semantic-unmatched-syntax-cache))
-	    ))
-	;; Designated to ignore.
-	(setq stream (car nontermsym)))
+      (setq nontermsym (semantic-bovinate-nonterminal
+                        stream semantic-toplevel-bovine-table nonterm)
+            token (car (cdr nontermsym)))
+      (if (not nontermsym)
+          (error "Parse error @ %d" (car (cdr (car stream)))))
+      (if token
+          (if (car token)
+              (setq token (mapcar
+                           #'(lambda (token)
+                               ;; Set the 'reparse-symbol property to
+                               ;; NONTERM unless it was already setup
+                               ;; by a token expander
+                               (or (semantic-token-get
+                                    token 'reparse-symbol)
+                                   (semantic-token-put
+                                    token 'reparse-symbol nonterm))
+                               token)
+                           (semantic-raw-to-cooked-token token))
+                    result (append token result))
+            ;; No error in this case, a purposeful nil means don't
+            ;; store anything.
+            )
+        (if returnonerror
+            (setq stream nil)
+          ;; The current item in the stream didn't match, so add it to
+          ;; the list of syntax items which didn't match.
+          (setq semantic-unmatched-syntax-cache
+                (cons (car stream) semantic-unmatched-syntax-cache))
+          ))
+      ;; Designated to ignore.
+      (setq stream (car nontermsym))
       (if stream
 	  (if (eq semantic-bovination-working-type 'percent)
 	      (working-status (floor
@@ -1010,8 +1055,7 @@ the current results on a parse error."
 				  (semantic-token-end token)))
 	 ;; For embedded tokens (type parts, for example) we need a
 	 ;; different symbol.  Come up with a plan to solve this.
-	 (nonterminal (or (semantic-token-get token 'reparse-symbol)
-			  'bovine-toplevel))
+	 (nonterminal (semantic-token-get token 'reparse-symbol))
 	 (new (semantic-bovinate-nonterminal
                flexbits
                semantic-toplevel-bovine-table
@@ -1048,8 +1092,7 @@ the current results on a parse error."
           (while p
             (semantic-token-put new (car (car p)) (cdr (car p)))
             (setq p (cdr p))))
-        (if (not (eq nonterminal 'bovine-toplevel))
-            (semantic-token-put new 'reparse-symbol nonterminal))
+        (semantic-token-put new 'reparse-symbol nonterminal)
         (semantic-token-put new 'dirty nil)
         ;; Splice into the main list.
         (setcdr token (cdr new))
@@ -1070,6 +1113,19 @@ the current results on a parse error."
 ;; The bovinator takes a state table, and converts the token stream
 ;; into a new semantic stream defined by the bovination table.
 ;;
+(defun semantic-bovinate-nonterminal (stream table &optional nonterminal)
+  "Bovinate STREAM based on the TABLE of nonterminal symbols.
+Optional argument NONTERMINAL is the nonterminal symbol to start with.
+This is the core routine for converting a stream into a table.
+Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
+elements of STREAM that have not been used.  SEMANTIC-STREAM is the
+list of semantic tokens found."
+  (funcall (or semantic-bovinate-parser
+               #'semantic-bovinate-nonterminal-default)
+           stream
+           table
+           nonterminal))
+
 (defsubst semantic-bovinate-symbol-nonterminal-p (sym table)
   "Return non-nil if SYM is in TABLE, indicating it is NONTERMINAL."
   ;; sym is always a sym, so assq should be ok.
@@ -1102,7 +1158,7 @@ If so abort because an infinite recursive parse is suspected."
       (set (intern nt semantic-bovinate-nonterminal-check-obarray)
            (cons stream vs)))))
 
-(defun semantic-bovinate-nonterminal (stream table &optional nonterminal)
+(defun semantic-bovinate-nonterminal-default (stream table &optional nonterminal)
   "Bovinate STREAM based on the TABLE of nonterminal symbols.
 Optional argument NONTERMINAL is the nonterminal symbol to start with.
 Use `bovine-toplevel' if it is not provided.
