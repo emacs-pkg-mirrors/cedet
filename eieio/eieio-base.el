@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.10 2001/05/07 20:30:45 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.11 2001/05/09 02:23:48 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -228,7 +228,8 @@ Argument SLOT-NAME is the slot that was attempted to be accessed.
 OPERATION is the type of access, such as `oref' or `oset'.
 NEW-VALUE is the value that was being set into SLOT if OPERATION were
 a set type."
-  (if (eq slot-name 'object-name)
+  (if (or (eq slot-name 'object-name)
+	  (eq slot-name :object-name))
       (cond ((eq operation 'oset)
 	     (if (not (stringp new-value))
 		 (signal 'invalid-slot-type
