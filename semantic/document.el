@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.3 2000/05/06 01:33:53 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.4 2000/09/28 01:20:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -89,7 +89,7 @@ When non-nil, query for a new documentation file."
 		     (list (document-locate-file
 			    (current-buffer) t)))))
   ;; First, garner some information from Semantic.
-  (semantic-bovinate-toplevel nil t t)
+  (semantic-bovinate-toplevel t)
   (let ((cdi (semantic-find-nonterminal-by-position (point) (current-buffer)))
 	(cdib (current-buffer)))
     ;; Make sure we have a file.
@@ -106,7 +106,7 @@ When non-nil, query for a new documentation file."
 (defun document-inline ()
   "Document the current function with an inline comment."
   (interactive)
-  (semantic-bovinate-toplevel nil t t)
+  (semantic-bovinate-toplevel t)
   (let ((cf (semantic-find-nonterminal-by-position (point) (current-buffer))))
     (document-insert-defun-comment cf (current-buffer))))
 
@@ -168,7 +168,7 @@ When non-nil, query for a new documentation file."
 					      nonterm 'flex)))
     (save-excursion
       (document-update-paramlist nonterm comment))
-    (semantic-bovinate-toplevel nil t t)
+    (semantic-bovinate-toplevel t)
     (let ((ct (semantic-find-nonterminal-by-position
 	       (point) (current-buffer))))
       (setq comment (semantic-find-documentation (current-buffer)
