@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.1 2003/05/29 00:45:09 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.2 2003/05/29 01:04:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -124,6 +124,40 @@ Return the sorted list."
   (sort tokens (lambda (a b)
 		 (semantic-string-lessp-ci (semantic-sort-tag-type b)
 					   (semantic-sort-tag-type a)))))
+
+;;; Tag Table Flattening
+;;
+;; In the 1.4 search API, there was a parameter "search-parts" which
+;; was used to find tags inside other tags.  This was used
+;; infrequently, mostly for completion/jump routines.  These types
+;; of commands would be better off with a flattened list, where all
+;; tags appear at the top level.
+
+;;;###autoload
+(defun semantic-flatten-tags-table (&optional table)
+  "Flatten the tags table TABLE.
+All tags in TABLE, and all components of top level tags
+in TABLE will appear at the top level of list.
+Tags promoted to the top of the list will still appear
+unmodified as components of their parent tags."
+  (let* ((table (semantic-something-to-tag-table table))
+	 ;; Initialize the starting list with our table.
+	 (lists (list table)))
+    (mapc (lambda (tag)
+	    (let ((components (semantic-tag-components tag)))
+	      (if (and components
+		       ;; unpositined tags can be hazardous to
+		       ;; completion.  Do we need any type of tag
+		       ;; here?  - EL
+		       (semantic-tag-with-position-p (car components)))
+		  (setq lists (cons
+			       (semantic-flatten-tags-table components)
+			       lists)))))
+	  table)
+    (apply 'append (nreverse lists))
+    ))
+
+
 ;;; Buckets:
 ;;
 ;; A list of tags can be grouped into buckets based on the tag class.
@@ -190,7 +224,7 @@ may re-organize the list with side-effects."
 			      (funcall (or filter 'nreverse) (aref bins 0)))
 			out)))
     (nreverse out)))
-
+
 ;;; Adoption
 ;;
 ;; Some languages allow children of a type to be defined outside
@@ -323,6 +357,7 @@ buckets with the bucket function."
     ;; Return the new list.
     (nreverse out)))
 
+
 ;;; External children
 ;;
 ;; In order to adopt external children, we need a few overload methods
