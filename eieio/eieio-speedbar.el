@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.14 2002/03/13 12:14:54 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.15 2003/02/22 15:31:16 ponced Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -168,7 +168,7 @@ MAP-FN, MAP-VAR, MENU-VAR, MODENAME, and FETCHER are the same as
   (speedbar-add-mode-functions-list
    (list modename
 	 '(speedbar-item-info . eieio-speedbar-item-info)
-	 '(speedbar-line-path . eieio-speedbar-line-path))))
+	 '(speedbar-line-directory . eieio-speedbar-line-path))))
 
 (defun eieio-speedbar-buttons (dir-or-object depth fetcher)
   "Create buttons for the speedbar display.
