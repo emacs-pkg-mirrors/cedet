@@ -1,0 +1,420 @@
+;;; semantic-sort.el --- Utilities for sorting and re-arranging tag tables.
+
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+
+;; Author: Eric M. Ludlam <zappo@gnu.org>
+;; Keywords: syntax
+;; X-RCS: $Id: semantic-sort.el,v 1.1 2003/05/29 00:45:09 zappo Exp $
+
+;; This file is not part of GNU Emacs.
+
+;; Semantic is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+
+;; This software is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+;;; Commentary:
+;;
+;; Tag tables originate in the order they appear in a buffer, or source file.
+;; It is often useful to re-arrange them is some predictable way for browsing
+;; purposes.  Re-organization may be alphabetical, or even a complete
+;; reorganization of parents and children.
+;;
+;; Originally written in semantic-util.el
+;;
+
+(require 'assoc)
+(require 'semantic)
+(eval-when-compile (require 'semanticdb-find))
+
+;;; Alphanumeric sorting
+;;
+;; Takes a list of tags, and sorts them in a case-insensitive way
+;; at a single level.
+
+;;; Code:
+(defun semantic-string-lessp-ci (s1 s2)
+  "Case insensitive version of `string-lessp'.
+Argument S1 and S2 are the strings to compare."
+  ;; Use downcase instead of upcase because an average name
+  ;; has more lower case characters.
+  (if (fboundp 'compare-strings)
+      (< (compare-strings s1 0 nil s2 0 nil t) 0)
+    (string-lessp (downcase s1) (downcase s2))))
+
+(defun semantic-sort-tag-type (token)
+  "Return a type string for TOKEN guaranteed to be a string."
+  (let ((ty (semantic-tag-type token)))
+    (cond ((stringp ty)
+	   ty)
+	  ((listp ty)
+	   (or (car ty) ""))
+	  (t ""))))
+
+;;;###autoload
+(defun semantic-sort-tokens-by-name-increasing (tokens)
+  "Sort TOKENS by name in increasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (string-lessp (semantic-tag-name a)
+			       (semantic-tag-name b)))))
+
+;;;###autoload
+(defun semantic-sort-tokens-by-name-decreasing (tokens)
+  "Sort TOKENS by name in decreasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (string-lessp (semantic-tag-name b)
+			       (semantic-tag-name a)))))
+
+;;;###autoload
+(defun semantic-sort-tokens-by-type-increasing (tokens)
+  "Sort TOKENS by type in increasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (string-lessp (semantic-sort-tag-type a)
+			       (semantic-sort-tag-type b)))))
+
+;;;###autoload
+(defun semantic-sort-tokens-by-type-decreasing (tokens)
+  "Sort TOKENS by type in decreasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (string-lessp (semantic-sort-tag-type b)
+			       (semantic-sort-tag-type a)))))
+
+;;;###autoload
+(defun semantic-sort-tokens-by-name-increasing-ci (tokens)
+  "Sort TOKENS by name in increasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (semantic-string-lessp-ci (semantic-tag-name a)
+					   (semantic-tag-name b)))))
+
+;;;###autoload
+(defun semantic-sort-tokens-by-name-decreasing-ci (tokens)
+  "Sort TOKENS by name in decreasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (semantic-string-lessp-ci (semantic-tag-name b)
+					   (semantic-tag-name a)))))
+
+;;;###autoload
+(defun semantic-sort-tokens-by-type-increasing-ci (tokens)
+  "Sort TOKENS by type in increasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (semantic-string-lessp-ci (semantic-sort-tag-type a)
+					   (semantic-sort-tag-type b)))))
+
+;;;###autoload
+(defun semantic-sort-tokens-by-type-decreasing-ci (tokens)
+  "Sort TOKENS by type in decreasing order with side effects.
+Return the sorted list."
+  (sort tokens (lambda (a b)
+		 (semantic-string-lessp-ci (semantic-sort-tag-type b)
+					   (semantic-sort-tag-type a)))))
+;;; Buckets:
+;;
+;; A list of tags can be grouped into buckets based on the tag class.
+;; Bucketize means to take a list of tags at a given level in a tag
+;; table, and reorganize them into buckets based on class.
+;;
+(defvar semantic-bucketize-tag-class
+  ;; Must use lambda because `semantic-tag-class' is a macro.
+  (lambda (tok) (semantic-tag-class tok))
+  "Function used to get a symbol describing the class of a token.
+This function must take one argument of a semantic token.
+It should return a symbol found in `semantic-symbol->name-assoc-list'
+which `semantic-bucketize' uses to bin up tokens.
+To create new bins for an application augment
+`semantic-symbol->name-assoc-list', and
+`semantic-symbol->name-assoc-list-for-type-parts' in addition
+to setting this variable (locally in your function).")
+
+;;;###autoload
+(defun semantic-bucketize (tags &optional parent filter)
+  "Sort TAGS into a group of buckets based on tag class.
+Unknown classes are placed in a Misc bucket.
+Type bucket names are defined by either `semantic-symbol->name-assoc-list'.
+If PARENT is specified, then TAGS belong to this PARENT in some way.
+This will use `semantic-symbol->name-assoc-list-for-type-parts' to
+generate bucket names.
+Optional argument FILTER is a filter function to be applied to each bucket.
+The filter function will take one argument, which is a list of tokens, and
+may re-organize the list with side-effects."
+  (let* ((name-list (if parent
+			semantic-symbol->name-assoc-list-for-type-parts
+		      semantic-symbol->name-assoc-list))
+	 (sn name-list)
+	 (bins (make-vector (1+ (length sn)) nil))
+	 ask tagtype
+	 (nsn nil)
+	 (num 1)
+	 (out nil))
+    ;; Build up the bucket vector
+    (while sn
+      (setq nsn (cons (cons (car (car sn)) num) nsn)
+	    sn (cdr sn)
+	    num (1+ num)))
+    ;; Place into buckets
+    (while tags
+      (setq tagtype (funcall semantic-bucketize-tag-class (car tags))
+	    ask (assq tagtype nsn)
+	    num (or (cdr ask) 0))
+      (aset bins num (cons (car tags) (aref bins num)))
+      (setq tags (cdr tags)))
+    ;; Remove from buckets into a list.
+    (setq num 1)
+    (while (< num (length bins))
+      (when (aref bins num)
+	(setq out
+	      (cons (cons
+		     (cdr (nth (1- num) name-list))
+		     ;; Filtering, First hacked by David Ponce david@dponce.com
+		     (funcall (or filter 'nreverse) (aref bins num)))
+		    out)))
+      (setq num (1+ num)))
+    (if (aref bins 0)
+	(setq out (cons (cons "Misc"
+			      (funcall (or filter 'nreverse) (aref bins 0)))
+			out)))
+    (nreverse out)))
+
+;;; Adoption
+;;
+;; Some languages allow children of a type to be defined outside
+;; the syntactic scope of that class.  These routines will find those
+;; external members, and bring them together in a cloned copy of the
+;; class tag.
+;;
+(defvar semantic-orphaned-member-metaparent-type "class"
+  "In `semantic-adopt-external-members', the type of 'type for metaparents.
+A metaparent is a made-up type semantic token used to hold the child list
+of orphaned members of a named type.")
+(make-variable-buffer-local 'semantic-orphaned-member-metaparent-type)
+
+(defvar semantic-mark-external-member-function nil
+  "Function called when an externally defined orphan is found.
+Be default, the token is always marked with the `adopted' property.
+This function should be locally bound by a program that needs
+to add additional behaviors into the token list.
+This function is called with two arguments.  The first is TOKEN which is
+a shallow copy of the token to be modified.  The second is the PARENT
+which is adopting TOKEN.  This function should return TOKEN (or a copy of it)
+which is then integrated into the revised token list.")
+
+;;;###autoload
+(defun semantic-adopt-external-members (tags)
+  "Rebuild TAGS so that externally defined members are regrouped.
+Some languages such as C++ and CLOS permit the declaration of member
+functions outside the definition of the class.  It is easier to study
+the structure of a program when such methods are grouped together
+more logically.
+
+This function uses `semantic-nonterminal-external-member-p' to
+determine when a potential child is an externally defined member.
+
+Note: Applications which use this function must account for token
+types which do not have a position, but have children which *do*
+have positions.
+
+Applications should use `semantic-mark-external-member-function'
+to modify all tags which are found as externally defined to some
+type.  For example, changing the token type for generating extra
+buckets with the bucket function."
+  (let ((parent-buckets nil)
+	(decent-list nil)
+	(out nil)
+	(tmp nil)
+	)
+    ;; Rebuild the output list, stripping out all parented
+    ;; external entries
+    (while tags
+      (cond
+       ((setq tmp (semantic-nonterminal-external-member-parent (car tags)))
+	(let ((tagcopy (semantic-tag-clone (car tags)))
+	      (a (assoc tmp parent-buckets)))
+	  (semantic--tag-put-property-no-side-effect tagcopy 'adopted t)
+	  (if a
+	      ;; If this parent is already in the list, append.
+	      (setcdr (nthcdr (1- (length a)) a) (list tagcopy))
+	    ;; If not, prepend this new parent bucket into our list
+	    (setq parent-buckets
+		  (cons (cons tmp (list tagcopy)) parent-buckets)))
+	  ))
+       ((eq (semantic-tag-class (car tags)) 'type)
+	;; Types need to be rebuilt from scratch so we can add in new
+	;; children to the child list.  Only the top-level cons
+	;; cells need to be duplicated so we can hack out the
+	;; child list later.
+	(setq out (cons (semantic-tag-clone (car tags)) out))
+	(setq decent-list (cons (car out) decent-list))
+	)
+       (t
+	;; Otherwise, append this tag to our new output list.
+	(setq out (cons (car tags) out)))
+       )
+      (setq tags (cdr tags)))
+    ;; Rescan out, by descending into all types and finding parents
+    ;; for all entries moved into the parent-buckets.
+    (while decent-list
+      (let* ((bucket (assoc (semantic-tag-name (car decent-list))
+			    parent-buckets))
+	     (bucketkids (cdr bucket))
+	     (partcdr (nthcdr 3 (car decent-list))))
+	(when bucket
+	  ;; Run our secondary marking function on the children
+	  (if semantic-mark-external-member-function
+	      (setq bucketkids
+		    (mapcar (lambda (tok)
+			      (funcall semantic-mark-external-member-function
+				       tok (car decent-list)))
+			    bucketkids)))
+	  ;; We have some extra kids.  Merge.
+	  (setcar partcdr (append (car partcdr) bucketkids))
+	  ;; Nuke the bucket label so it is not found again.
+	  (setcar bucket nil))
+	(setq decent-list
+	      (append (cdr decent-list)
+		      ;; get embedded types to scan and make copies
+		      ;; of them.
+		      (mapcar
+		       (lambda (tok) (semantic-tag-clone tok))
+		       (semantic-find-tags-by-class 'type
+			(semantic-tag-type-members (car decent-list)))))
+	      )))
+    ;; Scan over all remaining lost external methods, and tack them
+    ;; onto the end.
+    (while parent-buckets
+      (if (car (car parent-buckets))
+	  (let* ((tmp (car parent-buckets))
+		 (fauxtok (semantic-tag-new-type
+			   (car tmp)
+			   semantic-orphaned-member-metaparent-type
+			   nil ;; Part list
+			   nil ;; parents (unknown)
+			   ))
+		 (partcdr (nthcdr 3 fauxtok))
+		 (bucketkids (cdr tmp)))
+	    (semantic--tag-put-property fauxtok 'faux t) ;; properties
+	    (if semantic-mark-external-member-function
+		(setq bucketkids
+		      (mapcar (lambda (tok)
+				(funcall semantic-mark-external-member-function
+					 tok fauxtok))
+			      bucketkids)))
+	    (setcar partcdr bucketkids)
+	    ;; We have a bunch of methods with no parent in this file.
+	    ;; Create a meta-type to hold it.
+	    (setq out (cons fauxtok out))
+	    ))
+      (setq parent-buckets (cdr parent-buckets)))
+    ;; Return the new list.
+    (nreverse out)))
+
+;;; External children
+;;
+;; In order to adopt external children, we need a few overload methods
+;; to enable the feature.
+;;
+(define-overload semantic-nonterminal-external-member-parent (token)
+  "Return a parent for TOKEN when TOKEN is an external member.
+TOKEN is an external member if it is defined at a toplevel and
+has some sort of label defining a parent.  The parent return will
+be a string.
+
+The default behavior, if not overridden with
+`nonterminal-external-member-parent' is get the 'parent extra
+specifier of TOKEN.
+
+If this function is overridden, use
+`semantic-nonterminal-external-member-parent-default' to also
+include the default behavior, and merely extend your own."
+  )
+
+(defun semantic-nonterminal-external-member-parent-default (token)
+  "Return the name of TOKENs parent iff TOKEN is not defined in it's parent."
+  ;; Use only the extra spec because a type has a parent which
+  ;; means something completely different.
+  (let ((tp (semantic-tag-get-attribute token 'parent)))
+    (when (stringp tp)
+      tp)
+    ))
+
+(define-overload semantic-nonterminal-external-member-p (parent token)
+  "Return non-nil if PARENT is the parent of TOKEN.
+TOKEN is an external member of PARENT when it is somehow tagged
+as having PARENT as it's parent.
+PARENT and TOKEN must both be semantic tokens.
+
+The default behavior, if not overridden with
+`nonterminal-external-member-p' is to match 'parent extra specifier in
+the name of TOKEN.
+
+If this function is overridden, use
+`semantic-nonterminal-external-member-children-p-default' to also
+include the default behavior, and merely extend your own."
+  )
+
+(defun semantic-nonterminal-external-member-p-default (parent token)
+  "Return non-nil if PARENT is the parent of TOKEN."
+  ;; Use only the extra spec because a type has a parent which
+  ;; means something completely different.
+  (let ((tp (semantic-nonterminal-external-member-parent token)))
+    (and (stringp tp)
+	 (string= (semantic-tag-name parent) tp))
+    ))
+
+(define-overload semantic-nonterminal-external-member-children (token &optional usedb)
+  "Return the list of children which are not *in* TOKEN.
+If optional argument USEDB is non-nil, then also search files in
+the Semantic Database.  If USEDB is a list of databases, search those
+databases.
+
+Children in this case are functions or types which are members of
+TOKEN, such as the parts of a type, but which are not defined inside
+the class.  C++ and CLOS both permit methods of a class to be defined
+outside the bounds of the class' definition.
+
+The default behavior, if not overridden with
+`nonterminal-external-member-children' is to search using
+`semantic-nonterminal-external-member-p' in all top level definitions
+with a parent of TOKEN.
+
+If this function is overridden, use
+`semantic-nonterminal-external-member-children-default' to also
+include the default behavior, and merely extend your own."
+  )
+
+(defun semantic-nonterminal-external-member-children-default (token &optional usedb)
+  "Return list of external children for TOKEN.
+Optional argument USEDB specifies if the semantic database is used.
+See `semantic-nonterminal-external-member-children' for details."
+  (if (and usedb
+	   (fboundp 'semanticdb-minor-mode-p)
+	   (semanticdb-minor-mode-p))
+      (let ((m (semanticdb-find-tags-external-children-of-type
+		(semantic-tag-name token))))
+	(if m (apply #'append (mapcar #'cdr m))))
+    (semantic--find-tags-by-function
+     `(lambda (tok)
+	;; This bit of annoying backquote forces the contents of
+	;; token into the generated lambda.
+       (semantic-nonterminal-external-member-p ',token tok))
+     (current-buffer))
+    ))
+
+(provide 'semantic-sort)
+
+;;; semantic-sort.el ends here
