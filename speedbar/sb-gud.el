@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: tools, gud
-;; X-RCS: $Id: sb-gud.el,v 1.10 2002/03/16 20:02:39 zappo Exp $
+;; X-RCS: $Id: sb-gud.el,v 1.11 2003/09/17 16:58:28 ponced Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -103,7 +103,7 @@ off the specialized speedbar mode."
       (erase-buffer)
       (if (not frames)
 	  (speedbar-insert-label "No Stack frames")
-	(speebar-insert-label "Current Stack:"))
+	(speedbar-insert-label "Current Stack:"))
       (while frames
 	(insert (nth 1 (car frames)) ":\n")
 	(if (= (length (car frames)) 2)
