@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.10 2001/04/12 01:12:17 zappo Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.11 2001/04/13 10:28:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -428,11 +428,11 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-      "Java language specification.")
+        "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
-  (semantic-flex-make-keyword-table
+  (semantic-flex-make-keyword-table 
    `( ("abstract" . ABSTRACT)
       ("boolean" . BOOLEAN)
       ("break" . BREAK)
@@ -483,6 +483,50 @@
       ("while" . WHILE)
       )
    '(
+     ("abstract" summary "Class|Method declaration modifier: abstract {class|<type>} <name> ...")
+     ("boolean" summary "Primitive logical quantity type (true or false)")
+     ("break" summary "break [<label>] ;")
+     ("byte" summary "Integral primitive type (-128 to 127)")
+     ("case" summary "switch(<expr>) {case <const-expr>: <stmts> ... }")
+     ("catch" summary "try {<stmts>} catch(<parm>) {<stmts>} ... ")
+     ("char" summary "Integral primitive type ('\u0000' to '\uffff') (0 to 65535)")
+     ("class" summary "Class declaration: class <name>")
+     ("const" summary "Unused reserved word")
+     ("continue" summary "continue [<label>] ;")
+     ("default" summary "switch(<expr>) { ... default: <stmts>}")
+     ("do" summary "do <stmt> while (<expr>);")
+     ("double" summary "Primitive floating-point type (double-precision 64-bit IEEE 754)")
+     ("else" summary "if (<expr>) <stmt> else <stmt>")
+     ("extends" summary "SuperClass|SuperInterfaces declaration: extends <name> [, ...]")
+     ("final" summary "Class|Member declaration modifier: final {class|<type>} <name> ...")
+     ("finally" summary "try {<stmts>} ... finally {<stmts>}")
+     ("float" summary "Primitive floating-point type (single-precision 32-bit IEEE 754)")
+     ("for" summary "for ([<init-expr>]; [<expr>]; [<update-expr>]) <stmt>")
+     ("goto" summary "Unused reserved word")
+     ("if" summary "if (<expr>) <stmt> [else <stmt>]")
+     ("implements" summary "Class SuperInterfaces declaration: implements <name> [, ...]")
+     ("import" summary "Import package declarations: import <package>")
+     ("int" summary "Integral primitive type (-2147483648 to 2147483647)")
+     ("interface" summary "Interface declaration: interface <name>")
+     ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
+     ("native" summary "Method declaration modifier: native <type> <name> ...")
+     ("package" summary "Package declaration: package <name>")
+     ("private" summary "Access level modifier: private {class|interface|<type>} <name> ...")
+     ("protected" summary "Access level modifier: protected {class|interface|<type>} <name> ...")
+     ("public" summary "Access level modifier: public {class|interface|<type>} <name> ...")
+     ("return" summary "return [<expr>] ;")
+     ("short" summary "Integral primitive type (-32768 to 32767)")
+     ("static" summary "Declaration modifier: static {class|interface|<type>} <name> ...")
+     ("strictfp" summary "Declaration modifier: strictfp {class|interface|<type>} <name> ...")
+     ("switch" summary "switch(<expr>) {[case <const-expr>: <stmts> ...] [default: <stmts>]}")
+     ("synchronized" summary "synchronized (<expr>) ... | Method decl. modifier: synchronized <type> <name> ...")
+     ("throw" summary "throw <expr> ;")
+     ("throws" summary "Method|Constructor declaration: throws <classType>, ...")
+     ("transient" summary "Field declaration modifier: transient <type> <name> ...")
+     ("try" summary "try {<stmts>} [catch(<parm>) {<stmts>} ...] [finally {<stmts>}]")
+     ("void" summary "Method return type: void <name> ...")
+     ("volatile" summary "Field declaration modifier: volatile <type> <name> ...")
+     ("while" summary "while (<expr>) <stmt> | do <stmt> while (<expr>);")
      ))
   "Java keywords.")
 
