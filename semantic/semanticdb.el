@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.13 2001/02/02 04:16:17 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.14 2001/02/21 21:10:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -217,6 +217,20 @@ Argument OBJ is the object to write."
 	  (if b (progn (set-buffer b) (semantic-overlay-cache))))
 	)))
 
+(defmethod semanticdb-set-buffer ((obj semanticdb-table))
+  "Set the current buffer to be a buffer owned by OBJ.
+If OBJ's file is not loaded, read it in first."
+  (set-buffer (find-file-noselect (semanticdb-full-filename obj))))
+
+(defmethod semanticdb-refresh-table ((obj semanticdb-table))
+  "If the token list associated with OBJ is loaded, refresh it.
+This will call `semantic-bovinate-toplevel' if that file is in memory."
+  (let ((ff (semanticdb-full-filename obj)))
+    (if (get-file-buffer ff)
+	(save-excursion
+	  (semanticdb-set-buffer obj)
+	  (semantic-bovinate-toplevel t)))))
+
 ;;; Directory Project support
 (defvar semanticdb-project-predicates nil
   "List of predicates to try that indicate a directory belongs to a project.
@@ -360,44 +374,46 @@ If ARG is nil, then toggle."
 ;; Line all the semantic-util 'find-nonterminal...' type functions, but
 ;; trans file across the database.
 (defun semanticdb-find-nonterminal-by-name
-  (name &optional databases search-parts search-includes diff-mode)
+  (name &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals with name NAME in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES and DIFF-MODE."
+SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH."
   (semanticdb-find-nonterminal-by-function
    (lambda (stream sp si)
      (semantic-find-nonterminal-by-name name stream sp si))
-   databases search-parts search-includes diff-mode))
+   databases search-parts search-includes diff-mode find-file-match))
 
 (defun semanticdb-find-nonterminal-by-name-regexp
-  (regex &optional databases search-parts search-includes diff-mode)
+  (regex &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals with name matching REGEX in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES and DIFF-MODE."
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH."
   (semanticdb-find-nonterminal-by-function
    (lambda (stream sp si)
      (semantic-find-nonterminal-by-name-regexp regex stream sp si))
-   databases search-parts search-includes diff-mode))
+   databases search-parts search-includes diff-mode find-file-match))
 
 (defun semanticdb-find-nonterminal-by-type
-  (type &optional databases search-parts search-includes diff-mode)
+  (type &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all nonterminals with a type of TYPE in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES and DIFF-MODE."
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH."
   (semanticdb-find-nonterminal-by-function
    (lambda (stream sp si)
      (semantic-find-nonterminal-by-type type stream sp si))
-   databases search-parts search-includes diff-mode))
+   databases search-parts search-includes diff-mode find-file-match))
 
 (defun semanticdb-find-nonterminal-by-function
-  (function &optional databases search-parts search-includes diff-mode)
+  (function &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals which match FUNCTION.
 Search in all DATABASES.  If DATABASES is nil, search a range of
 associated databases.
 When SEARCH-PARTS is non-nil the search will include children of tokens.
 When SEARCH-INCLUDES is non-nil, the search will include dependency files.
 When DIFF-MODE is non-nil, search databases which are of a different mode.
-A Mode is the `major-mode' that file was in when it was last parsed."
+A Mode is the `major-mode' that file was in when it was last parsed.
+When FIND-FILE-MATCH is non-nil, the make sure any found token's file is
+in an Emacs buffer."
   (if (not databases)
       ;; Calculate what database to use.
       ;; Something simple and dumb for now.
@@ -408,15 +424,26 @@ A Mode is the `major-mode' that file was in when it was last parsed."
 	     (found nil)
 	     (mm major-mode))
 	(while files
-	  (when (eq mm (oref (car files) major-mode))
+	  (when (or diff-mode
+		    (eq mm (oref (car files) major-mode)))
+	    (semanticdb-refresh-table (car files))
 	    (setq found (funcall function
 				 (oref (car files) tokens)
 				 search-parts
 				 search-includes
 				 )))
-	  (setq files (cdr files))
 	  (if found
-	      (setq ret (cons found ret)))))
+	      (progn
+		;; When something is found, make sure we read in that buffer if it had
+		;; not already been loaded.
+		(if find-file-match
+		    (save-excursion (semanticdb-set-buffer (car files))))
+		;; In theory, the database is up-to-date with what is in the file, and
+		;; these tokens are ready to go.
+		;; There is a bug lurking here I don't have time to fix.
+		(setq ret (cons found ret))
+		(setq found nil)))
+	  (setq files (cdr files))))
       (setq databases (cdr databases)))
     (nreverse ret)))
 
