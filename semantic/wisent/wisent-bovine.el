@@ -1,12 +1,12 @@
 ;;; wisent-bovine.el --- Wisent - Semantic gateway
 
-;; Copyright (C) 2001, 2002 David Ponce
+;; Copyright (C) 2001, 2002, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.32 2004/02/18 14:39:55 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.33 2004/03/20 00:22:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -173,7 +173,7 @@ Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
 list of semantic tags found.
 The LALR parser automaton must be available in buffer local variable
-`semantic-toplevel-bovine-table'.
+`semantic--parse-table'.
 
 Must be installed by `semantic-install-function-overrides' to override
 the standard function `semantic-parse-stream'."
@@ -219,7 +219,7 @@ the standard function `semantic-parse-stream'."
     ;; Parse
     (setq wisent-lex-istream stream
           cache (semantic-safe "wisent-parse-stream: %s"
-                    (wisent-parse semantic-toplevel-bovine-table
+                    (wisent-parse semantic--parse-table
                                   wisent-lexer-function
                                   wisent-error-function
                                   goal)))
@@ -257,7 +257,7 @@ Optional arguments GOAL is a nonterminal symbol to start parsing at,
 DEPTH is the lexical depth to scan, and RETURNONERROR is a flag to
 stop parsing on syntax error, when non-nil.
 The LALR parser automaton must be available in buffer local variable
-`semantic-toplevel-bovine-table'.
+`semantic--parse-table'.
 
 Must be installed by `semantic-install-function-overrides' to override
 the standard function `semantic-parse-region'."
@@ -272,7 +272,7 @@ the standard function `semantic-parse-region'."
       ;; Parse
       (setq wisent-lex-lookahead (car lstack)
             tag (semantic-safe "wisent-parse-region: %s"
-                    (wisent-parse semantic-toplevel-bovine-table
+                    (wisent-parse semantic--parse-table
                                   wisent-lexer-function
                                   wisent-error-function
                                   goal)))
@@ -308,7 +308,7 @@ the standard function `semantic-parse-region'."
         ))
       ;; Work in progress...
       (if wisent-lex-istream
-	  (if (eq semantic-bovination-working-type 'percent)
+	  (if (eq semantic-working-type 'percent)
 	      (working-status
                (/ (* 100 (semantic-lex-token-start
                           (car wisent-lex-istream)))
