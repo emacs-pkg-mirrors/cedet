@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.39 2001/05/05 14:59:09 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.40 2001/05/07 11:32:26 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -901,11 +901,18 @@ Once found, put it in a buffer, and return it."
   (semantic-install-function-overrides
    '( (abbreviate-nonterminal . semantic-bnf-abbreviate-nonterminal)
       (summarize-nonterminal . semantic-bnf-summarize-nonterminal)
-      (name-nonterminal . semantic-bnf-name-nonterminal)
       (eldoc-current-symbol-info . semantic-bnf-ecsi)
       (nonterminal-children . semantic-bnf-nonterminal-children)
       )
    t)
+  (make-local-variable 'semantic-face-alist)
+  (setq semantic-face-alist
+	(append semantic-face-alist
+		'( (rule . font-lock-function-name-face)
+		   (keyword . font-lock-keyword-face)
+		   (token . font-lock-variable-name-face) )
+		))
+		    
   (run-hooks 'semantic-bnf-mode-hook))
 
 (defun semantic-bnf-nonterminal-children (token &optional positiononly)
@@ -925,26 +932,6 @@ used locally."
 	)
     (semantic-nonterminal-children-default token))
   )
-
-(defun semantic-bnf-name-nonterminal (token &optional parent color)
-  "Return a string name of TOKEN.
-Optional PARENT is not used.
-Optional COLOR is used to flag if color is added to the text."
-  (if color
-      (let ((tok (semantic-token-token token))
-	    (face nil))
-	(cond
-	 ((eq tok 'rule)
-	  (setq face font-lock-function-name-face))
-	 ((eq tok 'keyword)
-	  (setq face font-lock-keyword-face))
-	 ((eq tok 'token)
-	  (setq face font-lock-variable-name-face))
-	 (t (setq face nil)))
-	(if face
-	    (semantic-colorize-text (semantic-token-name token) face)
-	  (semantic-name-nonterminal-default token parent color)))
-    (semantic-name-nonterminal-default token parent color)))
 
 (defun semantic-bnf-abbreviate-nonterminal (token &optional parent color)
   "Return a string abbreviation of TOKEN.
@@ -981,9 +968,9 @@ Optional argument COLOR determines if color is added to the text."
      (t (setq desc
 	      (semantic-bnf-abbreviate-nonterminal token parent color))))
     (if (and color label)
-	(setq label (semantic-colorize-text label font-lock-string-face)))
+	(setq label (semantic-colorize-text label 'label)))
     (if (and color label desc)
-	(setq desc (semantic-colorize-text desc font-lock-comment-face)))
+	(setq desc (semantic-colorize-text desc 'comment)))
     (if label
 	(concat label name desc)
       ;; Just a description is the abbreviated version
