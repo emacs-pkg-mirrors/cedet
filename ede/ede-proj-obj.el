@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-obj.el,v 1.2 1999/11/10 14:30:31 zappo Exp $
+;; RCS: $Id: ede-proj-obj.el,v 1.3 1999/12/01 01:55:09 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -145,7 +145,8 @@ These are removed with make clean."
 
 ;;; Speedbar options:
 ;;
-(defmethod ede-sb-expand ((this ede-proj-target-makefile-objectcode) depth)
+(defmethod eieio-speedbar-child-make-tag-lines
+  ((this ede-proj-target-makefile-objectcode))
   "Expand an object code node in speedbar.
 This is special for additional headers."
   (call-next-method)
