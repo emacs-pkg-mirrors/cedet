@@ -1,6 +1,9 @@
 # Simple BNF notation for top-level C elements.
 #
 # $Log: c.bnf,v $
+# Revision 1.3  1999/06/06 14:20:24  zappo
+# Fixed up some language definitions.
+#
 # Revision 1.2  1999/05/18 14:08:56  zappo
 # Fixed up the returns of some nonterminals.
 #
@@ -35,7 +38,7 @@ structsubparts: open-paren "{" close-paren "}"
 	      | open-paren "{" structsubparts
 		( ,$2 )
 	      | variabledef punctuation ";" structsubparts
-		( ,(append (semantic-expand-c-nonterminal $1) $3) )
+		( ,(append ,(semantic-expand-c-nonterminal $1) $3) )
 	      | variabledef punctuation ";" close-paren "}"
 		( ,(semantic-expand-c-nonterminal $1) )
 	      ;
@@ -64,7 +67,7 @@ typesimple : symbol "struct\\|union" opt-name structparts
 	     ( ,$2 type $1 $3 nil nil )
 	   | symbol "enum" opt-name enumparts
 	     ( ,$2 type $1 $3 nil nil )	
-           | symbol "typedef" type symbol
+           | symbol "typedef" typeform symbol
 	     ( $3 type $1 nil $2 nil )
            ;
 
@@ -119,22 +122,27 @@ opt-assign : punctuation "=" expression
 variable : variabledef punctuation ";"
 	   ( ,$1 )
          | punctuation "#" symbol "define" symbol opt-expression
-	   ( $3 variable nil t $4 nil )
+	   ( $3 variable nil t $4 nil nil )
 	 ;
 
 variabledef : declmods typeform varnamelist
-	      ( $3 variable $2 (string-match "const" (car $1)) nil nil )
+	      ( $3 variable $2 (string-match "const" (car $1)) nil nil nil )
 	    ;
 
-variablearg : declmods typeform symbol
-	      ( $3 variable $2 (string-match "const" (car $1)) nil nil )
+varname : opt-stars symbol opt-bits opt-array opt-assign
+	  ( $2 ,$1 ,$3 ,$4 ,$5 )
+	;
+
+# I should store more in this def, but leave it simple for now.
+variablearg : declmods typeform varname
+	      ( (car $3) variable $2 (string-match "const" (car $1))
+	      nil nil nil )
 	    ;
 
-# I'm ignoring the array part of variables here.  Ack!
-varnamelist : symbol opt-bits opt-array opt-assign punctuation "," varnamelist
-	      ( (cons ($1 ,$3  ,$4) $6) )
-            | symbol opt-bits opt-array opt-assign
-	      ( '($1 ,$3 ,$4 ) )
+varnamelist : varname  punctuation "," varnamelist
+	      ( (cons $1 $3) )
+            | varname
+	      ( $1 )
 	    ;
 
 arg-list : semantic-list
