@@ -43,7 +43,7 @@ The comment character is @asis{;}, as with Emacs Lisp.
 @end menu
 
 @node %start
-@subsection %start
+@subsubsection %start
 
 In Bison, one and only one nonterminal is designated as the
 ``start'' symbol.
@@ -80,7 +80,7 @@ clarified.
 @end ignore
 
 @node %languagemode
-@subsection %languagemode
+@subsubsection %languagemode
 
 @c >   A while back, I updated semantic-grammer.el to auto-run the setup
 @c > function in all modes of the correct type.  It uses %languagemode to
@@ -94,7 +94,7 @@ clarified.
 @c 
 
 @node %token
-@subsection %token
+@subsubsection %token
 
 In the bovine parser, the @b{%token} and related @b{%put} command
 control the creation of additional lexical tokens types called
@@ -132,7 +132,7 @@ property.
 @end defun
 
 @node Bovine Grammar Rules
-@subsection Bovine Grammar Rules
+@subsubsection Bovine Grammar Rules
 
 The rules are what allow the compiler to create tags from a language
 file.  Once the setup is done in the prologue, you can start writing
@@ -228,7 +228,7 @@ will explicitly match one period when used in the above rule.
 @c @xref{Default syntactic tokens}.
 
 @node Optional Lambda Expression
-@subsection Optional Lambda Expressions
+@subsubsection Optional Lambda Expressions
 
 The OLE (Optional Lambda Expression) is converted into a bovine lambda
 (see @xref{Writing Parsers}.) This lambda has special short-cuts to simplify
