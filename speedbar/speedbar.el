@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.7e
+;; Version: 0.7f
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.99 1998/05/09 14:10:37 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.100 1998/05/09 14:11:50 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
