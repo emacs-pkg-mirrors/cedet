@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-obj.el,v 1.7 2000/07/22 12:43:46 zappo Exp $
+;; RCS: $Id: ede-proj-obj.el,v 1.8 2000/07/22 13:07:53 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -29,6 +29,9 @@
 ;; and EDE Project file.
 
 (require 'ede-proj)
+;; (require 'ede-pmake)
+;; The above require is needed for ede-pmake-varname, but introduces
+;; a circular dependency.  Leave it be.
 
 ;;; Code:
 (defclass ede-proj-target-makefile-objectcode (ede-proj-target-makefile)
