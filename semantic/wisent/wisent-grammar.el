@@ -1,12 +1,12 @@
 ;;; wisent-grammar.el --- Wisent's input grammar mode
 ;;
-;; Copyright (C) 2002, 2003 David Ponce
+;; Copyright (C) 2002, 2003, 2004 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.17 2004/02/26 08:36:29 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.18 2004/03/20 00:23:41 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -142,7 +142,7 @@ Return the expanded expression."
    "(semantic-install-function-overrides\n\
       '((parse-stream . wisent-parse-stream)))\n\
     (setq semantic-parser-name \"LALR\"\n\
-          semantic-toplevel-bovine-table %s\n\
+          semantic--parse-table %s\n\
           semantic-debug-parser-source %S\n\
           semantic-flex-keywords-obarray %s\n\
           semantic-lex-types-obarray %s)\n\
