@@ -1,10 +1,10 @@
 ;;; semanticdb-system.el --- Build a file DB for some system files.
 
-;;; Copyright (C) 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-system.el,v 1.4 2004/04/11 00:32:32 zappo Exp $
+;; X-RCS: $Id: semanticdb-system.el,v 1.5 2005/01/29 04:33:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -150,7 +150,10 @@ of symbol `semanticdb-project-database-system' are accepted."
   (let ((f (directory-files semanticdb-default-system-save-directory
 			    t (concat semanticdb-default-file-name "$") t)))
     (while f
-      (semanticdb-load-database (car f))
+      ;; Emacs makes backup files if we save out the systemDB too often.
+      ;; prevent loading backup files which are icky.
+      (unless (backup-file-name-p (car f))
+	(semanticdb-load-database (car f)))
       ;; NOTE FOR THE FUTURE: Verify the system was not expanded for
       ;; each.  This may be slow.
       (setq f (cdr f)))
@@ -168,7 +171,8 @@ and parsed. After the database is created, save it, and return the DB."
   ;; 2) Setup semanticdb files to make sure new table shows up
   ;;    in the system database
   ;; 3) Load the file.  Allow normal semantic initialization.
-  ;; 4) Kill file if it wasn't already in a buffer.
+  ;; 4) Force a reparse.
+  ;; 5) Kill file if it wasn't already in a buffer.
   (let ((files (semanticdb-collect-matching-filenames
 		path (oref-default dbclass file-match-regex)))
 	(sysdb (semanticdb-create-database dbclass path))
@@ -180,14 +184,16 @@ and parsed. After the database is created, save it, and return the DB."
       (let ((table (semanticdb-file-table sysdb (car files)))
 	    )
 	;; 1) Skip if loaded
-	(unless table
+	(unless (and table (oref table tags))
 	  ;; 3) load the file.
 	  (let ((b (get-file-buffer (car files))))
 	    (save-excursion
 	      (set-buffer (find-file-noselect (car files)))
+	      ;; 4) Force a reparse
+	      (semantic-fetch-tags)
 	      ;; At this point, standard semantic actions
 	      ;; have occured.
-	      ;; 4) Kill the buffer
+	      ;; 5) Kill the buffer
 	      (if (not b) (kill-buffer (current-buffer)))))
 	  ))
       (setq files (cdr files)))
