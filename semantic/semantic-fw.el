@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.37 2004/04/23 18:04:49 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.38 2004/04/28 15:38:10 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,6 +32,7 @@
 
 ;;; Code:
 ;;
+(require 'mode-local)
 
 ;;; Compatibility
 ;;
@@ -181,12 +182,24 @@ Remove self from `post-command-hook' if it is empty."
 
 ;;; Obsoleting various functions & variables
 ;;
+(defun semantic-overload-symbol-from-function (name)
+  "Return the symbol for overload used by NAME, the defined symbol."
+  (let ((sym-name (symbol-name name)))
+    (if (string-match "^semantic-" sym-name)
+	(intern (substring sym-name (match-end 0)))
+      name)))
+
 (defun semantic-alias-obsolete (oldfnalias newfn)
   "Make OLDFNALIAS an alias for NEWFN.
 Mark OLDFNALIAS as obsolete, such that the byte compiler
 will throw a warning when it encounters this symbol."
   (defalias oldfnalias newfn)
-  (make-obsolete oldfnalias newfn))
+  (make-obsolete oldfnalias newfn)
+  (when (and (function-overload-p newfn)
+             (not (overload-obsoleted-by newfn)))
+    (make-obsolete-overload oldfnalias newfn)
+    (message "*** `%s' obsoletes overload `%s'" newfn
+             (semantic-overload-symbol-from-function oldfnalias))))
 
 (defun semantic-varalias-obsolete (oldvaralias newvar)
   "Make OLDVARALIAS an alias for variable NEWVAR.
@@ -204,20 +217,6 @@ will throw a warning when it encounters this symbol."
     alias of `%s'." (error-message-string err) oldvaralias newvar)
        )))
   (make-obsolete-variable oldvaralias newvar))
-
-(defun semantic-make-obsolete-overload (old new)
-  "Mark OLD overload as obsoleted by NEW overload.
-If OLD or NEW are of the form `semantic-NAME'.  The function will
-strip `semantic-' from the front as the name of the overload symbol."
-  (let ((old (semantic-overload-symbol-from-function old))
-        (new (semantic-overload-symbol-from-function new)))
-    (put old 'semantic-overload-obsoleted-by new)
-    (put new 'semantic-overload-obsolete old)))
-
-(defsubst semantic-obsolete-overload (overload)
-  "Get the overload symbol obsoleted by OVERLOAD.
-Return the obsolete symbol or nil if not found."
-  (get overload 'semantic-overload-obsolete))
 
 ;;; Semantic autoloads
 ;;
@@ -247,306 +246,28 @@ Avoid using a large BODY since it is duplicated."
 
 ;;; Misc utilities
 ;;
-(defun semantic-map-buffers (fun)
-  "Run function FUN for each Semantic enabled buffer found.
-FUN does not have arguments.  When FUN is entered `current-buffer' is
-the current Semantic enabled buffer found."
-  (let ((bl (buffer-list))
-        b)
-    (while bl
-      (setq b  (car bl)
-            bl (cdr bl))
-      (if (and (buffer-live-p b)
-               (buffer-file-name b))
-          (with-current-buffer b
-            (if (semantic-active-p)
-                (funcall fun)))))))
+(defsubst semantic-map-buffers (function)
+  "Run FUNCTION for each Semantic enabled buffer found.
+FUNCTION does not have arguments.  When FUNCTION is entered
+`current-buffer' is a selected Semantic enabled buffer."
+  (mode-local-map-file-buffers function #'semantic-active-p))
 
-(defun semantic-map-mode-buffers (fun modes)
-  "Run function FUN for each file buffer with major mode in MODES.
-MODES can be a symbol or a list of symbols.
-FUN does not have arguments."
-  (or (listp modes) (setq modes (list modes)))
-  (let ((bl (buffer-list))
-        b)
-    (while bl
-      (setq b  (car bl)
-            bl (cdr bl))
-      (if (buffer-file-name b)
-          (with-current-buffer b
-            (if (memq major-mode modes)
-                (funcall fun)))))))
-
-;;; Behavioral APIs
-;;
-;; Each major mode will want to support a specific set of behaviors.
-;; Usually generic behaviors that need just a little bit of local
-;; specifics.  This section permits the setting of override functions
-;; for tasks of that nature, and also provides reasonable defaults.
+(defalias 'semantic-map-mode-buffers
+  'mode-local-map-mode-buffers)
 
-;;; Core Semantic bindings API
-;;
-(defsubst semantic-set-parent-mode (mode parent)
-  "Set parent of major mode MODE to PARENT mode.
-To work properly, this function should be called after PARENT mode
-local variables have been defined."
-  (put mode 'semantic-mode-parent parent)
-  ;; Refresh mode bindings to get mode local variables inherited from
-  ;; PARENT. To work properly, the following should be called after
-  ;; PARENT mode local variables have been defined.
-  (semantic-map-mode-buffers mode 'semantic-activate-mode-bindings))
+(defalias 'semantic-fetch-overload
+  'fetch-overload)
 
-(defsubst semantic-get-parent-mode (mode)
-  "Return the mode parent of the major mode MODE.
-Return nil if MODE has no parent."
-  (or (get mode 'semantic-mode-parent)
-      (get mode 'derived-mode-parent)))
+(defalias 'define-mode-overload-implementation
+  'define-mode-local-override)
 
-(defmacro define-semantic-child-mode (mode parent &optional docstring)
-  "Make major mode MODE inherits semantic behavior from PARENT mode.
-DOCSTRING is optional and not used.
-To work properly, this should be put after PARENT mode local variables
-definition."
-  `(semantic-set-parent-mode ',mode ',parent))
+(defalias 'semantic-with-mode-bindings
+  'with-mode-local)
 
-(defvar semantic-symbol-table nil
-  "Buffer local semantic obarray.
-These symbols provide a hook for a `major-mode' to specify specific
-behaviors.  Use the function `semantic-bind' to define new bindings.")
-(make-variable-buffer-local 'semantic-symbol-table)
+(defalias 'define-semantic-child-mode
+  'define-child-mode)
 
-(defvar semantic-bindings-active-mode nil
-   "Major mode in which bindings are active.")
-
-(defsubst semantic-new-bindings ()
-  "Return a new empty semantic symbol table."
-  (make-vector 13 0))
-
-(defun semantic-bind (bindings &optional plist mode)
-  "Define BINDINGS in the specified environment.
-BINDINGS is a list of (VARIABLE . VALUE).
-Optional argument PLIST is a property list each VARIABLE symbol will
-be set to.  The following properties have special meaning:
-
-- `constant' if non-nil, prevent to rebind variables.
-- `mode-var' if non-nil, define mode variables.
-- `override' if non-nil, define override functions.
-
-The `override' and `mode-var' properties are mutually exclusive.
-
-If optional argument MODE is non-nil, it must be a major mode symbol.
-BINDINGS will be defined globally for this major mode.  If MODE is
-nil, BINDINGS will be defined locally in the current buffer, in
-variable `semantic-symbol-table'.  The later should be done in MODE
-hook."
-  ;; Check plist consistency
-  (and (plist-get plist 'mode-var)
-       (plist-get plist 'override)
-       (error "Bindings can't be both overrides and mode variables"))
-  (let (table variable varname value binding)
-    (if mode
-        (progn
-          ;; Install in given MODE symbol table.  Create a new one if
-          ;; needed.
-          (setq table (or (get mode 'semantic-symbol-table)
-                          (semantic-new-bindings)))
-          (put mode 'semantic-symbol-table table))
-      ;; Fail if trying to bind mode variables in local context!
-      (if (plist-get plist 'mode-var)
-          (error "Mode required to bind mode variables"))
-      ;; Install in buffer local symbol table.  Create a new one if
-      ;; needed.
-      (setq table (or semantic-symbol-table
-                      (setq semantic-symbol-table
-                            (semantic-new-bindings)))))
-    (while bindings
-      (setq binding  (car bindings)
-            bindings (cdr bindings)
-            varname  (symbol-name (car binding))
-            value    (cdr binding))
-      (if (setq variable (intern-soft varname table))
-          ;; Binding already exists
-          ;; Check rebind consistency
-          (cond
-           ((equal (symbol-value variable) value)
-            ;; Just ignore rebind with the same value.
-            )
-           ((get variable 'constant)
-            (error "Can't change the value of constant `%s'"
-                   variable))
-           ((and (get variable 'mode-var)
-                 (plist-get plist 'override))
-            (error "Can't rebind override `%s' as a mode variable"
-                   variable))
-           ((and (get variable 'override)
-                 (plist-get plist 'mode-var))
-            (error "Can't rebind mode variable `%s' as an override"
-                   variable))
-           (t
-            ;; Merge plist and assign new value
-            (setplist variable (append plist (symbol-plist variable)))
-            (set variable value)))
-        ;; New binding
-        (setq variable (intern varname table))
-        ;; Set new plist and assign initial value
-        (setplist variable plist)
-        (set variable value)))
-    ;; Return the symbol table used
-    table))
-
-(defsubst semantic-symbol (symbol &optional mode)
-  "Return the semantic symbol bound with SYMBOL's name.
-Return nil if the semantic symbol doesn't exist.
-If optional argument MODE is nil, lookup first into locally bound
-symbols, then in those bound in current `major-mode' and its parents.
-If MODE is non-nil, lookup into symbols bound in that major mode and
-its parents."
-  (let ((name (symbol-name symbol)) bind)
-    (or mode
-        (setq mode semantic-bindings-active-mode)
-        (setq mode major-mode
-              bind (and semantic-symbol-table
-                        (intern-soft name semantic-symbol-table))))
-    (while (and mode (not bind))
-      (or (and (get mode 'semantic-symbol-table)
-               (setq bind (intern-soft
-                           name (get mode 'semantic-symbol-table))))
-          (setq mode (semantic-get-parent-mode mode))))
-    bind))
-
-(defsubst semantic-symbol-value (symbol &optional mode property)
-  "Return the value of the semantic symbol bound with SYMBOL's name.
-If optional argument MODE is non-nil, restrict lookup to that mode and
-its parents (see the function `semantic-symbol' for more details).
-If optional argument PROPERTY is non-nil the semantic symbol must have
-that property set.
-Return nil if the symbol doesn't exist, or doesn't have PROPERTY set."
-  (and (setq symbol (semantic-symbol symbol mode))
-       (or (not property) (get symbol property))
-       (symbol-value symbol)))
-
-;;; Mode local variables API
-;;
-;; There are buffer local variables, and frame local variables.
-;; These routines give the illusion of mode specific variables.
-;;
-;; Why?  Some tokens have values specific to a major mode, but their buffer
-;; might not be loaded.  This lets them run as though they were in a buffer
-;; of the apropriate type.
-;;
-(defsubst semantic-set-local-variable (sym val)
-  "Set variable SYM to VAL locally in current buffer.
-BUFFER defaults to the current buffer."
-  (set (make-local-variable sym) val))
-
-(defun semantic-activate-mode-bindings (&optional mode)
-  "Activate variables defined locally in MODE and its parents.
-That is, copy mode local bindings into corresponding buffer local
-variables.
-If MODE is not specified it defaults to current `major-mode'."
-  (let (modes table)
-    (or mode (setq mode major-mode))
-    ;; Get MODE's parents & MODE in the right order.
-    (while mode
-      (setq modes (cons mode modes)
-            mode  (semantic-get-parent-mode mode)))
-    ;; Activate mode bindings following parent modes order.
-    (while modes
-      (when (setq table (get (car modes) 'semantic-symbol-table))
-        (mapatoms
-         #'(lambda (var)
-             (if (get var 'mode-var)
-                 (semantic-set-local-variable
-                  (intern (symbol-name var)) (symbol-value var))))
-         table))
-      (setq modes (cdr modes)))))
-
-(defun semantic-deactivate-mode-bindings (&optional mode)
-  "Deactivate variables defined locally in MODE and its parents.
-That is, kill buffer local variables set from the corresponding mode
-local bindings.
-If MODE is not specified it defaults to current `major-mode'."
-  (let* ((mode (or mode major-mode))
-         table)
-    (while mode
-      (when (setq table (get mode 'semantic-symbol-table))
-        (mapatoms
-         #'(lambda (var)
-             (if (get var 'mode-var)
-                 (kill-local-variable (intern (symbol-name var)))))
-         table))
-      (setq mode (semantic-get-parent-mode mode)))))
-
-(defsubst mode-local-value (mode sym)
-  "Return the value of the MODE local variable SYM."
-  (or mode (error "Missing major mode symbol"))
-  (semantic-symbol-value sym mode 'mode-var))
-
-(defmacro setq-mode-local (mode &rest args)
-  "Assign new values to variables local in MODE.
-MODE must be a major mode symbol.
-ARGS is a list (SYM VAL SYM VAL ...).
-The symbols SYM are variables; they are literal (not evaluated).
-The values VAL are expressions; they are evaluated.
-Set each SYM to the value of its VAL, locally in buffers already in
-MODE, or in buffers switched to that mode.
-Return the value of the last VAL."
-  (when args
-    (let (i ll bl sl tmp sym val)
-      (setq i 0)
-      (while args
-        (setq tmp  (make-symbol (format "tmp%d" i))
-              i    (1+ i)
-              sym  (car args)
-              val  (cadr args)
-              ll   (cons (list tmp val) ll)
-              bl   (cons `(cons ',sym ,tmp) bl)
-              sl   (cons `(semantic-set-local-variable ',sym ,tmp) sl)
-              args (cddr args)))
-      `(let* ,(nreverse ll)
-         ;; Save mode bindings
-         (semantic-bind (list ,@bl) '(mode-var t) ',mode)
-         ;; Assign to local variables in all existing buffers in MODE
-         (semantic-map-mode-buffers #'(lambda () ,@sl) ',mode)
-         ;; Return the last value
-         ,tmp)
-      )))
-
-(defmacro defvar-mode-local (mode sym val &optional docstring)
-  "Define MODE local variable SYM with value VAL.
-DOCSTRING is optional."
-  `(progn
-     (setq-mode-local ,mode ,sym ,val)
-     (put (semantic-symbol ',sym ',mode)
-          'variable-documentation ,docstring)
-     ',sym))
-
-(defmacro defconst-mode-local (mode sym val &optional docstring)
-  "Define MODE local constant SYM with value VAL.
-DOCSTRING is optional."
-  (let ((tmp (make-symbol "tmp")))
-  `(let (,tmp)
-     (setq-mode-local ,mode ,sym ,val)
-     (setq ,tmp (semantic-symbol ',sym ',mode))
-     (put ,tmp 'constant t)
-     (put ,tmp 'variable-documentation ,docstring)
-     ',sym)))
-
-;;; Override functions API
-;;
-(defsubst semantic-fetch-overload (overload)
-  "Return the current OVERLOAD function, or nil if not found.
-Fetch OVERLOAD from `semantic-override-table' if locally set, or from
-the override table of current major mode or its parents.  Set the
-buffer local value of `semantic-override-table' to the current
-override table found."
-  (or (semantic-symbol-value overload nil 'override)
-      ;; If an obsolete overload symbol exists, try it.
-      (and (semantic-obsolete-overload overload)
-           (semantic-symbol-value
-            (semantic-obsolete-overload overload) nil 'override))))
-
-(defsubst semantic-install-function-overrides (overrides &optional transient mode)
+(defun semantic-install-function-overrides (overrides &optional transient mode)
   "Install the function OVERRIDES in the specified environment.
 OVERRIDES must be an alist ((OVERLOAD .  FUNCTION) ...) where OVERLOAD
 is a symbol identifying an overloadable entry, and FUNCTION is the
@@ -557,301 +278,18 @@ If optional argument MODE is non-nil, it must be a major mode symbol.
 OVERRIDES will be installed globally for this major mode.  If MODE is
 nil, OVERRIDES will be installed locally in the current buffer.  This
 later installation should be done in MODE hook."
-  (semantic-bind overrides
-                 (list 'constant (not transient) 'override t)
-                 mode))
-
-(defun semantic-overload-symbol-from-function (name)
-  "Return the symbol for overload used by NAME, the defined symbol."
-  (let ((sym-name (symbol-name name)))
-    (if (string-match "^semantic-" sym-name)
-	(intern (substring sym-name (match-end 0)))
-      name)))
-
-(defun semantic--override (name args body)
-  "Return the form that handles overloading of function NAME.
-ARGS are the arguments to the function.
-BODY is code that would be run when there is no override defined.  The
-default is to call the function `NAME-default' with the appropriate
-arguments.
-See also the function `define-overload'."
-  (let* ((default (intern (format "%s-default" name)))
-         (overargs (delq '&rest (delq '&optional (copy-sequence args))))
-         (overload (semantic-overload-symbol-from-function name))
-         (override (make-symbol "override")))
-    `(let ((,override (semantic-fetch-overload ',overload)))
-       (if ,override
-           (funcall ,override ,@overargs)
-         ,@(or body `((,default ,@overargs)))))
-    ))
-
-(defun semantic--expand-overrides (name args body)
-  "Expand override forms that overload function NAME.
-ARGS are the arguments to the function NAME.
-BODY is code where override forms are searched for expansion.
-Return result of expansion, or BODY if no expansion occurred.
-See also the function `define-overload'."
-  (let ((forms body)
-        (ditto t)
-        form xbody)
-    (while forms
-      (setq form (car forms))
-      (cond
-       ((atom form))
-       ((eq (car form) :override)
-        (setq form (semantic--override name args (cdr form))))
-       ((eq (car form) :override-with-args)
-        (setq form (semantic--override name (cadr form) (cddr form))))
-       ((setq form (semantic--expand-overrides name args form))))
-      (setq ditto (and ditto (eq (car forms) form))
-            xbody (cons form xbody)
-            forms (cdr forms)))
-    (if ditto body (nreverse xbody))))
-
-(defun semantic--overload-body (name args body)
-  "Return the code that implements overloading of function NAME.
-ARGS are the arguments to the function NAME.
-BODY specifies the overload code.
-See also the function `define-overload'."
-  (let ((result (semantic--expand-overrides name args body)))
-    (if (eq body result)
-        (list (semantic--override name args body))
-      result)))
-
-(defmacro define-overload (name args docstring &rest body)
-  "Define a new function, as with `defun' which can be overloaded.
-NAME is the name of the function to create.  If it is of the form
-`semantic-NAME'.  The function will strip `semantic-' from the front
-as the name of the symbol created.
-ARGS are the arguments to the function.
-DOCSTRING is a documentation string to describe the function.  The
-docstring will automatically had details about its overload symbol
-appended to the end.
-BODY is code that would be run when there is no override defined.  The
-default is to call the function `NAME-default' with the appropriate
-arguments.
-
-BODY can also include an override form that specifies which part of
-BODY is specifically overridden.  This permits to specify common code
-run for both default and overridden implementations.
-An override form is one of:
-
-  1. (:override [OVERBODY])
-  2. (:override-with-args OVERARGS [OVERBODY])
-
-OVERBODY is the code that would be run when there is no override
-defined.  The default is to call the function `NAME-default' with the
-appropriate arguments deduced from ARGS.
-OVERARGS is a list of arguments passed to the override and
-`NAME-default' function, in place of those deduced from ARGS."
-  `(eval-and-compile
-     (defun ,name ,args
-       ,docstring
-       ,@(semantic--overload-body name args body))
-     (put ',name 'semantic-overload
-          ',(semantic-overload-symbol-from-function name))))
-(put :override-with-args 'lisp-indent-function 1)
-
-(defmacro define-mode-overload-implementation
-  (name mode args docstring &rest body)
-  "Define a mode specific override of the function overload NAME.
-Has meaning only if NAME has been created with `define-overload'.
-MODE is the major mode this override is being defined for.
-ARGS are the function arguments, which should match those of the same
-named function created with `define-overload'.
-DOCSTRING is the documentation string.
-BODY is the implementation of this function."
-  (let ((overload (semantic-overload-symbol-from-function name))
-        (newname (intern (format "%s-%s" name mode))))
-    `(progn
-       (eval-and-compile
-	 (defun ,newname ,args
-	   ,(format "%s\n\nOverride %s in `%s' buffers."
-		    docstring overload mode)
-	   ;; The body for this implementation
-	   ,@body))
-       (semantic-install-function-overrides
-        '((,overload . ,newname)) t ',mode))
-    ))
-
-;;; Temporary Mode Local settings
-;;
-;; Use this to use a tag from a buffer that may not be of the
-;; same major mode as the originator.
-(defmacro semantic-with-mode-bindings (mode &rest body)
-   "With the local bindings of MODE, evaluate BODY.
-The current mode bindings are saved, BODY is evaluated, and the saved
-bindings are restored, even in case of an abnormal exit.
-Value is what BODY returns."
-   (let ((old-mode  (make-symbol "mode")))
-     `(let ((,old-mode semantic-bindings-active-mode))
-        (unwind-protect
-            (progn
-              (semantic-deactivate-mode-bindings ,old-mode)
-              (setq semantic-bindings-active-mode ',mode)
-              (semantic-activate-mode-bindings ',mode)
-              ,@body)
-          (semantic-deactivate-mode-bindings ',mode)
-          (setq semantic-bindings-active-mode ,old-mode)
-          (semantic-activate-mode-bindings ,old-mode)))))
-(put 'semantic-with-mode-bindings 'lisp-indent-function 1)
-
-;;; Emacs Help hacks
-;;
-(defun semantic-function-overload-p (symbol)
-  "The symbol that SYMBOL can be overriden with, or nil."
-  (get symbol 'semantic-overload))
-
-(defun semantic-overload-docstring-extension (name)
-  "Return the documentation string used to augment an overloaded function.
-The augmented string is NAME."
-  (concat "\nThis function can be overriden in semantic using the
-symbol `" (symbol-name name) "'."))
-
-(defun semantic-augment-function-help (symbol)
-  "Augment the *Help* buffer for SYMBOL.
-SYMBOL is a function that can be overriden with semantic."
-  (save-excursion
-    (set-buffer "*Help*")
-    (unwind-protect
-	(progn
-	  (toggle-read-only -1)
-	  (goto-char (point-max))
-	  (beginning-of-line)
-	  (forward-line -1)
-	  (insert
-	   (semantic-overload-docstring-extension
-	    (semantic-function-overload-p symbol))
-	   "\n")
-	  ;; NOTE TO SELF:
-	  ;; LIST ALL LOADED OVERRIDES FOR SYMBOL HERE
-	  )
-      (toggle-read-only 1))))
-
-;; Help for Overload functions.  Need to advise help.
-(defadvice describe-function (around semantic-help activate)
-  "Display the full documentation of FUNCTION (a symbol).
-Returns the documentation as a string, also."
-  (prog1
-      ad-do-it
-    (if (semantic-function-overload-p (ad-get-arg 0))
-	(semantic-augment-function-help (ad-get-arg 0)))))
-
-;; Help for semantic bindings.
-(defun semantic-print-binding (symbol)
-  "Print the SYMBOL binding."
-  (let ((value (symbol-value symbol)))
-    (princ (format "\n     `%s' value is\n       " symbol))
-    (if (and value (symbolp value))
-        (princ (format "`%s'" value))
-      (let ((pt (point)))
-        (pp value)
-        (save-excursion
-          (goto-char pt)
-          (indent-sexp))))
-    (or (bolp) (princ "\n"))))
-
-(defun semantic-print-bindings (table)
-  "Print bindings in TABLE."
-  (let (us ;; List of unpecified symbols
-        mc ;; List of mode local constants
-        mv ;; List of mode local variables
-        ov ;; List of overloaded functions
-        fo ;; List of final overloaded functions
-        )
-    ;; Order symbols by type
-    (mapatoms
-     #'(lambda (s)
-         (add-to-list (cond
-                       ((get s 'mode-var)
-                        (if (get s 'contant) 'mc 'mv))
-                       ((get s 'override)
-                        (if (get s 'contant) 'fo 'ov))
-                       ('us))
-                      s))
-     table)
-    ;; Print symbols by type
-    (when us
-      (princ "\n  !! Unpecified symbols\n")
-      (mapc 'semantic-print-binding us))
-    (when mc
-      (princ "\n  ** Mode local constants\n")
-      (mapc 'semantic-print-binding mc))
-    (when mv
-      (princ "\n  ** Mode local variables\n")
-      (mapc 'semantic-print-binding mv))
-    (when fo
-      (princ "\n  ** Final overloaded functions\n")
-      (mapc 'semantic-print-binding fo))
-    (when ov
-      (princ "\n  ** Overloaded functions\n")
-      (mapc 'semantic-print-binding ov))
-    ))
-
-(defun semantic-describe-bindings-2 (buffer-or-mode)
-  "Display semantic bindings active in BUFFER-OR-MODE."
-  (let (table mode)
-    (princ "Semantic bindings active in ")
-    (cond
-     ((bufferp buffer-or-mode)
-      (with-current-buffer buffer-or-mode
-        (setq table semantic-symbol-table
-              mode major-mode))
-      (princ (format "%S\n" buffer-or-mode))
-      )
-     ((symbolp buffer-or-mode)
-      (setq mode buffer-or-mode)
-      (princ (format "`%s'\n" buffer-or-mode))
-      )
-     ((signal 'wrong-type-argument
-              (list 'buffer-or-mode buffer-or-mode))))
-    (when table
-      (princ "\n- Buffer local\n")
-      (semantic-print-bindings table))
-    (while mode
-      (setq table (get mode 'semantic-symbol-table))
-      (when table
-        (princ (format "\n- From `%s'\n" mode))
-        (semantic-print-bindings table))
-      (setq mode (semantic-get-parent-mode mode)))))
-
-(defun semantic-describe-bindings-1 (buffer-or-mode &optional interactive-p)
-  "Display semantic bindings active in BUFFER-OR-MODE.
-Optional argument INTERACTIVE-P is non-nil if the calling command was
-invoked interactively."
-  (if (fboundp 'with-displaying-help-buffer)
-      ;; XEmacs
-      (with-displaying-help-buffer
-       #'(lambda ()
-           (with-current-buffer standard-output
-             (semantic-describe-bindings-2 buffer-or-mode)
-             (when (fboundp 'frob-help-extents)
-               (goto-char (point-min))
-               (frob-help-extents standard-output)))))
-    ;; GNU Emacs
-    (when (fboundp 'help-setup-xref)
-      (help-setup-xref
-       (list 'semantic-describe-bindings-1 buffer-or-mode)
-       interactive-p))
-    (with-output-to-temp-buffer "*Help*"
-      (with-current-buffer standard-output
-        (semantic-describe-bindings-2 buffer-or-mode)))))
-
-(defun semantic-describe-buffer-bindings (buffer)
-  "Display semantic bindings active in BUFFER."
-  (interactive "b")
-  (when (setq buffer (get-buffer buffer))
-    (semantic-describe-bindings-1 buffer (interactive-p))))
-
-(defun semantic-describe-mode-bindings (mode)
-  "Display semantic bindings active in MODE hierarchy."
-  (interactive
-   (list (completing-read
-          "Mode: " obarray
-          #'(lambda (s) (get s 'semantic-symbol-table))
-          t (symbol-name major-mode))))
-  (when (setq mode (intern-soft mode))
-    (semantic-describe-bindings-1 mode (interactive-p))))
+  (mode-local-bind
+   ;; Add the semantic- prefix to OVERLOAD short names.
+   (mapcar
+    #'(lambda (e)
+        (let ((name (symbol-name (car e))))
+          (if (string-match "^semantic-" name)
+              e
+            (cons (intern (format "semantic-%s" name)) (cdr e)))))
+    overrides)
+   (list 'constant-flag (not transient)
+         'override-flag t)
+   mode))
 
 ;;; User Interrupt handling
 ;;
@@ -901,8 +339,6 @@ calling this one."
            ;; Variable declarations
            (kv (regexp-opt
                 '(
-                  "defconst-mode-local"
-                  "defvar-mode-local"
                   ) t))
            ;; Function declarations
            (kf (regexp-opt
@@ -920,7 +356,6 @@ calling this one."
                   "define-mode-overload-implementation"
                   "define-semantic-child-mode"
                   "define-semantic-idle-service"
-                  "define-overload"
                   "define-wisent-lexer"
                   "semantic-alias-obsolete"
                   "semantic-varalias-obsolete"
@@ -963,21 +398,6 @@ calling this one."
  'edebug-setup-hook
  #'(lambda ()
 
-     (def-edebug-spec setq-mode-local
-       (symbolp (&rest symbolp form))
-       )
-     (def-edebug-spec defvar-mode-local
-       (&define symbolp name def-form [ &optional stringp ] )
-       )
-     (def-edebug-spec defconst-mode-local
-       defvar-mode-local
-       )
-     (def-edebug-spec define-overload
-       (&define name lambda-list stringp def-body)
-       )
-     (def-edebug-spec define-mode-overload-implementation
-       (&define name symbolp lambda-list stringp def-body)
-       )
      (def-edebug-spec semantic-exit-on-input
        (symbolp def-body)
        )
