@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.29 2004/03/28 01:36:44 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.30 2004/04/05 02:05:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -512,6 +512,9 @@ DO NOT return the list of tags encompassing point."
   (setq semantic-tag-expand-function 'semantic-expand-c-tag
         semantic-dependency-include-path semantic-default-c-path
         semantic-orphaned-member-metaparent-type "struct"
+        semantic-lex-syntax-modifications '((?> ".")
+                                            (?< ".")
+                                            )
         semantic-symbol->name-assoc-list
         '((type     . "Types")
           (variable . "Variables")
