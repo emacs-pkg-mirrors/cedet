@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.6 2002/08/09 23:18:48 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.1 2002/08/11 17:18:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
