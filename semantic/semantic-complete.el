@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.32 2004/03/28 01:33:24 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.33 2004/06/24 00:18:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1595,16 +1595,21 @@ completion works."
 		     (semantic-collector-all-completions collector thissym)))
       ;; Shorten by name
       (setq complst (semantic-unique-tag-table-by-name complst))
-      ;; Don't do anything iff the symbol is unique, or if
-      ;; there are no completions.
-      (when (> (length complst) 1)
-	(semantic-complete-inline-tag-engine
-	 collector
-	 (semantic-displayor-tooltip "simple")
-	 (oref context buffer)
-	 (car (oref context bounds))
-	 (cdr (oref context bounds))
-	 )))))
+      (if (or (and (= (length complst) 1)
+		   ;; Check to see if it is the same as what is there.
+		   ;; if so, we can offer to complete.
+		   (let ((compname (semantic-tag-name (car complst))))
+		     (not (string= compname thissym))))
+	      (> (length complst) 1))
+	  ;; There are several options.  Do the completion.
+	  (semantic-complete-inline-tag-engine
+	   collector
+	   (semantic-displayor-tooltip "simple")
+	   (oref context buffer)
+	   (car (oref context bounds))
+	   (cdr (oref context bounds))
+	   ))
+      )))
 
 
 ;;; ------------------------------------------------------------
