@@ -20,7 +20,7 @@
 #
 # Please send bug reports, etc. to zappo@gnu.org
 #
-# $Id: Makefile.old,v 1.4 1999/02/18 19:19:19 zappo Exp $
+# $Id: Makefile.old,v 1.5 1999/03/09 14:14:42 zappo Exp $
 
 
 VERSION=$(shell grep "Version: " eieio.el | cut -d" " -f3)
@@ -40,7 +40,7 @@ DIALOG=dialog-mode.el dialog-tree.el dlg-class.el dlg-config.el \
 all: eieio.info
 	emacs -batch -l eieiocomp.el
 
-eieio.info:
+eieio.info: eieio.texi
 	makeinfo eieio.texi
 
 dist: $(LISP) $(TEXINFO) $(STUFF)
