@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.11 2003/11/27 13:30:43 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.12 2003/12/11 00:56:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -282,6 +282,16 @@ but should be good enough for debugging assertions."
        (semanticdb-abstract-table-child-p (car (car resultp)))
        (semantic-tag-p (car (cdr (car resultp))))))
 
+(defun semanticdb-find-result-prin1-to-string (result)
+  "Presuming RESULT satisfies `semanticdb-find-results-p', provide a shirt PRIN1 output."
+  (concat "#<FIND RESULT "
+	  (mapconcat (lambda (a)
+		       (concat "(" (object-name (car a) ) " . "
+			       "#<TAG LIST " (number-to-string (length (cdr a))) ">)"))
+		     result
+		     " ")
+	  ">"))
+
 (defun semanticdb-find-result-with-nil-p (resultp)
   "Non-nil of RESULTP is in the form of a semanticdb search result.
 nil is a valid value where a TABLE usually is, but only if the TAG
@@ -428,7 +438,6 @@ associated with that tag should be loaded into a buffer."
 ;;;###autoload
 (defun semanticdb-find-tags-by-class (class &optional path find-file-match)
   "Search for all tags of CLASS on PATH.
-Search also in all components of top level tags founds.
 See `semanticdb-find-translate-path' for details on PATH.
 FIND-FILE-MATCH indicates that any time a match is found, the file
 associated with that tag should be loaded into a buffer."
@@ -500,6 +509,19 @@ associated wit that tag should be loaded into a buffer."
   (semanticdb-find-tags-collector
    (lambda (table tags)
      (semanticdb-deep-find-tags-for-completion-method table prefix tags))
+   path find-file-match t))
+
+;;;###autoload
+(defun semanticdb-brute-find-tags-by-class (class &optional path find-file-match)
+  "Search for all tags of CLASS on PATH.
+See `semanticdb-find-translate-path' for details on PATH.
+The argument BRUTISH will be set so that searching includes all tables
+in the current project.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table tags)
+     (semanticdb-find-tags-by-class-method table class tags))
    path find-file-match t))
 
 ;;; Specialty Search Routines
