@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.30 2002/08/11 18:31:38 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.31 2002/08/11 20:29:23 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -36,68 +36,11 @@
   (add-to-list 'load-path (concat dir "wisent"))
   )
 
-;;; language modes
-;;
-(autoload 'wisent-wy-mode "wisent-wy"
-  "Initialize a buffer for editing BNF code." t)
-(add-to-list 'auto-mode-alist '("\\.wy$" . wisent-wy-mode))
-
 ;;; Some speedbar major modes
 (eval-after-load "speedbar"
   '(progn
      (require 'semantic-cb)
      (require 'semantic-ia-sb)))
-
-;;; Senator configuration.
-(defvar global-senator-minor-mode nil
-  "*If non-nil enable global use of senator minor mode.")
-
-(custom-add-to-group 'senator
-                     'global-senator-minor-mode
-                     'custom-variable)
-
-(custom-add-load 'global-senator-minor-mode 'senator)
-
-(defvar global-semantic-show-dirty-mode nil
-  "*If non-nil enable global use of show-dirty mode.")
-
-(custom-add-to-group 'semantic
-                     'global-semantic-show-dirty-mode
-                     'custom-variable)
-
-(custom-add-load 'global-semantic-show-dirty-mode
-                 'semantic-util-modes)
-
-(defvar global-semantic-show-unmatched-syntax-mode nil
-  "*If non-nil enable global use of show-unmatched-syntax mode.")
-
-(custom-add-to-group 'semantic
-                     'global-semantic-show-unmatched-syntax-mode
-                     'custom-variable)
-
-(custom-add-load 'global-semantic-show-unmatched-syntax-mode
-                 'semantic-util-modes)
-
-(defvar global-semantic-auto-parse-mode nil
-  "*If non-nil enable global use of auto-parse mode.")
-
-(custom-add-to-group 'semantic
-                     'global-semantic-auto-parse-mode
-                     'custom-variable)
-
-(custom-add-load 'global-semantic-auto-parse-mode
-                 'semantic-util-modes)
-
-(defvar global-semantic-summary-mode nil
-  "*If non-nil enable global use of summary mode.")
-
-(custom-add-to-group 'semantic
-                     'global-semantic-summary-mode
-                     'custom-variable)
-
-(custom-add-load 'global-semantic-summary-mode
-                 'semantic-util-modes)
-
 
 ;;; Useful predefined setup
 ;;
