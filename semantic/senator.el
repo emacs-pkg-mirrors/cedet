@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.83 2003/09/09 18:38:42 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.84 2003/09/17 16:57:58 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1735,7 +1735,7 @@ This is a buffer local variable.")
    (list
     "Analyze"
     (senator-menu-item
-     [ "Speebar Class Browser"
+     [ "Speedbar Class Browser"
        semantic-cb-speedbar-mode
        :active t
        :help "Start speedbar in Class Broswer mode showing inheritance"
