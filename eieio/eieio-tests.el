@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.19 2001/09/14 19:46:26 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.20 2001/12/05 01:36:47 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -55,6 +55,11 @@
 	 :documentation "Test self referencing types.")
    )
   "Class A")
+
+(defclass class-alloc-initarg ()
+  ((throwwarning :initarg :throwwarning
+		 :allocation :class))
+  "Throw a warning mixing allocation class and an initarg.")
 
 (defclass class-b ()
   ((land :initform "Sc"
@@ -432,7 +437,7 @@ METHOD is the method that was attempting to be called."
 	   :custom symbol
 	   :label "Wild Animal"
 	   :group borg
-	   :protection :ublic)
+	   :protection :public)
    (slot-2 :initarg :penguin
 	   :initform "penguin"
 	   :type string
