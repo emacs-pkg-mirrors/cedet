@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.6 2004/02/12 02:16:47 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.7 2004/03/28 01:53:50 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -48,7 +48,9 @@
 ;;     |
 ;;     +- semantic
 ;;     |
-;;     \- speedbar
+;;     +- speedbar
+;;     |
+;;     \- contrib
 ;;
 ;; Then, add the following into your ~/.emacs startup file:
 ;;
@@ -88,6 +90,7 @@
     (eieio      "0.18beta1"                )
     (semantic   "2.0beta1"                 )
     (speedbar   "0.15beta1"                )
+    (cedet-contrib "0.0"         "contrib" )
     )
   "Table of CEDET packages to install.")
 
@@ -118,7 +121,12 @@
       (condition-case err
           (require (intern (format "%s-load" package)))
         (error
-         (message "%s" (error-message-string err)))))
+	 ;; If there is no load file, try to just grab the
+	 ;; file in question.
+	 (condition-case err2
+	     (require package)
+	   (error
+	    (message "%s" (error-message-string err)))))))
     ))
 
 (provide 'cedet)
