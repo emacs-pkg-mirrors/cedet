@@ -235,8 +235,8 @@ grammar rules.
 
 These are copied to the beginning of the generated parser file so that
 they precede the definition of the grammar rules actions.  You can use
-`require' to get the declarations from other libraries.  If you don't
-need any Emacs Lisp declarations, you may omit this section.
+@code{require} to get the declarations from other libraries.  If you
+don't need any Emacs Lisp declarations, you may omit this section.
 
 You may have more than one @var{prologue} section, intermixed with
 other @var{declarations}.  All @var{prologue} sections are copied to
@@ -699,26 +699,6 @@ exp: exp PLUS exp
 Says that two groupings of type @samp{exp}, with a @samp{PLUS} token
 in between, can be combined into a larger grouping of type @samp{exp}.
 
-Scattered among the components can be @var{actions} that determine the
-semantics of the rule.  An action is an Emacs Lisp list form, for
-example:
-
-@lisp
-(cons $1 $2)
-@end lisp
-
-To execute a sequence of forms, you can enclose them between braces
-like this:
-
-@lisp
-@{
-  (message "$2=%s" $2)
-  $2
- @}
-@end lisp
-
-Usually there is only one action and it follows the rule components.
-
 Multiple rules for the same @var{result} are joined with the
 vertical-bar character @code{|} as follows:
 
@@ -745,6 +725,128 @@ expseq1: exp
 
 It is customary to write a comment @code{;;Empty} in each rule with no
 components.
+
+@table @strong
+@item Please note:
+In @acronym{LALR} grammars, a @code{%prec} modifier can be written
+after the @var{components} of a rule to specify a terminal symbol
+whose precedence should be used for that rule.  The syntax is:
+
+@example
+%prec @var{token}
+@end example
+
+It assigns the rule the precedence of @var{token}, overriding the
+precedence that would be deduced for it in the ordinary way.  For
+more details, @inforef{Grammar format, , wisent}, @var{PRECEDENCE}.
+
+Here is a typical example:
+
+@example
+@dots{}
+%left NEG     ;; negation--unary minus
+@dots{}
+
+%%
+@dots{}
+
+exp: @dots{}
+   | '-' exp %prec NEG
+     (- $2)
+   @dots{}
+   ;
+@end example
+@end table
+
+Scattered among the components can be @var{actions} that determine the
+semantics of the rule.  An action is an Emacs Lisp list form, for
+example:
+
+@lisp
+(cons $1 $2)
+@end lisp
+
+To execute a sequence of forms, you can enclose them between braces
+like this:
+
+@lisp
+@{
+  (message "$2=%s" $2)
+  $2
+ @}
+@end lisp
+
+Usually there is only one action and it follows the rule components.
+
+The code in an action can refer to the semantic values of the
+components matched by the rule with the construct @samp{$N}, which
+stands for the value of the Nth component.
+
+Here is a typical example:
+
+@example
+exp: @dots{}
+   | exp PLUS exp
+     (+ $1 $3)
+   @dots{}
+   ;
+@end example
+
+This rule constructs an @samp{exp} from two smaller @samp{exp}
+groupings connected by a plus-sign token.  In the action, @samp{$1}
+and @samp{$3} refer to the semantic values of the two component
+@samp{exp} groupings, which are the first and third symbols on the
+right hand side of the rule.  The sum becomes the semantic value of
+the addition-expression just recognized by the rule.  If there were a
+useful semantic value associated with the @samp{PLUS} token, it could
+be referred to as @samp{$2}.
+
+Note that the vertical-bar character @code{|} is really a rule separator,
+and actions are attached to a single rule.
+
+By convention, if you don't specify an action for a rule, the value of
+the first symbol in the rule becomes the value of the whole rule:
+@code{(progn $1)}.  The default value of an empty rule is @code{nil}.
+
+The exact default behavior depends on the parser.  For more
+information, @inforef{Start nonterminals, , wisent}, and
+@inforef{%start , , bovine}.
+
+@table @strong
+@item Please note:
+In @acronym{LALR} grammars, you can have @dfn{mid-rule actions}, that
+is semantic actions put in the middle of a rule.  These actions are
+written just like usual end-of-rule actions, but they are executed
+before the parser even recognizes the following components.
+
+The mid-rule action itself counts as one of the components of the
+rule.  This makes a difference when there is another action later in
+the same rule (and usually there is another at the end): you have to
+count the actions along with the symbols when working out which number
+N to use in @samp{$N}.
+
+The mid-rule action can also have a semantic value, and actions later
+in the rule can refer to the value using @samp{$N}.
+
+There is no way to set the value of the entire rule with a mid-rule
+action.  The only way to set the value for the entire rule is with an
+ordinary action at the end of the rule.
+
+Here is an example taken from the @file{semantic-grammar.wy} grammar
+in the distribution:
+
+@example
+nonterminal:
+    SYMBOL
+    ;; Mid-rule action
+    (setq semantic-grammar-wy--nterm $1
+          semantic-grammar-wy--rindx 0)
+    COLON rules SEMI
+    ;; End-of-rule action
+    (TAG $1 'nonterminal :children $4)
+  ;
+@end example
+@end table
 
 @node Epilogue
 @section Epilogue
