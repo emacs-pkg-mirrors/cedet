@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.32 2003/02/18 03:04:03 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.33 2003/02/19 05:42:21 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -105,7 +105,8 @@ stack."
 	   nil)
 	  ;; Indentation increased
 	  ((> curr-indent last-indent)
-	   (if (or (not depth) (< semantic-lex-current-depth depth))
+	   (if (or (not semantic-lex-maximum-depth)
+		   (< semantic-lex-current-depth semantic-lex-maximum-depth))
 	       (progn
 		 ;; Return an INDENT lexical token
 		 (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
@@ -116,21 +117,16 @@ stack."
 	     ;; Add an INDENT_BLOCK token
 	     (semantic-lex-push-token
 	      (semantic-lex-token
-	      'INDENT_BLOCK
-	      (progn (beginning-of-line) (point))
-	      (save-excursion
-		(condition-case nil
-		    (let ((starting-indentation (current-indentation)))
-		      (while (>= (current-indentation) starting-indentation)
-			(forward-list 1)
-			(beginning-of-line)))
-		  ;; This case makes lex robust to broken lists.
-		  (error
-		   (goto-char
-		    (funcall
-		     semantic-lex-unterminated-syntax-end-function
-		     'INDENT start end))))
-		(setq semantic-lex-end-point (point)))))
+	       'INDENT_BLOCK
+	       (progn (beginning-of-line) (point))
+	       (save-excursion
+		 (semantic-lex-unterminated-syntax-protection
+		  'INDENT_BLOCK
+		  (let ((starting-indentation (current-indentation)))
+		    (while (>= (current-indentation) starting-indentation)
+		      (forward-list 1)
+		      (beginning-of-line)))
+		  (point)))))
 	     t)
 	   )
 	  ;; Indentation decreased
@@ -169,26 +165,17 @@ then throw away any immediately following INDENT and DEDENT tokens."
   "Handle python strings."
   (looking-at wisent-python-string-re)
   (let ((opos (point))
-	(e (condition-case nil
-	       (progn
-		 ;; skip over "r" and/or "u" characters if any
-		 (goto-char (1- (match-end 0)))
-		 (cond
-		  ((looking-at "\"\"\"")
-		   (forward-char 3)
-		   (search-forward "\"\"\""))
-		  (t
-		   (forward-sexp 1)))
-		 (point))
-	     ;; This case makes robust to broken strings.
-	     (error
-	      (progn
-		(goto-char
-		 (funcall
-		  semantic-flex-unterminated-syntax-end-function
-		  'STRING_LITERAL
-		  opos end))
-		(point))))))
+	(e (semantic-lex-unterminated-syntax-protection
+	    'STRING_LITERAL
+	    ;; skip over "r" and/or "u" characters if any
+	    (goto-char (1- (match-end 0)))
+	    (cond
+	     ((looking-at "\"\"\"")
+	      (forward-char 3)
+	      (search-forward "\"\"\""))
+	     (t
+	      (forward-sexp 1)))
+	    (point))))
     (semantic-lex-push-token
      (semantic-lex-token 'STRING_LITERAL opos e))))
 
@@ -333,12 +320,28 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;###autoload
 (add-hook 'python-mode-hook #'wisent-python-default-setup)
 
+;;; Test
+;;
+(defun wisent-python-lex-buffer ()
+  "Run `semantic-python-lexer' on current buffer."
+  (interactive)
+  (semantic-lex-init)
+  (setq semantic-lex-analyzer 'semantic-python-lexer)
+  (let ((token-stream
+         (semantic-lex (point-min) (point-max) 0)))
+    (with-current-buffer
+        (get-buffer-create "*semantic-python-lexer*")
+      (erase-buffer)
+      (pp token-stream (current-buffer))
+      (goto-char (point-min))
+      (pop-to-buffer (current-buffer)))))
+
 ;;;****************************************************************************
 ;;;@ Code Filled in by wisent-wy-update-outputfile
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-09 19:54-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-18 21:04-0800
   (eval-when-compile
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK INDENT_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
@@ -789,7 +792,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-09 19:54-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-18 21:04-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -851,7 +854,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-09 19:54-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-18 21:04-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -924,7 +927,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-09 19:54-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-18 21:04-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
