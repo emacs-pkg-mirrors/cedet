@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.6 1999/09/19 12:34:25 zappo Exp $
+@c $Id: speedbar.texi,v 1.7 2000/01/25 03:19:11 zappo Exp $
 @c
 
 @c This manual covers the tool "speedbar", and is a part of it's
@@ -36,7 +36,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{speedbar}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1999 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000 Eric M. Ludlam
 @end titlepage
 
 @node Top, , , (dir)Top
@@ -106,7 +106,7 @@ attached frame, speedbar will save time by using "slowbar" mode, where
 no tracking is done until speedbar is requested to show itself.
 
 The function to use when switching between frames using the keyboard is
-@fcn{speedbar-get-focus}.  This function will toggle between frames, and
+@code{speedbar-get-focus}.  This function will toggle between frames, and
 useful to bind to a key in terminal mode @xref{Customizing}.
 
 @node Basic Navigation, File Mode, Introduction, Top
@@ -464,12 +464,12 @@ removed from the File display.  There are two levels of interest in
 speedbar.  The first level of uninterest are files which have no
 expansion method, or way of extracting tags.  The second level is any
 file that matches the same pattern used for completion in
-@fcn{find-file}.  This is derived from the variable
+@code{find-file}.  This is derived from the variable
 @code{completion-ignored-extensions}.
 
 You can toggle the display of uninteresting files from the toggle menu
 item "Show All Files".  This will display all level one hidden files.
-These files will be shown with a @code{?}} indicator.  Level 2 hidden
+These files will be shown with a @code{?} indicator.  Level 2 hidden
 files will still not be shown.
 
 Object files fall into the catagory of level 2 hidden files.  You can
@@ -840,6 +840,7 @@ learn how to write your own major or minor display mode.
 @menu
 * Minor Display Modes::    How to create a minor display mode.
 * Major Display Modes::    How to create a major display mode.
+* Tagging Extentions::     How to create your own tagging methods.
 * Creating a display::     How to insert buttons and hierarchies.
 @end menu
 
@@ -892,7 +893,7 @@ want to do is execute a check to see if you need to re-create your
 display.  Once done, you need to erase the speedbar buffer yourself, and
 start drawing buttons. @xref{Creating a display}.
 
-@node Major Display Modes, Creating a display, Minor Display Modes, Extending
+@node Major Display Modes, Tagging Extentions, Minor Display Modes, Extending
 @chapter Major Display Modes
 @cindex create major display mode
 
@@ -1011,7 +1012,45 @@ Your custom function might look like this:
 Once you have done all this, speedbar will show a little entry in the
 Displays menu declaring that your extension is available.
 
-@node Creating a display, , Major Display Modes, Extending
+@node Tagging Extentions, Creating a display, Major Display Modes, Extending
+@chapter Tagging Extentions
+
+It is possible to create new methods for tagging files in speedbar.
+To do this, you need two basic functions.  One function will fetch the
+tags from a buffer, and the second will insert them below the filename.
+
+@defun my-fetch-dynamic-tags file
+Parse @var{file} for a list of tags.  Return the list, or t if there was
+an error.
+@end defun
+
+The return value can be anything, as long as it can be inserted by it's
+paired function:
+
+@defun my-insert-tag-list level lst
+Insert a list of tags @var{lst} started at indentation level
+@var{level}.  Creates buttons for each tag, and provides any other
+display information requried.
+@end  defun
+
+It is often useful to use @code{speedbar-create-tag-hierarchy} on your
+token list.  See that functions documentation for details on what it
+requires.
+
+Once these to functions are written, modify the variable
+@code{speedbar-dynamic-tags-function-list} to include your parser at the
+beginning, like this:
+
+@example
+(add-to-list 'speedbar-dynamic-tags-function-list
+	     '(my-fetch-dynamic-tags  . my-insert-tag-list))
+@end example
+
+If your parser is only good for a few types of files, make sure that it
+is either a buffer local modification, or that the tag generator returns
+t for non valid buffers.
+
+@node Creating a display, , Tagging Extentions, Extending
 @chapter Creating a display
 @cindex creating a display
 
