@@ -1,10 +1,10 @@
 ;;; ede-system.el --- EDE working with the system (VC, FTP, ETC)
 
-;;;  Copyright (C) 2001  Eric M. Ludlam
+;;;  Copyright (C) 2001, 2002  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, vc
-;; RCS: $Id: ede-system.el,v 1.2 2001/12/05 01:32:05 zappo Exp $
+;; RCS: $Id: ede-system.el,v 1.3 2002/03/23 01:43:41 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -87,6 +87,10 @@ Download tramp, and use /r:machine: for names on remote sites w/out FTP access."
 	      (error "File %s does not exist yet.  Building a distribution"
 		     localfile)
 	      ))
+	(setq upload
+	      (concat (directory-file-name upload)
+		      "/"
+		      (file-name-nondirectory localfile)))
 	(copy-file localfile upload)
 	(setq files (cdr files)))))
   (message "Done uploading files...")
