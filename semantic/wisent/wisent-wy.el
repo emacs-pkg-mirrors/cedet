@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.2 2002/02/26 18:53:28 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.3 2002/02/26 22:15:29 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -631,7 +631,7 @@ nil."
       (setq token  (car tokens)
             tokens (cdr tokens))
         (setq names (cons (semantic-token-name token) (nth 3 token))
-              type  (nth 2 token)
+              type  (or (nth 2 token) "<no-type>")
               value (nth 4 token)
               assoc (assoc type alist))
         (or assoc (setq assoc (list type)
@@ -1038,13 +1038,14 @@ brackets considered as parenthesis.")
   ;; Look within the line for a ; following an even number of backslashes
   ;; after either a non-backslash or the line beginning.
   (setq comment-start-skip "\\(\\(^\\|[^\\\\\n]\\)\\(\\\\\\\\\\)*\\);+ *")
-  ;;(setq comment-start-skip ";;+")
   (set-syntax-table wisent-wy-syntax-table)
   (use-local-map wisent-wy-map)
   (make-local-variable 'indent-line-function)
   (setq indent-line-function 'wisent-wy-indent)
   (make-local-variable 'fill-paragraph-function)
   (setq fill-paragraph-function #'lisp-fill-paragraph)
+  (make-local-variable 'font-lock-multiline)
+  (setq font-lock-multiline 'undecided)
   (make-local-variable 'font-lock-defaults)
   (setq font-lock-defaults
         '((wisent-wy-mode-keywords
@@ -1091,7 +1092,10 @@ the anchor is or nil if the point has not moved."
             (while (not found)
               (wisent-wy-skip-comments-backward)
               (cond
-               ((memq (char-before) '(?\% ?\: ?\;))
+               ((eq (char-before) ?\%)
+                (or (looking-at "\\<prec\\>")
+                    (setq found (point))))
+               ((memq (char-before) '(?\: ?\;))
                 (setq found (point)))
                ((bobp)
                 (error "")))
@@ -1100,6 +1104,21 @@ the anchor is or nil if the point has not moved."
           (1- (current-column)))
       (error nil)))
 
+(defsubst wisent-wy-between-name-and-colon-p (point)
+  "Return non-nil if POINT is between name and colon.
+If so move to POINT."
+  (let (name-end)
+    (if (save-excursion
+          (forward-comment (point-max))
+          (when (looking-at "\\(\\w\\|\\s_\\)+\\s-*$")
+            (forward-sexp 1)
+            (setq name-end (point))
+            (forward-comment (point-max))
+            (when (looking-at ":")
+              (beginning-of-line)
+              (and (> point name-end) (<= point (point))))))
+        (goto-char point))))
+      
 (defun wisent-wy-grammar-compute-indentation ()
   "Compute indentation of the current line of grammar."
   (save-excursion
@@ -1110,7 +1129,11 @@ the anchor is or nil if the point has not moved."
       (let* ((p (point))
              (i (wisent-wy-goto-grammar-indent-anchor)))
         (if (not (and i (eq (char-before) ?\:)))
-            0
+            (if (wisent-wy-between-name-and-colon-p p)
+                (if (looking-at "\\s-*;;")
+                    1
+                  2)
+              0)
           (if (or (looking-at "\\s-*$")
                   (save-excursion (beginning-of-line)
                                   (looking-at "\\s-*:")))
