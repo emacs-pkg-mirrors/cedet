@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.7 2003/04/02 10:47:13 ponced Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.8 2003/04/05 15:35:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -358,8 +358,8 @@
 (defun semantic-expand-make-nonterminal (token)
   "Expand TOKEN into a list of equivalent nonterminals, or nil."
   (cond
-   ((eq (semantic-token-token token) 'function)
-    (let ((name (semantic-token-name token)))
+   ((eq (semantic-tag-class token) 'function)
+    (let ((name (semantic-tag-name token)))
       (if (listp name)
 	  (let ((multi (cdr name)))
 
@@ -371,11 +371,11 @@
 	    (if multi
 		;; There are multiple names in the same function
 		;; declaration.
-		(let ((ty (semantic-token-type                 token))
-		      (al (semantic-token-function-args        token))
-		      (xs (semantic-token-function-extra-specs token))
-		      (ds (semantic-token-docstring            token))
-		      (pr (semantic-token-properties           token))
+		(let ((ty (semantic-tag-type                 token))
+		      (al (semantic-tag-function-arguments        token))
+		      (xs (semantic-tag-attributes token))
+		      (ds (semantic-tag-docstring            token))
+		      (pr (semantic-tag-properties           token))
 		      (nl name)
 		      tok vl)
 		  ;; Merge in new 'function tokens each reparsed
@@ -393,14 +393,14 @@
 				xs	; extra specs
 				ds	; docstring
 				pr	; properties
-				(semantic-token-overlay token))
+				(semantic-tag-overlay token))
 			       vl)))
 		  (if vl
 		      ;; Cleanup the no more needed initial token.
-		      (semantic-deoverlay-token token))
+		      (semantic--tag-unlink-from-buffer token))
 		  vl))))))
-   ((eq (semantic-token-token token) 'include)
-    (let* ((name (semantic-token-name token))
+   ((eq (semantic-tag-class token) 'include)
+    (let* ((name (semantic-tag-name token))
 	   (multi (cdr name)))
       ;; NAME is always going to be a list.  Delist it and create
       ;; one include entry for each file on the include line.
@@ -413,9 +413,9 @@
       (if multi
 	  ;; There are multiple names in the same function
 	  ;; declaration.
-	  (let ((sy (semantic-token-include-system token))
-		(ds (semantic-token-docstring            token))
-		(pr (semantic-token-properties           token))
+	  (let ((sy (semantic-tag-include-system-p token))
+		(ds (semantic-tag-docstring        token))
+		(pr (semantic-tag-properties       token))
 		(nl multi)
 		(vl (cons token nil))
 		tok)
@@ -432,7 +432,7 @@
 			  sy		; system
 			  ds		; docstring
 			  pr		; properties
-			  (semantic-token-overlay token))
+			  (semantic-tag-overlay token))
 			 vl)))
 	    vl))))
     ))
