@@ -1,10 +1,10 @@
 ;;; eieio-comp.el -- eieio routines to help with byte compilation
 
 ;;;
-;; Copyright (C) 1995,1996, 1998 Eric M. Ludlam
+;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-comp.el,v 1.4 1998/10/27 18:17:30 zappo Exp $
+;; RCS: $Id: eieio-comp.el,v 1.5 2000/07/16 21:18:19 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -35,7 +35,7 @@
 ;; Byte compiler functions for defmethod.  This will affect the new GNU
 ;; byte compiler for Emacs 19 and better.  This function will be called by
 ;; the byte compiler whenever a `defmethod' is encountered in a file.
-;; It will output a function call to `defmethod-engine' with the byte
+;; It will output a function call to `eieio-defmethod' with the byte
 ;; compiled function as a parameter.
 
 ;; Some compatibility stuff
@@ -87,7 +87,7 @@ that is called but rarely.  Argument FORM is the body of the method."
 		     (append (list 'lambda lamparams)
 			     (cdr form))))
 	   (code (byte-compile-byte-code-maker new-one)))
-      (princ "\n(defmethod-engine '" my-outbuffer)
+      (princ "\n(eieio-defmethod '" my-outbuffer)
       (princ meth my-outbuffer)
       (princ " '(" my-outbuffer)
       (princ key my-outbuffer)
@@ -96,7 +96,22 @@ that is called but rarely.  Argument FORM is the body of the method."
       (eieio-byte-compile-princ-code code my-outbuffer)
       (princ "))" my-outbuffer)
       nil
+      )
+    (unless (fboundp meth)
+      ;; Now add this function to the list of known functions by defining
+      ;; it in Emacs proper.  This is the wrong way to do it.
+      ;; Technically, I should be using `byte-compile-function-environment'
+      ;; and updating stuff there, but it has some strange behaviors I
+      ;; don't like or understand, and various newsgroups don't seem to
+      ;; unserstand it either.
+      (eieio-defgeneric meth (cdr form))
+      ;; Remove it from the undefined list if it is there.
+      (let ((elt (assq meth byte-compile-unresolved-functions)))
+	(if elt
+	    (setq byte-compile-unresolved-functions
+		  (delq elt byte-compile-unresolved-functions))))
       )))
+
 
 (defun eieio-byte-compile-princ-code (code outbuffer)
   "Xemacs and GNU Emacs do their things differently.
