@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.15 1997/01/18 15:48:14 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.16 1997/01/18 16:01:16 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -1046,7 +1046,7 @@ the cursor is right in front of the file name."
 	 )
     (if (<= 2 speedbar-verbosity-level) 
 	(message "Speedbar vc check...%s" fulln))
-    (and (file-writable-p fn)
+    (and (file-writable-p fulln)
 	 (speedbar-this-file-in-vc f fn))))
   
 (defun speedbar-this-file-in-vc (path name)
@@ -1165,7 +1165,7 @@ that file into the attached buffer."
   (let ((cdd (speedbar-line-path indent)))
     (select-frame speedbar-attached-frame)
     (find-file (concat cdd text))
-    (speedbar-update-current-file)
+    (speedbar-stealthy-updates)
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
@@ -1183,7 +1183,7 @@ cause the speedbar to list files in the selected subdirectory."
   (speedbar-update-contents)
   (speedbar-set-timer speedbar-navigating-speed)
   (setq speedbar-last-selected-file nil)
-  (speedbar-update-current-file))
+  (speedbar-stealthy-updates))
 
 (defun speedbar-delete-subblock (indent)
   "Delete text from the current line down to the indentation level
@@ -1233,7 +1233,7 @@ that file into the attached buffer."
 	(t (error "Ooops... not sure what to do.")))
   (speedbar-center-buffer-smartly)
   (setq speedbar-last-selected-file nil)
-  (save-excursion (speedbar-update-current-file)))
+  (save-excursion (speedbar-stealthy-updates)))
 
 (defun speedbar-directory-buttons-follow (text token ident)
   "Speedbar click handler for default directory buttons."
@@ -1278,7 +1278,7 @@ clicked, and TOK is the file to expand."
   (let ((file (speedbar-line-path indent)))
     (select-frame speedbar-attached-frame)
     (find-file file)
-    (save-excursion (speedbar-update-current-file))
+    (save-excursion (speedbar-stealthy-updates))
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
