@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.38 2003/08/25 10:07:14 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.39 2003/08/29 07:55:58 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -307,6 +307,11 @@ That is tag names plus names defined in tag attribute `:rest'."
            "\n"))
       "")))
 
+(defsubst semantic-grammar-buffer-file (&optional buffer)
+  "Return name of file sans directory BUFFER is visiting.
+No argument or nil as argument means use the current buffer."
+  (file-name-nondirectory (buffer-file-name buffer)))
+
 (defun semantic-grammar-package ()
   "Return the %package value as a string.
 If there is no %package statement in the grammar, return a default
@@ -314,7 +319,7 @@ package name derived from the grammar file name.  For example, the
 default package name for the grammar file foo.wy is foo-wy, and for
 foo.by it is foo-by."
   (or (semantic-grammar-first-tag-name 'package)
-      (let ((file (buffer-name)))
+      (let ((file (semantic-grammar-buffer-file)))
         (if (string-match (format "\\([.]\\)%s\\'"
                                   (file-name-extension file))
                           file)
@@ -527,25 +532,29 @@ Also load the specified macro libraries."
 (defsubst semantic-grammar-keywordtable ()
   "Return the variable name of the keyword table."
   (concat (file-name-sans-extension
-           (buffer-name semantic--grammar-output-buffer))
+           (semantic-grammar-buffer-file
+            semantic--grammar-output-buffer))
           "--keyword-table"))
 
 (defsubst semantic-grammar-tokentable ()
   "Return the variable name of the token table."
   (concat (file-name-sans-extension
-           (buffer-name semantic--grammar-output-buffer))
+           (semantic-grammar-buffer-file
+            semantic--grammar-output-buffer))
           "--token-table"))
 
 (defsubst semantic-grammar-parsetable ()
   "Return the variable name of the parse table."
   (concat (file-name-sans-extension
-           (buffer-name semantic--grammar-output-buffer))
+           (semantic-grammar-buffer-file
+            semantic--grammar-output-buffer))
           "--parse-table"))
 
 (defsubst semantic-grammar-setupfunction ()
   "Return the name of the parser setup function."
   (concat (file-name-sans-extension
-           (buffer-name semantic--grammar-output-buffer))
+           (semantic-grammar-buffer-file
+            semantic--grammar-output-buffer))
           "--install-parser"))
 
 (defmacro semantic-grammar-as-string (object)
@@ -632,8 +641,9 @@ Also load the specified macro libraries."
 
 (defun semantic-grammar-header ()
   "Return text of a generated standard header."
-  (let ((file (buffer-name semantic--grammar-output-buffer))
-        (gram (buffer-name))
+  (let ((file (semantic-grammar-buffer-file
+               semantic--grammar-output-buffer))
+        (gram (semantic-grammar-buffer-file))
         (date (format-time-string "%Y-%m-%d %T%z"))
         (vcid (concat "$" "Id" "$")) ;; Avoid expansion
         ;; Try to get the copyright from the input grammar, or
@@ -652,7 +662,8 @@ Also load the specified macro libraries."
 
 (defun semantic-grammar-footer ()
   "Return text of a generated standard footer."
-  (let* ((file (buffer-name semantic--grammar-output-buffer))
+  (let* ((file (semantic-grammar-buffer-file
+                semantic--grammar-output-buffer))
          (libr (file-name-sans-extension file)))
     (Sformat '((?F file)
                (?L libr))
@@ -812,8 +823,13 @@ Return non-nil if there were no errors, nil if errors."
         ;; Only byte compile if out of date
         (if (file-newer-than-file-p
              packagename (byte-compile-dest-file packagename))
-            ;; byte compile the resultant file
-            (batch-byte-compile-file packagename)
+            (let (;; Some complex grammar table expressions need a few
+                  ;; more resources than the default.
+                  (max-specpdl-size    (max 3000 max-specpdl-size))
+                  (max-lisp-eval-depth (max 1000 max-lisp-eval-depth))
+                  )
+              ;; byte compile the resultant file
+              (batch-byte-compile-file packagename))
           t)))))
 
 ;;;###autoload
