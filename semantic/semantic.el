@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.54 2000/10/03 01:54:58 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.55 2000/10/04 12:27:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -451,7 +451,7 @@ ie, the symbol 'variable, 'function, 'type, or other."
   "Retrieve the documentation of TOKEN.
 Optional argument BUFFER indicates where to get the text from.
 If not provided, then only the POSITION can be provided."
-  (let ((p (nth (- (length token) 3) token)))
+  (let ((p (nth (- (length token) 2) token)))
     (if (and p buffer)
 	(save-excursion
 	  (set-buffer buffer)
