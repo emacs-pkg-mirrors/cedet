@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.ai.mit.edu>
 ;; Version: 0.8
-;; RCS: $Id: eieio.el,v 1.27 1998/03/12 14:26:25 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.28 1998/10/27 17:17:29 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -284,10 +284,7 @@ yet supported.  Supported tags are:
   :initform   - initializing form
   :initarg    - tag used during initialization
   :accessor   - tag used to create a function to access this field
-  :protection - non-nil means a private slot (accessible when THIS is set)
-
-  You can have multiple tags per slot, though some specifiers can't be
-combined (for instance :method and :initarg make no sense together)"
+  :protection - non-nil means a private slot (accessible when THIS is set)"
   (list 'defclass-engine (list 'quote name) (list 'quote superclass)
 	(list 'quote fields) doc-string))
 
@@ -477,7 +474,7 @@ toplevel documentation for this class."
       (fset csym
 	    (list 'lambda (list 'obj)
 		  (format "Test OBJ to see if it an object of type %s" cname)
-		  (list 'same-class-p 'obj newc))))
+		  (list 'same-class-p 'obj cname))))
 
     ;; if this is a superclass, clear out parent (which was set to the
     ;; default superclass eieio-default-superclass)
@@ -753,6 +750,29 @@ If EXTRA, include that in the string returned to represent the symbol."
   (while (and child (not (eq child class)))
     (setq child (aref (class-v child) 3)))
   child)
+
+;;; Slightly more complex utility functions for objects
+;;
+(defun object-assoc (key field list)
+  "Return non-nil if KEY is `equal' to the FIELD of the car of objects in LIST.
+The value is actually the element of LIST whose field equals KEY."
+  (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
+  (while (and list (not (equal key (oref-engine (car list) field))))
+    (setq list (cdr list)))
+  (car list))
+
+(defun object-assoc-list (field list)
+  "Return an association list with the contents of FIELD as the key element.
+LIST must be a list of objects with FIELD in it.
+This is useful when you need to do completing read on an object group."
+  (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
+  (let ((assoclist nil))
+    (while list
+      (setq assoclist (cons (cons (oref-engine (car list) field)
+				  (car list))
+			    assoclist))
+      (setq list (cdr list)))
+    (nreverse assoclist)))
 
 
 ;;; EIEIO internal search functions
