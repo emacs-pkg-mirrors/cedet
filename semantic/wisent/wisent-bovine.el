@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.4 2001/09/03 13:11:02 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.5 2001/09/20 11:49:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -82,14 +82,20 @@ To be used in Wisent LALR(1) grammar actions to build the
 ;;;;
 
 (defvar wisent-flex-istream nil
-  "Input stream of `semantic-flex' lexical tokens.")
-(make-variable-buffer-local 'wisent-flex-istream)
+  "Input stream of `semantic-flex' lexical tokens.
+The actual value of this variable is local to
+`wisent-bovinate-nonterminal'.")
 
-(defvar wisent-flex-function nil
+(defvar wisent-flex-depth nil
+  "How `semantic-flex' will setup the lexer input stream.
+See also `semantic-flex-depth'.")
+(make-variable-buffer-local 'wisent-flex-depth)
+
+(defvar wisent-lexer-function nil
   "Function used to get the next lexical token in input.
-This function does not have argument and should pop `semantic-flex'
-tokens from `wisent-flex-istream'.")
-(make-variable-buffer-local 'wisent-flex-function)
+This function does not have argument and must pop tokens from
+`wisent-flex-istream'.")
+(make-variable-buffer-local 'wisent-lexer-function)
 
 (defvar wisent-error-function #'ignore
   "Function used to report parse error.")
@@ -97,18 +103,16 @@ tokens from `wisent-flex-istream'.")
 
 (defun wisent-lexer-wrapper ()
   "Return the next lexical input available.
-Used as a wrapper to call `wisent-flex-function' and to provide
+Used as a wrapper to call `wisent-lexer-function' and to provide
 working goodies."
-  (prog1
-      (funcall wisent-flex-function)
-    (if wisent-flex-istream
-        (if (eq semantic-bovination-working-type 'percent)
-            (working-status
-             (floor
-              (* 100.0 (/ (float (semantic-flex-start
-                                  (car wisent-flex-istream)))
-                          (float (point-max))))))
-          (working-dynamic-status)))))
+  (if wisent-flex-istream
+      (if (eq semantic-bovination-working-type 'percent)
+          (working-status
+           (/ (* 100 (semantic-flex-start (car wisent-flex-istream)))
+              (point-max)))
+        (working-dynamic-status)))
+  (funcall wisent-lexer-function))
+  
 
 (defun wisent-bovinate-nonterminal (stream table lexer error
                                            &optional nonterminal)
@@ -118,8 +122,7 @@ Optional argument NONTERMINAL is the nonterminal symbol to start with.
 Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
 list of semantic tokens found."
-  (let* ((gc-cons-threshold 10000000)
-         (wisent-flex-istream stream)
+  (let* ((wisent-flex-istream stream)
          (cache (wisent-parse table lexer error nonterminal)))
     (list wisent-flex-istream
           ;; Ensure to get only valid Semantic tokens from the LALR
@@ -156,7 +159,7 @@ with the current results on a parse error."
 
 (defun wisent-rebovinate-token (token)
   "Use TOKEN for extents, and reparse it, splicing it back into the cache."
-  (let* ((semantic-flex-depth nil)
+  (let* ((semantic-flex-depth wisent-flex-depth)
          (stream (semantic-flex (semantic-token-start token)
                                 (semantic-token-end token)))
 	 ;; For embeded tokens (type parts, for example) we need a
@@ -208,16 +211,14 @@ with the current results on a parse error."
         ))))
 
 (defsubst wisent-bovinate-from-nonterminal-full (start end nonterm
-                                                    &optional depth)
+                                                       &optional depth)
   "Bovinate from within a nonterminal from START to END.
 Iterates until all the space between START and END is exhausted.
-Depends on the existing environment created by
-`wisent-bovinate-nonterminal'.  Argument NONTERM is the nonterminal
-symbol to start with or nil for default goal.  Optional argument DEPTH
-is the depth of lists to dive into it defaults to
-`semantic-flex-depth'."
+Argument NONTERM is the nonterminal symbol to start with or nil for
+default goal.  Optional argument DEPTH is the depth of lists to dive
+into. It defaults to `wisent-flex-depth'."
   (wisent-bovinate-nonterminals
-   (semantic-flex start end depth)
+   (semantic-flex start end (or depth wisent-flex-depth))
    nonterm))
 
 (defun wisent-bovinate-toplevel (&optional checkcache)
@@ -228,7 +229,8 @@ that, otherwise, do a full reparse."
   (cond
    ;; Partial reparse
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
-    (let ((changes (semantic-remove-dirty-children)))
+    (let* ((gc-cons-threshold 10000000)
+           (changes (semantic-remove-dirty-children)))
       ;; We have a cache, and some dirty tokens
       (let ((semantic-bovination-working-type 'dynamic))
         (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
@@ -236,8 +238,7 @@ that, otherwise, do a full reparse."
                       (not (semantic-bovine-toplevel-full-reparse-needed-p
                             checkcache)))
             (wisent-rebovinate-token (car semantic-dirty-tokens))
-            (setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
-            (working-dynamic-status))
+            (setq semantic-dirty-tokens (cdr semantic-dirty-tokens)))
           (working-dynamic-status t))
         (setq semantic-dirty-tokens nil))
       
@@ -252,17 +253,18 @@ that, otherwise, do a full reparse."
    
    ;; Full parse
    ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-    (semantic-clear-toplevel-cache)
     ;; Reparse the whole system
-    (let* ((semantic-flex-depth nil)
-           (stream (semantic-flex (point-min) (point-max)))
-           (cache nil))
+    (let ((gc-cons-threshold 10000000)
+          (semantic-flex-depth wisent-flex-depth)
+          cache)
+      (semantic-clear-toplevel-cache)
       ;; Init a dump
       ;;(if semantic-dump-parse
       ;;    (semantic-dump-buffer-init))
       ;; Parse!
       (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
-        (setq cache (wisent-bovinate-nonterminals stream nil))
+        (setq cache (wisent-bovinate-nonterminals
+                     (semantic-flex (point-min) (point-max)) nil))
         (working-status t))
       (semantic-overlay-list cache)
       (semantic-set-toplevel-bovine-cache cache)
