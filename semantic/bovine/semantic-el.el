@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.33 2005/01/16 22:02:21 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.34 2005/02/17 03:59:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,12 +61,21 @@ syntax as specified by the syntax table."
      (semantic-list
       ,(lambda (vals start end)
          (let ((tag (semantic-elisp-use-read (car vals))))
-           ;; At this point, if `semantic-elisp-use-read' returned an
-           ;; already expanded tag (from definitions parsed inside an
-           ;; eval and compile wrapper), just pass it!
-           (if (semantic--tag-expanded-p tag)
-               tag
-             (append tag (list start end)))))))
+	   (cond
+	    ((and (listp tag) (semantic-tag-p (car tag)))
+	     ;; We got a list of tags back.  This list is
+	     ;; returned here in the correct order, but this
+	     ;; list gets reversed later, putting the correctly ordered
+	     ;; items into reverse order later.
+	     (nreverse tag))
+	    ((semantic--tag-expanded-p tag)
+	     ;; At this point, if `semantic-elisp-use-read' returned an
+	     ;; already expanded tag (from definitions parsed inside an
+	     ;; eval and compile wrapper), just pass it!
+	     tag)
+	    (t
+	     ;; We got the basics of a single tag.
+	     (append tag (list start end))))))))
     )
   "Top level bovination table for elisp.")
 
@@ -191,6 +200,16 @@ Return a bovination list to use."
 ;;
 (semantic-elisp-setup-form-parser
     (lambda (form start end)
+      (semantic-tag-new-function
+       (symbol-name (nth 2 form))
+       nil
+       '("form" "start" "end")
+       :form-parser t
+       ))
+  semantic-elisp-setup-form-parser)
+
+(semantic-elisp-setup-form-parser
+    (lambda (form start end)
       (condition-case foo
           (semantic-parse-region start end nil 1)
         (error (message "MUNGE: %S" foo)
@@ -234,6 +253,7 @@ Return a bovination list to use."
   defcustom
   defface
   defimage
+  defezimage
   )
 
 (semantic-elisp-setup-form-parser
@@ -261,7 +281,7 @@ Return a bovination list to use."
              (cons (symbol-name (caar args))
                    (semantic-elisp-desymbolify (cdr args)))
            (semantic-elisp-desymbolify (cdr args)))
-         :parent (symbol-name (if (listp (car args)) (cadr (car args))))
+         :parent (if (listp (car args)) (symbol-name (cadr (car args))) nil)
          :documentation (semantic-elisp-do-doc doc)
          )))
   defmethod
@@ -335,7 +355,7 @@ Return a bovination list to use."
 	 :parent (symbol-name (nth 2 form))
 	 :documentation (semantic-elisp-do-doc (nth 4 form))
 	 )))
-  define-mode-overload-implementation
+  define-mode-overload-implementation ;; obsoleted
   define-mode-local-override
   )
 
