@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.29 2004/01/12 20:37:27 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.30 2004/02/05 23:22:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -452,15 +452,18 @@ for details on the return value."
 ;; Scoped types are types that the current code would have access to.
 ;; The come from the global namespace or from special commands such as "using"
 (define-overload semantic-ctxt-scoped-types (&optional point)
-  "Return a list of type names currently in scope at POINT.")
+  "Return a list of type names currently in scope at POINT.
+The return value can be a mixed list of either strings (names of
+types that are in scope) or actual tags (type declared locally
+that may or may not have a name.)")
 
 (defun semantic-ctxt-scoped-types-default (&optional point)
-  "Return a list of scoped types by name for the current context at POINT..
+  "Return a list of scoped types by name for the current context at POINT.
 This is very different for various languages, and does nothing unless
 overriden."
   (if point (goto-char point))
   (let ((case-fold-search semantic-case-fold))
-    ;; We need to look at TYPES withing the bounds of locally parse arguments.
+    ;; We need to look at TYPES within the bounds of locally parse arguments.
     ;; C needs to find using statements and the like too.  Bleh.
     nil
     ))
