@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.10
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.159 2000/04/09 01:37:53 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.160 2000/04/12 02:29:36 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -541,6 +541,12 @@ hierarchy would be replaced with the new directory."
 
 (defcustom speedbar-hide-button-brackets-flag nil
   "*Non-nil means speedbar will hide the brackets around the + or -."
+  :group 'speedbar
+  :type 'boolean)
+
+(defcustom speedbar-use-images (or (fboundp 'defimage) 
+				   (fboundp 'make-image-specifier))
+  "*Non nil if speedbar should display icons."
   :group 'speedbar
   :type 'boolean)
 
@@ -1299,7 +1305,7 @@ in the selected file.
 			       (speedbar-quick-mouse event))
 			      ((or (eq count 2)
 				   (eq count 3))
-			       (mouse-set-point event)
+			       (speedbar-mouse-set-point event)
 			       (speedbar-do-function-pointer)
 			       (speedbar-quick-mouse event)))
 			;; Don't do normal operations.
@@ -2066,6 +2072,9 @@ will be run with the TOKEN parameter (any Lisp object)"
   (put-text-property start end 'invisible nil)
   (if function (put-text-property start end 'speedbar-function function))
   (if token (put-text-property start end 'speedbar-token token))
+  ;; So far the only text we have is less that 3 chars.
+  (if (<= (- end start) 3)
+      (speedbar-insert-image-button-maybe start (- end start)))
   )
 
 ;;; Initial Expansion list management
@@ -2330,8 +2339,6 @@ position to insert a new item, and that the new item will end with a CR"
 	   (mf (if exp-button-function 'speedbar-highlight-face nil))
 	   )
       (speedbar-make-button start end bf mf exp-button-function exp-button-data)
-      (if (fboundp 'speedbar-insert-image-expand-button)
-	  (speedbar-insert-image-expand-button start))
       (if speedbar-hide-button-brackets-flag
 	  (progn
 	    (put-text-property start (1+ start) 'invisible t)
@@ -2359,9 +2366,8 @@ position to insert a new item, and that the new item will end with a CR"
 	  (delete-char 1)
 	  (insert-char char 1 t)
 	  (put-text-property (point) (1- (point)) 'invisible nil)
-	  (if (fboundp 'speedbar-insert-image-expand-button)
-	      ;; make sure we fix the image on the text here.
-	      (speedbar-insert-image-expand-button (- (point) 2)))))))
+	  ;; make sure we fix the image on the text here.
+	  (speedbar-insert-image-button-maybe (- (point) 2) 3)))))
 
 
 ;;; Build button lists
@@ -3186,11 +3192,25 @@ the file being checked."
 
 ;;; Clicking Activity
 ;;
+(defun speedbar-mouse-set-point (e)
+  "Set POINT based on event E.
+Handle clicking on images in XEmacs."
+  (if (and (fboundp 'event-over-glyph-p) (event-over-glyph-p e))
+      ;; We are in XEmacs, and clicked on a picture
+      (let ((ext (event-glyph-extent e)))
+	;; This position is back inside the extent where the
+	;; junk we pushed into the property list lives.
+	(if (extent-end-position ext)
+	    (goto-char (1- (extent-end-position ext)))
+	  (mouse-set-point e)))
+    ;; We are not in XEmacs, OR we didn't click on a picture.
+    (mouse-set-point e)))
+
 (defun speedbar-quick-mouse (e)
   "Since mouse events are strange, this will keep the mouse nicely positioned.
 This should be bound to mouse event E."
   (interactive "e")
-  (mouse-set-point e)
+  (speedbar-mouse-set-point e)
   (speedbar-position-cursor-on-line)
   )
 
@@ -3217,7 +3237,7 @@ This must be bound to a mouse event.  A button is any location of text
 with a mouse face that has a text property called `speedbar-function'.
 This should be bound to mouse event E."
   (interactive "e")
-  (mouse-set-point e)
+  (speedbar-mouse-set-point e)
   (speedbar-do-function-pointer)
   (speedbar-quick-mouse e))
 
@@ -3229,12 +3249,12 @@ This should be bound to mouse event E."
   (interactive "e")
   ;; Emacs only.  XEmacs handles this via `mouse-track-click-hook'.
   (cond ((eq (car e) 'down-mouse-1)
-	 (mouse-set-point e))
+	 (speedbar-mouse-set-point e))
 	((eq (car e) 'mouse-1)
 	 (speedbar-quick-mouse e))
 	((or (eq (car e) 'double-down-mouse-1)
 	     (eq (car e) 'triple-down-mouse-1))
-	 (mouse-set-point e)
+	 (speedbar-mouse-set-point e)
 	 (speedbar-do-function-pointer)
 	 (speedbar-quick-mouse e))))
 
@@ -4169,6 +4189,119 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 				    (:background "white")))
   "Face used for highlighting buttons with the mouse."
   :group 'speedbar-faces)
+
+
+;;; Image loading and inlining
+;;
+
+;;; Some images if defimage is available:
+(if (fboundp 'defimage)
+    (defalias 'defimage-speedbar 'defimage)
+
+(defun speedbar-find-image-on-load-path (image)
+  "Find the image file IMAGE on the load path."
+  (let ((l load-path)
+	(r nil))
+    (while (and l (not r))
+      (if (file-exists-p (concat (car l) "/" image))
+	  (setq r (concat (car l) "/" image)))
+      (setq l (cdr l)))
+    r))
+
+(defun speedbar-convert-emacs21-imagespec-to-xemacs (spec)
+  "Convert the Emacs21 Image SPEC into an XEmacs image spec."
+  (let* ((sl (car spec))
+	 (itype (nth 1 sl))
+	 (ifile (nth 3 sl)))
+    (vector itype ':file (speedbar-find-image-on-load-path ifile))))
+
+(defmacro defimage-speedbar (variable imagespec docstring)
+  "Devine VARIABLE as an image if `defimage' is not available..
+IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
+  `(defvar ,variable
+     ;; The Emacs21 version of defimage looks just like the XEmacs image
+     ;; specifier, except that it needs a :type keyword.  If we line
+     ;; stuff up right, we can use this cheat to support XEmacs specifiers.
+     (make-glyph
+      (make-image-specifier
+       (speedbar-convert-emacs21-imagespec-to-xemacs (quote ,imagespec)))
+      'buffer)
+     ,docstring))
+
+)
+
+(defimage-speedbar speedbar-directory-+
+  ((:type xpm :file "sb-dir+.xpm"))
+  "Image used for closed directories with stuff in them.")
+
+(defimage-speedbar speedbar-directory--
+  ((:type xpm :file "sb-dir-.xpm"))
+  "Image used for open directories with stuff in them.")
+
+(defimage-speedbar speedbar-file-+
+  ((:type xpm :file "sb-file+.xpm"))
+  "Image used for closed files with stuff in them.")
+
+(defimage-speedbar speedbar-file--
+  ((:type xpm :file "sb-file-.xpm"))
+  "Image used for open files with stuff in them.")
+
+(defimage-speedbar speedbar-file-
+  ((:type xpm :file "sb-file.xpm"))
+  "Image used for files that can't be opened.")
+
+(defimage-speedbar speedbar-tag-
+  ((:type xpm :file "sb-tag.xpm"))
+  "Image used for tags.")
+
+(defimage-speedbar speedbar-tag-+
+  ((:type xpm :file "sb-tag+.xpm"))
+  "Image used for closed tag groups.")
+
+(defimage-speedbar speedbar-tag--
+  ((:type xpm :file "sb-tag-.xpm"))
+  "Image used for open tag groups.")
+
+(defimage-speedbar speedbar-mail
+  ((:type xpm :file "sb-mail.xpm"))
+  "Image used for open tag groups.")
+
+(defvar speedbar-expand-image-button-alist
+  '(("<+>" . speedbar-directory-+)
+    ("<->" . speedbar-directory--)
+    ("[+]" . speedbar-file-+)
+    ("[-]" . speedbar-file--)
+    ("[?]" . speedbar-file-)
+    ("{+}" . speedbar-tag-+)
+    ("{-}" . speedbar-tag--)
+    ("<M>" . speedbar-mail)
+    (">" . speedbar-tag-)
+    )
+  "List of text and image associations.")
+
+(defun speedbar-insert-image-button-maybe (start length)
+  "Insert an image button based on text starting at START for LENGTH chars.
+If buttontext is unknown, just insert that text.
+If we have an image associated with it, use that image."
+  (if speedbar-use-images
+      (let* ((bt (buffer-substring start (+ length start)))
+	     (a (assoc bt speedbar-expand-image-button-alist)))
+	;; Regular images (created with `insert-image' are intangible
+	;; which (I suppose) make them more compatible with XEmacs 21.
+	;; Unfortunatly, there is a giant pile o code dependent on the
+	;; underlying text.  This means if we leave it tangible, then I
+	;; don't have to change said giant piles o code.
+	(if a
+	    (if (fboundp 'set-extent-property)
+		(add-text-properties (+ start (length bt)) start
+				     (list 'end-glyph (symbol-value (cdr a))
+					   'rear-nonsticky (list 'display)
+					   'invisible t
+					   'detachable t))
+	      (add-text-properties start (+ start (length bt))
+				   (list 'display (symbol-value (cdr a))
+					 'rear-nonsticky (list 'display))))))))
+
 
 ;; some edebug hooks
 (add-hook 'edebug-setup-hook
