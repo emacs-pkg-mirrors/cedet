@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.98 2001/04/28 13:52:52 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.99 2001/05/04 14:46:46 ponced Exp $
 
 (defvar semantic-version "1.4beta3"
   "Current version of Semantic.")
@@ -327,6 +327,10 @@ This is tracked with `semantic-change-function'.")
   "List of tokens in the current buffer which are dirty.
 Dirty functions can then be reparsed, and spliced back into the main list.")
 (make-variable-buffer-local 'semantic-dirty-tokens)
+
+(defvar semantic-bovinate-nonterminal-check-obarray nil
+  "Obarray of streams already parsed for nonterminal symbols.")
+(make-variable-buffer-local 'semantic-bovinate-nonterminal-check-obarray)
 
 (defvar semantic-dirty-token-hooks nil
   "Hooks run after when a token is marked as dirty (edited by the user).
@@ -715,7 +719,8 @@ that, otherwise, do a full reparse."
   "Set the toplevel bovine cache to TOKENLIST."
   (setq semantic-toplevel-bovine-cache tokenlist
 	semantic-toplevel-bovine-cache-check nil
-	semantic-toplevel-bovine-force-reparse nil)
+	semantic-toplevel-bovine-force-reparse nil
+        semantic-bovinate-nonterminal-check-obarray nil)
   (add-hook 'after-change-functions 'semantic-change-function nil t)
   (run-hooks 'semantic-after-toplevel-bovinate-hook))
 
@@ -978,6 +983,25 @@ of `semantic-bovinate-nonterminal'."
        (car (aref (car nt-stack) 2))
      nonterminal))
 
+(defun semantic-bovinate-nonterminal-check (stream nonterminal)
+  "Check if STREAM not already parsed for NONTERMINAL.
+If so abort because an infinite recursive parse is suspected."
+  (or (vectorp semantic-bovinate-nonterminal-check-obarray)
+      (setq semantic-bovinate-nonterminal-check-obarray
+            (make-vector 13 nil)))
+  (let* ((nt (symbol-name nonterminal))
+         (vs (symbol-value
+              (intern-soft
+               nt semantic-bovinate-nonterminal-check-obarray))))
+    (if (memq stream vs)
+        ;; Always enter debugger to see the backtrace
+        (let ((debug-on-signal t)
+              (debug-on-error  t))
+          (setq semantic-bovinate-nonterminal-check-obarray nil)
+          (error "Infinite recursive parse suspected on %s" nt))
+      (set (intern nt semantic-bovinate-nonterminal-check-obarray)
+           (cons stream vs)))))
+
 (defun semantic-bovinate-nonterminal (stream table &optional nonterminal)
   "Bovinate STREAM based on the TABLE of nonterminal symbols.
 Optional argument NONTERMINAL is the nonterminal symbol to start with.
@@ -989,6 +1013,11 @@ list of semantic tokens found.  OVERLAYS is the list of overlays found
 so far, to be used in the error recovery stack."
   (if (not nonterminal)
       (setq nonterminal 'bovine-toplevel))
+
+  ;; Try to detect infinite recursive parse when doing a full reparse.
+  (or semantic-toplevel-bovine-cache
+      (semantic-bovinate-nonterminal-check stream nonterminal))
+
   (let ((matchlist (cdr (assq nonterminal table)))
         (nt-loop  t)             ;non-terminal loop condition
         nt-popup                 ;non-nil if return from nt recursion
