@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7e
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.98 1998/05/06 01:35:10 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.99 1998/05/09 14:10:37 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -353,6 +353,8 @@
 ;;       XEmacs old custom workaround changes.
 ;;       `speedbar-add-supported-extension' and
 ;;         `speedbar-add-ignored-path-regexp' are now interactive.
+;;       Fixed bug changing speedbar's default dir to a directory that is
+;;         shown as an expanded sub-directory. (caused by smart-expand)
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -499,7 +501,10 @@ relevant to the buffer you are currently editing."
   :group 'speedbar
   :type 'integer)
 
-(defcustom speedbar-navigating-speed 10
+;; When I moved to a repeating timer, I had the horrible missfortune
+;; of loosing the ability for adaptive speed choice.  This update
+;; speed currently causes long delays when it should have been turned off.
+(defcustom speedbar-navigating-speed speedbar-update-speed
   "*Idle time to wait after navigation commands in speedbar are executed.
 Navigation commands included expanding/contracting nodes, and moving
 between different directories."
@@ -2396,7 +2401,12 @@ name will have the function FIND-FUN and not token."
       ;; really a request to update existing contents, so we must be
       ;; careful with our text cache!
       (if (member cbd speedbar-shown-directories)
-	  (setq cache nil)
+	  (progn
+	    (setq cache nil)
+	    ;; If the current directory is not the last element in the dir
+	    ;; list, then we ALSO need to zap the list of expanded directories
+	    (if (/= (length (member cbd speedbar-shown-directories)) 1)
+		(setq speedbar-shown-directories (list cbd))))
 
 	;; Build cbd-parent, and see if THAT is in the current shown
 	;; directories.  First, go through pains to get the parent directory
@@ -2547,7 +2557,7 @@ interrupted by the user."
 	    (speedbar-stealthy-update-recurse t))
 	(unwind-protect
 	    (while (and l (funcall (car l)))
-	      (sit-for 0)
+	      ;(sit-for 0)
 	      (setq l (cdr l)))
 	  ;;(message "Exit with %S" (car l))
 	  ))))
@@ -3096,8 +3106,10 @@ subdirectory chosen will be at INDENT level."
 		"/"))
   ;; Because we leave speedbar as the current buffer,
   ;; update contents will change directory without
-  ;; having to touch the attached frame.
-  (speedbar-update-contents)
+  ;; having to touch the attached frame.  Turn off smart expand just
+  ;; in case.
+  (let ((speedbar-smart-directory-expand-flag nil))
+    (speedbar-update-contents))
   (speedbar-set-timer speedbar-navigating-speed)
   (setq speedbar-last-selected-file nil)
   (speedbar-stealthy-updates))
