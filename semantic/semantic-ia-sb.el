@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.5 2002/03/20 02:02:57 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.6 2002/03/20 18:13:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,15 +41,14 @@
 
   ;; Basic featuers.
   (define-key semantic-ia-sb-key-map "\C-m" 'speedbar-edit-line)
-  (define-key semantic-ia-sb-key-map "+" 'speedbar-expand-line)
-  (define-key semantic-ia-sb-key-map "-" 'speedbar-contract-line)
-  (define-key semantic-ia-sb-key-map "=" 'speedbar-contract-line)
+  (define-key semantic-ia-sb-key-map "I" 'semantic-ia-sb-tag-info)
   )
 
 (defvar semantic-ia-sb-easymenu-definition
   '( "---"
-     [ "Expand" speedbar-expand-line nil ]
-     [ "Contract" speedbar-contract-line nil ]
+;     [ "Expand" speedbar-expand-line nil ]
+;     [ "Contract" speedbar-contract-line nil ]
+     [ "Tag Information" semantic-ia-sb-tag-info t ]
      [ "Jump to Tag" speedbar-edit-line t ]
      [ "Complete" speedbar-edit-line t ]
      )
@@ -225,14 +224,27 @@ Each button will use FACE, and be activated with FUNCTION."
 				0))
       (setq list (cdr list)))))
 
+(defun semantic-ia-sb-tag-info ()
+  "Display information about the token on the current line.
+Same as clicking on the <i> button.
+See `semantic-ia-sb-token-info' for more."
+  (interactive)
+  (let ((tok nil))
+    (save-excursion
+      (end-of-line)
+      (forward-char -1)
+      (setq tok (get-text-property (point) 'speedbar-token)))
+    (semantic-ia-sb-token-info nil tok 0)))
+
 (defun semantic-ia-sb-token-info (text token indent)
-  "Display as much information as we can about token..
+  "Display as much information as we can about token.
 Show the information in a shrunk split-buffer and expand
 out as many details as possible.
 TEXT, TOKEN, and INDENT are speedbar function arguments."
   (unwind-protect
-      (progn
+      (let ((ob nil))
 	(speedbar-select-attached-frame)
+	(setq ob (current-buffer))
 	(with-output-to-temp-buffer "*Tag Information*"
 	  ;; Output something about this token:
 	  (save-excursion
@@ -241,10 +253,13 @@ TEXT, TOKEN, and INDENT are speedbar function arguments."
 	    (insert
 	     (semantic-prototype-nonterminal token nil t)
 	     "\n")
-	    (let ((typetok (semantic-analyze-token-type token)))
+	    (let ((typetok
+		   (save-excursion
+		     (set-buffer ob)
+		     (semantic-analyze-token-type token))))
 	      (if typetok
 		  (insert (semantic-prototype-nonterminal
-			   (cdr (car typetok)) nil t))
+			   typetok nil t))
 		;; No type found by the analyzer
 		(let ((type (semantic-token-type token)))
 		  (save-excursion
