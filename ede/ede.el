@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.32 2000/06/20 02:21:45 zappo Exp $
+;; RCS: $Id: ede.el,v 1.33 2000/06/20 02:22:55 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -1110,6 +1110,8 @@ If VARIABLE is not project local, just use set."
 
 (autoload 'ede-speedbar "ede-speedbar" "Run speedbar in EDE project mode." t)
 (autoload 'ede-speedbar-file-setup "ede-speedbar" "EDE in Speedbar File mode hack." t)
+
+(eval-when-compile (require 'ede-speedbar))
 
 (if (featurep 'speedbar)
     (ede-speedbar-file-setup)
