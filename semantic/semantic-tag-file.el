@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.1 2003/07/09 16:14:31 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.2 2003/07/09 16:37:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,7 +45,7 @@ depended on (see `semantic-go-to-tag--dependency'.."
   (if (not tag)
       (setq tag (car (semantic-find-tag-by-overlay nil))))
   (if (and (eq (semantic-tag-class tag) 'include)
-	   (let ((f (semantic-find-dependency tag)))
+	   (let ((f (semantic-dependency-tag-file tag)))
 	     (if f (find-file f))))
       nil
     (let ((s (or (semantic-fetch-overload 'find-tag)
