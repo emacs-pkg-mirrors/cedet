@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2004 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.18 2004/03/01 02:03:05 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.19 2004/03/28 01:31:13 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -189,8 +189,10 @@ Argument LEVEL is the current level of recursion we have hit."
     (let ((methods (eieio-all-generic-functions class))
 	  (doc nil))
       (if (not methods) nil
-	(insert "@sub" eieiodoc-current-section-level
-		" Specialized Methods\n\n")
+	(if (string= eieiodoc-current-section-level "subsubsection")
+	    (insert "@" eieiodoc-current-section-level)
+	  (insert "@sub" eieiodoc-current-section-level))
+	(insert " Specialized Methods\n\n")
 	(while methods
 	  (setq doc (eieio-method-documentation (car methods) class))
 	  (insert "@deffn Method " (symbol-name (car methods)))
