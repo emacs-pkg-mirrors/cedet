@@ -27,7 +27,7 @@ semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el sema
 Languages_LISP=semantic-texi.el semantic-html.el
 tools_LISP=semantic-imenu.el semantic-sb.el semanticdb.el document.el document-vars.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el semantic-idle.el
 senator_LISP=senator.el
-misc_AUX=INSTALL NEWS ChangeLog AUTHORS
+misc_AUX=INSTALL NEWS ChangeLog AUTHORS ONEWS
 VERSION=2.0beta2
 DISTDIR=$(top)semantic-$(VERSION)
 
