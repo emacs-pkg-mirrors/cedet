@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.15 2003/09/02 14:51:03 ponced Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.16 2004/02/13 09:44:53 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -227,32 +227,48 @@ manual."
          ;; Setup the cache of macro definitions.
          (bovine--grammar-macros (semantic-grammar-macros))
          nterm rules items item actn prec tag type regex)
-    (when start
+
+    ;; Check some trivial things
+    (cond
+     ((null nterms)
+      (error "Bad input grammar"))
+     (start
       (if (cdr start)
           (message "Extra start symbols %S ignored" (cdr start)))
-      (setq start (symbol-name (car start))))
+      (setq start (symbol-name (car start)))
+      (unless (semantic-find-first-tag-by-name start nterms)
+        (error "start symbol `%s' has no rule" start)))
+     (t
+      ;; Default to the first grammar rule.
+      (setq start (semantic-tag-name (car nterms)))))
     (when scopestart
-      (setq scopestart (symbol-name scopestart)))
+      (setq scopestart (symbol-name scopestart))
+      (unless (semantic-find-first-tag-by-name scopestart nterms)
+        (error "scopestart symbol `%s' has no rule" scopestart)))
+
+    ;; Generate the grammar Lisp form.
     (with-temp-buffer
       (erase-buffer)
       (insert "`(")
+      ;; Insert the start/scopestart rules
+      (insert "\n(bovine-toplevel \n("
+              start
+              ")\n) ;; end bovine-toplevel\n")
+      (when scopestart
+        (insert "\n(bovine-inner-scope \n("
+                scopestart
+                ")\n) ;; end bovine-inner-scope\n"))
       ;; Process each nonterminal
       (while nterms
         (setq nterm  (car nterms)
-	      ;; We can't use the override form because the current buffer
-	      ;; is not the originator of the tag.
+              ;; We can't use the override form because the current buffer
+              ;; is not the originator of the tag.
               rules  (semantic-tag-components-semantic-grammar-mode nterm)
               nterm  (semantic-tag-name nterm)
               nterms (cdr nterms))
-        (cond
-         ;; Replace the start symbol by bovine-toplevel
-         ((equal nterm start)
-          (insert "\n(bovine-toplevel ;;" nterm))
-         ;; Replace the scopestart symbol by bovine-inner-scope
-         ((equal nterm scopestart)
-          (insert "\n(bovine-inner-scope ;;" nterm))
-         (t
-          (insert "\n(" nterm)))
+        (when (member nterm '("bovine-toplevel" "bovine-inner-scope"))
+          (error "`%s' is a reserved internal name" nterm))
+        (insert "\n(" nterm)
         ;; Process each rule
         (while rules
           (setq items (semantic-tag-get-attribute (car rules) :value)
@@ -273,17 +289,13 @@ manual."
                 (or (char-equal (char-before) ?\()
                     (insert "\n"))
                 (cond
-                 ;; Replace ITEM by bovine-toplevel
-                 ((equal item start)
-                  (insert "bovine-toplevel"))
-                 ;; Replace ITEM by bovine-inner-scope
-                 ((equal item scopestart)
-                  (insert "bovine-inner-scope"))
+                 ((member item '("bovine-toplevel" "bovine-inner-scope"))
+                  (error "`%s' is a reserved internal name" item))
                  ;; Replace ITEM by its %token definition.
                  ;; If a '%token TYPE ITEM [REGEX]' definition exists
                  ;; in the grammar, ITEM is replaced by TYPE [REGEX].
                  ((setq tag (semantic-find-first-tag-by-name
-                               item tags)
+                             item tags)
                         type  (semantic-tag-get-attribute tag :type))
                   (insert type)
                   (if (setq regex (semantic-tag-get-attribute tag :value))
