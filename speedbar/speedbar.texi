@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.8 2000/02/17 02:04:37 zappo Exp $
+@c $Id: speedbar.texi,v 1.9 2000/06/03 15:08:09 zappo Exp $
 @c
 
 @c This manual covers the tool "speedbar", and is a part of it's
@@ -918,6 +918,7 @@ Some common speedbar functions you might want to bind are:
 Edit the item on the current line.
 @item speedbar-expand-line
 Expand the item under the cursor.
+With universal argument @key{C-u}, flush cached data before expanding.
 @item speedbar-contract-line
 Contract the item under the cursor.
 @end table
