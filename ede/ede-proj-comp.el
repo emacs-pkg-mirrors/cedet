@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-comp.el,v 1.3 2000/10/11 02:57:39 zappo Exp $
+;; RCS: $Id: ede-proj-comp.el,v 1.4 2000/10/14 02:55:42 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@
 (require 'autoconf-edit)
 
 ;;; Types:
-(defclass ede-compiler ()
+(defclass ede-compilation-program ()
   ((name :initarg :name
 	 :type string
 	 :custom string
@@ -62,6 +62,13 @@
 An assoc list where each element is (VARNAME . VALUE) where VARNAME
 is a string, and VALUE is either a string, or a list of strings.
 For example, GCC would define CC=gcc, and emacs would define EMACS=emacs.")
+   (sourcetype :initarg :sourcetype
+	       :type list ;; of symbols
+	       :documentation
+	       "A list of `ede-sourcecode' objects this class will handle.
+This is used to match target objects with the compilers and linkers
+they can use, and which files this object is interested in."
+	       :accessor ede-object-sourcecode)
    (rules :initarg :rules
 	  :initform nil
 	  :type list
@@ -86,19 +93,18 @@ When a project is in Automake mode, this defines the autoconf function to
 call to initialize automake to use this compiler.
 For example, there may be multiple C compilers, but they all probably
 use the same autoconf form.")
-   (sourcetype :initarg :sourcetype
-	       :type list ;; of symbols
-	       :documentation
-	       "A list of `ede-sourcecode' objects this class will handle.
-This is used to match target objects with the compilers they can use, and
-which files this object is interested in."
-	       :accessor ede-object-sourcecode)
    (objectextention :initarg :objectextention
 		    :type string
 		    :documentation
 		    "A string which is the extention used for object files.
 For example, C code uses .o on unix, and Emacs Lisp uses .elc.")
-   (makedepends :initarg :makedepends
+   )
+  "A program used to compile or link a program via a Makefile.
+Contains everything needed to output code into a Makefile, or autoconf
+file.")
+
+(defclass ede-compiler (ede-compilation-program)
+  ((makedepends :initarg :makedepends
 		:initform nil
 		:type boolean
 		:documentation
@@ -115,34 +121,8 @@ linkers that can be used.")
 Different types of objects will provide different compilers for
 different situations.")
 
-(defclass ede-linker ()
-  ((name :initarg :name
-	 :type string
-	 :custom string
-	 :documentation "Name of this type of compiler.")
-   (variables :initarg :variables
-	      :type list
-	      :custom (repeat (cons (string :tag "Variable")
-				    (string :tag "Value")))
-	      :documentation
-	      "Variables needed in the Makefile for this compiler.
-An assoc list where each element is (VARNAME . VALUE) where VARNAME
-is a string, and VALUE is either a string, or a list of strings.
-For example, GCC would define CC=gcc, and emacs would define EMACS=emacs.")
-   (rules :initarg :rules
-	  :initform nil
-	  :type list
-	  :custom (repeat (object :objecttype ede-makefile-rule))
-	  :documentation
-	  "Auxiliary rules needed for this compiler to run.
-For example, yacc/lex files need additional chain rules, or inferences.")
-   (commands :initarg :commands
-	    :type list
-	    :custom (repeat string)
-	    :documentation
-	    "The commands used to execute this compiler.
-The object which uses this compiler will place these commands after
-it's rule definition."))
+(defclass ede-linker (ede-compilation-program)
+  ()
   "Contains information needed to link many generated object files together.")
 
 (defclass ede-makefile-rule ()
@@ -182,6 +162,9 @@ Adds this rule to a .PHONY list."))
 (defvar ede-compiler-list nil
   "The master list of all EDE compilers.")
 
+(defvar ede-linker-list nil
+  "The master list of all EDE compilers.")
+
 (defvar ede-current-build-list nil
   "List of EDE compilers that have already inserted parts of themselves.
 This is used when creating a Makefile to prevend duplicate variables and
@@ -191,6 +174,11 @@ rules from being created.")
   "Make sure that all ede compiler objects are cached in 
 `ede-compiler-list'."
   (add-to-list 'ede-compiler-list this))
+
+(defmethod initialize-instance :AFTER ((this ede-linker) &rest fields)
+  "Make sure that all ede compiler objects are cached in 
+`ede-linker-list'."
+  (add-to-list 'ede-linker-list this))
 
 (defmacro ede-compiler-begin-unique (&rest body)
   "Execute BODY, making sure that `ede-current-build-list' is maintained.
@@ -205,10 +193,25 @@ This will prevent rules from creating duplicate variables or rules."
 	 (add-to-list 'ede-current-build-list ,object)
 	 ,@body)))
 
+(defmacro ede-linker-begin-unique (&rest body)
+  "Execute BODY, making sure that `ede-current-build-list' is maintained.
+This will prevent rules from creating duplicate variables or rules."
+  `(let ((ede-current-build-list nil))
+    ,@body))
+
+(defmacro ede-linker-only-once (object &rest body)
+  "Using OBJECT, execute BODY only once per Makefile generation."
+  `(if (not (member ,object ede-current-build-list))
+       (progn
+	 (add-to-list 'ede-current-build-list ,object)
+	 ,@body)))
+
 (add-hook 'edebug-setup-hook
 	  (lambda ()
 	    (def-edebug-spec ede-compiler-begin-unique def-body)
 	    (def-edebug-spec ede-compiler-only-once (form def-body))
+	    (def-edebug-spec ede-linker-begin-unique def-body)
+	    (def-edebug-spec ede-linker-only-once (form def-body))
 	    ))
 
 ;;; Querys
@@ -219,8 +222,16 @@ This will prevent rules from creating duplicate variables or rules."
     (setq compilers (cdr compilers)))
   (car-safe compilers))
 				  
+(defun ede-proj-find-linker (linkers sourcetype)
+  "Return a compiler from the list LINKERS to be used with SOURCETYPE."
+  (while (and linkers
+	      (slot-boundp (car linkers) 'sourcetype)
+	      (not (member sourcetype (oref (car linkers) sourcetype))))
+    (setq linkers (cdr linkers)))
+  (car-safe linkers))
+				  
 ;;; Methods:
-(defmethod ede-proj-tweak-autoconf ((this ede-compiler))
+(defmethod ede-proj-tweak-autoconf ((this ede-compilation-program))
   "Tweak the configure file (current buffer) to accomodate THIS."
   (with-slots (autoconf) this
     (while autoconf
@@ -232,11 +243,11 @@ This will prevent rules from creating duplicate variables or rules."
 	    (t (error "Autoconf directives must be a string, or cons cell")))
       (setq autoconf (cdr autoconf)))))
 
-(defmethod ede-proj-flush-autoconf ((this ede-compiler))
+(defmethod ede-proj-flush-autoconf ((this ede-compilation-program))
   "Flush the configure file (current buffer) to accomodate THIS."
   nil)
 
-(defmethod ede-proj-makefile-insert-variables ((this ede-compiler))
+(defmethod ede-proj-makefile-insert-variables ((this ede-compilation-program))
   "Insert variables needed by the compiler THIS."
   (if (slot-boundp this 'variables)
       (with-slots (variables) this
@@ -285,7 +296,7 @@ Not all compilers do this."
 		sourcefiles)
 	  (insert "\n")))))
 
-(defmethod ede-proj-makefile-insert-rules ((this ede-compiler))
+(defmethod ede-proj-makefile-insert-rules ((this ede-compilation-program))
   "Insert rules needed for THIS compiler object."
   (ede-compiler-only-once this
     (mapc 'ede-proj-makefile-insert-rules (oref this rules))))
@@ -297,15 +308,16 @@ Not all compilers do this."
 	  (mapconcat (lambda (c) c) (oref this rules) "\n\t")
 	  "\n\n"))
 
-(defmethod ede-proj-makefile-insert-commands ((this ede-compiler))
+(defmethod ede-proj-makefile-insert-commands ((this ede-compilation-program))
   "Insert the commands needed to use compiler THIS.
 The object creating makefile rules must call this method for the
 compiler it decides to use after inserting in the rule."
-  (with-slots (commands) this
-    (while commands
-      (insert "\t" (car commands) "\n")
-      (setq commands (cdr commands)))
-    (insert "\n")))
+  (when (slot-boundp this 'commands)
+    (with-slots (commands) this
+      (while commands
+	(insert "\t" (car commands) "\n")
+	(setq commands (cdr commands)))
+      (insert "\n"))))
 
 ;;; Some details about our new macro
 ;;
@@ -314,6 +326,8 @@ compiler it decides to use after inserting in the rule."
 	    (def-edebug-spec ede-compiler-begin-unique def-body)))
 (put 'ede-compiler-begin-unique 'lisp-indent-function 0)
 (put 'ede-compiler-only-once 'lisp-indent-function 1)
+(put 'ede-linker-begin-unique 'lisp-indent-function 0)
+(put 'ede-linker-only-once 'lisp-indent-function 1)
 
 (provide 'ede-proj-comp)
 
