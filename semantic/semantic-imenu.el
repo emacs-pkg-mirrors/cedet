@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.49 2004/02/05 23:20:50 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.50 2004/03/20 00:02:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -240,9 +240,9 @@ Optional argument STREAM is an optional stream of tags used to create menus."
                (featurep 'semanticdb)
                (semanticdb-minor-mode-p))
           (semantic-create-imenu-directory-index
-	   (or stream (semantic-bovinate-toplevel t)))
+	   (or stream (semantic-fetch-tags)))
         (semantic-create-imenu-index-1
-	 (or stream (semantic-bovinate-toplevel t)) nil))
+	 (or stream (semantic-fetch-tags)) nil))
     (semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
     (add-hook 'semantic-after-toplevel-cache-change-hook
               'semantic-imenu-flush-fcn nil t)
@@ -527,7 +527,7 @@ in which case it concatenates them together."
 
 (defadvice which-function (around semantic-which activate)
   "Choose the function to display via semantic if it is currently active."
-  (if (and (featurep 'semantic) semantic-toplevel-bovine-cache)
+  (if (and (featurep 'semantic) semantic--buffer-cache)
       (let ((ol (semantic-find-tag-by-overlay)))
 	(setq ad-return-value (funcall semantic-which-function ol)))
     ad-do-it))
