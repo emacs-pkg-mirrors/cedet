@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.113 2001/09/14 20:16:31 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.114 2001/10/03 01:56:31 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta3"
   "Current version of EIEIO.")
@@ -463,6 +463,10 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	(if (not (or (null label) (stringp label)))
 	    (signal 'invalid-slot-type (list ':label label)))
 	
+	;; Is there an initarg, but allocation of class?
+	(if (and initarg (eq alloc :class))
+	    (message "Class allocated slots do not need :initarg"))
+
 	;; intern the symbol so we can use it blankly
 	(if initarg (set initarg initarg))
 
