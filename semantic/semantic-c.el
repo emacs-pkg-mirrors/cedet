@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.6 2000/09/19 04:21:24 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.7 2000/09/20 18:04:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -327,8 +327,7 @@
 				      mods
 				      suffix
 				      (semantic-token-docstring nonterm)
-				      (semantic-token-start nonterm)
-				      (semantic-token-end nonterm))
+				      (semantic-token-overlay nonterm))
 				vl))
 		 (setq lst (cdr lst)))
 	       vl))
