@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.18 2003/04/01 13:04:44 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.19 2003/04/02 08:44:47 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -398,7 +398,6 @@ later installation should be done in MODE hook."
                  (list 'constant (not transient) 'override t)
                  mode))
 
-;;;###autoload
 (defmacro define-overload (name args docstring &rest body)
   "Define a new function, as with `defun' which can be overloaded.
 NAME is the name of the function to create.  If it is of the form
