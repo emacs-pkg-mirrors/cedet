@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.16 2004/03/11 02:31:52 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.17 2004/04/28 15:35:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,7 +94,7 @@ Equivalent modes are specified by by `semantic-equivalent-major-modes'
 local variable."
   (save-excursion
     (set-buffer buffer)
-    (eq (or semantic-bindings-active-mode major-mode) 'emacs-lisp-mode)))
+    (eq (or mode-local-active-mode major-mode) 'emacs-lisp-mode)))
 
 ;;; Usage
 ;;
