@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.23 2003/01/25 06:13:44 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.24 2003/01/31 04:16:26 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -376,7 +376,7 @@ it to a form suitable for the Wisent's parser."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 22:04-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 20:10-0800
   (eval-when-compile
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
@@ -384,8 +384,7 @@ it to a form suitable for the Wisent's parser."
        (goal
 	((NEWLINE))
 	((simple_stmt))
-	((compound_stmt NEWLINE)
-	 (identity $1)))
+	((compound_stmt)))
        (simple_stmt
 	((small_stmt_list semicolon_opt NEWLINE)
 	 (identity $1)))
@@ -422,15 +421,19 @@ it to a form suitable for the Wisent's parser."
 	 nil))
        (expr_stmt
 	((testlist expr_stmt_trailer)
-	 (wisent-token "expr" 'code nil nil)))
+	 (if
+	     (and $2
+		  (stringp $1)
+		  (string-match "^\\(\\sw\\|\\s_\\)+$" $1))
+	     (wisent-token $1 'variable nil nil)
+	   (wisent-token $1 'code nil nil))))
        (expr_stmt_trailer
-	((augassign testlist)
-	 nil)
+	((augassign testlist))
 	((eq_testlist_zom)))
        (eq_testlist_zom
 	(nil)
 	((eq_testlist_zom ASSIGN testlist)
-	 nil))
+	 (identity $3)))
        (augassign
 	((PLUSEQ))
 	((MINUSEQ))
@@ -601,12 +604,27 @@ it to a form suitable for the Wisent's parser."
 	(nil)
 	((test zero_or_one_comma_test)))
        (funcdef
-	((DEF NAME PAREN_BLOCK COLON suite)
-	 (wisent-token $2 'function nil nil)))
-       (parameters
-	((LPAREN varargslist_opt RPAREN)
-	 (format "%s"
-		 (or $2 ""))))
+	((DEF NAME function_parameter_list COLON suite)
+	 (wisent-token $2 'function nil $3)))
+       (function_parameter_list
+	((PAREN_BLOCK)
+	 (semantic-parse-region
+	  (car $region1)
+	  (cdr $region1)
+	  'function_parameters 1)))
+       (function_parameters
+	((LPAREN)
+	 nil)
+	((RPAREN)
+	 nil)
+	((function_parameter COMMA))
+	((function_parameter RPAREN)))
+       (function_parameter
+	((fpdef_opt_test))
+	((MULT NAME)
+	 (wisent-token $2 'variable nil nil nil nil))
+	((EXPONENT NAME)
+	 (wisent-token $2 'variable nil nil nil nil)))
        (classdef
 	((CLASS NAME paren_testlist_opt COLON suite)
 	 (wisent-token $2 'type $1 $5 nil)))
@@ -749,58 +767,52 @@ it to a form suitable for the Wisent's parser."
 	(nil)
 	((varargslist)))
        (varargslist
-	((fpdef_opt_test_list comma_mult_name_opt)
-	 (format "%s %s" $1
-		 (or $2 "")))
-	((mult_name)))
-       (comma_mult_name_opt
-	(nil)
-	((COMMA mult_name)))
-       (mult_name
-	((MULT NAME multmult_name_opt))
-	((EXPONENT NAME)))
+	((fpdef_opt_test_list_comma_zom rest_args)
+	 (nconc $2 $1))
+	((fpdef_opt_test_list comma_opt)))
+       (rest_args
+	((MULT NAME multmult_name_opt)
+	 nil)
+	((EXPONENT NAME)
+	 nil))
        (multmult_name_opt
 	(nil)
 	((COMMA EXPONENT NAME)
-	 (format ", ** %s" $3)))
+	 (wisent-token $3 'variable nil nil nil nil)))
+       (fpdef_opt_test_list_comma_zom
+	(nil)
+	((fpdef_opt_test_list_comma_zom fpdef_opt_test COMMA)
+	 (nconc $2 $1)))
        (fpdef_opt_test_list
 	((fpdef_opt_test))
 	((fpdef_opt_test_list COMMA fpdef_opt_test)
-	 (format "%s, %s" $1
-		 (or $3 ""))))
+	 (nconc $3 $1)))
        (fpdef_opt_test
-	((fpdef eq_test_opt)
-	 (format "%s %S" $1
-		 (or $2 ""))))
+	((fpdef eq_test_opt)))
        (fpdef
-	((NAME))
-	((LPAREN fplist RPAREN)
-	 (format "(%s)"
-		 (or $2 ""))))
+	((NAME)
+	 (wisent-token $1 'variable nil nil nil nil)))
        (fplist
-	((fpdef_list comma_opt)
-	 (format "%s %s"
-		 (or $1 "")
-		 (or $2 ""))))
+	((fpdef_list comma_opt)))
        (fpdef_list
 	((fpdef))
 	((fpdef_list COMMA fpdef)
-	 (format "%s, %s" $1 $3)))
+	 (identity $1)))
        (eq_test_opt
 	(nil)
 	((ASSIGN test)
-	 (format " = %s" $2)))
+	 nil))
        (comma_opt
 	(nil)
 	((COMMA)))
        (semicolon_opt
 	(nil)
 	((SEMICOLON))))
-     '(goal)))
+     '(goal function_parameter function_parameters)))
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 22:04-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 20:10-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -862,7 +874,7 @@ it to a form suitable for the Wisent's parser."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 22:04-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 20:10-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -934,7 +946,7 @@ it to a form suitable for the Wisent's parser."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 22:04-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 20:10-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
