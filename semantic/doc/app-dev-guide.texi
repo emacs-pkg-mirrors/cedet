@@ -5,20 +5,22 @@
 @c proper menus for this chapter.
 @end ignore
 
-A semantic application takes the semantic tags generated
+A @semantic{} application takes the semantic tags generated
 by semantic parsers then provides useful services to the user.
 See @ref{Semantic User's Guide} for a list of such applications.
 
-An application developer needs to know how to generate or regenerate
-tag lists, retrieve tags, get details from tags, extract and
-search those lists with and without the database, and convert tags
-into displayable text strings in one of the many different formats.
+An application developer needs to know
+@itemize @bullet
+@item when to invoke the parser to generate or regenerate the tag lists.
+@item how to access the tag lists.
+@item how to access information about each tag.
+@end itemize
 
-This chapter describes semantic fuctions an application developer can
-use to perform all of the tasks just listed.
+This chapter describes @semantic{} fuctions and concepts an application
+developer needs to know to perform all of the tasks just listed.
 
 @menu
-* Tag Queries::                 Getting info about a parsed tag (nonterminal).
+* Semantic Tags::               
 * Nonterminal Streams::         Working with streams of nonterminals.
 * Nonterminals at point::       Finding nonterminals at point.
 * Nonterminal Sorting::         Reorganizing streams.
@@ -31,208 +33,12 @@ use to perform all of the tasks just listed.
 * Current Context::             
 @end menu
 
-@node Tag Queries
-@section Tag Queries
+@node Semantic Tags
+@section Semantic Tags
 
-When writing programs that use the bovinator, the following functions
-are needed to get details out of a nonterminal.
-
-@defun semantic-tag-name tag
-Return the name of @var{TAG}.
-
-@obsolete{semantic-token-name,semantic-tag-name}
-@end defun
-
-@defun semantic-tag-class tag
-Return the class of @var{TAG}.
-That is, the symbol @code{'variable}, @code{'function}, @code{'type}, or other.
-
-@obsolete{semantic-token-token,semantic-tag-class}
-@end defun
-
-@defun semantic-tag-docstring tag &optional buffer
-Return the documentation of @var{TAG}.
-That is the value defined by the `:documentation' attribute.
-Optional argument @var{BUFFER} indicates where to get the text from.
-If not provided, then only the @var{POSITION} can be provided.
-
-@obsolete{semantic-token-docstring,semantic-tag-docstring}
-@end defun
-
-@defun semantic-tag-overlay tag
-Return the @var{OVERLAY} part of @var{TAG}.
-That is, an overlay or an unloaded buffer representation.
-
-@obsolete{semantic-token-overlay,semantic-tag-overlay}
-@end defun
-
-@defun semantic-tag-bounds tag
-Return the location (@var{START} @var{END}) of data @var{TAG} describes.
-
-@obsolete{semantic-token-extent,semantic-tag-bounds}
-@end defun
-
-@defun semantic-tag-start tag
-Return the start location of @var{TAG}.
-
-@obsolete{semantic-token-start,semantic-tag-start}
-@end defun
-
-@defun semantic-tag-end tag
-Return the end location of @var{TAG}.
-
-@obsolete{semantic-token-end,semantic-tag-end}
-@end defun
-
-@defun semantic-tag-type tag
-Return the value of the `:type' attribute of @var{TAG}.
-
-@obsolete{semantic-token-type,semantic-tag-type}
-@end defun
-
-@defun semantic--tag-put-property tag property value
-Change value in @var{TAG} of @var{PROPERTY} to @var{VALUE}.
-If @var{PROPERTY} already exists, its value is set to @var{VALUE},
-otherwise the new @var{PROPERTY} @var{VALUE} pair is added.
-Return @var{TAG}.
-That function is for internal use only.
-
-@obsolete{semantic-token-put,semantic--tag-put-property}
-@end defun
-
-@defun semantic--tag-get-property tag property
-From @var{TAG}, extract the value of @var{PROPERTY}.
-Return the value found, or @code{nil} if @var{PROPERTY} is not one of the
-properties of @var{TAG}.
-That function is for internal use only.
-
-@obsolete{semantic-token-get,semantic--tag-get-property}
-@end defun
-
-@defun semantic-tag-get-attribute tag attribute
-From @var{TAG}, return the value of @var{ATTRIBUTE}.
-@var{ATTRIBUTE} is a symbol whose specification value to get.
-Return the value found, or @code{nil} if @var{ATTRIBUTE} is not one of the
-attributes of @var{TAG}.
-
-@obsolete{semantic-token-extra-spec,semantic-tag-get-attribute}
-@obsolete{semantic-token-function-extra-spec,semantic-tag-get-attribute}
-@obsolete{semantic-token-variable-extra-spec,semantic-tag-get-attribute}
-@end defun
-
-@defun semantic-tag-type-members tag
-Return the members of the type that @var{TAG} describes.
-That is the value of the `:members' attribute.
-
-@obsolete{semantic-token-type-parts,semantic-tag-type-members}
-@end defun
-
-@defun semantic-tag-type-superclasses tag
-Return the list of superclasses of the type that @var{TAG} describes.
-
-@obsolete{semantic-token-type-parent,semantic-tag-type-superclasses}
-@end defun
-
-@defun semantic-tag-type-interfaces tag
-Return the list of interfaces of the type that @var{TAG} describes.
-
-@obsolete{semantic-token-type-parent,semantic-tag-type-interfaces}
-@obsolete{semantic-token-type-parent-implement,semantic-tag-type-interfaces}
-@end defun
-
-@defun semantic-tag-type-superclasses tag
-Return the list of superclasses of the type that @var{TAG} describes.
-
-@obsolete{semantic-token-type-parent-superclass,semantic-tag-type-superclasses}
-@obsolete{semantic-token-type-parent,semantic-tag-type-superclasses}
-@end defun
-
-@defun semantic-tag-modifiers tag
-Return the value of the @code{'modifiers} attribute of @var{TAG}.
-
-@obsolete{semantic-token-type-modifiers,semantic-tag-modifiers}
-@end defun
-
-@defun semantic-tag-attributes tag
-Return the list of public attributes of @var{TAG}.
-That is a property list: (@var{ATTRIBUTE-1} @var{VALUE-1}
-@var{ATTRIBUTE-2} @var{VALUE-2}...).
-
-@obsolete{semantic-token-function-extra-specs,semantic-tag-attributes}
-@obsolete{semantic-token-variable-extra-specs,semantic-tag-attributes}
-@obsolete{semantic-token-type-extra-specs,semantic-tag-attributes}
-@end defun
-
-@defun semantic-tag-function-arguments tag
-Return the arguments of the function that @var{TAG} describes.
-That is the value of the `:arguments' attribute.
-
-@obsolete{semantic-token-function-args,semantic-tag-function-arguments}
-@end defun
-
-@defun semantic-tag-modifiers tag
-Return the value of the @code{'modifiers} attribute of @var{TAG}.
-
-@obsolete{semantic-token-variable-modifiers,semantic-tag-modifiers}
-@obsolete{semantic-token-function-modifiers,semantic-tag-modifiers}
-@end defun
-
-@defun semantic-tag-function-destructor-p tag
-Return non-@code{nil} if @var{TAG} describes a destructor function.
-That is the value of the @dfn{destructor} attribute.
-
-@obsolete{semantic-token-function-destructor token,semantic-tag-function-destructor-p}
-@end defun
-
-@defun semantic-tag-function-throws tag
-Return the exceptions the function that @var{TAG} describes can throw.
-That is the value of the @code{throws} attribute.
-
-@obsolete{semantic-token-function-throws,semantic-tag-function-throws}
-@end defun
-
-@defun semantic-tag-function-parent tag
-Return the parent of the function that @var{TAG} describes.
-That is the value of the @code{parent} attribute.
-@var{A} function has a parent if it is a method of a class, and if the
-function does not appear in body of it's parent class.
-
-@obsolete{semantic-token-function-parent,semantic-tag-function-parent}
-@end defun
-
-@defun semantic-tag-variable-constant-p tag
-Return non-@code{nil} if the variable that @var{TAG} describes is a constant.
-That is the value of the attribute @code{const}.
-
-@obsolete{semantic-token-variable-const,semantic-tag-variable-constant-p}
-@end defun
-
-@defun semantic-tag-variable-default tag
-Return the default value of the variable that @var{TAG} describes.
-That is the value of the attribute `:default-value'.
-
-@obsolete{semantic-token-variable-default token,semantic-tag-variable-default}
-@end defun
-
-@defun semantic-tag-include-system-p tag
-Return non-@code{nil} if the include that @var{TAG} describes is a
-system include.
-That is the value of the attribute `:system-flag'.
-
-@obsolete{semantic-token-include-system,semantic-tag-include-system-p}
-@end defun
-
-@defun semantic-equivalent-tag-p tag1 tag2
-Compare @var{TAG1} and @var{TAG2} and return non-@code{nil} if they
-are equivalent.
-Use @dfn{eq} to test of two tags are the same.  Use this function if tags
-are being copied and regrouped to test for if two tags represent the
-same thing, but may be constructed of different cons cells.
-
-@obsolete{semantic-equivalent-tokens-p,semantic-equivalent-tag-p}
-@end defun
-
-For override methods that query a tag, see @xref{Token Details}.
+@lowersections
+@include tags.texi
+@raisesections
 
 @node Nonterminal Streams
 @section Nonterminal streams

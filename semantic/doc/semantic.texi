@@ -94,8 +94,11 @@ Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam, David Ponce
 @b{\kw\}
 @end macro
 
+@c Simple macro to help document obsoleted functions.
 @macro obsolete{old,new}
-Prior to Semantic version 2.0, @code{\new\} was known as @code{\old\}.
+
+@code{\new\} introduced in @semantic{} version 2.0 supercedes
+@code{\old\} which is now obsolete.
 @end macro
 
 @c *************************************************************************
