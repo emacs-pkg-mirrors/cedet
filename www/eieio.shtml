@@ -105,8 +105,7 @@ greater.  Please use EIEIO 0.12.</p>
 
 <P>Live on the Edge!
    <a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
-    eieio-0.17beta4.tar.gz</A> has much better error checking, and
-    method invocations is now closer to the CLOS standard.</p>
+    eieio-0.17beta4.tar.gz</A> </p>
 
 <P><a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
     eieio-0.16.tar.gz</A> has a new set of base classes to build apps from.</p>
