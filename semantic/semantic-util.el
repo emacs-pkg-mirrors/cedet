@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.69 2001/07/19 12:38:40 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.70 2001/07/19 13:19:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -125,6 +125,10 @@ Determines if it is available based on the length of TOKEN."
 A function has a parent if it is a method of a class, and if the
 function does not appear in body of it's parent class."
   `(semantic-token-function-extra-spec ,token 'parent))
+
+(defmacro semantic-token-function-destructor (token)
+  "Non-nil if TOKEN is a destructor function."
+  `(semantic-token-function-extra-spec ,token 'destructor))
 
 (defmacro semantic-token-variable-default (token)
   "Retrieve the default value of the variable TOKEN."
@@ -372,8 +376,15 @@ not the current token."
 (defun semantic-current-nonterminal ()
   "Return the current nonterminal in the current buffer.
 If there are more than one in the same location, return the
-smallest token."
+smallest token.  Return nil if there is no token here."
   (car (nreverse (semantic-find-nonterminal-by-overlay))))
+
+(defun semantic-current-nonterminal-parent ()
+  "Return the current nonterminals parent in the current buffer.
+A token's parent would be a containing structure, such as a type
+containing a field.  Return nil if there is no parent."
+  (car (cdr (nreverse (semantic-find-nonterminal-by-overlay)))))
+
 
 ;;; Nonterminal regions and splicing
 ;;
@@ -1073,7 +1084,10 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   "Return an abbreviated string describing TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (let ((name (semantic-token-name token)))
+  (let ((name (semantic-token-name token))
+	(destructor (semantic-token-function-destructor token)))
+    (when destructor
+      (setq name (concat "~" name)))
     (if color
 	(setq name (semantic-colorize-text name (semantic-token-token token))))
     name))
@@ -1380,6 +1394,7 @@ COLOR indicates if the string should be colorized."
 	  (mapconcat (lambda (a)
 		       (semantic-uml-token-or-string-to-string
 			a nil nil color))
+		     arguments
 		     " ")
 	  ")"))
 
@@ -1397,18 +1412,19 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((tok (semantic-token-token token))
-	 (args (semantic-prototype-nonterminal-default-args
-		(cond ((eq tok 'function)
-		       (semantic-token-function-args token))
-		      (t nil))
-		color))
-	 (argtext (semantic-uml-arguments-to-string args color))
+	 (argtext nil)
 	 (prot (semantic-nonterminal-protection token parent))
-	 (text (semantic-uml-token-or-string-to-string
-		token parent argtext color))
 	 )
+    (cond ((eq tok 'function)
+	   (setq argtext (semantic-uml-arguments-to-string
+			  (semantic-token-function-args token)
+			  color)))
+	  ((eq tok 'type)
+	   (setq argtext "{}")))
     (setq prot (semantic-uml-protection-to-string prot))
-    (concat (or prot "") text)
+    (concat (or prot "")
+	    (semantic-uml-token-or-string-to-string
+	      token parent argtext color))
     ))
 
 (defun semantic-uml-concise-prototype-nonterminal (token &optional parent color)
