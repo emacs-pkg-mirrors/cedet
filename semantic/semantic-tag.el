@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.4 2003/03/21 03:13:25 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.5 2003/03/21 03:17:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -507,14 +507,14 @@ Ignoring this step will prevent several features from working correctly."
 Children are any sub-tags which contain overlays.
 The default action collects regular components of TAG, in addition
 to any components beloning to an anonymouse type."
-  (let ((class (semantic-tag-class token))
+  (let ((class (semantic-tag-class tag))
 	(explicit-children (semantic-tag-components tag))
-	(type (semantic-token-type token))
+	(type (semantic-tag-type tag))
 	(anon-type-children nil)
 	(all-children nil))
-    ;; Identify if this token has an anonymous structure as
+    ;; Identify if this tag has an anonymous structure as
     ;; its type.  This implies it may have children with overlays.
-    (when (and type (semantic-token-p type))
+    (when (and type (semantic-tag-p type))
       (setq anon-type-children (semantic-tag-components type))
       ;; Add anonymouse children
       (while anon-type-children
