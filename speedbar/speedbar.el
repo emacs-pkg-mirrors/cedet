@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.4.6
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.42 1997/04/04 02:01:09 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.43 1997/04/26 01:59:10 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -228,6 +228,7 @@
 ;; 1) More functions to create buttons and options
 ;; 2) filtering algoritms to reduce the number of tags/files displayed.
 ;; 3) Timeout directories we haven't visited in a while.
+;; 4) Remeber tags when refreshing the display.  (Refresh tags too?)
 
 ;;; Code:
 (require 'assoc)
@@ -401,33 +402,34 @@ variable.")
 Created from `speedbar-supported-extension-expression' with the
 function `speedbar-extension-list-to-regex'")
 
-(defun speedbar-add-supported-extension (ext)
+(defun speedbar-add-supported-extension (extension)
   "Adds EXTENSION as a new supported extention for speedbar tagging.
 This should start with a `.' if it is not a complete file name, and
 the dot should NOT be quoted in with \\.  Other regular expression
 matchers are allowed however.  EXTENSION may be a single string or a
 list of strings."
-  (if (not (listp ext)) (setq ext (list ext)))
-  (while ext
-    (if (member (car ext) speedbar-supported-extension-expressions)
+  (if (not (listp extension)) (setq extension (list extension)))
+  (while extension
+    (if (member (car extension) speedbar-supported-extension-expressions)
 	nil
       (setq speedbar-supported-extension-expressions
-	    (cons (car ext) speedbar-supported-extension-expressions)))
-    (setq ext (cdr ext)))
+	    (cons (car extension) speedbar-supported-extension-expressions)))
+    (setq extension (cdr extension)))
   (setq speedbar-file-regexp (speedbar-extension-list-to-regex
 			      speedbar-supported-extension-expressions)))
 
-(defun speedbar-add-ignored-path-regexp (path-exp)
+(defun speedbar-add-ignored-path-regexp (path-expression)
   "Adds PATH-EXPRESSION as a new ignored path for speedbar tracking.
 This function will modify `speedbar-ignored-path-regexp' and add
 PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
-  (if (not (listp path-exp)) (setq path-exp (list path-exp)))
-  (while path-exp
-    (if (member (car path-exp) speedbar-ignored-path-expressions)
+  (if (not (listp path-expression))
+      (setq path-expression (list path-expression)))
+  (while path-expression
+    (if (member (car path-expression) speedbar-ignored-path-expressions)
 	nil
       (setq speedbar-ignored-path-expressions
-	    (cons (car path-exp) speedbar-ignored-path-expressions)))
-    (setq path-exp (cdr path-exp)))
+	    (cons (car path-expression) speedbar-ignored-path-expressions)))
+    (setq path-expression (cdr path-expression)))
   (setq speedbar-ignored-path-regexp (speedbar-extension-list-to-regex
 				      speedbar-ignored-path-expressions)))
 
@@ -848,7 +850,7 @@ redirected into a window on the attached frame."
 ;;; User Input stuff
 ;;
 (defun speedbar-mouse-hscroll (e)
-  "Read a mouse event from the mode line, and horizontally scroll.
+  "Read a mouse event E from the mode line, and horizontally scroll.
 If the mouse is being clicked on the far left, or far right of the
 modeline.  This is only useful for non-XEmacs"
   (interactive "e")
@@ -1108,7 +1110,7 @@ again."
   (speedbar-set-mode-line-format))
 
 (defmacro speedbar-with-writable (&rest forms)
-  "Allow the buffer to be writable and evaluate forms.
+  "Allow the buffer to be writable and evaluate FORMS.
 Turn read only back on when done."
   (list 'let '((speedbar-with-writable-buff (current-buffer)))
 	'(toggle-read-only -1)
@@ -2240,7 +2242,7 @@ regular expression EXPR"
 ;;
 (defun speedbar-load-color (sym l-fg l-bg d-fg d-bg &optional bold italic underline)
   "Create a color for SYM with a L-FG and L-BG color, or D-FG and D-BG.
-Optionally make BOLD, ITALIC, or UNDERLINED if applicable.  If the background
+Optionally make BOLD, ITALIC, or UNDERLINE if applicable.  If the background
 attribute of the current frame is determined to be light (white, for example)
 then L-FG and L-BG is used.  If not, then D-FG and D-BG is used.  This will
 allocate the colors in the best possible mannor.  This will allow me to store
