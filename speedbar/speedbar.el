@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.188 2000/10/05 14:56:00 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.189 2000/10/06 16:58:44 zappo Exp $
 
-(defvar speedbar-version "0.13beta3"
+(defvar speedbar-version "0.13"
   "The current version of speedbar.")
 
 ;; This file is part of GNU Emacs.
