@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.7 2003/05/10 02:57:50 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.8 2003/05/12 13:46:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -231,15 +231,29 @@ HISTORY is a symbol representing a variable to story the history in."
 (defun semantic-complete-done ()
   "Accept the current input."
   (interactive)
-  (when (string= (semantic-minibuffer-contents) "")
+  (let ((collector semantic-completion-collector-engine)
+	(displayor semantic-completion-display-engine)
+	(name (semantic-minibuffer-contents))
+	match)
+    (when (string= name "")
       ;; The user wants the defaults!
       (exit-minibuffer))
-  (semantic-complete-do-completion)
-  (if (and (slot-boundp semantic-completion-collector-engine
-			'match-list)
-	   (oref semantic-completion-collector-engine match-list))
-      (exit-minibuffer)
-    (semantic-completion-message " [No Match]")
+    (semantic-complete-do-completion)
+    (cond
+     ;; One match
+     ((and (slot-boundp collector 'match-list)
+	   (oref collector match-list))
+      (exit-minibuffer))
+     ;; Input match one element of last-all-completions
+     ((and (slot-boundp collector 'last-all-completions)
+	   (setq match (semantic-find-tags-by-name
+			name (oref collector last-all-completions))))
+      (semantic-displayor-set-completions displayor match name)
+      (oset collector match-list match)
+      (exit-minibuffer))
+     ;; No match
+     (t
+      (semantic-completion-message " [No Match]")))
     ))
 
 (defun semantic-complete-do-completion (&optional partial)
