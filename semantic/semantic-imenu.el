@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.7 2000/09/19 13:45:07 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.8 2000/09/22 01:38:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -68,11 +68,20 @@ Overriden to nil if `semantic-imenu-bucketize-file' is nil."
   :type 'bool)
 
 ;;; Code:
+(defun semantic-imenu-goto-function (name position &optional rest)
+  "Move point associated with NAME to POSITION.
+Used to override function `imenu-default-goto-function' so that we can continue
+to use overlays to maintain the current position.
+Optional argument REST is some extra stuff."
+  (imenu-default-goto-function name (semantic-overlay-start position) rest))
+
+
 ;;;###autoload
 (defun semantic-create-imenu-index (&optional stream)
   "Create an imenu index for any buffer which supports Semantic.
 Uses the output of the Semantic Bovinator to create the index.
 Optional argument STREAM STREAM is an optional stream of tokens used to create menus."
+  (setq imenu-default-goto-function 'semantic-imenu-goto-function)
   (let ((tokens (or stream (semantic-bovinate-toplevel nil t t))))
     (if semantic-imenu-bucketize-file
 	(let ((buckets (semantic-bucketize tokens))
@@ -82,7 +91,8 @@ Optional argument STREAM STREAM is an optional stream of tokens used to create m
 	  (cond
 	   ((null buckets)
 	    nil)
-	   ((cdr-safe buckets) ;; if buckets has more than one item in it.
+	   ((or (cdr-safe buckets) ;; if buckets has more than one item in it.
+                (not semantic-imenu-buckets-to-submenu)) ;; to force separators between buckets
 	    (while buckets
 	      (setq name (car (car buckets))
 		    item (cdr (car buckets)))
@@ -98,9 +108,13 @@ Optional argument STREAM STREAM is an optional stream of tokens used to create m
 		(if item
 		    (setq index
 			  (append index
-				  (cons
-				   '("---")
-				   (semantic-create-imenu-subindex item))))
+				  ;; do not create a menu separator in the parent menu
+				  ;; when creating a sub-menu
+				  (if (eq (semantic-token-token (car item)) 'type)
+				      (semantic-create-imenu-subindex item)
+				    (cons
+				     '("---")
+				     (semantic-create-imenu-subindex item)))))
 		  ))
 	      (setq buckets (cdr buckets)))
 	    (if semantic-imenu-buckets-to-submenu
@@ -121,20 +135,24 @@ Optional argument NOTYPECHECK specifies not to make subgroups under types."
     (while tokens
       (setq token (car tokens))
       (if (and (not notypecheck)
-	       (eq (semantic-token-token token) 'type)
-               (setq parts (semantic-token-type-parts token)))
-          (setq index (cons (cons
+	       (eq (semantic-token-token token) 'type))
+          ;; to keep an homogeneous menu organisation, type menu items
+          ;; always have a sub-menu with at least the *typedef* item
+          ;; (even if the token has no type parts)
+          (setq parts (semantic-token-type-parts token)
+                index (cons (cons
                              (funcall semantic-imenu-summary-function token)
                              ;; Add a menu for getting at the type definitions
-			     (cons (cons "*typedef*" (semantic-token-start token))
-				   (if (and semantic-imenu-bucketize-type-parts
-					    semantic-imenu-bucketize-file)
-				       (semantic-create-imenu-index parts)
-				     (semantic-create-imenu-subindex
-				      (reverse parts)))))
+			     (cons (cons "*typedef*" (semantic-token-overlay token))
+                                   (if parts
+                                       (if (and semantic-imenu-bucketize-type-parts
+                                                semantic-imenu-bucketize-file)
+                                           (semantic-create-imenu-index parts)
+                                         (semantic-create-imenu-subindex
+                                          (reverse parts))))))
                             index))
         (setq index (cons (cons (funcall semantic-imenu-summary-function token)
-                                (semantic-token-start token))
+                                (semantic-token-overlay token))
                           index)))
       (setq tokens (cdr tokens)))
     ;; Imenu wasn't capturing this, so add the code from imenu.el
