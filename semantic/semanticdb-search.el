@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.6 2003/02/25 15:02:44 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.7 2003/03/17 01:16:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,13 +85,10 @@ Argument FIND-FILE-ON-MATCH indicates that the found databases
 should be capable of doing so."
   (if (not (listp result-in-databases))
       (signal 'wrong-type-argument (list 'listp result-in-databases)))
-  (let* ((semanticdb-ignore-system-databases
-	  (if (and (not semanticdb-search-system-databases)
-		   (not ignore-system))
-	      ;; If the user changes the value for searching the
-	      ;; system, honor that.
+  (let* ((semanticdb-search-system-databases
+	  (if ignore-system
 	      nil
-	    (not ignore-system)))
+	    semanticdb-search-system-databases))
 	 (dbs (or result-in-databases
 		  ;; Calculate what database to use.
 		  ;; Something simple and dumb for now.
