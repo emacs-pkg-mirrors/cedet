@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.17 2000/09/19 04:22:16 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.18 2000/09/21 03:41:19 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -96,9 +96,7 @@
 	       (list (nth 1 vals) 'keyword "symbol" (nth 2 vals))))
      (symbol "token" symbol symbol string
 	     ,(semantic-lambda
-	       (list (nth 1 vals)
-		     (if (string= (nth 2 vals) "symbol")
-			 'keyword 'token)
+	       (list (nth 1 vals) 'token
 		     (nth 2 vals)  (nth 3 vals))))
      (symbol "outputfile" symbol punctuation "." symbol "\\bel\\b"
 	     ,(semantic-lambda
@@ -631,6 +629,12 @@ SOURCEFILE is the file name from whence tokstream came."
 			     ;; This puts _ & - as a word constituant,
 			     ;; simplifying our keywords significantly
 			     ((?_ . "w") (?- . "w"))))
+  (setq semantic-symbol->name-assoc-list
+	'( (keyword . "Keywords")
+	   (token . "Tokens")
+	   (rule  . "Rules")
+	   )
+	imenu-create-index-function 'semantic-create-imenu-index)
   (run-hooks 'semantic-bnf-mode-hook))
 
 (defun semantic-bnf-electric-punctuation ()
