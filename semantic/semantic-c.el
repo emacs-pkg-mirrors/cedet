@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.13 2001/01/06 14:37:05 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.14 2001/01/24 21:16:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,271 +36,279 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  `((bovine-toplevel
-     ( include)
-     ( macro)
-     ( type)
-     ( function)
-     ( variable)
-     ( prototype)
-     ( define)
-     )					; end declaration
-    (include
-     ( punctuation "\\b#\\b" INCLUDE punctuation "<" filename punctuation ">"
-		   ,(semantic-lambda
-		     (nth 3 vals) (list 'include 't nil)))
-     ( punctuation "\\b#\\b" INCLUDE string
-		   ,(semantic-lambda
-		     (list ( read (nth 2 vals)) 'include nil nil)))
-     )					; end include
-    (filename
-     ( symbol punctuation "\\b\\.\\b" symbol
-	      ,(semantic-lambda
-		(list ( concat (nth 0 vals) (nth 1 vals) (nth 2 vals)))))
-     ( symbol punctuation "/" filename
-	      ,(semantic-lambda
-		(list ( concat (nth 0 vals) (nth 1 vals) ( car (nth 2 vals))))))
-     )					; end filename
-    (structparts
-     ( semantic-list
-       ,(semantic-lambda
+`((bovine-toplevel
+ ( include)
+ ( macro)
+ ( type)
+ ( function)
+ ( variable)
+ ( prototype)
+ ( define)
+ ) ; end declaration
+ (include
+ ( punctuation "\\b#\\b" INCLUDE punctuation "<" filename punctuation ">"
+  ,(semantic-lambda
+  (nth 3 vals) (list 'include t nil)))
+ ( punctuation "\\b#\\b" INCLUDE string
+  ,(semantic-lambda
+  (list ( read (nth 2 vals)) 'include nil nil)))
+ ) ; end include
+ (filename
+ ( symbol punctuation "\\b\\.\\b" symbol
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) (nth 1 vals) (nth 2 vals)))))
+ ( symbol punctuation "/" filename
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) (nth 1 vals) ( car (nth 2 vals))))))
+ ) ; end filename
+ (structparts
+ ( semantic-list
+  ,(semantic-lambda
  
-	 (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'structsubparts)
-	 ))
-     )					; end structparts
-    (structsubparts
-     ( variable)
-     ( define)
-     ( open-paren "{"
-		  ,(semantic-lambda
-		    (list nil)))
-     ( close-paren "}"
-		   ,(semantic-lambda
-		     (list nil)))
-     )					; end structsubparts
-    (enumparts
-     ( semantic-list
-       ,(semantic-lambda
+ (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'structsubparts)
+ ))
+ ) ; end structparts
+ (structsubparts
+ ( variable)
+ ( define)
+ ( open-paren "{"
+  ,(semantic-lambda
+  (list nil)))
+ ( close-paren "}"
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end structsubparts
+ (enumparts
+ ( semantic-list
+  ,(semantic-lambda
  
-	 (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'enumsubparts)
-	 ))
-     )					; end enumparts
-    (enumsubparts
-     ( symbol opt-assign
-	      ,(semantic-lambda
-		(list (nth 0 vals) 'enum)))
-     ( open-paren "{"
-		  ,(semantic-lambda
-		    (list nil)))
-     ( close-paren "}"
-		   ,(semantic-lambda
-		     (list nil)))
-     )					; end enumsubparts
-    (opt-name
-     ( symbol)
-     (
-      ,(semantic-lambda
-	(list nil)))
-     )					; end opt-name
-    (typesimple
-     ( STRUCT opt-name structparts
-	      ,(semantic-lambda
-		(nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
-     ( UNION opt-name structparts
-	     ,(semantic-lambda
-	       (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
-     ( ENUM opt-name enumparts
-	    ,(semantic-lambda
-	      (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
-     ( TYPEDEF typeform symbol
-	       ,(semantic-lambda
-		 (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
-     )					; end typesimple
-    (type
-     ( typesimple punctuation "\\b;\\b"
-		  ,(semantic-lambda
-		    (nth 0 vals)))
-     )					; end type
-    (opt-stars
-     ( punctuation "\\b\\*\\b" opt-stars
-		   ,(semantic-lambda
-		     (list ( 1+ ( car (nth 1 vals))))))
-     (
-      ,(semantic-lambda
-	(list 0)))
-     )					; end opt-stars
-    (declmods
-     ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)" declmods
-	      ,(semantic-lambda
-		( cons (nth 0 vals) (nth 1 vals))))
-     ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)"
-	      ,(semantic-lambda
-		(list (nth 0 vals))))
-     (
-      ,(semantic-lambda
-	))
-     )					; end declmods
-    (typeform
-     ( typeformbase opt-stars
-		    ,(semantic-lambda
-		      (nth 0 vals)))
-     )					; end typeform
-    (typeformbase
-     ( typesimple
-       ,(semantic-lambda
-	 (nth 0 vals)))
-     ( STRUCT symbol
-	      ,(semantic-lambda
-		(list (nth 1 vals) 'type (nth 0 vals))))
-     ( UNION symbol
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'type (nth 0 vals))))
-     ( ENUM symbol
-	    ,(semantic-lambda
-	      (list (nth 1 vals) 'type (nth 0 vals))))
-     ( symbol
-       ,(semantic-lambda
-	 (list (nth 0 vals))))
-     )					; end typeformbase
-    (opt-bits
-     ( punctuation "\\b:\\b" symbol
-		   ,(semantic-lambda
-		     (list (nth 1 vals))))
-     (
-      ,(semantic-lambda
-	(list nil)))
-     )					; end opt-bits
-    (opt-array
-     ( semantic-list "\\[.*\\]$" opt-array
-		     ,(semantic-lambda
-		       (list ( cons 1 ( car (nth 1 vals))))))
-     (
-      ,(semantic-lambda
-	(list nil)))
-     )					; end opt-array
-    (opt-assign
-     ( punctuation "\\b=\\b" expression
-		   ,(semantic-lambda
-		     (list (nth 1 vals))))
-     (
-      ,(semantic-lambda
-	(list nil)))
-     )					; end opt-assign
-    (macro
-     ( punctuation "\\b#\\b" DEFINE symbol opt-expression
-		   ,(semantic-lambda
-		     (list (nth 2 vals) 'variable nil 't (nth 3 vals) nil nil)))
-     )					; end macro
-    (variable
-     ( variabledef punctuation "\\b;\\b"
-		   ,(semantic-lambda
-		     (nth 0 vals)))
-     )					; end variable
-    (variabledef
-     ( declmods typeform varnamelist
-		,(semantic-lambda
-		  (list (nth 2 vals) 'variable (nth 1 vals) ( if (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) nil ( if ( and (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) ( cdr (nth 0 vals)) (nth 0 vals)) nil)))
-     )					; end variabledef
-    (opt-restrict
-     ( symbol "\\<\\(__\\)?restrict\\>")
-     ()
-     )					; end opt-restrict
-    (varname
-     ( opt-stars opt-restrict symbol opt-bits opt-array opt-assign
-		 ,(semantic-lambda
-		   (list (nth 2 vals)) (nth 0 vals) (nth 3 vals) (nth 4 vals) (nth 5 vals)))
-     )					; end varname
-    (variablearg
-     ( declmods typeform varname
-		,(semantic-lambda
-		  (list ( car (nth 2 vals)) 'variable (nth 1 vals) ( if (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) nil ( if ( and (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) ( cdr (nth 0 vals)) (nth 0 vals)) nil)))
-     )					; end variablearg
-    (varnamelist
-     ( varname punctuation "\\b,\\b" varnamelist
-	       ,(semantic-lambda
-		 ( cons (nth 0 vals) (nth 2 vals))))
-     ( varname
-       ,(semantic-lambda
-	 (list (nth 0 vals))))
-     )					; end varnamelist
-    (arg-list
-     ( symbol "\\<__?P\\>" semantic-list
-	      ,(lambda (vals start end)
+ (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'enumsubparts)
+ ))
+ ) ; end enumparts
+ (enumsubparts
+ ( symbol opt-assign
+  ,(semantic-lambda
+  (list (nth 0 vals) 'enum)))
+ ( open-paren "{"
+  ,(semantic-lambda
+  (list nil)))
+ ( close-paren "}"
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end enumsubparts
+ (opt-name
+ ( symbol)
+ (
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end opt-name
+ (typesimple
+ ( STRUCT opt-name structparts
+  ,(semantic-lambda
+  (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
+ ( UNION opt-name structparts
+  ,(semantic-lambda
+  (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
+ ( ENUM opt-name enumparts
+  ,(semantic-lambda
+  (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
+ ( TYPEDEF typeform symbol
+  ,(semantic-lambda
+  (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
+ ) ; end typesimple
+ (type
+ ( typesimple punctuation "\\b;\\b"
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ) ; end type
+ (opt-stars
+ ( punctuation "\\b\\*\\b" opt-stars
+  ,(semantic-lambda
+  (list ( 1+ ( car (nth 1 vals))))))
+ (
+  ,(semantic-lambda
+  (list 0)))
+ ) ; end opt-stars
+ (declmods
+ ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)" declmods
+  ,(semantic-lambda
+  ( cons (nth 0 vals) (nth 1 vals))))
+ ( symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\)"
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ (
+  ,(semantic-lambda
+ ))
+ ) ; end declmods
+ (typeform
+ ( typeformbase opt-stars
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ) ; end typeform
+ (typeformbase
+ ( typesimple
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ( STRUCT symbol
+  ,(semantic-lambda
+  (list (nth 1 vals) 'type (nth 0 vals))))
+ ( UNION symbol
+  ,(semantic-lambda
+  (list (nth 1 vals) 'type (nth 0 vals))))
+ ( ENUM symbol
+  ,(semantic-lambda
+  (list (nth 1 vals) 'type (nth 0 vals))))
+ ( symbol
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ) ; end typeformbase
+ (opt-bits
+ ( punctuation "\\b:\\b" symbol
+  ,(semantic-lambda
+  (list (nth 1 vals))))
+ (
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end opt-bits
+ (opt-array
+ ( semantic-list "\\[.*\\]$" opt-array
+  ,(semantic-lambda
+  (list ( cons 1 ( car (nth 1 vals))))))
+ (
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end opt-array
+ (opt-assign
+ ( punctuation "\\b=\\b" expression
+  ,(semantic-lambda
+  (list (nth 1 vals))))
+ (
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end opt-assign
+ (macro
+ ( punctuation "\\b#\\b" DEFINE symbol opt-expression
+  ,(semantic-lambda
+  (list (nth 2 vals) 'variable nil (nth 3 vals)
+ (semantic-bovinate-make-assoc-list 'constt)
+ nil)))
+ ) ; end macro
+ (variable
+ ( variabledef punctuation "\\b;\\b"
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ) ; end variable
+ (variabledef
+ ( declmods typeform varnamelist
+  ,(semantic-lambda
+  (list (nth 2 vals) 'variable (nth 1 vals) nil
+ (semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil)'typemodifiers ( delete "const" (nth 0 vals)))
+ nil)))
+ ) ; end variabledef
+ (opt-restrict
+ ( symbol "\\<\\(__\\)?restrict\\>")
+ ()
+ ) ; end opt-restrict
+ (varname
+ ( opt-stars opt-restrict symbol opt-bits opt-array opt-assign
+  ,(semantic-lambda
+  (list (nth 2 vals)) (nth 0 vals) (nth 3 vals) (nth 4 vals) (nth 5 vals)))
+ ) ; end varname
+ (variablearg
+ ( declmods typeform varname
+  ,(semantic-lambda
+  (list ( car (nth 2 vals)) 'variable (nth 1 vals) nil
+ (semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil)'typemodifiers ( delete "const" (nth 0 vals)))
+ nil)))
+ ) ; end variablearg
+ (varnamelist
+ ( varname punctuation "\\b,\\b" varnamelist
+  ,(semantic-lambda
+  ( cons (nth 0 vals) (nth 2 vals))))
+ ( varname
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ) ; end varnamelist
+ (arg-list
+ ( symbol "\\<__?P\\>" semantic-list
+ ,(lambda (vals start end)
  
-		 (semantic-bovinate-from-nonterminal (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-list-p)
-		 ))
-     ( semantic-list knr-arguments
-		     ,(semantic-lambda
-		       (nth 1 vals)))
-     ( semantic-list
-       ,(semantic-lambda
+ (semantic-bovinate-from-nonterminal (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-list-p)
+ ))
+ ( semantic-list knr-arguments
+  ,(semantic-lambda
+  (nth 1 vals)))
+ ( semantic-list
+  ,(semantic-lambda
  
-	 (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
-	 ))
-     )					; end arg-list
-    (knr-arguments
-     ( variablearg punctuation "\\b;\\b" knr-arguments
-		   ,(semantic-lambda
-		     ( cons (nth 0 vals) (nth 2 vals))))
-     ( variablearg punctuation "\\b;\\b"
-		   ,(semantic-lambda
-		     (list (nth 0 vals))))
-     )					; end knr-arguments
-    (arg-list-p
-     ( open-paren "(" semantic-list close-paren ")"
-		  ,(semantic-lambda
+ (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
+ ))
+ ) ; end arg-list
+ (knr-arguments
+ ( variablearg punctuation "\\b;\\b" knr-arguments
+  ,(semantic-lambda
+  ( cons (nth 0 vals) (nth 2 vals))))
+ ( variablearg punctuation "\\b;\\b"
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ) ; end knr-arguments
+ (arg-list-p
+ ( open-paren "(" semantic-list close-paren ")"
+  ,(semantic-lambda
  
-		    (semantic-bovinate-from-nonterminal-full (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-sub-list)
-		    ))
-     )					; end arg-list-p
-    (arg-sub-list
-     ( variablearg
-       ,(semantic-lambda
-	 (nth 0 vals)))
-     ( punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" close-paren ")"
-		   ,(semantic-lambda
-		     (list "...")))
-     ( open-paren "("
-		  ,(semantic-lambda
-		    (list nil)))
-     ( close-paren ")"
-		   ,(semantic-lambda
-		     (list nil)))
-     )					; end arg-sub-list
-    (functiondef
-     ( declmods typeform symbol arg-list
-		,(semantic-lambda
-		  (list (nth 2 vals) 'function (nth 1 vals) (nth 3 vals) (nth 0 vals) nil)))
-     )					; end functiondef
-    (prototype
-     ( functiondef punctuation "\\b;\\b"
-		   ,(semantic-lambda
-		     (nth 0 vals)))
-     )					; end prototype
-    (function
-     ( functiondef semantic-list
-		   ,(semantic-lambda
-		     (nth 0 vals)))
-     )					; end function
-    (opt-expression
-     ( expression)
-     (
-      ,(semantic-lambda
-	(list nil)))
-     )					; end opt-expression
-    (expression
-     ( symbol
-       ,(semantic-lambda
-	 (list nil)))
-     ( punctuation "[!*&~]" symbol
-		   ,(semantic-lambda
-		     (list nil)))
-     ( semantic-list
-       ,(semantic-lambda
-	 (list nil)))
-     )					; end expression
-    )
-  "C language specification.")
+ (semantic-bovinate-from-nonterminal-full (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-sub-list)
+ ))
+ ) ; end arg-list-p
+ (arg-sub-list
+ ( variablearg
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ( punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" close-paren ")"
+  ,(semantic-lambda
+  (list "...")))
+ ( open-paren "("
+  ,(semantic-lambda
+  (list nil)))
+ ( close-paren ")"
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end arg-sub-list
+ (functiondef
+ ( declmods typeform symbol arg-list
+  ,(semantic-lambda
+  (list (nth 2 vals) 'function (nth 1 vals) (nth 3 vals)
+ (semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil)'typemodifiers ( delete "const" (nth 0 vals)))
+ nil)))
+ ) ; end functiondef
+ (prototype
+ ( functiondef punctuation "\\b;\\b"
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ) ; end prototype
+ (function
+ ( functiondef semantic-list
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ) ; end function
+ (opt-expression
+ ( expression)
+ (
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end opt-expression
+ (expression
+ ( symbol
+  ,(semantic-lambda
+ ))
+ ( punctuation "[!*&~]" symbol
+  ,(semantic-lambda
+ ))
+ ( semantic-list
+  ,(semantic-lambda
+ ))
+ ) ; end expression
+ )
+       "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -322,7 +330,7 @@
 	     (let ((vl nil)
 		   (basety (semantic-token-type nonterm))
 		   (ty "")
-		   (mods (semantic-token-variable-modifiers nonterm))
+		   (mods (semantic-token-variable-modifier nonterm 'typemodifiers))
 		   (suffix "")
 		   (lst (semantic-token-name nonterm))
 		   (cur nil)
@@ -332,31 +340,32 @@
 		 (setq cur (car lst))
 		 (if (nth 2 cur)
 		     (setq suffix (concat ":" (nth 2 cur))))
-		 (if (nth 3 cur)
-		     (setq suffix (concat suffix
-					  "[" (int-to-string
-					       (length (nth 3 cur))) "]")))
 		 (if (= (length basety) 1)
 		     (progn
 		       (setq ty (car basety))
 		       (if (nth 1 cur)
 			   (setq ty (concat ty (make-string (nth 1 cur) ?*)))))
 		   (setq ty basety))
-		 (setq vl (cons (list (car cur)
-				      'variable
-				      ty
-				      (semantic-token-variable-const nonterm)
-				      (nth 4 cur)
-				      mods
-				      suffix
-				      (semantic-token-docstring nonterm)
-				      (semantic-token-overlay nonterm))
-				vl))
+		 (setq vl (cons
+			   (list
+			    (car cur)	;name
+			    'variable
+			    ty		;type
+			    (nth 4 cur) ;default value
+			    (semantic-bovinate-make-assoc-list
+			     'const (semantic-token-variable-const nonterm)
+			     'suffix suffix
+			     'typemodifiers mods
+			     'dereference (length (nth 3 cur))
+			     )
+			    (semantic-token-docstring nonterm) ;doc
+			    (semantic-token-overlay nonterm))
+			   vl))
 		 (setq lst (cdr lst)))
 	       vl))
 	    ((and (listp (car nonterm))
 		  (eq (semantic-token-token (car nonterm)) 'variable))
-	     ;; Argument lists come in this way.  Append all the expandsions!
+	     ;; Argument lists come in this way.  Append all the expansions!
 	     (let ((vl nil))
 	       (while nonterm
 		 (setq vl (append (semantic-expand-c-nonterminal (car vl))
