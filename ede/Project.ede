@@ -1,13 +1,14 @@
-;; Object ede-proj-project
+;; Object EDE
 ;; EDE project file.
-(ede-proj-project "ede-proj-project"
+(ede-proj-project "EDE"
   :name "EDE"
   :version "1.0.beta2"
   :file "Project.ede"
-  :targets (list   (ede-proj-target-elisp "ede"
+  :targets (list 
+   (ede-proj-target-elisp "ede"
     :name "ede"
     :path ""
-    :source '("ede.el" "ede-proj.el" "ede-speedbar.el" "project-am.el" "ede-pmake.el" "ede-pconf.el" "ede-dired.el" "ede-proj-elisp.el" "ede-proj-misc.el" "ede-proj-obj.el" "ede-proj-prog.el" "ede-proj-archive.el" "ede-proj-shared.el" "ede-proj-info.el" "ede-proj-scheme.el" "ede-proj-aux.el" "ede-proj-comp.el" "ede-source.el" "ede-util.el")
+    :source '("ede.el" "ede-proj.el" "ede-speedbar.el" "project-am.el" "ede-pmake.el" "ede-pconf.el" "ede-dired.el" "ede-proj-elisp.el" "ede-proj-misc.el" "ede-proj-obj.el" "ede-proj-prog.el" "ede-proj-archive.el" "ede-proj-shared.el" "ede-proj-info.el" "ede-proj-scheme.el" "ede-proj-aux.el" "ede-proj-comp.el" "ede-source.el" "ede-util.el" "ede-system.el")
     :versionsource '("ede.el")
     :aux-packages '("eieio" "speedbar")
     )
@@ -32,5 +33,7 @@
     :path "subdir/"
     )
    )
+  :web-site-url "http://cedet.sourceforge.net/ede.shtml"
+  :ftp-upload-site "/ftp@upload.sourceforge.net:/incoming"
   :configuration-variables 'nil
   )
