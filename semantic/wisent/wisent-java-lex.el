@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-lex.el,v 1.2 2002/07/17 10:00:29 ponced Exp $
+;; X-RCS: $Id: wisent-java-lex.el,v 1.3 2002/08/04 16:16:44 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,7 @@
 ;; 
 
 ;;; Code:
-(require 'wisent-flex)
+(require 'wisent-bovine)
 
 ;;; Analyzers
 ;;
