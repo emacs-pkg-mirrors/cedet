@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.46 2002/08/31 02:49:19 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.47 2002/09/07 02:07:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -147,6 +147,8 @@ If the table for FILE exists, return it.
 If the table for FILE does not exist, create one."
   (let ((newtab (semanticdb-file-table db file)))
     (unless newtab
+      ;; This implementation will satisfy autoloaded classes
+      ;; for tables.
       (setq newtab (funcall (oref db new-table-class)
 			    (file-name-nondirectory filename)
 			    :file (file-name-nondirectory file)
@@ -240,6 +242,19 @@ local variable."
      (and semantic-equivalent-major-modes
 	  (member (oref table major-mode) semantic-equivalent-major-modes)))
     ))
+
+(defvar semanticdb-dir-sep-char (if (boundp 'directory-sep-char)
+				    (symbol-value 'directory-sep-char)
+				  ?/)
+  "Character used for directory separation.
+Obsoleted in some versions of Emacs.  Needed in others.")
+
+(defun semanticdb-fix-pathname (path)
+  "If PATH is broken, fix it.
+Force PATH to end with a /."
+  (if (not (= semanticdb-dir-sep-char (aref path (1- (length path)))))
+      (concat path (list semanticdb-dir-sep-char))
+    path))
 
 ;;; Associations
 ;;
@@ -402,6 +417,7 @@ Save all the databases."
     )
   "List of hooks and values to add/remove when configuring semanticdb.")
 
+;;;###autoload
 (defun semanticdb-minor-mode-p ()
   "Return non-nil if `semanticdb-minor-mode' is active."
   (member (car (car semanticdb-hooks))
@@ -498,8 +514,5 @@ If file does not have tokens available, then load the file, and create them."
     ))
 
 (provide 'semanticdb)
-
-;; Temporary require
-(require 'semanticdb-file)
 
 ;;; semanticdb.el ends here
