@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.21 2003/01/31 05:26:26 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.22 2003/02/02 04:18:08 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -54,8 +54,10 @@
 ;; Alternate entry points
 ;;    - Needed by partial re-parse
 %start function_parameter
+%start paren_class
 ;;    - Needed by EXPANDFULL clauses
 %start function_parameters
+%start paren_classes
 
 %{
   (setq
@@ -746,16 +748,41 @@ function_parameter
 
 ;; classdef: 'class' NAME ['(' testlist ')'] ':' suite
 classdef
-  : CLASS NAME paren_testlist_opt COLON suite
+  : CLASS NAME paren_class_list_opt COLON suite
     (wisent-token $2 'type $1 $5 $3)
   ;
 
 ;; ['(' testlist ')']
-;; function_parameter_list is way too general for baseclass list, but
-;; hey it works!
-paren_testlist_opt
+paren_class_list_opt
   : ;;EMPTY
-  | function_parameter_list
+  | paren_class_list
+  ;
+
+paren_class_list
+  : PAREN_BLOCK
+    (EXPANDFULL $1 paren_classes)
+  ;
+
+;; parameters: '(' [varargslist] ')'
+paren_classes
+  : LPAREN
+    ()
+  | RPAREN
+    ()
+  | paren_class COMMA
+    (wisent-token $1 'variable nil nil)
+  | paren_class RPAREN
+    (wisent-token $1 'variable nil nil)
+  ;
+
+;; In general, the base class can be specified by a general expression
+;; which evalue to a class object, i.e., base classes are not just names!
+;; However base classes are names in most cases.  Thus the
+;; non-terminals below work only with simple names.  Even if the
+;; parser can parse general expressions, I don't see much benefit in
+;; generating a string of expression as base class "name".
+paren_class
+  : NAME
   ;
 
 ;;;****************************************************************************

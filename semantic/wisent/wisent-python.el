@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.25 2003/01/31 05:27:44 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.26 2003/02/02 04:18:08 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -58,7 +58,7 @@
     (substring s 0 (if (> len 16) 16 len))))
 
 ;;;****************************************************************************
-;;;@ New Lexer
+;;;@ Lexer
 ;;;****************************************************************************
 
 ;; Pop all items from the "indent stack" if we are at end of region to parse.
@@ -309,6 +309,21 @@ it to a form suitable for the Wisent's parser."
 		  (semantic-lex-token-bounds tk))))
      )))
 
+;;;****************************************************************************
+;;;@ Parser
+;;;****************************************************************************
+
+(define-mode-overload-implementation
+  semantic-parse-region python-mode
+  (start end &optional nonterminal depth returnonerror)
+  "Over-ride so that 'paren_classes' non-terminal tokens can be intercepted
+then converted to simple names to comply with the semantic token style guide."
+  (let ((tokens (semantic-parse-region-default
+		 start end nonterminal depth returnonerror)))
+    (if (eq nonterminal 'paren_classes)
+	(mapcar #'semantic-token-name tokens)
+      tokens)))
+
 ;; This should be called everytime before parsing starts.
 ;; Is there a better hook than python-mode-hook which gets called
 ;; at the start of every parse? -ryk6/21/02.
@@ -321,7 +336,7 @@ it to a form suitable for the Wisent's parser."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 21:21-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:12-0800
   (eval-when-compile
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
@@ -569,11 +584,28 @@ it to a form suitable for the Wisent's parser."
 	((EXPONENT NAME)
 	 (wisent-token $2 'variable nil nil nil nil)))
        (classdef
-	((CLASS NAME paren_testlist_opt COLON suite)
+	((CLASS NAME paren_class_list_opt COLON suite)
 	 (wisent-token $2 'type $1 $5 $3)))
-       (paren_testlist_opt
+       (paren_class_list_opt
 	(nil)
-	((function_parameter_list)))
+	((paren_class_list)))
+       (paren_class_list
+	((PAREN_BLOCK)
+	 (semantic-parse-region
+	  (car $region1)
+	  (cdr $region1)
+	  'paren_classes 1)))
+       (paren_classes
+	((LPAREN)
+	 nil)
+	((RPAREN)
+	 nil)
+	((paren_class COMMA)
+	 (wisent-token $1 'variable nil nil))
+	((paren_class RPAREN)
+	 (wisent-token $1 'variable nil nil)))
+       (paren_class
+	((NAME)))
        (test
 	((test_test))
 	((lambdef)))
@@ -748,11 +780,11 @@ it to a form suitable for the Wisent's parser."
        (semicolon_opt
 	(nil)
 	((SEMICOLON))))
-     '(goal function_parameter function_parameters)))
+     '(goal function_parameter paren_class function_parameters paren_classes)))
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 21:21-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:12-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -814,7 +846,7 @@ it to a form suitable for the Wisent's parser."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 21:21-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:12-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -886,7 +918,7 @@ it to a form suitable for the Wisent's parser."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-30 21:21-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-01 20:12-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
