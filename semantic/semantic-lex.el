@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.23 2003/12/05 09:17:25 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.24 2003/12/10 14:39:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -538,7 +538,12 @@ DOC is a documentation string describing this analyzer.
 ANALYZERS are small code snippets of analyzers to use when
 building the new NAMED analyzer.  Only use analyzers which
 are written to be used in `define-lex'.
-Each analyzer should be an analyzer created with `define-lex-analyzer'."
+Each analyzer should be an analyzer created with `define-lex-analyzer'.
+Note: The order in which analyzers are listed is important.
+If two analyzers can match the same text, it is important to order the
+analyzers so that the one you want to match first occurs first.  For
+example, it is good to put a numbe analyzer in front of a symbol
+analyzer which might mistake a number for as a symbol."
   `(defun ,name  (start end &optional depth length)
      ,(concat doc "\nSee `semantic-lex' for more information.")
      (let* ((starting-position (point))
