@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-aux.el,v 1.4 2000/07/22 12:41:56 zappo Exp $
+;; RCS: $Id: ede-proj-aux.el,v 1.5 2000/07/22 13:07:22 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -28,6 +28,7 @@
 ;; Handle auxiliary files (README, FAQ, etc) in and EDE Project file.
 
 (require 'ede-proj)
+(require 'ede-pmake)
 
 ;;; Code:
 (defclass ede-proj-target-aux (ede-proj-target)
