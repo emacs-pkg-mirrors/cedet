@@ -1055,7 +1055,9 @@ For more information,
 @node Parsing a language file
 @chapter Parsing a language file
 
-From a program you can use the function:
+The best way to call the parser from programs is via
+@code{semantic-fetch-tags}.  This, in turn, uses other internal
+@acronym{API} functions which plug-in parsers can take advantage of.
 
 @defun semantic-fetch-tags
 @anchor{semantic-fetch-tags}
@@ -1066,6 +1068,23 @@ If the buffer has not been parsed before, or if the incremental reparse
 fails, then parse the entire buffer.
 If a lexcial error had been previously discovered and the buffer
 was marked unparseable, then do nothing, and return the cache.
+@end defun
+
+Another approach is to let Emacs call the parser on idle time, when
+needed, then use @code{semantic-fetch-available-tags} to retrieve and
+process only the available tags, provided that the
+@code{semantic-after-*-hook} hooks have been setup to synchronize with
+new tags when they become available.
+
+@defun semantic-fetch-available-tags
+@anchor{semantic-fetch-available-tags}
+Fetch available semantic tags from the current buffer.
+That is, return tags currently in the cache without parsing the
+current buffer.
+Parse operations happen asynchronously when needed on Emacs idle time.
+Use the @code{semantic-after-toplevel-cache-change-hook} and
+@code{semantic-after-partial-cache-change-hook} hooks to synchronize with
+new tags when they become available.
 @end defun
 
 @deffn Command semantic-clear-toplevel-cache
