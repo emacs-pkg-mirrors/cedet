@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.23 2000/04/29 12:54:53 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.24 2000/04/30 14:25:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,9 +39,12 @@
 ;;; Code:
 (defvar semantic-toplevel-elisp-bovine-table
   `((bovine-toplevel
-     (semantic-list ,(lambda (vals start end)
-		       (semantic-bovinate-from-nonterminal
-			start end 'extract-toplevel)))
+     (semantic-list
+      ,(lambda (vals start end)
+	 (let ((i (semantic-bovinate-from-nonterminal
+		   start end 'extract-toplevel)))
+	   (setq i (append (nreverse (cdr (cdr (reverse i))))
+			   (list start end))))))
      (extract-toplevel))
     ;; When parsing at depth 0, we need to extract elements from semantic
     ;; lists at bovine-toplevel.  This symbol provides the needed redirection.
