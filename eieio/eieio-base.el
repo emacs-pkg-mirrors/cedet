@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.12 2001/07/12 18:33:03 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.13 2001/12/04 01:44:52 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -143,6 +143,12 @@ Returns the first match."
 	 "The save file for this persistent object.
 This must be a string, and must be specified when the new object is
 instantiated.")
+   (extension :type string
+	      :allocation :class
+	      :initform ".eieio"
+	      :documentation
+	      "Extension of files saved by this object.
+Enables auto-choosing nice file names based on name.")
    (file-header-line :type string
 		     :allocation :class
 		     :initform ";; EIEIO PERSISTENT OBJECT"
@@ -154,6 +160,19 @@ Use the `object-save' method to write this object to disk.  The save
 format is Emacs Lisp code which calls the constructor for the saved
 object.  For this reason, only slots which do not have an `:initarg'
 specified will not be saved.")
+
+(defmethod eieio-persistent-save-interactive ((this eieio-persistent) prompt
+					      &optional name)
+  "Perpare to save THIS.  Use in an `interactive' statement.
+Query user for file name with PROMPT if THIS does not yet specify
+a file.  Optional argument NAME specifies a default file name."
+  (unless (slot-boundp this 'file)
+      (oset this file
+	    (read-file-name prompt nil
+			    (if   name
+				(concat name (oref this extension))
+			      ))))
+  (oref this file))
 
 (defun eieio-persistent-read (filename)
   "Read a persistent object from FILENAME."
