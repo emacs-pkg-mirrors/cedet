@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.11 2001/11/17 15:42:32 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.12 2001/12/07 01:36:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,6 +53,12 @@
  ) ; end rule
  (conditional
  ( IF symbol newline
+  ,(semantic-lambda
+ ))
+ ( IFDEF symbol newline
+  ,(semantic-lambda
+ ))
+ ( IFNDEF symbol newline
   ,(semantic-lambda
  ))
  ( ELSE newline
@@ -106,11 +112,13 @@
  ))
  ) ; end commands
  )
-  "Table for parsing Makefiles.")
+   "Table for parsing Makefiles.")
 
 (defvar semantic-make-keyword-table
   (semantic-flex-make-keyword-table 
    `( ("if" . IF)
+      ("ifdef" . IFDEF)
+      ("ifndef" . IFNDEF)
       ("else" . ELSE)
       ("endif" . ENDIF)
       ("include" . INCLUDE)
@@ -119,6 +127,8 @@
      ("if" summary "Conditional: if (expression) ... else ... endif")
      ("else" summary "Conditional: if (expression) ... else ... endif")
      ("endif" summary "Conditional: if (expression) ... else ... endif")
+     ("ifdef" summary "Conditional: ifdef (expression) ... else ... endif")
+     ("ifndef" summary "Conditional: ifndef (expression) ... else ... endif")
      ("include" summary "Macro: include filename1 filename2 ...")
      ))
   "Keyword table for Makefiles.")
