@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.9 2003/02/25 16:23:48 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.10 2003/03/08 16:24:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,7 +37,8 @@
 ;; return type, or all possible tokens that fit in a given local context.
 ;;
 
-(require 'eieio)
+(require 'inversion)
+(inversion-require 'eieio "0.18")
 (require 'semantic-ctxt)
 (eval-when-compile (require 'semanticdb)
 		   (require 'semanticdb-search))
