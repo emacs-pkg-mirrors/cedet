@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.57.2.3 2002/02/20 20:32:38 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.57.2.4 2002/02/26 13:13:17 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,6 +32,18 @@
 %(setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
        semantic-flex-extensions semantic-flex-c-extensions
        semantic-dependency-include-path semantic-default-c-path
+       semantic-orphaned-member-metaparent-type "struct"
+       semantic-symbol->name-assoc-list
+        '((type     . "Types")
+	  (variable . "Variables")
+	  (function . "Functions")
+	  (include  . "Includes"))
+       semantic-symbol->name-assoc-list-for-type-parts
+        '((type     . "Types")
+	  (variable . "Attributes")
+	  (function . "Methods")
+	  (label    . "Labels")
+	  )
        imenu-create-index-function 'semantic-create-imenu-index
        semantic-type-relation-separator-character '("." "->")
        semantic-command-separation-character ";"
