@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.17 2000/09/28 02:02:11 zappo Exp $
+@c $Id: semantic.texi,v 1.18 2000/09/29 03:01:25 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -583,13 +583,10 @@ which would return
 @chapter Compiling a language file with the bovinator
 
 From a program you can use the function @code{semantic-bovinate-toplevel}.
-This function takes two optional parameters.  First is the DEPTH which
-defaults to 0.  The lexer takes a DEPTH parameter which is used to
-determine if @code{open-paren} and @code{close-paren} tokens are
-returned, or if @code{semantic-list} tokens are returned.
-
-The second argument TRASHCOMMENTS defaults to nil, and indicates if
-comments should be automatically stripped when they are encountered.
+This function takes one optional parameter specifying if the cache
+should be refreshed.  By default, the cached results of the last parse
+are always used.  Specifying that the cache should be checked will cause
+it to be flushed if it is out of date.
 
 Another function you can use is @code{semantic-bovinate-nonterminal}.
 This command takes a token stream returned by the function
@@ -943,8 +940,8 @@ a dependency can be found by searching a generic search path which can
 be passed in via a variable.
 
 
-@defun semantic-find-dependency buffer token
-Find the filename represented from BUFFER's @var{TOKEN}.
+@defun semantic-find-dependency token
+Find the filename represented from @var{TOKEN}.
 @var{TOKEN} may be a stripped element, in which case @var{PARENT} specifies a
 parent token that has positinal information.
 Depends on @code{semantic-dependency-include-path} for searching.  Always searches
@@ -964,8 +961,8 @@ string, and  it should return the full path to that file, or nil.
 @end defun
 
 
-@defun semantic-find-nonterminal buffer token &optional parent
-Find the location from @var{BUFFER} belonging to @var{TOKEN}.
+@defun semantic-find-nonterminal token &optional parent
+Find the location of @var{TOKEN}.
 @var{TOKEN} may be a stripped element, in which case @var{PARENT} specifies a
 parent token that has position information.
 Different behaviors are provided depending on the type of token.
@@ -973,8 +970,8 @@ For example, dependencies (includes) will seek out the file that is
 depended on, and functions will move to the specified definition.
 @end defun
 
-@defun semantic-find-documentation buffer token
-Find documentation from @var{BUFFER}/@var{TOKEN} and return it as a clean string.
+@defun semantic-find-documentation token
+Find documentation from @var{TOKEN} and return it as a clean string.
 @var{TOKEN} might have @var{DOCUMENTATION} set in it already.  If not, there may be
 some documentation in a comment preceeding TOKEN's definition which we
 cal look for.  When appropriate, this can be overridden by a language specific
