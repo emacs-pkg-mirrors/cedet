@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.202 2001/05/31 00:17:08 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.203 2001/07/20 21:35:13 zappo Exp $
 
 (defvar speedbar-version "0.14beta1"
   "The current version of speedbar.")
@@ -3199,6 +3199,14 @@ level."
 
 ;;; Loading files into the attached frame.
 ;;
+(defcustom speedbar-select-frame-method 1
+  "*Specify how to select a frame for displaying a file.
+A value of 'attached means to use the attached frame (the frame
+that speedbar was started from.)  A number such as 1 or -1 means to
+pass that number to `other-frame' while selecting a frame from speedbar."
+  :group 'speedbar
+  :type 'sexp)
+
 (defun speedbar-find-file-in-frame (file)
   "This will load FILE into the speedbar attached frame.
 If the file is being displayed in a different frame already, then raise that
@@ -3211,7 +3219,9 @@ frame instead."
 	  (raise-frame (window-frame bwin)))
       (if dframe-power-click
 	  (let ((pop-up-frames t)) (select-window (display-buffer buff)))
-	(dframe-select-attached-frame speedbar-frame)
+	(if (numberp speedbar-select-frame-method)
+	    (other frame speedbar-select-frame-method)
+	  (dframe-select-attached-frame speedbar-frame))
 	(switch-to-buffer buff))))
  )
 
