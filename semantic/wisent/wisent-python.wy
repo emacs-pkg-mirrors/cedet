@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.22 2003/02/02 04:18:08 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.23 2003/02/02 04:48:44 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -37,6 +37,8 @@
 ;;   generating whole bunch of lexical tokens.
 ;;
 ;; * Verify that \ character is handled properly by the lexer and parser.
+;;
+;; * Verify that semantic-lex-python-number regexp is correct.
 
 ;; --------
 ;; Settings
@@ -972,9 +974,8 @@ comma_sep_test_list
 ;; However that does not work for single quotes, so it was taken out.
 one_or_more_string
   : STRING_LITERAL
-    (wisent-python-truncate-string $1)	;; limit string to 16 chars
   | one_or_more_string STRING_LITERAL
-    (wisent-python-truncate-string (concat $1 $2)) ;; limit string to 16 chars
+    (concat $1 $2)
   ;
 
 ;;;****************************************************************************
