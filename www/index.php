@@ -94,8 +94,8 @@
 
 <h3>Tools hosted elsewhere:</h3>
 
-<P><a href=http://home.swipnet.se/mayhem/ecb.html>
-   <b>Emacs Class Browser (ECB)</b></a>
+<P><a href=http://ecb.sourceforge.net>
+   <b>Emacs Code Browser (ECB)</b></a>
    lets you browse your files' contents.
    Uses the Semantic package.</p>
 
