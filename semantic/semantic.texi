@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.35 2001/04/21 15:03:48 zappo Exp $
+@c $Id: semantic.texi,v 1.36 2001/04/25 18:05:13 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -1021,6 +1021,14 @@ Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
 @dfn{semantic-find-nonterminal-by-function}.
 @end defun
 
+@defun semantic-find-nonterminal-by-extra-spec-value spec value streamorbuffer &optional search-parts search-includes
+Find all nonterminals with a given @var{SPEC} equal to @var{VALUE} in @var{STREAMORBUFFER}.
+@var{SPEC} is a symbol key into the modifiers association list.
+@var{VALUE} is the value that @var{SPEC} should match.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
+@end defun
+
 @defun semantic-find-nonterminal-by-position position streamorbuffer &optional nomedian
 Find a nonterminal covering @var{POSITION} within @var{STREAMORBUFFER}.
 @var{POSITION} is a number, or marker.  If @var{NOMEDIAN} is non-@code{nil}, don't do
@@ -1549,6 +1557,27 @@ See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES}
 Find all nonterminals with a type of @var{TYPE} in databases.
 See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
 @var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+@end defun
+
+@defun semanticdb-find-nonterminal-by-property property value &optional databases search-parts search-includes diff-mode find-file-match
+Find all nonterminals with a @var{PROPERTY} equal to @var{VALUE} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+Return a list ((@var{DB-TABLE} . @var{TOKEN-LIST}) ...).
+@end defun
+
+@defun semanticdb-find-nonterminal-by-extra-spec spec &optional databases search-parts search-includes diff-mode find-file-match
+Find all nonterminals with a @var{SPEC} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+Return a list ((@var{DB-TABLE} . @var{TOKEN-LIST}) ...).
+@end defun
+
+@defun semanticdb-find-nonterminal-by-extra-spec-value spec value &optional databases search-parts search-includes diff-mode find-file-match
+Find all nonterminals with a @var{SPEC} equal to @var{VALUE} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+Return a list ((@var{DB-TABLE} . @var{TOKEN-LIST}) ...).
 @end defun
 
 @defun semanticdb-find-nonterminal-by-function function &optional databases search-parts search-includes diff-mode find-file-match
