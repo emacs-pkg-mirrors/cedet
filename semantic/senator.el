@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.40 2001/05/21 22:01:33 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.41 2001/05/23 08:24:57 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -195,12 +195,6 @@ Does nothing if `senator-highlight-found' is nil."
         token
         'senator-momentary-highlight-face)))
 
-(defun senator-message (&rest args)
-  "Call function `message' with ARGS without logging."
-  (let ((log-message-filter-function #'ignore) ; No logging (XEmacs)
-        (message-log-max nil))                 ; No logging (Emacs)
-    (apply 'message args)))
-
 (defun senator-step-at-start-end-p (token)
   "Return non-nil if must step at start and end of TOKEN."
   (and token
@@ -221,17 +215,17 @@ Does nothing if `senator-highlight-found' is nil."
        (< pos (semantic-token-end   token))))
 
 (defun senator-step-at-parent (token)
-  "If must step at start/end of a TOKEN's parent return this parent.
+  "Return TOKEN's outermost parent if must step at start/end of it.
 Return nil otherwise."
   (if token
       (let (parent parents)
-        (setq parents (cdr (nreverse
-                            (semantic-find-nonterminal-by-overlay
-                             (semantic-token-start token)))))
+        (setq parents (semantic-find-nonterminal-by-overlay
+                       (semantic-token-start token)))
         (while (and parents (not parent))
           (setq parent  (car parents)
                 parents (cdr parents))
-          (if (or (senator-skip-p parent)
+          (if (or (eq token parent)
+                  (senator-skip-p parent)
                   (not (senator-step-at-start-end-p parent)))
               (setq parent nil)))
         parent)))
@@ -564,7 +558,7 @@ Return the token or nil if at end of buffer."
     (if (not token)
         (progn
           (goto-char (point-max))
-          (senator-message "End of buffer"))
+          (working-message "End of buffer"))
       (cond ((and (senator-step-at-start-end-p token)
                   (or (= pos (semantic-token-start token))
                       (senator-middle-of-token-p pos token)))
@@ -574,7 +568,7 @@ Return the token or nil if at end of buffer."
              (setq where "start")
              (goto-char (semantic-token-start token))))
       (senator-momentary-highlight-token token)
-      (senator-message "%S: %s (%s)"
+      (working-message "%S: %s (%s)"
                        (semantic-token-token token)
                        (semantic-token-name  token)
                        where))
@@ -603,7 +597,7 @@ Return the token or nil if at beginning of buffer."
     (if (not token)
         (progn
           (goto-char (point-min))
-          (senator-message "Beginning of buffer"))
+          (working-message "Beginning of buffer"))
       (cond ((or (not (senator-step-at-start-end-p token))
                  (= pos (semantic-token-end token))
                  (senator-middle-of-token-p pos token))
@@ -613,7 +607,7 @@ Return the token or nil if at beginning of buffer."
              (setq where "end")
              (goto-char (semantic-token-end token))))
       (senator-momentary-highlight-token token)
-      (senator-message "%S: %s (%s)"
+      (working-message "%S: %s (%s)"
                        (semantic-token-token token)
                        (semantic-token-name  token)
                        where))
@@ -703,7 +697,7 @@ NO-DEFAULT switches like this:
     (when tok
       (switch-to-buffer (semantic-token-buffer tok))
       (senator-momentary-highlight-token tok)
-      (senator-message "%S: %s "
+      (working-message "%S: %s "
                        (semantic-token-token tok)
                        (semantic-token-name  tok)))))
 
@@ -727,7 +721,7 @@ NO-DEFAULT switches like this:
     (when tok
       (switch-to-buffer (semantic-token-buffer tok))
       (senator-momentary-highlight-token tok)
-      (senator-message "%S: %s "
+      (working-message "%S: %s "
                        (semantic-token-token tok)
                        (semantic-token-name  tok)))))
 
@@ -1693,7 +1687,7 @@ ARG is the number of tokens to navigate (not yet implemented)."
       (if (= (point) (semantic-token-end token))
           (goto-char (semantic-token-start token)))
       (beginning-of-line))
-    (senator-message nil)))
+    (working-message nil)))
 
 (defun senator-end-of-defun (&optional arg)
   "Move forward to next end of defun.
@@ -1710,7 +1704,7 @@ ARG is the number of tokens to navigate (not yet implemented)."
       (skip-chars-forward " \t")
       (if (looking-at "\\s<\\|\n")
           (forward-line 1)))
-    (senator-message nil)))
+    (working-message nil)))
 
 (defun senator-narrow-to-defun ()
   "Make text outside current defun invisible.
@@ -2106,7 +2100,7 @@ That is to call the Senator counterpart searcher when variables
     (if isearch-mode
         ;; force lazy highlight update
         (senator-lazy-highlight-update)
-      (senator-message "Isearch semantic mode %s"
+      (working-message "Isearch semantic mode %s"
                        (if senator-isearch-semantic-mode
                            "enabled"
                          "disabled")))))
