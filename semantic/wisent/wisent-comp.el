@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.3 2002/02/04 22:37:31 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.4 2002/02/06 20:03:41 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2590,10 +2590,6 @@ in internal format.  STARTS defines the start symbols."
   "Return the item number of symbol X."
   (get x 'wisent--item-no))
 
-(defun wisent-clear-item-number (x)
-  "Clear the item number of symbol X."
-  (put x 'wisent--item-no nil))
-
 (defun wisent-set-token-item-number (x)
   "Set up the item number of terminal symbol X."
   (or (wisent-item-number x)
@@ -2608,23 +2604,11 @@ in internal format.  STARTS defines the start symbols."
         (put x 'wisent--item-no var-no)
         (setq var-no (1+ var-no)))))
 
-(defun wisent-set-item-numbers ()
-  "Set up the item numbers.
-Keep symbols in the TAGS vector so that TAGS[I] is the symbol
-associated to item number I."
-  (setq rprec   nil
-        ntokens (length token-list)
-        nvars   (length var-list)
-        nsyms   (+ ntokens nvars)
-        tags    (vconcat token-list var-list))
-  (wisent-with-context item-numbers
-    (setq var-no ntokens
-          token-no 0)
-    ;; Clear item numbers
-    (mapcar #'wisent-clear-item-number tags)
-    ;; Setup item numbers
-    (mapcar #'wisent-set-token-item-number token-list)
-    (mapcar #'wisent-set-var-item-number var-list)))
+(defun wisent-clear-properties (x)
+  "Clear the properties of symbol X."
+  (put x 'wisent--prec  nil)            ; precedence
+  (put x 'wisent--assoc nil)            ; associativity
+  (put x 'wisent--item-no nil))         ; item number
 
 (defconst wisent-reserved-symbols (list wisent-error-term)
   "The list of reserved symbols.
@@ -2745,6 +2729,7 @@ list of tokens which must have been declared in TOKENS."
       (error "Invalid grammar definition"))
   (let (i r nt pl rhs pre lst lastprec a-type a-tokens
           gram ep-token token tokens ep-var var vars ep-def def defs)
+    
     ;; terminals
     (setq lst (car grammar))
     (while lst
@@ -2754,36 +2739,8 @@ list of tokens which must have been declared in TOKENS."
           (error "Invalid terminal symbol %s" token))
       (if (memq token tokens)
           (error "Terminal previously defined %s" token))
-      ;; Cleanup precedence and associativity
-      (put token 'wisent--prec  nil)
-      (put token 'wisent--assoc nil)
       (setq tokens (cons token tokens)))
 
-    ;; assocativity
-    (setq lst (nth 1 grammar)
-          lastprec 0)
-    (while lst
-      (setq def      (car lst)
-            a-type   (car def)
-            a-tokens (cdr def)
-            lst      (cdr lst)
-            lastprec (1+ lastprec))
-      (or (memq a-type '(left right nonassoc))
-          (error "Invalid associativity type %s" a-type))
-      (while a-tokens
-        (setq token    (car a-tokens)
-              a-tokens (cdr a-tokens))
-        (or (memq token tokens)
-            (error "Invalid associativity, terminal %s undefined" token))
-        (if (memq token defs)
-            (error "Duplicate associativity for terminal %s" token))
-        (setq defs (cons token defs))
-        ;; Record the precedence and associativity of the terminal in
-        ;; respectively the `wisent--prec' and `wisent--assoc' symbol
-        ;; properties.
-        (put token 'wisent--prec  lastprec)
-        (put token 'wisent--assoc a-type)))
-    
     ;; nonterminals
     (setq lst  (nthcdr 2 grammar)
           defs nil)
@@ -2817,7 +2774,7 @@ list of tokens which must have been declared in TOKENS."
       ;; ...
       ;; ($ntN    (($$ntN ntN) $2))
 
-      (setq lst    (nreverse (cons (caar defs) start-list)))
+      (setq lst (nreverse (cons (caar defs) start-list)))
       (while lst
         (setq var (car lst)
               lst (cdr lst))
@@ -2838,21 +2795,64 @@ list of tokens which must have been declared in TOKENS."
     
       (setq defs (cons (cons wisent-starts-nonterm ep-def) defs)))
     
-    ;; Build the token and nonterminal lists
-    (setq tokens (nreverse (cons wisent-error-term tokens))
-          token-list (cons wisent-eoi-term tokens)
-          var-list (mapcar #'car defs))
-    
     ;; Concoct an ad hoc internal representation mapping symbols with
-    ;; item numbers
-    (wisent-set-item-numbers)
+    ;; item numbers.  Build the token and nonterminal lists.  Keep
+    ;; symbols in the TAGS vector so that TAGS[I] is the symbol
+    ;; associated to item number I.
+    
+    (setq tokens     (nreverse (cons wisent-error-term tokens))
+          token-list (cons wisent-eoi-term tokens)
+          var-list   (mapcar #'car defs)
+          ntokens    (length token-list)
+          nvars      (length var-list)
+          nsyms      (+ ntokens nvars)
+          tags       (vconcat token-list var-list)
+          rprec      nil)
+    
+    ;; Cleanup all used symbol properties
+    (mapcar #'wisent-clear-properties tags)
+    
+    ;; Set up token precedence & assocativity
+    (setq lst (nth 1 grammar)
+          lastprec 0
+          tokens nil)
+    (while lst
+      (setq def      (car lst)
+            a-type   (car def)
+            a-tokens (cdr def)
+            lst      (cdr lst)
+            lastprec (1+ lastprec))
+      (or (memq a-type '(left right nonassoc))
+          (error "Invalid associativity type %s" a-type))
+      (while a-tokens
+        (setq token    (car a-tokens)
+              a-tokens (cdr a-tokens))
+        (or (memq token token-list)
+            (error "Invalid associativity, terminal %s undefined" token))
+        (if (memq token tokens)
+            (error "Duplicate associativity for terminal %s" token))
+        (setq tokens (cons token tokens))
+        ;; Record the precedence and associativity of the terminal in
+        ;; respectively the `wisent--prec' and `wisent--assoc' symbol
+        ;; properties.
+        (put token 'wisent--prec  lastprec)
+        (put token 'wisent--assoc a-type)))
+    
+    ;; Setup item numbers
+    (wisent-with-context item-numbers
+      (setq var-no ntokens
+            token-no 0)
+      (mapcar #'wisent-set-token-item-number token-list)
+      (mapcar #'wisent-set-var-item-number var-list))
+    
+    ;; Store special item numbers
     (setq error-token-number (wisent-item-number wisent-error-term)
           start-symbol       (wisent-item-number (car var-list)))
           
-    (setq vars (mapcar #'wisent-parse-nonterminal defs)
-          gram (mapcar #'wisent-grammar-production vars))
-          
-    (setq rprec      (vconcat (cons nil (nreverse rprec)))
+    ;; Build rule data
+    (setq vars       (mapcar #'wisent-parse-nonterminal defs)
+          gram       (mapcar #'wisent-grammar-production vars)
+          rprec      (vconcat (cons nil (nreverse rprec)))
           rule-table (vconcat (cons nil (apply #'nconc vars)))
           nrules     (1- (length rule-table))
           nitems     0)
