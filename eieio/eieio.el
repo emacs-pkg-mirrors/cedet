@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.73 2000/08/20 16:08:49 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.74 2000/08/20 16:54:58 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.15"
   "Current version of EIEIO.")
@@ -805,7 +805,6 @@ doc string, and eventually the body, such as:
 	(eieiomt-add method (car-safe body) key (nth 1 firstarg))
       (eieiomt-add method (append (list 'lambda (reverse argfix)) body)
 		   key (nth 1 firstarg)))
-    (eieio-rebuild-generic-doc-string method)
     )
   method)
 
@@ -1518,47 +1517,6 @@ This is usually a symbol that starts with `:'."
 	(car tuple)
       nil)))
 
-(defun eieio-rebuild-generic-doc-string (sym)
-  "Rebuilds the documentation string for the generic method SYM.
-The documentation is set to a generic doc-string and all the
-specialized forms for each implementation."
-  (if (not (generic-p sym)) (signal 'wrong-type-argument '(generic-p sym)))
-  (let ((newdoc "Generic function.  This function accepts a generic number of arguments
-and then, based on the arguments calls some number of polymorphic methods
-associated with this symbol.  Current method specific code is:")
-	(i 3)
-	(prefix [ ":BEFORE" ":PRIMARY" ":AFTER" ] ))
-    (while (< i 6)
-      (let ((gm (aref (get sym 'eieio-method-tree) i)))
-	(if gm
-	    (setq newdoc (concat newdoc "\n\nGeneric " (aref prefix (- i 3))
-				 "\n"
-				 (if (nth 2 gm) (nth 2 gm) "Undocumented")))))
-      (setq i (1+ i)))
-    (setq i 0)
-    (while (< i 3)
-      (let ((gm (reverse (aref (get sym 'eieio-method-tree) i))))
-	(while gm
-	  (setq newdoc (concat newdoc "\n\n" (symbol-name (car (car gm)))
-			       ;; prefix type
-			       " " (aref prefix i) " "
-			       ;; argument list
-			       (let* ((func (cdr (car gm)))
-				      (arglst
-				       (if (byte-code-function-p func)
-					   (eieio-compiled-function-arglist func)
-					 (car (cdr func)))))
-				 (format "%S" arglst))
-			       "\n"
-			       ;; 3 because of cdr
-			       (if (documentation (cdr (car gm)))
-				   (documentation (cdr (car gm)))
-				 "Undocumented")))
-	  (setq gm (cdr gm))))
-      (setq i (1+ i)))
-    ;; tuck this bit of information away.
-    (eieio-defgeneric sym newdoc)
-    ))
 
 ;;; Here are some special types of errors
 ;;
@@ -1656,7 +1614,7 @@ to be set."
   "Slot unbound is invoked during an attempt to reference an unbound slot.
 OBJECT is the instance of the object being reference.  CLASS is the
 class of OBJECT, and SLOT-NAME is the offending slot.  This function
-throws the signal 'unbound-slot.  You can overload this function and
+throws the signal `unbound-slot'.  You can overload this function and
 return the value to use in place of the unbound value.
 Argument FN is the function signaling this error."
   (signal 'unbound-slot (list (class-name class) (object-name object)
@@ -1879,11 +1837,18 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 ;; make sure this shows up after the help mode hook.
 (add-hook 'temp-buffer-show-hook 'eieio-help-mode-augmentation-maybee t)
 (require 'advice)
-(defadvice describe-variable (around describe-class-maybeen activate)
+(defadvice describe-variable (around eieio-describe activate)
   "Display the full documentation of VARIABLE (a symbol).
 Returns the documentation as a string, also."
   (if (class-p (ad-get-arg 0))
-      (describe-class (ad-get-arg 0))
+      (eieio-describe-class (ad-get-arg 0))
+    ad-do-it))
+
+(defadvice describe-function (around eieio-describe activate)
+  "Display the full documentation of VARIABLE (a symbol).
+Returns the documentation as a string, also."
+  (if (generic-p (ad-get-arg 0))
+      (eieio-describe-generic (ad-get-arg 0))
     ad-do-it))
 
 (provide 'eieio)
