@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.7b
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.84 1998/03/12 20:29:25 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.85 1998/03/12 23:13:43 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -703,7 +703,7 @@ It is generated from the variable `completion-ignored-extensions'")
   (append '(".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".l" ".lsp" ".p" ".java")
 	  (if speedbar-use-imenu-flag
-	      '(".f\\(90\\|77\\|or]" ".ada" ".pl" ".tcl" ".m" ".scm" ".pm"
+	      '(".f\\(90\\|77\\|or\\)" ".ada" ".pl" ".tcl" ".m" ".scm" ".pm"
 		"Makefile\\(\\.in\\)?")))
   "*List of regular expressions which will match files supported by tagging.
 Do not prefix the `.' char with a double \\ to quote it, as the period
