@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.8 2001/12/05 01:43:31 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.9 2004/03/28 11:24:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -75,7 +75,7 @@ The `subgraph' slot must be scanned for this information."
 	       "A list of attributes belonging to this Class representation.
 Each attribute must in the form of a semantic token. ei.
  (\"object-name\" variable \"type\" ... )
-See `semantic-toplevel-bovine-table' for details on possible token forms.
+See `semantic-fetch-tags' for details on possible token forms.
 These items do not need to be REAL semantic tokens, however.
 Only the format is needed to get the name/typing information.")
    (methods :initarg :methods
