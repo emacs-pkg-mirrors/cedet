@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.31 2001/04/07 02:43:48 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.32 2001/04/13 02:24:45 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.32  2001/04/13 02:24:45  zappo
+# Added built in types (void, char, etc) and summaries.
+#
 # Revision 1.31  2001/04/07 02:43:48  zappo
 # Added name spaces, and references.
 #
@@ -178,6 +181,22 @@
 %token SIZEOF "sizeof"
 %put SIZEOF summary "Function: sizeof(<type or variable>) // size in bytes"
 
+# Types
+%token VOID "void"
+%put VOID summary "Built in type: void  No type"
+%token CHAR "char"
+%put CHAR summary "Built in type: char  Character, or 8 bit numeric value"
+%token SHORT "short"
+%put SHORT summary "Built in type: short  Small numeric value"
+%token INT "int"
+%put INT summary "Built in type: int  Numeric interger value"
+%token LONG "long"
+%put LONG summary "Built in type: long  Large numeric integer value"
+%token FLOAT "float"
+%put FLOAT summary "Built in type: float  Numeric floating point value"
+%token DOUBLE "double"
+%put DOUBLE summary "Built in type: double  Large floating point value"
+
 declaration : macro
 	    | type
 	    | var-or-fun
@@ -226,7 +245,7 @@ structsubparts : open-paren "{"
 		 ( nil )
 	       | close-paren "}"
 		 ( nil )
-	       | variable
+	       | var-or-fun
 	       | define
 	       # sometimes there are defines in structs.
 	       ;
@@ -352,9 +371,20 @@ typeformbase : typesimple
 	       ( $2 type $1 )
 	     | ENUM symbol
 	       ( $2 type $1 )
+	     | builtintype
+	       ( ,$1 )
 	     | symbol
 	       ( $1 )
 	     ;
+
+builtintype : VOID
+	    | CHAR
+	    | SHORT
+	    | INT
+	    | LONG
+	    | FLOAT
+	    | DOUBLE
+	    ;
 
 var-or-fun : declmods typeform var-or-func-decl
 	     ( ,(semantic-c-reconstitute-token ,$3 $1 $2 ) )
