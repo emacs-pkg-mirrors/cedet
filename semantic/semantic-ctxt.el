@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.35 2004/04/28 15:35:20 ponced Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.36 2004/07/15 20:34:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -154,23 +154,26 @@ This can be overriden with `get-local-variables'."
   "Get local values from a specific context.
 Uses the bovinator with the special top-symbol `bovine-inner-scope'
 to collect tags, such as local variables or prototypes."
-  (let ((vars nil)
-        ;; We want nothing to do with funny syntaxing while doing this.
-        (semantic-unmatched-syntax-hook nil))
-    (while (not (semantic-up-context (point) 'function))
-      (save-excursion
-        (forward-char 1)
-        (setq vars
-	      ;; Note to self: This is specific to bovine parsers.
-	      ;; We need a better way to configure this generically.
-              (append (semantic-parse-region
-                       (point)
-                       (save-excursion (semantic-end-of-context) (point))
-                       'bovine-inner-scope
-		       nil
-		       t)
-                      vars))))
-    vars))
+  ;; This assumes a bovine parser.  Make sure we don't do
+  ;; anything in that case.
+  (when (and semantic--parse-table (not (eq semantic--parse-table t)))
+    (let ((vars nil)
+	  ;; We want nothing to do with funny syntaxing while doing this.
+	  (semantic-unmatched-syntax-hook nil))
+      (while (not (semantic-up-context (point) 'function))
+	(save-excursion
+	  (forward-char 1)
+	  (setq vars
+		;; Note to self: This is specific to bovine parsers.
+		;; We need a better way to configure this generically.
+		(append (semantic-parse-region
+			 (point)
+			 (save-excursion (semantic-end-of-context) (point))
+			 'bovine-inner-scope
+			 nil
+			 t)
+			vars))))
+      vars)))
 
 (define-overload semantic-get-local-arguments (&optional point)
   "Get arguments (variables) from the current context at POINT.
