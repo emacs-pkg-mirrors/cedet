@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.52 1999/09/08 23:13:40 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.53 1999/09/16 18:30:40 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1059,7 +1059,6 @@ Therefore `slot-boundp' is really a macro calling `slot-exists-p'"
 
 (defun find-class (symbol &optional errorp)
   "Return the class that SYMBOL represents. (CLOS function)
-This actually just returns whatever SYMBOL has in it's value slot.
 If there is no class, nil is returned if ERRORP is nil."
   (if (not (class-p symbol))
       (if errorp (signal 'wrong-type-argument (list 'class-p symbol))
