@@ -1,10 +1,10 @@
 ;;; ede-pmake.el --- EDE Generic Project Makefile code generator.
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.34 2001/12/05 01:22:25 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.35 2003/01/29 03:15:02 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -97,6 +97,7 @@ MFILENAME is the makefile to generate."
       (cond
        ((eq (oref this makefile-type) 'Makefile)
 	(let* ((targ (if isdist (oref this targets) mt))
+	       (sp (oref this subproj))
 	       (df (apply 'append
 			  (mapcar (lambda (tg)
 				    (ede-proj-makefile-dependency-files tg))
@@ -150,6 +151,10 @@ MFILENAME is the makefile to generate."
 		      ;; Only insert this rule if it is a part of ALL.
 		      (insert " " (ede-proj-makefile-target-name c))))
 		targ)
+	  (mapc (lambda (c)
+		  (insert " " (ede-name c))
+		  )
+		sp)
 	  (insert "\n\n")
 	  ;; Some C inference rules
 	  ;; Dependency rules borrowed from automake.
@@ -161,6 +166,8 @@ MFILENAME is the makefile to generate."
 	  (ede-compiler-begin-unique
 	    (ede-proj-makefile-insert-rules this)
 	    (mapc 'ede-proj-makefile-insert-rules targ))
+	  ;; phony targets for sub projects
+	  (mapc 'ede-proj-makefile-insert-subproj-rules sp)
 	  ;; Distribution rules such as CLEAN and DIST
 	  (when isdist
 	    (ede-proj-makefile-tags this mt)
@@ -352,6 +359,19 @@ These are removed with make clean."
 
 ;;; RULES
 ;;
+(defmethod ede-proj-makefile-insert-subproj-rules ((this ede-proj-project))
+  "Insert a rule for the project THIS which should be a subproject."
+  (insert ".PHONY:" (ede-name this))
+  (newline)
+  (insert (ede-name this) ":")
+  (newline)
+  (insert "\tcd "
+	  (directory-file-name (ede-subproject-relative-path this))
+	  "; $(MAKE)")
+  (newline)
+  (newline)
+  )
+
 (defmethod ede-proj-makefile-insert-rules ((this ede-proj-project))
   "Insert rules needed by THIS target."
   (mapc 'ede-proj-makefile-insert-rules (oref this inference-rules))
@@ -366,8 +386,7 @@ Argument THIS is the project that should insert stuff."
 (defmethod ede-proj-makefile-insert-dist-dependencies ((this ede-proj-target))
   "Insert any symbols that the DIST rule should depend on.
 Argument THIS is the target that should insert stuff."
-  nil
-  )
+  nil)
 
 (defmethod ede-proj-makefile-insert-dist-filepatterns ((this ede-proj-target))
   "Insert any symbols that the DIST rule should depend on.
@@ -449,6 +468,8 @@ Argument THIS is the target that should insert stuff."
   (let ((c (ede-proj-compilers this)))
     (when c
       (mapc 'ede-proj-makefile-insert-rules c)
+      (if (oref this phony)
+	  (insert ".PHONY: " (ede-proj-makefile-target-name this) "\n"))
       (insert (ede-proj-makefile-target-name this) ": "
 	      (ede-proj-makefile-dependencies this) "\n")
       (ede-proj-makefile-insert-commands this)
@@ -488,10 +509,16 @@ This allows customization of how these elements appear."
 				    (ede-pmake-varname this)) ")")
 		  c (cdr c)))
 	  out)
-      (let ((sv (ede-proj-makefile-sourcevar this)))
-	(if (and (stringp sv) (not (string= sv "")))
-	    (concat "$(" sv ")")
-	  "")))))
+      (let ((sv (ede-proj-makefile-sourcevar this))
+	    (aux (oref this auxsource)))
+	(setq out
+	      (if (and (stringp sv) (not (string= sv "")))
+		  (concat "$(" sv ")")
+		""))
+	(while aux
+	  (setq out (concat out " " (car aux)))
+	  (setq aux (cdr aux)))
+	out))))
 
 ;; Tags
 (defmethod ede-proj-makefile-tags ((this ede-proj-project) targets)
