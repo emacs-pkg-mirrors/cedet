@@ -18,8 +18,9 @@
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=cogre.shtml   ><b>COGRE    </b></a>&nbsp</td></tr>
 
 <tr><td  class=BAR><img src=dir-minus.gif>&nbsp <b>Download</b>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=192965l><b>1.0beta1c</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=192965l><b>1.0beta1</b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=227377><b>1.0beta2</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=254753><b>1.0beta3</b></a>&nbsp</td></tr>
 <tr><td >&nbsp</td></tr>
 
 <tr><td  class=BAR><img src=dir-minus.gif>&nbsp <b>Other   </b>&nbsp</td></tr>
