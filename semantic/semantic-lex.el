@@ -1,8 +1,8 @@
 ;;; semantic-lex.el --- Lexical Analyzer builder
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.27 2004/01/08 18:53:08 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.28 2004/01/14 09:54:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1200,7 +1200,120 @@ syntax as specified by the syntax table."
   semantic-lex-ignore-comments
   semantic-lex-punctuation
   semantic-lex-default-action)
+
+;;; Analyzers generated from grammar.
+;;
+(defmacro define-lex-regex-type-analyzer (name doc syntax matches default)
+  "Define a regexp type analyzer NAME with DOC string.
+SYNTAX is the regexp that matches a syntactic expression.
+MATCHES is an alist of lexical elements used to refine the syntactic
+expression.
+DEFAULT is the default lexical token returned when no MATCHES."
+  (if matches
+      (let* ((val (make-symbol "val"))
+             (lst (make-symbol "lst"))
+             (elt (make-symbol "elt"))
+             (pos (make-symbol "pos"))
+             (end (make-symbol "end")))
+        `(define-lex-analyzer ,name
+           ,doc
+           (and (looking-at ,syntax)
+                (let* ((,val (match-string 0))
+                       (,pos (match-beginning 0))
+                       (,end (match-end 0))
+                       (,lst ,matches)
+                       ,elt)
+                  (while (and ,lst (not ,elt))
+                    (if (string-match (cdar ,lst) ,val)
+                        (setq ,elt (caar ,lst))
+                      (setq ,lst (cdr ,lst))))
+                  (semantic-lex-push-token
+                   (semantic-lex-token (or ,elt ,default) ,pos ,end))))
+           ))
+    `(define-lex-simple-regex-analyzer ,name
+       ,doc
+       ,syntax ,default)
+    ))
 
+(defmacro define-lex-string-type-analyzer (name doc syntax matches default)
+  "Define a string type analyzer NAME with DOC string.
+SYNTAX is the regexp that matches a syntactic expression.
+MATCHES is an alist of lexical elements used to refine the syntactic
+expression.
+DEFAULT is the default lexical token returned when no MATCHES."
+  (if matches
+      (let* ((val (make-symbol "val"))
+             (lst (make-symbol "lst"))
+             (elt (make-symbol "elt"))
+             (pos (make-symbol "pos"))
+             (end (make-symbol "end"))
+             (len (make-symbol "len")))
+        `(define-lex-analyzer ,name
+           ,doc
+           (and (looking-at ,syntax)
+                (let* ((,val (match-string 0))
+                       (,pos (match-beginning 0))
+                       (,end (match-end 0))
+                       (,len (- ,end ,pos))
+                       (,lst ,matches)
+                       ,elt)
+               ;; Starting with the longest one, search if a lexical
+               ;; value match a token defined for this language.
+               (while (and (> ,len 0) (not (setq ,elt (rassoc ,val ,lst))))
+                 (setq ,len (1- ,len)
+                       ,val (substring ,val 0 ,len)))
+               (when elt ;; Adjust token end position.
+                 (setq ,elt (car ,elt)
+                       ,end (+ ,pos ,len)))
+               (semantic-lex-push-token
+                (semantic-lex-token (or ,elt ,default) ,pos ,end))))
+           ))
+    `(define-lex-simple-regex-analyzer ,name
+       ,doc
+       ,syntax ,default)
+    ))
+
+(defmacro define-lex-block-type-analyzer (name doc syntax matches)
+  "Define a block type analyzer NAME with DOC string.
+SYNTAX is the regexp that matches a syntactic expression.
+MATCHES is an alist of lexical elements used to refine the syntactic
+expression."
+  (let* ((val (make-symbol "val"))
+         (lst (make-symbol "lst"))
+         (elt (make-symbol "elt")))
+    `(define-lex-analyzer ,name
+       ,doc
+       (and
+        (looking-at ,syntax) ;; "\\(\\s(\\|\\s)\\)"
+        (let ((,val (match-string 0))
+              (,lst ,matches)
+              ,elt)
+          (cond
+           ((setq ,elt (assoc ,val (car ,lst)))
+            (if (or (not semantic-lex-maximum-depth)
+                    (< semantic-lex-current-depth semantic-lex-maximum-depth))
+                (progn
+                  (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
+                  (semantic-lex-push-token
+                   (semantic-lex-token
+                    (nth 1 ,elt)
+                    (match-beginning 0) (match-end 0))))
+              (semantic-lex-push-token
+               (semantic-lex-token
+                (nth 2 ,elt)
+                (match-beginning 0)
+                (save-excursion
+                  (semantic-lex-unterminated-syntax-protection (nth 2 ,elt)
+                    (forward-list 1)
+                    (point)))))))
+           ((setq ,elt (assoc ,val (cdr ,lst)))
+            (setq semantic-lex-current-depth (1- semantic-lex-current-depth))
+            (semantic-lex-push-token
+             (semantic-lex-token
+              (nth 1 ,elt)
+              (match-beginning 0) (match-end 0))))
+           ))))
+    ))
 
 ;;; Lexical Safety
 ;;
