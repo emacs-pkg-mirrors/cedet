@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.225 2003/02/11 12:43:17 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.226 2003/02/21 16:08:41 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -29,8 +29,8 @@
 ;;; Commentary:
 ;;
 ;;   The speedbar provides a frame in which files, and locations in
-;; files are displayed.  These items can be clicked on with mouse-2
-;; in order to make the last active frame display that file location.
+;; files are displayed.  These items can be clicked on with mouse-2 in
+;; to display that file location.
 ;;
 ;;; Customizing and Developing for speedbar
 ;;
@@ -55,7 +55,6 @@
 ;;
 
 ;;; TODO:
-;; - More functions to create buttons and options
 ;; - Timeout directories we haven't visited in a while.
 
 (require 'assoc)
@@ -66,9 +65,9 @@
 ;; customization stuff
 (defgroup speedbar nil
   "File and tag browser frame."
-  :group 'tags
-;  :group 'tools
-;  :group 'convenience
+  :group 'etags
+  :group 'tools
+  :group 'convenience
 ;  :version "20.3"
   )
 
@@ -212,6 +211,12 @@ speedbar buffer.")
   "Default keymap used when identifying a specialized display mode.
 This keymap is local to each buffer that wants to define special keybindings
 effective when it's display is shown.")
+
+(defcustom speedbar-before-visiting-file-hook nil
+  "*Hooks run before speedbar visits a file in the selected frame.
+The default buffer is the buffer in the selected window in the attached frame."
+  :group 'speedbar
+  :type 'hook)
 
 (defcustom speedbar-visiting-file-hook nil
   "*Hooks run when speedbar visits a file in the selected frame."
@@ -1996,7 +2001,7 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 
 (defun speedbar-default-directory-list (directory index)
   "Insert files for DIRECTORY with level INDEX at point."
-  (speedbar-insert-files-at-point
+  (speedbar-insert-files-at-point 
    (speedbar-file-lists directory) index)
   (speedbar-reset-scanners)
   (if (= index 0)
@@ -3202,6 +3207,11 @@ TEXT, the file will be displayed in the attached frame.
 TOKEN is unused, but required by the click handler.  INDENT is the
 current indentation level."
   (let ((cdd (speedbar-line-path indent)))
+    ;; Run before visiting file hook here.
+    (let ((f (selected-frame)))
+      (dframe-select-attached-frame dframe-attached-frame)
+      (run-hooks 'speedbar-before-visiting-file-hook)
+      (select-frame f))
     (speedbar-find-file-in-frame (concat cdd text))
     (speedbar-stealthy-updates)
     (run-hooks 'speedbar-visiting-file-hook)
@@ -3284,7 +3294,7 @@ expanded.  INDENT is the current indentation level."
 TEXT is the button clicked on.  TOKEN is the directory to follow.
 INDENT is the current indentation level and is unused."
   (if (string-match "^[A-z]:$" token)
-      (setq default-directory (concat token (char-to-string directory-sep-char)))
+      (setq default-directory (concat token "/"))
     (setq default-directory token))
   ;; Because we leave speedbar as the current buffer,
   ;; update contents will change directory without
