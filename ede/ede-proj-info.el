@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.8 2000/09/25 01:24:13 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.9 2000/09/25 01:41:31 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ Results in --add-missing being passed to automake."
 
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-info))
   "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_TEXINFOS")))
+  (concat (ede-pmake-varname this) "_TEXINFOS"))
 
 (defmethod ede-proj-makefile-insert-source-variables
   ((this ede-proj-target-makefile-info) &optional moresource)
