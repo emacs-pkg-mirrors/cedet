@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.5 2002/06/22 08:37:50 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.6 2002/06/22 09:59:54 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -285,7 +285,7 @@ we get around ot it.")
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 18:28-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 19:49-0700
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -312,22 +312,22 @@ we get around ot it.")
 	((newline_list NEWLINE)
 	 (format "%s" $2)))
        (varargslist
-	((fpdef_opt_test_zom mult_name)
-	 (format "%s %s"
-		 (or $1 "")
-		 $2))
-	((fpdef eq_test_opt fpdef_opt_test_trailer_zom comma_opt)
-	 (format "%s %s %s %s" $1
-		 (or $2 "")
-		 (or $3 "")
-		 (or $4 ""))))
-       (fpdef_opt_test_zom
-	(nil)
-	((fpdef_opt_test_zom fpdef eq_test_opt COMMA)
-	 (format "%s %s %s,"
-		 (or $1 "")
-		 $2
+	((fpdef_opt_test_list comma_mult_name_opt)
+	 (format "%s %s" $1
+		 (or $2 "")))
+	((mult_name)))
+       (fpdef_opt_test_list
+	((fpdef_opt_test))
+	((fpdef_opt_test_list COMMA fpdef_opt_test)
+	 (format "%s, %s" $1
 		 (or $3 ""))))
+       (fpdef_opt_test
+	((fpdef eq_test_opt)
+	 (format "%s %S" $1
+		 (or $2 ""))))
+       (comma_mult_name_opt
+	(nil)
+	((COMMA mult_name)))
        (eq_test_opt
 	(nil)
 	((ASSIGN test)
@@ -339,13 +339,6 @@ we get around ot it.")
 	(nil)
 	((COMMA EXPONENT NAME)
 	 (format ", ** %s" $3)))
-       (fpdef_opt_test_trailer_zom
-	(nil)
-	((fpdef_opt_test_trailer_zom COMMA fpdef eq_test_opt)
-	 (format "%s, %s%s"
-		 (or $1 "")
-		 $2
-		 (or $3 ""))))
        (fpdef
 	((NAME))
 	((LPAREN fplist RPAREN)
@@ -899,7 +892,7 @@ we get around ot it.")
 
 (defconst wisent-python-keywords
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 13:12-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 19:49-0700
    (semantic-flex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -963,7 +956,7 @@ we get around ot it.")
 
 (defconst wisent-python-tokens
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 13:12-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 19:49-0700
    (wisent-flex-make-token-table
     '(("bol"
        (DEDENT)
@@ -1038,7 +1031,7 @@ we get around ot it.")
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 13:12-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 19:49-0700
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
 	  semantic-toplevel-bovine-table wisent-python-parser-tables

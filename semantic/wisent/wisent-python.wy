@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.6 2002/06/22 08:37:50 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.7 2002/06/22 09:59:54 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -324,17 +324,28 @@ newline_list
 
 ;; varargslist: (fpdef ['=' test] ',')* ('*' NAME [',' '**' NAME] | '**' NAME) | fpdef ['=' test] (',' fpdef ['=' test])* [',']
 varargslist
-  : fpdef_opt_test_zom mult_name
-    (format "%s %s" (or $1 "") $2)
-  | fpdef eq_test_opt fpdef_opt_test_trailer_zom comma_opt
-    (format "%s %s %s %s" $1 (or $2 "") (or $3 "") (or $4 ""))
+  : fpdef_opt_test_list comma_mult_name_opt
+    (format "%s %s" $1 (or $2 ""))
+  | mult_name
   ;
 
-;; (fpdef ['=' test] ',')*
-fpdef_opt_test_zom
+;; fpdef ['=' test] (',' fpdef ['=' test])*
+fpdef_opt_test_list
+  : fpdef_opt_test
+  | fpdef_opt_test_list COMMA fpdef_opt_test
+    (format "%s, %s" $1 (or $3 ""))
+  ;
+
+;; fpdef ['=' test]
+fpdef_opt_test
+  : fpdef eq_test_opt
+    (format "%s %S" $1 (or $2 ""))
+  ;
+
+;; [',' ('*' NAME [',' '**' NAME] | '**' NAME)]
+comma_mult_name_opt
   : ;;EMPTY
-  | fpdef_opt_test_zom fpdef eq_test_opt COMMA
-    (format "%s %s %s," (or $1 "") $2 (or $3 ""))
+  | COMMA mult_name
   ;
 
 ;; ['=' test]
@@ -355,13 +366,6 @@ multmult_name_opt
   : ;;EMPTY
   | COMMA EXPONENT NAME
     (format ", ** %s" $3)
-  ;
-
-;; (',' fpdef ['=' test])*
-fpdef_opt_test_trailer_zom
-  : ;;EMPTY
-  | fpdef_opt_test_trailer_zom COMMA fpdef eq_test_opt
-    (format "%s, %s%s" (or $1 "") $2 (or $3 ""))
   ;
 
 ;; fpdef: NAME | '(' fplist ')'
