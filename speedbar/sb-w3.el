@@ -2,10 +2,10 @@
 
 ;; Copyright (C) 1997, 1998 Free Software Foundation
 ;;
-;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
+;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
-;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-w3.el,v 1.3 1998/03/06 16:33:19 zappo Exp $
+;; Keywords: tags, tools, w3
+;; X-RCS: $Id: sb-w3.el,v 1.4 1998/05/06 01:21:21 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 ;;              675 Mass Ave.
 ;;              Cambridge, MA 02139, USA.
 ;;
-;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
+;; Please send bug reports, etc. to zappo@gnu.org
 ;;
 
 ;;; Commentary:
@@ -38,13 +38,20 @@
 ;;   (autoload 'w3-speedbar-buttons "sb-w3"
 ;;             "W3 specific speedbar button generator.")
 ;;
+;;   Load w3-toc to get additional tags which represent the major
+;;   headers in a given web page.
+;;
 ;;   This file requires speedbar.
 
 ;;; Change log:
 ;; 0.1   - first revision copied from speedbspec.el V 0.1.1
 ;; 0.1.1 - Removed dependency on speedbspec
+;; 0.2   - T.V.Raman's addition using newer w3, and w3 imenu.
 
 ;;; Code:
+(require 'w3-imenu)
+(require 'cl)
+
 (defvar w3-speedbar-last-buffer nil
   "The last buffer shown by w3-speedbar.")
 
@@ -56,7 +63,10 @@
 	nil
       (setq w3-speedbar-last-buffer buffer)
       (erase-buffer)
-      (let ((links (save-excursion (set-buffer buffer) (w3-only-links)))
+      (let ((links (save-excursion (set-buffer buffer)
+                                   (w3-only-links)))
+            (toc (save-excursion
+                   (set-buffer buffer) imenu--index-alist))
 	    (part nil))
 	(insert "History:\n")
 	;; This taken out of w3 which was used to create the history list,
@@ -70,29 +80,48 @@
 	 url-history-list)
 	(insert "Links:\n")
 	(while links
-	  (setq part (car (cdr (member 'href (car links))))
+	  (setq part (car (cdr (member ':href (car links))))
 		links (cdr links))
-	  (speedbar-insert-button (w3-speedbar-shorten-button part)
-				  'speedbar-file-face 'highlight
-				  'w3-speedbar-link part))))))
+          (when part 
+            (speedbar-insert-button (w3-speedbar-shorten-button part)
+                                    'speedbar-file-face 'highlight
+                                    'w3-speedbar-link
+                                    part)))
+	(if (not (featurep 'w3-imenu))
+	    nil
+	  (insert (format "Contents: %d\n" (length toc)))
+	  (loop for e in toc do
+		(when (car e)
+		  (speedbar-insert-button  (car e)
+					   'bold 'highlight
+					   'w3-speedbar-goto-marker
+					   (cdr e)
+					   'prevline))))))))
+
+(defun w3-speedbar-goto-marker (txt marker indent)
+  "Speedbar callback function for jumping to a marker in a w3 buffer.
+TXT is unused.  MARKER is the location.  INDENT is unused."
+  (pop-to-buffer (marker-buffer marker))
+  (goto-char (marker-position marker)))
     
 (defun w3-speedbar-shorten-button (button)
   "Takes text BUTTON and shortens it as much as possible."
-  ;; I should make this more complex, but I'm not sure how...
-  (let ((fnnd (file-name-nondirectory button)))
-    (if (< 0 (length fnnd))
-	fnnd
-      (if (string-match "\\(ht\\|f\\)tp://" button)
-	  (setq button (substring button (match-end 0))))
-      (if (string-match "/$" button)
-	  (setq button (substring button 0 (match-beginning 0))))
-      button)))
+  ;; I should make this more complex, but I'm not sure
+  ;; how...
+  (when button 
+    (let ((fnnd (file-name-nondirectory button)))
+      (if (< 0 (length fnnd))
+	  fnnd
+	(if (string-match "\\(ht\\|f\\)tp://" button)
+	    (setq button (substring button (match-end 0))))
+	(if (string-match "/$" button)
+	    (setq button (substring button 0 (match-beginning 0))))
+	button))))
 
 (defun w3-speedbar-link (text token indent)
   "Follow link described by TEXT which has the URL TOKEN.
 INDENT is not used."
   (speedbar-with-attached-buffer (w3-fetch token)))
-
 
 (provide 'sb-w3)
 ;;; sb-w3.el ends here
