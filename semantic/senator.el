@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.61 2002/07/30 17:31:27 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.62 2002/09/16 01:45:03 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1425,17 +1425,6 @@ minor mode entry."
    :save global-senator-minor-mode
    )
  )
-
-;; (senator-register-mode-menu-entry
-;;  "Highlight Dirty Tokens"
-;;  '(semantic-show-dirty-mode
-;;    :help "Highlight tokens in the current buffer which need to be reparsed."
-;;    )
-;;  '(global-semantic-show-dirty-mode
-;;    :help "Automatically highlight dirty tokens in all Semantic buffers."
-;;    :save global-semantic-show-dirty-mode
-;;    )
-;;  )
 
 (senator-register-mode-menu-entry
  "Highlight changes"
