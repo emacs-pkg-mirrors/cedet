@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.31 2000/09/11 23:00:18 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.32 2000/09/21 01:46:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -44,16 +44,33 @@
     (extract-toplevel
      (function)
      (variable)
+     (type)
      (include)
      (package)
+     (method)
      (code)
      (comment) )
+    ;; A type is defined by extended tools like CL, or EIEIO
+    (type
+     (open-paren symbol "defclass" symbol arg-list
+		 field-list doc-string
+		 ,(semantic-lambda
+		   (list (nth 2 vals) 'type
+			 "class"
+			 (nth 4 vals) (nth 3 vals) nil
+			 (car-safe (nth 5 vals))))))
     ;; A function is anything that starts with a (defun
     (function
      (open-paren symbol "defun\\|defmacro" symbol arg-list doc-string
 		 ,(semantic-lambda
 		    (list (nth 2 vals) 'function nil (nth 3 vals) nil
 			  (car-safe (nth 4 vals))))))
+    (method
+     (open-paren symbol "defmethod\\|defgeneric" symbol opt-label arg-list
+		 doc-string
+		 ,(semantic-lambda
+		    (list (nth 2 vals) 'function nil (nth 4 vals) nil
+			  (car-safe (nth 5 vals))))))
     ;; A variable can be a defvar or defconst.
     (variable
      (open-paren symbol "defvar\\|defconst\\|defcustom\\|defface\\|defimage"
@@ -105,14 +122,40 @@
 		       ))
      ;; If it's already opened, what to do??
      )
-    ;; This guys is some number of argument symbols...
     (argsyms
      (open-paren close-paren ,(semantic-lambda
 				(list nil)))
      (open-paren argsyms ,(semantic-lambda (car (cdr vals))))
      (symbol argsyms ,(semantic-lambda
 			(append (cons (car vals) (car (cdr vals))))))
-     (symbol close-paren ,(semantic-lambda (list (car vals)))))
+     (semantic-list argsyms
+		    ,(semantic-lambda
+		      (let ((e (read (buffer-substring (car (nth 0 vals))
+						      (cdr (nth 0 vals))))))
+			(cons (symbol-name (car e))
+			      (car (cdr vals))))))
+     (symbol close-paren ,(semantic-lambda (list (car vals))))
+     (semantic-list close-paren
+		    ,(semantic-lambda
+		      (let ((e (read (buffer-substring (car (nth 0 vals))
+						       (cdr (nth 0 vals))))))
+			(list (symbol-name (car e)))))))
+    ;; This guys is some number of argument symbols...
+    (field-list
+     (semantic-list
+      ,(lambda (vals start end)
+	 (semantic-bovinate-from-nonterminal-full start end 'fieldsyms)
+	 )))
+    (fieldsyms
+     (semantic-list ,(semantic-lambda
+		      (let ((e (read (buffer-substring (car (nth 0 vals))
+						       (cdr (nth 0 vals))))))
+			(list (symbol-name (car e))))))
+     )
+    ;; Labels
+    (opt-label
+     (symbol "^:" ,(semantic-lambda (car vals)))
+     ())
     )
   "Top level bovination table for elisp.")
 
@@ -129,9 +172,10 @@
 	'((find-dependency . semantic-elisp-find-dependency))
 	semantic-symbol->name-assoc-list
 	'( (variable . "Variables")
+	   (type     . "Types")
 	   (function . "Defuns")
-	   (include . "Requires")
-	   (package . "Provides"))
+	   (include  . "Requires")
+	   (package  . "Provides"))
 	imenu-create-index-function 'semantic-create-imenu-index
 	))
 
