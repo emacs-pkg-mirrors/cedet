@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.124 2002/09/07 01:09:16 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.125 2002/12/10 01:37:19 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17.1"
   "Current version of EIEIO.")
@@ -867,7 +867,10 @@ the shortcut (make-instance foo) will work.  The form (make-instance 'foo)
 is more robust."
   (if (and (car initargs) (stringp (car initargs)))
       (apply (class-constructor class) initargs)
-    (apply  (class-constructor class) class initargs)))
+    (apply  (class-constructor class)
+	    (cond ((symbolp class) (symbol-name class))
+		  (t (format "%S" class)))
+	    initargs)))
 
 
 ;;; CLOS methods and generics
@@ -2169,7 +2172,7 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 (add-hook 'temp-buffer-show-hook 'eieio-help-mode-augmentation-maybee t)
 (require 'advice)
 (defadvice describe-variable (around eieio-describe activate)
-  "Display the full documentation of VARIABLE (a symbol).
+  "Display the full documentation of FUNCTION (a symbol).
 Returns the documentation as a string, also."
   (if (class-p (ad-get-arg 0))
       (eieio-describe-class (ad-get-arg 0))
