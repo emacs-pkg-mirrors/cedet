@@ -5,8 +5,8 @@
   :version "0.4beta1"
   :file "Project.ede"
   :targets (list 
-   (semantic-ede-proj-target-grammar "wisent"
-    :name "wisent"
+   (semantic-ede-proj-target-grammar "wy"
+    :name "wy"
     :path ""
     :source '("wisent-dot.wy")
     )
@@ -51,7 +51,7 @@
     :path ""
     :source '("cogre.el" "cogre-uml.el" "uml-create.el")
     :versionsource '("cogre.el")
-    :aux-packages '("eieio" "semantic" "semantic-el")
+    :aux-packages '("eieio" "semantic" "semantic-el" "inversion" "speedbar")
     )
    )
   :web-site-url "http://cedet.sourceforge.net/cogre.shtml"
