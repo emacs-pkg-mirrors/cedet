@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.4 2000/12/10 05:06:12 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.5 2000/12/12 02:38:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,19 +64,8 @@ use this.")
   "For a given buffer, this is the currently active database table.")
 (make-variable-buffer-local 'semanticdb-current-table)
 
-;;; APIU Code:
-(defun semanticdb-file-stream (file)
-  "Return a list of tokens belonging to FILE.
-If file is loaded, return it's tokens, calling `semantic-bovinate-toplevel'.
-If file is not loaded, and tokens are available in the database, return them.
-If file is not loaded, and not tokens are available in the data base,
-load the file, and call `semantic-bovinate-toplevel'."
-  (message "Not yet implemented.")
-  )
-
 ;;; Classes:
-(defclass semanticdb-project-database (eieio-speedbar-directory-button
-				       eieio-persistent
+(defclass semanticdb-project-database (eieio-persistent
 				       eieio-instance-tracker)
   ((tracking-symbol :initform semanticdb-database-list)
    (file-header-line :initform ";; SEMANTICDB Tags save file")
@@ -85,7 +74,7 @@ load the file, and call `semantic-bovinate-toplevel'."
 	   :documentation "List of `semantic-db-table' objects."))
   "Database of file tables.")
 
-(defclass semanticdb-table (eieio-speedbar-file-button)
+(defclass semanticdb-table ()
   ((file :initarg :file
 	 :documentation "File name relative to the parent database.
 This is for the file whose tags are stored in this TABLE object.")
@@ -97,7 +86,7 @@ Checked on retrieval to make sure the file is the same.")
 	   :documentation "The tokens belonging to this table."))
   "A single table of tokens belonging to a given file.")
 
-;;; Storage Code:
+;;; Code:
 (defun semanticdb-create-database (filename)
   "Create a semantic database in FILENAME and return it.
 If FILENAME has already been loaded, return it.
@@ -123,6 +112,11 @@ If one isn't found, create one."
 (defun semanticdb-file-loaded-p (filename)
   "Return the project belonging to FILENAME if it was already loaded."
   (object-assoc filename 'file semanticdb-database-list))
+
+(defmethod semanticdb-file-table ((obj semanticdb-project-database) filename)
+  "From OBJ, return FILENAMEs associated table object."
+  (object-assoc (eieio-persistent-path-relative obj filename)
+		'file (oref obj tables)))
 
 (defun semanticdb-save-db (&optional DB)
   "Write out the database DB to its file.
@@ -165,11 +159,7 @@ Sets up the semanticdb environment."
 	       (concat (file-name-directory (buffer-file-name))
 		       semanticdb-default-file-name))))
     (setq semanticdb-current-database cdb)
-    (setq ctbl (object-assoc (eieio-persistent-path-relative
-			      semanticdb-current-database (buffer-file-name))
-			     'file
-			     (oref semanticdb-current-database
-				   tables)))
+    (setq ctbl (semanticdb-file-table cdb (buffer-file-name)))
     (unless ctbl
       (setq ctbl
  	    (semanticdb-table
@@ -235,7 +225,7 @@ Save all the databases."
 
 (defun semanticdb-minor-mode-p ()
   "Return non-nil if `semanticdb-minor-mode' is active."
-  (member (car (car semanticdb-hooks)) 
+  (member (car (car semanticdb-hooks))
 	  (symbol-value (car (cdr (car semanticdb-hooks))))))
 
 (defun global-semanticdb-minor-mode (&optional arg)
@@ -256,10 +246,6 @@ If ARG is nil, then toggle."
       (funcall fn (car (cdr (car h))) (car (car h)))
       (setq h (cdr h)))))
 
-;;; Commands
-;;
-;; User configurations
-
 ;;; Utilities
 ;;
 ;; Line all the semantic-util 'find-nonterminal...' type functions, but
@@ -270,6 +256,26 @@ Search for it in DATABASE if provided, otherwise search a range
 of databases."
   
   )
+
+(defun semanticdb-file-stream (file)
+  "Return a list of tokens belonging to FILE.
+If file has database tokens available in the database, return them.
+If file does not have tokens available, then load the file, and create them."
+  (let* ((fo (semanticdb-get-database (concat (file-name-directory file)
+					      semanticdb-default-file-name)))
+	 (to nil))
+    (if fo (setq to (semanticdb-file-table fo file)))
+    (if to
+	(oref to tokens) ;; get them.
+      ;; We must load the file.
+      (save-excursion
+	(set-buffer (find-file-noselect file))
+	;; Find file should automatically do this for us.
+	(if semanticdb-current-table
+	    (oref semanticdb-current-table tokens)
+	  ;; if not, just do it.
+	  (semantic-bovinate-toplevel t))))
+    ))
 
 (provide 'semanticdb)
 
