@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.11 2003/02/13 07:24:27 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.12 2003/02/19 16:28:07 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,8 +54,10 @@
 (require 'wisent-bovine)
 
 (defconst wisent-calc-automaton
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-13 08:25+0100
-  (eval-when-compile
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-18 22:45+0100
+  (progn
+    (eval-when-compile
+      (require 'wisent-comp))
     (wisent-compile-grammar
      '((NUM)
        ((nonassoc 61)
@@ -96,7 +98,7 @@
   "Parser automaton.")
 
 (defconst wisent-calc-tokens
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-13 08:25+0100
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-18 22:45+0100
   (wisent-lex-make-token-table
    '(("number"
       (NUM)))
@@ -121,12 +123,13 @@
 
 (defun wisent-calc-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-13 08:25+0100
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2003-02-18 22:45+0100
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-calc-automaton
+          semantic-debug-parser-source "wisent-calc.wy"
           semantic-flex-keywords-obarray nil
           semantic-lex-types-obarray wisent-calc-tokens)
     ;; Collect unmatched syntax lexical tokens
