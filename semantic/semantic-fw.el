@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.30 2004/02/19 17:06:57 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.31 2004/03/06 15:14:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -301,19 +301,25 @@ These symbols provide a hook for a `major-mode' to specify specific
 behaviors.  Use the function `semantic-bind' to define new bindings.")
 (make-variable-buffer-local 'semantic-symbol-table)
 
+(defvar semantic-bindings-active-mode nil
+   "Major mode in which bindings are active.")
+
 (defsubst semantic-current-bindings (&optional mode)
-  "Return the current semantic symbol table.
+   "Return the current semantic symbol table.
 That is `semantic-symbol-table' if locally set, or the symbol table of
-current major mode or its parents.
+current active mode or its parents.
+By default the active mode is the current major mode.
 If optional argument MODE is specified return the symbol table of that
 mode or its parents."
-  (let (table)
-    (or mode (setq table semantic-symbol-table
-                   mode  major-mode))
-    (while (and mode (not table))
-      (or (setq table (get mode 'semantic-symbol-table))
-          (setq mode  (semantic-get-parent-mode mode))))
-    table))
+   (let (table)
+     (or mode
+         semantic-bindings-active-mode
+         (setq table semantic-symbol-table
+               mode  major-mode))
+     (while (and mode (not table))
+       (or (setq table (get mode 'semantic-symbol-table))
+           (setq mode  (semantic-get-parent-mode mode))))
+     table))
 
 (defun semantic-new-bindings (&optional table)
   "Return a new semantic symbol table.
@@ -434,6 +440,7 @@ See also `semantic-symbol'."
   "Set variable SYM to VAL locally in current buffer.
 BUFFER defaults to the current buffer."
   (set (make-local-variable sym) val))
+
 
 ;;; Mode local variables API
 ;;
@@ -445,16 +452,29 @@ BUFFER defaults to the current buffer."
 ;; of the apropriate type.
 ;;
 (defun semantic-activate-mode-bindings (&optional mode)
-  "Set buffer local variables with MODE local variables.
-If MODE is not specified it defaults to current `major-mode'."
-  (let ((table (semantic-current-bindings (or mode major-mode))))
-    (when table
-      (mapatoms
-       #'(lambda (var)
-           (if (get var 'mode-var)
-               (semantic-set-local-variable
-                (intern (symbol-name var)) (symbol-value var))))
-       table))))
+   "Set buffer local variables with MODE local variables.
+If MODE is not specified it is the current active one.
+By default the active mode is the current major mode."
+   (let ((table (semantic-current-bindings mode)))
+     (when table
+       (mapatoms
+        #'(lambda (var)
+            (if (get var 'mode-var)
+                (semantic-set-local-variable
+                 (intern (symbol-name var)) (symbol-value var))))
+        table))))
+
+(defun semantic-deactivate-mode-bindings (&optional mode)
+   "Kill buffer local variables previously set with MODE local variables.
+If MODE is not specified it is the current active one.
+By default the active mode is the current major mode."
+   (let ((table (semantic-current-bindings mode)))
+     (when table
+       (mapatoms
+        #'(lambda (var)
+            (if (get var 'mode-var)
+                (kill-local-variable (intern (symbol-name var)))))
+        table))))
 
 (defsubst mode-local-value (mode sym)
   "Return the value of the MODE local variable SYM."
@@ -599,6 +619,29 @@ This function is an implementation for %s"
 	   ,@body))
        (semantic-install-function-overrides '((,overload . ,newname)) t ',mode)
        )))
+
+
+;;; Temporary Mode Local settings
+;;
+;; Use this to use a tag from a buffer that may not be of the
+;; same major mode as the originator.
+(defmacro semantic-with-mode-bindings (mode &rest body)
+   "Evaluate BODY with the local bindings of MODE.
+The current mode bindings are saved, BODY is evaluated, and the saved
+bindings are restored, even in case of an abnormal exit.
+Value is what BODY returns."
+   (let ((old-mode  (make-symbol "mode")))
+     `(let ((,old-mode semantic-bindings-active-mode))
+        (unwind-protect
+            (progn
+              (semantic-deactivate-mode-bindings)
+              (setq semantic-bindings-active-mode ',mode)
+              (semantic-activate-mode-bindings)
+              ,@body)
+          (semantic-deactivate-mode-bindings)
+          (setq semantic-bindings-active-mode ,old-mode)
+          (semantic-activate-mode-bindings)))))
+(put 'semantic-with-mode-bindings 'lisp-indent-function 1)
 
 ;;; Emacs Help hacks
 ;;
