@@ -1,10 +1,10 @@
 ;;; semantic-decorate.el --- Utilities for decorating/highlighting tokens.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.5 2003/12/21 02:10:48 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.6 2005/02/03 04:57:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -114,7 +114,7 @@ Argument OVERLAY, AFTER, START, END, and LEN are passed in by the system."
 ;;;###autoload
 (defun semantic-set-tag-read-only (tag &optional writable)
   "Enable the text in TAG to be made read-only.
-Optional argument WRITABLE should be non-nil to make the text writable.
+Optional argument WRITABLE should be non-nil to make the text writable
 instead of read-only."
   (let ((o (semantic-tag-overlay tag))
 	(hook (if writable nil '(semantic-overlay-signal-read-only))))
@@ -269,6 +269,51 @@ If OVERLAY-OR-PROPERTY is a symbol, find the overlay with that property."
       (semantic-tag-create-secondary-overlay tag (car ol))
       (setq ol (cdr ol)))
     ))
+
+;;; Secondary Overlay Uses
+;;
+;; States to put on tags that depend on a secondary overlay.
+;;;###autoload
+(defun semantic-set-tag-folded (tag &optional folded)
+  "Fold TAG, such that only the first line of text is shown.
+Optional argument FOLDED should be non-nil to fold the tag.
+nil implies the tag should be fully shown."
+    ;; If they are different, do the deed.
+    (let ((o (semantic-tag-folded-p tag)))
+      (if (not folded)
+	  ;; We unfold.
+	  (when o
+	    (semantic-tag-delete-secondary-overlay tag 'semantic-folded))
+	(unless o
+	  ;; Add the foldn
+	  (setq o (semantic-tag-create-secondary-overlay tag))
+	  ;; mark as folded
+	  (semantic-overlay-put o 'semantic-folded t)
+	  ;; Move to cover end of tag
+	  (save-excursion
+	    (goto-char (semantic-tag-start tag))
+	    (end-of-line)
+	    (semantic-overlay-move o (point) (semantic-tag-end tag)))
+	  ;; We need to modify the invisibility spec for this to
+	  ;; work.
+	  (if (or (eq buffer-invisibility-spec t)
+		  (not (assoc 'semantic-fold buffer-invisibility-spec)))
+	      (add-to-invisibility-spec '(semantic-fold . t)))
+	  (semantic-overlay-put o 'invisible 'semantic-fold)
+	  (overlay-put o 'isearch-open-invisible
+		       'semantic-set-tag-folded-isearch)))
+	  ))
+
+(defun semantic-set-tag-folded-isearch (overlay)
+  "Called by isearch if it discovers text in the folded region."
+  (semantic-set-tag-folded (semantic-current-tag) nil)
+  )
+
+;;;###autoload
+(defun semantic-tag-folded-p (tag)
+  "Non-nil if TAG is currently folded."
+  (semantic-tag-get-secondary-overlay tag 'semantic-folded)
+  )
 
 (provide 'semantic-decorate)
 
