@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.29 2000/07/16 21:43:44 zappo Exp $
+@c $Id: eieio.texi,v 1.30 2000/08/20 22:55:57 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -59,15 +59,10 @@ As of this writing, updates can be found at:
 @comment  node-name,  next,  previous,  up
 @chapter Introduction
 
-  One thing emacs lisp does not support is structured data organization,
-and restricted function access unless one uses the cl package.  As a
-programmer it's easy to break up a program into modules, and say "I
-won't access function or variable XYZ anywhere but here", but it's not
-protected from other programmers doing an apropos and thinking "Hey,
-this is a useful function and I will use it".  Then a program is
-upgraded, and the second programmer is unhappy.
 
-  EIEIO attempts to be CLOS compatible (Common Lisp Object System).
+  EIEIO is a CLOS (Common Lisp Object System) compatibility layer.  Due
+to restrictions in the Emacs Lisp language, CLOS cannot be completely
+supported, and a few functions have been added in place of setf.
 
 @section What EIEIO supports
 
@@ -86,15 +81,19 @@ Method definitions similar to CLOS.
 @item
 Simple and complex class browsers.
 @item
-Edebug support.
+Edebug support for methods.
 @item
 Imenu updates.
 @item
 Byte compilation support of methods.
 @item
-Complex documentation maintenance for emacs symbols.
+Help system extentions for classes and methods.
+@item
+Speedbar classes so you can create easy displays of object hierarchies.
 @item
 Automatic texinfo documentation generator.
+@item
+Simple test suite.
 @end enumerate
 
 @section Issues using EIEIO
@@ -129,6 +128,11 @@ usage and list occupation, in addition to file counts and size charts.
 There's even a sample that will display a chart of who sends you the most
 email!  See doc-string for `chart-bar-quickie' to make your own bar
 charts easily.
+@item eieio-speedbar
+Classes for implementing a speedbar display.  If you write a program
+that uses a system of objects, and your classes inherit from those in
+@file{eieio-speedbar}, then you can write a speedbar display for your
+objects in very little time.
 @end table
 
 @section EIEIO wish list
@@ -181,16 +185,18 @@ Make instance works as expected, however it just uses the EIEIO instance
 creator automatically generated when a new class is created.
 @xref{Making New Objects}.
 @item defgeneric
-Creates the desired symbol, and accepts most of the expected arguments.
+Creates the desired symbol, and accepts all of the expected arguments
+except @code{:AROUND}.
 @item defmethod
 Calls defgeneric, and accepts most of the expected arguments.  Only the
 first argument to the created method may be type cast, though any
 argument can be syntactically type cast.  (And promptly ignored)  To
-type cast against a class, the class must exist before defmethod is called.
+type cast against a class, the class must exist before defmethod is
+called. In addition, the @code{:AROUND} tag is not supported.
 @item call-next-method
 Inside a method, calls the next available method up the inheritance tree
 for the given object.  This is different than that found in CLOS because
-in eieio this function accepts replacement arguments.  This permits
+in EIEIO this function accepts replacement arguments.  This permits
 subclasses to modify arguments as they are passed up the tree.  If no
 arguments are given, the expected CLOS behavior is used.
 @item setf
@@ -199,14 +205,10 @@ loaded so the form @code{(setf (slot-value object slot) t)} should
 work.
 @end table
 
-Some top-level CLOS functions which I am aware of but are not yet
-defined in EIEIO which are defined in CLOS.
-
-@table @asis
-@item describe
-Pretty print an object.  Can be found as @code{eieio-describe-class} for a
-bufferized version.
-@end table
+CLOS supports the @code{describe} command, but eieio only provides
+@code{eieio-describe-class}, and @code{eieio-describe-generic}.  These
+functions are adviced into @code{describe-variable}, and
+@code{describe-function}.
 
 When creating a new class (@pxref{Building Classes}) there are several
 new keywords supported by EIEIO.
@@ -599,7 +601,7 @@ necessary.  Currently the argument list is unused.
 function into a generic function.
 @end defun
 
-@defun defmethod method [:BEFORE | :AFTER] arglist [doc-string] forms
+@defun defmethod method [:BEFORE | :PRIMARY | :AFTER] arglist [doc-string] forms
 
 @var{method} is the name of the function to be created.
 
@@ -614,7 +616,7 @@ object.  An arglist such as @code{(a b)} would classify the function as
 generic call, which has no object it can talk to (none is passed in) and
 merely allows the creation of side-effects.  If the arglist appears as
 @code{((this data-object) b)} then the form is stored as belonging to
-the class @code{data-object}.  If two @code{defmethods} appear with
+the class @code{data-object}.  If two @code{defmethod}s appear with
 arglists such as @code{(a b)} and @code{(c d)} then one of the
 implementations will be overwritten, but generic and multiple type cast
 arglists can co-exist.
@@ -629,7 +631,21 @@ All method doc-strings are concatenated into the generic method's
 function documentation.
 
 @var{forms} is the body of the function.
+
+If multiple methods and generics are defined for the same method name,
+they are executed in this order:
+
+@table @asis
+@item method :BEFORE
+@item generic :BEFORE
+@item method :PRIMARY
+@item generic :PRIMARY
+@item method :AFTER
+@item generic :AFTER
 @end defun
+
+See the file @file{eieio-test.el} for an example testing these
+differently tagged methods.
 
 @defun call-next-method &rest replacement-args
 
@@ -749,6 +765,14 @@ is performed.
 
 @defun class-parent class
 Deprecated function which returns the first parent of @var{class}.
+@end defun
+
+@defun class-children class
+Return the list of classes inheriting from @var{class}.
+@end defun
+
+@defun class-children-fast class
+Just like @code{class-children}, but with no checks.
 @end defun
 
 @defun same-class-p obj class
