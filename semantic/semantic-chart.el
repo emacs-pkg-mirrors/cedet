@@ -1,10 +1,10 @@
-;;; semantic-util.el --- Utilities for use with semantic token streams
+;;; semantic-util.el --- Utilities for use with semantic tag tables
 
 ;;; Copyright (C) 1999, 2000, 2001, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.6 2003/04/02 02:18:27 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.7 2003/08/17 02:46:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,50 +35,41 @@
 ;;; Code:
 
 ;;;###autoload
-(defun semantic-chart-nonterminals-by-token (&optional buffer-or-stream)
-  "Create a bar chart representing the number of nonterminals for a token.
-Each bar represents how many toplevel nonterminal in BUFFER-OR-STREAM
-exist with a given token type.  See `semantic-symbol->name-assoc-list'
-for tokens which will be charted."
+(defun semantic-chart-tags-by-class (&optional tagtable)
+  "Create a bar chart representing the number of tags for a given tag class.
+Each bar represents how many toplevel tags in TAGTABLE
+exist with a given class.  See `semantic-symbol->name-assoc-list'
+for tokens which will be charted.
+TAGTABLE is passedto `semantic-something-to-tag-table'."
   (interactive)
-  (let* ((stream (cond ((not buffer-or-stream)
-			(semantic-bovinate-toplevel t))
-		       ((bufferp buffer-or-stream)
-			(save-excursion
-			  (set-buffer buffer-or-stream)
-			  (semantic-bovinate-toplevel t)))
-		       (t buffer-or-stream)))
+  (let* ((stream (semantic-something-to-tag-table 
+		  (or tagtable (current-buffer))))
 	 (names (mapcar 'cdr semantic-symbol->name-assoc-list))
 	 (nums (mapcar
 		(lambda (symname)
 		  (length
-		   (semantic-find-nonterminal-by-token
-		    (car symname)
-		    stream
-		    t nil)))
-		  semantic-symbol->name-assoc-list)))
+		   (semantic-brute-find-tag-by-class (car symname)
+						     stream)
+		   ))
+		semantic-symbol->name-assoc-list)))
     (chart-bar-quickie 'vertical
-		       "Semantic Toplevel Token Volume"
-		       names "Token Type"
+		       "Semantic Toplevel Tag Volume"
+		       names "Tag Class"
 		       nums "Volume")
     ))
 
 ;;;###autoload
-(defun semantic-chart-database-size (&optional buffer-or-stream)
+(defun semantic-chart-database-size (&optional tagtable)
   "Create a bar chart representing the size of each file in semanticdb.
-Each bar represents how many toplevel nonterminals in BUFFER-OR-STREAM
-exist in each database entry."
+Each bar represents how many toplevel nonterminals in TAGTABLE
+exist in each database entry.
+TAGTABLE is passedto `semantic-something-to-tag-table'."
   (interactive)
   (if (or (not (fboundp 'semanticdb-minor-mode-p))
 	  (not (semanticdb-minor-mode-p)))
       (error "Semanticdb is not enabled"))
-  (let* ((stream (cond ((not buffer-or-stream)
-			(semantic-bovinate-toplevel t))
-		       ((bufferp buffer-or-stream)
-			(save-excursion
-			  (set-buffer buffer-or-stream)
-			  (semantic-bovinate-toplevel t)))
-		       (t buffer-or-stream)))
+  (let* ((stream (semantic-something-to-tag-table (or tagtable
+						      (current-buffer))))
 	 (db semanticdb-current-database)
 	 (names (mapcar 'car (object-assoc-list 'file (oref db tables))))
 	 (numnuts (mapcar (lambda (a)
@@ -86,7 +77,7 @@ exist in each database entry."
 				(cons (length (car a))
 				      (car names))
 			      (setq names (cdr names))))
-			  (object-assoc-list 'tokens (oref db tables))))
+			  (object-assoc-list 'tags (oref db tables))))
 	 (nums nil)
 	 (fh (/ (- (frame-height) 7) 4)))
     (setq numnuts (sort numnuts (lambda (a b) (> (car a) (car b)))))
@@ -97,7 +88,7 @@ exist in each database entry."
 	  (setcdr (nthcdr fh names) nil)
 	  (setcdr (nthcdr fh nums) nil)))
     (chart-bar-quickie 'horizontal
-		       "Semantic DB Toplevel Token Volume"
+		       "Semantic DB Toplevel Tag Volume"
 		       names "File"
 		       nums "Volume")
     ))
@@ -109,25 +100,20 @@ exist in each database entry."
    (semantic-tag-start tok)))
 
 ;;;###autoload
-(defun semantic-chart-nonterminal-complexity-token
-  (&optional symbol buffer-or-stream)
+(defun semantic-chart-tag-complexity
+  (&optional class tagtable)
   "Create a bar chart representing the complexity of some tokens.
-Complexity is calculated for tokens with a token of SYMBOL.  Each bar
-represents the complexity of some nonterminal in BUFFER-OR-STREAM.
-Only the most complex items are charted."
+Complexity is calculated for tokens with a tag of CLASS.  Each bar
+represents the complexity of some nonterminal in TAGTABLE.
+Only the most complex items are charted.
+TAGTABLE is passedto `semantic-something-to-tag-table'."
   (interactive)
-  (let* ((sym (if (not symbol) 'function))
+  (let* ((sym (if (not class) 'function))
 	 (stream
-	  (semantic-find-nonterminal-by-token
-	   sym
-	   (cond ((not buffer-or-stream)
-		  (semantic-bovinate-toplevel t))
-		 ((bufferp buffer-or-stream)
-		  (save-excursion
-		    (set-buffer buffer-or-stream)
-		    (semantic-bovinate-toplevel t)))
-		 (t buffer-or-stream))
-	   'positiononly nil))
+	  (semantic-find-tags-by-class
+	   sym (semantic-something-to-tag-table (or tagtable
+						    (current-buffer)))
+	   ))
 	 (name (cond ((semantic-tag-with-position-p (car stream))
 		      (buffer-name (semantic-tag-buffer (car stream))))
 		     (t "")))
@@ -147,7 +133,9 @@ Only the most complex items are charted."
 ;; ;; 			  (substring str (- (length str) 10)))
 ;; ;; 			names))
     (chart-bar-quickie 'horizontal
-		       (format "Function Complexity in %s" name)
+		       (format "%s Complexity in %s"
+			       (capitalize (symbol-name sym))
+			       name)
 		       names namelabel
 		       nums "Complexity (Lines of code)")
     ))
