@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.8 2001/01/24 21:02:42 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.9 2001/02/16 19:54:02 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -99,6 +99,15 @@
 (defvar ab (class-ab "abby"))
 (defvar a  (class-a "aye"))
 (defvar b (class-b "fooby"))
+
+(condition-case nil
+    (progn
+      ;; Try make-instance on these guys...
+      (make-instance 'class-ab)
+      (make-instance 'class-a :water 'cho)
+      (make-instance 'class-b "a name")
+      )
+  (error "make-instance error."))
 
 ;; Play with call-next-method
 (defmethod class-cn ((a class-a))
