@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.5.7
+;; Version: 0.6
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.67 1997/12/12 02:20:58 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.68 1997/12/14 13:29:50 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -106,7 +106,7 @@
 ;; The delay time before this happens is in
 ;; `speedbar-navigating-speed', and defaults to 10 seconds.
 ;;
-;;    Users XEmacs previous to 20.4 may want to change the default
+;;    Users XEmacs previous to 20 may want to change the default
 ;; timeouts for `speedbar-update-speed' to something longer as XEmacs
 ;; doesn't have idle timers, the speedbar timer keeps going off
 ;; arbitrarily while you're typing.  It's quite pesky.
@@ -306,10 +306,12 @@
 ;;         Keymap changes, and ways to add menu items.
 ;;         Timer use changes for XEmacs 20.4
 ;;         Regular expression enhancements.
-;; 0.5.7 Fixed up some frame definition stuff, use more convenience fns.
+;; 0.6   Fixed up some frame definition stuff, use more convenience fns.
 ;;       Rehashed frame creation code for better compatibility.
 ;;       Fixed setting of kill-buffer hook.
 ;;       Default speedbar has no menubar, mouse-3 is popup menu,
+;;       XEmacs double-click capability (Hrvoje Niksic <hniksic@srce.hr>)
+;;       General documentation fixup.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -513,7 +515,7 @@ Smart expansion only affects when speedbar wants to display a
 directory for a file in the attached frame.  When smart expansion is
 enabled, new directories which are children of a displayed directory
 are expanded in the current framework.  If nil, then the current
-heirarchy would be replaced with the new directory."
+hierarchy would be replaced with the new directory."
   :group 'speedbar
   :type 'boolean)
 
@@ -565,14 +567,14 @@ state data."
 
 (defcustom speedbar-vc-path-enable-hook nil
   "*Return non-nil if the current path should be checked for Version Control.
-Functions in this hook must accept one paramter which is the path
+Functions in this hook must accept one parameter which is the path
 being checked."
   :group 'speedbar-vc
   :type 'hook)
 
 (defcustom speedbar-vc-in-control-hook nil
   "*Return non-nil if the specified file is under Version Control.
-Functions in this hook must accept two paramters.  The PATH of the
+Functions in this hook must accept two parameters.  The PATH of the
 current file, and the FILENAME of the file being checked."
   :group 'speedbar-vc
   :type 'hook)
@@ -766,11 +768,7 @@ to toggle this value.")
 	(define-key speedbar-key-map 'button2 'speedbar-click)
 	(define-key speedbar-key-map '(shift button2) 'speedbar-power-click)
 	(define-key speedbar-key-map 'button3 'speedbar-xemacs-popup-kludge)
-	(define-key speedbar-key-map '(meta button3) 'speedbar-mouse-item-info)
-	;; I hate myself for this unholy binding.
-	;;           -- Hrvoje Niksic <hniksic@srce.hr>
-	;; (define-key speedbar-key-map 'button1 'speedbar-click)
-	)
+	(define-key speedbar-key-map '(meta button3) 'speedbar-mouse-item-info))
     ;; mouse bindings so we can manipulate the items on each line
     (define-key speedbar-key-map [down-mouse-1] 'speedbar-double-click)
     (define-key speedbar-key-map [mouse-2] 'speedbar-click)
@@ -988,7 +986,7 @@ nil if it doesn't exist."
 
 ;; XEmacs function only.
 (defun speedbar-needed-height (&optional frame)
-  "The needed height for the toolbar FRAME (in characters)."
+  "The needed height for the tool bar FRAME (in characters)."
   (or frame (setq frame (selected-frame)))
   ;; The 1 is the missing modeline/minibuffer
   (+ 1 (/ (frame-pixel-height frame)
@@ -1048,6 +1046,24 @@ in the selected file.
 	  (setq default-minibuffer-frame speedbar-attached-frame)))
     (make-local-variable 'temp-buffer-show-function)
     (setq temp-buffer-show-function 'speedbar-temp-buffer-show-function)
+    (if speedbar-xemacsp
+	(progn
+	  ;; Argh!  mouse-track-click-hook doesn't understand the
+	  ;; make-local-hook conventions.
+	  (make-local-variable 'mouse-track-click-hook)
+	  (add-hook 'mouse-track-click-hook
+		    (lambda (event count)
+		      (if (/= (event-button event) 1)
+			  nil		; Do normal operations.
+			(cond ((eq count 1)
+			       (speedbar-quick-mouse event))
+			      ((or (eq count 2)
+				   (eq count 3))
+			       (mouse-set-point event)
+			       (speedbar-do-function-pointer)
+			       (speedbar-quick-mouse event)))
+			;; Don't do normal operations.
+			t)))))
     (make-local-hook 'kill-buffer-hook)
     (add-hook 'kill-buffer-hook (lambda () (let ((skilling (boundp 'skilling)))
 					     (if skilling
@@ -1169,8 +1185,8 @@ mode-line.  This is only useful for non-XEmacs"
 ;; temporarily moving the point to that place.
 ;;    Hrvoje Niksic <hniksic@srce.hr>
 (defun speedbar-xemacs-popup-kludge (event)
-  "Popup a menu related to the clicked on item.
-Must be bound to event E."
+  "Pop up a menu related to the clicked on item.
+Must be bound to EVENT."
   (interactive "e")
   (save-excursion
     (goto-char (event-closest-point event))
@@ -1186,7 +1202,7 @@ Must be bound to event E."
       (dispatch-event new))))
 
 (defun speedbar-emacs-popup-kludge (e)
-  "Popup a menu related to the clicked on item.
+  "Pop up a menu related to the clicked on item.
 Must be bound to event E."
   (interactive "e")
   (save-excursion
@@ -1969,7 +1985,7 @@ If new functions are added, their state needs to be updated here."
   )
 
 (defun speedbar-clear-current-file ()
-  "Locate the file thought to be current, and unhighlight it."
+  "Locate the file thought to be current, and remove its highlighting."
   (save-excursion
     (set-buffer speedbar-buffer)
     (if speedbar-last-selected-file
@@ -2194,7 +2210,7 @@ This must be bound to a mouse event.  A button is any location of text
 with a mouse face that has a text property called `speedbar-function'.
 This should be bound to mouse event E."
   (interactive "e")
-  ;; Emacs only.  Modify this to handle XEmacs eccentricities
+  ;; Emacs only.  XEmacs handles this via `mouse-track-click-hook'.
   (cond ((eq (car e) 'down-mouse-1)
 	 (mouse-set-point e))
 	((eq (car e) 'mouse-1)
@@ -2651,7 +2667,7 @@ Returns the tag list, or t for an error."
       (error t))))
 )
 
-;;; Tag Management -- etags  (XEmacs compatibility part)
+;;; Tag Management -- etags  (old XEmacs compatibility part)
 ;;
 (defvar speedbar-fetch-etags-parse-list
   '(;; Note that java has the same parse-group as c
