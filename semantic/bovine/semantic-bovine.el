@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.6 2003/03/13 02:24:50 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.7 2003/03/17 01:22:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,7 @@
 
 ;;; Code:
 (require 'semantic)
+
 
 ;;; Semantic Bovination
 ;;
@@ -174,7 +175,7 @@ list of semantic tokens found."
                     ;; Do the compare
                     (if (eq (car lte) (car lse)) ;syntactic match
                         (let ((valdot (cdr lse)))
-                          (setq val (semantic-flex-text lse))
+                          (setq val (semantic-lex-token-text lse))
                           (setq lte (cdr lte))
                           (if (stringp (car lte))
                               (progn
