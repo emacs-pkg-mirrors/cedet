@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.22 2004/03/01 01:15:54 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.23 2004/03/04 01:51:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -467,21 +467,92 @@ In emacs lisp this is easilly defined by parenthisis bounding."
       (if sym (list sym)))
     ))
 
-(define-mode-overload-implementation semantic-ctxt-current-assignment emacs-lisp-mode
-  (&optional point)
-  "What is the variable being assigned into at POINT?
-Don't implement this."
-  nil)
-
 (define-mode-overload-implementation semantic-ctxt-current-function emacs-lisp-mode
   (&optional point)
   "Return a string which is the current function being called."
   (save-excursion
+    (if point (goto-char point) (setq point (point)))
+    ;; (semantic-beginning-of-command)
+    (if (condition-case nil
+	    (and (save-excursion
+		   (up-list -2)
+		   (looking-at "(("))
+		 (save-excursion
+		   (up-list -3)
+		   (looking-at "(let")))
+	  (error nil))
+	;; This is really a let statement, not a function.
+	nil
+      (let ((fun (function-at-point)))
+	(when fun
+	  ;; Dp not return FUN IFF the cursor is on FUN.
+	  ;; Huh?  Thats because if cursor is on fun, it is
+	  ;; the current symbol, and not the current function.
+	  (if (save-excursion
+		(condition-case nil
+		    (progn (forward-sexp -1)
+			   (and
+			    (looking-at (symbol-name fun))
+			    (<= point (+ (point) (length (symbol-name fun)))))
+			   )
+		  (error t)))
+	      nil
+	    ;; We are ok, so get it.
+	    (list (symbol-name fun)))
+	  ))
+      )))
+
+(define-mode-overload-implementation semantic-ctxt-current-assignment emacs-lisp-mode
+  (&optional point)
+  "What is the variable being assigned into at POINT?"
+  (save-excursion
     (if point (goto-char point))
-    (semantic-beginning-of-command)
-    (let ((fun (function-at-point)))
-      (if fun (list (symbol-name fun))))
-    ))
+    (let ((fn (semantic-ctxt-current-function point))
+	  (point (point)))
+      ;; We should never get lists from here.
+      (if fn (setq fn (car fn)))
+      (cond 
+       ;; SETQ 
+       ((and fn (or (string= fn "setq") (string= fn "set")))
+	(save-excursion
+	  (condition-case nil
+	      (let ((count 0)
+		    (lastodd nil)
+		    (start nil))
+		(up-list -1)
+		(down-list 1)
+		(forward-sexp 1)
+		;; Skip over sexp until we pass point.
+		(while (< (point) point)
+		  (setq count (1+ count))
+		  (forward-comment 1)
+		  (setq start (point))
+		  (forward-sexp 1)
+		  (if (= (% count 2) 1)
+		      (setq lastodd
+			    (buffer-substring-no-properties start (point))))
+		  )
+		(if lastodd (list lastodd))
+		)
+	    (error nil))))
+       ;; This obscure thing finds let statements.
+       ((condition-case nil
+	    (and 
+	     (save-excursion
+	       (up-list -2)
+	       (looking-at "(("))
+	     (save-excursion
+	       (up-list -3)
+	       (looking-at "(let")))
+	  (error nil))
+	(save-excursion
+	  (semantic-beginning-of-command)
+	  ;; Use func finding code, since it is the same format.
+	  (semantic-ctxt-current-symbol)))
+       ;; 
+       ;; DEFAULT- nothing
+       (t nil))
+      )))
 
 (define-mode-overload-implementation semantic-ctxt-current-argument emacs-lisp-mode
   (&optional point)
@@ -510,6 +581,51 @@ If there is a detail, prepend that directory."
 	(detail (semantic-tag-get-attribute tag :directory)))
     (concat (expand-file-name name detail) ".el")))
 
+(define-mode-overload-implementation semantic-format-tag-abbreviate emacs-lisp-mode
+  (tag &optional parent color)
+  "Return an abbreviated string describing tag."
+  (let ((class (semantic-tag-class tag))
+	(name (semantic-format-tag-name tag parent color))
+	str)
+    (cond
+     ((eq class 'function)
+      (concat "(" name " )"))
+     (t
+      (semantic-format-tag-abbreviate-default tag parent color)))))
+  
+(define-mode-overload-implementation semantic-format-tag-prototype emacs-lisp-mode
+  (tag &optional parent color)
+  "Return a prototype string describing tag.
+In Emacs Lisp, a prototype for something may start (autoload ...).
+This is certainly not expected if this is used to display a summary.
+Make up something else.  When we go to write something that needs
+a real Emacs Lisp protype, we can fix it then."
+  (let ((class (semantic-tag-class tag))
+	(name (semantic-format-tag-name tag parent color))
+	str)
+    (cond
+     ((eq class 'function)
+      (concat "(" name " "
+	      (semantic--format-tag-arguments
+	       (semantic-tag-function-arguments tag)
+	       #'identity
+	       color)
+	      ")"))
+     (t
+      (semantic-format-tag-prototype-default tag parent color)))))
+
+(define-mode-overload-implementation semantic-format-tag-concise-prototype emacs-lisp-mode
+  (tag &optional parent color)
+  "Return a concise prototype string describing tag.
+See `semantic-format-tag-prototype' for Emacs Lisp for more details."
+  (semantic-format-tag-prototype tag parent color))
+  
+(define-mode-overload-implementation semantic-format-tag-uml-prototype emacs-lisp-mode
+  (tag &optional parent color)
+  "Return a uml prototype string describing tag.
+See `semantic-format-tag-prototype' for Emacs Lisp for more details."
+  (semantic-format-tag-prototype tag parent color))
+  
 (defvar-mode-local emacs-lisp-mode semantic-lex-analyzer
   'semantic-emacs-lisp-lexer)
 
