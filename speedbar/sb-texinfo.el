@@ -5,7 +5,7 @@
 ;; Author: Richard Y. Kim, <ryk@ap.com>
 ;; Maintainer: Richard Y. Kim, <ryk@ap.com>
 ;; Created: Fri Jun 16 17:23:11 2000
-;; Version: $Id: sb-texinfo.el,v 1.1 2000/06/30 13:01:03 zappo Exp $
+;; Version: $Id: sb-texinfo.el,v 1.2 2000/07/04 01:10:05 zappo Exp $
 ;; Keywords:
 
 ;; This program is free software; you can redistribute it and/or
@@ -29,20 +29,51 @@
 ;; tags using imenu.  This presentation do not reflect the natural
 ;; hierarchy of the texinfo document.
 ;;
-;; This small add-on to speedbar provides an alternate way to
-;; view the document which shows the natural hierarchy of the document.
-;;
+;; This small add-on to speedbar provides an alternate way to view the
+;; document which shows the natural hierarchy of the document. This
+;; shows the same information that `M-x texinfo-show-structure'
+;; displays, but in the speedbar frame with the speedbar user
+;; interface.
+
 ;; Installtation procedure:
-;;   Not yet worked out.
+;;   Install speedbar 0.11 or later.
+;;   Add the following to your ~/.emacs file:
+;;   (eval-after-load "speedbar" (load-library "sb-texinfo"))
+
+;; Known Problems:
+;;   Does not look inside files included via @include directive.
+;;
+;;   The indentations of nodes with and without subnodes could be better.
+;;
+;;   Clicking on nodes with subnodes only shows subnodes rather than
+;;   displaying the node content on the target frame.  Instead the first
+;;   subnode on the speedbar has to be clicked.  I believe this can be
+;;   fixed if a custom speedbar button display routine is written rather
+;;   than using the built-in function speedbar-insert-generic-list.
+;;   If I learn to do this, I will, but I make no promises.
+;;
+;;   Potential problem with auctex 9.9p users.  Auctex provides it's
+;;   own texinfo mode which does not use texinfo-mode-hook.  Make sure
+;;   you do not use texinfo mode provided by auctex!
 
 ;;; Change Log:
+;;;
+;;; 1.4 - speedbar-tag-hierarchy-method is now set to nil by
+;;;       speedbar-fetch-dynamic-texinfo after making it buffer local
+;;;       first.  I thought this was buffer-local variable alread, but
+;;;       it is not.  Also added installation instruction.
+;;;
+;;; 1.3 - Added bunch of comments in the code as well as installation
+;;;       instruction.  speedbar-texinfo-mode-hook now turns on the
+;;;       speedbar mode.
 ;;;
 ;;; 1.2 - Use newly created variable speedbar-texinfo-section-regexp rather
 ;;;       than texinfo-section-types-regexp, because the latter does not
 ;;;       have "top" in it.
 ;;;
 ;;;       Also added a hook to texinfo-mode-hook which sets
-;;;       speedbar-tag-hierarchy-method to nil.
+;;;       speedbar-tag-hierarchy-method to nil at Eric Ludlam's
+;;;       suggestion.
 ;;;
 ;;; 1.1 - first draft sent to Eric. on June 16, 2000.
 
@@ -50,14 +81,19 @@
 
 (require 'speedbar)
 
+;; GNU Emacs 20.7 comes with speedbar 0.8.1 bundled which does not work
+;; with sb-texinfo.  Lacking speedbar-version variable, check whether
+;; speedbar-dynamic-tags-function-list is bound which was introduced after
+;; 0.8.1.
+(or (boundp 'speedbar-dynamic-tags-function-list)
+    (error "Speedbar 0.11 or newer is required to use sb-texinfo."))
+
+;; Attach these new functions to handle texinfo-mode.
 (add-to-list 'speedbar-dynamic-tags-function-list
 	     '(speedbar-fetch-dynamic-texinfo . speedbar-insert-texinfo-list))
 
-(defun speedbar-texinfo-mode-hook ()
-  (setq speedbar-tag-hierarchy-method nil))
-
-(add-hook 'texinfo-mode-hook 'speedbar-texinfo-mode-hook)
-
+;; speedbar-texinfo-section-regexp is same as texinfo-section-types-regexp
+;; except that it has "top" entry.
 (defconst speedbar-texinfo-section-regexp
   "^@\\(top \\|chapter \\|sect\\|subs\\|subh\\|unnum\\|major\\|chapheading \\|heading \\|appendix\\)")
 
@@ -76,6 +112,13 @@
       t
     (condition-case nil
 	(save-excursion
+
+	  ;; Set speedbar-tag-hierarchy-method to nil so that 
+	  ;; speedbar-create-tag-hierarchy won't reorder the list.
+	  ;; Make it buffer local so that the global value is not touched.
+	  (make-local-variable 'speedbar-tag-hierarchy-method)
+	  (setq speedbar-tag-hierarchy-method nil)
+
 	  (let ((heading-to-level
 		 '(("top" . 0)
 		   ("chapter" . 0) ("section" . 1)
@@ -107,7 +150,7 @@
 
 ;; See speedbar-fetch-dynamic-texinfo for description of LST.
 ;; LEVEL should be 0 unless this is called recursively.
-;; This function converts LST from a flat list strcuture into
+;; This function converts LST from a flat list structure into
 ;; a hierarchical list suitable to be passed on to speedbar-insert-texinfo-list.
 ;; This function creates the hierarchical list recursively.
 ;; On first pass all the nodes of each chapter are grouped into a list.
@@ -139,8 +182,6 @@
 	    new-list)))
 
 (defun speedbar-insert-texinfo-list (indent lst)
-  ;; Set speedbar-tag-hierarchy-method to nil so that 
-  ;; speedbar-create-tag-hierarchy won't mess up the list.
   (speedbar-insert-generic-list indent (speedbar-format-texinfo-list lst indent)
 				'speedbar-tag-expand
 				'speedbar-tag-find))
