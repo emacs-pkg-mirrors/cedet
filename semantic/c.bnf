@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.13 2000/07/01 18:15:31 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.14 2000/07/05 14:41:31 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.14  2000/07/05 14:41:31  zappo
+# Support multiple continuous decl modifiers.
+# Added modifiers into variables.
+#
 # Revision 1.13  2000/07/01 18:15:31  zappo
 # Updated for new elements in the tokens.
 #
@@ -131,9 +135,12 @@ opt-stars : punctuation "*" opt-stars
 	    ( 0 )
           ;
 
-declmods : symbol "\\(__\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)+"
+declmods : symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)" declmods
+	   ( ,(cons $1 $2 ) )
+	 | symbol "\\(_+\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)"
+	   ( $1 )
 	 | EMPTY
-	   ( "" )
+	   ()
 	 ;
 
 # dont deal with the stars just yet.
@@ -178,7 +185,8 @@ variable : variabledef punctuation ";"
 	 ;
 
 variabledef : declmods typeform varnamelist
-	      ( $3 variable $2 (string-match "const" (car $1)) nil nil nil )
+	      ( $3 variable $2 (if $1 (string-match "const" (car $1))) nil 
+	      (if (and $1 (string-match "const" (car $1))) (cdr $1) $1) nil )
 	    ;
 
 opt-restrict : symbol "\\(__\\)?restrict"
@@ -191,8 +199,9 @@ varname : opt-stars opt-restrict symbol opt-bits opt-array opt-assign
 
 # I should store more in this def, but leave it simple for now.
 variablearg : declmods typeform varname
-	      ( (car $3) variable $2 (string-match "const" (car $1))
-	      nil nil nil )
+	      ( (car $3) variable $2 (if $1 (string-match "const" (car $1)))
+	      nil (if (and $1 (string-match "const" (car $1))) (cdr $1) $1)
+	      nil )
 	    ;
 
 varnamelist : varname  punctuation "," varnamelist
