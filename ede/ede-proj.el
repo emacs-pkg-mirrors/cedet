@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.38 2001/06/03 14:43:00 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.39 2001/12/05 01:23:47 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -391,14 +391,20 @@ FILE must be massaged by `ede-convert-path'."
   "Build a distribution for the project based on THIS target."
   ;; I'm a lazy bum, so I'll make a makefile for doing this sort
   ;; of thing, and rely only on that small section of code.
-  (let ((pm (ede-proj-dist-makefile this)))
+  (let ((pm (ede-proj-dist-makefile this))
+	(df (project-dist-files this)))
+    (if (and (file-exists-p (car df))
+	     (not (y-or-n-p "Dist file already exists.  Rebuild? ")))
+	(error "Try `ede-update-version' before making a distribution"))
     (ede-proj-setup-buildenvironment this)
     (if (string= pm "Makefile.am") (setq pm "Makefile"))
-    (compile (concat "make -f " pm " dist"))))
+    (compile (concat "make -f " pm " dist"))
+    ))
 
 (defmethod project-dist-files ((this ede-proj-project))
-  "Return a list of files that constitues a distribution of THIS project."
+  "Return a list of files that constitutes a distribution of THIS project."
   (list
+   ;; Note to self, keep this first for the above fn to check against.
    (concat (oref this name) "-" (oref this version) ".tar.gz")
    ))
 
