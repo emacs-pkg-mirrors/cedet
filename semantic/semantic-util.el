@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.114 2003/04/09 00:45:22 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.115 2003/04/09 00:47:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1023,7 +1023,7 @@ If TOKEN is nil, describe the token under the cursor."
   (interactive)
   (if (not token) (setq token (semantic-current-tag)))
   (semantic-bovinate-toplevel t)
-  (if token (message (semantic-summarize-nonterminal token))))
+  (if token (message (semantic-format-tag-summarize token))))
 
 
 ;;; Putting keys on tokens.
@@ -1119,7 +1119,7 @@ NOTFIRST indicates that this was not the first call in the recursive use."
     (let ((chil (semantic-tag-components-with-overlays (car cache))))
       (if (not (memq (semantic-tag-overlay (car cache)) over))
 	  (message "Tag %s not in buffer overlay list."
-		   (semantic-concise-prototype-nonterminal (car cache))))
+		   (semantic-format-tag-concise-prototype (car cache))))
       (setq over (delq (semantic-tag-overlay (car cache)) over))
       (setq over (semantic-sanity-check chil over t))
       (setq cache (cdr cache))))
