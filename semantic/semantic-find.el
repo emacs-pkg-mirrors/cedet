@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.8 2003/04/02 04:29:57 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.9 2003/04/05 03:02:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -233,10 +233,30 @@ PREDICATE is a lambda expression which accepts on TAG.
 TABLE  is a semantic tags table.  See `semantic-something-to-tag-table'."
   (let ((tags (semantic-something-to-tag-table table))
 	(result nil))
-    (mapc (lambda (tag) (and (funcall predicate tag)
-			     (setq result (cons tag result))))
-	  tags)
+;    (mapc (lambda (tag) (and (funcall predicate tag)
+;			     (setq result (cons tag result))))
+;	  tags)
+    ;; A while loop is actually faster.  Who knew
+    (while tags
+      (and (funcall predicate (car tags))
+	   (setq result (cons (car tags) result)))
+      (setq tags (cdr tags)))
     (nreverse result)))
+
+;; I can shave off some time by removing the funcall (see above)
+;; and having the question be inlined in the while loop.
+;; Strangely turning the upper level fcns into macros had a larger
+;; impact.
+(defmacro semantic--find-tags-by-macro (form table)
+  "Find tags for which FORM is non-nil nil TABLE.
+TABLE  is a semantic tags table.  See `semantic-something-to-tag-table'."
+  `(let ((tags (semantic-something-to-tag-table ,table))
+	 (result nil))
+     (while tags
+       (and ,form
+	    (setq result (cons (car tags) result)))
+       (setq tags (cdr tags)))
+     (nreverse result)))
 
 ;;;###autoload
 (defsubst semantic-find-first-tag-by-name (name &optional table)
@@ -248,64 +268,69 @@ This routine uses `assoc' to quickly find the first matching entry."
 		semantic-case-fold))
 
 ;;;###autoload
-(defun semantic-find-tags-by-name (name &optional table)
+(defmacro semantic-find-tags-by-name (name &optional table)
   "Find all tags with NAME in TABLE.
 NAME is a string.
 TABLE is a tag table.  See `semantic-something-to-tag-table'."
-  (let ((case-fold-search semantic-case-fold))
-    (semantic--find-tags-by-function
-     (lambda (tag) (string= name (semantic-tag-name tag)))
-     (semantic-something-to-tag-table table))))
+  `(let ((case-fold-search semantic-case-fold))
+     (semantic--find-tags-by-macro
+      (string= ,name (semantic-tag-name (car tags)))
+     (semantic-something-to-tag-table ,table))))
 
 ;;;###autoload
-(defun semantic-find-tags-for-completion (prefix &optional table)
+(defmacro semantic-find-tags-for-completion (prefix &optional table)
   "Find all tags whos name begins with PREFIX in TABLE.
 PREFIX is a string.
 TABLE is a tag table.  See `semantic-something-to-tag-table'.
 While it would be nice to use `try-completion' or `all-completions',
 those functions do not return the tags, only a string.
 Uses `compare-strings' for fast comparison."
-  (let ((l (length prefix)))
-    (semantic--find-tags-by-function
-     (lambda (tag)
-       (eq (compare-strings prefix 0 nil
-			    (semantic-tag-name tag) 0 l
-			    semantic-case-fold)
-	   t))
-     (semantic-something-to-tag-table table))))
+  `(let ((l (length ,prefix)))
+     (semantic--find-tags-by-macro
+      (eq (compare-strings ,prefix 0 nil
+			   (semantic-tag-name (car tags)) 0 l
+			   semantic-case-fold)
+	  t)
+      ,table)))
 
 ;;;###autoload
-(defun semantic-find-tags-by-name-regexp (regexp &optional table)
+(defmacro semantic-find-tags-by-name-regexp (regexp &optional table)
   "Find all tags with name matching REGEXP in TABLE.
 REGEXP is a string containing a regular expression,
 TABLE is a tag table.  See `semantic-something-to-tag-table'.
 Consider using `semantic-find-tags-for-completion' if you are
 attempting to do completions."
-  (let ((case-fold-search semantic-case-fold))
-    (semantic--find-tags-by-function
-     (lambda (tag) (string-match regexp (semantic-tag-name tag)))
-     (semantic-something-to-tag-table table))))
+  `(let ((case-fold-search semantic-case-fold))
+     (semantic--find-tags-by-macro
+      (string-match ,regexp (semantic-tag-name (car tags)))
+      ,table)))
 
 ;;;###autoload
-(defun semantic-find-tags-by-class (class &optional table)
+(defmacro semantic-find-tags-by-class (class &optional table)
   "Find all tags of class CLASS in TABLE.
 CLASS is a symbol representing the class of the token, such as
 'variable, of 'function..
 TABLE is a tag table.  See `semantic-something-to-tag-table'."
-  (semantic--find-tags-by-function
-   (lambda (tag) (eq class (semantic-tag-class tag)))
-   (semantic-something-to-tag-table table)))
+  `(semantic--find-tags-by-macro
+    (eq ,class (semantic-tag-class (car tags)))
+    ,table))
 
 ;;;###autoload
-(defun semantic-find-tags-by-type (type &optional table)
+(defmacro semantic-find-tags-by-type (type &optional table)
   "Find all tags of with a type TYPE in TABLE.
 TYPE is a string or tag representing a data type as defined in the
 language the tags were parsed from, such as \"int\", or perhaps
 a tag whose name is that of a struct or class.
 TABLE is a tag table.  See `semantic-something-to-tag-table'."
-  (semantic--find-tags-by-function
-     (lambda (tag) (semantic-tag-of-type-p tag type))
-     (semantic-something-to-tag-table table)))
+  `(semantic--find-tags-by-macro
+    (semantic-tag-of-type-p (car tags) ,type)
+    ,table))
+
+;;;###autoload
+(defsubst semantic-find-tags-included (&optional table)
+  "Find all tags in TABLE that are of the 'include class.
+TABLE is a tag table.  See `semantic-something-to-tag-table'."
+  (semantic-find-tags-by-class 'include table))
 
 ;;; Tag Table Flattening
 ;;
@@ -359,11 +384,7 @@ If SEARCH-PARTS is non-nil, search children of tags.
 If SEARCH-INCLUDE is non-nil, search include files.
 
 Use `semantic-find-first-tag-by-name' instead."
-  (let* ((stream (if (bufferp streamorbuffer)
-		     (save-excursion
-		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel))
-		   streamorbuffer))
+  (let* ((stream (semantic-something-to-tag-table streamorbuffer))
          (assoc-fun (if semantic-case-fold
                         #'assoc-ignore-case
                       #'assoc))
@@ -728,6 +749,51 @@ details are available of findable."
 ;;;###autoload
 (semantic-alias-obsolete 'semantic-find-innermost-nonterminal-by-position
 			 'semantic-brute-find-innermost-tag-by-position)
+
+;;; TESTING
+;;
+(defun semantic-find-benchmark ()
+  "Run some simple benchmarks to see how we are doing.
+Optional argument ARG is the number of iterations to run."
+  (interactive)
+  (require 'benchmark)
+  (let ((f-name nil)
+	(b-name nil)
+	(f-comp)
+	(b-comp)
+	(f-regex)
+	)
+    (garbage-collect)
+    (setq f-name
+	  (benchmark-run-compiled
+	      1000 (semantic-find-first-tag-by-name "class3"
+						    "test/test.cpp")))
+    (garbage-collect)
+    (setq b-name
+	  (benchmark-run-compiled
+	      1000 (semantic-brute-find-first-tag-by-name "class3"
+							  "test/test.cpp")))
+    (garbage-collect)
+    (setq f-comp
+	  (benchmark-run-compiled
+	      1000 (semantic-find-tags-for-completion "method"
+						      "test/test.cpp")))
+    (garbage-collect)
+    (setq b-comp
+	  (benchmark-run-compiled
+	      1000 (semantic-brute-find-tag-by-name-regexp "^method"
+							   "test/test.cpp")))
+    (garbage-collect)
+    (setq f-regex
+	  (benchmark-run-compiled
+	      1000 (semantic-find-tags-by-name-regexp "^method"
+						      "test/test.cpp")))
+    
+    (message "Name [new old] [ %.3f %.3f ] Complete [newc/new old] [ %.3f/%.3f %.3f ]"
+	     (car f-name) (car b-name)
+	     (car f-comp) (car f-regex)
+	     (car b-comp))
+  ))
 
 
 (provide 'semantic-find)
