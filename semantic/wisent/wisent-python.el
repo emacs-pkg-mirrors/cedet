@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.15 2002/08/11 09:43:13 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.16 2002/08/11 20:31:09 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -400,6 +400,8 @@ Return a 'raw-string syntactic token."
 ;; This should be called everytime before parsing starts.
 ;; Is there a better hook than python-mode-hook which gets called
 ;; at the start of every parse? -ryk6/21/02.
+
+;;;###autoload
 (add-hook 'python-mode-hook #'wisent-python-default-setup)
 
 ;;;****************************************************************************
@@ -1157,6 +1159,7 @@ Return a 'raw-string syntactic token."
    )
   "Tokens.")
 
+;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-10 21:30+0200
