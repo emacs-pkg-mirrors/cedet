@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.9 2003/04/07 11:22:54 ponced Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.10 2003/08/02 08:14:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,303 +28,10 @@
 ;; Concocted as an experiment for nonstandard languages.
 
 (require 'semantic)
+(require 'semantic-make-by)
 (require 'backquote)
 
 ;;; Code:
-(defvar semantic-toplevel-make-bovine-table
-  ;;DO NOT EDIT! Generated from make.by - 2003-04-07 12:33+0200
-  `(
-    (bovine-toplevel ;;Makefile
-     (variable)
-     (rule)
-     (conditional)
-     (include)
-     (whitespace
-      ,(semantic-lambda
-        (list nil))
-      )
-     (newline
-      ,(semantic-lambda
-        (list nil))
-      )
-     ) ;; end Makefile
-
-    (variable
-     (symbol
-      opt-whitespace
-      equals
-      opt-whitespace
-      element-list
-      ,(semantic-lambda
-        (semantic-tag-new-variable
-         (nth 0 vals) nil
-         (nth 4 vals)))
-      )
-     ) ;; end variable
-
-    (rule
-     (targets
-      opt-whitespace
-      colons
-      opt-whitespace
-      element-list
-      commands
-      ,(semantic-lambda
-        (semantic-tag-new-function
-         (nth 0 vals) nil
-         (nth 4 vals)))
-      )
-     ) ;; end rule
-
-    (targets
-     (target
-      opt-whitespace
-      targets
-      ,(semantic-lambda
-        (list
-         (car
-          (nth 0 vals))
-         (car
-          (nth 2 vals))))
-      )
-     (target
-      ,(semantic-lambda
-        (list
-         (car
-          (nth 0 vals))))
-      )
-     ) ;; end targets
-
-    (target
-     (sub-target
-      target
-      ,(semantic-lambda
-        (list
-         (concat
-          (car
-           (nth 0 vals))
-          (car
-           (nth 2 vals)))))
-      )
-     (sub-target
-      ,(semantic-lambda
-        (list
-         (car
-          (nth 0 vals))))
-      )
-     ) ;; end target
-
-    (sub-target
-     (symbol)
-     (string)
-     (varref)
-     ) ;; end sub-target
-
-    (conditional
-     (IF
-      whitespace
-      symbol
-      newline
-      ,(semantic-lambda
-        (list nil))
-      )
-     (IFDEF
-      whitespace
-      symbol
-      newline
-      ,(semantic-lambda
-        (list nil))
-      )
-     (IFNDEF
-      whitespace
-      symbol
-      newline
-      ,(semantic-lambda
-        (list nil))
-      )
-     (IFEQ
-      whitespace
-      expression
-      newline
-      ,(semantic-lambda
-        (list nil))
-      )
-     (IFNEQ
-      whitespace
-      expression
-      newline
-      ,(semantic-lambda
-        (list nil))
-      )
-     (ELSE
-      newline
-      ,(semantic-lambda
-        (list nil))
-      )
-     (ENDIF
-      newline
-      ,(semantic-lambda
-        (list nil))
-      )
-     ) ;; end conditional
-
-    (expression
-     (semantic-list)
-     ) ;; end expression
-
-    (include
-     (INCLUDE
-      whitespace
-      element-list
-      ,(semantic-lambda
-        (semantic-tag-new-include
-         (nth 2 vals) nil))
-      )
-     ) ;; end include
-
-    (equals
-     (punctuation
-      "\\b[:]\\b"
-      punctuation
-      "\\b[=]\\b"
-      ,(semantic-lambda)
-      )
-     (punctuation
-      "\\b[+]\\b"
-      punctuation
-      "\\b[=]\\b"
-      ,(semantic-lambda)
-      )
-     (punctuation
-      "\\b[=]\\b"
-      ,(semantic-lambda)
-      )
-     ) ;; end equals
-
-    (colons
-     (punctuation
-      "\\b[:]\\b"
-      punctuation
-      "\\b[:]\\b"
-      ,(semantic-lambda)
-      )
-     (punctuation
-      "\\b[:]\\b"
-      ,(semantic-lambda)
-      )
-     ) ;; end colons
-
-    (element-list
-     (elements
-      newline
-      ,(semantic-lambda
-        (nth 0 vals))
-      )
-     ) ;; end element-list
-
-    (elements
-     (element
-      whitespace
-      elements
-      ,(semantic-lambda
-        (list
-         (nth 0 vals))
-        (nth 2 vals))
-      )
-     (element
-      ,(semantic-lambda
-        (list
-         (nth 0 vals)))
-      )
-     ( ;;EMPTY
-      )
-     ) ;; end elements
-
-    (element
-     (sub-element
-      element
-      ,(semantic-lambda
-        (list
-         (concat
-          (car
-           (nth 0 vals))
-          (car
-           (nth 1 vals)))))
-      )
-     ( ;;EMPTY
-      )
-     ) ;; end element
-
-    (sub-element
-     (symbol)
-     (string)
-     (punctuation)
-     (semantic-list
-      ,(semantic-lambda
-        (list
-         (buffer-substring-no-properties
-          (identity start)
-          (identity end))))
-      )
-     ) ;; end sub-element
-
-    (varref
-     (punctuation
-      "\\b[$]\\b"
-      semantic-list
-      ,(semantic-lambda
-        (list
-         (buffer-substring-no-properties
-          (identity start)
-          (identity end))))
-      )
-     ) ;; end varref
-
-    (commands
-     (shell-command
-      newline
-      commands
-      ,(semantic-lambda
-        (list
-         (nth 0 vals))
-        (nth 1 vals))
-      )
-     ( ;;EMPTY
-      ,(semantic-lambda)
-      )
-     ) ;; end commands
-
-    (opt-whitespace
-     (whitespace
-      ,(semantic-lambda
-        (list nil))
-      )
-     ( ;;EMPTY
-      )
-     ) ;; end opt-whitespace
-    )
-  "Table for parsing Makefiles.")
-
-(defvar semantic-make-keyword-table
-  ;;DO NOT EDIT! Generated from make.by - 2003-04-07 12:33+0200
-  (semantic-lex-make-keyword-table
-   '(("if" . IF)
-     ("ifdef" . IFDEF)
-     ("ifndef" . IFNDEF)
-     ("ifeq" . IFEQ)
-     ("ifneq" . IFNEQ)
-     ("else" . ELSE)
-     ("endif" . ENDIF)
-     ("include" . INCLUDE))
-   '(("include" summary "Macro: include filename1 filename2 ...")
-     ("ifneq" summary "Conditional: ifneq (expression) ... else ... endif")
-     ("ifeq" summary "Conditional: ifeq (expression) ... else ... endif")
-     ("ifndef" summary "Conditional: ifndef (expression) ... else ... endif")
-     ("ifdef" summary "Conditional: ifdef (expression) ... else ... endif")
-     ("endif" summary "Conditional: if (expression) ... else ... endif")
-     ("else" summary "Conditional: if (expression) ... else ... endif")
-     ("if" summary "Conditional: if (expression) ... else ... endif")))
-  "Keyword table for Makefiles.")
 
 (define-lex-simple-regex-analyzer semantic-lex-make-backslash-newline
   "A line ending with a \ continues to the next line and is treated as whitespace."
@@ -368,27 +75,21 @@
 ;;;###autoload
 (defun semantic-default-make-setup ()
   "Set up a Makefile buffer for parsing with semantic."
-  ;;DO NOT EDIT! Generated from make.by - 2003-04-07 12:33+0200
-  (progn
-    (setq semantic-toplevel-bovine-table semantic-toplevel-make-bovine-table
-          semantic-debug-parser-source "make.by"
-          semantic-debug-parser-class 'semantic-bovine-debug-parser
-          semantic-flex-keywords-obarray semantic-make-keyword-table
-          )
-    (setq semantic-symbol->name-assoc-list '((variable . "Variables")
-                                             (function . "Rules")
-                                             (include . "Dependencies"))
-          semantic-case-fold t
-          semantic-tag-expand-function 'semantic-make-expand-tag
-          semantic-lex-syntax-modifications '((?. "_")
-                                              (?= ".")
-                                              (?/ "_")
-                                              (?$ ".")
-                                              (?+ ".")
-                                              (?\\ ".")
-                                              )
-          imenu-create-index-function 'semantic-create-imenu-index
-          ))
+  (semantic-make-by--install-parser)
+  (setq semantic-symbol->name-assoc-list '((variable . "Variables")
+                                           (function . "Rules")
+                                           (include . "Dependencies"))
+        semantic-case-fold t
+        semantic-tag-expand-function 'semantic-make-expand-tag
+        semantic-lex-syntax-modifications '((?. "_")
+                                            (?= ".")
+                                            (?/ "_")
+                                            (?$ ".")
+                                            (?+ ".")
+                                            (?\\ ".")
+                                            )
+        imenu-create-index-function 'semantic-create-imenu-index
+        )
   (setq semantic-lex-analyzer #'semantic-make-lexer)
   )
 
