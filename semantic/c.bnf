@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.14 2000/07/05 14:41:31 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.15 2000/09/11 23:00:32 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.15  2000/09/11 23:00:32  zappo
+# Use new BNF settings section.
+#
 # Revision 1.14  2000/07/05 14:41:31  zappo
 # Support multiple continuous decl modifiers.
 # Added modifiers into variables.
@@ -68,18 +71,30 @@
 # Initial revision
 #
 
-# TABLE: semantic-c.el:semantic-toplevel-c-bovine-table
-# MODE: c-mode
+%start         declaration
+%outputfile    semantic-c.el
+%parsetable    semantic-toplevel-c-bovine-table
+%languagemode  c-mode
+%setupfunction semantic-default-c-setup
 
-bovine-toplevel : include
-		| macro
-		| comment
-                | function
-		| variable
-                | prototype
-                | type
-                | define
-                ;
+%(setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
+       semantic-flex-extensions semantic-flex-c-extensions
+       semantic-dependency-include-path semantic-default-c-path
+       imenu-create-index-function 'semantic-create-imenu-index
+       document-comment-start "/*"
+       document-comment-line-prefix " *"
+       document-comment-end " */"
+       )%
+
+declaration : include
+	    | macro
+	    | comment
+	    | function
+	    | variable
+	    | prototype
+	    | type
+	    | define
+	    ;
 		
 include : punctuation "#" symbol "include" punctuation "<"
 	  filename punctuation ">"
