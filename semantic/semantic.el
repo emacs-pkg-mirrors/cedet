@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 1.3
+;; Version: 1.3.2
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.61 2000/11/13 21:01:18 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.62 2000/11/18 14:09:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
