@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.7 1999/03/09 16:11:35 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.8 1999/03/12 18:22:49 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -41,10 +41,6 @@
 	      :documentation "Auxilliary source files included in this target.
 Each of these is considered equivalent to a source file, but it is not
 distributed, and each should have a corresponding rule to build it.")
-   (rules :initarg :rules
-	  :initform nil
-	  :custom (repeat (object :objecttype ede-makefile-rule))
-	  :documentation "Arbitrary rules needed to make this target.")
    (dirty :initform nil
 	  :documentation "Non-nil when generated files needs updating.")
    )
@@ -55,6 +51,10 @@ distributed, and each should have a corresponding rule to build it.")
 	     :initform "Makefile"
 	     :custom string
 	     :documentation "File name of generated Makefile.")
+   (rules :initarg :rules
+	  :initform nil
+	  :custom (repeat (object :objecttype ede-makefile-rule))
+	  :documentation "Arbitrary rules needed to make this target.")
    )
   "Abstract class for Makefile based targets.")
 
@@ -101,8 +101,14 @@ prefix, or a \".so\" suffix."
 All other sources should be included independently."))
   "Target for a single info file.")
    
-(defclass ede-proj-target-lisp (ede-proj-target)
-  ()
+(defclass ede-proj-target-lisp (ede-proj-target-makefile)
+  ((load-path :initarg :load-path
+	      :initform nil
+	      :custom (repeat string)
+	      :documentation "Additional load-path arguments.
+When compiling from the command line, these are added to the makefile.
+When compiling from within emacs, these are ignored.")
+   )
   "This target consists of a group of lisp files.
 A lisp target may be one general program with many separate lisp files in it.")
 
