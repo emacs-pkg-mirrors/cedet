@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.38 2004/04/28 15:38:10 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.39 2004/04/29 10:13:36 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -255,17 +255,17 @@ FUNCTION does not have arguments.  When FUNCTION is entered
 (defalias 'semantic-map-mode-buffers
   'mode-local-map-mode-buffers)
 
-(defalias 'semantic-fetch-overload
-  'fetch-overload)
+(semantic-alias-obsolete 'semantic-fetch-overload
+                         'fetch-overload)
 
-(defalias 'define-mode-overload-implementation
-  'define-mode-local-override)
+(semantic-alias-obsolete 'define-mode-overload-implementation
+                         'define-mode-local-override)
 
-(defalias 'semantic-with-mode-bindings
-  'with-mode-local)
+(semantic-alias-obsolete 'semantic-with-mode-bindings
+                         'with-mode-local)
 
-(defalias 'define-semantic-child-mode
-  'define-child-mode)
+(semantic-alias-obsolete 'define-semantic-child-mode
+                         'define-child-mode)
 
 (defun semantic-install-function-overrides (overrides &optional transient mode)
   "Install the function OVERRIDES in the specified environment.
@@ -353,8 +353,8 @@ calling this one."
                   "define-lex-regex-type-analyzer"
                   "define-lex-string-type-analyzer"
                   "define-lex-block-type-analyzer"
-                  "define-mode-overload-implementation"
-                  "define-semantic-child-mode"
+                  ;;"define-mode-overload-implementation"
+                  ;;"define-semantic-child-mode"
                   "define-semantic-idle-service"
                   "define-wisent-lexer"
                   "semantic-alias-obsolete"
