@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7.2d
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.129 1998/10/24 17:55:04 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.130 1998/11/22 13:43:33 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -2258,13 +2258,13 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 	    (setq newlst (cons (car lst) newlst))
 	  (setq sublst (cons (car lst) sublst)))
 	(setq lst (cdr lst)))
-      ;; The two sublists are in reverse order from what they started as.
-      (setq newlst (nreverse newlst)
-	    sublst (nreverse sublst))
+      ;; Reverse newlst because it was made backwards.
+      ;; Sublist doesn't need reversing because the act
+      ;; of binning things will reverse it for us.
+      (setq newlst (nreverse newlst))
       ;; Now, first find out how long our list is.  Never let a
       ;; list get-shorter than our minimum.
       (if (<= (length sublst) speedbar-tag-split-minimum-length)
-	  ;; Must reverse, because a constructed work list is backwards.
 	  (setq work-list (nreverse sublst))
 	(setq diff-idx (length (try-completion "" sublst)))
 	;; Sort the whole list into bins.
@@ -2330,7 +2330,7 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 				(cons (cons (concat short-start-name
 						    " to "
 						    short-end-name)
-					    short-group-list)
+					    (nreverse short-group-list))
 				      work-list))))
 			;; Reset short group list information every time.
 			(setq short-group-list nil
@@ -2359,7 +2359,7 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 	;; there by itself.
 	(setq work-list
 	      (cons (cons (try-completion "" short-group-list)
-			  (nreverse short-group-list))
+			  short-group-list)
 		    work-list)))
        (short-group-list
 	;; Multiple groups to be named in a special
@@ -2369,15 +2369,14 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 	      (cons (cons (concat short-start-name " to " short-end-name)
 			  short-group-list)
 		    work-list))))
+      ;; Reverse the work list nreversed when consing.
+      (setq work-list (nreverse work-list))
       ;; Now, stick our new list onto the end of
       (if work-list
 	  (if junk-list
-	      (append  newlst
-		       (nreverse work-list)
-		      junk-list)
-	    (append  newlst
-		     (nreverse work-list)))
-	(append (nreverse newlst) junk-list))))
+	      (append newlst work-list junk-list)
+	    (append newlst work-list))
+	(append  newlst junk-list))))
    ((eq method 'trim-words)
     (let ((newlst nil)
 	  (sublst nil)
