@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.15 2004/02/10 12:20:56 ponced Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.16 2004/02/12 02:04:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -471,17 +471,17 @@ If semanticdb is not in use, use the current buffer only."
 Gets a symbol with `semantic-ctxt-current-thing' and then
 trys to find it with a deep targetted search."
   ;; Try the current "thing".
-  (setq sym (car (semantic-ctxt-current-thing)))
-  (when sym
-    (semantic-idle-summary-find-current-symbol-tag sym)))
+  (let ((sym (car (semantic-ctxt-current-thing))))
+    (when sym
+      (semantic-idle-summary-find-current-symbol-tag sym))))
 
 (defun semantic-idle-summary-current-symbol-keyword ()
   "Return a string message describing the current symbol.
 Returns a value only if it is a keyword."
   ;; Try the current "thing".
-  (setq sym (car (semantic-ctxt-current-thing)))
-  (if (and sym (semantic-lex-keyword-p sym))
-      (semantic-lex-keyword-get sym 'summary)))
+  (let ((sym (car (semantic-ctxt-current-thing))))
+    (if (and sym (semantic-lex-keyword-p sym))
+	(semantic-lex-keyword-get sym 'summary))))
 
 (defun semantic-idle-summary-current-symbol-info-context ()
   "Return a string message describing the current context.
