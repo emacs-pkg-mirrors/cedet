@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.59.2.7 2003/01/30 13:41:10 berndl Exp $
+# X-RCS: $Id: c.bnf,v 1.59.2.8 2003/02/01 18:15:50 berndl Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -469,17 +469,38 @@ template-specifier-type-list : COMA template-specifier-types
 			       ( )
 			     ;
 
-template-var : template-type opt-stars opt-template-equal
-	       ( ,(cons (concat (car $1) (make-string (car ,$2) ?*))
-			      (cdr $1)))
+#template-var : template-type opt-stars opt-template-equal
+#	       ( ,(cons (concat (car $1) (make-string (car ,$2) ?*))
+#			      (cdr $1)))
+## Klaus Berndl <klaus.berndl@sdm.de>: for template-types the
+## template-var can also be literals or constants.
+## Example: map<ClassX, ClassY, 10> map_size10_var; This parses also
+## template<class T, 0> which is nonsense but who cares....
+#	     | string
+#	       ( $1 )
+#	     | number
+#	       ( $1 )
+#	     ;
+
+template-var : 
+# Klaus Berndl <klaus.berndl@sdm.de>: The following handles all
+# template-vars of template-definitions
+	       template-type opt-template-equal
+               ( ,(cons (car $1) (cdr $1)) )
 # Klaus Berndl <klaus.berndl@sdm.de>: for template-types the
 # template-var can also be literals or constants.
 # Example: map<ClassX, ClassY, 10> map_size10_var; This parses also
 # template<class T, 0> which is nonsense but who cares....
-	     | string
+             | string
 	       ( $1 )
 	     | number
 	       ( $1 )
+# Klaus Berndl <klaus.berndl@sdm.de>: In template-types arguments can
+# be any symbols with optional adress-operator (&) and optional
+# dereferencing operator (*)
+# Example map<ClassX, ClassY, *size_var_ptr> sized_map_var.
+             | opt-stars opt-ref namespace-symbol
+	       ( ,$3 )
 	     ;
 
 opt-template-equal : EQUAL symbol LESS template-specifier-types GREATER
@@ -487,25 +508,26 @@ opt-template-equal : EQUAL symbol LESS template-specifier-types GREATER
 		   | EMPTY
 		   ;
 
-# Klaus Berndl <klaus.berndl@sdm.de>: args can look like normal args:
-# template<class T, int i>
 template-type : CLASS symbol
 		( $2 type "class" nil nil)
 	      | STRUCT symbol
 		( $2 type "struct" nil nil)
 # TODO: Klaus Berndl <klaus.berndl@sdm.de>: For the moment is is ok,
-# that we parse the C++ keyword typename as a struct....
+# that we parse the C++ keyword typename as a class....
 	      | TYPENAME symbol
-		( $2 type "struct" nil nil)
-	      | builtintype symbol
-	      	( ,$1 type nil nil nil)
-	      | builtintype
-	      	( ,$1 type nil nil nil)
-# Klaus Berndl <klaus.berndl@sdm.de>: symbol -> namespace-symbol!
-              | namespace-symbol symbol
-	      	( ,$1 type nil nil nil)
-              | namespace-symbol
-	      	( ,$1 type nil nil nil)
+		( $2 type "class" nil nil)
+# Klaus Berndl <klaus.berndl@sdm.de>: template-types can be all
+# flavors of variable-args but here the argument is ignored, only the
+# type stuff is needed.
+	      | declmods typeformbase cv-declmods opt-stars
+	        opt-ref variablearg-opt-name
+	        ( (car $2) type nil nil
+		  (ASSOC const (if (member "const" (append $1 $3)) t nil)
+			 typemodifiers (delete "const" (append $1 $3))
+			 reference (car ,$5)
+			 pointer (car $4)
+			 )
+		  )
 	      ;
 
 template-definition : type
