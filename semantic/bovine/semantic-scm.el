@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.9 2003/08/02 08:15:01 ponced Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.10 2003/09/05 04:21:06 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -41,33 +41,33 @@ machine."
   :group 'scheme
   :type '(repeat (string :tag "Path")))
 
-(defun semantic-scheme-prototype-nonterminal (token)
-  "Return a prototype for the Emacs Lisp nonterminal TOKEN."
-  (let* ((tok (semantic-tag-class token))
-	 (args (semantic-tag-components token))
+(define-mode-overload-implementation semantic-format-tag-prototype scheme-mode (tag)
+  "Return a prototype for the Emacs Lisp nonterminal TAG."
+  (let* ((tok (semantic-tag-class tag))
+	 (args (semantic-tag-components tag))
 	 )
     (if (eq tok 'function)
-	(concat (semantic-tag-name token) " ("
+	(concat (semantic-tag-name tag) " ("
 		(mapconcat (lambda (a) a) args " ")
 		")")
-      (semantic-prototype-nonterminal-default token))))
+      (semantic-format-tag-prototype-default tag))))
 
-(defun semantic-scheme-find-documentation (token &optional nosnarf)
-  "Return the documentation string for TOKEN.
+(define-mode-overload-implementation semantic-documentation-for-tag scheme-mode (tag &optional nosnarf)
+  "Return the documentation string for TAG.
 Optional argument NOSNARF is ignored."
-  (let ((d (semantic-tag-docstring token)))
+  (let ((d (semantic-tag-docstring tag)))
     (if (and d (> (length d) 0) (= (aref d 0) ?*))
 	(substring d 1)
       d)))
 
-(defun semantic-scheme-insert-foreign-token (token tokenfile)
-  "Insert TOKEN from TOKENFILE at point.
-Attempts a simple prototype for calling or using TOKEN."
-  (cond ((eq (semantic-tag-class token) 'function)
-	 (insert "(" (semantic-tag-name token) " )")
+(define-mode-overload-implementation semantic-insert-foreign-tag scheme-mode (tag tagfile)
+  "Insert TAG from TAGFILE at point.
+Attempts a simple prototype for calling or using TAG."
+  (cond ((eq (semantic-tag-class tag) 'function)
+	 (insert "(" (semantic-tag-name tag) " )")
 	 (forward-char -1))
 	(t
-	 (insert (semantic-tag-name token)))))
+	 (insert (semantic-tag-name tag)))))
 
 (define-lex semantic-scheme-lexer
   "A simple lexical analyzer that handles simple buffers.
