@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.14 2000/09/09 02:09:57 zappo Exp $
+@c $Id: semantic.texi,v 1.15 2000/09/09 02:12:07 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -20,7 +20,7 @@ END-INFO-DIR-ENTRY
 Copyright @copyright{} 1999, 2000 Eric M. Ludlam
 @end titlepage
 
-@node Top, Lexing, (dir), (dir)
+@node Top, Install, (dir), (dir)
 @comment  node-name,  next,  previous,  up
 
 Semantic is a program for Emacs which includes, at its core, a lexer,
@@ -115,7 +115,7 @@ what class of syntax CHAR is.
 
 @example
   (setq semantic-flex-syntax-modifications '((?. "_"))
-@end
+@end example
 
 Will convert the period @asis{.} to be a symbol constituant.  (ie, if
 filenames are prevalent as in Makefiles.)
