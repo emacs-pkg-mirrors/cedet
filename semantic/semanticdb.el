@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.6 2000/12/15 01:20:50 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.7 2000/12/16 03:12:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -93,13 +93,14 @@ Checked on retrieval to make sure the file is the same.")
 If FILENAME has already been loaded, return it.
 If FILENAME exists, then load that database, and return it.
 If FILENAME doesn't exist, create a new one."
-  (if (file-exists-p filename)
-      (or (semanticdb-file-loaded-p filename)
-	  (semanticdb-load-database filename)))
+  (let ((db (if (file-exists-p filename)
+		(or (semanticdb-file-loaded-p filename)
+		    (semanticdb-load-database filename)))))
   (if (not (semanticdb-file-loaded-p filename))
-      (semanticdb-project-database (file-name-nondirectory filename)
-				   :file filename
-				   :tables nil)))
+      (setq db (semanticdb-project-database (file-name-nondirectory filename)
+					    :file filename
+					    :tables nil)))
+  db))
 
 (defun semanticdb-get-database (filename)
   "Get a database for FILENAME.
@@ -110,7 +111,13 @@ If one isn't found, create one."
 (defun semanticdb-load-database (filename)
   "Load the database FILENAME."
   (condition-case foo
-      (eieio-persistent-read filename)
+      (let* ((r (eieio-persistent-read filename))
+	     (c (oref r tables)))
+	(while c
+	  ;; Restore the parent-db connection
+	  (oset (car c) parent-db r)
+	  (setq c (cdr c)))
+	r)
     (error (message "Cache Error: %s, Restart" foo)
 	   nil)))
 
