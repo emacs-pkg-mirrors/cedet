@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.8 2004/07/13 14:55:34 zappo Exp $
+## X-RCS: $Id: Makefile,v 1.9 2004/10/15 13:06:59 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -25,7 +25,7 @@
 ######## You can customize this part of the Makefile ########
 
 ## The directory where CEDET is installed
-CEDET_HOME=$(CURDIR)
+CEDET_HOME="$(CURDIR)"
 
 ## The CEDET's packages installed
 CEDET_PACKAGES=\
