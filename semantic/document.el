@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.19 2003/08/28 02:56:20 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.20 2003/08/31 00:00:21 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -123,7 +123,7 @@ When non-nil, query for a new documentation file."
 		       "deffn Command"
 		     "defun"))
 		  ((eq tt 'type)
-		   "deftype")
+		   "deffn Type")
 		  (t (error "Don't know how to document that")))
 	    " "
 	    (semantic-tag-name tag))
@@ -135,7 +135,7 @@ When non-nil, query for a new documentation file."
 		(insert (car args))
 	      (insert (semantic-tag-name (car args))))
 	    (setq args (cdr args)))))
-    (insert "\n")
+    (insert "\n@anchor{" (semantic-tag-name tag) "}\n")
     (insert (document-massage-to-texinfo
 	     tag
 	     buffer
@@ -150,7 +150,7 @@ When non-nil, query for a new documentation file."
 		       "deffn"
 		     "defun"))
 		  ((eq tt 'type)
-		   "deftype"))
+		   "deffn"))
 	    )))
 
 (defun document-insert-defun-comment (tag buffer)
