@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.30 2001/03/05 22:39:28 zappo Exp $
+@c $Id: semantic.texi,v 1.31 2001/03/10 02:31:29 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -39,16 +39,16 @@ make these updates would be greatly appreciated.
 
 
 @menu
-* Install::             Installing semantic.
-* Lexing::              Setting up the lexer for your language.
-* Bovinating::          Setting up the parser for your language.
-* BNF conversion::      Using the BNF converter to make tables.
-* Compiling::           Running the bovinator on a source file.
-* Debugging::           Debugging bovine tables
-* Utilities::           How to use the nonterminal stream.
-* Current Context::     How to get the current code context.
-* Tools::               User Tools which use semantic.
-* Index::
+* Install::                     Installing semantic.
+* Lexing::                      Setting up the lexer for your language.
+* Bovinating::                  Setting up the parser for your language.
+* BNF conversion::              Using the BNF converter to make tables.
+* Compiling::                   Running the bovinator on a source file.
+* Debugging::                   Debugging bovine tables
+* Utilities::                   How to use the nonterminal stream.
+* Current Context::             How to get the current code context.
+* Tools::                       User Tools which use semantic.
+* Index::                       
 @end menu
 
 @node Install, Lexing, Top, Top
@@ -242,10 +242,10 @@ The BNF file has two sections.  The first is the settings section, and
 the second is the language definition, or list of semantic rules.
 
 @menu
-* Settings::
-* Rules::
-* Optional Lambda Expression::
-* Examples::
+* Settings::                    
+* Rules::                       
+* Optional Lambda Expression::  
+* Examples::                    
 @end menu
 
 @node Settings, Rules, BNF conversion, BNF conversion
@@ -379,6 +379,20 @@ definition
 is easily parsed into one token, but represents multiple variables.  A
 functions should be written which takes this compound token and turns
 it into two tokens, one for @var{A}, and the other for @var{B}.
+
+Within the language definition (the @file{.bnf} sources), it is often
+useful to set the NAME slot of a token with a list of items that
+distinguish each element in the compound definition.
+
+This list can then be detected by the function set in
+@code{semantic-expand-nonterminal} to create multiple tokens.
+This function has one additional duty of managing the overlays created
+by semantic.  It is possible to use the single overlay in the compound
+token for all your tokens, but this can pose problems identifying
+all tokens covering a given definition.
+
+Please see @file{semantic-java.el} for an example of managing overlays
+when expanding a token into multiple definitions.
 @end defvar
 
 @defvar semantic-override-table
@@ -656,7 +670,7 @@ If the symbol @code{%quotemode backquote} is specified, then use
 This lets you send @code{$1} as a symbol into a list instead of having
 it expanded inline.
 
-@node Examples, , Optional Lambda Expression, BNF conversion
+@node Examples,  , Optional Lambda Expression, BNF conversion
 @section Examples
 
 The rule:
@@ -1231,10 +1245,10 @@ means languages with parenthetical blocks, and type dereferencing
 which uses a similar form.
 
 @menu
-* Blocks ::             Navigating code blocks.
-* Local Variables::     Getting lists of local variables.
-* Derived Context::     What goes at a given location?
-* Suggestions::         Get suggestions on one goes in a derived context.
+* Blocks::                      
+* Local Variables::             Getting lists of local variables.
+* Derived Context::             What goes at a given location?
+* Suggestions::                 Get suggestions on one goes in a derived context.
 @end menu
 
 @node Blocks, Local Variables, Current Context, Current Context
@@ -1346,7 +1360,7 @@ Return the current symbol the cursor is on at @var{POINT}.
 Override with @code{ctxt-current-argument}.
 @end defun
 
-@node Suggestions, , Derived Context, Current Context
+@node Suggestions,  , Derived Context, Current Context
 @section Getting Suggestions for the Current Context
 
 The suggestion API uses all the context deriving functions to make
@@ -1366,12 +1380,12 @@ In general, these tools will work with any language supported by
 Semantic.
 
 @menu
-* speedbar::            How to use Semantic speedbar support
-* imenu::               Special support for Imenu.
-* semanticdb::          Cache your parsed buffers between sessions.
-* senator::             The Semantic Navigator
-* document::            Document generation functions
-* miscellaneous:: 
+* speedbar::                    How to use Semantic speedbar support
+* imenu::                       Special support for Imenu.
+* semanticdb::                  Cache your parsed buffers between sessions.
+* senator::                     The Semantic Navigator
+* document::                    Document generation functions
+* miscellaneous::               
 @end menu
 
 @node speedbar, imenu, Tools, Tools
@@ -1764,7 +1778,7 @@ Jump to the source for the definition in the texinfo file @var{TOKEN}.
 If @var{TOKEN} is @code{nil}, it is derived from the deffn under @var{POINT}.
 @end deffn
 
-@node miscellaneous, , document, Tools
+@node miscellaneous,  , document, Tools
 @comment  node-name,  next,  previous,  up
 @section Miscellaneous commands
 
@@ -1779,7 +1793,7 @@ before the most recent change to that token's text.
 @end deffn
 
 
-@node Index, , Tools, Top
+@node Index,  , Tools, Top
 @comment  node-name,  next,  previous,  up
 @chapter Index
 
