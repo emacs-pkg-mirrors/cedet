@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.42 2004/01/16 13:13:07 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.43 2004/03/10 19:34:39 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -86,7 +86,7 @@ Use the alternate LALR(1) parser."
 (defun wisent-java-expand-tag (tag)
   "Expand TAG into a list of equivalent tags, or nil.
 Expand special tags of class 'goal into a list of tags.  Each 'goal
-tag has an attribute `tree' whose value is a list of already expanded
+tag has an attribute `:tree' whose value is a list of already expanded
 tags in reverse order.
 Expand multiple variable declarations in the same statement, that is
 tags of class `variable' whose name is equal to a list of elements of
@@ -97,7 +97,7 @@ are the bounds in the declaration, related to this variable NAME."
     (cond
      ;; Expand a goal tag
      ((eq class 'goal)
-      (nreverse (semantic-tag-get-attribute tag 'tree)))
+      (nreverse (semantic-tag-get-attribute tag :tree)))
      ;; Expand multiple names in the same variable declaration.
      ((and (eq class 'variable)
            (consp (setq elts (semantic-tag-name tag))))
