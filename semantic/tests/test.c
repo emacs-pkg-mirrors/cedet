@@ -1,7 +1,7 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.7 2001/10/28 01:03:28 zappo Exp $
+ * $Id: test.c,v 1.8 2002/02/06 18:54:12 zappo Exp $
  *
  */
 /* types of include files */
@@ -75,6 +75,7 @@ typedef int typedef_of_int;
 
 /* Here are some simpler variable types */
 int var1;
+int varbit1:1;
 char var2;
 float var3;
 mystruct1 var3;
