@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.7 2002/08/04 02:00:29 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.8 2002/08/04 02:11:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -638,8 +638,9 @@ the semantic cache to see what needs to be changed."
                                   (car tokens) 'reparse-symbol))
             ;; Find a parent if not provided.
             (and (not parent-token) tokens
-                 (setq parent (semantic-find-nonterminal-parent-by-overlay
-                               (car tokens))))
+                 (setq parent-token
+		       (semantic-find-nonterminal-parent-by-overlay
+			(car tokens))))
             ;; We can do the same trick for our parent and resulting
             ;; cache list.
             (or cache-list
