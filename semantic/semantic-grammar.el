@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.50 2004/01/16 08:56:03 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.51 2004/01/16 13:12:28 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -811,7 +811,8 @@ Block definitions a read from the current table of lexical types."
        ((eq mtype 'regexp)
         (semantic-grammar-insert-define
          `(define-lex-regex-type-analyzer ,name
-            ,doc ,syntax ,(cdr type-value)
+            ,doc ,syntax
+            ,(semantic-grammar-quoted-form (cdr type-value))
             ',(or (car type-value) (intern type-name))))
         )
        ;; String compare analyzer
