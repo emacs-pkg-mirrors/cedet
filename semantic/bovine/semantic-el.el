@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.8 2003/03/13 02:16:18 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.9 2003/03/15 19:29:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -143,7 +143,7 @@ Return a bovination list to use."
 	  (eq ts 'defimage))
       (let ((doc (semantic-elisp-form-to-doc-string (nth 3 rt))))
         ;; Variables and constants
-	(semantic-token-new-variable
+	(semantic-tag-new-variable
          sn nil (nth 2 rt)
 	 'const (if (eq ts 'defconst) t nil)
 	 'user-visible (and doc
@@ -159,14 +159,14 @@ Return a bovination list to use."
 	  (eq ts 'define-overload)
 	  )
       ;; functions and macros
-      (semantic-token-new-function
+      (semantic-tag-new-function
        sn nil (semantic-elisp-desymbolify (nth 2 rt))
        'user-visible (equal (car-safe (nth 4 rt)) 'interactive)
        )
       ;; (nth 3 rt) ; doc string
       )
      ((eq ts 'autoload)
-      (semantic-token-new-function
+      (semantic-tag-new-function
        (format "%S" (car (cdr (car (cdr rt)))))
        nil nil
        'use-visible (and (nth 4 rt)
@@ -181,7 +181,7 @@ Return a bovination list to use."
 	     (a3 (nth 3 rt))
 	     (args (if (listp a2) a2 a3))
 	     (doc (nth (if (listp a2) 3 4) rt)))
-	(semantic-token-new-function
+	(semantic-tag-new-function
 	 sn nil
 	 (if (listp (car args))
 	     (cons (symbol-name (car (car args)))
@@ -193,7 +193,7 @@ Return a bovination list to use."
 	))
      ((eq ts 'defadvice)
       ;; Advice
-      (semantic-token-new-function
+      (semantic-tag-new-function
        sn nil (semantic-elisp-desymbolify (nth 2 rt))
        )
        ;; (nth 3 rt) doc string
@@ -201,7 +201,7 @@ Return a bovination list to use."
      ((eq ts 'defclass)
       ;; classes
       (let ((docpart (nthcdr 4 rt)))
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 sn "class"
 	 (semantic-elisp-clos-args-to-semantic (nth 3 rt))
 	 (semantic-elisp-desymbolify (nth 2 rt))
@@ -213,7 +213,7 @@ Return a bovination list to use."
 	))
      ((eq ts 'defstruct)
       ;; structs
-      (semantic-token-new-type
+      (semantic-tag-new-type
        sn "struct" (semantic-elisp-desymbolify (nthcdr 2 rt))
        nil ;(semantic-elisp-desymbolify (nth 2 rt))
        )
@@ -221,14 +221,14 @@ Return a bovination list to use."
       )
      ;; Now about a few Semantic specials?
      ((eq ts 'define-lex)
-      (semantic-token-new-function
+      (semantic-tag-new-function
        sn nil nil
        'lexical-analyzer t)
       )
      ((eq ts 'define-mode-overload-implementation)
       (let ((args (nth 3 rt))
 	    )
-	(semantic-token-new-function
+	(semantic-tag-new-function
 	 sn nil
 	 (when (listp args) (semantic-elisp-desymbolify args))
 	 'override-function t
@@ -236,7 +236,7 @@ Return a bovination list to use."
 	 )
 	))
      ((eq ts 'defvar-mode-local)
-      (semantic-token-new-variable
+      (semantic-tag-new-variable
        (format "%S" (nth 2 rt)) nil
        (nth 3 rt) ; default value
        'override-variable t
@@ -246,14 +246,14 @@ Return a bovination list to use."
       )
      ;; Now for other stuff
      ((eq ts 'require)
-      (semantic-token-new-include
+      (semantic-tag-new-include
        sn nil))
      ((eq ts 'provide)
-      (semantic-token-new-package
+      (semantic-tag-new-package
        sn (nth 3 rt)))
      (t
       ;; Other stuff
-      (semantic-token (symbol-name ts) 'code)
+      (semantic-tag (symbol-name ts) 'code)
       ))))
 
 (defun semantic-expand-elisp-nonterminal (nonterm)
