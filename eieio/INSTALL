@@ -1,0 +1,29 @@
+Installation instructions for Eieio
+
+The following updates to your .emacs file will help you get the most out of this
+update of eieio.
+
+1) Build eieio
+
+   On the unix command line, type:
+
+   $ make
+
+   On windows NT, you will need to byte compile each file from within
+   emacs, or you can leave everything unbyte compiled.
+
+
+2) Add eieio's directory to your load path.
+
+   (add-to-list 'load-path "~/eieio-X.XX")
+
+   Be sure to replace the directory above with the actual path to
+   where eieio was unpacked.  This will make sure the latest version
+   of eieio superceeds any version already installed on your system.
+
+
+3) Upgrading EIEIO.
+
+   New versions of EIEIO can be found here:
+
+   http://cedet.sourceforge.net/eieio.shtml
