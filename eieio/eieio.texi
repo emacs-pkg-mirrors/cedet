@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.5 1996/08/15 16:39:32 zappo Exp $
+@c $Id: eieio.texi,v 1.6 1996/11/14 00:06:30 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -41,10 +41,11 @@ aspects of CLOS.
 * Building Classes::      How to write out new class structures.
 * Default Superclass::    The grand-daddy of all superclasses.
 * Making New Objects::    How to construct new objects.
-* Accessing Fields::      How to access a field, or call a method.
+* Accessing Fields::      How to access a field.
 * Writing Methods::       How to write a CLOS style method.
-* Writing Class Methods:: How to write an embedded class method.
+* Writing Methods::       How to write an embedded class method.
 * Predicates::            Class-p, Object-p, etc-p.
+* Signals::               When you make errors
 * Browsing::              Browsing your class lists.
 * Class Values::          Displaying information about a class or object.
 * Demo Programs::         Some examples using eieio.
@@ -202,15 +203,21 @@ bufferized version.
 When creating a new class @xref{Building Classes} there are several
 keywords supported by EIEIO.
 
-CLOS keywords supported by EIEIO's defclass.  In EIEIO tags are in lower
-case, not mixed case.
+In EIEIO tags are in lower case, not mixed case.
+
+CLOS keywords supported by EIEIO's defclass:
+
 @table @asis
 @item :initform
 The initial value of an attribute
 @item :initarg
 A tag used in @code{make-instance} to assign a value to a field.
 @item :accessor
-A tag used to create a function which returns the value of the defined slot
+A tag used to create a function which returns the value of the defined
+slot
+@item :docstring
+Documentation which is mixed in with the variable documentation for the
+class.
 @end table
 
 EIEIO defclass keywords not in CLOS
@@ -218,15 +225,9 @@ EIEIO defclass keywords not in CLOS
 @item :protection
 Can be @code{private} or something else.  If it is set to private, then
 this field cannot be accessed via normal EIEIO means @code{oref}, and
-@code{oset}. (and @code{ocall} for methods).  These fields will then
-only be accessable to methods running from this object.
-@item :method
-This means that the specified tag is going to be a method instead of an
-attribute.  This installs this name into a vector (instead of a series
-of dynamic lists) to speed up access, and allows a method to be
-private.  Any @code{defclassmethod} of a method defined such will NOT HAVE A
-GENERIC FUNCTION ASSOCIATED WITH IT, and will be referenced via ocall
-only.  If typecasting is implemented later, this will be replaced.
+@code{oset}..  These fields will then only be accessable to methods
+running from this object.  This is determined if you define a method
+@xref{Writing Methods} where the object paramater name is @code{this}.
 @end table
 
 Any tags not understood are summarily ignored (in addition to it's parameter)
@@ -263,8 +264,8 @@ valid tags are:
 @item :initarg
 @item :initform
 @item :accessor
+@item :docstring
 @item :protection
-@item :method
 @end table
 
 @xref{CLOS compatibility} for more details on CLOS tags versus EIEIO
@@ -274,14 +275,12 @@ The whole definition may look like this.
 @example
 (defclass bird (animal)
    ((color :initarg :color
-           :accessor :get-color
-           :initform "white")
-    (fly :method t)
+           :accessor get-color
+           :initform "white"
+           :docstring "The color of the bird most of the time")
     (gender :initarg :gender
             :initform male
             :protection private)
-    (noise :method t
-           :protection public)
    "A pleasant documentation string"))
 @end example
 
@@ -302,14 +301,24 @@ to all objects at any time, without updating their code in the future
 Currently, the default superclass is defined as follows:
 
 @example
-defclass eieio-default-superclass nil
- ((constructor :method t)		; Called when created
-  (destructor :method t)		; called when removed
+(defclass eieio-default-superclass nil
+  nil
   )
  "Default class used as parent class for superclasses.  It's
 fields are automatically adopted by such superclasses but not stored
 in the `parent' field.  When searching for attributes or methods, when
 the last parent is found, the search will recurse to this class.")
+
+(defmethod constructor ((this eieio-default-superclass) &optional fields)
+    "Constructor for filling in attributes when constructing a new
+class."
+    (eieio-set-defaults this t)
+    (eieio-set-fields this fields)
+    )
+
+(defmethod destructor ((this eieio-default-superclass) &rest params)
+  "Destructor for cleaning up any dynamic links to our object."
+  )
 @end example
 
 The @code{constructor} method is always called with the parameter
@@ -317,10 +326,10 @@ The @code{constructor} method is always called with the parameter
 method assigns elements from this list into the fields of the current
 object (Even though they are not defined by the default class. Cool
 huh?)  If you want something to happen every time an object of your
-class is created, set this method to something, and make the very first
-line be: @code{(ocall-parent [params])}.  Thus you can get it's
-functionality, plus be able to add your own.  Make sure your method
-takes a @var{field} parameter. @xref{CLOS compatibility} for info about
+class is created, set this method to something for your object, and make
+the very first line be: @code{(call-next-method)}.  Thus you can get
+it's functionality, plus be able to add your own.  Make sure your method
+takes a @var{fields} parameter. @xref{CLOS compatibility} for info about
 @code{call-next-method}
 
 Currently @code{destructor} does nothing, and is never called.  I haven't
@@ -359,8 +368,8 @@ Example of creating an object from a class in @xref{Building Classes}:
 @example
 (setq mybird (bird
               "Owl"                ; name
-              :gender 'male        ; gender value
-              :noise (if paranoid "Whodat?" "Who")))
+              :gender 'male)       ; gender value
+
 @end example
 
 @end defun
@@ -384,12 +393,31 @@ all functions which call oset on that class must be re-evaluated.
 
 @end defun
 
+@defun oset-default class field value
+
+This sets the slot @var{field} in @var{class} which is initialized with
+the @code{:initform} tag to @var{value}.  This will allow a user to set
+both public and private defaults after the class has been constructed.
+This functions is pretty intrusive, and is offered as a way to allow
+users to configure the default behavior of packages built with classes
+more easilly.
+
+@end defun
+
 @defun oref object field
 
 This recalls the value behind @var{field} in @var{object} and returns
 it.  Oref is a macro which does calculations at evaluation time.  If the
 class structure changes, then all functions which call oref on that
 class must be re-evaluated.
+
+@end defun
+
+@defun oref-default object field
+
+This gets the default value in @var{object}'s class definition for
+@code{field}.  This can be different from the value returned by
+@code{oref}.
 
 @end defun
 
@@ -401,31 +429,12 @@ This function is mearly an alias for oref
 
 If the value behind @var{field} is a private, then the current scope of
 operation must be within a method of the calling object.  The scope is
-tracked with @code{let} statements within the variable @code{this}, and
-@code{scoped-class}.  The field @code{this} is only valid withing
-classmethods, not CLOS methods.
+tracked with the variable @code{this}.  You can set the field
+@code{this} by making it the name of your object passed into your
+methods.  It is not necessary to name your object @code{this}, or to use
+private fields.  It's not CLOS compatible, but I find it useful.
 
-@defun ocall object method &rest args
-
-A method may have any set of arguments it wishes.  When @code{ocall} is
-called, the arguments are evaluated in the current scope, and applied to
-@var{method} for the given @var{object}.  Any return value of
-@var{method} is returned.
-
-@end defun
-
-If you are writing a method, and you wish to gain the functionality of
-you're parent's method of the same name, you can use
-@code{ocall-parent}.
-
-@defun ocall-parent &rest args
-
-This function reads the current scope environment, and calls the method
-of the same name under the parent class.
-
-@end defun
-
-@node Writing Methods, Writing Class Methods, Accessing Fields, Top
+@node Writing Methods, Predicates, Accessing Fields, Top
 @comment  node-name,  next,  previous,  up
 @chapter Writing Methods
 
@@ -499,77 +508,13 @@ In this implementation, not all features of CLOS exist.
 
 @enumerate
 @item
-There is currently not :AROUND tag.
+There is currently no :AROUND tag.
 @item
 CLOS allows multiple sets of type-cast arguments, where eieio only
 allows the first argument to be cast.
 @end enumerate
 
-@node Writing Class Methods, Predicates, Writing Methods, Top
-@comment  node-name,  next,  previous,  up
-@chapter Writing Class Methods
-
-Writing a class method is just like writing a function, except you use
-@code{defclassmethod} instead.  Unlike CLOS methods, the local variable
-@code{this} is defined since the object to act upon is not passed in as
-a parameter.  As most people don't like this construct, if you are just
-starting I suggest you do not use this implementation as it may someday
-be phased out.
-
-@defun defclassmethod method class arglist [doc-string] forms
-
-@var{method} is a symbol which matches a method specified in a
-@code{defclass} definition which defines @var{class}.  This tells
-@code{defclassmethod} which class structure to place this function in,
-and which @code{method} to store it under.  @var{arglist} is just
-like any other lambda-expression's arglist.  The optional
-@var{doc-string} is placed into the documentation string for
-@code{class-type} because it is un browsable otherwise.  Finally
-@var{forms} are placed as the body to the newly formed method.
-@code{defclassmethod} returns the lambda expression created.
-
-A sample method from the class in @xref{Building Classes}:
-
-@example
-(defclassmethod make-noise bird (&optional duress)
-   "Making noise for a bird object"
-   (if duress
-       (progn
-         ;; make message of noise. THIS is the called object
-         (message "%s! %s!" (oref this sound) (oref this sound))
-         ;; call our fly method
-         (ocall this fly (oref this speed)))
-     (message "%s" (oref this sound))))
-@end example
-
-Note the use of @code{oref} and @code{ocall} as discussed in
-@xref{Accessing Fields}.
-
-The resulting documentation string as discovered by @kbd{C-h v}
-(describe variable) is:
-
-@example
-bird's value is [defclass bird  ...
-
-Documentation:
-Defines the BIRD subclass.  Used to create bird objects
-
-Method: make-noise
-Making noise for a bird object
-@end example
-
-@end defun
-
-@section Debugging a method
-
-The function @code{edebug-defun} can be run on a defclassmethod.
-Currently, at the time edebug makes us step through the defun, the forms
-in the body of the method are created debugged.  Next time that method
-is called (with ocall) edebug is started.
-
-Hopefully an edebug guru can help with this for a future release.
-
-@node Predicates, Browsing, Writing Class Methods, Top
+@node Predicates, Signals, Writing Methods, Top
 @comment  node-name,  next,  previous,  up
 @chapter Predicates and Utilities
 
@@ -644,7 +589,26 @@ is created for it.  Thus in our example, the function @code{animal-p}
 and @code{bird-p} are created, and return @code{t} if passed an object
 of the appropriate type.
 
-@node Browsing, Class Values, Predicates, Top
+@node Signals, Browsing, Predicates, Top
+@comment  node-name,  next,  previous,  up
+@chapter Signals
+
+There are new signal types that can be caught when using eieio.
+
+@deffn Signal invalid-slot-name obj-or-class field
+This signal is called when an attempt to reference a slot in an
+@var{obj-or-class} is made, and the @var{field} is not defined for
+it.
+@end deffn
+
+@deffn Signal no-method-definition method arguments
+This signal is called when @var{method} is called, with @var{arguments}
+and nothing is resolved.  This occurs when @var{method} has been
+defined, but the arguments make it impossible for eieio to determine
+which method body to run.
+@end deffn
+
+@node Browsing, Class Values, Signals, Top
 @comment  node-name,  next,  previous,  up
 @chapter Browsing class trees
 
@@ -677,14 +641,36 @@ eieio-default-superclass
   |    +--widget-visual
   |    |    +--widget-square
   |    |         +--widget-text-field
+  |    |         +--widget-scale
+  |    |         |    +--widget-scrollbar
   |    |         +--widget-label
   |    |         |    +--widget-button
   |    |         |         +--widget-toggle-button
+  |    |         |         |    +--widget-radio-button
+  |    |         |         +--widget-option-button
+  |    |         |         |    +--widget-option-button-dlg-font-style
+  |    |         |         +--widget-push-button
   |    |         +--widget-group
+  |    |              +--widget-labeled-text
   |    |              +--widget-frame
+  |    |              |    +--widget-radio-frame
   |    |              +--widget-toplevel
-  |    +--widget-gadget
+  |    +--widget-gadget-translator
   +--data-object
+       +--data-face-object
+       |    +--data-face-emphasis-object
+       |    +--data-face-underline-object
+       |    +--data-face-background-object
+       |    +--data-face-foreground-object
+       +--data-object-command-option
+       +--data-object-symbol
+            +--data-object-symbol-disabled
+            +--data-object-symbol-hook
+            +--data-object-symbol-feature
+            +--data-object-symbol-default
+            +--data-object-symbol-lisp-expression
+            +--data-object-symbol-list-index
+            +--data-object-symbol-string-to-int
 @end example
 
 As you can see, it is possible to create quite large and complex trees
