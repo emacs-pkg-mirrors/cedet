@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.1 2002/08/11 01:35:40 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.2 2002/09/07 02:12:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,11 +32,13 @@
 
 ;;; Settings
 ;;
+;;;###autoload
 (defcustom semanticdb-default-file-name "semantic.cache"
   "*File name of the semantic token cache."
   :group 'semanticdb
   :type 'string)
 
+;;;###autoload
 (defcustom semanticdb-default-save-directory nil
   "*Directory name where semantic cache files are stored.
 If this value is nil, files are saved in the current directory.  If the value
@@ -48,6 +50,7 @@ stores caches in a coded file name in this directory."
                  (const :tag "Use current directory" :value nil)
                  (directory)))
 
+;;;###autoload
 (defcustom semanticdb-persistent-path '(project)
   "*List of valid paths that semanticdb will cache tokens to.
 When `global-semanticdb-minor-mode' is active, token lists will
@@ -71,6 +74,7 @@ the database recently written."
 
 ;;; Classes
 ;;
+;;;###autoload
 (defclass semanticdb-project-database-file (semanticdb-project-database
 					    eieio-persistent)
   ((file-header-line :initform ";; SEMANTICDB Tags save file")
@@ -85,26 +89,16 @@ the database recently written."
 If a database for DIRECTORY has already been loaded, return it.
 If a database for DIRECTORY exists, then load that database, and return it.
 If DIRECTORY doesn't exist, create a new one."
-  (let* ((fn (semanticdb-cache-filename directory))
+  (let* ((fn (semanticdb-cache-filename dbc directory))
 	 (db (or (semanticdb-file-loaded-p fn)
 		 (if (file-exists-p fn)
 		     (semanticdb-load-database fn)))))
     (unless db
-      (setq db (semanticdb-project-database-file
+      (setq db (make-instance
+		dbc  ; Create the database requested.  Perhaps
 		(file-name-nondirectory fn)
 		:file fn :tables nil)))
     db))
-
-(defun semanticdb-file-loaded-p (filename)
-  "Return the project belonging to FILENAME if it was already loaded."
-  (eieio-instance-tracker-find filename 'file 'semanticdb-database-list))
-
-(defmethod semanticdb-live-p ((obj semanticdb-project-database))
-  "Return non-nil if the file associated with OBJ is live.
-Live databases are objects associated with existing directories."
-  (let ((full-dir (file-name-directory (oref obj file))))
-    (file-exists-p full-dir)))
-
 
 ;;; File IO
 (defun semanticdb-load-database (filename)
@@ -119,6 +113,11 @@ Live databases are objects associated with existing directories."
 	r)
     (error (message "Cache Error: %s, Restart" foo)
 	   nil)))
+
+;;;###autoload
+(defun semanticdb-file-loaded-p (filename)
+  "Return the project belonging to FILENAME if it was already loaded."
+  (eieio-instance-tracker-find filename 'file 'semanticdb-database-list))
 
 (defmethod semanticdb-save-db ((DB semanticdb-project-database-file))
   "Write out the database DB to its file.
@@ -142,10 +141,12 @@ If DB is not specified, then use the current database."
       (message "Saving token summary for %s...done" objname))
     ))
 
-(defmethod semanticdb-full-filename ((obj semanticdb-table))
-  "Fetch the full filename that OBJ refers to."
-  (concat (file-name-directory (oref (oref obj parent-db) reference-directory))
-	  (oref obj file)))
+;;;###autoload
+(defmethod semanticdb-live-p ((obj semanticdb-project-database))
+  "Return non-nil if the file associated with OBJ is live.
+Live databases are objects associated with existing directories."
+  (and (slot-boundp obj 'reference-directory)
+       (file-exists-p (oref obj reference-directory))))
 
 (defmethod semanticdb-live-p ((obj semanticdb-table))
   "Return non-nil if the file associated with OBJ is live.
@@ -176,7 +177,7 @@ Argument OBJ is the object to write."
 	)))
 
 ;;; State queries
-
+;;
 (defmethod semanticdb-write-directory-p ((obj semanticdb-project-database-file))
   "Return non-nil if OBJ should be written to disk.
 Uses `semanticdb-persistent-path' to determine the return value."
@@ -212,12 +213,18 @@ Uses `semanticdb-persistent-path' to determine the return value."
 
 ;;; Filename manipulation
 ;;
-(defun semanticdb-cache-filename (path)
-  "Return a file to a cache file belonging to PATH.
-This could be a cache file in the current directory, or an encoded file
-name in a secondary directory."
+(defmethod semanticdb-file-name-non-directory :STATIC
+  ((dbclass semanticdb-project-database-file))
+  "Return the file name DBCLASS will use.
+File name excludes any directory part."
+  semanticdb-default-file-name)
+
+(defmethod semanticdb-file-name-directory :STATIC
+  ((dbclass semanticdb-project-database-file) path)
+  "Return the path to where DBCLASS will save its cache file related to PATH."
   (if semanticdb-default-save-directory
-      (let ((file path) dir-sep-string)
+      (let ((file path)
+	    dir-sep-string)
         (when (memq system-type '(windows-nt ms-dos))
           ;; Normalize DOSish file names: convert all slashes to
           ;; directory-sep-char, downcase the drive letter, if any,
@@ -227,12 +234,12 @@ name in a secondary directory."
           ;; Replace any invalid file-name characters (for the
           ;; case of backing up remote files).
           (setq file (expand-file-name (convert-standard-filename file)))
-          (setq dir-sep-string (char-to-string directory-sep-char))
+          (setq dir-sep-string (char-to-string semanticdb-dir-sep-char))
           (if (eq (aref file 1) ?:)
               (setq file (concat dir-sep-string
                                  "drive_"
                                  (char-to-string (downcase (aref file 0)))
-                                 (if (eq (aref file 2) directory-sep-char)
+                                 (if (eq (aref file 2) semanticdb-dir-sep-char)
                                      ""
                                    dir-sep-string)
                                  (substring file 2)))))
@@ -240,16 +247,99 @@ name in a secondary directory."
         ;; separators.  It may not really be worth bothering about
         ;; doubling `!'s in the original name...
         (setq file (subst-char-in-string
-                    directory-sep-char ?!
+                    semanticdb-dir-sep-char ?!
                     (replace-regexp-in-string "!" "!!" file)))
         ;; Now create a filename for the cache file in
-        ;; `semanticdb-default-save-directory'.
+        ;; ;`semanticdb-default-save-directory'.
      (expand-file-name
          (concat (file-name-as-directory semanticdb-default-save-directory)
                  file)))
-    (concat (file-name-directory (buffer-file-name))
-         semanticdb-default-file-name)))
+    path))
 
+(defmethod semanticdb-cache-filename :STATIC
+  ((dbclass semanticdb-project-database-file) path)
+  "For DBCLASS, return a file to a cache file belonging to PATH.
+This could be a cache file in the current directory, or an encoded file
+name in a secondary directory."
+  (concat (semanticdb-file-name-directory dbclass path)
+	  (semanticdb-file-name-non-directory dbclass)))
+
+;;;###autoload
+(defmethod semanticdb-full-filename ((obj semanticdb-project-database-file))
+  "Fetch the full filename that OBJ refers to."
+  (oref obj file))
+
+(defmethod semanticdb-full-filename ((obj semanticdb-table))
+  "Fetch the full filename that OBJ refers to."
+  (concat (file-name-as-directory
+	   (oref (oref obj parent-db) reference-directory))
+	  (oref obj file)))
+
+;;; Compatibility
+;;
+;; replace-regexp-in-string is in subr.el in Emacs 21.  Provide
+;; here for compatibility.
+
+(if (not (fboundp 'replace-regexp-in-string))
+
+(defun replace-regexp-in-string (regexp rep string &optional
+					fixedcase literal subexp start)
+  "Replace all matches for REGEXP with REP in STRING.
+
+Return a new string containing the replacements.
+
+Optional arguments FIXEDCASE, LITERAL and SUBEXP are like the
+arguments with the same names of function `replace-match'.  If START
+is non-nil, start replacements at that index in STRING.
+
+REP is either a string used as the NEWTEXT arg of `replace-match' or a
+function.  If it is a function it is applied to each match to generate
+the replacement passed to `replace-match'; the match-data at this
+point are such that match 0 is the function's argument.
+
+To replace only the first match (if any), make REGEXP match up to \\'
+and replace a sub-expression, e.g.
+  (replace-regexp-in-string \"\\(foo\\).*\\'\" \"bar\" \" foo foo\" nil nil 1)
+    => \" bar foo\"
+"
+
+  ;; To avoid excessive consing from multiple matches in long strings,
+  ;; don't just call `replace-match' continually.  Walk down the
+  ;; string looking for matches of REGEXP and building up a (reversed)
+  ;; list MATCHES.  This comprises segments of STRING which weren't
+  ;; matched interspersed with replacements for segments that were.
+  ;; [For a `large' number of replacements it's more efficient to
+  ;; operate in a temporary buffer; we can't tell from the function's
+  ;; args whether to choose the buffer-based implementation, though it
+  ;; might be reasonable to do so for long enough STRING.]
+  (let ((l (length string))
+	(start (or start 0))
+	matches str mb me)
+    (save-match-data
+      (while (and (< start l) (string-match regexp string start))
+	(setq mb (match-beginning 0)
+	      me (match-end 0))
+	;; If we matched the empty string, make sure we advance by one char
+	(when (= me mb) (setq me (min l (1+ mb))))
+	;; Generate a replacement for the matched substring.
+	;; Operate only on the substring to minimize string consing.
+	;; Set up match data for the substring for replacement;
+	;; presumably this is likely to be faster than munging the
+	;; match data directly in Lisp.
+	(string-match regexp (setq str (substring string mb me)))
+	(setq matches
+	      (cons (replace-match (if (stringp rep)
+				       rep
+				     (funcall rep (match-string 0 str)))
+				   fixedcase literal str subexp)
+		    (cons (substring string start mb) ; unmatched prefix
+			  matches)))
+	(setq start me))
+      ;; Reconstruct a string from the pieces.
+      (setq matches (cons (substring string start l) matches)) ; leftover
+      (apply #'concat (nreverse matches)))))
+
+)
 
 (provide 'semanticdb-file)
 
