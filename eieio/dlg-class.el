@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: dlg-class.el,v 1.2 1996/11/07 19:11:59 zappo Exp $
+;;; RCS: $Id: dlg-class.el,v 1.3 1996/11/13 21:49:13 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -78,19 +78,30 @@ different values of state")
   "This type of object will also maintain it's value as the
 variable associated with the symbol field")
 
+(defmethod dlg-init-symbol ((this data-object-symbol))
+  "Make sure that the symbol part of of our data object is correctly
+initialized."
+  (if (and (not (oref this symbol)) (symbolp (object-name-string this)))
+      (oset this symbol (object-name-string this))))
+
 (defmethod constructor :AFTER ((this data-object-symbol) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
+  (dlg-init-symbol this)
   (oset this value (symbol-value (oref this symbol))))
 
 (defclass data-object-symbol-string-to-int (data-object-symbol)
-  nil
+  ((float-p :initarg :float-p
+	    :initform t
+	    :documentation "t when this object allows floating point numbers, nil otherwise"
+	    :protection private))
   "This type of object will also maintain it's value as a number in the
 variable associated with the symbol field")
 
 (defmethod constructor :AFTER ((this data-object-symbol-string-to-int) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
+  (dlg-init-symbol this)
   (let ((sv (symbol-value (oref this symbol))))
     (oset this value (if (numberp sv) (int-to-string sv) ""))))
 
@@ -106,7 +117,7 @@ assigned a value from this string list.")
 (defmethod constructor :AFTER ((this data-object-symbol-list-index) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
-  nil)
+  (dlg-init-symbol this))
 
 (defclass data-object-symbol-lisp-expression (data-object-symbol)
   nil
@@ -116,6 +127,7 @@ variable associated with the symbol field")
 (defmethod constructor :AFTER ((this data-object-symbol-lisp-expression) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing."
+  (dlg-init-symbol this)
   (if (not (oref this value)) ;; don't override the default
       (let ((sv (symbol-value (oref this symbol))))
 	(oset this value
@@ -130,6 +142,7 @@ based upon the symbol we are editing."
 (defmethod constructor :AFTER ((this data-object-symbol-default) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
+  (dlg-init-symbol this)
   (oset this value (default-value (oref this symbol))))
 
 (defclass data-object-symbol-feature (data-object-symbol)
@@ -142,6 +155,7 @@ based upon the symbol we are editing"
 (defmethod constructor :AFTER ((this data-object-symbol-feature) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
+  (dlg-init-symbol this)
   (oset this value (featurep (oref this symbol))))
 
 (defclass data-object-symbol-hook (data-object-symbol)
@@ -154,6 +168,7 @@ based upon the symbol we are editing"
 (defmethod constructor :AFTER ((this data-object-symbol-hook) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we want to add a hook to."
+  (dlg-init-symbol this)
   (if (not (boundp (oref this symbol)))	;make sure the hook exists first
       (set (oref this symbol) nil))
   (oset this value (member (oref this command)
@@ -166,6 +181,7 @@ based upon the symbol we want to add a hook to."
 (defmethod constructor :AFTER ((this data-object-symbol-disabled) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we want to disable"
+  (dlg-init-symbol this)
   (oset this value (get (oref this symbol) 'disabled)))
 
 (defclass data-object-command-option (data-object)
@@ -183,9 +199,15 @@ based upon the symbol we want to disable"
 	    :protection private))
   "This type of object will optionally add a command to a .emacs file")
 
+(defmethod dlg-init-command ((this data-object-command-option))
+  "Initialize the `command' field from name if applicable"
+  (if (not (oref this command))
+      (oset this command (object-name-string this))))
+
 (defmethod constructor :AFTER ((this data-object-command-option) &rest fields)
   "This method is called during construction to initialize the value field
 based upon the symbol we are editing"
+  (dlg-init-command this)
   (if (not (oref this value))  ;; Allow caller to override this one.
       (oset this value (dlg-quick-find (oref this command) dlg-config-file))))
 
@@ -231,10 +253,6 @@ instantiated.")
 	(if dlg-modify-running-environment (set (oref this symbol) value))
 	(dlg-edit-config-file this))))
 
-(defmethod init-symbol-object ((this data-object-symbol))
-  "Find the default value for THIS based on it's symbol"
-  (set-value this (symbol-value (oref this symbol))))
-
 (defmethod dlg-edit-config-file-object ((this data-object-symbol))
   "Reads the currently stored config-file, and starts saving
 the variables we are editing."
@@ -265,12 +283,13 @@ the variables we are editing."
   "When this data object's value is set, also set the value of it's
   symbol"
   (if (and dlg-modify-running-environment (stringp value))
-      (set (oref this symbol) (string-to-number value)))
-  (dlg-edit-config-file this))
-
-(defmethod init-symbol-object ((this data-object-symbol-string-to-int))
-  "Find the default value for THIS based on it's symbol"
-  (set-value this (format "%d" (symbol-value (oref this symbol)))))
+      (let ((sv (string-to-int value)))
+	(if (or (integerp sv) (oref this float-p))
+	    (progn
+	      (set (oref this symbol) (string-to-int value))
+	      (dlg-edit-config-file this))
+	  (ding t)
+	  (message "Illegal value for symbol!")))))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-string-to-int))
   "Reads the currently stored config-file, and starts saving
@@ -297,23 +316,6 @@ the variables we are editing."
   (if (and dlg-modify-running-environment (numberp value))
       (set (oref this symbol) (eval (read (nth value (oref this string-list))))))
   (dlg-edit-config-file this))
-
-(defmethod init-symbol-object ((this data-object-symbol-list-index))
-  "Find the default value for THIS based on it's symbol"
-  (let ((el (oref this string-list))
-	(pos 0)
-	(found nil))
-    (while el
-      ;; el is a list of symbols stored as strings for rendering
-      (if (equal (read (car this)) (symbol-value (oref this symbol)))
-	  (progn
-	    (setq found pos)
-	    (setq el nil)))
-      (setq el (cdr el)
-	    pos (1+ pos)))
-    ;; If default value is invalid, give it the first value.
-    (if (not found) (setq pos 0))
-    (set-value this pos)))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-list-index))
   "Reads the currently stored config-file, and starts saving
@@ -345,43 +347,43 @@ the variables we are editing."
     (if (and dlg-modify-running-environment (stringp value))
 	(progn
 	  (condition-case nil
-	      (setq ex (read value))
+	      (setq ex (if (string= value "") nil (read value)))
 	    (error (message "Invalid expression!")
 		   (setq ed nil)))
 	  (if ed (set (oref this symbol) ex))))
     (if ed (dlg-edit-config-file this))))
 
-(defmethod init-symbol-object ((this data-object-symbol-lisp-expression))
-  "Find the default value for THIS based on it's symbol"
-  (set-value this (format "%S" (symbol-value (oref this symbol)))))
-
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-lisp-expression))
   "Reads the currently stored config-file, and starts saving
 the variables we are editing."
-  (if (re-search-forward (concat 
-			  "(setq[ \t\n]+"
-			  (symbol-name (oref this symbol))
-			  "\\([ \t\n]+\\)") nil t)
-      (progn
-	(goto-char (match-end 1))
-	(delete-region (point) (save-excursion (forward-sexp 1) (point)))
-	(insert (format "%s" (oref this value))))
-    (goto-char (point-max))
-    (insert (format "\n(setq %s %s)"
-		    (symbol-name (oref this symbol))
-		    (oref this value))))
-  (beginning-of-line)
-  (point))
+  (let ((val (if (not (symbol-value (oref this symbol)))
+		 "nil"
+	       (concat 
+		(if (listp (symbol-value (oref this symbol))) "'" "")
+		(format "%s" (oref this value))))))
+    (if (re-search-forward (concat 
+			    "(setq[ \t\n]+"
+			    (symbol-name (oref this symbol))
+			    "\\([ \t\n]+\\)") nil t)
+	(progn
+	  (goto-char (match-end 1))
+	  (delete-region (point)
+			 (save-excursion (goto-char (match-beginning 0))
+					 (forward-sexp 1) (forward-char -1)
+					 (point)))
+	  (insert val))
+      (goto-char (point-max))
+      (insert (format "\n(setq %s %s)"
+		      (symbol-name (oref this symbol))
+		      val)))
+    (beginning-of-line)
+    (point)))
 
 ;; SYMBOL-DEFAULT
 (defmethod set-value :AFTER ((this data-object-symbol-default) value &optional setter)
   "When this data object value is set, set this as the new default."
   (set-default (oref this symbol) value)
   (dlg-edit-config-file this))
-
-(defmethod init-symbol-object ((this data-object-symbol-default))
-  "Find the default value for THIS based on it's symbol"
-  (set-value this (default-value (oref this symbol))))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-default))
   "Reads the currently stored config-file, and starts saving
@@ -420,10 +422,6 @@ the variables we are editing."
       (message "You shouldn't unload this feature")))
   (dlg-edit-config-file this))
 
-(defmethod init-symbol-object ((this data-object-symbol-feature))
-  "Find the default value for THIS based on it's symbol"
-  (set-value this (featurep (oref this symbol))))
-
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-feature))
   "Reads the currently stored config-file, and starts saving
 the features we are editing."
@@ -446,11 +444,6 @@ the features we are editing."
       (add-hook (oref this symbol) (read (oref this command)))
     (remove-hook (oref this symbol) (read (oref this command))))
   (dlg-edit-config-file this))
-
-(defmethod init-symbol-object ((this data-object-symbol-hook))
-  "Find the default value for THIS based on it's symbol"
-  (set-value this (member (oref this command) 
-			  (symbol-value (oref this symbol)))))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-hook))
   "Reads the currently stored config-file, and starts saving
@@ -475,10 +468,6 @@ the hooks we are editing."
   "When this data object value is set, set this as the new default."
   (if dlg-modify-running-environment (put (oref this symbol) 'disabled value))
   (dlg-edit-config-file this))
-
-(defmethod init-symbol-object ((this data-object-symbol-disabled))
-  "Find the default value for THIS based on it's symbol"
-  (set-value this (get (oref this symbol) 'disabled)))
 
 (defmethod dlg-edit-config-file-object ((this data-object-symbol-disabled))
   "Reads the currently stored config-file, and starts saving
@@ -509,11 +498,6 @@ the variables we are editing."
 	   (message "I can't disable this, so I won't enable it either"))
 	  (t (message "I can't disable this command."))))
   (dlg-edit-config-file this))
-
-(defmethod init-symbol-object ((this data-object-command-option))
-  "Find the default value for THIS based on it's symbol"
-  ;; I don't know how to do this yet.
-  )
 
 (defmethod dlg-edit-config-file-object ((this data-object-command-option))
   "Reads the currently stored config-file, and enters the command here"
