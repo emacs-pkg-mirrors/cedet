@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Jan 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-awk.el,v 1.10 2002/10/02 15:05:18 ponced Exp $
+;; X-RCS: $Id: wisent-awk.el,v 1.11 2003/02/19 16:27:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,8 +38,10 @@
 (require 'wisent-bovine)
 
 (defconst wisent-awk-automaton
-  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-10-02 15:42+0200
-  (eval-when-compile
+  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2003-02-18 22:44+0100
+  (progn
+    (eval-when-compile
+      (require 'wisent-comp))
     (wisent-compile-grammar
      '((FUNC_CALL NAME REGEXP ERROR YNUMBER YSTRING RELOP APPEND_OP ASSIGNOP MATCHOP NEWLINE CONCAT_OP LEX_BEGIN LEX_END LEX_IF LEX_ELSE LEX_RETURN LEX_DELETE LEX_WHILE LEX_DO LEX_FOR LEX_BREAK LEX_CONTINUE LEX_PRINT LEX_PRINTF LEX_NEXT LEX_EXIT LEX_FUNCTION LEX_GETLINE LEX_NEXTFILE LEX_IN LEX_AND LEX_OR INCREMENT DECREMENT LEX_BUILTIN LEX_LENGTH)
        ((right ASSIGNOP)
@@ -280,12 +282,12 @@
   "Parser automaton.")
 
 (defconst wisent-awk-keywords
-  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-10-02 15:42+0200
+  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2003-02-18 22:44+0100
   (semantic-lex-make-keyword-table 'nil 'nil)
   "Keywords.")
 
 (defconst wisent-awk-tokens
-  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-10-02 15:42+0200
+  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2003-02-18 22:44+0100
   (wisent-lex-make-token-table
    '(("<no-type>"
       (LEX_LENGTH)
@@ -330,12 +332,13 @@
 
 (defun wisent-awk-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2002-10-02 15:42+0200
+  ;;DO NOT EDIT! Generated from wisent-awk.wy - 2003-02-18 22:44+0100
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-awk-automaton
+          semantic-debug-parser-source "wisent-awk.wy"
           semantic-flex-keywords-obarray wisent-awk-keywords
           semantic-lex-types-obarray wisent-awk-tokens)
     ;; Collect unmatched syntax lexical tokens
