@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.12 2000/12/10 22:27:43 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.13 2001/01/06 14:37:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,25 +64,37 @@
     (structparts
      ( semantic-list
        ,(semantic-lambda
-
+ 
 	 (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'structsubparts)
 	 ))
      )					; end structparts
     (structsubparts
      ( variable)
      ( define)
+     ( open-paren "{"
+		  ,(semantic-lambda
+		    (list nil)))
+     ( close-paren "}"
+		   ,(semantic-lambda
+		     (list nil)))
      )					; end structsubparts
     (enumparts
      ( semantic-list
        ,(semantic-lambda
-
+ 
 	 (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'enumsubparts)
 	 ))
      )					; end enumparts
     (enumsubparts
      ( symbol opt-assign
 	      ,(semantic-lambda
-		(list (nth 0 vals))))
+		(list (nth 0 vals) 'enum)))
+     ( open-paren "{"
+		  ,(semantic-lambda
+		    (list nil)))
+     ( close-paren "}"
+		   ,(semantic-lambda
+		     (list nil)))
      )					; end enumsubparts
     (opt-name
      ( symbol)
@@ -214,7 +226,7 @@
     (arg-list
      ( symbol "\\<__?P\\>" semantic-list
 	      ,(lambda (vals start end)
-
+ 
 		 (semantic-bovinate-from-nonterminal (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-list-p)
 		 ))
      ( semantic-list knr-arguments
@@ -222,7 +234,7 @@
 		       (nth 1 vals)))
      ( semantic-list
        ,(semantic-lambda
-
+ 
 	 (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
 	 ))
      )					; end arg-list
@@ -237,7 +249,7 @@
     (arg-list-p
      ( open-paren "(" semantic-list close-paren ")"
 		  ,(semantic-lambda
-
+ 
 		    (semantic-bovinate-from-nonterminal-full (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-sub-list)
 		    ))
      )					; end arg-list-p
@@ -248,6 +260,12 @@
      ( punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" close-paren ")"
 		   ,(semantic-lambda
 		     (list "...")))
+     ( open-paren "("
+		  ,(semantic-lambda
+		    (list nil)))
+     ( close-paren ")"
+		   ,(semantic-lambda
+		     (list nil)))
      )					; end arg-sub-list
     (functiondef
      ( declmods typeform symbol arg-list
@@ -374,7 +392,12 @@ machine."
       ("union" . UNION)
       ("enum" . ENUM)
       ("typedef" . TYPEDEF)
-      ))
+      )
+   '(
+     ("struct" type t)
+     ("union" type t)
+     ("typedef" type t)
+     ))
   "Some keywords used in C.")
 
 (defun semantic-default-c-setup ()
@@ -391,7 +414,7 @@ machine."
 	document-comment-line-prefix " *"
 	document-comment-end " */"
 	)
-
+ 
  ;; End code generated from c.bnf
 )
 
