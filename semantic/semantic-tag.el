@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.9 2003/03/27 08:28:22 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.10 2003/03/27 12:22:06 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -690,10 +690,14 @@ several derived tags when the variable `semantic-tag-expand-function'
 is set.
 
 This function is for internal use only."
-  ;; Because some parsers can return tags already expanded (wisent is
-  ;; an example), check if TAG was already expanded to just return it.
   (if (semantic--tag-expanded-p tag)
+      ;; Just return TAG if it is already expanded (by a grammar
+      ;; semantic action), or if it isn't recognized as a valid
+      ;; semantic tag.
       tag
+    
+    ;; Try to cook the tag.  This code will be removed when tag will
+    ;; be directly created with the right format.
     (condition-case nil
         (let ((ocdr (semantic--tag-overlay-cdr tag)))
           ;; OCDR contains the sub-list of TAG whose car is the
@@ -710,6 +714,7 @@ This function is for internal use only."
       (error
        (debug tag)
        nil))
+    
     ;; Compatibility code to be removed in future versions.
     (unless semantic-tag-expand-function
       (setq semantic-tag-expand-function semantic-expand-nonterminal)
