@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.12 2003/02/20 08:28:48 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.13 2003/02/22 15:36:08 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1199,6 +1199,14 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
       (re-search-backward ";;"))
     (forward-comment (- (point-max)))))
 
+(defvar semantic-grammar-skip-quoted-syntax-table
+  (let ((st (copy-syntax-table semantic-grammar-syntax-table)))
+    (modify-syntax-entry ?\' "$" st)
+    st)
+  "Syntax table to skip a whole quoted expression in grammar code.
+Consider quote as a \"paired delimiter\", so `forward-sexp' will skip
+whole quoted expression.")
+
 (defun semantic-grammar-goto-grammar-indent-anchor ()
   "Move the point to current grammar indent anchor.
 That is just after the previous percent, colon or semicolon character
@@ -1217,12 +1225,12 @@ the anchor is or nil if the point has not moved."
               (semantic-grammar-skip-comments-backward)
               (cond
                ((eq (char-before) ?\')
-                ;; `with-syntax-table' copy given syntax table
-                (with-syntax-table semantic-grammar-syntax-table
-                  ;; Can't be is Lisp code here!  Temporarily consider
-                  ;; quote as a "paired delimiter", so `forward-sexp'
-                  ;; will skip the whole quoted expression.
-                  (modify-syntax-entry ?\' "$" (syntax-table))
+                (with-syntax-table
+                    ;; Can't be Lisp code here!
+                    ;; Temporarily consider quote as a "paired
+                    ;; delimiter", so `forward-sexp' can skip the
+                    ;; whole quoted expression.
+                    semantic-grammar-skip-quoted-syntax-table
                   (forward-sexp -1)))
                ((eq (char-before) ?\%)
                 (or (looking-at "\\<prec\\>")
@@ -1289,6 +1297,14 @@ When called the point is not in Lisp code."
           (delete-horizontal-space)
           (indent-to indent)))))
 
+(defvar semantic-grammar-brackets-as-parens-syntax-table
+  (let ((st (copy-syntax-table emacs-lisp-mode-syntax-table)))
+    (modify-syntax-entry ?\{ "(}  " st)
+    (modify-syntax-entry ?\} "){  " st)
+    st)
+  "Syntax table that consider brackets as parenthesis.
+So `lisp-indent-line' will work inside bracket blocks.")
+
 (defun semantic-grammar-do-lisp-indent ()
   "Maybe run the Emacs Lisp indenter on a line of code.
 Return nil if not in a Lisp expression."
@@ -1306,11 +1322,11 @@ Return nil if not in a Lisp expression."
             (save-restriction
               (narrow-to-region (point) first)
               (goto-char (point-max))
-              ;; `with-syntax-table' copy given syntax table
-              (with-syntax-table emacs-lisp-mode-syntax-table
-                ;; Consider brackets as parenthesis
-                (modify-syntax-entry ?\{ "(}  " (syntax-table))
-                (modify-syntax-entry ?\} "){  " (syntax-table))
+              (with-syntax-table
+                  ;; Temporarily consider brackets as parenthesis so
+                  ;; `lisp-indent-line' can indent Lisp code inside
+                  ;; brackets.
+                  semantic-grammar-brackets-as-parens-syntax-table
                 (lisp-indent-line))))
           t)
       (error nil)))
