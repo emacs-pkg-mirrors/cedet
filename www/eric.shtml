@@ -1,6 +1,6 @@
 <title>Eric Ludlam</title>
 <!--#include file="pagestart.php"-->
-<table width=100% bgcolor="lightgreen">
+<table width=100% class=BAR>
 <tr><td><h2><font color=black>Eric Ludlam:</font></h2></td>
 <td><font color=black>Who is this guy?</font></td></tr>
 </table>

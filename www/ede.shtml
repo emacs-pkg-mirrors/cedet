@@ -2,7 +2,7 @@
 
 <!--#include file="pagestart.php"-->
 
-<table width=100% bgcolor="lightgreen">
+<table width=100% class=BAR>
 <tr><td><h2><font color=black>EDE:</font></h2></td>
 <td><font color=black>
 "Emacs Development Environment: A project management system"</font></td></tr>
@@ -37,7 +37,7 @@ Unfortunatly this is only really useful for small projects.</p>
 which will be the default for large projects where the Makefile
 generation is insufficient.</p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Read the docs:</h2>
 </td></tr></table>
 

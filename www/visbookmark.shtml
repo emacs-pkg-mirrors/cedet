@@ -2,7 +2,7 @@
 
 <!--#include file="pagestart.php"-->
 
-<table width=100% bgcolor="lightgreen">
+<table width=100% class=BAR>
 <tr><td><h2><font color=black>VisBookmark</font></h2></td>
 <td><font color=black>Visual Studio style bookmarks</font></td></tr>
 </table>
@@ -26,7 +26,7 @@ Next load linemark, and use the command:
 M-x enable-visual-studio-bookmarks
 </pre>
 
-<table border=1><tr bgcolor="lightgreen"><td>Key Binding</td><td>Action</td></tr>
+<table border=1><tr class=BAR><td>Key Binding</td><td>Action</td></tr>
 <tr><td>F2</td><td>Toggle a bookmark on an off.</td></tr>
 <tr><td>Shift F2</td><td>Go Backward to previous bookmark.</td></tr>
 <tr><td>Ctrl F2</td><td>Go to next bookmark</td></tr>

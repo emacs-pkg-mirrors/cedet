@@ -26,7 +26,7 @@
    downloads.
 </p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <H3>Articles</h3>
 </td></tr></table>
 
@@ -37,7 +37,7 @@
    <a href=http://jde.sunsite.dk/>JDE</a>
    includes some pointers to CEDET, and mentions some of these tools.</p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <H3>Base Tools are:</h3>
 </td></tr></table>
 
@@ -68,7 +68,7 @@
    </ul>
 </p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>User Interface Tools are:</h3>
 </td></tr></table>
 
@@ -95,7 +95,7 @@
   include ("download.php")
 ?>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>Tools hosted elsewhere:</h3>
 </td></tr></table>
 
@@ -104,7 +104,7 @@
    lets you browse your files' contents.
    Uses the Semantic package.</p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>Other Miscellaneous Emacs Hacks at this web site:</h3>
 </td></tr></table>
 

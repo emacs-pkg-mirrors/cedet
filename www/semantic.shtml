@@ -2,7 +2,7 @@
 
 <!--#include file="pagestart.php"-->
 
-<table width=100% bgcolor="lightgreen">
+<table width=100% class=BAR>
 <tr><td><h2><font color=black>Semantic:</font></h2></td>
 <td><font color=black>"Infrastructure for parser based text analysis in Emacs."</font></td></tr>
 </table>
@@ -23,7 +23,7 @@ a generic way.  It also provides a simple way for Mode Authors who are
 expert's in their language, to provide a parser for those tool
 authors, without knowing anything about those tools.</p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>Semantic's Core is made up of these important pieces:</h3>
 </td></tr></table>
 <dl>
@@ -43,7 +43,7 @@ authors, without knowing anything about those tools.</p>
     time and provides standard way of cross referencing files.
 </dl>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>Semantic 1.4 Contains these additional User Tools:</h3>
 </td></tr></table>
 
@@ -84,7 +84,7 @@ Complexity of semantic.el
 <dd>text which does not fit the language is underlined.
 </dl>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>What's in Semantic 2.0?  (A Part of of CEDET 1.0 beta)</h3>
 </td></tr></table>
 
@@ -144,7 +144,7 @@ Intellisense
     Some tools call this <a href="intellisense.shtml"> intellisense.</a>
 </dl>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>Tools I'd like to see in future versions of Semantic:</h3>
 </td></tr></table>
 <dl>
@@ -167,7 +167,7 @@ Intellisense
 	  upon the language definition, and available variables and types.
 </dl>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Read the Semantic 1.4 docs:</h2>
 </td></tr></table>
 
@@ -179,7 +179,7 @@ Intellisense
  <a href="intellisense.shtml"> intellisense</a> like behavior
   out of your Semantic install
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Contribute to Semantic</h2>
 </td></tr></table>
 
@@ -197,7 +197,7 @@ Intellisense
 <li>Keep semantic compatible with the many versions of [X]Emacs
 </ul>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Join the mailing list</h2>
 </td></tr></table>
 
@@ -206,7 +206,7 @@ Intellisense
 mailing list</a>
 to ask question, or help develop semantic.
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Other Tools that use Semantic</h2>
 </td></tr></table>
 
@@ -224,7 +224,7 @@ to ask question, or help develop semantic.
    As it matures, it will use semantic to reverse-engineer sources
    into UML diagrams.</p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Notes</h2>
 </td></tr></table>
 
@@ -233,7 +233,7 @@ to ask question, or help develop semantic.
 
 <!--#include file="download.php"-->
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Download the Previous Stable Semantic Bovinator</h2>
 </td></tr></table>
 

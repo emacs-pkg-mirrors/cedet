@@ -2,7 +2,7 @@
 
 <!--#include file="pagestart.php"-->
 
-<table width=100% bgcolor="lightgreen">
+<table width=100% class=BAR>
 <tr><td><h2><font color=black>Intellisense</font></h2></td>
 <td><font color=black>"Using Semantic for Intellisense"</font></td></tr>
 </table>
@@ -19,7 +19,7 @@ It is possible for Smart Completion to be provided via the tools made
 available in Semantic.
 </p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>Basic Setup</h3>
 </td></tr></table>
 
@@ -77,7 +77,7 @@ them.  Once you have visited all such files, execute:
 The database will be saved when you exit too, but I like saving my DB
 occasionally so information isn't lost in a crash or other problem.
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>In version 2.0 beta2 or later</h3>
 </td></tr></table>
 
@@ -126,7 +126,7 @@ directions form version 1.4x in setting up the database for semantic
 </p>
 
 <br clear="both">
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h3>In Version 1.4x</h3>
 </td></tr></table>
 
@@ -159,7 +159,7 @@ The commands available (for binding to a key) are:
 </ul>
 
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Semantic Analyzer FAQ</h2>
 </td></tr></table>
 

@@ -2,7 +2,7 @@
 
 <!--#include file="pagestart.php"-->
 
-<table width=100% bgcolor="lightgreen">
+<table width=100% class=BAR>
 <tr><td><h2><font color=black>Checkdoc</font></h2></td>
 <td><font color=black>Emacs Lisp Source Style Checker</font></td></tr>
 </table>
@@ -46,7 +46,7 @@ into lisp-mnt.el:lm-verify.)</p>
 stylistic errors as you write your code, and preventing long annoying
 sessions of checking all your documentation.</p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Downloading checkdoc</h2>
 </td></tr></table>
 

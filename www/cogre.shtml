@@ -2,7 +2,7 @@
 
 <!--#include file="pagestart.php"-->
 
-<table width=100% bgcolor="lightgreen">
+<table width=100% class=BAR>
 <tr><td><h2><font color=black>COGRE:</font></h2></td>
 <td><font color=black>
 "Connected Graph Editor"</font></td></tr>
@@ -69,7 +69,7 @@ An Auto Generated UML Diagram with source browser
 </p>
 
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Read the docs:</h2>
 </td></tr></table>
 
@@ -79,7 +79,7 @@ An Auto Generated UML Diagram with source browser
 
 <!--#include file="download.php"-->
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Downloading Earlier versions of COGRE</h2>
 </td></tr></table>
 

@@ -3,7 +3,7 @@
 <!-- This ends the table start in pagestart.php. -->
 </td></tr></table>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 &nbsp
 </td></tr></table>
 
@@ -19,7 +19,7 @@ Send mail to
 Visit
 <A HREF="http://www.siege-engine.com">Siege-engine.com</a>
 to see what I do in analog land.
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <FONT SIZE=-2>
 Copyright(C) 1997,98,99,2000,01,02,03,04 Eric M. Ludlam<BR>
 Verbatim copying and distribution is permitted in any medium,

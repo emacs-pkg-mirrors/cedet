@@ -2,7 +2,7 @@
 
 <!--#include file="pagestart.php"-->
 
-<table width=100% bgcolor="lightgreen">
+<table width=100% class=BAR>
 <tr><td><h2><font color=black>EIEIO:</font></h2></td>
 <td><font color=black>"Enhanced Implementation of Emacs Interpreted Objects."</font></td></tr>
 </table>
@@ -64,7 +64,7 @@ useful examples
 </DL>
 <P>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Tools using EIEIO</h2>
 </td></tr></table>
 
@@ -91,7 +91,7 @@ useful examples
 <DD>Java code generator.
 </DL>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Read the docs:</h2>
 </td></tr></table>
 
@@ -99,7 +99,7 @@ useful examples
    <a href="info/eieio.html">html documentation</a>
    created from the texinfo file.</p>
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Join the mailing list</h2>
 </td></tr></table>
 
@@ -108,7 +108,7 @@ useful examples
 mailing list</a>
  to ask question, or help develop semantic.
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Notes:</h2>
 </td></tr></table>
 
@@ -118,7 +118,7 @@ mailing list</a>
 
 <!--#include file="download.php"-->
 
-<table width=100% bgcolor="lightgreen"><tr><td>
+<table width=100% class=BAR><tr><td>
 <h2>Downloading Earlier releases of EIEIO</h2>
 </td></tr></table>
 
