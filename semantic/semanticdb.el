@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.55 2003/04/02 02:29:40 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.56 2003/04/02 02:44:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,8 @@
 ;;
 
 (require 'inversion)
-(inversion-require 'eieio "0.18")
+(eval-and-compile
+  (inversion-require 'eieio "0.18"))
 (require 'eieio-base)
 (require 'semantic)
 

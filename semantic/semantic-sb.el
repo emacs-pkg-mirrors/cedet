@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.40 2003/04/01 04:40:57 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.41 2003/04/02 02:44:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,8 +31,10 @@
 ;; 
 
 (require 'semantic)
+(require 'semantic-util)
 (require 'inversion)
-(inversion-require 'speedbar "0.15")
+(eval-and-compile
+  (inversion-require 'speedbar "0.15"))
 
 (defcustom semantic-sb-autoexpand-length 1
   "*Length of a semantic bucket to autoexpand in place.
