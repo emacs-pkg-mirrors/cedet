@@ -262,9 +262,7 @@ macro `working-status-forms'."
       (if (or (eq p t)
 	      (> (- p working-last-percent) working-percentage-step))
 	  (let* ((m1 (apply 'format working-message args))
-		 (m2 (funcall working-status-percentage-type (length m1) p))
-		 (log-message-filter-function #'ignore) ; No logging (XEmacs)
-	       (message-log-max))             ; No logging (Emacs)
+		 (m2 (funcall working-status-percentage-type (length m1) p)))
 	    (working-message "%s%s" m1 m2)
 	    (setq working-last-percent p))))))
   
@@ -277,9 +275,7 @@ macro `working-status-forms'."
   (when working-status-dynamic-type
     (let* ((n (or number working-ref1))
 	   (m1 (apply 'format working-message args))
-	   (m2 (funcall working-status-dynamic-type (length m1) n))
-	   (log-message-filter-function #'ignore) ; No logging (XEmacs)
-	   (message-log-max))             ; No logging (Emacs)
+	   (m2 (funcall working-status-dynamic-type (length m1) n)))
       (working-message "%s%s" m1 m2)
       (setq working-ref1 (1+ working-ref1)))))
 
