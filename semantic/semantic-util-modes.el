@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.10 2001/11/14 01:49:59 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.11 2001/11/21 19:31:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,19 +35,70 @@
 
 ;;; Code:
 (require 'semantic-util)
+(require 'working)
 
 ;;;;
-;;;; Registry
+;;;; Semantic minor modes stuff
 ;;;;
 
-(if (fboundp 'add-minor-mode)
+(defcustom semantic-update-mode-line t
+  "*If non-nil show enabled minor modes in the mode line.
+Only minor modes that are not turned on globally are shown in the mode
+line."
+  :group 'semantic
+  :type 'boolean
+  :require 'semantic-util-modes
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (set-default sym val)
+         ;; Update status of all Semantic enabled buffers
+         (semantic-map-buffers
+          #'semantic-mode-line-update)))
 
-    ;; Emacs 21 & XEmacs
-    (defalias 'semantic-add-minor-mode 'add-minor-mode)
+(defvar semantic-minor-modes-status nil
+  "String showing Semantic minor modes which are locally enabled.
+It is displayed in the mode line.")
+(make-variable-buffer-local 'semantic-minor-modes-status)
 
-  ;; Emacs 20
-  (defun semantic-add-minor-mode (toggle name &optional keymap)
-    "Register a new Semantic minor mode.
+(defvar semantic-minor-mode-alist nil
+  "Alist saying how to show Semantic minor modes in the mode line.
+Like variable `minor-mode-alist'.")
+
+(defun semantic-mode-line-update ()
+  "Update display of Semantic minor modes in the mode line.
+Only minor modes that are locally enabled are shown in the mode line."
+  (setq semantic-minor-modes-status nil)
+  (if semantic-update-mode-line
+      (let ((ml semantic-minor-mode-alist)
+            mm ms see)
+        (while ml
+          (setq mm (car ml)
+                ms (cadr mm)
+                mm (car mm)
+                ml (cdr ml))
+          (when (and (symbol-value mm)
+                     ;; Only show local minor mode status
+                     (not (memq mm semantic-init-hooks)))
+            (and ms
+                 (symbolp ms)
+                 (setq ms (symbol-value ms)))
+            (and (stringp ms)
+                 (not (member ms see)) ;; Don't duplicate same status
+                 (setq see (cons ms see)
+                       ms (if (string-match "^[ ]*\\(.+\\)" ms)
+                              (match-string 1 ms)
+                            "")
+                       semantic-minor-modes-status
+                       (if semantic-minor-modes-status
+                           (concat semantic-minor-modes-status "/" ms)
+                         ms)))))
+        (if semantic-minor-modes-status
+            (setq semantic-minor-modes-status
+                  (concat " S/" semantic-minor-modes-status)))))
+  (working-mode-line-update))
+
+(defun semantic-add-minor-mode (toggle name &optional keymap)
+  "Register a new Semantic minor mode.
 TOGGLE is a symbol which is the name of a buffer-local variable that
 is toggled on or off to say whether the minor mode is active or not.
 It is also an interactive function to toggle the mode.
@@ -56,18 +107,29 @@ NAME specifies what will appear in the mode line when the minor mode
 is active.  NAME should be either a string starting with a space, or a
 symbol whose value is such a string.
 
-Optional KEYMAP is the keymap for the minor mode that will be added
-to `minor-mode-map-alist'."
-  (or (assq toggle minor-mode-alist)
-      (setq minor-mode-alist (cons (list toggle name)
+Optional KEYMAP is the keymap for the minor mode that will be added to
+`minor-mode-map-alist'."
+  ;; Add a dymmy semantic minor mode to display the status
+  (or (assq 'semantic-minor-modes-status minor-mode-alist)
+      (setq minor-mode-alist (cons (list 'semantic-minor-modes-status
+                                         'semantic-minor-modes-status)
                                    minor-mode-alist)))
-    
-  (or (not keymap)
-      (assq toggle minor-mode-map-alist)
-      (setq minor-mode-map-alist (cons (cons toggle keymap)
-                                       minor-mode-map-alist))))
-    
-  )
+  (if (fboundp 'add-minor-mode)
+      ;; Emacs 21 & XEmacs
+      (add-minor-mode toggle "" keymap)
+    ;; Emacs 20
+    (or (assq toggle minor-mode-alist)
+        (setq minor-mode-alist (cons (list toggle "") minor-mode-alist)))
+    (or (not keymap)
+        (assq toggle minor-mode-map-alist)
+        (setq minor-mode-map-alist (cons (cons toggle keymap)
+                                         minor-mode-map-alist))))
+  ;; Record how to display this minor mode in the mode line
+  (let ((mm (assq toggle semantic-minor-mode-alist)))
+    (if mm
+        (setcdr mm (list name))
+      (setq semantic-minor-mode-alist (cons (list toggle name)
+                                       semantic-minor-mode-alist)))))
 
 (defun semantic-toggle-minor-mode-globally (mode &optional arg)
   "Toggle minor mode MODE in every Semantic enabled buffer.
@@ -228,11 +290,11 @@ minor mode is enabled.
   (if (interactive-p)
       (message "show-dirty minor mode %sabled"
                (if semantic-show-dirty-mode "en" "dis")))
-;;  (force-mode-line-update)
+  (semantic-mode-line-update)
   semantic-show-dirty-mode)
 
 (semantic-add-minor-mode 'semantic-show-dirty-mode
-                         ""
+                         "d"
                          semantic-show-dirty-mode-map)
 
 
@@ -424,11 +486,11 @@ minor mode is enabled.
   (if (interactive-p)
       (message "show-unmatched-syntax minor mode %sabled"
                (if semantic-show-unmatched-syntax-mode "en" "dis")))
-;;  (force-mode-line-update)
+  (semantic-mode-line-update)
   semantic-show-unmatched-syntax-mode)
 
 (semantic-add-minor-mode 'semantic-show-unmatched-syntax-mode
-                         ""
+                         "u"
                          semantic-show-unmatched-syntax-mode-map)
 
 (defun semantic-show-unmatched-syntax-next ()
@@ -575,11 +637,11 @@ minor mode is enabled."
   (if (interactive-p)
       (message "auto-parse minor mode %sabled"
                (if semantic-auto-parse-mode "en" "dis")))
-;;  (force-mode-line-update)
+  (semantic-mode-line-update)
   semantic-auto-parse-mode)
 
 (semantic-add-minor-mode 'semantic-auto-parse-mode
-                         ""
+                         "a"
                          nil)
 
 (provide 'semantic-util-modes)
