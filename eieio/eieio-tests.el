@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.5 2000/09/28 19:43:38 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.6 2000/12/02 01:52:08 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -282,6 +282,14 @@ METHOD is the method that was attempting to be called."
     nil
   (error "Slot exists-p failed"))
 
+(condition-case nil
+    (progn
+      (oref a water)
+      (error ""))
+  (unbound-slot nil)
+  (error (error "Oref of unbound slot succeeded.")))
+  
+
 (defmethod slot-unbound ((a class-a) &rest foo)
   "If a slot in A is unbound, ignore FOO."
   'moose)
@@ -330,15 +338,22 @@ METHOD is the method that was attempting to be called."
     nil
   (error "Class slots are tracking between objects"))
 
-;;; Test different types in a class
+;;; Test function type in a class
 ;;
-;(defclass class-typep ()
-;  ((slot1 :type function
-;	  :initform (lambda-default (a b) (< a b))
-;	  )
-;   )
-;  "Test different types in a class.")
+(defclass class-typep ()
+  ((slot1 :type function
+	  :initform <
+	  )
+   (slot2 :type integer
+	  :initform (lambda () 1)
+	  )
+   (slot4 :type function
+	  :initform (lambda-default () 2)
+	  )
+   )
+  "Test different types in a class.")
 
+(defvar ct (class-typep "foo"))
 
 ;;; Inheritance status
 ;;
@@ -372,6 +387,8 @@ METHOD is the method that was attempting to be called."
 	   :allocation :instance
 	   :documentation "Fisrt slot testing slot arguments."
 	   :custom symbol
+	   :label "Wild Animal"
+	   :group borg
 	   :protection public)
    (slot-2 :initarg :penguin
 	   :initform "penguin"
@@ -379,10 +396,13 @@ METHOD is the method that was attempting to be called."
 	   :allocation :instance
 	   :documentation "Second slot testing slot arguments."
 	   :custom string
+	   :label "Wild bird"
+	   :group vorlon
 	   :accessor get-slot-2
 	   :protection private)
    )
-  '(:documentation "A class for testing slot arguments.")
+  (:custom-groups (foo))
+  "A class for testing slot arguments."
   )
 
 (defvar t1 (class-c "C1"))
@@ -405,6 +425,28 @@ METHOD is the method that was attempting to be called."
       (error "A string was set on a symbol slot during init."))
   (invalid-slot-type nil))
 
+;;; eieio-instance-inheritor
+;; Test to make sure this works.
+(defclass II (eieio-instance-inheritor)
+  ((slot1 :initform 1)
+   (slot2)
+   (slot3))
+  "Instance Inheritor test class.")
+
+(defvar II1 (II "II Test."))
+(oset II1 slot2 'cat)
+(defvar II2 (clone II1 "II2 Test."))
+(oset II2 slot1 'moose)
+(defvar II3 (clone II2 "II3 Test."))
+(oset II3 slot3 'penguin)
+
+(cond ((not (eq (oref II3 slot1) 'moose))
+       (error "Instance inheritor: Level one inheritance failed."))
+      ((not (eq (oref II3 slot2) 'cat))
+       (error "Instance inheritor: Level two inheritance failed."))
+      ((not (eq (oref II3 slot3) 'penguin))
+       (error "Instance inheritor: Level zero inheritance failed."))
+      (t t))
 
 (message "All tests passed.")
 
