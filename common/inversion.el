@@ -3,12 +3,12 @@
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.6 2002/09/03 23:59:10 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.7 2002/09/05 02:33:34 zappo Exp $
 
 ;;; Code:
-(defvar inversion-version "1.0beta2"
+(defvar inversion-version "1.0beta3"
   "Current version of InVersion.")
-(defvar inversion-incompatible-version "0.0alpha1"
+(defvar inversion-incompatible-version "0.1alpha1"
   "An earlier release which is incmpatible with this release.")
 
 ;; InVersion is free software; you can redistribute it and/or modify
@@ -51,13 +51,11 @@
 ;;
 ;; If you would like to make inversion optional, do this:
 ;;
-;;(condition-case nil
-;;    (require 'inversion)
-;;  (error
-;;   (defun inversion-test (p v)
-;;     (string= v (symbol-value (intern-soft
-;;			       (concat (symbol-string p) "-version")))))))
-;;
+;; (or (require 'inversion nil t)
+;;     (defun inversion-test (p v)
+;;       (string= v (symbol-value
+;; 		  (intern-soft (concat (symbol-string p) "-version"))))))
+;; 
 ;; Or modify to specify `inversion-require' instead.
 ;;
 ;; TODO:
@@ -83,6 +81,8 @@ MAX is the maximun number of match-numbers in the release number.
 The order of the list is important.  Least stable versions should
 be first.  More stable version should be last.")
 
+;;; Version Checking
+;;
 (defun inversion-decode-version (version-string)
   "Decode VERSION-STRING into an encoded list.
 Return value is of the form:
@@ -171,12 +171,14 @@ not an indication of new features or bug fixes."
 	     (= v1-2 v2-2)
 	     v1-3 v2-3		; all or nothin if elt - is =
 	     (< v1-3 v2-3))
-	(and (= v1-0 v2-0)
-	     (= v1-1 v2-1)
+	(and (= v1-1 v2-1)
 	     (< v1-2 v2-2))
-	(and (= v1-0 v2-0)
-	     (< v1-1 v2-1))
-	(< v1-0 v2-0))))
+	(and (< v1-1 v2-1))
+	(and (< v1-0 v2-0)
+	     (= v1-1 v2-1)
+	     (= v1-2 v2-2)
+	     )
+	)))
 
 (defun inversion-test (package minimum &rest reserved)
   "Test that PACKAGE meets the MINIMUM version requirement.
@@ -213,7 +215,7 @@ Return nil if everything is ok.  Return an error string otherwise."
 	  ;; what the package maintainer says is incompatible,
 	  ;; then throw that error.
 	  (format "Package %s version is not backward compatible with %s"
-		  minimum))
+		  package minimum))
 	 ;; Things are ok.
 	 (t nil))
 	)
@@ -222,14 +224,21 @@ Return nil if everything is ok.  Return an error string otherwise."
       "Inversion version check failed.")
      )))
 
-(defun inversion-require (package version file &rest reserved)
+(defun inversion-require (package version file &optional directory
+				  &rest reserved)
   "Declare that you need PACKAGE with at least VERSION.
 PACKAGE might be found in FILE.  (See `require'.)
 Throws an error if VERSION is incompatible with what is installed.
+Optional argument DIRECTORY is a location where new versions of
+this tool can be located.  If there is a versioning problem and
+DIRECTORY is provided, inversion will offer to download the file.
 Optional argument RESERVED is saved for later use."
   (require package file)
   (let ((err (inversion-test package version)))
-    (if err (error err))))
+    (when err
+      (if directory
+	  (inversion-download-package-ask err package directory version)
+	(error err)))))
   
 ;;; Inversion tests
 ;;
@@ -239,26 +248,144 @@ Optional argument RESERVED is saved for later use."
       (c3 (inversion-decode-version "1.3beta4"))
       (c4 (inversion-decode-version "1.3beta5"))
       (c5 (inversion-decode-version "1.3.4"))
-      (c6 (inversion-decode-version "2.3")))
-  (if (not (and (inversion-= c1 c1)
-		(inversion-< c1i c1)
-		(inversion-< c2 c3)
-		(inversion-< c3 c4)
-		(inversion-< c4 c5)
-		(inversion-< c6 c5)
-		(not (inversion-< c3 c2))
-		(not (inversion-< c4 c3))
-		(not (inversion-< c5 c4))
-		(not (inversion-< c5 c6))
-		;; Test the tester on inversion
-		(not (inversion-test 'inversion inversion-version))
-		;; Test that we throw an error
-		(inversion-test 'inversion "0.0.0")
-		(inversion-test 'inversion "1000.0")
-		))
+      (c6 (inversion-decode-version "2.3alpha1")))
+  (if (not (and
+	    (inversion-= c1 c1)
+	    (inversion-< c1i c1)
+	    (inversion-< c2 c3)
+	    (inversion-< c3 c4)
+	    (inversion-< c4 c5)
+	    (inversion-< c5 c6)
+	    (inversion-< c2 c4)
+	    (inversion-< c2 c5)
+	    (inversion-< c2 c6)
+	    (inversion-< c3 c5)
+	    (inversion-< c3 c6)
+	    ;; Negatives
+	    (not (inversion-< c3 c2))
+	    (not (inversion-< c4 c3))
+	    (not (inversion-< c5 c4))
+	    (not (inversion-< c6 c5))
+	    ;; Test the tester on inversion
+	    (not (inversion-test 'inversion inversion-version))
+	    ;; Test that we throw an error
+	    (inversion-test 'inversion "0.0.0")
+	    (inversion-test 'inversion "1000.0")
+	    ))
       (error "Inversion tests failed")
     t))
 
+;;; URL and downloading code
+;;
+(defun inversion-locate-package-files (package directory &optional version)
+  "Get a list of distributions of PACKAGE from DIRECTORY.
+DIRECTORY can be an ange-ftp compatible filename, such as:
+ \"/ftp@ftp1.sourceforge.net/pub/sourceforge/PACKAGE\"
+If it is a URL, wget will be used for download.
+Optional argument VERSION will restrict the list of available versions
+to the file matching VERSION exactly, or nil."
+;;DIRECTORY should also allow a URL:
+;; \"http://ftp1.sourceforge.net/PACKAGE\"
+;; but then I can get file listings easily.
+  (if (symbolp package) (setq package (symbol-name package)))
+  (directory-files directory t
+		   (if version
+		       (concat "^" package "-" version "\\>")
+		     package)))
+
+(defvar inversion-package-common-tails '( ".tar.gz"
+					 ".tar"
+					 ".zip"
+					 ".gz"
+					 )
+  "Common distribution mechanisms for Emacs Lisp packages.")
+
+(defun inversion-locate-package-files-and-split (package directory &optional version)
+  "Use `inversion-locate-package-files' to get a list of PACKAGE files.
+DIRECTORY is the location where distributions of PACKAGE are.
+VERSION is an optional argument specifying a version to restrict to.
+The return list is an alist with the version string in the CAR,
+and the full path name in the CDR."
+  (if (symbolp package) (setq package (symbol-name package)))
+  (let ((f (inversion-locate-package-files package directory version))
+	(prefix (concat (file-name-as-directory directory)
+			package "-"))
+	(out nil))
+    (while f
+      (let* ((file (car f))
+	     (dist (file-name-nondirectory file))
+	     (tails inversion-package-common-tails)
+	     (verstring nil))
+	(while (and tails (not verstring))
+	  (when (string-match (concat (car tails) "$") dist)
+	    (setq verstring
+		  (substring dist (1+ (length package)) (match-beginning 0))))
+	  (setq tails (cdr tails)))
+	(if (not verstring)
+	    (error "Cannot decode version for %s" dist))
+	(setq out
+	      (cons
+	       (cons verstring file)
+	       out))
+	(setq f (cdr f))))
+    out))
+
+(defun inversion-download-package-ask (err package directory version)
+  "Due to ERR, offer to download PACKAGE from DIRECTORY.
+The package should have VERSION available for download."
+  (if (symbolp package) (setq package (symbol-name package)))
+  (let ((files (inversion-locate-package-files-and-split
+		package directory version)))
+    (if (not files)
+	(error err)
+      (if (not (y-or-n-p (concat err ": Download update? ")))
+	  (error err)
+	(let ((dest (read-directory-name (format "Download %s to: "
+						 package)
+					 t)))
+	  (if (> (length files) 1)
+	      (setq files
+		    (list
+		     "foo" ;; ignored
+		     (read-file-name "Version to download: "
+				     directory
+				     files
+				     t
+				     (concat
+				      (file-name-as-directory directory)
+				      package)
+				     nil))))
+
+	  (copy-file (cdr (car files)) dest))))))
+
+(defun inversion-upgrade-package (package &optional directory)
+  "Try to upgrade PACKAGE in DIRECTORY is available."
+  (interactive "sPackage to upgrade: ")
+  (if (stringp package) (setq package (intern package)))
+  (if (not directory)
+      ;; Hope that the package maintainer specified.
+      (setq directory (symbol-value (or (intern-soft
+					 (concat (symbol-name package)
+						 "-url"))
+					(intern-soft
+					 (concat (symbol-name package)
+						 "-directory"))))))
+  (let ((files (inversion-locate-package-files-and-split
+		package directory))
+	(cver (inversion-package-version package))
+	(newer nil))
+    (mapcar (lambda (f)
+	      (if (inversion-< cver (inversion-decode-version (car f)))
+		  (setq newer (cons f newer))))
+	    files)
+    newer
+    ))
+
+(inversion-upgrade-package 
+ 'semantic
+ "/ftp@ftp1.sourceforge.net:/pub/sourceforge/cedet")
+
+;; "/ftp@ftp1.sourceforge.net:/pub/sourceforge/cedet"
 (provide 'inversion)
 
 ;;; inversion.el ends here
