@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.3 2000/08/31 16:06:17 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.4 2000/09/04 00:11:14 zappo Exp $
 
 (defvar dframe-version "1.0beta"
   "The current version of the dedicated frame library.")
@@ -43,7 +43,7 @@
 ;; * Frame/buffer killing hooks
 ;; * Mouse-3 position relative menu
 ;; * Mouse motion, help-echo hacks
-;; * Mouse clicking, double clicking, & xemacs image clicking hack
+;; * Mouse clicking, double clicking, & Xemacs image clicking hack
 ;; * Mode line hacking
 ;; * Utilities for use in a program covering:
 ;;    o keymap massage for some actions
@@ -52,7 +52,7 @@
 ;;    o detaching a frame
 ;;    o focus-shifting & optional frame jumping
 ;;    o currently active frame.
-;;    o message/y-or-n-p 
+;;    o message/y-or-n-p
 ;;    o mouse set point
 ;;
 ;; To Use:
@@ -93,7 +93,7 @@
 ;;                          dframe-mouse-position-function.
 ;;   See speedbar's implementation of these functions.
 ;;    `speedbar-current-frame', `speedbar-get-focus', `speedbar-message',
-;;    `speedbar-y-or-n-p', `speedbar-set-timer', `speedbar-click', 
+;;    `speedbar-y-or-n-p', `speedbar-set-timer', `speedbar-click',
 ;;    `speedbar-position-cursor-on-line'
 ;; 4) Handling mouse clicks, and help text:
 ;;   dframe-track-mouse, dframe-help-echo-function --
@@ -194,7 +194,7 @@ selected frame and the focus will change to that frame."
 Typically used to display info about the line under the mouse.")
 
 (defvar dframe-help-echo-function nil
-  "*A function to call when help-echo is used in newer versions of emacs.
+  "*A function to call when help-echo is used in newer versions of Emacs.
 Typically used to display info about the line under the mouse.")
 
 (defvar dframe-mouse-click-function nil
@@ -587,14 +587,14 @@ Optionally select that frame if necessary."
 	;(select-frame dframe-attached-frame)
 	(other-frame 0))))
 
-(defvar dframe-suppress-message nil
+(defvar dframe-suppress-message-flag nil
   "Non-nil means that `dframe-message' should just return a string.")
 
 (defun dframe-message (fmt &rest args)
   "Like message, but for use in a dedicated frame.
 Argument FMT is the format string, and ARGS are the arguments for message."
   (save-selected-window
-    (if dframe-suppress-message
+    (if dframe-suppress-message-flag
 	(apply 'format fmt args)
       (if dframe-attached-frame
 	  (select-frame dframe-attached-frame))
@@ -760,12 +760,12 @@ Must be bound to event E."
   "Display help based context.
 The context is in WINDOW, viewing BUFFER, at POSITION.
 BUFFER and POSITION are optional because XEmacs doesn't use them."
-   (when (and (not dframe-track-mouse-function)
-	      (bufferp buffer))
-     (let ((dframe-suppress-message t))
-       (with-current-buffer buffer
-	 (if position (goto-char position))
-	 (funcall dframe-help-echo-function)))))
+  (when (and (not dframe-track-mouse-function)
+	     (bufferp buffer))
+    (let ((dframe-suppress-message-flag t))
+      (with-current-buffer buffer
+	(if position (goto-char position))
+	(funcall dframe-help-echo-function)))))
 
 (defun dframe-mouse-set-point (e)
   "Set POINT based on event E.
