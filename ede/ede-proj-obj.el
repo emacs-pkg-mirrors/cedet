@@ -4,16 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-obj.el,v 1.8 2000/07/22 13:07:53 zappo Exp $
+;; RCS: $Id: ede-proj-obj.el,v 1.9 2000/09/24 15:42:20 zappo Exp $
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -33,11 +31,26 @@
 ;; The above require is needed for ede-pmake-varname, but introduces
 ;; a circular dependency.  Leave it be.
 
+(defvar ede-proj-objectcode-dodependencies nil
+  "Flag specifies to do automatic dependencies.")
+
 ;;; Code:
 (defclass ede-proj-target-makefile-objectcode (ede-proj-target-makefile)
   (;; Give this a new default
    (configuration-variables :initform ("debug" . (("CFLAGS" . "-g")
 						  ("LDFLAGS" . "-g"))))
+   (availablecompilers :initform (ede-gcc-compiler
+				  ede-g++-compiler
+				  ;; More C and C++ compilers, plus
+				  ;; fortran or pascal can be added here
+				  ))
+   (sourcetype :initform (ede-source-c 
+			  ede-source-c++
+			  ;; ede-source-other
+			  ;; This object should take everything that
+			  ;; gets compiled into objects like fortran
+			  ;; and pascal.
+			  ))
    (headers :initarg :headers
 	    :initform nil
 	    :type list
@@ -51,12 +64,132 @@ dependencies automatically.")
 Belonging to this group assumes you could make a .o from an element source
 file.")
 
-(defmethod ede-want-file-p ((obj ede-proj-target-makefile-objectcode) file)
-  "Return t if OBJ wants to own FILE."
-  ;; Only C targets for now.  I'll figure out more later.
-  (string-match "\\.\\(c\\|C\\|cc\\|cpp\\|CPP\\|h\\|hh\\|hpp\\)$"
-		file))
+(defclass ede-object-compiler (ede-compiler)
+  ((dependencyvar :initarg :dependencyvar
+		 :type list
+		 :custom (cons (string :tag "Variable")
+			       (string :tag "Value"))
+		 :documentation
+		 "A variable dedicated to dependency generation.")
+   (linkvariables :initarg :linkvariables
+		 :type list
+		 :custom (repeat (cons (string :tag "Variable")
+				       (string :tag "Value")))
+		 :documentation
+		 "Like the `variables' slot, but for linker info."))
+  "Ede compiler class for source which must compiler, and link.")
 
+(defvar ede-source-c
+  (ede-sourcecode "ede-source-c"
+		  :name "C"
+		  :sourcepattern "\\.c$"
+		  :auxsourcepattern "\\.h$"
+		  :garbagepattern '("*.o" "*.obj" ".deps/*.P" ".lo"))
+  "C source code definition.")
+
+(defvar ede-gcc-compiler
+  (ede-object-compiler
+   "ede-c-compiler-gcc"
+   :name "gcc"
+   :dependencyvar '("C_DEPENDENCIES" . "-Wp,-MD,.deps/$(*F).P")
+   :variables '(("CC" . "gcc")
+		("C_COMPILE" .
+		 "$(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)"))
+   :linkvariables '(("C_LINK" .
+		     "$(CC) $(CFLAGS) $(LDFLAGS) -L. -o $@ $^")
+		    )
+   :rules (list (ede-makefile-rule
+		 "c-inference-rule"
+		 :target "%.o"
+		 :dependencies "%.c"
+		 :rules '("@echo '$(C_COMPILE) -c $<'; \\"
+			  "$(C_COMPILE) $(C_DEPENDENCIES) -o $@ -c $<"
+			  )
+		 ))
+   :commands '("$(C_LINK) %s")
+   :autoconf '("AC_PROG_CC" "AC_PROG_GCC_TRADITIONAL")
+   :sourcetype '(ede-source-c)
+   :objectextention ".o"
+   :makedepends t)
+  "Compiler for C sourcecode.")
+
+(defvar ede-source-c++
+  (ede-sourcecode "ede-source-c++"
+		  :name "C++"
+		  :sourcepattern "\\.cpp$"
+		  :auxsourcepattern "\\.hpp$"
+		  :garbagepattern '("*.o" "*.obj" ".deps/*.P" ".lo"))
+  "C++ source code definition.")
+
+(defvar ede-g++-compiler
+  (ede-object-compiler
+   "ede-c-compiler-g++"
+   :name "g++"
+   :dependencyvar '("CXX_DEPENDENCIES" "-Wp,-MD,.deps/$(*F).P")
+   :variables '(("CXX" "g++")
+		("CXX_COMPILE" .
+		 "$(CXX) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)")
+		)
+   :linkvariables '(("CXX_LINK" .
+		     "$(CXX) $(CFLAGS) $(LDFLAGS) -L. -o $@ $^")
+		    )
+   :rules (list (ede-makefile-rule
+		 "c++-inference-rule"
+		 :target "%.o"
+		 :dependencies "%.cpp"
+		 :rules '("@echo '$(CXX_COMPILE) -c $<'; \\"
+			  "$(CXX_COMPILE) $(CXX_DEPENDENCIES) -o $@ -c $<"
+			  )
+		 ))
+   :commands '("$(CXX_LINK) %s"
+	       )
+   :autoconf '("AC_PROG_CXX")
+   :sourcetype '(ede-source-c++)
+   :objectextention ".o"
+   :makedepends t)
+  "Compiler for C sourcecode.")
+
+;;; EDE Object Compiler methods
+;;
+(defvar ede-proj-compiler-object-linkflags nil
+  "Libraries to be linked into this program.")
+
+(defmethod ede-proj-makefile-insert-commands ((this ede-object-compiler))
+  "Insert the commands needed to use compiler THIS.
+The object creating makefile rules must call this method for the
+compiler it decides to use after inserting in the rule.
+Optional argument LIBS are libraries to be linked into this thing."
+  (if ede-proj-compiler-object-linkflags
+      (with-slots (commands) this
+	(while commands
+	  (insert "\t"
+		  (format (car commands) ede-proj-compiler-object-linkflags)
+		  "\n")
+	  (setq commands (cdr commands)))
+	(insert "\n"))
+    (call-next-method)))
+
+(defmethod ede-proj-makefile-insert-variables :BEFORE ((this ede-object-compiler))
+  "Insert variables needed by the compiler THIS."
+  (with-slots (dependencyvar linkvariables) this
+    (progn
+      ;; Insert the dependency part.
+      (insert (car dependencyvar) "="
+	      (if ede-proj-objectcode-dodependencies
+		  (cdr dependencyvar) "")
+	      "\n")
+      ;; How about linker variables
+      (while linkvariables
+	(insert (car (car linkvariables)) "=")
+	(let ((cd (cdr (car linkvariables))))
+	  (if (listp cd)
+	      (mapcar (lambda (c) (insert " " c)) cd)
+	    (insert cd)))
+	(insert "\n")
+	(setq linkvariables (cdr linkvariables))))))
+
+;;; EDE Object target type methods
+;;
 (defmethod ede-buffer-mine ((this ede-proj-target-makefile-objectcode) buffer)
   "Return non-nil if object THIS lays claim to the file in BUFFER."
   (or (call-next-method)
@@ -68,12 +201,16 @@ file.")
   "Add to target THIS the current buffer represented as FILE."
   (setq file (file-name-nondirectory file))
   ;; Header files go into auxiliary sources.  Add more for more languages.
-  (if (not (string-match "\\.\\(h\\|hh\\)$" file))
-      ;; No match, add to regular sources.
-      (call-next-method)
-    (if (not (member file (oref this headers)))
-	(oset this headers (append (oref this headers) (list file))))
-    (ede-proj-save (ede-current-project))))
+  (let ((src (ede-target-sourcecode this))
+	(aux nil))
+    (while (and src (not (ede-want-file-auxiliary-p (car src) file)))
+      (setq src (cdr src)))
+    (if (not src)
+	;; No match, add to regular sources.
+	(call-next-method)
+      (if (not (member file (oref this headers)))
+	  (oset this headers (append (oref this headers) (list file))))
+      (ede-proj-save (ede-current-project)))))
 
 (defmethod project-remove-file ((target ede-proj-target-makefile-objectcode)
 				file)
@@ -88,7 +225,7 @@ FILE must be massaged by `ede-convert-path'."
 (defmethod ede-proj-makefile-sourcevar
   ((this ede-proj-target-makefile-objectcode))
   "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_SOURCE"))
+  (concat (ede-pmake-varname this) "_SOURCES"))
 
 (defmethod ede-proj-makefile-dependency-files
   ((this ede-proj-target-makefile-objectcode))
@@ -96,37 +233,16 @@ FILE must be massaged by `ede-convert-path'."
 Argument THIS is the target to get sources from."
   (append (oref this source) (oref this auxsource)))
 
-(defmethod ede-proj-makefile-insert-variables
-  ((this ede-proj-target-makefile-objectcode))
-  "Insert variables needed by target THIS."
-  (call-next-method this (oref this headers))
-  (let ((obj-ext
-	 (if (and (obj-of-class-p this 'ede-proj-target-makefile-shared-object)
-		  (oref this libtool))
-	     ".lo" ".o")))
-    (insert (ede-pmake-varname this) "_OBJ="
-	    (mapconcat (lambda (a)
-			 (concat (file-name-sans-extension a) obj-ext))
-		       (oref this source) " ")
-	    " "
-	    (mapconcat (lambda (a)
-			 (concat (file-name-sans-extension a) obj-ext))
-		       (oref this auxsource) " ")
-	    "\n")
-    ))
+(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-makefile-objectcode)
+					       &optional moresource)
+  "Insert variables needed by target THIS.
+Optional argument MORESOURCE is not used."
+  (let ((ede-proj-objectcode-dodependencies
+	 (oref (ede-target-parent this) automatic-dependencies)))
+    (call-next-method)))
 
-(defmethod ede-proj-makefile-garbage-patterns
-  ((this ede-proj-target-makefile-objectcode))
-  "Return a list of patterns that are considred garbage to THIS.
-These are removed with make clean."
-  ;; This is constant.  Oh well.
-  '("*.o" ".deps/*.P"))
-
-(defmethod ede-proj-makefile-insert-rules
-  ((this ede-proj-target-makefile-objectcode))
-  "Insert rules needed by THIS target."
-  (call-next-method)
-  (let ((have-libtool (oref this libtool)))
+(when nil
+  (let ((have-libtool (and (slot-exists-p this 'libtool) (oref this libtool))))
     (insert (ede-name this) ": $(" (ede-pmake-varname this) "_OBJ)\n"
 	    ;; Compile line
 	    (if have-libtool
@@ -134,6 +250,7 @@ These are removed with make clean."
 	      "\t$(LINK) ")
 	    ;; Shared flag if needed
 	    (if (and
+		 (featurep 'ede-proj-shared)
 		 (obj-of-class-p this 'ede-proj-target-makefile-shared-object)
 		 (not have-libtool))
 		"-shared "
@@ -155,34 +272,25 @@ These are removed with make clean."
 				       (concat "-l" c)))
 				   (oref this ldlibs) " "))
 	      "")
-	    "\n\n")))
+	    "\n\n"))
+)
 
 (defmethod ede-buffer-header-file((this ede-proj-target-makefile-objectcode)
 				  buffer)
   "There are no default header files."
   (or (call-next-method)
-      ;; Make a quick assumption that we have C or C++.
-      (let ((bf (file-name-sans-extension (buffer-file-name))))
-	(cond ((file-exists-p (concat bf ".h"))
-	       (concat bf ".h"))
-	      ((file-exists-p (concat bf ".hh"))
-	       (concat bf ".hh"))
-	      ((file-exists-p (concat bf ".hpp"))
-	       (concat bf ".hpp"))
-	      ((file-exists-p (concat bf ".H"))
-	       (concat bf ".H"))
-	      (t
-	       ;; Ok, nothing obvious. Try looking in ourselves.
-	       (let ((h (oref this headers)))
-		 ;; Add more logic here when the problem is better understood.
-		 (car-safe h)))))))
+      ;; Ok, nothing obvious. Try looking in ourselves.
+      (let ((h (oref this headers)))
+	;; Add more logic here when the problem is better understood.
+	(car-safe h))))
   
 ;;; Speedbar options:
 ;;
 (defmethod eieio-speedbar-child-make-tag-lines
   ((this ede-proj-target-makefile-objectcode) depth)
   "Expand an object code node in speedbar.
-This is special for additional headers."
+THIS is special for additional headers.
+Argument DEPTH is the tree depth."
   (call-next-method)
   (with-slots (headers) this
     (mapcar (lambda (car)
