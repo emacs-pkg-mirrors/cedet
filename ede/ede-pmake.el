@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.14 1999/09/05 19:51:49 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.15 1999/09/20 19:33:33 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -48,6 +48,8 @@ MFILENAME is the makefile to generate."
 		 (string= (oref (car targets) makefile) mfilename))
 	    (setq mt (cons (car targets) mt)))
 	(setq targets (cdr targets))))
+    ;; Fix the order so things compile in the right direction.
+    (setq mt (nreverse mt))
     (save-excursion
       (set-buffer (find-file-noselect mfilename))
       (erase-buffer)
