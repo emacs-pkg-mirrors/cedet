@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.15 2003/04/09 00:54:41 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.16 2003/08/01 16:39:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -227,11 +227,11 @@ thingy from it using the `document' tool."
 	semantic-imenu-expandable-token 'section
 	semantic-imenu-bucketize-file nil
 	semantic-imenu-bucketize-type-parts nil
-	senator-step-at-start-end-token-ids '(section)
+	senator-step-at-start-end-tag-classes '(section)
 	)
   (semantic-install-function-overrides
    '((tag-components . semantic-texi-components)
-     (insert-foreign-token . semantic-texi-insert-foreign-tag)
+     (insert-foreign-tag . semantic-texi-insert-foreign-tag)
      )
    t)
   )
