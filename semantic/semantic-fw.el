@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.1 2002/07/21 13:05:45 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.2 2002/07/29 03:21:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,6 +66,8 @@
   (defalias 'semantic-make-overlay 'make-overlay)
   (defalias 'semantic-overlay-put 'overlay-put)
   (defalias 'semantic-overlay-get 'overlay-get)
+  (defalias 'semantic-overlay-properties 'overlay-properties)
+  (defalias 'semantic-overlay-move 'move-overlay)
   (defalias 'semantic-overlay-delete 'delete-overlay)
   (defalias 'semantic-overlays-at 'overlays-at)
   (defalias 'semantic-overlays-in 'overlays-in)
@@ -84,6 +86,10 @@
     (defalias 'semantic-make-local-hook 'identity)
   (defalias 'semantic-make-local-hook 'make-local-hook)
   )
+
+(if (featurep 'xemacs)
+    (defalias 'semantic-mode-line-update 'redraw-modeline)
+  (defalias 'semantic-mode-line-update 'force-mode-line-update))
 
 (defun semantic-delete-overlay-maybe (overlay)
   "Delete OVERLAY if it is a semantic token overlay."
