@@ -3,6 +3,8 @@
 <style>
 <!--
 ol,ul,p,body,td,tr,th,form {font-family : helvetica,sans-serif; } 
+table.BAR { background-color: lightgreen; }
+td.BAR { background-color: lightgreen; }
 A:visited { color: #0000A0 ; text-decoration: none }
 A:link { color: #0000F0 ; text-decoration: none }
 A:active { color: red ; text-decoration: underline overline }
@@ -15,7 +17,7 @@ A[href]:hover { text-decoration: underline overline }
 
 <table><tr><td width="90%"><img src="cedetlogo.png" ></td>
 <td><img src="writecode.png" align=right></td></tr></table>
-<table width=100% bgcolor="lightgreen"><tr><td><font size=-2> &nbsp </font></td></tr></table>
+<table width=100% class=BAR><tr><td><font size=-2> &nbsp </font></td></tr></table>
 
 <table border=0>
 <tr><td valign=top>
