@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.12 2004/01/14 09:53:56 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.13 2004/01/18 15:43:30 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -258,8 +258,13 @@ token_type:
   ;
 
 type_decl:
-    TYPE token_type plist
+    TYPE token_type plist_opt
     `(TAG ',$2 'type :value ',$3)
+  ;
+
+plist_opt:
+ ;;EMPTY
+  | plist
   ;
 
 plist:
