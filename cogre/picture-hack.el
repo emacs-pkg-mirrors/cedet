@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: picture
-;; X-RCS: $Id: picture-hack.el,v 1.5 2001/08/17 21:35:59 zappo Exp $
+;; X-RCS: $Id: picture-hack.el,v 1.6 2001/12/05 01:44:54 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -110,6 +110,7 @@ When called from a program, requires two args which specify the corners."
       (operate-on-rectangle 'clear-rectangle-line start end t))
 )
 
+;; This is a modified version which takes text properties
 (defun picture-insert (ch arg &rest textproperties)
   "Insert character CH, and move in the current picture motion direction.
 Repeat ARG times.
@@ -125,9 +126,12 @@ Apply TEXTPROPERTIES to the character inserted."
 	    picture-horizontal-step)))
     (while (> arg 0)
       (setq arg (1- arg))
-      (if (/= picture-desired-column (current-column))
-	  (move-to-column picture-desired-column t))
-      (let ((col (+ picture-desired-column width)))
+      ;; The following is in Emacs 21, but it hoses over earlier Emacsen
+      ;; which do not have `picture-desired-column'
+      ;;
+      ;; (if (/= picture-desired-column (current-column))
+      ;; (move-to-column picture-desired-column t))
+      (let ((col (+ (current-column) width)))
 	(or (eolp)
 	    (let ((pos (point)))
 	      (move-to-column col t)
