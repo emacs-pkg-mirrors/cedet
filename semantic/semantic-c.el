@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.32 2001/07/20 13:10:06 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.33 2001/08/01 14:35:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -273,13 +273,17 @@
   ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
  ) ; end var-or-fun
  (var-or-func-decl
- ( opt-class opt-destructor functionname arg-list opt-throw fun-or-proto-end
+ ( opt-class opt-destructor functionname arg-list opt-reentrant opt-throw fun-or-proto-end
   ,(semantic-lambda
-  (nth 2 vals) (list 'function (nth 0 vals) (nth 1 vals) (nth 3 vals) (nth 4 vals))))
+  (nth 2 vals) (list 'function (nth 0 vals) (nth 1 vals) (nth 3 vals) (nth 5 vals) (nth 4 vals))))
  ( varnamelist punctuation "\\b;\\b"
   ,(semantic-lambda
   (list (nth 0 vals) 'variable)))
  ) ; end var-or-func-decl
+ (opt-reentrant
+ ( REENTRANT)
+ ()
+ ) ; end opt-reentrant
  (opt-throw
  ( THROW semantic-list
  ,(lambda (vals start end)
@@ -469,7 +473,7 @@
  ))
  ) ; end expression
  )
- "C language specification.")
+  "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -562,7 +566,10 @@ This is so we don't have to match the same starting text several times."
 		;; Even though it is "throw" in C++, we use
 		;; `throws' as a common name for things that toss
 		;; exceptions about.
-		'throws (nth 5 tokenpart))
+		'throws (nth 5 tokenpart)
+		;; Reemtrant is a C++ thingy.  Add it here
+		'reentrant (if (nth 6 tokenpart) t)
+		)
 	       nil)
 	 )
 	))
@@ -586,6 +593,7 @@ This is so we don't have to match the same starting text several times."
       ("class" . CLASS)
       ("namespace" . NAMESPACE)
       ("throw" . THROW)
+      ("reentrant" . REENTRANT)
       ("operator" . OPERATOR)
       ("public" . PUBLIC)
       ("private" . PRIVATE)
@@ -625,6 +633,7 @@ This is so we don't have to match the same starting text several times."
      ("class" summary "Class Declaration: class <name>[:parents] { ... };")
      ("namespace" summary "Namespace Declaration: namespace <name> { ... };")
      ("throw" summary "<type> <methoddef> (<method args>) throw (<exception>) ...")
+     ("reentrant" summary "<type> <methoddef> (<method args>) reentrant ...")
      ("if" summary "if (<condition>) { code } [ else { code } ]")
      ("else" summary "if (<condition>) { code } [ else { code } ]")
      ("do" summary " do { code } while (<condition>);")
@@ -711,10 +720,6 @@ Override function for `semantic-nonterminal-protection'."
 	semantic-toplevel-bovine-table-source "c.bnf")
   (setq semantic-flex-keywords-obarray semantic-c-keyword-table)
   (setq semantic-equivalent-major-modes '(c-mode c++-mode))
-  (semantic-install-function-overrides
-   '( (nonterminal-protection . semantic-c-nonterminal-protection)
-      )
-   nil)
   (setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
 	semantic-flex-extensions semantic-flex-c-extensions
 	semantic-dependency-include-path semantic-default-c-path
