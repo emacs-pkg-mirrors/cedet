@@ -1,10 +1,11 @@
 <title>Semantic</title>
 
-<table width=100% bgcolor=#000099>
-<tr><td><h2><font color=yellow>Semantic:</font></h2></td></tr>
-<tr><td><font color=yellow>"Infrastructure for parser based text analysis in Emacs."</font></td></tr>
+<!--#include file="pagestart.php"-->
+
+<table width=100% bgcolor="lightgreen">
+<tr><td><h2><font color=black>Semantic:</font></h2></td>
+<td><font color=black>"Infrastructure for parser based text analysis in Emacs."</font></td></tr>
 </table>
-<!--#include file="rightcol.php"-->
 
 <table align=right>
 <tr><td><img src=bovine.jpg></td></tr>
@@ -22,7 +23,9 @@ a generic way.  It also provides a simple way for Mode Authors who are
 expert's in their language, to provide a parser for those tool
 authors, without knowing anything about those tools.</p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h3>Semantic's Core is made up of these important pieces:</h3>
+</td></tr></table>
 <dl>
 <dt><b>Lexical Analyzer</b>
 <dd>Converts a language into a token stream
@@ -32,39 +35,17 @@ authors, without knowing anything about those tools.</p>
 <dt><b>Parser Generator</b>
 <dd>Converts a language definition into a table usable by the parser.
 <dt><b>Language Parsers</b>
-<dd>Parsers already existing for the Parser
-    Generator language, Emacs Lisp, Java, C/C++, Makefile, and Scheme.
+<dd>Parsers that have already been implemented:<br>
+    Emacs Lisp, Java, C/C++, C#, Python, Erlang, awk, Makefile, and Scheme.<br>
+    Also: Semantic's own grammar format (.by or .wy)
 <dt><b>Database</b>
 <dd>Persistent storage of parsed information.  Speeds load
     time and provides standard way of cross referencing files.
 </dl>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h3>Semantic 1.4 Contains these additional User Tools:</h3>
-<dl>
-<dt><b>Imenu</b>
-<dd>Create hierarchical imenu menus from parsed files.
-<dt><b>Navigator</b>
-<dd>Senator is a navigator that permits simple navigation
-    through the parsed language.  It also includes token highlighting,
-    and magic cut & paste.
-<dt><b>Analyzer</b>
-<dd>Examines code, and references those names against a
-	database of pre-parsed files to provide detailed information.
-<dt><b>Smart Completion</b>
-<dd>Completes using symbols actually available in a
-    given context via the Analyzer.  (Restricted to project files.)
-    Some tools call this <a href="intellisense.shtml"> intellisense.</a>
-<dt><b>Speedbar Browser</b>
-<dd>Code for browsing tag lists with Speedbar.
-<dt><b>Documentation Generator</b>
-<dd>Identifies inline documentation in source
-            code, and can convert it to texinfo.  It can also create
-	    inline documenation.
-<dt><b>Charting</b>
-<dd>Draw a chart of some things semantic can quantify.
-<dt><b>Highlight bad code</b>
-<dd>text which does not fit the language is underlined.
-</dl>
+</td></tr></table>
 
 <br clear=both>
 <table align=right>
@@ -81,9 +62,48 @@ Complexity of semantic.el
 </td>
 </table>
 
-<h3>What's coming in Semantic 2.0?  (A Part of of CEDET 1.0)</h3>
 <dl>
-<td><b>New Grammar framework</b>
+<dt><b>Imenu</b>
+<dd>Create hierarchical imenu menus from parsed files.
+<dt><b>Navigator</b>
+<dd>Senator is a navigator that permits simple navigation
+    through the parsed language.  It also includes token highlighting,
+    and magic cut & paste.
+<dt><b>Analyzer</b>
+<dd>Examines code, and references those names against a
+	database of pre-parsed files to provide detailed information.
+<dt><b>Speedbar Browser</b>
+<dd>Code for browsing tag lists with Speedbar.
+<dt><b>Documentation Generator</b>
+<dd>Identifies inline documentation in source
+            code, and can convert it to texinfo.  It can also create
+	    inline documenation.
+<dt><b>Charting</b>
+<dd>Draw a chart of some things semantic can quantify.
+<dt><b>Highlight bad code</b>
+<dd>text which does not fit the language is underlined.
+</dl>
+
+<table width=100% bgcolor="lightgreen"><tr><td>
+<h3>What's in Semantic 2.0?  (A Part of of CEDET 1.0 beta)</h3>
+</td></tr></table>
+
+<table align=right>
+<td>
+<a href=inlinecompletion.png>
+<center>
+<img src=inlinecompletion.png alt=call-tree.jpg width=100 height=100>
+</a>
+<br>
+<font size=-2>
+Intellisense
+</font>
+</center>
+</td>
+</table>
+
+<dl>
+<b>New Grammar framework</b>
 <dd>A new framework for handling parsers, and the rule based language
   used to generate parsers provides a clean and consistent view into
   parser writing.
@@ -118,9 +138,15 @@ Complexity of semantic.el
   nonterminal is will now be clear.
 <dt><b>More Languages supported.</b>
 <dd>New parsers for Python, and Erlang.
+<dt><b>Smart Completion</b>
+<dd>Completes using symbols actually available in a
+    given context via the Analyzer.  (Restricted to project files.)
+    Some tools call this <a href="intellisense.shtml"> intellisense.</a>
 </dl>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h3>Tools I'd like to see in future versions of Semantic:</h3>
+</td></tr></table>
 <dl>
 <dt><b>dependency analysis</b>
 <dd>Determine if a given dependency is really needed,
@@ -141,7 +167,9 @@ Complexity of semantic.el
 	  upon the language definition, and available variables and types.
 </dl>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Read the Semantic 1.4 docs:</h2>
+</td></tr></table>
 
 <P>You can read the 
    <a href="info/semantic.html">html documentation</a>
@@ -151,7 +179,9 @@ Complexity of semantic.el
  <a href="intellisense.shtml"> intellisense</a> like behavior
   out of your Semantic install
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Contribute to Semantic</h2>
+</td></tr></table>
 
 <P>Semantic's potential scope is quite large.  If you would like to help
    semantic push forward, consider participating in one of these fields:</p>
@@ -167,14 +197,18 @@ Complexity of semantic.el
 <li>Keep semantic compatible with the many versions of [X]Emacs
 </ul>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Join the mailing list</h2>
+</td></tr></table>
 
 <p>Join the
 <a href="http://sourceforge.net/mail/?group_id=17886">
 mailing list</a>
 to ask question, or help develop semantic.
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Other Tools that use Semantic</h2>
+</td></tr></table>
 
 <P><a href="http://jde.sunsite.dk/"><b>Java Development Environment (JDE)</b></a>
    is a full development environment for Java.  It uses Semantic
@@ -190,14 +224,18 @@ to ask question, or help develop semantic.
    As it matures, it will use semantic to reverse-engineer sources
    into UML diagrams.</p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Notes</h2>
+</td></tr></table>
 
 <P>Semantic works with Emacs 20.x, 21, XEmacs 20.x, and 21.x.
 </p>
 
 <!--#include file="download.php"-->
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Download the Previous Stable Semantic Bovinator</h2>
+</td></tr></table>
 
 <P>The last stable version of Semantic
    <a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=154524">
