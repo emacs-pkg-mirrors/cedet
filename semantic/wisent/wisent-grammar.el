@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.5 2003/03/13 08:36:48 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.6 2003/03/14 08:18:37 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -65,37 +65,37 @@ NONTERM is the nonterminal symbol to start with."
 (defun wisent-grammar-TAG (&rest args)
   "Return expansion of built-in TAG expression.
 ARGS are the arguments passed to the expanded form."
-  `(wisent-raw-token (semantic-token ,@args)))
+  `(wisent-raw-tag (semantic-token ,@args)))
 
 (defun wisent-grammar-VARIABLE-TAG (&rest args)
   "Return expansion of built-in VARIABLE-TAG expression.
 ARGS are the arguments passed to the expanded form."
-  `(wisent-raw-token (semantic-token-new-variable ,@args)))
+  `(wisent-raw-tag (semantic-tag-new-variable ,@args)))
 
 (defun wisent-grammar-FUNCTION-TAG (&rest args)
   "Return expansion of built-in FUNCTION-TAG expression.
 ARGS are the arguments passed to the expanded form."
-  `(wisent-raw-token (semantic-token-new-function ,@args)))
+  `(wisent-raw-tag (semantic-tag-new-function ,@args)))
 
 (defun wisent-grammar-TYPE-TAG (&rest args)
   "Return expansion of built-in TYPE-TAG expression.
 ARGS are the arguments passed to the expanded form."
-  `(wisent-raw-token (semantic-token-new-type ,@args)))
+  `(wisent-raw-tag (semantic-tag-new-type ,@args)))
 
 (defun wisent-grammar-INCLUDE-TAG (&rest args)
   "Return expansion of built-in INCLUDE-TAG expression.
 ARGS are the arguments passed to the expanded form."
-  `(wisent-raw-token (semantic-token-new-include ,@args)))
+  `(wisent-raw-tag (semantic-tag-new-include ,@args)))
 
 (defun wisent-grammar-PACKAGE-TAG (&rest args)
   "Return expansion of built-in PACKAGE-TAG expression.
 ARGS are the arguments passed to the expanded form."
-  `(wisent-raw-token (semantic-token-new-package ,@args)))
+  `(wisent-raw-tag (semantic-tag-new-package ,@args)))
 
 (defun wisent-grammar-EXPANDTAG (&rest args)
   "Return expansion of built-in EXPANDTAG expression.
 ARGS are the arguments passed to the expanded form."
-  `(wisent-cook-token ,@args))
+  `(wisent-cook-tag ,@args))
 
 (defconst wisent-grammar-builtins
   '(
