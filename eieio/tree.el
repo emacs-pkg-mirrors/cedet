@@ -4,7 +4,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.3
-;; RCS: $Id: tree.el,v 1.9 2001/02/17 14:48:18 zappo Exp $
+;; RCS: $Id: tree.el,v 1.10 2001/04/24 19:41:50 emacsman Exp $
 ;; Keywords: OO, tree
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -121,6 +121,7 @@ Valid values are:
   (use-local-map tree-map)
   (setq major-mode 'tree-mode
 	mode-name "TREE")
+  (setq truncate-lines t)	; no line-wrapping
   (run-hooks 'tree-mode-hook)
 ;  (setq mode-line-format
 ;	(list
@@ -444,6 +445,7 @@ Requires text-properties"
 ;; Tree test case
 ;;
 
+;;;###autoload
 (defun tree-test-it-all ()
   "Try using various features of tree mode in a demo of it's display."
   (interactive)
@@ -495,6 +497,7 @@ Argument CLASS is the class we are displaying."
 		   :class class)
   )
 
+;;;###autoload
 (defun eieio-class-tree (&optional root-class)
   "Displays a class tree using the TREE package in another buffer.
 Optional argument ROOT-CLASS is the starting point."
@@ -559,6 +562,7 @@ Argument NAME is the name of the tree node.
 Argument PATH is the path to that file."
   (dirtree-node name :name name :path path))
 
+;;;###autoload
 (defun directory-tree-thing (ppath)
   "Start at the current directory, and build a giant tree of files.
 Argument PPATH is the path to the directory we are going to analyze."
