@@ -163,6 +163,9 @@ parsing "overloads".
 `semantic-bovine-toplevel-partial-reparse-needed-p' are replaced by
 the new parse tree state management API.
 
+`semanticdb-project-predicates' hook is renamed
+`semanticdb-project-predicate-functions'.
+
 * Grammar framework.
 
 Semantic 2.0 introduced a new common grammar framework to simplify
