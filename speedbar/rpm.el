@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
 ;; Keywords: speedbar, rpm
-;; X-RCS: $Id: rpm.el,v 1.5 2000/08/17 03:04:53 zappo Exp $
+;; X-RCS: $Id: rpm.el,v 1.6 2000/08/17 03:06:14 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -149,7 +149,7 @@ TEXT is the name of the package.  TOKEN and INDENT are ignored."
 	  (raise-frame (window-frame bwin)))
       (if dframe-power-click
 	  (let ((pop-up-frames t)) (select-window (display-buffer buff)))
-	(select-frame speedbar-attached-frame)
+	(dframe-select-attached-frame speedbar-frame)
 	(switch-to-buffer buff)))
     (erase-buffer)
     (rpm-info text)))

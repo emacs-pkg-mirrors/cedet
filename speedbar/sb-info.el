@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.12 2000/06/20 02:16:16 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.13 2000/08/17 03:05:21 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -120,13 +120,12 @@ specific node to expand."
     ;; being known at creation time.
     (if (not node)
 	(speedbar-with-writable (insert "Info Nodes:\n")))
-    (let ((completions nil)
-	  (cf (selected-frame)))
-      (select-frame speedbar-attached-frame)
+    (let ((completions nil))
+      (dframe-select-attached-frame speedbar-frame)
       (save-window-excursion
 	(setq completions
 	      (Info-speedbar-fetch-file-nodes (or node '"(dir)top"))))
-      (select-frame cf)
+      (select-frame speedbar-frame)
       (if completions
 	  (speedbar-with-writable
 	   (while completions
@@ -143,28 +142,28 @@ specific node to expand."
 (defun Info-speedbar-goto-node (text node indent)
   "When user clicks on TEXT, goto an info NODE.
 The INDENT level is ignored."
-    (select-frame speedbar-attached-frame)
-    (let* ((buff (or (get-buffer "*info*")
-		     (progn (info) (get-buffer "*info*"))))
-	   (bwin (get-buffer-window buff 0)))
-      (if bwin
-	  (progn
-	    (select-window bwin)
-	    (raise-frame (window-frame bwin)))
-	(if speedbar-power-click
-	    (let ((pop-up-frames t)) (select-window (display-buffer buff)))
-	  (select-frame speedbar-attached-frame)
-	  (switch-to-buffer buff)))
-      (if (string-match "^(\\([^)]+\\))\\([^.]+\\)$" node)
-	  (let ((file (match-string 1 node))
-		(node (match-string 2 node)))
-	    (Info-find-node file node)
-	    ;; If we do a find-node, and we were in info mode, restore
-	    ;; the old default method.  Once we are in info mode, it makes
-	    ;; sense to return to whatever method the user was using before.
-	    (if (string= speedbar-initial-expansion-list-name "Info")
-		(speedbar-change-initial-expansion-list
-		 speedbar-previously-used-expansion-list-name))))))
+  (dframe-select-attached-frame speedbar-frame)
+  (let* ((buff (or (get-buffer "*info*")
+		   (progn (info) (get-buffer "*info*"))))
+	 (bwin (get-buffer-window buff 0)))
+    (if bwin
+	(progn
+	  (select-window bwin)
+	  (raise-frame (window-frame bwin)))
+      (if dframe-power-click
+	  (let ((pop-up-frames t)) (select-window (display-buffer buff)))
+	(dframe-select-attached-frame speedbar-frame)
+	(switch-to-buffer buff)))
+    (if (string-match "^(\\([^)]+\\))\\([^.]+\\)$" node)
+	(let ((file (match-string 1 node))
+	      (node (match-string 2 node)))
+	  (Info-find-node file node)
+	  ;; If we do a find-node, and we were in info mode, restore
+	  ;; the old default method.  Once we are in info mode, it makes
+	  ;; sense to return to whatever method the user was using before.
+	  (if (string= speedbar-initial-expansion-list-name "Info")
+	      (speedbar-change-initial-expansion-list
+	       speedbar-previously-used-expansion-list-name))))))
 
 (defun Info-speedbar-expand-node (text token indent)
   "Expand the node the user clicked on.
