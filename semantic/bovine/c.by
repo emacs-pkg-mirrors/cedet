@@ -1,13 +1,13 @@
 ;;; c.by -- LL grammar for C/C++ language specification
 ;;
-;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 ;; Copyright (C) 2002, 2003 David Ponce
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.20 2004/09/22 11:15:34 ponced Exp $
+;; X-RCS: $Id: c.by,v 1.21 2005/04/01 03:23:44 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -112,6 +112,9 @@
 %put THROW summary "<type> <methoddef> (<method args>) throw (<exception>) ..."
 %token REENTRANT "reentrant"
 %put REENTRANT summary "<type> <methoddef> (<method args>) reentrant ..."
+%token TRY "try"
+%token CATCH "catch"
+%put { TRY CATCH } summary "try { <body> } catch { <catch code> }"
 
 ;; Leave these alone for now.
 %token OPERATOR "operator"
@@ -999,6 +1002,8 @@ fun-or-proto-end
     ( t )
   | semantic-list
     ( nil )
+  | TRY semantic-list CATCH semantic-list
+    (nil)
  ;; Here is an anoying feature of C++ pure virtual methods
   | EQUAL ZERO SEMICOLON
     ( :pure-virtual-flag )
