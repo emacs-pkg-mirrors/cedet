@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.3 2001/02/22 02:45:31 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.4 2001/03/26 05:55:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -264,7 +264,11 @@ If TOKEN is nil, determine a token based on the current position."
   (if (not (eq (semantic-token-token token) 'def))
       (error "Only deffns (or defun or defvar) can be updated"))
   (let* ((name (semantic-token-name token))
-	 (toks (semanticdb-find-nonterminal-by-name name nil t nil t t))
+	 (toks (mapcar
+                #'cdr
+                ;; `semanticdb-find-nonterminal-by-name' returns a
+                ;; list ((DB-TABLE . TOKEN) ...)
+                (semanticdb-find-nonterminal-by-name name nil t nil t t)))
 	 (docstring nil)
 	 (doctok nil))
     (save-excursion
@@ -347,7 +351,11 @@ If TOKEN is nil, it is derived from the deffn under POINT."
   (if (not (eq (semantic-token-token token) 'def))
       (error "Only deffns (or defun or defvar) can be updated"))
   (let* ((name (semantic-token-name token))
-	 (toks (semanticdb-find-nonterminal-by-name name nil t nil t t))
+	 (toks (mapcar
+                #'cdr
+                ;; `semanticdb-find-nonterminal-by-name' returns a
+                ;; list ((DB-TABLE . TOKEN) ...)
+                (semanticdb-find-nonterminal-by-name name nil t nil t t)))
 	 (done nil)
 	 )
     (save-excursion
