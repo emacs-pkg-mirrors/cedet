@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.56 2002/05/07 01:31:15 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57 2002/06/13 15:20:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -82,9 +82,9 @@
  ( DEFINE symbol opt-define-arglist opt-expression
   ,(semantic-lambda
   (list (nth 1 vals) 'variable nil (nth 2 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
- ( INCLUDE punctuation "\\b<\\b" filename punctuation "\\b>\\b"
+ ( INCLUDE system-include
   ,(semantic-lambda
-  (nth 2 vals) (list 'include t nil)))
+  (list ( substring (nth 1 vals) 1 ( 1- ( length (nth 1 vals)))) 'include t nil)))
  ( INCLUDE string
   ,(semantic-lambda
   (list ( read (nth 1 vals)) 'include nil nil)))
@@ -100,28 +100,6 @@
   ,(semantic-lambda
   (list (nth 1 vals) 'variable nil (nth 2 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
  ) ; end define
- (filename-prefix
- ( symbol)
- ( FLOAT
-  ,(semantic-lambda
-  (list "float")))
- ) ; end filename-prefix
- (filename-extension
- ( punctuation "\\b\\.\\b" symbol
-  ,(semantic-lambda
-  (list ( concat (nth 1 vals) (nth 2 vals)))))
- (
-  ,(semantic-lambda
-  (list "")))
- ) ; end filename-extension
- (filename
- ( filename-prefix punctuation "\\b/\\b" filename
-  ,(semantic-lambda
-  (list ( concat ( car (nth 0 vals)) (nth 1 vals) ( car (nth 2 vals))))))
- ( filename-prefix filename-extension
-  ,(semantic-lambda
-  (list ( concat ( car (nth 0 vals)) ( car (nth 1 vals))))))
- ) ; end filename
  (unionparts
  ( semantic-list
   ,(semantic-lambda
@@ -207,6 +185,8 @@
  ( class-protection punctuation "\\b:\\b"
   ,(semantic-lambda
   (list (nth 0 vals) 'protection)))
+ ( template)
+ ( using)
  ()
  ) ; end namespacesubparts
  (enumparts
@@ -284,6 +264,7 @@
  ( USING typeformbase punctuation "\\b;\\b"
   ,(semantic-lambda
   (list nil)))
+ ( USING symbol punctuation "\\b:\\b" COLONG typeformbase punctuation "\\b;\\b")
  ) ; end using
  (template
  ( TEMPLATE template-specifier opt-friend template-definition
@@ -406,6 +387,7 @@
  ) ; end metadeclmod
  (METADECLMOD
  ( VIRTUAL)
+ ( MUTABLE)
  ) ; end METADECLMOD
  (opt-ref
  ( punctuation "\\b&\\b"
@@ -480,9 +462,9 @@
   (nth 0 vals)))
  ) ; end var-or-func-decl
  (func-decl
- ( opt-stars opt-class opt-destructor functionname opt-under-p arg-list opt-post-fcn-modifiers opt-throw opt-initializers fun-or-proto-end
+ ( opt-stars opt-class opt-destructor functionname opt-template-specifier opt-under-p arg-list opt-post-fcn-modifiers opt-throw opt-initializers fun-or-proto-end
   ,(semantic-lambda
-  (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 5 vals) (nth 7 vals) (nth 6 vals)) (nth 0 vals) (nth 9 vals)))
+  (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 6 vals) (nth 8 vals) (nth 7 vals)) (nth 0 vals) (nth 10 vals)))
  ) ; end func-decl
  (var-decl
  ( varnamelist punctuation "\\b;\\b"
@@ -533,6 +515,9 @@
  ( open-paren "(" throw-exception-list
   ,(semantic-lambda
   (nth 1 vals)))
+ ( close-paren ")"
+  ,(semantic-lambda
+ ))
  ) ; end throw-exception-list
  (opt-bits
  ( punctuation "\\b:\\b" number
@@ -708,8 +693,14 @@
  (type-cast-list
  ( open-paren typeformbase close-paren)
  ) ; end type-cast-list
+ (function-call
+ ( symbol semantic-list)
+ ) ; end function-call
  (expression
  ( number
+  ,(semantic-lambda
+  (list ( identity start) ( identity end))))
+ ( function-call
   ,(semantic-lambda
   (list ( identity start) ( identity end))))
  ( symbol
@@ -733,8 +724,30 @@
 
 (defvar semantic-flex-c-extensions
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
-    ("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
+    ("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if)
+    ("<[^\n>]+>" . semantic-flex-c-include-system)
+    )
   "Extensions to the flexer for C.")
+
+(defun semantic-flex-c-include-system ()
+  "Move cursor to the end of system includes and return it.
+Identifies the system include by looking backwards."
+  (if (and (save-excursion
+	     (beginning-of-line)
+	     (looking-at "#\\s-*include\\s-+<"))
+	   (= (match-end 0) (1+ (point))))
+      ;; We found a system include.
+      (let ((start (point)))
+	;; This should always pass
+	(re-search-forward ">")
+	;; We have the whole thing.
+	(cons 'system-include (cons start (point)))
+	)
+    ;; No system include, do nothing but return what the real
+    ;; parser would have returned.
+    (forward-char 1)
+    (cons 'punctuation (cons (1- (point)) (point)))
+    ))
 
 (defun semantic-flex-c-if-0 ()
   "Move cursor to the matching endif, and return nothing."
@@ -934,6 +947,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
       ("unsigned" . UNSIGNED)
       ("inline" . INLINE)
       ("virtual" . VIRTUAL)
+      ("mutable" . MUTABLE)
       ("struct" . STRUCT)
       ("union" . UNION)
       ("enum" . ENUM)
@@ -981,6 +995,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("unsigned" summary "Numeric Type Modifier: unsigned <numeric type> <name> ...")
      ("inline" summary "Function Modifier: inline <return  type> <name>(...) {...};")
      ("virtual" summary "Method Modifier: virtual <type> <name>(...) ...")
+     ("mutable" summary "Member Declaration Modifier: mutable <type> <name> ...")
      ("struct" summary "Structure Type Declaration: struct [name] { ... };")
      ("union" summary "Union Type Declaration: union [name] { ... };")
      ("enum" summary "Enumeration Type Declaration: enum [name] { ... };")
