@@ -2,11 +2,11 @@
 ;;              or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 1995,1996, 1998 Eric M. Ludlam
+;; Copyright (C) 1995,1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; Version: 0.9
-;; RCS: $Id: eieio.el,v 1.30 1998/12/16 16:36:11 zappo Exp $
+;; Version: 0.10
+;; RCS: $Id: eieio.el,v 1.31 1999/01/15 21:19:27 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -207,18 +207,23 @@ loaded or not.")
 (defconst class-public-a 6 "Class public attribute index.")
 (defconst class-public-d 7 "Class public attribute defaults index.")
 (defconst class-public-doc 8 "Class public documentation strings for attributes.")
-(defconst class-private-a 9 "Class private attribute index.")
-(defconst class-private-d 10 "Class private attribute defaults index.")
-(defconst class-private-doc 11 "Class private documentation strings for attributes.")
-(defconst class-initarg-tuples 12 "Class initarg tuples list.")
-(defconst class-methods 13 "Class methods index.")
-(defconst class-default-object-cache 14
+(defconst class-public-allocation 9 "Class public allocation type for a slot.")
+(defconst class-public-type 10 "Class public type for a slot.")
+(defconst class-public-custom 11 "Class public type for a slot.")
+(defconst class-private-a 12 "Class private attribute index.")
+(defconst class-private-d 13 "Class private attribute defaults index.")
+(defconst class-private-doc 14 "Class private documentation strings for attributes.")
+(defconst class-private-allocation 15 "Class public allocation type for a slot.")
+(defconst class-private-type 16 "Class public type for a slot.")
+(defconst class-initarg-tuples 17 "Class initarg tuples list.")
+(defconst class-default-object-cache 18
   "Cache index of what a newly created object would look like.
 This will speed up instantiation time as only a `copy-sequence' will
 be needed, instead of looping over all the values and setting them
 from the default.")
 
-(defconst class-num-fields 15 "Number of fields in the class definition object.")
+(defconst class-num-fields 19
+  "Number of fields in the class definition object.")
 
 (defconst object-class 1 "Index in an object vector where the class is stored.")
 (defconst object-name 2 "Index in an object where the name is stored.")
@@ -284,7 +289,17 @@ yet supported.  Supported tags are:
   :initform   - initializing form
   :initarg    - tag used during initialization
   :accessor   - tag used to create a function to access this field
-  :protection - non-nil means a private slot (accessible when THIS is set)"
+  :writer     - a function symbol which will `write' an object's slot
+  :reader     - a function symbol which will `read' an object
+  :type       - the type of data allowed in this slot (eg. bufferp)
+
+The following are extensions on CLOS:
+  :protection - non-nil means a private slot (accessible when THIS is set)
+  :custom     - When customizing an object, the custom :type.  Public only.
+
+The following are accepted, and stored, but have no implementation:
+
+  :allocation - defaults to :instance, but could also be :class"
   (list 'defclass-engine (list 'quote name) (list 'quote superclass)
 	(list 'quote fields) doc-string))
 
@@ -336,14 +351,19 @@ toplevel documentation for this class."
     
     ;; before adding new fields, lets add all the methods and classes
     ;; in from the parent class
-    (if (aref newc 3)
+    (if (aref newc class-parent)
 	(progn
 	  (aset newc class-private-a (copy-sequence (aref (class-v (aref newc class-parent)) class-private-a)))
 	  (aset newc class-private-d (copy-sequence (aref (class-v (aref newc class-parent)) class-private-d)))
 	  (aset newc class-private-doc (copy-sequence (aref (class-v (aref newc class-parent)) class-private-doc)))
+	  (aset newc class-private-allocation (copy-sequence (aref (class-v (aref newc class-parent)) class-private-allocation)))
+	  (aset newc class-private-type (copy-sequence (aref (class-v (aref newc class-parent)) class-private-type)))
 	  (aset newc class-public-a (copy-sequence (aref (class-v (aref newc class-parent)) class-public-a)))
 	  (aset newc class-public-d (copy-sequence (aref (class-v (aref newc class-parent)) class-public-d)))
 	  (aset newc class-public-doc (copy-sequence (aref (class-v (aref newc class-parent)) class-public-doc)))
+	  (aset newc class-public-allocation (copy-sequence (aref (class-v (aref newc class-parent)) class-public-allocation)))
+	  (aset newc class-public-type (copy-sequence (aref (class-v (aref newc class-parent)) class-public-type)))
+	  (aset newc class-public-custom (copy-sequence (aref (class-v (aref newc class-parent)) class-public-custom)))
 	  (aset newc class-initarg-tuples (copy-sequence (aref (class-v (aref newc class-parent)) class-initarg-tuples)))))
 
     ;; Store the new class vector definition into the symbol.  We need to
@@ -363,14 +383,31 @@ toplevel documentation for this class."
 	     (initarg (car (cdr (member ':initarg field))))
 	     (docstr (car (cdr (member ':docstring field))))
 	     (prot (car (cdr (member ':protection field))))
+	     (reader (car (cdr (member ':reader field))))
+	     (writer (car (cdr (member ':writer field))))
+	     (alloc (car (cdr (member ':allocation field))))
+	     (type (member ':type field))
+	     (custom (car (cdr (member ':custom field))))
 	     )
+
+	;; The default type specifier is supposed to be t, meaning anything.
+	(if (not type) (setq type t)
+	  (setq type (car (cdr type)))
+	  (if (not (functionp type))
+	      (error "Unlike CLOS, :type must be t, or be a function")))
 
 	(let* ((-a (if (eq prot 'private) class-private-a class-public-a))
 	       (-d (if (eq prot 'private) class-private-d class-public-d))
 	       (-doc (if (eq prot 'private) class-private-doc class-public-doc))
+	       (-alloc (if (eq prot 'private) class-private-allocation class-public-allocation))
+	       (-type (if (eq prot 'private) class-private-type class-public-type))
+	       (-custom (if (eq prot 'private) nil class-public-custom))
 	       (-al (aref newc -a))
 	       (-dl (aref newc -d))
 	       (-docl (aref newc -doc))
+	       (-allocl (aref newc -alloc))
+	       (-typel (aref newc -type))
+	       (-customl (if -custom (aref newc -custom) nil))
 	       (np (member name -al))
 	       (dp (if np (nthcdr (- (length -al) (length np)) -dl) nil)))
 	  (if np
@@ -380,7 +417,12 @@ toplevel documentation for this class."
 		)
 	    (aset newc -a (append -al (list name)))
 	    (aset newc -d (append -dl (list init)))
-	    (aset newc -doc (append -docl (list docstr))))
+	    (aset newc -doc (append -docl (list docstr)))
+	    ;; Should the following slot types be updated always?  Hmm.
+	    (aset newc -alloc (append -allocl (list alloc)))
+	    (aset newc -type (append -typel (list type)))
+	    (if -custom (aset newc -custom (append -customl (list custom))))
+	    )
 	  ;; public and privates both can install new initargs
 	  (if initarg
 	      (progn
@@ -400,13 +442,14 @@ toplevel documentation for this class."
 	      (progn
 		(defmethod-engine acces
 		  (list (list (list 'this cname))
-			(format "Retrieves the slot `%s' from an object of class `%s'"
-				name cname)
+			(format
+			 "Retrieves the slot `%s' from an object of class `%s'"
+			 name cname)
 			(list 'oref-engine 'this (list 'quote name))))
 		;; It turns out that using the setf macro with a
 		;; generic method form is impossible because almost
 		;; any type of form could be created for disparaging
-		;; objects.  Yuck!  Therefore, we shouln't try to make
+		;; objects.  Yuck!  Therefore, we shouldn't try to make
 		;; setf calls to accessors.
 		;; Create a setf definition for this accessor.
 		;(eieio-cl-defsetf acces '(widget)
@@ -416,6 +459,28 @@ toplevel documentation for this class."
 		;			'store))
 		)
 	    )
+	  ;; If a writer is defined, then create a generic method of that
+	  ;; name whose purpose is to write out this slot value.
+	  (if writer
+	      (progn
+		(defmethod-engine writer
+		  (list (list (list 'this cname))
+			(format
+			 "Write the slot `%s' from object of class `%s'"
+			 name cname)
+			(list 'eieio-override-prin1
+			      (list 'oref-engine 'this (list 'quote name)))))
+		))
+	  ;; If a reader is defined, then create a generic method
+	  ;; of that name whose purpose is to read this slot value.
+	  (if reader
+	      (progn
+		(defmethod-engine reader
+		  (list (list (list 'this cname))
+			(format
+			 "Read the slot `%s' from object of class `%s'"
+			 name cname)
+			'(error "Not implemented")))))
 	  )
 	)
       (setq fields (cdr fields)))
@@ -466,7 +531,7 @@ toplevel documentation for this class."
 					      (list 'class-v cname)
 					      'class-default-object-cache))))
 		 '(aset no object-name newname)
-		 '(constructor no fields)
+		 '(initialize-instance no fields)
 		 'no)))
 
     ;; Create the test function
@@ -605,7 +670,10 @@ created by the :initarg tag."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (aref obj object-class) field)))
-    (if (not c) (signal 'invalid-slot-name (list (object-name obj) field)))
+    (if (not c)
+	(slot-missing obj field 'oref)
+	;;(signal 'invalid-slot-name (list (object-name obj) field))
+      )
     (aref obj c)))
 
 (defalias 'slot-value 'oref-engine)
@@ -642,7 +710,10 @@ Fills in OBJ's FIELD with it's default value."
   (let* ((cl (if (object-p obj) (aref obj object-class) obj))
 	 (c (eieio-field-name-index cl field))
 	 (nump (length (aref (class-v cl) class-public-a))))
-    (if (not c) (signal 'invalid-slot-name (list (class-name cl) field)))
+    (if (not c)
+	(slot-missing obj field 'oref-default)
+	;;(signal 'invalid-slot-name (list (class-name cl) field))
+      )
     (let ((val (if (< c (+ 3 nump))
 		   (nth (- c 3) (aref (class-v cl) class-public-d))
 		 (nth (- c nump 3) (aref (class-v cl) class-private-d)))))
@@ -657,6 +728,31 @@ Fills in OBJ's FIELD with it's default value."
 	  ;; return it verbatim
 	  val)))))
 
+(defun eieio-perform-slot-validation (spec value)
+  "Signal if SPEC does not match VALUE."
+  ;; This is SUPPOSED to follow CLOS or CL type specifiers, but for
+  ;; simplicity and speed, I'll just pretend it's a function.
+  (or (eq spec t)
+      (and (functionp spec) (funcall spec value))))
+
+(defun eieio-validate-slot-value (class field-idx value)
+  "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
+Checks the :type specifier."
+  ;; Trim off object IDX junk.
+  (setq field-idx (- field-idx 3))
+  (let ((s (aref (class-v class) class-public-a))
+	(spec nil))
+    (if (not (eieio-perform-slot-validation
+	      (if (< field-idx (length s))
+		  ;; It's public
+		  (nth field-idx (aref (class-v class) class-public-type))
+		;; It's private.  Adjust lists, and zero in.
+		(setq s (aref (class-v class) class-private-a)
+		      field-idx (- field-idx (length s)))
+		(nth field-idx (aref (class-v class) class-private-type)))
+	      value))
+	(signal 'invalid-slot-type '(list 'oset value)))))
+
 (defmacro oset (obj field value)
   "Set the value in OBJ for slot FIELD to VALUE.
 FIELD is the slot name as specified in `defclass' or the tag created
@@ -669,7 +765,10 @@ Fills in OBJ's FIELD with VALUE."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let ((c (eieio-field-name-index (object-class-fast obj) field)))
-    (if (not c) (signal 'invalid-slot-name (list (object-name obj) field)))
+    (if (not c)
+	(slot-missing obj field 'oset value)
+	;;(signal 'invalid-slot-name (list (object-name obj) field))
+      )
     (aset obj c value)))
 
 (defmacro oset-default (class field value)
@@ -694,6 +793,22 @@ Fills in the default value in CLASS' in FIELD with VALUE."
        (nthcdr (- c nump 3) (aref (class-v class) class-private-d)))
      value)))
 
+(defmacro with-slots (spec-list object &rest body)
+  "Create a lexical scope for slots in SPEC-LIST for OBJECT.
+Execute BODY within this lexical scope."
+  ;; Special thanks to Kevin Rodgers <kevinr@ihs.com> for helping me with this
+  (let ((object-var (make-symbol "with-slots-obj")))
+    `(let* ((,object-var ,object)
+	    ,@(mapcar (lambda (spec)
+			  (cond ((symbolp spec)
+				 `(,spec (slot-value ,object-var (quote ,spec))))
+				((consp spec)
+				 `(,(car spec)
+				   (slot-value ,object-var (quote ,(cadr spec)))))
+				(t (error "Invalid binding spec: %s" spec))))
+			spec-list))
+       ,@body)))
+
 
 ;;; Simple generators, and query functions.  None of these would do
 ;;  well embedded into an object.
@@ -703,6 +818,8 @@ Fills in the default value in CLASS' in FIELD with VALUE."
   
 (defun class-name (class) "Return a Lisp like symbol name for CLASS."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
+  ;; I think this is supposed to return a symbol, but to me CLASS is a symbol,
+  ;; and I wanted a string.  Arg!
   (format "#<class %s>" (symbol-name class)))
 
 (defun object-name (obj &optional extra)
@@ -719,6 +836,7 @@ If EXTRA, include that in the string returned to represent the symbol."
 (defun object-class (obj) "Return the class struct defining OBJ."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (object-class-fast obj))
+(defalias 'class-of 'object-class)
 
 (defun object-class-name (obj) "Return a Lisp like symbol name for OBJ's class."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
@@ -750,6 +868,33 @@ If EXTRA, include that in the string returned to represent the symbol."
   (while (and child (not (eq child class)))
     (setq child (aref (class-v child) 3)))
   child)
+
+(defun obj-fields (obj) "List of fields available in OBJ."
+  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+  (aref (class-v (object-class-fast obj)) class-public-a))
+
+(defun class-slot-initarg (class slot) "Fetch from CLASS, SLOT's :initarg."
+  (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
+  (let ((ia (aref (class-v class) class-initarg-tuples))
+	(f nil))
+    (while (and ia (not f))
+      (if (eq (cdr (car ia)) slot)
+	  (setq f (car (car ia))))
+      (setq ia (cdr ia)))
+    f))
+
+(defmacro slot-boundp (object slot)
+  "Non-nil if OBJECT's SLOT is bound.
+Strictly speaking in CLOS, a slot can exist in OBJECT, but not be bound.
+This is not the case in EIEIO as all slots are bound at instantiation time.
+Therefore `slot-boundp' is really a macro calling `slot-exists-p'"
+  `(slot-exists-p ,object ,slot))
+
+(defun slot-exists-p (object slot)
+  "Non-nil if OBJECT contains SLOT."
+  (let ((cv (class-v (object-class object))))
+    (or (memq slot (aref cv class-public-a))
+	(memq slot (aref cv class-private-a)))))	
 
 ;;; Slightly more complex utility functions for objects
 ;;
@@ -1076,15 +1221,6 @@ This is usually a symbol that starts with `:'."
 	(car tuple)
       nil)))
 
-(defun eieio-set-fields (obj fields)
-  "Set fields of OBJ with FIELDS which is a list of name/value pairs.
-Called from the constructor routine."
-  (let ((scoped-class (aref obj object-class)))
-    (while fields
-      (let ((rn (eieio-initarg-to-attribute (object-class-fast obj) (car fields))))
-	(oset-engine obj rn (car (cdr fields))))
-      (setq fields (cdr (cdr fields))))))
-
 (defun eieio-rebuild-doc-string (class)
   "Rebuilds the documentation for CLASS.
 Look in CLASS for it's stored doc-string, and the doc string of
@@ -1170,6 +1306,10 @@ associated with this symbol.  Current method specific code is:")
 (put 'invalid-slot-name 'error-conditions '(invalid-slot-name error))
 (put 'invalid-slot-name 'error-message "Invalid slot name")
 
+(intern "invalid-slot-type")
+(put 'invalid-slot-type 'error-conditions '(invalid-slot-type nil))
+(put 'invalid-slot-type 'error-message "Invalid slot type")
+
 ;;; Here are some CLOS items that need the CL package
 ;;
 (defun eieio-cl-run-defsetf ()
@@ -1204,13 +1344,27 @@ stored in the `parent' field.  When searching for attributes or
 methods, when the last parent is found, the search will recurse to
 this class.")
 
+(defalias 'standard-class 'eieio-default-superclass)
+
+(defmethod shared-initialize ((obj eieio-default-superclass) fields)
+  "Set fields of OBJ with FIELDS which is a list of name/value pairs.
+Called from the constructor routine."
+  (let ((scoped-class (aref obj object-class)))
+    (while fields
+      (let ((rn (eieio-initarg-to-attribute (object-class-fast obj)
+					    (car fields))))
+	(oset-engine obj rn (car (cdr fields))))
+      (setq fields (cdr (cdr fields))))))
+
+
 ;;; We want our superclass to define it's own methods.
-(defmethod constructor ((this eieio-default-superclass) &optional fields)
+(defmethod initialize-instance ((this eieio-default-superclass)
+				&optional fields)
     "Constructs the new object THIS based on FIELDS.
 FIELDS is a tagged list where odd numbered elements are tags, and
 even numbered elements are the values to store in the tagged slot.  If
-you overload the constructor, there you will need to call
-`eieio-set-fields' yourself, or you can call `call-next-method' to
+you overload the initialize-instance, there you will need to call
+`shared-initialize' yourself, or you can call `call-next-method' to
 have this constructor called automatically.  If these steps are not
 taken, then new objects of your class will not have their values
 dynamically set from FIELDS."
@@ -1221,13 +1375,21 @@ dynamically set from FIELDS."
     ;; Load in the defaults
     ;; (eieio-set-defaults this t)
     ;; Set fields for ourselves from the list of fields
-    (eieio-set-fields this fields)
+    (shared-initialize this fields)
     )
 
 (defmethod destructor ((this eieio-default-superclass) &rest params)
   "Destructor for cleaning up any dynamic links to our object."
   ;; No cleanup... yet.
   )
+
+(defmethod slot-missing ((object eieio-default-superclass) slot-name
+			 operation &optional new-value)
+  "Slot missing is invoked when an attempt to access a slot in OBJECT  fails.
+SLOT-NAME is the name of the failed slot, OPERATION is the type of access
+that was requested, and optional NEW-VALUE is the value that was desired
+to be set."
+  (signal 'invalid-slot-name (list (class-name class) field)))
 
 (defmethod object-print ((this eieio-default-superclass) &rest strings)
   "Pretty printer for any object.  Calls `object-name' with STRINGS.
@@ -1240,6 +1402,9 @@ summary parts to put into the name string.  When passing in extra
 strings from child classes, always remember to prepend a space."
   (object-name this (apply 'concat strings)))
 
+(defvar eieio-print-depth 0
+  "When printing, keep track of the current indentation depth.")
+
 (defmethod object-write ((this eieio-default-superclass) &optional comment)
   "Write an object out to the current stream.
 This writes out the vector version of this object.  Complex and recursive
@@ -1247,10 +1412,71 @@ object are discouraged from being written.
   If optional COMMENT is non-nil, include comments when outputting
 this object."
   (if (not comment) nil
-    (print ";; Object ")
-    (print (object-name this))
-    (print "\n"))
-  (princ this))
+    (princ ";; Object ")
+    (princ (object-name-string this))
+    (princ "\n")
+    (princ comment)
+    (princ "\n"))
+  (let* ((cl (object-class this))
+	 (cv (class-v cl)))
+    ;; Now output readable lisp to recreate this object
+    ;; It should look like this:
+    ;; (<constructor> <name> <slot> <field> ... )
+    ;; Each slot's field is writen using its :writer.
+    (princ (make-string (* eieio-print-depth 2) ? ))
+    (princ "(")
+    (princ (symbol-name (class-constructor (object-class this))))
+    (princ " \"")
+    (princ (object-name-string this))
+    (princ "\"\n")
+    ;; Loop over all the public slots
+    (let ((publa (aref cv class-public-a))
+	  (publd (aref cv class-public-d))
+	  (eieio-print-depth (1+ eieio-print-depth)))
+      (while publa
+	(let ((i (class-slot-initarg cl (car publa)))
+	      (v (oref-engine this (car publa))))
+	  (if (or (not i) (equal v (car publd)))
+	      nil ;; Don't bother if it = default, or can't be initialized.
+	    (princ (make-string (* eieio-print-depth 2) ? ))
+	    (princ (symbol-name i))
+	    (princ " ")
+	    (let ((o (oref-engine this (car publa))))
+	      (eieio-override-prin1 o))
+	    (princ "\n")))
+	(setq publa (cdr publa) publd (cdr publd)))
+      (princ (make-string (* eieio-print-depth 2) ? )))
+    (princ ")\n")))
+
+(defun eieio-override-prin1 (thing)
+  "Perform a prin1 on THING taking advantage of object knowledge."
+  (cond ((object-p thing)
+	 (object-write thing))
+	((listp thing)
+	 (eieio-list-prin1 thing))
+	((class-p thing)
+	 (princ (class-name thing)))
+	(t (prin1 thing))))
+
+(defun eieio-list-prin1 (list)
+  "Display LIST where list may contain objects."
+  (princ "(list ")
+  (while list
+    (if (object-p (car list))
+	(object-write (car list))
+      (prin1 (car list)))
+    (setq list (cdr list)))
+  (princ (make-string (* eieio-print-depth 2) ? ))
+  (princ ")"))
+
+
+;;; Unimplemented functions from CLOS
+;;
+(defun change-class (obj class)
+  "Change the class of OBJ to type CLASS.
+This may create or delete slots, but does not affect the return value
+of `eq'."
+  (error "Eieio: `change-class' is unimplemented"))
 
 
 ;;; Interfacing with edebug
@@ -1283,6 +1509,7 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 	    (def-edebug-spec object-p form)
 	    (def-edebug-spec class-constructor form)
 	    (def-edebug-spec generic-p form)
+	    (def-edebug-spec with-slots (form form def-body))
 	    ;; I suspect this isn't the best way to do this, but when
 	    ;; cust-print was used on my system all my objects
 	    ;; appeared as "#1 =" which was not useful.  This allows
@@ -1320,6 +1547,8 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 (autoload 'eieio-describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
 (autoload 'describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
 (autoload 'eieiodoc-class "eieio-doc" "Create texinfo documentation about a class hierarchy." t)
+
+(autoload 'eieio-customize "eieio-custom" "Create a custom buffer editing OBJ.")
 
 (provide 'eieio)
 ;;; eieio ends here
