@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.28 2002/08/09 23:25:34 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.29 2002/08/11 16:28:25 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,23 +24,22 @@
 ;;
 ;; Initialize semantic for all supported conditions.
 
-(load "semantic-al" nil t)
-
 ;;; Code:
 ;;
 
-(add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
+(load "semantic-al" nil t)
+
+;;; Add parser directories
+;;
+(let ((dir (file-name-directory (locate-library "semantic"))))
+  (add-to-list 'load-path (concat dir "wisent"))
+  )
+
+;;; language modes
+;;
 (autoload 'wisent-wy-mode "wisent-wy"
   "Initialize a buffer for editing BNF code." t)
 (add-to-list 'auto-mode-alist '("\\.wy$" . wisent-wy-mode))
-
-;;; Other applications
-;;
-(eval-after-load "speedbar"
-  '(progn
-     (speedbar-add-supported-extension ".bnf")
-     (speedbar-add-supported-extension ".wy")
-     ))
 
 ;;; Some speedbar major modes
 (eval-after-load "speedbar"
@@ -98,19 +97,6 @@
 (custom-add-load 'global-semantic-summary-mode
                  'semantic-util-modes)
 
-
-;;; This turns on semantic partial reparsing
-
-;; The old version
-;(add-hook 'semantic-change-hooks #'semantic-change-function-mark-dirty)
-;(setq semantic-bovinate-incremental-parser #'semantic-cleanup-dirty-tokens)
-
-;; The new version
-(add-hook 'semantic-change-hooks
-          #'semantic-edits-change-function-handle-changes)
-;; This should be done in a more integral way, but this will work for now.
-(add-hook 'semantic-before-toplevel-cache-flush-hook
-          #'semantic-edits-flush-changes)
 
 ;;; Useful predefined setup
 ;;
