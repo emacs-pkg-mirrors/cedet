@@ -3,14 +3,14 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.8 2001/02/28 22:24:22 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.9 2001/03/08 08:39:21 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
-;; Semantic-ex is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
-;; any later version.
+;; semantic-java is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2, or (at
+;; your option) any later version.
 
 ;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -427,7 +427,7 @@
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
-  (semantic-flex-make-keyword-table 
+  (semantic-flex-make-keyword-table
    `( ("abstract" . ABSTRACT)
       ("boolean" . BOOLEAN)
       ("break" . BREAK)
@@ -544,49 +544,54 @@ Override `semantic-prototype-nonterminal'."
 (defun semantic-expand-java-nonterminal (token)
   "Expand TOKEN into a list of equivalent nonterminals, or nil.
 Handle multiple variable declarations in the same statement."
-  (let (names vl)
-    (if (and (eq (semantic-token-token token) 'variable)
-             (listp (setq names (semantic-token-name token))))
-        (if (cdr names)
-            
-            ;; There are multiple declarations in the same variable
-            ;; token, so reparse the declaration using
-            ;; `semantic-bovinate-from-nonterminal-full' to get
-            ;; correct START/END informations for each variable token
-            (let ((ty (semantic-token-type                 token))
-                  (dv (semantic-token-variable-default     token))
-                  (xs (semantic-token-variable-extra-specs token))
-                  (ds (semantic-token-docstring            token))
-                  (pr (semantic-token-properties           token))
-                  (nl (semantic-bovinate-from-nonterminal-full
-                       (semantic-token-start token)
-                       (semantic-token-end   token)
-                       'field_declaration_multi
-                       0))
-                  tok)
-              (while nl
-                (setq tok (car nl)
-                      nl  (cdr nl)
-                      vl  (cons
-                           (list
-                            (semantic-token-name tok)
-                            'variable
-                            ty          ; type
-                            dv          ; default value
-                            xs          ; extra specs
-                            ds          ; docstring
-                            pr          ; properties
-                            (semantic-token-overlay tok))
-                           vl)))
-              ;; Workaround: delete the old token overlay
-              (if vl
-                  (semantic-deoverlay-token token))
-              )
-            
-          ;; Only one variable declared.  Just replace the
-          ;; variable name list by the name itself!
-          (setcar token (car names))))
-    vl))
+  (if (eq (semantic-token-token token) 'variable)
+      (let ((name (semantic-token-name token)))
+        (if (listp name)
+            (let ((multi (cdr name)))
+              
+              ;; Always replace the list of variable names by the first
+              ;; name to get a valid token!  There is nothing more to
+              ;; do if there is only one variable in the list.
+              (setcar token (car name))
+              
+              (if multi
+                  ;; There are multiple names in the same variable
+                  ;; declaration.
+                  (let ((ty (semantic-token-type                 token))
+                        (dv (semantic-token-variable-default     token))
+                        (xs (semantic-token-variable-extra-specs token))
+                        (ds (semantic-token-docstring            token))
+                        (pr (semantic-token-properties           token))
+                        ;; Reparse the declaration using the special
+                        ;; nonterminal 'field_declaration_multi to get
+                        ;; the START/END values of each variable.
+                        (nl (semantic-bovinate-from-nonterminal-full
+                             (semantic-token-start token)
+                             (semantic-token-end   token)
+                             'field_declaration_multi
+                             0))
+                        tok vl)
+                    ;; Merge in new 'variable tokens each reparsed
+                    ;; token name and overlay with other values from
+                    ;; the initial token.
+                    (while nl
+                      (setq tok (car nl)
+                            nl  (cdr nl)
+                            vl  (cons
+                                 (list
+                                  (semantic-token-name tok)
+                                  'variable
+                                  ty    ; type
+                                  dv    ; default value
+                                  xs    ; extra specs
+                                  ds    ; docstring
+                                  pr    ; properties
+                                  (semantic-token-overlay tok))
+                                 vl)))
+                    (if vl
+                        ;; Cleanup the no more needed initial token.
+                        (semantic-deoverlay-token token))
+                    vl)))))))
 
 ;;;;
 ;;;; Javadoc handler
