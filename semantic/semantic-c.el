@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.41 2001/10/03 00:45:47 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.42 2001/10/03 17:55:01 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,7 +34,8 @@
 (eval-when-compile
   (require 'semantic-ctxt)
   (require 'semantic-imenu)
-  (require 'document))
+  (require 'document)
+  (require 'senator))
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
