@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.21 2003/09/10 13:05:59 ponced Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.22 2003/09/16 12:34:53 ponced Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -244,16 +244,11 @@ Files do not need to be added to this target.")
      "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
      "done;"
      "@echo \"(require 'cedet-autogen)\" >> $@-compile-script"
-     "$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)"
+     "$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)"
      )
    :sourcetype '(ede-source-emacs)
    )
   "Build an autoloads file.")
-
-(defmethod ede-proj-makefile-target-name ((this ede-proj-target-elisp-autoloads))
-  "Return the name of the main target for THIS target."
-  ;; The target should be the main-menu file name translated to .info.
-  (oref this autoload-file))
 
 (defmethod ede-proj-compilers ((obj ede-proj-target-elisp-autoloads))
   "List of compilers being used by OBJ.
