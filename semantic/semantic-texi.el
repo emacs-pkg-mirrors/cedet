@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.8.2.1 2002/11/21 09:56:54 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.8.2.2 2002/12/17 11:50:20 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,7 +41,7 @@
 (defvar semantic-texi-super-regex
   "^@\\(chapter\\|\\(sub\\)*section\\|unnumbered\\(\\(sub\\)*sec\\)?\\|\
 \\(chap\\|\\(sub\\)+\\|major\\)?heading\\|appendix\\(\\(sub\\)*sec\\)?\\|\
-centerchap\\|def\\(var\\|un\\|fn\\)x?\\)"
+centerchap\\|def\\(var\\|un\\|fn\\|opt\\)x?\\)"
   "Regular expression used to find special sections in a Texinfo file.")
 
 (defvar semantic-texi-name-field-list
