@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.40 2002/05/07 01:31:14 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.41 2002/06/14 13:11:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -713,6 +713,40 @@ If file does not have tokens available, then load the file, and create them."
 	    (oref semanticdb-current-table tokens)
 	  ;; if not, just do it.
 	  (semantic-bovinate-toplevel t))))
+    ))
+
+;;; Validate the semantic database
+;;
+(defun semanticdb-table-oob-sanity-check (cache)
+  "Validate that CACHE tokens do not have any overlays in them."
+  (while cache
+    (when (semantic-overlay-p (semantic-token-overlay cache))
+      (message "Token %s has an erroneous overlay!"
+	       (semantic-summarize-nonterminal (car cache))))
+    (semanticdb-table-oob-sanity-check
+     (semantic-nonterminal-children (car cache) t))
+    (setq cache (cdr cache))))
+
+(defun semanticdb-table-sanity-check (&optional table)
+  "Validate the current semanticdb TABLE."
+  (interactive)
+  (if (not table) (setq table semanticdb-current-table))
+  (let* ((full-filename (semanticdb-full-filename table))
+	 (buff (get-file-buffer full-filename)))
+    (if buff
+	(save-excursion
+	  (set-buffer buff)
+	  (semantic-sanity-check))
+      ;; We can't use the usual semantic validity check, so hack our own.
+      (semanticdb-table-oob-sanity-check (oref table tokens)))))
+
+(defun semanticdb-database-sanity-check ()
+  "Validate the current semantic database."
+  (interactive)
+  (let ((tables (oref semanticdb-current-database tables)))
+    (while tables
+      (semanticdb-table-sanity-check (car tables))
+      (setq tables (cdr tables)))
     ))
 
 (provide 'semanticdb)
