@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.4 1996/06/17 23:18:24 zappo Exp $
+@c $Id: eieio.texi,v 1.5 1996/08/15 16:39:32 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -47,6 +47,7 @@ aspects of CLOS.
 * Predicates::            Class-p, Object-p, etc-p.
 * Browsing::              Browsing your class lists.
 * Class Values::          Displaying information about a class or object.
+* Demo Programs::         Some examples using eieio.
 @end menu
 
 As of this writing, updates can be found at:
@@ -692,7 +693,7 @@ of classes.
 Note: new classes are consed into the inheritance lists, so the tree
 comes out upside-down.
 
-@node Class Values, , Browsing, Top
+@node Class Values, Demo Programs, Browsing, Top
 @comment  node-name,  next,  previous,  up
 @chapter Class Values
 
@@ -709,5 +710,48 @@ parts.  Faces are used when available.  If the function
 function on a node calls this function.  This function is also useful
 when used with edebug while attempting to determine what is wrong with a
 function.
+@node Demo Programs, , Class Values, Top
+@comment  node-name,  next,  previous,  up
+@chapter Demo Programs
+
+There are many sample programs I have written for eieio which could
+become useful componants of other applications, or are good stand alone
+programs providing some useful functionality.  The file, and
+functionality of these appear below:
+
+@table @code
+@item widget-d widget-i dialog
+These files provide widget definitions and functionality.  Dialog mode
+provides the functional interface to creating a dialog box, and several
+convenience functions for creating widgets in those dialog buffers.
+@item dlg-config
+This file provides another layer on dialog mode, plus some new widgets.
+These widgets are designed specifically for modifying configurations in
+a running emacs, and modifying the corresponding .emacs file for
+variable values.  It also provides fancy face editing, which modifies
+the corresponding .Xdefaults file.
+@item tree
+Maintains and displays a tree structure in a buffer.  Nodes in the tree
+can be clicked on for editing, node expansion, and simple information.
+Includes a sample program for showing directory trees, and to draw trees
+of the eieio class structures.
+@item dialog-tree
+Uses tree mode to display the parent/child relationship of widgets in a
+dialog box.
+@item call-tree
+Parses a non-byte-compiled function, and generates a call tree from it,
+and all sub-non-byte-compiled functions.  Provides protection from
+recursive functions.
+@item chart
+Draw bar charts from data.  Examples include displaying sizes of emacs
+values, file distribution, and rmail distributions.
+@item dbif psql
+Dbif provides a generic database interface.  Psql is a subclass of the
+database class designed for parsing information from a postgres95
+database (not version .02)  Information is returned in lists.
+@item dbif-browse
+Provides a very simple browser using dbif.
+@end table
+
 
 @bye
