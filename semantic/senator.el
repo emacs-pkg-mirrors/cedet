@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.28 2001/03/21 09:57:18 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.29 2001/03/26 05:55:56 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -100,6 +100,17 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.29  2001/03/26 05:55:56  ponced
+;; (senator-find-nonterminal-by-name,
+;; senator-find-nonterminal-by-name-regexp, senator-complete-symbol,
+;; senator-eldoc-print-current-symbol-info-default): new format of the
+;; value returned by `semanticdb-find-nonterminal-by-name' and
+;; `semanticdb-find-nonterminal-by-name-regexp'.
+;;
+;; (senator-completion-menu-item, senator-completion-menu-popup): Added
+;; sub-menus for each file were tokens were found by Semantic Database
+;; search functions.
+;;
 ;; Revision 1.28  2001/03/21 09:57:18  ponced
 ;; (senator-find-nonterminal-by-name,
 ;; senator-find-nonterminal-by-name-regexp): return the complete list of
@@ -615,16 +626,18 @@ type context exists at point."
   "Find a token with NAME.
 Uses `semanticdb' when available."
   (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-      ;; semanticdb version returns a list..
-      (apply #'append (semanticdb-find-nonterminal-by-name name nil t))
+      ;; semanticdb version returns a list of (DB-TABLE . TOKEN)
+      (semanticdb-find-nonterminal-by-name name nil t)
+    ;; for semantic version just return TOKEN
     (semantic-find-nonterminal-by-name name (current-buffer) t)))
 
 (defun senator-find-nonterminal-by-name-regexp (regexp)
   "Find all tokens with a name matching REGEXP.
 Uses `semanticdb' when available."
   (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-      ;; semanticdb version returns a list..
-      (apply #'append (semanticdb-find-nonterminal-by-name-regexp regexp nil t))
+      ;; semanticdb version returns a list of (DB-TABLE . TOKEN-LIST)
+      (semanticdb-find-nonterminal-by-name-regexp regexp nil t)
+    ;; for semantic version just return TOKEN-LIST
     (semantic-find-nonterminal-by-name-regexp regexp (current-buffer) t)))
 
 ;;;;
@@ -928,8 +941,12 @@ of completions once, doing nothing where there are no more matches."
             (setq complst (nthcdr 4 senator-last-completion-stats))
 
           (setq regex (regexp-quote (buffer-substring symstart (point)))
-                complst (senator-find-nonterminal-by-name-regexp
-                         (concat "^" regex))
+                complst (let ((found
+                               (senator-find-nonterminal-by-name-regexp
+                                (concat "^" regex))))
+                          (if (and found (semantic-token-p (car found)))
+                              found
+                            (apply #'append (mapcar #'cdr found))))
                 senator-last-completion-stats (append (list (current-buffer)
                                                             symstart
                                                             0
@@ -1007,10 +1024,16 @@ choosen from the completion menu."
 That is a pair (MENU-ITEM-TEXT . TOKEN-ARRAY).  TOKEN-ARRAY is an
 array of one element containting TOKEN.  Can return nil to discard a
 menu item."
-  (cons (funcall (if (fboundp senator-completion-menu-summary-function)
-                     senator-completion-menu-summary-function
-                   #'semantic-prototype-nonterminal) token)
-        (vector token)))
+  (if (semantic-token-p token)
+      (cons (funcall (if (fboundp senator-completion-menu-summary-function)
+                         senator-completion-menu-summary-function
+                       #'semantic-prototype-nonterminal) token)
+            (vector token))
+    (cons (file-name-sans-extension (oref (car token) file))
+          (delq nil
+                (mapcar #'senator-completion-menu-item
+                        (cdr token))))))
+          
 
 (defun senator-completion-menu-point-as-event()
   "Returns the text cursor position as an event.
@@ -1057,18 +1080,38 @@ use `imenu--mouse-menu' to handle the popup menu."
     (if (not complst)
         (error "No completions available"))
     ;; We have a completion list, build a menu
-    (let* ((index (delq nil
-                        (mapcar #'senator-completion-menu-item
-                                complst)))
-           (item  (if (cdr index)
-                      ;; Delegates menu handling to imenu :-)
-                      (imenu--mouse-menu
-                       index
-                       ;; popup at point
-                       (senator-completion-menu-point-as-event)
-                       (format "%S completion" symbol))
-                    ;; Only one item match, return it
-                    (car index))))
+    (let ((index (delq nil
+                       (mapcar #'senator-completion-menu-item
+                               complst)))
+          title item)
+      (if (semantic-token-p (car index))
+          ;; No sub-menus.
+          (if (cdr index)
+              ;; Multiple matches, setup the popup title.
+              (setq title (format "%S completion" symbol))
+            ;; Only one match, no need to popup a menu.
+            (setq item (car index)))
+        ;; There are sub-menus.
+        (if (cdr index)
+            ;; Several sub-menus, setup the popup title.
+            (setq title (format "%S completion" symbol))
+          ;; One sub-menu, display it as a main menu.
+          (setq title (format "%S completion (%s)"
+                              symbol
+                              ;; And add file name to the title.
+                              (car (car index)))
+                index (cdr (car index)))
+          ;; But...
+          (or (cdr index)
+              ;; ... If only one match, no need to popup the menu.
+              (setq item (car index)))))
+      (or item
+          (setq item ;; Delegates menu handling to imenu :-)
+                (imenu--mouse-menu
+                 index
+                 ;; popup at point
+                 (senator-completion-menu-point-as-event)
+                 title)))
       (if item
           (senator-completion-menu-do-complete (cdr item))))))
 
@@ -2015,8 +2058,9 @@ You can override the info collecting part with `eldoc-current-symbol-info'."
     (if sym
         (progn
           (setq found (if semanticdb-current-database
-                          (car (semanticdb-find-nonterminal-by-name
-                                (car sym) nil t))
+                          (cdr
+                           (car (semanticdb-find-nonterminal-by-name
+                                 (car sym) nil t)))
                         (semantic-find-nonterminal-by-name
                          (car sym) (current-buffer) t)))
           (and (not found)
@@ -2029,8 +2073,9 @@ You can override the info collecting part with `eldoc-current-symbol-info'."
           (if sym
               (progn
                 (setq found (if semanticdb-current-database
-                                (car (semanticdb-find-nonterminal-by-name
-                                      (car sym) nil t))
+                                (cdr
+                                 (car (semanticdb-find-nonterminal-by-name
+                                       (car sym) nil t)))
                               (semantic-find-nonterminal-by-name
                                (car sym) (current-buffer) t)))
                 (and (not found)
