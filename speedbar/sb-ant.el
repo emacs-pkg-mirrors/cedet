@@ -1,6 +1,6 @@
 ;;; sb-ant.el --- provide speedbar menus for ANT Project files
 
-;; Copyright (c) 2001 Ole Arndt
+;; Copyright (c) 2001, 2003 Ole Arndt
 ;; Author: Ole Arndt <arndt@tivano.com>
 ;; based on sb-html.el by:
 ;; Created: Tue Sep 09 09:45:00 2001
@@ -9,7 +9,7 @@
 ;; Author: Richard Y. Kim, <ryk@dspwiz.com>
 ;; Maintainer: Richard Y. Kim, <ryk@dspwiz.com>
 ;; Created: Mon Apr 09 09:44:06 2001
-;; Version: $Id: sb-ant.el,v 1.1 2001/10/31 01:16:04 zappo Exp $
+;; Version: $Id: sb-ant.el,v 1.2 2003/06/09 12:47:10 zappo Exp $
 ;; Keywords: speedbar, html
 
 ;; This program is free software; you can redistribute it and/or
@@ -62,7 +62,9 @@
 ;; This function is based on `speedbar-fetch-dynamic-html'.
 (defun speedbar-fetch-dynamic-ant-project ( filename )
   (set-buffer (find-file-noselect filename))
-  (if (not (eq major-mode 'xml-mode))
+  (if (not (or (eq major-mode 'xml-mode)
+	       (eq major-mode 'sgml-mode)
+	       (eq major-mode 'ant-mode)))
       t
     (condition-case nil
 	(save-excursion
@@ -85,7 +87,7 @@
 	    (goto-char (point-min))
 	    ;; regexp below will not work if `>' appears within an attribute
 	    ;; value, e.g., <h1 foo="I'm a weird value >"> ... </h1>
-	    (while (re-search-forward "<target[^>]*name=\"\\([^\"]*\\)\"[^>]*>" nil t)
+	    (while (re-search-forward "<target[^>]*name\\s-*=\\s-*\"\\([^\"]*\\)\"[^>]*>" nil t)
 	      (setq beg (match-end 0))
 	      (goto-char (match-beginning 0))
 	      (setq pos-beg (point-marker))
