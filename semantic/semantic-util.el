@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.41 2001/01/24 21:24:45 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.42 2001/01/25 19:10:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -865,24 +865,30 @@ Optional argument PARENT is the parent type if TOKEN is a detail."
 	tt)
     (if s
 	(funcall s token parent)
-      ;; Do lots of complex stuff here.
-      (let ((tok (semantic-token-token token))
-	    (name (semantic-token-name token))
-	    str)
+      (semantic-abbreviate-nonterminal-default token parent))))
+
+(defun semantic-abbreviate-nonterminal-default (token &optional parent)
+  "Return an abbreviated string describing TOKEN.
+Optional argument PARENT is a parent token in the token hierarchy.
+This is a simple C like default."
+  ;; Do lots of complex stuff here.
+  (let ((tok (semantic-token-token token))
+	(name (semantic-token-name token))
+	str)
+    (setq str
+	  (concat name
+		  (cond ((eq tok 'function) "()")
+			((eq tok 'include) "<>")
+			((and (eq tok 'variable)
+			      (semantic-token-variable-default token))
+			 "=")
+			)))
+    (if parent
 	(setq str
-	      (concat name
-		      (cond ((eq tok 'function) "()")
-			    ((eq tok 'include) "<>")
-			    ((and (eq tok 'variable)
-				  (semantic-token-variable-default token))
-			     "=")
-			    )))
-	(if parent
-	    (setq str
-		  (concat (semantic-token-name parent)
-			  semantic-type-relation-separator-character
-			  str)))
-	str))))
+	      (concat (semantic-token-name parent)
+		      semantic-type-relation-separator-character
+		      str)))
+    str))
 
 ;; Semantic 1.2.x had this misspelling.  Keep it for backwards compatibiity.
 (defalias 'semantic-summerize-nonterminal 'semantic-summarize-nonterminal)
@@ -970,23 +976,27 @@ file prototypes belong in."
 	  (if (re-search-forward "::Header:: \\([a-zA-Z0-9.]+\\)" nil t)
 	      (match-string 1)))))))
 
-(defun semantic-nonterminal-children (token)
+(defun semantic-nonterminal-children (token &optional positionalonly)
   "Return the list of top level children belonging to TOKEN.
-Children are any sub-tokens which contain overlays.
+Children are any sub-tokens which may contain overlays.
 The default behavior (if not overriden with `nonterminal-children'
 is to return type parts for a type, and arguments for a function.
 
-If this function is overrideb, use `semantic-nonterminal-children-default'
+If optional argument POSITIONALONLY is non-nil, then only return valid
+children if they contain positions.  Some languages may choose to create
+lists of children without position/overlay information.
+
+If this function is overriden, use `semantic-nonterminal-children-default'
 to also include the default behavior, and merely extend your own.
 
 Note for language authors:
   If a mode defines a language that has tokens in it with overlays that
 should not be considered children, you should still return them with
 this function."
-  (let ((s (semantic-fetch-overload 'nonterminal-children)))
-    (if s
-	(funcall s token)
-      (semantic-nonterminal-children-default token))))
+  (let* ((s (semantic-fetch-overload 'nonterminal-children))
+	 (chil (if s (funcall s token)
+		 (semantic-nonterminal-children-default token))))
+    (if (semantic-token-p (car chil)) chil nil)))
 
 (defun semantic-nonterminal-children-default (token)
   "Return the children of TOKEN.
