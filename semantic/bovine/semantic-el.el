@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.28 2004/04/29 10:11:36 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.29 2004/06/24 00:22:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -617,7 +617,7 @@ If there is a detail, prepend that directory."
 	str)
     (cond
      ((eq class 'function)
-      (concat "(" name " )"))
+      (concat "(" name ")"))
      (t
       (semantic-format-tag-abbreviate-default tag parent color)))))
   
@@ -633,12 +633,13 @@ a real Emacs Lisp protype, we can fix it then."
 	str)
     (cond
      ((eq class 'function)
-      (concat "(" name " "
-	      (semantic--format-tag-arguments
-	       (semantic-tag-function-arguments tag)
-	       #'identity
-	       color)
-	      ")"))
+      (let* ((args  (semantic-tag-function-arguments tag))
+	     (argstr (semantic--format-tag-arguments args
+						     #'identity
+						     color)))
+	(concat "(" name (if args " " "")
+		argstr
+		")")))
      (t
       (semantic-format-tag-prototype-default tag parent color)))))
 
