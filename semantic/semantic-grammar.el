@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.32 2003/08/11 06:33:50 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.33 2003/08/15 13:05:37 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -66,7 +66,7 @@
     (goto-char (point-min))
     (if (re-search-forward "^\\s-*\\<%%\\>\\s-*$" nil t 2)
         (match-beginning 0)
-      (point-max))))
+      (1+ (point-max)))))
 
 (define-lex-regex-analyzer semantic-grammar-lex-epilogue
   "Detect and create an epilogue or percent-percent token."
@@ -387,7 +387,7 @@ nil."
     (while tags
       (setq tag  (car tags)
             tags (cdr tags))
-      (when (setq type (semantic-tag-get-attribute tag :type))
+      (when (setq type (semantic-tag-type tag))
         (setq names (semantic-tag-get-attribute tag :value)
               assoc (assoc type alist))
         (or assoc (setq assoc (list type)
@@ -408,8 +408,7 @@ nil."
             tags (cdr tags))
       (setq names (cons (semantic-tag-name tag)
                         (semantic-tag-get-attribute tag :rest))
-            type  (or (semantic-tag-get-attribute tag :type)
-                      "<no-type>")
+            type  (or (semantic-tag-type tag) "<no-type>")
             value (semantic-tag-get-attribute tag :value)
             assoc (assoc type alist))
       (or assoc (setq assoc (list type)
@@ -445,6 +444,22 @@ nil."
                   plist (cdr plist))))))
     props))
 
+(defun semantic-grammar-use-macros ()
+  "Return macro definitions from %use-macros statements.
+Also load the specified macro libraries."
+  (let (lib defs)
+    (dolist (tag (semantic-find-tags-by-class 'macro (current-buffer)))
+      (setq lib (intern (semantic-tag-type tag)))
+      (condition-case nil
+          ;;(load lib) ;; Be sure to use the latest macro library.
+          (require lib)
+        (error nil))
+      (dolist (mac (semantic-tag-get-attribute tag :value))
+        (push (cons (intern mac)
+                    (intern (format "%s-%s" lib mac)))
+              defs)))
+    (nreverse defs)))
+
 (defvar semantic-grammar-macros nil
   "List of associations (MACRO-NAME . EXPANDER).")
 (make-variable-buffer-local 'semantic-grammar-macros)
@@ -452,9 +467,8 @@ nil."
 (defun semantic-grammar-macros ()
   "Build and return the alist of defined macros."
   (append
-;;;; TODO
    ;; Definitions found in tags.
-   nil
+   (semantic-grammar-use-macros)
    ;; Other pre-installed definitions.
    semantic-grammar-macros))
 
@@ -783,11 +797,42 @@ nil."
          (error nil)))
   semantic--grammar-macros-regexp-1)
 
+(defconst semantic--grammar-macdecl-re
+  "\\<%use-macros\\>[ \t\r\n]+\\(\\sw\\|\\s_\\)+[ \t\r\n]+{"
+  "Regexp that matches a macro declaration statement.")
+
+(defvar semantic--grammar-macros-regexp-2 nil)
+(make-variable-buffer-local 'semantic--grammar-macros-regexp-2)
+
+(defun semantic--grammar-clear-macros-regexp-2 (&rest ignore)
+  "Clear the cached regexp that match macros local in this grammar.
+IGNORE arguments.
+Added to `before-change-functions' hooks to be run before each text
+change."
+  (setq semantic--grammar-macros-regexp-2 nil))
+
 (defun semantic--grammar-macros-regexp-2 ()
-  "Return font-lock keyword regexp for macros defined in grammar."
-  nil
-;;;; TODO
-  )
+  "Return the regexp that match macros local in this grammar."
+  (unless semantic--grammar-macros-regexp-2
+    (let (macs)
+      (save-excursion
+        (goto-char (point-min))
+        (while (re-search-forward semantic--grammar-macdecl-re nil t)
+          (condition-case nil
+              (setq macs (nconc macs
+                                (split-string
+                                 (buffer-substring-no-properties
+                                  (point)
+                                  (progn
+                                    (backward-char)
+                                    (forward-list 1)
+                                    (down-list -1)
+                                    (point))))))
+            (error nil)))
+        (when macs
+          (setq semantic--grammar-macros-regexp-2
+                (concat "(\\s-*" (regexp-opt macs t) "\\>"))))))
+  semantic--grammar-macros-regexp-2)
 
 (defun semantic--grammar-macros-matcher (end)
   "Search for a grammar macro name to highlight.
@@ -880,6 +925,7 @@ END is the limit of the search."
     (define-key km "\t"       'semantic-grammar-indent)
     (define-key km "\M-\t"    'semantic-grammar-complete)
     (define-key km "\C-c\C-c" 'semantic-grammar-create-package)
+    (define-key km "\C-cm"    'semantic-grammar-find-macro-expander)
 ;;  (define-key km "\C-cc"    'semantic-grammar-generate-and-load)
 ;;  (define-key km "\C-cr"    'semantic-grammar-generate-one-rule)
 
@@ -966,6 +1012,11 @@ the change bounds to encompass the whole nonterminal tag."
           ))
   (make-local-variable 'semantic-stickyfunc-sticky-classes)
   (setq semantic-stickyfunc-sticky-classes '(nonterminal))
+  ;; Before each change, clear the cached regexp used to highlight
+  ;; macros local in this grammar.
+  (semantic-make-local-hook 'before-change-functions)
+  (add-hook 'before-change-functions
+            'semantic--grammar-clear-macros-regexp-2 nil t)
   ;; Handle safe re-parse of grammar rules.
   (semantic-make-local-hook 'semantic-edits-new-change-hooks)
   (add-hook 'semantic-edits-new-change-hooks
@@ -1141,6 +1192,79 @@ Use the Lisp or grammar indenter depending on point location."
             ))
     ))
 
+;;; Macro facilities
+;;
+
+(defsubst semantic--grammar-macro-function-tag (name)
+  "Search for a function tag for the grammar macro with name NAME.
+Return the tag found or nil if not found."
+  (car (semantic-find-tags-by-class
+        'function
+        (or (semantic-find-tags-by-name name (current-buffer))
+            (and (featurep 'semanticdb)
+                 semanticdb-current-database
+                 (cdar (semanticdb-find-tags-by-name name nil t)))))))
+
+(defsubst semantic--grammar-macro-lib-part (def)
+  "Return the library part of the grammar macro defined by DEF."
+  (let ((suf (format "-%s\\'" (regexp-quote (symbol-name (car def)))))
+        (fun (symbol-name (cdr def))))
+    (substring fun 0 (string-match suf fun))))
+
+(defun semantic--grammar-macro-compl-elt (def &optional full)
+  "Return a completion entry for the grammar macro defined by DEF.
+If optional argument FULL is non-nil qualify the macro name with the
+library found in DEF."
+  (let ((mac (car def))
+        (lib (semantic--grammar-macro-lib-part def)))
+    (cons (if full
+              (format "%s/%s" mac lib)
+            (symbol-name mac))
+          (list mac lib))))
+
+(defun semantic--grammar-macro-compl-dict ()
+  "Return a completion dictionnary of macro definitions."
+  (let ((defs (semantic-grammar-macros))
+        def dups dict)
+    (while defs
+      (setq def  (car defs)
+            defs (cdr defs))
+      (if (or (assoc (car def) defs) (assoc (car def) dups))
+          (push def dups)
+        (push (semantic--grammar-macro-compl-elt def) dict)))
+    (while dups
+      (setq def  (car dups)
+            dups (cdr dups))
+      (push (semantic--grammar-macro-compl-elt def t) dict))
+    dict))
+
+(defun semantic-grammar-find-macro-expander (macro-name library)
+  "Visit the Emacs Lisp library where a grammar macro is implemented.
+MACRO-NAME is a symbol that identifies a grammar macro.
+LIBRARY is the name (sans extension) of the Emacs Lisp library where
+to start searching the macro implementation.  Lookup in included
+libraries, if necessary.
+Find a function tag (in current tags table) whose name contains MACRO-NAME.
+Select the buffer containing the tag's definition, and move point there."
+  (interactive
+   (let* ((dic (semantic--grammar-macro-compl-dict))
+          (def (assoc (completing-read "Macro: " dic nil 1) dic)))
+     (or (cdr def) '(nil nil))))
+  (when (and macro-name library)
+    (let* ((lib (format "%s.el" library))
+           (buf (find-file-noselect (or (locate-library lib t) lib)))
+           (tag (with-current-buffer buf
+                  (semantic--grammar-macro-function-tag
+                   (format "%s-%s" library macro-name)))))
+      (if tag
+          (progn
+            (pop-to-buffer (semantic-tag-buffer tag))
+            (goto-char (semantic-tag-start tag))
+            (semantic-momentary-highlight-tag tag))
+        (pop-to-buffer buf)
+        (message "No expander found in library %s for macro %s"
+                 library macro-name)))))
+
 ;;; Additional help
 ;;
 
@@ -1261,8 +1385,8 @@ Optional argument COLOR determines if color is added to the text."
      ((eq class 'token)
       (setq label "Token: ")
       (let ((val   (semantic-tag-get-attribute tag :value))
-            (type  (semantic-tag-get-attribute tag :type))
-            (names (semantic-tag-get-attribute tag :rest)))
+            (names (semantic-tag-get-attribute tag :rest))
+            (type  (semantic-tag-type tag)))
         (if names
             (setq name (mapconcat 'identity (cons name names) " ")))
         (setq desc (concat
@@ -1275,7 +1399,7 @@ Optional argument COLOR determines if color is added to the text."
      ((eq class 'assoc)
       (setq label "Assoc: ")
       (let ((val   (semantic-tag-get-attribute tag :value))
-            (type  (semantic-tag-get-attribute tag :type)))
+            (type  (semantic-tag-type tag)))
         (setq desc (concat
                     (if type
                         (format " <%s>" type)
