@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.133 2001/12/07 01:27:29 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.134 2001/12/08 03:10:47 zappo Exp $
 
 (defvar semantic-version "1.4beta13"
   "Current version of Semantic.")
@@ -56,7 +56,7 @@
       (defalias 'semantic-overlay-delete 'delete-extent)
       (defalias 'semantic-overlays-at
         (lambda (pos) (extent-list nil pos pos)))
-      (defalias 'semantic-overlays-in 
+      (defalias 'semantic-overlays-in
 	(lambda (beg end) (extent-list nil beg end)))
       (defalias 'semantic-overlay-buffer 'extent-buffer)
       (defalias 'semantic-overlay-start 'extent-start-position)
@@ -1613,11 +1613,16 @@ PROPERTY value."
 
 ;;; Lexical Analysis
 ;;
-(defvar semantic-flex-unterminated-syntax-throw-symbol nil
-  "Symbol specifying what the `throw' upon finding unterminated syntax.
-Lists, and strings, could be unterminated.  this provides something that
-can be `thrown' from the lexical analysis phase for tools that wish
-to take special care when problems arrize during a parse.")
+(defvar semantic-flex-unterminated-syntax-end-function
+  (lambda (syntax syntax-start flex-end) flex-end)
+  "Function called when unterminated syntax is encountered.
+This should be set to one function.  That function should take three
+parameters.  The SYNTAX, or type of syntax which is unterminated.
+SYNTAX-START where the broken syntax begins.
+FLEX-END is where the lexical analysis was asked to end.
+This function can be used for languages that can intelligently fix up
+broken syntax, or the exit lexical analysis via `throw' or `signal'
+when finding unterminated syntax.")
 
 (defvar semantic-flex-extensions nil
   "Buffer local extensions to the lexical analyzer.
@@ -1790,14 +1795,13 @@ LENGTH tokens."
 					   ;; This case makes flex robust
 					   ;; to broken lists.
 					   (error
-					    (if semantic-flex-unterminated-syntax-throw-symbol
-						;; If requested, throw an error
-						(throw semantic-flex-unterminated-syntax-throw-symbol
-						       'semantic-list)
-					      ;; gracefully recover
-					      (goto-char end))))
+					    (goto-char
+					     (funcall
+					      semantic-flex-unterminated-syntax-end-function
+					      'semantic-list
+					      start end))))
 					 (setq ep (point)))))
-				ts))))
+			   ts))))
 	      ;; Close parens
 	      ((looking-at "\\s)")
 	       (setq ts (cons (cons 'close-paren
@@ -1815,12 +1819,11 @@ LENGTH tokens."
                                               ;; This case makes flex
                                               ;; robust to broken strings.
                                               (error
-					       (if semantic-flex-unterminated-syntax-throw-symbol
-						   ;; If requested, throw an error
-						   (throw semantic-flex-unterminated-syntax-throw-symbol
-							  'string)
-						 ;; gracefully recover
-						 (goto-char end))))
+					       (goto-char
+						(funcall
+						 semantic-flex-unterminated-syntax-end-function
+						 'string
+						 start end))))
 					    (setq ep (point)))))
 			      ts)))
 	      ((looking-at cs)
