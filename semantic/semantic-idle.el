@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.4 2003/12/23 02:19:44 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.5 2003/12/28 17:52:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,7 +45,7 @@
   "Timer used to schedule tasks in idle time.")
 
 (defcustom semantic-idle-scheduler-idle-time 2
-  "*Time in seconds of idle time before auto-reparse.
+  "*Time in seconds of idle before scheduling events.
 This time should be short enough to ensure that idle-scheduler will be
 run as soon as Emacs is idle."
   :group 'semantic
@@ -270,11 +270,13 @@ reparsed regardless of their size."
 
 (defvar semantic-before-idle-scheduler-reparse-hooks nil
   "Hooks run before option `semantic-idle-scheduler' begins parsing.
-If any hook throws an error, this variable is reset to nil.")
+If any hook throws an error, this variable is reset to nil.
+This hook is not protected from lexical errors.")
 
 (defvar semantic-after-idle-scheduler-reparse-hooks nil
   "Hooks run after option `semantic-idle-scheduler' has parsed.
-If any hook throws an error, this variable is reset to nil.")
+If any hook throws an error, this variable is reset to nil.
+This hook is not protected from lexical errors.")
 
 (defun semantic-idle-scheduler-refresh-tags ()
   "Refreshes the current buffer's tags.
@@ -300,11 +302,6 @@ size exceeds the `semantic-idle-scheduler-max-buffer-size' threshold."
 	  (if semantic-idle-scheduler-no-working-message
 	      nil
 	    working-status-percentage-type))
-	 (semantic-lex-unterminated-syntax-end-function
-	  (lambda (syntax start end) (throw 'idle-scheduler syntax)))
-	 ;; When flex is deleted, delete this also.
-	 (semantic-flex-unterminated-syntax-end-function
-	  (lambda (syntax start end) (throw 'idle-scheduler syntax)))
 	 (lexically-safe t)
 	 )
     ;; Let people hook into this, but don't let them hose
@@ -315,11 +312,9 @@ size exceeds the `semantic-idle-scheduler-max-buffer-size' threshold."
 
     (unwind-protect
 	;; Perform the parsing.
-	(when (catch 'idle-scheduler
-		(save-excursion
-		  (semantic-bovinate-toplevel t)
+	(when (semantic-lex-catch-errors 'idle-scheduler
+		(save-excursion (semantic-bovinate-toplevel t))
 		  nil)
-		nil)
 	  ;; If we are here, it is because the lexical step failed,
 	  ;; proably due to unterminated lists or something like that.
 
@@ -475,13 +470,13 @@ Return the tag found or nil if not found."
     (and
      ;; 1- Look for a tag with current symbol name
      (setq sym (car (semantic-ctxt-current-symbol)))
-     (not (setq found (senator-find-current-symbol-tag sym)))
+     (not (setq found (semantic-idle-summary-find-current-symbol-tag sym)))
      ;; 2- Look for a keyword with that name
      (semantic-lex-keyword-p sym)
      (not (setq found (semantic-lex-keyword-get sym 'summary)))
      ;; 3- Look for a tag with current function name
      (setq sym (car (semantic-ctxt-current-function)))
-     (not (setq found (senator-find-current-symbol-tag sym)))
+     (not (setq found (semantic-idle-summary-find-current-symbol-tag sym)))
      ;; 4- Look for a keyword with that name
      (semantic-lex-keyword-p sym)
      (setq found (semantic-lex-keyword-get sym 'summary)))
