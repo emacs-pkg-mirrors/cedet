@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.22 2001/12/05 01:25:05 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.23 2003/02/22 15:30:03 ponced Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -262,7 +262,7 @@ It has depth DEPTH."
   "Find the file TEXT at path TOKEN.
 INDENT is the current indentation level."
   (speedbar-find-file-in-frame
-   (concat (speedbar-line-path) token)))
+   (concat (speedbar-line-directory) token)))
 
 (defun ede-create-tag-buttons (filename indent)
   "Create the tag buttons associated with FILENAME at INDENT."
