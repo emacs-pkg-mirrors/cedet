@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.30 2001/06/05 20:09:43 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.31 2001/07/13 16:04:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -696,8 +696,8 @@ Override function for `semantic-nonterminal-protection'."
 			 'public)
 			((string= (semantic-token-name (car pp)) "private")
 			 'private)
-			((string= (semantic-token-name (car pp)) "friend")
-			 'friend)))
+			((string= (semantic-token-name (car pp)) "protected")
+			 'protected)))
 	    )
 	  (setq pp (cdr pp)))))
     prot))
