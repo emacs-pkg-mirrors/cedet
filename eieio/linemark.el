@@ -5,7 +5,7 @@
 ;; Created: Dec 1999
 ;; Keywords: lisp
 ;;
-;; Copyright (C) 1999, 2001, 2002 Eric M. Ludlam
+;; Copyright (C) 1999, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -73,33 +73,41 @@
     (defalias 'linemark-overlay-p 'overlayp)
     ))
 
+(defgroup linemark nil
+  "Line marking/highlighting."
+  )
+
 (eval-and-compile
   ;; These faces need to exist to show up as valid default
   ;; entries in the classes defined below.
 
 (defface linemark-stop-face '((((class color) (background light))
-			       (:background "red4"))
+			       (:background "#ff8888"))
 			      (((class color) (background dark))
 			       (:background "red3")))
-  "*Face used to indicate a STOP type line.")
+  "*Face used to indicate a STOP type line."
+  :group 'linemark)
 
 (defface linemark-caution-face '((((class color) (background light))
-				  (:background "yellow3"))
+				  (:background "yellow"))
 				 (((class color) (background dark))
-				  (:background "yellow" :foreground "black")))
-  "*Face used to indicate a CAUTION type line.")
+				  (:background "yellow4")))
+  "*Face used to indicate a CAUTION type line."
+  :group 'linemark)
 				  
 (defface linemark-go-face '((((class color) (background light))
-			     (:background "green"))
+			     (:background "#88ff88"))
 			    (((class color) (background dark))
 			     (:background "green4")))
-  "*Face used to indicate a GO, or OK type line.")
+  "*Face used to indicate a GO, or OK type line."
+  :group 'linemark)
 
 (defface linemark-funny-face '((((class color) (background light))
 				(:background "cyan"))
 			       (((class color) (background dark))
-				(:background "blue")))
-  "*Face used to indicate a GO, or OK type line.")
+				(:background "blue3")))
+  "*Face used for elements with no particular criticality."
+  :group 'linemark)
 
 )
 
@@ -111,6 +119,7 @@
 	     :type number
 	     :documentation "Line number where the mark is.")
    (face     :initarg :face
+; Something created w/ defface is not a face in XEmacs.
 ;	     :type face
 	     :initform linemark-caution-face
 	     :documentation "The face to use for display.")
@@ -129,6 +138,7 @@
 	  :documentation "List of `linemark-entries'.")
    (face :initarg :face
 	 :initform linemark-funny-face
+; Something created w/ defface is not a face in XEmacs.
 ;	 :type (or null face)
 	 :documentation "Default face used to create new `linemark-entries'.")
    (active :initarg :active
