@@ -1,10 +1,10 @@
 ;;; chart.el --- Draw charts (bar charts, etc)
 
-;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.1
-;; RCS: $Id: chart.el,v 1.9 2000/07/16 21:42:22 zappo Exp $
+;; RCS: $Id: chart.el,v 1.10 2001/02/17 14:59:21 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -27,19 +27,19 @@
 ;;
 ;; Please send bug reports, etc. to zappo@gnu.org
 
-;;; Future versions of Chart can be found at:
-;;  ftp://ftp.ultranet.com/pub/zappo
-
 ;;; Commentary:
+;;
 ;;   This package is an experiment of mine aiding in the debugging of
 ;; eieio, and proved to be neat enough that others may like to use
 ;; it.  To quickly see what you can do with chart, run the command
 ;; `chart-test-it-all'.
+;;
 ;;   Chart current can display bar-charts in either of two
 ;; directions.  It also supports ranged (integer) axis, and axis
 ;; defined by some set of strings or names.  These name can be
 ;; automatically derived from data sequences, which are just lists of
 ;; anything encapsulated in a nice eieio object.
+;;
 ;;   Current example apps for chart can be accessed via these commands:
 ;; `chart-file-count'     - count files w/ matching extensions
 ;; `chart-space-usage'    - display space used by files/directories
@@ -48,12 +48,14 @@
 ;; `chart-rmail-from'     - who sends you the most mail (in -summary only)
 ;;
 ;; Customization:
+;;
 ;;   If you find the default colors and pixmaps unpleasant, or too
 ;; short, you can change them.  The variable `chart-face-color-list'
 ;; contains a list of colors, and `chart-face-pixmap-list' contains
 ;; all the pixmaps to use.  The current pixmaps are those found on
 ;; several systems I found.  The two lists should be the same length,
 ;; as the long list will just be truncated.
+;;
 ;;   If you would like to draw your own stipples, simply create some
 ;; xbm's and put them in a directory, then you can add:
 ;;
@@ -61,9 +63,6 @@
 ;;
 ;; to your .emacs (or wherever) and load the `chart-face-pixmap-list'
 ;; with all the bitmaps you want to use.
-;;
-;; PREFERRED: Emacs 19.30 or better, but should work with earlier
-;;            versions but without special fonts/colors/pixmaps
 
 (require 'eieio)
 
@@ -139,19 +138,25 @@ Returns the newly created buffer"
    (x-margin :initarg :x-margin
 	     :initform 5)
    (x-width :initarg :x-width
-	    :initform (lambda () (- (window-width) 10)))
+	    )
    (y-axis :initarg :y-axis
 	   :initform nil)
    (y-margin :initarg :y-margin
 	     :initform 5)
    (y-width :initarg :y-width
-	    :initform (lambda () (- (window-height) 10)))
+	    )
    (key-label :initarg :key-label
 	      :initform "Key")
    (sequences :initarg :sequences
 	      :initform nil)
    )
   "Superclass for all charts to be displayed in an emacs buffer")
+
+(defmethod initialize-instance :AFTER ((obj chart) &rest fields)
+  "Initialize the chart OBJ being created with FIELDS.
+Make sure the width/height is correct."
+  (oset obj x-width (- (window-width) 10))
+  (oset obj y-width (- (window-height) 10)))
 
 (defclass chart-axis ()
   ((name :initarg :name
