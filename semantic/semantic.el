@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.84 2001/02/20 22:20:24 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.85 2001/02/21 20:47:20 zappo Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -241,7 +241,11 @@ documented here are allowed.
   (const .  t) - This exists if the variable or return value is constant.
 
   (throws .  \"text\") - For functions or methods in languages that support
-     typed signal throwing.")
+     typed signal throwing.
+
+  (user-visible . t) - For functions in interpreted languages such as Emacs Lisp,
+     this signals that a function or variable is user visible.  In Emacs Lisp,
+     this means a function is `interactive'.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table)
 
 (defvar semantic-symbol->name-assoc-list
@@ -312,10 +316,10 @@ The functions must take TOKEN, START, and END as a parameters.")
   "Hooks run after when a token is marked as clean.
 The functions must take a TOKEN as a parameter.")
 
-(defvar semantic-toplevel-bovinate-override nil
+(defvar semantic-bovinate-toplevel-override nil
   "Local variable set by major modes which provide their own bovination.
 This function should behave as the function `semantic-bovinate-toplevel'.")
-(make-variable-buffer-local 'semantic-toplevel-bovinate-override)
+(make-variable-buffer-local 'semantic-bovinate-toplevel-override)
 
 (defvar semantic-after-toplevel-bovinate-hook nil
   "Hooks run after a toplevel token parse.
@@ -483,7 +487,7 @@ The returned item may be an overlay or an unloaded buffer representation."
 (defun semantic-active-p ()
   "Return non-nil if the current buffer was set up for parsing."
   (or semantic-toplevel-bovine-table
-      semantic-toplevel-bovinate-override))
+      semantic-bovinate-toplevel-override))
 
 (defun semantic-find-file-hook ()
   "Run in `find-file-hooks'.
@@ -511,7 +515,9 @@ Runs `semantic-init-hook' if the major mode is setup to use semantic."
 ;;; Parsing functions
 ;;
 (defun semantic-clear-toplevel-cache ()
-  "Clear the toplevel bovin cache for the current buffer."
+  "Clear the toplevel bovin cache for the current buffer.
+Clearing the cache will force a complete reparse next time a token
+stream is requested."
   (interactive)
   (run-hooks 'semantic-before-toplevel-cache-flush-hook)
   (setq semantic-toplevel-bovine-cache nil)
@@ -555,13 +561,15 @@ Optional argument CHECKCACHE indicates if the cache check should be made."
 If the optional argument CHECKCACHE is non-nil, then flush the cache iff
 there has been a size change."
   (cond
-   (semantic-toplevel-bovinate-override
+   ((and semantic-bovinate-toplevel-override
+	 ;; We cannot predict partial reparsing for these parsers.  Let them
+	 ;; fend for themselves.  We can, however, handle the main cache for them.
+	 (or (semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
+	     (semantic-bovine-toplevel-full-reparse-needed-p checkcache)))
     (semantic-clear-toplevel-cache)
     ;; Call a custom function
-    (let ((res (funcall semantic-toplevel-bovinate-override checkcache)))
-      ;; Don't use the main function.  We don't want partial reparse
-      ;; for these special cases.
-      (setq semantic-toplevel-bovine-cache (nreverse res)))
+    (let ((res (funcall semantic-bovinate-toplevel-override checkcache)))
+      (semantic-set-toplevel-bovine-cache res))
     (run-hooks 'semantic-after-toplevel-bovinate-hook)
     semantic-toplevel-bovine-cache
     )
@@ -1267,7 +1275,7 @@ apply those properties"
     obarray))
 
 (defun semantic-flex-keyword-p (text)
-  "Return a symbol if TEXT is a keyword."
+  "Return a symbol if TEXT is a keyword in the keyword table."
   (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
     (if sym (symbol-value sym))))
 
