@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.106 2001/05/31 16:56:35 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.107 2001/07/05 15:41:11 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta2"
   "Current version of EIEIO.")
@@ -1106,8 +1106,13 @@ Fills in the default value in CLASS' in FIELD with VALUE."
 		    value))
 	  (signal 'invalid-slot-name (list (class-name class) field)))
       (eieio-validate-slot-value class c value field)
+      ;; Set this into the storage for defaults.
       (setcar (nthcdr (- c 3) (aref (class-v class) class-public-d))
-	      value))))
+	      value)
+      ;; Take the value, and put it into our cache object.
+      (eieio-oset (aref (class-v class) class-default-object-cache)
+		  field value)
+      )))
 
 ;;; Handy CLOS macros
 ;;
