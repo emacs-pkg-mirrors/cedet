@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.2 2001/08/08 01:02:02 zappo Exp $
+ * $Id: test.cpp,v 1.3 2001/08/17 21:22:59 zappo Exp $
  *
  */
 
@@ -51,6 +51,8 @@ class i_class2 : public class1, public class2 {
 private:
   int var21;
   struct foo var22;
+protected:
+  int pt_var21;
 public:
   int p_var21;
   struct foo p_var22;
@@ -70,7 +72,7 @@ public:
   class embedded_class {
     embedded_class();
     ~embedded_class();
-  }
+  };
   ~class3(); /* destructor */
   
   /* Methods */
