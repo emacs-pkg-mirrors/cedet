@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.208 2001/10/26 13:06:03 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.209 2001/10/27 21:12:19 zappo Exp $
 
 (defvar speedbar-version "0.14beta2"
   "The current version of speedbar.")
@@ -859,6 +859,10 @@ supported at a time.
     (speedbar-update-contents)
     (speedbar-set-timer dframe-update-speed)
     )
+  ;; Frame modifications
+  (set (make-local-variable 'dframe-delete-frame-function)
+       'speedbar-handle-delete-frame)
+  ;; hscroll
   (set (make-local-variable 'automatic-hscrolling) nil) ; Emacs 21
   ;; reset the selection variable
   (setq speedbar-last-selected-file nil))
@@ -908,6 +912,15 @@ Doing this allows the creation of a second speedbar."
 (defsubst speedbar-current-frame ()
   "Return the frame to use for speedbar based on current context."
   (dframe-current-frame 'speedbar-frame 'speedbar-mode))
+
+(defun speedbar-handle-delete-frame (e)
+  "Handle a delete frame event E.
+If the deleted frame is the frame SPEEDBAR is attached to,
+we need to delete speedbar also."
+  (let ((frame-to-be-deleted (car (car (cdr e)))))
+    (if (eq frame-to-be-deleted dframe-attached-frame)
+	(delete-frame speedbar-frame)))
+  )
 
 ;;;###autoload
 (defun speedbar-get-focus ()
@@ -2900,14 +2913,16 @@ Optional argument P is where to start the search from."
 The return value is a string representing the file.  If it is a
 directory, then it is the directory name."
   (save-match-data
-    (let ((f (speedbar-line-text p)))
-      (if f
-	  (let* ((depth (string-to-int (match-string 1)))
-		 (path (speedbar-line-path depth)))
-	    (if (file-exists-p (concat path f))
-		(concat path f)
-	      nil))
-	nil))))
+    (save-restriction
+      (widen)
+      (let ((f (speedbar-line-text p)))
+	(if f
+	    (let* ((depth (string-to-int (match-string 1)))
+		   (path (speedbar-line-path depth)))
+	      (if (file-exists-p (concat path f))
+		  (concat path f)
+		nil))
+	  nil)))))
 
 (defun speedbar-goto-this-file (file)
   "If FILE is displayed, goto this line and return t.
@@ -2952,8 +2967,10 @@ Otherwise do not move and return nil."
 This may require traversing backwards from DEPTH and combining the default
 directory with these items.  This function is replaceable in
 `speedbar-mode-functions-list' as `speedbar-line-path'"
-  (let ((rf (speedbar-fetch-replacement-function 'speedbar-line-path)))
-    (if rf (funcall rf depth) default-directory)))
+  (save-restriction
+    (widen)
+    (let ((rf (speedbar-fetch-replacement-function 'speedbar-line-path)))
+      (if rf (funcall rf depth) default-directory))))
       
 (defun speedbar-files-line-path (&optional depth)
   "Retrieve the pathname associated with the current line.
