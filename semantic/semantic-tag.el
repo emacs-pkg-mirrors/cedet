@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.28 2004/10/04 10:10:45 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.29 2004/10/05 10:59:01 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -254,9 +254,9 @@ Return nil if that information can't be obtained."
 	   (symbolp (nth 1 tag)) (nth 1 tag)  ; TAG-CLASS
 	   (listp (nth 2 tag))                ; ATTRIBUTES
 	   (listp (nth 3 tag))                ; PROPERTIES
-	   ))
-  ;; If an error occurs, then it most certainly is not a tag.
-  (error nil))
+	   )
+    ;; If an error occurs, then it most certainly is not a tag.
+    (error nil)))
 
 (defsubst semantic-tag-of-class-p (tag class)
   "Return non-nil if class of TAG is CLASS."
