@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.9 2003/03/21 03:21:09 zappo Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.10 2003/03/21 03:25:49 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -117,7 +117,7 @@ QUOTEMODE is the current mode of quotation."
 PARMS is the parameter list.
 QUOTEMODE is the current mode of quotation."
   (bovine-grammar-expand-form
-   `(semantic-tag-new-CODE ,@parms)
+   `(semantic-tag-new-code ,@parms)
    quotemode t))
 
 (defun bovine-grammar-expand-form (form quotemode &optional inplace)
