@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.37 2003/12/11 01:08:06 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.38 2003/12/19 17:07:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -775,16 +775,24 @@ minor mode is enabled."
 	(semantic-make-local-hook 'semantic-after-partial-cache-change-hook)
 	(add-hook 'semantic-after-partial-cache-change-hook
 		  'semantic-show-parser-state-marker nil t)
+	(semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
+	(add-hook 'semantic-after-toplevel-cache-change-hook
+		  'semantic-show-parser-state-marker nil t)
+	(semantic-show-parser-state-marker)
+
 	(semantic-make-local-hook 'semantic-before-auto-parse-hooks)
 	(add-hook 'semantic-before-auto-parse-hooks
 		  'semantic-show-parser-state-auto-marker nil t)
 	(semantic-make-local-hook 'semantic-after-auto-parse-hooks)
 	(add-hook 'semantic-after-auto-parse-hooks
 		  'semantic-show-parser-state-marker nil t)
-	(semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
-	(add-hook 'semantic-after-toplevel-cache-change-hook
+
+	(semantic-make-local-hook 'semantic-before-idle-scheduler-reparse-hooks)
+	(add-hook 'semantic-before-idle-scheduler-reparse-hooks
+		  'semantic-show-parser-state-auto-marker nil t)
+	(semantic-make-local-hook 'semantic-after-idle-scheduler-reparse-hooks)
+	(add-hook 'semantic-after-idle-scheduler-reparse-hooks
 		  'semantic-show-parser-state-marker nil t)
-	(semantic-show-parser-state-marker)
         )
     ;; Remove parts of mode line
     (setq mode-line-modified
@@ -796,11 +804,17 @@ minor mode is enabled."
 		 'semantic-show-parser-state-marker t)
     (remove-hook 'semantic-after-partial-cache-change-hook
 		 'semantic-show-parser-state-marker t)
+    (remove-hook 'semantic-after-toplevel-cache-change-hook
+		 'semantic-show-parser-state-marker t)
+
     (remove-hook 'semantic-before-auto-parse-hooks
 		 'semantic-show-parser-state-auto-marker t)
     (remove-hook 'semantic-after-auto-parse-hooks
 		 'semantic-show-parser-state-marker t)
-    (remove-hook 'semantic-after-toplevel-cache-change-hook
+
+    (remove-hook 'semantic-before-idle-scheduler-reparse-hooks
+		 'semantic-show-parser-state-auto-marker t)
+    (remove-hook 'semantic-after-idle-scheduler-reparse-hooks
 		 'semantic-show-parser-state-marker t)
     )
   semantic-show-parser-state-mode)
@@ -1214,16 +1228,18 @@ minor mode is enabled."
 		  'semantic-stb-reparse-hook nil t)
 	(semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
 	(add-hook 'semantic-after-toplevel-cache-change-hook
-		  'semantic-stb-reparse-hook nil t)
+		  'semantic-stb-after-full-reparse-hook nil t)
 	(semantic-stb-reparse-hook (semantic-bovinate-toplevel))
 	)
     ;; Cleanup tag boundaries highlighting
     (semantic-stb-clear-boundaries (semantic-bovinate-toplevel))
+    ;; Cleanup any leftover crap too.
+    (semantic-stb-flush-rogue-boundaries)
     ;; Remove hooks
     (remove-hook 'semantic-after-partial-cache-change-hook
 		 'semantic-stb-reparse-hook t)
     (remove-hook 'semantic-after-toplevel-cache-change-hook
-		 'semantic-stb-reparse-hook t)
+		 'semantic-stb-after-full-reparse-hook t)
     )
   semantic-show-tag-boundaries-mode)
   
@@ -1255,10 +1271,10 @@ minor mode is enabled."
   semantic-show-tag-boundaries-mode)
 
 (define-overload semantic-tag-boundary-p (tag)
-  "Return non-nil of TAG should have a boundary placed on it.")
+  "Return non-nil if TAG should have a boundary placed on it.")
 
 (defun semantic-tag-boundary-p-default (tag)
-  "Non nil of TAG is a type, or a non-prototype function."
+  "Non nil if TAG is a type, or a non-prototype function."
   (let ((c (semantic-tag-class tag)))
 
     (and
@@ -1279,11 +1295,18 @@ minor mode is enabled."
   "Non nil of OL is an overlay that is a tag boundary."
   (semantic-overlay-get ol 'semantic-stb))
 
+(defun semantic-stb-flush-rogue-boundaries ()
+  "Flush ALL secondary overlays associated with boundaries."
+  (let ((ol (semantic-overlays-in (point-min) (point-max))))
+    (while ol
+      (if (semantic-tag-boundary-overlay-p (car ol))
+	  (semantic-overlay-delete (car ol)))
+      (setq ol (cdr ol)))))
+
 (defun semantic-stb-clear-boundaries (tag-list)
   "Clear boundaries off from TAG-LIST."
   (while tag-list
-    (semantic-tag-delete-secondary-overlay (car tag-list)
-					   'semantic-stb)
+    (semantic-tag-delete-secondary-overlay (car tag-list) 'semantic-stb)
 
     ;; recurse over children
     (semantic-stb-clear-boundaries
@@ -1292,10 +1315,20 @@ minor mode is enabled."
     (setq tag-list (cdr tag-list)))
   )
 
+(defun semantic-stb-after-full-reparse-hook (tag-list)
+  "Called after a complete reparse of the current buffer.
+Eventually calls `semantic-stb-reparse-hook'."
+  ;; Flush everything
+  (semantic-stb-flush-rogue-boundaries)
+  ;; Add it back on
+  (semantic-stb-reparse-hook tag-list))
+
 (defun semantic-stb-reparse-hook (tag-list)
   "Called when the new tags TAG-LIST are created in a buffer.
 Adds decorations on them to help show tag boundaries."
   (while tag-list
+    ;; If the tag we are looking at already has a boundary, delete it.
+    (semantic-tag-delete-secondary-overlay (car tag-list) 'semantic-stb)
     ;; Only line up certain classes of tag.
     (when (semantic-tag-boundary-p (car tag-list))
       (semantic-stb-highlight-tag-line1 (car tag-list)))
