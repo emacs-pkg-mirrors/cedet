@@ -1,10 +1,10 @@
 ;;; eieio-base.el --- Base classes for EIEIO.
 
 ;;;
-;; Copyright (C) 2000, 2001 Eric M. Ludlam
+;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.13 2001/12/04 01:44:52 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.14 2002/02/23 03:18:02 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -56,7 +56,8 @@ is checked for a value.")
   "This special class can enable instance inheritance.
 Use `clone' to make a new object that does instance inheritance from
 a parent instance.  When a slot in the child is referenced, and has
-not been set, use values from the parent.")
+not been set, use values from the parent."
+  :abstract t)
 
 (defmethod slot-unbound ((object eieio-instance-inheritor) class slot-name fn)
   "If a slot OBJECT in this CLASS is unbound, try to inherit, or throw a signal.
@@ -102,7 +103,8 @@ The instance list is treated as a variable, with new instances added to it.")
    )
   "This special class enables instance tracking.
 Inheritors from this class must overload `tracking-symbol' which is
-a variable symbol used to store a list of all instances.")
+a variable symbol used to store a list of all instances."
+  :abstract t)
 
 (defmethod initialize-instance :AFTER ((this eieio-instance-tracker)
 				       &rest fields)
@@ -159,7 +161,8 @@ This is used with the `object-write' method."))
 Use the `object-save' method to write this object to disk.  The save
 format is Emacs Lisp code which calls the constructor for the saved
 object.  For this reason, only slots which do not have an `:initarg'
-specified will not be saved.")
+specified will not be saved."
+  :abstract t)
 
 (defmethod eieio-persistent-save-interactive ((this eieio-persistent) prompt
 					      &optional name)
@@ -239,7 +242,8 @@ instance."
   ()
   "Object with a name.
 Name storage already occurs in an object.  This object provides get/set
-access to it.")
+access to it."
+  :abstract t)
 
 (defmethod slot-missing ((obj eieio-named)
 			 slot-name operation &optional new-value)
