@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.7 1999/03/02 15:47:44 zappo Exp $
+;; RCS: $Id: ede.el,v 1.8 1999/03/09 14:28:08 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -171,6 +171,9 @@ type is required and the load function used.")
 	    :custom (repeat object)
 	    :documentation "Sub projects controlled by this project.
 For Automake based projects, each directory is treated as a project.")
+   (local-variables :initarg :local-variables
+		    :initform nil
+		    :documentation "Project local variables")
    )
   "Top level EDE project specification.
 All specific project types must derive from this project.")
@@ -410,14 +413,15 @@ ARGS are additional arguments to pass to method sym."
   (if ede-object
       ;; Make sure a file is in only one target.
       ;; Is this a valid assumption?
-      (if (y-or-n-p (format "Remove from %s?" (ede-name ede-object)))
+      (if (y-or-n-p (format "Remove from %s? " (ede-name ede-object)))
 	  (ede-remove-file 'force)
-	(error "Quit.")))
+	(error "Quit")))
   (project-add-file target (buffer-file-name))
   (setq ede-object target))
 
 (defun ede-remove-file (&optional force)
-  "Remove the current file from targets."
+  "Remove the current file from targets.
+Optional argument FORCE forces the file to be removed without asking."
   (interactive "P")
   (if (not ede-object)
       (error "Cannot invoke remove-file for %s" (buffer-name)))
@@ -505,25 +509,25 @@ Argument FNND is an argument."
   (find-file (oref (ede-current-project) file)))
 
 (defmethod project-new-target ((proj ede-project))
-  "Create a new target.  It is up to the project PROG to get the name."
+  "Create a new target.  It is up to the project PROJ to get the name."
   (error "new-target not supported by %s" (object-name proj)))
 
 (defmethod project-delete-target ((ot ede-target))
-  "Delete the current target from it's parent project."
+  "Delete the current target OT from it's parent project."
   (error "add-file not supported by %s" (object-name ot)))
 
 (defmethod project-compile-project ((obj ede-project) &optional command)
-  "Compile the entire current project.
+  "Compile the entire current project OBJ.
 Argument COMMAND is the command to use when compiling."
   (error "compile-project not supported by %s" (object-name obj)))
 
 (defmethod project-compile-target ((obj ede-target) &optional command)
-  "Compile the current target.
+  "Compile the current target OBJ.
 Argument COMMAND is the command to use for compiling the target."
   (error "compile-target not supported by %s" (object-name obj)))
 
 (defmethod project-debug-target ((obj ede-target))
-  "Run the current project target in a debugger."
+  "Run the current project target OBJ in a debugger."
   (error "debug-target not supported by %s" (object-name obj)))
 
 (defmethod project-make-dist ((this ede-project))
@@ -537,15 +541,15 @@ Argument COMMAND is the command to use for compiling the target."
 ;; b) cosmetic.
 
 (defmethod ede-name ((this ede-target))
-  "Return the name of this targt."
+  "Return the name of THIS targt."
   (oref this name))
 
 (defmethod ede-target-name ((this ede-target))
-  "Return the name of this target, suitable for make or debug style commands."
+  "Return the name of THIS target, suitable for make or debug style commands."
   (oref this name))
 
 (defmethod ede-name ((this ede-project))
-  "Return a short-name for this project file.
+  "Return a short-name for THIS project file.
 Do this by extracting the lowest directory name."
   (oref this name))
 
@@ -562,7 +566,8 @@ Do this by extracting the lowest directory name."
 
 (defmethod ede-convert-path ((this ede-project) path)
   "Convert path in a standard way for a given project.
-Default to making it project relative."
+Default to making it project relative.
+Argument THIS is the project to convert PATH to."
   (let ((pp (file-name-directory (expand-file-name (oref this file))))
 	(fp (expand-file-name path)))
     (if (string-match (regexp-quote pp) fp)
@@ -577,7 +582,7 @@ Default to making it project relative."
 ;;; EDE project-autoload methods
 ;;
 (defmethod ede-dir-to-projectfile ((this ede-project-autoload) dir)
-  "Return a full file name of the project file found in DIR for THIS.
+  "Return a full file name of project THIS found in DIR.
 Return nil if the project file does not exist."
   (let ((f (concat dir (oref this proj-file))))
     (and (file-exists-p f) f)))
@@ -683,7 +688,61 @@ could become slow in time."
     (if (and buffer-read-only vc-mode
 	     (y-or-n-p "Checkout Makefile.am from VC? "))
 	(vc-toggle-read-only))))
-    
+
+
+;;; Project mapping
+;;
+(defun ede-project-buffers (project)
+  "Return a list of all active buffers controlled by PROJECT.
+This includes buffers controlled by a specific target of PROJECT."
+  (let ((bl (buffer-list))
+	(pl nil))
+    (while bl
+      (save-excursion
+	(set-buffer (car bl))
+	(if (and ede-object (eq (ede-current-project) project))
+	    (setq pl (cons (car bl) pl))))
+      (setq bl (cdr bl)))
+    pl))
+
+;;; Project-local variables
+;;
+(defun ede-make-project-local-variable (variable &optional project)
+  "Make VARIABLE project-local to PROJECT."
+  (if (not project) (setq project (ede-current-project)))
+  (if (assoc variable (oref project local-variables))
+      nil
+    (oset project local-variables (cons (list variable)
+					(oref project local-variables)))
+    (mapcar (lambda (b) (save-excursion
+			  (set-buffer  b)
+			  (make-local-variable variable)))
+	    (ede-project-buffers project))))
+
+(defun ede-set-project-variables (project &optional buffer)
+  "Set variables local to PROJECT in BUFFER."
+  (if (not buffer) (setq buffer (current-buffer)))
+  (save-excursion
+   (set-buffer buffer)
+   (mapcar (lambda (v)
+	     (make-local-variable (car v))
+	     ;; set it's value here?
+	     )
+	   (oref project local-variables))))
+
+(defun ede-set (variable value)
+  "Set the project local VARIABLE to VALUE.
+If VARIABLE is not project local, just use set."
+  (let ((p (ede-current-project)) a)
+    (if (and p (setq a (assoc varaible (oref p local-variables))))
+	(progn
+	  (setcdr a value)
+	  (mapcar (lambda (b) (save-excursion
+				(set-buffer b)
+				(set variable value)))
+		  (ede-project-buffers p)))
+      (set variable value))))
+
 
 ;;; Hooks & Autoloads
 ;;
