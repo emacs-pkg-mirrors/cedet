@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.58 1999/11/24 15:19:58 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.59 1999/12/01 01:39:33 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -456,7 +456,18 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
       (fset csym
 	    (list 'lambda (list 'obj)
 		  (format "Test OBJ to see if it an object of type %s" cname)
-		  (list 'same-class-p 'obj cname))))
+		  (list 'and '(object-p obj)
+			(list 'same-class-p 'obj cname)))))
+
+    ;; Create a handy child test too
+    (let ((csym (intern (concat (symbol-name cname) "-child-p"))))
+      (fset csym
+	    (list 'lambda (list 'obj)
+		  (format
+		   "Test OBJ to see if it an object is a child of type %s"
+		   cname)
+		  (list 'and '(object-p obj)
+			(list 'obj-of-class-p 'obj cname)))))
 
     ;; Set up a specialized doc string
     (eieio-rebuild-doc-string cname)
