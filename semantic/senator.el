@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 1.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.3 2000/11/14 13:04:26 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.4 2000/11/14 17:23:21 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -65,6 +65,11 @@
 ;;; Change Log:
 
 ;; $Log: senator.el,v $
+;; Revision 1.4  2000/11/14 17:23:21  david_ponce
+;; Minor change to `senator-next-token' and `senator-previous-token' to
+;; return the token at point.  Useful when calling these commands
+;; non-interactively.
+;;
 ;; Revision 1.3  2000/11/14 13:04:26  david_ponce
 ;; Improved navigation in semantic token where to step at start and end.
 ;;
@@ -187,7 +192,8 @@ function for `senator-find-previous-token'."
 
 ;;;###autoload
 (defun senator-next-token ()
-  "Navigate to the next semantic token."
+  "Navigate to the next semantic token.
+Return the semantic token or nil if at end of buffer."
   (interactive)
   (let ((pos    (point))
         (tokens (senator-parse))
@@ -215,11 +221,13 @@ function for `senator-find-previous-token'."
       (senator-message "%S: %s (%s)"
                        (semantic-token-token found)
                        (semantic-token-name  found)
-                       where))))
+                       where))
+    found))
 
 ;;;###autoload
 (defun senator-previous-token ()
-  "Navigate to the previous semantic token."
+  "Navigate to the previous semantic token.
+Return the semantic token or nil if at beginning of buffer."
   (interactive)
   (let ((pos    (point))
         (tokens (senator-parse))
@@ -246,7 +254,8 @@ function for `senator-find-previous-token'."
       (senator-message "%S: %s (%s)"
                        (semantic-token-token found)
                        (semantic-token-name  found)
-                       where))))
+                       where))
+    found))
 
 (provide 'senator)
 
