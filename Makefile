@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.3 2003/09/23 15:13:57 ponced Exp $
+## X-RCS: $Id: Makefile,v 1.4 2003/10/02 01:35:49 zappo Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -47,6 +47,11 @@ FIND=find
 #RM = rm -f
 
 ############### Internal part of the Makefile ###############
+CEDET_VERSION=1.0beta1
+DIST_ROOT=cedet-$(CEDET_VERSION)
+DIST_DIR=$(CEDET_HOME)/$(DIST_ROOT)
+DIST_FILE=$(DIST_DIR).tar.gz
+
 __BUILD_AUTOLOADS=$(patsubst %,%-autoloads,$(CEDET_PACKAGES))
 __CLEAN_AUTOLOADS=$(patsubst %,clean-%,$(__BUILD_AUTOLOADS))
 __DOMAKE=$(MAKE) $(MFLAGS) EMACS="$(EMACS)" SHELL="$(SHELL)"
@@ -108,5 +113,15 @@ clean:
 	-print -exec $(RM) {} \;
 
 clean-all: clean clean-elc clean-info clean-grammars clean-autoloads
+
+## Build a distribution file.
+dist: # $(CEDET_PACKAGES)
+	rm -rf $(DIST_DIR)
+	mkdir $(DIST_DIR)
+	for package in ${CEDET_PACKAGES}; do \
+	   make -C $$package $(MFLAGS) DISTDIR=$(DIST_DIR)/$$package dist; \
+	done;
+	tar -cvzf $(DIST_FILE) $(DIST_ROOT)
+	rm -rf $(DIST_DIR)
 
 # Makefile ends here
