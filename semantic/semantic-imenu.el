@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.31 2001/04/23 15:28:59 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.32 2001/05/05 15:02:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,7 +36,9 @@
 ;;             (setq imenu-create-index-function 'semantic-create-imenu-index)
 ;;             ))
 
-(require 'imenu)
+(condition-case nil
+    (require 'imenu)
+  (error nil))
 (require 'semantic)
 (eval-when-compile (require 'semanticdb)
 		   )
@@ -65,12 +67,9 @@
 
 (defcustom semantic-imenu-summary-function 'semantic-abbreviate-nonterminal
   "*Function to use when creating items in Imenu.
-Some useful functions are:
-`semantic-abbreviate-nonterminal'
-`semantic-summarize-nonterminal'
-`semantic-prototype-nonterminal'"
+Some useful functions are found in `semantic-token->text-functions'."
   :group 'semantic-imenu
-  :type 'function)
+  :type semantic-token->text-custom-list)
 (make-variable-buffer-local 'semantic-imenu-summary-function)
 
 (defcustom semantic-imenu-bucketize-file t
@@ -448,19 +447,24 @@ Clears all imenu menus that may be depending on the database."
 (defvar semantic-which-function 'semantic-default-which-function
   "Function to convert semantic tokens into `which-function' text.")
 
+(defcustom semantic-which-function-use-color nil
+  "*Use color when displaying the current function with `which-function'."
+  :group 'semantic-imenu
+  :type 'boolean)
+
 (defun semantic-default-which-function (tokenlist)
-  "Converts TOKENLIST into a string usable by `which-function'.
+  "Convert TOKENLIST into a string usable by `which-function'.
 Returns the first token name in the list, unless it is a type,
 in which case it concatenates them together."
   (cond ((eq (length tokenlist) 1)
-	 (semantic-abbreviate-nonterminal (car tokenlist)))
+	 (semantic-abbreviate-nonterminal (car tokenlist) nil semantic-which-function-use-color))
 	((eq (semantic-token-token (car tokenlist))
 	     semantic-imenu-expandable-token)
-	 (concat (semantic-token-name (car tokenlist)) "."
+	 (concat (semantic-name-nonterminal (car tokenlist) semantic-which-function-use-color) "."
 		 ;; recurse until we no longer have a type
 		 ;; or any tokens left.
 		 (semantic-default-which-function (cdr tokenlist))))
-	(t (semantic-abbreviate-nonterminal (car tokenlist)))))
+	(t (semantic-abbreviate-nonterminal (car tokenlist) nil semantic-which-function-use-color))))
 
 (defadvice which-function (around semantic-which activate)
   "Choose the function to display via semantic if it is currently active."
