@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: chart.el,v 1.2 1996/10/12 10:22:30 zappo Exp $
+;;; RCS: $Id: chart.el,v 1.3 1997/01/04 18:20:20 zappo Exp $
 ;;; Keywords: OO, chart, graph                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -92,7 +92,7 @@ background color.")
   "If pixmaps are allowed, display these background pixmaps.  Useful
 if new emacs is used on B&W display")
 
-(if (not chart-face-list)
+(if (and window-system (not chart-face-list))
     (let ((cl chart-face-color-list)
 	  (pl chart-face-pixmap-list)
 	  nf)

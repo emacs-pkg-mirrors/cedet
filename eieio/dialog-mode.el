@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995, 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dialog-mode.el,v 1.14 1996/12/12 03:38:56 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.15 1997/01/04 18:20:35 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -173,88 +173,89 @@ light (white, for example) then L-FG and L-BG is used.  If not, then
 D-FG and D-BG is used.  This will allocate the colors in the best
 possible mannor.  This will allow me to store multiple defaults and
 dynamically determine which colors to use."
-  (let* ((params (frame-parameters))
-	 (disp-res (if (fboundp 'x-get-resource)
-		       (if dialog-xemacs-p
-			   (x-get-resource ".displayType" "DisplayType" 'string)
-			 (x-get-resource ".displayType" "DisplayType"))
-		     nil))
-	 (display-type
-	  (cond (disp-res (intern (downcase disp-res)))
-		((and (fboundp 'x-display-color-p) (x-display-color-p)) 'color)
-		(t 'mono)))
-	 (bg-res (if (fboundp 'x-get-resource)
-		     (if (eval-when-compile dialog-xemacs-p)
-			 (x-get-resource ".backgroundMode" "BackgroundMode" 'string)
-		       (x-get-resource ".backgroundMode" "BackgroundMode"))
-		   nil))
-	 (bgmode
-	  (cond (bg-res (intern (downcase bg-res)))
-		((let* ((bgc (or (cdr (assq 'background-color params))
-				 (if (eval-when-compile dialog-xemacs-p)
-				     (x-get-resource ".background"
-						     "Background" 'string)
-				   (x-get-resource ".background"
-						   "Background"))))
-			(bgcr (if (eval-when-compile dialog-xemacs-p)
-				  (color-instance-rgb-components
-				   (make-color-instance bgc))
-				(x-color-values bgc)))
-			(wcr (if (eval-when-compile dialog-xemacs-p)
-				 (color-instance-rgb-components
-				  (make-color-instance "white"))
-			       (x-color-values "white"))))
-		   (< (apply '+ bgcr) (/ (apply '+ wcr) 3)))
-		 'dark)
-		(t 'light)))		;our default
-	 (set-p (function (lambda (face-name resource)
-			    (if dialog-xemacs-p
-				(x-get-resource 
-				 (concat face-name ".attribute" resource)
-				 (concat "Face.Attribute" resource)
-				 'string)
-			      (x-get-resource 
-			       (concat face-name ".attribute" resource)
-			       (concat "Face.Attribute" resource)))
-			    )))
-	 (nbg (cond ((eq bgmode 'dark) d-bg) 
-		    (t l-bg)))
-	 (nfg (cond ((eq bgmode 'dark) d-fg)
-		    (t l-fg))))
+  (if window-system
+      (let* ((params (frame-parameters))
+	     (disp-res (if (fboundp 'x-get-resource)
+			   (if dialog-xemacs-p
+			       (x-get-resource ".displayType" "DisplayType" 'string)
+			     (x-get-resource ".displayType" "DisplayType"))
+			 nil))
+	     (display-type
+	      (cond (disp-res (intern (downcase disp-res)))
+		    ((and (fboundp 'x-display-color-p) (x-display-color-p)) 'color)
+		    (t 'mono)))
+	     (bg-res (if (fboundp 'x-get-resource)
+			 (if (eval-when-compile dialog-xemacs-p)
+			     (x-get-resource ".backgroundMode" "BackgroundMode" 'string)
+			   (x-get-resource ".backgroundMode" "BackgroundMode"))
+		       nil))
+	     (bgmode
+	      (cond (bg-res (intern (downcase bg-res)))
+		    ((let* ((bgc (or (cdr (assq 'background-color params))
+				     (if (eval-when-compile dialog-xemacs-p)
+					 (x-get-resource ".background"
+							 "Background" 'string)
+				       (x-get-resource ".background"
+						       "Background"))))
+			    (bgcr (if (eval-when-compile dialog-xemacs-p)
+				      (color-instance-rgb-components
+				       (make-color-instance bgc))
+				    (x-color-values bgc)))
+			    (wcr (if (eval-when-compile dialog-xemacs-p)
+				     (color-instance-rgb-components
+				      (make-color-instance "white"))
+				   (x-color-values "white"))))
+		       (< (apply '+ bgcr) (/ (apply '+ wcr) 3)))
+		     'dark)
+		    (t 'light)))	;our default
+	     (set-p (function (lambda (face-name resource)
+				(if dialog-xemacs-p
+				    (x-get-resource 
+				     (concat face-name ".attribute" resource)
+				     (concat "Face.Attribute" resource)
+				     'string)
+				  (x-get-resource 
+				   (concat face-name ".attribute" resource)
+				   (concat "Face.Attribute" resource)))
+				)))
+	     (nbg (cond ((eq bgmode 'dark) d-bg) 
+			(t l-bg)))
+	     (nfg (cond ((eq bgmode 'dark) d-fg)
+			(t l-fg))))
 
-    (if (not (eq display-type 'color))
-	;; we need a face of some sort, so just make due with default
-	(progn
-	  (copy-face 'default sym)
-	  (if bold (condition-case nil
-		       (make-face-bold sym)
-		     (error (message "Cannot make face %s bold!" 
-				     (symbol-name sym)))))
-	  (if italic (condition-case nil
-			 (make-face-italic sym)
-		       (error (message "Cannot make face %s italic!"
-				       (symbol-name sym)))))
-	  (set-face-underline-p sym underline)
-	  )
-      ;; make a colorized version of a face.  Be sure to check Xdefaults
-      ;; for possible overrides first!
-      (let ((newface (make-face sym)))
-	;; For each attribute, check if it might already be set by Xdefaults
-	(if (and nfg (not (funcall set-p (symbol-name sym) "Foreground")))
-	    (set-face-foreground newface nfg))
-	(if (and nbg (not (funcall set-p (symbol-name sym) "Background")))
-	    (set-face-background newface nbg))
+	(if (not (eq display-type 'color))
+	    ;; we need a face of some sort, so just make due with default
+	    (progn
+	      (copy-face 'default sym)
+	      (if bold (condition-case nil
+			   (make-face-bold sym)
+			 (error (message "Cannot make face %s bold!" 
+					 (symbol-name sym)))))
+	      (if italic (condition-case nil
+			     (make-face-italic sym)
+			   (error (message "Cannot make face %s italic!"
+					   (symbol-name sym)))))
+	      (set-face-underline-p sym underline)
+	      )
+	  ;; make a colorized version of a face.  Be sure to check Xdefaults
+	  ;; for possible overrides first!
+	  (let ((newface (make-face sym)))
+	    ;; For each attribute, check if it might already be set by Xdefaults
+	    (if (and nfg (not (funcall set-p (symbol-name sym) "Foreground")))
+		(set-face-foreground newface nfg))
+	    (if (and nbg (not (funcall set-p (symbol-name sym) "Background")))
+		(set-face-background newface nbg))
 	
-	(if bold (condition-case nil
-		     (make-face-bold newface)
-		   (error (message "Cannot make face %s bold!"
+	    (if bold (condition-case nil
+			 (make-face-bold newface)
+		       (error (message "Cannot make face %s bold!"
 				       (symbol-name sym)))))
-	(if italic (condition-case nil
-		       (make-face-italic newface)
-		     (error (message "Cannot make face %s italic!"
-				     (symbol-name newface)))))
-	(set-face-underline-p newface underline)
-	))))
+	    (if italic (condition-case nil
+			   (make-face-italic newface)
+			 (error (message "Cannot make face %s italic!"
+					 (symbol-name newface)))))
+	    (set-face-underline-p newface underline)
+	    )))))
 
 (dialog-load-color 'widget-default-face nil nil nil nil)
 (dialog-load-color 'widget-box-face "gray30" nil "gray" nil)
