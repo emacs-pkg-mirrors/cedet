@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.4 2002/02/07 22:25:53 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.5 2002/02/08 23:24:50 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -325,6 +325,7 @@ variable NAME."
       ((URSHIFT))
       ((URSHIFTEQ))
       ((QUESTION))
+      ((XOR))
       ((XOREQ))
       ((OR))
       ((OREQ))
