@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.41 2002/07/29 17:23:50 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.42 2002/12/29 18:01:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -190,8 +190,13 @@ Optional argument REST is some extra stuff."
 	  (progn
 	    (find-file name)
 	    (imenu-default-goto-function name (point-min) rest))
-	(message "Semantic Imenu override problem. (Internal bug)")
-	(setq imenu--index-alist nil)))
+        ;; Probably POSITION don't came from a semantic imenu.  Try
+        ;; the default imenu goto function.
+        (condition-case nil
+            (imenu-default-goto-function name position rest)
+          (error
+           (message "Semantic Imenu override problem. (Internal bug)")
+           (setq imenu--index-alist nil)))))
     ))
 
 (defun semantic-imenu-flush-fcn (&optional ignore)
@@ -199,7 +204,8 @@ Optional argument REST is some extra stuff."
 It is cleared after any parsing.
 IGNORE arguments."
   (if (eq imenu-create-index-function 'semantic-create-imenu-index)
-      (setq imenu--index-alist nil))
+      (setq imenu--index-alist nil
+            imenu-menubar-modified-tick 0))
   (remove-hook 'semantic-after-toplevel-cache-change-hook
                'semantic-imenu-flush-fcn t)
   (remove-hook 'semantic-after-partial-cache-change-hook
