@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.7 2001/07/20 21:33:37 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.8 2001/12/05 01:43:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,11 +64,13 @@ The `subgraph' slot must be scanned for this information."
    (class :initarg :class
 	  :initform nil
 	  :type (or string list)
+	  :custom sexp
 	  :documentation
 	  "The semantic token representing the class this is drawing.")
    (attributes :initarg :attributes
 	       :initform nil
 	       :type list
+	       :custom sexp
 	       :documentation
 	       "A list of attributes belonging to this Class representation.
 Each attribute must in the form of a semantic token. ei.
@@ -77,10 +79,11 @@ See `semantic-toplevel-bovine-table' for details on possible token forms.
 These items do not need to be REAL semantic tokens, however.
 Only the format is needed to get the name/typing information.")
    (methods :initarg :methods
-	       :initform nil
-	       :type list
-	       :documentation
-	       "A list of methods belonging to this Class representation.
+	    :initform nil
+	    :type list
+	    :custom sexp
+	    :documentation
+	    "A list of methods belonging to this Class representation.
 See `attribute' slot for details on the form of each token in this list.")
    )
   "A Class node.
