@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.12 2003/04/02 04:22:54 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.13 2003/04/06 01:05:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,7 +42,7 @@
   (inversion-require 'eieio "0.18"))
 (require 'semantic-ctxt)
 (eval-when-compile (require 'semanticdb)
-		   (require 'semanticdb-search))
+		   (require 'semanticdb-find))
 
 ;;; Code:
 
@@ -56,8 +56,8 @@ Almost all searches use the same arguments."
     (if (and (fboundp 'semanticdb-minor-mode-p)
 	     (semanticdb-minor-mode-p))
 	;; Search the database
-	(let ((dbans (semanticdb-find-nonterminal-by-name-regexp
-		      expr  nil nil t nil t)))
+	(let ((dbans (semanticdb-find-tags-for-completion
+		      prefix nil t)))
 	  ;; Concatenate all matches together.
 	  (apply #'append (mapcar #'cdr dbans))
 	  )
@@ -74,10 +74,10 @@ Almost all searches use the same arguments."
   (if (and (fboundp 'semanticdb-minor-mode-p)
 	   (semanticdb-minor-mode-p))
       ;; Search the database
-      (let ((dbans (semanticdb-find-nonterminal-by-name
-		    name nil nil t nil t)))
+      (let ((dbans (semanticdb-find-tags-by-name
+		    name nil t)))
 	;; Lame, grabbing the first file match
-	(cdr (car dbans)))
+	(car (cdr (car dbans))))
     ;; Search just this file
     (semantic-find-first-tag-by-name
      name (current-buffer))))
