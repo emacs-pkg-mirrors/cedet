@@ -1,10 +1,10 @@
 ;;; semantic-format.el --- Routines for formatting tags
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.11 2003/11/20 15:21:13 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.12 2004/02/22 21:45:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -508,7 +508,9 @@ COLOR indicates if we should use an image on the text."
      semantic-format-tag-protection-image-alist)))
 
 (defsubst semantic-format-tag-uml-protection (tag parent color)
-  "Retrieve the protection string for TAG with PARENT."
+  "Retrieve the protection string for TAG with PARENT.
+Argument COLOR specifies that color should be added to the string as
+needed."
   (semantic-format-tag-uml-protection-to-string
    (semantic-tag-protection tag parent)
    color))
