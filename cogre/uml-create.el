@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.4 2001/06/05 20:35:57 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.5 2001/08/17 21:37:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -103,18 +103,23 @@ Optional argument FIELDS are not used."
 	      ))))
   this)
 
+(defcustom cogre-token->uml-function 'semantic-uml-abbreviate-nonterminal
+  "Function to use to create strings for tokens in CLASS nodes."
+  :group 'cogre
+  :type semantic-token->text-custom-list)
+
+
 (defmethod cogre-uml-stoken->uml ((class cogre-semantic-class) stoken &optional text)
   "For CLASS convert a Semantic token STOKEN into a uml definition.
-
 Optional TEXT property is passed down."
   (call-next-method class stoken
 		    (save-excursion
 		      (let ((tb (semantic-token-buffer stoken)))
 			(if tb (set-buffer tb))
-			(semantic-uml-abbreviate-nonterminal
-			 stoken
-			 (oref class class)
-			 t))))
+			(funcall cogre-token->uml-function
+				 stoken
+				 (oref class class)
+				 t))))
   )
 
 (defmethod cogre-entered ((class cogre-semantic-class) start end)
@@ -155,16 +160,19 @@ method, or class definition.  nil if there is not match."
     (cond ((and token (semantic-token-with-position-p token))
 	   (setq p (save-excursion
 		     (semantic-find-nonterminal token)
+		     (semantic-momentary-highlight-token token)
 		     (point-marker))
 		 ))
 	  ((and token (semantic-token-with-position-p semc))
 	   (setq p (save-excursion
 		     (semantic-find-nonterminal token semc)
+		     (semantic-momentary-highlight-token token)
 		     (point-marker))
 		 ))
 	  ((and semc (semantic-token-with-position-p semc))
 	   (setq p (save-excursion
 		     (semantic-find-nonterminal semc)
+		     (semantic-momentary-highlight-token semc)
 		     (point-marker))
 		 ))
 	  (t nil))
