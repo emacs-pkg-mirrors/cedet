@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.54 2002/05/13 04:54:57 emacsman Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.55 2002/06/18 21:31:43 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1610,7 +1610,6 @@ and initial #."
       ;; In a lisp part... do lisp completion
       (lisp-complete-symbol)
     ;; In BNF part, to BNF completion.
-    (require 'senator)
     (senator-complete-symbol)))
 
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
