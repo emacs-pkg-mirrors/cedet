@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.7 2004/03/28 01:53:50 zappo Exp $
+;; X-RCS: $Id: cedet.el,v 1.8 2004/03/28 11:27:40 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -121,12 +121,7 @@
       (condition-case err
           (require (intern (format "%s-load" package)))
         (error
-	 ;; If there is no load file, try to just grab the
-	 ;; file in question.
-	 (condition-case err2
-	     (require package)
-	   (error
-	    (message "%s" (error-message-string err)))))))
+         (message "%s" (error-message-string err)))))
     ))
 
 (provide 'cedet)
