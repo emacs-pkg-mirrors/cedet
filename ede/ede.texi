@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.1 1998/12/10 18:38:26 zappo Exp $
+@c $Id: ede.texi,v 1.2 1999/01/21 14:01:37 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{ede}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1998 Eric M. Ludlam
+Copyright @copyright{} 1998, 1999 Eric M. Ludlam
 @end titlepage
 
 @node Top, , , (dir)Top
@@ -33,4 +33,22 @@ support files.  In doing so, it will be much easier for new programmers
 to learn and adopt the GNU ways of doing things.
 
 @menu
+* EDE Mode::                Turning on EDE mode.
+* Creating a project::      Creating a project.
+* Modifying your project::  Adding and removing files and targets.
+* Building and Debugging::  Initiating a build or debug session.
 @end menu
+
+@node EDE Mode, Creating a project, Top, Top
+@chapter EDE Mode
+
+@node Creating a project, Modifying your project, EDE Mode, Top
+@chapter Creating a project
+
+@node Modifying your project, Building and Debugging, Creating a project, Top
+@chapter Modifying your project
+
+@node Building and Debugging, , Modifying your project, Top
+@chapter Building and Debugging
+
+@bye
