@@ -1,9 +1,9 @@
 ;;; dialog.el - Code for starting, and managing dialogs buffers
 ;;;
-;;; Copyright (C) 1995, 1996 Eric M. Ludlam
+;;; Copyright (C) 1995, 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dialog-mode.el,v 1.19 1997/01/26 18:54:23 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.20 1997/01/29 02:18:59 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -143,6 +143,12 @@ An alphanumeric key is any value between 0 and 128"
   ;; Differences between Xemacs and Emacs keyboard
   (if (string-match "XEmacs" emacs-version)
       (progn
+	;; A note about the meta-map.  XEMacs won't let me create
+	;; a special keymap for meta keys the way regulare emacs will.
+	;; As a result, the handy meta-keys won't work in XEmacs for
+	;; text widgets and such.  If you know how to make this work
+	;; let me know, but for now, no meta keys in text fields.
+
 	;; some translations into text
 	(define-key dialog-mode-map 'tab 'dialog-next-widget)
 	(define-key dialog-mode-map '(meta tab) 'dialog-prev-widget)
@@ -180,7 +186,7 @@ An alphanumeric key is any value between 0 and 128"
   "Create a color for SYM with a L-FG and L-BG color, or D-FG and D-BG.
 Optionally make BOLD, ITALIC, or UNDERLINED if applicable.  If the
 background attribute of the current frame is determined to be light
-(white, for example) then L-FG and L-BG is used.  If not, then D-FG
+{white, for example} then L-FG and L-BG is used.  If not, then D-FG
 and D-BG is used.  This will allocate the colors in the best possible
 mannor.  This will allow me to store multiple defaults and dynamically
 determine which colors to use."
@@ -207,7 +213,9 @@ determine which colors to use."
 					 (x-get-resource ".background"
 							 "Background" 'string)
 				       (x-get-resource ".background"
-						       "Background"))))
+						       "Background"))
+				 ;; if no other options, default is white
+				 "white"))
 			    (bgcr (if (eval-when-compile dialog-xemacs-p)
 				      (color-instance-rgb-components
 				       (make-color-instance bgc))
@@ -888,4 +896,4 @@ It draws the children of the given class on the screen."
   )
 
 ;;; end of lisp
-(provide 'dialog)
+(provide 'dialog-mode)
