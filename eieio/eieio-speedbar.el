@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.4 1999/12/01 01:56:25 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.5 1999/12/01 13:35:21 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -53,6 +53,7 @@
 ;; 3) Objects that return a list of strings should also implement these
 ;;    methods:
 ;;  * `eieio-speedbar-child-make-tag-line' - make tag lines for a child.
+;;  * `eieio-speedbar-child-description' - describe non-object children
 ;;
 ;; 4) Objects which have expanded information should implement the method
 ;;    `eieio-speedbar-description' to produce more information.
@@ -243,6 +244,7 @@ and take the apropriate action."
 ;;
 ;; These more complex types are for objects which wish to display
 ;; lists of children buttons.
+
 (defclass eieio-speedbar nil
   ((buttontype :initform nil
 	       :type symbol
@@ -252,7 +254,7 @@ Possible values are 'bracket, 'angle, 'curly, and nil.
 See `speedbar-make-tag-line' for details."
 	       :allocation class)
    (buttonface :initform speedbar-tag-face
-	       :type face
+	       :type (or symbol face)
 	       :documentation
 	       "The face used on the textual part of the button for this class.
 See `speedbar-make-tag-line' for details."
