@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.6 1999/11/23 20:53:56 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.7 1999/11/29 21:28:22 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -147,10 +147,11 @@ string.  TOKEN will be the list, and INDENT is the current indentation
 level."
   (cond ((string-match "+" text)	;we have to expand this file
 	 (speedbar-change-expand-button-char ?-)
-	 (speedbar-with-writable
-	   (save-excursion
-	     (end-of-line) (forward-char 1)
-	     (ede-create-tag-buttons (speedbar-line-file) (1+ indent)))))
+	 (let ((file (speedbar-line-file)))
+	   (speedbar-with-writable
+	     (save-excursion
+	       (end-of-line) (forward-char 1)
+	       (ede-create-tag-buttons file (1+ indent))))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
@@ -186,7 +187,7 @@ INDENT is the current indentation level."
 					       t))
 		  (re-search-backward (format "^%d:" (1- indent)))
 		  (setq indent (1- indent)))
-		(get-text-property (point) 'speedbar-token))))
+		(speedbar-line-file))))
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
     ;; Reset the timer with a new timeout when cliking a file
