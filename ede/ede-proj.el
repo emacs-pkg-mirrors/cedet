@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.27 2000/09/24 15:55:31 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.28 2000/09/28 02:03:31 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -350,7 +350,8 @@ Argument COMMAND is the command to use for compiling the target."
   "Compile the current target program OBJ.
 Optional argument COMMAND is the s the alternate command to use."
   (ede-proj-setup-buildenvironment (ede-current-project))
-  (compile (concat "make -f " (oref obj makefile) " " (ede-name obj))))
+  (compile (concat "make -f " (oref obj makefile) " "
+		   (ede-proj-makefile-target-name obj))))
 
 (defmethod project-debug-target ((obj ede-proj-target))
   "Run the current project target OBJ in a debugger."
