@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-rmail.el,v 1.5 1998/05/17 14:41:12 zappo Exp $
+;; X-RCS: $Id: sb-rmail.el,v 1.6 1998/05/17 14:42:36 zappo Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -52,7 +52,7 @@
   "The last user to be displayed in the speedbar.")
 
 (defvar rmail-speedbar-key-map nil
-  "Keymap used when in the buffers display mode.")
+  "Keymap used when in rmail display mode.")
 
 (if rmail-speedbar-key-map
     nil
