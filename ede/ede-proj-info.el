@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.2 1999/11/09 20:35:31 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.3 1999/11/10 14:18:38 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -29,7 +29,9 @@
 
 ;;; Code:
 (defclass ede-proj-target-makefile-info (ede-proj-target-makefile)
-  ((mainmenu :initarg :mainmenu
+  ((menu :initform nil)
+   (keybindings :initform nil)
+   (mainmenu :initarg :mainmenu
 	     :initform ""
 	     :type string
 	     :custom string

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.1 1999/11/08 20:54:10 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.2 1999/11/10 14:18:30 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -29,7 +29,9 @@
 
 ;;; Code:
 (defclass ede-proj-target-elisp (ede-proj-target-makefile)
-  ((load-path :initarg :load-path
+  ((menu :initform nil)
+   (keybindings :initform nil)
+   (load-path :initarg :load-path
 	      :initform nil
 	      :type list
 	      :custom (repeat string)
