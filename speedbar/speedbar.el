@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.10
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.160 2000/04/12 02:29:36 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.161 2000/04/12 02:48:34 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -4198,6 +4198,12 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 (if (fboundp 'defimage)
     (defalias 'defimage-speedbar 'defimage)
 
+  (if (not (fboundp 'make-glyph))
+      
+(defmacro defimage-speedbar (variable imagespec docstring)
+  "Don't bother loading up an image..."
+  `(defvar ,variable nil ,docstring))
+
 (defun speedbar-find-image-on-load-path (image)
   "Find the image file IMAGE on the load path."
   (let ((l load-path)
@@ -4228,7 +4234,7 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
       'buffer)
      ,docstring))
 
-)
+))
 
 (defimage-speedbar speedbar-directory-+
   ((:type xpm :file "sb-dir+.xpm"))
