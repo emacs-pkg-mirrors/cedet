@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.4 2002/02/05 20:03:22 ponced Exp $
+@c $Id: wisent.texi,v 1.5 2002/02/05 21:20:51 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle The Bison-compatible Parser Generator for Emacs
@@ -230,38 +230,28 @@ for an empty match.
 Is an optional vector of one element: a terminal symbol.  The rule
 will be given the precedence level of this terminal symbol.  By
 default the rule precedence is the one of the last terminal symbol in
-it.  Only terminals declared in @var{ASSOCS} have a precedence level.
-
->>> If precidence is defined in the ASSOC table and here, what is the
-    precidence table needed for?
-
-<<< The ASSOCS table defines associativity and an implicit precedence
-    level for given terminals.  PRECEDENCE here explicitly defines the
-    precedence level of the rule (as the precedence level of a
-    terminal specified in ASSOCS).
-
+it.  Only terminals declared in @var{assocs} have a precedence
+level@footnote{The @var{assocs} table defines associativity and an
+implicit precedence level for given terminals.  @var{precedence} here
+explicitly defines the precedence level of the rule (as the precedence
+level of a terminal specified in @var{assocs})}.
 @item action
 Is one optional Elisp expression: the action to do when the rule is
 matched.  As in Bison, actions accept @code{$N} placeholders.  Each
 @code{$N} placeholder is actually a variable local to the semantic
-action.  It will receive the value of Nth element of @var{ITEMS} which
+action.  It will receive the value of Nth element of @var{items} which
 can be of any Lisp data type.  The first element is @code{$1}, the
 second one @code{$2}, etc..  Unlike Bison, Wisent does not allow the
 use of @code{$N} placeholders with N <= 0.
 
-Also the special variable @code{$region} contains the start/end
+The special variable @code{$region} contains the start/end
 positions of text matched by the rule, as a pair @code{(START-POS .
 END-POS)}.  @code{$region} is nil when used in an empty match rule.
 Actions can use @code{wisent-set-region} to modify the region, this
 could be useful in actions used to recover from syntax errors.
 
->>> Perhaps $start and $end, and even $1region, or $region1 would
-    also be useful.  I sometimes find myself writing special rules,
-    just to get the region of one part of the rule.
-
-<<< $start and $end can be easily obtained using respectively
-    (car $region) and (cdr $region).  But I agree with you that
-    having a $regionn for each $n is a good idea!
+Also for each @code{$N} placeholder a @code{$regionN} variable exists
+which defines its start/end positions.
 
 Finally the special symbol @code{$nterm} contain the nonterminal symbol
 the action belongs to.  It could be useful to improve error reporting
@@ -466,6 +456,13 @@ using the macro @code{wisent-lexer}.
     stack of things still to parse?  The existing of `wisent-clearin'
     indicates that the lookahead token is not modified.
 
+<<< This read the next token which becomes the new lookahead token.
+    Notice that as `wisent-clearin' discards the lookahead token it
+    also causes the parser to read the next token.
+
+    So calling `wisent-lexer' or `wisent-clearin' one time does the
+    same thing.  `wisent-lexer' is useful to eat several tokens.
+
 @node Report errors, Writing Actions, Writing a Lexer, Parsing
 @comment  node-name,  next,  previous,  up
 @subsection The error reporting function
@@ -495,6 +492,20 @@ semantic action entered by error recovery the value of the variable
     it chooses to parse the file.  `wisent-clearin' and a couple other
     skip functions alludes to this possibility.  Describing this in
     detail here would be great.
+
+<<< I think there is a confusion here.  The error reporting function
+    is not an error handler!  Error handlers are actually semantic
+    actions reducing rules with the special @code{error} token.
+
+    wisent-java.bnf contains good examples of error handling in
+    semantic actions (see discussion on blocks below).
+
+    Also, syntax errors can be handled outside of the grammar, like
+    the default LL parser does.  Bad tokens are just skipped in
+    `wisent-bovinate-nonterminals' (the Wisent's counterpart of
+    `semantic-bovinate-nonterminals').  wisent-java-tags.bnf
+    illustrates that.
+
 
 @node Writing Actions,  , Report errors, Parsing
 @comment  node-name,  next,  previous,  up
