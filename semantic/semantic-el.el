@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.48 2001/07/13 16:05:35 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.49 2001/07/20 12:56:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -207,7 +207,9 @@ Attempts a simple prototype for calling or using TOKEN."
   (semantic-install-function-overrides
    '((find-dependency . semantic-elisp-find-dependency)
      (prototype-nonterminal . semantic-elisp-prototype-nonterminal)
+     (uml-prototype-nonterminal . semantic-elisp-prototype-nonterminal)
      (concise-prototype-nonterminal . semantic-elisp-prototype-nonterminal)
+     (uml-concise-prototype-nonterminal . semantic-elisp-prototype-nonterminal)
      (find-documentation . semantic-elisp-find-documentation)
      (insert-foreign-token . semantic-elisp-insert-foreign-token)
      )
