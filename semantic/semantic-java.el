@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.13 2001/04/30 08:27:51 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.14 2001/05/06 15:49:39 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -556,8 +556,10 @@
 ;;;; Prototype handler
 ;;;;
 
-(defun semantic-java-prototype-function (token)
+(defun semantic-java-prototype-function (token &optional parent color)
   "Return a function (method) prototype for TOKEN.
+Optional argument PARENT is a parent (containing) item.
+Optional argument COLOR indicates that color should be mixed in.
 See also `semantic-java-prototype-nonterminal'."
   (let ((name (semantic-token-name token))
         (type (semantic-token-type token))
@@ -573,40 +575,49 @@ See also `semantic-java-prototype-nonterminal'."
                              (if args "," "")))))
     (concat (or type "") (if type " " "") name "(" argp ")")))
 
-(defun semantic-java-prototype-variable (token)
+(defun semantic-java-prototype-variable (token &optional parent color)
   "Return a variable (field) prototype for TOKEN.
+Optional argument PARENT is a parent (containing) item.
+Optional argument COLOR indicates that color should be mixed in.
 See also `semantic-java-prototype-nonterminal'."
   (concat (semantic-token-type token)
           " "
           (semantic-token-name token)))
 
-(defun semantic-java-prototype-type (token)
+(defun semantic-java-prototype-type (token &optional parent color)
   "Return a type (class/interface) prototype for TOKEN.
+Optional argument PARENT is a parent (containing) item.
+Optional argument COLOR indicates that color should be mixed in.
 See also `semantic-java-prototype-nonterminal'."
   (concat (semantic-token-type token)
           " "
           (semantic-token-name token)))
 
-(defun semantic-java-prototype-include (token)
+(defun semantic-java-prototype-include (token &optional parent color)
   "Return an include (import) prototype for TOKEN.
+Optional argument PARENT is a parent (containing) item.
+Optional argument COLOR indicates that color should be mixed in.
 See also `semantic-java-prototype-nonterminal'."
   (semantic-token-name token))
 
-(defun semantic-java-prototype-package (token)
+(defun semantic-java-prototype-package (token &optional parent color)
   "Return a package prototype for TOKEN.
+Optional argument PARENT is a parent (containing) item.
+Optional argument COLOR indicates that color should be mixed in.
 See also `semantic-java-prototype-nonterminal'."
   (semantic-token-name token))
 
-(defun semantic-java-prototype-nonterminal (token)
+(defun semantic-java-prototype-nonterminal (token &optional parent color)
   "Return a prototype for TOKEN.
-Override `semantic-prototype-nonterminal'."
-  (let* ((categ (semantic-token-token token))
-         (fprot (intern-soft
-                 (format "semantic-java-prototype-%s"
-                         categ))))
+Override `semantic-prototype-nonterminal'.
+Optional argument PARENT is a parent (containing) item.
+Optional argument COLOR indicates that color should be mixed in."
+  (let ((fprot (intern-soft
+                (format "semantic-java-prototype-%s"
+                        (semantic-token-token token)))))
     (if (fboundp fprot)
-        (funcall fprot token)
-      (semantic-abbreviate-nonterminal token))))
+        (funcall fprot token parent color)
+      (semantic-prototype-nonterminal-default token parent color))))
 
 ;;;;
 ;;;; Specific nonterminal handler
