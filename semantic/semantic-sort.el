@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.4 2003/08/23 21:44:06 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.5 2003/08/29 16:12:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -167,8 +167,8 @@ unmodified as components of their parent tags."
 (defvar semantic-bucketize-tag-class
   ;; Must use lambda because `semantic-tag-class' is a macro.
   (lambda (tok) (semantic-tag-class tok))
-  "Function used to get a symbol describing the class of a token.
-This function must take one argument of a semantic token.
+  "Function used to get a symbol describing the class of a tag.
+This function must take one argument of a semantic tag.
 It should return a symbol found in `semantic-symbol->name-assoc-list'
 which `semantic-bucketize' uses to bin up tokens.
 To create new bins for an application augment
