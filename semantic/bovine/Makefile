@@ -9,13 +9,14 @@
 top=../
 ede_FILES=Project.ede Makefile
 
-bovinator_LISP=semantic-bovine.el bovine-grammar.el semantic-bnf.el
+bovinator_LISP=semantic-bovine.el bovine-grammar.el semantic-bnf.el bovine-debug.el
 EMACS=emacs
-LOADPATH=../wisent/ ../../speedbar/ ../ 
-examples_MISC=skeleton.bnf semantic-skel.el
+LOADPATH=../wisent/ ../../eieio/ ../../speedbar/ ../\
+  
+examples_MISC=skeleton.bnf semantic-skel.el skeleton.by
 languages_LISP=semantic-c.el semantic-el.el semantic-java.el semantic-make.el semantic-scm.el
 bnf_MISC=c.bnf java.bnf make.bnf scheme.bnf
-by_MISC=c.by
+by_MISC=c.by make.by scheme.by
 VERSION=2.0beta1
 DISTDIR=$(top)semantic-$(VERSION)/bovine
 
