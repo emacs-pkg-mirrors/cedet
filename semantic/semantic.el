@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.48 2000/09/20 23:46:45 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.49 2000/09/27 00:59:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -231,18 +231,24 @@
       (defalias 'semantic-overlay-get 'overlay-get)
       (defalias 'semantic-overlay-delete 'delete-overlay)
       (defalias 'semantic-overlays-at 'overlays-at)
+      (defalias 'semantic-overlays-in 'overlays-in)
       (defalias 'semantic-overlay-buffer 'overlay-buffer)
       (defalias 'semantic-overlay-start 'overlay-start)
       (defalias 'semantic-overlay-end 'overlay-end)
+      (defalias 'semantic-overlay-next-change 'next-overlay-change)
+      (defalias 'semantic-overlay-previous-change 'previous-overlay-change)
       )
   (defalias 'semantic-make-overlay 'make-extent)
   (defalias 'semantic-overlay-put 'set-extent-property)
   (defalias 'semantic-overlay-get 'get-extent-property)
   (defalias 'semantic-overlay-delete 'delete-extent)
   (defalias 'semantic-overlays-at 'extents-at)
+  (defalias 'semantic-overlays-in 'extents-in)
   (defalias 'semantic-overlay-buffer 'extent-buffer)
   (defalias 'semantic-overlay-start 'extent-start)
   (defalias 'semantic-overlay-end 'extent-end)
+  (defalias 'semantic-overlay-next-change 'next-extent-change)
+  (defalias 'semantic-overlay-previous-change 'previous-extent-change)
   )
 
 (defvar semantic-edebug nil
@@ -455,6 +461,7 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
     (mapcar 'semantic-delete-overlay-maybe (cdr l))
     )
   )
+(add-hook 'change-major-mode-hook 'semantic-clear-toplevel-cache)
 
 (defmacro semantic-token-token (token)
   "Retrieve from TOKEN the token identifier.
