@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-config.el,v 1.9 1997/01/10 23:08:20 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.10 1997/01/18 23:51:12 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -82,6 +82,13 @@ the changes you just set.")
 				    (message "This is the X Defaults file to save changes in when AUTO-EDIT is true."))
 		       :value (data-object-symbol "x-file" :protect t
 						  :symbol 'dlg-xdefaults-file)))
+    (create-widget "HELP" widget-push-button
+		   :x -2 :y t
+		   :face 'bold-italic
+		   :activate-hook (lambda (obj reason) (describe-mode))
+		   :help-hook (lambda (obj reason)
+				(message "Click to read about Dialog Mode and how to use it.")))
+
     (create-widget "Modify running environment"
 		   widget-toggle-button :y -1
 		   :state dlg-modify-running-environment
@@ -112,10 +119,42 @@ the changes you just set.")
 (defun dlg-end ()
   "Add the [Done] button to the end."
   (create-widget "econfogok" widget-push-button
+		 :x 2 :y -2
 		 :label-value "Done"
 		 :activate-hook (lambda (obj reason) (bury-buffer))
 		 :help-hook (lambda (obj reason)
 			      (message "Click to finish configuring."))))
+
+(defun dlg-info-button (description infopage help)
+  "Creates a special label/push-button combination specialized for
+jumping to an info page."
+  (if description
+      (create-widget "info-label" widget-label
+		     :label-value description))
+  
+  (create-widget "info-push-button" widget-push-button
+		 :x (if description -2 nil) :y (if description t nil)
+		 :label-value "Read Info"
+		 :activate-hook (list 'lambda '(obj reason)
+				      '(require 'info)
+				      (list 'Info-goto-node infopage))
+		 :help-hook (list 'lambda '(obj reason)
+				  (list 'message help))))
+
+(defun dlg-bunch-of-simple-toggles (&rest toggle-data)
+  "Creates a bunch of toggle buttons in the current group.  Parameters
+are of the form LABEL-STRING SYMBOL LABEL-STRING SYMBOL ... infinitly
+repeating.  Each LABEL-STRING becomes the toggle button's label, and
+the SYMBOL is the symbol this toggle directly edits through a
+`data-object-symbol' class.  If the symbol is a local variable, then
+the object `data-object-symbol-default' is used instead."
+  (while toggle-data
+    (create-widget (car toggle-data) widget-toggle-button
+		   :state
+		   (if (local-variable-if-set-p (car (cdr toggle-data)))
+		       (data-object-symbol-default (car (cdr toggle-data)))
+		     (data-object-symbol (car (cdr toggle-data)))))
+    (setq toggle-data (cdr (cdr toggle-data)))))
 
 (defun dlg-face-box (face &optional bx by boxjust)
   "Create a frame to edit FACE in.  Optionally set position at BX and BY
@@ -256,14 +295,18 @@ the variables we are editing."
 (defun dlg-string-to-list (string separator)
   "Take STRING, and turn it into a list of parameters as though taken by a
 program.  Splits the string on SEPARATOR."
-  (let ((lst nil)
+  (let ((lst nil) (olist nil)
 	(last 0))
     (while (string-match separator string last)
       (setq lst (cons (substring string last (match-beginning 0)) lst)
 	    last (match-end 0)))
     (if (/= last (length string))
 	(setq lst (cons (substring string last) lst)))
-    (nreverse lst))
+    (while lst
+      (if (/= (length (car lst)) 0)
+	  (setq olist (cons (car lst) olist)))
+      (setq lst (cdr lst)))
+    olist)
   )
 
 (defun dlg-list-to-string (list separator)
