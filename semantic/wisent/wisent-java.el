@@ -5,9 +5,8 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
-;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.9 2001/08/30 07:18:38 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.10 2001/08/30 14:02:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,39 +33,14 @@
 
 ;;; Code:
 
-(require 'wisent)
+(require 'wisent-bovine)
 (require 'semantic-java)
 (eval-when-compile
   (require 'document))
 
 ;;;;
-;;;; These two functions should be moved to semantic.el
-;;;;
-
-(defsubst semantic-flex-token-value (table category &optional key)
-  "Return %token values from the token table TABLE.
-CATEGORY is a symbol identifying a token category.  If the symbol KEY
-is specified the function returns the particular value of this token.
-Otherwise the function returns the alist of (KEY . VALUE) for this
-category.  See also the function `semantic-bnf-token-table'."
-  (let ((cat-alist (cdr (assq category table))))
-    (if key
-        (cdr (assq key cat-alist))
-      cat-alist)))
-
-(defsubst semantic-flex-token-key (table category value)
-  "Search for a %token symbol in the token table TABLE.
-CATEGORY is a symbol identifying a token category.  VALUE is the value
-of the token to search for.  If not found return nil.  See also the
-function `semantic-bnf-token-table'."
-  (car (rassoc value (cdr (assq category table)))))
-
-;;;;
 ;;;; Global stuff
 ;;;;
-
-(defvar wisent-java-lex-istream nil
-  "The java lexer stream of Semantic flex tokens.")
 
 (eval-and-compile ;; Definitions needed at compilation time
 
@@ -1022,10 +996,10 @@ lexical token has the form (TERMINAL VALUE START . END) where TERMINAL
 is the terminal symbol for this token, VALUE is the string value of
 the token, START and END are respectively the beginning and end
 positions of the token in input."
-  (if (null wisent-java-lex-istream)
+  (if (null wisent-flex-istream)
       ;; End of input
       (list wisent-eoi-term)
-    (let* ((is wisent-java-lex-istream)
+    (let* ((is wisent-flex-istream)
            (tk (car is))
            (ft (car tk))
            lex x y is2 rl)
@@ -1117,14 +1091,7 @@ positions of the token in input."
        (t
         (error "Invalid input form %s" ft)))
       
-      (setq wisent-java-lex-istream is)
-      (if is
-          (if (eq semantic-bovination-working-type 'percent)
-              (working-status
-               (floor
-                (* 100.0 (/ (float (semantic-flex-start (car is)))
-                            (float (point-max))))))
-            (working-dynamic-status)))
+      (setq wisent-flex-istream is)
       lex)))
 
 ;;;;
@@ -1144,22 +1111,6 @@ MSG is the message string to report."
 ;;;;
 ;;;; Semantic integration of the Java LALR parser
 ;;;;
-
-(defun wisent-java-bovinate-toplevel (&optional checkcache)
-  "Semantic alternate Java LALR(1) parser.
-The optional argument CHECKCACHE is ignored."
-  (let ((gc-cons-threshold 10000000)
-        (bname (format "%s [LALR]" (buffer-name)))
-        cache semantic-flex-depth)
-    (working-status-forms bname "done"
-      (setq wisent-java-lex-istream (semantic-flex-buffer)
-            cache (wisent-parse semantic-toplevel-bovine-table
-                                #'wisent-java-lex
-                                #'ignore ;; Don't report syntax errors
-                                ))
-      (working-status t))
-    (semantic-overlay-list cache)
-    cache))
 
 ;; Do not change here the code automatically generated from the BNF
 ;; file!
@@ -1181,7 +1132,9 @@ Use the alternate LALR(1) parser."
      )
     (setq
      ;; Override the default parser to setup the alternate LALR one.
-     semantic-bovinate-toplevel-override 'wisent-java-bovinate-toplevel
+     semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
+     ;; Setup the lexer used by the LALR parser.
+     wisent-flex-function 'wisent-java-lex
      ;; Java is case sensitive
      semantic-case-fold nil
      ;; function to use when creating items in imenu
@@ -1205,69 +1158,16 @@ Use the alternate LALR(1) parser."
      )
     ;; Needed by `semantic-find-doc-snarf-comment'.
     (set (make-local-variable 'block-comment-end) "\\s-*\\*/")
+    ;; Setup javadoc stuff
+    (semantic-java-doc-setup)
     )
  
  ;; End code generated from wisent-java.bnf
- (semantic-java-doc-setup))
+ )
 
 ;; Replace the default setup by this new one.
 (remove-hook 'java-mode-hook #'semantic-default-java-setup)
 (add-hook    'java-mode-hook #'wisent-java-default-setup)
-
-;;;;
-;;;; Useful to debug the parser
-;;;;
-
-(defun wisent-java-parse ()
-  "Parse the current buffer."
-  (interactive)
-  (let ((gc-cons-threshold 10000000)
-        (bname (format "%s [LALR]" (buffer-name)))
-        semantic-flex-depth ast clock)
-    (garbage-collect)
-    (message "Parsing buffer...")
-    (setq clock (float-time)
-          wisent-java-lex-istream
-          (semantic-flex (point-min) (point-max)))
-    (working-status-forms bname "done"
-      (setq ast   (wisent-parse semantic-toplevel-bovine-table
-                                #'wisent-java-lex
-                                #'wisent-java-parse-error)
-            clock (- (float-time) clock))
-      (working-status t))
-    (message "Generating AST...")
-    (with-current-buffer (get-buffer-create "*wisent-java-parse*")
-      (let ((standard-output (current-buffer)))
-        (pp ast))
-      (pop-to-buffer (current-buffer)))
-    (apply #'message
-           `("Buffer parsed in %gS (%s error%s)"
-             ,clock ,@(cond ((= wisent-nerrs 0) '("No" ""))
-                            ((= wisent-nerrs 1) '("One" ""))
-                            (t (list wisent-nerrs "s")))))))
-
-;;;;
-;;;; Useful to debug the lexer
-;;;;
-
-(defun wisent-java-lex-buffer ()
-  "Scan the current buffer and show the stream of lexical tokens."
-  (interactive)
-  (let ((terminals (aref semantic-toplevel-bovine-table 3))
-        (bname (format "%s [LALR-LEX]" (buffer-name)))
-        semantic-flex-depth lex tok)
-    (setq wisent-java-lex-istream (semantic-flex-buffer))
-    (working-status-forms bname "done"
-      (while wisent-java-lex-istream
-        (setq lex (wisent-java-lex)
-              tok (wisent-translate (car lex) terminals))
-        (with-current-buffer
-            (get-buffer-create "*wisent-java-lex-buffer*")
-          (insert
-           (format "(%s[%s]\t\t\t. %S)\n"
-                   (car lex) tok (cdr lex)))))
-      (working-status t))
-    (pop-to-buffer "*wisent-java-lex-buffer*")))
 
 (provide 'wisent-java)
 
