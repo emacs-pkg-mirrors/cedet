@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.66 2000/12/08 03:36:41 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.67 2000/12/08 21:21:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -270,6 +270,19 @@ this is returned instead of re-parsing the buffer.")
 This is tracked with `semantic-change-function'.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache-check)
 
+(defvar semantic-dirty-tokens nil
+  "List of tokens in the current buffer which are dirty.
+Dirty functions can then be reparsed, and spliced back into the main list.")
+(make-variable-buffer-local 'semantic-dirty-tokens)
+
+(defvar semantic-dirty-token-hooks nil
+  "Hooks run after when a token is marked as dirty.
+The functions must take TOKEN, START, and END as a parameters.")
+
+(defvar semantic-clean-token-hooks nil
+  "Hooks run after when a token is marked as clean.
+The functions must take a TOKEN as a parameter.")
+
 (defvar semantic-toplevel-bovinate-override nil
   "Local variable set by major modes which provide their own bovination.
 This function should behave as the function `semantic-bovinate-toplevel'.")
@@ -414,9 +427,11 @@ Runs `semantic-init-hook' if the major mode is setup to use semantic."
     (mapcar 'semantic-delete-overlay-maybe (car l))
     (mapcar 'semantic-delete-overlay-maybe (cdr l))
     )
+  ;; Clear the dirty tokens... no longer relevant
+  (setq semantic-dirty-tokens nil)
   ;; Remove this hook which tracks if a buffer is up to date or not.
   (remove-hook 'after-change-functions 'semantic-change-function t)
-  )
+  (run-hooks 'semantic-after-toplevel-bovinate-hook))
 (add-hook 'change-major-mode-hook 'semantic-clear-toplevel-cache)
 
 ;;;###autoload
@@ -431,14 +446,25 @@ there has been a size change."
   (prog1
       (cond
        (semantic-toplevel-bovinate-override
-	(funcall semantic-toplevel-bovinate-override checkcache))
+	;; Call a custom function
+	(funcall semantic-toplevel-bovinate-override checkcache)
+	)
        ((and semantic-toplevel-bovine-cache
 	     (car semantic-toplevel-bovine-cache)
-	     ;; Add a rule that knows how to see if there have
-	     ;; been "big chagnes"
-	     )
-	(car semantic-toplevel-bovine-cache))
+	     semantic-dirty-tokens)
+	;; We have a cache, and some dirty tokens
+	(while semantic-dirty-tokens
+	  (semantic-rebovinate-token (car semantic-dirty-tokens))
+	  (setq semantic-dirty-tokens (cdr semantic-dirty-tokens)))
+	(car semantic-toplevel-bovine-cache)
+	)
+       ((and semantic-toplevel-bovine-cache
+	     (car semantic-toplevel-bovine-cache))
+	;; We have a cache with stuff in it, so return it
+	(car semantic-toplevel-bovine-cache)
+	)
        (t
+	;; Reparse the whole system
 	(let ((ss (semantic-flex (point-min) (point-max)))
 	      (res nil)
 	      (semantic-overlay-error-recovery-stack nil))
@@ -500,25 +526,21 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	  ;; Loop over the token list
 	  (while tl
 	    (cond
-	     ;; If we are completely enclosed in this overlay, throw away.
+	     ;; If we are completely enclosed in this overlay.
 	     ((and (> start (semantic-token-start (car tl)))
 		   (< end (semantic-token-end (car tl))))
-	      (if (and (eq (semantic-token-token (car tl)) 'type)
-		       (not (cdr tl))
-		       (semantic-token-type-parts (car tl)))
-		  (progn
-		    ;; This is between two items in a type with
-		    ;; stuff in it.
-		    (setq semantic-toplevel-bovine-cache-check t)
-		    (run-hooks 'semantic-reparse-needed-change-hook))
-		;; This is might be ok, chuck it.
-		(if (run-hooks 'semantic-no-reparse-needed-change-hook)
-		    (progn
-		      ;; The hook says so, so flush it.
-		      (setq semantic-toplevel-bovine-cache-check t)
-		      (run-hooks 'semantic-reparse-needed-change-hook))
-		  nil)))
-	     ;; If we  cover the beginning or end of this item, we must
+	      (if (semantic-overlay-get (semantic-token-overlay (car tl))
+					'dirty)
+		  nil
+		(add-to-list 'semantic-dirty-tokens (car tl))
+		(semantic-overlay-put (semantic-token-overlay (car tl))
+				      'dirty t))
+	      (condition-case nil
+		  (run-hook-with-args 'semantic-dirty-token-hooks
+				      (car tl) start end)
+		(error (if debug-on-error) (debug)))
+	      )
+	     ;; If we cover the beginning or end of this item, we must
 	     ;; reparse this object.
 	     (t
 	      (setq semantic-toplevel-bovine-cache-check t)
@@ -618,6 +640,39 @@ the current results on a parse error."
 			   (* 100.0 (/ (float (car (cdr (car stream))))
 				       (float (point-max))))))))
     result))
+
+(defun semantic-rebovinate-token (token)
+  "Use TOKEN for extents, and reparse it, splicing it back into the cache."
+  (let* ((flexbits (semantic-flex (semantic-token-start token)
+				  (semantic-token-end token)))
+	 ;; For embeded tokens (type parts, for example) we need a
+	 ;; different symbol.  Come up with a plan to solve this.
+	 (nonterminal 'bovine-toplevel)
+	 (new (semantic-bovinate-nonterminal flexbits
+					     semantic-toplevel-bovine-table
+					     nonterminal)))
+    (if (not new)
+	;; Clever reparse failed, queuing full reparse.
+	(setq semantic-toplevel-bovine-cache-check t)
+      (setq new (car (cdr new)))
+      (let ((oo (semantic-token-overlay token))
+	    (o nil))
+	(setcdr token (cdr new))
+	(setcar token (car new))
+	(semantic-raw-to-cooked-token token)
+	(setq o (semantic-token-overlay token))
+	;; Copy all properties of the old overlay here.
+	;; I think I can use plists in emacs, but not in XEmacs.
+	;; Ack!
+	(semantic-overlay-put o 'face (semantic-overlay-get o 'face))
+	(semantic-overlay-put o 'old-face (semantic-overlay-get o 'old-face))
+	(semantic-overlay-put o 'intangible (semantic-overlay-get o 'intangible))
+	(semantic-overlay-put o 'invisible (semantic-overlay-get o 'invisible))
+	;; Free the old overlay
+	(semantic-delete-overlay-maybe oo)
+	(run-hook-with-args 'semantic-clean-token-hooks token)
+	)
+      )))
 
 
 ;;; Semantic Bovination
