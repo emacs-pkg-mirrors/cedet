@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.58 2003/04/09 01:07:39 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.59 2003/06/08 23:35:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -362,7 +362,7 @@ Always append `semanticdb-project-system-databases' if
 	(while adb
 	  ;; I don't like this part, but close enough.
 	  (if (and (slot-exists-p (car adb) 'file)
-		   (string-match regexp (oref (car adb) file)))
+		   (string-match regexp (oref (car adb) reference-directory)))
 	      (setq dbs (cons (car adb) dbs)))
 	  (setq adb (cdr adb)))))
     ;; Add in system databases
