@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.12 2000/06/14 15:33:58 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.13 2000/06/23 23:09:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -614,6 +614,13 @@ file prototypes belong in."
 ;;; Hacks
 ;;
 ;; Some hacks to help me test these functions
+(defun semantic-current-token (p)
+  "Display the curent token.
+Argument P is the point to search from in the current buffer."
+  (interactive "d")
+  (message
+   (semantic-summerize-nonterminal
+    (semantic-find-nonterminal-by-position p (current-buffer)))))
 
 (defun semantic-hack-search ()
   "Disply info about something under the cursor using generic methods."
