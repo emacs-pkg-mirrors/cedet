@@ -1,11 +1,11 @@
 ;;; sb-rmail --- Speedbar support for rmail
 
-;; Copyright (C) 1997, 1998, 1999 Free Software Foundation
+;; Copyright (C) 1997, 1998, 1999, 2001 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-rmail.el,v 1.9 1999/03/01 15:49:13 zappo Exp $
+;; X-RCS: $Id: sb-rmail.el,v 1.10 2002/02/06 18:57:43 zappo Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -83,6 +83,7 @@ browsing, and moving of messages.")
     (rmail-install-speedbar-variables)
   (add-hook 'speedbar-load-hook 'rmail-install-speedbar-variables))
 
+;;;###autoload
 (defun rmail-speedbar-buttons (buffer)
   "Create buttons for BUFFER containing rmail messages.
 Click on the address under Reply to: to reply to this person.
