@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.7 1999/11/29 21:28:22 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.8 1999/12/01 00:52:29 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -63,6 +63,20 @@ Argument DIR is the directory from which to derive the list of objects."
 
 ;;; Speedbar Project Methods
 ;;
+(defun ede-find-nearest-file-line ()
+  "Go backwards until we find a file."
+  (save-excursion
+    (beginning-of-line)
+    (looking-at "^\\([0-9]+\\):")
+    (let ((depth (string-to-int (match-string 1))))
+      (while (not (re-search-forward "[]] [^ ]"
+				     (save-excursion (end-of-line)
+						     (point))
+				     t))
+	(re-search-backward (format "^%d:" (1- depth)))
+	(setq depth (1- depth)))
+      (speedbar-line-token))))
+
 (defmethod eieio-speedbar-derive-line-path ((obj ede-project) &optional depth)
   "Return the path to OBJ.
 Optional DEPTH is the depth we start at."
@@ -73,7 +87,15 @@ Optional DEPTH is the depth we start at."
   "Return the path to OBJ.
 Optional DEPTH is the depth we start at."
   (let ((proj (ede-target-parent obj)))
-    (eieio-speedbar-derive-line-path proj)))
+    ;; Check the type of line we are currently on.
+    ;; If we are on a child, we need a file name too.
+    (save-excursion
+      (let ((lt (speedbar-line-token)))
+	(if (or (object-p lt) (stringp lt))
+	    (eieio-speedbar-derive-line-path proj)
+	  ;; a child element is a token.  Do some work to get a filename too.
+	  (concat (eieio-speedbar-derive-line-path proj)
+		  (ede-find-nearest-file-line)))))))
 
 (defmethod eieio-speedbar-description ((obj ede-project))
   "Provide a speedbar description for OBJ."
@@ -82,6 +104,12 @@ Optional DEPTH is the depth we start at."
 (defmethod eieio-speedbar-description ((obj ede-target))
   "Provide a speedbar description for OBJ."
   (ede-description obj))
+
+(defmethod eieio-speedbar-child-description ((obj ede-target))
+  "Provide a speedbar description for a plain-child of OBJ.
+A plain child is a child element which is not an EIEIO object."
+  (or (speedbar-item-info-file-helper)
+      (speedbar-item-info-tag-helper)))
 
 (defmethod eieio-speedbar-object-buttonname ((object ede-project))
   "Return a string to use as a speedbar button for OBJECT."
@@ -180,14 +208,7 @@ level."
 (defun ede-tag-find (text token indent)
   "For the tag TEXT in a file TOKEN, goto that position.
 INDENT is the current indentation level."
-  (let ((file (save-excursion
-		(while (not (re-search-forward "[]] [^ ]"
-					       (save-excursion (end-of-line)
-							       (point))
-					       t))
-		  (re-search-backward (format "^%d:" (1- indent)))
-		  (setq indent (1- indent)))
-		(speedbar-line-file))))
+  (let ((file (ede-find-nearest-file-line)))
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
     ;; Reset the timer with a new timeout when cliking a file
