@@ -1,6 +1,6 @@
 @c -*-texinfo-*-
 @c
-@c $Id: d-widget.texi,v 1.2 1996/11/18 00:01:05 zappo Exp $
+@c $Id: d-widget.texi,v 1.3 1997/01/21 01:11:31 zappo Exp $
 @c
 
 @c The next line is for the back-search to see what node this one
@@ -25,15 +25,19 @@
 *     widget-frame ::
 *      widget-radio-frame ::
 *     widget-labeled-text ::
+*     widget-option-text ::
+*     widget-scrolled-text ::
+*     widget-scale ::
+*      widget-scrollbar ::
 *    widget-label ::
 *     widget-button ::
 *      widget-push-button ::
+*      widget-arrow-button ::
 *      widget-option-button ::
 *      widget-toggle-button ::
 *       widget-radio-button ::
-*    widget-scale ::
-*     widget-scrollbar ::
 *    widget-text-field ::
+*     widget-text-box ::
 @end menu
 
 
@@ -72,12 +76,6 @@ A widget of type @code{widget-group} @xref{widget-group} of which this is a chil
 @item Private Slots:
 
 @table @code
-@item :managed
-Default Value: @code{nil}
-
-(unused) @code{t} if this widget is active.
-@refill
-
 @item :watched-symbols
 Default Value: @code{nil}
 
@@ -180,12 +178,6 @@ Default Value: @code{nil}
 The Y position in a buffer relative to parent.
 @refill
 
-@item :resizeable
-Default Value: @code{nil}
-
-(unused) @code{t} if this widget has a tendency to resize itself.
-@refill
-
 @item :handle-io
 Default Value: @code{nil}
 
@@ -197,12 +189,6 @@ Default Value: @code{nil}
 @item Private Slots:
 
 @table @code
-@item :marker
-Default Value: @code{nil}
-
-(Unused) Marker in the dialog buffer from which all drawing commands are based.
-@refill
-
 @item :face
 Default Value: @code{nil}
 
@@ -228,7 +214,7 @@ Face used to draw this widget.
 @item widget-square
 @table @asis
 @item Children:
-@w{@xref{widget-group}}, @w{@xref{widget-label}}, @w{@xref{widget-scale}}, @w{@xref{widget-text-field}}
+@w{@xref{widget-group}}, @w{@xref{widget-label}}, @w{@xref{widget-text-field}}
 @end table
 
 @end table
@@ -311,7 +297,7 @@ Character set used the draw the box.  The vector is
 @item widget-group
 @table @asis
 @item Children:
-@w{@xref{widget-toplevel}}, @w{@xref{widget-frame}}, @w{@xref{widget-labeled-text}}
+@w{@xref{widget-toplevel}}, @w{@xref{widget-frame}}, @w{@xref{widget-labeled-text}}, @w{@xref{widget-option-text}}, @w{@xref{widget-scrolled-text}}, @w{@xref{widget-scale}}
 @end table
 
 @end table
@@ -521,7 +507,7 @@ Current index of the selected radio button
 
 @end table
 
-@node widget-labeled-text, widget-label, widget-radio-frame, Widget Classes
+@node widget-labeled-text, widget-option-text, widget-radio-frame, Widget Classes
 @comment  node-name,  next,  previous,  up
 @section widget-labeled-text
 @cwindex widget-labeled-text
@@ -590,7 +576,311 @@ The width passed to the @code{widget-text-field} @xref{widget-text-field}
 
 @end table
 
-@node widget-label, widget-button, widget-labeled-text, Widget Classes
+@node widget-option-text, widget-scrolled-text, widget-labeled-text, Widget Classes
+@comment  node-name,  next,  previous,  up
+@section widget-option-text
+@cwindex widget-option-text
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{widget-core}}
+@table @code
+@item @w{@xref{widget-visual}}
+@table @code
+@item @w{@xref{widget-square}}
+@table @code
+@item @w{@xref{widget-group}}
+@table @code
+@item widget-option-text
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Specialized text widget which will have an optional @code{widget-label} @xref{widget-label} followed
+by a @code{widget-text-field} @xref{widget-text-field} which will be followed by a @code{widget-option-button} @xref{widget-option-button}.
+The menu button will appear as a down-arrow.  Items selected from the menu
+will then appear in the text field.
+
+@table @asis
+@item Public Slots:
+
+@table @code
+@item :handle-io
+Default Value: @code{t}
+
+@xref{widget-group}
+@item :value
+Default Value: @code{nil}
+
+Text object displayed with a @code{widget-option-button} @xref{widget-option-button} just to the right
+and a label to the left.  This contains the value used by the option button and
+the text widget so they can communicate.
+@refill
+
+@item :label
+Default Value: @code{nil}
+
+Text object displayed with a @code{widget-label} @xref{widget-label} before a @code{widget-text-field} @xref{widget-text-field}.
+@refill
+
+@item :text-length
+Default Value: @code{20}
+
+The width passed to the @code{widget-text-field} @xref{widget-text-field}
+@refill
+
+@item :option-list
+Default Value: @code{nil}
+
+List of strings which are the options to appear in the option list.
+@refill
+
+@end table
+
+@end table
+
+@node widget-scrolled-text, widget-scale, widget-option-text, Widget Classes
+@comment  node-name,  next,  previous,  up
+@section widget-scrolled-text
+@cwindex widget-scrolled-text
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{widget-core}}
+@table @code
+@item @w{@xref{widget-visual}}
+@table @code
+@item @w{@xref{widget-square}}
+@table @code
+@item @w{@xref{widget-group}}
+@table @code
+@item widget-scrolled-text
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Specialized composite widget which wil build a @code{widget-text-block}
+of the same dimentions given for our width/height.  A scrollbar will be
+created just off the edge of our box and it's @code{maximum} and @code{minimum} will
+be controlled by the text widget (as it's text gets larger/smaller), and
+the scrollbar's value will alter the text widget's positioning of text.
+
+@table @asis
+@item Public Slots:
+
+@table @code
+@item :handle-io
+Default Value: @code{t}
+
+@xref{widget-group}
+@item :boxed
+Default Value: @code{t}
+
+@xref{widget-group}
+@item :value
+Default Value: @code{nil}
+
+The @code{data-object} @xref{data-object} we are going to edit with the text widget
+@refill
+
+@item :state
+Default Value: @code{0}
+
+Current value of the built-in scrollbar
+@refill
+
+@item :maximum
+Default Value: @code{1}
+
+Largest allowed value for the built-in scrollbar
+@refill
+
+@end table
+
+@end table
+
+@node widget-scale, widget-scrollbar, widget-scrolled-text, Widget Classes
+@comment  node-name,  next,  previous,  up
+@section widget-scale
+@cwindex widget-scale
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{widget-core}}
+@table @code
+@item @w{@xref{widget-visual}}
+@table @code
+@item @w{@xref{widget-square}}
+@table @code
+@item @w{@xref{widget-group}}
+@table @code
+@item widget-scale
+@table @asis
+@item Children:
+@w{@xref{widget-scrollbar}}
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Class of scale.  A scale is merely a thumb marker displaying the current
+value of some number graphically across some random number of text 
+characters.
+
+@table @asis
+@item Public Slots:
+
+@table @code
+@item :handle-io
+Default Value: @code{t}
+
+@xref{widget-group}
+@item :state
+Default Value: @code{0}
+
+Current value of this scale
+@refill
+
+@item :minimum
+Default Value: @code{0}
+
+Smallest allowed value
+@refill
+
+@item :maximum
+Default Value: @code{10}
+
+Largest allowed value
+@refill
+
+@item :direction
+Default Value: @code{(quote horizontal)}
+
+Direction to draw the scale
+@refill
+
+@item :end-buttons
+Default Value: @code{nil}
+
+@code{t} means to create two buttons to inc/dec the scale value
+@refill
+
+@item :trough-face
+Default Value: @code{nil}
+
+Face used when rendering the trough of a scale widget
+@refill
+
+@item :trough-chars
+Default Value: @code{[45 124]}
+
+Characters used when drawing the trough, the vector is of the
+form @code{[ horizontal-char vertical-char ]}
+@refill
+
+@item :thumb
+Default Value: @code{"#"}
+
+Character used to draw the value thumb button indicator
+@refill
+
+@end table
+
+@item Private Slots:
+
+@table @code
+@item :focus-face
+Default Value: @code{nil}
+
+Face used on thumb and step buttons when the mouse is over them.
+@refill
+
+@end table
+
+@end table
+
+@node widget-scrollbar, widget-label, widget-scale, Widget Classes
+@comment  node-name,  next,  previous,  up
+@section widget-scrollbar
+@cwindex widget-scrollbar
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{widget-core}}
+@table @code
+@item @w{@xref{widget-visual}}
+@table @code
+@item @w{@xref{widget-square}}
+@table @code
+@item @w{@xref{widget-group}}
+@table @code
+@item @w{@xref{widget-scale}}
+@table @code
+@item widget-scrollbar
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  Class for a scrollbar.  A scrollbar also will have a visual range
+where the thumbtack changes size based on RANGE.
+
+@table @asis
+@item Public Slots:
+
+@table @code
+@item :end-buttons
+Default Value: @code{t}
+
+@xref{widget-scale}
+@item :range
+Default Value: @code{10}
+
+Range of currently viewable area (Not used)
+@refill
+
+@end table
+
+@end table
+
+@node widget-label, widget-button, widget-scrollbar, Widget Classes
 @comment  node-name,  next,  previous,  up
 @section widget-label
 @cwindex widget-label
@@ -698,7 +988,7 @@ Face used when mouse passes over @code{label-value}
 @item widget-button
 @table @asis
 @item Children:
-@w{@xref{widget-push-button}}, @w{@xref{widget-option-button}}, @w{@xref{widget-toggle-button}}
+@w{@xref{widget-push-button}}, @w{@xref{widget-arrow-button}}, @w{@xref{widget-option-button}}, @w{@xref{widget-toggle-button}}
 @end table
 
 @end table
@@ -713,8 +1003,8 @@ Face used when mouse passes over @code{label-value}
 @end table
 
   Class for a button widget.  This is the starting point for all
-interactive buttons.  This button will be CLICKED on, or will have RET
-or SPC pressed while selected, and it will then call @code{activate-hook}.
+interactive buttons.  This button will be CLICKED on, or will have @kbd{RET}
+or @kbd{SPC} pressed while selected, and it will then call @code{activate-hook}.
 If a push button is desired, it is better to use a widget of type
 @code{widget-push-button} @xref{widget-push-button} instead as it has a better visual effects.
 
@@ -759,7 +1049,7 @@ Face used when this button has been pushed.
 
 @end table
 
-@node widget-push-button, widget-option-button, widget-button, Widget Classes
+@node widget-push-button, widget-arrow-button, widget-button, Widget Classes
 @comment  node-name,  next,  previous,  up
 @section widget-push-button
 @cwindex widget-push-button
@@ -834,7 +1124,76 @@ Default Value: @code{nil}
 
 @end table
 
-@node widget-option-button, widget-toggle-button, widget-push-button, Widget Classes
+@node widget-arrow-button, widget-option-button, widget-push-button, Widget Classes
+@comment  node-name,  next,  previous,  up
+@section widget-arrow-button
+@cwindex widget-arrow-button
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{widget-core}}
+@table @code
+@item @w{@xref{widget-visual}}
+@table @code
+@item @w{@xref{widget-square}}
+@table @code
+@item @w{@xref{widget-label}}
+@table @code
+@item @w{@xref{widget-button}}
+@table @code
+@item widget-arrow-button
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  An arrow button is a specialized button used to increment or decrement a
+state variable.  Arrow buttons are usually used to adjust @code{widget-scale} @xref{widget-scale}
+values.
+
+@table @asis
+@item Public Slots:
+
+@table @code
+@item :activate-hook
+Default Value: @code{(lambda-default (obj reason) "Arrow button Activate-Hook" (let ((state (oref obj state))) (set-value state (+ (get-value state) (oref obj adjustment)))))}
+
+@xref{widget-button}
+@item :state
+Default Value: @code{nil}
+
+The value which will be adjusted when we are activated
+@refill
+
+@item :direction
+Default Value: @code{nil}
+
+Not Documented
+@refill
+
+@item :adjustment
+Default Value: @code{nil}
+
+How much to adjust @code{state} by when activated.  If it is not specified
+at creation time, it's value will be generated from the value of the 
+@code{direction} slot.
+@refill
+
+@end table
+
+@end table
+
+@node widget-option-button, widget-toggle-button, widget-arrow-button, Widget Classes
 @comment  node-name,  next,  previous,  up
 @section widget-option-button
 @cwindex widget-option-button
@@ -888,7 +1247,15 @@ String printed to the left of the label in @code{left-margin} used to show this 
 @item :option-list
 Default Value: @code{nil}
 
-List of strings which are the options
+List of strings which are the options to appear in the pull down menu.
+@refill
+
+@item :title
+Default Value: @code{"Option"}
+
+String that appears as the completion-prompt, or
+as the title to a popup menu.  When used in a prompt, the form is
+"Select" title ": ".
 @refill
 
 @item :state
@@ -907,6 +1274,13 @@ list of strings representing the current value.
 Default Value: @code{nil}
 
 Face used on the @code{option-indicator} string
+@refill
+
+@item :dynamic-label
+Default Value: @code{nil}
+
+@code{t} means that the label of this button will always show the selected
+element from option-list.  @code{nil} will leave the label string alone.
 @refill
 
 @end table
@@ -985,7 +1359,7 @@ Face used on toggle indicator
 
 @end table
 
-@node widget-radio-button, widget-scale, widget-toggle-button, Widget Classes
+@node widget-radio-button, widget-text-field, widget-toggle-button, Widget Classes
 @comment  node-name,  next,  previous,  up
 @section widget-radio-button
 @cwindex widget-radio-button
@@ -1047,140 +1421,7 @@ not change during use.
 
 @end table
 
-@node widget-scale, widget-scrollbar, widget-radio-button, Widget Classes
-@comment  node-name,  next,  previous,  up
-@section widget-scale
-@cwindex widget-scale
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item @w{@xref{widget-core}}
-@table @code
-@item @w{@xref{widget-visual}}
-@table @code
-@item @w{@xref{widget-square}}
-@table @code
-@item widget-scale
-@table @asis
-@item Children:
-@w{@xref{widget-scrollbar}}
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Not Implemented Completely Yet.
-
-Class of scale.  A scale is merely a thumb marker displaying the current
-value of some number graphically across some random number of text 
-characters.
-
-@table @asis
-@item Public Slots:
-
-@table @code
-@item :handle-io
-Default Value: @code{t}
-
-@xref{widget-square}
-@item :boxed
-Default Value: @code{t}
-
-@xref{widget-square}
-@item :state
-Default Value: @code{0}
-
-Current value of this scale
-@refill
-
-@item :minimum
-Default Value: @code{0}
-
-Smallest allowed value
-@refill
-
-@item :maximum
-Default Value: @code{10}
-
-Largest allowed value
-@refill
-
-@item :direction
-Default Value: @code{(quote horizontal)}
-
-Direction to draw the scale
-@refill
-
-@item :end-buttons
-Default Value: @code{nil}
-
-Text used to inc/dec this scale
-@refill
-
-@end table
-
-@end table
-
-@node widget-scrollbar, widget-text-field, widget-scale, Widget Classes
-@comment  node-name,  next,  previous,  up
-@section widget-scrollbar
-@cwindex widget-scrollbar
-
-@table @asis
-@item Inheritance Tree:
-@table @code
-@item @w{@xref{widget-core}}
-@table @code
-@item @w{@xref{widget-visual}}
-@table @code
-@item @w{@xref{widget-square}}
-@table @code
-@item @w{@xref{widget-scale}}
-@table @code
-@item widget-scrollbar
-No children
-@end table
-
-@end table
-
-@end table
-
-@end table
-
-@end table
-@end table
-
-  Not Implemented Completely Yet.
-
-Class for a scrollbar.  A scrollbar also will have a visual range
-where the thumbtack changes size based on RANGE.
-
-@table @asis
-@item Public Slots:
-
-@table @code
-@item :end-buttons
-Default Value: @code{[["<" ">"] ["/\\" "\\/"]]}
-
-@xref{widget-scale}
-@item :range
-Default Value: @code{10}
-
-Range of currently viewable area
-@refill
-
-@end table
-
-@end table
-
-@node widget-text-field,  , widget-scrollbar, Widget Classes
+@node widget-text-field, widget-text-box, widget-radio-button, Widget Classes
 @comment  node-name,  next,  previous,  up
 @section widget-text-field
 @cwindex widget-text-field
@@ -1195,7 +1436,11 @@ Range of currently viewable area
 @item @w{@xref{widget-square}}
 @table @code
 @item widget-text-field
-No children
+@table @asis
+@item Children:
+@w{@xref{widget-text-box}}
+@end table
+
 @end table
 
 @end table
@@ -1231,6 +1476,25 @@ mode-specific keymaps could be substituted to lend additional
 behaviors.
 @refill
 
+@item :display-column
+Default Value: @code{0}
+
+Current horizontal position in a text buffer where the display starts
+@refill
+
+@item :display-row
+Default Value: @code{0}
+
+Current vertical position in a text buffer where the display starts
+@refill
+
+@item :display-num-rows
+Default Value: @code{nil}
+
+The number of rows of text displayed in this text widget.  This is
+different from the number of rows displayed as some are clipped.
+@refill
+
 @item :value
 Default Value: @code{nil}
 
@@ -1260,6 +1524,67 @@ Default Value: @code{nil}
 Not Documented
 @refill
 
+@end table
+
+@end table
+
+@node widget-text-box,  , widget-text-field, Widget Classes
+@comment  node-name,  next,  previous,  up
+@section widget-text-box
+@cwindex widget-text-box
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{widget-core}}
+@table @code
+@item @w{@xref{widget-visual}}
+@table @code
+@item @w{@xref{widget-square}}
+@table @code
+@item @w{@xref{widget-text-field}}
+@table @code
+@item widget-text-box
+No children
+@end table
+
+@end table
+
+@end table
+
+@end table
+
+@end table
+@end table
+
+  A text box is a multi-line @code{widget-text-field} @xref{widget-text-field}.  It specifies differing
+features needed to make a multi-line text box look better.
+
+@table @asis
+@item Public Slots:
+
+@table @code
+@item :height
+Default Value: @code{nil}
+
+@xref{widget-text-field}
+@item :boxed
+Default Value: @code{t}
+
+@xref{widget-text-field}
+@end table
+
+@item Private Slots:
+
+@table @code
+@item :face
+Default Value: @code{nil}
+
+@xref{widget-text-field}
+@item :focus-face
+Default Value: @code{nil}
+
+@xref{widget-text-field}
 @end table
 
 @end table
