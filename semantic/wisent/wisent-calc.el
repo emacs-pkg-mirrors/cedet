@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.15 2004/03/20 00:23:05 zappo Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.16 2004/03/21 18:20:41 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -51,7 +51,7 @@
 ;; 
 
 ;;; Code:
-(require 'wisent-bovine)
+(require 'semantic-wisent)
 (require 'wisent-calc-wy)
 
 (define-lex-simple-regex-analyzer wisent-calc-lex-number

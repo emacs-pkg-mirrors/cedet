@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.41 2003/08/02 08:22:58 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.42 2004/03/21 18:20:42 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -32,7 +32,7 @@
 ;;
 ;;; Code:
 
-(require 'wisent-bovine)
+(require 'semantic-wisent)
 (require 'wisent-python-wy)
 
 ;;;****************************************************************************

@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.59 2004/03/19 23:54:20 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.60 2004/03/21 18:20:41 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -33,7 +33,7 @@
 ;;
 
 ;;; Code:
-(require 'wisent-bovine)
+(require 'semantic-wisent)
 (require 'sformat)
 (require 'font-lock)
 (require 'pp)

@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 13 Jun 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-c.el,v 1.4 2004/03/10 19:33:53 ponced Exp $
+;; X-RCS: $Id: wisent-c.el,v 1.5 2004/03/21 18:20:41 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -32,7 +32,7 @@
 ;;
 
 ;;; Code:
-(require 'wisent-bovine)
+(require 'semantic-wisent)
 (require 'wisent-c-wy)
 
 ;;; Compatibility
