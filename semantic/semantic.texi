@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.31 2001/03/10 02:31:29 zappo Exp $
+@c $Id: semantic.texi,v 1.32 2001/04/07 14:32:58 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -88,7 +88,7 @@ a function.  The function should both move point, and return a lexical
 token of the form:
 
 @example
-  ( TYPE START . END)
+( TYPE START . END)
 @end example
 
 @code{nil} is also a valid return.
@@ -101,7 +101,7 @@ Updates to the syntax table for a given buffer.
 These changes are active only while this file is being flexed.
 This is a list where each element is of the form:
 @example
-  (CHAR CLASS) 
+(CHAR CLASS) 
 @end example
 
 Where CHAR is the char passed to `modify-syntax-entry',
@@ -109,7 +109,7 @@ and CLASS is the string also passed to `modify-syntax-entry' to define
 what class of syntax CHAR is.
 
 @example
-  (setq semantic-flex-syntax-modifications '((?. "_"))
+(setq semantic-flex-syntax-modifications '((?. "_"))
 @end example
 
 Will convert the period @asis{.} to be a symbol constituant.  (ie, if
@@ -321,7 +321,7 @@ This should contain an alist with a key of a regex and a data element of
 a function.  The function should both move point, and return a lexical
 token of the form:
 @example
-  ( TYPE START . END)
+( TYPE START . END)
 @end example
 
 @code{nil} is also a valid return.
@@ -334,7 +334,7 @@ Updates to the syntax table for this buffer.
 These changes are active only while this file is being flexed.
 This is a list where each element is of the form:
 @example
-  (CHAR CLASS)
+(CHAR CLASS)
 @end example
 Where @var{CHAR} is the char passed to @dfn{modify-syntax-entry},
 and @var{CLASS} is the string also passed to @dfn{modify-syntax-entry} to define
@@ -374,7 +374,7 @@ Languages with compound definitions should use this function to expand
 from one compound symbol into several.  For example, in @var{C} the
 definition
 @example
-  int a, b;
+int a, b;
 @end example
 is easily parsed into one token, but represents multiple variables.  A
 functions should be written which takes this compound token and turns
@@ -539,7 +539,7 @@ the additional constraint of exactly matching it.  Thus, the
 combination:
 
 @example
-  symbol "moose"
+symbol "moose"
 @end example
 
 means that a symbol must first be encountered, and then it must
@@ -547,7 +547,7 @@ means that a symbol must first be encountered, and then it must
 string is a regular expression.  The code:
 
 @example
-  punctuation "."
+punctuation "."
 @end example
 
 will match any punctuation.
@@ -604,7 +604,7 @@ The OLE (Optional Lambda Expression) is converted into a bovine lambda
 reading the emacs bnf definition.  An OLE like this:
 
 @example
- ( $1 )
+( $1 )
 @end example
 
 results in a lambda return which consists entirely of the string
@@ -661,7 +661,7 @@ included in the list if the associated @var{VALUE} is non-nil.  While
 the items are all listed explicitly, the created structure is an
 association list of the form:
 @example
-  ( ( symbol1 . value1) (symbol2 . value2) ... )
+( ( symbol1 . value1) (symbol2 . value2) ... )
 @end example
 @end table
 
@@ -1332,7 +1332,7 @@ While a context has already been used to describe blocks of code,
 other context include more local details, such as the symbol the
 cursor is on, or the fact we are assinging into some other variable.
 
-These context deriving functions can be overridden to provide langauge
+These context deriving functions can be overridden to provide language
 specific behavior.  By default, it assumes a C like language.
 
 @defun semantic-ctxt-current-symbol &optional point
@@ -1701,7 +1701,7 @@ following variables:
 List of token identifiers where to step.
 Token identifier is symbol @code{'variable}, @code{'function}, @code{'type}, or other.  If
 @code{nil} navigation steps at any token found.  This is a buffer local
-variable.  It can be set in a mode hook to get a specific langage
+variable.  It can be set in a mode hook to get a specific language
 navigation.
 @end deffn
 
@@ -1712,7 +1712,7 @@ Token identifier is symbol @code{'variable}, @code{'function}, @code{'type}, or 
 and end of any token where it is allowed to step.  Also, stepping at
 start and end of a token prevent stepping inside its children.  This
 is a buffer local variable.  It can be set in a mode hook to get a
-specific langage navigation.
+specific language navigation.
 @end deffn
 
 To have a mode specific customization, do something like this in a hook:
