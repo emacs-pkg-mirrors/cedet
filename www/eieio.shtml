@@ -79,6 +79,8 @@ useful examples
 <DT><a href=http://jde.sunsite.dk/>JDE</a>
 <DD>Java Development Environment for Emacs uses EIEIO to manage the debugger,
     dialogs, and more.
+<DT><a href=http://home.swipnet.se/mayhem/ecb.html>ECB</a>
+<DD>Emacs Code Browser.  Browse your files and source code.
 <DT><a href=http://xae.sunsite.dk/>XAE</a>
 <DD>XML Authoring tool.
 
@@ -103,7 +105,7 @@ greater.  Please use EIEIO 0.12.</p>
 
 <P>Live on the Edge!
    <a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
-    eieio-0.17beta2.tar.gz</A> has much better error checking, and
+    eieio-0.17beta3.tar.gz</A> has much better error checking, and
     method invocations is now closer to the CLOS standard.</p>
 
 <P><a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
