@@ -2,10 +2,10 @@
 ;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
+;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.125 2002/12/10 01:37:19 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.126 2003/01/23 15:38:43 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17.1"
   "Current version of EIEIO.")
@@ -310,8 +310,6 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
   ;; or add definitions when eieio is loaded or something like that.
   (run-hooks 'eieio-hook)
   (setq eieio-hook nil)
-  ;; If no cl, put that sucker back into the hook-list.
-  (if (not (featurep 'cl)) (add-hook 'eieio-hook 'eieio-cl-run-defsetf))
 
   (if (not (symbolp cname)) (signal 'wrong-type-argument '(symbolp cname)))
   (if (not (listp superclasses)) (signal 'wrong-type-argument '(listp superclasses)))
@@ -527,17 +525,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		       "Retrieves the slot `%s' from an object of class `%s'"
 		       name cname)
 		      (list 'eieio-oref 'this (list 'quote name))))
-	      ;; It turns out that using the setf macro with a
-	      ;; generic method form is impossible because almost
-	      ;; any type of form could be created for disparaging
-	      ;; objects.  Yuck!  Therefore, we shouldn't try to make
-	      ;; setf calls to accessors.
-	      ;; Create a setf definition for this accessor.
-	      ;;(eieio-cl-defsetf acces '(widget)
-	      ;;		  '(store)
-	      ;;		  (list 'eieio-oset 'widget
-	      ;;			(list 'quote cname)
-	      ;;			'store))
+	      `(defsetf ,acces (widget) (store) (eieio-oset widget ',cname store))
 	      )
 	  )
 	;; If a writer is defined, then create a generic method of that
@@ -900,10 +888,21 @@ DOC-STRING is the documentation attached to METHOD."
 	       (not (eq 'autoload (car (symbol-function method)))))
 	   )
       (error "You cannot create a generic/method over an existing symbol"))
+  ;; Don't do this over and over.
   (unless (fboundp 'method)
-    ;; Don't do this over and over.
+    ;; This defun tells emacs where the first definition of this
+    ;; method is defined.
+    `(defun ,method nil)
+    ;; Apply the actual body of this function.
     (fset method (eieio-defgeneric-form method doc-string))
     'method))
+
+(defun eieio-unbind-method-implementations (method)
+  "Make the generic method METHOD have no implementations..
+It will leave the original generic function in place, but remove
+reference to all implementations of METHOD."
+  (put method 'eieio-method-tree nil)
+  (put method 'eieio-method-obarray nil))
 
 (defmacro defmethod (method &rest args)
   "Create a new METHOD through `defgeneric' with ARGS.
@@ -1825,30 +1824,21 @@ This is usually a symbol that starts with `:'."
 
 ;;; Here are some CLOS items that need the CL package
 ;;
-(defun eieio-cl-run-defsetf ()
-  "Execute many `defsetf's when the 'cl package is loaded."
-  (if (featurep 'cl)
-      (progn
-	(defsetf slot-value (obj field) (store)
-	  (list 'eieio-oset obj field store))
-	(defsetf eieio-oref (obj field) (store)
-	  (list 'eieio-oset obj field store))
-	;; The below setf method was written by
-	;; Arnd Kohrs <kohrs@acm.org>
-	(define-setf-method oref (obj field) 
-	  (let ((obj-temp (gensym)) 
-		(field-temp (gensym)) 
-		(store-temp (gensym))) 
-	    (list (list obj-temp field-temp) 
-		  (list obj `(quote ,field)) 
-		  (list store-temp) 
-		  (list 'set-slot-value obj-temp field-temp
-			store-temp)
-		  (list 'slot-value obj-temp field-temp))))
-	))
-  )
 
-(add-hook 'eieio-hook 'eieio-cl-run-defsetf)
+(defsetf slot-value (obj field) (store) (list 'eieio-oset obj field store))
+(defsetf eieio-oref (obj field) (store) (list 'eieio-oset obj field store))
+
+;; The below setf method was written by Arnd Kohrs <kohrs@acm.org>
+(define-setf-method oref (obj field) 
+  (let ((obj-temp (gensym)) 
+	(field-temp (gensym)) 
+	(store-temp (gensym))) 
+    (list (list obj-temp field-temp) 
+	  (list obj `(quote ,field)) 
+	  (list store-temp) 
+	  (list 'set-slot-value obj-temp field-temp
+		store-temp)
+	  (list 'slot-value obj-temp field-temp))))
 
 
 ;;;
