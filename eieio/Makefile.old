@@ -1,0 +1,47 @@
+# Copyright (C) 1995,1996, 1998 Eric M. Ludlam
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, you can either send email to this
+# program's author (see below) or write to:
+#
+#              The Free Software Foundation, Inc.
+#              675 Mass Ave.
+#              Cambridge, MA 02139, USA.
+#
+# Please send bug reports, etc. to zappo@gnu.org
+#
+# $Id: Makefile.old,v 1.1 1998/10/27 17:51:20 zappo Exp $
+
+
+VERSION=0.9
+
+LISP=call-tree.el chart.el dbif-browse.el dbif-edit.el dbif.el \
+	eieio-comp.el eieio-doc.el eieio eieio-opt.el eieio.el \
+	eieiocomp.el psql.el
+
+TEXINFO=eieio.texi
+
+# dialog code is not distributed.
+DIALOG=dialog-mode.el dialog-tree.el dlg-class.el dlg-config.el \
+	e-config.el ecfg-menu.el widget-d.el widget-i.el
+
+all:
+	emacs -batch -l eieiocomp.el
+
+dist: $(LISP) $(TEXINFO)
+	mkdir eieio-$(VERSION)
+	cp $(LISP) $(TEXINFO) eieio-$(VERSION)
+	tar -cvzf eieio-$(VERSION).tar.gz eieio-$(VERSION)
+	rm -rf eieio-$(VERSION)
+
+#end
