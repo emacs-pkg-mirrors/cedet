@@ -16,7 +16,7 @@ LOADDIRS=.
 init_LISP=cedet-load.el
 EMACS=emacs
 setup_LISP=cedet.el
-common_LISP=cedet-autogen.el cedet-compat.el ezimage.el inversion.el pprint.el sformat.el working.el cedet-edebug.el
+common_LISP=cedet-autogen.el cedet-compat.el ezimage.el inversion.el pprint.el sformat.el working.el cedet-edebug.el mode-local.el
 VERSION=1.0beta2
 DISTDIR=$(top)common-$(VERSION)
 
