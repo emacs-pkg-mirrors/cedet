@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.7 1996/11/18 00:20:36 zappo Exp $
+@c $Id: eieio.texi,v 1.8 1996/11/27 03:44:22 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -189,7 +189,9 @@ argument can be syntactically typecast.  (And promptly ignored)  To
 typecast against a class, the class must exist before defmethod is called.
 @item call-next-method
 Inside a method, calls the next available method up the inheritance tree
-for the given object.
+for the given object.  This is different than that found in CLOS because
+in eieio this function accepts replacement arguments.  This permits
+subclasses to modify arguments as they are passed up the tree.
 @end table
 
 Some top-level CLOS functions which I am aware of but are not yet
@@ -197,7 +199,7 @@ defined in EIEIO which are defined in CLOS.
 
 @table @asis
 @item describe
-Pretty print an object.  Can be found as `eieio-describe-class' for a
+Pretty print an object.  Can be found as @code{eieio-describe-class} for a
 bufferized version.
 @end table
 
@@ -320,6 +322,16 @@ class."
 (defmethod destructor ((this eieio-default-superclass) &rest params)
   "Destructor for cleaning up any dynamic links to our object."
   )
+
+(defmethod object-print ((this eieio-default-superclass) &optional strings)
+  "Pretty priniter.  The default method for printing an object is to use
+the `object-name' function.  At times it could be useful to put a summary of
+the object into the default #<notation> string.  Overload this function to
+allow summaries of your objects to be used by eieio browsing tools.  The
+optional parameter STRINGS is for additional summary parts to put into the
+name string.  When passint in extra strings from child classes, always
+remember  to prepend a space."
+  (object-name this (apply 'concat strings)))
 @end example
 
 The @code{constructor} method is always called with the parameter
@@ -335,6 +347,26 @@ takes a @var{fields} parameter. @xref{CLOS compatibility} for info about
 
 Currently @code{destructor} does nothing, and is never called.  I haven't
 quite figured out what to do with it yet.
+
+The @code{object-print} function is used by functions in
+@file{eieio-opt.el} to display objects with small summaries.  It is
+useful to use the @code{replacement-args} parameter to
+@code{call-next-method} when overloading @code{object-print}.  For
+instance, the code:
+
+@example
+(defun object-print ((this my-class) &rest strings)
+  "Printer for my-class"
+  (apply 'call-next-method this
+         (cons (format " number: %d" (oref this number)) strings)))
+@end example
+
+@noindent
+will generate the object's name with the number member of the object
+specified in the name like this:
+@example
+#<my-class obj number: 3>
+@end example
 
 Eventually it might be nice to have a @code{print} and a @code{write}
 and a @var{read} method so all objects could print themselves (like a
@@ -502,6 +534,22 @@ currently does not appear under an apropos.
 While running insided a CLOS method, calling this function will call the
 method associated with the parent of the class of the currently running
 method with the same parameters.
+
+Optional arguments REPLACEMENT-ARGS can be used to replace the arguments
+the next method would be called with.  Useful if a child class wishes to
+add additional behaviours through the modification of the parameters.
+
+Here is an example line if @code{this} represents the object currently
+having it's method evaluated:
+
+@example
+(call-next-method this '(1 2 3))
+@end example
+
+@noindent
+@code{this} must be specified, otherwise the next method called will
+fail.  If no args are specified then the args that called the current
+method will be used.
 
 @end defun
 
