@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 28 Oct 2004
 ;; Keywords: status
-;; X-RCS: $Id: fame.el,v 1.1 2004/11/25 06:25:00 ponced Exp $
+;; X-RCS: $Id: fame.el,v 1.2 2004/11/29 11:10:19 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -40,8 +40,9 @@
 ;;
 ;; Messages at any particular level can be either discarded,
 ;; temporarily displayed, recorded in the message log buffer without
-;; showing them in the echo area, or shown the usual way through the
-;; `message' function.
+;; showing them in the echo area, or shown the usual way like through
+;; the `message' function.  Messages shown in the echo area can be
+;; recorded or not in the message log buffer.
 ;;
 ;; The `define-fame-channel' macro permits to easily define a new
 ;; channel, that is an option to customize how to display the message
@@ -77,7 +78,7 @@
   "Valid message levels.")
 
 (defconst fame-valid-level-values
-  '(t temp log none)
+  '(t nolog temp temp-nolog log none)
   "Valid message level values.")
 
 (defconst fame-default-level-values
@@ -87,26 +88,29 @@
 (define-widget 'fame-display-choice 'radio-button-choice
   "Widget to choose the display value of a level."
   :format "%v\n"
-  :entry-format " - %v %b"
-  :args '((const :format "%t" :tag "normal"   :value t)
-          (const :format "%t" :tag "temp"     :value temp)
-          (const :format "%t" :tag "log only" :value log)
-          (const :format "%t" :tag "none"     :value none)))
+  :entry-format " %v%b"
+  :args '((const :format "%v" :value t)
+          (const :format "%v" :value nolog)
+          (const :format "%v" :value temp)
+          (const :format "%v" :value temp-nolog)
+          (const :format "%v" :value log)
+          (const :format "%v" :value none)))
 
 (define-widget 'fame-level-widget 'const
   "Widget to display a level symbol."
-  :format "\t%t\t")
+  :format "   %t")
 
 (define-widget 'fame-channel-widget 'list
   "Widget to customize the messages levels of a channel."
   :tag "Display value of message levels"
-  :args '((fame-level-widget :tag "debug"   :value :debug)
+  :format "%{%t%}:\n%v\n"
+  :args '((fame-level-widget :tag ":debug  " :value :debug)
           (fame-display-choice)
-          (fame-level-widget :tag "info"    :value :info)
+          (fame-level-widget :tag ":info   " :value :info)
           (fame-display-choice)
-          (fame-level-widget :tag "warning" :value :warning)
+          (fame-level-widget :tag ":warning" :value :warning)
           (fame-display-choice)
-          (fame-level-widget :tag "error"   :value :error)
+          (fame-level-widget :tag ":error  " :value :error)
           (fame-display-choice)))
 
 (defgroup fame nil
@@ -191,8 +195,12 @@ ARGS are like those of the function `message'."
     (error nil))
   ;; We need timers to display messages temporarily.
   (if (not (fboundp 'run-with-timer))
-      ;; Without timers just fallback to `message'.
-      (defalias 'fame-temp-message 'message)
+
+      (defun fame-temp-message-internal (fun &rest args)
+        "Display a message temporarily through the function FUN.
+ARGS are like those of the function `message'."
+        ;; Without timers just call FUN.
+        (and args (apply fun args)))
 
     (defvar fame-temp-message-timer nil)
     (defvar fame-temp-message-saved nil)
@@ -206,17 +214,15 @@ ARGS are like those of the function `message'."
         (prog1 (fame-message-nolog "%s" fame-temp-message-saved)
           (setq fame-temp-message-saved nil))))
 
-    (defun fame-temp-message (&rest args)
-      "Display a message temporarily.
-ARGS will be passed to the function `message'.
-The original message is restored to the echo area after
-`fame-temp-message-delay' seconds."
+    (defun fame-temp-message-internal (fun &rest args)
+      "Display a message temporarily through the function FUN.
+ARGS are like those of the function `message'."
       (when args
         (condition-case nil
             (progn
               (fame-temp-restore-message)
               (setq fame-temp-message-saved (fame-current-message))
-              (prog1 (apply 'message args)
+              (prog1 (apply fun args)
                 (setq fame-temp-message-timer
                       (run-with-timer fame-temp-message-delay nil
                                       'fame-temp-restore-message))))
@@ -224,6 +230,20 @@ The original message is restored to the echo area after
            (fame-temp-restore-message)))))
     )
   )
+
+(defsubst fame-temp-message (&rest args)
+  "Display a message temporarily and log it.
+ARGS are like those of the function `message'.
+The original message is restored to the echo area after
+`fame-temp-message-delay' seconds."
+  (apply 'fame-temp-message-internal 'message args))
+
+(defsubst fame-temp-message-nolog (&rest args)
+  "Display a message temporarily without logging it.
+ARGS are like those of the function `message'.
+The original message is restored to the echo area after
+`fame-temp-message-delay' seconds."
+  (apply 'fame-temp-message-internal 'fame-message-nolog args))
 
 ;;; Handling of message levels
 ;;
@@ -285,18 +305,23 @@ See also the option `fame-channels'."
 
 ;;; Sending messages to channels
 ;;
+(defconst fame-send-functions-alist
+  '((none       . nil)
+    (log        . fame-log-message)
+    (temp       . fame-temp-message)
+    (temp-nolog . fame-temp-message-nolog)
+    (nolog      . fame-message-nolog)
+    (t          . message)
+    ))
+
 (defun fame-send (channel level &rest args)
   "Send a message to CHANNEL at level LEVEL.
 ARGS are like those of the function `message'.
 The message will be displayed according to what is specified for
 CHANNEL in the `fame-channels' option."
-  (let ((display (fame-level-display channel level)))
-    (unless (eq display 'none)
-      (apply (cond
-              ((eq display 'log) 'fame-log-message)
-              ((eq display 'temp) 'fame-temp-message)
-              ('message))
-             args))))
+  (let ((sender (cdr (assq (fame-level-display channel level)
+                           fame-send-functions-alist))))
+    (and sender (apply sender args))))
 
 (defsubst fame-send-debug (channel &rest args)
   "Send a debug message to CHANNEL.
@@ -325,12 +350,13 @@ ARGS will be passed to the function `fame-send'."
 ;;; Defining new channels
 ;;
 ;;;###autoload
-(defmacro define-fame-channel (channel &optional default)
+(defmacro define-fame-channel (channel &optional default docstring)
   "Define the new message channel CHANNEL.
 CHANNEL must be a non-nil symbol.
 The optional argument DEFAULT specifies the default value of message
 levels for this channel.  By default it is the value of
 `fame-default-level-values'.
+DOCSTRING is an optional channel documentation.
 
 This defines the option `CHANNEL-fame-levels' to customize the current
 value of message levels.  And the functions `CHANNEL-send-debug',
@@ -340,15 +366,23 @@ messages to CHANNEL."
   (let ((c-opt (fame-channel-symbol channel)))
     `(eval-when-compile
        (defcustom ,c-opt ',(fame-check-channel-levels default)
-         ,(format "*Display value of message levels in the `%s' channel.
+         ,(format "*Display value of message levels in the %s channel.
+%s
 This is a plist where a message level is a property whose value
 defines how messages at this level will be displayed.
-The possible levels are `:debug', `:info', `:warning', and `:error'.
-Level values can be `none' to discard messages, `log' to log but not
-show messages, `temp' to log and show messages temporarily, and t to
-log and show messages the standard way through the function `message'.
-The default behavior is specified in `fame-default-level-display'."
-                  channel)
+
+The possible levels are :debug, :info, :warning, and :error.
+Level values can be:
+ - t           to show and log messages the standard way.
+ - nolog       to show messages without logging them.
+ - temp        to show messages temporarily and log them.
+ - temp-nolog  to show messages temporarily without logging them.
+ - log         to log but not show messages.
+ - none        to discard messages.
+
+The default behavior is specified in `fame-default-level-values'."
+                  channel
+                  (if docstring (format "%s\n" docstring) ""))
          :group 'fame
          :type 'fame-channel-widget)
        (defsubst ,(intern (format "%s-send-debug" channel))
