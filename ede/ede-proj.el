@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.30 2000/10/03 03:54:01 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.31 2000/10/04 03:37:43 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -293,6 +293,15 @@ Argument TARGET is the project we are completing customization on."
     (oset this targets (cons ot (oref this targets)))
     ;; And save
     (ede-proj-save this)))
+
+(defmethod project-new-target-custom ((this ede-proj-project))
+  "Create a new target in THIS for custom."
+  (let* ((name (read-string "Name: " ""))
+	 (type (completing-read "Type: " ede-proj-target-alist
+				nil t nil '(ede-proj-target-history . 1))))
+    (funcall (cdr (assoc type ede-proj-target-alist)) name :name name
+	     :path (ede-convert-path this default-directory)
+	     :source nil)))
 
 (defmethod project-delete-target ((this ede-proj-target))
   "Delete the current target THIS from it's parent project."
