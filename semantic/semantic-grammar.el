@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.2 2002/09/10 08:31:20 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.3 2002/09/11 10:22:00 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -47,16 +47,12 @@
 ;;
 (define-lex-regex-analyzer semantic-grammar-lex-symbol
   "Detect and create an identifier or keyword token."
-  "\\(\\sw\\|\\s_\\)+"
+  "\\([.]\\|\\sw\\|\\s_\\)+"
   (semantic-lex-token
    (or (semantic-lex-keyword-p (match-string 0))
        'SYMBOL)
    (match-beginning 0)
    (match-end 0)))
-
-(define-lex-simple-regex-analyzer semantic-grammar-lex-number
-  "Detect and create a number token."
-  semantic-lex-number-expression 'NUMBER)
 
 (define-lex-regex-analyzer semantic-grammar-lex-string
   "Detect and create a string token."
@@ -90,11 +86,11 @@
   (BRACE_BLOCK ("{" LBRACE) ("}" RBRACE))
   )
 
-(define-lex-regex-analyzer semantic-grammar-lex-prefixed-expression
-  "Detect and create a prefixed expression token."
-  "\\s'"
+(define-lex-analyzer semantic-grammar-lex-sexp
+  "Detect and create an s-expression token."
+  t
   (semantic-lex-token
-   'PREFIX-EXP
+   'SEXP
    (match-beginning 0)
    (save-excursion
      (condition-case nil
@@ -104,7 +100,7 @@
        (error
         (goto-char
          (funcall semantic-lex-unterminated-syntax-end-function
-                  'PREFIX-EXP start end))))
+                  'SEXP start end))))
      (point))))
 
 ;;; Lexer
@@ -115,11 +111,7 @@ It ignores whitespaces, newlines and comments."
   semantic-lex-ignore-newline
   semantic-lex-ignore-whitespace
   semantic-grammar-lex-symbol
-  semantic-grammar-lex-number
   semantic-grammar-lex-char
-  ;; Must detect prefix characters before punctuations because the
-  ;; punctuation regexp also matches them!
-  semantic-grammar-lex-prefixed-expression
   semantic-grammar-lex-string
   ;; Must detect comments after strings because `comment-start-skip'
   ;; regexp match semicolons inside strings!
@@ -128,7 +120,7 @@ It ignores whitespaces, newlines and comments."
   ;; be a punctuation or a comment start!
   wisent-lex-punctuation
   semantic-grammar-lex-blocks
-  semantic-lex-default-action)
+  semantic-grammar-lex-sexp)
 
 ;;; Test the lexer
 ;;
@@ -150,10 +142,10 @@ It ignores whitespaces, newlines and comments."
 ;;;;
 
 (defconst semantic-grammar-automaton
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-05 13:50+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-11 10:25+0200
   (eval-when-compile
     (wisent-compile-grammar
-     '((LEFT NONASSOC PREC PUT RIGHT START SCOPESTART QUOTEMODE TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PREFIX-EXP PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
+     '((LEFT NONASSOC PREC PUT RIGHT START SCOPESTART QUOTEMODE TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL CHARACTER SEXP PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
        (grammar
         ((PERCENT)
@@ -319,9 +311,8 @@ It ignores whitespaces, newlines and comments."
        (any_value
         ((any_symbol))
         ((STRING))
-        ((NUMBER))
-        ((PREFIX-EXP))
-        ((PAREN_BLOCK)))
+        ((PAREN_BLOCK))
+        ((SEXP)))
        (symbols
         ((lifo_symbols)
          (nreverse $1)))
@@ -443,7 +434,7 @@ It ignores whitespaces, newlines and comments."
   "Parser automaton.")
 
 (defconst semantic-grammar-keywords
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-05 13:50+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-11 10:25+0200
   (semantic-lex-make-keyword-table
    '(("left" . LEFT)
      ("nonassoc" . NONASSOC)
@@ -464,7 +455,7 @@ It ignores whitespaces, newlines and comments."
   "Keywords.")
 
 (defconst semantic-grammar-tokens
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-05 13:50+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-11 10:25+0200
   (wisent-lex-make-token-table
    '(("punctuation"
       (PERCENT . "%")
@@ -481,11 +472,9 @@ It ignores whitespaces, newlines and comments."
       (BRACE_BLOCK . "^{")
       (PAREN_BLOCK . "^("))
      ("sexp"
-      (PREFIX-EXP))
+      (SEXP))
      ("char"
       (CHARACTER))
-     ("number"
-      (NUMBER))
      ("symbol"
       (SYMBOL))
      ("string"
@@ -495,7 +484,7 @@ It ignores whitespaces, newlines and comments."
 
 (defun semantic-grammar-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-05 13:50+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-11 10:25+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -509,9 +498,6 @@ It ignores whitespaces, newlines and comments."
               'wisent-collect-unmatched-syntax nil t)
     (setq
      ;; Lexical analysis
-     semantic-lex-number-expression
-     (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
-             "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
      semantic-lex-analyzer 'semantic-grammar-lexer
      ;; Environment
      semantic-type-relation-separator-character '(":")
