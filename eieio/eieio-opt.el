@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.20 2002/02/23 13:19:05 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.21 2002/03/23 01:39:10 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -494,24 +494,33 @@ Optional argument HISTORYVAR is the variable to use as history."
   "Create buttons in speedbar that represents the current project.
 DIR-OR-OBJECT is the object to expand, or nil, and DEPTH is the current
 expansion depth."
-  ;; This function is only called once, to start the whole deal.
-  ;; Ceate, and expand the default object.
-  (eieio-class-button eieio-default-superclass 0)
-  (forward-line -1)
-  (speedbar-expand-line))
+  (when (eq (point-min) (point-max))
+    ;; This function is only called once, to start the whole deal.
+    ;; Ceate, and expand the default object.
+    (eieio-class-button eieio-default-superclass 0)
+    (forward-line -1)
+    (speedbar-expand-line)))
 
 (defun eieio-class-button (class depth)
   "Draw a speedbar button at the current point for CLASS at DEPTH."
   (if (not (class-p class))
       (signal 'wrong-type-argument (list 'class-p class)))
-  (speedbar-make-tag-line 'angle ?+
-			  'eieio-sb-expand
-			  class
-			  (symbol-name class)
-			  'eieio-describe-class-sb
-			  class
-			  'speedbar-directory-face
-			  depth))
+  (let ((subclasses (aref (class-v class) class-children)))
+    (if subclasses
+	(speedbar-make-tag-line 'angle ?+
+				'eieio-sb-expand
+				class
+				(symbol-name class)
+				'eieio-describe-class-sb
+				class
+				'speedbar-directory-face
+				depth)
+      (speedbar-make-tag-line 'angle ? nil nil
+			      (symbol-name class)
+			      'eieio-describe-class-sb
+			      class
+			      'speedbar-directory-face
+			      depth))))
 
 (defun eieio-sb-expand (text class indent)
   "For button TEXT, expand CLASS at the current location.
