@@ -4,6 +4,16 @@
   :name "wisent"
   :file "Project.ede"
   :targets (list 
+   (semantic-ede-proj-target-grammar "taggers"
+    :name "taggers"
+    :path ""
+    :source '("wisent-java-tags.wy" "wisent-awk.wy" "wisent-calc.wy" "wisent-cim.wy" "wisent-java.wy" "wisent-python.wy")
+    )
+   (ede-proj-target-aux "make"
+    :name "make"
+    :path ""
+    :source '("Wisent.mk")
+    )
    (ede-proj-target-elisp "tools"
     :name "tools"
     :path ""
@@ -15,11 +25,6 @@
     :source '("wisent.texi" "fdl.texi")
     :mainmenu "wisent.texi"
     )
-   (ede-proj-target-makefile-miscelaneous "wy"
-    :name "wy"
-    :path ""
-    :source '("wisent-awk.wy" "wisent-calc.wy" "wisent-cim.wy" "wisent-java-tags.wy" "wisent-java.wy" "wisent-python.wy")
-    )
    (ede-proj-target-elisp "wisent"
     :name "wisent"
     :path ""
@@ -29,7 +34,8 @@
    (ede-proj-target-elisp "languages"
     :name "languages"
     :path ""
-    :source '("wisent-awk.el" "wisent-calc.el" "wisent-cim.el" "wisent-java.el" "wisent-java-tags.el" "wisent-python.el" "wisent-java-lex.el")
+    :source '("wisent-calc.el" "wisent-java.el" "wisent-java-tags.el" "wisent-python.el" "wisent-java-lex.el" "wisent-awk-wy.el")
     )
    )
+  :configuration-variables 'nil
   )
