@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.51 2001/09/12 04:46:03 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.52 2001/09/14 07:31:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -219,9 +219,16 @@ Return a bovination list to use."
 Finds compound nonterminals embedded in sub-lists.
 Argument NONTERM is the nonterminal to test for expansion."
   (if (semantic-token-p (car nonterm))
-      ;; Nuke the overlay from the end.
-      ;; For some reason, it takes token in reverse order.
-      (cdr (cdr (nreverse nonterm)))
+      (progn
+        ;; Nuke the overlay from the end.
+        ;; For some reason, it takes token in reverse order.
+        (setq nonterm (nreverse nonterm))
+        ;; Don't forget to delete the overlay from its buffer!
+        ;; Otherwise `semantic-find-nonterminal-by-overlay' will
+        ;; return this invalid NONTERM as a token.
+        (if (semantic-overlay-p (car nonterm))
+            (semantic-overlay-delete (car nonterm)))
+      (cdr (cdr nonterm)))
     nil))
 
 (defun semantic-elisp-find-dependency (token)
