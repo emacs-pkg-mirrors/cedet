@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.44 2001/10/04 15:00:48 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.45 2001/10/05 02:01:11 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,16 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.45  2001/10/05 02:01:11  zappo
+# (UNDERP, UNDERUNDERP): New keywords
+# (macro-or-include): Handle optional argument list
+# (opt-define-arglist): New rules
+# (var-or-func-decl): Account for optional _P before arglist.
+# (opt-under-p): New rule
+# (arg-list): Remove check for _P here.  Regex wasn't working.
+# (arg-sub-list): Unused.
+# (expression): Add symbol as valid part.
+#
 # Revision 1.44  2001/10/04 15:00:48  zappo
 # (expression): Use newer number token which handles floats.
 #
@@ -272,6 +282,11 @@
 %token DOUBLE "double"
 %put DOUBLE summary "Primitive floating-point type (double-precision 64-bit IEEE 754)"
 
+%token UNDERP "_P"
+%token UNDERUNDERP "__P"
+%put UNDERP summary "Common macro to elimitate prototype compatibility on some compilers"
+%put UNDERUNDERP summary "Common macro to elimitate prototype compatibility on some compilers"
+
 declaration : macro
 	    | type
 	    | var-or-fun
@@ -287,7 +302,7 @@ macro : HASH macro-or-include
 	( ,$2 )
       ;
 
-macro-or-include : DEFINE symbol opt-expression
+macro-or-include : DEFINE symbol opt-define-arglist opt-expression
 		   ( $2 variable nil $3
 			(ASSOC const t)
 			nil
@@ -297,6 +312,11 @@ macro-or-include : DEFINE symbol opt-expression
 		 | INCLUDE string
 		   ( (read $2) include nil nil )
 		 ;
+
+opt-define-arglist : semantic-list
+		     ( nil )
+		   | EMPTY
+		   ;
 
 # This is used in struct parts.
 define : HASH DEFINE symbol opt-expression
@@ -492,7 +512,7 @@ var-or-fun : declmods typeformbase metadeclmod opt-ref var-or-func-decl
 	     ( ,(semantic-c-reconstitute-token ,$2 $1 nil ) )
 	   ;
 
-var-or-func-decl : opt-stars opt-class opt-destructor functionname arg-list 
+var-or-func-decl : opt-stars opt-class opt-destructor functionname opt-under-p arg-list 
 		   opt-post-fcn-modifiers
 		   opt-throw
 		   opt-initializers
@@ -501,10 +521,17 @@ var-or-func-decl : opt-stars opt-class opt-destructor functionname arg-list
 			 ;; Extra stuff goes in here.
 			 ;; Continue with the stuff we found in
 			 ;; this definition
-			$2 $3 $5 $7 ,$6 ,$1 ,$9)
+			$2 $3 $6 $8 ,$7 ,$1 ,$10)
 		 | varnamelist  SEMICOLON
 		   ( $1 'variable )
 		 ;
+
+opt-under-p : UNDERP
+	      (nil)
+	    | UNDERUNDERP
+	      (nil)
+	    | EMPTY
+	    ;
 
 opt-initializers: COLON symbol semantic-list opt-initializers
 		| COMA symbol semantic-list opt-initializers
@@ -592,9 +619,7 @@ opt-destructor : TILDE
 		 ( nil )
 	       ;
 
-arg-list : symbol "\\<__?P\\>" semantic-list
-	   (EXPAND $2 arg-list-p)
-	 | semantic-list "^(" knr-arguments
+arg-list : semantic-list "^(" knr-arguments
 	   ( ,$2 )
 	 | semantic-list "^("
 	   (EXPANDFULL $1 arg-sub-list)
@@ -605,10 +630,6 @@ knr-arguments : variablearg SEMICOLON knr-arguments
 	      | variablearg SEMICOLON
 		( $1 )
 	      ;
-
-arg-list-p : open-paren "(" semantic-list close-paren ")"
-	     (EXPANDFULL $2 arg-sub-list)
-	   ;
 
 arg-sub-list : variablearg
 	       ( ,$1 )
@@ -665,6 +686,8 @@ opt-expression : expression
 # Use expression for parsing only.  Don't actually return anything
 # for now.  Hopefully we can fix this later.
 expression : number
+	     ( )
+	   | symbol
 	     ( )
 	   | string
 	     ( )
