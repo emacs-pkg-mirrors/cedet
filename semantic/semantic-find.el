@@ -1,10 +1,10 @@
 ;;; semantic-find.el --- Search routines
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.17 2003/09/07 09:00:39 ponced Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.18 2004/02/02 02:50:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -324,6 +324,16 @@ a tag whose name is that of a struct or class.
 TABLE is a tag table.  See `semantic-something-to-tag-table'."
   `(semantic--find-tags-by-macro
     (semantic-tag-of-type-p (car tags) ,type)
+    ,table))
+
+;;;###autoload
+(defmacro semantic-find-tags-of-compound-type (&optional table)
+  "Find all tags which are a compound type in TABLE.
+Compound types are structures, or other data type which
+is not of a primitive nature, such as int or double.
+Used in completion."
+  `(semantic--find-tags-by-macro
+    (semantic-tag-type-compound-p (car tags))
     ,table))
 
 ;;;###autoload
