@@ -14,7 +14,7 @@ scripts_MISC=semanticdb.sh
 example_MISC=semantic-example.el
 init_LISP=semantic-load.el semantic-autogen.el
 EMACS=emacs
-LOADPATH=wisent/ bovine/ ../speedbar/ ../eieio/\
+LOADPATH=wisent/ bovine/ ../common/ ../speedbar/ ../eieio/\
    
 semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el semantic-token.el
 Languages_LISP=semantic-texi.el

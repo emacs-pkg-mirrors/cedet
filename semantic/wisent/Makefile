@@ -11,7 +11,7 @@ ede_FILES=Project.ede Makefile
 
 tools_LISP=bison-wisent.el
 EMACS=emacs
-LOADPATH=../bovine/ ../ 
+LOADPATH=../../common/ ../bovine/ ../ 
 doc_TEXINFOS=wisent.texi fdl.texi
 MAKEINFO=makeinfo
 wy_MISC=wisent-awk.wy wisent-calc.wy wisent-cim.wy wisent-java-tags.wy wisent-java.wy wisent-python.wy

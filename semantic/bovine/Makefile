@@ -11,7 +11,7 @@ ede_FILES=Project.ede Makefile
 
 bovinator_LISP=semantic-bovine.el bovine-grammar.el semantic-bnf.el bovine-debug.el
 EMACS=emacs
-LOADPATH=../wisent/ ../../eieio/ ../../speedbar/ ../\
+LOADPATH=../../common/ ../wisent/ ../../eieio/ ../../speedbar/ ../\
    
 examples_MISC=semantic-skel.el skeleton.by
 languages_LISP=semantic-c.el semantic-el.el semantic-java.el semantic-make.el semantic-scm.el
