@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-skel.el,v 1.2 2003/02/02 02:05:21 zappo Exp $
+;; X-RCS: $Id: semantic-skel.el,v 1.3 2003/02/17 01:57:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,7 +53,7 @@
   "^\\s-*#if\\s-*0$"
   (beginning-of-line)
   (c-forward-conditional 1)
-  (setq end-point (point))
+  (setq semantic-lex-end-point (point))
   nil)
 
 ;; Define the lexial analyzer
