@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995, 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dialog-mode.el,v 1.12 1996/11/18 00:28:44 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.13 1996/11/27 03:38:31 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -126,11 +126,11 @@ key is any value between 0 and 128"
   (define-key dialog-meta-map "x" nil)
   (define-key dialog-meta-map ":" nil)
   ;; Some keys have special meaning that we can grab at this level
+  (define-key dialog-meta-map "\t" 'dialog-prev-widget)
   (define-key dialog-mode-map "\C-\M-n" 'dialog-next-widget)
   (define-key dialog-mode-map "\C-\M-p" 'dialog-prev-widget)
   (define-key dialog-mode-map "\C-i" 'dialog-next-widget)
-  (define-key dialog-mode-map "\M-\t" 'dialog-prev-widget)
-  (define-key dialog-mode-map "\C-r" 'dialog-refresh)
+  (define-key dialog-mode-map "\C-c\C-r" 'dialog-refresh)
 
   ;; Differences between Xemacs and Emacs keyboard
   (if (string-match "XEmacs" emacs-version)
@@ -264,10 +264,14 @@ All keystrokes are interpreted by the widget upon which the cursor
 resides.  Thus SPC on a button activates it, but in a text field, it
 will insert a space into the character string.
 
+Reference the Info node @xref{(dialog)Top} for details about dialog mode
+and all the support widgets.
+
 \\<dialog-mode-map>
-Navigation commands:
+Commands:
   \\[dialog-next-widget]   - Move to next interactive widget
   \\[dialog-prev-widget] - Move to previous interactive widget
+  \\[dialog-refresh] - Refresh the display
 "
   (kill-all-local-variables)
   (setq mode-name "Dialog")
@@ -298,7 +302,8 @@ on when done."
   (dialog-with-writeable
     (erase-buffer)
     (message "Geometry Management...")
-    (verify-size widget-toplevel-shell)
+    (or (interactive-p)
+	(verify-size widget-toplevel-shell))
     (message "Rendering Dialog...")
     (draw widget-toplevel-shell)))
 
@@ -547,6 +552,33 @@ mouse button is released event is recieved."
 	  (motion-input w event)))
       (if event (mouse-set-point event)))))
 )
+
+(defun dialog-string-to-list (string)
+  "Convert STRING into a list of strings which were separated by
+carriage returns."
+  (if (not (stringp string)) (signal 'wrong-type-argument (list 'string-p string)))
+  (let ((newlst nil))
+    (while string
+      (if (string-match "\n" string)
+	  (setq newlst (cons (substring string 0 (match-beginning 0))
+			     newlst)
+		string (substring string (match-end 0)))
+	(setq newlst (cons string newlst)
+	      string nil)))
+    (nreverse newlst)))
+
+(defun dialog-count-lines (start end)
+  "Count lines from START to END, accounting for the error."
+  (save-excursion
+    (goto-char start)
+    (beginning-of-line)
+    (setq start (point))
+    (goto-char end)
+    (beginning-of-line)
+    (setq end (point))
+    (if (>= start end)
+	1
+      (+ (count-lines start end) 1))))
 ;;
 ;; Special menu function designed for lists of various things.
 ;;
@@ -621,9 +653,9 @@ keystrokes, etc."
 	;; This will compile out the if statement
 	(if (eval-when-compile (fboundp 'put-text-property))
 	    (progn
-	      (if face (put-text-property pnt end 'face face))
-	      (if focus-face (put-text-property pnt end 'mouse-face focus-face))
-	      (if object (put-text-property pnt end 'widget-object object))
+	      (put-text-property pnt end 'face face)
+	      (put-text-property pnt end 'mouse-face focus-face)
+	      (put-text-property pnt end 'widget-object object)
 	      )))))
 
 (defun dialog-widget-tree-primitive ()
@@ -678,22 +710,18 @@ the screen."
   (dialog-mode)
   (let ((mytog (data-object "MyTog" :value t)))
 
-    (create-widget "Fred" widget-label :face 'modeline 
-		   :x 10
-		   :label-value "This is a label\non several lines separated by \\n\nto make distinctions")
-
     (dialog-build-group (create-widget "Push Button Frame" widget-frame
 				       :frame-label "Push Button Window"
 				       ;; :box-sides [ nil t nil t ]
 				       :position 'left-bottom)
       (create-widget "Click" widget-push-button
-		     :y 1 :label-value "Quit"
+		     :x 1 :y 1 :label-value "Quit"
 		     :box-face 'font-lock-comment-face
 		     :activate-hook (lambda (obj reason) "Activate Quit Button"
 				      (message "Quit!")
 				      (dialog-quit)))
       (create-widget "Clack" widget-push-button
-		     :x -10 :y t :label-value "Widget\nTree"
+		     :x -5 :y t :label-value "Widget\nTree"
 		     :box-face 'font-lock-comment-face
 		     :activate-hook (lambda (obj reason) "Draw a widget tree"
 				      (dialog-widget-tree-primitive)))
@@ -708,29 +736,11 @@ the screen."
 		     :activate-hook (lambda (obj reason) "Draw a widget tree"
 				      (describe-function
 				       'dialog-mode))))
-    (dialog-build-group (create-widget "Togg Frame" widget-frame
-				       :frame-label "Toggle Tests..."
-				       ;;:box-sides [ t nil t nil ]
-				       :position 'center-top
-				       :box-face 'font-lock-reference-face)
-      (create-widget "Togg" widget-toggle-button
-		     :label-value "Toggle Me"
-		     :face 'underline  :ind-face 'highlight
-		     :state mytog
-		     :activate-hook (lambda (obj reason) "Switcharoo!"
-				      (message "Changed value")))
-      (create-widget "Forceon" widget-push-button
-		     :x -6 :y t :label-value "Turn On"
-		     :activate-hook 
-		     (list 'lambda '(obj reason) "Flip Tog"
-			   (list 'set-value mytog t)))
-      (create-widget "Forceoff" widget-push-button
-		     :x -6 :y t :label-value "Turn Off"
-		     :face 'underline
-		     :activate-hook
-		     (list 'lambda '(obj reason) "Flip Tog"
-			   (list 'set-value mytog nil))))
-      
+
+    (create-widget "Fred" widget-label :face 'modeline 
+		   :x -2 :y t
+		   :label-value "This is a label\non several lines\nseparated by \\n\nto make distinctions")
+
     (dialog-build-group (create-widget "Radio Frame" widget-radio-frame
 				       :frame-label "Radio tests"
 				       :position 'right-top)
@@ -743,18 +753,62 @@ the screen."
 
       (create-widget "radio 3" widget-radio-button
 		     :label-value "Third nifty option")
+
       )
 
+    (dialog-build-group (create-widget "Togg Frame" widget-frame
+				       :x -2 :y t
+				       :frame-label "Toggle Tests..."
+				       :position 'center-top
+				       :box-face 'font-lock-reference-face)
+      (create-widget "Togg" widget-toggle-button
+		     :label-value "Toggle Me"
+		     :face 'underline  :ind-face 'highlight
+		     :state mytog
+		     :activate-hook (lambda (obj reason) "Switcharoo!"
+				      (message "Changed value")))
+      (create-widget "Forceon" widget-push-button
+		     :label-value "Turn On"
+		     :activate-hook 
+		     (list 'lambda '(obj reason) "Flip Tog"
+			   (list 'set-value mytog t)))
+      (create-widget "Forceoff" widget-push-button
+		     :x -2 :y t :label-value "Turn Off"
+		     :face 'underline
+		     :activate-hook
+		     (list 'lambda '(obj reason) "Flip Tog"
+			   (list 'set-value mytog nil))))
+      
     (dialog-build-group "Random Widget Things"
       (create-widget "some-stuff" widget-option-button
 		     :face 'italic
 		     :option-list '("Moose" "Dog" "Cat" "Mouse" "Monkey" "Penguin")
 		     )
-      (create-widget "MyText" widget-text-field
+      (create-widget "MyText" widget-text-field :x -2 :y t
 		     :width 20 :value "My First String")
+      (create-widget "MyTextBox" widget-text-box
+		     :width 20 :height 3 :value "My first\nno, second\nUm.. third string")
       (create-widget "MyTextGroup" widget-labeled-text
 		     :text-length 20 :value "My Composite String"
 		     :label "Named String:" :unit "chars")
+      (create-widget "MyCombo" widget-option-text
+		     :option-list '("one" "two" "three" "four" "five" "six")
+		     :text-length 15
+		     :value "won"
+		     :label "Combo Text:")
+      (create-widget "MyScrolledtext" widget-scrolled-text
+		     :width 20 :height 5
+		     :value "Here are\nSome string\nvalues")
+
+
+      (create-widget "MyScale" widget-scale)
+      (create-widget "MyScroller" widget-scrollbar)
+      (create-widget "MyVScale" widget-scale
+		     :direction 'vertical
+		     :x 50 :y 1)
+      (create-widget "MyVScroller" widget-scrollbar
+		     :direction 'vertical
+		     :x -2 :y 0)
       )
     )
   (dialog-refresh)
