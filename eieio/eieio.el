@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.8
-;;; RCS: $Id: eieio.el,v 1.23 1997/01/19 22:08:52 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.24 1997/01/23 03:04:20 zappo Exp $
 ;;; Keywords: OO, lisp
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -35,24 +35,22 @@
 ;;;
 ;;; Commentary:
 ;;;      
-;;; EIEIO is a series of lisp routines which, if used, provide a class
-;;; structure methodology vaguely which implements a small subset of
-;;; CLOS, the Common Lisp Object System.  In addition, eieio also adds
-;;; a few new features whose value has yet to prove themselves.
+;;; EIEIO is a series of lisp routines which provide a class structure
+;;; methodology which implements a small subset of CLOS, the Common
+;;; Lisp Object System.  In addition, eieio also adds a few new
+;;; features which help it integrate more strongly with the emacs
+;;; running environment.
 ;;;
 ;;; Classes can inherit (singly) from other classes, and attributes
 ;;; can be multiply defined (but only one actual storage spot will be
-;;; allocated) Attributes may be given initial values in the class
-;;; definition.  Class methods (methods defined _IN_ a class) can be
-;;; defined for each sub-class, or only for a parent class.  A method
-;;; can also be defined outside a class in CLOS style where the
+;;; allocated.) Attributes may be given initial values in the class
+;;; definition.  A method can be defined in CLOS style where the
 ;;; parameters determine which implementation to use.
 ;;;
-;;; Documentation for a class is updated as new class methods are
-;;; added.  Since emacs documents all functions, and the class methods
-;;; are not stored as named functions, their doc-strings are
-;;; remembered, and stuck into the classes' doc string as these items
-;;; change.  This makes loading slower, but does not affect run-time.
+;;; Documentation for a class is generated from the class' doc string,
+;;; and also the doc strings of all its slots.  Documentation for a
+;;; method uses a default generic doc string, and the collection of
+;;; all specific method class strings.
 ;;;
 
 ;;; Structural description of object vectors
@@ -168,6 +166,8 @@
 ;;;           describing a class hierarchy
 ;;;        Modifies existing `lisp-imenu-generic-expression' to include
 ;;;           defmethod.
+;;;        Fixed up comments and doc strings.
+;;;        `oref' and `oset' can now take the :initarg values if desired.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -177,12 +177,24 @@
 (eval-when-compile (require 'cl))
 
 (defvar this nil
-  "Inside a method, this variable is the object in question.  DO NOT
-SET THIS YOURSELF unless you are trying to simulate friendly fields.")
+  "Inside a method, this variable is the object in question.
+DO NOT SET THIS YOURSELF unless you are trying to simulate friendly fields.
+
+Note: Embeded methods are no longer supported.  The variable THIS is
+still set for CLOS methods for the sake of routines like
+`call-next-method'")
 
 (defvar scoped-class nil
-  "This is set when a method is defined so we know we are allowed to
-check private parts. DO NOT SET THIS YOURSELF!")
+  "This is set to a class when a method is running.
+This is so we know we are allowed to check private parts or how to
+execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
+
+(defvar eieio-hook nil
+  "*This hook is executed, then cleared each time `defclass' is called.
+The immediate effect is that I can safely keep track of common-lisp
+`setf' definitions reguardless of the order.  Users can add hooks to
+this variable without worrying about weather this package has been
+loaded or not.")
 
 ;; This is a bootstrap for eieio-default-superclass so it has a value
 ;; while it is being built itself.
@@ -202,9 +214,11 @@ check private parts. DO NOT SET THIS YOURSELF!")
 (defconst class-initarg-tuples 12 "Class initarg tuples list")
 (defconst class-methods 13 "Class methods index")
 (defconst class-default-object-cache 14 
-  "Cache what a newly created object would look like.  This will speed
-up instantiation time as only a `copy-sequence' will be needed, instead
-of looping over all the values and setting them from the default.")
+  "Cache index of what a newly created object would look like.
+This will speed up instantiation time as only a `copy-sequence' will
+be needed, instead of looping over all the values and setting them
+from the default.")
+
 (defconst class-num-fields 15 "Number of fields in the class definition object")
 
 (defconst object-class 1 "Index in an object vector where the class is stored.")
@@ -221,17 +235,16 @@ of looping over all the values and setting them from the default.")
 
 ;; How to specialty compile stuff.
 (autoload 'byte-compile-file-form-defmethod "eieio-comp"
-  "This function is used to byte compile methods in a nice way")
+  "This function is used to byte compile methods in a nice way.")
 (put 'defmethod 'byte-hunk-handler 'byte-compile-file-form-defmethod)
 
-(eval-when-compile 
-  (require 'eieio-comp)) ;make sure we can do this at compile-time.
+(eval-when-compile (require 'eieio-comp))
 
 
 ;;;
 ;;; Important macros used in eieio.
 ;;;
-(defmacro class-v (class) "Internal: Returns the class vector from the CLASS symbol"
+(defmacro class-v (class) "Internal: Returns the class vector from the CLASS symbol."
   ;; No check: If eieio gets this far, it's probably been checked already.
   (list 'get class ''eieio-class-definition))
 
@@ -242,7 +255,7 @@ of looping over all the values and setting them from the default.")
       (list 'eq (list 'aref (list 'class-v class) 0) ''defclass)
     '(error nil)))
 
-(defmacro object-p (obj) "Return t if OBJ is an OBJECT vector."
+(defmacro object-p (obj) "Return t if OBJ is an object vector."
   (list 'condition-case nil
 	(list 'let (list (list 'tobj obj))
 	      '(and (eq (aref tobj 0) 'object)
@@ -250,13 +263,13 @@ of looping over all the values and setting them from the default.")
 	'(error nil)))
 
 (defmacro class-constructor (class) 
-  "Return the symbol representing the constructor of that class"
+  "Return the symbol representing the constructor of that class."
   (list 'aref (list 'class-v class) class-symbol))
 
 (defmacro generic-p (method)
-  "Return `t' if symbol METHOD is a generic function.  Only methods
-have the symbol `eieio-method-tree' as a property (which contains a
-list of all bindings to that method type.)"
+  "Return `t' if symbol METHOD is a generic function.
+Only methods have the symbol `eieio-method-tree' as a property (which
+contains a list of all bindings to that method type.)" 
   (list 'and (list 'fboundp method) (list 'get method ''eieio-method-obarray)))
 
 
@@ -264,11 +277,11 @@ list of all bindings to that method type.)"
 ;;; Defining a new class
 ;;;
 (defmacro defclass (name superclass fields doc-string)
-  "Define NAME as a new class, derived from SUPERCLASS which is a list
-of superclasses to inherit from, with FIELDS being the fields residing
-in that class definition.  NOTE: Currently only one field may exist in
-SUPERCLASS as multiple inheritance is not yet supported.  Supported
-tags are:
+  "Define NAME as a new class derived from SUPERCLASS with FIELDS.
+SUPERCLASS is is a list of superclasses to inherit from, with FIELDS
+being the fields residing in that class definition.  NOTE: Currently
+only one field may exist in SUPERCLASS as multiple inheritance is not
+yet supported.  Supported tags are:
 
   :initform   - initializing form
   :initarg    - tag used during initialization
@@ -282,8 +295,17 @@ combined (for instance :method and :initarg make no sense together)
 	(list 'quote fields) doc-string))
 
 (defun defclass-engine (cname superclass fields doc-string)
-  "Define CNAME as a new class, with FIELDS being the fields residing
-in that class definition.  See defclass for more information"
+  "See `defclass' for more information.
+Define CNAME as a new subclass of SUPERCLASS, with FIELDS being the
+fields residing in that class definition, and with DOC-STRING as the
+top-level documentation for this class."
+  ;; Run our eieio-hook each time, and clear it when we are done.
+  ;; This way people can add hooks safely if they want to modify eieio
+  ;; or add definitions when eieio is loaded or something like that.
+  (run-hooks 'eieio-hook)
+  (setq eieio-hook nil)
+  ;; If no cl, put that sucker back into the hook-list.
+  (if (not (featurep 'cl)) (add-hook 'eieio-hook 'eieio-cl-run-defsetf))
 
   (if (not (symbolp cname)) (signal 'wrong-type-argument '(symbolp cname)))
   (if (not (listp superclass)) (signal 'wrong-type-argument '(listp superclass)))
@@ -387,12 +409,17 @@ in that class definition.  See defclass for more information"
 			(format "Retrieves the slot `%s' from an object of class `%s'"
 				name cname)
 			(list 'oref-engine 'this (list 'quote name))))
-		;; If defsetf is loaded, then create the setf definition we want
-		(if (fboundp 'defsetf)
-		    (eval
-		     (list
-		      'defsetf acces '(node) '(store)
-		      '(oset-engine node 'name store))))
+		;; It turns out that using the setf macro with a
+		;; generic method form is impossible because almost
+		;; any type of form could be created for disparaging
+		;; objects.  Yuck!  Therefore, we shouln't try to make
+		;; setf calls to accessors.
+		;; Create a setf definition for this accessor.
+		;(eieio-cl-defsetf acces '(widget)
+		;		  '(store)
+		;		  (list 'oset-engine 'widget
+		;			(list 'quote cname)
+		;			'store))
 		)
 	    )
 	  )
@@ -459,6 +486,10 @@ in that class definition.  See defclass for more information"
     ;; default superclass eieio-default-superclass)
     (if clearparent (aset newc class-parent nil))
 
+    ;; Indicate bootstrapping is done...
+    (if (eq cname 'eieio-default-superclass)
+	(message "Bootstrapping objects...done"))
+
     ;; Create the cached default object.
     (let ((cache (make-vector (+ (length (aref newc class-public-a))
 				 (length (aref newc class-private-a))
@@ -476,26 +507,31 @@ in that class definition.  See defclass for more information"
 ;;; CLOS style implementation of object creators.
 ;;;
 (defun make-instance (class &rest initargs)
-  "Make a new instance of CLASS with initialization of some parts with
-INITARGS"
-  (let ((cc (class-constructor class)))
-    (apply cc class initargs)))
+  "Make a new instance of CLASS with initialization based on INITARGS.
+INITARGS starts with a name for the class.  This can be any valid lisp
+object, but is generally a string.  The rest of the init args are
+label/value pairs.  The label's are the symbols created with the
+:initarg tag from the `defclass' call.  The value is the value stored
+in that slot."
+  (let ((cc (class-constructor class))) (apply cc class initargs)))
 
 ;;;
 ;;; CLOS methods and generics
 ;;;
 (defmacro defgeneric (method args &optional doc-string)
-  "Creates a generic function, which is called whenever a more
-specific method is requested.  A generic function has no body, as
-it's purpose is to decide which method body is appropriate to use.  Use
-`defmethod' to create methods, and it calls defgeneric for you.  With this
-implementation the arguments are currently ignored."
+  "Creates a generic function METHOD.  ARGS is ignored.
+DOC-STRING is the base documentation for this class.  A generic
+function has no body, as it's purpose is to decide which method body
+is appropriate to use.  Use `defmethod' to create methods, and it
+calls defgeneric for you.  With this implementation the arguments are
+currently ignored.  You can use `defgeneric' to apply specialized
+top-level documentation to a method."
   (list 'defgeneric-engine
 	(list 'quote method)
 	doc-string))
 
 (defun defgeneric-engine (method doc-string)
-  "Engine part to defgeneric macro"
+  "Engine part to `defgeneric' macro."
   (let ((lambda-form
 	 (list 'lambda '(&rest local-args)
 	       doc-string
@@ -508,20 +544,17 @@ implementation the arguments are currently ignored."
     'method))
 
 (defmacro defmethod (method &rest args)
-  "Creates a new METHOD through `defgeneric' and adds the appropriate
-qualifiers to the symbol METHOD.  ARGS lists any keys (such as :BEFORE
-or :AFTER, it's checked for the arglst, and docstring, and eventually
-the body, such as: 
+  "Creates a new METHOD through `defgeneric' with ARGS.
+ARGS lists any keys (such as :BEFORE or :AFTER), the arglst, and
+docstring, and eventually the body, such as:
 
-  (defmethod mymethod [:BEFORE | :AFTER] (args)
-    doc-string
-    body)"
+  (defmethod mymethod [:BEFORE | :AFTER] (args) doc-string body)"
   (list 'defmethod-engine
 	(list 'quote method)
 	(list 'quote args)))
 
 (defun defmethod-engine (method args)
-  "Work part of the defmethod macro"
+  "Work part of the `defmethod' macro."
   (let ((key nil) (body nil) (firstarg nil) (argfix nil) loopa)
     ;; find optional keys
     (setq key
@@ -567,11 +600,12 @@ the body, such as:
   method)
 
 ;;;
-;;; Get/Set slots in an object.  `setf' should be used, but that
-;;;                              requires that `cl' be loaded.
+;;; Get/Set slots in an object.
 ;;;
 (defmacro oref (obj field)
-  "Macro calling `oref-engine' with the quote inserted before field."
+  "Retrieve the value stored in OBJ in the slot named by FIELD.
+Field is the name of the slot when created by `defclass' or the label
+created by the :initarg tag."
   (list 'oref-engine obj (list 'quote field)))
 
 (defun oref-engine (obj field)
@@ -584,26 +618,16 @@ the body, such as:
 
 (defalias 'slot-value 'oref-engine)
 
-(if (featurep 'cl)
-    (progn
-      (defsetf slot-value (obj field) (store)
-	(list 'oset-engine obj field store))
-      (defsetf oref-engine (obj field) (store)
-	(list 'oset-engine obj field store))
-      (defsetf oref (obj field) (store) 
-	(list 'oset-engine obj field store))
-      ))
-
 ;; This alias is needed so that functions can be written
 ;; for defaults, but still behave like lambdas.
 (defmacro lambda-default (&rest cdr)
-  "This macro has the same rules as the macro `lambda'.  As such, the
-form (lambda-default ARGS DOCSTRING INTERACTIVE BODY) is self
-quoting.  This macro is mean for the sole purpose of quoting lambda
-expressions into class defaults.  Any `lambda-default' expression is
-automatically transformed into a `lambda' expression when copied from
-the defaults into a new object.  The use of `oref-default', however,
-will return a lambda-default expression."
+  "The same as `lambda' but is used as a default value in `defclass'.
+As such, the form (lambda-default ARGS DOCSTRING INTERACTIVE BODY) is
+self quoting.  This macro is mean for the sole purpose of quoting
+lambda expressions into class defaults.  Any `lambda-default'
+expression is automatically transformed into a `lambda' expression
+when copied from the defaults into a new object.  The use of
+`oref-default', however, will return a lambda-default expression."
   ;; This definition is copied directly from subr.el for lambda
   (list 'function (cons 'lambda-default cdr)))
 
@@ -611,14 +635,14 @@ will return a lambda-default expression."
 (put 'lambda-default 'byte-compile 'byte-compile-lambda-form)
 
 (defmacro oref-default (obj field)
-  "Macro calling `oref-default-engine' with the quote inserted before field."
+  "Gets the default value of OBJ (maybe a class) for FIELD.
+The default value is the value installed in a class with the :initform
+tag.  FIELD can be the slot name, or the tag specified by the :initarg
+tag in the `defclass' call."
   (list 'oref-default-engine obj (list 'quote field)))
 
 (defun oref-default-engine (obj field)
-  "Return the default value in OBJ at FIELD in the object vector.
-This value is found in the objects class structure and does not
-represent the actual stored value.  OBJ may be an object instance, or
-a class symbol"
+  "Does the work for the macro `oref-default' with similar parameters."
   (if (not (or (object-p obj) (class-p obj))) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let* ((cl (if (object-p obj) (aref obj object-class) obj))
@@ -640,25 +664,28 @@ a class symbol"
 	  val)))))
 
 (defmacro oset (obj field value)
-  "Macro calling `oset-engine' with the quote inserted before field."
+  "Sets the value in OBJ for slot FIELD to VALUE.
+FIELD is the slot name as specified in `defclass' or the tag created
+with in the :initarg slot.  VALUE can be any lisp object."
   (list 'oset-engine obj (list 'quote field) value))
 
 (defun oset-engine (obj field value)
-  "Set the value in OBJ at FIELD to be VALUE, and return VALUE."
+  "Does the work for the macro `oset'"
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let ((c (eieio-field-name-index (aref obj object-class) field)))
+  (let ((c (eieio-field-name-index (object-class-fast obj) field)))
     (if (not c) (signal 'invalid-slot-name (list (object-name obj) field)))
     (aset obj c value)))
 
 (defmacro oset-default (class field value)
-  "Macro calling `oset-default-engine' with the quote in front of the
-field name."
+  "Sets the default slot in CLASS for FIELD to VALUE.
+The default value is usually set with the :initform tag during class
+creation.  This allows users to change the default behavior of classes
+after they are created."
   (list 'oset-default-engine class (list 'quote field) value))
 
 (defun oset-default-engine (class field value)
-  "Set the default value for CLASS at FIELD to be VALUE, and return
-VALUE.  This does not affect any existing objects of type CLASS"
+  "Does the work for the macro `oset-default'"
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
   (let* ((scoped-class class)
@@ -684,8 +711,8 @@ VALUE.  This does not affect any existing objects of type CLASS"
   (format "#<class %s>" (symbol-name class)))
 
 (defun object-name (obj &optional extra)
-  "Return a lisp like symbol string for object OBJ.  If EXTRA, include that
-in the string returned to represent the symbol."
+  "Return a lisp like symbol string for object OBJ.
+If EXTRA, include that in the string returned to represent the symbol."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (format "#<%s %s%s>" (symbol-name (object-class-fast obj)) 
 	  (aref obj object-name) (or extra "")))
@@ -735,7 +762,10 @@ in the string returned to represent the symbol."
 ;;;
 
 (defun eieio-field-name-index (class field)
-  "In OBJ find the index of the named FIELD."
+  "In OBJ find the index of the named FIELD.
+The field is a symbol which is installed in CLASS by the `defclass'
+call.  If FIELD is the value created with :initarg instead,
+reverse-lookup that name, and recurse with the associated slot value."
   ;; Removed checks to outside this call
   (let* ((fsym (intern-soft (symbol-name field) 
 			    (aref (class-v class)
@@ -743,23 +773,23 @@ in the string returned to represent the symbol."
 	 (fsi (if (symbolp fsym) (symbol-value fsym) nil)))
     (if (integerp fsi)
 	(if (or (not (get fsym 'private))
-		(and scoped-class
-		     (child-of-class-p class scoped-class)))
+		(and scoped-class (child-of-class-p class scoped-class)))
 	    (+ 3 fsi)
-	  nil))))
+	  nil)
+      (let ((fn (eieio-initarg-to-attribute class field)))
+	(if fn (eieio-field-name-index class fn) nil)))))
 
 ;;;
 ;;; CLOS generics internal function handling
 ;;;
 (defvar eieio-generic-call-methodname nil
-  "When using `call-next-method' this provides a context on how to do it.")
+  "When using `call-next-method', provides a context on how to do it.")
 (defvar eieio-generic-call-arglst nil
-  "When using `call-next-method' this provides a context on what to use
-for parameters")
+  "When using `call-next-method', provides a context for parameters.")
 
 (defun eieio-generic-call (method args)
-  "Do the hard work of looking up which method to call out of all
-available methods which may be programmed in."
+  "Calls METHOD with ARGS.  ARGS provides the context on which implementation
+to use.  This should only be called from a generic function."
   ;; We must expand our arguments first as they are always
   ;; passed in as quoted symbols
   (let ((newargs nil) (mclass nil)  (lambdas nil)
@@ -813,10 +843,11 @@ available methods which may be programmed in."
       rval)))
 
 (defun call-next-method (&rest replacement-args)
-  "When inside a call to a method belonging to some object, call the
-method belong to the parent class.  If REPLACEMENT-ARGS is non-nil,
-then use them instead of `eieio-generic-call-arglst'.  The generic
-arglist are the arguments passed in at the top level."
+  "Call the next logical method from another method.
+The next logical method is the method belong to the parent class of
+the currently running method.  If REPLACEMENT-ARGS is non-nil, then
+use them instead of `eieio-generic-call-arglst'.  The generic arglist
+are the arguments passed in at the top level."
   (if (not scoped-class)
       (error "call-next-method not called within a class specific method"))
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
@@ -855,11 +886,16 @@ arglist are the arguments passed in at the top level."
 ;;; The elts 3-5 are mearly function bodies
 ;;;
 (defvar eieiomt-optimizing-obarray nil
-  "While mapping atoms, this contains the obarray being optimized")
+  "While mapping atoms, this contains the obarray being optimized.")
 
 (defun eieiomt-add (method-name method tag class)
-  "Add to METHOD-NAME the METHOD with associated TAG a function
-associated with CLASS."
+  "Add to METHOD-NAME the forms METHOD in a call position TAG for CLASS.
+METHOD-NAME is the name created by a call to `defgeneric'.
+METHOD are the forms for a given implementation.
+TAG is an integer (see comment in eieio.el near this function) which
+is associated with the :BEFORE :PRIMARY and :AFTER tags and weather
+CLASS is defined or not.  CLASS is the class this method is associated
+with."
   (if (or (>= tag method-num-fields) (< tag 0))
       (error "eieiomt-add: method tag error!"))
   (let ((emtv (get method-name 'eieio-method-tree))
@@ -891,8 +927,8 @@ associated with CLASS."
     ))
 
 (defun eieiomt-get (method-name tag class)
-  "Get the method implementation from METHOD-NAME of the correct TAG
-matching CLASS"
+  "Get the implementation for METHOD-NAME for int TAG matching CLASS.
+See eieiomt-add for details on how these are set."
   (if (>= tag method-num-fields) (< tag 0)
     (error "eieiomt-get: method tag error!"))
   (let ((emto (get method-name 'eieio-method-obarray)))
@@ -901,8 +937,13 @@ matching CLASS"
       (intern-soft (symbol-name class) (aref emto tag)))))
 
 (defun eieiomt-next (class)
-  "Return the next parent class for CLASS, or `eieio-default-superclass' or
-nil, depending on the return value of `class-parent'"
+  "Return the next parent class for CLASS.
+If CLASS is a superclass, return `eieio-default-superclass'.  If CLASS
+is `eieio-default-superclass' then return nil.  This is different from
+`class-parent' as class parent returns nil for superclasses.  This
+function performs no type checking!"
+  ;; No type-checking because all calls are made from functions which
+  ;; are safe and do checking for us.
   (or (class-parent-fast class)
       (if (eq class 'eieio-default-superclass)
 	  nil
@@ -911,7 +952,7 @@ nil, depending on the return value of `class-parent'"
 (defun eieiomt-sym-optimize (s)
   "This function is called by `mapatoms', or by function calls when a
 symbol has no value, and will find the next class which has a function
-body"
+body."
   ;; (message "Optimizing %S" s)
   (let ((es (intern-soft (symbol-name s))) ;external symbol of class
 	(ov nil)
@@ -929,16 +970,18 @@ body"
     ))
 
 (defun eieio-generic-form (method tag class)
- "Return the lambda form belonging to METHOD using TAG based upon
-CLASS.  If CLASS is not a class then use `generic' instead.  If class
-has no form, but has a parent class, then trace to that parent class"
+ "Return the lambda form belonging to METHOD using TAG based upon CLASS.
+If CLASS is not a class then use `generic' instead.  If class has no
+form, but has a parent class, then trace to that parent class.  The
+first time a form is requested from a symbol, an optimized path is
+memoized for future faster use."
  (let ((emto (aref (get method 'eieio-method-obarray) (if class tag (+ tag 3)))))
    (if (class-p class)
        ;; 1) find our symbol
        (let ((cs (intern-soft (symbol-name class) emto)))
 	 (if (not cs)
 	     ;; 2) If there isn't one, then make on.
-	     ;;    This can be slow since it only occurs once/
+	     ;;    This can be slow since it only occurs once
 	     (progn
 	       (setq cs (intern (symbol-name class) emto))
 	       ;; 2.1) Cache it's nearest neighbor with a quick optimize
@@ -951,7 +994,7 @@ has no form, but has a parent class, then trace to that parent class"
 	   ;; 4) If it's not bound then this variable knows something
 	   (if (symbol-value cs)
 	       (progn
-		 ;; 4.1) This symbol holds the next value in it's value
+		 ;; 4.1) This symbol holds the next class in it's value
 		 (setq class (symbol-value cs)
 		       cs (intern-soft (symbol-name class) emto))
 		 ;; 4.2) The optimizer should always have chosen a 
@@ -975,10 +1018,10 @@ has no form, but has a parent class, then trace to that parent class"
 ;;; even resetting an object at run-time
 ;;;
 (defun eieio-set-defaults (obj &optional set-all)
-  "Take object OBJ, and reset all fields to their defaults.  If
-SET-ALL is non-nil, then when a default is nil, that value is reset.
-If SET-ALL is nil, the fields are only reset if the default is not
-nil."
+  "Take object OBJ, and reset all fields to their defaults.
+If SET-ALL is non-nil, then when a default is nil, that value is
+reset.  If SET-ALL is nil, the fields are only reset if the default is
+not nil."
   (let ((scoped-class (aref obj object-class))
 	(pub (aref (class-v (aref obj object-class)) class-public-a))
 	(priv (aref (class-v (aref obj object-class)) class-private-a)))
@@ -1002,25 +1045,25 @@ nil."
       (setq priv (cdr priv)))))
 
 (defun eieio-initarg-to-attribute (class initarg)
-  "Converts INITARG to the actual attribute name so we can set it during
-instantiation.  If there is no translation, pass it in directly (so 
-we can cheat if need be.. May remove that later..."
+  "For CLASS, convert INITARG to the actual attribute name.
+If there is no translation, pass it in directly (so we can cheat if
+need be.. May remove that later...)"
   (let ((tuple (assoc initarg (aref (class-v class) class-initarg-tuples))))
     (if tuple
 	(cdr tuple)
       initarg)))
 
 (defun eieio-attribute-to-initarg (class attribute)
-  "Converts the ATTRIBUTE into the corresponding init argument tag
-which is a symbol that starts with `:'."
+  "Converts the ATTRIBUTE into the corresponding init argument tag.
+This is usually a symbol that starts with `:'."
   (let ((tuple (rassoc attribute (aref (class-v class) class-initarg-tuples))))
     (if tuple
 	(car tuple)
       nil)))
 
 (defun eieio-set-fields (obj fields)
-  "Set the fields of OBJ with the list FIELDS which is a list of
-name/value pairs.  Called from the constructor routine."
+  "Set fields of OBJ with FIELDS which is a list of name/value pairs.
+Called from the constructor routine."
   (let ((scoped-class (aref obj object-class)))
     (while fields
       (let ((rn (eieio-initarg-to-attribute (object-class-fast obj) (car fields))))
@@ -1028,7 +1071,8 @@ name/value pairs.  Called from the constructor routine."
       (setq fields (cdr (cdr fields))))))
 
 (defun eieio-rebuild-doc-string (class)
-  "Look in CLASS for it's stored doc-string, and the doc string of
+  "Rebuilds the documentation for CLASS.
+Look in CLASS for it's stored doc-string, and the doc string of
 it's methods.  Use this to set the variable 'CLASSes doc string for
 viewing by apropos, and describe-variables, and the like."
   (if (not (class-p class)) (signal 'wrong-type-argument '(class-p class)))  
@@ -1062,9 +1106,9 @@ viewing by apropos, and describe-variables, and the like."
     (put class 'variable-documentation newdoc)))
 
 (defun eieio-rebuild-generic-doc-string (sym)
-  "If SYM is a generic method, set it's documentation string to be
-a info about a generic, plus all the specific versions tacked onto the
-end with info about how each piece gets called."
+  "Rebuilds the documentation string for the generic method SYM.
+The documentation is set to a generic doc-string and all the
+specialized forms for each implementation."
   (if (not (generic-p sym)) (signal 'wrong-type-argument '(generic-p sym)))
   (let ((newdoc "Generic function.  This function accepts a generic number of arguments
 and then, based on the arguments calls some number of polymorphic methods
@@ -1100,7 +1144,7 @@ associated with this symbol.  Current method specific code is:")
     ;; tuck this bit of information away.
     (defgeneric-engine sym newdoc)
     ))
-
+
 ;;;
 ;;; Here are some special types of errors
 ;;;
@@ -1113,6 +1157,24 @@ associated with this symbol.  Current method specific code is:")
 (put 'invalid-slot-name 'error-message "Invalid slot name")
 
 ;;;
+;;; Here are some CLOS items that need the CL package
+;;;
+(defun eieio-cl-run-defsetf ()
+  "Execute many `defsetf's when the 'cl package is loaded."
+  (if (featurep 'cl)
+      (progn
+	(defsetf slot-value (obj field) (store)
+	  (list 'oset-engine obj field store))
+	(defsetf oref-engine (obj field) (store)
+	  (list 'oset-engine obj field store))
+	(defsetf oref (obj field) (store) 
+	  (list 'oset-engine obj field store))))
+  )
+
+(add-hook 'eieio-hook 'eieio-cl-run-defsetf)
+
+
+;;;
 ;;; We want all objects created by EIEIO to have some default set of
 ;;; behaviours so we can create object utilities, and allow various
 ;;; types of error checking.  To do this, create the default EIEIO
@@ -1121,26 +1183,24 @@ associated with this symbol.  Current method specific code is:")
 ;;; allowing for transparent support.)
 ;;;
 
-(if (class-p 'eieio-default-superclass)
-    nil ; don't rebuild these objects.
-
-  (defclass eieio-default-superclass nil
-    nil
-    "Default class used as parent class for superclasses.  Its
-fields are automatically adopted by such superclasses but not stored
-in the `parent' field.  When searching for attributes or methods, when
-the last parent is found, the search will recurse to this class.")
-)
+(defclass eieio-default-superclass nil
+  nil
+  "Default class used as parent class for superclasses.
+Its fields are automatically adopted by such superclasses but not
+stored in the `parent' field.  When searching for attributes or
+methods, when the last parent is found, the search will recurse to
+this class.")
 
 ;;; We want our superclass to define it's own methods.
 (defmethod constructor ((this eieio-default-superclass) &optional fields)
-    "Constructs the new object THIS based on FIELDS.  FIELDS is a
-tagged list where odd numbered elements are tags, and even numbered
-elements are the values to store in the tagged slot.  If you overload
-the constructor, there you will need to call `eieio-set-fields'
-yourself, or you can call `call-next-method' to have this constructor
-called automatically.  If these steps are not taken, then new objects
-of your class will not have their values dynamically set from FIELDS."
+    "Constructs the new object THIS based on FIELDS.
+FIELDS is a tagged list where odd numbered elements are tags, and
+even numbered elements are the values to store in the tagged slot.  If
+you overload the constructor, there you will need to call
+`eieio-set-fields' yourself, or you can call `call-next-method' to
+have this constructor called automatically.  If these steps are not
+taken, then new objects of your class will not have their values
+dynamically set from FIELDS."
     ;; Historical note:  The constructor used to set the defaults.
     ;; This is a silly place to do this because the user could turn
     ;; defaults off by accident by overloading `constructor'.  The
@@ -1157,13 +1217,14 @@ of your class will not have their values dynamically set from FIELDS."
   )
 
 (defmethod object-print ((this eieio-default-superclass) &rest strings)
-  "Pretty printer.  The default method for printing an object is to use
-the `object-name' function.  At times it could be useful to put a summary of
-the object into the default #<notation> string.  Overload this function to
-allow summaries of your objects to be used by eieio browsing tools.  The
-optional parameter STRINGS is for additional summary parts to put into the
-name string.  When passing in extra strings from child classes, always
-remember  to prepend a space."
+  "Pretty printer for any object.  Calls `object-name' with STRINGS.
+  The default method for printing an object is to use the
+`object-name' function.  At times it could be useful to put a summary
+of the object into the default #<notation> string.  Overload this
+function to allow summaries of your objects to be used by eieio
+browsing tools.  The optional parameter STRINGS is for additional
+summary parts to put into the name string.  When passing in extra
+strings from child classes, always remember to prepend a space."
   (object-name this (apply 'concat strings)))
 
 
