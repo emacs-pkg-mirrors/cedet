@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.7 2003/03/16 09:30:18 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.8 2003/03/18 05:44:49 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -98,6 +98,11 @@ ARGS are the arguments passed to the expanded form."
 ARGS are the arguments passed to the expanded form."
   `(wisent-cook-tag ,@args))
 
+(defun wisent-grammar-CODE-TAG (name &rest args)
+  "Return expansion of built-in CODE-TAG expression.
+NAME is the tag name."
+  `(wisent-raw-tag (semantic-tag-new-code name ,@args)))
+
 (defconst wisent-grammar-builtins
   '(
     ;; Builtin name . Expander
@@ -111,6 +116,7 @@ ARGS are the arguments passed to the expanded form."
     (  TYPE-TAG     . wisent-grammar-TYPE-TAG)
     (  INCLUDE-TAG  . wisent-grammar-INCLUDE-TAG)
     (  PACKAGE-TAG  . wisent-grammar-PACKAGE-TAG)
+    (  CODE-TAG     . wisent-grammar-CODE-TAG)
     (  EXPANDTAG    . wisent-grammar-EXPANDTAG)
     ;; ------------ . ---------------------------------
     )

@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-token.el,v 1.6 2003/03/14 02:28:32 zappo Exp $
+;; X-CVS: $Id: semantic-token.el,v 1.7 2003/03/18 05:44:50 emacsman Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -24,7 +24,7 @@
 ;;; Commentary:
 ;; 
 ;; I. The core production of semantic is the list of tokens produced by the 
-;;    different parsers.  This files provides 3 APIs related to token access:
+;;    different parsers.  This file provides 3 APIs related to token access:
 ;;
 ;;    1) Primitive Token Access
 ;;       There is a set of common features to all tokens.  These access
@@ -335,6 +335,12 @@ Determines if it is available based on the length of TOKEN."
 (defmacro semantic-token-include-system (token)
  "Retrieve the flag indicating if the include TOKEN is a system include."
   `(nth 2 ,token))
+
+;;; `code' tokens
+;;
+(defsubst semantic-tag-code-detail (tag)
+   "Return detail information from code tag TAG."
+   (nth 2 tag))
 
 ;;; Token Tests
 ;;
@@ -468,6 +474,15 @@ it can be found.
 EXTRA-SPECIFIERS is a property list of additional features of this token.
 Any property with a value of nil is not stored in the list."
   (list name 'package detail nil)
+  )
+
+(defun semantic-tag-new-code (name detail &rest extra-specifiers)
+  "Create semantic token of type code.
+NAME is a string representing the name of this token.
+DETAIL is extra information about the tag.
+EXTRA-SPECIFIERS is a property list of additional features of this token.
+Any property with a value of nil is not stored in the list."
+  (list name 'code detail nil)
   )
 
 ;; Lets test this out during this short transition.

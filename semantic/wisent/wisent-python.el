@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.37 2003/03/14 08:20:39 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.38 2003/03/18 05:44:49 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -340,7 +340,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-14 09:04+0100
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-17 21:23-0800
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -368,7 +368,8 @@ then converted to simple names to comply with the semantic token style guide."
         ((assert_stmt)))
        (print_stmt
         ((PRINT print_stmt_trailer)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (print_stmt_trailer
         ((test_list_opt)
          nil)
@@ -391,7 +392,8 @@ then converted to simple names to comply with the semantic token style guide."
                   (string-match "^\\(\\sw\\|\\s_\\)+$" $1))
              (wisent-raw-tag
               (semantic-tag-new-variable $1 nil nil))
-           (wisent-token $1 'code nil nil))))
+           (wisent-raw-tag
+            (semantic-tag-new-code name)))))
        (expr_stmt_trailer
         ((augassign testlist))
         ((eq_testlist_zom)))
@@ -414,7 +416,8 @@ then converted to simple names to comply with the semantic token style guide."
         ((DIVDIVEQ)))
        (del_stmt
         ((DEL exprlist)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (exprlist
         ((expr_list comma_opt)
          nil))
@@ -425,7 +428,8 @@ then converted to simple names to comply with the semantic token style guide."
          nil))
        (pass_stmt
         ((PASS)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (flow_stmt
         ((break_stmt))
         ((continue_stmt))
@@ -434,23 +438,28 @@ then converted to simple names to comply with the semantic token style guide."
         ((yield_stmt)))
        (break_stmt
         ((BREAK)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (continue_stmt
         ((CONTINUE)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (return_stmt
         ((RETURN testlist_opt)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (testlist_opt
         (nil)
         ((testlist)
          nil))
        (yield_stmt
         ((YIELD testlist)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (raise_stmt
         ((RAISE zero_one_two_or_three_tests)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (zero_one_two_or_three_tests
         (nil)
         ((test zero_one_or_two_tests)
@@ -498,13 +507,15 @@ then converted to simple names to comply with the semantic token style guide."
          (format "%s.%s" $1 $3)))
        (global_stmt
         ((GLOBAL comma_sep_name_list)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (comma_sep_name_list
         ((NAME))
         ((comma_sep_name_list COMMA NAME)))
        (exec_stmt
         ((EXEC expr exec_trailer)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (exec_trailer
         (nil)
         ((IN test comma_test_opt)
@@ -515,7 +526,8 @@ then converted to simple names to comply with the semantic token style guide."
          nil))
        (assert_stmt
         ((ASSERT test comma_test_opt)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (compound_stmt
         ((if_stmt))
         ((while_stmt))
@@ -525,7 +537,8 @@ then converted to simple names to comply with the semantic token style guide."
         ((class_declaration)))
        (if_stmt
         ((IF test COLON suite elif_suite_pair_list else_suite_pair_opt)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (elif_suite_pair_list
         (nil)
         ((elif_suite_pair_list ELIF test COLON suite)
@@ -554,15 +567,19 @@ then converted to simple names to comply with the semantic token style guide."
         ((compound_stmt)))
        (while_stmt
         ((WHILE test COLON suite else_suite_pair_opt)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (for_stmt
         ((FOR exprlist IN testlist COLON suite else_suite_pair_opt)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (try_stmt
         ((TRY COLON suite except_clause_suite_pair_list else_suite_pair_opt)
-         (wisent-token $1 'code nil nil))
+         (wisent-raw-tag
+          (semantic-tag-new-code name)))
         ((TRY COLON suite FINALLY COLON suite)
-         (wisent-token $1 'code nil nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-code name))))
        (except_clause_suite_pair_list
         ((except_clause COLON suite)
          nil)
@@ -804,7 +821,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-14 09:04+0100
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-17 21:23-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -866,7 +883,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-14 09:04+0100
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-17 21:23-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -939,7 +956,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-14 09:04+0100
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-03-17 21:23-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))

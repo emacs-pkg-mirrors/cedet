@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.27 2003/03/14 05:44:43 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.28 2003/03/18 05:44:48 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -318,7 +318,7 @@ small_stmt
 ;;           | '>>' test [ (',' test)+ [','] ]
 print_stmt
   : PRINT print_stmt_trailer
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ]
@@ -355,7 +355,7 @@ expr_stmt
 	;; If this is an assignment statement and left side is a symbol,
 	;; then generate a 'variable token, else return 'code token.
 	(VARIABLE-TAG $1 nil nil)
-      (wisent-token $1 'code nil nil))
+      (CODE-TAG $1))
   ;
 
 ;; Could be EMPTY because of eq_testlist_zom.
@@ -388,7 +388,7 @@ augassign
 ;; del_stmt: 'del' exprlist
 del_stmt
   : DEL exprlist
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; exprlist: expr (',' expr)* [',']
@@ -412,7 +412,7 @@ expr_list
 ;; pass_stmt: 'pass'
 pass_stmt
   : PASS
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;;;============================================================================
@@ -430,19 +430,19 @@ flow_stmt
 ;; break_stmt: 'break'
 break_stmt
   : BREAK
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; continue_stmt: 'continue'
 continue_stmt
   : CONTINUE
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; return_stmt: 'return' [testlist]
 return_stmt
   : RETURN testlist_opt
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; [testlist]
@@ -455,13 +455,13 @@ testlist_opt
 ;; yield_stmt: 'yield' testlist
 yield_stmt
   : YIELD testlist
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; raise_stmt: 'raise' [test [',' test [',' test]]]
 raise_stmt
   : RAISE zero_one_two_or_three_tests
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; [test [',' test [',' test]]]
@@ -553,7 +553,7 @@ dotted_name
 ;; global_stmt: 'global' NAME (',' NAME)*
 global_stmt
   : GLOBAL comma_sep_name_list
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; NAME (',' NAME)*
@@ -569,7 +569,7 @@ comma_sep_name_list
 ;; exec_stmt: 'exec' expr ['in' test [',' test]]
 exec_stmt
   : EXEC expr exec_trailer
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; ['in' test [',' test]]
@@ -593,7 +593,7 @@ comma_test_opt
 ;; assert_stmt: 'assert' test [',' test]
 assert_stmt
   : ASSERT test comma_test_opt
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;;;****************************************************************************
@@ -616,7 +616,7 @@ compound_stmt
 ;; if_stmt: 'if' test ':' suite ('elif' test ':' suite)* ['else' ':' suite]
 if_stmt
   : IF test COLON suite elif_suite_pair_list else_suite_pair_opt
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; ('elif' test ':' suite)*
@@ -644,7 +644,6 @@ suite
 
 indented_block
   : INDENT_BLOCK
- ;;(wisent-token $1 'indent-block nil nil)
     (EXPANDFULL $1 indented_block_body)
   ;
 
@@ -664,7 +663,7 @@ indented_block_body
 ;; while_stmt: 'while' test ':' suite ['else' ':' suite]
 while_stmt
   : WHILE test COLON suite else_suite_pair_opt
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;;;============================================================================
@@ -674,7 +673,7 @@ while_stmt
 ;; for_stmt: 'for' exprlist 'in' testlist ':' suite ['else' ':' suite]
 for_stmt
   : FOR exprlist IN testlist COLON suite else_suite_pair_opt
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;;;============================================================================
@@ -685,9 +684,9 @@ for_stmt
 ;;            ['else' ':' suite] | 'try' ':' suite 'finally' ':' suite)
 try_stmt
   : TRY COLON suite except_clause_suite_pair_list else_suite_pair_opt
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   | TRY COLON suite FINALLY COLON suite
-    (wisent-token $1 'code nil nil)
+    (CODE-TAG $1)
   ;
 
 ;; (except_clause ':' suite)+
