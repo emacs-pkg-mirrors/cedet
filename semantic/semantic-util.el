@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.93.2.2 2002/12/26 11:08:29 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.93.2.3 2003/04/08 12:53:23 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1718,6 +1718,14 @@ Colorize the new text based on COLOR."
 	     name)))
 	(t "")))
 
+(defmacro semantic-uml-nonterminal-protection (token &optional parent)
+  "Return protection information about TOKEN with optional PARENT.
+Check that TOKEN is a variable, function or type token.
+See also `semantic-nonterminal-protection'."
+  `(and (memq (semantic-token-token ,token)
+              '(variable function type))
+        (semantic-nonterminal-protection ,token ,parent)))
+
 (defun semantic-uml-abbreviate-nonterminal (token &optional parent color)
   "Return a UML style abbreviation for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
@@ -1733,7 +1741,7 @@ Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((text (semantic-uml-token-or-string-to-string
 		token parent nil color))
-	 (prot (semantic-nonterminal-protection token parent))
+	 (prot (semantic-uml-nonterminal-protection token parent))
 	 (protstr (semantic-uml-protection-to-string prot))
 	 (text (concat protstr text)))
     (if color
@@ -1769,7 +1777,7 @@ Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((tok (semantic-token-token token))
 	 (argtext nil)
-	 (prot (semantic-nonterminal-protection token parent))
+	 (prot (semantic-uml-nonterminal-protection token parent))
 	 (text nil)
 	 )
     (cond ((eq tok 'function)
@@ -1802,7 +1810,7 @@ Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((cp (semantic-concise-prototype-nonterminal token parent color))
 	 (type (semantic-token-type token))
-	 (prot (semantic-nonterminal-protection token parent))
+	 (prot (semantic-uml-nonterminal-protection token parent))
 	 (text nil)
 	 )
     (setq type
