@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003 Vladimir G. Sekissov
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2003-08-28 14:41:54+0200
+;; Created: 2003-08-29 09:09:51+0200
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-erlang-by.el,v 1.2 2003/08/28 12:46:27 ponced Exp $
+;; X-RCS: $Id: semantic-erlang-by.el,v 1.3 2003/08/29 07:57:00 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -776,7 +776,7 @@
           (cdr
            (nth 3 vals))
           'record-field-decl
-          1)))
+          1) nil))
       )
      ) ;; end record-def
 
@@ -1729,7 +1729,7 @@
             (nth 2 vals))
            (cdr
             (nth 2 vals))
-           'include-file-name))))
+           'include-file-name)) nil))
       )
      ) ;; end include-dir
 
@@ -1748,7 +1748,7 @@
             (nth 2 vals))
            (cdr
             (nth 2 vals))
-           'include-file-name))))
+           'include-file-name)) nil))
       )
      ) ;; end include-lib-dir
 
