@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.7 2000/09/24 15:37:39 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.8 2000/09/25 01:24:13 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -64,9 +64,37 @@ All other sources should be included independently."))
 
 ;;; Makefile generation
 ;;
+(defmethod ede-proj-configure-add-missing
+  ((this ede-proj-target-makefile-info))
+  "Query if any files needed by THIS provided by automake are missing.
+Results in --add-missing being passed to automake."
+  (not (ede-expand-filename (ede-toplevel) "texinfo.tex")))
+
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-makefile-info))
   "Return the variable name for THIS's sources."
-  (concat (ede-pmake-varname this) "_INFOS"))
+  (concat (ede-pmake-varname this) "_TEXINFOS")))
+
+(defmethod ede-proj-makefile-insert-source-variables
+  ((this ede-proj-target-makefile-info) &optional moresource)
+  "Insert the source variables needed by THIS info target.
+Optional argument MORESOURCE is a list of additional sources to add to the
+sources variable.
+Does the usual for Makefile mode, but splits source into two variables
+when working in Automake mode."
+  (if (not (ede-proj-automake-p))
+      (call-next-method)
+    (let* ((sv (ede-proj-makefile-sourcevar this))
+	   (src (copy-sequence (oref this source)))
+	   (menu (or (oref this menu) (car src))))
+      (setq src (delq menu src))
+      ;; the info_TEXINFOS variable is probably shared
+      (ede-pmake-insert-variable-shared "info_TEXINFOS"
+	(insert menu))
+      ;; Now insert the rest of the source elsewhere
+      (ede-pmake-insert-variable-shared sv
+	(insert (mapconcat 'identity src " ")))
+      (if moresource
+	  (error "Texinfo files should not have moresource")))))
 
 (defmethod ede-proj-makefile-target-name ((this ede-proj-target-makefile-info))
   "Return the name of the main target for THIS target."
