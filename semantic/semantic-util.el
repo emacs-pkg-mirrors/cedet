@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.93 2002/06/14 13:15:08 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.94 2002/07/10 03:53:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -477,93 +477,6 @@ is found."
 		(not (eq (semantic-token-token (car toks)) type)))
       (setq toks (cdr toks)))
     (car toks)))
-
-
-;;; Nonterminal regions and splicing
-;;
-;; This functionality is needed to take some set of dirty code,
-;; and splice in new tokens after a partial reparse.
-
-(defun semantic-change-function-mark-dirty  (start end length)
-  "Run whenever a buffer controlled by `semantic-mode' changes.
-Tracks when and how the buffer is re-parsed.
-Argument START, END, and LENGTH specify the bounds of the change."
-  (when (and (not semantic-toplevel-bovine-cache-check)
-	     (not semantic-edits-are-safe))
-    (let ((tl (condition-case nil
-		  (nreverse (semantic-find-nonterminal-by-overlay-in-region
-		   (1- start) (1+ end)))
-		(error nil))))
-      (if tl
-	  (catch 'alldone
-	    ;; Loop over the token list
-	    (while tl
-	      (cond
-	       ;; If we are completely enclosed in this overlay.
-	       ((and (> start (semantic-token-start (car tl)))
-		     (< end (semantic-token-end (car tl))))
-		(if (semantic-token-get (car tl) 'dirty)
-		    nil
-		  (add-to-list 'semantic-dirty-tokens (car tl))
-		  (semantic-token-put (car tl) 'dirty t)
-		  (condition-case nil
-		      (run-hook-with-args 'semantic-dirty-token-hooks
-					  (car tl) start end)
-		    (error (if debug-on-error (debug)))))
-		  (throw 'alldone t))
-	       ;; If we cover the beginning or end of this item, we must
-	       ;; reparse this object.  If there are more items coming, then postpone
-	       ;; this till later.
-	       ((not (cdr tl))
-		(setq semantic-toplevel-bovine-cache-check t)
-		(run-hooks 'semantic-reparse-needed-change-hook))
-	       (t nil))
-	      ;; next
-	      (setq tl (cdr tl))))
-	;; There was no hit, perhaps we need to reparse this intermediate area.
-	(setq semantic-toplevel-bovine-cache-check t)
-	)
-      )))
-;;
-;; Properties set on the tokens are:
-;;  dirty          - This token is dirty
-;;  dirty-after    - This token, and the white space after it is dirty
-;;  dirty-before   - This token, and the white space before it is dirty
-;;  dirty-children - This token has children that are dirty.
-;;
-;; EXPERIMENTAL
-(defsubst semantic-find-nearby-dirty-tokens (beg end)
-  "Make a special kind of token for dirty whitespace.
-Argument BEG and END is the region to find nearby tokens.
-EXPERIMENTAL"
-  (let ((prev (semantic-find-nonterminal-by-overlay-prev beg))
-	(next (semantic-find-nonterminal-by-overlay-next end)))
-    (if prev (semantic-token-put prev 'dirty-after t))
-    (if next (semantic-token-put next 'dirty-before t))
-    (list prev next)))
-
-(defun semantic-set-tokens-dirty-in-region (beg end)
-  "Mark the region between BEG and END as dirty.
-This is done by finding tokens overlapping the region, and marking
-them dirty.  Regions not covered by a token are then marked as
-dirty-after, meaning the space after that area is dirty.
-This function will be called in an after change hook, and must
-be very fast.
-EXPERIMENTAL"
-  (let ((tromp (semantic-find-nonterminal-by-overlay-in-region beg end))
-	(ttmp nil)
-	)
-    (if (not tromp)
-	;; No tokens hit, setup a dirty region on the screen.
-	(setq tromp nil) ;(semantic-get-dirty-token beg end))
-      ;; First, mark all fully dirty tokens.
-      (setq ttmp tromp)
-      (while ttmp
-	(and (> beg (semantic-token-start (car tromp)))
-	     (< end (semantic-token-end (car tromp))))
-
-	)
-	)))
 
 
 ;;; Generalized nonterminal searching
