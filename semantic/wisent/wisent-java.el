@@ -7,7 +7,7 @@
 ;; Created: 19 June 2001
 ;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.3 2001/08/02 14:57:52 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.4 2001/08/13 22:49:09 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1083,7 +1083,7 @@ positions of the token in input."
               nil
             (setq y (match-end 0))
             ;; Adjust input stream.
-            (while (<= (semantic-flex-end tk) y)
+            (while (and tk (<= (semantic-flex-end tk) y))
               (setq is (cdr is)
                     tk (car is)))
             (setq lex (cons 'NUMBER_LITERAL
@@ -1244,16 +1244,19 @@ The optional argument CHECKCACHE is ignored."
   "Scan the current buffer and show the stream of lexical tokens."
   (interactive)
   (let ((terminals (aref wisent-java-parser-tables 3))
+        (bname (format "%s [LALR-LEX]" (buffer-name)))
         semantic-flex-depth lex tok)
     (setq wisent-java-lex-istream (semantic-flex-buffer))
-    (while wisent-java-lex-istream
-      (setq lex (wisent-java-lex)
-            tok (wisent-translate (car lex) terminals))
-      (with-current-buffer
-          (get-buffer-create "*wisent-java-lex-buffer*")
-        (insert
-         (format "(%s[%s]\t\t\t. %S)\n"
-                 (car lex) tok (cdr lex)))))
+    (working-status-forms bname "done"
+      (while wisent-java-lex-istream
+        (setq lex (wisent-java-lex)
+              tok (wisent-translate (car lex) terminals))
+        (with-current-buffer
+            (get-buffer-create "*wisent-java-lex-buffer*")
+          (insert
+           (format "(%s[%s]\t\t\t. %S)\n"
+                   (car lex) tok (cdr lex)))))
+      (working-status t))
     (pop-to-buffer "*wisent-java-lex-buffer*")))
 
 (provide 'wisent-java)
