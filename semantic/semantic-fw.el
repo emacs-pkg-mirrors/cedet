@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.9 2002/08/15 18:26:11 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.10 2002/08/21 01:59:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,6 +41,8 @@
       (defalias 'semantic-make-overlay 'make-extent)
       (defalias 'semantic-overlay-put 'set-extent-property)
       (defalias 'semantic-overlay-get 'extent-property)
+      (defalias 'semantic-overlay-properties 'extent-properties)
+      (defalias 'semantic-overlay-move 'set-extent-endpoints)
       (defalias 'semantic-overlay-delete 'delete-extent)
       (defalias 'semantic-overlays-at
         (lambda (pos) (extent-list nil pos pos)))
@@ -566,13 +568,14 @@ BODY is the implementation of this function."
                        (intern (substring sym-name (match-end 0)))
                      name))
 	 (newname (intern (concat sym-name "-" (symbol-name mode)))))
-    `(eval-and-compile
-       (defun ,newname ,args
-	 ,(format "%s\n
+    `(progn
+       (eval-and-compile
+	 (defun ,newname ,args
+	   ,(format "%s\n
 This function is an implementation for %s"
-		  docstring overload)
-	 ;; The body for this implementation
-	 ,@body)
+		    docstring overload)
+	   ;; The body for this implementation
+	   ,@body))
        (semantic-install-function-overrides '((,overload . ,newname)) nil ',mode)
        )))
 
