@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.6 2003/08/02 08:10:53 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.7 2003/08/11 06:34:17 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -111,7 +111,7 @@ declaration:
   ;
 
 decl:
-  | languagemode_decl
+    languagemode_decl
   | package_decl
   | precedence_decl
   | put_decl
