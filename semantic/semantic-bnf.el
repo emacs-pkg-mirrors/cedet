@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.51 2002/02/14 09:48:34 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.52 2002/04/06 03:47:39 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -513,7 +513,7 @@ Optional argument SCOPESTART is the token to start subscopes with."
 	(setq tokstream (cdr tokstream))
 	(working-status (* 100.0 (- 1.0 (/ (float (length tokstream)) tl)))))
       (working-status t))
-    (insert ")\n ")
+    (insert ")\n")
     ))
 
 
