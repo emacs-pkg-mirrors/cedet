@@ -1,10 +1,10 @@
 ;;; ede-proj-elisp.el --- EDE Generic Project Emacs Lisp support
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.12 2001/01/10 06:57:21 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.13 2001/04/27 00:16:33 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -61,9 +61,11 @@ A lisp target may be one general program with many separate lisp files in it.")
    :variables '(("EMACS" . "emacs"))
    :commands
    '("@echo \"(add-to-list 'load-path nil)\" > $@-compile-script"
-     "@for loadpath in \"${LOADPATH}\"; do \\"
-     "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
-     " done"
+     "@if test ! -z \"${LOADPATH}\" ; then\\"
+     "   for loadpath in ${LOADPATH}; do \\"
+     "      echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
+     "    done\\"
+     "fi"
      "@echo \"(setq debug-on-error t)\" >> $@-compile-script"
      "$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^"
      )
