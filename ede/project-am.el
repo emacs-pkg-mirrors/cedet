@@ -1,11 +1,11 @@
 ;;; project-am.el --- A project management scheme based on automake files.
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2003  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.23 2000/07/22 12:51:45 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.24 2003/04/14 12:30:23 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -368,10 +368,7 @@ but return the project for the directory given."
     (if amo
 	(error "synchronous error in ede/project-am objects.")
       (let ((project-am-constructiong t))
-	(setq amo (project-am-load-makefile fn)))
-      (if (not amo)
-	  nil
-	(setq ede-projects (cons amo ede-projects))))
+	(setq amo (project-am-load-makefile fn))))
     (if (not amo)
 	nil
       ;; Now scan down from amo, and find the current directory
