@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.30 2001/03/27 09:50:45 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.31 2001/04/09 07:18:36 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -63,8 +63,8 @@
 ;;    C-c , j         `senator-jump'
 ;;    C-c , i         `senator-isearch-toggle-semantic-mode'
 ;;    C-c , TAB       `senator-complete-symbol'
-;;    C-c , SPC       `senator-completion-menu-keyboard-popup'
-;;    S-mouse-3       `senator-completion-menu-mouse-popup'
+;;    C-c , SPC       `senator-completion-menu-popup'
+;;    S-mouse-3       `senator-completion-menu-popup'
 ;;    C-c , C-y       `senator-yank-token'
 ;;    C-c , C-w       `senator-kill-token'
 ;;    C-c , M-w       `senator-copy-token'
@@ -98,266 +98,6 @@
 ;; welcome.  Please send them to David Ponce at <david@dponce.com>
 
 ;;; History:
-
-;; $Log: senator.el,v $
-;; Revision 1.30  2001/03/27 09:50:45  ponced
-;; (senator-completion-menu-popup): Fixed error when handling a simple
-;; list of menu items returned when the Semantic Database feature is
-;; disabled.
-;;
-;; Revision 1.29  2001/03/26 05:55:56  ponced
-;; (senator-find-nonterminal-by-name,
-;; senator-find-nonterminal-by-name-regexp, senator-complete-symbol,
-;; senator-eldoc-print-current-symbol-info-default): new format of the
-;; value returned by `semanticdb-find-nonterminal-by-name' and
-;; `semanticdb-find-nonterminal-by-name-regexp'.
-;;
-;; (senator-completion-menu-item, senator-completion-menu-popup): Added
-;; sub-menus for each file were tokens were found by Semantic Database
-;; search functions.
-;;
-;; Revision 1.28  2001/03/21 09:57:18  ponced
-;; (senator-find-nonterminal-by-name,
-;; senator-find-nonterminal-by-name-regexp): return the complete list of
-;; tokens found instead of the ones from the first semanticdb table.
-;;
-;; (senator-completion-menu-do-complete, senator-completion-menu-item):
-;; use a one element array to pass and receive token instead of the token
-;; overlay.  Thus can handle tokens without overlay, returned by
-;; semanticdb.
-;;
-;; (senator-completion-menu-point-as-event): New function that returns
-;; the text cursor position as an event.
-;;
-;; (senator-completion-menu-popup): Now a command.  Uses
-;; `senator-completion-menu-point-as-event' to popup the menu at
-;; completion point.
-;;
-;; (senator-completion-menu-mouse-popup,
-;; senator-completion-menu-keyboard-popup): deleted.  Replaced by
-;; `senator-completion-menu-popup'.
-;;
-;; (senator-prefix-map, senator-mode-map): updated to use
-;; `senator-completion-menu-popup'.
-;;
-;; (senator-menu-bar): Uses `senator-minor-mode-name' as menu title.
-;; Fixed typos.  Replaced `global-semanticdb-minor-mode' by
-;; `semanticdb-toggle-global-mode' to enable/disable the Semantic
-;; Database feature.
-;;
-;; Revision 1.27  2001/03/12 19:55:56  ponced
-;; New faster core search engine.
-;;
-;; Fixed `beginning-of-defun' and `end-of-defun' advices to accept
-;; optional argument ARG.  Usage of ARG is not yet implemented.
-;;
-;; Fixed `insert-register' and `jump-to-register' advices to use
-;; ad-get-arg.
-;;
-;; Added new hippie expand try function `senator-try-expand-semantic'
-;; to try Semantic inline completion.  This try function is
-;; automatically activated in Semantic enabled buffers.
-;;
-;; Many code cleanup and improvement.
-;;
-;; Revision 1.26  2001/03/05 08:02:27  ponced
-;; Added new Eldoc suggestion mode feature.
-;;
-;; Revision 1.25  2001/02/23 16:06:56  ponced
-;; Copied over all the menu items that used to be in semanic-mode.
-;; Added the new token cut/paste items into a menu.
-;; Added menu items to configure semantic-imenu and enable semantic-db.
-;; Added Options sub menu to customize Semantic, Senator, Semantic Imenu
-;; and Semantic Database.
-;; Fixed some XEmacs compatibility issues.
-;; Improved robustness of some functions.
-;;
-;; Revision 1.24  2001/02/22 21:43:17  ponced
-;; Added token Copy, Cut & Paste and Register feature.
-;;
-;; Improvement to the senator-jump completion stuff:
-;;
-;; o The completion list is now cached (buffer local) and reused when
-;;   possible.  The cache is refreshed when parsing or partial parsing
-;;   occurs.
-;;
-;; o Greatly simplified the way completion name are handled.  Now only
-;;   duplicated names are suffixed by parent names :-)
-;;
-;; Some minor `checkdoc' fixes.
-;;
-;; Revision 1.23  2001/02/21 11:27:59  ponced
-;; `senator-minor-mode-setup' now uses the `semantic-active-p' function
-;; to check if the current buffer is set up for parsing.
-;;
-;; `senator-full-token-name' now append the parent names in reverse order
-;; to the token name.  Thus the `senator-jump' completion list is now
-;; easy to use.  You can just type a partial token name and press ENTER
-;; to jump to it.  If the name is not unique a completion buffer is
-;; displayed allowing to choose the right one.
-;;
-;; `senator-beginning-of-defun' and `senator-end-of-defun' now
-;; respectively step at start or end of tokens with identifier specified
-;; in `senator-step-at-token-ids'.  Thus, adviced `beginning-of-defun'
-;; and `end-of-defun' now work with any tokens where you can step at.
-;;
-;; `senator-step-at-start-end-token-ids' can be set to `t' to step at
-;; start and end of any token where it is allowed to step.
-;;
-;; Revision 1.22  2001/02/09 11:55:01  ponced
-;; New implementation of completion menu to allow customization of menu
-;; item text and insert function.
-;;
-;; Revision 1.21  2001/02/05 14:46:00  ponced
-;; Use new `semantic-type-relation-separator-character' format.
-;; New completion popup menu.
-;;
-;; Revision 1.20  2001/02/01 23:27:43  ponced
-;; `senator-last-name' removed.
-;; `senator-jump-completion-list' new variable.
-;; `senator-jump' simpler and more robust!  Save the current
-;; completion table in `senator-jump-completion-list', then reuse it
-;; to retrieve the token association.  Also, this solves jump
-;; conflicts when the same token name is present in different token
-;; children.
-;; `senator-completion-stream' Store the full token itself in the
-;; value part of each association.
-;;
-;; Revision 1.19  2001/02/01 19:38:53  zappo
-;; `senator-complete-symbol' now checks that it complete the same symbol
-;; to reuse `senator-last-completion-stat'.  This is needed when for
-;; example completing "set..." and then completing "get..." at the same
-;; point.
-;;
-;; Revision 1.18  2001/02/01 02:25:58  zappo
-;; Removed compatibility code.
-;; Added isearch code, which was in `senator-isearch'.  Made that shorter.
-;; `senator-step-at-start-end-p' fixed up.
-;; Use `semantic-nonterminal-children' instead of querying for type and
-;; then getting the parts.
-;; Use semantic's separator character.
-;; Added senator-find-nonterminal- .. functions.  Uses semanticdb if loaded.
-;; When completing, use `senator-find...'.
-;; Also do a little more to track if we are doing the same completion.
-;;
-;; Revision 1.18  2001/01/31 00:54:06  zappo
-;; senator-isearch was merged in.  Isearch fns are now much simpler.
-;; Updated documentation.
-;; Added xemacs `isearch-update-ring' compatibility function.
-;; Use `semantic-nonterminal-children' instead of checking for 'type.
-;; Fixed up `senator-complete-symbol'.
-;;
-;; Revision 1.16  2001/01/10 08:09:16  david_ponce
-;; Fixed undeclared local variable 'slot' in `senator-menu-item'.
-;;
-;; Revision 1.15  2001/01/03 16:09:28  david_ponce
-;; New version 2.1.
-;;
-;; Fixed a nasty typo in `senator-minor-mode'.  `run-hooks' were missing
-;; a quotation before their arguments.  Thanks to "Charles Rich"
-;; <rich@merl.com> who has reported this bug.
-;;
-;; Added new `senator-jump' command.  Thanks to "Eric M. Ludlam"
-;; <zappo@ultranet.com> and "T. V. Raman" <tvraman@almaden.ibm.com> for
-;; their help.
-;;
-;; Added new `senator-minor-mode-name' option to customize the name
-;; displayed in the modeline when senator minor mode is on.
-;;
-;; When semantic isearch mode is on it now appends "/si" to the senator
-;; minor mode name displayed in the modeline.
-;;
-;; Added new keyboard shortcut "\C-," to toggle semantic search in
-;; isearch mode.
-;;
-;; Some code improvements.
-;;
-;; Revision 1.14  2000/12/12 11:02:16  david_ponce
-;; `senator-mark-defun' now work on XEmacs too.
-;;
-;; Revision 1.13  2000/12/12 09:21:43  david_ponce
-;; Fixed a "side effect" bug with latest `beginning-of-defun' and
-;; `end-of-defun' advices.  They caused font-lock, which uses
-;; beginning/end of defun to force a reparse.  Thanks to "Eric M. Ludlam"
-;; <zappo@ultranet.com> for pointing this.
-;;
-;; Improved consistency with standard behaviour of `beginning-of-defun'
-;; (go to the beginning of the line where the defun starts) and
-;; `end-of-defun' (go to the beginning of the line following the end of
-;; the defun).
-;;
-;; Added useful advices for `narrow-to-defun', `mark-defun' and
-;; `c-mark-function'.
-;;
-;; Advices are enabled when the functions are called interactively and
-;; `senator-minor-mode' is enabled.
-;;
-;; Revision 1.12  2000/12/11 14:05:06  david_ponce
-;; Code cleanup and optimization.
-;; `senator-next-token' and `senator-previous-token' now correctly work
-;; when not binded to keyboard shortcuts.
-;; `beginning-of-defun' and `end-of-defun' advices no more need to be
-;; called interactively.  So `narrow-to-defun' can use these advices when
-;; `senator-minor-mode' is enabled.
-;;
-;; Revision 1.11  2000/12/11 07:07:09  david_ponce
-;; Applied Eric Ludlam's patch.  It adds a special face for senator to
-;; use for momentary highlight (requires latest semantic-util.el).  If
-;; the user cancels the parse (C-g) when `senator-minor-mode'
-;; initializes, it doesn't kill the rest of the configuration.  (Useful
-;; on a slow machine.)
-;;
-;; Revision 1.10  2000/12/08 16:18:32  david_ponce
-;; A bunch of XEmacs compatibility code!
-;;
-;; Revision 1.9  2000/12/07 09:20:21  david_ponce
-;; Applied Eric Ludlam's doc fix patch.
-;;
-;; Revision 1.8  2000/12/05 15:59:07  david_ponce
-;; Improved consistency with built-in search commands.
-;; New search commands like the ones in the Emacs Search menu.
-;; Added a menu to senator minor mode.
-;; The common prefix key in senator minor mode is now "C-c ,".
-;; Updated header comments.
-;; Some code cleanup.
-;;
-;; Revision 1.7  2000/12/05 11:13:19  david_ponce
-;; New major version 2.0 with [i]search feature and a senator minor mode.
-;; Added compatibility code between GNU Emacs 20.7 and 21.
-;;
-;; Revision 1.6  2000/11/28 12:44:47  david_ponce
-;; More performance improvements.
-;; New option `senator-highlight-found' to customize token highlighting.
-;;
-;; Revision 1.5  2000/11/27 13:24:17  david_ponce
-;; Fixed a serious performance problem in `senator-next-token' and
-;; `senator-previous-token'.
-;;
-;; Before searching for a next or previous token the point was just moved
-;; to respectively the next or previous character. Thus, during
-;; navigation, the buffer was explored character by character :-(.  Now
-;; `senator-next-token' and `senator-previous-token' skip whole tokens
-;; (unless they are 'type tokens which may include sub tokens).
-;;
-;; Revision 1.4  2000/11/14 17:23:21  david_ponce
-;; Minor change to `senator-next-token' and `senator-previous-token' to
-;; return the token at point.  Useful when calling these commands
-;; non-interactively.
-;;
-;; Revision 1.3  2000/11/14 13:04:26  david_ponce
-;; Improved navigation in semantic token where to step at start and end.
-;;
-;; - `senator-next-token' move the point to the end of token if it was at
-;;   beginning or in the middle of the token.
-;;
-;; - `senator-previous-token' move the point to the beginning of token if
-;;   it was at end or in the middle of the token.
-;;
-;; Revision 1.2  2000/11/10 17:11:15  david_ponce
-;; Fixed a little bug in `senator-previous-token' navigation.
-;;
-;; Revision 1.1  2000/11/10 16:04:20  david_ponce
-;; Initial revision.
 ;;
 
 ;;; Code:
@@ -1039,6 +779,42 @@ menu item."
                 (mapcar #'senator-completion-menu-item
                         (cdr token))))))
           
+(defun senator-completion-menu-window-offsets (&optional window)
+  "Return offsets of WINDOW relative to WINDOW's frame.
+Return a cons cell (XOFFSET . YOFFSET) so the position (X . Y) in
+WINDOW is equal to the position ((+ X XOFFSET) . (+ Y YOFFSET)) in
+WINDOW'S frame."
+  (let* ((window  (or window (selected-window)))
+         (w       (window-width window))
+         (h       (window-height window))
+         (e       (window-edges window))
+         (left    (nth 0 e))
+         (top     (nth 1 e))
+         (right   (nth 2 e))
+         (bottom  (nth 3 e))
+         (x       (+ left (/ (- right left) 2)))
+         (y       (+ top  (/ (- bottom top) 2)))
+         (wpos    (coordinates-in-window-p (cons x y) window))
+         (xoffset 0)
+         (yoffset 0))
+    (if (consp wpos)
+        (let* ((f  (window-frame window))
+               (cy (/ 1.0 (float (frame-char-height f)))))
+          (setq xoffset (- x (car wpos))
+                yoffset (float (- y (cdr wpos))))
+          ;; If Emacs 21 add to YOFFSET the heights of header lines
+          ;; above WINDOW.
+          (if (> emacs-major-version 20)
+              (progn
+                (setq wpos    (cons (+ left xoffset) 0.0)
+                      bottom  (float bottom))
+                (while (< (cdr wpos) bottom)
+                  (if (eq (coordinates-in-window-p wpos window)
+                          'header-line)
+                      (setq yoffset (+ yoffset cy)))
+                  (setcdr wpos (+ (cdr wpos) cy)))))
+          (setq yoffset (floor yoffset))))
+    (cons xoffset yoffset)))
 
 (defun senator-completion-menu-point-as-event()
   "Returns the text cursor position as an event.
@@ -1063,11 +839,14 @@ Also move the mouse pointer to the cursor position."
                             'modifiers nil
                             'x x
                             'y y)))
-      (set-mouse-pixel-position (window-frame w)
-                                (* x (frame-char-width))
-                                (* y (frame-char-height)))
-      ;;(list (list x y) window)
-      t)))
+      ;; Emacs
+      (let ((offsets (senator-completion-menu-window-offsets w)))
+        ;; Convert window position (x,y) to the equivalent frame
+        ;; position and move the mouse pointer to it.
+        (set-mouse-position (window-frame w)
+                            (+ x (car offsets))
+                            (+ y (cdr offsets)))
+        t))))
 
 ;;;###autoload
 (defun senator-completion-menu-popup ()
