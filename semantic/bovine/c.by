@@ -5,7 +5,7 @@
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
-;; X-RCS: $Id: c.by,v 1.13 2003/05/21 17:35:22 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.14 2003/05/27 15:29:31 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1011,8 +1011,15 @@ operatorsym
 functionname
   : OPERATOR operatorsym
     ( ,$2 )
+  | semantic-list
+    ( EXPAND $1 function-pointer )
   | symbol
     ( $1 )
+  ;
+
+function-pointer
+  : LPAREN STAR symbol RPAREN
+    ( (concat "*" $3) )
   ;
 
 fun-or-proto-end
