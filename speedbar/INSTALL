@@ -12,6 +12,13 @@ of this update of speedbar.
    On windows NT, you will need to byte compile each file from within
    emacs, or you can leave everything unbyte compiled.
 
+   If you use the rmail, info, or gud displays, and you are using
+   Emacs 20, then you will also need to re byte compile rmail.el,
+   info.el, and gud.el because speedbar macros changed.
+
+   Any other programs you use that define speedbar display modes will
+   also need to be re byte compiled when shifting from speedbar 0.12
+   or less up to speedbar 0.13.
 
 2) Add speedbar's directory to your load path.
 
