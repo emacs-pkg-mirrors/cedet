@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.5 2002/08/11 16:26:53 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.6 2002/12/20 02:06:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -60,7 +60,7 @@ or whatever is used in that language as a representaton.")
 	  :documentation
 	  "Semantic token which represents a type.")
    (table :initarg :table
-	  :type semanticdb-table
+	  :type semanticdb-abstract-table
 	  :documentation
 	  "This is the database table that `token' was found in.
 Be sure to use this field when loading a token's file into memory.")
