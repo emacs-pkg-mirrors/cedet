@@ -1,9 +1,9 @@
 ;;; make.by -- BY notation for Makefiles.
 ;;
-;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: make.by,v 1.8 2003/08/02 08:13:14 ponced Exp $
+;; X-RCS: $Id: make.by,v 1.9 2004/03/06 19:16:51 zappo Exp $
 ;;
 ;; make.bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -123,9 +123,9 @@ element-list: elements newline
 	    ;
 
 elements: element whitespace elements
-	  ( ,$1 ,@$3 )
+	  ( ,@$1 ,@$3 )
 	| element
-	  ( ,$1 )
+	  ( ,@$1 )
 	| ;;EMPTY
 	;
   
