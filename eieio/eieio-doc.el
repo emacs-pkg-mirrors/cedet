@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: eieio-doc.el,v 1.2 1996/11/27 03:45:17 zappo Exp $
+;;; RCS: $Id: eieio-doc.el,v 1.3 1996/12/12 03:37:54 zappo Exp $
 ;;; Keywords: OO, lisp, docs
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -192,6 +192,8 @@ then return nil, else return t"
 	      "@code{"(format "%S" (car deflt)) "}\n\n")
       (if (eq pv 'default)
 	  ;; default differs only, xref the parent
+	  ;; This should be upgraded to actually search for the last
+	  ;; differing default (or the original.)
 	  (insert "@xref{" (symbol-name (class-parent class)) "}\n")
 	(insert (if doc (eieiodoc-texify-docstring doc class) "Not Documented")
 		"\n@refill\n\n")))
