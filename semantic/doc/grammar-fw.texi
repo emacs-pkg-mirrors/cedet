@@ -547,6 +547,66 @@ representation to lexical tokens.  In @semantic{} grammars, @dfn{type}
 specifies how lexical analysis will scan tokens of this type.
 @end table
 
+In the generated library, lexical type declarations are defined in the
+constant @code{@var{library-name}--token-table}.  The table
+value is an Emacs Lisp obarray, available at run time in the parsed
+buffer, in the buffer local variable
+@code{semantic-lex-types-obarray}.
+
+However you shouldn't use that variable directly.  @semantic{} provides
+the following @acronym{API} to use with lexical types at run
+time.
+
+@defun semantic-lex-type-symbol type
+@anchor{semantic-lex-type-symbol}
+Return symbol with @var{TYPE} or @code{nil} if not found.
+@end defun
+
+@defun semantic-lex-type-p type
+@anchor{semantic-lex-type-p}
+Return non-@code{nil} if a symbol with @var{TYPE} name exists.
+@end defun
+
+@defun semantic-lex-type-set type value
+@anchor{semantic-lex-type-set}
+Set value of symbol with @var{TYPE} name to @var{VALUE} and return @var{VALUE}.
+@end defun
+
+@defun semantic-lex-type-value type &optional noerror
+@anchor{semantic-lex-type-value}
+Return value of symbol with @var{TYPE} name.
+If optional argument @var{NOERROR} is non-@code{nil} return @code{nil} if a symbol with
+@var{TYPE} name does not exist.  Otherwise signal an error.
+@end defun
+
+@defun semantic-lex-type-put type property value &optional add
+@anchor{semantic-lex-type-put}
+For symbol with @var{TYPE} name, set its @var{PROPERTY} to @var{VALUE}.
+If optional argument @var{ADD} is non-@code{nil}, create a new symbol with @var{TYPE}
+name if it does not already exist.  Otherwise signal an error.
+@end defun
+
+@defun semantic-lex-type-get type property &optional noerror
+@anchor{semantic-lex-type-get}
+For symbol with @var{TYPE} name, return its @var{PROPERTY} value.
+If optional argument @var{NOERROR} is non-@code{nil} return @code{nil} if a symbol with
+@var{TYPE} name does not exist.  Otherwise signal an error.
+@end defun
+
+@defun semantic-lex-map-types fun &optional property
+@anchor{semantic-lex-map-types}
+Call function @var{FUN} on every lexical type.
+If optional @var{PROPERTY} is non-@code{nil}, call @var{FUN} only on every type symbol
+which as a @var{PROPERTY} value.  @var{FUN} receives a type symbol as argument.
+@end defun
+
+@defun semantic-lex-types &optional property
+@anchor{semantic-lex-types}
+Return a list of lexical type symbols.
+If optional @var{PROPERTY} is non-@code{nil}, return only type symbols which have
+@var{PROPERTY} set.
+@end defun
+
 @node precedence Decl
 @subsubsection precedence Decl
 
@@ -555,11 +615,19 @@ specifies how lexical analysis will scan tokens of this type.
 @deffnx %-Decl %nonassoc [<@var{type-name}>] @var{token1} @dots{}
 @sp 1
 See also @code{%prec} in @ref{Grammar Rules}.
+
+Specify the precedence and associativity of grammar terminals.
+
+For more details, @inforef{Grammar format, , wisent}, @var{PRECEDENCE}.
 @end deffn
 
 @c is this true?
+@table @strong
+@item Please note:
+This information has meaning only in @acronym{LALR} grammars.
 Defining precedence in a grammar that provides tagging information
-for @semantic does not usually necessary.
+for @semantic{} isn't usually necessary.
+@end table
 
 @node default-prec Decl
 @subsubsection default-prec Decl
@@ -567,10 +635,22 @@ for @semantic does not usually necessary.
 @deffn  %-Decl %default-prec
 @deffnx %-Decl %no-default-prec
 @sp 1
+See also @code{%prec} in @ref{Grammar Rules}.
+
+@code{%no-default-prec} declares that you must specify precedence for
+all rules that participate in precedence conflict resolution.  The
+default @code{%default-prec} indicates to use the precedence of the
+last terminal symbol mentioned in the rule.
+
+For more details, @inforef{Grammar format, , wisent}, @var{PRECEDENCE}.
 @end deffn
 
+@table @strong
+@item Please note:
+This information has meaning only in @acronym{LALR} grammars.
 Defining precedence in a grammar that provides tagging information
-for @semantic does not usually necessary.
+for @semantic{} isn't usually necessary.
+@end table
 
 @node quotemode Decl
 @subsubsection quotemode Decl
@@ -582,6 +662,11 @@ lambda expressions.
 @inforef{Optional Lambda Expression, , bovine}
 @end deffn
 
+@table @strong
+@item Please note:
+This information has meaning only in @dfn{bovine} grammars.
+@end table
+
 @node scopestart Decl
 @subsubsection scopestart Decl
 
@@ -592,12 +677,25 @@ that is used for parsing the body of functional code.  This is used
 in the local context parser to find locally defined variables.
 @end deffn
 
+@table @strong
+@item Please note:
+This information has meaning only in @dfn{bovine} grammars.
+@end table
+
 @node start Decl
 @subsubsection start Decl
 
 @deffn %-Decl %start @var{nonterminal1} @dots{}
 @sp 1
+Declare the nonterminal symbols that the parser can use as its goal.
 @end deffn
+
+@table @strong
+@item Please note:
+The exact meaning of start symbols depends on the parser.  For more
+information, @inforef{Start nonterminals, , wisent}, and
+@inforef{%start , , bovine}.
+@end table
 
 @node use-macros Decl
 @subsubsection use-macros Decl
