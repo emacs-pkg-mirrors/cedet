@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.51 2001/10/24 23:07:03 zappo Exp $
+@c $Id: semantic.texi,v 1.52 2001/10/28 01:01:41 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -1709,30 +1709,13 @@ Return the current symbol the cursor is on at @var{POINT}.
 Override with @code{ctxt-current-argument}.
 @end defun
 
-Local Context analysis functions can look at the local context,
-and return information such as the type of the data that should be
-entered where the cursor is.  As of this writing, these functions
-need some more work.
-
-@defun semantic-suggest-lookup-item name &optional tokentype returntype
-Find a token definition matching @var{NAME} with @var{TOKENTYPE}.
-Optional @var{RETURNTYPE} is a return value to match against also.
+@defun semantic-ctxt-scoped-types &optional point
+Return a list of type names currently in scope at @var{POINT}.
+Override with @code{ctxt-scoped-types}.
 @end defun
 
-@defun semantic-suggest-variable-token-hierarchy
-Analyze the current line, and return a series of tokens.
-The tokens represent a hierarchy of dereferences.  For example, a
-variable name will return a list with one token representing that
-variable's declaration.  If that variable is being dereferenced, then
-return a list starting with the variable declaration, followed by all
-fields being extracted.
-
-For example, in c, ``foo->bar'' would return a list (@var{VARTOKEN} @var{FIELDTOKEN})
-where @var{VARTOKEN} is a semantic token of the variable foo's declaration.
-@var{FIELDTOKEN} is either a string, or a semantic token representing
-the field in foo's type.
-@end defun
-
+For details on using these functions to get more detailed information
+about the current context: @xref{Context Analysis}.
 
 @node Making New Methods, , Local Context, Override Methods
 @subsection Local Context
