@@ -4,16 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-prog.el,v 1.3 2000/07/11 23:15:40 zappo Exp $
+;; RCS: $Id: ede-proj-prog.el,v 1.4 2000/09/24 15:43:40 zappo Exp $
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -52,6 +50,37 @@ options to the linker.")
    )
    "This target is an executable program.")
 
+(defmethod ede-proj-makefile-insert-automake-pre-variables
+  ((this ede-proj-target-makefile-program))
+  "Insert bin_PROGRAMS variables needed by target THIS."
+  (ede-pmake-insert-variable-shared "bin_PROGRAMS"
+    (insert (ede-name this)))
+  (call-next-method))
+
+(defmethod ede-proj-makefile-insert-automake-post-variables
+  ((this ede-proj-target-makefile-program))
+  "Insert bin_PROGRAMS variables needed by target THIS."
+  (ede-pmake-insert-variable-shared
+      (concat (ede-name this) "_LDADD")
+    (mapcar (lambda (c) (insert " -l" c)) (oref this ldlibs)))
+  ;; For other targets THIS depends on
+  (ede-pmake-insert-variable-shared
+      (concat (ede-name this) "_DEPENDENCIES")
+    (mapcar (lambda (d) (insert d)) (oref this FOOOOOOOO)))
+  (call-next-method))
+
+(defmethod ede-proj-makefile-insert-rules ((this ede-proj-target-makefile-program))
+  "Insert rules needed by THIS target."
+  (let ((ede-proj-compiler-object-linkflags
+	 (mapconcat 'identity (oref this ldflags) " ")))
+    (with-slots (ldlibs) this
+      (if ldlibs
+	  (setq ede-proj-compiler-object-linkflags
+		(concat ede-proj-compiler-object-linkflags
+			" -l"
+			(mapconcat 'identity (oref this ldlibs) " -l")))))
+    (call-next-method)))
+
 (defmethod project-debug-target ((obj ede-proj-target-makefile-program))
   "Debug a program target OBJ."
   (let ((tb (get-buffer-create " *padt*"))
@@ -69,6 +98,7 @@ options to the linker.")
 			     " " (ede-target-name obj))))
 	  (funcall ede-debug-program-function cmd))
       (kill-buffer tb))))
+
 
 (provide 'ede-proj-prog)
 
