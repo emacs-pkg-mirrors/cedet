@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.30 2001/04/13 01:16:30 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.31 2001/04/23 15:28:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -188,9 +188,9 @@ This is added to `semantic-before-toplevel-cache-flush-hook' and
   (if (eq imenu-create-index-function 'semantic-create-imenu-index)
       (setq imenu--index-alist nil))
   (remove-hook 'semantic-before-toplevel-cache-flush-hook
-	       'semantic-imenu-flush-fcn)
+               'semantic-imenu-flush-fcn t)
   (remove-hook 'semantic-clean-token-hooks
-	       'semantic-imenu-flush-fcn)
+               'semantic-imenu-flush-fcn t)
   )
 
 ;;;###autoload
@@ -199,14 +199,16 @@ This is added to `semantic-before-toplevel-cache-flush-hook' and
 Uses the output of the Semantic Bovinator to create the index.
 Optional argument STREAM is an optional stream of tokens used to create menus."
   (setq imenu-default-goto-function 'semantic-imenu-goto-function)
-  (add-hook 'semantic-before-toplevel-cache-flush-hook
-	    'semantic-imenu-flush-fcn nil t)
-  (add-hook 'semantic-clean-token-hooks
-	    'semantic-imenu-flush-fcn nil t)
-  (if (and semantic-imenu-index-directory (featurep 'semanticdb)
-	   (semanticdb-minor-mode-p))
-      (semantic-create-imenu-directory-index stream)
-    (semantic-create-imenu-index-1 stream)))
+  (prog1
+      (if (and semantic-imenu-index-directory
+               (featurep 'semanticdb)
+               (semanticdb-minor-mode-p))
+          (semantic-create-imenu-directory-index stream)
+        (semantic-create-imenu-index-1 stream))
+    (add-hook 'semantic-before-toplevel-cache-flush-hook
+              'semantic-imenu-flush-fcn nil t)
+    (add-hook 'semantic-clean-token-hooks
+              'semantic-imenu-flush-fcn nil t)))
 
 (defun semantic-create-imenu-directory-index (&optional stream)
   "Create an IMENU tag index based on all files active in semanticdb.
