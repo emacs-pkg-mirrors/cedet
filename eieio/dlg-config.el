@@ -1,9 +1,9 @@
 ;;; dlg-config - configureation specific routines using dialog
 ;;;
-;;; Copyright (C) 1996 Eric M. Ludlam
+;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-config.el,v 1.12 1997/01/24 00:38:26 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.13 1997/01/29 02:19:39 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -35,7 +35,7 @@
 ;;; windows under emacs that perform some basic tasks.
 ;;;           
 (require 'eieio)
-(require 'dialog)
+(require 'dialog-mode)
 (require 'dlg-class)
 
 (defvar dlg-config-file "~/.emacs"

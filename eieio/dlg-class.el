@@ -1,9 +1,9 @@
 ;;; dlg-class - Class definitions and implementations for config widgets
 ;;;
-;;; Copyright (C) 1996 Eric M. Ludlam
+;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-class.el,v 1.9 1997/01/26 18:54:43 zappo Exp $
+;;; RCS: $Id: dlg-class.el,v 1.10 1997/01/29 02:19:43 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -37,7 +37,7 @@
 ;;; dlg-config.
 ;;;           
 (require 'eieio)
-(require 'dialog)
+(require 'dialog-mode)
 (require 'loadhist)			;for feature loading/dumping
 
 ;;;
