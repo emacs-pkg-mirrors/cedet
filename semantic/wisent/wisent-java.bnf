@@ -6,7 +6,7 @@
 ## Maintainer: David Ponce <david@dponce.com>
 ## Created: 07 Aug 2001
 ## Keywords: syntax
-## X-RCS: $Id: wisent-java.bnf,v 1.11 2001/10/03 17:59:06 ponced Exp $
+## X-RCS: $Id: wisent-java.bnf,v 1.12 2001/12/18 06:51:21 ponced Exp $
 ##
 ## This file is not part of GNU Emacs.
 ##
@@ -397,6 +397,7 @@
 
 goal
   : compilation_unit
+    (nreverse $1)
   ;
 
 literal
@@ -720,14 +721,16 @@ formal_parameter_list
   ;
 
 formal_parameter
-  : FINAL type variable_declarator_id
+  : formal_parameter_modifier_opt type variable_declarator_id
     (wisent-token $3 'variable $2 nil
                   (ASSOC typemodifiers $1)
                   nil)
-  | type variable_declarator_id
-    (wisent-token $2 'variable $1 nil
-                  nil
-                  nil)
+  ;
+
+formal_parameter_modifier_opt
+  : EMPTY
+  | FINAL
+    (list $1)
   ;
 
 throwsc_opt
