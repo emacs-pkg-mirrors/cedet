@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.34 2000/07/07 20:32:14 zappo Exp $
+;; RCS: $Id: ede.el,v 1.35 2000/07/12 14:18:22 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -96,8 +96,9 @@ target willing to take the file.  'never means never perform the check."
   :group 'ede
   :type 'sexp) ; make this be a list of options some day
 
-(require 'eieio)
-(require 'eieio-speedbar)
+(eval-and-compile
+  (require 'eieio)
+  (require 'eieio-speedbar))
 
 ;;; Top level classes for projects and targets
 ;;
@@ -373,7 +374,8 @@ version of the keymap."
 	    (setq keys (cdr keys))))
       (error nil))))
 
-(autoload 'ede-dired-minor-mode "ede-dired" "EDE commands for dired" t)
+(eval-and-compile
+  (autoload 'ede-dired-minor-mode "ede-dired" "EDE commands for dired" t))
 
 (defun ede-minor-mode (&optional arg)
   "Project Automake minor mode.
@@ -784,6 +786,11 @@ by this project."
 	     (setq found (ede-expand-filename (car proj) filename)
 		   proj (cdr proj)))
 	   found))))
+
+(defmethod ede-expand-filename ((this ede-target) filename)
+  "Return a fully qualified file name based on target THIS.
+FILENAME should a a filename which occurs in a directory in which THIS works."
+  (ede-expand-filename (ede-target-parent this) filename))
 
 (defun ede-header-file ()
   "Return the header file for the current buffer.
