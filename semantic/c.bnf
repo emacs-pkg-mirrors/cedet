@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.25 2001/02/02 04:14:53 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.26 2001/02/09 11:47:32 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,11 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.26  2001/02/09 11:47:32  zappo
+# Added type separation characters.
+# Added all constituents of DECLMOD into their own tokens.
+# Created a rule to create a list of declmods.
+#
 # Revision 1.25  2001/02/02 04:14:53  zappo
 # Added c++ to the list of language modes.
 # Added lots of operator symbol tokens.
@@ -64,6 +69,8 @@
        semantic-flex-extensions semantic-flex-c-extensions
        semantic-dependency-include-path semantic-default-c-path
        imenu-create-index-function 'semantic-create-imenu-index
+       semantic-type-relation-separator-character '("." "->")
+       semantic-command-separation-character ";"
        document-comment-start "/*"
        document-comment-line-prefix " *"
        document-comment-end " */"
@@ -86,8 +93,13 @@
 %token COMA punctuation ","
 %token TILDE punctuation "~"
 
-#We don't care about most of this.  Regexps will be faster.
-%token DECLMOD symbol  "\\(_+\\)?\\(extern\\|static\\|const\\|volatile\\|signed\\|unsigned\\|virtual\\)"
+%token EXTERN "extern"
+%token STATIC "static"
+%token CONST "const"
+%token VOLATILE "volatile"
+%token SIGNED "signed"
+%token UNSIGNED "unsigned"
+%token VIRTUAL "virtual"
 
 %token STRUCT "struct"
 %token UNION "union"
@@ -212,13 +224,22 @@ opt-stars : STAR opt-stars
 	    ( 0 )
           ;
 
-declmods : symbol DECLMOD declmods
-	   ( ,(cons $1 $2 ) )
-	 | symbol DECLMOD
-	   ( $1 )
+declmods : DECLMOD declmods
+	   ( ,(cons ,$1 $2 ) )
+	 | DECLMOD
+	   ( ,$1 )
 	 | EMPTY
 	   ()
 	 ;
+
+DECLMOD : EXTERN
+	| STATIC
+	| CONST
+	| VOLATILE
+	| SIGNED
+	| UNSIGNED
+	| VIRTUAL
+	;
 
 # Don't deal with the stars just yet.
 typeform : typeformbase opt-stars
