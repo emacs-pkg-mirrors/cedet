@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.20 2003/08/23 21:43:07 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.21 2003/08/26 14:25:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -678,7 +678,7 @@ the semantic cache to see what needs to be changed."
                     (append newf-tokens changed-tokens))
 
               (message "Inserted tokens: (%s)"
-                       (semantic-name-nonterminal (car newf-tokens)))
+                       (semantic-format-tag-name (car newf-tokens)))
               )
 
 ;;;; Old tokens removed
@@ -691,7 +691,7 @@ the semantic cache to see what needs to be changed."
                     (append tokens changed-tokens))
 
               (message "Deleted tokens: (%s)"
-                       (semantic-name-nonterminal (car tokens)))
+                       (semantic-format-tag-name (car tokens)))
               )
              
 ;;;; One token was updated.
@@ -705,7 +705,7 @@ the semantic cache to see what needs to be changed."
               (setq changed-tokens (cons (car tokens) changed-tokens))
               ;; Debug
               (message "Rebovinated: %s"
-                       (semantic-name-nonterminal (car tokens) nil t))
+                       (semantic-format-tag-name (car tokens) nil t))
               ;; Flush change regardless of above if statement.
               )
 
