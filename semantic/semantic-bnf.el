@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.26 2001/01/06 14:37:55 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.27 2001/01/24 21:11:48 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -186,6 +186,24 @@
 	    "'" (symbol-name (car (cdr (cdr lst))))
 	    ")\n ")))
 
+(defun semantic-bnf-ASSOC (lst quotemode)
+  "Handle an ASSOC list based on LST.
+QUOTEMODE is the current mode of quotation."
+  (setq lst (cdr lst))
+  (insert "\n ")
+  (insert "(semantic-bovinate-make-assoc-list ")
+  (while lst
+    ;; The key
+    (insert "'" (symbol-name (car lst)))
+    (setq lst (cdr lst))
+    ;; the value
+    (if (listp (car lst))
+	(semantic-bnf-lambda-substitute (car lst) quotemode t)
+      (insert (format "%S" (car lst))))
+    ;; next
+    (setq lst (cdr lst)))
+  (insert ")\n"))
+
 (defun semantic-bnf-lambda-substitute (lst quotemode &optional inplace)
   "Insert LST substituting based on rules for the BNF converter.
 LST is the list in which we are substituting.
@@ -200,15 +218,21 @@ Optional INPLACE indicates that the list is being expanded from elsewhere."
 	      (semantic-bnf-lambda-substitute (car lst) quotemode nil)
 	      (insert ")")
 	      (setq lst nil inplace nil))
-	  (insert "(list")
-	  (setq inplace t))
-	)
-    (if inplace (insert " (")))
+	  (if (and (= (length lst) 1) (symbolp (car lst)))
+	      (progn
+		(insert "'" (symbol-name (car lst)))
+		(setq lst nil inplace nil))
+	    (insert "(list")
+	    (setq inplace t))
+	  )))
   (cond ((eq (car lst) 'EXPAND)
 	 (semantic-bnf-EXPAND lst))
 	((eq (car lst) 'EXPANDFULL)
 	 (semantic-bnf-EXPANDFULL lst))
+	((eq (car lst) 'ASSOC)
+	 (semantic-bnf-ASSOC lst quotemode))
 	(t
+	 (if inplace (insert " ("))
 	 (let ((inlist nil))
 	   (while lst
 	     (cond ((eq (car lst) nil)
@@ -221,11 +245,11 @@ Optional INPLACE indicates that the list is being expanded from elsewhere."
 		      (if (and (not inlist) (not inplace))
 			  (progn (insert " (list")
 				 (setq inlist t)))
-		      (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
-			  (insert " (append"))
-		      (semantic-bnf-lambda-substitute (car lst) quotemode (and fn (not (eq fn 'quote))))
-		      (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
-			  (insert  ")"))
+;		      (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
+;			  (insert " (append"))
+		      (semantic-bnf-lambda-substitute (car lst) quotemode t);(and fn (not (eq fn 'quote))))
+;		      (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
+;			  (insert  ")"))
 		      ))
 		   ((symbolp (car lst))
 		    (let ((n (symbol-name (car lst))) ;the name
@@ -262,18 +286,22 @@ Optional INPLACE indicates that the list is being expanded from elsewhere."
 					   (setq inlist nil))))
 			      (insert " (nth " (int-to-string val) " vals)")
 			      (if (and (not x) (not inplace)) (setq inlist t)))
-			  (if (and (not inlist) (not inplace))
+			  (if (and (not inlist) (not inplace) )
 			      (progn (insert " (list")
 				     (setq inlist t)))
-			  (insert " " (if inplace "" "'") n)))))
+			  (insert " "
+				  (if (or inplace (eq (car lst) t)) "" "'")
+				  n; " "
+				  )))))
 		   (t
 		    (if (and (not inlist) (not inplace))
 			(progn (insert " (list")
 			       (setq inlist t)))
 		    (insert (format " %S" (car lst)))))
 	     (setq lst (cdr lst)))
-	   (if inlist (insert ")")))))
-  (if inplace (insert ")")))
+	   (if inlist (insert ")")))
+	   (if inplace (insert ")"))))
+  )
 
 (defun semantic-bnf-lambda-convert (semliststr vals quotemode)
   "Convert SEMLISTSTR into Lisp code based on VALS.
@@ -301,9 +329,9 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
 	     ))
       (insert ")"))))
 
-(defun semantic-bnf-to-bovine (file tokstream &optional start)
-  "Insert the BNF file FILE into the current buffer as a bovine table.
-Inserts the token stream TOKSTREAM, and uses START is the starting token."
+(defun semantic-bnf-to-bovine (tokstream &optional start)
+  "Insert the BNF TOKSTREAM into the current buffer as a bovine table.
+Optional argument START is the token to start with."
   (interactive "FBNF file: ")
   (let ((tl (float (length tokstream)))
 	(tokens (semantic-find-nonterminal-by-token 'token tokstream))
@@ -576,8 +604,7 @@ SOURCEFILE is the file name from whence tokstream came."
       (if (looking-at "\\s-*\\(`?(\\|nil\\)")
 	  (delete-region (point) (save-excursion (forward-sexp 1) (point))))
       (delete-blank-lines)
-      (semantic-bnf-to-bovine (buffer-file-name bb) tok
-			      (if start (semantic-token-name (car start))))
+      (semantic-bnf-to-bovine tok (if start (semantic-token-name (car start))))
       (if semantic-bnf-indent-table
 	  (save-excursion
 	    (message "Indenting table....")
@@ -596,6 +623,20 @@ SOURCEFILE is the file name from whence tokstream came."
 	      (if (eq major-mode mode)
 		  (funcall mode))
 	      (setq bufs (cdr bufs))))))))
+
+(defun semantic-bnf-generate-one-rule ()
+  "Generate code for one rule in a temporary buffer."
+  (interactive)
+  (semantic-bovinate-toplevel t)
+  (let ((r (semantic-current-nonterminal)))
+    (if (or (not r) (not (eq (semantic-token-token r) 'rule)))
+	(error "No rule to expand nearby"))
+    (pop-to-buffer "*Rule Expansion*" t)
+    (save-excursion
+      (set-buffer "*Rule Expansion*")
+      (erase-buffer)
+      (insert "Expanding rule [" (semantic-token-name r) "]\n\n")
+      (semantic-bnf-to-bovine (list r)))))
 
 ;;; Semantic BNF mode
 ;;
@@ -613,8 +654,6 @@ SOURCEFILE is the file name from whence tokstream came."
   (modify-syntax-entry ?\; "." semantic-bnf-syntax-table)
   (modify-syntax-entry ?\" "\"" semantic-bnf-syntax-table)
   (modify-syntax-entry ?- "_" semantic-bnf-syntax-table)
-  (modify-syntax-entry ?( "(" semantic-bnf-syntax-table)
-  (modify-syntax-entry ?) ")(" semantic-bnf-syntax-table)
   (modify-syntax-entry ?# "<" semantic-bnf-syntax-table)
   (modify-syntax-entry ?\n ">" semantic-bnf-syntax-table)
   'foo
@@ -624,7 +663,8 @@ SOURCEFILE is the file name from whence tokstream came."
   "Hook run when starting BNF mode.")
 
 (defvar semantic-bnf-mode-keywords
-  '(("^\\(\\w+\\)\\s-*:" 1 font-lock-function-name-face)
+  '((";\\s-*[^#\n ].*$" 0 font-lock-comment-face)
+    ("^\\(\\w+\\)\\s-*:" 1 font-lock-function-name-face)
     ("\\<\\(EMPTY\\|symbol\\|punctuation\\|string\\|semantic-list\
 \\|\\(open\\|close\\)-paren\\|comment\\)\\>"
      1 font-lock-keyword-face)
@@ -644,8 +684,12 @@ SOURCEFILE is the file name from whence tokstream came."
   (define-key semantic-bnf-map "|" 'semantic-bnf-electric-punctuation)
   (define-key semantic-bnf-map ";" 'semantic-bnf-electric-punctuation)
   (define-key semantic-bnf-map "#" 'semantic-bnf-electric-punctuation)
+  (define-key semantic-bnf-map "%" 'semantic-bnf-electric-punctuation)
+  (define-key semantic-bnf-map "(" 'semantic-bnf-electric-punctuation)
+  (define-key semantic-bnf-map ")" 'semantic-bnf-electric-punctuation)
   (define-key semantic-bnf-map "\C-c\C-c" 'semantic-bnf-generate-and-load-no-indent)
   (define-key semantic-bnf-map "\C-cc" 'semantic-bnf-generate-and-load)
+  (define-key semantic-bnf-map "\C-cr" 'semantic-bnf-generate-one-rule)
   )
 
 (speedbar-add-supported-extension ".bnf")
@@ -699,31 +743,85 @@ SOURCEFILE is the file name from whence tokstream came."
 	t)
     (error nil)))
 
+(defun semantic-bnf-in-lambda-continuation-p (&optional point)
+  "Non-nil if POINT is in a settings block."
+  (condition-case nil
+      (save-excursion
+	(if point (goto-char point) (setq point (point)))
+	(beginning-of-line)
+	(condition-case nil
+	    (while t
+	      (up-list -1))
+	  (error nil))
+	(end-of-line)
+	(<= (point) point))
+    (error nil)))
+
+(defun semantic-bnf-previous-colon-indentation ()
+  "Calculation the indentation of the last colon oporator.
+Returns the previous colon's column."
+  (save-excursion
+    (let ((p (point))
+	  (ci (progn
+		(if (re-search-backward "^\\s-*\\(\\w\\|\\s_\\)+\\s-*:" nil t)
+		    (progn
+		      (beginning-of-line)
+		      (- (match-end 0) 1 (point)))
+		  0)))
+	  (cp (point))
+	  (sc nil))
+      (goto-char p)
+      (while (and (re-search-backward "^\\s-*;\\s-*$" nil t)
+		  (semantic-bnf-in-lambda-continuation-p))
+	(setq sc t))
+      (if sc
+	  (if (< (point) cp)
+	      ci
+	    0)
+	ci))))
+
+(defun semantic-bnf-do-lisp-indent (&optional point)
+  "Run the stander Emacs Lisp indenter on a line of code.
+Optional argument POINT is the position on the line to indent."
+  (condition-case nil
+      (save-excursion
+	(if point (goto-char point) (setq point (point)))
+	(up-list -1)
+	(condition-case nil
+	    (while t
+	      (up-list -1))
+	  (error nil))
+	(save-restriction
+	  (beginning-of-line)
+	  (narrow-to-region (point) point)
+	  (goto-char point)
+	  (with-syntax-table emacs-lisp-mode-syntax-table
+	    (lisp-indent-line))))
+    (error nil)))
+
 (defun semantic-bnf-indent ()
   "Indent the current line according to BNF rules."
   (interactive)
   (if (semantic-bnf-in-settings-p)
-      (lisp-indent-line)
-    (save-excursion
-      (beginning-of-line)
-      (let ((indent (current-indentation)))
-	(if (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
-	    (delete-horizontal-space)
-	  (save-excursion
-	    (forward-line -1)
-	    (if (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
-		(setq indent (- (match-end 0) (point) 1))
-	      (if (looking-at "\\s-*;")
-		  (setq indent 0)
-		(if (looking-at "\\s-*[|#]")
-		    (setq indent (current-indentation))
-		  (setq indent (- (current-indentation) 2))))))
-	  (if (not (looking-at "\\s-*[|;#]"))
-	      (setq indent (+ 2 indent)))
-	  (if (= (current-indentation) indent)
-	      nil
-	    (delete-horizontal-space)
-	    (indent-to indent))))))
+      (semantic-bnf-do-lisp-indent)
+    (if (semantic-bnf-in-lambda-continuation-p)
+	(semantic-bnf-do-lisp-indent)
+      (save-excursion
+	(beginning-of-line)
+	(let ((indent (semantic-bnf-previous-colon-indentation)))
+	  (cond
+	   ((or (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
+		(looking-at "\\s-*%"))
+	    (delete-horizontal-space))
+	   (t
+	    (save-excursion
+	      (if (and (not (looking-at "\\s-*[|;#]"))
+		       (/= indent 0))
+		  (setq indent (+ 2 indent))))
+	    (if (= (current-indentation) indent)
+		nil
+	      (delete-horizontal-space)
+	      (indent-to indent))))))))
   (if (bolp) (if (looking-at "\\s-+") (end-of-line))))
 
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
