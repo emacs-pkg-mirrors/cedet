@@ -1,16 +1,13 @@
+<!-- -*- html -*- -->
 <TITLE>Collection of Emacs Development Environment Tools Homepage</TITLE>
 
-<table width=100% bgcolor=#000099>
-<tr><td><h2><font color=yellow>CEDET:</font></h2></td></tr>
-<tr><td><font color=yellow>"Collection of Emacs Development Environment Tools"</font></td></tr>
-</table>
 <?php
-  include ("rightcol.php")
+  include ("pagestart.php")
 ?>
 
 <P>Welcome to the CEDET homepage.  CEDET is a collection of tools
    written with the end goal of creating an advanced development
-   environment.  CEDET is hosted at
+   environment in Emacs.  CEDET is hosted at
    <a href=http://www.sourceforge.net>Source Forge</a>.  You can view
    CEDET's CVS archive, and project summary
    <a href=http://www.sourceforge.net/projects/cedet>here.</a>
@@ -29,7 +26,9 @@
    downloads.
 </p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <H3>Articles</h3>
+</td></tr></table>
 
 <P>An
    <a href=http://www-106.ibm.com/developerworks/library/j-emacs/?n-j-5241>
@@ -38,7 +37,9 @@
    <a href=http://jde.sunsite.dk/>JDE</a>
    includes some pointers to CEDET, and mentions some of these tools.</p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <H3>Base Tools are:</h3>
+</td></tr></table>
 
 <P><A HREF="semantic.shtml"><B>Semantic</B></A><br> is a
    Infrastructure for parser based text analysis in Emacs.  It creates
@@ -63,11 +64,13 @@
      <li>inversion - Package level versioning system.
      <li>ezimage - Simple way to declare and display images in all
        versions of Emacs.
-     <li>pprint - Pertty printer for Emacs Lisp values.
+     <li>pprint - Pretty printer for Emacs Lisp values.
    </ul>
 </p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h3>User Interface Tools are:</h3>
+</td></tr></table>
 
 <P><A HREF="speedbar.shtml"><B>Speedbar</B></A><br>
    Speedbar is an Everything Browser. It creates special skinny frame
@@ -92,14 +95,18 @@
   include ("download.php")
 ?>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h3>Tools hosted elsewhere:</h3>
+</td></tr></table>
 
 <P><a href=http://ecb.sourceforge.net>
    <b>Emacs Code Browser (ECB)</b></a>
    lets you browse your files' contents.
    Uses the Semantic package.</p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h3>Other Miscellaneous Emacs Hacks at this web site:</h3>
+</td></tr></table>
 
 <P><A HREF="checkdoc.shtml"><B>Checkdoc</B></A> is a program which
    checks the style of your documentation strings and comments.
