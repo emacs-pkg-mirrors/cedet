@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.20 2002/08/04 02:03:57 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.21 2002/08/08 16:05:41 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -951,11 +951,12 @@ This marker is one of the following:
 Arguments IGNORE are ignored, and accepted so this can be used as a hook
 in many situations."
   (setq semantic-show-parser-state-string
-	(cond ((semantic-bovine-toplevel-full-reparse-needed-p t)
+	(cond ((semantic-parse-tree-needs-rebuild-p)
 	       "!")
-	      ((semantic-bovine-toplevel-partial-reparse-needed-p t)
+	      ((semantic-parse-tree-needs-update-p)
 	       "~")
-	      (t "-")))
+	      (t
+               "-")))
   ;;(message "Setup mode line indicator to [%s]" semantic-show-parser-state-string)
   (semantic-mode-line-update))
 
@@ -963,8 +964,7 @@ in many situations."
   "Hook function run before an autoparse.
 Set up `semantic-show-parser-state-marker' to show `@'
 to indicate a parse in progress."
-  (when (or (semantic-bovine-toplevel-full-reparse-needed-p t)
-	    (semantic-bovine-toplevel-partial-reparse-needed-p t))
+  (unless (semantic-parse-tree-up-to-date-p)
     (setq semantic-show-parser-state-string "@")
     (semantic-mode-line-update)
     ;; For testing.
