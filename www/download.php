@@ -15,3 +15,7 @@ the only place to get the latest versions of individual tools.
 <a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=192965">
 cedet-1.0beta1c.tar.gz</a>.
 
+<p>Try out
+<a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=227377">
+cedet-1.0beta2.tar.gz</a>.
+
