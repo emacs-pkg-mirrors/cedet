@@ -621,21 +621,24 @@ In @var{TAG}, set the @var{START} and @var{END} location of data it describes.
 @node Creating Tags
 @subsection Creating Tags
 
-@anchor{semantic-tag}
 @defun semantic-tag name class &rest attributes
+@anchor{semantic-tag}
 Create a generic semantic tag.
 @var{NAME} is a string representing the name of this tag.
 @var{CLASS} is the symbol that represents the class of tag this is,
-such as @code{'variable}, or 'function.
+such as @code{'variable}, or @code{'function}.
 @var{ATTRIBUTES} is a list of additional attributes belonging to this tag.
+@obsolete{semantic-token,semantic-tag}
 @end defun
 
 @defun semantic-tag-new-variable name type default-value &rest attributes
-Create a semantic tag of class variable.
+@anchor{semantic-tag-new-variable}
+Create a semantic tag of class @code{'variable}.
 @var{NAME} is the name of this variable.
 @var{TYPE} is a string or semantic tag representing the type of this variable.
 @var{DEFAULT-VALUE} is a string representing the default value of this variable.
 @var{ATTRIBUTES} is a list of additional attributes belonging to this tag.
+@obsolete{semantic-token-new-variable,semantic-tag-new-variable}
 @end defun
 
 @defun semantic-tag-new-function name type arg-list &rest attributes
