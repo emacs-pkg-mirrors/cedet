@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.14 2000/09/27 01:50:29 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.15 2000/09/27 02:05:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -211,9 +211,21 @@ Optional argument NOTYPECHECK specifies not to make subgroups under types."
 ;; instead, and get better stuff.
 (require 'advice)
 
-(defvar semantic-which-function
-  (lambda (l) (mapconcat 'semantic-abbreviate-nonterminal l "."))
+(defvar semantic-which-function 'semantic-default-which-function
   "Function to convert semantic tokens into `which-function' text.")
+
+(defun semantic-default-which-function (tokenlist)
+  "Converts TOKENLIST into a string usable by `which-function'.
+Returns the first token name in the list, unless it is a type,
+in which case it concatenates them together."
+  (cond ((eq (length tokenlist) 1)
+	 (semantic-abbreviate-nonterminal (car tokenlist)))
+	((eq (semantic-token-token (car tokenlist)) 'type)
+	 (concat (semantic-token-name (car tokenlist)) "."
+		 ;; recurse until we no longer have a type
+		 ;; or any tokens left.
+		 (semantic-default-which-function (cdr tokenlist))))
+	(t (semantic-abbreviate-nonterminal (car tokenlist)))))
 
 (defadvice which-function (around semantic-which activate)
   "Choose the function to display via semantic if it is currently active."
