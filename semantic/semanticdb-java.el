@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-java.el,v 1.1 2003/03/06 18:38:35 zappo Exp $
+;; X-RCS: $Id: semanticdb-java.el,v 1.2 2003/04/07 02:21:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,151 +56,66 @@
 
 ;; Create the database, and add it to searchable databases for Emacs Lisp mode.
 (defvar-mode-local java-mode semanticdb-project-system-databases
-  (list 
+  (list
    ;; Create a global instance for all Java source files.
    (semanticdb-project-database-java "Java"))
   "Search Java Class files for for symbols.")
 
-;;; Search Overrides
+;;; Filename based methods
 ;;
-(defmethod semanticdb-find-nonterminal-by-token-method
-  ((database semanticdb-project-database-java)
-   token search-parts search-includes diff-mode find-file-match)
-  "In DB, find all occurances of nonterminals with token TOKEN in DATABASE.
-See `semanticdb-find-symbol-by-function-method' for details on,
-SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (semanticdb-find-nonterminal-by-beanshell-method
-   database
-   (concat "semantic search by token " (symbol-name token))
-   search-parts search-includes)
+(defmethod semanticdb-file-table ((obj semanticdb-project-database-java) filename)
+  "From OBJ, return FILENAME's associated table object."
+  ;; Creates one table for all of the compiled java environment.
+  ;; Query the environment each time?
+  ;; Perhaps it should instead keep a group of tables for each file
+  ;; actually queried and cache the results.
+  (if (slot-boundp obj 'tables)
+      (car (oref obj tables))
+    (let ((newtable (semanticdb-table-java "table")))
+      (oset obj tables (list newtable))
+      (oset newtable parent-db obj)
+      (oset newtable tags nil)
+      newtable)))
+
+(defmethod semanticdb-get-tags ((table semanticdb-table-java ))
+  "Return the list of tags belonging to TABLE."
+  ;; specialty table ?  Probably derive tags at request time?
+  nil)
+
+(defmethod semanticdb-equivalent-mode ((table semanticdb-table-java) &optional buffer)
+  "Return non-nil if TABLE's mode is equivalent to BUFFER.
+Equivalent modes are specified by by `semantic-equivalent-major-modes'
+local variable."
+  (save-excursion
+    (set-buffer buffer)
+    (or (eq major-mode 'java-mode)
+	(eq major-mode 'jde-mode))))
+
+(defmethod semanticdb-find-tags-by-name-method
+  ((table semanticdb-table-java) name)
+  "Find all tags name NAME in TABLE.
+Return a list of tags."
   )
 
-(defmethod semanticdb-find-nonterminal-by-name-method
-  ((database semanticdb-project-database-java)
-   name search-parts search-includes diff-mode find-file-match)
-  "Find all occurances of nonterminals with name NAME in DATABASE.
-Uses `inter-soft' to match NAME to emacs symbols.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN) ...)."
-  (semanticdb-find-nonterminal-by-beanshell-method
-   database
-   (concat "semantic search by token " (symbol-name token))
-   search-parts search-includes)
-)
-
-(defmethod semanticdb-find-nonterminal-by-name-regexp-method
-  ((database semanticdb-project-database-java)
-   regex search-parts search-includes diff-mode find-file-match)
-  "Find all occurrences of nonterminals with name matching REGEX in DATABASE.
-Uses `apropos-internal' to find matches.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (semanticdb-find-nonterminal-by-beanshell-method
-   database
-   (concat "semantic search by token " (symbol-name token))
-   search-parts search-includes))
-
-(defmethod semanticdb-find-nonterminal-by-type-method
-  ((database semanticdb-project-database-java)
-   type search-parts search-includes diff-mode find-file-match)
-  "Find all nonterminals with a type of TYPE in DATABASE.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (semanticdb-find-nonterminal-by-beanshell-method
-   database
-   (concat "semantic search by token " (symbol-name token))
-   search-parts search-includes)
+(defmethod semanticdb-find-tags-by-name-regexp-method
+  ((table semanticdb-table-java) regex)
+  "Find all tags with name matching REGEX in TABLE.
+Return a list of tags."
   )
 
-(defmethod semanticdb-find-nonterminal-by-property-method
-  ((database semanticdb-project-database-java)
-   property value search-parts search-includes diff-mode find-file-match)
-  "Find all nonterminals with a PROPERTY equal to VALUE in DATABASE.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (semanticdb-find-nonterminal-by-beanshell-method
-   database
-   (concat "semantic search by token " (symbol-name token))
-   search-parts search-includes)
+(defmethod semanticdb-find-tags-for-completion-method
+  ((table semanticdb-table-java) prefix)
+  "In TABLE, find all occurances of tags matching PREFIX.
+Returns a table of all matching tags."
   )
 
-(defmethod semanticdb-find-nonterminal-by-extra-spec-method
-  ((database semanticdb-project-database-java)
-   spec search-parts search-includes diff-mode find-file-match)
-  "Find all nonterminals with a SPEC in database.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASE,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (semanticdb-find-nonterminal-by-beanshell-method
-   database
-   (concat "semantic search by token " (symbol-name token))
-   search-parts search-includes)  )
-
-(defmethod semanticdb-find-nonterminal-by-extra-spec-value-method
-  ((database semanticdb-project-database-java)
-   spec value search-parts search-includes diff-mode find-file-match)
-  "Find all nonterminals with a SPEC equal to VALUE in database.
-See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
-Return a list ((DB-TABLE . TOKEN-LIST) ...)."
-  (semanticdb-find-nonterminal-by-beanshell-method
-   database
-   (concat "semantic search by token " (symbol-name token))
-   search-parts search-includes)
+;;; Advanced Searches
+;;
+(defmethod semanticdb-find-tags-external-children-of-type-method
+  ((table semanticdb-table-java) type)
+  "Find all nonterminals which are child elements of TYPE
+Return a list of tags."
   )
-
-(defmethod semanticdb-find-nonterminal-by-beanshell-method
-  ((database semanticdb-project-database-java)
-   predicate &optional search-parts search-includes diff-mode find-file-match)
-  "In DATABASE, find all occurances of nonterminals which match PREDICATE.
-PREDICATE accepts one Emacs Lisp symbol, and returns a semantic token.
-The PREDICATE must all append found tokens to `semanticdb-elisp-mapatom-collector'
-which gives each routine an opportunity to effect what kind of token
-is created.
-When SEARCH-PARTS is non-nil the search will include children of tokens.
-SEARCH-INCLUDES is ignored.
-When DIFF-MODE is non-nil, search databases which are in `java-mode'.
-A mode is the `major-mode' that file was in when it was last parsed.
-FIND-FILE-MATCH is is ignored.
-Return a list of matches."
-  (if (not (or diff-mode (eq major-mode 'java-mode)))
-      nil
-    (let ((newtable nil)
-	  (answer (semanticdb-beanshell-search predicate))
-	  )
-
-      ;; Interpret collection, and add to the database table.
-      (when answer
-	(setq newtable (semanticdb-table-java "search-results"))
-	(oset newtable parent-db database)
-	(oset newtable tokens answer)
-	;; We must return a list of all matching tables.
-	;; That is why we have two lists here.
-	(list (cons newtable semanticdb-elisp-mapatom-collector)))
-      )))
-
-(defmethod semanticdb-find-nonterminal-by-function-method
-  ((database semanticdb-project-database-java)
-   function &optional search-parts search-includes diff-mode find-file-match)
-  "In DATABASE, find all occurances of nonterminals which match FUNCTION.
-When SEARCH-PARTS is non-nil the search will include children of tokens.
-SEARCH-INCLUDES is ignored.
-When DIFF-MODE is non-nil, search databases which are in `java-mode'.
-A mode is the `major-mode' that file was in when it was last parsed.
-FIND-FILE-MATCH is is ignored.
-Return a list of matches."
-  (if nil
-      ;; I kind of doubt that this can be done efficiently, so lets
-      ;; skip it for new.
-      nil
-      ))
-
-(provide 'semanticdb-el)
 
 ;;; Bean Shell Queries
 ;;
@@ -210,4 +125,5 @@ Return a list of semantic compatible tokens."
 
   )
 
-;;; semanticdb-el.el ends here
+(provide 'semanticdb-java)
+;;; semanticdb-java.el ends here
