@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.57.2.1 2002/02/20 16:59:42 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.57.2.2 2002/02/20 20:28:06 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -92,6 +92,8 @@
 %put CLASS summary "Class Declaration: class <name>[:parents] { ... };"
 %token NAMESPACE "namespace"
 %put NAMESPACE summary "Namespace Declaration: namespace <name> { ... };"
+%token USING "using"
+%put USING summary "using <namespace>;"
 
 # Despite this, this parser can find templates by ignoring the TEMPLATE
 # keyword, and finding the class/method being templateized.
@@ -108,7 +110,7 @@
 %token PUBLIC "public"
 %token PRIVATE "private"
 %token PROTECTED "protected"
-
+%token FRIEND "friend"
 
 # These aren't used for parsing, but is a useful place to describe the keywords.
 %token IF "if"
@@ -167,6 +169,7 @@ declaration : macro
 	    | define
 	    | extern-c
 	    | template
+	    | using
 	    ;
 
 codeblock : define
@@ -226,10 +229,16 @@ filename-prefix : symbol
 		| FLOAT ( "float" )
 		;
 
-filename : filename-prefix PERIOD symbol
-	   ( (concat (car $1) $2 $3) )
-         | filename-prefix DIVIDE filename
+filename-extension : PERIOD symbol
+		     ( (concat $2 $3) )
+		   | EMPTY
+		     ( "" )
+		   ;
+
+filename : filename-prefix DIVIDE filename
 	   ( (concat (car $1) $2 (car $3)) )
+	 | filename-prefix filename-extension
+	   ( (concat (car $1) (car $2)) )	
 	 ;
 
 # In C++, structures can have the same things as classes.
@@ -268,8 +277,7 @@ classsubparts : open-paren "{"
 	      | type
 	      | define	      
 		( ,$1 protection )
-	      # In C++, this label in a classsubpart represents
-	      # PUBLIC or PRIVATE bits.  Ignore them for now.
+	      | template
 	      | EMPTY
 	      ;
 
@@ -371,9 +379,17 @@ type : typesimple SEMICOLON
        ( $2 type $1 $3 nil nil nil )
      ;
 
-template : TEMPLATE template-specifier template-definition
-	   ( ,(semantic-c-reconstitute-template $3 ,$2) )
+using : USING typeformbase SEMICOLON
+	( nil )
+      ;
+
+template : TEMPLATE template-specifier opt-friend template-definition
+	   ( ,(semantic-c-reconstitute-template $4 ,$2) )
 	 ;
+
+opt-friend : FRIEND
+	   | EMPTY
+	   ;
 
 opt-template-specifier : template-specifier
 			 ( ,$1 )
@@ -401,7 +417,7 @@ template-var : template-type opt-stars opt-template-equal
 			      (cdr $1)))
 	     ;
 
-opt-template-equal : EQUAL symbol LESS template-specifier-type GREATER
+opt-template-equal : EQUAL symbol LESS template-specifier-types GREATER
 		     ( $2 )
 		   | EMPTY
 		   ;
@@ -453,6 +469,7 @@ DECLMOD : EXTERN
 	| UNSIGNED
 	| INLINE
 	| REGISTER
+	| FRIEND
 	| METADECLMOD
 	;
 
@@ -610,7 +627,7 @@ varname : opt-stars opt-restrict symbol opt-bits opt-array opt-assign
 	;
 
 # I should store more in this def, but leave it simple for now.
-variablearg : declmods typeformbase opt-ref varname
+variablearg : declmods typeformbase opt-ref varname opt-ref
 	      ( (list $4) variable $2 nil
 		 (ASSOC const (if (member "const" $1) t nil)
 			typemodifiers (delete "const" $1)
@@ -676,6 +693,8 @@ operatorsym : LESS LESS
 	      ( ">=" )
 	    | BANG EQUAL
 	      ( "!=" )
+	    | MINUS GREATER
+	      ( "->" )
 	    | LESS
 	    | GREATER
 	    | STAR
@@ -683,6 +702,7 @@ operatorsym : LESS LESS
 	    | MINUS
 	    | DIVIDE
 	    | EQUAL
+	    | BANG
 	    ;
 
 functionname : OPERATOR operatorsym
