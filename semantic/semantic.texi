@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.3 2000/04/16 14:49:52 zappo Exp $
+@c $Id: semantic.texi,v 1.4 2000/04/23 15:17:00 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -302,6 +302,15 @@ classes where there is inheritance.
 In C, an #include statement.  In elisp, a require statement.
 Indicates additional locations of sources or definitions.
 @refill
+
+@example
+(\"NAME\" package DETAIL \"DOCSTRING\" START END)
+@end example
+
+In Emacs Lisp, a `provide' statement.  DETAIL might be an associated
+file name.
+@refill
+
 
 @bye
 
