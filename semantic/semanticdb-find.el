@@ -1,10 +1,10 @@
 ;;; semanticdb-find.el --- Searching through semantic databases.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2000-2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.21 2004/12/15 03:16:18 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.22 2005/01/12 22:37:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -275,7 +275,8 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 ;;; Perform interactive tests on the path/search mechanisms.
 ;;
 (defun semanticdb-find-test-translate-path (&optional arg)
-  "Call and output results of `semanticdb-find-translate-path'"
+  "Call and output results of `semanticdb-find-translate-path'
+With ARG non-nil, specify a BRUTISH translation."
   (interactive "P")
   (let ((p (semanticdb-find-translate-path nil arg)))
     ;; Output the result
@@ -306,7 +307,15 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 (defun semanticdb-strip-find-results (results &optional find-file-match)
   "Strip a semanticdb search RESULTS to exclude objects.
 This makes it appear more like the results of a `semantic-find-' call.
-Optional FIND-FILE-MATCH is not yet implemented."
+Optional FIND-FILE-MATCH loads all files associated with RESULTS
+into buffers.  This has the side effect of enabling `semantic-tag-buffer' to
+return a value."
+  (when find-file-match
+    ;; Load all files associated with RESULTS.
+    (let ((tmp results))
+      (while tmp
+	(semanticdb-get-buffer (car (car tmp)))
+	(setq tmp (cdr tmp)))))
   (apply #'append (mapcar #'cdr results)))
 
 (defun semanticdb-find-results-p (resultp)
@@ -514,7 +523,14 @@ and search all tables in this project tree."
 	      (when find-file-match
 		(save-excursion (semanticdb-set-buffer table)))
 	      (push (cons table match) found))))))
-    found))
+    ;; At this point, FOUND has had items pushed onto it.
+    ;; This means items are being returned in REVERSE order
+    ;; of the tables searched, so if you just get th CAR, then
+    ;; too-bad, you may have some system-tag that has no
+    ;; buffer associated with it.
+
+    ;; It must be reversed.
+    (nreverse found)))
 
 ;;;###autoload
 (defun semanticdb-find-tags-by-name (name &optional path find-file-match)
