@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.29 1997/02/27 02:28:43 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.30 1997/03/01 14:01:46 zappo Exp $
 ;;; Version: 0.4.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -207,6 +207,11 @@
 ;;;        tags, only the directories)
 ;;; 0.4.3 Bug fixes
 ;;; 0.4.4 Added `speedbar-ignored-path-expressions' and friends.
+;;;       Configuration menu items not displayed if dialog-mode not present
+;;;       Speedbar buffer now starts with a space, and is not deleted
+;;;        ewhen the speedbar frame is closed.  This prevents the invisible
+;;;        frame from preventing buffer switches with other buffers.
+;;;       
 ;;;
 ;;; TODO:
 ;;; 1) Implement SHIFT-mouse2 to rescan buffers with imenu.
@@ -411,7 +416,8 @@ PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
 	  (speedbar-extension-list-to-regex
 	   speedbar-ignored-path-expressions)))))
 
-(defvar speedbar-do-update t
+(defvar speedbar-do-update (or (not (fboundp 'run-with-idle-timer))
+			       (not (fboundp 'start-itimer)))
   "*Indicate wether the speedbar should do automatic updates.
 When this is `nil' then speedbar will not follow the attached frame's path.
 When speedbar is active, use \\<speedbar-key-map> `\\[speedbar-toggle-updates]' to toggle this value.")
@@ -459,7 +465,6 @@ When speedbar is active, use \\<speedbar-key-map> `\\[speedbar-toggle-updates]' 
   (define-key speedbar-key-map "p" 'speedbar-prev)
   (define-key speedbar-key-map " " 'speedbar-scroll-up)
   (define-key speedbar-key-map "\C-?" 'speedbar-scroll-down)
-  
 
   ;; After much use, I suddenly desired in my heart to perform dired
   ;; style operations since the directory was RIGHT THERE!
@@ -543,10 +548,12 @@ When speedbar is active, use \\<speedbar-key-map> `\\[speedbar-toggle-updates]' 
 
     (define-key speedbar-menu-map [close] 
       (cons "Close" 'speedbar-close-frame))
-    (define-key speedbar-menu-map [clonfigure] 
-      (cons "Configure Faces" 'speedbar-configure-faces))
-    (define-key speedbar-menu-map [configopt] 
-      (cons "Configure Options" 'speedbar-configure-options))
+    (if (locate-library "dialog-mode")
+	(progn		;only enable this stuff if it's available
+	  (define-key speedbar-menu-map [clonfigure] 
+	    (cons "Configure Faces" 'speedbar-configure-faces))
+	  (define-key speedbar-menu-map [configopt] 
+	    (cons "Configure Options" 'speedbar-configure-options))))
     (define-key speedbar-menu-map [delete] 
       (cons "Delete Item" 'speedbar-item-delete))
     (define-key speedbar-menu-map [rename] 
@@ -648,8 +655,12 @@ supported at a time."
 	      (modify-frame-parameters speedbar-frame '((visibility . nil)))))
 	(setq speedbar-frame nil)
 	(speedbar-set-timer nil)
-	(if (bufferp speedbar-buffer)
-	    (kill-buffer speedbar-buffer)))
+	;; Used to delete the buffer.  This has the annoying affect of
+	;; preventing whatever took it's place from ever appearing
+	;; as the default after a C-x b was typed
+	;;(if (bufferp speedbar-buffer)
+	;;    (kill-buffer speedbar-buffer))
+	)
     ;; Set this as our currently attached frame
     (setq speedbar-attached-frame (selected-frame))
     ;; Get the frame to work in
@@ -660,7 +671,8 @@ supported at a time."
 	  ;; Get the buffer to play with
 	  (speedbar-mode)
 	  (select-frame speedbar-frame)
-	  (switch-to-buffer speedbar-buffer)
+	  (if (not (eq (current-buffer) speedbar-buffer))
+	      (switch-to-buffer speedbar-buffer))
 	  (set-window-dedicated-p (selected-window) t)
 	  (raise-frame speedbar-frame)
 	  (speedbar-set-timer speedbar-update-speed)
@@ -670,7 +682,7 @@ supported at a time."
 	(let ((params (cons (cons 'height (frame-height))
 			    speedbar-frame-parameters)))
 	  (setq speedbar-frame
-		(if (< emacs-minor-version 35)
+		(if (< emacs-minor-version 35) ;a bug is fixed in 19.35 & later
 		    (make-frame params)
 		  (let ((x-pointer-shape x-pointer-top-left-arrow)
 			(x-sensitive-text-pointer-shape x-pointer-hand2))
@@ -765,7 +777,7 @@ Keybindings: \\<speedbar-key-map>
 "
   ;; NOT interactive
   (save-excursion
-    (setq speedbar-buffer (set-buffer (get-buffer-create "SPEEDBAR")))
+    (setq speedbar-buffer (set-buffer (get-buffer-create " SPEEDBAR")))
     (kill-all-local-variables)
     (setq major-mode 'speedbar-mode)
     (setq mode-name "Speedbar")
@@ -1033,6 +1045,26 @@ Files can be renamed to new names or moved to new directories."
 	  ))
     ))
 
+(defun speedbar-enable-update ()
+  "Enable automatic updating in speedbar via timers."
+  (interactive)
+  (setq speedbar-do-update t)
+  (speedbar-set-mode-line-format)
+  (speedbar-set-timer speedbar-update-speed))
+
+(defun speedbar-disable-update ()
+  "Disable automatic updating and stop consuming resources."
+  (interactive)
+  (setq speedbar-do-update nil)
+  (speedbar-set-mode-line-format)
+  (speedbar-set-timer nil))
+
+(defun speedbar-toggle-updates ()
+  "Toggles whether updates are done automatically."
+  (interactive)
+  (if speedbar-do-update
+      (speedbar-disable-update)
+    (speedbar-enable-update)))
 
 ;;;
 ;;; Utility functions
@@ -2245,27 +2277,6 @@ multiple defaults and dynamically determine which colors to use."
 				     (symbol-name newface)))))
 	(set-face-underline-p newface underline)
 	))))
-
-(defun speedbar-enable-update ()
-  "Enable automatic updating in speedbar"
-  (interactive)
-  (setq speedbar-do-update t)
-  (speedbar-set-mode-line-format)
-  (speedbar-set-timer speedbar-update-speed))
-
-(defun speedbar-disable-update ()
-  "Disable automatic updating and stop consuming resources."
-  (interactive)
-  (setq speedbar-do-update nil)
-  (speedbar-set-mode-line-format)
-  (speedbar-set-timer nil))
-
-(defun speedbar-toggle-updates ()
-  "Toggles whether updates are done automatically"
-  (interactive)
-  (if speedbar-do-update
-      (speedbar-disable-update)
-    (speedbar-enable-update)))
 
 (if (x-display-color-p)
     (progn
