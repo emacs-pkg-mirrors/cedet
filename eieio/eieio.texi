@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.36 2000/12/04 20:03:50 zappo Exp $
+@c $Id: eieio.texi,v 1.37 2000/12/05 03:36:54 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -981,11 +981,12 @@ is possible to use several features at the same time.
 
 @menu
 * eieio-instance-inheritor::    Enable value inheritance between instances.
+* eieio-instance-tracker::      Enable self tracking instances.
 * eieio-persistent::            Enable persistence for a class.
 * eieio-speedbar::              Enable speedbar support in your objects.
 @end menu
 
-@node eieio-instance-inheritor, eieio-persistent, Base Classes, Base Classes
+@node eieio-instance-inheritor, eieio-instance-tracker, Base Classes, Base Classes
 @comment  node-name,  next,  previous,  up
 @section @code{eieio-instance-inheritor}
 
@@ -1013,7 +1014,40 @@ method will cause references to unbound slots to be redirected to the
 parent instance.  If the parent slot is also unbound, then
 @code{slot-unbound} will throw an @code{slot-unbound} signal.
 
-@node eieio-persistent, eieio-speedbar, eieio-instance-inheritor, Base Classes
+@node eieio-instance-tracker, eieio-persistent, eieio-instance-inheritor, Base Classes
+@comment  node-name,  next,  previous,  up
+
+Sometimes it is useful to keep a master list of all instances of a given
+class.  The class @code{eieio-instance-tracker} performs this task.
+
+@deftp {Class} eieio-instance-tracker tracker-symbol
+Enable instance tracking for this class.
+The field @var{tracker-symbol} should be initialized in inheritors of
+this class to a symbol created with @code{defvar}.  This symbol will
+serve as the variable used as a master list of all objects of the given
+class.
+@end deftp
+
+@defmethod eieio-instance-tracker initialize-instance obj fields
+This method is defined as an @code{:AFTER} method.
+It adds new instances to the master list.  Do not overload this method
+unless you use @code{call-next-method.}
+@end defmethod
+
+@defmethod eieio-instance-tracker delete-instance obj
+Remove @var{obj} from the master list of instances of this class.
+This may let the garbage collector nab this instance.
+@end defmethod
+
+@deffn eieio-instance-tracker-find key field list-symbol
+This convenience function lets you find instances.  @var{key} is the
+value to search for.  @var{FIELD} is the field to compare @var{KEY}
+against.  The function @code{equal} is used for comparison.
+The paramter @var{list-symbol} is the variable symbol which contains the
+list of objects to be searched.
+@end deffn
+
+@node eieio-persistent, eieio-speedbar, eieio-instance-tracker, Base Classes
 @comment  node-name,  next,  previous,  up
 @section @code{eieio-persistent}
 
