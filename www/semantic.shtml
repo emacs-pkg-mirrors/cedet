@@ -1,6 +1,6 @@
 <title>Semantic</title>
 <!--#include file="rightcol.php"-->
-<table width=100% bgcolor=blue>
+<table width=100% bgcolor=#000099>
 <tr><td><h2><font color=yellow>Semantic:</font></h2></td></tr>
 <tr><td><font color=yellow>"Infrastructure for parser based text analysis in Emacs."</font></td></tr>
 </table>
