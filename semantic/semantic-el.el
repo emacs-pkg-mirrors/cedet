@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.22 2000/04/28 18:58:18 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.23 2000/04/29 12:54:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,10 +116,20 @@
     )
   "Top level bovination table for elisp.")
 
-(add-hook 'emacs-lisp-mode-hook
-	  (lambda ()
-	    (setq semantic-toplevel-bovine-table
-		  semantic-toplevel-elisp-bovine-table)))
+(defun semantic-elisp-find-dependency (buffer token)
+  "Find the file BUFFER depends on described by TOKEN."
+  (let ((f (file-name-sans-extension
+	    (locate-library (semantic-token-name token)))))
+    (concat f ".el")))
+
+(add-hook
+ 'emacs-lisp-mode-hook
+ (lambda ()
+   (setq semantic-toplevel-bovine-table semantic-toplevel-elisp-bovine-table
+	 semantic-override-table
+	 '((find-dependency . semantic-elisp-find-dependency))
+	 )
+   ))
 
 (defun semantic-bovinate-interactive ()
   "Bovinate the toplevel of this buffer, and dis play the results."
@@ -131,8 +141,8 @@
      ( include)
      ( macro)
      ( comment)
-     ( variable)
      ( function)
+     ( variable)
      ( prototype)
      ( type)
      ( define)
@@ -232,7 +242,7 @@
 		  (list start end))))
      ) ; end opt-stars
     (declmods
-     ( symbol "\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)+")
+     ( symbol "\\(__\\)?\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)+")
      (
       ,(lambda (vals start end)
 	 (append  (list "")
@@ -306,10 +316,14 @@
 		   (append  (list (nth 2 vals) 'variable (nth 1 vals) ( string-match "const" ( car (nth 0 vals))) nil nil nil)
 			    (list start end))))
      ) ; end variabledef
+    (opt-restrict
+     ( symbol "\\(__\\)?restrict")
+     ()
+     ) ; end opt-restrict
     (varname
-     ( opt-stars symbol opt-bits opt-array opt-assign
+     ( opt-stars opt-restrict symbol opt-bits opt-array opt-assign
 		 ,(lambda (vals start end)
-		    (append  (list (nth 1 vals)) (nth 0 vals) (nth 2 vals) (nth 3 vals) (nth 4 vals)
+		    (append  (list (nth 2 vals)) (nth 0 vals) (nth 3 vals) (nth 4 vals) (nth 5 vals)
 			     (list start end))))
      ) ; end varname
     (variablearg
@@ -329,6 +343,11 @@
 		   (list start end))))
      ) ; end varnamelist
     (arg-list
+     ( symbol "__P" semantic-list
+	      ,(lambda (vals start end)
+		 
+		 (semantic-bovinate-from-nonterminal (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-list-p)
+		 ))
      ( semantic-list knr-arguments
 		     ,(lambda (vals start end)
 			(append  (nth 1 vals)
@@ -349,6 +368,13 @@
 		      (append  (list (nth 0 vals))
 			       (list start end))))
      ) ; end knr-arguments
+    (arg-list-p
+     ( open-paren "(" semantic-list close-paren ")"
+		  ,(lambda (vals start end)
+		     
+		     (semantic-bovinate-from-nonterminal (car (nth 1 vals)) (cdr (nth 1 vals)) 'arg-sub-list)
+		     ))
+     ) ; end arg-list-p
     (arg-sub-list
      ( open-paren "(" close-paren ")"
 		  ,(lambda (vals start end)
@@ -369,6 +395,10 @@
      ( variablearg close-paren ")"
 		   ,(lambda (vals start end)
 		      (append  (list (nth 0 vals))
+			       (list start end))))
+     ( punctuation "\\." punctuation "\\." punctuation "\\." close-paren ")"
+		   ,(lambda (vals start end)
+		      (append  (list "...")
 			       (list start end))))
      ) ; end arg-sub-list
     (functiondef
@@ -411,7 +441,7 @@
 		   (list start end))))
      ) ; end expression
     )
-"The moose is loose.")
+"C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
