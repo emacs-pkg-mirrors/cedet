@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.18 2002/06/18 21:31:02 ponced Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.19 2002/07/03 15:12:17 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -28,9 +28,18 @@
 
 ;;; Parser setup
 ;;
-(autoload 'semantic-bnf-mode "semantic-bnf" "Mode for Bovine Normal Form." t)
+(autoload 'semantic-bnf-mode "semantic-bnf"
+  "Mode for Bovine Normal Form." t)
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
-(eval-after-load "speedbar" '(speedbar-add-supported-extension ".bnf"))
+(autoload 'wisent-wy-mode "wisent-wy"
+  "Initialize a buffer for editing BNF code." t)
+(add-to-list 'auto-mode-alist '("\\.wy$" . wisent-wy-mode))
+
+(eval-after-load "speedbar"
+  '(progn
+     (speedbar-add-supported-extension ".bnf")
+     (speedbar-add-supported-extension ".wy")
+     ))
 
 (autoload 'semantic-default-c-setup "semantic-c")
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
