@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.19 2001/02/24 15:24:54 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.20 2001/03/10 16:19:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,28 +37,37 @@
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
 `((bovine-toplevel
- ( include)
  ( macro)
  ( type)
- ( function)
- ( variable)
+ ( var-or-fun)
  ( define)
  ) ; end declaration
  (bovine-inner-scope
- ( macro)
  ( define)
- ( variable)
- ( prototype)
+ ( var-or-fun)
  ( type)
  ) ; end codeblock
- (include
- ( punctuation "\\b#\\b" INCLUDE punctuation "\\b<\\b" filename punctuation "\\b>\\b"
+ (macro
+ ( punctuation "\\b#\\b" macro-or-include
   ,(semantic-lambda
-  (nth 3 vals) (list 'include t nil)))
- ( punctuation "\\b#\\b" INCLUDE string
+  (nth 1 vals)))
+ ) ; end macro
+ (macro-or-include
+ ( DEFINE symbol opt-expression
   ,(semantic-lambda
-  (list ( read (nth 2 vals)) 'include nil nil)))
- ) ; end include
+  (list (nth 1 vals) 'variable nil (nth 2 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
+ ( INCLUDE punctuation "\\b<\\b" filename punctuation "\\b>\\b"
+  ,(semantic-lambda
+  (nth 2 vals) (list 'include t nil)))
+ ( INCLUDE string
+  ,(semantic-lambda
+  (list ( read (nth 1 vals)) 'include nil nil)))
+ ) ; end macro-or-include
+ (define
+ ( punctuation "\\b#\\b" DEFINE symbol opt-expression
+  ,(semantic-lambda
+  (list (nth 1 vals) 'variable nil (nth 2 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
+ ) ; end define
  (filename
  ( symbol punctuation "\\b\\.\\b" symbol
   ,(semantic-lambda
@@ -91,6 +100,20 @@
  (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'classsubparts)
  ))
  ) ; end classparts
+ (classsubparts
+ ( open-paren "{"
+  ,(semantic-lambda
+  (list nil)))
+ ( close-paren "}"
+  ,(semantic-lambda
+  (list nil)))
+ ( var-or-fun)
+ ( define)
+ ( opt-class-protection punctuation "\\b:\\b"
+  ,(semantic-lambda
+  (list (nth 0 vals) 'protection)))
+ ()
+ ) ; end classsubparts
  (opt-class-parents
  ( punctuation "\\b:\\b" opt-class-protection symbol
   ,(semantic-lambda
@@ -161,7 +184,7 @@
  (declmods
  ( DECLMOD declmods
   ,(semantic-lambda
-  ( cons (nth 0 vals) (nth 1 vals))))
+  ( cons ( car (nth 0 vals)) (nth 1 vals))))
  ( DECLMOD
   ,(semantic-lambda
   (nth 0 vals)))
@@ -200,6 +223,22 @@
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end typeformbase
+ (var-or-fun
+ ( declmods typeform var-or-func-decl
+  ,(semantic-lambda
+  ( semantic-c-reconstitute-token (nth 2 vals) (nth 0 vals) (nth 1 vals))))
+ ( declmods var-or-func-decl
+  ,(semantic-lambda
+  ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
+ ) ; end var-or-fun
+ (var-or-func-decl
+ ( opt-class opt-destructor functionname arg-list fun-or-proto-end
+  ,(semantic-lambda
+  (nth 2 vals) (list 'function (nth 0 vals) (nth 1 vals) (nth 3 vals))))
+ ( varnamelist punctuation "\\b;\\b"
+  ,(semantic-lambda
+  (list (nth 0 vals) 'variable)))
+ ) ; end var-or-func-decl
  (opt-bits
  ( punctuation "\\b:\\b" symbol
   ,(semantic-lambda
@@ -224,21 +263,6 @@
   ,(semantic-lambda
   (list nil)))
  ) ; end opt-assign
- (macro
- ( punctuation "\\b#\\b" DEFINE symbol opt-expression
-  ,(semantic-lambda
-  (list (nth 2 vals) 'variable nil (nth 3 vals) ( semantic-bovinate-make-assoc-list 'const t) nil)))
- ) ; end macro
- (variable
- ( variabledef punctuation "\\b;\\b"
-  ,(semantic-lambda
-  (nth 0 vals)))
- ) ; end variable
- (variabledef
- ( declmods typeform varnamelist
-  ,(semantic-lambda
-  (list (nth 2 vals) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals))) nil)))
- ) ; end variabledef
  (opt-restrict
  ( symbol "\\<\\(__\\)?restrict\\>")
  ()
@@ -355,21 +379,6 @@
   ,(semantic-lambda
   (list (nth 0 vals))))
  ) ; end functionname
- (functiondef
- ( declmods typeform opt-class opt-destructor functionname arg-list
-  ,(semantic-lambda
-  (nth 4 vals) (list 'function (nth 1 vals) (nth 5 vals) ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'parent ( car (nth 2 vals)) 'destructor ( car (nth 3 vals))) nil)))
- ) ; end functiondef
- (prototype
- ( functiondef punctuation "\\b;\\b"
-  ,(semantic-lambda
-  (nth 0 vals)))
- ) ; end prototype
- (function
- ( functiondef fun-or-proto-end
-  ,(semantic-lambda
-  (nth 0 vals)))
- ) ; end function
  (fun-or-proto-end
  ( punctuation "\\b;\\b"
   ,(semantic-lambda
@@ -396,7 +405,7 @@
  ))
  ) ; end expression
  )
-              "C language specification.")
+                                   "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -463,6 +472,34 @@
 	    (t nil))
     nil))
 
+(defun semantic-c-reconstitute-token (tokenpart declmods typedecl)
+  "Reconstitute a token TOKENPART with DECLMODS and TYPEDECL.
+This is so we don't have to match the same starting text several times."
+  (cond ((eq (nth 1 tokenpart) 'variable)
+	 (list (car tokenpart)
+	       'variable
+	       (or typedecl "int")	;type
+	       nil			;default value (filled with expand)
+	       (semantic-bovinate-make-assoc-list
+		'const (if (member "const" declmods) t nil)
+		'typemodifiers (delete "const" declmods))
+	       nil)
+	 )
+	((eq (nth 1 tokenpart) 'function)
+	 (list (car tokenpart)
+	       'function
+	       (or typedecl "int")	;type
+	       (nth 4 tokenpart)	;arglist
+	       (semantic-bovinate-make-assoc-list
+		'const (if (member "const" declmods) t nil)
+		'typemodifiers (delete "const" declmods)
+		'parent (car (nth 2 tokenpart))
+		'destructor (car (nth 3 tokenpart) ) )
+	       nil)
+	 )
+	))
+
+
 (defcustom semantic-default-c-path '("/usr/include" "/usr/dt/include"
 					 "/usr/X11R6/include")
   "Default set of include paths for C code.
@@ -501,10 +538,47 @@ machine."
       ("public" . PUBLIC)
       ("private" . PRIVATE)
       ("protected" . PROTECTED)
+      ("if" . IF)
+      ("else" . ELSE)
+      ("do" . DO)
+      ("while" . WHILE)
+      ("for" . FOR)
+      ("switch" . SWITCH)
+      ("case" . CASE)
+      ("default" . DEFAULT)
+      ("return" . RETURN)
+      ("break" . BREAK)
+      ("continue" . CONTINUE)
+      ("sizeof" . SIZEOF)
       )
    '(
+     ("extern" summary "Declaration Modifier: extern <type> <declaration>")
+     ("static" summary "Declaration Modifier: static <type> <declaration>")
+     ("const" summary "Declaration Modifier: const <type> <declaration>")
+     ("volatile" summary "Declaration Modifier: volatile <type> <declaration>")
+     ("signed" summary "Numeric Type Modifier: signed <numeric type> ...")
+     ("unsigned" summary "Numeric Type Modifier: unsigned <numeric type> ...")
+     ("virtual" summary "Method Modifier: virtual <type> <fnname>(...)")
+     ("struct" summary "Type Declaration: struct [name] { ... };")
+     ("union" summary "Type Declaration: union [name] { ... };")
+     ("enum" summary "Type Declaration: enum [name] { ... };")
+     ("typedef" summary "Type Declaration: typedef <typedeclaration> <name>")
+     ("class" summary "Type Declaration: class <name>[:parents] { ... };")
+     ("if" summary "Conditional: if <condition> {code} [ else { coe } ]")
+     ("else" summary "Conditional: if <condition> {code} [ else { coe } ]")
+     ("do" summary "Loop: do { code } while <condition>;")
+     ("while" summary "Loop: do { code } while <condition>; or while <condition> { code };")
+     ("for" summary "Loop: for(<init>; <condition>; <increment>) { code }")
+     ("switch" summary "Conditional: switch (<variable>) { case <constvalue>: code; ... default: code; }")
+     ("case" summary "Conditional: switch (<variable>) { case <constvalue>: code; ... default: code; }")
+     ("default" summary "Conditional: switch (<variable>) { case <constvalue>: code; ... default: code; }")
+     ("return" summary "return <value>;")
+     ("break" summary "Non-local exit: break;")
+     ("continue" summary "Non-local continue: continue;")
+     ("sizeof" summary "Function: sizeof(<type or variable>) // size in bytes")
      ))
   "Some keywords used in C.")
+
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
   (setq semantic-default-built-in-types semantic-default-c-built-in-types)
