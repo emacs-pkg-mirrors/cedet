@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: tools
-;; X-RCS: $Id: quickpeek.el,v 1.3 2000/01/23 14:37:19 zappo Exp $
+;; X-RCS: $Id: quickpeek.el,v 1.4 2000/02/09 17:42:28 zappo Exp $
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -819,59 +819,63 @@ Uses the tags table, but does not set the mark."
       (error "Empty reference tag in `quickpeek-find-tag-stealthy'!"))
   (if (not quickpeek-use-tags)
       nil
-    ;; the following code has been mostly stolen from etags.el
-    (save-excursion
-      (let ((order-preds '(tag-exact-file-name-match-p
-			   tag-exact-match-p
-			   tag-symbol-match-p
-			   tag-word-match-p
-			   tag-any-match-p))
-	    (inhibit-quit nil)
-	    (first t)
-	    order file tag-info goto-func
-	    buff line
-	    ;; Override this variable so we can change it
-	    ;; by loading an scanning alternate tags tables
-	    ;; without changing the user selected table.
-	    (tags-file-name tags-file-name)
-	    tl
-	    (ltf (concat default-directory "TAGS"))
-	    (ret nil))
-	(if (and (file-exists-p ltf) (not (member ltf tl)))
-	    (visit-tags-table ltf))
-	(setq tl tags-table-list)
-	(while (and (not ret) tl)
-	  (visit-tags-table-buffer (car tl))
-	  (catch 'qualified-match-found
-	    (while (or first (visit-tags-table-buffer t))
-	      (if first (progn (goto-char (point-min))
-			       (setq first nil)))
-	      (setq order order-preds)
-	      (while order
-		(while (search-forward tag nil t)
-		  (and (funcall (car order) tag)
-		       (throw 'qualified-match-found nil)))
-		(setq order (cdr order))
-		(goto-char (point-min))))
-	    ;; We only get here if there was no match.  Yikes!
-	    ;; Force caller of us to use condition case for now.
-	    (error "No tag found"))
-	  ;; Found a tag.  Extract it.
-	  (beginning-of-line)
-	  ;; Expand the filename, use the tags table buffer's default-directory.
-	  (setq file (expand-file-name (file-of-tag))
-		tag-info (etags-snarf-tag))
-	  ;; Get the local value in the tags table buffer before switching.
-	  (setq goto-func goto-tag-location-function)
-	  ;; Find the right line in the specified file.
-	  (setq buff (set-buffer (find-file-noselect file)))
-	  ;; go there.
-	  (save-excursion (funcall goto-func tag-info)
-			  (setq line (point)))
-	  ;; Return this junk
-	  (setq ret (cons buff line))
-	  (setq tl (cdr tl)))
-	ret))))
+    (if (fboundp 'find-tag-internal)
+	;; XEmacs has this convenient function
+	(find-tag-internal tag)
+      ;; the following code has been mostly stolen from etags.el
+      ;; in order to support returning a tag value.
+      (save-excursion
+	(let ((order-preds '(tag-exact-file-name-match-p
+			     tag-exact-match-p
+			     tag-symbol-match-p
+			     tag-word-match-p
+			     tag-any-match-p))
+	      (inhibit-quit nil)
+	      (first t)
+	      order file tag-info goto-func
+	      buff line
+	      ;; Override this variable so we can change it
+	      ;; by loading an scanning alternate tags tables
+	      ;; without changing the user selected table.
+	      (tags-file-name tags-file-name)
+	      tl
+	      (ltf (concat default-directory "TAGS"))
+	      (ret nil))
+	  (if (and (file-exists-p ltf) (not (member ltf tl)))
+	      (visit-tags-table ltf))
+	  (setq tl tags-table-list)
+	  (while (and (not ret) tl)
+	    (visit-tags-table-buffer (car tl))
+	    (catch 'qualified-match-found
+	      (while (or first (visit-tags-table-buffer t))
+		(if first (progn (goto-char (point-min))
+				 (setq first nil)))
+		(setq order order-preds)
+		(while order
+		  (while (search-forward tag nil t)
+		    (and (funcall (car order) tag)
+			 (throw 'qualified-match-found nil)))
+		  (setq order (cdr order))
+		  (goto-char (point-min))))
+	      ;; We only get here if there was no match.  Yikes!
+	      ;; Force caller of us to use condition case for now.
+	      (error "No tag found"))
+	    ;; Found a tag.  Extract it.
+	    (beginning-of-line)
+	    ;; Expand the filename, use the tags table buffer's default-directory.
+	    (setq file (expand-file-name (file-of-tag))
+		  tag-info (etags-snarf-tag))
+	    ;; Get the local value in the tags table buffer before switching.
+	    (setq goto-func goto-tag-location-function)
+	    ;; Find the right line in the specified file.
+	    (setq buff (set-buffer (find-file-noselect file)))
+	    ;; go there.
+	    (save-excursion (funcall goto-func tag-info)
+			    (setq line (point)))
+	    ;; Return this junk
+	    (setq ret (cons buff line))
+	    (setq tl (cdr tl)))
+	  ret)))))
 
 (defun quickpeek-tags-completion (word)
   "Perform completion of WORD using tags tables."
@@ -881,6 +885,10 @@ Uses the tags table, but does not set the mark."
     (cond ((boundp 'tags-complete-tag)
 	   ;; Expand this as necessary since this is still somewhat incomplete.
 	   (tags-complete-tag word nil t))
+	  ((boundp 'find-tag-tag)
+	   ;; XEmacs has this function which contains within it a function
+	   ;; resembling this:
+	   (all-completions word tag-completion-table nil))
 	  (t
 	   ;; There appears to be no convenience function for XEmacs.  Shame!
 	   nil))))
