@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.40 2001/06/11 18:38:41 zappo Exp $
+@c $Id: semantic.texi,v 1.41 2001/07/20 21:30:08 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -924,6 +924,10 @@ Retrieve the arguments of the function @var{TOKEN}.
 Retrieve the type modifiers of the function @var{TOKEN}.
 @end defun
 
+@defun semantic-token-function-destructor token
+Non-@code{nil} if @var{TOKEN} is a destructor function.
+@end defun
+
 @defun semantic-token-function-extra-specs token
 Retrieve the extra specifiers of the function @var{TOKEN}.
 @end defun
@@ -1000,6 +1004,12 @@ Optional @var{BUFFER} argument specifies the buffer to use.
 Return the current nonterminal in the current buffer.
 If there are more than one in the same location, return the
 smallest token.
+@end defun
+
+@defun semantic-current-nonterminal-parent
+Return the current nonterminals parent in the current buffer.
+@var{A} token's parent would be a containing structure, such as a type
+containing a field.  Return @code{nil} if there is no parent.
 @end defun
 
 These functions search the entire stream for tokens matches a specific
