@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.81 2003/08/31 13:49:38 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.82 2003/09/02 16:17:56 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2340,7 +2340,7 @@ If senator is not active, use the original mechanism."
       )))
 
 (defun senator-transpose-tags-down ()
-  "Transpose the current tag, and the preceeding tag."
+  "Transpose the current tag, and the following tag."
   (interactive)
   (senator-parse)
   (let* ((current-tag (semantic-current-tag))
