@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.171 2000/06/23 23:08:12 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.172 2000/07/13 04:38:59 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -940,8 +940,7 @@ This basically creates a sparse keymap, and makes it's parent be
   (append
    '("Speedbar"
      ["Update" speedbar-refresh t]
-     ["Auto Update" speedbar-toggle-updates
-      :visible (not speedbar-update-flag-disable)
+     ["Auto Update" speedbar-toggle-updates (not speedbar-update-flag-disable)
       :style toggle :selected speedbar-update-flag])
    (if (and (or (fboundp 'defimage)
 		(fboundp 'make-image-specifier))
@@ -2472,6 +2471,42 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 		  (speedbar-do-function-pointer)))
 		(setq sf (cdr sf)))))
 	)))
+;;; Generic List support
+;;
+;;  Generic lists are hierarchies of tags which we may need to permute
+;;  in order to make it look nice.
+;;
+;;  A generic list is of the form:
+;;  ( ("name" . marker-or-number)              <-- one tag at this level
+;;    ("name" ("name" . mon) ("name" . mon) )  <-- one group of tags
+;;    ("name" mon ("name" . mon) )             <-- group w/ a position and tags
+(defun speedbar-generic-list-group-p (sublst)
+  "Non-nil if SUBLST is a group.
+Groups may optionally contain a position."
+  (and (stringp (car-safe sublst))
+       (or (and (listp (cdr-safe sublst))
+		(speedbar-generic-list-tag-p (car-safe (cdr-safe sublst))))
+	   (and (number-or-marker-p (car-safe (cdr-safe sublst)))
+		(listp (cdr-safe (cdr-safe sublst)))
+		(speedbar-generic-list-tag-p
+		 (car-safe (cdr-safe (cdr-safe sublst)))))
+	   )))
+
+(defun speedbar-generic-list-positioned-group-p (sublst)
+  "Non-nil of SUBLST is a group with a position."
+  (and (stringp (car-safe sublst))
+       (number-or-marker-p (car-safe (cdr-safe sublst)))
+       (listp (cdr-safe (cdr-safe sublst)))
+       (speedbar-generic-list-tag-p (car-safe (cdr-safe (cdr-safe sublst))))))
+
+(defun speedbar-generic-list-tag-p (sublst)
+  "Non nil if SUBLST is a tag."
+  (and (stringp (car-safe sublst))
+       (or (and (number-or-marker-p (cdr-safe sublst))
+		(not (cdr-safe (cdr-safe sublst))))
+	   ;; For semantic/bovine items, this is needed
+	   (symbolp (car-safe (cdr-safe sublst))))
+       ))
 
 (defun speedbar-sort-tag-hierarchy (lst)
   "Sort all elements of tag hierarchy LST."
@@ -2492,9 +2527,7 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 	(diff-idx 0))
     ;; Break out sub-lists
     (while lst
-      (if (and (listp (cdr-safe (car-safe lst)))
-	       ;; This one is for bovine tokens
-	       (not (symbolp (car-safe (cdr-safe (car-safe lst))))))
+      (if (speedbar-generic-list-group-p (car-safe lst))
 	  (setq newlst (cons (car lst) newlst))
 	(setq sublst (cons (car lst) sublst)))
       (setq lst (cdr lst)))
@@ -2628,8 +2661,7 @@ Argument LST is the list of tags to trim."
 	(trim-chars 0)
 	(trimlst nil))
     (while lst
-      (if (and (listp (cdr-safe (car-safe lst)))
-	       (listp (car-safe (cdr-safe (car-safe lst)))))
+      (if (speedbar-generic-list-group-p (car-safe lst))
 	  (setq newlst (cons (car lst) newlst))
 	(setq sublst (cons (car lst) sublst)))
       (setq lst (cdr lst)))
@@ -2658,7 +2690,7 @@ Argument LST is the list of tags to sort into groups."
   (let ((newlst nil)
 	(sublst nil))
     (while lst
-      (if (listp (cdr-safe (car-safe lst)))
+      (if (speedbar-generic-list-group-p (car-safe lst))
 	  (setq newlst (cons (car lst) newlst))
 	(setq sublst (cons (car lst) sublst)))
       (setq lst (cdr lst)))
@@ -2700,15 +2732,21 @@ name will have the function FIND-FUN and not token."
   ;; insert the parts
   (while lst
     (cond ((null (car-safe lst)) nil)	;this would be a separator
-	  ((or (numberp (cdr-safe (car-safe lst)))
-	       (markerp (cdr-safe (car-safe lst))))
+	  ((speedbar-generic-list-tag-p (car lst))
 	   (speedbar-make-tag-line nil nil nil nil ;no expand button data
 				   (car (car lst)) ;button name
 				   find-fun        ;function
 				   (cdr (car lst)) ;token is position
 				   'speedbar-tag-face
 				   (1+ level)))
-	  ((listp (cdr-safe (car-safe lst)))
+	  ((speedbar-generic-list-positioned-group-p (car lst))
+	   (speedbar-make-tag-line 'curly ?+ expand-fun (cdr (cdr (car lst)))
+				   (car (car lst)) ;button name
+				   find-fun	   ;function
+				   (car (cdr (car lst))) ;token is posn
+				   'speedbar-tag-face
+				   (1+ level)))
+	  ((speedbar-generic-list-group-p (car lst))
 	   (speedbar-make-tag-line 'curly ?+ expand-fun (cdr (car lst))
 				   (car (car lst)) ;button name
 				   nil nil 'speedbar-tag-face
