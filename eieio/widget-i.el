@@ -4,9 +4,9 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.2 1996/06/17 22:31:08 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.3 1996/07/28 18:36:42 zappo Exp $
 ;;; Keywords: OO widget
-;;;                                                        
+;;;
 ;;; This program is free software; you can redistribute it and/or modify     
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation; either version 2, or (at your option)
@@ -39,7 +39,7 @@
 
 (require 'eieio)			;objects
 (require 'widget-d)			;widget definitions
-
+       
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; 
 ;;; Data-Object method definitions
@@ -55,6 +55,7 @@
   (if (not (equal (oref this value) value))
       (let ((refs (oref this reference)))
 	(oset this value value)
+	;; (message "Value of %s changed to %S" (object-name this) value)
 	;; Now update everyone observing us, if setter is an object,
 	;; make sure we don't call thier update function.
 	(while refs
@@ -98,7 +99,8 @@ fixable fields are adjusted, otherwise an error occurs."
 (defmethod update-symbol ((this widget-core) sym)
   "Backup for update-symbol so we don't get errors if it's not defined for some 
 broken reason."
-  (message "No symbols used in this widget"))
+  ;; (message "No symbols used in this widget")
+  )
 
 
 ;;
@@ -108,6 +110,33 @@ broken reason."
   "Verifies a visual widget to make sure it's values are allowed.  If
 FIX then fix fields which are adjustable.  Call core verify when
 done."
+  ;; If X or Y is a symbol like AFTER then determine it's value
+  ;; Use -2 to find last item because THIS has recently been added.
+  ;; Subtract one from new value so -1 means the line directly under
+  ;; the last toggle we added.
+  
+  ;; We will find and install LO, even though it may not always be used
+  ;; to speed up dynamically created widgets.
+  (let ((lo (get-children (get-parent this))))
+    (setq lo (nth (- (length lo) 2) lo))
+    (if (not (eq this lo))
+	(progn
+	  (verify-size lo)
+
+	  (if (eq (oref this x) t)
+		(oset this x (oref lo x))
+	    (if (> 0 (oref this x))
+		(oset this x 
+		      (+ (oref lo x) (oref lo width) -1 
+			 (- (oref this x))))))
+
+	  (if (eq (oref this y) t)
+	      (oset this y (oref lo y))
+	    (if (> 0 (oref this y))
+		(oset this y 
+		      (+ (oref lo y) (oref lo height) -1 
+			 (- (oref this y)))))))))
+
   ;; Fix up RX and RY with parent coords
   (if (and fix (object-p (get-parent this))
 	   (object-p (get-parent this))
@@ -124,6 +153,7 @@ done."
 		   (oref (get-parent this) ry))
 	  (error "Could not set real XY positions for object %s"
 		 (object-name this)))))
+
   ;; Now make sure core parts are valid
   (call-next-method))
 
@@ -140,7 +170,8 @@ done."
   (if (not (and (oref this x) (oref this y) 
 		(oref this width) (oref this height)))
       ;; unfixable in this instance
-      (error "Square widget %s must have dimentions x,y and width,height"))
+      (error "Square widget %s must have dimentions x,y and width,height" 
+	     (object-name this)))
   (call-next-method))
 
 (defmethod draw ((this widget-square))
@@ -214,6 +245,21 @@ count when being picked."
   (call-next-method)
   )
 
+(defmethod verify-size ((this widget-group))
+  "Verify our current size to make shure that our size is correct
+based on the number of children we have."
+  (let ((maxw (oref this width))
+	(maxh (oref this height))
+	(l (oref this child-list)))
+    (while l
+      (let ((tw (+ (oref (car l) x) (oref (car l) width) 2))
+	    (th (+ (oref (car l) y) (oref (car l) height) 1)))
+	(if (< maxw tw) (setq maxw tw))
+	(if (< maxh th) (setq maxh th)))
+      (setq l (cdr l)))
+    (oset this width maxw)
+    (oset this height maxh)))
+
 (defmethod add-child ((this widget-group) child)
   "Add widget CHILD to our personal list of child widgets"
   ;; Add to our list
@@ -223,7 +269,8 @@ count when being picked."
   ;; widgets field, and the scoped class to allow us access to private
   ;; field.  *THIS IS A CHEAT - Should implement Friends!*
   (let ((me this) (scoped-class (object-class child)) (this child))
-    (oset child parent me)))
+    (oset child parent me))
+  )
 
 (defmethod get-children ((this widget-group))
   "Return our list of children widgets"
@@ -280,19 +327,9 @@ children.  If it is passed to a child, return t, else return nil"
 
 (defmethod draw ((this widget-group))
   "Draw the basic group widget.  Basically all our children, with
-thier X,Y offset by our X,Y"
-  ;; We must check our size when we are about to draw ourselves
-  (let ((maxw (oref this width))
-	(maxh (oref this height))
-	(l (oref this child-list)))
-    (while l
-      (let ((tw (+ (oref (car l) x) (oref (car l) width) 2))
-	    (th (+ (oref (car l) y) (oref (car l) height) 1)))
-	(if (< maxw tw) (setq maxw tw))
-	(if (< maxh th) (setq maxh th)))
-      (setq l (cdr l)))
-    (oset this width maxw)
-    (oset this height maxh))
+their X,Y offset by our X,Y"
+  ;; Now resize ourselves just to make sure
+  (verify-size this)
   ;;draw any visuals we have
   (call-next-method)
   ;; draw our children
@@ -303,6 +340,7 @@ thier X,Y offset by our X,Y"
 	    ;(message "Refreshing object %s" (object-name (car kids)))
 	    ;(sit-for 1)
 	    (draw (car kids))))
+      (sit-for 0)
       (setq kids (cdr kids))
       ))
   ;; (message "Done...")
@@ -330,6 +368,7 @@ thier X,Y offset by our X,Y"
 		     (create-widget (format "label on %s" (object-name this))
 				    widget-label this 
 				    :label-value tol
+				    :face 'widget-frame-label-face
 				    :justification
 				    (cond 
 				     ((string-match "center" posstr)
@@ -354,6 +393,30 @@ thier X,Y offset by our X,Y"
 					 (1+ (oref this height))))))))))
     (if (and lw fix)
 	(oset this frame-label lw))))
+
+;;
+;; radio frame
+;;
+(defmethod verify ((this widget-radio-frame) fix)
+  "Verify a frame widget"
+  ;; call parent's verify first to set our position, etc
+  (call-next-method)  
+  ;; now make sure our state is really an integer.
+  (let ((lv (transform-dataobject (oref this state) this "RadioIndex" fix)))
+    (if lv
+	(oset this state lv)
+      (error "State variable for toggle %s is not a data-object!"
+	     (object-name this)))))
+
+(defmethod add-child ((this widget-radio-frame) child)
+  "Add widget CHILD which must be a radio button to ourselves"
+  ;; check for radioness
+  (if (and (not (obj-of-class-p child widget-radio-button))
+	   (get-children this))
+      (error "Widget %s is not a radio button!" (object-name child)))
+  ;; really do the add
+  (call-next-method)
+  )
 
 
 ;;
@@ -383,7 +446,8 @@ thier X,Y offset by our X,Y"
   (call-next-method))
 
 (defmethod draw ((this widget-label))
-  "Refresh a label widget."
+  "Refresh a label widget.  Calculate centering style, then display the
+String to optimally fill that area."
   (let* ((x (+ (oref this rx) (oref this leftmargin)))
 	 (y (+ (oref this ry) (oref this topmargin)))
 	 (w (- (oref this width) (oref this leftmargin) (oref this rightmargin)))
@@ -396,6 +460,10 @@ thier X,Y offset by our X,Y"
 	(progn
 	  (setq ds (substring ds 0 w))
 	  (setq s (length ds))))
+    ;; First, clear anything that might be in the way
+    (goto-xy x y)
+    (insert-overwrite-face (make-string w ? ) nil nil)
+    ;; Now find the centering mechanism, and draw the string
     (cond ((string-match "\n" ds)
 	   (error "Multiline strings not supported in labels yet")
 	   )
@@ -435,27 +503,30 @@ thier X,Y offset by our X,Y"
 (defmethod input ((this widget-button) coe)
   "What to do if clicked upon by the mouse"
   (if (and (listp coe) (eventp coe))
-      (cond (;; Someone pressed us!
-	     (let ((omf (oref this focus-face)))
-	       (unwind-protect
-		   (progn
-		     (member 'down (event-modifiers coe))
-		     (oset this focus-face (oref this arm-face))
-		     (draw this) ; set that...
-		     (widget-lock-over this)	;visually display arming
-		     (let ((x (current-column))
-			   (y (count-lines (point-min) (point)))
-			   (ob (oref this boxed)))
-		       (unwind-protect
-			   (progn
-			     (oset this boxed nil)
-			     (if (picked this x y)
-				 (active-actions this 'click)))
-			 (oset this boxed ob))))
-		 (oset this focus-face omf)
-		 (draw this))))
-	    ;; ignore the other stuff
-	    (t (message "Ignore event %S" (event-modifiers coe))))
+      (let ((omf (oref this focus-face)))
+	(unwind-protect
+	    (let ((cb (current-buffer)))
+	      (oset this focus-face (oref this arm-face))
+	      (draw this) ; set that...
+	      (widget-lock-over this)	;visually display arming
+	      (let ((x (current-column))
+		    (y (count-lines (point-min) (point)))
+		    (ob (oref this boxed)))
+		(unwind-protect
+		    (progn
+		      (oset this boxed nil)
+		      (if (picked this x y)
+			  (cond
+			   ((member 'down-mouse-1 coe)
+			    (active-actions this 'click))
+			   ((member 'down-mouse-2 coe)
+			    (active-actions this 'click))
+			   ((member 'down-mouse-3 coe)
+			    (help-actions this 'click)))))
+		  (oset this boxed ob)))
+	      (oset this focus-face omf)
+	      (if (equal (current-buffer) cb)
+		  (draw this)))))
     (if (or (eq coe 'return)
 	    (= coe ? )
 	    (= coe ?\n)
@@ -476,11 +547,106 @@ thier X,Y offset by our X,Y"
   (if (oref this activate-hook)
       (funcall (oref this activate-hook) this reason)))
 
+(defmethod help-actions ((this widget-button) reason)
+  "Called when 3rd mouse button is clicked upon a button.  Will display
+help about this widget."
+  (if (oref this help-hook)
+      (funcall (oref this help-hook) this reason)
+    (message "Click with mouse-1 to active this button.")))
+
 (defmethod draw ((this widget-button))
   "Draw the button widget to the display"
   ;; now draw the label part
   (save-excursion
     (call-next-method)))
+
+;;
+;; Option Button
+;;
+(defmethod verify ((this widget-option-button) fix)
+  "Verify button parameters"
+  ;; Verify my state button
+  (let ((lv (transform-dataobject (oref this state) this "OptionIndex" fix)))
+    (if lv
+	(progn
+	  (oset this state lv)
+	  (add-reference lv this))
+      (error "State variable for toggle %s is not a data-object!"
+	     (object-name this))))
+  ;; Find longest string in option list and fill in the obarray
+  (let* ((ol (oref this option-list))
+	 (sz 0)
+	 (oa (make-vector (length ol) 0)))
+    (while ol
+      (if (> (length (car ol)) sz) (setq sz (length (car ol))))
+      (intern (car ol) oa)
+      (setq ol (cdr ol)))
+    (oset this option-obarray oa)
+    (oset this width (+ sz (length (oref this option-indicator)) 1)))
+  ;; create the special left margin
+  (oset this leftmargin (1+ (length (oref this option-indicator))))
+  ;; Make sure we install the right label string
+  (oset this label-value (nth (get-value (oref this state))
+			      (oref this option-list)))
+  ;; Now verify the rest
+  (call-next-method))
+
+(defmethod draw ((this widget-option-button))
+  "Draws a option button to the display"
+  (if (eq major-mode 'dialog-mode)
+      (save-excursion
+	;; now draw the indicator
+	(let* ((val1 (oref this state))
+	       (val2 (get-value val1)))
+	  (goto-xy (oref this rx) (oref this ry))
+	  (insert-overwrite-face (oref this option-indicator) 
+				 (oref this ind-face)))
+	;; draw the rest
+	(call-next-method))))
+
+(defmethod input ((this widget-option-button) coe)
+  "What to do if clicked upon by the mouse"
+  (if (and (listp coe) (eventp coe))
+      (let ((rv (dialog-list-2-menu coe "Options" (oref this option-list))))
+	(if rv (set-value (oref this state) rv this))
+	(reset-option-label this)
+	(show-arm this nil))
+    (if (or (eq coe 'return)
+	    (= coe ? )
+	    (= coe ?\n)
+	    (= coe ?\f))
+	(progn
+	  (show-arm this t)
+	  (let* ((nv (completing-read "Select Value: " 
+				      (oref this option-obarray) nil t 
+				      (nth (get-value (oref this state))
+					   (oref this option-list)))))
+	    (set-value (oref this state) 
+		       (- (length (oref this option-list))
+			  (length (member nv (oref this option-list))))
+		       this)
+	    (reset-option-label this))
+	  (show-arm this nil))
+      (message "RET or SPC to activate button!"))))
+
+(defmethod reset-option-label ((this widget-option-button))
+  "Reset the label on THIS widget."
+  (set-value (oref this label-value)
+	     (nth (get-value (oref this state)) (oref this option-list))
+	     this))
+
+(defmethod move-cursor-to ((this widget-option-button))
+  "Move the cursor so that it sits at a useful location inside this widget"
+  (goto-xy (+ (oref this rx) (length (oref this option-indicator)))
+	   (+ (oref this ry) (if (> (oref this height) 1) 1 0))))
+
+(defmethod help-actions ((this widget-option-button) reason)
+  "Called when 3rd mouse button is clicked upon a button.  Will display
+help about this widget."
+  (if (oref this help-hook)
+      (funcall (oref this help-hook) this reason)
+    (message "Click with mouse-1 and choose menu item to select a new value")))
+
 
 
 ;;
@@ -531,10 +697,64 @@ thier X,Y offset by our X,Y"
   "When the button part is activated, then we must toggle our state"
   ;; Set our state
   (if (get-value (oref this state))
-      (set-value (oref this state) nil)
+      (set-value (oref this state) nil this)
     (set-value (oref this state) t this))
   ;; do our parents version
   (call-next-method))
+
+(defmethod help-actions ((this widget-toggle-button) reason)
+  "Called when 3rd mouse button is clicked upon a button.  Will display
+help about this widget."
+  (if (oref this help-hook)
+      (funcall (oref this help-hook) this reason)
+    (message "Click with mouse-1 to change the boolean value of this button.")))
+
+;;
+;; radio toggle button
+;;
+(defmethod verify ((this widget-radio-button) fix)
+  "Verifies that a radio toggle button correctly represented."
+  ;; find my position in my parent
+  (let ((p (oref this parent)))
+    (if (obj-of-class-p p widget-radio-frame)
+	(oset this radio-index (- (length (get-children p)) 2))
+      (error "Object %s must have parent type widget-radio-frame"
+	     (object-name this))))
+  ;; Verify parent class members
+  (call-next-method)
+  ;; find my parent's state
+  (let* ((p (oref this parent))
+	 (ps (oref p state)))
+    (oset this parent-state ps)
+    (add-reference ps this)))
+
+(defmethod update-symbol ((this widget-radio-button) sym)
+  "If sym is STATE field, then update ourselves"
+  (let ((ps (oref this parent-state)))
+    (if (eq sym ps)
+	(radio-set-display this)
+      (call-next-method))))
+
+(defmethod radio-set-display ((this widget-radio-button))
+  "Check our parent's display, and set our own state based on this."
+  (set-value (oref this state) 
+	     (if (= (get-value (oref this parent-state))
+		    (oref this radio-index))
+		 t nil)))
+
+(defmethod active-actions :AFTER ((this widget-radio-button) reason)
+  "After toggling behavior, always reset to whatever our parent state
+thinks we should be."
+  (if (get-value (oref this state))
+      (set-value (oref this parent-state) (oref this radio-index) this)
+  (radio-set-display this)))
+
+(defmethod help-actions ((this widget-radio-button) reason)
+  "Called when 3rd mouse button is clicked upon a button.  Will display
+help about this widget."
+  (if (oref this help-hook)
+      (funcall (oref this help-hook) this reason)
+    (message "Click with mouse-1 to change the state of the radio box.")))
 
 
 ;;
@@ -544,7 +764,7 @@ thier X,Y offset by our X,Y"
 (defmethod verify ((this widget-text-field) fix)
   "Verifies the text widget is ok"
   ;; verify the textual value as a data-object
-  (let ((tv (transform-dataobject (oref this value) this "" fix)))
+  (let ((tv (transform-dataobject (oref this value) this "TextPart" fix)))
     (if tv
 	(progn
 	  (oset this value tv)
@@ -567,7 +787,7 @@ thier X,Y offset by our X,Y"
 	 (nflag nil)
 	 (sflag nil)
 	 )  
-    (goto-xy (1- (oref this x)) (oref this y))
+    (goto-xy (1- (oref this rx)) (oref this ry))
     ;; check for characters off to the left
     (insert-overwrite-face (if (> (oref this disppos) 0) "<" " ")
 			   (oref this spface))
@@ -586,7 +806,7 @@ thier X,Y offset by our X,Y"
 		  os
 		  (widget-bunch-o-chars (- tlen (length os)) ? ))))
     ;; insert the string
-    (insert-overwrite-face os (oref this face))
+    (insert-overwrite-face os (oref this face) (oref this focus-face))
     ;; show more-characters this way strings
     (if nflag (insert-overwrite-face "v" (oref this spface))
       (if sflag (insert-overwrite-face ">" (oref this spface))
@@ -598,6 +818,12 @@ thier X,Y offset by our X,Y"
   "Move the cursor so that it sits at a useful location inside this widget"
   (goto-xy (oref this rx)
 	   (oref this ry)))
+
+(defmethod update-symbol ((this widget-text-field) sym)
+  "If sym is STATE field, then update ourselves"
+  (if (eq sym (oref this value))
+      (draw this)
+    (call-next-method)))
 
 (defmethod input ((this widget-text-field) coe)
   "Handle user input events in the text field"
@@ -612,6 +838,7 @@ thier X,Y offset by our X,Y"
 	  ;; In this case, we have a one-keystroke edit
 	  (let ((cp (- (current-column) (oref this rx)))
 		(mo (oref this value))
+		(ov (get-value (oref this value)))
 		(mv nil)
 		(rp nil)
 		;; make sure no new lines are added
@@ -633,7 +860,7 @@ thier X,Y offset by our X,Y"
 	    (if (>= (1+ rp) (+ (oref this disppos) (oref this width)))
 		(let ((newsize  (- rp (oref this width) -2)))
 		  (oset this disppos newsize)))
-	    ;; Now redraw the text
+	    ;; Now redraw the text if needed
 	    (save-excursion
 	      (set-value mo mv this)
 	      (draw this))
@@ -642,6 +869,7 @@ thier X,Y offset by our X,Y"
 	    (goto-xy (+ (oref this rx) (- rp (oref this disppos)))
 		     (oref this ry))
 	    (sit-for 1)
+	    ;; make sure the value changed, then call the hook.
 	    )))))
 
 ;;; end of lisp
