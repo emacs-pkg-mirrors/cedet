@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.3 2001/08/31 11:57:14 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.4 2001/09/03 13:11:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -206,6 +206,19 @@ with the current results on a parse error."
         ;; Hooks
         (run-hook-with-args 'semantic-clean-token-hooks token)
         ))))
+
+(defsubst wisent-bovinate-from-nonterminal-full (start end nonterm
+                                                    &optional depth)
+  "Bovinate from within a nonterminal from START to END.
+Iterates until all the space between START and END is exhausted.
+Depends on the existing environment created by
+`wisent-bovinate-nonterminal'.  Argument NONTERM is the nonterminal
+symbol to start with or nil for default goal.  Optional argument DEPTH
+is the depth of lists to dive into it defaults to
+`semantic-flex-depth'."
+  (wisent-bovinate-nonterminals
+   (semantic-flex start end depth)
+   nonterm))
 
 (defun wisent-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer with the LALR parser.
