@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.10 2003/02/17 08:49:15 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.11 2003/02/19 16:25:29 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -134,8 +134,10 @@ It ignores whitespaces, newlines and comments."
 ;;;;
 
 (defconst semantic-grammar-automaton
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-10-02 15:40+0200
-  (eval-when-compile
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-02-18 22:35+0100
+  (progn
+    (eval-when-compile
+      (require 'wisent-comp))
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START SCOPESTART QUOTEMODE TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL CHARACTER SEXP PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -426,7 +428,7 @@ It ignores whitespaces, newlines and comments."
   "Parser automaton.")
 
 (defconst semantic-grammar-keywords
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-10-02 15:40+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-02-18 22:35+0100
   (semantic-lex-make-keyword-table
    '(("left" . LEFT)
      ("nonassoc" . NONASSOC)
@@ -447,7 +449,7 @@ It ignores whitespaces, newlines and comments."
   "Keywords.")
 
 (defconst semantic-grammar-tokens
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-10-02 15:40+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-02-18 22:35+0100
   (wisent-lex-make-token-table
    '(("punctuation"
       (PERCENT . "%")
@@ -476,12 +478,13 @@ It ignores whitespaces, newlines and comments."
 
 (defun semantic-grammar-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-10-02 15:40+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-02-18 22:35+0100
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table semantic-grammar-automaton
+          semantic-debug-parser-source "semantic-grammar.wy"
           semantic-flex-keywords-obarray semantic-grammar-keywords
           semantic-lex-types-obarray semantic-grammar-tokens)
     ;; Collect unmatched syntax lexical tokens
