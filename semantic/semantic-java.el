@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.5 2001/02/09 15:52:09 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.6 2001/02/22 20:01:16 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -423,7 +423,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-          "Java language specification.")
+   "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -481,21 +481,13 @@
      ))
   "Java keywords.")
 
-;; Default Java token prototypes
-(defun semantic-java-prototype-nonterminal (token)
-  "Return a prototype for TOKEN.
-See also `semantic-prototype-nonterminal'."
-  (let* ((categ (semantic-token-token token))
-         (fprot (intern-soft
-                 (format "semantic-java-prototype-%s"
-                         categ))))
-    (if (fboundp fprot)
-        (funcall fprot token)
-      (semantic-abbreviate-nonterminal token))))
+;;;;
+;;;; Prototype handler
+;;;;
 
 (defun semantic-java-prototype-function (token)
   "Return a function (method) prototype for TOKEN.
-See also `semantic-prototype-nonterminal'."
+See also `semantic-java-prototype-nonterminal'."
   (let ((name (semantic-token-name token))
         (type (semantic-token-type token))
         (args (semantic-token-function-args token))
@@ -512,27 +504,42 @@ See also `semantic-prototype-nonterminal'."
 
 (defun semantic-java-prototype-variable (token)
   "Return a variable (field) prototype for TOKEN.
-See also `semantic-prototype-nonterminal'."
+See also `semantic-java-prototype-nonterminal'."
   (concat (semantic-token-type token)
           " "
           (semantic-token-name token)))
 
 (defun semantic-java-prototype-type (token)
   "Return a type (class/interface) prototype for TOKEN.
-See also `semantic-prototype-nonterminal'."
+See also `semantic-java-prototype-nonterminal'."
   (concat (semantic-token-type token)
           " "
           (semantic-token-name token)))
 
 (defun semantic-java-prototype-include (token)
   "Return an include (import) prototype for TOKEN.
-See also `semantic-prototype-nonterminal'."
+See also `semantic-java-prototype-nonterminal'."
   (semantic-token-name token))
 
 (defun semantic-java-prototype-package (token)
   "Return a package prototype for TOKEN.
-See also `semantic-prototype-nonterminal'."
+See also `semantic-java-prototype-nonterminal'."
   (semantic-token-name token))
+
+(defun semantic-java-prototype-nonterminal (token)
+  "Return a prototype for TOKEN.
+Override `semantic-prototype-nonterminal'."
+  (let* ((categ (semantic-token-token token))
+         (fprot (intern-soft
+                 (format "semantic-java-prototype-%s"
+                         categ))))
+    (if (fboundp fprot)
+        (funcall fprot token)
+      (semantic-abbreviate-nonterminal token))))
+
+;;;;
+;;;; Specific nonterminal handler
+;;;;
 
 (defun semantic-expand-java-nonterminal (token)
   "Expand TOKEN into a list of equivalent nonterminals, or nil.
@@ -581,46 +588,120 @@ Handle multiple variable declarations in the same statement."
           (setcar token (car names))))
     vl))
 
-;; Mode Hook
+;;;;
+;;;; Javadoc handler
+;;;;
+
+(defmacro semantic-java-skip-spaces-backward ()
+  "Move point backward, skipping Java whitespaces."
+  `(skip-chars-backward " \n\r\t"))
+
+(defmacro semantic-java-skip-spaces-forward ()
+  "Move point forward, skipping Java whitespaces."
+  `(skip-chars-forward " \n\r\t"))
+
+(defun semantic-java-clean-docstring (start end)
+  "Return a clean docstring from javadoc between START and END.
+That is remove leading \"/**\" and \"*\" and trailing \"*/\" from the
+javadoc string."
+  (let ((ct (buffer-substring-no-properties
+             (+ start 3)                ; skip "/**"
+             (- end   2))))             ; skip "*/"
+    ;; Remove first newline after "/**"
+    (if (string-match "^\\s-*[\r\n]" ct)
+        (setq ct (concat (substring ct 0 (match-beginning 0))
+                         (substring ct (match-end 0)))))
+    ;; Remove leading "*"
+    (while (string-match "^\\s-*[*]" ct)
+      (setq ct (concat (substring ct 0 (match-beginning 0))
+                       (substring ct (match-end 0)))))
+    ;; Remove last newline before "*/"
+    (if (string-match "[\r\n]\\s-*$" ct)
+        (setq ct (concat (substring ct 0 (match-beginning 0))
+                         (substring ct (match-end 0)))))
+    ct))
+
+(defun semantic-java-find-documentation (&optional token nosnarf)
+  "Find documentation from TOKEN and return it as a clean string.
+Java have documentation set in a comment preceeding TOKEN's
+definition.  Optional argument NOSNARF means to only return the flex
+token for it.  If NOSNARF is 'flex, then only return the flex token.
+Override `semantic-find-documentation'."
+  (if (or token (setq token (semantic-current-nonterminal)))
+      (save-excursion
+        (set-buffer (semantic-token-buffer token))
+        ;; Move the point at token start
+        (goto-char (semantic-token-start token))
+        (semantic-java-skip-spaces-forward)
+        ;; If the point already at "/**" (this occurs after a doc fix)
+        (if (looking-at "/\\*\\*")
+            nil
+          ;; Skip previous spaces...
+          (semantic-java-skip-spaces-backward)
+          ;; Verify the point is after "*/" (javadoc block comment end)
+          (condition-case nil
+              (backward-char 2)
+            (error nil))
+          (when (looking-at "\\*/")
+          ;; Move the point backward across the comment
+            (forward-char 2)              ; return just after "*/"
+            (forward-comment -1)          ; to skip the entire block
+            ))
+        ;; Verify the point is at "/**" (javadoc block comment start)
+        (if (looking-at "/\\*\\*")
+            (let ((p (point))
+                  (c (semantic-find-doc-snarf-comment 'flex)))
+              (when c
+                ;; Verify that the token just following the doc comment is
+                ;; the current one!
+                (goto-char (semantic-flex-end c))
+                (semantic-java-skip-spaces-forward)
+                (if (eq token (semantic-current-nonterminal))
+                    (if (eq nosnarf 'flex)
+                        c
+                      (semantic-java-clean-docstring
+                       (car (cdr c))
+                       (cdr (cdr c)))))))))))
+
+;;;;
+;;;; Mode Hook
+;;;;
+
 (defun semantic-default-java-setup ()
   "Set up a buffer for semantic parsing of the Java language."
 
-  ;; special handling of multiple variable declarations/statement.
-  (setq semantic-expand-nonterminal
-        'semantic-expand-java-nonterminal)
-
-  ;; function to use when creating items in imenu.
-  (setq semantic-imenu-summary-function
-        'semantic-prototype-nonterminal)
-
-  ;; function to use for creating the imenu
-  (setq imenu-create-index-function
-        'semantic-create-imenu-index)
-
-  ;; speedbar and imenu buckets name.
-  (setq semantic-symbol->name-assoc-list
-        '((type     . "Classes")
-          (variable . "Variables")
-          (function . "Methods")
-          (include  . "Imports")
-          (package  . "Package")))
-
   ;; semantic overloaded functions
   (semantic-install-function-overrides
-   '((prototype-nonterminal . semantic-java-prototype-nonterminal))
+   '((prototype-nonterminal . semantic-java-prototype-nonterminal)
+     (find-documentation    . semantic-java-find-documentation))
    t ;; They can be changed in mode hook by more specific ones
    )
 
-  ;; Character used to separation a parent/child relationship
-  (setq semantic-type-relation-separator-character '("."))
-  
   ;; Code generated from java.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-java-bovine-table)
   (setq semantic-flex-keywords-obarray semantic-java-keyword-table)
-  (progn
-    ;; Java is case sensitive
-    (setq semantic-case-fold nil)
-    )
+  (setq
+   ;; Java is case sensitive
+   semantic-case-fold nil
+   ;; special handling of multiple variable declarations/statement
+   semantic-expand-nonterminal 'semantic-expand-java-nonterminal
+   ;; function to use when creating items in imenu
+   semantic-imenu-summary-function 'semantic-prototype-nonterminal
+   ;; function to use for creating the imenu
+   imenu-create-index-function 'semantic-create-imenu-index
+   ;; Character used to separation a parent/child relationship
+   semantic-type-relation-separator-character '(".")
+   semantic-command-separation-character ";"
+   document-comment-start "/**"
+   document-comment-line-prefix " *"
+   document-comment-end " */"
+   ;; speedbar and imenu buckets name
+   semantic-symbol->name-assoc-list '((type     . "Classes")
+                                      (variable . "Variables")
+                                      (function . "Methods")
+                                      (include  . "Imports")
+                                      (package  . "Package"))
+   )
  
  ;; End code generated from java.bnf
  )
