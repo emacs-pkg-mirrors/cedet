@@ -1,15 +1,15 @@
 ;;; semantic.el --- Semantic buffer evaluator.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.174 2003/12/28 17:55:22 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.175 2004/02/12 02:08:06 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
 
-  (defvar semantic-version "2.0beta1"
+  (defvar semantic-version "2.0beta2"
     "Current version of Semantic.")
 
   )
