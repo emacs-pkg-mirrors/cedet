@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.1 1999/05/14 21:31:14 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.2 1999/05/17 17:29:31 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -136,10 +136,25 @@
      (symbol)
      )
     (lambda-fn
-      (semantic-list)
+      (semantic-list
+       (lambda (vals start end) (list (buffer-substring start end)
+				      start end)))
       ((lambda (vals start end) (list "" start end))))
     )
   "Bovine table used to convert a BNF language file into a bovine table.")
+
+(defun semantic-bnf-EXPAND (lst)
+  "Insert a token expand function based on LST."
+  (let ((argv (1- (string-to-int (substring (symbol-name (car (cdr lst)))
+					    1)))))
+    (insert "\n")
+    (indent-for-tab-command)
+    (insert "(semantic-bovinate-from-nonterminal "
+	    "(car (nth " (int-to-string argv) " vals)) "
+	    "(cdr (nth " (int-to-string argv) " vals)) "
+	    "'" (symbol-name (car (cdr (cdr lst))))
+	    ")\n")
+    (indent-for-tab-command)))
 
 (defun semantic-bnf-lambda-substitute (lst &optional inplace)
   "Insert LST substituting based on rules for the BNF converter.
@@ -158,54 +173,58 @@ Optional INPLACE indicates that the list is being expanded from elsewhere."
 	  (setq inplace t))
 	)
     (if inplace (insert " (")))
-  (let ((inlist nil))
-    (while lst
-      (cond ((eq (car lst) nil)
-	     (if (and (not inlist) (not inplace))
-		 (progn (insert " (list")
-			(setq inlist t)))
-	     (insert " nil"))
-	    ((listp (car lst))
-	     (let ((fn (and (symbolp (car (car lst))) (fboundp (car (car lst))))))
+  (if (eq (car lst) 'EXPAND)
+      (semantic-bnf-EXPAND lst)
+    (let ((inlist nil))
+      (while lst
+	(cond ((eq (car lst) nil)
 	       (if (and (not inlist) (not inplace))
 		   (progn (insert " (list")
 			  (setq inlist t)))
-	       (if (and inplace (not fn)) (insert " (append"))
-	       (semantic-bnf-lambda-substitute (car lst) (and fn (not (eq fn 'quote))))
-	       (if (and inplace (not fn)) (insert  ")"))
-	       ))
-	    ((symbolp (car lst))
-	     (let ((n (symbol-name (car lst))) ;the name
-		   (x nil))		;expand flag
-	       (if (eq (aref n 0) ?,)
-		   (setq n (substring n 1)
-			 x t))
-	       (if (string= n "")
-		   ;; We expand only the next item in place (a list?)
-		   (progn
-		     (setq lst (cdr lst))
-		     ;; A regular inline-list...
-		     (semantic-bnf-lambda-substitute (car lst) t))
-		 (if (eq (aref n 0) ?$)
-		     (let ((val (1- (string-to-int (substring n 1)))))
-		       (if (and (not x) (not inlist) (not inplace))
-			   (insert " (list")
-			 (if (and x inlist (not inplace))
-			     (progn (insert ")")
-				    (setq inlist nil))))
-		       (insert " (nth " (int-to-string val) " vals)")
-		       (if (and (not x) (not inplace)) (setq inlist t)))
-		   (if (and (not inlist) (not inplace))
-		       (progn (insert " (list")
-			      (setq inlist t)))
-		   (insert " " (if inplace "" "'") n)))))
-	    (t
-	     (if (and (not inlist) (not inplace))
-		 (progn (insert " (list")
-			(setq inlist t)))
-	     (insert (format " %S" (car lst)))))
-      (setq lst (cdr lst)))
-    (if inlist (insert ")")))
+	       (insert " nil"))
+	      ((listp (car lst))
+	       (let ((fn (and (symbolp (car (car lst))) (fboundp (car (car lst))))))
+		 (if (and (not inlist) (not inplace))
+		     (progn (insert " (list")
+			    (setq inlist t)))
+		 (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
+		     (insert " (append"))
+		 (semantic-bnf-lambda-substitute (car lst) (and fn (not (eq fn 'quote))))
+		 (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
+		     (insert  ")"))
+		 ))
+	      ((symbolp (car lst))
+	       (let ((n (symbol-name (car lst))) ;the name
+		     (x nil))		;expand flag
+		 (if (eq (aref n 0) ?,)
+		     (setq n (substring n 1)
+			   x t))
+		 (if (string= n "")
+		     ;; We expand only the next item in place (a list?)
+		     (progn
+		       (setq lst (cdr lst))
+		       ;; A regular inline-list...
+		       (semantic-bnf-lambda-substitute (car lst) t))
+		   (if (eq (aref n 0) ?$)
+		       (let ((val (1- (string-to-int (substring n 1)))))
+			 (if (and (not x) (not inlist) (not inplace))
+			     (insert " (list")
+			   (if (and x inlist (not inplace))
+			       (progn (insert ")")
+				      (setq inlist nil))))
+			 (insert " (nth " (int-to-string val) " vals)")
+			 (if (and (not x) (not inplace)) (setq inlist t)))
+		     (if (and (not inlist) (not inplace))
+			 (progn (insert " (list")
+				(setq inlist t)))
+		     (insert " " (if inplace "" "'") n)))))
+	      (t
+	       (if (and (not inlist) (not inplace))
+		   (progn (insert " (list")
+			  (setq inlist t)))
+	       (insert (format " %S" (car lst)))))
+	(setq lst (cdr lst)))
+      (if inlist (insert ")"))))
   (if inplace (insert ")")))
 
 (defun semantic-bnf-lambda-convert (semliststr vals)
@@ -222,12 +241,7 @@ VALS are the matches in the BNF notation file."
       (insert "(lambda (vals start end)\n")
       (indent-for-tab-command)
       (cond ((eq (car slsr) 'EXPAND)
-	     ;; We've been asked to expand the thing.
-	     ;; Insert the correct command.
-	     (insert "(semantic-bovinate-from-nonterminal "
-		     "start end '"
-		     (symbol-name (car (cdr slsr)))
-		     ")"))
+	     (semantic-bnf-EXPAND slsr))
 	    ((and (listp (car slsr))
 		  (eq (car (car slsr)) 'EVAL))
 	     ;; The user wants to evaluate the following args.
@@ -251,7 +265,6 @@ VALS are the matches in the BNF notation file."
 			(goto-char (point-min))
 			(semantic-bovinate-toplevel 0 t))))
 	 (tl (float (length tokstream))))
-    (message "Building bovine table...")
     (insert "'(")
     (indent-for-tab-command)
     (working-status-forms "Building bovine table" "done"
@@ -281,22 +294,42 @@ VALS are the matches in the BNF notation file."
 	  (insert ") ; end " (car rule) "\n")
 	  (indent-for-tab-command))
 	(setq tokstream (cdr tokstream))
-	(working-status (* 100.0 (- 1.0 (/ (float (length tokstream)) tl))))))
+	(working-status (* 100.0 (- 1.0 (/ (float (length tokstream)) tl)))))
+      (working-status 100.0 t))
     (insert ")\n")
-    (message "Building bovine table...done")
     ))
 
+(defun semantic-bnf-find-destination ()
+  "Find the destination for this BNF file."
+  (save-excursion
+    (goto-char (point-min))
+    (if (re-search-forward
+	 "^# TABLE: \\([-a-zA-Z0-9_-]+\\.el\\):\\([-a-zA-Z0-9_]+\\)$"
+	 nil t)
+	(save-excursion
+	  (let ((f (match-string 1))
+		(v (match-string 2)))
+	    (set-buffer (find-file-noselect f))
+	    (goto-char (point-min))
+	    (if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
+					   (regexp-quote v)) nil t)
+		(progn
+		  (goto-char (match-beginning 0))
+		  (point-marker)))))
+      nil)))
+
 (defun semantic-bnf-generate-and-load ()
-  "Take the current BNF, auto-generate it into the debug table, and load it."
+  "Take the current BNF, auto-generate it into a table, and load it."
   (interactive)
-  (if (not semantic-bovinate-debug-table)
-      (error "Use `semantic-bovinate-debug-set-table' first"))
   (if (not (eq major-mode 'semantic-bnf-mode))
       (error "Not valid outside the scope of a BNF file"))
-  (let ((bb (current-buffer)))
+  (let ((bb (current-buffer))
+	(dest (semantic-bnf-find-destination)))
+    (if (not dest)
+	(error "You must specify a destination table in your BNF file"))
     (save-excursion
-      (set-buffer (marker-buffer semantic-bovinate-debug-table))
-      (goto-char semantic-bovinate-debug-table)
+      (set-buffer (marker-buffer dest))
+      (goto-char dest)
       (re-search-forward "def\\(var\\|const\\)\\s-+\\(\\w\\|\\s_\\)+\\s-*\n")
       (if (looking-at "\\s-*'(") (kill-sexp 1))
       (delete-blank-lines)
@@ -338,20 +371,24 @@ VALS are the matches in the BNF notation file."
   "Hook run when starting BNF mode.")
 
 (defvar semantic-bnf-mode-keywords
-  '(("^\\(\\w+\\)\\s-*:" 1 font-lock-variable-name-face)
+  '(("^\\(\\w+\\)\\s-*:" 1 font-lock-function-name-face)
     ("\\<\\(EMPTY\\|symbol\\|punctuation\\|string\\|semantic-list\
 \\|\\(open\\|close\\)-paren\\|comment\\)\\>"
      1 font-lock-keyword-face)
+    ("\\$[0-9]+" 0 font-lock-variable-name-face)
     )
   "Font Lock keywords used to highlight BNF buffer.")
 
 (defvar semantic-bnf-map nil
-  "Keymap used in semantic-bnf-mode.")
+  "Keymap used in `semantic-bnf-mode'.")
 
 (if semantic-bnf-map
     nil
   (setq semantic-bnf-map (make-sparse-keymap))
   (define-key semantic-bnf-map "\t" 'semantic-bnf-indent)
+  (define-key semantic-bnf-map "|" 'semantic-bnf-electric-punctuation)
+  (define-key semantic-bnf-map ";" 'semantic-bnf-electric-punctuation)
+  (define-key semantic-bnf-map "#" 'semantic-bnf-electric-punctuation)
   (define-key semantic-bnf-map "\C-c\C-c" 'semantic-bnf-generate-and-load)
   )
 
@@ -375,6 +412,12 @@ VALS are the matches in the BNF notation file."
 			     ;; simplifying our keywords significantly
 			     ((?_ . "w") (?- . "w"))))
   (run-hooks 'semantic-bnf-mode-hook))
+
+(defun semantic-bnf-electric-punctuation ()
+  "Insert and reindent for the symbol just typed in."
+  (interactive)
+  (self-insert-command 1)
+  (semantic-bnf-indent))
 
 (defun semantic-bnf-indent ()
   "Indent the current line according to BNF rules."
