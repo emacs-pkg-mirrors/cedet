@@ -1,10 +1,10 @@
 ;;; semanticdb.el --- Semantic tag database manager
 
-;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.67 2004/01/09 21:00:31 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.68 2004/01/27 14:38:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -460,12 +460,6 @@ Argument NEW-TABLE is the new table of tags."
   (if semanticdb-current-table
       (oset semanticdb-current-table tags new-table)))
 
-(defun semanticdb-post-bovination-unmatched-syntax (new-un-tax)
-  "Function run after a bovination w/ unmatched syntax.
-Argument NEW-UN-TAX is the new unmatched syntax table."
-  (if semanticdb-current-table
-      (oset semanticdb-current-table unmatched-syntax new-un-tax)))
-
 (defun semanticdb-kill-hook ()
   "Function run when a buffer is killed.
 If there is a semantic cache, slurp out the overlays, an store
@@ -494,7 +488,6 @@ Save all the databases."
 (defvar semanticdb-hooks
   '((semanticdb-semantic-init-hook-fcn semantic-init-db-hooks)
     (semanticdb-post-bovination semantic-after-toplevel-cache-change-hook)
-    (semanticdb-post-bovination-unmatched-syntax semantic-unmatched-syntax-hook)
     (semanticdb-kill-hook kill-buffer-hook)
     (semanticdb-kill-emacs-hook kill-emacs-hook)
     )
