@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.43 2003/10/01 08:50:24 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.43.2.1 2003/10/22 15:55:50 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -814,6 +814,8 @@ Also load the specified macro libraries."
   "Build a Lisp package from the grammar in FILE.
 That is, generate Lisp code from FILE, and `byte-compile' it.
 Return non-nil if there were no errors, nil if errors."
+  ;; We need this require so that we can find `byte-compile-dest-file'.
+  (require 'bytecomp)
   (unless (auto-save-file-name-p file)
     ;; Create the package
     (let ((packagename
