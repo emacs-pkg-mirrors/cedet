@@ -1,9 +1,88 @@
-@ignore
-@node Language Support Developer's Guide
-@chapter Language Support Developer's Guide
-@c This 'ignore' section fools texinfo-all-menus-update into creating
-@c proper menus for this chapter.
-@end ignore
+\input texinfo  @c -*-texinfo-*-
+@c %**start of header
+@setfilename semantic-langdev.info
+@set TITLE  Language Support Developer's Guide
+@set AUTHOR Eric M. Ludlam, David Ponce, and Richard Y. Kim
+@settitle @value{TITLE}
+
+@c *************************************************************************
+@c @ Header
+@c *************************************************************************
+
+@c Merge all indexes into a single index for now.
+@c We can always separate them later into two or more as needed.
+@syncodeindex vr cp
+@syncodeindex fn cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+@c @footnotestyle separate
+@c @paragraphindent 2
+@c @@smallbook
+@c %**end of header
+
+@copying
+This manual documents Application Development with Semantic.
+
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+Copyright @copyright{} 2001, 2002, 2003 David Ponce
+Copyright @copyright{} 2002, 2003 Richard Y. Kim
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being list their titles, with the Front-Cover Texts
+being list, and with the Back-Cover Texts being list.  A copy of the
+license is included in the section entitled ``GNU Free Documentation
+License''.
+@end quotation
+@end copying
+
+@ifinfo
+@dircategory Emacs
+@direntry
+* Semantic Langauge Writer's guide: (semantic-langdev).
+@end direntry
+@end ifinfo
+
+@iftex
+@finalout
+@end iftex
+
+@c @setchapternewpage odd
+@c @setchapternewpage off
+
+@ifinfo
+This file documents Language Support Development with Semantic.
+@emph{Infrastructure for parser based text analysis in Emacs}
+
+Copyright @copyright{} 2002 @value{AUTHOR}
+@end ifinfo
+
+@titlepage
+@sp 10
+@title @value{TITLE}
+@author by @value{AUTHOR}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
+@page
+@vskip 0pt plus 1 fill
+@insertcopying
+@end titlepage
+@page
+
+@c MACRO inclusion
+@include semanticheader.texi
+
+
+@c *************************************************************************
+@c @ Document
+@c *************************************************************************
+
+@node top
+@top @value{TITLE}
 
 Semantic is bundled with support for several languages such as
 C, C++, Java, Python, etc.
@@ -31,7 +110,7 @@ studies.
 @end menu
 
 @node Tag Structure
-@section Tag Structure
+@chapter Tag Structure
 @cindex Tag Structure
 
 The end result of the parser for a buffer is a list of @i{tags}.
@@ -52,20 +131,22 @@ expansion function via @code{semantic-expand-nonterminal}.
 
 The @var{OVERLAY} property is accessed via several functions returning
 the beginning, end, and buffer of a token.  Use these functions unless
-the overlay is really needed (see @ref{Tag Query}).  Depending on the
+the overlay is really needed (see @inforef{Tag Query, , app-dev-guide}).
+Depending on the
 overlay in a program can be dangerous because sometimes the overlay is
 replaced with an integer pair
 @example
 [ START END ]
 @end example
 when the buffer the tag belongs to is not in memory.  This happens
-when a user has activated the Semantic Database @ref{semanticdb}.
+when a user has activated the Semantic Database 
+@inforef{semanticdb, , semantic-appdev}.
 
 To create tags for a functional or object oriented language, you can
-use s series of tag creation functions.  @ref{Creating Tags}
+use s series of tag creation functions.  @inforef{Creating Tags, , semantic-appdev}
 
 @node Language Support Overview
-@section Language Support Overview
+@chapter Language Support Overview
 @cindex Language Support Overview
 
 Starting with version 2.0, @semantic{} provides many ways to add support
@@ -137,7 +218,7 @@ semantic-toplevel-bovine-cache.
 @end menu
 
 @node Semantic Overload Mechanism
-@subsection Semantic Overload Mechanism
+@section Semantic Overload Mechanism
 
 One of @semantic{}'s goals is to provide a framework for supporting a
 wide range of languages.
@@ -268,7 +349,7 @@ default implementation.
 @c - Eric
 
 @node Writing Lexers
-@section Writing Lexers
+@chapter Writing Lexers
 @cindex Writing Lexers
 
 @ignore
@@ -319,7 +400,7 @@ scanning, use @dfn{narrow-to-region}.
 @end menu
 
 @node Lexer Overview
-@subsection Lexer Overview
+@section Lexer Overview
 
 Semantic lexer breaks up the content of an Emacs buffer into a stream of
 tokens.  This process is based mostly on regular expressions which in
@@ -370,7 +451,7 @@ and
 are employed.
 
 @node Lexer Output
-@subsection Lexer Output
+@section Lexer Output
 
 The lexer, @ref{semantic-lex}, scans the content of a buffer and
 returns a token list.
@@ -435,10 +516,10 @@ would return the string form of the token.
 
 Note that one line (line 4 above) can produce seven tokens while
 the whole body of the function produces a single token.
-This is because the @var{depth} parameter of @code{semantic-flex} was
+This is because the @var{depth} parameter of @code{semantic-lex} was
 not specified.
 Let's see the output when @var{depth} is set to 1.
-Evaluate @code{(semantic-flex (point-min) (point-max) 1)} in the same buffer.
+Evaluate @code{(semantic-lex (point-min) (point-max) 1)} in the same buffer.
 Note the third argument of @code{1}.
 
 @example
@@ -484,7 +565,7 @@ Skipping over matched parenthesis is achieved by simply calling
 the built-in functions @code{forward-list} and @code{forward-sexp}.
 
 @node Lexer Construction
-@subsection Lexer Construction
+@section Lexer Construction
 
 While using the default lexer is certainly an option, particularly
 for grammars written in semantic 1.4 style, it is usually more
@@ -506,7 +587,7 @@ several built in analyzers, or one of your own construction.  The
 built in analyzers are:
 
 @node Lexer Built In Analyzers
-@subsection Lexer Built In Analyzers
+@section Lexer Built In Analyzers
 
 @defspec semantic-lex-default-action
 The default action when no other lexical actions match text.
@@ -628,7 +709,7 @@ Detect and create a comment token.
 @end defspec
 
 @node Lexer Analyzer Construction
-@subsection Lexer Analyzer Construction
+@section Lexer Analyzer Construction
 
 Each of the previous built in analyzers are constructed using a set
 of analyzer construction macros.  The root construction macro is:
@@ -713,7 +794,7 @@ a block the parser does not need to know the contents of those braces
 while parsing, and can skip them all together.
 
 @node Keywords
-@subsection Keywords
+@section Keywords
 
 Another important piece of the lexer is the keyword table (see
 @ref{Writing Parsers}).  You language will want to set up a keyword table for
@@ -753,7 +834,7 @@ While examining the text in a language buffer, this can provide an easy
 and quick way of storing details about text in the buffer.
 
 @node Keyword Properties
-@subsection Standard Keyword Properties
+@section Standard Keyword Properties
 
 Keywords in a language can have multiple properties.  These
 properties can be used to associate the string that is the keyword
@@ -788,7 +869,7 @@ Perhaps the keyword is clickable and some action would be useful.
 
 
 @node Writing Parsers
-@section Writing Parsers
+@chapter Writing Parsers
 @cindex Writing Parsers
 
 @ignore
@@ -814,7 +895,8 @@ specify rules to accomplish this.  The rules are stored in the buffer
 local variable @code{semantic-toplevel-bovine-table}.
 
 While it is certainly possible to write this table yourself, it is most
-likely you will want to use a compiler compiler instead @ref{Bovine Parsers}.
+likely you will want to use a compiler compiler instead
+@inforef{Bovine Parsers, , bovine}.
 
 There are three choices for implementing your grammar.
 
@@ -836,36 +918,24 @@ non-regular languages, or external programs for speed.
 
 
 @menu
-* External Parsers::    Writing an external parser
-* Bovine Parsers::      Bovine grammar based parsers
-* Wisent Parsers::      Wisent grammar based parsers
-* Grammer Programming Environment::    Using the grammar writing environemt
+* External Parsers::                   Writing an external parser
+* Grammar Programming Environment::    Using the grammar writing environemt
+* Bovine Parsers: (bovine.info).       Bovine grammar based parsers
+* Wisent Parsers: (wisent.info).       Wisent grammar based parsers
 @end menu
 
 @node External Parsers
-@subsection External Parsers
+@section External Parsers
 
 The texinfo parser in @file{semantic-texi.el} is an example of an
 external parser.  To make your parser work, you need to have a setup
 function.
 
-@node Bovine Parsers
-@subsection Bovine Parsers
-
-@include bovine.texi
-
-@node Wisent Parsers
-@subsection Wisent Parsers
-
-@include wisent.texi
-
-@node Grammer Programming Environment
-@subsection Grammer Programming Environment
-
-
+@node Grammar Programming Environment
+@section Grammar Programming Environment
 
 @c @node Grammar Files
-@c @subsection Grammar Files
+@c @section Grammar Files
 
 @ignore
 
@@ -884,7 +954,7 @@ that mode.
 @end menu
 
 @node %start
-@subsubsection %start
+@subsection %start
 
 In Bison, one and only one nonterminal is designated as the
 ``start'' symbol.
@@ -930,7 +1000,7 @@ one.
 bovine-toplevel
 
 @node %languagemode
-@subsubsection %languagemode
+@subsection %languagemode
 
 @c >   A while back, I updated semantic-grammer.el to auto-run the setup
 @c > function in all modes of the correct type.  It uses %languagemode to
@@ -980,7 +1050,7 @@ bovine-toplevel
 @c                      variable))
 
 @node %token
-@subsubsection %token
+@subsection %token
 
 %token
 %left
@@ -1015,7 +1085,7 @@ is a keyword
 @end ignore
 
 @node Compiling
-@section Compiling a language file with the bovinator
+@chapter Compiling a language file with the bovinator
 
 From a program you can use the function @code{semantic-bovinate-toplevel}.
 This function takes one optional parameter specifying if the cache
@@ -1025,7 +1095,7 @@ it to be flushed if it is out of date.
 
 Another function you can use is @code{semantic-bovinate-nonterminal}.
 This command takes a token stream returned by the function
-@code{semantic-flex} followed by a DEPTH (as above).  This takes an
+@code{semantic-lex} followed by a DEPTH (as above).  This takes an
 additional optional argument of NONTERMINAL which is the nonterminal in
 your table it is to start parsing with.
 
@@ -1047,41 +1117,32 @@ there has been a size change.
 @end defun
 
 @node Debugging
-@section Debugging
+@chapter Debugging
 
-Writing language files using BNF is significantly easier than writing
+NOTE: This chapter was written for Semantic 1.4 BNF format files.
+Much still holds true for Semantic 2.0 BY files, but does not work
+for WY files.
+
+Writing language files using BY is significantly easier than writing
 then using regular expressions in a functional manner.  Debugging
 them, however, can still prove challenging.
 
 There are two ways to debug a language definition if it is not
-behaving as expected.  One way is to debug against the source @file{.bnf}
-file.  The second is to debug against the lisp table created from the
-@file{.bnf} source, or perhaps written by hand.
+behaving as expected.  One way is to debug against the source @file{.by}
+file.
 
 If your language definition was written in BNF notation, debugging is
 quite easy.  The command @code{bovinate-debug} will start you off.
 
 @deffn Command bovinate-debug
-Bovinate the current buffer and run in debug mode.
+Bovinate the current buffer and run in parser debug mode.
 @end deffn
-
-If you prefer debugging against the Lisp table, find the table in a
-buffer, place the cursor in it, and use the command
-@code{semantic-bovinate-debug-set-table} in it.
-
-@deffn Command semantic-bovinate-debug-set-table &optional clear
-Set the table for the next debug to be here.
-Optional argument @var{CLEAR} to unset the debug table.
-@end deffn
-
-After the table is set, the @code{bovinate-debug} command can be run
-at any time for the given language.
 
 While debugging, two windows are visible.  One window shows the file
-being parsed, and the syntactic token being tested is highlighted.  The
-second window shows the table being used (either in the BNF source, or
-the Lisp table) with the current rule highlighted.  The cursor will
-sit on the specific match rule being tested against.
+being parsed, and the syntactic token being tested is highlighted.
+The second window shows the table being used (in the BY source) with
+the current rule highlighted.  The cursor will sit on the specific
+match rule being tested against.
 
 In the minibuffer, a brief summary of the current situation is
 listed.  The first element is the syntactic token which is a list of
@@ -1100,6 +1161,11 @@ rule in the list.
 Use @kbd{C-g} to stop debugging.  There are no commands for any
 fancier types of debugging.
 
+NOTE: Semantic 2.0 has more debugging commands.  Use:
+@kbd{C-h m semantic-debug-mode} to view.
+
 @node Parser Error Handling
-@section Parser Error Handling
+@chapter Parser Error Handling
 @cindex Parser Error Handling
+
+NOTE: Write Me
