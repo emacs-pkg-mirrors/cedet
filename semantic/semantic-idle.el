@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.28 2004/06/28 13:58:00 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.29 2004/09/15 07:23:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -218,61 +218,58 @@ current buffer.")
 And also manages services that depend on tag values."
   (semantic-exit-on-input 'idle-timer
     (let* ((inhibit-quit nil)
-           (mode    major-mode)
-           (buffers (delq (current-buffer) (buffer-list)))
-           (others  nil)
-           (queue   semantic-idle-scheduler-queue)
-           ;; First, reparse the current buffer.
-           (safe    (semantic-idle-scheduler-refresh-tags)))
-      ;; Now loop over other buffers with same major mode, trying to
-      ;; update them as well.  Stop on keypress.
-      (save-excursion
-        (while buffers
-          (semantic-throw-on-input 'parsing-mode-buffers)
-          (when (buffer-live-p (car buffers))
-            (set-buffer (car buffers))
-            (when (semantic-idle-scheduler-enabled-p)
-              (if (eq major-mode mode)
-                  (semantic-idle-scheduler-refresh-tags)
-                (setq others (cons (current-buffer) others)))))
-          (setq buffers (cdr buffers))))
-      ;; If re-parse of current buffer completed, evaluate all other
-      ;; services.  Stop on keypress.
-      (when safe
+           (buffers (delq (current-buffer)
+                          (delq nil
+                                (mapcar #'(lambda (b)
+                                            (and (buffer-file-name b)
+                                                 b))
+                                        (buffer-list)))))
+           others safe mode)
+      (when (semantic-idle-scheduler-enabled-p)
         (save-excursion
-          (while queue
-            (semantic-throw-on-input 'idle-queue)
-            (funcall (car queue))
-            (setq queue (cdr queue)))))
+          ;; First, reparse the current buffer.
+          (setq mode major-mode
+                safe (semantic-idle-scheduler-refresh-tags))
+          ;; Now loop over other buffers with same major mode, trying to
+          ;; update them as well.  Stop on keypress.
+          (dolist (b buffers)
+            (semantic-throw-on-input 'parsing-mode-buffers)
+            (with-current-buffer b
+              (if (eq major-mode mode)
+                  (and (semantic-idle-scheduler-enabled-p)
+                       (semantic-idle-scheduler-refresh-tags))
+                (push (current-buffer) others))))
+          (setq buffers others))
+        ;; If re-parse of current buffer completed, evaluate all other
+        ;; services.  Stop on keypress.
+        (when safe
+          (save-excursion
+            (dolist (service semantic-idle-scheduler-queue)
+              (semantic-throw-on-input 'idle-queue)
+              (funcall service)))))
       ;; Finally loop over remaining buffers, trying to update them as
       ;; well.  Stop on keypress.
       (save-excursion
-        (while others
+        (dolist (b buffers)
           (semantic-throw-on-input 'parsing-other-buffers)
-          (set-buffer (car others))
-          ;; No need to check more here?
-          (semantic-idle-scheduler-refresh-tags)
-          (setq others (cdr others))))
+          (with-current-buffer b
+            (and (semantic-idle-scheduler-enabled-p)
+                 (semantic-idle-scheduler-refresh-tags)))))
       )))
 
 (defun semantic-idle-scheduler-function ()
   "Function run when after `semantic-idle-scheduler-idle-time'.
 This function will reparse the current buffer, and if successful,
 call additional functions registered with the timer calls."
-  (save-match-data
-    (when (and (semantic-idle-scheduler-enabled-p)
-	       (= (recursion-depth) 0))
-
-      ;; Disable the auto parse timer while re-parsing
-      (semantic-idle-scheduler-kill-timer)
-
-      ;; Handle re-parsing and other scheduled services
-      (semantic-safe "idle error: %S"
-	(semantic-idle-core-handler))
-
+  (when (zerop (recursion-depth))
+    (unwind-protect
+        (semantic-safe "idle error: %S"
+          ;; Disable the auto parse timer while re-parsing
+          (semantic-idle-scheduler-kill-timer)
+          ;; Handle re-parsing and other scheduled services
+          (save-match-data (semantic-idle-core-handler)))
       ;; Enable again the auto parse timer
       (semantic-idle-scheduler-setup-timer))))
-
 
 ;;; REPARSING
 ;;
