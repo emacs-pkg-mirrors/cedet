@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.13 2000/07/03 13:59:27 zappo Exp $
+@c $Id: semantic.texi,v 1.14 2000/09/09 02:09:57 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -43,6 +43,7 @@ your .emacs file:
 @code{(setq max-specpdl-size 1000)}
 
 @menu
+* Install::			Installing semantic.
 * Lexing::                      Setting up the lexer for your language.
 * Bovinating::                  Setting up the parser for your language.
 * BNF conversion::              Using the BNF converter to make tables.
@@ -52,7 +53,26 @@ your .emacs file:
 * Utilities::                   Utilities for querying the nonterminal stream.
 @end menu
 
-@node Lexing, Bovinating, Top, Top
+@node Install, Lexing, Top, Top
+@chapter Installation
+
+To install semantic, untar the distribution into a subdirectory, such as
+@file{/usr/share/emacs/site-lisp/semantic-#.#}.  Next, add the following
+lines into your individual @file{.emacs} file, or into
+@file{site-lisp/site-start.el}.
+
+@example
+(add-to-list 'load-path "/path/to/semantic")
+
+(require 'semantic-c)
+(require 'semantic-el)
+(require 'semantic-make)
+(add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb)))
+(autoload 'semantic-bnf-mode "semantic-bnf" "Mode for Bovine Normal Form." t)
+(add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
+@end example
+
+@node Lexing, Bovinating, Install, Top
 @chapter Preparing your language for Lexing
 
 In order to reduce a source file into a token list, it must first be
@@ -61,8 +81,8 @@ whitespace, symbols, strings, lists, and punctuation.
 
 The lexer uses the major-mode's syntax table for conversion.  As long as
 that is set up correctly (along with the important
-@code{comment-start-skip} variable) te lexer should already work for you
-language.
+@code{comment-start-skip} variable) the lexer should already work for
+your language.
 
 There are three ways to extend the flexer.
 
@@ -92,6 +112,13 @@ This is a list where each element is of the form:
 Where CHAR is the char passed to `modify-syntax-entry',
 and CLASS is the string also passed to `modify-syntax-entry' to define
 what class of syntax CHAR is.
+
+@example
+  (setq semantic-flex-syntax-modifications '((?. "_"))
+@end
+
+Will convert the period @asis{.} to be a symbol constituant.  (ie, if
+filenames are prevalent as in Makefiles.)
 @end defvar
 
 @defvar semantic-flex-enable-newlines
@@ -142,22 +169,54 @@ the output of your table @xref{Bovinating}.  Also, make sure that the
 file @file{semantic-bnf} is loaded.  Give your language file the
 extension @file{.bnf} and you are ready.
 
-The comment character is @asis{#} and you will want to place a comment
-near the top of the file which looks like this:
+The comment character is @asis{#}.
+
+The BNF file has two sections.  The first is the settings section, and
+the second is the language definition, or list of semantic rules.
+
+A setting is a keyword starting with a @asis{%}.  (This syntax is taken
+from yacc and bison. @xref{(bison)}.)
+
+There are several settings that will can be made in the settings
+section.  They are:
+
+@table @code
+@item %start <nonterminal>
+Will let you specify an alternative to @code{bovine-toplevel}.  (See below)
+@item %outputfile <filename>
+Required.  Specifies the file into which this files output is stored.
+@item %parsetable
+Required.  Specifies a lisp variable into which the output is stored.
+@item %languagemode <lisp-function-name>
+Optional.  Specifies the Emacs major mode associated with the language
+being specified.  When the language is converted, all buffers of this
+mode will get the new table installed.
+@item %quotemode backquote
+Optional.  Specifies how symbol quoting is handled in the Optional
+Lambda Expressions. (See below)
+@item %setupfunction <lisp-function-name>
+Name of a function into which setup code is to be inserted.
+@item %( <lisp-expression> )%
+Specify setup code to be inserted into the @code{%setupfunction}.
+It will be inserted between two specifier strings, or added to
+the end of the function.
+@end table
+
+
+When you want to test your file, use the keyboard shortcut @kbd{C-c C-c}
+to parse the file, generate the variable, and load the new definition
+in.  It will then use the settings specified above to determine what to
+do.
+
+Make sure that you create the variable specified in the
+@code{%parsetable} token before trying to convert the bnf file.  A
+simple definition like this should be sufficient.
 
 @example
-# TABLE: semantic-lang.el:semantic-toplevel-lang-bovine-table
-# MODE: lang-mode
+(defvar semantic-toplevel-lang-bovine-table
+   nil
+   "Table for use with semantic for parsing LANG.")
 @end example
-
-where @asis{lang} is the language you are intending to support.
-
-This lets you specify the file and variable where you want this
-language file to be parsed to.  When you want to test your file, use the
-keyboard shortcut @kbd{C-c C-c} to parse the file, generate the
-variable, and load the new definition in.  It will then look for the
-@asis{MODE} indicator, and find all matching modes, and re-initialize
-them.
 
 Writing the rules should be very similar to bison for basic syntax.
 Each rule is of the form
@@ -180,7 +239,9 @@ all of @var{MATCH1}'s elements have been matched, it is "reduced" to
 
 The first @var{RESULT} written into your language specification should
 be @code{bovine-toplevel}.  When starting a parse for a file, this is
-the default token iterated over.
+the default token iterated over.  You can use any token you want in
+place of @code{bovine-toplevel} if you specify what that nonterminal
+will be with a @code{%start} token in the settings section.
 
 @var{MATCH} is made up of symbols and strings.  A symbol such as
 @code{foo} means that a syntactic token of type @code{foo} must be
@@ -254,6 +315,42 @@ parser iterates over @code{bovine-toplevel}. This lets you have
 much simpler rules in this specific case, and also lets you have
 positional information in the returned tokens, and error skipping.
 @end table
+
+@subsection Examples
+
+The rule:
+@example
+SYMBOL : symbol
+@end example
+is equivalent to
+@example
+SYMBOL : symbol
+         ( $1 )
+@end example
+which, if it matched the string "A", would return
+@example
+( "A" )
+@end example
+
+If this rule were used like this:
+@example
+ASSIGN: SYMBOL punctuation "=" SYMBOL
+        ( $1 $2 )
+@end example
+it would match "A=B", and return
+@example
+( ("A") ("B") )
+@end example
+
+to get a better result, use @asis{,} to splice lists in like this;
+@example
+ASSIGN: SYMBOL punctuation "=" SYMBOL
+        ( ,$1 ,$2 )
+@end example
+which would return
+@example
+( "A" "B" )
+@end example
 
 @node Compiling, Debugging, BNF conversion, Top
 @chapter Compiling a language file with the bovinator
