@@ -9,9 +9,11 @@
 top=
 ede_FILES=Project.ede Makefile
 
+EMACS=emacs
+LOADPATH=../common/ 
+LOADDEFS=eieio-defs.el
 eieio_LISP=eieio.el eieio-comp.el eieio-opt.el eieio-custom.el eieio-doc.el eieio-base.el
 EMACS=emacs
-LOADPATH=
 examples_LISP=tree.el call-tree.el chart.el eieio-speedbar.el linemark.el lmcompile.el
 eieio_info_TEXINFOS=eieio.texi
 MAKEINFO=makeinfo
@@ -22,7 +24,16 @@ DISTDIR=$(top)eieio-$(VERSION)
 
 
 
-all: eieio examples eieio.info
+all: eieio-defs.el eieio examples eieio.info
+
+.PHONY: eieio-defs.el
+eieio-defs.el: $(LOADDEFS)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(require 'cedet-autogen)" >> $@-compile-script
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ .
 
 .PHONY: eieio
 eieio: $(eieio_LISP)
@@ -67,7 +78,7 @@ clean:
 dist: eieio.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(eieio_LISP) $(examples_LISP) $(eieio_info_TEXINFOS) eieio.info* $(test_LISP) $(Misc_MISC) $(ede_FILES) $(DISTDIR)
+	cp $(LOADDEFS) $(eieio_LISP) $(examples_LISP) $(eieio_info_TEXINFOS) eieio.info* $(test_LISP) $(Misc_MISC) $(ede_FILES) $(DISTDIR)
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 
