@@ -1,9 +1,9 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.9 2001/01/10 07:02:50 zappo Exp $
+@c $Id: ede.texi,v 1.10 2001/04/27 00:23:10 zappo Exp $
 @c
 @setfilename ede.info
-@settitle Enhanced Implementation of Emacs Interpreted Objects
+@settitle Emacs Development Environment
 
 @ifinfo
 @format
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{ede}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1998, 1999, 2000 Eric M. Ludlam
+Copyright @copyright{} 1998, 1999, 2000, 2001 Eric M. Ludlam
 @end titlepage
 
 @node Top, , , (dir)Top
