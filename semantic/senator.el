@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.46 2001/09/30 00:05:28 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.47 2001/10/02 18:52:21 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -112,6 +112,16 @@
 (defgroup senator nil
   "SEmantic NAvigaTOR."
   :group 'semantic)
+
+;;;###autoload
+(defcustom global-senator-minor-mode nil
+  "*If non-nil enable global use of senator minor mode."
+  :group 'senator
+  :type 'boolean
+  :require 'senator
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (global-senator-minor-mode (if val 1 -1))))
 
 (defcustom senator-minor-mode-name "Senator"
   "*Name displayed in the mode line when senator minor mode is on.
@@ -1656,6 +1666,7 @@ minor mode is enabled."
     (setq senator-isearch-semantic-mode nil))
   senator-minor-mode)
   
+;;;###autoload
 (defun senator-minor-mode (&optional arg)
   "Toggle senator minor mode.
 With prefix argument ARG, turn on if positive, otherwise off.  The
@@ -1684,24 +1695,9 @@ minor mode is enabled.
   (force-mode-line-update)
   senator-minor-mode)
 
-(if (fboundp 'add-minor-mode)
-      
-    ;; Emacs 21 & XEmacs
-    (add-minor-mode 'senator-minor-mode
-                    'senator-mode senator-mode-map)
-
-  ;; Emacs 20
-  (or (assq 'senator-minor-mode minor-mode-alist)
-      (setq minor-mode-alist
-            (cons (list 'senator-minor-mode 'senator-mode)
-                  minor-mode-alist)))
-    
-  (or (assq 'senator-minor-mode minor-mode-map-alist)
-      (setq minor-mode-map-alist
-            (cons (cons 'senator-minor-mode senator-mode-map)
-                  minor-mode-map-alist)))
-    
-  )
+(semantic-add-minor-mode 'senator-minor-mode
+                         'senator-mode
+                         senator-mode-map)
 
 ;;; Emacs 21 goodies
 (and (not (featurep 'xemacs))
@@ -1716,6 +1712,16 @@ minor mode is enabled.
                                    (semantic-active-p))))
      
        ))
+
+;;;###autoload
+(defun global-senator-minor-mode (&optional arg)
+  "Toggle global use of senator minor mode.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  (interactive "P")
+  (setq global-senator-minor-mode
+        (semantic-toggle-minor-mode-globally
+         'senator-minor-mode arg)))
 
 ;;;;
 ;;;; Useful advices
