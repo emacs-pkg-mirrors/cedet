@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.22 2002/02/04 19:42:56 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.23 2002/02/07 22:23:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -285,13 +285,19 @@ default action for this state."
 
 (defsubst wisent-parse-start (start starts)
   "Return the first lexical token to shift for START symbol.
-STARTS is the table of allowed start symbols."
-  (let ((token (if start
-                  (cdr (assq start starts))
-                (cdar starts))))
-    (if token
-        (list token (symbol-name token))
-      (error "Invalid start symbol %s" start))))
+STARTS is the table of allowed start symbols or nil if the LALR
+automaton has only one entry point."
+  (if (null starts)
+      ;; Only one entry point, return the first lexical token
+      ;; available in input.
+      (wisent-lexer)
+    ;; Multiple start symbols defined, return the internal lexical
+    ;; token associated to START.  By default START is the first
+    ;; nonterminal defined in STARTS.
+    (let ((token (cdr (if start (assq start starts) (car starts)))))
+      (if token
+          (list token (symbol-name token))
+        (error "Invalid start symbol %s" start)))))
 
 (defun wisent-parse (automaton lexer &optional error start)
   "Parse input using the automaton specified in AUTOMATON.
