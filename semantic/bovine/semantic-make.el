@@ -1,9 +1,9 @@
 ;;; semantic-make.el --- Makefile parsing rules.
 
-;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.11 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.12 2004/01/12 21:13:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -79,6 +79,12 @@
                 name  (cdr name)))
         )))
     xpand))
+
+(define-mode-overload-implementation semantic-get-local-variables
+  makefile-mode (&optional point)
+  "Override `semantic-get-local-variables' so it does not throw an error.
+We never have local variables in Makefiles."
+  nil)
 
 ;;;###autoload
 (defun semantic-default-make-setup ()
