@@ -1,11 +1,11 @@
 ;;; semantic-imenu.el --- Use the Bovinator as a imenu tag generator
 
-;;; Copyright (C) 2000, 2001, 2002, 2003 Paul Kinnucan & Eric Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Paul Kinnucan & Eric Ludlam
 ;;; Copyright (C) 2001, 2002, 2003 Eric Ludlam
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.48 2003/11/20 15:00:49 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.49 2004/02/05 23:20:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -122,7 +122,16 @@ Overriden to nil if `semantic-imenu-bucketize-file' is nil."
   "*Function to use when sorting tags in the buckets of functions.
 See `semantic-bucketize' and the FILTER argument for more details on this function."
   :group 'semantic-imenu
-  :type 'function)
+  :type '(radio (const :tag "No Sorting" nil)
+		(const semantic-sort-tags-by-name-increasing)
+		(const semantic-sort-tags-by-name-decreasing)
+		(const semantic-sort-tags-by-type-increasing)
+		(const semantic-sort-tags-by-type-decreasing)
+		(const semantic-sort-tags-by-name-increasing-ci)
+		(const semantic-sort-tags-by-name-decreasing-ci)
+		(const semantic-sort-tags-by-type-increasing-ci)
+		(const semantic-sort-tags-by-type-decreasing-ci)
+		(function)))
 (make-variable-buffer-local 'semantic-imenu-sort-bucket-function)
 
 (defcustom semantic-imenu-index-directory t
