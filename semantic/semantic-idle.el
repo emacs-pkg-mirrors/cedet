@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.16 2004/02/12 02:04:33 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.17 2004/02/18 14:38:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -118,10 +118,13 @@ Use the command `semantic-idle-scheduler-mode' to change this variable.")
 
 (defsubst semantic-idle-scheduler-enabled-p ()
   "Return non-nil if idle-scheduler is enabled for this buffer.
-See also the variable `semantic-idle-scheduler-max-buffer-size'."
-  (if semantic-idle-scheduler-mode
-      (and (not semantic-debug-enabled)
-	   (not semantic-lex-debug))))
+idle-scheduler is disabled when debugging or if the buffer size
+exceeds the `semantic-idle-scheduler-max-buffer-size' threshold."
+  (and semantic-idle-scheduler-mode
+       (not semantic-debug-enabled)
+       (not semantic-lex-debug)
+       (or (<= semantic-idle-scheduler-max-buffer-size 0)
+	   (< (buffer-size) semantic-idle-scheduler-max-buffer-size))))
 
 (defun semantic-idle-scheduler-mode-setup ()
   "Setup option `semantic-idle-scheduler-mode'.
@@ -202,10 +205,37 @@ current buffer.")
 
 ;;; IDLE Function
 ;;
-;; This is the idle function which handles reparsing, and also
-;; manages services that depend on tag values.
+(defun semantic-idle-core-handler ()
+  "Core idle function that handles reparsing.
+And also manages services that depend on tag values."
+  (semantic-exit-on-input 'idle-timer
+    (let* ((inhibit-quit nil)
+	   (buffers (delq (current-buffer) (buffer-list)))
+	   (queue semantic-idle-scheduler-queue)
+	   ;; First, reparse the current buffer.
+	   (lexok (semantic-idle-scheduler-refresh-tags))
+	   )
+
+      ;; Now loop over other buffers, trying to update them as well.
+      (save-excursion
+	(while buffers
+	  (semantic-throw-on-input 'parsing-all-buffers)
+	  (when (buffer-live-p (car buffers))
+	    (set-buffer (car buffers))
+	    (and (semantic-idle-scheduler-enabled-p)
+		 (semantic-idle-scheduler-refresh-tags)))
+	  (setq buffers (cdr buffers))))
+
+      ;; Evaluate all other services.  Stop on keypress.
+      (save-excursion
+	(while queue
+	  (semantic-throw-on-input 'idle-queue)
+	  (funcall (car queue))
+	  (setq queue (cdr queue))))
+      )))
+
 (defun semantic-idle-scheduler-function ()
-  "Function run when after `semantc-idle-scheduler-idle-time'.
+  "Function run when after `semantic-idle-scheduler-idle-time'.
 This function will reparse the current buffer, and if successful,
 call additional functions registered with the timer calls."
   (when (semantic-idle-scheduler-enabled-p)
@@ -213,34 +243,10 @@ call additional functions registered with the timer calls."
     ;; Disable the auto parse timer while re-parsing
     (semantic-idle-scheduler-kill-timer)
 
-    (condition-case err
-	(semantic-exit-on-input 'idle-timer
-	  ;; First, reparse the current buffer.
-	  (let ((inhibit-quit nil)
-		(lexok (semantic-idle-scheduler-refresh-tags))
-		(buffers (buffer-list))
-		(queue semantic-idle-scheduler-queue)
-		)
-	    
-	    ;; Now loop over other buffers, trying to update them as well.
-	    (save-excursion
-	      (while buffers
-		(semantic-throw-on-input 'parsing-all-buffers)
-		(set-buffer (car buffers))
-		(when semantic-idle-scheduler-mode
-		  (semantic-idle-scheduler-refresh-tags)
-		  )
-		(setq buffers (cdr buffers))))
-	    
-	    ;; Evaluate all other services.  Stop on keypress.
-	    (save-excursion
-	      (while queue
-		(semantic-throw-on-input 'idle-queue)
-		(funcall (car queue))
-		(setq queue (cdr queue))))
-	    ))
-      (error (message "idle error: %S" err)))
-    
+    ;; Handle re-parsing and other scheduled services
+    (semantic-safe "idle error: %S"
+      (semantic-idle-core-handler))
+
     ;; Enable again the auto parse timer
     (semantic-idle-scheduler-setup-timer)))
 
@@ -288,8 +294,7 @@ Return non-nil if the refresh was successful.
 Return nil if there is some sort of syntax error preventing a full
 reparse.
 
-Does nothing if the current buffer doesn't need reparsing or if its
-size exceeds the `semantic-idle-scheduler-max-buffer-size' threshold."
+Does nothing if the current buffer doesn't need reparsing."
 
   (let* ((semantic-bovination-working-type nil)
 	 (inhibit-quit nil)
