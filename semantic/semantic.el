@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.31 2000/04/28 18:59:30 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.32 2000/04/29 12:56:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -426,8 +426,8 @@ stripped from the main list of synthesized tokens."
       ;; Init a dump
       (if semantic-dump-parse (semantic-dump-buffer-init))
       ;; Parse!
-      (working-status-forms "Scanning" "done"
-	(setq res 
+      (working-status-forms (buffer-name) "done"
+	(setq res
 	      (semantic-bovinate-nonterminals ss 'bovine-toplevel
 					      depth trashcomments))
 	(working-status t))
@@ -435,11 +435,14 @@ stripped from the main list of synthesized tokens."
       (car semantic-toplevel-bovine-cache)))))
 
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
-					      depth trashcomments)
+					      depth trashcomments
+					      returnonerror)
   "Bovinate the entire stream STREAM starting with NONTERM.
 DEPTH is optional, and defaults to 0.
 Optional argument TRASHCOMMENTS indicates that comments should be
-stripped from the main list of synthesized tokens."
+stripped from the main list of synthesized tokens.
+Optional argument RETURNONERROR indicates that the parser should exit with
+the current results on a parse error."
   (if (not depth) (setq depth 0))
   (let ((result nil))
     (while stream
@@ -458,7 +461,8 @@ stripped from the main list of synthesized tokens."
 		  (if (not tmpet)
 		      (setq tmpet (list (car (cdr nontermsym)))))
 		  (setq result (append tmpet result)))
-					;(error "Parse error")
+	      (if returnonerror (setq stream nil))
+	      ;;(error "Parse error")
 	      )
 	    ;; Designated to ignore.
 	    (setq stream (car nontermsym)))
@@ -565,7 +569,8 @@ COLLECTION is the list of things collected so far."
     (pop-to-buffer "*BOVINATE*")
     (require 'pp)
     (erase-buffer)
-    (insert (pp-to-string out))))
+    (insert (pp-to-string out))
+    (goto-char (point-min))))
 
 (defun bovinate-debug ()
   "Bovinate the current buffer and run in debug mode."
@@ -874,7 +879,7 @@ as (symbol start-expression .  end-expresssion)."
 	     (setq ts (cons (cons 'charquote
 				  (cons (match-beginning 0) (match-end 0)))
 			    ts)))
-	    ((looking-at "\\s(+")
+	    ((looking-at "\\s(")
 	     (if (or (not depth) (< curdepth depth))
 		 (progn
 		   (setq curdepth (1+ curdepth))
@@ -887,7 +892,7 @@ as (symbol start-expression .  end-expresssion)."
 					    (forward-list 1)
 					    (setq ep (point)))))
 			      ts))))
-	    ((looking-at "\\s)+")
+	    ((looking-at "\\s)")
 	     (setq ts (cons (cons 'close-paren
 				  (cons (match-beginning 0) (match-end 0)))
 			    ts))
