@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.113 1998/06/20 16:23:00 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.114 1998/07/15 19:59:34 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -202,7 +202,8 @@
 (defvar speedbar-xemacs20p (and speedbar-xemacsp
 				(= emacs-major-version 20)))
 
-;; From custom web page for compatibility between versions of custom:
+;; From custom web page for compatibility between versions of custom
+;; with help from ptype@dera.gov.uk (Proto Type)
 (eval-and-compile
   (condition-case ()
       (require 'custom)
@@ -213,8 +214,10 @@
 	   (fboundp 'custom-initialize-set))
       nil ;; We've got what we needed
     ;; We have the old custom-library, hack around it!
-    (defmacro defgroup (&rest args)
-      nil)
+    (if (boundp 'defgroup)
+	nil
+      (defmacro defgroup (&rest args)
+	nil))
     (if (boundp 'defface)
 	nil
       (defmacro defface (var values doc &rest args)
@@ -224,8 +227,10 @@
 	     ;; or set them up ahead of time in your .emacs file.
 	     (make-face (, var))
 	     ))))
-    (defmacro defcustom (var value doc &rest args)
-      (` (defvar (, var) (, value) (, doc))))))
+    (if (boundp 'defcustom)
+	nil
+      (defmacro defcustom (var value doc &rest args)
+	(` (defvar (, var) (, value) (, doc)))))))
 
 ;; customization stuff
 (defgroup speedbar nil
@@ -393,7 +398,7 @@ Parameters not listed here which will be added automatically are
 `height' which will be initialized to the height of the frame speedbar
 is attached to."
     :group 'speedbar
-    :type '(repeat (sexp :tag "Parameter:")))
+    :type '(repeat (sexp :tag "Parameter")))
   )
 
   (defcustom speedbar-use-imenu-flag (stringp (locate-library "imenu"))
@@ -1012,6 +1017,10 @@ supported at a time.
 	  (select-frame speedbar-frame)
 	  (switch-to-buffer speedbar-buffer)
 	  (set-window-dedicated-p (selected-window) t))
+	(if (or (null window-system) (eq window-system 'pc))
+	    (progn
+	      (select-frame speedbar-frame)
+	      (set-frame-name "Speedbar")))
 	(speedbar-set-timer speedbar-update-speed)))))
 
 ;;;###autoload
@@ -1119,7 +1128,8 @@ in the selected file.
     (setq frame-title-format "Speedbar")
     ;; Set this up special just for the speedbar buffer
     ;; Terminal minibuffer stuff does not require this.
-    (if (and window-system (null default-minibuffer-frame))
+    (if (and window-system (not (eq window-system 'pc))
+	     (null default-minibuffer-frame))
 	(progn
 	  (make-local-variable 'default-minibuffer-frame)
 	  (setq default-minibuffer-frame speedbar-attached-frame)))
@@ -2786,6 +2796,7 @@ that will occur on your system."
   (or
    ;; RCS file name
    (file-exists-p (concat path "RCS/" name ",v"))
+   (file-exists-p (concat path "RCS/" name))
    ;; Local SCCS file name
    (file-exists-p (concat path "SCCS/p." name))
    ;; Remote SCCS file name
@@ -3191,8 +3202,8 @@ expanded.  INDENT is the current indentation level."
   "Speedbar click handler for default directory buttons.
 TEXT is the button clicked on.  TOKEN is the directory to follow.
 INDENT is the current indentation level and is unused."
-  (if (string-match "^[A-Z]:$" token)
-      (setq default-directory (concat token "\\"))
+  (if (string-match "^[A-z]:$" token)
+      (setq default-directory (concat token (char-to-string directory-sep-char)))
     (setq default-directory token))
   ;; Because we leave speedbar as the current buffer,
   ;; update contents will change directory without
