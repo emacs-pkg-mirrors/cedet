@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.19 2003/08/17 02:44:29 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.20 2003/09/04 18:36:08 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
    (keybindings :initform nil)
    (phony :initform t)
    (sourcetype :initform (ede-source-emacs))
-   (availablecompilers :initform (ede-emacs-compiler))
+   (availablecompilers :initform (ede-emacs-compiler ede-xemacs-compiler))
    (aux-packages :initarg :aux-packages
 		 :initform nil
 		 :type list
@@ -73,6 +73,12 @@ A lisp target may be one general program with many separate lisp files in it.")
 ;   :objectextention ".elc"
    )
   "Compile Emacs Lisp programs.")
+
+(defvar ede-xemacs-compiler
+  (clone ede-emacs-compiler "ede-xemacs-compiler"
+	 :name "xemacs"
+	 :variables '(("EMACS" . "xemacs")))
+  "Compile Emacs Lisp programs with XEmacs.")
 
 ;;; Emacs Lisp Compiler
 ;;; Emacs Lisp Target
@@ -202,6 +208,97 @@ is found, such as a `-version' variable, or the standard header."
 			       (save-excursion (end-of-line)
 					       (forward-char 1)
 					       (point))))))))))
+
+;;;
+;; Autoload generators
+;;
+(defclass ede-proj-target-elisp-autoloads (ede-proj-target-elisp)
+  ((availablecompilers :initform (ede-emacs-cedet-autogen-compiler))
+   (aux-packages :initform ("cedet-autogen"))
+   (phony :initform t)
+   (autoload-file :initarg :autoload-file
+		  :initform "loaddefs.el"
+		  :type string
+		  :custom string
+		  :documentation "The file that autoload definitions are placed in.
+There should be one load defs file for a given package.  The load defs are created
+for all Emacs Lisp sources that exist in the directory of the created target.")
+   )
+  "Target that builds an autoload file.
+Files do not need to be added to this target.")
+
+(defvar ede-emacs-cedet-autogen-compiler
+  (ede-compiler
+   "ede-emacs-autogen-compiler"
+   :name "emacs"
+   :variables '(("EMACS" . "emacs"))
+   :commands
+   '("@echo \"(add-to-list 'load-path nil)\" > $@-compile-script"
+     "for loadpath in . ${LOADPATH}; do \\"
+     "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
+     "done;"
+     "@echo \"(require 'cedet-autogen)\" >> $@-compile-script"
+     "$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ ."
+     )
+   :sourcetype '(ede-source-emacs)
+   )
+  "Build an autoloads file.")
+
+(defmethod ede-proj-makefile-target-name ((this ede-proj-target-elisp-autoloads))
+  "Return the name of the main target for THIS target."
+  ;; The target should be the main-menu file name translated to .info.
+  (oref this autoload-file))
+
+(defmethod ede-proj-compilers ((obj ede-proj-target-elisp-autoloads))
+  "List of compilers being used by OBJ.
+If the `compiler' slot is empty, get the car of the compilers list."
+  (let ((comp (oref obj compiler)))
+    (if comp
+	(if (listp comp)
+	    (setq comp (mapcar 'symbol-value comp))
+	  (setq comp (list (symbol-value comp))))
+      ;; Get the first element from our list of compilers.
+      (let ((avail (mapcar 'symbol-value (oref obj availablecompilers))))
+	(setq comp (list (car avail)))))
+    comp))
+
+(defmethod ede-proj-makefile-insert-source-variables ((this ede-proj-target-elisp-autoloads)
+						      &optional
+						      moresource)
+  "Insert the source variables needed by THIS.
+Optional argument MORESOURCE is a list of additional sources to add to the
+sources variable."
+  nil)
+
+(defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-elisp-autoloads))
+  "Return the variable name for THIS's sources."
+  "LOADDEFS")
+
+(defmethod ede-proj-makefile-insert-variables :AFTER ((this ede-proj-target-elisp-autoloads))
+  "Insert variables needed by target THIS."
+  (call-next-method)
+  (ede-pmake-insert-variable-shared "LOADDEFS"
+    (insert (oref this autoload-file)))
+  )
+
+(defmethod project-compile-target ((obj ede-proj-target-elisp-autoloads))
+  "Compile all sources in a Lisp target OBJ."
+  (require 'cedet-autogen)
+  (call-interactively 'cedet-update-autoloads))
+
+(defmethod ede-update-version-in-source ((this ede-proj-target-elisp-autoloads) version)
+  "In a Lisp file, updated a version string for THIS to VERSION.
+There are standards in Elisp files specifying how the version string
+is found, such as a `-version' variable, or the standard header."
+  nil)
+
+(defmethod ede-proj-tweak-autoconf ((this ede-proj-target-elisp-autoloads))
+  "Tweak the configure file (current buffer) to accomodate THIS."
+  (error "Autoloads not supported in autoconf yet."))
+
+(defmethod ede-proj-flush-autoconf ((this ede-proj-target-elisp-autoloads))
+  "Flush the configure file (current buffer) to accomodate THIS."
+  nil)
 
 (provide 'ede-proj-elisp)
 
