@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.49 2004/01/14 09:59:33 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.50 2004/01/16 08:56:03 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -430,20 +430,17 @@ nil."
         (setcdr assoc (cons (cons term value) (cdr assoc)))))
     alist))
 
-(defun semantic-grammar-token-%type-properties (tokens &optional props)
-  "For types found in TOKENS, return properties set by %type statements.
+(defun semantic-grammar-token-%type-properties (&optional props)
+  "Return properties set by %type statements.
+This declare a new type if necessary.
 If optional argument PROPS is non-nil, it is an existing list of
 properties where to add new properties."
-  (let (found type)
+  (let (type)
     (dolist (tag (semantic-find-tags-by-class 'type (current-buffer)))
-      (setq type  (semantic-tag-name tag)
-            found (assoc type tokens))
-      (if (null found)
-          nil ;; %type <type> ignored, no token defined
-        (setq type (car found))
-        (dolist (e (semantic-tag-get-attribute tag :value))
-          (push (list type (intern (car e)) (read (or (cdr e) "nil")))
-                props))))
+      (setq type (semantic-tag-name tag))
+      (dolist (e (semantic-tag-get-attribute tag :value))
+        (push (list type (intern (car e)) (read (or (cdr e) "nil")))
+              props)))
     props))
 
 (defun semantic-grammar-token-%put-properties (tokens)
@@ -462,12 +459,14 @@ properties where to add new properties."
     props))
 
 (defsubst semantic-grammar-token-properties (tokens)
-  "Return properties of types found in TOKENS.
-That is properties set to any <type> by %put and %type statements.
+  "Return properties of declared types.
+Types are explicitly declared by %type statements.  Types found in
+TOKENS are those declared implicitly by %token statements.
+Properties can be set by %put and %type statements.
 Properties set by %type statements take precedence over those set by
 %put statements."
   (let ((props (semantic-grammar-token-%put-properties tokens)))
-    (semantic-grammar-token-%type-properties tokens props)))
+    (semantic-grammar-token-%type-properties props)))
 
 (defun semantic-grammar-use-macros ()
   "Return macro definitions from %use-macros statements.
@@ -785,6 +784,13 @@ Block definitions a read from the current table of lexical types."
    (t
     semantic-grammar--lex-block-specs)))
 
+(defsubst semantic-grammar-quoted-form (exp)
+  "Return a quoted form of EXP if it isn't a self evaluating form."
+  (if (and (not (null exp))
+           (or (listp exp) (symbolp exp)))
+      (list 'quote exp)
+    exp))
+
 (defun semantic-grammar-insert-defanalyzer (type)
   "Insert declaration of the lexical analyzer defined with TYPE."
   (let* ((type-name  (symbol-name type))
@@ -798,23 +804,22 @@ Block definitions a read from the current table of lexical types."
                     (semantic-grammar-buffer-file
                      semantic--grammar-output-buffer))
             mtype (or (get type 'matchdatatype) 'regexp)
-            name (intern (format "%s--%s-%s-analyzer" prefix type mtype))
+            name (intern (format "%s--<%s>-%s-analyzer" prefix type mtype))
             doc (format "%s analyzer for <%s> tokens." mtype type))
       (cond
        ;; Regexp match analyzer
-       ((and (eq mtype 'regexp)
-             (setq spec (cdr type-value)))
+       ((eq mtype 'regexp)
         (semantic-grammar-insert-define
          `(define-lex-regex-type-analyzer ,name
-            ,doc ',syntax ',spec
+            ,doc ,syntax ,(cdr type-value)
             ',(or (car type-value) (intern type-name))))
         )
        ;; String compare analyzer
-       ((and (eq mtype 'string)
-             (setq spec (cdr type-value)))
+       ((eq mtype 'string)
         (semantic-grammar-insert-define
          `(define-lex-string-type-analyzer ,name
-            ,doc ',syntax ',spec
+            ,doc ,syntax
+            ,(semantic-grammar-quoted-form (cdr type-value))
             ',(or (car type-value) (intern type-name))))
         )
        ;; Block analyzer
@@ -822,8 +827,23 @@ Block definitions a read from the current table of lexical types."
              (setq spec (semantic-grammar--lex-block-specs)))
         (semantic-grammar-insert-define
          `(define-lex-block-type-analyzer ,name
-            ,doc ',syntax ',spec))
-        )))
+            ,doc ,syntax
+            ,(semantic-grammar-quoted-form spec)))
+        )
+       ;; Sexp analyzer
+       ((eq mtype 'sexp)
+        (semantic-grammar-insert-define
+         `(define-lex-sexp-type-analyzer ,name
+            ,doc ,syntax
+            ',(or (car type-value) (intern type-name))))
+        )
+       ;; keyword analyzer
+       ((eq mtype 'keyword)
+        (semantic-grammar-insert-define
+         `(define-lex-keyword-type-analyzer ,name
+            ,doc ,syntax))
+        )
+       ))
     ))
 
 (defun semantic-grammar-insert-defanalyzers ()
@@ -1152,6 +1172,8 @@ END is the limit of the search."
     ;; grammar mode!
     ("[\r\n\t ]+:\\sw+\\>"
      0 font-lock-builtin-face)
+    ;; Append the Semantic keywords
+    ,@semantic-fw-font-lock-keywords
     )
   "Font Lock keywords used to highlight Semantic grammar buffers.")
 
