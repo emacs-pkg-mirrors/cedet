@@ -5,7 +5,7 @@
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
-;; X-RCS: $Id: c.by,v 1.12 2003/04/04 13:17:22 ponced Exp $
+;; X-RCS: $Id: c.by,v 1.13 2003/05/21 17:35:22 zappo Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -968,7 +968,7 @@ arg-sub-list
   : variablearg
     ( ,$1 )
   | PERIOD PERIOD PERIOD RPAREN
-    ( "..." )
+    (VARIABLE-TAG "..." "vararg" nil)
   | COMA
     ( nil )
   | LPAREN
