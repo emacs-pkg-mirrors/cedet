@@ -6,7 +6,7 @@
 # Author: Paul F. Kinnucan, Jr. <paulk@mathworks.com>
 #         David Ponce <david@dponce.com>
 #
-# $Id: java.bnf,v 1.10 2001/04/30 08:27:51 ponced Exp $
+# $Id: java.bnf,v 1.11 2001/05/23 13:39:52 ponced Exp $
 #
 # java.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -54,6 +54,8 @@
                                        (function . "Methods")
                                        (include  . "Imports")
                                        (package  . "Package"))
+    ;; Semantic navigation inside 'type children
+    senator-step-at-token-ids '(function variable)
     )
    ;; Needed by `semantic-find-doc-snarf-comment'.
    (set (make-local-variable 'block-comment-end) "\\s-*\\*/")
@@ -647,82 +649,5 @@ operators_expression_opt: operators expression
 
 expression: unary_expression operators_expression_opt
           ;
-
-# $Log: java.bnf,v $
-# Revision 1.10  2001/04/30 08:27:51  ponced
-# Changed "version" javadoc keyword to not optional.
-#
-# Revision 1.9  2001/04/26 07:08:28  ponced
-# Added official javadoc line tag keywords.
-# Provided a value for `block-comment-end'.
-#
-# Revision 1.8  2001/04/13 22:11:00  ponced
-# Updated copyrights.
-#
-# Revision 1.7  2001/04/13 10:29:17  ponced
-# Added keyword summaries.
-#
-# Revision 1.6  2001/02/28 22:24:22  ponced
-# Fixed a bug on 'array_creation_expression' non-terminal which didn't
-# match primitive type arrays.
-#
-# Revision 1.5  2001/02/22 20:01:57  ponced
-# Moved setup of Semantic variables from semantic-java.el.
-#
-# Revision 1.4  2001/02/09 11:53:34  ponced
-# Honour last changes in semantic-util.el.
-#
-# Revision 1.3  2001/02/05 14:39:33  ponced
-# Use new `semantic-type-relation-separator-character' format.
-#
-# Revision 1.2  2001/02/01 02:16:41  zappo
-# Parses variables with more than one declaration, such as "int i, k;".
-#
-# Revision 1.16  2000/10/25 04:31:37  paulk
-# Modified to reflect new location of generated files.
-#
-# Revision 1.15  2000/10/25 03:29:05  paulk
-# David Ponce's fixes for various semantic-list matching
-# problems. For example, this caused the parser to find a variable
-# declaration for a method declaration like the following:
-#
-#   [modifiers] type name(..., any_occurence_of[], ...);
-#
-# Revision 1.14  2000/10/20 04:00:38  paulk
-# *** empty log message ***
-#
-# Revision 1.13  2000/08/19 06:37:58  paulk
-# Changed regular expressions for modifiers to match whole words.
-#
-# Revision 1.12  2000/08/16 05:03:55  paulk
-# Changed regular expression for modifier to match only words.
-#
-# Revision 1.11  2000/07/08 07:09:31  paulk
-# Latest updates from David Ponce.
-#
-# Revision 1.8  2000/06/21 06:57:23  paulk
-# Added rules for arithmetic and string expressions.
-#
-# Revision 1.7  2000/06/16 06:48:40  paulk
-# Now handles arrays in field declarations.
-#
-# Revision 1.6  2000/06/09 04:08:43  paulk
-# Added volatile to list of variable modifiers. Thanks to David Ponce and Mike Bowler.
-#
-# Revision 1.5  2000/05/26 09:14:10  paulk
-# Updated grammar to handle argument variables with modifiers and array arguments.
-#
-# Revision 1.4  2000/05/16 04:41:28  paulk
-# *** empty log message ***
-#
-# Revision 1.3  2000/05/11 04:41:05  paulk
-# Now handles native method declarations.
-#
-# Revision 1.2  2000/05/11 02:49:41  paulk
-# Now parses constructors.
-#
-# Revision 1.1  2000/05/02 04:10:23  paulk
-# Initial revision.
-#
 
 # End of java.bnf
