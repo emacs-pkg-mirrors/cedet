@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.127 2004/03/28 11:34:10 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.128 2005/01/06 01:41:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -244,37 +244,37 @@ STREAM is the list of tags to complete from."
 
 ;;; Interactive Functions for 
 ;;
-(defun semantic-describe-tag (&optional token)
-  "Describe TOKEN in the minibuffer.
-If TOKEN is nil, describe the token under the cursor."
+(defun semantic-describe-tag (&optional tag)
+  "Describe TAG in the minibuffer.
+If TAG is nil, describe the tag under the cursor."
   (interactive)
-  (if (not token) (setq token (semantic-current-tag)))
+  (if (not tag) (setq tag (semantic-current-tag)))
   (semantic-fetch-tags)
-  (if token (message (semantic-format-tag-summarize token))))
+  (if tag (message (semantic-format-tag-summarize tag))))
 
 
 ;;; Putting keys on tokens.
 ;;
-(defun semantic-add-label (label value &optional token)
-  "Add a LABEL with VALUE on TOKEN.
-If TOKEN is not specified, use the token at point."
+(defun semantic-add-label (label value &optional tag)
+  "Add a LABEL with VALUE on TAG.
+If TAG is not specified, use the tag at point."
   (interactive "sLabel: \nXValue (eval): ")
-  (if (not token)
+  (if (not tag)
       (progn
 	(semantic-fetch-tags)
-	(setq token (semantic-current-tag))))
-  (semantic--tag-put-property token (intern label) value)
+	(setq tag (semantic-current-tag))))
+  (semantic--tag-put-property tag (intern label) value)
   (message "Added label %s with value %S" label value))
 
-(defun semantic-show-label (label &optional token)
-  "Show the value of LABEL on TOKEN.
-If TOKEN is not specified, use the token at point."
+(defun semantic-show-label (label &optional tag)
+  "Show the value of LABEL on TAG.
+If TAG is not specified, use the tag at point."
   (interactive "sLabel: ")
-  (if (not token)
+  (if (not tag)
       (progn
 	(semantic-fetch-tags)
-	(setq token (semantic-current-tag))))
-  (message "%s: %S" label (semantic--tag-get-property token (intern label))))
+	(setq tag (semantic-current-tag))))
+  (message "%s: %S" label (semantic--tag-get-property tag (intern label))))
 
 
 ;;; Hacks
