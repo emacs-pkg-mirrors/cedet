@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.9 2002/09/05 13:32:12 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.10 2002/10/02 15:06:20 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,7 +54,7 @@
 (require 'wisent-bovine)
 
 (defconst wisent-calc-automaton
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-09-05 14:46+0200
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-10-02 15:43+0200
   (eval-when-compile
     (wisent-compile-grammar
      '((NUM)
@@ -96,7 +96,7 @@
   "Parser automaton.")
 
 (defconst wisent-calc-tokens
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-09-05 14:46+0200
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-10-02 15:43+0200
   (wisent-lex-make-token-table
    '(("number"
       (NUM)))
@@ -121,14 +121,14 @@
 
 (defun wisent-calc-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-09-05 14:46+0200
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-10-02 15:43+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-calc-automaton
           semantic-flex-keywords-obarray nil
-          semantic-lex-tokens-obarray wisent-calc-tokens)
+          semantic-lex-types-obarray wisent-calc-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
