@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.7 1999/09/04 12:33:24 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.8 1999/09/05 19:21:54 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -150,6 +150,8 @@ Argument LEVEL is the current level of recursion we have hit."
 	 (names (aref cv class-public-a))
 	 (deflt (aref cv class-public-d))
 	 (prot (aref cv class-protection))
+	 (typev (aref cv class-public-type))
+	 (i 0)
 	 (set-one nil)
 	 (anchor nil)
 	 )
@@ -161,25 +163,27 @@ Argument LEVEL is the current level of recursion we have hit."
 	  (insert "@item Slots:\n\n@table @code\n")
 	  (while names
 	    (if (eieiodoc-one-attribute class (car names) (car docs)
-					(car prot) (car deflt))
+					(car prot) (car deflt) (aref typev i))
 		(setq set-one t))
 	    (setq names (cdr names)
 		  docs (cdr docs)
 		  prot (cdr prot)
-		  deflt (cdr deflt)))
+		  deflt (cdr deflt)
+		  i (1+ i)))
 	  (insert "@end table\n\n")
 	  (if (not set-one) (delete-region (point) anchor))
 	  ))
     (insert "@end table\n")
     ))
 
-(defun eieiodoc-one-attribute (class attribute doc priv deflt)
+(defun eieiodoc-one-attribute (class attribute doc priv deflt type)
   "Create documentation of CLASS for a single ATTRIBUTE.
 Assume this attribute is inside a table, so it is initiated with the
 @item indicator.  If this attribute is not inserted (because it is
 contained in the parent) then return nil, else return t.
 DOC is the documentation to use, PRIV is non-nil if it is a private slot,
-and DEFLT is the default value."
+and DEFLT is the default value.  TYPE is the symbol describing what type
+validation is done on that slot."
   (let ((pv (eieiodoc-parent-diff class attribute))
 	(ia (eieio-attribute-to-initarg class attribute))
 	(set-me nil))
@@ -187,8 +191,10 @@ and DEFLT is the default value."
 	nil  ;; same in parent or no init arg
       (setq set-me t)
       (insert "@item " (if priv "Private: " "")
-	      (symbol-name ia) "\nDefault Value: "
-	      "@code{"(format "%S" deflt) "}\n\n")
+	      (symbol-name ia))
+      (if (and typeo (not (eq type t)))
+	  (insert "\nType: @code{" (format "%S" type) "}"))
+      (insert "\nDefault Value: @code{"(format "%S" deflt) "}\n\n")
       (if (eq pv 'default)
 	  ;; default differs only, xref the parent
 	  ;; This should be upgraded to actually search for the last
