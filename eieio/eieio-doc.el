@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.10 1999/09/06 09:09:03 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.11 1999/09/08 23:08:27 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -195,7 +195,9 @@ validation is done on that slot."
 	      (symbol-name ia))
       (if (and type (not (eq type t)))
 	  (insert "\nType: @code{" (format "%S" type) "}"))
-      (insert "\nDefault Value: @code{"(format "%S" deflt) "}\n\n")
+      (if (not (eq deflt eieio-unbound))
+	  (insert "\nDefault Value: @code{"(format "%S" deflt) "}"))
+      (insert "\n\n")
       (if (eq pv 'default)
 	  ;; default differs only, xref the parent
 	  ;; This should be upgraded to actually search for the last
@@ -240,7 +242,9 @@ recursing."
 (defun eieiodoc-parent-diff (class slot)
   "Return nil if the parent of CLASS does not have slot SLOT.
 Return t if it does, and return 'default if the default has changed."
-  (let (df (err t) (scoped-class (class-parent class)))
+  (let ((df nil) (err t)
+	(scoped-class (class-parent class))
+	(eieio-skip-typecheck))
     (condition-case nil
 	(setq df (oref-default-engine (class-parent class) slot)
 	      err nil)
