@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.16 2002/08/07 17:59:59 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.17 2002/08/13 16:46:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -44,6 +44,12 @@
 ;;; Code:
 (require 'wisent)
 (require 'working)
+
+;;; Compatibility
+;;
+(if (fboundp 'char-valid-p)
+    (defalias 'wisent-char-p 'char-valid-p)
+  (defalias 'wisent-char-p 'char-or-char-int-p))
 
 ;;;; -------------------
 ;;;; Misc. useful things
@@ -343,7 +349,7 @@ That is if S >= `ntokens'."
 (defsubst wisent-tag (s)
   "Return printable form of item number S."
   (let ((tag (aref tags s)))
-    (if (char-valid-p tag)
+    (if (wisent-char-p tag)
         (or (cdr (assq tag wisent-escape-sequence-tags))
             (format "'%c'" tag))
       tag)))
@@ -3093,7 +3099,7 @@ one.")
 
 (defsubst wisent-ISVALID-TOKEN (x)
   "Return non-nil if X is a character or an allowed symbol."
-  (or (char-valid-p x)
+  (or (wisent-char-p x)
       (wisent-ISVALID-VAR x)))
 
 (defun wisent-push-token (symbol &optional nocheck)
@@ -3181,7 +3187,7 @@ the rule."
             (cond
              ((or (memq item token-list) (memq item var-list)))
              ;; Create new literal character token
-             ((char-valid-p item) (wisent-push-token item t))
+             ((wisent-char-p item) (wisent-push-token item t))
              ((error "symbol `%s' is used, but is not defined as a token and has no rules"
                      item))))
           (setq rhl (1+ rhl)
