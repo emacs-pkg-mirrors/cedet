@@ -1,12 +1,12 @@
 ;;; bovine-grammar.el --- Bovine's input grammar mode
 ;;
-;; Copyright (C) 2002 David Ponce
+;; Copyright (C) 2002, 2003 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.2 2002/10/30 15:57:34 ponced Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.3 2003/02/13 03:03:16 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -297,7 +297,8 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
   (format
    "(progn\n\
         (setq semantic-toplevel-bovine-table %s\n\
-              semantic-toplevel-bovine-table-source %S\n\
+              semantic-debug-parser-source %S\n\
+              semantic-debug-parser-class 'semantic-bovine-debug-parser
               semantic-flex-keywords-obarray %s\n\
               %s)\n\
        %s)"
