@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.56 2004/02/26 08:33:25 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.57 2004/03/06 15:25:05 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1442,9 +1442,7 @@ Completion is position sensitive.  If the cursor is in a match section of
 a rule, then nonterminals symbols are scanned.  If the cursor is in a Lisp
 expression then Lisp symbols are completed."
   (interactive)
-  (if (condition-case nil
-          (progn (up-list -1) t)
-        (error nil))
+  (if (semantic-grammar-in-lisp-p)
       ;; We are in lisp code.  Do lisp completion.
       (lisp-complete-symbol)
     ;; We are not in lisp code.  Do rule completion.
@@ -1630,7 +1628,7 @@ EXPANDER is the name of the function that expands MACRO."
         (eldoc-last-data-store expander doc 'function))
       doc)))
 
-(define-mode-overload-implementation eldoc-current-symbol-info
+(define-mode-overload-implementation semantic-idle-summary-current-symbol-info
   semantic-grammar-mode ()
   "Display additional eldoc information about grammar syntax elements.
 Syntax element is the current symbol at point.
@@ -1671,6 +1669,15 @@ Otherwise return nil."
 Only tags of type 'nonterminal will be so marked."
   (let ((c (semantic-tag-class tag)))
     (eq c 'nonterminal)))
+
+(define-mode-overload-implementation semantic-ctxt-current-class-list
+  semantic-grammar-mode (&optional point)
+  "Determine the class of tags that can be used at POINT."
+  (if (semantic-grammar-in-lisp-p)
+      (semantic-with-mode-bindings emacs-lisp-mode
+	(semantic-ctxt-current-class-list point))
+    '(nonterminal keyword)
+    ))
 
 (define-mode-overload-implementation semantic-format-tag-abbreviate
   semantic-grammar-mode (tag &optional parent color)
@@ -1757,6 +1764,69 @@ Optional argument COLOR determines if color is added to the text."
         (concat label name desc)
       ;; Just a description is the abbreviated version
       desc)))
+
+;;; Semantic Analysis
+;;
+(eval-when-compile
+  (require 'semantic-analyze))
+
+(define-mode-overload-implementation semantic-analyze-current-context
+  semantic-grammar-mode (point)
+  "Provide a semantic analysis object describing a context in a grammar."
+  (if (semantic-grammar-in-lisp-p)
+      (semantic-with-mode-bindings emacs-lisp-mode
+	(semantic-analyze-current-context point))
+
+    (let* ((context-return nil)
+	   (startpoint (point))
+	   (prefixandbounds (semantic-analyze-calculate-bounds))
+	   (prefix (car prefixandbounds))
+	   (endsym (nth 1 prefixandbounds))
+	   (bounds (nth 2 prefixandbounds))
+	   (prefixsym nil)
+	   (prefixclass (semantic-ctxt-current-class-list))
+	   )
+
+      ;; Do context for rules when in a match list.
+      (setq prefixsym
+	    (semantic-find-first-tag-by-name
+	     (car prefix)
+	     (current-buffer)))
+
+      (setq context-return
+	    (semantic-analyze-context
+	     "context-for-semantic-grammar"
+	     :buffer (current-buffer)
+	     :scope nil
+	     :scopetypes nil
+	     :localvariables nil
+	     :bounds bounds
+	     :prefix (if prefixsym
+			 (list prefixsym)
+		       prefix)
+	     :prefixtypes nil
+	     :prefixclass prefixclass
+	     ))
+
+      context-return)))
+
+(define-mode-overload-implementation semantic-analyze-possible-completions
+  semantic-grammar-mode (context)
+  "Return a list of possible completions based on CONTEXT."
+  (save-excursion
+    (set-buffer (oref context buffer))
+    (let* ((prefix (car (oref context :prefix)))
+	   (completetext (cond ((semantic-tag-p prefix)
+				(semantic-tag-name prefix))
+			       ((stringp prefix)
+				prefix)
+			       ((stringp (car prefix))
+				(car prefix))))
+	   (tags (semantic-find-tags-for-completion completetext
+						    (current-buffer))))
+      (semantic-analyze-tags-of-class-list 
+       tags (oref context prefixclass)))
+    ))
 
 (provide 'semantic-grammar)
 
