@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.35 1997/03/19 00:09:42 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.36 1997/03/19 00:19:33 zappo Exp $
 ;;; Version: 0.4.5
 ;;; Keywords: file, tags, tools
 ;;;
@@ -857,7 +857,10 @@ redirected into a window on the attached frame."
   (pop-to-buffer buffer nil)
   (other-window -1)
   (run-hooks 'temp-buffer-show-hook))
-
+
+;;;
+;;; User Input stuff
+;;;
 (defun speedbar-mouse-hscroll (e)
   "Read a mouse event from the mode line, and horizontally scroll.
 If the mouse is being clicked on the far left, or far right of the
@@ -920,7 +923,7 @@ Assumes that the current buffer is the speedbar buffer"
   (interactive)
   (setq default-directory (expand-file-name (concat default-directory "../")))
   (speedbar-update-contents))
-
+
 ;;;
 ;;; Speedbar file activity
 ;;;
@@ -1018,7 +1021,6 @@ Files can be copied to new names or places."
 		    (if (not (speedbar-goto-this-file rt))
 			(speedbar-goto-this-file f))))
 	      ))))))
-
 
 (defun speedbar-item-rename ()
   "Rename the item under the cursor or mouse.
@@ -1140,7 +1142,10 @@ will be run with the TOKEN parameter (any lisp object)"
   (if function (put-text-property start end 'speedbar-function function))
   (if token (put-text-property start end 'speedbar-token token))
   )
-
+
+;;;
+;;; File button management
+;;;
 (defun speedbar-file-lists (directory)
   "Create file lists for DIRECTORY.
 The car is the list of directories, the cdr is list of files not
@@ -1667,6 +1672,49 @@ that will occur on your system."
 	(goto-char (1- (match-end 0)))
       (goto-char oldpos))))
 
+(defun speedbar-power-click (e)
+  "Activate any speedbar button as a power click."
+  (interactive "e")
+  (let ((speedbar-power-click t))
+    (speedbar-click e)))
+
+(defun speedbar-click (e)
+  "Activate any speedbar buttons where the mouse is clicked.
+This must be bound to a mouse event.  A button is any location of text
+with a mouse face that has a text property called `speedbar-function'."
+  (interactive "e")
+  (mouse-set-point e)
+  (speedbar-do-function-pointer)
+  (speedbar-quick-mouse e))
+
+(defun speedbar-do-function-pointer ()
+  "Look under the cursor and examine the text properties.
+From this extract the file/tag name, token, indentation level and call
+a function if apropriate"
+  (let* ((fn (get-text-property (point) 'speedbar-function))
+	 (tok (get-text-property (point) 'speedbar-token))
+	 ;; The 1-,+ is safe because scaning starts AFTER the point
+	 ;; specified.  This lets the search include the character the
+	 ;; cursor is on.
+	 (tp (previous-single-property-change 
+	      (1+ (point)) 'speedbar-function))
+	 (np (next-single-property-change 
+	      (point) 'speedbar-function))
+	 (txt (buffer-substring-no-properties (or tp (point-min))
+					      (or np (point-max))))
+	 (dent (save-excursion (beginning-of-line) 
+			       (string-to-number 
+				(if (looking-at "[0-9]+")
+				    (buffer-substring-no-properties
+				    (match-beginning 0) (match-end 0))
+				  "0")))))
+    ;;(message "%S:%S:%S:%s" fn tok txt dent)
+    (and fn (funcall fn txt tok dent)))
+  (speedbar-position-cursor-on-line))
+
+;;;
+;;; Reading info from the speedbar buffer
+;;;
 (defun speedbar-line-file (&optional p)
   "Retrieve the file or whatever from the line at P point.
 The return value is a string representing the file.  If it is a
@@ -1774,52 +1822,11 @@ directory with these items."
   (speedbar-do-function-pointer))
 
 (defun speedbar-maybee-jump-to-attached-frame ()
-  "Jump to the attached frame ONLY if the event causing this to happen
-was not a mouse event."
+  "Jump to the attached frame ONLY if this was not a mouse event."
   (if (numberp last-input-char)
       (progn
 	(select-frame speedbar-attached-frame)
 	(other-frame 0))))
-
-(defun speedbar-power-click (e)
-  "Activate any speedbar button as a power click."
-  (interactive "e")
-  (let ((speedbar-power-click t))
-    (speedbar-click e)))
-
-(defun speedbar-click (e)
-  "Activate any speedbar buttons where the mouse is clicked.
-This must be bound to a mouse event.  A button is any location of text
-with a mouse face that has a text property called `speedbar-function'."
-  (interactive "e")
-  (mouse-set-point e)
-  (speedbar-do-function-pointer)
-  (speedbar-quick-mouse e))
-
-(defun speedbar-do-function-pointer ()
-  "Look under the cursor and examine the text properties.
-From this extract the file/tag name, token, indentation level and call
-a function if apropriate"
-  (let* ((fn (get-text-property (point) 'speedbar-function))
-	 (tok (get-text-property (point) 'speedbar-token))
-	 ;; The 1-,+ is safe because scaning starts AFTER the point
-	 ;; specified.  This lets the search include the character the
-	 ;; cursor is on.
-	 (tp (previous-single-property-change 
-	      (1+ (point)) 'speedbar-function))
-	 (np (next-single-property-change 
-	      (point) 'speedbar-function))
-	 (txt (buffer-substring-no-properties (or tp (point-min))
-					      (or np (point-max))))
-	 (dent (save-excursion (beginning-of-line) 
-			       (string-to-number 
-				(if (looking-at "[0-9]+")
-				    (buffer-substring-no-properties
-				    (match-beginning 0) (match-end 0))
-				  "0")))))
-    ;;(message "%S:%S:%S:%s" fn tok txt dent)
-    (and fn (funcall fn txt tok dent)))
-  (speedbar-position-cursor-on-line))
 
 (defun speedbar-find-file (text token indent)
   "Speedbar click handler for filenames.
@@ -1966,7 +1973,7 @@ Etags does not support this feature."
 	 (speedbar-delete-subblock indent))
 	(t (error "Ooops... not sure what to do.")))
   (speedbar-center-buffer-smartly))
-
+
 ;;;
 ;;; Loading files into the attached frame.
 ;;;
@@ -2068,12 +2075,10 @@ tags we wish to display in the speedbar package."
 	  (if speedbar-power-click (setq imenu--index-alist nil))
 	  (imenu--make-index-alist t))
       (error t))))
-
 )
-
 
 ;;;
-;;; Tag Management -- etags  (Only useful for Xemacs)
+;;; Tag Management -- etags  (XEmacs compatibility part)
 ;;;
 (defvar speedbar-fetch-etags-parse-list
   '(("\\.\\([cChH]\\|c++\\|cpp\\|cc\\|hh\\)$" . speedbar-parse-c-or-c++tag)
