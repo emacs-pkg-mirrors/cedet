@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.23 2002/02/23 13:19:44 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.24 2002/06/27 02:59:19 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -122,6 +122,26 @@
       (error nil))
     (error "Instantiation of an abstract class allowed."))
 
+;;; Class with a static method
+;;
+(defclass static-method-class ()
+  ((some-slot :initform nil
+	      :allocation :class
+	      :documentation "A slot."))
+  :documentation "A class used for testing static methods."
+  :abstract t)
+
+(defmethod static-method-class-method :STATIC ((c static-method-class))
+  "Test static methods.
+Argument C is the class bound to this static method."
+  (oset-default c some-slot t))
+
+(condition-case nil
+    (static-method-class-method static-method-class)
+  (error (error "Failed to call static method.")))
+(if (not (eq (oref static-method-class some-slot) t))
+    (error "Call to static method did not run."))
+
 
 ;;; Perform method testing
 ;;
@@ -233,41 +253,53 @@ METHOD is the method that was attempting to be called."
 
 (defmethod class-fun-tag :PRIMARY ((a class-a))
   "Tagging fun primary A."
+  (message ":PRIMARY method")
   (unless (eq class-fun-tag-state 'before-generic)
-    (error "BEFORE generic not called before PRIMARY method"))
+    (error "BEFORE generic not called before PRIMARY method (%s)"
+	   class-fun-tag-state))
   (setq class-fun-tag-state 'primary-method)
   (call-next-method))
 
 (defmethod class-fun-tag :BEFORE ((a class-a))
   "Tagging fun before A."
+  (message ":BEFORE method")
   (unless (eq class-fun-tag-state nil)
-    (error "BEFORE method not called first"))
+    (error "BEFORE method not called first (%s)" 
+	   class-fun-tag-state))
   (setq class-fun-tag-state 'before-method)
   (call-next-method))
 
 (defmethod class-fun-tag :AFTER ((a class-a))
   "Tagging fun after A."
+  (message ":AFTER method")
   (unless (eq class-fun-tag-state 'primary-generic)
-    (error "PRIMARY generic not called before AFTER method"))
+    (error "PRIMARY generic not called before AFTER method (%s)"
+	   class-fun-tag-state))
   (setq class-fun-tag-state 'after-method)
   (call-next-method))
 
 (defmethod class-fun-tag :PRIMARY (a)
   "Generic untyped primary for A."
+  (message ":PRIMARY generic")
   (unless (eq class-fun-tag-state 'primary-method)
-    (error "PRIMARY generic not called after PRIMARY method"))
+    (error "PRIMARY generic not called after PRIMARY method (%s)" 
+	   class-fun-tag-state))
   (setq class-fun-tag-state 'primary-generic))
 
 (defmethod class-fun-tag :BEFORE (a)
   "Generic untyped before for A."
+  (message ":BEFORE generic")
   (unless (eq class-fun-tag-state 'before-method)
-    (error "BEFORE generic not called after BEFORE method"))
+    (error "BEFORE generic not called after BEFORE method (%s)" 
+	   class-fun-tag-state))
   (setq class-fun-tag-state 'before-generic))
 
 (defmethod class-fun-tag :AFTER (a)
   "Generic untyped after for A."
+  (message ":AFTER generic")
   (unless (eq class-fun-tag-state 'after-method)
-    (error "AFTER generic not called after AFTER method"))
+    (error "AFTER generic not called after AFTER method (%s)" 
+	   class-fun-tag-state))
   (setq class-fun-tag-state 'after-generic))
 
 (let ((class-fun-tag-state nil))
@@ -275,7 +307,8 @@ METHOD is the method that was attempting to be called."
       (progn
 	(class-fun-tag a)
 	(unless (eq class-fun-tag-state 'after-generic)
-	  (error "AFTER generic not called last."))
+	  (error "AFTER generic not called last. (%s)" 
+		 class-fun-tag-state))
 	)
     (error 
      (if (eq (car er) 'error)
@@ -673,6 +706,18 @@ Do not override for `prot-2'."
     (error "Instance tracker delete failed."))
 
 
+;;; Test singletons
+;;
+(defclass SINGLE (eieio-singleton)
+  ((a-slot :initarg :a-slot :initform t))
+  "A Singleton test object.")
+
+(let ((obj1 (SINGLE "Moose"))
+      (obj2 (SINGLE "Cow")))
+  (if (not (eq obj1 obj2))
+      (error "Two instances of a singleton")))
+
+
 ;;; Test the named object.
 ;;
 (defclass NAMED (eieio-named)
@@ -708,6 +753,8 @@ Do not override for `prot-2'."
 (defclass opt-test2 (opt-test1)
   ()
   "Instantiable child")
+
+(require 'eieio-opt)
 
 (if (/= (length (eieio-build-class-alist opt-test1 nil)) 2)
     (error "eieio-build-class-alist did not return all possible classes"))
