@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.65 2003/03/28 08:55:42 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.66 2003/03/28 09:25:54 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1568,7 +1568,7 @@ This is a buffer local variable.")
      ["Previous"
       senator-previous-tag
       :active t
-      :help "Go to the previous token found"
+      :help "Go to the previous tag found"
       ])
     (senator-menu-item
      ["Jump..."
