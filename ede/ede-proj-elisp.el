@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.4 2000/06/23 23:10:46 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.5 2000/07/03 14:01:20 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -77,7 +77,7 @@ A lisp target may be one general program with many separate lisp files in it.")
 (defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-elisp))
   "Insert variables needed by target THIS."
   (call-next-method this)
-  (insert "EMACS=" (car command-line-args) "\n")
+  (insert "EMACS=" (file-name-nondirectory (car command-line-args)) "\n")
   (if (oref this load-path)
       (insert "LOADPATH=" (mapconcat (lambda (a) a) (oref this load-path) " ")
 	      "\n")))
