@@ -4,7 +4,10 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.2 2000/08/17 03:01:17 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.3 2000/08/31 16:06:17 zappo Exp $
+
+(defvar dframe-version "1.0beta"
+  "The current version of the dedicated frame library.")
 
 ;; This file is part of GNU Emacs.
 
@@ -156,8 +159,7 @@
 (defgroup dframe nil
   "Faces used in dframe."
   :prefix "dframe-"
-  :group 'dframe
-  :group 'faces)
+  :group 'dframe)
 
 (defvar dframe-have-timer-flag
   (and (or (fboundp 'run-with-idle-timer)
