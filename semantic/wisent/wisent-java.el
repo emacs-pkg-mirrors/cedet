@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.45 2004/03/26 11:14:45 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.46 2004/04/29 10:10:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -115,7 +115,7 @@ names in scope."
 
 ;;; Overridden Semantic API.
 ;;
-(define-mode-overload-implementation semantic-get-local-variables
+(define-mode-local-override semantic-get-local-variables
   java-mode ()
   "Get local variable declarations from the current context."
   (let (result

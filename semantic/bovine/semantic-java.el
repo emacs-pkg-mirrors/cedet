@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.10 2004/02/02 10:36:44 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.11 2004/04/29 10:10:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -88,7 +88,7 @@ FLOATING_POINT_LITERAL:
 
 ;; Local context
 ;;
-(define-mode-overload-implementation semantic-ctxt-scoped-types
+(define-mode-local-override semantic-ctxt-scoped-types
   java-mode (&optional point)
   "Return a list of type names currently in scope at POINT."
   (mapcar 'semantic-tag-name
@@ -150,7 +150,7 @@ See also `semantic-format-prototype-tag'."
                (semantic-tag-name tag) 'type)
             (semantic-tag-name tag))))
 
-(define-mode-overload-implementation semantic-format-prototype-tag
+(define-mode-local-override semantic-format-prototype-tag
   java-mode (tag &optional parent color)
   "Return a prototype for TOKEN.
 Optional argument PARENT is a parent (containing) item.
@@ -175,7 +175,7 @@ Optional argument COLOR indicates that color should be mixed in."
   "Move point forward, skipping Java whitespaces."
   (skip-chars-forward " \n\r\t"))
 
-(define-mode-overload-implementation semantic-documentation-for-tag
+(define-mode-local-override semantic-documentation-for-tag
   java-mode (&optional tag nosnarf)
   "Find documentation from TAG and return it as a clean string.
 Java have documentation set in a comment preceeding TAG's definition.

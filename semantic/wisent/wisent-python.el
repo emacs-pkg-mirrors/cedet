@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.42 2004/03/21 18:20:42 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.43 2004/04/29 10:10:53 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -295,8 +295,7 @@ Otherwise simply call the original function."
 ;;;****************************************************************************
 
 ;; TODO: Is this really needed? -ryk2/9/03.
-(define-mode-overload-implementation
-  semantic-parse-region python-mode
+(define-mode-local-override semantic-parse-region python-mode
   (start end &optional nonterminal depth returnonerror)
   "Over-ride in order to initialize some variables."
   (let ((wisent-python-lexer-indent-stack '(0))
@@ -306,8 +305,7 @@ Otherwise simply call the original function."
 
 ;; Commented this out after learning that there is no need to convert
 ;; tokens to names.  See "(semantic)Style Guide". -ryk2/7/03.
-'(define-mode-overload-implementation
-  semantic-parse-region python-mode
+'(define-mode-local-override semantic-parse-region python-mode
   (start end &optional nonterminal depth returnonerror)
   "Over-ride so that 'paren_classes' non-terminal tokens can be intercepted
 then converted to simple names to comply with the semantic token style guide."

@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.16 2004/03/31 13:15:42 ponced Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.17 2004/04/29 10:10:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -78,13 +78,13 @@
                  name  (cdr name))))
     xpand))
 
-(define-mode-overload-implementation semantic-get-local-variables
+(define-mode-local-override semantic-get-local-variables
   makefile-mode (&optional point)
   "Override `semantic-get-local-variables' so it does not throw an error.
 We never have local variables in Makefiles."
   nil)
 
-(define-mode-overload-implementation semantic-ctxt-current-class-list
+(define-mode-local-override semantic-ctxt-current-class-list
   makefile-mode (&optional point)
   "List of classes that are valid to place at point."
   (let ((tag (semantic-current-tag)))
@@ -105,7 +105,7 @@ We never have local variables in Makefiles."
 	     '(function filename))
 	    ))))
 
-(define-mode-overload-implementation semantic-format-tag-abbreviate
+(define-mode-local-override semantic-format-tag-abbreviate
   makefile-mode (tag &optional parent color)
   "Return an abbreviated string describing tag for Makefiles."
   (let ((class (semantic-tag-class tag))
@@ -122,7 +122,7 @@ We never have local variables in Makefiles."
   " "
   "Separator used between dependencies to rules.")
 
-(define-mode-overload-implementation semantic-format-tag-prototype
+(define-mode-local-override semantic-format-tag-prototype
   makefile-mode (tag &optional parent color)
   "Return a prototype string describing tag for Makefiles."
   (let* ((class (semantic-tag-class tag))
@@ -139,19 +139,19 @@ We never have local variables in Makefiles."
 	  (t
 	   (semantic-format-tag-prototype-default tag parent color)))))
 
-(define-mode-overload-implementation semantic-format-tag-concise-prototype
+(define-mode-local-override semantic-format-tag-concise-prototype
   makefile-mode (tag &optional parent color)
   "Return a concise prototype string describing tag for Makefiles.
 This is the same as a regular prototype."
   (semantic-format-tag-prototype tag parent color))
 
-(define-mode-overload-implementation semantic-format-tag-uml-prototype
+(define-mode-local-override semantic-format-tag-uml-prototype
   makefile-mode (tag &optional parent color)
   "Return a UML prototype string describing tag for Makefiles.
 This is the same as a regular prototype."
   (semantic-format-tag-prototype tag parent color))
 
-(define-mode-overload-implementation semantic-analyze-possible-completions
+(define-mode-local-override semantic-analyze-possible-completions
   makefile-mode (context)
   "Return a list of possible completions in a Makefile.
 Uses default implementation, and also gets a list of filenames."

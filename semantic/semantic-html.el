@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-html.el,v 1.3 2004/03/28 11:33:21 ponced Exp $
+;; X-RCS: $Id: semantic-html.el,v 1.4 2004/04/29 10:10:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -67,7 +67,7 @@
     )
   "Alist of sectioning commands and their relative level.")
 
-(define-mode-overload-implementation semantic-parse-region
+(define-mode-local-override semantic-parse-region
   html-mode (&rest ignore)
   "Parse the current html buffer for semantic tags.
 INGNORE any arguments.  Always parse the whole buffer.
@@ -78,7 +78,7 @@ or
   (mapcar 'semantic-html-expand-tag
 	  (semantic-html-parse-headings)))
 
-(define-mode-overload-implementation semantic-parse-changes
+(define-mode-local-override semantic-parse-changes
   html-mode ()
   "We can't parse changes for HTML mode right now."
   (semantic-parse-tree-set-needs-rebuild))
@@ -213,7 +213,7 @@ tag with greater section value than LEVEL is found."
 	  )))
     (cons (nreverse newl) oldl)))
 
-(define-mode-overload-implementation semantic-sb-tag-children-to-expand
+(define-mode-local-override semantic-sb-tag-children-to-expand
   html-mode (tag)
   "The children TAG expands to."
   (semantic-html-components tag))

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.17 2004/04/28 15:35:59 ponced Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.18 2004/04/29 10:10:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -101,7 +101,7 @@ local variable."
 ;; Unlike other languages, Emacs Lisp always has the system database there
 ;; even when there isn't a usage for it.
 
-(define-mode-overload-implementation semanticdb-find-translate-path emacs-lisp-mode
+(define-mode-local-override semanticdb-find-translate-path emacs-lisp-mode
   (path brutish)
   "Return a list of semanticdb tables asociated with PATH.
 If brutish, do the default action.

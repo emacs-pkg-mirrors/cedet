@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.29 2004/03/21 18:20:42 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.30 2004/04/29 10:10:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -61,7 +61,7 @@ MSG is the message string to report."
 ;;;; Local context
 ;;;;
 
-(define-mode-overload-implementation semantic-get-local-variables
+(define-mode-local-override semantic-get-local-variables
   java-mode ()
   "Get local values from a specific context.
 Parse the current context for `field_declaration' nonterminals to

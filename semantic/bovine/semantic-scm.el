@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.11 2004/03/20 14:31:38 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.12 2004/04/29 10:10:54 ponced Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ machine."
   :group 'scheme
   :type '(repeat (string :tag "Path")))
 
-(define-mode-overload-implementation semantic-format-tag-prototype scheme-mode (tag)
+(define-mode-local-override semantic-format-tag-prototype scheme-mode (tag)
   "Return a prototype for the Emacs Lisp nonterminal TAG."
   (let* ((tok (semantic-tag-class tag))
 	 (args (semantic-tag-components tag))
@@ -53,7 +53,7 @@ machine."
 		")")
       (semantic-format-tag-prototype-default tag))))
 
-(define-mode-overload-implementation semantic-documentation-for-tag scheme-mode (tag &optional nosnarf)
+(define-mode-local-override semantic-documentation-for-tag scheme-mode (tag &optional nosnarf)
   "Return the documentation string for TAG.
 Optional argument NOSNARF is ignored."
   (let ((d (semantic-tag-docstring tag)))
@@ -61,7 +61,7 @@ Optional argument NOSNARF is ignored."
 	(substring d 1)
       d)))
 
-(define-mode-overload-implementation semantic-insert-foreign-tag scheme-mode (tag tagfile)
+(define-mode-local-override semantic-insert-foreign-tag scheme-mode (tag tagfile)
   "Insert TAG from TAGFILE at point.
 Attempts a simple prototype for calling or using TAG."
   (cond ((eq (semantic-tag-class tag) 'function)

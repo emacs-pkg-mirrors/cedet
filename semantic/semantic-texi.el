@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.28 2004/04/28 15:40:43 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.29 2004/04/29 10:10:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -216,12 +216,12 @@ The cursor should be on the @ sign."
 	   (seek (concat "^@end\\s-+" (regexp-quote type))))
       (re-search-forward seek nil t))))
 
-(define-mode-overload-implementation semantic-tag-components
+(define-mode-local-override semantic-tag-components
   texinfo-mode (tag)
   "Return components belonging to TAG."
   (semantic-tag-get-attribute tag :members))
 
-(define-mode-overload-implementation semantic-insert-foreign-tag
+(define-mode-local-override semantic-insert-foreign-tag
   texinfo-mode (tag tagfile)
   "Insert TAG from a foreign buffer in TAGFILE.
 Assume TAGFILE is a source buffer, and create a documentation
@@ -232,12 +232,12 @@ thingy from it using the `document' tool."
     (require 'document)
     (document-insert-texinfo tag b)))
 
-(define-mode-overload-implementation semantic-sb-tag-children-to-expand
+(define-mode-local-override semantic-sb-tag-children-to-expand
   texinfo-mode (tag)
   "The children TAG expands to."
   (semantic-tag-components tag))
 
-(define-mode-overload-implementation semantic-ctxt-current-class-list
+(define-mode-local-override semantic-ctxt-current-class-list
   texinfo-mode (&optional point)
   "Determine the class of tags that can be used at POINT.
 For texinfo, there two possibilities returned.
@@ -249,7 +249,7 @@ It would be nice to know function arguments too, but not today."
 	'(function)
       '(word))))
 
-(define-mode-overload-implementation semantic-format-tag-abbreviate
+(define-mode-local-override semantic-format-tag-abbreviate
   texinfo-mode  (tag &optional parent color)
   "Texinfo tags abbreviation."
   (let ((class (semantic-tag-class tag))
@@ -260,7 +260,7 @@ It would be nice to know function arguments too, but not today."
 	  (t (semantic-format-tag-abbreviate-default tag parent color)))
     ))
 
-(define-mode-overload-implementation semantic-format-tag-prototype
+(define-mode-local-override semantic-format-tag-prototype
   texinfo-mode  (tag &optional parent color)
   "Texinfo tags abbreviation."
   (semantic-format-tag-abbreviate tag parent color))
@@ -268,7 +268,7 @@ It would be nice to know function arguments too, but not today."
 (eval-when-compile
   (require 'semantic-analyze))
 
-(define-mode-overload-implementation semantic-analyze-current-context
+(define-mode-local-override semantic-analyze-current-context
   texinfo-mode (point)
   "Analysis context makes no sense for texinfo.  Return nil."
   (let* ((prefixandbounds (semantic-analyze-calculate-bounds))
@@ -312,7 +312,7 @@ It would be nice to know function arguments too, but not today."
 	  )
   "List of commands that we might bother completing.")
 
-(define-mode-overload-implementation semantic-analyze-possible-completions
+(define-mode-local-override semantic-analyze-possible-completions
   texinfo-mode (context)
   "List smart completions at point.
 Since texinfo is not a programming language the default version is not
