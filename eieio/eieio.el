@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.105 2001/05/20 12:41:05 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.106 2001/05/31 16:56:35 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta2"
   "Current version of EIEIO.")
@@ -371,7 +371,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		  "Test OBJ to see if it an object is a child of type %s"
 		  cname)
 	       (and (object-p obj)
-		    (obj-of-class-p obj ,cname))))
+		    (object-of-class-p obj ,cname))))
     
       ;; When using typep, (typep OBJ 'myclass) returns t for objects which
       ;; are subclasses of myclass.  For our predicates, however, it is
@@ -1194,11 +1194,13 @@ If EXTRA, include that in the string returned to represent the symbol."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (same-class-fast-p obj class))
 
-(defun obj-of-class-p (obj class)
+(defun object-of-class-p (obj class)
   "Return non-nil if OBJ is an instance of CLASS or CLASS' subclasses."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   ;; class will be checked one layer down
   (child-of-class-p (aref obj object-class) class))
+;; Backwards compatibility
+(defalias 'obj-of-class-p 'object-of-class-p)
 
 (defun child-of-class-p (child class)
   "If CHILD class is a subclass of CLASS."
@@ -1211,7 +1213,7 @@ If EXTRA, include that in the string returned to represent the symbol."
 	    p (cdr p)))
     (if child t)))
 
-(defun obj-fields (obj) "List of fields available in OBJ."
+(defun object-slots (obj) "List of slots available in OBJ."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (aref (class-v (object-class-fast obj)) class-public-a))
 
