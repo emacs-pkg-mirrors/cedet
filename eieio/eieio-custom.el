@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.14 2000/10/04 03:07:48 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.15 2000/10/04 03:39:03 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -133,9 +133,13 @@ of these.")
   "Create the value of WIDGET."
   (if (not (widget-get widget :value))
       (widget-put widget
-		  :value (funcall (class-constructor
-				   (widget-get widget :objecttype))
-				  "Custom-new")))
+		  :value (cond ((widget-get widget :objecttype)
+				(funcall (class-constructor
+					  (widget-get widget :objecttype))
+					 "Custom-new"))
+			       ((widget-get widget :objectcreatefcn)
+				(funcall (widget-get widget :objectcreatefcn)))
+			       (t (error "No create method specified")))))
   (let* ((chil nil)
 	 (obj (widget-get widget :value))
 	 (master-group (widget-get widget :eieio-group))
@@ -354,7 +358,9 @@ Must return the created widget."
 
 (defun eieio-object-value-to-abstract (widget value)
   "For WIDGET, convert VALUE to an abstract /safe/ representation."
-  (clone value))
+  (if (object-p value) value
+    (if (null value) value
+      nil)))
 
 (defun eieio-object-abstract-to-value (widget value)
   "For WIDGET, convert VALUE to an abstract /safe/ representation."
