@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.28 2003/03/17 13:37:19 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.29 2003/03/27 07:46:47 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -324,26 +324,6 @@ Should be a lexical analyzer created with `define-wisent-lexer'.")
 
 ;; Tag production
 ;;
-(defsubst wisent-token (&rest return-val)
-  "Return a raw Semantic token including RETURN-VAL.
-Should be used in Semantic actions to build the bovine cache."
-  (nconc return-val
-         (if (or $region
-                 (setq $region (nthcdr 2 wisent-input)))
-             (list (car $region) (cdr $region))
-           (list (point-max) (point-max)))))
-
-(defmacro wisent-cooked-token (&rest return-val)
-  "Return a cooked Semantic token including RETURN-VAL.
-Should be used in Semantic actions to build the bovine cache."
-  `(let* ((cooked (semantic-raw-to-cooked-token
-                   (wisent-token ,@return-val)))
-          (l cooked))
-     (while l
-       (semantic-tag-put (car l) 'reparse-symbol $nterm)
-       (setq l (cdr l)))
-     cooked))
-
 (defsubst wisent-raw-tag (semantic-tag)
   "Return raw form of given Semantic tag SEMANTIC-TAG.
 Should be used in semantic actions, in grammars, to build a Semantic
@@ -358,10 +338,10 @@ parse tree."
   "From raw form of Semantic tag RAW-TAG, return a list of cooked tags.
 Should be used in semantic actions, in grammars, to build a Semantic
 parse tree."
-  (let* ((cooked (semantic-raw-to-cooked-token raw-tag))
+  (let* ((cooked (semantic--tag-expand raw-tag))
          (l cooked))
     (while l
-      (semantic-tag-put (car l) 'reparse-symbol $nterm)
+      (semantic--tag-put-property (car l) 'reparse-symbol $nterm)
       (setq l (cdr l)))
     cooked))
 
@@ -424,7 +404,7 @@ the standard function `semantic-parse-stream'."
     ;; The first element of STREAM is used to keep lookahead tokens
     ;; across successive calls to `wisent-parse-stream'.  In fact
     ;; what is kept is a stack of lookaheads encountered so far.  It
-    ;; is cleared when `wisent-parse' returns a valid semantic token,
+    ;; is cleared when `wisent-parse' returns a valid semantic tag,
     ;; or twice the same lookahead token!  The latter indicates that
     ;; there is a syntax error on that token.  If so, tokens currently
     ;; in the lookahead stack have not been used, and are moved into
@@ -527,7 +507,7 @@ the standard function `semantic-parse-region'."
        ;; Parse succeeded, cook result
        ((consp tag)
         (setq lstack nil ;; Clear the lookahead stack
-              cooked (semantic-raw-to-cooked-token tag)
+              cooked (semantic--tag-expand tag)
               ptree (append cooked ptree))
         (while cooked
           (setq tag    (car cooked)
