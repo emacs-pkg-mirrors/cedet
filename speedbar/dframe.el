@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.12 2000/10/21 03:05:22 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.13 2000/12/11 23:34:51 zappo Exp $
 
 (defvar dframe-version "1.0beta"
   "The current version of the dedicated frame library.")
@@ -306,7 +306,7 @@ CREATE-HOOK are hooks to run after creating a frame."
   ;; turn the frame off on neg number
   (if (and (numberp arg) (< arg 0))
       (progn
-	(run-hooks delete-hook)
+	(run-hooks 'delete-hook)
 	(if (and (symbol-value frame-var)
 		 (frame-live-p (symbol-value frame-var)))
 	    (progn
