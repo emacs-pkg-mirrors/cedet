@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.35 2003/01/29 03:15:02 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.36 2003/08/17 02:43:27 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -143,7 +143,7 @@ MFILENAME is the makefile to generate."
 					       f)) ".P"))
 				   df " "))))
 	  ;; 
-	  ;; Insert Rules
+	  ;; Insert ALL Rule
 	  ;;
 	  (insert "\n\nall:")
 	  (mapc (lambda (c)
@@ -156,19 +156,31 @@ MFILENAME is the makefile to generate."
 		  )
 		sp)
 	  (insert "\n\n")
+	  ;;
+	  ;; Add in the include files
+	  ;;
+	  (mapc (lambda (c)
+		  (insert "include " c "\n\n"))
+		(oref this include-file))
 	  ;; Some C inference rules
 	  ;; Dependency rules borrowed from automake.
 	  (if (and (oref this automatic-dependencies) df)
 	      (insert "DEPS_MAGIC := $(shell mkdir .deps > /dev/null "
 		      "2>&1 || :)\n"
 		      "-include $(DEP_FILES)\n\n"))
+	  ;;
 	  ;; General makefile rules stored in the individual targets
+	  ;;
 	  (ede-compiler-begin-unique
 	    (ede-proj-makefile-insert-rules this)
 	    (mapc 'ede-proj-makefile-insert-rules targ))
+	  ;;
 	  ;; phony targets for sub projects
+	  ;;
 	  (mapc 'ede-proj-makefile-insert-subproj-rules sp)
+	  ;;
 	  ;; Distribution rules such as CLEAN and DIST
+	  ;;
 	  (when isdist
 	    (ede-proj-makefile-tags this mt)
 	    (ede-proj-makefile-insert-dist-rules this)))
@@ -196,16 +208,21 @@ MFILENAME is the makefile to generate."
 
 ;;; VARIABLE insertion
 ;;
+(defun ede-pmake-end-of-variable ()
+  "Move to the end of the variable declaration under point."
+  (end-of-line)
+  (while (= (preceding-char) ?\\)
+    (forward-char 1)
+    (end-of-line))
+  )
+
 (defmacro ede-pmake-insert-variable-shared (varname &rest body)
   "Add VARNAME into the current Makefile.
 Execute BODY in a location where a value can be placed."
   `(let ((addcr t) (v ,varname))
        (if (re-search-backward (concat "^" v "\\s-*=") nil t)
 	   (progn
-	     (end-of-line)
-	     (while (= (following-char) ?\\)
-	       (forward-char 1)
-	       (end-of-line))
+	     (ede-pmake-end-of-variable)
 	     (if (< (current-column) 40)
 		 (if (and (/= (preceding-char) ?=)
 			  (/= (preceding-char) ? ))
