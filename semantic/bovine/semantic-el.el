@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.15 2003/08/26 20:12:15 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.16 2003/08/31 01:52:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -169,6 +169,7 @@ Return a bovination list to use."
        sn nil (semantic-elisp-desymbolify (nth 2 rt))
        'user-visible (equal (car-safe (nth 4 rt)) 'interactive)
        :documentation (semantic-elisp-do-doc (nth 3 rt))
+       :overloadable (eq ts 'define-overload)
        )
       )
      ((eq ts 'autoload)
@@ -292,16 +293,47 @@ syntax as specified by the syntax table."
 	    (locate-library (semantic-tag-name tag)))))
     (concat f ".el")))
 
+(defun semantic-emacs-lisp-overridable-doc (tag)
+  "Return the documentation string generated for overloadable functions.
+Fetch the item for TAG.  Only returns info about what symbols can be
+used to perform the override."
+  (if (and (eq (semantic-tag-class tag) 'function)
+	   (semantic-tag-get-attribute tag :overloadable))
+      ;; Calc the doc to use for the overloadable symbols.
+	(semantic-overload-docstring-extension
+	 (semantic-overload-symbol-from-function
+	  (intern (semantic-tag-name tag))))
+    ""))
+
+(defun semantic-emacs-lisp-obsoleted-doc (tag)
+  "Indicate that TAG is a new name that has obsoleted  some old name.
+Unfortunately, this requires that the tag in question has been loaded
+into Emacs Lisp's memory."
+  (let ((obsoletethis (intern-soft (semantic-tag-name tag)))
+	(obsoletor nil))
+    ;; This asks if our tag is available in the Emacs name space for querying.
+    (when obsoletethis
+      (mapatoms (lambda (a)
+		  (let ((oi (get a 'byte-obsolete-info)))
+		    (if (and oi (eq (car oi) obsoletethis))
+			(setq obsoletor a)))))
+      (if obsoletor
+	  (format "\n@obsolete{%s,%s}" obsoletor (semantic-tag-name tag))
+	""))))
+
 (define-mode-overload-implementation semantic-documentation-for-tag
   emacs-lisp-mode (tag &optional nosnarf)
   "Return the documentation string for TAG.
 Optional argument NOSNARF is ignored."
   (let ((d (semantic-tag-docstring tag)))
     (if d
-	(substitute-command-keys
-	 (if (and (> (length d) 0) (= (aref d 0) ?*))
-	     (substring d 1)
-	   d))
+	(concat
+	 (substitute-command-keys
+	  (if (and (> (length d) 0) (= (aref d 0) ?*))
+	      (substring d 1)
+	    d))
+	 (semantic-emacs-lisp-overridable-doc tag)
+	 (semantic-emacs-lisp-obsoleted-doc tag))
       ;; doc isn't in the tag itself.  Lets pull it out of the sources.
       ;; If the tag isn't cooked, then we had just recursed.
       (when (semantic-overlay-p (semantic-tag-overlay tag))
