@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.194 2000/12/11 23:32:41 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.195 2000/12/13 01:41:53 zappo Exp $
 
 (defvar speedbar-version "0.14"
   "The current version of speedbar.")
@@ -796,6 +796,7 @@ This basically creates a sparse keymap, and makes it's parent be
   (define-key speedbar-file-key-map "D" 'speedbar-item-delete)
   (define-key speedbar-file-key-map "O" 'speedbar-item-object-delete)
   (define-key speedbar-file-key-map "R" 'speedbar-item-rename)
+  (define-key speedbar-file-key-map "M" 'speedbar-create-directory)
   )
 
 (defvar speedbar-easymenu-definition-base
@@ -844,6 +845,8 @@ This basically creates a sparse keymap, and makes it's parent be
     ["Copy File" speedbar-item-copy
      (save-excursion (beginning-of-line) (looking-at "[0-9]+: *\\["))]
     ["Rename File" speedbar-item-rename
+     (save-excursion (beginning-of-line) (looking-at "[0-9]+: *[[<]"))]
+    ["Create Directory" speedbar-create-directory
      (save-excursion (beginning-of-line) (looking-at "[0-9]+: *[[<]"))]
     ["Delete File" speedbar-item-delete
      (save-excursion (beginning-of-line) (looking-at "[0-9]+: *[[<]"))]
@@ -1092,9 +1095,10 @@ frame and window to be the currently active frame and window."
 	(let* ((w (or (speedbar-frame-width) 20))
 	       (p1 "<<")
 	       (p5 ">>")
-	       (p3 (if speedbar-update-flag "SPEEDBAR" "SLOWBAR"))
-	       (blank (- w (length p1) (length p3) (length p5)
-			 (if line-number-mode 4 0)))
+	       (p3 (if speedbar-update-flag "#" "!"))
+	       (p35 (capitalize speedbar-initial-expansion-list-name))
+	       (blank (- w (length p1) (length p3) (length p5) (length p35)
+			 (if line-number-mode 5 1)))
 	       (p2 (if (> blank 0)
 		       (make-string (/ blank 2) ? )
 		     ""))
@@ -1103,7 +1107,7 @@ frame and window to be the currently active frame and window."
 		     ""))
 	       (tf
 		(if line-number-mode
-		    (list (concat p1 p2 p3) '(line-number-mode " %3l")
+		    (list (concat p1 p2 p3 " " p35) '(line-number-mode " %3l")
 			  (concat p4 p5))
 		  (list (concat p1 p2 p3 p4 p5)))))
 	  (if (not (equal mode-line-format tf))
@@ -1143,7 +1147,11 @@ and the existence of packages."
 				    (list
 				     'speedbar-change-initial-expansion-list
 				     (car (car alist)))
-				    t)
+				    :style 'radio
+				    :selected
+				    `(string= ,(car (car alist))
+					 speedbar-initial-expansion-list-name)
+				    )
 				   displays))
 			    (setq alist (cdr alist)))
 			  displays)))
@@ -1205,7 +1213,7 @@ and the existence of packages."
 (defun speedbar-show-info-under-mouse ()
   "Call the info function for the line under the mouse.
 Optional EVENT is currently not used."
-  (let ((pos (mouse-position)))  ; we ignore event until I use it later.
+  (let ((pos (mouse-position)))	; we ignore event until I use it later.
     (if (equal (car pos) speedbar-frame)
 	(save-excursion
 	  (save-window-excursion
@@ -1234,14 +1242,14 @@ of intermediate nodes are skipped."
 			       (if (looking-at "[0-9]+:")
 				   (string-to-int (match-string 0))
 				 0)))
-	(crement (if (< arg 0) 1 -1)) ; decrement or increment
+	(crement (if (< arg 0) 1 -1))	; decrement or increment
 	(lastmatch (point)))
     (while (/= arg 0)
       (forward-line (- crement))
       (let ((subdepth (save-excursion (beginning-of-line)
-			       (if (looking-at "[0-9]+:")
-				   (string-to-int (match-string 0))
-				 0))))
+				      (if (looking-at "[0-9]+:")
+					  (string-to-int (match-string 0))
+					0))))
 	(cond ((or (< subdepth depth)
 		   (progn (end-of-line) (eobp))
 		   (progn (beginning-of-line) (bobp)))
@@ -1425,18 +1433,18 @@ nil if not applicable."
 	(if (re-search-forward " [+-]?[()|@] \\([^\n]+\\)$" nil t)
 	    (let* ((detailtext (match-string 1))
 		   (detail (or (speedbar-line-token) detailtext))
-		  (parent (save-excursion
-			    (beginning-of-line)
-			    (let ((dep (if (looking-at "[0-9]+:")
-					   (1- (string-to-int (match-string 0)))
-					 0)))
-			      (re-search-backward (concat "^"
-							   (int-to-string dep)
-							   ":")
-						  nil t))
-			    (if (looking-at "[0-9]+: +[-+=>]> \\([^\n]+\\)$")
-				(speedbar-line-token)
-			      nil))))
+		   (parent (save-excursion
+			     (beginning-of-line)
+			     (let ((dep (if (looking-at "[0-9]+:")
+					    (1- (string-to-int (match-string 0)))
+					  0)))
+			       (re-search-backward (concat "^"
+			       (int-to-string dep)
+			       ":")
+						   nil t))
+			     (if (looking-at "[0-9]+: +[-+=>]> \\([^\n]+\\)$")
+				 (speedbar-line-token)
+			       nil))))
 	      (if (and (featurep 'semantic) (semantic-token-p detail))
 		  (speedbar-message
 		   (semantic-summerize-nonterminal detail parent))
@@ -1515,6 +1523,21 @@ Files can be renamed to new names or moved to new directories."
 		      (speedbar-refresh)
 		      (speedbar-goto-this-file rt)
 		      )))))
+      (error "Not a file"))))
+
+(defun speedbar-create-directory ()
+  "Create a directory in speedbar."
+  (interactive)
+  (let ((f (speedbar-line-file)))
+    (if f
+	(let* ((basedir (file-name-directory f))
+	       (nd (read-file-name "Create directory: "
+				   basedir)))
+	  ;; Make the directory
+	  (make-directory nd t)
+	  (speedbar-refresh)
+	  (speedbar-goto-this-file nd)
+	  )
       (error "Not a file"))))
 
 (defun speedbar-item-delete ()
