@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.7 1999/03/20 17:14:35 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.8 1999/03/20 17:34:24 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -134,7 +134,8 @@ MFILENAME is the makefile to generate."
 				   ")")
 		       (setq tmp (cdr tmp)))
 		(insert " $(ede_FILES) $(DISTDIR)\n"
-			"\ttar -cvzf $(DISTDIR).tar.gz $(DISTDIR)\n\n"
+			"\ttar -cvzf $(DISTDIR).tar.gz $(DISTDIR)\n"
+			"\trm -rf $(DISTDIR)\n\n"
 			mfilename ": "
 			(file-name-nondirectory (oref this file)) "\n"
 			"\t@echo Makefile is out of date!  "
