@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.25 2004/02/05 03:18:24 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.26 2004/02/05 03:54:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -139,6 +139,10 @@
 
 (defvar semantic-complete-inline-overlay nil
   "The overlay currently active while completing inline.")
+
+(defun semantic-completion-inline-active-p ()
+  "Non-nil if inline completion is active."
+  semantic-complete-inline-overlay)
 
 ;;; ------------------------------------------------------------
 ;;; MINIBUFFER or INLINE utils
@@ -648,24 +652,29 @@ a reasonable distance."
       (semantic-complete-inline-exit))
      (t
       ;; Else, show completions now
-      (condition-case e
-	  (save-excursion
-	    (let ((collector semantic-completion-collector-engine)
-		  (displayor semantic-completion-display-engine)
-		  (contents (semantic-completion-text)))
-	      (when collector
-		(semantic-collector-calculate-completions
-		 collector contents nil)
-		(semantic-displayor-set-completions
-		 displayor
-		 (semantic-collector-all-completions collector contents)
-		 contents)
-		;; Ask the displayor to display them.
-		(semantic-displayor-show-request displayor))
-	      ))
-	(error (message "Bug Showing Completions: %S" e)))
+      (semantic-complete-inline-force-display)
     
       ))))
+
+(defun semantic-complete-inline-force-display ()
+  "Force the display of whatever the current completions are.
+DO NOT CALL THIS IF THE INLINE COMPLETION ENGINE IS NOT ACTIVE."
+  (condition-case e
+      (save-excursion
+	(let ((collector semantic-completion-collector-engine)
+	      (displayor semantic-completion-display-engine)
+	      (contents (semantic-completion-text)))
+	  (when collector
+	    (semantic-collector-calculate-completions
+	     collector contents nil)
+	    (semantic-displayor-set-completions
+	     displayor
+	     (semantic-collector-all-completions collector contents)
+	     contents)
+	    ;; Ask the displayor to display them.
+	    (semantic-displayor-show-request displayor))
+	  ))
+    (error (message "Bug Showing Completions: %S" e))))
 
 (defun semantic-complete-inline-tag-engine
   (collector displayor buffer start end)
@@ -1377,7 +1386,8 @@ if `force-show' is 0, this value is always ignored.")
       ;; If we cannot use tooltips, then go to the normal mode with
       ;; a traditional completion buffer.
       (call-next-method)
-    (let* ((table (semanticdb-strip-find-results (oref obj table)))
+    (let* ((tablelong (semanticdb-strip-find-results (oref obj table)))
+	   (table (semantic-unique-tag-table-by-name tablelong))
 	   (l (mapcar semantic-completion-displayor-format-tag-function table))
 	   (ll (length l))
 	   (typing-count (oref obj typing-count))
@@ -1536,19 +1546,32 @@ CONTEXT is the semantic analyzer context to start with.
 See `semantic-complete-inline-tag-engine' for details on how
 completion works."
   (if (not context) (setq context (semantic-analyze-current-context (point))))
-  (let* ((syms (semantic-ctxt-current-symbol (point)))
-	 (inp (car (reverse syms))))
-    (setq syms (nreverse (cdr (nreverse syms))))
-    (semantic-complete-inline-tag-engine
-     (semantic-collector-analyze-completions
-      "inline"
-      :buffer (oref context buffer)
-      :context context)
-     (semantic-displayor-tooltip "simple")
-     (oref context buffer)
-     (car (oref context bounds))
-     (cdr (oref context bounds))
-     )))
+  (let* ((collector (semantic-collector-analyze-completions
+		     "inline"
+		     :buffer (oref context buffer)
+		     :context context))
+	 (syms (semantic-ctxt-current-symbol (point)))
+	 (thissym (car (reverse syms)))
+	 (complst nil))
+    (when (and thissym (not (string= thissym "")))
+      ;; Do a quick calcuation of completions.
+      (semantic-collector-calculate-completions
+       collector thissym nil)
+      ;; Get the master list
+      (setq complst (semanticdb-strip-find-results
+		     (semantic-collector-all-completions collector thissym)))
+      ;; Shorten by name
+      (setq complst (semantic-unique-tag-table-by-name complst))
+      ;; Don't do anything iff the symbol is unique, or if
+      ;; there are no completions.
+      (when (> (length complst) 1)
+	(semantic-complete-inline-tag-engine
+	 collector
+	 (semantic-displayor-tooltip "simple")
+	 (oref context buffer)
+	 (car (oref context bounds))
+	 (cdr (oref context bounds))
+	 )))))
 
 
 ;;; ------------------------------------------------------------
@@ -1614,8 +1637,15 @@ possible values.
 The function returns immediately, leaving the buffer in a mode that
 will perform the completion."
   (interactive)
-  (semantic-complete-inline-analyzer
-   (semantic-analyze-current-context (point))))
+  ;; Only do this if we are not already completing something.
+  (if (not (semantic-completion-inline-active-p))
+      (semantic-complete-inline-analyzer
+       (semantic-analyze-current-context (point))))
+  ;; Report a message if things didn't startup.
+  (if (and (interactive-p)
+	   (not (semantic-completion-inline-active-p)))
+      (message "Inline completion not needed."))
+  )
 
 ;; End
 (provide 'semantic-complete)
