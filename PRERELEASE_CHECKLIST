@@ -14,6 +14,13 @@ CEDET & Common area
      - Windows
      - Other
 
+  * Check version numbers of different tools.
+     - Check the declared version numbers.
+     - Make sure that if changes were made to those modules, the version
+       is updated.
+     - Check `inversion' based requires to make sure the correct dependencies
+       exist.
+
   * Start in a clean Emacs:
     - Start emacs this way:
 
@@ -30,6 +37,9 @@ EIEIO
     M-x load-library RET eieio-tests RET
 
 Semantic
+
+  * Make sure the semanticdb inversion check against persistent file loading
+    is updated if the file-format has changed.
 
   * In a clean Emacs  
 
@@ -78,6 +88,8 @@ Semantic
       M-x semantic-test-data-cache RET
         - Make sure the cache hasn't been corrupted while working on
 	  all the above
+
+  * Try semantic-regtest.el (from CVS).
 
 Speedbar
 
