@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.46 2001/10/08 21:15:33 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.47 2001/10/24 01:16:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -85,13 +85,13 @@
   ,(semantic-lambda
   (list ( concat (nth 0 vals) (nth 1 vals) ( car (nth 2 vals))))))
  ) ; end filename
- (unionpartsparts
+ (unionparts
  ( semantic-list
   ,(semantic-lambda
  
  (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'classsubparts)
  ))
- ) ; end unionpartsparts
+ ) ; end unionparts
  (classsubparts
  ( open-paren "{"
   ,(semantic-lambda
@@ -118,13 +118,22 @@
  ))
  ) ; end opt-class-parents
  (class-parents
- ( opt-class-protection symbol punctuation "\\b,\\b" class-parents
+ ( opt-class-protection opt-class-declmods symbol punctuation "\\b,\\b" class-parents
   ,(semantic-lambda
-  ( cons (nth 1 vals) (nth 3 vals))))
+  ( cons (nth 2 vals) (nth 4 vals))))
  ( opt-class-protection symbol
   ,(semantic-lambda
   (list (nth 1 vals))))
  ) ; end class-parents
+ (opt-class-declmods
+ ( class-declmods opt-class-declmods
+  ,(semantic-lambda
+  (list nil)))
+ ()
+ ) ; end opt-class-declmods
+ (class-declmods
+ ( VIRTUAL)
+ ) ; end class-declmods
  (opt-class-protection
  ( PUBLIC)
  ( PRIVATE)
@@ -186,7 +195,7 @@
   (nth 1 vals) (list 'type) (nth 0 vals) (list ( let ( ( semantic-c-classname ( cons ( car (nth 1 vals)) ( car (nth 0 vals)))))
  (semantic-bovinate-from-nonterminal-full (car (nth 3 vals)) (cdr (nth 3 vals)) 'classsubparts)
  )) (nth 2 vals) (list nil nil)))
- ( UNION opt-name classparts
+ ( UNION opt-name unionparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
  ( ENUM opt-name enumparts
@@ -286,18 +295,28 @@
  ( declmods typeformbase metadeclmod opt-ref var-or-func-decl
   ,(semantic-lambda
   ( semantic-c-reconstitute-token (nth 4 vals) (nth 0 vals) (nth 1 vals))))
- ( declmods var-or-func-decl
+ ( declmods var-decl
   ,(semantic-lambda
   ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
  ) ; end var-or-fun
  (var-or-func-decl
+ ( func-decl
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ( var-decl
+  ,(semantic-lambda
+  (nth 0 vals)))
+ ) ; end var-or-func-decl
+ (func-decl
  ( opt-stars opt-class opt-destructor functionname opt-under-p arg-list opt-post-fcn-modifiers opt-throw opt-initializers fun-or-proto-end
   ,(semantic-lambda
   (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 5 vals) (nth 7 vals)) (nth 6 vals) (nth 0 vals) (nth 9 vals)))
+ ) ; end func-decl
+ (var-decl
  ( varnamelist punctuation "\\b;\\b"
   ,(semantic-lambda
   (list (nth 0 vals) 'variable)))
- ) ; end var-or-func-decl
+ ) ; end var-decl
  (opt-under-p
  ( UNDERP
   ,(semantic-lambda
@@ -309,7 +328,7 @@
  ) ; end opt-under-p
  (opt-initializers
  ( punctuation "\\b:\\b" symbol semantic-list opt-initializers)
- ( punctuation "\\b,\\b" symbol semantic-list opt-initializers)
+ ( punctuation "\\b,\\b" opt-initializers)
  ()
  ) ; end opt-initializers
  (opt-post-fcn-modifiers
@@ -502,17 +521,29 @@
  ( string
   ,(semantic-lambda
  ))
+ ( semantic-list expression
+  ,(semantic-lambda
+ ))
  ( semantic-list
   ,(semantic-lambda
  ))
- ( punctuation "[-+*/%^|&]" expression)
+ ( punctuation "[-+*/%^|&]" expression
+  ,(semantic-lambda
+  (list nil)))
  ) ; end expression
  )
-       "C language specification.")
+   "C language specification.")
 
 (defvar semantic-flex-c-extensions
-  '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
+  '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
+    ("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
   "Extensions to the flexer for C.")
+
+(defun semantic-flex-c-if-0 ()
+  "Move cursor to the matching endif, and return nothing."
+  (beginning-of-line)
+  (c-forward-conditional 1)
+  nil)
 
 (defun semantic-flex-c-if ()
   "Move the cursor and return nil when a #if is found."
