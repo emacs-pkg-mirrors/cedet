@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.27 1999/12/01 02:30:00 zappo Exp $
+@c $Id: eieio.texi,v 1.28 1999/12/01 14:00:08 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -1009,9 +1009,6 @@ recursive functions.
 @item chart
 Draw bar charts from data.  Examples include displaying sizes of emacs
 values, file distribution, and rmail distributions.
-@item dbif
-Database interface object for emacs.  So far, on psql (PostgreSQL) is
-supported with @file{psql.el}
 @end table
 
 @node Function Index,  , Demo Programs, Top
