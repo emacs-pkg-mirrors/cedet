@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.11 2002/08/08 16:04:38 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.12 2002/08/09 23:24:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -442,6 +442,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
   (run-hooks 'semantic-edits-incremental-reparse-failed-hooks)
   )
 
+;;;###autoload
 (defun semantic-edits-incremental-parser ()
   "Incrementally reparse the current buffer.
 Incremental parser allows semantic to only reparse those sections of
@@ -480,10 +481,6 @@ the semantic cache to see what needs to be changed."
             ;; changes in one function, for example.)
             ;; Optimize for the simple cases here, but try to handle
             ;; complex ones too.
-
-	    ;; REMOVE LATER
-	    (if change-group
-		(error "Change-group not flushed at start of change loop"))
 
             (while (and changes         ; we still have changes
                         (or (not parse-start)
