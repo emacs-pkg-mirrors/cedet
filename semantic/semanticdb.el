@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.43 2002/08/11 01:44:38 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.44 2002/08/17 14:03:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -147,6 +147,12 @@ If the table for FILE does not exist, create one."
       (oset newtab parent-db db)
       (object-add-to-list db 'tables newtab t))
     newtab))
+
+(defun semanticdb-get-database (filename)
+  "Get a database for FILENAME.
+If one isn't found, create one."
+  (or (semanticdb-file-loaded-p filename)
+      (semanticdb-create-database filename)))
 
 (defun semanticdb-directory-loaded-p (path)
   "Return the project belonging to PATH if it was already loaded."
