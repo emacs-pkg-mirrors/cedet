@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.14 2003/01/06 16:45:54 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.15 2003/01/24 05:45:19 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,8 +34,8 @@
 ;; --------
 %{
   (setq
-   ;;"Regexp matching python raw string prefix."
-   wisent-python-raw-string-re "\\<[r]['\"]"
+   ;;"Regexp matching beginning of python string."
+   wisent-python-string-re "[rR]?[uU]?['\"]"
 
    ;; Character used to separation a parent/child relationship
    semantic-type-relation-separator-character '(".")
@@ -44,12 +44,12 @@
    wisent-python-lexer-indent-stack '(0)
 
    semantic-lex-analyzer #'semantic-python-lexer
-   semantic-lex-depth	nil
+   semantic-lex-depth	0
    )
 
   %}
 
-%outputfile    "wisent-python.el"
+%outputfile    "python-05.el"
 %parsetable    wisent-python-parser-tables
 %keywordtable  wisent-python-keywords
 %tokentable    wisent-python-tokens
@@ -68,7 +68,6 @@
 %put punctuation {string t multiple t}
 
 %token <newline>     NEWLINE
-%put newline handler wisent-python-lex-newline
 
 ;; ---------------------
 ;; Parenthesis terminals
@@ -80,8 +79,12 @@
 %token <open-paren>  LBRACK 	"["
 %token <close-paren> RBRACK 	"]"
 
-%put open-paren  handler wisent-python-lex-open-paren
-%put close-paren handler wisent-python-lex-close-paren
+;; ---------------
+;; Block terminals
+;; ---------------
+%token <semantic-list> PAREN_BLOCK     "^("
+%token <semantic-list> BRACE_BLOCK     "^{"
+%token <semantic-list> BRACK_BLOCK     "^\\["
 
 ;; ------------------
 ;; Operator terminals
@@ -127,7 +130,6 @@
 
 %token <charquote>   BACKSLASH 	"\\"
 %put charquote string t
-%put charquote handler wisent-python-lex-backslash
 
 ;; -----------------
 ;; Literal terminals
@@ -137,12 +139,8 @@
 
 %token <symbol>      NAME
 
-;; Handle 'bol tokens via function `wisent-python-lex-bol'
-%token <bol> INDENT DEDENT
-%put bol handler wisent-python-lex-bol
-
-%token <raw-string>  RAW_STRING_LITERAL
-%put raw-string handler wisent-python-raw-string-handler
+%token	     INDENT
+%token	     DEDENT
 
 ;; -----------------
 ;; Keyword terminals
@@ -266,170 +264,97 @@
 
 %%
 
-;; TODO: figure out why enabling file_input and eval_input causes problems.
-;;  -ryk 6/17/02 8:24pm.
-goal
-  : single_input
- ;;| file_input
- ;;| eval_input
-  ;
+;;;****************************************************************************
+;;;@ goal
+;;;****************************************************************************
 
-;; single_input: NEWLINE | simple_stmt | compound_stmt NEWLINE
-single_input
+goal
   : NEWLINE
   | simple_stmt
   | compound_stmt NEWLINE
+    (identity $1)
   ;
 
-;; Could be EMPTY except for ENDMARKER!
-;; file_input: (NEWLINE | stmt)* ENDMARKER
-file_input
-  : stmt_list ENDMARKER
-  ;
-
-;; What is ENDMARKER?
-;; Make it empty non-terminal until I figure out what it is.  -ryk 6/11/02 10:10pm.
-ENDMARKER
-  : ;;EMPTY
-  ;
-
-;; Could be EMPTY!
-;; (NEWLINE | stmt)*
-stmt_list
-  : ;;EMPTY
-  | stmt_list newline_or_stmt
-  ;
-
-;; NEWLINE | stmt
-newline_or_stmt
-  : NEWLINE
-  | stmt
-  ;
-
-;; eval_input: testlist NEWLINE* ENDMARKER
-eval_input
-  : testlist newline_list ENDMARKER
-  ;
-
-;; Could be EMPTY.
-;; NEWLINE*
-newline_list
-  : ;;EMPTY
-  | newline_list NEWLINE
-    (format "%s" $2)
-  ;
-
-;; varargslist: (fpdef ['=' test] ',')* ('*' NAME [',' '**' NAME] | '**' NAME) | fpdef ['=' test] (',' fpdef ['=' test])* [',']
-varargslist
-  : fpdef_opt_test_list comma_mult_name_opt
-    (format "%s %s" $1 (or $2 ""))
-  | mult_name
-  ;
-
-;; fpdef ['=' test] (',' fpdef ['=' test])*
-fpdef_opt_test_list
-  : fpdef_opt_test
-  | fpdef_opt_test_list COMMA fpdef_opt_test
-    (format "%s, %s" $1 (or $3 ""))
-  ;
-
-;; fpdef ['=' test]
-fpdef_opt_test
-  : fpdef eq_test_opt
-    (format "%s %S" $1 (or $2 ""))
-  ;
-
-;; [',' ('*' NAME [',' '**' NAME] | '**' NAME)]
-comma_mult_name_opt
-  : ;;EMPTY
-  | COMMA mult_name
-  ;
-
-;; ['=' test]
-eq_test_opt
-  : ;;EMPTY
-  | ASSIGN test
-    (format " = %s" $2)
-  ;
-
-;; ('*' NAME [',' '**' NAME] | '**' NAME)
-mult_name
-  : MULT NAME multmult_name_opt
-  | EXPONENT NAME
-  ;
-
-;; [',' '**' NAME]
-multmult_name_opt
-  : ;;EMPTY
-  | COMMA EXPONENT NAME
-    (format ", ** %s" $3)
-  ;
-
-;; fpdef: NAME | '(' fplist ')'
-fpdef
-  : NAME
-  | LPAREN fplist RPAREN
-    (format "(%s)" (or $2 ""))
-  ;
-
-;; fplist: fpdef (',' fpdef)* [',']
-fplist
-  : fpdef_list comma_opt
-    (format "%s %s" (or $1 "") (or $2 ""))
-  ;
-
-;; fpdef (',' fpdef)*
-fpdef_list
-  : fpdef
-  | fpdef_list COMMA fpdef
-    (format "%s, %s" $1 $3)
-  ;
-
-;; stmt: simple_stmt | compound_stmt
-stmt
-  : simple_stmt
-  | compound_stmt
-  ;
+;;;****************************************************************************
+;;;@ simple_stmt
+;;;****************************************************************************
 
 ;; simple_stmt: small_stmt (';' small_stmt)* [';'] NEWLINE
 simple_stmt
   : small_stmt_list semicolon_opt NEWLINE
-    (wisent-token (format "%s %s" $1 (or $2 "")) 'simple_stmt nil nil)
+    (identity $1)
   ;
 
 ;; small_stmt (';' small_stmt)*
 small_stmt_list
   : small_stmt
   | small_stmt_list SEMICOLON small_stmt
-    (format "%s; %s" $1 $3)
-  ;
-
-;; [';']
-semicolon_opt
-  : ;;EMPTY
-  | SEMICOLON
+    (identity $1)
   ;
 
 ;; small_stmt: expr_stmt | print_stmt  | del_stmt | pass_stmt | flow_stmt
 ;;           | import_stmt | global_stmt | exec_stmt | assert_stmt
 small_stmt
-  : expr_stmt | print_stmt | del_stmt | pass_stmt | flow_stmt
-  | import_stmt | global_stmt | exec_stmt | assert_stmt
+  : print_stmt
+  | expr_stmt
+  | del_stmt
+  | pass_stmt
+  | flow_stmt
+  | import_stmt
+  | global_stmt
+  | exec_stmt
+  | assert_stmt
   ;
+
+;;;============================================================================
+;;;@@ print_stmt
+;;;============================================================================
+
+;; # For normal assignments, additional restrictions enforced by the interpreter
+;; print_stmt: 'print' ( [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ] )
+print_stmt
+  : PRINT print_stmt_trailer
+    (wisent-token $2 'print nil nil)
+  ;
+
+;; [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ]
+print_stmt_trailer
+  : test_list_opt
+    (or $1 "")
+  | GTGT test trailing_test_list_with_opt_comma_opt
+    (identity $2)
+  ;
+
+;; [ (',' test)+ [','] ]
+trailing_test_list_with_opt_comma_opt
+  : ;;EMPTY
+  | trailing_test_list comma_opt
+    ()
+  ;
+
+;; (',' test)+
+trailing_test_list
+  : COMMA test
+    ()
+  | trailing_test_list COMMA test
+    ()
+  ;
+
+;;;============================================================================
+;;;@@ expr_stmt
+;;;============================================================================
 
 ;; expr_stmt: testlist (augassign testlist | ('=' testlist)*)
 expr_stmt
   : testlist expr_stmt_trailer
-    (if $2
-	(format "%s %s" $1 $2)
-      (format "%s" $1))
+    (wisent-token $1 'expr nil nil)
   ;
 
 ;; Could be EMPTY because of eq_testlist_zom.
 ;; (augassign testlist | ('=' testlist)*)
 expr_stmt_trailer
   : augassign testlist
-    (format "%s %s" $1 $2)
+    ()
   | eq_testlist_zom
   ;
 
@@ -438,7 +363,7 @@ expr_stmt_trailer
 eq_testlist_zom
   : ;;EMPTY
   | eq_testlist_zom ASSIGN testlist
-    (format "%s = %s" (or $1 "") $3)
+    ()
   ;
 
 ;; augassign: '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^='
@@ -449,54 +374,42 @@ augassign
   | GTGTEQ | EXPEQ | DIVDIVEQ
   ;
 
-;; # For normal assignments, additional restrictions enforced by the interpreter
-;; print_stmt: 'print' ( [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ] )
-print_stmt
-  : PRINT print_stmt_trailer
-    (if $2
-	(format "%s %s" $1 $2)
-      (format "%s" $1))
-  ;
-
-;; [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ]
-print_stmt_trailer
-  : test_list_with_opt_comma_opt
-  | GTGT test trailing_test_list_with_opt_comma_opt
-    (if $3
-	(format "%s %s %s" $1 $2 $3)
-      (format "%s %s" $1 $2))
-  ;
-
-;; [ (',' test)+ [','] ]
-trailing_test_list_with_opt_comma_opt
-  : ;;EMPTY
-  | trailing_test_list comma_opt
-  ;
-
-;; (',' test)+
-trailing_test_list
-  : COMMA test
-    (format ", %s" $2)
-  | trailing_test_list COMMA test
-    (format "%s, %s" $1 $3)
-  ;
-
-;; [ test (',' test)* [','] ]
-test_list_with_opt_comma_opt
-  : ;;EMPTY
-  | testlist
-  ;
+;;;============================================================================
+;;;@@ del_stmt
+;;;============================================================================
 
 ;; del_stmt: 'del' exprlist
 del_stmt
   : DEL exprlist
-    (format "del %s" $2)
+    (wisent-token $1 'del nil nil)
   ;
+
+;; exprlist: expr (',' expr)* [',']
+exprlist
+  : expr_list comma_opt
+    (identity $1)
+  ;
+
+;; expr (',' expr)*
+expr_list
+  : expr
+  | expr_list COMMA expr
+    (format "%s, %s" $1 $3)
+  ;
+
+;;;============================================================================
+;;;@@ pass_stmt
+;;;============================================================================
 
 ;; pass_stmt: 'pass'
 pass_stmt
   : PASS
+    (wisent-token $1 'pass nil nil)
   ;
+
+;;;============================================================================
+;;;@@ flow_stmt
+;;;============================================================================
 
 ;; flow_stmt: break_stmt | continue_stmt | return_stmt | raise_stmt | yield_stmt
 flow_stmt
@@ -510,19 +423,19 @@ flow_stmt
 ;; break_stmt: 'break'
 break_stmt
   : BREAK
+    (wisent-token $1 'break nil nil)
   ;
 
 ;; continue_stmt: 'continue'
 continue_stmt
   : CONTINUE
+    (wisent-token $1 'continue nil nil)
   ;
 
 ;; return_stmt: 'return' [testlist]
 return_stmt
   : RETURN testlist_opt
-    (if $2
-	(format "return %s" $2)
-      "return")
+    (wisent-token $1 'return nil nil)
   ;
 
 ;; [testlist]
@@ -534,130 +447,154 @@ testlist_opt
 ;; yield_stmt: 'yield' testlist
 yield_stmt
   : YIELD testlist
-    (format "%s %s" $1 $2)
+    (wisent-token $1 'yield nil nil)
   ;
 
 ;; raise_stmt: 'raise' [test [',' test [',' test]]]
 raise_stmt
   : RAISE zero_one_two_or_three_tests
+    (wisent-token $2 'raise nil nil)
   ;
 
 ;; [test [',' test [',' test]]]
 zero_one_two_or_three_tests
   : ;;EMPTY
+    (identity "")
   | test zero_one_or_two_tests
-    (format "%s %s" $1 (or $2 ""))
+    (identity $1)
   ;
 
 ;; [',' test [',' test]]
 zero_one_or_two_tests
   : ;;EMPTY
   | COMMA test zero_or_one_comma_test
-    (format ", %s %s" $2 (or $3 ""))
+    ()
   ;
 
 ;; [',' test]
 zero_or_one_comma_test
   : ;;EMPTY
   | COMMA test
-    (format ", %s" $2)
+    ()
   ;
+
+;;;============================================================================
+;;;@@ import_stmt
+;;;============================================================================
 
 ;; import_stmt : 'import' dotted_as_name (',' dotted_as_name)*
 ;;             | 'from' dotted_name 'import' ('*' | import_as_name (',' import_as_name)*)
 import_stmt
   : IMPORT dotted_as_name_list
-    (format "import %s" $2)
+    (wisent-token (format "%s" $2) 'import nil nil)
   | FROM dotted_name IMPORT star_or_import_as_name_list
-    (format "from %s import %s" $2 (or $4 ""))
+    (wisent-token $2 'import nil nil)
   ;
 
 ;; dotted_as_name (',' dotted_as_name)*
 dotted_as_name_list
   : dotted_as_name
   | dotted_as_name_list COMMA dotted_as_name
-    (format "%s, %s" $1 $3)
+    (identity $1)
   ;
 
 ;; ('*' | import_as_name (',' import_as_name)*)
 star_or_import_as_name_list
   : MULT
+    ()
   | import_as_name_list
+    ()
   ;
 
 ;; import_as_name (',' import_as_name)*
 import_as_name_list
   : import_as_name
+    ()
   | import_as_name_list COMMA import_as_name
-    (format "%s, %s" $1 $3)
+    ()
   ;
 
 ;; import_as_name: NAME [NAME NAME]
 import_as_name
   : NAME name_name_opt
-    (format "%s %s" $1 (or $2 ""))
+    ()
   ;
 
 ;; dotted_as_name: dotted_name [NAME NAME]
 dotted_as_name
   : dotted_name name_name_opt
-    (format "%s %s" $1 (or $2 ""))
+    (identity $1)
   ;
 
 ;; [NAME NAME]
 name_name_opt
   : ;;EMPTY
   | NAME NAME
-    (format "%s %s" $1 $2)
+    ()
   ;
 
 ;; dotted_name: NAME ('.' NAME)*
 dotted_name
   : NAME
   | dotted_name PERIOD NAME
-    (format "%s %s %s" (or $1 "") $2 $3)
+    (format "%s.%s" $1 $3)
   ;
+
+;;;============================================================================
+;;;@@ global_stmt
+;;;============================================================================
 
 ;; global_stmt: 'global' NAME (',' NAME)*
 global_stmt
   : GLOBAL comma_sep_name_list
-    (format "global %s" $2)
+    (wisent-token $2 'global nil nil)
   ;
 
 ;; NAME (',' NAME)*
 comma_sep_name_list
   : NAME
   | comma_sep_name_list COMMA NAME
-    (format "%s %s %s" $1 $2 $3)
+    (format "%s" $1)
   ;
+
+;;;============================================================================
+;;;@@ exec_stmt
+;;;============================================================================
 
 ;; exec_stmt: 'exec' expr ['in' test [',' test]]
 exec_stmt
   : EXEC expr exec_trailer
-    (format "exec %s %s" $2 (or $3 ""))
+    (wisent-token (format "%s %s" $2 $3) 'exec nil nil)
   ;
 
 ;; ['in' test [',' test]]
 exec_trailer
   : ;;EMPTY
   | IN test comma_test_opt
-    (format "in %s %s" $2 (or $3 ""))
+    ()
   ;
 
 ;; [',' test]
 comma_test_opt
   : ;;EMPTY
   | COMMA test
-    (format ", %s" $2)
+    ()
   ;
+
+;;;============================================================================
+;;;@@ assert_stmt
+;;;============================================================================
 
 ;; assert_stmt: 'assert' test [',' test]
 assert_stmt
   : ASSERT test comma_test_opt
-    (format "assert %s %s" $2 (or $3 ""))
+    (wisent-token $2 'assert nil nil)
   ;
 
-;; compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | funcdef | classdef
+;;;****************************************************************************
+;;;@ compound_stmt
+;;;****************************************************************************
+
 compound_stmt
   : if_stmt
   | while_stmt
@@ -667,45 +604,83 @@ compound_stmt
   | classdef
   ;
 
+;;;============================================================================
+;;;@@ if_stmt
+;;;============================================================================
+
 ;; if_stmt: 'if' test ':' suite ('elif' test ':' suite)* ['else' ':' suite]
 if_stmt
   : IF test COLON suite elif_suite_pair_list else_suite_pair_opt
-    (wisent-token
-     (format "if %s: %s %s" $2 (or $4 "") (or $5 ""))
-     'if_stmt_list nil nil)
+    (wisent-token $2 'if nil nil)
   ;
 
 ;; ('elif' test ':' suite)*
 elif_suite_pair_list
   : ;;EMPTY
   | elif_suite_pair_list ELIF test COLON suite
-    (format "%s elif %s: %s" (or $1 "") $3 (or $5 ""))
+    ()
   ;
+
+;; ['else' ':' suite]
+else_suite_pair_opt
+  : ;;EMPTY
+  | ELSE COLON suite
+    ()
+  ;
+
+;; RYK: This NT follows the COLON terminal for most compound statements.
+;; suite: simple_stmt | NEWLINE INDENT stmt+ DEDENT
+suite
+  : simple_stmt
+    (list $1)
+  | NEWLINE INDENT stmt_oom DEDENT
+    (nreverse $3)
+  ;
+
+;; stmt+
+stmt_oom
+  : stmt
+    (list $1)
+  | stmt_oom stmt
+    (cons $2 $1)
+  ;
+
+;; stmt: simple_stmt | compound_stmt
+stmt
+  : simple_stmt
+  | compound_stmt
+  ;
+
+;;;============================================================================
+;;;@@ while_stmt
+;;;============================================================================
 
 ;; while_stmt: 'while' test ':' suite ['else' ':' suite]
 while_stmt
   : WHILE test COLON suite else_suite_pair_opt
-    (wisent-token
-     (format "while %s: %s %s" $2 (or $4 "") (or $5 ""))
-     'while_stmt_list nil nil)
+    (wisent-token $2 'while nil nil)
   ;
+
+;;;============================================================================
+;;;@@ for_stmt
+;;;============================================================================
 
 ;; for_stmt: 'for' exprlist 'in' testlist ':' suite ['else' ':' suite]
 for_stmt
   : FOR exprlist IN testlist COLON suite else_suite_pair_opt
- ;;(format "for %s in %s: %s %s" $2 $4 (or $6 "") (or $7 ""))
-    (wisent-token
-     (format "for %s in %s: %s %s" $2 $4 (or $6 "") (or $7 ""))
-     'for_stmt_list nil nil)
+    (wisent-token $2 'for nil nil)
   ;
+
+;;;============================================================================
+;;;@@ try_stmt
+;;;============================================================================
 
 ;; try_stmt: ('try' ':' suite (except_clause ':' suite)+ #diagram:break
 ;;            ['else' ':' suite] | 'try' ':' suite 'finally' ':' suite)
 try_stmt
   : TRY COLON suite except_clause_suite_pair_list else_suite_pair_opt
-    (wisent-token
-     (format "try: %s %s %s" $3 (or $4 "") (or $5 ""))
-     'try_stmt_list nil nil)
+    (wisent-token (format "try: %s %s %s" $3 (or $4 "") (or $5 ""))
+		  'try_stmt_list nil nil)
   | TRY COLON suite FINALLY COLON suite
     (wisent-token
      (format "try: %s finally: %s" $3 (or $6 ""))
@@ -720,13 +695,6 @@ except_clause_suite_pair_list
     (concat "except_clause_suite_pair_list")
   ;
 
-;; ['else' ':' suite]
-else_suite_pair_opt
-  : ;;EMPTY
-  | ELSE COLON suite
-    (format "else: %s" (or $3 ""))
-  ;
-
 ;; # NB compile.c makes sure that the default except clause is last
 ;; except_clause: 'except' [test [',' test]]
 except_clause
@@ -739,20 +707,43 @@ zero_one_or_two_test
   | test zero_or_one_comma_test
   ;
 
-;; RYK: This NT follows the COLON terminal for most compound statements.
-;; suite: simple_stmt | NEWLINE INDENT stmt+ DEDENT
-suite
-  : simple_stmt
-  | NEWLINE INDENT stmt_oom DEDENT
-    (format "%s" $3)
+;;;============================================================================
+;;;@@ funcdef
+;;;============================================================================
+
+;; funcdef: 'def' NAME parameters ':' suite
+funcdef
+ ;;  : DEF NAME parameters COLON suite
+  : DEF NAME PAREN_BLOCK COLON suite
+    (wisent-token $2 'function nil nil)
   ;
 
-;; stmt+
-stmt_oom
-  : stmt
-  | stmt_oom stmt
-    (format "%s; %s" $1 $2)
+;; parameters: '(' [varargslist] ')'
+parameters
+  : LPAREN varargslist_opt RPAREN
+    (format "%s" (or $2 ""))
   ;
+
+;;;============================================================================
+;;;@@ classdef
+;;;============================================================================
+
+;; classdef: 'class' NAME ['(' testlist ')'] ':' suite
+classdef
+  : CLASS NAME paren_testlist_opt COLON suite
+    (wisent-token $2 'type $1 $5 nil)
+  ;
+
+;; ['(' testlist ')']
+paren_testlist_opt
+  : ;;EMPTY
+ ;;| LPAREN testlist RPAREN
+  | PAREN_BLOCK
+  ;
+
+;;;****************************************************************************
+;;;@ test
+;;;****************************************************************************
 
 ;; test: and_test ('or' and_test)* | lambdef
 test
@@ -777,7 +768,7 @@ and_test
 ;; not_test: 'not' not_test | comparison
 not_test
   : NOT not_test
-    (format "%s %s" $1 $2)
+    (format "NOT %s" $1)
   | comparison
   ;
 
@@ -871,217 +862,86 @@ prefix_operators
 ;; power: atom trailer* ('**' factor)*
 power
   : atom trailer_zom exponent_zom
-    (format "%s %s %s" $1 (or $2 "") (or $3 ""))
+    (concat $1
+	    (if $2 (concat " " $2 " ") "")
+	    (if $3 (concat " " $3) "")
+	    )
   ;
 
 trailer_zom
   : ;;EMPTY
   | trailer_zom trailer
-    (format "%s %s" (or $1 "") $2)
+    (format "(%s %s)" (or $1 "") $2)
   ;
 
 exponent_zom
   : ;;EMPTY
   | exponent_zom EXPONENT factor
-    (format "%s ** %s" (or $1 "") $3)
-  ;
-
-;; atom: '(' [testlist] ')' | '[' [listmaker] ']' | '{' [dictmaker] '}' | '`' testlist '`' | NAME | NUMBER | STRING+
-atom
-  : LPAREN testlist_opt RPAREN
-    (format "(%s)" (or $2 ""))
-  | LBRACK listmaker_opt RBRACK
-    (format "[%s]" (or $2 ""))
-  | LBRACE dictmaker_opt RBRACE
-    (format "{%s}" (or $2 ""))
-  | BACKQUOTE testlist BACKQUOTE
-    (format "`%s`" (or $2 ""))
-  | NAME
-  | NUMBER_LITERAL
-  | one_or_more_string
-  ;
-
-listmaker_opt
-  : ;;EMPTY
-  | listmaker
-  ;
-
-dictmaker_opt
-  : ;;EMPTY
-  | dictmaker
-  ;
-
-;; (read $1) and (read $2) were done before to peel away the double quotes.
-;; However that does not work for single quotes, so it was taken out.
-;;  -ryk6/21/02.
-one_or_more_string
-  : STRING_LITERAL
-  | one_or_more_string STRING_LITERAL
-    (format "%s %s" $1 $2)
-  ;
-
-;; listmaker: test ( list_for | (',' test)* [','] )
-listmaker
-  : test listmaker_trailer
-  ;
-
-;; ( list_for | (',' test)* [','] )
-listmaker_trailer
-  : list_for
-  | testlist_trailer comma_opt
-  ;
-
-;; (',' test)*
-testlist_trailer
-  : ;;EMPTY
-  | testlist_trailer COMMA test
-    (format "%s %s %s" $1 $2 $3)
-  ;
-
-;; lambdef: 'lambda' [varargslist] ':' test
-lambdef
-  : LAMBDA varargslist_opt COLON test
-    (format "%s %s %s" $1 $2 $3)
+    (format "(%s ** %s)" (or $1 "") $3)
   ;
 
 ;; trailer: '(' [arglist] ')' | '[' subscriptlist ']' | '.' NAME
 trailer
-  : LPAREN arglist_opt RPAREN
-    (format "(%s)" (or $2 ""))
-  | LBRACK subscriptlist RBRACK
-    (format "[%s]" (or $2 ""))
+  : PAREN_BLOCK
+  | BRACK_BLOCK
   | PERIOD NAME
-    (format ".%s" $2)
+    (concat "." $2)
   ;
 
-;; [arglist]
-arglist_opt
+;; atom: '(' [testlist] ')' | '[' [listmaker] ']' | '{' [dictmaker] '}' | '`' testlist '`' | NAME | NUMBER | STRING+
+atom
+  : PAREN_BLOCK
+    (format "%s" $1)
+  | BRACK_BLOCK
+    (format "%s" $1)
+  | BRACE_BLOCK
+    (format "%s" $1)
+  | BACKQUOTE testlist BACKQUOTE
+    ()
+  | NAME
+  | NUMBER_LITERAL
+    (concat $1)
+  | one_or_more_string
+  ;
+
+test_list_opt
   : ;;EMPTY
-  | arglist
-  ;
-
-;; subscriptlist: subscript (',' subscript)* [',']
-subscriptlist
-  : comma_sep_subscript_list comma_opt
-    (format "%s %s" (or $1 "") (or $2 ""))
-  ;
-
-;; subscript (',' subscript)*
-comma_sep_subscript_list
-  : subscript
-  | comma_sep_subscript_list COMMA subscript
-  ;
-
-;; subscript: '.' '.' '.' | test | [test] ':' [test] [sliceop]
-subscript
-  : PERIOD PERIOD PERIOD
-    (format "...")
-  | test
-  | zero_or_one_test COLON zero_or_one_test zero_or_one_sliceop
-    (format "%s : %s %s" (or $1 "") (or $3 "") (or $4 ""))
-  ;
-
-;; [sliceop]
-zero_or_one_sliceop
-  : ;;EMPTY
-  | sliceop
-  ;
-
-;; sliceop: ':' [test]
-sliceop
-  : COLON zero_or_one_test
-    (format ": %s" (or $2 ""))
-  ;
-
-;; [test]
-zero_or_one_test
-  : ;;EMPTY
-  | test
-  ;
-
-;; exprlist: expr (',' expr)* [',']
-exprlist
-  : expr_list comma_opt
-    (format "%s %s" (or $1 "") (or $2 ""))
-  ;
-
-;; expr (',' expr)*
-expr_list
-  : expr
-  | expr_list COMMA expr
-    (format "%s, %s" $1 $2)
+  | testlist
   ;
 
 ;; testlist: test (',' test)* [',']
 testlist
   : comma_sep_test_list comma_opt
-    (if $2
-	(format "%s %s" $1 $2)
-      (format "%s" $1))
+    (identity $1)
   ;
 
 ;; test (',' test)*
 comma_sep_test_list
   : test
   | comma_sep_test_list COMMA test
+    (format "%s, %s" $1 $3)
+  ;
+
+;; (read $1) and (read $2) were done before to peel away the double quotes.
+;; However that does not work for single quotes, so it was taken out.
+one_or_more_string
+  : STRING_LITERAL
+    (let ((len (length $1)))
+      (substring $1 0 (if (> len 16) 16 len)))	;; limit string to 16 chars
+  | one_or_more_string STRING_LITERAL
+    (let* ((s (concat $1 $2))
+	   (len (length s)))
+      (substring s 0 (if (> len 16) 16 len))) 	;; limit string to 16 chars
+  ;
+
+;;;****************************************************************************
+;;;@ lambdef
+;;;****************************************************************************
+
+;; lambdef: 'lambda' [varargslist] ':' test
+lambdef
+  : LAMBDA varargslist_opt COLON test
     (format "%s %s %s" $1 $2 $3)
-  ;
-
-;; [',']
-comma_opt
-  : ;;EMPTY
-  | COMMA
-  ;
-
-;; How is testlist_safe different with testlist??? -ryk 6/13/02
-;; testlist_safe: test [(',' test)+ [',']]
-testlist_safe
-  : test testlist_safe_trailer_opt
-    (if $2 (format "%s %s" $1 $2)
-      (format "%s" $1))
-  ;
-
-;; [(',' test)+ [',']]
-testlist_safe_trailer_opt
-  : ;; EMPTY
-  | testlist_safe_term comma_opt
-    (if $2 (format "%s %s" $1 $2)
-      (format "%s" $1))
-  ;
-
-;; (',' test)+
-testlist_safe_term
-  : COMMA test
-    (format "%s %s" $1 $2)
-  | testlist_safe_term COMMA test
-    (format "%s %s %s" $1 $2 $3)
-  ;
-
-;; dictmaker: test ':' test (',' test ':' test)* [',']
-dictmaker
-  : test COLON test colon_sep_test comma_opt
-    (format "%s : %s %s %s" $1 $3 $4 (or $5 ""))
-  ;
-
-;; (',' test ':' test)*
-colon_sep_test
-  : ;;EMPTY
-  | colon_sep_test COMMA test COLON test
-    (format "%s, %s : %s" (or $1 "") $3 $4)
-  ;
-
-;; funcdef: 'def' NAME parameters ':' suite
-funcdef
-  : DEF NAME parameters COLON suite
-    (wisent-token
-     (format "def %s(%s): %s" $2 (or $3 "") (or $5 ""))
-     'funcdef nil nil)
-  ;
-
-;; parameters: '(' [varargslist] ')'
-parameters
-  : LPAREN varargslist_opt RPAREN
-    (format "(%s)" (or $2 ""))
   ;
 
 ;; [varargslist]
@@ -1090,90 +950,87 @@ varargslist_opt
   | varargslist
   ;
 
-;; classdef: 'class' NAME ['(' testlist ')'] ':' suite
-classdef
-  : CLASS NAME paren_testlist_opt COLON suite
-    (wisent-token
-     (format "class %s %s: %s" $2 (or $3 "") (or $5 ""))
-     'classdef_stmt_list nil nil)
+;; varargslist: (fpdef ['=' test] ',')* ('*' NAME [',' '**' NAME] | '**' NAME)
+;;             | fpdef ['=' test] (',' fpdef ['=' test])* [',']
+varargslist
+  : fpdef_opt_test_list comma_mult_name_opt
+    (format "%s %s" $1 (or $2 ""))
+  | mult_name
   ;
 
-;; ['(' testlist ')']
-paren_testlist_opt
+;; [',' ('*' NAME [',' '**' NAME] | '**' NAME)]
+comma_mult_name_opt
   : ;;EMPTY
-  | LPAREN testlist RPAREN
+  | COMMA mult_name
+  ;
+
+;; ('*' NAME [',' '**' NAME] | '**' NAME)
+mult_name
+  : MULT NAME multmult_name_opt
+  | EXPONENT NAME
+  ;
+
+;; [',' '**' NAME]
+multmult_name_opt
+  : ;;EMPTY
+  | COMMA EXPONENT NAME
+    (format ", ** %s" $3)
+  ;
+
+;; fpdef ['=' test] (',' fpdef ['=' test])*
+fpdef_opt_test_list
+  : fpdef_opt_test
+  | fpdef_opt_test_list COMMA fpdef_opt_test
+    (format "%s, %s" $1 (or $3 ""))
+  ;
+
+;; fpdef ['=' test]
+fpdef_opt_test
+  : fpdef eq_test_opt
+    (format "%s %S" $1 (or $2 ""))
+  ;
+
+;; fpdef: NAME | '(' fplist ')'
+fpdef
+  : NAME
+  | LPAREN fplist RPAREN
     (format "(%s)" (or $2 ""))
   ;
 
-;; arglist: (argument ',')* (argument [',']| '*' test [',' '**' test] | '**' test)
-arglist
-  : argument_comma_zom arglist_trailer
+;; fplist: fpdef (',' fpdef)* [',']
+fplist
+  : fpdef_list comma_opt
     (format "%s %s" (or $1 "") (or $2 ""))
   ;
 
-;; (argument ',')*
-argument_comma_zom
+;; fpdef (',' fpdef)*
+fpdef_list
+  : fpdef
+  | fpdef_list COMMA fpdef
+    (format "%s, %s" $1 $3)
+  ;
+
+;; ['=' test]
+eq_test_opt
   : ;;EMPTY
-  | argument_comma_zom argument COMMA
-    (format "%s %s," (or $1 "") $2)
+  | ASSIGN test
+    (format " = %s" $2)
   ;
 
-;; (argument [',']| '*' test [',' '**' test] | '**' test)
-arglist_trailer
-  : argument comma_opt
-    (format "%s%s" $1 (or $2 ""))
-  | MULT test comma_mult_mult_test_opt
-    (format "* %s %s" (or $2 "") (or $3 ""))
-  | EXPONENT test
-    (format "** %s" (or $2 ""))
-  ;
+;;;****************************************************************************
+;;;@ Misc
+;;;****************************************************************************
 
-;; [',' '**' test]
-comma_mult_mult_test_opt
+;; [',']
+comma_opt
   : ;;EMPTY
-  | COMMA EXPONENT test
-    (format ", ** %s" (or $3 ""))
+  | COMMA
   ;
 
-;; TODO: The rule from the Grammar file was substituted with
-;; TODO: argument: test ['=' test]
-;; TODO: in order to successfully parse expression such as f(x).
-;;
-;; argument: [test '='] test	# Really [keyword '='] test
- ;;  : test_eq_opt test
- ;;    (format "%s %s" (or $1 "") $2)
-argument
-  : test eq_test_opt
-    (format "%s" $2)
-  ;
-
-;; [test '=']
-test_eq_opt
+;; [';']
+semicolon_opt
   : ;;EMPTY
-  | test ASSIGN
-    (format "%s = " $1)
-  ;
-
-;; list_iter: list_for | list_if
-list_iter
-  : list_for
-  | list_if
-  ;
-
-;; list_for: 'for' exprlist 'in' testlist_safe [list_iter]
-list_for
-  : FOR exprlist IN testlist_safe list_iter_opt
-  ;
-
-;; list_if: 'if' test [list_iter]
-list_if
-  : IF test list_iter_opt
-  ;
-
-;; [list_iter]
-list_iter_opt
-  : ;;EMPTY
-  | list_iter
+  | SEMICOLON
   ;
 
 ;;; wisent-python.wy ends here
