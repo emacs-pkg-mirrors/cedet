@@ -1,10 +1,10 @@
 ;;; ede-proj-info.el --- EDE Generic Project texinfo support
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-info.el,v 1.11 2000/09/29 03:08:57 zappo Exp $
+;; RCS: $Id: ede-proj-info.el,v 1.12 2001/04/27 00:18:05 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -31,7 +31,8 @@
 (defclass ede-proj-target-makefile-info (ede-proj-target-makefile)
   ((menu :initform nil)
    (keybindings :initform nil)
-   (availablecompilers :initform (ede-makeinfo-compiler))
+   (availablecompilers :initform (ede-makeinfo-compiler
+				  ede-texi2html-compiler))
    (sourcetype :initform (ede-makeinfo-source))
    (mainmenu :initarg :mainmenu
 	     :initform ""
@@ -45,7 +46,7 @@ All other sources should be included independently."))
   (ede-sourcecode "ede-makeinfo-source"
 		  :name "Texinfo"
 		  :sourcepattern "\\.texi?$"
-		  :garbagepattern '("*.info"))
+		  :garbagepattern '("*.info" "*.html"))
   "Texinfo source code definition.")
 
 (defvar ede-makeinfo-compiler
@@ -53,11 +54,21 @@ All other sources should be included independently."))
    "ede-makeinfo-compiler"
    :name "makeinfo"
    :variables '(("MAKEINFO" . "makeinfo"))
-   :commands '("makeinfo -o $@ $<")
+   :commands '("$(MAKEINFO) -o $@ $<")
    :autoconf '(("AC_CHECK_PROG" . "MAKEINFO, makeinfo"))
    :sourcetype '(ede-makeinfo-source)
    )
   "Compile texinfo files into info files.")
+
+(defvar ede-texi2html-compiler
+  (ede-compiler
+   "ede-texi2html-compiler"
+   :name "texi2html"
+   :variables '(("TEXI2HTML" . "makeinfo -html"))
+   :commands '("makeinfo -o $@ $<")
+   :sourcetype '(ede-makeinfo-source)
+   )
+  "Compile texinfo files into html files.")
 
 ;;; Makefile generation
 ;;
@@ -100,6 +111,24 @@ when working in Automake mode."
 		(oref this mainmenu)
 	      (car (oref this source)))))
     (concat (file-name-sans-extension mm) ".info")))
+
+(defmethod ede-proj-makefile-insert-dist-dependencies ((this ede-proj-target-makefile-info))
+  "Insert any symbols that the DIST rule should depend on.
+Texinfo files want to insert generated `.info' files.
+Argument THIS is the target which needs to insert an info file."
+  ;; In some cases, this is ONLY the index file.  That should generally
+  ;; be ok.
+  (insert " " (ede-proj-makefile-target-name this))
+  )
+
+(defmethod ede-proj-makefile-insert-dist-filepatterns ((this ede-proj-target-makefile-info))
+  "Insert any symbols that the DIST rule should depend on.
+Texinfo files want to insert generated `.info' files.
+Argument THIS is the target which needs to insert an info file."
+  ;; In some cases, this is ONLY the index file.  That should generally
+  ;; be ok.
+  (insert " " (ede-proj-makefile-target-name this) "*")
+  )
 
 ;  (let ((n (ede-name this)))
 ;    (if (string-match "\\.info$" n)
