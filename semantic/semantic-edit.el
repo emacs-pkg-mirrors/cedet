@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.25 2004/06/09 18:30:21 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.26 2004/06/12 13:01:37 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -463,14 +463,23 @@ the buffer that have changed.  This function depends on
 `semantic-edits-change-function-handle-changes' setting up change
 overlays in the current buffer.  Those overlays are analyzed against
 the semantic cache to see what needs to be changed."
-    (semantic-safe "incremental parser error: %S"
-      (let ((changed-tags (catch 'semantic-parse-changes-failed
-                            (semantic-edits-incremental-parser-1))))
-        (when (eq changed-tags t)
-          ;; Force a full reparse.
-          (semantic-edits-incremental-fail)
-          (setq changed-tags nil))
-        changed-tags)))
+  (let ((changed-tags
+         ;; Don't use `semantic-safe' here to explicitly catch errors
+         ;; and reset the parse tree.
+         (catch 'semantic-parse-changes-failed
+           (if debug-on-error
+               (semantic-edits-incremental-parser-1)
+             (condition-case err
+                 (semantic-edits-incremental-parser-1)
+               (error
+                (message "incremental parser error: %S"
+                         (error-message-string err))
+                t))))))
+    (when (eq changed-tags t)
+      ;; Force a full reparse.
+      (semantic-edits-incremental-fail)
+      (setq changed-tags nil))
+    changed-tags))
 
 (defun semantic-edits-incremental-parser-1 ()
   "Incrementally reparse the current buffer.
