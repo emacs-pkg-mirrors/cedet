@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.9 2000/06/03 15:08:09 zappo Exp $
+@c $Id: speedbar.texi,v 1.10 2000/07/13 19:13:38 zappo Exp $
 @c
 
 @c This manual covers the tool "speedbar", and is a part of it's
@@ -626,6 +626,7 @@ with a stack fetching command.
 
 @node Customizing, Extending, Minor Modes, Top
 @comment  node-name,  next,  previous,  up
+@chapter Customizing
 @cindex customizing
 
 Speedbar is highly customizable, with a plethora of control elements.
@@ -706,17 +707,19 @@ hierarchy processor.  The specific variable to use is
 can be applied in any order.  they are:
 
 @table @code
-@item sort
-Sort the tags in the list alphabetically.
-@item trim-words
-If all tags in a group start with the same thing, trim it off to the
-nearest _ or - character.
-@item prefix-group
-Try to guess group names based on a common prefix.
-@item simple-group
-If Imenu returned some tags which are not in a group, create a group for
-the ungrouped items.
+@item speedbar-trim-words-tag-hierarchy
+Find a common prefix for all elements of a group, and trim it off.
+@item speedbar-prefix-group-tag-hierarchy
+If a group is too large, place sets of tags into bins based on common
+prefixes.
+@item speedbar-simple-group-tag-hierarchy
+Take all items in the top level list not in a group, and stick them into
+a `Tags' group.
+@item speedbar-sort-tag-hierarchy
+Sort all items, leaving groups on top.
 @end table
+
+You can also add your own functions to reorganize tags as you see fit.
 
 Some other control variables are:
 
@@ -845,7 +848,7 @@ learn how to write your own major or minor display mode.
 @end menu
 
 @node Minor Display Modes, Major Display Modes, Extending, Extending
-@chapter Minor Display Modes
+@section Minor Display Modes
 @cindex create minor display mode
 
 A minor display mode is a mode useful when using a specific type of
@@ -894,7 +897,7 @@ display.  Once done, you need to erase the speedbar buffer yourself, and
 start drawing buttons. @xref{Creating a display}.
 
 @node Major Display Modes, Tagging Extentions, Minor Display Modes, Extending
-@chapter Major Display Modes
+@section Major Display Modes
 @cindex create major display mode
 
 Creating a Major Display Mode for speedbar requires authoring a keymap,
@@ -1014,7 +1017,7 @@ Once you have done all this, speedbar will show a little entry in the
 Displays menu declaring that your extension is available.
 
 @node Tagging Extentions, Creating a display, Major Display Modes, Extending
-@chapter Tagging Extentions
+@section Tagging Extentions
 
 It is possible to create new methods for tagging files in speedbar.
 To do this, you need two basic functions.  One function will fetch the
@@ -1052,7 +1055,7 @@ is either a buffer local modification, or that the tag generator returns
 t for non valid buffers.
 
 @node Creating a display, , Tagging Extentions, Extending
-@chapter Creating a display
+@section Creating a display
 @cindex creating a display
 
 Rendering a display in speedbar is completely flexible.  When your
@@ -1095,9 +1098,9 @@ Create a tag line with @var{exp-button-type} for the small expansion
 button.  This is the button that expands or contracts a node (if
 applicable), and @var{exp-button-char} the character in it (+, -, ?,
 etc).  @var{exp-button-function} is the function to call if it's clicked
-on.  Button types are @code{'bracket}, @code{'angle}, @code{'curly}, or
-nil.  @var{exp-button-data} is extra data attached to the text forming
-the expansion button.
+on.  Button types are @code{'bracket}, @code{'angle}, @code{'curly},
+@code{'expandtag}, @code{'statictag}, or nil.  @var{exp-button-data} is
+extra data attached to the text forming the expansion button.
 
 Next, @var{tag-button} is the text of the tag.
 @var{tag-button-function} is the function to call if clicked on, and
@@ -1119,6 +1122,36 @@ tags (to expand into more nodes) and those with positions or other data
 just get a > as the indicator.  @samp{@{+@}} buttons will have the
 function @var{expand-fun} and the token is the @code{cdr} list.  The
 token name will have the function @var{find-fun} and not token.
+
+Each element of the list can have one of these forms:
+@table @code
+@item ("name" . marker-or-number)
+one tag at this level
+@item ("name" ("name" . marker-or-number) ("name" . marker-or-number) ... )
+One group of tags
+@item ("name" mon ("name" . marker-or-number) ... )
+One Group of tags where the group has a starting position
+@end table
+
+When you use @code{speedbar-insert-generic-list}, there are some
+variables you can set buffer-locally to change the behavior.  The most
+obvious is @code{speedbar-tag-hierarchy-method}.
+@xref{Tag Hierarchy Methods}.
+
+@defvar speedbar-generic-list-group-expand-button-type
+This is the button type used for groups of tags, weather expanded,
+or added in via a hierarchy method.  Two good values are
+@code{'curly} and @code{'expandtag}.  Curly is the default button, and
+@code{'expandtag} is useful if the group also has a position.
+@end defvar
+
+@defvar speedbar-generic-list-tag-button-type
+This is the button type used for a single tag.
+Two good values are @code{nil} and @code{'statictag}.
+@code{nil} is the default, and @code{'statictag} has the same width as
+@code{'expandtag}.
+@end defvar
+
 @end defun
 
 @node Index, , Extending, Top
