@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.3 2003/08/01 17:28:58 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.4 2003/09/02 16:17:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,7 +41,7 @@ TAG may be a stripped element, in which case PARENT specifies a
 parent tag that has position information.
 Different behaviors are provided depending on the type of tag.
 For example, dependencies (includes) will seek out the file that is
-depended on (see `semantic-go-to-tag--dependency'.."
+depended on (see `semantic-dependency-tag-file'."
   (if (not tag)
       (setq tag (car (semantic-find-tag-by-overlay nil))))
   (if (and (eq (semantic-tag-class tag) 'include)
