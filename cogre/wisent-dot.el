@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.el,v 1.1 2003/03/26 03:21:52 zappo Exp $
+;; X-RCS: $Id: wisent-dot.el,v 1.2 2003/03/26 04:06:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,12 +33,12 @@
 (require 'wisent-bovine)
 
 (defconst wisent-dot-automaton
-  ;;DO NOT EDIT! Generated from wisent-dot.wy - 2003-03-25 22:17-0500
+  ;;DO NOT EDIT! Generated from wisent-dot.wy - 2003-03-25 23:05-0500
   (progn
     (eval-when-compile
       (require 'wisent-comp))
     (wisent-compile-grammar
-     '((DIGRAPH GRAPH SUBGRAPH NODE SHAPE LABEL COLOR STYLE LEN WIDTH HEIGHT SPLINES OVERLAP DILINK LINK symbol string EQUAL SEMI COMMA BRACKET_BLOCK BRACE_BLOCK LBRACE RBRACE LBRACKET RBRACKET)
+     '((DIGRAPH GRAPH SUBGRAPH NODE SHAPE LABEL COLOR STYLE LEN FONTNAME FONTSIZE WIDTH HEIGHT SPLINES OVERLAP DILINK LINK symbol string number EQUAL SEMI COMMA BRACKET_BLOCK BRACE_BLOCK LBRACE RBRACE LBRACKET RBRACKET)
        nil
        (dot_file
 	((digraph))
@@ -66,6 +66,7 @@
 	 nil)
 	((label))
 	((style))
+	((graph-attributes))
 	((subgraph))
 	((node))
 	((named-node))
@@ -94,6 +95,14 @@
 			 (car $region2)
 			 (cdr $region2)
 			 'node-description 1)))))
+       (graph-attributes
+	((GRAPH BRACKET_BLOCK SEMI)
+	 (wisent-raw-tag
+	  (semantic-tag "GRAPH" 'graph-attributes :attributes
+			(semantic-parse-region
+			 (car $region2)
+			 (cdr $region2)
+			 'node-description 1)))))
        (named-node
 	((symbol BRACKET_BLOCK SEMI)
 	 (wisent-raw-tag
@@ -114,18 +123,38 @@
 	  (semantic-tag $1 'attribute :value $3)))
 	((LABEL EQUAL string)
 	 (wisent-raw-tag
+	  (semantic-tag $1 'attribute :value $3)))
+	((FONTNAME EQUAL string)
+	 (wisent-raw-tag
+	  (semantic-tag $1 'attribute :value $3)))
+	((FONTSIZE EQUAL number)
+	 (wisent-raw-tag
+	  (semantic-tag $1 'attribute :value $3)))
+	((symbol EQUAL symbol)
+	 (wisent-raw-tag
 	  (semantic-tag $1 'attribute :value $3))))
        (links
-	((symbol DILINK symbol SEMI)
+	((symbol DILINK symbol opt-link-attributes opt-semi)
 	 (wisent-raw-tag
-	  (semantic-tag $1 'link :to $3)))
-	((BRACE_BLOCK))))
+	  (semantic-tag $1 'link :to $3 :attributes $4)))
+	((BRACE_BLOCK)))
+       (opt-semi
+	((SEMI)
+	 nil)
+	(nil))
+       (opt-link-attributes
+	((BRACKET_BLOCK)
+	 (semantic-parse-region
+	  (car $region1)
+	  (cdr $region1)
+	  'node-description 1))
+	(nil)))
      '(dot_file graph-contents node-description)))
   )
 
 
 (defconst wisent-dot-keywords
-  ;;DO NOT EDIT! Generated from wisent-dot.wy - 2003-03-25 22:17-0500
+  ;;DO NOT EDIT! Generated from wisent-dot.wy - 2003-03-25 23:05-0500
   (semantic-lex-make-keyword-table
    '(("digraph" . DIGRAPH)
      ("graph" . GRAPH)
@@ -136,14 +165,14 @@
      ("color" . COLOR)
      ("style" . STYLE)
      ("len" . LEN)
+     ("fontname" . FONTNAME)
+     ("fontsize" . FONTSIZE)
      ("width" . WIDTH)
      ("height" . HEIGHT)
      ("splines" . SPLINES)
-     ("overlap" . OVERLAP)
-     ("->" . DILINK)
-     ("--" . LINK))
-   '(("--" summary "<node> -- <node>;   Link")
-     ("->" summary "<node> -> <node>;    Directed link")
+     ("overlap" . OVERLAP))
+   '(("fontsize" summary "fontsize=<font-size-number>")
+     ("fontname" summary "fontname=<font-spec>")
      ("len" summary "len=<value>")
      ("style" summary "style=<style-spec>")
      ("color" summary "color=<color-spec>")
@@ -157,7 +186,7 @@
 
 
 (defconst wisent-dot-tokens
-  ;;DO NOT EDIT! Generated from wisent-dot.wy - 2003-03-25 22:17-0500
+  ;;DO NOT EDIT! Generated from wisent-dot.wy - 2003-03-25 23:05-0500
   (wisent-lex-make-token-table
    '(("close-paren"
       (RBRACKET . "]")
@@ -168,14 +197,18 @@
      ("semantic-list"
       (BRACE_BLOCK . "^{")
       (BRACKET_BLOCK . "^\\["))
-     ("punctuation"
-      (COMMA . ",")
-      (SEMI . ";")
-      (EQUAL . "="))
+     ("number"
+      (number))
      ("string"
       (string))
      ("symbol"
-      (symbol)))
+      (symbol))
+     ("punctuation"
+      (COMMA . ",")
+      (SEMI . ";")
+      (EQUAL . "=")
+      (LINK . "--")
+      (DILINK . "->")))
    'nil)
   "Tokens.")
 
@@ -203,7 +236,7 @@ It ignores whitespace, newlines nad comments."
 ;;;###autoload
 (defun wisent-dot-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-dot.wy - 2003-03-25 22:17-0500
+  ;;DO NOT EDIT! Generated from wisent-dot.wy - 2003-03-25 23:05-0500
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
