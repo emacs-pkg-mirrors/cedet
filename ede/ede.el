@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.21 1999/09/20 19:31:06 zappo Exp $
+;; RCS: $Id: ede.el,v 1.22 1999/11/08 19:02:13 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -49,6 +49,10 @@
 ;;; Code:
 (defvar ede-version "0.7"
   "Current version of the Emacs EDE.")
+
+(defun ede-version ()
+  "Display the current running version of EDE."
+  (interactive) (message "EDE %s" ede-version))
 
 ;; From custom web page for compatibility between versions of custom
 (eval-and-compile
@@ -310,40 +314,45 @@ Argument LIST-O-O is the list of objects to choose from."
 (make-variable-buffer-local 'ede-minor-target-keymap)
 
 (if ede-minor-keymap
-    (easy-menu-define
-     ede-minor-menu ede-minor-keymap "Project Minor Mode Menu"
-     '("Project"
-       [ "Build all" ede-compile-project nil ]
-       [ "Build Active Project" ede-compile-project t ]
-       [ "Build Active Target" ede-compile-target t ]
-       [ "Build Selected..." ede-compile-selected t ]
-       "---"
-       [ "Add File" ede-add-file (ede-current-project) ]
-       [ "Remove File" ede-remove-file
-	 (and ede-object
-	      (or (listp ede-object)
-		  (not (obj-of-class-p ede-object ede-project)))) ]
-       "---"
-       [ "Select Active Target" nil nil ]
-       [ "Add Target" ede-new-target (ede-current-project) ]
-       [ "Remove Target" ede-delete-target ede-object ]
-       [ "Target Preferences..." ede-customize-target
-	 (and ede-object
-	      (not (obj-of-class-p ede-object ede-project))) ]
-       "---"
-       [ "Select Active Project" nil nil ]
-       [ "Create Project" ede-new (not ede-object) ]
-       [ "Remove Project" nil nil ]
-       [ "Load a project" ede t ]
-       [ "Rescan Project Files" ede-rescan-toplevel t ]
-       [ "Customize Project" ede-customize-project (ede-current-project) ]
-       [ "Edit Projectfile" ede-edit-file-target
-	 (and ede-object
-	      (not (obj-of-class-p ede-object ede-project))) ]
-       [ "Make distribution" ede-make-dist t ]
-       "---"
-       [ "View Project Tree" ede-speedbar t ]
-       )))
+    (progn
+      (easy-menu-define
+       ede-minor-target-menu ede-minor-keymap "Target Minor Mode Menu"
+       '("Target" :filter ede-target-forms-menu))
+      (easy-menu-define
+       ede-minor-menu ede-minor-keymap "Project Minor Mode Menu"
+       '("Project"
+	 [ "Build all" ede-compile-project nil ]
+	 [ "Build Active Project" ede-compile-project t ]
+	 [ "Build Active Target" ede-compile-target t ]
+	 [ "Build Selected..." ede-compile-selected t ]
+	 "---"
+	 [ "Add File" ede-add-file (ede-current-project) ]
+	 [ "Remove File" ede-remove-file
+	   (and ede-object
+		(or (listp ede-object)
+		    (not (obj-of-class-p ede-object ede-project)))) ]
+	 "---"
+	 [ "Select Active Target" nil nil ]
+	 [ "Add Target" ede-new-target (ede-current-project) ]
+	 [ "Remove Target" ede-delete-target ede-object ]
+	 [ "Target Preferences..." ede-customize-target
+	   (and ede-object
+		(not (obj-of-class-p ede-object ede-project))) ]
+	 "---"
+	 [ "Select Active Project" nil nil ]
+	 [ "Create Project" ede-new (not ede-object) ]
+	 [ "Remove Project" nil nil ]
+	 [ "Load a project" ede t ]
+	 [ "Rescan Project Files" ede-rescan-toplevel t ]
+	 [ "Customize Project" ede-customize-project (ede-current-project) ]
+	 [ "Edit Projectfile" ede-edit-file-target
+	   (and ede-object
+		(not (obj-of-class-p ede-object ede-project))) ]
+	 [ "Make distribution" ede-make-dist t ]
+	 "---"
+	 [ "View Project Tree" ede-speedbar t ]
+	 ))
+      ))
 
 ;; Allow re-insertion of a new keymap
 (let ((a (assoc 'ede-minor-mode minor-mode-map-alist)))
@@ -352,10 +361,18 @@ Argument LIST-O-O is the list of objects to choose from."
     (add-to-list 'minor-mode-map-alist
 		 (cons 'ede-minor-mode
 		       ede-minor-keymap))
-    (add-to-list 'minor-mode-map-alist
-		 (cons 'ede-minor-mode
-		       ede-minor-target-keymap))
     ))
+
+(defun ede-minor-target-forms-menu (menu)
+  "Create a target MENU based on the object belonging to this buffer."
+  (easy-menu-filter-return
+   (easy-menu-create-menu "Target Forms"
+	 (mapcar (lambda (x)
+		   (let ((name (car x))
+			 (fsym (cdr x)))
+		     (vector name fsym t)))
+		 (let ((obj (or ede-selected-object ede-object)))
+		   (if (ede-target-p obj) (oref obj menu)))))))
 
 (defun ede-apply-object-keymap (&optional default)
   "Create keymap `ede-minor-target-keymap' with bindings for `ede-object'.
@@ -363,18 +380,11 @@ Optional argument DEFAULT indicates if this should be set to the default
 version of the keymap."
   (let ((object (or ede-object ede-selected-object)))
     (condition-case nil
-	(let ((keys (ede-object-keybindings object))
-	      (menu (ede-object-menu object)))
-	  (if default
-	      (setq-default ede-minor-target-keymap (make-sparse-keymap))
-	    (setq ede-minor-target-keymap (make-sparse-keymap)))
-	  ;; Create keymap under C-c ., then bind all these letters
-	  ;; under that.
-	  (mapcar (lambda (fnkey) (define-key ede-minor-target-keymap
-				    (car fnkey) (cdr fnkey))) keys)
-	  (easy-menu-define
-	   ede-minor-menu-2 ede-minor-target-keymap "Project Minor Mode Menu 2"
-	   (cons "Target" menu)))
+	(let ((keys (ede-object-keybindings object)))
+	  (while keys
+	    (local-set-key (concat "\C-c." (car (car keys)))
+			   (cdr (car keys)))
+	    (setq keys (cdr keys))))
       (error nil))))
 
 (autoload 'ede-dired-minor-mode "ede-dired" "EDE commands for dired" t)
