@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.56 2000/10/10 00:48:04 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.57 2000/10/12 22:15:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -224,31 +224,31 @@
 
 ;;; Compatibility
 ;;
-(if (fboundp 'make-overlay)
+(if (featurep 'xemacs)
     (progn
-      (defalias 'semantic-make-overlay 'make-overlay)
-      (defalias 'semantic-overlay-put 'overlay-put)
-      (defalias 'semantic-overlay-get 'overlay-get)
-      (defalias 'semantic-overlay-delete 'delete-overlay)
-      (defalias 'semantic-overlays-at 'overlays-at)
-      (defalias 'semantic-overlays-in 'overlays-in)
-      (defalias 'semantic-overlay-buffer 'overlay-buffer)
-      (defalias 'semantic-overlay-start 'overlay-start)
-      (defalias 'semantic-overlay-end 'overlay-end)
-      (defalias 'semantic-overlay-next-change 'next-overlay-change)
-      (defalias 'semantic-overlay-previous-change 'previous-overlay-change)
+      (defalias 'semantic-make-overlay 'make-extent)
+      (defalias 'semantic-overlay-put 'set-extent-property)
+      (defalias 'semantic-overlay-get 'get-extent-property)
+      (defalias 'semantic-overlay-delete 'delete-extent)
+      (defalias 'semantic-overlays-at 'extents-at)
+      (defalias 'semantic-overlays-in 'extents-in)
+      (defalias 'semantic-overlay-buffer 'extent-buffer)
+      (defalias 'semantic-overlay-start 'extent-start)
+      (defalias 'semantic-overlay-end 'extent-end)
+      (defalias 'semantic-overlay-next-change 'next-extent-change)
+      (defalias 'semantic-overlay-previous-change 'previous-extent-change)
       )
-  (defalias 'semantic-make-overlay 'make-extent)
-  (defalias 'semantic-overlay-put 'set-extent-property)
-  (defalias 'semantic-overlay-get 'get-extent-property)
-  (defalias 'semantic-overlay-delete 'delete-extent)
-  (defalias 'semantic-overlays-at 'extents-at)
-  (defalias 'semantic-overlays-in 'extents-in)
-  (defalias 'semantic-overlay-buffer 'extent-buffer)
-  (defalias 'semantic-overlay-start 'extent-start)
-  (defalias 'semantic-overlay-end 'extent-end)
-  (defalias 'semantic-overlay-next-change 'next-extent-change)
-  (defalias 'semantic-overlay-previous-change 'previous-extent-change)
+  (defalias 'semantic-make-overlay 'make-overlay)
+  (defalias 'semantic-overlay-put 'overlay-put)
+  (defalias 'semantic-overlay-get 'overlay-get)
+  (defalias 'semantic-overlay-delete 'delete-overlay)
+  (defalias 'semantic-overlays-at 'overlays-at)
+  (defalias 'semantic-overlays-in 'overlays-in)
+  (defalias 'semantic-overlay-buffer 'overlay-buffer)
+  (defalias 'semantic-overlay-start 'overlay-start)
+  (defalias 'semantic-overlay-end 'overlay-end)
+  (defalias 'semantic-overlay-next-change 'next-overlay-change)
+  (defalias 'semantic-overlay-previous-change 'previous-overlay-change)
   )
 
 (defvar semantic-edebug nil
@@ -431,6 +431,23 @@ This is tracked with `semantic-change-function'.")
 This function should behave as the function `semantic-bovinate-toplevel'.")
 (make-variable-buffer-local 'semantic-toplevel-bovinate-override)
 
+(defvar semantic-after-toplevel-bovinate-hook nil
+  "Hooks run after a toplevel token parse.
+For language specific hooks, make sure you define this as a local hook.")
+
+(defvar semantic-before-toplevel-cache-flush-hook nil
+  "Hooks run before the toplevel nonterminal cache is flushed.
+For language specific hooks, make sure you define this as a local hook.")
+
+(defvar semantic-reparse-needed-change-hook nil
+  "Hooks run when a user edit is detected as needing a reparse.
+For language specific hooks, make sure you define this as a local hook.")
+
+(defvar semantic-no-reparse-needed-change-hook nil
+  "Hooks run when a user edit is detected as not needing a reparse.
+If the hook returns non-nil, then declare that a reparse is needed.
+For language specific hooks, make sure you define this as a local hook.")
+
 
 ;;; Utility API functions
 ;;
@@ -514,6 +531,7 @@ If not provided, then only the POSITION can be provided."
 (defun semantic-clear-toplevel-cache ()
   "Clear the toplevel bovin cache for the current buffer."
   (interactive)
+  (run-hooks 'semantic-before-toplevel-cache-flush-hook)
   (setq semantic-toplevel-bovine-cache nil)
   ;; Nuke all semantic overlays.  This is faster than deleting based
   ;; on our data structure.
@@ -535,32 +553,34 @@ there has been a size change."
 	   checkcache
 	   semantic-toplevel-bovine-cache-check)
       (semantic-clear-toplevel-cache))
-  (cond
-   (semantic-toplevel-bovinate-override
-    (funcall semantic-toplevel-bovinate-override checkcache))
-   ((and semantic-toplevel-bovine-cache
-	 (car semantic-toplevel-bovine-cache)
-	 ;; Add a rule that knows how to see if there have
-	 ;; been "big chagnes"
-	 )
-    (car semantic-toplevel-bovine-cache))
-   (t
-    (let ((ss (semantic-flex (point-min) (point-max)))
-	  (res nil)
-	  (semantic-overlay-error-recovery-stack nil))
-      ;; Init a dump
-      (if semantic-dump-parse (semantic-dump-buffer-init))
-      ;; Parse!
-      (working-status-forms (buffer-name) "done"
-	(setq res
-	      (semantic-bovinate-nonterminals
-	       ss 'bovine-toplevel semantic-flex-depth))
-	(working-status t))
-      (setq semantic-toplevel-bovine-cache
-	    (list (nreverse res) (point-max))
-	    semantic-toplevel-bovine-cache-check nil)
-      (add-hook 'after-change-functions 'semantic-change-function nil t)
-      (car semantic-toplevel-bovine-cache)))))
+  (prog1
+      (cond
+       (semantic-toplevel-bovinate-override
+	(funcall semantic-toplevel-bovinate-override checkcache))
+       ((and semantic-toplevel-bovine-cache
+	     (car semantic-toplevel-bovine-cache)
+	     ;; Add a rule that knows how to see if there have
+	     ;; been "big chagnes"
+	     )
+	(car semantic-toplevel-bovine-cache))
+       (t
+	(let ((ss (semantic-flex (point-min) (point-max)))
+	      (res nil)
+	      (semantic-overlay-error-recovery-stack nil))
+	  ;; Init a dump
+	  (if semantic-dump-parse (semantic-dump-buffer-init))
+	  ;; Parse!
+	  (working-status-forms (buffer-name) "done"
+	    (setq res
+		  (semantic-bovinate-nonterminals
+		   ss 'bovine-toplevel semantic-flex-depth))
+	    (working-status t))
+	  (setq semantic-toplevel-bovine-cache
+		(list (nreverse res) (point-max))
+		semantic-toplevel-bovine-cache-check nil)
+	  (add-hook 'after-change-functions 'semantic-change-function nil t)
+	  (car semantic-toplevel-bovine-cache))))
+    (run-hooks 'semantic-after-toplevel-bovinate-hook)))
 
 (defun semantic-change-function (start end length)
   "Run whenever a buffer controlled by `semantic-mode' change.
@@ -581,15 +601,23 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	      (if (and (eq (semantic-token-token (car tl)) 'type)
 		       (not (cdr tl))
 		       (semantic-token-type-parts (car tl)))
-		  ;; This is between two items in a type with
-		  ;; stuff in it.
-		  (setq semantic-toplevel-bovine-cache-check t)
-		;; This is ok, chuck it.
-		nil))
+		  (progn
+		    ;; This is between two items in a type with
+		    ;; stuff in it.
+		    (setq semantic-toplevel-bovine-cache-check t)
+		    (run-hooks 'semantic-reparse-needed-change-hook))
+		;; This is might be ok, chuck it.
+		(if (run-hooks 'semantic-no-reparse-needed-change-hook)
+		    (progn
+		      ;; The hook says so, so flush it.
+		      (setq semantic-toplevel-bovine-cache-check t)
+		      (run-hooks 'semantic-reparse-needed-change-hook))
+		  nil)))
 	     ;; If we  cover the beginning or end of this item, we must
 	     ;; reparse this object.
 	     (t
-	      (setq semantic-toplevel-bovine-cache-check t)))
+	      (setq semantic-toplevel-bovine-cache-check t)
+	      (run-hooks 'semantic-reparse-needed-change-hook)))
 	    ;; next
 	    (setq tl (cdr tl)))
 	;; There was no hit, perhaps we need to reparse this intermediate area.
