@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.5 1999/05/06 21:55:18 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.6 1999/05/07 02:39:38 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -416,6 +416,7 @@ COLLECTION is the list of things collected so far."
   (let ((ol1 nil) (ol2 nil))
     (unwind-protect
 	(progn
+	  (goto-char (car (cdr lse)))
 	  (setq ol1 (make-overlay (car (cdr lse)) (cdr (cdr lse))))
 	  (overlay-put ol1 'face 'highlight)
 	  (other-window 1)
@@ -430,7 +431,8 @@ COLLECTION is the list of things collected so far."
 	  (forward-list matchlen)
 	  (skip-chars-forward " \t\n(")
 	  (forward-sexp tokenlen)
-	  (read-event (format "%s: %S" (car s) collection))
+	  (message "%s: %S" (car s) collection))
+	  (read-event)
 	  (other-window 1)
 	  )
       (delete-overlay ol1)
