@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.31 2003/04/11 08:32:19 berndl Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.32 2003/05/29 01:00:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -202,7 +202,9 @@ If ARG is nil, then toggle."
 
 ;;;###autoload
 (defcustom global-semantic-highlight-edits-mode nil
-  "*If non-nil enable global use of highlight-edits mode."
+  "*If non-nil enable global use of `semantic-highlight-edits-mode'.
+When this mode is enabled, changes made to a buffer are highlighted
+until the buffer is reparsed."
   :group 'semantic
   :type 'boolean
   :require 'semantic-util-modes
@@ -312,7 +314,9 @@ If ARG is nil, then toggle."
 
 ;;;###autoload
 (defcustom global-semantic-show-unmatched-syntax-mode nil
-  "*If non-nil, enable global use of show-unmatched-syntax mode."
+  "*If non-nil, enable global use of `semantic-show-unmatched-syntax-mode'.
+When this mode is enabled, syntax in the current buffer which the
+semantic parser cannot match is highlighted with a red underline."
   :group 'semantic
   :type 'boolean
   :require 'semantic-util-modes
@@ -693,7 +697,10 @@ minor mode is enabled."
 
 ;;;###autoload
 (defcustom global-semantic-show-parser-state-mode nil
-  "*If non-nil enable global use of show-parser-state mode."
+  "*If non-nil enable global use of `semantic-show-parser-state-mode'.
+When enabled, the current parse state of the current buffer is displayed
+in the mode line. See `semantic-show-parser-state-marker' for details
+on what is displayed."
   :group 'semantic
   :type 'boolean
   :require 'semantic-util-modes
@@ -872,7 +879,10 @@ If ARG is nil, then toggle."
 
 ;;;###autoload
 (defcustom global-semantic-summary-mode nil
-  "*If non-nil, enable global use of summary mode."
+  "*If non-nil, enable global use of `semantic-summary-mode'.
+When summary mode is enabled, the Emacs tool `eldoc-mode' is turned
+on, and augmented to display semantic tags.  In idle time, a
+message will be displayed showing details about the tag the cursor is on."
   :group 'semantic
   :type 'boolean
   :require 'semantic-util-modes
@@ -964,7 +974,12 @@ If ARG is nil, then toggle."
 
 ;;;###autoload
 (defcustom global-semantic-stickyfunc-mode nil
-  "*If non-nil, enable global use of stickyfunc mode."
+  "*If non-nil, enable global use of `semantic-stickyfunc-mode'.
+This minor mode only works for Emacs 21 or later.
+When enabled, the header line is enabled, and the first line
+of the current function or method is displayed in it.
+This makes it appear that the first line of that tag is
+`sticky' to the top of the window."
   :group 'semantic
   :type 'boolean
   :require 'semantic-util-modes
@@ -987,6 +1002,15 @@ If ARG is nil, then toggle."
 Use the command `semantic-stickyfunc-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-stickyfunc-mode)
 
+(defcustom semantic-stickyfunc-indent-string
+  (if window-system
+      "    "
+    "")
+  "*String used to indent the stickyfunc header.
+Customize this string to match the space used by scrollbars and
+fringe so it does not appear that the code is moving left/right
+when it lands in the sticky line.")
+
 (defun semantic-stickyfunc-mode-setup ()
   "Setup option `semantic-stickyfunc-mode'.
 For semantic enabled buffers, make the function declaration for the top most
@@ -1007,8 +1031,8 @@ text for that function in Emacs 21's header line."
 	      (error "Sticky Function mode requires Emacs 21")))
 	;; Enable the mode
 	(setq header-line-format
-	      '("    "
-		(:eval (semantic-stickyfunc-fetch-stickyline))))
+	      (list semantic-stickyfunc-indent-string
+		    '(:eval (semantic-stickyfunc-fetch-stickyline))))
         )
     ;; Disable sticky func mode
     (setq header-line-format nil))
