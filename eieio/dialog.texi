@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: dialog.texi,v 1.4 1997/01/26 18:44:49 zappo Exp $
+@c $Id: dialog.texi,v 1.5 1997/01/29 02:20:33 zappo Exp $
 @c
 @setfilename dialog.info
 @settitle Dialog widget control for emacs
@@ -15,7 +15,7 @@ END-INFO-DIR-ENTRY
 
 @titlepage
 @sp 10
-@center @titlefont{dialog}
+@center @titlefont{Dialog Mode}
 @vskip 0pt plus 1 fill
 Copyright @copyright{} 1996 Eric M. Ludlam
 @end titlepage
