@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.59 2003/07/23 20:05:56 zappo Exp $
+;; RCS: $Id: ede.el,v 1.60 2003/08/24 14:27:06 zappo Exp $
 (defconst ede-version "1.0beta3"
   "Current version of the Emacs EDE.")
 
@@ -1319,7 +1319,7 @@ Argument DIR is the directory to trim upwards."
   (let ((parent (expand-file-name ".." dir)))
     (if (and (> (length parent) 1) (string= ".." (substring parent -2)))
         nil
-      parent)))
+      (file-name-as-directory parent))))
 
 (defun ede-toplevel-project-or-nil (path)
   "Starting with PATH, find the toplevel project directory, or return nil.
