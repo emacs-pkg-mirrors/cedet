@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57.2.6 2003/01/29 09:14:00 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.57.2.7 2003/01/29 16:19:06 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -480,6 +480,7 @@
  (builtintype-types
  ( VOID)
  ( CHAR)
+ ( WCHAR)
  ( SHORT)
  ( INT)
  ( LONG INT
@@ -619,17 +620,17 @@
   (nth 2 vals) (nth 0 vals) (nth 3 vals) (nth 4 vals) (nth 5 vals)))
  ) ; end varname
  (variablearg
- ( declmods typeformbase cv-declmods opt-ref opt-stars variablearg-opt-name
+ ( declmods typeformbase cv-declmods opt-ref variablearg-opt-name
   ,(semantic-lambda
-  (list ( list (nth 5 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'reference ( car (nth 3 vals))) nil)))
+  (list ( list (nth 4 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" ( append (nth 0 vals) (nth 2 vals))) t nil) 'typemodifiers ( delete "const" ( append (nth 0 vals) (nth 2 vals))) 'reference ( car (nth 3 vals))) nil)))
  ) ; end variablearg
  (variablearg-opt-name
  ( varname
   ,(semantic-lambda
   (nth 0 vals)))
- (
+ ( opt-stars
   ,(semantic-lambda
-  (list "" 0 nil nil nil)))
+  (list "") (nth 0 vals) (list nil nil nil)))
  ) ; end variablearg-opt-name
  (varnamelist
  ( varname punctuation "\\b,\\b" varnamelist
@@ -778,6 +779,14 @@
  (function-call
  ( namespace-symbol semantic-list)
  ) ; end function-call
+ (string-seq
+ ( string string-seq
+  ,(semantic-lambda
+  (list ( concat (nth 0 vals) ( car (nth 1 vals))))))
+ ( string
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ) ; end string-seq
  (expression
  ( number
   ,(semantic-lambda
@@ -788,7 +797,7 @@
  ( namespace-symbol
   ,(semantic-lambda
   (list ( identity start) ( identity end))))
- ( string
+ ( string-seq
   ,(semantic-lambda
   (list ( identity start) ( identity end))))
  ( type-cast expression
@@ -1067,6 +1076,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
       ("sizeof" . SIZEOF)
       ("void" . VOID)
       ("char" . CHAR)
+      ("wchar_t" . WCHAR)
       ("short" . SHORT)
       ("int" . INT)
       ("long" . LONG)
@@ -1111,6 +1121,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("sizeof" summary "Compile time macro: sizeof(<type or variable>) // size in bytes")
      ("void" summary "Built in typeless type: void")
      ("char" summary "Integral Character Type: (0 to 256)")
+     ("wchar_t" summary "Wide Character Type")
      ("short" summary "Integral Primitive Type: (-32768 to 32767)")
      ("int" summary "Integral Primitive Type: (-2147483648 to 2147483647)")
      ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
