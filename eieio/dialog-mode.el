@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995, 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dialog-mode.el,v 1.13 1996/11/27 03:38:31 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.14 1996/12/12 03:38:56 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -137,6 +137,7 @@ key is any value between 0 and 128"
       (progn
 	;; some translations into text
 	(define-key dialog-mode-map 'tab 'dialog-next-widget)
+	(define-key dialog-mode-map '(meta tab) 'dialog-prev-widget)
 	(define-key dialog-mode-map 'up 'dialog-handle-kbd-maybe)
 	(define-key dialog-mode-map 'down 'dialog-handle-kbd-maybe)
 	(define-key dialog-mode-map 'right 'dialog-handle-kbd-maybe)
@@ -183,17 +184,27 @@ dynamically determine which colors to use."
 		((and (fboundp 'x-display-color-p) (x-display-color-p)) 'color)
 		(t 'mono)))
 	 (bg-res (if (fboundp 'x-get-resource)
-		     (if dialog-xemacs-p
+		     (if (eval-when-compile dialog-xemacs-p)
 			 (x-get-resource ".backgroundMode" "BackgroundMode" 'string)
 		       (x-get-resource ".backgroundMode" "BackgroundMode"))
 		   nil))
 	 (bgmode
 	  (cond (bg-res (intern (downcase bg-res)))
-		((and params 
-		      (fboundp 'x-color-values)
-		      (< (apply '+ (x-color-values
-				    (cdr (assq 'background-color params))))
-			 (/ (apply '+ (x-color-values "white")) 3)))
+		((let* ((bgc (or (cdr (assq 'background-color params))
+				 (if (eval-when-compile dialog-xemacs-p)
+				     (x-get-resource ".background"
+						     "Background" 'string)
+				   (x-get-resource ".background"
+						   "Background"))))
+			(bgcr (if (eval-when-compile dialog-xemacs-p)
+				  (color-instance-rgb-components
+				   (make-color-instance bgc))
+				(x-color-values bgc)))
+			(wcr (if (eval-when-compile dialog-xemacs-p)
+				 (color-instance-rgb-components
+				  (make-color-instance "white"))
+			       (x-color-values "white"))))
+		   (< (apply '+ bgcr) (/ (apply '+ wcr) 3)))
 		 'dark)
 		(t 'light)))		;our default
 	 (set-p (function (lambda (face-name resource)
@@ -376,7 +387,7 @@ registered with this area of text, otherwise run the default keybinding."
 
   )
 
-(if (string-match "XEmacs" emacs-version)
+(if (eval-when-compile dialog-xemacs-p)
 
 (defun dialog-mouse-event-p (event)
   "Return t if the event is a mouse related event"
@@ -582,6 +593,36 @@ carriage returns."
 ;;
 ;; Special menu function designed for lists of various things.
 ;;
+;; this quietes the byte-compiler
+(eval-when-compile (defun dialog-popup (event title menu) nil))
+
+(if (eval-when-compile dialog-xemacs-p)
+
+(defun dialog-popup (event title menu)
+  "Do the work of of creating a popup for XEmacs, and return the
+associated value selected by the user."
+  ;; This bit of Emacs to XEmacs brilliance was taken from
+  ;; custom-widget by Per Abrahamsen <abraham@iesd.auc.dk>
+  (let ((val (get-popup-menu-response 
+	      (cons title
+		    (mapcar
+		     (function
+		      (lambda (x)
+			(vector (car x) (list (car x)) t)))
+		     menu)))))
+    (setq val (and val
+		   (listp (event-object val))
+		   (stringp (car-safe (event-object val)))
+		   (car (event-object val))))
+    (cdr (assoc val menu))))
+
+(defun dialog-popup (event title menu)
+  "Do the work of of creating a popup for GNU emacs, and return the
+associated value selected by the user."
+  (x-popup-menu event (cons title (list (cons "" menu)))))
+
+)
+
 (defun dialog-list-2-menu (event title list &optional max)
   "Take a list and turn it into a pop-up menu.  It returns an index into
 said list.  The list may have anything in it, and they need not be of the
@@ -589,32 +630,30 @@ same type."
 
   (let ((menu))
     (setq menu
-	  (cons ""			; single frame
-		(list
-		 (let ((tail list)
-		       (head nil)
-		       (i 1))
-		   (cons title
-			 (progn
-			   (while (and tail (or (not max) (<= i max)))
-			     (setq head (cons
-					 (cons
-					  (format "%s" 
-						  ; go to smallest element
-						  (let ((elt (car tail)))
-						    (while (listp elt)
-						      (setq elt (car elt)))
-						    elt))
-					  i)
-					 head))
-			     (setq i (1+ i))
-			     (setq tail (cdr tail)))
-			   (reverse head)))))))
-    (let ((n (x-popup-menu event menu)))
+	  (let ((tail list)
+		(head nil)
+		(i 1))
+	    (progn
+	      (while (and tail (or (not max) (<= i max)))
+		(setq head (cons
+			    (cons
+			     (format "%s" 
+					; go to smallest element
+				     (let ((elt (car tail)))
+				       (while (listp elt)
+					 (setq elt (car elt)))
+				       elt))
+			     i)
+			    head))
+		(setq i (1+ i))
+		(setq tail (cdr tail)))
+	      (reverse head))))
+    (let ((n (dialog-popup event title menu)))
       (if (integerp n)
 	  (1- n)			;the nth starts at 0, we must start
 					;at 1, or the first elt returns nil
 	nil))))
+
 
 (defun goto-xy (x y)
   "Move cursor to position X Y in buffer, and add spaces and CRs if
@@ -682,11 +721,7 @@ the screen."
 	(fprefix (concat ch-prefix "  +--"))
 	(mprefix (concat ch-prefix "  |  "))
 	(lprefix (concat ch-prefix "     ")))
-    (insert prefix)
-    (if (not (and window-system (fboundp 'make-overlay)))
-	(insert myname)
-      (let ((no (make-overlay (point) (progn (insert myname) (point)))))
-	(overlay-put no 'face 'bold)))
+    (insert prefix myname)
     (if t
 	(insert "\n")
       (if chl
@@ -782,9 +817,10 @@ the screen."
     (dialog-build-group "Random Widget Things"
       (create-widget "some-stuff" widget-option-button
 		     :face 'italic
+		     :title "Animal"
 		     :option-list '("Moose" "Dog" "Cat" "Mouse" "Monkey" "Penguin")
 		     )
-      (create-widget "MyText" widget-text-field :x -2 :y t
+      (create-widget "MyText" widget-text-field :x -4 :y t
 		     :width 20 :value "My First String")
       (create-widget "MyTextBox" widget-text-box
 		     :width 20 :height 3 :value "My first\nno, second\nUm.. third string")
