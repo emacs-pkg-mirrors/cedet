@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.6 2001/02/21 20:53:35 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.7 2001/02/22 02:43:35 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -773,7 +773,7 @@ This is to take advantage of TeXinfo's markup symbols."
   ;; run the elisp version through also.
   (let ((case-fold-search nil))
     (while (string-match
-	    "\\(^\\|[^{]\\)\\<\\([A-Z0-9_]+\\)\\>\\($\\|[^}]\\)"
+	    "\\(^\\|[^{]\\)\\<\\([A-Z0-9_-]+\\)\\>\\($\\|[^}]\\)"
 	    string)
       (setq string (concat (substring string 0 (match-beginning 2))
 			   "@var{"
@@ -793,6 +793,7 @@ that class.
  `variable' => @code{variable}
  `class'    => @code{class} @xref{class}
  `unknown'  => @code{unknonwn}
+ \"text\"     => ``text''
  'quoteme   => @code{quoteme}
  non-nil    => non-@code{nil}
  t          => @code{t}
@@ -817,6 +818,8 @@ that class.
     (setq string (replace-match "@code{\\2}" t nil string 2)))
   (while (string-match "\\( \\|^\\)\\(\\(\\(C-\\|M-\\|S-\\)+\\([^ \t\n]\\|RET\\|SPC\\|TAB\\)\\)\\|\\(RET\\|SPC\\|TAB\\)\\)\\( \\|$\\)" string)
     (setq string (replace-match "@kbd{\\2}" t nil string 2)))
+  (while (string-match "\"\\(.+\\)\"" string)
+    (setq string (replace-match "``\\1''" t nil string 0)))
   string)
 
 ;;; Buffer finding and managing
