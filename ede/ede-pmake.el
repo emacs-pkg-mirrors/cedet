@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.24 2000/09/24 15:31:32 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.25 2000/09/25 01:22:56 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -255,8 +255,7 @@ Use CONFIGURATION as the current configuration to query."
   "Insert the source variables needed by THIS.
 Optional argument MORESOURCE is a list of additional sources to add to the
 sources variable."
-  (let ((sv (ede-proj-makefile-sourcevar this))
-	(addcr t))
+  (let ((sv (ede-proj-makefile-sourcevar this)))
     ;; This variable may be shared between targets
     (ede-pmake-insert-variable-shared (cond ((listp sv) (car sv))
 					    (t sv))
