@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.22 2003/09/16 12:34:53 ponced Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.23 2003/09/16 19:43:38 ponced Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -274,6 +274,11 @@ sources variable."
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-elisp-autoloads))
   "Return the variable name for THIS's sources."
   "LOADDEFS")
+
+(defmethod ede-proj-makefile-dependencies ((this ede-proj-target-elisp-autoloads))
+  "Return a string representing the dependencies for THIS.
+Always return an empty string for an autoloads generator."
+  "")
 
 (defmethod ede-proj-makefile-insert-variables :AFTER ((this ede-proj-target-elisp-autoloads))
   "Insert variables needed by target THIS."
