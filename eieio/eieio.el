@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.ai.mit.edu>
 ;; Version: 0.8
-;; RCS: $Id: eieio.el,v 1.25 1997/08/09 12:30:45 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.26 1997/10/17 11:18:25 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1219,6 +1219,18 @@ browsing tools.  The optional parameter STRINGS is for additional
 summary parts to put into the name string.  When passing in extra
 strings from child classes, always remember to prepend a space."
   (object-name this (apply 'concat strings)))
+
+(defmethod object-write ((this eieio-default-superclass) &optional comment)
+  "Write an object out to the current stream.
+This writes out the vector version of this object.  Complex and recursive
+object are discouraged from being written.
+  If optional COMMENT is non-nil, include comments when outputting 
+this object."
+  (if (not comment) nil
+    (print ";; Object ")
+    (print (object-name this))
+    (print "\n"))
+  (princ this))
 
 
 ;;; Interfacing with edebug
