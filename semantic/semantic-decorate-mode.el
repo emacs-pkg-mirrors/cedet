@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.8 2004/06/28 14:22:24 ponced Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.9 2004/06/29 11:07:30 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -220,6 +220,7 @@ When this mode is activated, decorations specified by
   :group 'semantic
   :type 'hook)
 
+;;;###autoload
 (defvar semantic-decoration-mode nil
   "Non-nil if `semantic-decoration-mode' is enabled.
 Use the command `semantic-decoration-mode' to change this variable.")
