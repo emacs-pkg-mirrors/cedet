@@ -1,10 +1,10 @@
-;;; qp-elisp.el --- C scanning for `quickpeek'
+;;; qp-c.el --- C scanning for `quickpeek'
 
-;;; Copyright (C) 1999 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tools
-;; X-RCS: $Id: qp-c.el,v 1.1 1999/08/16 18:14:52 zappo Exp $
+;; X-RCS: $Id: qp-c.el,v 1.2 2000/01/23 13:36:07 zappo Exp $
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -59,19 +59,27 @@
 		    (progn
 		      (forward-char -1)
 		      (quickpeek-thing-beginning)
-		      (cond (;; Is it a number, string, or in a comment?
-			     (or (string-match "^[0-9]+$" current-sym)
-				 (quickpeek-in-non-code))
-			     (and (skip-chars-backward "->.")
-				  (looking-at "\\(->\\|\\.\\)\\(\\w+\\)\\>"))
-			     ;; Open a structure or union?
-			     (c-quickpeek-context-for-structure
-			      (quickpeek-thing)))
-			    (t
-			     ;; Not a structure?  How about a variable?
-			     (setq completable-word current-sym)
-			     (c-quickpeek-context-for-variable
-			      current-sym))))
+		      (cond
+		       ;; Start looking for macros which sometimes look
+		       ;; like regular symbols.
+		       ((re-search-backward "#\\s-*"
+					    (save-excursion (beginning-of-line)
+							    (point))
+					    t)
+			(c-quickpeek-macro))
+		       (;; Is it a number, string, or in a comment?
+			(or (string-match "^[0-9]+$" current-sym)
+			    (quickpeek-in-non-code))
+			(and (skip-chars-backward "->.")
+			     (looking-at "\\(->\\|\\.\\)\\(\\w+\\)\\>"))
+			;; Open a structure or union?
+			(c-quickpeek-context-for-structure
+			 (quickpeek-thing)))
+		       (t
+			;; Not a structure?  How about a variable?
+			(setq completable-word current-sym)
+			(c-quickpeek-context-for-variable
+			 current-sym))))
 		  (error ""))))))
 	  (if (and completable-word (> (length completable-word) 2))
 	      (quickpeek-tags-completion completable-word)))))
@@ -169,6 +177,10 @@
 		       "\\s-*\\(\\w+\\)\\s-*\\w+\\s-*[[,=]"))))
 	       (list (cons (concat (match-string 1) " ")
 			   'font-lock-type-face)))
+	      ;; How about a macro?
+	      ((re-search-backward (concat "#\\s-*define\\s-+"
+					   (regexp-quote variable)))
+	       "#define ")
 	      (t
 	       nil))
       (error nil))))
@@ -190,7 +202,14 @@
 		  (set-buffer (car taginfo))
 		  (goto-char (cdr taginfo))
 		  (beginning-of-line)
-		  (cond ((looking-at (concat "\\s-*\\(struct\\|union\\|enum\\)\\s-*"
+		  (cond ((looking-at (concat "#\\s-*define\\s-+"
+					     (regexp-quote symbol)))
+			 (list '("Macro: " . bold)
+			       (buffer-substring (point)
+						 (save-excursion (end-of-line)
+								 (point))))
+			 )
+			((looking-at (concat "\\s-*\\(struct\\|union\\|enum\\)\\s-*"
 					     (regexp-quote symbol)
 					     "\\s-*{"))
 			 (list '("Type: " . bold)
@@ -332,6 +351,34 @@
 		      nil))))
 	    (list (cons "Unknown function: " 'bold)
 		  symbol))))))
+
+(defconst c-quickpeek-macro-matches
+  '(("define" .
+     (("#define " . bold) ("<var> " . italic) "[value]"))
+    ("if" .
+     (("#if " . bold) ("<cond> " . italic) " code " ("#endif". bold)))
+    ("else" .
+     (("#if " . bold) ("<cond> " . italic) "code "
+      ("#else ". bold) "code " ("#endif". bold)))
+    ("elseif" .
+     (("#if " . bold) ("<cond> " . italic) "code "
+      ("#elseif". bold) ("<cond> " . italic) "code "
+      ("#endif". bold)))
+    ("endif" .
+     (("#if " . bold) ("<cond> " . italic) "code " ("#endif". bold)))
+    ("pragma" .
+     (("#pragma " . bold) "<compiler key word>"))
+    )
+  "List of pre-processor macros we like to match against.")
+
+(defun c-quickpeek-macro ()
+  "Return details about the macro under point."
+  (looking-at "#\\s-*\\(\\w+\\)")
+  (let* ((str (match-string 1))
+	 (match (assoc str c-quickpeek-macro-matches)))
+    (if match
+	(append '(("Macro: " . bold)) (cdr match))
+      (list '("Unknown Macro: " . bold) str))))
 
 (add-hook 'c-mode-hook
 	  (lambda ()
