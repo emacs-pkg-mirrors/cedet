@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: ecfg-menu.el,v 1.1 1996/09/21 16:01:17 zappo Exp $
+;;; RCS: $Id: ecfg-menu.el,v 1.2 1996/11/13 21:47:24 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -69,6 +69,8 @@
     '("Calendar" . econfig-calendar))
   (define-key econfig-keymap [ mail ]
     '("Mail" . econfig-mail))
+  (define-key econfig-keymap [ rmail ]
+    '("RMail" . econfig-rmail))
   (define-key econfig-keymap [ programs ]
     '("Program Editing" . econfig-programmer))
   (define-key econfig-keymap [ editing ]
@@ -82,6 +84,7 @@
 (autoload 'econfig-programmer "e-config" "configuration dialog" t)
 (autoload 'econfig-calendar "e-config" "configuration dialog" t)
 (autoload 'econfig-mail "e-config" "configuration dialog" t)
+(autoload 'econfig-rmail "e-config" "configuration dialog" t)
 (autoload 'econfig-font-lock-faces "e-config" "configuration dialog" t)
 (autoload 'econfig-info-faces "e-config" "configuration dialog" t)
 (autoload 'econfig-calendar-faces "e-config" "configuration dialog" t)
