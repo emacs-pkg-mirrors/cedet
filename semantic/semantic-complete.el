@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.10 2003/06/08 23:39:17 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.11 2003/07/09 14:53:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -98,8 +98,13 @@
 ;; Keep semanticdb optional.
 (eval-when-compile (require 'semanticdb))
 
-(eval-when-compile (require 'avoid)
-		   (require 'tooltip))
+(eval-when-compile
+  (require 'avoid)
+  (condition-case nil
+      ;; Tooltip not available in older emacsen.
+      (require 'tooltip)
+    (error nil))
+  )
   
 ;;; Code:
 
@@ -649,7 +654,7 @@ one in the source buffer."
 		  (progn
 		    (select-window (get-buffer-window (semantic-tag-buffer tag)))
 		    (goto-char (semantic-tag-start tag))
-		    (semantic-momentary-highlight-token tag)
+		    (semantic-momentary-highlight-tag tag)
 		    )
 		(select-window (minibuffer-window))))))
     ))
@@ -780,7 +785,7 @@ HISTORY is a symbol representing a variable to story the history in."
     (when (semantic-tag-p tag)
       (push-mark)
       (goto-char (semantic-tag-start tag))
-      (semantic-momentary-highlight-token tag)
+      (semantic-momentary-highlight-tag tag)
       (working-message "%S: %s "
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)))))
