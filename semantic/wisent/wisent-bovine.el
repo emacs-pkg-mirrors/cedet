@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.27 2003/03/14 08:18:01 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.28 2003/03/17 13:37:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -402,7 +402,7 @@ and will be collected in `semantic-lex' form: (SYMBOL START . END)."
 GOAL is a nonterminal symbol to start parsing at.
 Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
-list of semantic tokens found.
+list of semantic tags found.
 The LALR parser automaton must be available in buffer local variable
 `semantic-toplevel-bovine-table'.
 
@@ -484,7 +484,7 @@ the standard function `semantic-parse-stream'."
 
 (defun wisent-parse-region (start end &optional goal depth returnonerror)
   "Parse the area between START and END using the Wisent LALR parser.
-Return the list of semantic tokens found.
+Return the list of semantic tags found.
 Optional arguments GOAL is a nonterminal symbol to start parsing at,
 DEPTH is the lexical depth to scan, and RETURNONERROR is a flag to
 stop parsing on syntax error, when non-nil.
@@ -502,19 +502,19 @@ the standard function `semantic-parse-region'."
     ;; Loop while there are lexical tokens available
     (while wisent-lex-istream
       ;; Parse
-      (setq  wisent-lex-lookahead (car lstack)
-            token (condition-case nil
-                      (wisent-parse semantic-toplevel-bovine-table
-                                    wisent-lexer-function
-                                    wisent-error-function
-                                    goal)
-                    (error nil)))
+      (setq wisent-lex-lookahead (car lstack)
+            tag (condition-case nil
+                    (wisent-parse semantic-toplevel-bovine-table
+                                  wisent-lexer-function
+                                  wisent-error-function
+                                  goal)
+                  (error nil)))
       ;; Manage returned lookahead token
       (if wisent-lookahead
           (if (eq (car lstack) wisent-lookahead)
               ;; It is already at top of lookahead stack
               (progn
-                (setq token nil)
+                (setq tag nil)
                 (while lstack
                   ;; Collect unmatched tokens from lookahead stack
                   (run-hook-with-args
@@ -525,15 +525,15 @@ the standard function `semantic-parse-region'."
       ;; Manage the parser result
       (cond
        ;; Parse succeeded, cook result
-       ((consp token)
+       ((consp tag)
         (setq lstack nil ;; Clear the lookahead stack
-              cooked (semantic-raw-to-cooked-token token)
+              cooked (semantic-raw-to-cooked-token tag)
               ptree (append cooked ptree))
         (while cooked
-          (setq token  (car cooked)
+          (setq tag    (car cooked)
                 cooked (cdr cooked))
-          (or (semantic-tag-get token 'reparse-symbol)
-              (semantic-tag-put token 'reparse-symbol goal)))
+          (or (semantic-tag-get tag 'reparse-symbol)
+              (semantic-tag-put tag 'reparse-symbol goal)))
         )
        ;; Return on error if requested
        (returnonerror
