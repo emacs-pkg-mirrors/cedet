@@ -7,7 +7,7 @@
    (semantic-ede-proj-target-grammar "by"
     :name "by"
     :path ""
-    :source '("c.by" "make.by" "scheme.by")
+    :source '("c.by" "make.by" "scheme.by" "erlang.by")
     )
    (ede-proj-target-elisp "bovinator"
     :name "bovinator"
