@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.12 2000/06/13 14:37:48 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.13 2000/07/01 18:15:31 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.13  2000/07/01 18:15:31  zappo
+# Updated for new elements in the tokens.
+#
 # Revision 1.12  2000/06/13 14:37:48  zappo
 # The table has moved.
 #
@@ -111,11 +114,11 @@ opt-name : symbol
          ;
 
 typesimple : symbol "struct\\|union" opt-name structparts
-	     ( ,$2 type $1 $3 nil nil )
+	     ( ,$2 type $1 $3 nil nil nil )
 	   | symbol "enum" opt-name enumparts
-	     ( ,$2 type $1 $3 nil nil )	
+	     ( ,$2 type $1 $3 nil nil nil )	
            | symbol "typedef" typeform symbol
-	     ( $3 type $1 nil $2 nil )
+	     ( $3 type $1 nil $2 nil nil )
            ;
 
 type : typesimple punctuation ";"
@@ -224,7 +227,7 @@ arg-sub-list : variablearg
 	     ;
 
 functiondef : declmods typeform symbol arg-list
-	      ( $3 function $2 $4 nil )
+	      ( $3 function $2 $4 $1 nil )
             ;
 
 prototype : functiondef punctuation ";"

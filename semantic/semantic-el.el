@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.29 2000/06/13 14:38:55 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.30 2000/07/01 18:17:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -68,7 +68,7 @@
     (include
      (open-paren symbol "require" quote symbol
 		 ,(lambda (vals start end)
-		    (list (nth 3 vals) 'include nil start end))))
+		    (list (nth 3 vals) 'include nil nil start end))))
     ;; in elisp, a package statement is the same as the provide token.
     (package
      (open-paren symbol "provide" quote symbol opt-filestring close-paren
