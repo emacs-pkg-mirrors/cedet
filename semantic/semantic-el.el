@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.14 2000/04/16 22:34:51 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.15 2000/04/20 23:55:25 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -115,10 +115,11 @@
 (defvar semantic-toplevel-c-bovine-table
   `((bovine-toplevel
      ( include)
+     ( macro)
      ( comment)
      ( variable)
-     ( prototype)
      ( function)
+     ( prototype)
      ( type)
      ( define)
      ) ; end bovine-toplevel
@@ -286,14 +287,16 @@
 	 (append  (list nil)
 		  (list start end))))
      ) ; end opt-assign
+    (macro
+     ( punctuation "#" symbol "define" symbol opt-expression
+		   ,(lambda (vals start end)
+		      (append  (list (nth 2 vals) 'variable nil 't (nth 3 vals) nil nil)
+			       (list start end))))
+     ) ; end macro
     (variable
      ( variabledef punctuation ";"
 		   ,(lambda (vals start end)
 		      (append  (nth 0 vals)
-			       (list start end))))
-     ( punctuation "#" symbol "define" symbol opt-expression
-		   ,(lambda (vals start end)
-		      (append  (list (nth 2 vals) 'variable nil 't (nth 3 vals) nil nil)
 			       (list start end))))
      ) ; end variable
     (variabledef
@@ -325,12 +328,26 @@
 		   (list start end))))
      ) ; end varnamelist
     (arg-list
+     ( semantic-list knr-arguments
+		     ,(lambda (vals start end)
+			(append  (nth 1 vals)
+				 (list start end))))
      ( semantic-list
        ,(lambda (vals start end)
 	  
 	  (semantic-bovinate-from-nonterminal (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
 	  ))
      ) ; end arg-list
+    (knr-arguments
+     ( variablearg punctuation ";" knr-arguments
+		   ,(lambda (vals start end)
+		      (append  ( cons (nth 0 vals) (nth 2 vals))
+			       (list start end))))
+     ( variablearg punctuation ";"
+		   ,(lambda (vals start end)
+		      (append  (list (nth 0 vals))
+			       (list start end))))
+     ) ; end knr-arguments
     (arg-sub-list
      ( open-paren "(" close-paren ")"
 		  ,(lambda (vals start end)
@@ -354,13 +371,13 @@
 			       (list start end))))
      ) ; end arg-sub-list
     (functiondef
-     ( typeform symbol arg-list
+     ( declmods typeform symbol arg-list
 		,(lambda (vals start end)
-		   (append  (list (nth 1 vals) 'function (nth 0 vals) (nth 2 vals) nil)
+		   (append  (list (nth 2 vals) 'function (nth 1 vals) (nth 3 vals) nil)
 			    (list start end))))
      ) ; end functiondef
     (prototype
-     ( functiondef ";"
+     ( functiondef punctuation ";"
 		   ,(lambda (vals start end)
 		      (append  (nth 0 vals)
 			       (list start end))))
