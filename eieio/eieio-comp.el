@@ -4,7 +4,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-comp.el,v 1.8 2000/08/20 17:01:52 zappo Exp $
+;; RCS: $Id: eieio-comp.el,v 1.9 2000/08/20 21:59:29 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -67,10 +67,14 @@ that is called but rarely.  Argument FORM is the body of the method."
 			   ((eq ':AFTER (car form))
 			    (setq form (cdr form))
 			    ":AFTER ")
+			   ((eq ':PRIMARY (car form))
+			    (setq form (cdr form))
+			    ":PRIMARY ")
 			   (t ""))))
 	 (params (car form))
 	 (lamparams (byte-compile-defmethod-param-convert params))
-	 (class (car (cdr (car params))))
+	 (arg1 (car params))
+	 (class (if (listp arg1) (nth 1 arg1) nil))
 	 (my-outbuffer (if (eval-when-compile
 			     (string-match "XEmacs" emacs-version))
 			   byte-compile-outbuffer outbuffer))
