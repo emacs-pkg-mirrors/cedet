@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.22 2002/09/03 02:14:04 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.23 2002/12/10 01:35:53 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -405,8 +405,9 @@ Optional argument HISTORYVAR is the variable to use as history."
 
 ;;; Help system augmentation
 ;;
-(defun eieio-help-mode-augmentation-maybee ()
-  "For buffers thrown into help mode, augment for eieio."
+(defun eieio-help-mode-augmentation-maybee (&rest unused)
+  "For buffers thrown into help mode, augment for eieio.
+Arguments UNUSED are not used."
   ;; Scan created buttons so far if we are in help mode.
   (when (eq major-mode 'help-mode)
     (save-excursion
