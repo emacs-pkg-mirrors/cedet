@@ -3,9 +3,9 @@
 ;; Copyright (C) 1997, 1998 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.1
+;; Version: 0.2.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.8 1998/05/15 03:16:26 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.9 1998/05/17 14:39:38 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -49,24 +49,31 @@
 ;;         the minor mode after it.  Completely replaced the old info display
 ;;         with the major mode, and mixed them to move nicely from major to
 ;;         minor mode effortlessly.
+;; 0.2.1   Added section adding major display mode at load time.
 
-(require 'speedbar)
+;(require 'speedbar)
 (require 'info)
 
 ;;; Code:
 (defvar Info-speedbar-key-map nil
   "Keymap used when in the info display mode.")
 
-(if Info-speedbar-key-map
-    nil
-  (setq Info-speedbar-key-map (speedbar-make-specialized-keymap))
+(defun Info-install-speedbar-variables ()
+  "Install those variables used by speedbar to enhance Info."
+  (if Info-speedbar-key-map
+      nil
+    (setq Info-speedbar-key-map (speedbar-make-specialized-keymap))
 
-  ;; Basic tree features
-  (define-key Info-speedbar-key-map "e" 'speedbar-edit-line)
-  (define-key Info-speedbar-key-map "\C-m" 'speedbar-edit-line)
-  (define-key Info-speedbar-key-map "+" 'speedbar-expand-line)
-  (define-key Info-speedbar-key-map "-" 'speedbar-contract-line)
-  )
+    ;; Basic tree features
+    (define-key Info-speedbar-key-map "e" 'speedbar-edit-line)
+    (define-key Info-speedbar-key-map "\C-m" 'speedbar-edit-line)
+    (define-key Info-speedbar-key-map "+" 'speedbar-expand-line)
+    (define-key Info-speedbar-key-map "-" 'speedbar-contract-line)
+    )
+
+  (speedbar-add-expansion-list '("Info" Info-speedbar-menu-items
+				 Info-speedbar-key-map
+				 Info-speedbar-hierarchy-buttons)))
 
 (defvar Info-speedbar-menu-items
   '(["Browse Node" speedbar-edit-line t]
@@ -79,6 +86,11 @@
     )
   "Additional menu-items to add to speedbar frame.")
 
+;; Make sure our special speedbar major mode is loaded
+(if (featurep 'speedbar)
+    (Info-install-speedbar-variables)
+  (add-hook 'speedbar-load-hook 'Info-install-speedbar-variables))
+
 ;;; Info hierarchy display method
 ;;;###autoload
 (defun Info-speedbar-browser ()
@@ -87,10 +99,6 @@ This will add a speedbar major display mode."
   (interactive)
   ;; Make sure that speedbar is active
   (speedbar-frame-mode 1)
-  ;; Make sure our special speedbar major mode is loaded
-  (speedbar-add-expansion-list '("Info" Info-speedbar-menu-items
-				 Info-speedbar-key-map
-				 Info-speedbar-hierarchy-buttons))
   ;; Now, throw us into RPM mode on speedbar.
   (speedbar-change-initial-expansion-list "Info")
   )
@@ -110,8 +118,10 @@ specific node to expand."
     ;; being known at creation time.
     (if (not node)
 	(speedbar-with-writable (insert "Info Nodes:\n")))
-    (let ((completions (Info-speedbar-fetch-file-nodes
-			(or node '"(dir)top"))))
+    (let ((completions nil))
+      (speedbar-with-attached-buffer
+       (setq completions
+	     (Info-speedbar-fetch-file-nodes (or node '"(dir)top"))))
       (if completions
 	  (speedbar-with-writable
 	   (while completions
