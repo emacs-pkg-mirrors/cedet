@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.27 2001/01/24 21:11:48 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.28 2001/01/25 18:26:08 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -723,8 +723,22 @@ SOURCEFILE is the file name from whence tokstream came."
 	   (token . "Tokens")
 	   (rule  . "Rules")
 	   )
+	semantic-override-table
+	'( (abbreviate-nonterminal . semantic-bnf-abbreviate-nonterminal)
+	   )
 	imenu-create-index-function 'semantic-create-imenu-index)
   (run-hooks 'semantic-bnf-mode-hook))
+
+(defun semantic-bnf-abbreviate-nonterminal (token &optional parent)
+  "Return a string abbreviation of TOKEN.
+Optional PARENT is no used."
+  (let ((tok (semantic-token-token token))
+	(name (semantic-token-name token)))
+    (cond
+     ((eq tok 'rule) (concat name ":"))
+     ((eq tok 'setting) "%settings%")
+     ((or (eq tok 'token) (eq tok 'keyword)) name)
+     (t (concat "%" (symbol-name tok) " " name)))))
 
 (defun semantic-bnf-electric-punctuation ()
   "Insert and reindent for the symbol just typed in."
