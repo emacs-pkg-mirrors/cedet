@@ -1,9 +1,9 @@
 ;;; eieio-opt.el -- eieio optional functions (debug, printing, speedbar)
 
-;;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.4 1998/12/16 13:54:58 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.5 1999/09/04 12:30:51 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -106,64 +106,54 @@ If CLASS is actually an object, then also display current values of that obect."
 		   (t (error "Can't find class info from parameter"))))
 	 (this (if (object-p class) class this))
 	 (scoped-class (if (object-p class) (object-class-fast class) scoped-class))
-	 (priva (aref cv class-private-a))
 	 (publa (aref cv class-public-a))
-	 (privd (aref cv class-private-d))
-	 (publd (aref cv class-public-d)))
+	 (publd (aref cv class-public-d))
+	 (publdoc (aref cv class-public-doc))
+	 (prot (aref cv class-protection))
+	 )
     (insert "Description of")
     (if (object-p class)
 	(insert " object `" (aref class 2) "'"))
     (insert " class `" (symbol-name (aref cv 1)) "'\n")
-    (if (not priva)
-	nil
-      (insert "\nPRIVATE\n")
-      (put-text-property (point)
-			 (progn (insert "Field:\t\t\tdefault value"
-					(if (object-p class)
-					    "\t\tCurrent Value" ""))
-				(point))
-			 'face 'underline)
-      (insert "\n")
-      (while priva
-	(let ((dvs (eieio-thing-to-string (car privd))))
-	  (insert (symbol-name (car priva)) "\t"
-		  (if (< (length (symbol-name (car priva))) 8) "\t" "")
-		  (if (< (length (symbol-name (car priva))) 16) "\t" "")
-		  dvs
-		  (if (object-p class)
-		      (concat
-		       "\t"
-		       (if (< (length dvs) 8) "\t" "")
-		       (if (< (length dvs) 16) "\t" "")
-		       (eieio-thing-to-string (oref-engine class (car priva))))
-		    "")
-		  "\n"))
-	(setq priva (cdr priva)
-	      privd (cdr privd))))
-    (insert "\nPUBLIC\n")
+    (insert (aref cv class-doc) "\n\n")
     (put-text-property (point)
-		       (progn (insert "Field:\t\t\tdefault value"
+		       (progn (insert "Prot Field\t\t\tdefault value"
 				      (if (object-p class)
 					  "\t\tCurrent Value" ""))
 			      (point))
 		       'face 'underline)
     (insert "\n")
-    (while publa
-      (let ((dvs (eieio-thing-to-string (car publd))))
-	(insert (symbol-name (car publa)) "\t"
-		(if (< (length (symbol-name (car publa))) 8) "\t" "")
-		(if (< (length (symbol-name (car publa))) 16) "\t" "")
-		dvs
-		(if (object-p class)
-		    (concat
-		     "\t"
-		     (if (< (length dvs) 8) "\t" "")
-		     (if (< (length dvs) 16) "\t" "")
-		     (eieio-thing-to-string (oref-engine class (car publa))))
-		  "")
-		"\n"))
-      (setq publa (cdr publa)
-	    publd (cdr publd)))))
+    (eieio-describe-slots publa publd publdoc prot)
+    (setq publdoc (aref cv class-class-allocation-doc)
+	  publa (aref cv class-class-allocation-a)
+	  prot (aref cv class-class-allocation-protection))
+    (if publa (insert "\nClass allocated slots:\n"))
+    (eieio-describe-slots publa nil publdoc prot)
+    ))
+
+(defun eieio-describe-slots (publa publd publdoc prot)
+  "Insert into a DESCRIBE CLASS buffer descriptions of the fields.
+PUBLA is the list of attributes.  PUBLD is the list of defaults.
+PUBLDOC is the list of doc strings.  PROT is the list of protection flags."
+  (while publa
+    (let ((dvs (eieio-thing-to-string (car publd))))
+      (insert (if (car prot) "Priv " "Pub  ")
+	      (symbol-name (car publa)) "\t"
+	      (if (< (length (symbol-name (car publa))) 4) "\t" "")
+	      (if (< (length (symbol-name (car publa))) 16) "\t" "")
+	      dvs
+	      (if (object-p class)
+		  (concat
+		   "\t"
+		   (if (< (length dvs) 8) "\t" "")
+		   (if (< (length dvs) 16) "\t" "")
+		   (eieio-thing-to-string (oref-engine class (car publa))))
+		"")
+	      "\n  " (or (car publdoc) "") "\n\n"))
+    (if (listp publd) (setq publd (cdr publd)))
+    (setq publa (cdr publa)
+	  prot (cdr prot)
+	  publdoc (cdr publdoc))))
 
 (defalias 'describe-class 'eieio-describe-class)
 
