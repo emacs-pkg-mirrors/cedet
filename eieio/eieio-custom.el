@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.1 1999/01/21 14:40:52 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.2 1999/01/28 15:57:06 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -46,12 +46,12 @@
   ((a-string :initarg :a-string
 	     :initform "The moose is loose"
 	     :custom string
-	     :docstring "A string for testing custom.
+	     :documentation "A string for testing custom.
 This is the next line of documentation.")
    (a-number :initarg :a-number
 	     :initform 2
 	     :custom integer
-	     :docstring "A number of thingies."))
+	     :documentation "A number of thingies."))
   "A class for testing the widget on.")
 
 (defcustom eieio-widget-test (eieio-widget-test-class "Foo")
@@ -62,6 +62,7 @@ This is the next line of documentation.")
   "Abstractly modify a CLOS object."
   :tag "Object"
   :format "%v"
+  :convert-widget 'widget-types-convert-widget
   :value-create 'eieio-object-value-create
   :value-get 'eieio-object-value-get
   :value-delete 'widget-children-value-delete
@@ -92,13 +93,13 @@ This is the next line of documentation.")
 	    (setq chil (cons (widget-create-child-and-convert
 			      widget (car fcust)
 			      :tag
-			      (concat "   Slot "
+			      (concat "   Slot `"
 				      (symbol-name
 				       (or (class-slot-initarg
 					    (object-class-fast obj)
 					    (car fields))
 					   (car fields)))
-				      "  ")
+				      "'")
 			      :value (slot-value obj (car fields)))
 			     chil))
 	    (setq chil (cons (widget-create-child-and-convert
@@ -117,7 +118,7 @@ This is the next line of documentation.")
 
 (defun eieio-object-value-get (widget)
   "Get the value of WIDGET."
-  (let* ((obj (clone (widget-get widget :value)))
+  (let* ((obj (widget-get widget :value))
 	 (chil (widget-get widget :children))
 	 (cv (class-v (object-class-fast obj)))
 	 (fields (aref cv class-public-a))
@@ -135,10 +136,51 @@ This is the next line of documentation.")
 	    (setq chil (cdr (cdr chil)))))
       (setq fields (cdr fields)
 	    fcust (cdr fcust)))
-    ;; Lastly, `clone' changes the name.  We need to set it back
-    (aset obj object-name (aref (widget-get widget :value) object-name))
-    ;; Return our slightly modified clone
+    ;; This is the same object we had before.
     obj))
+
+(defmethod eieio-customize-object ((obj eieio-default-superclass))
+  "Customize OBJ in a specialized custom buffer.
+To override call the `eieio-custom-widget-insert' to just insert the
+object widget."
+  ;; Insert check for multiple edits here.
+  (let ((b (switch-to-buffer (get-buffer-create 
+			      (concat "*CUSTOMIZE " (object-name obj) "*")))))
+    (toggle-read-only -1)
+    (erase-buffer)
+    (let ((all (overlay-lists)))
+      ;; Delete all the overlays.
+      (mapcar 'delete-overlay (car all))
+      (mapcar 'delete-overlay (cdr all)))
+    (widget-insert "Edit object " (object-name obj) "\n")
+    ;; Create the widget editing the object.
+    (make-local-variable 'eieio-wo)
+    (setq eieio-wo (eieio-custom-widget-insert obj))
+    ;;Now generate the apply buttons
+    (widget-insert "\n")
+    (widget-create 'push-button "Apply"
+		   :notify (lambda (&rest ignore)
+			     ;; I think the act of getting it sets
+			     ;; it's value through the get function.
+			     (widget-apply eieio-wo :value-get)
+			     ))
+    (widget-insert "   ")
+    (widget-create 'push-button "Reset"
+		   :notify (lambda (&rest ignore)
+			     (eieio-customize-object eieio-co)))
+    ;; Now initialize the buffer
+    (use-local-map widget-keymap)
+    (widget-setup)
+    ;(widget-minor-mode)
+    (make-local-variable 'eieio-co)
+    (setq eieio-co obj)))
+
+(defmethod eieio-custom-widget-insert ((obj eieio-default-superclass)
+				       &rest flags)
+  "Inserts the widget used for editing object in the current buffer.
+Arguments FLAGS are widget compatible flags.
+Must return the created widget."
+  (widget-create 'object-edit :value obj))
 
 (define-widget 'object 'object-edit
   "Instance of a CLOS class."
@@ -148,10 +190,11 @@ This is the next line of documentation.")
 
 (defun eieio-object-value-to-abstract (widget value)
   "For WIDGET, convert VALUE to an abstract /safe/ representation."
-  value
-  )
+  (clone value))
 
 (defun eieio-object-abstract-to-value (widget value)
+  "For WIDGET, convert VALUE to an abstract /safe/ representation."
+  value)
 
 (provide 'eieio-custom)
 
