@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.5.5
+;; Version: 0.5.7
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.66 1997/11/21 01:32:53 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.67 1997/12/12 02:20:58 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@
 ;;
 ;;   If speedbar came to you as a part of Emacs, simply type
 ;; `M-x speedbar', and it will be autoloaded for you. A "Speedbar"
-;; submenu will be added under "Buffers" in XEmacs, or "Tools" in emacs.
+;; submenu will be added under "Tools".
 ;;
 ;;   If speedbar is not a part of your distribution, then add
 ;; this to your .emacs file:
@@ -53,7 +53,7 @@
 ;;      [speedbar] '("Speedbar" . speedbar-frame-mode) [calendar])
 ;;
 ;;   XEmacs:
-;;   (add-menu-button '("Buffers")
+;;   (add-menu-button '("Tools")
 ;;		      ["Speedbar" speedbar-frame-mode
 ;;		       :style toggle
 ;;		       :selected (and (boundp 'speedbar-frame)
@@ -306,6 +306,10 @@
 ;;         Keymap changes, and ways to add menu items.
 ;;         Timer use changes for XEmacs 20.4
 ;;         Regular expression enhancements.
+;; 0.5.7 Fixed up some frame definition stuff, use more convenience fns.
+;;       Rehashed frame creation code for better compatibility.
+;;       Fixed setting of kill-buffer hook.
+;;       Default speedbar has no menubar, mouse-3 is popup menu,
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -442,6 +446,7 @@ between different directories."
 				       (width . 20)
 				       (scroll-bar-width . 10)
 				       (border-width . 0)
+				       (menu-bar-lines . 0)
 				       (unsplittable . t))
   "*Parameters to use when creating the speedbar frame in Emacs.
 Parameters not listed here which will be added automatically are
@@ -455,6 +460,7 @@ is attached to."
   '(minibuffer nil width 20 border-width 0
 	       internal-border-width 0 unsplittable t
 	       default-toolbar-visible-p nil has-modeline-p nil
+	       menubar-visible-p nil
 	       ;; I don't see the particular value of these three, but...
 	       text-pointer-glyph [cursor-font :data "top_left_arrow"]
 	       nontext-pointer-glyph [cursor-font :data "top_left_arrow"]
@@ -724,9 +730,6 @@ to toggle this value.")
 (defvar speedbar-key-map nil
   "Keymap used in speedbar buffer.")
 
-;(autoload 'speedbar-configure-options "speedbcfg" "Configure speedbar variables" t)
-;(autoload 'speedbar-configure-faces "speedbcfg" "Configure speedbar faces" t)
-
 (if speedbar-key-map
     nil
   (setq speedbar-key-map (make-keymap))
@@ -762,7 +765,7 @@ to toggle this value.")
 	;; mouse bindings so we can manipulate the items on each line
 	(define-key speedbar-key-map 'button2 'speedbar-click)
 	(define-key speedbar-key-map '(shift button2) 'speedbar-power-click)
-	(define-key speedbar-key-map 'button3 'speedbar-popup-kludge)
+	(define-key speedbar-key-map 'button3 'speedbar-xemacs-popup-kludge)
 	(define-key speedbar-key-map '(meta button3) 'speedbar-mouse-item-info)
 	;; I hate myself for this unholy binding.
 	;;           -- Hrvoje Niksic <hniksic@srce.hr>
@@ -777,16 +780,19 @@ to toggle this value.")
     ;;(define-key speedbar-key-map [down-mouse-2] 'speedbar-quick-mouse)
     (define-key speedbar-key-map [M-mouse-2] 'speedbar-mouse-item-info)
 
+    (define-key speedbar-key-map [down-mouse-3] 'speedbar-emacs-popup-kludge)
+
+    ;;***** Disable disabling: Remove menubar completely.
     ;; disable all menus - we don't have a lot of space to play with
     ;; in such a skinny frame.  This will cleverly find and nuke some
     ;; user-defined menus as well if they are there.  Too bad it
     ;; rely's on the structure of a keymap to work.
-    (let ((k (lookup-key global-map [menu-bar])))
-      (while k
-	(if (and (listp (car k)) (listp (cdr (car k))))
-	    (define-key speedbar-key-map (vector 'menu-bar (car (car k)))
-	      'undefined))
-	(setq k (cdr k))))
+;    (let ((k (lookup-key global-map [menu-bar])))
+;      (while k
+;        (if (and (listp (car k)) (listp (cdr (car k))))
+;	    (define-key speedbar-key-map (vector 'menu-bar (car (car k)))
+;	      'undefined))
+;	(setq k (cdr k))))
 
     ;; This lets the user scroll as if we had a scrollbar... well maybe not
     (define-key speedbar-key-map [mode-line mouse-2] 'speedbar-mouse-hscroll)
@@ -892,7 +898,7 @@ supported at a time.
 	(not (symbol-value 'window-system)))
       (error "Speedbar is not useful outside of a windowing environment"))
   (if speedbar-xemacsp
-      (add-menu-button '("Buffers")
+      (add-menu-button '("Tools")
 		       ["Speedbar" speedbar-frame-mode
 			:style toggle
 			:selected (and (boundp 'speedbar-frame)
@@ -912,10 +918,7 @@ supported at a time.
 	(if (and speedbar-frame (frame-live-p speedbar-frame))
 	    (progn
 	      (setq speedbar-cached-frame speedbar-frame)
-	      (if speedbar-xemacsp
-		  (make-frame-invisible speedbar-frame)
-		(modify-frame-parameters speedbar-frame
-					 '((visibility . nil))))))
+	      (make-frame-invisible speedbar-frame)))
 	(setq speedbar-frame nil)
 	(speedbar-set-timer nil)
 	;; Used to delete the buffer.  This has the annoying affect of
@@ -931,9 +934,7 @@ supported at a time.
     (if (frame-live-p speedbar-cached-frame)
 	(progn
 	  (setq speedbar-frame speedbar-cached-frame)
-	  (if speedbar-xemacsp
-	      (make-frame-visible speedbar-frame)
-	    (modify-frame-parameters speedbar-frame '((visibility . t))))
+	  (make-frame-visible speedbar-frame)
 	  ;; Get the buffer to play with
 	  (speedbar-mode)
 	  (select-frame speedbar-frame)
@@ -945,22 +946,23 @@ supported at a time.
 	  )
       (if (frame-live-p speedbar-frame)
 	  (raise-frame speedbar-frame)
-	(let ((params (append speedbar-frame-parameters
-			      (list (cons 'height (frame-height))))))
-	      ;;(params (cons (cons 'height (frame-height))
-	      ;;	    speedbar-frame-parameters)))
-	  (setq speedbar-frame
-		(if speedbar-xemacsp
-		    (if speedbar-xemacs20p
-			(make-frame (nconc (list 'height
-						 (speedbar-needed-height))
-					   speedbar-frame-plist))
-		      (make-frame params))
+	(setq speedbar-frame
+	      (if speedbar-xemacsp
+		  (make-frame (nconc (list 'height
+					   (speedbar-needed-height))
+				     speedbar-frame-plist))
+		(let* ((mh (cdr (assoc 'menu-bar-lines (frame-parameters))))
+		       (params (append speedbar-frame-parameters
+				       (list (cons
+					      'height
+					      (if speedbar-xemacsp
+						  (speedbar-needed-height)
+						(+ mh (frame-height))))))))
 		  (if (< emacs-major-version 20);;a bug is fixed in v20 & later
 		      (make-frame params)
 		    (let ((x-pointer-shape x-pointer-top-left-arrow)
 			  (x-sensitive-text-pointer-shape x-pointer-hand2))
-		      (make-frame params)))))
+		      (make-frame params))))))
 	;; reset the selection variable
 	(setq speedbar-last-selected-file nil)
 	;; Put the buffer into the frame
@@ -969,20 +971,8 @@ supported at a time.
 	  (speedbar-mode)
 	  (select-frame speedbar-frame)
 	  (switch-to-buffer speedbar-buffer)
-	  (set-window-dedicated-p (selected-window) t)
-	  ;; Turn off toolbar and menubar under XEmacs
-	  (if (and speedbar-xemacsp (not speedbar-xemacs20p))
-	      (progn
-		(set-specifier default-toolbar-visible-p
-			       (cons (selected-frame) nil))
-		;; These lines make the menu-bar go away nicely, but
-		;; they also cause xemacs much heartache.
-		;;(set-specifier menubar-visible-p (cons (selected-frame) nil))
-		;;(make-local-variable 'current-menubar)
-		;;(setq current-menubar speedbar-menu)
-		;;(add-submenu nil speedbar-menu nil)
-		)))
-	(speedbar-set-timer speedbar-update-speed))))))
+	  (set-window-dedicated-p (selected-window) t))
+	(speedbar-set-timer speedbar-update-speed)))))
 
 (defun speedbar-close-frame ()
   "Turn off a currently active speedbar."
@@ -991,20 +981,18 @@ supported at a time.
   (select-frame speedbar-attached-frame)
   (other-frame 0))
 
-(defun speedbar-frame-width ()
+(defmacro speedbar-frame-width ()
   "Return the width of the speedbar frame in characters.
 nil if it doesn't exist."
-  (and speedbar-frame
-       (if speedbar-xemacs20p
-	   (frame-property speedbar-frame 'width)
-	 (cdr (assoc 'width (frame-parameters speedbar-frame))))))
+  '(frame-width speedbar-frame))
 
-;; XEmacs 20 function only.
+;; XEmacs function only.
 (defun speedbar-needed-height (&optional frame)
   "The needed height for the toolbar FRAME (in characters)."
   (or frame (setq frame (selected-frame)))
-  (/ (frame-pixel-height frame)
-     (face-height 'default frame)))
+  ;; The 1 is the missing modeline/minibuffer
+  (+ 1 (/ (frame-pixel-height frame)
+	  (face-height 'default frame))))
 
 (defun speedbar-mode ()
   "Major mode for managing a display of directories and tags.
@@ -1061,12 +1049,13 @@ in the selected file.
     (make-local-variable 'temp-buffer-show-function)
     (setq temp-buffer-show-function 'speedbar-temp-buffer-show-function)
     (make-local-hook 'kill-buffer-hook)
-    (setq kill-buffer-hook '(lambda () (let ((skilling (boundp 'skilling)))
-					 (if skilling
-					     nil
-					   (if (eq (current-buffer)
-						   speedbar-buffer)
-					       (speedbar-frame-mode -1))))))
+    (add-hook 'kill-buffer-hook (lambda () (let ((skilling (boundp 'skilling)))
+					     (if skilling
+						 nil
+					       (if (eq (current-buffer)
+						       speedbar-buffer)
+						   (speedbar-frame-mode -1)))))
+	      t t)
     (speedbar-set-mode-line-format)
     (if (not speedbar-xemacsp)
 	(setq auto-show-mode nil))	;no auto-show for Emacs
@@ -1079,8 +1068,7 @@ in the selected file.
 This gives visual indications of what is up.  It EXPECTS the speedbar
 frame and window to be the currently active frame and window."
   (if (and (frame-live-p speedbar-frame)
-	   ;; Special XEmacs 20 thing
-	   (or (not speedbar-xemacs20p)
+	   (or (not speedbar-xemacsp)
 	       (specifier-instance has-modeline-p)))
       (save-excursion
 	(set-buffer speedbar-buffer)
@@ -1172,7 +1160,7 @@ mode-line.  This is only useful for non-XEmacs"
   (interactive)
   (let ((sf (selected-frame)))
     (select-frame speedbar-attached-frame)
-    (funcall 'customize-group 'speedbar)
+    (customize-group 'speedbar)
     (select-frame sf))
   (speedbar-maybee-jump-to-attached-frame))
 
@@ -1180,7 +1168,9 @@ mode-line.  This is only useful for non-XEmacs"
 ;; opposed to where the point happens to be.)  We attain this by
 ;; temporarily moving the point to that place.
 ;;    Hrvoje Niksic <hniksic@srce.hr>
-(defun speedbar-popup-kludge (event)
+(defun speedbar-xemacs-popup-kludge (event)
+  "Popup a menu related to the clicked on item.
+Must be bound to event E."
   (interactive "e")
   (save-excursion
     (goto-char (event-closest-point event))
@@ -1194,6 +1184,17 @@ mode-line.  This is only useful for non-XEmacs"
       (while (not (misc-user-event-p (setq new (next-event))))
 	(dispatch-event new))
       (dispatch-event new))))
+
+(defun speedbar-emacs-popup-kludge (e)
+  "Popup a menu related to the clicked on item.
+Must be bound to event E."
+  (interactive "e")
+  (save-excursion
+    (mouse-set-point e)
+    ;; This gets the cursor where the user can see it.
+    (if (not (bolp)) (forward-char -1))
+    (sit-for 0)
+    (mouse-major-mode-menu e)))
 
 (defun speedbar-get-focus ()
   "Change frame focus to or from the speedbar frame.
@@ -1434,9 +1435,12 @@ to track file check ins, and will change the mode line to match
 	(progn (delete-itimer speedbar-timer)
 	       (setq speedbar-timer nil)))
     (if timeout
-	(if speedbar-xemacs20p
+	(if (and speedbar-xemacsp
+		 (or (>= emacs-major-version 20)
+		     (>= emacs-minor-version 15)))
 	    (setq speedbar-timer (start-itimer "speedbar"
 					       'speedbar-timer-fn
+					       timeout
 					       timeout
 					       t))
 	  (setq speedbar-timer (start-itimer "speedbar"
@@ -1450,7 +1454,7 @@ to track file check ins, and will change the mode line to match
 	       (setq speedbar-timer nil)))
     (if timeout
 	(setq speedbar-timer
-	      (run-with-idle-timer timeout nil 'speedbar-timer-fn))))
+	      (run-with-idle-timer timeout t 'speedbar-timer-fn))))
    ;; Emacs 19.30 (Thanks twice: ptype@dra.hmg.gb)
    ((fboundp 'post-command-idle-hook)
     (if timeout
@@ -1894,13 +1898,6 @@ This should only be used by modes classified as special."
   (if (not (and (frame-live-p speedbar-frame)
 		(frame-live-p speedbar-attached-frame)))
       (speedbar-set-timer nil)
-    ;; Reset our timer
-
-    ;; XEmacs: this breaks itimers.  Use the RESTART argument to
-    ;; start-itimer instead.
-    (or speedbar-xemacs20p
-	;; Other emacs get this successfully re-installed.
-	(speedbar-set-timer speedbar-update-speed))
     ;; Save all the match data so that we don't mess up executing fns
     (save-match-data
       (if (and (frame-visible-p speedbar-frame) speedbar-update-flag)
