@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2003-10-02 15:27:21+0200
+;; Created: 2003-12-12 14:26:56+0100
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.7 2003/10/02 13:56:59 ponced Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.8 2003/12/16 11:47:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -43,6 +43,7 @@
   (semantic-lex-make-keyword-table
    '(("%default-prec" . DEFAULT-PREC)
      ("%no-default-prec" . NO-DEFAULT-PREC)
+     ("%keyword" . KEYWORD)
      ("%languagemode" . LANGUAGEMODE)
      ("%left" . LEFT)
      ("%nonassoc" . NONASSOC)
@@ -54,12 +55,7 @@
      ("%scopestart" . SCOPESTART)
      ("%start" . START)
      ("%token" . TOKEN)
-     ("%use-macros" . USE-MACROS)
-     ("%keywordtable" . KEYWORDTABLE)
-     ("%outputfile" . OUTPUTFILE)
-     ("%parsetable" . PARSETABLE)
-     ("%setupfunction" . SETUPFUNCTION)
-     ("%tokentable" . TOKENTABLE))
+     ("%use-macros" . USE-MACROS))
    'nil)
   "Table of language keywords.")
 
@@ -99,7 +95,7 @@
     (eval-when-compile
       (require 'wisent-comp))
     (wisent-compile-grammar
-     '((DEFAULT-PREC NO-DEFAULT-PREC LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN USE-MACROS KEYWORDTABLE OUTPUTFILE PARSETABLE SETUPFUNCTION TOKENTABLE STRING SYMBOL PERCENT_PERCENT CHARACTER SEXP PREFIXED_LIST PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT)
+     '((DEFAULT-PREC NO-DEFAULT-PREC KEYWORD LANGUAGEMODE LEFT NONASSOC PACKAGE PREC PUT QUOTEMODE RIGHT SCOPESTART START TOKEN USE-MACROS STRING SYMBOL PERCENT_PERCENT CHARACTER SEXP PREFIXED_LIST PROLOGUE EPILOGUE PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT)
        nil
        (grammar
         ((prologue))
@@ -128,13 +124,9 @@
         ((quotemode_decl))
         ((scopestart_decl))
         ((start_decl))
+        ((keyword_decl))
         ((token_decl))
-        ((use_macros_decl))
-        ((keywordtable_decl))
-        ((outputfile_decl))
-        ((parsetable_decl))
-        ((setupfunction_decl))
-        ((tokentable_decl)))
+        ((use_macros_decl)))
        (default_prec_decl
          ((DEFAULT-PREC)
           `(wisent-raw-tag
@@ -166,10 +158,10 @@
         ((NONASSOC)
          (progn "nonassoc")))
        (put_decl
-        ((PUT SYMBOL put_value)
+        ((PUT put_name put_value)
          `(wisent-raw-tag
            (semantic-tag ',$2 'put :value ',(list $3))))
-        ((PUT SYMBOL put_value_list)
+        ((PUT put_name put_value_list)
          (let*
              ((vals
                (mapcar 'semantic-tag-name $3)))
@@ -204,9 +196,12 @@
          nil)
         ((RBRACE)
          nil)
-        ((SYMBOL)
+        ((put_name)
          (wisent-raw-tag
           (semantic-tag $1 'put-name))))
+       (put_name
+        ((SYMBOL))
+        ((token_type)))
        (put_value_list
         ((BRACE_BLOCK)
          (semantic-parse-region
@@ -237,6 +232,10 @@
          `(wisent-raw-tag
            (semantic-tag ',(car $2)
                          'start :rest ',(cdr $2)))))
+       (keyword_decl
+        ((KEYWORD SYMBOL string_value)
+         `(wisent-raw-tag
+           (semantic-tag ',$2 'keyword :value ',$3))))
        (token_decl
         ((TOKEN token_type_opt SYMBOL string_value)
          `(wisent-raw-tag
@@ -252,38 +251,27 @@
        (token_type
         ((LT SYMBOL GT)
          (progn $2)))
+       (use_name_list
+        ((BRACE_BLOCK)
+         (semantic-parse-region
+          (car $region1)
+          (cdr $region1)
+          'use_names 1)))
+       (use_names
+        ((LBRACE)
+         nil)
+        ((RBRACE)
+         nil)
+        ((SYMBOL)
+         (wisent-raw-tag
+          (semantic-tag $1 'use-name))))
        (use_macros_decl
-        ((USE-MACROS SYMBOL put_name_list)
+        ((USE-MACROS SYMBOL use_name_list)
          (let*
              ((names
                (mapcar 'semantic-tag-name $3)))
            `(wisent-raw-tag
              (semantic-tag "macro" 'macro :type ',$2 :value ',names)))))
-       (keywordtable_decl
-        ((KEYWORDTABLE SYMBOL)
-         (progn
-           (message "The %s keyword is obsolete and no more used" $1)
-           nil)))
-       (outputfile_decl
-        ((OUTPUTFILE string_value)
-         (progn
-           (message "The %s keyword is obsolete and no more used" $1)
-           nil)))
-       (parsetable_decl
-        ((PARSETABLE SYMBOL)
-         (progn
-           (message "The %s keyword is obsolete and no more used" $1)
-           nil)))
-       (setupfunction_decl
-        ((SETUPFUNCTION SYMBOL)
-         (progn
-           (message "The %s keyword is obsolete and no more used" $1)
-           nil)))
-       (tokentable_decl
-        ((TOKENTABLE SYMBOL)
-         (progn
-           (message "The %s keyword is obsolete and no more used" $1)
-           nil)))
        (string_value
         ((STRING)
          (read $1)))
@@ -394,7 +382,7 @@
        (item
         ((SYMBOL))
         ((CHARACTER))))
-     '(grammar prologue epilogue declaration nonterminal rule put_names put_values)))
+     '(grammar prologue epilogue declaration nonterminal rule put_names put_values use_names)))
   "Parser table.")
 
 (defun semantic-grammar-wy--install-parser ()
