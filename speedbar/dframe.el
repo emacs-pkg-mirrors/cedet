@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.25 2004/03/06 19:29:52 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.26 2004/12/29 01:18:45 zappo Exp $
 
 (defvar dframe-version "1.3"
   "The current version of the dedicated frame library.")
@@ -600,7 +600,6 @@ The function must take an EVENT.")
 Should enables auto-updating if the last state was also enabled.
 Argument E is the event making the frame visible."
   (interactive "e")
-  (message "%S" e)
   (let ((f last-event-frame))
     (if (and (dframe-attached-frame f)
 	     dframe-make-frame-visible-function)
@@ -612,7 +611,6 @@ Argument E is the event making the frame visible."
 Should disables auto-updating if the last state was also enabled.
 Argument E is the event iconifying the frame."
   (interactive "e")
-  (message "%S" e)
   (let ((f last-event-frame))
     (if (and (dframe-attached-frame f)
 	     dframe-iconify-frame-function e)
@@ -623,7 +621,6 @@ Argument E is the event iconifying the frame."
   "Handle `delete-frame' event.
 Argument E is the event deleting the frame."
   (interactive "e")
-  (message "%S" e)
   (let ((fl (frame-list))
 	(sf (selected-frame)))
     ;; Loop over all frames.  If dframe-delete-frame-function is
