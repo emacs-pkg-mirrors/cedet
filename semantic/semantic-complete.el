@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.3 2003/04/26 18:22:15 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.4 2003/04/26 18:51:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -94,6 +94,7 @@
 (require 'semantic-find)
 (require 'semantic-analyze)
 (require 'semantic-format)
+(require 'semantic-ctxt)
 ;; Keep semanticdb optional.
 (eval-when-compile (require 'semanticdb))
 
@@ -141,14 +142,42 @@ Argumeng DISPLAYOR is a function used to display a list of possible
 completions for a given prefix.  See`semantic-completion-display-engine'
 for details on DISPLAYOR.
 PROMPT is a string to prompt with.
-DEFAULT-TAG is a semantic tag to use as the default value.
+DEFAULT-TAG is a semantic tag or string to use as the default value.
 If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
 HISTORY is a symbol representing a variable to story the history in."
   (let ((semantic-completion-collector-engine collector)
 	(semantic-completion-display-engine displayor)
 	(ans nil)
 	(tag nil)
+	(orig-default-tag default-tag)
 	)
+    (unless default-tag
+      (setq default-tag (semantic-complete-choose-default)))
+    (when default-tag
+      (setq default-tag (cond ((stringp default-tag)
+			       default-tag)
+			      ((semantic-tag-p default-tag)
+			       (semantic-tag-name default-tag))
+			      ((and (listp default-tag)
+				    (stringp (car default-tag)))
+			       (car (nreverse default-tag)))
+			      )))
+    (when (stringp default-tag)
+      ;; Add this to the prompt.
+      ;;
+      ;; I really want to add a lookup of the symbol in those
+      ;; tags available to the collector and only add it if it
+      ;; is available as a possibility, but I'm too lazy right
+      ;; now.
+      ;;
+      (if (string-match ":" prompt)
+	  (setq prompt (concat
+			(substring prompt 0 (match-beginning 0))
+			" (" default-tag ")"
+			(substring prompt (match-beginning 0))))
+	(setq prompt (concat prompt " ("
+			     default-tag
+			     "): "))))
     (setq ans
 	  (read-from-minibuffer prompt
 				initial-input
@@ -156,10 +185,20 @@ HISTORY is a symbol representing a variable to story the history in."
 				nil
 				(or history
 				    'semantic-completion-default-history)
-				(semantic-tag-name default-tag)))
+				default-tag))
     ;; Convert the answer, a string, back into a tag using
     ;; the collector
-    (setq tag (oref collector match-list))
+    (if (slot-boundp collector 'match-list)
+	(setq tag (oref collector match-list))
+      ;; No match!
+      (if (and (string= ans "") default-tag)
+	  ;; Choose the default!
+	  (if (semantic-tag-p orig-default-tag)
+	      (setq tag orig-default-tag)
+	    (semantic-collector-calculate-completions collector
+						      default-tag)
+	    (setq tag (oref collector match-list))
+	    )))
     ;; If it isn't a tag, we didn't finish properly.
     ;; Throw an error
     (if (semantic-tag-with-position-p (car tag))
@@ -180,8 +219,13 @@ HISTORY is a symbol representing a variable to story the history in."
 (defun semantic-complete-done ()
   "Accept the current input."
   (interactive)
+  (when (string= (minibuffer-contents) "")
+      ;; The user wants the defaults!
+      (exit-minibuffer))
   (semantic-complete-do-completion)
-  (if (oref collector match-list)
+  (if (and (slot-boundp semantic-completion-collector-engine
+			'match-list)
+	   (oref semantic-completion-collector-engine match-list))
       (exit-minibuffer)
     (semantic-completion-message " [No Match]")
     ))
@@ -240,6 +284,19 @@ If PARTIAL, do partial completion stopping at spaces."
   "Display the string FMT formatted with ARGS at the end of the minibuffer."
   (message (concat (buffer-string) (apply 'format fmt args))))
 
+(defun semantic-complete-choose-default ()
+  "Based on the current position, choose a nice default for completion.
+Defaults are chosent from the lcoal context.
+It might be nice to someday have it find the tag assocated with the
+default, possibly choosing a function or variable."
+  (let ((sym nil))
+    (setq sym (semantic-ctxt-current-symbol))
+    (unless sym
+      (setq sym (semantic-ctxt-current-function)))
+    (unless sym
+      (setq sym (semantic-ctxt-current-assignment)))
+    sym))
+
 
 ;;; Specific queries
 ;;
@@ -247,7 +304,7 @@ If PARTIAL, do partial completion stopping at spaces."
 						      default-tag initial-input history)
   "Ask for a tag by name from the current buffer.
 PROMPT is a string to prompt with.
-DEFAULT-TAG is a semantic tag to use as the default value.
+DEFAULT-TAG is a semantic tag or string to use as the default value.
 If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
 HISTORY is a symbol representing a variable to story the history in."
   (semantic-complete-read-tag-engine
@@ -415,6 +472,7 @@ These collectors track themselves on a per-buffer basis "
 	(setq old new)))
     (slot-makeunbound old 'last-completion)
     (slot-makeunbound old 'last-prefix)
+    (slot-makeunbound old 'match-list)
     old))
 
 ;; Buffer specific collectors should flush themselves
@@ -491,7 +549,7 @@ Uses `semantic-flatten-tags-table'"
 (defun semantic-completion-test ()
   "Test completion mechanisms."
   (interactive)
-  (message
+  (message "%S"
    (semantic-format-tag-prototype
     (semantic-complete-read-tag-buffer-deep "Symbol: ")
     )))
