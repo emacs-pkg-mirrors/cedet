@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.31 2004/03/06 15:14:13 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.32 2004/03/08 09:07:41 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -313,7 +313,7 @@ If optional argument MODE is specified return the symbol table of that
 mode or its parents."
    (let (table)
      (or mode
-         semantic-bindings-active-mode
+         (setq mode  semantic-bindings-active-mode)
          (setq table semantic-symbol-table
                mode  major-mode))
      (while (and mode (not table))
@@ -414,16 +414,18 @@ hook."
 (defsubst semantic-symbol (sym &optional mode)
   "Return the semantic symbol SYM or nil if not found.
 Fetch SYM from `semantic-symbol-table' if locally set, or from
-the symbol table of current major mode or its parents.
-If optional argument MODE is non-nil search in the symbol table of
-that mode or its parents.
-Unless MODE is non-nil, set the buffer local value of
-`semantic-symbol-table' to the current symbol table found."
+the symbol table of the current active mode or its parents.
+By default the active mode is the current major mode.
+When MODE is nil and there is no explicit active mode, set the buffer
+local value of `semantic-symbol-table' to the current symbol table
+found."
   (or (and sym (symbolp sym)) (error "Invalid symbol %S" sym))
   (or (symbolp mode) (error "Invalid major mode symbol %S" mode))
   (let ((table (semantic-current-bindings mode)))
     (and (arrayp table)
-         (or mode (setq semantic-symbol-table table))
+         (or mode
+             semantic-bindings-active-mode
+             (setq semantic-symbol-table table))
          (intern-soft (symbol-name sym) table))))
   
   
