@@ -1,10 +1,10 @@
-;;; semantic-util-modes.el --- Semantic minor modes
+;;; semantic-decorate-mode.el --- Minor mode for decorating tags
 
 ;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.1 2004/06/13 02:50:41 zappo Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.2 2004/06/14 12:15:36 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -76,7 +76,7 @@ When this mode is activated, decorations specified by
 `semantic-decoration-secondary-alist' will be enabled."
   :group 'semantic
   :type 'boolean
-  :require 'semantic-util-modes
+  :require 'semantic-decorate-mode
   :initialize 'custom-initialize-default
   :set (lambda (sym val)
          (global-semantic-decoration-mode (if val 1 -1))))
