@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.4 2001/02/20 21:35:44 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.5 2001/02/22 02:44:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,7 +53,7 @@ Used for identifying the end of a single command.")
 (defun semantic-up-context (&optional point)
   "Move point up one context from POINT.
 Return non-nil if there are no more context levels.
-Overloaded functions take no parameters."
+Overloaded functions using `up-context' take no parameters."
   (if point (goto-char (point)))
   (let ((s (semantic-fetch-overload 'up-context)))
     (if s (funcall s)
@@ -73,7 +73,9 @@ Works with languages that use parenthetical grouping."
 
 (defun semantic-beginning-of-context (&optional point)
   "Move POINT to the beginning of the current context.
-Return non-nil if there is no upper context."
+Return non-nil if there is no upper context.
+The default behavior uses `semantic-up-context'.  It can
+be overridden with `beginning-of-context'."
   (if point (goto-char (point)))
   (let ((s (semantic-fetch-overload 'beginning-of-context)))
     (if s (funcall s)
@@ -90,7 +92,9 @@ Return non-nil if there is no upper context."
 
 (defun semantic-end-of-context (&optional point)
   "Move POINT to the end of the current context.
-Return non-nil if there is no upper context."
+Return non-nil if there is no upper context.
+Be default, this uses `semantic-up-context', and assumes parenthetical
+block delimiters.  This can be overridden with `end-of-context'."
   (if point (goto-char (point)))
   (let ((s (semantic-fetch-overload 'end-of-context)))
     (if s (funcall s)
@@ -109,7 +113,11 @@ Return non-nil if there is no upper context."
 
 (defun semantic-get-local-variables (&optional point)
   "Get the local variables based on POINT's context.
-Local variables are returned in Semantic token format."
+Local variables are returned in Semantic token format.
+Be default, this calculates the current bounds using context blocks
+navigation, then uses the parser with `bovine-inner-scope' to
+parse tokens at the beginning of the context.
+This can be overriden with `get-local-variables'."
   (save-excursion
     (if point (goto-char (point)))
     (let ((s (semantic-fetch-overload 'get-local-variables)))
@@ -131,7 +139,8 @@ to collect tokens, such as local variables or prototypes."
   "Get arguments (variables) from the current context at POINT.
 Parameters are available if the point is in a function or method.
 This function returns a list of tokens.  If the local token returns
-just a list of strings, then this function will convert them to tokens."
+just a list of strings, then this function will convert them to tokens.
+Part of this behavior can be overridden with `get-local-arguments'."
   (if point (goto-char (point)))
   (let* ((s (semantic-fetch-overload 'get-local-arguments))
 	 (params (if s (funcall s)
@@ -158,7 +167,10 @@ Parameters are available if the point is in a function or method."
 
 (defun semantic-get-all-local-variables (&optional point)
   "Get all local variables for this context, and parent contexts.
-Local variables are returned in Semantic token format."
+Local variables are returned in Semantic token format.
+Be default, this gets local variables, and local arguments.
+This can be overridden with `get-all-local-variables'.
+Optional argument POINT is the location to start getting the variables from."
   (save-excursion
     (if point (goto-char (point)))
     (let ((s (semantic-fetch-overload 'get-all-local-variables)))
@@ -202,7 +214,9 @@ this information."
 ;;
 ;;
 (defun semantic-end-of-command ()
-  "Move to the end of the current command."
+  "Move to the end of the current command.
+Be default, uses `semantic-command-separation-character'.
+Override with `end-of-command'."
     (let ((s (semantic-fetch-overload 'end-of-command)))
       (if s (funcall s)
 	(semantic-end-of-command-default)
@@ -219,7 +233,9 @@ beginning and end of a command."
 	(forward-char -1))))
 
 (defun semantic-beginning-of-command ()
-  "Move to the beginning of the current command."
+  "Move to the beginning of the current command.
+Be default, users `semantic-command-separation-character'.
+Override with `beginning-of-command'."
     (let ((s (semantic-fetch-overload 'beginning-of-command)))
       (if s (funcall s)
 	(semantic-beginning-of-command-default)
@@ -246,7 +262,8 @@ beginning and end of a command."
 
 (defun semantic-ctxt-current-symbol (&optional point)
   "Return the current symbol the cursor is on at POINT in a list.
-This will include a list of type/field names when applicable."
+This will include a list of type/field names when applicable.
+This can be overridden using `ctxt-current-symbol'."
     (if point (goto-char (point)))
     (let ((s (semantic-fetch-overload 'ctxt-current-symbol)))
       (if s (funcall s)
@@ -301,7 +318,8 @@ Depends on `semantic-type-relation-separator-character'."
 (defun semantic-ctxt-current-assignment (&optional point)
   "Return the current assignment near the cursor at POINT.
 Return a list as per `semantic-ctxt-current-symbol'.
-Return nil if there is nothing relevant."
+Return nil if there is nothing relevant.
+Override with `ctxt-current-assignment'."
     (if point (goto-char (point)))
     (let ((s (semantic-fetch-overload 'ctxt-current-assignment)))
       (if s (funcall s)
@@ -334,7 +352,8 @@ By default, assume that \"=\" indicates an assignment."
 (defun semantic-ctxt-current-function (&optional point)
   "Return the current symbol the cursor is on at POINT.
 The function returned is the one accepting the arguments that
-the cursor is currently in."
+the cursor is currently in.
+This can be overridden with `ctxt.current-function'."
     (if point (goto-char (point)))
     (let ((s (semantic-fetch-overload 'ctxt-current-function)))
       (if s (funcall s)
@@ -350,7 +369,8 @@ the cursor is currently in."
   )
 
 (defun semantic-ctxt-current-argument (&optional point)
-  "Return the current symbol the cursor is on at POINT."
+  "Return the current symbol the cursor is on at POINT.
+Override with `ctxt-current-argument'."
     (if point (goto-char (point)))
     (let ((s (semantic-fetch-overload 'ctxt-current-argument)))
       (if s (funcall s)
