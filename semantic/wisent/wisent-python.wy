@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.8 2002/06/22 21:29:17 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.9 2002/06/23 04:11:58 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -133,7 +133,10 @@
 %token <punctuation> COMMA 	","
 %token <punctuation> ASSIGN 	"="
 %token <punctuation> BACKQUOTE 	"`"
-%token <punctuation> BACKSLASH 	"\\"
+
+%token <charquote>   BACKSLASH 	"\\"
+%put charquote string t
+%put charquote handler wisent-python-lex-backslash
 
 ;; -----------------
 ;; Literal terminals

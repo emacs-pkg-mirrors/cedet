@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.7 2002/06/22 21:29:17 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.8 2002/06/23 04:11:58 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -88,14 +88,6 @@
 ;;
 ;; * Debug the grammar so that it can parse at least all standard *.py
 ;;   files distributed along with python.
-;;
-;; * Enhance the lexer so that DEDENT, INDENT, and NEWLINE tokens are
-;;   properly suppressed when a logical line continues on two or more
-;;   physical lines explicitly via '\'.
-;;
-;; * Figure out why a '*' in formal parameter list cannot be parsed, e.g.,
-;;
-;;       def log_error(self, *args):
 ;;
 ;; * Delete most semantic rules when the grammar is debugged.
 ;;
@@ -240,6 +232,23 @@ then throw away any immediately following INDENT and DEDENT tokens."
       ;; return it.
       (cons 'NEWLINE (cons "\n" (cdr stok)))))))
 
+(defun wisent-python-lex-backslash ()
+  "Handle BACKSLASH syntactic tokens."
+  (let ((stok (car wisent-flex-istream)))
+    ;; Throw away the BACKSLASH token.
+    (setq wisent-flex-istream (cdr wisent-flex-istream))
+
+    ;; Simply return a BACKSLASH token if the next token is not NEWLINE.
+    (if (not (eq (caar wisent-flex-istream) 'newline))
+	(cons 'BACKSLASH (cons "\\" (cd stok)))
+      ;; Throw away the 'newline token.
+      (setq wisent-flex-istream (cdr wisent-flex-istream))
+      ;; Throw away the following 'bol token as well to prevent DEDENT
+      ;; or INDENT token from being generated.
+      (if (eq (caar wisent-flex-istream) 'bol)
+	  (setq wisent-flex-istream (cdr wisent-flex-istream)))
+      (wisent-flex))))
+
 (defconst semantic-python-number-regexp
   (eval-when-compile
     (concat "\\("
@@ -285,7 +294,7 @@ we get around ot it.")
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 07:21-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 14:01-0700
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -892,7 +901,7 @@ we get around ot it.")
 
 (defconst wisent-python-keywords
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 07:21-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 14:01-0700
    (semantic-flex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -956,7 +965,7 @@ we get around ot it.")
 
 (defconst wisent-python-tokens
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 07:21-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 14:01-0700
    (wisent-flex-make-token-table
     '(("bol"
        (DEDENT)
@@ -967,8 +976,9 @@ we get around ot it.")
        (NUMBER_LITERAL))
       ("string"
        (STRING_LITERAL))
+      ("charquote"
+       (BACKSLASH . "\\"))
       ("punctuation"
-       (BACKSLASH . "\\")
        (BACKQUOTE . "`")
        (ASSIGN . "=")
        (COMMA . ",")
@@ -1018,6 +1028,8 @@ we get around ot it.")
       ("newline"
        (NEWLINE)))
     '(("bol" handler wisent-python-lex-bol)
+      ("charquote" handler wisent-python-lex-backslash)
+      ("charquote" string t)
       ("close-paren" handler wisent-python-lex-close-paren)
       ("open-paren" handler wisent-python-lex-open-paren)
       ("newline" handler wisent-python-lex-newline)
@@ -1031,7 +1043,7 @@ we get around ot it.")
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 07:21-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 14:01-0700
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
 	  semantic-toplevel-bovine-table wisent-python-parser-tables
