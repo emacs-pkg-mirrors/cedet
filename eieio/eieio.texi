@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.33 2000/10/09 04:17:42 zappo Exp $
+@c $Id: eieio.texi,v 1.34 2000/10/11 02:47:43 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -578,11 +578,12 @@ changed, this can be arranged by simply executing this bit of code:
 @defun oref object slot
 
 This recalls the value in slot @var{slot} in @var{object} and returns
-it.
+it.  If @var{object} is a class, and @var{slot} is a class allocated
+slot, then oref will return that value.  If @var{object} is a class, and
+@var{slot} is not class allocated, a signal will be thrown.
 @end defun
 
 @defun oref-default object slot
-
 This gets the default value in @var{object}'s class definition for
 @code{slot}.  This can be different from the value returned by
 @code{oref}.  @var{object} can also be a class symbol or an instantiated
@@ -607,6 +608,14 @@ function sets the value of @var{slot} from @var{object}.  Unlike
 @defun slot-makeunbound object slot
 This function unbinds @var{slot} in @var{object}.  Referencing an
 unbound slot can throw an error.
+@end defun
+
+@defun object-add-to-list object slot &optional append
+In @var{OBJECT}'s @var{SLOT}, add @var{ITEM} to the pre-existing list of elements.
+Optional argument @var{APPEND} indicates we need to append to the list.
+If @var{ITEM} already exists in the list in @var{SLOT}, then it is not added.
+Comparison is done with @dfn{equal} through the @dfn{member} function call.
+If @var{SLOT} is unbound, bind it to the list containing @var{ITEM}.
 @end defun
 
 @defun with-slots entries object forms
