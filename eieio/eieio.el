@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.111 2001/08/01 01:41:50 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.112 2001/08/21 02:10:29 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta2"
   "Current version of EIEIO.")
@@ -104,6 +104,9 @@ still set for CLOS methods for the sake of routines like
   "This is set to a class when a method is running.
 This is so we know we are allowed to check private parts or how to
 execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
+
+(defvar eieio-initializing-object  nil
+  "Set to non-nil while initializing an object.")
 
 (defconst eieio-unbound (make-symbol "unbound")
   "Uninterned symbol representing an unbound slot in an object.")
@@ -1350,6 +1353,21 @@ If SLOT is unbound, do nothing."
 
 ;;; EIEIO internal search functions
 ;;
+(defun eieio-field-originating-class-p (start-class field)
+  "Return Non-nil if START-CLASS is the first class to define FIELD.
+This is for testing if `scoped-class' is the class that defines FIELD
+so that we can protect private slots."
+  (let ((par (class-parents start-class))
+	(ret t))
+    (if (not par)
+	t
+      (while (and par ret)
+	(if (intern-soft (symbol-name field)
+			 (aref (class-v (car par))
+			       class-symbol-obarray))
+	    (setq ret nil))
+	(setq par (cdr par)))
+      ret)))
 
 (defun eieio-field-name-index (class field)
   "In CLASS find the index of the named FIELD.
@@ -1369,7 +1387,9 @@ reverse-lookup that name, and recurse with the associated slot value."
 	       (and scoped-class (child-of-class-p class scoped-class)))
 	  (+ 3 fsi))
 	 ((and (eq (get fsym 'protection) 'private)
-	       (and scoped-class (eq class scoped-class)))
+	       (or (and scoped-class
+			(eieio-field-originating-class-p scoped-class field))
+		   eieio-initializing-object))
 	  (+ 3 fsi))
 	 (t nil))
       (let ((fn (eieio-initarg-to-attribute class field)))
@@ -1667,6 +1687,7 @@ If SET-ALL is non-nil, then when a default is nil, that value is
 reset.  If SET-ALL is nil, the fields are only reset if the default is
 not nil."
   (let ((scoped-class (aref obj object-class))
+	(eieio-initializing-object t)
 	(pub (aref (class-v (aref obj object-class)) class-public-a)))
     (while pub
       (let ((df (eieio-oref-default obj (car pub))))
