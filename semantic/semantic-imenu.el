@@ -1,11 +1,11 @@
 ;;; semantic-imenu.el --- Use the Bovinator as a imenu tag generator
 
 ;;; Copyright (C) 2000, 2001, 2002 Paul Kinnucan & Eric Ludlam
-;;; Copyright (C) 2001 Eric Ludlam
+;;; Copyright (C) 2001, 2002, 2003 Eric Ludlam
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.42 2002/12/29 18:01:55 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.43 2003/03/31 10:06:23 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -60,7 +60,7 @@
       )
   (error nil))
 
-;; Because semantic imenu tokens will hose the current imenu handling
+;; Because semantic imenu tags will hose the current imenu handling
 ;; code in speedbar, force semantic-sb in.
 (if (featurep 'speedbar)
     (require 'semantic-sb)
@@ -80,7 +80,7 @@ Some useful functions are found in `semantic-token->text-functions'."
 (make-variable-buffer-local 'semantic-imenu-summary-function)
 
 (defcustom semantic-imenu-bucketize-file t
-  "*Non-nil if tokens in a file are to be grouped into buckets."
+  "*Non-nil if tags in a file are to be grouped into buckets."
   :group 'semantic-imenu
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-bucketize-file)
@@ -93,7 +93,7 @@ definition."
   :type 'boolean)
 
 (defcustom semantic-imenu-buckets-to-submenu t
-  "*Non-nil if buckets of tokens are to be turned into submenus.
+  "*Non-nil if buckets of tags are to be turned into submenus.
 This option is ignored if `semantic-imenu-bucketize-file' is nil."
   :group 'semantic-imenu
   :type 'boolean)
@@ -141,17 +141,17 @@ other buffer local ones based on the same semanticdb."
   "Non-nil if `semantic-imenu-rebuild-directory-indexes' is running.")
 
 (defvar semantic-imenu-expandable-token 'type
-  "Tokens of this token type will be given submenu with children.
+  "Tags of this tag class will be given submenu with children.
 By default, a `type' has interesting children.  In Texinfo, however,
 a `section' has interesting children.")
 (make-variable-buffer-local 'semantic-imenu-expandable-token)
 
 ;;; Code:
-(defun semantic-imenu-token-overlay (token)
+(defun semantic-imenu-tag-overlay (tag)
   "Return the overlay belonging to TOKEN.
 If TOKEN doesn't have an overlay, and instead as a vector of positions,
 concoct a combination of file name, and position."
-  (let ((o (semantic-token-overlay token)))
+  (let ((o (semantic-tag-overlay tag)))
     (if (not (semantic-overlay-p o))
 	(let ((v (make-vector 3 nil)))
 	  (aset v 0 semantic-imenu-directory-current-file)
@@ -184,7 +184,7 @@ Optional argument REST is some extra stuff."
 	  (and file (find-file file))
 	  (imenu-default-goto-function name pos rest))
       ;; When the POSITION is the symbol 'file-only' it means that this
-      ;; is a directory index entry and there is no tokens in this
+      ;; is a directory index entry and there is no tags in this
       ;; file. So just jump to the beginning of the file.
       (if (eq position 'file-only)
 	  (progn
@@ -216,7 +216,7 @@ IGNORE arguments."
 (defun semantic-create-imenu-index (&optional stream)
   "Create an imenu index for any buffer which supports Semantic.
 Uses the output of the Semantic Bovinator to create the index.
-Optional argument STREAM is an optional stream of tokens used to create menus."
+Optional argument STREAM is an optional stream of tags used to create menus."
   (setq imenu-default-goto-function 'semantic-imenu-goto-function)
   (prog1
       (if (and semantic-imenu-index-directory
@@ -235,35 +235,35 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
 
 (defun semantic-create-imenu-directory-index (&optional stream)
   "Create an IMENU tag index based on all files active in semanticdb.
-Optional argument STREAM is the stream of tokens for the current buffer."
+Optional argument STREAM is the stream of tags for the current buffer."
   (if (not semanticdb-current-database)
       (semantic-create-imenu-index-1 stream nil)
     ;; We have a database, list all files, with the current file on top.
     (let ((index (list
 		  (cons (oref semanticdb-current-table file)
 			(or (semantic-create-imenu-index-1 stream nil)
-			    ;; No tokens in this file
+			    ;; No tags in this file
 			    'file-only))))
 	  (tables (oref semanticdb-current-database tables)))
       (working-status-forms "Imenu Directory Index" "done"
 	(while tables
 	  (let ((semantic-imenu-directory-current-file
 		 (oref (car tables) file))
-		tokens)
+		tags)
 	    (when (and (not (eq (car tables) semanticdb-current-table))
 		       (semanticdb-live-p (car tables))
 		       (semanticdb-equivalent-mode (car tables))
 		       )
-	      (setq tokens (oref (car tables) tokens)
+	      (setq tags (oref (car tables) tags)
 		    index (cons (cons semantic-imenu-directory-current-file
-				      (or (and tokens
+				      (or (and tags
 					       ;; don't pass nil stream because
 					       ;; it will use the current
 					       ;; buffer
 					       (semantic-create-imenu-index-1
-						(oref (car tables) tokens)
+						(oref (car tables) tags)
 						nil))
-					  ;; no tokens in the file
+					  ;; no tags in the file
 					  'file-only))
 				index)))
 	    (setq tables (cdr tables)))
@@ -287,20 +287,20 @@ Optional argument STREAM is the stream of tokens for the current buffer."
 (defun semantic-create-imenu-index-1 (stream &optional parent)
   "Create an imenu index for any buffer which supports Semantic.
 Uses the output of the Semantic Bovinator to create the index.
-STREAM is a stream of tokens used to create menus.
-Optional argument PARENT is a token parent of STREAM."
-  (let ((tokens stream)
+STREAM is a stream of tags used to create menus.
+Optional argument PARENT is a tag parent of STREAM."
+  (let ((tags stream)
 	(semantic-imenu-adopt-external-members
 	 semantic-imenu-adopt-external-members))
     ;; If we should regroup, do so.
     (if semantic-imenu-adopt-external-members
- 	(setq tokens (semantic-adopt-external-members tokens)
+ 	(setq tags (semantic-adopt-external-members tags)
 	      ;; Don't allow recursion here.
 	      semantic-imenu-adopt-external-members nil))
     ;; Test for bucketing vs not.
     (if semantic-imenu-bucketize-file
 	(let ((buckets (semantic-bucketize
-			tokens parent
+			tags parent
 			semantic-imenu-sort-bucket-function))
 	      item name
 	      index)
@@ -326,7 +326,7 @@ Optional argument PARENT is a token parent of STREAM."
 			  (append index
 				  ;; do not create a menu separator in the parent menu
 				  ;; when creating a sub-menu
-				  (if (eq (semantic-token-token (car item))
+				  (if (eq (semantic-tag-class (car item))
 					  semantic-imenu-expandable-token)
 				      (semantic-create-imenu-subindex item)
 				    (cons
@@ -342,24 +342,23 @@ Optional argument PARENT is a token parent of STREAM."
 		  item (cdr (car buckets)))
 	    (semantic-create-imenu-subindex item))))
       ;; Else, group everything together
-      (semantic-create-imenu-subindex tokens))))
+      (semantic-create-imenu-subindex tags))))
 
-(defun semantic-create-imenu-subindex (tokens)
-  "From TOKENS, create an imenu index of interesting things."
+(defun semantic-create-imenu-subindex (tags)
+  "From TAGS, create an imenu index of interesting things."
   (let ((notypecheck (not semantic-imenu-expand-type-parts))
-	children
-        index token parts)
-    (while tokens
-      (setq token (car tokens)
-	    children (semantic-nonterminal-children token t))
+	children index tag parts)
+    (while tags
+      (setq tag (car tags)
+	    children (semantic-tag-components-with-overlays tag))
       (if (and (not notypecheck)
-               (eq (semantic-token-token token)
+               (eq (semantic-tag-class tag)
                    semantic-imenu-expandable-token)
 	       children
                )
           ;; to keep an homogeneous menu organisation, type menu items
           ;; always have a sub-menu with at least the *definition*
-          ;; item (even if the token has no type parts)
+          ;; item (even if the tag has no type components)
 	  (progn
 	    (setq parts children)
 	    ;; There is options which create the submenu
@@ -370,37 +369,37 @@ Optional argument PARENT is a token parent of STREAM."
 	    (setq index
 		  (cons
 		   (cons
-		    (funcall semantic-imenu-summary-function token)
+		    (funcall semantic-imenu-summary-function tag)
 		    ;; Add a menu for getting at the type definitions
 		    (if (and parts
-			     ;; Note to self: enable menu items for sub
-			     ;; parts even if they are not proper
-			     ;; tokens.
-			     (semantic-token-p (car parts)))
+			     ;; Note to self: enable menu items for
+			     ;; sub parts even if they are not proper
+			     ;; tags.
+			     (semantic-tag-p (car parts)))
 			(let ((submenu
 			       (if (and semantic-imenu-bucketize-type-parts
 					semantic-imenu-bucketize-file)
-				   (semantic-create-imenu-index-1 parts token)
+				   (semantic-create-imenu-index-1 parts tag)
 				 (semantic-create-imenu-subindex parts))))
 			  ;; Only add a *definition* if we have a postion
-			  ;; in that type token.
-			  (if (semantic-token-with-position-p token)
+			  ;; in that type tag.
+			  (if (semantic-tag-with-position-p tag)
 			      (cons
 			       (cons "*definition*"
-				     (semantic-imenu-token-overlay token))
+				     (semantic-imenu-tag-overlay tag))
 			       submenu)
 			    submenu))
 		      ;; There were no parts, or something like that, so
 		      ;; instead just put the definition here.
-		      (semantic-imenu-token-overlay token)
+		      (semantic-imenu-tag-overlay tag)
 		      ))
 		   index)))
         (setq index (cons
                      (cons
-                      (funcall semantic-imenu-summary-function token)
-                      (semantic-imenu-token-overlay token))
+                      (funcall semantic-imenu-summary-function tag)
+                      (semantic-imenu-tag-overlay tag))
                      index)))
-      (setq tokens (cdr tokens)))
+      (setq tags (cdr tags)))
     ;; `imenu--split-submenus' sort submenus according to
     ;; `imenu-sort-function' setting and split them up if they are
     ;; longer than `imenu-max-items'.
@@ -477,31 +476,34 @@ Clears all imenu menus that may be depending on the database."
 ;; The which-function library will display the current function in the
 ;; mode line.  It tries do do this through imenu.  With a semantic parsed
 ;; buffer, there is a much more efficient way of doing this.
-;; Advise `which-function' so that we optionally use semantic tokens
+;; Advise `which-function' so that we optionally use semantic tags
 ;; instead, and get better stuff.
 (require 'advice)
 
 (defvar semantic-which-function 'semantic-default-which-function
-  "Function to convert semantic tokens into `which-function' text.")
+  "Function to convert semantic tags into `which-function' text.")
 
 (defcustom semantic-which-function-use-color nil
   "*Use color when displaying the current function with `which-function'."
   :group 'semantic-imenu
   :type 'boolean)
 
-(defun semantic-default-which-function (tokenlist)
-  "Convert TOKENLIST into a string usable by `which-function'.
-Returns the first token name in the list, unless it is a type,
+(defun semantic-default-which-function (taglist)
+  "Convert TAGLIST into a string usable by `which-function'.
+Returns the first tag name in the list, unless it is a type,
 in which case it concatenates them together."
-  (cond ((eq (length tokenlist) 1)
-	 (semantic-abbreviate-nonterminal (car tokenlist) nil semantic-which-function-use-color))
-	((eq (semantic-token-token (car tokenlist))
+  (cond ((eq (length taglist) 1)
+	 (semantic-abbreviate-nonterminal
+          (car taglist) nil semantic-which-function-use-color))
+	((eq (semantic-tag-class (car taglist))
 	     semantic-imenu-expandable-token)
-	 (concat (semantic-name-nonterminal (car tokenlist) semantic-which-function-use-color) "."
+	 (concat (semantic-name-nonterminal
+                  (car taglist) semantic-which-function-use-color) "."
 		 ;; recurse until we no longer have a type
-		 ;; or any tokens left.
-		 (semantic-default-which-function (cdr tokenlist))))
-	(t (semantic-abbreviate-nonterminal (car tokenlist) nil semantic-which-function-use-color))))
+		 ;; or any tags left.
+		 (semantic-default-which-function (cdr taglist))))
+	(t (semantic-abbreviate-nonterminal
+            (car taglist) nil semantic-which-function-use-color))))
 
 (defadvice which-function (around semantic-which activate)
   "Choose the function to display via semantic if it is currently active."
