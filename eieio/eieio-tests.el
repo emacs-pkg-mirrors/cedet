@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.6 2000/12/02 01:52:08 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.7 2001/01/10 06:52:33 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -447,6 +447,41 @@ METHOD is the method that was attempting to be called."
       ((not (eq (oref II3 slot3) 'penguin))
        (error "Instance inheritor: Level zero inheritance failed."))
       (t t))
+
+
+;;; Test the persistent object, and object-write by side-effect.
+;;
+(defclass PO (eieio-persistent)
+  ((slot1 :initarg :slot1
+	  :initform 2)
+   (slot2 :initarg :slot2
+	  :initform "foo"))
+  "A Persistent object with two initializable slots.")
+
+(defvar PO1 (PO "persist" :slot1 4 :slot2 "testing" :file "test-p.el"))
+
+(eieio-persistent-save PO1)
+
+(eieio-persistent-read "test-p.el")
+
+
+;;; Test the instance tracker
+;;
+(defclass IT (eieio-instance-tracker)
+  ((tracking-symbol :initform IT-list)
+   (slot1 :initform 'die))
+  "Instance Tracker test object.")
+
+(defvar IT-list nil)
+(defvar IT1 (IT "trackme"))
+
+(if (not (eieio-instance-tracker-find 'die 'slot1 'IT-list))
+    (error "Instance tracker lost an instance."))
+
+(delete-instance IT1)
+
+(if (eieio-instance-tracker-find 'die 'slot1 'IT-list)
+    (error "Instance tracker delete failed."))
 
 (message "All tests passed.")
 
