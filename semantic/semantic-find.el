@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.19 2004/02/04 03:57:43 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.20 2004/03/19 23:48:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -657,7 +657,7 @@ the median calculation, and return nil."
     (let* ((stream (if (bufferp streamorbuffer)
 		       (save-excursion
 			 (set-buffer streamorbuffer)
-			 (semantic-bovinate-toplevel))
+			 (semantic-fetch-tags))
 		     streamorbuffer))
 	   (prev nil)
 	   (found nil))
