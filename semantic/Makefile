@@ -9,24 +9,29 @@
 top=
 ede_FILES=Project.ede Makefile
 
+wy_MISC=semantic-grammar.wy
 scripts_MISC=semanticdb.sh
 example_MISC=semantic-example.el
 init_LISP=semantic-load.el semantic-autogen.el
 EMACS=emacs
-LOADPATH=../speedbar/ ../eieio/ 
-semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el
+LOADPATH=wisent/ bovine/ ../speedbar/ ../eieio/\
+   
+semantic_LISP=semantic.el semantic-util.el semantic-ctxt.el semantic-lex.el semantic-edit.el semantic-fw.el semantic-grammar.el
 Languages_LISP=semantic-texi.el
-tools_LISP=semantic-imenu.el semantic-sb.el working.el semanticdb.el document.el document-vars.el sformat.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el
+tools_LISP=semantic-imenu.el semantic-sb.el working.el semanticdb.el document.el document-vars.el sformat.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el
 senator_LISP=senator.el
 misc_AUX=INSTALL NEWS ChangeLog
 info_TEXINFOS=semantic.texi
 MAKEINFO=makeinfo
-VERSION=2.0beta3
+VERSION=2.0beta1
 DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: scripts example init semantic Languages tools senator semantic.info wisent Tests bovinator
+all: wy scripts example init semantic Languages tools senator semantic.info wisent Tests bovinator
+
+wy: 
+	@
 
 scripts: 
 	@
@@ -110,7 +115,7 @@ clean:
 dist: semantic.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(info_TEXINFOS) semantic.info* $(ede_FILES) $(DISTDIR)
+	cp $(wy_MISC) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(info_TEXINFOS) semantic.info* $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) dist
 	cd tests; $(MAKE) dist
 	cd bovine; $(MAKE) dist
