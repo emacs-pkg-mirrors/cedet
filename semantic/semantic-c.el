@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.7 2000/09/20 18:04:29 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.8 2000/09/21 03:34:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -138,9 +138,15 @@
      ( typesimple
        ,(semantic-lambda
 	 (nth 0 vals)))
-     ( symbol "\\<\\(struct\\|union\\|enum\\)\\>" symbol
+     ( STRUCT symbol
 	      ,(semantic-lambda
 		(list (nth 1 vals) 'type (nth 0 vals))))
+     ( UNION symbol
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'type (nth 0 vals))))
+     ( ENUM symbol
+	    ,(semantic-lambda
+	      (list (nth 1 vals) 'type (nth 0 vals))))
      ( symbol
        ,(semantic-lambda
 	 (list (nth 0 vals))))
