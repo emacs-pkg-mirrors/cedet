@@ -21,6 +21,9 @@
 **** Template-specifier can now contain normal args like "int i" which is very
      important.
 
+**** Template types can now contain constant- and literal-arguments like in
+     "foo<ClassX, 10> foo_10_var;"
+
 **** Template-specifiers are allowed in class-qualifiers
 
 *** Improving macro-parsing, i.e. now also multiline-macros (every line ending
