@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.40 2002/05/07 01:31:14 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.41 2002/07/29 17:23:50 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -196,13 +196,13 @@ Optional argument REST is some extra stuff."
 
 (defun semantic-imenu-flush-fcn (&optional ignore)
   "This function is called as a hook to clear the imenu cache.
-This is added to `semantic-before-toplevel-cache-flush-hook' and
-`semantic-clean-token-hooks'.  IGNORE arguments."
+It is cleared after any parsing.
+IGNORE arguments."
   (if (eq imenu-create-index-function 'semantic-create-imenu-index)
       (setq imenu--index-alist nil))
-  (remove-hook 'semantic-before-toplevel-cache-flush-hook
+  (remove-hook 'semantic-after-toplevel-cache-change-hook
                'semantic-imenu-flush-fcn t)
-  (remove-hook 'semantic-clean-token-hooks
+  (remove-hook 'semantic-after-partial-cache-change-hook
                'semantic-imenu-flush-fcn t)
   )
 
@@ -220,11 +220,11 @@ Optional argument STREAM is an optional stream of tokens used to create menus."
 	   (or stream (semantic-bovinate-toplevel t)))
         (semantic-create-imenu-index-1
 	 (or stream (semantic-bovinate-toplevel t)) nil))
-    (semantic-make-local-hook 'semantic-before-toplevel-cache-flush-hook)
-    (add-hook 'semantic-before-toplevel-cache-flush-hook
+    (semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
+    (add-hook 'semantic-after-toplevel-cache-change-hook
               'semantic-imenu-flush-fcn nil t)
-    (semantic-make-local-hook 'semantic-clean-token-hooks)
-    (add-hook 'semantic-clean-token-hooks
+    (semantic-make-local-hook 'semantic-after-partial-cache-change-hook)
+    (add-hook 'semantic-after-partial-cache-change-hook
               'semantic-imenu-flush-fcn nil t)))
 
 (defun semantic-create-imenu-directory-index (&optional stream)
