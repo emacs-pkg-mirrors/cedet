@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.57 2002/06/13 15:20:34 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.58 2002/07/10 03:49:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -762,6 +762,54 @@ Identifies the system include by looking backwards."
   (if (bolp) (end-of-line))
   nil)
 
+(define-lex-regex-analyzer semantic-lex-c-if-0
+  "Block out code matched in an #if 0 condition."
+  "^\\s-*#if\\s-*0$"
+  (beginning-of-line)
+  (c-forward-conditional 1)
+  (setq end-point (point))
+  nil)
+
+(define-lex-regex-analyzer semantic-lex-c-if
+  "Ignore various forms of #if/#else/#endif conditionals."
+  "^#\\(if\\(def\\)?\\|else\\|endif\\)"
+  (when (bolp) (end-of-line))
+  (setq end-point (point))
+  nil)
+
+(define-lex-analyzer semantic-lex-c-include-system
+  "Identify system include strings, and return special tokens."
+  (and (looking-at "<[^\n>]+>")
+       (save-excursion
+	 (beginning-of-line)
+	 (looking-at "\\s-*#\\s-*include\\s-+<"))
+       (= (match-end 0) (1+ (point))))
+  ;; We found a system include.
+  (let ((start (point)))
+    ;; This should always pass
+    (re-search-forward ">")
+    ;; We have the whole thing.
+    (semantic-lex-token 'system-include start (point))
+    )
+  )
+
+(define-lex semantic-c-lexer
+  "Lexical Analyzer for C code."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  semantic-lex-c-if-0
+  semantic-lex-c-if
+  semantic-lex-c-include-system
+  semantic-lex-number
+  semantic-lex-symbol-or-keyword
+  semantic-lex-charquote
+  semantic-lex-paren-or-list
+  semantic-lex-close-paren
+  semantic-lex-string
+  semantic-lex-ignore-comments
+  semantic-lex-punctuation
+  semantic-lex-default-action)
+
 (defun semantic-expand-c-nonterminal (nonterm)
   "Expand NONTERM into a list of equivalent nonterminals, or nil."
   (cond ((eq (car nonterm) 'extern)
@@ -1198,6 +1246,7 @@ These are constants which are of type TYPE."
      (analyze-dereference-metatype . semantic-c-analyze-dereference-metatype)
      (analyze-type-constants . semantic-c-analyze-type-constants)
      ))
+  (setq semantic-lex-analyzer #'semantic-c-lexer)
   ;; Code generated from c.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
 	semantic-toplevel-bovine-table-source "c.bnf")
