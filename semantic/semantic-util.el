@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.123 2003/08/29 16:14:02 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.124 2003/09/02 14:49:47 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,8 +54,7 @@ would be in the list, so that \"type->field\" could be found.")
 (defvar semantic-equivalent-major-modes nil
   "List of major modes which are considered equivalent.
 Equivalent modes share a parser, and a set of override methods.
-Setup from the BNF code generator.  A value of nil means that
-the current major mode is the only one.")
+A value of nil means that the current major mode is the only one.")
 (make-variable-buffer-local 'semantic-equivalent-major-modes)
 
 ;; These semanticdb calls will throw warnings in the byte compiler.
