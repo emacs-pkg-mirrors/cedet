@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.99 2004/06/11 12:36:26 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.100 2004/06/19 15:00:27 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1291,7 +1291,84 @@ is a symbol which refer to a bound variable too."
                item (cons :style    (cons style    item))
                item (cons callback  item)))))
 
-(defun senator-register-mode-menu-entry (name local global)
+(defun senator-register-custom-menu (spec)
+  "Register SPEC as a menu item entry for customizing some aspect of a mode.
+SPEC can either be one entry, or a list of SPEC entries.  A SPEC is of
+the form
+
+\(SYMBOL [ :KEYWORD ARG ] ...)
+
+Valid keywords include:
+
+  :name - ARG represents the string used in the menu item.
+
+  :style - ARG represents the style of menu item this is.  Values for ARG
+           include:
+     :group  - SYMBOL is a group that `customize-group' will be called on.
+     :variable - SYMBOL is a variable that `customize-variable' will be called on.
+     :face - SYMBOL is a face that `customize-face' will be called on.
+     :toggle - SYMBOL is a variable that will be toggled on and off.
+
+     If :style is not specified, the symbol is queried to try and
+     predict the correct style to use.
+
+  :option-symbol - SYMBOL is a variable that contains a value that is from
+            a list of symbols.  ARG should be a list of symbols that can assign
+            to the variable SYMBOL."
+  (if (and (not (null spec)) (not (consp spec)))
+      (signal 'wrong-type-argument (list spec)))
+  ;; Turn spec into a list of specs if it is not so already.
+  (if (and spec (not (consp (car spec)))) (setq spec (list spec)))
+  (let ((menulist nil)
+	(item nil))
+    (while spec
+      (let* ((sym (car (car spec)))
+	     (pl (cdr (car spec)))
+	     (name (car-safe (cdr-safe (member :name pl))))
+	     (style (car-safe (cdr-safe (member :style pl)))))
+	(if (not style)
+	    (setq style
+		  (cond
+		   ((get sym 'custom-group)
+		    :group)
+		   ((facep sym)
+		    :face)
+		   ((boundp sym)
+		    :variable))))
+	(if (not name)
+	    (setq name (symbol-name sym)))
+	(setq menulist
+	      (cons
+	       (cond
+		((eq style :group)
+		 (senator-menu-item
+		  (vector (concat "Customize Group " name)
+			  `(lambda (ARG) (interactive "p")
+			     (customize-group (quote ,sym)))
+			  :help (format "Customize Group %s" name)))
+		 )
+		((eq style :variable)
+		 (senator-menu-item
+		  (vector (concat "Customize" name)
+			  `(lambda (ARG) (interactive "p")
+			     (customize-variable (quote ,sym)))
+			  :help (format "Customize Variable %s" name)))
+		 )
+		((eq style :face)
+		 (senator-menu-item
+		  (vector (concat "Customize " name)
+			  `(lambda (ARG) (interactive "p")
+			     (customize-face (quote ,sym)))
+			  :help (format "Customize Face %s" name)))
+		 )
+		((eq style :toggle)
+		 ))
+	       menulist))
+	)
+      (setq spec (cdr spec)))
+    menulist))
+
+(defun senator-register-mode-menu-entry (name local global &optional custom)
   "Register a minor mode menu entry.
 This will add menu items to the \"Modes\" menu allowing to change the
 minor mode settings.  NAME is the name displayed in the menu.  LOCAL
@@ -1301,18 +1378,27 @@ menu item.  See the function `senator-register-command-menu' for the
 command menu specification.  If NAME is already registered the
 corresponding entry will be updated with the given LOCAL and GLOBAL
 definitions.  If LOCAL and GLOBAL are both nil the NAME entry is
-unregistered if present."
+unregistered if present.
+Optional fourth argument CUSTOM represents a menu item, or submenu
+item that will customize something about the mode being registered.
+See the function `senator-register-custom-menu' for the details on
+what this menu looks like."
   ;; Clear the cached menu to rebuild it.
   (setq senator-modes-menu-cache nil)
   (let* ((entry (assoc name senator-registered-mode-entries))
          (local-item  (senator-register-command-menu local nil))
-         (global-item (senator-register-command-menu global t)))
+         (global-item (senator-register-command-menu global t))
+	 (custom-item (senator-register-custom-menu custom))
+	 (entry-construct (append (list local-item global-item)
+				  custom-item))
+	 )
+    
     (if (not (or local-item global-item))
         (setq senator-registered-mode-entries
               (delq entry senator-registered-mode-entries))
       (if entry
-          (setcdr entry (cons local-item global-item))
-        (setq entry (cons name (cons local-item global-item))
+          (setcdr entry entry-construct)
+        (setq entry (cons name entry-construct)
               senator-registered-mode-entries
               (nconc senator-registered-mode-entries (list entry))))
       entry)))
@@ -1346,15 +1432,25 @@ The sub-menu displayed in the Senator/Modes menu looks like this:
   Entry-Name
             [x] In this buffer
             [x] Globally
+            Custom1
+            Custom2
+            ...
 
 The menu item \"In this buffer\" toggles the minor mode locally.
 The menu item \"Globally\" toggles the minor mode globally."
-  (delq nil
-        (list (car entry)
-              (senator-build-command-menu-item
-               senator-mode-menu-local-toggle-label (cadr entry))
-              (senator-build-command-menu-item
-               senator-mode-menu-global-toggle-label (cddr entry)))))
+  (let ((mode (nth 1  entry))
+	(global (nth 2 entry))
+	(customs (nthcdr 3 entry)))
+    (delq nil
+	  (append
+	   (list (car entry)
+		 (senator-build-command-menu-item
+		  senator-mode-menu-local-toggle-label mode)
+		 (senator-build-command-menu-item
+		  senator-mode-menu-global-toggle-label global))
+	   (if (and (symbolp customs) (fboundp customs))
+	       (funcall customs)
+	     customs)))))
 
 (defun senator-build-modes-menu (&rest ignore)
   "Build and return the \"Modes\" menu.
@@ -1395,6 +1491,7 @@ minor mode entry."
    :help "Automatically turn on Senator on all Semantic buffers."
    :save global-senator-minor-mode
    )
+ '(senator)
  )
 
 (senator-register-mode-menu-entry
@@ -1406,6 +1503,7 @@ minor mode entry."
    :help "Automatically highlight changes in all Semantic buffers."
    :save global-semantic-highlight-edits-mode
    )
+ '(semantic-highlight-edits-face)
  )
 
 (senator-register-mode-menu-entry
@@ -1428,6 +1526,7 @@ minor mode entry."
    :help "Automatically highlight unmatched syntax in all Semantic buffers."
    :save global-semantic-show-unmatched-syntax-mode
    )
+ '(semantic-unmatched-syntax-face)
  )
 
 (senator-register-mode-menu-entry
@@ -1438,6 +1537,9 @@ minor mode entry."
  '(global-semantic-idle-scheduler-mode
    :help "Schedule idle time to automatically parse all Semantic buffer following changes."
    :save global-semantic-idle-scheduler-mode
+   )
+ '((semantic-idle-scheduler-idle-time)
+   (semantic-idle-scheduler-max-buffer-size)
    )
  )
 
@@ -1475,25 +1577,15 @@ minor mode entry."
  )
 
 (senator-register-mode-menu-entry
- "Show Tag Boundaries"
- '(semantic-show-tag-boundaries-mode
-   :help "Display lines at tag boundaries."
+ "Tag Decoration"
+ '(semantic-decoration-mode
+   :help "Decorate Tags."
    )
- '(global-semantic-show-tag-boundaries-mode
-   :help "Automatically enable tag boundary mode in all Semantic buffers."
-   :save global-semantic-show-tag-boundaries-mode
+ '(global-semantic-decoration-mode
+   :help "Automatically enable decoration mode in all Semantic buffers."
+   :save global-semantic-decoration-mode
    )
- )
-
-(senator-register-mode-menu-entry
- "Highlight tags by attribute."
- '(semantic-highlight-by-attribute-mode
-   :help "Set tag highlighting based on configurable attributes."
-   )
- '(global-semantic-highlight-by-attribute-mode
-   :help "Automatically enable highlight by attribute mode in all Semantic buffers."
-   :save global-semantic-highlight-by-attribute-mode
-   )
+ 
  )
 
 
