@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 13 Jun 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-c.el,v 1.2 2003/08/02 08:18:20 ponced Exp $
+;; X-RCS: $Id: wisent-c.el,v 1.3 2003/08/17 10:23:58 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -313,7 +313,6 @@ Change class of IDENTIFIER tokens that are typedef to TYPEDEFNAME."
    senator-step-at-tag-classes '(function variable)
    ))
 
-;;;###autoload
 (add-hook 'c-mode-hook 'wisent-c-default-setup)
 
 (defun wisent-c-expand-tag (tag)
