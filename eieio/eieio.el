@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.77 2000/08/20 23:03:03 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.78 2000/08/20 23:22:27 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.15"
   "Current version of EIEIO.")
@@ -1841,8 +1841,7 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 (autoload 'describe-generic "eieio-opt" "Describe GENERIC defined by a string or symbol" t)
 (autoload 'eieiodoc-class "eieio-doc" "Create texinfo documentation about a class hierarchy." t)
 
-(autoload 'eieio-customize-object "eieio-custom" "Create a custom buffer editing OBJ.")
-(autoload 'eieio-custom-widget-insert "eieio-custom" "Insert a widget for customizing.")
+(autoload 'customize-object "eieio-custom" "Create a custom buffer editing OBJ.")
 
 ;; make sure this shows up after the help mode hook.
 (add-hook 'temp-buffer-show-hook 'eieio-help-mode-augmentation-maybee t)
