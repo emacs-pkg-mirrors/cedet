@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.11 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.12 2003/11/20 15:00:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -413,7 +413,7 @@ When FIND-FILE-MATCH is non-nil, the make sure any found token's file is
 in an Emacs buffer.
 Return a list of matches."
   (let* ((ret nil)
-	 (files (oref database tables))
+	 (files (semanticdb-get-database-tables database))
 	 (found nil)
 	 (orig-buffer (current-buffer)))
     (while files
