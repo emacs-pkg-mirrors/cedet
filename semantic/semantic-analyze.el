@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.28 2004/02/08 21:52:13 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.29 2004/02/08 22:23:06 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,6 +37,36 @@
 ;; return type, or all possible tags that fit in a given local context.
 ;;
 
+;;; Vocabulary:
+;;
+;; Here are some words used to describe different things in the analyzer:
+;;
+;; tag - A single entity
+;; prefix - The beginning of a symbol, usually used to look up something
+;;       incomplete.
+;; type - The name of a datatype in the langauge.
+;; metatype - If a type is named in a declaration like: 
+;;       struct moose somevariable;
+;;       that name "moose" can be turned into a concrete type.
+;; tag sequence - In C code, a list of dereferences, such as:
+;;       this.that.theother();
+;; parent - For a datatype in an OO language, another datatype
+;;       inherited from.  This excludes interfaces.
+;; scope - A list of tags that can be dereferenced that cannot
+;;       be found from the global namespace.
+;; scopetypes - A list of tags which are datatype that contain
+;;       the scope.  The scopetypes need to have the scope extracted
+;;       in a way that honors the type of inheritance.
+;; nest/nested - When one tag is contained entirely in another.
+;; 
+;; context - A semantic datatype representing a point in a buffer.
+;;
+;; constriant - If a context specifies a specific datatype is needed,
+;;       that is a constraint.
+;; constants - Some datatypes define elements of themselves as a
+;;       constant.  These need to be returned as there would be no
+;;       other possible completions.
+;;
 (require 'inversion)
 (eval-and-compile
   (inversion-require 'eieio "0.18beta1"))
