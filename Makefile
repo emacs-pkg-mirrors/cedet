@@ -5,7 +5,7 @@
 ## Author: David Ponce <david@dponce.com>
 ## Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ## Created: 12 Sep 2003
-## X-RCS: $Id: Makefile,v 1.1 2003/09/16 12:40:42 ponced Exp $
+## X-RCS: $Id: Makefile,v 1.2 2003/09/17 08:54:34 ponced Exp $
 ##
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -35,20 +35,6 @@ eieio \
 semantic \
 cogre
 
-## The autoloads files of CEDET's packages
-
-## It would be nice if autoloads files obey to the same naming
-## convention. For example: <package-name>-loaddefs.el.  Thus, it
-## would be possible to guess CEDET_LOADDEFS like this:
-## CEDET_LOADDEFS=$(patsubst %,%-loaddefs.el,$(CEDET_PACKAGES))
-
-CEDET_LOADDEFS=\
-ede-loaddefs.el \
-speedbar-defs.el \
-eieio-defs.el \
-semantic-al.el \
-cogre-defs.el
-
 ## Path to your Emacs
 EMACS=emacs
 
@@ -60,7 +46,10 @@ FIND=find
 #RM = rm -f
 
 ############### Internal part of the Makefile ###############
-DOMAKE=$(MAKE) $(MFLAGS) EMACS="$(EMACS)" SHELL="$(SHELL)"
+__LOADDEFS=$(patsubst %,%-loaddefs.el,$(CEDET_PACKAGES))
+__BUILD_AUTOLOADS=$(patsubst %,%-autoloads,$(CEDET_PACKAGES))
+__CLEAN_AUTOLOADS=$(patsubst %,clean-%,$(__LOADDEFS))
+__DOMAKE=$(MAKE) $(MFLAGS) EMACS="$(EMACS)" SHELL="$(SHELL)"
 
 ## Build
 ##
@@ -69,17 +58,17 @@ all: $(CEDET_PACKAGES)
 
 .PHONY: $(CEDET_PACKAGES)
 $(CEDET_PACKAGES):
-	cd $(CEDET_HOME)/$@ && $(DOMAKE)
+	cd $(CEDET_HOME)/$@ && $(__DOMAKE)
 
 ## Update
 ##
 
-autoloads: $(patsubst %,%-autoloads,$(CEDET_PACKAGES))
+autoloads: $(__BUILD_AUTOLOADS)
 
-.PHONY: %-autoloads
-%-autoloads:
+.PHONY: $(__BUILD_AUTOLOADS)
+$(__BUILD_AUTOLOADS):
 	cd $(CEDET_HOME)/$(firstword $(subst -, ,$@)) && \
-	$(DOMAKE) autoloads
+	$(__DOMAKE) autoloads
 
 recompile: autoloads
 	cd $(CEDET_HOME) && \
@@ -89,10 +78,10 @@ recompile: autoloads
 ## Cleanup
 ##
 
-clean-autoloads: $(patsubst %,clean-%,$(CEDET_LOADDEFS))
+clean-autoloads: $(__CLEAN_AUTOLOADS)
 
-.PHONY: clean-%.el
-clean-%.el:
+.PHONY: $(__CLEAN_AUTOLOADS)
+$(__CLEAN_AUTOLOADS):
 	$(RM) $(CEDET_HOME)/$(word 2,$(subst -, ,$@))/$(subst clean-,,$@)
 
 .PHONY: clean-grammars
