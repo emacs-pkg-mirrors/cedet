@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.21 2003/03/13 08:37:51 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.22 2003/03/14 08:19:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,7 +48,7 @@
 ;;;;
 
 (defconst wisent-java-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-12 14:06+0100
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-14 09:01+0100
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -61,15 +61,15 @@
         ((type_declaration)))
        (package_declaration
         ((PACKAGE qualified_name SEMICOLON)
-         (wisent-raw-token
-          (semantic-token-new-package $2 nil))))
+         (wisent-raw-tag
+          (semantic-tag-new-package $2 nil))))
        (import_declaration
         ((IMPORT qualified_name SEMICOLON)
-         (wisent-raw-token
-          (semantic-token-new-include $2 nil)))
+         (wisent-raw-tag
+          (semantic-tag-new-include $2 nil)))
         ((IMPORT qualified_name DOT MULT SEMICOLON)
-         (wisent-raw-token
-          (semantic-token-new-include
+         (wisent-raw-tag
+          (semantic-tag-new-include
            (concat $2 $3 $4)
            nil))))
        (type_declaration
@@ -79,12 +79,12 @@
         ((interface_declaration)))
        (class_declaration
         ((modifiers_opt CLASS qualified_name superc_opt interfaces_opt class_body)
-         (wisent-raw-token
-          (semantic-token-new-type $3 $2 $6
-                                   (if
-                                       (or $4 $5)
-                                       (cons $4 $5))
-                                   'typemodifiers $1))))
+         (wisent-raw-tag
+          (semantic-tag-new-type $3 $2 $6
+                                 (if
+                                     (or $4 $5)
+                                     (cons $4 $5))
+                                 'typemodifiers $1))))
        (superc_opt
         (nil)
         ((EXTENDS qualified_name)
@@ -115,11 +115,11 @@
         ((field_declaration)))
        (interface_declaration
         ((modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body)
-         (wisent-raw-token
-          (semantic-token-new-type $3 $2 $5
-                                   (if $4
-                                       (cons nil $4))
-                                   'typemodifiers $1))))
+         (wisent-raw-tag
+          (semantic-tag-new-type $3 $2 $5
+                                 (if $4
+                                     (cons nil $4))
+                                 'typemodifiers $1))))
        (extends_interfaces_opt
         (nil)
         ((EXTENDS qualified_name_list)
@@ -143,8 +143,8 @@
         ((STATIC block)))
        (constructor_declaration
         ((modifiers_opt constructor_declarator throwsc_opt constructor_body)
-         (wisent-raw-token
-          (semantic-token-new-function
+         (wisent-raw-tag
+          (semantic-tag-new-function
            (car $2)
            nil
            (cdr $2)
@@ -156,15 +156,15 @@
         ((block)))
        (method_declaration
         ((modifiers_opt VOID method_declarator throwsc_opt method_body)
-         (wisent-raw-token
-          (semantic-token-new-function
+         (wisent-raw-tag
+          (semantic-tag-new-function
            (car $3)
            $2
            (cdr $3)
            'typemodifiers $1 'throws $4)))
         ((modifiers_opt type method_declarator throwsc_opt method_body)
-         (wisent-raw-token
-          (semantic-token-new-function
+         (wisent-raw-tag
+          (semantic-tag-new-function
            (car $3)
            $2
            (cdr $3)
@@ -203,16 +203,16 @@
         ((formal_parameter RPAREN)))
        (formal_parameter
         ((formal_parameter_modifier_opt type variable_declarator_id)
-         (wisent-raw-token
-          (semantic-token-new-variable $3 $2 nil 'typemodifiers $1))))
+         (wisent-raw-tag
+          (semantic-tag-new-variable $3 $2 nil 'typemodifiers $1))))
        (formal_parameter_modifier_opt
         (nil)
         ((FINAL)
          (list $1)))
        (field_declaration
         ((modifiers_opt type variable_declarators SEMICOLON)
-         (wisent-raw-token
-          (semantic-token-new-variable $3 $2 nil 'typemodifiers $1))))
+         (wisent-raw-tag
+          (semantic-tag-new-variable $3 $2 nil 'typemodifiers $1))))
        (variable_declarators
         ((variable_declarators COMMA variable_declarator)
          (cons $3 $1))
@@ -340,7 +340,7 @@ Tweaked for Semantic needs.  That is to avoid full parsing of
 unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-12 14:06+0100
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-14 09:01+0100
   (semantic-lex-make-keyword-table
    '(("abstract" . ABSTRACT)
      ("boolean" . BOOLEAN)
@@ -494,7 +494,7 @@ unnecessary stuff to improve performance.")
   "Java keywords.")
 
 (defconst wisent-java-tokens
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-12 14:06+0100
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-14 09:01+0100
   (wisent-lex-make-token-table
    '(("number"
       (NUMBER_LITERAL))
@@ -604,7 +604,7 @@ This function is a Java specific `get-local-variables' override."
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-12 14:06+0100
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-14 09:01+0100
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -673,12 +673,12 @@ variable NAME."
         (if (consp nl)
             ;; There are multiple names in the same variable
             ;; declaration.
-            (let* ((ty (semantic-token-type                 token))
-                   (dv (semantic-token-variable-default     token))
-                   (xs (semantic-token-variable-extra-specs token))
-                   (ds (semantic-token-docstring            token))
-                   (pr (semantic-token-properties           token))
-                   (ov (semantic-token-overlay              token))
+            (let* ((ty (semantic-token-type             token))
+                   (dv (semantic-token-variable-default token))
+                   (xs (semantic-token-extra-specs      token))
+                   (ds (semantic-token-docstring        token))
+                   (pr (semantic-token-properties       token))
+                   (ov (semantic-token-overlay          token))
                    (ov-start  (aref ov 0))
                    (ov-end    (aref ov 1))
                    nelt start end vl)
