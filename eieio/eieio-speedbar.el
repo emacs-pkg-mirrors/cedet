@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.3 1999/12/01 00:52:02 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.4 1999/12/01 01:56:25 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -114,11 +114,24 @@
   (define-key eieio-speedbar-key-map "-" 'speedbar-contract-line)
 
   ;; Some object based things
-  ;(define-key eieio-speedbar-key-map "C" 'eieio-speedbar-customize-line)
+  (define-key eieio-speedbar-key-map "C" 'eieio-speedbar-customize-line)
   )
 
-(defvar eieio-speedbar-menu nil
-  "Menu part in easymenu format that is used in speedbar while browsing objects.")
+(defvar eieio-speedbar-menu
+  '([ "Edit Object/Field" speedbar-edit-line t]
+    [ "Expand Object" speedbar-expand-line
+      (save-excursion (beginning-of-line)
+		      (looking-at "[0-9]+: *.\\+. "))]
+    [ "Contract Object" speedbar-contract-line
+      (save-excursion (beginning-of-line)
+		      (looking-at "[0-9]+: *.-. "))]
+    "---"
+    [ "Customize Object" eieio-speedbar-customize-line
+      (object-p (speedbar-line-token)) ]
+    )
+  "Menu part in easymenu format used in speedbar while browsing objects.")
+
+(defalias 'eieio-speedbar-customize-line  'speedbar-edit-line)
 
 (defun eieio-speedbar-create (map-fn map-var menu-var modename fetcher)
   "Create a speedbar mode for displaying an object hierarchy.
