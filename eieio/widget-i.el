@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.8 1996/10/12 10:21:58 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.9 1996/10/17 01:39:27 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -681,11 +681,9 @@ help about this widget."
   (if (eq major-mode 'dialog-mode)
       (save-excursion
 	;; now draw the indicator
-	(let* ((val1 (oref this state))
-	       (val2 (get-value val1)))
-	  (goto-xy (oref this rx) (oref this ry))
-	  (insert-overwrite-face (oref this option-indicator) 
-				 (oref this ind-face)))
+	(goto-xy (oref this rx) (oref this ry))
+	(insert-overwrite-face (oref this option-indicator) 
+			       (oref this ind-face))
 	;; draw the rest
 	(call-next-method))))
 
@@ -998,7 +996,6 @@ help about this widget."
 	  ;; In this case, we have a one-keystroke edit
 	  (let ((cp (- (current-column) (oref this rx)))
 		(mo (oref this value))
-		(ov (get-value (oref this value)))
 		(mv nil)
 		(rp nil)
 		;; make sure no new lines are added
