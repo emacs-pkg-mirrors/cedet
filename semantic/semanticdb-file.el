@@ -1,10 +1,10 @@
 ;;; semanticdb-file.el --- Save a semanticdb to a cache file.
 
-;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.3 2003/02/03 08:45:08 ponced Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.4 2003/03/02 14:24:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,6 +29,12 @@
 ;;
 
 (require 'semanticdb)
+(require 'inversion)
+
+(defvar semanticdb-file-version semantic-version
+  "Version of semanticdb we are writing files to disk with.")
+(defvar semanticdb-file-incompatible-version "1.4"
+  "Version of semanticdb we are not reverse compatible with.")
 
 ;;; Settings
 ;;
@@ -78,6 +84,20 @@ the database recently written."
 (defclass semanticdb-project-database-file (semanticdb-project-database
 					    eieio-persistent)
   ((file-header-line :initform ";; SEMANTICDB Tags save file")
+   (semantic-token-version :initarg :semantic-token-version
+			   :initform "1.4"
+			   :documentation
+			   "The version of the tokens saved.
+The default value is 1.4.  In semantic 1.4 there was no versioning, so
+when those files are loaded, this becomes the version number.
+To save the version number, we must hand-set this version string.")
+   (semanticdb-version :initarg :semanticdb-version
+		       :initform "1.4"
+		       :documentation
+		       "The version of the object system saved.
+The default value is 1.4.  In semantic 1.4, there was no versioning,
+so when those files are loaded, this becomes the version number.
+To save the version number, we must hand-set this version string.")
    )
   "Database of file tables saved to disk.")
 
@@ -97,7 +117,9 @@ If DIRECTORY doesn't exist, create a new one."
       (setq db (make-instance
 		dbc  ; Create the database requested.  Perhaps
 		(file-name-nondirectory fn)
-		:file fn :tables nil)))
+		:file fn :tables nil
+		:semantic-token-version semantic-version
+		:semanticdb-version semanticdb-file-version)))
     db))
 
 ;;; File IO
@@ -105,11 +127,30 @@ If DIRECTORY doesn't exist, create a new one."
   "Load the database FILENAME."
   (condition-case foo
       (let* ((r (eieio-persistent-read filename))
-	     (c (oref r tables)))
-	(while c
-	  ;; Restore the parent-db connection
-	  (oset (car c) parent-db r)
-	  (setq c (cdr c)))
+	     (c (oref r tables))
+	     (tv (oref r semantic-token-version))
+	     (fv (oref r semanticdb-version))
+	     )
+	(if (not (inversion-test 'semanticdb-file fv))
+	    ;; semanticdb object is ok.
+	    (if (not (inversion-test 'semantic-token tv))
+		;; AOK
+		(while c
+		  ;; Restore the parent-db connection
+		  (oset (car c) parent-db r)
+		  (setq c (cdr c)))
+	      ;; Incompatible version.  Flush tables.
+	      (oset r tables nil)
+	      ;; Reset the version to new version.
+	      (oset r semantic-token-version semantic-token-version)
+	      ;; Warn user
+	      (message "Semanticdb file is old.  Starting over for %s"
+		       filename)
+	      )
+	  ;; Version is not ok.  Flush whole system
+	  (message "semanticdb file is old.  Starting over for %s"
+		   filename)
+	  (setq r nil))
 	r)
     (error (message "Cache Error: %s, Restart" foo)
 	   nil)))
