@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.2 2002/07/29 03:21:12 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.3 2002/07/29 17:23:23 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -252,74 +252,117 @@ things that these non-terminals are useful for.  Use the function
 Use `semantic-list-overrides' to get a list of override functions.")
 (make-variable-buffer-local 'semantic-override-table)
 
-(defun semantic-install-function-overrides (overrides &optional transient)
-  "Install function OVERRIDES in `semantic-override-table'.
-If optional TRANSIENT is non-nil installed overrides can in turn be
-overridden by next installation.  OVERRIDES must be an alist.  Each
-element must be of the form: (SYM . FUN) where SYM is the symbol to
-override, and FUN is the function to override it with."
-  (if (not (arrayp semantic-override-table))
-      (setq semantic-override-table (make-vector 13 nil)))
-  (let (sym sym-name fun override)
+(defsubst semantic-current-overrides (&optional mode)
+  "Return the current function overrides table.
+That is `semantic-override-table' if locally set, or the override
+table of MODE or its parents.  MODE defaults to current value of
+`major-mode'."
+  (or mode (setq mode major-mode))
+  (let ((table semantic-override-table))
+    (while (and mode (not table))
+      (or (setq table (get mode 'semantic-override-table))
+          (setq mode  (get mode 'derived-mode-parent))))
+    table))
+
+(defun semantic-new-overrides (&optional table)
+  "Return a new function overrides table.
+If optional argument TABLE is non-nil, it must be an overrides table.
+Its content is copied into the new table."
+  (let ((new-table (make-vector 13 0)))
+    (if table
+        (mapatoms
+         #'(lambda (sym)
+             (let ((new-sym (intern (symbol-name sym) new-table)))
+               (set new-sym (symbol-value sym))
+               (put new-sym 'override (get sym 'override))))
+         table))
+    new-table))
+
+(defun semantic-install-function-overrides (overrides &optional transient mode)
+  "Install the function OVERRIDES in the specified environment.
+OVERRIDES must be an alist ((OVERLOAD .  FUNCTION) ...) where OVERLOAD
+is a symbol identifying an overloadable entry, and FUNCTION is the
+function to override it with.
+If optional argument TRANSIENT is non-nil, installed overrides can in
+turn be overridden by next installation.
+If optional argument MODE is non-nil, it must be a major mode symbol.
+OVERRIDES will be installed globally for this major mode.  If MODE is
+nil, OVERRIDES will be installed locally in the current buffer, in
+variable `semantic-override-table'.  This later installation should be
+done in MODE hook."
+  (let (table overload overname function override)
+    (if mode
+        (or (get mode 'semantic-override-table)
+            (put mode 'semantic-override-table
+                 (setq table (semantic-new-overrides))))
+      (or semantic-override-table
+          (setq semantic-override-table
+                (semantic-new-overrides
+                 (semantic-current-overrides))))
+      (setq table semantic-override-table))
     (while overrides
       (setq override  (car overrides)
             overrides (cdr overrides)
-            sym-name  (symbol-name (car override))
-            fun       (cdr override))
-      (if (setq sym (intern-soft sym-name semantic-override-table))
-          (if (get sym 'override)
-              (set sym fun)
-            (or (equal (symbol-value sym) fun)
-                (message "Current `%s' function #'%s not overrode by #'%s"
-                         sym (symbol-value sym) fun)))
-        (setq sym (intern sym-name semantic-override-table))
-        (set sym fun))
-      (put sym 'override transient))))
+            overname  (symbol-name (car override))
+            function  (cdr override))
+      ;; Keep trace of mode where function overrides something
+      (and mode function (symbolp function)
+           (put function 'semantic-override-mode mode))
+      (if (setq overload (intern-soft overname table))
+          (if (get overload 'override)
+              (set overload function)
+            (or (equal (symbol-value overload) function)
+                (message
+                 "Current `%s' function #'%s not overrode by #'%s"
+                 overload (symbol-value overload) function)))
+        (setq overload (intern overname table))
+        (set overload function))
+      (put overload 'override transient))))
 
-(defun semantic-fetch-overload (sym)
-  "Find and return the overload function for SYM.
-Return nil if not found."
-  (symbol-value
-   (and (arrayp semantic-override-table)
-        (intern-soft (symbol-name sym) semantic-override-table))))
+(defun semantic-fetch-overload (overload &optional mode)
+  "Return the current OVERLOAD function, or nil if not found.
+Fetch OVERLOAD from `semantic-override-table' if locally set, or from
+the override table of MODE or its parents.  MODE defaults to current
+value of `major-mode'."
+  (let ((table (semantic-current-overrides mode)))
+    (and (arrayp table)
+         (setq semantic-override-table table)
+         (setq overload (intern-soft (symbol-name overload) table))
+         (symbol-value overload))))
 
-(defmacro semantic-defoverload (name arguments docstring &rest code)
+(defmacro define-overload (name args docstring &rest body)
   "Define a new function, as with `defun' which can be overloaded.
-NAME is the name of the function to create.  If the name is of
-the form `semantic-NAME'.  The function will strip `semantic-' from
-the front as the name of the symbol creawted.
-ARGUMENTS are the arguments to the function.
-DOCSTRING is a documentation string to describe the function.
-The docstring will automatically had details about its overload symbol
+NAME is the name of the function to create.  If it is of the form
+`semantic-NAME'.  The function will strip `semantic-' from the front
+as the name of the symbol created.
+ARGS are the arguments to the function.
+DOCSTRING is a documentation string to describe the function.  The
+docstring will automatically had details about its overload symbol
 appended to the end.
-CODE is code that would be run as a default if this method is not
-overloaded for a specific mode.
+BODY is code that would be run as a default if this function is not
+overloaded for a specific mode.  The default is to call the function
+`NAME-default' with the appropriate ARGS.
 If you want the main function of an overloadable function to do extra
-work, write that yourself without `semantic-defoverload'.  See the info
+work, write that yourself without `define-overload'.  See the info
 manual for details."
-  (let* ((fastargs (delq '&rest (delq '&optional (copy-sequence arguments))))
-	 (sym (if (string-match "^semantic-" (symbol-name name))
-		  (intern (substring (symbol-name name) (match-end 0)))
-		name))
-	 (codepart
-	  (if (not code)
-	      (list (cons (intern (concat (symbol-name name) "-default"))
-			  fastargs))
-	    code))
-	 )
+  (let* ((fastargs (delq '&rest (delq '&optional (copy-sequence args))))
+         (sym-name (symbol-name name))
+         (overload (if (string-match "^semantic-" sym-name)
+                       (intern (substring sym-name (match-end 0)))
+                     name)))
+    (or body (setq body `((,(intern (concat sym-name "-default"))
+                           ,@fastargs))))
     `(eval-and-compile
-       (defun ,name ,arguments
-	 ,(concat docstring "
-
-This function can be overloaded using the symbol
-`" (symbol-name sym) "'.")
-	 (let ((s (semantic-fetch-overload ',sym)))
-	   (if s
-	       (funcall s ,@fastargs)
-	     ;; Else, perform some default behaviors
-	     ,@codepart)))
-       (put ',name 'semantic-overload ',sym))))
-(put 'semantic-defoverload 'lisp-indent-function 2)
+       (defun ,name ,args
+         ,(format "%s\n
+This function can be overloaded using the symbol `%s'."
+                  docstring overload)
+         (let ((s (semantic-fetch-overload ',overload)))
+           (if s
+               (funcall s ,@fastargs)
+             ;; Else, perform some default behaviors
+             ,@body)))
+       (put ',name 'semantic-overload ',overload))))
 
 (provide 'semantic-fw)
 
