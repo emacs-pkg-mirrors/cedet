@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 07 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-cim.el,v 1.2 2002/02/08 23:23:12 ponced Exp $
+;; X-RCS: $Id: wisent-cim.el,v 1.3 2002/03/14 21:53:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,7 +29,7 @@
 ;;; Commentary:
 ;;
 ;; Just a good torture test for Wisent ;-)
-;; The grammar is generated from the BNF file wisent-cim.bnf.
+;; It is generated from grammar in file wisent-cim.wy.
 
 ;;; History:
 ;; 
@@ -37,407 +37,666 @@
 ;;; Code:
 (require 'wisent-bovine)
 
-(defconst wisent-cim-parser-tables
+(defconst wisent-cim-automaton
   (eval-when-compile
-  (wisent-compile-grammar
-   '((HACTIVATE HAFTER HARRAY HAT HBEFORE HBEGIN HBOOLEAN HCHARACTER HCLASS HCONC HDELAY HDO HELSE HEND HEXTERNAL HFOR HGO HGOTO HHIDDEN HIF HINNER HINSPECT HINTEGER HLABEL HLONG HNAME HNEW HNONE HOTHERWISE HPRIOR HPROCEDURE HPROTECTED HQUA HREACTIVATE HREAL HREF HSHORT HSTEP HSWITCH HTEXT HTHEN HTHIS HTO HUNTIL HVALUE HVAR HVIRTUAL HWHEN HWHILE HPAREXPSEPARATOR HLABELSEPARATOR HSTATEMENTSEPARATOR HBEGPAR HENDPAR HDOTDOTDOT HIDENTIFIER HBOOLEANKONST HINTEGERKONST HCHARACTERKONST HREALKONST HTEXTKONST HASSIGN HEQV HIMP HOR HAND HNOT HVALRELOPERATOR HREFRELOPERATOR HOBJRELOPERATOR HTERMOPERATOR HFACTOROPERATOR HPRIMARYOPERATOR HDOT)
-     ((right HASSIGN)
-      (left HORELSE)
-      (left HANDTHEN)
-      (left HEQV)
-      (left HIMP)
-      (left HOR)
-      (left HAND)
-      (left HNOT)
-      (left HVALRELOPERATOR HREFRELOPERATOR HOBJRELOPERATOR)
-      (left HCONC)
-      (left HTERMOPERATOR)
-      (left UNEAR)
-      (left HFACTOROPERATOR)
-      (left HPRIMARYOPERATOR)
-      (left HQUA)
-      (left HDOT))
-     (MAIN_MODULE
-      ((MODULS))
-      ((error HSTATEMENTSEPARATOR MBEE_DECLSTMS)))
-     (EXT_DECLARATION
-      ((HEXTERNAL MBEE_TYPE HPROCEDURE EXT_LIST))
-      ((HEXTERNAL HIDENTIFIER HPROCEDURE HIDENTIFIER EXTERNAL_KIND_ITEM))
-      ((HEXTERNAL HCLASS EXT_LIST)))
-     (EXTERNAL_KIND_ITEM
-      ((EXT_IDENT HOBJRELOPERATOR MBEE_TYPE HPROCEDURE HIDENTIFIER HEADING EMPTY_BLOCK)))
-     (EMPTY_BLOCK
-      (nil)
-      ((HBEGIN HEND)))
-     (EXT_LIST
-      ((EXT_ITEM))
-      ((EXT_LIST HPAREXPSEPARATOR EXT_ITEM)))
-     (EXT_ITEM
-      ((HIDENTIFIER EXT_IDENT)))
-     (EXT_IDENT
-      (nil)
-      ((HVALRELOPERATOR HTEXTKONST)))
-     (NO_TYPE
-      (nil))
-     (MBEE_TYPE
-      ((NO_TYPE))
-      ((TYPE)))
-     (TYPE
-      ((HREF HBEGPAR HIDENTIFIER HENDPAR))
-      ((HTEXT))
-      ((HBOOLEAN))
-      ((HCHARACTER))
-      ((HSHORT HINTEGER))
-      ((HINTEGER))
-      ((HREAL))
-      ((HLONG HREAL)))
-     (MBEE_ELSE_PART
-      (nil)
-      ((HELSE BLOCK)))
-     (FOR_LIST
-      ((FOR_LIST_ELEMENT))
-      ((FOR_LIST_ELEMENT HPAREXPSEPARATOR FOR_LIST)))
-     (FOR_LIST_ELEMENT
-      ((EXPRESSION MBEE_F_L_EL_R_PT)))
-     (MBEE_F_L_EL_R_PT
-      (nil)
-      ((HWHILE EXPRESSION))
-      ((HSTEP EXPRESSION HUNTIL EXPRESSION)))
-     (GOTO
-      ((HGO HTO))
-      ((HGOTO)))
-     (CONN_STATE_R_PT
-      ((WHEN_CLAUSE_LIST))
-      ((HDO BLOCK)))
-     (WHEN_CLAUSE_LIST
-      ((HWHEN HIDENTIFIER HDO BLOCK))
-      ((WHEN_CLAUSE_LIST HWHEN HIDENTIFIER HDO BLOCK)))
-     (MBEE_OTWI_CLAUS
-      (nil)
-      ((HOTHERWISE BLOCK)))
-     (ACTIVATOR
-      ((HACTIVATE))
-      ((HREACTIVATE)))
-     (SCHEDULE
-      (nil)
-      ((ATDELAY EXPRESSION PRIOR))
-      ((BEFOREAFTER EXPRESSION)))
-     (ATDELAY
-      ((HAT))
-      ((HDELAY)))
-     (BEFOREAFTER
-      ((HBEFORE))
-      ((HAFTER)))
-     (PRIOR
-      (nil)
-      ((HPRIOR)))
-     (MODULSTATEMENT
-      ((HWHILE EXPRESSION HDO BLOCK))
-      ((HIF EXPRESSION HTHEN BLOCK MBEE_ELSE_PART))
-      ((HFOR HIDENTIFIER HASSIGN FOR_LIST HDO BLOCK))
-      ((GOTO EXPRESSION))
-      ((HINSPECT EXPRESSION CONN_STATE_R_PT MBEE_OTWI_CLAUS))
-      ((HINNER))
-      ((HIDENTIFIER HLABELSEPARATOR DECLSTATEMENT))
-      ((EXPRESSION_SIMP HBEGIN IMPORT_SPEC_MODULE MBEE_DECLSTMS HEND))
-      ((EXPRESSION_SIMP HBEGIN error HSTATEMENTSEPARATOR MBEE_DECLSTMS HEND))
-      ((EXPRESSION_SIMP HBEGIN error HEND))
-      ((EXPRESSION_SIMP))
-      ((ACTIVATOR EXPRESSION SCHEDULE))
-      ((HBEGIN MBEE_DECLSTMS HEND))
-      ((MBEE_TYPE HPROCEDURE HIDENTIFIER HEADING BLOCK))
-      ((HIDENTIFIER HCLASS NO_TYPE IMPORT_SPEC_MODULE HIDENTIFIER HEADING BLOCK))
-      ((HCLASS NO_TYPE HIDENTIFIER HEADING BLOCK))
-      ((EXT_DECLARATION))
-      (nil))
-     (IMPORT_SPEC_MODULE
-      (nil))
-     (DECLSTATEMENT
-      ((MODULSTATEMENT))
-      ((TYPE HIDENTIFIER MBEE_CONSTANT HPAREXPSEPARATOR IDENTIFIER_LISTC))
-      ((TYPE HIDENTIFIER MBEE_CONSTANT))
-      ((MBEE_TYPE HARRAY ARR_SEGMENT_LIST))
-      ((HSWITCH HIDENTIFIER HASSIGN SWITCH_LIST)))
-     (BLOCK
-      ((DECLSTATEMENT))
-      ((HBEGIN MBEE_DECLSTMS HEND))
-      ((HBEGIN error HSTATEMENTSEPARATOR MBEE_DECLSTMS HEND))
-      ((HBEGIN error HEND)))
-     (MBEE_DECLSTMS
-      ((MBEE_DECLSTMSU)))
-     (MBEE_DECLSTMSU
-      ((DECLSTATEMENT))
-      ((MBEE_DECLSTMSU HSTATEMENTSEPARATOR DECLSTATEMENT)))
-     (MODULS
-      ((MODULSTATEMENT))
-      ((MODULS HSTATEMENTSEPARATOR MODULSTATEMENT)))
-     (ARR_SEGMENT_LIST
-      ((ARR_SEGMENT))
-      ((ARR_SEGMENT_LIST HPAREXPSEPARATOR ARR_SEGMENT)))
-     (ARR_SEGMENT
-      ((ARRAY_SEGMENT HBEGPAR BAUND_PAIR_LIST HENDPAR)))
-     (ARRAY_SEGMENT
-      ((ARRAY_SEGMENT_EL))
-      ((ARRAY_SEGMENT_EL HPAREXPSEPARATOR ARRAY_SEGMENT)))
-     (ARRAY_SEGMENT_EL
-      ((HIDENTIFIER)))
-     (BAUND_PAIR_LIST
-      ((BAUND_PAIR))
-      ((BAUND_PAIR HPAREXPSEPARATOR BAUND_PAIR_LIST)))
-     (BAUND_PAIR
-      ((EXPRESSION HLABELSEPARATOR EXPRESSION)))
-     (SWITCH_LIST
-      ((EXPRESSION))
-      ((EXPRESSION HPAREXPSEPARATOR SWITCH_LIST)))
-     (HEADING
-      ((MBEE_FMAL_PAR_P HSTATEMENTSEPARATOR MBEE_MODE_PART MBEE_SPEC_PART MBEE_PROT_PART MBEE_VIRT_PART)))
-     (MBEE_FMAL_PAR_P
-      (nil)
-      ((FMAL_PAR_PART)))
-     (FMAL_PAR_PART
-      ((HBEGPAR NO_TYPE MBEE_LISTV HENDPAR)))
-     (MBEE_LISTV
-      (nil)
-      ((LISTV)))
-     (LISTV
-      ((HIDENTIFIER))
-      ((FPP_CATEG HDOTDOTDOT))
-      ((HIDENTIFIER HPAREXPSEPARATOR LISTV))
-      ((FPP_SPEC))
-      ((FPP_SPEC HPAREXPSEPARATOR LISTV)))
-     (FPP_HEADING
-      ((HBEGPAR NO_TYPE FPP_MBEE_LISTV HENDPAR)))
-     (FPP_MBEE_LISTV
-      (nil)
-      ((FPP_LISTV)))
-     (FPP_LISTV
-      ((FPP_CATEG HDOTDOTDOT))
-      ((FPP_SPEC))
-      ((FPP_SPEC HPAREXPSEPARATOR LISTV)))
-     (FPP_SPEC
-      ((FPP_CATEG SPECIFIER HIDENTIFIER))
-      ((FPP_CATEG FPP_PROC_DECL_IN_SPEC)))
-     (FPP_CATEG
-      ((HNAME HLABELSEPARATOR))
-      ((HVALUE HLABELSEPARATOR))
-      ((HVAR HLABELSEPARATOR))
-      (nil))
-     (FPP_PROC_DECL_IN_SPEC
-      ((MBEE_TYPE HPROCEDURE HIDENTIFIER FPP_HEADING)))
-     (IDENTIFIER_LISTV
-      ((HIDENTIFIER))
-      ((HDOTDOTDOT))
-      ((HIDENTIFIER HPAREXPSEPARATOR IDENTIFIER_LISTV)))
-     (MBEE_MODE_PART
-      (nil)
-      ((MODE_PART)))
-     (MODE_PART
-      ((NAME_PART))
-      ((VALUE_PART))
-      ((VAR_PART))
-      ((NAME_PART VALUE_PART))
-      ((VALUE_PART NAME_PART))
-      ((NAME_PART VAR_PART))
-      ((VAR_PART NAME_PART))
-      ((VALUE_PART VAR_PART))
-      ((VAR_PART VALUE_PART))
-      ((VAR_PART NAME_PART VALUE_PART))
-      ((NAME_PART VAR_PART VALUE_PART))
-      ((NAME_PART VALUE_PART VAR_PART))
-      ((VAR_PART VALUE_PART NAME_PART))
-      ((VALUE_PART VAR_PART NAME_PART))
-      ((VALUE_PART NAME_PART VAR_PART)))
-     (NAME_PART
-      ((HNAME IDENTIFIER_LISTV HSTATEMENTSEPARATOR)))
-     (VAR_PART
-      ((HVAR IDENTIFIER_LISTV HSTATEMENTSEPARATOR)))
-     (VALUE_PART
-      ((HVALUE IDENTIFIER_LISTV HSTATEMENTSEPARATOR)))
-     (MBEE_SPEC_PART
-      (nil)
-      ((SPEC_PART)))
-     (SPEC_PART
-      ((ONE_SPEC))
-      ((SPEC_PART ONE_SPEC)))
-     (ONE_SPEC
-      ((SPECIFIER IDENTIFIER_LIST HSTATEMENTSEPARATOR))
-      ((NO_TYPE HPROCEDURE HIDENTIFIER HOBJRELOPERATOR PROC_DECL_IN_SPEC HSTATEMENTSEPARATOR))
-      ((FPP_PROC_DECL_IN_SPEC HSTATEMENTSEPARATOR))
-      ((MBEE_TYPE HPROCEDURE HIDENTIFIER HSTATEMENTSEPARATOR))
-      ((MBEE_TYPE HPROCEDURE HIDENTIFIER HPAREXPSEPARATOR IDENTIFIER_LIST HSTATEMENTSEPARATOR)))
-     (SPECIFIER
-      ((TYPE))
-      ((MBEE_TYPE HARRAY))
-      ((HLABEL))
-      ((HSWITCH)))
-     (PROC_DECL_IN_SPEC
-      ((MBEE_TYPE HPROCEDURE HIDENTIFIER HEADING MBEE_BEGIN_END)))
-     (MBEE_BEGIN_END
-      (nil)
-      ((HBEGIN HEND)))
-     (MBEE_PROT_PART
-      (nil)
-      ((PROTECTION_PART)))
-     (PROTECTION_PART
-      ((PROT_SPECIFIER IDENTIFIER_LIST HSTATEMENTSEPARATOR))
-      ((PROTECTION_PART PROT_SPECIFIER IDENTIFIER_LIST HSTATEMENTSEPARATOR)))
-     (PROT_SPECIFIER
-      ((HHIDDEN))
-      ((HPROTECTED))
-      ((HHIDDEN HPROTECTED))
-      ((HPROTECTED HHIDDEN)))
-     (MBEE_VIRT_PART
-      (nil)
-      ((VIRTUAL_PART)))
-     (VIRTUAL_PART
-      ((HVIRTUAL HLABELSEPARATOR MBEE_SPEC_PART)))
-     (IDENTIFIER_LIST
-      ((HIDENTIFIER))
-      ((IDENTIFIER_LIST HPAREXPSEPARATOR HIDENTIFIER)))
-     (IDENTIFIER_LISTC
-      ((HIDENTIFIER MBEE_CONSTANT))
-      ((IDENTIFIER_LISTC HPAREXPSEPARATOR HIDENTIFIER MBEE_CONSTANT)))
-     (MBEE_CONSTANT
-      (nil)
-      ((HVALRELOPERATOR EXPRESSION)))
-     (EXPRESSION
-      ((EXPRESSION_SIMP))
-      ((HIF EXPRESSION HTHEN EXPRESSION HELSE EXPRESSION)))
-     (EXPRESSION_SIMP
-      ((EXPRESSION_SIMP HASSIGN EXPRESSION))
-      ((EXPRESSION_SIMP HCONC EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HOR HELSE EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HAND HTHEN EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HEQV EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HIMP EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HOR EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HAND EXPRESSION_SIMP))
-      ((HNOT EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HVALRELOPERATOR EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HREFRELOPERATOR EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HOBJRELOPERATOR EXPRESSION_SIMP))
-      ((HTERMOPERATOR EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HTERMOPERATOR EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HFACTOROPERATOR EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HPRIMARYOPERATOR EXPRESSION_SIMP))
-      ((HBEGPAR EXPRESSION HENDPAR))
-      ((HTEXTKONST))
-      ((HCHARACTERKONST))
-      ((HREALKONST))
-      ((HINTEGERKONST))
-      ((HBOOLEANKONST))
-      ((HNONE))
-      ((HIDENTIFIER MBEE_ARG_R_PT))
-      ((HTHIS HIDENTIFIER))
-      ((HNEW HIDENTIFIER ARG_R_PT))
-      ((EXPRESSION_SIMP HDOT EXPRESSION_SIMP))
-      ((EXPRESSION_SIMP HQUA HIDENTIFIER)))
-     (ARG_R_PT
-      (nil)
-      ((HBEGPAR ARGUMENT_LIST HENDPAR)))
-     (MBEE_ARG_R_PT
-      (nil)
-      ((HBEGPAR ARGUMENT_LIST HENDPAR)))
-     (ARGUMENT_LIST
-      ((EXPRESSION))
-      ((EXPRESSION HPAREXPSEPARATOR ARGUMENT_LIST))))
-   '(MAIN_MODULE)))
-  "Automaton.")
+    ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-03-14 14:44+0100
+    (wisent-compile-grammar
+     '((HACTIVATE HAFTER HARRAY HAT HBEFORE HBEGIN HBOOLEAN HCHARACTER HCLASS HCONC HDELAY HDO HELSE HEND HEQ HEXTERNAL HFOR HGE HGO HGOTO HGT HHIDDEN HIF HIN HINNER HINSPECT HINTEGER HIS HLABEL HLE HLONG HLT HNAME HNE HNEW HNONE HNOTEXT HOTHERWISE HPRIOR HPROCEDURE HPROTECTED HQUA HREACTIVATE HREAL HREF HSHORT HSTEP HSWITCH HTEXT HTHEN HTHIS HTO HUNTIL HVALUE HVAR HVIRTUAL HWHEN HWHILE HASSIGNVALUE HASSIGNREF HPAREXPSEPARATOR HLABELSEPARATOR HSTATEMENTSEPARATOR HBEGPAR HENDPAR HEQR HNER HADD HSUB HMUL HDIV HINTDIV HEXP HDOTDOTDOT HIDENTIFIER HBOOLEANKONST HINTEGERKONST HCHARACTERKONST HREALKONST HTEXTKONST)
+       ((right HASSIGN)
+        (left HORELSE)
+        (left HANDTHEN)
+        (left HEQV)
+        (left HIMP)
+        (left HOR)
+        (left HAND)
+        (left HNOT)
+        (left HVALRELOPERATOR HREFRELOPERATOR HOBJRELOPERATOR)
+        (left HCONC)
+        (left HTERMOPERATOR)
+        (left UNEAR)
+        (left HFACTOROPERATOR)
+        (left HPRIMARYOPERATOR)
+        (left HQUA)
+        (left HDOT))
+       (MAIN_MODULE
+        (((progn)
+          MODULS)
+         (progn))
+        ((error HSTATEMENTSEPARATOR MBEE_DECLSTMS)))
+       (EXT_DECLARATION
+        ((HEXTERNAL MBEE_TYPE HPROCEDURE
+                    (progn)
+                    EXT_LIST))
+        ((HEXTERNAL HIDENTIFIER HPROCEDURE
+                    (progn)
+                    HIDENTIFIER
+                    (progn)
+                    EXTERNAL_KIND_ITEM)
+         (progn))
+        ((HEXTERNAL HCLASS
+                    (progn)
+                    EXT_LIST)))
+       (EXTERNAL_KIND_ITEM
+        ((EXT_IDENT HOBJRELOPERATOR
+                    (progn)
+                    MBEE_TYPE HPROCEDURE HIDENTIFIER
+                    (progn)
+                    HEADING EMPTY_BLOCK)
+         (progn)))
+       (EMPTY_BLOCK
+        (nil)
+        ((HBEGIN HEND)))
+       (EXT_LIST
+        ((EXT_ITEM))
+        ((EXT_LIST HPAREXPSEPARATOR EXT_ITEM)))
+       (EXT_ITEM
+        ((HIDENTIFIER EXT_IDENT)
+         (progn)))
+       (EXT_IDENT
+        (nil
+         (progn))
+        ((HVALRELOPERATOR
+          (progn)
+          HTEXTKONST)
+         (progn)))
+       (NO_TYPE
+        (nil
+         (progn)))
+       (MBEE_TYPE
+        ((NO_TYPE))
+        ((TYPE)))
+       (TYPE
+        ((HREF HBEGPAR HIDENTIFIER
+               (progn)
+               HENDPAR))
+        ((HTEXT)
+         (progn))
+        ((HBOOLEAN)
+         (progn))
+        ((HCHARACTER)
+         (progn))
+        ((HSHORT HINTEGER)
+         (progn))
+        ((HINTEGER)
+         (progn))
+        ((HREAL)
+         (progn))
+        ((HLONG HREAL)
+         (progn)))
+       (MBEE_ELSE_PART
+        (nil)
+        ((HELSE
+          (progn)
+          BLOCK)
+         (progn)))
+       (FOR_LIST
+        ((FOR_LIST_ELEMENT)
+         (progn))
+        ((FOR_LIST_ELEMENT HPAREXPSEPARATOR FOR_LIST)
+         (progn)))
+       (FOR_LIST_ELEMENT
+        ((EXPRESSION MBEE_F_L_EL_R_PT)))
+       (MBEE_F_L_EL_R_PT
+        (nil)
+        ((HWHILE EXPRESSION)
+         (progn))
+        ((HSTEP EXPRESSION HUNTIL EXPRESSION)
+         (progn)))
+       (GOTO
+        ((HGO HTO))
+        ((HGOTO)))
+       (CONN_STATE_R_PT
+        ((WHEN_CLAUSE_LIST))
+        ((HDO
+          (progn)
+          BLOCK)
+         (progn)))
+       (WHEN_CLAUSE_LIST
+        ((HWHEN HIDENTIFIER HDO
+                (progn)
+                BLOCK)
+         (progn))
+        ((WHEN_CLAUSE_LIST HWHEN HIDENTIFIER HDO
+                           (progn)
+                           BLOCK)
+         (progn)))
+       (MBEE_OTWI_CLAUS
+        (nil)
+        ((HOTHERWISE
+          (progn)
+          BLOCK)
+         (progn)))
+       (ACTIVATOR
+        ((HACTIVATE)
+         (progn))
+        ((HREACTIVATE)
+         (progn)))
+       (SCHEDULE
+        (nil
+         (progn))
+        ((ATDELAY EXPRESSION
+                  (progn)
+                  PRIOR))
+        ((BEFOREAFTER
+          (progn)
+          EXPRESSION)
+         (progn)))
+       (ATDELAY
+        ((HAT)
+         (progn))
+        ((HDELAY)
+         (progn)))
+       (BEFOREAFTER
+        ((HBEFORE)
+         (progn))
+        ((HAFTER)
+         (progn)))
+       (PRIOR
+        (nil
+         (progn))
+        ((HPRIOR)
+         (progn)))
+       (MODULSTATEMENT
+        ((HWHILE EXPRESSION HDO
+                 (progn)
+                 BLOCK)
+         (progn))
+        ((HIF EXPRESSION HTHEN
+              (progn)
+              BLOCK
+              (progn)
+              MBEE_ELSE_PART)
+         (progn))
+        ((HFOR HIDENTIFIER HASSIGN
+               (progn)
+               FOR_LIST HDO
+               (progn)
+               BLOCK)
+         (progn))
+        ((GOTO EXPRESSION)
+         (progn))
+        ((HINSPECT EXPRESSION
+                   (progn)
+                   CONN_STATE_R_PT
+                   (progn)
+                   MBEE_OTWI_CLAUS)
+         (progn))
+        ((HINNER)
+         (progn))
+        ((HIDENTIFIER HLABELSEPARATOR
+                      (progn)
+                      DECLSTATEMENT)
+         (progn))
+        ((EXPRESSION_SIMP HBEGIN
+                          (progn)
+                          IMPORT_SPEC_MODULE
+                          (progn)
+                          MBEE_DECLSTMS HEND)
+         (progn))
+        ((EXPRESSION_SIMP HBEGIN error HSTATEMENTSEPARATOR MBEE_DECLSTMS HEND)
+         (progn))
+        ((EXPRESSION_SIMP HBEGIN error HEND)
+         (progn))
+        ((EXPRESSION_SIMP)
+         (progn))
+        ((ACTIVATOR EXPRESSION SCHEDULE)
+         (progn))
+        ((HBEGIN
+          (progn)
+          MBEE_DECLSTMS HEND)
+         (progn))
+        ((MBEE_TYPE HPROCEDURE HIDENTIFIER
+                    (progn)
+                    HEADING BLOCK)
+         (progn))
+        ((HIDENTIFIER HCLASS NO_TYPE
+                      (progn)
+                      IMPORT_SPEC_MODULE HIDENTIFIER
+                      (progn)
+                      HEADING BLOCK)
+         (progn))
+        ((HCLASS NO_TYPE HIDENTIFIER
+                 (progn)
+                 HEADING BLOCK)
+         (progn))
+        ((EXT_DECLARATION)
+         (progn))
+        (nil
+         (progn)))
+       (IMPORT_SPEC_MODULE
+        (nil
+         (progn)))
+       (DECLSTATEMENT
+        ((MODULSTATEMENT))
+        ((TYPE HIDENTIFIER MBEE_CONSTANT HPAREXPSEPARATOR
+               (progn)
+               IDENTIFIER_LISTC)
+         (progn))
+        ((TYPE HIDENTIFIER MBEE_CONSTANT)
+         (progn))
+        ((MBEE_TYPE HARRAY
+                    (progn)
+                    ARR_SEGMENT_LIST)
+         (progn))
+        ((HSWITCH HIDENTIFIER HASSIGN
+                  (progn)
+                  SWITCH_LIST)
+         (progn)))
+       (BLOCK
+        ((DECLSTATEMENT)
+         (progn))
+        ((HBEGIN MBEE_DECLSTMS HEND))
+        ((HBEGIN error HSTATEMENTSEPARATOR MBEE_DECLSTMS HEND))
+        ((HBEGIN error HEND)))
+       (MBEE_DECLSTMS
+        ((MBEE_DECLSTMSU)
+         (progn)))
+       (MBEE_DECLSTMSU
+        ((DECLSTATEMENT)
+         (progn))
+        ((MBEE_DECLSTMSU HSTATEMENTSEPARATOR DECLSTATEMENT)
+         (progn)))
+       (MODULS
+        ((MODULSTATEMENT)
+         (progn))
+        ((MODULS HSTATEMENTSEPARATOR MODULSTATEMENT)
+         (progn)))
+       (ARR_SEGMENT_LIST
+        ((ARR_SEGMENT))
+        ((ARR_SEGMENT_LIST HPAREXPSEPARATOR ARR_SEGMENT)))
+       (ARR_SEGMENT
+        ((ARRAY_SEGMENT HBEGPAR BAUND_PAIR_LIST HENDPAR)
+         (progn)))
+       (ARRAY_SEGMENT
+        ((ARRAY_SEGMENT_EL)
+         (progn))
+        ((ARRAY_SEGMENT_EL HPAREXPSEPARATOR ARRAY_SEGMENT)
+         (progn)))
+       (ARRAY_SEGMENT_EL
+        ((HIDENTIFIER)
+         (progn)))
+       (BAUND_PAIR_LIST
+        ((BAUND_PAIR)
+         (progn))
+        ((BAUND_PAIR HPAREXPSEPARATOR BAUND_PAIR_LIST)
+         (progn)))
+       (BAUND_PAIR
+        ((EXPRESSION HLABELSEPARATOR EXPRESSION)
+         (progn)))
+       (SWITCH_LIST
+        ((EXPRESSION)
+         (progn))
+        ((EXPRESSION HPAREXPSEPARATOR SWITCH_LIST)
+         (progn)))
+       (HEADING
+        ((MBEE_FMAL_PAR_P HSTATEMENTSEPARATOR
+                          (progn)
+                          MBEE_MODE_PART
+                          (progn)
+                          MBEE_SPEC_PART
+                          (progn)
+                          MBEE_PROT_PART
+                          (progn)
+                          MBEE_VIRT_PART)
+         (progn)))
+       (MBEE_FMAL_PAR_P
+        (nil)
+        ((FMAL_PAR_PART)))
+       (FMAL_PAR_PART
+        ((HBEGPAR NO_TYPE MBEE_LISTV HENDPAR)))
+       (MBEE_LISTV
+        (nil)
+        ((LISTV)))
+       (LISTV
+        ((HIDENTIFIER)
+         (progn))
+        ((FPP_CATEG HDOTDOTDOT)
+         (progn))
+        ((HIDENTIFIER
+          (progn)
+          HPAREXPSEPARATOR LISTV))
+        ((FPP_SPEC))
+        ((FPP_SPEC HPAREXPSEPARATOR LISTV)))
+       (FPP_HEADING
+        ((HBEGPAR NO_TYPE FPP_MBEE_LISTV HENDPAR)))
+       (FPP_MBEE_LISTV
+        (nil)
+        ((FPP_LISTV)))
+       (FPP_LISTV
+        ((FPP_CATEG HDOTDOTDOT)
+         (progn))
+        ((FPP_SPEC))
+        ((FPP_SPEC HPAREXPSEPARATOR LISTV)))
+       (FPP_SPEC
+        ((FPP_CATEG SPECIFIER HIDENTIFIER)
+         (progn))
+        ((FPP_CATEG FPP_PROC_DECL_IN_SPEC)))
+       (FPP_CATEG
+        ((HNAME HLABELSEPARATOR)
+         (progn))
+        ((HVALUE HLABELSEPARATOR)
+         (progn))
+        ((HVAR HLABELSEPARATOR)
+         (progn))
+        (nil))
+       (FPP_PROC_DECL_IN_SPEC
+        ((MBEE_TYPE HPROCEDURE HIDENTIFIER
+                    (progn)
+                    FPP_HEADING
+                    (progn))
+         (progn)))
+       (IDENTIFIER_LISTV
+        ((HIDENTIFIER)
+         (progn))
+        ((HDOTDOTDOT)
+         (progn))
+        ((HIDENTIFIER
+          (progn)
+          HPAREXPSEPARATOR IDENTIFIER_LISTV)))
+       (MBEE_MODE_PART
+        (nil)
+        ((MODE_PART)))
+       (MODE_PART
+        ((NAME_PART))
+        ((VALUE_PART))
+        ((VAR_PART))
+        ((NAME_PART VALUE_PART))
+        ((VALUE_PART NAME_PART))
+        ((NAME_PART VAR_PART))
+        ((VAR_PART NAME_PART))
+        ((VALUE_PART VAR_PART))
+        ((VAR_PART VALUE_PART))
+        ((VAR_PART NAME_PART VALUE_PART))
+        ((NAME_PART VAR_PART VALUE_PART))
+        ((NAME_PART VALUE_PART VAR_PART))
+        ((VAR_PART VALUE_PART NAME_PART))
+        ((VALUE_PART VAR_PART NAME_PART))
+        ((VALUE_PART NAME_PART VAR_PART)))
+       (NAME_PART
+        ((HNAME
+          (progn)
+          IDENTIFIER_LISTV HSTATEMENTSEPARATOR)))
+       (VAR_PART
+        ((HVAR
+          (progn)
+          IDENTIFIER_LISTV HSTATEMENTSEPARATOR)))
+       (VALUE_PART
+        ((HVALUE
+          (progn)
+          IDENTIFIER_LISTV HSTATEMENTSEPARATOR)))
+       (MBEE_SPEC_PART
+        (nil)
+        ((SPEC_PART)))
+       (SPEC_PART
+        ((ONE_SPEC))
+        ((SPEC_PART ONE_SPEC)))
+       (ONE_SPEC
+        ((SPECIFIER IDENTIFIER_LIST HSTATEMENTSEPARATOR))
+        ((NO_TYPE HPROCEDURE HIDENTIFIER HOBJRELOPERATOR
+                  (progn)
+                  PROC_DECL_IN_SPEC HSTATEMENTSEPARATOR))
+        ((FPP_PROC_DECL_IN_SPEC HSTATEMENTSEPARATOR))
+        ((MBEE_TYPE HPROCEDURE HIDENTIFIER HSTATEMENTSEPARATOR)
+         (progn))
+        ((MBEE_TYPE HPROCEDURE HIDENTIFIER HPAREXPSEPARATOR IDENTIFIER_LIST HSTATEMENTSEPARATOR)
+         (progn)))
+       (SPECIFIER
+        ((TYPE)
+         (progn))
+        ((MBEE_TYPE HARRAY)
+         (progn))
+        ((HLABEL)
+         (progn))
+        ((HSWITCH)
+         (progn)))
+       (PROC_DECL_IN_SPEC
+        ((MBEE_TYPE HPROCEDURE HIDENTIFIER
+                    (progn)
+                    HEADING
+                    (progn)
+                    MBEE_BEGIN_END)
+         (progn)))
+       (MBEE_BEGIN_END
+        (nil)
+        ((HBEGIN HEND)))
+       (MBEE_PROT_PART
+        (nil)
+        ((PROTECTION_PART)))
+       (PROTECTION_PART
+        ((PROT_SPECIFIER IDENTIFIER_LIST HSTATEMENTSEPARATOR))
+        ((PROTECTION_PART PROT_SPECIFIER IDENTIFIER_LIST HSTATEMENTSEPARATOR)))
+       (PROT_SPECIFIER
+        ((HHIDDEN)
+         (progn))
+        ((HPROTECTED)
+         (progn))
+        ((HHIDDEN HPROTECTED)
+         (progn))
+        ((HPROTECTED HHIDDEN)
+         (progn)))
+       (MBEE_VIRT_PART
+        (nil)
+        ((VIRTUAL_PART)))
+       (VIRTUAL_PART
+        ((HVIRTUAL HLABELSEPARATOR MBEE_SPEC_PART)))
+       (IDENTIFIER_LIST
+        ((HIDENTIFIER)
+         (progn))
+        ((IDENTIFIER_LIST HPAREXPSEPARATOR HIDENTIFIER)
+         (progn)))
+       (IDENTIFIER_LISTC
+        ((HIDENTIFIER MBEE_CONSTANT)
+         (progn))
+        ((IDENTIFIER_LISTC HPAREXPSEPARATOR HIDENTIFIER MBEE_CONSTANT)
+         (progn)))
+       (MBEE_CONSTANT
+        (nil)
+        ((HVALRELOPERATOR
+          (progn)
+          EXPRESSION)
+         (progn)))
+       (EXPRESSION
+        ((EXPRESSION_SIMP)
+         (progn))
+        ((HIF EXPRESSION HTHEN EXPRESSION HELSE EXPRESSION)
+         (progn)))
+       (EXPRESSION_SIMP
+        ((EXPRESSION_SIMP HASSIGN EXPRESSION)
+         (progn))
+        ((EXPRESSION_SIMP HCONC EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HOR HELSE EXPRESSION_SIMP)
+         [HORELSE]
+         (progn))
+        ((EXPRESSION_SIMP HAND HTHEN EXPRESSION_SIMP)
+         [HANDTHEN]
+         (progn))
+        ((EXPRESSION_SIMP HEQV EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HIMP EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HOR EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HAND EXPRESSION_SIMP)
+         (progn))
+        ((HNOT EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HVALRELOPERATOR EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HREFRELOPERATOR EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HOBJRELOPERATOR EXPRESSION_SIMP)
+         (progn))
+        ((HTERMOPERATOR EXPRESSION_SIMP)
+         [UNEAR]
+         (progn))
+        ((EXPRESSION_SIMP HTERMOPERATOR EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HFACTOROPERATOR EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HPRIMARYOPERATOR EXPRESSION_SIMP)
+         (progn))
+        ((HBEGPAR EXPRESSION HENDPAR)
+         (progn))
+        ((HTEXTKONST)
+         (progn))
+        ((HCHARACTERKONST)
+         (progn))
+        ((HREALKONST)
+         (progn))
+        ((HINTEGERKONST)
+         (progn))
+        ((HBOOLEANKONST)
+         (progn))
+        ((HNONE)
+         (progn))
+        ((HIDENTIFIER
+          (progn)
+          MBEE_ARG_R_PT))
+        ((HTHIS HIDENTIFIER)
+         (progn))
+        ((HNEW HIDENTIFIER ARG_R_PT)
+         (progn))
+        ((EXPRESSION_SIMP HDOT EXPRESSION_SIMP)
+         (progn))
+        ((EXPRESSION_SIMP HQUA HIDENTIFIER)
+         (progn)))
+       (ARG_R_PT
+        (nil
+         (progn))
+        ((HBEGPAR ARGUMENT_LIST HENDPAR)))
+       (MBEE_ARG_R_PT
+        (nil
+         (progn))
+        ((HBEGPAR ARGUMENT_LIST HENDPAR)
+         (progn)))
+       (ARGUMENT_LIST
+        ((EXPRESSION)
+         (progn))
+        ((EXPRESSION HPAREXPSEPARATOR ARGUMENT_LIST)
+         (progn))))
+     '(MAIN_MODULE))
+    )
+  "Parser automaton.")
 
 (defconst wisent-cim-keywords
-  (semantic-flex-make-keyword-table 
-   `( ("" . HACTIVATE)
-      ("" . HAFTER)
-      ("" . HARRAY)
-      ("" . HAT)
-      ("" . HBEFORE)
-      ("" . HBEGIN)
-      ("" . HBOOLEAN)
-      ("" . HCHARACTER)
-      ("" . HCLASS)
-      ("" . HCONC)
-      ("" . HDELAY)
-      ("" . HDO)
-      ("" . HELSE)
-      ("" . HEND)
-      ("" . HEXTERNAL)
-      ("" . HFOR)
-      ("" . HGO)
-      ("" . HGOTO)
-      ("" . HHIDDEN)
-      ("" . HIF)
-      ("" . HINNER)
-      ("" . HINSPECT)
-      ("" . HINTEGER)
-      ("" . HLABEL)
-      ("" . HLONG)
-      ("" . HNAME)
-      ("" . HNEW)
-      ("" . HNONE)
-      ("" . HOTHERWISE)
-      ("" . HPRIOR)
-      ("" . HPROCEDURE)
-      ("" . HPROTECTED)
-      ("" . HQUA)
-      ("" . HREACTIVATE)
-      ("" . HREAL)
-      ("" . HREF)
-      ("" . HSHORT)
-      ("" . HSTEP)
-      ("" . HSWITCH)
-      ("" . HTEXT)
-      ("" . HTHEN)
-      ("" . HTHIS)
-      ("" . HTO)
-      ("" . HUNTIL)
-      ("" . HVALUE)
-      ("" . HVAR)
-      ("" . HVIRTUAL)
-      ("" . HWHEN)
-      ("" . HWHILE)
-      ("" . HPAREXPSEPARATOR)
-      ("" . HLABELSEPARATOR)
-      ("" . HSTATEMENTSEPARATOR)
-      ("" . HBEGPAR)
-      ("" . HENDPAR)
-      ("" . HDOTDOTDOT)
-      ("" . HIDENTIFIER)
-      ("" . HBOOLEANKONST)
-      ("" . HINTEGERKONST)
-      ("" . HCHARACTERKONST)
-      ("" . HREALKONST)
-      ("" . HTEXTKONST)
-      ("" . HASSIGN)
-      ("" . HEQV)
-      ("" . HIMP)
-      ("" . HOR)
-      ("" . HAND)
-      ("" . HNOT)
-      ("" . HVALRELOPERATOR)
-      ("" . HREFRELOPERATOR)
-      ("" . HOBJRELOPERATOR)
-      ("" . HTERMOPERATOR)
-      ("" . HFACTOROPERATOR)
-      ("" . HPRIMARYOPERATOR)
-      ("" . HDOT)
-      )
-   '(
-     ))
+  (identity
+   ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-03-14 14:44+0100
+   (semantic-flex-make-keyword-table 'nil 'nil)
+   )
   "Keywords.")
 
 (defconst wisent-cim-tokens
-  nil
+  (identity
+   ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-03-14 14:44+0100
+   (wisent-flex-make-token-table
+    '(("tval"
+       (HTEXTKONST))
+      ("rval"
+       (HREALKONST))
+      ("ival"
+       (HCHARACTERKONST)
+       (HINTEGERKONST)
+       (HBOOLEANKONST))
+      ("ident"
+       (HIDENTIFIER))
+      ("<no-type>"
+       (HDOTDOTDOT)
+       (HEXP)
+       (HINTDIV)
+       (HDIV)
+       (HMUL)
+       (HSUB)
+       (HADD)
+       (HNER)
+       (HEQR)
+       (HENDPAR)
+       (HBEGPAR)
+       (HSTATEMENTSEPARATOR)
+       (HLABELSEPARATOR)
+       (HPAREXPSEPARATOR)
+       (HASSIGNREF)
+       (HASSIGNVALUE)
+       (HWHILE)
+       (HWHEN)
+       (HVIRTUAL)
+       (HVAR)
+       (HVALUE)
+       (HUNTIL)
+       (HTO)
+       (HTHIS)
+       (HTHEN)
+       (HTEXT)
+       (HSWITCH)
+       (HSTEP)
+       (HSHORT)
+       (HREF)
+       (HREAL)
+       (HREACTIVATE)
+       (HQUA)
+       (HPROTECTED)
+       (HPROCEDURE)
+       (HPRIOR)
+       (HOTHERWISE)
+       (HNOTEXT)
+       (HNONE)
+       (HNEW)
+       (HNE)
+       (HNAME)
+       (HLT)
+       (HLONG)
+       (HLE)
+       (HLABEL)
+       (HIS)
+       (HINTEGER)
+       (HINSPECT)
+       (HINNER)
+       (HIN)
+       (HIF)
+       (HHIDDEN)
+       (HGT)
+       (HGOTO)
+       (HGO)
+       (HGE)
+       (HFOR)
+       (HEXTERNAL)
+       (HEQ)
+       (HEND)
+       (HELSE)
+       (HDO)
+       (HDELAY)
+       (HCONC)
+       (HCLASS)
+       (HCHARACTER)
+       (HBOOLEAN)
+       (HBEGIN)
+       (HBEFORE)
+       (HAT)
+       (HARRAY)
+       (HAFTER)
+       (HACTIVATE))
+      ("token"
+       (HFACTOROPERATOR)
+       (UNEAR)
+       (HTERMOPERATOR)
+       (HOBJRELOPERATOR)
+       (HREFRELOPERATOR)
+       (HVALRELOPERATOR)
+       (HASSIGN)))
+    'nil)
+   )
   "Tokens.")
 
 (defun wisent-cim-default-setup ()
-  "Setup."
-  ;; Code generated from wisent-cim.bnf
-  (setq semantic-toplevel-bovine-table wisent-cim-parser-tables
-        semantic-toplevel-bovine-table-source "wisent-cim.bnf")
-  (setq semantic-flex-keywords-obarray wisent-cim-keywords)
- 
- ;; End code generated from wisent-cim.bnf
- )
+  "Setup buffer for parse."
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-03-14 14:44+0100
+  (progn
+    (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
+          semantic-toplevel-bovine-table wisent-cim-automaton
+          semantic-flex-keywords-obarray wisent-cim-keywords
+          wisent-flex-tokens-obarray wisent-cim-tokens)
+    )
+  )
 
 (provide 'wisent-cim)
 
