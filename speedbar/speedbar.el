@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.172 2000/07/13 04:38:59 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.173 2000/07/13 19:11:49 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -2382,11 +2382,14 @@ position to insert a new item, and that the new item will end with a CR"
     (let* ((exp-button (cond ((eq exp-button-type 'bracket) "[%c]")
 			     ((eq exp-button-type 'angle) "<%c>")
 			     ((eq exp-button-type 'curly) "{%c}")
+			     ((eq exp-button-type 'expandtag) "%c>")
+			     ((eq exp-button-type 'statictag) "=>")
 			     (t ">")))
 	   (buttxt (format exp-button exp-button-char))
 	   (start (point))
 	   (end (progn (insert buttxt) (point)))
-	   (bf (if exp-button-type 'speedbar-button-face nil))
+	   (bf (if (and exp-button-type (not (eq exp-button-type 'statictag)))
+		   'speedbar-button-face nil))
 	   (mf (if exp-button-function 'speedbar-highlight-face nil))
 	   )
       (speedbar-make-button start end bf mf exp-button-function exp-button-data)
@@ -2413,12 +2416,13 @@ position to insert a new item, and that the new item will end with a CR"
     (if (re-search-forward ":\\s-*.\\([-+?]\\)" (save-excursion (end-of-line)
 								(point)) t)
 	(speedbar-with-writable
-	  (goto-char (match-beginning 1))
-	  (delete-char 1)
+	  (goto-char (match-end 1))
 	  (insert-char char 1 t)
-	  (put-text-property (point) (1- (point)) 'invisible nil)
+	  (forward-char -1)
+	  (delete-char -1)
+	  ;;(put-text-property (point) (1- (point)) 'invisible nil)
 	  ;; make sure we fix the image on the text here.
-	  (speedbar-insert-image-button-maybe (- (point) 2) 3)))))
+	  (speedbar-insert-image-button-maybe (- (point) 1) 3)))))
 
 
 ;;; Build button lists
@@ -2705,7 +2709,8 @@ This uses `speedbar-tag-hierarchy-method' to determine how to adjust
 the list."
   (let* ((f (save-excursion
 	      (forward-line -1)
-	      (speedbar-line-path)))
+	      (or (speedbar-line-file)
+		  (speedbar-line-path))))
 	 (methods (if (get-file-buffer f)
 		      (save-excursion (set-buffer (get-file-buffer f))
 				      speedbar-tag-hierarchy-method)
@@ -2718,6 +2723,16 @@ the list."
 	    methods (cdr methods)))
     lst))
 
+(defvar speedbar-generic-list-group-expand-button-type 'curly
+  "The type of button created for groups of tags.
+Good values for this are `curly' and `expandtag'.
+Make buffer local for your mode.")
+
+(defvar speedbar-generic-list-tag-button-type nil
+  "The type of button created for tags in generic lists.
+Good values for this are nil and `statictag'.
+Make buffer local for your mode.")
+
 (defun speedbar-insert-generic-list (level lst expand-fun find-fun)
   "At LEVEL, insert a generic multi-level alist LST.
 Associations with lists get {+} tags (to expand into more nodes) and
@@ -2727,32 +2742,45 @@ name will have the function FIND-FUN and not token."
   ;; Remove imenu rescan button
   (if (string= (car (car lst)) "*Rescan*")
       (setq lst (cdr lst)))
-  ;; Adjust the list.
-  (setq lst (speedbar-create-tag-hierarchy lst))
-  ;; insert the parts
-  (while lst
-    (cond ((null (car-safe lst)) nil)	;this would be a separator
-	  ((speedbar-generic-list-tag-p (car lst))
-	   (speedbar-make-tag-line nil nil nil nil ;no expand button data
-				   (car (car lst)) ;button name
-				   find-fun        ;function
-				   (cdr (car lst)) ;token is position
-				   'speedbar-tag-face
-				   (1+ level)))
-	  ((speedbar-generic-list-positioned-group-p (car lst))
-	   (speedbar-make-tag-line 'curly ?+ expand-fun (cdr (cdr (car lst)))
-				   (car (car lst)) ;button name
-				   find-fun	   ;function
-				   (car (cdr (car lst))) ;token is posn
-				   'speedbar-tag-face
-				   (1+ level)))
-	  ((speedbar-generic-list-group-p (car lst))
-	   (speedbar-make-tag-line 'curly ?+ expand-fun (cdr (car lst))
-				   (car (car lst)) ;button name
-				   nil nil 'speedbar-tag-face
-				   (1+ level)))
-	  (t (speedbar-message "Ooops!")))
-    (setq lst (cdr lst))))
+  ;; Get, and set up variables that define how we treat these tags.
+   (let ((f (save-excursion (forward-line -1)
+			    (or (speedbar-line-file)
+				(speedbar-line-path))))
+	 expand-button tag-button)
+     (if (get-file-buffer f)
+	 (save-excursion
+	   (set-buffer (get-file-buffer f))
+	   (setq expand-button speedbar-generic-list-group-expand-button-type
+		 tag-button speedbar-generic-list-tag-button-type)))
+    ;; Adjust the list.
+    (setq lst (speedbar-create-tag-hierarchy lst))
+    ;; insert the parts
+    (while lst
+      (cond ((null (car-safe lst)) nil)	;this would be a separator
+	    ((speedbar-generic-list-tag-p (car lst))
+	     (speedbar-make-tag-line tag-button
+				     nil nil nil ;no expand button data
+				     (car (car lst)) ;button name
+				     find-fun ;function
+				     (cdr (car lst)) ;token is position
+				     'speedbar-tag-face
+				     (1+ level)))
+	    ((speedbar-generic-list-positioned-group-p (car lst))
+	     (speedbar-make-tag-line expand-button
+				     ?+ expand-fun (cdr (cdr (car lst)))
+				     (car (car lst)) ;button name
+				     find-fun ;function
+				     (car (cdr (car lst))) ;token is posn
+				     'speedbar-tag-face
+				     (1+ level)))
+	    ((speedbar-generic-list-group-p (car lst))
+	     (speedbar-make-tag-line expand-button
+				     ?+ expand-fun (cdr (car lst))
+				     (car (car lst)) ;button name
+				     nil nil 'speedbar-tag-face
+				     (1+ level)))
+	    (t (speedbar-message "Ooops!")))
+      (setq lst (cdr lst)))))
 
 (defun speedbar-insert-imenu-list (indent lst)
   "At level INDENT, insert the imenu generated LST."
