@@ -9,7 +9,7 @@
 <p>EIEIO is an <B>Emacs lisp</B> program which implements a controlled
 object-oriented programming methodology following the <B>CLOS</B>
 standard.  EIEIO also has object browsing functions, and custom widget
-types.  It has a fairly complete manual descrbing how to use it.</P>
+types.  It has a fairly complete manual describing how to use it.</P>
 
 <P>
 EIEIO also supports the byte compiler for Emacs and XEmacs.  Because
