@@ -1,10 +1,10 @@
 ;;; ede-proj-elisp.el --- EDE Generic Project Emacs Lisp support
 
-;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.18 2003/01/29 03:18:45 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.19 2003/08/17 02:44:29 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -136,7 +136,7 @@ is found, such as a `-version' variable, or the standard header."
   "Insert variables needed by target THIS."
   (ede-pmake-insert-variable-shared "LOADPATH"
     (if (oref this aux-packages)
-	(insert (mapconcat (lambda (a) a)
+	(insert (mapconcat 'identity
 			   (ede-proj-elisp-packages-to-loadpath
 			    (oref this aux-packages))
 			   " ")))))
