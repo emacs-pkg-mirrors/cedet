@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.3 2002/02/26 22:15:29 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.4 2002/02/27 23:02:40 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -41,12 +41,23 @@
 ;;;;
 ;;;; Set up parser
 ;;;;
+(defconst wisent-wy-c-char-re "'\\s\\?.'"
+  "Regexp matching C-like character literals.")
+
+(defconst wisent-wy-flex-extensions
+  (list (cons wisent-wy-c-char-re 'wisent-wy-flex-char))
+  "`semantic-flex-extensions' to recognize C-like character literals.")
+
+(defun wisent-wy-flex-char ()
+  "Return a 'char syntactic token."
+  (goto-char (match-end 0))
+  (cons 'char (cons (match-beginning 0) (match-end 0))))
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-26 09:55+0100
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-27 20:39+0100
     (wisent-compile-grammar
-     '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
+     '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
        (grammar
         ((PERCENT)
@@ -125,26 +136,14 @@
           (cdr $2)
           nil)))
        (left_decl
-        ((LEFT symbols)
-         (list
-          (car $2)
-          'left nil
-          (cdr $2)
-          nil)))
+        ((LEFT items)
+         (list $1 'assoc nil $2 nil)))
        (right_decl
-        ((RIGHT symbols)
-         (list
-          (car $2)
-          'right nil
-          (cdr $2)
-          nil)))
+        ((RIGHT items)
+         (list $1 'assoc nil $2 nil)))
        (nonassoc_decl
-        ((NONASSOC symbols)
-         (list
-          (car $2)
-          'nonassoc nil
-          (cdr $2)
-          nil)))
+        ((NONASSOC items)
+         (list $1 'assoc nil $2 nil)))
        (put_decl
         ((PUT SYMBOL put_value)
          (list $2 'put nil nil
@@ -263,7 +262,7 @@
             (mapconcat #'cdr elts " ")
             'rule nil elts $3 $2 nil))))
        (level
-        ((PERCENT PREC SYMBOL)
+        ((PERCENT PREC item)
          (identity $3)))
        (action_opt
         (nil)
@@ -291,15 +290,26 @@
         ((element)
          (list $1)))
        (element
-        ((action_opt SYMBOL)
-         (cons $1 $2))))
+        ((action_opt item)
+         (cons $1 $2)))
+       (items
+        ((lifo_items)
+         (nreverse $1)))
+       (lifo_items
+        ((lifo_items item)
+         (cons $2 $1))
+        ((item)
+         (list $1)))
+       (item
+        ((SYMBOL))
+        ((CHARACTER))))
      '(grammar code declaration nonterminal rule put_names put_values))
     )
   "Parser automaton.")
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-26 09:55+0100
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-27 20:39+0100
    (semantic-flex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -320,7 +330,7 @@
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-26 09:55+0100
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-27 20:39+0100
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -336,6 +346,8 @@
       ("semantic-list"
        (BRACE_BLOCK . "^{")
        (PAREN_BLOCK . "^("))
+      ("char"
+       (CHARACTER))
       ("number"
        (NUMBER))
       ("symbol"
@@ -350,7 +362,7 @@
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-26 09:55+0100
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-02-27 20:39+0100
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
           semantic-toplevel-bovine-table wisent-wy-automaton
@@ -360,6 +372,8 @@
           ;; Numbers
           (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
                   "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
+          ;; C-like character literals
+          semantic-flex-extensions wisent-wy-flex-extensions
           ;; Parent/Child separator
           semantic-type-relation-separator-character '(":")
           ;; Names
@@ -376,7 +390,7 @@
           '(
             (code         . default)
             (keyword      . font-lock-keyword-face)
-            (token        . font-lock-constant-face)
+            (token        . font-lock-type-face)
             (nonterminal  . font-lock-function-name-face)
             (rule         . default)
             )
@@ -520,6 +534,12 @@ Warn if other TYPE tokens exist."
                                      (nth 3 token))))
                    tokens))))
 
+(defun wisent-wy-item-value (item)
+  "Return symbol or character value of ITEM string."
+  (if (string-match wisent-wy-c-char-re item)
+      (read (concat "?" (substring item 1 -1)))
+    (intern item)))
+
 (defun wisent-wy-setupfunction ()
   "Return the %setupfunction value as a symbol or nil."
   (wisent-wy-token-name 'setupfunction))
@@ -567,17 +587,13 @@ Warn if other TYPE tokens exist."
   "Return the %start value as a symbol list or nil."
   (wisent-wy-token-symbols 'start))
 
-(defun wisent-wy-left ()
-  "Return the %left value as a symbol list or nil."
-  (wisent-wy-token-symbols 'left))
-
-(defun wisent-wy-right ()
-  "Return the %right value as a symbol list or nil."
-  (wisent-wy-token-symbols 'right))
-
-(defun wisent-wy-nonassoc ()
-  "Return the %nonassoc value as a symbol list or nil."
-  (wisent-wy-token-symbols 'nonassoc))
+(defun wisent-wy-assocs ()
+  "Return associativity and precedence level definitions."
+  (mapcar
+   #'(lambda (token)
+       (cons (intern (semantic-token-name token))
+             (mapcar #'wisent-wy-item-value (nth 3 token))))
+   (semantic-find-nonterminal-by-token 'assoc (current-buffer))))
 
 (defun wisent-wy-outputfile ()
   "Return the %outputfile value as a string or nil."
@@ -698,13 +714,13 @@ Keep order of declaration in the WY file without duplicates."
             (if (caar elems)
                 (setq actn (wisent-wy-expand-sexpr (read (caar elems)))
                       rule (cons actn rule)))
-            (setq rule (cons (intern (cdar elems)) rule)
+            (setq rule (cons (wisent-wy-item-value (cdar elems)) rule)
                   elems (cdr elems)))
           (setq rule (nreverse rule)))
         (setq actn (nth 4 (car rltoks))
               prec (nth 5 (car rltoks)))
         (if prec
-            (setq prec (vector (intern prec))))
+            (setq prec (vector (wisent-wy-item-value prec))))
         (if actn
             (setq sexp (wisent-wy-expand-sexpr (read actn))))
         (setq rule (if actn
@@ -726,18 +742,8 @@ Keep order of declaration in the WY file without duplicates."
   "Return Elisp form of the grammar."
   (let* ((terminals    (wisent-wy-terminals))
          (nonterminals (wisent-wy-nonterminals))
-         (left         (wisent-wy-left))
-         (right        (wisent-wy-right))
-         (nonassoc     (wisent-wy-nonassoc)))
-    (if left
-        (setq left (cons 'left left)))
-    (if right
-        (setq right (cons 'right right)))
-    (if nonassoc
-        (setq nonassoc (cons 'nonassoc nonassoc)))
-    (cons terminals
-          (cons (delq nil (list left right nonassoc))
-                nonterminals))))
+         (assocs       (wisent-wy-assocs)))
+    (cons terminals (cons assocs nonterminals))))
 
 ;;;;
 ;;;; Lisp code generation
@@ -964,30 +970,25 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     table)
   "Syntax table used in a WY buffer.")
 
-(defvar wisent-wy-elisp-syntax-table
-  (let ((table (copy-syntax-table emacs-lisp-mode-syntax-table)))
-    (modify-syntax-entry ?\{ "(}  " table)
-    (modify-syntax-entry ?\} "){  " table)
-    table)
-  "Syntax table used to indent Elisp code.
-This is a modified copy of `emacs-lisp-mode-syntax-table' with
-brackets considered as parenthesis.")
-
 (defvar wy-mode-hook nil
   "Hook run when starting WY mode.")
 
 (defvar wisent-wy-mode-keywords-1
   `(("\\(%\\)\\(\\w+\\)"
      (1 font-lock-reference-face)
-     (2 font-lock-type-face))
+     (2 font-lock-keyword-face))
     ("^\\(\\w+\\)[ \n\r\t]*:" 1 font-lock-function-name-face)
     ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\)\\>"
-     1 ,(if (featurep 'xemacs)
-            'font-lock-preprocessor-face
-          'font-lock-builtin-face))
+     1 ,(if (boundp 'font-lock-builtin-face)
+            'font-lock-builtin-face
+          'font-lock-preprocessor-face))
     ("\\$\\(\\sw\\|\\s_\\)*" 0 font-lock-variable-name-face)
     ("%" 0 font-lock-reference-face)
     ("<\\(\\(\\sw\\|\\s_\\)+\\)>" 1 font-lock-type-face)
+    (,wisent-wy-c-char-re
+     0 ,(if (boundp 'font-lock-constant-face)
+            'font-lock-constant-face
+          'font-lock-string-face))
     )
   "Font Lock keywords used to highlight WY buffer.")
 
@@ -1126,25 +1127,31 @@ If so move to POINT."
     (if (or (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
             (looking-at "\\s-*%"))
         0
-      (let* ((p (point))
-             (i (wisent-wy-goto-grammar-indent-anchor)))
-        (if (not (and i (eq (char-before) ?\:)))
-            (if (wisent-wy-between-name-and-colon-p p)
-                (if (looking-at "\\s-*;;")
-                    1
-                  2)
-              0)
-          (if (or (looking-at "\\s-*$")
-                  (save-excursion (beginning-of-line)
-                                  (looking-at "\\s-*:")))
-              (setq i 2))
-          (goto-char p)
-          (cond ((looking-at "\\s-*;;")
-                 (1- i))
-                ((looking-at "\\s-*[|;]")
-                 i)
-                (t
-                 (+ i 2))))))))
+      ;; `with-syntax-table' copy given syntax table
+      (with-syntax-table wisent-wy-syntax-table
+        ;; Set up the C-like char delimiter (quote) to "paired
+        ;; delimiter" syntax class.  Thus `forward-sexp' will see a
+        ;; C-like char 'c' as a whole s-expression.
+        (modify-syntax-entry ?\' "$" (syntax-table))
+        (let* ((p (point))
+               (i (wisent-wy-goto-grammar-indent-anchor)))
+          (if (not (and i (eq (char-before) ?\:)))
+              (if (wisent-wy-between-name-and-colon-p p)
+                  (if (looking-at "\\s-*;;")
+                      1
+                    2)
+                0)
+            (if (or (looking-at "\\s-*$")
+                    (save-excursion (beginning-of-line)
+                                    (looking-at "\\s-*:")))
+                (setq i 2))
+            (goto-char p)
+            (cond ((looking-at "\\s-*;;")
+                   (1- i))
+                  ((looking-at "\\s-*[|;]")
+                   i)
+                  (t
+                   (+ i 2)))))))))
       
 (defun wisent-wy-do-grammar-indent ()
   "Indent a line of grammar.
@@ -1173,7 +1180,11 @@ Return nil if not in a Lisp expression."
             (save-restriction
               (narrow-to-region (point) first)
               (goto-char (point-max))
-              (with-syntax-table wisent-wy-elisp-syntax-table
+              ;; `with-syntax-table' copy given syntax table
+              (with-syntax-table emacs-lisp-mode-syntax-table
+                ;; Consider brackets as parenthesis
+                (modify-syntax-entry ?\{ "(}  " (syntax-table))
+                (modify-syntax-entry ?\} "){  " (syntax-table))
                 (lisp-indent-line))))
           t)
       (error nil)))
