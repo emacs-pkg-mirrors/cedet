@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.35 2003/02/17 02:05:08 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.36 2003/02/21 18:05:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -247,6 +247,10 @@ TEXT TOKEN and INDENT are the details."
 TEXT TOKEN and INDENT are the details."
   (let ((file (speedbar-line-path indent))
 	(parent (semantic-sb-detail-parent)))
+    (let ((f (selected-frame)))
+      (dframe-select-attached-frame speedbar-frame)
+      (run-hooks 'speedbar-before-visiting-tag-hook)
+      (select-frame f))
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
     (semantic-find-nonterminal token parent)
