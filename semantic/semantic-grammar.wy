@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.4 2003/03/16 09:28:08 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.5 2003/03/31 07:47:14 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -118,7 +118,7 @@ grammar:
   | nonterminal
   ;
 
-;; code token:
+;; code tag:
 ;; -----------
 ;;  ("code" 'code nil LISP-CALL-EXPRESSION nil)
 ;;
@@ -151,7 +151,7 @@ decl:
   | put_decl
   ;
 
-;; languagemode token:
+;; languagemode tag:
 ;; -------------------
 ;;  (FIRST-MODE-NAME 'languagemode nil REST-MODE-NAMES nil)
 ;;
@@ -160,7 +160,7 @@ languagemode_decl:
     `(TAG ',(car $2) 'languagemode :rest ',(cdr $2))
   ;
 
-;; outputfile token:
+;; outputfile tag:
 ;; -----------------
 ;;  (FILE-NAME 'outputfile nil nil)
 ;;
@@ -174,7 +174,7 @@ string_value:
     (read $1)
   ;
 
-;; setupfunction token:
+;; setupfunction tag:
 ;; --------------------
 ;;  (FUNC-NAME 'setupfunction nil nil)
 ;;
@@ -183,7 +183,7 @@ setupfunction_decl:
     `(TAG ',$2 'setupfunction)
   ;
 
-;; keywordtable token:
+;; keywordtable tag:
 ;; -------------------
 ;;  (VAR-NAME 'keywordtable nil nil)
 ;;
@@ -192,7 +192,7 @@ keywordtable_decl:
     `(TAG ',$2 'keywordtable)
   ;
 
-;; parsetable token:
+;; parsetable tag:
 ;; -----------------
 ;;  (VAR-NAME 'parsetable nil nil)
 ;;
@@ -201,7 +201,7 @@ parsetable_decl:
     `(TAG ',$2 'parsetable)
   ;
 
-;; tokentable token:
+;; tokentable tag:
 ;; -----------------
 ;;  (VAR-NAME 'tokentable nil nil)
 ;;
@@ -210,11 +210,11 @@ tokentable_decl:
     `(TAG ',$2 'tokentable)
   ;
 
-;; token token:
+;; token tag:
 ;; ------------
 ;;  (FIRST-TOKEN-NAME 'token TYPE REST-TOKEN-NAMES VALUE nil)
 ;;
-;; keyword token:
+;; keyword tag:
 ;; --------------
 ;;  (KEYWORD-NAME 'keyword nil nil KEYWORD-VALUE nil)
 ;;
@@ -235,7 +235,7 @@ token_type:
     (progn $2)
   ;
 
-;; start token:
+;; start tag:
 ;; ------------
 ;;  (FIRST-SYMBOL-NAME 'start nil REST-SYMBOL-NAMES nil)
 ;;
@@ -244,7 +244,7 @@ start_decl:
     `(TAG ',(car $2) 'start :rest ',(cdr $2))
   ;
 
-;; scopestart token:
+;; scopestart tag:
 ;; ----------------
 ;;  (SYMBOL-NAME 'scopestart nil nil)
 ;;
@@ -253,7 +253,7 @@ scopestart_decl:
     `(TAG ',$2 'scopestart)
   ;
 
-;; quotemode token:
+;; quotemode tag:
 ;; ----------------
 ;;  (SYMBOL-NAME 'quotemode nil nil)
 ;;
@@ -262,7 +262,7 @@ quotemode_decl:
     `(TAG ',$2 'quotemode)
   ;
 
-;; left token:
+;; left tag:
 ;; -----------
 ;;  ("left" 'assoc TYPE ITEMS nil)
 ;;
@@ -271,7 +271,7 @@ left_decl:
     `(TAG ',$1 'assoc :type ',$2 :value ',$3)
   ;
 
-;; right token:
+;; right tag:
 ;; ------------
 ;;  ("right" 'assoc TYPE ITEMS nil)
 ;;
@@ -280,7 +280,7 @@ right_decl:
     `(TAG ',$1 'assoc :type ',$2 :value ',$3)
   ;
 
-;; nonassoc token:
+;; nonassoc tag:
 ;; ---------------
 ;;  ("nonassoc" 'assoc TYPE ITEMS nil)
 ;;
@@ -289,7 +289,7 @@ nonassoc_decl:
     `(TAG ',$1 'assoc :type ',$2 :value ',$3)
   ;
 
-;; put token:
+;; put tag:
 ;; ----------
 ;;  (FIRST-SYMBOL-NAME 'put nil REST-SYMBOL-NAMES PLIST nil)
 ;;
@@ -297,14 +297,14 @@ put_decl:
     PUT any_symbol put_value
     `(TAG ',$2 'put :value ',(list $3))
   | PUT any_symbol put_value_list
-    (let* ((vals (mapcar 'semantic-token-name $3)))
+    (let* ((vals (mapcar 'semantic-tag-name $3)))
       `(TAG ',$2 'put :value ',vals))
   | PUT put_name_list put_value
-    (let* ((names (mapcar 'semantic-token-name $2)))
+    (let* ((names (mapcar 'semantic-tag-name $2)))
       `(TAG ',(car names) 'put :rest ',(cdr names) :value ',(list $3)))
   | PUT put_name_list put_value_list
-    (let* ((names (mapcar 'semantic-token-name $2))
-           (vals  (mapcar 'semantic-token-name $3)))
+    (let* ((names (mapcar 'semantic-tag-name $2))
+           (vals  (mapcar 'semantic-tag-name $3)))
       `(TAG ',(car names) 'put :rest ',(cdr names) :value ',vals))
   ;
 
@@ -319,7 +319,7 @@ put_names:
   | RBRACE
     ()
   | any_symbol
- ;; Must return a list of Semantic tokens to EXPANDFULL!
+ ;; Must return a list of Semantic tags to EXPANDFULL!
     (TAG $1 'put-name)
   ;
 
@@ -334,7 +334,7 @@ put_values:
   | RBRACE
     ()
   | put_value
- ;; Must return a list of Semantic tokens to EXPANDFULL!
+ ;; Must return a list of Semantic tags to EXPANDFULL!
     (TAG $1 'put-value)
   ;
 
@@ -364,7 +364,7 @@ lifo_symbols:
     (list $1)
   ;
 
-;; nonterminal token:
+;; nonterminal tag:
 ;; ------------------
 ;;  (NONTERMINAL-NAME 'nonterminal nil RULE-TOKENS nil)
 ;;
@@ -385,7 +385,7 @@ lifo_rules:
     (list $1)
   ;
 
-;; rule token:
+;; rule tag:
 ;; ----------
 ;;  (RULE-NAME 'rule TYPE COMPONENTS PREC ACTION nil)
 ;;
