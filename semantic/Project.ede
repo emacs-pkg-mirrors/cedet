@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "semantic"
   :name "semantic"
-  :version "2.0beta3"
+  :version "2.0beta1"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-makefile-miscelaneous "wy"
