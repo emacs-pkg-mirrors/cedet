@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.35 2003/08/20 08:50:59 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.36 2003/08/21 12:19:37 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -785,48 +785,64 @@ Also load the specified macro libraries."
       (semantic-map-mode-buffers
        (semantic-grammar-setupfunction)
        (semantic-grammar-languagemode)))
-    ))
+    ;; Return the name of the generated package file.
+    output))
 
-(defun semantic-grammar-create-package-from-file (file)
-  "Create package Lisp code from grammar in FILE.
-Return t if successful or nil if an error occurred."
-  (condition-case err
-      (with-current-buffer (find-file-noselect file)
-        (semantic-grammar-create-package)
-        t)
-    (error
-     (message "%s" (error-message-string err)))))
+(defun semantic-grammar-batch-build-one-package (file)
+  "Build a Lisp package from the grammar in FILE.
+That is, generate Lisp code from FILE, and byte-compile it.
+Return non-nil if there were no errors, nil if errors."
+  (unless (auto-save-file-name-p file)
+    ;; Create the package
+    (let ((packagename
+           (condition-case err
+               (with-current-buffer (find-file-noselect file)
+                 (semantic-grammar-create-package))
+             (error
+              (message "%s" (error-message-string err))
+              nil))))
+      (when packagename
+        ;; byte compile the resultant file
+        (batch-byte-compile-file packagename)))))
 
 ;;;###autoload
-(defun semantic-grammar-batch-create-package ()
-  "Create package Lisp code from grammar files on the command line.
-That is, run `semantic-grammar-create-package-from-file' for each files.
+(defun semantic-grammar-batch-build-packages ()
+  "Build Lisp packages from grammar files on the command line.
+That is, run `semantic-grammar-batch-build-one-package' for each file.
 Each file is processed even if an error occurred previously.
 Must be used from the command line, with `-batch'.
 For example, to process grammar files in current directory, invoke:
 
-  \"emacs -batch -f semantic-grammar-batch-create-package .\".
+  \"emacs -batch -f semantic-grammar-batch-build-packages .\".
 
 See also the variable `semantic-grammar-file-regexp'."
   (or (semantic-grammar-noninteractive)
       (error "\
-`semantic-grammar-batch-create-package' must be used with -batch"
+`semantic-grammar-batch-build-packages' must be used with -batch"
              ))
-  (let ((status 0))
+  (let ((status 0)
+        ;; Remove vc from find-file-hooks.  It causes bad stuff to
+        ;; happen in Emacs 20.
+        (find-file-hooks (delete 'vc-find-file-hook find-file-hooks)))
     (dolist (arg command-line-args-left)
+      (unless (and arg (file-exists-p arg))
+        (error "Argument %s is not a valid file name" arg))
       (setq arg (expand-file-name arg))
       (if (file-directory-p arg)
-	  ;; Directory as argument.
-          (dolist (src (directory-files
-                        arg nil semantic-grammar-file-regexp))
-            (or (auto-save-file-name-p src)
-                (semantic-grammar-create-package-from-file
+          ;; Directory as argument
+          (dolist (src (condition-case nil
+                           (directory-files
+                            arg nil semantic-grammar-file-regexp)
+                         (error
+                          (error "Unable to read directory files"))))
+            (or (semantic-grammar-batch-build-one-package
                  (expand-file-name src arg))
                 (setq status 1)))
-	;; Specific file argument
-        (or (semantic-grammar-create-package-from-file arg)
+        ;; Specific file argument
+        (or (semantic-grammar-batch-build-one-package arg)
             (setq status 1))))
-    (kill-emacs status)))
+    (kill-emacs status)
+    ))
 
 ;;;;
 ;;;; Macros highlighting
