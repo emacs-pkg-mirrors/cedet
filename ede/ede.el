@@ -3,9 +3,9 @@
 ;;;  Copyright (C) 1998, 99  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.0.2
+;; Version: 0.3
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.11 1999/03/17 12:34:54 zappo Exp $
+;; RCS: $Id: ede.el,v 1.12 1999/03/17 23:06:31 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -162,13 +162,13 @@ type is required and the load function used.")
 	    :documentation "The version number used when distributing files.")
    (file :initarg :file
 	 :documentation "File name where this project is stored.")
-   (root :initarg :root
-	 :documentation "The root project file if this is a subproject.")
+   ;; No initarg.  We don't want this saved.
+   (root :documentation "The root project file if this is a subproject.")
    (targets :initarg :targets
 	    :custom (repeat object)
 	    :documentation "List of top level targets in this project.")
-   (subproj :initarg :subproj
-	    :custom (repeat object)
+   ;; No initarg.  We don't want this saved in a file.
+   (subproj :custom (repeat object)
 	    :documentation "Sub projects controlled by this project.
 For Automake based projects, each directory is treated as a project.")
    (local-variables :initarg :local-variables
@@ -376,9 +376,15 @@ Argument FILE is the file or directory to load a project from."
   (let* ((obj (object-assoc type 'name ede-project-class-files))
 	 (nobj (make-instance (oref obj class-sym)
 			      :name (read-string "Name: ")
-			      :file (oref obj proj-file))))
+			      :file (expand-file-name (oref obj proj-file)))))
+    (if (ede-parent-project)
+	(ede-add-subproject (ede-parent-project) nobj))
     (ede-commit-project nobj))
   (message "Project created and saved.  You may now create targets."))
+
+(defmethod ede-add-subproject ((proj-a ede-project) proj-b)
+  "Add into PROJ-A, the subproject PROJ-B."
+  (oset proj-a subproj (cons proj-b (oref proj-a subproj))))
 
 (defun ede-invoke-method (sym &rest args)
   "Invoke method SYM on the current buffer's project object.
@@ -635,6 +641,11 @@ This depends on an up to day `ede-project-class-files' variable."
       (setq types (cdr types)))
     ret))
 
+(defun ede-up-directory (dir)
+  "Return a path that is up one directory.
+Argument DIR is the directory to trim upwards."
+  (file-name-directory (substring dir 0 (1- (length dir)))))
+
 (defun ede-toplevel-project (path)
   "Starting with PATH, find the toplevel project directory."
   (let ((toppath nil) (newpath nil))
@@ -643,8 +654,7 @@ This depends on an up to day `ede-project-class-files' variable."
     ;; sub-project object belonging to file.
     (setq toppath path newpath path)
     (while (ede-directory-project-p newpath)
-      (setq toppath newpath newpath
-	    (file-name-directory (substring toppath 0 (1- (length toppath))))))
+      (setq toppath newpath newpath (ede-up-directory toppath)))
     toppath))
 
 (defun ede-load-project-file (file)
@@ -680,6 +690,11 @@ This depends on an up to day `ede-project-class-files' variable."
 	(if (not found)
 	    (error "No project for %s, but passes project-p test" file))
 	found))))
+
+(defun ede-parent-project ()
+  "Return the project belonging to the parent directory.
+nil if there is no previous directory."
+  (ede-load-project-file (ede-up-directory default-directory)))
 
 (defun ede-current-project ()
   "Return the current project file."
