@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.169 2000/06/03 14:14:36 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.170 2000/06/11 18:44:00 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -807,6 +807,9 @@ When speedbar is active, use:
 
 to toggle this value.")
 
+(defvar speedbar-update-flag-disable nil
+  "Permanently disable chaning of the update flag.")
+
 (defvar speedbar-syntax-table nil
   "Syntax-table used on the speedbar.")
 
@@ -938,6 +941,7 @@ This basically creates a sparse keymap, and makes it's parent be
    '("Speedbar"
      ["Update" speedbar-refresh t]
      ["Auto Update" speedbar-toggle-updates
+      :visible (not speedbar-update-flag-disable)
       :style toggle :selected speedbar-update-flag])
    (if (and (or (fboundp 'defimage)
 		(fboundp 'make-image-specifier))
@@ -992,6 +996,8 @@ This basically creates a sparse keymap, and makes it's parent be
    (if (and (featurep 'custom) (fboundp 'custom-declare-variable))
        (list ["Customize..." speedbar-customize t]))
    (list
+    ["Detatch" speedbar-detach (and speedbar-frame
+				    (eq (selected-frame) speedbar-frame)) ]
     ["Close" speedbar-close-frame t]
     ["Quit" delete-frame t] ))
   "Menu items appearing at the end of the speedbar menu.")
@@ -1195,6 +1201,23 @@ supported at a time.
 	      (select-frame speedbar-frame)
 	      (set-frame-name "Speedbar")))
 	(speedbar-set-timer speedbar-update-speed)))))
+
+(defun speedbar-detach ()
+  "Detatch the current Speedbar from auto-updating.
+Doing this allows the creation of a second speedbar."
+  (interactive)
+  (save-excursion
+    (set-buffer speedbar-buffer)
+    (rename-buffer (buffer-name) t)
+    (setq speedbar-buffer nil
+	  speedbar-frame nil
+	  speedbar-cached-frame nil)
+    ;; Permanently disable auto-updating in this speedbar buffer.
+    (set (make-local-variable 'speedbar-update-flag) nil)
+    (set (make-local-variable 'speedbar-update-flag-disable) t)
+    ;; Make local copies of all the different variables to prevent
+    ;; funny stuff later...
+    ))
 
 ;;;###autoload
 (defun speedbar-get-focus ()
@@ -2603,7 +2626,8 @@ Argument LST is the list of tags to trim."
 	(trim-chars 0)
 	(trimlst nil))
     (while lst
-      (if (listp (cdr-safe (car-safe lst)))
+      (if (and (listp (cdr-safe (car-safe lst)))
+	       (listp (car-safe (cdr-safe (car-safe lst)))))
 	  (setq newlst (cons (car lst) newlst))
 	(setq sublst (cons (car lst) sublst)))
       (setq lst (cdr lst)))
