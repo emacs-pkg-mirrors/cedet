@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.29 2003/04/08 12:25:22 zappo Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.30 2003/08/02 08:20:55 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -44,12 +44,9 @@
 ;; Settings
 ;; --------
 
-%outputfile    "wisent-python.el"
-%parsetable    wisent-python-parser-tables
-%keywordtable  wisent-python-keywords
-%tokentable    wisent-python-tokens
-%languagemode  python-mode
-%setupfunction wisent-python-default-setup
+;;%package wisent-python-wy
+
+%languagemode python-mode
 
 ;; The default start symbol
 %start goal
@@ -62,16 +59,6 @@
 %start function_parameters
 %start paren_classes
 %start indented_block_body
-
-%{
-  (setq
-   ;; Character used to separation a parent/child relationship
-   semantic-type-relation-separator-character '(".")
-   semantic-command-separation-character ";"
-   wisent-python-lexer-indent-stack '(0)
-   semantic-lex-analyzer #'semantic-python-lexer
-   )
-  %}
 
 %token <newline>     NEWLINE
 
