@@ -1,10 +1,10 @@
 ;;; semantic-ia.el --- Interactive Analysis functions
 
-;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.3 2002/09/07 02:02:36 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.4 2003/04/09 01:21:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,17 +32,17 @@
 (require 'semantic-analyze)
 
 ;;; Code:
-(defcustom semantic-ia-completion-token->text
+(defcustom semantic-ia-completion-format-tag-function
   'semantic-prototype-nonterminal
-  "*Function used to convert a token to a string during completion."
+  "*Function used to convert a tag to a string during completion."
   :group 'semantic
-  :type semantic-token->text-custom-list)
+  :type semantic-format-tag-custom-list)
 
 (defvar semantic-ia-cache nil
   "Cache of the last completion request.
 Of the form ( POINT . COMPLETIONS ) where POINT is a location in the
 buffer where the completion was requested.  COMPLETONS is the list
-of semantic token names that provide logical completions from that
+of semantic tag names that provide logical completions from that
 location.")
 (make-variable-buffer-local 'semantic-ia-cache)
 
@@ -72,27 +72,27 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
       ;; Use try completion to seek a common substring.
       (let ((tc (try-completion pre syms)))
 	(if (and (stringp tc) (not (string= tc pre)))
-	    (let ((tok (semantic-find-nonterminal-by-name
+	    (let ((tok (semantic-find-first-tag-by-name
 			tc syms)))
 	      ;; We have some new text.  Stick it in.
 	      (delete-region (car (oref a bounds))
 			     (cdr (oref a bounds)))
 	      (goto-char (car (oref a bounds)))
 	      (if tok
-		  (semantic-ia-insert-token tok)
+		  (semantic-ia-insert-tag tok)
 		(insert tc)))
 	  ;; We don't have new text.  Show all completions.
 	  (goto-char (cdr (oref a bounds)))
 	  (with-output-to-temp-buffer "*Completions*"
 	    (display-completion-list
-	     (mapcar semantic-ia-completion-token->text syms))
+	     (mapcar semantic-ia-completion-format-tag-function syms))
 	    ))))))
 
-(defcustom semantic-ia-completion-token->text
+(defcustom semantic-ia-completion-menu-format-tag-function
   'semantic-uml-concise-prototype-nonterminal
-  "*Function used to convert a token to a string during completion."
+  "*Function used to convert a tag to a string during completion."
   :group 'semantic
-  :type semantic-token->text-custom-list)
+  :type semantic-format-tag-custom-list)
 
 (defun semantic-ia-complete-symbol-menu (point)
   "Complete the current symbol via a menu based at POINT.
@@ -108,7 +108,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
     (let ((ans
 	   (imenu--mouse-menu
 	    (mapcar (lambda (tok)
-		      (cons (funcall semantic-ia-completion-token->text tok)
+		      (cons (funcall semantic-ia-completion-menu-format-tag-function tok)
 			    (vector tok)))
 		    syms)
 	    (senator-completion-menu-point-as-event)
@@ -116,14 +116,14 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
       (when ans
 	(setq ans (aref (cdr ans) 0))
 	(delete-region (car (oref a bounds)) (cdr (oref a bounds)))
-	(semantic-ia-insert-token ans))
+	(semantic-ia-insert-tag ans))
       )))
 
-(defun semantic-ia-insert-token (token)
-  "Insert TOKEN into the current buffer based on completion."
+(defun semantic-ia-insert-tag (tag)
+  "Insert TAG into the current buffer based on completion."
   ;; I need to convert this into an override method!
-  (insert (semantic-token-name token))
-  (let ((tt (semantic-token-token token)))
+  (insert (semantic-tag-name tag))
+  (let ((tt (semantic-tag-class tag)))
     (cond ((eq tt 'function)
 	   (insert "("))
 	  (t nil))))
@@ -142,7 +142,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
                 (narrow-to-region (window-start) (point))
                 (goto-char (point-min))
                 (1+ (vertical-motion (buffer-size))))))
-	 (str (mapconcat #'semantic-token-name
+	 (str (mapconcat #'semantic-tag-name
 			 syms
 			 "\n"))
 	 )
