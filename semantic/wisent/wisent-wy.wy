@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.wy,v 1.6 2002/06/29 18:14:37 ponced Exp $
+;; X-RCS: $Id: wisent-wy.wy,v 1.7 2002/07/01 11:37:23 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -311,7 +311,7 @@ put_names:
     ()
   | any_symbol
  ;; Must return a list of Semantic tokens to EXPANDFULL!
-    (list $1 'put-name nil nil)
+    (wisent-token $1 'put-name nil nil)
   ;
 
 put_value_list:
@@ -326,7 +326,7 @@ put_values:
     ()
   | put_value
  ;; Must return a list of Semantic tokens to EXPANDFULL!
-    (list "" 'put-value nil $1 nil)
+    (wisent-token "" 'put-value nil $1 nil)
   ;
 
 put_value:
