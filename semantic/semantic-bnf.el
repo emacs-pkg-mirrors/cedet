@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.33 2001/03/01 14:08:54 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.34 2001/03/05 13:05:34 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -729,6 +729,21 @@ SOURCEFILE is the file name from whence tokstream came."
 ;;; Debugging support
 ;;
 ;; Source level debugging if a BNF table requires a few simple functions.
+(defun semantic-bnf-skip-string-or-comment ()
+  "Return non-nil if point was moved after a string or comment."
+  (let ((state (parse-partial-sexp (save-excursion
+                                     (beginning-of-line) (point))
+                                   (point))))
+    (cond ((nth 3 state) ;; string
+           (re-search-backward "\\s\"")
+           (forward-sexp)
+           t)
+          ((nth 4 state) ;; comment
+           (forward-line)
+           t)
+          (t
+           nil))))
+
 (defun semantic-bnf-find-state-position (rule matchlistindex matchindex)
   "Find the current debugger position in the current buffer.
 RULE is a symbol representing the rule name we are currently in.
@@ -749,8 +764,10 @@ MATCHINDEX is the index into the matchlist being tested."
     ;; find the matchlist
     (re-search-forward ":\\s-*")
     (while (/= matchlistindex 0)
-      (re-search-forward "^\\s-*|\\s-*")
-      (setq matchlistindex (1- matchlistindex))
+      (re-search-forward "\\s-*|\\s-*")
+      ;; If point is in a comment or a string skip it
+      (or (semantic-bnf-skip-string-or-comment)
+          (setq matchlistindex (1- matchlistindex)))
       )
     ;; find the specific token we are matching
     (while (/= matchindex 0)
@@ -804,11 +821,15 @@ Once found, put it in a buffer, and return it."
   "Hook run when starting BNF mode.")
 
 (defvar semantic-bnf-mode-keywords
-  '((";\\s-*[^#\n ].*$" 0 font-lock-comment-face)
+  `((";\\s-*[^#\n ].*$" 0 font-lock-comment-face)
     ("^\\(\\w+\\)\\s-*:" 1 font-lock-function-name-face)
     ("\\<\\(EMPTY\\|symbol\\|punctuation\\|string\\|semantic-list\
 \\|\\(open\\|close\\)-paren\\|comment\\)\\>"
      1 font-lock-keyword-face)
+    ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\)\\>"
+     1 ,(if (featurep 'xemacs)
+            'font-lock-preprocessor-face
+          'font-lock-builtin-face))
     ("\\$[0-9]+" 0 font-lock-variable-name-face)
     ("%" 0 font-lock-reference-face)
     ("%\\(\\w+\\)" 1 font-lock-type-face)
