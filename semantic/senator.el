@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 1.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.1 2000/11/10 16:04:20 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.2 2000/11/10 17:11:15 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -65,6 +65,9 @@
 ;;; Change Log:
 
 ;; $Log: senator.el,v $
+;; Revision 1.2  2000/11/10 17:11:15  david_ponce
+;; Fixed a little bug in `senator-previous-token' navigation.
+;;
 ;; Revision 1.1  2000/11/10 16:04:20  david_ponce
 ;; Initial revision.
 ;;
@@ -229,8 +232,8 @@ function for `senator-find-previous-token'."
                  (setq where "start")
                  (goto-char (semantic-token-start found)))
              (setq where "end")
-             (goto-char (semantic-token-end found))
-             (setq senator-last-visited found))
+             (goto-char (semantic-token-end found)))
+           (setq senator-last-visited found)
            (semantic-momentary-highlight-token found)
            (senator-message "%S: %s (%s)"
                             (semantic-token-token found)
