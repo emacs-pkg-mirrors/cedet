@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.31 2000/10/17 12:45:07 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.32 2000/10/18 02:47:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -338,7 +338,7 @@ in the new list."
 		       (set-buffer streamorbuffer)
 		       (semantic-bovinate-toplevel))
 		   streamorbuffer))
-	(nl nil) (ts nil))
+	(nl nil))
     (while stream
       (if (funcall function (car stream))
 	  (setq nl (cons (car stream) nl)))
@@ -355,7 +355,7 @@ in the new list."
 		       (set-buffer streamorbuffer)
 		       (semantic-bovinate-toplevel))
 		   streamorbuffer))
-	(ts nil) (found nil))
+	(found nil))
     (while (and (not found) stream)
       (if (funcall function (car stream))
 	  (setq found (car stream)))
@@ -908,7 +908,8 @@ instead of read-only."
 
 ;;; Interactive Functions for bovination
 ;;
-(eval-when-compile (require 'pp))
+(eval-when-compile
+  (condition-case nil (require 'pp) (error nil)))
 
 (defun bovinate (&optional clear)
   "Bovinate the current buffer.  Show output in a temp buffer.
