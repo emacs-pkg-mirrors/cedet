@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.11 2001/02/19 17:38:36 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.12 2001/05/07 20:31:12 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -500,6 +500,32 @@ METHOD is the method that was attempting to be called."
 (if (eieio-instance-tracker-find 'die 'slot1 'IT-list)
     (error "Instance tracker delete failed."))
 
+
+;;; Test the named object.
+;;
+(defclass NAMED (eieio-named)
+  ((some-slot :initform nil)
+   )
+  "A class inheriting from eieio-named.")
+
+(defvar N (NAMED "Foo"))
+
+(if (not (string= "Foo" (oref N object-name)))
+    (error "Named object `object-name' slot ref failed."))
+
+(condition-case err
+    (progn
+      (oref N missing-slot)
+      (error "Access to missing slot passed."))
+  (invalid-slot-name nil))
+
+(oset N object-name "NewName")
+
+(if (not (string= "NewName" (oref N object-name)))
+    (error "Named object `object-name' slot set/ref failed."))
+
+
+;;;
 (message "All tests passed.")
 
 (provide 'eieio-tests)
