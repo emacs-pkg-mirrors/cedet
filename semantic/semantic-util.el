@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.37 2000/12/09 16:03:30 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.38 2000/12/10 20:25:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -329,8 +329,16 @@ TYPE is a string."
 	(setq stream (cdr stream))))
     (nreverse nl)))
 
+(defun semantic-find-nonterminal-by-property (property value streamorbuffer)
+  "Find all nonterminals with PROPERTY equal to VALUE in STREAMORBUFFER.
+Properties can be added with `semantic-token-put'."
+  (semantic-find-nonterminal-by-function
+   (lambda (tok) (equal (semantic-token-get tok property) value))
+   streamorbuffer)
+  )
+
 (defun semantic-find-nonterminal-by-function (function streamorbuffer)
-  "Find all nonterminals which FUNCTION match within STREAMORBUFFER.
+  "Find all nonterminals in which FUNCTION match within STREAMORBUFFER.
 FUNCTION must return non-nil if an element of STREAM will be included
 in the new list."
   (let ((stream (if (bufferp streamorbuffer)
@@ -858,21 +866,21 @@ Optional FACE specifies the face to use."
     (semantic-overlay-put o 'old-face
 			  (cons (semantic-overlay-get o 'face)
 				(semantic-overlay-get o 'old-face)))
-    (semantic-overlay-put o 'face (or face 'highlight))))
+    (semantic-overlay-put o 'face (or face 'highlight))
+    ))
 
 (defun semantic-unhighlight-token (token)
   "Unhighlight TOKEN, restoring it's previous face."
   (let ((o (semantic-token-overlay token)))
     (semantic-overlay-put o 'face (car (semantic-overlay-get o 'old-face)))
-    (semantic-overlay-put o 'old-face (cdr (semantic-overlay-get o 'old-face))))
-  (remove-hook 'pre-command-hook
-	       `(lambda () (semantic-unhighlight-token `,token))))
+    (semantic-overlay-put o 'old-face (cdr (semantic-overlay-get o 'old-face)))
+    ))
 
 (defun semantic-momentary-unhighlight-token (token)
   "Unhighlight TOKEN, restoring it's previous face."
   (semantic-unhighlight-token token)
   (remove-hook 'pre-command-hook
-	       `(lambda () (semantic-momentary-unhighlight-token `,token))))
+	       `(lambda () (semantic-momentary-unhighlight-token ',token))))
 
 (defun semantic-momentary-highlight-token (token &optional face)
   "Highlight TOKEN, removing highlighting when the user hits a key.
@@ -1004,6 +1012,30 @@ If TOKEN is nil, describe the token under the cursor."
   (if token (message (semantic-summarize-nonterminal token))))
 
 
+;;; Putting keys on tokens.
+;;
+(defun semantic-add-label (label value &optional token)
+  "Add a LABEL with VALUE on TOKEN.
+If TOKEN is not specified, use the token at point."
+  (interactive "sLabel: \nXValue (eval): ")
+  (if (not token)
+      (progn
+	(semantic-bovinate-toplevel t)
+	(setq token (semantic-current-nonterminal))))
+  (semantic-token-put token (intern label) value)
+  (message "Added label %s with value %S" label value))
+
+(defun semantic-show-label (label &optional token)
+  "Show the value of LABEL on TOKEN.
+If TOKEN is not specified, use the token at point."
+  (interactive "sLabel: ")
+  (if (not token)
+      (progn
+	(semantic-bovinate-toplevel t)
+	(setq token (semantic-current-nonterminal))))
+  (message "%s: %S" label (semantic-token-get token (intern label))))
+
+
 ;;; Show dirty mode
 ;;
 (defface semantic-dirty-token-face  '((((class color) (background dark))
@@ -1030,7 +1062,7 @@ If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
     (interactive "P")
   (if (not arg)
-      (if (member #'semantic-dirty-token-hook-fcn
+      (if (member #'semantic-show-dirty-token-hook-fcn
 		  semantic-dirty-token-hooks)
 	  (setq arg -1)
 	(setq arg 1)))
