@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.192 2000/10/15 02:24:18 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.193 2000/10/21 03:07:18 zappo Exp $
 
-(defvar speedbar-version "0.13"
+(defvar speedbar-version "0.13.1"
   "The current version of speedbar.")
 
 ;; This file is part of GNU Emacs.
@@ -994,15 +994,10 @@ Doing this allows the creation of a second speedbar."
 If the selected frame is not speedbar, then speedbar frame is
 selected.  If the speedbar frame is active, then select the attached frame."
   (interactive)
+  (speedbar-reset-scanners)
   (dframe-get-focus 'speedbar-frame 'speedbar-frame-mode
-		    (lambda () (if (not speedbar-update-flag)
-				   (let ((speedbar-update-flag t))
-				     (speedbar-timer-fn)))))
-  )
-
-(defsubst speedbar-current-frame ()
-  "Return the frame to use for speedbar based on current context."
-  (dframe-current-frame 'speedbar-frame 'speedbar-mode))
+		    (lambda () (let ((speedbar-update-flag t))
+				 (speedbar-timer-fn)))))
 
 (defmacro speedbar-frame-width ()
   "Return the width of the speedbar frame in characters.
@@ -1068,7 +1063,6 @@ in the selected file.
     (setq dframe-help-echo-function #'speedbar-item-info
 	  dframe-mouse-click-function #'speedbar-click
 	  dframe-mouse-position-function #'speedbar-position-cursor-on-line)
-    ;;no auto-show for Emacs
     (run-hooks 'speedbar-mode-hook))
   speedbar-buffer)
 
@@ -2691,7 +2685,7 @@ to add more types of version control systems."
   ;; Check for to-do to be reset.  If reset but no RCS is available
   ;; then set to nil (do nothing) otherwise, start at the beginning
   (save-excursion
-    ;;(set-buffer speedbar-buffer)
+    (if speedbar-buffer (set-buffer speedbar-buffer))
     (if (and speedbar-vc-do-check (eq speedbar-vc-to-do-point t)
 	     (speedbar-vc-check-dir-p default-directory)
 	     (not (or (and (featurep 'ange-ftp)
@@ -2791,7 +2785,7 @@ to add more object types."
   ;; Check for to-do to be reset.  If reset but no RCS is available
   ;; then set to nil (do nothing) otherwise, start at the beginning
   (save-excursion
-    ;;(set-buffer speedbar-buffer)
+    (if speedbar-buffer (set-buffer speedbar-buffer))
     (if (and speedbar-obj-do-check (eq speedbar-obj-to-do-point t))
 	(setq speedbar-obj-to-do-point 0))
     (if (numberp speedbar-obj-to-do-point)
