@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.13 2003/11/20 14:53:36 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.14 2003/11/27 13:32:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -172,84 +172,97 @@ TOKTYPE is a hint to the type of tag desired."
   "Variable used to collect mapatoms output.")
 
 (defmethod semanticdb-find-tags-by-name-method
-  ((table semanticdb-table-emacs-lisp) name)
+  ((table semanticdb-table-emacs-lisp) name &optional tags)
   "Find all tags name NAME in TABLE.
 Uses `inter-soft' to match NAME to emacs symbols.
 Return a list of tags."
-  ;; No need to search.  Use `intern-soft' which does the same thing for us.
-  (let* ((sym (intern-soft name))
-	 (fun (semanticdb-elisp-sym->tag sym 'function))
-	 (var (semanticdb-elisp-sym->tag sym 'variable))
-	 (typ (semanticdb-elisp-sym->tag sym 'type))
-	 (taglst nil)a
-	 )
-    (when (or fun var typ)
-      ;; If the symbol is any of these things, build the search table.
-      (when var	(setq taglst (cons var taglst)))
-      (when typ	(setq taglst (cons typ taglst)))
-      (when fun	(setq taglst (cons fun taglst)))
-      taglst
-      )))
+  (if tags (call-next-method)
+    ;; No need to search.  Use `intern-soft' which does the same thing for us.
+    (let* ((sym (intern-soft name))
+	   (fun (semanticdb-elisp-sym->tag sym 'function))
+	   (var (semanticdb-elisp-sym->tag sym 'variable))
+	   (typ (semanticdb-elisp-sym->tag sym 'type))
+	   (taglst nil)a
+	   )
+      (when (or fun var typ)
+	;; If the symbol is any of these things, build the search table.
+	(when var	(setq taglst (cons var taglst)))
+	(when typ	(setq taglst (cons typ taglst)))
+	(when fun	(setq taglst (cons fun taglst)))
+	taglst
+	))))
 
 (defmethod semanticdb-find-tags-by-name-regexp-method
-  ((table semanticdb-table-emacs-lisp) regex)
+  ((table semanticdb-table-emacs-lisp) regex &optional tags)
   "Find all tags with name matching REGEX in TABLE.
+Optional argument TAGS is a list of tags to search.
 Uses `apropos-internal' to find matches.
 Return a list of tags."
-  (delq nil (mapcar 'semanticdb-elisp-sym->tag
-		    (apropos-internal regex))))
+  (if tags (call-next-method)
+    (delq nil (mapcar 'semanticdb-elisp-sym->tag
+		      (apropos-internal regex)))))
 
 (defmethod semanticdb-find-tags-for-completion-method
-  ((table semanticdb-table-emacs-lisp) prefix)
+  ((table semanticdb-table-emacs-lisp) prefix &optional tags)
   "In TABLE, find all occurances of tags matching PREFIX.
+Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
-  (delq nil (mapcar 'semanticdb-elisp-sym->tag
-		    (all-completions prefix obarray))))
+  (if tags (call-next-method)
+    (delq nil (mapcar 'semanticdb-elisp-sym->tag
+		      (all-completions prefix obarray)))))
 
-(defmethod semanticdb-find-tags-by-class-method ((table semanticdb-table-emacs-lisp) class)
+(defmethod semanticdb-find-tags-by-class-method
+  ((table semanticdb-table-emacs-lisp) class &optional tags)
   "In TABLE, find all occurances of tags of CLASS.
+Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
-  ;; We could implement this, but it could be massy.
-  nil)
+  (if tags (call-next-method)
+    ;; We could implement this, but it could be massy.
+    nil))
 
 ;;; Deep Searches
 ;;
 ;; For Emacs Lisp deep searches are like top level searches.
 (defmethod semanticdb-deep-find-tags-by-name-method
-  ((table semanticdb-table-emacs-lisp) name)
+  ((table semanticdb-table-emacs-lisp) name &optional tags)
   "Find all tags name NAME in TABLE.
+Optional argument TAGS is a list of tags to search.
 Like `semanticdb-find-tags-by-name-method' for Emacs Lisp."
-  (semanticdb-find-tags-by-name-method table name))
+  (semanticdb-find-tags-by-name-method table name tags))
 
 (defmethod semanticdb-deep-find-tags-by-name-regexp-method
-  ((table semanticdb-table-emacs-lisp) regex)
+  ((table semanticdb-table-emacs-lisp) regex &optional tags)
   "Find all tags with name matching REGEX in TABLE.
+Optional argument TAGS is a list of tags to search.
 Like `semanticdb-find-tags-by-name-method' for Emacs Lisp."
-  (semanticdb-find-tags-by-name-regexp-method table regex))
+  (semanticdb-find-tags-by-name-regexp-method table regex tags))
 
 (defmethod semanticdb-deep-find-tags-for-completion-method
-  ((table semanticdb-table-emacs-lisp) prefix)
+  ((table semanticdb-table-emacs-lisp) prefix &optional tags)
   "In TABLE, find all occurances of tags matching PREFIX.
+Optional argument TAGS is a list of tags to search.
 Like `semanticdb-find-tags-for-completion-method' for Emacs Lisp."
-  (semanticdb-find-tags-for-completion-method table prefix))
+  (semanticdb-find-tags-for-completion-method table prefix tags))
 
 ;;; Advanced Searches
 ;;
 (defmethod semanticdb-find-tags-external-children-of-type-method
-  ((table semanticdb-table-emacs-lisp) type)
+  ((table semanticdb-table-emacs-lisp) type &optional tags)
   "Find all nonterminals which are child elements of TYPE
+Optional argument TAGS is a list of tags to search.
 Return a list of tags."
-  ;; EIEIO is the only time this matters
-  (when (featurep 'eieio)
-    (let* ((class (intern-soft type))
-	   (taglst (when class
-		     (delq nil
-			   (mapcar 'semanticdb-elisp-sym->tag
-				   ;; Fancy eieio function that knows all about
-				   ;; built in methods belonging to CLASS.
-				   (eieio-all-generic-functions class)))))
-	   )
-      taglst)))
+  (if tags (call-next-method)
+    ;; EIEIO is the only time this matters
+    (when (featurep 'eieio)
+      (let* ((class (intern-soft type))
+	     (taglst (when class
+		       (delq nil
+			     (mapcar 'semanticdb-elisp-sym->tag
+				     ;; Fancy eieio function that knows all about
+				     ;; built in methods belonging to CLASS.
+				     (eieio-all-generic-functions class)))))
+	     )
+	taglst))))
 
 (provide 'semanticdb-el)
 
