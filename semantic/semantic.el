@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.39 2000/06/16 20:12:23 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.40 2000/06/20 02:12:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1035,11 +1035,16 @@ return token will be larger than END.  To truly restrict scanning, using
 		     (setq ts (cons (cons 'open-paren
 					  (cons (match-beginning 0) (match-end 0)))
 				    ts)))
-		 (setq ts (cons (cons 'semantic-list
-				      (cons (match-beginning 0)
-					    (save-excursion
-					      (forward-list 1)
-					      (setq ep (point)))))
+		 (setq ts (cons
+			   (cons 'semantic-list
+				 (cons (match-beginning 0)
+				       (save-excursion
+					 (condition-case nil
+					     (forward-list 1)
+					   ;; This case makes flex robust
+					   ;; to broken lists.
+					   (error (goto-char (point-max))))
+					 (setq ep (point)))))
 				ts))))
 	      ;; Close parens
 	      ((looking-at "\\s)")
