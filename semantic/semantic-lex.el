@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.21 2003/08/26 14:24:14 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.22 2003/12/01 15:56:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -240,7 +240,8 @@ PROPSPECS must be a list of (TYPE PROPERTY VALUE)."
             specs  (cdr specs)
             type   (car spec)
             tokens (cdr spec)
-            default nil)
+            default nil
+            alist   nil)
       (while tokens
         (setq token  (car tokens)
               tokens (cdr tokens))
