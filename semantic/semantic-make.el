@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.5 2000/09/09 02:08:26 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.6 2000/09/14 20:04:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -99,7 +99,7 @@
     )
   "Table for parsing Makefiles.")
 
-(defvar semantic-flex-make-extentions
+(defvar semantic-flex-make-extensions
   '(("^\\(\t\\)" . semantic-flex-make-command)
     ("\\(\\\\\n\\)" . semantic-flex-nonewline))
   "Extensions to the flexer for make.")
@@ -120,7 +120,7 @@ These command lines continue to additional lines when the end with \\"
 
 (defun semantic-default-make-setup ()
   "Set up a Makefile buffer for parsing with semantic."
-  (setq semantic-flex-extensions semantic-flex-make-extentions)
+  (setq semantic-flex-extensions semantic-flex-make-extensions)
   ;; Code generated from make.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-make-bovine-table)
   (setq semantic-flex-enable-newlines t
