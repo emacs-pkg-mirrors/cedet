@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.6 2005/02/22 23:24:48 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.7 2005/03/24 09:18:54 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -319,7 +319,7 @@ Elements are (SYMBOL . PREVIOUS-VALUE), describing one variable."
                (let ((v (intern (symbol-name var))))
                  ;; Save the current buffer-local value of the
                  ;; mode-local variable.
-                 (and (local-variable-p v)
+                 (and (local-variable-p v (current-buffer))
                       (push (cons v (symbol-value v)) old-locals))
                  (set (make-local-variable v) (symbol-value var)))))
          table)))
