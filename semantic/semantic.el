@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.184 2004/05/12 16:49:16 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.185 2004/06/18 11:37:55 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -512,7 +512,7 @@ string.  See also the function `working-status-forms'."
       (format "%s/%s" semantic-parser-name (or arg ""))
     (format "%s" (or arg ""))))
 
-;;; Application Parser Entry Point
+;;; Application Parser Entry Points
 ;;
 ;; The best way to call the parser from programs is via
 ;; `semantic-fetch-tags'.  This, in turn, uses other internal
@@ -590,6 +590,21 @@ was marked unparseable, then do nothing, and return the cache."
 ;;;###autoload
 (make-obsolete 'semantic-bovinate-toplevel 'semantic-fetch-tags)
 
+;; Another approach is to let Emacs call the parser on idle time, when
+;; needed, use `semantic-fetch-available-tags' to only retrieve
+;; available tags, and setup the `semantic-after-*-hook' hooks to
+;; synchronize with new tags when they become available.
+
+;;;###autoload
+(defsubst semantic-fetch-available-tags ()
+  "Fetch available semantic tags from the current buffer.
+That is, return tags currently in the cache without parsing the
+current buffer.
+Parse operations happen asynchronously when needed on Emacs idle time.
+Use the `semantic-after-toplevel-cache-change-hook' and
+`semantic-after-partial-cache-change-hook' hooks to synchronize with
+new tags when they become available."
+  semantic--buffer-cache)
 
 ;;; Iterative parser helper function
 ;;
