@@ -1,10 +1,10 @@
-;;; semantic-util.el --- Utilities for use with semantic token streams
+;;; semantic-util.el --- Utilities for use with semantic tag tables
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.108 2003/03/27 07:44:12 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.109 2003/04/01 03:34:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -59,15 +59,14 @@ the current major mode is the only one.")
 ;; These semanticdb calls will throw warnings in the byte compiler.
 ;; Doing the right thing to make them available at compile time
 ;; really messes up the compilation sequence.
-(defun semantic-file-token-stream (file &optional checkcache)
-  "Return a token stream for FILE.
+(defun semantic-file-tag-table (file &optional checkcache)
+  "Return a tag table for FILE.
 If it is loaded, return the stream after making sure it's ok.
 If FILE is not loaded, check to see if `semanticdb' feature exists,
-   and use it to get tokens from files not in memory.
+   and use it to get tags from files not in memory.
 If FILE is not loaded, and semanticdb is not available, find the file
    and parse it.
-Optional argument CHECKCACHE is the same as that for
-`semantic-bovinate-toplevel'."
+Optional argument CHECKCACHE is passed to `semantic-bovinate-toplevel'."
   (if (get-file-buffer file)
       (save-excursion
 	(set-buffer (get-file-buffer file))
@@ -82,433 +81,53 @@ Optional argument CHECKCACHE is the same as that for
 	(set-buffer (find-file-noselect file))
 	(semantic-bovinate-toplevel checkcache)))))
 
-(defun semantic-something-to-stream (something)
-  "Convert SOMETHING into a semantic token stream.
-Something can be a token with a valid BUFFER property, a stream, a
-buffer, or a filename."
-  (cond ((bufferp something)
-	 (save-excursion
-	   (set-buffer something)
-	   (semantic-bovinate-toplevel nil)))
-	((semantic-token-with-position-p something)
-	 (save-excursion
-	   (when (semantic-token-buffer something)
-	     (set-buffer (semantic-token-buffer something))
-	     (semantic-bovinate-toplevel nil))))
-	((and (listp something)
-	      (semantic-token-p (car something)))
-	 something)
-	((and (stringp something)
-	      (file-exists-p something))
-	 (semantic-file-token-stream something nil))
-	(t nil)))
+(semantic-alias-obsolete 'semantic-file-token-stream
+			 'semantic-file-tag-table)
 
-;;; Searching by Position APIs
-;;
-;; These functions will find nonterminals based on a position.
-(defun semantic-find-nonterminal-by-position (position streamorbuffer
-						       &optional nomedian)
-  "Find a nonterminal covering POSITION within STREAMORBUFFER.
-POSITION is a number, or marker.  If NOMEDIAN is non-nil, don't do
-the median calculation, and return nil."
-  (save-excursion
-    (if (markerp position) (set-buffer (marker-buffer position)))
-    (let* ((stream (if (bufferp streamorbuffer)
-		       (save-excursion
-			 (set-buffer streamorbuffer)
-			 (semantic-bovinate-toplevel))
-		     streamorbuffer))
-	   (prev nil)
-	   (found nil))
-      (while (and stream (not found))
-	;; perfect fit
-	(if (and (>= position (semantic-token-start (car stream)))
-		 (<= position (semantic-token-end (car stream))))
-	    (setq found (car stream))
-	  ;; Median between to objects.
-	  (if (and prev (not nomedian)
-		   (>= position (semantic-token-end prev))
-		   (<= position (semantic-token-start (car stream))))
-	      (let ((median (/ (+ (semantic-token-end prev)
-				  (semantic-token-start (car stream)))
-			       2)))
-		(setq found
-		      (if (> position median)
-			  (car stream)
-			prev)))))
-	;; Next!!!
-	(setq prev (car stream)
-	      stream (cdr stream)))
-      found)))
+(defun semantic-something-to-tag-table (something)
+  "Convert SOMETHING into a semantic tag table.
+Something can be a tag with a valid BUFFER property, a tag table, a
+buffer, or a filename.  If SOMETHING is nil, use the current buffer."
+  (cond
+   ;; A list of tags
+   ((and (listp something)
+	 (semantic-tag-p (car something)))
+    something)
+   ;; A buffer
+   ((bufferp something)
+    (save-excursion
+      (set-buffer something)
+      (semantic-bovinate-toplevel t)))
+   ;; A Tag: Get that tag's buffer
+   ((and (semantic-tag-with-position-p something)
+	 (semantic-tag-buffer))
+    (save-excursion
+      (set-buffer (semantic-tag-buffer something))
+      (semantic-bovinate-toplevel t)))
+   ;; Tag with a file name in it
+   ((and (semantic-tag-p something)
+	 (semantic-tag-file-name something)
+	 (file-exists-p (semantic-tag-file-name something)))
+    (semantic-file-tag-table
+     (semantic-tag-file-name something)))
+   ;; A file name
+   ((and (stringp something)
+	 (file-exists-p something))
+    (semantic-file-tag-table something nil))
+   ;; Use the current buffer for nil
+;;   ((null something)
+;;    (semantic-bovinate-toplevel t))
+   ;; don't know what it is
+   (t nil)))
 
-(defun semantic-find-innermost-nonterminal-by-position
-  (position streamorbuffer &optional nomedian)
-  "Find a list of nonterminals covering POSITION within STREAMORBUFFER.
-POSITION is a number, or marker.  If NOMEDIAN is non-nil, don't do
-the median calculation, and return nil.
-This function will find the topmost item, and recurse until no more
-details are available of findable."
-  (let* ((returnme nil)
-	 (current (semantic-find-nonterminal-by-position
-		   position streamorbuffer nomedian))
-	 (nextstream (and current
-			  (if (eq (semantic-token-token current) 'type)
-			      (semantic-token-type-parts current)
-			    nil))))
-    (while nextstream
-      (setq returnme (cons current returnme))
-      (setq current (semantic-find-nonterminal-by-position
-		     position nextstream nomedian))
-      (setq nextstream (and current
-			    (if (eq (semantic-token-token current) 'token)
-				(semantic-token-type-parts current)
-			      nil))))
-    (nreverse (cons current returnme))))
+(semantic-alias-obsolete 'semantic-something-to-stream
+			 'semantic-something-to-tag-table)
 
-(defun semantic-find-nonterminal-by-overlay (&optional positionormarker buffer)
-  "Find all nonterminals covering POSITIONORMARKER by using overlays.
-If POSITIONORMARKER is nil, use the current point.
-Optional BUFFER is used if POSITIONORMARKER is a number, otherwise the current
-buffer is used.  This finds all tokens covering the specified position
-by checking for all overlays covering the current spot.  They are then sorted
-from largest to smallest via the start location."
-  (save-excursion
-    (when positionormarker
-      (if (markerp positionormarker)
-	  (set-buffer (marker-buffer positionormarker))
-	(if (bufferp buffer)
-	    (set-buffer buffer))))
-    (let ((ol (semantic-overlays-at (or positionormarker (point))))
-	  (ret nil))
-      (while ol
-	(let ((tmp (semantic-overlay-get (car ol) 'semantic)))
-	  (when (and tmp
-		     ;; We don't need with-position because no token w/out
-		     ;; a position could exist in an overlay.
-		     (semantic-token-p tmp))
-	    (setq ret (cons tmp ret))))
-	(setq ol (cdr ol)))
-      (sort ret (lambda (a b) (< (semantic-token-start a)
-				 (semantic-token-start b)))))))
-
-(defun semantic-find-nonterminal-by-overlay-in-region (start end &optional buffer)
-  "Find all nonterminals which exist in whole or in part between START and END.
-Uses overlays to determine positin.
-Optional BUFFER argument specifies the buffer to use."
-  (save-excursion
-    (if buffer (set-buffer buffer))
-    (let ((ol (semantic-overlays-in start end))
-	  (ret nil))
-      (while ol
-	(let ((tmp (semantic-overlay-get (car ol) 'semantic)))
-	  (when (and tmp
-		     ;; See above about position
-		     (semantic-token-p tmp))
-	    (setq ret (cons tmp ret))))
-	(setq ol (cdr ol)))
-      (sort ret (lambda (a b) (< (semantic-token-start a)
-				 (semantic-token-start b)))))))
-
-(defun semantic-find-nonterminal-by-overlay-next (&optional start buffer)
-  "Find the next nonterminal after START in BUFFER.
-If START is in an overlay, find the token which starts next,
-not the current token."
-  (save-excursion
-    (if buffer (set-buffer buffer))
-    (if (not start) (setq start (point)))
-    (let ((os start) (ol nil))
-      (while (and os (< os (point-max)) (not ol))
-	(setq os (semantic-overlay-next-change os))
-	(when os
-	  ;; Get overlays at position
-	  (setq ol (semantic-overlays-at os))
-	  ;; find the overlay that belongs to semantic
-	  ;; and starts at the found position.
-	  (while (and ol (listp ol))
-	    (if (and (semantic-overlay-get (car ol) 'semantic)
-		     (semantic-token-p
-		      (semantic-overlay-get (car ol) 'semantic))
-		     (= (semantic-overlay-start (car ol)) os))
-		(setq ol (car ol)))
-	    (when (listp ol) (setq ol (cdr ol))))))
-      ;; convert ol to a token
-      (when (and ol (semantic-token-p (semantic-overlay-get ol 'semantic)))
-	(semantic-overlay-get ol 'semantic)))))
-
-(defun semantic-find-nonterminal-by-overlay-prev (&optional start buffer)
-  "Find the next nonterminal before START in BUFFER.
-If START is in an overlay, find the token which starts next,
-not the current token."
-  (save-excursion
-    (if buffer (set-buffer buffer))
-    (if (not start) (setq start (point)))
-    (let ((os start) (ol nil))
-      (while (and os (> os (point-min)) (not ol))
-	(setq os (semantic-overlay-previous-change os))
-	(when os
-	  ;; Get overlays at position
-	  (setq ol (semantic-overlays-at os))
-	  ;; find the overlay that belongs to semantic
-	  ;; and starts at the found position.
-	  (while (and ol (listp ol))
-	    (if (and (semantic-overlay-get (car ol) 'semantic)
-		     (semantic-token-p
-		      (semantic-overlay-get (car ol) 'semantic))
-		     (= (semantic-overlay-start (car ol)) os))
-		(setq ol (car ol)))
-	    (when (listp ol) (setq ol (cdr ol))))))
-      ;; convert ol to a token
-      (when (and ol
-		 (semantic-token-p (semantic-overlay-get ol 'semantic)))
-	(semantic-overlay-get ol 'semantic)))))
-
-(defun semantic-find-nonterminal-parent-by-overlay (token)
-  "Find the parent of nonterminal TOKEN by overlays.
-Overlays are a fast way of finding this information for active buffers."
-  (let ((tok (nreverse (semantic-find-nonterminal-by-overlay
-			(semantic-token-start token)))))
-    ;; This is a lot like `semantic-current-nonterminal-parent', but
-    ;; it uses a position to do it's work.  Assumes two tokens don't share
-    ;; the same start unless they are siblings.
-    (car (cdr tok))))
-
-(defun semantic-current-nonterminal ()
-  "Return the current nonterminal in the current buffer.
-If there are more than one in the same location, return the
-smallest token.  Return nil if there is no token here."
-  (car (nreverse (semantic-find-nonterminal-by-overlay))))
-
-(defun semantic-current-nonterminal-parent ()
-  "Return the current nonterminals parent in the current buffer.
-A token's parent would be a containing structure, such as a type
-containing a field.  Return nil if there is no parent."
-  (car (cdr (nreverse (semantic-find-nonterminal-by-overlay)))))
-
-(defun semantic-current-nonterminal-of-type (type)
-  "Return the current (smallest) nonterminal of TYPE in the current buffer.
-If the smallest token is not of type TYPE, keep going upwards until one
-is found."
-  (let ((toks (nreverse (semantic-find-nonterminal-by-overlay))))
-    (while (and toks
-		(not (eq (semantic-token-token (car toks)) type)))
-      (setq toks (cdr toks)))
-    (car toks)))
-
-
-;;; Generalized nonterminal searching
-;;
-;; These functions will search through nonterminal lists explicity for
-;; desired information.
-
-;; The -by-name nonterminal search can use the built in fcn
-;; `assoc', which is faster than looping ourselves, so we will
-;; not use `semantic-find-nonterminal-by-function' to do this,
-;; instead erroring on the side of speed.
-(defun semantic-find-nonterminal-by-name
-  (name streamorbuffer &optional search-parts search-include)
-  "Find a nonterminal NAME within STREAMORBUFFER.  NAME is a string.
-If SEARCH-PARTS is non-nil, search children of tokens.
-If SEARCH-INCLUDE is non-nil, search include files."
-  (let* ((stream (if (bufferp streamorbuffer)
-		     (save-excursion
-		       (set-buffer streamorbuffer)
-		       (semantic-bovinate-toplevel))
-		   streamorbuffer))
-         (assoc-fun (if semantic-case-fold
-                        #'assoc-ignore-case
-                      #'assoc))
-	 (m (funcall assoc-fun name stream)))
-    (if m
-	m
-      (let ((toklst stream)
-	    (children nil))
-	(while (and (not m) toklst)
-	  (if search-parts
-	      (progn
-		(setq children (semantic-nonterminal-children (car toklst) t))
-		(if children
-		    (setq m (semantic-find-nonterminal-by-name
-			     name children search-parts search-include)))))
-	  (setq toklst (cdr toklst)))
-	(if (not m)
-	    ;; Go to dependencies, and search there.
-	    nil)
-	m))))
-
-(defmacro semantic-find-nonterminal-by-token
-  (token streamorbuffer &optional search-parts search-includes)
-  "Find all nonterminals with a token TOKEN within STREAMORBUFFER.
-TOKEN is a symbol representing the type of the tokens to find.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
-`semantic-find-nonterminal-by-function'."
-  `(semantic-find-nonterminal-by-function
-    (lambda (tok) (eq ,token (semantic-token-token tok)))
-    ,streamorbuffer ,search-parts ,search-includes))
-
-(defmacro semantic-find-nonterminal-standard
-  (streamorbuffer &optional search-parts search-includes)
-  "Find all nonterminals in STREAMORBUFFER which define simple token types.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
-`semantic-find-nonterminal-by-function'."
-  `(semantic-find-nonterminal-by-function
-    (lambda (tok) (member (semantic-token-token tok)
-			  '(function variable type)))
-    ,streamorbuffer ,search-parts ,search-includes))
-
-(defun semantic-find-nonterminal-by-type
-  (type streamorbuffer &optional search-parts search-includes)
-  "Find all nonterminals with type TYPE within STREAMORBUFFER.
-TYPE is a string which is the name of the type of the token returned.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
-`semantic-find-nonterminal-by-function'."
-  (semantic-find-nonterminal-by-function
-   (lambda (tok)
-     (let ((ts (semantic-token-type tok)))
-       (if (and (listp ts)
-		(or (= (length ts) 1)
-		    (eq (semantic-token-token ts) 'type)))
-	   (setq ts (semantic-token-name ts)))
-       (equal type ts)))
-   streamorbuffer search-parts search-includes))
-
-(defun semantic-find-nonterminal-by-type-regexp
-  (regexp streamorbuffer &optional search-parts search-includes)
-  "Find all nonterminals with type matching REGEXP within STREAMORBUFFER.
-REGEXP is a regular expression  which matches the  name of the type of the
-tokens returned.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
-`semantic-find-nonterminal-by-function'."
-  (semantic-find-nonterminal-by-function
-   (lambda (tok)
-     (let ((ts (semantic-token-type tok)))
-       (if (listp ts)
-	   (setq ts
-		 (if (eq (semantic-token-token ts) 'type)
-		     (semantic-token-name ts)
-		   (car ts))))
-       (and ts (string-match regexp ts))))
-   streamorbuffer search-parts search-includes))
-
-(defun semantic-find-nonterminal-by-name-regexp
-  (regex streamorbuffer &optional search-parts search-includes)
-  "Find all nonterminals whose name match REGEX in STREAMORBUFFER.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
-`semantic-find-nonterminal-by-function'."
-  (semantic-find-nonterminal-by-function
-   (lambda (tok) (string-match regex (semantic-token-name tok)))
-    streamorbuffer search-parts search-includes)
-  )
-
-(defun semantic-find-nonterminal-by-property
-  (property value streamorbuffer &optional search-parts search-includes)
-  "Find all nonterminals with PROPERTY equal to VALUE in STREAMORBUFFER.
-Properties can be added with `semantic-token-put'.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
-`semantic-find-nonterminal-by-function'."
-  (semantic-find-nonterminal-by-function
-   (lambda (tok) (equal (semantic-token-get tok property) value))
-   streamorbuffer search-parts search-includes)
-  )
-
-(defun semantic-find-nonterminal-by-extra-spec
-  (spec streamorbuffer &optional search-parts search-includes)
-  "Find all nonterminals with a given SPEC in STREAMORBUFFER.
-SPEC is a symbol key into the modifiers association list.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
-`semantic-find-nonterminal-by-function'."
-  (semantic-find-nonterminal-by-function
-   (lambda (tok) (semantic-token-extra-spec tok spec))
-   streamorbuffer search-parts search-includes)
-  )
-
-(defun semantic-find-nonterminal-by-extra-spec-value
-  (spec value streamorbuffer &optional search-parts search-includes)
-  "Find all nonterminals with a given SPEC equal to VALUE in STREAMORBUFFER.
-SPEC is a symbol key into the modifiers association list.
-VALUE is the value that SPEC should match.
-Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
-`semantic-find-nonterminal-by-function'."
-  (semantic-find-nonterminal-by-function
-   (lambda (tok) (equal (semantic-token-extra-spec tok spec) value))
-   streamorbuffer search-parts search-includes)
-  )
-
-(defun semantic-find-nonterminal-by-function
-  (function streamorbuffer &optional search-parts search-includes)
-  "Find all nonterminals in which FUNCTION match within STREAMORBUFFER.
-FUNCTION must return non-nil if an element of STREAM will be included
-in the new list.
-
-If optional argument SEARCH-PARTS is non-nil, all sub-parts of tokens
-are searched.  The overloadable function `semantic-nonterminal-children' is
-used for the searching child lists.  If SEARCH-PARTS is the symbol
-'positiononly, then only children that have positional information are
-searched.
-
-If SEARCH-INCLUDES is non-nil, then all include files are also
-searched for matches."
-  (let ((streamlist (list
-		     (semantic-something-to-stream streamorbuffer)))
-	(includes nil)			;list of includes
-	(stream nil)			;current stream
-        (token  nil)                    ;current token
-	(sl nil)			;list of token children
-	(nl nil)			;new list
-        (case-fold-search semantic-case-fold))
-    (if search-includes
-	(setq includes (semantic-find-nonterminal-by-token
-			'include (car streamlist))))
-    (while streamlist
-      (setq stream     (car streamlist)
-            streamlist (cdr streamlist))
-      (while stream
-        (setq token  (car stream)
-              stream (cdr stream))
-	(if (not (semantic-token-p token))
-            ;; `semantic-nonterminal-children' can return invalid
-            ;; tokens if search-parts is not equal to 'positiononly
-            nil ;; Ignore them!
-          (if (funcall function token)
-              (setq nl (cons token nl)))
-          (and search-parts
-               (setq sl (semantic-nonterminal-children
-                         token
-                         (eq search-parts 'positiononly)))
-               (setq nl (nconc nl
-                               (semantic-find-nonterminal-by-function
-                                function sl
-                                search-parts search-includes)))))))
-    (setq nl (nreverse nl))
-;;;    (while includes
-;;;      (setq nl (append nl (semantic-find-nonterminal-by-function
-;;;			   
-;;;			   ))))
-    nl))
-
-(defun semantic-find-nonterminal-by-function-first-match
-  (function streamorbuffer &optional search-parts search-includes)
-  "Find the first nonterminal which FUNCTION match within STREAMORBUFFER.
-FUNCTION must return non-nil if an element of STREAM will be included
-in the new list.
-If optional argument SEARCH-PARTS, all sub-parts of tokens are searched.
-The overloadable function `semantic-nonterminal-children' is used for
-searching.
-If SEARCH-INCLUDES is non-nil, then all include files are also
-searched for matches."
-  (let ((stream (semantic-something-to-stream streamorbuffer))
-	(found nil)
-        (case-fold-search semantic-case-fold))
-    (while (and (not found) stream)
-      (if (funcall function (car stream))
-	  (setq found (car stream)))
-      (setq stream (cdr stream)))
-    found))
-
-;;; Bucketizing: Take and convert the tokens based on type.
+;;; Bucketizing: Take and convert the tags based on type.
 ;;
 (defvar semantic-bucketize-token-token
-  ;; Must use lambda because `semantic-token-token' is a macro.
-  (lambda (tok) (semantic-token-token tok))
+  ;; Must use lambda because `semantic-tag-class' is a macro.
+  (lambda (tok) (semantic-tag-class tok))
   "Function used to get a symbol describing the class of a token.
 This function must take one argument of a semantic token.
 It should return a symbol found in `semantic-symbol->name-assoc-list'
@@ -612,9 +231,9 @@ buckets with the bucket function."
     (while tags
       (cond
        ((setq tmp (semantic-nonterminal-external-member-parent (car tags)))
-	(let ((tagcopy (semantic-clone-tag (car tags)))
+	(let ((tagcopy (semantic-tag-clone (car tags)))
 	      (a (assoc tmp parent-buckets)))
-	  (semantic-token-put-no-side-effect tagcopy 'adopted t)
+	  (semantic--tag-put-property-no-side-effect tagcopy 'adopted t)
 	  (if a
 	      ;; If this parent is already in the list, append.
 	      (setcdr (nthcdr (1- (length a)) a) (list tagcopy))
@@ -622,23 +241,23 @@ buckets with the bucket function."
 	    (setq parent-buckets
 		  (cons (cons tmp (list tagcopy)) parent-buckets)))
 	  ))
-       ((eq (semantic-token-token (car tags)) 'type)
+       ((eq (semantic-tag-class (car tags)) 'type)
 	;; Types need to be rebuilt from scratch so we can add in new
 	;; children to the child list.  Only the top-level cons
 	;; cells need to be duplicated so we can hack out the
 	;; child list later.
-	(setq out (cons (copy-sequence (car tags)) out))
+	(setq out (cons (semantic-tag-clone (car tags)) out))
 	(setq decent-list (cons (car out) decent-list))
 	)
        (t
-	;; Otherwise, append this token to our new output list.
+	;; Otherwise, append this tag to our new output list.
 	(setq out (cons (car tags) out)))
        )
       (setq tags (cdr tags)))
     ;; Rescan out, by decending into all types and finding parents
     ;; for all entries moved into the parent-buckets.
     (while decent-list
-      (let* ((bucket (assoc (semantic-token-name (car decent-list))
+      (let* ((bucket (assoc (semantic-tag-name (car decent-list))
 			    parent-buckets))
 	     (bucketkids (cdr bucket))
 	     (partcdr (nthcdr 3 (car decent-list))))
@@ -659,9 +278,9 @@ buckets with the bucket function."
 		      ;; get embedded types to scan and make copies
 		      ;; of them.
 		      (mapcar
-		       (lambda (tok) (copy-sequence tok))
-		       (semantic-find-nonterminal-by-token 'type
-			(semantic-token-type-parts (car decent-list)))))
+		       (lambda (tok) (semantic-tag-clone tok))
+		       (semantic-find-tags-by-class 'type
+			(semantic-tag-type-members (car decent-list)))))
 	      )))
     ;; Scan over all remaining lost external methods, and tack them
     ;; onto the end.
@@ -676,7 +295,7 @@ buckets with the bucket function."
 			   ))
 		 (partcdr (nthcdr 3 fauxtok))
 		 (bucketkids (cdr tmp)))
-	    (semantic-token-put fauxtok 'faux t) ;; proprties
+	    (semantic--tag-put-property fauxtok 'faux t) ;; proprties
 	    (if semantic-mark-external-member-function
 		(setq bucketkids
 		      (mapcar (lambda (tok)
@@ -701,7 +320,7 @@ buckets with the bucket function."
 
 (defun semantic-sort-token-type (token)
   "Return a type string for TOKEN guaranteed to be a string."
-  (let ((ty (semantic-token-type token)))
+  (let ((ty (semantic-tag-type token)))
     (cond ((stringp ty)
 	   ty)
 	  ((listp ty)
@@ -712,15 +331,15 @@ buckets with the bucket function."
   "Sort TOKENS by name in increasing order with side effects.
 Return the sorted list."
   (sort tokens (lambda (a b)
-		 (string-lessp (semantic-token-name a)
-			       (semantic-token-name b)))))
+		 (string-lessp (semantic-tag-name a)
+			       (semantic-tag-name b)))))
 
 (defun semantic-sort-tokens-by-name-decreasing (tokens)
   "Sort TOKENS by name in decreasing order with side effects.
 Return the sorted list."
   (sort tokens (lambda (a b)
-		 (string-lessp (semantic-token-name b)
-			       (semantic-token-name a)))))
+		 (string-lessp (semantic-tag-name b)
+			       (semantic-tag-name a)))))
 
 (defun semantic-sort-tokens-by-type-increasing (tokens)
   "Sort TOKENS by type in increasing order with side effects.
@@ -740,15 +359,15 @@ Return the sorted list."
   "Sort TOKENS by name in increasing order with side effects.
 Return the sorted list."
   (sort tokens (lambda (a b)
-		 (semantic-string-lessp-ci (semantic-token-name a)
-					   (semantic-token-name b)))))
+		 (semantic-string-lessp-ci (semantic-tag-name a)
+					   (semantic-tag-name b)))))
 
 (defun semantic-sort-tokens-by-name-decreasing-ci (tokens)
   "Sort TOKENS by name in decreasing order with side effects.
 Return the sorted list."
   (sort tokens (lambda (a b)
-		 (semantic-string-lessp-ci (semantic-token-name b)
-					   (semantic-token-name a)))))
+		 (semantic-string-lessp-ci (semantic-tag-name b)
+					   (semantic-tag-name a)))))
 
 (defun semantic-sort-tokens-by-type-increasing-ci (tokens)
   "Sort TOKENS by type in increasing order with side effects.
@@ -773,13 +392,16 @@ Return the sorted list."
   "Recursivly find the first occurance of NAME.
 Start search with BUFFER.  Recurse through all dependencies till found.
 The return item is of the form (BUFFER TOKEN) where BUFFER is the buffer
-in which TOKEN (the token found to match NAME) was found."
+in which TOKEN (the token found to match NAME) was found.
+
+THIS ISN'T USED IN SEMANTIC.  DELETE ME SOON.
+"
   (save-excursion
     (set-buffer buffer)
     (let* ((stream (semantic-bovinate-toplevel))
-	   (includelist (or (semantic-find-nonterminal-by-token 'include stream)
+	   (includelist (or (semantic-find-tags-by-class 'include stream)
 			    "empty.silly.thing"))
-	   (found (semantic-find-nonterminal-by-name name stream))
+	   (found (semantic-find-first-tag-by-name name stream))
 	   (unfound nil))
       (while (and (not found) includelist)
 	(let ((fn (semantic-find-dependency (car includelist))))
@@ -838,7 +460,7 @@ from under point.
 STREAM is the list of tokens to complete from."
   (semantic-read-symbol
    prompt default
-   (or (semantic-find-nonterminal-by-token
+   (or (semantic-find-tags-by-class
 	'variable (or stream (current-buffer)))
        (error "No local variables"))))
 
@@ -848,10 +470,10 @@ PROMPT is the prompt to use.
 Optional arguments:
 DEFAULT is the default choice.  If no default is given, one is read
 from under point.
-STREAM is the list of tokens to complete from."
+STREAM is the list of tags to complete from."
   (semantic-read-symbol
    prompt default
-   (or (semantic-find-nonterminal-by-token
+   (or (semantic-find-tags-by-class
 	'function (or stream (current-buffer)))
        (error "No local functions"))))
 
@@ -861,15 +483,15 @@ PROMPT is the prompt to use.
 Optional arguments:
 DEFAULT is the default choice.  If no default is given, one is read
 from under point.
-STREAM is the list of tokens to complete from."
+STREAM is the list of tags to complete from."
   (semantic-read-symbol
    prompt default
-   (or (semantic-find-nonterminal-by-token
+   (or (semantic-find-tags-by-class
 	'type (or stream (current-buffer)))
        (error "No local types"))))
 
 
-;;; Token to text overload functions
+;;; Tag to text overload functions
 ;;
 ;; Abbreviations, prototypes, and coloring support.
 (eval-when-compile (require 'font-lock))
@@ -911,11 +533,11 @@ Use this variable in the :type field of a customizable variable.")
 Output is generated from the function under `point'."
   (interactive)
   (semantic-bovinate-toplevel t)
-  (let* ((tok (semantic-current-nonterminal))
-	 (par (or (semantic-current-nonterminal-parent)
-		  (if (semantic-token-function-parent tok)
+  (let* ((tok (semantic-current-tag))
+	 (par (or (semantic-current-tag-parent)
+		  (if (semantic-tag-function-parent tok)
 		      (semantic-find-nonterminal-by-name
-		       (semantic-token-function-parent tok)
+		       (semantic-tag-function-parent tok)
 		       (current-buffer)))
 		  ))
 	 (fns semantic-token->text-functions))
@@ -1016,14 +638,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors.")
   "Return an abbreviated string describing TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (let ((name (semantic-token-name token))
+  (let ((name (semantic-tag-name token))
 	(destructor
-	 (if (eq (semantic-token-token token) 'function)
-	     (semantic-token-function-destructor token))))
+	 (if (eq (semantic-tag-class token) 'function)
+	     (semantic-tag-function-destructor-p token))))
     (when destructor
       (setq name (concat "~" name)))
     (if color
-	(setq name (semantic-colorize-text name (semantic-token-token token))))
+	(setq name (semantic-colorize-text name (semantic-tag-class token))))
     name))
 
 (define-overload semantic-abbreviate-nonterminal (token &optional parent color)
@@ -1040,7 +662,7 @@ In this case PARENT refers to containment, not inheritance.
 Optional argument COLOR means highlight the prototype with font-lock colors.
 This is a simple C like default."
   ;; Do lots of complex stuff here.
-  (let ((tok (semantic-token-token token))
+  (let ((tok (semantic-tag-class token))
 	(name (semantic-name-nonterminal token parent color))
 	(suffix "")
 	str)
@@ -1049,7 +671,7 @@ This is a simple C like default."
 	  ((eq tok 'include)
 	   (setq suffix "<>"))
 	  ((eq tok 'variable)
-	   (setq suffix (if (semantic-token-variable-default token)
+	   (setq suffix (if (semantic-tag-variable-default token)
 			    "=" "")))
 	  )
     (setq str (concat name suffix))
@@ -1104,7 +726,7 @@ COLOR specifies if these arguments should be colored or not."
 		   (setq a (semantic-colorize-text a 'variable)))
 	       (setq out (cons a out))
 	       ))
-	    ((semantic-token-p (car args))
+	    ((semantic-tag-p (car args))
 	     (setq out
 		   (cons (semantic-prototype-nonterminal (car args) nil color)
 			 out))))
@@ -1116,38 +738,33 @@ COLOR specifies if these arguments should be colored or not."
 This will work for C like languages.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (let* ((tok (semantic-token-token token))
+  (let* ((tok (semantic-tag-class token))
 	 (name (semantic-name-nonterminal token parent color))
 	 (type (if (member tok '(function variable type))
-		   (semantic-token-type token)))
+		   (semantic-tag-type token)))
 	 (args (semantic-prototype-nonterminal-default-args
 		(cond ((eq tok 'function)
-		       (semantic-token-function-args token))
+		       (semantic-tag-function-arguments token))
 		      ((eq tok 'type)
-		       (semantic-token-type-parts token))
+		       (semantic-tag-type-members token))
 		      (t nil))
 		color))
-	 (const (semantic-token-extra-spec token 'const))
+	 (const (semantic-tag-get-attribute token 'const))
 	 (mods (append
 		(if const '("const") nil)
-		(semantic-token-extra-spec token 'typemodifiers)))
+		(semantic-tag-get-attribute token 'typemodifiers)))
 	 (array (if (eq tok 'variable)
 		    (let ((deref
-			   (semantic-token-variable-extra-spec
-			    token 'dereference))
-			  (r ""))
-		      (while (and deref (/= deref 0))
-			(setq r (concat r "[]")
-			      deref (1- deref)))
-		      r)))
-	 (point (semantic-token-extra-spec token 'pointer))
-	 (ref (semantic-token-extra-spec token 'reference))
-	 )
-    (if (and (listp mods) mods)
-	(setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
-    (if (and mods color)
-	(setq mods (semantic-colorize-text mods 'type)))
-    (if ref (setq ref "&"))		; only 1 reference?
+			   (semantic-tag-get-attribute 
+ 			    token 'dereference))
+ 			  (r ""))
+ 		      (while (and deref (/= deref 0))
+ 			(setq r (concat r "[]")
+ 			      deref (1- deref)))
+ 		      r)))
+ 	 (point (semantic-tag-get-attribute token 'pointer))
+ 	 (ref (semantic-tag-get-attribute token 'reference))
+ 	 )
     (if point (setq point (make-string point ?*)) "")
     (if args
 	(setq args
@@ -1157,7 +774,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 				 semantic-function-argument-separator)
 		      (if (eq tok 'type) "}" ")"))))
     (if type
-	(if (semantic-token-p type)
+	(if (semantic-tag-p type)
 	    (setq type (semantic-prototype-nonterminal type nil color))
 	  (if (listp type)
 	      (setq type (car type)))
@@ -1180,12 +797,12 @@ Optional argument COLOR means highlight the prototype with font-lock colors.")
 This default function will make a cheap concise prototype using C like syntax.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (let ((tok (semantic-token-token token)))
+  (let ((tok (semantic-tag-class token)))
     (cond
      ((eq tok 'type)
       (concat (semantic-name-nonterminal token parent color) "{}"))
      ((eq tok 'function)
-      (let ((args (semantic-token-function-args token)))
+      (let ((args (semantic-tag-function-arguments token)))
         (concat (semantic-name-nonterminal token parent color)
                 " ("
                 (if args
@@ -1196,15 +813,15 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 					     a 'variable))
 			      'identity)
 			    args semantic-function-argument-separator))
-			  ((semantic-token-p (car args))
+			  ((semantic-tag-p (car args))
 			   (mapconcat
 			    (lambda (a)
-			      (let ((ty (semantic-token-type a)))
+			      (let ((ty (semantic-tag-type a)))
 				(cond ((and (stringp ty) color)
 				       (semantic-colorize-text ty 'type))
 				      ((stringp ty)
 				       ty)
-				      ((semantic-token-p ty)
+				      ((semantic-tag-p ty)
 				       (semantic-prototype-nonterminal
 					ty parent nil))
 				      ((and (consp ty) color)
@@ -1224,7 +841,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
                   "")
                 ")")))
      ((eq tok 'variable)
-      (let* ((deref (semantic-token-variable-extra-spec
+      (let* ((deref (semantic-tag-get-attribute
                      token 'dereference))
              (array "")
              )
@@ -1296,16 +913,16 @@ Colorize the new text based on COLOR."
 	     (setq token-or-string
 		   (semantic-colorize-text token-or-string 'variable)))
 	 (concat token-or-string (or args "")))
-	((semantic-token-p token-or-string)
+	((semantic-tag-p token-or-string)
 	 (let ((name (semantic-name-nonterminal token-or-string parent color))
-	       (type  (semantic-token-type token-or-string))
-	       (point (semantic-token-extra-spec token-or-string 'pointer))
-	       (ref (semantic-token-extra-spec token-or-string 'reference))
+	       (type  (semantic-tag-type token-or-string))
+	       (point (semantic-tag-get-attribute token-or-string 'pointer))
+	       (ref (semantic-tag-get-attribute token-or-string 'reference))
 	       )
 	   (if ref (setq ref "&"))	; only 1 reference?
 	   (if point (setq point (make-string point ?*)) "")
 	   (setq type
-		 (cond ((semantic-token-p type)
+		 (cond ((semantic-tag-p type)
 			(semantic-prototype-nonterminal type nil color))
 		       ((and (listp type)
 			     (stringp (car type)))
@@ -1363,14 +980,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors.")
   "Return a UML style prototype for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (let* ((tok (semantic-token-token token))
+  (let* ((tok (semantic-tag-class token))
 	 (argtext nil)
 	 (prot (semantic-nonterminal-protection token parent))
 	 (text nil)
 	 )
     (cond ((eq tok 'function)
 	   (setq argtext (semantic-uml-arguments-to-string
-			  (semantic-token-function-args token)
+			  (semantic-tag-function-arguments token)
 			  color)))
 	  ((eq tok 'type)
 	   (setq argtext "{}")))
@@ -1393,12 +1010,12 @@ Optional argument COLOR means highlight the prototype with font-lock colors.")
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((cp (semantic-concise-prototype-nonterminal token parent color))
-	 (type (semantic-token-type token))
+	 (type (semantic-tag-type token))
 	 (prot (semantic-nonterminal-protection token parent))
 	 (text nil)
 	 )
     (setq type
-	  (cond ((semantic-token-p type)
+	  (cond ((semantic-tag-p type)
 		 (semantic-prototype-nonterminal type nil color))
 		((listp type)
 		 (car type))
@@ -1437,21 +1054,21 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
   (if (not token)
       (setq token (car (semantic-find-nonterminal-by-overlay nil))))
 
-  (if (not (eq (semantic-token-token token) 'include))
+  (if (not (eq (semantic-tag-class token) 'include))
       (signal 'wrong-type-argument (list token 'include)))
 
   ;; First, see if this file exists in the current EDE projecy
   (if (and (fboundp 'ede-expand-filename) ede-minor-mode
 	   (ede-expand-filename (ede-toplevel)
-				(semantic-token-name token)))
+				(semantic-tag-name token)))
       (ede-expand-filename (ede-toplevel)
-			   (semantic-token-name token))
+			   (semantic-tag-name token))
   
     (let ((s (semantic-fetch-overload 'find-dependency)))
       (if s (funcall s token)
 	(save-excursion
-	  (set-buffer (semantic-token-buffer token))
-	  (let ((name (semantic-token-name token)))
+	  (set-buffer (semantic-tag-buffer token))
+	  (let ((name (semantic-tag-name token)))
 	    (cond ((file-exists-p name)
 		   (expand-file-name name))
 		  ((and (symbolp semantic-dependency-include-path)
@@ -1476,35 +1093,35 @@ For example, dependencies (includes) will seek out the file that is
 depended on, and functions will move to the specified definition."
   (if (not token)
       (setq token (car (semantic-find-nonterminal-by-overlay nil))))
-  (if (and (eq (semantic-token-token token) 'include)
+  (if (and (eq (semantic-tag-class token) 'include)
 	   (let ((f (semantic-find-dependency token)))
 	     (if f (find-file f))))
       nil
     (let ((s (semantic-fetch-overload 'find-nonterminal)))
       (if s (funcall s token parent)
-	(if (semantic-token-buffer token)
+	(if (semantic-tag-buffer token)
 	    ;; If the token has no buffer, it may be deoverlayed.
 	    ;; Assume the tool doing the finding knows that we came
 	    ;; in from a database, and use the current buffer.
-	    (set-buffer (semantic-token-buffer token)))
-	(if (semantic-token-with-position-p token)
+	    (set-buffer (semantic-tag-buffer token)))
+	(if (semantic-tag-with-position-p token)
 	    ;; If it's a number, go there
-	    (goto-char (semantic-token-start token))
+	    (goto-char (semantic-tag-start token))
 	  ;; Otherwise, it's a trimmed vector, such as a parameter,
 	  ;; or a structure part.
 	  (if (not parent)
 	      nil
-	    (if (semantic-token-with-position-p parent)
+	    (if (semantic-tag-with-position-p parent)
 		(progn
-		  (if (semantic-token-buffer parent)
-		      ;; If this parent token has no buffer, then it
+		  (if (semantic-tag-buffer parent)
+		      ;; If this parent tag has no buffer, then it
 		      ;; may be deoverlayed.
-		      (set-buffer (semantic-token-buffer parent)))
-		  (goto-char (semantic-token-start parent))
+		      (set-buffer (semantic-tag-buffer parent)))
+		  (goto-char (semantic-tag-start parent))
 		  ;; Here we make an assumtion that the text returned by
 		  ;; the bovinator and concocted by us actually exists
 		  ;; in the buffer.
-		  (re-search-forward (semantic-token-name token) nil t)))))))))
+		  (re-search-forward (semantic-tag-name token) nil t)))))))))
 (put 'semantic-find-nonterminal 'semantic-overload 'find-nonterminal)
 
 (defun semantic-find-documentation (&optional token nosnarf)
@@ -1521,14 +1138,14 @@ If nosnarf if 'flex, then only return the flex token."
     (if s (funcall s token nosnarf)
       ;; No override.  Try something simple to find documentation nearby
       (save-excursion
-	(set-buffer (semantic-token-buffer token))
+	(set-buffer (semantic-tag-buffer token))
 	(semantic-find-nonterminal token)
 	(or
 	 ;; Is there doc in the token???
-	 (if (semantic-token-docstring token)
-	     (if (stringp (semantic-token-docstring token))
-		 (semantic-token-docstring token)
-	       (goto-char (semantic-token-docstring token))
+	 (if (semantic-tag-docstring token)
+	     (if (stringp (semantic-tag-docstring token))
+		 (semantic-tag-docstring token)
+	       (goto-char (semantic-tag-docstring token))
 	       (semantic-find-doc-snarf-comment nosnarf)))
 	 ;; Check just before the definition.
 	 (save-excursion
@@ -1619,7 +1236,7 @@ include the default behavior, and merely extend your own."
   "Return the name of TOKENs parent iff TOKEN is not defined in it's parent."
   ;; Use only the extra spec because a type has a parent which
   ;; means something completely different.
-  (let ((tp (semantic-token-extra-spec token 'parent)))
+  (let ((tp (semantic-tag-get-attribute token 'parent)))
     (when (stringp tp)
       tp)
     ))
@@ -1645,7 +1262,7 @@ include the default behavior, and merely extend your own."
   ;; means something completely different.
   (let ((tp (semantic-nonterminal-external-member-parent token)))
     (and (stringp tp)
-	 (string= (semantic-token-name parent) tp))
+	 (string= (semantic-tag-name parent) tp))
     ))
 
 (define-overload semantic-nonterminal-external-member-children (token &optional usedb)
@@ -1677,7 +1294,7 @@ See `semantic-nonterminal-external-member-children' for details."
 	   (fboundp 'semanticdb-minor-mode-p)
 	   (semanticdb-minor-mode-p))
       (let ((m (semanticdb-find-nonterminal-external-children-of-type
-		(semantic-token-name token))))
+		(semantic-tag-name token))))
 	(if m (apply #'append (mapcar #'cdr m))))
     (semantic-find-nonterminal-by-function
      `(lambda (tok)
@@ -1707,7 +1324,7 @@ is to return a symbol based on type modifiers."
 (defun semantic-nonterminal-protection-default (token &optional parent)
   "Return the protection of TOKEN as a child of PARENT default action.
 See `semantic-nonterminal-protection'."
-  (let ((mods (semantic-token-modifiers token))
+  (let ((mods (semantic-tag-modifiers token))
 	(prot nil))
     (while (and (not prot) mods)
       (if (stringp (car mods))
@@ -1740,7 +1357,7 @@ is to return true if `abstract' is in the type modifiers."
 (defun semantic-nonterminal-abstract-default (token &optional parent)
   "Return non-nil if TOKEN is abstract as a child of PARENT default action.
 See `semantic-nonterminal-abstract'."
-  (let ((mods (semantic-token-modifiers token))
+  (let ((mods (semantic-tag-modifiers token))
 	(abs nil))
     (while (and (not abs) mods)
       (if (stringp (car mods))
@@ -1763,7 +1380,7 @@ is to return true if `leaf' is in the type modifiers."
 (defun semantic-nonterminal-leaf-default (token &optional parent)
   "Return non-nil if TOKEN is leaf as a child of PARENT default action.
 See `semantic-nonterminal-leaf'."
-  (let ((mods (semantic-token-modifiers token))
+  (let ((mods (semantic-tag-modifiers token))
 	(leaf nil))
     (while (and (not leaf) mods)
       (if (stringp (car mods))
@@ -1783,7 +1400,7 @@ UML notation specifies that STATIC entries are underlined.")
 (defun semantic-nonterminal-static-default (token &optional parent)
   "Return non-nil if TOKEN is static as a child of PARENT default action.
 See `semantic-nonterminal-static'."
-  (let ((mods (semantic-token-modifiers token))
+  (let ((mods (semantic-tag-modifiers token))
 	(static nil))
     (while (and (not static) mods)
       (if (stringp (car mods))
@@ -1804,14 +1421,14 @@ override this function with `nonterminal-full-name' will use
 `semantic-token-name'.  Override functions only need to handle
 STREAM-OR-BUFFER with a token stream value, or nil."
   (let* ((s (semantic-fetch-overload 'nonterminal-full-name))
-	 (stream (semantic-something-to-stream (or stream-or-buffer token))))
+	 (stream (semantic-something-to-tag-table (or stream-or-buffer token))))
     (if s (funcall s token stream)
       (semantic-nonterminal-full-name-default token stream))))
 
 (defun semantic-nonterminal-full-name-default (token stream)
   "Default method for `semantic-nonterminal-full-name'.
 Return the name of TOKEN found in the toplevel STREAM."
-  (semantic-token-name token))
+  (semantic-tag-name token))
 
 
 ;;; Do some fancy stuff with overlays
@@ -1819,7 +1436,7 @@ Return the name of TOKEN found in the toplevel STREAM."
 (defun semantic-highlight-token (token &optional face)
   "Specify that TOKEN should be highlighted.
 Optional FACE specifies the face to use."
-  (let ((o (semantic-token-overlay token)))
+  (let ((o (semantic-tag-overlay token)))
     (semantic-overlay-put o 'old-face
 			  (cons (semantic-overlay-get o 'face)
 				(semantic-overlay-get o 'old-face)))
@@ -1828,7 +1445,7 @@ Optional FACE specifies the face to use."
 
 (defun semantic-unhighlight-token (token)
   "Unhighlight TOKEN, restoring it's previous face."
-  (let ((o (semantic-token-overlay token)))
+  (let ((o (semantic-tag-overlay token)))
     (semantic-overlay-put o 'face (car (semantic-overlay-get o 'old-face)))
     (semantic-overlay-put o 'old-face (cdr (semantic-overlay-get o 'old-face)))
     ))
@@ -1849,31 +1466,31 @@ If FACE is not specified, then `highlight' will be used."
 
 (defun semantic-set-token-face (token face)
   "Specify that TOKEN should use FACE for display."
-  (semantic-overlay-put (semantic-token-overlay token) 'face face))
+  (semantic-overlay-put (semantic-tag-overlay token) 'face face))
 
 (defun semantic-set-token-invisible (token &optional visible)
   "Enable the text in TOKEN to be made invisible.
 If VISIBLE is non-nil, make the text visible."
-  (semantic-overlay-put (semantic-token-overlay token) 'invisible
+  (semantic-overlay-put (semantic-tag-overlay token) 'invisible
 			(not visible)))
 
 (defun semantic-token-invisible-p (token)
   "Return non-nil if TOKEN is invisible."
-  (semantic-overlay-get (semantic-token-overlay token) 'invisible))
+  (semantic-overlay-get (semantic-tag-overlay token) 'invisible))
 
 (defun semantic-set-token-intangible (token &optional tangible)
   "Enable the text in TOKEN to be made intangible.
 If TANGIBLE is non-nil, make the text visible.
 This function does not have meaning in XEmacs because it seems that
 the extent 'intangible' property does not exist."
-  (semantic-overlay-put (semantic-token-overlay token) 'intangible
+  (semantic-overlay-put (semantic-tag-overlay token) 'intangible
 			(not tangible)))
 
 (defun semantic-token-intangible-p (token)
   "Return non-nil if TOKEN is intangible.
 This function does not have meaning in XEmacs because it seems that
 the extent 'intangible' property does not exist."
-  (semantic-overlay-get (semantic-token-overlay token) 'intangible))
+  (semantic-overlay-get (semantic-tag-overlay token) 'intangible))
 
 (defun semantic-overlay-signal-read-only
   (overlay after start end &optional len)
@@ -1890,7 +1507,7 @@ Argument OVERLAY, AFTER, START, END, and LEN are passed in by the system."
   "Enable the text in TOKEN to be made read-only.
 Optional argument WRITABLE should be non-nil to make the text writable.
 instead of read-only."
-  (let ((o (semantic-token-overlay token))
+  (let ((o (semantic-tag-overlay token))
 	(hook (if writable nil '(semantic-overlay-signal-read-only))))
     (if (featurep 'xemacs)
         ;; XEmacs extents have a 'read-only' property.
@@ -1901,7 +1518,7 @@ instead of read-only."
 
 (defun semantic-token-read-only-p (token)
   "Return non-nil if the current TOKEN is marked read only."
-  (let ((o (semantic-token-overlay token)))
+  (let ((o (semantic-tag-overlay token)))
     (if (featurep 'xemacs)
         ;; XEmacs extents have a 'read-only' property.
         (semantic-overlay-get o 'read-only)
@@ -1910,13 +1527,13 @@ instead of read-only."
 
 (defun semantic-narrow-to-token (token)
   "Narrow to the region specified by TOKEN."
-  (narrow-to-region (semantic-token-start token)
-		    (semantic-token-end token)))
+  (narrow-to-region (semantic-tag-start token)
+		    (semantic-tag-end token)))
 
 (defmacro semantic-with-buffer-narrowed-to-current-token (&rest body)
   "Execute BODY with the buffer narrowed to the current nonterminal."
   `(save-restriction
-     (semantic-narrow-to-token (semantic-current-nonterminal))
+     (semantic-narrow-to-token (semantic-current-tag))
      ,@body))
 (put 'semantic-with-buffer-narrowed-to-current-token 'lisp-indent-function 0)
 (add-hook 'edebug-setup-hook
@@ -1941,7 +1558,7 @@ instead of read-only."
   "Describe TOKEN in the minibuffer.
 If TOKEN is nil, describe the token under the cursor."
   (interactive)
-  (if (not token) (setq token (semantic-current-nonterminal)))
+  (if (not token) (setq token (semantic-current-tag)))
   (semantic-bovinate-toplevel t)
   (if token (message (semantic-summarize-nonterminal token))))
 
@@ -1955,8 +1572,8 @@ If TOKEN is not specified, use the token at point."
   (if (not token)
       (progn
 	(semantic-bovinate-toplevel t)
-	(setq token (semantic-current-nonterminal))))
-  (semantic-token-put token (intern label) value)
+	(setq token (semantic-current-tag))))
+  (semantic--tag-put-property token (intern label) value)
   (message "Added label %s with value %S" label value))
 
 (defun semantic-show-label (label &optional token)
@@ -1966,8 +1583,8 @@ If TOKEN is not specified, use the token at point."
   (if (not token)
       (progn
 	(semantic-bovinate-toplevel t)
-	(setq token (semantic-current-nonterminal))))
-  (message "%s: %S" label (semantic-token-get token (intern label))))
+	(setq token (semantic-current-tag))))
+  (message "%s: %S" label (semantic--tag-get-property token (intern label))))
 
 
 ;;; Hacks
@@ -2011,19 +1628,19 @@ Argument P is the point to search from in the current buffer."
 
 (defun semantic-assert-valid-token (tok)
   "Assert that TOK is a valid token."
-  (if (semantic-token-p tok)
-      (if (semantic-token-with-position-p tok)
-	  (let ((o  (semantic-token-overlay tok)))
+  (if (semantic-tag-p tok)
+      (if (semantic-tag-with-position-p tok)
+	  (let ((o  (semantic-tag-overlay tok)))
 	    (if (and (semantic-overlay-p o)
 		     (not (semantic-overlay-live-p o)))
 		(let ((debug-on-error t))
-		  (error "Token %s is invalid!"))
-	      ;; else, token is OK.
+		  (error "Tag %s is invalid!"))
+	      ;; else, tag is OK.
 	      ))
-	;; Positionless tokens are also ok.
+	;; Positionless tags are also ok.
 	)
     (let ((debug-on-error t))
-      (error "Not a semantic token: %S" tok))))
+      (error "Not a semantic tag: %S" tok))))
 
 (defun semantic-sanity-check (&optional cache over notfirst)
   "Perform a sanity check on the current buffer.
@@ -2036,11 +1653,11 @@ NOTFIRST indicates that this was not the first call in the recursive use."
       (setq cache semantic-toplevel-bovine-cache
 	    over (semantic-overlays-in (point-min) (point-max))))
   (while cache
-    (let ((chil (semantic-nonterminal-children (car cache) t)))
-      (if (not (memq (semantic-token-overlay (car cache)) over))
-	  (message "Token %s not in buffer overlay list."
+    (let ((chil (semantic-tag-components-with-overlays (car cache))))
+      (if (not (memq (semantic-tag-overlay (car cache)) over))
+	  (message "Tag %s not in buffer overlay list."
 		   (semantic-concise-prototype-nonterminal (car cache))))
-      (setq over (delq (semantic-token-overlay (car cache)) over))
+      (setq over (delq (semantic-tag-overlay (car cache)) over))
       (setq over (semantic-sanity-check chil over t))
       (setq cache (cdr cache))))
   (if (not notfirst)
