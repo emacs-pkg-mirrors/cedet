@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.52 2001/12/04 19:11:34 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.53 2001/12/07 19:58:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -244,13 +244,24 @@
   (list (nth 1 vals) 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
  ) ; end type
  (opt-stars
- ( punctuation "\\b\\*\\b" opt-stars
+ ( punctuation "\\b\\*\\b" opt-starmod opt-stars
   ,(semantic-lambda
-  (list ( 1+ ( car (nth 1 vals))))))
+  (list ( 1+ ( car (nth 2 vals))))))
  (
   ,(semantic-lambda
   (list 0)))
  ) ; end opt-stars
+ (opt-starmod
+ ( STARMOD opt-starmod
+  ,(semantic-lambda
+  ( cons ( car (nth 0 vals)) (nth 1 vals))))
+ (
+  ,(semantic-lambda
+ ))
+ ) ; end opt-starmod
+ (STARMOD
+ ( CONST)
+ ) ; end STARMOD
  (declmods
  ( DECLMOD declmods
   ,(semantic-lambda
@@ -345,7 +356,7 @@
  (func-decl
  ( opt-stars opt-class opt-destructor functionname opt-under-p arg-list opt-post-fcn-modifiers opt-throw opt-initializers fun-or-proto-end
   ,(semantic-lambda
-  (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 5 vals) (nth 7 vals)) (nth 6 vals) (nth 0 vals) (nth 9 vals)))
+  (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 5 vals) (nth 7 vals) (nth 6 vals)) (nth 0 vals) (nth 9 vals)))
  ) ; end func-decl
  (var-decl
  ( varnamelist punctuation "\\b;\\b"
@@ -431,9 +442,9 @@
   (list (nth 2 vals)) (nth 0 vals) (nth 3 vals) (nth 4 vals) (nth 5 vals)))
  ) ; end varname
  (variablearg
- ( declmods typeformbase opt-stars opt-ref varname
+ ( declmods typeformbase opt-ref varname
   ,(semantic-lambda
-  (list ( car (nth 4 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'pointer ( car (nth 2 vals)) 'reference ( car (nth 3 vals))) nil)))
+  (list ( list (nth 3 vals)) 'variable (nth 1 vals) nil ( semantic-bovinate-make-assoc-list 'const ( if ( member "const" (nth 0 vals)) t nil) 'typemodifiers ( delete "const" (nth 0 vals)) 'reference ( car (nth 2 vals))) nil)))
  ) ; end variablearg
  (varnamelist
  ( varname punctuation "\\b,\\b" varnamelist
@@ -467,6 +478,9 @@
   ,(semantic-lambda
  
  (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'arg-sub-list)
+ ))
+ ( semantic-list "^(void)$"
+  ,(semantic-lambda
  ))
  ) ; end arg-list
  (knr-arguments
@@ -538,7 +552,7 @@
   (list nil)))
  ( punctuation "\\b=\\b" number "^0$" punctuation "\\b;\\b"
   ,(semantic-lambda
-  (list t)))
+  (list 'pure-virtual)))
  ) ; end fun-or-proto-end
  (opt-expression
  ( expression)
@@ -577,7 +591,7 @@
   (list ( identity start) ( identity end))))
  ) ; end expression
  )
-   "C language specification.")
+            "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
@@ -720,8 +734,12 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 		  'throws (nth 5 tokenpart)
 		  ;; Reemtrant is a C++ thingy.  Add it here
 		  'reentrant (if (member "reentrant" (nth 6 tokenpart)) t)
+		  ;; A function post-const is funky.  Try stuff
+		  'methodconst (if (member "const" (nth 6 tokenpart)) t)
 		  ;; prototypes are functions w/ no body
-		  'prototype (nth 8 tokenpart)
+		  'prototype (if (nth 8 tokenpart) t)
+		  ;; Pure virtual
+		  'pure-virtual (if (eq (nth 8 tokenpart) 'pure-virtual) t)
 		  )
 		 nil))
 	 )
@@ -813,8 +831,8 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
      ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
      ("float" summary "Primitive floating-point type (single-precision 32-bit IEEE 754)")
      ("double" summary "Primitive floating-point type (double-precision 64-bit IEEE 754)")
-     ("_P" summary "Common macro to elimitate prototype compatibility on some compilers")
-     ("__P" summary "Common macro to elimitate prototype compatibility on some compilers")
+     ("_P" summary "Common macro to eliminate prototype compatibility on some compilers")
+     ("__P" summary "Common macro to eliminate prototype compatibility on some compilers")
      ))
   "Some keywords used in C.")
 
