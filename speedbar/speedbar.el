@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.1 1996/09/27 01:52:24 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.2 1996/09/27 02:16:51 zappo Exp $
 ;;; Version: 0.1
 ;;; Keywords: file, etags
 ;;;
@@ -117,6 +117,8 @@
   "The frame which started speedbar mode.  This is the frame from
 which all data displayed in the speedbar is gathered, and in which files
 and such are displayed.")
+(defvar speedbar-last-selected-file nil
+  "The last file which was selected in speedbar buffer")
 
 (defvar speedbar-sort-tags nil
   "*Sort tags before displaying on the screen")
@@ -322,9 +324,6 @@ on, nil means toggle."
 	    (message "Updating speedbar to: %s...done" default-directory))))
     ;; Ok, un-underline old file, underline current file
     (speedbar-update-current-file)))
-
-(defvar speedbar-last-selected-file nil
-  "The last file which was selected in speedbar buffer")
 
 (defun speedbar-update-current-file ()
   "Find out what the current file is, and update our visuals to indicate
