@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.25 2002/05/15 19:21:42 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.26 2002/06/29 18:07:14 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -937,24 +937,19 @@ removed from the result list."
 Uses the bovinator with the special top-symbol `field_declaration'
 to collect tokens, such as local variables or prototypes.
 This function is a Java specific `get-local-variables' override."
-  ;; The working status is to let the parser work properly
-  (working-status-forms "Local" "done"
-    (let ((semantic-bovination-working-type nil)
-          ;; We want nothing to do with funny syntaxing while doing this.
-          (semantic-unmatched-syntax-hook nil)
-          ;; Disable parsing messages
-          (working-status-dynamic-type nil)
-          (vars nil))
-      (while (not (semantic-up-context (point) 'function))
-        (save-excursion
-          (forward-char 1)
-          (setq vars
-                (append (semantic-bovinate-region-until-error
-                         (point)
-                         (save-excursion (semantic-end-of-context) (point))
-                         'field_declaration)
-                        vars))))
-      vars)))
+  (let ((vars nil)
+        ;; We want nothing to do with funny syntaxing while doing this.
+        (semantic-unmatched-syntax-hook nil))
+    (while (not (semantic-up-context (point) 'function))
+      (save-excursion
+        (forward-char 1)
+        (setq vars
+              (append (semantic-bovinate-region-until-error
+                       (point)
+                       (save-excursion (semantic-end-of-context) (point))
+                       'field_declaration)
+                      vars))))
+    vars))
 
 ;;;;
 ;;;; Mode Hook
