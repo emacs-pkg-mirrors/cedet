@@ -17,8 +17,8 @@
    (ede-proj-target-elisp "lisp"
     :name "lisp"
     :path ""
-    :source '("wisent-csharp.el")
-    :aux-packages '("semantic-grammar" "wisent")
+    :source '("cedet-contrib.el" "wisent-csharp.el")
+    :aux-packages '("semantic-grammar" "wisent" "semantic-el")
     )
    )
   )
