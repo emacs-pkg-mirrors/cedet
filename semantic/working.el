@@ -1,9 +1,9 @@
 ;;; working --- Display a "working" message in the minibuffer.
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 1.3
+;; Version: 1.4
 ;; Keywords: status
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -142,7 +142,8 @@ Functions provided in `working' are:
 		 (const working-percent-bar-display)
 		 (const working-bubble-display)
 		 (const working-bubble-percent-display)
-		 (const working-celeron-percent-display)))
+		 (const working-celeron-percent-display)
+		 (const nil)))
 
 (defcustom working-status-dynamic-type 'working-celeron-display
   "*Function used to display an animation indicating progress being made.
@@ -158,7 +159,15 @@ it will take ahead of time.  Functions provided in `working' are:
 		 (const working-spinner-display)
 		 (const working-dotgrowth-display)
 		 (const working-celeron-display)
-		 (const working-bounce-display)))
+		 (const working-bounce-display)
+		 (const nil)))
+
+(defcustom working-percentage-step 2
+  "*Percentage display step.
+A number representing how large a step must be taken when working a
+percentage display.  A number such as `2' means `2%'."
+  :group 'working'
+  :type 'number)
 
 ;;; Variables used in stages
 ;;
@@ -167,6 +176,8 @@ it will take ahead of time.  Functions provided in `working' are:
 (defvar working-donestring nil
   "Done string stored when in a status loop.")
 (defvar working-ref1 nil
+  "A reference number used in a status loop.")
+(defvar working-last-percent 0
   "A reference number used in a status loop.")
 
 ;;; Programmer functions
@@ -183,10 +194,12 @@ See the function `message' for details on ARGS."
   (let ((log-message-filter-function #'ignore)) ;; No logging
     (apply 'message args)))
 
-(defalias 'working-message
-  (if (boundp 'log-message-filter-function)
-      'working-message-xemacs
-    'working-message-emacs))
+(eval-and-compile
+  (defalias 'working-message
+    (if (boundp 'log-message-filter-function)
+	'working-message-xemacs
+      'working-message-emacs))
+  )
 
 (defmacro working-status-forms (message donestr &rest forms)
   "Contain a block of code during which a working status is shown.
@@ -194,7 +207,8 @@ MESSAGE is the message string to use and DONESTR is the completed text
 to use when the functions `working-status' is called from FORMS."
   `(let ((working-message ,message)
 	 (working-donestring ,donestr)
-	 (working-ref1 0))
+	 (working-ref1 0)
+	 (working-last-percent 0))
      ,@forms))
 (put 'working-status-forms 'lisp-indent-function 2)
 
@@ -242,23 +256,32 @@ the current buffer.  If it is a number or float, use it as the raw
 percentile.
 Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
-  (let* ((p (or percent
-		(floor (* 100.0 (/ (float (point)) (point-max))))))
-	 (m1 (apply 'format working-message args))
-	 (m2 (funcall working-status-percentage-type (length m1) p)))
-    (working-message "%s%s" m1 m2)))
-
+  (when working-status-percentage-type
+    (let ((p (or percent
+		 (floor (* 100.0 (/ (float (point)) (point-max)))))))
+      (if (or (eq p t)
+	      (> (- p working-last-percent) working-percentage-step))
+	  (let* ((m1 (apply 'format working-message args))
+		 (m2 (funcall working-status-percentage-type (length m1) p))
+		 (log-message-filter-function #'ignore) ; No logging (XEmacs)
+	       (message-log-max))             ; No logging (Emacs)
+	    (working-message "%s%s" m1 m2)
+	    (setq working-last-percent p))))))
+  
 (defun working-dynamic-status (&optional number &rest args)
   "Called within the macro `working-status-forms', show the status.
 If NUMBER is nil, then increment a local NUMBER from 0 with each call.
 If it is a number or float, use it as the raw percentile.
 Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
-  (let* ((n (or number working-ref1))
-	 (m1 (apply 'format working-message args))
-	 (m2 (funcall working-status-dynamic-type (length m1) n)))
-    (working-message "%s%s" m1 m2)
-    (setq working-ref1 (1+ working-ref1))))
+  (when working-status-dynamic-type
+    (let* ((n (or number working-ref1))
+	   (m1 (apply 'format working-message args))
+	   (m2 (funcall working-status-dynamic-type (length m1) n))
+	   (log-message-filter-function #'ignore) ; No logging (XEmacs)
+	   (message-log-max))             ; No logging (Emacs)
+      (working-message "%s%s" m1 m2)
+      (setq working-ref1 (1+ working-ref1)))))
 
 ;;; Utilities
 ;;
