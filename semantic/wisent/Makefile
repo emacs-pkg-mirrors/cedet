@@ -11,9 +11,9 @@ ede_FILES=Project.ede Makefile
 
 tools_LISP=bison-wisent.el
 EMACS=emacs
-LOADPATH=../../common/ ../bovine/ ../ ../../common/ ../ ../../eieio/\
-   
-wisent_LISP=wisent.el wisent-bovine.el wisent-comp.el wisent-expr.el wisent-grammar.el wisent-debug.el wisent-grammar-macros.el
+LOADPATH=../../speedbar/ ../../common/ ../bovine/ ../\
+   ../../common/ ../ ../../eieio/ 
+wisent_LISP=wisent.el semantic-wisent.el wisent-comp.el wisent-expr.el wisent-grammar.el wisent-debug.el wisent-grammar-macros.el
 taggers_SEMANTIC_GRAMMAR=wisent-java-tags.wy wisent-awk.wy wisent-calc.wy wisent-cim.wy wisent-java.wy wisent-python.wy
 EMACS=emacs
 taggers_SAMENATIC_GRAMMAR_EL=wisent-java-tags-wy.el wisent-awk-wy.el wisent-calc-wy.el wisent-cim-wy.el wisent-java-wy.el wisent-python-wy.el
