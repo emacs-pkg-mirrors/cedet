@@ -7,13 +7,13 @@
    (ede-proj-target-elisp "bovinator"
     :name "bovinator"
     :path ""
-    :source '("semantic-bovine.el" "bovine-grammar.el" "semantic-bnf.el")
-    :aux-packages '("semantic" "speedbar" "wisent")
+    :source '("semantic-bovine.el" "bovine-grammar.el" "semantic-bnf.el" "bovine-debug.el")
+    :aux-packages '("semantic" "speedbar" "eieio" "wisent")
     )
    (ede-proj-target-makefile-miscelaneous "examples"
     :name "examples"
     :path ""
-    :source '("skeleton.bnf" "semantic-skel.el")
+    :source '("skeleton.bnf" "semantic-skel.el" "skeleton.by")
     )
    (ede-proj-target-elisp "languages"
     :name "languages"
@@ -28,7 +28,7 @@
    (ede-proj-target-makefile-miscelaneous "by"
     :name "by"
     :path ""
-    :source '("c.by")
+    :source '("c.by" "make.by" "scheme.by")
     )
    )
   )
