@@ -9,9 +9,8 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
-;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.6 2001/08/21 15:13:39 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.7 2001/08/30 14:01:35 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2078,24 +2077,6 @@ To be used in grammar recovery actions."
           (wisent-errok))
         ;; Return a nil value with adjusted start/end positions
         (cons nil (wisent-set-region start (1+ end)))))))
-
-;;;;
-;;;; Interface with the Semantic bovinator
-;;;;
-
-(condition-case nil
-    (progn
-      (require 'semantic)
-      (defsubst wisent-token (&rest return-val)
-        "Return a Semantic token including RETURN-VAL.
-To be used in Wisent LALR(1) grammar actions to build the
-`semantic-toplevel-bovine-cache'."
-        (list
-         (nconc return-val
-                (list nil (vector (car $region) (cdr $region))))))
-      )
-  (error
-   (message "Wisent Semantic interface not loaded")))
 
 ;;;; Other parser stuff
 
