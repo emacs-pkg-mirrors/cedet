@@ -5,10 +5,10 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.99 2001/02/19 02:32:22 zappo Exp $
+;; Version: 0.17
+;; RCS: $Id: eieio.el,v 1.100 2001/04/27 00:42:29 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "0.16"
+(defvar eieio-version "0.17"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -172,7 +172,11 @@ Stored outright without modifications or stripping.")
   ;; No check: If eieio gets this far, it's probably been checked already.
   `(get ,class `eieio-class-definition))
 
-(defmacro class-p (class) "Return t if CLASS is a valid class vector."
+(defmacro class-p (class)
+  "Return t if CLASS is a valid class vector.
+CLASS is a symbol.  Defclass will assign the class symbol to itself, so
+the shortcut (class-p foo) will work.  The form (class-p 'foo) is more
+robust."
   ;; this new method is faster since it doesn't waste time checking lots of
   ;; things.
   `(condition-case nil
@@ -382,24 +386,23 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     ;; Query each field in the declaration list and mangle into the
     ;; class structure I have defined.
     (while fields
-      (let* ((field1 (car fields))
-	     (name (car field1))
-	     (field (cdr field1))
-	     (acces (car (cdr (member ':accessor field))))
-	     (init-l (member ':initform field))
-	     ;; If there is no initform, then the slot is marked
-	     ;; unbound with the special unique symbol eieio-unbound.
-	     (init (if init-l (car (cdr init-l)) eieio-unbound))
-	     (initarg (car (cdr (member ':initarg field))))
-	     (docstr (car (cdr (member ':documentation field))))
-	     (prot (car (cdr (member ':protection field))))
-	     (reader (car (cdr (member ':reader field))))
-	     (writer (car (cdr (member ':writer field))))
-	     (alloc (car (cdr (member ':allocation field))))
-	     (type (member ':type field))
-	     (custom (car (cdr (member ':custom field))))
-	     (label (car (cdr (member ':label field))))
-	     (customg (car (cdr (member ':group field))))
+      (let* ((field1  (car fields))
+	     (name    (car field1))
+	     (field   (cdr field1))
+	     (acces   (plist-get field ':accessor))
+	     (init    (or (plist-get field ':initform)
+			  (if (member ':initform field) nil
+			    eieio-unbound)))
+	     (initarg (plist-get field ':initarg))
+	     (docstr  (plist-get field ':documentation))
+	     (prot    (plist-get field ':protection))
+	     (reader  (plist-get field ':reader))
+	     (writer  (plist-get field ':writer))
+	     (alloc   (plist-get field ':allocation))
+	     (type    (plist-get field ':type))
+	     (custom  (plist-get field ':custom))
+	     (label   (plist-get field ':label))
+	     (customg (plist-get field ':group))
 	     
 	     (skip-nil (class-option-assoc (aref newc class-options)
 					   :allow-nil-initform))
@@ -432,8 +435,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	      (t (signal 'invalid-slot-type (list ':protection prot))))
 
 	;; The default type specifier is supposed to be t, meaning anything.
-	(if (not type) (setq type t)
-	  (setq type (car (cdr type))))
+	(if (not type) (setq type t))
 
 	;; Label is nil, or a string
 	(if (not (or (null label) (stringp label)))
@@ -795,7 +797,10 @@ The class' constructor requires a name for use when printing.
 class is used as the name slot instead when INITARGS doesn't start with
 a string.  The rest of INITARGS are label/value pairs.  The label's
 are the symbols created with the :initarg tag from the `defclass' call.
-The value is the value stored in that slot."
+The value is the value stored in that slot.
+CLASS is a symbol.  Defclass will assign the class symbol to itself, so
+the shortcut (make-instance foo) will work.  The form (make-instance 'foo)
+is more robust."
   (if (and (car initargs) (stringp (car initargs)))
       (apply (class-constructor class) initargs)
     (apply  (class-constructor class) class initargs)))
@@ -895,10 +900,7 @@ doc string, and eventually the body, such as:
   ;; typep is in cl-macs
   (or (eq spec t)			; t always passes
       (eq value eieio-unbound)		; unbound always passes
-      (if (class-p spec)
-	  (or (and (class-p value) (child-of-class-p value spec))
-	      (and (object-p value) (obj-of-class-p value spec)))
-	(typep value spec))))
+      (typep value spec)))
 
 (defun eieio-validate-slot-value (class field-idx value field)
   "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
