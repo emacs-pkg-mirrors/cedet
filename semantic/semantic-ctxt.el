@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.11 2001/08/30 12:42:15 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.12 2001/09/18 20:24:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -45,8 +45,8 @@ Used for identifying the end of a single command.")
 
 (defvar semantic-function-argument-separation-character
  ","
-  "String which indicates the end of a command.
-Used for identifying the end of a single command.")
+  "String which indicates the end of an argument.
+Used for identifying arguments to functions.")
 (make-variable-buffer-local 'semantic-function-argument-separation-character)
 
 ;;; Local variable parsing.
