@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-comp.el,v 1.1 2000/09/24 15:33:16 zappo Exp $
+;; RCS: $Id: ede-proj-comp.el,v 1.2 2000/10/01 01:22:26 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -202,15 +202,16 @@ This will prevent rules from creating duplicate variables or rules."
 
 (defmethod ede-proj-makefile-insert-variables ((this ede-compiler))
   "Insert variables needed by the compiler THIS."
-  (with-slots (variables) this
-    (while variables
-      (insert (car (car variables)) "=")
-      (let ((cd (cdr (car variables))))
-	(if (listp cd)
-	    (mapcar (lambda (c) (insert " " c)) cd)
-	  (insert cd)))
-      (insert "\n")
-      (setq variables (cdr variables)))))
+  (if (slot-boundp this 'variables)
+      (with-slots (variables) this
+	(while variables
+	  (insert (car (car variables)) "=")
+	  (let ((cd (cdr (car variables))))
+	    (if (listp cd)
+		(mapc (lambda (c) (insert " " c)) cd)
+	      (insert cd)))
+	  (insert "\n")
+	  (setq variables (cdr variables))))))
 
 (defmethod ede-compiler-intermediate-objects-p ((this ede-compiler))
   "Return non-nil if THIS has intermediate object files."
@@ -234,23 +235,23 @@ Not all compilers do this."
 	(insert (ede-compiler-intermediate-object-variable this targetname)
 		"=")
 	(let ((src (oref this sourcetype)))
-	  (mapcar (lambda (s)
-		    (let ((ts src))
-		      (while (and ts (not (ede-want-file-source-p
-					   (symbol-value (car ts)) s)))
-			(setq ts (cdr ts)))
-		      ;; Only insert the object if the given file is a major
-		      ;; source-code type.
-		      (if ts ;; a match as a source file.
-			  (insert " " (file-name-sans-extension s)
-				  (oref this objectextention)))))
-		  sourcefiles)
+	  (mapc (lambda (s)
+		  (let ((ts src))
+		    (while (and ts (not (ede-want-file-source-p
+					 (symbol-value (car ts)) s)))
+		      (setq ts (cdr ts)))
+		    ;; Only insert the object if the given file is a major
+		    ;; source-code type.
+		    (if ts;; a match as a source file.
+			(insert " " (file-name-sans-extension s)
+				(oref this objectextention)))))
+		sourcefiles)
 	  (insert "\n")))))
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-compiler))
   "Insert rules needed for THIS compiler object."
   (ede-compiler-only-once this
-    (mapcar 'ede-proj-makefile-insert-rules (oref this rules))))
+    (mapc 'ede-proj-makefile-insert-rules (oref this rules))))
 
 (defmethod ede-proj-makefile-insert-rules ((this ede-makefile-rule))
   "Insert rules needed for THIS rule object."
