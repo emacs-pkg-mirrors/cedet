@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.94 2002/07/10 03:53:38 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.95 2002/07/15 10:28:51 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1861,9 +1861,9 @@ Argument NOSNARF means don't modify the found text.
 If NOSNARF is 'flex, then return the flex token."
   (let ((semantic-ignore-comments nil))
     (if (eq nosnarf 'flex)
-	(car (semantic-flex (point) (1+ (point))))
+	(car (semantic-lex (point) (1+ (point))))
       (let ((ct (semantic-flex-text
-		 (car (semantic-flex (point) (1+ (point)))))))
+		 (car (semantic-lex (point) (1+ (point)))))))
 	(if nosnarf
 	    nil
 	  ;; ok, try to clean the text up.
