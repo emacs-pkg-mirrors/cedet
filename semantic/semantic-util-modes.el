@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.28 2003/03/16 13:04:56 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.29 2003/03/17 01:20:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1049,21 +1049,28 @@ minor mode is enabled.
   "Make the function at the top of the current window sticky.
 Capture it's function declaration, and place it in the header line.
 If there is no function, disable the header line."
-  (save-excursion
-    (goto-char (window-start (selected-window)))
-    (forward-line -1)
-    (end-of-line)
-    ;; Capture this function
-    (let ((tag (semantic-current-nonterminal)))
-      (if (or (not tag)
-	      (not (member (semantic-token-token tag)
-			   semantic-stickyfunc-sticky-classes)))
-	  ;; Set it to be the text under the header line
-	  (buffer-substring (point-at-bol) (point-at-eol))
-	;; Get it
-	(goto-char (semantic-token-start tag))
-	(buffer-substring (point) (point-at-eol))
-	))))
+  (let ((str
+	 (save-excursion
+	   (goto-char (window-start (selected-window)))
+	   (forward-line -1)
+	   (end-of-line)
+	   ;; Capture this function
+	   (let ((tag (semantic-current-nonterminal)))
+	     (if (or (not tag)
+		     (not (member (semantic-token-token tag)
+				  semantic-stickyfunc-sticky-classes)))
+		 ;; Set it to be the text under the header line
+		 (buffer-substring (point-at-bol) (point-at-eol))
+	       ;; Get it
+	       (goto-char (semantic-token-start tag))
+	       (buffer-substring (point-at-bol) (point-at-eol))
+	       ))))
+	(start 0))
+    (while (string-match "%" str start)
+      (setq str (replace-match "%%" t t str 0)
+	    start (1+ (match-end 0)))
+      )
+    str))
 
 (semantic-add-minor-mode 'semantic-stickyfunc-mode
                          "" ;; Don't need indicator.  It's quite visible
