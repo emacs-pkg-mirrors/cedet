@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.22 1999/09/15 23:19:07 zappo Exp $
+@c $Id: eieio.texi,v 1.23 1999/09/16 18:41:16 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -585,7 +585,7 @@ function into a generic function.
 @var{:BEFORE | :AFTER} represent when this form is to be called.  If
 neither of these symbols are present, then the default priority is,
 before @var{:AFTER}, after @var{:BEFORE}, and is represented in CLOS as
-@varP{PRIMARY}.
+@var{PRIMARY}.
 
 @code{arglist} is the argument list.  Unlike CLOS, only the FIRST
 argument may be type-cast, and it may only be type-cast to an EIEIO
@@ -621,7 +621,7 @@ arguments the next method would be called with.  Useful if a child class
 wishes to add additional behaviours through the modification of the
 parameters.  This is not a feature of CLOS.
 
-@xref{Default Superclass} for example code.
+For example code @xref{Default Superclass}.
 
 @end defun
 
@@ -653,10 +653,10 @@ is not a copy.  Changing this vector changes the class.  The CLOS method
 CLOS function.  In EIEIO it returns the vector definition of the class.
 If there is no class, @code{nil} is returned if @var{errorp} is
 @code{nil}.
-#end defun
+@end defun
 
 @defun class-p class
-Return non-@code{nil if @var{class} is a class type.
+Return non-@code{nil} if @var{class} is a class type.
 @end defun
 
 @defun object-p obj
