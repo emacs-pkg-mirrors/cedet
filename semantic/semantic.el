@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.85 2001/02/21 20:47:20 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.86 2001/02/22 02:46:19 zappo Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -278,9 +278,14 @@ as part of the token stream.")
 (make-variable-buffer-local 'semantic-ignore-comments)
 
 (defvar semantic-expand-nonterminal nil
-  "Function to call for each returned Non-terminal.
+  "Function to call for each nonterminal production.
 Return a list of non-terminals derived from the first argument, or nil
-if it does not need to be expanded.")
+if it does not need to be expanded.
+Languages with compound definitions should use this function to expand
+from one compound symbol into several.  For example, in C the definition
+  int a, b;
+is easily parsed into one token.  This function should take this
+compound token and turn it into two tokens, one for A, and the other for B.")
 (make-variable-buffer-local 'semantic-expand-nonterminal)
 
 (defvar semantic-toplevel-bovine-cache nil
@@ -1275,7 +1280,8 @@ apply those properties"
     obarray))
 
 (defun semantic-flex-keyword-p (text)
-  "Return a symbol if TEXT is a keyword in the keyword table."
+  "Return a symbol if TEXT is a keyword in the keyword table.
+Return nil if TEXT is not in the symbol table."
   (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
     (if sym (symbol-value sym))))
 
@@ -1324,7 +1330,11 @@ PROPERTY value."
   "Buffer local extensions to the lexical analyzer.
 This should contain an alist with a key of a regex and a data element of
 a function.  The function should both move point, and return a lexical
-token of the form ( TYPE START .  END).  nil is also a valid return.")
+token of the form:
+  ( TYPE START .  END)
+nil is also a valid return.
+TYPE can be any type of symbol, as long as it doesn't occur as a
+nonterminal in the language definition.")
 (make-variable-buffer-local 'semantic-flex-extensions)
 
 (defvar semantic-flex-syntax-modifications nil
