@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.24 1997/02/07 04:28:26 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.25 1997/02/08 21:43:39 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -34,13 +34,25 @@
 ;;; files are displayed.  These items can be clicked on with mouse-2
 ;;; in order to make the last active frame display that file location.
 ;;;
+;;;   To use speedbar, add this to your .emacs file:
+;;;;
+;;;   (autoload 'speedbar-frame-mode "speedbar" "Popup a speedbar frame" t)
+;;;   (autoload 'speedbar-get-focus "speedbar" "Jump to speedbar frame" t)
+;;;
 ;;;   If you want to choose it from a menu or something, do this:
 ;;;
-;;;   (autoload 'speedbar-frame-mode "speedbar" "Popup a speedbar frame" t)
 ;;;   (define-key-after (lookup-key global-map [menu-bar tools])
 ;;;      [speedbar] '("Speedbar" . speedbar-frame-mode) [calendar])
 ;;;
-;;;   To activate speedbar without the menu, type: M-x speedbar-frame-mode RET
+;;;   If you want to access speedbar using only the keyboard, do this:
+;;;
+;;;   (define-key global-map [f4] 'speedbar-get-focus)
+;;;
+;;;   This will let you hit f4 (or whatever key you choose) to jump
+;;; focus to the speedbar frame.  Pressing RET or e to jump to a file
+;;; or tag will move you back to the attached frame.  The command
+;;; `speedbar-get-fucus' will also create a speedbar frame if it does
+;;; not exist.
 ;;;
 ;;;   Once a speedbar frame is active, it takes advantage of idle time
 ;;; to keep it's contents updated.  The contents is usually a list of
@@ -178,6 +190,10 @@
 ;;;       Long directories are now span multiple lines autmoatically
 ;;;       Added `speedbar-directory-button-trim-method' to specify how to
 ;;;         sorten the directory button to fit on the screen.
+;;; 0.4.2 Add one level of full-text cache.
+;;;       Add `speedbar-get-focus' to switchto/raise the speedbar frame.
+;;;       Editing thing-on-line will auto-raise the attached frame.
+;;;       Bound `U' to `speedbar-up-directory' command.
 ;;;
 ;;; TODO:
 ;;; 1) Implement SHIFT-mouse2 to rescan buffers with imenu.
@@ -283,7 +299,7 @@ Any file checked out is marked with `speedbar-vc-indicator'")
 examination of version control")
 
 (defvar speedbar-ignored-modes
-  '(Info-mode)
+  '(Info-mode rmail-mode)
   "*List of major modes which speedbar will not switch directories for.")
 
 (defvar speedbar-file-unshown-regexp
@@ -380,18 +396,22 @@ this is `nil' then speedbar will not follow the attached frame's path.")
   (setq speedbar-key-map (make-keymap))
   (suppress-keymap speedbar-key-map t)
 
+  ;; control
   (define-key speedbar-key-map "e" 'speedbar-edit-line)
   (define-key speedbar-key-map "\C-m" 'speedbar-edit-line)
   (define-key speedbar-key-map "+" 'speedbar-expand-line)
   (define-key speedbar-key-map "-" 'speedbar-contract-line)
-  (define-key speedbar-key-map "r" 'speedbar-refresh)
+  (define-key speedbar-key-map "g" 'speedbar-refresh)
   (define-key speedbar-key-map "t" 'speedbar-toggle-updates)
+  (define-key speedbar-key-map "q" 'speedbar-close-frame)
+  (define-key speedbar-key-map "U" 'speedbar-up-directory)
+
+  ;; navigation
   (define-key speedbar-key-map "n" 'speedbar-next)
   (define-key speedbar-key-map "p" 'speedbar-prev)
   (define-key speedbar-key-map " " 'speedbar-scroll-up)
   (define-key speedbar-key-map "\C-?" 'speedbar-scroll-down)
   
-  (define-key speedbar-key-map "q" 'speedbar-frame-mode)
 
   ;; After much use, I suddenly desired in my heart to perform dired
   ;; style operations since the directory was RIGHT THERE!
@@ -531,6 +551,9 @@ this is `nil' then speedbar will not follow the attached frame's path.")
   "The frame displaying speedbar.")
 (defvar speedbar-cached-frame nil
   "The frame that was last created, then removed from the display.")
+(defvar speedbar-full-text-cache nil
+  "The last open directory is saved in it's entirety for ultra-fast
+directory switching (between two directories)")
 (defvar speedbar-timer nil
   "The speedbar timer used for updating the buffer.")
 (defvar speedbar-attached-frame nil
@@ -580,13 +603,13 @@ supported at a time."
 	    (kill-buffer speedbar-buffer)))
     ;; Set this as our currently attached frame
     (setq speedbar-attached-frame (selected-frame))
-    ;; Get the buffer to play with
-    (speedbar-mode)
     ;; Get the frame to work in
     (if (frame-live-p speedbar-cached-frame)
 	(progn
 	  (setq speedbar-frame speedbar-cached-frame)
 	  (modify-frame-parameters speedbar-frame '((visibility . t)))
+	  ;; Get the buffer to play with
+	  (speedbar-mode)
 	  (select-frame speedbar-frame)
 	  (switch-to-buffer speedbar-buffer)
 	  (raise-frame speedbar-frame)
@@ -606,6 +629,8 @@ supported at a time."
 	(setq speedbar-last-selected-file nil)
 	;; Put the buffer into the frame
 	(save-window-excursion
+	  ;; Get the buffer to play with
+	  (speedbar-mode)
 	  (select-frame speedbar-frame)
 	  (switch-to-buffer speedbar-buffer)
 	  (set-window-dedicated-p (selected-window) t)
@@ -627,10 +652,13 @@ supported at a time."
   (interactive)
   (speedbar-frame-mode -1))
 
-(defun speedbar-mode ()
-  "Create and return a SPEEDBAR buffer.
+(defun speedbar-frame-width ()
+  "Return the width of the speedbar frame in characters.  nil if it doesn't
+exist."
+  (and speedbar-frame (cdr (assoc 'width (frame-parameters speedbar-frame)))))
 
-The speedbar buffer allows the user to manage a list of directories
+(defun speedbar-mode ()
+  "The speedbar buffer allows the user to manage a list of directories
 and paths at different depths.  The first line represents the default
 path of the speedbar frame.  Each directory segment is a button which
 jumps speedbar's default directory to that path.  Buttons are
@@ -663,10 +691,19 @@ in the selected file.
 
 Keybindings: \\<speedbar-key-map>
 \\[speedbar-click]  Activate the button under the mouse.
-\\[speedbar-edit-line]        Edit the file/directory on this line.  Same as clicking 
-           on the name on the selected line.)
+\\[speedbar-edit-line]      Edit the file/directory on this line.  Same as clicking 
+         on the name on the selected line.
+\\[speedbar-up-directory]        Navigate up one directory.
 \\[speedbar-expand-line]        Expand the current line.  Same as clicking on the + on a line.
 \\[speedbar-contract-line]        Contract the current line.  Same as clicking on the - on a line.
+\\[speedbar-refresh]        Refresh the speedbar buffer from disk.
+\\[speedbar-toggle-updates]        Turn off speedbar timers
+\\[speedbar-frame-mode]        Exit speedbar
+
+\\[speedbar-next]        Move to the next item on the speedbar
+\\[speedbar-prev]        Move to the prev item on the speedbar
+\\[speedbar-scroll-up]      Scroll to the next page
+\\[speedbar-scroll-down]      Scroll to the prev page
 
 \\[speedbar-mouse-item-info]  Get info about item on current line.
 \\[speedbar-item-info]     Get info about item on current line.
@@ -678,27 +715,28 @@ Keybindings: \\<speedbar-key-map>
 \\[speedbar-item-delete]   Delete the item under cursor
 "
   ;; NOT interactive
-  (setq speedbar-buffer (set-buffer (get-buffer-create "SPEEDBAR")))
-  (kill-all-local-variables)
-  (setq major-mode 'speedbar-mode)
-  (setq mode-name "Speedbar")
-  (use-local-map speedbar-key-map)
-  (set-syntax-table speedbar-syntax-table)
-  (setq font-lock-keywords nil) ;; no font-locking please
-  (setq truncate-lines t)
-  (make-local-variable 'temp-buffer-show-function)
-  (setq temp-buffer-show-function 'speedbar-temp-buffer-show-function)
-  (setq kill-buffer-hook '(lambda () (let ((skilling (boundp 'skilling)))
-				       (if skilling
-					   nil
-					 (if (eq (current-buffer)
-						 speedbar-buffer)
-					     (speedbar-frame-mode -1))))))
-  (speedbar-set-mode-line-format)
-  (if (not speedbar-xemacsp) (setq auto-show-mode nil))	;no auto-show for FSF
-  (run-hooks 'speedbar-mode-hook)
+  (save-excursion
+    (setq speedbar-buffer (set-buffer (get-buffer-create "SPEEDBAR")))
+    (kill-all-local-variables)
+    (setq major-mode 'speedbar-mode)
+    (setq mode-name "Speedbar")
+    (use-local-map speedbar-key-map)
+    (set-syntax-table speedbar-syntax-table)
+    (setq font-lock-keywords nil) ;; no font-locking please
+    (setq truncate-lines t)
+    (make-local-variable 'temp-buffer-show-function)
+    (setq temp-buffer-show-function 'speedbar-temp-buffer-show-function)
+    (setq kill-buffer-hook '(lambda () (let ((skilling (boundp 'skilling)))
+					 (if skilling
+					     nil
+					   (if (eq (current-buffer)
+						   speedbar-buffer)
+					       (speedbar-frame-mode -1))))))
+    (speedbar-set-mode-line-format)
+    (if (not speedbar-xemacsp) (setq auto-show-mode nil))	;no auto-show for FSF
+    (run-hooks 'speedbar-mode-hook))
   (speedbar-update-contents)
-  )
+  speedbar-buffer)
 
 (defun speedbar-set-mode-line-format ()
   "Sets the format of the mode line based on the current speedbar
@@ -707,15 +745,18 @@ the speedbar frame and window to be the currently active frame and window."
   (if (frame-live-p speedbar-frame)
       (save-excursion
 	(set-buffer speedbar-buffer)
-	(let* ((w (window-width 
-		   (get-buffer-window speedbar-buffer speedbar-frame)))
+	(let* ((w (or (speedbar-frame-width) 20))
 	       (p1 "<<")
 	       (p5 ">>")
 	       (p3 (if speedbar-do-update "SPEEDBAR" "SLOWBAR"))
 	       (blank (- w (length p1) (length p3) (length p5)
 			 (if line-number-mode 4 0)))
-	       (p2 (make-string (/ blank 2) ? ))
-	       (p4 (make-string (+ (/ blank 2) (% blank 2)) ? ))
+	       (p2 (if (wholenump blank)
+		       (make-string (/ blank 2) ? )
+		     ""))
+	       (p4 (if (wholenump blank)
+		       (make-string (+ (/ blank 2) (% blank 2)) ? )
+		     ""))
 	       (tf
 		(if line-number-mode
 		    (list (concat p1 p2 p3) '(line-number-mode " %3l")
@@ -753,10 +794,23 @@ modeline.  This is only useful for non-XEmacs"
     ;;(message "X: Pixel %d Char Pixels %d On char %d" xp cpw oc)
     ))
 
+(defun speedbar-get-focus ()
+  "Move to the speedbar frame if it is available."
+  (interactive)
+  (if (eq (selected-frame) speedbar-frame)
+      (if (frame-live-p speedbar-attached-frame)
+	  (select-frame speedbar-attached-frame))
+    ;; make sure we have a frame
+    (if (not (frame-live-p speedbar-frame)) (speedbar-frame-mode 1))
+    ;; go there
+    (select-frame speedbar-frame))
+  (other-frame 0))
+
 (defun speedbar-next (arg)
   "Move to the next line in a speedbar buffer"
   (interactive "p")
   (forward-line (or arg 1))
+  (speedbar-item-info)
   (speedbar-position-cursor-on-line))
 
 (defun speedbar-prev (arg)
@@ -771,9 +825,17 @@ modeline.  This is only useful for non-XEmacs"
   (speedbar-position-cursor-on-line))
 
 (defun speedbar-scroll-down (&optional arg)
+  "Scroll down one page"
   (interactive "P")
   (scroll-down arg)
   (speedbar-position-cursor-on-line))
+
+(defun speedbar-up-directory ()
+  "Keyboard accelerator for moving the default directory up one.
+Assumes that the current buffer is the speedbar buffer"
+  (interactive)
+  (setq default-directory (expand-file-name (concat default-directory "../")))
+  (speedbar-update-contents))
 
 ;;;
 ;;; Speedbar file activity
@@ -781,7 +843,11 @@ modeline.  This is only useful for non-XEmacs"
 (defun speedbar-refresh ()
   "Refresh the current speedbar display, disposing of any cahced data."
   (interactive)
-  (adelete 'speedbar-directory-contents-alist default-directory)
+  (let ((dl speedbar-shown-directories))
+    (while dl
+      (adelete 'speedbar-directory-contents-alist (car dl))
+      (setq dl (cdr dl))))
+  (setq speedbar-full-text-cache nil)
   (if (<= 1 speedbar-verbosity-level) (message "Refreshing speedbar..."))
   (speedbar-update-contents)
   (speedbar-stealthy-updates)
@@ -848,7 +914,8 @@ Files can be copied to new names or places."
     (if (file-directory-p f)
 	(error "Cannot copy directory.")
       (let* ((rt (read-file-name (format "Copy %s to: "
-					 (file-name-nondirectory f))))
+					 (file-name-nondirectory f))
+				 (file-name-directory f)))
 	     (refresh (member (expand-file-name (file-name-directory rt))
 			      speedbar-shown-directories)))
 	;; Create the right file name part
@@ -862,7 +929,12 @@ Files can be copied to new names or places."
 	    (progn
 	      (copy-file f rt t t)
 	      ;; refresh display if the new place is currently displayed.
-	      (if refresh (speedbar-refresh))))))))
+	      (if refresh 
+		  (progn
+		    (speedbar-refresh)
+		    (if (not (speedbar-goto-this-file rt))
+			(speedbar-goto-this-file f))))
+	      ))))))
 
 
 (defun speedbar-item-rename ()
@@ -872,7 +944,8 @@ Files can be renamed to new names or moved to new directories."
   (let ((f (speedbar-line-file)))
     (if f
 	(let* ((rt (read-file-name (format "Rename %s to: "
-					   (file-name-nondirectory f))))
+					   (file-name-nondirectory f))
+				   (file-name-directory f)))
 	       (refresh (member (expand-file-name (file-name-directory rt))
 				speedbar-shown-directories)))
 	  ;; Create the right file name part
@@ -886,7 +959,11 @@ Files can be renamed to new names or moved to new directories."
 	      (progn
 		(rename-file f rt t)
 		;; refresh display if the new place is currently displayed.
-		(if refresh (speedbar-refresh)))))
+		(if refresh 
+		    (progn
+		      (speedbar-refresh)
+		      (speedbar-goto-this-file rt)
+		      )))))
       (error "Not a file."))))
 
 (defun speedbar-item-delete ()
@@ -900,7 +977,10 @@ Files can be renamed to new names or moved to new directories."
 	      (delete-directory f)
 	    (delete-file f))
 	  (message "Okie dokie..")
-	  (speedbar-refresh)))
+	  (let ((p (point)))
+	    (speedbar-refresh)
+	    (goto-char p))
+	  ))
     ))
 
 
@@ -964,6 +1044,7 @@ The car is the list of directories, the cdr is list of files not
 matching ignored headers.  Cache any directory files found in
 `speedbar-directory-contents-alist' and use that cache before scanning
 the filesystem"
+  (setq directory (expand-file-name directory))
   (or (cdr-safe (assoc directory speedbar-directory-contents-alist))
       (let ((default-directory directory)
 	    (dir (directory-files directory nil))
@@ -1007,24 +1088,32 @@ matches the user directory ~, then it is replaced with a ~"
       ;; Nuke the beginning of the directory if it's too long...
       (cond ((eq speedbar-directory-button-trim-method 'span)
 	     (beginning-of-line)
-	     (let ((ww (window-width (get-buffer-window speedbar-buffer
-							speedbar-frame))))
+	     (let ((ww (or (speedbar-frame-width) 20)))
 	       (move-to-column ww nil)
 	       (while (>= (current-column) ww)
 		 (re-search-backward "/" nil t)
-		 (insert "/...\n..")
-		 (move-to-column ww nil))))
+		 (if (<= (current-column) 2)
+		     (progn
+		       (re-search-forward "/" nil t)
+		       (if (< (current-column) 4)
+			   (re-search-forward "/" nil t))
+		       (forward-char -1)))
+		 (if (looking-at "/?$")
+		     (beginning-of-line)
+		   (insert "/...\n ")
+		   (move-to-column ww nil)))))
 	    ((eq speedbar-directory-button-trim-method 'trim)
 	     (end-of-line)
-	     (let ((ww (window-width (get-buffer-window speedbar-buffer
-							speedbar-frame)))
+	     (let ((ww (or (speedbar-frame-width) 20))
 		   (tl (current-column)))
-	       (move-to-column (- tl ww))
-	       (if (re-search-forward "/" nil t)
+	       (if (< ww tl)
 		   (progn
-		     (delete-region (point-min) (point))
-		     (insert "$")
-		     )))))
+		     (move-to-column (- tl ww))
+		     (if (re-search-backward "/" nil t)
+			 (progn
+			   (delete-region (point-min) (point))
+			   (insert "$")
+			   )))))))
       )
     (if (string-match "^/[^/]+/$" displayme)
 	(progn
@@ -1036,6 +1125,7 @@ matches the user directory ~, then it is replaced with a ~"
 				  'speedbar-highlight-face
 				  'speedbar-directory-buttons-follow
 				  "/"))))
+    (end-of-line)
     (insert-char ?\n 1 nil)))
 
 (defun speedbar-make-tag-line (exp-button-type
@@ -1132,7 +1222,25 @@ cell of the form ( 'dir-list . 'file-list )"
   (speedbar-insert-files-at-point
    (speedbar-file-lists directory) index)
   (speedbar-reset-scanners)
-  )
+  (if (= index 0)
+      ;; If the shown files variable has extra directories, then
+      ;; it is our responsibility to redraw them all
+      ;; Luckilly, the nature of inserting items into this list means
+      ;; that by reversing it, we can easilly go in the right order
+      (let ((sf (cdr (reverse speedbar-shown-directories))))
+	(setq speedbar-shown-directories 
+	      (list (expand-file-name default-directory)))
+	;; exand them all as we find them
+	(while sf
+	  (if (speedbar-goto-this-file (car sf))
+	      (progn
+		(beginning-of-line)
+		(if (looking-at "[0-9]+:[ ]*<")
+		    (progn
+		      (goto-char (match-end 0))
+		  (speedbar-do-function-pointer)))
+		(setq sf (cdr sf)))))
+	)))
 
 (defun speedbar-insert-generic-list (level lst expand-fun find-fun)
   "At LEVEL, inserts a generic multi-level alist LIST.
@@ -1169,17 +1277,33 @@ name will have the function FIND-FUN and not token."
   "Update the contents of the speedbar buffer."
   (interactive)
   (setq speedbar-last-selected-file nil)
-  (setq speedbar-shown-directories (list (expand-file-name default-directory)))
   (let ((cbd default-directory)
-	(funclst speedbar-initial-expansion-list))
+	(funclst speedbar-initial-expansion-list)
+	(cache speedbar-full-text-cache)
+	;; disable stealth during update
+	(speedbar-stealthy-function-list nil))
     (save-excursion
       (set-buffer speedbar-buffer)
+      ;; If we `moved' erase the shown directories, otherwise we need it
+      ;; Only cache the text of this window if we are moving as well.
+      (if (not (member (expand-file-name default-directory)
+		       speedbar-shown-directories))
+	  (progn
+	    (setq speedbar-shown-directories 
+		  (list (expand-file-name default-directory))
+		  cache nil)
+	    (if (> (point-max) 1)
+		(setq speedbar-full-text-cache
+		      (cons default-directory (buffer-string))))))
       (speedbar-with-writable
 	(setq default-directory cbd)
-	(delete-region (point-min) (point-max))
-	(while funclst
-	  (funcall (car funclst) cbd 0)
-	  (setq funclst (cdr funclst)))))))
+	(erase-buffer)
+	(if (and (car cache) (string= default-directory (car cache)))
+	    (insert (cdr cache))
+	  (while funclst
+	    (funcall (car funclst) cbd 0)
+	    (setq funclst (cdr funclst)))))
+      (goto-char (point-min)))))
 
 (defun speedbar-timer-fn ()
   "Run whenever emacs is idle to update the speedbar item."
@@ -1256,7 +1380,8 @@ updated."
 		    (select-frame lastf)
 		    rf)))
 	 (newcf (if newcfd (file-name-nondirectory newcfd)))
-	 (lastb (current-buffer)))
+	 (lastb (current-buffer))
+	 (sucf-recursive (boundp 'sucf-recursive)))
     (if (and newcf 
 	     ;; check here, that way we won't refresh to newcf until
 	     ;; its been written, thus saving ourselves some time
@@ -1305,8 +1430,10 @@ updated."
 		;; if it's not in there now, whatever...
 		))
 	    (setq speedbar-last-selected-file newcf))
-	  (forward-line -1)
-	  (speedbar-position-cursor-on-line)
+	  (if (not sucf-recursive)
+	      (progn
+		(forward-line -1)
+		(speedbar-position-cursor-on-line)))
 	  (set-buffer lastb)
 	  (select-frame lastf))))
   ;; return that we are done with this activity.
@@ -1394,58 +1521,101 @@ that will occur on your system."
 
 (defun speedbar-position-cursor-on-line ()
   "Position the cursor on a line."
-  (beginning-of-line)
-  (if (looking-at "[0-9]+:\\s-*..?.? ")
-      (goto-char (1- (match-end 0)))))
+  (let ((oldpos (point)))
+    (beginning-of-line)
+    (if (looking-at "[0-9]+:\\s-*..?.? ")
+	(goto-char (1- (match-end 0)))
+      (goto-char oldpos))))
 
 (defun speedbar-line-file (&optional p)
   "Retrieve the file or whatever from the line at P point.
 The return value is a string representing the file.  If it is a
 directory, then it is the directory name."
   (save-excursion
-    (beginning-of-line)
-    (if (looking-at (concat
-		     "\\([0-9]+\\): *[[<][-+][]>] \\([^ \n]+\\)\\("
-		     (regexp-quote speedbar-vc-indicator)
-		     "\\)?"))
-	(let* ((depth (string-to-int (match-string 1)))
-	       (path (speedbar-line-path depth))
-	       (f (match-string 2)))
-	  (concat path f))
-      nil)))
+    (save-match-data
+      (beginning-of-line)
+      (if (looking-at (concat
+		       "\\([0-9]+\\): *[[<][-+][]>] \\([^ \n]+\\)\\("
+		       (regexp-quote speedbar-vc-indicator)
+		       "\\)?"))
+	  (let* ((depth (string-to-int (match-string 1)))
+		 (path (speedbar-line-path depth))
+		 (f (match-string 2)))
+	    (concat path f))
+	nil))))
+
+(defun speedbar-goto-this-file (file)
+  "If FILE is displayed, goto this line and return t, otherwise do not move
+and return nil."
+  (let ((path (substring (file-name-directory (expand-file-name file))
+			 (length (expand-file-name default-directory))))
+	(dest (point)))
+    (save-match-data
+      (goto-char (point-min))
+      ;; scan all the directories
+      (while (and path (not (eq path t)))
+	(if (string-match "^/?\\([^/]+\\)" path)
+	    (let ((pp (match-string 1 path)))
+	      (if (save-match-data
+		    (re-search-forward (concat "> " (regexp-quote pp) "$")
+				       nil t))
+		  (setq path (substring path (match-end 1)))
+		(setq path nil)))
+	  (setq path t)))
+      ;; find the file part
+      (if (or (not path) (string= (file-name-nondirectory file) ""))
+	  ;; only had a dir part
+	  (if path 
+	      (progn
+		(speedbar-position-cursor-on-line)
+		t)
+	    (goto-char dest) nil)
+	;; find the file part
+	(let ((nd (file-name-nondirectory file)))
+	  (if (re-search-forward 
+	       (concat "] " (regexp-quote nd)
+		       "\\(" (regexp-quote speedbar-vc-indicator) "\\)?$")
+	       nil t)
+	      (progn
+		(speedbar-position-cursor-on-line)
+		t)
+	    (goto-char dest)
+	    nil))))))
 
 (defun speedbar-line-path (depth)
   "Retrieve the pathname associated with the current line.
 This may require traversing backwards and combinding the default
 directory with these items."
   (save-excursion
-    (let ((path nil))
-      (setq depth (1- depth))
-      (while (/= depth -1)
-	(if (not (re-search-backward (format "^%d:" depth) nil t))
-	    (error "Error building path of tag")
-	  (cond ((looking-at "[0-9]+:\\s-*<->\\s-+\\([^\n]+\\)$")
-		 (setq path (concat (buffer-substring-no-properties
-				     (match-beginning 1) (match-end 1))
-				    "/"
-				    path)))
-		((looking-at "[0-9]+:\\s-*[-]\\s-+\\([^\n]+\\)$")
-		 ;; This is the start of our path.
-		 (setq path (buffer-substring-no-properties
-			     (match-beginning 1) (match-end 1))))))
-	(setq depth (1- depth)))
-      (if (and path
-	       (string-match (concat (regexp-quote speedbar-vc-indicator) "$")
-			     path))
-	  (setq path (substring path 0 (match-beginning 0))))
-      (concat default-directory path))))
+    (save-match-data
+      (let ((path nil))
+	(setq depth (1- depth))
+	(while (/= depth -1)
+	  (if (not (re-search-backward (format "^%d:" depth) nil t))
+	      (error "Error building path of tag")
+	    (cond ((looking-at "[0-9]+:\\s-*<->\\s-+\\([^\n]+\\)$")
+		   (setq path (concat (buffer-substring-no-properties
+				       (match-beginning 1) (match-end 1))
+				      "/"
+				      path)))
+		  ((looking-at "[0-9]+:\\s-*[-]\\s-+\\([^\n]+\\)$")
+		   ;; This is the start of our path.
+		   (setq path (buffer-substring-no-properties
+			       (match-beginning 1) (match-end 1))))))
+	  (setq depth (1- depth)))
+	(if (and path
+		 (string-match (concat (regexp-quote speedbar-vc-indicator) "$")
+			       path))
+	    (setq path (substring path 0 (match-beginning 0))))
+	(concat default-directory path)))))
 
 (defun speedbar-edit-line ()
   "Edit whatever tag or file is on the current speedbar line."
   (interactive)
-  (beginning-of-line)
-  (re-search-forward "[]>}] [a-zA-Z0-9]" (save-excursion (end-of-line) (point)))
-  (speedbar-do-function-pointer))
+  (save-excursion
+    (beginning-of-line)
+    (re-search-forward "[]>}] [a-zA-Z0-9]" (save-excursion (end-of-line) (point)))
+    (speedbar-do-function-pointer)))
 
 (defun speedbar-expand-line ()
   "Expand the line under the cursor."
@@ -1462,6 +1632,14 @@ directory with these items."
   (re-search-forward ":\\s-*.-. " (save-excursion (end-of-line) (point)))
   (forward-char -2)
   (speedbar-do-function-pointer))
+
+(defun speedbar-maybee-jump-to-attached-frame ()
+  "Jump to the attached frame ONLY if the event causing this to happen
+was not a mouse event."
+  (if (numberp last-input-char)
+      (progn
+	(select-frame speedbar-attached-frame)
+	(other-frame 0))))
 
 (defun speedbar-click (e)
   "Activate any speedbar buttons where the mouse is clicked.
@@ -1507,7 +1685,8 @@ Clicking the filename loads that file into the attached buffer."
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
-    (speedbar-set-timer speedbar-update-speed)))
+    (speedbar-set-timer speedbar-update-speed))
+  (speedbar-maybee-jump-to-attached-frame))
 
 (defun speedbar-dir-follow (text token indent)
   "Speedbar click handler for directory names.
@@ -1622,7 +1801,10 @@ TOK is the file to expand."
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
     (speedbar-set-timer speedbar-update-speed)
-    (goto-char token)))
+    (goto-char token)
+    ;;(recenter)
+    (speedbar-maybee-jump-to-attached-frame)
+    ))
 
 (defun speedbar-tag-expand (text token indent)
   "Expand a tag sublist.  Imenu will return sub-lists of specialized tag types.
