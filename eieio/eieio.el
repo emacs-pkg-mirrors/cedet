@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.110 2001/07/17 19:17:26 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.111 2001/08/01 01:41:50 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta2"
   "Current version of EIEIO.")
@@ -1396,6 +1396,9 @@ reverse-lookup that name, and recurse with the associated slot value."
   "When using `call-next-method', provides a context on how to do it.")
 (defvar eieio-generic-call-arglst nil
   "When using `call-next-method', provides a context for parameters.")
+(defvar eieio-generic-call-key nil
+  "When using `call-next-method', provides a context for the current key.
+Keys are a number representing :BEFORE, :PRIMARY, and :AFTER methods.")
 
 (defun eieio-generic-call (method args)
   "Call METHOD with ARGS.
@@ -1403,7 +1406,7 @@ ARGS provides the context on which implementation to use.
 This should only be called from a generic function."
   ;; We must expand our arguments first as they are always
   ;; passed in as quoted symbols
-  (let ((newargs nil) (mclass nil)  (lambdas nil)
+  (let ((newargs nil) (mclass nil)  (lambdas nil) (tlambdas nil) (keys nil)
 	(eieio-generic-call-methodname method)
 	(eieio-generic-call-arglst args))
     ;; get a copy
@@ -1417,34 +1420,35 @@ This should only be called from a generic function."
     ;;    This prevents multiple calls in the case of recursion
     ;; 2) Only call specifics if the definition allows for them.
     ;; 3) Call in order based on :BEFORE, :PRIMARY, and :AFTER
-    (if (not scoped-class)
-	(setq lambdas (cons (eieio-generic-form method method-after nil)
-			    lambdas)))
-    (if mclass
-	(setq lambdas (cons (eieio-generic-form method method-after mclass)
-			    lambdas)))
-    (if (not scoped-class)
-	(setq lambdas (cons (eieio-generic-form method method-primary nil)
-			    lambdas)))
-    (if mclass
-	(setq lambdas (cons (eieio-generic-form method method-primary mclass)
-			    lambdas)))
-    (if (not scoped-class)
-	(setq lambdas (cons (eieio-generic-form method method-before nil)
-			    lambdas)))
-    (if mclass
-	(setq lambdas (cons (eieio-generic-form method method-before mclass)
-			    lambdas)))
+    (setq tlambdas
+	  (or (and mclass (eieio-generic-form method method-after mclass))
+	      (eieio-generic-form method method-after nil)))
+    (setq lambdas (cons tlambdas lambdas)
+	  keys (cons method-after keys))
+
+    (setq tlambdas
+	  (or (and mclass (eieio-generic-form method method-primary mclass))
+	      (eieio-generic-form method method-primary nil)))
+    (setq lambdas (cons tlambdas lambdas)
+	  keys (cons method-primary keys))
+
+    (setq tlambdas
+	  (or (and mclass (eieio-generic-form method method-before mclass))
+	      (eieio-generic-form method method-before nil)))
+    (setq lambdas (cons tlambdas lambdas)
+	  keys (cons method-before keys))
 
     ;; Now loop through all occurances forms which we must execute
     ;; (which are happilly sorted now) and execute them all!
     (let ((rval nil) (found nil))
       (while lambdas
 	(if (car lambdas)
-	    (let ((scoped-class (cdr (car lambdas))))
+	    (let ((scoped-class (cdr (car lambdas)))
+		  (eieio-generic-call-key (car keys)))
 	      (setq found t)
 	      (setq rval (apply (car (car lambdas)) newargs))))
-	(setq lambdas (cdr lambdas)))
+	(setq lambdas (cdr lambdas)
+	      keys (cdr keys)))
       (if (not found)
 	  (if (object-p (car args))
 	      (setq rval (no-applicable-method (car args) method))
@@ -1460,7 +1464,7 @@ This should only be called from a generic function."
     (while (and (not lambdas) mclass)
       ;; lookup the form to use for the PRIMARY object for the next level
       (setq lambdas (eieio-generic-form eieio-generic-call-methodname
-					method-primary (car mclass))
+					eieio-generic-call-key (car mclass))
 	    mclass (cdr mclass)))
     (if lambdas t nil)))
 
@@ -1480,7 +1484,7 @@ are the arguments passed in at the top level."
     (while (and mclass (not callsomething))
       ;; lookup the form to use for the PRIMARY object for the next level
       (setq lambdas (eieio-generic-form eieio-generic-call-methodname
-					method-primary (car mclass)))
+					eieio-generic-call-key (car mclass)))
       (if lambdas
 	  ;; Setup calling environment, and apply arguments...
 	  (let ((scoped-class (cdr lambdas)))
@@ -1488,7 +1492,13 @@ are the arguments passed in at the top level."
 	    (setq returnval (apply (car lambdas) newargs))))
       (setq mclass (cdr mclass)))
     (if (not callsomething)
-	(no-next-method (car newargs))
+	(progn
+	  (setq lambdas (eieio-generic-form eieio-generic-call-methodname
+					    eieio-generic-call-key nil))
+	  (if lambdas
+	      (let ((scoped-class nil))
+		(apply (car lambdas) newargs))
+	    (no-next-method (car newargs))))
       returnval)))
 
 
