@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.7 2000/07/12 14:14:22 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.8 2000/07/22 12:43:17 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -27,7 +27,9 @@
 ;;
 ;; Handle Emacs Lisp in and EDE Project file.
 
-(eval-and-compile (require 'ede-proj))
+(require 'ede-proj)
+(require 'ede-pmake)
+(require 'ede-pconf)
 
 ;;; Code:
 (defclass ede-proj-target-elisp (ede-proj-target-makefile)
@@ -76,14 +78,15 @@ A lisp target may be one general program with many separate lisp files in it.")
 ;;
 (defmethod ede-proj-makefile-sourcevar ((this ede-proj-target-elisp))
   "Return the variable name for THIS's sources."
-  (cond ((ede-proj-automake-p)
-	 "lisp_LISP")
+  (cond ((ede-proj-automake-p) '("lisp_LISP" . share))
 	(t (concat (ede-pmake-varname this) "_LISP"))))
 
 (defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-elisp))
   "Insert variables needed by target THIS."
   (call-next-method this)
-  (insert "EMACS=" (file-name-nondirectory (car command-line-args)) "\n")
+  (if (save-excursion (re-search-backward "^EMACS=" nil t))
+      nil
+    (insert "EMACS=" (file-name-nondirectory (car command-line-args)) "\n"))
   (if (oref this aux-packages)
       (insert "LOADPATH=" (mapconcat (lambda (a) a)
 				     (ede-proj-elisp-packages-to-loadpath
