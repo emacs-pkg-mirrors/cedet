@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.2.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.10 1998/06/13 13:36:47 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.11 1998/08/03 13:10:59 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -97,9 +97,10 @@
   "Initialize speedbar to display an info node browser.
 This will add a speedbar major display mode."
   (interactive)
+  (require 'speedbar)
   ;; Make sure that speedbar is active
   (speedbar-frame-mode 1)
-  ;; Now, throw us into RPM mode on speedbar.
+  ;; Now, throw us into Info mode on speedbar.
   (speedbar-change-initial-expansion-list "Info")
   )
 
@@ -118,9 +119,13 @@ specific node to expand."
     ;; being known at creation time.
     (if (not node)
 	(speedbar-with-writable (insert "Info Nodes:\n")))
-    (let ((completions nil))
-      (setq completions
-	    (Info-speedbar-fetch-file-nodes (or node '"(dir)top")))
+    (let ((completions nil)
+	  (cf (selected-frame)))
+      (select-frame speedbar-attached-frame)
+      (save-window-excursion
+	(setq completions
+	      (Info-speedbar-fetch-file-nodes (or node '"(dir)top"))))
+      (select-frame cf)
       (if completions
 	  (speedbar-with-writable
 	   (while completions
