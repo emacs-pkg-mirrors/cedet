@@ -5,7 +5,7 @@
 ;; Author: Richard Y. Kim, <ryk@ap.com>
 ;; Maintainer: Richard Y. Kim, <ryk@ap.com>
 ;; Created: Fri Jun 16 17:23:11 2000
-;; Version: $Id: sb-texinfo.el,v 1.3 2000/07/05 01:52:17 zappo Exp $
+;; Version: $Id: sb-texinfo.el,v 1.4 2000/07/13 20:18:25 zappo Exp $
 ;; Keywords:
 
 ;; This program is free software; you can redistribute it and/or
@@ -57,6 +57,13 @@
 ;;   you do not use texinfo mode provided by auctex!
 
 ;;; Change Log:
+;;;
+;;; 1.6 - Eric Ludlam
+;;;       speedbar-insert-texinfo-list no longer sets sthm to nil.
+;;;       speedbar-format-texinfo-list uses new positioned group for
+;;;       any chapter w/ sections (etc)  Also set new
+;;;       speedbar-generic-list-{group-expand|tag}-button-list to
+;;;       nice values.
 ;;;
 ;;; 1.5 - speedbar-tag-hierarchy-method is set to nil by
 ;;;       speedbar-insert-texinfo-list as well as
@@ -124,6 +131,13 @@
 	  (make-local-variable 'speedbar-tag-hierarchy-method)
 	  (setq speedbar-tag-hierarchy-method nil)
 
+	  (set (make-local-variable
+		'speedbar-generic-list-group-expand-button-type)
+	       'expandtag)
+	  (set (make-local-variable
+		'speedbar-generic-list-tag-button-type)
+	       'statictag)
+
 	  (let ((heading-to-level
 		 '(("top" . 0)
 		   ("chapter" . 0) ("section" . 1)
@@ -182,15 +196,14 @@
 		   (car x)
 		 (let ((head (car x)))
 		   (cons (car head)
-			 (cons head
+			 (cons (cdr head)
 			       (speedbar-format-texinfo-list (cdr x) level))))))
 	    new-list)))
 
 (defun speedbar-insert-texinfo-list (indent lst)
-  (let (speedbar-tag-hierarchy-method)
-    (speedbar-insert-generic-list indent (speedbar-format-texinfo-list lst indent)
-				  'speedbar-tag-expand
-				  'speedbar-tag-find)))
+  (speedbar-insert-generic-list indent (speedbar-format-texinfo-list lst indent)
+				'speedbar-tag-expand
+				'speedbar-tag-find))
 
 ;;; sb-texinfo.el ends here
 
