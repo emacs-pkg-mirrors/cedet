@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.182 2004/04/28 15:37:15 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.183 2004/05/08 07:51:06 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -251,6 +251,13 @@ The parse tree must be rebuilt by `semantic-parse-region'."
 
 ;;; Interfacing with the system
 ;;
+(defcustom semantic-inhibit-functions nil
+  "List of functions to call with no arguments before to setup Semantic.
+If any of these functions returns non-nil, the current buffer is not
+setup to use Semantic."
+  :group 'semantic
+  :type 'hook)
+
 (defvar semantic-init-hooks nil
   "*Hooks run when a buffer is initialized with a parsing table.")
 
@@ -275,10 +282,15 @@ That is if it is dirty or if the current parse tree isn't up to date."
       (not (semantic-parse-tree-up-to-date-p))))
 
 (defun semantic-new-buffer-fcn ()
-  "Setup Semantic in the current buffer.
-Runs `semantic-init-hook' if the major mode is setup to use Semantic."
-  ;; Do stuff if semantic was activated by a mode hook in this buffer.
-  (when semantic--parse-table
+  "Setup the current buffer to use Semantic.
+If the major mode is ready for Semantic, and no
+`semantic-inhibit-functions' disabled it, the current buffer is setup
+to use Semantic, and `semantic-init-hook' is run."
+  ;; Do stuff if semantic was activated by a mode hook in this buffer,
+  ;; and not afterwards disabled.
+  (when (and semantic--parse-table
+             (not (run-hook-with-args-until-success
+                   'semantic-inhibit-functions)))
     ;; Force this buffer to have its cache refreshed.
     (semantic-clear-toplevel-cache)
     ;; Here are some buffer local variables we can initialize ourselves
