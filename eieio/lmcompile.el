@@ -5,7 +5,7 @@
 ;; Maintainer: Eric M. Ludlam <eludlam@mathworks.com>
 ;; Keywords: lisp
 ;;
-;; Copyright (C) 2003 Eric M. Ludlam
+;; Copyright (C) 2003, 2004 Eric M. Ludlam
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,9 +25,6 @@
 ;;
 ;;  This package uses the compile package, and the linemark package to
 ;; highlight all lines showing errors.
-
-;;; Commentary:
-;; 
 
 (require 'linemark)
 
@@ -100,6 +97,7 @@ Do not permit multiple groups with the same NAME."
   (mapcar (lambda (e) (linemark-delete e))
 	  (oref lmcompile-error-group marks)))
 
+;;;###autoload
 (defun lmcompile-do-highlight ()
   "Do compilation mode highlighting.
 Works on grep, compile, or other type mode."
