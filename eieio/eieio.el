@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.80 2000/09/30 02:14:07 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.81 2000/09/30 02:23:44 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -204,7 +204,7 @@ contains a list of all bindings to that method type.)"
 (defmacro class-option (class option)
   "Return the value stored for CLASS' OPTION.
 Return nil if that option doesn't exist."
-  `(class-option-assoc ',option (aref (class-v ,class) class-options)))
+  `(class-option-assoc (aref (class-v ,class) class-options) ',option))
 
 
 ;;; Defining a new class
