@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 06 Mar 2002
 ;; Keywords: lisp
-;; X-RCS: $Id: pprint.el,v 1.5 2002/03/11 21:51:38 ponced Exp $
+;; X-RCS: $Id: pprint.el,v 1.6 2003/02/17 09:16:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -77,9 +77,9 @@ MATCHER is a regexp matching expressions passed to PRINTER."
 
 (defmacro pprint-with-printers (table &rest body)
   "Set up a copy of the TABLE of printers and evaluate BODY.
-The current table of printers is saved, BODY is evaluated, and
-the saved table is restored, even in case of an abnormal exit.
-Value is what BODY returns."
+The current table of printers is saved, BODY is evaluated, and the
+saved table is restored, even in case of an abnormal exit.  Value is
+what BODY returns."
   (let ((old-table (make-symbol "old-table")))
     `(let ((,old-table pprint-printers))
        (unwind-protect
@@ -244,7 +244,13 @@ representation will not start on a new line."
   "Standard printer for `defvar' like forms."
   (pprint-maybe-newline-and-indent)
   (down-list 1)
-  (forward-sexp))
+  (forward-sexp)
+  (unless (looking-at "\\s)")
+    (pprint-sexp)
+    (unless (looking-at "\\s)")
+      (pprint-sexp)
+      (pprint-sequence)))
+  (pprint-close-list))
 
 (defun pprint-let ()
   "Standard printer for `let' like forms."
@@ -394,15 +400,22 @@ representation will not start on a new line."
 (defun pprint-to-string (object &optional width)
   "Return a string containing the pretty-printed representation of OBJECT.
 OBJECT can be any Lisp object.  Quoting characters are used as needed
-to make output that `read' can handle, whenever this is possible.
-The pretty printer try as much as possible to limit the length of
-lines to given WIDTH.  WIDTH value defaults to `fill-column'."
+to make output that `read' can handle, whenever this is possible.  The
+pretty printer try as much as possible to limit the length of lines to
+given WIDTH.  WIDTH value defaults to `fill-column'."
   (with-temp-buffer
     (lisp-mode-variables nil)
     (set-syntax-table emacs-lisp-mode-syntax-table)
-    (let ( ;;(print-escape-newlines t)
+    (let ((print-escape-newlines nil)
           (print-quoted t))
       (prin1 object (current-buffer)))
+    (goto-char (point-min))
+    ;; Escape "(" at beginning of line.  Can only occurs in strings.
+    (when (looking-at "\\s(")
+      (down-list 1)
+      (while (re-search-forward "^\\s(" nil t)
+        (goto-char (match-beginning 0))
+        (insert "\\")))
     (goto-char (point-min))
     (let* ((pprint-width (or width fill-column))
            (zmacs-regions nil) ;; XEmacs
@@ -412,12 +425,12 @@ lines to given WIDTH.  WIDTH value defaults to `fill-column'."
 
 ;;;###autoload
 (defun pprint (object &optional stream width)
-"Output the pretty-printed representation of OBJECT, any Lisp object.
+  "Output the pretty-printed representation of OBJECT, any Lisp object.
 Quoting characters are printed as needed to make output that `read'
-can handle, whenever this is possible.
-Output stream is STREAM, or value of `standard-output' (which see).
-The pretty printer try as much as possible to limit the length of
-lines to given WIDTH.  WIDTH value defaults to `fill-column'."
+can handle, whenever this is possible.  Output stream is STREAM, or
+value of `standard-output' (which see).  The pretty printer try as
+much as possible to limit the length of lines to given WIDTH.  WIDTH
+value defaults to `fill-column'."
   (princ (pprint-to-string object width)
          (or stream standard-output)))
 
