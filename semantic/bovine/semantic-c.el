@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.35 2004/09/08 14:07:16 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.36 2005/01/29 04:34:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -335,6 +335,7 @@ Used by `semantic-inc' to define an include path.  This should
 probably do some sort of search to see what is actually on the local
 machine."
   :group 'c
+  :group 'semantic
   :type '(repeat (string :tag "Path")))
 
 (defvar-mode-local c-mode semantic-dependency-include-path 
