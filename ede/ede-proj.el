@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.37 2001/05/20 12:47:07 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.38 2001/06/03 14:43:00 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -528,11 +528,14 @@ Converts all symbols into the objects to be used."
 (defmethod ede-proj-dist-makefile ((this ede-proj-project))
   "Return the name of the Makefile with the DIST target in it for THIS."
   (cond ((eq (oref this makefile-type) 'Makefile.am)
-	 "Makefile.am")
+	 (concat (file-name-directory (oref this file))
+		 "Makefile.am"))
 	((eq (oref this makefile-type) 'Makefile.in)
-	 "Makefile.in")
+	 (concat (file-name-directory (oref this file))
+		 "Makefile.in"))
 	((object-assoc "Makefile" 'makefile (oref this targets))
-	 "Makefile")
+	 (concat (file-name-directory (oref this file))
+		 "Makefile"))
 	(t
 	 (let ((targets (oref this targets)))
 	   (while (and targets
@@ -541,7 +544,8 @@ Converts all symbols into the objects to be used."
 			     'ede-proj-target-makefile)))
 	     (setq targets (cdr targets)))
 	   (if targets (oref (car targets) makefile)
-	     "Makefile")))))
+	     (concat (file-name-directory (oref this file))
+		     "Makefile"))))))
 
 (defun ede-proj-regenerate ()
   "Regenerate Makefiles for and edeproject project."
@@ -574,7 +578,11 @@ Optional argument FORCE will force items to be regenerated."
 	;; Now run automake to fill in the blanks, autoconf, and other
 	;; auto thingies so that we can just say "make" when done.
 	
-	)))
+	))
+  ;; Rebuild all subprojects
+  (ede-map-subprojects
+   this (lambda (sproj) (ede-proj-setup-buildenvironment sproj force)))
+  )
 
 
 ;;; Lower level overloads
@@ -584,7 +592,7 @@ Optional argument FORCE will force items to be regenerated."
   (ede-with-projectfile this
     (goto-char (point-min))
     (let ((l (read (current-buffer)))
-	  (fields (obj-fields this))
+	  (fields (object-slots this))
 	  (targets (oref this targets)))
       (setq l (cdr (cdr l))) ;; objtype and name skip
       (while fields ;  reset to defaults those that dont appear.
