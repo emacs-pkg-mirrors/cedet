@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.5 2003/02/13 02:47:10 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.6 2003/03/13 02:24:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -103,7 +103,7 @@ list of semantic tokens found."
 	 end			  ;End of match
 	 result
 	 )
-    (condition-case nil
+    (condition-case debug-condition
         (while nt-loop
           (catch 'push-non-terminal
             (setq nt-popup nil
@@ -193,11 +193,6 @@ list of semantic tokens found."
                                            valdot val) cvl))) ;append unchecked value.
                           (setq end (cdr (cdr lse)))
                           )
-                      (if (and semantic-dump-parse nil)
-                          (semantic-dump-detail (car lte)
-                                                (semantic-bovinate-nonterminal-db-nt)
-                                                (semantic-flex-text lse)
-                                                "Term Type Fail"))
                       (setq lte nil cvl nil)) ;No more matches, exit
                     )))
                 (if (not cvl)           ;lte=nil;  there was no match.
@@ -242,11 +237,6 @@ list of semantic tokens found."
                     (if out
                         (let ((len (length out))
                               (strip (nreverse (cdr (cdr (reverse out))))))
-                          (if semantic-dump-parse
-                              (semantic-dump-detail (cdr result)
-                                                    (car lte)
-                                                    ""
-                                                    "NonTerm Match"))
                           (setq end (nth (1- len) out) ;reset end to the end of exp
                                 cvl (cons strip cvl) ;prepend value of exp
                                 lte (cdr lte)) ;update the local table entry
@@ -257,7 +247,13 @@ list of semantic tokens found."
                     )))))
       (error
        ;; On error just move forward the stream of lexical tokens
-       (setq result (list (cdr starting-stream) nil))))
+       (setq result (list (cdr starting-stream) nil))
+       (if semantic-debug-enabled
+	   (let ((frame (semantic-create-bovine-debug-error-frame
+			 debug-condition)))
+	     (semantic-debug-break frame)
+	     ))
+       ))
     result))
 
 ;; Make it the default parser
