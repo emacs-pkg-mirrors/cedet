@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.57 1997/08/15 00:18:57 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.58 1997/08/15 00:44:39 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -252,6 +252,7 @@
 ;;       Added `speedbar-visiting-[tag|file]hook' which is called whenever
 ;;         speedbar pulls up a file or tag in the attached frame.  Setting
 ;;         this to `reposition-window' will do nice things to function tags.
+;;       Fixed text-cache default-directory bug.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -1619,14 +1620,15 @@ name will have the function FIND-FUN and not token."
 		 (speedbar-path-line cbd))
 	    ;; Open it.
 	    (speedbar-expand-line)
-	  (setq default-directory cbd)
 	  (erase-buffer)
 	  (cond (use-cache
-		 ;; I think default-directory is different if there
-		 ;; is a cache
+		 (setq default-directory
+		       (nth (1- (length speedbar-shown-directories))
+			    speedbar-shown-directories))
 		 (insert (cdr cache)))
 		(t
 		 (while funclst
+		   (setq default-directory cbd)
 		   (funcall (car funclst) cbd 0)
 		   (setq funclst (cdr funclst))))))
 	(goto-char (point-min)))))
