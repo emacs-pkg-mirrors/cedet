@@ -1,10 +1,10 @@
 ;;; psql --- PostgresSQL 'psql' tool interface
 ;;
-;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
+;; Copyright (C) 1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
-;; RCS: $Id: psql.el,v 1.5 1999/02/18 19:15:15 zappo Exp $
+;; RCS: $Id: psql.el,v 1.6 2001/01/11 18:50:35 zappo Exp $
 ;; Keywords: OO postgres95 database
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -45,26 +45,24 @@
 ;; 
 
 (require 'dbif)
+(require 'pg)				;Eric Marsden's postgres library
 
 ;;; Code:
-(defvar psql-command "psql"
-  "Command used to start a new interactive postgres SQL client.")
-
-(defvar psql-execute-flags '("-n"	;no readline
-			     "-F" "\C-?" ;delete char as the separator.
-			     )
-  "List of flags to use when starting PSQL.
-Don't add -q as this mode require the prompt in order to know when to
-execute commands.")
 
 (defclass psql-connection (dbif-connection)
-  ((host :initarg :host
+  ((pgconnection :initarg :pgconnection
+		 :initform nil)
+   (host :initarg :host
 	 :initarg nil)
    (port :initarg :port
 	 :initarg nil)
    (database :initarg :database
 	     :initarg nil))
   "Postgressql connection type inheriting from dbif package.")
+
+(defclass psql-tuple (dbif-tuple)
+  nil
+  "The PSQL version of the typle object.")
 
 (defun psql-database-list ()
   "Fetch a listing of all the available databases."
@@ -95,65 +93,32 @@ execute commands.")
 The server is on HOST via PORT."
   (interactive "sDatabase: \nsHost: \nsPort: ")
   (if (string= database "") (setq database nil))
-  (if (string= host "") (setq host nil))
+  (if (string= host "") (setq host "localhost"))
   (if (string= port "") (setq port nil))
-  (let ((nb (get-buffer-create (format "*psql-%s-%s-%s*"
-				       (if host host (system-name))
-				       (if port port "5432")
-				       (if database database
-					 (user-login-name)))))
-	(params nil))
-    (save-excursion
-      (set-buffer nb)
-      (erase-buffer)
-      (comint-mode)			;in case user need to look at it
-      (setq comint-prompt-regexp "[a-zA-Z0-9]+=>"
-	    ;; we should eventually complete on database symbols, but
-	    ;; only if this becomes an interactive mode
-	    comint-dynamic-complete-functions nil)
-      (if port
-	  (progn
-	    (setq params (cons port params))
-	    (setq params (cons "-p" params))))
-      (if host
-	  (progn
-	    (setq params (cons host params))
-	    (setq params (cons "-h" params))))
-      (if database
-	  (progn
-	    (setq params (cons database params))
-	    (setq params (cons "-d" params))))
-      (comint-exec (current-buffer)
-		   (format "psql-proc-%s-%s-%s"
-			   (if host host (system-name))
-			   (if port port "5432")
-			   (if database database
-			     (user-login-name)))
-		   psql-command
-		   nil
-		   (append psql-execute-flags params))
-      (make-local-variable 'dbif-table-list)
-      (setq dbif-table-list nil)
-      (make-instance psql-connection
-		     :buffer nb
-		     :host host
-		     :port port
-		     :database database))))
+  (let ((nb (pg:connect database (user-login-name)))); host port)))
+    (make-instance psql-connection
+		   :pgconnection nb
+		   :host host
+		   :port port
+		   :database database)))
 
 (defmethod dbif-get-table-info ((dbbuff psql-connection) tablename)
   "Return a psql-tuple object with information about tables in this database.
 Argument DBBUFF specifies the current connection.
 Argument TABLENAME is the name of the table to query."
   (save-excursion
-    (dbif-exec dbbuff (format "\\d %s" tablename))))
+    (dbif-tuple "tmp-tuple"
+		:headers (reverse namelst)
+		:maxwidths sizelst
+		:values (reverse datalst)))
+  (dbif-convert-tuple (pg:columns (oref dbbuff :pgconnection) tablename)))
 
 (defmethod dbif-get-table-list ((dbbuff psql-connection))
   "Get a list of available tables from the database specified in DBBUFF."
-  (save-excursion
-    (set-buffer (oref dbbuff buffer))
-    (if (not dbif-table-list)
-	(setq dbif-table-list (dbif-exec dbbuff "\\d")))
-    dbif-table-list))
+  (pg:exec (oref dbbuff :pgconnection)
+	   "select relname"
+	   ;; INCOMPLETE HERE
+	   ))
 
 (defmethod dbif-exec ((dbbuff psql-connection) command)
   "Execute the SQL or PSQL command and grab its output.
@@ -163,118 +128,31 @@ DBBUFF is the current connection.
 COMMAND should be a string which will execute the PSQL command.  ie,
 SQL should end in a semi-colon, \ commands don't.  A carriage return
 is supplied by `comint-mode'"
-  (save-excursion
-    (set-buffer (oref dbbuff buffer))
-    ;; first, wait for the prompt to appear...
-    (goto-char (point-max))
-    (while (not (save-excursion
-		  (beginning-of-line)
-		  (looking-at comint-prompt-regexp)))
-      (message "Waiting for PSQL prompt...")
-      (accept-process-output (get-buffer-process (current-buffer))))
-    ;; Insert the command to be executed.  Always place the "execute" part
-    ;; into the command.
-    (insert command (if (string-match "^\\\\d" command) "" ";"))
-    (let ((start-pos (1+ (point))) (tt 0) tvv)
-      (comint-send-input)
-      ;; wait for the prompt to come back
-      (while (not (save-excursion
-		    (goto-char (point-max))
-		    (beginning-of-line)
-		    (looking-at comint-prompt-regexp)))
-	(message "Waiting for PSQL output...")
-	(accept-process-output (get-buffer-process (current-buffer)) 1))
-      (save-restriction
-	(narrow-to-region start-pos (save-excursion
-				      (goto-char (point-max))
-				      (beginning-of-line) (point)))
-	;; Now execute commands to parse the output...
-	(goto-char (point-min))
-	;; The -------- line is not always right there.
-	(setq tvv
-	      (if (save-excursion (re-search-forward "\+?----" nil t))
-		  (psql-parse-table)
-		(psql-parse-message)))
-	;; Remove extraneous text
-	(delete-region (point-min) (point-max)))
-      (goto-char (point-max))
-      tvv)))
+  (let ((T (pg:exec (oref dbbuff :pgconnection) command)))
+    (if (member (pg:result T :status) '("ERROR"))
+	nil
+      (psql-tuple :value T))))
 
-;;; Table Parsing
+;;; Tuple Accessors
 ;;
-(defun psql-parse-message ()
-  "Read characters just after point treating it as PSQL output message.
-Return a message string"
-  (buffer-substring (point) (save-excursion (end-of-line) (point))))
+(defmethod dbif-tuple-num-fields ((tuple psql-tuple))
+  "Returns the number of fields in TUPLE"
+  (length (pg:result (oref tuple :value) :attributes)))
 
-(defun psql-parse-table ()
-  "Read characters just after point treating it as a PSQL output table.
-We must be able to distinguish between tables w/ the DEL character, and
-those with pipes.  The pipe ones are safe, where the DEL ones are not."
-  (message "Parsing PSQL table...")
-  ;; The -1 accounts for title area
-  (let ((namelst nil) (datalst nil) (sizelst nil) sublst numcol (numrow 0)
-	(sep "\C-?"))
-    (while (looking-at "^\\s-*$") (forward-line 1) (beginning-of-line))
-    (if (looking-at "\\s-*\\(Database\\|Table\\)\\s-+=")
-	(progn
-	  (setq sep "|")
-	  (re-search-forward "--+\\+?$" nil t)
-	  (end-of-line)
-	  ;; first, read in the titles of the columns
-	  (forward-char 1)))
-    (while (re-search-forward
-	    (concat "\\( *\\([A-Za-z0-9_]+\\) *\\)\\($\\|" sep "\\)")
-	    (save-excursion (end-of-line) (point)) t)
-      (setq namelst (cons (match-string 2) namelst)
-	    sizelst (cons (- (match-end 1) (match-beginning 1)) sizelst)))
-    (setq numcol (length namelst)
-	  sizelst (reverse sizelst))
-    (forward-line 1)
-    (beginning-of-line)
-    (while (and (not (eobp)) (or (not dbif-max-parse)
-				 (> dbif-max-parse numrow)))
-      (if (or (looking-at "\\s-*$") (looking-at "([0-9]+ Rows)$")
-	      (looking-at "\\( *\\+\\)?\\(-+\\+\\)+"))
-	  nil
-	(let (colcnt)
-	  (setq colcnt 0
-		sublst nil
-		numrow (1+ numrow))
-	  (if (looking-at (concat "[ ]*" sep "[ ]+"))
-	      (goto-char (match-end 0)))
-	  (while (< colcnt numcol)
-	    (if (looking-at
-		 (concat
-		  "[ ]*\\([^" sep "]*[^ \t\n" sep "]\\)[ ]*\\("
-		  (if (= colcnt (1- numcol)) "\n\\||" sep)
-		  "\\)"))
-		(progn
-		  (setq sublst (cons (match-string 1) sublst))
-		  (goto-char (match-beginning 2))
-		  (if (looking-at sep) (goto-char (match-end 0))))
-	      ;; In this case, there may be nothing in between pipes
-	      ;; at all!
-	      (if (looking-at (concat sep "[ \t]+\\(" sep "\\)"))
-		  (progn
-		    (setq sublst (cons "" sublst))
-		    (goto-char (match-beginning 1)))
-		(error "Psql-parse-table: could not parse table!")))
-	    ;; an error prevents us from getting here...
-	    (if (< (nth colcnt sizelst) (length (car sublst)))
-		(setcar (nthcdr colcnt sizelst) (length (car sublst))))
-	    (setq colcnt (1+ colcnt)))
-	  (if sublst
-	      (setq datalst (cons (reverse sublst) datalst)))))
-	(forward-line 1)
-	(beginning-of-line)
-	)
-    ;; return the formed list
-    (message "Parsing PSQL table...done (%d items)" (length namelst))
-    (dbif-tuple "tmp-tuple"
-		:headers (reverse namelst)
-		:maxwidths sizelst
-		:values (reverse datalst))))
+(defmethod dbif-tuple-field-index ((tuple psql-tuple) field)
+  "Returns the index (usable by command nth) of the field list.  This
+is equivalent to a column number."
+  (let* ((f (pg:result (oref tuple :value) :attributes))
+	 (l1 (length f)))
+    (while (not (string= field (car (car f))))
+      (setq f (cdr f)))
+    (- l1 (length f))))
+
+(defmethod dbif-tuple-value ((tuple psql-tuple) field index)
+  "Extracts from TUPLE the FIELD value in the INDEXED column"
+  (nth (dbiff-tuple-field-index tuple field)
+       (pg:result (oref tuple :value) :tuple index))
+  )
 
 (provide 'psql)
 
