@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.38 2001/11/30 02:59:23 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.39 2001/12/04 02:50:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,6 +53,14 @@
 
 (defcustom semanticdb-default-file-name "semantic.cache"
   "*File name of the semantic token cache."
+  :group 'semanticdb
+  :type 'string)
+
+(defcustom semanticdb-default-save-directory nil
+  "*Directory name where semantic cache files are stored.
+If this value is nil, files are saved in the current directory.
+If the value is a string, then it overrides `semanticdb-default-file-name'
+and stores caches in a coded file name in this directory."
   :group 'semanticdb
   :type 'string)
 
@@ -105,6 +113,10 @@ use this.")
 				       eieio-instance-tracker)
   ((tracking-symbol :initform semanticdb-database-list)
    (file-header-line :initform ";; SEMANTICDB Tags save file")
+   (reference-directory :type string
+			:documentation "Directory this database refers to.
+When a cache directory is specified, then this refers to the directory
+this database contains symbols for.")
    (tables :initarg :tables
 	   :type list
 	   :documentation "List of `semantic-db-table' objects."))
@@ -141,16 +153,20 @@ If FILENAME doesn't exist, create a new one."
   (let ((db (if (file-exists-p filename)
 		(or (semanticdb-file-loaded-p filename)
 		    (semanticdb-load-database filename)))))
-  (if (not (semanticdb-file-loaded-p filename))
+    (unless db
       (setq db (semanticdb-project-database (file-name-nondirectory filename)
 					    :file filename
 					    :tables nil)))
-  db))
+    db))
+
+(defun semanticdb-file-loaded-p (filename)
+  "Return the project belonging to FILENAME if it was already loaded."
+  (eieio-instance-tracker-find filename 'file 'semanticdb-database-list))
 
 (defun semanticdb-get-database (filename)
   "Get a database for FILENAME.
 If one isn't found, create one."
-  (or (eieio-instance-tracker-find filename 'file 'semanticdb-database-list)
+  (or (semanticdb-file-loaded-p filename)
       (semanticdb-create-database filename)))
 
 (defun semanticdb-load-database (filename)
@@ -166,10 +182,6 @@ If one isn't found, create one."
     (error (message "Cache Error: %s, Restart" foo)
 	   nil)))
 
-(defun semanticdb-file-loaded-p (filename)
-  "Return the project belonging to FILENAME if it was already loaded."
-  (object-assoc filename 'file semanticdb-database-list))
-
 (defmethod semanticdb-live-p ((obj semanticdb-project-database))
   "Return non-nil if the file associated with OBJ is live.
 Live databases are objects associated with existing directories."
@@ -178,8 +190,7 @@ Live databases are objects associated with existing directories."
 
 (defmethod semanticdb-file-table ((obj semanticdb-project-database) filename)
   "From OBJ, return FILENAMEs associated table object."
-  (object-assoc (eieio-persistent-path-relative obj filename)
-		'file (oref obj tables)))
+  (object-assoc (file-name-nondirectory filename) 'file (oref obj tables)))
 
 (defun semanticdb-save-db (&optional DB)
   "Write out the database DB to its file.
@@ -212,7 +223,7 @@ If DB is not specified, then use the current database."
 
 (defmethod semanticdb-full-filename ((obj semanticdb-table))
   "Fetch the full filename that OBJ refers to."
-  (concat (file-name-directory (oref (oref obj parent-db) file))
+  (concat (file-name-directory (oref (oref obj parent-db) reference-directory))
 	  (oref obj file)))
 
 (defmethod semanticdb-live-p ((obj semanticdb-table))
@@ -274,14 +285,14 @@ Uses `semanticdb-persistent-path' to determine the return value."
     (catch 'found
       (while path
 	(cond ((stringp (car path))
-	       (if (string= (file-name-directory (oref obj file)) (car path))
+	       (if (string= (oref obj reference-directory) (car path))
 		   (throw 'found t)))
 	      ((eq (car path) 'project)
 	       (let ((predicates semanticdb-project-predicates))
 		 (if predicates
 		     (while predicates
 		       (if (funcall (car predicates)
-				    (file-name-directory (oref obj file)))
+				    (oref obj reference-directory))
 			   (throw 'found t))
 		       (setq predicates (cdr predicates)))
 		   ;; If the mode is 'project, and there are no project
@@ -300,19 +311,42 @@ Uses `semanticdb-persistent-path' to determine the return value."
       nil)
     ))
 
-;;; hooks and Hats:
+;;; Filename manipulation
+;;
+(defun semanticdb-cache-filename (path)
+  "Return a file to a cache file belonging to PATH.
+This could be a cache file in the current directory, or an encoded file
+name in a secondary directory."
+  (if semanticdb-default-save-directory
+      (let* ((rp (file-relative-name
+		  (expand-file-name path)
+		  (expand-file-name semanticdb-default-save-directory)))
+	     (ep rp))
+	(while (string-match "/" ep)
+	  (setq ep (replace-match "#" t t ep)))
+	(concat (file-name-as-directory semanticdb-default-save-directory)
+		ep)
+	)
+    (concat (file-name-directory (buffer-file-name))
+	    semanticdb-default-file-name)))
+
+;;; Hooks:
+;;
 (defun semanticdb-semantic-init-hook-fcn ()
   "Function saved in `find-file-hooks'.
 Sets up the semanticdb environment."
   (let ((cdb nil)
 	(ctbl nil))
     ;; Allow a database override function
-    (if (not (and semanticdb-semantic-init-hook-overload
-		  (setq cdb (run-hooks 'semanticdb-semantic-init-hook-overload))))
-	(setq cdb
-	      (semanticdb-get-database
-	       (concat (file-name-directory (buffer-file-name))
-		       semanticdb-default-file-name))))
+    (when (not (and semanticdb-semantic-init-hook-overload
+		    (setq cdb (run-hooks 'semanticdb-semantic-init-hook-overload))))
+      (setq cdb
+	    (semanticdb-get-database
+	     (semanticdb-cache-filename default-directory)))
+      )
+    ;; Do this outside of the find to make sure that when people upgrade
+    ;; that they get this set properly.
+    (oset cdb reference-directory default-directory)
     ;; Get the current DB for this directory
     (setq semanticdb-current-database cdb)
     ;; Get a table for this file.
@@ -321,10 +355,8 @@ Sets up the semanticdb environment."
       ;; Create a table if none exists.
       (setq ctbl
  	    (semanticdb-table
-	     (eieio-persistent-path-relative
-	      semanticdb-current-database (buffer-file-name))
-	     :file (eieio-persistent-path-relative
-		    semanticdb-current-database (buffer-file-name))
+	     (file-name-nondirectory (buffer-file-name))
+	     :file (file-name-nondirectory (buffer-file-name))
 	     ))
       (oset ctbl parent-db cdb)
       (object-add-to-list semanticdb-current-database
