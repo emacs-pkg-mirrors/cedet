@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.2 1999/05/05 11:37:56 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.3 1999/05/06 11:33:15 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -41,12 +41,12 @@
 ;; The top-level bovine table is an association list of all the rules
 ;; needed to parse your language, or language segment.  It is easiest
 ;; to create one master rule file, and call the semantic bovinator on
-;; subsections passing down the synthetic rule you want to match.
+;; subsections passing down the nonterminal rule you want to match.
 ;;
 ;; Thus, every entry in the bovine table is of the form:
-;; ( SYNTHETIC-SYMBOL MATCH-LIST )
+;; ( NONTERMINAL-SYMBOL MATCH-LIST )
 ;; 
-;; The synthetic symbol is equivalent to the bison RESULT, and the
+;; The nonterminal symbol is equivalent to the bison RESULT, and the
 ;; MATCH-LIST is equivalent to the bison COMPONENTS.  Thus, the bison
 ;; rule:
 ;;        expseq: expseq1
@@ -55,7 +55,7 @@
 ;; becomes:
 ;;        ( expseq ( expseq1 ) ( expseq2 ) )
 ;; which defines RESULT expseq which can be either COMPONENT expseq1
-;; or expseq2.  These two table entries also use synthetic results,
+;; or expseq2.  These two table entries also use nonterminal results,
 ;; and also use the DEFAULT RESULT LAMBDA (see below for details on
 ;; the RESULT LAMBDA).
 ;;
@@ -82,11 +82,11 @@
 ;; bovinator, there can be only one ACTION which I will refer to here
 ;; as the RESULT LAMBDA.  There are two default RESULT LAMBDAs which
 ;; can be used which cover the default case.  The RESULT LAMBDA must
-;; return a valid synthetic token.  A synthetic token is always of the
+;; return a valid nonterminal token.  A nonterminal token is always of the
 ;; form ( NAME TOKEN VALUE1 VALUE2 ... START END).  NAME is the name
 ;; to use for this token.  It is first so that a list of tokens is
 ;; also an alist, or completion table.  Token should be the same
-;; symbol as the synthetic token generated, though it does not have to
+;; symbol as the nonterminal token generated, though it does not have to
 ;; be.  The values can be anything you want, including other tokens.
 ;; START and END indicate where in the buffer this token is, and is
 ;; easily derived from the START and END parameter passed down.
@@ -102,17 +102,17 @@
 ;;                     (append (car vals) (list start end))))
 ;;
 ;; In this RESULT LAMBDA, VALS will be of length one, and it's first
-;; element will contain the synthetic expression result.  It is
-;; likely to use a rule like this when there is a top level synthetic
-;; symbol whose contents are several other single synthetic rules.
+;; element will contain the nonterminal expression result.  It is
+;; likely to use a rule like this when there is a top level nonterminal
+;; symbol whose contents are several other single nonterminal rules.
 ;; Because of this, we want to result that value with our START and END
 ;; appended.
 ;;
-;; NOTE: synthetic values passed in as VALS always have their
+;; NOTE: nonterminal values passed in as VALS always have their
 ;;       START/END parts stripped!
 ;;
 ;; This example lambda is also one of the DEFAULT lambdas for the case
-;; of a single synthetic result.  Thus, the above rule could also be
+;; of a single nonterminal result.  Thus, the above rule could also be
 ;; written as (expression).
 ;;
 ;; A more complex example uses more flex elements.  Lets match this:
@@ -135,11 +135,11 @@
 ;;
 ;; If we also want to return a list of arguments in our function
 ;; token, we can replace `semantic-list' with the following recursive
-;; synthetic rule.
+;; nonterminal rule.
 ;;
 ;; ( arg-list (semantic-list
 ;;             (lambda (vals start end)
-;;                (semantic-bovinate-from-synthetic start end 'argsyms))))
+;;                (semantic-bovinate-from-nonterminal start end 'argsyms))))
 ;; ( argsyms
 ;;   (open-paren argsyms (lambda (vals start end)
 ;;			   (append (car (cdr vals)) (list start end))))
@@ -152,8 +152,8 @@
 ;; This recursive rule can find a parenthetic list with any number of
 ;; symbols in it.
 ;;
-;; Here we also see a new function, `semantic-bovinate-from-synthetic'.
-;; This function takes START END and a synthetic result symbol to
+;; Here we also see a new function, `semantic-bovinate-from-nonterminal'.
+;; This function takes START END and a nonterminal result symbol to
 ;; match.  This will return a complete token, including START and
 ;; END.  This function should ONLY BE USED IN A RESULT LAMBDA.  It
 ;; uses knowledge of that scope to reduce the number of parameters
@@ -167,7 +167,7 @@
 ;;  of append and list in the lambda seems unnecessarily complex.
 ;;
 ;;  Also of issue, I am still not sure I like the idea of stripping
-;;  BEGIN/END off of synthetic tokens passed down in VALS.  While they
+;;  BEGIN/END off of nonterminal tokens passed down in VALS.  While they
 ;;  are often unnecessary, I can imagine that they could prove useful.
 ;;  Only time will tell.
 
@@ -201,13 +201,13 @@ types.
 
 The format of a BOVINE-TABLE is:
 
- ( ( SYNTHETIC-SYMBOL1 MATCH-LIST1 )
-   ( SYNTHETIC-SYMBOL2 MATCH-LIST2 )
+ ( ( NONTERMINAL-SYMBOL1 MATCH-LIST1 )
+   ( NONTERMINAL-SYMBOL2 MATCH-LIST2 )
    ...
-   ( SYNTHETIC-SYMBOLn MATCH-LISTn )
+   ( NONTERMINAL-SYMBOLn MATCH-LISTn )
  
-Where each SYNTHETIC-SYMBOL is an artificial symbol which can appear
-in any child sate.  As a starting place, one of the SYNTHETIC-SYMBOLS
+Where each NONTERMINAL-SYMBOL is an artificial symbol which can appear
+in any child sate.  As a starting place, one of the NONTERMINAL-SYMBOLS
 must be `bovine-toplevel'.
 
 A MATCH-LIST is a list of possible matches of the form:
@@ -270,11 +270,12 @@ TOP-LEVEL ENTRIES:
    A function/procedure definition.  DOCSTRING is optional.
    ARG-LIST is a list of variable definitions.
 
- (\"NAME\" type \"TYPE\" ( PART-LIST ) \"DOCSTRING\" START END)
+ (\"NAME\" type \"TYPE\" ( PART-LIST ) ( PARENTS ) \"DOCSTRING\" START END)
    A type definition.  TYPE of a type could be anything, such as (in C)
    struct, union, typedef, or class.  The PART-LIST is only useful for
    structs that have multiple individual parts.  (It is recommended
-   that these be variables or types).
+   that these be variables, functions or types).  PARENTS is strictly for
+   classes where there is inheritance.
 
  (\"FILE\" include \"DOCSTRING\" START END)
    In C, an #include statement.  In elisp, a require statement.
@@ -334,15 +335,15 @@ stripped from the main list of synthesized tokens."
     (working-status-forms "Scanning" "done"
 	(while ss
 	  (if (not (and trashcomments (eq (car (car ss)) 'comment)))
-	      (let ((synthsym
-		     (semantic-bovinate-synthetic
+	      (let ((nontermsym
+		     (semantic-bovinate-nonterminal
 		      ss semantic-toplevel-bovine-table)))
-		(if (not synthsym)
+		(if (not nontermsym)
 		    (error "Parse error @ %d" (car (cdr (car ss)))))
-		(if (car (cdr synthsym))
-		    (setq res (cons (car (cdr synthsym)) res)))
+		(if (car (cdr nontermsym))
+		    (setq res (cons (car (cdr nontermsym)) res)))
 		;; Designated to ignore.
-		(setq ss (car synthsym)))
+		(setq ss (car nontermsym)))
 	    (setq ss (cdr ss)))
 	  (working-status
 	   (if ss
@@ -361,20 +362,20 @@ stripped from the main list of synthesized tokens."
 ;; into a new semantic stream defined by the bovination table.
 ;;
 
-(defun semantic-bovinate-synthetic (stream table &optional synthetic)
-  "Bovinate STREAM based on the TABLE of synthetic symbols.
-Optional argument SYNTHETIC is the synthetic symbol to start with.
+(defun semantic-bovinate-nonterminal (stream table &optional nonterminal)
+  "Bovinate STREAM based on the TABLE of nonterminal symbols.
+Optional argument NONTERMINAL is the nonterminal symbol to start with.
 Use `bovine-toplevel' if it is not provided."
-  (if (not synthetic) (setq synthetic 'bovine-toplevel))
-  (let ((ml (assoc synthetic table)))
+  (if (not nonterminal) (setq nonterminal 'bovine-toplevel))
+  (let ((ml (assoc nonterminal table)))
     (semantic-bovinate-stream stream (cdr ml) table)))
 
-(defun semantic-bovinate-symbol-synthetic-p (sym table)
-  "Return non-nil if SYM is in TABLE, indicating it is SYNTHETIC."
+(defun semantic-bovinate-symbol-nonterminal-p (sym table)
+  "Return non-nil if SYM is in TABLE, indicating it is NONTERMINAL."
   (if (assoc sym table) t nil))
 
 (defun semantic-bovinate-stream (stream matchlist table)
-  "Bovinate STREAM using MATCHLIST resolving synthetics with TABLE.
+  "Bovinate STREAM using MATCHLIST resolving nonterminals with TABLE.
 This is the core routine for converting a stream into a table.
 See the variable `semantic-toplevel-bovine-table' for details on the
 format of MATCHLIST.
@@ -404,11 +405,11 @@ list of semantic tokens found."
 	;; If I were to strip comments automatically, do it here.
 	;; I suspect that comments may be important to keep for some
 	;;   applications.
-	(if (semantic-bovinate-symbol-synthetic-p (car lte) table)
-	    ;; We have a synthetic symbol.  Recurse inline.
-	    (let ((synthout (semantic-bovinate-synthetic s table (car lte))))
-	      (setq s (car synthout)
-		    val (car (cdr synthout)))
+	(if (semantic-bovinate-symbol-nonterminal-p (car lte) table)
+	    ;; We have a nonterminal symbol.  Recurse inline.
+	    (let ((nontermout (semantic-bovinate-nonterminal s table (car lte))))
+	      (setq s (car nontermout)
+		    val (car (cdr nontermout)))
 	      (if val
 		  (let ((len (length val))
 			(strip (nreverse (cdr (cdr (reverse val))))))
@@ -449,15 +450,19 @@ list of semantic tokens found."
 	))
     (list s out)))
 
-(defun semantic-bovinate-from-synthetic (start end synth &optional depth)
-  "Bovinate from within a synthetic lambda from START to END.
+(defun semantic-bovinate-from-nonterminal (start end nonterm &optional depth)
+  "Bovinate from within a nonterminal lambda from START to END.
 Depends on the existing environment created by `semantic-bovinate-stream'.
-Argument SYNTH is the synthetic symbol to start with.
+Argument NONTERM is the nonterminal symbol to start with.
 Optional argument DEPTH is the depth of lists to dive into.
 Whan used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
   (let* ((stream (semantic-flex start end (or depth 1)))
-	 (ans (semantic-bovinate-synthetic stream table synth)))
+	 (ans (semantic-bovinate-nonterminal
+	       stream
+	       ;; the byte compiler will complain about this one.
+	       table
+	       nonterm)))
     (car (cdr ans))))
 
 ;;; Semantic Flexing
