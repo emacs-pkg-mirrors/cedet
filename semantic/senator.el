@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.87 2003/12/11 08:17:25 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.88 2003/12/17 14:54:43 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1551,7 +1551,8 @@ This is a buffer local variable.")
   (let ((km (make-sparse-keymap)))
     (define-key km "f"    'senator-search-set-tag-class-filter)
     (define-key km "i"    'senator-isearch-toggle-semantic-mode)
-    (define-key km "j"    'senator-jump)
+    (define-key km "j"    'semantic-complete-jump-local) ;senator-jump)
+    (define-key km "J"    'semantic-complete-jump)
     (define-key km "p"    'senator-previous-tag)
     (define-key km "n"    'senator-next-tag)
     (define-key km "\t"   'senator-complete-symbol)
