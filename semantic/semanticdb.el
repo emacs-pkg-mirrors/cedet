@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.22 2001/04/13 01:10:28 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.23 2001/04/21 02:34:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -59,14 +59,14 @@
 (defcustom semanticdb-persistent-path '(project)
   "*List of valid paths that semanticdb will cache tokens to.
 When `global-semanticdb-minor-mode' is active, token lists will
-be saved to disk when Emacs exists.  Not all directories will have
+be saved to disk when Emacs exits.  Not all directories will have
 tokens that should be saved.
 The value should be a list of valid paths.  A path can be a string,
 indicating a directory in which to save a variable.  An element in the
 list can also be a symbol.  Valid symbols are `never', which will
 disable any saving anywhere, `always', which enables saving
 everywhere, or `project', which enables saving in any directory that
-passes `semanticdb-directory-project-p'."
+passes a list of predicates in `semantic-project-predicates'."
   :group 'semanticdb
   :type nil)
 
@@ -184,7 +184,16 @@ If DB is not specified, then use the current database."
     (when (and (semanticdb-live-p DB)
 	       (semanticdb-write-directory-p DB))
       (message "Saving token summary for %s..." objname)
-      (eieio-persistent-save (or DB semanticdb-current-database))
+      (condition-case foo
+	  (eieio-persistent-save (or DB semanticdb-current-database))
+	(file-error ; System error saving?  Ignore it.
+	 (message "Error saving %s" objname))
+	(error
+	 (if (and (listp foo)
+		  (stringp (nth 1 foo))
+		  (string-match "write-protected" (nth 1 foo)))
+	     (message (nth 1 foo))
+	   (error "%S" foo))))
       (run-hook-with-args 'semanticdb-save-database-hooks
 			  (or DB semanticdb-current-database))
       (message "Saving token summary for %s...done" objname))
