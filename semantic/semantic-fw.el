@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.11 2002/09/07 02:01:59 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.12 2002/09/24 22:10:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -578,8 +578,43 @@ This function is an implementation for %s"
 		    docstring overload)
 	   ;; The body for this implementation
 	   ,@body))
-       (semantic-install-function-overrides '((,overload . ,newname)) nil ',mode)
+       (semantic-install-function-overrides '((,overload . ,newname)) t ',mode)
        )))
+
+;;; Emacs Help hacks
+;;
+(defun semantic-function-overload-p (symbol)
+  "The symbol that SYMBOL can be overriden with, or nil."
+  (get symbol 'semantic-overload))
+
+(defun semantic-augment-function-help (symbol)
+  "Augment the *Help* buffer for SYMBOL.
+SYMBOL is a function that can be overriden with semantic."
+  (save-excursion
+    (set-buffer "*Help*")
+    (unwind-protect
+	(progn
+	  (toggle-read-only -1)
+	  (goto-char (point-max))
+	  (beginning-of-line)
+	  (forward-line -1)
+	  (insert "\nThis function can be overriden in semantic with
+the symbol `" (symbol-name (semantic-function-overload-p symbol)) "'.\n")
+	  ;; NOTE TO SELF:
+	  ;; LIST ALL LOADED OVERRIDES FOR SYMBOL HERE
+	  )
+      (toggle-read-only 1))))
+
+;; Help for Overload functions.  Need to advise help.
+(defadvice describe-function (around semantic-help activate)
+  "Display the full documentation of FUNCTION (a symbol).
+Returns the documentation as a string, also."
+  (prog1
+      ad-do-it
+    (if (semantic-function-overload-p (ad-get-arg 0))
+	(semantic-augment-function-help (ad-get-arg 0)))))
+
+
 
 ;;; Editor goodies ;-)
 ;;
