@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.30 2000/07/01 18:17:57 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.31 2000/09/11 23:00:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,8 +36,8 @@
       ,(lambda (vals start end)
 	 (let ((i (semantic-bovinate-from-nonterminal
 		   start end 'extract-toplevel)))
-	   (setq i (append (nreverse (cdr (cdr (reverse i))))
-			   (list start end))))))
+	   (append (nreverse (cdr (cdr (reverse i))))
+		   (list start end)))))
      (extract-toplevel))
     ;; When parsing at depth 0, we need to extract elements from semantic
     ;; lists at bovine-toplevel.  This symbol provides the needed redirection.
@@ -51,53 +51,51 @@
     ;; A function is anything that starts with a (defun
     (function
      (open-paren symbol "defun\\|defmacro" symbol arg-list doc-string
-		 ,(lambda (vals start end)
+		 ,(semantic-lambda
 		    (list (nth 2 vals) 'function nil (nth 3 vals) nil
-			  (car-safe (nth 4 vals))
-			  start end))))
+			  (car-safe (nth 4 vals))))))
     ;; A variable can be a defvar or defconst.
     (variable
      (open-paren symbol "defvar\\|defconst\\|defcustom\\|defface\\|defimage"
 		 symbol expression doc-string
-		 ,(lambda (vals start end)
+		 ,(semantic-lambda
 		    (list (nth 2 vals) 'variable nil
 			  (if (string= (nth 1 vals) "defconst") t nil)
-			  nil nil (car-safe (nth 4 vals))
-			  start end))))
+			  nil nil (car-safe (nth 4 vals))))))
     ;; In elisp, an include is just the require statement.
     (include
      (open-paren symbol "require" quote symbol
-		 ,(lambda (vals start end)
-		    (list (nth 3 vals) 'include nil nil start end))))
+		 ,(semantic-lambda
+		    (list (nth 3 vals) 'include nil nil))))
     ;; in elisp, a package statement is the same as the provide token.
     (package
      (open-paren symbol "provide" quote symbol opt-filestring close-paren
-		 ,(lambda (vals start end)
-		    (list (nth 3 vals) 'package (nth 4 vals)
-			  nil start end))))
+		 ,(semantic-lambda
+		    (list (nth 3 vals) 'package (nth 4 vals) nil))))
     (opt-filestring
      (string)
      ( ,(lambda (vals start end) (list nil))))
     ;; Some random code stuck in there.
     (code
      (open-paren symbol
-		 ,(lambda (vals start end)
+		 ,(semantic-lambda
 		    (let ((sym (if (nth 1 vals) (intern-soft (nth 1 vals)))))
 		      (if (and sym (fboundp sym))
-			  (list (nth 1 vals) 'code start end)
-			)))))
+			  (list (nth 1 vals) 'code))))))
     ;; Doc strings are sometimes optional, and always just return the
     ;; start position.
     (doc-string
      (string ,(lambda (vals start end) (list start start end)))
-     (comment ,(lambda (vals start end) (list start start end)))
+     (comment ,(lambda  (vals start end) (list start start end)))
      ())
     ;; Quotes are oft optional in some cases
     (quote (punctuation "'"))
+    ;; Backquotes are also optional for macro type thingies
+    (backquote (punctuation "`"))
     ;; Something that can be evaluated out to something.
     (expression
-     (quote expression ,(lambda (vals start end)
-			  (list (car (cdr vals)) start end)))
+     (quote expression ,(semantic-lambda (list (car (cdr vals)))))
+     (backquote expression ,(semantic-lambda (list (car (cdr vals)))))
      (semantic-list) (symbol) (string))
     ;; An argument list to a function
     (arg-list
@@ -109,15 +107,12 @@
      )
     ;; This guys is some number of argument symbols...
     (argsyms
-     (open-paren close-paren ,(lambda (vals start end)
-				(list nil start end)))
-     (open-paren argsyms ,(lambda (vals start end)
-			    (append (car (cdr vals)) (list start end))))
-     (symbol argsyms ,(lambda (vals start end)
-			(append (cons (car vals) (car (cdr vals)))
-				(list start end))))
-     (symbol close-paren ,(lambda (vals start end)
-			    (list (car vals) start end))))
+     (open-paren close-paren ,(semantic-lambda
+				(list nil)))
+     (open-paren argsyms ,(semantic-lambda (car (cdr vals))))
+     (symbol argsyms ,(semantic-lambda
+			(append (cons (car vals) (car (cdr vals))))))
+     (symbol close-paren ,(semantic-lambda (list (car vals)))))
     )
   "Top level bovination table for elisp.")
 
