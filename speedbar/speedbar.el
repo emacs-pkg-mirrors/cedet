@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.7 1996/10/30 02:48:50 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.8 1996/10/30 03:00:38 zappo Exp $
 ;;; Version: 0.3
 ;;; Keywords: file, tags, tools
 ;;;
@@ -1059,7 +1059,7 @@ interested in."
 (defun speedbar-fetch-dynamic-imenu (file)
   "Use the imenu package to load in file, and extract all the items
 tags we wish to display in the speedbar package."
-  (require 'imenu)
+  (eval-when-compile (require 'imenu))
   (save-excursion
     (set-buffer (find-file-noselect file))
     (condition-case nil
@@ -1302,7 +1302,7 @@ dynamically determine which colors to use."
 		       (x-get-resource ".backgroundMode" "BackgroundMode"))
 		   nil))
 	 (bgmode
-	  (cond (bg-res (intern (downcase bg-resource)))
+	  (cond (bg-res (intern (downcase bg-res)))
 		((and params 
 		      (fboundp 'x-color-values)
 		      (< (apply '+ (x-color-values
