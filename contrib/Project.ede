@@ -30,7 +30,8 @@
     :name "lisp"
     :path ""
     :source '("wisent-csharp.el")
-    :aux-packages '("semantic-grammar" "wisent"  "inversion" "speedbar")
+    :aux-packages '("semantic-grammar" "wisent" "inversion" "speedbar")
     )
    )
+  :metasubproject 't
   )
