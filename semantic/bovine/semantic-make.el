@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.8 2003/04/05 15:35:29 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.9 2003/04/07 11:22:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-make-bovine-table
-  ;;DO NOT EDIT! Generated from make.by - 2003-04-02 12:41+0200
+  ;;DO NOT EDIT! Generated from make.by - 2003-04-07 12:33+0200
   `(
     (bovine-toplevel ;;Makefile
      (variable)
@@ -306,7 +306,7 @@
   "Table for parsing Makefiles.")
 
 (defvar semantic-make-keyword-table
-  ;;DO NOT EDIT! Generated from make.by - 2003-04-02 12:41+0200
+  ;;DO NOT EDIT! Generated from make.by - 2003-04-07 12:33+0200
   (semantic-lex-make-keyword-table
    '(("if" . IF)
      ("ifdef" . IFDEF)
@@ -355,92 +355,20 @@
   semantic-lex-punctuation
   semantic-lex-default-action)
 
-(defun semantic-expand-make-nonterminal (token)
-  "Expand TOKEN into a list of equivalent nonterminals, or nil."
-  (cond
-   ((eq (semantic-tag-class token) 'function)
-    (let ((name (semantic-tag-name token)))
-      (if (listp name)
-	  (let ((multi (cdr name)))
-
-	    ;; Always replace the list of function names by the first
-	    ;; name to get a valid token!  There is nothing more to
-	    ;; do if there is only one function in the list.
-	    (setcar token (car name))
-
-	    (if multi
-		;; There are multiple names in the same function
-		;; declaration.
-		(let ((ty (semantic-tag-type                 token))
-		      (al (semantic-tag-function-arguments        token))
-		      (xs (semantic-tag-attributes token))
-		      (ds (semantic-tag-docstring            token))
-		      (pr (semantic-tag-properties           token))
-		      (nl name)
-		      tok vl)
-		  ;; Merge in new 'function tokens each reparsed
-		  ;; token name and overlay with other values from
-		  ;; the initial token.
-		  (while nl
-		    (setq tok (car nl)
-			  nl  (cdr nl)
-			  vl  (cons
-			       (list
-				tok
-				'function
-				ty	; type
-				al	; arg list
-				xs	; extra specs
-				ds	; docstring
-				pr	; properties
-				(semantic-tag-overlay token))
-			       vl)))
-		  (if vl
-		      ;; Cleanup the no more needed initial token.
-		      (semantic--tag-unlink-from-buffer token))
-		  vl))))))
-   ((eq (semantic-tag-class token) 'include)
-    (let* ((name (semantic-tag-name token))
-	   (multi (cdr name)))
-      ;; NAME is always going to be a list.  Delist it and create
-      ;; one include entry for each file on the include line.
-
-      ;; Always replace the list of function names by the first
-      ;; name to get a valid token!  There is nothing more to
-      ;; do if there is only one function in the list.
-      (setcar token (car (car name)))
-
-      (if multi
-	  ;; There are multiple names in the same function
-	  ;; declaration.
-	  (let ((sy (semantic-tag-include-system-p token))
-		(ds (semantic-tag-docstring        token))
-		(pr (semantic-tag-properties       token))
-		(nl multi)
-		(vl (cons token nil))
-		tok)
-	    ;; Merge in new 'function tokens each reparsed
-	    ;; token name and overlay with other values from
-	    ;; the initial token.
-	    (while nl
-	      (setq tok (car nl)
-		    nl  (cdr nl)
-		    vl  (cons
-			 (list
-			  (car tok)
-			  'include
-			  sy		; system
-			  ds		; docstring
-			  pr		; properties
-			  (semantic-tag-overlay token))
-			 vl)))
-	    vl))))
-    ))
+(defun semantic-make-expand-tag (tag)
+  "Expand TAG into a list of equivalent tags, or nil."
+  (let (name xpand)
+    (when (and (memq (semantic-tag-class tag) '(function include))
+               (listp (setq name (semantic-tag-name tag))))
+      (while name
+        (setq xpand (cons (semantic-tag-clone tag (car name)) xpand)
+              name  (cdr name)))
+      xpand)))
 
 ;;;###autoload
 (defun semantic-default-make-setup ()
   "Set up a Makefile buffer for parsing with semantic."
-  ;;DO NOT EDIT! Generated from make.by - 2003-04-02 12:41+0200
+  ;;DO NOT EDIT! Generated from make.by - 2003-04-07 12:33+0200
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-make-bovine-table
           semantic-debug-parser-source "make.by"
@@ -451,7 +379,7 @@
                                              (function . "Rules")
                                              (include . "Dependencies"))
           semantic-case-fold t
-          semantic-tag-expand-function 'semantic-expand-make-nonterminal
+          semantic-tag-expand-function 'semantic-make-expand-tag
           semantic-lex-syntax-modifications '((?. "_")
                                               (?= ".")
                                               (?/ "_")
