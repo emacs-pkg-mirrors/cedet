@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.3 2002/09/07 02:15:43 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.4 2003/01/09 12:55:06 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,7 +48,7 @@
 (defmacro semantic-bovinate-nonterminal-db-nt ()
   "Return the current nonterminal symbol.
 Part of the BNF source debugger.  Depends on the existing environment
-of `semantic-bovinate-nonterminal'."
+of `semantic-bovinate-stream'."
   `(if nt-stack
        (car (aref (car nt-stack) 2))
      nonterminal))
