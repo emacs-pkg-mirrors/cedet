@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.163 2000/04/22 20:05:03 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.164 2000/04/22 20:47:02 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -403,8 +403,8 @@ between different directories."
 				       (border-width . 0)
 				       (menu-bar-lines . 0)
 				       (unsplittable . t))
-  "*Parameters to use when creating the speedbar frame in Emacs.  Any
-parameter supported by a frame may be added.  The parameter `height'
+  "*Parameters to use when creating the speedbar frame in Emacs.
+Any parameter supported by a frame may be added.  The parameter `height'
 will be initialized to the height of the frame speedbar is
 attached to and added to this list before the new frame is initialized."
   :group 'speedbar
@@ -458,8 +458,8 @@ tags to insert.  It will then create the speedbar buttons.")
 (defcustom speedbar-tag-hierarchy-method
   '(speedbar-prefix-group-tag-hierarchy
     speedbar-trim-words-tag-hierarchy)
-  "*List of hooks which speedbar will use to organize tags into
-groups.  Groups are defined as expandable meta-tags.  Imenu supports
+  "*List of hooks which speedbar will use to organize tags into groups.
+Groups are defined as expandable meta-tags.  Imenu supports
 such things in some languages, such as separating variables from
 functions.  Each hook takes one argument LST, and may destructivly
 create a new list of the same form.  LST is a list of elements of the
@@ -544,7 +544,7 @@ hierarchy would be replaced with the new directory."
   :group 'speedbar
   :type 'boolean)
 
-(defcustom speedbar-use-images (or (fboundp 'defimage) 
+(defcustom speedbar-use-images (or (fboundp 'defimage)
 				   (fboundp 'make-image-specifier))
   "*Non nil if speedbar should display icons."
   :group 'speedbar
@@ -2568,7 +2568,8 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 
 (defun speedbar-trim-words-tag-hierarchy (lst)
   "Trim all words in a tag hierarchy.
-Base trimming information on word separators, and group names."
+Base trimming information on word separators, and group names.
+Argument LST is the list of tags to trim."
   (let ((newlst nil)
 	(sublst nil)
 	(trim-prefix nil)
@@ -2599,7 +2600,8 @@ Base trimming information on word separators, and group names."
       (append (nreverse newlst) trimlst))))
 
 (defun speedbar-simple-group-tag-hierarchy (lst)
-  "Create a simple 'Tags' group with orphaned tags."
+  "Create a simple 'Tags' group with orphaned tags.
+Argument LST is the list of tags to sort into groups."
   (let ((newlst nil)
 	(sublst nil))
     (while lst
@@ -4201,7 +4203,10 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
   (if (not (fboundp 'make-glyph))
       
 (defmacro defimage-speedbar (variable imagespec docstring)
-  "Don't bother loading up an image..."
+  "Don't bother loading up an image...
+Argument VARIABLE is the varible to define.
+Argument IMAGESPEC is the list defining the image to create.
+Argument DOCSTRING is the documentation for VARIABLE."
   `(defvar ,variable nil ,docstring))
 
 (defun speedbar-find-image-on-load-path (image)
