@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.62.2.1 2003/10/27 14:44:54 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.62.2.2 2003/10/29 15:02:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -141,7 +141,10 @@ If DIRECTORY doesn't exist, create a new one."
     (unless db
       (setq db (semanticdb-project-database
 		(file-name-nondirectory filename)
-		:tables nil)))
+		:tables nil))
+      ;; Set this up here.   We can't put it in the constructor because it
+      ;; would be saved, and we want DB files to be portable.
+      (oset db reference-directory directory))
     db))
 
 (defmethod semanticdb-create-table ((db semanticdb-project-database) file)
@@ -397,9 +400,6 @@ Sets up the semanticdb environment."
       (setq cdb (semanticdb-create-database semanticdb-new-database-class
 					    default-directory))
       )
-    ;; Do this outside of the find to make sure that when people upgrade
-    ;; that they get this set properly.
-    (oset cdb reference-directory default-directory)
     ;; Get the current DB for this directory
     (setq semanticdb-current-database cdb)
     ;; Get a table for this file.
