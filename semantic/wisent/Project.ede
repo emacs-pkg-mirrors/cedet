@@ -1,0 +1,31 @@
+;; Object ede-proj-project
+;; EDE project file.
+(ede-proj-project "ede-proj-project"
+  :name "wisent"
+  :file "Project.ede"
+  :targets (list 
+   (ede-proj-target-makefile-info "doc"
+    :name "doc"
+    :path ""
+    :source '("wisent.texi" "fdl.texi")
+    :partofall 'nil
+    :mainmenu "wisent.texi"
+    )
+   (ede-proj-target-makefile-miscelaneous "wy"
+    :name "wy"
+    :path ""
+    :source '("wisent-awk.wy" "wisent-calc.wy" "wisent-cim.wy" "wisent-java-tags.wy" "wisent-java.wy" "wisent-python.wy" "wisent-wy.wy")
+    )
+   (ede-proj-target-elisp "languages"
+    :name "languages"
+    :path ""
+    :source '("wisent-awk.el" "wisent-calc.el" "wisent-cim.el" "wisent-java.el" "wisent-java-tags.el" "wisent-python.el" "wisent-java-lex.el")
+    )
+   (ede-proj-target-elisp "wisent"
+    :name "wisent"
+    :path ""
+    :source '("wisent.el" "wisent-wy.el" "wisent-bovine.el" "wisent-comp.el" "wisent-expr.el")
+    :aux-packages '("semantic")
+    )
+   )
+  )
