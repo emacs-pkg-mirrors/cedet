@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 13 Jun 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-c.wy,v 1.1 2003/07/07 21:04:47 ponced Exp $
+;; X-RCS: $Id: wisent-c.wy,v 1.2 2003/08/02 08:17:50 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -33,11 +33,12 @@
 ;; file doc/C99-gram.info describes the C99 syntax in WY format.
 ;;
 
-%outputfile    "wisent-c.el"
-%parsetable    wisent-c-parser-automaton
-%keywordtable  wisent-c-keyword-table
-%tokentable    wisent-c-token-table
-%setupfunction wisent-c-default-setup
+%{
+  (require 'semantic-ast)
+  %}
+
+;;%package wisent-c-wy
+
 %languagemode  c-mode
 
 ;; Tokens
