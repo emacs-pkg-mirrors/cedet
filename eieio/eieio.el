@@ -5,8 +5,8 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.17 1996/11/18 00:24:12 zappo Exp $
+;;; Version: 0.8
+;;; RCS: $Id: eieio.el,v 1.18 1996/11/22 03:56:12 zappo Exp $
 ;;; Keywords: OO, lisp
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -57,32 +57,11 @@
 
 ;;; Structural description of object vectors
 ;;;
-;;; Class definitions shall be a stored vector:
-;;; [ 'defclass name-of-class doc-string parent children
-;;;   public-attributes public-defaults public-documentation public-methods
-;;;   private-attributes private-defaults private-documentations
-;;;   private-methods 
-;;;   initarg-tuples
-;;;   method-implementations 
-;;; ]
-;;;
-;;; name-of-class is a symbol used to store this class
-;;; doc-string is the document string associated with this class
-;;; parent is the parent class definition
-;;; children is a list of children classes inheriting from us
-;;; public-attributes is a list of public attributes
-;;; public-defaults is a list of public default values
-;;; public-documentation is a list of DOC strings for public variables
-;;; public-methods is a list of public method names
-;;; private-attributes is a list of private attributes
-;;; private-defaults is a list of private default values
-;;; private-documentation is a list of DOC strings for private variables
-;;; private-methods is private list of methods
-;;; initarg-tuples is a list of dotted pairs of (tag: . attribname)
-;;; method-implementations is a vector of public/private implementations
+;;; Class definitions shall be a stored vector.  Please see the constants
+;;; class-* for the vector index and documentation about that slot.
 ;;;
 ;;; The vector can be accessed by referencing the named property list
-;;; 'eieio-class-definition, or by using the function `class-v' on the
+;;; `eieio-class-definition', or by using the function `class-v' on the
 ;;; class's symbol.  The symbol will reference itself for simplicity,
 ;;; thus a class will always evaluate to itself.
 
@@ -91,14 +70,21 @@
 ;;; moose     - Create an object of type moose
 ;;; moose-p   - t if object is type moose
 ;;;
-;;; The allocated object will have the following form:
+;;; The instantiated object will have the following form:
 ;;; [ 'object class-type name field1 field2 ... fieldn ]
 ;;; Where 'object marks it as an eieio object.
 ;;; Where class-type is the class definition vector
-;;; Where name is some string assigned to said object to uniquely
+;;; Where name is some string or symbol assigned to said object to uniquely
 ;;;            identify it.
-;;; Where the field# are the public then private attributes.  (Methods
-;;;            are stored in the class defenitions.)
+;;; Where the field# are the public then private attributes.
+;;;
+;;; An object slot can be dereferenced with `oref' and set with
+;;; `oset'.  The CLOS function `slot-value' will also work, but since
+;;; `cl' may not always be defined, `setf' is only conditionally set
+;;; to work with `slot-value'
+;;;
+;;; Fields in a slot will default to values specified in a class.  Use
+;;; `oref-default' and `oset-default' to access these values.
 
 ;;; Generic functions and methods get a single defined symbol
 ;;; representing the name of the method.  This method always calls the
@@ -113,32 +99,9 @@
 ;;;
 ;;; History
 ;;;
-;;; 0.1  - first working copy: could run McDonald Farm example
-;;; 0.2  - fixed defmethod: couldn't handle functions over 1 form
-;;;        fixed documentation generator:
-;;;        added default values
-;;;        added fn to get parent class from a class def
-;;; 0.3  - fixed ocall so that "this" is reset AFTER args are evaluated
-;;;        now stores list of child classes in main class
-;;;        added fn to call parent's version of running method
-;;;        created default superclass for all objects which contains
-;;;           the methods all objects should inherit, including
-;;;           constructor, which will always be called at creation.
-;;;           The constructor can be overriden by new classes.
-;;;        added object browser to display the current class
-;;;           inheritance tree.
-;;;        Moved class vector information out of the variable slot,
-;;;           and into a property.  This makes for prettier prints.
-;;;        Moved old 'class-constructor and insted fset the 'class
-;;;           variable (where 'class is the named class for `defclass'
-;;;        Added edebug support
-;;; 0.4  - Removed silly ":" stuff from defclass/defmethod
-;;;        Made defclass map to CLOS version, with fewer keys, plus
-;;;           some eieio specific ones.
-;;;        Renamed defmethod to defclassmethod
-;;;        Added CLOS functions `make-instance' and `slot-value'
-;;; 0.5  - Finally figured out how to fix macros so they byte compile
-;;;        Added CLOS style `defmethod' and `defgeneric'
+;;; 0.1 - 0.5  Comments removed to shorten file.  They referred to
+;;;             things that have been long since removed.
+;;;
 ;;; 0.6  - Fixed up the defgeneric default call to handle arguments better.
 ;;;        Added `call-next-method' (calls parent's method)
 ;;;        Fixed `make-instance' so it's no longer a macro
@@ -216,7 +179,11 @@ check private parts. DO NOT SET THIS YOURSELF!")
 (defconst class-private-doc 11 "Class private documentation strings for attributes")
 (defconst class-initarg-tuples 12 "Class initarg tuples list")
 (defconst class-methods 13 "Class methods index")
-(defconst class-num-fields 14 "Number of fields in the class definition object")
+(defconst class-default-object-cache 14 
+  "Cache what a newly created object would look like.  This will speed
+up instatiation time as only a `copy-sequence' will be needed, instead
+of looping over all the values and setting them from the default.")
+(defconst class-num-fields 15 "Number of fields in the class definition object")
 
 (defconst method-before 0 "Index into :BEFORE tag on a method")
 (defconst method-primary 1 "Index into :PRIMARY tag on a method")
@@ -252,9 +219,10 @@ check private parts. DO NOT SET THIS YOURSELF!")
 
 (defmacro object-p (obj) "Return t if OBJ is an OBJECT vector."
   (list 'condition-case nil
-      (list 'and (list 'eq (list 'aref obj 0) ''object)
-	    (list 'class-p (list 'aref obj 1)))
-      '(error nil)))
+	(list 'let (list (list 'tobj obj))
+	      '(and (eq (aref tobj 0) 'object)
+		    (class-p (aref tobj 1))))
+	'(error nil)))
 
 (defmacro class-constructor (class) 
   "Return the symbol representing the constructor of that class"
@@ -447,13 +415,11 @@ in that class definition.  See defclass for more information"
 	  (list 'lambda (list 'newname '&rest 'fields)
 		(format "Create a new object with name NAME of class type %s" cname)
 		(list 
-		 'let (list (list 'no (list 'make-vector 
-					    (+ (length (aref newc class-public-a))
-					       (length (aref newc class-private-a))
-					       3)
-					    nil)))
-		 '(aset no 0 'object)
-		 (list 'aset 'no 1 cname)
+		 'let (list (list 'no 
+				  (list 'copy-sequence 
+					(list 'aref
+					      (list 'class-v cname)
+					      'class-default-object-cache))))
 		 '(aset no 2 newname)
 		 '(constructor no fields)
 		 'no)))
@@ -464,9 +430,21 @@ in that class definition.  See defclass for more information"
 	    (list 'lambda (list 'obj)
 		  (format "Test OBJ to see if it an object of type %s" cname)
 		  (list 'same-class-p 'obj newc))))
+
     ;; if this is a superclass, clear out parent (which was set to the
     ;; default superclass eieio-default-superclass)
     (if clearparent (aset newc class-parent nil))
+
+    ;; Create the cached default object.
+    (let ((cache (make-vector (+ (length (aref newc class-public-a))
+				 (length (aref newc class-private-a))
+				 3) nil)))
+	  (aset cache 0 'object)
+	  (aset cache 1 cname)
+	  (aset cache 2 'default-cache-object)
+	  (eieio-set-defaults cache t)
+	  (aset newc class-default-object-cache cache))
+
     ;; Return our new class object
     newc
     ))
@@ -791,7 +769,10 @@ available methods which may be programmed in."
 	(setq lambdas (cdr lambdas)))
       (if (not found) (signal 
 		       'no-method-definition
-		       (list method args)))
+		       (list method 
+			     (if (object-p (car args))
+				 (object-name (car args))
+			       args))))
       rval)))
 
 (defun call-next-method ()
@@ -961,11 +942,15 @@ nil."
 	(priv (aref (class-v (aref obj 1)) class-private-a)))
     (while pub
       (let ((df (oref-default-engine obj (car pub))))
+	(if (and (listp df) (eq (car df) 'lambda-default))
+	    (setcar df 'lambda))
 	(if (or df set-all)
 	    (oset-engine obj (car pub) df)))
       (setq pub (cdr pub)))
     (while priv
       (let ((df (oref-default-engine obj (car priv))))
+	(if (and (listp df) (eq (car df) 'lambda-default))
+	    (setcar df 'lambda))
 	(if (or df set-all)
 	    (oset-engine obj (car priv) df)))
       (setq priv (cdr priv)))))
@@ -1050,7 +1035,7 @@ associated with this symbol.  Current method specific code is:")
       (setq i (1+ i)))
     (setq i 0)
     (while (< i 3)
-      (let ((gm (aref (get sym 'eieio-method-tree) i)))
+      (let ((gm (reverse (aref (get sym 'eieio-method-tree) i))))
 	(while gm
 	  (setq newdoc (concat newdoc "\n\n" (symbol-name (car (car gm)))
 			       ;; prefix type
@@ -1059,7 +1044,7 @@ associated with this symbol.  Current method specific code is:")
 			       (let* ((func (cdr (car gm)))
 				      (arglst (if (byte-code-function-p func)
 						  (aref func 0)
-						(car func))))
+						(car (cdr func)))))
 				 (format "%S" arglst))
 			       "\n"
 			       ;; 3 because of cdr
@@ -1108,13 +1093,16 @@ the last parent is found, the search will recurse to this class.")
     "Constructs the new object THIS based on FIELDS.  FIELDS is a
 tagged list where odd numbered elements are tags, and even numbered
 elements are the values to store in the tagged slot.  If you overload
-the constructor, there you will need to call `eieio-set-defaults' and
-`eieio-set-fields' yourself, or you can call `call-next-method' to
-have this constructor called automatically.  If these steps are not
-taken, then new objects of your class will not have their default
-values set, or dynamically set from FIELDS."
+the constructor, there you will need to call `eieio-set-fields'
+yourself, or you can call `call-next-method' to have this constructor
+called automatically.  If these steps are not taken, then new objects
+of your class will not have their values dynamically set from FIELDS."
+    ;; Historical note:  The constructor used to set the defaults.
+    ;; This is a silly place to do this because the user could turn
+    ;; defaults off by accident by overloading `constructor'.  The
+    ;; defaults will now be handled by the class cache value.
     ;; Load in the defaults
-    (eieio-set-defaults this t)
+    ;; (eieio-set-defaults this t)
     ;; Set fields for ourselves from the list of fields
     (eieio-set-fields this fields)
     )
