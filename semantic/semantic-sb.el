@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.43 2003/05/29 00:58:57 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.44 2003/07/09 16:38:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -253,7 +253,7 @@ TEXT TOKEN and INDENT are the details."
 (defun semantic-sb-token-jump (text token indent)
   "Jump to the location specified in token.
 TEXT TOKEN and INDENT are the details."
-  (let ((file 
+  (let ((file
 	 (cond ((fboundp 'speedbar-line-path)
 		(speedbar-line-path indent))
 	       ((fboundp 'speedbar-line-directory)
@@ -265,7 +265,7 @@ TEXT TOKEN and INDENT are the details."
       (select-frame f))
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
-    (semantic-find-nonterminal token parent)
+    (semantic-go-to-tag token parent)
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
