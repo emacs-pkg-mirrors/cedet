@@ -129,15 +129,30 @@ Works on grep, compile, or other type mode."
 	)
     (while marks
       (let ((errmark (nth 0 (car marks)))
-	    (file (nth 1 (car marks)))
-	    (line (nth 2 (car marks)))
+	    (destmark (cdr (car marks)))
+	    (file nil)
+	    (line nil)
 	    (face nil)
 	    (case-fold-search t)
 	    (entry nil)
 	    (txt nil)
 	    )
-	(setq file (concat (car (cdr file))
-			   (car file)))
+
+	(cond ((consp destmark)
+	       (setq file (nth 0 destmark)
+		     line (nth 1 destmark))
+	       (setq file (concat (car (cdr file))
+				  (car file)))
+	       )
+	      ((markerp destmark)
+	       (setq file (buffer-file-name (marker-buffer destmark)))
+	       (save-excursion
+		 (set-buffer (marker-buffer destmark))
+		 (save-excursion
+		   (goto-char destmark)
+		   (setq lines (count-lines (point-min) (point))))))
+	      (t
+	       (error "don't know how to interpret error structure.")))
 
 	;; Sometimes the above doesn't work.  Use this version.
 	;; Originally suggested by: Markus Gritsch
@@ -161,9 +176,11 @@ Works on grep, compile, or other type mode."
 			      ((re-search-forward "warning" (point-at-eol) t)
 			       'linemark-caution-face)
 			      (t
-			       'linemark-funny-face)))))
+			       'linemark-go-face)))))
 	    (error nil))
 
+	  ;; Second condition case in case of issues with the previous
+	  ;; attempt.
 	  (condition-case nil
 	      (save-excursion
 		(set-buffer (marker-buffer errmark))
