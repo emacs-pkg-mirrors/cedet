@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.11.2.3 2003/01/29 16:20:21 berndl Exp $
+ * $Id: test.cpp,v 1.11.2.4 2003/01/30 08:09:53 berndl Exp $
  *
  */
 
@@ -494,3 +494,11 @@ const char** foobar11(volatile Test::Namespace::Char<char*> const * const **p);
 const char* foobar2(const char***);
 const char* foobar21(const Test::Namespace::Char<char>***);
 
+// string literal parsing even with wchar_t
+char const *p = "string1";
+char const *q = "string1" "str\"ing2" "string3";
+wchar_t testc = L'a';
+
+wchar_t const *wp = L"string with a \" in it";
+wchar_t const *wq = L"string \n\t\"test" L"string2";
+wchar_t const *wr = L"string L";
