@@ -182,27 +182,32 @@ If ARG, then find that manu marks forward or backward.
 Optional WRAP argument indicates that we should wrap around the end of
 the buffer."
   (if (not arg) (setq arg 1)) ;; default is one forward
-  (let ((entry nil)
-	(nc (point))
-	(oll nil)
-	(dir (if (< 0 arg) 1 -1))
-	(ofun (if (> 0 arg)
-		  'linemark-previous-overlay-change
-		'linemark-next-overlay-change))
-	(bounds (if (< 0 arg) (point-min) (point-max)))
-	)
+  (let* ((entry (linemark-at-point (point) group))
+	  (nc (if entry (linemark-end entry)
+		       (point)))
+	   (oll nil)
+	    (dir (if (< 0 arg) 1 -1))
+	     (ofun (if (> 0 arg)
+		          'linemark-previous-overlay-change
+		      'linemark-next-overlay-change))
+	      (bounds (if (< 0 arg) (point-min) (point-max)))
+	       )
+    (setq entry nil)
     (catch 'moose
-      (while (and (not entry) (/= arg 0))
-	(setq nc (funcall ofun nc))
-	(setq entry (linemark-at-point nc group))
-	(if (not entry)
-	    (if (or (= nc (point-min)) (= nc (point-max)))
-		(if (not wrap)
-		    (throw 'moose t)
-		  (setq wrap nil ;; only wrap once
-			nc bounds))))
-	;; Ok, now decrement arg, and keep going.
-	(if entry (setq arg (- arg dir)))))
+      (save-excursion
+	(while (and (not entry) (/= arg 0))
+	    (setq nc (funcall ofun nc))
+	      (setq entry (linemark-at-point nc group))
+	        (if (not entry)
+		          (if (or (= nc (point-min)) (= nc (point-max)))
+			        (if (not wrap)
+				          (throw 'moose t)
+				      (setq wrap nil ;; only wrap once
+					      nc bounds))))
+		  ;; Ok, now decrement arg, and keep going.
+		  (if entry
+		            (setq arg (- arg dir)
+				      nc (linemark-end entry))))))
     entry))
 
 ;;; Methods that make things go
@@ -280,6 +285,16 @@ Call the new entrie's activate method."
   (with-slots (parent) e
     (oset parent marks (delq e (oref parent marks)))
     (linemark-display e nil)))
+
+(defmethod linemark-begin ((e linemark-entry))
+  "Position at the start of the entry E."
+  (with-slots (overlay) e
+    (linemark-overlay-start overlay)))
+
+(defmethod linemark-end ((e linemark-entry))
+  "Position at the start of the entry E."
+  (with-slots (overlay) e
+    (linemark-overlay-end overlay)))
 
 ;;; Trans buffer tracking
 ;;
