@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.27 2004/03/20 00:12:45 zappo Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.28 2004/04/28 15:40:43 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -83,7 +83,7 @@ function `semantic-install-function-overrides'."
 
 (defun semantic-texi-expand-tag (tag)
   "Expand the texinfo tag TAG."
-  (let ((chil (semantic-texi-components tag)))
+  (let ((chil (semantic-tag-components tag)))
     (if chil
         (semantic-tag-put-attribute
          tag :members (mapcar 'semantic-texi-expand-tag chil)))
@@ -216,11 +216,13 @@ The cursor should be on the @ sign."
 	   (seek (concat "^@end\\s-+" (regexp-quote type))))
       (re-search-forward seek nil t))))
 
-(defun semantic-texi-components (tag)
+(define-mode-overload-implementation semantic-tag-components
+  texinfo-mode (tag)
   "Return components belonging to TAG."
   (semantic-tag-get-attribute tag :members))
 
-(defun semantic-texi-insert-foreign-tag (tag tagfile)
+(define-mode-overload-implementation semantic-insert-foreign-tag
+  texinfo-mode (tag tagfile)
   "Insert TAG from a foreign buffer in TAGFILE.
 Assume TAGFILE is a source buffer, and create a documentation
 thingy from it using the `document' tool."
@@ -233,7 +235,7 @@ thingy from it using the `document' tool."
 (define-mode-overload-implementation semantic-sb-tag-children-to-expand
   texinfo-mode (tag)
   "The children TAG expands to."
-  (semantic-texi-components tag))
+  (semantic-tag-components tag))
 
 (define-mode-overload-implementation semantic-ctxt-current-class-list
   texinfo-mode (&optional point)
@@ -358,11 +360,6 @@ that start with that symbol."
 	senator-step-at-start-end-tag-classes '(section)
 	semantic-stickyfunc-sticky-classes '(section)
 	)
-  (semantic-install-function-overrides
-   '((tag-components . semantic-texi-components)
-     (insert-foreign-tag . semantic-texi-insert-foreign-tag)
-     )
-   t)
   (local-set-key [(f9)] 'semantic-texi-update-doc-from-texi)
   )
 
