@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.17 2003/06/05 13:11:35 ponced Exp $
+ * $Id: test.cpp,v 1.18 2004/07/20 18:33:48 zappo Exp $
  *
  */
 
@@ -68,15 +68,15 @@ public:
   class3(); /* A constructor */
   enum embedded_foo_enum {
     a, b, c
-  };
+  } embed1;
   struct embedded_bar_struct {
     int a;
     int b;
-  };
+  } embed2;
   class embedded_baz_class {
-    embedded_class();
-    ~embedded_class();
-  };
+    embedded_baz_class();
+    ~embedded_baz_class();
+  } embed3;
   ~class3(); /* destructor */
   
   /* Methods */
@@ -100,10 +100,10 @@ int class3::method1_for_class3( int a, int &b)
   int c;
   class3 foo;
 
-  // Completion testing line should find external members.
-  a = foo.m;
+  // Complktion testing line should find external members.
+  a = foo.me
 
-  if (foo.fo) {
+  if (foo.emb) {
   }
 
   return 1;
@@ -128,6 +128,9 @@ void *class3::method31_for_class3( int a, int b) throw ( )
 
 void *class3::method4_for_class3( int a, int b) reentrant
 {
+  class3 ct;
+
+  ct.method5_for_class3(1,a)
 }
 
 void *class3::method5_for_class3( int a, int b) const
