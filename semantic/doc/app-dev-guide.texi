@@ -921,6 +921,15 @@ This function can be overriden in semantic using the
 symbol @code{ctxt-current-argument}.
 @end defun
 
+@defun semantic-ctxt-current-thing
+@anchor{semantic-ctxt-current-thing}
+Calculate a thing identified by the current cursor position.
+Calls previously defined @code{semantic-ctxt-current-...} calls until something
+gets a match.  See @dfn{semantic-ctxt-current-symbol},
+@dfn{semantic-ctxt-current-function}, and @dfn{semantic-ctxt-current-assignment}
+for details on the return value.
+@end defun
+
 @defun semantic-ctxt-scoped-types &optional point
 Return a list of type names currently in scope at @var{POINT}.
 This function can be overriden in semantic using the
