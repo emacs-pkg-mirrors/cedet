@@ -4,16 +4,16 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.36 2000/07/22 12:50:11 zappo Exp $
+;; RCS: $Id: ede.el,v 1.37 2000/09/24 15:59:21 zappo Exp $
+(defconst ede-version "0.8"
+  "Current version of the Emacs EDE.")
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -41,10 +41,9 @@
 ;;
 ;;  (global-ede-mode t)
 
-;;; Code:
-(defconst ede-version "0.8"
-  "Current version of the Emacs EDE.")
+(require 'ede-source)
 
+;;; Code:
 (defun ede-version ()
   "Display the current running version of EDE."
   (interactive) (message "EDE %s" ede-version))
@@ -144,7 +143,8 @@ type is required and the load function used.")
 			 :name "automake" :file 'project-am
 			 :proj-file "Makefile.am"
 			 :load-type 'project-am-load
-			 :class-sym 'project-am-makefile)
+			 :class-sym 'project-am-makefile
+			 :new-p nil)
    )
   "List of vectos defining how to determine what type of projects exist.")
 
@@ -171,9 +171,19 @@ type is required and the load function used.")
 	   :type list
 	   :custom (repeat (string :tag "File"))
 	   :documentation "Source files in this target.")
+   ;; Class level slots
+   ;;
+   (sourcetype :allocation :class
+	       :type list ;; list of symbols
+	       :documentation
+	       "A list of `ede-sourcecode' objects this class will handle.
+This is used to match target objects with the compilers they can use, and
+which files this object is interested in."
+	       :accessor ede-object-sourcecode)
    (keybindings :allocation :class
 		:initform (("D" . ede-debug-target))
-		:documentation "Keybindings specialized to this type of target."
+		:documentation 
+"Keybindings specialized to this type of target."
 		:accessor ede-object-keybindings)
    (menu :allocation :class
 	 :initform ( [ "Debug target" ede-debug-target
@@ -466,13 +476,16 @@ of objects with the `ede-want-file-p' method."
 	  (cond ((or (eq ede-auto-add-method 'ask)
 		     (and (eq ede-auto-add-method 'multi-ask)
 			  (< 1 (length desires))))
-		 (let* ((al (cons '("none" . nil)
-				  (object-assoc-list 'name desires)))
+		 (let* ((al (append '(("none" . nil) ("new target" . new))
+				    (object-assoc-list 'name desires)))
 			(ans (completing-read (format "Add %s to target: " (buffer-file-name))
 					      al nil t)))
 		   (setq ans (assoc ans al))
-		   (if (cdr ans)
-		       (ede-add-file (cdr ans)))))
+		   (cond ((object-p (cdr ans))
+			  (ede-add-file (cdr ans)))
+			 ((eq (cdr ans) 'new)
+			  (ede-new-target))
+			 (t nil))))
 		((or (eq ede-auto-add-method 'always)
 		     (and (eq ede-auto-add-method 'multi-ask)
 			  (= 1 (length desires))))
@@ -494,7 +507,16 @@ Argument FILE is the file or directory to load a project from."
   "Create a new project starting of project type TYPE."
   (interactive
    (list (completing-read "Project Type: "
-			  (object-assoc-list 'name ede-project-class-files)
+			  (object-assoc-list
+			   'name
+			   (let ((l ede-project-class-files)
+				 (r nil))
+			     (while l
+			       (if (oref (car l) new-p)
+				   (setq r (cons (car l) r)))
+			       (setq l (cdr l)))
+			     r)
+			   )
 			  nil t)))
   (let* ((obj (object-assoc type 'name ede-project-class-files))
 	 (nobj (progn
@@ -503,7 +525,8 @@ Argument FILE is the file or directory to load a project from."
 		 (make-instance (oref obj class-sym)
 				:name (read-string "Name: ")
 				:file
-				(expand-file-name (oref obj proj-file))))))
+				(expand-file-name (oref obj proj-file))
+				:targets nil))))
     (if (ede-parent-project)
 	(ede-add-subproject (ede-parent-project) nobj))
     (ede-commit-project nobj))
@@ -804,29 +827,39 @@ Argument THIS is the project to convert PATH to."
 
 (defmethod ede-want-file-p ((this ede-target) file)
   "Return non-nil if THIS target wants FILE."
-  nil)
+  ;; By default, all targets reference the source object, and let it decide.
+  (let ((src (ede-target-sourcecode this)))
+    (while (and src (not (ede-want-file-p (car src) file)))
+      (setq src (cdr src)))
+    src))
 
-(defmethod ede-expand-filename ((this ede-project) filename)
+(defmethod ede-expand-filename ((this ede-project) filename &optional force)
   "Return a fully qualified file name based on project THIS.
 FILENAME should be just a filename which occurs in a directory controlled
-by this project."
+by this project.
+Optional argument FORCE forces the default filename to be provided even if it
+doesn't exist."
   (let ((path (file-name-directory (oref this file)))
 	(proj (oref this subproj))
 	(found nil))
-    (cond ((file-exists-p (concat path filename))
-	   (concat path filename))
-	  ((file-exists-p (concat path "include/" filename))
-	   (concat path "include/" filename))
-	  (t
-	   (while (and (not found) proj)
-	     (setq found (ede-expand-filename (car proj) filename)
-		   proj (cdr proj)))
-	   found))))
+    (or
+     (cond ((file-exists-p (concat path filename))
+	    (concat path filename))
+	   ((file-exists-p (concat path "include/" filename))
+	    (concat path "include/" filename))
+	   (t
+	    (while (and (not found) proj)
+	      (setq found (ede-expand-filename (car proj) filename)
+		    proj (cdr proj)))
+	    found))
+     (and force (concat path filename)))))
 
-(defmethod ede-expand-filename ((this ede-target) filename)
+(defmethod ede-expand-filename ((this ede-target) filename &optional force)
   "Return a fully qualified file name based on target THIS.
-FILENAME should a a filename which occurs in a directory in which THIS works."
-  (ede-expand-filename (ede-target-parent this) filename))
+FILENAME should a a filename which occurs in a directory in which THIS works.
+Optional argument FORCE forces the default filename to be provided even if it
+doesn't exist."
+  (ede-expand-filename (ede-target-parent this) filename force))
 
 (defun ede-header-file ()
   "Return the header file for the current buffer.
@@ -846,7 +879,13 @@ Do a quick check to see if there is a Header tag in this buffer."
     (set-buffer buffer)
     (if (re-search-forward "::Header:: \\([a-zA-Z0-9.]+\\)" nil t)
 	(buffer-substring-no-properties (match-beginning 1)
-					(match-end 1)))))
+					(match-end 1))
+      (let ((src (ede-target-sourcecode this))
+	    (found nil))
+	(while (and src (not found))
+	  (setq found (ede-buffer-header-file (car src) (buffer-file-name))
+		src (cdr src)))
+	found))))
 
 (defun ede-documentation-files ()
   "Return the documentation files for the current buffer.
@@ -1163,6 +1202,27 @@ If VARIABLE is not project local, just use set."
 (defmethod ede-commit-local-variables ((proj ede-project))
   "Commit change to local variables in PROJ."
   nil)
+
+
+;;; Accessors for more complex types where oref is inappropriate.
+;;
+(defmethod ede-target-sourcecode ((this ede-target))
+  "Return the sourcecode objects which THIS permits."
+  (let ((sc (oref this sourcetype))
+	(rs nil))
+    (while sc
+      (setq rs (cons (symbol-value (car sc)) rs)
+	    sc (cdr sc)))
+    rs))
+
+
+;;; Lame stuff
+;;
+(defun ede-or (arg)
+  "Do `or' like stuff to ARG because you can't apply `or'."
+  (while (and arg (not (car arg)))
+    (setq arg (cdr arg)))
+  arg)
 
 
 ;;; Hooks & Autoloads
