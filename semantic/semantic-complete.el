@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.6 2003/05/10 02:34:47 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.7 2003/05/10 02:57:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -99,6 +99,15 @@
 (eval-when-compile (require 'semanticdb))
 
 ;;; Code:
+
+;;; Compatibility
+;;
+(if (fboundp 'minibuffer-contents)
+    (defalias 'semantic-minibuffer-contents 'minibuffer-contents)
+  (defalias 'semantic-minibuffer-contents 'buffer-string))
+(if (fboundp 'delete-minibuffer-contents)
+    (defalias 'semantic-delete-minibuffer-contents 'delete-minibuffer-contents)
+  (defalias 'semantic-delete-minibuffer-contents 'erase-buffer))
 
 ;;; Option Selection harnesses
 ;;
@@ -222,7 +231,7 @@ HISTORY is a symbol representing a variable to story the history in."
 (defun semantic-complete-done ()
   "Accept the current input."
   (interactive)
-  (when (string= (minibuffer-contents) "")
+  (when (string= (semantic-minibuffer-contents) "")
       ;; The user wants the defaults!
       (exit-minibuffer))
   (semantic-complete-do-completion)
@@ -238,7 +247,7 @@ HISTORY is a symbol representing a variable to story the history in."
 If PARTIAL, do partial completion stopping at spaces."
   (semantic-collector-calculate-completions
    semantic-completion-collector-engine
-   (minibuffer-contents))
+   (semantic-minibuffer-contents))
   (let* ((na (semantic-collector-next-action
 	      semantic-completion-collector-engine)))
     (cond ((eq na 'display)
@@ -248,7 +257,7 @@ If PARTIAL, do partial completion stopping at spaces."
 	    semantic-completion-display-engine
 	    (semantic-collector-all-completions
 	     semantic-completion-collector-engine)
-	    (minibuffer-contents))
+	    (semantic-minibuffer-contents))
 	   ;; Ask the displayor to display them.
 	   (semantic-displayor-show-request
 	    semantic-completion-display-engine)
@@ -262,7 +271,7 @@ If PARTIAL, do partial completion stopping at spaces."
 	   (let ((comp (semantic-collector-try-completion
 			semantic-completion-collector-engine))
 		 )
-	     (cond ((string= (minibuffer-contents)
+	     (cond ((string= (semantic-minibuffer-contents)
 			     comp)
 		    ;; Minibuffer isn't changing.  Display.
 		    )
@@ -282,7 +291,7 @@ If PARTIAL, do partial completion stopping at spaces."
 		    (when (not (string= (buffer-string)
 					(semantic-tag-name (car comp))))
 		      ;; A fully unique completion was available.
-		      (delete-minibuffer-contents)
+		      (semantic-delete-minibuffer-contents)
 		      (insert (semantic-tag-name (car comp))))
 		    ;; The match is complete
 		    (if (= (length comp) 1)
@@ -385,7 +394,7 @@ When tokens are matched, they are added to this list.")
 (defmethod semantic-collector-next-action
   ((obj semantic-collector-abstract))
   "What should we do next?  OBJ can predict a next good action."
-  (if (string= (minibuffer-contents)
+  (if (string= (semantic-minibuffer-contents)
 	       (oref obj last-completion))
       (semantic-displayor-next-action semantic-completion-display-engine)
     'complete))
@@ -532,7 +541,7 @@ Uses `semantic-flatten-tags-table'"
 (defmethod semantic-displayor-next-action ((obj semantic-displayor-abstract))
   "The next action to take on the minibuffer related to display."
   (if (and (slot-boundp obj 'last-prefix)
-	   (string= (oref obj last-prefix) (minibuffer-contents))
+	   (string= (oref obj last-prefix) (semantic-minibuffer-contents))
 	   (eq last-command this-command))
       'focus
     'display))
