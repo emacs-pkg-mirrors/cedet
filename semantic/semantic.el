@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.158 2002/08/08 16:06:11 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.159 2002/08/09 15:40:59 ponced Exp $
 
 (defvar semantic-version "2.0alpha4"
   "Current version of Semantic.")
@@ -609,10 +609,10 @@ compatibility with previous versions of Semantic."
         (setq res (semantic-parse-region (point-min) (point-max)))
         (working-status t))
       ;; Clear the caches when we see there were no errors.
-      ;;
-      ;; NOTE: We need to be careful about the unmatched syntax cache!
-      ;;       What to do?
-      (semantic-clear-toplevel-cache)
+      ;; But preserve the unmatched syntax cache!
+      (let (semantic-unmatched-syntax-cache
+            semantic-unmatched-syntax-cache-check)
+        (semantic-clear-toplevel-cache))
       ;; Set up the new overlays
       (semantic-overlay-list res)
       ;; Set up the cache with the new results
