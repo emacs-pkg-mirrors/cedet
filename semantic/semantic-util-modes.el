@@ -1,12 +1,12 @@
 ;;; semantic-util-modes.el --- Semantic minor modes
 
-;;; Copyright (C) 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
 ;;; Copyright (C) 2001 David Ponce
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.17 2001/12/08 03:12:39 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.18 2002/07/29 03:46:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,8 +34,8 @@
 ;; 
 
 ;;; Code:
-(require 'semantic-util)
 (require 'working)
+(require 'semantic)
 
 ;;; Compatibility
 (if (fboundp 'propertize)
@@ -307,6 +307,117 @@ minor mode is enabled.
                          "d"
                          semantic-show-dirty-mode-map)
 
+
+
+;;;;
+;;;; Minor mode to highlight areas that a user edits.
+;;;;
+
+;;;###autoload
+(defun global-semantic-highlight-edits-mode (&optional arg)
+  "Toggle global use of option `semantic-highlight-edits-mode'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  (interactive "P")
+  (setq global-semantic-highlight-edits-mode
+        (semantic-toggle-minor-mode-globally
+         'semantic-highlight-edits-mode arg)))
+
+;;;###autoload
+(defcustom global-semantic-highlight-edits-mode nil
+  "*If non-nil enable global use of highlight-edits mode."
+  :group 'semantic
+  :type 'boolean
+  :require 'semantic-util-modes
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (global-semantic-highlight-edits-mode (if val 1 -1))))
+
+(defcustom semantic-highlight-edits-mode-hook nil
+  "*Hook run at the end of function `semantic-highlight-edits-mode'."
+  :group 'semantic
+  :type 'hook)
+
+(defface semantic-highlight-edits-face
+  '((((class color) (background dark))
+     ;; Put this back to something closer to black later.
+     (:background "gray50"))
+    (((class color) (background light))
+     (:background "gray90")))
+  "*Face used to show dirty tokens in `semantic-highlight-edits-token-mode'."
+  :group 'semantic)
+
+(defun semantic-highlight-edits-new-change-hook-fcn (overlay)
+  "Function set into `semantic-edits-new-change-hook'.
+Argument OVERLAY is the overlay created to mark the change.
+This function will set the face property on this overlay."
+  (semantic-overlay-put overlay 'face 'semantic-highlight-edits-face))
+
+(defvar semantic-highlight-edits-mode-map
+  (let ((km (make-sparse-keymap)))
+    km)
+  "Keymap for highlight-edits minor mode.")
+
+(defvar semantic-highlight-edits-mode nil
+  "Non-nil if highlight-edits minor mode is enabled.
+Use the command `semantic-highlight-edits-mode' to change this variable.")
+(make-variable-buffer-local 'semantic-highlight-edits-mode)
+
+(defun semantic-highlight-edits-mode-setup ()
+  "Setup option `semantic-highlight-edits-mode'.
+The minor mode can be turned on only if semantic feature is available
+and the current buffer was set up for parsing.  When minor mode is
+enabled parse the current buffer if needed.  Return non-nil if the
+minor mode is enabled."
+  (if semantic-highlight-edits-mode
+      (if (not (and (featurep 'semantic) (semantic-active-p)))
+          (progn
+            ;; Disable minor mode if semantic stuff not available
+            (setq semantic-highlight-edits-mode nil)
+            (error "Buffer %s was not set up for parsing"
+                   (buffer-name)))
+        (semantic-make-local-hook 'semantic-edits-new-change-hooks)
+        (add-hook 'semantic-edits-new-change-hooks
+                  'semantic-highlight-edits-new-change-hook-fcn nil t)
+        )
+    ;; Remove hooks
+    (remove-hook 'semantic-edits-new-change-hooks
+		 'semantic-highlight-edits-new-change-hook-fcn t)
+    )
+  semantic-highlight-edits-mode)
+
+;;;###autoload
+(defun semantic-highlight-edits-mode (&optional arg)
+  "Minor mode for highlighting change made in a buffer.
+Changes are tracked by semantic so that the incremental parser can work
+properly.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled.
+
+\\{semantic-highlight-edits-mode-map}"
+  (interactive
+   (list (or current-prefix-arg
+             (if semantic-highlight-edits-mode 0 1))))
+  (setq semantic-highlight-edits-mode
+        (if arg
+            (>
+             (prefix-numeric-value arg)
+             0)
+          (not semantic-highlight-edits-mode)))
+  (semantic-highlight-edits-mode-setup)
+  (run-hooks 'semantic-highlight-edits-mode-hook)
+  (if (interactive-p)
+      (message "highlight-edits minor mode %sabled"
+               (if semantic-highlight-edits-mode "en" "dis")))
+  (semantic-mode-line-update)
+  semantic-highlight-edits-mode)
+
+(semantic-add-minor-mode 'semantic-highlight-edits-mode
+                         "e"
+                         semantic-highlight-edits-mode-map)
+
 
 ;;;;
 ;;;; Minor mode to show unmatched-syntax elements
@@ -506,12 +617,12 @@ minor mode is enabled.
 (defvar semantic-auto-parse-timer nil
   "Timer used to schedule automatic reparse.")
 
-(defcustom semantic-auto-parse-no-working-message nil
+(defcustom semantic-auto-parse-no-working-message t
   "*Non-nil disable display of working message during parse."
   :group 'semantic
   :type 'boolean)
 
-(defcustom semantic-auto-parse-working-in-modeline-flag t
+(defcustom semantic-auto-parse-working-in-modeline-flag nil
   "*Non-nil means show working messages in the mode line.
 Typically, parsing will show messages in the minibuffer.
 This will move the parse message into the mode-line."
@@ -559,7 +670,7 @@ If ARG is nil, then toggle."
          'semantic-auto-parse-mode arg)))
 
 (defcustom semantic-auto-parse-mode-hook nil
-  "*Hook run at the end of function `semantic-show-dirty-mode'."
+  "*Hook run at the end of function `semantic-auto-parse-mode'."
   :group 'semantic
   :type 'hook)
 
@@ -567,6 +678,12 @@ If ARG is nil, then toggle."
   "Non-nil if auto-parse minor mode is enabled.
 Use the command `semantic-auto-parse-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-auto-parse-mode)
+
+(defvar semantic-before-auto-parse-hooks nil
+  "Hooks run before option `semantic-auto-parse-mode' begins parsing.")
+
+(defvar semantic-after-auto-parse-hooks nil
+  "Hooks run after option `semantic-auto-parse-mode' has parsed.")
 
 (defsubst semantic-auto-parse-enabled-p ()
   "Return non-nil if auto-parse is enabled for this buffer.
@@ -590,21 +707,40 @@ current buffer don't need re-parse or if its size don't match
              (if semantic-auto-parse-no-working-message
                  nil
                working-status-dynamic-type))
+	    (working-status-percentage-type
+	     (if semantic-auto-parse-no-working-message
+		 nil
+	       working-status-percentage-type))
 	    (semantic-flex-unterminated-syntax-end-function
 	     (lambda (syntax start end) (throw 'auto-parse syntax)))
 	    )
-	(when (catch 'auto-parse
-		(save-excursion
-		  (semantic-bovinate-toplevel t))
-		nil)
-	  ;; The reparse failed, no status has been set up that
-	  ;; things are really bad.  If auto-parse needs to do
-	  ;; something in this case, this is where we do it, otherwise
-	  ;; wait for the next timer, and see if the buffer has
-	  ;; been fixed up enough to do something useful.
-	  ;;(message "Auto-reparse sillyness")
-	  nil
-	  ))))
+	;; Let people hook into this, but don't let them hose
+	;; us over!
+	(condition-case nil
+	    (run-hooks 'semantic-before-auto-parse-hooks)
+	  (error nil))
+
+	(unwind-protect
+	    ;; Perform the parsing.dd
+	    (when (catch 'auto-parse
+		    (save-excursion
+		      (semantic-bovinate-toplevel t))
+		    nil)
+	      ;; The reparse failed, no status has been set up that
+	      ;; things are really bad.  If auto-parse needs to do
+	      ;; something in this case, this is where we do it, otherwise
+	      ;; wait for the next timer, and see if the buffer has
+	      ;; been fixed up enough to do something useful.
+	      ;;(message "Auto-reparse sillyness")
+	      nil)
+	  ;; Let people hook into this, but don't let them hose
+	  ;; us over!
+	  (condition-case nil
+	      (run-hooks 'semantic-after-auto-parse-hooks)
+	    (error nil)))
+	;; Return nil.
+	nil
+	)))
 
 (defun semantic-auto-parse-setup-timer ()
   "Lazy initialization of the auto parse idle timer."
@@ -657,6 +793,174 @@ minor mode is enabled."
 (semantic-add-minor-mode 'semantic-auto-parse-mode
                          "a"
                          nil)
+
+
+
+;;;;
+;;;; Minor mode to display the parser state in the modeline.
+;;;;
+
+;;;###autoload
+(defcustom global-semantic-show-parser-state-mode nil
+  "*If non-nil enable global use of show-parser-state mode."
+  :group 'semantic
+  :type 'boolean
+  :require 'semantic-util-modes
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (global-semantic-show-parser-state-mode (if val 1 -1))))
+
+;;;###autoload
+(defun global-semantic-show-parser-state-mode (&optional arg)
+  "Toggle global use of option `semantic-show-parser-state-mode'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  (interactive "P")
+  (setq global-semantic-show-parser-state-mode
+        (semantic-toggle-minor-mode-globally
+         'semantic-show-parser-state-mode arg)))
+
+(defcustom semantic-show-parser-state-mode-hook nil
+  "*Hook run at the end of function `semantic-show-parser-state-mode'."
+  :group 'semantic
+  :type 'hook)
+
+(defvar semantic-show-parser-state-mode-map
+  (let ((km (make-sparse-keymap)))
+    km)
+  "Keymap for show-parser-state minor mode.")
+
+(defvar semantic-show-parser-state-mode nil
+  "Non-nil if show-parser-state minor mode is enabled.
+Use the command `semantic-show-parser-state-mode' to change this variable.")
+(make-variable-buffer-local 'semantic-show-parser-state-mode)
+
+(defun semantic-show-parser-state-mode-setup ()
+  "Setup option `semantic-show-parser-state-mode'.
+The minor mode can be turned on only if semantic feature is available
+and the current buffer was set up for parsing.  When minor mode is
+enabled parse the current buffer if needed.  Return non-nil if the
+minor mode is enabled."
+  (if semantic-show-parser-state-mode
+      (if (not (and (featurep 'semantic) (semantic-active-p)))
+          (progn
+            ;; Disable minor mode if semantic stuff not available
+            (setq semantic-show-parser-state-mode nil)
+            (error "Buffer %s was not set up for parsing"
+                   (buffer-name)))
+	;; Set up mode line
+
+	(when (not
+	       (memq 'semantic-show-parser-state-string mode-line-modified))
+	  (setq mode-line-modified
+		(append mode-line-modified
+			'(semantic-show-parser-state-string))))
+	;; Add hooks
+        (semantic-make-local-hook 'semantic-edits-new-change-hooks)
+        (add-hook 'semantic-edits-new-change-hooks
+                  'semantic-show-parser-state-marker nil t)
+	(semantic-make-local-hook 'semantic-edits-incremental-reparse-failed-hooks)
+	(add-hook 'semantic-edits-incremental-reparse-failed-hooks
+		  'semantic-show-parser-state-marker nil t)
+	(semantic-make-local-hook 'semantic-after-partial-cache-change-hook)
+	(add-hook 'semantic-after-partial-cache-change-hook
+		  'semantic-show-parser-state-marker nil t)
+	(semantic-make-local-hook 'semantic-before-auto-parse-hooks)
+	(add-hook 'semantic-before-auto-parse-hooks
+		  'semantic-show-parser-state-auto-marker nil t)
+	(semantic-make-local-hook 'semantic-after-auto-parse-hooks)
+	(add-hook 'semantic-after-auto-parse-hooks
+		  'semantic-show-parser-state-marker nil t)
+	(semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
+	(add-hook 'semantic-after-toplevel-cache-change-hook
+		  'semantic-show-parser-state-marker nil t)
+	(semantic-show-parser-state-marker)
+        )
+    ;; Remove parts of mode line
+    (setq mode-line-modified
+	  (delq 'semantic-show-parser-state-string mode-line-modified))
+    ;; Remove hooks
+    (remove-hook 'semantic-edits-new-change-hooks
+		 'semantic-show-parser-state-marker t)
+    (remove-hook 'semantic-edits-incremental-reparse-failed-hooks
+		 'semantic-show-parser-state-marker t)
+    (remove-hook 'semantic-after-partial-cache-change-hook
+		 'semantic-show-parser-state-marker t)
+    (remove-hook 'semantic-before-auto-parse-hooks
+		 'semantic-show-parser-state-auto-marker t)
+    (remove-hook 'semantic-after-auto-parse-hooks
+		 'semantic-show-parser-state-marker t)
+    (remove-hook 'semantic-after-toplevel-cache-change-hook
+		 'semantic-show-parser-state-marker t)
+    )
+  semantic-show-parser-state-mode)
+
+;;;###autoload
+(defun semantic-show-parser-state-mode (&optional arg)
+  "Minor mode for displaying parser cache state in the modeline.
+The cache can be in one of three states.  They are
+Up To Date, partial reprase needed, and full reparse needed.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled.
+
+\\{semantic-show-parser-state-mode-map}"
+  (interactive
+   (list (or current-prefix-arg
+             (if semantic-show-parser-state-mode 0 1))))
+  (setq semantic-show-parser-state-mode
+        (if arg
+            (>
+             (prefix-numeric-value arg)
+             0)
+          (not semantic-show-parser-state-mode)))
+  (semantic-show-parser-state-mode-setup)
+  (run-hooks 'semantic-show-parser-state-mode-hook)
+  (if (interactive-p)
+      (message "show-parser-state minor mode %sabled"
+               (if semantic-show-parser-state-mode "en" "dis")))
+  (semantic-mode-line-update)
+  semantic-show-parser-state-mode)
+
+(semantic-add-minor-mode 'semantic-show-parser-state-mode
+                         ""
+                         semantic-show-parser-state-mode-map)
+
+(defvar semantic-show-parser-state-string nil
+  "String showing the parser state for this buffer.
+See `semantic-show-parser-state-marker' for details.")
+(make-variable-buffer-local 'semantic-show-parser-state-string)
+
+(defun semantic-show-parser-state-marker (&rest ignore)
+  "Set `semantic-show-parser-state-string' to indicate parser state.
+This marker is one of the following:
+ `-'  ->  The cache is up to date.
+ `!'  ->  The cache requires a full update.
+ `~'  ->  The cache needs to be incrementally parsed.
+ `@'  ->  Auto-parse in progress (not set here.)
+Arguments IGNORE are ignored, and accepted so this can be used as a hook
+in many situations."
+  (setq semantic-show-parser-state-string
+	(cond ((semantic-bovine-toplevel-full-reparse-needed-p t)
+	       "!")
+	      ((semantic-bovine-toplevel-partial-reparse-needed-p t)
+	       "~")
+	      (t "-")))
+  ;;(message "Setup mode line indicator to [%s]" semantic-show-parser-state-string)
+  (semantic-mode-line-update))
+
+(defun semantic-show-parser-state-auto-marker ()
+  "Hook function run before an autoparse.
+Set up `semantic-show-parser-state-marker' to show `@'
+to indicate a parse in progress."
+  (when (or (semantic-bovine-toplevel-full-reparse-needed-p t)
+	    (semantic-bovine-toplevel-partial-reparse-needed-p t))
+    (setq semantic-show-parser-state-string "@")
+    (semantic-mode-line-update)
+    ;; For testing.
+    ;;(sit-for 1)
+    ))
 
 
 ;;;;
