@@ -28,7 +28,7 @@ Languages_LISP=semantic-texi.el
 tools_LISP=semantic-imenu.el semantic-sb.el semanticdb.el document.el document-vars.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el semantic-idle.el
 senator_LISP=senator.el
 misc_AUX=INSTALL NEWS ChangeLog AUTHORS
-VERSION=2.0beta1
+VERSION=2.0beta2
 DISTDIR=$(top)semantic-$(VERSION)
 
 
