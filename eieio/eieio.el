@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.55 1999/11/15 20:43:21 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.56 1999/11/19 02:48:04 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1203,13 +1203,24 @@ This should only be called from a generic function."
 	      (setq found t)
 	      (setq rval (apply (car (car lambdas)) newargs))))
 	(setq lambdas (cdr lambdas)))
-      (if (not found) (signal
-		       'no-method-definition
-		       (list method
-			     (if (object-p (car args))
-				 (object-name (car args))
-			       args))))
+      (if (not found)
+	  (if (object-p (car args))
+	      (setq rval (no-method-definition (car args) method))
+	    (signal
+	     'no-method-definition
+	     (list method args))))
       rval)))
+
+(defun next-method-p ()
+  "Return a list of lambdas which qualify as the `next-method'."
+  (let ((lambdas nil)
+	(mclass (eieiomt-next scoped-class)))
+    (while (and (not lambdas) mclass)
+      ;; lookup the form to use for the PRIMARY object for the next level
+      (setq lambdas (eieio-generic-form eieio-generic-call-methodname
+					method-primary (car mclass))
+	    mclass (cdr mclass)))
+    (if lambdas t nil)))     
 
 (defun call-next-method (&rest replacement-args)
   "Call the next logical method from another method.
@@ -1221,15 +1232,22 @@ are the arguments passed in at the top level."
       (error "Call-next-method not called within a class specific method"))
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
 	(lambdas nil)
-	(mclass (eieiomt-next scoped-class)))
+	(mclass (eieiomt-next scoped-class))
+	(callsomething nil)
+	(returnval nil))
     (while mclass
       ;; lookup the form to use for the PRIMARY object for the next level
       (setq lambdas (eieio-generic-form eieio-generic-call-methodname
 					method-primary (car mclass)))
-      ;; Setup calling environment, and apply arguments...
-      (let ((scoped-class (cdr lambdas)))
-	(apply (car lambdas) newargs))
-      (setq mclass (cdr mclass)))))
+      (if lambdas
+	  ;; Setup calling environment, and apply arguments...
+	  (let ((scoped-class (cdr lambdas)))
+	    (setq callsomething t)
+	    (setq returnval (apply (car lambdas) newargs))))
+      (setq mclass (cdr mclass)))
+    (if (not callsomething)
+	(no-next-method (car newargs))
+      returnval)))
 
 
 ;;;
@@ -1326,7 +1344,10 @@ function performs no type checking!"
   (let ((es (intern-soft (symbol-name s))) ;external symbol of class
 	(ov nil)
 	(cont t))
+    ;; This converts ES from a single symbol to a list of parent classes.
     (setq es (eieiomt-next es))
+    ;; Loop over ES, then it's children individually.
+    ;; We can have multiple hits only at one level of the parent tree.
     (while (and es cont)
       (setq ov (intern-soft (symbol-name (car es)) eieiomt-optimizing-obarray))
       (if (fboundp ov)
@@ -1530,6 +1551,10 @@ associated with this symbol.  Current method specific code is:")
 (put 'no-method-definition 'error-conditions '(no-method-definition error))
 (put 'no-method-definition 'error-message "No method definition")
 
+(intern "no-next-method")
+(put 'no-next-method 'error-conditions '(no-next-method error))
+(put 'no-next-method 'error-message "No next method")
+
 (intern "invalid-slot-name")
 (put 'invalid-slot-name 'error-conditions '(invalid-slot-name error))
 (put 'invalid-slot-name 'error-message "Invalid slot name")
@@ -1619,6 +1644,24 @@ return the value to use in place of the unbound value.
 Argument FN is the function signaling this error."
   (signal 'unbound-slot (list (class-name class) (object-name object)
 			      slot-name fn)))
+
+(defmethod no-method-definition ((object eieio-default-superclass)
+				 method)
+  "Called if there are no implementations for OBJECT in METHOD.
+OBJECT is the object which has no method implementation."
+  (signal 'no-method-definition (list method (object-name object)))
+  )
+
+(defmethod no-next-method ((object eieio-default-superclass)
+			   &rest args)
+  "Called from `call-next-method' when no additional methods are available.
+OBJECT is othe object being called on `call-next-method'.
+ARGS are the  arguments it is called by.
+This method throws `no-next-method' by default.  Override this
+method to not throw an error, and it's return value becomes the
+return value of `call-next-method'."
+  (signal 'no-next-method (list (object-name object) args))
+)
 
 (defmethod clone ((obj eieio-default-superclass) &rest params)
   "Make a deep copy of OBJ, and then apply PARAMS.
