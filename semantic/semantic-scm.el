@@ -1,9 +1,9 @@
-;;; semantic-scm.el --- Semantic details for some languages
+;;; semantic-scm.el --- Semantic details for Scheme (guile)
 
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.3 2001/04/13 02:03:42 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.4 2001/05/05 15:00:34 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
