@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.10 2003/03/21 03:25:49 zappo Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.11 2003/03/30 01:53:49 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -292,11 +292,11 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
   (let* ((start      (semantic-grammar-start))
          (scopestart (semantic-grammar-scopestart))
          (quotemode  (semantic-grammar-quotemode))
-         (tokens     (semantic-find-nonterminal-by-token
+         (tags       (semantic-find-nonterminal-by-token
                       'token (current-buffer)))
          (nterms     (semantic-find-nonterminal-by-token
                       'nonterminal (current-buffer)))
-         nterm rules items item actn prec token type regex)
+         nterm rules items item actn prec tag type regex)
     (when start
       (if (cdr start)
           (message "Extra start symbols %S ignored" (cdr start)))
@@ -310,9 +310,9 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
       (while nterms
         (setq nterm  (car nterms)
 	      ;; We can't use the override form because the current buffer
-	      ;; is not the originator of the token.
-              rules  (semantic-nonterminal-children-semantic-grammar-mode nterm)
-              nterm  (semantic-token-name nterm)
+	      ;; is not the originator of the tag.
+              rules  (semantic-tag-components-semantic-grammar-mode nterm)
+              nterm  (semantic-tag-name nterm)
               nterms (cdr nterms))
         (cond
          ;; Replace the start symbol by bovine-toplevel
@@ -325,9 +325,9 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
           (insert "\n(" nterm)))
         ;; Process each rule
         (while rules
-          (setq items (semantic-token-extra-spec (car rules) :value)
-                prec  (semantic-token-extra-spec (car rules) :prec)
-                actn  (semantic-token-extra-spec (car rules) :expr)
+          (setq items (semantic-tag-get-attribute (car rules) :value)
+                prec  (semantic-tag-get-attribute (car rules) :prec)
+                actn  (semantic-tag-get-attribute (car rules) :expr)
                 rules (cdr rules))
           ;; Process each item
           (insert "\n(")
@@ -352,11 +352,11 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
                  ;; Replace ITEM by its %token definition.
                  ;; If a '%token TYPE ITEM [REGEX]' definition exists
                  ;; in the grammar, ITEM is replaced by TYPE [REGEX].
-                 ((setq token (semantic-find-nonterminal-by-name
-                               item tokens)
-                        type  (semantic-token-extra-spec token :type))
+                 ((setq tag (semantic-find-nonterminal-by-name
+                               item tags)
+                        type  (semantic-tag-get-attribute tag :type))
                   (insert type)
-                  (if (setq regex (semantic-token-extra-spec token :value))
+                  (if (setq regex (semantic-tag-get-attribute tag :value))
                       (insert (format "\n%S" regex))))
                  ;; Don't change ITEM
                  (t
