@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.3 2003/01/24 18:15:33 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.4 2003/01/28 09:49:10 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-24 16:19+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-28 10:05+0100
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -116,7 +116,8 @@
       ,(semantic-lambda
         (list nil))
       )
-     (EMPTY)
+     ( ;;EMPTY
+      )
      ) ;; end macro-def
 
     (macro
@@ -462,13 +463,15 @@
               (nth 2 vals) nil nil nil))
       )
      (TYPEDEF
+      declmods
       typeformbase
+      cv-declmods
       typedef-symbol-list
       ,(semantic-lambda
         (list
-         (nth 2 vals) 'type
+         (nth 4 vals) 'type
          (nth 0 vals) nil
-         (nth 1 vals) nil nil))
+         (nth 2 vals) nil nil))
       )
      ) ;; end typesimple
 
@@ -762,8 +765,7 @@
     (DECLMOD
      (EXTERN)
      (STATIC)
-     (CONST)
-     (VOLATILE)
+     (CVDECLMOD)
      (INLINE)
      (REGISTER)
      (FRIEND)
@@ -780,6 +782,29 @@
       ,(semantic-lambda)
       )
      ) ;; end metadeclmod
+
+    (CVDECLMOD
+     (CONST)
+     (VOLATILE)
+     ) ;; end CVDECLMOD
+
+    (cv-declmods
+     (CVDECLMOD
+      cv-declmods
+      ,(semantic-lambda
+        (cons
+         (car
+          (nth 0 vals))
+         (nth 1 vals)))
+      )
+     (CVDECLMOD
+      ,(semantic-lambda
+        (nth 0 vals))
+      )
+     ( ;;EMPTY
+      ,(semantic-lambda)
+      )
+     ) ;; end cv-declmods
 
     (METADECLMOD
      (VIRTUAL)
@@ -921,7 +946,7 @@
     (codeblock-var-or-fun
      (declmods
       typeformbase
-      metadeclmod
+      declmods
       opt-ref
       var-or-func-decl
       ,(semantic-lambda
@@ -1163,13 +1188,14 @@
     (variablearg
      (declmods
       typeformbase
+      cv-declmods
       opt-ref
       opt-stars
       variablearg-opt-name
       ,(semantic-lambda
         (list
          (list
-          (nth 4 vals)) 'variable
+          (nth 5 vals)) 'variable
          (nth 1 vals) nil
          (semantic-bovinate-make-assoc-list
           'const
@@ -1183,7 +1209,7 @@
            (nth 0 vals))
           'reference
           (car
-           (nth 2 vals))) nil))
+           (nth 3 vals))) nil))
       )
      ) ;; end variablearg
 
@@ -1793,7 +1819,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   def)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-24 16:19+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-28 10:05+0100
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -2047,7 +2073,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-01-24 16:19+0100
+  ;;DO NOT EDIT! Generated from c.by - 2003-01-28 10:05+0100
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
           semantic-toplevel-bovine-table-source "c.by"
