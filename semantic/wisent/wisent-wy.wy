@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.wy,v 1.3 2002/02/27 23:03:40 ponced Exp $
+;; X-RCS: $Id: wisent-wy.wy,v 1.4 2002/02/28 21:25:10 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -129,6 +129,10 @@ grammar:
   | nonterminal
   ;
 
+;; code token:
+;; -----------
+;;  ("code" 'code nil LISP-CALL-EXPRESSION nil)
+;;
 code:
     PAREN_BLOCK
     (wisent-token "code" 'code nil $1 nil)
@@ -156,11 +160,19 @@ decl:
   | put_decl
   ;
 
+;; languagemode token:
+;; -------------------
+;;  (FIRST-MODE-NAME 'languagemode nil REST-MODE-NAMES nil)
+;;
 languagemode_decl:
     LANGUAGEMODE symbols
     (list (car $2) 'languagemode nil (cdr $2) nil)
   ;
 
+;; outputfile token:
+;; -----------------
+;;  (FILE-NAME 'outputfile nil nil)
+;;
 outputfile_decl:
     OUTPUTFILE string_value
     (list $2 'outputfile nil nil)
@@ -171,29 +183,52 @@ string_value:
     (read $1)
   ;
 
+;; setupfunction token:
+;; --------------------
+;;  (FUNC-NAME 'setupfunction nil nil)
+;;
 setupfunction_decl:
-    SETUPFUNCTION SYMBOL
+    SETUPFUNCTION any_symbol
     (list $2 'setupfunction nil nil)
   ;
 
+;; keywordtable token:
+;; -------------------
+;;  (VAR-NAME 'keywordtable nil nil)
+;;
 keywordtable_decl:
-    KEYWORDTABLE SYMBOL
+    KEYWORDTABLE any_symbol
     (list $2 'keywordtable nil nil)
   ;
 
+;; parsetable token:
+;; -----------------
+;;  (VAR-NAME 'parsetable nil nil)
+;;
 parsetable_decl:
-    PARSETABLE SYMBOL
+    PARSETABLE any_symbol
     (list $2 'parsetable nil nil)
   ;
 
+;; tokentable token:
+;; -----------------
+;;  (VAR-NAME 'tokentable nil nil)
+;;
 tokentable_decl:
-    TOKENTABLE SYMBOL
+    TOKENTABLE any_symbol
     (list $2 'tokentable nil nil)
   ;
 
-;; (name 'token type other-names value docstring)
+;; token token:
+;; ------------
+;;  (FIRST-TOKEN-NAME 'token TYPE REST-TOKEN-NAMES VALUE nil)
+;;
+;; keyword token:
+;; --------------
+;;  (KEYWORD-NAME 'keyword nil nil KEYWORD-VALUE nil)
+;;
 token_decl:
-    TOKEN token_type_opt SYMBOL string_value
+    TOKEN token_type_opt any_symbol string_value
     (list $3 (if $2 'token 'keyword) $2 nil $4 nil)
   | TOKEN token_type_opt symbols
     (list (car $3) 'token $2 (cdr $3) nil nil)
@@ -205,34 +240,54 @@ token_type_opt:
   ;
 
 token_type:
-    LT SYMBOL GT
+    LT any_symbol GT
     (identity $2)
   ;
 
+;; start token:
+;; ------------
+;;  (FIRST-SYMBOL-NAME 'start nil REST-SYMBOL-NAMES nil)
+;;
 start_decl:
     START symbols
     (list (car $2) 'start nil (cdr $2) nil)
   ;
 
+;; left token:
+;; -----------
+;;  ("left" 'assoc TYPE ITEMS nil)
+;;
 left_decl:
-    LEFT items
-    (list $1 'assoc nil $2 nil)
+    LEFT token_type_opt items
+    (list $1 'assoc $2 $3 nil)
   ;
 
+;; right token:
+;; ------------
+;;  ("right" 'assoc TYPE ITEMS nil)
+;;
 right_decl:
-    RIGHT items
-    (list $1 'assoc nil $2 nil)
+    RIGHT token_type_opt items
+    (list $1 'assoc $2 $3 nil)
   ;
 
+;; nonassoc token:
+;; ---------------
+;;  ("nonassoc" 'assoc TYPE ITEMS nil)
+;;
 nonassoc_decl:
-    NONASSOC items
-    (list $1 'assoc nil $2 nil)
+    NONASSOC token_type_opt items
+    (list $1 'assoc $2 $3 nil)
   ;
 
+;; put token:
+;; ----------
+;;  (FIRST-SYMBOL-NAME 'put nil REST-SYMBOL-NAMES PLIST nil)
+;;
 put_decl:
-    PUT SYMBOL put_value
+    PUT any_symbol put_value
     (list $2 'put nil nil (list $3) nil)
-  | PUT SYMBOL put_value_list
+  | PUT any_symbol put_value_list
     (let* ((vals (mapcar #'(lambda (tok) (nth 3 tok)) $3)))
       (list $2 'put nil nil vals nil))
   | PUT put_name_list put_value
@@ -254,7 +309,7 @@ put_names:
     ()
   | RBRACE
     ()
-  | SYMBOL
+  | any_symbol
  ;; Must return a list of Semantic tokens to EXPANDFULL!
     (list (list $1 'put-name nil nil))
   ;
@@ -275,14 +330,14 @@ put_values:
   ;
 
 put_value:
-    SYMBOL any_value
+    any_symbol any_value
     (cons $1 $2)
   ;
 
 ;; Return a Lisp readable form
 any_value:
-    STRING
-  | SYMBOL
+    any_symbol
+  | STRING
   | NUMBER
   | PAREN_BLOCK
   ;
@@ -293,14 +348,18 @@ symbols:
   ;
 
 lifo_symbols:
-    lifo_symbols SYMBOL
+    lifo_symbols any_symbol
     (cons $2 $1)
-  | SYMBOL
+  | any_symbol
     (list $1)
   ;
 
+;; nonterminal token:
+;; ------------------
+;;  (NONTERMINAL-NAME 'nonterminal nil RULE-TOKENS nil)
+;;
 nonterminal:
-    SYMBOL COLON rules SEMI
+    any_symbol COLON rules SEMI
     (wisent-token $1 'nonterminal nil $3 nil)
   | error SEMI
   ;
@@ -317,8 +376,17 @@ lifo_rules:
     (list $1)
   ;
 
-;; ("rule" 'rule nil (elements) action prec nil)
-;; (elements) -> ((MID-ACTION . SYMBOL) ...) or nil -> EMPTY rule
+;; rule token:
+;; ----------
+;; EMPTY rule
+;;    ("empty" 'rule nil nil ACTION PREC nil)
+;; Other rule
+;;    (RULE-NAME 'rule nil ELEMENTS ACTION PREC nil)
+;; where:
+;;  ELEMENTS is a list of ([MID-ACTION|nil] . TERM)
+;;
+;; THIS GRAMMAR NOT ALLOWS A MID-RULE ACTION AT THE END OF A RULE!
+;;
 rule:
  ;; EMPTY
     (wisent-token "empty" 'rule nil nil nil nil nil)
@@ -383,8 +451,27 @@ lifo_items:
   ;
 
 item:
-    SYMBOL
+    any_symbol
   | CHARACTER
   ;
+
+any_symbol:
+    SYMBOL
+ ;; Keywords are reserved symbols only when they follow PERCENT!
+  | LEFT
+  | NONASSOC
+  | PREC
+  | PUT
+  | RIGHT
+  | START
+  | TOKEN
+  | LANGUAGEMODE
+  | OUTPUTFILE
+  | SETUPFUNCTION
+  | KEYWORDTABLE
+  | PARSETABLE
+  | TOKENTABLE
+  ;
+
 
 ;;; wisent-wy.wy ends here
