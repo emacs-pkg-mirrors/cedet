@@ -430,13 +430,6 @@ Highlight areas that a user edits.
 Make the current functions header `sticky' to the top of the current
 window.  (Emacs 21 required)
 
-** `semantic-show-tag-boundaries-mode'
-Displays a boundary between tags.
-
-** `semantic-highlight-by-attribute-mode'
-Colorizes tags based on attributes of those tags.
-Customizable to any type of comparison.
-
 ** `semantic-auto-parse-mode' obsolete
 ** `semantic-summary-mode' obsolete
 
@@ -451,6 +444,13 @@ to execute itself.
 ** `semantic-idle-completions-mode'
 New minor mode for automatically going into inline completion
 for symbol prefixes.
+
+** `semantic-decoration-mode'
+New minor mode that manages any form of decoration to be added to
+tags.  It absorbs the duties of:
+
+** `semantic-show-tag-boundaries-mode': obsolete
+** `semantic-highlight-by-attribute-mode': obsolete
 
 * Hooks.
 
