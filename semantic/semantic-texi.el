@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.9 2002/08/08 16:05:21 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.10 2002/08/09 23:21:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -391,6 +391,7 @@ If TOKEN is nil, it is derived from the deffn under POINT."
 	  (setq done t))
 	(setq toks (cdr toks))))))
 
+;;;###autoload
 (provide 'semantic-texi)
 
 ;;; semantic-texi.el ends here

@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.60 2002/08/07 17:57:12 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.61 2002/08/09 23:19:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -346,6 +346,7 @@ Overrides `semantic-nonterminal-static'."
   "Setup hook function for Emacs Lisp files and Semantic."
   )
 
+;;;###autoload
 (add-hook 'emacs-lisp-mode-hook 'semantic-default-elisp-setup)
 
 (provide 'semantic-el)

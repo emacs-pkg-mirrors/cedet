@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.59 2002/08/04 01:58:23 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.60 2002/08/09 23:19:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1239,7 +1239,9 @@ These are constants which are of type TYPE."
  ;; End code generated from c.bnf
 )
 
+;;;###autoload
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
+;;;###autoload
 (add-hook 'c++-mode-hook 'semantic-default-c-setup)
 
 (provide 'semantic-c)

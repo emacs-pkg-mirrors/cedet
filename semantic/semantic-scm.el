@@ -1,9 +1,9 @@
 ;;; semantic-scm.el --- Semantic details for Scheme (guile)
 
-;;; Copyright (C) 2001 Eric M. Ludlam
+;;; Copyright (C) 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.7 2001/11/17 15:42:02 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.8 2002/08/09 23:20:37 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -164,6 +164,7 @@ Attempts a simple prototype for calling or using TOKEN."
  ;; End code generated from scheme.bnf
  )
 
+;;;###autoload
 (add-hook 'scheme-mode-hook 'semantic-default-scheme-setup)
 
 (provide 'semantic-scm)

@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.14 2002/05/07 01:31:14 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.15 2002/08/09 23:20:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -326,9 +326,8 @@ These command lines continue to additional lines when the end with \\"
   ;; End code generated from make.bnf
   )
 
+;;;###autoload
 (add-hook 'makefile-mode-hook 'semantic-default-make-setup)
-
-
 
 (provide 'semantic-make)
 
