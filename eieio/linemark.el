@@ -226,7 +226,7 @@ Call the new entrie's activate method."
     (if (oref g active)
 	(linemark-display new-entry t))))
 
-(defmethod linemark-new-entry ((g linemark-group) &optional args)
+(defmethod linemark-new-entry ((g linemark-group) &rest args)
   "Create a new entry for G using init ARGS."
   (let ((f (plist-get args :file))
 	(l (plist-get args :line)))
