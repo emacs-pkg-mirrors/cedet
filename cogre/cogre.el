@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.10 2001/05/21 19:41:58 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.11 2001/07/12 19:21:53 zappo Exp $
 
-(defvar cogre-version "0.0"
+(defvar cogre-version "0.1"
   "Current version of Cogre.")
 
 ;; This file is not part of GNU Emacs.
@@ -124,14 +124,14 @@ Elements must be erased before any graphical fields are changed.")
    (name-default :initform "Name"
 		 :type string
 		 :custom string
-		 :allocation class
+		 :allocation :class
 		 :documentation
      "The object-name of this node.
 Node object-names must be unique within the current graph so that save
 references in links can be restored.")
    (menu :initform nil
 	 :type list
-	 :allocation class
+	 :allocation :class
 	 :documentation
 	 "List of menu items in Easymenu format of changeable things.
 Any given element may have several entries of details which are
@@ -153,17 +153,17 @@ Graph elements have a method for marking themselves dirty.")
 The Width/Height if this node is determined by RECTANGLE, which is
 a list of strings representing the body of the node."
 	     )
-   (blank-lines-top :allocation class
+   (blank-lines-top :allocation :class
 		    :initform 1
 		    :documentation
 		    "Number of blank lines above the object-name.")
-   (blank-lines-bottom :allocation class
+   (blank-lines-bottom :allocation :class
 		       :initform 1
 		       :documentation
 		       "Number of blank lines below the last line of text.")
    (alignment :initform nil
 	      :type symbol
-	      :allocation class
+	      :allocation :class
 	      :documentation
 	      "Alignment of text when displayed in the box.")
    (rectangle :initarg :rectangle
@@ -196,7 +196,7 @@ As a string, the object-name of the node we end on.
 As an object, the node we end on.")
    (start-glyph :initarg :start-glyph
 		:initform [ nil nil nil nil ]
-		:allocation class
+		:allocation :class
 		:type vector
 		:documentation "The starting glyph.
 A Glyph can be NULL, meaning nothing, or a vector.
@@ -205,13 +205,13 @@ the [ TOP BOTTOM LEFT RIGHT ] of the attached node.
 Each element of the vector must be a list representing a rectangle.")
    (end-glyph :initarg :end-glyph
 	      :initform [ nil nil nil nil ]
-	      :allocation class
+	      :allocation :class
 	      :type vector
 	      :documentation "The ending glyph.
 See slot `start-glyph'")
    (horizontal-preference-ratio
     :initform .5
-    :allocation class
+    :allocation :class
     :documentation
     "When choosing a link's direction, a weight applied to horizontal.
 Since characters are not square, this ratio attempts to handle the visible
