@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.73 2000/12/16 03:09:29 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.74 2000/12/28 11:51:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -459,6 +459,8 @@ Runs `semantic-init-hook' if the major mode is setup to use semantic."
   (if semantic-toplevel-bovine-table
       (run-hooks 'semantic-init-hooks)))
 (add-hook 'find-file-hooks 'semantic-find-file-hook)
+;; I think this should work, but it does funny stuff.
+;(add-hook 'change-major-mode-hook 'semantic-find-file-hook)
 
 ;; Test the above hook.
 ;;(add-hook 'semantic-init-hooks (lambda () (message "init for semantic")))
@@ -689,12 +691,16 @@ the current results on a parse error."
 	    (error "Parse error @ %d" (car (cdr (car stream)))))
 	(semantic-overlay-stack-add stream-overlays)
 	(if token
-	    (progn
-	      (setq result (append (semantic-raw-to-cooked-token token)
-				   result))
-	      ;; Place the nonterm into the token.
-	      (if (not (eq nonterm 'bovine-toplevel))
-		  (semantic-token-put token 'reparse-symbol nonterm)))
+	    (if (car token)
+		(progn
+		  (setq result (append (semantic-raw-to-cooked-token token)
+				       result))
+		  ;; Place the nonterm into the token.
+		  (if (not (eq nonterm 'bovine-toplevel))
+		      (semantic-token-put token 'reparse-symbol nonterm)))
+	      ;; No error in this case, a purposeful nil means don't store
+	      ;; anything.
+	      )
 	  (if returnonerror (setq stream nil))
 	  ;;(error "Parse error")
 	  )
