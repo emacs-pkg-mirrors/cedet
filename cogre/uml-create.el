@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.2 2001/05/19 22:22:31 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.3 2001/05/21 19:25:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -199,7 +199,7 @@ customizing the object, or performing some complex task."
 
 (defun cogre-uml-source-display-bottom (m)
   "Display point M in a small buffer on the bottom of the current frame."
-  (if (cdr (window-list))
+  (if (not (eq (next-window) (selected-window)))
       (cogre-uml-source-display-other-window m)
     (split-window-vertically (- (window-height)
 				cogre-uml-source-display-window-size
