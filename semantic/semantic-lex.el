@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.12 2002/10/02 15:04:38 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.13 2002/11/15 19:21:30 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -65,8 +65,8 @@ as a PROPERTY value.  FUN receives a symbol as argument."
       (mapatoms
        #'(lambda (symbol)
            (if (or (null property) (get symbol property))
-               (funcall fun symbol))))
-    table))
+               (funcall fun symbol)))
+       table)))
 
 ;;; Keyword table handling.
 ;;
@@ -156,7 +156,8 @@ If optional PROPERTY is non-nil, return only keywords which have a
 PROPERTY set."
   (let (keywords)
     (semantic-lex-map-keywords
-     #'(lambda (symbol) (cons symbol keywords)) property)
+     #'(lambda (symbol) (setq keywords (cons symbol keywords)))
+     property)
     keywords))
 
 ;;; Type table handling.
@@ -269,10 +270,11 @@ which as a PROPERTY value.  FUN receives a type symbol as argument."
   "Return a list of lexical type symbols.
 If optional PROPERTY is non-nil, return only type symbols which have
 PROPERTY set."
-  (let (tokens)
+  (let (types)
     (semantic-lex-map-types
-     #'(lambda (symbol) (cons symbol tokens)) property)
-    tokens))
+     #'(lambda (symbol) (setq types (cons symbol types)))
+     property)
+    types))
 
 ;;;###autoload
 (defvar semantic-lex-analyzer 'semantic-flex
@@ -913,6 +915,18 @@ Return either a paren token or a semantic list token depending on
 	(error "Strange comment syntax prevents lexical analysis"))
     (setq end-point (point))))
 
+;;; Comment lexer
+;;
+(define-lex semantic-comment-lexer
+  "A simple lexical analyzer that handles comments.
+This lexer will only return comment tokens.  It is the default lexer
+used by `semantic-find-doc-snarf-comment' to snarf up the comment at
+point."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  semantic-lex-comments
+  semantic-lex-default-action)
+
 ;;; Test Lexer
 ;;
 (define-lex semantic-simple-lexer
