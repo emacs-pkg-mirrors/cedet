@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.12 2000/04/25 16:22:22 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.13 2000/04/25 16:27:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -255,7 +255,6 @@ TEXT TOKEN and INDENT are the details."
     ;;(recenter)
     (speedbar-maybee-jump-to-attached-frame)
     (run-hooks 'speedbar-visiting-tag-hook)))
-    ))
 
 (defun semantic-sb-expand-group (text token indent)
   "Expand a group which has semantic tokens.
