@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.37 2001/06/03 14:01:13 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.38 2001/08/01 14:34:54 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.38  2001/08/01 14:34:54  zappo
+# Support reentrant.
+#
 # Revision 1.37  2001/06/03 14:01:13  zappo
 # Multi-inheritance for classes.
 # Structs like classes for C++.
@@ -172,6 +175,8 @@
 
 %token THROW "throw"
 %put THROW summary "<type> <methoddef> (<method args>) throw (<exception>) ..."
+%token REENTRANT "reentrant"
+%put REENTRANT summary "<type> <methoddef> (<method args>) reentrant ..."
 
 # Leave these alone for now.
 %token OPERATOR "operator"
@@ -439,16 +444,20 @@ var-or-fun : declmods typeform var-or-func-decl
 	   ;
 
 var-or-func-decl : opt-class opt-destructor functionname arg-list 
-		   opt-throw
+		   opt-reentrant opt-throw
 		   fun-or-proto-end
 		   ( ,$3 'function 
 			 ;; Extra stuff goes in here.
 			 ;; Continue with the stuff we found in
 			 ;; this definition
-			$1 $2 $4 $5)
+			$1 $2 $4 $6 $5)
 		 | varnamelist  SEMICOLON
 		   ( $1 'variable )
 		 ;
+
+opt-reentrant : REENTRANT
+	      | EMPTY
+	      ;
 
 opt-throw : THROW semantic-list
 	     ( EXPAND $2 throw-exception-list )
