@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.13 2003/02/27 02:55:09 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.14 2003/03/11 12:53:44 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -118,19 +118,19 @@ the current Semantic enabled buffer found."
             (if (semantic-active-p)
                 (funcall fun)))))))
 
-(defun semantic-map-mode-buffers (fun mode)
-  "Run function FUN for each MODE enabled buffer found.
-FUN does not have arguments.  When FUN is entered `current-buffer' is
-the current MODE controlled buffer found."
+(defun semantic-map-mode-buffers (fun modes)
+  "Run function FUN for each file buffer with major mode in MODES.
+MODES can be a symbol or a list of symbols.
+FUN does not have arguments."
+  (or (listp modes) (setq modes (list modes)))
   (let ((bl (buffer-list))
         b)
     (while bl
       (setq b  (car bl)
             bl (cdr bl))
-      (if (and (buffer-live-p b)
-               (buffer-file-name b))
+      (if (buffer-file-name b)
           (with-current-buffer b
-            (if (eq major-mode mode)
+            (if (memq major-mode modes)
                 (funcall fun)))))))
 
 
