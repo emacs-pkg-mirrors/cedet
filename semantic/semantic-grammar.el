@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.29 2003/06/29 12:48:00 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.30 2003/07/07 20:52:50 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -478,12 +478,14 @@ It ignores whitespaces, newlines and comments."
                  (let
                      ((s $1))
                    (if
-                       (string-match "^{[\n	 ]*" s)
+                       (string-match "^{[
+\n	 ]*" s)
                        (setq s
                              (substring s
                                         (match-end 0))))
                    (if
-                       (string-match "[\n	 ]*}$" s)
+                       (string-match "[
+\n	 ]*}$" s)
                        (setq s
                              (substring s 0
                                         (match-beginning 0))))
@@ -1182,6 +1184,34 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
 (defvar semantic-grammar-mode-hook nil
   "Hook run when starting Semantic grammar mode.")
 
+(defvar semantic-grammar-builtin-names
+  '(
+    "ASSOC"
+    "EXPAND"
+    "EXPANDFULL"
+    "TAG"
+    "VARIABLE-TAG"
+    "FUNCTION-TAG"
+    "TYPE-TAG"
+    "INCLUDE-TAG"
+    "PACKAGE-TAG"
+    "CODE-TAG"
+    )
+  "The default list of grammar builtin names.
+Used by font-lock to highlight builtin names.")
+
+(defvar semantic-grammar-builtin-names-regexp nil)
+
+(defun semantic-grammar-builtin-names-matcher (end)
+  "Font lock matcher for grammar builtin names."
+  (unless (local-variable-p 'semantic-grammar-builtin-names-regexp)
+    (make-local-variable 'semantic-grammar-builtin-names-regexp)
+    (setq semantic-grammar-builtin-names-regexp
+          (concat "(\\s-*"
+                  (regexp-opt semantic-grammar-builtin-names t)
+                  "\\>")))
+  (re-search-forward semantic-grammar-builtin-names-regexp end t))
+
 (defvar semantic-grammar-mode-keywords-1
   `(("\\(%\\)\\(\\(\\sw\\|\\s_\\)+\\)"
      (1 font-lock-reference-face)
@@ -1190,7 +1220,7 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
      0 (unless (semantic-grammar-in-lisp-p) 'bold))
     ("^\\(\\(\\sw\\|\\s_\\)+\\)[ \n\r\t]*:"
      1 font-lock-function-name-face)
-    ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\|\\([A-Z][A-Z-]*\\)?TAG\\)\\>"
+    (semantic-grammar-builtin-names-matcher
      1 ,(if (boundp 'font-lock-builtin-face)
             'font-lock-builtin-face
           'font-lock-preprocessor-face))
