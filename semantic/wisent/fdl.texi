@@ -1,5 +1,7 @@
+@ignore
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
+@end ignore
 
 @center Version 1.1, March 2000
 
