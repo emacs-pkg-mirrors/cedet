@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.18 2000/07/05 14:40:03 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.19 2000/09/19 03:43:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -292,13 +292,14 @@ The buckets should be organized into a form usable by `semantic-sb-buttons'."
     ;; Remove from buckets into a speedbar supported list.
     (setq num 1)
     (while (< num (length bins))
-      (setq out
-	    (cons (cons
-		   (cdr (nth (1- num) semantic-symbol->name-assoc-list))
-		   (aref bins num))
-		  out)
-	    num (1+ num)))
-    (setq out (cons (cons "Misc" (aref bins 0)) out))
+      (when (aref bins num)
+	(setq out
+	      (cons (cons
+		     (cdr (nth (1- num) semantic-symbol->name-assoc-list))
+		     (aref bins num))
+		    out)))
+      (setq num (1+ num)))
+    (if (aref bins 0) (setq out (cons (cons "Misc" (aref bins 0)) out)))
     (nreverse out)))
 
 ;;; Recursive searching through dependency trees
