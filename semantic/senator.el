@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 1.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.4 2000/11/14 17:23:21 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.5 2000/11/27 13:24:17 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -65,6 +65,16 @@
 ;;; Change Log:
 
 ;; $Log: senator.el,v $
+;; Revision 1.5  2000/11/27 13:24:17  david_ponce
+;; Fixed a serious performance problem in `senator-next-token' and
+;; `senator-previous-token'.
+;;
+;; Before searching for a next or previous token the point was just moved
+;; to respectively the next or previous character. Thus, during
+;; navigation, the buffer was explored character by character :-(.  Now
+;; `senator-next-token' and `senator-previous-token' skip whole tokens
+;; (unless they are 'type tokens which may include sub tokens).
+;;
 ;; Revision 1.4  2000/11/14 17:23:21  david_ponce
 ;; Minor change to `senator-next-token' and `senator-previous-token' to
 ;; return the token at point.  Useful when calling these commands
@@ -203,7 +213,9 @@ Return the semantic token or nil if at end of buffer."
         (forward-char))
     (setq found (senator-find-next-token tokens (point)))
     (while (senator-skip-p found)
-      (forward-char)
+      (if (not (eq (semantic-token-token found) 'type))
+          (goto-char (semantic-token-end found))
+        (forward-char))
       (setq found (senator-find-next-token tokens (point))))
     (if (not found)
         (progn
@@ -236,7 +248,9 @@ Return the semantic token or nil if at beginning of buffer."
         (backward-char))
     (setq found (senator-find-previous-token tokens (point)))
     (while (senator-skip-p found)
-      (backward-char)
+      (if (not (eq (semantic-token-token found) 'type))
+          (goto-char (semantic-token-start found))
+        (backward-char))
       (setq found (senator-find-previous-token tokens (point))))
     (if (not found)
         (progn
