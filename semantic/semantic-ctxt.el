@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.12 2001/09/18 20:24:24 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.13 2001/09/29 23:45:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -338,7 +338,7 @@ Depends on `semantic-type-relation-separator-character'."
 			       "\\|"))
 	 (fieldsep (concat "\\(" fieldsep1 "\\)\\(\\w\\|\\s_\\)"))
 	 (symlist nil)
-	 end begin)
+	 end)
     (save-excursion
       (if (looking-at "\\w\\|\\s_")
 	  (forward-sexp 1)
@@ -497,7 +497,6 @@ FIELDTOKEN is either a string, or a semantic token representing
 the field in foo's type."
   (let ((v (semantic-ctxt-current-symbol))
 	(case-fold-search semantic-case-fold)
-	(name nil)
 	(tok nil)
 	(chil nil)
 	(toktype nil))
