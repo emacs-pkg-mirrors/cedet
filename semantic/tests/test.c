@@ -1,7 +1,7 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.8 2002/02/06 18:54:12 zappo Exp $
+ * $Id: test.c,v 1.9 2002/06/14 13:16:14 zappo Exp $
  *
  */
 /* types of include files */
@@ -40,6 +40,8 @@ typedef struct mystruct1 *typedef_of_pointer_mystruct1;
 typedef struct { int slot_a; } typedef_of_anonymous_struct;
 typedef struct A {
 } B;
+
+typedef struct mystruct1 td1, td2;
 
 union myunion1 {
   int slot41;
@@ -92,6 +94,7 @@ char *varpa1 = "moose";
 struct mystruct2 vara2 = { 1, 'a', 0.0 };
 enum myenum1 vara3 = enum11;
 int vara4 = (int)0.0;
+int vara5 = funcall();
 
 int mvar1, mvar2, mvar3;
 char *mvarp1, *mvarp2, *mvarp3;
@@ -165,6 +168,9 @@ enum myenum1 *funk2(arg_41, arg_42)
      union myunion1 *arg_42;
 {
   sv = 5;
+
+  if(foo) {
+  }
 }
 
 int funk3(arg_51, arg_53)
@@ -173,12 +179,21 @@ int funk3(arg_51, arg_53)
 {
   char q = 'a';
   int sv = 6;
-  struct mystruct1 ms1;
+  td1 ms1;
+  enum myenum1 testconst;
 
-  fun3(ms1.slot12, arg_53 );
+  /* Function argument analysis */
+  funk3(ms1.slot11, arg_53 );
   sv = 7;
 
-  ms1.slot11 = sv;
+  /* Slot deref on assignee */
+  ms1.slot11 = s;
+
+  /* Enum/const completion */
+  testconst = e;
+
+  /* Bad var/slot and param */
+  blah.notafunction(moose);
 }
 
 int funk4_fixme(arg_61, arg_62)
