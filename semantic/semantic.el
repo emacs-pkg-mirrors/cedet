@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.79 2001/01/31 15:21:55 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.80 2001/02/01 02:09:29 zappo Exp $
 
 (defvar semantic-version "1.4.alpha2"
   "Current version of Semantic.")
@@ -447,7 +447,7 @@ The returned item may be an overlay or an unloaded buffer representation."
   (and (listp token)
        (stringp (car token))
        (symbolp (car (cdr token)))
-       (let ((o (semantic-token-overlay (car token))))
+       (let ((o (semantic-token-overlay token)))
 	 (or (semantic-overlay-p o)
 	     (arrayp o)))))
 
