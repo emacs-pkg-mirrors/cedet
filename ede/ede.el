@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.22 1999/11/08 19:02:13 zappo Exp $
+;; RCS: $Id: ede.el,v 1.23 1999/11/09 20:14:57 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -133,13 +133,6 @@ type is required and the load function used.")
    )
   "List of vectos defining how to determine what type of projects exist.")
 
-(defvar ede-default-target-menu
-  '( [ "Debug target" ede-debug-target
-       (and ede-object
-	    (obj-of-class-p ede-object ede-target)) ]
-     )
-  "Menu used by default for most project/target types.")
-
 ;;; Generic project information manager objects
 ;;
 (defclass ede-target ()
@@ -167,7 +160,10 @@ type is required and the load function used.")
 		:documentation "Keybindings specialized to this type of target."
 		:accessor ede-object-keybindings)
    (menu :allocation :class
-	 :initform (lambda () ede-default-target-menu)
+	 :initform ( [ "Debug target" ede-debug-target
+		       (and ede-object
+			    (obj-of-class-p ede-object ede-target)) ]
+		     )
 	 :documentation "Menu specialized to this type of target."
 	 :accessor ede-object-menu)
    )
@@ -220,7 +216,7 @@ and target specific elements such as build variables.")
 		:documentation "Keybindings specialized to this type of target."
 		:accessor ede-object-keybindings)
    (menu :allocation :class
-	 :initform (lambda () ede-default-target-menu)
+	 :initform nil
 	 :documentation "Menu specialized to this type of target."
 	 :accessor ede-object-menu)
    )
@@ -309,15 +305,13 @@ Argument LIST-O-O is the list of objects to choose from."
     map)
   "Keymap used in project minor mode.")
 
-(defvar ede-minor-target-keymap nil
-  "Keymap used for target-specifics.")
-(make-variable-buffer-local 'ede-minor-target-keymap)
-
 (if ede-minor-keymap
     (progn
       (easy-menu-define
        ede-minor-target-menu ede-minor-keymap "Target Minor Mode Menu"
-       '("Target" :filter ede-target-forms-menu))
+       '("Target" 
+	 :filter ede-target-forms-menu
+	 [ "No Menu Available" 'undefined ]))
       (easy-menu-define
        ede-minor-menu ede-minor-keymap "Project Minor Mode Menu"
        '("Project"
@@ -363,19 +357,16 @@ Argument LIST-O-O is the list of objects to choose from."
 		       ede-minor-keymap))
     ))
 
-(defun ede-minor-target-forms-menu (menu)
-  "Create a target MENU based on the object belonging to this buffer."
+(defun ede-target-forms-menu (menu-def)
+  "Create a target MENU-DEF based on the object belonging to this buffer."
   (easy-menu-filter-return
-   (easy-menu-create-menu "Target Forms"
-	 (mapcar (lambda (x)
-		   (let ((name (car x))
-			 (fsym (cdr x)))
-		     (vector name fsym t)))
-		 (let ((obj (or ede-selected-object ede-object)))
-		   (if (ede-target-p obj) (oref obj menu)))))))
+   (easy-menu-create-menu
+    "Target Forms"
+    (let ((obj (or ede-selected-object ede-object)))
+      (or (oref obj menu) menu-def)))))
 
 (defun ede-apply-object-keymap (&optional default)
-  "Create keymap `ede-minor-target-keymap' with bindings for `ede-object'.
+  "Add target specific keybindings into the local map.
 Optional argument DEFAULT indicates if this should be set to the default
 version of the keymap."
   (let ((object (or ede-object ede-selected-object)))
