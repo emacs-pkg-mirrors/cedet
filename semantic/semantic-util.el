@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.72 2001/07/20 14:04:18 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.73 2001/08/17 21:09:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -923,6 +923,8 @@ Available override symbols:
  `prototype-nonterminal'  (tok & parent color)        Return a prototype string.
  `concise-prototype-nonterminal' (tok & parent color) Return a concise prototype string.
  `uml-abbreviate-nonterminal' (tok & parent color)    Return a UML standard abbreviation string.
+ `uml-prototype-nonterminal' (tok & parent color)     Return a UML like prototype string.
+ `uml-concise-prototype-nonterminal' (tok & parent color)     Return a UML like concise prototype string.
 
  `find-dependency'        (token)            Find the dependency file
  `find-nonterminal'       (token & parent)   Find token in buffer.
