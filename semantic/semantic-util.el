@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.3 2000/04/28 22:57:09 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.4 2000/04/29 12:55:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -190,7 +190,9 @@ in the new list."
 ;; stream.
 (defun semantic-recursive-find-nonterminal-by-name (name buffer)
   "Recursivly find the first occurance of NAME.
-Start search with BUFFER.  Recurse through all dependencies till found."
+Start search with BUFFER.  Recurse through all dependencies till found.
+The return item is of the form (BUFFER TOKEN) where BUFFER is the buffer
+in which TOKEN (the token found to match NAME) was found."
   (save-excursion
     (set-buffer buffer)
     (let* ((stream (semantic-bovinate-toplevel nil t))
@@ -203,13 +205,15 @@ Start search with BUFFER.  Recurse through all dependencies till found."
 	  (if (and fn (not (member fn unfound)))
 	      (save-excursion
 		(set-buffer (find-file-noselect fn))
+		(message "Scanning %s" (buffer-file-name))
 		(setq stream (semantic-bovinate-toplevel nil t))
 		(setq found (semantic-find-nonterminal-by-name name stream))
-		(if (not found)
-		    (setq includelist
-			  (append includelist
-				  (semantic-find-nonterminal-by-token
-				   'include stream))))
+		(if found
+		    (setq found (cons (current-buffer) (list found)))
+		  (setq includelist
+			(append includelist
+				(semantic-find-nonterminal-by-token
+				 'include stream))))
 		(setq unfound (cons fn unfound)))))
 	(setq includelist (cdr includelist)))
       found)))
