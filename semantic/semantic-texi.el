@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.25 2004/03/10 19:30:33 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.26 2004/03/11 02:25:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -230,6 +230,112 @@ thingy from it using the `document' tool."
     ;; Now call the document insert thingy.
     (require 'document)
     (document-insert-texinfo tag b)))
+
+(define-mode-overload-implementation semantic-sb-tag-children-to-expand
+  texinfo-mode (tag)
+  "The children TAG expands to."
+  (semantic-texi-components tag))
+
+(define-mode-overload-implementation semantic-ctxt-current-class-list
+  texinfo-mode (&optional point)
+  "Determine the class of tags that can be used at POINT.
+For texinfo, there two possibilities returned.
+1) 'function - for a call to a texinfo function
+2) 'word     - indicates an english word.
+It would be nice to know function arguments too, but not today."
+  (let ((sym (semantic-ctxt-current-symbol)))
+    (if (and sym (= (aref (car sym) 0) ?@))
+	'(function)
+      '(word))))
+
+(define-mode-overload-implementation semantic-format-tag-abbreviate
+  texinfo-mode  (tag &optional parent color)
+  "Texinfo tags abbreviation."
+  (let ((class (semantic-tag-class tag))
+	(name (semantic-format-tag-name tag parent color))
+	)
+    (cond ((eq class 'function)
+	   (concat name "{ }"))
+	  (t (semantic-format-tag-abbreviate-default tag parent color)))
+    ))
+
+(define-mode-overload-implementation semantic-format-tag-prototype
+  texinfo-mode  (tag &optional parent color)
+  "Texinfo tags abbreviation."
+  (semantic-format-tag-abbreviate tag parent color))
+
+(eval-when-compile
+  (require 'semantic-analyze))
+
+(define-mode-overload-implementation semantic-analyze-current-context
+  texinfo-mode (point)
+  "Analysis context makes no sense for texinfo.  Return nil."
+  (let* ((prefixandbounds (semantic-analyze-calculate-bounds))
+	 (prefix (car prefixandbounds))
+	 (endsym (nth 1 prefixandbounds))
+	 (bounds (nth 2 prefixandbounds))
+	 (prefixclass (semantic-ctxt-current-class-list))
+	 )
+    (when prefix
+      (require 'semantic-analyze)
+      (semantic-analyze-context
+       "Context-for-texinfo"
+       :buffer (current-buffer)
+       :scope nil
+       :scopetypes nil
+       :localvariables nil
+       :bounds bounds
+       :prefix prefix
+       :prefixtypes nil
+       :prefixclass prefixclass)
+      )
+    ))
+
+(defvar semantic-texi-command-completion-list
+  (append (mapcar (lambda (a) (car a)) texinfo-section-list)
+	  texinfo-environments
+	  ;; Is there a better list somewhere?  Here are few
+	  ;; of the top of my head.
+	  "anchor" "asis"
+	  "bullet"
+	  "code" "copyright"
+	  "defun" "deffn" "defoption" "defvar" "dfn"
+	  "emph" "end"
+	  "ifinfo" "iftex" "inforef" "item" "itemx"
+	  "kdb"
+	  "node"
+	  "ref"
+	  "set" "setfilename" "settitle"
+	  "value" "var"
+	  "xref"
+	  )
+  "List of commands that we might bother completing.")
+
+(define-mode-overload-implementation semantic-analyze-possible-completions
+  texinfo-mode (context)
+  "List smart completions at point.
+Since texinfo is not a programming language the default version is not
+useful.  Insted, look at the current symbol.  If it is a command
+do primitive texinfo built ins.  If not, use ispell to lookup words
+that start with that symbol."
+  (let ((prefix (car (oref context :prefix)))
+	)
+    (cond ((member 'function (oref context :prefixclass))
+	   ;; Do completion for texinfo commands
+	   (let* ((cmd (substring prefix 1))
+		  (lst (all-completions
+			cmd semantic-texi-command-completion-list)))
+	     (mapcar (lambda (f) (semantic-tag (concat "@" f) 'function))
+		     lst))
+	   )
+	  ((member 'word (oref context :prefixclass))
+	   ;; Do completion for words via ispell.
+	   (require 'ispell)
+	   (let ((word-list (lookup-words prefix)))
+	     (mapcar (lambda (f) (semantic-tag f 'word)) word-list))
+	   )
+	  (t nil))
+    ))
 
 ;;;###autoload
 (defun semantic-default-texi-setup ()
