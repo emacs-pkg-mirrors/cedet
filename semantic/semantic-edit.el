@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.16 2002/09/10 08:30:43 ponced Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.17 2002/11/22 12:57:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -249,15 +249,15 @@ return nil."
 	     (> (semantic-token-end (car tokens)) end))
 	;; Ok, we have a match.  If this token has children,
 	;; we have to do more tests.
-	(let ((chil (semantic-nonterminal-children (car tokens) t)))
+	(let ((chil (semantic-nonterminal-children (car tokens) nil)))
 	  (if (not chil)
 	      ;; Simple leaf.
 	      (car tokens)
 	    ;; For this type, we say that we encompass it if the
 	    ;; change occurs outside the range of the children.
-	    (if (or
-		 (> start (semantic-token-end (nth (1- (length chil)) chil)))
-		 (< end (semantic-token-start (car chil))))
+	    (if (or (not (semantic-token-with-position-p (car chil)))
+		    (> start (semantic-token-end (nth (1- (length chil)) chil)))
+		    (< end (semantic-token-start (car chil))))
 		;; We have modifications to the definition of this parent
 		;; so we have to reparse the whole thing.
 		(car tokens)
@@ -288,16 +288,16 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	       (> (semantic-token-end (car tokens)) end))
 	  ;; We are completely encompassed in a token.
 	  (if (setq list-to-search
-		    (semantic-nonterminal-children (car tokens) t))
+		    (semantic-nonterminal-children (car tokens) nil))
 	      ;; Ok, we are completely encompassed within the first token
 	      ;; entry, AND that token has children.  This means that change
 	      ;; occured outside of all children, but inside some token
 	      ;; with children.
-	      (if (or
-		   (> start (semantic-token-end
-			     (nth (1- (length list-to-search))
-				  list-to-search)))
-		   (< end (semantic-token-start (car list-to-search))))
+	      (if (or (not (semantic-token-with-position-p (car list-to-search)))
+		      (> start (semantic-token-end
+				(nth (1- (length list-to-search))
+				     list-to-search)))
+		      (< end (semantic-token-start (car list-to-search))))
 		  ;; We have modifications to the definition of this parent
 		  ;; and not between it's children.  Clear the search list.
 		  (setq list-to-search nil)))
@@ -391,7 +391,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	      ;; We have a parent.  Stuff in the search list.
 	      (setq parent (car tokens)
 		    list-to-search (semantic-nonterminal-children
-				    parent t))
+				    parent nil))
 	      ;; If the first of TOKENS is a parent (see above)
 	      ;; then clear out the list.  All other tokens in
 	      ;; here must therefore be parents of the car.
@@ -400,7 +400,8 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	      ;; token or after the last, we may have overlap into
 	      ;; the characters that make up the definition of
 	      ;; the token we are parsing.
-	      (when (or (< start (semantic-token-start
+	      (when (or (semantic-token-with-position-p (car list-to-search))
+			(< start (semantic-token-start
 				  (car list-to-search)))
 			(> end (semantic-token-end
 				(nth (1- (length list-to-search))
@@ -756,7 +757,7 @@ pre-positioned to a convenient location."
   (let* ((first (car oldtokens))
 	 (last (nth (1- (length oldtokens)) oldtokens))
 	 (chil (if parent
-		   (semantic-nonterminal-children parent t)
+		   (semantic-nonterminal-children parent nil)
 		 semantic-toplevel-bovine-cache))
 	 (cachestart cachelist)
 	 (cacheend nil)
@@ -806,7 +807,7 @@ convenient location, so use that."
     (if (> (semantic-token-start (car cachelist)) start)
 	;; We are at the beginning.
 	(let* ((pc (if parent
-		       (semantic-nonterminal-children parent)
+		       (semantic-nonterminal-children parent nil)
 		     semantic-toplevel-bovine-cache))
 	       (nc (cons (car pc) (cdr pc)))  ; new cons cell.
 	       )
