@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-mode.el,v 1.3 2000/09/26 11:34:10 zappo Exp $
+;; X-RCS: $Id: semantic-mode.el,v 1.4 2000/09/27 01:32:56 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -26,14 +26,11 @@
 ;; Semantic-mode is a minor mode which provides services assuming that
 ;; the current buffer is parsable by the bovinator.
 ;;
-;; One set of services is the ability to do some simple settings on
-;; the overlays that define the boundary of the tokens.
+;; General features are:
+;; 1) Apply settings on the overlays that define the boundary of the tokens.
+;; 2) Provide some simple querying utilities via commands.
+;; 3) Semantic/Imenu configuration menu.
 ;;
-;; A second set of services is to provide some simple querying utilities
-;; via commands.
-;;
-;; Lastly, samantic mode will reparse a buffer, by tracking the tokens
-;; overlays, so that the buffer must be parsed less often.
 
 (require 'semantic)
 (require 'imenu)
@@ -152,10 +149,10 @@ tokens, highlighting them, or making functions read only.
       ;; If turned on, do this:
       (progn
 	(semantic-mode-parse)
-	;(add-hook 'after-change-functions 'semantic-mode-change-function nil t)
+
 	)
     ;; If turned off, do this:
-    ;(remove-hook 'after-change-functions 'semantic-mode-change-function t)
+
     )
   (run-hooks 'semantic-minor-mode-hooks))
 
@@ -261,20 +258,6 @@ tokens, highlighting them, or making functions read only.
   "For TOKEN, return the opposite boolean value for PROP."
 )
     
-
-;;; Dynamic reparse
-;;
-(defvar semantic-mode-change-set nil
-  "List of changes queued up and un-tested while editing.")
-
-(defun semantic-mode-change-function (start end length)
-  "Run whenever a buffer controlled by `semantic-mode' change.
-Tracks when and how the buffer is re-parsed.
-Argument START, END, and LENGTH specify the bounds of the change."
-  (setq semantic-mode-change-set
-	(cons (list start end length) semantic-mode-change-set))
-  )
-  
 
 (provide 'semantic-mode)
 
