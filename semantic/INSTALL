@@ -5,13 +5,22 @@ How to install Semantic
 
    Follow the INSTALL file in the top level of this distribution.
 
-4) If turning everything on is too much:
+3) If turning everything on is too much:
 
-   Remove the first line setting the variable that turns everything on.
-   Investigate the file `semantic-load.el', and include those pieces
-   you want to use.
+   There are four levels of support provided in semantic.  The
+   functions you can use are:
 
-5) To send bug reports, or participate in discussions about semantic,
+   semantic-load-enable-minimum-features
+   semantic-load-enable-code-helpers
+   semantic-load-enable-excessive-code-helpers
+   semantic-load-enable-semantic-debugging-helpers
+
+   If you do not get the specific combination of features you want
+   you can enable or disable individual features as you wish.
+   Please see the documentation for those features for additional
+   information about what they enable.
+
+4) To send bug reports, or participate in discussions about semantic,
    use the mailing list cedet-semantic@@sourceforge.net via the URL:
 
    http://lists.sourceforge.net/lists/listinfo/cedet-semantic
