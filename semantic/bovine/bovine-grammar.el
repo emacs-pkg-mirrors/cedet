@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.1 2002/09/05 13:29:28 ponced Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.2 2002/10/30 15:57:34 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -62,7 +62,7 @@ QUOTEMODE is the current mode of quotation."
   ;; Substitute ASSOC by call to `semantic-bovinate-make-assoc-list'
   ;; and expand the whole expression.
   (bovine-grammar-expand-form
-   (semantic-grammar-ASSOC parms) quotemode t))
+   (apply #'semantic-grammar-ASSOC parms) quotemode t))
 
 (defun bovine-grammar-expand-form (form quotemode &optional inplace)
   "Expand FORM into a new one suitable to the bovine parser.
@@ -296,11 +296,19 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
   "Return the text of the setup code."
   (format
    "(progn\n\
-      (setq semantic-toplevel-bovine-table %s\n\
-            semantic-flex-keywords-obarray %s)\n\
-     %s)"
+        (setq semantic-toplevel-bovine-table %s\n\
+              semantic-toplevel-bovine-table-source %S\n\
+              semantic-flex-keywords-obarray %s\n\
+              %s)\n\
+       %s)"
    (semantic-grammar-parsetable)
+   (file-name-nondirectory (buffer-file-name))
    (semantic-grammar-keywordtable)
+   (let ((mode (semantic-grammar-languagemode)))
+     ;; Is there more than one major mode?
+     (if (and (listp mode) (> (length mode) 1))
+         (format "semantic-equivalent-major-modes '%S\n" mode)
+       ""))
    (semantic-grammar-setupcode-text)))
 
 ;;;###autoload
