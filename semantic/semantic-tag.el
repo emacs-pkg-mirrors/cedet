@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.13 2003/04/01 15:19:32 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.14 2003/04/02 04:26:47 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -274,6 +274,38 @@ same thing, but may be constructed of different cons cells."
   (and (equal (semantic-tag-name tag1) (semantic-tag-name tag2))
        (semantic-tag-of-class-p tag1 (semantic-tag-class tag2))
        (equal (semantic-tag-bounds tag1) (semantic-tag-bounds tag2))))
+
+(defun semantic-tag-of-type-p (tag type)
+  "Compare TAG's type against TYPE.  Non nil if equivalent.
+TYPE can be a string, or a token of class 'type."
+  (let* ((tagtype (semantic-tag-type tag))
+	 (tagtypestring (cond ((stringp tagtype)
+			       tagtype)
+			      ((and (semantic-tag-p tagtype)
+				    (semantic-tag-of-class-p tagtype 'type))
+			       (semantic-tag-name tagtype))
+			      (t (error "Tag's type is unknown"))))
+	 (typestring (cond ((stringp type)
+			    type)
+			   ((and (semantic-tag-p type)
+				 (semantic-tag-of-class-p type 'type))
+			    (semantic-tag-name type))
+			   (t (error "Type's type is unknown"))))
+	 )
+    (or
+     ;; Matching strings (input type is string)
+     (and (stringp type)
+	  (string= tagtypestring type))
+     ;; Matching strings (tag type is string)
+     (and (stringp tagtype)
+	  (string= tagtype typestring))
+     ;; Matching tokens, and the type of the type is the same.
+     (and (string= tagtypestring typestring)
+	  (if (and (semantic-tag-type tag) (semantic-tag-type type))
+	      (equal (semantic-tag-type tag) (semantic-tag-type type))
+	    t))
+     )
+    ))
 
 ;;; Tag creation
 ;;
