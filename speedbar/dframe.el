@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.18 2001/10/28 00:00:10 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.19 2001/12/17 14:47:19 zappo Exp $
 
 (defvar dframe-version "1.2"
   "The current version of the dedicated frame library.")
@@ -431,7 +431,12 @@ CREATE-HOOK are hooks to run after creating a frame."
 		 (fboundp 'set-frame-name))
 	    (save-window-excursion
 	      (select-frame (symbol-value frame-var))
-	      (set-frame-name frame-name)))))) )
+	      (set-frame-name frame-name)))
+	;; On a terminal, raise the frame or the user will
+	;; be confused.
+	(if (not window-system)
+	    (select-frame (symbol-value frame-var)))
+	))) )
 
 (defun dframe-reposition-frame (new-frame parent-frame location)
   "Move NEW-FRAME to be relative to PARENT-FRAME.
