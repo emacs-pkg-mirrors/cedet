@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.40 2004/06/21 09:59:30 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.41 2004/06/22 13:03:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -365,6 +365,7 @@ calling this one."
                   ;;"define-mode-overload-implementation"
                   ;;"define-semantic-child-mode"
                   "define-semantic-idle-service"
+                  "define-semantic-decoration-style"
                   "define-wisent-lexer"
                   "semantic-alias-obsolete"
                   "semantic-varalias-obsolete"
