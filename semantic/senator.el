@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.10 2000/12/08 16:18:32 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.11 2000/12/11 07:07:09 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -92,6 +92,13 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.11  2000/12/11 07:07:09  david_ponce
+;; Applied Eric Ludlam's patch.  It adds a special face for senator to
+;; use for momentary highlight (requires latest semantic-util.el).  If
+;; the user cancels the parse (C-g) when `senator-minor-mode'
+;; initializes, it doesn't kill the rest of the configuration.  (Useful
+;; on a slow machine.)
+;;
 ;; Revision 1.10  2000/12/08 16:18:32  david_ponce
 ;; A bunch of XEmacs compatibility code!
 ;;
@@ -153,6 +160,13 @@
   "SEmantic NAvigaTOR."
   :group 'semantic)
 
+(defface senator-momentary-highlight-face  '((((class color) (background dark))
+					      (:background "gray30"))
+					     (((class color) (background light))
+					      (:background "gray70")))
+  "Face used to momentarilly highlight tokens."
+  :group 'senator)
+
 (defcustom senator-step-at-token-ids nil
   "*List of token identifiers where to step.
 Token identifier is symbol 'variable, 'function, 'type, or other.  If
@@ -209,7 +223,10 @@ langage behaviour."
 Does nothing if `senator-highlight-found' is nil or semantic version
 is bellow 1.3."
   (and senator-highlight-found
-       (semantic-momentary-highlight-token token)))
+       (condition-case nil
+ 	   (semantic-momentary-highlight-token
+	    token 'senator-momentary-highlight-face)
+	 (error (semantic-momentary-highlight-token token)))))
 
 (defun senator-message (&rest args)
   "Call function `message' with ARGS without logging."
@@ -695,11 +712,13 @@ non-nil if the minor mode is enabled."
       (if (not (and (featurep 'semantic) semantic-toplevel-bovine-table))
           ;; Disable minor mode if semantic stuff not available
           (senator-minor-mode nil)
-        ;; Parse the current buffer if needed
-        (senator-parse)
         ;; XEmacs needs this
         (if (featurep 'xemacs)
             (easy-menu-add senator-minor-menu senator-mode-map))
+        ;; Parse the current buffer if needed
+	(condition-case nil
+	    (senator-parse)
+	  (quit (message "senator-minor-mode: parsing of buffer canceled.")))
         )
     ;; XEmacs needs this
     (if (featurep 'xemacs)
