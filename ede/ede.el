@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.25 1999/11/23 20:57:43 zappo Exp $
+;; RCS: $Id: ede.el,v 1.26 1999/11/29 21:29:12 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -916,12 +916,38 @@ This includes buffers controlled by a specific target of PROJECT."
       (setq bl (cdr bl)))
     pl))
 
+(defun ede-buffers ()
+  "Return a list of all buffers controled by an EDE object."
+  (let ((bl (buffer-list))
+	(pl nil))
+    (while bl
+      (save-excursion
+	(set-buffer (car bl))
+	(if ede-object
+	    (setq pl (cons (car bl) pl))))
+      (setq bl (cdr bl)))
+    pl))
+
+(defun ede-map-buffers (proc)
+  "Execute PROC on all buffers controled by EDE."
+  (mapcar proc (ede-buffers)))
+
+(defmethod ede-map-project-buffers ((this ede-project) proc)
+  "For THIS, execute PROC on all buffers belonging to THIS."
+  (mapcar proc (ede-project-buffers this)))
+
+(defmethod ede-map-target-buffers ((this ede-target) proc)
+  "For THIS, execute PROC on all buffers belonging to THIS."
+  (mapcar proc (ede-target-buffers this)))
+
+;; other types of mapping
 (defmethod ede-map-subproject ((this ede-project) proc)
   "For object THIS, execute PROC on all subprojects."
-  (let ((s (oref this subproj)))
-    (while s
-      (apply proj (car s) nil)
-      (setq s (cdr s)))))
+  (mapcar proc (oref this subproj)))
+
+(defmethod ede-map-targets ((this ede-project) proc)
+  "For object THIS, execute PROC on all targets."
+  (mapcar proc (oref this targets)))
 
 
 ;;; Project-local variables
