@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.59 2000/10/18 03:27:05 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.60 2000/10/30 01:52:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -231,8 +231,9 @@
       (defalias 'semantic-overlay-put 'set-extent-property)
       (defalias 'semantic-overlay-get 'extent-property)
       (defalias 'semantic-overlay-delete 'delete-extent)
-      (defalias 'semantic-overlays-at 'extents-at)
-      (defalias 'semantic-overlays-in 'extents-in)
+      (defalias 'semantic-overlays-at 'extent-at)
+      (defalias 'semantic-overlays-in 
+	(lambda (beg end) (extent-list nil beg end)))
       (defalias 'semantic-overlay-buffer 'extent-buffer)
       (defalias 'semantic-overlay-start 'extent-start-position)
       (defalias 'semantic-overlay-end 'extent-end-position)
@@ -240,6 +241,7 @@
       (defalias 'semantic-overlay-previous-change 'previous-extent-change)
       (defalias 'semantic-overlay-lists
 	(lambda () (list (extent-list))))
+      (defalias 'semantic-overlay-p 'extentp)
       )
   (defalias 'semantic-overlay-live-p 'overlay-buffer)
   (defalias 'semantic-make-overlay 'make-overlay)
@@ -254,6 +256,7 @@
   (defalias 'semantic-overlay-next-change 'next-overlay-change)
   (defalias 'semantic-overlay-previous-change 'previous-overlay-change)
   (defalias 'semantic-overlay-lists 'overlay-lists)
+  (defalias 'semantic-overlay-p 'overlayp)
   )
 
 (defvar semantic-edebug nil
