@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.23 2004/03/10 19:26:53 ponced Exp $
+;; X-RCS: $Id: document.el,v 1.24 2004/03/11 12:25:32 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -785,7 +785,7 @@ This is to take advantage of TeXinfo's markup symbols."
 	    string start)
       (setq string (concat (substring string 0 (match-beginning 2))
 			   "@var{"
-			   (match-string 2 string)
+			   (downcase (match-string 2 string))
 			   "}"
 			   (substring string (match-end 2)))
 	    start (match-end 2)))
