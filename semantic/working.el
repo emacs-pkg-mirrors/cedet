@@ -1,6 +1,6 @@
 ;;; working --- Display a "working" message in the minibuffer.
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.2
@@ -105,6 +105,20 @@
   :group 'lisp
   )
 
+;;; Compatibility
+(cond ((fboundp 'run-with-timer)
+       (defalias 'working-run-with-timer 'run-with-timer)
+       (defalias 'working-cancel-timer 'cancel-timer)
+       )
+      ;;Add compatibility here
+      (t 
+       ;; This gets the message out but has no timers.
+       (defun working-run-with-timer (&rest foo) (message working-message))
+       (defun working-cancel-timer (&rest foo) (message "%s%s"
+							working-message
+							working-donestring)))
+      )
+
 ;;; User configurable variables
 ;;
 (defcustom working-status-percentage-type 'working-bar-percent-display
@@ -157,11 +171,29 @@ it will take ahead of time.  Functions provided in `working' are:
   "Contain a block of code during which a working status is shown.
 MESSAGE is the message string to use and DONESTR is the completed text
 to use when the functions `working-status' is called from FORMS."
-  (list 'let (list (list 'working-message message)
-		   (list 'working-donestring donestr)
-		   '(working-ref1 0))
-	(cons 'progn forms)))
+  `(let ((working-message ,message)
+	  (working-donestring ,donestr)
+	   (working-ref1 0))
+     ,@forms))
 (put 'working-status-forms 'lisp-indent-function 2)
+
+(defmacro working-status-timeout (timeout message donestr &rest forms)
+  "Contain a block of code during which working status is shown.
+The code may call `sit-for' or `accept-process-output', so a timer
+is needed to update the message.
+TIMEOUT is the length of time to wait between message updates.
+MESSAGE is the message string to use and DONESTR is the completed text
+to use when the functions `working-status' is called from FORMS."
+  `(let* ((working-message ,message)
+	    (working-donestring ,donestr)
+	      (working-ref1 0)
+	        (working-timer
+		    (working-run-with-timer ,timeout ,timeout 'working-dynamic-status)))
+     (unwind-protect
+	  (progn ,@forms)
+       (working-cancel-timer working-timer))
+     (working-dynamic-status t)))
+(put 'working-status-timeout 'lisp-indent-function 3)
 
 (defun working-status (&optional percent &rest args)
   "Called within the macro `working-status-forms', show the status.
@@ -429,6 +461,12 @@ is t to display the done string, or the number to display."
 	(sleep-for 0.05)
 	)
       (working-dynamic-status t))))
+
+(defun working-wait-for-keypress ()
+  "Display funny graphics while waiting for a keypress."
+  (interactive)
+  (working-status-timeout .1 "Press a key..." "done"
+    (while (sit-for 10))))
 
 (provide 'working)
 
