@@ -1,10 +1,10 @@
 ;;; semanticdb.el --- Semantic tag database manager
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.70 2004/08/25 06:18:13 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.71 2005/01/12 22:43:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -353,7 +353,8 @@ via the `semanticdb-project-root-functions' variable."
   "List of functions used to determine a given directories project root.
 Functions in this variable can override `semanticdb-project-roots'.
 Functions set in the variable are given one argument (a directory) and
-must return a string, (the root directory).  This variable should be used
+must return a string, (the root directory) or a list of strings (multiple
+root directories in a more complex system).  This variable should be used
 by project management programs like EDE or JDE.")
 
 (defvar semanticdb-project-system-databases nil
@@ -396,16 +397,23 @@ Always append `semanticdb-project-system-databases' if
       (setq roots (cdr roots)))
     ;; Find databases based on the root directory.
     (when root
-      (let ((regexp (concat "^" (regexp-quote (expand-file-name root))))
-	    (adb semanticdb-database-list) ; all databases
-	    )
-	(while adb
-	  ;; I don't like this part, but close enough.
-	  (if (and (slot-exists-p (car adb) 'file)
-		   (slot-boundp (car adb) 'reference-directory)
-		   (string-match regexp (oref (car adb) reference-directory)))
-	      (setq dbs (cons (car adb) dbs)))
-	  (setq adb (cdr adb)))))
+      ;; The rootlist allows the root functions to possibly
+      ;; return several roots which are in different areas but
+      ;; all apart of the same system.
+      (let ((rootlist (if (listp root) root (list root))))
+	(while rootlist
+	  (setq root (car rootlist))
+	  (let ((regexp (concat "^" (regexp-quote (expand-file-name root))))
+		(adb semanticdb-database-list) ; all databases
+		)
+	    (while adb
+	      ;; I don't like this part, but close enough.
+	      (if (and (slot-exists-p (car adb) 'file)
+		       (slot-boundp (car adb) 'reference-directory)
+		       (string-match regexp (oref (car adb) reference-directory)))
+		  (setq dbs (cons (car adb) dbs)))
+	      (setq adb (cdr adb))))
+	  (setq rootlist (cdr rootlist)))))
     ;; Add in system databases
     (when semanticdb-search-system-databases
       (setq dbs (append dbs semanticdb-project-system-databases)))
