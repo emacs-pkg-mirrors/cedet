@@ -1,10 +1,10 @@
 ;;; semantic-cb.el --- Manage and maintain a Class Browser database
 
-;;; Copyright (C) 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.14 2003/12/11 00:57:49 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.15 2004/02/24 01:29:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -470,7 +470,9 @@ digraph uml_" diagramname " {\n")
 (defun semantic-cb-speedbar-buttons (dir)
   "Return the list of object children to display at the toplevel in speedbar.
 Argument DIR is the directory speedbar is asking about."
-  (speedbar-with-attached-buffer (semantic-cb-new-class-browser))
+  (if (or (not semantic-cb-current-project)
+	  dframe-power-click)
+      (speedbar-with-attached-buffer (semantic-cb-new-class-browser)))
   (oref semantic-cb-current-project types))
 
 ;;;###autoload
