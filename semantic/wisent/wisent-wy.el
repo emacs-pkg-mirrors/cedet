@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.7 2002/06/29 18:14:01 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.8 2002/06/30 22:24:00 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -55,7 +55,7 @@
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-20 15:06+0200
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-30 23:20+0200
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -339,7 +339,7 @@
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-20 15:06+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-30 23:20+0200
    (semantic-flex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -360,7 +360,7 @@
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-20 15:06+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-30 23:20+0200
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -392,13 +392,17 @@
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-20 15:06+0200
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-06-30 23:20+0200
   (progn
     (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
           semantic-bovinate-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-wy-automaton
           semantic-flex-keywords-obarray wisent-wy-keywords
           wisent-flex-tokens-obarray wisent-wy-tokens)
+    ;; Collect unmatched syntax lexical tokens
+    (semantic-make-local-hook 'wisent-discarding-token-functions)
+    (add-hook 'wisent-discarding-token-functions
+              'wisent-collect-unmatched-syntax nil t)
     (setq semantic-number-expression
           ;; Numbers
           (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
@@ -584,6 +588,10 @@ Warn if other TYPE tokens exist."
             semantic-toplevel-bovine-table %s\n\
             semantic-flex-keywords-obarray %s\n\
             wisent-flex-tokens-obarray %s)\n\
+      ;; Collect unmatched syntax lexical tokens\n\
+      (semantic-make-local-hook 'wisent-discarding-token-functions)\n\
+      (add-hook 'wisent-discarding-token-functions\n\
+                'wisent-collect-unmatched-syntax nil t)\n\
      %s)"
    (wisent-wy-parsetable)
    (wisent-wy-keywordtable)
