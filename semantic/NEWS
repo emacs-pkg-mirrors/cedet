@@ -32,6 +32,14 @@
 
 *** Better parsing of const and volatile (now also allowed to be after the type)
 
+*** Correct parsing pointer-arguments of functions/methods, even if there is no
+    argument-name
+
+*** Correct parsing of string sequences like "string1" "string2" string3" which
+    are concatenated by the cpp-precomiler to one string
+
+*** Added builtin-type wchar_t
+
 *** Some minor fixes
 
 
