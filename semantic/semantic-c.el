@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.58 2002/07/10 03:49:20 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.59 2002/08/04 01:58:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -722,46 +722,6 @@
  )
  "C language specification.")
 
-(defvar semantic-flex-c-extensions
-  '(("^\\s-*#if\\s-*0$" . semantic-flex-c-if-0)
-    ("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if)
-    ("<[^\n>]+>" . semantic-flex-c-include-system)
-    )
-  "Extensions to the flexer for C.")
-
-(defun semantic-flex-c-include-system ()
-  "Move cursor to the end of system includes and return it.
-Identifies the system include by looking backwards."
-  (if (and (save-excursion
-	     (beginning-of-line)
-	     (looking-at "#\\s-*include\\s-+<"))
-	   (= (match-end 0) (1+ (point))))
-      ;; We found a system include.
-      (let ((start (point)))
-	;; This should always pass
-	(re-search-forward ">")
-	;; We have the whole thing.
-	(cons 'system-include (cons start (point)))
-	)
-    ;; No system include, do nothing but return what the real
-    ;; parser would have returned.
-    (forward-char 1)
-    (cons 'punctuation (cons (1- (point)) (point)))
-    ))
-
-(defun semantic-flex-c-if-0 ()
-  "Move cursor to the matching endif, and return nothing."
-  (beginning-of-line)
-  (c-forward-conditional 1)
-  nil)
-
-(defun semantic-flex-c-if ()
-  "Move the cursor and return nil when a #if is found."
-  ;; Future enhancement: Enable only the then or else clause depending on
-  ;; some mysterious knowledge.
-  (if (bolp) (end-of-line))
-  nil)
-
 (define-lex-regex-analyzer semantic-lex-c-if-0
   "Block out code matched in an #if 0 condition."
   "^\\s-*#if\\s-*0$"
@@ -1253,7 +1213,6 @@ These are constants which are of type TYPE."
   (setq semantic-flex-keywords-obarray semantic-c-keyword-table)
   (setq semantic-equivalent-major-modes '(c-mode c++-mode))
   (setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
-	semantic-flex-extensions semantic-flex-c-extensions
 	semantic-dependency-include-path semantic-default-c-path
 	semantic-orphaned-member-metaparent-type "struct"
 	semantic-symbol->name-assoc-list
