@@ -1,11 +1,11 @@
 ;;; semantic-imenu.el --- Use Semantic as an imenu tag generator
 
-;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Paul Kinnucan & Eric Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Paul Kinnucan & Eric Ludlam
 ;;; Copyright (C) 2001, 2002, 2003 Eric Ludlam
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.53 2004/10/21 11:23:18 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.54 2005/03/24 12:46:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -135,7 +135,7 @@ See `semantic-bucketize' and the FILTER argument for more details on this functi
 		(function)))
 (make-variable-buffer-local 'semantic-imenu-sort-bucket-function)
 
-(defcustom semantic-imenu-index-directory t
+(defcustom semantic-imenu-index-directory nil
   "*Non nil to index the entire directory for tags.
 Doesn't actually parse the entire directory, but displays tags for all files
 currently listed in the current Semantic database.
@@ -143,7 +143,7 @@ This variable has no meaning if semanticdb is not active."
   :group 'semantic-imenu
   :type 'boolean)
 
-(defcustom semantic-imenu-auto-rebuild-directory-indexes t
+(defcustom semantic-imenu-auto-rebuild-directory-indexes nil
   "*If non-nil automatically rebuild directory index imenus.
 That is when a directory index imenu is updated, automatically rebuild
 other buffer local ones based on the same semanticdb."
