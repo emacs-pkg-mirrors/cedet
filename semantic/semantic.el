@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.8 1999/05/17 17:30:15 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.9 1999/05/18 14:09:59 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -363,6 +363,10 @@ if it does not need to be expanded.")
   "Retrieve the type of TOKEN."
   `(nth 2 ,token))
 
+(defmacro semantic-token-type-parts (token)
+  "Retrieve the parts of TOKEN."
+  `(nth 3 ,token))
+
 (defmacro semantic-token-function-args (token)
   "Retrieve the type of TOKEN."
   `(nth 3 ,token))
@@ -450,7 +454,7 @@ NONTERMINAL is the current nonterminal being parsed.
 MATCHLEN is the number of match lists tried.
 TOKENLEN is the number of match tokens tried.
 COLLECTION is the list of things collected so far."
-  (let ((ol1 nil) (ol2 nil))
+  (let ((ol1 nil) (ol2 nil) (ret nil))
     (unwind-protect
 	(progn
 	  (goto-char (car (cdr lse)))
@@ -472,12 +476,15 @@ COLLECTION is the list of things collected so far."
 	  (skip-chars-forward " \t\n(")
 	  (forward-sexp tokenlen)
 	  (message "%s: %S" (car s) collection)
-	  (read-event)
+	  (let ((e (read-event)))
+	    (cond ((eq e ?f)		;force a failure on this symbol.
+		   (setq ret 'fail))
+		  (t nil)))
 	  (other-window 1)
 	  )
       (delete-overlay ol1)
-      (delete-overlay ol2)
-      )))
+      (delete-overlay ol2))
+    ret))
 
 (defun bovinate ()
   "Bovinate the current buffer.  Show output in a temp buffer."
@@ -540,12 +547,15 @@ list of semantic tokens found."
 	  ;; In this case, we have an EMPTY match!  Make stuff up.
 	  (setq cvl (list nil)))
       (while (and lte (not (listp (car lte))))
-	;; edebugging!
+	;; debugging!
 	(if (and lte semantic-edebug)
-	    (semantic-bovinate-show (car s) nonterminal
-				    (- db-mlen (length matchlist))
-				    (- db-tlen (length lte))
-				    cvl))
+	    (let ((r (semantic-bovinate-show (car s) nonterminal
+					     (- db-mlen (length matchlist))
+					     (- db-tlen (length lte))
+					     cvl)))
+	      (cond ((eq r 'fail)
+		     (setq lte '(trash 0 . 0)))
+		    (t nil))))
 	(if (semantic-bovinate-symbol-nonterminal-p (car lte) table)
 	    ;; We have a nonterminal symbol.  Recurse inline.
 	    (let ((nontermout (semantic-bovinate-nonterminal s table (car lte))))
