@@ -296,6 +296,7 @@ It ignores whitespaces, newlines and comments."
 ;;; * Parser
 ;;;----------------------------------------------------------------------
 
+;;;###autoload   
 (defun wisent-csharp-default-setup ()
   (wisent-csharp-wy--install-parser)
   (setq
