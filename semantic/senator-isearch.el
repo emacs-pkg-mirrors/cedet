@@ -1,4 +1,4 @@
-;;; senator-isearch.el --- SEmantic NAvigaTOR isearch advices
+;;; senator-isearch.el --- SEmantic NAvigaTOR isearch support
 
 ;; Copyright (C) 2000 by David Ponce
 
@@ -7,7 +7,7 @@
 ;; Created: 04 Dec 2000
 ;; Version: 1.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator-isearch.el,v 1.2 2000/12/08 16:18:32 david_ponce Exp $
+;; VC: $Id: senator-isearch.el,v 1.3 2001/01/03 15:41:11 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -28,7 +28,7 @@
 
 ;;; Commentary:
 ;; 
-;; This library advices isearch (and ishl) to allow overriding of the
+;; This library improves isearch (and ishl) to allow overriding of the
 ;; basic search functions used by `isearch-search' and
 ;; `isearch-lazy-highlight-search' (or `ishl-search').
 ;;
@@ -37,12 +37,16 @@
 ;; switched to this mode it searches only in language tokens in the
 ;; current buffer.
 
-;; THIS CODE HAS ONLY BEEN TESTED WITH GNU EMACS 20.7 AND 21.0 AND
-;; XEMACS 21.1
+;; THIS CODE HAS ONLY BEEN TESTED WITH GNU EMACS 20.7, 21.0 AND XEMACS
+;; 21.1. GNU EMACS 20.7 REQUIRES ISHL 1.5 TO ENABLE ISEARCH LAZY
+;; HIGHLIGHTING.
 
 ;;; Change Log:
 
 ;; $Log: senator-isearch.el,v $
+;; Revision 1.3  2001/01/03 15:41:11  david_ponce
+;; Improved isearch lazy highlighting support.
+;;
 ;; Revision 1.2  2000/12/08 16:18:32  david_ponce
 ;; A bunch of XEmacs compatibility code!
 ;;
@@ -53,8 +57,10 @@
 ;;; Code:
 
 ;;;;
-;;;; Provider of the core search function used by isearch.
-;;;;
+;;;; Improvement of `isearch-search' to use a customizable core search
+;;;; function provider.  This feature will probably be included in
+;;;; isearch starting with GNU Emacs 21.2.
+;;;; 
 
 (defcustom isearch-search-handler-provider 'isearch-default-search-handler
   "Function providing the basic search handlers.
@@ -89,19 +95,9 @@ values of variables `isearch-forward', `isearch-regexp' and
              'search-forward
            'search-backward))))
 
-;;;;
-;;;; Advice of `isearch-search' to use the core search function
-;;;; provider.
-;;;; This feature will probably be included in isearch starting with
-;;;; GNU Emacs 21.2.
-;;;; 
-
 (cond ;; Compatibility between GNU Emacs and XEmacs
  
  ((featurep 'xemacs) ;; XEmacs stuff
-
-  ;; Ignore this function used by senator but not provided by XEmacs
-  (defalias 'isearch-lazy-highlight-cleanup 'ignore)
 
   ;; Provide `isearch-update-ring' function (from 21.1.9 isearch-mode.el)
   (defun isearch-update-ring (string &optional regexp)
@@ -161,10 +157,10 @@ REGEXP says which ring to use."
       (if isearch-success
           nil
 
-       ;; If we're being run inside a keyboard macro, then the call to
-       ;; ding will signal an error (to terminate the macro).  We must
-    ;; turn off isearch-mode first, so that we aren't still in isearch
-      ;; mode after the macro exits.  Note that isearch-recursive-edit
+        ;; If we're being run inside a keyboard macro, then the call to
+        ;; ding will signal an error (to terminate the macro).  We must
+        ;; turn off isearch-mode first, so that we aren't still in isearch
+        ;; mode after the macro exits.  Note that isearch-recursive-edit
         ;; must not be true if a keyboard macro is executing.
         (if (and executing-kbd-macro (not defining-kbd-macro))
             (progn
@@ -237,64 +233,83 @@ REGEXP says which ring to use."
             (and (nth 3 (car isearch-cmds))
                  (ding))
             (goto-char (nth 2 (car isearch-cmds))))))
-  
-  ;; Advice of the isearch lazy highlighting feature to use the core
-  ;; search function provider. Lazy highlighting is part of isearch
-  ;; for GNU Emacs 21 or provided by the optional ishl.el library for
-  ;; Emacs 20.
-  ;; Not currently implemented for XEmacs (it seems that ishl does not
-  ;; work).
-
-  (if (fboundp 'isearch-lazy-highlight-search)
-
-      ;; GNU Emacs 21 lazy highlighting
-      (defadvice isearch-lazy-highlight-search (around senator activate)
-        "Search ahead for the next or previous match, for lazy highlighting.
-Attempt to do the search exactly the way the pending isearch would."
-        (let ((case-fold-search isearch-case-fold-search))
-          (setq ad-return-value
-                (funcall (if isearch-search-handler-provider
-                             (funcall isearch-search-handler-provider)
-                           (isearch-default-search-handler))
-                         isearch-string
-                         (if isearch-forward
-                             (if isearch-lazy-highlight-wrapped
-                                 isearch-lazy-highlight-start
-                               nil)
-                           (if isearch-lazy-highlight-wrapped
-                               isearch-lazy-highlight-end
-                             nil))
-                         t))))
-    
-    ;; Maybe use ishl to provide lazy highlighting
-    (if (not (condition-case nil
-                 (require 'ishl)
-               (error nil)))
-
-        ;; No ishl so ignore this function used by senator
-        (defalias 'isearch-lazy-highlight-cleanup 'ignore)
-
-      ;; ishl provided, advice it (from ishl.el 1.5)
-      (defadvice ishl-search (around senator activate)
-        (let ((case-fold-search isearch-case-fold-search))
-          (setq ad-return-value
-                (funcall (if isearch-search-handler-provider
-                             (funcall isearch-search-handler-provider)
-                           (isearch-default-search-handler))
-                         isearch-string
-                         (if isearch-forward
-                             (if ishl-wrapped ishl-start nil)
-                           (if ishl-wrapped ishl-end nil))
-                         t))))
-
-      ;; provide this function used by senator
-      (defalias 'isearch-lazy-highlight-cleanup 'ishl-cleanup))
-    
-    ) ;; End of ishl stuff
 
   ) ;; End of GNU Emacs stuff
 
  ) ;; End of compatibility stuff
+
+;; Improvement of the isearch lazy highlighting feature to use the
+;; core search function provider. Lazy highlighting is part of isearch
+;; for GNU Emacs 21 or provided by the optional ishl.el library for
+;; Emacs 20.  Not currently implemented for XEmacs (it seems that ishl
+;; does not work).
+(cond
+ (;; GNU Emacs 21 lazy highlighting
+  (fboundp 'isearch-lazy-highlight-search)
+
+  (defadvice isearch-lazy-highlight-search (around senator activate)
+    "Search ahead for the next or previous match, for lazy highlighting.
+Attempt to do the search exactly the way the pending isearch would."
+    (let ((case-fold-search isearch-case-fold-search))
+      (setq ad-return-value
+            (funcall (if isearch-search-handler-provider
+                         (funcall isearch-search-handler-provider)
+                       (isearch-default-search-handler))
+                     isearch-string
+                     (if isearch-forward
+                         (if isearch-lazy-highlight-wrapped
+                             isearch-lazy-highlight-start
+                           nil)
+                       (if isearch-lazy-highlight-wrapped
+                           isearch-lazy-highlight-end
+                         nil))
+                     t))))
+        
+  ;; Provide this function used by senator
+  (defun senator-lazy-highlight-update ()
+    "Force lazy highlight update."
+    (isearch-lazy-highlight-cleanup t)
+    (setq isearch-lazy-highlight-last-string nil)
+    (setq isearch-adjusted t)
+    (isearch-update))
+
+  ) ;; End of GNU Emacs 21 lazy highlighting
+
+ (;; GNU Emacs 20 lazy highlighting (from ishl.el 1.5)
+  (condition-case nil
+      (require 'ishl)
+    (error nil))      
+       
+  (defadvice ishl-search (around senator activate)
+    (let ((case-fold-search isearch-case-fold-search))
+      (setq ad-return-value
+            (funcall (if isearch-search-handler-provider
+                         (funcall isearch-search-handler-provider)
+                       (isearch-default-search-handler))
+                     isearch-string
+                     (if isearch-forward
+                         (if ishl-wrapped ishl-start nil)
+                       (if ishl-wrapped ishl-end nil))
+                     t))))
+         
+  ;; Provide this function used by senator
+  (defun senator-lazy-highlight-update ()
+    "Force lazy highlight update."
+    (ishl-cleanup t)
+    (setq ishl-last-string nil)
+    (setq isearch-adjusted t)
+    (isearch-update))
+
+  ) ;; End of GNU Emacs 20 lazy highlighting
+
+ (t ;; No lazy highlighting
+
+  ;; Ignore this function used by senator
+  (defalias 'senator-lazy-highlight-update 'ignore)
+
+  )
+      
+ ) ;; End of isearch lazy highlight stuff
 
 (provide 'senator-isearch)
 
