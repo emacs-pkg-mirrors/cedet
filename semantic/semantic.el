@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.112 2001/08/27 20:37:49 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.113 2001/08/28 12:51:41 ponced Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -282,8 +282,8 @@ For language specific hooks, make sure you define this as a local hook.")
 This list will change when the current token list has been partially
 reparsed.
 
-Hook functions must take one argument, which is the updated list of
-tokens associated with this buffer.
+Hook functions must take one argument, which is the list of tokens
+updated among the ones associated with this buffer.
 
 For language specific hooks, make sure you define this as a local hook.")
 
@@ -582,6 +582,34 @@ when checking `semantic-bovine-toplevel-full-reparse-needed-p'."
        semantic-dirty-tokens
        (not (semantic-bovine-toplevel-full-reparse-needed-p checkcache))))
 
+(defun semantic-remove-dirty-children-internal (token dirties)
+  "Remove TOKEN children from DIRTIES.
+Return the new value of DIRTIES."
+  (if dirties
+      (let ((children (semantic-nonterminal-children token t))
+            child)
+        (while (and children dirties)
+          (setq child (car children)
+                children (cdr children)
+                dirties  (semantic-remove-dirty-children-internal
+                          child (delq child dirties))))))
+  dirties)
+
+(defun semantic-remove-dirty-children ()
+  "Remove children of dirty tokens from the list of dirty tokens.
+It is not necessary and even dangerous to reparse these tokens as they
+will be recreated when reparsing their parents.  Return the new value
+of the variable `semantic-dirty-tokens' changed by side effect."
+  (let ((dirties semantic-dirty-tokens)
+        token)
+    (while dirties
+      (setq token   (car dirties)
+            dirties (cdr dirties)
+            semantic-dirty-tokens
+            (semantic-remove-dirty-children-internal
+             token semantic-dirty-tokens))))
+  semantic-dirty-tokens)
+
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer.
@@ -603,24 +631,27 @@ that, otherwise, do a full reparse."
     semantic-toplevel-bovine-cache
     )
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
-    ;; We have a cache, and some dirty tokens
-    (let ((semantic-bovination-working-type 'dynamic))
-      (working-status-forms (buffer-name) "done"
-	(while (and semantic-dirty-tokens
-		    (not (semantic-bovine-toplevel-full-reparse-needed-p
-			  checkcache)))
-	  (semantic-rebovinate-token (car semantic-dirty-tokens))
-	  (setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
-	  (working-dynamic-status))
-	(working-dynamic-status t))
-      (setq semantic-dirty-tokens nil)
-      )
-    (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
-	;; If the partial reparse fails, jump to a full reparse.
-	(semantic-bovinate-toplevel checkcache)
-      (run-hook-with-args 'semantic-after-partial-cache-change-hook
-                          semantic-toplevel-bovine-cache)
-      semantic-toplevel-bovine-cache)
+    (let ((changes (semantic-remove-dirty-children)))
+      ;; We have a cache, and some dirty tokens
+      (let ((semantic-bovination-working-type 'dynamic))
+        (working-status-forms (buffer-name) "done"
+          (while (and semantic-dirty-tokens
+                      (not (semantic-bovine-toplevel-full-reparse-needed-p
+                            checkcache)))
+            (semantic-rebovinate-token (car semantic-dirty-tokens))
+            (setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
+            (working-dynamic-status))
+          (working-dynamic-status t))
+        (setq semantic-dirty-tokens nil))
+      
+      (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
+          ;; If the partial reparse fails, jump to a full reparse.
+          (semantic-bovinate-toplevel checkcache)
+        ;; After partial reparse completed, let hooks know the updated
+        ;; tokens
+        (run-hook-with-args 'semantic-after-partial-cache-change-hook
+                            changes)
+        semantic-toplevel-bovine-cache))
     )
    ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
     (semantic-clear-toplevel-cache)
@@ -826,30 +857,6 @@ the current results on a parse error."
 	    (working-dynamic-status))))
     result))
 
-(defun semantic-remove-dirty-children-internal (token dirties)
-  "Remove TOKEN children from DIRTIES.
-Return the new value of DIRTIES."
-  (if dirties
-      (let ((children (semantic-nonterminal-children token t))
-            child)
-        (while (and children dirties)
-          (setq child (car children)
-                children (cdr children)
-                dirties  (semantic-remove-dirty-children-internal
-                          child (delq child dirties))))))
-  dirties)
-
-(defun semantic-remove-dirty-children (token)
-  "Remove TOKEN children from the list of dirty tokens.
-This must be done before deoverlaying TOKEN.  At this point (when
-called by `semantic-rebovinate-token') TOKEN is the first element of
-`semantic-dirty-tokens' so only the rest of `semantic-dirty-tokens' is
-considered."
-  (setq semantic-dirty-tokens
-        (cons (car semantic-dirty-tokens)
-              (semantic-remove-dirty-children-internal
-               token (cdr semantic-dirty-tokens)))))
-
 (defun semantic-rebovinate-token (token)
   "Use TOKEN for extents, and reparse it, splicing it back into the cache."
   (let* ((flexbits (semantic-flex (semantic-token-start token)
@@ -898,8 +905,6 @@ considered."
           (semantic-overlay-put o 'old-face (semantic-overlay-get oo 'old-face))
           (semantic-overlay-put o 'intangible (semantic-overlay-get oo 'intangible))
           (semantic-overlay-put o 'invisible (semantic-overlay-get oo 'invisible))
-          ;; Remove TOKEN children from `semantic-dirty-tokens'
-          (semantic-remove-dirty-children token)
           ;; Free the old overlay(s)
           (semantic-deoverlay-token token)
           ;; Recover properties
