@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: e-config.el,v 1.7 1997/01/07 23:07:38 zappo Exp $
+;;; RCS: $Id: e-config.el,v 1.8 1997/01/18 16:48:35 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -48,26 +48,17 @@ for emacs."
   (interactive)
   (dlg-init 'dot-emacs)
   (dialog-build-group "Interface Options"
-    (create-widget  "Display Line Number in Modeline" widget-toggle-button
-		   :state (data-object-symbol 'line-number-mode))
-    (create-widget  "Display Column Number in Modeline" widget-toggle-button
-		   :state (data-object-symbol 'column-number-mode))
-    (create-widget "Truncate Lines" widget-toggle-button
-		   :state (data-object-symbol-default 'truncate-lines))
-    (create-widget "Suggest Key Bindings" widget-toggle-button
-		   :state (data-object-symbol 'suggest-key-bindings))
-    (create-widget "Visible Bell" widget-toggle-button
-		   :state (data-object-symbol 'visible-bell))
-    (create-widget "Inverse Video" widget-toggle-button
-		   :state (data-object-symbol 'inverse-video))
-    (create-widget "Modeline Inverse Video" widget-toggle-button
-		   :state (data-object-symbol 'mode-line-inverse-video))
-    (create-widget "Search Highlights Current Match" widget-toggle-button
-		   :state (data-object-symbol 'search-highlight))
-    (create-widget "Query Replace Highlight" widget-toggle-button
-		   :state (data-object-symbol 'query-replace-highlight))
-    (create-widget "Enable Recursive Minibuffers" widget-toggle-button
-		   :state (data-object-symbol 'enable-recursive-minibuffers))
+    (dlg-bunch-of-simple-toggles
+     "Display Line Number in Modeline" 'line-number-mode
+     "Display Column Number in Modeline" 'column-number-mode
+     "Truncate Lines" 'truncate-lines
+     "Suggest Key Bindings" 'suggest-key-bindings
+     "Visible Bell" 'visible-bell
+     "Inverse Video" 'inverse-video
+     "Modeline Inverse Video" 'mode-line-inverse-video
+     "Search Highlights Current Match" 'search-highlight
+     "Query Replace Highlight" 'query-replace-highlight
+     "Enable Recursive Minibuffers" 'enable-recursive-minibuffers)
     (create-widget "Scroll Step:" widget-labeled-text
 		   :unit "lines" :text-length 10 
 		   :value (data-object-symbol-string-to-int 'scroll-step
@@ -112,20 +103,22 @@ for emacs."
   (dlg-init 'dot-emacs)
   (dialog-build-group "Behavior Options"
 
-    (create-widget "Mouse Yanks to Cursor (not mouse)" widget-toggle-button
-		   :state (data-object-symbol 'mouse-yank-at-point))
-    (create-widget "Next-line adds newline at end of buffer"
-		   widget-toggle-button
-		   :state (data-object-symbol 'next-line-add-newlines))
-    (create-widget "Adaptive Fill Mode" widget-toggle-button
-		   :state (data-object-symbol 'adaptive-fill-mode))
-    (create-widget "Require Final Newline" widget-toggle-button
-		   :state (data-object-symbol 'require-final-newline))
+    (dlg-bunch-of-simple-toggles
+     "Mouse Yanks to Cursor (not mouse)" 'mouse-yank-at-point
+     "Next-line adds newline at end of buffer" 'next-line-add-newlines
+     "Adaptive Fill Mode" 'adaptive-fill-mode
+     "Require Final Newline" 'require-final-newline)
 
     (create-widget "Auto fill in all text modes" widget-toggle-button
 		   :state (data-object-symbol-hook
 			   'text-mode-hook
 			   :command "turn-on-auto-fill"))
+
+    ;(create-widget "Delete Highlighted Selections on Input" widget-toggle-button
+    ;		   :state (data-object-command-option
+;			   "(progn (require 'delsel)(setq delete-selection-mode t))"
+;			   :disable-command "(setq delete-selection-mode nil)"
+;			   :value (and (featurep 'delsel) delete-selection-mode)))
     )
   (dialog-build-group "Suggested Disabled Commands"
 
@@ -140,12 +133,10 @@ for emacs."
     )
   (dialog-build-group "Backup File Methods"
 
-    (create-widget "By Copying (off uses move)" widget-toggle-button
-		   :state (data-object-symbol 'backup-by-copying))
-    (create-widget "By Copying When Linked" widget-toggle-button
-		   :state (data-object-symbol 'backup-by-copying-when-linked))
-    (create-widget "By Copying When Owner/Group Mismatch " widget-toggle-button
-		   :state (data-object-symbol 'backup-by-copying-when-mismatch))
+    (dlg-bunch-of-simple-toggles
+     "By Copying (off uses move)" 'backup-by-copying
+     "By Copying When Linked" 'backup-by-copying-when-linked
+     "By Copying When Owner/Group Mismatch " 'backup-by-copying-when-mismatch)
     )
   (dlg-end)
   (dialog-refresh)
@@ -179,11 +170,229 @@ useful for programmers."
 		   :value (data-object-symbol-lisp-expression
 			   'compilation-finish-function))
 
-    (create-widget "Compile Command       :"widget-labeled-text
+    (create-widget "Compile Command       :" widget-labeled-text
 		   :text-length 50
 		   :value (data-object-symbol 'compile-command))
 
+    (dlg-info-button "Want to know more about Compiling?"
+		     "(emacs)Compilation"
+		     "Click to read info pages about compiling programs.")
     )
+  (require 'vc)
+  (dialog-build-group "Version Control Interface Options"
+    (dlg-bunch-of-simple-toggles
+     "I am an expert with vc.el" 'vc-suppress-confirm
+     "Prompt for comment for file registration" 'vc-initial-comment
+     "Display Run Messages From Back-end" 'vc-command-messages
+     "Be super-careful during checkouts" 'vc-checkout-carefully
+     )
+    (dlg-info-button "Want to know more about Version Control?"
+		     "(emacs)Version Control"
+		     "Click to read info pages about version control.")
+    )
+  (dlg-end)
+  (dialog-refresh)
+  )
+
+
+;;;
+;;; Dired mode configuration
+;;;
+(defun econfig-dired ()
+  "Creates a configure window for modifying behavior of a dired buffer."
+  (interactive)
+  (dlg-init 'dot-emacs)
+  (require 'dired)
+  (dialog-build-group "Dired Listing Options and Parsing"
+
+    (create-widget "Command Options for ls:" widget-labeled-text
+		   :text-length 20
+		   :value (data-object-symbol 'dired-listing-switches))
+
+    (create-widget "ls -F marks symlinks" widget-toggle-button
+		   :state (data-object-symbol 'dired-ls-F-marks-symlinks))
+
+    )
+  (dialog-build-group "Dired Behaviors"
+
+    (create-widget "Copy Preserves Time" widget-toggle-button
+		   :state (data-object-symbol 'dired-copy-preserve-time))
+		   
+    (create-widget "Guess Alternate Window Directory for Copy" widget-toggle-button
+		   :state (data-object-symbol 'dired-dwim-target))
+
+    (create-widget "Use the dired-x extensions" widget-toggle-button
+		   :state (data-object-symbol-hook 
+			   'dired-load-hook
+			   :command "(lambda () (require 'dired-x))")
+		   :help-hook (lambda (obj reason)
+				(message "Adds to `dired-load-hook' a command to require the use of dired-x")))
+
+    (create-widget "Load Now" widget-push-button
+		   :x -2 :y t
+		   :activate-hook (lambda (obj reason) (require 'dired-x))
+		   :help-hook (lambda (obj reason)
+				(message "Load the dired-x package now.")))
+
+    (dlg-info-button "Want to know more about dired?"
+		     "(emacs)dired"
+		     "Click to read info pages about dired mode")
+    )
+  (dlg-end)
+  (dialog-refresh)
+  )
+
+;;;
+;;; Ange-ftp configuration
+;;;
+(defun econfig-ange-ftp ()
+  "Creates a configure window modifying variables useful with the ange-ftp
+package."
+  (interactive)
+  (dlg-init 'dot-emacs)
+  (require 'ange-ftp)
+  (dialog-build-group "Gateway Definition"
+    (create-widget "Note: The regular expression `.*' means ANY host.
+If you wish to specify those hosts on one side
+of a firewall, an example would be: `\\.domain\\.com$'"
+		   widget-label)
+    (create-widget "Local Host Regexp: " widget-labeled-text
+		   :text-length 30
+		   :value (data-object-symbol 'ange-ftp-local-host-regexp))
+    (create-widget "Gateway Host:      " widget-labeled-text
+		   :text-length 30
+		   :value (data-object-symbol 'ange-ftp-gateway-host))
+    
+    (dialog-build-group "Smart Gateways"
+      (create-widget "Smart gateways are FTP proxies where user@host is issued
+to the user prompt to access remote sites." 
+		     widget-label)
+      (create-widget "Use smart gateway proxy." widget-toggle-button
+		     :state (data-object-symbol 'ange-ftp-smart-gateway))
+      (create-widget "Port number: " widget-labeled-text
+		     :text-length 10
+		     :value (data-object-symbol 'ange-ftp-smart-gateway-port))
+      )
+    
+    (dialog-build-group "Not so smart gateways"
+      (create-widget "Shared Directory  :" widget-labeled-text
+		     :text-length 50
+		     :value (data-object-symbol
+			     'ange-ftp-gateway-tmp-name-template))
+      (create-widget "Gateway Shell Prog:" widget-labeled-text
+		     :text-length 20
+		     :value (data-object-symbol
+			     'ange-ftp-gateway-program))
+
+      (create-widget
+       "If you must use telnet or rlogin instead of `rsh' or `remsh', then
+you will need to set the following as well."
+       widget-label)
+
+      (create-widget "Use Interactive Gateway" widget-toggle-button
+		     :state (data-object-symbol 
+			     'ange-ftp-gateway-program-interactive))
+
+      (create-widget "Prompt Pattern  :" widget-labeled-text
+		     :text-length 20
+		     :value (data-object-symbol
+			     'ange-ftp-gateway-prompt-pattern))
+
+      (create-widget "Set Term Command:" widget-labeled-text
+		     :text-length 40
+		     :value (data-object-symbol
+			     'ange-ftp-gateway-setup-term-command))
+
+      )
+
+    (create-widget "Confused on how to get the gateway to work?" widget-label)
+    (create-widget "Read The Source" widget-push-button
+		   :x -2 :y t
+		   :help-hook
+		   (lambda (this reason)
+		     (message
+		      "Click to load in the ange-ftp source file to read about gateways."))
+		   :activate-hook
+		   (lambda (this reason)
+		     (find-file (locate-library "ange-ftp.el"))
+		     (goto-char (point-min))
+		     (re-search-forward "^;;\\s-*Gateways:\\s-*$" nil t)
+		     (recenter 0)))
+
+    )
+  (dlg-end)
+  (dialog-refresh)
+  )
+
+;;;
+;;; bookmark configuration
+;;;
+(defun econfig-bookmarks ()
+  "Creates a configuration window for use with the bookmarks package."
+  (interactive)
+  (dlg-init 'dot-emacs)
+  (require 'bookmark)
+  (dialog-build-group (format "Bookmark Options for v %s" bookmark-version)
+    
+    (dlg-bunch-of-simple-toggles
+     "Require annotations with bookmarks" 'bookmark-use-annotations
+     "Show annotations during jump" 'bookmark-automatically-show-annotations
+     "Completion ignores case" 'bookmark-completion-ignore-case
+     "Sort bookmarks" 'bookmark-sort-flag)
+
+    (create-widget "Save File:" widget-labeled-text
+		   :text-length 40
+		   :value (data-object-symbol 'bookmark-default-file))
+
+    (dlg-info-button "Want to learn more about bookmarks?"
+		     "(emacs)Bookmarks"
+		     "Press to read info files about bookmarks")
+    )
+  (dlg-end)
+  (dialog-refresh)
+  )
+
+;;;
+;;; Ispell configurations.  Unfortunatly, this may prove version
+;;; specific.
+;;;
+(defun econfig-ispell ()
+  "Configuration dialog for modifying the behavior of ispell."
+  (interactive)
+  (dlg-init 'dot-emacs)
+  (require 'ispell)
+  (dialog-build-group (format "Ispell %s Options" 
+			      (substring ispell-version 0 4))
+    (dlg-bunch-of-simple-toggles
+     "Highlight Spelling Errors" 'ispell-highlight-p
+     "Spell-check quietly" 'ispell-quietly
+     "Check Spelling Of Comments" 'ispell-check-comments
+     "Query-Replace Corrections (if same error multiple times)"
+     'ispell-query-replace-choices
+     "Skip tibs (For TeX bibliographies)" 'ispell-skip-tib
+     "Keep Choices Window Visible" 'ispell-keep-choices-win)
+
+    (create-widget "Choices Window Height:" widget-labeled-text
+		   :text-length 5 :unit "Lines"
+		   :value (data-object-symbol-string-to-int 
+			   'ispell-choices-win-default-height
+			   :float-p nil))
+
+    (create-widget "Alternate dictionary :" widget-labeled-text
+		   :text-length 30
+		   :value (data-object-symbol 'ispell-alternate-dictionary))
+
+    (create-widget "Personaly dictionary :" widget-labeled-text
+		   :text-length 20 :unit "(blank = ~/.ispell_DICTNAME)"
+		   :value (data-object-symbol 'ispell-personal-dictionary))
+     
+    (dlg-bunch-of-simple-toggles
+     "Silently save personal dictionary" 'ispell-silently-savep)
+
+    (dlg-info-button "Want to learn more about Ispell?"
+		     "(ispell)Emacs"
+		     "Press to read info files about ispell in emacs")
+    )  
   (dlg-end)
   (dialog-refresh)
   )
@@ -211,14 +420,13 @@ useful for sending email."
 		   :text-length 20
 		   :value (data-object-symbol 'rmail-default-rmail-file))
     
-    (create-widget "Delete messages after saving to secondary file"
-		   widget-toggle-button
-		   :state (data-object-symbol 'rmail-delete-after-output))
+    (dlg-bunch-of-simple-toggles
+     "Delete messages after saving to secondary file" 'rmail-delete-after-output
+     "Summary motion scrolls messages" 'rmail-summary-scroll-between-messages)
 
-    (create-widget "Summary motion scrolls messages" widget-toggle-button
-		   :state (data-object-symbol
-			   'rmail-summary-scroll-between-messages))
-
+    (dlg-info-button "Want to know more about reading mail?"
+		     "(emacs)rmail"
+		     "Click to read info pages about rmail.")
     )
   (dlg-end)
   (dialog-refresh)
@@ -238,7 +446,7 @@ useful for sending email."
   (interactive)
   (dlg-init 'dot-emacs)
   (require 'sendmail)
-  (dialog-build-group "Sending Mail Options"
+  (dialog-build-group "Mail Address Options"
     
     (let* ((uma (data-object-symbol 'user-mail-address))
 	   (opt-list '("nil" "'parens" "'angles"))
@@ -286,26 +494,109 @@ useful for sending email."
 		       (let ((user-mail-address (get-value a)))
 			 (set-value b (econfig-mail-showfrom mail-from-style)
 				    this))))
-      )
+      ))
+  (dialog-build-group "Editing outbound mail"
+    
+    (dlg-bunch-of-simple-toggles
+     "Add BCC to yourself for outbound message" 'mail-self-blind
+     )
+
+    (create-widget "Personal Alias File:" widget-labeled-text
+		   :text-length 30
+		   :value (data-object-symbol 'mail-personal-alias-file))
 
     (create-widget "Signature File :" widget-labeled-text :text-length 50
 		   :value (data-object-symbol 'mail-signature-file))
     
     (create-widget "Auto load signature file" widget-toggle-button
 		   :state (data-object-symbol 'mail-signature))
-    (create-widget  "Spellcheck outbound messages" widget-toggle-button
+    (create-widget  "Spellcheck outbound messages (with ispell)"
+		    widget-toggle-button
 		    :state (data-object-symbol-hook
 			    'mail-send-hook
 			    :command 
 			    "(lambda () (if (y-or-n-p \"Spell message?\") (ispell-message)))"
 			    ))
-
+    
     (create-widget "Citation Prefix:" widget-labeled-text :text-length 10
 		   :value (data-object-symbol 'mail-yank-prefix))
-    (create-widget "cite-pref" widget-label
-		   :x 3 :y -1 :label-value
-		   "This appears before quoted text. It is `>' for most mailers.")
 
+    )
+  (dlg-info-button "Want to know more about sending mail?"
+		   "(emacs)Sending Mail"
+		   "Click to read info pages about sending mail.")
+
+  (dlg-end)
+  (dialog-refresh)
+  )
+
+
+;;;
+;;; Supercite options
+;;;
+(defun econfig-supercite ()
+  "Creates a configure window with variables modifying how supercite behaves."
+  (interactive)
+  (require 'supercite)
+  (dlg-init 'dot-emacs)
+  (dialog-build-group (format "Supercite %s Options" sc-version)
+    
+    (dlg-bunch-of-simple-toggles
+     "Auto-fill cited regions" 'sc-auto-fill-region-p
+     "Cite Blank Lines" 'sc-cite-blank-lines-p
+     "Confirm Citation Attribution" 'sc-confirm-always-p
+     "Downcase All Attribution Strings" 'sc-downcase-p
+     "Fixup Leading Whitespace in Citation" 'sc-fixup-whitespace-p
+     "Use Nested-Citation Styles" 'sc-nested-citation-p
+     "Use Anon When No Attribution String Is Available" 
+     'sc-use-only-preference-p
+     )
+
+    (let ((nuke-list '("'all" "'none" "'specified" "'keep")))
+
+      (create-widget "Header Nuking Method:" widget-label)
+
+      (create-widget "nuke-me" widget-option-button
+		     :title "Nuke Method" :x -2 :y t
+		     :option-list nuke-list
+		     :state (data-object-symbol-list-index
+			     'sc-nuke-mail-headers
+			     :value (cond 
+				     ((eq sc-nuke-mail-headers 'all) 0)
+				     ((eq sc-nuke-mail-headers 'none) 1)
+				     ((eq sc-nuke-mail-headers 'specified) 2)
+				     (t 3))
+			     :string-list nuke-list))
+      )
+      
+    (create-widget "Nuke List" widget-push-button
+		   :activate-hook 
+		   (lambda (obj reason)
+		     (describe-variable 'sc-nuke-mail-header-list)))
+    (create-widget "Valid when \"Nuke Method\" is\n'specified or 'keep"
+		   widget-label :x -3 :y t)
+    (create-widget "nuke-text" widget-scrolled-text
+		   :width 40 :height 5 :y -1
+		   :value (data-object-symbol-translated
+			   'sc-nuke-mail-header-list
+			   :set-lambda		
+			   (lambda (obj)
+			     (let ((l (dlg-string-to-list obj "[ ]*\n")))
+			       (setq sc-nuke-mail-header-list l)
+			       l))
+			   :get-lambda
+			   (lambda (obj)
+			     (dlg-list-to-string obj "\n"))))
+
+    (create-widget "Blanks after header:" widget-labeled-text
+		   :text-length 10 :unit "lines"
+		   :value (data-object-symbol-string-to-int 
+			   'sc-blank-lines-after-headers
+			   :float-p nil))
+
+    (dlg-info-button "Want to know more about Supercite?"
+		     "(sc)Top"
+		     "Click to read info pages about Supercite.")
     )
   (dlg-end)
   (dialog-refresh)
@@ -316,8 +607,7 @@ useful for sending email."
 ;;; Calendar/diary options
 ;;;
 (defun econfig-calendar ()
-  "Creates a configure window with variables modifying variables
-useful calendar mode."
+  "Creates a configure window with variables modifying calendar mode."
   (interactive)
   (dlg-init 'dot-emacs)
   (dialog-build-group "Calendar Options"
@@ -336,22 +626,11 @@ useful calendar mode."
     )
   (dialog-build-group "Holiday Options"
 
-    (create-widget "Show all Christian Holidays" widget-toggle-button
-		   :state (data-object-symbol 
-			   'all-christian-calendar-holidays))
-
-    (create-widget "Show all Hebrew Holidays" widget-toggle-button
-		   :state (data-object-symbol
-			   'all-hebrew-calendar-holidays))
-
-    (create-widget "Show all Islamic Holidays" widget-toggle-button
-		   :state (data-object-symbol
-			   'all-islamic-calendar-holidays))
-
-    (create-widget "Show Holidays at Startup" widget-toggle-button
-		   :state (data-object-symbol 
-			   'view-calendar-holidays-initially))
-
+    (dlg-bunch-of-simple-toggles
+     "Show all Christian Holidays" 'all-christian-calendar-holidays
+     "Show all Hebrew Holidays" 'all-hebrew-calendar-holidays
+     "Show all Islamic Holidays" 'all-islamic-calendar-holidays
+     "Show Holidays at Startup" 'view-calendar-holidays-initially)
     )
   (dialog-build-group "Appointment Options"
 
@@ -362,16 +641,15 @@ useful calendar mode."
     (create-widget "Warn of impending appointments" widget-toggle-button
 		   :state (data-object-symbol-hook
 			   'diary-hook :command "appt-make-list"))
-    (create-widget "Appointments Audible" widget-toggle-button
-		   :state (data-object-symbol 'appt-audible))
-    (create-widget "Appointments Displayed" widget-toggle-button
-		   :state (data-object-symbol 'appt-display-diary))
-    (create-widget "Display Appointment Time in Modeline" widget-toggle-button
-		   :state (data-object-symbol 'appt-display-mode-line))
-    (create-widget "Show Appointments at Startup" widget-toggle-button
-		   :state (data-object-symbol 'view-diary-entries-initially))
-    
+    (dlg-bunch-of-simple-toggles
+     "Appointments Audible" 'appt-audible
+     "Appointments Displayed" 'appt-display-diary
+     "Display Appointment Time in Modeline" 'appt-display-mode-line
+     "Show Appointments at Startup" 'view-diary-entries-initially)
     )
+  (dlg-info-button "Want to know more about calendar and diary?"
+		   "(emacs)Calendar/Diary"
+		   "Click to read info pages about calendar mode and using the diary.")
   (dlg-end)
   (dialog-refresh)
   )
@@ -387,22 +665,12 @@ useful for ps-print."
   (require 'ps-print)
   (dialog-build-group "Postscript Printing Options"
 
-    (create-widget "Print header on each page." widget-toggle-button
-		   :state (data-object-symbol 'ps-print-header))
-
-    (create-widget "Print page numbers (Must have headers on)."
-		   widget-toggle-button
-		   :state (data-object-symbol 'ps-show-n-of-n))
-     
-    (create-widget "Print gaudy frame around header." widget-toggle-button
-		   :state (data-object-symbol 'ps-print-header-frame))
-    
-    (create-widget "Print with color." widget-toggle-button
-		   :state (data-object-symbol 'ps-print-color-p))
-
-    (create-widget "Auto-detect faces for bold, italic, and underline."
-		   widget-toggle-button
-		   :state (data-object-symbol 'ps-auto-font-detect))
+    (dlg-bunch-of-simple-toggles
+     "Print header on each page." 'ps-print-header
+     "Print page numbers (Must have headers on)." 'ps-show-n-of-n
+     "Print gaudy frame around header." 'ps-print-header-frame
+     "Print with color." 'ps-print-color-p
+     "Auto-detect faces for bold, italic, and underline." 'ps-auto-font-detect)
 
     (create-widget "Printed Font Size :" widget-labeled-text
 		   :unit "Pts" :text-length 10
@@ -512,6 +780,11 @@ to work with Ghostscript" widget-label :face 'bold-italic :x 5)
 		     :title "Paper Size"
 		     :x -2 :y t :option-list opt-list :state opt-dat)
       )
+
+    (dlg-info-button "Want to know more about postscript printing?"
+		     "(emacs)Postscript"
+		     "Click to read info pages about printing with the postscript driver.")
+
     )
   (dlg-end)
   (dialog-refresh)
@@ -526,7 +799,11 @@ to work with Ghostscript" widget-label :face 'bold-italic :x 5)
   (dlg-init 'dot-emacs)
   (dialog-build-group "Font Lock Options"
 
-    (create-widget  "Always activate font-lock" widget-toggle-button
+    (dlg-info-button "More about font-lock"
+		     "(emacs)Font Lock"
+		     "Click to read info pages about using font-lock.")
+    
+    (create-widget "Always activate font-lock" widget-toggle-button
 		    :state 
 		    (if (or (> emacs-major-version 19)
 			    (> emacs-minor-version 31))
@@ -568,7 +845,12 @@ to work with Ghostscript" widget-label :face 'bold-italic :x 5)
 
       (create-widget "Use Fast-Lock (cached font lock info)" widget-radio-button)
 
-      ))
+      )
+    (dlg-info-button "How to choose a support mode"
+		     "(emacs)Support Modes"
+		     "Click to read info pages about font-lock support modes.")
+    )
+
   (require 'lazy-lock)
   (dialog-build-group "Lazy Lock Options"
 
@@ -590,6 +872,11 @@ to work with Ghostscript" widget-label :face 'bold-italic :x 5)
 		   :text-length 5 :unit "Lines"
 		   :value (data-object-symbol-string-to-int 
 			   'lazy-lock-stealth-lines))
+
+    (dlg-info-button "More about Lazy-lock"
+		     "(emacs)Lazy Lock Mode"
+		     "Click to read info pages about Lazy Lock.")
+
     )
   (require 'fast-lock)
   (dialog-build-group "Fast Lock Options"
@@ -597,6 +884,11 @@ to work with Ghostscript" widget-label :face 'bold-italic :x 5)
     (create-widget  "Save font cache for files belonging to others" 
 		    widget-toggle-button
 		    :state (data-object-symbol 'fast-lock-save-others))
+
+    (dlg-info-button "More about fast-lock"
+		     "(emacs)Fast Lock Mode"
+		     "Click to read info pages about Fast Lock.")
+
     )
   (dlg-end)
   (dialog-refresh)
