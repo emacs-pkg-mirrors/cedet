@@ -5,9 +5,8 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
-;; Version: 1.0
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-expr.el,v 1.1 2001/07/20 11:07:24 ponced Exp $
+;; X-RCS: $Id: wisent-expr.el,v 1.2 2001/08/30 14:00:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
