@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.24 2005/01/29 04:32:19 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.25 2005/01/30 22:03:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -114,7 +114,7 @@
 		  (const 'unloaded)
 		  (const 'system)
 		  (const 'recursive)
-		  (const 'omnipotent)))
+		  (const 'omniscience)))
   "Customization values for semanticdb find throttle.
 See `semanticdb-find-throttle' for details.")
 
@@ -138,10 +138,10 @@ the following keys:
                  tables from system header files, or language equivalent.
   `recursive'  - For include based searches, includes tables referenced
                  by included files.
-  `omnipotent' - Included system databases which are omnipotent, or
-                 somehow know everything.  Omnipotent databases are found
+  `omniscience' - Included system databases which are omniscience, or
+                 somehow know everything.  Omniscience databases are found
                  in `semanticdb-project-system-databases'.
-                 The Emacs Lisp system DB is an omnipotent database."
+                 The Emacs Lisp system DB is an omniscience database."
   :group 'semanticdb
   :type semanticdb-find-throttle-custom-list)
 
@@ -319,7 +319,7 @@ Included databases are filtered based on `semanticdb-find-default-throttle'."
 		(setq ans (semanticdb-file-table-object fname)))
 	    ;; No reference directory  Probably a system database
 	    ;; NOTE: Systemdb will need to override `semanticdb-file-table'.
-	    (if (semanticdb-find-throttle-active-p 'omnipotent)
+	    (if (semanticdb-find-throttle-active-p 'omniscience)
 		(setq ans (semanticdb-file-table
 			   (car roots)
 			   ;; Use name direct from tag.  System DB will expect it
