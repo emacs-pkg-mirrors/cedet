@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.149 2002/07/21 13:07:54 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.150 2002/07/21 13:38:08 zappo Exp $
 
 (defvar semantic-version "2.0alpha2"
   "Current version of Semantic.")
@@ -545,7 +545,7 @@ that, otherwise, do a full reparse."
           (semantic-bovination-working-message (buffer-name))
           "done"
 	(setq res (semantic-bovinate-nonterminals
-                   lex nil semantic-flex-depth))
+                   lex nil semantic-lex-depth))
 	(working-status t))
       (setq res (nreverse res))
       ;; Set up the new overlays, and then reset the cache.
@@ -688,6 +688,9 @@ a list of cooked tokens."
 
 ;;; Bovine table runtime functions
 ;;
+(defvar semantic-bovination-active-table nil
+  "Active table while parsing a buffer w/ the LL parser.")
+
 (defsubst semantic-bovinate-nonterminal (stream table &optional nonterminal)
   "Bovinate STREAM based on the TABLE of nonterminal symbols.
 Optional argument NONTERMINAL is the nonterminal symbol to start with.
@@ -695,7 +698,8 @@ This is the core routine for converting a stream into a table.
 Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
 list of semantic tokens found."
-  (funcall semantic-bovinate-parser stream table nonterminal))
+  (let ((semantic-bovination-active-table table))
+    (funcall semantic-bovinate-parser stream table nonterminal)))
 
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
 					      depth returnonerror)
@@ -703,7 +707,7 @@ list of semantic tokens found."
 DEPTH is optional, and defaults to 0.
 Optional argument RETURNONERROR indicates that the parser should exit
 with the current results on a parse error."
-  (if (not depth) (setq depth semantic-flex-depth))
+  (if (not depth) (setq depth semantic-lex-depth))
   (let ((result nil)
 	(case-fold-search semantic-case-fold)
         nontermsym token)
@@ -786,8 +790,7 @@ a START and END part.
 Optional argument LENGTH specifies we are only interested in LENGTH tokens."
   (car-safe (cdr (semantic-bovinate-nonterminal
 		  (semantic-lex start end (or depth 1) length)
-		  ;; the byte compiler will complain about TABLE
-		  table
+		  semantic-bovination-active-table
 		  nonterm))))
 
 (defun semantic-bovinate-from-nonterminal-full (start end nonterm
