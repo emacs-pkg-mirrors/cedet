@@ -1,8 +1,8 @@
 ;;; semantic-bovine.el --- LL Parser/Analyzer core.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.9 2003/09/05 04:18:37 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.10 2004/03/20 00:19:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,14 @@
 
 ;;; Code:
 (require 'semantic)
+
+;;; VAriables
+;;
+(defvar semantic-bovinate-nonterminal-check-obarray nil
+  "Obarray of streams already parsed for nonterminal symbols.
+Use this to detect infinite recursion during a parse.")
+(make-variable-buffer-local 'semantic-bovinate-nonterminal-check-obarray)
+
 
 
 ;; These are functions that can be called from within a bovine table.
@@ -95,10 +103,10 @@ list of semantic tokens found."
       (setq nonterminal 'bovine-toplevel))
 
   ;; Try to detect infinite recursive parse when doing a full reparse.
-  (or semantic-toplevel-bovine-cache
+  (or semantic--buffer-cache
       (semantic-bovinate-nonterminal-check stream nonterminal))
 
-  (let* ((table semantic-toplevel-bovine-table)
+  (let* ((table semantic--parse-table)
 	 (matchlist (cdr (assq nonterminal table)))
 	 (starting-stream stream)
 	 (nt-loop  t)		  ;non-terminal loop condition
