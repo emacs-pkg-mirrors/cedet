@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.14 2003/08/11 06:37:57 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.15 2003/09/08 08:04:42 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -35,6 +35,8 @@
 ;;; Code:
 (require 'semantic-grammar)
 (require 'wisent-grammar-macros)
+(eval-when-compile
+  (require 'semantic-find))
 
 (defun wisent-grammar-assocs ()
   "Return associativity and precedence level definitions."
