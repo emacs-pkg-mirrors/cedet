@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.7 2001/02/22 02:43:35 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.8 2001/04/07 14:26:51 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -31,6 +31,10 @@
 ;;   Document then provides some rules for creating English Text based
 ;; on the name of a given function, it's return type, or variable
 ;; type.  It also has output rules for texinfo, or comments.
+;;
+;; NOTE: Some of the user level commands in document.el dealing with
+;; texinfo files have been obsoleted commands in semantic-texi, which
+;; can not insert foriegn tokens.
 
 (require 'sformat)
 (require 'document-vars)
