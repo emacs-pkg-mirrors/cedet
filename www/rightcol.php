@@ -25,10 +25,11 @@
 <tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=checkdoc.shtml><b>Checkdoc</b></a>&nbsp</td></tr>
 
 <tr><td  class=BAR><img src=dir-minus.gif>&nbsp<b>Project Information</b>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://www.sourceforge.net/projects/cedet><b>Project</b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/project/showfiles.php?group_id=17886><b>Releases</b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/mail/?group_id=17886><b>Mailing Lists</b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href=http://sourceforge.net/projects/rte><b>RPMs</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://www.sourceforge.net/projects/cedet"><b>Project</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/project/showfiles.php?group_id=17886"><b>Releases</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/mail/?group_id=17886"><b>Mailing Lists</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/projects/rte"><b>RPMs</b></a>&nbsp</td></tr>
+<tr><td >&nbsp<img src=page.gif>&nbsp<a class=SB href="http://sourceforge.net/donate/index.php?group_id=17886"><b>Donate</b></a>&nbsp</td></tr>
 <tr><td >&nbsp</td></tr>
 
 <tr><td class=BAR>
