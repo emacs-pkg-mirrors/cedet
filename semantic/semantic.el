@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.1
+;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.24 2000/04/21 01:57:01 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.25 2000/04/23 15:15:16 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -338,6 +338,10 @@ TOP-LEVEL ENTRIES:
  (\"FILE\" include \"DOCSTRING\" START END)
    In C, an #include statement.  In elisp, a require statement.
    Indicates additional locations of sources or definitions.
+
+ (\"NAME\" package DETAIL \"DOCSTRING\" START END)
+   In Emacs Lisp, a `provide' statement.  DETAIL might be an
+   associated file name.
 
 OTHER ENTRIES:")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table)
