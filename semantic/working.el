@@ -194,8 +194,12 @@ macro `working-status-forms'."
 ;;
 (defun working-message-frame-width ()
   "Return the width of the frame the working message will be in."
-  (let* ((mbw (frame-parameter (selected-frame) 'minibuffer))
-	 (fr (if mbw (window-frame mbw) default-minibuffer-frame)))
+  (let* ((mbw (cond ((fboundp 'frame-parameter)
+		     (frame-parameter (selected-frame) 'minibuffer))
+		    ((fboundp 'frame-property)
+		     (frame-property (selected-frame) 'minibuffer))))
+	 (fr (if (and mbw (not (eq mbw t)))
+		 (window-frame mbw) default-minibuffer-frame)))
     (frame-width fr)))
 
 ;;; Percentage display types.
@@ -259,11 +263,11 @@ is t to display the done string, or the percentage to display."
     (let ((bs " [")
 	  (bubbles [ ?. ?- ?o ?O ?@ ]))
       (if (> percent 5)
-	  (setq bs (concat bs (make-string (/ percent 5) ?@))))
+	  (setq bs (concat bs (make-string (/ (floor percent) 5) ?@))))
       (setq bs (concat bs
-		       (char-to-string (aref bubbles (% percent 5)))))
-      (if (/= (/ percent 5) 20)
-	  (setq bs (concat bs (make-string (- 19 (/ percent 5)) ? ))))
+		       (char-to-string (aref bubbles (% (floor percent) 5)))))
+      (if (< (/ (floor percent) 5) 20)
+	  (setq bs (concat bs (make-string (- 19 (/ (floor percent) 5)) ? ))))
       (concat bs "]"))))
 
 (defun working-bubble-percent-display (length percent)
