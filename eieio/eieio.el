@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.10 1996/10/17 01:40:04 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.11 1996/10/28 22:31:27 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -169,10 +169,11 @@
 ;;;           :PRIMARY and :AFTER elements, and then the :BEFORE,
 ;;;           :PRIMARY and :AFTER generic calls.  Lastly turned lists
 ;;;           of associations into OBARRAYs and symbols.
-;;; 0.8    Added ability to byte compile methods on the fly.  This has
-;;;           some moderate runtime speed improvements, but slows load
-;;;           down a lot.  Control this activity through the control
-;;;           variable `eieio-byte-compile-on-load'
+;;; 0.8    Added ability to byte compile methods.  This is implemented
+;;;           for both XEmacs and FSF.  This will only work with the
+;;;           modern byte-compiler for these systems.
+;;;        Removed all reference to classmethods as no one liked them,
+;;;           and were wasing space in here.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -180,13 +181,6 @@
 ;;;
 
 (eval-when-compile (require 'cl))
-
-(defvar eieio-byte-compile-on-load t
-  "*Non-nil means byte compile all methods when they are created.
-This improves speed of execution for large complex forms.  The need
-for this is because byte compiling methods doesn't create byte code
-out of the method forms because the created forms aren't attached to a
-symbols function cell.  To use edebug, set this to nil.")
 
 (defvar this nil
   "Inside a method, this variable is the object in question.  DO NOT
@@ -206,14 +200,12 @@ check private parts. DO NOT SET THIS YOURSELF!")
 (defconst class-public-a 6 "Class public attribute index")
 (defconst class-public-d 7 "Class public attribute defaults index")
 (defconst class-public-doc 8 "Class public documentation strings for attributes")
-(defconst class-public-m 9 "Class pubic method index")
-(defconst class-private-a 10 "Class private attribute index")
-(defconst class-private-d 11 "Class private attribute defaults index")
-(defconst class-private-doc 12 "Class private documentation strings for attributes")
-(defconst class-private-m 13 "Class private method index")
-(defconst class-initarg-tuples 14 "Class initarg tuples list")
-(defconst class-methods 15 "Class methods index")
-(defconst class-num-fields 16 "Number of fields in the class definition object")
+(defconst class-private-a 9 "Class private attribute index")
+(defconst class-private-d 10 "Class private attribute defaults index")
+(defconst class-private-doc 11 "Class private documentation strings for attributes")
+(defconst class-initarg-tuples 12 "Class initarg tuples list")
+(defconst class-methods 13 "Class methods index")
+(defconst class-num-fields 14 "Number of fields in the class definition object")
 
 (defconst method-before 0 "Index into :BEFORE tag on a method")
 (defconst method-primary 1 "Index into :PRIMARY tag on a method")
@@ -672,29 +664,6 @@ list of all bindings to that method type.)"
 		(child-of-class-p class scoped-class))
 	    (+ 3 fsi)
 	  nil))))
-
-(defun eieio-method-name-index (class method)
-  "Return the index for a CLASS where a METHOD resides"
-  (if (not (class-p class)) (signal 'wrong-type-argument '(class-p class)))
-  (if (not (symbolp method)) (signal 'wrong-type-argument '(symbolp method)))
-  (let ((c 0) (l (aref (class-v class) class-public-m)))
-    ;; Check out the public symbols
-    (while (and l (not (equal method (car l))))
-      (setq c (1+ c))
-      (setq l (cdr l)))
-    (if (not l)
-	(if (child-of-class-p class scoped-class)
-	    (progn
-	      (setq l (aref (class-v class) class-private-m))
-	      (while (and l (not (equal method (car l))))
-		(setq c (1+ c))
-		(setq l (cdr l)))
-	      (if (not l)
-		  l
-		c))
-	  nil)
-      c)))
-
 
 ;;;
 ;;; CLOS generics internal function handling
@@ -906,32 +875,6 @@ has no form, but has a parent class, then trace to that parent class"
 	 (cons emtl nil)
 	 nil)))))
 
-(defun eieio-generic-form-old (method tag class)
- "Return the lambda form belonging to METHOD using TAG based upon
-CLASS.  If CLASS is not a class then use `generic' instead.  If class
-has no form, but has a parent class, then trace to that parent class"
-
- (let ((emto (aref (get method 'eieio-method-obarray) (if class tag (+ tag 3)))))
-   (if (class-p class)
-     (let ((ov nil))
-       (while (and class (not ov))
-	 (setq ov (intern-soft (symbol-name class) emto))
-	 (if ov
-	     ;;(setq ov (cons (cdr ov) (aref (class-v class) 1)))
-	     (setq ov (cons ov (aref (class-v class) 1)))
-	   (if (class-parent class)
-	       (setq class (class-parent class))
-	     (if (eq class 'eieio-default-superclass)
-		 (setq class nil)
-	       (setq class 'eieio-default-superclass)))))
-       ;; return the created dotted pair
-       ov)
-     ;; for a generic call, what is a list, is the function body we want.
-     (let ((emtl (aref (get method 'eieio-method-tree) (if class tag (+ tag 3)))))
-       (if emtl
-	 (cons emtl nil)
-	 nil)))))
-
 ;;;
 ;;; Way to assign fields based on a list.  Used for constructors, or
 ;;; even resetting an object at run-time
@@ -980,7 +923,6 @@ viewing by apropos, and describe-variables, and the like."
   (if (not (class-p class)) (signal 'wrong-type-argument '(class-p class)))  
   (let* ((cv (class-v class))
 	 (newdoc (aref cv 2))
-	 (methods (aref cv class-public-m))
 	 (docs (aref cv class-public-doc))
 	 (names (aref cv class-public-a))
 	 (deflt (aref cv class-public-d))
@@ -1005,22 +947,6 @@ viewing by apropos, and describe-variables, and the like."
       (setq pnames (cdr pnames)
 	    pdocs (cdr pdocs)
 	    pdeflt (cdr pdeflt)))
-    (while methods
-      (setq meth (aref (aref (class-v class) class-methods) index))
-      (setq mdoc nil)
-      (if meth
-	  (progn
-	    (setq mdoc (nth 2 meth))
-	    (if (stringp mdoc)
-		(setq newdoc (concat newdoc
-				     (format "\n\nMethod: %s\n" 
-					     (car methods))
-				     mdoc))
-	      (setq newdoc (concat newdoc
-				   (format "\n\nMethod: %s\nUndocumented"
-					   (car methods)))))))
-      (setq methods (cdr methods))
-      (setq index (1+ index)))
     ;; only store this on the variable.  The doc-string in the vector
     ;; is ONLY the top level doc for this class.  The value found via
     ;; emacs needs to be more descriptive.
