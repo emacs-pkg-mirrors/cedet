@@ -9,8 +9,8 @@
 top=../
 ede_FILES=Project.ede Makefile
 
-Tests_AUX=test.c test.cpp templates.cpp test.make
-VERSION=2.0beta1
+Tests_AUX=test.c test.cpp templates.cpp test.make scopetest.cpp scopetest.java
+VERSION=2.0beta2
 DISTDIR=$(top)semantic-$(VERSION)/tests
 
 
