@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.33 2001/04/13 01:28:04 zappo Exp $
+@c $Id: semantic.texi,v 1.34 2001/04/13 16:51:31 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -737,12 +737,12 @@ This command takes a token stream returned by the function
 additional optional argument of NONTERMINAL which is the nonterminal in
 your table it is to start parsing with.
 
-@deffn Comamnd bovinate &optional clear
+@deffn Command bovinate &optional clear
 Bovinate the current buffer.  Show output in a temp buffer.
 Optional argument @var{CLEAR} will clear the cache before bovinating.
 @end deffn
 
-@deffn Comamnd semantic-clear-toplevel-cache
+@deffn Command semantic-clear-toplevel-cache
 Clear the toplevel bovin cache for the current buffer.
 Clearing the cache will force a complete reparse next time a token
 stream is requested.
@@ -782,7 +782,7 @@ file.  The second is to debug against the lisp table created from the
 If your language definition was written in BNF notation, debugging is
 quite easy.  The command @code{bovinate-debug} will start you off.
 
-@deffn Comamnd bovinate-debug
+@deffn Command bovinate-debug
 Bovinate the current buffer and run in debug mode.
 @end deffn
 
@@ -790,7 +790,7 @@ If you prefer debugging against the Lisp table, find the table in a
 buffer, place the cursor in it, and use the command
 @code{semantic-bovinate-debug-set-table} in it.
 
-@deffn Comamnd semantic-bovinate-debug-set-table
+@deffn Command semantic-bovinate-debug-set-table
 Set the table for the next debug to be here.
 @end deffn
 
@@ -1579,7 +1579,7 @@ Move to the next token in the current buffer.
 Move to the previous token in the current buffer.
 @end deffn
 
-@deffn Comamnd senator-jump sym
+@deffn Command senator-jump sym
 Jump to the semantic symbol @var{SYM}.
 If called interactively and a prefix argument is supplied jump in the
 local type's context (see function @dfn{senator-current-type-context}).
@@ -1617,11 +1617,11 @@ Search forward and backward for a token whose name matches @var{word}.
 Completion in senator scans all known definitions in the local file,
 and uses that information to provide the completion.
 
-@deffn Comamnd senator-complete-symbol
+@deffn Command senator-complete-symbol
 Complete the current symbol under point.
 @end deffn
 
-@deffn Comamnd senator-completion-menu-keyboard-popup
+@deffn Command senator-completion-menu-keyboard-popup
 Popup a completion menu for the symbol at point.
 @end deffn
 
@@ -1637,23 +1637,23 @@ For example, pasting a function into a different file results in a
 function call template to be inserted.  In a Texinfo file, a @@deffn
 is created with documentation for that function or command.
 
-@deffn Comamnd senator-copy-token
+@deffn Command senator-copy-token
 Take the current token, and place it in the token ring.
 @end deffn
 
-@deffn Comamnd senator-kill-token
+@deffn Command senator-kill-token
 Take the current token, place it in the token ring, and kill it.
 Killing the token removes the text for that token, and places it into
 the kill ring.  Retrieve that text with @code{yank}.
 @end deffn
 
-@deffn Comamnd senator-yank-token
+@deffn Command senator-yank-token
 Yank a token from the token ring.
 The form the token takes is differnet depending on where it is being
 yanked to.
 @end deffn
 
-@deffn Comamnd senator-copy-token-to-register register &optional kill-flag
+@deffn Command senator-copy-token-to-register register &optional kill-flag
 Copy the current token into @var{REGISTER}.
 Optional argument @var{KILL-FLAG} will delete the text of the token to the
 kill ring.
@@ -1751,21 +1751,21 @@ The document program uses semantic token streams to aid in the
 creation of texinfo documentation.  The main entry point for the
 documentation generator are the following commands:
 
-@deffn Comamnd document &optional resetfile
+@deffn Command document &optional resetfile
 Document the function or variable the cursor is in.
 Optional argument @var{RESETFILE} is provided w/ universal argument.
 When non-@code{nil}, query for a new documentation file.
 @end deffn
 
-@deffn Comamnd document-inline
+@deffn Command document-inline
 Document the current function with an inline comment.
 @end deffn
 
-@deffn Comamnd document-insert-defun-comment nonterm buffer
+@deffn Command document-insert-defun-comment nonterm buffer
 Insert mode-comment documentation about @var{NONTERM} from @var{BUFFER}.
 @end deffn
 
-@deffn Comamnd document-insert-new-file-header header
+@deffn Command document-insert-new-file-header header
 Insert a new header file into this buffer.  Add reference to @var{HEADER}.
 Used by @code{prototype} if this file doesn't have an introductory comment.
 @end deffn
@@ -1774,7 +1774,7 @@ In addition to these base documentation commands, the texinfo semantic
 parser includes a two convenience functions when working directly with
 texinfo files.
 
-@deffn Comamnd semantic-texi-update-doc &optional token
+@deffn Command semantic-texi-update-doc &optional token
 Update the documentation for @var{TOKEN}.
 If the current buffer is a texinfo file, then find the source doc, and
 update it.  If the current buffer is a source file, then get the
@@ -1782,7 +1782,7 @@ documentation for this item, find the existing doc in the associated
 manual, and update that.
 @end deffn
 
-@deffn Comamnd semantic-texi-goto-source &optional token
+@deffn Command semantic-texi-goto-source &optional token
 Jump to the source for the definition in the texinfo file @var{TOKEN}.
 If @var{TOKEN} is @code{nil}, it is derived from the deffn under @var{POINT}.
 @end deffn
