@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-class.el,v 1.8 1997/01/19 22:06:01 zappo Exp $
+;;; RCS: $Id: dlg-class.el,v 1.9 1997/01/26 18:54:43 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -65,7 +65,7 @@ different values of state")
 ;;;
 ;;; Specialized data types
 ;;;
-(defclass data-symbol (data-object)
+(defclass data-object-symbol (data-object)
   ((symbol :initarg :symbol
 	   :initform nil
 	   :docstring "Symbol whose value changes in parallel to :value"

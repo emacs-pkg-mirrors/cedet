@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995, 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dialog-mode.el,v 1.18 1997/01/24 00:56:03 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.19 1997/01/26 18:54:23 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -81,7 +81,7 @@
   "Buffer local variable containing the definition of the toplevel shell.
 This shell is active in the current buffer.  There can be only one
 toplevel shell definition in a given buffer.  It should maintain a
-buffer-local value as any buffer may wish to have embedded widgets."
+buffer-local value as any buffer may wish to have embedded widgets.")
 (make-variable-buffer-local 'widget-toplevel-shell)
 
 (defvar dialog-current-parent nil
