@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.83 2000/10/03 03:56:22 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.84 2000/10/11 02:45:50 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -851,7 +851,7 @@ doc string, and eventually the body, such as:
     (if (not (fboundp method))
 	(eieio-defgeneric method
 	  (if (stringp (car body))
-	      (car body) (format "Generically created method %s" method))))
+	      (car body) (format "Generically created method `%s'" method))))
     ;; create symbol for property to bind to.  If the first arg is of
     ;; the form (varname vartype) and `vartype' is a class, then
     ;; that class will be the type symbol.  If not, then it will fall
@@ -936,23 +936,26 @@ created by the :initarg tag."
 
 (defun eieio-oref (obj field)
   "Return the value in OBJ at FIELD in the object vector."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let ((c (eieio-field-name-index (aref obj object-class) field)))
+  (if (not (or (object-p obj) (class-p obj)))
+      (signal 'wrong-type-argument (list '(or object-p class-p) obj)))
+  (if (not (symbolp field))
+      (signal 'wrong-type-argument (list 'symbolp field)))
+  (let* ((class (if (class-p obj) obj (aref obj object-class)))
+	 (c (eieio-field-name-index class field)))
     (if (not c)
 	;; It might be missing because it is a :class allocated field.
 	;; Lets check that info out.
-	(if (setq c
-		  (eieio-class-field-name-index (aref obj object-class) field))
+	(if (setq c (eieio-class-field-name-index class field))
 	    ;; Oref that slot.
-	    (aref (aref (class-v (aref obj object-class)) class-class-allocation-values)
-		  c)
+	    (aref (aref (class-v class) class-class-allocation-values) c)
 	  ;; The slot-missing method is a cool way of allowing an object author
 	  ;; to intercept missing slot definitions.  Since it is also the LAST
 	  ;; thing called in this fn, it's return value would be retrieved.
 	  (slot-missing obj field 'oref)
 	  ;;(signal 'invalid-slot-name (list (object-name obj) field))
 	  )
+      (if (not (object-p obj))
+	  (signal 'wrong-type-argument (list 'object-p obj)))
       (eieio-barf-if-slot-unbound (aref obj c) obj field 'oref))))
 
 (defalias 'slot-value 'eieio-oref)
@@ -1253,6 +1256,31 @@ list."
       (setq list (cdr list)))
     (nreverse assoclist)))
 
+(defun object-add-to-list (object slot item &optional append)
+  "In OBJECT's SLOT, add ITEM to the pre-existing list of elements.
+Optional argument APPEND indicates we need to append to the list.
+If ITEM already exists in the list in SLOT, then it is not added.
+Comparison is done with `equal' through the `member' function call.
+If SLOT is unbound, bind it to the list containing ITEM."
+  (let (ov)
+    (if (not (slot-boundp))
+	(setq ov (list item))
+      (setq ov (eieio-oref object slot))
+      (if (not (member item ov))
+	  (setq ov
+		(if append
+		    (append ov (list item))
+		  (cons item ov)))))
+    (eieio-oset object slot ov)))
+
+(defun object-remove-from-list (object slot item)
+  "In OBJECT's SLOT, remove occurrences ITEM.
+If ITEM already exists in the list in SLOT, then it is not added.
+Comparison is done with `equal' through the `delete' function call.
+If SLOT is unbound, do nothing."
+  (if (not (slot-boundp))
+      nil
+    (eieio-oset object slot (delete item (eieio-oref object slot)))))
 
 ;;; EIEIO internal search functions
 ;;
@@ -1684,7 +1712,8 @@ OBJECT is the instance of the object being reference.  CLASS is the
 class of OBJECT, and SLOT-NAME is the offending slot.  This function
 throws the signal `unbound-slot'.  You can overload this function and
 return the value to use in place of the unbound value.
-Argument FN is the function signaling this error."
+Argument FN is the function signaling this error.
+Use `slot-boundp' to determine if a slot is bound or not."
   (signal 'unbound-slot (list (class-name class) (object-name object)
 			      slot-name fn)))
 
