@@ -1,12 +1,12 @@
 ;;; mode-local.el --- Support for mode local facilities
 ;;
-;; Copyright (C) 2004 David Ponce
+;; Copyright (C) 2004, 2005 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.5 2005/01/10 14:57:56 ponced Exp $
+;; X-RCS: $Id: mode-local.el,v 1.6 2005/02/22 23:24:48 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -766,6 +766,24 @@ invoked interactively."
           nil t)))
       ))
   "Highlighted keywords.")
+
+
+;;; find-func support (Emacs 21.4, or perhaps 22.1)
+;;
+(when (boundp 'find-function-regexp)
+  (unless (string-match "ine-overload" find-function-regexp)
+    (if (string-match "(def\\\\(" find-function-regexp)
+	(let ((end (match-end 0))
+	      )
+	  (setq find-function-regexp
+		(concat (substring find-function-regexp 0 end)
+			"ine-overload\\|ine-mode-local-override\\|"
+			"ine-child-mode\\|"
+			(substring find-function-regexp end)))))
+    )
+  ;; The regexp for variables is a little more kind.
+  )
+  
 
 ;; TODO: Add XEmacs support
 (when (fboundp 'font-lock-add-keywords)
