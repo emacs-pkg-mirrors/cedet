@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.38 2001/05/14 16:32:45 zappo Exp $
+@c $Id: semantic.texi,v 1.39 2001/06/05 20:07:52 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -416,6 +416,7 @@ Available override symbols:
 @item prototype-nonterminal  @tab (token)           @tab Return a prototype string.
 @item prototype-file         @tab (buffer)          @tab Return a file in which prototypes are placed
 @item nonterminal-children   @tab (token)           @tab Return first rate children. These are children which may contain overlays.
+@item nonterminal-protection @tab (token & parent)  @tab Return protection as a symbol.
 @item beginning-of-context   @tab (& point)         @tab Move to the beginning of the
 					                 current context.
 @item end-of-context         @tab (& point)         @tab Move to the end of the
@@ -956,6 +957,8 @@ Retrieve a specifier value for the variable @var{TOKEN}.
 Retrieve the flag indicating if the include @var{TOKEN} is a sysmtem include.
 @end defun
 
+For override methods that query a token, see @xref{Token Details}. 
+
 @node Nonterminal Streams, Nonterminal Completion, Token Queries, Utilities
 @section Nonterminal streams
 
@@ -1260,6 +1263,21 @@ Note for language authors:
 should not be considered children, you should still return them with
 this function.  If you do not, then token reparsing, and database
 saving will fail.
+@end defun
+
+@defun semantic-nonterminal-protection token &optional parent
+Return protection information about @var{TOKEN} with optional @var{PARENT}.
+This function returns on of the following symbols:
+   @code{nil}      - No special protection.  Language dependent.
+   @code{'public}  - Anyone can access this @var{TOKEN}.
+   @code{'private} - Only methods in the local scope can access @var{TOKEN}.
+   @code{'friend}  - Like private, except some outer scopes are allowed
+              access to token.
+Some languages may choose to provide additional return symbols specific
+to themselves.  Use of this function should allow for this.
+
+The default behavior (if not overriden with @code{nonterminal-children}
+is to return a symbol based on type modifiers.
 @end defun
 
 @defun semantic-find-dependency token
