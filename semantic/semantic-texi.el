@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.29 2004/04/29 10:10:52 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.30 2004/08/25 06:19:25 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -354,7 +354,7 @@ that start with that symbol."
 	semantic-symbol->name-assoc-list '((section . "Section")
 					   (def . "Definition")
 					   )
-	semantic-imenu-expandable-tag-class 'section
+	semantic-imenu-expandable-tag-classes '(section)
 	semantic-imenu-bucketize-file nil
 	semantic-imenu-bucketize-type-members nil
 	senator-step-at-start-end-tag-classes '(section)
