@@ -150,8 +150,8 @@ Argument START, END, and LENGTH specify the bounds of the change."
   ;; Pre Hooks
   (run-hook-with-args 'semantic-pre-clean-token-hooks token)
 
-  (let* ((flexbits (semantic-flex (semantic-token-start token)
-				  (semantic-token-end token)))
+  (let* ((flexbits (semantic-lex (semantic-token-start token)
+                                 (semantic-token-end token)))
 	 ;; For embedded tokens (type parts, for example) we need a
 	 ;; different symbol.  Come up with a plan to solve this.
 	 (nonterminal (semantic-token-get token 'reparse-symbol))
