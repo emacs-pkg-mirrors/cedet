@@ -1,10 +1,10 @@
-;;; cogre-uml.el --- UML support for COGRE
+ ;;; cogre-uml.el --- UML support for COGRE
 
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: uml-create.el,v 1.8 2003/02/25 21:20:17 zappo Exp $
+;; X-RCS: $Id: uml-create.el,v 1.9 2003/09/07 02:00:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -62,17 +62,17 @@ Optional argument FIELDS are not used."
       ;; In this case, we have a default class object-name, so try and query
       ;; for the real class (from sources) which we want to use.
       (let* ((class (or (oref this class) (cogre-read-class-name)))
-	     (tok (if (semantic-token-p class)
+	     (tok (if (semantic-tag-p class)
 		      class
 		    (cdr (car (semanticdb-find-nonterminal-by-name
 			       class nil nil nil t)))))
 	     )
-	(if (semantic-token-p class) (setq class (semantic-token-name class)))
-	(if (and tok (eq (semantic-token-token tok) 'type)
-		 (or (string= (semantic-token-type tok) "class")
-		     (string= (semantic-token-type tok) "struct")))
-	    (let ((slots (semantic-token-type-parts tok))
-		  (extmeth (semantic-nonterminal-external-member-children tok t))
+	(if (semantic-tag-p class) (setq class (semantic-tag-name class)))
+	(if (and tok (eq (semantic-tag-class tok) 'type)
+		 (or (string= (semantic-tag-type tok) "class")
+		     (string= (semantic-tag-type tok) "struct")))
+	    (let ((slots (semantic-tag-type-members tok))
+		  (extmeth (semantic-tag-external-member-children tok t))
 		  attrib method)
 	      ;; Bin them up
 	      (while slots
@@ -83,10 +83,10 @@ Optional argument FIELDS are not used."
 				     attrib))
 		  )
 		 ;; Variable decl is an attribute
-		 ((eq (semantic-token-token (car slots)) 'variable)
+		 ((eq (semantic-tag-class (car slots)) 'variable)
 		  (setq attrib (cons (car slots) attrib)))
 		 ;; A function decle is a method.
-		 ((eq (semantic-token-token (car slots)) 'function)
+		 ((eq (semantic-tag-class (car slots)) 'function)
 		  (setq method (cons (car slots) method)))
 		 )
 		(setq slots (cdr slots)))
@@ -94,7 +94,7 @@ Optional argument FIELDS are not used."
 	      (while extmeth
 		(let ((sl (cdr (car extmeth))))
 		  (while sl
-		    (if (eq (semantic-token-token (car sl)) 'function)
+		    (if (eq (semantic-tag-class (car sl)) 'function)
 			(setq method (cons (car sl) method)))
 		    (setq sl (cdr sl))))
 		(setq extmeth (cdr extmeth)))
@@ -112,7 +112,7 @@ Optional argument FIELDS are not used."
 		((and (listp class)
 		      (stringp (car class)))
 		 (oset this object-name (car class)))
-		(t inl))
+		(t nil))
 	  (oset this class nil)
 	  (oset this attributes nil)
 	  (oset this methods nil)
@@ -144,7 +144,7 @@ Optional argument FIELDS are not used."
 (defcustom cogre-token->uml-function 'semantic-uml-abbreviate-nonterminal
   "Function to use to create strings for tokens in CLASS nodes."
   :group 'cogre
-  :type semantic-token->text-custom-list)
+  :type semantic-tag->text-custom-list)
 
 
 (defmethod cogre-uml-stoken->uml ((class cogre-semantic-class) stoken &optional text)
@@ -152,8 +152,8 @@ Optional argument FIELDS are not used."
 Optional TEXT property is passed down."
   (call-next-method class stoken
 		    (save-excursion
-		      (let ((tb (or (semantic-token-buffer stoken)
-				    (semantic-token-buffer (oref class class)))))
+		      (let ((tb (or (semantic-tag-buffer stoken)
+				    (semantic-tag-buffer (oref class class)))))
 			(if tb (set-buffer tb))
 			(funcall cogre-token->uml-function
 				 stoken
@@ -204,7 +204,7 @@ Changing window configurations is not recommended."
 (defun cogre-uml-browse-token-highlight-hook-fn (tok &optional parent)
   "Momentarilly highlight TOK.  Ignore PARENT.
 Function useable by `cogre-uml-browse-token-hook'."
-  (semantic-momentary-highlight-token tok))
+  (semantic-momentary-highlight-tag tok))
 
 (defmethod cogre-uml-source-marker ((class cogre-semantic-class) token)
   "Return a marker position for a CLASS containing TOKEN.
@@ -212,25 +212,25 @@ This returned marker will be in the source file of the attribute,
 method, or class definition.  nil if there is not match."
   (let ((semc (oref class class))
 	(p nil))
-    (cond ((and token (semantic-token-with-position-p token))
+    (cond ((and token (semantic-tag-with-position-p token))
 	   (setq p (save-excursion
-		     (semantic-find-nonterminal token)
+		     (semantic-go-to-tag token)
 		     (run-hook-with-args
 		      'cogre-uml-browse-token-hook
 		      token)
 		     (point-marker))
 		 ))
-	  ((and token (semantic-token-with-position-p semc))
+	  ((and token (semantic-tag-with-position-p semc))
 	   (setq p (save-excursion
-		     (semantic-find-nonterminal token semc)
+		     (semantic-go-to-tag token semc)
 		     (run-hook-with-args
 		      'cogre-uml-browse-token-hook
 		      token semc)
 		     (point-marker))
 		 ))
-	  ((and semc (semantic-token-with-position-p semc))
+	  ((and semc (semantic-tag-with-position-p semc))
 	   (setq p (save-excursion
-		     (semantic-find-nonterminal semc)
+		     (semantic-go-to-tag semc)
 		     (run-hook-with-args
 		      'cogre-uml-browse-token-hook
 		      semc)
@@ -303,7 +303,7 @@ customizing the object, or performing some complex task."
 
 (defun cogre-read-class-name ()
   "Read in a class name to be used by a cogre node."
-  (let ((finddefaultlist (semantic-find-nonterminal-by-overlay))
+  (let ((finddefaultlist (semantic-find-tag-by-overlay))
 	class prompt stream
 	)
     ;; Assume the top most item is the all encompassing class.
@@ -312,10 +312,10 @@ customizing the object, or performing some complex task."
     ;; Make sure our class is really a class
     (if (not (and
 	      class
-	      (eq (semantic-token-token class) 'type)
-	      (string= (semantic-token-type class) "class")))
+	      (eq (semantic-tag-class class) 'type)
+	      (string= (semantic-tag-type class) "class")))
 	(setq class nil)
-      (setq class (semantic-token-name class)))
+      (setq class (semantic-tag-name class)))
     ;; Create a prompt
     (setq prompt (if class (concat "Class (default " class "): ") "Class: "))
     ;; Get the stream used for completion.
@@ -338,14 +338,17 @@ The parent to CLASS, CLASS, and all of CLASSes children will be shown."
   (let* ((class-tok (cdr (car (semanticdb-find-nonterminal-by-name
 			       class nil nil nil t t))))
 	 (class-node nil)
-	 (parent (semantic-token-type-parent-superclass class-tok))
+	 (parent (semantic-tag-type-superclasses class-tok))
 	 (parent-nodes nil)
 	 (children (semanticdb-find-nonterminal-by-function
 		    (lambda (stream sp si)
-		      (semantic-find-nonterminal-by-function
+		      (semantic-brute-find-tag-by-function
 		       (lambda (tok)
-			 (and (eq (semantic-token-token tok) 'type)
-			      (member class (semantic-token-type-parent tok))))
+			 (and (eq (semantic-tag-class tok) 'type)
+			      (or (member class 
+					  (semantic-tag-type-superclasses tok))
+				  (member class
+					  (semantic-tag-type-interfaces tok)))))
 		       stream sp si))
 		    nil nil nil t t))
 	 (children-nodes nil)
