@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.10 1999/05/18 16:00:00 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.11 1999/05/18 17:31:05 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -333,6 +333,17 @@ Return a list of non-terminals derived from the first argument, or nil
 if it does not need to be expanded.")
 (make-variable-buffer-local 'semantic-expand-nonterminal)
 
+(defvar semantic-toplevel-bovine-cache nil
+  "A cached copy of a recent bovination, plus state.
+If no significant changes have been made (based on the state) then
+this is returned instead of re-parsing the buffer.")
+(make-variable-buffer-local 'semantic-toplevel-bovine-cache)
+
+(defvar semantic-toplevel-bovinate-override nil
+  "Local variable set by major modes which provide their own bovination.
+This function should behave as the function `semantic-bovinate-toplevel'.")
+(make-variable-buffer-local 'semantic-toplevel-bovinate-override)
+
 
 ;;; Utility API functions
 ;;
@@ -383,14 +394,24 @@ if it does not need to be expanded.")
   "Retrieve the status of constantness from variable TOKEN."
   `(nth 3 ,token))
 
+;;;###autoload
 (defun semantic-bovinate-toplevel (&optional depth trashcomments)
   "Bovinate the entire current buffer to a list depth of DEPTH.
 DEPTH is optional, and defaults to 0.
 Optional argument TRASHCOMMENTS indicates that comments should be
 stripped from the main list of synthesized tokens."
-  (let ((ss (semantic-flex (point-min) (point-max) (or depth 0)))
-	(res nil))
-    (working-status-forms "Scanning" "done"
+  (cond
+   (semantic-toplevel-bovinate-override
+    (funcall semantic-toplevel-bovinate-override depth trashcomments))
+   ((and semantic-toplevel-bovine-cache
+	 (car semantic-toplevel-bovine-cache)
+	 ;; Add a rule that knows how to see if there have been "big chagnes"
+	 )
+    (car semantic-toplevel-bovine-cache))
+   (t
+    (let ((ss (semantic-flex (point-min) (point-max) (or depth 0)))
+	  (res nil))
+      (working-status-forms "Scanning" "done"
 	(while ss
 	  (if (not (and trashcomments (eq (car (car ss)) 'comment)))
 	      (let ((nontermsym
@@ -407,7 +428,7 @@ stripped from the main list of synthesized tokens."
 		      (if (not tmpet)
 			  (setq tmpet (list (car (cdr nontermsym)))))
 		      (setq res (append tmpet res)))
-		  ;(error "Parse error")
+					;(error "Parse error")
 		  )
 		;; Designated to ignore.
 		(setq ss (car nontermsym)))
@@ -419,7 +440,8 @@ stripped from the main list of synthesized tokens."
 			    (float (point-max)))))
 	     100)))
 	(working-dynamic-status t))
-    (nreverse res)))
+      (setq semantic-toplevel-bovine-cache (list (nreverse res) (point-max)))
+      (car semantic-toplevel-bovine-cache)))))
 
 ;;; Semantic Table debugging
 ;;
