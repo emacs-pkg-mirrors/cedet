@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.27 2004/02/12 02:03:25 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.28 2004/02/18 14:37:25 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -106,8 +106,7 @@
 Mark OLDFNALIAS as obsolete, such that the byte compiler
 will throw a warning when it encounters this symbol."
   (defalias oldfnalias newfn)
-  (make-obsolete oldfnalias newfn)
-  )
+  (make-obsolete oldfnalias newfn))
 
 (defun semantic-varalias-obsolete (oldvaralias newvar)
   "Make OLDVARALIAS an alias for variable NEWVAR.
@@ -124,16 +123,34 @@ will throw a warning when it encounters this symbol."
     can't make obsolete variable `%s'\n\
     alias of `%s'." (error-message-string err) oldvaralias newvar)
        )))
-
   (make-obsolete-variable oldvaralias newvar))
-
 
 ;;; Semantic autoloads
 ;;
-;; Load semantic-al after compatibility code, to allow to use it in
-;; autoloads without infinite recursive load problems.
+;; Load semantic-loaddefs after compatibility code, to allow to use it
+;; in autoloads without infinite recursive load problems.
 (load "semantic-loaddefs" nil t)
 
+;;; Help debugging
+;;
+(defmacro semantic-safe (format &rest body)
+  "Turn into a FORMAT message any error caught during eval of BODY.
+Return the value of last BODY form or nil if an error occurred.
+FORMAT can have a %s escape which will be replaced with the actual
+error message.
+If `debug-on-error' is set, errors are not caught, so that you can
+debug them.
+Avoid using a large BODY since it is duplicated."
+  ;;(declare (debug t) (indent 1))
+  `(if debug-on-error
+       (progn ,@body)
+     (condition-case err
+	 (progn ,@body)
+       (error
+        (message ,format (error-message-string err))
+        nil))))
+(put 'semantic-safe 'lisp-indent-function 1)
+
 ;;; Misc utilities
 ;;
 (defun semantic-map-buffers (fun)
@@ -165,7 +182,6 @@ FUN does not have arguments."
           (with-current-buffer b
             (if (memq major-mode modes)
                 (funcall fun)))))))
-
 
 ;;; Behavioral APIs
 ;;
@@ -546,7 +562,7 @@ Returns the documentation as a string, also."
 	(semantic-augment-function-help (ad-get-arg 0)))))
 
 
-;;; User Interrupe handling
+;;; User Interrupt handling
 ;;
 (defvar semantic-current-input-throw-symbol nil
   "The current throw symbol for `semantic-exit-on-input'.")
@@ -613,10 +629,11 @@ calling this one."
                   "define-lex-block-type-analyzer"
                   "define-mode-overload-implementation"
                   "define-semantic-child-mode"
+                  "define-semantic-idle-service"
                   "define-overload"
                   "define-wisent-lexer"
-		  "semantic-alias-obsolete"
-		  "semantic-varalias-obsolete"
+                  "semantic-alias-obsolete"
+                  "semantic-varalias-obsolete"
                   ) t))
            ;; Regexp depths
            (kv-depth (regexp-opt-depth kv))
