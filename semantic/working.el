@@ -225,10 +225,12 @@ See the function `message' for details on ARGS."
 See the function `message' for details on ARGS."
   (if working-use-echo-area-p
       (apply 'working-message-echo args)
-    (setq working-mode-line-message (apply 'format args))
-    (working-mode-line-update)
-    (sit-for 0)
-    ))
+    (when (not working-mode-line-message)
+      ;; If we start out nil, put stuff in to show we are up to
+      (setq working-mode-line-message "Working...")
+      (working-mode-line-update)
+      (sit-for 0)
+      )))
 
 ;;; Compatibility
 (cond ((fboundp 'run-with-timer)
@@ -257,6 +259,9 @@ to use when the functions `working-status' is called from FORMS."
      (unwind-protect
 	 (progn ,@forms)
        (setq working-mode-line-message nil)
+       (unless working-use-echo-area-p
+	 (working-mode-line-update)
+	 (sit-for 0))
        )))
 (put 'working-status-forms 'lisp-indent-function 2)
 
@@ -277,7 +282,11 @@ to use when the functions `working-status' is called from FORMS."
 	 (progn ,@forms)
        (working-cancel-timer working-timer))
      (working-dynamic-status t)
-     (setq working-mode-line-message nil)))
+     (setq working-mode-line-message nil)
+     (unless working-use-echo-area-p
+	 (working-mode-line-update)
+	 (sit-for 0))
+     ))
 (put 'working-status-timeout 'lisp-indent-function 3)
 
 (defun working-status-call-process
