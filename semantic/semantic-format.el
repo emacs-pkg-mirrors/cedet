@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.6 2003/07/16 14:05:10 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.7 2003/07/18 05:19:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,6 +37,7 @@
 ;;; Code:
 (eval-when-compile (require 'font-lock))
 (require 'semantic-tag)
+(require 'ezimage)
 
 ;;; Tag to text overload functions
 ;;
@@ -77,6 +78,12 @@ Use this variable in the :type field of a customizable variable.")
 
 (make-obsolete-variable 'semantic-token->text-custom-list
 			'semantic-format-tag-custom-list)
+
+(defcustom semantic-format-use-images-flag ezimage-use-images
+  "Non-nil means semantic format functions use images.
+Images can be used as icons instead of some types of text strings."
+  :group 'semantic
+  :type 'boolean)
 
 (defvar semantic-function-argument-separator ","
   "Text used to separate arguments when creating text from tags.")
@@ -139,6 +146,7 @@ be used unless font lock is a feature.")
 
 (make-obsolete-variable 'semantic-face-alist
 			'semantic-format-face-alist)
+
 
 
 ;;; Coloring Functions
@@ -456,26 +464,38 @@ UML attribute strings are things like {abstract} or {leaf}."
 	 "{leaf}")
 	))
 
-(defun semantic-format-tag-uml-protection-to-string (protection-symbol)
+(defvar semantic-format-tag-protection-image-alist
+  '(("+" . ezimage-unlock)
+    ("#" . ezimage-key)
+    ("-" . ezimage-lock)
+    )
+  "Association of protection strings, and images to use.")
+
+(defun semantic-format-tag-uml-protection-to-string (protection-symbol color)
   "Convert PROTECTION-SYMBOL to a string for UML.
 Default character returns are:
   public    -- +
   private   -- -
   protected -- #.
 If PROTECTION-SYMBOL is unknown, then the return value is
-`semantic-uml-no-protection-string'."
-  (cond ((eq protection-symbol 'public)
-	 "+")
-	((eq protection-symbol 'private)
-	 "-")
-	((eq protection-symbol 'protected)
-	 "#")
-	(t semantic-uml-no-protection-string)))
+`semantic-uml-no-protection-string'.
+COLOR indicates if we should use an image on the text."
+  (let ((ezimage-use-images (and semantic-format-use-images-flag color)))
+    (ezimage-image-over-string
+     (cond ((eq protection-symbol 'public)
+	    "+")
+	   ((eq protection-symbol 'private)
+	    "-")
+	   ((eq protection-symbol 'protected)
+	    "#")
+	   (t semantic-uml-no-protection-string))
+     semantic-format-tag-protection-image-alist)))
 
-(defsubst semantic-format-tag-uml-protection (tag parent)
+(defsubst semantic-format-tag-uml-protection (tag parent color)
   "Retrieve the protection string for TAG with PARENT."
   (semantic-format-tag-uml-protection-to-string
-   (semantic-tag-protection tag parent)))
+   (semantic-tag-protection tag parent)
+   color))
 
 (defun semantic--format-tag-uml-type (tag color)
   "Format the data type of TAG to a string usable for formatting.
@@ -496,7 +516,7 @@ Optional argument PARENT is the parent type if TAG is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((name (semantic-format-tag-name tag parent color))
 	 (type  (semantic--format-tag-uml-type tag color))
-	 (protstr (semantic-format-tag-uml-protection tag parent))
+	 (protstr (semantic-format-tag-uml-protection tag parent color))
 	 (text nil))
     (setq text
 	  (concat
@@ -520,7 +540,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((class (semantic-tag-class tag))
 	 (cp (semantic-format-tag-name tag parent color))
 	 (type (semantic--format-tag-uml-type tag color))
-	 (prot (semantic-format-tag-uml-protection tag parent))
+	 (prot (semantic-format-tag-uml-protection tag parent color))
 	 (argtext
 	  (cond ((eq class 'function)
 		 (concat
@@ -551,7 +571,7 @@ Optional argument PARENT is the parent type if TAG is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((cp (semantic-format-tag-concise-prototype tag parent color))
 	 (type (semantic--format-tag-uml-type tag color))
-	 (prot (semantic-format-tag-uml-protection tag parent))
+	 (prot (semantic-format-tag-uml-protection tag parent color))
 	 (text nil)
 	 )
     (setq text (concat prot cp type))
