@@ -1,12 +1,12 @@
 ;;; semantic-grammar.wy -- LALR grammar of Semantic input grammars
 ;;
-;; Copyright (C) 2002, 2003 David Ponce
+;; Copyright (C) 2002, 2003, 2004 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.11 2003/12/16 11:46:12 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.12 2004/01/14 09:53:56 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -24,6 +24,13 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
+
+%{
+  (defsubst semantic-grammar-wy--tag-value (tag)
+    "Return the value of TAG.
+Used internally to retrieve value of EXPADFULL tags."
+    (semantic-tag-get-attribute tag :value))
+  }
 
 ;;%package semantic-grammar-wy
 
@@ -51,6 +58,7 @@
 %keyword SCOPESTART      "%scopestart"
 %keyword START           "%start"
 %keyword TOKEN           "%token"
+%keyword TYPE            "%type"
 %keyword USE-MACROS      "%use-macros"
 
 ;; Literals
@@ -119,6 +127,7 @@ decl:
   | start_decl
   | keyword_decl
   | token_decl
+  | type_decl
   | use_macros_decl
   ;
 
@@ -160,14 +169,14 @@ put_decl:
     PUT put_name put_value
     `(TAG ',$2 'put :value ',(list $3))
   | PUT put_name put_value_list
-    (let* ((vals (mapcar 'semantic-tag-name $3)))
+    (let* ((vals (mapcar 'semantic-grammar-wy--tag-value $3)))
       `(TAG ',$2 'put :value ',vals))
   | PUT put_name_list put_value
-    (let* ((names (mapcar 'semantic-tag-name $2)))
+    (let* ((names (mapcar 'semantic-grammar-wy--tag-value $2)))
       `(TAG ',(car names) 'put :rest ',(cdr names) :value ',(list $3)))
   | PUT put_name_list put_value_list
-    (let* ((names (mapcar 'semantic-tag-name $2))
-           (vals  (mapcar 'semantic-tag-name $3)))
+    (let* ((names (mapcar 'semantic-grammar-wy--tag-value $2))
+           (vals  (mapcar 'semantic-grammar-wy--tag-value $3)))
       `(TAG ',(car names) 'put :rest ',(cdr names) :value ',vals))
   ;
 
@@ -183,7 +192,7 @@ put_names:
     ()
   | put_name
  ;; Must return a list of Semantic tags to EXPANDFULL!
-    (TAG $1 'put-name)
+    (TAG "name" 'put-name :value $1)
   ;
 
 put_name:
@@ -203,7 +212,7 @@ put_values:
     ()
   | put_value
  ;; Must return a list of Semantic tags to EXPANDFULL!
-    (TAG $1 'put-value)
+    (TAG "value" 'put-value :value $1)
   ;
 
 put_value:
@@ -248,6 +257,18 @@ token_type:
     (progn $2)
   ;
 
+type_decl:
+    TYPE token_type plist
+    `(TAG ',$2 'type :value ',$3)
+  ;
+
+plist:
+    plist put_value
+    (append (list $2) $1)
+  | put_value
+    (list $1)
+  ;
+
 use_name_list:
     BRACE_BLOCK
     (EXPANDFULL $1 use_names)
@@ -260,12 +281,12 @@ use_names:
     ()
   | SYMBOL
  ;; Must return a list of Semantic tags to EXPANDFULL!
-    (TAG $1 'use-name)
+    (TAG "name" 'use-name :value $1)
   ;
 
 use_macros_decl:
     USE-MACROS SYMBOL use_name_list
-    (let* ((names (mapcar 'semantic-tag-name $3)))
+    (let* ((names (mapcar 'semantic-grammar-wy--tag-value $3)))
       `(TAG "macro" 'macro :type ',$2 :value ',names))
   ;
 
