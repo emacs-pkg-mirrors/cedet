@@ -1,6 +1,6 @@
 @c -*-texinfo-*-
 @c
-@c $Id: d-config.texi,v 1.2 1996/11/18 00:00:30 zappo Exp $
+@c $Id: d-config.texi,v 1.3 1997/01/21 01:12:48 zappo Exp $
 @c
 
 @c The next line is for the back-search to see what node this one
@@ -17,6 +17,7 @@
 
 @menu
 *  data-object-symbol ::
+*   data-object-symbol-translated ::
 *   data-object-symbol-string-to-int ::
 *   data-object-symbol-list-index ::
 *   data-object-symbol-lisp-expression ::
@@ -30,10 +31,11 @@
 *   data-face-background-object ::
 *   data-face-underline-object ::
 *   data-face-emphasis-object ::
+*  data-symbol ::
 @end menu
 
 
-@node data-object-symbol, data-object-symbol-string-to-int,  , Special Classes
+@node data-object-symbol, data-object-symbol-translated,  , Special Classes
 @comment  node-name,  next,  previous,  up
 @subsection data-object-symbol
 @doindex data-object-symbol
@@ -46,7 +48,7 @@
 @item data-object-symbol
 @table @asis
 @item Children:
-@w{@xref{data-object-symbol-string-to-int}}, @w{@xref{data-object-symbol-list-index}}, @w{@xref{data-object-symbol-lisp-expression}}, @w{@xref{data-object-symbol-default}}, @w{@xref{data-object-symbol-feature}}, @w{@xref{data-object-symbol-hook}}, @w{@xref{data-object-symbol-disabled}}
+@w{@xref{data-object-symbol-translated}}, @w{@xref{data-object-symbol-string-to-int}}, @w{@xref{data-object-symbol-list-index}}, @w{@xref{data-object-symbol-lisp-expression}}, @w{@xref{data-object-symbol-default}}, @w{@xref{data-object-symbol-feature}}, @w{@xref{data-object-symbol-hook}}, @w{@xref{data-object-symbol-disabled}}
 @end table
 
 @end table
@@ -78,7 +80,58 @@ Default Value: @code{nil}
 
 @end table
 
-@node data-object-symbol-string-to-int, data-object-symbol-list-index, data-object-symbol, Special Classes
+@node data-object-symbol-translated, data-object-symbol-string-to-int, data-object-symbol, Special Classes
+@comment  node-name,  next,  previous,  up
+@subsection data-object-symbol-translated
+@doindex data-object-symbol-translated
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{data-object}}
+@table @code
+@item @w{@xref{data-object-symbol}}
+@table @code
+@item data-object-symbol-translated
+No children
+@end table
+
+@end table
+
+@end table
+@end table
+
+  This is a type of @code{data-object-symbol} @xref{data-object-symbol} which allows the creator to
+make specialized translators. This would permit any data not currently
+defined to be specified.
+
+@table @asis
+@item Public Slots:
+
+@table @code
+@item :set-lambda
+Default Value: @code{nil}
+
+This is a lambda expression to use on the data 
+value to translate it from the rendered() version to the internally
+stored version. (lambda (newvalue) ...) and returns value to
+store. See @dfn{dlg-string-to-list} as an example.
+@refill
+
+@item :get-lambda
+Default Value: @code{nil}
+
+This is the lambda expression to use on the
+data whenever it's value is gotten.  When the value is rendered,
+@code{get-lambda} is run, and then translated to a string.  (lambda (outvalue) ...)
+See @dfn{dlg-list-to-string} as an example.
+@refill
+
+@end table
+
+@end table
+
+@node data-object-symbol-string-to-int, data-object-symbol-list-index, data-object-symbol-translated, Special Classes
 @comment  node-name,  next,  previous,  up
 @subsection data-object-symbol-string-to-int
 @doindex data-object-symbol-string-to-int
@@ -486,7 +539,7 @@ No children
 @table @asis
 @end table
 
-@node data-face-emphasis-object,  , data-face-underline-object, Special Classes
+@node data-face-emphasis-object, data-symbol, data-face-underline-object, Special Classes
 @comment  node-name,  next,  previous,  up
 @subsection data-face-emphasis-object
 @doindex data-face-emphasis-object
@@ -512,3 +565,43 @@ No children
 @table @asis
 @end table
 
+@node data-symbol,  , data-face-emphasis-object, Special Classes
+@comment  node-name,  next,  previous,  up
+@subsection data-symbol
+@doindex data-symbol
+
+@table @asis
+@item Inheritance Tree:
+@table @code
+@item @w{@xref{data-object}}
+@table @code
+@item data-symbol
+No children
+@end table
+
+@end table
+@end table
+
+  This is a type of @code{data-object} @xref{data-object} which will initialize itself to the
+value stored in the @code{symbol} field, and which will also (optionally)
+save its value back into @code{symbol} when the user edits it.
+
+@table @asis
+@item Private Slots:
+
+@table @code
+@item :symbol
+Default Value: @code{nil}
+
+Symbol whose value changes in parallel to @code{:value}
+@refill
+
+@item :protect
+Default Value: @code{nil}
+
+@code{t} if this symbol is not to be saved into a file
+@refill
+
+@end table
+
+@end table
