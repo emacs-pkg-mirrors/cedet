@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.12 2001/10/28 01:57:50 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.13 2001/11/02 21:34:15 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -147,6 +147,33 @@ If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   t nil)
 
+;; semantic-auto-parse
+(autoload 'semantic-auto-parse-mode
+  "semantic-util-modes"
+  "Minor mode to auto parse buffer following changes.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled."
+  t nil)
+
+(defvar global-semantic-auto-parse-mode nil
+  "*If non-nil enable global use of auto-parse mode.")
+
+(custom-add-to-group 'semantic
+                     'global-semantic-auto-parse-mode
+                     'custom-variable)
+
+(custom-add-load 'global-semantic-auto-parse-mode
+                 'semantic-util-modes)
+
+(autoload 'global-semantic-auto-parse-mode
+  "semantic-util-modes"
+  "Toggle global use of `semantic-auto-parse-mode'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  t nil)
+
 
 ;; This turns on semantic partial reparsing
 (add-hook 'semantic-change-hooks #'semantic-change-function-mark-dirty)
@@ -168,6 +195,7 @@ If ARG is nil, then toggle."
   (global-semantic-show-dirty-mode 1)
   (global-senator-minor-mode 1)
   (global-semantic-show-unmatched-syntax-mode 1)
+  (global-semantic-auto-parse-mode 1)
   (global-semanticdb-minor-mode 1)
 
   (add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb)))
