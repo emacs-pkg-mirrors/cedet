@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.17 2002/11/22 12:57:51 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.18 2003/03/27 07:41:23 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -842,10 +842,7 @@ lost if not transferred into NEWTOKEN."
     ;; Free the old overlay(s)
     (semantic-deoverlay-token oldtoken)
     ;; Recover properties
-    (let ((p (semantic-token-properties oldtoken)))
-      (while p
-	(semantic-token-put newtoken (car (car p)) (cdr (car p)))
-	(setq p (cdr p))))
+    (semantic--tag-copy-properties oldtoken newtoken)
     ;; The below line was from the old rebovinate routine.  Now
     ;; I'm not sure it's needed.  Lets check.
     ;;(semantic-token-put newtoken 'reparse-symbol nonterminal)
