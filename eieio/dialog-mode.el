@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.6 1996/09/24 00:46:03 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.7 1996/09/27 00:04:33 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -284,15 +284,17 @@ Navigation commands:
 
 (defun dialog-handle-kbd () "Read the last kbd event, and handle it."
   (interactive)
-  (input widget-toplevel-shell 
-	 (if last-input-char last-input-char last-input-event)))
+  (let ((dispatch (or (get-text-property (point) 'widget-object)
+		      widget-toplevel-shell)))
+    (input dispatch (if last-input-char last-input-char last-input-event))))
 
 (defun dialog-handle-meta-kbd () "Read the last kbd event, and handle it as a meta key"
   (interactive)
-  (input widget-toplevel-shell 
-	 (if (numberp last-input-char)
-	     (concat "\e" (char-to-string last-input-char))
-	   last-input-char)))
+  (let ((dispatch (or (get-text-property (point) 'widget-object)
+		      widget-toplevel-shell)))
+    (input dispatch (if (numberp last-input-char)
+			(concat "\e" (char-to-string last-input-char))
+		      last-input-char))))
 
 (defun dialog-next-widget (arg) "Move cursor to next logical widget"
   (interactive "P")
@@ -440,8 +442,12 @@ needed."
 		    (put-text-property pnt end 'face nil)
 		    (put-text-property pnt end 'mouse-face nil))))))))
   
-(defun insert-overwrite-face (string face &optional focus-face)
-  "Insert STRING into buffer at point, and cover it with FACE"
+(defun insert-overwrite-face (string face &optional focus-face object)
+  "Insert STRING into buffer at point, and cover it with FACE.  If
+optional FOCUS-FACE, then also put this as the mouse-face.  If
+optional OBJECT is included, then put that down as the text property
+`widget-object' so that we can do faster lookups while dishing out
+keystrokes, etc."
   (if widget-toplevel-shell
       (let* ((pnt (point))
 	     (end (+ pnt (length string))))
@@ -456,6 +462,7 @@ needed."
 	    (progn
 	      (if face (put-text-property pnt end 'face face))
 	      (if focus-face (put-text-property pnt end 'mouse-face focus-face))
+	      (if object (put-text-property pnt end 'widget-object object))
 	      )))))
 
 (defun widget-bunch-o-chars (n char)
