@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.30 2000/10/04 12:28:19 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.31 2000/10/17 12:45:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -667,7 +667,7 @@ depended on, and functions will move to the specified definition."
 	     (if f (find-file f))))
       nil
     (let ((s (semantic-fetch-overload 'find-nonterminal)))
-      (if s (funcall s token)
+      (if s (funcall s token parent)
 	(set-buffer (semantic-token-buffer token))
 	(let ((start (semantic-token-start token)))
 	  (if (numberp start)
@@ -694,7 +694,7 @@ If nosnarf if 'flex, then only return the flex token."
   (if (not token)
       (setq token (car (semantic-find-nonterminal-by-overlay nil))))
   (let ((s (semantic-fetch-overload 'find-documentation)))
-    (if s (funcall s token)
+    (if s (funcall s token nosnarf)
       ;; No override.  Try something simple to find documentation nearby
       (save-excursion
 	(set-buffer (semantic-token-buffer token))
