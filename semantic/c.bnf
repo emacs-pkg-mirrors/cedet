@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.49 2001/10/28 00:50:09 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.50 2001/11/17 15:48:53 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -165,12 +165,32 @@ declaration : macro
 	    | type
 	    | var-or-fun
 	    | define
+	    | extern-c
 	    ;
 
 codeblock : define
 	  | codeblock-var-or-fun
 	  | type # type is less likely to be used here.
 	  ;
+
+extern-c-contents: open-paren
+		   ( nil )
+		 | bovine-toplevel
+		 | close-paren
+		   ( nil )
+		 ;
+
+extern-c: EXTERN string "C" semantic-list
+	# Extern C commands which contain a list need to have the
+	# entries of the list extracted, and spliced into the main
+	# list of entries.  This must be done via the function
+	# that expands singular nonterminals, such as int x,y;
+	  ( extern (EXPANDFULL $3 extern-c-contents) )
+	| EXTERN string "C"
+	# A plain extern "C" call should add something to the token,
+	# but just strip it from the buffer here for now.
+	  ( nil )
+	;
 
 macro : HASH macro-or-include
 	( ,$2 )
