@@ -19,12 +19,6 @@
     :path ""
     :source '("bison-wisent.el")
     )
-   (ede-proj-target-makefile-info "doc"
-    :name "doc"
-    :path ""
-    :source '("wisent.texi" "fdl.texi")
-    :mainmenu "wisent.texi"
-    )
    (ede-proj-target-elisp "wisent"
     :name "wisent"
     :path ""
