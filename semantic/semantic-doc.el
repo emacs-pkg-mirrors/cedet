@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-doc.el,v 1.1 2003/07/09 16:28:03 zappo Exp $
+;; X-RCS: $Id: semantic-doc.el,v 1.2 2003/08/29 16:10:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -52,7 +52,7 @@ If nosnarf if 'lex, then only return the lex token."
       ;; No override.  Try something simple to find documentation nearby
       (save-excursion
 	(set-buffer (semantic-tag-buffer tag))
-	(semantic-find-nonterminal tag)
+	(semantic-go-to-tag tag)
 	(or
 	 ;; Is there doc in the tag???
 	 (if (semantic-tag-docstring tag)
