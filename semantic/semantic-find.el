@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.14 2003/08/06 18:35:59 ponced Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.15 2003/08/29 16:10:51 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -47,6 +47,10 @@
 ;; 4) ...
 
 (require 'semantic-tag)
+
+(eval-when-compile
+  (require 'semantic-sort)
+  )
 
 ;;; Code:
 
