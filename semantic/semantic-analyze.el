@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.19 2004/01/29 18:17:53 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.20 2004/02/02 02:51:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -423,7 +423,10 @@ Returns an object based on symbol `semantic-analyze-context'."
 	   (prefix (semantic-ctxt-current-symbol))
 	   (endsym (car (reverse prefix)))
 	   (bounds (save-excursion
-		     (cond ((and prefix (looking-at endsym))
+		     (cond ((string= endsym "")
+			    (cons (point) (point))
+			    )
+			   ((and prefix (looking-at endsym))
 			    (cons (point) (progn
 					    (condition-case nil
 						(forward-sexp 1)
@@ -603,101 +606,107 @@ Context type matching can identify the following:
 When called interactively, displays the list of possible completions
 in a buffer."
   (interactive "d")
-  (let* ((a (if (semantic-analyze-context-child-p context)
-		context
-	      (semantic-analyze-current-context context)))
-	 (fnargs (semantic-get-local-arguments
-		  (car (oref a bounds))))
-	 (desired-type (semantic-analyze-type-constraint a))
-	 (prefix (oref a prefix))
-	 (prefixtypes (oref a prefixtypes))
-	 (completetext nil)
-	 (completetexttype nil)
-	 (c nil))
+    (let* ((a (if (semantic-analyze-context-child-p context)
+		  context
+		(semantic-analyze-current-context context)))
+	   (fnargs (save-excursion
+		     (semantic-get-local-arguments
+		      (car (oref a bounds)))))
+	   (desired-type (semantic-analyze-type-constraint a))
+	   (prefix (oref a prefix))
+	   (prefixtypes (oref a prefixtypes))
+	   (completetext nil)
+	   (completetexttype nil)
+	   (c nil))
 
-    ;; Calculate what our prefix string is so that we can
-    ;; find all our matching text.
-    (setq completetext (car (reverse prefix)))
-    (if (semantic-tag-p completetext)
-	(setq completetext (semantic-tag-name completetext)))
+      ;; Calculate what our prefix string is so that we can
+      ;; find all our matching text.
+      (setq completetext (car (reverse prefix)))
+      (if (semantic-tag-p completetext)
+	  (setq completetext (semantic-tag-name completetext)))
 
-    (if (and (not completetext) (not desired-type))
-	(error "Nothing to complete"))
+      (if (and (not completetext) (not desired-type))
+	  (error "Nothing to complete"))
 
-    (if (not completetext) (setq completetext ""))
+      (if (not completetext) (setq completetext ""))
 
-    ;; This better be a reasonable type, or we should fry it.
-    ;; The prefixtypes should always be at least 1 less than
-    ;; the prefix since the type is never looked up for the last
-    ;; item when calculating a sequence.
-    (setq completetexttype (car (reverse prefixtypes)))
-    (if (or (not completetexttype)
-	    (not (and (semantic-tag-p completetexttype)
-		      (eq (semantic-tag-class completetexttype) 'type))))
-	;; What should I do here?  I think this is an error condition.
-	(setq completetexttype nil))
+      ;; This better be a reasonable type, or we should fry it.
+      ;; The prefixtypes should always be at least 1 less than
+      ;; the prefix since the type is never looked up for the last
+      ;; item when calculating a sequence.
+      (setq completetexttype (car (reverse prefixtypes)))
+      (if (or (not completetexttype)
+	      (not (and (semantic-tag-p completetexttype)
+			(eq (semantic-tag-class completetexttype) 'type))))
+	  ;; What should I do here?  I think this is an error condition.
+	  (setq completetexttype nil))
 
-    ;; There are many places to get our completion stream for.
-    ;; Here we go.
-    (if completetexttype
+      ;; There are many places to get our completion stream for.
+      ;; Here we go.
+      (if completetexttype
 
-	(setq c (semantic-find-tags-by-name-regexp
-		 (concat "^" completetext)
-		 (semantic-analyze-type-parts completetexttype)
-		 ))
+	  (setq c (semantic-find-tags-by-name-regexp
+		   (concat "^" completetext)
+		   (semantic-analyze-type-parts completetexttype)
+		   ))
 	      
-      (let ((expr (concat "^" completetext)))
-	;; No type based on the completetext.  This is a free-range
-	;; var or function.  We need to expand our search beyond this
-	;; scope into semanticdb, etc.
-	(setq c (append
-		 ;; Argument list
-		 (semantic-find-tags-by-name-regexp expr fnargs)
-		 ;; Local variables
-		 (semantic-find-tags-by-name-regexp expr
-						    (oref a localvariables))
-		 ;; The current scope
-		 (semantic-find-tags-by-name-regexp expr (oref a scope))
-		 ;; The world
-		 (semantic-analyze-find-tags-by-prefix
-		  completetext))
-	      )
-	))
+	(let ((expr (concat "^" completetext)))
+	  ;; No type based on the completetext.  This is a free-range
+	  ;; var or function.  We need to expand our search beyond this
+	  ;; scope into semanticdb, etc.
+	  (setq c (append
+		   ;; Argument list
+		   (semantic-find-tags-by-name-regexp expr fnargs)
+		   ;; Local variables
+		   (semantic-find-tags-by-name-regexp expr
+						      (oref a localvariables))
+		   ;; The current scope
+		   (semantic-find-tags-by-name-regexp expr (oref a scope))
+		   ;; The world
+		   (semantic-analyze-find-tags-by-prefix
+		    completetext))
+		)
+	  ))
 
-    ;; Ok, we now have a completion list based on the text we found
-    ;; we want to complete on.  Now filter that stream against the
-    ;; type we want to search for.
-    (if desired-type
-	(setq c (semantic-find-tags-by-type (semantic-tag-name desired-type)
-					    c)))
+      (when desired-type
 
-    ;; Some types, like the enum in C, have special constant values that
-    ;; we could complete with.  Thus, if the target is an enum, we can
-    ;; find possible symbol values to fill in that value.
-    (if desired-type
-	(let ((constants
-	       (semantic-analyze-type-constants desired-type)))
-	  (if constants
-	      (progn
-		;; Filter
-		(setq constants
-		      (semantic-find-tags-by-name-regexp
-		       (concat "^" completetext)
-		       constants))
-		;; Add to the list
-		(setq c (append c constants)))
-	    )))
+	(let ((origc c))
+	  ;; Ok, we now have a completion list based on the text we found
+	  ;; we want to complete on.  Now filter that stream against the
+	  ;; type we want to search for.
+	  (setq c (semantic-find-tags-by-type (semantic-tag-name desired-type)
+					      origc))
 
-    ;; All done!
+	  ;; Now anything that is a compound type which could contain
+	  ;; additional things which are of the desired type
+	  (setq c (append c (semantic-find-tags-of-compound-type origc)))
+	
+	  ;; Some types, like the enum in C, have special constant values that
+	  ;; we could complete with.  Thus, if the target is an enum, we can
+	  ;; find possible symbol values to fill in that value.
+	  (let ((constants
+		 (semantic-analyze-type-constants desired-type)))
+	    (if constants
+		(progn
+		  ;; Filter
+		  (setq constants
+			(semantic-find-tags-by-name-regexp
+			 (concat "^" completetext)
+			 constants))
+		  ;; Add to the list
+		  (setq c (append c constants)))
+	      ))))
 
-    ;; If interactive, display them.
-    (when (interactive-p)
-      (with-output-to-temp-buffer "*Possible Completions*"
-	(semantic-analyze-princ-sequence c ""))
-      (shrink-window-if-larger-than-buffer
-       (get-buffer-window "*Possible Completions*"))
-      )
-    c))
+      ;; All done!
+
+      ;; If interactive, display them.
+      (when (interactive-p)
+	(with-output-to-temp-buffer "*Possible Completions*"
+	  (semantic-analyze-princ-sequence c ""))
+	(shrink-window-if-larger-than-buffer
+	 (get-buffer-window "*Possible Completions*"))
+	)
+      c))
 
 
 ;;; Friendly output of a context analysis.
