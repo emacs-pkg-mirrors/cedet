@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.45 2003/04/09 00:49:43 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.46 2003/08/26 20:09:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -75,7 +75,7 @@
 
 (defcustom semantic-imenu-summary-function 'semantic-format-tag-abbreviate
   "*Function to use when creating items in Imenu.
-Some useful functions are found in `semantic-token->text-functions'."
+Some useful functions are found in `semantic-format-tag-functions'."
   :group 'semantic-imenu
   :type semantic-format-tag-custom-list)
 (make-variable-buffer-local 'semantic-imenu-summary-function)
@@ -100,22 +100,27 @@ This option is ignored if `semantic-imenu-bucketize-file' is nil."
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-buckets-to-submenu)
 
-(defcustom semantic-imenu-expand-type-parts t
-  "*Non-nil if types should have submenus with parts in it."
+(defcustom semantic-imenu-expand-type-members t
+  "*Non-nil if types should have submenus with members in them."
   :group 'semantic-imenu
   :type 'boolean)
-(make-variable-buffer-local 'semantic-imenu-expand-type-parts)
+(make-variable-buffer-local 'semantic-imenu-expand-type-members)
+(make-obsolete-variable 'semantic-imenu-expand-type-parts
+			'semantic-imenu-expand-type-members)
 
-(defcustom semantic-imenu-bucketize-type-parts t
-  "*Non-nil if elements of a type should be placed grouped into buckets.
-Nil means to keep them in the same order.
+(defcustom semantic-imenu-bucketize-type-members t
+  "*Non-nil if members of a type should be grouped into buckets.
+nil means to keep them in the same order.
 Overriden to nil if `semantic-imenu-bucketize-file' is nil."
   :group 'semantic-imenu
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-bucketize-type-parts)
+(make-obsolete-variable 'semantic-imenu-bucketize-type-parts
+			'semantic-imenu-bucketize-type-members)
 
 (defcustom semantic-imenu-sort-bucket-function nil
-  "*Function to use when sorting tags in the buckets of functions."
+  "*Function to use when sorting tags in the buckets of functions.
+See `semantic-bucketize' and the FILTER argument for more details on this function."
   :group 'semantic-imenu
   :type 'function)
 (make-variable-buffer-local 'semantic-imenu-sort-bucket-function)
@@ -141,11 +146,13 @@ other buffer local ones based on the same semanticdb."
 (defvar semantic-imenu-auto-rebuild-running nil
   "Non-nil if `semantic-imenu-rebuild-directory-indexes' is running.")
 
-(defvar semantic-imenu-expandable-token 'type
-  "Tags of this tag class will be given submenu with children.
+(defvar semantic-imenu-expandable-tag-class 'type
+  "Tags of this class will be given submenu with children.
 By default, a `type' has interesting children.  In Texinfo, however,
 a `section' has interesting children.")
-(make-variable-buffer-local 'semantic-imenu-expandable-token)
+(make-variable-buffer-local 'semantic-imenu-expandable-tag)
+(make-obsolete-variable 'semantic-imenu-expandable-token
+			'semantic-imenu-expandable-tag-class)
 
 ;;; Code:
 (defun semantic-imenu-tag-overlay (tag)
@@ -328,7 +335,7 @@ Optional argument PARENT is a tag parent of STREAM."
 				  ;; do not create a menu separator in the parent menu
 				  ;; when creating a sub-menu
 				  (if (eq (semantic-tag-class (car item))
-					  semantic-imenu-expandable-token)
+					  semantic-imenu-expandable-tag-class)
 				      (semantic-create-imenu-subindex item)
 				    (cons
 				     '("---")
@@ -347,14 +354,14 @@ Optional argument PARENT is a tag parent of STREAM."
 
 (defun semantic-create-imenu-subindex (tags)
   "From TAGS, create an imenu index of interesting things."
-  (let ((notypecheck (not semantic-imenu-expand-type-parts))
+  (let ((notypecheck (not semantic-imenu-expand-type-members))
 	children index tag parts)
     (while tags
       (setq tag (car tags)
 	    children (semantic-tag-components-with-overlays tag))
       (if (and (not notypecheck)
                (eq (semantic-tag-class tag)
-                   semantic-imenu-expandable-token)
+                   semantic-imenu-expandable-tag-class)
 	       children
                )
           ;; to keep an homogeneous menu organisation, type menu items
@@ -378,7 +385,7 @@ Optional argument PARENT is a tag parent of STREAM."
 			     ;; tags.
 			     (semantic-tag-p (car parts)))
 			(let ((submenu
-			       (if (and semantic-imenu-bucketize-type-parts
+			       (if (and semantic-imenu-bucketize-type-members
 					semantic-imenu-bucketize-file)
 				   (semantic-create-imenu-index-1 parts tag)
 				 (semantic-create-imenu-subindex parts))))
@@ -471,7 +478,7 @@ Clears all imenu menus that may be depending on the database."
 (defun semantic-imenu-toggle-bucketize-type-parts ()
   "Toggle the ability of imenu to bucketize the current file."
   (interactive)
-  (setq semantic-imenu-bucketize-type-parts (not semantic-imenu-bucketize-type-parts))
+  (setq semantic-imenu-bucketize-type-members (not semantic-imenu-bucketize-type-members))
   ;; Force a rescan
   (setq imenu--index-alist nil))
 
@@ -500,7 +507,7 @@ in which case it concatenates them together."
 	 (semantic-format-tag-abbreviate
           (car taglist) nil semantic-which-function-use-color))
 	((eq (semantic-tag-class (car taglist))
-	     semantic-imenu-expandable-token)
+	     semantic-imenu-expandable-tag-class)
 	 (concat (semantic-format-tag-name
                   (car taglist) semantic-which-function-use-color) "."
 		 ;; recurse until we no longer have a type
