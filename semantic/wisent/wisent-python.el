@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.16 2002/08/11 20:31:09 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.17 2002/09/05 13:34:10 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -409,8 +409,8 @@ Return a 'raw-string syntactic token."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-09-05 13:58+0200
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-10 21:30+0200
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT RAW_STRING_LITERAL AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -1010,166 +1010,161 @@ Return a 'raw-string syntactic token."
        (list_iter_opt
         (nil)
         ((list_iter))))
-     '(goal))
-    )
+     '(goal)))
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  (identity
-   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-10 21:30+0200
-   (semantic-lex-make-keyword-table
-    '(("and" . AND)
-      ("assert" . ASSERT)
-      ("break" . BREAK)
-      ("class" . CLASS)
-      ("continue" . CONTINUE)
-      ("def" . DEF)
-      ("del" . DEL)
-      ("elif" . ELIF)
-      ("else" . ELSE)
-      ("except" . EXCEPT)
-      ("exec" . EXEC)
-      ("finally" . FINALLY)
-      ("for" . FOR)
-      ("from" . FROM)
-      ("global" . GLOBAL)
-      ("if" . IF)
-      ("import" . IMPORT)
-      ("in" . IN)
-      ("is" . IS)
-      ("lambda" . LAMBDA)
-      ("not" . NOT)
-      ("or" . OR)
-      ("pass" . PASS)
-      ("print" . PRINT)
-      ("raise" . RAISE)
-      ("return" . RETURN)
-      ("try" . TRY)
-      ("while" . WHILE)
-      ("yield" . YIELD))
-    '(("yield" summary "...")
-      ("while" summary "...")
-      ("try" summary "...")
-      ("return" summary "...")
-      ("raise" summary "...")
-      ("print" summary "...")
-      ("pass" summary "...")
-      ("or" summary "...")
-      ("not" summary "...")
-      ("is" summary " ... ")
-      ("in" summary " ... ")
-      ("import" summary " ... ")
-      ("if" summary " ... ")
-      ("global" summary " ... ")
-      ("from" summary " ... ")
-      ("for" summary " ... ")
-      ("finally" summary " ... ")
-      ("exec" summary " ... ")
-      ("except" summary " ... ")
-      ("else" summary " ... ")
-      ("elif" summary " ... ")
-      ("del" summary " ... ")
-      ("def" summary " ... ")
-      ("continue" summary " ... ")
-      ("class" summary " ... ")
-      ("break" summary " ... ")
-      ("assert" summary " ... ")
-      ("and" summary " ... ")))
-   )
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-09-05 13:58+0200
+  (semantic-lex-make-keyword-table
+   '(("and" . AND)
+     ("assert" . ASSERT)
+     ("break" . BREAK)
+     ("class" . CLASS)
+     ("continue" . CONTINUE)
+     ("def" . DEF)
+     ("del" . DEL)
+     ("elif" . ELIF)
+     ("else" . ELSE)
+     ("except" . EXCEPT)
+     ("exec" . EXEC)
+     ("finally" . FINALLY)
+     ("for" . FOR)
+     ("from" . FROM)
+     ("global" . GLOBAL)
+     ("if" . IF)
+     ("import" . IMPORT)
+     ("in" . IN)
+     ("is" . IS)
+     ("lambda" . LAMBDA)
+     ("not" . NOT)
+     ("or" . OR)
+     ("pass" . PASS)
+     ("print" . PRINT)
+     ("raise" . RAISE)
+     ("return" . RETURN)
+     ("try" . TRY)
+     ("while" . WHILE)
+     ("yield" . YIELD))
+   '(("yield" summary "...")
+     ("while" summary "...")
+     ("try" summary "...")
+     ("return" summary "...")
+     ("raise" summary "...")
+     ("print" summary "...")
+     ("pass" summary "...")
+     ("or" summary "...")
+     ("not" summary "...")
+     ("is" summary " ... ")
+     ("in" summary " ... ")
+     ("import" summary " ... ")
+     ("if" summary " ... ")
+     ("global" summary " ... ")
+     ("from" summary " ... ")
+     ("for" summary " ... ")
+     ("finally" summary " ... ")
+     ("exec" summary " ... ")
+     ("except" summary " ... ")
+     ("else" summary " ... ")
+     ("elif" summary " ... ")
+     ("del" summary " ... ")
+     ("def" summary " ... ")
+     ("continue" summary " ... ")
+     ("class" summary " ... ")
+     ("break" summary " ... ")
+     ("assert" summary " ... ")
+     ("and" summary " ... ")))
   "Keywords.")
 
 (defconst wisent-python-tokens
-  (identity
-   ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-10 21:30+0200
-   (wisent-lex-make-token-table
-    '(("raw-string"
-       (RAW_STRING_LITERAL))
-      ("bol"
-       (DEDENT)
-       (INDENT))
-      ("symbol"
-       (NAME))
-      ("number"
-       (NUMBER_LITERAL))
-      ("string"
-       (STRING_LITERAL))
-      ("charquote"
-       (BACKSLASH . "\\"))
-      ("punctuation"
-       (BACKQUOTE . "`")
-       (ASSIGN . "=")
-       (COMMA . ",")
-       (SEMICOLON . ";")
-       (COLON . ":")
-       (BAR . "|")
-       (TILDE . "~")
-       (PERIOD . ".")
-       (MINUS . "-")
-       (PLUS . "+")
-       (MOD . "%")
-       (DIV . "/")
-       (MULT . "*")
-       (AMP . "&")
-       (GT . ">")
-       (LT . "<")
-       (HAT . "^")
-       (NE . "!=")
-       (LTGT . "<>")
-       (HATEQ . "^=")
-       (OREQ . "|=")
-       (AMPEQ . "&=")
-       (MODEQ . "%=")
-       (DIVEQ . "/=")
-       (MULTEQ . "*=")
-       (MINUSEQ . "-=")
-       (PLUSEQ . "+=")
-       (LE . "<=")
-       (GE . ">=")
-       (EQ . "==")
-       (EXPONENT . "**")
-       (GTGT . ">>")
-       (LTLT . "<<")
-       (DIVDIV . "//")
-       (DIVDIVEQ . "//=")
-       (EXPEQ . "**=")
-       (GTGTEQ . ">>=")
-       (LTLTEQ . "<<="))
-      ("close-paren"
-       (RBRACK . "]")
-       (RBRACE . "}")
-       (RPAREN . ")"))
-      ("open-paren"
-       (LBRACK . "[")
-       (LBRACE . "{")
-       (LPAREN . "("))
-      ("newline"
-       (NEWLINE)))
-    '(("raw-string" handler wisent-python-raw-string-handler)
-      ("bol" handler wisent-python-lex-bol)
-      ("charquote" handler wisent-python-lex-backslash)
-      ("charquote" string t)
-      ("close-paren" handler wisent-python-lex-close-paren)
-      ("open-paren" handler wisent-python-lex-open-paren)
-      ("newline" handler wisent-python-lex-newline)
-      ("punctuation" multiple t)
-      ("punctuation" string t)
-      ("symbol" string t)
-      ("close-paren" string t)
-      ("open-paren" string t)))
-   )
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-09-05 13:58+0200
+  (wisent-lex-make-token-table
+   '(("raw-string"
+      (RAW_STRING_LITERAL))
+     ("bol"
+      (DEDENT)
+      (INDENT))
+     ("symbol"
+      (NAME))
+     ("number"
+      (NUMBER_LITERAL))
+     ("string"
+      (STRING_LITERAL))
+     ("charquote"
+      (BACKSLASH . "\\"))
+     ("punctuation"
+      (BACKQUOTE . "`")
+      (ASSIGN . "=")
+      (COMMA . ",")
+      (SEMICOLON . ";")
+      (COLON . ":")
+      (BAR . "|")
+      (TILDE . "~")
+      (PERIOD . ".")
+      (MINUS . "-")
+      (PLUS . "+")
+      (MOD . "%")
+      (DIV . "/")
+      (MULT . "*")
+      (AMP . "&")
+      (GT . ">")
+      (LT . "<")
+      (HAT . "^")
+      (NE . "!=")
+      (LTGT . "<>")
+      (HATEQ . "^=")
+      (OREQ . "|=")
+      (AMPEQ . "&=")
+      (MODEQ . "%=")
+      (DIVEQ . "/=")
+      (MULTEQ . "*=")
+      (MINUSEQ . "-=")
+      (PLUSEQ . "+=")
+      (LE . "<=")
+      (GE . ">=")
+      (EQ . "==")
+      (EXPONENT . "**")
+      (GTGT . ">>")
+      (LTLT . "<<")
+      (DIVDIV . "//")
+      (DIVDIVEQ . "//=")
+      (EXPEQ . "**=")
+      (GTGTEQ . ">>=")
+      (LTLTEQ . "<<="))
+     ("close-paren"
+      (RBRACK . "]")
+      (RBRACE . "}")
+      (RPAREN . ")"))
+     ("open-paren"
+      (LBRACK . "[")
+      (LBRACE . "{")
+      (LPAREN . "("))
+     ("newline"
+      (NEWLINE)))
+   '(("raw-string" handler wisent-python-raw-string-handler)
+     ("bol" handler wisent-python-lex-bol)
+     ("charquote" handler wisent-python-lex-backslash)
+     ("charquote" string t)
+     ("close-paren" handler wisent-python-lex-close-paren)
+     ("open-paren" handler wisent-python-lex-open-paren)
+     ("newline" handler wisent-python-lex-newline)
+     ("punctuation" multiple t)
+     ("punctuation" string t)
+     ("symbol" string t)
+     ("close-paren" string t)
+     ("open-paren" string t)))
   "Tokens.")
 
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-08-10 21:30+0200
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2002-09-05 13:58+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-python-parser-tables
           semantic-flex-keywords-obarray wisent-python-keywords
-          wisent-lex-tokens-obarray wisent-python-tokens)
+          semantic-lex-tokens-obarray wisent-python-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
@@ -1202,8 +1197,7 @@ Return a 'raw-string syntactic token."
 
      semantic-lex-analyzer #'semantic-python-lexer
      wisent-lexer-function #'wisent-flex
-     ))
-  )
+     )))
 
 (provide 'wisent-python)
 
