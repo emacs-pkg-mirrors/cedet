@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.23 2004/03/04 01:51:37 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.24 2004/03/05 03:11:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -483,22 +483,30 @@ In emacs lisp this is easilly defined by parenthisis bounding."
 	  (error nil))
 	;; This is really a let statement, not a function.
 	nil
-      (let ((fun (function-at-point)))
+      (let ((fun (condition-case nil
+		     (save-excursion
+		       (up-list -1)
+		       (forward-char 1)
+		       (buffer-substring-no-properties
+			(point) (progn (forward-sexp 1)
+				       (point))))
+		   (error nil))
+		 ))
 	(when fun
-	  ;; Dp not return FUN IFF the cursor is on FUN.
+	  ;; Do not return FUN IFF the cursor is on FUN.
 	  ;; Huh?  Thats because if cursor is on fun, it is
 	  ;; the current symbol, and not the current function.
 	  (if (save-excursion
 		(condition-case nil
 		    (progn (forward-sexp -1)
 			   (and
-			    (looking-at (symbol-name fun))
-			    (<= point (+ (point) (length (symbol-name fun)))))
+			    (looking-at (regexp-quote fun))
+			    (<= point (+ (point) (length fun))))
 			   )
 		  (error t)))
 	      nil
 	    ;; We are ok, so get it.
-	    (list (symbol-name fun)))
+	    (list fun))
 	  ))
       )))
 
@@ -571,6 +579,30 @@ In emacs lisp this is easilly defined by parenthisis bounding."
       (cond ((= count 0)
 	     0)
 	    (t (1- count))))
+    ))
+
+(define-mode-overload-implementation semantic-ctxt-current-class-list emacs-lisp-mode
+  (&optional point)
+  "Return a list of tag classes allowed at POINT.
+Emacs Lisp knows much more about the class of the tag needed to perform
+completion than some langauges.  We distincly know if we are to be
+a function name, variable name, or any type of symbol.  We could identify
+fields and such to, but that is for some other day."
+  (save-excursion
+    (if point (goto-char point))
+    (setq point (point))
+    (condition-case nil
+	(let ((count 0))
+	  (up-list -1)
+	  (forward-char 1)
+	  (while (< (point) point)
+	    (setq count (1+ count))
+	    (forward-sexp 1))
+	  (if (= count 1)
+	      '(function)
+	    '(variable))
+	  )
+      (error '(variable)))
     ))
 
 (define-mode-overload-implementation semantic-tag-include-filename emacs-lisp-mode
