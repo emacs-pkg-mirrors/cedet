@@ -3,7 +3,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: make.by,v 1.1 2003/01/31 02:38:00 zappo Exp $
+;; X-RCS: $Id: make.by,v 1.2 2003/01/31 13:50:01 zappo Exp $
 ;;
 ;; make.bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -142,12 +142,12 @@ elements: element whitespace elements
 	  ( ,$1 ,@$3 )
 	| element
 	  ( ,$1 )
-	| EMPTY
+	| ;;EMPTY
 	;
   
 element: sub-element element
 	 ( (concat (car ,$1) (car ,$2)) )
-       | EMPTY
+       | ;;EMPTY
        ;
 
 sub-element: symbol
@@ -164,11 +164,11 @@ varref: DOLLAR semantic-list
 
 commands: shell-command newline commands
 	  ( ,$1 ,@$2 )
-	| EMPTY
+	| ;;EMPTY
 	  ( )
 	;
 
 opt-whitespace : whitespace ( nil )
-	       | EMPTY
+	       | ;;EMPTY
 	       ;
 ;; End
