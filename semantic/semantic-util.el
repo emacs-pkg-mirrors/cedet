@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.101 2002/11/15 19:22:15 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.93.2.1 2002/11/18 10:39:07 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -235,6 +235,20 @@ If TOKEN is of an unknown type, then nil is returned."
 
 ;;; Misc. utilities
 ;;
+(defun semantic-map-buffers (fun)
+  "Run function FUN for each Semantic enabled buffer found.
+FUN does not have arguments.  When FUN is entered `current-buffer' is
+the current Semantic enabled buffer found."
+  (let ((bl (buffer-list))
+        b)
+    (while bl
+      (setq b  (car bl)
+            bl (cdr bl))
+      (if (and (buffer-live-p b)
+               (buffer-file-name b))
+          (with-current-buffer b
+            (if (semantic-active-p)
+                (funcall fun)))))))
 
 ;; These semanticdb calls will throw warnings in the byte compiler.
 ;; Doing the right thing to make them available at compile time
@@ -416,7 +430,7 @@ not the current token."
 	(semantic-overlay-get ol 'semantic)))))
 
 (defun semantic-find-nonterminal-by-overlay-prev (&optional start buffer)
-  "Find the next nonterminal before START in BUFFER.
+  "Find the next nonterminal after START in BUFFER.
 If START is in an overlay, find the token which starts next,
 not the current token."
   (save-excursion
@@ -442,16 +456,6 @@ not the current token."
 		 (semantic-token-p (semantic-overlay-get ol 'semantic)))
 	(semantic-overlay-get ol 'semantic)))))
 
-(defun semantic-find-nonterminal-parent-by-overlay (token)
-  "Find the parent of nonterminal TOKEN by overlays.
-Overlays are a fast way of finding this information for active buffers."
-  (let ((tok (nreverse (semantic-find-nonterminal-by-overlay
-			(semantic-token-start token)))))
-    ;; This is a lot like `semantic-current-nonterminal-parent', but
-    ;; it uses a position to do it's work.  Assumes two tokens don't share
-    ;; the same start unless they are siblings.
-    (car (cdr tok))))
-
 (defun semantic-current-nonterminal ()
   "Return the current nonterminal in the current buffer.
 If there are more than one in the same location, return the
@@ -473,6 +477,101 @@ is found."
 		(not (eq (semantic-token-token (car toks)) type)))
       (setq toks (cdr toks)))
     (car toks)))
+
+
+;;; Nonterminal regions and splicing
+;;
+;; This functionality is needed to take some set of dirty code,
+;; and splice in new tokens after a partial reparse.
+
+(defun semantic-change-function-mark-dirty  (start end length)
+  "Run whenever a buffer controlled by `semantic-mode' changes.
+Tracks when and how the buffer is re-parsed.
+Argument START, END, and LENGTH specify the bounds of the change."
+  (when (and (not semantic-toplevel-bovine-cache-check)
+	     (not semantic-edits-are-safe))
+    (let ((tl (condition-case nil
+		  (nreverse (semantic-find-nonterminal-by-overlay-in-region
+		   (1- start) (1+ end)))
+		(error nil))))
+      (if tl
+	  (catch 'alldone
+	    ;; Loop over the token list
+	    (while tl
+	      (cond
+	       ;; If we are completely enclosed in this overlay.
+	       ((and (> start (semantic-token-start (car tl)))
+		     (< end (semantic-token-end (car tl))))
+		(if (semantic-token-get (car tl) 'dirty)
+		    nil
+		  ;; Don't use `add-to-list' here.  It calls `member'
+		  ;; (`equal') to search for an already existing
+		  ;; element, and can fail with error "Stack overflow
+		  ;; in equal" when comparing complex tokens.  Using
+		  ;; `memq' instead should suffice here.
+		  (or (memq (car tl) semantic-dirty-tokens)
+		      (setq semantic-dirty-tokens
+			    (cons (car tl) semantic-dirty-tokens)))
+		  ;;(add-to-list 'semantic-dirty-tokens (car tl))
+		  (semantic-token-put (car tl) 'dirty t)
+		  (condition-case nil
+		      (run-hook-with-args 'semantic-dirty-token-hooks
+					  (car tl) start end)
+		    (error (if debug-on-error (debug)))))
+		  (throw 'alldone t))
+	       ;; If we cover the beginning or end of this item, we must
+	       ;; reparse this object.  If there are more items coming, then postpone
+	       ;; this till later.
+	       ((not (cdr tl))
+		(setq semantic-toplevel-bovine-cache-check t)
+		(run-hooks 'semantic-reparse-needed-change-hook))
+	       (t nil))
+	      ;; next
+	      (setq tl (cdr tl))))
+	;; There was no hit, perhaps we need to reparse this intermediate area.
+	(setq semantic-toplevel-bovine-cache-check t)
+	)
+      )))
+;;
+;; Properties set on the tokens are:
+;;  dirty          - This token is dirty
+;;  dirty-after    - This token, and the white space after it is dirty
+;;  dirty-before   - This token, and the white space before it is dirty
+;;  dirty-children - This token has children that are dirty.
+;;
+;; EXPERIMENTAL
+(defsubst semantic-find-nearby-dirty-tokens (beg end)
+  "Make a special kind of token for dirty whitespace.
+Argument BEG and END is the region to find nearby tokens.
+EXPERIMENTAL"
+  (let ((prev (semantic-find-nonterminal-by-overlay-prev beg))
+	(next (semantic-find-nonterminal-by-overlay-next end)))
+    (if prev (semantic-token-put prev 'dirty-after t))
+    (if next (semantic-token-put next 'dirty-before t))
+    (list prev next)))
+
+(defun semantic-set-tokens-dirty-in-region (beg end)
+  "Mark the region between BEG and END as dirty.
+This is done by finding tokens overlapping the region, and marking
+them dirty.  Regions not covered by a token are then marked as
+dirty-after, meaning the space after that area is dirty.
+This function will be called in an after change hook, and must
+be very fast.
+EXPERIMENTAL"
+  (let ((tromp (semantic-find-nonterminal-by-overlay-in-region beg end))
+	(ttmp nil)
+	)
+    (if (not tromp)
+	;; No tokens hit, setup a dirty region on the screen.
+	(setq tromp nil) ;(semantic-get-dirty-token beg end))
+      ;; First, mark all fully dirty tokens.
+      (setq ttmp tromp)
+      (while ttmp
+	(and (> beg (semantic-token-start (car tromp)))
+	     (< end (semantic-token-end (car tromp))))
+
+	)
+	)))
 
 
 ;;; Generalized nonterminal searching
@@ -1041,6 +1140,102 @@ STREAM is the list of tokens to complete from."
   (semantic-read-symbol
    prompt default (semantic-find-nonterminal-by-type 'type stream)))
 
+;;; Behavioral APIs
+;;
+;; Each major mode will want to support a specific set of behaviors.
+;; Usually generic behaviors that need just a little bit of local
+;; specifics.  This section permits the setting of override functions
+;; for tasks of that nature, and also provides reasonable defaults.
+
+(defvar semantic-override-table nil
+  "Buffer local semantic function overrides obarray.
+These overrides provide a hook for a `major-mode' to override specific
+behaviors with respect to generated semantic toplevel nonterminals and
+things that these non-terminals are useful for.  Use the function
+`semantic-install-function-overrides' to install overrides.
+
+Available override symbols:
+
+  SYBMOL                  PARAMETERS         DESCRIPTION
+ `abbreviate-nonterminal' (tok & parent color)        Return summary string.
+ `summarize-nonterminal'  (tok & parent color)        Return summary string.
+ `prototype-nonterminal'  (tok & parent color)        Return a prototype string.
+ `concise-prototype-nonterminal' (tok & parent color) Return a concise prototype string.
+ `uml-abbreviate-nonterminal' (tok & parent color)    Return a UML standard abbreviation string.
+ `uml-prototype-nonterminal' (tok & parent color)     Return a UML like prototype string.
+ `uml-concise-prototype-nonterminal' (tok & parent color)     Return a UML like concise prototype string.
+
+ `find-dependency'        (token)            Find the dependency file
+ `find-nonterminal'       (token & parent)   Find token in buffer.
+ `find-documentation'     (token & nosnarf)  Find doc comments.
+ `prototype-file'         (buffer)           Return a file in which
+ 	                                     prototypes are placed
+ `nonterminal-children'   (token)            Return first rate children.
+					     These are children which may
+					     contain overlays.
+ `nonterminal-protection' (token & parent)   Protection (as a symbol)
+
+  CONTEXT FUNCTIONS:
+ `beginning-of-context'   (& point)          Move to the beginning of the
+					     current context.
+ `end-of-context'         (& point)          Move to the end of the
+					     current context.
+ `up-context'             (& point)          Move up one context level.
+ `get-local-variables'    (& point)          Get local variables.
+ `get-all-local-variables'(& point)          Get all local variables.
+ `get-local-arguments'    (& point)          Get arguments to this function.
+
+ `end-of-command'                            Move to the end of the current
+                                             command
+ `beginning-of-command'                      Move to the beginning of the
+                                             current command
+ `ctxt-current-symbol'    (& point)          List of related symbols.
+ `ctxt-current-assignment'(& point)          Variable being assigned to.
+ `ctxt-current-function'  (& point)          Function being called at point.
+ `ctxt-current-argument'  (& point)          The index to the argument of
+                                             the current function the cursor
+                                             is in.
+
+Parameters mean:
+
+  &      - Following parameters are optional
+  buffer - The buffer in which a token was found.
+  token  - The nonterminal token we are doing stuff with
+  parent - If a TOKEN is stripped (of positional infomration) then
+           this will be the parent token which should have positional
+           information in it.")
+(make-variable-buffer-local 'semantic-override-table)
+
+(defun semantic-install-function-overrides (overrides &optional transient)
+  "Install function OVERRIDES in `semantic-override-table'.
+If optional TRANSIENT is non-nil installed overrides can in turn be
+overridden by next installation.  OVERRIDES must be an alist.  Each
+element must be of the form: (SYM . FUN) where SYM is the symbol to
+override, and FUN is the function to override it with."
+  (if (not (arrayp semantic-override-table))
+      (setq semantic-override-table (make-vector 13 nil)))
+  (let (sym sym-name fun override)
+    (while overrides
+      (setq override  (car overrides)
+            overrides (cdr overrides)
+            sym-name  (symbol-name (car override))
+            fun       (cdr override))
+      (if (setq sym (intern-soft sym-name semantic-override-table))
+          (if (get sym 'override)
+              (set sym fun)
+            (or (equal (symbol-value sym) fun)
+                (message "Current `%s' function #'%s not overrode by #'%s"
+                         sym (symbol-value sym) fun)))
+        (setq sym (intern sym-name semantic-override-table))
+        (set sym fun))
+      (put sym 'override transient))))
+
+(defun semantic-fetch-overload (sym)
+  "Find and return the overload function for SYM.
+Return nil if not found."
+  (symbol-value
+   (and (arrayp semantic-override-table)
+        (intern-soft (symbol-name sym) semantic-override-table))))
 
 ;;; Token to text overload functions
 ;;
@@ -1139,12 +1334,11 @@ be used unless font lock is a feature.")
   "Apply onto TEXT a color associated with FACE-CLASS.
 FACE-CLASS is a token type found in `semantic-face-alist'.  See this variable
 for details on adding new types."
-  (when (featurep 'font-lock)
-    (let ((face (cdr-safe (assoc face-class semantic-face-alist)))
-	  (newtext (concat text)))
-      (put-text-property 0 (length text) 'face face newtext)
-      newtext)
-    ))
+  (let ((face (cdr-safe (assoc face-class semantic-face-alist)))
+	(newtext (concat text)))
+    (put-text-property 0 (length text) 'face face newtext)
+    newtext)
+  )
 
 (defun semantic-colorize-merge-text (precoloredtext face-class)
   "Apply onto PRECOLOREDTEXT a color associated with FACE-CLASS.
@@ -1179,11 +1373,17 @@ variable for details on adding new types."
 PARENT and COLOR are ignored."
   (format "%S" token))
 
-(define-overload semantic-name-nonterminal (token &optional parent color)
+(defun semantic-name-nonterminal (token &optional parent color)
   "Return the name string describing TOKEN.
 The name is the shortest possible representation.
 Optional argument PARENT is the parent type if TOKEN is a detail.
-Optional argument COLOR means highlight the prototype with font-lock colors.")
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'name-nonterminal)))
+    ;; No colors without font lock
+    (if (not (featurep 'font-lock)) (setq color nil))
+    (if s
+	(funcall s token parent color)
+      (semantic-name-nonterminal-default token parent color))))
 
 (defun semantic-name-nonterminal-default (token &optional parent color)
   "Return an abbreviated string describing TOKEN.
@@ -1199,12 +1399,18 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	(setq name (semantic-colorize-text name (semantic-token-token token))))
     name))
 
-(define-overload semantic-abbreviate-nonterminal (token &optional parent color)
+(defun semantic-abbreviate-nonterminal (token &optional parent color)
   "Return an abbreviated string describing TOKEN.
-The abbrevIation is to be short, with possible symbols indicating
+The abbreviation is to be short, with possible symbols indicating
 the type of token, or other information.
 Optional argument PARENT is the parent type if TOKEN is a detail.
-Optional argument COLOR means highlight the prototype with font-lock colors.")
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'abbreviate-nonterminal)))
+    ;; No colors without font lock
+    (if (not (featurep 'font-lock)) (setq color nil))
+    (if s
+	(funcall s token parent color)
+      (semantic-abbreviate-nonterminal-default token parent color))))
 
 (defun semantic-abbreviate-nonterminal-default (token &optional parent color)
   "Return an abbreviated string describing TOKEN.
@@ -1236,10 +1442,17 @@ This is a simple C like default."
 ;; Semantic 1.2.x had this misspelling.  Keep it for backwards compatibiity.
 (defalias 'semantic-summerize-nonterminal 'semantic-summarize-nonterminal)
 
-(define-overload semantic-summarize-nonterminal (token &optional parent color)
+(defun semantic-summarize-nonterminal (token &optional parent color)
   "Summarize TOKEN in a reasonable way.
 Optional argument PARENT is the parent type if TOKEN is a detail.
-Optional argument COLOR means highlight the prototype with font-lock colors.")
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'summarize-nonterminal)))
+    ;; No colors without font lock
+    (if (not (featurep 'font-lock)) (setq color nil))
+    (if s
+	(funcall s token parent color)
+      (semantic-summarize-nonterminal-default token parent color)
+      )))
 
 (defun semantic-summarize-nonterminal-default (token &optional parent color)
   "Summarize TOKEN in a reasonable way.
@@ -1256,13 +1469,20 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
         (setq label (semantic-colorize-text label 'label)))
     (concat label ": " proto)))
 
-(define-overload semantic-prototype-nonterminal (token &optional parent color)
+(defun semantic-prototype-nonterminal (token &optional parent color)
   "Return a prototype for TOKEN.
 This function should be overloaded, though it need not be used.
 This is because it can be used to create code by language independent
 tools.
 Optional argument PARENT is the parent type if TOKEN is a detail.
-Optional argument COLOR means highlight the prototype with font-lock colors.")
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'prototype-nonterminal)))
+    ;; No colors without font lock
+    (if (not (featurep 'font-lock)) (setq color nil))
+    (if s
+	;; Prototype is non-local
+	(funcall s token parent color)
+      (semantic-prototype-nonterminal-default token parent color))))
 
 (defun semantic-prototype-nonterminal-default-args (args color)
   "Create a list of of strings for prototypes of ARGS.
@@ -1278,7 +1498,7 @@ COLOR specifies if these arguments should be colored or not."
 	       ))
 	    ((semantic-token-p (car args))
 	     (setq out
-		   (cons (semantic-prototype-nonterminal (car args) nil color)
+		   (cons (semantic-prototype-nonterminal (car args) nil t)
 			 out))))
       (setq args (cdr args)))
     (nreverse out)))
@@ -1342,10 +1562,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	    (or args "")
 	    (or array ""))))
 
-(define-overload semantic-concise-prototype-nonterminal (token &optional parent color)
+(defun semantic-concise-prototype-nonterminal (token &optional parent color)
   "Return a concise prototype for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
-Optional argument COLOR means highlight the prototype with font-lock colors.")
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'concise-prototype-nonterminal)))
+    (if s
+	(funcall s token parent color)
+      (semantic-concise-prototype-nonterminal-default token parent color))))
 
 (defun semantic-concise-prototype-nonterminal-default (token &optional parent color)
   "Return a concise prototype for TOKEN.
@@ -1494,10 +1718,14 @@ Colorize the new text based on COLOR."
 	     name)))
 	(t "")))
 
-(define-overload semantic-uml-abbreviate-nonterminal (token &optional parent color)
+(defun semantic-uml-abbreviate-nonterminal (token &optional parent color)
   "Return a UML style abbreviation for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
-Optional argument COLOR means highlight the prototype with font-lock colors.")
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'uml-abbreviate-nonterminal)))
+    (if s
+	(funcall s token parent color)
+      (semantic-uml-abbreviate-nonterminal-default token parent color))))
 
 (defun semantic-uml-abbreviate-nonterminal-default (token &optional parent color)
   "Return a UML style abbreviation for TOKEN.
@@ -1526,10 +1754,14 @@ COLOR indicates if the string should be colorized."
 		     semantic-function-argument-separator)
 	  ")"))
 
-(define-overload semantic-uml-prototype-nonterminal (token &optional parent color)
+(defun semantic-uml-prototype-nonterminal (token &optional parent color)
   "Return a UML style prototype for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
-Optional argument COLOR means highlight the prototype with font-lock colors.")
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'uml-prototype-nonterminal)))
+    (if s
+	(funcall s token parent color)
+      (semantic-uml-prototype-nonterminal-default token parent color))))
 
 (defun semantic-uml-prototype-nonterminal-default (token &optional parent color)
   "Return a UML style prototype for TOKEN.
@@ -1555,10 +1787,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
     text
     ))
 
-(define-overload semantic-uml-concise-prototype-nonterminal (token &optional parent color)
+(defun semantic-uml-concise-prototype-nonterminal (token &optional parent color)
   "Return a UML style concise prototype for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
-Optional argument COLOR means highlight the prototype with font-lock colors.")
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'uml-concise-prototype-nonterminal)))
+    (if s
+	(funcall s token parent color)
+      (semantic-uml-concise-prototype-nonterminal-default token parent color))))
 
 (defun semantic-uml-concise-prototype-nonterminal-default (token &optional parent color)
   "Return a UML style concise prototype for TOKEN.
@@ -1637,7 +1873,6 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 			   (setq found (concat (car p) "/" name)))
 		       (setq p (cdr p)))
 		     found)))))))))
-(put 'semantic-find-dependency 'semantic-overload 'find-dependency)
 
 (defun semantic-find-nonterminal (&optional token parent)
   "Find the location of TOKEN.
@@ -1677,7 +1912,6 @@ depended on, and functions will move to the specified definition."
 		  ;; the bovinator and concocted by us actually exists
 		  ;; in the buffer.
 		  (re-search-forward (semantic-token-name token) nil t)))))))))
-(put 'semantic-find-nonterminal 'semantic-overload 'find-nonterminal)
 
 (defun semantic-find-documentation (&optional token nosnarf)
   "Find documentation from TOKEN and return it as a clean string.
@@ -1714,20 +1948,17 @@ If nosnarf if 'flex, then only return the flex token."
 	 ;; Not sure yet.  Fill in something clever later....
 	 nil
 	 )))))
-(put 'semantic-find-documentation 'semantic-overload 'find-documentation)
-
 
 (defun semantic-find-doc-snarf-comment (nosnarf)
   "Snarf up the comment at POINT for `semantic-find-documentation'.
 Attempt to strip out comment syntactic sugar.
 Argument NOSNARF means don't modify the found text.
 If NOSNARF is 'flex, then return the flex token."
-  (let* ((semantic-ignore-comments nil)
-	 (semantic-lex-analyzer #'semantic-comment-lexer))
+  (let ((semantic-ignore-comments nil))
     (if (eq nosnarf 'flex)
-	(car (semantic-lex (point) (1+ (point))))
+	(car (semantic-flex (point) (1+ (point))))
       (let ((ct (semantic-flex-text
-		 (car (semantic-lex (point) (1+ (point)))))))
+		 (car (semantic-flex (point) (1+ (point)))))))
 	(if nosnarf
 	    nil
 	  ;; ok, try to clean the text up.
@@ -1772,7 +2003,6 @@ file prototypes belong in."
 
 ;;;; Mode-specific Token information
 ;;
-;;;###autoload
 (defun semantic-nonterminal-children (token &optional positionalonly)
   "Return the list of top level children belonging to TOKEN.
 Children are any sub-tokens which may contain overlays.
@@ -2018,12 +2248,18 @@ See `semantic-nonterminal-leaf'."
       (setq mods (cdr mods)))
     leaf))
 
-(define-overload semantic-nonterminal-static (token &optional parent)
+(defun semantic-nonterminal-static (token &optional parent)
   "Return non nil if TOKEN is static.
 Optional PARENT is the parent token of TOKEN.
 In UML, static methods and attributes mean that they are allocated
 in the parent class, and are not instance specific.
-UML notation specifies that STATIC entries are underlined.")
+UML notation specifies that STATIC entries are underlined.
+
+The default behavior (if not overriden with `nonterminal-static'
+is to return true if `static' is in the type modifiers."
+  (let* ((s (semantic-fetch-overload 'nonterminal-static)))
+    (if s (funcall s token parent)
+      (semantic-nonterminal-static-default token parent))))
 
 (defun semantic-nonterminal-static-default (token &optional parent)
   "Return non-nil if TOKEN is static as a child of PARENT default action.
