@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.7 2001/11/02 21:33:16 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.8 2001/11/07 20:16:26 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -449,10 +449,10 @@ minor mode is enabled.
   :group 'semantic
   :type 'boolean)
 
-(defcustom semantic-auto-parse-interval 30
-  "*Time in seconds between buffer change and reparse.
-That is between the time between a buffer change is detected and the
-time it is reparsed."
+(defcustom semantic-auto-parse-idle-time 4
+  "*Time in seconds of idle time before auto-reparse.
+This time should be short enough to ensure that auto-parse will be
+run as soon as Emacs is idle."
   :group 'semantic
   :type 'number)
 
@@ -465,87 +465,6 @@ reparsed regardless of their size."
 
 (defvar semantic-auto-parse-timer nil
   "Timer used to schedule automatic reparse.")
-(make-variable-buffer-local 'semantic-auto-parse-timer)
-
-(defun semantic-auto-parse-bovinate ()
-  "Reparse the current buffer.
-Called after `semantic-auto-parse-interval' seconds following a change
-if buffer size match `semantic-auto-parse-max-buffer-size' threshold."
-  (let ((semantic-bovination-working-type
-         (if semantic-auto-parse-no-working-message
-             nil
-           semantic-bovination-working-type))
-        (working-status-dynamic-type
-         (if semantic-auto-parse-no-working-message
-             nil
-           working-status-dynamic-type)))
-    (semantic-bovinate-toplevel t)))
-
-(defsubst semantic-auto-parse-enabled-p ()
-  "Return non-nil if auto-parse is enabled for this buffer.
-See also the variable `semantic-auto-parse-max-buffer-size'."
-  (or (<= semantic-auto-parse-max-buffer-size 0)
-      (< (buffer-size) semantic-auto-parse-max-buffer-size)))
-
-;;; Compatibility
-(eval-and-compile
-  (cond
-   ((featurep 'xemacs)
-    ;; XEmacs
-    (require 'itimer)
-    (defsubst semantic-auto-parse-triggering-delay ()
-      "Return the time in seconds before auto-parse triggering."
-      ;; Wake up the timer driver so it updates timer value
-      (itimer-driver-wakeup)
-      (itimer-value semantic-auto-parse-timer))
-    )
-   (t
-    ;; GNU Emacs
-    (defsubst semantic-auto-parse-triggering-delay ()
-      "Return the time in seconds before auto-parse triggering."
-      (- (timer-until semantic-auto-parse-timer (current-time))))
-    ))
-  )
-
-(defun semantic-auto-parse-change-hook (begin end length)
-  "Hook run when Semantic detects a change in the current buffer.
-Check the auto-parse timer to see if the auto-parse task is about to
-be triggered (< 2 secs).  If so it delays the triggering of auto-parse
-(+ 10 secs) to let you finish typing before doing a re-parse.  And so
-on.
-BEGIN and END are respectively the beginning and end of the range of
-changed text.  LENGTH is the length in bytes of the pre-change text
-replaced by that range.  See also `semantic-change-hooks'."
-  (if (not (semantic-auto-parse-enabled-p))
-      nil
-    (if (timerp semantic-auto-parse-timer)
-        (let ((rem (semantic-auto-parse-triggering-delay)))
-          (cond
-           ((< rem 0)
-            ;; Timer has expired, re-schedule a new auto-parse.
-            (cancel-timer semantic-auto-parse-timer)
-            (setq semantic-auto-parse-timer nil))
-           ((< rem 2) ;; less that 2 secs. before auto-parse
-            ;; The auto-parse task is about to be triggered when
-            ;; this change occurs, so it is delayed to let finish
-            ;; typing before re-parsing.
-            (timer-inc-time semantic-auto-parse-timer
-                            10) ;; wait 10 secs. more.
-            (message "Semantic auto parse delayed...")))))
-    ;; Schedule a new auto-parse task.
-    (or (timerp semantic-auto-parse-timer)
-        (setq semantic-auto-parse-timer
-              (run-with-timer
-               semantic-auto-parse-interval
-               nil
-               #'semantic-auto-parse-bovinate)))))
-
-(defun semantic-auto-parse-stop-after-parse (tokens)
-  "Hook run after Semantic changed the token cache.
-Stop scheduled auto parse.  TOKENS is ignored."
-  (if (timerp semantic-auto-parse-timer)
-      (cancel-timer semantic-auto-parse-timer))
-  (setq semantic-auto-parse-timer nil))
 
 ;;;###autoload
 (defcustom global-semantic-auto-parse-mode nil
@@ -587,6 +506,35 @@ If ARG is nil, then toggle."
 Use the command `semantic-auto-parse-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-auto-parse-mode)
 
+(defsubst semantic-auto-parse-enabled-p ()
+  "Return non-nil if auto-parse is enabled for this buffer.
+See also the variable `semantic-auto-parse-max-buffer-size'."
+  (if semantic-auto-parse-mode
+      (or (<= semantic-auto-parse-max-buffer-size 0)
+          (< (buffer-size) semantic-auto-parse-max-buffer-size))))
+
+(defun semantic-auto-parse-bovinate ()
+  "Automatically reparse current buffer.
+Called after `semantic-auto-parse-idle-time' seconds of Emacs idle
+time.  Does nothing if `semantic-auto-parse-mode' is not enabled or
+current buffer don't need re-parse or if its size don't match
+`semantic-auto-parse-max-buffer-size' threshold."
+  (if (semantic-auto-parse-enabled-p)
+      (let ((semantic-bovination-working-type nil)
+            (working-status-dynamic-type
+             (if semantic-auto-parse-no-working-message
+                 nil
+               working-status-dynamic-type)))
+        (semantic-bovinate-toplevel t))))
+
+(defun semantic-auto-parse-setup-timer ()
+  "Lazy initialization of the auto parse idle timer."
+  (or (timerp semantic-auto-parse-timer)
+      (setq semantic-auto-parse-timer
+            (run-with-idle-timer
+             semantic-auto-parse-idle-time t
+             #'semantic-auto-parse-bovinate))))
+
 (defun semantic-auto-parse-mode-setup ()
   "Setup `semantic-auto-parse-mode'.
 The minor mode can be turned on only if semantic feature is available
@@ -600,24 +548,7 @@ minor mode is enabled."
             (setq semantic-auto-parse-mode nil)
             (error "Buffer %s was not set up for parsing"
                    (buffer-name)))
-        ;; Track buffer changes
-        (make-local-hook 'semantic-change-hooks)
-        (add-hook 'semantic-change-hooks
-                  'semantic-auto-parse-change-hook t t)
-        ;; Track reparses
-        (make-local-hook 'semantic-after-toplevel-cache-change-hook)
-        (add-hook 'semantic-after-toplevel-cache-change-hook
-                  'semantic-auto-parse-stop-after-parse nil t)
-        (make-local-hook 'semantic-after-partial-cache-change-hook)
-        (add-hook 'semantic-after-partial-cache-change-hook
-                  'semantic-auto-parse-stop-after-parse nil t))
-    ;; Remove hooks
-    (remove-hook 'semantic-change-hooks
-                 'semantic-auto-parse-change-hook t)
-    (remove-hook 'semantic-after-toplevel-cache-change-hook
-                 'semantic-auto-parse-stop-after-parse t)
-    (remove-hook 'semantic-after-partial-cache-change-hook
-                 'semantic-auto-parse-stop-after-parse t))
+        (semantic-auto-parse-setup-timer)))
   semantic-auto-parse-mode)
 
 ;;;###autoload
