@@ -2,10 +2,22 @@ How to install Semantic
 
 1) Copy source files somewhere.
 
+1.1) Optional: Install EIEIO CLOS library package from:
+	http://cedet.sourceforge.net/eieio.shtml
+
 2) Byte compile semantic (optional, but recommended)
 
-   a) run "make"
-   b) If that fails, byte compile the files individually from Emacs or XEmacs.
+   a) Edit Makefile, and change LOADPATH to include the path to EIEIO.
+   b) run "make"
+
+   -OR-
+
+   a) run "make LOADPATH=<path to eieio>"
+
+   If byte compilation fails fails:
+    a) Follow step 3:
+    b) byte compile the files individually and interactivly from
+	Emacs or XEmacs.
 
 3) Install load hooks into your .emacs file.
 
@@ -13,5 +25,9 @@ How to install Semantic
 (load-file "/path/to/semantic/semantic-load.el")
 
 
-4) If turning everything on is too much, remove the first line setting
-   the variable that turns everything on.
+4) If turning everything on is too much:
+
+   Remove the first line setting the variable that turns everything on.
+   Investigate the file `semantic-load.el', and include those pieces
+   you want to use.
+
