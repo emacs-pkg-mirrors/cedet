@@ -5,7 +5,7 @@
 ;; Author: Richard Y. Kim, <ryk@ap.com>
 ;; Maintainer: Richard Y. Kim, <ryk@ap.com>
 ;; Created: Fri Jun 16 17:23:11 2000
-;; Version: $Id: sb-texinfo.el,v 1.5 2000/07/19 01:17:48 zappo Exp $
+;; Version: $Id: sb-texinfo.el,v 1.6 2000/08/09 00:17:22 zappo Exp $
 ;; Keywords:
 
 ;; This program is free software; you can redistribute it and/or
@@ -30,7 +30,7 @@
 ;; hierarchy of the texinfo document.
 ;;
 ;; This small add-on to speedbar provides an alternate way to view the
-;; document which shows the natural hierarchy of the document. This
+;; document which shows the natural hierarchy of the document.  This
 ;; shows the same information that `M-x texinfo-show-structure'
 ;; displays, but in the speedbar frame with the speedbar user
 ;; interface.
@@ -205,5 +205,6 @@
 				'speedbar-tag-expand
 				'speedbar-tag-find))
 
+(provide 'sb-texinfo)
 ;;; sb-texinfo.el ends here
 
