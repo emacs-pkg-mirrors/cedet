@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.15 2003/08/29 16:05:18 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.16 2003/09/02 16:08:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -264,7 +264,7 @@ databases which have this type as a property."
 	 (semantic-tag-components type)
 	 ;(semantic-tag-type-parts type)
 	 )
-	(extmeth (semantic-nonterminal-external-member-children type t)))
+	(extmeth (semantic-tag-external-member-children type t)))
     ;; Flatten the database output.
     (append slots extmeth)
     ))
