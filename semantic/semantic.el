@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.150 2002/07/21 13:38:08 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.151 2002/07/29 03:39:52 zappo Exp $
 
 (defvar semantic-version "2.0alpha2"
   "Current version of Semantic.")
@@ -268,6 +268,10 @@ details.")
 (defvar semantic-bovinate-parser-name "LL"
   "Optional name of the parser used to parse input stream.")
 (make-variable-buffer-local 'semantic-bovinate-parser-name)
+
+(defvar semantic-bovinate-incremental-parser #'semantic-edits-incremental-parser
+  "Parser used for partial reparses.")
+(make-variable-buffer-local 'semantic-bovinate-incremental-parser)
 
 ;;; Overlay.
 ;;
@@ -377,15 +381,19 @@ Do not set this yourself.  Call `semantic-bovinate-buffer-debug'.")
 
 (defun bovinate (&optional clear)
   "Bovinate the current buffer.  Show output in a temp buffer.
-Optional argument CLEAR will clear the cache before bovinating."
+Optional argument CLEAR will clear the cache before bovinating.
+If CLEAR is negative, it will do a full reparse, and also not display
+the output buffer."
   (interactive "P")
   (if clear (semantic-clear-toplevel-cache))
+  (if (eq clear '-) (setq clear -1))
   (let ((out (semantic-bovinate-toplevel t)))
-    (pop-to-buffer "*BOVINATE*")
-    (require 'pp)
-    (erase-buffer)
-    (insert (pp-to-string out))
-    (goto-char (point-min))))
+    (when (not (and (numberp clear) (> 0 clear)))
+      (pop-to-buffer "*BOVINATE*")
+      (require 'pp)
+      (erase-buffer)
+      (insert (pp-to-string out))
+      (goto-char (point-min)))))
 
 (defun bovinate-debug ()
   "Bovinate the current buffer and run in debug mode."
@@ -500,22 +508,9 @@ that, otherwise, do a full reparse."
     )
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
     (garbage-collect)
-    (let* ((gc-cons-threshold 10000000)
-	   (changes (semantic-remove-dirty-children)))
-      ;; We have a cache, and some dirty tokens
-      (let ((semantic-bovination-working-type 'dynamic))
-        (working-status-forms
-            (semantic-bovination-working-message (buffer-name))
-            "done"
-          (while (and semantic-dirty-tokens
-                      (not (semantic-bovine-toplevel-full-reparse-needed-p
-                            checkcache)))
-            (semantic-rebovinate-token (car semantic-dirty-tokens))
-            (setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
-            (working-dynamic-status))
-          (working-dynamic-status t))
-        (setq semantic-dirty-tokens nil))
-      
+    (let ((gc-cons-threshold 10000000)
+	  (changes nil))
+      (setq changes (funcall semantic-bovinate-incremental-parser))
       (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
           ;; If the partial reparse fails, jump to a full reparse.
           (semantic-bovinate-toplevel checkcache)
@@ -575,6 +570,7 @@ that, otherwise, do a full reparse."
   ;; Old Semantic 1.3 hook API.  Maybe useful forever?
   (run-hooks 'semantic-after-toplevel-bovinate-hook)
   )
+
 
 ;;; Force token lists in and out of overlay mode.
 ;;
@@ -697,7 +693,8 @@ Optional argument NONTERMINAL is the nonterminal symbol to start with.
 This is the core routine for converting a stream into a table.
 Return the list (STREAM SEMANTIC-STREAM) where STREAM are those
 elements of STREAM that have not been used.  SEMANTIC-STREAM is the
-list of semantic tokens found."
+list of semantic tokens found.
+This function returns tokens w/out overlays, only numeric markers."
   (let ((semantic-bovination-active-table table))
     (funcall semantic-bovinate-parser stream table nonterminal)))
 
@@ -706,7 +703,8 @@ list of semantic tokens found."
   "Bovinate the entire stream STREAM starting with NONTERM.
 DEPTH is optional, and defaults to 0.
 Optional argument RETURNONERROR indicates that the parser should exit
-with the current results on a parse error."
+with the current results on a parse error.
+This function returns tokens with overlays."
   (if (not depth) (setq depth semantic-lex-depth))
   (let ((result nil)
 	(case-fold-search semantic-case-fold)
