@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.8 2000/04/25 14:46:42 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.9 2000/04/28 18:57:49 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.9  2000/04/28 18:57:49  zappo
+# Added system flag to include files.
+#
 # Revision 1.8  2000/04/25 14:46:42  zappo
 # structparts now uses EXPANDFULL to get positional information for it's
 # sub parts.  This simplified STRUCTSUBPARTS nonterminal
@@ -63,9 +66,9 @@ bovine-toplevel : include
 		
 include : punctuation "#" symbol "include" punctuation "<"
 	  filename punctuation ">"
-	  ( ,$4 include nil )
+	  ( ,$4 include t nil )
         | punctuation "#" symbol "include" string
-	  ( (read $3) include nil )
+	  ( (read $3) include nil nil )
         ;
 
 filename : symbol punctuation "\\." symbol
