@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.42 2001/10/03 17:55:01 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.43 2001/10/04 15:01:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -488,13 +488,7 @@
   (list nil)))
  ) ; end opt-expression
  (expression
- ( number punctuation "\\b\\.\\b" number
-  ,(semantic-lambda
- ))
  ( number
-  ,(semantic-lambda
- ))
- ( symbol
   ,(semantic-lambda
  ))
  ( string
@@ -506,7 +500,7 @@
  ( punctuation "[-+*/%^|&]" expression)
  ) ; end expression
  )
- "C language specification.")
+  "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
