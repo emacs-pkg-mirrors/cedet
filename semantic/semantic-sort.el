@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.8 2003/09/08 08:01:54 ponced Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.9 2003/11/20 04:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -308,8 +308,7 @@ buckets with the bucket function."
     (while decent-list
       (let* ((bucket (assoc (semantic-tag-name (car decent-list))
 			    parent-buckets))
-	     (bucketkids (cdr bucket))
-	     (partcdr (nthcdr 3 (car decent-list))))
+	     (bucketkids (cdr bucket)))
 	(when bucket
 	  ;; Run our secondary marking function on the children
 	  (if semantic-mark-external-member-function
@@ -319,7 +318,10 @@ buckets with the bucket function."
 				       tok (car decent-list)))
 			    bucketkids)))
 	  ;; We have some extra kids.  Merge.
-	  (setcar partcdr (append (car partcdr) bucketkids))
+	  (semantic-tag-put-attribute
+	   (car decent-list) :members
+	   (append (semantic-tag-type-members (car decent-list))
+		   bucketkids))
 	  ;; Nuke the bucket label so it is not found again.
 	  (setcar bucket nil))
 	(setq decent-list
@@ -342,7 +344,6 @@ buckets with the bucket function."
 			   nil ;; Part list
 			   nil ;; parents (unknown)
 			   ))
-		 (partcdr (nthcdr 3 fauxtok))
 		 (bucketkids (cdr tmp)))
 	    (semantic--tag-put-property fauxtok 'faux t) ;; properties
 	    (if semantic-mark-external-member-function
@@ -351,7 +352,7 @@ buckets with the bucket function."
 				(funcall semantic-mark-external-member-function
 					 tok fauxtok))
 			      bucketkids)))
-	    (setcar partcdr bucketkids)
+	    (semantic-tag-put-attribute fauxtok :members bucketkids)
 	    ;; We have a bunch of methods with no parent in this file.
 	    ;; Create a meta-type to hold it.
 	    (setq out (cons fauxtok out))

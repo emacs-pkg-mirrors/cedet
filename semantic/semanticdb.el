@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.62 2003/09/24 13:48:32 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.63 2003/11/20 04:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -141,7 +141,10 @@ If DIRECTORY doesn't exist, create a new one."
     (unless db
       (setq db (semanticdb-project-database
 		(file-name-nondirectory filename)
-		:tables nil)))
+		:tables nil))
+      ;; Set this up here.   We can't put it in the constructor because it
+      ;; would be saved, and we want DB files to be portable.
+      (oset db reference-directory directory))
     db))
 
 (defmethod semanticdb-create-table ((db semanticdb-project-database) file)
@@ -298,6 +301,16 @@ Force PATH to end with a /."
       (concat path (list semanticdb-dir-sep-char))
     path))
 
+(defmethod semanticdb-printable-name ((table semanticdb-table))
+  "Return a string which is a short and logical printable name for TABLE.
+Use this instead of getting the :file slot of the table, which can
+sometimes be unbound."
+  ;; I know I said that the above is sometimes unbound.
+  ;; Not that if this line throws an error, you should go to
+  ;; the subclass, and override this method.
+  (file-name-nondirectory (file-name-sans-extension (oref table file)))
+  )
+
 ;;; Associations
 ;;
 ;; These routines determine associations between a file, and multiple
@@ -387,9 +400,6 @@ Sets up the semanticdb environment."
       (setq cdb (semanticdb-create-database semanticdb-new-database-class
 					    default-directory))
       )
-    ;; Do this outside of the find to make sure that when people upgrade
-    ;; that they get this set properly.
-    (oset cdb reference-directory default-directory)
     ;; Get the current DB for this directory
     (setq semanticdb-current-database cdb)
     ;; Get a table for this file.

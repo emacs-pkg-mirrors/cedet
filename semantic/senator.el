@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.85 2003/10/15 15:21:02 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.86 2003/11/20 04:11:34 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -128,8 +128,8 @@ navigation."
   :group 'senator
   :type '(repeat (symbol)))
 (make-variable-buffer-local 'senator-step-at-tag-classes)
-(make-obsolete-variable 'semantic-step-at-token-ids
-                        'semantic-step-at-tag-classes)
+(semantic-varalias-obsolete 'semantic-step-at-token-ids
+                            'semantic-step-at-tag-classes)
 
 ;;;###autoload
 (defcustom senator-step-at-start-end-tag-classes '(function)
@@ -145,8 +145,8 @@ a specific langage navigation."
                  (repeat :menu-tag "Symbols" (symbol))
                  (const  :tag "All" t)))
 (make-variable-buffer-local 'senator-step-at-start-end-tag-classes)
-(make-obsolete-variable 'senator-step-at-start-end-token-ids
-                        'senator-step-at-start-end-tag-classes)
+(semantic-varalias-obsolete 'senator-step-at-start-end-token-ids
+                            'senator-step-at-start-end-tag-classes)
 
 (defcustom senator-highlight-found t
   "*If non-nil highlight tags found.
@@ -818,14 +818,14 @@ choosen from the completion menu."
 (defun senator-completion-menu-item (tag)
   "Return a completion menu item from TAG.
 That is a pair (MENU-ITEM-TEXT . TAG-ARRAY).  TAG-ARRAY is an
-array of one element containting TAG.  Can return nil to discard a
+array of one element containing TAG.  Can return nil to discard a
 menu item."
   (if (semantic-tag-p tag)
       (cons (funcall (if (fboundp senator-completion-menu-summary-function)
                          senator-completion-menu-summary-function
                        #'semantic-format-tag-prototype) tag)
             (vector tag))
-    (cons (file-name-sans-extension (oref (car tag) file))
+    (cons (semanticdb-printable-name (car tag))
           (delq nil
                 (mapcar #'senator-completion-menu-item
                         (cdr tag))))))
@@ -909,7 +909,9 @@ it was invoked on.  To automatically split large menus this function
 use `imenu--mouse-menu' to handle the popup menu."
   (interactive)
   (let ((symstart (senator-current-symbol-start))
-        symbol regexp complst)
+        symbol regexp complst
+	;; Turn off tag jumping for this menu.
+	(imenu-default-goto-function (lambda (name pos &optional rest) pos)))
     (if symstart
         (setq symbol  (buffer-substring-no-properties symstart (point))
               regexp  (regexp-quote symbol)
@@ -2160,7 +2162,8 @@ If semantic tags are available, use them to navigate."
   "When advising `add-log-current-defun', tag classes used.
 Semantic tags that are of these classses will be used to find the name
 used by add log.")
-(make-obsolete-variable 'senator-add-log-tokens 'senator-add-log-tags)
+(semantic-varalias-obsolete 'senator-add-log-tokens
+                            'senator-add-log-tags)
 
 (defadvice add-log-current-defun (around senator activate)
   "Return name of function definition point is in, or nil."

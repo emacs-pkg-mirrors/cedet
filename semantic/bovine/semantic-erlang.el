@@ -6,7 +6,7 @@
 ;; Author: Vladimir G. Sekissov <svg@surnet.ru>
 ;;         David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-erlang.el,v 1.2 2003/08/28 11:01:05 ponced Exp $
+;; X-RCS: $Id: semantic-erlang.el,v 1.3 2003/11/20 04:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,7 +66,7 @@
 
 (defun semantic-erlang-default-setup ()
   "Set up a buffer for semantic parsing of the Erlang language."
-  (erlang-by--install-parser)
+  (semantic-erlang-by--install-parser)
   (setq
    ;; Lexical analysis
    semantic-lex-number-expression nil

@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.19 2003/09/12 14:39:39 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.20 2003/11/20 04:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1041,8 +1041,8 @@ and `semantic-tag-type-interfaces' instead")
 (semantic-alias-obsolete 'semantic-cooked-token-p
                          'semantic--tag-expanded-p)
 
-(make-obsolete-variable 'semantic-expand-nonterminal
-                        'semantic-tag-expand-function)
+(semantic-varalias-obsolete 'semantic-expand-nonterminal
+                            'semantic-tag-expand-function)
 
 (semantic-alias-obsolete 'semantic-raw-to-cooked-token
                          'semantic--tag-expand)

@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.46 2003/08/26 20:09:59 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.47 2003/11/20 04:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -105,8 +105,8 @@ This option is ignored if `semantic-imenu-bucketize-file' is nil."
   :group 'semantic-imenu
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-expand-type-members)
-(make-obsolete-variable 'semantic-imenu-expand-type-parts
-			'semantic-imenu-expand-type-members)
+(semantic-varalias-obsolete 'semantic-imenu-expand-type-parts
+                            'semantic-imenu-expand-type-members)
 
 (defcustom semantic-imenu-bucketize-type-members t
   "*Non-nil if members of a type should be grouped into buckets.
@@ -115,8 +115,8 @@ Overriden to nil if `semantic-imenu-bucketize-file' is nil."
   :group 'semantic-imenu
   :type 'boolean)
 (make-variable-buffer-local 'semantic-imenu-bucketize-type-parts)
-(make-obsolete-variable 'semantic-imenu-bucketize-type-parts
-			'semantic-imenu-bucketize-type-members)
+(semantic-varalias-obsolete 'semantic-imenu-bucketize-type-parts
+                            'semantic-imenu-bucketize-type-members)
 
 (defcustom semantic-imenu-sort-bucket-function nil
   "*Function to use when sorting tags in the buckets of functions.
@@ -151,8 +151,8 @@ other buffer local ones based on the same semanticdb."
 By default, a `type' has interesting children.  In Texinfo, however,
 a `section' has interesting children.")
 (make-variable-buffer-local 'semantic-imenu-expandable-tag)
-(make-obsolete-variable 'semantic-imenu-expandable-token
-			'semantic-imenu-expandable-tag-class)
+(semantic-varalias-obsolete 'semantic-imenu-expandable-token
+                            'semantic-imenu-expandable-tag-class)
 
 ;;; Code:
 (defun semantic-imenu-tag-overlay (tag)

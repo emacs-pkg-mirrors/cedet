@@ -4,7 +4,7 @@
 
 ;; Author: Klaus Berndl <klaus.berndl@sdm.de>
 ;; Keywords: syntax test
-;; X-RCS: $Id: semantic-regtest.el,v 1.3 2003/04/14 16:29:49 berndl Exp $
+;; X-RCS: $Id: semantic-regtest.el,v 1.4 2003/11/20 04:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 

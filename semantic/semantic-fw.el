@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.23 2003/09/17 09:00:27 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.24 2003/11/20 04:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -99,7 +99,7 @@
   (if (semantic-overlay-get overlay 'semantic)
       (semantic-overlay-delete overlay)))
 
-;;; Obsoleting various functions
+;;; Obsoleting various functions & variables
 ;;
 (defun semantic-alias-obsolete (oldfnalias newfn)
   "Make OLDFNALIAS an alias for NEWFN.
@@ -108,6 +108,20 @@ will throw a warning when it encounters this symbol."
   (defalias oldfnalias newfn)
   (make-obsolete oldfnalias newfn)
   )
+
+(defun semantic-varalias-obsolete (oldvaralias newvar)
+  "Make OLDVARALIAS an alias for variable NEWVAR.
+Mark OLDVARALIAS as obsolete, such that the byte compiler
+will throw a warning when it encounters this symbol."
+  (condition-case err
+      (defvaralias oldvaralias newvar)
+    (error
+     (message "+++ %s\n\
+*** Compatibility with Semantic 2 might be broken:\n\
+    can't make obsolete variable `%s'\n\
+    alias of `%s'." (error-message-string err) oldvaralias newvar)))
+  (make-obsolete-variable oldvaralias newvar))
+
 
 ;;; Semantic autoloads
 ;;
@@ -555,6 +569,7 @@ Returns the documentation as a string, also."
                   "define-overload"
                   "define-wisent-lexer"
 		  "semantic-alias-obsolete"
+		  "semantic-varalias-obsolete"
                   ) t))
            ;; Regexp depths
            (kv-depth (regexp-opt-depth kv))

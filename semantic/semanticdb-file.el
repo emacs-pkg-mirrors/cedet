@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.8 2003/07/31 14:40:37 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.9 2003/11/20 04:11:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -112,7 +112,8 @@ If DIRECTORY doesn't exist, create a new one."
   (let* ((fn (semanticdb-cache-filename dbc directory))
 	 (db (or (semanticdb-file-loaded-p fn)
 		 (if (file-exists-p fn)
-		     (semanticdb-load-database fn)))))
+		     (progn
+		       (semanticdb-load-database fn))))))
     (unless db
       (setq db (make-instance
 		dbc  ; Create the database requested.  Perhaps
@@ -120,6 +121,9 @@ If DIRECTORY doesn't exist, create a new one."
 		:file fn :tables nil
 		:semantic-tag-version semantic-version
 		:semanticdb-version semanticdb-file-version)))
+    ;; Set this up here.   We can't put it in the constructor because it
+    ;; would be saved, and we want DB files to be portable.      
+    (oset db reference-directory directory)
     db))
 
 ;;; File IO
