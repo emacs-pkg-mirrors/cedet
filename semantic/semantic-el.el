@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.25 2000/04/30 22:44:01 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.26 2000/05/04 02:42:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,7 +64,8 @@
 			  start end))))
     ;; A variable can be a defvar or defconst.
     (variable
-     (open-paren symbol "defvar\\|defconst" symbol expression doc-string
+     (open-paren symbol "defvar\\|defconst\\|defcustom" symbol expression
+		 doc-string
 		 ,(lambda (vals start end)
 		    (list (nth 2 vals) 'variable nil
 			  (if (string= (nth 1 vals) "defconst") t nil)
@@ -543,6 +544,10 @@ machine."
 	 semantic-flex-extensions semantic-flex-c-extensions
 	 semantic-dependency-include-path semantic-default-c-path
 	 semantic-default-built-in-types semantic-default-c-built-in-types
+	 ;; For documentation
+	 document-comment-start "/*"
+	 document-comment-line-prefix " *"
+	 document-comment-end " */"
 	 )))
 
 (provide 'semantic-ex)
