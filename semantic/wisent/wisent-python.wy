@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.7 2002/06/22 09:59:54 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.8 2002/06/22 21:29:17 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -943,7 +943,7 @@ testlist_trailer
 
 ;; lambdef: 'lambda' [varargslist] ':' test
 lambdef
-  : LAMBDA COLON test
+  : LAMBDA varargslist_opt COLON test
     (format "%s %s %s" $1 $2 $3)
   ;
 

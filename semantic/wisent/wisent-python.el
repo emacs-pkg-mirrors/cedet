@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.6 2002/06/22 09:59:54 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.7 2002/06/22 21:29:17 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -285,7 +285,7 @@ we get around ot it.")
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 19:49-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 07:21-0700
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -728,7 +728,7 @@ we get around ot it.")
 	((testlist_trailer COMMA test)
 	 (format "%s %s %s" $1 $2 $3)))
        (lambdef
-	((LAMBDA COLON test)
+	((LAMBDA varargslist_opt COLON test)
 	 (format "%s %s %s" $1 $2 $3)))
        (trailer
 	((LPAREN arglist_opt RPAREN)
@@ -892,7 +892,7 @@ we get around ot it.")
 
 (defconst wisent-python-keywords
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 19:49-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 07:21-0700
    (semantic-flex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -956,7 +956,7 @@ we get around ot it.")
 
 (defconst wisent-python-tokens
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 19:49-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 07:21-0700
    (wisent-flex-make-token-table
     '(("bol"
        (DEDENT)
@@ -1031,7 +1031,7 @@ we get around ot it.")
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-21 19:49-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-22 07:21-0700
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
 	  semantic-toplevel-bovine-table wisent-python-parser-tables
