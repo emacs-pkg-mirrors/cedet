@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.27 2001/01/31 15:59:06 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.28 2001/08/08 00:56:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,6 +39,16 @@
 This will replace the named bucket that would have usually occured here."
   :group 'speedbar
   :type 'integer)
+
+(defcustom semantic-sb-button-token->text-function 'semantic-abbreviate-nonterminal
+  "*Function called to create the text for a but from a token."
+  :group 'speedbar
+  :type semantic-token->text-custom-list)
+
+(defcustom semantic-sb-info-token->text-function 'semantic-summarize-nonterminal
+  "*Function called to create the text for info display from a token."
+  :group 'speedbar
+  :type semantic-token->text-custom-list)
 
 ;;; Code:
 
@@ -75,6 +85,7 @@ Optional PREFIX is used to specify special marker characters."
 		      ((eq type 'function)
 		       (semantic-token-function-args token))
 		      ))
+	 (abbrev (funcall semantic-sb-button-token->text-function token))
 	 (start (point))
 	 (end (progn
 		(insert (int-to-string depth) ":")
@@ -85,47 +96,19 @@ Optional PREFIX is used to specify special marker characters."
     (if (and edata (listp edata) (and (<= (length edata) 1) (not (car edata))))
 	(setq edata nil))
     ;; types are a bit unique.  Variable types can have special meaning.
-    (cond ((eq type 'type)
-	   (let ((name (semantic-token-name token)))
-	     (if ttype
-		 (setq name (concat ttype " " name)))
-	     (if edata
-		 (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
-					 'speedbar-button-face
-					 'speedbar-highlight-face
-					 'semantic-sb-show-extra
-					 token t)
-	       (speedbar-insert-button (if prefix (concat "  " prefix) " =>")
-				       nil nil nil nil t))
-	     (speedbar-insert-button name
-				     'speedbar-tag-face
-				     'speedbar-highlight-face
-				     'semantic-sb-token-jump
-				     token t)))
-	  (t
-	   (if (or (and ttype (or (not (listp ttype)) (car ttype))) edata)
-	       (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
-				       'speedbar-button-face
-				       'speedbar-highlight-face
-				       'semantic-sb-show-extra
-				       token t)
-	     (speedbar-insert-button (if prefix (concat "  " prefix) " =>")
-				     nil nil nil nil t))
-	   (speedbar-insert-button (semantic-token-name token)
-				   'speedbar-tag-face
-				   'speedbar-highlight-face
-				   'semantic-sb-token-jump
-				   token t)
-	   (cond ((eq type 'variable)
-		  ;; Place array dims here if apropriate.
-		  (if (semantic-token-variable-default token)
-		      (speedbar-insert-button "=" nil nil nil nil t)))
-		 ((eq type 'function)
-		  (speedbar-insert-button "()" nil nil nil nil t))
-		 ((and (eq type 'include)
-		       (semantic-token-include-system token))
-		  (speedbar-insert-button "<>" nil nil nil nil t))
-		 )))
+    (if edata
+	(speedbar-insert-button (if prefix (concat " +" prefix) " +>")
+				'speedbar-button-face
+				'speedbar-highlight-face
+				'semantic-sb-show-extra
+				token t)
+      (speedbar-insert-button (if prefix (concat "  " prefix) " =>")
+			      nil nil nil nil t))
+    (speedbar-insert-button abbrev
+			    'speedbar-tag-face
+			    'speedbar-highlight-face
+			    'semantic-sb-token-jump
+			    token t)
     ;; This is very bizarre.  When this was just after the insertion
     ;; of the depth: text, the : would get erased, but only for the
     ;; auto-expanded short- buckets.  Move back for a later version
