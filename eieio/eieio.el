@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.66 2000/07/14 02:23:54 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.67 2000/07/19 02:33:58 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -41,8 +41,13 @@
 ;;
 ;; See eieio.texi for complete documentation on using this package.
 
-;;; Code:
 (eval-when-compile (require 'cl))
+
+;;; Code:
+
+(eval-and-compile
+;; Abount the above.  EIEIO must process it's own code when it compiles
+;; itself, thus, by requiring outselves, we solve the problem.
 
 (defvar eieio-version "0.15"
   "Current version of EIEIO.")
@@ -298,7 +303,9 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
       (if (eq cname 'eieio-default-superclass)
 	  ;; In this case, we have absolutly no parent, so we can ssy safely
 	  ;; that the parent classes are being bootstrapped.
-	  (message "Bootstrapping objects...")
+	  (if (or (not (featurep 'bytecomp))
+		  byte-compile-verbose)
+	      (message "Bootstrapping objects..."))
 	;; adopt the default parent here, but clear it later...
 	(setq clearparent t)
 	;; save new child in parent
@@ -513,7 +520,9 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     (if clearparent (aset newc class-parent nil))
 
     ;; Indicate bootstrapping is done...
-    (if (eq cname 'eieio-default-superclass)
+    (if (and (eq cname 'eieio-default-superclass)
+	     (or (not (featurep 'bytecomp))
+		 byte-compile-verbose))
 	(message "Bootstrapping objects...done"))
 
     ;; Create the cached default object.
@@ -719,14 +728,17 @@ top level documentation to a method."
 	(list 'quote method)
 	doc-string))
 
+(defun eieio-defgeneric-form (method doc-string)
+  "The lambda form that would be used as the function defined on METHOD.
+All methods should call the same EIEIO function for dispatch.
+DOC-STRING is the documentation attached to METHOD."
+  `(lambda (&rest local-args)
+     ,doc-string
+     (eieio-generic-call (quote ,method) local-args)))
+
 (defun eieio-defgeneric (method doc-string)
   "Engine part to `defgeneric' macro defining METHOD with DOC-STRING."
-  (let ((lambda-form
-	 (list 'lambda '(&rest local-args)
-	       doc-string
-	       (list 'eieio-generic-call
-		     (list 'quote method)
-		     'local-args))))
+  (let ((lambda-form (eieio-defgeneric-form method doc-string)))
     (if (and (fboundp method) (not (generic-p method)))
 	(error "You cannot create a generic/method over an existing symbol"))
     (fset method lambda-form)
@@ -1826,6 +1838,8 @@ This may create or delete slots, but does not affect the return value
 of `eq'."
   (error "Eieio: `change-class' is unimplemented"))
 
+)
+
 
 ;;; Interfacing with edebug
 ;;
@@ -1889,6 +1903,7 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 (eieio-update-lisp-imenu-expression)
 
 ))
+
 ;;; Autoloading some external symbols
 ;;
 (autoload 'eieio-browse "eieio-opt" "Create an object browser window" t)
