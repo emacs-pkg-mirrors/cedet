@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.13 1999/05/27 01:43:33 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.14 1999/06/06 13:56:36 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -807,6 +807,13 @@ a START and END part."
 ;; Where symbol is the type of thing it is.  START and END mark that
 ;; objects boundary.
 
+(defvar semantic-flex-extensions nil
+  "Buffer local extensions to the the lexical analyzer.
+This should contain an alist with a key of a regex and a data element of
+a function.  The function should both move point, and return a lexical
+token of the form ( TYPE START .  END).  nil is also a valid return.")
+(make-variable-buffer-local 'semantic-flex-extensions)
+
 (defun semantic-flex-buffer (&optional depth)
   "Sematically flex the current buffer.
 Optional argument DEPTH is the depth to scan into lists."
@@ -831,6 +838,17 @@ as (symbol start-expression .  end-expresssion)."
     (while (< (point) end)
       (cond (;; comment end is also EOL for some languages.
 	     (looking-at "\\(\\s-\\|\\s>\\)+"))
+	    ((let ((fe semantic-flex-extensions)
+		   (r nil))
+	       (while fe
+		 (if (looking-at (car (car fe)))
+		     (setq ts (cons (funcall (cdr (car fe))) ts)
+			   r t
+			   fe nil
+			   ep (point)))
+		 (setq fe (cdr fe)))
+	       (if (and r (not (car ts))) (setq ts (cdr ts)))
+	       r))
 	    ((looking-at "\\(\\sw\\|\\s_\\)+")
 	     (setq ts (cons (cons 'symbol
 				  (cons (match-beginning 0) (match-end 0)))
