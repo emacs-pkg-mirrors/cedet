@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.30 2004/02/26 15:30:26 ponced Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.31 2004/03/03 03:32:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1439,7 +1439,7 @@ if `force-show' is 0, this value is always ignored.")
 
 ;;; Compatibility
 ;;
-(eval-when-compile
+(eval-and-compile
   (if (fboundp 'window-inside-edges)
       ;; Emacs devel.
       (defalias 'semantic-displayor-window-edges
