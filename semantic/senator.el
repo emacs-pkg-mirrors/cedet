@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 1.0
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.5 2000/11/27 13:24:17 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.6 2000/11/28 12:44:47 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -65,6 +65,10 @@
 ;;; Change Log:
 
 ;; $Log: senator.el,v $
+;; Revision 1.6  2000/11/28 12:44:47  david_ponce
+;; More performance improvements.
+;; New option `senator-highlight-found' to customize token highlighting.
+;;
 ;; Revision 1.5  2000/11/27 13:24:17  david_ponce
 ;; Fixed a serious performance problem in `senator-next-token' and
 ;; `senator-previous-token'.
@@ -123,6 +127,15 @@ langage navigation."
   :type '(repeat (symbol)))
 (make-variable-buffer-local 'senator-step-at-start-end-token-ids)
 
+(defcustom senator-highlight-found t
+  "*If non-nil highlight tokens found.
+This option requires semantic 1.3 and above.  This is a buffer
+local variable.  It can be set in a mode hook to get a specific
+langage behaviour."
+  :group 'senator
+  :type 'boolean)
+(make-variable-buffer-local 'senator-highlight-found)
+
 ;;; Compatibility
 (cond ((fboundp 'semantic-momentary-highlight-token)
        ;; semantic 1.3
@@ -140,6 +153,13 @@ langage navigation."
          "Parse the current buffer and return the tokens where to navigate."
          (semantic-bovinate-toplevel nil nil t))
        ))
+
+(defun senator-momentary-highlight-token (token)
+  "Momentary highlight TOKEN.
+Does nothing if `senator-highlight-found' is nil or semantic version
+is bellow 1.3."
+  (and senator-highlight-found
+       (semantic-momentary-highlight-token token)))
 
 (defun senator-message (&rest args)
   "Call function `message' with ARGS without logging."
@@ -169,10 +189,11 @@ function for `senator-find-previous-token'."
       (setq token (car tokens))
       (if (>= (semantic-token-start token) pos)
           (throw 'found prev))
-      (setq prev (if (eq (semantic-token-token token) 'type)
-                     (senator-find-previous-token-aux
-                      (semantic-token-type-parts token) pos token)
-                   token))
+      (or (senator-skip-p token)
+          (setq prev token))
+      (if (eq (semantic-token-token token) 'type)
+          (setq prev (senator-find-previous-token-aux
+                      (semantic-token-type-parts token) pos prev)))
       (setq tokens (cdr tokens)))
     prev))
 
@@ -185,9 +206,10 @@ function for `senator-find-previous-token'."
   (let (token found)
     (while (and tokens (not found))
       (setq token (car tokens))
-      (if (or (and (senator-step-at-start-end-p token)
-                   (> (semantic-token-end token) pos))
-             (>= (semantic-token-start token) pos))
+      (if (and (not (senator-skip-p token))
+               (or (and (senator-step-at-start-end-p token)
+                        (> (semantic-token-end token) pos))
+                   (>= (semantic-token-start token) pos)))
           (setq found token)
         (if (eq (semantic-token-token token) 'type)
             (setq found (senator-find-next-token
@@ -212,11 +234,6 @@ Return the semantic token or nil if at end of buffer."
               '(senator-previous-token senator-next-token))
         (forward-char))
     (setq found (senator-find-next-token tokens (point)))
-    (while (senator-skip-p found)
-      (if (not (eq (semantic-token-token found) 'type))
-          (goto-char (semantic-token-end found))
-        (forward-char))
-      (setq found (senator-find-next-token tokens (point))))
     (if (not found)
         (progn
           (goto-char (point-max))
@@ -229,7 +246,7 @@ Return the semantic token or nil if at end of buffer."
             (t
              (setq where "start")
              (goto-char (semantic-token-start found))))
-      (semantic-momentary-highlight-token found)
+      (senator-momentary-highlight-token found)
       (senator-message "%S: %s (%s)"
                        (semantic-token-token found)
                        (semantic-token-name  found)
@@ -247,11 +264,6 @@ Return the semantic token or nil if at beginning of buffer."
     (if (eq real-last-command 'senator-previous-token)
         (backward-char))
     (setq found (senator-find-previous-token tokens (point)))
-    (while (senator-skip-p found)
-      (if (not (eq (semantic-token-token found) 'type))
-          (goto-char (semantic-token-start found))
-        (backward-char))
-      (setq found (senator-find-previous-token tokens (point))))
     (if (not found)
         (progn
           (goto-char (point-min))
@@ -264,7 +276,7 @@ Return the semantic token or nil if at beginning of buffer."
             (t
              (setq where "end")
              (goto-char (semantic-token-end found))))
-      (semantic-momentary-highlight-token found)
+      (senator-momentary-highlight-token found)
       (senator-message "%S: %s (%s)"
                        (semantic-token-token found)
                        (semantic-token-name  found)
