@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.42 2003/08/25 17:06:54 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.43 2003/09/04 19:32:01 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -142,6 +142,8 @@ It is safe to leave this blank.")
   "Target class for a group of lisp files." nil nil)
 (autoload 'ede-proj-target-elisp "ede-proj-elisp"
   "Target class for a group of lisp files." nil nil)
+(autoload 'ede-proj-target-elisp-autoloads "ede-proj-elisp"
+  "Target class for generating autoload files." nil nil)
 (autoload 'ede-proj-target-scheme "ede-proj-scheme"
   "Target class for a group of lisp files." nil nil)
 (autoload 'ede-proj-target-makefile-miscelaneous "ede-proj-misc"
@@ -160,6 +162,7 @@ It is safe to leave this blank.")
     ("archive" . ede-proj-target-makefile-archive)
     ("sharedobject" . ede-proj-target-makefile-shared-object)
     ("emacs lisp" . ede-proj-target-elisp)
+    ("emacs lisp autoloads" . ede-proj-target-elisp-autoloads)
     ("info" . ede-proj-target-makefile-info)
     ("auxiliary" . ede-proj-target-aux)
     ("scheme" . ede-proj-target-scheme)
@@ -473,7 +476,9 @@ Converts all symbols into the objects to be used."
       (if comp
 	  ;; Now that we have a pre-set compilers to use, convert tye symbols
 	  ;; into objects for ease of use
-	  (setq comp (mapcar 'symbol-value comp))
+	  (if (listp comp)
+	      (setq comp (mapcar 'symbol-value comp))
+	    (setq comp (list (symbol-value comp))))
 	(let ((avail (mapcar 'symbol-value (oref obj availablecompilers)))
 	      (st (oref obj sourcetype))
 	      (sources (oref obj source)))
