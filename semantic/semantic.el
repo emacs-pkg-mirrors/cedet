@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.151 2002/07/29 03:39:52 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.152 2002/07/29 17:25:13 ponced Exp $
 
 (defvar semantic-version "2.0alpha2"
   "Current version of Semantic.")
@@ -509,8 +509,13 @@ that, otherwise, do a full reparse."
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
     (garbage-collect)
     (let ((gc-cons-threshold 10000000)
+          (semantic-bovination-working-type 'dynamic)
 	  (changes nil))
-      (setq changes (funcall semantic-bovinate-incremental-parser))
+      (working-status-forms
+          (semantic-bovination-working-message (buffer-name))
+          "done"
+        (setq changes (funcall semantic-bovinate-incremental-parser))
+        (working-dynamic-status t))
       (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
           ;; If the partial reparse fails, jump to a full reparse.
           (semantic-bovinate-toplevel checkcache)
@@ -777,7 +782,7 @@ The return list is a lambda expression to be used in a bovine table."
   `(lambda (vals start end)
      (append ,@return-val (list start end))))
 
-(defun semantic-bovinate-from-nonterminal (start end nonterm
+(defsubst semantic-bovinate-from-nonterminal (start end nonterm
 						 &optional depth length)
   "Bovinate from within a nonterminal lambda from START to END.
 Depends on the existing environment created by `semantic-bovinate-stream'.
@@ -791,7 +796,7 @@ Optional argument LENGTH specifies we are only interested in LENGTH tokens."
 		  semantic-bovination-active-table
 		  nonterm))))
 
-(defun semantic-bovinate-from-nonterminal-full (start end nonterm
+(defsubst semantic-bovinate-from-nonterminal-full (start end nonterm
 						      &optional depth)
   "Bovinate from within a nonterminal lambda from START to END.
 Iterates until all the space between START and END is exhausted.
@@ -806,7 +811,7 @@ a START and END part."
 				   nonterm
 				   depth)))
 
-(defun semantic-bovinate-region-until-error (start end nonterm &optional depth)
+(defsubst semantic-bovinate-region-until-error (start end nonterm &optional depth)
   "Bovinate between START and END starting with NONTERM.
 Optional DEPTH specifies how many levels of parenthesis to enter.
 This command will parse until an error is encountered, and return
