@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.50 2001/05/07 18:47:38 zappo Exp $
+;; RCS: $Id: ede.el,v 1.51 2001/05/09 01:39:58 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -453,14 +453,14 @@ Argument MENU-DEF is the menu definition to use."
    (easy-menu-create-menu
     "Target Forms"
     (let ((obj (or ede-selected-object ede-object)))
-      (if (not obj)
-	  nil
-	(append
-	 '([ "Add File" ede-add-file (ede-current-project) ]
-	   [ "Remove File" ede-remove-file
-	     (and ede-object
-		  (or (listp ede-object)
-		      (not (obj-of-class-p ede-object ede-project)))) ])
+      (append
+       '([ "Add File" ede-add-file (ede-current-project) ]
+	 [ "Remove File" ede-remove-file
+	   (and ede-object
+		(or (listp ede-object)
+		    (not (obj-of-class-p ede-object ede-project)))) ])
+       (if (not obj)
+	   nil
 	 (if (and (not (listp obj)) (oref obj menu))
 	     (oref obj menu)
 	   (when (listp obj)
