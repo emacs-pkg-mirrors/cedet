@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.8 2000/04/16 22:35:04 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.9 2000/04/23 15:14:43 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -302,7 +302,8 @@ to create much wiser decisions about how to sort and group these items."
   (save-restriction
     (narrow-to-region (point) (point))
     (let ((buckets (semantic-sb-buckets tokens))
-	  (names '(nil "Types" "Variables" "Functions" "Dependencies" "Misc"))
+	  (names '(nil "Package" "Types" "Variables" "Functions"
+		       "Dependencies" "Misc"))
 	  tmp)
       (while buckets
 	(setq tmp (car buckets)
@@ -317,10 +318,12 @@ to create much wiser decisions about how to sort and group these items."
 
 (defun semantic-sb-buckets (tokens)
   "Sort TOKENS into a group of buckets based on type, and toss the rest."
-  (let ((vars nil) (funs nil) (types nil) (deps nil) other toktype)
+  (let ((pack nil) (vars nil) (funs nil) (types nil) (deps nil) other toktype)
     (while tokens
       (setq toktype (semantic-token-token (car tokens)))
-      (cond ((eq toktype  'variable)
+      (cond ((eq toktype 'package)
+	     (setq pack (cons (car tokens) pack)))
+	    ((eq toktype  'variable)
 	     (setq vars (cons (car tokens) vars)))
 	    ((eq toktype 'function)
 	     (setq funs (cons (car tokens) funs)))
@@ -331,7 +334,7 @@ to create much wiser decisions about how to sort and group these items."
 	    (t
 	     (setq other (cons (car tokens) other))))
       (setq tokens (cdr tokens)))
-    (list types vars funs deps other)))
+    (list pack types vars funs deps other)))
 
 (defun semantic-fetch-dynamic-bovine (file)
   "Load FILE into a buffer, and generate tags using the Semantic Bovinator.
