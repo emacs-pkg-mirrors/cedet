@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.9 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.10 2003/11/20 14:59:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -159,7 +159,7 @@ Default action as described in `semanticdb-find-translate-path'."
     (apply
      #'append
      (mapcar
-      (lambda (db) (oref db tables))
+      (lambda (db) (semanticdb-get-database-tables db))
       (semanticdb-current-database-list (oref basedb reference-directory)))))
   )
 
@@ -254,10 +254,82 @@ INCLUDETAG and TABLE are documented in `semanticdb-find-table-for-include'."
 
 ;;; API Functions
 ;;
-;; These routines are apropriate for applications to use.
+;; Once you have a search result, use these routines to operate
+;; on the search results at a higher level
 
-;;; Top level Searches
+(defun semanticdb-strip-find-results (results &optional find-file-match)
+  "Strip a semanticdb search RESULTS to exclude objects.
+This makes it appear more like the results of a `semantic-find-' call.
+Optional FIND-FILE-MATCH is not yet implemented."
+  (apply #'append (mapcar #'cdr results)))
+
+(defun semanticdb-find-results-p (resultp)
+  "Non-nil if RESULTP is in the form of a semanticdb search result.
+This query only really tests the first entry in the list that is RESULTP,
+but should be good enough for debugging assertions."
+  (and (listp resultp)
+       (listp (car resultp))
+       (semanticdb-abstract-table-child-p (car (car resultp)))
+       (semantic-tag-p (car (cdr (car resultp))))))
+
+(defun semanticdb-find-result-with-nil-p (resultp)
+  "Non-nil of RESULTP is in the form of a semanticdb search result.
+nil is a valid value where a TABLE usually is, but only if the TAG
+results include overlays.
+This query only really tests the first entry in the list that is RESULTP,
+but should be good enough for debugging assertions."
+  (and (listp resultp)
+       (listp (car resultp))
+       (let ((tag-to-test (car-safe (cdr (car resultp)))))
+	 (or (and (semanticdb-abstract-table-child-p (car (car resultp)))
+		  (semantic-tag-p tag-to-test))
+	     (null (car (car resultp)))
+	     (semantic-tag-with-position-p tag-to-test))
+	 )))
+
+(defun semanticdb-find-result-length (result)
+  "Number of tags found in RESULT."
+  (let ((count 0))
+    (mapc (lambda (onetable)
+	    (setq count (+ count (1- (length onetable)))))
+	  result)
+    count))
+
+(defun semanticdb-find-result-nth (result n &optional findfile)
+  "In RESULT, return the Nth search result.
+This is a 0 based search result, with the first match being element 0.
+If optional FINDFILE is non-nil, then make sure that the file
+associated with the nth result is in a buffer, and thus the tag's
+overlay property is valid.  If the tag in question has no overlay
+information, then the file is not loaded.  If the search result
+is not associated with a file, then do not load the file."
+  (let ((ans nil))
+    ;; Loop over each single table hit.
+    (while (and (not ans) result)
+      ;; For each table result, get local length, and modify
+      ;; N to be that much less.
+      (let ((ll (length (cdr (car result))))) ;; local length
+	(if (> ll n)
+	    ;; We have a local match.
+	    (setq ans (nth n (cdr (car result))))
+	  ;; More to go.  Decrement N.
+	  (setq n (- n ll))))
+      ;; If we have a hit, double-check the find-file
+      ;; entry.  If the file must be loaded, then gat that table's
+      ;; source file into a buffer.
+      (if (and ans findfile
+	       (semantic-tag-with-position-p ans))
+	  (save-excursion (semanticdb-set-buffer (car (car result))))
+	)
+      ;; Keep moving.
+      (setq result (cdr result)))
+    ans))
+
+;;; Semanticdb find API functions
 ;;
+;; These are the routines actually used to perform searches.
+;;
+;;;###autoload
 (defun semanticdb-find-tags-collector (function &optional path find-file-match
 						brutish)
   "Search for all tags returned by FUNCTION over PATH.
@@ -267,16 +339,20 @@ associated with that tag should be loaded into a buffer.
 If optional argument BRUTISH is non-nil, then ignore include statements,
 and search all tables in this project tree."
   (let (found match)
-    (dolist (table (semanticdb-find-translate-path path brutish))
-      ;; If FIND-FILE-MATCH is non-nil, skip tables of class
-      ;; `semanticdb-search-results-table', since those are system
-      ;; databases and not associated with a file.
-      (unless (and find-file-match
-		   (obj-of-class-p table semanticdb-search-results-table))
-	(when (setq match (funcall function table))
-	  (when find-file-match
-	    (save-excursion (semanticdb-set-buffer table)))
-	  (push (cons table match) found))))
+    (save-excursion
+      ;; If path is a buffer, set ourselves up in that buffer
+      ;; so that the override methods work correctly.
+      (when (bufferp path) (set-buffer path))
+      (dolist (table (semanticdb-find-translate-path path brutish))
+	;; If FIND-FILE-MATCH is non-nil, skip tables of class
+	;; `semanticdb-search-results-table', since those are system
+	;; databases and not associated with a file.
+	(unless (and find-file-match
+		     (obj-of-class-p table semanticdb-search-results-table))
+	  (when (and table (setq match (funcall function table)))
+	    (when find-file-match
+	      (save-excursion (semanticdb-set-buffer table)))
+	    (push (cons table match) found)))))
     found))
 
 ;;;###autoload
@@ -375,6 +451,18 @@ associated wit that tag should be loaded into a buffer."
   (semanticdb-find-tags-collector
    (lambda (table)
      (semanticdb-deep-find-tags-by-name-method table name))
+   path find-file-match t))
+
+(defun semanticdb-brute-deep-find-tags-for-completion (name &optional path find-file-match)
+  "Search for all tags matching NAME on PATH.
+See `semanticdb-find-translate-path' for details on PATH.
+The argument BRUTISH will be set so that searching includes all tables
+in the current project.
+FIND-FILE-MATCH indicates that any time a matchi is found, the file
+associated wit that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-deep-find-tags-for-completion-method table name))
    path find-file-match t))
 
 ;;; Specialty Search Routines
