@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.13 1999/01/28 16:17:02 zappo Exp $
+@c $Id: eieio.texi,v 1.14 1999/02/03 20:31:46 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -805,10 +805,10 @@ method.
 
 In Emacs 20 a useful customization utility became available called
 `custom'.  EIEIO supports custom through two new widget types.  If a
-variable is declaired as type 'object, then full editing of slots via
-the widgets is made possible.  This should be used carefully, however,
-because objects modified are cloned, so if there are other references to
-these objects, they will no longer be linked together.
+variable is declaired as type @code{'object}, then full editing of slots
+via the widgets is made possible.  This should be used carefully,
+however, because objects modified are cloned, so if there are other
+references to these objects, they will no longer be linked together.
 
 If you want in place editing of objects, use the following methods:
 
@@ -826,6 +826,16 @@ It's sole code is @code{(widget-create 'object-edit :value object)} and
 is provided as a locale for adding tracking, or specializing the widget
 insert procedure for any object.
 @end defun
+
+To define a slot with an object in it, use the @code{object} tag.  This
+widget type will be automatically converted to @code{object-edit} if you
+do in place editing of you object.
+
+If you want to have additional actions taken when a user clicks on the
+@code{Apply} button, then overload the method @code{eieio-done-customizing}.
+This method does nothing by default, but that may change in the future.
+This would be the best way to make your objects persistent when using
+in-place editing.
 
 @node Documentation, Demo Programs, Customizing, Top
 @comment  node-name,  next,  previous,  up
