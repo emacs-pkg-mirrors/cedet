@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.16 2001/10/22 20:16:43 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.17 2001/10/27 21:03:52 zappo Exp $
 
-(defvar dframe-version "1.1"
+(defvar dframe-version "1.2"
   "The current version of the dedicated frame library.")
 
 ;; This file is part of GNU Emacs.
@@ -546,6 +546,70 @@ CACHE-VAR and BUFFER-VAR are symbols as in `dframe-frame-mode'"
       (make-variable-buffer-local frame-var)
       (set frame-var oldframe)
       )))
+
+;;; Special frame event proxies
+;;
+(if (boundp 'special-event-map)
+    (progn
+      (define-key special-event-map [make-frame-visible]
+	'dframe-handle-make-frame-visible)
+      (define-key special-event-map [iconify-frame]
+	'dframe-handle-iconify-frame)
+      (define-key special-event-map [delete-frame]
+	'dframe-handle-delete-frame))
+  )
+
+(defvar dframe-make-frame-visible-function nil
+  "Function used when a dframe controlled frame is de-iconified.
+The function must take an EVENT.")
+(defvar dframe-iconify-frame-function nil
+  "Function used when a dframe controlled frame is iconified.
+The function must take an EVENT.")
+(defvar dframe-delete-frame-function nil
+  "Function used when a frame attached to a dframe frame is deleted.
+The function must take an EVENT.")
+
+(defun dframe-handle-make-frame-visible (e)
+  "Handle a `make-frame-visible' event.
+Should enables auto-updating if the last state was also enabled.
+Argument E is the event making the frame visible."
+  (interactive "e")
+  (message "%S" e)
+  (let ((f last-event-frame))
+    (if (and (dframe-attached-frame f)
+	     dframe-make-frame-visible-function)
+	(funcall dframe-make-frame-visible-function e)
+      )))
+
+(defun dframe-handle-iconify-frame (e)
+  "Handle a `iconify-frame' event.
+Should disables auto-updating if the last state was also enabled.
+Argument E is the event iconifying the frame."
+  (interactive "e")
+  (message "%S" e)
+  (let ((f last-event-frame))
+    (if (and (dframe-attached-frame f)
+	     dframe-iconify-frame-function e)
+	(funcall dframe-iconify-frame-function)
+      )))
+
+(defun dframe-handle-delete-frame (e)
+  "Handle `delete-frame' event.
+Argument E is the event deleting the frame."
+  (interactive "e")
+  (message "%S" e)
+  (let ((fl (frame-list))
+	(sf (selected-frame)))
+    ;; Loop over all frames.  If dframe-delete-frame-function is
+    ;; non-nil, call it.
+    (while fl
+      (select-frame (car fl))
+      (if dframe-delete-frame-function
+	  (funcall dframe-delete-frame-function e))
+      (setq fl (cdr fl)))
+    (if (frame-live-p sf)
+	(select-frame sf))
+    (handle-delete-frame e)))
 
 
 ;;; Utilities
