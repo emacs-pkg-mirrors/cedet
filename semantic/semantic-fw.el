@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.33 2004/03/08 10:18:58 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.34 2004/03/08 12:00:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -454,27 +454,37 @@ BUFFER defaults to the current buffer."
 ;; of the apropriate type.
 ;;
 (defun semantic-activate-mode-bindings (&optional mode)
-  "Set buffer local variables with MODE local variables.
+  "Activate variables defined locally in MODE and its parents.
+That is, copy mode local bindings into corresponding buffer local
+variables.
 If MODE is not specified it defaults to current `major-mode'."
-  (let ((table (semantic-current-bindings (or mode major-mode))))
-    (when table
-      (mapatoms
-       #'(lambda (var)
-           (if (get var 'mode-var)
-               (semantic-set-local-variable
-                (intern (symbol-name var)) (symbol-value var))))
-       table))))
+  (let ((mode (or mode major-mode))
+        table)
+    (while mode
+      (when (setq table (get mode 'semantic-symbol-table))
+        (mapatoms
+         #'(lambda (var)
+             (if (get var 'mode-var)
+                 (semantic-set-local-variable
+                  (intern (symbol-name var)) (symbol-value var))))
+         table))
+      (setq mode (semantic-get-parent-mode mode)))))
 
 (defun semantic-deactivate-mode-bindings (&optional mode)
-   "Kill buffer local variables previously set with MODE local variables.
+  "Deactivate variables defined locally in MODE and its parents.
+That is, kill buffer local variables set from the corresponding mode
+local bindings.
 If MODE is not specified it defaults to current `major-mode'."
-   (let ((table (semantic-current-bindings (or mode major-mode))))
-     (when table
-       (mapatoms
-        #'(lambda (var)
-            (if (get var 'mode-var)
-                (kill-local-variable (intern (symbol-name var)))))
-        table))))
+  (let* ((mode (or mode major-mode))
+         table)
+    (while mode
+      (when (setq table (get mode 'semantic-symbol-table))
+        (mapatoms
+         #'(lambda (var)
+             (if (get var 'mode-var)
+                 (kill-local-variable (intern (symbol-name var)))))
+         table))
+      (setq mode (semantic-get-parent-mode mode)))))
 
 (defsubst mode-local-value (mode sym)
   "Return the value of the MODE local variable SYM."
