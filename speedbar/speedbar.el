@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.201 2001/05/09 00:42:41 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.202 2001/05/31 00:17:08 zappo Exp $
 
 (defvar speedbar-version "0.14beta1"
   "The current version of speedbar.")
@@ -2504,7 +2504,7 @@ If new functions are added, their state needs to be updated here."
   (goto-char (point-min))
   (let ((m nil))
     (while (and (setq m (re-search-forward
-			 (concat " \\(" (file-name-nondirectory file)
+			 (concat " \\(" (regexp-quote (file-name-nondirectory file))
 				 "\\)\\(" speedbar-indicator-regex "\\)?\n")
 			 nil t))
 		(not (string= file
