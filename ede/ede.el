@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.29 2000/04/28 22:56:02 zappo Exp $
+;; RCS: $Id: ede.el,v 1.30 2000/04/29 15:00:32 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -761,12 +761,35 @@ by this project."
   (let ((path (file-name-directory (oref this file)))
 	(proj (oref this subproj))
 	(found nil))
-    (if (file-exists-p (concat path filename))
-	(concat path filename)
-      (while (and (not found) proj)
-	(setq found (ede-expand-filename (car proj) filename)
-	      proj (cdr proj)))
-      found)))
+    (cond ((file-exists-p (concat path filename))
+	   (concat path filename))
+	  ((file-exists-p (concat path "include/" filename))
+	   (concat path "include/" filename))
+	  (t
+	   (while (and (not found) proj)
+	     (setq found (ede-expand-filename (car proj) filename)
+		   proj (cdr proj)))
+	   found))))
+
+(defun ede-header-file ()
+  "Return the header file for the current buffer.
+Not all buffers need headers, so return nil if no applicable."
+  (if ede-object
+      (ede-buffer-header-file ede-object (current-buffer))
+    nil))
+
+(defmethod ede-buffer-header-file((this ede-project) buffer)
+  "Return nil, projects don't have header files."
+  nil)
+
+(defmethod ede-buffer-header-file((this ede-target) buffer)
+  "There are no default header files in EDE.
+Do a quick check to see if there is a Header tag in this buffer."
+  (save-excursion
+    (set-buffer buffer)
+    (if (re-search-forward "::Header:: \\([a-zA-Z0-9.]+\\)" nil t)
+	(buffer-substring-no-properties (match-beginning 1)
+					(match-end 1)))))
 
 
 ;;; EDE project-autoload methods
