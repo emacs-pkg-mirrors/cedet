@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.3 2001/03/10 02:10:43 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.4 2001/04/13 16:59:48 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -52,6 +52,10 @@
 
 (autoload 'global-semanticdb-minor-mode "semanticdb" nil t)
 (autoload 'semantic-show-dirty-mode "semantic-util" nil t)
+(autoload 'semantic-change-function-mark-dirty "semantic-util")
+
+;; This turns on semantic partial reparsing
+(add-hook 'semantic-change-hooks #'semantic-change-function-mark-dirty)
 
 (defvar semantic-load-turn-everything-on nil
   "Non-nil means turn on all features in the semantic package.")
@@ -59,8 +63,8 @@
 (when semantic-load-turn-everything-on
   (add-hook 'semantic-init-hooks (lambda ()
 				   (senator-minor-mode 1)))
-  (add-hook 'semantic-init-hooks 'turn-on-eldoc-mode)
-  (if (fboundp 'which-func-mode)
+  (add-hook 'semantic-init-hooks #'turn-on-eldoc-mode)
+  (if (fboundp #'which-func-mode)
       (add-hook 'semantic-init-hooks (lambda ()
 				       (which-func-mode 1))))
 
