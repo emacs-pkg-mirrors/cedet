@@ -100,7 +100,7 @@ developer needs to know to perform all of the tasks just listed.
 
 @menu
 * Semantic Tags::               
-* Tag Tables::                  Working with tag tables.
+* Searching Tag Tables::        Searching tag tables.
 * Tags at Point::               Finding tags at point.
 * Tag Sorting::                 Reorganizing streams.
 * Tag Completion::              Completing read functions.
@@ -119,14 +119,92 @@ developer needs to know to perform all of the tasks just listed.
 
 @include tags.texi
 
-@node Tag Tables
-@chapter tag tables
+@node Searching Tag Tables
+@chapter Searching Tag Tables
 
 These functions take some key, and returns information found in a tag
 table.  Some will return one tag (the first matching item found.)
 Others will return a list of all items matching a given criterion.
-All these functions work regardless of a buffer being in memory or
+Most of these functions work regardless of a buffer being in memory or
 not.
+
+Any specialty search routine that claims to use a function that is an
+overload method will need to execute in a buffer of the same mode as
+the tags being searched.
+
+@menu
+* Breadth Search::      Searching only one level of tags.
+* Deep Search::         Deep searches into types or argument lists.
+* Specialty Search::    Specialty Searches.
+* Custom Search::       Write custom search routines.
+@end menu
+
+@node Breadth Search
+@section Breadth Search
+
+Searching the breadth of a list of tags means that only one level of
+the tags will be searched.  If one of the tags is a datatype with
+additional members, those members are not searched.
+
+@defun semantic-find-first-tag-by-name name &optional table
+@anchor{semantic-find-first-tag-by-name}
+Find the first tag with @var{NAME} in @var{TABLE}.
+@var{NAME} is a string.
+@var{TABLE} is a semantic tags table.  See @dfn{semantic-something-to-tag-table}.
+This routine uses @dfn{assoc} to quickly find the first matching entry.
+@end defun
+
+@defun semantic-find-tags-by-name name &optional table
+@anchor{semantic-find-tags-by-name}
+Find all tags with @var{NAME} in @var{TABLE}.
+@var{NAME} is a string.
+@var{TABLE} is a tag table.  See @dfn{semantic-something-to-tag-table}.
+@end defun
+
+@defun semantic-find-tags-for-completion prefix &optional table
+@anchor{semantic-find-tags-for-completion}
+Find all tags whos name begins with @var{PREFIX} in @var{TABLE}.
+@var{PREFIX} is a string.
+@var{TABLE} is a tag table.  See @dfn{semantic-something-to-tag-table}.
+While it would be nice to use @dfn{try-completion} or @dfn{all-completions},
+those functions do not return the tags, only a string.
+Uses @dfn{compare-strings} for fast comparison.
+@end defun
+
+@defun semantic-find-tags-by-name-regexp regexp &optional table
+@anchor{semantic-find-tags-by-name-regexp}
+Find all tags with name matching @var{REGEXP} in @var{TABLE}.
+@var{REGEXP} is a string containing a regular expression,
+@var{TABLE} is a tag table.  See @dfn{semantic-something-to-tag-table}.
+Consider using @dfn{semantic-find-tags-for-completion} if you are
+attempting to do completions.
+@end defun
+
+@defun semantic-find-tags-by-class class &optional table
+@anchor{semantic-find-tags-by-class}
+Find all tags of class @var{CLASS} in @var{TABLE}.
+@var{CLASS} is a symbol representing the class of the token, such as
+@code{'variable}, of 'function..
+@var{TABLE} is a tag table.  See @dfn{semantic-something-to-tag-table}.
+@end defun
+
+@defun semantic-find-tags-by-type type &optional table
+@anchor{semantic-find-tags-by-type}
+Find all tags of with a type @var{TYPE} in @var{TABLE}.
+@var{TYPE} is a string or tag representing a data type as defined in the
+language the tags were parsed from, such as ``int'', or perhaps
+a tag whose name is that of a struct or class.
+@var{TABLE} is a tag table.  See @dfn{semantic-something-to-tag-table}.
+@end defun
+
+@defun semantic-find-tags-included &optional table
+@anchor{semantic-find-tags-included}
+Find all tags in @var{TABLE} that are of the @code{'include} class.
+@var{TABLE} is a tag table.  See @dfn{semantic-something-to-tag-table}.
+@end defun
+
+@node Deep Search
+@section Deep Search
 
 @defun semantic-brute-find-first-tag-by-name name streamorbuffer &optional search-parts search-include
 Find a tag @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a string.
@@ -246,6 +324,62 @@ If @var{SEARCH-INCLUDES} is non-@code{nil}, then all include files are also
 searched for matches.
 
 @obsolete{semantic-find-nonterminal-by-function-first-match,semantic-brute-find-first-tag-by-function}
+@end defun
+
+@node Specialty Search
+@section Specialty Search
+
+There are some specialty searches needed by some semantic tools that
+could prove useful.  These specialty searches often do not match
+against some single attribute as most breadth searches do.
+
+@defun semantic-find-tags-of-compound-type &optional table
+@anchor{semantic-find-tags-of-compound-type}
+Find all tags which are a compound type in @var{TABLE}.
+Compound types are structures, or other data type which
+is not of a primitive nature, such as int or double.
+Used in completion.
+@end defun
+
+@defun semantic-find-tags-by-scope-protection scopeprotection parent &optional table
+@anchor{semantic-find-tags-by-scope-protection}
+Find all tags accessable by @var{SCOPEPROTECTION}.
+@var{SCOPEPROTECTION} is a symbol which can be returned by the method
+@dfn{semantic-tag-protection}.  @var{A} hard-coded order is used to determine a match.
+@var{PARENT} is a tag representing the @var{PARENT} slot needed for
+@dfn{semantic-tag-protection}.
+@var{TABLE} is a list of tags (a subset of @var{PARENT} members) to scan.  If @var{TABLE} is @code{nil},
+the type members of @var{PARENT} are used.
+See @dfn{semantic-tag-protected-p} for details on which tags are returned.
+@end defun
+
+@defun semantic-find-tags-external-children-of-type type &optional table
+@anchor{semantic-find-tags-external-children-of-type}
+Find all tags in whose parent is @var{TYPE} in @var{TABLE}.
+These tags are defined outside the scope of the original @var{TYPE} declaration.
+@var{TABLE} is a tag table.  See @dfn{semantic-something-to-tag-table}.
+@end defun
+
+@node Custom Search
+@section Custom Search
+
+The searching framework for semantic for tag tables has two basic
+root methods.  One is a function and the other is a macro.  The
+functional version is needed if some sort of macro conflict arrises.
+The macro version is useful because it eliminates a level of function
+call, and is faster.
+
+@defun semantic--find-tags-by-function predicate &optional table
+@anchor{semantic--find-tags-by-function}
+Find tags for which @var{PREDICATE} is non-@code{nil} in @var{TABLE}.
+@var{PREDICATE} is a lambda expression which accepts on @var{TAG}.
+@var{TABLE} is a semantic tags table.  See @dfn{semantic-something-to-tag-table}.
+@end defun
+
+@defun semantic--find-tags-by-macro form &optional table
+@anchor{semantic--find-tags-by-macro}
+Find tags for which @var{FORM} is non-@code{nil} in @var{TABLE}.
+@var{TABLE} is a semantic tags table.  See @dfn{semantic-something-to-tag-table}.
 @end defun
 
 @c @defun semantic-recursive-find-nonterminal-by-name name buffer
@@ -822,6 +956,26 @@ to themselves.  Use of this function should allow for this.
 
 The default behavior (if not overridden with @code{tag-protection}
 is to return a symbol based on type modifiers.
+@end defun
+
+@defun semantic-tag-protected-p tag protection &optional parent
+@anchor{semantic-tag-protected-p}
+Non-@code{nil} if @var{TAG} is is protected.
+@var{PROTECTION} is a symbol which can be returned by the method
+@dfn{semantic-tag-protection}.
+@var{PARENT} is the parent data type which contains @var{TAG}.
+
+For these @var{PROTECTION}s, true is returned if @var{TAG} is:
+@table @asis
+@item @code{nil}
+  Always true
+@item  private
+  True if nil.
+@item protected
+  True if private or nil.
+@item public
+  True if private, protected, or nil.
+@end table
 @end defun
 
 @defun semantic-tag-abstract tag &optional parent
@@ -1605,7 +1759,7 @@ get full range completion using the query functions
 
 If you have the name of a function or variable, and need to find its
 location in a buffer, you need a search function.  There is a wide
-range of searches you can perform @ref{Tag Tables}.
+range of searches you can perform @ref{Searching Tag Tables}.
 
 @example
 (semantic-find-nonterminal-by-name
@@ -1620,7 +1774,7 @@ range of searches you can perform @ref{Tag Tables}.
 If you have the name of a function or variable, and need to find its
 location somewhere in a project, you need to use the Semantic Database
 @inforef{semanticdb, , semanticdb}.  There are many search functions similar to the
-ones found in @ref{Tag Tables}.
+ones found in @ref{Searching Tag Tables}.
 
 The Semantic Database is interesting in that the return structure is
 not
