@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.10 2003/03/31 07:48:09 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.11 2003/04/01 13:55:10 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -155,7 +155,7 @@ Macro and Semantic built-in function calls are expanded."
        (cons (intern (semantic-tag-name tag))
              (mapcar #'semantic-grammar-item-value
                      (semantic-tag-get-attribute tag :value))))
-   (semantic-find-nonterminal-by-token 'assoc (current-buffer))))
+   (semantic-find-tags-by-class 'assoc (current-buffer))))
 
 (defun wisent-grammar-terminals ()
   "Return the list of terminal symbols.
@@ -167,7 +167,7 @@ Keep order of declaration in the WY file without duplicates."
                      (add-to-list 'terms (intern name)))
                  (cons (semantic-tag-name tag)
                        (semantic-tag-get-attribute tag :rest))))
-     (semantic-find-nonterminal-by-function
+     (semantic--find-tags-by-function
       #'(lambda (tag)
           (memq (semantic-tag-class tag) '(token keyword)))
       (current-buffer)))
@@ -175,7 +175,7 @@ Keep order of declaration in the WY file without duplicates."
 
 (defun wisent-grammar-nonterminals ()
   "Return the list form of nonterminal definitions."
-  (let ((nttags (semantic-find-nonterminal-by-token
+  (let ((nttags (semantic-find-tags-by-class
                  'nonterminal (current-buffer)))
         rltags nterms rules rule elems elem actn sexp prec)
     (while nttags
