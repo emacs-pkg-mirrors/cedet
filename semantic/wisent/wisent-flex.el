@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 23 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-flex.el,v 1.7 2002/07/17 09:59:57 ponced Exp $
+;; X-RCS: $Id: wisent-flex.el,v 1.8 2002/07/20 08:06:44 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,7 +35,7 @@
 
 ;;; Code:
 
-(require 'semantic)
+(require 'wisent-bovine)
 
 (defvar wisent-flex-istream nil
   "Input stream of `semantic-lex' syntactic tokens.")
@@ -119,20 +119,73 @@ instead of regexp match."
             (setq lexem (caar rules))
           (setq rules (cdr rules))))
       (or lexem default))))
+
+;;; Semantic 2.x lexical analysis
+;;
 
+;; Some general purpose analyzers
+;;
+(define-lex-regex-analyzer wisent-flex-punctuation
+  "Detect and create punctuation tokens."
+  "\\(\\s.\\|\\s$\\|\\s'\\)+"
+  (let* ((punct (match-string 0))
+         (start (match-beginning 0))
+         (rules (cdr (wisent-flex-token-rules 'punctuation)))
+         entry)
+    ;; Starting with the longest punctuation string, search if it
+    ;; matches a punctuation of this language.
+    (while (and (> (length punct) 0)
+                (not (setq entry (rassoc punct rules))))
+      (setq punct (substring punct 0 -1)))
+    (semantic-lex-token (car entry) start (+ start (length punct)))))
+
+;;; Lexer creation macros
+;;
 (defmacro wisent-flex-eoi ()
   "Return an End-Of-Input lexical token.
 The EOI token is like this: ($EOI "" POINT-MAX . POINT-MAX)."
-  `(cons ',wisent-eoi-term (cons "" (cons (point-max) (point-max)))))
+  `(cons ',wisent-eoi-term
+         (cons ""
+               (cons (point-max) (point-max)))))
 
-(defun wisent-flex ()
-"Return the next available lexical token.
+(defmacro define-wisent-lexer (name doc &rest body)
+  "Create a new lexical analyzer with NAME.
+DOC is a documentation string describing this analyzer.
+When a token is available in `wisent-flex-istream', eval BODY forms
+sequentially.  BODY must return a lexical token for the LALR parser.
 
-Eat syntactic tokens produced by `semantic-flex', available in
+Each token in input was produced by `semantic-lex', it is a list:
+
+  (TOKSYM START . END)
+
+TOKSYM is a terminal symbol used in the grammar.
+START and END mark boundary in the current buffer of that token's
+value.
+
+Returned tokens must have the form:
+
+  (TOKSYM VALUE START . END)
+
+where VALUE is the buffer substring between START and END positions."
+  `(defun
+     ,name () ,doc
+     (cond
+      (wisent-lexer-lookahead
+       (prog1 wisent-lexer-lookahead
+         (setq wisent-lexer-lookahead nil)))
+      (wisent-flex-istream
+       ,@body)
+      ((wisent-flex-eoi)))))
+
+;;; General purpose lexers
+;;
+
+(define-wisent-lexer wisent-flex
+  "Return the next available lexical token in Wisent's form.
+Eat syntactic tokens produced by `semantic-lex', available in
 variable `wisent-flex-istream', and return Wisent's lexical tokens.
-
-See documentation of `semantic-flex-tokens' for details on the
-syntactic tokens returned by `semantic-flex'.
+See documentation of `semantic-lex-tokens' for details on the
+syntactic tokens returned by `semantic-lex'.
 
 In most cases one syntactic token is mapped to one lexical token.  But
 in certain cases several successive syntactic tokens can be mapped to
@@ -150,9 +203,9 @@ tables:
   - The token table in variable `wisent-flex-tokens-obarray'.
 
 Keywords are directly mapped to equivalent Wisent's lexical tokens
-like this (SF- prefix means `semantic-flex', WF- `wisent-flex'):
+like this (SL- prefix means `semantic-lex', WF- `wisent-flex'):
 
-  (SF-KEYWORD start . end)  ->  (WF-KEYWORD \"name\" start . end)
+  (SL-KEYWORD start . end)  ->  (WF-KEYWORD \"name\" start . end)
 
 Mapping of other tokens obeys to rules in the token table.  Here is an
 example on how to define the mapping of 'punctuation syntactic tokens.
@@ -219,119 +272,96 @@ example on how to define the mapping of 'punctuation syntactic tokens.
                   (LT     .  \"<\") (GT     .  \">\")))
      (put entry 'string   t)
      (put entry 'multiple t))"
-  (if (null wisent-flex-istream)
+  (let* ((is   wisent-flex-istream)
+         (flex (car is))
+         (stok (semantic-lex-token-class flex))
+         (text (semantic-lex-token-text flex))
+         default rules usequal wlex term beg end ends n is2)
       
-      ;; End of input
-      ;; ------------
-      (wisent-flex-eoi)
-    
-    (let* ((is   wisent-flex-istream)
-           (flex (car is))
-           (stok (car flex))
-           (text (semantic-flex-text flex))
-           default rules usequal wlex term beg end ends n is2)
-      
-      (if (setq term (semantic-flex-keyword-p text))
+    (if (setq term (semantic-lex-keyword-p text))
        
-          ;; Keyword
-          ;; -------
-          (setq wlex (cons term (cons text (cdr flex)))
-                ;; Eat input stream
-                wisent-flex-istream (cdr is))
+        ;; Keyword
+        ;; -------
+        (setq wlex (cons term
+                         (cons text
+                               (semantic-lex-token-bounds flex)))
+              ;; Eat input stream
+              wisent-flex-istream (cdr is))
                 
         
-        ;; Token
-        ;; -----
-        (if (null (setq rules (wisent-flex-token-rules stok)))
-            ;; Eat input stream
-            (setq wisent-flex-istream (cdr is))
+      ;; Token
+      ;; -----
+      (if (null (setq rules (wisent-flex-token-rules stok)))
+          ;; Eat input stream
+          (setq wisent-flex-istream (cdr is))
           
-          ;; Map syntactic token following RULES
-          (setq default (car rules)
-                rules   (cdr rules))
-          (cond
+        ;; Map syntactic token following RULES
+        (setq default (car rules)
+              rules   (cdr rules))
+        (cond
            
-           ;; If specified try a function first to map token.
-           ;; It must return a lexical token or nil and update the
-           ;; input stream (`wisent-flex-istream') accordingly.
-           ((and (setq n (wisent-flex-token-get stok 'handler))
-                 (setq wlex (funcall n))))
+         ;; If specified try a function first to map token.
+         ;; It must return a lexical token or nil and update the
+         ;; input stream (`wisent-flex-istream') accordingly.
+         ((and (setq n (wisent-flex-token-get stok 'handler))
+               (setq wlex (funcall n))))
            
-           ;; Several/One mapping
-           ((wisent-flex-token-get stok 'multiple)
-            (setq beg  (semantic-flex-start flex)
-                  end  (semantic-flex-end   flex)
-                  ends (list end)
-                  n    1
-                  is2  (cdr is)
-                  flex (car is2))
-            ;; Collect successive `semantic-flex' tokens
-            (while (and (eq (car flex) stok)
-                        (= end (semantic-flex-start flex)))
-              (setq end  (semantic-flex-end flex)
-                    ends (cons end ends)
-                    n    (1+ n)
-                    is2  (cdr is2)
-                    flex (car is2)))
-            ;; Search the longest match
-            (setq usequal (wisent-flex-token-get stok 'string))
-            (while (and (not wlex) ends)
-              (setq end  (car ends)
-                    text (buffer-substring-no-properties beg end)
-                    term (wisent-flex-match text default rules usequal))
-              (if term
-                  (setq wlex (cons term (cons text (cons beg end)))
-                        ;; Eat input stream
-                        wisent-flex-istream (nthcdr n is))
-                (setq n    (1- n)
-                      ends (cdr ends)))))
-           
-           ;; One/one token mapping
-           ((setq usequal (wisent-flex-token-get stok 'string)
+         ;; Several/One mapping
+         ((wisent-flex-token-get stok 'multiple)
+          (setq beg  (semantic-lex-token-start flex)
+                end  (semantic-lex-token-end   flex)
+                ends (list end)
+                n    1
+                is2  (cdr is)
+                flex (car is2))
+          ;; Collect successive `semantic-lex' tokens
+          (while (and (eq (semantic-lex-token-class flex) stok)
+                      (= end (semantic-lex-token-start flex)))
+            (setq end  (semantic-lex-token-end flex)
+                  ends (cons end ends)
+                  n    (1+ n)
+                  is2  (cdr is2)
+                  flex (car is2)))
+          ;; Search the longest match
+          (setq usequal (wisent-flex-token-get stok 'string))
+          (while (and (not wlex) ends)
+            (setq end  (car ends)
+                  text (buffer-substring-no-properties beg end)
                   term (wisent-flex-match text default rules usequal))
-            (setq wlex (cons term (cons text (cdr flex)))
-                  ;; Eat input stream
-                  wisent-flex-istream (cdr is))))))
+            (if term
+                (setq wlex (cons term (cons text (cons beg end)))
+                      ;; Eat input stream
+                      wisent-flex-istream (nthcdr n is))
+              (setq n    (1- n)
+                    ends (cdr ends)))))
+           
+         ;; One/one token mapping
+         ((setq usequal (wisent-flex-token-get stok 'string)
+                term (wisent-flex-match text default rules usequal))
+          (setq wlex (cons term
+                           (cons text
+                                 (semantic-lex-token-bounds flex)))
+                ;; Eat input stream
+                wisent-flex-istream (cdr is))))))
       
-      ;; Return value found or default one
-      (or wlex
-          (cons (if (wisent-flex-token-get stok 'char-literal)
-                    (aref text 0)
-                  stok)
-                (cons text (cdr flex)))))))
-
-;;; Semantic 2.x lexical analysis
-;;
+    ;; Return value found or default one
+    (or wlex
+        (cons (if (wisent-flex-token-get stok 'char-literal)
+                  (aref text 0)
+                stok)
+              (cons text (semantic-lex-token-bounds flex))))))
 
-;;; Some general purpose analyzers
-;;
-(define-lex-regex-analyzer wisent-flex-punctuation
-  "Detect and create punctuation tokens."
-  "\\(\\s.\\|\\s$\\|\\s'\\)+"
-  (let* ((punct (match-string 0))
-         (start (match-beginning 0))
-         (rules (cdr (wisent-flex-token-rules 'punctuation)))
-         entry)
-    ;; Starting with the longest punctuation string, search if it
-    ;; matches a punctuation of this language.
-    (while (and (> (length punct) 0)
-                (not (setq entry (rassoc punct rules))))
-      (setq punct (substring punct 0 -1)))
-    (semantic-lex-token (car entry) start (+ start (length punct)))))
-
-;;; Lexer
-;;
-(defun wisent-lex ()
+(define-wisent-lexer wisent-lex
   "Return the next available lexical token in Wisent's form.
 The variable `wisent-flex-istream' contains the list of lexical tokens
 produced by `semantic-lex'.  Pop the next token available and convert
 it to a form suitable for the Wisent's parser."
-  (if wisent-flex-istream
-      (let ((tk (car wisent-flex-istream)))
-        ;; Eat input stream
-        (setq wisent-flex-istream (cdr wisent-flex-istream))
-        (cons (car tk) (cons (semantic-lex-token-text tk) (cdr tk))))
-    (wisent-flex-eoi)))
+  (let* ((tk (car wisent-flex-istream)))
+    ;; Eat input stream
+    (setq wisent-flex-istream (cdr wisent-flex-istream))
+    (cons (semantic-lex-token-class tk)
+          (cons (semantic-lex-token-text tk)
+                (semantic-lex-token-bounds tk)))))
 
 (provide 'wisent-flex)
 
