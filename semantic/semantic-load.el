@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.21 2002/07/10 03:42:34 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.22 2002/07/16 21:13:14 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -42,6 +42,8 @@
   "Create a single lexical anyzer based on a regex." nil 'macro)
 (autoload 'define-lex-simple-regex-analyzer "semantic-lex"
   "Create a single lexical anyzer based on a simple regex." nil 'macro)
+(autoload 'define-lex-block-analyzer "semantic-lex"
+  "Create a lexical analyzer NAME for paired delimiters blocks." nil 'macro)
 
 (autoload 'semantic-bnf-mode "semantic-bnf"
   "Mode for Bovine Normal Form." t)
