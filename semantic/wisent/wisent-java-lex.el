@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-lex.el,v 1.6 2003/02/17 08:50:32 ponced Exp $
+;; X-RCS: $Id: wisent-java-lex.el,v 1.7 2003/12/05 09:18:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -80,13 +80,6 @@
       (semantic-lex-unterminated-syntax-protection 'STRING_LITERAL
         (forward-sexp 1)
         (point))))))
-
-(define-lex-block-analyzer wisent-java-lex-blocks
-  "Detect and create a open, close or block token."
-  (PAREN_BLOCK ("(" LPAREN) (")" RPAREN))
-  (BRACE_BLOCK ("{" LBRACE) ("}" RBRACE))
-  (BRACK_BLOCK ("[" LBRACK) ("]" RBRACK))
-  )
 
 ;;; Lexers
 ;;
@@ -100,7 +93,7 @@ It ignores whitespaces, newlines and comments."
   wisent-java-lex-string
   wisent-java-lex-symbol
   semantic-lex-punctuation-type
-  wisent-java-lex-blocks
+  semantic-lex-block-type
   semantic-lex-default-action)
 
 (define-lex wisent-java-lexer
@@ -113,7 +106,7 @@ It ignores whitespaces, newlines and comments."
   wisent-java-lex-string
   wisent-java-lex-symbol2
   semantic-lex-punctuation-type
-  wisent-java-lex-blocks
+  semantic-lex-block-type
   semantic-lex-default-action)
 
 ;;; Test
