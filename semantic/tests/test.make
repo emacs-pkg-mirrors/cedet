@@ -7,7 +7,21 @@ example_MISC=semantic-skel.el skeleton.bnf
 init_LISP=semantic-load.el
 DISTDIR=$(top)semantic-$(VERSION)
 
+# really goofy & variables tabs
+A=      B
+A       =B
+A=B     C
+A=B\
+        C
+
+A=	http://${B} \
+	ftp://${B}
+B=	test
+
 all: example semantic Languages tools senator semantic.info
+
+test ${B}: foo bar
+	@echo ${A}
 
 example: 
 	@
@@ -22,7 +36,8 @@ init: $(init_LISP)
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
 
-include teset.mk
+include tesset.mk tusset.mk
+include oneset.mk
 
 ifdef SOME_SYMBOL
   VAR1 = foo
