@@ -1,10 +1,10 @@
 ;;; ede-proj-obj.el --- EDE Generic Project Object code generation support
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-obj.el,v 1.4 1999/12/04 17:30:02 zappo Exp $
+;; RCS: $Id: ede-proj-obj.el,v 1.5 2000/04/29 14:58:54 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -144,6 +144,26 @@ These are removed with make clean."
 	      "")
 	    "\n\n")))
 
+(defmethod ede-buffer-header-file((this ede-proj-target-makefile-objectcode)
+				  buffer)
+  "There are no default header files."
+  (or (call-next-method)
+      ;; Make a quick assumption that we have C or C++.
+      (let ((bf (file-name-sans-extension (buffer-file-name))))
+	(cond ((file-exists-p (concat bf ".h"))
+	       (concat bf ".h"))
+	      ((file-exists-p (concat bf ".hh"))
+	       (concat bf ".hh"))
+	      ((file-exists-p (concat bf ".hpp"))
+	       (concat bf ".hpp"))
+	      ((file-exists-p (concat bf ".H"))
+	       (concat bf ".H"))
+	      (t
+	       ;; Ok, nothing obvious. Try looking in ourselves.
+	       (let ((h (oref this headers)))
+		 ;; Add more logic here when the problem is better understood.
+		 (car-safe h)))))))
+  
 ;;; Speedbar options:
 ;;
 (defmethod eieio-speedbar-child-make-tag-lines
