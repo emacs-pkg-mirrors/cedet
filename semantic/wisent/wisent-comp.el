@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.5 2002/02/07 22:23:03 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.6 2002/02/08 23:20:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -265,7 +265,9 @@ Used when running without interactive terminal.")
       (condition-case err
           (with-current-buffer (wisent-log-buffer)
             (widen)
-            (write-region (point-min) (point-max) wisent-log-file t))
+            (if (> (point-max) (point-min))
+                (write-region (point-min) (point-max)
+                              wisent-log-file t)))
         (error
          (message "%s" (error-message-string err))))))
 
@@ -305,9 +307,10 @@ Used when running without interactive terminal.")
 ;; Item numbers are used in the finite state machine to represent
 ;; places that parsing can get to.
 
-;; The precedence level of each rule is recorded in the vector rprec.
-;; The precedence level and associativity of each symbol is recorded
-;; in respectively the properties 'wisent--prec and 'wisent--assoc.
+;; The vector rprec contains for each rule, the item number of the
+;; symbol giving its precedence level to this rule.  The precedence
+;; level and associativity of each symbol is recorded in respectively
+;; the properties 'wisent--prec and 'wisent--assoc.
 
 ;; Precedence levels are assigned in increasing order starting with 1
 ;; so that numerically higher precedence values mean tighter binding
@@ -323,18 +326,19 @@ Used when running without interactive terminal.")
 ;; `wisent-compile-grammar' and are shared by all other nested
 ;; callees.
 (wisent-defcontext compile-grammar
-  F LA LAruleno accessing-symbol any-conflicts conflicts consistent
+  F LA LAruleno accessing-symbol conflicts consistent
   derives err-table fderives final-state first-reduction first-shift
   first-state firsts from-state goto-map includes itemset nitemset
   kernel-base kernel-end kernel-items last-reduction last-shift
   last-state lookaheads lookaheadset lookback maxrhs ngotos nitems
   nrules nshifts nstates nsyms ntokens nullable nvars rassoc redset
-  reduction-table ritem rlhs rprec rprecsym rrc-count rrc-total rrhs
+  reduction-table ritem rlhs rprec rrc-count rrc-total rrhs
   rule-table ruleset rulesetsize shift-symbol shift-table shiftset
   src-count src-total start-table state-table tags this-state to-state
   tokensetsize ;; nb of words req. to hold a bit for each rule
   varsetsize ;; nb of words req. to hold a bit for each variable
   error-token-number start-symbol token-list var-list
+  N P V V1 nuseless-nonterminals nuseless-productions
   )
 
 (defmacro wisent-ISTOKEN (s)
@@ -441,6 +445,245 @@ That is if S >= `ntokens'."
 (wisent-struct errs
   (nerrs 0)
   (errs [0]))
+
+;;;; --------------------------------------------------------
+;;;; Find unreachable terminals, nonterminals and productions
+;;;; --------------------------------------------------------
+
+(defun wisent-bits-equal (L R n)
+  "Visit L and R and return non-nil if their first N elements are `='.
+L and R must be vectors of integers."
+  (let* ((i    (1- n))
+         (iseq t))
+    (while (and iseq (natnump i))
+      (setq iseq (= (aref L i) (aref R i))
+            i (1- i)))
+    iseq))
+
+(defun wisent-nbits (i)
+  "Return number of bits set in integer I."
+  (let ((count 0))
+    (while (not (zerop i))
+      ;; i ^= (i & ((unsigned) (-(int) i)))
+      (setq i (logxor i (logand i (- i)))
+            count (1+ count)))
+    count))
+
+(defun wisent-bits-size (S n)
+  "In vector S count the total of bits set in first N elements.
+S must be a vector of integers."
+  (let* ((i (1- n))
+         (count 0))
+    (while (natnump i)
+      (setq count (+ count (wisent-nbits (aref S i)))
+            i (1- i)))
+    count))
+
+(defun wisent-useful-production (i N0)
+  "Return non-nil if production I is in useful set N0."
+  (let* ((useful t)
+         (r (aref rrhs i))
+         n)
+    (while (and useful (> (setq n (aref ritem r)) 0))
+      (if (wisent-ISVAR n)
+          (setq useful (wisent-BITISSET N0 (- n ntokens))))
+      (setq r (1+ r)))
+    useful))
+
+(defun wisent-useless-nonterminals ()
+  "Find out which nonterminals are used."
+  (let (Np Ns i n break)
+    ;; N is set as built.  Np is set being built this iteration. P is
+    ;; set of all productions which have a RHS all in N.
+    (setq n  (wisent-WORDSIZE nvars)
+          Np (make-vector n 0))
+    
+    ;; The set being computed is a set of nonterminals which can
+    ;; derive the empty string or strings consisting of all
+    ;; terminals. At each iteration a nonterminal is added to the set
+    ;; if there is a production with that nonterminal as its LHS for
+    ;; which all the nonterminals in its RHS are already in the set.
+    ;; Iterate until the set being computed remains unchanged.  Any
+    ;; nonterminals not in the set at that point are useless in that
+    ;; they will never be used in deriving a sentence of the language.
+    
+    ;; This iteration doesn't use any special traversal over the
+    ;; productions.  A set is kept of all productions for which all
+    ;; the nonterminals in the RHS are in useful.  Only productions
+    ;; not in this set are scanned on each iteration.  At the end,
+    ;; this set is saved to be used when finding useful productions:
+    ;; only productions in this set will appear in the final grammar.
+
+    (while (not break)
+      (setq i (1- n))
+      (while (natnump i)
+	;; Np[i] = N[i]
+        (aset Np i (aref N i))
+        (setq i (1- i)))
+      
+      (setq i 1)
+      (while (<= i nrules)
+        (if (not (wisent-BITISSET P i))
+            (when (wisent-useful-production i N)
+              (wisent-SETBIT Np (- (aref rlhs i) ntokens))
+              (wisent-SETBIT P i)))
+        (setq i (1+ i)))
+      (if (wisent-bits-equal N Np n)
+          (setq break t)
+        (setq Ns Np
+              Np N
+              N  Ns)))
+    (setq N Np)))
+
+(defun wisent-inaccessable-symbols ()
+  "Find out which productions are reachable and which symbols are used."
+  ;; Starting with an empty set of productions and a set of symbols
+  ;; which only has the start symbol in it, iterate over all
+  ;; productions until the set of productions remains unchanged for an
+  ;; iteration.  For each production which has a LHS in the set of
+  ;; reachable symbols, add the production to the set of reachable
+  ;; productions, and add all of the nonterminals in the RHS of the
+  ;; production to the set of reachable symbols.
+    
+  ;; Consider only the (partially) reduced grammar which has only
+  ;; nonterminals in N and productions in P.
+    
+  ;; The result is the set P of productions in the reduced grammar,
+  ;; and the set V of symbols in the reduced grammar.
+    
+  ;; Although this algorithm also computes the set of terminals which
+  ;; are reachable, no terminal will be deleted from the grammar. Some
+  ;; terminals might not be in the grammar but might be generated by
+  ;; semantic routines, and so the user might want them available with
+  ;; specified numbers.  (Is this true?)  However, the nonreachable
+  ;; terminals are printed (if running in verbose mode) so that the
+  ;; user can know.
+  (let (Vp Vs Pp i tt r n m break)
+    (setq n  (wisent-WORDSIZE nsyms)
+          m  (wisent-WORDSIZE (1+ nrules))
+          Vp (make-vector n 0)
+          Pp (make-vector m 0))
+
+    ;; If the start symbol isn't useful, then nothing will be useful.
+    (when (wisent-BITISSET N (- start-symbol ntokens))
+      (wisent-SETBIT V start-symbol)
+      (while (not break)
+        (setq i (1- n))
+        (while (natnump i)
+          (aset Vp i (aref V i))
+          (setq i (1- i)))
+        (setq i 1)
+        (while (<= i nrules)
+          (when (and (not (wisent-BITISSET Pp i))
+                     (wisent-BITISSET P i)
+                     (wisent-BITISSET V (aref rlhs i)))
+            (setq r (aref rrhs i))
+            (while (natnump (setq tt (aref ritem r)))
+              (if (or (wisent-ISTOKEN tt)
+                      (wisent-BITISSET N (- tt ntokens)))
+                  (wisent-SETBIT Vp tt))
+              (setq r (1+ r)))
+            (wisent-SETBIT Pp i))
+          (setq i (1+ i)))
+        (if (wisent-bits-equal V Vp n)
+            (setq break t)
+          (setq Vs Vp
+                Vp V
+                V  Vs))))
+    (setq V Vp)
+    
+    ;; Tokens 0, 1 are internal to Wisent.  Consider them useful.
+    (wisent-SETBIT V 0) ;; end-of-input token
+    (wisent-SETBIT V 1) ;; error token
+    (setq P Pp)
+
+    (setq nuseless-productions  (- nrules (wisent-bits-size P m))
+          nuseless-nonterminals nvars
+          i ntokens)
+    (while (< i nsyms)
+      (if (wisent-BITISSET V i)
+          (setq nuseless-nonterminals (1- nuseless-nonterminals)))
+      (setq i (1+ i)))
+  
+    ;; A token that was used in %prec should not be warned about.
+    (setq i 1)
+    (while (<= i nrules)
+      (if (aref rprec i)
+          (wisent-SETBIT V1 (aref rprec i)))
+      (setq i (1+ i)))
+    ))
+
+(defun wisent-total-useless ()
+  "Report number of useless nonterminals and productions."
+  (let* ((src (wisent-source))
+         (src (if src (concat " in " src) ""))
+         (msg (format "Grammar%s contains" src)))
+    (if (> nuseless-nonterminals 0)
+        (setq msg (format "%s %d useless nonterminal%s"
+                          msg nuseless-nonterminals
+                          (if (> nuseless-nonterminals 0) "s" ""))))
+    (if (and (> nuseless-nonterminals 0) (> nuseless-productions 0))
+        (setq msg (format "%s and" msg)))
+    (if (> nuseless-productions 0)
+        (setq msg (format "%s %d useless rule%s"
+                          msg nuseless-productions
+                          (if (> nuseless-productions 0) "s" ""))))
+    (message msg)))
+
+(defun wisent-reduce-grammar ()
+  "Find unreachable terminals, nonterminals and productions."
+  ;; Allocate the global sets used to compute the reduced grammar
+  (setq N  (make-vector (wisent-WORDSIZE nvars) 0)
+        P  (make-vector (wisent-WORDSIZE (1+ nrules)) 0)
+        V  (make-vector (wisent-WORDSIZE nsyms) 0)
+        V1 (make-vector (wisent-WORDSIZE nsyms) 0)
+        nuseless-nonterminals 0
+        nuseless-productions  0)
+    
+  (wisent-useless-nonterminals)
+  (wisent-inaccessable-symbols)
+
+  (when (> (+ nuseless-nonterminals nuseless-productions) 0)
+    (wisent-total-useless)
+    (or (wisent-BITISSET N (- start-symbol ntokens))
+        (error "Start symbol %s does not derive any sentence"
+               (aref tags start-symbol)))))
+
+(defun wisent-print-useless ()
+  "Output the detailed results of the reductions."
+  (let (i b r)
+    (when (> nuseless-nonterminals 0)
+      (wisent-log "\n\nUseless nonterminals:\n\n")
+      (setq i ntokens)
+      (while (< i nsyms)
+        (or (wisent-BITISSET V i)
+            (wisent-log "   %s\n" (aref tags i)))
+        (setq i (1+ i))))
+    (setq b nil
+          i 0)
+    (while (< i ntokens)
+      (unless (or (wisent-BITISSET V i) (wisent-BITISSET V1 i))
+        (or b
+            (wisent-log "\n\nTerminals which are not used:\n\n"))
+        (setq b t)
+        (wisent-log "   %s\n" (aref tags i)))
+      (setq i (1+ i)))
+    (when (> nuseless-productions 0)
+      (wisent-log "\n\nUseless rules:\n\n")
+      (setq i 1)
+      (while (<= i nrules)
+        (unless (wisent-BITISSET P i)
+          (wisent-log "#%s  " (wisent-pad-string (format "%d" i) 4))
+          (wisent-log "%s:" (aref tags (aref rlhs i)))
+          (setq r (aref rrhs i))
+          (while (natnump (aref ritem r))
+            (wisent-log " %s" (aref tags (aref ritem r)))
+            (setq r (1+ r)))
+          (wisent-log ";\n"))
+        (setq i (1+ i))))
+    (if (or b (> nuseless-nonterminals 0) (> nuseless-productions 0))
+        (wisent-log "\n\n"))
+    ))
 
 ;;;; -----------------------------
 ;;;; Match rules with nonterminals
@@ -1720,9 +1963,10 @@ terminated list of the I such as NUM is in R-ARG[I]."
   "Log a shift-reduce conflict resolution.
 In specified STATE between rule pointed by lookahead number LANO and
 TOKEN, resolved as RESOLUTION."
-  (wisent-log
-   "Conflict in state %d between rule %d and token %s resolved as %s.\n"
-   state (aref LAruleno LAno) token resolution))
+  (if (or wisent-verbose-flag wisent-debug-flag)
+      (wisent-log
+       "Conflict in state %d between rule %d and token %s resolved as %s.\n"
+       state (aref LAruleno LAno) token resolution)))
 
 (defun wisent-flush-shift (state token)
   "Turn off the shift recorded in the specified STATE for TOKEN.
@@ -1747,7 +1991,8 @@ precedence.  A conflict is resolved by modifying the shift or reduce
 tables so that there is no longer a conflict."
   (let (i redprec errp errs nerrs token sprec sassoc)
     ;; Find the rule to reduce by to get precedence of reduction
-    (setq redprec (aref rprec (aref LAruleno lookaheadnum))
+    (setq token (aref tags (aref rprec (aref LAruleno lookaheadnum)))
+          redprec (wisent-prec token)
           errp  (make-errs)
           errs  (make-vector ntokens 0)
           nerrs 0
@@ -1847,9 +2092,8 @@ tables so that there is no longer a conflict."
                 j 0)
           (while (< j tokensetsize)
             ;; if (LA (i)[j] & lookaheadset[j])
-            (when (not (zerop (logand (aref v j) (aref lookaheadset j))))
-              (aset conflicts state t)
-              (setq any-conflicts t))
+            (if (not (zerop (logand (aref v j) (aref lookaheadset j))))
+              (aset conflicts state t))
             (setq j (1+ j)))
           (setq j 0)
           (while (< j tokensetsize)
@@ -1868,7 +2112,6 @@ tables so that there is no longer a conflict."
           shiftset     (make-vector tokensetsize 0)
           lookaheadset (make-vector tokensetsize 0)
           err-table    (make-vector nstates nil)
-          any-conflicts 0
           i 0)
     (while (< i nstates)
       (wisent-set-conflicts i)
@@ -1979,20 +2222,20 @@ there are any reduce/reduce conflicts.")
         (wisent-count-rr-conflicts i)
         (setq src-total (+ src-total src-count)
               rrc-total (+ rrc-total rrc-count))
+        (when (or wisent-verbose-flag wisent-debug-flag)
+          (wisent-log "State %d contains" i)
+          (if (> src-count 0)
+              (wisent-log " %d shift/reduce conflict%s"
+                          src-count (if (> src-count 1) "s" "")))
         
-        (wisent-log "State %d contains" i)
-        (if (> src-count 0)
-            (wisent-log " %d shift/reduce conflict%s"
-                        src-count (if (> src-count 1) "s" "")))
-        
-        (if (and (> src-count 0) (> rrc-count 0))
-            (wisent-log " and"))
+          (if (and (> src-count 0) (> rrc-count 0))
+              (wisent-log " and"))
 
-        (if (> rrc-count 0)
-            (wisent-log " %d reduce/reduce conflict%s"
-                        rrc-count (if (> rrc-count 1) "s" "")))
+          (if (> rrc-count 0)
+              (wisent-log " %d reduce/reduce conflict%s"
+                          rrc-count (if (> rrc-count 1) "s" "")))
         
-        (wisent-log ".\n"))
+          (wisent-log ".\n")))
       (setq i (1+ i)))
     (wisent-total-conflicts)))
 
@@ -2001,13 +2244,14 @@ there are any reduce/reduce conflicts.")
 ;;;; --------------------------------------
 (defun wisent-print-grammar ()
   "Print grammar."
-  (let (i rule lhs rhs)
+  (let (i j r lhs rhs break left-count right-count)
+    
     (wisent-log "\n\nGrammar\n\n  Number, Rule\n")
     (setq i 1)
     (while (<= i nrules)
-      (setq rule (car (aref rule-table i))
-            lhs  (car rule)
-            rhs  (cdr rule))
+      (setq r   (car (aref rule-table i))
+            lhs (car r)
+            rhs (cdr r))
       (wisent-log "  %s  %s -> %s\n"
                   (wisent-pad-string (number-to-string i) 6)
                   (aref tags lhs)
@@ -2016,7 +2260,66 @@ there are any reduce/reduce conflicts.")
                                      (symbol-name (aref tags i)))
                                  rhs " ")
                     "/* empty */"))
-      (setq i (1+ i)))))
+      (setq i (1+ i)))
+    
+    (wisent-log "\n\nTerminals, with rules where they appear\n\n")
+    (wisent-log "%s (-1)\n" (aref tags 0))
+    (setq i 2)
+    (while (< i ntokens)
+      (wisent-log "%s (%d)" (aref tags i) i)
+      (setq j 1)
+      (while (<= j nrules)
+        (setq r (aref rrhs j)
+              break nil)
+        (while (and (not break) (> (aref ritem r) 0))
+          (if (setq break (= (aref ritem r) i))
+              (wisent-log " %d" j)
+            (setq r (1+ r))))
+        (setq j (1+ j)))
+      (wisent-log "\n")
+      (setq i (1+ i)))
+    
+    (wisent-log "\n\nNonterminals, with rules where they appear\n\n")
+    (setq i ntokens)
+    (while (< i nsyms)
+      (setq left-count 0
+            right-count 0
+            j 1)
+      (while (<= j nrules)
+        (if (= (aref rlhs j) i)
+            (setq left-count (1+ left-count)))
+        (setq r (aref rrhs j)
+              break nil)
+        (while (and (not break) (> (aref ritem r) 0))
+          (if (= (aref ritem r) i)
+              (setq right-count (1+ right-count)
+                    break t)
+            (setq r (1+ r))))
+        (setq j (1+ j)))
+      (wisent-log "%s (%d)\n   " (aref tags i) i)
+      (when (> left-count 0)
+        (wisent-log " on left:")
+        (setq j 1)
+        (while (<= j nrules)
+          (if (= (aref rlhs j) i)
+              (wisent-log " %d" j))
+          (setq j (1+ j))))
+      (when (> right-count 0)
+        (if (> left-count 0)
+            (wisent-log ","))
+        (wisent-log " on right:")
+        (setq j 1)
+        (while (<= j nrules)
+          (setq r (aref rrhs j)
+                break nil)
+          (while (and (not break) (> (aref ritem r) 0))
+            (if (setq break (= (aref ritem r) i))
+                (wisent-log " %d" j)
+              (setq r (1+ r))))
+          (setq j (1+ j))))
+      (wisent-log "\n")
+      (setq i (1+ i)))
+    ))
 
 (defun wisent-print-reductions (state)
   "Print reductions on STATE."
@@ -2258,18 +2561,23 @@ there are any reduce/reduce conflicts.")
   (wisent-print-core state)
   (wisent-print-actions state))
 
+(defun wisent-print-states ()
+  "Print information on states."
+  (let ((i 0))
+    (while (< i nstates)
+      (wisent-print-state i)
+      (setq i (1+ i)))))
+
 (defun wisent-print-results ()
-  "Print information on generated parser."
-  ;; Always report conflicts
-  (if any-conflicts
-      (wisent-print-conflicts))
-  ;; Report more information if verbose option set
+  "Print information on generated parser.
+Report detailed informations if `wisent-verbose-flag' or
+`wisent-debug-flag' are non-nil."
+  (when (or wisent-verbose-flag wisent-debug-flag) 
+    (wisent-print-useless))
+  (wisent-print-conflicts)
   (when (or wisent-verbose-flag wisent-debug-flag)
     (wisent-print-grammar)
-    (let ((i 0))
-      (while (< i nstates)
-        (wisent-print-state i)
-        (setq i (1+ i)))))
+    (wisent-print-states))
   ;; Append output to log file when running in batch mode
   (when (wisent-noninteractive)
     (wisent-append-to-log-file)
@@ -2580,10 +2888,13 @@ This table maps tokens into item numbers."
 ;;;; -------------------
 
 (defun wisent-parser-automaton ()
-  "Compute and return LALR automaton from GRAMMAR.
+  "Compute and return LALR(1) automaton from GRAMMAR.
 GRAMMAR is in internal format.  GRAM/ACTS are grammar rules
 in internal format.  STARTS defines the start symbols."
   (let (tables)
+    ;; Check for useless stuff
+    (wisent-reduce-grammar)
+    
     (wisent-set-derives)
     (wisent-set-nullable)
     ;; convert to nondeterministic finite state machine.
@@ -2666,9 +2977,11 @@ Return an internal form."
       (if (vectorp (car rest))
           (progn
             (setq item (car rest))
-            (or (and (= (length item) 1) (memq (aref item 0) token-list))
+            (or (and (= (length item) 1)
+                     (memq (aref item 0) token-list)
+                     (wisent-prec (aref item 0)))
                 (error "Invalid rule precedence level %S" item))
-            (setq rprec (cons (wisent-prec (aref item 0)) rprec)
+            (setq rprec (cons (wisent-item-number (aref item 0)) rprec)
                   rest  (cdr rest)))
         ;; No precedence level
         (setq rprec (cons nil rprec)))
@@ -2849,9 +3162,9 @@ list of tokens which must have been declared in TOKENS."
       ;; Where internal symbols $ntI and $$ntI are respectively
       ;; nonterminals and terminals.
   
-      ;; The internal start symbol $STARTS is used to build the LALR
-      ;; automaton.  The true default start symbol used by the parser
-      ;; is the first nonterminal in START-LIST (nt0).
+      ;; The internal start symbol $STARTS is used to build the
+      ;; LALR(1) automaton.  The true default start symbol used by the
+      ;; parser is the first nonterminal in START-LIST (nt0).
       (setq start-var wisent-starts-nonterm
             lst       (nreverse start-list))
       (while lst
@@ -2873,7 +3186,7 @@ list of tokens which must have been declared in TOKENS."
            ;; Add start rule (($nt) $1)
            ep-def (cons (list (list ep-var) '$1) ep-def))
           ))
-      (wisent-push-var start-var t) 
+      (wisent-push-var start-var t)
       (setq defs (cons (cons start-var ep-def) defs))))
     
     ;; Set up the terminal & nonterminal lists.
@@ -2929,15 +3242,17 @@ list of tokens which must have been declared in TOKENS."
           ;; Get default precedence level of rule, that is the
           ;; precedence of the last terminal in it.
           (if (wisent-ISTOKEN (car rhs))
-              (setq pre (wisent-prec (aref tags (car rhs)))))
+              (setq pre (car rhs)))
           
           (aset ritem i (car rhs))
           (setq i (1+ i)
                 rhs (cdr rhs)))
         ;; Setup the precedence level of the rule, that is the one
         ;; specified by %prec or the default one.
-        (or (aref rprec r) ;; Already set by %prec
-            (aset rprec r pre))
+        (and (not (aref rprec r)) ;; Already set by %prec
+             pre
+             (wisent-prec (aref tags pre))
+             (aset rprec r pre))
         (aset ritem i (- r))
         (setq i (1+ i)
               r (1+ r)
@@ -2949,7 +3264,7 @@ list of tokens which must have been declared in TOKENS."
 
 ;;;###autoload
 (defun wisent-compile-grammar (grammar &optional start-list)
-  "Compile GRAMMAR and return the tables needed by the parser.
+  "Compile GRAMMAR and return an LALR(1) automaton.
 Optional argument START-LIST is a list of start symbols
 \(nonterminals).  If nil the first nonterminal defined in the grammar
 is the default start symbol.  If START-LIST contains only one element,
@@ -2958,7 +3273,7 @@ element, all will be defined as potential start symbols, unless
 `wisent-single-start-flag' is non-nil.  In that case the first element
 of START-LIST defines the start symbol and others are ignored.
 
-Return an LALR automaton of the form:
+The LALR(1) automaton has the form:
 
 \[ACTIONS GOTOS FUNCTIONS TRANSLATE STARTS]
 
@@ -2991,7 +3306,7 @@ Return an LALR automaton of the form:
           (setq wisent-new-log-flag t)
           ;; Parse input grammar
           (wisent-parse-grammar grammar start-list)
-          ;; Generate the LALR automaton
+          ;; Generate the LALR(1) automaton
           (setq automaton (wisent-parser-automaton))
           (working-dynamic-status t)
           automaton)))))
