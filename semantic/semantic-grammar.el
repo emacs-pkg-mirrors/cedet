@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.58 2004/03/11 02:34:49 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.59 2004/03/19 23:54:20 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -807,7 +807,7 @@ If optional argument FORCE is non-nil, unconditionally re-generate the
 Lisp code."
   (interactive "P")
   (setq force (or force current-prefix-arg))
-  (semantic-bovinate-toplevel t)
+  (semantic-fetch-tags)
   (let* (
          ;; Values of the following local variables are obtained from
          ;; the grammar parsed tree in current buffer, that is before
