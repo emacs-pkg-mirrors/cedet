@@ -1,6 +1,6 @@
 ;;; working --- Display a "working" message in the minibuffer.
 
-;;;  Copyright (C) 1998  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
@@ -111,7 +111,7 @@ Functions provided in `working' are:
 		 (const working-bar-display)
 		 (const working-bar-percent-display)
 		 (const working-percent-bar-display)
-		 (const celeron-percent-display)))
+		 (const working-celeron-percent-display)))
 
 (defcustom working-status-dynamic-type 'working-celeron-display
   "Function used to display a celeron working display.
@@ -120,12 +120,14 @@ it will take ahead of time.  Functions provided in `working' are:
   `working-number-display'
   `working-spinner-display'
   `working-dotgrowth-display'
-  `working-celeron-display'"
+  `working-celeron-display'
+  `working-bounce-display'"
   :group 'working
   :type '(choice (const working-number-display)
 		 (const working-spinner-display)
 		 (const working-dotgrowth-display)
-		 (const working-celeron-display)))
+		 (const working-celeron-display)
+		 (const working-bounce-display)))
 
 ;;; Variables used in stages
 ;;
@@ -156,7 +158,8 @@ percentile.  If it is a string, then consider the job done, and
 display this string where numbers would appear.
 Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
-  (let* ((p (or percent (floor (* 100.0 (/ (float (point)) (point-max))))))
+  (let* ((p (or (floor percent)
+		(floor (* 100.0 (/ (float (point)) (point-max))))))
 	 (m1 (apply 'format working-message args))
 	 (m2 (funcall working-status-percentage-type (length m1) p))
 	 (message-log-max))
@@ -190,9 +193,12 @@ is t to display the done string, or the percentage to display."
   "Return a string with a bar-graph showing percent.
 LENGTH is the amount of display that has been used.  PERCENT
 is t to display the done string, or the percentage to display."
-  (let ((bs (- (frame-width) length 4)))
+  (let ((bs (- (frame-width (or (frame-parameter (selected-frame) 'minibuffer)
+				default-minibuffer-frame))
+	       length 4)))
     (cond ((eq percent t)
 	   (concat ": [" (make-string bs ?#) "] " working-donestring))
+	  ((< bs 0) "")
 	  (t (let ((bsl (floor (* (/ percent 100.0) bs))))
 	       (concat ": ["
 		       (make-string bsl ?#)
@@ -264,6 +270,30 @@ is t to display the done string, or the number to display."
   (concat " (" (make-string working-ref1 ?.) ")"
 	  (if (eq number t) (concat " " working-donestring) "")))
 
+(defun working-frame-animation-display (length number frames)
+  "Manage a simple frame-based animation for working functions.
+LENGTH is the number of characters left.  NUMBER is a passed in
+number (which happens to be ignored.).  While coders pass t into
+NUMBER, functions using this should convert NUMBER into a vector
+describing how to render the done message.
+Argument FRAMES are the frames used in the animation."
+  (cond ((vectorp number)
+	 (let ((zone (- (length (aref frames 0)) (length (aref number 0))
+			(length (aref number 1)))))
+	   (if (< (length working-donestring) zone)
+	       (concat " " (aref number 0)
+		       (make-string
+			(ceiling (/ (- (float zone)
+				       (length working-donestring)) 2)) ? )
+		       working-donestring
+		       (make-string
+			(floor (/ (- (float zone)
+				     (length working-donestring)) 2)) ? )
+		       (aref number 1))
+	     (concat " " (aref frames (% working-ref1 (length frames)))
+		     " " working-donestring))))
+	(t (concat " " (aref frames (% working-ref1 (length frames)))))))
+
 (defvar working-celeron-strings
   [ "[O     ]" "[oO    ]" "[-oO   ]" "[ -oO  ]" "[  -oO ]" "[   -oO]"
     "[    -O]" "[     O]" "[    Oo]" "[   Oo-]"  "[  Oo- ]" "[ Oo-  ]"
@@ -275,21 +305,44 @@ is t to display the done string, or the number to display."
 LENGTH is the amount of display that has been used.  NUMBER
 is t to display the done string, or the number to display."
   (cond ((eq number t)
-	 (if (< (length working-donestring) 6)
-	     (concat " ["
-		     (make-string
-		      (ceiling (/ (- 6.0 (length working-donestring)) 2)) ? )
-		     working-donestring
-		     (make-string
-		      (floor (/ (- 6.0 (length working-donestring)) 2)) ? )
-		     "]")
-	   (concat " " (aref working-celeron-strings
-			     (% working-ref1 (length working-celeron-strings)))
-		   " " working-donestring)))
+	 (working-frame-animation-display length [ "[" "]" ]
+					  working-celeron-strings))
 	;; All the % signs because it then gets passed to message.
-	(t (concat " " (aref 
-			working-celeron-strings
-			(% working-ref1 (length working-celeron-strings)))))))
+	(t (working-frame-animation-display length number
+					    working-celeron-strings))))
+
+(defvar working-bounce-strings
+  [
+   "[_         ]"
+   "[ -        ]"
+   "[  ~       ]"
+   "[   -      ]"
+   "[    _     ]"
+   "[     -    ]"
+   "[      ~   ]"
+   "[       -  ]"
+   "[        _ ]"
+   "[         -]"
+
+   ]
+  "Strings for the bounce animation.")
+ 
+(defun working-bounce-display (length number)
+  "Return a string displaying a celeron as things happen.
+LENGTH is the amount of display that has been used.  NUMBER
+is t to display the done string, or the number to display."
+  (cond ((eq number t)
+	 (working-frame-animation-display length [ "[" "]" ]
+					  working-bounce-strings))
+	;; All the % signs because it then gets passed to message.
+	(t (working-frame-animation-display length number
+					    working-bounce-strings))))
+
+;;; Some edebug hooks
+;;
+(add-hook 'edebug-setup-hook
+	  (lambda ()
+	    (def-edebug-spec working-status-forms (form form def-body))))
 
 ;;; Example function using `working'
 ;;
@@ -299,13 +352,13 @@ is t to display the done string, or the number to display."
   (save-excursion
     (goto-char (point-min))
     (working-status-forms "Scanning" "done"
-	(while (not (eobp))
-	  ;; Use default buffer position.
-	  (working-status)
-	  (forward-sexp 1)
-	  (sleep-for 0.05)
-	  )
-	(working-status t))))
+      (while (not (eobp))
+	;; Use default buffer position.
+	(working-status)
+	(forward-sexp 1)
+	(sleep-for 0.05)
+	)
+      (working-status t))))
  
 (defun working-verify-parenthesis-b ()
   "Verify all the parenthesis in an elisp program buffer."
@@ -313,13 +366,13 @@ is t to display the done string, or the number to display."
   (save-excursion
     (goto-char (point-min))
     (working-status-forms "Scanning" "done"
-	(while (not (eobp))
-	  ;; Use default buffer position.
-	  (working-dynamic-status)
-	  (forward-sexp 1)
-	  (sleep-for 0.05)
-	  )
-	(working-dynamic-status t))))
+      (while (not (eobp))
+	;; Use default buffer position.
+	(working-dynamic-status)
+	(forward-sexp 1)
+	(sleep-for 0.05)
+	)
+      (working-dynamic-status t))))
 
 (provide 'working)
 
