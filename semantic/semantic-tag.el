@@ -1,8 +1,8 @@
 ;;; semantic-tag.el --- tag creation and access
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.20 2003/11/20 04:11:34 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.21 2004/01/09 21:02:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -441,11 +441,12 @@ buffer, the originating buffer file name is kept in the `:filename'
 property of the copied tag."
   ;; Right now, TAG is a list.
   (let ((copy (semantic-tag-clone tag name)))
-    (when keep-file
-      (semantic--tag-put-property
-       copy :filename (semantic-tag-file-name copy)))
-    (semantic--tag-set-overlay
-     copy (vector (semantic-tag-start copy) (semantic-tag-end copy)))
+    (when (semantic-tag-with-position-p tag)
+      (when keep-file
+	(semantic--tag-put-property
+	 copy :filename (semantic-tag-file-name copy)))
+      (semantic--tag-set-overlay
+       copy (vector (semantic-tag-start copy) (semantic-tag-end copy))))
     copy))
 
 (defun semantic--tag-copy-properties (tag1 tag2)
