@@ -3,8 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.15 1996/11/09 23:46:08 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.16 1996/11/27 03:36:39 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -51,7 +50,9 @@
       (oset this reference (cons widget (oref this reference)))))
 
 (defmethod set-value ((this data-object) value &optional setter)
-  "Set the value field of ourselves to VALUE"
+  "Set the `value' field of THIS to VALUE only if it has changed.
+Optional SETTER is used to prevent the widget setting this data object
+from getting notified about the change."
   (if (not (equal (oref this value) value))
       (let ((refs (oref this reference)))
 	(oset this value value)
@@ -72,6 +73,13 @@ is ok."
   (let ((v (oref this value)))
     (cond ((stringp v) v)
 	  (t (format "%S" v)))))
+
+(defmethod object-print ((this data-object) &optional strings)
+  "Return a nice string with a summary of the data object as part of
+the name."
+  (apply 'call-next-method this 
+	 (cons (format " value: %s" (render this)) strings)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -99,6 +107,10 @@ fields for a visual widget.  No action is take for CORE"
   "Backup for update-symbol so we don't get errors if it's not defined for some 
 broken reason."
   ;; (message "No symbols used in this widget")
+  )
+
+(defmethod input ((this widget-core) coe)
+  "Default input method... do nothing"
   )
 
 
@@ -384,7 +396,6 @@ their X,Y offset by our X,Y"
     (while kids
       (if (obj-of-class-p (car kids) widget-visual)
 	  (draw (car kids)))
-      (sit-for 0)
       (setq kids (cdr kids))
       ))
   ;; (message "Done...")
@@ -504,7 +515,7 @@ is known."
 		 (save-match-data
 		   (let* ((posstr (symbol-name (oref this position)))
 			  (nlw (create-widget-parent-first
-				(format "label on %s" (object-name this))
+				(concat (object-name-string this) "-label")
 				widget-label this 
 				:label-value tol
 				:face 'widget-frame-label-face
@@ -576,34 +587,140 @@ in a standard format."
   (if (not (oref this label)) (oset this label (object-name-string this)))
   ;; build the data objects for our labels.
   (let ((lo (transform-dataobject (oref this label) this 
-				  (concat (object-name this) "-label-data")
+				  (concat (object-name-string this) "-label-data")
 				  fix))
 	(uo (if (oref this unit)
 		(transform-dataobject (oref this unit) this 
-				      (concat (object-name this) "-unit-data")
+				      (concat (object-name-string this) "-unit-data")
 				      fix))))
     (if (get-children this)
 	nil
       ;; If we have no children ,create some.
       (if lo
-	  (create-widget-parent (concat (object-name this) "-label")
+	  (create-widget-parent (concat (object-name-string this) "-label")
 				widget-label this
 				:x 0 :y 0 :label-value lo))
-      (create-widget-parent (concat (object-name this) "-text-field")
+      (create-widget-parent (concat (object-name-string this) "-text-field")
 			    widget-text-field this
 			    :width (oref this text-length)
 			    :x (if lo -2 0) :y 0 :value (oref this value))
       (if uo
-	  (create-widget-parent (concat (object-name this) "-unit")
+	  (create-widget-parent (concat (object-name-string this) "-unit")
 				widget-label this
 				:x -2 :y 0 :label-value uo))
       )
-    (let ((tv (transform-dataobject (oref this value) this 
-				    (concat (object-name this) "-text-value")
-				    fix)))
-      (if tv (oset this value tv)
-	(error "Text value not a data object")))
+    ;; used to verify our state... we don't care really...
     ))
+
+;;
+;; widget-option-text
+;;
+
+(defmethod verify ((this widget-option-text) fix)
+  "Initialize a specialized group designed to emulate a combo box on
+more sophisticated widget systems."
+  (call-next-method)
+  ;; Why labeled text with no label?  Create a label from our name if there
+  ;; isn't one.
+  (if (not (oref this label)) (oset this label (object-name-string this)))
+  ;; create the state variable we will share.
+  (let ((tv (transform-dataobject (oref this value) this 
+				  (concat (object-name-string this) "option-text-value")
+				  fix)))
+    (if tv (oset this value tv)
+      (error "Text value not a data object")))
+  ;; build the data objects for our labels.
+  (let ((lo (transform-dataobject (oref this label) this 
+				  (concat (object-name-string this) "-label-data")
+				  fix))
+	(is (data-object "option-index" :value 0)))
+    (if (get-children this)
+	nil
+      ;; If we have no children ,create some.
+      (if lo
+	  (create-widget-parent (concat (object-name-string this) "-label")
+				widget-label this
+				:x 0 :y 0 :label-value lo))
+      (create-widget-parent (concat (object-name-string this) "-text-field")
+			    widget-text-field this
+			    :width (oref this text-length)
+			    :x (if lo -2 0) :y 0 :value (oref this value))
+      (create-widget-parent (concat (object-name-string this) "-option-button")
+			    widget-option-button this
+			    :x -2 :y t
+			    :face 'widget-text-button-face
+			    :dynamic-label nil
+			    :option-list (oref this option-list)
+			    :option-indicator nil
+			    :label-value "[V]"
+			    :state is)
+      (create-widget-parent (concat (object-name-string this) "-translator")
+			    widget-gadget-translator this
+			    :watch is
+			    :change (oref this value)
+			    :translate-function
+			    (lambda (watch change)
+			      (let ((l (oref (oref this parent) option-list)))
+				(set-value change (nth (get-value watch) l)))
+			      ))
+      )))
+
+;;
+;; widget-scrolled-text
+;;
+(defmethod verify ((this widget-scrolled-text) fix)
+  "Initialize a specialized group designed to emulate a scrolled text box."
+  (if (not (and (oref this width) (oref this height)))
+      (error "Scrolled text must have a defined width and height"))
+  (call-next-method)
+  ;; build dataobjects for value, state, and max.
+  ;;    we ignore min because it's always 0
+  (let* ((valdo (transform-dataobject (oref this value) this 
+				      (concat (object-name-string this) "-text-data")
+				      fix))
+	 (stado (transform-dataobject 0 this 
+				      (concat (object-name-string this) "-state-data")
+				      fix))
+	 (mv (length (dialog-string-to-list (get-value valdo))))
+	 (maxdo (transform-dataobject mv this 
+				      (concat (object-name-string this) "-max-data")
+				      fix)))
+    ;; build the text widget
+    (create-widget-parent (concat (object-name-string this) "-text")
+			  widget-text-box this
+			  :x 0 :y 0
+			  :width (oref this width)
+			  :height (oref this height)
+			  :boxed nil
+			  :value valdo
+			  :display-row stado
+			  :display-num-rows maxdo)
+    ))
+
+(defmethod verify-size ((this widget-scrolled-text))
+  "Verify the size of the frame.  First we find out how big we are based
+on our children, then we create our label widget once this information
+is known."
+  (call-next-method)			;find out our size
+  ;; Now we can stick a scrollbar at the right place.
+  (if (oref this scrollbar)
+      nil
+    (let* ((tw (car (get-children this))) ;the text widget
+	   (sb (create-widget-parent (concat (object-name-string this) "-scroller")
+				     widget-scrollbar this
+				     :height (+ (oref this height) 2)
+				     :trough-face 'widget-text-button-face
+				     :x (oref this width) :y '(- 1)
+				     :direction 'vertical
+				     :state (oref tw display-row)
+				     :minimum 0
+				     :maximum (oref tw
+						    display-num-rows))))
+      ;; verify position, and sizes of the scrollbar's children
+      (verify-position sb nil)
+      (verify-size sb)
+      (oset this scrollbar sb))))
+  
 
 ;;
 ;; label
@@ -615,7 +732,7 @@ in a standard format."
       (oset this label-value (object-name-string this)))
   ;; Make sure the label-value is a data object
   (let ((lv (transform-dataobject  (oref this label-value) this
-				   (object-name this) fix)))
+				   (object-name-string this) fix)))
     (if lv
 	(oset this label-value lv)
       (error "Label value for %s is not a data-object!" (object-name this)))
@@ -646,20 +763,10 @@ in a standard format."
   (call-next-method))
 
 (defmethod label-break-into-substrings ((this widget-label))
-  "Takes the label-value from the dataobject, and transforms it into a list
-of substrings which was separated by carriage returns."
-  (let ((txt (render (oref this label-value)))
-	(newlst nil))
-    (if (not (stringp txt)) (error "label-widget must have string label"))
-    (while txt
-      (if (string-match "\n" txt)
-	  (setq newlst (cons (substring txt 0 (match-beginning 0))
-			     newlst)
-		txt (substring txt (match-end 0)))
-	(setq newlst (cons txt newlst)
-	      txt nil)))
-    (oset this label-list (reverse newlst))
-    ))
+  "Takes the `label-value' from the `data-object', and transforms it
+into a list of substrings which was separated by carriage returns."
+  (oset this label-list (dialog-string-to-list (render (oref this label-value))))
+  )
 
 (defmethod update-symbol ((this widget-label) sym)
   "If sym is our :label-value field, then update ourselves"
@@ -797,6 +904,32 @@ help about this widget."
 	(oset this box-char [?+ ?+ ?+ ?+ ?- ?- ?| ?|])
 	(oset this box-sides [ t t t t ]))))
 
+;;
+;; Arrow Button
+;;
+(defmethod verify ((this widget-arrow-button) fix)
+  "Verify an arrow button's parameters..."
+  ;; make sure that the scale state is ok
+  (let ((tv (transform-dataobject (oref this state) this "ArrowState" fix)))
+    (if tv
+	(progn
+	  (if (not (numberp (get-value tv)))
+	      (set-value tv 0))
+	  (oset this state tv)
+	  ;;(add-reference tv this)  do not add reference.. we don't care
+	  )
+      (error "Arrow value for %s is not a number" (object-name this))))
+  (let ((d (oref this direction)))
+    (if (not (oref this label-value))
+	(oset this label-value
+	      (cdr (assoc d '((up . "^") (down . "v")
+			      (left . "<") (right . ">"))))))
+    (if (not (oref this adjustment))
+	(oset this adjustment (cond ((member d '(up left)) -1)
+				    (t 1)))))
+  ;; build the baseline...
+  (call-next-method))
+
 
 ;;
 ;; Option Button
@@ -814,18 +947,23 @@ help about this widget."
   ;; Find longest string in option list and fill in the obarray
   (let* ((ol (oref this option-list))
 	 (sz 0)
-	 (oa (make-vector (length ol) 0)))
+	 (oa (make-vector (length ol) 0))
+	 (oi (oref this option-indicator))
+	 (oiw (if oi (+ (length oi) 1) 0))
+	 (dl (oref this dynamic-label)))
     (while ol
-      (if (> (length (car ol)) sz) (setq sz (length (car ol))))
+      (if (and dl (> (length (car ol)) sz)) (setq sz (length (car ol))))
       (intern (car ol) oa)
       (setq ol (cdr ol)))
     (oset this option-obarray oa)
-    (oset this width (+ sz (length (oref this option-indicator)) 1)))
-  ;; create the special left margin
-  (oset this leftmargin (1+ (length (oref this option-indicator))))
-  ;; Make sure we install the right label string
-  (oset this label-value (nth (get-value (oref this state))
-			      (oref this option-list)))
+    (oset this width (if dl (+ sz oiw) (length (oref this label-value))))
+    ;; create the special left margin
+    (if oi
+	(oset this leftmargin (1+ (length (oref this option-indicator)))))
+    ;; Make sure we install the right label string
+    (if dl
+	(oset this label-value (nth (get-value (oref this state))
+				    (oref this option-list)))))
   ;; Now verify the rest
   (call-next-method))
 
@@ -834,12 +972,14 @@ help about this widget."
   (if (eq major-mode 'dialog-mode)
       (save-excursion
 	;; now draw the indicator
-	(goto-xy (oref this rx) (oref this ry))
-	(insert-overwrite-face (oref this option-indicator) 
-			       (oref this ind-face) 
-			       (oref this focus-face)
-			       this)
-	(insert-overwrite-face " " nil (oref this focus-face) this)
+	(if (oref this option-indicator)
+	    (progn
+	      (goto-xy (oref this rx) (oref this ry))
+	      (insert-overwrite-face (oref this option-indicator) 
+				     (oref this ind-face) 
+				     (oref this focus-face)
+				     this)
+	      (insert-overwrite-face " " nil (oref this focus-face) this)))
 	;; draw the rest
 	(call-next-method))))
 
@@ -884,10 +1024,12 @@ help about this widget."
 
 (defmethod reset-option-label ((this widget-option-button))
   "Reset the label on THIS widget."
-  (set-value (oref this label-value)
-	     (nth (get-value (oref this state)) (oref this option-list))
-	     this)
-  (label-break-into-substrings this))
+  (if (oref this dynamic-label)
+      (progn
+	(set-value (oref this label-value)
+		   (nth (get-value (oref this state)) (oref this option-list))
+		   this)
+	(label-break-into-substrings this))))
 
 (defmethod move-cursor-to ((this widget-option-button))
   "Move the cursor so that it sits at a useful location inside this widget"
@@ -1018,7 +1160,10 @@ help about this widget."
 
 
 ;;
-;; Scale
+;; Scale and Scrollbar
+;;
+;; A scrollbar doesn't have any special stuff as it is a scale with
+;; different attributes.
 ;;
 (defmethod verify ((this widget-scale) fix)
   "Verifies the scale widget is ok."
@@ -1039,36 +1184,160 @@ help about this widget."
 	  (add-reference tv this))
       (error "Scale value for %s is not a number" (object-name this))))
   ;; make sure that the scale min is ok
-  (let ((tv (transform-dataobject (oref this minumum) this "ScaleMin" fix)))
+  (let ((tv (transform-dataobject (oref this minimum) this "ScaleMin" fix)))
     (if tv
 	(progn
 	  (oset this minimum tv)
 	  (add-reference tv this))
       (error "Scale value for %s is not a number" (object-name this))))
   ;; Check sizes
-  (let ((length (+ (get-value (oref this maximum)) 
-		  (if (oref this end-buttons) 2 0)))
+  (let ((len (+ (- (get-value (oref this maximum)) 
+		   (get-value (oref this minimum)))
+		1
+		(if (oref this end-buttons) 2 0)))
 	(w (oref this width))
 	(h (oref this height)))
     (cond ((eq (oref this direction) 'horizontal)
-	   (if (not w) (oset this width length))
+	   (if (not w) (oset this width len))
 	   (if (not h) (oset this height 1))
 	   )
 	  ((eq (oref this direction) 'vertical)
 	   (if (not w) (oset this width 1))
-	   (if (not h) (oset this height length))
+	   (if (not h) (oset this height len))
 	   )
 	  (t
 	   (error "Value %S for field direction in %s invalid"
 		  (oref this direction)
 		  (object-name this)))))
+  ;; Create some arrow buttons if needed
+  (if (oref this end-buttons)
+      (dialog-build-group this
+	(let ((hp (eq (oref this direction) 'horizontal)))
+	  (create-widget (format "%s-up" (object-name-string this)) 
+			 widget-arrow-button
+			 :x 0 :y 0
+			 :state (oref this state) 
+			 :direction (if hp 'left 'up))
+	  (create-widget (format "%s-down" (object-name-string this))
+			 widget-arrow-button
+			 :x (if hp (1- (oref this width)) 0)
+			 :y (if hp 0 (1- (oref this height)))
+			 :state (oref this state)
+			 :direction (if hp 'right 'down))
+	  )))
   ;; Verify parent parts
   (call-next-method)
   )
 
+(defmethod widgetscale-normalize ((this widget-scale) value)
+  "Return the position in the scale's major dimention in which value
+is placed"
+  (let* ((size (- (oref-engine this (if (eq (oref this direction) 'horizontal)
+					'width 'height))
+		  (if (oref this end-buttons) 2 0)))
+	 (slots (- (get-value (oref this maximum))
+		   (get-value (oref this minimum)) -1)))
+    (truncate (* value (/ (float size) (float slots))))))
+
+(defmethod widgetscale-denormalize ((this widget-scale) position)
+  "Return the position in the value represented at POSITION within the
+scale's major dimention."
+  (let* ((size (- (oref-engine this (if (eq (oref this direction) 'horizontal)
+					'width 'height))
+		  (if (oref this end-buttons) 2 0)))
+	 (slots (- (get-value (oref this maximum))
+		   (get-value (oref this minimum)) -1)))
+    (truncate (* position (/ (float slots) (float size))))))
+
+(defmethod update-symbol ((this widget-scale) sym)
+  "If SYM is any value a scale cares about (`state' `minimum'
+`maximum') then the scales display is updated as needed."
+  (cond ((eq sym (oref this state))
+	 (if (< (get-value sym) (get-value (oref this minimum)))
+	     (set-value sym (get-value (oref this minimum)) this))
+	 (if (> (get-value sym) (get-value (oref this maximum)))
+	     (set-value sym (get-value (oref this maximum)) this))
+	 (widgetscale-refresh this))
+	((eq sym (oref this maximum))
+	 (widgetscale-refresh this))
+	((eq sym (oref this minimum))
+	 (widgetscale-refresh this))
+	)
+  (call-next-method))
+
+(defmethod widgetscale-refresh ((this widget-scale))
+  "Refresh the scale without moving the cursor."
+  (let ((pnt (point)))
+    (draw this)
+    (goto-char pnt)))
+
 (defmethod draw ((this widget-scale))
   "Draws a scale widget"
-  )
+  (let ((eb (oref this end-buttons)))
+    (if (eq (oref this direction) 'horizontal)
+	(progn
+	  (goto-xy (oref this rx) (oref this ry))
+	  (if eb (forward-char 1))
+	  (insert-overwrite-face 
+	   (make-string (- (oref this width) (if eb 2 0))
+			(aref (oref this trough-chars) 0))
+				 (oref this trough-face) nil this)
+	  (goto-xy (+ (oref this rx) 
+		      (if eb 1 0)
+		      (widgetscale-normalize this (get-value (oref this state))))
+		   (oref this ry))
+	  (insert-overwrite-face (oref this thumb)
+				 nil (oref this focus-face) this)
+	  )
+      (let* ((x (oref this rx))
+	     (y (+ (oref this ry) (if eb 1 0)))
+	     (h (- (oref this height) (if eb 2 1))) ;inflated by one on purpose
+	     (tc (aref (oref this trough-chars) 1))
+	     (ni (widgetscale-normalize this (get-value (oref this state)))))
+	(while (>= h 0)
+	  (goto-xy x (+ y h))
+	  (if (= h ni)
+	      (insert-overwrite-face (oref this thumb) (oref this trough-face)
+				     (oref this focus-face) this)
+	    (insert-overwrite-face (char-to-string tc) (oref this trough-face)
+				   nil this))
+	  (setq h (1- h))))))
+  (call-next-method))
+
+(defmethod input ((this widget-scale) coe)
+  "Handle input events for a scale widget"
+  (let ((s (get-value (oref this state)))
+	(max (get-value (oref this maximum)))
+	(min (get-value (oref this minimum))))
+    (cond ((or (member coe '(?  ?\n))
+	       (dialog-mouse-event-p coe))
+	   (let ((p (if (eq (oref this direction) 'horizontal)
+			(- (current-column) (oref this rx))
+		      (- (count-lines (point-min) (point)) (oref this ry))))
+		 (eb (oref this end-buttons)))
+	     (if (and eb (= p 0))
+		 (progn
+		   (setq s (1- s))
+		   (if (< s min) (setq s min)))
+	       (if (and eb (= (1+ p) (oref this width)))
+		   (progn
+		     (setq s (1+ s))
+		     (if (> s max) (setq s max)))
+		 (setq s (- p (if (oref this end-buttons) 1 0)))))))
+	  ((member coe '(?n ?f ?F ?N right down))
+	   (setq s (1+ s))
+	   (if (> s max) (setq s max)))
+	  ((member coe '(?p ?b ?P ?B left up))
+	   (setq s (1- s))
+	   (if (< s min) (setq s min)))
+	  (t (help-actions this coe)))
+    (call-next-method)
+    (set-value (oref this state) s)
+    (widgetscale-refresh this)))
+
+(defmethod help-actions ((this widget-scale) reason)
+  "Called when the user may need help to use this device"
+  (message "Use F,N to increment, and B,P to decrement"))
 
 
 ;;
@@ -1087,6 +1356,24 @@ help about this widget."
 	  (add-reference tv this))
       (error "Text field value for %s is not a data-object."
 	     (object-name this))))
+  ;; verify the display row and display column
+  (let ((row (transform-dataobject (oref this display-row) this "Row" fix))
+	(col (transform-dataobject (oref this display-column) this "Col" fix)))
+    (if (not (and row col))
+	(error "Row and Column values for display are not data-objects"))
+    (if (not (and (numberp (get-value row)) (numberp (get-value col))))
+	(error "Row and Column values must be numeric values"))
+    (if fix
+	(progn
+	  (oset this display-row row)
+	  (add-reference row this)
+	  (oset this display-column col)
+	  (add-reference col this))))
+  ;; Notice that `display-num-row' is not set.  That is because if it is
+  ;; not set by our parent it is not useful to set for ourselves.
+  ;; Only scrollbars or some other gizmo may want that info.  If there
+  ;; is no scrollbar, don't bother.
+
   ;; now set the keymap we will use
   (if (not (oref this keymap))
       (if fix
@@ -1096,37 +1383,51 @@ help about this widget."
 
 (defmethod draw ((this widget-text-field))
   "Render's a text widget onto the display"
+  (call-next-method)
   (let* ((myto (oref this value))
-	 (myts (get-value myto))
+	 (myts (render myto))
 	 (tlen (oref this width))
-	 (os (substring myts (oref this disppos)))
-	 (nflag nil)
+	 (nline (oref this height))
+	 (dc (get-value (oref this display-column)))
+	 (dr (get-value (oref this display-row)))
 	 (sflag nil)
+	 (lc 0)
+	 (textlist (dialog-string-to-list myts))
 	 )  
     (goto-xy (1- (oref this rx)) (oref this ry))
     ;; check for characters off to the left
-    (insert-overwrite-face (if (> (oref this disppos) 0) "<" " ")
-			   (oref this spface) nil this)
-    ;; check for newline inside string
-    (if (string-match "\\(\n\\)" os)
-	(setq nflag t
-	      sflag nil
-	      os (substring os 0 (match-beginning 1))))
-    ;; check for string too long
-    (if (> (length os) tlen)
-	(setq sflag t
-	      os (substring os 0 tlen)))
-    ;; see if string is too short
-    (if (< (length os) tlen)
-	(setq os (concat os (make-string (- tlen (length os)) ? ))))
-    ;; insert the string
-    (insert-overwrite-face os (oref this face) (oref this focus-face) this)
+    (if (same-class-p this widget-text-field)
+	(insert-overwrite-face (cond ((> dr 0) "^")
+				     ((> dc 0) "<")
+				     (t " "))
+			       (oref this spface) nil this))
+    (setq textlist (nthcdr dr textlist))
+    ;; for each line of height
+    (while (< lc nline)
+      (goto-xy (oref this rx) (+ (oref this ry) lc))
+      ;; get the working string...
+      (if (and (car-safe textlist) (< dc (length (car textlist))))
+	  (setq os (substring (car textlist) dc))
+	(setq os ""))
+      ;; check for string too long
+      (if (> (length os) tlen)
+	  (setq sflag t
+		os (substring os 0 tlen)))
+      ;; see if string is too short
+      (if (< (length os) tlen)
+	  (setq os (concat os (make-string (- tlen (length os)) ? ))))
+      ;; insert the string
+      (insert-overwrite-face os (oref this face) (oref this focus-face) this)
+      ;; Next line...
+      (setq lc (1+ lc)
+	    textlist (cdr textlist)))
     ;; show more-characters this way strings
-    (if nflag (insert-overwrite-face "v" (oref this spface))
-      (if sflag (insert-overwrite-face ">" (oref this spface))
-	(insert-overwrite-face " " (oref this spface) nil this))))
-  (call-next-method)
-  )
+    (if (same-class-p this widget-text-field)
+	(insert-overwrite-face (cond (textlist "v")
+				     (sflag ">")
+				     (t " "))
+			       (oref this spface)))
+    ))
 
 (defmethod move-cursor-to ((this widget-text-field))
   "Move the cursor so that it sits at a useful location inside this widget"
@@ -1135,9 +1436,16 @@ help about this widget."
 
 (defmethod update-symbol ((this widget-text-field) sym)
   "If sym is STATE field, then update ourselves"
-  (if (eq sym (oref this value))
-      (draw this)
-    (call-next-method)))
+  (cond ((eq sym (oref this value))
+	 ;;if changed.. show it all
+	 (set-value (oref this display-column) 0 sym)
+	 (set-value (oref this display-row) 0 sym)
+	 (draw this))
+	((or (eq sym (oref this display-column))
+	     (eq sym (oref this display-row))
+	     (eq sym (oref this display-num-rows)))
+	 (draw this)))
+  (call-next-method))
 
 (defmethod input ((this widget-text-field) coe)
   "Handle user input events in the text field"
@@ -1145,37 +1453,79 @@ help about this widget."
   (let ((com (dialog-lookup-key global-map coe)))
     (if (and com (fboundp com))
 	;; In this case, we have a one-keystroke edit
-	(let ((cp (- (current-column) (oref this rx)))
-	      (mo (oref this value))
-	      (mv nil)
-	      (rp nil)
-	      ;; make sure no new lines are added
-	      (next-line-add-newlines nil))
+	(let* ((dr (oref this display-row))
+	       (dc (oref this display-column))
+	       (cp (+ (- (current-column) (oref this rx)) (get-value dc)))
+	       (cntl (+ (- (count-lines (point-min) (point))
+			   (oref this ry)) (get-value dr)))
+	       (mo (oref this value))
+	       (drn (oref this display-num-rows))
+	       (num-lines nil)
+	       (mv nil)
+	       (odr (get-value dr))
+	       (odc (get-value dc))
+	       (ndr nil) (ndc nil)
+	       j2x j2y			;jump to positions
+	       ;; Text field doesn't want newlines
+	       (next-line-add-newlines
+		(not (same-class-p this widget-text-field)))
+	       )
 	  ;; do the simulated edit in a seperate buffer
 	  (save-window-excursion
-	    (switch-to-buffer (get-buffer-create "*Text Widget Scratch*") t)
+	    (switch-to-buffer (get-buffer-create " *Text Widget Scratch*") t)
 	    (erase-buffer)
 	    (insert (get-value mo))
-	    (goto-char (+ cp (oref this disppos) 1))
+	    (goto-char (point-min))
+	    (set-buffer-modified-p nil)
+	    (forward-line cntl)
+	    (move-to-column cp)
 	    (command-execute com)
-	    (setq rp (1- (point)))
-	    (setq mv (buffer-string)))
-	  ;; reposition disppos based on cursor position
-	  (if (and (/= (oref this disppos) 0)
-		   (>= (oref this disppos) rp))
-	      (let ((newsize (if (< (- rp 1) 0) 0 (- rp 1))))
-		(oset this disppos newsize)))
-	  (if (>= (1+ rp) (+ (oref this disppos) (oref this width)))
-	      (let ((newsize  (- rp (oref this width) -2)))
-		(oset this disppos newsize)))
+	    (setq cc (current-column)
+		  mod (buffer-modified-p))
+	    (and mod 
+		 (setq num-lines 
+		       (and drn (dialog-count-lines (point-min) (point-max)))
+		       mv (buffer-string)))
+	    ;; reposition disppos based on cursor position
+	    (let* ((cursorline (1- (dialog-count-lines (point-min) (point))))
+		   (cursorcolumn (current-column))
+		   )
+	      
+	      ;; check for change in row
+	      (cond ((< cursorline odr)
+		     ;; scroll up
+		     (if (>= cursorline 0) (setq ndr cursorline)))
+		    ((>= cursorline (+ (or ndr odr) (oref this height)))
+		     ;; scroll down
+		     (setq ndr (- cursorline (oref this height) -1))))
+
+	      ;; check for change in column
+	      (cond ((< cursorcolumn (+ odc 2))
+		     ;; Scroll left
+		     (setq ndc (- cursorcolumn 2))
+		     (if (< ndc 0) (setq ndc 0)))
+		    ((> cursorcolumn (+ (or ndc odc) (oref this width) -2))
+		     ;; scroll right
+		     (setq ndc (- cursorcolumn (oref this width) -2))))
+
+	      (setq j2x (+ (oref this rx) (- cursorcolumn (or ndc odc)))
+		    j2y (+ (oref this ry) (- cursorline (or ndr odr))))
+		    
+	      ))
+
+	  (and ndr (set-value dr ndr this))
+	  (and ndc (set-value dc ndc this))
+
+	  (and drn mod (set-value drn (1- num-lines)))
+	  (and mod (set-value mo mv this))
+
+	  (setq mod (or mod ndr ndc))
+
 	  ;; Now redraw the text if needed
-	  (save-excursion
-	    (set-value mo mv this)
-	    (draw this))
+	  (if (and mod (sit-for 0)) (save-excursion (draw this)))
+
 	  ;; place the cursor
-	  (goto-xy (+ (oref this rx) (- rp (oref this disppos)))
-		   (oref this ry))
-	  ;; make sure the value changed, then call the hook.
+	  (goto-xy j2x j2y)
 	  ))))
 
 ;;; end of lisp
