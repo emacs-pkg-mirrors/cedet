@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.11 2004/01/15 01:49:39 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.12 2004/02/05 03:58:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -559,134 +559,21 @@ be override with `idle-summary-current-symbol-info'"
 ;; completions available for the text under point.  It provides
 ;; NO provision for actually filling in the values from those completions.
 
-(defcustom semantic-idle-completion-popup-max-size 5
-  "The maximum number of popup entries to display.
-The actuall number will actually be this value +1 when there
-are exactly that number.  The +1th slot will be replaced with
-an indicator that there are more entries for longer lists."
-  :group 'semantic
-  :type 'boolean)
-
-(defun semantic-idle-completion-popup-list (tags)
-  "Popup a list of TAGS in a separate window near the cursor."
-  (require 'tooltip)
-  (require 'avoid)
-  (let* ((add-dots nil)
-	 (displayed-tags
-	  (if (<= (length tags) (1+ semantic-idle-completion-popup-max-size))
-	      tags
-	    (let ((subtags nil)
-		  (cnt 0))
-	      (while (< cnt semantic-idle-completion-popup-max-size)
-		(setq subtags (cons (car tags) subtags))
-		(setq tags (cdr tags)
-		      subtags (cdr subtags)
-		      cnt (1+ cnt)))
-	      (setq add-dots t)
-	      (nreverse subtags))))
-	 (text (mapconcat 'semantic-format-tag-name
-			  displayed-tags
-			  "\n"))
-	 (P (mouse-avoidance-point-position))
-	 (frame (car P))
-	 (x (cadr P))
-	 (y (cddr P))
-	 (oP (mouse-position))
-	 (oframe (car oP))
-	 (ox     (cadr oP))
-	 (oy     (cddr oP)))
-    (if add-dots (setq text (concat text "\n...")))
-    (set-mouse-position frame x y)
-    (tooltip-show text)
-    (set-mouse-position frame (1+ x) y)
-    ))
-
-(defvar semantic-idle-completion-region-map
-  (let ((k (make-sparse-keymap)))
-    (define-key k "\C-i" #'semantic-idle-completion-TAB)
-    ;; NOTE TO SELF:
-    ;; Add up/down arrows to select different elements from the list.
-    k)
-  "Keymap placed on the momentary idle completion overlay.")
-
-(defun semantic-idle-completion-TAB (point)
-  "Complete symbol at POINT with `semantic-ia-complete-symbol'.
-After that, immeidatly recall the idle fcn."
-  (interactive "d")
-  ;; Call our favorite completion engine.
-  (call-interactively 'semantic-ia-complete-symbol point)
-  ;; restart the idle fcn.
-  (semantic-idle-completion-list-default)
-  )
-
-(defun semantic-idle-complete-self-insert (n)
-  "`self-insert-command' that recalls the idle completion fcn.
-N is passed to `self-insert-command'."
-  (interactive "P")
-  ;; Call self insert command
-  (call-interactively 'self-insert-command n)
-  ;; restart the idle fcn
-  (semantic-idle-completion-list-default)
-  )
-
-(defun semantic-idle-create-overlay-with-completion-map (begin end prefix)
-  "Create an overlay from BEGIN to END.
-BEGIN and END wrap our PREFIX.
-Highlight it, and make it aware of our keymap."
-  (let ((o (semantic-make-overlay begin (+ end 1)))
-	)
-    (semantic-overlay-put o 'face 'highlight)
-    o))
-
-(defun semantic-idle-momentary-unoverlay (o)
-  "Deoverlay the overlay O."
-  (remove-hook 'pre-command-hook
-	       `(lambda () (semantic-idle-momentary-unoverlay ,o)))
-  (semantic-overlay-delete o)
-  (tooltip-hide)
-  ;; Here is a devious hack that binds TAB to be the
-  ;; magical complete-symbol thingy.
-  (let ((fcn (lookup-key semantic-idle-completion-region-map
-			 (this-command-keys) nil)))
-    ;; Reset this-command IFF we found a command.
-    (if (commandp fcn) (setq this-command fcn)
-      ;; We didn't get that kind of command.  Try this:
-      (if (eq this-command 'self-insert-command)
-	  (setq this-command 'semantic-idle-complete-self-insert))
-      ))
-  )
-
-(defun semantic-idle-momentary-overlay-with-completion-map (begin end prefix)
-  "Make an overlay from BEGIN to END.
-BEGIN and END wrap PREFIX.
-Highlight it until the next keystroke."
-  (let ((o (semantic-idle-create-overlay-with-completion-map begin end prefix))
-	)
-    (add-hook 'pre-command-hook
-	      `(lambda () (semantic-idle-momentary-unoverlay ,o)))
-    ))
-
 (defun semantic-idle-completion-list-default ()
   "Calculate and display a list of completions."
   (if (or (not (featurep 'tooltip)) tooltip-use-echo-area)
       ;; If tooltips aren't available, turn this off.
       (global-semantic-idle-completions-mode -1)
-    (save-excursion
-      (condition-case nil
-	  (let* ((context (semantic-analyze-current-context (point)))
-		 (prefix (reverse (oref context :prefix)))
-		 (bounds (oref context :bounds))
-		 (completions nil))
-	    (when (stringp (car prefix))
-	      (setq completions
-		    (semantic-analyze-possible-completions context))
-	      (when completions
-		(semantic-idle-momentary-overlay-with-completion-map
-		 (car bounds) (cdr bounds) prefix)
-		(semantic-idle-completion-popup-list
-		 (semantic-unique-tag-table-by-name completions))
-		)))
-	(error nil)))))
+    ;; This mode can be fragile.  Ignore problems.
+    ;; If something doesn't do what you expect, run
+    ;; the below command by hand instead.
+    (condition-case nil
+	(progn
+	  (semantic-complete-analyze-inline)
+	  (when (semantic-completion-inline-active-p)
+	    (semantic-complete-inline-force-display)))
+      (error nil))
+    ))
 
 (define-semantic-idle-service semantic-idle-completions
   "Display a list of possible completions in a tooltip."
