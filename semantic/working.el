@@ -168,12 +168,23 @@ percentage display.  A number such as `2' means `2%'."
 (defvar working-mode-line-message nil
   "Message used by working when showing status in the mode line.")
 
-(setq minor-mode-alist (cons
-			'(working-mode-line-message working-mode-line-message)
-			minor-mode-alist))
+(if (boundp 'global-mode-string)
+    (progn
+      ;; If this variable exists, use it to pus the working message into
+      ;; an interesting part of the mode line.
+      (if (null global-mode-string)
+	  (setq global-mode-string (list "")))
+      (setq global-mode-string
+	    (append global-mode-string (list working-mode-line-message))))
+  ;; Else, use minor mode trickery to get a reliable way of doing the
+  ;; same thing across many versions of Emacs.
+  (setq minor-mode-alist (cons
+			  '(working-mode-line-message working-mode-line-message)
+			  minor-mode-alist))
+  )
 
 (defvar working-use-echo-area-p t
-  "Non-nil use the echo area to display working messages.")
+  "*Non-nil use the echo area to display working messages.")
 
 ;;; Variables used in stages
 ;;
