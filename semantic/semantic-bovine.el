@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.5 2002/08/07 17:56:11 ponced Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.6 2002/08/09 23:18:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -71,6 +71,7 @@ If so abort because an infinite recursive parse is suspected."
       (set (intern nt semantic-bovinate-nonterminal-check-obarray)
            (cons stream vs)))))
 
+;;;###autoload
 (defun semantic-bovinate-stream (stream &optional nonterminal)
   "Bovinate STREAM, starting at the first NONTERMINAL rule.
 Use `bovine-toplevel' if NONTERMINAL is not provided.
