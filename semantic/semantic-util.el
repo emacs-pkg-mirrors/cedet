@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.67 2001/06/11 18:04:47 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.68 2001/07/13 16:12:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -171,6 +171,11 @@ Instead, use `semantic-token-variable-extra-spec',
 	  ((eq tt 'type)
 	   (semantic-token-type-extra-spec token spec))
 	  (t nil))))
+
+(defmacro semantic-token-modifiers (token)
+  "Retrieve modifiers for TOKEN.
+If TOKEN is of an unknown type, then nil is returned."
+  `(semantic-token-extra-spec ,token 'typemodifiers))
 
 ;;; Misc. utilities
 ;;
@@ -992,6 +997,7 @@ Return nil if not found."
     semantic-prototype-nonterminal
     semantic-concise-prototype-nonterminal
     semantic-uml-abbreviate-nonterminal
+    semantic-uml-prototype-nonterminal
     )
   "List of functions which convert a token to text.
 Each function must take the parameters TOKEN &optional PARENT COLOR.
@@ -1025,16 +1031,23 @@ Use this variable in the :type field of a customizable variable.")
      ;; Not a token, but instead a feature of output
      (label . font-lock-string-face)
      (comment . font-lock-comment-face)
+     (keyword . font-lock-keyword-face)
      )
   "Face used to colorize tokens of different types.
 Override the value locally if a language supports other token types.
+When adding new elements, try to use symbols also returned by the parser.
+The form of an entry in this list is of the form:
+ ( SYMBOL .  FACE )
+where SYMBOL is a token type symbol used with semantic.  FACE
+is a symbol representing a face.
 Faces used are generated in `font-lock' for consistency, and will not
 be used unless font lock is a feature.")
 
 ;;; Coloring Functions
 (defun semantic-colorize-text (text face-class)
   "Apply onto TEXT a color associated with FACE-CLASS.
-FACE-CLASS is a token type returned by the parser."
+FACE-CLASS is a token type found in `semantic-face-alist'.  See this variable
+for details on adding new types."
   (let ((face (cdr-safe (assoc face-class semantic-face-alist)))
 	(newtext (concat text)))
     (put-text-property 0 (length text) 'face face newtext)
@@ -1293,6 +1306,16 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
      (t
       (semantic-abbreviate-nonterminal token parent nil)))))
 
+(defun semantic-uml-protection-to-string (protection-symbol)
+  "Convert PROTECTION-SYMBOL to a string for UML."
+  (cond ((eq protection-symbol 'public)
+	 "+")
+	((eq protection-symbol 'private)
+	 "-")
+	((eq protection-symbol 'protected)
+	 "#")
+	(t " ")))
+
 (defun semantic-uml-abbreviate-nonterminal (token &optional parent color)
   "Return a UML style abbreviation for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
@@ -1308,8 +1331,46 @@ Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((tok (semantic-token-token token))
 	 (name (semantic-name-nonterminal token parent color))
-	 (type (if (member tok '(function variable type))
-		   (semantic-token-type token) ""))
+	 (type (or (semantic-token-type token) ""))
+	 (prot (semantic-nonterminal-protection token parent))
+	 )
+    (setq type
+	  (cond ((semantic-token-p type)
+		 (semantic-prototype-nonterminal type nil color))
+		((listp type)
+		 (car type))
+		((stringp type)
+		 type)
+		(t nil)))
+    (if (and type color)
+	(setq type (semantic-colorize-text type 'type)))
+    (setq prot (semantic-uml-protection-to-string prot))
+    (if type
+	(concat prot name ":" type)
+      name)
+    ))
+
+(defun semantic-uml-prototype-nonterminal (token &optional parent color)
+  "Return a UML style prototype for TOKEN.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let ((s (semantic-fetch-overload 'uml-prototype-nonterminal)))
+    (if s
+	(funcall s token parent color)
+      (semantic-uml-prototype-nonterminal-default token parent color))))
+
+(defun semantic-uml-prototype-nonterminal-default (token &optional parent color)
+  "Return a UML style abbreviation for TOKEN.
+Optional argument PARENT is the parent type if TOKEN is a detail.
+Optional argument COLOR means highlight the prototype with font-lock colors."
+  (let* ((tok (semantic-token-token token))
+	 (name (semantic-name-nonterminal token parent color))
+	 (type (or (semantic-token-type token) ""))
+	 (args (semantic-prototype-nonterminal-default-args
+		(cond ((eq tok 'function)
+		       (semantic-token-function-args token))
+		      (t nil))
+		color))
 	 (prot (semantic-nonterminal-protection token parent))
 	 )
     (if type
@@ -1319,18 +1380,18 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	      (setq type (car type)))
 	  (if color
 	      (setq type (semantic-colorize-text type 'type)))))
-    (setq prot
-	  (cond ((eq prot 'public)
-		 "+")
-		((eq prot 'private)
-		 "-")
-		((eq prot 'friend)
-		 "-")
-		(t " ")))
+    (setq prot (semantic-uml-protection-to-string prot))
+    (if args
+	(setq args
+	      (concat " "
+		      (if (eq tok 'type) "{" "(")
+		      (mapconcat (lambda (a) a) args ",")
+		      (if (eq tok 'type) "}" ")"))))
     (if type
-	(concat prot name ":" type)
+	(concat prot name (or args "") ":" type)
       name)
     ))
+
 
 
 ;;; Multi-file Token information
@@ -1549,11 +1610,11 @@ For functions return the argument list."
 (defun semantic-nonterminal-protection (token &optional parent)
   "Return protection information about TOKEN with optional PARENT.
 This function returns on of the following symbols:
-   nil      - No special protection.  Language dependent.
-   'public  - Anyone can access this TOKEN.
-   'private - Only methods in the local scope can access TOKEN.
-   'friend  - Like private, except some outer scopes are allowed
-              access to token.
+   nil        - No special protection.  Language dependent.
+   'public    - Anyone can access this TOKEN.
+   'private   - Only methods in the local scope can access TOKEN.
+   'protected - Like private for outside scopes, like public for child
+                classes.
 Some languages may choose to provide additional return symbols specific
 to themselves.  Use of this function should allow for this.
 
@@ -1566,7 +1627,7 @@ is to return a symbol based on type modifiers."
 (defun semantic-nonterminal-protection-default (token &optional parent)
   "Return the protection of TOKEN as a child of PARENT default action.
 See `semantic-nonterminal-protection'."
-  (let ((mods (semantic-token-type-modifiers token))
+  (let ((mods (semantic-token-modifiers token))
 	(prot nil))
     (while (and (not prot) mods)
       (if (stringp (car mods))
@@ -1579,8 +1640,8 @@ See `semantic-nonterminal-protection'."
 		  ((or (string= s "private")
 		       (string= s "static"))
 		   'private)
-		  ((string= s "friend")
-		   'friend))))
+		  ((string= s "protected")
+		   'protected))))
       (setq mods (cdr mods)))
     prot))
 
