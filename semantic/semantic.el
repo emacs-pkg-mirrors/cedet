@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.160 2002/08/10 14:20:22 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.161 2002/08/13 16:38:52 ponced Exp $
 
 (defvar semantic-version "2.0alpha4"
   "Current version of Semantic.")
@@ -313,7 +313,7 @@ That is if it is dirty or if the current parse tree isn't up to date."
   "Setup Semantic in the current buffer.
 Runs `semantic-init-hook' if the major mode is setup to use Semantic."
   ;; Make sure variables are set up for this mode.
-  (semantic-symbol-value-mode-assign)
+  (semantic-activate-mode-bindings)
   ;; Do stuff if semantic is active in this buffer.b
   (when (semantic-active-p)
     ;; Force this buffer to have its cache refreshed.
