@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-class.el,v 1.4 1996/11/18 00:26:34 zappo Exp $
+;;; RCS: $Id: dlg-class.el,v 1.5 1997/01/07 23:06:49 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -89,6 +89,47 @@ initialized."
 based upon the symbol we are editing"
   (dlg-init-symbol this)
   (oset this value (symbol-value (oref this symbol))))
+
+(defclass data-object-symbol-translated (data-object-symbol)
+  ((set-lambda :initarg :set-lambda
+	       :initform nil
+	       :docstring "This is a lambda expression to use on the data 
+value to translate it from the rendered() version to the internally
+stored version. (lambda (newvalue) ...) and returns value to
+store. See `dlg-string-to-list' as an example.")
+   (get-lambda :initarg :get-lambda
+	       :initform nil
+	       :docstring "This is the lambda expression to use on the
+data whenever it's value is gotten.  When the value is rendered,
+`get-lambda' is run, and then translated to a string.  (lambda (outvalue) ...)
+See `dlg-list-to-string' as an example.")
+   )
+  "This is a type of `data-object-symbol' which allows the creator to
+make specialized translators. This would permit any data not currently
+defined to be specified.")
+
+;; Uses the same dlg-init-symbol as data-object-symbol.
+
+(defmethod set-value ((this data-object-symbol-translated) value
+		      &optional setter)
+  "Perform some pre-processing of VALUE before calling the next
+method."
+  (let ((newvalue (funcall (oref this set-lambda) value)))
+    (call-next-method this newvalue setter)
+    ))
+
+(defmethod get-value ((this data-object-symbol-translated))
+  "Perform some pre-processing of this object's value before returning
+it."
+  (funcall (oref this get-lambda) (oref this value)))
+
+(defmethod render ((this data-object-symbol-translated))
+  "Perform some pre-processing before returning the rendered form of
+this symbol."
+  (let ((newvalue (funcall (oref this get-lambda) (oref this value))))
+    (if (stringp newvalue)
+	newvalue
+      (format "%S" newvalue))))
 
 (defclass data-object-symbol-string-to-int (data-object-symbol)
   ((float-p :initarg :float-p
@@ -262,6 +303,9 @@ of a face.")
 (defmethod set-value :AFTER ((this data-object-symbol) value &optional setter)
   "When this data object's value is set, also set the value of it's
   symbol"
+  ;; This prevents a set-value override from making this behave
+  ;; strangely.
+  (setq value (oref this value))
   (if (and (stringp value) (string= value "")) (setq value nil))
   ;; We only have to check again here just in case
   (if (not (equal value (symbol-value (oref this symbol))))
@@ -287,10 +331,24 @@ the variables we are editing."
 	  (goto-char (match-beginning 1))
 	  (delete-region (point) (match-end 1))
 	  (insert (format "%S" val)))
-      (goto-char (point-max))
-      (insert (format "\n(setq %s %S)"
-		      (symbol-name (oref this symbol))
-		      val))))
+      (if (re-search-forward (concat "(setq[ \t\n]+"
+				     (symbol-name (oref this symbol))
+				     "[ \t\n]+\\('(\\)") nil t)
+	  (progn
+	    (goto-char (match-beginning 1))
+	    (delete-region (point)
+			   (save-excursion
+			     (forward-char 1)
+			     (forward-sexp 1)
+			     (point)))
+	    (if (listp val) (insert "'"))
+	    (insert (format "%S" val)))
+	(goto-char (point-max))
+	(insert (format (if (listp val)
+			    "\n(setq %s '%S)"
+			  "\n(setq %s %S)")
+			(symbol-name (oref this symbol))
+			val)))))
   (beginning-of-line)
   (point))
 
