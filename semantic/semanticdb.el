@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.45 2002/08/20 16:30:45 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.46 2002/08/31 02:49:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -167,7 +167,8 @@ If one isn't found, create one."
 
 (defmethod semanticdb-file-table ((obj semanticdb-project-database) filename)
   "From OBJ, return FILENAMEs associated table object."
-  (object-assoc (file-name-nondirectory filename) 'file (oref obj tables)))
+  (object-assoc (eieio-persistent-path-relative obj filename)
+		'file (oref obj tables)))
 
 (defmethod semanticdb-set-buffer ((obj semanticdb-table))
   "Set the current buffer to be a buffer owned by OBJ.
