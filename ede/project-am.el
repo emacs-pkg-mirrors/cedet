@@ -1,11 +1,11 @@
 ;;; project-am.el --- A project management scheme based on automake files.
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.18 1999/11/10 14:32:35 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.19 2000/04/29 14:53:28 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -634,6 +634,17 @@ Argument FILE is the file to extract the end directory name from."
 	 project-am-lisp)
 	(t
 	 project-am-program)))
+
+(defmethod ede-buffer-header-file((this project-am-objectcode) buffer)
+  "There are no default header files."
+  (let ((s (oref this source))
+	(found nil))
+    (while (and s (not found))
+      ;; Add more logic here if applicable.
+      (if (string-match "\\.\\(h\\|H\\|hh\\|hpp\\)" (car s))
+	  (setq found (car s)))
+      (setq s (cdr s)))
+    found))
 
 
 ;;; Makefile editing and scanning commands
