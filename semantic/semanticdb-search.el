@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.4 2002/08/16 13:20:34 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.5 2002/08/20 16:38:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,19 +33,46 @@
 
 ;;; Code:
 ;;
+;;; Classes:
+(defclass semanticdb-search-results-table (semanticdb-abstract-table)
+  (
+   )
+  "Table used for search results when there is no file or table association.
+Examples include search results from external sources such as from
+Emacs' own symbol table, or from external libraries.")
+
+(defmethod semanticdb-refresh-table ((obj semanticdb-search-results-table))
+  "If the token list associated with OBJ is loaded, refresh it.
+This will call `semantic-bovinate-toplevel' if that file is in memory."
+  nil)
 
 ;;; Utils
 ;;
 ;; Convenience routines for searches
 (defun semanticdb-collect-find-results (result-in-databases
-					result-finding-function)
+					result-finding-function
+					ignore-system
+					find-file-on-match)
   "Collect results across RESULT-IN-DATABASES for RESULT-FINDING-FUNCTION.
 If RESULT-IN-DATABASES is nil, search a range of associated databases
 calculated by `semanticdb-current-database-list'.
 RESULT-IN-DATABASES is a list of variable `semanticdb-project-database'
 objects.
-RESULT-FINDING-FUNCTION should accept one argument, the database being searched."
-  (let* ((dbs (or result-in-databases
+RESULT-FINDING-FUNCTION should accept one argument, the database being searched.
+Argument IGNORE-SYSTEM specifies if any available system databases should
+be ignored, or searched.
+Argument FIND-FILE-ON-MATCH indicates that the found databases
+should be capable of doing so."
+  (if (not (listp result-in-databases))
+      (signal 'wrong-type-argument (list 'listp result-in-databases)))
+  (let* ((semanticdb-ignore-system-databases
+	  (if (and (not semanticdb-search-system-databases)
+		   (not ignore-system))
+	      ;; If the user changes the value for searching the
+	      ;; system, honor that.
+	      nil
+	    (not ignore-system)))
+	 (dbs (or result-in-databases
 		  ;; Calculate what database to use.
 		  ;; Something simple and dumb for now.
 		  (or (semanticdb-current-database-list)
@@ -53,7 +80,11 @@ RESULT-FINDING-FUNCTION should accept one argument, the database being searched.
 	 (case-fold-search semantic-case-fold)
 	 (res (mapcar
 	       (lambda (db)
-		 (funcall result-finding-function db))
+		 (if (or (not find-file-on-match)
+			 (not (child-of-class-p
+			       (oref db new-table-class)
+			       semanticdb-search-results-table)))
+		     (funcall result-finding-function db)))
 	       dbs))
 	 out)
     ;; Flatten the list.  The DB is unimportant at this stage.
@@ -72,109 +103,122 @@ RESULT-FINDING-FUNCTION should accept one argument, the database being searched.
 ;; These routines all perform different types of searches, and are
 ;; interfaces to the database methods used to also perform those searches.
 
-
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-token
-  (token &optional databases search-parts search-includes diff-mode find-file-match)
+  (token &optional databases search-parts search-includes diff-mode find-file-match ignore-system)
   "Find all occurances of nonterminals with token TOKEN in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH.
+SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
 Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-collect-find-results
    databases
    (lambda (db)
      (semanticdb-find-nonterminal-by-token-method
-      db token search-parts search-includes diff-mode find-file-match))))
+      db token search-parts search-includes diff-mode find-file-match))
+   ignore-system
+   find-file-match))
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-name
-  (name &optional databases search-parts search-includes diff-mode find-file-match)
+  (name &optional databases search-parts search-includes diff-mode find-file-match ignore-system)
   "Find all occurances of nonterminals with name NAME in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, and FIND-FILE-MATCH.
+SEARCH-PARTS, SEARCH-INCLUDES, DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
 Return a list ((DB-TABLE . TOKEN) ...)."
   (semanticdb-collect-find-results
    databases
    (lambda (db)
      (semanticdb-find-nonterminal-by-name-method
-      db name search-parts search-includes diff-mode find-file-match))))
+      db name search-parts search-includes diff-mode find-file-match))
+   ignore-system
+   find-file-match))
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-name-regexp
-  (regex &optional databases search-parts search-includes diff-mode find-file-match)
+  (regex &optional databases search-parts search-includes diff-mode find-file-match ignore-system)
   "Find all occurances of nonterminals with name matching REGEX in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
 Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-collect-find-results
    databases
    (lambda (db)
      (semanticdb-find-nonterminal-by-name-regexp-method
-      db regex search-parts search-includes diff-mode find-file-match))))
+      db regex search-parts search-includes diff-mode find-file-match))
+   ignore-system
+   find-file-match))
 
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-type
-  (type &optional databases search-parts search-includes diff-mode find-file-match)
+  (type &optional databases search-parts search-includes diff-mode find-file-match ignore-system)
   "Find all nonterminals with a type of TYPE in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
 Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-collect-find-results
    databases
    (lambda (db)
      (semanticdb-find-nonterminal-by-type-method
-      db type search-parts search-includes diff-mode find-file-match))))
+      db type search-parts search-includes diff-mode find-file-match))
+   ignore-system
+   find-file-match))
 
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-property
-  (property value &optional databases search-parts search-includes diff-mode find-file-match)
+  (property value &optional databases search-parts search-includes diff-mode find-file-match ignore-system)
   "Find all nonterminals with a PROPERTY equal to VALUE in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
 Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-collect-find-results
    databases
    (lambda (db)
      (semanticdb-find-nonterminal-by-property-method
-      db property value search-parts search-includes diff-mode find-file-match))))
+      db property value search-parts search-includes diff-mode find-file-match))
+   ignore-system
+   find-file-match))
 
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-extra-spec
-  (spec &optional databases search-parts search-includes diff-mode find-file-match)
+  (spec &optional databases search-parts search-includes diff-mode find-file-match ignore-system)
   "Find all nonterminals with a SPEC in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
 Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-collect-find-results
    databases
    (lambda (db)
      (semanticdb-find-nonterminal-by-extra-spec-method
-      db spec search-parts search-includes diff-mode find-file-match))))
+      db spec search-parts search-includes diff-mode find-file-match))
+   ignore-system
+   find-file-match))
 
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-extra-spec-value
-  (spec value &optional databases search-parts search-includes diff-mode find-file-match)
+  (spec value &optional databases search-parts search-includes diff-mode find-file-match ignore-system)
   "Find all nonterminals with a SPEC equal to VALUE in databases.
 See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
-SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, and FIND-FILE-MATCH.
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
 Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (semanticdb-collect-find-results
    databases
    (lambda (db)
      (semanticdb-find-nonterminal-by-extra-spec-value-method
-      db spec value search-parts search-includes diff-mode find-file-match))))
+      db spec value search-parts search-includes diff-mode find-file-match))
+   ignore-system
+   find-file-match))
 
 
 ;;;###autoload
 (defun semanticdb-find-nonterminal-by-function
-  (function &optional databases search-parts search-includes diff-mode find-file-match)
+  (function &optional databases search-parts search-includes diff-mode find-file-match ignore-system)
   "Find all occurances of nonterminals which match FUNCTION.
 Search in all DATABASES.  If DATABASES is nil, search a range of
-associated databases calculated by `semanticdb-current-database-list'.
+associated databases calculated `semanticdb-current-database-list' and
 DATABASES is a list of variable `semanticdb-project-database' objects.
 When SEARCH-PARTS is non-nil the search will include children of tokens.
 When SEARCH-INCLUDES is non-nil, the search will include dependency files.
@@ -182,12 +226,15 @@ When DIFF-MODE is non-nil, search databases which are of a different mode.
 A Mode is the `major-mode' that file was in when it was last parsed.
 When FIND-FILE-MATCH is non-nil, the make sure any found token's file is
 in an Emacs buffer.
+When IGNORE-SYSTEM is non-nil, system libraries are not searched.
 Return a list ((DB-TABLE . TOKEN-OR-TOKEN-LIST) ...)."
   (semanticdb-collect-find-results
    databases
    (lambda (db)
      (semanticdb-find-nonterminal-by-function-method
-      db function search-parts search-includes diff-mode find-file-match))))
+      db function search-parts search-includes diff-mode find-file-match))
+   ignore-system
+   find-file-match))
 
 ;;; Search Methods
 ;;
