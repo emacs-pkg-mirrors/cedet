@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.42 2003/04/09 01:01:37 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.43 2003/05/29 00:58:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -47,10 +47,10 @@ This will replace the named bucket that would have usually occured here."
   :group 'speedbar
   :type semantic-format-tag-custom-list)
 
-;(defcustom semantic-sb-info-format-tag-function 'semantic-format-tag-summarize
-;  "*Function called to create the text for info display from a token."
-;  :group 'speedbar
-;  :type semantic-format-tag-custom-list)
+(defcustom semantic-sb-info-format-tag-function 'semantic-format-tag-summarize
+  "*Function called to create the text for info display from a token."
+  :group 'speedbar
+  :type semantic-format-tag-custom-list)
 
 ;;; Code:
 
