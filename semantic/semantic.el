@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.144 2002/07/04 03:07:15 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.145 2002/07/10 03:44:54 zappo Exp $
 
-(defvar semantic-version "1.4"
+(defvar semantic-version "2.0alpha1"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -267,44 +267,9 @@ This is tracked with `semantic-change-function'.")
   "Non nil if the next token request forces a reparse.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-force-reparse)
 
-(defvar semantic-dirty-tokens nil
-  "List of tokens in the current buffer which are dirty.
-Dirty functions can then be reparsed, and spliced back into the main list.")
-(make-variable-buffer-local 'semantic-dirty-tokens)
-
 (defvar semantic-bovinate-nonterminal-check-obarray nil
   "Obarray of streams already parsed for nonterminal symbols.")
 (make-variable-buffer-local 'semantic-bovinate-nonterminal-check-obarray)
-
-(defvar semantic-dirty-token-hooks nil
-  "Hooks run after when a token is marked as dirty (edited by the user).
-The functions must take TOKEN, START, and END as a parameters.
-This hook will only be called once when a token is first made dirty,
-subsequent edits will not cause this to run a second time unless that
-token is first cleaned.  Any token marked as dirty will
-also be called with `semantic-clean-token-hooks', unless a full
-reparse is done instead.")
-
-(defvar semantic-pre-clean-token-hooks nil
-  "Hooks run before a token is reparsed.
-The functions must take a TOKEN as a parameter.
-Any token sent to this hook is about to be cleaned, or reparsed.
-The overlay may change, but many features and properties will
-persist unless a full reparse is later required.
-See `semantic-dirty-token-hooks' and `semantic-clean-token-hooks'.")
-
-(defvar semantic-clean-token-hooks nil
-  "Hooks run after a token is marked as clean (reparsed after user edits.)
-The functions must take a TOKEN as a parameter.
-Any token sent to this hook will have first been called with
-`semantic-dirty-token-hooks'.  This hook is not called for tokens
-marked dirty if the buffer is completely reparsed.  In that case, use
-`semantic-after-toplevel-cache-change-hook'.")
-
-(defvar semantic-change-hooks nil
-  "Hooks run when semantic detects a change in a buffer.
-Each hook function must take three arguments, identical to the
-common hook `after-change-functions'.")
 
 (defvar semantic-unmatched-syntax-hook nil
   "Hooks run when semantic detects syntax not matched in a grammar.
@@ -316,7 +281,6 @@ syntax tokens created by the semantic lexer.  Use the functions
 `semantic-flex-start', `semantic-flex-end' and `semantic-flex-text' to
 get information about these tokens.  The current buffer is the buffer
 these tokens are derived from.")
-
 
 (defvar semantic-bovinate-toplevel-override nil
   "Local variable set by major modes which provide their own bovination.
@@ -350,35 +314,12 @@ tokens associated with this buffer.
 
 For language specific hooks, make sure you define this as a local hook.")
 
-(defvar semantic-after-partial-cache-change-hook nil
-  "Hooks run after the buffer token list has been updated.
-This list will change when the current token list has been partially
-reparsed.
-
-Hook functions must take one argument, which is the list of tokens
-updated among the ones associated with this buffer.
-
-For language specific hooks, make sure you define this as a local hook.")
-
 (defvar semantic-before-toplevel-cache-flush-hook nil
   "Hooks run before the toplevel nonterminal cache is flushed.
 For language specific hooks, make sure you define this as a local
 hook.  This hook is called before a corresponding
 `semantic-after-toplevel-cache-change-hook' which is also called
 during a flush when the cache is given a new value of nil.")
-
-(defvar semantic-reparse-needed-change-hook nil
-  "Hooks run when a user edit is detected as needing a reparse.
-For language specific hooks, make sure you define this as a local
-hook.
-Not used yet; part of the next generation reparse mechanism")
-
-(defvar semantic-no-reparse-needed-change-hook nil
-  "Hooks run when a user edit is detected as not needing a reparse.
-If the hook returns non-nil, then declare that a reparse is needed.
-For language specific hooks, make sure you define this as a local
-hook.
-Not used yet; part of the next generation reparse mechanism.")
 
 
 ;;; Primitive lexeme access system:
@@ -566,16 +507,6 @@ Optional argument CHECKCACHE indicates if the cache check should be made."
        checkcache
        semantic-toplevel-bovine-cache-check)))
 
-(defsubst semantic-bovine-toplevel-partial-reparse-needed-p (&optional checkcache)
-  "Return non-nil if the current buffer needs a partial reparse.
-This only returns non-nil if `semantic-bovine-toplevel-full-reparse-needed-p'
-returns nil.
-Optional argument CHECKCACHE indicates if the cache check should be made
-when checking `semantic-bovine-toplevel-full-reparse-needed-p'."
-  (and semantic-toplevel-bovine-cache
-       semantic-dirty-tokens
-       (not (semantic-bovine-toplevel-full-reparse-needed-p checkcache))))
-
 (defsubst semantic-bovine-umatched-syntax-refresh-needed-p  (&optional checkcache)
   "Return non-nil if the unmatched syntax cache needs a refresh.
 That is if the cache is dirty or if the current buffer needs a full or
@@ -596,9 +527,7 @@ Runs `semantic-init-hook' if the major mode is setup to use Semantic."
     (run-hooks 'semantic-init-hooks)
     ;; Here are some buffer local variables we can initialize ourselves
     ;; of a mode does not choose to do so.
-    (condition-case nil
-	(semantic-lex-init)
-      (error nil))
+    (semantic-lex-init)
     ))
 
 (defvar semantic-changed-mode-buffers nil
@@ -744,34 +673,6 @@ string.  See also the function `working-status-forms'."
       (format "%s/%s" semantic-bovinate-parser-name (or arg ""))
     (format "%s" (or arg ""))))
 
-(defun semantic-remove-dirty-children-internal (token dirties)
-  "Remove TOKEN children from DIRTIES.
-Return the new value of DIRTIES."
-  (if dirties
-      (let ((children (semantic-nonterminal-children token t))
-            child)
-        (while (and children dirties)
-          (setq child (car children)
-                children (cdr children)
-                dirties  (semantic-remove-dirty-children-internal
-                          child (delq child dirties))))))
-  dirties)
-
-(defun semantic-remove-dirty-children ()
-  "Remove children of dirty tokens from the list of dirty tokens.
-It is not necessary and even dangerous to reparse these tokens as they
-will be recreated when reparsing their parents.  Return the new value
-of the variable `semantic-dirty-tokens' changed by side effect."
-  (let ((dirties semantic-dirty-tokens)
-        token)
-    (while dirties
-      (setq token   (car dirties)
-            dirties (cdr dirties)
-            semantic-dirty-tokens
-            (semantic-remove-dirty-children-internal
-             token semantic-dirty-tokens))))
-  semantic-dirty-tokens)
-
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer.
@@ -876,11 +777,6 @@ that, otherwise, do a full reparse."
   (run-hooks 'semantic-after-toplevel-bovinate-hook)
   )
 
-(defun semantic-change-function (start end length)
-  "Provide a mechanism for semantic token management.
-Argument START, END, and LENGTH specify the bounds of the change."
-  (setq semantic-unmatched-syntax-cache-check t)
-  (run-hook-with-args 'semantic-change-hooks start end length))
 
 ;;; Force token lists in and out of overlay mode.
 ;;
@@ -1041,71 +937,6 @@ with the current results on a parse error."
 	    (working-dynamic-status))))
     result))
 
-(defun semantic-rebovinate-token (token)
-  "Use TOKEN for extents, and reparse it, splicing it back into the cache."
-  ;; Pre Hooks
-  (run-hook-with-args 'semantic-pre-clean-token-hooks token)
-
-  (let* ((flexbits (semantic-flex (semantic-token-start token)
-				  (semantic-token-end token)))
-	 ;; For embedded tokens (type parts, for example) we need a
-	 ;; different symbol.  Come up with a plan to solve this.
-	 (nonterminal (semantic-token-get token 'reparse-symbol))
-	 (new (semantic-bovinate-nonterminal
-               flexbits
-               semantic-toplevel-bovine-table
-               nonterminal))
-	 (cooked nil)
-	 )
-    (setq new (car (cdr new)))
-    (if (not new)
-        ;; Clever reparse failed, queuing full reparse.
-        (setq semantic-toplevel-bovine-cache-check t)
-      (setq cooked (semantic-raw-to-cooked-token new))
-      (if (not (eq new (car cooked)))
-          (if (= (length cooked) 1)
-              ;; Cooking did a 1 to 1 replacement.  Use it.
-              (setq new (car cooked))
-          ;; If cooking results in multiple things, do a full reparse.
-            (setq semantic-toplevel-bovine-cache-check t))))
-    ;; Don't do much if we have to do a full recheck.
-    (if semantic-toplevel-bovine-cache-check
-        nil
-      (semantic-overlay-token new)
-      (let ((oo (semantic-token-overlay token))
-            (o (semantic-token-overlay new)))
-        ;; Copy all properties of the old overlay here.
-        ;; I think I can use plists in emacs, but not in XEmacs.  Ack!
-        (semantic-overlay-put o 'face (semantic-overlay-get oo 'face))
-        (semantic-overlay-put o 'old-face (semantic-overlay-get oo 'old-face))
-        (semantic-overlay-put o 'intangible (semantic-overlay-get oo 'intangible))
-        (semantic-overlay-put o 'invisible (semantic-overlay-get oo 'invisible))
-        ;; Free the old overlay(s)
-        (semantic-deoverlay-token token)
-        ;; Recover properties
-        (let ((p (semantic-token-properties token)))
-          (while p
-            (semantic-token-put new (car (car p)) (cdr (car p)))
-            (setq p (cdr p))))
-        (semantic-token-put new 'reparse-symbol nonterminal)
-        (semantic-token-put new 'dirty nil)
-        ;; Splice into the main list.
-        (setcdr token (cdr new))
-        (setcar token (car new))
-        ;; This important bit is because the CONS cell representing
-        ;; TOKEN is what we need here, even though the whole thing is
-        ;; the same.
-        (semantic-overlay-put o 'semantic token)
-        ;; Hooks
-        (run-hook-with-args 'semantic-clean-token-hooks token)
-        )
-      )))
-
-(defun semantic-change-function (start end length)
-  "Provide a mechanism for semantic token management.
-Argument START, END, and LENGTH specify the bounds of the change."
-  (setq semantic-unmatched-syntax-cache-check t)
-  (run-hook-with-args 'semantic-change-hooks start end length))
 
 ;;; Force token lists in and out of overlay mode.
 ;;
@@ -1121,29 +952,6 @@ list of semantic tokens found."
            stream
            table
            nonterminal))
-
-(defun semantic-deoverlay-list (l)
-  "Remove overlays from the list L."
-  (mapcar 'semantic-deoverlay-token l))
-
-(defun semantic-overlay-list (l)
-  "Convert numbers to  overlays from the list L."
-  (mapcar 'semantic-overlay-token l))
-
-(defun semantic-deoverlay-cache ()
-  "Convert all tokens in the current cache to use overlay proxies."
-  (semantic-deoverlay-list (semantic-bovinate-toplevel)))
-
-(defun semantic-overlay-cache ()
-  "Convert all tokens in the current cache to use overlays."
-  (condition-case nil
-      ;; In this unique case, we cannot call the usual toplevel fn.
-      ;; because we don't want a reparse, we want the old overlays.
-      (semantic-overlay-list semantic-toplevel-bovine-cache)
-    ;; Recover when there is an error restoring the cache.
-    (error (message "Error recovering token list.")
-	   (semantic-clear-toplevel-cache)
-	   nil)))
 
 (defun semantic-bovinate-make-assoc-list (&rest args)
   "Create an association list with ARGS.
@@ -1453,7 +1261,7 @@ This specifies how many lists to create tokens in.")
 Semantically check between START and END.  Optional argument DEPTH
 indicates at what level to scan over entire lists.
 The return value is a token stream.  Each element is a list, such of
-the form (symbol start-expression . end-expression) where SYMBOL
+the form (symbol start-expression .  end-expression) where SYMBOL
 denotes the token type.
 See `semantic-flex-tokens' variable for details on token types.
 END does not mark the end of the text scanned, only the end of the
@@ -1462,6 +1270,8 @@ end of the return token will be larger than END.  To truly restrict
 scanning, use `narrow-to-region'.
 The last argument, LENGTH specifies that `semantic-flex' should only
 return LENGTH tokens."
+  ;; Run new stuff while keeping some compatibility.
+  (if semantic-lex-analyzer (semantic-lex start end depth length))
   ;;(message "Flexing muscles...")
   (if (not semantic-flex-keywords-obarray)
       (setq semantic-flex-keywords-obarray [ nil ]))
@@ -1676,3 +1486,4 @@ Optional argument DEPTH is the depth to scan into lists."
 ;; Semantic-util is a part of the semantic API.  Include it last
 ;; because it depends on semantic.
 (require 'semantic-util)
+(require 'semantic-edit)
