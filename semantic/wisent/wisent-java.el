@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.19 2001/12/18 06:53:13 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.20 2002/02/07 22:25:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -608,7 +608,7 @@ variable NAME."
       ((assignment_expression)))
      (constant_expression
       ((expression))))
-   '(package_declaration import_declaration class_declaration field_declarations_opt field_declaration method_declaration formal_parameter constructor_declaration interface_declaration abstract_method_declaration)))
+   '(goal package_declaration import_declaration class_declaration field_declarations_opt field_declaration method_declaration formal_parameter constructor_declaration interface_declaration abstract_method_declaration)))
 "Wisent LALR(1) grammar for Semantic.
 Tweaked for Semantic needs.  That is to avoid full parsing of
 unnecessary stuff to improve performance.")

@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.3 2002/01/14 19:57:35 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.4 2002/02/07 22:25:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -379,7 +379,7 @@ variable NAME."
        (concat $1 "[]"))
       ((BRACK_BLOCK)
        (identity "[]"))))
-   '(package_declaration import_declaration class_declaration field_declaration method_declaration formal_parameter constructor_declaration interface_declaration class_member_declaration interface_member_declaration formal_parameters)))
+   '(compilation_unit package_declaration import_declaration class_declaration field_declaration method_declaration formal_parameter constructor_declaration interface_declaration class_member_declaration interface_member_declaration formal_parameters)))
 "Wisent LALR(1) grammar for Semantic.
 Tweaked for Semantic needs.  That is to avoid full parsing of
 unnecessary stuff to improve performance.")
