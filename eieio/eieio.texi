@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.15 1999/02/18 20:13:42 zappo Exp $
+@c $Id: eieio.texi,v 1.16 1999/02/18 20:19:44 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -426,7 +426,7 @@ object.
 This function is mearly an alias for oref
 @end defun
 
-When using @code{oref} or @code {oset}, if the value behind @var{field}
+When using @code{oref} or @code{oset}, if the value behind @var{field}
 is private, then the current scope of operation must be within a method
 of the calling object.  The scope is tracked with the variable
 @code{this}.  You can set the field @code{this} by making it the name of
