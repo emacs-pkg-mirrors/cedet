@@ -1,9 +1,10 @@
-;;; tree.el
+;;; tree.el - Draw a tree with text characters an manipulate it.
 ;;;
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
+;;; RCS: $Id: tree.el,v 1.2 1996/03/10 15:23:22 zappo Exp $
 ;;; Keywords: OO, tree                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -26,10 +27,17 @@
 ;;;
 ;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
 ;;;
+;;; Tree can be found in the eieio distribution on:
+;;;  ftp://ftp.ultranet.com/pub/zappo
+;;;
 ;;; Commentary:
 ;;;   Many new IDEs provide a tree of some structure-or-other to express the
 ;;; structural organization of data.  This is a feature lacking in emacs,
 ;;; and this is some code to provide that functionality.
+;;;
+;;;  The interactive command `tree-test-it-all' will display a demo tree,
+;;; and `directory-tree-thing' will display a directory hierarchy from
+;;; the default directory of the current buffer.
 ;;;
 ;;; REQUIRES: emacs 19.30 or better and eieio
 
@@ -120,12 +128,10 @@ current buffer"
   ;; first-things first.  Cache the height of every node in the tree
   (tree-level-height tree-root-node)
   ;; Now fill the buffer with stuff
-  (let ((last-command-char ?\n))
-    (self-insert-command (oref tree-root-node height)))
+  (insert (make-string (oref tree-root-node height) ?\n))
   ;; Now loop over every node building the tree
   (tree-draw-node tree-root-node t t
 		  (+ (tree-node-width tree-root-node) 2) 1 0)
-  (setq ms2 (nth 2 (current-time)))
   (message "Refreshing tree...Done")
   )
 
@@ -145,8 +151,8 @@ far out on the left this node can draw itself."
     ;; draw the box
     (tree-goto-xy leftmargin (+ cent toprow))
     (insert (if p " " "") tree-ul-char)
-    (let ((last-command-char (aref tree-horizontal-char 0)))
-      (self-insert-command (- (tree-node-width node) 2)))
+    (insert (make-string (- (tree-node-width node) 2)
+			 (aref tree-horizontal-char 0)))
     (insert tree-ur-char)
     (tree-goto-xy leftmargin (+ cent toprow 1))
     (insert (if p "-" "") tree-vertical-char)
@@ -167,8 +173,8 @@ far out on the left this node can draw itself."
 	    (setq l (1+ l)))))
     (tree-goto-xy leftmargin (+ cent toprow 2))
     (insert (if p " " "") tree-ll-char)
-    (let ((last-command-char (aref tree-horizontal-char 0)))
-      (self-insert-command (- (tree-node-width node) 2)))
+    (insert (make-string (- (tree-node-width node) 2)
+			 (aref tree-horizontal-char 0)))
     (insert tree-lr-char)
     ;; draw all the kids
     (while (and kids ex)
@@ -220,32 +226,29 @@ needed."
    (height :initarg :height
 	   :initform 3)
    (currentpos :initform 0)
-   (select :method t)
-   (edit :method t)
-   (change-scope :method t)
    )
   "Base class for a tree node")
 
-(defclassmethod select tree-node ()
+(defmethod select ((tn tree-node))
   "Action to take when first mouse is clicked."
-  (message "Clicked on node %s" (object-name this))
+  (message "Clicked on node %s" (object-name tn))
   )
-(defclassmethod edit tree-node ()
+(defmethod edit ((tn tree-node))
   "Action to take when middle mouse button is clicked."
   (let ((nn (read-string "New name: ")))
-    (oset this name nn))
+    (oset tn name nn))
   (erase-buffer)
   (tree-refresh-tree)
-  (goto-char (oref this currentpos))
+  (goto-char (oref tn currentpos))
   )
-(defclassmethod change-scope tree-node ()
+(defmethod change-scope ((tn tree-node))
   "Action to take when last mouse is clicked on this node"
-  (if (oref this children)
+  (if (oref tn children)
       (progn
-	(oset this expand (not (oref this expand)))
+	(oset tn expand (not (oref tn expand)))
 	(erase-buffer)
 	(tree-refresh-tree)
-	(goto-char (oref this currentpos))
+	(goto-char (oref tn currentpos))
 	)))
 
 (defun tree-set-root (node)
@@ -263,6 +266,23 @@ in building quick trees."
   (oset child parent parent)
   (oset parent children (append (oref parent children) (list child)))
   child)
+
+(defun tree-sort-elements (node)
+  "Sort all children of node, recurse"
+  (let ((k (oref node children)))
+    (setq k (sort k '(lambda (a b) (string< (oref a name) (oref b name)))))
+    (oset node children k)
+    (while k
+      (tree-sort-elements (car k))
+      (setq k (cdr k)))))
+
+(defun tree-trim-below (node depth)
+  "Set the expand field to nil for all nodes below DEPTH."
+  (let ((k (oref node children)))
+    (if (and k (<= depth 1)) (oset node expand nil))
+    (while k
+      (tree-trim-below (car k) (1- depth))
+      (setq k (cdr k)))))
 
 
 ;;;
@@ -308,7 +328,7 @@ text-properties"
   (interactive)
   (let ((node (get-text-property (point) 'node-object)))
     (if node
-	(ocall node select)
+	(select node)
       (error "There is no tree-node under point"))))
 
 (defun tree-select-node-mouse ()
@@ -318,7 +338,7 @@ text-properties"
   (call-interactively 'mouse-set-point)
   (let ((node (get-text-property (point) 'node-object)))
     (if node
-	(ocall node select)
+	(select node)
       (error "There is no tree-node under point"))))
 
 (defun tree-edit-node ()
@@ -327,7 +347,7 @@ text-properties"
   (interactive)
   (let ((node (get-text-property (point) 'node-object)))
     (if node
-	(ocall node edit)
+	(edit node)
       (error "There is no tree-node under point"))))
 
 (defun tree-edit-node-mouse ()
@@ -337,7 +357,7 @@ text-properties"
   (call-interactively 'mouse-set-point)
   (let ((node (get-text-property (point) 'node-object)))
     (if node
-	(ocall node edit)
+	(edit node)
       (error "There is no tree-node under point"))))
 
 (defun tree-expand-or-contract-node ()
@@ -346,7 +366,7 @@ text-properties"
   (interactive)
   (let ((node (get-text-property (point) 'node-object)))
     (if node
-	(ocall node change-scope)
+	(change-scope node)
       (error "There is no tree-node under point"))))
 
 (defun tree-expand-or-contract-node-mouse ()
@@ -356,7 +376,7 @@ text-properties"
   (call-interactively 'mouse-set-point)
   (let ((node (get-text-property (point) 'node-object)))
     (if node
-	(ocall node change-scope)
+	(change-scope node)
       (error "There is no tree-node under point"))))
 
 
@@ -400,27 +420,27 @@ text-properties"
    )
   "A tree-node child class for displaying a directory.")
 
-(defclassmethod edit dirtree-node ()
+(defmethod edit ((dtn dirtree-node))
   "Action to take when this node is clicked."
-  (find-file (format "%s%s" (oref this pathname) (oref this name)))
+  (find-file (format "%s%s" (oref dtn pathname) (oref dtn name)))
 )
-(defclassmethod select dirtree-node ()
+(defmethod select ((dtn dirtree-node))
   "Action to take when this node is clicked."
-  (shell-command (format "ls -ld %s%s" (oref this pathname)
-			 (oref this name)))
+  (shell-command (format "ls -ld %s%s" (oref dtn pathname)
+			 (oref dtn name)))
 )
-(defclassmethod change-scope dirtree-node ()
+(defmethod change-scope ((dtn dirtree-node))
   "Action to take when last mouse is clicked on this node"
   ;; check for new nodes...
-  (if (equal (oref this haschildren) 'unknown)
-      (let ((path-path (oref this pathname)))
-	(directory-tree-more-nodes this 1)))
-  (if (oref this children)
+  (if (equal (oref dtn haschildren) 'unknown)
+      (let ((path-path (oref dtn pathname)))
+	(directory-tree-more-nodes dtn 1)))
+  (if (oref dtn children)
       (progn
-	(oset this expand (not (oref this expand)))
+	(oset dtn expand (not (oref dtn expand)))
 	(erase-buffer)
 	(tree-refresh-tree)
-	(goto-char (oref this currentpos))
+	(goto-char (oref dtn currentpos))
 	)
     ))
 
@@ -452,6 +472,7 @@ text-properties"
   ;; mark that we checked this guy
   (oset node haschildren 'known)
   (let* ((nm (oref node name))
+	 ;;                            path-path is letted in previous call
 	 (files (directory-files (concat path-path nm) nil nil t)))
     (while files
       (if (or (string= "." (car files))
@@ -485,4 +506,4 @@ text-properties"
   )
 
 ;; end of lisp
-(provide 'tree-mode)
+(provide 'tree)
