@@ -1528,6 +1528,16 @@ the current buffer was set up for parsing.  Return non-@code{nil} if the
 minor mode is enabled.
 @end deffn
 
+When the incremental parser starts updating the tags buffer, you can
+also enable a set of messages to help identify how the incremental
+parser is merging changes with the main buffer.
+
+@defvar semantic-edits-verbose-flag
+@anchor{semantic-edits-verbose-flag}
+Non-@code{nil} means the incremental perser is verbose.
+If @code{nil}, errors are still displayed, but informative messages are not.
+@end defvar
+
 @node Debugging Analysis
 @section Debugging Analysis
 
