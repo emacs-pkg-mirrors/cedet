@@ -1,4 +1,18 @@
 <!-- -*- html -*- -->
+<body bgcolor=white text=black>
+<style>
+<!--
+ol,ul,p,body,td,tr,th,form {font-family : helvetica,sans-serif; } 
+A:visited { color: #0000A0 ; text-decoration: none }
+A:link { color: #0000F0 ; text-decoration: none }
+A:active { color: red ; text-decoration: underline overline }
+A[href]:visited.sb { color: #0000A0 ; text-decoration: none; font-family : courier }
+A[href]:link.SB { text-decoration: none; font-family : courier }
+A[href]:hover.SB { background-color: orange ; text-decoration: none ; font-family : courier}
+A[href]:hover { text-decoration: underline overline }
+-->
+</style>
+
 <table><tr><td width="90%"><img src="cedetlogo.png" ></td>
 <td><img src="writecode.png" align=right></td></tr></table>
 <table width=100% bgcolor="lightgreen"><tr><td><font size=-2> &nbsp </font></td></tr></table>
