@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-mode.el,v 1.2 2000/09/25 11:04:36 zappo Exp $
+;; X-RCS: $Id: semantic-mode.el,v 1.3 2000/09/26 11:34:10 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -85,6 +85,31 @@
 	[ "Set Token Background" semantic-mode-set-background t ]
 	[ "Remove all properties" semantic-mode-clear-token t ] )
        ("Imenu Config"
+	( "Token Sorting Function"
+	  [ "identity" semantic-imenu-set-sort-function
+	    :active t :style radio
+	    :selected (eq semantic-imenu-sort-bucket-function nil)]
+	  [ "semantic-sort-tokens-by-name-increasing"
+	    semantic-imenu-set-sort-function
+	    :active t :style radio
+	    :selected (eq semantic-imenu-sort-bucket-function
+			  'semantic-sort-tokens-by-name-increasing)]
+	  [ "semantic-sort-tokens-by-name-decreasing"
+	    semantic-imenu-set-sort-function
+	    :active t :style radio
+	    :selected (eq semantic-imenu-sort-bucket-function
+			  'semantic-sort-tokens-by-name-decreasing)]
+	  [ "semantic-sort-tokens-by-name-increasing-ci"
+	    semantic-imenu-set-sort-function
+	    :active t :style radio
+	    :selected (eq semantic-imenu-sort-bucket-function
+			  'semantic-sort-tokens-by-name-increasing-ci)]
+	  [ "semantic-sort-tokens-by-name-decreasing-ci"
+	    semantic-imenu-set-sort-function
+	    :active t :style radio
+	    :selected (eq semantic-imenu-sort-bucket-function
+			  'semantic-sort-tokens-by-name-decreasing-ci)]
+	  )
 	[ "Bin tokens by type" semantic-imenu-toggle-bucketize-file
 	  :active t
 	  :style toggle :selected semantic-imenu-bucketize-file ]
@@ -127,8 +152,10 @@ tokens, highlighting them, or making functions read only.
       ;; If turned on, do this:
       (progn
 	(semantic-mode-parse)
+	;(add-hook 'after-change-functions 'semantic-mode-change-function nil t)
 	)
     ;; If turned off, do this:
+    ;(remove-hook 'after-change-functions 'semantic-mode-change-function t)
     )
   (run-hooks 'semantic-minor-mode-hooks))
 
@@ -153,6 +180,7 @@ tokens, highlighting them, or making functions read only.
   (error "Not implemented yet.")
   )
 
+;;; Property setting functions
 (defun semantic-mode-make-invisible (&optional token)
   "Make the current TOKEN invisible."
   (interactive)
@@ -206,6 +234,17 @@ tokens, highlighting them, or making functions read only.
   "Clear all properties from TOKEN."
   (interactive)
   (semantic-set-token-face (or token (semantic-smallest-token)) nil))
+
+;;; Imenu menu function
+;;
+(defun semantic-imenu-set-sort-function ()
+  "Set the sort bucket function."
+  (interactive)
+  ;; This is a hack for Emacs.
+  (setq semantic-imenu-sort-bucket-function
+	(cond ((eq last-input-event 'identity)
+	       nil)
+	      (t last-input-event))))
   
 ;;; Utility functions
 ;;
@@ -225,7 +264,17 @@ tokens, highlighting them, or making functions read only.
 
 ;;; Dynamic reparse
 ;;
+(defvar semantic-mode-change-set nil
+  "List of changes queued up and un-tested while editing.")
 
+(defun semantic-mode-change-function (start end length)
+  "Run whenever a buffer controlled by `semantic-mode' change.
+Tracks when and how the buffer is re-parsed.
+Argument START, END, and LENGTH specify the bounds of the change."
+  (setq semantic-mode-change-set
+	(cons (list start end length) semantic-mode-change-set))
+  )
+  
 
 (provide 'semantic-mode)
 
