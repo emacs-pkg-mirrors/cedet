@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.9.bovine1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.144 1999/05/05 14:05:37 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.145 1999/05/18 15:54:10 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -2369,7 +2369,9 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 	  (diff-idx 0))
       ;; Break out sub-lists
       (while lst
-	(if (listp (cdr-safe (car-safe lst)))
+	(if (and (listp (cdr-safe (car-safe lst)))
+		 ;; This one is for bovine tokens
+		 (not (symbolp (car-safe (cdr-safe (car-safe lst))))))
 	    (setq newlst (cons (car lst) newlst))
 	  (setq sublst (cons (car lst) sublst)))
 	(setq lst (cdr lst)))
@@ -3639,13 +3641,15 @@ Returns the tag list, or t for an error."
   (save-excursion
     (set-buffer (find-file-noselect file))
     ;(if speedbar-power-click (setq imenu--index-alist nil))
-    (condition-case nil
-	(progn
-	  ;; TODO!
-	  ;; The bovinator is refuses to cache data.  It is up to speedbar
-	  ;; (who knows better) to do the caching for it.
-	  (semantic-bovinate-toplevel nil t))
-      (error t))))
+    (if (not semantic-toplevel-bovine-table)
+	t
+      (condition-case nil
+	  (progn
+	    ;; TODO!
+	    ;; The bovinator is refuses to cache data.  It is up to speedbar
+	    ;; (who knows better) to do the caching for it.
+	    (semantic-bovinate-toplevel nil t))
+	(error t)))))
 )
 
 ;;; Tag Management -- Imenu
