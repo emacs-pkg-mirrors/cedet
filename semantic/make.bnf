@@ -1,9 +1,9 @@
 # Simple BNF notation for Makefiles.
 #
-# Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+# Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: make.bnf,v 1.12 2001/12/18 02:19:48 zappo Exp $
+# X-RCS: $Id: make.bnf,v 1.12.2.1 2002/02/10 18:06:04 zappo Exp $
 #
 # make.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: make.bnf,v $
+# Revision 1.12.2.1  2002/02/10 18:06:04  zappo
+# (semantic-flex-syntax-modifications): Remove tab.
+# (conditional): Return explicit nils.
+#
 # Revision 1.12  2001/12/18 02:19:48  zappo
 # Removed parens and $ from symbol syntax types.
 # Added IFEQ and IFNEQ tokens
@@ -81,7 +85,6 @@
        semantic-flex-syntax-modifications '((?. "_")
 					    (?= ".")
 					    (?/ "_")
-					    (?\t ".")
 					    (?$ ".")
 					    )
        semantic-flex-enable-newlines t
@@ -125,19 +128,19 @@ rule: symbol colons elements commands
     ;
 
 conditional: IF symbol newline
-	     ( )
+	     ( nil )
 	   | IFDEF symbol newline
-	     ( )
+	     ( nil )
 	   | IFNDEF symbol newline
-	     ( )
+	     ( nil )
 	   | IFEQ expression newline
-	     ( )
+	     ( nil )
 	   | IFNEQ expression newline
-	     ( )
+	     ( nil )
 	   | ELSE newline
-	     ( )
+	     ( nil )
 	   | ENDIF newline
-	     ( )
+	     ( nil )
 	   ;
 
 expression : semantic-list
