@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.216 2002/03/17 02:19:28 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.217 2002/03/17 02:47:02 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -2718,7 +2718,7 @@ indicator, then do not add a space."
 	(progn
 	  (goto-char speedbar-ro-to-do-point)
 	  (while (and (not (input-pending-p))
-		      (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-]\\] "
+		      (re-search-forward "^\\([0-9]+\\):\\s-*[[<][+-\?][]>] "
 					 nil t))
 	    (setq speedbar-ro-to-do-point (point))
 	    (if (not (file-writable-p (speedbar-line-file)))
@@ -2770,7 +2770,7 @@ to add more types of version control systems."
 	(progn
 	  (goto-char speedbar-vc-to-do-point)
 	  (while (and (not (input-pending-p))
-		      (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-]\\] "
+		      (re-search-forward "^\\([0-9]+\\):\\s-*\\[[+-?]\\] "
 					 nil t))
 	    (setq speedbar-vc-to-do-point (point))
 	    (if (speedbar-check-vc-this-line (match-string 1))
