@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.1 2003/01/28 16:07:29 ponced Exp $
+;; X-RCS: $Id: cedet.el,v 1.2 2003/09/08 12:44:44 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -73,26 +73,27 @@
 ;;
 
 ;;; Code:
+(eval-when-compile
+  (require 'cl))
+
 (defconst cedet-version "1.0"
   "Current version of CEDET.")
 
 (defconst cedet-packages
   '(
     ;;PACKAGE   MIN-VERSION   SETUP
-    (cogre      "0.3"                      )
-    (ede        "1.0beta3"                 )
-    (eieio      "0.17"                     )
-    (semantic   "1.4"         semantic-load)
-    (speedbar   "0.14beta4"                )
+    (cogre      "0.4"         "cogre-defs"    )
+    (ede        "1.0beta3"    "ede-loaddefs"  )
+    (eieio      "0.18"        "eieio-defs"    )
+    (semantic   "2.0beta1"    "semantic-load" )
+    (speedbar   "0.15beta1"   "speedbar-defs" )
     )
   "Table of CEDET packages to install.")
 
 ;; This file must be in "<INSTALL-DIR>/cedet/common"!
 (let ((default-directory
         (file-name-directory
-         (or load-file-name (buffer-file-name))))
-      (packages cedet-packages)
-      package)
+         (or load-file-name (buffer-file-name)))))
   
   ;; Add "<INSTALL-DIR>/cedet/common" to `load-path'.
   (add-to-list 'load-path default-directory)
@@ -101,17 +102,19 @@
   (require 'inversion)
   
   ;; Go up to the parent "<INSTALL-DIR>/cedet" directory.
-  (setq default-directory (expand-file-name ".."))
+  (let ((default-directory (expand-file-name "..")))
 
-  ;; Add the CEDET packages subdirectories to the `load-path' if
-  ;; necessary, and do specific setup.
-  (while packages
-    (setq package (car packages)
-          packages (cdr packages))
-    (inversion-add-to-load-path (car package) (cadr package))
-    (if (nth 2 package)
-        (require (nth 2 package))))
-  )
+    ;; Add the CEDET packages subdirectories to the `load-path' if
+    ;; necessary, and do specific setup.
+    (dolist (package cedet-packages)
+      (inversion-add-to-load-path (car package) (cadr package))
+      (when (nth 2 package)
+        (condition-case err
+            (load (nth 2 package))
+          (error
+           (message "%s" (error-message-string err))))
+        ))
+    ))
 
 (provide 'cedet)
 
