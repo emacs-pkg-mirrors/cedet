@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.7 2003/03/16 01:14:23 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.8 2003/03/17 01:08:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -125,6 +125,11 @@ We need to go back later and fill them in from this list.")
 (defvar semantic-cb-current-project nil
   "The current project's class structure.")
 
+(defun semantic-cb-clear-current-project ()
+  "Clear the class browser cache."
+  (interactive)
+  (setq semantic-cb-current-project nil))
+
 (defun semantic-cb-new-class-browser ()
   "Create an object representing this project's organization.
 The object returned is of type `semantic-cb-project', which contains
@@ -136,7 +141,11 @@ class of type `semantic-cb-token', or `semantic-cb-type'."
 		    nil			;only top level types
 		    nil			;no include files outside this project
 		    nil			;same mode
-		    nil))		;do not load unloaded files.
+		    nil			;do not load unloaded files.
+		    t			;ignore sysmtem
+					; -- Remove when we have duplicate
+					;    filters working.
+		    ))
 	;; Scope these variables during construction.
 	(semantic-cb-incomplete-types nil)
 	(semantic-cb-incomplete-scoped-types nil)
@@ -293,6 +302,124 @@ PARENTOBJ is the CB token which hosts CHILDLIST."
       ;; reference.
       (semantic-overlay-put ol 'semantic-cb this))))
 
+;;; Search by name.
+;;
+(defun semantic-cb-find-node-in-list (typelist name)
+  "Find in TYPELIST an object with NAME."
+  (let ((ans nil))
+    (while (and (not ans) typelist)
+      (setq ans (semantic-cb-find-node (car typelist) name))
+      (setq typelist (cdr typelist)))
+    ans))
+
+(defmethod semantic-cb-find-node ((this semantic-cb-project) name)
+  "Find the node representing a TYPE with NAME."
+  (semantic-cb-find-node-in-list (oref this types) name)
+  )
+
+(defmethod semantic-cb-find-node ((this semantic-cb-type) name)
+  "Find the node representing a TYPE with NAME."
+  (if (string= name (oref this object-name))
+      this
+    (semantic-cb-find-node-in-list (oref this subclasses) name))
+  )
+
+
+;;; Dot Output File Generation for UML
+;;
+(defun semantic-dot (start)
+  "Create a DOT graph out of the class browser information.
+Argument START specifies the name of the class we are going to start
+the graph with."
+  (interactive "sDiagram Base Type: ")
+
+  ;;(require 'graphviz-dot)
+
+  (let* ((cb semantic-cb-current-project)
+	 (node)
+	 (file)
+	 (diagramname (concat "uml_" start))
+	 )
+
+    (when cb
+      (setq node (semantic-cb-find-node cb start)))
+
+    (when (not node)
+      (message "Building new class browswer...")
+      (setq cb (semantic-cb-new-class-browser)
+	    node (semantic-cb-find-node cb start))
+      (message "Building new class browswer...done"))
+
+    (when (not node)
+      (error "Could not find %s in class browser" start))
+
+    ;; Ok, now we can build a dot file.
+    (setq file (make-temp-file "/tmp/semantic_uml_" nil ".dot"))
+
+    (while (string-match "-" diagramname)
+      (setq diagramname (replace-match "_" t t diagramname)))
+
+    (save-excursion
+      (set-buffer (find-file-noselect file))
+    
+      ;; Create the content
+      (erase-buffer)
+
+      ;; Header
+      (insert "// DOT file created by EMACS/Semantic "
+	      (current-time-string) "
+digraph uml_" diagramname " {\n")
+
+      (insert "\tgraph [ fontname = \"Helvetica\",
+	fontsize = 24,
+	label = \""
+	      (semantic-dot-token-name node)
+	      " and decedents\",
+	];\n")
+
+      ;; All the nodes
+      (semantic-dot-insert-token node)
+
+      ;; Finish
+      (insert "}")
+
+      (save-buffer)
+      )
+
+    ;; Ok, now generate
+    ;; Use dotty for now.  Later, create a png, and load it into
+    ;; an Emacs buffer instead.
+    (save-window-excursion
+      (shell-command (concat "dotty " file "&")))
+
+    ))
+
+(defmethod semantic-dot-token-name ((this semantic-cb-token))
+  "Return DOT code for THIS token's name."
+  (let ((n (oref this object-name)))
+    (while (string-match "-" n)
+      (setq n (replace-match "_" t t n)))
+    n))
+
+(defmethod semantic-dot-insert-token ((this semantic-cb-token))
+  "Insert DOT code for THIS token."
+  (let ((children (oref this subclasses)))
+    ;; Insert a way to draw this object.
+    (insert "\t"
+	    (semantic-dot-token-name this)
+	    " [shape=record,label=\"{"
+	    (semantic-dot-token-name this)
+	    "||}\",fontsize=12];\n")
+    ;; Insert all the links for this child.
+    (while children
+      (insert "\t" (semantic-dot-token-name this)
+	      "-> " (semantic-dot-token-name (car children))
+	      "[ arrowhead=none arrowtail=empty ]"
+	      "\n")
+      (semantic-dot-insert-token (car children))
+      (setq children (cdr children)))
+    ))
+
 
 ;;; Speedbar specific methods
 ;;
@@ -335,8 +462,18 @@ PARENTOBJ is the CB token which hosts CHILDLIST."
   nil)
 
 (defvar semantic-cb-speedbar-menu
-  eieio-speedbar-menu
+  (append
+   eieio-speedbar-menu
+   '([ "Graph This Object" semantic-cb-speedbar-dot ]
+     ))
   "Menu additions used in speedbar when displaying a callback hierarchy.")
+
+(defun semantic-cb-speedbar-dot ()
+  "Dot the current speedbar line."
+  (interactive)
+  (let ((o (eieio-speedbar-find-nearest-object)))
+    (semantic-dot (oref o object-name)))
+  )
 
 (defun semantic-cb-speedbar-buttons (dir)
   "Return the list of object children to display at the toplevel in speedbar.
