@@ -2,12 +2,12 @@
 ;;               or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 95,96,98,99,2000,01,02,03 Eric M. Ludlam
+;; Copyright (C) 95,96,98,99,2000,01,02,03,04 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.130 2003/09/24 13:50:31 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.131 2004/02/12 01:58:48 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "0.18beta1"
+(defvar eieio-version "0.18beta2"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -2133,9 +2133,18 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 	    ;; appeared as "#1 =" which was not useful.  This allows
 	    ;; edebug to print my objects in the nice way they were
 	    ;; meant to with `object-print' and `class-name'
-	    (defalias 'edebug-prin1-to-string 'eieio-edebug-prin1-to-string)
+	    ;; (defalias 'edebug-prin1-to-string 'eieio-edebug-prin1-to-string)
 	    )
 	  )
+
+(eval-after-load "cedet-edebug"
+  '(progn
+     (cedet-edebug-add-print-override '(class-p object) '(class-name object) )
+     (cedet-edebug-add-print-override '(object-p object) '(object-print object) )
+     (cedet-edebug-add-print-override '(and (listp object)
+					    (or (class-p (car object)) (object-p (car object))))
+				      '(cedet-edebug-prin1-recurse object) )
+     ))
 
 ;;; Interfacing with imenu in emacs lisp mode
 ;;    (Only if the expression is defined)
