@@ -1,9 +1,9 @@
 ;;; semantic-skel.el --- Semantic details for skel
 
-;;; Copyright (C) 2001 Eric M. Ludlam
+;;; Copyright (C) 2001, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-skel.el,v 1.1 2002/08/11 17:28:51 zappo Exp $
+;; X-RCS: $Id: semantic-skel.el,v 1.2 2003/02/02 02:05:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,12 +43,33 @@
   nil
   "Skeleton language specification.")
 
-(defvar semantic-flex-skeleton-extensions
-  '(
-    ;;Exmple of Cs' ifdef removal mechanism
-    ;;("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if)
-    )
-  "Extensions to the flexer for C.")
+;; Create a lexical analyzer for your language.  You can use
+;; both the provided analyzers, and your own custom analyzers
+;; that let you take short-cuts in your language.
+
+;; One analyzer
+(define-lex-regex-analyzer semantic-lex-skel-if-0
+  "Block out code matched in an #if 0 condition."
+  "^\\s-*#if\\s-*0$"
+  (beginning-of-line)
+  (c-forward-conditional 1)
+  (setq end-point (point))
+  nil)
+
+;; Define the lexial analyzer
+(define-lex semantic-skeleton-lexer
+  "Lexical Analyzer for SKELETON code."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  semantic-lex-skel-if-0
+  semantic-lex-number
+  semantic-lex-symbol-or-keyword
+  semantic-lex-charquote
+  semantic-lex-paren-or-list
+  semantic-lex-close-paren
+  semantic-lex-ignore-comments
+  semantic-lex-punctuation
+  semantic-lex-default-action)
 
 ;; You do not need to use this function unless you have compound
 ;; definitions.  For example, in C, the following is expanded:
