@@ -1,6 +1,13 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.51 2004/06/13 01:46:20 zappo Exp $
+@c $Id: eieio.texi,v 1.52 2005/02/04 19:00:03 zappo Exp $
+@c
+
+@c
+@c THIS MANUAL NEEDS WORK:
+@c
+@c See the comments at the end of this document.
+@c they need to be integrated into the text of this manual.
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -17,7 +24,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{eieio}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1995,1996,1998, 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+Copyright @copyright{} 1995,1996,1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 @end titlepage
 
 
@@ -1486,3 +1493,284 @@ values, file distribution, and rmail distributions.
 
 @contents
 @bye
+
+@ignore
+From: Richard Stallman <rms@gnu.org>
+To: zappo@gnu.org
+Subject: eieio manual
+Reply-to: rms@gnu.org
+Date: Mon, 26 Jul 2004 10:30:19 -0400
+
+I read the eieio manual, and while it was complete enough that
+I could mostly understand it, it needs a lot of work.
+
+The general problem is that parts are still to some extent written for
+people who know CLOS.  It should be written entirely for a person who
+has never seen CLOS.  It is ok to include compatibility notes
+describing differences from CLOS, as in the Emacs Lisp Reference
+Manual.  These should come after, not before, the material
+described (consider section 1.2).
+
+It needs a lot of proofreading.  Words are capitalized in
+mid-sentence.  Symbols appear without @code.  Variable names
+are in all caps, sometimes with @var and sometimes without.
+The name "Lisp" is written in lower case.
+
+The text uses nonstandard terminology such as "throw an error" and
+"must be quoted in".  I can understand them, but this manual should
+use the normal Emacs terminology found in the Emacs Lisp Reference
+Manual.
+
+The topics should be ordered from most conceptually essential to
+least.  For instance, the default ancestor class is a comparatively
+unimportant topic.  Most users don't need to know about it.  So put it
+near the end.  Constructors are essential basic, so they should come
+earlier.
+
+The functions initialize-instance are rather unimportant details and
+should go near the end; however, I don't see that they relate to the
+default ancestor class, so grouping them under that heading does not seem
+right.
+
+The methods used in case of errors are also rather minor side
+issues, so they should go late in the manual.  They belong with
+the new condition names.  (The correct term is "condition names",
+not "signal types".)
+
+In general, the examples are not indented right, perhaps because they
+use tabs.  You must not have tab characters in Texinfo.
+eieio-default-superclass has unmatched parens.
+
+Some specific points:
+
+There are two mysterious references to something called
+`lambda-default' that is not explained.  I can't understand it.
+
+I am not sure how initializing slots with :initform relates to
+initializing slots with oset-default.  That needs to be better explained.
+
+There seems to be a fundamental difference in usage between slots
+initialized using :initform and slots that are not initialized.
+This needs to be stated loud and clear in the explanation of defclass,
+before you get into the specific slot list attributes.
+
+The term "superclass" seems to be used in two inconsistent meanings.
+In defclass it is synonymous with "parent class" (this is the
+traditional meaning), but section 4 gives it a different meaning.
+Please choose another term for the latter meaning, such as "orphan
+class".  This would mean renaming eieio-default-superclass.
+
+    Creates a new class called @code{class-name}. The created
+    variable's documentation string is set to a modified version of
+    the doc string found in @var{options-or-doc}.
+
+What is "the created variable"?
+
+    Every slot in
+    parent is replicated in the new class.
+
+Do you mean, "Every slot that appears in any parent class
+is replicated in the new class"?
+
+    The parent class for @code{class-name} is
+
+Shouldn't that be @var?  That is not the only place.
+Also, it seems strange to speak of "the" parent class
+given that there can be more than one.
+
+    @var{slot-list} is a list of lists.  Each sublist defines an attribute.
+    These lists are of the form @code{(name :tag1 value1 :tag2 value2 :tagn
+    valuen)}.
+
+All those parts that can vary need @var.
+
+    @item :initarg
+    The argument used during initialization.  @xref{Making New Objects}.
+
+The node Making New Objects does not explain :initarg.
+
+    A lisp expression used to generate the default value for this slot.
+    If :initform is left out, that slot defaults to being unbound.
+    The value passed to initform is automatically quoted.  Thus,
+    @example
+    :initform (1 2 3)
+
+(1 2 3) is not a valid Lisp expression: evaluating it would get an
+error.  Do you mean "a Lisp object"?
+
+    A function like this:
+    @example
+    :initform +
+    @end example
+    is quoted in as a symbol.
+
+That is really confusing.  What does "a function like this" refer to?
+
+     "Default class used as parent class for superclasses.  It's
+    slots are automatically adopted by such superclasses but not stored
+
+The possessive of "it" is "its".  In English, the possessive pronouns
+have no apostrophe.  My, our, your, his, her, their, its.
+
+    When creating an object of any type, you can use it's constructor, or
+    @code{make-instance}.
+
+Same problem.  Please check every occurrence of "it's".
+
+Also, you need to explain what a constructor is.  Otherwise, this is
+completely confusing to a reader who does not know.  The manual does
+not explain "constructor" anywhere.  When it describes how to use
+constructors, it does not use that term.
+
+    @defun initialize-instance obj &rest slots
+    Initialize @var{obj}.  Sets slots of @var{obj} with @var{slots} which
+    is a list of name/value pairs.  These are actually just passed to
+    @code{shared-initialize}.
+    @end defun
+
+    @defun shared-initialize obj &rest slots
+    Sets slots of @var{obj} with @var{slots} which is a list of name/value
+    pairs.
+    @end defun
+
+It needs to say when the programmer should call initialize-instance
+and when person should call shared-initialize.
+
+    @defun clone obj &rest params
+    Make a deep copy of @var{obj}.
+
+"Deep copy" is not defined Emacs terminology, so it needs a precise
+definition.  I have a general idea what you probably mean, but I
+cannot be sure of details.  Does this copy cons cells?  Does it copy
+vectors?  Does it copy hash tables?  Does it copy symbols?  The manual
+must say.
+
+    @defun object-print obj &rest strings
+    Construct a printing lisp symbol for @var{OBJ}.
+
+Should that be @var{obj}?
+
+    Once we have defined our classes, it's time to create objects with the
+    specified structure.  After we call @code{defclass} two new functions
+    are created, one of which is @code{classname}.
+
+I don't think there is a function named `classname'.  The eieio sources
+do not define one.  Do you mean its name is the name of the class?
+If so, use @var{classname}.
+
+    @defun classname object-name &rest slots
+
+The symbol after @defun is the literal name of a function
+you are describing.  You can't use @defun for this.
+
+    wish to preset.  Any slot set as such WILL NOT get it's default value,
+
+That should be @emph{will not}.  Also, "its" is misspelled here too.
+
+    and any side effects from an attributes default function will not occur.
+
+I am not sure what an "attributes default function" is, and I cannot
+find anything in the manual that explains it.  There should be a
+cross-reference here to an explanation elsewhere.
+
+    @defun defmethod method [:BEFORE | :PRIMARY | :AFTER | :STATIC ] arglist [doc-string] forms
+
+This needs to be @defmac.  Also, you may need to use @code inside it.
+
+It is really confusing that names such as :BEFORE are upper-case.
+Is that what CL does?
+
+    @var{:BEFORE | :AFTER} represent when this form is to be called.  If
+    neither of these symbols are present, then the default priority is,
+    before @var{:AFTER}, after @var{:BEFORE}, and is represented in CLOS as
+    @var{PRIMARY}.
+
+These names are keywords, not variables; @var is wrong for them.
+They should be in @code.
+
+      Never treat the first argument
+    of a STATIC method as an object, always used @code{oref-default} or
+    @code{oset-default}.
+
+I can't understand that.  However, I am sure that "a STATIC method"
+needs some style change.
+
+    @code{arglist} is the argument list.  Unlike CLOS, only the FIRST
+    argument may be type-cast,
+
+I have no idea what that means.  "Type-cast" is not standard Emacs
+terminology, so you need to define it.  The manual must explain this
+type-cast feature, assuming that the reader has never heard of it
+before.
+
+    If two @code{defmethod}s appear with arglists such as @code{(a b)}
+    and @code{(c d)} then one of the implementations will be overwritten,
+
+"will be overwritten" is not clear; I don't understand it.
+
+    When called, if there is a method cast against the object's parent
+    class, but not for that object's class, the parent class' method will be
+    called.
+
+I am not sure what a "method cast" is, or what it means for that to
+be "against" some class.  The text has to explain this.
+
+    If multiple methods and generics are defined for the same method name,
+    they are executed in this order:
+
+    @table @asis
+    @item method :BEFORE
+    @item generic :BEFORE
+
+I can't understand that.  What are these "generics", and how does one
+define them?  Apparently not with defmethod, which defines methods.
+Apparently not with defgeneric, which defines a placeholder, not
+something that may need to be run.
+
+    If in any situation a method does not exist, but a generic does, then
+    the generic is called in place of the method.
+
+I can't make sense of that.  According to the previous text it would
+run both of them, the method first.  So if there's no method, it would
+naturally run just the generic, if the absence of a method isn't an
+error.  So what information is this sentence meant to convey?
+I can't figure it out.
+
+    @defun call-next-method &rest replacement-args
+
+    While running inside a CLOS method, calling this function will call the
+    method associated with the parent of the class of the currently running
+    method with the same parameters.
+
+When would a program do this?  Should methods normally do this?
+
+    @defun class-name class
+    Return a string of the form #<class myclassname> 
+
+That needs @samp.  Other places too.
+
+    opposed to a regular emacs list function.
+
+I think that should say "a regular Emacs Lisp function".
+
+    @defun object-assoc key slot list
+    Returns the first object in @var{list} for which @var{key} is in
+    @var{slot}.
+
+Is this as trivial as it sounds?  If so, please include equivalent
+code not using the function, as an explanatory example.  In the
+absence of that, I wonder "Is this doing something that I could not
+easily code for myself"?
+
+    In Emacs 20 a useful customization utility became available called
+    `custom'.
+
+If we install this in Emacs 21, we should take for granted that Emacs
+includes Custom, and not refer to the time when it was absent.
+
+    The below tips are things that I do when I program an EIEIO based
+    package.
+
+These are important, so they belong earlier, with defclass.
+
+@end ignore
