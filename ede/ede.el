@@ -1,10 +1,10 @@
 ;;; ede.el --- Emacs Development Environment gloss
 
-;;;  Copyright (C) 1998, 99, 2000, 2001  Eric M. Ludlam
+;;;  Copyright (C) 1998, 99, 2000, 2001, 2002, 2003  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.56 2003/01/22 07:32:04 ponced Exp $
+;; RCS: $Id: ede.el,v 1.57 2003/01/28 23:02:39 zappo Exp $
 (defconst ede-version "1.0beta3"
   "Current version of the Emacs EDE.")
 
@@ -1343,7 +1343,6 @@ nil is returned if the current directory is not a part ofa project."
   "Project file independent way to read in FILE."
   (let* ((path (expand-file-name (file-name-directory file)))
 	 (pfc (ede-directory-project-p path))
-	 (projtoload nil)
 	 (toppath nil)
 	 (o nil))
     (cond
