@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.55 2001/11/26 21:19:39 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.56 2001/11/30 03:33:28 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1907,10 +1907,10 @@ minor mode is enabled."
             (progn
               (senator-parse)
               ;; Add completion hooks
-              (make-local-hook 'semantic-before-toplevel-cache-flush-hook)
+              (semantic-make-local-hook 'semantic-before-toplevel-cache-flush-hook)
               (add-hook 'semantic-before-toplevel-cache-flush-hook
                         'senator-completion-cache-flush-fcn nil t)
-              (make-local-hook 'semantic-clean-token-hooks)
+              (semantic-make-local-hook 'semantic-clean-token-hooks)
               (add-hook 'semantic-clean-token-hooks
                         'senator-completion-cache-flush-fcn nil t))
           (quit
