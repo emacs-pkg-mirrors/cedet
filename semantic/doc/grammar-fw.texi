@@ -659,7 +659,7 @@ Declare the nonterminal symbols that the parser can use as its goal.
 @item Please note:
 The exact meaning of start symbols depends on the parser.  For more
 information, @inforef{Start nonterminals, , wisent}, and
-@inforef{%start , , bovine}.
+@inforef{Starting Rules , , bovine}.
 @end table
 
 @node use-macros Decl
