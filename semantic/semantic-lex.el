@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.33 2004/02/12 02:04:59 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.34 2004/03/15 12:33:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -220,7 +220,7 @@ TYPE name does not exist.  Otherwise signal an error."
 (defun semantic-lex-preset-default-types ()
   "Install useful default properties for well known types."
   (semantic-lex-type-put "punctuation" 'matchdatatype 'string t)
-  (semantic-lex-type-put "punctuation" 'syntax "\\s.\\|\\s$\\|\\s'")
+  (semantic-lex-type-put "punctuation" 'syntax "\\(\\s.\\|\\s$\\|\\s'\\)+")
   (semantic-lex-type-put "keyword" 'matchdatatype 'keyword t)
   (semantic-lex-type-put "keyword" 'syntax "\\(\\sw\\|\\s_\\)+")
   (semantic-lex-type-put "symbol"  'matchdatatype 'regexp t)
