@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.82 2001/02/09 19:50:24 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.83 2001/02/20 20:31:11 zappo Exp $
 
-(defvar semantic-version "1.4.alpha2"
+(defvar semantic-version "1.4"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -480,10 +480,15 @@ The returned item may be an overlay or an unloaded buffer representation."
 (defvar semantic-init-hooks nil
   "*Hooks run when a buffer is initialized with a parsing table.")
 
+(defun semantic-active-p ()
+  "Return non-nil if the current buffer was set up for parsing."
+  (or semantic-toplevel-bovine-table
+      semantic-toplevel-bovinate-override))
+
 (defun semantic-find-file-hook ()
   "Run in `find-file-hooks'.
 Runs `semantic-init-hook' if the major mode is setup to use semantic."
-  (when semantic-toplevel-bovine-table
+  (when (semantic-active-p)
     (setq semantic-toplevel-bovine-force-reparse t)
     (run-hooks 'semantic-init-hooks)))
 (add-hook 'find-file-hooks 'semantic-find-file-hook)
@@ -551,8 +556,14 @@ If the optional argument CHECKCACHE is non-nil, then flush the cache iff
 there has been a size change."
   (cond
    (semantic-toplevel-bovinate-override
+    (semantic-clear-toplevel-cache)
     ;; Call a custom function
-    (funcall semantic-toplevel-bovinate-override checkcache)
+    (let ((res (funcall semantic-toplevel-bovinate-override checkcache)))
+      ;; Don't use the main function.  We don't want partial reparse
+      ;; for these special cases.
+      (setq semantic-toplevel-bovine-cache (nreverse res)))
+    (run-hooks 'semantic-after-toplevel-bovinate-hook)
+    semantic-toplevel-bovine-cache
     )
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
     ;; We have a cache, and some dirty tokens
@@ -658,8 +669,7 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	;; There was no hit, perhaps we need to reparse this intermediate area.
 	(setq semantic-toplevel-bovine-cache-check t)
 	)
-      (if semantic-toplevel-bovine-cache-check
-	  (message "Reparse needed...")))))
+      )))
 
 (defun semantic-raw-to-cooked-token (token)
   "Convert TOKEN from a raw state to a cooked state.
