@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.35 2000/09/29 03:09:57 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.36 2000/10/06 03:18:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -65,7 +65,7 @@
 			 (car-safe (nth 5 vals))))))
     ;; A function is anything that starts with a (defun
     (function
-     (open-paren symbol "defun\\|defmacro" symbol arg-list doc-string
+     (open-paren symbol "defun\\|defmacro\\|defsubst" symbol arg-list doc-string
 		 ,(semantic-lambda
 		    (list (nth 2 vals) 'function nil (nth 3 vals) nil
 			  (car-safe (nth 4 vals))))))
