@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-custom.el,v 1.19 2001/08/17 21:26:15 zappo Exp $
+;; RCS: $Id: eieio-custom.el,v 1.20 2003/03/02 13:28:36 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -85,6 +85,10 @@ of these.")
   "Buffer local variable in object customize buffers for the current obj.")
 (defvar eieio-cog nil
   "Buffer local variable in object customize buffers for the current group.")
+
+ (defvar eieio-custom-ignore-eieio-co  nil
+   "When true, all customizable fields of the current object are updated.
+Updates occur regardless of the current customization group.")
 
 (define-widget 'object-slot 'group
   "Abstractly modify a single slot in an object."
@@ -301,12 +305,14 @@ Optional argument IGNORE is an extraneous parameter."
     ;; Create a batch of initargs for each slot.
     (while (and fields chil)
       (if (and (car fcust)
-	       (or (not master-group) (member master-group (car fgroup)))
+	       (or eieio-custom-ignore-eieio-co
+		   (not master-group) (member master-group (car fgroup)))
 	       (slot-boundp obj (car fields)))
 	  (progn
 	    ;; Only customized fields have widgets
-	    (eieio-oset obj (car fields)
-			(car (widget-apply (car chil) :value-inline)))
+	    (let ((eieio-custom-ignore-eieio-co t))
+	      (eieio-oset obj (car fields)
+			  (car (widget-apply (car chil) :value-inline))))
 	    (setq chil (cdr chil))))
       (setq fields (cdr fields)
 	    fgroup (cdr fgroup)
