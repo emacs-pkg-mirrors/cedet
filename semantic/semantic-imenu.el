@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.1 2000/06/13 14:26:39 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.2 2000/06/14 15:26:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,11 +37,26 @@
 (require 'semantic)
 (require 'imenu)
 
+(defcustom semantic-imenu-summary-function 'semantic-abbreviate-nonterminal
+  "*Function to use when creating items in Imenu.
+Some useful functions are:
+`semantic-abbreviate-nonterminal'
+`semantic-summerize-nonterminal'
+`semantic-prototype-nonterminal'"
+  :group 'imenu
+  :type 'function)
+
+(defcustom semantic-imenu-bucketize-type-parts t
+  "*Non-nil if elements of a type should be placed grouped into buckets.
+Nil means to keep them in the same order."
+  :group 'imenu
+  :type 'bool)
+
 ;;; Code:
-(defun semantic-create-imenu-index ()
+(defun semantic-create-imenu-index (&optional stream)
   "Create an imenu index for any buffer which supports Semantic.
 Uses the output of the Semantic Bovinator to create the index."
-  (let* ((tokens (semantic-bovinate-toplevel nil t t))
+  (let* ((tokens (or stream (semantic-bovinate-toplevel nil t t)))
 	 (buckets (semantic-bucketize tokens))
 	 item name
 	 depend-index
@@ -63,9 +78,12 @@ Uses the output of the Semantic Bovinator to create the index."
       (setq token (car tokens))
       (if (eq (semantic-token-token token) 'type)
 	  (setq index (cons (cons
-			     (semantic-abbreviate-nonterminal token)
-			     (semantic-create-imenu-subindex
-			      (semantic-token-type-parts token)))
+			     (funcall semantic-imenu-summary-function token)
+			     (if semantic-imenu-bucketize-type-parts
+				 (semantic-create-imenu-index
+				  (semantic-token-type-parts token))
+			       (semantic-create-imenu-subindex
+				(semantic-token-type-parts token))))
 			    index))
 	(setq index (cons (cons (semantic-abbreviate-nonterminal token)
 				(semantic-token-end token))
