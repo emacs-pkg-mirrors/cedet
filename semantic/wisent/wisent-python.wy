@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.17 2003/01/25 04:21:21 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.18 2003/01/25 06:13:44 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,9 +34,6 @@
 ;; --------
 %{
   (setq
-   ;;"Regexp matching beginning of python string."
-   wisent-python-string-re "[rR]?[uU]?['\"]"
-
    ;; Character used to separation a parent/child relationship
    semantic-type-relation-separator-character '(".")
    semantic-command-separation-character ";"
@@ -60,12 +57,12 @@
 
 ;; Customize `wisent-flex' match algorithm
 ;; - Use string comparison for:
-%put {open-paren close-paren symbol} string t
+;; %put {open-paren close-paren symbol} string t
 
 ;; Customize `wisent-flex' match algorithm
 ;; - Use string comparison for:
 ;; - An operator can be made of multiple successive punctuations
-%put punctuation {string t multiple t}
+;; %put punctuation {string t multiple t}
 
 %token <newline>     NEWLINE
 
@@ -147,120 +144,120 @@
 ;; -----------------
 
 %token AND	     "and"
-%put AND summary
-" ... "
+%put   AND summary
+"Logical AND binary operator ... "
 
 %token ASSERT	     "assert"
-%put ASSERT summary
-" ... "
+%put   ASSERT summary
+"Raise AssertionError exception if <expr> is false"
 
 %token BREAK	     "break"
-%put BREAK summary
-" ... "
+%put   BREAK summary
+"Terminate 'for' or 'while loop"
 
 %token CLASS	     "class"
-%put CLASS summary
-" ... "
+%put   CLASS summary
+"Define a new class"
 
 %token CONTINUE	     "continue"
-%put CONTINUE summary
-" ... "
+%put   CONTINUE summary
+"Skip to the next interation of enclosing for or whilte loop"
 
 %token DEF	     "def"
-%put DEF summary
-" ... "
+%put   DEF summary
+"Define a new function"
 
 %token DEL	     "del"
-%put DEL summary
-" ... "
+%put   DEL summary
+"Delete specified objects, i.e., undo what assignment did"
 
 %token ELIF	     "elif"
-%put ELIF summary
-" ... "
+%put   ELIF summary
+"Shorthand for 'else if' following an 'if' statement"
 
 %token ELSE	     "else"
 %put ELSE summary
-" ... "
+"Start the 'else' clause following an 'if' statement"
 
 %token EXCEPT	     "except"
-%put EXCEPT summary
-" ... "
+%put   EXCEPT summary
+"Specify exception handlers along with 'try' keyword"
 
 %token EXEC	     "exec"
-%put EXEC summary
-" ... "
+%put   EXEC summary
+"Dynamically execute python code"
 
 %token FINALLY	     "finally"
-%put FINALLY summary
-" ... "
+%put   FINALLY summary
+"Specify code to be executed after 'try' statements whether or not an exception occured"
 
 %token FOR	     "for"
-%put FOR summary
-" ... "
+%put   FOR summary
+"Start a 'for' loop"
 
 %token FROM	     "from"
-%put FROM summary
-" ... "
+%put   FROM summary
+"Modify behavior of 'import' statement"
 
 %token GLOBAL	     "global"
-%put GLOBAL summary
-" ... "
+%put   GLOBAL summary
+"Declare one or more symbols as global symbols"
 
 %token IF	     "if"
-%put IF summary
-" ... "
+%put   IF summary
+"Start 'if' conditional statement"
 
 %token IMPORT	     "import"
-%put IMPORT summary
-" ... "
+%put   IMPORT summary
+"Load specified modules"
 
 %token IN	     "in"
-%put IN summary
-" ... "
+%put   IN summary
+"Part of 'for' statement "
 
 %token IS	     "is"
-%put IS summary
-" ... "
+%put   IS summary
+"Binary operator that tests for object equality"
 
 %token LAMBDA	     "lambda"
-%put LAMDA summary
-"..."
+%put   LAMDA summary
+"Create anonymous function"
 
 %token NOT	     "not"
-%put NOT summary
-"..."
+%put   NOT summary
+"Unary boolean negation operator"
 
 %token OR	     "or"
-%put OR summary
-"..."
+%put   OR summary
+"Binary logical 'or' operator"
 
 %token PASS	     "pass"
-%put PASS summary
-"..."
+%put   PASS summary
+"Statement that does nothing"
 
 %token PRINT	     "print"
-%put PRINT summary
-"..."
+%put   PRINT summary
+"Print each argument to standard output"
 
 %token RAISE	     "raise"
-%put RAISE summary
-"..."
+%put   RAISE summary
+"Raise an exception"
 
 %token RETURN	     "return"
 %put RETURN summary
-"..."
+"Return from a function"
 
 %token TRY	     "try"
-%put TRY summary
-"..."
+%put   TRY summary
+"Start of statements protected by exception handlers"
 
 %token WHILE	     "while"
-%put WHILE summary
-"..."
+%put   WHILE summary
+"Start a 'while' loop"
 
 %token YIELD	     "yield"
-%put YIELD summary
-"..."
+%put   YIELD summary
+"Create a generator function"
 
 %%
 
@@ -268,6 +265,8 @@
 ;;;@ goal
 ;;;****************************************************************************
 
+# simple_stmt are statements that do not involve INDENT tokens
+# compound_stmt are statements that involve INDENT tokens
 goal
   : NEWLINE
   | simple_stmt
@@ -292,11 +291,9 @@ small_stmt_list
     (identity $1)
   ;
 
-;; small_stmt: expr_stmt | print_stmt  | del_stmt | pass_stmt | flow_stmt
-;;           | import_stmt | global_stmt | exec_stmt | assert_stmt
 small_stmt
-  : print_stmt
-  | expr_stmt
+  : expr_stmt
+  | print_stmt
   | del_stmt
   | pass_stmt
   | flow_stmt
@@ -310,8 +307,8 @@ small_stmt
 ;;;@@ print_stmt
 ;;;============================================================================
 
-;; # For normal assignments, additional restrictions enforced by the interpreter
-;; print_stmt: 'print' ( [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ] )
+;; print_stmt: 'print' [ test (',' test)* [','] ]
+;;           | '>>' test [ (',' test)+ [','] ]
 print_stmt
   : PRINT print_stmt_trailer
     (wisent-token $1 'code nil nil)
@@ -370,8 +367,8 @@ eq_testlist_zom
 ;;          | '<<=' | '>>=' | '**=' | '//='
 augassign
   : PLUSEQ | MINUSEQ | MULTEQ | DIVEQ | MODEQ
-  | AMPEQ | OREQ | HATEQ | LTLTEQ
-  | GTGTEQ | EXPEQ | DIVDIVEQ
+  | AMPEQ  | OREQ    | HATEQ  | LTLTEQ
+  | GTGTEQ | EXPEQ   | DIVDIVEQ
   ;
 
 ;;;============================================================================
@@ -411,7 +408,6 @@ pass_stmt
 ;;;@@ flow_stmt
 ;;;============================================================================
 
-;; flow_stmt: break_stmt | continue_stmt | return_stmt | raise_stmt | yield_stmt
 flow_stmt
   : break_stmt
   | continue_stmt
@@ -483,7 +479,8 @@ zero_or_one_comma_test
 ;;;============================================================================
 
 ;; import_stmt : 'import' dotted_as_name (',' dotted_as_name)*
-;;             | 'from' dotted_name 'import' ('*' | import_as_name (',' import_as_name)*)
+;;             | 'from' dotted_name 'import'
+;;               ('*' | import_as_name (',' import_as_name)*)
 import_stmt
   : IMPORT dotted_as_name_list
     (wisent-token $2 'import nil nil)
@@ -628,7 +625,7 @@ else_suite_pair_opt
     ()
   ;
 
-;; RYK: This NT follows the COLON terminal for most compound statements.
+;; This NT follows the COLON token for most compound statements.
 ;; suite: simple_stmt | NEWLINE INDENT stmt+ DEDENT
 suite
   : simple_stmt
@@ -637,7 +634,7 @@ suite
     (nreverse $3)
   ;
 
-;; stmt+
+;; stmt+   oom stands for One Or More
 stmt_oom
   : stmt
     (list $1)
@@ -885,7 +882,8 @@ trailer
     (concat "." $2)
   ;
 
-;; atom: '(' [testlist] ')' | '[' [listmaker] ']' | '{' [dictmaker] '}' | '`' testlist '`' | NAME | NUMBER | STRING+
+;; atom: '(' [testlist] ')' | '[' [listmaker] ']' | '{' [dictmaker] '}'
+;;     | '`' testlist '`'   | NAME | NUMBER | STRING+
 atom
   : PAREN_BLOCK
     (format "%s" $1)

@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.22 2003/01/25 04:22:04 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.23 2003/01/25 06:13:44 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -27,15 +27,9 @@
 
 ;;; Commentary:
 ;;
-;; The goal is to provide full parser for python so that all the higher
-;; level semantic tools work for python as they to for other languages.
-;;
-;; This is still a work in progress.
-;; It is able to parse simple Python expressions, but not yet
-;; generally usable.
-;;
-;; The official Grammar file from the Python source code distribution
-;; was the starting point of this wisent version.
+;; This is a LALR python parser that follows the official python
+;; grammar closely.  The official Grammar file from the Python source
+;; code distribution was the starting point of this version.
 ;;
 ;; Approximate non-terminal (NT) hierarchy of the python grammer for
 ;; the `single_input' NT is shown below.
@@ -89,11 +83,9 @@
 ;; * Debug the grammar so that it can parse at least all standard *.py
 ;;   files distributed along with python.
 ;;
-;; * Delete most semantic rules when the grammar is debugged.
-;;
-;; * Optimize `string-indentation'.  This was a quick hack to get us going.
-;;
-;; * Figure out what ENDMARKER token is for.
+;; * Modify the grammar to take advantage of scan-lists advice, i.e.,
+;;   generate INDENT_BLOCK tokens such as PAREN_BLOCK tokens rather than
+;;   generating whole bunch of lexical tokens.
 
 (require 'wisent-bovine)
 
@@ -108,24 +100,12 @@
 ;; matching DEDENT tokens. Generation of each INDENT token results in
 ;; a new integer being added to the beginning of this list where the
 ;; integer represents the indentation of the current line. Each time a
-;; DEDENT token is generated, the latest entry added is popped off
+;; DEDENT token is generated, the latest entry is popped off
 ;; this list.
 (defvar wisent-python-lexer-indent-stack '(0))
 
-;; Quick hack to compute indentation.
-;; Probably not good enough for production use.
-;; Return -1 if a blank line containing white space and/or comments only.
-;; Otherwise return the indentation of the line at POS.
-(defsubst string-indentation (pos)
-  (save-excursion
-    (goto-char pos)
-    (cond ((eobp)
-	   '(setq wisent-lex-istream
-		 (cons (cons 'newline (cons (point) (point)))
-		       wisent-lex-istream))
-	   0)
-	  ((looking-at "\\s-*\\(#\\|$\\)") -1)
-	  (t (current-indentation)))))
+(defconst wisent-python-string-re "[rR]?[uU]?['\"]"
+  "Regexp matching beginning of a python string.")
 
 ;; Limit string to 16 chars.
 (defun wisent-python-truncate-string (s)
@@ -227,7 +207,7 @@ then throw away any immediately following INDENT and DEDENT tokens."
 		  ((looking-at "\"\"\"")
 		   (forward-char 3)
 		   (search-forward "\"\"\""))
-		  (t 
+		  (t
 		   (forward-sexp 1)))
 		 (point))
 	     ;; This case makes flex
@@ -396,7 +376,7 @@ it to a form suitable for the Wisent's parser."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 20:18-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 22:04-0800
   (eval-when-compile
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
@@ -414,8 +394,8 @@ it to a form suitable for the Wisent's parser."
 	((small_stmt_list SEMICOLON small_stmt)
 	 (identity $1)))
        (small_stmt
-	((print_stmt))
 	((expr_stmt))
+	((print_stmt))
 	((del_stmt))
 	((pass_stmt))
 	((flow_stmt))
@@ -790,37 +770,37 @@ it to a form suitable for the Wisent's parser."
 		 (or $3 ""))))
        (fpdef_opt_test
 	((fpdef eq_test_opt)
-       (format "%s %S" $1
-	       (or $2 ""))))
-     (fpdef
-      ((NAME))
-      ((LPAREN fplist RPAREN)
-       (format "(%s)"
-	       (or $2 ""))))
-     (fplist
-      ((fpdef_list comma_opt)
-       (format "%s %s"
-	       (or $1 "")
-	       (or $2 ""))))
-     (fpdef_list
-      ((fpdef))
-      ((fpdef_list COMMA fpdef)
-       (format "%s, %s" $1 $3)))
-     (eq_test_opt
-      (nil)
-      ((ASSIGN test)
-       (format " = %s" $2)))
-     (comma_opt
-      (nil)
-      ((COMMA)))
-     (semicolon_opt
-      (nil)
-      ((SEMICOLON))))
-   '(goal)))
-"Parser automaton.")
+	 (format "%s %S" $1
+		 (or $2 ""))))
+       (fpdef
+	((NAME))
+	((LPAREN fplist RPAREN)
+	 (format "(%s)"
+		 (or $2 ""))))
+       (fplist
+	((fpdef_list comma_opt)
+	 (format "%s %s"
+		 (or $1 "")
+		 (or $2 ""))))
+       (fpdef_list
+	((fpdef))
+	((fpdef_list COMMA fpdef)
+	 (format "%s, %s" $1 $3)))
+       (eq_test_opt
+	(nil)
+	((ASSIGN test)
+	 (format " = %s" $2)))
+       (comma_opt
+	(nil)
+	((COMMA)))
+       (semicolon_opt
+	(nil)
+	((SEMICOLON))))
+     '(goal)))
+  "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 20:18-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 22:04-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -851,38 +831,38 @@ it to a form suitable for the Wisent's parser."
      ("try" . TRY)
      ("while" . WHILE)
      ("yield" . YIELD))
-   '(("yield" summary "...")
-     ("while" summary "...")
-     ("try" summary "...")
-     ("return" summary "...")
-     ("raise" summary "...")
-     ("print" summary "...")
-     ("pass" summary "...")
-     ("or" summary "...")
-     ("not" summary "...")
-     ("is" summary " ... ")
-     ("in" summary " ... ")
-     ("import" summary " ... ")
-     ("if" summary " ... ")
-     ("global" summary " ... ")
-     ("from" summary " ... ")
-     ("for" summary " ... ")
-     ("finally" summary " ... ")
-     ("exec" summary " ... ")
-     ("except" summary " ... ")
-     ("else" summary " ... ")
-     ("elif" summary " ... ")
-     ("del" summary " ... ")
-     ("def" summary " ... ")
-     ("continue" summary " ... ")
-     ("class" summary " ... ")
-     ("break" summary " ... ")
-     ("assert" summary " ... ")
-     ("and" summary " ... ")))
+   '(("yield" summary "Create a generator function")
+     ("while" summary "Start a 'while' loop")
+     ("try" summary "Start of statements protected by exception handlers")
+     ("return" summary "Return from a function")
+     ("raise" summary "Raise an exception")
+     ("print" summary "Print each argument to standard output")
+     ("pass" summary "Statement that does nothing")
+     ("or" summary "Binary logical 'or' operator")
+     ("not" summary "Unary boolean negation operator")
+     ("is" summary "Binary operator that tests for object equality")
+     ("in" summary "Part of 'for' statement ")
+     ("import" summary "Load specified modules")
+     ("if" summary "Start 'if' conditional statement")
+     ("global" summary "Declare one or more symbols as global symbols")
+     ("from" summary "Modify behavior of 'import' statement")
+     ("for" summary "Start a 'for' loop")
+     ("finally" summary "Specify code to be executed after 'try' statements whether or not an exception occured")
+     ("exec" summary "Dynamically execute python code")
+     ("except" summary "Specify exception handlers along with 'try' keyword")
+     ("else" summary "Start the 'else' clause following an 'if' statement")
+     ("elif" summary "Shorthand for 'else if' following an 'if' statement")
+     ("del" summary "Delete specified objects, i.e., undo what assignment did")
+     ("def" summary "Define a new function")
+     ("continue" summary "Skip to the next interation of enclosing for or whilte loop")
+     ("class" summary "Define a new class")
+     ("break" summary "Terminate 'for' or 'while loop")
+     ("assert" summary "Raise AssertionError exception if <expr> is false")
+     ("and" summary "Logical AND binary operator ... ")))
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 20:18-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 22:04-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -948,18 +928,13 @@ it to a form suitable for the Wisent's parser."
       (LPAREN . "("))
      ("newline"
       (NEWLINE)))
-   '(("charquote" string t)
-     ("punctuation" multiple t)
-     ("punctuation" string t)
-     ("symbol" string t)
-     ("close-paren" string t)
-     ("open-paren" string t)))
+   '(("charquote" string t)))
   "Tokens.")
 
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 20:18-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-01-24 22:04-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -972,9 +947,6 @@ it to a form suitable for the Wisent's parser."
     (add-hook 'wisent-discarding-token-functions
 	      'wisent-collect-unmatched-syntax nil t)
     (setq
-     ;;"Regexp matching beginning of python string."
-     wisent-python-string-re "[rR]?[uU]?['\"]"
-
      ;; Character used to separation a parent/child relationship
      semantic-type-relation-separator-character '(".")
      semantic-command-separation-character ";"
