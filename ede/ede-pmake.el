@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.18 1999/11/09 11:10:58 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.19 1999/12/04 17:29:07 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -26,6 +26,10 @@
 ;;; Commentary:
 ;; 
 ;; Code generator for Makefiles.
+
+(autoload 'ede-proj-configure-create "ede-pconf"
+  "Create a configure script from an EDE-PROJ project."
+  nil nil)
 
 ;;; Code:
 (defmethod ede-proj-makefile-create ((this ede-proj-project) mfilename)
