@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.229 2003/02/21 18:24:19 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.230 2003/07/24 00:01:25 zappo Exp $
 
 (defvar speedbar-version "0.15"
   "The current version of speedbar.")
@@ -60,6 +60,7 @@ we are not backward compatible to 0.14 or earlier.")
 
 ;;; TODO:
 ;; - Timeout directories we haven't visited in a while.
+;; - [ and ] to expand all descendants.
 
 (require 'assoc)
 (require 'easymenu)
@@ -275,7 +276,9 @@ nil means don't show the file in the list."
 				       (border-width . 0)
 				       (menu-bar-lines . 0)
 				       (tool-bar-lines . 0)
-				       (unsplittable . t))
+				       (unsplittable . t)
+				       (left-fringe . 0)
+				       )
   "*Parameters to use when creating the speedbar frame in Emacs.
 Any parameter supported by a frame may be added.  The parameter `height'
 will be initialized to the height of the frame speedbar is
@@ -289,7 +292,8 @@ attached to and added to this list before the new frame is initialized."
 	       internal-border-width 0 unsplittable t
 	       default-toolbar-visible-p nil has-modeline-p nil
 	       menubar-visible-p nil
-	       default-gutter-visible-p nil)
+	       default-gutter-visible-p nil
+	       )
   "*Parameters to use when creating the speedbar frame in XEmacs.
 Parameters not listed here which will be added automatically are
 `height' which will be initialized to the height of the frame speedbar
@@ -761,6 +765,9 @@ This basically creates a sparse keymap, and makes it's parent be
   (define-key speedbar-file-key-map "=" 'speedbar-expand-line)
   (define-key speedbar-file-key-map "-" 'speedbar-contract-line)
 
+  (define-key speedbar-file-key-map "[" 'speedbar-expand-line-descendants)
+  (define-key speedbar-file-key-map "]" 'speedbar-close-line-descendants)
+
   (define-key speedbar-file-key-map " " 'speedbar-toggle-line-expansion)
 
   ;; file based commands
@@ -803,6 +810,9 @@ This basically creates a sparse keymap, and makes it's parent be
     ["Flush Cache & Expand" speedbar-flush-expand-line
      (save-excursion (beginning-of-line)
 		     (looking-at "[0-9]+: *.\\+. "))]
+    ["Expand All Descendants" speedbar-expand-line-descendants
+     (save-excursion (beginning-of-line)
+		     (looking-at "[0-9]+: *.\\+. ")) ]
     ["Contract File Tags" speedbar-contract-line
      (save-excursion (beginning-of-line)
 		     (looking-at "[0-9]+: *.-. "))]
@@ -912,7 +922,10 @@ supported at a time.
 		     "Speedbar"
 		     #'speedbar-frame-mode
 		     (if dframe-xemacsp
-			 speedbar-frame-plist
+			 (cons speedbar-frame-plist
+			       ;; This is a hack to get speedbar to iconfiy
+			       ;; with the selected frame.
+			       (cons 'parent (selected-frame)))
 		       speedbar-frame-parameters)
 		     speedbar-before-delete-hook
 		     speedbar-before-popup-hook
@@ -1426,7 +1439,12 @@ nil if not applicable."
 	      (attr (speedbar-line-token))
 	      (item nil))
 	  (if (and (featurep 'semantic) (semantic-token-p attr))
-	      (speedbar-message (funcall semantic-sb-info-token->text-function attr))
+	      (speedbar-message
+	       (condition-case nil
+		   (funcall semantic-sb-info-token->text-function attr)
+		 (error
+		   (funcall semantic-sb-info-format-tag-function attr)
+		   )))
 	    (looking-at "\\([0-9]+\\):")
 	    (setq item (file-name-nondirectory (speedbar-line-directory)))
 	    (speedbar-message "Tag: %s  in %s" tag item)))
@@ -3210,6 +3228,32 @@ With universal argument ARG, flush cached data."
 	(forward-char -2)
 	(speedbar-do-function-pointer))
     (error (speedbar-position-cursor-on-line))))
+
+(defun speedbar-expand-line-descendants (&optional arg)
+  "Expand the line under the cursor and all descendants.
+Optional argument ARG indicates that any cache should be flushed."
+  (interactive "P")
+  (speedbar-expand-line arg)
+  ;; Now, inside the area expaded here, expand all subnodes of
+  ;; the same descendant type.
+  (save-excursion
+    (speedbar-next 1) ;; Move into the list.
+    (let ((err nil))
+      (while (not err)
+	(condition-case nil
+	    (progn
+	      (speedbar-expand-line-descendants arg)
+	      (speedbar-restricted-next 1))
+	  (error (setq err t))))))
+  )
+
+(defun speedbar-contract-line-descendants ()
+  "Expand the line under the cursor and all descendants."
+  (interactive)
+  (speedbar-contract-line arg)
+  ;; Don't need to do anything else since all descendants are
+  ;; hidden by default anyway.  Yay!  It's easy.
+  )
 
 (defun speedbar-find-file (text token indent)
   "Speedbar click handler for filenames.
