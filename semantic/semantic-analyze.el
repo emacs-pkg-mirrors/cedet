@@ -1,10 +1,10 @@
-;;; semantic-analyze.el --- Analyze semantic tokens against local context
+;;; semantic-analyze.el --- Analyze semantic tags against local context
 
 ;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.18 2004/01/15 02:38:05 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.19 2004/01/29 18:17:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; Semantic, as a tool, provides a nice list of searchable tokens.
+;; Semantic, as a tool, provides a nice list of searchable tags.
 ;; That information can provide some very accurate answers if the current
 ;; context of a position is known.
 ;;
@@ -34,7 +34,7 @@
 ;;
 ;; This library provides routines for finding intelligent answers to
 ;; tough problems, such as if an argument to a function has the correct
-;; return type, or all possible tokens that fit in a given local context.
+;; return type, or all possible tags that fit in a given local context.
 ;;
 
 (require 'inversion)
@@ -50,8 +50,8 @@
 
 ;;; Context Analysis
 ;;
-(defun semantic-analyze-find-nonterminals-by-prefix (prefix)
-  "Attempt to find a nonterminal with PREFIX.
+(defun semantic-analyze-find-tags-by-prefix (prefix)
+  "Attempt to find a tag with PREFIX.
 This is a wrapper on top of semanticdb, and semantic search functions.
 Almost all searches use the same arguments."
   (let ((expr (concat "^" (regexp-quote prefix))))
@@ -67,12 +67,14 @@ Almost all searches use the same arguments."
       (semantic-find-tags-by-name-regexp
        expr (current-buffer)))))
   
-(defun semantic-analyze-find-nonterminal (name &optional tokentype)
-  "Attempt to find a nonterminal with NAME.
-Optional argument TOKENTYPE specifies tye type of token to
+(defun semantic-analyze-find-tag (name &optional tagclass)
+  "Attempt to find a tag with NAME.
+Optional argument TAGCLASS specifies the class of tag to
 return, such as 'function or 'variable.
 This is a wrapper on top of semanticdb, and semantic search functions.
-Almost all searches use the same arguments."
+Almost all searches use the same arguments.
+
+NOTE: TAGCLASS isn't being used right now.  Fix?"
   (if (and (fboundp 'semanticdb-minor-mode-p)
 	   (semanticdb-minor-mode-p))
       ;; Search the database
@@ -84,11 +86,11 @@ Almost all searches use the same arguments."
     (semantic-find-first-tag-by-name
      name (current-buffer))))
 
-(defun semantic-analyze-token-type-to-name (token)
-  "Get the name of TOKEN's type.
-The TYPE field in a token can be nil (return nil)
-or a string, or a non-positional token."
-  (let ((tt (semantic-tag-type token)))
+(defun semantic-analyze-tag-type-to-name (tag)
+  "Get the name of TAG's type.
+The TYPE field in a tag can be nil (return nil)
+or a string, or a non-positional tag."
+  (let ((tt (semantic-tag-type tag)))
     (cond ((semantic-tag-p tt)
 	   (semantic-tag-name tt))
 	  ((stringp tt)
@@ -98,7 +100,7 @@ or a string, or a non-positional token."
 	  (t nil))))
 
 (defun semantic-analyze-dereference-metatype (type)
-  "Return a concrete type token based on input TYPE token.
+  "Return a concrete type tag based on input TYPE tag.
 A concrete type is an actual declaration of a memory description,
 such as a structure, or class.  A meta type is an alias,
 or a typedef in C or C++.  If TYPE is concrete, it
@@ -106,15 +108,15 @@ is returned.  If it is a meta type, it will return the concrete
 type defined by TYPE.
 The behavior can be overriden using `analyze-derefernce-metatype'.
 The default behavior always returns TYPE.
-Override functions need not return a real semantic token.
-Just a name, or short token will be ok.  It will be expanded here."
+Override functions need not return a real semantic tag.
+Just a name, or short tag will be ok.  It will be expanded here."
   (let* ((s (semantic-fetch-overload 'analyze-dereference-metatype)))
     (if s
 	(let ((ans (funcall s type)))
-	  ;; If ANS is a string, or if ANS is a short token, we
+	  ;; If ANS is a string, or if ANS is a short tag, we
 	  ;; need to do some more work to look it up.
 	  (cond ((stringp ans)
-		 (semantic-analyze-find-nonterminal ans))
+		 (semantic-analyze-find-tag ans))
 		((and (semantic-tag-p ans)
 		      (eq (semantic-tag-class ans) 'type)
 		      (semantic-tag-type-members ans))
@@ -122,21 +124,21 @@ Just a name, or short token will be ok.  It will be expanded here."
 		((and (semantic-tag-p ans)
 		      (eq (semantic-tag-class ans) 'type)
 		      (not (semantic-tag-type-members ans)))
-		 (semantic-analyze-find-nonterminal
+		 (semantic-analyze-find-tag
 		  (semantic-tag-name ans)))
 		(t nil)))
       ;; Nothing fancy, just return type be default.
       type)))
 
-(defun semantic-analyze-token-type (token)
-  "Return the semantic token for a type within the type of TOKEN.
-TOKEN can be a variable, function or other type of token.
-The type of token (such as a class or struct) is a name.
+(defun semantic-analyze-tag-type (tag)
+  "Return the semantic tag for a type within the type of TAG.
+TAG can be a variable, function or other type of tag.
+The type of tag (such as a class or struct) is a name.
 Lookup this name in database, and return all slots/fields
 within that types field.  Also handles anonymous types."
-  (let ((ttype (semantic-tag-type token))
+  (let ((ttype (semantic-tag-type tag))
 	(name nil)
-	(typetoken nil)
+	(typetag nil)
 	)
 
     ;; Is it an anonymous type?
@@ -144,40 +146,40 @@ within that types field.  Also handles anonymous types."
 	     (semantic-tag-p ttype)
 	     (eq (semantic-tag-class ttype) 'type)
 	     (semantic-analyze-type-parts ttype)
-	     ;(semantic-nonterminal-children ttype)
+	     ;(semantic-tag-children ttype)
 	     )
-	;; We have an anonymous type for TOKEN with children.
+	;; We have an anonymous type for TAG with children.
 	;; Use this type directly.
 	(semantic-analyze-dereference-metatype ttype)
 
       ;; Not an anonymous type.  Look up the name of this type
       ;; elsewhere, and report back.
-      (setq name (semantic-analyze-token-type-to-name token))
+      (setq name (semantic-analyze-tag-type-to-name tag))
       (if (and name (not (string= name "")))
-	  (setq typetoken (semantic-analyze-find-nonterminal name))
+	  (setq typetag (semantic-analyze-find-tag name))
 	;; No name to look stuff up with.
-	(error "Semantic token %S has no type information"
+	(error "Semantic tag %S has no type information"
 	       (semantic-tag-name ttype)))
 
-      ;; Handle lists of tokens.
-      (if (and (listp typetoken) (semantic-tag-p (car typetoken)))
+      ;; Handle lists of tags.
+      (if (and (listp typetag) (semantic-tag-p (car typetag)))
 
-	  (let ((toklist typetoken))
-	    (setq typetoken nil)
+	  (let ((taglist typetag))
+	    (setq typetag nil)
 	    ;; Loop over all returned elements until we find a type
 	    ;; that is a perfect match.
-	    (while (and toklist (not typetoken))
+	    (while (and taglist (not typetag))
 	      ;; FIXME: Do better matching.
-	      (if (and (car toklist)
-		       (eq (semantic-tag-class (car toklist)) 'type))
-		  (setq typetoken (car toklist)))
-	      (setq toklist (cdr toklist)))))
+	      (if (and (car taglist)
+		       (eq (semantic-tag-class (car taglist)) 'type))
+		  (setq typetag (car taglist)))
+	      (setq taglist (cdr taglist)))))
 
-      ;; We now have a token associated with the type.
-      (semantic-analyze-dereference-metatype typetoken))))
+      ;; We now have a tag associated with the type.
+      (semantic-analyze-dereference-metatype typetag))))
 
-(defun semantic-analyze-find-nonterminal-sequence (sequence &optional localvar scope typereturn)
-  "Attempt to find all nonterminals in SEQUENCE.
+(defun semantic-analyze-find-tag-sequence (sequence &optional localvar scope typereturn)
+  "Attempt to find all tags in SEQUENCE.
 Optional argument LOCALVAR is the list of local variables to use when
 finding the details on the first element of SEQUENCE in case
 it is not found in the global set of tables.
@@ -188,9 +190,9 @@ Optional argument TYPERETURN is a symbol ini which the types of all found
 will be stored.  If nil, that data is thrown away."
   (let ((s sequence)			;copy of the sequence
 	(tmp nil)			;tmp find variable
-	(nexttype nil)			;a token for the type next in sequence
-	(tok nil)			;token return list
-	(toktype nil)			;token types return list
+	(nexttype nil)			;a tag for the type next in sequence
+	(tag nil)			;tag return list
+	(tagtype nil)			;tag types return list
 	)
     ;; For the first entry, it better be a variable, but it might
     ;; be in the local context too.
@@ -205,7 +207,7 @@ will be stored.  If nil, that data is thrown away."
 		(car s) (semantic-get-local-arguments))
 	       (semantic-find-tags-by-name
 		(car s) scope)
-	       (semantic-analyze-find-nonterminal (car s) 'variable)))
+	       (semantic-analyze-find-tag (car s) 'variable)))
 
     (if (and (listp tmp) (semantic-tag-p (car tmp)))
 	;; We should be smarter... :(
@@ -213,15 +215,15 @@ will be stored.  If nil, that data is thrown away."
     (if (not (semantic-tag-p tmp))
 	(error "Cannot find definition for \"%s\"" (car s)))
     (setq s (cdr s))
-    (setq tok (cons tmp tok))
+    (setq tag (cons tmp tag))
 
     ;; For the middle entries
     (while s
-      ;; Using the token found in TMP, lets find the token
-      ;; representing the full typeographic information of it's
+      ;; Using the tag found in TMP, lets find the tag
+      ;; representing the full typeographic information of its
       ;; type, and use that to determine the search context for
       ;; (car s)
-      (let ((tmptype (semantic-analyze-token-type tmp))
+      (let ((tmptype (semantic-analyze-tag-type tmp))
 	    (slots nil))
 	
 	;; Get the children
@@ -239,25 +241,25 @@ will be stored.  If nil, that data is thrown away."
 	    ;; forever.
 	    (setq tmp (car tmp)))
 
-	;; Make sure we have a token.
+	;; Make sure we have a tag.
 	(if (not (semantic-tag-p tmp))
 	    (if (cdr s)
 		;; In the middle, we need to keep seeking our types out.
 		(error "Cannot find definition for \"%s\"" (car s))
-	      ;; Else, it's ok to end with a non-token
+	      ;; Else, it's ok to end with a non-tag
 	      (setq tmp (car s))))
 
-	(setq tok (cons tmp tok))
-	(setq toktype (cons tmptype toktype))
+	(setq tag (cons tmp tag))
+	(setq tagtype (cons tmptype tagtype))
 	)
       (setq s (cdr s)))
 
-    (if typereturn (set typereturn (nreverse toktype)))
+    (if typereturn (set typereturn (nreverse tagtype)))
     ;; Return the mess
-    (nreverse tok)))
+    (nreverse tag)))
 
 (defun semantic-analyze-type-parts (type)
-  "Return all parts of TYPE, a nonterminal representing a TYPE declaration.
+  "Return all parts of TYPE, a tag representing a TYPE declaration.
 This includes both the TYPE parts, and all functions found in all
 databases which have this type as a property."
   (let ((slots
@@ -269,9 +271,9 @@ databases which have this type as a property."
     (append slots extmeth)
     ))
 
-(defun semantic-analyze-scoped-nonterminals (typelist)
-  "Return a list of nonterminals accessable when TYPELIST is in scope.
-Tokens returned are not in the global name space, but are instead
+(defun semantic-analyze-scoped-tags (typelist)
+  "Return a list of tags accessable when TYPELIST is in scope.
+Tags returned are not in the global name space, but are instead
 scoped inside a class or namespace.  Such items can be referenced
 without use of \"object.function()\" style syntax due to an
 implicit \"object\"."
@@ -282,28 +284,28 @@ implicit \"object\"."
 
 (defun semantic-analyze-scoped-types (&optional position)
   "Return a list of types current in scope at POSITION.
-This is based on what tokens exist at POSITION, and any associated
+This is based on what tags exist at POSITION, and any associated
 types available."
   (save-excursion
     (if position (goto-char position))
-    (let ((tok (semantic-current-tag))
+    (let ((tag (semantic-current-tag))
 	  (code-scoped-parents nil)
 	  (parent nil))
       (setq parent
 	    ;; This only makes sense in a function
-	    (when (and tok (eq (semantic-tag-class tok) 'function))
-	      ;; If TOK is a function, it may have a parent class.
+	    (when (and tag (eq (semantic-tag-class tag) 'function))
+	      ;; If TAG is a function, it may have a parent class.
 	      ;; Find it.
-	      (let ((p (semantic-tag-function-parent tok)))
+	      (let ((p (semantic-tag-function-parent tag)))
 		(if p
 		    ;; We have a parent, search for it.
-		    (let ((ptok (semantic-analyze-find-nonterminal
+		    (let ((ptag (semantic-analyze-find-tag
 				 (cond ((stringp p) p)
 				       ((semantic-tag-p p)
 					(semantic-tag-name p))
 				       ((and (listp p) (stringp (car p)))
 					(car p))) 'type)))
-		      ptok)
+		      ptag)
 		  ;; No specified parent.  See if there is a parent by
 		  ;; position?
 		  (setq p (semantic-current-tag-parent))
@@ -316,7 +318,7 @@ types available."
 		  ;; Get this thing as a non terminal
 		  (setq code-scoped-parents
 			(cons
-			 (semantic-analyze-find-nonterminal (car sp))
+			 (semantic-analyze-find-tag (car sp))
 			 code-scoped-parents))
 		  (setq  sp (cdr sp))))
 	      (setq code-scoped-parents (nreverse code-scoped-parents))
@@ -339,13 +341,13 @@ Usually bound to the dimension of a single symbol or command.")
 	   :documentation "List of tags defining local text.
 This can be nil, or a list where the last element can be a string
 representing text that may be incomplete.  Preceeding elements
-must be semantic tokens representing variables or functions
+must be semantic tags representing variables or functions
 called in a dereference sequence.")
    (prefixtypes :initarg :prefixtypes
 	   :type list
 	   :documentation "List of tags defining types for :prefix.
 This list is one shorter than :prefix.  Each element is a semantic
-token representing a type matching the semantic token in the same
+tag representing a type matching the semantic tag in the same
 position in PREFIX.")
    (scopetypes :initarg :scopetypes
 	       :type list
@@ -356,7 +358,7 @@ of all those classes.")
    (scope :initarg :scope
 	  :type list
 	  :documentation "List of tags available in scopetype.
-See `semantic-analyze-scoped-nonterminals' for details.")
+See `semantic-analyze-scoped-tags' for details.")
    (localvariables :initarg :localvariables
 		   :initform nil
 		   :type list
@@ -371,21 +373,21 @@ Local variables are defined withing the code scope.")
 (defclass semantic-analyze-context-assignment (semantic-analyze-context)
   ((assignee :initarg :assignee
 	     :type list
-	     :documentation "A sequence of tokens for an assignee.
+	     :documentation "A sequence of tags for an assignee.
 This is a variable into which some value is being placed.  The last
 item in the list is the variable accepting the value.  Earlier
-tokens represent the variables being derefernece to get to the
+tags represent the variables being derefernece to get to the
 assignee."))
   "Analysis class for a value in an assignment.")
 
 (defclass semantic-analyze-context-functionarg (semantic-analyze-context)
   ((function :initarg :function
 	     :type list
-	     :documentation "A sequence of tokens for a function.
+	     :documentation "A sequence of tags for a function.
 This is a function being called.  The cursor will be in the position
 of an argument.
-The last token in :function is the function being called.  Earlier
-tokens represent the variables being dereferenced to get to the
+The last tag in :function is the function being called.  Earlier
+tags represent the variables being dereferenced to get to the
 function.")
    (index :initarg :index
 	  :type integer
@@ -394,9 +396,9 @@ If a function takes 4 arguments, this value should be bound to
 the values 1 through 4.")
    (argument :initarg :argument
 	     :type list
-	     :documentation "A sequence of tokens for the :index argument.
+	     :documentation "A sequence of tags for the :index argument.
 The argument can accept a value of some type, and this contains the 
-nonterminal for that definition.  It should be a nonterminal, but might
+tag for that definition.  It should be a tag, but might
 be just a string in some circumstances.")
    )
   "Analysis class for a value as a function argument.")
@@ -436,16 +438,16 @@ Returns an object based on symbol `semantic-analyze-context'."
 	   (prefixtypes nil)
 	   (scopetypes (semantic-analyze-scoped-types position))
 	   (scope (if scopetypes
-		      (semantic-analyze-scoped-nonterminals scopetypes)))
+		      (semantic-analyze-scoped-tags scopetypes)))
 	   (localvar (semantic-get-local-variables))
 	   (function (semantic-ctxt-current-function))
-	   (fntok nil)
-	   arg fntokend argtok
+	   (fntag nil)
+	   arg fntagend argtag
 	   )
 
       (condition-case nil
 	  ;; If we are on lame stuff, it won't be found!
-	  (setq prefix (semantic-analyze-find-nonterminal-sequence
+	  (setq prefix (semantic-analyze-find-tag-sequence
 			prefix localvar scope 'prefixtypes))
 	(error nil))
 
@@ -454,29 +456,29 @@ Returns an object based on symbol `semantic-analyze-context'."
 	(setq arg (semantic-ctxt-current-argument))
 
 	(condition-case nil
-	    (setq fntok
-		  (semantic-analyze-find-nonterminal-sequence
+	    (setq fntag
+		  (semantic-analyze-find-tag-sequence
 		   function localvar scope))
 	  (error nil))
 
-	(when fntok
-	  (setq fntokend (car (reverse fntok))
-		argtok
-		(when (semantic-tag-p fntokend)
-		  (nth (1- arg) (semantic-tag-function-arguments fntokend)))
+	(when fntag
+	  (setq fntagend (car (reverse fntag))
+		argtag
+		(when (semantic-tag-p fntagend)
+		  (nth (1- arg) (semantic-tag-function-arguments fntagend)))
 		)))
 
-      (if fntok
-	  ;; If we found a token for our function, we can go into
+      (if fntag
+	  ;; If we found a tag for our function, we can go into
 	  ;; functional context analysis mode, meaning we have a type
 	  ;; for the argument.
 	  (setq context-return
 		  (semantic-analyze-context-functionarg
 		   "functionargument"
 		   :buffer (current-buffer)
-		   :function fntok
+		   :function fntag
 		   :index arg
-		   :argument (list argtok)
+		   :argument (list argtag)
 		   :scope scope
 		   :scopetypes scopetypes
 		   :localvariables localvar
@@ -486,17 +488,17 @@ Returns an object based on symbol `semantic-analyze-context'."
 
 	;; No function, try assignment
 	(let ((assign (semantic-ctxt-current-assignment))
-	      (asstok nil))
+	      (asstag nil))
 	  (if assign
 	      ;; We have an assignment
-	      (setq asstok (semantic-analyze-find-nonterminal-sequence
+	      (setq asstag (semantic-analyze-find-tag-sequence
 			    assign localvar scope)))
-	  (if asstok
+	  (if asstag
 	      (setq context-return
 		    (semantic-analyze-context-assignment
 		     "assignment"
 		     :buffer (current-buffer)
-		     :assignee asstok
+		     :assignee asstag
 		     :scope scope
 		     :scopetypes scopetypes
 		     :localvariables localvar
@@ -530,7 +532,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 (defmethod semantic-analyze-type-constraint
   ((context semantic-analyze-context) &optional desired-type)
   "Return a type constraint for completing :prefix in CONTEXT.
-Optional argument DESIRED-TYPE may be a non-type token to analyze."
+Optional argument DESIRED-TYPE may be a non-type tag to analyze."
   (when desired-type
     ;; Convert the desired type if needed.
     (if (not (eq (semantic-tag-class desired-type) 'type))
@@ -542,7 +544,7 @@ Optional argument DESIRED-TYPE may be a non-type token to analyze."
 		(not (semantic-tag-p desired-type)))
 	   (setq desired-type (list (car desired-type) 'type)))
 	  ((semantic-tag-p desired-type)
-	   ;; We have a token of some sort.  Yay!
+	   ;; We have a tag of some sort.  Yay!
 	   nil)
 	  (t (setq desired-type nil))
 	  ))
@@ -559,13 +561,13 @@ Optional argument DESIRED-TYPE may be a non-type token to analyze."
   (call-next-method context (car (reverse (oref context assignee)))))
 
 (defun semantic-analyze-type-constants (type)
-  "For the token TYPE, return any constant symbols of TYPE.
+  "For the tag TYPE, return any constant symbols of TYPE.
 Used as options when completing."
   (let* ((s (semantic-fetch-overload 'analyze-type-constants)))
     (if s
 	;; We need the real type so that language files don't
 	;; need to know much about analysis.
-	(let* ((realtype (semantic-analyze-find-nonterminal
+	(let* ((realtype (semantic-analyze-find-tag
 			  (semantic-tag-name type)))
 	       (ans (funcall s realtype))
 	       (out nil))
@@ -585,7 +587,7 @@ Used as options when completing."
 
 ;;;###autoload
 (defun semantic-analyze-possible-completions (context)
-  "Return a list of semantic tokens which are possible completions.
+  "Return a list of semantic tags which are possible completions.
 CONTEXT is either a position (such as point), or a precalculated
 context.  Passing in a context is useful if the caller also needs
 to access parts of the analysis.
@@ -657,7 +659,7 @@ in a buffer."
 		 ;; The current scope
 		 (semantic-find-tags-by-name-regexp expr (oref a scope))
 		 ;; The world
-		 (semantic-analyze-find-nonterminals-by-prefix
+		 (semantic-analyze-find-tags-by-prefix
 		  completetext))
 	      )
 	))
@@ -700,14 +702,14 @@ in a buffer."
 
 ;;; Friendly output of a context analysis.
 ;;
-(defcustom semantic-analyze-summary-function 'semantic-prototype-nonterminal
+(defcustom semantic-analyze-summary-function 'semantic-format-tag-prototype
   "*Function to use when creating items in Imenu.
-Some useful functions are found in `semantic-token->text-functions'."
+Some useful functions are found in `semantic-format-tag-functions'."
   :group 'semantic
   :type semantic-format-tag-custom-list)
 
 (defun semantic-analyze-princ-sequence (sequence &optional prefix)
-  "Send the token SEQUENCE to standard out.
+  "Send the tag SEQUENCE to standard out.
 Use PREFIX as a label."
   (while sequence
     (princ prefix)
