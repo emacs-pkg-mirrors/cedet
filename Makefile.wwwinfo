@@ -3,7 +3,7 @@
 
 DEST=~/cedet/htdocs/info
 DIR=$(shell pwd)
-VPATH= eieio speedbar semantic ede cogre
+VPATH= eieio speedbar semantic/doc ede cogre
 
 all: $(DEST)/eieio.html \
      $(DEST)/speedbar.html \
