@@ -1,11 +1,11 @@
 ;;; ede.el --- Emacs Development Environment gloss
 
-;;;  Copyright (C) 1998  Eric M. Ludlam
+;;;  Copyright (C) 1998, 99  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.0.1
+;; Version: 0.0.2
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.2 1999/01/05 02:44:41 zappo Exp $
+;; RCS: $Id: ede.el,v 1.3 1999/01/21 13:55:28 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -48,8 +48,8 @@
 ;;  (global-ede-mode t)
 
 ;;; Code:
-(defvar ede-version "0.1"
-  "Current version of the Emacs ede.")
+(defvar ede-version "0.0"
+  "Current version of the Emacs EDE.")
 
 ;; From custom web page for compatibility between versions of custom
 (eval-and-compile
@@ -97,6 +97,11 @@ type is required and the load function used.")
 
 (defvar ede-project-class-files
   (list
+   (ede-project-autoload "edeproject"
+			 :name "edeproject" :file 'ede-proj
+			 :proj-file "Project.ede"
+			 :load-type 'ede-proj-load
+			 :class-sym 'ede-proj-project)
    (ede-project-autoload "automake"
 			 :name "automake" :file 'project-am
 			 :proj-file "Makefile.am"
@@ -108,18 +113,39 @@ type is required and the load function used.")
 ;;; Generic project information manager objects
 ;;
 (defclass ede-target ()
-  ((name :initarg :name :docstring "Name of this target.")
-   (path :initarg :path :docstring "The path to this target.")
+  ((name :initarg :name
+	 :custom string
+	 :docstring "Name of this target.")
+   (path :initarg :path
+	 :docstring "The path to this target.")
+   (takes-compile-command
+    :initarg :takes-compile-command
+    :initform nil
+    :docstring "Non-nil if this target takes requires a user approved command."
+    :allocation :class)
    )
   "A top level target to build.")
 
 (defclass ede-project ()
-  ((file :initarg :file
+  ((name :initarg :name
+	 :initform "Untitled"
+	 :custom string
+	 :docstring "The name used when generating distribution files.")
+   (version :initarg :version
+	    :initform "1.0"
+	    :custom string
+	    :docstring "The version number used when distributing files.")
+   (file :initarg :file
 	 :docstring "File name where this project is stored.")
    (root :initarg :root
 	 :docstring "The root project file")
+   (targets :initarg :targets
+	    :custom (repeat object)
+	    :docstring "List of top level targets in this project.")
    (subproj :initarg :subproj
-	    :docstring "Sub projects controlled by this project."))
+	    :custom (repeat object)
+	    :docstring "Sub projects controlled by this project.")
+   )
   "Top level EDE project specification.
 All specific project types must derive from this project.")
 
@@ -145,9 +171,14 @@ Do not set this to non-nil globally.  It is used internally.")
 (defmacro ede-with-projectfile (obj &rest forms)
   "For the project in which OBJ resides, execute FORMS."
   (list 'save-window-excursion
-	(list 'let* (list (list 'pf (list 'ede-load-project-file
-					  (list 'oref obj :path)))
-			  '(dbka (get-file-buffer (oref pf :file))))
+	(list 'let* (list
+		     (list 'pf
+			   (list 'if (list 'obj-of-class-p
+					   obj 'ede-target)
+				 (list 'ede-load-project-file
+				       (list 'oref obj :path))
+				 obj))
+		     '(dbka (get-file-buffer (oref pf :file))))
 	      '(if (not dbka) (find-file (oref pf :file))
 		 (switch-to-buffer dbka))
 	      (cons 'progn forms)
@@ -188,13 +219,15 @@ Do not set this to non-nil globally.  It is used internally.")
        [ "Create a new project" ede-new (not ede-object) ]
        [ "Load a project" ede t ]
        [ "Rescan Project Files" ede-rescan-toplevel t ]
+       [ "Customize Project" ede-customize (ede-current-project) ]
        "---"
-       [ "Create New Target" ede-new-target ede-object ]
-       [ "Add to Target" ede-add-file (not ede-object) ]
-       [ "Remove from Targets" ede-remove-file
+       [ "Create New Target" ede-new-target (ede-current-project) ]
+       [ "Delete Target" ede-delete-target ede-object ]
+       [ "Add to Target" ede-add-file (ede-current-project) ]
+       [ "Modify Target" ede-edit-file-target
 	 (and ede-object
 	      (not (obj-of-class-p ede-object ede-project))) ]
-       [ "Modify Target" ede-edit-file-target
+       [ "Remove from Target" ede-remove-file
 	 (and ede-object
 	      (not (obj-of-class-p ede-object ede-project))) ]
        "---"
@@ -244,8 +277,8 @@ If ARG is negative, disable.  Toggle otherwise."
 	  (global-ede-mode -1)
 	(global-ede-mode 1))
     (if (or (eq arg t) (> arg 0))
-	(add-hook 'find-file-hooks 'ede-minor-mode)
-      (remove-hook 'find-file-hooks 'ede-minor-mode))
+	(add-hook 'find-file-hooks (lambda () (ede-minor-mode 1)))
+      (remove-hook 'find-file-hooks (lambda () (ede-minor-mode 1))))
     (let ((b (buffer-list)))
       (while b
 	(if (buffer-file-name (car b))
@@ -264,11 +297,18 @@ Argument FILE is the file or directory to load a project from."
       (ede-new (file))
     (ede-load-project-file (file-name-directory file))))
 
-(defun ede-new (file)
-  "Create a new project starting with FILE.
-Guess the type of project to create based on file."
-  (interactive "fProject File: ")
-  (error "Unimplemented."))
+(defun ede-new (type)
+  "Create a new project starting of project type TYPE."
+  (interactive
+   (list (completing-read "Project Type: "
+			  (object-assoc-list :name ede-project-class-files)
+			  nil t)))
+  (let* ((obj (object-assoc type :name ede-project-class-files))
+	 (nobj (make-instance (oref obj :class-sym)
+			      :name (read-string "Name: ")
+			      :file (oref obj :proj-file))))
+    (ede-commit-project nobj))
+  (message "Project created and saved.  You may now create targets."))
 
 (defun ede-invoke-method (sym &rest args)
   "Invoke method SYM on the current buffer's project object.
@@ -285,31 +325,43 @@ ARGS are additional arguments to pass to method sym."
 	(ede-deep-rescan t))
     (project-rescan (ede-load-project-file toppath))))
 
+(defun ede-customize ()
+  "Customize the current project file."
+  (interactive)
+  (eieio-customize (ede-current-project)))
+
 (defun ede-new-target ()
   "Create a new target specific to this type of project file."
   (interactive)
-  (project-new-target (ede-load-project-file default-directory)))
+  (project-new-target (ede-current-project)))
+
+(defun ede-delete-target (target)
+  "Delete TARGET from the current project."
+  (interactive (list
+		(let ((ede-object (ede-current-project)))
+		  (ede-invoke-method 'project-interactive-select-target
+				     "Target: "))))
+  (project-delete-target target))
 
 (defun ede-add-file (target)
   "Add the current buffer to a TARGET in the current project."
   (interactive (list
-		(ede-invoke-method 'project-interactive-select-target
-				   "Target: ")))
-  (ede-invoke-method 'project-add-file target
-		     (file-name-nondirectory (buffer-file-name))))
+		(let ((ede-object (ede-current-project)))
+		  (ede-invoke-method 'project-interactive-select-target
+				     "Target: "))))
+  (project-add-file target (buffer-file-name))
+  (setq ede-object target))
 
 (defun ede-remove-file ()
   "Remove the current file from targets."
   (interactive)
   (if (not ede-object)
-      (error "Cannot invoke %s for %s" (symbol-name sym)
-	     (buffer-name)))
-  (let ((targets (project-targets-for-file
-		  (ede-load-project-file (current-buffer)))))
-    (while targets
-      (if (y-or-n-p (format "Remove from %s? " (ede-name (car targets))))
-	  (project-remove-file ede-object (car targets)))
-      (setq targets (cdr targets)))))
+      (error "Cannot invoke %s for %s" (symbol-name sym) (buffer-name)))
+  (if (y-or-n-p (format "Remove from %s? " (ede-name ede-object)))
+      (progn
+	(project-remove-file ede-object (ede-convert-path (ede-current-project)
+							  (buffer-file-name)))
+	(setq ede-object nil))))
 
 (defun ede-edit-file-target ()
   "Enter the project file to hand edit the current buffer's target."
@@ -319,7 +371,8 @@ ARGS are additional arguments to pass to method sym."
 (defun ede-compile-project ()
   "Compile the current project."
   (interactive)
-  (ede-invoke-method 'project-compile-project))
+  (let ((ede-object (ede-current-project)))
+    (ede-invoke-method 'project-compile-project)))
 
 (defun ede-compile-target ()
   "Compile the current buffer's associated target."
@@ -334,7 +387,8 @@ ARGS are additional arguments to pass to method sym."
 (defun ede-make-dist ()
   "Create a distribution from the current project."
   (interactive)
-  (ede-invoke-method 'project-make-dist))
+  (let ((ede-object (ede-current-project)))
+    (ede-invoke-method 'project-make-dist)))
 
 
 ;;; EDE project target baseline methods.
@@ -347,7 +401,12 @@ ARGS are additional arguments to pass to method sym."
 ;;  files should inherit from `ede-project'.  Create the appropriate
 ;;  methods based on those below.
 
-(defmethod project-add-file ((ot ede-target))
+(defmethod project-interactive-select-target ((this ede-project) prompt)
+  "Interactivly query for a target that exists in project THIS."
+  (let ((ob (object-assoc-list :name (oref this :targets))))
+    (cdr (assoc (completing-read prompt ob nil t) ob))))
+
+(defmethod project-add-file ((ot ede-target) file)
   "Add the current buffer into a project."
   (error "add-file not supported by %s" (object-name ot)))
 
@@ -357,34 +416,33 @@ ARGS are additional arguments to pass to method sym."
 
 (defmethod project-edit-file-target ((ot ede-target))
   "Edit the target OT associated w/ this file."
-  (error "edit-file-target not supported by %s" (object-name ot)))
+  (find-file (oref (ede-current-project) :file)))
 
 (defmethod project-new-target ((proj ede-project))
   "Create a new target.  It is up to the project PROG to get the name."
-  (error "new-target not supported by %s" (object-name ot)))
+  (error "new-target not supported by %s" (object-name proj)))
 
-(defmethod project-compile-project ((obj ede-target)
-				       &optional command)
+(defmethod project-delete-target ((ot ede-target))
+  "Delete the current target from it's parent project."
+  (error "add-file not supported by %s" (object-name ot)))
+
+(defmethod project-compile-project ((obj ede-project) &optional command)
   "Compile the entire current project.
 Argument COMMAND is the command to use when compiling."
-  (error "compile-project not supported by %s" (object-name ot)))
+  (error "compile-project not supported by %s" (object-name obj)))
 
 (defmethod project-compile-target ((obj ede-target) &optional command)
   "Compile the current target.
 Argument COMMAND is the command to use for compiling the target."
-  (error "compile-target not supported by %s" (object-name ot)))
+  (error "compile-target not supported by %s" (object-name obj)))
 
 (defmethod project-debug-target ((obj ede-target))
   "Run the current project target in a debugger."
-  (error "debug-target not supported by %s" (object-name ot)))
+  (error "debug-target not supported by %s" (object-name obj)))
 
-(defmethod project-make-dist ((this ede-target))
+(defmethod project-make-dist ((this ede-project))
   "Build a distribution for the project based on THIS target."
-  (error "make-dist not supported by %s" (object-name ot)))
-
-(defmethod project-targets-for-file ((proj ede-project))
-  "Return a list of targets the project PROJ."
-  (error "targets-for-file not supported by %s" (object-name proj)))
+  (error "make-dist not supported by %s" (object-name this)))
 
 ;;; Default methods for EDE classes
 ;;
@@ -405,6 +463,14 @@ Argument COMMAND is the command to use for compiling the target."
 Do this by extracting the lowest directory name."
   (oref this :file))
 
+(defmethod ede-convert-path ((this ede-project) path)
+  "Convert path in a standard way for a given project.
+Default to making it project relative."
+  (let ((pp (file-name-directory (expand-file-name (oref this :file))))
+	(fp (expand-file-name path)))
+    (if (string-match (regexp-quote pp) fp)
+	(substring fp (match-end 0))
+      (error "Cannot convert relativize path %s." fp))))
 
 ;;; EDE project-autoload methods
 ;;
@@ -438,7 +504,7 @@ This depends on an up to day `ede-project-class-files' variable."
     ;; project, and it's sub projects.  When we are done, identify the
     ;; sub-project object belonging to file.
     (setq toppath path newpath path)
-    (while (setq pfc (ede-directory-project-p newpath))
+    (while (ede-directory-project-p newpath)
       (setq toppath newpath newpath
 	    (file-name-directory (substring toppath 0 (1- (length toppath))))))
     toppath))
@@ -461,8 +527,9 @@ This depends on an up to day `ede-project-class-files' variable."
 			    ede-projects))
       (if (not o)
 	  ;; If not, get it now.
-	  (let ((ede-constructing t))
-	    (setq o (funcall (oref pfc :load-type) toppath))))
+	  (let ((ede-constructing t) (afo nil))
+	    (setq o (funcall (oref pfc :load-type) toppath))
+	    (setq ede-projects (cons o ede-projects))))
       (let (tocheck found)
 	;; Now find the project file belonging to FILE!
 	(setq tocheck (list o))
@@ -484,7 +551,7 @@ This depends on an up to day `ede-project-class-files' variable."
   "Return the target object for BUFFER."
   (if (not buffer) (setq buffer (current-buffer)))
   (let ((po (ede-current-project)))
-    (if po (setq ede-object (project-find-target po buffer)))))
+    (if po (setq ede-object (ede-find-target po buffer)))))
 
 (defun ede-maybe-checkout (&optional buffer)
   "Check BUFFER out of VC if necessary."
@@ -501,7 +568,7 @@ This depends on an up to day `ede-project-class-files' variable."
 
 (add-hook 'edebug-setup-hook
 	  (lambda ()
-	    (def-edebug-spec project-am-with-projectfile
+	    (def-edebug-spec ede-with-projectfile 
 	      (form def-body))))
 
 (autoload 'ede-speedbar "ede-speedbar" "Run speedbar in EDE project mode." t)
