@@ -1,9 +1,9 @@
 ;;; eieio-doc.el --- create texinfo documentation for an eieio class
 
-;;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.6 1998/10/27 18:21:54 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.7 1999/09/04 12:33:24 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -149,9 +149,7 @@ Argument LEVEL is the current level of recursion we have hit."
 	 (docs (aref cv class-public-doc))
 	 (names (aref cv class-public-a))
 	 (deflt (aref cv class-public-d))
-	 (pdocs (aref cv class-private-doc))
-	 (pnames (aref cv class-private-a))
-	 (pdeflt (aref cv class-private-d))
+	 (prot (aref cv class-protection))
 	 (set-one nil)
 	 (anchor nil)
 	 )
@@ -160,48 +158,37 @@ Argument LEVEL is the current level of recursion we have hit."
     (if names
 	(progn
 	  (setq anchor (point))
-	  (insert "@item Public Slots:\n\n@table @code\n")
+	  (insert "@item Slots:\n\n@table @code\n")
 	  (while names
-	    (if (eieiodoc-one-attribute class (car names) (car docs) deflt)
+	    (if (eieiodoc-one-attribute class (car names) (car docs)
+					(car prot) (car deflt))
 		(setq set-one t))
 	    (setq names (cdr names)
 		  docs (cdr docs)
+		  prot (cdr prot)
 		  deflt (cdr deflt)))
 	  (insert "@end table\n\n")
 	  (if (not set-one) (delete-region (point) anchor))
 	  ))
-    (if pnames
-	(progn
-	  (setq set-one nil
-		anchor (point))
-	  (insert "@item Private Slots:\n\n@table @code\n")
-	  (while pnames
-	    (if (eieiodoc-one-attribute class (car pnames) (car pdocs) deflt)
-		(setq set-one t))
-	    (setq pnames (cdr pnames)
-		  pdocs (cdr pdocs)
-		  pdeflt (cdr pdeflt)))
-	  (insert "@end table\n\n")
-	  (if (not set-one) (delete-region (point) anchor))
-	  ))
-    ;; This ends the table which only has public/private slots
     (insert "@end table\n")
     ))
 
-(defun eieiodoc-one-attribute (class attribute doc deflt)
+(defun eieiodoc-one-attribute (class attribute doc priv deflt)
   "Create documentation of CLASS for a single ATTRIBUTE.
 Assume this attribute is inside a table, so it is initiated with the
 @item indicator.  If this attribute is not inserted (because it is
 contained in the parent) then return nil, else return t.
-DOC is the documentation to use, and DEFLT is the default value."
+DOC is the documentation to use, PRIV is non-nil if it is a private slot,
+and DEFLT is the default value."
   (let ((pv (eieiodoc-parent-diff class attribute))
 	(ia (eieio-attribute-to-initarg class attribute))
 	(set-me nil))
     (if (or (eq pv t) (not ia))
 	nil  ;; same in parent or no init arg
       (setq set-me t)
-      (insert "@item " (symbol-name ia) "\nDefault Value: "
-	      "@code{"(format "%S" (car deflt)) "}\n\n")
+      (insert "@item " (if priv "Private: " "")
+	      (symbol-name ia) "\nDefault Value: "
+	      "@code{"(format "%S" deflt) "}\n\n")
       (if (eq pv 'default)
 	  ;; default differs only, xref the parent
 	  ;; This should be upgraded to actually search for the last
