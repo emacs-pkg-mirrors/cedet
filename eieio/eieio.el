@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.51 1999/09/08 11:09:27 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.52 1999/09/08 23:13:40 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1438,7 +1438,10 @@ viewing by apropos, and describe-variables, and the like."
 			       (concat "    type = "
 				       (format "%S" (aref types i)))
 			     "")
-			   "    default = " (format "%S" (car deflt))
+			   (if (eq (car deflt) eieio-unbound)
+			       ""
+			     (concat "    default = "
+				     (format "%S" (car deflt))))
 			   (if (car docs) (concat "\n  " (car docs)) "")))
       (setq names (cdr names)
 	    docs (cdr docs)
