@@ -5,9 +5,9 @@
 ;; Copyright (C) 95,96,98,99,2000,01,02,03,04,05 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.133 2005/02/03 13:30:57 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.134 2005/04/03 16:14:47 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "1.0"
+(defvar eieio-version "1.0beta1"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1542,23 +1542,35 @@ This should only be called from a generic function."
 	  )
       
       ;; Non-static calls do all this stuff.
+
+      ;; :AFTER methods
       (setq tlambdas
-	    (or (and mclass (eieio-generic-form method method-after mclass))
-		(eieio-generic-form method method-after nil)))
-      (setq lambdas (cons tlambdas lambdas)
-	    keys (cons method-after keys))
+	    (if mclass
+		(eieiomt-method-list method method-after mclass)
+	      (list (eieio-generic-form method method-after nil)))
+	    ;;(or (and mclass (eieio-generic-form method method-after mclass))
+	    ;;	(eieio-generic-form method method-after nil))
+	    )
+      (setq lambdas (append tlambdas lambdas)
+	    keys (append (make-list (length tlambdas) method-after) keys))
       
+      ;; :PRIMARY methods
       (setq tlambdas
 	    (or (and mclass (eieio-generic-form method method-primary mclass))
 		(eieio-generic-form method method-primary nil)))
       (setq lambdas (cons tlambdas lambdas)
 	    keys (cons method-primary keys))
 
+      ;; :BEFORE methods
       (setq tlambdas
-	    (or (and mclass (eieio-generic-form method method-before mclass))
-		(eieio-generic-form method method-before nil)))
-      (setq lambdas (cons tlambdas lambdas)
-	    keys (cons method-before keys))
+	    (if mclass
+		(eieiomt-method-list method method-before mclass)
+	      (list (eieio-generic-form method method-before nil)))
+	    ;;(or (and mclass (eieio-generic-form method method-before mclass))
+	    ;;	(eieio-generic-form method method-before nil))
+	    )
+      (setq lambdas (append tlambdas lambdas)
+	    keys (append (make-list (length tlambdas) method-before) keys))
       )
     ;; Now loop through all occurances forms which we must execute
     ;; (which are happilly sorted now) and execute them all!
@@ -1579,10 +1591,36 @@ This should only be called from a generic function."
 	     (list method args))))
       rval)))
 
+(defun eieiomt-method-list (method key class)
+  "Return an alist list of methods lambdas.
+METHOD is the method name.
+KEY represents either :BEFORE, or :AFTER methods.
+CLASS is the starting class to search from in the method tree."
+  (let ((lambdas nil)
+	(mclass (list class)))
+    (while mclass
+      (when (car mclass)
+	;; lookup the form to use for the PRIMARY object for the next level
+	(setq lambdas (cons (eieio-generic-form method key (car mclass))
+			    lambdas))
+	(if (null (car lambdas))
+	    (setq lambdas (cdr lambdas))))
+      ;; Add new classes to mclass
+      (setq mclass (append (cdr mclass) (eieiomt-next (car mclass))))
+      )
+    (if (eq key method-after)
+	lambdas
+      (nreverse lambdas))))
+
 (defun next-method-p ()
   "Return a list of lambdas which qualify as the `next-method'."
   (let ((lambdas nil)
 	(mclass (eieiomt-next scoped-class)))
+    ;; NOTE TO SELF:
+    ;;
+    ;; This finds the first.  If there is multiple inheritance, then
+    ;; should we return a list?  Since this is a predicate, I guess
+    ;; it doesn't need to be that picky.
     (while (and (not lambdas) mclass)
       ;; lookup the form to use for the PRIMARY object for the next level
       (setq lambdas (eieio-generic-form eieio-generic-call-methodname
@@ -1598,12 +1636,15 @@ use them instead of `eieio-generic-call-arglst'.  The generic arg list
 are the arguments passed in at the top level."
   (if (not scoped-class)
       (error "Call-next-method not called within a class specific method"))
+  (if (and (/= eieio-generic-call-key method-primary)
+	   (/= eieio-generic-call-key method-static))
+      (error "Cannot `call-next-method' except in :PRIMARY or :STATIC methods."))
   (let ((newargs (or replacement-args eieio-generic-call-arglst))
 	(lambdas nil)
 	(mclass (eieiomt-next scoped-class))
 	(callsomething nil)
 	(returnval nil))
-    (while (and mclass (not callsomething))
+    (while mclass ;(and mclass (not callsomething))
       ;; lookup the form to use for the PRIMARY object for the next level
       (setq lambdas (eieio-generic-form eieio-generic-call-methodname
 					eieio-generic-call-key (car mclass)))
