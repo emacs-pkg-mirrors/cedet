@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.4 2003/05/29 00:55:20 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.5 2003/06/20 13:09:56 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -235,6 +235,7 @@ associated with that tag should be loaded into a buffer."
       (setq tables (cdr tables)))
     found))
 
+;;;###autoload
 (defun semanticdb-find-tags-by-name (name &optional path find-file-match)
   "Search for all tags matching NAME on PATH.
 See `semanticdb-find-translate-path' for details on PATH.
@@ -245,6 +246,7 @@ associated with that tag should be loaded into a buffer."
      (semanticdb-find-tags-by-name-method table name))
    path find-file-match))
 
+;;;###autoload
 (defun semanticdb-find-tags-by-name-regexp (regexp &optional path find-file-match)
   "Search for all tags matching REGEXP on PATH.
 See `semanticdb-find-translate-path' for details on PATH.
@@ -255,6 +257,7 @@ associated with that tag should be loaded into a buffer."
      (semanticdb-find-tags-by-name-regexp-method table regexp))
    path find-file-match))
 
+;;;###autoload
 (defun semanticdb-find-tags-for-completion (prefix &optional path find-file-match)
   "Search for all tags matching PREFIX on PATH.
 See `semanticdb-find-translate-path' for details on PATH.
@@ -267,6 +270,7 @@ associated with that tag should be loaded into a buffer."
 
 ;;; Deep Searches
 ;;
+;;;###autoload
 (defun semanticdb-deep-find-tags-by-name (name &optional path find-file-match)
   "Search for all tags matching NAME on PATH.
 Search also in all components of top level tags founds.
@@ -278,6 +282,7 @@ associated with that tag should be loaded into a buffer."
      (semanticdb-deep-find-tags-by-name-method table name))
    path find-file-match))
 
+;;;###autoload
 (defun semanticdb-deep-find-tags-by-name-regexp (regexp &optional path find-file-match)
   "Search for all tags matching REGEXP on PATH.
 Search also in all components of top level tags founds.
@@ -289,6 +294,7 @@ associated with that tag should be loaded into a buffer."
      (semanticdb-deep-find-tags-by-name-regexp-method table regexp))
    path find-file-match))
 
+;;;###autoload
 (defun semanticdb-deep-find-tags-for-completion (prefix &optional path find-file-match)
   "Search for all tags matching PREFIX on PATH.
 Search also in all components of top level tags founds.
@@ -302,6 +308,7 @@ associated with that tag should be loaded into a buffer."
 
 ;;; Specialty Search Routines
 ;;
+;;;###autoload
 (defun semanticdb-find-tags-external-children-of-type
   (type &optional path find-file-match)
   "Search for all tags defined outside of TYPE w/ TYPE as a parent.
