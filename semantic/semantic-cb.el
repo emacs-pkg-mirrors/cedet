@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.8 2003/03/17 01:08:54 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.9 2003/04/09 01:06:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,7 +56,7 @@ or whatever is used in that language as a representaton.")
   ((buttontype :initform statictag)
    (buttonface :initform speedbar-tag-face)
    (token :initarg :token
-	  :type semantic-token
+	  :type semantic-tag
 	  :documentation
 	  "Semantic token which represents a type.")
    (table :initarg :table
@@ -192,21 +192,17 @@ class of type `semantic-cb-token', or `semantic-cb-type'."
   "Complete CBTOKEN, an object which needs to be completed.
 POSSIBLEPARENTS is the list of types which are eligible
 to be parents of CBTOKEN."
-  (let* ((pl (semantic-token-type-parent (oref cbtoken token)))
-	 (parents (car pl))
-	 (interface (cdr pl))
+  (let* ((parents (semantic-tag-type-superclasses (oref cbtoken token)))
+	 (interface (semantic-tag-type-interfaces (oref cbtoken token)))
 	 )
-    (if (semantic-token-p pl)
-	(setq parents (list pl)
-	      interface nil))
     (if (or (not (listp parents))
-	    (semantic-token-p parents))
+	    (semantic-tag-p parents))
 	(setq parents (list parents)))
     (while parents
       (semantic-cb-find-parent cbtoken (car parents) possibleparents)
       (setq parents (cdr parents)))
     (if (or (not (listp interface))
-	    (semantic-token-p interface))
+	    (semantic-tag-p interface))
 	(setq interface (list interface)))
     (while interface
       (semantic-cb-find-parent cbtoken (car interface) possibleparents)
@@ -219,8 +215,8 @@ PARENTOBJ will be in POSSIBLEPARENTS, or determined to be nil.
 If a valid CB object is found, link CBT to the found object."
   (let* ((pstr (cond ((stringp parentobj)
 		      parentobj)
-		     ((semantic-token-p parentobj)
-		      (semantic-token-name parentobj))
+		     ((semantic-tag-p parentobj)
+		      (semantic-tag-name parentobj))
 		     (t
 		      ;;(error "Unknown parent object type")
 		      ;; Concoct a reasonable default
@@ -240,14 +236,14 @@ DB is the semantic database that TOKEN is derived from.
 PARENTOBJ is the CB object which is the parent of TOKEN"
   (let* ((chil (cons
 		;; This makes a mock DB list
-		(cons db (semantic-token-type-parts token))
+		(cons db (semantic-tag-type-members token))
 		;; External children in DB form.
 		(semantic-nonterminal-external-member-children
 		 token t)))
 	 ;; This is a created CB object which will represent
 	 ;; this type.
 	 (tobj (semantic-cb-type
-		(semantic-token-name token) ; name
+		(semantic-tag-name token) ; name
 		 :token token		; The token
 		 :table db		; database table we came from
 		 :container parentobj	; parent container
@@ -271,15 +267,15 @@ PARENTOBJ is the CB token which hosts CHILDLIST."
       (let ((sublist (cdr (car childlist)))
 	    (db (car (car childlist))))
 	(while sublist
-	  (if (semantic-token-with-position-p (car sublist))
+	  (if (semantic-tag-with-position-p (car sublist))
 	      (let ((newtok
 		     (cond
-		      ((eq (semantic-token-token (car sublist))
+		      ((eq (semantic-tag-class (car sublist))
 			   'type)
 		       (semantic-cb-convert-type (car sublist) db parentobj))
 		      (t
 		       (semantic-cb-token
-			(semantic-token-name (car sublist))
+			(semantic-tag-name (car sublist))
 			:token (car sublist)
 			:table db
 			:container parentobj)))))
@@ -295,7 +291,7 @@ PARENTOBJ is the CB token which hosts CHILDLIST."
 (defmethod initialize-instance :AFTER ((this semantic-cb-token) &rest fields)
   "After initializing THIS, keep overlay properties up to date."
   (let* ((tok (oref this token))
-	 (ol (semantic-token-overlay tok)))
+	 (ol (semantic-tag-overlay tok)))
     ;; Ignore tokens that are in the database.
     (when (semantic-overlay-p ol)
       ;; Apply our object onto this overlay for fast
@@ -433,7 +429,7 @@ digraph uml_" diagramname " {\n")
 
 (defmethod eieio-speedbar-description ((object semantic-cb-token))
   "Descriptive text for OBJECT."
-  (semantic-summarize-nonterminal (oref object token)))
+  (semantic-format-tag-summarize (oref object token)))
 
 (defmethod eieio-speedbar-derive-line-path ((object semantic-cb-token))
   "Get the path to OBJECT's instantiation."
