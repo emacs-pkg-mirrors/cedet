@@ -24,7 +24,7 @@
    (ede-proj-target-elisp "common"
     :name "common"
     :path ""
-    :source '("cedet-autogen.el" "cedet-compat.el" "ezimage.el" "inversion.el" "pprint.el" "sformat.el" "working.el")
+    :source '("cedet-autogen.el" "cedet-compat.el" "ezimage.el" "inversion.el" "pprint.el" "sformat.el" "working.el" "cedet-edebug.el")
     )
    )
   :web-site-url "http://cedet.sourceforge.net/"
