@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.17 2002/02/28 16:24:29 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.18 2002/03/16 20:07:19 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -106,6 +106,16 @@ This will add a speedbar major display mode."
   (speedbar-change-initial-expansion-list "Info")
   )
 
+(defvar Info-speedbar-image-button-alist
+  '(("<+>" . speedbar-document-plus)
+    ("<->" . speedbar-document-minus)
+    ("[+]" . speedbar-page-plus)
+    ("[-]" . speedbar-page-minus)
+    ("[?]" . speedbar-page)
+    ("[ ]" . speedbar-page)
+    )
+  "Image buttons used for Info mode.")
+
 (defun Info-speedbar-hierarchy-buttons (directory depth &optional node)
   "Display an Info directory hierarchy in speedbar.
 DIRECTORY is the current directory in the attached frame.
@@ -121,7 +131,9 @@ specific node to expand."
     ;; being known at creation time.
     (if (not node)
 	(speedbar-with-writable (insert "Info Nodes:\n")))
-    (let ((completions nil))
+    (let ((completions nil)
+	  (speedbar-expand-image-button-alist
+	   Info-speedbar-image-button-alist))
       (dframe-select-attached-frame speedbar-frame)
       (save-window-excursion
 	(setq completions
@@ -130,7 +142,10 @@ specific node to expand."
       (if completions
 	  (speedbar-with-writable
 	   (while completions
-	     (speedbar-make-tag-line 'bracket ?+ 'Info-speedbar-expand-node
+	     (speedbar-make-tag-line (if (= depth 0)
+					 'angle
+				       'bracket)
+				     ?+ 'Info-speedbar-expand-node
 				     (cdr (car completions))
 				     (car (car completions))
 				     'Info-speedbar-goto-node
@@ -171,20 +186,21 @@ The INDENT level is ignored."
 TEXT is the text of the button we clicked on, a + or - item.
 TOKEN is data related to this node (NAME . FILE).
 INDENT is the current indentation depth."
-  (cond ((string-match "+" text)	;we have to expand this file
-	 (speedbar-change-expand-button-char ?-)
-	 (if (speedbar-with-writable
-	       (save-excursion
-		 (end-of-line) (forward-char 1)
-		 (Info-speedbar-hierarchy-buttons nil (1+ indent) token)))
-	     (speedbar-change-expand-button-char ?-)
-	   (speedbar-change-expand-button-char ??)))
-	((string-match "-" text)	;we have to contract this node
-	 (speedbar-change-expand-button-char ?+)
-	 (speedbar-delete-subblock indent))
-	(t (error "Ooops... not sure what to do")))
-  (speedbar-center-buffer-smartly))
-
+  (let ((speedbar-expand-image-button-alist Info-speedbar-image-button-alist))
+    (cond ((string-match "+" text)	;we have to expand this file
+	   (speedbar-change-expand-button-char ?-)
+	   (if (speedbar-with-writable
+		 (save-excursion
+		   (end-of-line) (forward-char 1)
+		   (Info-speedbar-hierarchy-buttons nil (1+ indent) token)))
+	       (speedbar-change-expand-button-char ?-)
+	     (speedbar-change-expand-button-char ??)))
+	  ((string-match "-" text)	;we have to contract this node
+	   (speedbar-change-expand-button-char ?+)
+	   (speedbar-delete-subblock indent))
+	  (t (error "Ooops... not sure what to do")))
+    (speedbar-center-buffer-smartly)))
+  
 (defun Info-speedbar-fetch-file-nodes (nodespec)
   "Fetch the subnodes from the info NODESPEC.
 NODESPEC is a string of the form: (file)node.
