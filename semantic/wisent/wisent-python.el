@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.34 2003/02/19 16:33:44 ponced Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.35 2003/02/20 05:31:11 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -69,13 +69,12 @@
 ;;;****************************************************************************
 
 ;; Pop all items from the "indent stack" if we are at buffer end.
-;; This assumes that `end' variable is set.
 (defun semantic-lex-python-pop-indent-stack ()
-  (if (eq (point) end)
+  (if (eq (point) (cdr semantic-lex-analysis-bounds))
       (while (> (car wisent-python-lexer-indent-stack) 0)
-	(semantic-lex-push-token
-	 (semantic-lex-token 'DEDENT (point) (point)))
-	(pop wisent-python-lexer-indent-stack))))
+        (semantic-lex-push-token
+         (semantic-lex-token 'DEDENT (point) (point)))
+        (pop wisent-python-lexer-indent-stack))))
 
 (define-lex-analyzer semantic-lex-python-beginning-of-line
   "Handle beginning-of-line case, i.e., possibly generate INDENT or
@@ -84,64 +83,64 @@ indentation values stored in `wisent-python-lexer-indent-stack'
 stack."
   (and (and (bolp) (not wisent-python-explicit-line-continuation))
        (let ((last-indent (or (car wisent-python-lexer-indent-stack) 0))
-	     (last-pos (point))
-	     curr-indent)
-	 (skip-chars-forward " \t")
-	 (setq curr-indent (current-column))
-	 (cond
-	  ;; Blank or comment line => no indentation change
-	  ((looking-at "\\(#\\|$\\)")
-	   (forward-line 1)
-	   (setq semantic-lex-end-point (point))
-	   (semantic-lex-python-pop-indent-stack)
-	   ;; Since position changed, returning t here won't result in
-	   ;; infinite loop.
-	   t)
-	  ;; No change in indentation.
-	  ((= curr-indent last-indent)
-	   (setq semantic-lex-end-point (point))
-	   ;; If pos did not change, then we must return nil so that
-	   ;; other lexical analyzers can be run.
-	   nil)
-	  ;; Indentation increased
-	  ((> curr-indent last-indent)
-	   (if (or (not semantic-lex-maximum-depth)
-		   (< semantic-lex-current-depth semantic-lex-maximum-depth))
-	       (progn
-		 ;; Return an INDENT lexical token
-		 (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
-		 (push curr-indent wisent-python-lexer-indent-stack)
-		 (semantic-lex-push-token
-		  (semantic-lex-token 'INDENT last-pos (point)))
-		 t)
-	     ;; Add an INDENT_BLOCK token
-	     (semantic-lex-push-token
-	      (semantic-lex-token
-	       'INDENT_BLOCK
-	       (progn (beginning-of-line) (point))
-	       (save-excursion
-		 (semantic-lex-unterminated-syntax-protection
-		  'INDENT_BLOCK
-		  (let ((starting-indentation (current-indentation)))
-		    (while (>= (current-indentation) starting-indentation)
-		      (forward-list 1)
-		      (beginning-of-line)))
-		  (point)))))
-	     t)
-	   )
-	  ;; Indentation decreased
-	  (t
-	   ;; Pop items from indentation stack
-	   (while (< curr-indent last-indent)
-	     (setq semantic-lex-current-depth (1- semantic-lex-current-depth))
-	     (semantic-lex-push-token
-	      (semantic-lex-token 'DEDENT last-pos (point)))
-	     (pop wisent-python-lexer-indent-stack)
-	     (setq last-indent (or (car wisent-python-lexer-indent-stack) 0)))
-	   ;; If pos did not change, then we must return nil so that
-	   ;; other lexical analyzers can be run.
-	   (not (eq last-pos (point))))
-	  )))
+             (last-pos (point))
+             curr-indent)
+         (skip-chars-forward " \t")
+         (setq curr-indent (current-column))
+         (cond
+          ;; Blank or comment line => no indentation change
+          ((looking-at "\\(#\\|$\\)")
+           (forward-line 1)
+           (setq semantic-lex-end-point (point))
+           (semantic-lex-python-pop-indent-stack)
+           ;; Since position changed, returning t here won't result in
+           ;; infinite loop.
+           t)
+          ;; No change in indentation.
+          ((= curr-indent last-indent)
+           (setq semantic-lex-end-point (point))
+           ;; If pos did not change, then we must return nil so that
+           ;; other lexical analyzers can be run.
+           nil)
+          ;; Indentation increased
+          ((> curr-indent last-indent)
+           (if (or (not semantic-lex-maximum-depth)
+                   (< semantic-lex-current-depth semantic-lex-maximum-depth))
+               (progn
+                 ;; Return an INDENT lexical token
+                 (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
+                 (push curr-indent wisent-python-lexer-indent-stack)
+                 (semantic-lex-push-token
+                  (semantic-lex-token 'INDENT last-pos (point)))
+                 t)
+             ;; Add an INDENT_BLOCK token
+             (semantic-lex-push-token
+              (semantic-lex-token
+               'INDENT_BLOCK
+               (progn (beginning-of-line) (point))
+               (save-excursion
+                 (semantic-lex-unterminated-syntax-protection
+                  'INDENT_BLOCK
+                  (let ((starting-indentation (current-indentation)))
+                    (while (>= (current-indentation) starting-indentation)
+                      (forward-list 1)
+                      (beginning-of-line)))
+                  (point)))))
+             t)
+           )
+          ;; Indentation decreased
+          (t
+           ;; Pop items from indentation stack
+           (while (< curr-indent last-indent)
+             (setq semantic-lex-current-depth (1- semantic-lex-current-depth))
+             (semantic-lex-push-token
+              (semantic-lex-token 'DEDENT last-pos (point)))
+             (pop wisent-python-lexer-indent-stack)
+             (setq last-indent (or (car wisent-python-lexer-indent-stack) 0)))
+           ;; If pos did not change, then we must return nil so that
+           ;; other lexical analyzers can be run.
+           (not (eq last-pos (point))))
+          )))
   nil ;; all the work was done in the previous form
   )
 
@@ -165,17 +164,17 @@ then throw away any immediately following INDENT and DEDENT tokens."
   "Handle python strings."
   (looking-at wisent-python-string-re)
   (let ((opos (point))
-	(e (semantic-lex-unterminated-syntax-protection
-	    'STRING_LITERAL
-	    ;; skip over "r" and/or "u" characters if any
-	    (goto-char (1- (match-end 0)))
-	    (cond
-	     ((looking-at "\"\"\"")
-	      (forward-char 3)
-	      (search-forward "\"\"\""))
-	     (t
-	      (forward-sexp 1)))
-	    (point))))
+        (e (semantic-lex-unterminated-syntax-protection
+            'STRING_LITERAL
+            ;; skip over "r" and/or "u" characters if any
+            (goto-char (1- (match-end 0)))
+            (cond
+             ((looking-at "\"\"\"")
+              (forward-char 3)
+              (search-forward "\"\"\""))
+             (t
+              (forward-sexp 1)))
+            (point))))
     (semantic-lex-push-token
      (semantic-lex-token 'STRING_LITERAL opos e))))
 
@@ -224,12 +223,12 @@ then throw away any immediately following INDENT and DEDENT tokens."
   semantic-lex-python-string
   semantic-lex-ignore-whitespace
   semantic-lex-python-newline
-  semantic-lex-python-number	;; rather than semantic-lex-number
-  semantic-lex-python-symbol	;; rather than semantic-lex-symbol-or-keyword
+  semantic-lex-python-number    ;; rather than semantic-lex-number
+  semantic-lex-python-symbol    ;; rather than semantic-lex-symbol-or-keyword
   semantic-lex-python-charquote
-  semantic-lex-python-blocks	;; rather than semantic-lex-paren-or-list/semantic-lex-close-paren
+  semantic-lex-python-blocks    ;; rather than semantic-lex-paren-or-list/semantic-lex-close-paren
   semantic-lex-ignore-comments
-  semantic-lex-punctuation-type	;; rather than semantic-lex-punctuation
+  semantic-lex-punctuation-type ;; rather than semantic-lex-punctuation
   semantic-lex-default-action
   )
 
@@ -245,26 +244,26 @@ the next logical line."
       (cond
        ;; skip over triple-quote string
        ((looking-at "\"\"\"")
-	(forward-char 3)
-	;; TODO: this probably should be protected with
-	;; semantic-lex-unterminated-syntax-protection
-	;; in case the closing triple quote is not found. -ryk2/17/03.
-	(search-forward "\"\"\""))
+        (forward-char 3)
+        ;; TODO: this probably should be protected with
+        ;; semantic-lex-unterminated-syntax-protection
+        ;; in case the closing triple quote is not found. -ryk2/17/03.
+        (search-forward "\"\"\""))
        ;; skip over lists, strings, etc
        ((looking-at "\\(\\s(\\|\\s\"\\|\\s<\\)")
-	(forward-sexp 1))
+        (forward-sexp 1))
        ;; backslash is the explicit line continuation character
        ((looking-at "\\s\\")
-	(forward-line 1)) 
+        (forward-line 1))
        ;; skip over white space, word, symbol, punctuation, and paired
        ;; delimiter (backquote) characters.
        (t (skip-syntax-forward "-w_.$")))
       (if (= (point) beg)
-	  (error "You have found a bug in python-next-line")))
+          (error "You have found a bug in python-next-line")))
     ;; the point now should be at the end of a line
     (forward-line 1)
     (while (and (looking-at "\\s-*\\(\\s<\\|$\\)")
-		(not (eobp))) ;; skip blank and comment lines
+                (not (eobp))) ;; skip blank and comment lines
       (forward-line 1))))
 
 (defun python-scan-lists ( &optional target-column )
@@ -286,7 +285,7 @@ than current line."
 current major mode is python-mode.
 Otherwise simply call the original function."
   (if (and (eq major-mode 'python-mode)
-	   (not (looking-at "\\s(")))
+           (not (looking-at "\\s(")))
       (setq ad-return-value (python-scan-lists))
     ad-do-it))
 
@@ -300,7 +299,7 @@ Otherwise simply call the original function."
   (start end &optional nonterminal depth returnonerror)
   "Over-ride in order to initialize some variables."
   (let ((wisent-python-lexer-indent-stack '(0))
-	(wisent-python-explicit-line-continuation nil))
+        (wisent-python-explicit-line-continuation nil))
     (semantic-parse-region-default
      start end nonterminal depth returnonerror)))
 
@@ -312,9 +311,9 @@ Otherwise simply call the original function."
   "Over-ride so that 'paren_classes' non-terminal tokens can be intercepted
 then converted to simple names to comply with the semantic token style guide."
   (let ((tokens (semantic-parse-region-default
-		 start end nonterminal depth returnonerror)))
+                 start end nonterminal depth returnonerror)))
     (if (eq nonterminal 'paren_classes)
-	(mapcar #'semantic-token-name tokens)
+        (mapcar #'semantic-token-name tokens)
       tokens)))
 
 ;;;###autoload
@@ -341,7 +340,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-19 11:36+0100
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-19 20:39-0800
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -794,7 +793,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-19 11:36+0100
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-19 20:39-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -856,7 +855,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-19 11:36+0100
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-19 20:39-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -929,7 +928,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-19 11:36+0100
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-19 20:39-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
