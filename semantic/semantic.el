@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.128 2001/11/10 11:01:52 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.129 2001/11/26 21:27:33 ponced Exp $
 
 (defvar semantic-version "1.4beta12"
   "Current version of Semantic.")
@@ -1774,7 +1774,12 @@ LENGTH tokens."
 	       (setq ts (cons (cons 'string
 				    (cons (match-beginning 0)
 					  (save-excursion
-					    (forward-sexp 1)
+                                            (condition-case nil
+                                                (forward-sexp 1)
+                                              ;; This case makes flex
+                                              ;; robust to broken strings.
+                                              (error
+                                               (goto-char end)))
 					    (setq ep (point)))))
 			      ts)))
 	      ((looking-at cs)
