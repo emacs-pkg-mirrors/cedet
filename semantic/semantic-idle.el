@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.25 2004/05/22 14:41:51 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.26 2004/06/06 08:24:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -576,12 +576,12 @@ Call `semantic-idle-summary-current-symbol-info' for getting the
 current tag to display information."
   (or (eq major-mode 'emacs-lisp-mode)
       (not (semantic-idle-summary-useful-context-p))
-      (require 'eldoc)
       (let* ((found (semantic-idle-summary-current-symbol-info))
              (str (cond ((stringp found) found)
                         ((semantic-tag-p found)
                          (funcall semantic-idle-summary-function
-                                  found nil t)))))      
+                                  found nil t)))))
+        (require 'eldoc)
         (unless (and str (boundp 'eldoc-echo-area-use-multiline-p)
                      eldoc-echo-area-use-multiline-p)
           (let ((w (1- (window-width (minibuffer-window)))))
