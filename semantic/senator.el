@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.25 2001/02/23 16:06:56 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.26 2001/03/05 08:02:27 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -100,6 +100,9 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.26  2001/03/05 08:02:27  ponced
+;; Added new Eldoc suggestion mode feature.
+;;
 ;; Revision 1.25  2001/02/23 16:06:56  ponced
 ;; Copied over all the menu items that used to be in semanic-mode.
 ;; Added the new token cut/paste items into a menu.
@@ -299,6 +302,7 @@
 
 ;;; Code:
 (require 'semantic)
+(require 'semantic-ctxt)
 
 ;;; Customization
 (defgroup senator nil
@@ -1796,6 +1800,75 @@ Argument TOKENFILE is the file from wence TOKEN came."
   ;; Have a mechanism for a tempo-like template insert for the given
   ;; token.
   (insert (semantic-prototype-nonterminal token)))
+
+;;;;
+;;;; Suggestion mode
+;;;;
+
+;; Since eldoc kicks butt for Emacs Lisp mode, this advice will let
+;; us do eldoc like things for other languages.
+(eval-when-compile (require 'eldoc)
+                   (require 'semantic-ctxt))
+
+(eval-after-load "eldoc"
+
+  '(defadvice eldoc-print-current-symbol-info (around senator activate)
+     "Enable ELDOC in non Emacs Lisp, but semantic-enabled modes."
+     (if (eq major-mode 'emacs-lisp-mode)
+         ad-do-it
+       (when (eldoc-display-message-p)
+         (senator-eldoc-print-current-symbol-info))))
+  
+  )
+
+(defun senator-eldoc-print-current-symbol-info ()
+  "Print information using `eldoc-message' while in function `eldoc-mode'.
+You can override the info collecting part with `eldoc-current-symbol-info'."
+  (let* ((s (semantic-fetch-overload 'eldoc-current-symbol-info))
+         found)
+
+    (if s (setq found (funcall s))
+      (setq found (senator-eldoc-print-current-symbol-info-default)))
+
+    (eldoc-message
+     (cond ((stringp found)
+            found)
+           ((semantic-token-p found)
+            (semantic-summarize-nonterminal found))
+           (t nil)
+           ))))
+
+(defun senator-eldoc-print-current-symbol-info-default ()
+  "Return a string message describing the current context."
+  (let ((sym (semantic-ctxt-current-symbol))
+        found)
+    (if sym
+        (progn
+          (setq found (if semanticdb-current-database
+                          (car (semanticdb-find-nonterminal-by-name
+                                (car sym) nil t))
+                        (semantic-find-nonterminal-by-name
+                         (car sym) (current-buffer) t)))
+          (and (not found)
+               (semantic-flex-keyword-p (car sym))
+               (setq found (semantic-flex-keyword-get (car sym) 'summary)))
+          ))
+    (or found
+        (progn
+          (setq sym (semantic-ctxt-current-function))
+          (if sym
+              (progn
+                (setq found (if semanticdb-current-database
+                                (car (semanticdb-find-nonterminal-by-name
+                                      (car sym) nil t))
+                              (semantic-find-nonterminal-by-name
+                               (car sym) (current-buffer) t)))
+                (and (not found)
+                     (semantic-flex-keyword-p (car sym))
+                     (setq found (semantic-flex-keyword-get (car sym) 'summary)))
+                ))
+          ))
+    found))
 
 ;;;;
 ;;;; Using semantic search in isearch mode
