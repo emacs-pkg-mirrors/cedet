@@ -1,13 +1,92 @@
-@ignore
-@node Application Developer's Guide
-@chapter Application Developer's Guide
-@c This 'ignore' section fools texinfo-all-menus-update into creating
-@c proper menus for this chapter.
-@end ignore
+\input texinfo  @c -*-texinfo-*-
+@c %**start of header
+@setfilename semantic-appdev.info
+@set TITLE  Semantic Application Development Manual
+@set AUTHOR Eric M. Ludlam, David Ponce, and Richard Y. Kim
+@settitle @value{TITLE}
+
+@c *************************************************************************
+@c @ Header
+@c *************************************************************************
+
+@c Merge all indexes into a single index for now.
+@c We can always separate them later into two or more as needed.
+@syncodeindex vr cp
+@syncodeindex fn cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+@c @footnotestyle separate
+@c @paragraphindent 2
+@c @@smallbook
+@c %**end of header
+
+@copying
+This manual documents Application Development with Semantic.
+
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+Copyright @copyright{} 2001, 2002, 2003 David Ponce
+Copyright @copyright{} 2002, 2003 Richard Y. Kim
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being list their titles, with the Front-Cover Texts
+being list, and with the Back-Cover Texts being list.  A copy of the
+license is included in the section entitled ``GNU Free Documentation
+License''.
+@end quotation
+@end copying
+
+@ifinfo
+@dircategory Emacs
+@direntry
+* Semantic Application Writer's guide: (semantic-appdev).
+@end direntry
+@end ifinfo
+
+@iftex
+@finalout
+@end iftex
+
+@c @setchapternewpage odd
+@c @setchapternewpage off
+
+@ifinfo
+This file documents Application Development with Semantic.
+@emph{Infrastructure for parser based text analysis in Emacs}
+
+Copyright @copyright{} 2002 @value{AUTHOR}
+@end ifinfo
+
+@titlepage
+@sp 10
+@title @value{TITLE}
+@author by @value{AUTHOR}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
+@page
+@vskip 0pt plus 1 fill
+@insertcopying
+@end titlepage
+@page
+
+@c MACRO inclusion
+@include semanticheader.texi
+
+
+@c *************************************************************************
+@c @ Document
+@c *************************************************************************
+
+@node top
+@top @value{TITLE}
 
 A @semantic{} application takes the semantic tags generated
 by semantic parsers then provides useful services to the user.
-See @ref{Semantic User's Guide} for a list of such applications.
+See @inforef{Semantic User's Guide, , user-guide} for a list of such applications.
 
 An application developer needs to know
 @itemize @bullet
@@ -35,14 +114,12 @@ developer needs to know to perform all of the tasks just listed.
 @end menu
 
 @node Semantic Tags
-@section Semantic Tags
+@chapter Semantic Tags
 
-@lowersections
 @include tags.texi
-@raisesections
 
 @node Tag Tables
-@section tag tables
+@chapter tag tables
 
 These functions take some key, and returns information found in a tag
 table.  Some will return one tag (the first matching item found.)
@@ -182,7 +259,7 @@ searched for matches.
 @c @end defun
 
 @node Tags at Point
-@section Tags at Point
+@chapter Tags at Point
 
 When you need to get the tag the cursor is on, there is a more
 efficient mechanism than using
@@ -242,7 +319,7 @@ containing a field.  Return @code{nil} if there is no parent.
 @end defun
 
 @node Tag Sorting
-@section Tag Sorting
+@chapter Tag Sorting
 
 Sometimes it is important to reorganize a tag stream into a form that
 is better for display to a user.  It is important to not use functions
@@ -312,7 +389,7 @@ revised tag list.
 @end defvar
 
 @node Tag Completion
-@section Tag Completion
+@chapter Tag Completion
 
 Often time, it is useful to ask the user for the name of some tag.
 This can be as simple as just prompting for a name, but often time,
@@ -340,7 +417,7 @@ augment the @dfn{interactive} command like this:
 @end menu
 
 @node Tag Completion Convenience Functions
-@subsection Tag Completion Convenience Functions
+@section Tag Completion Convenience Functions
 
 There are some pre written completion functions that can be used in your
 programs.
@@ -357,7 +434,7 @@ If @var{INITIAL-INPUT} is non-@code{nil}, insert it in the minibuffer initially.
 @end defun
 
 @node Custom Tag Completion Functions
-@subsection Custom Tag Completion Functions
+@section Custom Tag Completion Functions
 
 There aren't many built in completion functions, but there are many
 parts that can be put together into custom completion functions.
@@ -422,7 +499,7 @@ HISTORY is a symbol representing a variable to story the history in."
 @end menu
 
 @node Tag Collectors
-@subsubsection Tag Collectors
+@subsection Tag Collectors
 
 A tag collector is an object that inherits from
 @dfn{semantic-collector-abstract}.  A new collector is needed for
@@ -452,7 +529,7 @@ NOTE: Add sections for writing new collectors.
 @c END OF COLLECTOR
 
 @node Tag Displayors
-@subsubsection Tag Displayors
+@subsection Tag Displayors
 
 When a user is interacting with the prompt, and requests completion,
 those tags are drawn from the collector.  If the user asks for a list
@@ -492,7 +569,7 @@ NOTE: Add sections for writing new collectors.
 
 
 @node Old Tag Completion
-@subsection Older Tag Completion functions
+@section Older Tag Completion functions
 
 These are older completion functions.  They may still be useful.
 
@@ -535,7 +612,7 @@ from under point.
 @end defun
 
 @node Override Methods
-@section Override Methods
+@chapter Override Methods
 
 These functions are called `override methods' because they provide
 generic behaviors, which a given language can override.  For example,
@@ -544,7 +621,7 @@ finding a dependency file in Emacs lisp can be done with the
 a dependency can be found by searching a generic search path which can
 be passed in via a variable.
 
-For more on override methods, @ref{Semantic Overload Mechanism}.
+For more on override methods, @inforef{Semantic Overload Mechanism, , lang-support-guide}.
 
 @menu
 * Format Tag::                  Converting Tokens into text strings
@@ -555,7 +632,7 @@ For more on override methods, @ref{Semantic Overload Mechanism}.
 @end menu
 
 @node Format Tag
-@subsection Format Tag
+@section Format Tag
 
 Any given tag consists of Meta information which is best viewed in
 some textual form.  This could be as simple as the tag's name, or as
@@ -651,7 +728,7 @@ Convert @var{TAG} to a string that is the print name for @var{TAG}.
 @end defun
 
 @node Tag Members
-@subsection Tag Members
+@section Tag Members
 
 Tags are often in a hierarchical form, meaning that a tag found in
 the top-level list may itself contain additional members.
@@ -720,7 +797,7 @@ include the default behavior, and merely extend your own.
 @end defun
 
 @node Tag Details
-@subsection Tag Details
+@section Tag Details
 
 These functions help derive information about tags that may not
 be obvious for non-traditional languages with their own token types.
@@ -815,7 +892,7 @@ Note: @var{TYPE} not yet implemented.
 @end defun
 
 @node Local Context
-@subsection Local Context
+@section Local Context
 
 @defun semantic-up-context &optional point bounds-type
 Move point up one context from @var{POINT}.
@@ -940,10 +1017,10 @@ For details on using these functions to get more detailed information
 about the current context: @xref{Context Analysis}.
 
 @node Making New Methods
-@subsection Making New Methods
+@section Making New Methods
 
 @node Parser Hooks
-@section Parser Hooks
+@chapter Parser Hooks
 
 If you write a program that uses a tag table in a persistent
 display or database, it is necessary to know when tag tables change so
@@ -1022,7 +1099,7 @@ during a flush when the cache is given a new value of nil.
 @end defvar
 
 @node Semantic Database
-@section Semantic Database
+@chapter Semantic Database
 
 Semanticdb is a database mechanism for storing tags parsed by
 @semantic{}.  The database operates in the background, saving tags as
@@ -1041,7 +1118,7 @@ searched using a set of special routines.
 @end menu
 
 @node Semanticdb in Programs
-@subsection Semanticdb in Programs::
+@section Semanticdb in Programs::
 
 If you write a program using semanticdb, you will probably want to
 make sure it is active in your program.
@@ -1065,7 +1142,7 @@ If file does not have tags available, then load the file, and create them.
 @end defun
 
 @node Semanticdb Tag Queries
-@subsection Semanticdb Tag Queries
+@section Semanticdb Tag Queries
 
 You can search for tokens in the database using the following
 functions.  It is important to note that database search functions do
@@ -1073,11 +1150,7 @@ not return a plain list of tokens.  This is because some tokens may
 not be loaded in a buffer, which means that the found token would not
 have an overlay, and no way to determine where it came from.
 
-As such, all search functions return a list of the form:
-
-@example
-   ( (DATABASE TOKEN1 TOKEN2 ...) (DATABASE2 TOKEN3 TOKEN4 ...) ...)
-@end example
+As such, all search functions return a special Database Results list.
 
 There are several types of searches, divided into groups by
 implementation.  While it is possible to add new types of searches,
@@ -1137,14 +1210,84 @@ symbol @dfn{semanticdb-find-table-for-include}.
 @end defun
 
 @menu
+* DB Results::                  Accessing the results of a search.
 * DB Basic Name Search::        Searches based on name.
 * DB Basic Brute Search::       Searches on common tag attributes.
 * DB Advanced Search::          Complex searches on associations
 * DB Generic Brute Search::     Do It Yourself search criteria
 @end menu
 
+@node DB Results
+@subsection DB Results
+
+The successful results of a search returns a special list of the
+following form:
+
+@example
+   ( (DATABASE TOKEN1 TOKEN2 ...) (DATABASE2 TOKEN3 TOKEN4 ...) ...)
+@end example
+
+It should not be necessary to access the results in this way,
+however, as there are several routines that can be used to access
+this list.
+
+To turn a semanticdb search result into a simple tag table, use:
+
+@defun semanticdb-strip-find-results results &optional find-file-match
+@anchor{semanticdb-strip-find-results}
+Strip a semanticdb search @var{RESULTS} to exclude objects.
+This makes it appear more like the results of a @code{semantic-find-} call.
+Optional @var{FIND-FILE-MATCH} is not yet implemented.
+@end defun
+
+To write a function that accepts a tag table, or a semanticdb search
+result, use this to test if it is a semanticdb search result:
+
+@defun semanticdb-find-results-p resultp
+@anchor{semanticdb-find-results-p}
+Non-@code{nil} if @var{RESULTP} is in the form of a semanticdb search result.
+This query only really tests the first entry in the list that is @var{RESULTP},
+but should be good enough for debugging assertions.
+@end defun
+
+@defun semanticdb-find-result-with-nil-p resultp
+@anchor{semanticdb-find-result-with-nil-p}
+Non-@code{nil} of @var{RESULTP} is in the form of a semanticdb search result.
+@code{nil} is a valid value where a @var{TABLE} usually is, but only if the @var{TAG}
+results include overlays.
+This query only really tests the first entry in the list that is @var{RESULTP},
+but should be good enough for debugging assertions.
+@end defun
+
+To operate on the search results as though it were a simple tags
+table, or plain list, use these routines.
+
+@defun semanticdb-find-result-length result
+@anchor{semanticdb-find-result-length}
+Number of tags found in @var{RESULT}.
+@end defun
+
+@defun semanticdb-find-result-nth result n
+@anchor{semanticdb-find-result-nth}
+In @var{RESULT}, return the Nth search result.
+This is a @var{0} based search result, with the first match being element @var{0}.
+
+The returned value is a cons cell: (@var{TAG} . @var{TABLE}) where @var{TAG}
+is the tag at the Nth position.  @var{TABLE} is the semanticdb table where
+the @var{TAG} was found.  Sometimes @var{TABLE} can be nil.
+@end defun
+
+@defun semanticdb-find-result-nth-in-buffer result n
+@anchor{semanticdb-find-result-nth-in-buffer}
+In @var{RESULT}, return the Nth search result.
+Like @dfn{semanticdb-find-result-nth}, except that only the @var{TAG}
+is returned, and the buffer it is found it will be made current.
+If the result tag has no position information, the originating buffer
+is still made current.
+@end defun
+
 @node DB Basic Name Search
-@subsubsection DB Basic Name Search
+@subsection DB Basic Name Search
 
  These searches scan a database table collection for tags based on
 name.  They are divided into normal and deep searches.  A deep
@@ -1209,7 +1352,7 @@ associated with that tag should be loaded into a buffer.
 @end defun
 
 @node DB Basic Brute Search
-@subsubsection DB Basic Brute Search
+@subsection DB Basic Brute Search
 
  These searches allow searching on specific attributes of tags,
  such as name, type, or other attribute.
@@ -1224,7 +1367,7 @@ associated wit that tag should be loaded into a buffer.
 @end defun
 
 @node DB Advanced Search
-@subsubsection DB Advanced Search
+@subsection DB Advanced Search
 
  These are searches that were needed to accomplish some
  specialized tasks as discovered in utilities.  Advanced searches
@@ -1243,7 +1386,7 @@ associated with that tag should be loaded into a buffer.
 @end defun
 
 @node DB Generic Brute Search
-@subsubsection DB Generic Brute Search
+@subsection DB Generic Brute Search
 
  The generic search, @dfn{semanticdb-find-nonterminal-by-function}
  will call your function with every tag available.  (Very slow for
@@ -1264,7 +1407,7 @@ and search all tables in this project tree.
 @end defun
 
 @node System Databases
-@subsection System Databases
+@section System Databases
 
 System Databases are special implementations of the database and
 table API which make some external tag source appear as though it
@@ -1290,7 +1433,12 @@ normally.  They will appear on the same list of system databases as
 back ends that refer to object files indirectly.
 
 @node Example Programs
-@section Programming Examples
+@chapter Programming Examples
+
+  *** NOTE ***  These examples are for semantic 1.4.
+Using the below functions will generate compile time warnings with
+advice on what functions to use in semantic 2.0.
+
 
 Here are some simple examples that use different aspects of the
 semantic library APIs.  For fully functional example programs with
@@ -1324,7 +1472,7 @@ range of searches you can perform @ref{Tag Tables}.
 
 If you have the name of a function or variable, and need to find its
 location somewhere in a project, you need to use the Semantic Database
-@ref{semanticdb}.  There are many search functions similar to the
+@inforef{semanticdb, , semanticdb}.  There are many search functions similar to the
 ones found in @ref{Tag Tables}.
 
 The Semantic Database is interesting in that the return structure is
@@ -1399,7 +1547,7 @@ correctly calculate the protection of each method.
 
 
 @node Current Context
-@section Deriving the Current Context
+@chapter Deriving the Current Context
 
 This chapter deals with how to derive the current context, and also
 how a language maintainer can get the current context API to work
@@ -1417,7 +1565,7 @@ which uses a similar form.
 @end menu
 
 @node Blocks
-@subsection Blocks and Navigation
+@section Blocks and Navigation
 
 Source code is typically built up of control structures, and blocks of
 context, or lexical scope.  Semantic terms these lexical scopes as a
@@ -1460,7 +1608,7 @@ Override with @code{beginning-of-command}.
 @end defun
 
 @node Local Variables
-@subsection Deriving local variables
+@section Deriving local variables
 
 Within a given context, or block of code, local variables are often
 defined.  These functions can be used to retrieve lists of locally
@@ -1492,7 +1640,7 @@ Optional argument @var{POINT} is the location to start getting the variables fro
 @end defun
 
 @node Derived Context
-@subsection Deriving the Current Context
+@section Deriving the Current Context
 
 While a context has already been used to describe blocks of code,
 other context include more local details, such as the symbol the
@@ -1527,7 +1675,7 @@ Override with @code{ctxt-current-argument}.
 @end defun
 
 @node Context Analysis
-@subsection Analysis of the current context
+@section Analysis of the current context
 
 The context parsing API is used in a context analysis library.  This
 library provides high level routines for scanning through token
@@ -1539,7 +1687,7 @@ databases to determine the types and names available.
 
 Two high level functions which can be run interactively are:
 
-*NOTE TO SELF: Add more here*
+   *** NOTE TO SELF *** Add more here
 
 @deffn Command semantic-analyze-current-context position
 Analyze the current context at @var{POSITION}.
