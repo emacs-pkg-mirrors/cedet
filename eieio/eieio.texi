@@ -1,0 +1,572 @@
+\input texinfo   @c -*-texinfo-*-
+@c
+@c $Id: eieio.texi,v 1.1 1996/02/25 19:47:41 zappo Exp $
+@c
+@setfilename eieio.info
+@settitle Enhanced Implementation of Emacs Interpreted Objects
+
+@ifinfo
+@format
+START-INFO-DIR-ENTRY
+* eieio: (eieio).       Objects for Emacs
+END-INFO-DIR-ENTRY
+@end format
+@end ifinfo
+
+@titlepage
+@sp 10
+@center @titlefont{eieio}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 1995,1996 Eric M. Ludlam
+@end titlepage
+
+
+@node Top, , , dir
+@comment  node-name,  next,  previous,  up
+
+EIEIO is an attempt to create a framework for writing object oriented
+code for emacs lisp, and is a result of my taking various object
+oriented classes at work and my attempt to understand some of it better
+by implementing it.  The real reason I started eieio is because someone
+in one of my classes said "I bet emacs can't do that!".  Well then, I
+just had to prove them wrong!
+
+EIEIO was not compatible to the Common List Object System (CLOS),
+however, due to popular demand, it is beginning to conform to several
+aspects of CLOS.
+
+@menu
+* Introduction::         Why use eieio?  Basic overview.
+* CLOS compatibility::   What are the differences?
+* Building Classes::     How to write out new class structures.
+* Default Superclass::   The grand-daddy of all superclasses.
+* Making New Objects::   How to construct new objects.
+* Accessing Fields::     How to access a field, or call a method.
+* Writing Methods::      How to write a method.
+* Predicates::           Class-p, Object-p, etc-p.
+* Browsing::             Browsing your class lists.
+@end menu
+
+
+@node Introduction, CLOS compatibility, Top, Top
+@comment  node-name,  next,  previous,  up
+@chapter Introduction
+
+  One thing emacs lisp does not support is structured data organization,
+and restricted function access.  As a programmer it's easy to break up a
+program into modules, and say "I won't access function or variable XYZ
+anywhere but here", but it's not protected from other programmers doing
+an apropos and thinking "Hey, this is a useful function and I will use
+it".  Then a program is upgraded, and the second programmer is unhappy.
+
+  This happened to me when keymaps changed from 18 to 19 because I
+didn't restrict myself to only using the keymap access functions when
+writing etalk.  I am not suggesting all of emacs follow this paradigm,
+(Hey.. theres one of those OBJECT words!) only mentioning the type of
+stuff they talk about in my classes.
+
+@section What EIEIO supports
+
+@enumerate
+@item
+A structured framework for creation of basic classes with public and
+private attributes and methods with singular inheritance similar to CLOS
+but only representing a small subset.
+@item
+Simple class browser.
+@item
+Edebug support.
+@end enumerate
+
+@section What EIEIO doesn't support
+
+@table @asis
+@item Multiple inheritance
+We could say EIEIO is still in the Fungus stages of development as a
+class can have but one parent.
+@item Friend attributes
+But this is cheating anyway.. Right?
+@item Polymorphism
+Only one version of a method is allowed per class.  If you use the
+@code{&rest} qualifier, and (cond ((... )) ) your actions, however, you
+can get the right effect.  It may be implemented in the future if I hear
+a lot about it.  (However, subclasses can have overriding definitions of
+a method)  The concept in CLOS of a generic-function is not used at all.
+@item Private vs Protected
+C++ users will find that the Private fields behave like Protected
+fields.  Hmm!  Any object gurus, please send me opinions.
+@end table
+
+@section EIEIO wish list
+
+@enumerate
+@item
+More CLOS compatibility.
+@item
+Field and method references are currently looked up at runtime.  This
+can be slow with big classes.  I'd like to update the reference macro's
+to do the indexed lookup at compile time, and assignment/reference only
+at runtime.  I may need the help of someone who knows macros better than
+I.
+@item
+Byte compile methods for defclass and defclassmethod.  The regular byte
+compiler occasionally gets upset with eieio using functions.
+@item
+Get edebug to correctly debug a defclassmethod.  Currently debugging works,
+but you have to step through the creation of the method definition
+first.
+@item
+More built-in methods similar to 'constructor and 'destructor, like
+'print-construct, 'print, 'save, and 'load with defaults performing
+basic structural storage, which can be over-loaded to read/write
+anything in any format.  I have not done this because the more methods
+added, the slower things get at run time. (See 1)
+@item
+Integrate in the desired built-in methods into the object browser.
+@item
+Have parts of eieio built into the emacs binary so @code{(format "%S"
+myobj)} uses a 'print-construct method, so @code{(format "%s" myobj)}
+would output the value of @code{'class-name} and cool integrated stuff
+like that.
+@item
+Create some objects over pre-existing emacs-lisp stuff for fun, like
+faces, processes, buffers, frames and windows as examples.
+@item
+Create simple widget-like system based in emacs text to aid in
+development of better configuration tools based on a fresco-like model.
+(1/2 implemented)
+@end enumerate
+
+@node CLOS compatibility, Building Classes, Introduction, Top
+@comment  node-name,  next,  previous,  up
+@chapter CLOS compatibility
+
+As I write this, it is important to know that I have just recently
+learned some of the CLOS syntax, but have never used it myself.  I'm
+primarilly and emacs-lisp hacker who wrote eieio to help myself learn
+some of the mechanics of Object Oriented programming.
+
+Currently, the following functions should behave as expected from CLOS,
+or are mostly compatible.
+
+@table @asis
+@item defclass
+Only a subset of slot keywords are avaliable (see below), and only
+single inheritance is currently supported
+@item make-instance
+Make instance works as expected, however it just uses the EIEIO instance
+creator automatically created when a new class is generated.
+@xref{Making New objects}
+@item slot-value
+@end table
+
+Some top-level CLOS functions which are not yet defined in EIEIO which
+are defined in CLOS.
+
+@table @asis
+@item describe
+@item defgeneric
+Since EIEIO methods are embedded in the class itself, there is no need
+for a generic function until CLOS methods are implemented.
+@item defmethod
+The defclassmethod in eieio defines methods which must be specified in the
+class definition.  In CLOS defmethod multiplexes one function across
+multiple perameter combinations.
+@item call-next-method
+Similar to @code{ocall-parent}
+@end table
+
+When creating a new class @xref{Building Classes} there are several
+keywords supported by EIEIO.
+
+CLOS keywords supported by EIEIO.  In EIEIO tags are in lower case.
+@table @asis
+@item :initform
+The initial value of an attribute
+@item :initarg
+A tag used in @code{make-instance} to assign a value to a field.
+@end table
+
+EIEIO keywords not in CLOS
+@table @asis
+@item :protection
+Can be @code{private} or something else.  If it is set to private, then
+this field cannot be accessed via normal EIEIO means @code{oref}, and
+@code{oset}. (and @code{ocall} for methods).  When there is CLOS
+support for setting fields, then they will also be prevented from
+modifying fields.  These fields will then only be accessable to methods
+running from this object.
+@item :method
+This means that the specified tag is going to be a method instead of an
+attribute.  This installs this name into a vector (instead of a series
+of dynamic lists) to speed up access, and allows a method to be
+private.  Any @code{defclassmethod} of a method defined such will NOT HAVE A
+GENERIC FUNCTION ASSOCIATED WITH IT, and will be referenced via ocall only.
+@end table
+
+Any tags not understood are summarily ignored.
+
+The functions @code{defgeneric} and @code{defmethod} for CLOS have not
+been defined.  Methods are defined in EIEIO with @code{defclassmethod},
+which takes different arguments, and allows embeded methods.
+
+@node Building Classes, Default Superclass, CLOS compatibility, Top
+@comment  node-name,  next,  previous,  up
+@chapter Building Classes
+
+A class in EIEIO has a similar structure to that found in other
+languages, but there is currently no typing support.  A new class is
+created with @code{defclass}
+
+@defun defclass class-name superclass-list field-list doc-string
+
+The format for this defun is specified by CLOS, and EIEIO conforms in
+structure.
+
+Creates a new class called @code{class-name} The created variable's
+documentation string is set to a modified version of @var{doc-string}.
+Each time a method is defined the variables documentation string is
+updated to include the methods documentation as well. (internal methods
+are not attached to their own symbols)
+
+The parent class for @code{class-name} must be a list, however, at this
+time, only the first element of that list is used.  In the future,
+multiple inheritance will be supported.
+
+The field list is a list of lists.  Each sublist defines an attribute,
+or a method.  (Methods are not supported by CLOS).  These lists are of
+the form @code{(name :tag1 value1 :tag2 value2 :tagn valuen)}.  Some
+valid tags are:
+
+@table @asis
+@item :initarg
+@item :initform
+@item :protection
+@item :method
+@end table
+
+@xref{CLOS compatibility} for more details on CLOS tags versus EIEIO
+specific tags.
+
+The whole definition may look like this.
+@example
+(defclass bird (animal)
+   ((color :initarg :color
+           :initform "white")
+    (fly :method t)
+    (gender :initarg :gender
+            :initform male
+            :protection private)
+    (noise :method t
+           :protection public)
+   "A pleasant documentation string"))
+@end example
+
+@end defun
+
+@node Default Superclass, Making New Objects, Building Classes, Top
+@comment  node-name,  next,  previous,  up
+@chapter Default Superclass
+
+All defined classes, if created as a superclass (With no specified
+parent class) will actually inherit from a special superclass stored in
+@code{eieio-default-superclass}.  This superclass is actually quite
+simple, but with it, certain default methods or attributes can be added
+to all objects at any time, without updating their code in the future
+(If there is a change).  In CLOS, this would be named
+@code{STANDARD-OBJECT} an may be aliased in the future.
+
+Currently, the default superclass is defined as follows:
+
+@example
+defclass eieio-default-superclass nil
+ ((constructor :method t)		; Called when created
+  (destructor :method t)		; called when removed
+  )
+ "Default class used as parent class for superclasses.  It's
+fields are automatically adopted by such superclasses but not stored
+in the `parent' field.  When searching for attributes or methods, when
+the last parent is found, the search will recurse to this class.")
+@end example
+
+The @code{constructor} method is always called with the parameter
+@var{fields} from any classes' @code{constructor} function.  The default
+method assigns elements from this list into the fields of the current
+object (Even though they are not defined by the default class. Cool
+huh?)  If you want something to happen every time an object of your
+class is created, set this method to something, and make the very first
+line be: @code{(ocall-parent)}.  Thus you can get it's functionality,
+plus be able to add your own.  Make sure your method takes a @var{field}
+parameter. @xref{CLOS compatibility} for info about @code{call-next-method}
+
+Currently @code{destructor} does nothing, and is never called.  I haven't
+quite figured out what to do with it yet.
+
+Eventually it might be nice to have a @code{print} and a @code{write}
+and a @var{read} method so all objects could print themselves (like a
+name) write themselves (store on disk) and read themselves, but that is
+a task for later.
+
+@node Making New Objects, Accessing Fields, Default Superclass, Top
+@comment  node-name,  next,  previous,  up
+@chapter Making New Objects
+
+Once we have defined our classes, it's time to create objects with the
+specified structure.  After we call @code{defclass} two new functions
+are created, on of which is @code{classname}.  Thus, from the example at
+the end of the previous chapter @xref{Building Classes}, we would have
+the functions @code{animal} and @code{bird}.
+
+@defun classname object-name &rest fields
+
+This creates and returns a new object.  This object is not assigned to
+anything, and will be garbage collected if not saved.  This object will
+be given the string name @var{object-name}.  There can be multiple
+objects of the same name, but the name field provides a handy way to
+keep track of your objects.  @var{fields} is just all the fields you wish
+to preset.  Any field set as such WILL NOT get it's default value, and
+any side effects from an attributes default function will not occur.  An
+example pair would appear simply as @code{'(gender mail)}.  Of course
+you can do any valid lispy thing you want with it, such as @code{(list
+'gender (if full-moon female male))} being sure to quote the attribute
+symbol.
+
+Example of creating an object from a class in @xref{Building Classes}:
+
+@example
+(setq mybird (bird
+              "Owl"                ; name
+              :gender 'male        ; gender value
+              :noise (if paranoid "Whodat?" "Who")))
+@end example
+
+@end defun
+
+@node Accessing Fields, Writing Methods, Making New Objects, Top
+@comment  node-name,  next,  previous,  up
+@chapter Accessing Fields
+
+There are several ways to access field values in an object.  The naming
+convention and argument order is similar to that found in elisp for
+referencing vectors.  The basics for referencing, setting, and calling
+methods are all accounted for.
+
+@defun oset object field value
+
+This sets the value behind @var{field} to @var{value} in @var{object}.
+Currently, no type checking is performed, and value can be any lisp
+object.  @code{oset} returns @var{value}.  Oset is a macro which does
+calculations at evaluation time.  If the class structure changes, then
+all functions which call oset on that class must be re-evaluated.
+
+@end defun
+
+@defun oref object field
+
+This recalls the value behind @var{field} in @var{object} and returns
+it.  Oref is a macro which does calculations at evaluation time.  If the
+class structure changes, then all functions which call oref on that
+class must be re-evaluated.
+
+@end defun
+
+If the value behind @var{field} is a private, then the current scope of
+operation must be within a method of the calling object.  The scope is
+tracked with @code{let} statements within the variable @code{this}, and
+@code{scoped-class}.
+
+@defun ocall object method &rest args
+
+A method may have any set of arguments it wishes.  When @code{ocall} is
+called, the arguments are evaluated in the current scope, and applied to
+@var{method} for the given @var{object}.  Any return value of
+@var{method} is returned.
+
+@end defun
+
+If you are writing a method, and you wish to gain the functionality of
+you're parent's method of the same name, you can use
+@code{ocall-parent}.
+
+@defun ocall-parent &rest args
+
+This function reads the current scope environment, and calls the method
+of the same name under the parent class.
+
+@end defun
+
+@node Writing Methods, Predicates, Accessing Fields, Top
+@comment  node-name,  next,  previous,  up
+@chapter Writing Methods
+
+Writing a method is just like writing a function, except you use
+@code{defclassmethod} instead.
+
+@defun defclassmethod method class arglist [doc-string] forms
+
+@var{method} is a symbol which matches a method specified in a
+@code{defclass} definition which defines @var{class}.  This tells
+@code{defclassmethod} which class structure to place this function in,
+and which @code{method} to store it under.  @var{arglist} is just
+like any other lambda-expression's arglist.  The optional
+@var{doc-string} is placed into the documentation string for
+@code{class-type} because it is un browsable otherwise.  Finally
+@var{forms} are placed as the body to the newly formed method.
+@code{defclassmethod} returns the lambda expression created.
+
+A sample method from the class in @xref{Building Classes}:
+
+@example
+(defclassmethod make-noise bird (&optional duress)
+   "Making noise for a bird object"
+   (if duress
+       (progn
+         ;; make message of noise. THIS is the called object
+         (message "%s! %s!" (oref this sound) (oref this sound))
+         ;; call our fly method
+         (ocall this fly (oref this speed)))
+     (message "%s" (oref this sound))))
+@end example
+
+Note the use of @code{oref} and @code{ocall} as discussed in
+@xref{Accessing Fields}.
+
+The resulting documentation string as discovered by @kbd{C-h v}
+(describe variable) is:
+
+@example
+bird's value is [defclass bird  ...
+
+Documentation:
+Defines the BIRD subclass.  Used to create bird objects
+
+Method: make-noise
+Making noise for a bird object
+@end example
+
+@end defun
+
+@section Debugging a method
+
+The function @code{edebug-defun} can be run on a defclassmethod.
+Currently, at the time edebug makes us step through the defun, the forms
+in the body of the method are created debugged.  Next time that method
+is called (with ocall) edebug is started.
+
+Hopefully an edebug guru can help with this for a future release.
+
+@node Predicates, Browsing, Writing Methods, Top
+@comment  node-name,  next,  previous,  up
+@chapter Predicates and Utilities
+
+Now that we know how to create classes, access fields, and define
+methods, it might be useful to verify that everything is doing ok.  To
+help with this a plethora of predicates have been created.
+
+@defun class-p class
+Return @code{t} if @var{class} is a class type.
+@end defun
+
+@defun object-p obj
+Return @code{t} if @var{obj} is an object.
+@end defun
+
+@defun class-name class
+Return a string of the form #<class myclassname> which should look
+similar to other lisp objects like buffers and processes.  Printing a
+class results in an ugly vector.
+@end defun
+
+@defun class-constructor class
+Return a symbol used as a constructor for @var{class}.  This way you can
+make an object of a passed in class without knowing what it is.
+@end defun
+
+@defun object-name obj
+Return a string of the form #<object-class myobjname> for @var{obj}.
+This should look like lisp symbols from other parts of emacs such as
+buffers and processes, and is shorter and cleaner than printing the
+whole object.
+@end defun
+
+@defun object-class obj
+Returns the class vector from @var{obj}.
+@end defun
+
+@defun object-class-name obj
+Returns the symbol of @var{obj}'s class.
+@end defun
+
+@defun class-parent class
+Returns the direct parent class of @var{class}.  Returns @code{nil} if
+it is a superclass.
+@end defun
+
+@defun same-class-p obj class
+Returns @code{t} if @var{obj}'s class is the same as @var{class}.
+@end defun
+
+@defun obj-of-class-p obj class
+Returns @code{t} if @var{obj} inherits anything from @var{class}.  This
+is different from @code{same-class-p} because it checks for inheritance.
+@end defun
+
+@defun child-of-class-p child class
+Returns @code{t} if @var{child} is a subclass of @var{class}.
+@end defun
+
+It is also important to note, that for every created class, a predicate
+is created for it.  Thus in our example, the function @code{animal-p}
+and @code{bird-p} are created, and return @code{t} if passed an object
+of the appropriate type.
+
+@node Browsing, , Predicates, Top
+@comment  node-name,  next,  previous,  up
+@chapter Browsing class trees
+
+To browse all the currently loaded classes in emacs, simply run the
+EIEIO browser.  @kbd{M-x eieio-browse}.  This browses all the way from
+the default super-duper class eieio-default-superclass, and lists all
+children in an indented tree structure.
+
+To browse only from a specific class, pass it in as a alternate
+parameter.
+
+Here is a sample tree from our current example:
+
+@example
+eieio-default-superclass
+  +--animal
+       +--bird
+@end example
+
+Note that we start with eieio-default-superclass.  @xref{Default Superclass}
+
+Here is the tree after our example, and after the self-managing
+text-based widget library I am playing with has been loaded.
+
+@example
+eieio-default-superclass
+  +--animal
+  |    +--bird
+  +--widget-core
+  |    +--widget-visual
+  |    |    +--widget-square
+  |    |         +--widget-text-field
+  |    |         +--widget-label
+  |    |         |    +--widget-button
+  |    |         |         +--widget-toggle-button
+  |    |         +--widget-group
+  |    |              +--widget-frame
+  |    |              +--widget-toplevel
+  |    +--widget-gadget
+  +--data-object
+@end example
+
+As you can see, it is possible to create quite large and complex trees
+of classes.  
+
+Note: new classes are consed into the inheritance lists, so the tree
+comes out upside-down.
+
+@bye
