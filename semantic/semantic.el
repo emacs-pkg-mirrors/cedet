@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.185 2004/06/18 11:37:55 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.186 2004/06/24 08:07:55 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -289,6 +289,7 @@ to use Semantic, and `semantic-init-hook' is run."
   ;; Do stuff if semantic was activated by a mode hook in this buffer,
   ;; and not afterwards disabled.
   (when (and semantic--parse-table
+             (not (semantic-active-p))
              (not (run-hook-with-args-until-success
                    'semantic-inhibit-functions)))
     ;; Force this buffer to have its cache refreshed.
