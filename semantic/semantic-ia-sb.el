@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.9 2003/02/22 15:34:52 ponced Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.10 2003/04/01 15:18:51 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -272,9 +272,9 @@ TEXT, TOKEN, and INDENT are speedbar function arguments."
  			   (setq type (semantic-token-name type)))
  			  ((listp type)
  			   (setq type (car type))))
-		    (if (semantic-flex-keyword-p type)
+		    (if (semantic-lex-keyword-p type)
 			(setq typetok
-			      (semantic-flex-keyword-get type 'summary))))
+			      (semantic-lex-keyword-get type 'summary))))
 		  (if typetok
 		      (insert typetok)))
 		))
