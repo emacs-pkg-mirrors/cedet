@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.2 1999/05/06 11:34:00 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.3 1999/05/18 14:08:36 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -53,11 +53,12 @@
 ;;  +>  -> click to see additional information
 ;;  (#) -> Number of arguments to a function
 
-(defun semantic-sb-one-button (token depth)
-  "Insert TOKEN as a speedbar button at DEPTH."
+(defun semantic-sb-one-button (token depth &optional prefix)
+  "Insert TOKEN as a speedbar button at DEPTH.
+Optional PREFIX is used to specify special marker characters."
   (let* ((type (semantic-token-token token))
 	 (edata (cond ((eq type 'type)
-		       (semantic-token-type-parts token))
+		        (semantic-token-type-parts token))
 		      ((eq type 'variable)
 		       (semantic-token-variable-default token))
 		      ((eq type 'function)
@@ -68,28 +69,50 @@
 		(point))))
     (put-text-property start end 'invisible t)
     (insert-char ?  (1- depth) nil)
-    (if (or (semantic-token-type token)
-	    edata)
-	(speedbar-insert-button " +>"
-				'speedbar-button-face
-				'speedbar-highlight-face
-				'semantic-sb-show-extra
-				token t)
-      (speedbar-insert-button " =>" nil nil nil nil t))
-    (speedbar-insert-button (semantic-token-name token)
-			    'speedbar-tag-face
- 			    'speedbar-highlight-face
-			    'semantic-sb-token-jump
-			    token t)
-    (cond ((eq type 'type)
-	   nil)
-	  ((eq type 'variable)
-	   ;; Place array dims here if apropriate.
-	   (if (semantic-token-variable-default token)
-	       (speedbar-insert-button "=" nil nil nil nil t)))
-	  ((eq type 'function)
-	   (speedbar-insert-button "()" nil nil nil nil t)))))
-
+    ;; take care of edata = (nil) -- a yucky but hard to clean case
+    (if (and edata (listp edata) (and (<= (length edata) 1) (not (car edata))))
+	(setq edata nil))
+    ;; types are a bit unique.  Variable types can have special meaning.
+    (if (eq type 'type)
+	(let ((name (semantic-token-name token)))
+	  (if (semantic-token-type token)
+	      (setq name (concat (semantic-token-type token) " " name)))
+	  (if edata
+	      (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
+				      'speedbar-button-face
+				      'speedbar-highlight-face
+				      'semantic-sb-show-extra
+				      token t)
+	    (speedbar-insert-button (if prefix (concat "  " prefix) " =>")
+				    nil nil nil nil t))
+	  (speedbar-insert-button name
+				  'speedbar-tag-face
+				  'speedbar-highlight-face
+				  'semantic-sb-token-jump
+				  token t))
+      (if (or (and (semantic-token-type token)
+		   (or (not (listp (semantic-token-type token)))
+		       (car (semantic-token-type token))))
+	      edata)
+	  (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
+				  'speedbar-button-face
+				  'speedbar-highlight-face
+				  'semantic-sb-show-extra
+				  token t)
+	(speedbar-insert-button (if prefix (concat "  " prefix) " =>")
+				nil nil nil nil t))
+      (speedbar-insert-button (semantic-token-name token)
+			      'speedbar-tag-face
+			      'speedbar-highlight-face
+			      'semantic-sb-token-jump
+			      token t)
+      (cond ((eq type 'variable)
+	     ;; Place array dims here if apropriate.
+	     (if (semantic-token-variable-default token)
+		 (speedbar-insert-button "=" nil nil nil nil t)))
+	    ((eq type 'function)
+	     (speedbar-insert-button "()" nil nil nil nil t))))))
+  
 (defun semantic-sb-speedbar-data-line (depth button text &optional
 					     text-fun text-data)
   "Insert a semantic token data element.
@@ -109,34 +132,57 @@ Argument TEXT-DATA is the token data to pass to TEXT-FUN."
 			    text-fun text-data t)
     ))
 
+(defun semantic-sb-maybe-token-to-button (obj indent &optional prefix)
+  "Convert OBJ, which was returned from the bovinator, into a button.
+This OBJ might be a plain string (simple type or untyped variable)
+or a complete bovinator type.
+Argument INDENT is the indentation used when making the button.
+Optional PREFIX is the character to use when marking the line."
+  (let ((myprefix (or prefix ">")))
+    (if (stringp obj)
+	(semantic-sb-speedbar-data-line indent myprefix obj)
+      (if (listp obj)
+	  (progn
+	    (if (and (stringp (car obj))
+		     (= (length obj) 1))
+		(semantic-sb-speedbar-data-line indent myprefix (car obj))
+	      (semantic-sb-one-button obj indent prefix)))))))
+
 (defun semantic-sb-insert-details (token indent)
   "Insert details about TOKEN at level INDENT."
   (let ((tt (semantic-token-token token))
 	(type (semantic-token-type token)))
     (cond ((eq tt 'type)
-	   nil)
+	   (let ((parts (semantic-token-type-parts token)))
+	     ;; Lets expect PARTS to be a list of either strings,
+	     ;; or variable tokens.
+	     (while parts
+	       (semantic-sb-maybe-token-to-button (car parts) indent)
+	       (setq parts (cdr parts)))))
 	  ((eq tt 'variable)
-	   (if type
-	       (semantic-sb-speedbar-data-line indent "@" type))
+	   (if type (semantic-sb-maybe-token-to-button type indent "@"))
 	   ;; default value here
 	   )
 	  ((eq tt 'function)
 	   (if type
-	       (semantic-sb-speedbar-data-line indent "@" type))
+	       (semantic-sb-speedbar-data-line
+		indent "@"
+		(if (stringp type) type
+		  (semantic-token-name type))))
 	   ;; Arguments to the function
 	   (let ((args (semantic-token-function-args token)))
-	     (if args
+	     (if (and args (car args))
 		 (progn
-		   (semantic-sb-speedbar-data-line
-		    indent "(" (car args))
+		   (semantic-sb-maybe-token-to-button (car args) indent "(")
 		   (setq args (cdr args))
 		   (while (> (length args) 1)
-		     (semantic-sb-speedbar-data-line
-		      indent "|" (car args))
+		     (semantic-sb-maybe-token-to-button (car args)
+							indent
+							"|")
 		     (setq args (cdr args)))
 		   (if args
-		       (semantic-sb-speedbar-data-line
-			indent ")" (car args)))
+		       (semantic-sb-maybe-token-to-button
+			(car args) indent ")"))
 		   )))))
     ))
 
