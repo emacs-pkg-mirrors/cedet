@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.96 2002/07/21 13:12:43 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.97 2002/07/29 03:24:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -430,7 +430,7 @@ not the current token."
 	(semantic-overlay-get ol 'semantic)))))
 
 (defun semantic-find-nonterminal-by-overlay-prev (&optional start buffer)
-  "Find the next nonterminal after START in BUFFER.
+  "Find the next nonterminal before START in BUFFER.
 If START is in an overlay, find the token which starts next,
 not the current token."
   (save-excursion
@@ -455,6 +455,16 @@ not the current token."
       (when (and ol
 		 (semantic-token-p (semantic-overlay-get ol 'semantic)))
 	(semantic-overlay-get ol 'semantic)))))
+
+(defun semantic-find-nonterminal-parent-by-overlay (token)
+  "Find the parent of nonterminal TOKEN by overlays.
+Overlays are a fast way of finding this information for active buffers."
+  (let ((tok (nreverse (semantic-find-nonterminal-by-overlay
+			(semantic-token-start token)))))
+    ;; This is a lot like `semantic-current-nonterminal-parent', but
+    ;; it uses a position to do it's work.  Assumes two tokens don't share
+    ;; the same start unless they are siblings.
+    (car (cdr tok))))
 
 (defun semantic-current-nonterminal ()
   "Return the current nonterminal in the current buffer.
