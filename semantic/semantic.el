@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.28 2000/04/25 16:25:44 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.29 2000/04/25 16:33:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -977,11 +977,12 @@ Argument NONTERM is the nonterminal symbol to start with.
 Optional argument DEPTH is the depth of lists to dive into.
 Whan used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
-  (semantic-bovinate-nonterminals (semantic-flex start end (or depth 1))
-				  nonterm
-				  depth
-				  ;; Compiler will complain.
-				  trashcomments))
+  (nreverse
+   (semantic-bovinate-nonterminals (semantic-flex start end (or depth 1))
+				   nonterm
+				   depth
+				   ;; Compiler will complain.
+				   trashcomments)))
     
 
 ;;; Semantic Flexing
