@@ -4,6 +4,11 @@
   :name "Documentation"
   :file "Project.ede"
   :targets (list 
+   (ede-proj-target-makefile-info "semantic-grammar"
+    :name "semantic-grammar"
+    :path ""
+    :source '("grammar-fw.texi")
+    )
    (ede-proj-target-makefile-info "Documentation"
     :name "Documentation"
     :path ""
@@ -35,6 +40,5 @@
     :path ""
     :source '("wisent.texi")
     )
-
    )
   )
