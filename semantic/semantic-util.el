@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.56 2001/04/10 13:46:36 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.57 2001/04/12 01:14:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,6 +28,11 @@
 ;; API for accessing and searching nonterminal streams from the
 ;; Semantic Bovinator.
 ;;
+
+(require 'assoc)
+(eval-when-compile
+  (provide 'semantic-util)
+  (require 'semantic))
 
 ;;; Code:
 
@@ -469,7 +474,7 @@ EXPERIMENTAL"
 	)
     (if (not tromp)
 	;; No tokens hit, setup a dirty region on the screen.
-	(setq tromp (semantic-get-dirty-token beg end))
+	(setq tromp nil) ;(semantic-get-dirty-token beg end))
       ;; First, mark all fully dirty tokens.
       (setq ttmp tromp)
       (while ttmp

@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.22 2001/04/07 14:28:54 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.23 2001/04/12 01:10:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,10 @@
 
 (require 'semantic)
 (require 'backquote)
+
+(eval-when-compile
+  (require 'semantic-ctxt)
+  (require 'document))
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table

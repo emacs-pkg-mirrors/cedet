@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.20 2001/04/10 13:47:13 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.21 2001/04/12 01:16:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,8 @@
 
 (require 'eieio-base)
 (require 'semantic)
+(eval-when-compile
+  (require 'semantic-imenu))
 
 ;;; Variables:
 (defgroup semanticdb nil

@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.1 2001/02/24 03:59:18 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.2 2001/04/12 01:12:37 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -26,6 +26,9 @@
 
 (require 'semantic)
 (require 'backquote)
+
+(eval-when-compile
+  (require 'document))
 
 ;;; Code:
 (defvar semantic-toplevel-scheme-bovine-table

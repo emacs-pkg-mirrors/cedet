@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.7 2001/04/07 14:28:13 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.8 2001/04/12 01:11:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,8 @@
 ;; This library provides the hooks needed for a language to specify how
 ;; the current context is calculated.
 ;;
-
+(require 'semantic)
+(eval-when-compile (require 'semanticdb))
 
 ;;; Code:
 ;;

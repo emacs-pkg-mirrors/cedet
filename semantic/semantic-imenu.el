@@ -5,7 +5,7 @@
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.28 2001/04/07 13:44:15 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.29 2001/04/12 01:11:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,9 +36,10 @@
 ;;             (setq imenu-create-index-function 'semantic-create-imenu-index)
 ;;             ))
 
+(require 'imenu)
 (require 'semantic)
 (eval-when-compile (require 'semanticdb)
-		   (require 'working))
+		   )
 (condition-case nil
     (progn
       (require 'imenu)

@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.9 2001/03/08 08:39:21 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.10 2001/04/12 01:12:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,6 +32,11 @@
 
 ;;; Code:
 (require 'semantic)
+
+(eval-when-compile
+  (require 'semantic-ctxt)
+  (require 'semantic-imenu)
+  (require 'document))
 
 ;; Generated parser table
 (defvar semantic-toplevel-java-bovine-table

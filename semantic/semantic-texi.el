@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.4 2001/03/26 05:55:24 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.5 2001/04/12 01:13:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,6 +29,14 @@
 ;;
 
 (require 'semantic)
+(require 'texinfo)
+
+(eval-when-compile
+  (require 'semanticdb)
+  (require 'semantic-ctxt)
+  (require 'semantic-imenu)
+  (require 'document)
+  (require 'senator))
 
 (defvar semantic-texi-super-regex
   "^@\\(chapter\\|\\(sub\\)*section\\|unnumbered\\(\\(sub\\)*sec\\)?\\|\

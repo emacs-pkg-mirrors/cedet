@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.36 2001/04/07 14:26:02 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.37 2001/04/12 01:10:24 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,6 +34,9 @@
 ;; 
 
 (require 'semantic)
+(eval-when-compile
+  (require 'speedbar)
+  (require 'senator))
 
 ;;; Code:
 (defvar semantic-setup-code-delimiters '("^\\s-*;; Code generated from" .
