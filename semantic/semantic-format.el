@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.14 2004/03/01 01:33:06 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.15 2004/03/10 19:28:43 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -369,14 +369,14 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
                       (semantic-tag-type-members tag))
                     #'semantic-format-tag-prototype
                     color)))
-	 (const (semantic-tag-get-attribute tag 'const))
+	 (const (semantic-tag-get-attribute tag :constant-flag))
 	 (mods (append
 		(if const '("const") nil)
-		(semantic-tag-get-attribute tag 'typemodifiers)))
+		(semantic-tag-get-attribute tag :typemodifiers)))
 	 (array (if (eq class 'variable)
 		    (let ((deref
 			   (semantic-tag-get-attribute
- 			    tag 'dereference))
+ 			    tag :dereference))
  			  (r ""))
  		      (while (and deref (/= deref 0))
  			(setq r (concat r "[]")
@@ -422,7 +422,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	      ")"))
      ((eq class 'variable)
       (let* ((deref (semantic-tag-get-attribute
-                     tag 'dereference))
+                     tag :dereference))
              (array "")
              )
         (while (and deref (/= deref 0))
