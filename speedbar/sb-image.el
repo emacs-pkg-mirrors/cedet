@@ -1,10 +1,10 @@
 ;;; sb-image --- Image management for speedbar
 
-;;; Copyright (C) 1999, 2000 Free Software Foundation
+;;; Copyright (C) 1999, 2000, 2001 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-image.el,v 1.2 2000/12/11 23:33:56 zappo Exp $
+;; X-RCS: $Id: sb-image.el,v 1.3 2001/04/27 00:47:30 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -178,7 +178,7 @@ If we have an image associated with it, use that image."
 	;; underlying text.  This means if we leave it tangible, then I
 	;; don't have to change said giant piles o code.
 	(if (and a (symbol-value (cdr a)))
-	    (if (fboundp 'set-extent-property)
+	    (if (featurep 'xemacs)
 		(add-text-properties (+ start (length bt)) start
 				     (list 'end-glyph (symbol-value (cdr a))
 					   'rear-nonsticky (list 'display)
