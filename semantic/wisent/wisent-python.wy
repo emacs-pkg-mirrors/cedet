@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.16 2003/01/24 06:01:03 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.17 2003/01/25 04:21:21 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -314,7 +314,7 @@ small_stmt
 ;; print_stmt: 'print' ( [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ] )
 print_stmt
   : PRINT print_stmt_trailer
-    (wisent-token $2 'print nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; [ test (',' test)* [','] ] | '>>' test [ (',' test)+ [','] ]
@@ -347,7 +347,7 @@ trailing_test_list
 ;; expr_stmt: testlist (augassign testlist | ('=' testlist)*)
 expr_stmt
   : testlist expr_stmt_trailer
-    (wisent-token $1 'expr nil nil)
+    (wisent-token "expr" 'code nil nil)
   ;
 
 ;; Could be EMPTY because of eq_testlist_zom.
@@ -381,7 +381,7 @@ augassign
 ;; del_stmt: 'del' exprlist
 del_stmt
   : DEL exprlist
-    (wisent-token $1 'del nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; exprlist: expr (',' expr)* [',']
@@ -404,7 +404,7 @@ expr_list
 ;; pass_stmt: 'pass'
 pass_stmt
   : PASS
-    (wisent-token $1 'pass nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;;;============================================================================
@@ -423,19 +423,19 @@ flow_stmt
 ;; break_stmt: 'break'
 break_stmt
   : BREAK
-    (wisent-token $1 'break nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; continue_stmt: 'continue'
 continue_stmt
   : CONTINUE
-    (wisent-token $1 'continue nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; return_stmt: 'return' [testlist]
 return_stmt
   : RETURN testlist_opt
-    (wisent-token $1 'return nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; [testlist]
@@ -447,13 +447,13 @@ testlist_opt
 ;; yield_stmt: 'yield' testlist
 yield_stmt
   : YIELD testlist
-    (wisent-token $1 'yield nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; raise_stmt: 'raise' [test [',' test [',' test]]]
 raise_stmt
   : RAISE zero_one_two_or_three_tests
-    (wisent-token $2 'raise nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; [test [',' test [',' test]]]
@@ -486,7 +486,7 @@ zero_or_one_comma_test
 ;;             | 'from' dotted_name 'import' ('*' | import_as_name (',' import_as_name)*)
 import_stmt
   : IMPORT dotted_as_name_list
-    (wisent-token (format "%s" $2) 'import nil nil)
+    (wisent-token $2 'import nil nil)
   | FROM dotted_name IMPORT star_or_import_as_name_list
     (wisent-token $2 'import nil nil)
   ;
@@ -547,7 +547,7 @@ dotted_name
 ;; global_stmt: 'global' NAME (',' NAME)*
 global_stmt
   : GLOBAL comma_sep_name_list
-    (wisent-token $2 'global nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; NAME (',' NAME)*
@@ -564,7 +564,7 @@ comma_sep_name_list
 ;; exec_stmt: 'exec' expr ['in' test [',' test]]
 exec_stmt
   : EXEC expr exec_trailer
-    (wisent-token (format "%s %s" $2 $3) 'exec nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; ['in' test [',' test]]
@@ -588,7 +588,7 @@ comma_test_opt
 ;; assert_stmt: 'assert' test [',' test]
 assert_stmt
   : ASSERT test comma_test_opt
-    (wisent-token $2 'assert nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;;;****************************************************************************
@@ -611,7 +611,7 @@ compound_stmt
 ;; if_stmt: 'if' test ':' suite ('elif' test ':' suite)* ['else' ':' suite]
 if_stmt
   : IF test COLON suite elif_suite_pair_list else_suite_pair_opt
-    (wisent-token $2 'if nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; ('elif' test ':' suite)*
@@ -658,7 +658,7 @@ stmt
 ;; while_stmt: 'while' test ':' suite ['else' ':' suite]
 while_stmt
   : WHILE test COLON suite else_suite_pair_opt
-    (wisent-token $2 'while nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;;;============================================================================
@@ -668,7 +668,7 @@ while_stmt
 ;; for_stmt: 'for' exprlist 'in' testlist ':' suite ['else' ':' suite]
 for_stmt
   : FOR exprlist IN testlist COLON suite else_suite_pair_opt
-    (wisent-token $2 'for nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;;;============================================================================
@@ -679,12 +679,9 @@ for_stmt
 ;;            ['else' ':' suite] | 'try' ':' suite 'finally' ':' suite)
 try_stmt
   : TRY COLON suite except_clause_suite_pair_list else_suite_pair_opt
-    (wisent-token (format "try: %s %s %s" $3 (or $4 "") (or $5 ""))
-		  'try_stmt_list nil nil)
+    (wisent-token $1 'code nil nil)
   | TRY COLON suite FINALLY COLON suite
-    (wisent-token
-     (format "try: %s finally: %s" $3 (or $6 ""))
-     'try_stmt_list nil nil)
+    (wisent-token $1 'code nil nil)
   ;
 
 ;; (except_clause ':' suite)+
@@ -926,12 +923,9 @@ comma_sep_test_list
 ;; However that does not work for single quotes, so it was taken out.
 one_or_more_string
   : STRING_LITERAL
-    (let ((len (length $1)))
-      (substring $1 0 (if (> len 16) 16 len)))	;; limit string to 16 chars
+    (wisent-python-truncate-string $1)	;; limit string to 16 chars
   | one_or_more_string STRING_LITERAL
-    (let* ((s (concat $1 $2))
-	   (len (length s)))
-      (substring s 0 (if (> len 16) 16 len))) 	;; limit string to 16 chars
+    (wisent-python-truncate-string (concat $1 $2)) ;; limit string to 16 chars
   ;
 
 ;;;****************************************************************************
