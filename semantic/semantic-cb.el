@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.10 2003/08/01 17:30:18 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.11 2003/08/29 16:06:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,7 +37,8 @@
 
 (require 'semantic)
 (require 'semanticdb)
-(require 'semanticdb-search)
+(require 'semanticdb-find)
+(require 'semantic-sort)
 (require 'eieio-speedbar)
 (require 'eieio-base)
 
@@ -430,11 +431,11 @@ digraph uml_" diagramname " {\n")
 
 (defmethod eieio-speedbar-handle-click ((object semantic-cb-token))
   "When clicking on a token OBJECT, jump to its definition."
-  (let ((token (oref object token)))
+  (let ((tag (oref object tag)))
     (speedbar-find-file-in-frame
      (semanticdb-full-filename (oref object table)))
     (save-excursion (speedbar-stealthy-updates))
-    (semantic-find-nonterminal token) ;; only positioned objects here.
+    (semantic-go-to-tag tag) ;; only positioned objects here.
     (speedbar-maybee-jump-to-attached-frame)
     (run-hooks 'speedbar-visiting-tag-hook)))
 	
