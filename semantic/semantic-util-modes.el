@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.16 2001/12/04 01:30:04 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.17 2001/12/08 03:12:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -590,7 +590,8 @@ current buffer don't need re-parse or if its size don't match
              (if semantic-auto-parse-no-working-message
                  nil
                working-status-dynamic-type))
-	    (semantic-flex-unterminated-syntax-throw-symbol 'auto-parse)
+	    (semantic-flex-unterminated-syntax-end-function
+	     (lambda (syntax start end) (throw 'auto-parse syntax)))
 	    )
 	(when (catch 'auto-parse
 		(save-excursion
