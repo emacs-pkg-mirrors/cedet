@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.36 2004/09/15 07:24:38 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.37 2005/01/10 07:41:32 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -551,6 +551,15 @@ Argument ANALYZERS is the list of analyzers being used."
 (defvar semantic-lex-analysis-bounds nil
   "The bounds of the current analysis.")
 
+(defvar semantic-lex-block-streams nil
+  "Streams of tokens inside collapsed blocks.
+This is an alist of (ANCHOR . STREAM) elements where ANCHOR is the
+start position of the block, and STREAM is the list of tokens in that
+block.")
+
+;; Stack of nested blocks.
+(defvar semantic-lex-block-stack nil)
+
 ;;;###autoload
 (defmacro define-lex (name doc &rest analyzers)
   "Create a new lexical analyzer with NAME.
@@ -566,8 +575,10 @@ example, it is good to put a numbe analyzer in front of a symbol
 analyzer which might mistake a number for as a symbol."
   `(defun ,name  (start end &optional depth length)
      ,(concat doc "\nSee `semantic-lex' for more information.")
+     (setq semantic-lex-block-streams nil)
      (let* ((starting-position (point))
             (semantic-lex-token-stream nil)
+            (semantic-lex-block-stack nil)
 	    (tmp-start start)
             (semantic-lex-end-point start)
             (semantic-lex-current-depth 0)
@@ -579,8 +590,9 @@ analyzer which might mistake a number for as a symbol."
 	    )
        ;; Maybe REMOVE THIS LATER.
        ;; Trying to find incremental parser bug.
-       (if (> end (point-max))
-	   (error "Lex: End = %d, but point-max = %d" end (point-max)))
+       (when (> end (point-max))
+         (error ,(format "%s: end (%%d) > point-max (%%d)" name)
+                end (point-max)))
        (with-syntax-table semantic-lex-syntax-table
          (goto-char start)
          (while (and (< (point) end)
@@ -588,20 +600,85 @@ analyzer which might mistake a number for as a symbol."
 			 (<= (length semantic-lex-token-stream) length)))
            (semantic-lex-one-token ,analyzers)
 	   (when (eq semantic-lex-end-point tmp-start)
-	     (error "Lexical Analyzer: hang detected LEX: %S : START: %d END: %d"
-		    (car semantic-lex-token-stream)
-		    tmp-start
-		    semantic-lex-end-point))
+	     (error ,(format "%s: endless loop at %%d, after %%S" name)
+                    tmp-start (car semantic-lex-token-stream)))
 	   (setq tmp-start semantic-lex-end-point)
            (goto-char semantic-lex-end-point)
 	   (semantic-lex-debug-break (car semantic-lex-token-stream))
 	   ))
+       ;; Check that there is no unterminated block.
+       (when semantic-lex-block-stack
+         (let* ((last (pop semantic-lex-block-stack))
+                (blk last))
+           (while blk
+             (message
+              ,(format "%s: `%%s' block from %%S is unterminated" name)
+              (car blk) (cadr blk))
+             (setq blk (pop semantic-lex-block-stack)))
+           (semantic-lex-unterminated-syntax-detected (car last))))
        ;; Return to where we started.
        ;; Do not wrap in protective stuff so that if there is an error
        ;; thrown, the user knows where.
        (goto-char starting-position)
        ;; Return the token stream
        (nreverse semantic-lex-token-stream))))
+
+;;; Collapsed block tokens delimited by any tokens.
+;;
+(defun semantic-lex-start-block (syntax)
+  "Mark the last read token as the beginning of a SYNTAX block."
+  (if (or (not semantic-lex-maximum-depth)
+          (< semantic-lex-current-depth semantic-lex-maximum-depth))
+      (setq semantic-lex-current-depth (1+ semantic-lex-current-depth))
+    (push (list syntax (car semantic-lex-token-stream))
+          semantic-lex-block-stack)))
+
+(defun semantic-lex-end-block (syntax)
+  "Process the end of a previously marked SYNTAX block.
+That is, collapse the tokens inside that block, including the
+beginning and end of block tokens, into a high level block token of
+class SYNTAX.
+The token at beginning of block is the one marked by a previous call
+to `semantic-lex-start-block'.  The current token is the end of block.
+The collapsed tokens are saved in `semantic-lex-block-streams'."
+  (if (null semantic-lex-block-stack)
+      (setq semantic-lex-current-depth (1- semantic-lex-current-depth))
+    (let* ((stream semantic-lex-token-stream)
+           (blk (pop semantic-lex-block-stack))
+           (bstream (cdr blk))
+           (first (car bstream))
+           (last (pop stream)) ;; The current token mark the EOBLK
+           tok)
+      (if (not (eq (car blk) syntax))
+          ;; SYNTAX doesn't match the syntax of the current block in
+          ;; the stack. So we encountered the end of the SYNTAX block
+          ;; before the end of the current one in the stack which is
+          ;; signaled unterminated.
+          (semantic-lex-unterminated-syntax-detected (car blk))
+        ;; Move tokens found inside the block from the main stream
+        ;; into a separate block stream.
+        (while (and stream (not (eq (setq tok (pop stream)) first)))
+          (push tok bstream))
+        ;; The token marked as beginning of block was not encountered.
+        ;; This should not happen!
+        (or (eq tok first)
+            (error "Token %S not found at beginning of block `%s'"
+                   first syntax))
+        ;; Save the block stream for future reuse, to avoid to redo
+        ;; the lexical analysis of the block content!
+        ;; Anchor the block stream with its start position, so we can
+        ;; use: (cdr (assq start semantic-lex-block-streams)) to
+        ;; quickly retrieve the lexical stream associated to a block.
+        (setcar blk (semantic-lex-token-start first))
+        (setcdr blk (nreverse bstream))
+        (push blk semantic-lex-block-streams)
+        ;; In the main stream, replace the tokens inside the block by
+        ;; a high level block token of class SYNTAX.
+        (setq semantic-lex-token-stream stream)
+        (semantic-lex-push-token
+         (semantic-lex-token
+          syntax (car blk) (semantic-lex-token-end last)))
+        ))))
 
 ;;; Lexical token API
 ;;
@@ -611,19 +688,52 @@ SYMBOL is a symbol representing the class of syntax found.
 START and END define the bounds of the token in the current buffer."
   `(cons ,symbol (cons ,start ,end)))
 
-(defmacro semantic-lex-push-token (token)
+(defun semantic-lex-expand-block-specs (specs)
+  "Expand block specifications SPECS into a lisp form.
+SPECS is a list of (BLOCK BEGIN END) elements where BLOCK, BEGIN, and
+END are token class symbols that indicate to produce one collapsed
+BLOCK token from tokens found between BEGIN and END ones.
+BLOCK must be a non-nil symbol, and at least one of the BEGIN or END
+symbols must be non-nil too.
+When BEGIN is non-nil, generate a call to `semantic-lex-start-block'
+when a BEGIN token class is encountered.
+When END is non-nil, generate a call to `semantic-lex-end-block' when
+an END token class is encountered."
+  (let ((class (make-symbol "class"))
+        (form nil))
+    (dolist (spec specs)
+      (when (car spec)
+        (when (nth 1 spec)
+          (push `((eq ',(nth 1 spec) ,class)
+                  (semantic-lex-start-block ',(car spec)))
+                form))
+        (when (nth 2 spec)
+          (push `((eq ',(nth 2 spec) ,class)
+                  (semantic-lex-end-block ',(car spec)))
+                form))))
+    (when form
+      `((let ((,class (semantic-lex-token-class
+                       (car semantic-lex-token-stream))))
+          (cond ,@(nreverse form))))
+      )))
+
+(defmacro semantic-lex-push-token (token &rest blockspecs)
   "Push TOKEN in the lexical analyzer token stream.
-Return the updated token stream.
+Return the lexical analysis current end point.
+If optional arguments BLOCKSPECS is non-nil, it specifies to process
+collapsed block tokens.  See `semantic-lex-expand-block-specs' for
+more details.
 This macro should only be called within the bounds of
-`define-lex-analyzer'.  It changes the values of the lexical
-analyzer variables `token-stream' and `semantic-lex-end-point'.
-If you need to move `semantic-lex-end-point' somewhere else, just modify this
-variable after calling `semantic-lex-token'."
-  `(setq semantic-lex-token-stream
-         (cons ,token semantic-lex-token-stream)
-         semantic-lex-end-point
-         ;; Don't eval TOKEN twice!
-         (semantic-lex-token-end (car semantic-lex-token-stream))))
+`define-lex-analyzer'.  It changes the values of the lexical analyzer
+variables `token-stream' and `semantic-lex-end-point'.  If you need to
+move `semantic-lex-end-point' somewhere else, just modify this
+variable after calling `semantic-lex-push-token'."
+  `(progn
+     (push ,token semantic-lex-token-stream)
+     ,@(semantic-lex-expand-block-specs blockspecs)
+     (setq semantic-lex-end-point
+           (semantic-lex-token-end (car semantic-lex-token-stream)))
+     ))
 
 (defsubst semantic-lex-token-class (token)
   "Fetch the class of the lexical token TOKEN.
