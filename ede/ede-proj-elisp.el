@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.17 2002/11/28 13:31:23 ponced Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.18 2003/01/29 03:18:45 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@
 (defclass ede-proj-target-elisp (ede-proj-target-makefile)
   ((menu :initform nil)
    (keybindings :initform nil)
+   (phony :initform t)
    (sourcetype :initform (ede-source-emacs))
    (availablecompilers :initform (ede-emacs-compiler))
    (aux-packages :initarg :aux-packages
