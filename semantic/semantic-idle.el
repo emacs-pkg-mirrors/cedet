@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.12 2004/02/05 03:58:32 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.13 2004/02/08 20:04:23 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -313,7 +313,7 @@ size exceeds the `semantic-idle-scheduler-max-buffer-size' threshold."
 
     (unwind-protect
 	;; Perform the parsing.
-	(when (semantic-lex-catch-errors 'idle-scheduler
+	(when (semantic-lex-catch-errors idle-scheduler
 		(save-excursion (semantic-bovinate-toplevel t))
 		  nil)
 	  ;; If we are here, it is because the lexical step failed,
