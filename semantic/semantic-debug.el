@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.5 2003/02/17 02:04:19 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.6 2003/02/17 02:11:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -343,8 +343,6 @@ Argument ONOFF is non-nil when we are entering debug mode."
       (error "This major mode does not support parser debugging"))
   ;; Clear the cache to force a full reparse.
   (semantic-clear-toplevel-cache)
-  ;; Turn off the auto-parser for this buffer.
-  (semantic-auto-parse-mode -1)
   ;; Do the parse
   (let ((semantic-debug-enabled t)
 	;; Create an interface
