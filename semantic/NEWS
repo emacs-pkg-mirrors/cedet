@@ -460,6 +460,16 @@ Run before option `semantic-auto-parse-mode' begins parsing.
 ** `semantic-after-auto-parse-hooks'
 Run after option `semantic-auto-parse-mode' has parsed.
 
+* Smart Completion
+
+** `semantic-analyze-current-context'
+This is now an overridable function.
+The objects contain more details on scoping for more accurate
+symbol lookup.
+
+** `semantic-analyze-possible-completions'
+This is now an overridable function.
+
 * Setup.
 
 A lot of things are now auto-loaded on demand.  Setup should now be
@@ -475,6 +485,13 @@ those produced by the Java parser.
 ** Erlang parser added.
 The grammar was written for semantic 1.4 in BNF format, and converted
 to .by format.
+
+** HTML external parser added.
+The regexp based parser was copied from the texinfo example
+and modified for semantic 2.0.
+
+** Makefile parser
+There is now excellent smart completion support.
 
 
 Local variables:
