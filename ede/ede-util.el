@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-util.el,v 1.1 2000/10/23 17:56:53 zappo Exp $
+;; RCS: $Id: ede-util.el,v 1.2 2000/11/18 14:10:32 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 ;;; Code:
 
 ;;; Updating the version of a project.
+;;;###autoload
 (defun ede-update-version (newversion)
   "Update the current projects main version number.
 Argument NEWVERSION is the version number to use in the current project."
@@ -60,24 +61,39 @@ their sources to VERSION."
   "In sources for THIS, change version numbers to VERSION."
   (if (and (slot-boundp this 'versionsource)
 	   (oref this versionsource))
-      (save-excursion
-	(set-buffer (find-file-noselect
-		     (ede-expand-filename this (oref this versionsource))))
-	(goto-char (point-min))
-	(let ((case-fold-search t))
-	  (if (re-search-forward "version:\\s-*\\([^ \t\n]+\\)" nil t)
-	      (progn
-		(delete-region (match-beginning 1)
-			       (match-end 1))
-		(goto-char (match-beginning 1))
-		(insert version)))))))
+      (let ((vs (oref this versionsource)))
+	(while vs
+	  (save-excursion
+	    (set-buffer (find-file-noselect
+			 (ede-expand-filename this (car vs))))
+	    (goto-char (point-min))
+	    (let ((case-fold-search t))
+	      (if (re-search-forward "version:\\s-*\\([^ \t\n]+\\)" nil t)
+		  (progn
+		    (save-match-data
+		      (ede-make-buffer-writable))
+		    (delete-region (match-beginning 1)
+				   (match-end 1))
+		    (goto-char (match-beginning 1))
+		    (insert version)))))
+	  (setq vs (cdr vs))))))
 
-
-
-;;; Autoloads:
-(autoload 'ede-update-version "ede-util"
-  "Update the version of the current project." t)
-
+;;; Writable files
+;;
+;; Utils for EDE when it needs to write a file that could be covered by a
+;; version control system.
+(defun ede-make-buffer-writable (&optional buffer)
+  "Make sure that BUFFER is writable.
+If BUFFER isn't specified, use the current buffer."
+  (save-excursion
+    (if buffer (set-buffer buffer))
+    (if buffer-read-only
+	(if (and vc-mode
+		 (y-or-n-p (format "Check out %s? " (buffer-file-name))))
+	    (vc-toggle-read-only)
+	  (if (not vc-mode)
+	      (toggle-read-only -1))))))
+  
 (provide 'ede-util)
 
 ;;; ede-util.el ends here
