@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.15
-;; RCS: $Id: eieio.el,v 1.72 2000/08/20 15:26:41 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.73 2000/08/20 16:08:49 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.15"
   "Current version of EIEIO.")
@@ -170,31 +170,31 @@ Stored outright without modifications or stripping.")
 ;;
 (defmacro class-v (class) "Internal: Return the class vector from the CLASS symbol."
   ;; No check: If eieio gets this far, it's probably been checked already.
-  (list 'get class ''eieio-class-definition))
+  `(get ,class `eieio-class-definition))
 
 (defmacro class-p (class) "Return t if CLASS is a valid class vector."
   ;; this new method is faster since it doesn't waste time checking lots of
   ;; things.
-  (list 'condition-case nil
-      (list 'eq (list 'aref (list 'class-v class) 0) ''defclass)
-    '(error nil)))
+  `(condition-case nil
+       (eq (aref (class-v ,class) 0) 'defclass)
+     (error nil)))
 
 (defmacro object-p (obj) "Return t if OBJ is an object vector."
-  (list 'condition-case nil
-	(list 'let (list (list 'tobj obj))
-	      '(and (eq (aref tobj 0) 'object)
-		    (class-p (aref tobj object-class))))
-	'(error nil)))
+  `(condition-case nil
+       (let ((tobj ,obj))
+	 (and (eq (aref tobj 0) 'object)
+	      (class-p (aref tobj object-class))))
+     (error nil)))
 
 (defmacro class-constructor (class)
   "Return the symbol representing the constructor of CLASS."
-  (list 'aref (list 'class-v class) class-symbol))
+  `(aref (class-v ,class) class-symbol))
 
 (defmacro generic-p (method)
   "Return t if symbol METHOD is a generic function.
 Only methods have the symbol `eieio-method-tree' as a property (which
 contains a list of all bindings to that method type.)"
-  (list 'and (list 'fboundp method) (list 'get method ''eieio-method-obarray)))
+  `(and (fboundp ,method) (get ,method 'eieio-method-obarray)))
 
 (defmacro class-option-assoc (list option)
   "Return from LIST the found OPTION.  Nil if it doesn't exist."
@@ -524,8 +524,9 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		  (list 'and '(object-p obj)
 			(list 'obj-of-class-p 'obj cname)))))
 
-    ;; Set up a specialized doc string
-    (eieio-rebuild-doc-string cname)
+    ;; Set up a specialized doc string.
+    ;; Use stored value since it is calculated in a non-trivial way
+    (put cname 'variable-documentation (aref newc class-doc))
 
     ;; if this is a superclass, clear out parent (which was set to the
     ;; default superclass eieio-default-superclass)
@@ -736,9 +737,7 @@ is appropriate to use.  Use `defmethod' to create methods, and it
 calls defgeneric for you.  With this implementation the arguments are
 currently ignored.  You can use `defgeneric' to apply specialized
 top level documentation to a method."
-  (list 'eieio-defgeneric
-	(list 'quote method)
-	doc-string))
+  `(eieio-defgeneric (quote ,method) ,doc-string))
 
 (defun eieio-defgeneric-form (method doc-string)
   "The lambda form that would be used as the function defined on METHOD.
@@ -762,9 +761,7 @@ ARGS lists any keys (such as :BEFORE or :AFTER), the arglst, and
 doc string, and eventually the body, such as:
 
   (defmethod mymethod [:BEFORE | :AFTER] (args) doc-string body)"
-  (list 'eieio-defmethod
-	(list 'quote method)
-	(list 'quote args)))
+  `(eieio-defmethod (quote ,method) (quote ,args)))
 
 (defun eieio-defmethod (method args)
   "Work part of the `defmethod' macro defining METHOD with ARGS."
@@ -870,7 +867,7 @@ Argument FN is the function calling this verifier."
   "Retrieve the value stored in OBJ in the slot named by FIELD.
 Field is the name of the slot when created by `defclass' or the label
 created by the :initarg tag."
-  (list 'eieio-oref obj (list 'quote field)))
+  `(eieio-oref ,obj (quote ,field)))
 
 (defun eieio-oref (obj field)
   "Return the value in OBJ at FIELD in the object vector."
@@ -918,7 +915,7 @@ CDR is function definition and body."
 The default value is the value installed in a class with the :initform
 tag.  FIELD can be the slot name, or the tag specified by the :initarg
 tag in the `defclass' call."
-  (list 'eieio-oref-default obj (list 'quote field)))
+  `(eieio-oref-default ,obj (quote ,field)))
 
 (defun eieio-oref-default (obj field)
   "Does the work for the macro `oref-default' with similar parameters.
@@ -958,7 +955,7 @@ Fills in OBJ's FIELD with it's default value."
   "Set the value in OBJ for slot FIELD to VALUE.
 FIELD is the slot name as specified in `defclass' or the tag created
 with in the :initarg slot.  VALUE can be any Lisp object."
-  (list 'eieio-oset obj (list 'quote field) value))
+  `(eieio-oset ,obj (quote ,field) ,value))
 
 (defun eieio-oset (obj field value)
   "Does the work for the macro `oset'.
@@ -989,7 +986,7 @@ Fills in OBJ's FIELD with VALUE."
 The default value is usually set with the :initform tag during class
 creation.  This allows users to change the default behavior of classes
 after they are created."
-  (list 'eieio-oset-default class (list 'quote field) value))
+  `(eieio-oset-default ,class (quote ,field) ,value))
 
 (defun eieio-oset-default (class field value)
   "Does the work for the macro `oset-default'.
@@ -1035,7 +1032,7 @@ Execute BODY within this lexical scope."
 ;;  well embedded into an object.
 ;;
 (defmacro object-class-fast (obj) "Return the class struct defining OBJ with no check."
-  (list 'aref obj object-class))
+  `(aref ,obj object-class))
   
 (defun class-name (class) "Return a Lisp like symbol name for CLASS."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
@@ -1064,27 +1061,27 @@ If EXTRA, include that in the string returned to represent the symbol."
   (class-name (object-class-fast obj)))
 
 (defmacro class-parents-fast (class) "Return parent classes to CLASS with no check."
-  (list 'aref (list 'class-v class) class-parent))
+  `(aref (class-v ,class) class-parent))
 
 (defun class-parents (class) "Return parent classes to CLASS.  (overload of variable)."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (class-parents-fast class))
 
 (defmacro class-children-fast (class) "Return child classes to CLASS with no check."
-  (list 'aref (list 'class-v class) class-children))
+  `(aref (class-v ,class) class-children))
 
 (defun class-children (class) "Return child classses to CLASS."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
   (class-children-fast class))
 
 (defmacro class-parent-fast (class) "Return first parent class to CLASS with no check."
-  (list 'car (list 'class-parents-fast class)))
+  `(car (class-parents-fast ,class)))
 
 (defmacro class-parent (class) "Return first parent class to CLASS.  (overload of variable)."
-  (list 'car (list 'class-parents class)))
+  `(car (class-parents ,class)))
 
 (defmacro same-class-fast-p (obj class) "Return t if OBJ is of class-type CLASS with no error checking."
-  (list 'eq (list 'aref obj object-class) class))
+  `(eq (aref ,obj object-class) ,class))
 
 (defun same-class-p (obj class) "Return t if OBJ is of class-type CLASS."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
@@ -1521,65 +1518,6 @@ This is usually a symbol that starts with `:'."
 	(car tuple)
       nil)))
 
-(defun eieio-rebuild-doc-string (class)
-  "Rebuilds the documentation for CLASS.
-Look in CLASS for it's stored doc-string, and the doc string of
-it's methods.  Use this to set the variable 'CLASSes doc string for
-viewing by apropos, and describe-variables, and the like."
-  (if (not (class-p class)) (signal 'wrong-type-argument '(class-p class)))
-  (let* ((cv (class-v class))
-	 (newdoc (aref cv class-doc))
-	 (docs   (aref cv class-public-doc))
-	 (names  (aref cv class-public-a))
-	 (deflt  (aref cv class-public-d))
-	 (types  (aref cv class-public-type))
-	 (i      0)
-	 (prot   (aref cv class-protection))
-	 )
-    (setq newdoc (concat newdoc "\n\nInstance Allocated Slots:"))
-    (while names
-      (setq newdoc (concat newdoc "\n\n"
-			   (if (car prot) "Private " "")
-			   "Slot: " (symbol-name (car names))
-			   (if (not (eq (aref types i) t))
-			       (concat "    type = "
-				       (format "%S" (aref types i)))
-			     "")
-			   (if (eq (car deflt) eieio-unbound)
-			       ""
-			     (concat "    default = "
-				     (format "%S" (car deflt))))
-			   (if (car docs) (concat "\n  " (car docs)) "")))
-      (setq names (cdr names)
-	    docs (cdr docs)
-	    deflt (cdr deflt)
-	    prot (cdr prot)
-	    i (1+ i)))
-    (setq docs  (aref cv class-class-allocation-doc)
-	  names (aref cv class-class-allocation-a)
-	  types (aref cv class-class-allocation-type)
-	  i     0
-	  prot  (aref cv class-class-allocation-protection))
-    (if names
-	(setq newdoc (concat newdoc "\n\nClass Allocated Slots:")))
-    (while names
-      (setq newdoc (concat newdoc "\n\n"
-			   (if (car prot) "Private " "")
-			   "Slot: " (symbol-name (car names))
-			   (if (not (eq (aref types i) t))
-			       (concat "    type = "
-				       (format "%S" (aref types i)))
-			     "")
-			   (if (car docs) (concat "\n  " (car docs)) "")))
-      (setq names (cdr names)
-	    docs (cdr docs)
-	    prot (cdr prot)
-	    i (1+ i)))
-    ;; only store this on the variable.  The doc-string in the vector
-    ;; is ONLY the top level doc for this class.  The value found via
-    ;; emacs needs to be more descriptive.
-    (put class 'variable-documentation newdoc)))
-
 (defun eieio-rebuild-generic-doc-string (sym)
   "Rebuilds the documentation string for the generic method SYM.
 The documentation is set to a generic doc-string and all the
@@ -1929,6 +1867,15 @@ Optional argument NOESCAPE is passed to `prin1-to-string' when appropriate."
 ;;; Autoloading some external symbols, and hooking into the help system
 ;;
 
+(autoload 'eieio-help-mode-augmentation-mayee "eieio-opt" "For buffers thrown into help mode, augment for eieio.")
+(autoload 'eieio-browse "eieio-opt" "Create an object browser window" t)
+(autoload 'eieio-describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
+(autoload 'describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
+(autoload 'eieiodoc-class "eieio-doc" "Create texinfo documentation about a class hierarchy." t)
+
+(autoload 'eieio-customize-object "eieio-custom" "Create a custom buffer editing OBJ.")
+(autoload 'eieio-custom-widget-insert "eieio-custom" "Insert a widget for customizing.")
+
 ;; make sure this shows up after the help mode hook.
 (add-hook 'temp-buffer-show-hook 'eieio-help-mode-augmentation-maybee t)
 (require 'advice)
@@ -1938,15 +1885,6 @@ Returns the documentation as a string, also."
   (if (class-p (ad-get-arg 0))
       (describe-class (ad-get-arg 0))
     ad-do-it))
-
-(autoload 'eieio-help-mode-augmentation-mayee "eieio-opt" "For buffers thrown into help mode, augment for eieio.")
-(autoload 'eieio-browse "eieio-opt" "Create an object browser window" t)
-(autoload 'eieio-describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
-(autoload 'describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
-(autoload 'eieiodoc-class "eieio-doc" "Create texinfo documentation about a class hierarchy." t)
-
-(autoload 'eieio-customize-object "eieio-custom" "Create a custom buffer editing OBJ.")
-(autoload 'eieio-custom-widget-insert "eieio-custom" "Insert a widget for customizing.")
 
 (provide 'eieio)
 ;;; eieio ends here
