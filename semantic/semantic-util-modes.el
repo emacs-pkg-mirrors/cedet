@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.22 2002/09/07 02:05:31 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.23 2002/12/29 18:03:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -51,7 +51,7 @@ ignore PROPERTIES."
 ;;;; Semantic minor modes stuff
 ;;;;
 (defcustom semantic-update-mode-line t
-  "*If non-nil show enabled minor modes in the mode line.
+  "*If non-nil, show enabled minor modes in the mode line.
 Only minor modes that are not turned on globally are shown in the mode
 line."
   :group 'semantic
@@ -312,7 +312,7 @@ If ARG is nil, then toggle."
 
 ;;;###autoload
 (defcustom global-semantic-show-unmatched-syntax-mode nil
-  "*If non-nil enable global use of show-unmatched-syntax mode."
+  "*If non-nil, enable global use of show-unmatched-syntax mode."
   :group 'semantic
   :type 'boolean
   :require 'semantic-util-modes
@@ -330,7 +330,7 @@ If ARG is nil, then toggle."
      (:underline "red"))
     (((class color) (background light))
      (:underline "red")))
-  "*Face used to show unmatched-syntax in.
+  "*Face used to show unmatched syntax in.
 The face is used in  `semantic-show-unmatched-syntax-mode'."
   :group 'semantic)
 
@@ -367,7 +367,7 @@ The face is used in  `semantic-show-unmatched-syntax-mode'."
 
 (defun semantic-show-unmatched-syntax (syntax)
   "Function set into `semantic-unmatched-syntax-hook'.
-This will highlight elements in SYNTAX as unmatched-syntax."
+This will highlight elements in SYNTAX as unmatched syntax."
   ;; This is called when `semantic-show-unmatched-syntax-mode' is
   ;; enabled.  Highlight the unmatched syntax, and then add a semantic
   ;; property to that overlay so we can add it to the official list of
@@ -450,7 +450,7 @@ minor mode is enabled."
   
 ;;;###autoload
 (defun semantic-show-unmatched-syntax-mode (&optional arg)
-  "Minor mode to highlight unmatched-syntax tokens.
+  "Minor mode to highlight unmatched syntax tokens.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
@@ -479,7 +479,7 @@ minor mode is enabled.
                          semantic-show-unmatched-syntax-mode-map)
 
 (defun semantic-show-unmatched-syntax-next ()
-  "Move forward to the next occurance of unmatched syntax."
+  "Move forward to the next occurrence of unmatched syntax."
   (interactive)
   (let ((o (semantic-next-unmatched-syntax (point))))
     (if o
@@ -495,14 +495,14 @@ minor mode is enabled.
   "Timer used to schedule automatic reparse.")
 
 (defcustom semantic-auto-parse-no-working-message t
-  "*Non-nil disable display of working message during parse."
+  "*If non-nil, disable display of working messages during parse."
   :group 'semantic
   :type 'boolean)
 
 (defcustom semantic-auto-parse-working-in-modeline-flag nil
   "*Non-nil means show working messages in the mode line.
 Typically, parsing will show messages in the minibuffer.
-This will move the parse message into the mode-line."
+This will move the parse message into the modeline."
   :group 'semantic
   :type 'boolean)
 
@@ -521,14 +521,14 @@ run as soon as Emacs is idle."
 
 (defcustom semantic-auto-parse-max-buffer-size 0
   "*Maximum size in bytes of buffers automatically reparsed.
-If this value is less than or equal to 0 buffers are automatically
+If this value is less than or equal to 0, buffers are automatically
 reparsed regardless of their size."
   :group 'semantic
   :type 'number)
 
 ;;;###autoload
 (defcustom global-semantic-auto-parse-mode nil
-  "*If non-nil enable global use of auto-parse mode."
+  "*If non-nil, enable global use of auto-parse mode."
   :group 'semantic
   :type 'boolean
   :require 'semantic-util-modes
@@ -573,7 +573,7 @@ See also the variable `semantic-auto-parse-max-buffer-size'."
   "Automatically reparse current buffer.
 Called after `semantic-auto-parse-idle-time' seconds of Emacs idle
 time.  Does nothing if option `semantic-auto-parse-mode' is not enabled or
-current buffer don't need re-parse or if its size don't match
+current buffer doesn't need reparsing or if its size exceeds the
 `semantic-auto-parse-max-buffer-size' threshold."
   (when (semantic-auto-parse-enabled-p)
     ;; Disable the auto parse timer while re-parsing
@@ -867,7 +867,7 @@ If ARG is nil, then toggle."
 
 ;;;###autoload
 (defcustom global-semantic-summary-mode nil
-  "*If non-nil enable global use of summary mode."
+  "*If non-nil, enable global use of summary mode."
   :group 'semantic
   :type 'boolean
   :require 'semantic-util-modes
