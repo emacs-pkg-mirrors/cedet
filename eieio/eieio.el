@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.88 2000/12/02 01:53:29 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.89 2000/12/04 16:42:28 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -1897,6 +1897,76 @@ All slots are unbound, except those initialized with PARAMS."
     (if params (shared-initialize nobj (if passname (cdr params) params)))
     (oset nobj parent-instance obj)
     nobj))
+
+
+;;; eieio-persistent
+;;
+(defclass eieio-persistent ()
+  ((file :initarg :file
+	 :type string
+	 :documentation
+	 "The save file for this persistent object.
+This must be a string, and must be specified when the new object is 
+instantiated.")
+   (file-header-line :type string
+		     :allocation class
+		     :initform ";; EIEIO PERSISTENT OBJECT"
+		     :documentation
+		     "Header line for the save file.
+This is used with the `object-write' method."))
+  "This special class enables persistence through save files.
+Use the `object-save' method to write this object to disk.")
+
+(defmethod object-write ((this eieio-persistent) &optional comment)
+  "Write persistent object THIS out to the current stream.
+Optional argument COMMENT is a header line comment."
+  (call-next-method this (or comment (oref this file-header-line))))
+
+(defmethod eieio-persistent-path-relative ((this eieio-persistent) file)
+  "For object THIS, make absolute file name FILE relative."
+  (let* ((src (expand-file-name file))
+	 (dest (file-name-directory (oref this file)))
+	 (cs1  (compare-strings src 0 nil dest 0 nil))
+	 diff abdest absrc)
+    ;; Find the common directory part
+    (setq diff (substring src 0 cs1))
+    (setq cs1 (split-string diff "[\\/]"))
+    (setq cs1 (length (nth (1- (length cs1)) cs1)))
+    (setq diff (substring diff 0 (- (length diff) cs1)))
+    ;; Get the uncommon bits from dest and src.
+    (setq abdest (substring dest (length diff))
+	  absrc (substring src (length diff)))
+    ;; Find number if dirs in absrc, and add those as ".." to dest.
+    ;; Rember we have a file name, so that is the 1-.
+    (setq cs1 (1- (length (split-string absrc "[\\/]"))))
+    (while (> cs1 0)
+      (setq abdest (concat "../" abdest)
+	    cs1 (1- cs1)))
+    abdest))
+
+(defmethod eieio-persistent-save ((this eieio-persistent) &optional file)
+  "Save persistent object THIS to disk.
+Optional argument FILE overrides the file name specified in the object
+instance."
+  (save-excursion
+    (let ((b (set-buffer (get-buffer-create " *tmp object write*")))
+	  (cfn (oref this file)))
+      (unwind-protect
+	  (save-excursion
+	    (erase-buffer)
+	    (let ((standard-output (current-buffer)))
+	      (oset this file
+		    (if file
+			(eieio-persistent-path-relative this file)
+		      (file-name-nondirectory cfn)))
+	      (object-write this (oref this file-header-line)))
+	    (write-file cfn nil))
+	;; Restore :file, and kill the tmp buffer
+	(oset this file cfn)
+	(kill-buffer b)))))
+
+;; Notes on the persistent object:
+;; It should also set up some hooks to help it keep itself up to date.
 
 
 ;;; Unimplemented functions from CLOS
