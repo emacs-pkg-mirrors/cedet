@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.239 2004/02/24 01:31:53 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.240 2004/02/28 23:56:25 zappo Exp $
 
 (defvar speedbar-version "0.15beta2"
   "The current version of speedbar.")
@@ -3065,7 +3065,7 @@ Optional argument P is where to start the search from."
     (if p (goto-char p))
     (beginning-of-line)
     (if (looking-at (concat
-		     "\\([0-9]+\\): *[[<{]?[-+?=][]>}@()|] \\([^ \n]+\\)"))
+		     "\\([0-9]+\\): *[[<{]?[-+?= ][]>}@()|] \\([^ \n]+\\)"))
 	(get-text-property (match-beginning 2) 'speedbar-text)
       nil)))
 
@@ -3076,7 +3076,7 @@ Optional argument P is where to start the search from."
     (if p (goto-char p))
     (beginning-of-line)
     (if (looking-at (concat
-		     "\\([0-9]+\\): *[[<{]?[-+?=][]>}@()|] \\([^ \n]+\\)\\("
+		     "\\([0-9]+\\): *[[<{]?[-+?= ][]>}@()|] \\([^ \n]+\\)\\("
 		     speedbar-indicator-regex "\\)?"))
 	(progn
 	  (goto-char (match-beginning 2))
