@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.8 2001/09/06 14:30:34 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.9 2001/09/11 15:01:10 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -68,101 +68,125 @@
 ;;
 ;; The grammar is a list of the following form:
 ;;
-;; (term-0
-;;  ...
-;;  term-N
-;;  (nonterm-0 rule-0.0 [: action-0.0]
-;;             ...
-;;             rule-0.M [: action-0.M]
-;;             )
-;;  ...
-;;  (nonterm-N rule-N.0 [: action-N.0]
-;;             ...
-;;             rule-N.M [: action-N.M]
-;;             )
-;;  )
+;; (TERMINALS ASSOCS . NON-TERMINALS)
 ;;
-;; Where `term-...' are the terminal symbols, `nonterm-...' the
-;; nonterminal symbols.  Each `rule-...' is a list of
-;; terminals/nonterminals to be matched or () for an empty match.  A
-;; semantic action `action-...' can be specified which will be
-;; executed each time the corresponding rule is matched.
+;; - TERMINALS is the list terminal symbols used in the grammar.
 ;;
-;; Like in Bison, actions accept `$<i>' placeholders.  Each `$<i>'
-;; placeholder will receive the value of i-th rule item.
+;; - ASSOCS specifies the associativity of terminals like does the
+;;   Bison %nonassoc, %left and %right statements.  It is nil or a
+;;   list of elements of the form (ASSOC-TYPE . ASSOC-TERMS) where
+;;   ASSOC-TYPE is one of 'nonassoc, 'left or 'right, and TERMS is a
+;;   list of terminal symbols which must be declared in TERMINALS.
 ;;
-;; Also the special variable `$region' contains the start/end
-;; positions of text matched by the nonterminal production, as a pair
-;; (START-POS . END-POS).  Notice that `$region' is nil when it is
-;; used in an empty rule of a nullable nonterminal.  Actions can use
-;; `wisent-set-region' to modify the nonterminal region, this could be
-;; useful in actions used to recover from syntax errors.
+;; - NON-TERMINALS is the list of non terminal definitions.  Each
+;;   definition has the form (NONTERM . PRODS) where NONTERM is the
+;;   non terminal symbol and PRODS the list of productions associated
+;;   to this non terminal.  Each element of PRODS has the form: (ITEMS
+;;   [PREC] [ACTION]).  ITEMS is a list of terminal and/or non
+;;   terminal symbols to match.  It is nil for an empty match.
+;;   Optional values PREC and ACTION are:
 ;;
-;; Finally the special symbol `$nterm' contain the nonterminal symbol
-;; the action belongs to.  It could be useful to improve error
-;; reporting or debugging.
+;;   -- PREC a vector of one element: a terminal symbol.  The rule
+;;      will be given the precedence level of this terminal symbol.
+;;      By default the rule precedence is the one of the last terminal
+;;      symbol in it.
 ;;
-;; If you don't specify an action for a rule, wisent (like Bison)
-;; supplies a default: `$1'.  Thus, the value of the first symbol in
-;; the rule becomes the value of the whole rule.  The default action
-;; for an empty rule returns nil.
+;;   -- ACTION one s-exp: the semantic action to do when the rule is
+;;      matched.  Like in Bison, action accept `$<i>' placeholders.
+;;      Each `$<i>' placeholder will receive the value of i-th rule
+;;      item.
 ;;
-;; Conflicts in the grammar are handled in a conventional way.
-;; Shift/Reduce conflicts are resolved by shifting, and Reduce/Reduce
-;; conflicts are resolved by choosing the rule listed first in the
-;; grammar definition.
+;;      Also the special variable `$region' contains the start/end
+;;      positions of text matched by the rule, as a pair (START-POS
+;;      . END-POS).  `$region' is nil when used in an empty match
+;;      rule.  Actions can use `wisent-set-region' to modify the
+;;      region, this could be useful in actions used to recover from
+;;      syntax errors.
+;;
+;;      Finally the special symbol `$nterm' contain the nonterminal
+;;      symbol the action belongs to.  It could be useful to improve
+;;      error reporting or debugging.
+;;
+;;      If you don't specify an action for a rule, wisent (like Bison)
+;;      supplies a default: `$1'.  Thus, the value of the first symbol
+;;      in the rule becomes the value of the whole rule.  The default
+;;      action for an empty rule returns nil.
+;;
+;; By default, conflicts in the grammar are handled in a conventional
+;; way.  Shift/Reduce conflicts are resolved by shifting, and
+;; Reduce/Reduce conflicts are resolved by choosing the rule listed
+;; first in the grammar definition.  Like in Bison, you can control
+;; how Shift/Reduce conflicts are resolved using associativity rules
+;; for terminals (see ASSOCS above) and explicit rule precedence level
+;; (see PREC above).
 
-;; Here is an example of a grammar for arithmetic expressions:
+;; Here is an example of a Bison like grammar for arithmetic
+;; expressions:
 ;;
-;;   grammar: grammar expr
-;;          | expr
-;;          ;
-;;   expr   : add ';'
-;;          | ';'
-;;          ;
-;;   add    : add '-' mult
-;;          | add '+' mult
-;;          | mult
-;;          ;
-;;   mult   : mult '/' final
-;;          | mutl '*' final
-;;          | final
-;;          ;
-;;   final  : '(' add ')'
-;;          | CONSTANT
-;;          ;
+;;   %token NUM
+;;   %token NL
+;;   %token EQ
+;;   %token PLUS
+;;   %token MINUS
+;;   %token NEG
+;;   %token MULT
+;;   %token DIV
+;;   %token EXP
+;;   %token LPAREN
+;;   %token RPAREN
 ;;
-;; And following is the corresponding Elisp form (with actions):
+;;   %nonassoc EQ
+;;   %left     PLUS MINUS
+;;   %left     MULT DIV
+;;   %left     NEG
+;;   %right    EXP
 ;;
-;;    (
-;;     ;; nonterminals
-;;     CONSTANT
-;;     LPAREN
-;;     MINUS
-;;     PLUS
-;;     RPAREN
-;;     SEMI
-;;     SLASH
-;;     STAR
-;;     ;; productions
-;;     (grammar (grammar expr)      : (append $1 (list $2))
-;;              (expr)              : (list 'progn $1)
-;;              )
-;;     (expr    (add SEMI)          : $1
-;;              (SEMI)              : nil
-;;              )
-;;     (add     (add MINUS mult)    : (list '- $1 $3)
-;;              (add PLUS mult)     : (list '+ $1 $3)
-;;              (mult)              : $1
-;;              )
-;;     (mult    (mult SLASH final)  : (list '/ $1 $3)
-;;              (mult STAR final)   : (list '* $1 $3)
-;;              (final)             : $1
-;;              )
-;;     (final   (LPAREN add RPAREN) : $2
-;;              (CONSTANT)          : $1
-;;              )
-;;     )
+;;   input:
+;;       /* empty */
+;;     | input line
+;;     ;
+
+;;   line:
+;;       NL
+;;     | exp NL
+;;     ;
+
+;;   exp:
+;;       NUM
+;;     | exp EQ exp
+;;     | exp PLUS exp
+;;     | exp MINUS exp
+;;     | exp MULT exp
+;;     | exp DIV exp
+;;     | MINUS exp %prec NEG
+;;     | exp EXP exp
+;;     | LPAREN exp RPAREN
+;;     ;
+;;
+;; And following is the corresponding form accepted by Wisent:
+;;
+;;   ((NUM NL EQ PLUS MINUS NEG MULT DIV EXP LPAREN RPAREN)
+;;    ((nonassoc EQ)
+;;     (left PLUS MINUS)
+;;     (left MULT DIV)
+;;     (left NEG)
+;;     (right EXP))
+;;    (input
+;;     (nil)
+;;     ((input line)))
+;;    (line
+;;     ((NL))
+;;     ((exp NL)))
+;;    (exp
+;;     ((NUM))
+;;     ((exp EQ exp))
+;;     ((exp PLUS exp))
+;;     ((exp MINUS exp))
+;;     ((exp MULT exp))
+;;     ((exp DIV exp))
+;;     ((MINUS exp) [NEG])
+;;     ((exp EXP exp))
+;;     ((LPAREN exp RPAREN))))
 ;;
 ;; When the grammar is compiled you can use `wisent-parse' to parse a
 ;; source.  `wisent-parse' is driven by the tables produced by
@@ -490,6 +514,8 @@ N is the number of elements to process.  The result is stored in V1."
   "Action table.")
 (defvar wisent--rules           nil
   "Vector of grammar rules in internal format.")
+(defvar wisent--rprec           nil
+  "Precedence of rules.")
 (defvar wisent--conflicts-by-state nil
   "Number of conflicts by state.
 This is a vector of pairs (SR-conflicts . RR-conflicts).")
@@ -851,16 +877,16 @@ returns non-nil."
   (setq wisent--state-table (make-vector
                              wisent-state-table-size nil)))
 
-(defun wisent-pack-grammar (no-of-rules no-of-items gram)
-  "Setup the data structures from input grammar.
-NO-OF-RULES and NO-OF-ITEMS are respectively the number of rules and
-items in the grammar.  GRAM is the grammar in internal format."
-  (setq wisent--nrules (1+ no-of-rules)
-        wisent--nitems no-of-items
-        wisent--rlhs   (make-vector wisent--nrules nil)
-        wisent--rrhs   (make-vector wisent--nrules nil)
-        wisent--ritem  (make-vector (1+ wisent--nitems) nil))
-  (let ((p gram) (item-no 0) (rule-no 1)
+(defun wisent-pack-grammar (gram)
+  "Setup the data structures from input grammar GRAM.
+The input grammar is in an internal format built by
+`wisent-process-grammar'."
+  (setq wisent--rlhs  (make-vector wisent--nrules nil)
+        wisent--rrhs  (make-vector wisent--nrules nil)
+        wisent--ritem (make-vector (1+ wisent--nitems) nil))
+  (let ((p gram)
+        (item-no 0)
+        (rule-no 1)
         nt prods it-no2 rl-no2 rhs it-no3)
     (while p
       (setq nt     (caar p)
@@ -872,6 +898,15 @@ items in the grammar.  GRAM is the grammar in internal format."
         (aset wisent--rrhs rl-no2 it-no2)
         (setq rhs (car prods) it-no3 it-no2)
         (while rhs
+
+          ;; Setup default precedence level of rule.
+          (or (aref wisent--rprec rl-no2) ;; Already set by %prec
+              (< (car rhs) wisent--nvars) ;; non terminal
+              ;; A rule gets by default the precedence of the last
+              ;; terminal in it.
+              (let ((term (elt wisent--terms (- (car rhs) wisent--nvars))))
+                (aset wisent--rprec rl-no2 (get term 'wisent--prec))))
+          
           (aset wisent--ritem it-no3 (car rhs))
           (setq rhs    (cdr rhs)
                 it-no3 (1+ it-no3)))
@@ -1644,17 +1679,46 @@ tokens they accept.
 (defun wisent-add-action (st sym act)
   "Add at state ST on terminal SYM action ACT."
   (let* ((x (aref wisent--action-table st))
-         (y (assoc sym x)))
+         (y (assoc sym x))
+         (resol "shift")
+         sprec rprec sassoc term ruleno)
     (if y
         (if (not (= act (cdr y)))
             ;; -- there is a conflict
             (if (and (<= (cdr y) 0) (<= act 0))
+                ;; R/R conflict
                 (progn
                   (wisent-log-rr-conflict
                    st sym (- act) (- (cdr y)) (- (max (cdr y) act)))
                   (setcdr y (max (cdr y) act)))
-              (wisent-log-sr-conflict st sym act (- (cdr y)) "shift")
-              (setcdr y act)))
+              ;; S/R conflict
+              (setq ruleno (- (cdr y)))
+              (if (setq rprec (aref wisent--rprec ruleno))
+                  (progn
+                    (setq term (elt wisent--terms sym)
+                          sprec (get term 'wisent--prec))
+                    (cond
+                     ;; resolve as reduce
+                     ((< sprec rprec)
+                      (setq resol "reduce"))
+                     ;; resolve as shift
+                     ((> sprec rprec)
+                      (setcdr y act))
+                     ;;	matching precedence levels.
+                     (t
+                      (setq sassoc (get term 'wisent--assoc))
+                      (cond
+                       ;; For right association, keep only the shift.
+                       ((eq sassoc 'right)
+                        (setcdr y act))
+                       ;; For left association, keep only the reduction.
+                       ((eq sassoc 'left)
+                        (setq resol "reduce"))
+                       ;; For nonassociation, keep neither.
+                       (t
+                        (setcdr y 'error)
+                        (setq resol "an error")))))))
+              (wisent-log-sr-conflict st sym act ruleno resol)))
       (aset wisent--action-table st (cons (cons sym act) x)))))
         
 (defun wisent-build-states ()
@@ -1849,20 +1913,20 @@ GRAM is the grammar in internal format.  GRAM/ACTS are grammar rules
 in internal format.  STARTS is the table of entry point nonterminals.
 If optional STREAM is non-nil it receives a readable representation of
 the tables."
-  (setq wisent--nterms (length wisent--terms))
-  (setq wisent--nvars  (length wisent--vars))
-  (setq wisent--nsyms  (+ wisent--nterms wisent--nvars))
-  (setq wisent--rules  (apply #'vector
-                              (cons nil (mapcar #'car gram/acts))))
-  (let ((no-of-rules (length gram/acts))
-        (no-of-items 0)
-        (l gram/acts)
+  (setq wisent--nterms (length wisent--terms)
+        wisent--nvars  (length wisent--vars)
+        wisent--nsyms  (+ wisent--nterms wisent--nvars)
+        wisent--rules  (apply #'vector
+                              (cons nil (mapcar #'car gram/acts)))
+        wisent--nrules (length wisent--rules)
+        wisent--nitems 0)
+  (let ((l gram/acts)
         tables)
     (while l
-      (setq no-of-items (+ no-of-items (length (caar l)))
+      (setq wisent--nitems (+ wisent--nitems (length (caar l)))
             l (cdr l)))
     (wisent-working-step " (pack-grammar)")
-    (wisent-pack-grammar no-of-rules no-of-items gram)
+    (wisent-pack-grammar gram)
     (wisent-working-step " (set-derives)")
     (wisent-set-derives)
     (wisent-working-step " (set-nullable)")
@@ -1922,35 +1986,61 @@ of the first symbol in the rule that is $1."
 
 (defun wisent-process-nonterminal (def)
   "Check the nonterminal definition DEF.
-Return its internal form."
+Return its internal form.  On entry DEF has the form:
+
+  (nonterm . RULES)
+
+where RULES is a list of elements of the form:
+
+  (MATCHINGS [PREC-TERM] [ACTION])
+
+where MATCHINGS is the list of terminals and non terminals to match.
+Optional value PREC-TERM is a vector of one element: the terminal
+symbol from which the rule gets its precedence level.  And optional
+value ACTION is a semantic action statement."
   (setq wisent-nonterm-count (length wisent--vars))
-  (let ((var  (car def))
-        (lst  (cdr def))
-        (i 1)
-        prod/acts rhs rest prod l e)
-    (or (consp lst)
+  (let ((nonterm (car def))
+        (rules   (cdr def))
+        prod/acts rhs rest prod item items)
+    (or (consp rules)
         (error "At least one production needed for nonterminal %s"
-               var))
-    (while (consp lst)
-      (setq rhs  (car lst)
-            rest (cdr lst)
-            l    rhs
-            prod (mapcar #'wisent-encode (cons var rhs)))
-      (while l
-        (setq e (car l)
-              l (cdr l))
-        (or (memq e wisent--terms)
-            (memq e wisent--vars)
-            (error "Invalid terminal or nonterminal %s" e)))
-      (if (and (consp rest) (eq (car rest) ':) (consp (cdr rest)))
-          (setq lst (cddr rest)
-                prod/acts (cons (cons prod (cadr rest)) prod/acts))
-        (setq lst rest
-              prod/acts (cons
+               nonterm))
+    (while rules
+      (setq rule  (car rules)
+            rules (cdr rules)
+            rhs   (car rule)
+            rest  (cdr rule)
+            prod  (mapcar #'wisent-encode (cons nonterm rhs))
+            items rhs)
+      (while items
+        (setq item  (car items)
+              items (cdr items))
+        (or (memq item wisent--terms)
+            (memq item wisent--vars)
+            (error "Invalid terminal or nonterminal %s" item)))
+      
+      ;; Rule has precedence level
+      (if (vectorp (car rest))
+          (progn
+            (setq item (car rest))
+            (or (and (= (length item) 1) (memq (aref item 0) wisent--terms))
+                (error "Invalid rule precedence level %S" item))
+            (setq wisent--rprec (cons (get (aref item 0) 'wisent--prec)
+                                      wisent--rprec)
+                  rest (cdr rest)))
+        ;; No precedence level
+        (setq wisent--rprec (cons nil wisent--rprec)))
+
+      ;; Rule has semantic action
+      (if rest
+          (progn
+            (or (null (cdr rest))
+                (error "Invalid rule semantic action %S" rest))
+            (setq prod/acts (cons (cons prod (car rest)) prod/acts)))
+        (setq prod/acts (cons
                          (cons prod
                                (wisent-default-action (length rhs)))
-                         prod/acts)))
-      (setq i (1+ i)))
+                         prod/acts))))
     (nreverse prod/acts)))
 
 (defsubst wisent-grammar-production-lhs (def)
@@ -1975,24 +2065,63 @@ That check and convert external representation to internal format.
 Then compute and generate the LALR tables needed by the parser.
 Optional argument STARTS is a list of entry point nonterminals.  If
 optional STREAM is non-nil it receives a readable representation of
-the tables."
+the tables.  GRAMMAR is a list of form: (TERMS ASSOCS . NONTERMS)
+where TERMS is a list of terminal symbols, ASSOCS is a list describing
+the associativity of terminals or nil.  And NONTERMS is the list of
+non terminal definitions (see function `wisent-process-nonterminal').
+ASSOCS is a list of elements: (ASSOC-TYPE . ASSOC-TERMS) where
+ASSOC-TYPE is one of 'nonassoc, 'left or 'right, and ASSOC-TERMS is a
+list of terminal symbols which must have been declared in TERMS."
   ;; Check and convert grammar to a suitable internal representation
-  (or (consp grammar)
-      (error "Grammar definition must be a non-empty list"))
-  (let ((lst grammar)
-        term terms var def defs r-vars r-gram gram/acts
-        ep-var ep-term ep-def)
+  (or (and (consp grammar) (> (length grammar) 2))
+      (error "Invalid grammar definition"))
+  
+  (let ((lastprec 0)
+        lst term terms var def defs r-vars r-gram gram/acts
+        a-type a-terms ep-var ep-term ep-def)
+
     ;; terminals
-    (while (and (consp lst) (not (consp (car lst))))
+    (setq lst (car grammar))
+    (while lst
       (setq term (car lst)
             lst  (cdr lst))
       (or (wisent-valid-terminal-p term)
           (error "Invalid terminal %s" term))
       (if (memq term terms)
           (error "Terminal previously defined %s" term))
+      ;; Cleanup precedence and associativity
+      (put term 'wisent--prec  nil)
+      (put term 'wisent--assoc nil)
       (setq terms (cons term terms)))
+
+    ;; assocativity
+    (setq lst (nth 1 grammar))
+    (while lst
+      (setq def      (car lst)
+            a-type   (car def)
+            a-terms  (cdr def)
+            lst      (cdr lst)
+            lastprec (1+ lastprec))
+      (or (memq a-type '(left right nonassoc))
+          (error "Invalid associativity type %s" a-type))
+      (while a-terms
+        (setq term     (car a-terms)
+              a-terms  (cdr a-terms))
+        (or (memq term terms)
+            (error "Invalid associativity, terminal %s undefined" term))
+        (if (memq term defs)
+            (error "Duplicate associativity for terminal %s" term))
+        (setq defs (cons term defs))
+        ;; Record the precedence and associativity of the terminal in
+        ;; respectively the `wisent--prec' and `wisent--assoc' symbol
+        ;; properties.
+        (put term 'wisent--prec  lastprec)
+        (put term 'wisent--assoc a-type)))
+    
     ;; nonterminals
-    (while (consp lst)
+    (setq lst  (nthcdr 2 grammar)
+          defs nil)
+    (while lst
       (setq def (car lst)
             lst (cdr lst))
       (or (consp def)
@@ -2005,6 +2134,7 @@ the tables."
       (setq defs (cons def defs)))
     (if (= (length defs) 0)
         (error "Grammar must contain at least one nonterminal"))
+    
     ;; Check entry point nonterminals
     (setq defs   (nreverse defs)
           lst    (nreverse (cons (caar defs) starts))
@@ -2021,34 +2151,38 @@ the tables."
                 terms   (cons ep-term terms)
                 ;; Add entry (<nonterm> . $$<nonterm>) to start table
                 starts  (cons (cons var ep-term) starts)
-                ;; Add prod. ($<nonterm> ($$<nonterm> nonterm) : $2)
-                defs    (cons (list ep-var (list ep-term var) ': '$2)
+                ;; Add prod. ($<nonterm> (($$<nonterm> nonterm) $2))
+                defs    (cons (list ep-var
+                                    (list (list ep-term var) '$2))
                               defs)
-                ;; Add start rule ($<nonterm>) : $1
-                ep-def  (cons (list ep-var)
-                              (cons ': (cons '$1 ep-def))))))
+                ;; Add start rule (($<nonterm>) $1)
+                ep-def  (cons (list (list ep-var) '$1) ep-def))))
     ;; Build grammar internal representation
     ;;
     ;; First push start productions in the grammar definition, that
     ;; is, for start nonterminals ($<nonterm-1> ... $<nonterm-N>):
     ;;
-    ;; ($START       ($STARTS $EOI) : $1)
-    ;; ($STARTS      ($<nonterm-1>) : $1
+    ;; ($START       (($STARTS $EOI) $1))
+    ;; ($STARTS      (($<nonterm-1>) $1)
     ;;                ...
-    ;;               ($<nonterm-N>) : $1)
-    ;; ($<nonterm-1> ($$<nonterm-1> <nonterm-1>) : $2)
+    ;;               (($<nonterm-N>) $1))
+    ;; ($<nonterm-1> (($$<nonterm-1> <nonterm-1>) $2))
     ;; ...
-    ;; ($<nonterm-N> ($$<nonterm-N> <nonterm-N>) : $2)
+    ;; ($<nonterm-N> (($$<nonterm-N> <nonterm-N>) $2))
     ;; 
     (setq defs (cons (list wisent-start-nonterm
-                           (list wisent-starts-nonterm wisent-eoi-term)
-                           ': '$1)
+                           (list
+                            (list wisent-starts-nonterm wisent-eoi-term)
+                            '$1))
                      (cons (cons wisent-starts-nonterm ep-def) defs))
           wisent--terms (cons
                          wisent-eoi-term
                          (nreverse (cons wisent-error-term terms)))
           wisent--vars  (mapcar #'car defs)
+          wisent--rprec nil
           r-vars        (mapcar #'wisent-process-nonterminal defs)
+          wisent--rprec (apply #'vector
+                               (cons nil (nreverse wisent--rprec)))
           r-gram        (mapcar #'wisent-grammar-production r-vars)
           gram/acts     (apply #'nconc r-vars))
     ;; Build the LALR tables
