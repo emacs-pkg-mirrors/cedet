@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.3 2003/02/17 01:57:08 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.4 2003/03/13 01:59:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,7 +32,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-make-bovine-table
-  ;;DO NOT EDIT! Generated from make.by - 2003-02-13 23:41-0500
+  ;;DO NOT EDIT! Generated from make.by - 2003-03-12 20:57-0500
   `(
     (bovine-toplevel ;;Makefile
      (variable)
@@ -56,9 +56,9 @@
       opt-whitespace
       element-list
       ,(semantic-lambda
-	(list
-	 (nth 0 vals) 'variable nil
-	 (nth 4 vals) nil nil))
+	(semantic-token-new-variable
+	 (nth 0 vals) nil
+	 (nth 4 vals)))
       )
      ) ;; end variable
 
@@ -70,9 +70,9 @@
       element-list
       commands
       ,(semantic-lambda
-	(list
-	 (nth 0 vals) 'function nil
-	 (nth 4 vals) nil nil))
+	(semantic-token-new-function
+	 (nth 0 vals) nil
+	 (nth 4 vals)))
       )
      ) ;; end rule
 
@@ -177,8 +177,8 @@
       whitespace
       element-list
       ,(semantic-lambda
-	(list
-	 (nth 2 vals) 'include nil nil))
+	(semantic-token-new-include
+	 (car $3) nil))
       )
      ) ;; end include
 
@@ -306,7 +306,7 @@
   "Table for parsing Makefiles.")
 
 (defvar semantic-make-keyword-table
-  ;;DO NOT EDIT! Generated from make.by - 2003-02-13 23:41-0500
+  ;;DO NOT EDIT! Generated from make.by - 2003-03-12 20:57-0500
   (semantic-lex-make-keyword-table
    '(("if" . IF)
      ("ifdef" . IFDEF)
@@ -440,7 +440,7 @@
 ;;;###autoload
 (defun semantic-default-make-setup ()
   "Set up a Makefile buffer for parsing with semantic."
-  ;;DO NOT EDIT! Generated from make.by - 2003-02-13 23:41-0500
+  ;;DO NOT EDIT! Generated from make.by - 2003-03-12 20:57-0500
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-make-bovine-table
 	  semantic-debug-parser-source "make.by"
