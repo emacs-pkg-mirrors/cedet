@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.40 2004/01/27 15:08:46 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.41 2004/02/10 01:50:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -638,6 +638,7 @@ The state is indicated in the modeline with the following characters:
  `-'  ->  The cache is up to date.
  `!'  ->  The cache requires a full update.
  `~'  ->  The cache needs to be incrementally parsed.
+ `%'  ->  The cache is not currently parseable.
  `@'  ->  Auto-parse in progress (not set here.)
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
@@ -675,6 +676,7 @@ This marker is one of the following:
  `-'  ->  The cache is up to date.
  `!'  ->  The cache requires a full update.
  `~'  ->  The cache needs to be incrementally parsed.
+ `%'  ->  The cache is not currently parseable.
  `@'  ->  Auto-parse in progress (not set here.)
 Arguments IGNORE are ignored, and accepted so this can be used as a hook
 in many situations."
@@ -683,6 +685,8 @@ in many situations."
 	       "!")
 	      ((semantic-parse-tree-needs-update-p)
 	       "~")
+	      ((semantic-parse-tree-unparseable-p)
+	       "%")
 	      (t
                "-")))
   ;;(message "Setup mode line indicator to [%s]" semantic-show-parser-state-string)
