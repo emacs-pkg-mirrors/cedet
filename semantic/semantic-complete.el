@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.23 2004/02/02 02:59:38 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.24 2004/02/05 01:38:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1370,7 +1370,7 @@ if `force-show' is 0, this value is always ignored.")
 
 (defmethod semantic-displayor-show-request ((obj semantic-displayor-tooltip))
   "A request to show the current tags table."
-  (if (not (featurep 'tooltip))
+  (if (or (not (featurep 'tooltip)) (not tooltip-mode))
       ;; If we cannot use tooltips, then go to the normal mode with
       ;; a traditional completion buffer.
       (call-next-method)
