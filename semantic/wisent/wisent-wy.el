@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.18 2002/08/11 09:44:04 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.19 2002/08/11 20:31:57 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1196,6 +1196,13 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
   ;; Set up Semantic environment
   (wisent-wy-setup-semantic)
   (run-hooks 'wy-mode-hook))
+
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.wy$" . wisent-wy-mode))
+
+;;;###autoload
+(eval-after-load "speedbar"
+  '(speedbar-add-supported-extension ".wy"))
 
 ;;;;
 ;;;; Useful commands
