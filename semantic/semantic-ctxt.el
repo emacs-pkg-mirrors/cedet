@@ -1,10 +1,10 @@
 ;;; semantic-ctxt.el --- Context calculations for Semantic tools.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.36 2004/07/15 20:34:50 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.37 2005/04/01 02:27:28 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -103,11 +103,25 @@ block delimiters.")
   "Move POINT to the end of the current context via parenthisis.
 Return non-nil if there is no upper context."
   (if point (goto-char point))
-  (if (semantic-up-context)
-      t
-    ;; Go over the list, and back over the end parenthisis.
-    (forward-sexp 1)
-    (forward-char -1)
+  (let ((start (point)))
+    (if (semantic-up-context)
+	t
+      ;; Go over the list, and back over the end parenthisis.
+      (condition-case nil
+	  (progn
+	    (forward-sexp 1)
+	    (forward-char -1))
+	(error 
+	 ;; If an error occurs, get the current tag from the cache,
+	 ;; and just go to the end of that.  Make sure we end up at least
+	 ;; where start was so parse-region type calls work.
+	 (if (semantic-current-tag)
+	     (progn
+	       (goto-char (semantic-tag-end (semantic-current-tag)))
+	       (when (< (point) start)
+		 (goto-char start)))
+	   (goto-char start))
+	 t)))
     nil))
 
 (defun semantic-narrow-to-context ()
