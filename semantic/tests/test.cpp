@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.13 2003/01/28 09:49:46 ponced Exp $
+ * $Id: test.cpp,v 1.14 2003/01/29 17:55:54 ponced Exp $
  *
  */
 
@@ -209,7 +209,7 @@ class Action
 {
   // Problems!! operator() and operator[] can not be parsed with semantic
   // 1.4.2 but with latest c.bnf
-  virtual void operator()(int i, int j ) = 0;
+  virtual void operator()(int i, char *p ) = 0;
   virtual String& operator[]() = 0;
   virtual void operator!() = 0;
   virtual void operator->() = 0;
@@ -325,7 +325,7 @@ namespace
   long long ll = 0;
   long double d = 0.0;
   unsigned test;
-  unsigned long int uli = 0;
+  unsigned long int **uli = 0;
   signed si = 0;
   signed short ss = 0;  
   
@@ -365,7 +365,7 @@ Test::print()
 // outside method implementations with namespaces which should be grouped to
 // their complete (incl. namespace) types
 void*
-Parser::XXX::Foobar::wait(int i)
+Parser::XXX::Foobar::wait(int i, const char const * const * p)
 {
   return;
 }
@@ -474,6 +474,7 @@ char volatile a = 0; // a volatile char
 void foo(bar const &arg); // a reference to a const bar
 int foobar(bar const * const p); // a const pointer to a const bar
 int foobar(bar const volatile * const p); // a const pointer to a const bar
+int foobar3(char* p); // a const pointer to a const bar
 
 // Should not be parsed because this is invalid code
 int const & const r3 = i;
@@ -484,3 +485,12 @@ boolean const & r2 = i;
 
 // const * sequences can be very long in C++ ;-)
 char const * const * const * const * ppp;
+
+// complex function declarationen with named pointer-arguments
+const char** foobar1(volatile char const * const **p);
+const char** foobar11(volatile Test::Namespace::Char<char*> const * const **p);
+
+// complex function declarationen with unnamed pointer-arguments
+const char* foobar2(const char***);
+const char* foobar21(const Test::Namespace::Char<char>***);
+
