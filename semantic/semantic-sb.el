@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.29 2001/09/29 23:47:50 ponced Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.30 2001/10/28 00:55:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -159,12 +159,21 @@ Optional MODIFIERS is additional text needed for variables."
   (let ((tt (semantic-token-token token))
 	(type (semantic-token-type token)))
     (cond ((eq tt 'type)
-	   (let ((parts (semantic-token-type-parts token)))
+	   (let ((parts (semantic-token-type-parts token))
+		 (newparts nil))
 	     ;; Lets expect PARTS to be a list of either strings,
 	     ;; or variable tokens.
-	     (while parts
-	       (semantic-sb-maybe-token-to-button (car parts) indent)
-	       (setq parts (cdr parts)))))
+	     (when (semantic-token-p (car parts))
+	       ;; Bucketize into groups
+	       (setq newparts (semantic-bucketize parts))
+	       (when (> (length newparts) semantic-sb-autoexpand-length)
+		 ;; More than one bucket, insert inline
+		 (semantic-insert-bovine-list (1- indent) newparts)
+		 (setq parts nil))
+	       ;; Dump the strings in.
+	       (while parts
+		 (semantic-sb-maybe-token-to-button (car parts) indent)
+		 (setq parts (cdr parts))))))
 	  ((eq tt 'variable)
 	   (if type
 	       (let ((mods (semantic-token-variable-extra-spec token 'typemodifiers)))
