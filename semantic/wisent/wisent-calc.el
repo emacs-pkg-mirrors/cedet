@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.4 2002/06/29 18:09:52 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.5 2002/06/30 22:25:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 
 (defconst wisent-calc-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-06-11 10:47+0200
+    ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-06-30 23:25+0200
     (wisent-compile-grammar
      '((NUM)
        ((nonassoc 61)
@@ -98,7 +98,7 @@
 
 (defconst wisent-calc-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-06-11 10:47+0200
+   ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-06-30 23:25+0200
    (wisent-flex-make-token-table
     '(("number"
        (NUM)))
@@ -108,12 +108,17 @@
 
 (defun wisent-calc-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-06-11 10:47+0200
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-06-30 23:25+0200
   (progn
     (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
+          semantic-bovinate-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-calc-automaton
           semantic-flex-keywords-obarray nil
           wisent-flex-tokens-obarray wisent-calc-tokens)
+    ;; Collect unmatched syntax lexical tokens
+    (semantic-make-local-hook 'wisent-discarding-token-functions)
+    (add-hook 'wisent-discarding-token-functions
+              'wisent-collect-unmatched-syntax nil t)
     (setq semantic-number-expression
           (concat "\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
                   "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
