@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.102 2001/05/09 02:25:53 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.103 2001/05/12 13:57:44 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta1"
   "Current version of EIEIO.")
@@ -40,7 +40,10 @@
 ;;
 ;; See eieio.texi for complete documentation on using this package.
 
-(eval-when-compile (require 'cl))
+;; There is funny stuff going on with typep and deftype.  This
+;; is the only way I seem to be able to make this stuff load properly.
+(require 'cl)
+(load-library "cl-macs") ; No provide in this file.
 
 ;;; Code:
 (defun eieio-version ()
@@ -51,9 +54,6 @@
 (eval-and-compile
 ;; Abount the above.  EIEIO must process it's own code when it compiles
 ;; itself, thus, by eval-and-compiling outselves, we solve the problem.
-
-(if (not (fboundp 'typep))
-    (autoload 'typep "cl" "Determie if OBJ is of type TYPE." nil))
 
 ;; Compatibility
 (if (fboundp 'compiled-function-arglist)
@@ -366,13 +366,26 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     ;; Create a handy child test too
     (let ((csym (intern (concat (symbol-name cname) "-child-p"))))
       (fset csym
-	    (list 'lambda (list 'obj)
-		  (format
-		   "Test OBJ to see if it an object is a child of type %s"
-		   cname)
-		  (list 'and '(object-p obj)
-			(list 'obj-of-class-p 'obj cname)))))
+	    `(lambda (obj)
+	       ,(format
+		  "Test OBJ to see if it an object is a child of type %s"
+		  cname)
+	       (and (object-p obj)
+		    (obj-of-class-p obj ,cname))))
     
+      ;; When using typep, (typep OBJ 'myclass) returns t for objects which
+      ;; are subclasses of myclass.  For our predicates, however, it is
+      ;; important for EIEIO to be backwards compatible, where
+      ;; myobject-p, and myobject-child-p are different.
+      ;; "cl" uses this technique to specify symbols with specific typep
+      ;; test, so we can let typep have the CLOS documented behavior
+      ;; while keeping our above predicate clean.
+      (eval `(deftype ,cname ()
+	       '(satisfies
+		 ,(intern (concat (symbol-name cname) "-child-p")))))
+
+      )
+
     ;; before adding new fields, lets add all the methods and classes
     ;; in from the parent class
     (eieio-copy-parents-into-subclass newc superclasses)
