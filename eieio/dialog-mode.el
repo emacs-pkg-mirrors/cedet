@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.10 1996/11/01 05:37:24 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.11 1996/11/09 23:25:03 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -65,9 +65,10 @@
 
 (require 'widget-i)
 
+(eval-and-compile
 (defvar dialog-xemacs-p (string-match "XEmacs" emacs-version)
   "Are we running in Xemacs?")
-
+)
 ;;;
 ;;; Widget definitions using eieio
 ;;; 
@@ -225,19 +226,19 @@ dynamically determine which colors to use."
       (let ((newface (make-face sym)))
 	;; For each attribute, check if it might already be set by Xdefaults
 	(if (and nfg (not (funcall set-p (symbol-name sym) "Foreground")))
-	    (set-face-foreground sym nfg))
+	    (set-face-foreground newface nfg))
 	(if (and nbg (not (funcall set-p (symbol-name sym) "Background")))
-	    (set-face-background sym nbg))
+	    (set-face-background newface nbg))
 	
 	(if bold (condition-case nil
-		     (make-face-bold sym)
+		     (make-face-bold newface)
 		   (error (message "Cannot make face %s bold!"
 				       (symbol-name sym)))))
 	(if italic (condition-case nil
-		       (make-face-italic sym)
+		       (make-face-italic newface)
 		     (error (message "Cannot make face %s italic!"
-				     (symbol-name sym)))))
-	(set-face-underline-p sym underline)
+				     (symbol-name newface)))))
+	(set-face-underline-p newface underline)
 	))))
 
 (dialog-load-color 'widget-default-face nil nil nil nil)
@@ -283,6 +284,10 @@ on when done."
 	'(save-excursion (set-buffer dialog-with-writeable-buff)
 			 (toggle-read-only 1))))
 (put 'dialog-with-writeable 'lisp-indent-function 0)
+(add-hook 'edebug-setup-hook
+	  (lambda ()
+	    (def-edebug-spec dialog-with-writeable
+	      def-body)))
 
 (defun dialog-refresh () "Refresh all visible widgets in this buffer"
   (interactive)
@@ -364,20 +369,21 @@ registered with this area of text, otherwise run the default keybinding."
 
 (if (string-match "XEmacs" emacs-version)
 
-    (defun dialog-mouse-event-p (event)
-      "Return t if the event is a mouse related event"
-      nil
-      )
-
-  (defun dialog-mouse-event-p (event)
-    "Return t if the event is a mouse related event"
-    (if (and (listp event)
-	     (member (event-basic-type event)
-		     '(mouse-1 mouse-2 mouse-3)))
-	t
-      nil))
-
+(defun dialog-mouse-event-p (event)
+  "Return t if the event is a mouse related event"
+  ;; xemacs event is really a dialog-built list, with the real event
+  ;; as the second element
+  (and (listp event) (mouse-event-p (car (cdr event))))
   )
+
+(defun dialog-mouse-event-p (event)
+  "Return t if the event is a mouse related event"
+  (if (and (listp event)
+	   (member (event-basic-type event)
+		   '(mouse-1 mouse-2 mouse-3)))
+      t
+    nil))
+)
 
 (defun dialog-handle-mouse (event) "Reads last mouse event, and handle it"
   (interactive "e")
@@ -387,7 +393,19 @@ registered with this area of text, otherwise run the default keybinding."
   (dialog-with-writeable
     (let ((dispatch (or (get-text-property (point) 'widget-object)
 			widget-toplevel-shell)))
+      ;; This should make the byte complier optimize this expression
+      ;; right out of GNU versions
+      (if (eval-when-compile dialog-xemacs-p)
+	  ;; translate the event into a FSF event.  (Basically the event
+	  ;; key type, followed by the XEmacs event so we can use menu
+	  ;; things with it later.
+	  (setq event (list (if (button-press-event-p event)
+				'mouse-down-2 'mouse-2)
+			    event))
+	  )
       (input dispatch event))))
+
+
 
 ;;; Widget creation routines and convenience functions
 (defmacro dialog-build-group (widget &rest forms)
@@ -396,6 +414,10 @@ parent for new widgets created within FORMS"
   (list 'let (list (list 'dialog-current-parent widget))
 	(cons 'progn forms)))
 (put 'dialog-build-group 'lisp-indent-function 1)
+(add-hook 'edebug-setup-hook
+	  (lambda ()
+	    (def-edebug-spec dialog-build-group
+	      def-body)))
 
 (defun create-widget (name class &rest resources)
   "Creates a dialog widget with name NAME of class CLASS.  The parent
@@ -482,8 +504,7 @@ is nil, then return nil instead."
   (if (or (not (object-p thing-or-obj))
 	  (not (child-of-class-p (object-class thing-or-obj) data-object)))
       (if fix
-	  (let ((newo (data-object dval))
-		(nl nil))
+	  (let ((newo (data-object dval)))
 	    ;; Add this to widget
 	    (add-reference newo w)
 	    (if thing-or-obj
@@ -493,8 +514,17 @@ is nil, then return nil instead."
 	nil)
     thing-or-obj))
 
+(if (eval-when-compile dialog-xemacs-p)
+
 (defun widget-lock-over (w)
-  "Called by a widget which wishes to grab cursor until the 'drag or
+  "Called by a widget which wishes to grab cursor until the
+mouse button is released event is recieved."
+  ;; For now, XEmacs will just immediatly run the button
+  nil
+)
+
+(defun widget-lock-over (w)
+  "Called by a widget which wishes to grab cursor until the
 'click event is recieved."
   (let ((event nil))
     (track-mouse
@@ -506,7 +536,7 @@ is nil, then return nil instead."
 	  ;; (mouse-set-point event)
 	  (motion-input w event)))
       (if event (mouse-set-point event)))))
-
+)
 ;;
 ;; Special menu function designed for lists of various things.
 ;;
@@ -578,7 +608,8 @@ keystrokes, etc."
 				  (point)))
 	    (delete-region (point) (save-excursion (end-of-line) (point)))
 	  (delete-char (length string)))
-	(if (fboundp 'put-text-property)
+	;; This will compile out the if statement
+	(if (eval-when-compile (fboundp 'put-text-property))
 	    (progn
 	      (if face (put-text-property pnt end 'face face))
 	      (if focus-face (put-text-property pnt end 'mouse-face focus-face))
