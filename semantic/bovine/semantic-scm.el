@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.5 2003/03/13 04:09:49 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.6 2003/03/15 19:30:29 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-scheme-bovine-table
-  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-12 23:06-0500
+  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-13 20:18-0500
   `(
     (bovine-toplevel ;;scheme
      (semantic-list
@@ -62,7 +62,7 @@
        symbol
        expression
        ,(semantic-lambda
-	 (semantic-token-new-variable
+	 (semantic-tag-new-variable
 	  (nth 1 vals) nil
 	  (nth 2 vals)))
        )
@@ -71,7 +71,7 @@
        opt-doc
        sequence
        ,(semantic-lambda
-	 (semantic-token-new-function
+	 (semantic-tag-new-function
 	  (car
 	   (nth 1 vals)) nil
 	  (cdr
@@ -80,7 +80,7 @@
      (DEFINE-MODULE
        name-args
        ,(semantic-lambda
-	 (semantic-token-new-package
+	 (semantic-tag-new-package
 	  (nth
 	   (length
 	    (nth 1 vals))
@@ -89,7 +89,7 @@
      (LOAD
       string
       ,(semantic-lambda
-	(semantic-token-new-include
+	(semantic-tag-new-include
 	 (file-name-nondirectory
 	  (read
 	   (nth 1 vals)))
@@ -98,7 +98,7 @@
       )
      (symbol
       ,(semantic-lambda
-	(semantic-token
+	(semantic-tag
 	 (nth 0 vals)
 	 'code))
       )
@@ -155,7 +155,7 @@
   "Top level bovination table for scheme.")
 
 (defvar semantic-scheme-keyword-table
-  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-12 23:06-0500
+  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-13 20:18-0500
   (semantic-lex-make-keyword-table
    '(("define" . DEFINE)
      ("define-module" . DEFINE-MODULE)
@@ -219,7 +219,7 @@ syntax as specified by the syntax table."
 ;;;###autoload
 (defun semantic-default-scheme-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
-  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-12 23:06-0500
+  ;;DO NOT EDIT! Generated from scheme.by - 2003-03-13 20:18-0500
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-scheme-bovine-table
 	  semantic-debug-parser-source "scheme.by"

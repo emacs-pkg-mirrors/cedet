@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.12 2003/03/11 01:15:46 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.13 2003/03/15 19:29:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-03-10 20:01-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-03-13 20:18-0500
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -135,7 +135,7 @@
        opt-define-arglist
        macro-def
        ,(semantic-lambda
-	 (semantic-token-new-variable
+	 (semantic-tag-new-variable
 	  (nth 1 vals) nil
 	  (nth 3 vals)
 	  'const t))
@@ -143,7 +143,7 @@
      (INCLUDE
       system-include
       ,(semantic-lambda
-	(semantic-token-new-include
+	(semantic-tag-new-include
 	 (substring
 	  (nth 1 vals)
 	  1
@@ -154,7 +154,7 @@
      (INCLUDE
       string
       ,(semantic-lambda
-	(semantic-token-new-include
+	(semantic-tag-new-include
 	 (read
 	  (nth 1 vals)) nil))
       )
@@ -177,7 +177,7 @@
        opt-define-arglist
        macro-def
        ,(semantic-lambda
-	 (semantic-token-new-variable
+	 (semantic-tag-new-variable
 	  (nth 2 vals) nil
 	  (nth 3 vals)
 	  'const t))
@@ -354,7 +354,7 @@
      (symbol
       opt-assign
       ,(semantic-lambda
-	(semantic-token-new-variable
+	(semantic-tag-new-variable
 	 (nth 0 vals)
 	 "int"
 	 (car
@@ -403,7 +403,7 @@
       opt-class-parents
       semantic-list
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (car
 	  (nth 1 vals))
 	 (car
@@ -432,7 +432,7 @@
       opt-template-specifier
       opt-class-parents
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (car
 	  (nth 1 vals))
 	 (car
@@ -445,7 +445,7 @@
       opt-name
       unionparts
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (car
 	  (nth 1 vals))
 	 (nth 0 vals)
@@ -455,7 +455,7 @@
       opt-name
       enumparts
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (car
 	  (nth 1 vals))
 	 (nth 0 vals)
@@ -467,7 +467,7 @@
       cv-declmods
       typedef-symbol-list
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (nth 4 vals)
 	 (nth 0 vals) nil
 	 (nth 2 vals)))
@@ -519,7 +519,7 @@
       symbol
       namespaceparts
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (nth 1 vals)
 	 (nth 0 vals)
 	 (nth 2 vals) nil))
@@ -527,7 +527,7 @@
      (NAMESPACE
       namespaceparts
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 "unnamed"
 	 (nth 0 vals)
 	 (nth 1 vals) nil))
@@ -664,21 +664,21 @@
      (CLASS
       symbol
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (nth 1 vals)
 	 "class" nil nil))
       )
      (STRUCT
       symbol
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (nth 1 vals)
 	 "struct" nil nil))
       )
      (TYPENAME
       symbol
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (nth 1 vals)
 	 "class" nil nil))
       )
@@ -689,7 +689,7 @@
       opt-ref
       variablearg-opt-name
       ,(semantic-lambda
-	(semantic-token-new-type
+	(semantic-tag-new-type
 	 (car
 	  (nth 1 vals)) nil nil
 	 'const
@@ -1204,7 +1204,7 @@
       opt-ref
       variablearg-opt-name
       ,(semantic-lambda
-	(semantic-token-new-variable
+	(semantic-tag-new-variable
 	 (list
 	  (nth 4 vals))
 	 (nth 1 vals) nil
@@ -1872,7 +1872,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   def)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-03-10 20:01-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-03-13 20:18-0500
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -2128,7 +2128,7 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-03-10 20:01-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-03-13 20:18-0500
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
 	  semantic-debug-parser-source "c.by"
