@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.140 2002/05/13 04:54:56 emacsman Exp $
+;; X-RCS: $Id: semantic.el,v 1.141 2002/05/31 18:42:25 ponced Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -1672,8 +1672,10 @@ PROPERTY set."
 
 ;;; Lexical Analysis
 ;;
-(defvar semantic-flex-tokens 
-  '((charquote)
+(defvar semantic-flex-tokens
+  '(
+    (bol)
+    (charquote)
     (close-paren)
     (comment)
     (newline)
@@ -1681,13 +1683,19 @@ PROPERTY set."
     (punctuation)
     (semantic-list)
     (string)
-    (symbol))
+    (symbol)
+    (whitespace)
+    )
   "An alist of of semantic token types.
-As of December 2001 (semantic 1.4beta13), this variable is not used in any
-code.  The only use is to refer to the doc-string from elsewhere.
+As of December 2001 (semantic 1.4beta13), this variable is not used in
+any code.  The only use is to refer to the doc-string from elsewhere.
 
 The key to this alist is the symbol representing token type that
 \\[semantic-flex] returns. These are
+
+  - bol:           Empty string matching a beginning of line.
+                   This token is produced only if the user set
+                   `semantic-flex-enable-bol' to non-nil.
 
   - charquote:     String sequences that match `\\s\\+' regexp.
 
@@ -1698,7 +1706,7 @@ The key to this alist is the symbol representing token type that
                    produced by default.  They are produced only if the
                    user set `semantic-ignore-comments' to `nil'. 
 
-  - newline        Characters matching `\\s-*\\(\n\\)' regexp.
+  - newline        Characters matching `\\s-*\\(\n\\|\\s>\\)' regexp.
                    This token is produced only if the user set
                    `semantic-flex-enable-newlines' to non-nil.
 
@@ -1708,7 +1716,8 @@ The key to this alist is the symbol representing token type that
                    the `depth' argument to \\[semantic-flex] is
                    greater than 0. 
 
-  - punctuation:   Characters matching `{\\(\\s.\\|\\s$\\|\\s'\\)' regexp.
+  - punctuation:   Characters matching `{\\(\\s.\\|\\s$\\|\\s'\\)'
+                   regexp.
 
   - semantic-list: String delimited by matching parenthesis, braces,
                    etc. that the lexer skipped over, because the
@@ -1720,7 +1729,14 @@ The key to this alist is the symbol representing token type that
                    regexp. The lexer relies on @code{forward-sexp} to
                    find the matching end.
 
-  - symbol:        String sequences that match `\\(\\sw\\|\\s_\\)+' regexp.
+  - symbol:        String sequences that match `\\(\\sw\\|\\s_\\)+'
+                   regexp.
+
+  - whitespace:    Characters that match `\\s-+' regexp. 
+                   This token is produced only if the user set
+                   `semantic-flex-enable-whitespace' to non-nil.
+                   If `semantic-ignore-comments' is non-nil too
+                   comments are considered as whitespaces.
 ")
 
 (defvar semantic-flex-unterminated-syntax-end-function
@@ -1766,6 +1782,12 @@ Only set this on a per mode basis, not globally.")
 Useful for languages where the syntax is whitespace dependent.
 Only set this on a per mode basis, not globally.")
 (make-variable-buffer-local 'semantic-flex-enable-whitespace)
+
+(defvar semantic-flex-enable-bol nil
+  "When flexing, report beginning of lines as syntactic elements.
+Useful for languages like python which are indentation sensitive.
+Only set this on a per mode basis, not globally.")
+(make-variable-buffer-local 'semantic-flex-enable-bol)
 
 (defvar semantic-number-expression
   ;; This expression was written by David Ponce for Java, and copied
@@ -1823,30 +1845,30 @@ FLOATING_POINT_LITERAL:
   "Using the syntax table, do something roughly equivalent to flex.
 Semantically check between START and END.  Optional argument DEPTH
 indicates at what level to scan over entire lists.
-The return value is a token stream.  Each element is a list, such
-of the form (symbol start-expression .  end-expression) where
-SYMBOL denotes the token type.
+The return value is a token stream.  Each element is a list, such of
+the form (symbol start-expression . end-expression) where SYMBOL
+denotes the token type.
 See `semantic-flex-tokens' variable for details on token types.
-END does not mark the end of the text scanned, only the end of the beginning
-of text scanned.  Thus, if a string extends past END, the end of the
-return token will be larger than END.  To truly restrict
+END does not mark the end of the text scanned, only the end of the
+beginning of text scanned.  Thus, if a string extends past END, the
+end of the return token will be larger than END.  To truly restrict
 scanning, use `narrow-to-region'.
-The last argument, LENGTH specifies that `semantic-flex' should only return
-LENGTH tokens."
-  ;(message "Flexing muscles...")
+The last argument, LENGTH specifies that `semantic-flex' should only
+return LENGTH tokens."
+  ;;(message "Flexing muscles...")
   (if (not semantic-flex-keywords-obarray)
       (setq semantic-flex-keywords-obarray [ nil ]))
   (let ((ts nil)
-	(pos (point))
-	(ep nil)
-	(curdepth 0)
-	(cs (if comment-start-skip
-		(concat "\\(\\s<\\|" comment-start-skip "\\)")
-	      (concat "\\(\\s<\\)")))
-	(newsyntax (copy-syntax-table (syntax-table)))
-	(mods semantic-flex-syntax-modifications)
-	;; Use the default depth if it is not specified.
-	(depth (or depth semantic-flex-depth)))
+        (pos (point))
+        (ep nil)
+        (curdepth 0)
+        (cs (if comment-start-skip
+                (concat "\\(\\s<\\|" comment-start-skip "\\)")
+              (concat "\\(\\s<\\)")))
+        (newsyntax (copy-syntax-table (syntax-table)))
+        (mods semantic-flex-syntax-modifications)
+        ;; Use the default depth if it is not specified.
+        (depth (or depth semantic-flex-depth)))
     ;; Update the syntax table
     (while mods
       (modify-syntax-entry (car (car mods)) (car (cdr (car mods))) newsyntax)
@@ -1854,140 +1876,170 @@ LENGTH tokens."
     (with-syntax-table newsyntax
       (goto-char start)
       (while (and (< (point) end) (or (not length) (<= (length ts) length)))
-	(cond (;; catch newlines when needed
-	       (and semantic-flex-enable-newlines
-		    (looking-at "\\s-*\\(\n\\)"))
-	       (setq ep (match-end 1)
-		     ts (cons (cons 'newline
-				    (cons (match-beginning 1) ep))
-			      ts)))
-	      ;; special extensions, sometimes includes some whitespace.
-	      ((and semantic-flex-extensions
-		    (let ((fe semantic-flex-extensions)
-			  (r nil))
-		      (while fe
-			(if (looking-at (car (car fe)))
-			    (setq ts (cons (funcall (cdr (car fe))) ts)
-				  r t
-				  fe nil
-				  ep (point)))
-			(setq fe (cdr fe)))
-		      (if (and r (not (car ts))) (setq ts (cdr ts)))
-		      r)))
-	      ;; comment end is also EOL for some languages.
-	      ((looking-at "\\(\\s-\\|\\s>\\)+")
-	       (if semantic-flex-enable-whitespace
-		   (setq ts (cons (cons 'whitespace
-					(cons (match-beginning 0)
-					      (match-end 0)))
-				  ts))))
-	      ;; numbers
-	      ((and semantic-number-expression
-		    (looking-at semantic-number-expression))
-	       (setq ts (cons (cons 'number
-				    (cons (match-beginning 0)
-					  (match-end 0)))
-			      ts)))
-	      ;; symbols
-	      ((looking-at "\\(\\sw\\|\\s_\\)+")
-	       (setq ts (cons (cons
-			       ;; Get info on if this is a keyword or not
-			       (or (semantic-flex-keyword-p (match-string 0))
-                                   'symbol)
-			       (cons (match-beginning 0) (match-end 0)))
-			      ts)))
-	      ;; Character quoting characters (ie, \n as newline)
-	      ((looking-at "\\s\\+")
-	       (setq ts (cons (cons 'charquote
-				    (cons (match-beginning 0) (match-end 0)))
-			      ts)))
-	      ;; Open parens, or semantic-lists.
-	      ((looking-at "\\s(")
-	       (if (or (not depth) (< curdepth depth))
-		   (progn
-		     (setq curdepth (1+ curdepth))
-		     (setq ts (cons (cons 'open-paren
-					  (cons (match-beginning 0) (match-end 0)))
-				    ts)))
-		 (setq ts (cons
-			   (cons 'semantic-list
-				 (cons (match-beginning 0)
-				       (save-excursion
-					 (condition-case nil
-					     (forward-list 1)
-					   ;; This case makes flex robust
-					   ;; to broken lists.
-					   (error
-					    (goto-char
-					     (funcall
-					      semantic-flex-unterminated-syntax-end-function
-					      'semantic-list
-					      start end))))
-					 (setq ep (point)))))
-			   ts))))
-	      ;; Close parens
-	      ((looking-at "\\s)")
-	       (setq ts (cons (cons 'close-paren
-				    (cons (match-beginning 0) (match-end 0)))
-			      ts))
-	       (setq curdepth (1- curdepth)))
-	      ;; String initiators
-	      ((looking-at "\\s\"")
-	       ;; Zing to the end of this string.
-	       (setq ts (cons (cons 'string
-				    (cons (match-beginning 0)
-					  (save-excursion
-                                            (condition-case nil
-                                                (forward-sexp 1)
-                                              ;; This case makes flex
-                                              ;; robust to broken strings.
-                                              (error
-					       (goto-char
-						(funcall
-						 semantic-flex-unterminated-syntax-end-function
-						 'string
-						 start end))))
-					    (setq ep (point)))))
-			      ts)))
-	      ((looking-at cs)
-	       (if semantic-ignore-comments
-		   ;; If the language doesn't deal with comments,
-		   ;; ignore them here.
-		   (let ((comment-start-point (point)))
-		     (forward-comment 1)
-		     (if (eq (point) comment-start-point)
-			 ;; In this case our start-skip string failed
-			 ;; to work properly.  Lets try and move over
-			 ;; whatever white space we matched to begin
-			 ;; with.
-			 (skip-syntax-forward "-.'"
-					      (save-excursion
-						(end-of-line)
-						(point)))
-		       (forward-comment 1))
-		     (if (eq (point) comment-start-point)
-			 (error "Strange comment syntax prevents lexical analysis"))
-		     (setq ep (point)))
-		 ;; Language wants comments, link them together.
-		 (if (eq (car (car ts)) 'comment)
-		     (setcdr (cdr (car ts)) (save-excursion
-					      (forward-comment 1)
-					      (setq ep (point))))
-		   (setq ts (cons (cons 'comment
-					(cons (match-beginning 0)
-					      (save-excursion
-						(forward-comment 1)
-						(setq ep (point)))))
-				  ts)))))
-	      ((looking-at "\\(\\s.\\|\\s$\\|\\s'\\)")
-	       (setq ts (cons (cons 'punctuation
-				    (cons (match-beginning 0) (match-end 0)))
-			      ts)))
-	      (t (error "What is that?")))
-	(goto-char (or ep (match-end 0)))
-	(setq ep nil)))
+        (cond
+         ;; catch beginning of lines when needed.
+         ;; Must be done before catching any other tokens!
+         ((and semantic-flex-enable-bol
+               (bolp)
+               ;; Just insert a (bol N . N) token in the token stream,
+               ;; without moving the point.  N is the point at the
+               ;; beginning of line.
+               (setq ts (cons (cons 'bol (cons (point) (point))) ts))
+               nil)) ;; CONTINUE
+         ;; special extensions, includes whitespace, nl, etc.
+         ((and semantic-flex-extensions
+               (let ((fe semantic-flex-extensions)
+                     (r nil))
+                 (while fe
+                   (if (looking-at (car (car fe)))
+                       (setq ts (cons (funcall (cdr (car fe))) ts)
+                             r t
+                             fe nil
+                             ep (point)))
+                   (setq fe (cdr fe)))
+                 (if (and r (not (car ts))) (setq ts (cdr ts)))
+                 r)))
+         ;; catch newlines when needed
+         ((looking-at "\\s-*\\(\n\\|\\s>\\)")
+          (if semantic-flex-enable-newlines
+              (setq ep (match-end 1)
+                    ts (cons (cons 'newline
+                                   (cons (match-beginning 1) ep))
+                             ts))))
+         ;; catch whitespace when needed
+         ((looking-at "\\s-+")
+          (if semantic-flex-enable-whitespace
+              ;; Language wants whitespaces, link them together.
+              (if (eq (car (car ts)) 'whitespace)
+                  (setcdr (cdr (car ts)) (match-end 0))
+                (setq ts (cons (cons 'whitespace
+                                     (cons (match-beginning 0)
+                                           (match-end 0)))
+                               ts)))))
+         ;; numbers
+         ((and semantic-number-expression
+               (looking-at semantic-number-expression))
+          (setq ts (cons (cons 'number
+                               (cons (match-beginning 0)
+                                     (match-end 0)))
+                         ts)))
+         ;; symbols
+         ((looking-at "\\(\\sw\\|\\s_\\)+")
+          (setq ts (cons (cons
+                          ;; Get info on if this is a keyword or not
+                          (or (semantic-flex-keyword-p (match-string 0))
+                              'symbol)
+                          (cons (match-beginning 0) (match-end 0)))
+                         ts)))
+         ;; Character quoting characters (ie, \n as newline)
+         ((looking-at "\\s\\+")
+          (setq ts (cons (cons 'charquote
+                               (cons (match-beginning 0) (match-end 0)))
+                         ts)))
+         ;; Open parens, or semantic-lists.
+         ((looking-at "\\s(")
+          (if (or (not depth) (< curdepth depth))
+              (progn
+                (setq curdepth (1+ curdepth))
+                (setq ts (cons (cons 'open-paren
+                                     (cons (match-beginning 0) (match-end 0)))
+                               ts)))
+            (setq ts (cons
+                      (cons 'semantic-list
+                            (cons (match-beginning 0)
+                                  (save-excursion
+                                    (condition-case nil
+                                        (forward-list 1)
+                                      ;; This case makes flex robust
+                                      ;; to broken lists.
+                                      (error
+                                       (goto-char
+                                        (funcall
+                                         semantic-flex-unterminated-syntax-end-function
+                                         'semantic-list
+                                         start end))))
+                                    (setq ep (point)))))
+                      ts))))
+         ;; Close parens
+         ((looking-at "\\s)")
+          (setq ts (cons (cons 'close-paren
+                               (cons (match-beginning 0) (match-end 0)))
+                         ts))
+          (setq curdepth (1- curdepth)))
+         ;; String initiators
+         ((looking-at "\\s\"")
+          ;; Zing to the end of this string.
+          (setq ts (cons (cons 'string
+                               (cons (match-beginning 0)
+                                     (save-excursion
+                                       (condition-case nil
+                                           (forward-sexp 1)
+                                         ;; This case makes flex
+                                         ;; robust to broken strings.
+                                         (error
+                                          (goto-char
+                                           (funcall
+                                            semantic-flex-unterminated-syntax-end-function
+                                            'string
+                                            start end))))
+                                       (setq ep (point)))))
+                         ts)))
+         ;; comments
+         ((looking-at cs)
+          (if (and semantic-ignore-comments
+                   (not semantic-flex-enable-whitespace))
+              ;; If the language doesn't deal with comments nor
+              ;; whitespaces, ignore them here.
+              (let ((comment-start-point (point)))
+                (forward-comment 1)
+                (if (eq (point) comment-start-point)
+                    ;; In this case our start-skip string failed
+                    ;; to work properly.  Lets try and move over
+                    ;; whatever white space we matched to begin
+                    ;; with.
+                    (skip-syntax-forward "-.'"
+                                         (save-excursion
+                                           (end-of-line)
+                                           (point)))
+                  ;;(forward-comment 1)
+                  ;; Generate newline token if enabled
+                  (if (and semantic-flex-enable-newlines
+                           (bolp))
+                      (backward-char 1)))
+                (if (eq (point) comment-start-point)
+                    (error "Strange comment syntax prevents lexical analysis"))
+                (setq ep (point)))
+            (let ((tk (if semantic-ignore-comments 'whitespace 'comment)))
+              (save-excursion
+                (forward-comment 1)
+                ;; Generate newline token if enabled
+                (if (and semantic-flex-enable-newlines
+                         (bolp))
+                    (backward-char 1))
+                (setq ep (point)))
+              ;; Language wants comments or want them as whitespaces,
+              ;; link them together.
+              (if (eq (car (car ts)) tk)
+                  (setcdr (cdr (car ts)) ep)
+                (setq ts (cons (cons tk (cons (match-beginning 0) ep))
+                               ts))))))
+         ;; punctuation
+         ((looking-at "\\(\\s.\\|\\s$\\|\\s'\\)")
+          (setq ts (cons (cons 'punctuation
+                               (cons (match-beginning 0) (match-end 0)))
+                         ts)))
+         ;; unknown token
+         (t
+          (error "What is that?")))
+        (goto-char (or ep (match-end 0)))
+        (setq ep nil)))
+    ;; maybe catch the last beginning of line when needed
+    (and semantic-flex-enable-bol
+         (= (point) end)
+         (bolp)
+         (setq ts (cons (cons 'bol (cons (point) (point))) ts)))
     (goto-char pos)
-    ;(message "Flexing muscles...done")
+    ;;(message "Flexing muscles...done")
     (nreverse ts)))
 
 (defsubst semantic-flex-buffer (&optional depth)
