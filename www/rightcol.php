@@ -20,8 +20,9 @@
 <tr><td >&nbsp<img src=page.gif>&nbsp<a href=http://sourceforge.net/project/showfiles.php?group_id=17886><b>Releases</b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a href=http://sourceforge.net/mail/?group_id=17886><b>Mailing Lists</b></a>&nbsp</td></tr>
 <tr><td >&nbsp<img src=page.gif>&nbsp<a href=http://sourceforge.net/projects/rte><b>RPMs</b></a>&nbsp</td></tr>
-<tr><td >&nbsp<img src=page.gif>&nbsp<a href=ftpgate.shtml><font size=-1>Files</font></a>&nbsp</td></tr>
+<tr><td >&nbsp</td></tr>
 
+<tr><td bgcolor=lightgreen>&lt;&lt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=ftpgate.shtml>Files</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;</td></tr>
 </table>
 </td></tr></table>
 </tt>
