@@ -7,7 +7,7 @@
    (ede-proj-target-makefile-info "Documentation"
     :name "Documentation"
     :path ""
-    :source '("semantic.texi" "user-guide.texi" "lang-support-guide.texi" "semantic.texi" "app-dev-guide.texi" "glossary.texi" "semanticdb.texi" "overview.texi" "installation.texi" "fdl.texi" "internals.texi" "tags.texi")
+    :source '("semantic.texi" "user-guide.texi" "lang-support-guide.texi" "semantic.texi" "app-dev-guide.texi" "glossary.texi" "semanticdb.texi" "overview.texi" "installation.texi" "fdl.texi" "internals.texi" "tags.texi" "bovine.texi" "wisent.texi")
     :mainmenu "semantic.texi"
     )
    )
