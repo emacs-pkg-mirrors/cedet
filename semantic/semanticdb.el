@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.72 2005/01/20 13:27:28 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.73 2005/01/29 04:25:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -190,7 +190,7 @@ If one isn't found, create one."
   (semanticdb-create-database semanticdb-new-database-class filename))
 
 (defun semanticdb-directory-loaded-p (path)
-  "Return the project belonging to PATH if it was already loaded."
+  "Return the project belonging to Path if it was already loaded."
   (eieio-instance-tracker-find path 'reference-directory 'semanticdb-database-list))
 
 (defmethod semanticdb-file-table ((obj semanticdb-project-database) filename)
@@ -581,6 +581,22 @@ Update the environment of Semantic enabled buffers accordingly."
       (setq tables (cdr tables)))
     ))
 
+(defun semanticdb-dump-all-table-summary ()
+  "Dump a list of all databases in Emacs memory."
+  (interactive)
+  (let ((db semanticdb-database-list))
+    (with-output-to-temp-buffer "*SEMANTICDB*"
+      (while db
+	(princ (object-name (car db)))
+	(princ ": ")
+	(if (slot-boundp (car db) 'reference-directory)
+	    (princ (oref (car db) reference-directory))
+	  (princ "System DB"))
+	(princ "\n")
+	(setq db (cdr db))))
+    ))
+
+
 ;;;###autoload
 (defun semanticdb-file-table-object (file)
   "Return a semanticdb table belonging to FILE.
@@ -590,7 +606,11 @@ table object for it."
   (setq file (expand-file-name file))
   (when (file-exists-p file)
     (let* ((default-directory (file-name-directory file))
-	   (db (semanticdb-get-database default-directory))
+	   (db (or
+		;; This line will pick up system databases.
+		(semanticdb-directory-loaded-p default-directory)
+		;; this line will make a new one if needed.
+		(semanticdb-get-database default-directory)))
 	   )
       (or (semanticdb-file-table db file)
 	  ;; We must load the file.
