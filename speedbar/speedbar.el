@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.7a
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.81 1998/03/10 11:57:50 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.82 1998/03/10 14:34:47 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -323,9 +323,15 @@
 ;;         specific depth of files.
 ;;       Merge the speedbspec file into this file, and simplify the
 ;;         method of setting up the special modes.
-;;       Added scheme .scm and .pm support.
+;;       Added scheme .scm, .pm, and .cxx, hxx support.
 ;;       Added `speedbar-hide-button-brackets-flag' to hide the brackets
 ;;         around the + or - for emacsspeak.
+;;       Added override function for `switch-to-buffer' in speedbar.
+;;       Added `speedbar-directory-unshown-regexp' which will hide VC
+;;         directories from the main list.
+;;       Added `speedbar-[forward|backward]-list' and bound them to
+;;         C-M-[f|p].  This lets you quickly navigate over the directory
+;;         list to the file list, and vice-versa.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -672,6 +678,13 @@ before speedbar has been loaded."
 	       speedbar-ignored-path-regexp
 	       (speedbar-extension-list-to-regex val))))
 
+(defcustom speedbar-directory-unshown-regexp "^\\(RCS\\|SCCS\\)\\'"
+  "*Regular expression matching directories not to show in speedbar.
+They should include commonly existing directories which are not
+useful, such as version control."
+  :group 'speedbar
+  :type 'string)
+
 (defvar speedbar-file-unshown-regexp
   (let ((nstr "") (noext completion-ignored-extensions))
     (while noext
@@ -685,7 +698,7 @@ It is generated from the variable `completion-ignored-extensions'")
 ;; this is dangerous to customize, because the defaults will probably
 ;; change in the future.
 (defcustom speedbar-supported-extension-expressions
-  (append '(".[CcHh]\\(\\+\\+\\|pp\\|c\\|h\\)?" ".tex\\(i\\(nfo\\)?\\)?"
+  (append '(".[CcHh]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".l" ".lsp" ".p" ".java")
 	  (if speedbar-use-imenu-flag
 	      '(".f90" ".ada" ".pl" ".tcl" ".m" ".scm" ".pm"
@@ -800,6 +813,8 @@ to toggle this value.")
   (define-key speedbar-key-map "p" 'speedbar-prev)
   (define-key speedbar-key-map "\M-n" 'speedbar-restricted-next)
   (define-key speedbar-key-map "\M-p" 'speedbar-restricted-prev)
+  (define-key speedbar-key-map "\C-\M-n" 'speedbar-forward-list)
+  (define-key speedbar-key-map "\C-\M-p" 'speedbar-backward-list)
   (define-key speedbar-key-map " " 'speedbar-scroll-up)
   (define-key speedbar-key-map [delete] 'speedbar-scroll-down)
 
@@ -810,6 +825,11 @@ to toggle this value.")
   (define-key speedbar-key-map "C" 'speedbar-item-copy)
   (define-key speedbar-key-map "D" 'speedbar-item-delete)
   (define-key speedbar-key-map "R" 'speedbar-item-rename)
+
+  ;; Overrides
+  (substitute-key-definition 'switch-to-buffer 
+			     'speedbar-switch-buffer-attached-frame
+			     speedbar-key-map global-map)
 
   (if speedbar-xemacsp
       (progn
@@ -1034,6 +1054,18 @@ selected.  If the speedbar frame is active, then select the attached frame."
   (speedbar-frame-mode -1)
   (select-frame speedbar-attached-frame)
   (other-frame 0))
+
+(defun speedbar-switch-buffer-attached-frame (&optional buffer)
+  "Switch to BUFFER in speedbar's attached frame, and raise that frame.
+This overrides the default behavior of `switch-to-buffer' which is
+broken because of the dedicated speedbar frame."
+  (interactive)
+  ;; Assume we are in the speedbar frame.
+  (speedbar-get-focus)
+  ;; Now switch buffers
+  (if buffer
+      (switch-to-buffer buffer)
+    (call-interactively 'switch-to-buffer nil nil)))
 
 (defmacro speedbar-frame-width ()
   "Return the width of the speedbar frame in characters.
@@ -1316,7 +1348,6 @@ of intermediate nodes are skipped."
 	      ((= subdepth depth)
 	       (setq lastmatch (point)
 		     arg (+ arg crement))))))
-    (speedbar-item-info)
     (speedbar-position-cursor-on-line)))
 
 (defun speedbar-restricted-next (arg)
@@ -1324,14 +1355,46 @@ of intermediate nodes are skipped."
 This means that movement is restricted to a subnode, and that siblings
 of intermediate nodes are skipped."
   (interactive "p")
-  (speedbar-restricted-move (or arg 1)))
+  (speedbar-restricted-move (or arg 1))
+  (speedbar-item-info))
+
 
 (defun speedbar-restricted-prev (arg)
   "Move to the previous ARGth line in a speedbar buffer at the same depth.
 This means that movement is restricted to a subnode, and that siblings
 of intermediate nodes are skipped."
   (interactive "p")
-  (speedbar-restricted-move (if arg (- arg) -1)))
+  (speedbar-restricted-move (if arg (- arg) -1))
+  (speedbar-item-info))
+
+(defun speedbar-navigate-list (arg)
+  "Move across ARG groups of similarly typed items in speedbar.
+Stop on the first line of the next type of item, or on the last or first item
+if we reach a buffer boundary."
+  (interactive "p")
+  (beginning-of-line)
+  (if (looking-at "[0-9]+: *[[<{][-+?][]>}] ")
+      (let ((str (regexp-quote (match-string 0))))
+	(while (looking-at str)
+	  (speedbar-restricted-move arg)
+	  (beginning-of-line))))
+  (speedbar-position-cursor-on-line))
+
+(defun speedbar-forward-list ()
+  "Move forward over the current list.
+A LIST in speedbar is a group of similarly typed items, such as directories,
+files, or the directory button."
+  (interactive)
+  (speedbar-navigate-list 1)
+  (speedbar-item-info))
+
+(defun speedbar-backward-list ()
+  "Move backward over the current list.
+A LIST in speedbar is a group of similarly typed items, such as directories,
+files, or the directory button."
+  (interactive)
+  (speedbar-navigate-list -1)
+  (speedbar-item-info))
 
 (defun speedbar-scroll-up (&optional arg)
   "Page down one screen-full of the speedbar, or ARG lines."
@@ -1718,7 +1781,9 @@ the file-system"
 	    (dirs nil)
 	    (files nil))
 	(while dir
-	  (if (not (string-match speedbar-file-unshown-regexp (car dir)))
+	  (if (not
+	       (or (string-match speedbar-file-unshown-regexp (car dir))
+		   (string-match speedbar-directory-unshown-regexp (car dir))))
 	      (if (file-directory-p (car dir))
 		  (setq dirs (cons (car dir) dirs))
 		(setq files (cons (car dir) files))))
