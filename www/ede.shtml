@@ -1,14 +1,14 @@
 <TITLE>EDE Homepage</TITLE>
 
-<table width=100% bgcolor=#000099>
-<tr><td><h2><font color=yellow>EDE:</font></h2></td></tr>
-<tr><td><font color=yellow>"Emacs Development Environment"<br>
-<em>File organizer and Makefile constructor.</em>
-</font></td></tr>
-</table>
-<!--#include file="rightcol.php"-->
+<!--#include file="pagestart.php"-->
 
-<p>EDE is an <B>Emacs lisp</B> program which implements an environment
+<table width=100% bgcolor="lightgreen">
+<tr><td><h2><font color=black>EDE:</font></h2></td>
+<td><font color=black>
+"Emacs Development Environment: A project management system"</font></td></tr>
+</table>
+
+<p>EDE is an <B>Emacs Lisp</B> program which implements an environment
 similar to those found in IDEs (Integrated Development Environment).
 While Emacs is the premier development environment, and has lots of
 support for this activity, EDE brings many divergent commands used for
@@ -27,7 +27,7 @@ functionality.</p>
 
 <P>Two project file types are included.  <em>project-am</em> is the
 original project mode which implements these ideas directly on
-pre-existing automake files.  (It cannot created them).
+pre-existing automake files.  (It cannot create them).
 <em>ede-proj</em> is a different implementation which maintains state
 in a file called <tt>Project.ede</tt>.  This mode autogenerates your
 Makefile whenever you compile so there is no need to learn make.
@@ -37,7 +37,9 @@ Unfortunatly this is only really useful for small projects.</p>
 which will be the default for large projects where the Makefile
 generation is insufficient.</p>
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Read the docs:</h2>
+</td></tr></table>
 
 <P>You can read the 
    <a href=info/ede.html>html documentation</a>

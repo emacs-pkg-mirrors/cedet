@@ -1,4 +1,6 @@
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Downloading CEDET</h2>
+</td></tr></table>
 
 <p>CEDET tools including EIEIO, Semantic, Speedbar, EDE, and COGRE are
 now distributed together in a single file.  This simplifies
