@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.11 2000/08/20 15:28:27 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.12 2000/08/20 16:09:36 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -87,6 +87,7 @@ If CLASS is actually an object, then also display current values of that obect."
     (princ "Class ")
     (prin1 class)
     (terpri)
+    ;; Inheritence tree information
     (let ((pl (class-parents class)))
       (when pl
 	(princ " Inherits from ")
@@ -104,11 +105,17 @@ If CLASS is actually an object, then also display current values of that obect."
 	  (setq ch (cdr ch)))
 	(terpri)))
     (terpri)
-    (princ "Documentation:")
-    (terpri)
-    (princ (documentation-property class 'variable-documentation))
-    (terpri)
-    (terpri)
+    ;; System documentation
+    (let ((doc (documentation-property class 'variable-documentation)))
+      (when doc
+	(princ "Documentation:")
+	(terpri)
+	(princ doc)
+	(terpri)
+	(terpri)))
+    ;; Describe all the slots in this class
+    (eieio-describe-class-slots class)
+    ;; Describe all the methods specific to this class.
     (let ((methods (eieio-all-generic-functions class))
 	  (doc nil))
       (if (not methods) nil
@@ -143,31 +150,69 @@ If CLASS is actually an object, then also display current values of that obect."
 	    (terpri))
 	  (setq methods (cdr methods)))))))
 
-(defun eieio-help-mode-augmentation-maybee ()
-  "For buffers thrown into help mode, augment for eieio."
-  ;; Scan created buttons so far if we are in help mode.
-  (when (eq major-mode 'help-mode)
-    ;; View mode's read-only status of existing *Help* buffer is lost
-    ;; by with-output-to-temp-buffer.
-    (toggle-read-only -1)
-    (goto-char (point-min))
-    (save-excursion
-      (let ((pos t))
-	(while pos
-	  (if (get-text-property (point) 'help-xref) ; move off reference
-	      (goto-char
-	       (or (next-single-property-change (point) 'help-xref)
-		   (point))))
-	  (setq pos (next-single-property-change (point) 'help-xref))
-	  (when pos
-	    (goto-char pos)
-	    (let* ((help-data (get-text-property (point) 'help-xref))
-		   (method (car help-data))
-		   (args (cdr help-data)))
-	      (if (and (symbolp (car args))
-		       (class-p (car args)))
-		  (setcar help-data 'describe-class))
-	      )))))))
+(defun eieio-describe-class-slots (class)
+  "Describe the slots in CLASS.
+Outputs to the standard output."
+  (let* ((cv (class-v class))
+	 (docs   (aref cv class-public-doc))
+	 (names  (aref cv class-public-a))
+	 (deflt  (aref cv class-public-d))
+	 (types  (aref cv class-public-type))
+	 (i      0)
+	 (prot   (aref cv class-protection))
+	 )
+    (princ "Instance Allocated Slots:")
+    (terpri)
+    (terpri)
+    (while names
+      (if (car prot) (princ "Private "))
+      (princ "Slot: ")
+      (prin1 (car names))
+      (when (not (eq (aref types i) t))
+	(princ "    type = ")
+	(prin1 (aref types i)))
+      (unless (eq (car deflt) eieio-unbound)
+	(princ "    default = ")
+	(prin1 (car deflt)))
+      (when (car docs)
+	(terpri)
+	(princ "  ")
+	(princ (car docs))
+	(terpri))
+      (terpri)
+      (setq names (cdr names)
+	    docs (cdr docs)
+	    deflt (cdr deflt)
+	    prot (cdr prot)
+	    i (1+ i)))
+    (setq docs  (aref cv class-class-allocation-doc)
+	  names (aref cv class-class-allocation-a)
+	  types (aref cv class-class-allocation-type)
+	  i     0
+	  prot  (aref cv class-class-allocation-protection))
+    (when names
+	(terpri)
+	(princ "Class Allocated Slots:"))
+	(terpri)
+	(terpri)
+    (while names
+      (when (car prot)
+	(princ "Private "))
+      (princ "Slot: ")
+      (prin1 (car names))
+      (unless (eq (aref types i) t)
+	(princ "    type = ")
+	(prin1 (aref types i)))
+      (when (car docs)
+	(terpri)
+	(princ "  ")
+	(princ (car docs))
+	(terpri))
+      (terpri)
+      (setq names (cdr names)
+	    docs (cdr docs)
+	    prot (cdr prot)
+	    i (1+ i)))))
 
 (defun eieio-build-class-alist (&optional class buildlist)
   "Return an alist of all currently active classes for completion purposes.
@@ -226,6 +271,35 @@ function has no documentation, then return nil."
 	(list (if (fboundp before) (documentation before) nil)
 	      (if (fboundp primary) (documentation primary) nil)
 	      (if (fboundp after) (documentation after)))))))
+
+;;; Help system augmentation
+;;
+
+(defun eieio-help-mode-augmentation-maybee ()
+  "For buffers thrown into help mode, augment for eieio."
+  ;; Scan created buttons so far if we are in help mode.
+  (when (eq major-mode 'help-mode)
+    ;; View mode's read-only status of existing *Help* buffer is lost
+    ;; by with-output-to-temp-buffer.
+    (toggle-read-only -1)
+    (goto-char (point-min))
+    (save-excursion
+      (let ((pos t))
+	(while pos
+	  (if (get-text-property (point) 'help-xref) ; move off reference
+	      (goto-char
+	       (or (next-single-property-change (point) 'help-xref)
+		   (point))))
+	  (setq pos (next-single-property-change (point) 'help-xref))
+	  (when pos
+	    (goto-char pos)
+	    (let* ((help-data (get-text-property (point) 'help-xref))
+		   (method (car help-data))
+		   (args (cdr help-data)))
+	      (if (and (symbolp (car args))
+		       (class-p (car args)))
+		  (setcar help-data 'describe-class))
+	      )))))))
 
 ;;; How about showing the hierarchy in speedbar?  Cool!
 ;;
