@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.40 2004/02/29 15:15:44 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.40.2.1 2004/04/11 00:38:57 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -449,10 +449,8 @@ Argument THIS is the target that should insert stuff."
 		     (setq sv (car sv))))
 		  (t (setq sv (car sv)))))
 	(if (stringp sv)
-	    (progn
-	      (insert " $(" sv ")")
-	      (ede-proj-makefile-insert-dist-filepatterns (car tmp))
-	      ))
+	    (insert " $(" sv ")"))
+	(ede-proj-makefile-insert-dist-filepatterns (car tmp))
 	(setq tmp (cdr tmp))))
     (insert " $(ede_FILES) $(DISTDIR)\n")
 
