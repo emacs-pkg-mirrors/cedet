@@ -20,6 +20,64 @@ available in Semantic.
 </p>
 
 <table width=100% bgcolor="lightgreen"><tr><td>
+<h3>Basic Setup</h3>
+</td></tr></table>
+
+<p>Here is the quick-and-dirty setup for <a href="semantic.shtml">Semantic</a>.
+</p>
+
+<b>Semantic Version 1.4x</b><br>
+<pre>
+   (setq semantic-load-turn-useful-things-on t)
+   (require 'semantic-load)
+</pre>
+
+<b>Cedet Version 1.0 beta1 and later</b><br>
+<pre>
+   (setq semantic-load-turn-useful-things-on t)
+   ;; Replace the path below with the install location.
+   (load-file "~/cedet-VERSION/common/cedet.el")
+</pre>
+
+<p>These two lines set up two important aspects of smart completion.
+
+<ol>
+<li> semanticdb is enabled.  This allows symbol lookup between files.
+<li> summary mode enabled.  This shows prototypes in the mode line.
+</ol>
+
+<p>Summary mode (or eldoc) is a good solution for Functional
+languages, and local definitions.  Not always for a complete
+structured or object oriented program.
+
+<p>To be more complete, you need to specify a project directory for
+semanticdb.
+
+<pre>
+   (setq semanticdb-project-roots
+         (list "/path/to/project/one"
+               "/path/to/project/two"))
+</pre>
+
+<p>This tells semanticdb which databases to references when looking up
+symbols from a given file.  Only the root of a given project need be
+specified.  
+<a href="ede.shtml">EDE</a> will set these up for you automatically.
+
+<p>The next step is to force Emacs to parse all your files into
+databases.  Unfortunately, this is currently best done by just
+visiting all the files you care about, and letting semantic parse
+them.  Once you have visited all such files, execute:
+
+<pre>
+    M-x semanticdb-save-all-db
+</pre>
+
+<p>which will write out the databases for use in future sessions.
+The database will be saved when you exit too, but I like saving my DB
+occasionally so information isn't lost in a crash or other problem.
+
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h3>In version 2.0 beta2 or later</h3>
 </td></tr></table>
 
@@ -31,7 +89,7 @@ available in Semantic.
 </a>
 <br>
 <font size=-2>
-Intellisense
+Smart Completion
 </font>
 </center>
 </td>
@@ -42,14 +100,19 @@ smart completion to be accessed.  Please read the Info manual on
 these topics.
 </p>
 
-<p><b>semantic-complete-analyze-inline</b><br>
+<pre>
+   M-x semantic-complete-analyze-inline
+</pre>
 
 This is a new command that does inline completion (underlining the
 target symbol) and allows TAB to be used for completion purposes.
 It uses the semantic analyzer to provide the list of completions.
 </p>
 
-<p><b>semantic-idle-completions-mode</b><br>
+<pre>
+   M-x semantic-idle-completions-mode
+</pre>
+
 This is a minor mode which  starts
 <tt>semantic-complete-analyze-inline</tt>
 during idle time.  This has the additional effect of showing a list
@@ -67,61 +130,13 @@ directions form version 1.4x in setting up the database for semantic
 <h3>In Version 1.4x</h3>
 </td></tr></table>
 
-<p>Semantic can be set up to have Intellisense like behavior for C and
-C++.  It also works for Java, but too much of Java is in core
-libraries Semantic does not (yet) have access to to be a complete
-solution.
-
-<p>Here is the quick-and-dirty setup for semantic:
+<p>In Semantic 1.4 there were a limited number of ways to access the
+smart completion system.  One interesting way was through the
+<a href="speedbar.shtml">Speedbar</a> gui.
+</p>
 
 <pre>
-(setq semantic-load-turn-useful-things-on t)
-(require 'semantic-load)
-</pre>
-
-<p>These two lines set up two important aspects of intellisense like
-behavior.
-
-<ol>
-<li> semanticdb is enabled.  This allows symbol lookup between files.
-<li> eldoc is enabled.  This shows prototypes in the mode line.
-</ol>
-
-<p>Unfortunately, eldoc is a good solution for Functional languages, and
-local definitions.  Not always for a complete structured or object
-oriented program.
-
-<p>To be more complete, you need to specify a project directory for
-semanticdb.
-
-<pre>
-(setq semanticdb-project-roots
-      (list "/path/to/project/one"
-            "/path/to/project/two"))
-</pre>
-
-<p>This tells semanticdb which databases to references when looking up
-symbols from a given file.  Only the root of a given project need be
-specified.  
-<a href="ede.shtml">EDE</a> will set these up for you automatically.
-
-<p>The next step is to force Emacs to parse all your files into
-  databases.  Unfortunately, this is currently best done by just
-  visiting all the files you care about, and letting semantic parse
-  them.  Once you have visited all such files, execute:
-
-<pre>
-M-x semanticdb-save-all-db
-</pre>
-
-<p>which will write out the databases for use in future sessions.
-The database will be saved when you exit too, but I like saving my DB
-occasionally so information isn't lost in a crash or other problem.
-
-<p>Lastly, call
-
-<pre>
-M-x semantic-speedbar-analysis
+   M-x semantic-speedbar-analysis
 </pre>
 
 <p>which will now be able to analyze the cursor location, and provide
@@ -144,7 +159,9 @@ The commands available (for binding to a key) are:
 </ul>
 
 
+<table width=100% bgcolor="lightgreen"><tr><td>
 <h2>Semantic Analyzer FAQ</h2>
+</td></tr></table>
 
 Quastions are for C/C++:
 
