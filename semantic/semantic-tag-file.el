@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.7 2004/04/28 15:39:36 ponced Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.8 2004/04/29 10:14:01 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -135,24 +135,22 @@ Depends on `semantic-dependency-include-path' for searching.  Always searches
 ;; prototype file a given source file would be associated with.
 ;; This can be used by prototype manager programs.
 ;;;###autoload
-(defun semantic-prototype-file (buffer)
+(define-overload semantic-prototype-file (buffer)
   "Return a file in which prototypes belonging to BUFFER should be placed.
 Default behavior (if not overridden) looks for a token specifying the
 prototype file, or the existence of an EDE variable indicating which
 file prototypes belong in."
-  (let ((s (semantic-fetch-overload 'prototype-file)))
-    (if s
-	(funcall s buffer)
-      ;; Else, perform some default behaviors
-      (if (and (fboundp 'ede-header-file) ede-minor-mode)
-	  (save-excursion
-	    (set-buffer buffer)
-	    (ede-header-file))
-	;; No EDE options for a quick answer.  Search.
-	(save-excursion
-	  (set-buffer buffer)
-	  (if (re-search-forward "::Header:: \\([a-zA-Z0-9.]+\\)" nil t)
-	      (match-string 1)))))))
+  (:override
+   ;; Perform some default behaviors
+   (if (and (fboundp 'ede-header-file) ede-minor-mode)
+       (save-excursion
+         (set-buffer buffer)
+         (ede-header-file))
+     ;; No EDE options for a quick answer.  Search.
+     (save-excursion
+       (set-buffer buffer)
+       (if (re-search-forward "::Header:: \\([a-zA-Z0-9.]+\\)" nil t)
+           (match-string 1))))))
 
 (semantic-alias-obsolete 'semantic-find-nonterminal
                          'semantic-go-to-tag)
