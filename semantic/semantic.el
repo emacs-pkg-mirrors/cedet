@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.69 2000/12/09 16:01:35 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.70 2000/12/10 05:07:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1291,6 +1291,8 @@ Optional argument CLEAR will clear the cache before bovinating." t)
   "Bovinate the current buffer and run in debug mode." t)
 (autoload 'senator-minor-mode "senator"
   "Minor mode for the SEmantic NAvigaTOR." t)
+(autoload 'global-semanticdb-minor-mode "semanticdb"
+  "Mode saving token lists between sessions." t)
 
 (provide 'semantic)
 
