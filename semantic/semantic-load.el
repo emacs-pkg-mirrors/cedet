@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.35 2003/05/29 00:58:09 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.36 2003/07/18 05:26:53 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -82,6 +82,14 @@ other criteria.")
 
   (when (boundp 'header-line-format)
     (global-semantic-stickyfunc-mode 1))
+
+  (when (and (fboundp 'display-graphic-p)
+	     (display-graphic-p)
+	     ;; The above is also asking for Emacs 21... I think.
+	     )
+    (global-semantic-show-tag-boundaries-mode 1))
+
+  (global-semantic-highlight-by-attribute-mode 1)
 
   ;; This loads any created system databases which get linked into
   ;; any searches performed.
