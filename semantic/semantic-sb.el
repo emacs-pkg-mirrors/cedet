@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.51 2005/01/12 21:27:57 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.52 2005/01/12 21:31:34 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -27,8 +27,11 @@
 ;;
 ;; Convert a tag table into speedbar buttons.
 
-;;; History:
+;;; TODO:
 ;; 
+;; Use semanticdb to find which semanticdb-table is being used for each
+;; file/tag.  Replace `semantic-sb-with-tag-buffer' to instead call
+;; children with the new `with-mode-local' instead.
 
 (require 'semantic)
 (require 'semantic-util)
