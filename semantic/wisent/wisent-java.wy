@@ -1,12 +1,12 @@
 ;;; wisent-java.wy -- LALR grammar for Java
 ;;
-;; Copyright (C) 2002 David Ponce
+;; Copyright (C) 2002, 2004 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.16 2004/03/10 19:35:41 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.17 2004/03/15 13:31:03 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -24,14 +24,25 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
+;;
+;;; Commentary:
+;;
+;; This grammar is designed to fully parse correct Java 1.4 syntax,
+;; plus some error rules to work as safely as possible in an
+;; interactive environment to extract tags needed by Semantic.
+;;
+;; TODO:
+;;  1. Finalize production of tags from declarations inside blocks.
+;;  2. Implement Java 1.5 language specifications.
+;;
 
 ;;%package wisent-java-wy
 
-%languagemode  java-mode
+%languagemode java-mode
 
 ;; The default start symbol
 %start goal
-;; Alternate entry points
+;; Alternate entry points needed for re-parse
 %start package_declaration
 %start import_declaration
 %start class_declaration
@@ -42,6 +53,9 @@
 %start constructor_declaration
 %start interface_declaration
 %start abstract_method_declaration
+;; Re-parse inside blocks (not yet finished)
+%start block_statements
+%start local_variable_declaration
 
 ;; -----------------------------
 ;; Block & Parenthesis terminals
@@ -129,6 +143,10 @@
 %keyword ABSTRACT     "abstract"
 %put     ABSTRACT summary
 "Class|Method declaration modifier: abstract {class|<type>} <name> ..."
+
+%keyword ASSERT       "assert"
+%put     ASSERT summary
+"Assertion statement: assert <expr> [,<expr> ...];"
 
 %keyword BOOLEAN      "boolean"
 %put     BOOLEAN summary
@@ -321,7 +339,7 @@
 ;; - `seq' (mandatory) is the tag sequence number used to check if tags
 ;;   are correctly ordered in a javadoc comment block.
 ;;
-;; - `usage' (mandatory) is the list of token categories for which this
+;; - `usage' (mandatory) is the list of tag classes for which this
 ;;   documentation tag is allowed.
 ;;
 ;; - `opt' (optional) if non-nil indicates this is an optional tag.
@@ -367,8 +385,8 @@
 
 goal
   : compilation_unit
- ;; Generate a special token 'goal that will be post-processed by
- ;; `wisent-java-expand-nonterminal' to extract the actual tags in $1.
+ ;; Generate a special tag 'goal that will be post-processed by
+ ;; `wisent-java-expand-tag' to extract the actual tags in $1.
     (TAG "goal" 'goal :tree $1)
   ;
 
@@ -545,7 +563,7 @@ class_declaration
 
 superc
   : EXTENDS class_type
-    (identity $2)
+    (progn $2)
   ;
 
 superc_opt
@@ -555,7 +573,7 @@ superc_opt
 
 interfaces
   : IMPLEMENTS interface_type_list
-    (identity $2)
+    (progn $2)
   ;
 
 interfaces_opt
@@ -573,7 +591,7 @@ interface_type_list
 
 class_body
   : LBRACE class_body_declarations_opt RBRACE
-    (identity $2)
+    (progn $2)
   ;
 
 class_body_declarations_opt
@@ -591,10 +609,8 @@ class_body_declarations
 
 class_body_declaration
   : block
-    ()
   | constructor_declaration
   | static_initializer
-    ()
   | class_member_declaration
   | error
  ;; On error skip token and loop to `class_body_declarations'
@@ -611,8 +627,8 @@ class_member_declaration
 field_declarations_opt
   : ;;EMPTY
   | field_declarations
- ;; Generate a special token 'goal that will be post-processed by
- ;; `wisent-java-expand-nonterminal' to extract the actual tags in $1.
+ ;; Generate a special tag 'goal that will be post-processed by
+ ;; `wisent-java-expand-tag' to extract the actual tags in $1.
     (TAG "goal" 'goal :tree (apply 'nconc (nreverse $1)))
   ;
 
@@ -665,11 +681,17 @@ variable_initializer
 method_declaration
   : modifiers_opt VOID method_declarator throwsc_opt method_body
     (EXPANDTAG
-     (FUNCTION-TAG (car $3) $2 (cdr $3) :typemodifiers $1 :throws $4)
+     (FUNCTION-TAG (car $3) $2 (cdr $3)
+                   :typemodifiers $1
+                   :throws $4
+                   :body $5)
      )
   | modifiers_opt type method_declarator throwsc_opt method_body
     (EXPANDTAG
-     (FUNCTION-TAG (car $3) $2 (cdr $3) :typemodifiers $1 :throws $4)
+     (FUNCTION-TAG (car $3) $2 (cdr $3)
+                   :typemodifiers $1
+                   :throws $4
+                   :body $5)
      )
   ;
 
@@ -725,17 +747,24 @@ class_type_list
 
 method_body
   : SEMICOLON
+    ()
   | block
   ;
 
 static_initializer
   : STATIC block
+    (when $2
+      (semantic-tag-put-attribute $2 :static-flag t)
+      $2)
   ;
 
 constructor_declaration
   : modifiers_opt constructor_declarator throwsc_opt constructor_body
     (EXPANDTAG
-     (FUNCTION-TAG (car $2) nil (cdr $2) :typemodifiers $1 :throws $3)
+     (FUNCTION-TAG (car $2) nil (cdr $2)
+                   :typemodifiers $1
+                   :throws $3
+                   :body $4)
      )
   ;
 
@@ -745,17 +774,17 @@ constructor_declarator
   ;
 
 constructor_body
-  : LBRACE RBRACE
- ;; For now dont parse statements inside constructor or method bodies.
- ;; This is not necessary to get Semantic tags and improves
- ;; performance!  Any token encountered inside {} raises a parse error
- ;; and the current block is skept.
- ;; | LBRACE block_statements RBRACE
- ;; | LBRACE explicit_constructor_invocation RBRACE
- ;; | LBRACE explicit_constructor_invocation block_statements RBRACE
+  : LBRACE block_statements RBRACE
+    (progn $2)
+  | LBRACE explicit_constructor_invocation RBRACE
+    ()
+  | LBRACE explicit_constructor_invocation block_statements RBRACE
+    (progn $3)
   | LBRACE error
  ;; Skip the block if it contains error
-    (wisent-skip-block)
+    (progn
+      (wisent-skip-block)
+      nil)
   ;
 
 explicit_constructor_invocation
@@ -787,7 +816,7 @@ extends_interfaces
 
 interface_body
   : LBRACE interface_member_declarations_opt RBRACE
-    (identity $2)
+    (progn $2)
   ;
 
 interface_member_declarations_opt
@@ -829,14 +858,9 @@ abstract_method_declaration
   ;
 
 array_initializer
-  : LBRACE RBRACE
- ;; For now dont parse statements inside array initializers.  This is
- ;; not necessary to get Semantic tags and improves performance!  Any
- ;; token encountered inside {} raises a parse error and the current
- ;; block is skept.
- ;; | LBRACE COMMA RBRACE
- ;; | LBRACE variable_initializers RBRACE
- ;; | LBRACE variable_initializers COMMA RBRACE
+  : LBRACE COMMA RBRACE
+  | LBRACE variable_initializers RBRACE
+  | LBRACE variable_initializers COMMA RBRACE
   | LBRACE error
  ;; Skip the block if it contains error
     (wisent-skip-block)
@@ -848,252 +872,266 @@ variable_initializers
   ;
 
 block
-  : LBRACE RBRACE ;; Added to skip the block in place of:
- ;; : LBRACE block_statements_opt RBRACE
- ;; For now dont parse statements inside blocks.  This is not
- ;; necessary to get Semantic tags and improves performance!  Any
- ;; token encountered inside {} raises a parse error and the current
- ;; block is skept.
+  : LBRACE block_statements_opt RBRACE
+    (progn $2)
+  | LBRACE error
+    (progn
+      ;; Skip the block if it contains error
+      (wisent-skip-block)
+      nil)
+  ;
+
+block_statements_opt
+  : ;;EMPTY
+  | block_statements
+  ;
+
+block_statements
+  : block_statements_lifo
+    (EXPANDTAG
+     (TAG "block" 'block :value (apply 'nconc (nreverse $1)))
+     )
+  ;
+
+block_statements_lifo
+  : block_statements_lifo block_statement
+    (cons $2 $1)
+  | block_statement
+    (list $1)
+  ;
+
+block_statement
+  : interface_declaration
+  | class_declaration
+  | statement
+    ()                          ;; TODO
+  | local_variable_declaration_statement
+  ;
+
+local_variable_declaration_statement
+  : local_variable_declaration SEMICOLON
+  ;
+
+local_variable_declaration
+  : FINAL type variable_declarators
+    (EXPANDTAG
+     (VARIABLE-TAG $3 $2 nil :typemodifiers $1)
+     )
+  | type variable_declarators
+    (EXPANDTAG
+     (VARIABLE-TAG $2 $1 nil)
+     )
+  ;
+
+statement
+  : for_statement
+  | while_statement
+  | if_then_else_statement
+  | if_then_statement
+  | labeled_statement
+  | statement_without_trailing_substatement
+  ;
+
+statement_no_short_if
+  : for_statement_no_short_if
+  | while_statement_no_short_if
+  | if_then_else_statement_no_short_if
+  | labeled_statement_no_short_if
+  | statement_without_trailing_substatement
+  ;
+
+statement_without_trailing_substatement
+  : assert_statement
+  | try_statement
+  | throw_statement
+  | synchronized_statement
+  | return_statement
+  | continue_statement
+  | break_statement
+  | do_statement
+  | switch_statement
+  | expression_statement
+  | empty_statement
+  | block
+  ;
+
+empty_statement
+  : SEMICOLON
+  ;
+
+labeled_statement
+  : IDENTIFIER COLON statement
+  ;
+
+labeled_statement_no_short_if
+  : IDENTIFIER COLON statement_no_short_if
+  ;
+
+expression_statement
+  : statement_expression SEMICOLON
+  ;
+
+statement_expression
+  : class_instance_creation_expression
+  | method_invocation
+  | postdecrement_expression
+  | postincrement_expression
+  | predecrement_expression
+  | preincrement_expression
+  | assignment
+  ;
+
+if_then_statement
+  : IF LPAREN expression RPAREN statement
+  ;
+
+if_then_else_statement
+  : IF LPAREN expression RPAREN statement_no_short_if
+    ELSE statement
+  ;
+
+if_then_else_statement_no_short_if
+  : IF LPAREN expression RPAREN statement_no_short_if
+    ELSE statement_no_short_if
+  ;
+
+switch_statement
+  : SWITCH LPAREN expression RPAREN switch_block
+  ;
+
+switch_block
+  : LBRACE RBRACE
+  | LBRACE switch_labels RBRACE
+  | LBRACE switch_block_statement_groups RBRACE
+  | LBRACE switch_block_statement_groups switch_labels RBRACE
   | LBRACE error
  ;; Skip the block if it contains error
     (wisent-skip-block)
   ;
 
-;;; ============================
-;;; Currently unused productions
-;;; ============================
+switch_block_statement_groups
+  : switch_block_statement_groups switch_block_statement_group
+  | switch_block_statement_group
+  ;
 
-;;; block_statements_opt
-;;;   : ;;EMPTY
-;;;   | block_statements
-;;;   ;
+switch_block_statement_group
+  : switch_labels block_statements
+  ;
 
-;;; block_statements
-;;;   : block_statements block_statement
-;;;   | block_statement
-;;;   ;
+switch_labels
+  : switch_labels switch_label
+  | switch_label
+  ;
 
-;;; block_statement
-;;;   : interface_declaration
-;;;   | class_declaration
-;;;   | statement
-;;;   | local_variable_declaration_statement
-;;;   ;
+switch_label
+  : DEFAULT COLON
+  | CASE constant_expression COLON
+  ;
 
-;;; local_variable_declaration_statement
-;;;   : local_variable_declaration SEMICOLON
-;;;   ;
+while_statement
+  : WHILE LPAREN expression RPAREN statement
+  ;
 
-;;; local_variable_declaration
-;;;   : FINAL type variable_declarators
-;;;   | type variable_declarators
-;;;   ;
+while_statement_no_short_if
+  : WHILE LPAREN expression RPAREN statement_no_short_if
+  ;
 
-;;; statement
-;;;   : for_statement
-;;;   | while_statement
-;;;   | if_then_else_statement
-;;;   | if_then_statement
-;;;   | labeled_statement
-;;;   | statement_without_trailing_substatement
-;;;   ;
+do_statement
+  : DO statement WHILE LPAREN expression RPAREN SEMICOLON
+  ;
 
-;;; statement_no_short_if
-;;;   : for_statement_no_short_if
-;;;   | while_statement_no_short_if
-;;;   | if_then_else_statement_no_short_if
-;;;   | labeled_statement_no_short_if
-;;;   | statement_without_trailing_substatement
-;;;   ;
-  
-;;; statement_without_trailing_substatement
-;;;   : try_statement
-;;;   | throw_statement
-;;;   | synchronized_statement
-;;;   | return_statement
-;;;   | continue_statement
-;;;   | break_statement
-;;;   | do_statement
-;;;   | switch_statement
-;;;   | expression_statement
-;;;   | empty_statement
-;;;   | block
-;;;   ;
+for_statement
+  : FOR LPAREN for_init_opt SEMICOLON expression_opt
+    SEMICOLON for_update_opt RPAREN statement
+  ;
 
-;;; empty_statement
-;;;   : SEMICOLON
-;;;   ;
+for_statement_no_short_if
+  : FOR LPAREN for_init_opt SEMICOLON expression_opt
+    SEMICOLON for_update_opt RPAREN statement_no_short_if
+  ;
 
-;;; labeled_statement
-;;;   : IDENTIFIER COLON statement
-;;;   ;
-  
-;;; labeled_statement_no_short_if
-;;;   : IDENTIFIER COLON statement_no_short_if
-;;;   ;
-  
-;;; expression_statement
-;;;   : statement_expression SEMICOLON
-;;;   ;
-  
-;;; statement_expression
-;;;   : class_instance_creation_expression
-;;;   | method_invocation
-;;;   | postdecrement_expression
-;;;   | postincrement_expression
-;;;   | predecrement_expression
-;;;   | preincrement_expression
-;;;   | assignment
-;;;   ;
-  
-;;; if_then_statement
-;;;   : IF LPAREN expression RPAREN statement
-;;;   ;
-  
-;;; if_then_else_statement
-;;;   : IF LPAREN expression RPAREN statement_no_short_if
-;;;     ELSE statement
-;;;   ;
-  
-;;; if_then_else_statement_no_short_if
-;;;   : IF LPAREN expression RPAREN statement_no_short_if
-;;;     ELSE statement_no_short_if
-;;;   ;
-  
-;;; switch_statement
-;;;   : SWITCH LPAREN expression RPAREN switch_block
-;;;   ;
-  
-;;; switch_block
-;;;   : LBRACE RBRACE
-;;;   | LBRACE switch_labels RBRACE
-;;;   | LBRACE switch_block_statement_groups RBRACE
-;;;   | LBRACE switch_block_statement_groups switch_labels RBRACE
-;;;   | LBRACE error
-;;;   ;; Skip the block if it contains error
-;;;     (wisent-skip-block)
-;;;   ;
-  
-;;; switch_block_statement_groups
-;;;   : switch_block_statement_groups switch_block_statement_group
-;;;   | switch_block_statement_group
-;;;   ;
-  
-;;; switch_block_statement_group
-;;;   : switch_labels block_statements
-;;;   ;
-  
-;;; switch_labels
-;;;   : switch_labels switch_label
-;;;   | switch_label
-;;;   ;
-  
-;;; switch_label
-;;;   : DEFAULT COLON
-;;;   | CASE constant_expression COLON
-;;;   ;
-  
-;;; while_statement
-;;;   : WHILE LPAREN expression RPAREN statement
-;;;   ;
-  
-;;; while_statement_no_short_if
-;;;   : WHILE LPAREN expression RPAREN statement_no_short_if
-;;;   ;
-  
-;;; do_statement
-;;;   : DO statement WHILE LPAREN expression RPAREN SEMICOLON
-;;;   ;
+for_init_opt
+  : ;;EMPTY
+  | for_init
+  ;
 
-;;; for_statement
-;;;   : FOR LPAREN for_init_opt SEMICOLON expression_opt
-;;;     SEMICOLON for_update_opt RPAREN statement
-;;;   ;
-  
-;;; for_statement_no_short_if
-;;;   : FOR LPAREN for_init_opt SEMICOLON expression_opt
-;;;     SEMICOLON for_update_opt RPAREN statement_no_short_if
-;;;   ;
+for_init
+  : local_variable_declaration
+  | statement_expression_list
+    ()
+  ;
 
-;;; for_init_opt
-;;;   : ;;EMPTY
-;;;   | for_init
-;;;   ;
-  
-;;; for_init
-;;;   : local_variable_declaration
-;;;   | statement_expression_list
-;;;   ;
-  
-;;; for_update_opt
-;;;   : ;;EMPTY
-;;;   | for_update
-;;;   ;
-  
-;;; for_update
-;;;   : statement_expression_list
-;;;   ;
-  
-;;; statement_expression_list
-;;;   : statement_expression_list COMMA statement_expression
-;;;   | statement_expression
-;;;   ;
-  
-;;; identifier_opt
-;;;   : ;;EMPTY
-;;;   | IDENTIFIER
-;;;   ;
-  
-;;; break_statement
-;;;   : BREAK identifier_opt SEMICOLON
-;;;   ;
-  
-;;; continue_statement
-;;;   : CONTINUE identifier_opt SEMICOLON
-;;;   ;
-  
-;;; return_statement
-;;;   : RETURN expression_opt SEMICOLON
-;;;   ;
-  
-;;; throw_statement
-;;;   : THROW expression SEMICOLON
-;;;   ;
-  
-;;; synchronized_statement
-;;;   : SYNCHRONIZED LPAREN expression RPAREN block
-;;;   ;
-  
-;;; try_statement
-;;;   : TRY block catches_opt finallyc
-;;;   | TRY block catches
-;;;   ;
-  
-;;; catches_opt
-;;;   : ;;EMPTY
-;;;   | catches
-;;;   ;
-  
-;;; catches
-;;;   : catches catch_clause
-;;;   | catch_clause
-;;;   ;
-  
-;;; catch_clause
-;;;   : CATCH LPAREN formal_parameter RPAREN block
-;;;   ;
-  
-;;; finallyc
-;;;   : FINALLY block
-;;;   ;
+for_update_opt
+  : ;;EMPTY
+  | for_update
+  ;
 
-;;; ============================
-;;; End of unused productions
-;;; ============================
+for_update
+  : statement_expression_list
+  ;
+
+statement_expression_list
+  : statement_expression_list COMMA statement_expression
+  | statement_expression
+  ;
+
+identifier_opt
+  : ;;EMPTY
+  | IDENTIFIER
+  ;
+
+break_statement
+  : BREAK identifier_opt SEMICOLON
+  ;
+
+continue_statement
+  : CONTINUE identifier_opt SEMICOLON
+  ;
+
+return_statement
+  : RETURN expression_opt SEMICOLON
+  ;
+
+throw_statement
+  : THROW expression SEMICOLON
+  ;
+
+synchronized_statement
+  : SYNCHRONIZED LPAREN expression RPAREN block
+  ;
+
+try_statement
+  : TRY block catches_opt finallyc
+  | TRY block catches
+  ;
+
+catches_opt
+  : ;;EMPTY
+  | catches
+  ;
+
+catches
+  : catches catch_clause
+  | catch_clause
+  ;
+
+catch_clause
+  : CATCH LPAREN formal_parameter RPAREN block
+  ;
+
+finallyc
+  : FINALLY block
+  ;
+
+assert_statement
+  : ASSERT expression SEMICOLON
+  | ASSERT expression COLON expression SEMICOLON
+  ;
 
 primary
-  : array_creation_expression
-  | primary_no_new_array
+  : primary_no_new_array
+  | array_creation_init
+  | array_creation_uninit
   ;
 
 primary_no_new_array
@@ -1132,19 +1170,14 @@ argument_list
   | expression
   ;
 
-array_creation_expression
-  : NEW class_or_interface_type dim_exprs array_initializer
-  | NEW class_or_interface_type dim_exprs
-  | NEW primitive_type dim_exprs array_initializer
- ;; To avoid reduce conflicts between dims and dim_exprs use the above
- ;; rules in place of:
- ;; : NEW class_or_interface_type dims array_initializer
- ;; | NEW primitive_type dims array_initializer
- ;; | NEW class_or_interface_type dim_exprs dims_opt
- ;; | NEW primitive_type dim_exprs dims_opt
- ;; These conflicts occurs because expression is ignored in dim_expr
- ;; (that is dims and dim_exprs became equivalents).
-  | NEW primitive_type dim_exprs
+array_creation_uninit
+  : NEW primitive_type dim_exprs dims_opt
+  | NEW class_or_interface_type dim_exprs dims_opt
+  ;
+
+array_creation_init
+  : NEW primitive_type dims array_initializer
+  | NEW class_or_interface_type dims array_initializer
   ;
 
 dim_exprs
@@ -1153,12 +1186,7 @@ dim_exprs
   ;
 
 dim_expr
-  : LBRACK RBRACK ;; Added to skip the block in place of:
- ;; : LBRACK expression RBRACK
- ;; For now dont parse expressions inside array [].  This is not
- ;; necessary to get Semantic tags and improves performance!  Any
- ;; token encountered inside [] raises a parse error and the current
- ;; block is skept.
+  : LBRACK expression RBRACK
   | LBRACK error
  ;; Skip the block if it contains error
     (wisent-skip-block)
@@ -1166,7 +1194,7 @@ dim_expr
 
 dims_opt
   : ;;EMPTY
-    (identity "")
+    (progn "")
   | dims
   ;
 
@@ -1191,7 +1219,8 @@ method_invocation
   ;
 
 array_access
-  : primary_no_new_array LBRACK expression RBRACK
+  : array_creation_init LBRACK expression RBRACK
+  | primary_no_new_array LBRACK expression RBRACK
   | name LBRACK expression RBRACK
   ;
 
