@@ -1,11 +1,11 @@
 ;;; semantic.el --- Semantic buffer evaluator.
 
-;;; Copyright (C) 1999, 2000 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.74 2000/12/28 11:51:10 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.75 2001/01/06 05:23:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -281,6 +281,10 @@ prevents top level edits from causing a cache check.")
 This is tracked with `semantic-change-function'.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache-check)
 
+(defvar semantic-toplevel-bovine-force-reparse nil
+  "Non nil if the next token request forces a reparse.")
+(make-variable-buffer-local 'semantic-toplevel-bovine-force-reparse)
+
 (defvar semantic-dirty-tokens nil
   "List of tokens in the current buffer which are dirty.
 Dirty functions can then be reparsed, and spliced back into the main list.")
@@ -456,8 +460,9 @@ The returned item may be an overlay or an unloaded buffer representation."
 (defun semantic-find-file-hook ()
   "Run in `find-file-hooks'.
 Runs `semantic-init-hook' if the major mode is setup to use semantic."
-  (if semantic-toplevel-bovine-table
-      (run-hooks 'semantic-init-hooks)))
+  (when semantic-toplevel-bovine-table
+    (setq semantic-toplevel-bovine-force-reparse t)
+    (run-hooks 'semantic-init-hooks)))
 (add-hook 'find-file-hooks 'semantic-find-file-hook)
 ;; I think this should work, but it does funny stuff.
 ;(add-hook 'change-major-mode-hook 'semantic-find-file-hook)
@@ -486,18 +491,29 @@ Runs `semantic-init-hook' if the major mode is setup to use semantic."
 (add-hook 'change-major-mode-hook 'semantic-clear-toplevel-cache)
 
 (defvar semantic-bovination-working-type 'percent
-  "The type of working message to use when bovinating.
+  "*The type of working message to use when bovinating.
 'percent means we are doing a linear parse through the buffer.
 'dynamic means we are rebovinating specific tokens.")
+
+(defun semantic-bovine-toplevel-full-reparse-needed-p (&optional checkcache)
+  "Return non-nil if the current buffer needs a full reparse.
+Optional argument CHECKCACHE indicates if the cache check should be made."
+  (or semantic-toplevel-bovine-force-reparse
+      (and
+       checkcache
+       semantic-toplevel-bovine-cache-check)))
+
+(defun semantic-bovine-toplevel-partial-reparse-needed-p ()
+  "Return non-nil if the current buffer needs a full reparse."
+  (and semantic-toplevel-bovine-cache
+       semantic-dirty-tokens))
 
 ;;;###autoload
 (defun semantic-bovinate-toplevel (&optional checkcache)
   "Bovinate the entire current buffer.
 If the optional argument CHECKCACHE is non-nil, then flush the cache iff
 there has been a size change."
-  (if (and semantic-toplevel-bovine-cache
-	   checkcache
-	   semantic-toplevel-bovine-cache-check)
+  (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
       (semantic-clear-toplevel-cache))
   (prog1
       (cond
@@ -505,8 +521,7 @@ there has been a size change."
 	;; Call a custom function
 	(funcall semantic-toplevel-bovinate-override checkcache)
 	)
-       ((and semantic-toplevel-bovine-cache
-	     semantic-dirty-tokens)
+       ((semantic-bovine-toplevel-partial-reparse-needed-p)
 	;; We have a cache, and some dirty tokens
 	(let ((semantic-bovination-working-type 'dynamic))
 	  (working-status-forms (buffer-name) "done"
@@ -566,7 +581,8 @@ Optional argument CHECKCACHE is the same as that for
 (defun semantic-set-toplevel-bovine-cache (tokenlist)
   "Set the toplevel bovine cache to TOKENLIST."
   (setq semantic-toplevel-bovine-cache tokenlist
-	semantic-toplevel-bovine-cache-check nil)
+	semantic-toplevel-bovine-cache-check nil
+	semantic-toplevel-bovine-force-reparse nil)
   (add-hook 'after-change-functions 'semantic-change-function nil t)
   (run-hooks 'semantic-after-toplevel-bovinate-hook))
 
