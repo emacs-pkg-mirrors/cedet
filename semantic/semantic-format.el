@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.3 2003/04/09 12:11:38 ponced Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.4 2003/05/29 00:47:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -236,7 +236,7 @@ Argument COLOR specifies to colorize the text."
 
 ;;;###autoload
 (defun semantic-format-tag-prin1 (tag &optional parent color)
-  "Convert TAG to a string that is Emacs Lisp.
+  "Convert TAG to a string that is the print name for TAG.
 PARENT and COLOR are ignored."
   (format "%S" tag))
 
@@ -322,7 +322,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
          (names (if parent
                     semantic-symbol->name-assoc-list-for-type-parts
                   semantic-symbol->name-assoc-list))
-         (tsymb (funcall semantic-bucketize-token-token tag))
+         (tsymb (funcall semantic-bucketize-tag-class tag))
          (label (capitalize (or (cdr-safe (assoc tsymb names))
                                 (symbol-name tsymb)))))
     (if color
