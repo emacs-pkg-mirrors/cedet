@@ -1,8 +1,8 @@
 ;;; semantic-fw.el --- Framework for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.26 2004/01/16 08:54:54 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.27 2004/02/12 02:03:25 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -573,6 +573,7 @@ calling this one."
 (defun semantic-test-throw-on-input ()
   "Test that throw on input will work."
   (interactive)
+  (semantic-throw-on-input 'done-die)
   (message "Exit Code: %s"
 	   (semantic-exit-on-input 'testing
 	     (let ((inhibit-quit nil)
