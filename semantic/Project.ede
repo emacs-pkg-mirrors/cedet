@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "semantic"
   :name "semantic"
-  :version "1.4beta10"
+  :version "1.4beta11"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-elisp "nil"
