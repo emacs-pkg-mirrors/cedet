@@ -3,10 +3,10 @@
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.8 2002/12/11 08:56:25 ponced Exp $
+;; X-RCS: $Id: inversion.el,v 1.9 2002/12/13 07:02:20 ponced Exp $
 
 ;;; Code:
-(defvar inversion-version "1.0beta3"
+(defvar inversion-version "1.0beta4"
   "Current version of InVersion.")
 (defvar inversion-incompatible-version "0.1alpha1"
   "An earlier release which is incompatible with this release.")
@@ -29,13 +29,13 @@
 ;;; Commentary:
 ;;
 ;; Keeping track of rapidly developing software is a tough thing to
-;; do, expecially if you want to have co-dependent packages which all
+;; do, especially if you want to have co-dependent packages which all
 ;; move at different rates.
 ;;
 ;; This library provides a framework for specifying version numbers
 ;; and (as side effect) have a flexible way of getting a desired feature set.
 ;;
-;; If you would like to use this package to satisfy dependenc replace this:
+;; If you would like to use this package to satisfy dependency replace this:
 ;; 
 ;; (require 'spiffy)
 ;;
@@ -75,9 +75,9 @@
   "List of regular expressions for version strings.
 Each element is of the form:
   ( RELEASE-TYPE REGEXP MAX )
-Where RELEASE-TYPE is a symbo specifying something like `beta'
+Where RELEASE-TYPE is a symbol specifying something like `beta'
 or `alpha'.  REGEXP is the regular expression to match.
-MAX is the maximun number of match-numbers in the release number.
+MAX is the maximum number of match-numbers in the release number.
 The order of the list is important.  Least stable versions should
 be first.  More stable version should be last.")
 
@@ -141,8 +141,16 @@ not an indication of new features or bug fixes."
 
 (defun inversion-recode (code)
   "Convert CODE into a string."
-  ;; Do a better job someday.
-  (format "%S" code))
+  (let ((r (nth 0 code))		; release-type
+	(n (nth 1 code))		; main number
+	(i (nth 2 code))		; first increment
+	(p (nth 3 code)))		; second increment
+    (cond
+     ((eq r 'full)
+      (setq r "" p ""))
+     ((eq r 'point)
+      (setq r ".")))
+    (format "%s.%s%s%s" n i r p)))
 
 (defun inversion-release-to-number (release-symbol)
   "Convert RELEASE-SYMBOL into a number."
@@ -180,16 +188,21 @@ not an indication of new features or bug fixes."
 	     )
 	)))
 
-(defun inversion-test (package minimum &rest reserved)
-  "Test that PACKAGE meets the MINIMUM version requirement.
-PACKAGE is a symbol, similar to what is passed to `require'.
+(defun inversion-check-version (version incompatible-version
+					minimum &rest reserved)
+  "Check that a given version meets the minimum requirement.
+VERSION, INCOMPATIBLE-VERSION and MINIMUM are of similar format to
+return entries of `inversion-decode-version', or a classic version
+string.	 INCOMPATIBLE-VERSION can be nil.
 RESERVED arguments are kept for a later user.
-MINIMUM is of similar format to return entries of
-`inversion-decode-version', or a classic version string.
-This depends on the symbol `PACKAGE-version' being defined
-in PACKAGE.
-Return nil if everything is ok.  Return an error string otherwise."
-  (let ((code (inversion-package-version package))
+Return:
+- nil if everything is ok
+- 'outdated if VERSION is less than MINIMUM.
+- 'incompatible if VERSION is not backward compatible with MINIMUM.
+- t if the check failed."
+  (let ((code (if (stringp version)
+		  (inversion-decode-version version)
+		version))
 	(req (if (stringp minimum)
 		 (inversion-decode-version minimum)
 	       minimum))
@@ -202,27 +215,53 @@ Return nil if everything is ok.  Return an error string otherwise."
       nil)
      ((inversion-< code req)
       ;; Version is too old!
-      (format "You need to upgrade package %s to %s" package minimum))
+      'outdated)
      ((inversion-< req code)
       ;; Newer is installed.  What to do?
       (let ((incompatible
-	     (inversion-package-incompatibility-version package)))
+	     (if (stringp incompatible-version)
+		 (inversion-decode-version incompatible-version)
+	       incompatible-version)))
 	(cond
 	 ((not incompatible) nil)
 	 ((or (inversion-= req incompatible)
 	      (inversion-< req incompatible))
-	  ;; If the requested version is = or < than
-	  ;; what the package maintainer says is incompatible,
-	  ;; then throw that error.
-	  (format "Package %s version is not backward compatible with %s"
-		  package minimum))
+	  ;; The requested version is = or < than what the package
+	  ;; maintainer says is incompatible.
+	  'incompatible)
 	 ;; Things are ok.
-	 (t nil))
-	)
-      )
-     (t
-      "Inversion version check failed.")
-     )))
+	 (t nil))))
+     ;; Check failed
+     (t t))))
+
+(defun inversion-test (package minimum &rest reserved)
+  "Test that PACKAGE meets the MINIMUM version requirement.
+PACKAGE is a symbol, similar to what is passed to `require'.
+MINIMUM is of similar format to return entries of
+`inversion-decode-version', or a classic version string.
+RESERVED arguments are kept for a later user.
+This depends on the symbols `PACKAGE-version' and optionally
+`PACKAGE-incompatible-version' being defined in PACKAGE.
+Return nil if everything is ok.	 Return an error string otherwise."
+  (let ((check (inversion-check-version
+		(inversion-package-version package)
+		(inversion-package-incompatibility-version package)
+		minimum reserved)))
+    (cond
+     ((null check)
+      ;; Same version.. Yay!
+      nil)
+     ((eq check 'outdated)
+      ;; Version is too old!
+      (format "You need to upgrade package %s to %s" package minimum))
+     ((eq check 'incompatible)
+      ;; Newer is installed but the requested version is = or < than
+      ;; what the package maintainer says is incompatible, then throw
+      ;; that error.
+      (format "Package %s version is not backward compatible with %s"
+	      package minimum))
+     ;; Check failed
+     (t "Inversion version check failed."))))
 
 (defun inversion-require (package version file &optional directory
 				  &rest reserved)
@@ -256,20 +295,48 @@ Return a pair (VERSION-STRING . INCOMPATIBLE-VERSION-STRING) where
 INCOMPATIBLE-VERSION-STRING can be nil.
 Return nil when VERSION-STRING was not found."
   (let* ((file (locate-file (symbol-name package) load-path '(".el")))
-         (tag (car inversion-find-data))
-         (idx (nth 1 inversion-find-data))
-         version)
+	 (tag (car inversion-find-data))
+	 (idx (nth 1 inversion-find-data))
+	 version)
     (when file
       (with-temp-buffer
-        (insert-file-contents-literally file)
-        (goto-char (point-min))
-        (when (re-search-forward (format tag package 'version) nil t)
-          (setq version (list (match-string idx)))
-          (goto-char (point-min))
-          (when (re-search-forward
-                 (format tag package 'incompatible-version) nil t)
-            (setcdr version (match-string idx))))))
+	(insert-file-contents-literally file)
+	(goto-char (point-min))
+	(when (re-search-forward (format tag package 'version) nil t)
+	  (setq version (list (match-string idx)))
+	  (goto-char (point-min))
+	  (when (re-search-forward
+		 (format tag package 'incompatible-version) nil t)
+	    (setcdr version (match-string idx))))))
     version))
+
+(defun inversion-add-to-load-path (package minimum
+					   &optional installdir
+					   &rest subdirs)
+  "Add the PACKAGE path to `load-path' if necessary.
+MINIMUM is the minimum version requirement of PACKAGE.
+Optional argument INSTALLDIR is the base directory where PACKAGE is
+installed.  It defaults to `default-directory'.
+SUBDIRS are PACKAGE sub-directories to add to `load-path', following
+the main INSTALLDIR/PACKAGE path."
+  (let ((ver (inversion-find-version package)))
+    ;; If PACKAGE not found or a bad version already in `load-path',
+    ;; prepend the new PACKAGE path, so it will be loaded first.
+    (when (or (not ver)
+	      (inversion-check-version (car ver) (cdr ver) minimum))
+      (let* ((default-directory (or installdir default-directory))
+	     (path (expand-file-name (format "./%s" package)))
+	     subpath)
+	;; Add SUBDIRS
+	(while subdirs
+	  (setq subpath (format "%s/%s" path (car subdirs))
+		subdirs (cdr subdirs))
+	  (when (file-directory-p subpath)
+	    (message "%S added to `load-path'" subpath)
+	    (add-to-list 'load-path subpath)))
+	;; Add the main path
+	(message "%S added to `load-path'" path)
+	(add-to-list 'load-path path)))))
 
 ;;; Inversion tests
 ;;
@@ -412,7 +479,7 @@ The package should have VERSION available for download."
     newer
     ))
 
-;; (inversion-upgrade-package 
+;; (inversion-upgrade-package
 ;;  'semantic
 ;;  "/ftp@ftp1.sourceforge.net:/pub/sourceforge/cedet")
 
