@@ -4,10 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.228 2003/02/21 18:01:15 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.229 2003/02/21 18:24:19 zappo Exp $
 
-(defvar speedbar-version "0.14beta4"
+(defvar speedbar-version "0.15"
   "The current version of speedbar.")
+(defvar speedbar-incompatible-version "0.14beta4"
+  "This version of speedbar is incompatible with this version.
+Due to massive API changes (removing the use of the worrd PATH) 
+we are not backward compatible to 0.14 or earlier.")
 
 ;; This file is part of GNU Emacs.
 
@@ -161,11 +165,11 @@ interruption.  See `speedbar-check-vc' as a good example.")
 
 (defvar speedbar-mode-functions-list
   '(("files" (speedbar-item-info . speedbar-files-item-info)
-     (speedbar-line-path . speedbar-files-line-path))
+     (speedbar-line-directory . speedbar-files-line-directory))
     ("buffers" (speedbar-item-info . speedbar-buffers-item-info)
-     (speedbar-line-path . speedbar-buffers-line-path))
+     (speedbar-line-directory . speedbar-buffers-line-directory))
     ("quick buffers" (speedbar-item-info . speedbar-buffers-item-info)
-     (speedbar-line-path . speedbar-buffers-line-path))
+     (speedbar-line-directory . speedbar-buffers-line-directory))
     )
   "List of function tables to use for different major display modes.
 It is not necessary to define any functions for a specialized mode.
@@ -460,18 +464,18 @@ Any file checked out is marked with `speedbar-vc-indicator'."
 (defvar speedbar-vc-indicator "*"
   "Text used to mark files which are currently checked out.
 Other version control systems can be added by examining the function
-`speedbar-vc-path-enable-hook' and `speedbar-vc-in-control-hook'.")
+`speedbar-vc-directory-enable-hook' and `speedbar-vc-in-control-hook'.")
 
-(defcustom speedbar-vc-path-enable-hook nil
-  "*Return non-nil if the current path should be checked for Version Control.
-Functions in this hook must accept one parameter which is the path
+(defcustom speedbar-vc-directory-enable-hook nil
+  "*Return non-nil if the current directory should be checked for Version Control.
+Functions in this hook must accept one parameter which is the directory
 being checked."
   :group 'speedbar-vc
   :type 'hook)
 
 (defcustom speedbar-vc-in-control-hook nil
   "*Return non-nil if the specified file is under Version Control.
-Functions in this hook must accept two parameters.  The PATH of the
+Functions in this hook must accept two parameters.  The DIRECTORY of the
 current file, and the FILENAME of the file being checked."
   :group 'speedbar-vc
   :type 'hook)
@@ -554,26 +558,26 @@ with `.' followed by extensions, followed by full-filenames."
 	    (if regex2 (concat "\\(" regex2 "\\)") "")
 	    "\\)$")))
 
-(defvar speedbar-ignored-path-regexp nil
-  "Regular expression matching paths speedbar will not switch to.
-Created from `speedbar-ignored-path-expressions' with the function
+(defvar speedbar-ignored-directory-regexp nil
+  "Regular expression matching directorys speedbar will not switch to.
+Created from `speedbar-ignored-directory-expressions' with the function
 `speedbar-extension-list-to-regex' (A misnamed function in this case.)
-Use the function `speedbar-add-ignored-path-regexp', or customize the
-variable `speedbar-ignored-path-expressions' to modify this variable.")
+Use the function `speedbar-add-ignored-directory-regexp', or customize the
+variable `speedbar-ignored-directory-expressions' to modify this variable.")
 
-(defcustom speedbar-ignored-path-expressions
+(defcustom speedbar-ignored-directory-expressions
   '("[/\\]logs?[/\\]\\'")
   "*List of regular expressions matching directories speedbar will ignore.
-They should included paths to directories which are notoriously very
+They should included directorys to directories which are notoriously very
 large and take a long time to load in.  Use the function
-`speedbar-add-ignored-path-regexp' to add new items to this list after
+`speedbar-add-ignored-directory-regexp' to add new items to this list after
 speedbar is loaded.  You may place anything you like in this list
 before speedbar has been loaded."
   :group 'speedbar
-  :type '(repeat (regexp :tag "Path Regexp"))
+  :type '(repeat (regexp :tag "Directory Regexp"))
   :set (lambda (sym val)
-	 (setq speedbar-ignored-path-expressions val
-	       speedbar-ignored-path-regexp
+	 (setq speedbar-ignored-directory-expressions val
+	       speedbar-ignored-directory-regexp
 	       (speedbar-extension-list-to-regex val))))
 
 (defcustom speedbar-directory-unshown-regexp "^\\(CVS\\|RCS\\|SCCS\\|\\..*\\)\\'"
@@ -646,32 +650,32 @@ list of strings."
   (setq speedbar-file-regexp (speedbar-extension-list-to-regex
 			      speedbar-supported-extension-expressions)))
 
-(defun speedbar-add-ignored-path-regexp (path-expression)
-  "Add PATH-EXPRESSION as a new ignored path for speedbar tracking.
-This function will modify `speedbar-ignored-path-regexp' and add
-PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
-  (interactive "sPath regex: ")
-  (if (not (listp path-expression))
-      (setq path-expression (list path-expression)))
-  (while path-expression
-    (if (member (car path-expression) speedbar-ignored-path-expressions)
+(defun speedbar-add-ignored-directory-regexp (directory-expression)
+  "Add DIRECTORY-EXPRESSION as a new ignored directory for speedbar tracking.
+This function will modify `speedbar-ignored-directory-regexp' and add
+DIRECTORY-EXPRESSION to `speedbar-ignored-directory-expressions'."
+  (interactive "sDirectory regex: ")
+  (if (not (listp directory-expression))
+      (setq directory-expression (list directory-expression)))
+  (while directory-expression
+    (if (member (car directory-expression) speedbar-ignored-directory-expressions)
 	nil
-      (setq speedbar-ignored-path-expressions
-	    (cons (car path-expression) speedbar-ignored-path-expressions)))
-    (setq path-expression (cdr path-expression)))
-  (setq speedbar-ignored-path-regexp (speedbar-extension-list-to-regex
-				      speedbar-ignored-path-expressions)))
+      (setq speedbar-ignored-directory-expressions
+	    (cons (car directory-expression) speedbar-ignored-directory-expressions)))
+    (setq directory-expression (cdr directory-expression)))
+  (setq speedbar-ignored-directory-regexp (speedbar-extension-list-to-regex
+				      speedbar-ignored-directory-expressions)))
 
 ;; If we don't have custom, then we set it here by hand.
 (if (not (fboundp 'custom-declare-variable))
     (setq speedbar-file-regexp (speedbar-extension-list-to-regex
 				speedbar-supported-extension-expressions)
-	  speedbar-ignored-path-regexp (speedbar-extension-list-to-regex
-					speedbar-ignored-path-expressions)))
+	  speedbar-ignored-directory-regexp (speedbar-extension-list-to-regex
+					speedbar-ignored-directory-expressions)))
 
 (defvar speedbar-update-flag dframe-have-timer-flag
   "*Non-nil means to automatically update the display.
-When this is nil then speedbar will not follow the attached frame's path.
+When this is nil then speedbar will not follow the attached frame's directory.
 When speedbar is active, use:
 
 \\<speedbar-key-map> `\\[speedbar-toggle-updates]'
@@ -1002,9 +1006,9 @@ nil if it doesn't exist."
 (defun speedbar-mode ()
   "Major mode for managing a display of directories and tags.
 \\<speedbar-key-map>
-The first line represents the default path of the speedbar frame.
+The first line represents the default directory of the speedbar frame.
 Each directory segment is a button which jumps speedbar's default
-directory to that path.  Buttons are activated by clicking `\\[speedbar-click]'.
+directory to that directory.  Buttons are activated by clicking `\\[speedbar-click]'.
 In some situations using `\\[dframe-power-click]' is a `power click' which will
 rescan cached items, or pop up new frames.
 
@@ -1424,7 +1428,7 @@ nil if not applicable."
 	  (if (and (featurep 'semantic) (semantic-token-p attr))
 	      (speedbar-message (funcall semantic-sb-info-token->text-function attr))
 	    (looking-at "\\([0-9]+\\):")
-	    (setq item (file-name-nondirectory (speedbar-line-path)))
+	    (setq item (file-name-nondirectory (speedbar-line-directory)))
 	    (speedbar-message "Tag: %s  in %s" tag item)))
       (if (re-search-forward "{[+-]} \\([^\n]+\\)$"
 			     (save-excursion(end-of-line)(point)) t)
@@ -1835,7 +1839,7 @@ the file-system."
 
 (defun speedbar-directory-buttons (directory index)
   "Insert a single button group at point for DIRECTORY.
-Each directory path part is a different button.  If part of the path
+Each directory directory part is a different button.  If part of the directory
 matches the user directory ~, then it is replaced with a ~.
 INDEX is not used, but is required by the caller."
   (let* ((tilde (expand-file-name "~/"))
@@ -2282,7 +2286,7 @@ the list."
   (let* ((f (save-excursion
 	      (forward-line -1)
 	      (or (speedbar-line-file)
-		  (speedbar-line-path))))
+		  (speedbar-line-directory))))
 	 (methods (if (get-file-buffer f)
 		      (save-excursion (set-buffer (get-file-buffer f))
 				      speedbar-tag-hierarchy-method)
@@ -2317,7 +2321,7 @@ name will have the function FIND-FUN and not token."
   ;; Get, and set up variables that define how we treat these tags.
    (let ((f (save-excursion (forward-line -1)
 			    (or (speedbar-line-file)
-				(speedbar-line-path))))
+				(speedbar-line-directory))))
 	 expand-button tag-button)
      (save-excursion
        (if (get-file-buffer f)
@@ -2429,7 +2433,7 @@ name will have the function FIND-FUN and not token."
 	    (setq expand-local t)
 
 	  ;; If this directory is NOT in the current list of available
-	  ;; paths, then use the cache, and set the cache to our new
+	  ;; directorys, then use the cache, and set the cache to our new
 	  ;; value.  Make sure to unhighlight the current file, or if we
 	  ;; come back to this directory, it might be a different file
 	  ;; and then we get a mess!
@@ -2451,7 +2455,7 @@ name will have the function FIND-FUN and not token."
       (speedbar-with-writable
 	(if (and expand-local
 		 ;; Find this directory as a speedbar node.
-		 (speedbar-path-line cbd))
+		 (speedbar-directory-line cbd))
 	    ;; Open it.
 	    (speedbar-expand-line)
 	  (erase-buffer)
@@ -2555,9 +2559,9 @@ Also resets scanner functions."
 		  ;; Update all the contents if directories change!
 		  (if (or (member (expand-file-name default-directory)
 				  speedbar-shown-directories)
-			  (and speedbar-ignored-path-regexp
+			  (and speedbar-ignored-directory-regexp
 			       (string-match
-				speedbar-ignored-path-regexp
+				speedbar-ignored-directory-regexp
 				(expand-file-name default-directory)))
 			  (member major-mode speedbar-ignored-modes)
 			  (eq af (speedbar-current-frame))
@@ -2620,7 +2624,7 @@ If new functions are added, their state needs to be updated here."
 			 nil t))
 		(not (string= file
 			      (concat
-			       (speedbar-line-path
+			       (speedbar-line-directory
 				(save-excursion
 				  (goto-char (match-beginning 0))
 				  (beginning-of-line)
@@ -2794,15 +2798,15 @@ to add more types of version control systems."
 	     (not (or (and (featurep 'ange-ftp)
 			   (string-match
 			    (car (if dframe-xemacsp
-				     ange-ftp-path-format
+				     ange-ftp-directory-format
 				   ange-ftp-name-format))
 			    (expand-file-name default-directory)))
 		      ;; efs support: Bob Weiner
 		      (and (featurep 'efs)
 			   (string-match
-			    (if (stringp efs-path-regexp)
-				efs-path-regexp
-			      (car efs-path-regexp))
+			    (if (stringp efs-directory-regexp)
+				efs-directory-regexp
+			      (car efs-directory-regexp))
 			    (expand-file-name default-directory))))))
 	(setq speedbar-vc-to-do-point 0))
     (if (numberp speedbar-vc-to-do-point)
@@ -2831,7 +2835,7 @@ to add more types of version control systems."
 Parameter DEPTH is a string with the current depth of indentation of
 the file being checked."
   (let* ((d (string-to-int depth))
-	 (f (speedbar-line-path d))
+	 (f (speedbar-line-directory d))
 	 (fn (buffer-substring-no-properties
 	      ;; Skip-chars: thanks ptype@dra.hmg.gb
 	      (point) (progn
@@ -2845,28 +2849,28 @@ the file being checked."
     (and (file-writable-p fulln)
 	 (speedbar-this-file-in-vc f fn))))
 
-(defun speedbar-vc-check-dir-p (path)
-  "Return t if we should bother checking PATH for version control files.
+(defun speedbar-vc-check-dir-p (directory)
+  "Return t if we should bother checking DIRECTORY for version control files.
 This can be overloaded to add new types of version control systems."
   (or
    ;; Local CVS available in Emacs 21
    (and (fboundp 'vc-state)
-	(file-exists-p (concat path "CVS/")))
+	(file-exists-p (concat directory "CVS/")))
    ;; Local RCS
-   (file-exists-p (concat path "RCS/"))
+   (file-exists-p (concat directory "RCS/"))
    ;; Local SCCS
-   (file-exists-p (concat path "SCCS/"))
+   (file-exists-p (concat directory "SCCS/"))
    ;; Remote SCCS project
    (let ((proj-dir (getenv "PROJECTDIR")))
      (if proj-dir
 	 (file-exists-p (concat proj-dir "/SCCS"))
        nil))
    ;; User extension
-   (run-hook-with-args 'speedbar-vc-path-enable-hook path)
+   (run-hook-with-args 'speedbar-vc-directory-enable-hook directory)
    ))
 
-(defun speedbar-this-file-in-vc (path name)
-  "Check to see if the file in PATH with NAME is in a version control system.
+(defun speedbar-this-file-in-vc (directory name)
+  "Check to see if the file in DIRECTORY with NAME is in a version control system.
 You can add new VC systems by overriding this function.  You can
 optimize this function by overriding it and only doing those checks
 that will occur on your system."
@@ -2874,22 +2878,22 @@ that will occur on your system."
    (if (fboundp 'vc-state)
        ;; Emacs 21 handles VC state in a nice way.
        (condition-case nil
-	   (not (eq 'up-to-date (vc-state (concat path name))))
+	   (not (eq 'up-to-date (vc-state (concat directory name))))
 	 ;; An error means not in a VC system
 	 (error nil))
      (or
       ;; RCS file name
-      (file-exists-p (concat path "RCS/" name ",v"))
-      (file-exists-p (concat path "RCS/" name))
+      (file-exists-p (concat directory "RCS/" name ",v"))
+      (file-exists-p (concat directory "RCS/" name))
       ;; Local SCCS file name
-      (file-exists-p (concat path "SCCS/s." name))
+      (file-exists-p (concat directory "SCCS/s." name))
       ;; Remote SCCS file name
       (let ((proj-dir (getenv "PROJECTDIR")))
 	(if proj-dir
 	    (file-exists-p (concat proj-dir "/SCCS/s." name))
 	  nil))))
    ;; User extension
-   (run-hook-with-args 'speedbar-vc-in-control-hook path name)
+   (run-hook-with-args 'speedbar-vc-in-control-hook directory name)
    ))
 
 ;; Objet File scanning
@@ -2930,7 +2934,7 @@ to add more object types."
 Parameter DEPTH is a string with the current depth of indentation of
 the file being checked."
   (let* ((d (string-to-int depth))
-	 (f (speedbar-line-path d))
+	 (f (speedbar-line-directory d))
 	 (fn (buffer-substring-no-properties
 	      ;; Skip-chars: thanks ptype@dra.hmg.gb
 	      (point) (progn
@@ -3041,34 +3045,34 @@ directory, then it is the directory name."
       (let ((f (speedbar-line-text p)))
 	(if f
 	    (let* ((depth (string-to-int (match-string 1)))
-		   (path (speedbar-line-path depth)))
-	      (if (file-exists-p (concat path f))
-		  (concat path f)
+		   (directory (speedbar-line-directory depth)))
+	      (if (file-exists-p (concat directory f))
+		  (concat directory f)
 		nil))
 	  nil)))))
 
 (defun speedbar-goto-this-file (file)
   "If FILE is displayed, go to this line and return t.
 Otherwise do not move and return nil."
-  (let ((path (substring (file-name-directory (expand-file-name file))
+  (let ((directory (substring (file-name-directory (expand-file-name file))
 			 (length (expand-file-name default-directory))))
 	(dest (point)))
     (save-match-data
       (goto-char (point-min))
       ;; scan all the directories
-      (while (and path (not (eq path t)))
-	(if (string-match "^[/\\]?\\([^/\\]+\\)" path)
-	    (let ((pp (match-string 1 path)))
+      (while (and directory (not (eq directory t)))
+	(if (string-match "^[/\\]?\\([^/\\]+\\)" directory)
+	    (let ((pp (match-string 1 directory)))
 	      (if (save-match-data
 		    (re-search-forward (concat "> " (regexp-quote pp) "$")
 				       nil t))
-		  (setq path (substring path (match-end 1)))
-		(setq path nil)))
-	  (setq path t)))
+		  (setq directory (substring directory (match-end 1)))
+		(setq directory nil)))
+	  (setq directory t)))
       ;; find the file part
-      (if (or (not path) (string= (file-name-nondirectory file) ""))
+      (if (or (not directory) (string= (file-name-nondirectory file) ""))
 	  ;; only had a dir part
-	  (if path
+	  (if directory
 	      (progn
 		(speedbar-position-cursor-on-line)
 		t)
@@ -3085,18 +3089,18 @@ Otherwise do not move and return nil."
 	    (goto-char dest)
 	    nil))))))
 
-(defun speedbar-line-path (&optional depth)
-  "Retrieve the pathname associated with the current line.
+(defun speedbar-line-directory (&optional depth)
+  "Retrieve the directoryname associated with the current line.
 This may require traversing backwards from DEPTH and combining the default
 directory with these items.  This function is replaceable in
-`speedbar-mode-functions-list' as `speedbar-line-path'."
+`speedbar-mode-functions-list' as `speedbar-line-directory'."
   (save-restriction
     (widen)
-    (let ((rf (speedbar-fetch-replacement-function 'speedbar-line-path)))
+    (let ((rf (speedbar-fetch-replacement-function 'speedbar-line-directory)))
       (if rf (funcall rf depth) default-directory))))
       
-(defun speedbar-files-line-path (&optional depth)
-  "Retrieve the pathname associated with the current line.
+(defun speedbar-files-line-directory (&optional depth)
+  "Retrieve the directoryname associated with the current line.
 This may require traversing backwards from DEPTH and combining the default
 directory with these items."
   (save-excursion
@@ -3106,35 +3110,35 @@ directory with these items."
 	    (beginning-of-line)
 	    (looking-at "^\\([0-9]+\\):")
 	    (setq depth (string-to-int (match-string 1)))))
-      (let ((path nil))
+      (let ((directory nil))
 	(setq depth (1- depth))
 	(while (/= depth -1)
 	  (if (not (re-search-backward (format "^%d:" depth) nil t))
-	      (error "Error building path of tag")
+	      (error "Error building filename of tag")
 	    (cond ((looking-at "[0-9]+:\\s-*<->\\s-+\\([^\n]+\\)")
-		   (setq path (concat (speedbar-line-text)
+		   (setq directory (concat (speedbar-line-text)
 				      "/"
-				      path)))
+				      directory)))
 		  ((looking-at "[0-9]+:\\s-*[-]\\s-+\\([^\n]+\\)")
-		   ;; This is the start of our path.
-		   (setq path (speedbar-line-text)))))
+		   ;; This is the start of our directory.
+		   (setq directory (speedbar-line-text)))))
 	  (setq depth (1- depth)))
-	(if (and path
+	(if (and directory
 		 (string-match (concat speedbar-indicator-regex "$")
-			       path))
-	    (setq path (substring path 0 (match-beginning 0))))
-	(concat default-directory path)))))
+			       directory))
+	    (setq directory (substring directory 0 (match-beginning 0))))
+	(concat default-directory directory)))))
 
-(defun speedbar-path-line (path)
-  "Position the cursor on the line specified by PATH."
+(defun speedbar-directory-line (directory)
+  "Position the cursor on the line specified by DIRECTORY."
   (save-match-data
-    (if (string-match "[/\\]$" path)
-	(setq path (substring path 0 (match-beginning 0))))
+    (if (string-match "[/\\]$" directory)
+	(setq directory (substring directory 0 (match-beginning 0))))
     (let ((nomatch t) (depth 0)
-	  (fname (file-name-nondirectory path))
-	  (pname (file-name-directory path)))
+	  (fname (file-name-nondirectory directory))
+	  (pname (file-name-directory directory)))
       (if (not (member pname speedbar-shown-directories))
-	  (error "Internal Error: File %s not shown in speedbar" path))
+	  (error "Internal Error: File %s not shown in speedbar" directory))
       (goto-char (point-min))
       (while (and nomatch
 		  (re-search-forward
@@ -3144,7 +3148,7 @@ directory with these items."
 	(beginning-of-line)
 	(looking-at "\\([0-9]+\\):")
 	(setq depth (string-to-int (match-string 0))
-	      nomatch (not (string= pname (speedbar-line-path depth))))
+	      nomatch (not (string= pname (speedbar-line-directory depth))))
 	(end-of-line))
       (beginning-of-line)
       (not nomatch))))
@@ -3212,7 +3216,7 @@ With universal argument ARG, flush cached data."
 TEXT, the file will be displayed in the attached frame.
 TOKEN is unused, but required by the click handler.  INDENT is the
 current indentation level."
-  (let ((cdd (speedbar-line-path indent)))
+  (let ((cdd (speedbar-line-directory indent)))
     ;; Run before visiting file hook here.
     (let ((f (selected-frame)))
       (dframe-select-attached-frame speedbar-frame)
@@ -3233,7 +3237,7 @@ Clicking a directory will cause the speedbar to list files in
 the subdirectory TEXT.  TOKEN is an unused requirement.  The
 subdirectory chosen will be at INDENT level."
   (setq default-directory
-	(concat (expand-file-name (concat (speedbar-line-path indent) text))
+	(concat (expand-file-name (concat (speedbar-line-directory indent) text))
 		"/"))
   ;; Because we leave speedbar as the current buffer,
   ;; update contents will change directory without
@@ -3267,7 +3271,7 @@ expanded.  INDENT is the current indentation level."
   (cond ((string-match "+" text)	;we have to expand this dir
 	 (setq speedbar-shown-directories
 	       (cons (expand-file-name
-		      (concat (speedbar-line-path indent) token "/"))
+		      (concat (speedbar-line-directory indent) token "/"))
 		     speedbar-shown-directories))
 	 (speedbar-change-expand-button-char ?-)
 	 (speedbar-reset-scanners)
@@ -3275,14 +3279,14 @@ expanded.  INDENT is the current indentation level."
 	   (end-of-line) (forward-char 1)
 	   (speedbar-with-writable
 	     (speedbar-default-directory-list
-	      (concat (speedbar-line-path indent) token "/")
+	      (concat (speedbar-line-directory indent) token "/")
 	      (1+ indent)))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-reset-scanners)
 	 (let ((oldl speedbar-shown-directories)
 	       (newl nil)
 	       (td (expand-file-name
-		    (concat (speedbar-line-path indent) token))))
+		    (concat (speedbar-line-directory indent) token))))
 	   (while oldl
 	     (if (not (string-match (concat "^" (regexp-quote td)) (car oldl)))
 		 (setq newl (cons (car oldl) newl)))
@@ -3314,7 +3318,7 @@ The parameter TEXT and TOKEN are required, where TEXT is the button
 clicked, and TOKEN is the file to expand.  INDENT is the current
 indentation level."
   (cond ((string-match "+" text)	;we have to expand this file
-	 (let* ((fn (expand-file-name (concat (speedbar-line-path indent)
+	 (let* ((fn (expand-file-name (concat (speedbar-line-directory indent)
 					      token)))
 		(mode nil)
 		(lst (speedbar-fetch-dynamic-tags fn)))
@@ -3335,7 +3339,7 @@ indentation level."
 (defun speedbar-tag-find (text token indent)
   "For the tag TEXT in a file TOKEN, go to that position.
 INDENT is the current indentation level."
-  (let ((file (speedbar-line-path indent)))
+  (let ((file (speedbar-line-directory indent)))
     (let ((f (selected-frame)))
       (dframe-select-attached-frame speedbar-frame)
       (run-hooks 'speedbar-before-visiting-tag-hook)
@@ -3730,12 +3734,12 @@ regular expression EXPR."
 
 (defun speedbar-buffer-buttons (directory zero)
   "Create speedbar buttons based on the buffers currently loaded.
-DIRECTORY is the path to the currently active buffer, and ZERO is 0."
+DIRECTORY is the directory to the currently active buffer, and ZERO is 0."
   (speedbar-buffer-buttons-engine nil))
 
 (defun speedbar-buffer-buttons-temp (directory zero)
   "Create speedbar buttons based on the buffers currently loaded.
-DIRECTORY is the path to the currently active buffer, and ZERO is 0."
+DIRECTORY is the directory to the currently active buffer, and ZERO is 0."
   (speedbar-buffer-buttons-engine t))
 
 (defun speedbar-buffer-buttons-engine (temp)
@@ -3811,8 +3815,8 @@ Argument BUFFER is the buffer being tested."
 					       (buffer-size))
 			       (or (buffer-file-name buffer) "<No file>"))))))
 
-(defun speedbar-buffers-line-path (&optional depth)
-  "Fetch the full path to the file (buffer) specified on the current line.
+(defun speedbar-buffers-line-directory (&optional depth)
+  "Fetch the full directory to the file (buffer) specified on the current line.
 Optional argument DEPTH specifies the current depth of the back search."
   (save-excursion
     (end-of-line)
