@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.6 1999/04/21 22:22:47 zappo Exp $
+@c $Id: ede.texi,v 1.7 1999/09/06 09:08:34 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -64,9 +64,9 @@ regardless of the type of project you are actually working on.
 @chapter Creating a project
 
 EDE can support many different types of projects.  When creating a new
-project with the command `ede-new' (or "Create a New Project" in the
+project with the command `ede-new' (or "Create Project" in the
 menu) you must choose the type of project you would like to create.
-@xref{Project types}
+@xref{Project types}.
 
 Each type has it's own benefits or language specific enhancements.  You
 will be prompted for the type of project you would like to create.  The
@@ -80,7 +80,7 @@ but will read existing @file{Makefile.in} files.
 
 A subproject is merely a project in a subdirectory in some other
 projects control.  You can create a subproject by using the 'ede-new'
-command (or "Create a New Project from the menu") while a file in a
+command (or "Create Project" from the menu) while a file in a
 subdirectory is loaded.  This new project will be automatically added to
 the parent project, and will be automatically loaded when the parent is
 read.
@@ -187,8 +187,8 @@ In this way, specific behaviors such as how a project is saved, or how a
 target is compiled can be customized by a project author in detail.  EDE
 communicates to these project objects via methods.  The commands you use
 in EDE mode are high-level functional wrappers over these
-methods. @xref{Project types} for details on different types of projects.
-@xref{(eieio)Top} For details on using EIEIO to extending classes, and
+methods.  For details on different types of projects, @xref{Project types}.
+@xref{(eieio)Top}. For details on using EIEIO to extending classes, and
 writing methods.
 
 It is most likely that a new target type is needed in one of the
