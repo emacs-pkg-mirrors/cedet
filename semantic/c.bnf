@@ -1,0 +1,179 @@
+# Simple BNF notation for top-level C elements.
+#
+# $Log: c.bnf,v $
+# Revision 1.1  1999/05/17 17:28:30  zappo
+# Initial revision
+#
+
+# TABLE: semantic-ex.el:semantic-toplevel-c-bovine-table
+
+bovine-toplevel : include
+                | type
+		| variable
+                | prototype
+                | function
+                | define
+                | comment
+                ;
+		
+include : punctuation "#" symbol "include" punctuation "<"
+	  symbol punctuation "." symbol punctuation ">"
+	  ( (concat $4 $5 $6) include nil )
+        | punctuation "#" symbol "include" string
+	  ( (read $3) include nil )
+        ;
+	  
+structparts : semantic-list
+	      (EXPAND $1 structsubparts)
+	    ;
+
+structsubparts: open-paren "{" close-paren "}"
+		( nil )
+	      | open-paren "{" structsubparts
+		( ,$2 )
+	      | variabledef punctuation ";" structsubparts
+		( ,(append (semantic-expand-c-nonterminal $1) $3) )
+	      | variabledef punctuation ";" close-paren "}"
+		( (semantic-expand-c-nonterminal $1) )
+	      ;
+
+
+enumparts : semantic-list
+	    (EXPAND $1 enumsubparts)
+	  ;
+
+enumsubparts : open-paren "{" close-paren "}"
+	       ( nil )
+	     | open-paren "{" enumsubparts
+	       ( ,$2 )
+	     | symbol opt-assign punctuation "," enumsubparts
+	       ( ,(cons $1 $4) )
+	     | symbol opt-assign close-paren "}"
+	       ( $1 )
+	     ;
+
+opt-name : symbol
+	 | EMPTY
+	   ( nil )
+         ;
+
+typesimple : symbol "struct\\|union" opt-name structparts
+	     ( ,$2 type $1 $3 nil nil )
+	   | symbol "enum" opt-name enumparts
+	     ( ,$2 type $1 $3 nil nil )	
+           | symbol "typedef" type symbol
+	     ( $3 type $1 nil $2 nil )
+           ;
+
+type : typesimple punctuation ";"
+       ( ,$1 )
+     ;
+
+opt-stars : punctuation "*" opt-stars
+	    ( (1+ (car $2)) )
+	  | EMPTY
+	    ( 0 )
+          ;
+
+declmods : symbol "\\(extern\\|static\\|const\\|volitile\\|signed\\|unsigned\\)+"
+	 | EMPTY
+	   ( "" )
+	 ;
+
+# dont deal with the stars just yet.
+typeform : typeformbase opt-stars
+	   ( ,$1 )
+	 ;
+
+typeformbase : typesimple
+	       ( ,$1 )
+	     | symbol "struct\\|union\\|enum" symbol
+	       ( $2 type $1 )
+	     | symbol
+	       ( $1 )
+	     ;
+  
+opt-bits : punctuation ":" symbol
+	   ( $2 )
+	 | EMPTY
+	   ( nil )
+	 ;
+
+opt-array : semantic-list opt-array
+	  # Eventually we want to replace the 1 below with a size
+	  # (if available)
+	    ( (cons 1 (car ,$2) ) )
+	  | EMPTY
+	    ( nil )
+          ;
+
+opt-assign : punctuation "=" expression
+	     ( $2 )
+	   | EMPTY
+	     ( nil )
+	   ;
+
+variable : variabledef punctuation ";"
+	   ( ,$1 )
+         | punctuation "#" symbol "define" symbol opt-expression
+	   ( $3 variable nil t $4 nil )
+	 ;
+
+variabledef : declmods typeform varnamelist
+	      ( $3 variable $2 (string-match "const" (car $1)) nil nil )
+	    ;
+
+variablearg : declmods typeform symbol
+	      ( $3 variable $2 (string-match "const" (car $1)) nil nil )
+	    ;
+
+# I'm ignoring the array part of variables here.  Ack!
+varnamelist : symbol opt-bits opt-array opt-assign punctuation "," varnamelist
+	      ( (cons ($1 ,$3  ,$4) $6) )
+            | symbol opt-bits opt-array opt-assign
+	      ( '($1 ,$3 ,$4 ) )
+	    ;
+
+arg-list : semantic-list
+	   ( (semantic-expand-c-nonterminal (EXPAND $1 arg-sub-list ) ) )
+	 ;
+
+arg-sub-list : open-paren "(" close-paren ")"
+	       ( nil )
+	     | open-paren "(" symbol "void" close-paren ")"
+	       ( nil )
+	     | open-paren "(" arg-sub-list
+	       ( ,$2 )
+	     | variablearg punctuation "," arg-sub-list
+	       ( (cons $1 $3) )
+	     | variablearg close-paren ")"
+	       ( '$1 )
+	     ;
+
+functiondef : typeform symbol arg-list
+	      ( $2 function $1 $3 nil )
+            ;
+
+prototype : functiondef ";"
+	    ( ,$1 )
+	  ;
+
+function : functiondef semantic-list
+	   ( ,$1 )
+         ;
+
+opt-expression : expression
+	       | EMPTY ( nil )
+	       ;
+
+# Use expressiosn for parsing only.  Don't actually return anything
+# for now.  Hopefully we can't fix this later.
+expression : symbol
+	     ( nil )
+           | punctuation "[!*&~]" symbol
+	     ( nil )
+           | semantic-list
+	     ( nil )
+	   # | expression "+-*/%^|&" expression
+	   # ( nil )
+	   ;
