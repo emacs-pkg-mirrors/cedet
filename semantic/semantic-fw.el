@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.32 2004/03/08 09:07:41 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.33 2004/03/08 10:18:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -454,23 +454,21 @@ BUFFER defaults to the current buffer."
 ;; of the apropriate type.
 ;;
 (defun semantic-activate-mode-bindings (&optional mode)
-   "Set buffer local variables with MODE local variables.
-If MODE is not specified it is the current active one.
-By default the active mode is the current major mode."
-   (let ((table (semantic-current-bindings mode)))
-     (when table
-       (mapatoms
-        #'(lambda (var)
-            (if (get var 'mode-var)
-                (semantic-set-local-variable
-                 (intern (symbol-name var)) (symbol-value var))))
-        table))))
+  "Set buffer local variables with MODE local variables.
+If MODE is not specified it defaults to current `major-mode'."
+  (let ((table (semantic-current-bindings (or mode major-mode))))
+    (when table
+      (mapatoms
+       #'(lambda (var)
+           (if (get var 'mode-var)
+               (semantic-set-local-variable
+                (intern (symbol-name var)) (symbol-value var))))
+       table))))
 
 (defun semantic-deactivate-mode-bindings (&optional mode)
    "Kill buffer local variables previously set with MODE local variables.
-If MODE is not specified it is the current active one.
-By default the active mode is the current major mode."
-   (let ((table (semantic-current-bindings mode)))
+If MODE is not specified it defaults to current `major-mode'."
+   (let ((table (semantic-current-bindings (or mode major-mode))))
      (when table
        (mapatoms
         #'(lambda (var)
@@ -636,13 +634,13 @@ Value is what BODY returns."
      `(let ((,old-mode semantic-bindings-active-mode))
         (unwind-protect
             (progn
-              (semantic-deactivate-mode-bindings)
+              (semantic-deactivate-mode-bindings ,old-mode)
               (setq semantic-bindings-active-mode ',mode)
-              (semantic-activate-mode-bindings)
+              (semantic-activate-mode-bindings ',mode)
               ,@body)
-          (semantic-deactivate-mode-bindings)
+          (semantic-deactivate-mode-bindings ',mode)
           (setq semantic-bindings-active-mode ,old-mode)
-          (semantic-activate-mode-bindings)))))
+          (semantic-activate-mode-bindings ,old-mode)))))
 (put 'semantic-with-mode-bindings 'lisp-indent-function 1)
 
 ;;; Emacs Help hacks
