@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.7 2003/04/02 04:29:09 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.8 2003/04/02 04:29:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -305,7 +305,7 @@ a tag whose name is that of a struct or class.
 TABLE is a tag table.  See `semantic-something-to-tag-table'."
   (semantic--find-tags-by-function
      (lambda (tag) (semantic-tag-of-type-p tag type))
-     (semantic-something-to-tag-table table))))
+     (semantic-something-to-tag-table table)))
 
 ;;; Tag Table Flattening
 ;;
