@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 07 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-cim.el,v 1.7 2002/08/07 17:59:32 ponced Exp $
+;; X-RCS: $Id: wisent-cim.el,v 1.8 2002/08/11 09:40:53 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,7 +39,7 @@
 
 (defconst wisent-cim-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-07 15:16+0200
+    ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-10 21:09+0200
     (wisent-compile-grammar
      '((HACTIVATE HAFTER HARRAY HAT HBEFORE HBEGIN HBOOLEAN HCHARACTER HCLASS HCONC HDELAY HDO HELSE HEND HEQ HEXTERNAL HFOR HGE HGO HGOTO HGT HHIDDEN HIF HIN HINNER HINSPECT HINTEGER HIS HLABEL HLE HLONG HLT HNAME HNE HNEW HNONE HNOTEXT HOTHERWISE HPRIOR HPROCEDURE HPROTECTED HQUA HREACTIVATE HREAL HREF HSHORT HSTEP HSWITCH HTEXT HTHEN HTHIS HTO HUNTIL HVALUE HVAR HVIRTUAL HWHEN HWHILE HASSIGNVALUE HASSIGNREF HPAREXPSEPARATOR HLABELSEPARATOR HSTATEMENTSEPARATOR HBEGPAR HENDPAR HEQR HNER HADD HSUB HMUL HDIV HINTDIV HEXP HDOTDOTDOT HIDENTIFIER HBOOLEANKONST HINTEGERKONST HCHARACTERKONST HREALKONST HTEXTKONST)
        ((right HASSIGN)
@@ -581,15 +581,15 @@
 
 (defconst wisent-cim-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-07 15:16+0200
+   ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-10 21:09+0200
    (semantic-lex-make-keyword-table 'nil 'nil)
    )
   "Keywords.")
 
 (defconst wisent-cim-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-07 15:16+0200
-   (wisent-flex-make-token-table
+   ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-10 21:09+0200
+   (wisent-lex-make-token-table
     '(("tval"
        (HTEXTKONST))
       ("rval"
@@ -689,14 +689,14 @@
 
 (defun wisent-cim-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-07 15:16+0200
+  ;;DO NOT EDIT! Generated from wisent-cim.wy - 2002-08-10 21:09+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-cim-automaton
           semantic-flex-keywords-obarray wisent-cim-keywords
-          wisent-flex-tokens-obarray wisent-cim-tokens)
+          wisent-lex-tokens-obarray wisent-cim-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
