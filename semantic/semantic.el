@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.99 2001/05/04 14:46:46 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.100 2001/05/05 14:37:17 zappo Exp $
 
-(defvar semantic-version "1.4beta3"
+(defvar semantic-version "1.4beta4"
   "Current version of Semantic.")
 
 ;; This file is not part of GNU Emacs.
@@ -490,6 +490,7 @@ The returned item may be an overlay or an unloaded buffer representation."
   "Return non-nil if TOKEN is most likely a semantic token."
   (and (listp token)
        (stringp (car token))
+       (car (cdr token))
        (symbolp (car (cdr token)))))
 
 (defun semantic-token-with-position-p (token)
