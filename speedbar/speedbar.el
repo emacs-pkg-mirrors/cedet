@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.203 2001/07/20 21:35:13 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.204 2001/08/08 01:06:58 zappo Exp $
 
 (defvar speedbar-version "0.14beta1"
   "The current version of speedbar.")
@@ -1347,7 +1347,7 @@ nil if not applicable."
 	      (attr (speedbar-line-token))
 	      (item nil))
 	  (if (and (featurep 'semantic) (semantic-token-p attr))
-	      (speedbar-message (semantic-summarize-nonterminal attr))
+	      (speedbar-message (funcall semantic-sb-info-token->text-function attr))
 	    (looking-at "\\([0-9]+\\):")
 	    (setq item (file-name-nondirectory (speedbar-line-path)))
 	    (speedbar-message "Tag: %s  in %s" tag item)))
@@ -1371,7 +1371,7 @@ nil if not applicable."
 			       nil))))
 	      (if (and (featurep 'semantic) (semantic-token-p detail))
 		  (speedbar-message
-		   (semantic-summarize-nonterminal detail parent))
+		   (funcall semantic-sb-info-token->text-function detail parent))
 		(if parent
 		    (speedbar-message "Detail: %s of tag %s" detail
 				      (if (and (featurep 'semantic)
