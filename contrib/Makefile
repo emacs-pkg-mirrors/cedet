@@ -12,16 +12,16 @@ ede_FILES=Project.ede Makefile
 misc_AUX=ChangeLog
 EMACS=emacs
 LOADPATH=../common/ ../common/ ../semantic/ ../eieio/\
-   ../speedbar/ ../common/ ../semantic/wisent/ ../semantic/
+   ../semantic/bovine/ ../speedbar/ ../common/ ../semantic/wisent/ ../semantic/
 LOADDEFS=contrib-loaddefs.el
 LOADDIRS=.
 init_LISP=cedet-contrib-load.el
 EMACS=emacs
 setup_LISP=cedet-contrib.el
-wy_SEMANTIC_GRAMMAR=wisent-csharp.wy
+wy_SEMANTIC_GRAMMAR=wisent-csharp.wy wisent-javascript-jv.wy
 EMACS=emacs
-wy_SAMENATIC_GRAMMAR_EL=wisent-csharp-wy.el
-lisp_LISP=wisent-csharp.el
+wy_SAMENATIC_GRAMMAR_EL=wisent-csharp-wy.el wisent-javascript-jv-wy.el
+lisp_LISP=wisent-csharp.el semantic-matlab.el wisent-javascript.el
 VERSION=0.0
 DISTDIR=$(top)Contrib-$(VERSION)
 
