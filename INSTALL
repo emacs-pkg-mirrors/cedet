@@ -37,8 +37,8 @@ install scripts:
 2.1) Build Issues
 
   If running MAKE fails due to other issues such as bad load def
-  files, or incomprehensible run time errors during a byte compilation,
-  try these steps, then go back to step 2.
+  files, custom-autoload, incomprehensible run time errors during a byte
+  compilation, try these steps, then go back to step 2.
 
   a) make clean-autoloads
   b) make clean-all
