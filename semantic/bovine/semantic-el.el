@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.12 2003/04/06 01:06:50 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.13 2003/07/22 18:26:41 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -443,6 +443,9 @@ If there is a detail, prepend that directory."
 (defvar-mode-local emacs-lisp-mode imenu-create-index-function
   'semantic-create-imenu-index)
 
+(define-semantic-child-mode lisp-mode emacs-lisp-mode
+  "Make `lisp-mode' inherits semantic behavior from `emacs-lisp-mode'.")
+
 ;;;###autoload
 (defun semantic-default-elisp-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
@@ -450,6 +453,8 @@ If there is a detail, prepend that directory."
 
 ;;;###autoload
 (add-hook 'emacs-lisp-mode-hook 'semantic-default-elisp-setup)
+;;;###autoload
+(add-hook 'lisp-mode-hook 'semantic-default-elisp-setup)
 
 ;;;###autoload
 (eval-after-load "semanticdb"
