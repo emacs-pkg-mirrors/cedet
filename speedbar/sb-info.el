@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.2.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.9 1998/05/17 14:39:38 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.10 1998/06/13 13:36:47 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -36,7 +36,7 @@
 ;; files are displayed.  These functions provide Info specific support,
 ;; showing links and addresses in the side-bar.
 ;;
-;;   To enable in emacs 20.2 or earlier, add this to your .emacs file.
+;;   To enable in Emacs 20.2 or earlier, add this to your .emacs file.
 ;;   (autoload 'Info-speedbar-buttons "sb-info"
 ;;             "Info specific speedbar button generator.")
 ;;
@@ -119,9 +119,8 @@ specific node to expand."
     (if (not node)
 	(speedbar-with-writable (insert "Info Nodes:\n")))
     (let ((completions nil))
-      (speedbar-with-attached-buffer
-       (setq completions
-	     (Info-speedbar-fetch-file-nodes (or node '"(dir)top"))))
+      (setq completions
+	    (Info-speedbar-fetch-file-nodes (or node '"(dir)top")))
       (if completions
 	  (speedbar-with-writable
 	   (while completions
@@ -177,7 +176,7 @@ INDENT is the current indentation depth."
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
-	(t (error "Ooops... not sure what to do.")))
+	(t (error "Ooops... not sure what to do")))
   (speedbar-center-buffer-smartly))
 
 (defun Info-speedbar-fetch-file-nodes (nodespec)
@@ -207,7 +206,10 @@ Optional THISFILE represends the filename of"
 	      (setq name (cons name (match-string 1)))
 	    (if (looking-at " *\\(([^)]+)\\)\\.")
 		(setq name (cons name (concat (match-string 1) "Top")))
-	      (setq name (cons name (concat "(" thisfile ")" name)))))
+	      (if (looking-at " \\([^.]+\\).")
+		  (setq name
+			(cons name (concat "(" thisfile ")" (match-string 1))))
+		(setq name (cons name (concat "(" thisfile ")" name))))))
 	  (setq completions (cons name completions))))
       (nreverse completions))))
 
