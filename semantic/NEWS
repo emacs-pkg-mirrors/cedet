@@ -9,6 +9,12 @@
 *** Modifiers field for variable, function, and types is now an association
     list.
 
+** Semantic Context Analysis library
+
+*** Analyzizes via type information the local context
+
+*** Provides smart completion information
+
 ** User Visible Features
 
 *** semantic-load.el simplifies installation.
@@ -16,6 +22,10 @@
 *** Added partial reparseing of buffers where only token contents have changed.
 
 *** Added `semantic-show-dirty-mode'.
+
+*** Added `semantic-show-unmatched-syntax-mode'
+
+*** Added `semantic-auto-reparse-mode'
 
 *** Added new tool, `semanticdb'.
     Semanticdb caches token lists between sessions with a specific file.
@@ -61,6 +71,8 @@
 
 **** semantic-java.el derived from JDE.
 
+**** eldoc support in bnf modes.
+
 *** semantic-imenu can now tags for all files that had been loaded in
     emacs in a directory if semanticdb is active
 
@@ -76,7 +88,7 @@
 
 *** Source level debugging in the .bnf file
 
-*** eldoc support in bnf modes.
+*** skeleton.bnf as a good starting point for new languages.
 
 Local variables:
 mode: outline
