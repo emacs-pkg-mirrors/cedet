@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2004-01-14 10:33:53+0100
+;; Created: 2004-01-18 10:52:15+0100
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.9 2004/01/14 09:54:24 ponced Exp $
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.10 2004/01/18 15:43:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -258,9 +258,12 @@ Used internally to retrieve value of EXPADFULL tags."
         ((LT SYMBOL GT)
          (progn $2)))
        (type_decl
-        ((TYPE token_type plist)
+        ((TYPE token_type plist_opt)
          `(wisent-raw-tag
            (semantic-tag ',$2 'type :value ',$3))))
+       (plist_opt
+        (nil)
+        ((plist)))
        (plist
         ((plist put_value)
          (append
