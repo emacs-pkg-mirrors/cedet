@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.56 1997/08/02 20:22:07 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.57 1997/08/15 00:18:57 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -249,19 +249,22 @@
 ;;       Added `speedbar-sort-tags' toggle to the menubar.
 ;;       Added `speedbar-smart-directory-expand-flag' to toggle how
 ;;         new directories might be inserted into the speedbar hierarchy.
+;;       Added `speedbar-visiting-[tag|file]hook' which is called whenever
+;;         speedbar pulls up a file or tag in the attached frame.  Setting
+;;         this to `reposition-window' will do nice things to function tags.
 
 ;;; TODO:
-;; 1) More functions to create buttons and options
-;; 2) filtering algoritms to reduce the number of tags/files displayed.
-;; 3) Timeout directories we haven't visited in a while.
-;; 4) Remeber tags when refreshing the display.  (Refresh tags too?)
-;; 5) More 'special mode support.
-;; 6) C- Mouse 3 menu too much indirection
+;; - More functions to create buttons and options
+;; - filtering algoritms to reduce the number of tags/files displayed.
+;; - Timeout directories we haven't visited in a while.
+;; - Remeber tags when refreshing the display.  (Refresh tags too?)
+;; - More 'special mode support.
+;; - C- Mouse 3 menu too much indirection
 
-;;; Code:
 (require 'assoc)
 (require 'easymenu)
 
+;;; Code:
 (defvar speedbar-xemacsp (string-match "XEmacs" emacs-version)
   "Non-nil if we are running in the XEmacs environment.")
 
@@ -300,6 +303,12 @@ allows a mode to update it's contents regularly.
   Each function is called with the default and frame belonging to
 speedbar, and with one parameter; the buffer requesting
 the speedbar display.")
+
+(defvar speedbar-visiting-file-hook nil
+  "Hooks run when speedbar visits a file in the selected frame.")
+
+(defvar speedbar-visiting-tag-hook nil
+  "Hooks run when speedbar visits a tag in the selected frame.")
 
 (defvar speedbar-load-hook nil
   "Hooks run when speedbar is loaded.")
@@ -367,6 +376,9 @@ Possible values are:
 When smart expansion is enabled, then if speedbar is asked to display
 a new buffers location which is not in the current directory
 hierarchy, but it could be added, then it will be.")
+
+(defvar speedbar-before-popup-hook nil
+  "*Hooks called before popping up the speedbar frame.")
 
 (defvar speedbar-before-delete-hook nil
   "*Hooks called before deleting the speedbar frame.")
@@ -720,7 +732,9 @@ directories.")
   "Enable or disable speedbar.  Positive ARG means turn on, negative turn off.
 nil means toggle.  Once the speedbar frame is activated, a buffer in
 `speedbar-mode' will be displayed.  Currently, only one speedbar is
-supported at a time."
+supported at a time.
+`speedbar-before-popup-hook' is called before popping up the speedbar frame.
+`speedbar-before-delete-hook' is called before the frame is deleted."
   (interactive "P")
   (if (not window-system)
       (error "Speedbar is not useful outside of a windowing environment"))
@@ -745,6 +759,7 @@ supported at a time."
 	)
     ;; Set this as our currently attached frame
     (setq speedbar-attached-frame (selected-frame))
+    (run-hooks 'speedbar-before-popup-hook)
     ;; Get the frame to work in
     (if (frame-live-p speedbar-cached-frame)
 	(progn
@@ -2122,6 +2137,7 @@ current indentation level."
   (let ((cdd (speedbar-line-path indent)))
     (speedbar-find-file-in-frame (concat cdd text))
     (speedbar-stealthy-updates)
+    (run-hooks 'speedbar-visiting-file-hook)
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
@@ -2248,6 +2264,7 @@ INDENT is the current indentation level."
     ;; that other timer.
     (speedbar-set-timer speedbar-update-speed)
     (goto-char token)
+    (run-hooks 'speedbar-visiting-tag-hook)
     ;;(recenter)
     (speedbar-maybee-jump-to-attached-frame)
     ))
@@ -2353,7 +2370,7 @@ interested in."
 
 ;;; Tag Management -- Imenu
 ;;
-(if  (string-match "XEmacs" emacs-version)
+(if (not speedbar-use-imenu-flag)
 
     nil
 
@@ -2531,7 +2548,7 @@ regular expression EXPR"
   "Parse a Tex string.  Only find data which is relevant."
   (save-excursion
     (let ((bound (save-excursion (end-of-line) (point))))
-      (cond ((re-search-forward "\\(\\(sub\\)?section\\|chapter\\|cite\\)\\s-*{[^\C-?}]*}?" bound t)
+      (cond ((re-search-forward "\\(\\(sub\\)*section\\|chapter\\|cite\\)\\s-*{[^\C-?}]*}?" bound t)
 	     (buffer-substring-no-properties (match-beginning 0)
 					     (match-end 0)))
 	    (t nil)))))
