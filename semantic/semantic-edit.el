@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.19 2003/04/02 02:14:56 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.20 2003/08/23 21:43:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -59,12 +59,14 @@
 
 ;;; Code:
 (defvar semantic-after-partial-cache-change-hook nil
-  "Hooks run after the buffer token list has been updated.
-This list will change when the current token list has been partially
-reparsed.
+  "Hooks run after the buffer cache has been updated.
+
+This hook will run when the cache has been partially reparsed.
+Partial reparses are incurred when a user edits a buffer, and only the
+modified sections are rescanned.
 
 Hook functions must take one argument, which is the list of tokens
-updated among the ones associated with this buffer.
+updated in the current buffer.
 
 For language specific hooks, make sure you define this as a local hook.")
 
