@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.94 2004/02/10 01:51:12 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.95 2004/03/09 11:40:13 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -2475,9 +2475,7 @@ found, nil otherwise."
   ;; Ignore this function used by senator
   (defalias 'senator-lazy-highlight-update 'ignore)
   
-  )
- 
- ) ;; End of compatibility stuff
+  ))
 
 (defmacro senator-define-search-advice (searcher)
   "Advice the built-in SEARCHER function to do semantic search.
@@ -2497,22 +2495,43 @@ That is to call the Senator counterpart searcher when variables
                  (setq senator-isearch-semantic-mode nil)
                  (setq ad-return-value
                        (funcall ',senator-searcher
-                                (ad-get-arg 0) ; string
-                                (ad-get-arg 1) ; bound
-                                (ad-get-arg 2) ; no-error
-                                (ad-get-arg 3) ; count
+                                (ad-get-arg 0)     ; string
+                                (ad-get-arg 1)     ; bound
+                                (ad-get-arg 2)     ; no-error
+                                (ad-get-arg 3)     ; count
                                 )))
              (setq senator-isearch-semantic-mode t))
          ad-do-it))))
 
-;; Advice the built-in search functions to do semantic search when
-;; `isearch-mode' and `senator-isearch-semantic-mode' are on.
-(senator-define-search-advice search-forward)
-(senator-define-search-advice re-search-forward)
-(senator-define-search-advice word-search-forward)
-(senator-define-search-advice search-backward)
-(senator-define-search-advice re-search-backward)
-(senator-define-search-advice word-search-backward)
+;; Recent versions of GNU Emacs allow to override the isearch search
+;; function for special needs, and avoid to advice the built-in search
+;; function :-)
+(defun senator-isearch-search-fun ()
+  "Return the function to use for the search.
+Use a senator search function when semantic isearch mode is enabled."
+  (intern
+   (concat (if senator-isearch-semantic-mode
+               "senator-"
+             "")
+           (cond (isearch-word "word-")
+                 (isearch-regexp "re-")
+                 (t ""))
+           "search-"
+           (if isearch-forward
+               "forward"
+             "backward"))))
+
+(unless (boundp 'isearch-search-fun-function)
+  ;; Advice the built-in search functions to do semantic search when
+  ;; `isearch-mode' and `senator-isearch-semantic-mode' are on.
+  (senator-define-search-advice search-forward)
+  (senator-define-search-advice re-search-forward)
+  (senator-define-search-advice word-search-forward)
+  (senator-define-search-advice search-backward)
+  (senator-define-search-advice re-search-backward)
+  (senator-define-search-advice word-search-backward)
+  )
+;;; End of compatibility stuff
 
 (defun senator-isearch-toggle-semantic-mode ()
   "Toggle semantic searching on or off in isearch mode.
@@ -2543,9 +2562,15 @@ That is to call the Senator counterpart searcher when variables
   "Isearch mode hook to setup semantic searching."
   (or senator-minor-mode
       (setq senator-isearch-semantic-mode nil))
+  (when (boundp 'isearch-search-fun-function)
+    (if (and isearch-mode senator-isearch-semantic-mode)
+        (set (make-local-variable 'isearch-search-fun-function)
+             'senator-isearch-search-fun)
+      (kill-local-variable 'isearch-search-fun-function)))
   (senator-mode-line-update))
 
-(add-hook 'isearch-mode-hook 'senator-isearch-mode-hook)
+(add-hook 'isearch-mode-hook     'senator-isearch-mode-hook)
+(add-hook 'isearch-mode-end-hook 'senator-isearch-mode-hook)
 
 (provide 'senator)
 
