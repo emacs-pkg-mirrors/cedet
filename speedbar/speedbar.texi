@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.4 1999/09/15 22:10:09 zappo Exp $
+@c $Id: speedbar.texi,v 1.5 1999/09/15 22:17:54 zappo Exp $
 @c
 
 @c This manual covers the tool "speedbar", and is a part of it's
@@ -22,12 +22,12 @@
 @c Boston, MA 02111-1307, USA.
 
 @setfilename speedbar.info
-@settitle Enhanced Implementation of Emacs Interpreted Objects
+@settitle Speedbar: File/Tag summarizing utility
 
 @ifinfo
 @format
 START-INFO-DIR-ENTRY
-* Speedbar: (speedbar).	File/Tag summerizing utility.
+* Speedbar: (speedbar).	File/Tag summarizing utility.
 END-INFO-DIR-ENTRY
 @end format
 @end ifinfo
