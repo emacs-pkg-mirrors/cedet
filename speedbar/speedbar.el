@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.6.3.a
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.76 1998/03/06 15:36:42 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.77 1998/03/06 16:34:29 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -110,10 +110,6 @@
 ;; have speedbar updating automatically.  Use "r" to refresh the
 ;; display after changing directories.  Remember, do not interrupt the
 ;; stealthy updates or your display may not be completely refreshed.
-;;
-;;    See optional file `speedbspec.el' for additional configurations
-;; which allow speedbar to create specialized lists for special modes
-;; that are not file-related.
 ;;
 ;;    AUC-TEX users: The imenu tags for AUC-TEX mode don't work very
 ;; well.  Use the imenu keywords from tex-mode.el for better results.
@@ -325,6 +321,8 @@
 ;;       Added navigation functions `speedbar-restricted-next' and
 ;;         `speedbar-restricted-prev' for navigation only in a
 ;;         specific depth of files.
+;;       Merge the speedbspec file into this file, and simplify the
+;;         method of setting up the special modes.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -405,16 +403,13 @@ frame."
   :type 'boolean)
 
 (defvar speedbar-special-mode-expansion-list nil
-  "Mode specific list of functions to call to fill in speedbar.
-Some modes, such as Info or RMAIL, do not relate quite as easily into
-a simple list of files.  When this variable is non-nil and buffer-local,
-then these functions are used, creating specialized contents.  These
-functions are called each time the speedbar timer is called.  This
-allows a mode to update its contents regularly.
+  "Default function list for creating specialized button lists.
+Similar to `speedbar-initial-expansion-list'.")
 
-  Each function is called with the default and frame belonging to
-speedbar, and with one parameter; the buffer requesting
-the speedbar display.")
+(defvar speedbar-easymenu-definition-special nil
+  "Default easymeny definition for specialized speedbar displays.
+Used as the center part of the speedbar meny in specialized speedbar
+modes.")
 
 (defcustom speedbar-visiting-file-hook nil
   "Hooks run when speedbar visits a file in the selected frame."
@@ -1654,6 +1649,54 @@ will be run with the TOKEN parameter (any lisp object)"
   (if token (put-text-property start end 'speedbar-token token))
   )
 
+;;; Special speedbar display management
+;;
+(defun speedbar-maybe-add-localized-support (buffer)
+  "Quick check function called on BUFFERs by the speedbar timer function.
+Maintains the value of local variables which control speedbars use
+of the special mode functions."
+  (or speedbar-special-mode-expansion-list
+      (speedbar-add-localized-speedbar-support buffer)))
+
+(defun speedbar-add-localized-speedbar-support (buffer)
+  "Add localized speedbar support to BUFFER's mode if it is available."
+  (interactive "bBuffer: ")
+  (if (stringp buffer) (setq buffer (get-buffer buffer)))
+  (if (not (buffer-live-p buffer))
+      nil
+    (save-excursion
+      (set-buffer buffer)
+      (save-match-data
+	(let ((ms (symbol-name major-mode))
+	      v tmp)
+	  (if (not (string-match "-mode$" ms))
+	      nil ;; do nothing to broken mode
+	    (setq ms (substring ms 0 (match-beginning 0)))
+	    (setq v (intern-soft (concat ms "-speedbar-buttons")))
+	    (make-local-variable 'speedbar-special-mode-expansion-list)
+	    (if (not v)
+		(setq speedbar-special-mode-expansion-list t)
+	      ;; If it is autoloaded, we need to load it now so that
+	      ;; we have access to the varialbe -speedbar-menu-items.
+	      ;; Is this XEmacs safe?
+	      (let ((sf (symbol-function v)))
+		(if (and (listp sf) (eq (car sf) 'autoload))
+		    (load-library (car (cdr sf)))))
+	      (setq speedbar-special-mode-expansion-list (list v))
+	      (setq v (intern-soft (concat ms "-speedbar-menu-items")))
+	      (if (not v)
+		  nil ;; don't add special menus
+		(make-local-variable 'speedbar-easymenu-definition-special)
+		(setq speedbar-easymenu-definition-special
+		      (symbol-value v))))))))))
+
+(defun speedbar-remove-localized-speedbar-support (buffer)
+  "Remove any traces that BUFFER supports speedbar in a specialized way."
+  (save-excursion
+    (set-buffer buffer)
+    (kill-local-variable 'speedbar-special-mode-expansion-list)
+    (kill-local-variable 'speedbar-easymenu-definition-special)))
+
 ;;; File button management
 ;;
 (defun speedbar-file-lists (directory)
@@ -1901,7 +1944,11 @@ name will have the function FIND-FUN and not token."
   (interactive)
   ;; Set the current special buffer
   (setq speedbar-desired-buffer nil)
+  ;; Check for special modes
+  (speedbar-maybe-add-localized-support (current-buffer))
+  ;; Choose the correct method of doodling.
   (if (and speedbar-mode-specific-contents-flag
+	   (listp speedbar-special-mode-expansion-list)
 	   speedbar-special-mode-expansion-list
 	   (local-variable-p
 	    'speedbar-special-mode-expansion-list
@@ -2023,8 +2070,11 @@ This should only be used by modes classified as special."
 	      ;; get a good directory from
 	      (if (string-match "\\*Minibuf-[0-9]+\\*" (buffer-name))
 		  (other-window 1))
+	      ;; Check for special modes
+	      (speedbar-maybe-add-localized-support (current-buffer))
 	      ;; Update for special mode all the time!
 	      (if (and speedbar-mode-specific-contents-flag
+		       (listp speedbar-special-mode-expansion-list)
 		       speedbar-special-mode-expansion-list
 		       (local-variable-p
 			'speedbar-special-mode-expansion-list
