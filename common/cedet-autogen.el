@@ -1,11 +1,11 @@
 ;;; cedet-autogen.el --- Generate autoloads for CEDET libraries
 
-;; Copyright (C) 2003 David Ponce
+;; Copyright (C) 2003, 2004 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Created: 22 Aug 2003
 ;; Keywords: maint
-;; X-CVS: $Id: cedet-autogen.el,v 1.4 2003/11/20 12:45:48 zappo Exp $
+;; X-CVS: $Id: cedet-autogen.el,v 1.5 2004/03/11 01:34:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -211,11 +211,12 @@ LOADDEFS and DIRECTORY arguments."
   (unless (cedet-autogen-noninteractive)
     (error "\
 `cedet-batch-update-autoloads' is to be used only with -batch"))
-  (condition-case nil
+  (condition-case err
       (apply 'cedet-update-autoloads command-line-args-left)
     (error
-     (error "\
-Usage: emacs -batch -f cedet-batch-update-autoloads LOADDEFS [DIRECTORY]"))
+     (error "%S\n\
+Usage: emacs -batch -f cedet-batch-update-autoloads LOADDEFS [DIRECTORY]"
+	    err))
     ))
 
 (provide 'cedet-autogen)
