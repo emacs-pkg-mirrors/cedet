@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.4 2003/08/29 16:09:59 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.5 2003/12/21 02:10:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -179,6 +179,11 @@ instead of read-only."
 ;; gets whacked, but doesn't show up in the master list
 ;; of overlays used for searching.
 ;;;###autoload
+(defun semantic-tag-secondary-overlays (tag)
+  "Return a list of secondary overlays active on TAG."
+  (semantic--tag-get-property tag 'secondary-overlays))
+
+;;;###autoload
 (defun semantic-tag-create-secondary-overlay (tag &optional link-hook)
   "Create a secondary overlay for TAG.
 Returns an overlay.  The overlay is also saved in TAG.
@@ -204,23 +209,34 @@ generated secondary overlay."
       o)))
 
 ;;;###autoload
+(defun semantic-tag-get-secondary-overlay (tag property)
+  "Return secondary overlays from TAG with PROPERTY.
+PROPERTY is a symbol and all overlays with that symbol are returned.."
+  (let* ((olsearch (semantic-tag-secondary-overlays tag))
+	 (o nil))
+    (while olsearch
+      (when (semantic-overlay-get (car olsearch) property)
+	(setq o (cons (car olsearch) o)))
+      (setq olsearch (cdr olsearch)))
+    o))
+
+;;;###autoload
 (defun semantic-tag-delete-secondary-overlay (tag overlay-or-property)
   "Delete from TAG the secondary overlay OVERLAY-OR-PROPERTY.
 If OVERLAY-OR-PROPERTY is an overlay, delete that overlay.
-If OVERLAY-OR-PROPERTY is a symbol, find the overlay with that property.."
-  (let* ((ol (semantic-tag-secondary-overlays tag))
-	 (olsearch ol)
-	 (o overlay-or-property))
-    (while (and olsearch (not (semantic-overlay-p o)))
-      (when (semantic-overlay-get (car olsearch) overlay-or-property)
-	  (setq o (car olsearch)))
-      (setq olsearch (cdr olsearch)))
-    (when (semantic-overlay-p o)
+If OVERLAY-OR-PROPERTY is a symbol, find the overlay with that property."
+  (let* ((o overlay-or-property))
+    (if (semantic-overlay-p o)
+	(setq o (list o))
+      (setq o (semantic-tag-get-secondary-overlay tag overlay-or-property)))
+    (while (semantic-overlay-p (car o))
       ;; We don't really need to worry about the hooks.
       ;; They will clean themselves up eventually ??
-      (semantic--tag-put-property tag 'secondary-overlays
-				  (delete o ol))
-      (semantic-overlay-delete o))))
+      (semantic--tag-put-property
+       tag 'secondary-overlays
+       (delete (car o) (semantic-tag-secondary-overlays tag)))
+      (semantic-overlay-delete (car o))
+      (setq o (cdr o)))))
 
 (defun semantic--tag-unlink-secondary-overlays (tag)
   "Unlink secondary overlays from TAG."
@@ -253,11 +269,6 @@ If OVERLAY-OR-PROPERTY is a symbol, find the overlay with that property.."
       (semantic-tag-create-secondary-overlay tag (car ol))
       (setq ol (cdr ol)))
     ))
-
-;;;###autoload
-(defun semantic-tag-secondary-overlays (tag)
-  "Return a list of secondary overlays active on TAG."
-  (semantic--tag-get-property tag 'secondary-overlays))
 
 (provide 'semantic-decorate)
 
