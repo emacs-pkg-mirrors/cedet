@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.145 2002/07/10 03:44:54 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.146 2002/07/10 03:59:55 zappo Exp $
 
 (defvar semantic-version "2.0alpha1"
   "Current version of Semantic.")
@@ -521,13 +521,15 @@ toplevel cache check should be made."
 Runs `semantic-init-hook' if the major mode is setup to use Semantic."
   (when (semantic-active-p)
     (semantic-clear-toplevel-cache)
-    (setq semantic-toplevel-bovine-force-reparse t)
-    ;; Call DB hooks before regular init hooks
-    (run-hooks 'semantic-init-db-hooks)
-    (run-hooks 'semantic-init-hooks)
     ;; Here are some buffer local variables we can initialize ourselves
     ;; of a mode does not choose to do so.
     (semantic-lex-init)
+    ;; Setup for a needed reparse.
+    (setq semantic-toplevel-bovine-force-reparse t)
+    ;; Call DB hooks before regular init hooks
+    (run-hooks 'semantic-init-db-hooks)
+    ;; Lastly, set up semantic modes
+    (run-hooks 'semantic-init-hooks)
     ))
 
 (defvar semantic-changed-mode-buffers nil
