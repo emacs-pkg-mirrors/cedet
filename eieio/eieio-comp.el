@@ -4,7 +4,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-comp.el,v 1.7 2000/08/20 17:00:00 zappo Exp $
+;; RCS: $Id: eieio-comp.el,v 1.8 2000/08/20 17:01:52 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -41,11 +41,13 @@
 ;;; Code:
 
 ;; Some compatibility stuff
-(if (not (fboundp 'byte-compile-compiled-obj-to-list))
-    (defun byte-compile-compiled-obj-to-list (moose) nil))
+(eval-and-compile
+  (if (not (fboundp 'byte-compile-compiled-obj-to-list))
+      (defun byte-compile-compiled-obj-to-list (moose) nil))
 
-(if (not (boundp 'byte-compile-outbuffer))
-    (defvar byte-compile-outbuffer nil))
+  (if (not (boundp 'byte-compile-outbuffer))
+      (defvar byte-compile-outbuffer nil))
+  )
 
 ;; This teaches the byte compiler how to do this sort of thing.
 (put 'defmethod 'byte-hunk-handler 'byte-compile-file-form-defmethod)
