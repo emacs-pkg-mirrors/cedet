@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.8.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.141 1999/03/01 15:52:52 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.142 1999/03/10 15:04:50 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -1298,6 +1298,15 @@ Argument FMT is the format string, and ARGS are the arguments for message."
     (select-frame speedbar-attached-frame)
     (apply 'message fmt args)))
 
+(defun speedbar-y-or-n-p (prompt)
+  "Like `y-or-n-p', but for use in the speedbar frame.
+Argument PROMPT is the prompt to use."
+  (save-selected-window
+    (if (and default-minibuffer-frame (not (eq default-minibuffer-frame
+					       speedbar-attached-frame)))
+	(select-frame speedbar-attached-frame))
+    (y-or-n-p prompt)))
+
 (defun speedbar-show-info-under-mouse (&optional event)
   "Call the info function for the line under the mouse.
 Optional EVENT is currently not used."
@@ -1671,7 +1680,7 @@ Assumes that the current buffer is the speedbar buffer"
   (let ((f (speedbar-line-file)))
     (if (and (file-exists-p f) (string-match "\\.el\\'" f))
 	(if (and (file-exists-p (concat f "c"))
-		 (y-or-n-p (format "Load %sc? " f)))
+		 (speedbar-y-or-n-p (format "Load %sc? " f)))
 	    ;; If the compiled version exists, load that instead...
 	    (load-file (concat f "c"))
 	  (load-file f))
@@ -1781,7 +1790,7 @@ Files can be copied to new names or places."
 			  (if (string-match "/$" rt) "" "/")
 			  (file-name-nondirectory f))))
 	(if (or (not (file-exists-p rt))
-		(y-or-n-p (format "Overwrite %s with %s? " rt f)))
+		(speedbar-y-or-n-p (format "Overwrite %s with %s? " rt f)))
 	    (progn
 	      (copy-file f rt t t)
 	      ;; refresh display if the new place is currently displayed.
@@ -1810,7 +1819,7 @@ Files can be renamed to new names or moved to new directories."
 			    (if (string-match "/\\'" rt) "" "/")
 			    (file-name-nondirectory f))))
 	  (if (or (not (file-exists-p rt))
-		  (y-or-n-p (format "Overwrite %s with %s? " rt f)))
+		  (speedbar-y-or-n-p (format "Overwrite %s with %s? " rt f)))
 	      (progn
 		(rename-file f rt t)
 		;; refresh display if the new place is currently displayed.
@@ -1826,7 +1835,7 @@ Files can be renamed to new names or moved to new directories."
   (interactive)
   (let ((f (speedbar-line-file)))
     (if (not f) (error "Not a file"))
-    (if (y-or-n-p (format "Delete %s? " f))
+    (if (speedbar-y-or-n-p (format "Delete %s? " f))
 	(progn
 	  (if (file-directory-p f)
 	      (delete-directory f)
@@ -1851,7 +1860,7 @@ variable `speedbar-obj-alist'."
       (setq oa (cdr oa)))
     (setq obj (concat (file-name-sans-extension f) (cdr (car oa))))
     (if (and oa (file-exists-p obj)
-	     (y-or-n-p (format "Delete %s? " obj)))
+	     (speedbar-y-or-n-p (format "Delete %s? " obj)))
 	(progn
 	  (delete-file obj)
 	  (speedbar-reset-scanners)))))
@@ -3916,7 +3925,7 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 						      (end-of-line)
 						      (point))))))
 	      (if (and (get-buffer text)
-		       (y-or-n-p (format "Kill buffer %s? " text)))
+		       (speedbar-y-or-n-p (format "Kill buffer %s? " text)))
 		  (kill-buffer text))
 	      (speedbar-refresh))))))
 
