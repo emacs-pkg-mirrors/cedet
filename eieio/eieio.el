@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.5
-;;; RCS: $Id: eieio.el,v 1.2 1996/03/10 15:18:37 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.3 1996/03/23 19:40:31 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -134,6 +134,10 @@
 ;;;        Added CLOS functions `make-instance' and `slot-value'
 ;;; 0.5  - Finally figured out how to fix macros so they byte compile
 ;;;      - Added CLOS style `defmethod' and `defgeneric'
+;;; 0.6  - Fixed up the defgeneric default call to handle arguments better.
+;;;      - Added `call-next-method' (calls parent's method)
+;;;      - Fixed `make-instance' so it's no longer a macro
+;;;      - Fixed edebug hooks so they work better
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -344,12 +348,7 @@ in that class definition.  See defclass for more information"
 
 ;;; CLOS style implementation of object creators.
 ;;;
-(defmacro make-instance (class &rest initargs)
-  "Make a new instance of CLASS with initilaization of some parts with
-INITARGS"
-  (list 'make-instance-engine class (list 'quote initargs)))
-
-(defun make-instance-engine (class initargs)
+(defun make-instance (class &rest initargs)
   "Make a new instance of CLASS with initilaization of some parts with
 INITARGS"
   (let ((cc (class-constructor class)))
@@ -682,43 +681,81 @@ with the list of arguments ARGS."
 ;;;
 ;;; CLOS generics internal function handling
 ;;;
+(defvar eieio-generic-call-methodname nil
+  "When using `call-next-method' this provides a context on how to do it.")
+(defvar eieio-generic-call-arglst nil
+  "When using `call-next-method' this provides a context on what to use
+for parameters")
+
 (defun eieio-generic-call (method args)
   "Do the hard work of looking up which method to call out of all
 available methods which may be programmed in."
   ;; We must expand our arguments first as they are always
   ;; passed in as quoted symbols
-  (let ((newargs nil) (forms nil) (mclass nil)  (lambdas nil))
-    ;; evaluate the arguments BEFORE changing THIS and SCOPED CLASS
-    (while args
-      (setq newargs (cons (eval (car args)) newargs)
-	    args (cdr args)))
-    ;; fix the order
-    (setq newargs (reverse newargs))
+  (let ((newargs nil) (forms nil) (mclass nil)  (lambdas nil)
+	(scope-to nil)
+	(eieio-generic-call-methodname method)
+	(eieio-generic-call-arglst args))
+    ;; get a copy 
+    (setq newargs args)
     ;; lookup the forms to use
     (if (object-p (car newargs))
 	(setq mclass (object-class (car newargs))))
     ;; Now create a list in reverse order of all the calls we have
-    ;; make in order to successfully do this right
-    (setq lambdas (cons (eieio-generic-form method ":AFTER-" nil) lambdas))
+    ;; make in order to successfully do this right.  Rules:
+    ;; 1) Only call generics if scoped-class is not defined
+    ;;    This prevents multiple calls in the case of a parent class call.
+    ;; 2) Only call specifics if the definition allows for them.
+    ;; 3) Call in order based on :BEFORE, :PRIMARY, and :AFTER
+    (if (not scoped-class)
+	(progn
+	  (setq lambdas (cons (eieio-generic-form method ":AFTER-" nil) lambdas))
+	  (setq scope-to (cons nil scope-to))))
     (if mclass
-	(setq lambdas (cons (eieio-generic-form method ":AFTER-" mclass)
-			    lambdas)))
-    (setq lambdas (cons (eieio-generic-form method ":PRIMARY-" nil) lambdas))
+	(progn
+	  (setq lambdas (cons (eieio-generic-form method ":AFTER-" mclass)
+			      lambdas))
+	  (setq scope-to (cons mclass scope-to))))
+    (if (not scoped-class)
+	(progn
+	  (setq lambdas (cons (eieio-generic-form method ":PRIMARY-" nil) lambdas))
+	  (setq scope-to (cons nil scope-to))))
     (if mclass
-	(setq lambdas (cons (eieio-generic-form method ":PRIMARY-" mclass)
-			    lambdas)))
-    (setq lambdas (cons (eieio-generic-form method ":BEFORE-" nil) lambdas))
+	(progn
+	  (setq lambdas (cons (eieio-generic-form method ":PRIMARY-" mclass)
+			      lambdas))
+	  (setq scope-to (cons mclass scope-to))))
+    (if (not scoped-class)
+	(progn
+	  (setq lambdas (cons (eieio-generic-form method ":BEFORE-" nil) lambdas))
+	  (setq scope-to (cons nil scope-to))))
     (if mclass
-	(setq lambdas (cons (eieio-generic-form method ":BEFORE-" mclass)
-			    lambdas)))
+	(progn
+	  (setq lambdas (cons (eieio-generic-form method ":BEFORE-" mclass)
+			      lambdas))
+	  (setq scope-to (cons mclass scope-to))))
+
     ;; Now loop through all occurances forms which we must execute
     ;; (which are happilly sorted now) and execute them all!
     (let ((rval nil))
       (while lambdas
 	(if (car lambdas)
-	    (setq rval (apply (car lambdas) newargs)))
+	    (let ((scoped-class (car scope-to)))
+	      (setq rval (apply (car lambdas) newargs))))
 	(setq lambdas (cdr lambdas)))
       rval)))
+
+(defun call-next-method ()
+  "When inside a call to a method belonging to some object, call the
+method belong to the parent class"
+  (let ((newargs eieio-generic-call-arglst) (lambdas nil)
+	(mclass (class-parent scoped-class)))
+    ;; lookup the form to use for the PRIMARY object for the next level
+    (setq lambdas (eieio-generic-form eieio-generic-call-methodname
+				      ":PRIMARY-" mclass))
+    ;; Setup calling environment, and apply arguments...
+    (let ((scoped-class mclass))
+      (apply lambdas newargs))))
 
 (defun eieio-generic-form (method tag class)
  "Return the lambda form belonging to METHOD using TAG based upon
@@ -915,7 +952,7 @@ the screen."
 	    (def-edebug-spec defmethod
 	      (symbolp	                ; This is the methods symbol
 	       [ &optional symbolp ]    ; this is key :BEFORE etc
-	       lambda-list              ; arguments
+	       list              ; arguments
 	       [ &optional stringp ]    ; documentation string
 	       def-body	                ; part to be debugged
 	       )))
