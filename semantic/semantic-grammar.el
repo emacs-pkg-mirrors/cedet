@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.36 2003/08/21 12:19:37 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.37 2003/08/22 18:15:03 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -705,92 +705,99 @@ Also load the specified macro libraries."
          (epilogue (semantic-grammar-epilogue))
          (footer   (semantic-grammar-footer))
          )
-    (set-buffer semantic--grammar-output-buffer)
-    (erase-buffer)
-    (unless (eq major-mode 'emacs-lisp-mode)
-      (emacs-lisp-mode))
+    (if (file-newer-than-file-p (buffer-file-name semantic--grammar-output-buffer)
+				(buffer-file-name semantic--grammar-input-buffer))
+	(message "Package %s is up to date."
+		 (file-name-nondirectory
+		  (buffer-file-name semantic--grammar-output-buffer)))
+      ;; Create the package
+      (set-buffer semantic--grammar-output-buffer)
+      (erase-buffer)
+      (unless (eq major-mode 'emacs-lisp-mode)
+	(emacs-lisp-mode))
     
 ;;;; Header + Prologue
     
-    (insert header
-            "\n;;; Prologue\n;;\n"
-            prologue
-            "\n;;; Declarations\n;;\n"
-            )
-    ;; Evaluate the prologue now, because it might provide definition
-    ;; of grammar macro expanders.
-    (eval-region (point-min) (point))
+      (insert header
+	      "\n;;; Prologue\n;;\n"
+	      prologue
+	      "\n;;; Declarations\n;;\n"
+	      )
+      ;; Evaluate the prologue now, because it might provide definition
+      ;; of grammar macro expanders.
+      (eval-region (point-min) (point))
     
-    (save-excursion
+      (save-excursion
       
 ;;;; Declarations
       
-      ;; `eval-defun' is not necessary to reset `defconst' values.
-      (semantic-grammar-insert-defconst
-       (semantic-grammar-keywordtable)
-       (with-current-buffer semantic--grammar-input-buffer
-         (semantic-grammar-keyword-data))
-       "Table of language keywords.")
+	;; `eval-defun' is not necessary to reset `defconst' values.
+	(semantic-grammar-insert-defconst
+	 (semantic-grammar-keywordtable)
+	 (with-current-buffer semantic--grammar-input-buffer
+	   (semantic-grammar-keyword-data))
+	 "Table of language keywords.")
        
-      (semantic-grammar-insert-defconst
-       (semantic-grammar-tokentable)
-       (with-current-buffer semantic--grammar-input-buffer
-         (semantic-grammar-token-data))
-       "Table of lexical tokens.")
+	(semantic-grammar-insert-defconst
+	 (semantic-grammar-tokentable)
+	 (with-current-buffer semantic--grammar-input-buffer
+	   (semantic-grammar-token-data))
+	 "Table of lexical tokens.")
        
-      (semantic-grammar-insert-defconst
-       (semantic-grammar-parsetable)
-       (with-current-buffer semantic--grammar-input-buffer
-         (semantic-grammar-parser-data))
-       "Parser table.")
+	(semantic-grammar-insert-defconst
+	 (semantic-grammar-parsetable)
+	 (with-current-buffer semantic--grammar-input-buffer
+	   (semantic-grammar-parser-data))
+	 "Parser table.")
        
-      (semantic-grammar-insert-defun
-       (semantic-grammar-setupfunction)
-       (with-current-buffer semantic--grammar-input-buffer
-         (semantic-grammar-setup-data))
-       "Setup the Semantic Parser.")
+	(semantic-grammar-insert-defun
+	 (semantic-grammar-setupfunction)
+	 (with-current-buffer semantic--grammar-input-buffer
+	   (semantic-grammar-setup-data))
+	 "Setup the Semantic Parser.")
        
 ;;;; Epilogue & Footer
        
-      (insert "\n;;; Epilogue\n;;\n"
-              epilogue
-              footer
-              )
+	(insert "\n;;; Epilogue\n;;\n"
+		epilogue
+		footer
+		)
        
-      )
+	)
     
-    ;; If running in batch mode, there is nothing more to do.
-    ;; Save the generated file and quit.
-    (if (semantic-grammar-noninteractive)
-        (let ((version-control t)
-              (delete-old-versions t)
-              (make-backup-files t)
-              (vc-make-backup-files t))
-          (save-buffer 16)
-          (kill-buffer (current-buffer)))
-      ;; If running interactively, eval declarations and epilogue
-      ;; code, then pop to the buffer visiting the generated file.
-      (eval-region (point) (point-max))
-      (goto-char (point-min))
-      (pop-to-buffer (current-buffer))
-      ;; The generated code has been evaluated and updated into
-      ;; memory.  Now find all buffers that match the major modes we
-      ;; have created this language for, and force them to call our
-      ;; setup function again, refreshing all semantic data, and
-      ;; enabling them to work with the new code just created.
+      ;; If running in batch mode, there is nothing more to do.
+      ;; Save the generated file and quit.
+      (if (semantic-grammar-noninteractive)
+	  (let ((version-control t)
+		(delete-old-versions t)
+		(make-backup-files t)
+		(vc-make-backup-files t))
+	    (save-buffer 16)
+	    (kill-buffer (current-buffer)))
+	;; If running interactively, eval declarations and epilogue
+	;; code, then pop to the buffer visiting the generated file.
+	(eval-region (point) (point-max))
+	(goto-char (point-min))
+	(pop-to-buffer (current-buffer))
+	;; The generated code has been evaluated and updated into
+	;; memory.  Now find all buffers that match the major modes we
+	;; have created this language for, and force them to call our
+	;; setup function again, refreshing all semantic data, and
+	;; enabling them to work with the new code just created.
 ;;;; FIXME?
-      ;; At this point, I don't know any user's defined setup code :-(
-      ;; At least, what I can do for now, is to run the generated
-      ;; parser-install function.
-      (semantic-map-mode-buffers
-       (semantic-grammar-setupfunction)
-       (semantic-grammar-languagemode)))
+	;; At this point, I don't know any user's defined setup code :-(
+	;; At least, what I can do for now, is to run the generated
+	;; parser-install function.
+	(semantic-map-mode-buffers
+	 (semantic-grammar-setupfunction)
+	 (semantic-grammar-languagemode)))
+      )
     ;; Return the name of the generated package file.
     output))
 
 (defun semantic-grammar-batch-build-one-package (file)
   "Build a Lisp package from the grammar in FILE.
-That is, generate Lisp code from FILE, and byte-compile it.
+That is, generate Lisp code from FILE, and `byte-compile' it.
 Return non-nil if there were no errors, nil if errors."
   (unless (auto-save-file-name-p file)
     ;; Create the package
@@ -802,8 +809,11 @@ Return non-nil if there were no errors, nil if errors."
               (message "%s" (error-message-string err))
               nil))))
       (when packagename
-        ;; byte compile the resultant file
-        (batch-byte-compile-file packagename)))))
+	;; Only byte compile if out of date
+	(if (file-newer-than-file-p packagename (concat packagename "c"))
+	    ;; byte compile the resultant file
+	    (batch-byte-compile-file packagename)
+	  t)))))
 
 ;;;###autoload
 (defun semantic-grammar-batch-build-packages ()
