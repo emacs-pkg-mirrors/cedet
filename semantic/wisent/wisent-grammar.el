@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar.el,v 1.3 2003/02/17 09:13:24 ponced Exp $
+;; X-RCS: $Id: wisent-grammar.el,v 1.4 2003/02/19 16:31:02 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -180,7 +180,9 @@ Keep order of declaration in the WY file without duplicates."
 
 (defun wisent-grammar-parsetable-builder ()
   "Return the value of the parser table."
-  `(eval-when-compile
+  `(progn
+     ;; Ensure that the grammar [byte-]compiler is available.
+     (eval-when-compile (require 'wisent-comp))
      (wisent-compile-grammar
       ',(wisent-grammar-grammar)
       ',(semantic-grammar-start))))
