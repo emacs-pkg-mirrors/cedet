@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.14 2003/11/27 13:32:27 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.15 2004/03/10 19:28:06 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -135,9 +135,9 @@ TOKTYPE is a hint to the type of tag desired."
 	    nil	;; return type
 	    (semantic-elisp-desymbolify
 	     (semanticdb-elisp-sym-function-arglist sym)) ;; arg-list
-	    'user-visible (condition-case nil
-			      (interactive-form sym)
-			    (error nil))
+	    :user-visible-flag (condition-case nil
+				   (interactive-form sym)
+				 (error nil))
 	    ))
 	  ((and (eq toktype 'variable) (boundp sym))
 	   (semantic-tag-new-variable
