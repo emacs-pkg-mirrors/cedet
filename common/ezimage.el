@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: ezimage.el,v 1.1 2003/07/17 17:56:46 zappo Exp $
+;; X-RCS: $Id: ezimage.el,v 1.2 2003/07/18 05:17:16 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -261,34 +261,47 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
 If buttontext is unknown, just insert that text.
 If we have an image associated with it, use that image.
 Optional argument STRING is a st ring upon which to add text properties."
-  (if ezimage-use-images
-      (let* ((bt (buffer-substring start (+ length start)))
-	     (a (assoc bt ezimage-expand-image-button-alist)))
-	;; Regular images (created with `insert-image' are intangible
-	;; which (I suppose) make them more compatible with XEmacs 21.
-	;; Unfortunatly, there is a giant pile o code dependent on the
-	;; underlying text.  This means if we leave it tangible, then I
-	;; don't have to change said giant piles o code.
-	(if (and a (symbol-value (cdr a)))
-	    (ezimage-insert-over-text (symbol-value (cdr a))
-				      start
-				      (+ start (length bt)))))))
+  (when ezimage-use-images
+    (let* ((bt (buffer-substring start (+ length start)))
+	   (a (assoc bt ezimage-expand-image-button-alist)))
+      ;; Regular images (created with `insert-image' are intangible
+      ;; which (I suppose) make them more compatible with XEmacs 21.
+      ;; Unfortunatly, there is a giant pile o code dependent on the
+      ;; underlying text.  This means if we leave it tangible, then I
+      ;; don't have to change said giant piles o code.
+      (if (and a (symbol-value (cdr a)))
+	  (ezimage-insert-over-text (symbol-value (cdr a))
+				    start
+				    (+ start (length bt))))))
+  string)
+
+(defun ezimage-image-over-string (string &optional alist)
+  "Insert over the text in STRING an image found in ALIST.
+Return STRING with properties applied."
+  (when ezimage-use-images
+    (let ((a (assoc string alist)))
+      (when (and a (symbol-value (cdr a)))
+	(ezimage-insert-over-text (symbol-value (cdr a))
+				  0 (length string)
+				  string)))))
 
 (defun ezimage-insert-over-text (image start end &optional string)
   "Place IMAGE over the text between START and END.
 Assumes the image is part of a gui and can be clicked on.
 Optional argument STRING is a string upon which to add text properties."
-  (if (featurep 'xemacs)
+  (when ezimage-use-images
+    (if (featurep 'xemacs)
+	(add-text-properties start end
+			     (list 'end-glyph image
+				   'rear-nonsticky (list 'display)
+				   'invisible t
+				   'detachable t)
+			     string)
       (add-text-properties start end
-			   (list 'end-glyph image
-				 'rear-nonsticky (list 'display)
-				 'invisible t
-				 'detachable t)
-			   string)
-    (add-text-properties start end
-			 (list 'display image
-			       'rear-nonsticky (list 'display))
-			 string)))
+			   (list 'display image
+				 'rear-nonsticky (list 'display))
+			   string)))
+  string)
 
 (defun ezimage-image-association-dump ()
   "Dump out the current state of the Ezimage image alist.
