@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-tag-file.el,v 1.5 2004/01/09 21:03:50 zappo Exp $
+;; X-RCS: $Id: semantic-tag-file.el,v 1.6 2004/03/20 00:11:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -71,7 +71,7 @@ depended on (see `semantic-dependency-tag-file'."
 		      (set-buffer (semantic-tag-buffer parent)))
 		  (goto-char (semantic-tag-start parent))
 		  ;; Here we make an assumption that the text returned by
-		  ;; the bovinator and concocted by us actually exists
+		  ;; the parser and concocted by us actually exists
 		  ;; in the buffer.
 		  (re-search-forward (semantic-tag-name tag) nil t)))))))))
 (put 'semantic-find-nonterminal 'semantic-overload 'find-nonterminal)
