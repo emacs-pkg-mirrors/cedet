@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.5 1996/09/21 15:52:04 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.6 1996/09/24 00:46:03 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -65,6 +65,9 @@
 
 (require 'widget-i)
 
+(defvar dialog-xemacs-p (string-match "XEmacs" emacs-version)
+  "Are we running in Xemacs?")
+
 ;;;
 ;;; Widget definitions using eieio
 ;;; 
@@ -110,6 +113,7 @@ key is any value between 0 and 128"
   (define-key dialog-mode-map "\C-u" nil)
   ;; Some keys in meta mat should not be overridden
   (define-key dialog-meta-map "x" nil)
+  (define-key dialog-meta-map ":" nil)
   ;; Some keys have special meaning that we can grab at this level
   (define-key dialog-mode-map "\M-n" 'dialog-next-widget)
   (define-key dialog-mode-map "\M-p" 'dialog-prev-widget)
@@ -121,13 +125,13 @@ key is any value between 0 and 128"
   (if (string-match "XEmacs" emacs-version)
       (progn
 	;; some translations into text
-	(define-key dialog-mode-map 'tab "\C-i")
-	(define-key dialog-mode-map 'up "\C-p")
-	(define-key dialog-mode-map 'down "\C-n")
-	(define-key dialog-mode-map 'right "\C-f")
-	(define-key dialog-mode-map 'left "\C-b")
-	(define-key dialog-mode-map 'next "\C-v")
-	(define-key dialog-mode-map 'prev "\e-v")
+	(define-key dialog-mode-map 'tab 'dialog-next-widget)
+	(define-key dialog-mode-map 'up 'dialog-handle-kbd)
+	(define-key dialog-mode-map 'down 'dialog-handle-kbd)
+	(define-key dialog-mode-map 'right 'dialog-handle-kbd)
+	(define-key dialog-mode-map 'left 'dialog-handle-kbd)
+	(define-key dialog-mode-map 'next 'dialog-handle-kbd)
+	(define-key dialog-mode-map 'prev 'dialog-handle-kbd)
 	;; Now some mouse events
 	(define-key dialog-mode-map 'button1 'dialog-handle-mouse)
 	(define-key dialog-mode-map 'button2 'dialog-handle-mouse)
@@ -166,13 +170,19 @@ possible mannor.  This will allow me to store multiple defaults and
 dynamically determine which colors to use."
   (let* ((params (frame-parameters))
 	 (disp-res (if (fboundp 'x-get-resource)
-		        (x-get-resource ".displayType" "DisplayType") nil))
+		       (if dialog-xemacs-p
+			   (x-get-resource ".displayType" "DisplayType" 'string)
+			 (x-get-resource ".displayType" "DisplayType"))
+		     nil))
 	 (display-type
 	  (cond (disp-res (intern (downcase disp-res)))
 		((and (fboundp 'x-display-color-p) (x-display-color-p)) 'color)
 		(t 'mono)))
 	 (bg-res (if (fboundp 'x-get-resource)
-		     (x-get-resource ".backgroundMode" "BackgroundMode") nil))
+		     (if dialog-xemacs-p
+			 (x-get-resource ".backgroundMode" "BackgroundMode" 'string)
+		       (x-get-resource ".backgroundMode" "BackgroundMode"))
+		   nil))
 	 (bgmode
 	  (cond (bg-res (intern (downcase bg-resource)))
 		((and params 
@@ -183,8 +193,15 @@ dynamically determine which colors to use."
 		 'dark)
 		(t 'light)))		;our default
 	 (set-p (function (lambda (face-name resource)
-		 (x-get-resource (concat face-name ".attribute" resource)
-				 (concat "Face.Attribute" resource)))))
+			    (if dialog-xemacs-p
+				(x-get-resource 
+				 (concat face-name ".attribute" resource)
+				 (concat "Face.Attribute" resource)
+				 'string)
+			      (x-get-resource 
+			       (concat face-name ".attribute" resource)
+			       (concat "Face.Attribute" resource)))
+			    )))
 	 (nbg (cond ((eq bgmode 'dark) d-bg) 
 		    (t l-bg)))
 	 (nfg (cond ((eq bgmode 'dark) d-fg)
@@ -267,7 +284,8 @@ Navigation commands:
 
 (defun dialog-handle-kbd () "Read the last kbd event, and handle it."
   (interactive)
-  (input widget-toplevel-shell last-input-char))
+  (input widget-toplevel-shell 
+	 (if last-input-char last-input-char last-input-event)))
 
 (defun dialog-handle-meta-kbd () "Read the last kbd event, and handle it as a meta key"
   (interactive)
@@ -290,6 +308,22 @@ Navigation commands:
 		      (cond ((null arg) -1)
 			    ((listp arg) (- (car arg)))
 			    (t (- arg))))
+
+  )
+
+(if (string-match "XEmacs" emacs-version)
+
+    (defun dialog-mouse-event-p (event)
+      "Return t if the event is a mouse related event"
+      nil
+      )
+
+  (defun dialog-mouse-event-p (event)
+    "Return t if the event is a mouse related event"
+    (if (member (event-basic-type event)
+		'(mouse-1 mouse-2 mouse-3))
+	t
+      nil))
 
   )
 
@@ -485,7 +519,7 @@ the screen."
 
     (create-widget "Fred" widget-label widget-toplevel-shell
 		   :x 5 :y 1 :face 'modeline 
-		   :label-value "This is a label\non several lines separated by \\n\nto make distrinctions")
+		   :label-value "This is a label\non several lines separated by \\n\nto make distinctions")
     (create-widget "Click" widget-button widget-toplevel-shell
 		   :x 5 :y -3 :label-value "Quit"
 		   :box-face 'font-lock-comment-face
