@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.7 2002/03/23 03:08:24 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.8 2002/08/09 23:21:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -65,6 +65,7 @@
        ;;'(speedbar-item-info . eieio-speedbar-item-info)
        '(speedbar-line-path . semantic-ia-sb-line-path)))
 
+;;;###autoload
 (defun semantic-speedbar-analysis ()
   "Start Speedbar in semantic analysis mode.
 The analyzer displays information about the current context, plus a smart
