@@ -1,0 +1,36 @@
+\input texinfo   @c -*-texinfo-*-
+@c
+@c $Id: ede.texi,v 1.1 1998/12/10 18:38:26 zappo Exp $
+@c
+@setfilename ede.info
+@settitle Enhanced Implementation of Emacs Interpreted Objects
+
+@ifinfo
+@format
+START-INFO-DIR-ENTRY
+* ede: (ede).       Objects for Emacs
+END-INFO-DIR-ENTRY
+@end format
+@end ifinfo
+
+@titlepage
+@sp 10
+@center @titlefont{ede}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 1998 Eric M. Ludlam
+@end titlepage
+
+@node Top, , , (dir)Top
+@comment  node-name,  next,  previous,  up
+
+EDE is the Emacs Development Extensions.  EDE provides the gloss that
+simplifies the learning curve for all the very useful functionality of
+building and debugging under emacs.  In doing so it attempts to emulate
+a typical IDE (Integrated Development Environment).  What this means is
+that EDE will provide manage your makefiles and other building
+environment duties so the developer can concentrate on code, and not
+support files.  In doing so, it will be much easier for new programmers
+to learn and adopt the GNU ways of doing things.
+
+@menu
+@end menu
