@@ -36,7 +36,7 @@
    (ede-proj-target-elisp "semantic"
     :name "semantic"
     :path ""
-    :source '("semantic.el" "semantic-util.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-edit.el" "semantic-fw.el" "semantic-grammar.el")
+    :source '("semantic.el" "semantic-util.el" "semantic-ctxt.el" "semantic-lex.el" "semantic-edit.el" "semantic-fw.el" "semantic-grammar.el" "semantic-token.el")
     :versionsource '("semantic.el")
     :aux-packages '("semantic-bovine" "wisent")
     )
