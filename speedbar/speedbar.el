@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.8.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.137 1999/01/21 21:28:16 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.138 1999/01/25 12:22:16 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -177,7 +177,7 @@
 ;;
 ;; Adding a speedbar top-level display mode:
 ;;
-;; Unlike the specialized modes, there are no name requirements,
+;;  Unlike the specialized modes, there are no name requirements,
 ;; however the methods for writing a button display, menu, and keymap
 ;; are the same.  Once you create these items, you can call the
 ;; function `speedbar-add-expansion-list'.  It takes one parameter
@@ -187,6 +187,14 @@
 ;; splice in.  KEYMAP is a symbol holding the keymap to use, and
 ;; BUTTON-FUNCTIONS are the function names to call, in order, to create
 ;; the display.
+;;  Another tweekable variable is `speedbar-stealthy-function-list'
+;; which is of the form (NAME &rest FUNCTION ...).  NAME is the string
+;; name matching `speedbar-add-expansion-list'.  (It does not need to
+;; exist.). This provides additional display info which might be
+;; time-consuming to calculate.
+;;  Lastly, `speedbar-mode-functions-list' allows you to set special
+;; function overrides.  At the moment very few functions are
+;; over ridable, but more will be added as the need is discovered.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
