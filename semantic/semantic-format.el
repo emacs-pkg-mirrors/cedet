@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.9 2003/08/29 16:11:16 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.9.2.1 2003/11/01 19:38:18 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -63,10 +63,9 @@ would claim as a parent.
 COLOR indicates that the generated text should be colored using
 `font-lock'.")
 
-(make-obsolete-variable 'semantic-token->text-functions
-			'semantic-format-tag-functions)
 ;;;###autoload
-(defalias 'semantic-token->text-functions 'semantic-format-tag-functions)
+(semantic-varalias-obsolete 'semantic-token->text-functions
+                            'semantic-format-tag-functions)
 
 (defvar semantic-format-tag-custom-list
   (append '(radio)
@@ -76,8 +75,8 @@ COLOR indicates that the generated text should be colored using
   "A List used by customizeable variables to choose a tag to text function.
 Use this variable in the :type field of a customizable variable.")
 
-(make-obsolete-variable 'semantic-token->text-custom-list
-			'semantic-format-tag-custom-list)
+(semantic-varalias-obsolete 'semantic-token->text-custom-list
+                            'semantic-format-tag-custom-list)
 
 (defcustom semantic-format-use-images-flag ezimage-use-images
   "Non-nil means semantic format functions use images.
@@ -144,8 +143,8 @@ is a symbol representing a face.
 Faces used are generated in `font-lock' for consistency, and will not
 be used unless font lock is a feature.")
 
-(make-obsolete-variable 'semantic-face-alist
-			'semantic-format-face-alist)
+(semantic-varalias-obsolete 'semantic-face-alist
+                            'semantic-format-face-alist)
 
 
 
