@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.62 2001/05/07 11:22:36 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.63 2001/05/07 11:28:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1128,7 +1128,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
     (if (not (featurep 'font-lock)) (setq color nil))
     (if s
 	;; Prototype is non-local
-	(funcall s token t)
+	(funcall s token parent color)
       (semantic-prototype-nonterminal-default token parent color))))
 
 (defun semantic-prototype-nonterminal-default-args (args color)
