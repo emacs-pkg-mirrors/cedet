@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.5 1998/05/07 17:18:55 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.6 1998/05/09 13:36:42 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -45,18 +45,28 @@
 ;;; Change log:
 ;; 0.1   - first revision copied from speedbspec.el V 0.1.1
 ;; 0.1.1 - No longer require speedbspec
-;; 0.2   - Added a speedbar major mode for displaying Info nodes.
+;; 0.2   - Added a speedbar major mode for displaying Info nodes, and modeled
+;;         the minor mode after it.  Completely replaced the old info display
+;;         with the major mode, and mixed them to move nicely from major to
+;;         minor mode effortlessly.
 
 (require 'speedbar)
 (require 'info)
 
 ;;; Code:
-
-(defvar info-speedbar-menu-items
-  '()
-  "Easymenu style list of menu items when in info brows mode.")
+(defvar Info-speedbar-menu-items
+  '(["Browse Item On Line" speedbar-edit-line t]
+    ["Expand Item" speedbar-expand-line
+     (save-excursion (beginning-of-line)
+		     (looking-at "[0-9]+: *.\\+. "))]
+    ["Contract Item" speedbar-contract-line
+     (save-excursion (beginning-of-line)
+		     (looking-at "[0-9]+: *.-. "))]
+    )
+  "Additional menu-items to add to speedbar frame.")
 
 ;;; Info hierarchy display method
+;;;###autoload
 (defun Info-speedbar-browser ()
   "Initialize speedbar to display an info node browser.
 This will add a speedbar major display mode."
@@ -64,7 +74,7 @@ This will add a speedbar major display mode."
   ;; Make sure that speedbar is active
   (speedbar-frame-mode 1)
   ;; Make sure our special speedbar major mode is loaded
-  (speedbar-add-expansion-list '("Info" info-speedbar-menu-items
+  (speedbar-add-expansion-list '("Info" Info-speedbar-menu-items
 				 nil Info-speedbar-hierarchy-buttons))
   ;; Now, throw us into RPM mode on speedbar.
   (speedbar-change-initial-expansion-list "Info")
@@ -76,44 +86,55 @@ DIRECTORY is the current directory in the attached frame.
 DEPTH is the current indentation depth.
 NODE is an optional argument that is used to represent the
 specific node to expand."
-  ;; We cannot use the generic list code, that depends on all leaves
-  ;; being known at creation time.
-  (if (not node)
-      (speedbar-with-writable (insert "Info Nodes:\n")))
-  (let ((completions (Info-speedbar-fetch-file-nodes
-		      (or node '"(dir)top"))))
-    (if completions
-	(speedbar-with-writable
-	  (while completions
-	    (speedbar-make-tag-line 'bracket ?+ 'Info-speedbar-expand-node
-				    (cdr (car completions))
-				    (car (car completions))
-				    'Info-speedbar-goto-node
-				    (cdr (car completions))
-				    'info-xref depth)
-	    (setq completions (cdr completions)))
-	  t)
-      nil)))
-
+  (if (and (not node)
+	   (save-excursion (goto-char (point-min))
+			   (looking-at "Info Nodes:")))
+      ;; Update our "current node" maybe?
+      nil
+    ;; We cannot use the generic list code, that depends on all leaves
+    ;; being known at creation time.
+    (if (not node)
+	(speedbar-with-writable (insert "Info Nodes:\n")))
+    (let ((completions (Info-speedbar-fetch-file-nodes
+			(or node '"(dir)top"))))
+      (if completions
+	  (speedbar-with-writable
+	   (while completions
+	     (speedbar-make-tag-line 'bracket ?+ 'Info-speedbar-expand-node
+				     (cdr (car completions))
+				     (car (car completions))
+				     'Info-speedbar-goto-node
+				     (cdr (car completions))
+				     'info-xref depth)
+	     (setq completions (cdr completions)))
+	   t)
+	nil))))
+  
 (defun Info-speedbar-goto-node (text node indent)
   "When user clicks on TEXT, goto an info NODE.
 The INDENT level is ignored."
-  (select-frame speedbar-attached-frame)
-  (let* ((buff (or (get-buffer "*info*")
-		   (info)))
-	 (bwin (get-buffer-window buff 0)))
-    (if bwin
-	(progn
-	  (select-window bwin)
-	  (raise-frame (window-frame bwin)))
-      (if speedbar-power-click
-	  (let ((pop-up-frames t)) (select-window (display-buffer buff)))
-	(select-frame speedbar-attached-frame)
-	(switch-to-buffer buff)))
-    (let ((junk (string-match "^(\\([^)]+\\))\\([^.]+\\)$" node))
-	  (file (match-string 1 node))
-	  (node (match-string 2 node)))
-      (Info-find-node file node))))
+    (select-frame speedbar-attached-frame)
+    (let* ((buff (or (get-buffer "*info*")
+		     (progn (info) (get-buffer "*info*"))))
+	   (bwin (get-buffer-window buff 0)))
+      (if bwin
+	  (progn
+	    (select-window bwin)
+	    (raise-frame (window-frame bwin)))
+	(if speedbar-power-click
+	    (let ((pop-up-frames t)) (select-window (display-buffer buff)))
+	  (select-frame speedbar-attached-frame)
+	  (switch-to-buffer buff)))
+      (let ((junk (string-match "^(\\([^)]+\\))\\([^.]+\\)$" node))
+	    (file (match-string 1 node))
+	    (node (match-string 2 node)))
+	(Info-find-node file node)
+	;; If we do a find-node, and we were in info mode, restore
+	;; the old default method.  Once we are in info mode, it makes
+	;; sense to return to whatever method the user was using before.
+	(if (string= speedbar-initial-expansion-list-name "Info")
+	    (speedbar-change-initial-expansion-list
+	     speedbar-previously-used-expansion-list-name)))))
 
 (defun Info-speedbar-expand-node (text token indent)
   "Expand the node the user clicked on.
@@ -166,76 +187,14 @@ Optional THISFILE represends the filename of"
       (nreverse completions))))
 
 ;;; Info mode node listing
-(defvar Info-last-speedbar-node nil
-  "Last node viewed with speedbar in the form '(NODE FILE).")
-
-(defvar Info-speedbar-menu-items
-  '(["Browse Item On Line" speedbar-edit-line t])
-  "Additional menu-items to add to speedbar frame.")
-
 (defun Info-speedbar-buttons (buffer)
   "Create a speedbar display to help navigation in an Info file.
 BUFFER is the buffer speedbar is requesting buttons for."
-  (goto-char (point-min))
-  (if (and (looking-at "<Directory>")
-	   (save-excursion
-	     (set-buffer buffer)
-	     (and (equal (car Info-last-speedbar-node) Info-current-node)
-		  (equal (cdr Info-last-speedbar-node) Info-current-file))))
-      nil
-    (erase-buffer)
-    (speedbar-insert-button "<Directory>" 'info-xref 'highlight
-			    'Info-speedbar-button
-			    'Info-directory)
-    (speedbar-insert-button "<Top>" 'info-xref 'highlight
-			    'Info-speedbar-button
-			    'Info-top-node)
-    (speedbar-insert-button "<Last>" 'info-xref 'highlight
-			    'Info-speedbar-button
-			    'Info-last)
-    (speedbar-insert-button "<Up>" 'info-xref 'highlight
-			    'Info-speedbar-button
-			    'Info-up)
-    (speedbar-insert-button "<Next>" 'info-xref 'highlight
-			    'Info-speedbar-button
-			    'Info-next)
-    (speedbar-insert-button "<Prev>" 'info-xref 'highlight
-			    'Info-speedbar-button
-			    'Info-prev)
-    (let ((completions nil))
-      (save-excursion
-	(set-buffer buffer)
-	(setq Info-last-speedbar-node
-	      (cons Info-current-node Info-current-file))
-	(goto-char (point-min))
-	;; Always skip the first one...
-	(re-search-forward "\n\\* \\([^:\t\n]*\\):" nil t)
-	(while (re-search-forward "\n\\* \\([^:\t\n]*\\):" nil t)
-	  (setq completions (cons (buffer-substring (match-beginning 1)
-						    (match-end 1))
-				  completions))))
-      (setq completions (nreverse completions))
-      (while completions
-	(speedbar-make-tag-line nil nil nil nil
-				(car completions) 'Info-speedbar-menu
-				nil 'info-node 0)
-	(setq completions (cdr completions))))))
-
-(defun Info-speedbar-button (text token indent)
-  "Called when user clicks <Directory> from speedbar.
-TEXT, TOKEN, and INDENT are unused."
-  (speedbar-with-attached-buffer
-   (funcall token)
-   (setq Info-last-speedbar-node nil)
-   (speedbar-update-contents)))
-
-(defun Info-speedbar-menu (text token indent)
-  "Goto the menu node specified in TEXT.
-TOKEN and INDENT are not used."
-  (speedbar-with-attached-buffer
-   (Info-menu text)
-   (setq Info-last-speedbar-node nil)
-   (speedbar-update-contents)))
+  (if (save-excursion (goto-char (point-min))
+		      (not (looking-at "Info Nodes:")))
+      (erase-buffer))
+  (Info-speedbar-hierarchy-buttons nil 0)
+  )
 
 (provide 'sb-info)
 ;;; sb-info.el ends here
