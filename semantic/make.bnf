@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: make.bnf,v 1.12.2.1 2002/02/10 18:06:04 zappo Exp $
+# X-RCS: $Id: make.bnf,v 1.12.2.2 2002/02/19 21:35:09 zappo Exp $
 #
 # make.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,16 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: make.bnf,v $
+# Revision 1.12.2.2  2002/02/19 21:35:09  zappo
+# (setup): Enable whitespace
+# (BACKSLASH): New token
+# (variable rule conditional targets include): Use whitespace where needed.
+# (targets): Enable subtarget groupings w/ mixed variables.
+# (target sub-target): New rules
+# (element-list, element, sub-element): New rules
+# (elements): Enable mixed groupings.
+# (opt-whitespace): New rule.
+#
 # Revision 1.12.2.1  2002/02/10 18:06:04  zappo
 # (semantic-flex-syntax-modifications): Remove tab.
 # (conditional): Return explicit nils.
@@ -76,18 +86,19 @@
 %setupfunction semantic-default-make-setup
 %quotemode     backquote
 
-%(setq semantic-flex-enable-newlines t
-       semantic-symbol->name-assoc-list '((variable . "Variables")
+%(setq semantic-symbol->name-assoc-list '((variable . "Variables")
 					  (function . "Rules")
 					  (include . "Dependencies"))
        semantic-number-expression nil
        semantic-case-fold t
+       semantic-expand-nonterminal 'semantic-expand-make-nonterminal
        semantic-flex-syntax-modifications '((?. "_")
 					    (?= ".")
 					    (?/ "_")
 					    (?$ ".")
 					    )
        semantic-flex-enable-newlines t
+       semantic-flex-enable-whitespace t
        imenu-create-index-function 'semantic-create-imenu-index
        )%
 
@@ -109,33 +120,51 @@
 %token COLON punctuation ":"
 %token PLUS punctuation "+"
 %token EQUAL punctuation "="
-%token BACKSLASH punctuation "\\"
 %token DOLLAR punctuation "$"
+%token BACKSLASH punctuation "\\"
 
 Makefile : variable
 	 | rule
 	 | conditional
 	 | include
+	 | whitespace ( nil )
 	 | newline ( nil )
 	 ;
 
-variable: symbol equals elements
-	  (,$1 variable nil ,$3 nil nil)
+variable: symbol opt-whitespace equals opt-whitespace element-list
+	  (,$1 variable nil ,$5 nil nil)
 	;
 
-rule: symbol colons elements commands
-      (,$1 function nil ,$3 nil nil)
+rule: targets opt-whitespace colons opt-whitespace element-list commands
+      (,$1 function nil ,$5 nil nil)
     ;
 
-conditional: IF symbol newline
+targets: target opt-whitespace targets
+	 ( (car ,$1) (car ,@$3) )
+       | target
+	 ( (car ,$1) )
+       ;
+
+target: sub-target target
+	( (concat (car ,$1) (car ,@$3) ) )
+      | sub-target
+	( (car ,$1) )
+      ;
+
+sub-target: symbol
+	  | string
+	  | varref
+	  ;
+
+conditional: IF whitespace symbol newline
 	     ( nil )
-	   | IFDEF symbol newline
+	   | IFDEF whitespace symbol newline
 	     ( nil )
-	   | IFNDEF symbol newline
+	   | IFNDEF whitespace symbol newline
 	     ( nil )
-	   | IFEQ expression newline
+	   | IFEQ whitespace expression newline
 	     ( nil )
-	   | IFNEQ expression newline
+	   | IFNEQ whitespace expression newline
 	     ( nil )
 	   | ELSE newline
 	     ( nil )
@@ -146,8 +175,8 @@ conditional: IF symbol newline
 expression : semantic-list
 	   ;
 
-include: INCLUDE symbol elements
-	 (,$2 include nil)
+include: INCLUDE whitespace element-list
+	 (,$3 include nil nil)
        ;
 
 equals: COLON EQUAL ()
@@ -159,19 +188,29 @@ colons: COLON COLON ()
       | COLON ()
       ;
 
-elements: element elements
-	  ( ,$1 ,@$2 )
-	| element BACKSLASH newline elements
-	  ( ,$1 ,@$2 )
-	| element newline
+element-list: elements newline
+	      ( ,@$1 )
+	    ;
+
+elements: element whitespace elements
+	  ( ,$1 ,@$3 )
+	| element
 	  ( ,$1 )
-	| newline
-	  (  )
+	| EMPTY
 	;
   
-element: symbol
-       | varref
+element: sub-element element
+	 ( (concat (car ,$1) (car ,$2)) )
+       | EMPTY
        ;
+
+sub-element: symbol
+	   | string
+	   | punctuation
+	   | semantic-list
+	     ( (buffer-substring-no-properties
+		 (identity start) (identity end)) )
+	   ;
 
 varref: DOLLAR semantic-list
 	( (buffer-substring-no-properties (identity start) (identity end)) )
@@ -183,4 +222,7 @@ commands: shell-command newline commands
 	  ( )
 	;
 
+opt-whitespace : whitespace ( nil )
+	       | EMPTY
+	       ;
 # End
