@@ -9,7 +9,7 @@
 top=../
 ede_FILES=Project.ede Makefile
 
-Documentation_TEXINFOS=semantic.texi user-guide.texi lang-support-guide.texi semantic.texi app-dev-guide.texi glossary.texi semanticdb.texi overview.texi installation.texi fdl.texi internals.texi
+Documentation_TEXINFOS=semantic.texi user-guide.texi lang-support-guide.texi semantic.texi app-dev-guide.texi glossary.texi semanticdb.texi overview.texi installation.texi fdl.texi internals.texi tags.texi
 MAKEINFO=makeinfo
 VERSION=2.0beta1
 DISTDIR=$(top)semantic-$(VERSION)/doc
