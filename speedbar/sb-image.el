@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-image.el,v 1.3 2001/04/27 00:47:30 zappo Exp $
+;; X-RCS: $Id: sb-image.el,v 1.4 2001/05/09 01:11:25 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -147,6 +147,18 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
   ((:type xpm :file "sb-mail.xpm" :ascent center))
   "Image used for open tag groups.")
 
+(defimage-speedbar speedbar-checkout
+  ((:type xpm :file "sb-chk.xpm" :ascent center))
+  "Image used for open tag groups.")
+
+(defimage-speedbar speedbar-object
+  ((:type xpm :file "sb-obj.xpm" :ascent center))
+  "Image used for open tag groups.")
+
+(defimage-speedbar speedbar-object-out-of-date
+  ((:type xpm :file "sb-objod.xpm" :ascent center))
+  "Image used for open tag groups.")
+
 (defvar speedbar-expand-image-button-alist
   '(("<+>" . speedbar-directory-plus)
     ("<->" . speedbar-directory-minus)
@@ -162,6 +174,9 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
     (">" . speedbar-tag)
     ("@" . speedbar-tag-type)
     ("  @" . speedbar-tag-type)
+    ("*" . speedbar-checkout)
+    ("#" . speedbar-object)
+    ("!" . speedbar-object-out-of-date)
     )
   "List of text and image associations.")
 
