@@ -1,11 +1,11 @@
-;;; semantic-imenu.el --- Use the Bovinator as a imenu tag generator
+;;; semantic-imenu.el --- Use Semantic as an imenu tag generator
 
 ;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Paul Kinnucan & Eric Ludlam
 ;;; Copyright (C) 2001, 2002, 2003 Eric Ludlam
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.50 2004/03/20 00:02:36 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.51 2004/03/21 07:45:33 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,7 +232,7 @@ IGNORE arguments."
 ;;;###autoload
 (defun semantic-create-imenu-index (&optional stream)
   "Create an imenu index for any buffer which supports Semantic.
-Uses the output of the Semantic Bovinator to create the index.
+Uses the output of the Semantic parser to create the index.
 Optional argument STREAM is an optional stream of tags used to create menus."
   (setq imenu-default-goto-function 'semantic-imenu-goto-function)
   (prog1
@@ -303,7 +303,7 @@ Optional argument STREAM is the stream of tags for the current buffer."
 
 (defun semantic-create-imenu-index-1 (stream &optional parent)
   "Create an imenu index for any buffer which supports Semantic.
-Uses the output of the Semantic Bovinator to create the index.
+Uses the output of the Semantic parser to create the index.
 STREAM is a stream of tags used to create menus.
 Optional argument PARENT is a tag parent of STREAM."
   (let ((tags stream)
