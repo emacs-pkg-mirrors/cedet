@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-speedbar.el,v 1.5 1999/12/01 13:35:21 zappo Exp $
+;; RCS: $Id: eieio-speedbar.el,v 1.6 1999/12/04 16:44:04 zappo Exp $
 ;; Keywords: oop, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -52,7 +52,7 @@
 ;;
 ;; 3) Objects that return a list of strings should also implement these
 ;;    methods:
-;;  * `eieio-speedbar-child-make-tag-line' - make tag lines for a child.
+;;  * `eieio-speedbar-child-make-tag-lines' - make tag lines for a child.
 ;;  * `eieio-speedbar-child-description' - describe non-object children
 ;;
 ;; 4) Objects which have expanded information should implement the method
@@ -145,7 +145,7 @@ creating the speedbar display."
   (if (not (featurep 'speedbar))
       (add-hook 'speedbar-load-hook
 		(list 'lambda nil
-		      (list eieio-speedbar-create-engine
+		      (list 'eieio-speedbar-create-engine
 			    map-fn map-var menu-var modename fetcher)))
     (eieio-speedbar-create-engine map-fn map-var menu-var modename fetcher)))
 
@@ -308,6 +308,11 @@ Argument DEPTH is the depth at which the tag line is inserted."
       (if exp
 	  (eieio-speedbar-expand object (1+ depth))))))
 
+(defmethod eieio-speedbar-child-make-tag-lines ((object eieio-speedbar) depth)
+  "Base method for creating tag lines for non-object children."
+  (error "You must implement `eieio-speedbar-child-make-tag-lnes' for %s"
+	 (object-name object)))
+
 (defmethod eieio-speedbar-expand ((object eieio-speedbar) depth)
   "Expand OBJECT at indentation DEPTH.
 Inserts a list of new tag lines representing expanded elements withing
@@ -317,7 +322,7 @@ OBJECT."
 	   (mapcar (lambda (car)
 		     (eieio-speedbar-make-tag-line car depth))
 		   children))
-	  (t (eieio-speedbar-child-make-tag-lines object)))))
+	  (t (eieio-speedbar-child-make-tag-lines object depth)))))
 
 
 ;;; Speedbar specific function callbacks.
@@ -343,6 +348,11 @@ INDENT is the current indentation level."
 	 (speedbar-delete-subblock indent))
 	(t (error "Ooops... not sure what to do")))
   (speedbar-center-buffer-smartly))
+
+(defmethod eieio-speedbar-child-description ((obj eieio-speedbar))
+  "Return a description for a child of OBJ which is not an object."
+  (error "You must implement `eieio-speedbar-child-description' for %s"
+	 (object-name obj)))
 
 (defun eieio-speedbar-item-info ()
   "Display info for the current line when in EDE display mode."
