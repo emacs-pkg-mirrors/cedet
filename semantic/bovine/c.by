@@ -5,7 +5,7 @@
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
-;; X-RCS: $Id: c.by,v 1.3 2003/01/24 18:14:55 ponced Exp $
+;; X-RCS: $Id: c.by,v 1.4 2003/01/28 09:48:37 ponced Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -255,7 +255,7 @@ macro-def
     ( nil )
   | expression
     ( nil )
-  | EMPTY 
+  | ;;EMPTY
   ;
 
 macro
@@ -283,8 +283,6 @@ opt-define-arglist
 ;; This is used in struct parts.
 define
   : HASH DEFINE symbol opt-define-arglist macro-def
- ;; Klaus Berndl <klaus.berndl@sdm.de>: should be $3 variable nil $4!
- ;; \( $2 variable nil $3
     ( $3 variable nil $4
          (ASSOC const t)
          nil )
@@ -437,10 +435,12 @@ typesimple
     ( ,$2 type $1 $3 nil nil nil )
   | ENUM opt-name enumparts
     ( ,$2 type $1 $3 nil nil nil )
-  | TYPEDEF typeformbase typedef-symbol-list
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: a typedef can be a typeformbase
+ ;; with all this declmods stuff.
+  | TYPEDEF declmods typeformbase cv-declmods typedef-symbol-list
  ;;;; We put the type this typedef renames into PARENT
  ;;;; but will move it in the expand function.
-    ( $3 type $1 nil $2 nil nil )
+    ( $5 type $1 nil $3 nil nil )
   ;
 
 typedef-symbol-list
@@ -473,7 +473,7 @@ type
     ( "unnamed" type $1 $2 nil nil nil )
   ;
 
-;; Klaus Berndl <klaus.berndl@sdm.de>: 
+;; Klaus Berndl <klaus.berndl@sdm.de>:
 ;; We must parse "using namespace XXX" too
 
 ;; Using is vaguely like an include statement in the named portions
@@ -591,8 +591,7 @@ declmods
 DECLMOD
   : EXTERN
   | STATIC
-  | CONST
-  | VOLATILE
+  | CVDECLMOD
  ;; Klaus Berndl <klaus.berndl@sdm.de>: IMHO signed and unsigned are not
  ;; decl-modes but these are only valid for some buildin-types like
  ;; short, int etc... whereas "real" declmods are valid for all types,
@@ -614,6 +613,20 @@ DECLMOD
 metadeclmod
   : METADECLMOD
     ()
+  | ;;EMPTY
+    ()
+  ;
+
+CVDECLMOD
+  : CONST
+  | VOLATILE
+  ;
+
+cv-declmods
+  : CVDECLMOD cv-declmods
+    ( ,(cons ,(car ,$1) $2 ) )
+  | CVDECLMOD
+    ( ,$1 )
   | ;;EMPTY
     ()
   ;
@@ -687,8 +700,15 @@ builtintype
     ( (concat (car $1) " int") )
   ;
 
+;; Klaus Berndl <klaus.berndl@sdm.de>: This parses also nonsense like
+;; "const volatile int const volatile const const volatile a ..." but
+;; IMHO nobody writes such code. Normaly we shoud define a rule like
+;; typeformbase-mode which exactly defines the different allowed cases
+;; and combinations of declmods (minus the CVDECLMOD) typeformbase and
+;; cv-declmods so we could recognize more invalid code but IMHO this
+;; is not worth the effort...
 codeblock-var-or-fun
-  : declmods typeformbase metadeclmod
+  : declmods typeformbase declmods
     opt-ref var-or-func-decl
     ( ,(semantic-c-reconstitute-token ,$5 $1 $2 ) )
   ;
@@ -818,13 +838,15 @@ varname
     ( ,$3 ,$1 ,$4 ,$5 ,$6 )
   ;
 
-;; I should store more in this def, but leave it simple for now.
+;; I should store more in this def, but leave it simple for now. Klaus
+;; Berndl <klaus.berndl@sdm.de>: const and volatile can be written
+;; after the type!
 variablearg
-  : declmods typeformbase opt-ref opt-stars variablearg-opt-name
-    ( (list $5) variable $2 nil
+  : declmods typeformbase cv-declmods opt-ref opt-stars variablearg-opt-name
+    ( (list $6) variable $2 nil
       (ASSOC const (if (member "const" $1) t nil)
              typemodifiers (delete "const" $1)
-             reference (car ,$3)
+             reference (car ,$4)
              )
       nil )
   ;
@@ -923,7 +945,7 @@ operatorsym
     ( "!=" )
   | MINUS GREATER
     ( "->" )
- ;; TODO: Klaus Berndl <klaus.berndl@sdm.de>: We have to parse also
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: We have to parse also
  ;; operator() and operator[]
   | PARENS
     ( "()" )
