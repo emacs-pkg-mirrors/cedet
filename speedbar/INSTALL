@@ -9,11 +9,16 @@ of this update of speedbar.
 
    $ make
 
+   If you want to use the optional packages, such as support for Info files,
+   or RPM files, you may also want to execute the command
+
+  $ make opt
+
    On windows NT, you will need to byte compile each file from within
    emacs, or you can leave everything unbyte compiled.
 
    If you use the rmail, info, or gud displays, and you are using
-   Emacs 20, then you will also need to re byte compile rmail.el,
+   Emacs 2x, then you will also need to re byte compile rmail.el,
    info.el, and gud.el because speedbar macros changed.
 
    Any other programs you use that define speedbar display modes will
