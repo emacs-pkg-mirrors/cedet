@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 11 Sep 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.el,v 1.7 2002/08/07 17:59:14 ponced Exp $
+;; X-RCS: $Id: wisent-calc.el,v 1.8 2002/08/11 09:40:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,7 +55,7 @@
 
 (defconst wisent-calc-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-08-07 15:15+0200
+    ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-08-10 21:06+0200
     (wisent-compile-grammar
      '((NUM)
        ((nonassoc 61)
@@ -98,8 +98,8 @@
 
 (defconst wisent-calc-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-08-07 15:15+0200
-   (wisent-flex-make-token-table
+   ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-08-10 21:06+0200
+   (wisent-lex-make-token-table
     '(("number"
        (NUM)))
     'nil)
@@ -108,14 +108,14 @@
 
 (defun wisent-calc-setup-parser ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-08-07 15:15+0200
+  ;;DO NOT EDIT! Generated from wisent-calc.wy - 2002-08-10 21:06+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-calc-automaton
           semantic-flex-keywords-obarray nil
-          wisent-flex-tokens-obarray wisent-calc-tokens)
+          wisent-lex-tokens-obarray wisent-calc-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
@@ -123,12 +123,12 @@
     (setq semantic-number-expression
           (concat "\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
                   "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
-          semantic-flex-depth nil
-          semantic-flex-syntax-modifications '((?\; ".") (?\= ".")
-                                               (?\+ ".") (?\- ".")
-                                               (?\* ".") (?\/ ".")
-                                               (?\^ ".")
-                                               )
+          semantic-lex-depth nil
+          semantic-lex-syntax-modifications '((?\; ".") (?\= ".")
+                                              (?\+ ".") (?\- ".")
+                                              (?\* ".") (?\/ ".")
+                                              (?\^ ".")
+                                              )
           ))
   )
 
@@ -141,7 +141,7 @@ Parse INPUT string and output the result of computation."
   (with-temp-buffer
     (wisent-calc-setup-parser)
     (insert input)
-    (let ((wisent-flex-istream (semantic-flex-buffer)))
+    (let ((wisent-lex-istream (semantic-lex-buffer)))
       (message "%s -> %s"
                input
                (wisent-parse wisent-calc-automaton
