@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.35 2001/08/18 04:08:32 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.36 2001/09/12 04:43:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -269,17 +269,30 @@
   ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
  ) ; end var-or-fun
  (var-or-func-decl
- ( opt-stars opt-class opt-destructor functionname arg-list opt-reentrant opt-throw fun-or-proto-end
+ ( opt-stars opt-class opt-destructor functionname arg-list opt-post-fcn-modifiers opt-throw opt-initializers fun-or-proto-end
   ,(semantic-lambda
-  (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 4 vals) (nth 6 vals) (nth 5 vals)) (nth 0 vals)))
+  (nth 3 vals) (list 'function (nth 1 vals) (nth 2 vals) (nth 4 vals) (nth 6 vals)) (nth 5 vals) (nth 0 vals) (nth 8 vals)))
  ( varnamelist punctuation "\\b;\\b"
   ,(semantic-lambda
   (list (nth 0 vals) 'variable)))
  ) ; end var-or-func-decl
- (opt-reentrant
- ( REENTRANT)
+ (opt-initializers
+ ( punctuation "\\b:\\b" symbol semantic-list opt-initializers)
+ ( punctuation "\\b,\\b" symbol semantic-list opt-initializers)
  ()
- ) ; end opt-reentrant
+ ) ; end opt-initializers
+ (opt-post-fcn-modifiers
+ ( post-fcn-modifiers opt-post-fcn-modifiers
+  ,(semantic-lambda
+  ( cons (nth 0 vals) (nth 1 vals))))
+ (
+  ,(semantic-lambda
+  (list nil)))
+ ) ; end opt-post-fcn-modifiers
+ (post-fcn-modifiers
+ ( REENTRANT)
+ ( CONST)
+ ) ; end post-fcn-modifiers
  (opt-throw
  ( THROW semantic-list
  ,(lambda (vals start end)
@@ -469,7 +482,7 @@
  ))
  ) ; end expression
  )
-                 "C language specification.")
+                        "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -565,7 +578,9 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 		;; exceptions about.
 		'throws (nth 5 tokenpart)
 		;; Reemtrant is a C++ thingy.  Add it here
-		'reentrant (if (nth 6 tokenpart) t)
+		'reentrant (if (member "reentrant" (nth 6 tokenpart)) t)
+		;; prototypes are functions w/ no body
+		'prototype (nth 8 tokenpart)
 		)
 	       nil)
 	 )
