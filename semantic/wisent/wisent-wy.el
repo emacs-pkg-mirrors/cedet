@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.14 2002/08/04 17:13:21 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.15 2002/08/04 17:36:20 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -549,7 +549,7 @@ EXPANDER is the Semantic function called to expand NONTERM"
 $I is the placeholder value to expand.
 NONTERM is the nonterminal symbol to start with."
   (or (wisent-wy-EXPANDTHING
-       $i nonterm 1 'semantic-bovinate-region)
+       $i nonterm nil 'semantic-bovinate-from-nonterminal)
       (error "Invalid form (EXPAND %s %s)" $i nonterm)))
 
 (defun wisent-wy-EXPANDFULL ($i nonterm)
