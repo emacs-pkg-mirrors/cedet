@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.5 2001/05/23 23:09:26 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.6 2001/10/03 00:30:42 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@
  ( string)
  ) ; end expression
  )
-    "Top level bovination table for scheme.")
+ "Top level bovination table for scheme.")
 
 (defvar semantic-scheme-keyword-table
   (semantic-flex-make-keyword-table 
@@ -151,6 +151,7 @@ Attempts a simple prototype for calling or using TOKEN."
 					    (function . "Functions")
 					    (include  . "Loads")
 					    (package  . "DefinModule"))
+	semantic-number-expression nil
 	imenu-create-index-function 'semantic-create-imenu-index
 	semantic-dependency-include-path semantic-default-scheme-path
 	imenu-create-index-function 'semantic-create-imenu-index
