@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.13 2003/02/22 15:36:08 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.14 2003/03/11 00:41:36 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -515,16 +515,6 @@ It ignores whitespaces, newlines and comments."
        )
      )))
 
-;; semantic overloaded functions
-(semantic-install-function-overrides
- '(
-   ;;(abbreviate-nonterminal    . semantic-grammar-abbreviate-nonterminal)
-   ;;(summarize-nonterminal     . semantic-grammar-summarize-nonterminal)
-   ;;(eldoc-current-symbol-info . semantic-grammar-ecsi)
-   (nonterminal-children      . semantic-grammar-nonterminal-children)
-   )
- t 'semantic-grammar-mode)
-
 (defun semantic-grammar-edits-new-change-hook-fcn (overlay)
   "Function set into `semantic-edits-new-change-hook'.
 Argument OVERLAY is the overlay created to mark the change.
@@ -573,7 +563,8 @@ ARGS are ASSOC's key value list."
 ;;;; API to access grammar tokens
 ;;;;
 
-(defun semantic-grammar-nonterminal-children (token)
+(define-mode-overload-implementation semantic-nonterminal-children
+  semantic-grammar-mode (token)
   "Return the children of TOKEN."
   (if (eq (semantic-token-token token) 'nonterminal)
       (nth 3 token)))
@@ -1060,9 +1051,14 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     ;; force them to call our setup function again, refreshing
     ;; all semantic data, and enabling them to work with the
     ;; new code just created.
-    (semantic-map-mode-buffers
-     (semantic-grammar-setupfunction)
-     (semantic-grammar-languagemode))
+    ;; Don't forget that languagemode can be a list.
+    (let ((modes (semantic-grammar-languagemode)))
+      (if (not (listp modes)) (setq modes (list modes)))
+      (while modes
+	(semantic-map-mode-buffers
+	 (semantic-grammar-setupfunction)
+	 (car modes))
+	(setq modes (cdr modes))))
     ;; Make sure the file was required.  This solves the problem
     ;; of compiling a grammar, followed by loading a file and not
     ;; having the rest of the source loaded up.
@@ -1141,10 +1137,10 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     (define-key km ")" 'semantic-grammar-electric-punctuation)
     
     (define-key km "\t"       'semantic-grammar-indent)
+    (define-key km "\M-\t"    'semantic-grammar-complete)
     (define-key km "\C-c\C-c" 'semantic-grammar-update-outputfile)
 ;;  (define-key km "\C-cc"    'semantic-grammar-generate-and-load)
 ;;  (define-key km "\C-cr"    'semantic-grammar-generate-one-rule)
-;;  (define-key km "\M-\t"    'semantic-grammar-complete)
     
     km)
   "Keymap used in `semantic-grammar-mode'.")
@@ -1352,6 +1348,159 @@ Use the Lisp or grammar indenter depending on point location."
   (self-insert-command 1)
   (save-excursion
     (semantic-grammar-indent)))
+
+(defun semantic-grammar-complete ()
+  "Attempt to complete the current symbol."
+  (interactive)
+  (if (condition-case nil
+	  (progn (up-list -1) t)
+	(error nil))
+      ;; We are in lisp code.  Do lisp completion.
+      (lisp-complete-symbol)
+    ;; We are not in lisp code.  Do rule completion.
+    (let* ((nonterms (semantic-find-nonterminal-by-token 'nonterminal (current-buffer)))
+	   (sym (car (semantic-ctxt-current-symbol)))
+	   (ans (try-completion sym nonterms)))
+      (cond ((eq ans t)
+	     ;; All done
+	     (message "Symbols is already complete"))
+	    ((and (stringp ans) (string= ans sym))
+	     ;; Max matchable.  Show completions.
+	     (let ((all (all-completions sym nonterms)))
+	       (with-output-to-temp-buffer "*Completions*"
+		 (display-completion-list (all-completions sym nonterms)))
+	       ))
+	    ((stringp ans)
+	     ;; Expand the completions
+	     (forward-sexp -1)
+	     (delete-region (point) (progn (forward-sexp 1) (point)))
+	     (insert ans))
+	    (t (message "No Completions."))
+	    ))
+    ))
+
+;;; Additional help
+;;
+
+(defvar semantic-grammar-syntax-help
+  `(
+    ;; Lexical Symbols
+    ("symbol" . "Syntax: A symbol of alpha numeric and symbol characters")
+    ("number" . "Syntax: Numeric characters.")
+    ("punctuation" . "Syntax: Punctuation character.")
+    ("semantic-list" . "Syntax: A list delimited by any valid list characters")
+    ("open-paren" . "Syntax: Open Parenthesis character")
+    ("close-paren" . "Syntax: Close Parenthesis character")
+    ("string" . "Syntax: String character delimited text")
+    ("comment" . "Syntax: Comment character delimited text")
+    ;; Special Macros
+    ("EMPTY" . "Syntax: Match empty text")
+    ("ASSOC" . "Lambda Key: (ASSOC key1 value1 key2 value2 ...)")
+    ("EXPAND" . "Lambda Key: (EXPAND <list id> <rule>)")
+    ("EXPANDFULL" . "Lambda Key: (EXPANDFULL <list id> <rule>)")
+    ;; Tag Generator Macros
+    ("TAG" . "Generic Tag Generation: (TAG <name> <type-token> [ key value ]*)")
+    ("VARIABLE-TAG" . "(VARIABLE-TAG <name> <lang-type> <default-value> [ key value ]*)")
+    ("FUNCTION-TAG" . "(FUNCTION-TAG <name> <lang-type> <arg-list> [ key value ]*)")
+    ("TYPE-TAG" . "(TYPE-TAG <name> <lang-type> <part-list> <parents> [ key value ]*)")
+    ("INCLUDE-TAG" . "(INCLUDE-TAG <name> <system-flag> [ key value ]*)")
+    ("PACKAGE-TAG" . "(PACKAGE-TAG <name> <detail> [ key value ]*)")
+    ;; Special value macros
+    ("$1" . "Match Value: Value from match list in slot 1")
+    ("$2" . "Match Value: Value from match list in slot 2")
+    ("$3" . "Match Value: Value from match list in slot 3")
+    ("$4" . "Match Value: Value from match list in slot 4")
+    ("$5" . "Match Value: Value from match list in slot 5")
+    ("$6" . "Match Value: Value from match list in slot 6")
+    ("$7" . "Match Value: Value from match list in slot 7")
+    ("$8" . "Match Value: Value from match list in slot 8")
+    ("$9" . "Match Value: Value from match list in slot 9")
+    ;; Same, but with annoying , in front.
+    (",$1" . "Match Value: Value from match list in slot 1")
+    (",$2" . "Match Value: Value from match list in slot 2")
+    (",$3" . "Match Value: Value from match list in slot 3")
+    (",$4" . "Match Value: Value from match list in slot 4")
+    (",$5" . "Match Value: Value from match list in slot 5")
+    (",$6" . "Match Value: Value from match list in slot 6")
+    (",$7" . "Match Value: Value from match list in slot 7")
+    (",$8" . "Match Value: Value from match list in slot 8")
+    (",$9" . "Match Value: Value from match list in slot 9")
+    )
+  "Association of syntax elements, and the corresponding help.")
+
+(define-mode-overload-implementation eldoc-current-symbol-info
+  semantic-grammar-mode ()
+  "Display additional eldoc information about keywords in `semantic-grammar-syntax-help'."
+  (let* ((sym (semantic-ctxt-current-symbol))
+	 (summ (assoc (car sym) semantic-grammar-syntax-help))
+	 (esym (when sym (intern-soft (car sym))))
+	 (found (cdr summ)))
+    (cond (found
+	   found)
+	  ((and esym (fboundp esym))
+	   (eldoc-get-fnsym-args-string esym))
+	  ((and esym (boundp esym))
+	   (eldoc-get-var-docstring esym))
+	  (t
+	   (senator-eldoc-print-current-symbol-info-default)
+	   ))))
+
+(define-mode-overload-implementation semantic-abbreviate-nonterminal
+  semantic-grammar-mode (token &optional parent color)
+  "Return a string abbreviation of TOKEN.
+Optional PARENT is not used.
+Optional COLOR is used to flag if color is added to the text."
+  (let ((tok (semantic-token-token token))
+	(name (semantic-name-nonterminal token parent color)))
+    (cond
+     ((eq tok 'nonterminal) (concat name ":"))
+     ((eq tok 'setting) "%settings%")
+     ((or (eq tok 'rule) (eq tok 'keyword)) name)
+     (t (concat "%" (symbol-name tok) " " name)))))
+
+(define-mode-overload-implementation semantic-summarize-nonterminal
+  semantic-grammar-mode (token &optional parent color)
+  "Return a string summarizing TOKEN.
+Optional PARENT is not used.
+Optional argument COLOR determines if color is added to the text."
+  (let ((tok (semantic-token-token token))
+	(name (semantic-name-nonterminal token parent color))
+	(label nil)
+	(desc nil))
+    (cond
+     ((eq tok 'nonterminal)
+      (setq label "Nonterminal: "
+	    desc (concat " with "
+			 (int-to-string (length (nth 3 token)))
+			 " match lists.")))
+     ((eq tok 'keyword)
+      (setq label "Keyword: ")
+      (let* ((put (semantic-find-nonterminal-by-token 'put (current-buffer)))
+	     (name (semantic-find-nonterminal-by-name-regexp (semantic-token-name token) put))
+	     (sum (semantic-find-nonterminal-by-function
+		   (lambda (tok)
+		     (let ((vals (nth 4 tok)))
+		       (string= "summary" (car (car vals)))))
+		   name))
+	     (summary (cdr (car (nth 4 (car sum)))))
+	     )
+	(setq desc (concat " = " (nth 4 token) (if summary (concat " - " (read summary)) "")))
+	)
+      )
+     ((eq tok 'token)
+      (setq label "Token: "
+	    desc (concat " " (nth 2 token) " " (nth 3 token))))
+     (t (setq desc
+	      (semantic-abbreviate-nonterminal token parent color))))
+    (if (and color label)
+	(setq label (semantic-colorize-text label 'label)))
+    (if (and color label desc)
+	(setq desc (semantic-colorize-text desc 'comment)))
+    (if label
+	(concat label name desc)
+      ;; Just a description is the abbreviated version
+      desc))
+  )
 
 (provide 'semantic-grammar)
 
