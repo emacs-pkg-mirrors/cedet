@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.25 2002/08/17 14:08:52 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.26 2002/12/10 01:38:28 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -682,6 +682,18 @@ Do not override for `prot-2'."
        (error "Instance inheritor: Level zero inheritance failed."))
       (t t))
 
+;;; Test clone on boring objects too!
+;;
+(defvar CLONETEST1 nil)
+(defvar CLONETEST2 nil)
+;; A simple make instance with EIEIO extension
+(setq CLONETEST1 (make-instance 'class-a "a"))
+(setq CLONETEST2 (clone CLONETEST1))
+
+;; CLOS form of make-instance
+(setq CLONETEST1 (make-instance 'class-a))
+(setq CLONETEST2 (clone CLONETEST1))
+
 
 ;;; Test the persistent object, and object-write by side-effect.
 ;;
@@ -729,7 +741,10 @@ Do not override for `prot-2'."
 
 (let ((obj1 (SINGLE "Moose"))
       (obj2 (SINGLE "Cow")))
-  (if (not (eq obj1 obj2))
+  (if (not (and (object-p obj1)
+		(object-p obj2)
+		(eq obj1 obj2)
+		(oref obj1 a-slot)))
       (error "Two instances of a singleton")))
 
 
