@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-html.el,v 1.1 2004/03/07 03:08:08 zappo Exp $
+;; X-RCS: $Id: semantic-html.el,v 1.2 2004/03/19 23:58:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -223,7 +223,7 @@ tag with greater section value than LEVEL is found."
   "Set up a buffer for parsing of HTML files."
   ;; This will use our parser.
   (setq semantic-parser-name "HTML"
-        semantic-toplevel-bovine-table t
+        semantic--parse-table t
         imenu-create-index-function 'semantic-create-imenu-index
 	semantic-command-separation-character ">"
 	semantic-type-relation-separator-character '(":")
