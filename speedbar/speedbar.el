@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.117 1998/08/03 18:06:31 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.118 1998/08/04 14:11:16 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -1535,17 +1535,14 @@ Assumes that the current buffer is the speedbar buffer"
     (while dl
       (adelete 'speedbar-directory-contents-alist (car dl))
       (setq dl (cdr dl)))
-    (if (<= 1 speedbar-verbosity-level) (message "Refreshing speedbar..."))
+    (if (<= 1 speedbar-verbosity-level)
+	(message "Refreshing speedbar..."))
     (speedbar-update-contents)
     (speedbar-stealthy-updates)
     ;; Reset the timer in case it got really hosed for some reason...
     (speedbar-set-timer speedbar-update-speed)
     (if (<= 1 speedbar-verbosity-level)
-	(progn
-	  (message "Refreshing speedbar...done")
-	  (sit-for 0)
-	  (message nil)))
-    ;; Protect the highlighted region.
+	(message "Refreshing speedbar...done"))
     (if (boundp 'deactivate-mark) (setq deactivate-mark dm))))
 
 (defun speedbar-item-load ()
@@ -2560,8 +2557,11 @@ This should only be used by modes classified as special."
 				 major-mode))
 		    (speedbar-update-special-contents)
 		    (if (<= 2 speedbar-verbosity-level)
-			(message "Updating speedbar to special mode: %s...done"
-				 major-mode)))
+			(progn
+			  (message "Updating speedbar to special mode: %s...done"
+				   major-mode)
+			  (sit-for 1)
+			  (message nil))))
 		;; Update all the contents if directories change!
 		(if (or (member (expand-file-name default-directory)
 				speedbar-shown-directories)
@@ -2578,8 +2578,11 @@ This should only be used by modes classified as special."
 			       default-directory))
 		  (speedbar-update-directory-contents)
 		  (if (<= 1 speedbar-verbosity-level)
-		      (message "Updating speedbar to: %s...done"
-			       default-directory))))
+		      (progn
+			(message "Updating speedbar to: %s...done"
+				 default-directory)
+			(sit-for 1)
+			(message nil)))))
 	      (select-frame af))
 	    ;; Now run stealthy updates of time-consuming items
 	    (speedbar-stealthy-updates)))
