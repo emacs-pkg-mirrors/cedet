@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.63 2004/06/08 06:57:42 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.64 2004/07/20 17:58:03 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1146,6 +1146,7 @@ END is the limit of the search."
     (define-key km "\M-\t"    'semantic-grammar-complete)
     (define-key km "\C-c\C-c" 'semantic-grammar-create-package)
     (define-key km "\C-cm"    'semantic-grammar-find-macro-expander)
+    (define-key km "\C-cik"    'semantic-grammar-insert-keyword)
 ;;  (define-key km "\C-cc"    'semantic-grammar-generate-and-load)
 ;;  (define-key km "\C-cr"    'semantic-grammar-generate-one-rule)
 
@@ -1157,6 +1158,8 @@ END is the limit of the search."
     ["Indent Line" semantic-grammar-indent]
     ["Complete Symbol" semantic-grammar-complete]
     ["Find Macro" semantic-grammar-find-macro-expander]
+    "--"
+    ["Insert %keyword" semantic-grammar-insert-keyword]
     "--"
     ["Update Lisp Package" semantic-grammar-create-package]
     ["Recreate Lisp Package" semantic-grammar-recreate-package]
@@ -1465,6 +1468,16 @@ expression then Lisp symbols are completed."
             (t (message "No Completions."))
             ))
     ))
+
+(defun semantic-grammar-insert-keyword (name)
+  "Insert a new %keyword declaration with NAME.
+Assumes it is typed in with the correct casing."
+  (interactive "sKeyword: ")
+  (if (not (bolp)) (insert "\n"))
+  (insert "%keyword " (upcase name) "        \"" name "\"
+%put     " (upcase name) " summary
+\"\"\n")
+  (forward-char -2))
 
 ;;; Macro facilities
 ;;
