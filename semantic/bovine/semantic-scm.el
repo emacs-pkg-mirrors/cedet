@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.7 2003/03/21 03:25:16 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.8 2003/04/05 15:52:15 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -174,11 +174,11 @@ machine."
 
 (defun semantic-scheme-prototype-nonterminal (token)
   "Return a prototype for the Emacs Lisp nonterminal TOKEN."
-  (let* ((tok (semantic-token-token token))
-	 (args (semantic-nonterminal-children token))
+  (let* ((tok (semantic-tag-class token))
+	 (args (semantic-tag-components token))
 	 )
     (if (eq tok 'function)
-	(concat (semantic-token-name token) " ("
+	(concat (semantic-tag-name token) " ("
 		(mapconcat (lambda (a) a) args " ")
 		")")
       (semantic-prototype-nonterminal-default token))))
@@ -186,7 +186,7 @@ machine."
 (defun semantic-scheme-find-documentation (token &optional nosnarf)
   "Return the documentation string for TOKEN.
 Optional argument NOSNARF is ignored."
-  (let ((d (semantic-token-docstring token)))
+  (let ((d (semantic-tag-docstring token)))
     (if (and d (> (length d) 0) (= (aref d 0) ?*))
 	(substring d 1)
       d)))
@@ -194,11 +194,11 @@ Optional argument NOSNARF is ignored."
 (defun semantic-scheme-insert-foreign-token (token tokenfile)
   "Insert TOKEN from TOKENFILE at point.
 Attempts a simple prototype for calling or using TOKEN."
-  (cond ((eq (semantic-token-token token) 'function)
-	 (insert "(" (semantic-token-name token) " )")
+  (cond ((eq (semantic-tag-class token) 'function)
+	 (insert "(" (semantic-tag-name token) " )")
 	 (forward-char -1))
 	(t
-	 (insert (semantic-token-name token)))))
+	 (insert (semantic-tag-name token)))))
 
 (define-lex semantic-scheme-lexer
   "A simple lexical analyzer that handles simple buffers.
