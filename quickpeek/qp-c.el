@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tools
-;; X-RCS: $Id: qp-c.el,v 1.2 2000/01/23 13:36:07 zappo Exp $
+;; X-RCS: $Id: qp-c.el,v 1.3 2000/01/23 13:44:31 zappo Exp $
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,6 +34,11 @@
     (list 'quickpeek-functional-form
 	  (save-excursion
 	    (quickpeek-beginning-of-defun)
+	    (if (save-excursion
+		  (forward-sexp -1)
+		  (looking-at "else"))
+		  ;; In this case, we are in an #ifed body
+		  (c-up-conditional 1))
 	    (if (re-search-backward
 		 "\\(\\s-\\|^\\)\\**\\(\\w+\\)\\s-*("
 		 (save-excursion (re-search-backward "(" nil t)
