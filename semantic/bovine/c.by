@@ -5,7 +5,7 @@
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;;         David Ponce <david@dponce.com>
-;; X-RCS: $Id: c.by,v 1.5 2003/01/29 17:54:39 ponced Exp $
+;; X-RCS: $Id: c.by,v 1.6 2003/01/30 14:54:50 ponced Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -526,6 +526,14 @@ template-var
   : template-type opt-stars opt-template-equal
     ( ,(cons (concat (car $1) (make-string (car ,$2) ?*))
              (cdr $1)))
+ ;; Klaus Berndl <klaus.berndl@sdm.de>: for template-types the
+ ;; template-var can also be literals or constants.
+ ;; Example: map<ClassX, ClassY, 10> map_size10_var; This parses also
+ ;; template<class T, 0> which is nonsense but who cares....
+  | string
+    ( $1 )
+  | number
+    ( $1 )
   ;
 
 opt-template-equal
@@ -657,10 +665,12 @@ typeformbase
     ( $2 type $1 )
   | builtintype
     ( ,$1 )
-  | symbol template-specifier
-    ( $1 type "class" )
-  | namespace-symbol opt-stars opt-template-specifier
-    ( ,$1  )
+ ;;| symbol template-specifier
+ ;;  ( $1 type "class" )
+ ;;| namespace-symbol opt-stars opt-template-specifier
+  | namespace-symbol opt-template-specifier
+ ;;  ( ,$1  )
+    ( ,$1 type "class" )
   | symbol
     ( $1 )
   ;
