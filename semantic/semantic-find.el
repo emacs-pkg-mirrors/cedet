@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.4 2003/04/01 03:47:23 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.5 2003/04/01 13:03:49 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -351,6 +351,7 @@ unmodified as components of their parent tags."
 ;; not use `semantic-brute-find-tag-by-function' to do this,
 ;; instead erroring on the side of speed.
 
+;;;###autoload
 (defun semantic-brute-find-first-tag-by-name
   (name streamorbuffer &optional search-parts search-include)
   "Find a tag NAME within STREAMORBUFFER.  NAME is a string.
@@ -385,6 +386,7 @@ Use `semantic-find-first-tag-by-name' instead."
 	    nil)
 	m))))
 
+;;;###autoload
 (defmacro semantic-brute-find-tag-by-class
   (class streamorbuffer &optional search-parts search-includes)
   "Find all tags with a class CLASS within STREAMORBUFFER.
@@ -398,6 +400,7 @@ Use `semantic-find-tag-by-class' instead."
     (lambda (tag) (eq ,class (semantic-tag-class tag)))
     ,streamorbuffer ,search-parts ,search-includes))
 
+;;;###autoload
 (defmacro semantic-brute-find-tag-standard
   (streamorbuffer &optional search-parts search-includes)
   "Find all tags in STREAMORBUFFER which define simple class types.
@@ -409,6 +412,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
 			  '(function variable type)))
     ,streamorbuffer ,search-parts ,search-includes))
 
+;;;###autoload
 (defun semantic-brute-find-tag-by-type
   (type streamorbuffer &optional search-parts search-includes)
   "Find all tags with type TYPE within STREAMORBUFFER.
@@ -426,6 +430,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
        (equal type ts)))
    streamorbuffer search-parts search-includes))
 
+;;;###autoload
 (defun semantic-brute-find-tag-by-type-regexp
   (regexp streamorbuffer &optional search-parts search-includes)
   "Find all tags with type matching REGEXP within STREAMORBUFFER.
@@ -444,6 +449,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
        (and ts (string-match regexp ts))))
    streamorbuffer search-parts search-includes))
 
+;;;###autoload
 (defun semantic-brute-find-tag-by-name-regexp
   (regex streamorbuffer &optional search-parts search-includes)
   "Find all tags whose name match REGEX in STREAMORBUFFER.
@@ -454,6 +460,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
     streamorbuffer search-parts search-includes)
   )
 
+;;;###autoload
 (defun semantic-brute-find-tag-by-property
   (property value streamorbuffer &optional search-parts search-includes)
   "Find all tags with PROPERTY equal to VALUE in STREAMORBUFFER.
@@ -464,6 +471,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
    streamorbuffer search-parts search-includes)
   )
 
+;;;###autoload
 (defun semantic-brute-find-tag-by-attribute
   (attr streamorbuffer &optional search-parts search-includes)
   "Find all tags with a given ATTR in STREAMORBUFFER.
@@ -475,6 +483,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
    streamorbuffer search-parts search-includes)
   )
 
+;;;###autoload
 (defun semantic-brute-find-tag-by-attribute-value
   (attr value streamorbuffer &optional search-parts search-includes)
   "Find all tags with a given ATTR equal to VALUE in STREAMORBUFFER.
@@ -487,6 +496,7 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDES are passed to
    streamorbuffer search-parts search-includes)
   )
 
+;;;###autoload
 (defun semantic-brute-find-tag-by-function
   (function streamorbuffer &optional search-parts search-includes)
   "Find all tags for which FUNCTION's value is non-nil within STREAMORBUFFER.
@@ -541,6 +551,7 @@ and is obsolete."
 ;;;			   ))))
     nl))
 
+;;;###autoload
 (defun semantic-brute-find-first-tag-by-function
   (function streamorbuffer &optional search-parts search-includes)
   "Find the first nonterminal which FUNCTION match within STREAMORBUFFER.
@@ -568,6 +579,7 @@ searched for matches."
 ;;
 ;; Are these useful anymore?
 ;;
+;;;###autoload
 (defun semantic-brute-find-tag-by-position (position streamorbuffer
 						     &optional nomedian)
   "Find a nonterminal covering POSITION within STREAMORBUFFER.
@@ -603,6 +615,7 @@ the median calculation, and return nil."
 	      stream (cdr stream)))
       found)))
 
+;;;###autoload
 (defun semantic-brute-find-innermost-tag-by-position
   (position streamorbuffer &optional nomedian)
   "Find a list of tags covering POSITION within STREAMORBUFFER.
@@ -632,66 +645,87 @@ details are available of findable."
 
 
 ;;; Compatibility Aliases
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-overlay
 			 'semantic-find-tag-by-overlay)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-overlay-in-region
 			 'semantic-find-tag-by-overlay-in-region)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-overlay-next
 			 'semantic-find-tag-by-overlay-next)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-overlay-prev
 			 'semantic-find-tag-by-overlay-prev)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-parent-by-overlay
 			 'semantic-find-tag-parent-by-overlay)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-current-nonterminal
 			 'semantic-current-tag)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-current-nonterminal-parent
 			 'semantic-current-tag-parent)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-current-nonterminal-of-class
 			 'semantic-current-tag-of-class)
 
-(semantic-alias-obsolete 'semantic-find-first-nonterminal-by-name
+;;;###autoload
+(semantic-alias-obsolete 'semantic-find-nonterminal-by-name
 			 'semantic-brute-find-first-tag-by-name)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-token
 			 'semantic-brute-find-tag-by-class)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-standard
 			 'semantic-brute-find-tag-standard)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-type
 			 'semantic-brute-find-tag-by-type)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-type-regexp
 			 'semantic-brute-find-tag-by-type-regexp)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-name-regexp
 			 'semantic-brute-find-tag-by-name-regexp)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-property
 			 'semantic-brute-find-tag-by-property)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-extra-spec
 			 'semantic-brute-find-tag-by-attribute)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-attribute-value
 			 'semantic-brute-find-tag-by-extra-spec-value)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-function
 			 'semantic-brute-find-tag-by-function)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-function-first-match
 			 'semantic-brute-find-first-tag-by-function)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-nonterminal-by-position
 			 'semantic-brute-find-tag-by-position)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-find-innermost-nonterminal-by-position
 			 'semantic-brute-find-innermost-tag-by-position)
 
