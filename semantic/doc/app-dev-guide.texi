@@ -773,6 +773,18 @@ finding a dependency file in Emacs lisp can be done with the
 a dependency can be found by searching a generic search path which can
 be passed in via a variable.
 
+If you plan to use one of these functions from a buffer that is not
+of the same major-mode as the original tag, you can use this form to
+make sure th correct action takes place:
+
+@defun semantic-with-mode-bindings mode &rest body
+@anchor{semantic-with-mode-bindings}
+Evaluate @var{BODY} with the local bindings of @var{MODE}.
+The current mode bindings are saved, @var{BODY} is evaluated, and the saved
+bindings are restored, even in case of an abnormal exit.
+Value is what @var{BODY} returns.
+@end defun
+
 For more on override methods, @inforef{Semantic Overload Mechanism, , lang-support-guide}.
 
 @menu
