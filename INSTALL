@@ -27,6 +27,13 @@ install scripts:
 
   c) make MAKEINFO=/usr/local/bin/makeinfo
 
+  Note: For speedbar, you may also need to byte-compile the version
+  of INFO and RMAIL that come with your version of emacs.
+
+  d) make MAKEINFO=echo
+
+  To skip making the doc.
+
 3) Install load hooks into your .emacs file.
 
 ;; Configuration variables here:
@@ -41,8 +48,21 @@ by adding settings in the comment section.  Please read individual
 INSTALL files for each package for details on configuring them.
 See the texinfo manuals for details on more specific configurations.
 
-5) To send bug reports, or participate in discussions about semantic,
-   use the mailing list cedet-semantic@sourceforge.net via the URL:
+5) To send bug reports, or participate in discussions on these
+   packages, choose a mailing list:
+
+   For Semantic use the mailing list cedet-semantic@sourceforge.net
+   via the URL:
 
    http://lists.sourceforge.net/lists/listinfo/cedet-semantic
+
+   For EIEIO use the mailing list cedet-eieio@sourceforge.net
+   via the URL:
+
+   http://lists.sourceforge.net/lists/listinfo/cedet-eieio
+
+   For general discussions on development of these tools, use the
+   mailing list cedet-devel@sourceforge.net via the URL:
+
+   http://lists.sourceforge.net/lists/listinfo/cedet-devel
 
