@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.15 2003/01/30 09:18:20 ponced Exp $
+ * $Id: test.cpp,v 1.16 2003/04/04 13:19:18 ponced Exp $
  *
  */
 
@@ -264,7 +264,7 @@ class TemplateUsingClass
 
   // typedefs with const and volatile
   typedef const map<long, long> const_TestClassMap;
-  typedef TestClassMap::iterator volatile volatile_iterator;
+  typedef TestClassMap<string>::iterator volatile volatile_iterator;
 
   map<int, int> mapclassvarthingy;
 };
@@ -297,9 +297,12 @@ namespace Parser
   {
     
     class Foobar : public virtual POA::Parent,
-                   public virtual POA::Parent1
+                   public virtual POA::Parent1,
+                   private POA::list<fact>,
+                   private map<string>
     {
       ini i;
+      list <shared_ptr<item> >::const_iterator l;
     public:
       
       Foobar();
