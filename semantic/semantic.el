@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.134 2001/12/08 03:10:47 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.135 2001/12/12 01:49:17 zappo Exp $
 
 (defvar semantic-version "1.4beta13"
   "Current version of Semantic.")
@@ -1568,12 +1568,12 @@ apply those properties"
     obarray))
 
 (defsubst semantic-flex-keyword-p (text)
-  "Return a symbol if TEXT is a keyword in the keyword table.
+  "Return non-nil if TEXT is a keyword in the keyword table.
 Return nil if TEXT is not in the symbol table."
   (symbol-value (intern-soft text semantic-flex-keywords-obarray)))
 
 (defun semantic-flex-keyword-put (text property value)
-  "For keyword TEXT, set PROPERTY to have VALUE."
+  "For keyword TEXT, set PROPERTY to VALUE."
   (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
     (if (not sym) (signal 'wrong-type-argument (list text 'keyword)))
     (put sym property value)))
@@ -1587,8 +1587,8 @@ Return nil if TEXT is not in the symbol table."
 ;; David Ponce
 (defun semantic-flex-map-keywords (fun &optional property)
   "Call function FUN on every semantic keyword.
-If optional PROPERTY is non-nil call FUN only on every keyword which
-have a PROPERTY value.  FUN receives a semantic keyword as argument."
+If optional PROPERTY is non-nil, call FUN only on every keyword which
+as a PROPERTY value.  FUN receives a semantic keyword as argument."
   (if (arrayp semantic-flex-keywords-obarray)
       (mapatoms
        (function
@@ -1601,8 +1601,8 @@ have a PROPERTY value.  FUN receives a semantic keyword as argument."
 ;; David Ponce
 (defun semantic-flex-keywords (&optional property)
   "Return a list of semantic keywords.
-If optional PROPERTY is non-nil return only keyword which have a
-PROPERTY value."
+If optional PROPERTY is non-nil, return only keywords which have a
+PROPERTY set."
   (let (keywords)
     (semantic-flex-map-keywords
      (function
@@ -1630,19 +1630,19 @@ This should contain an alist with a key of a regex and a data element of
 a function.  The function should both move point, and return a lexical
 token of the form:
   ( TYPE START .  END)
-nil is also a valid return.
+nil is also a valid return value.
 TYPE can be any type of symbol, as long as it doesn't occur as a
 nonterminal in the language definition.")
 (make-variable-buffer-local 'semantic-flex-extensions)
 
 (defvar semantic-flex-syntax-modifications nil
-  "Updates to the syntax table for this buffer.
-These changes are active only while this file is being flexed.
-This is a list where each element is of the form:
+  "Changes to the syntax table for this buffer.
+These changes are active only while the buffer is being flexed.
+This is a list where each element has the form:
   (CHAR CLASS)
-Where CHAR is the char passed to `modify-syntax-entry',
+CHAR is the char passed to `modify-syntax-entry',
 and CLASS is the string also passed to `modify-syntax-entry' to define
-what class of syntax CHAR is.")
+what syntax class CHAR has.")
 (make-variable-buffer-local 'semantic-flex-syntax-modifications)
 
 (defvar semantic-flex-enable-newlines nil
@@ -1707,12 +1707,12 @@ FLOATING_POINT_LITERAL:
   "Using the syntax table, do something roughly equivalent to flex.
 Semantically check between START and END.  Optional argument DEPTH
 indicates at what level to scan over entire lists.
-The return value is a token stream.  Each element being a list, such
-as (symbol start-expression .  end-expresssion).
-END does not mark the end of text scanned, only the end of the beginning
-of text scanned.  Thus, if a string extended past END, the end of the
-return token will be larger than END.  To truly restrict scanning, using
-narrow-to-region'.
+The return value is a token stream.  Each element is a list, such
+of the form (symbol start-expression .  end-expresssion).
+END does not mark the end of the text scanned, only the end of the beginning
+of text scanned.  Thus, if a string extends past END, the end of the
+return token will be larger than END.  To truly restrict
+scanning, use `narrow-to-region'.  
 The last argument, LENGTH specifies that `semantic-flex' should only return
 LENGTH tokens."
   ;(message "Flexing muscles...")
