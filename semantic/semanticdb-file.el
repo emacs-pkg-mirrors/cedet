@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.6 2003/04/06 00:47:17 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.7 2003/04/06 00:48:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -206,7 +206,7 @@ Argument OBJ is the object to write."
 	(save-excursion
 	  (if b (progn (set-buffer b)
 		       (condition-case nil
-			   (semantic-deoverlay-cache)
+			   (semantic--tag-unlink-cache-from-buffer)
 			 (error
 			  (condition-case nil
 			      (semantic-clear-toplevel-cache)
@@ -215,7 +215,7 @@ Argument OBJ is the object to write."
 		       (oset obj pointmax (point-max)))))
 	(call-next-method)
 	(save-excursion
-	  (if b (progn (set-buffer b) (semantic-overlay-cache))))
+	  (if b (progn (set-buffer b) (semantic--tag-link-cache-to-buffer))))
 	)))
 
 ;;; State queries
