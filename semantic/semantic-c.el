@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.8 2000/09/21 03:34:51 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.9 2000/09/27 02:08:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,11 +39,10 @@
   `((bovine-toplevel
      ( include)
      ( macro)
-     ( comment)
+     ( type)
      ( function)
      ( variable)
      ( prototype)
-     ( type)
      ( define)
      )					; end declaration
     (include
