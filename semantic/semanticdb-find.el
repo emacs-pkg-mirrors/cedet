@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.13 2003/12/17 14:50:57 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.14 2003/12/23 18:50:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -379,6 +379,7 @@ and search all tables in this project tree."
       (if (semanticdb-find-results-p path)
 	  ;; When we get find results, loop over that.
 	  (dolist (tableandtags path)
+	    (semantic-throw-on-input 'semantic-find-translate-path)
 	    ;; If FIND-FILE-MATCH is non-nil, skip tables of class
 	    ;; `semanticdb-search-results-table', since those are system
 	    ;; databases and not associated with a file.
@@ -394,6 +395,7 @@ and search all tables in this project tree."
 	;; If we get something else, scan the list of tables resulting
 	;; from translating it into a list of objects.
 	(dolist (table (semanticdb-find-translate-path path brutish))
+	  (semantic-throw-on-input 'semantic-find-translate-path)
 	  ;; If FIND-FILE-MATCH is non-nil, skip tables of class
 	  ;; `semanticdb-search-results-table', since those are system
 	  ;; databases and not associated with a file.
