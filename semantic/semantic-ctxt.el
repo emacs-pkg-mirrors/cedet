@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.10 2001/08/12 23:20:48 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.11 2001/08/30 12:42:15 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -55,7 +55,7 @@ Used for identifying the end of a single command.")
   "Move point up one context from POINT.
 Return non-nil if there are no more context levels.
 Overloaded functions using `up-context' take no parameters."
-  (if point (goto-char (point)))
+  (if point (goto-char point))
   (let ((s (semantic-fetch-overload 'up-context)))
     (if s (funcall s)
       (semantic-up-context-default)
@@ -77,7 +77,7 @@ Works with languages that use parenthetical grouping."
 Return non-nil if there is no upper context.
 The default behavior uses `semantic-up-context'.  It can
 be overridden with `beginning-of-context'."
-  (if point (goto-char (point)))
+  (if point (goto-char point))
   (let ((s (semantic-fetch-overload 'beginning-of-context)))
     (if s (funcall s)
       (semantic-beginning-of-context-default)
@@ -96,7 +96,7 @@ Return non-nil if there is no upper context."
 Return non-nil if there is no upper context.
 Be default, this uses `semantic-up-context', and assumes parenthetical
 block delimiters.  This can be overridden with `end-of-context'."
-  (if point (goto-char (point)))
+  (if point (goto-char point))
   (let ((s (semantic-fetch-overload 'end-of-context)))
     (if s (funcall s)
       (semantic-end-of-context-default)
@@ -144,12 +144,15 @@ navigation, then uses the parser with `bovine-inner-scope' to
 parse tokens at the beginning of the context.
 This can be overriden with `get-local-variables'."
   (save-excursion
-    (if point (goto-char (point)))
-    (let ((s (semantic-fetch-overload 'get-local-variables))
-	  (case-fold-search semantic-case-fold))
-      (if s (funcall s)
-	(semantic-get-local-variables-default)
-	))))
+    (if point (goto-char point))
+    (let ((vars
+	   (let ((s (semantic-fetch-overload 'get-local-variables))
+		 (case-fold-search semantic-case-fold))
+	     (if s (funcall s)
+	       (semantic-get-local-variables-default)
+	       ))))
+      (semantic-deoverlay-list vars)
+      vars)))
 
 (defun semantic-get-local-variables-default ()
   "Get local values from a specific context.
@@ -157,6 +160,7 @@ Uses the bovinator with the special top-symbol `bovine-inner-scope'
 to collect tokens, such as local variables or prototypes."
   (working-status-forms "Local" "done"
     (let ((semantic-bovination-working-type nil))
+      (semantic-beginning-of-context)
       (semantic-bovinate-region-until-error
        (point) (save-excursion (semantic-end-of-context) (point))
        'bovine-inner-scope))))
@@ -167,7 +171,7 @@ Parameters are available if the point is in a function or method.
 This function returns a list of tokens.  If the local token returns
 just a list of strings, then this function will convert them to tokens.
 Part of this behavior can be overridden with `get-local-arguments'."
-  (if point (goto-char (point)))
+  (if point (goto-char point))
   (let* ((s (semantic-fetch-overload 'get-local-arguments))
 	 (case-fold-search semantic-case-fold)
 	 (params (if s (funcall s)
@@ -199,7 +203,7 @@ Be default, this gets local variables, and local arguments.
 This can be overridden with `get-all-local-variables'.
 Optional argument POINT is the location to start getting the variables from."
   (save-excursion
-    (if point (goto-char (point)))
+    (if point (goto-char point))
     (let ((s (semantic-fetch-overload 'get-all-local-variables))
 	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
@@ -318,7 +322,7 @@ beginning and end of a command."
   "Return the current symbol the cursor is on at POINT in a list.
 This will include a list of type/field names when applicable.
 This can be overridden using `ctxt-current-symbol'."
-    (if point (goto-char (point)))
+    (if point (goto-char point))
     (let ((s (semantic-fetch-overload 'ctxt-current-symbol))
 	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
@@ -375,7 +379,7 @@ Depends on `semantic-type-relation-separator-character'."
 Return a list as per `semantic-ctxt-current-symbol'.
 Return nil if there is nothing relevant.
 Override with `ctxt-current-assignment'."
-    (if point (goto-char (point)))
+    (if point (goto-char point))
     (let ((s (semantic-fetch-overload 'ctxt-current-assignment))
 	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
@@ -403,7 +407,7 @@ The function returned is the one accepting the arguments that
 the cursor is currently in.  It will not return function symbol if the
 cursor is on the text representing that function.
 This can be overridden with `ctxt-current-function'."
-    (if point (goto-char (point)))
+    (if point (goto-char point))
     (let ((s (semantic-fetch-overload 'ctxt-current-function))
 	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
@@ -421,7 +425,7 @@ This can be overridden with `ctxt-current-function'."
 (defun semantic-ctxt-current-argument (&optional point)
   "Return the current symbol the cursor is on at POINT.
 Override with `ctxt-current-argument'."
-    (if point (goto-char (point)))
+    (if point (goto-char point))
     (let ((s (semantic-fetch-overload 'ctxt-current-argument))
 	  (case-fold-search semantic-case-fold))
       (if s (funcall s)
