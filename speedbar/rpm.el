@@ -1,11 +1,11 @@
 ;;; rpm.el --- Manage Red Hat packages in emacs
 
-;;; Copyright (C) 1998, 1999, 2000 Eric M. Ludlam
+;;; Copyright (C) 1998, 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.0
 ;; Keywords: speedbar, rpm
-;; X-RCS: $Id: rpm.el,v 1.6 2000/08/17 03:06:14 zappo Exp $
+;; X-RCS: $Id: rpm.el,v 1.7 2001/10/28 00:02:47 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -114,7 +114,7 @@ Source RPM\\|URL\\) *:" 0 font-lock-variable-name-face)
   "Create buttons in speedbar that represents the current rpm system.
 Takes DIRECTORY and ZERO, which are both ignored."
   (rpm-fetch-system)
-  (let ((speedbar-tag-hierarchy-method '(sort)))
+  (let ((speedbar-tag-hierarchy-method '(speedbar-sort-tag-hierarchy)))
     (speedbar-insert-generic-list -1 rpm-system 'rpm-tag-expand 'rpm-tag-find)))
 
 (defun rpm-tag-expand (text token indent)
@@ -127,7 +127,7 @@ level."
 	 (speedbar-with-writable
 	   (save-excursion
 	     (end-of-line) (forward-char 1)
-	     (let ((speedbar-tag-hierarchy-method '(sort)))
+	     (let ((speedbar-tag-hierarchy-method '(speedbar-sort-tag-hierarchy)))
 	       (speedbar-insert-generic-list indent
 					     token
 					     'rpm-tag-expand
