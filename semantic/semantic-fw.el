@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.8 2002/08/13 16:38:23 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.9 2002/08/15 18:26:11 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -450,20 +450,24 @@ Set each SYM to the value of its VAL, locally in buffers already in
 MODE, or in buffers switched to that mode.
 Return the value of the last VAL."
   (when args
-    (let (bl sl sym val)
+    (let (i ll bl sl tmp sym val)
+      (setq i 0)
       (while args
-        (setq sym  (car args)
+        (setq tmp  (make-symbol (format "tmp%d" i))
+              i    (1+ i)
+              sym  (car args)
               val  (cadr args)
-              bl   (cons `(cons ',sym ,val) bl)
-              sl   (cons `(semantic-set-local-variable ',sym ,val) sl)
+              ll   (cons (list tmp val) ll)
+              bl   (cons `(cons ',sym ,tmp) bl)
+              sl   (cons `(semantic-set-local-variable ',sym ,tmp) sl)
               args (cddr args)))
-      `(progn
+      `(let* ,(nreverse ll)
          ;; Save mode bindings
          (semantic-bind (list ,@bl) '(mode-var t) ',mode)
          ;; Assign to local variables in all existing buffers in MODE
          (semantic-map-mode-buffers #'(lambda () ,@sl) ',mode)
          ;; Return the last value
-         ,val)
+         ,tmp)
       )))
 
 (defmacro defvar-mode-local (mode sym val &optional docstring)
@@ -628,6 +632,30 @@ This function is an implementation for %s"
   (font-lock-add-keywords 'emacs-lisp-mode
                           semantic-fw-font-lock-keywords)
   )
+
+;;; Interfacing with edebug
+;;
+(add-hook
+ 'edebug-setup-hook
+ #'(lambda ()
+     
+     (def-edebug-spec setq-mode-local
+       (symbolp (&rest symbolp form))
+       )
+     (def-edebug-spec defvar-mode-local
+       (&define symbolp name def-form [ &optional stringp ] )
+       )
+     (def-edebug-spec defconst-mode-local
+       defvar-mode-local
+       )
+     (def-edebug-spec define-overload
+       (&define name lambda-list stringp def-body)
+       )
+     (def-edebug-spec define-mode-overload-implementation
+       (&define name symbolp lambda-list stringp def-body)
+       )
+     
+     ))
 
 (provide 'semantic-fw)
 
