@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.10 2002/02/16 22:20:47 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.11 2002/02/20 17:49:05 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -3078,15 +3078,15 @@ Bypass checking if NOCHECK is non-nil."
         nitems 0
         nrules 0)
   (let (def nonterm rlist rule rules rhs rhss rest item items
-            rhl semact ccode cprec new gensym gensym-count)
-    (setq gensym-count 0)
+            rhl plevel semact ncode nprec new @n @count)
+    (setq @count 0)
     (while defs
       (setq def     (car defs)
             defs    (cdr defs)
             nonterm (car def)
             rlist   (cdr def)
-            ccode   rcode ;; Where to push mid-rule action codes
-            cprec   rprec ;; Where to push mid-rule action prec. level
+            ncode   nil
+            nprec   nil
             rhss    nil)
       (or (consp rlist)
           (error "At least one production needed for nonterminal %s"
@@ -3105,36 +3105,21 @@ Bypass checking if NOCHECK is non-nil."
           (setq item (car items)
                 items (cdr items)
                 nitems (1+ nitems)) ;; RHS items
-          (if (consp item)
+          (if (listp item)
               ;; Mid-rule action
               (progn
-                (setq gensym (intern (format "@%d" gensym-count))
-                      gensym-count (1+ gensym-count))
-                (wisent-push-var gensym t)
-                ;; Push a new rule with an empty match and the
-                ;; mid-rule action
+                (setq @n (intern (format "@%d" @count))
+                      @count (1+ @count))
+                (wisent-push-var @n t)
+                ;; Push a new empty rule with the mid-rule action
                 (setq semact (cons item rhl)
-                      item   gensym ;; Repl. action by gen. nonterm
+                      plevel nil
+                      rcode (cons semact rcode)
+                      rprec (cons plevel rprec)
+                      item   @n ;; Replace action by @N nonterminal
                       rules  (cons (list item nil) rules)
                       nitems (1+ nitems)
-                      nrules (1+ nrules))
-                ;; The lists RULES, RCODE & RPREC must be kept
-                ;; synchronized.  So, push mid-rule action at CCODE
-                ;; in RCODE, and corresponding precedence level at
-                ;; CPREC in RPREC.
-                (if (null ccode)
-                    (setq ccode (cons semact ccode)
-                          rcode ccode)
-                  (setq new (cons (car ccode) (cdr ccode)))
-                  (setcdr ccode new)
-                  (setcar ccode semact))
-                (if (null cprec)
-                    (setq cprec (cons nil cprec)
-                          rprec cprec)
-                  (setq new (cons (car cprec) (cdr cprec)))
-                  (setcdr cprec new)
-                  (setcar cprec nil))
-                )
+                      nrules (1+ nrules)))
             ;; terminal or nonterminal symbol
             (or (memq item token-list)
                 (memq item var-list)
@@ -3143,17 +3128,15 @@ Bypass checking if NOCHECK is non-nil."
                 rhs (cons item rhs)))
       
         ;; Check & collect rule precedence level
-        (if (vectorp (car rest))
-            (progn
-              (setq item (car rest))
-              (or (and (= (length item) 1)
-                       (memq (aref item 0) token-list)
-                       (wisent-prec (aref item 0)))
-                  (error "Invalid rule precedence level %S" item))
-              (setq rprec (cons (wisent-item-number (aref item 0)) rprec)
-                    rest  (cdr rest)))
-          ;; No precedence level
-          (setq rprec (cons nil rprec)))
+        (setq plevel (when (vectorp (car rest))
+                       (setq item (car rest)
+                             rest (cdr rest))
+                       (if (and (= (length item) 1)
+                                (memq (aref item 0) token-list)
+                                (wisent-prec (aref item 0)))
+                           (wisent-item-number (aref item 0))
+                         (error "Invalid rule precedence level %S" item)))
+              nprec (cons plevel nprec))
       
         ;; Check & collect semantic action body
         (setq semact (cons
@@ -3165,18 +3148,21 @@ Bypass checking if NOCHECK is non-nil."
                         ;; for an empty rule or $1, the value of the
                         ;; first symbol in the rule, otherwise.
                         (if (> rhl 0) '$1 '()))
-                      rhl))
-        (setq rcode (cons semact rcode))
+                      rhl)
+              ncode (cons semact ncode))
       
         (setq rhss   (cons (nreverse rhs) rhss)
               nrules (1+ nrules)))
+      
+      ;; To keep RULES, RCODE & RPREC lists synchronized take care to
+      ;; push rules actions/levels after any mid-rules ones!
+      (setq rcode (nconc ncode rcode)
+            rprec (nconc nprec rprec)
+            rules (cons (cons nonterm (nreverse rhss)) rules)))
     
-      (setq rules (cons (cons nonterm (nreverse rhss)) rules)))
-  
     (setq ruseful (make-vector (1+ nrules) t)
           rprec   (vconcat (cons nil (nreverse rprec)))
           rcode   (vconcat (cons nil (nreverse rcode))))
-    
     (nreverse rules)
     ))
 
