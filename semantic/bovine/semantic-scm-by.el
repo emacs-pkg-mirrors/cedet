@@ -1,12 +1,12 @@
 ;;; semantic-scm-by.el --- Generated parser support file
 
-;; Copyright (C) 2003 David Ponce
-;;
+;; Copyright (C) 2001, 2003 Eric M. Ludlam
+
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2003-08-01 15:39:46+0200
+;; Created: 2003-08-31 16:52:09+0200
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-scm-by.el,v 1.1 2003/08/02 08:11:54 ponced Exp $
-;;
+;; X-RCS: $Id: semantic-scm-by.el,v 1.2 2003/08/31 15:07:43 ponced Exp $
+
 ;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or

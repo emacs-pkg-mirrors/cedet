@@ -3,9 +3,9 @@
 ;; Copyright (C) 2002, 2003 Vladimir G. Sekissov
 
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2003-08-29 09:09:51+0200
+;; Created: 2003-08-31 16:52:50+0200
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-erlang-by.el,v 1.3 2003/08/29 07:57:00 ponced Exp $
+;; X-RCS: $Id: semantic-erlang-by.el,v 1.4 2003/08/31 15:07:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 ;;
