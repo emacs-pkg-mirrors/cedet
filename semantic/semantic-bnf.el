@@ -1,11 +1,11 @@
 ;;; semantic-ex.el --- Semantic details for some languages
 
-;;; Copyright (C) 1999 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.5 1999/12/17 20:51:59 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.6 2000/04/16 22:34:38 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -62,7 +62,7 @@
   '((bovine-toplevel
      (symbol punctuation ":" rule-list punctuation ";"
 	     (lambda (vals start end)
-	       (list (nth 0 vals) (nth 2 vals) start end)
+	       (list (nth 0 vals) 'rule nil (nth 2 vals) start end)
 	       )))
     (rule-list
      (match-list lambda-fn rule-or-list
@@ -92,8 +92,9 @@
      )
     (lambda-fn
       (semantic-list
-       (lambda (vals start end) (list (buffer-substring start end)
-				      start end)))
+       (lambda (vals start end)
+	 (list (buffer-substring-no-properties start end)
+	       start end)))
       ((lambda (vals start end) (list "" start end))))
     )
   "Bovine table used to convert a BNF language file into a bovine table.")
@@ -230,7 +231,7 @@ VALS are the matches in the BNF notation file."
 	;; where a match is of the form:
 	;; ( LAMBDA-STRING TOKEN1 TOKEN2 ... )
 	(let* ((rule (car tokstream))
-	       (matches (car (cdr rule))))
+	       (matches (car (cdr (cdr (cdr rule))))))
 	  (insert "(" (car rule) "\n")
 	  (indent-for-tab-command)
 	  (while matches
@@ -347,6 +348,8 @@ VALS are the matches in the BNF notation file."
   (define-key semantic-bnf-map "#" 'semantic-bnf-electric-punctuation)
   (define-key semantic-bnf-map "\C-c\C-c" 'semantic-bnf-generate-and-load)
   )
+
+(speedbar-add-supported-extension ".bnf")
 
 (defun semantic-bnf-mode ()
   "Initialize a buffer for editing BNF code."
