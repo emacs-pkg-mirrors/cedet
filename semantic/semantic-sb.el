@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.3 1999/05/18 14:08:36 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.4 1999/05/18 15:59:40 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -229,18 +229,34 @@ TEXT TOKEN and INDENT are the details."
 	   (save-excursion
 	     (end-of-line) (forward-char 1)
 	     (save-restriction
-	       (narrow-to-region (point) (point))
-	       (while token
-		 (semantic-sb-one-button (car token) (1+ indent))
-		 (setq token (cdr token)))))))
+	       (narrow-to-region (point-min) (point))
+	       (semantic-sb-buttons-plain (1+ indent) token)))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
 	(t (error "Ooops...  not sure what to do")))
   (speedbar-center-buffer-smartly))
 
+(defun semantic-sb-buttons-plain (level tokens)
+  "Create buttons at LEVEL using TOKENS."
+  (save-excursion
+   (set-buffer speedbar-buffer)
+   (let ((sordid (speedbar-create-tag-hierarchy tokens)))
+     (while sordid
+       (cond ((null (car-safe sordid)) nil)
+	     ((consp (car-safe (cdr-safe (car-safe sordid))))
+	      ;; A group!
+	      (speedbar-make-tag-line 'curly ?+ 'semantic-sb-expand-group
+				      (cdr (car sordid))
+				      (car (car sordid))
+				      nil nil 'speedbar-tag-face
+				      level))
+	     (t ;; Assume that this is a token.
+	      (semantic-sb-one-button (car sordid) level)))
+       (setq sordid (cdr sordid))))))
+
 (defun semantic-sb-buttons (level tokens)
-  "Create buttons for a speedbar display at LEVEL using TOKENS."
+  "Create buttons at LEVEL using TOKENS sorting into type buckets."
   (save-restriction
     (narrow-to-region (point) (point))
     (let ((buckets (semantic-sb-buckets tokens))
