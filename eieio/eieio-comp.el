@@ -4,7 +4,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: eieio-comp.el,v 1.2 1996/11/18 00:24:51 zappo Exp $
+;;; RCS: $Id: eieio-comp.el,v 1.3 1996/12/12 03:36:45 zappo Exp $
 ;;; Keywords: oop, lisp, tools
 ;;;
 ;;; This program is free software; you can redistribute it and/or modify
@@ -103,7 +103,7 @@ on both platforms"
   (if (eval-when-compile (not (string-match "XEmacs" emacs-version)))
       ;; FSF emacs
       (prin1 code outbuffer)
-    ;; XEmacsb
+    ;; XEmacs
     (if (atom code)
 	(princ "#[" outbuffer)
       (princ "'(" outbuffer))
@@ -111,13 +111,36 @@ on both platforms"
 			(byte-compile-compiled-obj-to-list code)
 		      (append code nil))))
       (while codelist
-	(prin1 (car codelist) outbuffer)
+	(eieio-prin1 (car codelist) outbuffer)
 	(princ " " outbuffer)
 	(setq codelist (cdr codelist))
 	))
     (if (atom code)
 	(princ "]" outbuffer)
       (princ ")" outbuffer))))
+
+(defun eieio-prin1 (code outbuffer)
+  "For XEmacs only, princ one item. Recurse into lists in search of byte-code
+which needs expanding..."
+  (cond ((byte-code-function-p code)
+	 (let ((codelist (byte-compile-compiled-obj-to-list code)))
+	   (princ "#[" outbuffer)
+	   (while codelist
+	     (eieio-prin1 (car codelist) outbuffer)
+	     (princ " " outbuffer)
+	     (setq codelist (cdr codelist))
+	     )
+	   (princ "]" outbuffer)))
+	((vectorp code)
+	 (let ((i 0) (ln (length code)))
+	   (princ "[" outbuffer)
+	   (while (< i ln)
+	     (eieio-prin1 (aref code i) outbuffer)
+	     (princ " " outbuffer)
+	     (setq i (1+ i)))
+	   (princ "]" outbuffer)))
+	(t (prin1 code outbuffer))))
+    
 
 (defun byte-compile-defmethod-param-convert (paramlist)
   "Convert method params into the params used by the defmethod thingy."
