@@ -1,11 +1,11 @@
 ;;; ede-dired.el --- EDE extensions to dired.
 
-;;;  Copyright (C) 1998, 99, 00  Eric M. Ludlam
+;;;  Copyright (C) 1998, 99, 00, 03  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede-dired.el,v 1.8 2001/01/10 06:54:04 zappo Exp $
+;; RCS: $Id: ede-dired.el,v 1.9 2003/09/06 19:35:44 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -73,7 +73,11 @@ negative, force off."
       (error "Not in DIRED mode"))
   (setq ede-dired-minor-mode
 	(not (or (and (null arg) ede-dired-minor-mode)
-		 (<= (prefix-numeric-value arg) 0)))))
+		 (<= (prefix-numeric-value arg) 0))))
+  (if (and (not (ede-directory-project-p default-directory))
+	   (not (interactive-p)))
+      (setq ede-dired-minor-mode nil))
+  )
 
 (defun ede-dired-add-to-target (target)
   "Add a file, or all marked files into a TARGET."
