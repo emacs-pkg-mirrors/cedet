@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 January 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.32 2004/04/06 12:14:39 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.33 2005/01/05 08:47:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -319,9 +319,11 @@ This function is for internal use by semantic actions' generated
 lambda-expression."
   (let ((f (cadr (aref stack i)))
         (l (cddr (aref stack j))))
-    (while (and (/= i j) (not (and f l)))
-      (or f (setq f (cadr (aref stack (setq i (+ i 2))))))
-      (or l (setq l (cddr (aref stack (setq j (- j 2)))))))
+    (while (/= i j)
+      (cond
+       ((not f) (setq f (cadr (aref stack (setq i (+ i 2))))))
+       ((not l) (setq l (cddr (aref stack (setq j (- j 2))))))
+       ((setq i j))))
     (and f l (cons f l))))
 
 (defmacro wisent-parse-action (i al)
