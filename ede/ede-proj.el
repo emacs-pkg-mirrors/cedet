@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.1
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.8 1999/03/12 18:22:49 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.9 1999/03/17 12:35:09 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -301,7 +301,7 @@ Argument TARGET is the project we are completing customization on."
 		      :path (ede-convert-path this default-directory)
 		      :source (list (file-name-nondirectory src))))
     ;; If we added it, set the local buffer's object.
-    (if src (setq ede-obj ot))
+    (if src (setq ede-object ot))
     ;; Add it to the project object
     (oset this targets (cons ot (oref this targets)))
     ;; And save
@@ -474,7 +474,8 @@ MFILENAME is the makefile to generate."
   (ede-with-projectfile this
     (goto-char (point-min))
     (let ((l (read (current-buffer)))
-	  (fields (obj-fields this)))
+	  (fields (obj-fields this))
+	  (targets (oref this targets)))
       (setq l (cdr (cdr l))) ;; objtype and name skip
       (while fields ;  reset to defaults those that dont appear.
 	(if (and (not (assoc (car fields) l))
