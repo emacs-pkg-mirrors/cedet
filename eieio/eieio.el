@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.12 1996/11/01 05:22:37 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.13 1996/11/07 19:12:53 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -288,6 +288,12 @@ in that class definition.  See defclass for more information"
 	  (aset newc class-public-doc (copy-sequence (aref (class-v (aref newc class-parent)) class-public-doc)))
 	  (aset newc class-initarg-tuples (copy-sequence (aref (class-v (aref newc class-parent)) class-initarg-tuples)))))
 
+    ;; Store the new class vector definition into the symbol.  We need to
+    ;; do this first so that we can call defmethod for the accessor.
+    ;; The vector will be updated by the following while loop and will not
+    ;; need to be stored a second time.
+    (put cname 'eieio-class-definition newc)
+
     ;; Query each field in the declaration list and mangle into the
     ;; class structure I have defined.
     (while fields
@@ -357,7 +363,6 @@ in that class definition.  See defclass for more information"
     ;; and a doc-string
     
     (set cname cname)
-    (put cname 'eieio-class-definition newc)
 
     ;; Set up a specialized doc string
     (eieio-rebuild-doc-string cname)
