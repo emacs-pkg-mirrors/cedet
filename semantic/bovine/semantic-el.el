@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.3 2002/08/20 16:56:10 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.4 2002/09/16 01:51:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -320,6 +320,93 @@ Override function for `semantic-nonterminal-protection'."
 Overrides `semantic-nonterminal-static'."
   ;; This can only be true (theoretically) in a class where it is assigned.
   (semantic-token-extra-spec token 'static))
+
+;;; Context parsing
+;;
+;; Emacs lisp is very different from C,C++ which most context parsing
+;; functions are written.  Support them here.
+(define-mode-overload-implementation semantic-up-context emacs-lisp-mode
+  (&optional point bounds-type)
+  "Move up one context in an Emacs Lisp function.
+A Context in many languages is a block with it's own local variables.
+In Emacs, we will move up lists and stop when one starts with one of
+the following context specifiers:
+  `let', `let*', `defun', `with-slots'
+Returns non-nil it is not possible to go up a context."
+  (let ((last-up (semantic-up-context-default)))
+  (while
+      (and (not (looking-at
+		 "(\\(let\\*?\\|def\\(un\\|method\\|generic\\|\
+define-mode-overload\\)\
+\\|with-slots\\)"))
+	   (not last-up))
+    (setq last-up (semantic-up-context-default)))
+  last-up))
+
+
+(define-mode-overload-implementation semantic-get-local-variables emacs-lisp-mode
+  (&optional point)
+  "Do not collect local variables.
+Local variables are useful for dynamic completion and other things that
+are staticly typed.  Since lisp is not staticly typed, this is not
+a useful use of CPU cycles."
+  nil)
+
+(define-mode-overload-implementation semantic-end-of-command emacs-lisp-mode
+  ()
+  "Move cursor to the end of the current command.
+In emacs lisp this is easilly defined by parenthisis bounding."
+  (up-list 1))
+
+(define-mode-overload-implementation semantic-beginning-of-command emacs-lisp-mode
+  ()
+  "Move cursor to the beginning of the current command.
+In emacs lisp this is easilly defined by parenthisis bounding."
+  (up-list -1)
+  (forward-char 1))
+
+(define-mode-overload-implementation semantic-ctxt-current-symbol emacs-lisp-mode
+  (&optional point)
+  "List the symbol under point."
+  (save-excursion
+    (if point (goto-char point))
+    (require 'thingatpt)
+    (thing-at-point 'symbol)))
+
+(define-mode-overload-implementation semantic-ctxt-current-assignment emacs-lisp-mode
+  (&optional point)
+  "What is the variable being assigned into at POINT?
+Don't implement this."
+  nil)
+
+(define-mode-overload-implementation semantic-ctxt-current-function emacs-lisp-mode
+  (&optional point)
+  "Return a string which is the current function being called."
+  (save-excursion
+    (if point (goto-char point))
+    (semantic-beginning-of-command)
+    (function-at-point)
+    ))
+
+(define-mode-overload-implementation semantic-ctxt-current-argument emacs-lisp-mode
+  (&optional point)
+  "Return the index into the argument the cursor is in, or nil."
+  (save-excursion
+    (if point (goto-char point))
+    (if (looking-at "\\<\\w")
+	(forward-char 1))
+    (let ((count 0))
+      (while (condition-case nil
+		 (progn
+		   (forward-sexp -1)
+		   t)
+	       (error nil))
+	(setq count (1+ count)))
+      (cond ((= count 0)
+	     0)
+	    (t (1- count))))
+    ))
+
 
 (defvar-mode-local emacs-lisp-mode semantic-lex-analyzer
   'semantic-emacs-lisp-lexer)
