@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.41 2001/09/12 04:42:54 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.42 2001/09/26 23:54:20 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,12 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.42  2001/09/26 23:54:20  zappo
+# (enumsubparts): Account for commas
+# (arg-sub-list): Account for commas
+# (opt-expression): Account for floating point numbers,
+# or struct dereferences.
+#
 # Revision 1.41  2001/09/12 04:42:54  zappo
 # (var-or-func-decl): Change to host multiple postfix fcn modifiers, and
 # initializers.
@@ -371,6 +377,8 @@ enumsubparts : symbol opt-assign
 	       ( nil )
 	     | close-paren "}"
 	       ( nil )
+	     | COMA
+	       ( nil )
 	     ;
 
 opt-name : symbol
@@ -581,6 +589,8 @@ arg-sub-list : variablearg
 	       ( ,$1 )
 	     | PERIOD PERIOD PERIOD close-paren ")"
 	       ( "..." )
+	     | COMA
+	       ( nil )
 	     | open-paren "("
 	       ( nil )
 	     | close-paren ")"
@@ -626,7 +636,9 @@ opt-expression : expression
 
 # Use expression for parsing only.  Don't actually return anything
 # for now.  Hopefully we can fix this later.
-expression : symbol
+expression : symbol punctuation "\\." symbol
+	     ( )
+	   | symbol
 	     ( )
            | punctuation "[!*&~]" symbol
 	     ( )
