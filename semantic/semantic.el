@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.189 2004/09/15 07:21:54 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.190 2005/01/10 07:42:08 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -417,7 +417,9 @@ unterminated syntax."
     (error "Invalid parse region bounds %S, %S." start end))
   (nreverse
    (semantic-repeat-parse-whole-stream
-    (semantic-lex start end depth) nonterminal returnonerror)))
+    (or (cdr (assq start semantic-lex-block-streams))
+        (semantic-lex start end depth))
+    nonterminal returnonerror)))
 
 ;;; Parsing functions
 ;;
@@ -541,6 +543,7 @@ was marked unparseable, then do nothing, and return the cache."
    (not (semantic-parse-tree-up-to-date-p))
    ;; So do it!
    (let* ((gc-cons-threshold (max gc-cons-threshold 10000000))
+          (semantic-lex-block-streams nil)
           (res nil))
      (garbage-collect)
      (cond
