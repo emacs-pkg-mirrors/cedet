@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.21 2000/04/15 21:02:34 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.22 2000/04/16 14:50:06 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -256,7 +256,7 @@ The format of a BOVINE-TABLE is:
    ( NONTERMINAL-SYMBOLn MATCH-LISTn )
  
 Where each NONTERMINAL-SYMBOL is an artificial symbol which can appear
-in any child sate.  As a starting place, one of the NONTERMINAL-SYMBOLS
+in any child state.  As a starting place, one of the NONTERMINAL-SYMBOLS
 must be `bovine-toplevel'.
 
 A MATCH-LIST is a list of possible matches of the form:
@@ -282,7 +282,8 @@ semantic element (see below.)
 For consistency between languages, always use the following symbol
 forms.  It is fine to create new symbols, or to exclude some if they
 do not exist, however by using these symbols, you can maximize the
-number of language-independent programs available for use.
+number of language-independent programs available for use with your
+language.
 
 GENERIC ENTRIES:
 
@@ -292,18 +293,17 @@ recommended, however, that the following format be used.
  (\"NAME\" type-symbol [\"TYPE\"] ... \"DOCSTRING\" START END)
 
 Where type-symbol is the type of return token found, and NAME is it's
-name.  If there is any typing informatin needed to describe this
-entry, make that come next.  Next, any information you want follows
+name.  If there is any typing information needed to describe this
+entry, make that come third.  Next, any aditional information follows
 the optional type.  The last data entry can be the DOCSTRING.  A
 docstring does not have to exist in the form used by Emacs Lisp.  It
 could be the text of a comment appearing just before a function call,
-or in line with a variable.  Lastly, make sure the last two elements
-are START and END.
+or in line with a variable.  The last two elements must be START and END.
 
 It may seem odd to place NAME in slot 0, and the type-symbol in slot
-1, but this turns the returned elements into an alist based on name.
-This makes it ideal for passing into generic sorters, string
-completion functions, and list searching functions.
+1, but this turns the returned elements into a list which can be used
+by alist based function. This makes it ideal for passing into generic
+sorters, string completion functions, and list searching functions.
 
 In the below entry formats, \"NAME\" is a string which is the name of
 the object in question.  It is possible for this to be nil in some
