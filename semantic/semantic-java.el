@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.16 2001/05/07 14:56:18 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.17 2001/05/23 13:40:24 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,7 +36,8 @@
 (eval-when-compile
   (require 'semantic-ctxt)
   (require 'semantic-imenu)
-  (require 'document))
+  (require 'document)
+  (require 'senator))
 
 ;; Generated parser table
 (defvar semantic-toplevel-java-bovine-table
@@ -428,7 +429,7 @@
  ( unary_expression operators_expression_opt)
  ) ; end expression
  )
-            "Java language specification.")
+              "Java language specification.")
 
 ;; Generated keyword table
 (defvar semantic-java-keyword-table
@@ -910,6 +911,8 @@ removed from the result list."
                                         (function . "Methods")
                                         (include  . "Imports")
                                         (package  . "Package"))
+     ;; Semantic navigation inside 'type children
+     senator-step-at-token-ids '(function variable)
      )
     ;; Needed by `semantic-find-doc-snarf-comment'.
     (set (make-local-variable 'block-comment-end) "\\s-*\\*/")
