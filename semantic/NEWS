@@ -1,3 +1,8 @@
+* Changes for Semantic 1.4.2
+
+** Added namespaces support to the C/C++ grammar.
+** Minor bug and doc fixes.
+
 * Changes for Semantic 1.4.1
 
 ** This is a bug fix release only, without new features added.
