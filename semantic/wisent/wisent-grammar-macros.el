@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 02 Aug 2003
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-grammar-macros.el,v 1.1 2003/08/11 06:37:09 ponced Exp $
+;; X-RCS: $Id: wisent-grammar-macros.el,v 1.2 2003/08/31 15:08:30 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -44,8 +44,9 @@ Return nil if $N is not a valid placeholder symbol."
 
 (defun wisent-grammar-EXPAND (symb nonterm)
   "Expand call to EXPAND grammar macro.
-Return the expanded form.
-SYMB is the $I placeholder symbol to expand.
+Return the form to parse from within a nonterminal.
+SYMB is a $I placeholder symbol that gives the bounds of the area to
+parse.
 NONTERM is the nonterminal symbol to start with."
   (unless (member nonterm (semantic-grammar-start))
     (error "EXPANDFULL macro called with %s, but not used with %%start"
@@ -58,8 +59,8 @@ NONTERM is the nonterminal symbol to start with."
 
 (defun wisent-grammar-EXPANDFULL (symb nonterm)
   "Expand call to EXPANDFULL grammar macro.
-Return the expanded form.
-SYMB is the $I placeholder symbol to expand.
+Return the form to recursively parse an area.
+SYMB is a $I placeholder symbol that gives the bounds of the area.
 NONTERM is the nonterminal symbol to start with."
   (unless (member nonterm (semantic-grammar-start))
     (error "EXPANDFULL macro called with %s, but not used with %%start"
@@ -70,89 +71,106 @@ NONTERM is the nonterminal symbol to start with."
           (car ,$ri) (cdr ,$ri) ',nonterm 1)
       (error "Invalid form (EXPANDFULL %s %s)" symb nonterm))))
 
-(defun wisent-grammar-TAG (&rest args)
+(defun wisent-grammar-TAG (name class &rest attributes)
   "Expand call to TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(wisent-raw-tag (semantic-tag ,@args)))
+Return the form to create a generic semantic tag.
+See the function `semantic-tag' for the meaning of arguments NAME,
+CLASS and ATTRIBUTES."
+  `(wisent-raw-tag
+    (semantic-tag ,name ,class ,@attributes)))
 
-(defun wisent-grammar-VARIABLE-TAG (&rest args)
+(defun wisent-grammar-VARIABLE-TAG (name type default-value &rest attributes)
   "Expand call to VARIABLE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(wisent-raw-tag (semantic-tag-new-variable ,@args)))
+Return the form to create a semantic tag of class variable.
+See the function `semantic-tag-new-variable' for the meaning of
+arguments NAME, TYPE, DEFAULT-VALUE and ATTRIBUTES."
+  `(wisent-raw-tag
+    (semantic-tag-new-variable ,name ,type ,default-value ,@attributes)))
 
-(defun wisent-grammar-FUNCTION-TAG (&rest args)
+(defun wisent-grammar-FUNCTION-TAG (name type arg-list &rest attributes)
   "Expand call to FUNCTION-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(wisent-raw-tag (semantic-tag-new-function ,@args)))
+Return the form to create a semantic tag of class function.
+See the function `semantic-tag-new-function' for the meaning of
+arguments NAME, TYPE, ARG-LIST and ATTRIBUTES."
+  `(wisent-raw-tag
+    (semantic-tag-new-function ,name ,type ,arg-list ,@attributes)))
 
-(defun wisent-grammar-TYPE-TAG (&rest args)
+(defun wisent-grammar-TYPE-TAG (name type members parents &rest attributes)
   "Expand call to TYPE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(wisent-raw-tag (semantic-tag-new-type ,@args)))
+Return the form to create a semantic tag of class type.
+See the function `semantic-tag-new-type' for the meaning of arguments
+NAME, TYPE, MEMBERS, PARENTS and ATTRIBUTES."
+  `(wisent-raw-tag
+    (semantic-tag-new-type ,name ,type ,members ,parents ,@attributes)))
 
-(defun wisent-grammar-INCLUDE-TAG (&rest args)
+(defun wisent-grammar-INCLUDE-TAG (name system-flag &rest attributes)
   "Expand call to INCLUDE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(wisent-raw-tag (semantic-tag-new-include ,@args)))
+Return the form to create a semantic tag of class include.
+See the function `semantic-tag-new-include' for the meaning of
+arguments NAME, SYSTEM-FLAG and ATTRIBUTES."
+  `(wisent-raw-tag
+    (semantic-tag-new-include ,name ,system-flag ,@attributes)))
 
-(defun wisent-grammar-PACKAGE-TAG (&rest args)
+(defun wisent-grammar-PACKAGE-TAG (name detail &rest attributes)
   "Expand call to PACKAGE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(wisent-raw-tag (semantic-tag-new-package ,@args)))
+Return the form to create a semantic tag of class package.
+See the function `semantic-tag-new-package' for the meaning of
+arguments NAME, DETAIL and ATTRIBUTES."
+  `(wisent-raw-tag
+    (semantic-tag-new-package ,name ,detail ,@attributes)))
 
-(defun wisent-grammar-EXPANDTAG (&rest args)
-  "Expand call to EXPANDTAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(wisent-cook-tag ,@args))
-
-(defun wisent-grammar-CODE-TAG (&rest args)
+(defun wisent-grammar-CODE-TAG (name detail &rest attributes)
   "Expand call to CODE-TAG grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(wisent-raw-tag (semantic-tag-new-code ,@args)))
+Return the form to create a semantic tag of class code.
+See the function `semantic-tag-new-code' for the meaning of arguments
+NAME, DETAIL and ATTRIBUTES."
+  `(wisent-raw-tag
+    (semantic-tag-new-code ,name ,detail ,@attributes)))
 
-(defun wisent-grammar-AST-ADD (&rest args)
+(defun wisent-grammar-EXPANDTAG (raw-tag)
+  "Expand call to EXPANDTAG grammar macro.
+Return the form to produce a list of cooked tags from raw form of
+Semantic tag RAW-TAG."
+  `(wisent-cook-tag ,raw-tag))
+
+(defun wisent-grammar-AST-ADD (ast &rest nodes)
   "Expand call to AST-ADD grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-ast-add ,@args))
+Return the form to update the abstract syntax tree AST with NODES.
+See also the function `semantic-ast-add'."
+  `(semantic-ast-add ,ast ,@nodes))
 
-(defun wisent-grammar-AST-PUT (&rest args)
+(defun wisent-grammar-AST-PUT (ast &rest nodes)
   "Expand call to AST-PUT grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-ast-put ,@args))
+Return the form to update the abstract syntax tree AST with NODES.
+See also the function `semantic-ast-put'."
+  `(semantic-ast-put ,ast ,@nodes))
 
-(defun wisent-grammar-AST-GET (&rest args)
+(defun wisent-grammar-AST-GET (ast node)
   "Expand call to AST-GET grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-ast-get ,@args))
+Return the form to get, from the abstract syntax tree AST, the value
+of NODE.
+See also the function `semantic-ast-get'."
+  `(semantic-ast-get ,ast ,node))
 
-(defun wisent-grammar-AST-GET1 (&rest args)
+(defun wisent-grammar-AST-GET1 (ast node)
   "Expand call to AST-GET1 grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-ast-get1 ,@args))
+Return the form to get, from the abstract syntax tree AST, the first
+value of NODE.
+See also the function `semantic-ast-get1'."
+  `(semantic-ast-get1 ,ast ,node))
 
-(defun wisent-grammar-AST-GET-STRING (&rest args)
+(defun wisent-grammar-AST-GET-STRING (ast node)
   "Expand call to AST-GET-STRING grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-ast-get-string ,@args))
+Return the form to get, from the abstract syntax tree AST, the value
+of NODE as a string.
+See also the function `semantic-ast-get-string'."
+  `(semantic-ast-get-string ,ast ,node))
 
-(defun wisent-grammar-AST-MERGE (&rest args)
+(defun wisent-grammar-AST-MERGE (ast1 ast2)
   "Expand call to AST-MERGE grammar macro.
-Return the expanded form.
-ARGS are the arguments passed to the macro."
-  `(semantic-ast-merge ,@args))
+Return the form to merge the abstract syntax trees AST1 and AST2.
+See also the function `semantic-ast-merge'."
+  `(semantic-ast-merge ,ast1 ,ast2))
 
 (defvar-mode-local wisent-grammar-mode semantic-grammar-macros
   '(
