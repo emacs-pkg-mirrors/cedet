@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.28 2004/01/14 09:54:59 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.29 2004/01/15 08:06:20 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1262,7 +1262,7 @@ DEFAULT is the default lexical token returned when no MATCHES."
                (while (and (> ,len 0) (not (setq ,elt (rassoc ,val ,lst))))
                  (setq ,len (1- ,len)
                        ,val (substring ,val 0 ,len)))
-               (when elt ;; Adjust token end position.
+               (when ,elt ;; Adjust token end position.
                  (setq ,elt (car ,elt)
                        ,end (+ ,pos ,len)))
                (semantic-lex-push-token
