@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.41 2003/04/02 02:44:01 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.42 2003/04/09 01:01:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,15 +42,15 @@ This will replace the named bucket that would have usually occured here."
   :group 'speedbar
   :type 'integer)
 
-(defcustom semantic-sb-button-token->text-function 'semantic-abbreviate-nonterminal
+(defcustom semantic-sb-button-format-tag-function 'semantic-format-tag-abbreviate
   "*Function called to create the text for a but from a token."
   :group 'speedbar
-  :type semantic-token->text-custom-list)
+  :type semantic-format-tag-custom-list)
 
-(defcustom semantic-sb-info-token->text-function 'semantic-summarize-nonterminal
-  "*Function called to create the text for info display from a token."
-  :group 'speedbar
-  :type semantic-token->text-custom-list)
+;(defcustom semantic-sb-info-format-tag-function 'semantic-format-tag-summarize
+;  "*Function called to create the text for info display from a token."
+;  :group 'speedbar
+;  :type semantic-format-tag-custom-list)
 
 ;;; Code:
 
@@ -85,7 +85,7 @@ Optional PREFIX is used to specify special marker characters."
 		       (semantic-tag-function-arguments tag))
 		      ))
 	 (type (semantic-tag-type tag))
-	 (abbrev (funcall semantic-sb-button-token->text-function tag))
+	 (abbrev (funcall semantic-sb-button-format-tag-function tag))
 	 (start (point))
 	 (end (progn
 		(insert (int-to-string depth) ":")
