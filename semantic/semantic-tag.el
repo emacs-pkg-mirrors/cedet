@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.7 2003/03/22 10:40:20 ponced Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.8 2003/03/27 07:43:34 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -143,7 +143,7 @@ That function is for internal use only."
   (let ((o (semantic-tag-overlay tag)))
     (if (semantic-overlay-p o)
         (semantic-overlay-move o start end)
-      (semantic-tag-set-overlay tag (vector start end)))))
+      (semantic--tag-set-overlay tag (vector start end)))))
 
 (defsubst semantic-tag-buffer (tag)
   "Return the buffer TAG resides in."
@@ -165,9 +165,11 @@ new ATTRIBUTE VALUE pair is added.
 Return TAG.
 Use this function in a parser when not all attributes are known at the
 same time."
-  (let* ((plist-cdr (semantic--tag-attributes-cdr tag))
-	 (plist (plist-put (car plist-cdr) attribute value)))
-    (setcar plist-cdr plist)
+  (let* ((plist-cdr (semantic--tag-attributes-cdr tag)))
+    (when (consp plist-cdr)
+      (setcar plist-cdr
+              (semantic-tag-make-plist
+               (plist-put (car plist-cdr) attribute value))))
     tag))
 
 (defun semantic-tag-put-attribute-no-side-effect (tag attribute value)
@@ -177,9 +179,12 @@ are no side effects if TAG is in shared lists.
 If ATTRIBUTE already exists, its value is set to VALUE, otherwise the
 new ATTRIBUTE VALUE pair is added.
 Return TAG."
-  (let* ((plist-cdr (semantic--tag-attributes-cdr tag))
-	 (plist (copy-sequence (car plist-cdr))))
-    (setcar plist-cdr (plist-put plist attribute value))
+  (let* ((plist-cdr (semantic--tag-attributes-cdr tag)))
+    (when (consp plist-cdr)
+      (setcar plist-cdr
+              (semantic-tag-make-plist
+               (plist-put (copy-sequence (car plist-cdr))
+                          attribute value))))
     tag))
 
 (defsubst semantic-tag-get-attribute (tag attribute)
@@ -187,7 +192,7 @@ Return TAG."
 ATTRIBUTE is a symbol whose specification value to get.
 Return the value found, or nil if ATTRIBUTE is not one of the
 attributes of TAG."
-  (plist-get key (semantic-tag-attributes tag)))
+  (plist-get (semantic-tag-attributes tag) attribute))
 
 ;; These functions are for internal use only!
 (defsubst semantic--tag-properties-cdr (tag)
@@ -201,9 +206,11 @@ If PROPERTY already exists, its value is set to VALUE, otherwise the
 new PROPERTY VALUE pair is added.
 Return TAG.
 That function is for internal use only."
-  (let* ((plist-cdr (semantic--tag-properties-cdr tag))
-	 (plist (car plist-cdr)))
-    (setcar plist-cdr (plist-put plist property value))
+  (let* ((plist-cdr (semantic--tag-properties-cdr tag)))
+    (when (consp plist-cdr)
+      (setcar plist-cdr
+              (semantic-tag-make-plist
+               (plist-put (car plist-cdr) property value))))
     tag))
 
 (defun semantic--tag-put-property-no-side-effect (tag property value)
@@ -214,9 +221,12 @@ If PROPERTY already exists, its value is set to VALUE, otherwise the
 new PROPERTY VALUE pair is added.
 Return TAG.
 That function is for internal use only."
-  (let* ((plist-cdr (semantic--tag-properties-cdr tag))
-	 (plist (copy-sequence (car plist-cdr))))
-    (setcar plist-cdr (plist-put plist property value))
+  (let* ((plist-cdr (semantic--tag-properties-cdr tag)))
+    (when (consp plist-cdr)
+      (setcar plist-cdr
+              (semantic-tag-make-plist
+               (plist-put (copy-sequence (car plist-cdr))
+                          property value))))
     tag))
 
 (defsubst semantic--tag-get-property (tag property)
@@ -224,7 +234,7 @@ That function is for internal use only."
 Return the value found, or nil if PROPERTY is not one of the
 properties of TAG.
 That function is for internal use only."
-  (plist-get property (semantic-tag-properties tag)))
+  (plist-get (semantic-tag-properties tag) property))
 
 (defun semantic-tag-file-name (tag)
   "Return the filename TAG is originating.
@@ -279,15 +289,16 @@ pairs eliminated:
   - KEY associated to nil VALUE.
   - KEY associated to an empty string VALUE.
   - KEY associated to a zero VALUE."
-  (let (ret key val)
+  (let (plist key val)
     (while args
       (setq key  (car args)
             val  (nth 1 args)
             args (nthcdr 2 args))
-      (and val (not (member val '("" 0)))
-           (setq ret (cons key (cons val ret)))))
+      (or (member val '("" nil))
+          (and (numberp val) (zerop val))
+          (setq plist (cons key (cons val plist)))))
     ;; It is not useful to reverse the new plist.
-    ret))
+    plist))
 
 (defsubst semantic-tag (name class &rest attributes)
   "Create a generic semantic tag.
@@ -338,12 +349,14 @@ This slot can be interesting because the form:
 is a valid parent where there is no explicit parent, and only an
 interface.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
-  `(semantic-tag ,name 'type
-                 :type ,type
-                 :members ,members
-                 :superclasses ,(car parents)
-                 :interfaces ,(cdr parents)
-                 ,@attributes))
+  (let ((p (make-symbol "parents")))
+    `(let ((,p ,parents)) ;; Ensure that PARENTS is only evaluated once
+       (semantic-tag ,name 'type
+                     :type ,type
+                     :members ,members
+                     :superclasses (car ,p)
+                     :interfaces (cdr ,p)
+                     ,@attributes))))
 
 (defmacro semantic-tag-new-include (name system-flag &rest attributes)
   "Create a semantic tag of class include.
@@ -402,6 +415,16 @@ property of the copied tag."
     (semantic--tag-set-overlay
      copy (vector (semantic-tag-start copy) (semantic-tag-end copy)))
     copy))
+
+(defun semantic--tag-copy-properties (tag1 tag2)
+  "Copy private properties from TAG1 to TAG2.
+Return TAG2.
+This function is for internal use only."
+  (let ((plist (semantic-tag-properties tag1)))
+    (while plist
+      (semantic--tag-put-property tag2 (car plist) (nth 1 plist))
+      (setq plist (nthcdr 2 plist)))
+    tag2))
 
 ;;; Standard Tag Access
 ;;
@@ -421,7 +444,7 @@ property of the copied tag."
 That is the value defined by the `:documentation' attribute.
 Optional argument BUFFER indicates where to get the text from.
 If not provided, then only the POSITION can be provided."
-  (let ((p (semantic-tag-attribute tag :documentation)))
+  (let ((p (semantic-tag-get-attribute tag :documentation)))
     (if (and p buffer)
         (with-current-buffer buffer
           (semantic-flex-text (car (semantic-lex p (1+ p)))))
@@ -432,11 +455,11 @@ If not provided, then only the POSITION can be provided."
 (defsubst semantic-tag-type-members (tag)
   "Return the members of the type that TAG describes.
 That is the value of the `:members' attribute."
-  (semantic-tag-attribute tag :members))
+  (semantic-tag-get-attribute tag :members))
 
 (defun semantic-tag-type-superclasses (tag)
   "Return the list of superclasses of the type that TAG describes."
-  (let ((supers (semantic-tag-attribute tag :superclasses)))
+  (let ((supers (semantic-tag-get-attribute tag :superclasses)))
     (cond ((stringp supers)
 	   (list supers))
 	  ((listp supers)
@@ -444,57 +467,57 @@ That is the value of the `:members' attribute."
 
 (defsubst semantic-tag-type-interfaces (tag)
   "Return the list of interfaces of the type that TAG describes."
-  (semantic-tag-attribute tag :interfaces))
+  (semantic-tag-get-attribute tag :interfaces))
 
 ;;; Tags of class `function'
 ;;
 (defsubst semantic-tag-function-arguments (tag)
   "Return the arguments of the function that TAG describes.
 That is the value of the `:arguments' attribute."
-  (semantic-tag-attribute tag :arguments))
+  (semantic-tag-get-attribute tag :arguments))
 
 (defsubst semantic-tag-function-throws (tag)
   "Return the exceptions the function that TAG describes can throw.
 That is the value of the `throws' attribute."
-  (semantic-tag-attribute tag 'throws))
+  (semantic-tag-get-attribute tag 'throws))
 
 (defsubst semantic-tag-function-parent (tag)
   "Return the parent of the function that TAG describes.
 That is the value of the `parent' attribute.
 A function has a parent if it is a method of a class, and if the
 function does not appear in body of it's parent class."
-  (semantic-tag-attribute tag 'parent))
+  (semantic-tag-get-attribute tag 'parent))
 
-(defmacro semantic-tag-function-destructor-p (tag)
+(defsubst semantic-tag-function-destructor-p (tag)
   "Return non-nil if TAG describes a destructor function.
 That is the value of the `destructor' attribute."
-  (semantic-tag-attribute tag 'destructor))
+  (semantic-tag-get-attribute tag 'destructor))
 
 ;;; Tags of class `variable'
 ;;
 (defsubst semantic-tag-variable-default (tag)
   "Return the default value of the variable that TAG describes.
 That is the value of the attribute `:default-value'."
-  (semantic-tag-attribute tag :default-value))
+  (semantic-tag-get-attribute tag :default-value))
 
 (defsubst semantic-tag-variable-constant-p (tag)
   "Return non-nil if the variable that TAG describes is a constant.
 That is the value of the attribute `const'."
-  (semantic-tag-attribute tag 'const))
+  (semantic-tag-get-attribute tag 'const))
 
 ;;; Tags of class `include'
 ;;
 (defsubst semantic-tag-include-system-p (tag)
   "Return non-nil if the include that TAG describes is a system include.
 That is the value of the attribute `:system-flag'."
-  (semantic-tag-attribute tag :system-flag))
+  (semantic-tag-get-attribute tag :system-flag))
 
 ;;; Tags of class `code'
 ;;
 (defsubst semantic-tag-code-detail (tag)
   "Return detail information from code that TAG describes.
 That is the value of the attribute `:detail'."
-  (semantic-tag-attribute tag :detail))
+  (semantic-tag-get-attribute tag :detail))
 
 ;;; Language Specific Tag access via overload
 ;;
@@ -514,7 +537,8 @@ Perform the described task in `semantic-tag-components'."
 	 (semantic-tag-function-arguments tag))
 	(t nil)))
 
-(define-overload semantic-tag-components-with-overlays (tag)
+;;;###autoload
+(define-overload semantic-tag-components-with-overlays (tag &rest ignore)
   "Return the list of top level components belonging to TAG.
 Children are any sub-tags which contain overlays.
 
@@ -527,7 +551,7 @@ you should still return them with this function.
 Ignoring this step will prevent several features from working correctly."
   )
 
-(defun semantic-tag-components-with-overlays-default (tag)
+(defun semantic-tag-components-with-overlays-default (tag &rest ignore)
   "Return the list of top level components belonging to TAG.
 Children are any sub-tags which contain overlays.
 The default action collects regular components of TAG, in addition
@@ -548,11 +572,11 @@ to any components beloning to an anonymous type."
 	(setq anon-type-children (cdr anon-type-children))))
     ;; Add explicit children
     (while explicit-children
-      (when (semamantic-tag-with-position-p (car explicit-children))
+      (when (semantic-tag-with-position-p (car explicit-children))
 	(setq all-children (cons (car explicit-children) all-children)))
       (setq explicit-children (cdr explicit-children)))
     ;; Return
-    all-children))
+    (nreverse all-children)))
 
 ;;; Tags and Overlays
 ;;
@@ -587,7 +611,7 @@ This function is for internal use only."
         (semantic--tag-put-property tag :filename nil))
         ;; Fix the sub-tags which contain overlays.
         (semantic--tag-link-list-to-buffer
-         (semantic-tag-components-with-overlays tag))))))
+         (semantic-tag-components-with-overlays tag)))))
 
 (defsubst semantic--tag-unlink-list-from-buffer (tags)
   "Convert TAGS from using an overlay to using an overlay proxy.
@@ -691,7 +715,10 @@ This function is for internal use only."
       )
     
     ;; Expand based on local configuration
-    (funcall (or semantic-tag-expand-function 'list) tag)))
+    (if semantic-tag-expand-function
+        (or (funcall semantic-tag-expand-function tag)
+            (list tag))
+      (list tag))))
 
 ;;; Compatibility
 ;;
@@ -766,9 +793,12 @@ The return value is a list.  A value of nil means no parents.
 The `car' of the list is either the parent class, or a list
 of parent classes.  The `cdr' of the list is the list of
 interfaces, or abstract classes which are parents of TAG."
-  (cons (semantic-tag-attribute tag :superclasses)
+  (cons (semantic-tag-get-attribute tag :superclasses)
         (semantic-tag-type-interfaces tag)))
-(make-obsolete 'semantic-token-type-parent)
+(make-obsolete 'semantic-token-type-parent
+	       "\
+use `semantic-tag-type-superclass' \
+and `semantic-tag-type-interfaces' instead")
 
 (semantic-alias-obsolete 'semantic-token-type-parent-superclass
                          'semantic-tag-type-superclasses)
@@ -833,6 +863,7 @@ interfaces, or abstract classes which are parents of TAG."
 (semantic-alias-obsolete 'semantic-tag-make-assoc-list
                          'semantic-tag-make-plist)
 
+;;;###autoload
 (semantic-alias-obsolete 'semantic-nonterminal-children
 			 'semantic-tag-components-with-overlays)
 
