@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.1 2002/08/20 16:55:19 zappo Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.2 2002/12/06 01:33:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -317,25 +317,29 @@ When DIFF-MODE is non-nil, search databases which are in `emacs-lisp-mode'.
 A mode is the `major-mode' that file was in when it was last parsed.
 FIND-FILE-MATCH is is ignored.
 Return a list of matches."
-  (semanticdb-find-symbol-by-function-method
-   database
-   (lambda (atom)
-     (let ((token (semanticdb-elisp-sym->nonterm atom)))
-       (when token
-	 (if (funcall function
-		      ;; This TOTALLY sucks as a mechanism for
-		      ;; searching Emacs Lisp.  Make sure if such
-		      ;; is needed by users, that we make a new
-		      ;; search above which will work better.
-		      ;; Otherwise, all such searches will be very
-		      ;; slow. :(
-		      token)
-	     (setq semanticdb-elisp-mapatom-collector
-		   (cons token semanticdb-elisp-mapatom-collector))
-	     )
-	 ))
-     )
-   search-parts search-includes diff-mode find-file-match))
+  (if nil
+      ;; This TOTALLY sucks as a mechanism for
+      ;; searching Emacs Lisp.  Make sure if such
+      ;; is needed by users, that we make a new
+      ;; search above which will work better.
+      ;; Otherwise, all such searches will be very
+      ;; slow. :(
+      (semanticdb-find-symbol-by-function-method
+       database
+       (lambda (atom)
+	 (let ((token (semanticdb-elisp-sym->nonterm atom)))
+	   (when token
+	     (if (funcall function
+			  token
+			  search-parts
+			  search-includes
+			  )
+		 (setq semanticdb-elisp-mapatom-collector
+		       (cons token semanticdb-elisp-mapatom-collector))
+	       )
+	     ))
+	 )
+       search-parts search-includes diff-mode find-file-match)))
 
 (provide 'semanticdb-el)
 
