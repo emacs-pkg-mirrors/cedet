@@ -2,11 +2,11 @@
 ;;              or maybe Eric's Implementation of Emacs Intrepreted Objects
 
 ;;;
-;; Copyright (C) 1995,1996 Eric M. Ludlam
+;; Copyright (C) 1995,1996, 1998 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.ai.mit.edu>
 ;; Version: 0.8
-;; RCS: $Id: eieio.el,v 1.26 1997/10/17 11:18:25 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.27 1998/03/12 14:26:25 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -622,7 +622,7 @@ self quoting.  This macro is mean for the sole purpose of quoting
 lambda expressions into class defaults.  Any `lambda-default'
 expression is automatically transformed into a `lambda' expression
 when copied from the defaults into a new object.  The use of
-`oref-default', however, will return a lambda-default expression.
+`oref-default', however, will return a `lambda-default' expression.
 CDR is function definition and body."
   ;; This definition is copied directly from subr.el for lambda
   (list 'function (cons 'lambda-default cdr)))
@@ -925,7 +925,7 @@ with."
 
 (defun eieiomt-get (method-name tag class)
   "Get the implementation for METHOD-NAME for int TAG matching CLASS.
-See eieiomt-add for details on how these are set."
+See `eieiomt-add' for details on how these are set."
   (if (>= tag method-num-fields) (< tag 0)
     (error "eieiomt-get: method tag error!"))
   (let ((emto (get method-name 'eieio-method-obarray)))
@@ -1224,7 +1224,7 @@ strings from child classes, always remember to prepend a space."
   "Write an object out to the current stream.
 This writes out the vector version of this object.  Complex and recursive
 object are discouraged from being written.
-  If optional COMMENT is non-nil, include comments when outputting 
+  If optional COMMENT is non-nil, include comments when outputting
 this object."
   (if (not comment) nil
     (print ";; Object ")
