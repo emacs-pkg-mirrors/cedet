@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.wy,v 1.2 2003/03/26 04:05:12 zappo Exp $
+;; X-RCS: $Id: wisent-dot.wy,v 1.3 2003/07/23 19:56:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,7 @@
 %parsetable    wisent-dot-automaton
 %keywordtable  wisent-dot-keywords
 %tokentable    wisent-dot-tokens
+%languagemode  graphviz-dot-mode
 %setupfunction wisent-dot-setup-parser
 
 %start dot_file
