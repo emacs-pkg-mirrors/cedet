@@ -1,10 +1,10 @@
 ;;; psql --- PostgresSQL 'psql' tool interface
 ;;
-;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
-;; RCS: $Id: psql.el,v 1.4 1998/09/11 22:41:07 zappo Exp $
+;; RCS: $Id: psql.el,v 1.5 1999/02/18 19:15:15 zappo Exp $
 ;; Keywords: OO postgres95 database
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -115,14 +115,14 @@ The server is on HOST via PORT."
 	  (progn
 	    (setq params (cons port params))
 	    (setq params (cons "-p" params))))
+      (if host
+	  (progn
+	    (setq params (cons host params))
+	    (setq params (cons "-h" params))))
       (if database
 	  (progn
 	    (setq params (cons database params))
 	    (setq params (cons "-d" params))))
-      (if host
-	  (progn
-	    (setq params (cons host params))
-	    (setq params (cons "-H" params))))
       (comint-exec (current-buffer)
 		   (format "psql-proc-%s-%s-%s"
 			   (if host host (system-name))
@@ -141,13 +141,14 @@ The server is on HOST via PORT."
 		     :database database))))
 
 (defmethod dbif-get-table-info ((dbbuff psql-connection) tablename)
-  "Returns a psql-tuple object containing information about the tables
-in this database."
+  "Return a psql-tuple object with information about tables in this database.
+Argument DBBUFF specifies the current connection.
+Argument TABLENAME is the name of the table to query."
   (save-excursion
     (dbif-exec dbbuff (format "\\d %s" tablename))))
 
 (defmethod dbif-get-table-list ((dbbuff psql-connection))
-  "Get a list of available tables from the database specified in dbbuff"
+  "Get a list of available tables from the database specified in DBBUFF."
   (save-excursion
     (set-buffer (oref dbbuff buffer))
     (if (not dbif-table-list)
@@ -155,11 +156,13 @@ in this database."
     dbif-table-list))
 
 (defmethod dbif-exec ((dbbuff psql-connection) command)
-  "Execute the SQL or PSQL COMMAND and grab its output.  The output is
-checked, and if tabular data results, a psql-tuple object is returned.
+  "Execute the SQL or PSQL command and grab its output.
+The output is checked, and if tabular data results, a psql-tuple object
+is returned.
+DBBUFF is the current connection.
 COMMAND should be a string which will execute the PSQL command.  ie,
 SQL should end in a semi-colon, \ commands don't.  A carriage return
-is supplied by comint-mode"
+is supplied by `comint-mode'"
   (save-excursion
     (set-buffer (oref dbbuff buffer))
     ;; first, wait for the prompt to appear...

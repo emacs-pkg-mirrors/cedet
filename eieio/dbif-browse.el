@@ -1,10 +1,10 @@
 ;;; dbif-browse.el --- generic browser for any dbif child class type
 ;;
-;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
-;; RCS: $Id: dbif-browse.el,v 1.4 1999/02/18 18:13:27 zappo Exp $
+;; RCS: $Id: dbif-browse.el,v 1.5 1999/02/18 19:15:08 zappo Exp $
 ;; Keywords: OO database
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 ;;
 ;;              The Free Software Foundation, Inc.
 ;;              675 Mass Ave.
-;;              Cambridge, MA 02139, USA. 
+;;              Cambridge, MA 02139, USA.
 ;;
 ;; Please send bug reports, etc. to zappo@gnu.org.
 ;;
@@ -73,8 +73,9 @@
   "List of buffers dependant on out selected field...")
 
 (defmethod dbif-browse ((conn dbif-connection) name)
-  "Handle maintenance of windows and reading from generic database 
-connection type." 
+  "Handle of windows and reading from generic database connection type.
+Argument CONN is the current database connection.
+Argument NAME is the name of the database to browse."
   ;;(if (or (not database) (string= database ""))
   ;;    (setq database (user-login-name)))
   (let ((table-buffer (get-buffer-create (format "TABLES: %s" name)))
@@ -96,10 +97,11 @@ connection type."
     (sit-for 0)
     ))
 
-(defun psql-browse (host port database)
+(defun psql-browse (database host port)
   "Browse a Postgres95 database.
 Opens a couple windows in which you
-can click on items to expand them, or view their values."
+can click on items to expand them, or view their values.
+Argument DATABASE, HOST, and PORT specifies the data to connect to."
   (interactive "sDatabase: \nsHost: \nsPort: ")
   (require 'psql)
   (let ((dbbuff (psql-set-db database host port)))
@@ -108,14 +110,16 @@ can click on items to expand them, or view their values."
 (defun ingsql-browse (host username database)
   "Browse an Ingres database.
 Opens a couple windows in which you
-can click on items to expand them, or view their values."
+can click on items to expand them, or view their values.
+Argument HOST, USERNAME, and DATABASE specifies the data to connect to."
   (interactive "sDatabase: \nsHost: \nsUsername:")
   (require 'ingsql)
   (let ((dbbuff (ingsql-set-db host username database)))
     (dbif-browse dbbuff database)))
 
 (defun dbif-browse-table-mode (dbbuff schem samp)
-  "Takes selected buffer and set's it up as a table selection buffer"
+  "Takes selected buffer and set's it up as a table selection buffer.
+Argument DBBUFF , SCHEM, and SAMP specify buffers we depend on."
   (dbif-browse-mode-common (current-buffer) dbbuff)
   (setq major-mode 'dbif-browse-table-mode)
   (setq mode-name "DBIF-table")
@@ -128,7 +132,8 @@ can click on items to expand them, or view their values."
   (run-hooks 'dbif-browse-table-mode-hooks))
 
 (defun dbif-browse-schema-mode (dbbuff tabbuff)
-  "Takes selected buffer and set's it up as a table selection buffer"
+  "Takes selected buffer and set's it up as a table selection buffer.
+Argument DBBUFF and TABBUFF specify buffers we modify."
   (dbif-browse-mode-common (current-buffer) dbbuff)
   (setq major-mode 'dbif-browse-sample-mode)
   (setq mode-name "DBIF-schema")
@@ -139,7 +144,8 @@ can click on items to expand them, or view their values."
   (run-hooks 'dbif-browse-schema-mode-hooks))
 
 (defun dbif-browse-sample-mode (dbbuff schembuff)
-  "Takes selected buffer and set's it up as a table selection buffer"
+  "Takes selected buffer and set's it up as a table selection buffer.
+Argument DBBUFF and SCHEMBUFF specify buffers we modify."
   (dbif-browse-mode-common (current-buffer) dbbuff)
   (setq major-mode 'dbif-browse-sample-mode)
   (setq mode-name "DBIF-sample")
@@ -150,8 +156,8 @@ can click on items to expand them, or view their values."
   (run-hooks 'dbif-browse-sample-mode-hooks))
 
 (defun dbif-browse-mode-common (buffer dbbuff)
-  "Takes BUFFER and turns it into a DBIF mode buffer, using DBBUFF as the 
-database link to use for each of these buffers."
+  "Takes BUFFER and turn it into a DBIF mode buffer.
+Using DBBUFF as the database link to use for each of these buffers."
   (set-buffer buffer)
   (setq mode-line-buffer-identification (list "DBIF" ": %15b"))
   (make-local-variable 'dbif-data-object)
@@ -166,7 +172,7 @@ database link to use for each of these buffers."
   )
 
 (defun dbif-browse-next-line (&optional n)
-  "Move forward in the DBIF buffer N lines"
+  "Move forward in the DBIF buffer N lines."
   (interactive)
   (if (not n) (setq n 1))
   (setq dbif-local-selected (+ dbif-local-selected n))
@@ -184,14 +190,15 @@ database link to use for each of these buffers."
   )
 
 (defun dbif-browse-prev-line (&optional n)
-  "Move backward one line in the DBIF buffer N lines.  Calls
-dbif-browse-next-line"
+  "Move backward one line in the DBIF buffer N lines.
+Calls `dbif-browse-next-line'"
   (interactive)
   (if (not n) (setq n 1))
   (dbif-browse-next-line (- n)))
 
 (defun dbif-get-my-tuple (&optional dbif-max-parse)
-  "Returns a tuple which represents the contents of this buffer"
+  "Return a tuple which represents the contents of this buffer.
+Optional argument DBIF-MAX-PARSE largest number of rows to parse out.r."
   (if (not dbif-local-link-buffer)
       ;; The list of all tables
       (dbif-get-table-list dbif-data-object)
@@ -199,28 +206,28 @@ dbif-browse-next-line"
     (if (save-excursion (set-buffer dbif-local-link-buffer)
 			(not dbif-local-link-buffer))
 	(dbif-get-table-info dbif-data-object
-			     (save-excursion 
+			     (save-excursion
 			       (set-buffer dbif-local-link-buffer)
 			       (dbif-tuple-value dbif-local-tuple "Relation"
 						 dbif-local-selected)))
       ;; The sample data in a window
       (let* ((query (save-excursion
 		      (set-buffer dbif-local-link-buffer)
-		      (if dbif-local-link-buffer 
+		      (if dbif-local-link-buffer
 			  "select * from %s"
 			(error "Something goofy in dbif-get-my-tuple"))))
 	     (fillin (save-excursion
 		       (set-buffer dbif-local-link-buffer)
-		       (if dbif-local-link-buffer 
+		       (if dbif-local-link-buffer
 			   (set-buffer dbif-local-link-buffer))
 		       (dbif-tuple-value dbif-local-tuple "Relation"
 					 dbif-local-selected))))
 	(dbif-exec dbif-data-object (format query fillin))))))
 
 (defun dbif-update-contents (redraw)
-  "Starting in the TABLE buffer, update all buffers contents based on
-user's selections.  If REDRAW, the erase what is in the buffer, and
-re-create it, otherwise, only update the highlight line"
+  "Starting in the TABLE buffer, update all buffers based on user's selections.
+If REDRAW, the erase what is in the buffer, and re-create it,
+otherwise, only update the highlight line"
   (unwind-protect
       (let ((cnt 0)
 	    (numfield (dbif-tuple-num-fields dbif-local-tuple))
@@ -231,9 +238,9 @@ re-create it, otherwise, only update the highlight line"
 	    (leaveme (point-min)))
 	(toggle-read-only -1)
 	;; handle redraw-methods
-	(if redraw 
+	(if redraw
 	    (progn
-	      (erase-buffer) 
+	      (erase-buffer)
 	      ;; draw the headers
 	      (while (< cnt numfield)
 		(insert (format (format "%%-%ds " (nth cnt sizelist))
@@ -262,7 +269,7 @@ re-create it, otherwise, only update the highlight line"
 	    (forward-line 1))
 	  (if (= dbif-local-selected cl)
 	      (put-text-property (save-excursion (beginning-of-line)
-						 (forward-line -1) 
+						 (forward-line -1)
 						 (setq leaveme (point)))
 				 (point) 'face 'highlight))
 	  (setq cl (1+ cl))
