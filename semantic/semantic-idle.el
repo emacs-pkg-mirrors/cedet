@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.17 2004/02/18 14:38:59 ponced Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.18 2004/02/21 02:52:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -238,7 +238,8 @@ And also manages services that depend on tag values."
   "Function run when after `semantic-idle-scheduler-idle-time'.
 This function will reparse the current buffer, and if successful,
 call additional functions registered with the timer calls."
-  (when (semantic-idle-scheduler-enabled-p)
+  (when (and (semantic-idle-scheduler-enabled-p)
+	     (= (recursion-depth) 0))
 
     ;; Disable the auto parse timer while re-parsing
     (semantic-idle-scheduler-kill-timer)
