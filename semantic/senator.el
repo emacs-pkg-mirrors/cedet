@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.49 2001/11/02 21:35:20 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.50 2001/11/08 15:54:19 zappo Exp $
 
 ;; This file is not part of Emacs
 

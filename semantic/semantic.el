@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.126 2001/11/02 21:37:08 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.127 2001/11/08 15:49:22 zappo Exp $
 
 (defvar semantic-version "1.4beta12"
   "Current version of Semantic.")
