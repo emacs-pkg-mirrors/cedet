@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.16
-;; RCS: $Id: eieio.el,v 1.82 2000/09/30 02:47:01 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.83 2000/10/03 03:56:22 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.16"
   "Current version of EIEIO.")
@@ -125,26 +125,28 @@ execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
 (defconst class-public-doc 7 "Class public documentation strings for attributes.")
 (defconst class-public-type 8 "Class public type for a slot.")
 (defconst class-public-custom 9 "Class public custom type for a slot.")
-(defconst class-public-custom-group 10 "Class public custom group for a slot.")
-(defconst class-protection 11 "Class protection for a slot.")
-(defconst class-initarg-tuples 12 "Class initarg tuples list.")
-(defconst class-class-allocation-a 13 "Class allocated attributes.")
-(defconst class-class-allocation-doc 14 "Class allocated documentation.")
-(defconst class-class-allocation-type 15 "Class allocated value type.")
-(defconst class-class-allocation-custom 16 "Class allocated custom descriptor.")
-(defconst class-class-allocation-custom-group 17 "Class allocated custom group.")
-(defconst class-class-allocation-protection 18 "Class allocated protection list.")
-(defconst class-class-allocation-values 19 "Class allocated value vector.")
-(defconst class-default-object-cache 20
+(defconst class-public-custom-label 10 "Class public custom group for a slot.")
+(defconst class-public-custom-group 11 "Class public custom group for a slot.")
+(defconst class-protection 12 "Class protection for a slot.")
+(defconst class-initarg-tuples 13 "Class initarg tuples list.")
+(defconst class-class-allocation-a 14 "Class allocated attributes.")
+(defconst class-class-allocation-doc 15 "Class allocated documentation.")
+(defconst class-class-allocation-type 16 "Class allocated value type.")
+(defconst class-class-allocation-custom 17 "Class allocated custom descriptor.")
+(defconst class-class-allocation-custom-label 18 "Class allocated custom descriptor.")
+(defconst class-class-allocation-custom-group 19 "Class allocated custom group.")
+(defconst class-class-allocation-protection 20 "Class allocated protection list.")
+(defconst class-class-allocation-values 21 "Class allocated value vector.")
+(defconst class-default-object-cache 22
   "Cache index of what a newly created object would look like.
 This will speed up instantiation time as only a `copy-sequence' will
 be needed, instead of looping over all the values and setting them
 from the default.")
-(defconst class-options 21
+(defconst class-options 23
   "Storage location of tagged class options.
 Stored outright without modifications or stripping.")
 
-(defconst class-num-fields 22
+(defconst class-num-fields 24
   "Number of fields in the class definition object.")
 
 (defconst object-class 1 "Index in an object vector where the class is stored.")
@@ -230,6 +232,7 @@ yet supported.  Supported tags are:
 The following are extensions on CLOS:
   :protection - non-nil means a private slot (accessible when THIS is set)
   :custom     - When customizing an object, the custom :type.  Public only.
+  :label      - A text string label used for a slot when customizing.
   :group      - Name of a customization group this slot belongs in.
 
 A class can also have optional options.  These options happen in place
@@ -308,6 +311,9 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		  (if (not (member cname (aref (class-v (car pname)) class-children)))
 		      (aset (class-v (car pname)) class-children
 			    (cons cname (aref (class-v (car pname)) class-children))))
+		  ;; Get custom groups, and store them into our local copy.
+		  (mapcar (lambda (g) (add-to-list 'groups g))
+			  (class-option (car pname) :custom-groups))
 		  ;; save parent in child
 		  (aset newc class-parent (cons (car pname) (aref newc class-parent))))
 	      (error "Invalid parent class %s" pname))
@@ -361,6 +367,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	     (alloc (car (cdr (member ':allocation field))))
 	     (type (member ':type field))
 	     (custom (car (cdr (member ':custom field))))
+	     (label (car (cdr (member ':label field))))
 	     (customg (car (cdr (member ':group field))))
 	     
 	     (skip-nil (class-option-assoc (aref newc class-options)
@@ -380,6 +387,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 					     :allocation
 					     :type
 					     :custom
+					     :label
 					     :group
 					     :allow-nil-initform
 					     :custom-groups)))
@@ -395,22 +403,27 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	;; The default type specifier is supposed to be t, meaning anything.
 	(if (not type) (setq type t)
 	  (setq type (car (cdr type))))
+
+	;; Label is nil, or a string
+	(if (not (or (null label) (stringp label)))
+	    (signal 'invalid-slot-type (list ':label label)))
 	
 	;; intern the symbol so we can use it blankly
 	(if initarg (set initarg initarg))
 
 	;; The customgroup should be a list of symbols
-	(if (and customg (not (listp customg)))
-	    (progn
-	      (setq customg (list customg))
-	      ;; The customgroup better be a symbol, or list o symbols.
-	      (mapcar (lambda (cg)
-			(if (not (symbolp cg))
-			    (signal 'invalid-slot-type (list ':group cg))))
-		      customg)))
+	(cond ((null customg)
+	       (setq customg '(default)))
+	      ((not (listp customg))
+	       (setq customg (list customg))))
+	;; The customgroup better be a symbol, or list o symbols.
+	(mapcar (lambda (cg)
+		  (if (not (symbolp cg))
+		      (signal 'invalid-slot-type (list ':group cg))))
+		customg)
 
 	;; First up, add this field into our new class.
-	(eieio-add-new-field newc name init docstr type custom customg
+	(eieio-add-new-field newc name init docstr type custom label customg
 			     prot initarg alloc 'defaultoverride skip-nil)
 
 	;; We need to id the group, and store them in a group list attribute.
@@ -472,6 +485,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     (aset newc class-public-type
 	  (apply 'vector (nreverse (aref newc class-public-type))))
     (aset newc class-public-custom (nreverse (aref newc class-public-custom)))
+    (aset newc class-public-custom-label (nreverse (aref newc class-public-custom-label)))
     (aset newc class-public-custom-group (nreverse (aref newc class-public-custom-group)))
     (aset newc class-protection (nreverse (aref newc class-protection)))
     (aset newc class-initarg-tuples (nreverse (aref newc class-initarg-tuples)))
@@ -596,11 +610,11 @@ If SKIPNIL is non-nil, then if VALUE is nil, return t."
       (signal 'invalid-slot-type (list field spec value))))
 
 
-(defun eieio-add-new-field (newc a d doc type cust custg prot init alloc
+(defun eieio-add-new-field (newc a d doc type cust label custg prot init alloc
 				 &optional defaultoverride skipnil)
   "Add into NEWC attribute A.
 If A already exists in NEWC, then do nothing.  If it doesn't exist,
-then also add in D (defualt), DOC, TYPE, CUST, CUSTG, PROT, and INIT arg.
+then also add in D (defualt), DOC, TYPE, CUST, LABEL, CUSTG, PROT, and INIT arg.
 Argument ALLOC specifies if the field is allocated per instance, or per class.
 If optional DEFAULTOVERRIDE is non-nil, then if A exists in NEWC,
 we must override it's value for a default.
@@ -627,6 +641,7 @@ if default value is nil."
 	    (aset newc class-public-doc (cons doc (aref newc class-public-doc)))
 	    (aset newc class-public-type (cons type (aref newc class-public-type)))
 	    (aset newc class-public-custom (cons cust (aref newc class-public-custom)))
+	    (aset newc class-public-custom-label (cons label (aref newc class-public-custom-label)))
 	    (aset newc class-public-custom-group (cons custg (aref newc class-public-custom-group)))
 	    (aset newc class-protection (cons prot (aref newc class-protection)))
 	    (aset newc class-initarg-tuples (cons (cons init a) (aref newc class-initarg-tuples)))
@@ -665,6 +680,7 @@ if default value is nil."
 	  (aset newc class-class-allocation-doc (cons doc (aref newc class-class-allocation-doc)))
 	  (aset newc class-class-allocation-type (cons type (aref newc class-class-allocation-type)))
 	  (aset newc class-class-allocation-custom (cons cust (aref newc class-class-allocation-custom)))
+	  (aset newc class-class-allocation-custom-label (cons label (aref newc class-class-allocation-custom-label)))
 	  (aset newc class-class-allocation-custom-group (cons custg (aref newc class-class-allocation-custom-group)))
 	  (aset newc class-class-allocation-protection (cons prot (aref newc class-class-allocation-protection)))
 	  ;; Default value is stored in the 'values section, since new objects
@@ -711,14 +727,15 @@ the new child class."
 	      (pdoc (aref pcv class-public-doc))
 	      (ptype (aref pcv class-public-type))
 	      (pcust (aref pcv class-public-custom))
+	      (plabel (aref pcv class-public-custom-label))
 	      (pcustg (aref pcv class-public-custom-group))
 	      (pprot (aref pcv class-protection))
 	      (pinit (aref pcv class-initarg-tuples))
 	      (i 0))
 	  (while pa
 	    (eieio-add-new-field newc
-				 (car pa) (car pd) (car pdoc)
-				 (aref ptype i) (car pcust) (car pcustg)
+				 (car pa) (car pd) (car pdoc) (aref ptype i)
+				 (car pcust) (car plabel) (car pcustg)
 				 (car pprot) (car-safe (car pinit)) nil nil sn)
 	    ;; Increment each value.
 	    (setq pa (cdr pa)
@@ -726,6 +743,7 @@ the new child class."
 		  pdoc (cdr pdoc)
 		  i (1+ i)
 		  pcust (cdr pcust)
+		  plabel (cdr plabel)
 		  pcustg (cdr pcustg)
 		  pprot (cdr pprot)
 		  pinit (cdr pinit))
@@ -735,20 +753,22 @@ the new child class."
 	      (pdoc (aref pcv class-class-allocation-doc))
 	      (ptype (aref pcv class-class-allocation-type))
 	      (pcust (aref pcv class-class-allocation-custom))
+	      (plabel (aref pcv class-class-allocation-custom-label))
 	      (pcustg (aref pcv class-class-allocation-custom-group))
 	      (pprot (aref pcv class-class-allocation-protection))
 	      (pval (aref pcv class-class-allocation-values))
 	      (i 0))
 	  (while pa
 	    (eieio-add-new-field newc
-				 (car pa) (aref pval i) (car pdoc)
-				 (aref ptype i) (car pcust) (car pcustg)
+				 (car pa) (aref pval i) (car pdoc) (aref ptype i)
+				 (car pcust) (car plabel) (car pcustg)
 				 (car pprot) nil ':class sn)
 	    ;; Increment each value.
 	    (setq pa (cdr pa)
 		  pdoc (cdr pdoc)
 		  pcust (cdr pcust)
-		  pcust (cdr pcustg)
+		  plabel (cdr plabel)
+		  pcustg (cdr pcustg)
 		  pprot (cdr pprot)
 		  i (1+ i))
 	    ))) ;; while/let

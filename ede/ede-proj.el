@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.29 2000/09/28 18:39:19 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.30 2000/10/03 03:54:01 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,6 +38,8 @@
 	      :initform nil
 	      :type list
 	      :custom (repeat (string :tag "File"))
+	      :label "Auxiliary Source Files"
+	      :group (default source)
 	      :documentation "Auxilliary source files included in this target.
 Each of these is considered equivalent to a source file, but it is not
 distributed, and each should have a corresponding rule to build it.")
@@ -60,11 +62,15 @@ These are the compilers the user can choose from when setting the
 	     :initform "Makefile"
 	     :type string
 	     :custom string
+	     :label "Parent Makefile"
+	     :group make
 	     :documentation "File name of generated Makefile.")
    (partofall :initarg :partofall
 	      :initform t
 	      :type boolean
 	      :custom boolean
+	      :label "Part of `all:' target"
+	      :group make
 	      :documentation
 	      "Non nil means the rule created is part of the all target.
 Setting this to nil creates the rule to build this item, but does not
@@ -73,6 +79,8 @@ include it in the ALL`all:' rule.")
 	     :initform nil
 	     :type (or null symbol)
 	     ;;:custom (choice list o compilers)
+	     :label "Compiler for building sources"
+	     :group make
 	     :documentation
 	     "The compiler to be used to compile this object.
 This should be a symbol, which contains the object defining the compiler.
@@ -86,6 +94,8 @@ of these compiler resources, and global customization thereof.")
 			  (repeat
 			   (cons (string :tag "Name")
 				 (string :tag "Value")))))
+    :label "Environment Variables for configurations"
+    :group make
     :documentation "Makefile variables appended to use in different configurations.
 These variables are used in the makefile when a configuration becomes active.
 Target variables are always renamed such as foo_CFLAGS, then included into
@@ -94,6 +104,8 @@ commands where the variable would usually appear.")
 	  :initform nil
 	  :type list
 	  :custom (repeat (object :objecttype ede-makefile-rule))
+	  :label "Additional Rules"
+	  :group (make)
 	  :documentation
 	  "Arbitrary rules and dependencies needed to make this target.
 It is safe to leave this blank.")
