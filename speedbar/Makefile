@@ -28,7 +28,7 @@ DISTDIR=$(top)speedbar-$(VERSION)
 all: autoloads speedbar speedbar.info
 
 .PHONY: autoloads
-autoloads: $(LOADDEFS)
+autoloads: 
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \

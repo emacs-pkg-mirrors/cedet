@@ -29,7 +29,7 @@ DISTDIR=$(top)EDE-$(VERSION)
 all: autoloads ede aux-lisp ede.info
 
 .PHONY: autoloads
-autoloads: $(LOADDEFS)
+autoloads: 
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \

@@ -28,7 +28,7 @@ DISTDIR=$(top)eieio-$(VERSION)
 all: autoloads eieio examples eieio.info
 
 .PHONY: autoloads
-autoloads: $(LOADDEFS)
+autoloads: 
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \

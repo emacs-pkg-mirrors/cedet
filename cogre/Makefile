@@ -43,7 +43,7 @@ wisent: $(wisent_SEMANTIC_GRAMMAR)
 	${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $^
 
 .PHONY: autoloads
-autoloads: $(LOADDEFS)
+autoloads: 
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \

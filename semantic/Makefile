@@ -34,7 +34,7 @@ DISTDIR=$(top)semantic-$(VERSION)
 all: autoloads wy scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
 
 .PHONY: autoloads
-autoloads: $(LOADDEFS)
+autoloads: 
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
