@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.86 2002/02/06 03:20:11 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.87 2002/02/06 18:53:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -201,8 +201,7 @@ Instead, use `semantic-token-variable-extra-specs',
   "Add to TOKEN, and extra specifier SPEC with VALUE.
 Use this function in a parser when not all specifiers are known
 at the same time."
-  (let ((tt (semantic-token-token token))
-	(esl nil))
+  (let ((tt (semantic-token-token token)))
     (cond ((eq tt 'variable)
 	   (setcar (nthcdr 4 token)
 		   (cons (cons spec value)
@@ -1073,7 +1072,7 @@ Return nil if not found."
     semantic-uml-abbreviate-nonterminal
     semantic-uml-prototype-nonterminal
     semantic-uml-concise-prototype-nonterminal
-    semantic-emacs-lisp-nonterminal
+    semantic-prin1-nonterminal
     )
   "List of functions which convert a token to text.
 Each function must take the parameters TOKEN &optional PARENT COLOR.
@@ -1157,7 +1156,7 @@ for details on adding new types."
   )
 
 ;;; The token->text functions
-(defun semantic-emacs-lisp-nonterminal (token &optional parent color)
+(defun semantic-prin1-nonterminal (token &optional parent color)
   "Convert TOKEN to a string that is Emacs Lisp.
 PARENT and COLOR are ignored."
   (format "%S" token))
