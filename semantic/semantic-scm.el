@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.4 2001/05/05 15:00:34 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.5 2001/05/23 23:09:26 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@
   (list ( nth ( length (nth 1 vals)) (nth 1 vals)) 'provide nil)))
  ( LOAD string
   ,(semantic-lambda
-  (list ( file-name-nondirectory ( read (nth 2 vals))) 'require ( read (nth 2 vals)))))
+  (list ( file-name-nondirectory ( read (nth 1 vals))) 'require ( read (nth 1 vals)))))
  ( symbol
   ,(semantic-lambda
   (list (nth 0 vals) 'code)))
@@ -89,7 +89,7 @@
  ( string)
  ) ; end expression
  )
-   "Top level bovination table for scheme.")
+    "Top level bovination table for scheme.")
 
 (defvar semantic-scheme-keyword-table
   (semantic-flex-make-keyword-table 
