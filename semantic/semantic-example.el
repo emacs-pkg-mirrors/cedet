@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-example.el,v 1.3 2004/03/11 02:32:45 zappo Exp $
+;; X-RCS: $Id: semantic-example.el,v 1.4 2004/03/19 23:47:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -47,7 +47,7 @@ Shows how to:
      ;; ( "this" "that" "th" )
      (car (reverse (semantic-ctxt-current-symbol)))
      ;; The stream is from this buffer
-     (semantic-bovinate-toplevel t)
+     (semantic-fetch-tags)
      ;; We don't need a filter.
      nil )))
   (let (tok pos)
@@ -55,7 +55,7 @@ Shows how to:
     (setq tok (semantic-find-first-tag-by-name
 	       name
 	       ;; Get the stream.  May be a buffer too.
-	       (semantic-bovinate-toplevel t)
+	       (semantic-fetch-tags)
 	       ;; Look inside structures
 	       t
 	       ;; Don't search include files. Perhaps a later
