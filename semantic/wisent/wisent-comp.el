@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.15 2002/07/26 12:58:57 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.16 2002/08/07 17:59:59 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -3225,7 +3225,7 @@ Optional argument START-LIST defines the start symbols.
 GRAMMAR is a list of form: (TOKENS ASSOCS . NONTERMS) where TOKENS is
 a list of terminal symbols (tokens), ASSOCS is a list describing the
 associativity of terminals or nil.  And NONTERMS is the list of non
-terminal definitions (see function `wisent-parse-nonterminal').
+terminal definitions (see function `wisent-parse-nonterminals').
 ASSOCS is a list of elements: (ASSOC-TYPE . ASSOC-TOKENS) where
 ASSOC-TYPE is one of 'nonassoc, 'left or 'right, and ASSOC-TOKENS is a
 list of tokens which must have been declared in TOKENS."
