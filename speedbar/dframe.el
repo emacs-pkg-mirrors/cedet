@@ -1,12 +1,12 @@
 ;;; dframe --- dedicate frame support modes
 
-;;; Copyright (C) 1996, 97, 98, 99, 00 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 2000, 01 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.13 2000/12/11 23:34:51 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.14 2001/04/27 00:46:49 zappo Exp $
 
-(defvar dframe-version "1.0beta"
+(defvar dframe-version "1.1"
   "The current version of the dedicated frame library.")
 
 ;; This file is part of GNU Emacs.
@@ -440,7 +440,8 @@ LOCATION can be one of 'random, 'left-right, or 'top-bottom."
 
 (defun dframe-reposition-frame-emacs (new-frame parent-frame location)
   "Move NEW-FRAME to be relative to PARENT-FRAME.
-LOCATION can be one of 'random, 'left-right, or 'top-bottom."
+LOCATION can be one of 'random, 'left-right, 'top-bottom, or
+a cons cell indicationg a position of the form (LEFT . TOP)."
   (let* ((pfx (dframe-frame-parameter parent-frame 'left))
 	 (pfy (dframe-frame-parameter parent-frame 'top))
 	 (pfw (frame-pixel-width parent-frame))
@@ -496,7 +497,23 @@ LOCATION can be one of 'random, 'left-right, or 'top-bottom."
 		   newtop pfy
 		   ))
 	    ((eq location 'top-bottom)
+	     (setq newleft pfx
+		   newtop
+		   ;; Try and guess if we should be on the top or bottom.
+		   (let* ((top-guess (- pfy 15 nfh))
+			  (bottom-guess (+ pfy 5 pfh))
+			  (top-margin top-guess)
+			  (bottom-margin (- (x-display-pixel-height)
+					    bottom-guess 5 nfh)))
+		     (cond ((>= top-margin 0) top-guess)
+			   ((>= bottom-margin 0) bottom-guess)
+			   ;; Choose a side to overlap the least.
+			   ((> left-margin right-margin) 0)
+			   (t (- (x-display-height) nfh 5)))))
 	     )
+	    ((consp location)
+	     (setq newleft (or (car location) 0)
+		   newtop (or (cdr location) 0)))
 	    (t nil))
       (modify-frame-parameters new-frame
        (list (cons 'left newleft)
@@ -671,8 +688,11 @@ If NULL-ON-ERROR is a symbol, set it to nil if we cannot create a timer."
 	       (setq dframe-timer nil)))
     (if timeout
 	(if (and dframe-xemacsp
-		 (or (>= emacs-major-version 20)
-		     (>= emacs-minor-version 15)))
+		 (or (>= emacs-major-version 21)
+		     (and (= emacs-major-version 20)
+			  (> emacs-minor-version 0))
+		     (and (= emacs-major-version 19)
+			  (>= emacs-minor-version 15))))
 	    (setq dframe-timer (start-itimer "dframe"
 					     'dframe-timer-fn
 					     timeout
@@ -762,7 +782,12 @@ Must be bound to event E."
 (defun dframe-track-mouse (event)
   "For motion EVENT, display info about the current line."
   (interactive "e")
-  (when dframe-track-mouse-function
+  (when (and dframe-track-mouse-function
+	     (or dframe-xemacsp ;; XEmacs always safe?
+		 (windowp (posn-window (event-end event))) ; Sometimes
+					; there is no window to jump into.
+		 ))
+	     
     (funcall dframe-track-mouse-function event)))
 
 (defun dframe-track-mouse-xemacs (event)
@@ -900,14 +925,14 @@ broken because of the dedicated frame."
 If the mouse is being clicked on the far left, or far right of the
 mode-line.  This is only useful for non-XEmacs"
   (interactive "e")
-  (let* ((xp (car (nth 2 (car (cdr e)))))
-	 (cpw (/ (frame-pixel-width)
-		 (frame-width)))
-	 (oc (1+ (/ xp cpw)))
+  (let* ((x-point (car (nth 2 (car (cdr e)))))
+	 (pixels-per-10-col (/ (* 10 (frame-pixel-width))
+			       (frame-width)))
+	 (click-col (1+ (/ (* 10 x-point) pixels-per-10-col)))
 	 )
-    (cond ((< oc 3)
+    (cond ((< click-col 3)
 	   (scroll-left 2))
-	  ((> oc (- (window-width) 3))
+	  ((> click-col (- (window-width) 5))
 	   (scroll-right 2))
 	  (t (dframe-message
 	      "Click on the edge of the modeline to scroll left/right")))
