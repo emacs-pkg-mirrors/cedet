@@ -1,10 +1,10 @@
 ;;; document.el --- Use the bovinator to aid in generating documentation.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.20 2003/08/31 00:00:21 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.21 2004/02/17 14:03:10 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -550,7 +550,7 @@ Argument FORM is the format string to use."
 ;;
 (defun document-update-history (comment history)
   "Update COMMENT with the text HISTORY.
-COMMENT is a flex token."
+COMMENT is a `semantic-lex' token."
   (let ((endpos 0))
     (save-excursion
       (goto-char (semantic-lex-token-end comment))
@@ -583,7 +583,7 @@ Arguments can be semantic tokens, or strings."
 	(t (format "%s" arg))))
 
 (defun document-update-paramlist (tag comment)
-  "Update TAG's comment found in the flex token COMMENT."
+  "Update TAG's comment found in the `semantic-lex' token COMMENT."
   (let ((endpos 0) st en (il nil)
 	(case-fold-search nil)
 	(l (semantic-tag-function-arguments tag)))
