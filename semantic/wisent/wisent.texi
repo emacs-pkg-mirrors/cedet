@@ -1,14 +1,14 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.2 2002/01/14 19:57:02 ponced Exp $
+@c $Id: wisent.texi,v 1.3 2002/02/04 19:42:00 ponced Exp $
 @c
 @setfilename wisent.info
-@settitle Wisent: The Bison like parser generator for Emacs
+@settitle The Bison-compatible Parser Generator for Emacs
 
 @ifinfo
 @format
 START-INFO-DIR-ENTRY
-* Wisent: (wisent).       LALR Parsing for Emacs
+* Wisent: (wisent).       The Bison-compatible Parser Generator for Emacs
 END-INFO-DIR-ENTRY
 @end format
 @end ifinfo
@@ -20,18 +20,17 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{Wisent}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 2001 David Ponce
+Copyright @copyright{} 2001, 2002 David Ponce
 @end titlepage
 
 @ifnottex
 @node Top, Overview, (dir), (dir)
 @comment  node-name,  next,  previous,  up
-@top LALR Parsing for Emacs
+@top GNU Bison for Emacs
 @end ifnottex
 
-Wisent is an Elisp implementation of a Bison like parser generator.
-It can generate compilers compatible with the Semantic tool set
-@inforef{Top, , semantic.info}.
+This manual documents Wisent, the Bison-compatible Parser Generator
+for Emacs.
 
 @menu
 * Overview::                    Overview.
@@ -47,23 +46,46 @@ It can generate compilers compatible with the Semantic tool set
 @comment  node-name,  next,  previous,  up
 @chapter Overview
 
-Wisent is an Elisp implementation of a Bison like parser generator.
-The code is freely inspired from Dominique Boucher's Scheme
-implementation of Bison and from the sources of GNU Bison 1.28.
-Wisent uses the Bison algorithm to compute the @acronym{LALR(1)}
-look-ahead set.  It is described in:
+Wisent (the European Bison ;-) is an Elisp implementation of the GNU
+Compiler Compiler Bison.
+
+It can generate compilers compatible with the Semantic tool set
+@inforef{Top, , semantic.info}.
+
+The Elisp code is a port of the C code of GNU Bison 1.28 & 1.31.
+
+Thus Wisent benefits of the main Bison's features.
+
+@itemize @bullet
+@item 
+It uses a fast but not so space-efficient encoding for the parse
+tables, described in Corbett's PhD thesis from Berkeley:
 
 @quotation
-@cite{Efficient Computation of LALR(1) Look-Ahead Set}, F. DeRemer et
-T. Pennello, TOPLAS, vol. 4, no. 4, October 1982.
+@cite{Static Semantics in Compiler Error Recovery}@*
+June 1985, Report No. UCB/CSD 85/251.
 @end quotation
 
-Wisent has a Bison like mechanism to recover from parse errors and can
-resolve shift/reduce conflicts using operator precedence declarations
-@xref{Conflicts}.
+@item 
+For generating the lookahead sets, Wisent uses the well-known
+technique of F. DeRemer and A. Pennello they described in:
 
-For more details on the basic concepts for understanding Wisent, read
-the Bison manual ;) @inforef{Top, , bison.info}.
+@quotation
+@cite{Efficient Construction of LALR(1) Lookahead Sets}@*
+October 1982, ACM TOPLS Vol 4 No 4.
+@end quotation
+
+@item 
+Wisent resolves shift/reduce conflicts using operator precedence and
+associativity @xref{Conflicts}.
+
+@item 
+Its parser recover from a syntax error using the rules your wrote to
+recognize the special token @code{error}.
+@end itemize
+
+So, for more details on the basic concepts for understanding Wisent,
+read the Bison manual ;) @inforef{Top, , bison.info}.
 
 @node Grammar, Parsing, Overview, Top
 @comment  node-name,  next,  previous,  up
@@ -72,8 +94,7 @@ the Bison manual ;) @inforef{Top, , bison.info}.
 In order for Wisent to parse a language, it must be described by a
 Context Free Grammar (@acronym{CFG}).  This grammar is then compiled,
 using the function @code{wisent-compile-grammar}.  This produces the
-tables needed by the parser.  The tables themselves are Elisp vectors
-and lists stored in a main vector.
+automaton (a set of tables) needed by the parser.
 
 The formal grammar is formulated using terminal and nonterminal
 symbols which are represented in Wisent as Elisp symbols.
@@ -114,40 +135,37 @@ case.  The terminal symbol @code{error} is reserved for error
 recovery.
 
 @defun wisent-compile-grammar grammar &optional start-list
-Compile grammar @var{GRAMMAR} and return the tables needed by the parser.
+Compile @var{GRAMMAR} (@pxref{Grammar format}) and return the tables
+needed by the parser.
 
-@table @var
-@item grammar
-The @acronym{CFG} to process (@pxref{Grammar format}).
-@item start-list
-Optional list of nonterminal symbols defined as extra entry points in
-the grammar.  The first nonterminal specified in the grammar is always
-defined as the main entry point in the grammar.
-@end table
+Optional argument @var{start-list} is list of extra start symbols
+(nonterminals).  The first nonterminal defined in the grammar is
+always the default start symbol.
 
-The value returned by @code{wisent-compile-grammar} is a vector of
-vectors and lists: @code{[ACTIONS GOTOS REDUCTIONS TERMS STARTS]}
-where:
+Return an @dfn{LALR} automaton of the form:
+
+@lisp
+[ACTIONS GOTOS FUNCTIONS TRANSLATE STARTS]
+@end lisp
 
 @table @var
 @item actions
-@itemx gotos
-Tell the parser what action to do at each state.  That is shift,
-reduce, accept or error @xref{Parsing}.
-@item reductions
-Hold the code of semantic actions associated to reductions.  By
-default semantic actions are byte-compiled to achieve best performance
-of the parser.
-@item terms
-This is an alist (association list) which allows the parser to
-retrieve terminal numbers it uses internally, from terminal symbols
-returned by lexical analysis.  This can be useful too to know what
-terminal symbol is associated to a number.
+A state/token matrix telling the parser what to do at every state
+based on the current lookahead token.  That is shift, reduce, accept
+or error @xref{Parsing}.
+@item gotos
+a state/nonterminal matrix telling the parser the next state to go to
+after reducing with each rule.
+@item functions
+A vector of semantic actions.  A semantic action is actually an Elisp
+function (lambda expression).  By default these functions are
+byte-compiled to achieve best performance of the parser.
+@item translate
+An alist which maps tokens returned by lexical analysis
+into item numbers used internally.
 @item starts
-Define the allowed start nonterminals.  This is an alist (association
-list) of @code{(NONTERM . TERM)} which associates a starting point
-nonterminal symbol @code{NONTERM} to a terminal symbol @code{TERM}
-that will be first shifted into the parser stack.
+An alist which maps the allowed start symbols (nonterminal)
+to tokens that will be first shifted into the parser stack.
 @end table
 @end defun
 
@@ -347,7 +365,7 @@ And following is the corresponding form accepted by Wisent:
 @chapter Parsing
 
 The parser used by Wisent is a bottom-up @acronym{LR} parser driven by
-the tables produced by @code{wisent-compile-grammar} from a
+the automaton produced by @code{wisent-compile-grammar} from a
 @acronym{CFG} grammar (@pxref{Grammar}).
 
 An @acronym{LR} parser, also called a @dfn{shift-reduce} parser, is
@@ -374,76 +392,92 @@ recovery routine and try to resume or simply issue an error message
 and stop.
 @end table
 
-@defun wisent-parse tables lexer error &optional start
-Parse input using the automaton specified in @var{TABLES}.
+@defun wisent-parse automaton lexer &optional error start
+Parse input using the automaton specified in @var{automaton}.
 
 @table @var
-@item tables
-
->>> Is it multiple tables, or just one table?
-
-<<< It is multiples tables (actions, gotos, reductions, ...) grouped
-    in a big one ;)
-
-Are the parser tables produced by @code{wisent-compile-grammar}.
+@item automaton
+Is an LALR automaton (a set of tables) generated by
+@code{wisent-compile-grammar}. @xref{Grammar}.
 @item lexer
 Is a function with no argument called by the parser to obtain the next
-terminal in input.  @var{LEXER} must return a list @code{(TERM
-TERM-VALUE [TERM-START . TERM-END])} or @code{(list 'wisent-eoi-term)}
-when at the end of the input.
-
-@table @var
-@item term
-Is the unique symbol identifying a terminal as specified in the
-grammar.
-@item term-value
-Is the actual value of the terminal.
-
->>> Note: Caluculating values can be a very slow process on big
-    buffers due to slowness in string manipulations.  It could be
-    adventageous to do this only when needed, such as when $1 is
-    requested.
-
-<<< In fact a $n value is calculated only once, when it is
-    retrieved by the lexer (terminal) or as the result of a semantic
-    action (nonterminal).  Notice also that semantic actions bind only
-    the $n variables that are actually used.
-
-    Finally the current design (which is the Bison's one) has a big
-    advantage: the parser is completely independent of the input
-    source it parses.  Only the lexer knows where to read input
-    data.  A good illustration of this is the wisent-calc sample
-    which don't use buffers at all.  It parses input strings read
-    from the minibuffer.
-
-@item term-start
-@itemx term-end
-Are optionals start and end positions of the terminal string value in
-the input stream.  You can use the macro @code{wisent-lexer} to call
-@var{LEXER} in semantic actions.
-@end table
-
-@item error-function
-Is a reporting function called when a parse error occurs.  It receives
-a message string to report.  When @var{ERROR-FUNCTION} is called by
-the parser the variable @code{wisent-input} contains the unexpected
-token as returned by @var{LEXER}.  This function can also be called
-from semantic actions using the special macro @code{wisent-error}.
-When called from a recovery action the value of the variable
-@code{wisent-recovering} is non-nil.
+terminal (token) in input. @xref{Writing a Lexer}.
+@item error
+Is an optional reporting function called when a parse error occurs.
+It receives a message string to report.  It defaults to the function
+@code{error}. @xref{Report errors}.
 @item start
-Specify the nonterminal symbol used by the parser as its goal.  It
-defaults to the first nonterminal specified in the grammar.
-@var{START} must be one the entry point nonterminal symbols specified
-at compilation time (@pxref{Grammar}).
+Specify the start symbol (nonterminal) used by the parser as its goal.
+It defaults to the first nonterminal defined in the
+grammar. @xref{Grammar}.
 @end table
 @end defun
 
 @menu
-* Writing Actions::        Variables and macros useful in grammar actions.
+* Writing a Lexer::             What the parser must receive.
+* Report errors::               The error reporting function.
+* Writing Actions::             Variables and macros useful in grammar actions.
 @end menu
 
-@node Writing Actions,  , Parsing, Parsing
+@node Writing a Lexer, Report errors, Parsing, Parsing
+@comment  node-name,  next,  previous,  up
+@subsection What the parser must receive
+
+It is important to understand that the parser does not parse
+characters, but lexical tokens, and does not know anything about
+characters and streams!
+
+Reading input data to produce lexical tokens is performed by a lexer
+(also called a scanner) in a lexical analysis step, before the syntax
+analysis step performed by the parser.  The parser automatically calls
+the lexer when it needs the next token to parse.
+
+A Wisent's lexer is an Elisp function with no argument.  It must
+return a valid lexical token of the form:
+
+@lisp
+(SYMBOL VALUE [START . END])
+@end lisp
+
+@table @var
+@item symbol
+Is the unique symbol identifying a terminal as specified in the
+grammar (@pxref{Grammar}).
+@item value
+Is the actual value of @var{symbol}.  It can be of any valid Elisp
+data type.
+@item start
+@itemx end
+Are the optionals beginning and end positions of @var{value} in the
+input stream.
+@end table
+
+When there is no more token to read the lexer must return the token
+@code{(list 'wisent-eoi-term)} to each request. 
+
+It is possible to call the lexer from a grammar's semantic action
+using the macro @code{wisent-lexer}.
+
+@node Report errors, Writing Actions, Writing a Lexer, Parsing
+@comment  node-name,  next,  previous,  up
+@subsection The error reporting function
+
+When the parser encounters a syntax error it calls a user-defined
+function.  It must be an Elisp function with one argument: a string
+containing the message to report.
+
+By default the parser uses the standard Elisp function @code{error} to
+report error message and terminate.
+
+At this point the variable @code{wisent-input} contains the unexpected
+token as returned by the lexer.
+
+The error reporting function can be called from a semantic action too
+using the special macro @code{wisent-error}.  When called from a
+semantic action entered by error recovery the value of the variable
+@code{wisent-recovering} is non-nil.
+
+@node Writing Actions,  , Report errors, Parsing
 @comment  node-name,  next,  previous,  up
 @subsection Variables and macros useful in grammar actions.
 
