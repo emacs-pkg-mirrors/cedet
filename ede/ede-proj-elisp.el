@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-elisp.el,v 1.9 2000/09/24 15:36:03 zappo Exp $
+;; RCS: $Id: ede-proj-elisp.el,v 1.10 2000/10/14 02:55:07 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -54,25 +54,46 @@ A lisp target may be one general program with many separate lisp files in it.")
 		  :garbagepattern '("*.elc"))
   "Emacs Lisp source code definition.")
 
+(defclass ede-compiler-elisp (ede-compiler)
+  ((lpcommands :initarg :lpcommands
+	       :initarg nil
+	       :documentation
+	       "Prefix commands for setting up a load path."))
+  "Compile Emacs Lisp programs.
+Tag for methods dealing with load path stuff.")
+
 (defvar ede-emacs-compiler
-  (ede-compiler
+  (ede-compiler-elisp
    "ede-emacs-compiler"
    :name "emacs"
    :variables '(("EMACS" . "emacs"))
-   :commands
+   :lpcommands
    '("@echo \"(add-to-list 'load-path nil)\" > $@-compile-script"
      "@for loadpath in ${LOADPATH}; do \\"
      "   echo \"(add-to-list 'load-path \\\"$$loadpath\\\")\" >> $@-compile-script; \\"
      " done"
-     "@echo \"(setq debug-on-error t)\" >> $@-compile-script"
+     )
+   :commands
+   '("@echo \"(setq debug-on-error t)\" >> $@-compile-script"
      "$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^"
      )
    :autoconf '("AM_PATH_LISPDIR")
    :sourcetype '(ede-source-emacs)
-   :objectextention ".elc"
+;   :objectextention ".elc"
    )
   "Compile Emacs Lisp programs.")
 
+;;; Emacs Lisp Compiler
+(defmethod ede-proj-makefile-insert-lpcommands ((this ede-compiler-elisp))
+  "Insert the commands needed to use compiler THIS.
+Will only insert load path generating code if there is a loadpath
+that is needed."
+  (with-slots ((commands lpcommands)) this
+    (while commands
+      (insert "\t" (car commands) "\n")
+      (setq commands (cdr commands)))))
+
+;;; Emacs Lisp Target
 (defun ede-proj-elisp-packages-to-loadpath (packages)
   "Convert a list of PACKAGES, to a list of load path."
   (let ((paths nil))
@@ -83,6 +104,13 @@ A lisp target may be one general program with many separate lisp files in it.")
 			paths)
 	    packages (cdr packages)))
     paths))
+
+(defmethod ede-proj-makefile-insert-commands ((this ede-proj-target-elisp))
+  "Insert the commands needed by target THIS.
+For targets, insert the commands needed by the chosen compiler."
+  (when (oref this aux-packages)
+    (mapc 'ede-proj-makefile-insert-lpcommands (ede-proj-compilers this)))
+  (call-next-method))
 
 (defmethod project-compile-target ((obj ede-proj-target-elisp))
   "Compile all sources in a Lisp target OBJ."
