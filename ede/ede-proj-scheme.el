@@ -1,10 +1,10 @@
 ;;; ede-proj-scheme.el --- EDE Generic Project scheme (guile) support
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, scheme
-;; RCS: $Id: ede-proj-scheme.el,v 1.3 1999/11/10 14:18:49 zappo Exp $
+;; RCS: $Id: ede-proj-scheme.el,v 1.4 2000/07/12 14:09:15 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -28,6 +28,8 @@
 ;; Handle scheme (Guile) in and EDE Project file.
 ;; This is a specialized do nothing class.
 
+(eval-and-compile (require 'ede-proj))
+
 ;;; Code:
 (defclass ede-proj-target-scheme (ede-proj-target)
   ((menu :initform nil)
@@ -43,6 +45,10 @@
 (defmethod ede-want-file-p ((obj ede-proj-target-scheme) file)
   "Return t if OBJ wants to own FILE."
   (string-match "\\.scm$" file))
+
+(defmethod ede-proj-tweek-autoconf ((this ede-proj-target-scheme))
+  "Tweek the configure file (current buffer) to accomodate THIS."
+  (autoconf-insert-new-macro "AM_INIT_GUILE_MODULE"))
 
 (provide 'ede-proj-scheme)
 
