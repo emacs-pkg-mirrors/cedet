@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.42 2003/09/07 09:01:42 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.43 2003/10/01 08:50:24 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -719,9 +719,10 @@ Also load the specified macro libraries."
          (epilogue (semantic-grammar-epilogue))
          (footer   (semantic-grammar-footer))
          )
-    (if (file-newer-than-file-p
-         (buffer-file-name semantic--grammar-output-buffer)
-         (buffer-file-name semantic--grammar-input-buffer))
+    (if (and (not (buffer-modified-p))
+             (file-newer-than-file-p
+              (buffer-file-name semantic--grammar-output-buffer)
+              (buffer-file-name semantic--grammar-input-buffer)))
         (message "Package `%s' is up to date." package)
       ;; Create the package
       (set-buffer semantic--grammar-output-buffer)
