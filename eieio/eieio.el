@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.56 1999/11/19 02:48:04 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.57 1999/11/19 14:28:41 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -1205,7 +1205,7 @@ This should only be called from a generic function."
 	(setq lambdas (cdr lambdas)))
       (if (not found)
 	  (if (object-p (car args))
-	      (setq rval (no-method-definition (car args) method))
+	      (setq rval (no-applicable-method (car args) method))
 	    (signal
 	     'no-method-definition
 	     (list method args))))
@@ -1645,7 +1645,7 @@ Argument FN is the function signaling this error."
   (signal 'unbound-slot (list (class-name class) (object-name object)
 			      slot-name fn)))
 
-(defmethod no-method-definition ((object eieio-default-superclass)
+(defmethod no-applicable-method ((object eieio-default-superclass)
 				 method)
   "Called if there are no implementations for OBJECT in METHOD.
 OBJECT is the object which has no method implementation."
