@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.36 2003/02/21 18:05:30 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.37 2003/02/22 15:33:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -245,7 +245,7 @@ TEXT TOKEN and INDENT are the details."
 (defun semantic-sb-token-jump (text token indent)
   "Jump to the location specified in token.
 TEXT TOKEN and INDENT are the details."
-  (let ((file (speedbar-line-path indent))
+  (let ((file (speedbar-line-directory indent))
 	(parent (semantic-sb-detail-parent)))
     (let ((f (selected-frame)))
       (dframe-select-attached-frame speedbar-frame)
