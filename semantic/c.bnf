@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.15 2000/09/11 23:00:32 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.16 2000/09/14 19:23:27 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.16  2000/09/14 19:23:27  zappo
+# Updated to use %token to make new tokens for use in RULES.
+#
 # Revision 1.15  2000/09/11 23:00:32  zappo
 # Use new BNF settings section.
 #
@@ -86,6 +89,21 @@
        document-comment-end " */"
        )%
 
+%token HASH punctuation "#"
+%token INCLUDE "include"
+%token DEFINE "define"
+%token PERIOD punctuation "."
+%token COLON punctuation ":"
+%token SEMICOLON punctuation ";"
+%token STAR punctuation "*"
+%token EQUAL punctuation "="
+%token COMA punctuation ","
+%token STRUCT "struct"
+%token UNION "union"
+%token ENUM "enum"
+%token TYPEDEF "typedef"
+
+
 declaration : include
 	    | macro
 	    | comment
@@ -96,14 +114,13 @@ declaration : include
 	    | define
 	    ;
 		
-include : punctuation "#" symbol "include" punctuation "<"
-	  filename punctuation ">"
+include : HASH INCLUDE punctuation "<" filename punctuation ">"
 	  ( ,$4 include t nil )
-        | punctuation "#" symbol "include" string
+        | HASH INCLUDE string
 	  ( (read $3) include nil nil )
         ;
 
-filename : symbol punctuation "\\." symbol
+filename : symbol PERIOD symbol
 	   ( (concat $1 $2 $3) )
          | symbol punctuation "/" filename
 	   ( (concat $1 $2 (car $3)) )
@@ -132,19 +149,21 @@ opt-name : symbol
 	   ( nil )
          ;
 
-typesimple : symbol "struct\\|union" opt-name structparts
+typesimple : STRUCT opt-name structparts
 	     ( ,$2 type $1 $3 nil nil nil )
-	   | symbol "enum" opt-name enumparts
+	   | UNION opt-name structparts
+	     ( ,$2 type $1 $3 nil nil nil )
+	   | ENUM opt-name enumparts
 	     ( ,$2 type $1 $3 nil nil nil )	
-           | symbol "typedef" typeform symbol
+           | TYPEDEF typeform symbol
 	     ( $3 type $1 nil $2 nil nil )
            ;
 
-type : typesimple punctuation ";"
+type : typesimple SEMICOLON
        ( ,$1 )
      ;
 
-opt-stars : punctuation "*" opt-stars
+opt-stars : STAR opt-stars
 	    ( (1+ (car $2)) )
 	  | EMPTY
 	    ( 0 )
@@ -165,13 +184,13 @@ typeform : typeformbase opt-stars
 
 typeformbase : typesimple
 	       ( ,$1 )
-	     | symbol "struct\\|union\\|enum" symbol
+	     | symbol "\\<\\(struct\\|union\\|enum\\)\\>" symbol
 	       ( $2 type $1 )
 	     | symbol
 	       ( $1 )
 	     ;
   
-opt-bits : punctuation ":" symbol
+opt-bits : COLON symbol
 	   ( $2 )
 	 | EMPTY
 	   ( nil )
@@ -185,17 +204,17 @@ opt-array : semantic-list "^\\[.*\\]$" opt-array
 	    ( nil )
           ;
 
-opt-assign : punctuation "=" expression
+opt-assign : EQUAL expression
 	     ( $2 )
 	   | EMPTY
 	     ( nil )
 	   ;
 
-macro : punctuation "#" symbol "define" symbol opt-expression
+macro : HASH DEFINE symbol opt-expression
 	( $3 variable nil t $4 nil nil )
       ;
 
-variable : variabledef punctuation ";"
+variable : variabledef SEMICOLON
 	   ( ,$1 )
 	 ;
 
@@ -204,7 +223,7 @@ variabledef : declmods typeform varnamelist
 	      (if (and $1 (string-match "const" (car $1))) (cdr $1) $1) nil )
 	    ;
 
-opt-restrict : symbol "\\(__\\)?restrict"
+opt-restrict : symbol "\\<\\(__\\)?restrict\\>"
 	     | EMPTY
 	     ;
 
@@ -219,13 +238,13 @@ variablearg : declmods typeform varname
 	      nil )
 	    ;
 
-varnamelist : varname  punctuation "," varnamelist
+varnamelist : varname COMA varnamelist
 	      ( ,(cons $1 $3) )
             | varname
 	      ( $1 )
 	    ;
 
-arg-list : symbol "__P" semantic-list
+arg-list : symbol "\\<__?P\\>" semantic-list
 	   (EXPAND $2 arg-list-p)
 	 | semantic-list knr-arguments
 	   ( ,$2 )
@@ -233,9 +252,9 @@ arg-list : symbol "__P" semantic-list
 	   (EXPANDFULL $1 arg-sub-list)
 	 ;
 
-knr-arguments : variablearg punctuation ";" knr-arguments
+knr-arguments : variablearg SEMICOLON knr-arguments
 		( ,(cons $1 $3) )
-	      | variablearg punctuation ";"
+	      | variablearg SEMICOLON
 		( $1 )
 	      ;
 
@@ -245,7 +264,7 @@ arg-list-p : open-paren "(" semantic-list close-paren ")"
 
 arg-sub-list : variablearg
 	       ( ,$1 )
-	     | punctuation "\\." punctuation "\\." punctuation "\\."
+	     | PERIOD PERIOD PERIOD
 	       close-paren ")"
 	       ( "..." )
 	     ;
@@ -254,7 +273,7 @@ functiondef : declmods typeform symbol arg-list
 	      ( $3 function $2 $4 $1 nil )
             ;
 
-prototype : functiondef punctuation ";"
+prototype : functiondef SEMICOLON
 	    ( ,$1 )
 	  ;
 
