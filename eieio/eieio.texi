@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.52 2005/02/04 19:00:03 zappo Exp $
+@c $Id: eieio.texi,v 1.53 2005/04/03 16:09:19 zappo Exp $
 @c
 
 @c
@@ -59,9 +59,6 @@ wrong!
 * Demo Programs::         Some examples using eieio.
 * Function Index::
 @end menu
-
-As of this writing, updates can be found at:
-  @uref{ftp://ftp.ultranet.com/pub/zappo}.
 
 @node Introduction, CLOS compatibility, Top, Top
 @comment  node-name,  next,  previous,  up
