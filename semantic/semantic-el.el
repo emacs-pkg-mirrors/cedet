@@ -1,9 +1,9 @@
 ;;; semantic-ex.el --- Semantic details for some languages
 
-;;; Copyright (C) 1999, 2000 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.37 2000/12/22 16:09:07 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.38 2001/01/24 21:17:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -72,9 +72,10 @@ Return a bovination list to use."
 	  (eq ts 'defface)
 	  (eq ts 'defimage))
       ;; Variables and constants
-      (list sn 'variable nil
-	    (if (eq ts 'defconst) t nil)
-	    nil nil (nth 3 rt))
+      (list sn 'variable nil (nth 2 rt)
+	    (semantic-bovinate-make-assoc-list
+	     'const (if (eq ts 'defconst) t nil))
+	    (nth 3 rt))
       )
      ((or (eq ts 'defun)
 	  (eq ts 'defsubst)
@@ -90,15 +91,38 @@ Return a bovination list to use."
 	     (a3 (nth 3 rt))
 	     (args (if (listp a2) a2 a3))
 	     (doc (nth (if (listp a2) 3 4) rt)))
-	(list sn 'function nil (semantic-elisp-desymbolify args) doc)
+	(list sn 'function nil
+	      (if (listp (car args))
+		  (cons (symbol-name (car (car args)))
+			(semantic-elisp-desymbolify (cdr args)))
+		(semantic-elisp-desymbolify (cdr args)))
+	      (semantic-bovinate-make-assoc-list
+	       'parent (symbol-name
+			(if (listp (car args)) (car (cdr (car args))))))
+	      doc)
 	))
      ((eq ts 'defadvice)
       ;; Advice
       (list sn 'function nil (semantic-elisp-desymbolify (nth 2 rt))
 	    nil (nth 3 rt)))
      ((eq ts 'defclass)
-      ;; classes and structs (types)
-      (list sn 'type "class" (semantic-elisp-desymbolify (nth 3 rt))
+      ;; classes
+      (let ((docpart (nth 4 rt)))
+	(list sn 'type "class" (semantic-elisp-desymbolify (nth 3 rt))
+	      (semantic-elisp-desymbolify (nth 2 rt))
+	      (semantic-bovinate-make-assoc-list
+	       'typemodifiers
+	       (semantic-elisp-desymbolify
+		(if (not (stringp docpart))
+		    docpart))
+	       )
+	      (if (stringp docpart)
+		  docpart
+		(car (cdr (member :documentation docpart))))))
+      )
+     ((eq ts 'defstruct)
+      ;; structs
+      (list sn 'type "struct" (semantic-elisp-desymbolify (nth 3 rt))
 	    (semantic-elisp-desymbolify (nth 2 rt))
 	    nil (nth 4 rt))
       )
