@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.18 2004/07/20 18:33:48 zappo Exp $
+ * $Id: test.cpp,v 1.19 2005/02/03 14:08:11 zappo Exp $
  *
  */
 
@@ -104,6 +104,7 @@ int class3::method1_for_class3( int a, int &b)
   a = foo.me
 
   if (foo.emb) {
+    
   }
 
   return 1;
@@ -133,6 +134,9 @@ void *class3::method4_for_class3( int a, int b) reentrant
   ct.method5_for_class3(1,a)
 }
 
+/*
+ * A method on class3.
+ */
 void *class3::method5_for_class3( int a, int b) const
 {
 }
