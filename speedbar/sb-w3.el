@@ -1,11 +1,11 @@
 ;;; sb-w3 --- Speedbar support for w3.
 
-;; Copyright (C) 1997 Free Software Foundation
+;; Copyright (C) 1997, 1998 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-w3.el,v 1.1 1997/11/01 13:50:15 zappo Exp $
+;; X-RCS: $Id: sb-w3.el,v 1.2 1998/03/06 16:28:27 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,20 +34,11 @@
 ;; files are displayed.  These functions provide w3 specific support,
 ;; showing links and addresses in the side-bar.
 ;;
-;;   To provide special service to all the modes supported by this file,
-;; put the following in your .emacs file.
-;;
-;; (require 'speedbspec)
-;;
-;;   This will load in the known functions, and the mode-enabling code
-;; into 'change-major-mode-hook.
-;;
 ;;   This file requires speedbar.
 
 ;;; Change log:
-;; 0.1 - first revision copied from speedbspec.el V 0.1.1
-
-(require 'speedbspec)
+;; 0.1   - first revision copied from speedbspec.el V 0.1.1
+;; 0.1.1 - Removed dependency on speedbspec
 
 ;;; Code:
 (defvar w3-speedbar-last-buffer nil

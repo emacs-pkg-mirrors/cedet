@@ -5,9 +5,9 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.2 1998/01/07 02:04:38 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.3 1998/03/06 16:28:34 zappo Exp $
 ;;
-;; This file is part of GNU Emacs.
+;; This file is patch of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 ;;              675 Mass Ave.
 ;;              Cambridge, MA 02139, USA.
 ;;
-;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
+;; Please send bug reports, etc. to zappo@gnu.org
 ;;
 
 ;;; Commentary:
@@ -36,20 +36,11 @@
 ;; files are displayed.  These functions provide Info specific support,
 ;; showing links and addresses in the side-bar.
 ;;
-;;   To provide special service to all the modes supported by this file,
-;; put the following in your .emacs file.
-;;
-;; (require 'speedbspec)
-;;
-;;   This will load in the known functions, and the mode-enabling code
-;; into 'change-major-mode-hook.
-;;
 ;;   This file requires speedbar.
 
 ;;; Change log:
-;; 0.1 - first revision copied from speedbspec.el V 0.1.1
-
-(require 'speedbspec)
+;; 0.1   - first revision copied from speedbspec.el V 0.1.1
+;; 0.1.1 - No longer require speedbspec
 
 ;;; Code:
 (defvar Info-last-speedbar-node nil
