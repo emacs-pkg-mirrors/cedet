@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.16 2000/05/04 02:44:39 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.17 2000/05/17 02:19:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -80,6 +80,7 @@ Optional PREFIX is used to specify special marker characters."
 		(insert (int-to-string depth) ":")
 		(point))))
     (insert-char ?  (1- depth) nil)
+    (put-text-property end (point) 'invisible nil)
     ;; take care of edata = (nil) -- a yucky but hard to clean case
     (if (and edata (listp edata) (and (<= (length edata) 1) (not (car edata))))
 	(setq edata nil))
@@ -144,6 +145,7 @@ Argument TEXT-DATA is the token data to pass to TEXT-FUN."
 	       (point))))
     (put-text-property start end 'invisible t)
     (insert-char ?  depth nil)
+    (put-text-property end (point) 'invisible nil)
     (speedbar-insert-button button nil nil nil nil t)
     (speedbar-insert-button text
 			    'speedbar-tag-face
