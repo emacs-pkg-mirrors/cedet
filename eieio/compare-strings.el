@@ -54,8 +54,7 @@ If string STR1 is greater, the value is a positive number N;
 	       (length str2)))
   (let ((i1 start1)
 	(i2 start2)
-	result
-	c1 c2 i1 i2)
+	result c1 c2)
     (while (and (not result) (< i1 end1) (< i2 end2))
       (setq c1 (aref str1 i1)
 	    c2 (aref str2 i2)
@@ -79,3 +78,7 @@ If string STR1 is greater, the value is a positive number N;
 		     t))))
     result))
 
+
+(provide 'compare-strings)
+
+;;; compare-strings.el ends here
