@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.13 2000/06/23 23:09:48 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.14 2000/07/01 17:54:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,9 +53,24 @@
   "Retrieve the parent of the type TOKEN."
   `(nth 4 ,token))
 
+(defmacro semantic-token-type-modifiers (token)
+  "Retrieve the parent of the type TOKEN."
+  `(nth 5 ,token))
+
 (defmacro semantic-token-function-args (token)
   "Retrieve the arguments of the function TOKEN."
   `(nth 3 ,token))
+
+(defmacro semantic-token-function-modifiers (token)
+  "Retrieve extra modifiers for the function TOKEN."
+  `(nth 4 ,token))
+
+(defmacro semantic-token-function-throws (token)
+  "Optional details if this function has a THROWS type.
+Determines if it is available based on the length of TOKEN."
+  `(if (>= (length ,token) (+ 5 3))
+       (nth 5 ,token)
+     nil))
 
 (defmacro semantic-token-variable-const (token)
   "Retrieve the status of constantness from the variable TOKEN."
@@ -70,7 +85,7 @@
   `(nth 5 ,token))
 
 (defmacro semantic-token-include-system (token)
-  "Retrieve the flag indicating if the include TOKEN is a sysmtem include."
+ "Retrieve the flag indicating if the include TOKEN is a sysmtem include."
   `(nth 2 ,token))
 
 ;;; Searching APIs
