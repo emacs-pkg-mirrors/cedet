@@ -92,7 +92,7 @@
 
 ;;; User configurable variables
 ;;
-(defcustom working-status-type 'working-bar-percent-display
+(defcustom working-status-percentage-type 'working-bar-percent-display
   "Function used to display the percent status.
 Functions provided in `working' are:
   `working-percent-display'
@@ -107,7 +107,7 @@ Functions provided in `working' are:
 		 (const working-percent-bar-display)
 		 (const celeron-percent-display)))
 
-(defcustom working-static-type 'working-celeron-display
+(defcustom working-status-static-type 'working-celeron-display
   "Function used to display a celeron working display.
 Static working types occur when the program does not know how long
 it will take ahead of time.  Functions provided in `working' are:
@@ -152,7 +152,7 @@ Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
   (let* ((p (or percent (floor (* 100.0 (/ (float (point)) (point-max))))))
 	 (m1 (apply 'format working-message args))
-	 (m2 (funcall working-status-type (length m1) p)))
+	 (m2 (funcall working-status-percentage-type (length m1) p)))
     (message "%s%s" m1 m2)))
 
 (defun working-static-status (&optional number &rest args)
@@ -164,7 +164,7 @@ numbers would appear.  Additional ARGS are passed to fill on %
 elements of MESSAGE from the macro `working-status-forms'."
   (let* ((n (or number working-ref1))
 	 (m1 (apply 'format working-message args))
-	 (m2 (funcall working-static-type (length m1) n)))
+	 (m2 (funcall working-status-static-type (length m1) n)))
     (message "%s%s" m1 m2)
     (setq working-ref1 (1+ working-ref1))))
 
@@ -198,7 +198,7 @@ is t to display the done string, or the percentage to display."
   (let* ((ps (if (eq percent t)
 		 (concat "... " working-donestring)
 	       (working-percent-display length percent)))
-	 (psl (+ 1 length (if (eq percent t) working-ref1 (length ps)))))
+	 (psl (+ 3 length (if (eq percent t) working-ref1 (length ps)))))
     (cond ((eq percent t)
 	   (concat (working-bar-display psl 100) " " ps))
 	  (t
