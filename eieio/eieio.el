@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.115 2002/02/09 19:56:40 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.116 2002/02/21 21:22:26 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17"
   "Current version of EIEIO.")
@@ -276,6 +276,9 @@ Options added to EIEIO:
   :allow-nil-initform - Non-nil to skip typechecking of initforms if nil.
   :custom-groups      - List of custom group names.  Organizes slots into
                         reasonable groups for customizations.
+  :abstract           - Non-nil to prevent instances of this class.
+                        If a string, use as an error string if someone does
+                        try to make an instance.
 
 Options in CLOS not supported in EIEIO:
 
@@ -325,18 +328,18 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
     (when oldc
       (aset newc class-children (aref oldc class-children)))
 
-    (cond ((< 2 (length options-and-doc))
+    (cond ((and (stringp (car options-and-doc))
+		(/= 1 (% (length options-and-doc) 2)))
 	   (error "Too many arguments to `defclass'"))
-	  ((= 2 (length options-and-doc))
-	   (if (stringp (car (cdr options-and-doc)))
-	       (setq options (car options-and-doc)
-		     options-and-doc (cdr options-and-doc))
-	     (error "Too many arguments to `defclass'"))))
+	  ((and (symbolp (car options-and-doc))
+		(/= 0 (% (length options-and-doc) 2)))
+	   (error "Too many arguments to `defclass'"))
+	  )
 
     (setq options
 	  (if (stringp (car options-and-doc))
-	      (cons :documentation (cons (car options-and-doc) options))
-	    (car options-and-doc)))
+	      (cons :documentation options-and-doc)
+	    options-and-doc))
 
     (if pname
 	(progn
@@ -446,8 +449,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	     (label   (plist-get field ':label))
 	     (customg (plist-get field ':group))
 	     
-	     (skip-nil (class-option-assoc (aref newc class-options)
-					   :allow-nil-initform))
+	     (skip-nil (class-option-assoc options :allow-nil-initform))
 	     )
 
 	(if eieio-error-unsupported-class-tags
@@ -607,20 +609,30 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
       )
 
     ;; Create the constructor function
-    (fset cname
-	  `(lambda (newname &rest fields)
-	     ,(format "Create a new object with name NAME of class type %s" cname)
-	     (let ((no
-		    ;; Copying is very fast.  Unfortunatly, it also prevents
-		    ;; evaluation of lambda's at creation time.
-		    (copy-sequence (aref (class-v ,cname)
-					 class-default-object-cache))))
-	       ;; Update the name
-	       (aset no object-name newname)
-	       ;; Call the initialize method on the new object with the
-	       ;; built in fields.
-	       (initialize-instance no fields)
-	       no)))
+    (if (class-option-assoc options :abstract)
+	;; Abstract classes cannot be instantiated.  Say so.
+	(let ((abs (class-option-assoc options :abstract)))
+	  (if (not (stringp abs))
+	      (setq abs (format "Class %s is abstract" cname)))
+	  (fset cname
+		`(lambda (&rest stuff)
+		   ,(format "You cannot create a new object of type %s" cname)
+		   (error ,abs))))
+      ;; Non-abstract classes need a constructor.
+      (fset cname
+	    `(lambda (newname &rest fields)
+	       ,(format "Create a new object with name NAME of class type %s" cname)
+	       (let ((no
+		      ;; Copying is very fast.  Unfortunatly, it also prevents
+		      ;; evaluation of lambda's at creation time.
+		      (copy-sequence (aref (class-v ,cname)
+					   class-default-object-cache))))
+		 ;; Update the name
+		 (aset no object-name newname)
+		 ;; Call the initialize method on the new object with the
+		 ;; built in fields.
+		 (initialize-instance no fields)
+		 no))))
 
     ;; Set up a specialized doc string.
     ;; Use stored value since it is calculated in a non-trivial way
