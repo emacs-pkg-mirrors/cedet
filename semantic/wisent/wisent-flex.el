@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 23 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-flex.el,v 1.4 2002/06/11 17:48:52 ponced Exp $
+;; X-RCS: $Id: wisent-flex.el,v 1.5 2002/07/02 09:40:35 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -120,8 +120,10 @@ instead of regexp match."
           (setq rules (cdr rules))))
       (or lexem default))))
 
-(defconst wisent-flex-eoi-token (list wisent-eoi-term)
-  "End of input lexical token.")
+(defmacro wisent-flex-eoi ()
+  "Return an End-Of-Input lexical token.
+The EOI token is like this: ($EOI "" POINT-MAX . POINT-MAX)."
+  `(cons ',wisent-eoi-term (cons "" (cons (point-max) (point-max)))))
 
 (defun wisent-flex ()
 "Return the next available lexical token.
@@ -221,7 +223,7 @@ example on how to define the mapping of 'punctuation syntactic tokens.
       
       ;; End of input
       ;; ------------
-      wisent-flex-eoi-token
+      (wisent-flex-eoi)
     
     (let* ((is   wisent-flex-istream)
            (flex (car is))
