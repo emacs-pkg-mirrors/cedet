@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.10 2000/07/19 02:22:29 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.11 2000/08/20 15:28:27 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -76,12 +76,33 @@ Argument CH-PREFIX is another character prefix to display."
 	(eieio-browse-tree (car chl) fprefix lprefix))
     ))
 
+;;;###autoload
+(defalias 'describe-class 'eieio-describe-class)
+;;;###autoload
 (defun eieio-describe-class (class)
   "Describe a CLASS defined by a string or symbol.
 If CLASS is actually an object, then also display current values of that obect."
   (interactive (list (eieio-read-class "Class: ")))
   (with-output-to-temp-buffer "*Help*"
+    (princ "Class ")
     (prin1 class)
+    (terpri)
+    (let ((pl (class-parents class)))
+      (when pl
+	(princ " Inherits from ")
+	(while pl
+	  (princ "`") (prin1 (car pl)) (princ "'")
+	  (if pl (princ ", "))
+	  (setq pl (cdr pl)))
+	(terpri)))
+    (let ((ch (class-children class)))
+      (when ch
+	(princ " Children ")
+	(while ch
+	  (princ "`") (prin1 (car ch)) (princ "'")
+	  (if ch (princ ", "))
+	  (setq ch (cdr ch)))
+	(terpri)))
     (terpri)
     (princ "Documentation:")
     (terpri)
@@ -93,37 +114,60 @@ If CLASS is actually an object, then also display current values of that obect."
       (if (not methods) nil
 	(princ "Specialized Methods:")
 	(terpri)
+	(terpri)
 	(while methods
 	  (setq doc (eieio-method-documentation (car methods) class))
+	  (princ "`")
 	  (prin1 (car methods))
+	  (princ "'")
 	  (if (not doc)
-	      (princ "Undocumented")
+	      (princ "  Undocumented")
 	    (if (car doc)
 		(progn
-		  (terpri)
-		  (princ ":BEFORE method:")
+		  (princ "  :BEFORE method:")
 		  (terpri)
 		  (princ (car doc))))
 	    (setq doc (cdr doc))
 	    (if (car doc)
 		(progn
-		  (terpri)
-		  (princ ":PRIMARY method:")
+		  (princ "  :PRIMARY method:")
 		  (terpri)
 		  (princ (car doc))))
 	    (setq doc (cdr doc))
 	    (if (car doc)
 		(progn
-		  (terpri)
-		  (princ ":AFTER method:")
+		  (princ "  :AFTER method:")
 		  (terpri)
 		  (princ (car doc))))
 	    (terpri)
 	    (terpri))
-	  (setq methods (cdr methods)))))
-    ))
-    
-(defalias 'describe-class 'eieio-describe-class)
+	  (setq methods (cdr methods)))))))
+
+(defun eieio-help-mode-augmentation-maybee ()
+  "For buffers thrown into help mode, augment for eieio."
+  ;; Scan created buttons so far if we are in help mode.
+  (when (eq major-mode 'help-mode)
+    ;; View mode's read-only status of existing *Help* buffer is lost
+    ;; by with-output-to-temp-buffer.
+    (toggle-read-only -1)
+    (goto-char (point-min))
+    (save-excursion
+      (let ((pos t))
+	(while pos
+	  (if (get-text-property (point) 'help-xref) ; move off reference
+	      (goto-char
+	       (or (next-single-property-change (point) 'help-xref)
+		   (point))))
+	  (setq pos (next-single-property-change (point) 'help-xref))
+	  (when pos
+	    (goto-char pos)
+	    (let* ((help-data (get-text-property (point) 'help-xref))
+		   (method (car help-data))
+		   (args (cdr help-data)))
+	      (if (and (symbolp (car args))
+		       (class-p (car args)))
+		  (setcar help-data 'describe-class))
+	      )))))))
 
 (defun eieio-build-class-alist (&optional class buildlist)
   "Return an alist of all currently active classes for completion purposes.
@@ -155,9 +199,9 @@ Optional CLASS argument returns only those functions that contain methods for CL
 	     ;; A symbol might be interned for that class in one of
 	     ;; these three slots in the method-obarray.
 	     (if (or (not class)
-		     (intern-soft cn (aref tree 0))
-		     (intern-soft cn (aref tree 1))
-		     (intern-soft cn (aref tree 2)))
+		     (fboundp (intern-soft cn (aref tree 0)))
+		     (fboundp (intern-soft cn (aref tree 1)))
+		     (fboundp (intern-soft cn (aref tree 2))))
 		 (setq l (cons symbol l)))))))
     l))
 
@@ -175,11 +219,13 @@ function has no documentation, then return nil."
       (setq before (intern-soft cn (aref tree 0))
 	    primary (intern-soft cn (aref tree 1))
 	    after (intern-soft cn (aref tree 2)))
-      (if (not (or before primary after))
+      (if (not (or (fboundp before)
+		   (fboundp primary)
+		   (fboundp after)))
 	  nil
-	(list (if before (documentation before) nil)
-	      (if primary (documentation primary) nil)
-	      (if after (documentation after)))))))
+	(list (if (fboundp before) (documentation before) nil)
+	      (if (fboundp primary) (documentation primary) nil)
+	      (if (fboundp after) (documentation after)))))))
 
 ;;; How about showing the hierarchy in speedbar?  Cool!
 ;;
@@ -265,8 +311,9 @@ Argument INDENT is the depth of indentation."
 (defun eieio-describe-class-sb (text token indent)
   "Describe the class TEXT in TOKEN.
 INDENT is the current indentation level."
-  (select-frame speedbar-attached-frame)
-  (eieio-describe-class token))
+  (speedbar-with-attached-buffer
+   (eieio-describe-class token))
+  (speedbar-maybee-jump-to-attached-frame))
 
 (provide 'eieio-opt)
 
