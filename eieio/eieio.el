@@ -5,7 +5,7 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.126 2003/01/23 15:38:43 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.127 2003/01/23 18:36:24 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17.1"
   "Current version of EIEIO.")
@@ -525,7 +525,13 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 		       "Retrieves the slot `%s' from an object of class `%s'"
 		       name cname)
 		      (list 'eieio-oref 'this (list 'quote name))))
-	      `(defsetf ,acces (widget) (store) (eieio-oset widget ',cname store))
+	      ;; Thanks Pascal Bourguignon <pjb@informatimago.com>
+	      ;; For this complex macro.
+	      (eval (macroexpand 
+		     (list  'defsetf acces '(widget) '(store)
+			    (list 'list ''eieio-oset 'widget 
+				  (list 'quote (list 'quote acces)) 'store))))
+	      ;;`(defsetf ,acces (widget) (store) (eieio-oset widget ',cname store))
 	      )
 	  )
 	;; If a writer is defined, then create a generic method of that
@@ -887,7 +893,8 @@ DOC-STRING is the documentation attached to METHOD."
 	   (or (byte-code-function-p (symbol-function method))
 	       (not (eq 'autoload (car (symbol-function method)))))
 	   )
-      (error "You cannot create a generic/method over an existing symbol"))
+      (error "You cannot create a generic/method over an existing symbol: %s"
+	     method))
   ;; Don't do this over and over.
   (unless (fboundp 'method)
     ;; This defun tells emacs where the first definition of this
@@ -895,6 +902,9 @@ DOC-STRING is the documentation attached to METHOD."
     `(defun ,method nil)
     ;; Apply the actual body of this function.
     (fset method (eieio-defgeneric-form method doc-string))
+    ;; Make sure the method tables are installed.
+    (eieiomt-install method)
+    ;; Return the method
     'method))
 
 (defun eieio-unbind-method-implementations (method)
@@ -1630,16 +1640,9 @@ are the arguments passed in at the top level."
 (defvar eieiomt-optimizing-obarray nil
   "While mapping atoms, this contain the obarray being optimized.")
 
-(defun eieiomt-add (method-name method key class)
-  "Add to METHOD-NAME the forms METHOD in a call position KEY for CLASS.
-METHOD-NAME is the name created by a call to `defgeneric'.
-METHOD are the forms for a given implementation.
-KEY is an integer (see comment in eieio.el near this function) which
-is associated with the :STATIC :BEFORE :PRIMARY and :AFTER tags.
-It also indicates if CLASS is defined or not.
-CLASS is the class this method is associated with."
-  (if (or (> key method-num-fields) (< key 0))
-      (error "Eieiomt-add: method key error!"))
+(defun eieiomt-install (method-name)
+  "Install the method tree, and obarray onto METHOD-NAME.
+Do not do the work if they already exist."
   (let ((emtv (get method-name 'eieio-method-tree))
 	(emto (get method-name 'eieio-method-obarray)))
     (if (or (not emtv) (not emto))
@@ -1652,7 +1655,23 @@ CLASS is the class this method is associated with."
 	  (aset emto 1 (make-vector 11 0))
 	  (aset emto 2 (make-vector 41 0))
 	  (aset emto 3 (make-vector 11 0))
-	  ))
+	  ))))
+
+(defun eieiomt-add (method-name method key class)
+  "Add to METHOD-NAME the forms METHOD in a call position KEY for CLASS.
+METHOD-NAME is the name created by a call to `defgeneric'.
+METHOD are the forms for a given implementation.
+KEY is an integer (see comment in eieio.el near this function) which
+is associated with the :STATIC :BEFORE :PRIMARY and :AFTER tags.
+It also indicates if CLASS is defined or not.
+CLASS is the class this method is associated with."
+  (if (or (> key method-num-fields) (< key 0))
+      (error "Eieiomt-add: method key error!"))
+  (let ((emtv (get method-name 'eieio-method-tree))
+	(emto (get method-name 'eieio-method-obarray)))
+    ;; Make sure the method tables are available.
+    (if (or (not emtv) (not emto))
+	(error "Programmer error: eieiomt-add"))
     ;; only add new cells on if it doesn't already exist!
     (if (assq class (aref emtv key))
 	(setcdr (assq class (aref emtv key)) method)
