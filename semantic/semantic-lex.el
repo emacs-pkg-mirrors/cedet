@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.9 2002/08/15 18:26:33 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.10 2002/09/05 13:28:18 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -57,6 +57,16 @@ Value is what BODY returns."
 
 ;;; Semantic 2.x lexical analysis
 ;;
+(defun semantic-lex-map-symbols (fun table &optional property)
+  "Call function FUN on every symbol in TABLE.
+If optional PROPERTY is non-nil, call FUN only on every symbol which
+as a PROPERTY value.  FUN receives a symbol as argument."
+  (if (arrayp table)
+      (mapatoms
+       #'(lambda (symbol)
+           (if (or (null property) (get symbol property))
+               (funcall fun symbol))))
+    table))
 
 ;;; Keyword table handling.
 ;;
@@ -65,57 +75,80 @@ Value is what BODY returns."
 These keywords are matched explicitly, and converted into special symbols.")
 (make-variable-buffer-local 'semantic-flex-keywords-obarray)
 
-(defun semantic-lex-make-keyword-table (keywords &optional propertyalist)
-  "Convert a list of KEYWORDS into an obarray.
-Save the obarray into `semantic-flex-keywords-obarray'.
-If optional argument PROPERTYALIST is non nil, then interpret it, and
-apply those properties"
+(defmacro semantic-lex-keyword-invalid (name)
+  "Signal that NAME is an invalid keyword name."
+  `(signal 'wrong-type-argument '(semantic-lex-keyword-p ,name)))
+
+(defsubst semantic-lex-keyword-symbol (name)
+  "Return keyword symbol with NAME or nil if not found.
+Return nil otherwise."
+  (and (arrayp semantic-flex-keywords-obarray)
+       (stringp name)
+       (intern-soft name semantic-flex-keywords-obarray)))
+
+(defsubst semantic-lex-keyword-p (name)
+  "Return non-nil if a keyword with NAME exists in the keyword table.
+Return nil otherwise."
+  (and (setq name (semantic-lex-keyword-symbol name))
+       (symbol-value name)))
+
+(defsubst semantic-lex-keyword-set (name value)
+  "Set value of keyword with NAME to VALUE and return VALUE."
+  (set (intern name semantic-flex-keywords-obarray) value))
+
+(defsubst semantic-lex-keyword-value (name)
+  "Return value of keyword with NAME.
+Signal an error if a keyword with NAME does not exist."
+  (let ((keyword (semantic-lex-keyword-symbol name)))
+    (if keyword
+        (symbol-value keyword)
+      (semantic-lex-keyword-invalid name))))
+
+(defsubst semantic-lex-keyword-put (name property value)
+  "For keyword with NAME, set its PROPERTY to VALUE."
+  (let ((keyword (semantic-lex-keyword-symbol name)))
+    (if keyword
+        (put keyword property value)
+      (semantic-lex-keyword-invalid name))))
+
+(defsubst semantic-lex-keyword-get (name property)
+  "For keyword with NAME, return its PROPERTY value."
+  (let ((keyword (semantic-lex-keyword-symbol name)))
+    (if keyword
+        (get keyword property)
+      (semantic-lex-keyword-invalid name))))
+
+(defun semantic-lex-make-keyword-table (specs &optional propspecs)
+  "Convert keyword SPECS into an obarray and return it.
+SPECS must be a list of (NAME . TOKSYM) elements, where:
+
+  NAME is the name of the keyword symbol to define.
+  TOKSYM is the lexical token symbol of that keyword.
+
+If optional argument PROPSPECS is non nil, then interpret it, and
+apply those properties.
+PROPSPECS must be a list of (NAME PROPERTY VALUE) elements."
   ;; Create the symbol hash table
-  (let ((obarray (make-vector 13 nil)))
+  (let ((semantic-flex-keywords-obarray (make-vector 13 0))
+        spec)
     ;; fill it with stuff
-    (while keywords
-      (set (intern (car (car keywords)) obarray)
-           (cdr (car keywords)))
-      (setq keywords (cdr keywords)))
+    (while specs
+      (setq spec  (car specs)
+            specs (cdr specs))
+      (semantic-lex-keyword-set (car spec) (cdr spec)))
     ;; Apply all properties
-    (let ((semantic-flex-keywords-obarray obarray))
-      (while propertyalist
-        (semantic-lex-keyword-put (car (car propertyalist))
-                                  (nth 1 (car propertyalist))
-                                  (nth 2 (car propertyalist)))
-        (setq propertyalist (cdr propertyalist))))
-    obarray))
+    (while propspecs
+      (setq spec (car propspecs)
+            propspecs (cdr propspecs))
+      (semantic-lex-keyword-put (car spec) (nth 1 spec) (nth 2 spec)))
+    semantic-flex-keywords-obarray))
 
-(defsubst semantic-lex-keyword-p (text)
-  "Return non-nil if TEXT is a keyword in the keyword table.
-Return nil if TEXT is not in the symbol table."
-  (and semantic-flex-keywords-obarray
-       (symbol-value (intern-soft text semantic-flex-keywords-obarray))))
-
-(defun semantic-lex-keyword-put (text property value)
-  "For keyword TEXT, set PROPERTY to VALUE."
-  (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
-    (if (not sym) (signal 'wrong-type-argument (list text 'keyword)))
-    (put sym property value)))
-
-(defun semantic-lex-keyword-get (text property)
-  "For keyword TEXT, get the value of PROPERTY."
-  (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
-    (if (not sym) (signal 'wrong-type-argument (list text 'keyword)))
-    (get sym property)))
-
-(defun semantic-lex-map-keywords (fun &optional property)
+(defsubst semantic-lex-map-keywords (fun &optional property)
   "Call function FUN on every semantic keyword.
 If optional PROPERTY is non-nil, call FUN only on every keyword which
 as a PROPERTY value.  FUN receives a semantic keyword as argument."
-  (if (arrayp semantic-flex-keywords-obarray)
-      (mapatoms
-       (function
-        (lambda (keyword)
-          (and keyword
-               (or (null property) (get keyword property))
-               (funcall fun keyword))))
-       semantic-flex-keywords-obarray)))
+  (semantic-lex-map-symbols
+   fun semantic-flex-keywords-obarray property))
 
 (defun semantic-lex-keywords (&optional property)
   "Return a list of semantic keywords.
@@ -123,11 +156,125 @@ If optional PROPERTY is non-nil, return only keywords which have a
 PROPERTY set."
   (let (keywords)
     (semantic-lex-map-keywords
-     (function
-      (lambda (keyword)
-        (setq keywords (cons keyword keywords))))
-     property)
+     #'(lambda (symbol) (cons symbol keywords)) property)
     keywords))
+
+;;; Token table handling.
+;;
+(defvar semantic-lex-tokens-obarray nil
+  "Buffer local token obarray for the lexical analyzer.")
+(make-variable-buffer-local 'semantic-lex-tokens-obarray)
+
+(defmacro semantic-lex-token-invalid (class)
+  "Signal that CLASS is an invalid token class name."
+  `(signal 'wrong-type-argument '(semantic-lex-token-class-p ,class)))
+
+(defsubst semantic-lex-token-symbol (class)
+  "Return token symbol with CLASS or nil if not found.
+Return nil otherwise."
+  (and (arrayp semantic-lex-tokens-obarray)
+       (stringp class)
+       (intern-soft class semantic-lex-tokens-obarray)))
+
+(defsubst semantic-lex-token-class-p (class)
+  "Return non-nil if a token with CLASS name exists.
+Return nil otherwise."
+  (and (setq class (semantic-lex-token-symbol class))
+       (symbol-value class)))
+
+(defsubst semantic-lex-token-set (class value)
+  "Set value of token with CLASS name to VALUE and return VALUE."
+  (set (intern class semantic-lex-tokens-obarray) value))
+
+(defsubst semantic-lex-token-value (class &optional noerror)
+  "Return value of token with CLASS name.
+If optional argument NOERROR is non-nil return nil if a token with
+CLASS name does not exist.  Otherwise signal an error."
+  (let ((token (semantic-lex-token-symbol class)))
+    (if token
+        (symbol-value token)
+      (unless noerror
+        (semantic-lex-token-invalid class)))))
+
+(defsubst semantic-lex-token-put (class property value &optional add)
+  "For token with CLASS name, set its PROPERTY to VALUE.
+If optional argument ADD is non-nil, create a new token with CLASS
+name if it does not already exist.  Otherwise signal an error."
+  (let ((token (semantic-lex-token-symbol class)))
+    (unless token
+      (or add (semantic-lex-token-invalid class))
+      (semantic-lex-token-set class nil)
+      (setq token (semantic-lex-token-symbol class)))
+    (put token property value)))
+
+(defsubst semantic-lex-token-get (class property &optional noerror)
+  "For token with CLASS name, return its PROPERTY value.
+If optional argument NOERROR is non-nil return nil if a token with
+CLASS name does not exist.  Otherwise signal an error."
+  (let ((token (semantic-lex-token-symbol class)))
+    (if token
+        (get token property)
+      (unless noerror
+        (semantic-lex-token-invalid class)))))
+
+(defun semantic-lex-make-token-table (specs &optional propspecs)
+  "Convert token SPECS into an obarray and return it.
+SPECS must be a list of (CLASS . TOKENS) elements, where:
+
+  CLASS is the name of the token class symbol to define.
+  TOKENS is an list of (TOKSYM . MATCHER) elements, where:
+
+    TOKSYM is any lexical token symbol.
+    MATCHER is a string or regexp a text must match to be a such
+    lexical token.
+
+If optional argument PROPSPECS is non nil, then interpret it, and
+apply those properties.
+PROPSPECS must be a list of (CLASS PROPERTY VALUE)."
+  ;; Create the symbol hash table
+  (let* ((semantic-lex-tokens-obarray (make-vector 13 0))
+         spec class tokens token alist default)
+    ;; fill it with stuff
+    (while specs
+      (setq spec   (car specs)
+            specs  (cdr specs)
+            class  (car spec)
+            tokens (cdr spec))
+      (while tokens
+        (setq token  (car tokens)
+              tokens (cdr tokens))
+        (if (cdr token)
+            (setq alist (cons token alist))
+          (setq token (car token))
+          (if default
+              (message
+               "*** `%s' default matching spec %S redefined as %S"
+               class default token))
+          (setq default token)))
+      ;; Ensure the default matching spec is the first one.
+      (semantic-lex-token-set class (cons default (nreverse alist))))
+    ;; Apply all properties
+    (while propspecs
+      (setq spec (car propspecs)
+            propspecs (cdr propspecs))
+      (semantic-lex-token-put (car spec) (nth 1 spec) (nth 2 spec)))
+    semantic-lex-tokens-obarray))
+
+(defsubst semantic-lex-map-tokens (fun &optional property)
+  "Call function FUN on every lexical token class.
+If optional PROPERTY is non-nil, call FUN only on every token which
+as a PROPERTY value.  FUN receives a semantic token class symbol as argument."
+  (semantic-lex-map-symbols
+   fun semantic-lex-tokens-obarray property))
+
+(defun semantic-lex-tokens (&optional property)
+  "Return a list of lexical token class symbols.
+If optional PROPERTY is non-nil, return only tokens which have a
+PROPERTY set."
+  (let (tokens)
+    (semantic-lex-map-tokens
+     #'(lambda (symbol) (cons symbol tokens)) property)
+    tokens))
 
 ;;;###autoload
 (defvar semantic-lex-analyzer 'semantic-flex
