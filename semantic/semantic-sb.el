@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.10 2000/04/23 15:34:40 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.11 2000/04/25 02:48:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,6 +32,7 @@
 ;; 
 
 (require 'semantic)
+(require 'semantic-inc)
 (require 'speedbar)
 
 ;;; Code:
@@ -64,7 +65,8 @@ Optional PREFIX is used to specify special marker characters."
 		      ((eq type 'variable)
 		       (semantic-token-variable-default token))
 		      ((eq type 'function)
-		       (semantic-token-function-args token))))
+		       (semantic-token-function-args token))
+		      ))
 	 (start (point))
 	 (end (progn
 		(insert (int-to-string depth) ":")
@@ -75,45 +77,46 @@ Optional PREFIX is used to specify special marker characters."
     (if (and edata (listp edata) (and (<= (length edata) 1) (not (car edata))))
 	(setq edata nil))
     ;; types are a bit unique.  Variable types can have special meaning.
-    (if (eq type 'type)
-	(let ((name (semantic-token-name token)))
-	  (if (semantic-token-type token)
-	      (setq name (concat (semantic-token-type token) " " name)))
-	  (if (or edata (semantic-token-type-parent token))
-	      (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
-				      'speedbar-button-face
-				      'speedbar-highlight-face
-				      'semantic-sb-show-extra
-				      token t)
-	    (speedbar-insert-button (if prefix (concat "  " prefix) " =>")
-				    nil nil nil nil t))
-	  (speedbar-insert-button name
-				  'speedbar-tag-face
-				  'speedbar-highlight-face
-				  'semantic-sb-token-jump
-				  token t))
-      (if (or (and (semantic-token-type token)
-		   (or (not (listp (semantic-token-type token)))
-		       (car (semantic-token-type token))))
-	      edata)
-	  (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
-				  'speedbar-button-face
-				  'speedbar-highlight-face
-				  'semantic-sb-show-extra
-				  token t)
-	(speedbar-insert-button (if prefix (concat "  " prefix) " =>")
-				nil nil nil nil t))
-      (speedbar-insert-button (semantic-token-name token)
-			      'speedbar-tag-face
-			      'speedbar-highlight-face
-			      'semantic-sb-token-jump
-			      token t)
-      (cond ((eq type 'variable)
-	     ;; Place array dims here if apropriate.
-	     (if (semantic-token-variable-default token)
-		 (speedbar-insert-button "=" nil nil nil nil t)))
-	    ((eq type 'function)
-	     (speedbar-insert-button "()" nil nil nil nil t))))))
+    (cond ((eq type 'type)
+	   (let ((name (semantic-token-name token)))
+	     (if (semantic-token-type token)
+		 (setq name (concat (semantic-token-type token) " " name)))
+	     (if (or edata (semantic-token-type-parent token))
+		 (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
+					 'speedbar-button-face
+					 'speedbar-highlight-face
+					 'semantic-sb-show-extra
+					 token t)
+	       (speedbar-insert-button (if prefix (concat "  " prefix) " =>")
+				       nil nil nil nil t))
+	     (speedbar-insert-button name
+				     'speedbar-tag-face
+				     'speedbar-highlight-face
+				     'semantic-sb-token-jump
+				     token t)))
+	  (t
+	   (if (or (and (semantic-token-type token)
+			(or (not (listp (semantic-token-type token)))
+			    (car (semantic-token-type token))))
+		   edata)
+	       (speedbar-insert-button (if prefix (concat " +" prefix) " +>")
+				       'speedbar-button-face
+				       'speedbar-highlight-face
+				       'semantic-sb-show-extra
+				       token t)
+	     (speedbar-insert-button (if prefix (concat "  " prefix) " =>")
+				     nil nil nil nil t))
+	   (speedbar-insert-button (semantic-token-name token)
+				   'speedbar-tag-face
+				   'speedbar-highlight-face
+				   'semantic-sb-token-jump
+				   token t)
+	   (cond ((eq type 'variable)
+		  ;; Place array dims here if apropriate.
+		  (if (semantic-token-variable-default token)
+		      (speedbar-insert-button "=" nil nil nil nil t)))
+		 ((eq type 'function)
+		  (speedbar-insert-button "()" nil nil nil nil t)))))))
   
 (defun semantic-sb-speedbar-data-line (depth button text &optional
 					     text-fun text-data)
@@ -245,12 +248,21 @@ TEXT TOKEN and INDENT are the details."
 	(parent (semantic-sb-detail-parent)))
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
+    (let ((tt (semantic-token-token token)))
+      (cond
+       ((eq tt 'include)
+	(let ((filename (semantic-inc-find token (current-buffer))))
+	  (if filename
+	      (speedbar-find-file-in-frame filename)
+	    (semantic-find-nonterminal (current-buffer) token parent)
+	    (run-hooks 'speedbar-visiting-tag-hook))))
+       (t
+	(semantic-find-nonterminal (current-buffer) token parent)
+	(run-hooks 'speedbar-visiting-tag-hook))))
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
     (speedbar-set-timer speedbar-update-speed)
-    (semantic-find-nonterminal (current-buffer) token parent)
-    (run-hooks 'speedbar-visiting-tag-hook)
     ;;(recenter)
     (speedbar-maybee-jump-to-attached-frame)
     ))
