@@ -3,9 +3,9 @@
 ;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;; Version: 0.4.5
+;; Version: 0.4.6
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.41 1997/04/04 01:26:22 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.42 1997/04/04 02:01:09 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -221,6 +221,7 @@
 ;;        always rescanning directories.
 ;; 0.4.5 XEmacs bugfixes and enhancements.
 ;;       Window Title simplified.
+;; 0.4.6 Fixed problems w/ dedicated minibuffer frame.
 ;;       Fixed errors reported by checkdoc.
 
 ;;; TODO:
