@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.15 2003/12/04 22:01:40 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.16 2003/12/04 22:33:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -227,19 +227,6 @@ HISTORY is a symbol representing a variable to story the history in."
 (defvar semantic-complete-active-default nil
   "The current default tag calculated for this prompt.")
 
-(defun semantic-complete-choose-default ()
-  "Based on the current position, choose a nice default for completion.
-Defaults are chosent from the lcoal context.
-It might be nice to someday have it find the tag assocated with the
-default, possibly choosing a function or variable."
-  (let ((sym nil))
-    (setq sym (semantic-ctxt-current-symbol))
-    (unless sym
-      (setq sym (semantic-ctxt-current-function)))
-    (unless sym
-      (setq sym (semantic-ctxt-current-assignment)))
-    sym))
-
 (defun semantic-complete-default-to-tag (default)
   "Convert a calculated or passed in DEFAULT into a tag."
   (if (semantic-tag-p default)
@@ -247,7 +234,7 @@ default, possibly choosing a function or variable."
       (setq semantic-complete-active-default default)
     ;; If none was passed in, guess.
     (if (null default)
-	(setq default (semantic-complete-choose-default)))
+	(setq default (semantic-ctxt-current-thing)))
     (if (null default)
 	;; Do nothing
 	nil
@@ -927,7 +914,8 @@ which have the same name."
   "Focus in on possible tag completions.
 Focus is performed by cycling through the tags and highlighting
 one in the source buffer."
-  (let* ((focus (semantic-displayor-focus-next-tag obj))
+  (let* ((tablelength (semanticdb-find-result-length (oref obj table)))
+	 (focus (semantic-displayor-focus-next-tag obj))
 	 (tag (car focus))
 	 (table (cdr focus))
 	)
@@ -939,12 +927,12 @@ one in the source buffer."
 	  (set-buffer (get-buffer-create "*Completion Focus*"))
 	  (erase-buffer)
 	  (insert "Focus on tag: \n")
-	  (insert (semantic-format-tag-summarize tag) "\n")
+	  (insert (semantic-format-tag-summarize tag nil t) "\n\n")
 	  (when table
 	    (insert "From table: \n")
-	    (insert (object-name table) "\n"))
+	    (insert (object-name table) "\n\n"))
 	  (when buf
-	    (insert "In buffer: \n")
+	    (insert "In buffer: \n\n")
 	    (insert (format "%S" buf)))
 	  (setq buf (current-buffer))))
       ;; Show the tag in the buffer.
@@ -958,9 +946,18 @@ one in the source buffer."
 	      ;; Full tag positional information available
 	      (progn
 		(goto-char (semantic-tag-start tag))
-		(semantic-momentary-highlight-tag tag)
+		;; This avoids a dangerous problem if we just loaded a tag
+		;; from a file, but the original position was not updated
+		;; in the TAG variable we are currently using.
+		(semantic-momentary-highlight-tag (semantic-current-tag))
 		))
 	(select-window (minibuffer-window)))
+      ;; Calculate text difference between contents and the focus item.
+      (let* ((mbc (semantic-minibuffer-contents))
+	     (ftn (semantic-tag-name tag))
+	     (diff (substring ftn (length mbc))))
+	(semantic-completion-message 
+	 (format "%s [%d of %d matches]" diff (oref obj focus) tablelength)))
       )))
 
 ;;; Tooltip completion lister
