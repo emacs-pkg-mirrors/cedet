@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.77 2001/09/27 00:28:28 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.78 2001/09/29 23:49:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,6 +31,12 @@
 
 (require 'assoc)
 (require 'semantic)
+(eval-when-compile
+  ;; Emacs 21
+  (condition-case nil
+      (require 'newcomment)
+    (error nil))
+  )
 
 ;;; Code:
 
@@ -646,6 +652,7 @@ searched for matches."
 		       streamorbuffer)))
 	(includes nil)			;list of includes
 	(stream nil)			;current stream
+        (token  nil)                    ;current token
 	(sl nil)			;list of token children
 	(nl nil)			;new list
         (case-fold-search semantic-case-fold))
@@ -653,23 +660,25 @@ searched for matches."
 	(setq includes (semantic-find-nonterminal-by-token
 			'include (car streamlist))))
     (while streamlist
-      (setq stream (car streamlist))
+      (setq stream     (car streamlist)
+            streamlist (cdr streamlist))
       (while stream
-	(if (funcall function (car stream))
-	    (setq nl (cons (car stream) nl)))
-	(if search-parts
-	    (progn
-	      (setq sl (semantic-nonterminal-children
-			(car stream)
-			(eq search-parts 'positiononly)
-			))
-	      (if sl
-		  (setq nl (append nl (semantic-find-nonterminal-by-function
-				       function sl
-				       search-parts search-includes))))))
-	;; next token
-	(setq stream (cdr stream)))
-      (setq streamlist (cdr streamlist)))
+        (setq token  (car stream)
+              stream (cdr stream))
+	(if (not (semantic-token-p token))
+            ;; `semantic-nonterminal-children' can return invalid
+            ;; tokens if search-parts is not equal to 'positiononly
+            nil ;; Ignore them!
+          (if (funcall function token)
+              (setq nl (cons token nl)))
+          (and search-parts
+               (setq sl (semantic-nonterminal-children
+                         token
+                         (eq search-parts 'positiononly)))
+               (setq nl (nconc nl
+                               (semantic-find-nonterminal-by-function
+                                function sl
+                                search-parts search-includes)))))))
     (setq nl (nreverse nl))
 ;;;    (while includes
 ;;;      (setq nl (append nl (semantic-find-nonterminal-by-function
@@ -1110,8 +1119,7 @@ for details on adding new types."
 The name is the shortest possible representation.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (let ((s (semantic-fetch-overload 'name-nonterminal))
-	tt)
+  (let ((s (semantic-fetch-overload 'name-nonterminal)))
     ;; No colors without font lock
     (if (not (featurep 'font-lock)) (setq color nil))
     (if s
@@ -1265,8 +1273,6 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 			      deref (1- deref)))
 		      r)))
 	 (point (semantic-token-extra-spec token 'pointer))
-	 (suffix (if (eq tok 'variable)
-		     (semantic-token-variable-extra-spec token 'suffix)))
 	 )
     (if (and (listp mods) mods)
 	(setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
@@ -1355,8 +1361,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
       (let* ((deref (semantic-token-variable-extra-spec
                      token 'dereference))
              (array "")
-             (suffix (semantic-token-variable-extra-spec
-                      token 'suffix)))
+             )
         (while (and deref (/= deref 0))
           (setq array (concat array "[]")
                 deref (1- deref)))
@@ -1407,8 +1412,7 @@ Colorize the new text based on COLOR."
 		   (semantic-colorize-text token-or-string 'variable)))
 	 (concat token-or-string (or args "")))
 	((semantic-token-p token-or-string)
-	 (let ((tok (semantic-token-token token-or-string))
-	       (name (semantic-name-nonterminal token-or-string parent color))
+	 (let ((name (semantic-name-nonterminal token-or-string parent color))
 	       (type  (semantic-token-type token-or-string)))
 	   (setq type
 		 (cond ((semantic-token-p type)
@@ -1441,8 +1445,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   "Return a UML style abbreviation for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (let* ((tok (semantic-token-token token))
-	 (text (semantic-uml-token-or-string-to-string
+  (let* ((text (semantic-uml-token-or-string-to-string
 		token parent nil color))
 	 (prot (semantic-nonterminal-protection token parent))
 	 )
@@ -1507,8 +1510,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   "Return a UML style concise prototype for TOKEN.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
-  (let* ((tok (semantic-token-token token))
-	 (cp (semantic-concise-prototype-nonterminal token parent color))
+  (let* ((cp (semantic-concise-prototype-nonterminal token parent color))
 	 (type (semantic-token-type token))
 	 (prot (semantic-nonterminal-protection token parent))
 	 )
