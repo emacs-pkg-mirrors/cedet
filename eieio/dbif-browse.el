@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: dbif-browse.el,v 1.1 1996/03/28 03:31:20 zappo Exp $
+;;; RCS: $Id: dbif-browse.el,v 1.2 1996/03/28 03:55:56 zappo Exp $
 ;;; Keywords: OO database
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -212,28 +212,6 @@ dbif-browse-next-line"
 			   (set-buffer dbif-local-link-buffer))
 		       (dbif-tuple-value dbif-local-tuple "Relation"
 					 dbif-local-selected))))
-	(dbif-exec dbif-data-object (format query fillin))))))
-
-(defun dbif-get-my-tuple-i ()
-  "Returns a tuple which represents the contents of this buffer"
-  (msgdbg "running dbif-get-my-tuple()")
-  (if (not dbif-local-link-buffer)
-      (dbif-get-table-list dbif-data-object)
-    (let* ((dbif-max-parse nil)
-	   (query (save-excursion
-		    (set-buffer dbif-local-link-buffer)
-		    (if dbif-local-link-buffer 
-			(progn
-			  (setq dbif-max-parse 10)
-			  "select * from %s;\\g")
-		      "help %s\\g")))
-	   (fillin (save-excursion
-		     (set-buffer dbif-local-link-buffer)
-		     (if dbif-local-link-buffer 
-			 (set-buffer dbif-local-link-buffer))
-		     (dbif-tuple-value dbif-local-tuple "Relation"
-				       dbif-local-selected))))
-      (save-excursion
 	(dbif-exec dbif-data-object (format query fillin))))))
 
 (defun dbif-update-contents (redraw)
