@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.2 2001/12/18 06:52:29 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.3 2002/01/14 19:57:35 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -137,16 +137,10 @@ variable NAME."
        (nreverse $2)))
      (class_body
       ((BRACE_BLOCK)
-       (let
-           (($region1
-             (cdr
-              (aref stack
-                    (- sp 1)))))
-         (if $region1
-             (wisent-bovinate-from-nonterminal-full
-              (car $region1)
-              (cdr $region1)
-              'class_member_declaration)))))
+       (wisent-bovinate-from-nonterminal-full
+        (car $region1)
+        (cdr $region1)
+        'class_member_declaration)))
      (class_member_declaration
       ((LBRACE)
        nil)
@@ -174,16 +168,10 @@ variable NAME."
        (identity $2)))
      (interface_body
       ((BRACE_BLOCK)
-       (let
-           (($region1
-             (cdr
-              (aref stack
-                    (- sp 1)))))
-         (if $region1
-             (wisent-bovinate-from-nonterminal-full
-              (car $region1)
-              (cdr $region1)
-              'interface_member_declaration)))))
+       (wisent-bovinate-from-nonterminal-full
+        (car $region1)
+        (cdr $region1)
+        'interface_member_declaration)))
      (interface_member_declaration
       ((LBRACE)
        nil)
@@ -244,16 +232,10 @@ variable NAME."
          ((BRACE_BLOCK)))
      (formal_parameter_list
       ((PAREN_BLOCK)
-       (let
-           (($region1
-             (cdr
-              (aref stack
-                    (- sp 1)))))
-         (if $region1
-             (wisent-bovinate-from-nonterminal-full
-              (car $region1)
-              (cdr $region1)
-              'formal_parameters)))))
+       (wisent-bovinate-from-nonterminal-full
+        (car $region1)
+        (cdr $region1)
+        'formal_parameters)))
      (formal_parameters
       ((LPAREN)
        nil)
