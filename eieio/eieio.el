@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.13 1996/11/07 19:12:53 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.14 1996/11/09 23:23:49 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -171,9 +171,11 @@
 ;;;           of associations into OBARRAYs and symbols.
 ;;; 0.8    Added ability to byte compile methods.  This is implemented
 ;;;           for both XEmacs and FSF.  This will only work with the
-;;;           modern byte-compiler for these systems.
+;;;           modern byte-compiler for these systems.  Routines to do
+;;;           this are in eieio-comp.el.
 ;;;        Removed all reference to classmethods as no one liked them,
 ;;;           and were wasing space in here.
+;;;        Added `oset-default' to modify existing classes default values.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -215,6 +217,14 @@ check private parts. DO NOT SET THIS YOURSELF!")
 (defconst method-generic-primary 4 "Index into generic :PRIMARY tag on a method")
 (defconst method-generic-after 5 "Index into generic :AFTER tag on a method")
 (defconst method-num-fields 6 "Number of indexes into a method's vector")
+
+;; How to specialty compile stuff.
+(autoload 'byte-compile-file-form-defmethod "eieio-comp"
+  "This function is used to byte compile methods in a nice way")
+(put 'defmethod 'byte-hunk-handler 'byte-compile-file-form-defmethod)
+
+(eval-when-compile 
+  (require 'eieio-comp)) ;make sure we can do this at compile-time.
 
 
 ;;;
@@ -1020,101 +1030,6 @@ associated with this symbol.  Current method specific code is:")
     (defgeneric-engine sym newdoc)
     ))
 
-;; Defmethod compiler must appear before calls to defmethod.
-;;
-;; Byte compiler functions for defmethod.  This will affect the new GNU
-;; byte compiler for emacs 19 and better.  This function will be called by
-;; the byte compiler whenever a `defmethod' is encountered in a file.
-;; It will output a function call to `defmethod-engine' with the byte
-;; compiled function as a parameter.  As a result, the engine must
-;; know when it encounters a compiled function.
-
-(eval-when-compile ; XEmacs compatibility
-  (if (not (fboundp 'byte-compile-compiled-obj-to-list))
-      (defun byte-compile-compiled-obj-to-list (moose) nil))
-  (if (not (boundp 'byte-compile-outbuffer))
-      (defvar byte-compile-outbuffer nil)))
-
-(defun byte-compile-file-form-defmethod (form)
-  "Mumble about the thing we are compiling."
-  (setq form (cdr form))
-  (let* ((meth (car form))
-	 (key (progn (setq form (cdr form))
-		     (cond ((eq ':BEFORE (car form))
-			    (setq form (cdr form))
-			    ":BEFORE ")
-			   ((eq ':AFTER (car form))
-			    (setq form (cdr form))
-			    ":AFTER ")
-			   (t ""))))
-	 (params (car form))
-	 (lamparams (byte-compile-defmethod-param-convert params))
-	 (class (car (cdr (car params))))
-	 (my-outbuffer (if (string-match "XEmacs" emacs-version)
-			   byte-compile-outbuffer outbuffer))
-	 )
-    (let ((name (format "%s::%s" (or class "#<generic>") meth)))
-      (if byte-compile-verbose
-	  ;; #### filename used free
-	  (message "Compiling %s... (%s)" (or filename "") name))
-      (setq byte-compile-current-form name) ; for warnings
-      )
-    ;; Flush any pending output
-    (byte-compile-flush-pending)
-    ;; Byte compile the body.  For the byte compiled forms, add the 
-    ;; rest arguments, which will get ignored by the engine which will
-    ;; add them later (I hope)
-    (let* ((new-one (byte-compile-lambda 
-		     (append (list 'lambda lamparams)
-			     (cdr form))))
-	   (code (byte-compile-byte-code-maker new-one)))
-      (princ "\n(defmethod-engine '" my-outbuffer)
-      (princ meth my-outbuffer)
-      (princ " '(" my-outbuffer)
-      (princ key my-outbuffer)
-      (prin1 params my-outbuffer)
-      (princ " " my-outbuffer)
-      (eieio-byte-compile-princ-code code my-outbuffer)
-      (princ "))" my-outbuffer)
-      nil
-      )))
-
-(eval-and-compile
-  (put 'defmethod 'byte-hunk-handler 'byte-compile-file-form-defmethod))
-
-(defun eieio-byte-compile-princ-code (code outbuffer)
-  "Xemacs and GNU emacs do their things differently. Lets do it right
-on both platforms"
-  (if (not (string-match "XEmacs" emacs-version))
-      ;; FSF emacs
-      (prin1 code outbuffer)
-    ;; XEmacs
-    (if (atom code)
-	(princ "#[" outbuffer)
-      (princ "'(" outbuffer))
-    (let ((codelist (if (byte-code-function-p code)
-			(byte-compile-compiled-obj-to-list code)
-		      (append code nil))))
-      (while codelist
-	(prin1 (car codelist) outbuffer)
-	(princ " " outbuffer)
-	(setq codelist (cdr codelist))
-	))
-    (if (atom code)
-	(princ "]" outbuffer)
-      (princ ")" outbuffer))))
-
-(defun byte-compile-defmethod-param-convert (paramlist)
-  "Convert method params into the params used by the defmethod thingy."
-  (let ((argfix nil))
-    (while paramlist
-      (setq argfix (cons (if (listp (car paramlist)) 
-			     (car (car paramlist))
-			   (car paramlist))
-			 argfix))
-      (setq paramlist (cdr paramlist)))
-    (nreverse argfix)))
-
 ;;;
 ;;; We want all object created by EIEIO to have some default set of
 ;;; behavious so we can create object utilities, and allow various
@@ -1291,12 +1206,20 @@ an object, then also display current values of that obect."
 (add-hook 'edebug-setup-hook
 	  (lambda () 
 	    (def-edebug-spec defmethod
-	      (symbolp	                ; This is the methods symbol
+	      (&define			; this means we are defining something
+	       [&or name ("setf" :name setf name)]
+	       ;; ^^ This is the methods symbol
 	       [ &optional symbolp ]    ; this is key :BEFORE etc
 	       list              ; arguments
 	       [ &optional stringp ]    ; documentation string
 	       def-body	                ; part to be debugged
-	       )))
+	       ))
+	    (def-edebug-spec oref (form quote))
+	    (def-edebug-spec oref-default (form quote))
+	    (def-edebug-spec oset (form quote form))
+	    (def-edebug-spec oset-default (form quote form))
+	    (def-edebug-spec class-v form)
+	    )
 	  )
 
 ;;; end of lisp
