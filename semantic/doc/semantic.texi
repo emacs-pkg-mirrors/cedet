@@ -101,12 +101,10 @@ use the mailing list cedet-semantic@@sourceforge.net via the URL:
 @menu
 * Overview::                    
 * Installation::                
-* Semantic User's Guide: (semantic-user.info).
-* Application Developer's Guide: (semantic-appdev.info).
-* Language Support Developer's Guide: (semantic-langdev.info).
-* Semantic Internals:: 
-* Glossary::
-* GNU Free Documentation License:: 
+* Semantic manuals::            
+* Semantic Internals::          
+* Glossary::                    
+* GNU Free Documentation License::  
 * Index::                       
 @end menu
 
@@ -119,6 +117,29 @@ use the mailing list cedet-semantic@@sourceforge.net via the URL:
 @chapter Installation
 
 @include installation.texi
+
+@node Semantic manuals
+@chapter Semantic manuals
+
+To know how to use applications enabled by @semantic{},
+@inforef{top, the User's Guide, semantic-user}.
+
+If you are an application developer and need to know the functions and
+concepts, 
+@inforef{top, the Application Development Manual, semantic-appdev}.
+
+To support a new language,
+@inforef{top, the Language Support Developer's Guide, semantic-langdev}.
+
+To use the grammar writing environment, and write in the rule based
+language, 
+@inforef{top, the Grammar Framework Manual, grammar-fw}.
+
+For details on the original @semantic{} @acronym{LL} parser,
+@inforef{top, the Bovine Parser Manual, bovine}.
+ 
+For details on the Bison-like @acronym{LALR} parser,
+@inforef{top, the Wisent Parser Manual, wisent}.
 
 @node Semantic Internals
 @chapter Semantic Internals
@@ -148,8 +169,8 @@ use the mailing list cedet-semantic@@sourceforge.net via the URL:
 
 @c Following comments are for the benefit of ispell.
 
-@c LocalWords: alist API APIs arg argc args argv asis assoc autoload
-@c LocalWords: backquote bnf bovinate bovinates
+@c LocalWords: alist API APIs arg argc args argv asis assoc autoload Wisent
+@c LocalWords: backquote bnf bovinate bovinates LALR
 @c LocalWords: bovinating bovination bovinator bucketize
 @c LocalWords: cb cdr charquote checkcache cindex CLOS
 @c LocalWords: concat concocting const constantness ctxt Decl defcustom
