@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.3 2003/07/16 14:13:09 zappo Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.4 2003/08/29 16:09:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -203,6 +203,7 @@ generated secondary overlay."
       (run-hook-with-args link-hook tag o)
       o)))
 
+;;;###autoload
 (defun semantic-tag-delete-secondary-overlay (tag overlay-or-property)
   "Delete from TAG the secondary overlay OVERLAY-OR-PROPERTY.
 If OVERLAY-OR-PROPERTY is an overlay, delete that overlay.
