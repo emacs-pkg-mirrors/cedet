@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.38 2001/01/10 06:52:59 zappo Exp $
+@c $Id: eieio.texi,v 1.39 2001/02/17 15:10:59 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{eieio}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1995,1996,1998, 1999, 2000 Eric M. Ludlam
+Copyright @copyright{} 1995,1996,1998, 1999, 2000, 2001 Eric M. Ludlam
 @end titlepage
 
 
@@ -39,7 +39,6 @@ wrong!
 * Making New Objects::    How to construct new objects.
 * Accessing Slots::       How to access a slot.
 * Writing Methods::       How to write a CLOS style method.
-* Writing Methods::       How to write an embedded class method.
 * Predicates::            Class-p, Object-p, etc-p.
 * Association Lists::     List of objects as association lists.
 * Introspection::         Looking inside a class.
@@ -268,7 +267,7 @@ executed at instantiation time as the initform, code like this:
 :initform (lambda () (+ 1 some-global-var))
 @end example
 will be identified as a function call, and be executed in place.
-@cindexlambda-default
+@cindex lambda-default
 Lastly, using the function @code{lambda-default} instead of
 @code{lambda} will let you specify a lambda expression to use as the
 value, without evaluation.
@@ -1107,7 +1106,7 @@ previously written with @code{eieio-persistent-save}.
 This class is in package @file{eieio-speedbar}.
 
 If a series of class instances map to a tree structure, it is possible
-to cause your classes to be displayable in Speedbar. @xref{Top(speedbar)}.
+to cause your classes to be displayable in Speedbar. @xref{Top,,,speedbar}.
 Inheriting from these classes will enable a speedbar major display mode
 with a minimum of effort.
 
@@ -1116,7 +1115,7 @@ Enables base speedbar display for a class.
 @cindex speedbar-make-tag-line
 The slot @var{buttontype} is any of the symbols allowed by the
 function @code{speedbar-make-tag-line} for the @var{exp-button-type}
-argument. @xref{Extending(speedbar)}
+argument @xref{Extending,,,speedbar}.
 The slot @var{buttonface} is the face to use for the text of the string
 displayed in speedbar.
 The slots @var{buttontype} and @var{buttonface} are class allocated
@@ -1174,7 +1173,7 @@ if your children are not objects themselves.  You still need to
 implement @code{eieio-speedbar-object-children}.
 
 In this method, use techniques specified in the Speedbar manual.
-@xref{Extending(speedbar)}.
+@xref{Extending,,,speedbar}.
 @end defmethod
 
 Some other functions you will need to learn to use are:
@@ -1191,8 +1190,8 @@ objects representing those in the instance system you wish to browse in
 speedbar.
 
 Read the Extending chapter in the speedbar manual for more information
-on how speedbar modes work.
-@xref{Extending(speedbar)} 
+on how speedbar modes work
+@xref{Extending,,,speedbar}. 
 @end deffn
 
 @node Browsing, Class Values, Base Classes, Top
