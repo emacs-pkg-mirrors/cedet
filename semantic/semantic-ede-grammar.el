@@ -1,10 +1,10 @@
 ;;; ede-ede-grammar.el --- EDE support for Semantic Grammar Files
 
-;;;  Copyright (C) 2003  Eric M. Ludlam
+;;;  Copyright (C) 2003, 2004  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.4 2003/08/28 13:26:08 zappo Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.5 2004/01/19 20:59:40 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -115,6 +115,16 @@ parsing different languages.")
 (require 'semantic-grammar)
 
 ;;; Target options.
+(defmethod ede-buffer-mine ((this semantic-ede-proj-target-grammar) buffer)
+  "Return t if object THIS lays claim to the file in BUFFER.
+Lays claim to all -by.el, and -wy.el files."
+  ;; We need to be a little more careful than this, but at the moment it
+  ;; is common to have only one target of this class per directory.
+  (if (string-match "-[bw]y\\.elc?$" (buffer-file-name buffer))
+      t
+    (call-next-method) ; The usual thing.
+    ))
+
 (defmethod project-compile-target ((obj semantic-ede-proj-target-grammar))
   "Compile all sources in a Lisp target OBJ."
   (let ((cb (current-buffer)))
