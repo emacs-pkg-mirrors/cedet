@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.3 1998/03/06 16:28:34 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.4 1998/03/06 16:32:38 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -35,6 +35,10 @@
 ;;   Speedbar provides a frame in which files, and locations in
 ;; files are displayed.  These functions provide Info specific support,
 ;; showing links and addresses in the side-bar.
+;;
+;;   To enable in emacs 20.2 or earlier, add this to your .emacs file.
+;;   (autoload 'Info-speedbar-buttons "sb-info"
+;;             "Info specific speedbar button generator.")
 ;;
 ;;   This file requires speedbar.
 

@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-rmail.el,v 1.3 1998/03/06 16:28:44 zappo Exp $
+;; X-RCS: $Id: sb-rmail.el,v 1.4 1998/03/06 16:32:09 zappo Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -35,6 +35,10 @@
 ;;   Speedbar provides a frame in which files, and locations in
 ;; files are displayed.  These functions provide rmail specific support,
 ;; showing links and addresses in the side-bar.
+;;
+;;   To enable in emacs 20.2 or earlier, add this to your .emacs file.
+;;   (autoload 'rmail-speedbar-buttons "sb-rmail"
+;;             "Rmail specific speedbar button generator.")
 ;;
 ;;   This file requires speedbar.
 

@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-w3.el,v 1.2 1998/03/06 16:28:27 zappo Exp $
+;; X-RCS: $Id: sb-w3.el,v 1.3 1998/03/06 16:33:19 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -33,6 +33,10 @@
 ;;   Speedbar provides a frame in which files, and locations in
 ;; files are displayed.  These functions provide w3 specific support,
 ;; showing links and addresses in the side-bar.
+;;
+;;   To enable, add this to your .emacs file.
+;;   (autoload 'w3-speedbar-buttons "sb-w3"
+;;             "W3 specific speedbar button generator.")
 ;;
 ;;   This file requires speedbar.
 
