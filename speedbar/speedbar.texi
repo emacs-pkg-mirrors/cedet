@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.7 2000/01/25 03:19:11 zappo Exp $
+@c $Id: speedbar.texi,v 1.8 2000/02/17 02:04:37 zappo Exp $
 @c
 
 @c This manual covers the tool "speedbar", and is a part of it's
@@ -1037,7 +1037,7 @@ It is often useful to use @code{speedbar-create-tag-hierarchy} on your
 token list.  See that functions documentation for details on what it
 requires.
 
-Once these to functions are written, modify the variable
+Once these two functions are written, modify the variable
 @code{speedbar-dynamic-tags-function-list} to include your parser at the
 beginning, like this:
 
