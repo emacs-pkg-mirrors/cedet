@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.6 2002/08/02 01:40:19 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.7 2002/08/04 02:00:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -114,7 +114,21 @@ incremental reparse.")
   "Hooks run after the incremental parser fails.
 When this happens, the buffer is marked as needing a full reprase.")
 
-;; State
+;;; API function
+;;
+;; This is the incremental parser API.
+;;
+(define-overload semantic-bovinate-incremental-parser ()
+  "Incrementally reparse the current buffer based on edits.
+The list of changes are tracked as a series of overlays in the
+buffer.  When overloading this function, use `semantic-changes-in-region'
+to analyze.")
+
+;;; Change State management
+;;
+;; Manage a series of overlays that define changes recently
+;; made to the current buffer.
+
 (defun semantic-bovine-toplevel-partial-reparse-needed-p (&optional checkcache)
   "Return non-nil if the current buffer needs a partial reparse.
 This only returns non-nil if `semantic-bovine-toplevel-full-reparse-needed-p'
@@ -438,7 +452,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
 	    ))
       nil)))
 
-;;; Incremental Parser
+;;; Default Incremental Parser
 ;;
 ;; Logic about how to group changes for effective reparsing and splicing.
 
@@ -451,7 +465,7 @@ See `semantic-edits-change-leaf-token' for details on parents."
   (run-hooks 'semantic-edits-incremental-reparse-failed-hooks)
   )
 
-(defun semantic-edits-incremental-parser ()
+(defun semantic-bovinate-incremental-parser-default ()
   "Incrementally reparse the current buffer.
 Incremental parser allows semantic to only reparse those sections of
 the buffer that have changed.  This function depends on
@@ -460,7 +474,8 @@ overlays in the current buffer.  Those overlays are analyzed against
 the semantic cache to see what needs to be changed."
   (let ((changed-tokens nil))
     (condition-case errobj
-        (let* ((changes (semantic-changes-in-region
+        (let* ((debug-on-quit t) ; try to find this annoying bug!
+	       (changes (semantic-changes-in-region
                          (point-min) (point-max)))
                (tokens nil)		;tokens found at changes
                (newf-tokens nil)        ;newfound tokens in change
@@ -489,6 +504,10 @@ the semantic cache to see what needs to be changed."
             ;; Optimize for the simple cases here, but try to handle
             ;; complex ones too.
 
+	    ;; REMOVE LATER
+	    (if change-group
+		(error "Change-group not flushed at start of change loop"))
+
             (while (and changes         ; we still have changes
                         (or (not parse-start)
                             ;; Below, if the change we are looking at
@@ -500,6 +519,11 @@ the semantic cache to see what needs to be changed."
                             ;; change.
                             (< (semantic-overlay-start (car changes))
                                parse-end)))
+
+	      ;; REMOVE LATER
+	      (if (eq (car changes) (car change-group))
+		  (error "Possible infinite loop detected"))
+
               ;; Store this change in this change group.
               (setq change-group (cons (car changes) change-group))
 
@@ -914,14 +938,13 @@ Argument START, END, and LENGTH specify the bounds of the change."
   ;; Pre Hooks
   (run-hook-with-args 'semantic-pre-clean-token-hooks token)
 
-  (let* ((flexbits (semantic-lex (semantic-token-start token)
+  (let* ((lexbits (semantic-lex (semantic-token-start token)
                                  (semantic-token-end token)))
 	 ;; For embedded tokens (type parts, for example) we need a
 	 ;; different symbol.  Come up with a plan to solve this.
 	 (nonterminal (semantic-token-get token 'reparse-symbol))
 	 (new (semantic-bovinate-nonterminal
-               flexbits
-               semantic-toplevel-bovine-table
+               lexbits
                nonterminal))
 	 (cooked nil)
 	 )
