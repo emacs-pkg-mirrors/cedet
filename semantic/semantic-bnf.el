@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.15 2000/09/14 19:22:05 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.16 2000/09/15 23:24:49 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -93,10 +93,13 @@
 	       (list (nth 1 vals) 'start)))
      (symbol "token" symbol string
 	     ,(semantic-lambda
-	       (list (nth 1 vals) 'token "symbol" (nth 2 vals))))
+	       (list (nth 1 vals) 'keyword "symbol" (nth 2 vals))))
      (symbol "token" symbol symbol string
 	     ,(semantic-lambda
-	       (list (nth 1 vals) 'token (nth 2 vals)  (nth 3 vals))))
+	       (list (nth 1 vals)
+		     (if (string= (nth 2 vals) "symbol")
+			 'keyword 'token)
+		     (nth 2 vals)  (nth 3 vals))))
      (symbol "outputfile" symbol punctuation "." symbol "\\bel\\b"
 	     ,(semantic-lambda
 	       (list (concat (nth 1 vals) ".el") 'outputfile)))
@@ -483,9 +486,17 @@ SOURCEFILE is the file name from whence tokstream came."
 	 (point)
 	 (let ((var (semantic-find-nonterminal-by-token 'parsetable tok)))
 	   (when var
+	     ;; The bovine table
 	     (insert "(setq semantic-toplevel-bovine-table "
-		     (semantic-token-name (car var))
-		     ")\n"))
+		     (semantic-token-name (car var)) ")\n"))
+	   ;; Keyword hash table
+	   (let ((key (semantic-find-nonterminal-by-token 'keyword tok)))
+	     (when key
+	       (insert "(semantic-flex-make-keyword-table \n `(")
+	       (while key
+		 (insert " (" (nth 3 (car key)) " . " (car (car key)) ")\n")
+		 (setq key (cdr key)))
+	       (insert "))\n")))
 	   ;; Add in user specified settings
 	   (let ((settings (semantic-find-nonterminal-by-token 'setting tok)))
 	     (while settings
