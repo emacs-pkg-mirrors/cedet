@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.20 2000/04/15 21:00:58 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.21 2000/04/15 21:02:34 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -972,7 +972,7 @@ as (symbol start-expression .  end-expresssion)."
 				ep (point)))
 		      (setq fe (cdr fe)))
 		    (if (and r (not (car ts))) (setq ts (cdr ts)))
-		    r))
+		    r)))
 	    ((looking-at "\\(\\sw\\|\\s_\\)+")
 	     (setq ts (cons (cons 'symbol
 				  (cons (match-beginning 0) (match-end 0)))
