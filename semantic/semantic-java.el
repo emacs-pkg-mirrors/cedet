@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.23 2001/10/08 20:32:21 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.24 2001/11/17 15:43:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -960,6 +960,7 @@ This function is a Java specific `get-local-variables' override."
 ;;;; Mode Hook
 ;;;;
 
+;;;###autoload
 (defun semantic-default-java-setup ()
   "Set up a buffer for semantic parsing of the Java language."
 
