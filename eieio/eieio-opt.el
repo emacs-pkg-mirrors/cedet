@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-opt.el,v 1.19 2002/02/23 03:22:20 zappo Exp $
+;; RCS: $Id: eieio-opt.el,v 1.20 2002/02/23 13:19:05 zappo Exp $
 ;; Keywords: OO, lisp
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -217,32 +217,42 @@ Outputs to the standard output."
 	    prot (cdr prot)
 	    i (1+ i)))))
 
-(defun eieio-build-class-alist (&optional class buildlist)
+(defun eieio-build-class-alist (&optional class instantiable-only buildlist)
   "Return an alist of all currently active classes for completion purposes.
 Optional argument CLASS is the class to start with.
-Optional argument BUILDLIST is more list to attach."
+If INSTANTIABLE-ONLY is non nil, only allow names of classes which
+are not abstract, otherwise allow all classes.
+Optional argument BUILDLIST is more list to attach and is used internally."
   (let* ((cc (or class eieio-default-superclass))
 	 (sublst (aref (class-v cc) class-children)))
-    (setq buildlist (cons (cons (symbol-name cc) 1) buildlist))
+    (if (or (not instantiable-only) (not (class-abstract-p cc)))
+	(setq buildlist (cons (cons (symbol-name cc) 1) buildlist)))
     (while sublst
-      (setq buildlist (eieio-build-class-alist (car sublst) buildlist))
+      (setq buildlist (eieio-build-class-alist
+		       (car sublst) instantiable-only buildlist))
       (setq sublst (cdr sublst)))
     buildlist))
 
 (defvar eieio-read-class nil
   "History of the function `eieio-read-class' prompt.")
 
-(defun eieio-read-class (prompt &optional histvar)
+(defun eieio-read-class (prompt &optional histvar instantiable-only)
   "Return a class chosen by the user using PROMPT.
-Optional argument HISTVAR is a variable to use as history."
+Optional argument HISTVAR is a variable to use as history.
+If INSTANTIABLE-ONLY is non nil, only allow names of classes which
+are not abstract."
   (intern (completing-read prompt (eieio-build-class-alist) nil t nil
 			   (or histvar 'eieio-read-class))))
 
-(defun eieio-read-subclass (prompt class &optional histvar)
+(defun eieio-read-subclass (prompt class &optional histvar instantiable-only)
   "Return a class chosen by the user using PROMPT.
 CLASS is the base class, and completion occurs across all subclasses.
-Optional argument HISTVAR is a variable to use as history."
-  (intern (completing-read prompt (eieio-build-class-alist class) nil t nil
+Optional argument HISTVAR is a variable to use as history.
+If INSTANTIABLE-ONLY is non nil, only allow names of classes which
+are not abstract."
+  (intern (completing-read prompt
+			   (eieio-build-class-alist class instantiable-only)
+			   nil t nil
 			   (or histvar 'eieio-read-class))))
 
 ;;; Collect all the generic functions created so far, and do cool stuff.
