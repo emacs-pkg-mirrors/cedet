@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.wy,v 1.9 2002/07/30 19:59:27 ponced Exp $
+;; X-RCS: $Id: wisent-wy.wy,v 1.10 2002/08/11 09:44:27 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -32,7 +32,6 @@
    (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
            "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
    semantic-lex-analyzer 'wisent-wy-lexer
-   wisent-lexer-function 'wisent-lex
    ;; Environment
    semantic-type-relation-separator-character '(":")
    semantic-symbol->name-assoc-list
