@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.59.2.8 2003/02/01 18:15:50 berndl Exp $
+# X-RCS: $Id: c.bnf,v 1.59.2.9 2003/04/04 09:42:16 berndl Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -217,17 +217,18 @@ extern-c: EXTERN string "\"C\"" semantic-list
 	;
 
 # Klaus Berndl <klaus.berndl@sdm.de>: At least one-liner should be
-# parsed correctly! Multi-line macros (every line ends with a \) not
-# being one code-block can not be parsed because \+newline is flexed
-# as nothing and therefore we can not distinguish if the lines > 1
-# belong to the macro or are separated statements! Maybe we need
-# special backslash recognizing and then better macro-parsing. For the
-# moment it's goog enough.
+# parsed correctly! Multi-line macros (every line ends with a
+# backslash) not being one code-block can not be parsed because
+# \+newline is flexed as nothing and therefore we can not distinguish
+# if the lines > 1 belong to the macro or are separated statements!
+# Maybe we need special backslash recognizing and then better
+# macro-parsing. For the moment it's goog enough.
 macro-expression-list : expression macro-expression-list SEMICOLON
 			( nil )
 		      | expression
 			( nil )
 		      ;
+
 
 macro-def : macro-expression-list
             ( nil )
