@@ -1,10 +1,10 @@
 ;;; semantic-complete.el --- Routines for performing tag completion
 
-;;; Copyright (C) 2003, 2004 Eric M. Ludlam
+;;; Copyright (C) 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.36 2004/12/18 15:28:45 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.37 2005/01/17 10:45:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1592,9 +1592,12 @@ completion works."
 		     :buffer (oref context buffer)
 		     :context context))
 	 (syms (semantic-ctxt-current-symbol (point)))
-	 (thissym (car (reverse syms)))
+	 (rsym (reverse syms))
+	 (thissym (car rsym))
+	 (nextsym (car-safe (cdr rsym)))
 	 (complst nil))
-    (when (and thissym (not (string= thissym "")))
+    (when (and thissym (or (not (string= thissym ""))
+			   nextsym))
       ;; Do a quick calcuation of completions.
       (semantic-collector-calculate-completions
        collector thissym nil)
