@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.12 2003/01/24 18:16:20 ponced Exp $
+ * $Id: test.cpp,v 1.13 2003/01/28 09:49:46 ponced Exp $
  *
  */
 
@@ -259,8 +259,12 @@ const CT& max (const CT& a, const CT& b)
 
 class TemplateUsingClass
 {
-  typedef map<long, long> TestClassMap;
   typedef TestClassMap::iterator iterator;
+  typedef map<long, long> TestClassMap;
+
+  // typedefs with const and volatile
+  typedef const map<long, long> const_TestClassMap;
+  typedef TestClassMap::iterator volatile volatile_iterator;
 
   map<int, int> mapclassvarthingy;
 };
@@ -456,3 +460,27 @@ string s = "My \"quoted\" string";
 // With latest c.bnf at least one-liner macros can be parsed correctly.
 #define BAR (arg) CzkMessageLog method(arg, "bar");
 
+// some const and volatile stuff
+char * p1 = "Hello"; // 1. variable Pointer, variable Data
+const char * p2 = "Hello"; // 2. variable pointer, constant data
+char * const p3 = "Hello"; // 3. constant pointer, variable data
+const char * const p4 = "Hello"; // 4. constant pointer, constant data
+
+// Case 2 and 4 can exchange first "const" and "char"
+char const * p21 = "Hello"; // variable pointer, constant data
+char const * const p41 = "Hello"; // constant pointer, constant data
+
+char volatile a = 0; // a volatile char
+void foo(bar const &arg); // a reference to a const bar
+int foobar(bar const * const p); // a const pointer to a const bar
+int foobar(bar const volatile * const p); // a const pointer to a const bar
+
+// Should not be parsed because this is invalid code
+int const & const r3 = i;
+
+boolean i = 0;
+boolean & r1 = i;
+boolean const & r2 = i;
+
+// const * sequences can be very long in C++ ;-)
+char const * const * const * const * ppp;
