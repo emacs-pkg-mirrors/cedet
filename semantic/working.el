@@ -199,6 +199,15 @@ percentage display.  A number such as `2' means `2%'."
 
 ;;; Programmer functions
 ;;
+(eval-when-compile
+  (or (fboundp 'noninteractive)
+      ;; Silence the Emacs byte compiler
+      (defun noninteractive nil))
+  (or (boundp 'noninteractive)
+      ;; Silence the XEmacs byte compiler
+      (defvar noninteractive))
+  )
+
 (defun working-message-emacs (&rest args)
   "Print but no log a one-line message at the bottom of the screen.
 See the function `message' for details on ARGS."
@@ -218,6 +227,10 @@ See the function `message' for details on ARGS."
     (if (boundp 'log-message-filter-function)
 	'working-message-xemacs
       'working-message-emacs))
+  (defalias 'working-current-message
+    (if (fboundp 'current-message)
+        'current-message
+      'ignore))
   )
 
 (defun working-message (&rest args)
@@ -252,17 +265,20 @@ See the function `message' for details on ARGS."
   "Contain a block of code during which a working status is shown.
 MESSAGE is the message string to use and DONESTR is the completed text
 to use when the functions `working-status' is called from FORMS."
-  `(let ((working-message ,message)
-	 (working-donestring ,donestr)
-	 (working-ref1 0)
-	 (working-last-percent 0))
-     (unwind-protect
-	 (progn ,@forms)
-       (setq working-mode-line-message nil)
-       (unless working-use-echo-area-p
-	 (working-mode-line-update)
-	 (sit-for 0))
-       )))
+  (let ((current-message (make-symbol "working-current-message")))
+    `(let ((,current-message (working-current-message))
+           (working-message ,message)
+           (working-donestring ,donestr)
+           (working-ref1 0)
+           (working-last-percent 0))
+       (unwind-protect
+           (progn ,@forms)
+         (setq working-mode-line-message nil)
+         (if working-use-echo-area-p
+             (message ,current-message)
+           (working-mode-line-update)
+           (sit-for 0))))
+    ))
 (put 'working-status-forms 'lisp-indent-function 2)
 
 (defmacro working-status-timeout (timeout message donestr &rest forms)
@@ -272,21 +288,24 @@ is needed to update the message.
 TIMEOUT is the length of time to wait between message updates.
 MESSAGE is the message string to use and DONESTR is the completed text
 to use when the functions `working-status' is called from FORMS."
-  `(let* ((working-message ,message)
-	  (working-donestring ,donestr)
-	  (working-ref1 0)
-	  (time ,timeout)
-	  (working-timer
-	   (working-run-with-timer time time 'working-dynamic-status)))
-     (unwind-protect
-	 (progn ,@forms)
-       (working-cancel-timer working-timer))
-     (working-dynamic-status t)
-     (setq working-mode-line-message nil)
-     (unless working-use-echo-area-p
-	 (working-mode-line-update)
-	 (sit-for 0))
-     ))
+  (let ((current-message (make-symbol "working-current-message")))
+    `(let* ((,current-message (working-current-message))
+            (working-message ,message)
+            (working-donestring ,donestr)
+            (working-ref1 0)
+            (time ,timeout)
+            (working-timer
+             (working-run-with-timer time time 'working-dynamic-status)))
+       (unwind-protect
+           (progn ,@forms)
+         (working-cancel-timer working-timer)
+         (working-dynamic-status t)
+         (setq working-mode-line-message nil)
+         (if working-use-echo-area-p
+             (message ,current-message)
+           (working-mode-line-update)
+           (sit-for 0))))
+    ))
 (put 'working-status-timeout 'lisp-indent-function 3)
 
 (defun working-status-call-process
