@@ -1,11 +1,11 @@
 ;;; sb-info --- Speedbar support for Info
 
-;; Copyright (C) 1997, 1998, 2000 Free Software Foundation
+;; Copyright (C) 1997, 1998, 2000, 2001 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.3
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.14 2000/09/22 02:24:24 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.15 2001/10/28 00:01:36 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -70,6 +70,7 @@
     (define-key Info-speedbar-key-map "+" 'speedbar-expand-line)
     (define-key Info-speedbar-key-map "=" 'speedbar-expand-line)
     (define-key Info-speedbar-key-map "-" 'speedbar-contract-line)
+    (define-key Info-speedbar-key-map " " 'speedbar-toggle-line-expansion)
     )
 
   (speedbar-add-expansion-list '("Info" Info-speedbar-menu-items
