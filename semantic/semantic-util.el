@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.75 2001/09/18 18:07:12 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.76 2001/09/26 21:06:34 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -651,7 +651,7 @@ searched for matches."
 	    (progn
 	      (setq sl (semantic-nonterminal-children
 			(car stream)
-			t
+			(eq search-parts 'positiononly)
 			))
 	      (if sl
 		  (setq nl (append nl (semantic-find-nonterminal-by-function
