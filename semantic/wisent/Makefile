@@ -17,7 +17,7 @@ wisent_LISP=wisent.el wisent-bovine.el wisent-comp.el wisent-expr.el wisent-gram
 taggers_SEMANTIC_GRAMMAR=wisent-java-tags.wy wisent-awk.wy wisent-calc.wy wisent-cim.wy wisent-java.wy wisent-python.wy
 EMACS=emacs
 taggers_SAMENATIC_GRAMMAR_EL=wisent-java-tags-wy.el wisent-awk-wy.el wisent-calc-wy.el wisent-cim-wy.el wisent-java-wy.el wisent-python-wy.el
-languages_LISP=wisent-calc.el wisent-java.el wisent-java-tags.el wisent-python.el wisent-java-lex.el
+languages_LISP=wisent-calc.el wisent-java.el wisent-java-tags.el wisent-python.el
 VERSION=2.0beta1
 DISTDIR=$(top)semantic-$(VERSION)/wisent
 
@@ -32,7 +32,7 @@ tools: $(tools_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: wisent
 wisent: $(wisent_LISP)
@@ -41,7 +41,7 @@ wisent: $(wisent_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: taggers
 taggers: $(taggers_SEMANTIC_GRAMMAR)
@@ -60,7 +60,7 @@ languages: $(languages_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 tags: 
 
