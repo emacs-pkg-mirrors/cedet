@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.45 2001/10/05 02:01:11 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.46 2001/10/05 19:36:38 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.46  2001/10/05 19:36:38  zappo
+# (var-or-fun): Disable support (for now) of int declarations for vars
+# and funs with unspecified types.  Who does that anymore anyway?
+#
 # Revision 1.45  2001/10/05 02:01:11  zappo
 # (UNDERP, UNDERUNDERP): New keywords
 # (macro-or-include): Handle optional argument list
@@ -508,8 +512,8 @@ var-or-fun : declmods typeformbase metadeclmod opt-ref var-or-func-decl
 	     ( ,(semantic-c-reconstitute-token ,$5 $1 $2 ) )
 	   # it is possible for a function to not have a type, and
 	   # it is then assumed to be an int.  How annoying.
-	   | declmods var-or-func-decl
-	     ( ,(semantic-c-reconstitute-token ,$2 $1 nil ) )
+	   #| declmods var-or-func-decl
+	   #  ( ,(semantic-c-reconstitute-token ,$2 $1 nil ) )
 	   ;
 
 var-or-func-decl : opt-stars opt-class opt-destructor functionname opt-under-p arg-list 
