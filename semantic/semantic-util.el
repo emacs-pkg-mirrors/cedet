@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.92 2002/05/16 07:40:06 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.93 2002/06/14 13:15:08 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2264,7 +2264,7 @@ See `semantic-nonterminal-static'."
       (setq mods (cdr mods)))
     static))
 
-(defun semantic-nonterminal-full-package-name (token &optional stream-or-buffer)
+(defun semantic-nonterminal-full-name (token &optional stream-or-buffer)
   "Return the fully qualified name of TOKEN in the package hierarchy.
 STREAM-OR-BUFFER can be anything convertable by `semantic-something-to-stream',
 but must be a toplevel semantic token stream that contains TOKEN.
@@ -2273,16 +2273,16 @@ are organized on disk.  Some language use this concept such that a
 class can be accessed via it's fully qualified name, (such as Java.)
 Other languages qualify names within a Namespace (such as C++) which
 result in a different package like structure.  Languages which do not
-override this function with `nonterminal-full-package-name' will use
+override this function with `nonterminal-full-name' will use
 `semantic-token-name'.  Override functions only need to handle
 STREAM-OR-BUFFER with a token stream value, or nil."
-  (let* ((s (semantic-fetch-overload 'nonterminal-full-package-name))
+  (let* ((s (semantic-fetch-overload 'nonterminal-full-name))
 	 (stream (semantic-something-to-stream (or stream-or-buffer token))))
     (if s (funcall s token stream)
-      (semantic-nonterminal-full-package-name-default token stream))))
+      (semantic-nonterminal-full-name-default token stream))))
 
-(defun semantic-nonterminal-full-package-name-default (token stream)
-  "Default method for `semantic-nonterminal-full-package-name'.
+(defun semantic-nonterminal-full-name-default (token stream)
+  "Default method for `semantic-nonterminal-full-name'.
 Return the name of TOKEN found in the toplevel STREAM."
   (semantic-token-name token))
 
@@ -2481,6 +2481,22 @@ Argument P is the point to search from in the current buffer."
 	  (goto-char (point-min))
 	  (shrink-window-if-larger-than-buffer))
       (message "nil"))))
+
+(defun semantic-assert-valid-token (tok)
+  "Assert that TOK is a valid token."
+  (if (semantic-token-p tok)
+      (if (semantic-token-with-position-p tok)
+	  (let ((o  (semantic-token-overlay tok)))
+	    (if (and (semantic-overlay-p o)
+		     (not (semantic-overlay-live-p o)))
+		(let ((debug-on-error t))
+		  (error "Token %s is invalid!"))
+	      ;; else, token is OK.
+	      ))
+	;; Positionless tokens are also ok.
+	)
+    (let ((debug-on-error t))
+      (error "Not a semantic token: %S" tok))))
 
 (defun semantic-sanity-check (&optional cache over notfirst)
   "Perform a sanity check on the current buffer.
