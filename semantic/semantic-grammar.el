@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.57 2004/03/06 15:25:05 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.58 2004/03/11 02:34:49 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1670,6 +1670,33 @@ Only tags of type 'nonterminal will be so marked."
   (let ((c (semantic-tag-class tag)))
     (eq c 'nonterminal)))
 
+(define-mode-overload-implementation semantic-ctxt-current-function
+  semantic-grammar-mode (&optional point)
+  "Determine the name of the current function at POINT."
+  (if (semantic-grammar-in-lisp-p)
+      (semantic-with-mode-bindings emacs-lisp-mode
+	(semantic-ctxt-current-function point))
+    nil
+    ))
+
+(define-mode-overload-implementation semantic-ctxt-current-argument
+  semantic-grammar-mode (&optional point)
+  "Determine the argument index of the called function at POINT."
+  (if (semantic-grammar-in-lisp-p)
+      (semantic-with-mode-bindings emacs-lisp-mode
+	(semantic-ctxt-current-argument point))
+    nil
+    ))
+
+(define-mode-overload-implementation semantic-ctxt-current-assignment
+  semantic-grammar-mode (&optional point)
+  "Determine the tag being assigned into at POINT."
+  (if (semantic-grammar-in-lisp-p)
+      (semantic-with-mode-bindings emacs-lisp-mode
+	(semantic-ctxt-current-assignment point))
+    nil
+    ))
+
 (define-mode-overload-implementation semantic-ctxt-current-class-list
   semantic-grammar-mode (&optional point)
   "Determine the class of tags that can be used at POINT."
@@ -1813,20 +1840,23 @@ Optional argument COLOR determines if color is added to the text."
 (define-mode-overload-implementation semantic-analyze-possible-completions
   semantic-grammar-mode (context)
   "Return a list of possible completions based on CONTEXT."
-  (save-excursion
-    (set-buffer (oref context buffer))
-    (let* ((prefix (car (oref context :prefix)))
-	   (completetext (cond ((semantic-tag-p prefix)
-				(semantic-tag-name prefix))
-			       ((stringp prefix)
-				prefix)
-			       ((stringp (car prefix))
-				(car prefix))))
-	   (tags (semantic-find-tags-for-completion completetext
-						    (current-buffer))))
-      (semantic-analyze-tags-of-class-list 
-       tags (oref context prefixclass)))
-    ))
+  (if (semantic-grammar-in-lisp-p)
+      (semantic-with-mode-bindings emacs-lisp-mode
+	(semantic-analyze-possible-completions context))
+    (save-excursion
+      (set-buffer (oref context buffer))
+      (let* ((prefix (car (oref context :prefix)))
+	     (completetext (cond ((semantic-tag-p prefix)
+				  (semantic-tag-name prefix))
+				 ((stringp prefix)
+				  prefix)
+				 ((stringp (car prefix))
+				  (car prefix))))
+	     (tags (semantic-find-tags-for-completion completetext
+						      (current-buffer))))
+	(semantic-analyze-tags-of-class-list 
+	 tags (oref context prefixclass)))
+      )))
 
 (provide 'semantic-grammar)
 
