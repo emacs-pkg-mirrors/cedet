@@ -156,7 +156,7 @@ to ask question, or help develop semantic.
    to provide useful Java specific features.</p>
 
 <P><a href="http://home.swipnet.se/mayhem/ecb.html">
-   <b>Emacs Class Browser (ECB)</b></a>
+   <b>Emacs Code Browser (ECB)</b></a>
       lets you browse your files' contents.
       Uses the Semantic package.</p>
 
