@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.2 2002/07/04 02:57:49 zappo Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.3 2002/07/10 03:51:16 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,6 +28,7 @@
 ;; are constructed at build time into a single routine.  This will
 ;; eliminate uneeded if statements to speed the lexer.
 
+;;;###autoload
 (defvar semantic-lex-analyzer nil
   "The lexical analyzer used for a given buffer.")
 
@@ -195,6 +196,7 @@ This function can be used for languages that can intelligently fix up
 broken syntax, or the exit lexical analysis via `throw' or `signal'
 when finding unterminated syntax.")
 
+;;;###autoload
 (defun semantic-lex-init ()
   "Initialize any lexical state for this buffer."
   (when (not semantic-lex-comment-regex)
@@ -208,21 +210,44 @@ when finding unterminated syntax.")
 ;; Do the cutover for compatibility
 ;;(defalias 'semantic-flex 'semantic-lex)
 
+;;;###autoload
 (defun semantic-lex (start end &optional depth length)
   "Lexically analyze text in the current buffer between START and END.
 Optional argument DEPTH indicates at what level to scan over entire
 lists.  The last argument, LENGTH specifies that `semantic-lex'
 should only return LENGTH tokens.  The return value is a token stream.
 Each element is a list, such of the form
-  (symbol start-expression . end-expression)
+  (symbol start-expression .  end-expression)
 where SYMBOL denotes the token type.
 See `semantic-lex-tokens' variable for details on token types.  END
 does not mark the end of the text scanned, only the end of the
 beginning of text scanned.  Thus, if a string extends past END, the
 end of the return token will be larger than END.  To truly restrict
 scanning, use `narrow-to-region'."
-  (funcall semantic-lex-analyzer start end depth length nil)
+  (funcall semantic-lex-analyzer start end depth length)
   )
+
+(eval-and-compile (if (not (fboundp 'with-syntax-table))
+
+;; Copied from Emacs 21 for compatibility with released Emacses.
+(defmacro with-syntax-table (table &rest body)
+  "Evaluate BODY with syntax table of current buffer set to a copy of TABLE.
+The syntax table of the current buffer is saved, BODY is evaluated, and the
+saved table is restored, even in case of an abnormal exit.
+Value is what BODY returns."
+  (let ((old-table (make-symbol "table"))
+	(old-buffer (make-symbol "buffer")))
+    `(let ((,old-table (syntax-table))
+	   (,old-buffer (current-buffer)))
+       (unwind-protect
+	   (progn
+	     (set-syntax-table (copy-syntax-table ,table))
+	     ,@body)
+	 (save-current-buffer
+	   (set-buffer ,old-buffer)
+	   (set-syntax-table ,old-table))))))
+
+))
 
 (defmacro semantic-lex-one-token (analyzers)
   "Calculate one token from the current buffer at point.
@@ -234,6 +259,7 @@ Argument ANALYZERS is the list of analyzers being used."
 	    an (cdr an)))
     (cons 'cond (nreverse code))))
 
+;;;###autoload
 (defmacro define-lex (name doc &rest analyzers)
   "Create a new lexical analyzer with NAME.
 DOC is a documentation string describing this analyzer.
@@ -285,6 +311,7 @@ variable after calling `semantic-lex-token'."
 	 token-stream (cons (cons ,symbol (cons ,start end-point))
 			    token-stream)))
 
+;;;###autoload
 (defmacro define-lex-analyzer (name doc condition &rest forms)
   "Create a single lexical analyzer NAME with DOC.
 When an analyzer is called, the current buffer and point are
@@ -313,7 +340,7 @@ at the beginning of `token-stream'.   This can be done by using
      (setq ,name '(,condition ,@forms))
      ))
 
-
+;;;###autoload
 (defmacro define-lex-regex-analyzer (name doc regexp &rest forms)
   "Create a lexical analyzer with NAME and DOC  that match REGEXP.
 FORMS are evaluated upon a successful match.
@@ -322,6 +349,7 @@ See `define-lex-analyzer' for more about analyzers."
      (defvar ,name nil ,doc)
      (setq ,name  '((looking-at ,regexp) ,@forms))))
 
+;;;###autoload
 (defmacro define-lex-simple-regex-analyzer (name doc regexp toksym
 						 &optional index
 						 &rest forms)
