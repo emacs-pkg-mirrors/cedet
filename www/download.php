@@ -1,4 +1,5 @@
-<table width=100% bgcolor="lightgreen"><tr><td>
+<!-- -*-html-*- -->
+<table width=100% class=BAR><tr><td>
 <h2>Downloading CEDET</h2>
 </td></tr></table>
 
