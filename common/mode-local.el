@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.1 2004/04/28 15:33:21 ponced Exp $
+;; X-RCS: $Id: mode-local.el,v 1.2 2004/05/12 16:47:56 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -42,6 +42,32 @@
 ;;
 
 ;;; Code:
+(eval-when-compile (require 'cl))
+
+;;; Compatibility
+;;
+(when (featurep 'xemacs)
+  ;; In Xemacs, workaround a bug in some versions of
+  ;; `define-derived-mode' that don't set the `derived-mode-parent'
+  ;; property, and break mode-local.
+  (defadvice define-derived-mode
+    (after mode-local-define-derived-mode activate)
+    "Fix missing `derived-mode-parent' property on child."
+    (unless (eq 'fundamental-mode (ad-get-arg 1))
+      (let ((form (cdr ad-return-value)))
+        (setq ad-return-value nil)
+        (while form
+          (and (eq 'defun (car-safe (car form)))
+               (eq (ad-get-arg 0) (car (cdr-safe (car form))))
+               (push `(or (get ',(ad-get-arg 0) 'derived-mode-parent)
+                          (put ',(ad-get-arg 0) 'derived-mode-parent
+                               ',(ad-get-arg 1)))
+                     ad-return-value))
+          (push (car form) ad-return-value)
+          (setq form (cdr form)))
+        (setq ad-return-value `(progn ,@(nreverse ad-return-value)))
+        )))
+  )
 
 ;;; Misc utilities
 ;;
