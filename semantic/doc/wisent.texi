@@ -278,15 +278,13 @@ comma-separated sequence of zero or more @samp{exp} groupings:
 
 @cindex precedence level
 @item precedence
-Is an optional vector of one terminal item.  The rule will be given
-the precedence level of this terminal.  Notice that only terminals
-declared in @var{assocs} have a precedence level.  By default the rule
-precedence is the one of the last terminal in it.
+Assign the rule the precedence of the given terminal item, overriding
+the precedence that would be deduced for it, that is the one of the
+last terminal in it.  Notice that only terminals declared in
+@var{assocs} have a precedence level.  The altered rule precedence
+then affects how conflicts involving that rule are resolved.
 
-Its effect is to assign the rule the precedence of the given terminal
-item, overriding the precedence that would be deduced for it in the
-ordinary way.  The altered rule precedence then affects how conflicts
-involving that rule are resolved.
+@var{precedence} is an optional vector of one terminal item.
 
 Here is how @var{precedence} solves the problem of unary minus.
 First, declare a precedence for a fictitious terminal symbol named
