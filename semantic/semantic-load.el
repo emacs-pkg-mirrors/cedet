@@ -1,9 +1,9 @@
 ;;; semantic-load.el --- Autoload definitions for Semantic
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.38 2003/12/22 15:54:57 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.39 2004/01/08 21:47:03 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,11 +29,12 @@
 
 (require 'semantic-fw)
 
-;;; Add parser directories
+;;; Add parser and doc directories
 ;;
 (let ((dir (file-name-directory (locate-library "semantic"))))
   (add-to-list 'load-path (concat dir "bovine"))
   (add-to-list 'load-path (concat dir "wisent"))
+  (add-to-list 'Info-directory-list (concat dir "doc"))
   )
 
 ;;; Some speedbar major modes
