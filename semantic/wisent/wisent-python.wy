@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.10 2002/06/24 06:51:38 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.11 2002/06/25 05:13:11 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -35,7 +35,7 @@
 %{
   (setq
    ;;"Regexp matching python raw string prefix."
-   wisent-python-raw-string-re "\\<[r]'"
+   wisent-python-raw-string-re "\\<[r]['\"]"
 
    ;; How `semantic-flex' will setup the lexer input stream.
    semantic-flex-depth nil
@@ -54,7 +54,7 @@
    wisent-python-matching-pair-stack nil
 
    semantic-flex-python-extensions
-   (list '("\"\"\"" . semantic-flex-python-triple-quotes)
+   (list '("\\(\\<r\\)?\"\"\"" . semantic-flex-python-triple-quotes)
 	 (cons wisent-python-raw-string-re 'wisent-python-flex-raw-string))
 
    semantic-flex-extensions semantic-flex-python-extensions
@@ -924,13 +924,13 @@ dictmaker_opt
   | dictmaker
   ;
 
-;; (read $1) was done before to peel away the double quotes.
+;; (read $1) and (read $2) were done before to peel away the double quotes.
 ;; However that does not work for single quotes, so it was taken out.
 ;;  -ryk6/21/02.
 one_or_more_string
   : STRING_LITERAL
   | one_or_more_string STRING_LITERAL
-    (format "%s %s" $1 (read $2))
+    (format "%s %s" $1 $2)
   ;
 
 ;; listmaker: test ( list_for | (',' test)* [','] )

@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.9 2002/06/24 06:51:38 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.10 2002/06/25 05:13:11 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -93,6 +93,10 @@
 ;;
 ;; * Updated semantic-python-number-regexp based on Python reference
 ;;   manual.  Currently version is an exact replica from semantic-java.el.
+;;
+;; * semantic-flex-python-triple-quotes and
+;;   wisent-python-flex-raw-string semantic flex handlers could
+;;   possibly be combined.  Research this and do so if feasible.
 ;;
 ;; * Optimize `string-indentation'.  This was a quick hack to get us going.
 ;;
@@ -280,12 +284,16 @@ we get around ot it.")
 
 (defun semantic-flex-python-triple-quotes ()
   "Create a 'string token from strings quoted with triple double-quotes."
-  (let (beg end)
+  (let ((raw-p (looking-at "r"))
+	beg end)
     (setq beg (point))
     (forward-char 3)
     (search-forward "\"\"\"")
     (setq end (point))
-    (cons 'string (cons beg end))))
+    (cons (if raw-p
+	      'raw-string
+	    'string)
+	  (cons beg end))))
 
 (defun wisent-python-flex-raw-string ()
   "`semantic-flex' extension to handle python raw-strings.
@@ -294,7 +302,12 @@ Return a 'raw-string syntactic token."
          (e (condition-case nil
                 (progn
                   (forward-char) ;; skip 'r'
-                  (forward-sexp 1)
+		  (cond
+		   ((looking-at "\"\"\"")
+		    (forward-char 3)
+		    (search-forward "\"\"\""))
+		   (t 
+		    (forward-sexp 1)))
                   (point))
               ;; This case makes flex
               ;; robust to broken strings.
@@ -314,8 +327,8 @@ Return a 'raw-string syntactic token."
     (setq wisent-flex-istream (cdr wisent-flex-istream))
     (cons 'STRING_LITERAL
           (cons
-           ;; Remove r" and " delimiters
-           (regexp-quote (substring (semantic-flex-text stok) 2 -1))
+           ;; Remove r
+           (regexp-quote (substring (semantic-flex-text stok) 1))
            (cdr stok)))))
 
 ;; This should be called everytime before parsing starts.
@@ -329,7 +342,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-parser-tables
   (eval-when-compile
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-23 16:33-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-24 14:49-0700
     (wisent-compile-grammar
      '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT RAW_STRING_LITERAL AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
@@ -760,8 +773,7 @@ Return a 'raw-string syntactic token."
        (one_or_more_string
 	((STRING_LITERAL))
 	((one_or_more_string STRING_LITERAL)
-	 (format "%s %s" $1
-		 (read $2))))
+	 (format "%s %s" $1 $2)))
        (listmaker
 	((test listmaker_trailer)))
        (listmaker_trailer
@@ -936,7 +948,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-keywords
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-23 16:33-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-24 14:49-0700
    (semantic-flex-make-keyword-table
     '(("and" . AND)
       ("assert" . ASSERT)
@@ -1000,7 +1012,7 @@ Return a 'raw-string syntactic token."
 
 (defconst wisent-python-tokens
   (identity
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-23 16:33-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-24 14:49-0700
    (wisent-flex-make-token-table
     '(("raw-string"
        (RAW_STRING_LITERAL))
@@ -1081,15 +1093,15 @@ Return a 'raw-string syntactic token."
 
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-23 16:33-0700
+;;DO NOT EDIT! Generated from wisent-python.wy - 2002-06-24 14:49-0700
   (progn
     (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
 	  semantic-toplevel-bovine-table wisent-python-parser-tables
 	  semantic-flex-keywords-obarray wisent-python-keywords
 	  wisent-flex-tokens-obarray wisent-python-tokens)
     (setq
-     wisent-python-raw-string-re "\\<[r]'"
      ;;"Regexp matching python raw string prefix."
+     wisent-python-raw-string-re "\\<[r]['\"]"
 
      ;; How `semantic-flex' will setup the lexer input stream.
      semantic-flex-depth nil
@@ -1108,7 +1120,7 @@ Return a 'raw-string syntactic token."
      wisent-python-matching-pair-stack nil
 
      semantic-flex-python-extensions
-     (list '("\"\"\"" . semantic-flex-python-triple-quotes)
+     (list '("\\(\\<r\\)?\"\"\"" . semantic-flex-python-triple-quotes)
 	   (cons wisent-python-raw-string-re 'wisent-python-flex-raw-string))
 
      semantic-flex-extensions semantic-flex-python-extensions
