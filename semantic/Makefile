@@ -12,7 +12,8 @@ ede_FILES=Project.ede Makefile
 maintenance_LISP=semantic-ede-grammar.el
 EMACS=emacs
 LOADPATH=../eieio/ ../ede/ wisent/ bovine/\
-   ../common/ ../speedbar/ ../eieio/ 
+   ../common/ ../speedbar/ ../ede/ ../eieio/\
+   
 wy_MISC=semantic-grammar.wy
 scripts_MISC=semanticdb.sh
 example_MISC=semantic-example.el
@@ -22,14 +23,12 @@ Languages_LISP=semantic-texi.el
 tools_LISP=semantic-imenu.el semantic-sb.el working.el semanticdb.el document.el document-vars.el sformat.el semantic-chart.el semantic-util-modes.el semantic-analyze.el semantic-ia.el semantic-cb.el semantic-ia-sb.el semanticdb-file.el semanticdb-search.el semanticdb-mk.el semanticdb-el.el semanticdb-system.el semantic-debug.el semanticdb-find.el semantic-regtest.el
 senator_LISP=senator.el
 misc_AUX=INSTALL NEWS ChangeLog AUTHORS
-info_TEXINFOS=semantic.texi
-MAKEINFO=makeinfo
 VERSION=2.0beta1
 DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: wy scripts example init semantic Languages tools senator semantic.info wisent Tests Documentation bovinator
+all: wy scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
 
 .PHONY: maintenance
 maintenance: $(maintenance_LISP)
@@ -97,9 +96,6 @@ senator: $(senator_LISP)
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
 
-semantic.info: $(info_TEXINFOS)
-	$(MAKEINFO) -o $@ $<
-
 .PHONY:wisent
 wisent:
 	cd wisent; $(MAKE)
@@ -124,13 +120,13 @@ tags:
 
 
 clean:
-	rm -f *.elc *.html *.info
+	rm -f *.elc
 
 
-dist: semantic.info
+dist:
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(maintenance_LISP) $(wy_MISC) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(info_TEXINFOS) semantic.info* $(ede_FILES) $(DISTDIR)
+	cp $(maintenance_LISP) $(wy_MISC) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) dist
 	cd tests; $(MAKE) dist
 	cd doc; $(MAKE) dist
