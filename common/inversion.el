@@ -1,9 +1,9 @@
 ;;; inversion.el --- When you need something in version XX.XX
 
-;;; Copyright (C) 2002 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.10 2002/12/19 08:01:33 ponced Exp $
+;; X-RCS: $Id: inversion.el,v 1.11 2003/01/28 16:06:09 ponced Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta4"
@@ -327,16 +327,17 @@ the main INSTALLDIR/PACKAGE path."
       (let* ((default-directory (or installdir default-directory))
 	     (path (expand-file-name (format "./%s" package)))
 	     subpath)
-	;; Add SUBDIRS
-	(while subdirs
-	  (setq subpath (format "%s/%s" path (car subdirs))
-		subdirs (cdr subdirs))
-	  (when (file-directory-p subpath)
-	    (message "%S added to `load-path'" subpath)
-	    (add-to-list 'load-path subpath)))
-	;; Add the main path
-	(message "%S added to `load-path'" path)
-	(add-to-list 'load-path path)))))
+	(when (file-directory-p path)
+	  ;; Add SUBDIRS
+	  (while subdirs
+	    (setq subpath (format "%s/%s" path (car subdirs))
+		  subdirs (cdr subdirs))
+	    (when (file-directory-p subpath)
+	      (message "%S added to `load-path'" subpath)
+	      (add-to-list 'load-path subpath)))
+	  ;; Add the main path
+	  (message "%S added to `load-path'" path)
+	  (add-to-list 'load-path path))))))
 
 ;;; Inversion tests
 ;;
