@@ -1,0 +1,66 @@
+# Simple BNF notation for top-level C elements.
+#
+# Copyright (C) 1999, 2000 Eric M. Ludlam
+#
+# Author: Eric M. Ludlam <zappo@gnu.org>
+# X-RCS: $Id: make.bnf,v 1.1 2000/06/11 02:18:47 zappo Exp $
+#
+# make.bnf is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+#
+# This software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GNU Emacs; see the file COPYING.  If not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA.
+#
+# $Log: make.bnf,v $
+# Revision 1.1  2000/06/11 02:18:47  zappo
+# Initial revision
+#
+
+# TABLE: semantic-make.el:semantic-toplevel-make-bovine-table
+# MODE: make-mode
+
+bovine-toplevel : variable
+		| rule
+		| conditional
+		;
+
+variable: symbol punctuation "=" elements
+	  ($1 variable nil nil $3 nil nil)
+	;
+
+rule: symbol punctuation ":" elements commands
+      ($1 function nil $3 nil)
+    ;
+
+conditional: symbol "if" symbol newline
+	     ( nil )
+	   | symbol "else" newline
+	     ( nil )
+	   | symbol "endif" newline
+	     ( nil )
+	   ;
+
+elements: symbol elements
+	  ( $1 ,$2 )
+	| symbol newline
+	  ( $1 )
+	| newline
+	  (  )
+	;
+  
+commands: shell-command newline commands
+	  ( $1 ,$2 )
+	| EMPTY
+	  ( )
+	;
+
+# End
