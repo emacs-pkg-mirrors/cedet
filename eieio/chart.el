@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.1
-;;; RCS: $Id: chart.el,v 1.3 1997/01/04 18:20:20 zappo Exp $
+;;; RCS: $Id: chart.el,v 1.4 1997/03/01 17:12:06 zappo Exp $
 ;;; Keywords: OO, chart, graph                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -620,7 +620,7 @@ extentions in directory DIR."
 	(b (get-buffer-create " *du-tmp*")))
     (set-buffer b)
     (erase-buffer)
-    (insert "cd " d ";/bin/du -sk * \n")
+    (insert "cd " d ";du -sk * \n")
     (message "Running `cd %s;du -sk *'..." d)
     (call-process-region (point-min) (point-max) "csh" t
 			 (current-buffer) nil)
