@@ -1,10 +1,10 @@
 ;;; semantic-ia-sb.el --- Speedbar analysis display interactor
 
-;;; Copyright (C) 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.12 2003/04/09 01:39:25 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.13 2004/02/22 21:41:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -73,12 +73,9 @@ list of possible completions."
   (interactive)
   ;; Make sure that speedbar is active
   (speedbar-frame-mode 1)
-  ;; Now, throw us into RPM mode on speedbar.
+  ;; Now, throw us into Analyze  mode on speedbar.
   (speedbar-change-initial-expansion-list "Analyze")
   )
-
-(defvar semantic-ia-sb-last-analysis nil
-  "The last analysis object is stored here to prevent too much analysis.")
 
 (defun semantic-ia-speedbar (directory zero)
   "Create buttons in speedbar which define the current analysis at POINT.
@@ -88,22 +85,23 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
 	(completions nil)
 	(fnargs nil)
 	(cf (selected-frame))
-	(cnt nil))
+	(cnt nil)
+	)
     ;; Try and get some sort of analysis
     (condition-case nil
 	(progn
 	  (speedbar-select-attached-frame)
 	  (setq buffer (current-buffer))
 	  (save-excursion
-	    (if (eq (car semantic-ia-sb-last-analysis) (point))
-		(setq analysis (cdr semantic-ia-sb-last-analysis))
-	      (setq analysis (semantic-analyze-current-context (point))))
-	    (setq semantic-ia-sb-last-analysis (cons (point-marker) analysis))
+	    ;; We usd to cache the last analysis, but the analyzer
+	    ;; now has a newer and improved analysis cache system.
+	    (setq analysis (semantic-analyze-current-context (point)))
 	    (setq cnt (semantic-find-tag-by-overlay))
 	    (when analysis
 	      (setq completions (semantic-analyze-possible-completions analysis))
 	      (setq fnargs (semantic-get-local-arguments (point)))
-	      )))
+	      )
+	    ))
       (error nil))
     (select-frame cf)
     (set-buffer speedbar-buffer)
