@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.33 2004/03/04 01:54:53 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.34 2004/03/05 03:10:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -523,6 +523,10 @@ This can be nil, or a list where the last element can be a string
 representing text that may be incomplete.  Preceeding elements
 must be semantic tags representing variables or functions
 called in a dereference sequence.")
+   (prefixclass :initarg :prefixclass
+		:type list
+		:documentation "Tag classes expected at this context.
+These are clases for tags, such as 'function, or 'variable.")
    (prefixtypes :initarg :prefixtypes
 	   :type list
 	   :documentation "List of tags defining types for :prefix.
@@ -616,11 +620,11 @@ if a cached copy of the return object is found."
 					   (cdr bounds)
 					   answer
 					   'current-context
-					   'exit-cache-zone))))
-      ;; Check for interactivity
-      (if (interactive-p)
-	  (semantic-analyze-pop-to-context answer))
-
+					   'exit-cache-zone))
+	  ;; Check for interactivity
+	  (if (interactive-p)
+	      (semantic-analyze-pop-to-context answer))))
+      
       answer)))
 
 (put 'semantic-analyze-current-context 'semantic-overload
@@ -635,6 +639,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 	 (prefix (car prefixandbounds))
 	 (endsym (nth 1 prefixandbounds))
 	 (bounds (nth 2 prefixandbounds))
+	 (prefixclass (semantic-ctxt-current-class-list))
 	 (prefixtypes nil)
 	 (scopetypes (semantic-analyze-scoped-types position))
 	 (scope (if scopetypes
@@ -683,6 +688,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 	       :scopetypes scopetypes
 	       :localvariables localvar
 	       :prefix prefix
+	       :prefixclass prefixclass
 	       :bounds bounds
 	       :prefixtypes prefixtypes))
 
@@ -704,6 +710,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 		   :localvariables localvar
 		   :bounds bounds
 		   :prefix prefix
+		   :prefixclass prefixclass
 		   :prefixtypes prefixtypes))
 	  
 	  ;; TODO: Identify return value condition.
@@ -718,6 +725,7 @@ Returns an object based on symbol `semantic-analyze-context'."
 		 :localvariables localvar
 		 :bounds bounds
 		 :prefix prefix
+		 :prefixclass prefixclass
 		 :prefixtypes prefixtypes)))))
 
     ;; Return our context.
@@ -730,7 +738,7 @@ Returns an object based on symbol `semantic-analyze-context'."
   ((context semantic-analyze-context) &optional desired-type)
   "Return a type constraint for completing :prefix in CONTEXT.
 Optional argument DESIRED-TYPE may be a non-type tag to analyze."
-  (when desired-type
+  (when (semantic-tag-p desired-type)
     ;; Convert the desired type if needed.
     (if (not (eq (semantic-tag-class desired-type) 'type))
 	(setq desired-type (semantic-tag-type desired-type)))
@@ -744,8 +752,8 @@ Optional argument DESIRED-TYPE may be a non-type tag to analyze."
 	   ;; We have a tag of some sort.  Yay!
 	   nil)
 	  (t (setq desired-type nil))
-	  ))
-  desired-type)
+	  )
+    desired-type))
 
 (defmethod semantic-analyze-type-constraint
   ((context semantic-analyze-context-functionarg))
@@ -800,112 +808,138 @@ Context type matching can identify the following:
 When called interactively, displays the list of possible completions
 in a buffer."
   (interactive "d")
-    (let* ((a (if (semantic-analyze-context-child-p context)
-		  context
-		(semantic-analyze-current-context context)))
-	   (fnargs (save-excursion
-		     (semantic-get-local-arguments
-		      (car (oref a bounds)))))
-	   (desired-type (semantic-analyze-type-constraint a))
-	   (prefix (oref a prefix))
-	   (prefixtypes (oref a prefixtypes))
-	   (completetext nil)
-	   (completetexttype nil)
-	   (c nil))
+  (let* ((s (semantic-fetch-overload 'analyze-possible-completions))
+	 (ans
+	  (if s (funcall s context)
+	    (semantic-analyze-possible-completions-default context))))
+    
+    ;; If interactive, display them.
+    (when (interactive-p)
+      (with-output-to-temp-buffer "*Possible Completions*"
+	(semantic-analyze-princ-sequence ans "" (current-buffer)))
+      (shrink-window-if-larger-than-buffer
+       (get-buffer-window "*Possible Completions*"))
+      )
+    
+    ans
+    ))
 
-      ;; Calculate what our prefix string is so that we can
-      ;; find all our matching text.
-      (setq completetext (car (reverse prefix)))
-      (if (semantic-tag-p completetext)
-	  (setq completetext (semantic-tag-name completetext)))
+(put 'semantic-analyze-possible-completions 'semantic-overload
+     'analyze-possible-completions)
 
-      (if (and (not completetext) (not desired-type))
-	  (error "Nothing to complete"))
+(defun semantic-analyze-possible-completions-default (context)
+  "Default method for producing smart completions.
+Argument CONTEXT is an object specifying the locally derived context."
+  (let* ((a (if (semantic-analyze-context-child-p context)
+		context
+	      (semantic-analyze-current-context context)))
+	 (fnargs (save-excursion
+		   (semantic-get-local-arguments
+		    (car (oref a bounds)))))
+	 (desired-type (semantic-analyze-type-constraint a))
+	 (desired-class (oref a prefixclass))
+	 (prefix (oref a prefix))
+	 (prefixtypes (oref a prefixtypes))
+	 (completetext nil)
+	 (completetexttype nil)
+	 (c nil))
 
-      (if (not completetext) (setq completetext ""))
+    ;; Calculate what our prefix string is so that we can
+    ;; find all our matching text.
+    (setq completetext (car (reverse prefix)))
+    (if (semantic-tag-p completetext)
+	(setq completetext (semantic-tag-name completetext)))
 
-      ;; This better be a reasonable type, or we should fry it.
-      ;; The prefixtypes should always be at least 1 less than
-      ;; the prefix since the type is never looked up for the last
-      ;; item when calculating a sequence.
-      (setq completetexttype (car (reverse prefixtypes)))
-      (if (or (not completetexttype)
-	      (not (and (semantic-tag-p completetexttype)
-			(eq (semantic-tag-class completetexttype) 'type))))
-	  ;; What should I do here?  I think this is an error condition.
-	  (setq completetexttype nil))
+    (if (and (not completetext) (not desired-type))
+	(error "Nothing to complete"))
 
-      ;; There are many places to get our completion stream for.
-      ;; Here we go.
-      (if completetexttype
+    (if (not completetext) (setq completetext ""))
 
-	  (setq c (semantic-find-tags-by-name-regexp
-		   (concat "^" completetext)
-		   (semantic-analyze-type-parts completetexttype
-						(oref a scope))
-		   ))
+    ;; This better be a reasonable type, or we should fry it.
+    ;; The prefixtypes should always be at least 1 less than
+    ;; the prefix since the type is never looked up for the last
+    ;; item when calculating a sequence.
+    (setq completetexttype (car (reverse prefixtypes)))
+    (if (or (not completetexttype)
+	    (not (and (semantic-tag-p completetexttype)
+		      (eq (semantic-tag-class completetexttype) 'type))))
+	;; What should I do here?  I think this is an error condition.
+	(setq completetexttype nil))
+
+    ;; There are many places to get our completion stream for.
+    ;; Here we go.
+    (if completetexttype
+
+	(setq c (semantic-find-tags-by-name-regexp
+		 (concat "^" completetext)
+		 (semantic-analyze-type-parts completetexttype
+					      (oref a scope))
+		 ))
 	      
-	(let ((expr (concat "^" completetext)))
-	  ;; No type based on the completetext.  This is a free-range
-	  ;; var or function.  We need to expand our search beyond this
-	  ;; scope into semanticdb, etc.
-	  (setq c (append
-		   ;; Argument list
-		   (semantic-find-tags-by-name-regexp expr fnargs)
-		   ;; Local variables
-		   (semantic-find-tags-by-name-regexp expr
-						      (oref a localvariables))
-		   ;; The current scope
-		   (semantic-find-tags-by-name-regexp expr (oref a scope))
-		   ;; The world
-		   (semantic-analyze-find-tags-by-prefix
-		    completetext))
-		)
-	  ))
+      (let ((expr (concat "^" completetext)))
+	;; No type based on the completetext.  This is a free-range
+	;; var or function.  We need to expand our search beyond this
+	;; scope into semanticdb, etc.
+	(setq c (append
+		 ;; Argument list
+		 (semantic-find-tags-by-name-regexp expr fnargs)
+		 ;; Local variables
+		 (semantic-find-tags-by-name-regexp expr
+						    (oref a localvariables))
+		 ;; The current scope
+		 (semantic-find-tags-by-name-regexp expr (oref a scope))
+		 ;; The world
+		 (semantic-analyze-find-tags-by-prefix
+		  completetext))
+	      )
+	))
 
-      (when desired-type
+    (when desired-type
 
-	(let ((origc c))
-	  ;; Ok, we now have a completion list based on the text we found
-	  ;; we want to complete on.  Now filter that stream against the
-	  ;; type we want to search for.
-	  (setq c (semantic-find-tags-by-type (semantic-tag-name desired-type)
-					      origc))
+      (let ((origc c))
+	;; Ok, we now have a completion list based on the text we found
+	;; we want to complete on.  Now filter that stream against the
+	;; type we want to search for.
+	(setq c (semantic-find-tags-by-type (semantic-tag-name desired-type)
+					    origc))
 
-	  ;; Now anything that is a compound type which could contain
-	  ;; additional things which are of the desired type
-	  (setq c (append c (semantic-find-tags-of-compound-type origc)))
+	;; Now anything that is a compound type which could contain
+	;; additional things which are of the desired type
+	(setq c (append c (semantic-find-tags-of-compound-type origc)))
 	
-	  ;; Some types, like the enum in C, have special constant values that
-	  ;; we could complete with.  Thus, if the target is an enum, we can
-	  ;; find possible symbol values to fill in that value.
-	  (let ((constants
-		 (semantic-analyze-type-constants desired-type)))
-	    (if constants
-		(progn
-		  ;; Filter
-		  (setq constants
-			(semantic-find-tags-by-name-regexp
-			 (concat "^" completetext)
-			 constants))
-		  ;; Add to the list
-		  (setq c (append c constants)))
-	      ))))
+	;; Some types, like the enum in C, have special constant values that
+	;; we could complete with.  Thus, if the target is an enum, we can
+	;; find possible symbol values to fill in that value.
+	(let ((constants
+	       (semantic-analyze-type-constants desired-type)))
+	  (if constants
+	      (progn
+		;; Filter
+		(setq constants
+		      (semantic-find-tags-by-name-regexp
+		       (concat "^" completetext)
+		       constants))
+		;; Add to the list
+		(setq c (append c constants)))
+	    ))))
 
-      ;; Pull out trash.
-      ;; NOTE TO SELF: Is this too slow?
-      (setq c (semantic-unique-tag-table c))
+    (when desired-class
+      (let ((origc c))
+	;; Accept only tags that are of the datatype specified by
+	;; the desired classes.
+	(setq c (apply 'append
+		       (mapcar (lambda (class)
+				 (semantic-find-tags-by-class class origc))
+			       desired-class)))
+	))
 
-      ;; All done!
+    ;; Pull out trash.
+    ;; NOTE TO SELF: Is this too slow?
+    (setq c (semantic-unique-tag-table c))
 
-      ;; If interactive, display them.
-      (when (interactive-p)
-	(with-output-to-temp-buffer "*Possible Completions*"
-	  (semantic-analyze-princ-sequence c ""))
-	(shrink-window-if-larger-than-buffer
-	 (get-buffer-window "*Possible Completions*"))
-	)
-      c))
+    ;; All done!
+
+    c))
 
 
 ;;; Friendly output of a context analysis.
@@ -916,28 +950,31 @@ Some useful functions are found in `semantic-format-tag-functions'."
   :group 'semantic
   :type semantic-format-tag-custom-list)
 
-(defun semantic-analyze-princ-sequence (sequence &optional prefix)
+(defun semantic-analyze-princ-sequence (sequence &optional prefix buff)
   "Send the tag SEQUENCE to standard out.
-Use PREFIX as a label."
+Use PREFIX as a label.
+Use BUFF as a source of override methods."
   (while sequence
-    (princ prefix)
-    (if (semantic-tag-p (car sequence))
+      (princ prefix)
+      (cond
+       ((semantic-tag-p (car sequence))
 	(princ (funcall semantic-analyze-summary-function
-			(car sequence)))
-      (if (stringp (car sequence))
-	  (progn
-	    (princ "\"")
-	    (princ (semantic--format-colorize-text (car sequence) 'variable))
-	    (princ "\""))
-	(format ";; %S" (car sequence))))
-    (princ "\n")
-    (setq sequence (cdr sequence))
-    (setq prefix (make-string (length prefix) ? ))
-    ))
+			(car sequence))))
+       ((stringp (car sequence))
+	(princ "\"")
+	(princ (semantic--format-colorize-text (car sequence) 'variable))
+	(princ "\""))
+       (t
+	(princ (format "'%S" (car sequence)))))
+      (princ "\n")
+      (setq sequence (cdr sequence))
+      (setq prefix (make-string (length prefix) ? ))
+      ))
 
 (defmethod semantic-analyze-show ((context semantic-analyze-context))
   "Insert CONTEXT into the current buffer in a nice way."
-  (semantic-analyze-princ-sequence (oref context prefix) "Prefix: ")
+  (semantic-analyze-princ-sequence (oref context prefix) "Prefix: " )
+  (semantic-analyze-princ-sequence (oref context prefixclass) "Prefix Classes: ")
   (semantic-analyze-princ-sequence (oref context prefixtypes) "Prefix Types: ")
   (princ "--------\n")
   (semantic-analyze-princ-sequence (oref context scopetypes) "Scope Types: ")
