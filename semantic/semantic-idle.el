@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.18 2004/02/21 02:52:13 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.19 2004/02/23 13:43:12 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -210,28 +210,41 @@ current buffer.")
 And also manages services that depend on tag values."
   (semantic-exit-on-input 'idle-timer
     (let* ((inhibit-quit nil)
-	   (buffers (delq (current-buffer) (buffer-list)))
-	   (queue semantic-idle-scheduler-queue)
-	   ;; First, reparse the current buffer.
-	   (lexok (semantic-idle-scheduler-refresh-tags))
-	   )
-
-      ;; Now loop over other buffers, trying to update them as well.
+           (mode    major-mode)
+           (buffers (delq (current-buffer) (buffer-list)))
+           (others  nil)
+           (queue   semantic-idle-scheduler-queue)
+           ;; First, reparse the current buffer.
+           (safe    (semantic-idle-scheduler-refresh-tags)))
+      ;; Now loop over other buffers with same major mode, trying to
+      ;; update them as well.  Stop on keypress.
       (save-excursion
-	(while buffers
-	  (semantic-throw-on-input 'parsing-all-buffers)
-	  (when (buffer-live-p (car buffers))
-	    (set-buffer (car buffers))
-	    (and (semantic-idle-scheduler-enabled-p)
-		 (semantic-idle-scheduler-refresh-tags)))
-	  (setq buffers (cdr buffers))))
-
-      ;; Evaluate all other services.  Stop on keypress.
+        (while buffers
+          (semantic-throw-on-input 'parsing-mode-buffers)
+          (when (buffer-live-p (car buffers))
+            (set-buffer (car buffers))
+            (when (semantic-idle-scheduler-enabled-p)
+              (if (eq major-mode mode)
+                  (semantic-idle-scheduler-refresh-tags)
+                (setq others (cons (current-buffer) others)))))
+          (setq buffers (cdr buffers))))
+      ;; If re-parse of current buffer completed, evaluate all other
+      ;; services.  Stop on keypress.
+      (when safe
+        (save-excursion
+          (while queue
+            (semantic-throw-on-input 'idle-queue)
+            (funcall (car queue))
+            (setq queue (cdr queue)))))
+      ;; Finally loop over remaining buffers, trying to update them as
+      ;; well.  Stop on keypress.
       (save-excursion
-	(while queue
-	  (semantic-throw-on-input 'idle-queue)
-	  (funcall (car queue))
-	  (setq queue (cdr queue))))
+        (while others
+          (semantic-throw-on-input 'parsing-other-buffers)
+          (set-buffer (car others))
+          ;; No need to check more here?
+          (semantic-idle-scheduler-refresh-tags)
+          (setq others (cdr others))))
       )))
 
 (defun semantic-idle-scheduler-function ()
