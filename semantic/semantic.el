@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.65 2000/12/07 04:48:07 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.66 2000/12/08 03:36:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -531,6 +531,63 @@ Argument START, END, and LENGTH specify the bounds of the change."
       (if semantic-toplevel-bovine-cache-check
 	  (message "Reparse needed...")))))
 
+(defun semantic-raw-to-cooked-token (token)
+  "Convert TOKEN from a raw state to a cooked state.
+The parser returns raw tokens with positional data START/END.
+We convert it from that to a cooked state with an overlay.
+Changed the token with side effects and returns TOKEN."
+  (let* ((result nil)
+	 (tmpet nil)
+	 (ncdr (- (length token) 2))
+	 (startcdr (if (natnump ncdr) (nthcdr ncdr token)))
+	 (o (condition-case nil
+		(semantic-make-overlay (car startcdr)
+				       (car (cdr startcdr))
+				       (current-buffer)
+				       ;; Examin start/rear
+				       ;; advance flags.
+				       )
+	      (error (debug token)
+		     nil))))
+    ;; Convert START/END into an overlay.
+    (setcdr startcdr nil)
+    (setcar startcdr o)
+    (semantic-overlay-put o 'semantic token)
+    ;; Expand based on local configuration
+    (if (not semantic-expand-nonterminal)
+	;; no expanders
+	(setq result (cons token result))
+      ;; Glom generated tokens
+      (setq tmpet (funcall semantic-expand-nonterminal token))
+      (if (not tmpet)
+	  (progn (setq result (cons token result))
+		 (semantic-overlay-stack-add o))
+	;; Fixup all overlays, start by deleting the old one
+	(let ((motok tmpet) o start end)
+	  (while motok
+	    (setq startcdr (nthcdr (- (length (car motok)) 1)
+				   (car motok))
+		  ;; this will support new overlays created by
+		  ;; the special function, or recycles
+		  start (if (semantic-overlay-live-p (car startcdr))
+			    (semantic-overlay-start (car startcdr))
+			  start)
+		  end (if (semantic-overlay-live-p (car startcdr))
+			  (semantic-overlay-end (car startcdr))
+			end)
+		  o (semantic-make-overlay start end
+					   (current-buffer)))
+	    (if (semantic-overlay-live-p (car startcdr))
+		(semantic-overlay-delete (semantic-token-overlay
+					  (car motok))))
+	    (semantic-overlay-stack-add o)
+	    (setcdr startcdr nil)
+	    (setcar startcdr o)
+	    (semantic-overlay-put o 'semantic (car motok))
+	    (setq motok (cdr motok))))
+	(setq result (append tmpet result))))
+    result))
+
 (defun semantic-bovinate-nonterminals (stream nonterm &optional
 					      depth returnonerror)
   "Bovinate the entire stream STREAM starting with NONTERM.
@@ -544,60 +601,13 @@ the current results on a parse error."
 	      (semantic-bovinate-nonterminal
 	       stream semantic-toplevel-bovine-table nonterm))
 	     (stream-overlays (car (cdr (cdr nontermsym))))
-	     (tmpet nil)
-	     (token (car (cdr nontermsym)))
-	     (ncdr (- (length token) 2))
-	     (startcdr (if (natnump ncdr) (nthcdr ncdr token))))
+	     (token (car (cdr nontermsym))))
 	(if (not nontermsym)
 	    (error "Parse error @ %d" (car (cdr (car stream)))))
 	(semantic-overlay-stack-add stream-overlays)
 	(if token
-	    (let ((o (condition-case nil
-			 (semantic-make-overlay (car startcdr)
-						(car (cdr startcdr))
-						(current-buffer)
-						;; Examin start/rear
-						;; advance flags.
-						)
-		       (error (debug token)
-			      nil))))
-	      ;; Convert START/END into an overlay.
-	      (setcdr startcdr nil)
-	      (setcar startcdr o)
-	      (semantic-overlay-put o 'semantic token)
-	      ;; Expand based on local configuration
-	      (if (not semantic-expand-nonterminal)
-		  ;; no expanders
-		  (setq result (cons token result))
-		;; Glom generated tokens
-		(setq tmpet (funcall semantic-expand-nonterminal token))
-		(if (not tmpet)
-		    (progn (setq result (cons token result))
-			   (semantic-overlay-stack-add o))
-		  ;; Fixup all overlays, start by deleting the old one
-		  (let ((motok tmpet) o start end)
-		    (while motok
-		      (setq startcdr (nthcdr (- (length (car motok)) 1)
-					     (car motok))
-			    ;; this will support new overlays created by
-			    ;; the special function, or recycles
-			    start (if (semantic-overlay-live-p (car startcdr))
-				      (semantic-overlay-start (car startcdr))
-				    start)
-			    end (if (semantic-overlay-live-p (car startcdr))
-				    (semantic-overlay-end (car startcdr))
-				  end)
-			    o (semantic-make-overlay start end
-						     (current-buffer)))
-		      (if (semantic-overlay-live-p (car startcdr))
-			  (semantic-overlay-delete (semantic-token-overlay
-						    (car motok))))
-		      (semantic-overlay-stack-add o)
-		      (setcdr startcdr nil)
-		      (setcar startcdr o)
-		      (semantic-overlay-put o 'semantic (car motok))
-		      (setq motok (cdr motok))))
-		  (setq result (append tmpet result)))))
+	    (setq result (append (semantic-raw-to-cooked-token token)
+				 result))
 	  (if returnonerror (setq stream nil))
 	  ;;(error "Parse error")
 	  )
@@ -1212,6 +1222,8 @@ LENGTH tokens."
 Optional argument CLEAR will clear the cache before bovinating." t)
 (autoload 'bovinate-debug "semantic-util"
   "Bovinate the current buffer and run in debug mode." t)
+(autoload 'senator-minor-mode "senator"
+  "Minor mode for the SEmantic NAvigaTOR." t)
 
 (provide 'semantic)
 
