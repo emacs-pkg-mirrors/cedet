@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.15 2003/03/14 01:53:54 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.16 2003/03/15 20:06:46 emacsman Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -39,25 +39,25 @@
 ;;
 (if (featurep 'xemacs)
     (progn
-      (defalias 'semantic-overlay-live-p 'extent-live-p)
-      (defalias 'semantic-make-overlay 'make-extent)
-      (defalias 'semantic-overlay-put 'set-extent-property)
-      (defalias 'semantic-overlay-get 'extent-property)
-      (defalias 'semantic-overlay-properties 'extent-properties)
-      (defalias 'semantic-overlay-move 'set-extent-endpoints)
-      (defalias 'semantic-overlay-delete 'delete-extent)
+      (defalias 'semantic-overlay-live-p          'extent-live-p)
+      (defalias 'semantic-make-overlay            'make-extent)
+      (defalias 'semantic-overlay-put             'set-extent-property)
+      (defalias 'semantic-overlay-get             'extent-property)
+      (defalias 'semantic-overlay-properties      'extent-properties)
+      (defalias 'semantic-overlay-move            'set-extent-endpoints)
+      (defalias 'semantic-overlay-delete          'delete-extent)
       (defalias 'semantic-overlays-at
         (lambda (pos) (extent-list nil pos pos)))
       (defalias 'semantic-overlays-in
-	(lambda (beg end) (extent-list nil beg end)))
-      (defalias 'semantic-overlay-buffer 'extent-buffer)
-      (defalias 'semantic-overlay-start 'extent-start-position)
-      (defalias 'semantic-overlay-end 'extent-end-position)
-      (defalias 'semantic-overlay-next-change 'next-extent-change)
+        (lambda (beg end) (extent-list nil beg end)))
+      (defalias 'semantic-overlay-buffer          'extent-buffer)
+      (defalias 'semantic-overlay-start           'extent-start-position)
+      (defalias 'semantic-overlay-end             'extent-end-position)
+      (defalias 'semantic-overlay-next-change     'next-extent-change)
       (defalias 'semantic-overlay-previous-change 'previous-extent-change)
       (defalias 'semantic-overlay-lists
-	(lambda () (list (extent-list))))
-      (defalias 'semantic-overlay-p 'extentp)
+        (lambda () (list (extent-list))))
+      (defalias 'semantic-overlay-p               'extentp)
       (defun semantic-read-event ()
         (let ((event (next-command-event)))
           (if (key-press-event-p event)
@@ -67,23 +67,23 @@
                   c)))
           event))
       )
-  (defalias 'semantic-overlay-live-p 'overlay-buffer)
-  (defalias 'semantic-make-overlay 'make-overlay)
-  (defalias 'semantic-overlay-put 'overlay-put)
-  (defalias 'semantic-overlay-get 'overlay-get)
-  (defalias 'semantic-overlay-properties 'overlay-properties)
-  (defalias 'semantic-overlay-move 'move-overlay)
-  (defalias 'semantic-overlay-delete 'delete-overlay)
-  (defalias 'semantic-overlays-at 'overlays-at)
-  (defalias 'semantic-overlays-in 'overlays-in)
-  (defalias 'semantic-overlay-buffer 'overlay-buffer)
-  (defalias 'semantic-overlay-start 'overlay-start)
-  (defalias 'semantic-overlay-end 'overlay-end)
-  (defalias 'semantic-overlay-next-change 'next-overlay-change)
+  (defalias 'semantic-overlay-live-p          'overlay-buffer)
+  (defalias 'semantic-make-overlay            'make-overlay)
+  (defalias 'semantic-overlay-put             'overlay-put)
+  (defalias 'semantic-overlay-get             'overlay-get)
+  (defalias 'semantic-overlay-properties      'overlay-properties)
+  (defalias 'semantic-overlay-move            'move-overlay)
+  (defalias 'semantic-overlay-delete          'delete-overlay)
+  (defalias 'semantic-overlays-at             'overlays-at)
+  (defalias 'semantic-overlays-in             'overlays-in)
+  (defalias 'semantic-overlay-buffer          'overlay-buffer)
+  (defalias 'semantic-overlay-start           'overlay-start)
+  (defalias 'semantic-overlay-end             'overlay-end)
+  (defalias 'semantic-overlay-next-change     'next-overlay-change)
   (defalias 'semantic-overlay-previous-change 'previous-overlay-change)
-  (defalias 'semantic-overlay-lists 'overlay-lists)
-  (defalias 'semantic-overlay-p 'overlayp)
-  (defalias 'semantic-read-event 'read-event)
+  (defalias 'semantic-overlay-lists           'overlay-lists)
+  (defalias 'semantic-overlay-p               'overlayp)
+  (defalias 'semantic-read-event              'read-event)
   )
 
 (if (and (not (featurep 'xemacs))
