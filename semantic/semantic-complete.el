@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.1 2003/04/26 02:30:07 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.2 2003/04/26 12:07:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -265,7 +265,7 @@ HISTORY is a symbol representing a variable to story the history in."
 
 (defvar semantic-collector-per-buffer-list nil
   "List of collectors active in this buffer.")
-(make-variable-buffer-local 'semantic-collector-list)
+(make-variable-buffer-local 'semantic-collector-per-buffer-list)
 
 (defvar semantic-collector-list nil
   "List of global collectors active this session.")
@@ -322,8 +322,9 @@ When tokens are matched, they are added to this list.")
 	 (completionlist
 	  (if (or same-prefix-p
 		  (and (slot-boundp obj 'last-prefix)
-		       (compare-strings (oref obj last-prefix) 0 nil
-					prefix 0 (length prefix))))
+		       (eq (compare-strings (oref obj last-prefix) 0 nil
+					    prefix 0 (length prefix))
+			   t)))
 	      ;; New prefix is subset of old prefix
 	      (oref obj last-all-completions)
 	    (or (oref obj cache)
@@ -335,11 +336,7 @@ When tokens are matched, they are added to this list.")
 						      completionlist))
 		 )
 	 (completion nil))
-    (when (and (not same-prefix-p)
-	       (or (> (length answer) 10)
-		   (and answer
-			(> (length answer) 1000)))
-	       )
+    (when (not same-prefix-p)
       ;; Save results if it is interesting and beneficial
       (oset obj last-prefix prefix)
       (oset obj last-all-completions answer))
@@ -355,8 +352,8 @@ When tokens are matched, they are added to this list.")
 	    prefix)
 	   ;; Non unique match, return the string that handles
 	   ;; completion
-	   (t completion))
-	  )
+	   (t (or completion prefix))
+	   ))
     ))
 
 (defmethod semantic-collector-all-completions
@@ -364,7 +361,8 @@ When tokens are matched, they are added to this list.")
   "For OBJ, retrieve all completions matching PREFIX.
 The returned list consists of all the tags currently
 matching PREFIX."
-  (oref obj last-all-completions))
+  (when (slot-boundp obj 'last-all-completions)
+    (oref obj last-all-completions)))
 
 (defmethod semantic-collector-try-completion
   ((obj semantic-collector-abstract))
