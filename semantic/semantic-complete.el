@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.20 2004/01/09 02:11:51 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.21 2004/01/15 02:46:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -861,6 +861,37 @@ At creation time, it can be anything accepted by
   "Calculate the completions for prefix from completionlist."
   (semanticdb-brute-deep-find-tags-for-completion prefix (oref obj path)))
 
+(defclass semantic-collector-analyze-completions (semantic-collector-abstract)
+  ((context :initarg :context
+	    :type semantic-analyze-context
+	    :documentation "An analysis context.
+Specifies some context location from whence completion lists will be drawn."
+	    )
+   (first-pass-completions :type list
+			   :documentation "List of valid completion tags.
+This list of tags is generated when completion starts.  All searches
+derive from this list.")
+   )
+  "Completion engine that uses the context analyzer to provide options.
+The only options available for completion are those which can be logically
+inserted into the current context.")
+
+(defmethod semantic-collector-calculate-completions-raw
+  ((obj semantic-collector-analyze-completions) prefix completionlist)
+  "calculate the completions for prefix from completionlist."
+  ;; if there are no completions yet, calculate them.
+  (if (not (slot-boundp obj 'first-pass-completions))
+      (oset obj first-pass-completions
+	    (semantic-analyze-possible-completions (oref obj context))))
+  ;; search our cached completion list.  make it look like a semanticdb
+  ;; results type.
+  (list (cons (save-excursion
+		(set-buffer (oref (oref obj context) buffer))
+		semanticdb-current-table)
+	      (semantic-find-tags-for-completion 
+	       prefix
+	       (oref obj first-pass-completions)))))
+
 
 ;;; ------------------------------------------------------------
 ;;; Tag List Display Engines
@@ -1167,7 +1198,7 @@ to resolve same-name collisions.
 PROMPT is a string to prompt with.
 DEFAULT-TAG is a semantic tag or string to use as the default value.
 If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
-HISTORY is a symbol representing a variable to story the history in."
+HISTORY is a symbol representing a variable to store the history in."
   (semantic-complete-read-tag-engine
    (semantic-collector-buffer-deep prompt :buffer (current-buffer))
    (semantic-displayor-traditional-with-focus-highlight "simple")
@@ -1189,7 +1220,7 @@ to resolve same-name collisions.
 PROMPT is a string to prompt with.
 DEFAULT-TAG is a semantic tag or string to use as the default value.
 If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
-HISTORY is a symbol representing a variable to story the history in."
+HISTORY is a symbol representing a variable to store the history in."
   (semantic-complete-read-tag-engine
    (semantic-collector-project-brutish prompt
 				       :buffer (current-buffer)
@@ -1201,6 +1232,36 @@ HISTORY is a symbol representing a variable to story the history in."
    initial-input
    history)
   )
+
+(defun semantic-complete-read-tag-analyzer (prompt &optional
+						   context
+						   history)
+  "Ask for a tag by name based on the current context.
+PROMPT is the first part of the prompt.  additional prompt
+is added based on the contexts full prefix.
+CONTEXT is the semantic analyzer context to start with.
+HISTORY is a symbol representing a variable to stor the history in.
+usually a default-tag and initial-input are available for completion
+prompts.  these are calculated from the CONTEXT variable passed in."
+  (if (not context) (setq context (semantic-analyze-current-context (point))))
+  (let* ((syms (semantic-ctxt-current-symbol (point)))
+	 (inp (car (reverse syms))))
+    (setq syms (nreverse (cdr (nreverse syms))))
+    (semantic-complete-read-tag-engine
+     (semantic-collector-analyze-completions
+      prompt
+      :buffer (oref context buffer)
+      :context context)
+     (semantic-displayor-traditional-with-focus-highlight "simple")
+     (save-excursion
+       (set-buffer (oref context buffer))
+       (goto-char (cdr (oref context bounds)))
+       (concat prompt (mapconcat 'identity syms ".")
+	       (if syms "." "")
+	       ))
+     nil
+     inp
+     history)))
 
 
 ;;; ------------------------------------------------------------
@@ -1242,6 +1303,18 @@ HISTORY is a symbol representing a variable to story the history in."
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)))))
 
+(defun semantic-complete-analyze-inline ()
+  "Perform prompt completion to do in buffer completion.
+`semantic-analyze-possible-completions' is used to determine the
+possible values."
+  (interactive)
+  (let* ((c (semantic-analyze-current-context (point)))
+	 (tag (save-excursion (semantic-complete-read-tag-analyzer "" c))))
+    ;; Take tag, and replace context bound with its name.
+    (goto-char (car (oref c bounds)))
+    (delete-region (point) (cdr (oref c bounds)))
+    (insert (semantic-tag-name tag))
+    (message "%S" (semantic-format-tag-summarize tag))))
 
 ;; End
 (provide 'semantic-complete)
