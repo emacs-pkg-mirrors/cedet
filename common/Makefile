@@ -16,8 +16,8 @@ LOADDIRS=.
 init_LISP=cedet-load.el
 EMACS=emacs
 setup_LISP=cedet.el
-common_LISP=cedet-autogen.el cedet-compat.el ezimage.el inversion.el pprint.el sformat.el working.el
-VERSION=1.0beta1
+common_LISP=cedet-autogen.el cedet-compat.el ezimage.el inversion.el pprint.el sformat.el working.el cedet-edebug.el
+VERSION=1.0beta2
 DISTDIR=$(top)common-$(VERSION)
 
 
@@ -31,7 +31,7 @@ autoloads:
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f cedet-batch-update-autoloads $(LOADDEFS) $(LOADDIRS)
 
 .PHONY: init
 init: $(init_LISP)
@@ -40,7 +40,7 @@ init: $(init_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: setup
 setup: $(setup_LISP)
@@ -49,7 +49,7 @@ setup: $(setup_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: common
 common: $(common_LISP)
@@ -58,7 +58,7 @@ common: $(common_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY:icons
 icons:
@@ -75,7 +75,7 @@ clean:
 
 dist:
 	mkdir $(DISTDIR)
-	cp $(LOADDEFS) $(init_LISP) $(setup_LISP) $(common_LISP) $(ede_FILES) $(DISTDIR)
+	cp $(init_LISP) $(setup_LISP) $(common_LISP) $(ede_FILES) $(DISTDIR)
 	cd icons; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/icons dist
 
 Makefile: Project.ede
