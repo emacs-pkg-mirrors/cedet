@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.44 2001/08/27 14:53:35 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.45 2001/09/03 13:44:52 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1606,9 +1606,8 @@ If `senator-isearch-semantic-mode' is non-nil append
          (> emacs-major-version 20)
          (setq senator-mode
                (propertize senator-mode
-                           'help-echo "mouse-2: turn off Senator mode"
-                           'local-map (make-mode-line-mouse2-map
-                                       #'senator-mode-line-toggle)))))
+                           'help-echo "mouse-3: minor mode menu"
+                           'local-map mode-line-minor-mode-keymap))))
   (force-mode-line-update))
 
 (defvar senator-minor-mode nil
@@ -1715,15 +1714,6 @@ minor mode is enabled.
                      :visible (and (featurep 'semantic)
                                    (semantic-active-p))))
      
-       (defun senator-mode-line-toggle (event)
-         "Turn off `senator-minor-mode' from the mode-line.
-EVENT is a mouse click event."
-         (interactive "e")
-         (save-selected-window
-           (select-window (posn-window (event-start event)))
-           (senator-minor-mode)
-           (force-mode-line-update)))
-       
        ))
 
 ;;;;
