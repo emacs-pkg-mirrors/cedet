@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.35 2001/11/12 19:50:35 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.36 2001/11/17 15:44:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -412,6 +412,7 @@ Save all the databases."
   (member (car (car semanticdb-hooks))
 	  (symbol-value (car (cdr (car semanticdb-hooks))))))
 
+;;;###autoload
 (defun global-semanticdb-minor-mode (&optional arg)
   "Toggle the use of `semanticdb-minor-mode'.
 If ARG is positive, enable, if it is negative, disable.
