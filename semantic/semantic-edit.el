@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.12 2002/08/09 23:24:28 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.13 2002/08/11 09:38:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -699,15 +699,15 @@ the semantic cache to see what needs to be changed."
             ;; Don't increment change here because an earlier loop
             ;; created change-groups.
             (setq parse-start nil)
-            ))
+            )
+          ;; Mark that we are done with this glop
+          (semantic-parse-tree-set-up-to-date))
       
       ;; Force a full reparse.
       (error
        (message (error-message-string errobj))
        (semantic-edits-incremental-fail)))
       
-    ;; Mark that we are done with this glop
-    (semantic-parse-tree-set-up-to-date)
     ;; Return the list of tokens that changed.  The caller will
     ;; use this information to call hooks which can fix themselves.
     changed-tokens))
