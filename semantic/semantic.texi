@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.18 2000/09/29 03:01:25 zappo Exp $
+@c $Id: semantic.texi,v 1.19 2000/09/29 03:08:36 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -314,15 +314,15 @@ override it with.
 
 Available override symbols:
 
-@multitable {@code{abbreviate-nonterminal}} {(buffer token & nosnarf)} {Find token in buffer}
-@item SYBMOL                 @tab PARAMETERS               @tab DESCRIPTION
-@item find-dependency        @tab (buffer token)           @tab Find the dependency file
-@item find-nonterminal       @tab (buffer token & parent)  @tab Find token in buffer.
-@item find-documentation     @tab (buffer token & nosnarf) @tab Find doc comments.
-@item abbreviate-nonterminal @tab (token & parent)         @tab Return summery string.
-@item summerize-nonterminal  @tab (token & parent)         @tab Return summery string.
-@item prototype-nonterminal  @tab (token)                  @tab Return a prototype string.
-@item prototype-file         @tab (buffer)                 @tab Return a file in which prototypes are placed
+@multitable {@code{abbreviate-nonterminal}} {(token & nosnarf)} {Find token in buffer}
+@item SYBMOL                 @tab PARAMETERS        @tab DESCRIPTION
+@item find-dependency        @tab (token)           @tab Find the dependency file
+@item find-nonterminal       @tab (token & parent)  @tab Find token in buffer.
+@item find-documentation     @tab (token & nosnarf) @tab Find doc comments.
+@item abbreviate-nonterminal @tab (token & parent)  @tab Return summery string.
+@item summerize-nonterminal  @tab (token & parent)  @tab Return summery string.
+@item prototype-nonterminal  @tab (token)           @tab Return a prototype string.
+@item prototype-file         @tab (buffer)          @tab Return a file in which prototypes are placed
 @end multitable
  	                                           
 Parameters mean:

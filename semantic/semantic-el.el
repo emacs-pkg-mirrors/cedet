@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.34 2000/09/28 03:20:36 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.35 2000/09/29 03:09:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -169,7 +169,7 @@
     )
   "Top level bovination table for elisp.")
 
-(defun semantic-elisp-find-dependency (buffer token)
+(defun semantic-elisp-find-dependency (token)
   "Find the file BUFFER depends on described by TOKEN."
   (let ((f (file-name-sans-extension
 	    (locate-library (semantic-token-name token)))))

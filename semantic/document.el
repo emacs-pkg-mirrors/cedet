@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.4 2000/09/28 01:20:11 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.5 2000/09/29 03:09:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -155,7 +155,7 @@ When non-nil, query for a new documentation file."
 	(tt (semantic-token-token nonterm)))
     (cond
      ((eq tt 'function)
-      (if (semantic-find-documentation buffer nonterm t)
+      (if (semantic-find-documentation nonterm t)
 	  (document-update-comment nonterm)
 	(document-insert-function-comment-new nonterm))
       (message "Done..."))
@@ -164,15 +164,13 @@ When non-nil, query for a new documentation file."
 
 (defun document-update-comment (nonterm)
   "Update an existing comment for NONTERM."
-  (let ((comment (semantic-find-documentation (current-buffer)
-					      nonterm 'flex)))
+  (let ((comment (semantic-find-documentation nonterm 'flex)))
     (save-excursion
       (document-update-paramlist nonterm comment))
     (semantic-bovinate-toplevel t)
     (let ((ct (semantic-find-nonterminal-by-position
 	       (point) (current-buffer))))
-      (setq comment (semantic-find-documentation (current-buffer)
-						 nonterm 'flex))
+      (setq comment (semantic-find-documentation nonterm 'flex))
       (document-update-history comment (document-get-history-elt "")))))
 
 (defun document-insert-new-file-header (header)
@@ -270,7 +268,7 @@ Adds the comment line PREFIX to each line."
   "Return a plain string documenting NONTERM from BUFFER."
   (let ((doc ;; Second, does this thing have docs in the source buffer which
 	 ;; an override method might be able to find?
-	 (semantic-find-documentation buffer nonterm)
+	 (semantic-find-documentation nonterm)
 	 ))
     (if (not doc)
 	(document-generate-new-documentation nonterm buffer)
