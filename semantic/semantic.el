@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.132 2001/12/04 01:26:13 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.133 2001/12/07 01:27:29 zappo Exp $
 
 (defvar semantic-version "1.4beta13"
   "Current version of Semantic.")
@@ -292,6 +292,13 @@ these tokens are derived from.")
   "Local variable set by major modes which provide their own bovination.
 This function should behave as the function `semantic-bovinate-toplevel'.")
 (make-variable-buffer-local 'semantic-bovinate-toplevel-override)
+
+(defvar semantic-before-toplevel-bovination-hook nil
+  "Hooks run before a toplevel token parse.
+It is called before any request for tokens is made via the function
+`semantic-bovinate-toplevel' by an application.
+If any hook returns a non-nil value, the cached value is returned
+immediatly, even if it is empty.")
 
 (defvar semantic-after-toplevel-bovinate-hook nil
   "Hooks run after a toplevel token parse.
@@ -664,6 +671,7 @@ stream is requested."
   (remove-hook 'after-change-functions 'semantic-change-function t)
   ;; Old model.  Delete someday.
   ;;(run-hooks 'semantic-after-toplevel-bovinate-hook)
+
   (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
 		      semantic-toplevel-bovine-cache)
   )
@@ -708,6 +716,12 @@ If the optional argument CHECKCACHE is non-nil, then make sure the
 cached token list is up to date.  If a partial reparse is possible, do
 that, otherwise, do a full reparse."
   (cond
+   ((not (run-hook-with-args-until-failure
+	  'semantic-before-toplevel-bovination-hook))
+    ;; If any hook returns nil, we must return the cache as the buffer
+    ;; is supposedly unsafe for parsing.
+    semantic-toplevel-bovine-cache
+    )
    ((and semantic-bovinate-toplevel-override
 	 ;; We cannot predict partial reparsing for these parsers.  Let them
 	 ;; fend for themselves.  We can, however, handle the main cache for them.
@@ -753,7 +767,6 @@ that, otherwise, do a full reparse."
     ;; Reparse the whole system
     (let ((gc-cons-threshold 10000000)
           res)
-      (semantic-clear-toplevel-cache)
       ;; Init a dump
       (if semantic-dump-parse
           (semantic-dump-buffer-init))
@@ -764,6 +777,11 @@ that, otherwise, do a full reparse."
                    'bovine-toplevel semantic-flex-depth))
 	(working-status t))
       (setq res (nreverse res))
+      ;; Clear the cache just before setting the cache.  This way,
+      ;; if an error occurs, we can capture it, and leave the old state
+      ;; behind.
+      (semantic-clear-toplevel-cache)
+      ;; Set up the new overlays, and then reset the cache.
       (semantic-overlay-list res)
       (semantic-set-toplevel-bovine-cache res)
       semantic-toplevel-bovine-cache)
