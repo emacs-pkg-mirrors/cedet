@@ -490,8 +490,14 @@ to .by format.
 The regexp based parser was copied from the texinfo example
 and modified for semantic 2.0.
 
-** Makefile parser
+** Makefile parser improved.
 There is now excellent smart completion support.
+
+** Emacs lisp parser improved.
+The Emacs Lisp parser is now more flexible.  Using the new macros
+`semantic-elisp-setup-form-parser' and
+`semantic-elisp-reuse-form-parser', it is easy to parse all kind of
+Lisp forms to produce semantic tags.
 
 
 Local variables:
