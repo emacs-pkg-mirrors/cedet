@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.48 1999/09/08 00:19:48 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.49 1999/09/08 01:14:57 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -40,58 +40,7 @@
 ;; features which help it integrate more strongly with the Emacs
 ;; running environment.
 ;;
-;; Classes can inherit (singly) from other classes, and attributes
-;; can be multiply defined (but only one actual storage spot will be
-;; allocated.) Attributes may be given initial values in the class
-;; definition.  A method can be defined in CLOS style where the
-;; parameters determine which implementation to use.
-;;
-;; Documentation for a class is generated from the class' doc string,
-;; and also the doc strings of all its slots.  Documentation for a
-;; method uses a default generic doc string, and the collection of
-;; all specific method class strings.
-;;
-
-;;; Structural description of object vectors
-;;
-;; Class definitions shall be a stored vector.  Please see the constants
-;; class-* for the vector index and documentation about that slot.
-;;
-;; The vector can be accessed by referencing the named property list
-;; `eieio-class-definition', or by using the function `class-v' on the
-;; class's symbol.  The symbol will reference itself for simplicity,
-;; thus a class will always evaluate to itself.
-
-;;; Upon defining a class, the following functions are created (Assume
-;; 'moose is the class being created):
-;; moose     - Create an object of type moose
-;; moose-p   - t if object is type moose
-;;
-;; The instantiated object will have the following form:
-;; [ 'object class-type name field1 field2 ... fieldn ]
-;; Where 'object marks it as an eieio object.
-;; Where class-type is the class definition vector
-;; Where name is some string or symbol assigned to said object to uniquely
-;;            identify it.
-;; Where the field# are the public then private attributes.
-;;
-;; An object slot can be dereferenced with `oref' and set with
-;; `oset'.  The CLOS function `slot-value' will also work, but since
-;; `cl' may not always be defined, `setf' is only conditionally set
-;; to work with `slot-value'
-;;
-;; Fields in a slot will default to values specified in a class.  Use
-;; `oref-default' and `oset-default' to access these values.
-
-;;; Generic functions and methods get a single defined symbol
-;; representing the name of the method.  This method always calls the
-;; same thing: eieio-generic-call  In order to fathom which method to
-;; call, properties are attached to the method name of the form:
-;; :KEY-classname where :KEY is :BEFORE :PRIMARY or :AFTER.
-;; (:PRIMARY represents the middle, but is not needed when declaring
-;; you method) `classname' represents the name of the class for which
-;; this method is defined, or `generic' if it isn't defined.  In this
-;; way, all implementations can be quickly found and run.
+;; See eieio.texi for complete documentation on using this package.
 
 
 ;;;
@@ -114,6 +63,10 @@ still set for CLOS methods for the sake of routines like
   "This is set to a class when a method is running.
 This is so we know we are allowed to check private parts or how to
 execute a `call-next-method'.  DO NOT SET THIS YOURSELF!")
+
+(defvar eieio-unbound (make-symbol "unbound")
+  "Never EVER change this.
+Uninterned symbol to represent an unbound slot in an object.")
 
 (defvar eieio-hook nil
   "*This hook is executed, then cleared each time `defclass' is called.
@@ -351,7 +304,9 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	     (field (cdr field1))
 	     (acces (car (cdr (member ':accessor field))))
 	     (init-l (member ':initform field))
-	     (init (car (cdr init-l)))
+	     ;; If there is no initform, then the slot is marked
+	     ;; unbound with the special unique symbol eieio-unbound.
+	     (init (if init-l (car (cdr init-l)) eieio-unbound))
 	     (initarg (car (cdr (member ':initarg field))))
 	     (docstr (car (cdr (member ':documentation field))))
 	     (prot (car (cdr (member ':protection field))))
@@ -782,6 +737,56 @@ doc string, and eventually the body, such as:
     )
   method)
 
+;;; Slot type validation
+;;
+(defun eieio-perform-slot-validation (spec value)
+  "Signal if SPEC does not match VALUE."
+  ;; typep is in cl-macs
+  (or (eq spec t)			; t always passes
+      (eq value eieio-unbound)		; unbound always passes
+      (if (class-p spec)
+	  (or (and (class-p value) (child-of-class-p value spec))
+	      (and (object-p value) (obj-of-class-p value spec)))
+	(typep value spec))))
+
+(defun eieio-validate-slot-value (class field-idx value)
+  "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
+Checks the :type specifier."
+  (if eieio-skip-typecheck
+      nil
+    ;; Trim off object IDX junk added in for the object index.
+    (setq field-idx (- field-idx 3))
+    (let ((st (aref (aref (class-v class) class-public-type) field-idx)))
+      (if (not (eieio-perform-slot-validation st value))
+	  (signal 'invalid-slot-type (list st value))))))
+
+(defun eieio-validate-class-slot-value (class field-idx value)
+  "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
+Checks the :type specifier."
+  (if eieio-skip-typecheck
+      nil
+    ;; Trim off object IDX junk added in for the object index.
+    (setq field-idx (- field-idx 3))
+    (let ((st (aref (aref (class-v class) class-class-allocation-type)
+		    field-idx)))
+      (if (not (eieio-perform-slot-validation st value))
+	  (signal 'invalid-slot-type (list st value))))))
+
+(defun eieio-barf-if-slot-unbound (value instance slotname fn)
+  "Throw a signal if VALUE is a representation of an UNBOUND slot.
+INSTANCE is the object being referenced.  SLOTNAME is the offending
+slot.  If the slot is ok, return VALUE.
+Argument FN is the function calling this verifier."
+  (if (and (eq value eieio-unbound) (not eieio-skip-typecheck))
+      (slot-unbound instance (object-class instance) slotname fn)
+    value))
+
+;;; Missing types that are useful to me.
+;;
+(defun boolean-p (bool)
+  "Return non-nil if BOOL is nil or t."
+  (or (null bool) (eq bool t)))
+
 ;;; Get/Set slots in an object.
 ;;
 (defmacro oref (obj field)
@@ -809,7 +814,7 @@ created by the :initarg tag."
 	  (slot-missing obj field 'oref)
 	  ;;(signal 'invalid-slot-name (list (object-name obj) field))
 	  )
-      (aref obj c))))
+      (eieio-barf-if-slot-unbound (aref obj c) obj field 'oref))))
 
 (defalias 'slot-value 'oref-engine)
 
@@ -855,57 +860,19 @@ Fills in OBJ's FIELD with it's default value."
 	  (slot-missing obj field 'oref-default)
 	  ;;(signal 'invalid-slot-name (list (class-name cl) field))
 	  )
-      (let ((val (nth (- c 3) (aref (class-v cl) class-public-d))))
-	;; check for functions to evaluate
-	(if (or (and (listp val) (equal (car val) 'lambda))
-		(and (symbolp val) (fboundp val)))
-	    (let ((this obj))
-	      (funcall val))
-	  ;; check for quoted things
-	  (if (and (listp val) (equal (car val) 'quote))
-	      (car (cdr val))
-	    ;; return it verbatim
-	    val))))))
-
-;;; Slot type validation
-;;
-(defun eieio-perform-slot-validation (spec value)
-  "Signal if SPEC does not match VALUE."
-  ;; typep is in cl-macs
-  (or (eq spec t)
-      (if (class-p spec)
-	  (or (and (class-p value) (child-of-class-p value spec))
-	      (and (object-p value) (obj-of-class-p value spec)))
-	(typep value spec))))
-
-(defun eieio-validate-slot-value (class field-idx value)
-  "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
-Checks the :type specifier."
-  (if eieio-skip-typecheck
-      nil
-    ;; Trim off object IDX junk added in for the object index.
-    (setq field-idx (- field-idx 3))
-    (let ((st (aref (aref (class-v class) class-public-type) field-idx)))
-      (if (not (eieio-perform-slot-validation st value))
-	  (signal 'invalid-slot-type (list st value))))))
-
-(defun eieio-validate-class-slot-value (class field-idx value)
-  "Make sure that for CLASS referencing FIELD-IDX, that VALUE is valid.
-Checks the :type specifier."
-  (if eieio-skip-typecheck
-      nil
-    ;; Trim off object IDX junk added in for the object index.
-    (setq field-idx (- field-idx 3))
-    (let ((st (aref (aref (class-v class) class-class-allocation-type)
-		    field-idx)))
-      (if (not (eieio-perform-slot-validation st value))
-	  (signal 'invalid-slot-type (list st value))))))
-
-;;; Missing types that are useful to me.
-;;
-(defun boolean-p (bool)
-  "Return non-nil if BOOL is nil or t."
-  (or (null bool) (eq bool t)))
+      (eieio-barf-if-slot-unbound
+       (let ((val (nth (- c 3) (aref (class-v cl) class-public-d))))
+	 ;; check for functions to evaluate
+	 (if (or (and (listp val) (equal (car val) 'lambda))
+		 (and (symbolp val) (fboundp val)))
+	     (let ((this obj))
+	       (funcall val))
+	   ;; check for quoted things
+	   (if (and (listp val) (equal (car val) 'quote))
+	       (car (cdr val))
+	     ;; return it verbatim
+	     val)))
+       obj (aref obj object-class) 'oref-default))))
 
 ;;; Object Set macros
 ;;
@@ -1050,7 +1017,7 @@ If EXTRA, include that in the string returned to represent the symbol."
   (while (and child (not (eq child class)))
     ;; The car below is because parents is a list.  Fix for multi-inherit
     (setq child (car (aref (class-v child) class-parent))))
-  (if child nil))
+  (if child t))
 
 (defun obj-fields (obj) "List of fields available in OBJ."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
@@ -1550,6 +1517,10 @@ associated with this symbol.  Current method specific code is:")
 (put 'invalid-slot-type 'error-conditions '(invalid-slot-type nil))
 (put 'invalid-slot-type 'error-message "Invalid slot type")
 
+(intern "unbound-slot")
+(put 'unbound-slot 'error-condition '(unbound-slot nil))
+(put 'unbound-slot 'error-message "Unbound slot")
+
 ;;; Here are some CLOS items that need the CL package
 ;;
 (defun eieio-cl-run-defsetf ()
@@ -1616,6 +1587,17 @@ that was requested, and optional NEW-VALUE is the value that was desired
 to be set."
   (signal 'invalid-slot-name (list (class-name (object-class object))
 				   slot-name)))
+
+(defmethod slot-unbound ((object eieio-default-superclass)
+			 class slot-name fn)
+  "Slot unbound is invoked during an attempt to reference an unbound slot.
+OBJECT is the instance of the object being reference.  CLASS is the
+class of OBJECT, and SLOT-NAME is the offending slot.  This function
+throws the signal 'unbound-slot.  You can overload this function and
+return the value to use in place of the unbound value.
+Argument FN is the function signaling this error."
+  (signal 'unbound-slot (list (class-name class) (object-name object)
+			      slot-name fn)))
 
 (defmethod clone ((obj eieio-default-superclass) &rest params)
   "Make a deep copy of OBJ, and then apply PARAMS.
