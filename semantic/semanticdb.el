@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.3 2000/12/09 23:29:27 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.4 2000/12/10 05:06:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -145,8 +145,8 @@ Restore the overlays after writting.
 Argument OBJ is the object to write."
   (let ((b (get-file-buffer (oref obj file))))
     (save-excursion
-      (if b (progn (set-buffer b) (semantic-deoverlay-cache))))
-    (oset obj pointmax (point-max))
+      (if b (progn (set-buffer b) (semantic-deoverlay-cache)
+		   (oset obj pointmax (point-max)))))
     (call-next-method)
     (save-excursion
       (if b (progn (set-buffer b) (semantic-overlay-cache))))
