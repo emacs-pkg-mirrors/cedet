@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.6 2000/04/16 22:34:38 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.7 2000/04/20 23:48:48 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -257,7 +257,7 @@ VALS are the matches in the BNF notation file."
     ))
 
 (defun semantic-bnf-find-destination ()
-  "Find the destination for this BNF file."
+  "Find the destination file for this BNF file."
   (save-excursion
     (goto-char (point-min))
     (if (re-search-forward
@@ -275,13 +275,24 @@ VALS are the matches in the BNF notation file."
 		  (point-marker)))))
       nil)))
 
+(defun semantic-bnf-find-mode ()
+  "Find the mode this BNF is used in."
+  (save-excursion
+    (goto-char (point-min))
+    (if (re-search-forward "^# MODE: \\([-a-z]+\\)$" nil t)
+	(save-excursion
+	  (let ((m (match-string 1)))
+	    (read m)))
+      nil)))
+
 (defun semantic-bnf-generate-and-load ()
   "Take the current BNF, auto-generate it into a table, and load it."
   (interactive)
   (if (not (eq major-mode 'semantic-bnf-mode))
       (error "Not valid outside the scope of a BNF file"))
   (let ((bb (current-buffer))
-	(dest (semantic-bnf-find-destination)))
+	(dest (semantic-bnf-find-destination))
+	(mode (semantic-bnf-find-mode)))
     (if (not dest)
 	(error "You must specify a destination table in your BNF file"))
     (save-excursion
@@ -291,7 +302,15 @@ VALS are the matches in the BNF notation file."
       (if (looking-at "\\s-*`(") (kill-sexp 1))
       (delete-blank-lines)
       (semantic-bnf-to-bovine (buffer-file-name bb))
-      (eval-defun nil))))
+      (eval-defun nil))
+    (if mode
+	(save-excursion
+	  (let ((bufs (buffer-list)))
+	    (while bufs
+	      (set-buffer (car bufs))
+	      (if (eq major-mode mode)
+		  (funcall mode))
+	      (setq bufs (cdr bufs))))))))
 
 (defun semantic-test-bnf ()
   "Convert the current buffer (in BNF mode) into a list bovine table."
