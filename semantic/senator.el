@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.1
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.22 2001/02/09 11:55:01 ponced Exp $
+;; VC: $Id: senator.el,v 1.23 2001/02/21 11:27:59 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -98,6 +98,24 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.23  2001/02/21 11:27:59  ponced
+;; `senator-minor-mode-setup' now uses the `semantic-active-p' function
+;; to check if the current buffer is set up for parsing.
+;;
+;; `senator-full-token-name' now append the parent names in reverse order
+;; to the token name.  Thus the `senator-jump' completion list is now
+;; easy to use.  You can just type a partial token name and press ENTER
+;; to jump to it.  If the name is not unique a completion buffer is
+;; displayed allowing to choose the right one.
+;;
+;; `senator-beginning-of-defun' and `senator-end-of-defun' now
+;; respectively step at start or end of tokens with identifier specified
+;; in `senator-step-at-token-ids'.  Thus, adviced `beginning-of-defun'
+;; and `end-of-defun' now work with any tokens where you can step at.
+;;
+;; `senator-step-at-start-end-token-ids' can be set to `t' to step at
+;; start and end of any token where it is allowed to step.
+;;
 ;; Revision 1.22  2001/02/09 11:55:01  ponced
 ;; New implementation of completion menu to allow customization of menu
 ;; item text and insert function.
@@ -286,12 +304,15 @@ navigation."
 (defcustom senator-step-at-start-end-token-ids '(function)
   "*List of token identifiers where to step at start and end.
 Token identifier is symbol 'variable, 'function, 'type, or other.  If
-nil navigation only step at beginning of tokens.  Also, stepping at
+nil navigation only step at beginning of tokens.  If `t' step at start
+and end of any token where it is allowed to step.  Also, stepping at
 start and end of a token prevent stepping inside its children.  This
 is a buffer local variable.  It can be set in a mode hook to get a
 specific langage navigation."
   :group 'senator
-  :type '(repeat (symbol)))
+  :type '(choice :tag "Identifiers"
+                 (repeat :menu-tag "Symbols" (symbol))
+                 (const  :tag "All" t)))
 (make-variable-buffer-local 'senator-step-at-start-end-token-ids)
 
 (defcustom senator-highlight-found t
@@ -359,8 +380,9 @@ is bellow 1.3."
 (defun senator-step-at-start-end-p (token)
   "Return non-nil if must step at start and end of TOKEN."
   (and token
-       (memq (semantic-token-token token)
-             senator-step-at-start-end-token-ids)))
+       (or (eq senator-step-at-start-end-token-ids t)
+           (memq (semantic-token-token token)
+                 senator-step-at-start-end-token-ids))))
 
 (defun senator-skip-p (token)
   "Return non-nil if must skip TOKEN."
@@ -416,28 +438,28 @@ nil."
        (< pos (semantic-token-end   token))))
 
 (defun senator-full-token-name (token parent)
-  "Compose a full name from TOKEN name and names in its PARENT list.
-A `semantic-type-relation-separator-character' separates each token
-name.  The parent list is in reverse order."
+  "Compose a full name from TOKEN name and PARENT names.
+That is append to TOKEN name PARENT names each one separated by
+`semantic-type-relation-separator-character'.  The PARENT list is in
+reverse order."
   (let ((sep  (car semantic-type-relation-separator-character))
         (name ""))
     (while parent
-      (setq name (concat (semantic-token-name (car parent))
-                         sep
-                         name)
+      (setq name (concat name sep
+                         (semantic-token-name (car parent)))
             parent (cdr parent)))
-    (concat name (semantic-token-name token))))
+    (concat (semantic-token-name token) name)))
 
 (defun senator-completion-stream (stream parent full-name-p &optional top-level)
   "Return a useful completion list from STREAM.
 That is a flat alist of all tokens available.  The key part of each
-association is the token name. It is prepended by the name of tokens
-in its PARENT list if FULL-NAME-P is non-nil.  This helps to
-distinguish between tokens in multiple top level type declarations or
-in sub type declarations.  The value part of each association is the
-full token itself.  If TOP-LEVEL is non-nil the completion list will
-contain only tokens at top level.  Otherwise all sub tokens are
-included too."
+association is the token name.  If FULL-NAME-P is non nil PARENT token
+names, separated by `semantic-type-relation-separator-character', are
+appended to the token name in reverse order.  This helps to
+distinguish between token children with the same name.  The value part
+of each association is the full token itself.  If TOP-LEVEL is non-nil
+the completion list will contain only tokens at top level.  Otherwise
+all sub tokens are included too."
   (let (cs token children)
     (while stream
       (setq token  (car stream))
@@ -1100,7 +1122,7 @@ Turn off the minor mode if semantic feature is not available or
 If minor mode is enabled parse the current buffer if needed.  Return
 non-nil if the minor mode is enabled."
   (if senator-minor-mode
-      (if (not (and (featurep 'semantic) semantic-toplevel-bovine-table))
+      (if (not (and (featurep 'semantic) (semantic-active-p)))
           ;; Disable minor mode if semantic stuff not available
           (senator-minor-mode nil)
         ;; XEmacs needs this
@@ -1210,8 +1232,9 @@ Return non-nil if the minor mode is enabled.
   "Move backward to the beginning of a defun.
 Use semantic tokens to navigate."
   (let ((senator-highlight-found nil)
-        (senator-step-at-start-end-token-ids nil)
-        (senator-step-at-token-ids '(function)))
+        ;; Step at beginning of next token with id specified in
+        ;; `senator-step-at-token-ids'.
+        (senator-step-at-start-end-token-ids nil))
     (if (senator-previous-token)
         (beginning-of-line))
     (senator-message nil)))
@@ -1220,8 +1243,9 @@ Use semantic tokens to navigate."
   "Move forward to next end of defun.
 Use semantic tokens to navigate."
   (let* ((senator-highlight-found nil)
-         (senator-step-at-start-end-token-ids '(function))
-         (senator-step-at-token-ids '(function))
+         ;; Step at end of next token with id specified in
+         ;; `senator-step-at-token-ids'.
+         (senator-step-at-start-end-token-ids t)
          (token (senator-next-token)))
     (when token
       (if (= (point) (semantic-token-start token))
