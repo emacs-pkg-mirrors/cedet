@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.105 2001/06/03 21:38:50 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.106 2001/06/11 18:08:15 zappo Exp $
 
 (defvar semantic-version "1.4beta7"
   "Current version of Semantic.")
@@ -212,7 +212,7 @@ TOP-LEVEL ENTRIES:
    PART-LIST is only useful for structs that have multiple individual parts.
             (It is recommended that these be variables, functions or types).
    PARENTS is strictly for classes where there is inheritance.
-   
+           See `semantic-token-parent' for a description of this value.   
 
  (\"FILE\" include SYSTEM \"DOCSTRING\" PROPERTIES OVERLAY)
    In C, an #include statement.  In elisp, a require statement.
