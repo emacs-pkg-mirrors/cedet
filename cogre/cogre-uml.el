@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: oop, uml
-;; X-RCS: $Id: cogre-uml.el,v 1.6 2001/05/18 03:02:10 zappo Exp $
+;; X-RCS: $Id: cogre-uml.el,v 1.7 2001/07/20 21:33:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -26,6 +26,9 @@
 ;;; Commentary:
 ;;
 ;; Provides UML support for COGRE.
+;;
+;; See http://c2.com/cgi/wiki?UmlAsciiArt for more examples of using
+;; ASCII to draw UML diagrams.
 
 (require 'cogre)
 
