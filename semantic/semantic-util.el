@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.70 2001/07/19 13:19:35 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.71 2001/07/19 19:43:59 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -661,10 +661,10 @@ searched for matches."
 	(setq stream (cdr stream)))
       (setq streamlist (cdr streamlist)))
     (setq nl (nreverse nl))
-;    (while includes
-;      (setq nl (append nl (semantic-find-nonterminal-by-function
-;			   
-;			   ))))
+;;;    (while includes
+;;;      (setq nl (append nl (semantic-find-nonterminal-by-function
+;;;			   
+;;;			   ))))
     nl))
 
 (defun semantic-find-nonterminal-by-function-first-match
@@ -1271,7 +1271,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
      ((eq tok 'function)
       (let ((args (semantic-token-function-args token)))
         (concat (semantic-name-nonterminal token parent color)
-                "("
+                " ("
                 (if args
                     (cond ((stringp (car args))
 			   (mapconcat
@@ -1279,7 +1279,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 				(lambda (a) (semantic-colorize-text
 					     a 'variable))
 			      'identity)
-			    args ","))
+			    args ", "))
 			  ((semantic-token-p (car args))
 			   (mapconcat
 			    (lambda (a)
@@ -1303,7 +1303,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 				(lambda (a)
 				  (semantic-colorize-text (car a) 'type))
 			      'car)
-			    args ","))
+			    args ", "))
 			  (t (error "Concice-prototype")))
                   "")
                 ")")))
@@ -1321,15 +1321,34 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
      (t
       (semantic-abbreviate-nonterminal token parent nil)))))
 
+(defcustom semantic-uml-colon-string " : "
+  "*String used as a color separator between parts of a UML string.
+In UML, a variable may appear as `varname : type'.
+Change this variable to change the output separator."
+  :group 'semantic
+  :type 'string)
+
+(defcustom semantic-uml-no-protection-string ""
+  "*String used to describe when no protection is specified.
+Used by `semantic-uml-protection-to-string'."
+  :group 'semantic
+  :type 'string)
+
 (defun semantic-uml-protection-to-string (protection-symbol)
-  "Convert PROTECTION-SYMBOL to a string for UML."
+  "Convert PROTECTION-SYMBOL to a string for UML.
+Default character returns are:
+  public    -- +
+  private   -- -
+  protected -- #.
+If PROTECTION-SYMBOL is unknown, then the return value is
+`semantic-uml-no-protection-string'."
   (cond ((eq protection-symbol 'public)
 	 "+")
 	((eq protection-symbol 'private)
 	 "-")
 	((eq protection-symbol 'protected)
 	 "#")
-	(t nil)))
+	(t semantic-uml-no-protection-string)))
 
 (defun semantic-uml-token-or-string-to-string (token-or-string parent &optional args color)
   "Return a string representing the TOKEN-OR-STRING.
@@ -1358,7 +1377,9 @@ Colorize the new text based on COLOR."
 		       (t nil)))
 	   (if (and type color)
 	       (setq type (semantic-colorize-text type 'type)))
-	   (if type (concat name (or args "")  ":" type)
+	   (if type (concat name (or args "")
+			    semantic-uml-colon-string
+			    type)
 	     name)))
 	(t "")))
 
@@ -1381,7 +1402,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	 (prot (semantic-nonterminal-protection token parent))
 	 )
     (setq prot (semantic-uml-protection-to-string prot))
-    (concat (or prot "") text)
+    (concat prot text)
     ))
 
 (defun semantic-uml-arguments-to-string (arguments color)
@@ -1390,12 +1411,12 @@ ARGUMENTS is a list as returned by semantic for an argument list.
 Each element can be a s tring, or a psuedotoken (a token without
 positional elements.
 COLOR indicates if the string should be colorized."
-  (concat "("
+  (concat " ("
 	  (mapconcat (lambda (a)
 		       (semantic-uml-token-or-string-to-string
 			a nil nil color))
 		     arguments
-		     " ")
+		     ", ")
 	  ")"))
 
 (defun semantic-uml-prototype-nonterminal (token &optional parent color)
@@ -1422,7 +1443,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	  ((eq tok 'type)
 	   (setq argtext "{}")))
     (setq prot (semantic-uml-protection-to-string prot))
-    (concat (or prot "")
+    (concat prot
 	    (semantic-uml-token-or-string-to-string
 	      token parent argtext color))
     ))
@@ -1442,7 +1463,7 @@ Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((tok (semantic-token-token token))
 	 (cp (semantic-concise-prototype-nonterminal token parent color))
-	 (type (or (semantic-token-type token) ""))
+	 (type (semantic-token-type token))
 	 (prot (semantic-nonterminal-protection token parent))
 	 )
     (setq type
@@ -1454,11 +1475,12 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 		 type)
 		(t nil)))
     (setq prot (semantic-uml-protection-to-string prot))
-    (concat (or prot "") cp (if type (concat ":" type)))
+    (concat prot cp
+	    (if type (concat semantic-uml-colon-string type)))
     ))
 
 
-
+
 ;;; Multi-file Token information
 ;;
 (defvar semantic-dependency-include-path nil
@@ -1697,15 +1719,16 @@ See `semantic-nonterminal-protection'."
     (while (and (not prot) mods)
       (if (stringp (car mods))
 	  (let ((s (car mods)))
-	    ;; A few silly defaults to get things started.
-	    (cond ((or (string= s "public")
-		       (string= s "extern")
-		       (string= s "export"))
-		   'public)
-		  ((string= s "private")
-		   'private)
-		  ((string= s "protected")
-		   'protected))))
+	    (setq prot
+		  ;; A few silly defaults to get things started.
+		  (cond ((or (string= s "public")
+			     (string= s "extern")
+			     (string= s "export"))
+			 'public)
+			((string= s "private")
+			 'private)
+			((string= s "protected")
+			 'protected)))))
       (setq mods (cdr mods)))
     prot))
 
