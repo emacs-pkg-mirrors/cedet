@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.6 2000/04/30 22:45:52 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.7 2000/05/04 02:45:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -328,7 +328,7 @@ Available override symbols:
   SYBMOL                 PARAMETERS              DESCRIPTION
  `find-dependency'       (buffer token)           Find the dependency file
  `find-nonterminal'      (buffer token & parent)  Find token in buffer.
- `find-documentation'    (buffer token)           Find doc comments.
+ `find-documentation'    (buffer token & nosnarf) Find doc comments.
  `summerize-nonterminal' (token & parent)         Return summery string.
  `prototype-nonterminal' (token)                  Return a prototype string.
  `prototype-file'        (buffer)                 Return a file in which
@@ -423,12 +423,13 @@ depended on, and functions will move to the specified definition."
 	      ;; in the buffer.
 	      (re-search-forward (semantic-token-name token) nil t))))))))
 
-(defun semantic-find-documentation (buffer token)
+(defun semantic-find-documentation (buffer token &optional nosnarf)
   "Find documentation from BUFFER/TOKEN and return it as a clean string.
 TOKEN might have DOCUMENTATION set in it already.  If not, there may be
 some documentation in a comment preceeding TOKEN's definition which we
 cal look for.  When appropriate, this can be overridden by a language specific
-enhancement."
+enhancement.
+Optional argument NOSNARF means to only return the flex token for it."
   (if (or (not (bufferp buffer)) (not token))
       (error "Semantic-find-documentation: specify BUFFER and TOKEN"))
   (let ((s (semantic-fetch-overload 'find-documentation)))
@@ -441,7 +442,7 @@ enhancement."
 	 ;; Is there doc in the token???
 	 (if (semantic-token-docstring token)
 	     (progn (goto-char (semantic-token-docstring token))
-		    (semantic-find-doc-snarf-comment)))
+		    (semantic-find-doc-snarf-comment nosnarf)))
 	 ;; Check just before the definition.
 	 (save-excursion
 	   (re-search-backward comment-start-skip nil t)
@@ -449,33 +450,36 @@ enhancement."
 		     (point) (current-buffer) t))
 	       ;; We found a comment that doesn't belong to the body
 	       ;; of a function.
-	       (semantic-find-doc-snarf-comment)))
+	       (semantic-find-doc-snarf-comment nosnarf)))
 	 ;;  Lets look for comments either after the definition, but before code:
 	 ;; Not sure yet.  Fill in something clever later....
 	 nil
 	 )))))
 
-(defun semantic-find-doc-snarf-comment nil
+(defun semantic-find-doc-snarf-comment (nosnarf)
   "Snarf up the comment at POINT for `semantic-find-documentation'.
-Attempt to strip out comment syntactic sugar."
+Attempt to strip out comment syntactic sugar.
+Argument NOSNARF means don't modify the found text."
   (let ((ct (semantic-flex-text (car (semantic-flex (point) (1+ (point)))))))
-    ;; ok, try to clean the text up.
-    ;; Comment start thingy
-    (while (string-match (concat "^\\s-*" comment-start-skip) ct)
-      (setq ct (concat (substring ct 0 (match-beginning 0))
-		       (substring ct (match-end 0)))))
-    ;; Arbitrary punctuation at the beginning of each line.
-    (while (string-match "^\\s-*\\s.+\\s-*" ct)
-      (setq ct (concat (substring ct 0 (match-beginning 0))
-		       (substring ct (match-end 0)))))
-    ;; End of a block comment.
-    (if (and block-comment-end (string-match block-comment-end ct))
-      (setq ct (concat (substring ct 0 (match-beginning 0))
-		       (substring ct (match-end 0)))))
-    ;; In case it's a real string, STRIPIT.
-    (while (string-match "\\s-*\\s\"+\\s-*" ct)
-      (setq ct (concat (substring ct 0 (match-beginning 0))
-		       (substring ct (match-end 0)))))
+    (if nosnarf
+	nil
+      ;; ok, try to clean the text up.
+      ;; Comment start thingy
+      (while (string-match (concat "^\\s-*" comment-start-skip) ct)
+	(setq ct (concat (substring ct 0 (match-beginning 0))
+			 (substring ct (match-end 0)))))
+      ;; Arbitrary punctuation at the beginning of each line.
+      (while (string-match "^\\s-*\\s.+\\s-*" ct)
+	(setq ct (concat (substring ct 0 (match-beginning 0))
+			 (substring ct (match-end 0)))))
+      ;; End of a block comment.
+      (if (and block-comment-end (string-match block-comment-end ct))
+	  (setq ct (concat (substring ct 0 (match-beginning 0))
+			   (substring ct (match-end 0)))))
+      ;; In case it's a real string, STRIPIT.
+      (while (string-match "\\s-*\\s\"+\\s-*" ct)
+	(setq ct (concat (substring ct 0 (match-beginning 0))
+			 (substring ct (match-end 0))))))
     ;; Now return the text.
     ct))
 
