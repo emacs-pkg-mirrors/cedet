@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "common"
   :name "common"
-  :version "1.0beta1"
+  :version "1.0beta2"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-elisp-autoloads "autoloads"
