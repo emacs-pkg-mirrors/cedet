@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.21 2001/04/07 02:44:56 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.22 2001/04/07 14:28:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -434,7 +434,7 @@
  ))
  ) ; end expression
  )
- "C language specification.")
+   "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -617,6 +617,7 @@ machine."
   (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
 	semantic-toplevel-bovine-table-source "c.bnf")
   (setq semantic-flex-keywords-obarray semantic-c-keyword-table)
+  (setq semantic-equivalent-major-modes '(c-mode c++-mode))
   (setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
 	semantic-flex-extensions semantic-flex-c-extensions
 	semantic-dependency-include-path semantic-default-c-path
