@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.5 2002/07/16 21:16:24 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.6 2002/07/20 08:07:38 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1172,9 +1172,11 @@ argument_list
   ;
 
 array_creation_expression
-  : NEW class_or_interface_type dim_exprs
+  : NEW class_or_interface_type dim_exprs array_initializer
+  | NEW class_or_interface_type dim_exprs
+  | NEW primitive_type dim_exprs array_initializer
  ;; To avoid reduce conflicts between dims and dim_exprs use the above
- ;; rule in place of:
+ ;; rules in place of:
  ;; : NEW class_or_interface_type dims array_initializer
  ;; | NEW primitive_type dims array_initializer
  ;; | NEW class_or_interface_type dim_exprs dims_opt
