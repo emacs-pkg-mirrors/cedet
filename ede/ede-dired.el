@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede-dired.el,v 1.7 2000/10/14 02:48:41 zappo Exp $
+;; RCS: $Id: ede-dired.el,v 1.8 2001/01/10 06:54:04 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -68,7 +68,9 @@
 If ARG is nil, toggle, if it is a positive number, force on, if
 negative, force off."
   (interactive "P")
-  (if (not (eq major-mode 'dired-mode)) (error "Not in DIRED mode"))
+  (if (not (or (eq major-mode 'dired-mode)
+	       (eq major-mode 'vc-dired-mode)))
+      (error "Not in DIRED mode"))
   (setq ede-dired-minor-mode
 	(not (or (and (null arg) ede-dired-minor-mode)
 		 (<= (prefix-numeric-value arg) 0)))))
