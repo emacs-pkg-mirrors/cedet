@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.73 2003/07/04 21:00:36 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.74 2003/07/18 05:25:12 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1468,6 +1468,39 @@ minor mode entry."
    )
  )
 
+(senator-register-mode-menu-entry
+ "Sticky Func"
+ '(semantic-stickyfunc-mode
+   :help "Cause function declaration to become stuck to the header line."
+   )
+ '(global-semantic-stickyfunc-mode
+   :help "Automatically enable sticky function mode in all Semantic buffers."
+   :save global-semantic-stickyfunc-mode
+   )
+ )
+
+(senator-register-mode-menu-entry
+ "Show Tag Boundaries"
+ '(semantic-show-tag-boundaries-mode
+   :help "Display lines at tag boundaries."
+   )
+ '(global-semantic-show-tag-boundaries-mode
+   :help "Automatically enable tag boundary mode in all Semantic buffers."
+   :save global-semantic-show-tag-boundaries-mode
+   )
+ )
+
+(senator-register-mode-menu-entry
+ "Highlight tags by attribute."
+ '(semantic-highlight-by-attribute-mode
+   :help "Set tag highlighting based on configurable attributes."
+   )
+ '(global-semantic-highlight-by-attribute-mode
+   :help "Automatically enable highlight by attribute mode in all Semantic buffers."
+   :save global-semantic-highlight-by-attribute-mode
+   )
+ )
+
 
 ;;;;
 ;;;; Global minor mode to show tag names in the mode line
@@ -2327,7 +2360,7 @@ You can override the info collecting part with `eldoc-current-symbol-info'."
 (eval-when-compile (require 'hippie-exp))
 
 (defvar senator-try-function-already-enabled nil
-  "non-nil if `hippie-expand' semantic completion was already enabled.
+  "Non-nil if `hippie-expand' semantic completion was already enabled.
 This flag remember `senator-hippie-expand-hook' to not remove
 `senator-try-expand-semantic' from `hippie-expand-try-functions-list'
 if it was previously put here by any sort of user's customization.")
