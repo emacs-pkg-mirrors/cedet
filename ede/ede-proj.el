@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.13 1999/03/20 17:46:32 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.14 1999/04/21 22:21:58 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -94,13 +94,35 @@ file.")
 	   "Libraries, such as \"m\" or \"Xt\" which this program dependso on.
 The linker flag \"-l\" is automatically prepended.  Do not include a \"lib\"
 prefix, or a \".so\" suffix."
-	   ))
+	   )
+   (ldflags :initarg :ldflags
+	    :initform nil
+	    :custom (repeat (string :tag "Link Flag"))
+	    :documentation
+	    "Additional flags to add when linking this target.
+Use ldlibs to add addition libraries.  Use this to specify specific
+options to the linker.")
+   )
    "This target is an executable program.")
 
 (defclass ede-proj-target-makefile-archive
   (ede-proj-target-makefile-objectcode)
   ()
   "This target generates an object code archive.")
+
+(defclass ede-proj-target-makefile-shared-object
+  (ede-proj-target-makefile-program)
+  ((ldflags :custom (repeat (string :tag "Libtool flag"))
+	    :documentation
+	    "Additional flags to add when linking this target with libtool.
+Use ldlibs to add addition libraries.")
+   (libtool :initarg :libtool
+	    :initform nil
+	    :custom boolean
+	    :documentation
+	    "Non-nil if libtool should be used to generate the library.")
+   )
+  "This target generates a shared library using libtool.")
 
 (defclass ede-proj-target-makefile-info (ede-proj-target-makefile)
   ((mainmenu :initarg :mainmenu
@@ -143,6 +165,7 @@ A lisp target may be one general program with many separate lisp files in it.")
 (defvar ede-proj-target-alist
   '(("program" . ede-proj-target-makefile-program)
     ("archive" . ede-proj-target-makefile-archive)
+    ("sharedobject" . ede-proj-target-makefile-shared-object)
     ("emacs lisp" . ede-proj-target-lisp)
     ("info" . ede-proj-target-makefile-info)
     ("auxiliary" . ede-proj-target-aux)
