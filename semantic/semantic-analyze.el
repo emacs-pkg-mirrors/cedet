@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.37 2004/03/10 19:27:19 ponced Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.38 2004/03/11 02:30:18 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -594,8 +594,8 @@ Return data methods identify the requred type by the return value
 of the parent function.") 
 
 ;;;###autoload
-(defun semantic-analyze-current-context (position)
-  "Analyze the current context at POSITION.
+(defun semantic-analyze-current-context (&optional position)
+  "Analyze the current context at optional POSITION.
 If called interactively, display interesting information about POSITION
 in a separate buffer.
 Returns an object based on symbol `semantic-analyze-context'.
@@ -605,6 +605,7 @@ When overriding this function, your override will be called while
 cursor is at POSITION.  In addition, your function will not be called
 if a cached copy of the return object is found."
   (interactive "d")
+  (if (not position) (setq position (point)))
   (save-excursion
     (goto-char position)
     (let* ((s (semantic-fetch-overload 'analyze-current-context))
@@ -698,8 +699,11 @@ Returns an object based on symbol `semantic-analyze-context'."
 	    (asstag nil))
 	(if assign
 	    ;; We have an assignment
-	    (setq asstag (semantic-analyze-find-tag-sequence
-			  assign localvar scope)))
+	    (condition-case nil
+		(setq asstag (semantic-analyze-find-tag-sequence
+			      assign localvar scope))
+	      (error nil)))
+	  
 	(if asstag
 	    (setq context-return
 		  (semantic-analyze-context-assignment
@@ -942,7 +946,10 @@ Argument CONTEXT is an object specifying the locally derived context."
 
     ;; Pull out trash.
     ;; NOTE TO SELF: Is this too slow?
-    (setq c (semantic-unique-tag-table c))
+    ;; OTHER NOTE: Do we not want to strip duplicates by name and
+    ;; only by position?  When are duplicate by name but not by tag
+    ;; useful?
+    (setq c (semantic-unique-tag-table-by-name c))
 
     ;; All done!
 
