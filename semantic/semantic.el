@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.169 2003/03/08 16:36:37 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.170 2003/03/27 07:45:02 ponced Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -42,7 +42,7 @@
 
 (require 'working)
 (require 'assoc)
-(require 'semantic-token)
+(require 'semantic-tag)
 (require 'semantic-lex)
 (require 'inversion)
 
@@ -621,122 +621,6 @@ compatibility with previous versions of Semantic."
   ;; Always return the current parse tree.
   semantic-toplevel-bovine-cache)
 
-;;; Tokens and Overlays
-;;
-;; Overlays are used so that we can quickly identify tokens from
-;; buffer positions and regions using built in Emacs commands.
-;;
-(defun semantic-deoverlay-token (token)
-  "Convert TOKEN from using an overlay to using an overlay proxy."
-  (when (semantic-token-p token)
-    (let ((c (semantic-token-overlay-cdr token))
-	  a)
-      (when (and c (semantic-overlay-p (car c)))
-	(setq a (vector (semantic-overlay-start (car c))
-			(semantic-overlay-end (car c))))
-	(semantic-overlay-delete (car c))
-	(setcar c a)
-	;; Fix the children of this token.
-	;; Semantic-util is required and the end of semantic, so this will
-	;; throw a warning
-	(semantic-deoverlay-list (semantic-nonterminal-children token)))
-      )))
-
-(defun semantic-overlay-token (token)
-  "Convert TOKEN from using an overlay proxy to using an overlay."
-  (when (semantic-token-p token)
-    (let ((c (semantic-token-overlay-cdr token))
-	  o)
-      (when (and c (vectorp (car c)) (= (length (car c)) 2))
-	(setq o (semantic-make-overlay (aref (car c) 0)
-				       (aref (car c) 1)
-				       (current-buffer)))
-	(setcar c o)
-	(semantic-overlay-put o 'semantic token)
-	;; Fix overlays in children of this token
-	;; Semantic-util is required and the end of semantic, so this will
-	;; throw a warning
-	(semantic-overlay-list (semantic-nonterminal-children token))
-	))))
-
-(defun semantic-deoverlay-list (l)
-  "Remove overlays from the list L."
-  (mapcar 'semantic-deoverlay-token l))
-
-(defun semantic-overlay-list (l)
-  "Convert numbers to  overlays from the list L."
-  (mapcar 'semantic-overlay-token l))
-
-(defun semantic-deoverlay-cache ()
-  "Convert all tokens in the current cache to use overlay proxies."
-  (semantic-deoverlay-list (semantic-bovinate-toplevel)))
-
-(defun semantic-overlay-cache ()
-  "Convert all tokens in the current cache to use overlays."
-  (condition-case nil
-      ;; In this unique case, we cannot call the usual toplevel fn.
-      ;; because we don't want a reparse, we want the old overlays.
-      (semantic-overlay-list semantic-toplevel-bovine-cache)
-    ;; Recover when there is an error restoring the cache.
-    (error (message "Error recovering token list.")
-	   (semantic-clear-toplevel-cache)
-	   nil)))
-
-;;; Token Cooking
-;;
-;; Raw tokens from a parser follow a different positional format than
-;; those used in the bovine cache.  Raw tokens need to be cooked into
-;; semantic cache friendly tokens for use by the masses.
-;;
-(defsubst semantic-cooked-token-p (token)
-  "Return non-nil if TOKEN is a cooked one.
-See also the function `semantic-raw-to-cooked-token'."
-  ;; In fact a cooked token is actually a list of cooked tokens
-  ;; because a raw token can be expanded in several cooked ones!
-  (when (consp token)
-    (while (and (semantic-token-p (car token))
-                (vectorp (semantic-token-overlay (car token))))
-      (setq token (cdr token)))
-    (null token)))
-
-(defun semantic-raw-to-cooked-token (token)
-  "Convert TOKEN from a raw state to a cooked state.
-The parser returns raw tokens with positional data START/END.  We
-convert it from that to a cooked state with a property list and a
-vector [START END].  The raw token is changed with side effects and
-maybe expanded in several cooked tokens when the variable
-`semantic-expand-nonterminal' is set.  So this function always returns
-a list of cooked tokens."
-  ;; Because some parsers can return tokens already cooked (wisent is
-  ;; an example), check if TOKEN was already cooked to just return it.
-  (if (semantic-cooked-token-p token)
-      token
-    (let* ((ncdr    (- (length token) 2))
-           (propcdr (if (natnump ncdr) (nthcdr ncdr token)))
-           (rngecdr (cdr propcdr))
-           ;; propcdr is the CDR containing the START from the token.
-           ;; rngecdr is the CDR containing the END from the token.
-           ;; PROPCDR will contain the property list after cooking.
-           ;; RNGECDR will contain the [START END] vector after cooking.
-           (range   (condition-case nil
-                        (vector (car propcdr) (car rngecdr))
-                      (error (debug token)
-                             nil)))
-           result expandedtokens)
-      ;; Convert START/END into PROPERTIES/[START END].
-      (setcar rngecdr range)
-      (setcar propcdr nil)
-      ;; Expand based on local configuration
-      (if (not semantic-expand-nonterminal)
-          ;; No expanders
-          (setq result (cons token result))
-        ;; Glom generated tokens.  THESE TOKENS MUST BE VALID ONES!
-        (setq expandedtokens (funcall semantic-expand-nonterminal token)
-              result (if expandedtokens
-                         (append expandedtokens result)
-                       (cons token result))))
-      result)))
-
 ;;; Iterative parser helper function
 ;;
 ;; Iterative parsers are better than rule-based iterative functions
@@ -798,24 +682,6 @@ This function returns tokens without overlays."
 ;; These are functions that can be called from within a bovine table.
 ;; Most of these have code auto-generated from other construct in the
 ;; BNF.
-(defun semantic-bovinate-make-assoc-list (&rest args)
-  "Create an association list with ARGS.
-Args are of the form (KEY1 VALUE1 ... KEYN VALUEN).
-The return value will be of the form: ((KEY1 .  VALUE1) ... (KEYN . VALUEN))
-Where KEY is a symbol, and VALUE is the value for that symbol.
-If VALUE is nil, then KEY is excluded from the return association list."
-  (let ((ret nil))
-    (while args
-      (let ((value (car-safe (cdr args))))
-	(if (and value
-		 (or (not (stringp value))
-		     (not (string= value "")))
-		 (or (not (numberp value))
-		     (not (= value 0))))
-	    (setq ret (cons (cons (car args) (car (cdr args))) ret)))
-	(setq args (cdr (cdr args)))))
-    (nreverse ret)))
-
 (defmacro semantic-lambda (&rest return-val)
   "Create a lambda expression to return a list including RETURN-VAL.
 The return list is a lambda expression to be used in a bovine table."
