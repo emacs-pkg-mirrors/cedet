@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7g
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.109 1998/06/11 22:03:30 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.110 1998/06/12 11:34:12 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -434,6 +434,7 @@
 ;;       Enabled mouse-tracking in the speedbar frame.  Display's information
 ;;         about the line the mouse is on in the attached frame's minibuffer.
 ;;       Added big commentary section on developing speedbar modes.
+;;       Added `speedbar-item-object-delete' to delete object files.
 
 ;;; TODO:
 ;; - More functions to create buttons and options
@@ -1091,6 +1092,7 @@ This basically creates a sparse keymap, and makes it's parent be
   (define-key speedbar-file-key-map "L" 'speedbar-item-load)
   (define-key speedbar-file-key-map "C" 'speedbar-item-copy)
   (define-key speedbar-file-key-map "D" 'speedbar-item-delete)
+  (define-key speedbar-file-key-map "O" 'speedbar-item-object-delete)
   (define-key speedbar-file-key-map "R" 'speedbar-item-rename)
   )
 
@@ -1119,17 +1121,21 @@ This basically creates a sparse keymap, and makes it's parent be
     ["Load Lisp File" speedbar-item-load
      (save-excursion
        (beginning-of-line)
-       (looking-at "[0-9]+: *\\[[+-]\\] .+\\(\\.el\\)\\( \\*\\)?$"))]
+       (looking-at "[0-9]+: *\\[[+-]\\] .+\\(\\.el\\)\\( \\|$\\)"))]
     ["Byte Compile File" speedbar-item-byte-compile
      (save-excursion
        (beginning-of-line)
-       (looking-at "[0-9]+: *\\[[+-]\\] .+\\(\\.el\\)\\( \\*\\)?$"))]
+       (looking-at "[0-9]+: *\\[[+-]\\] .+\\(\\.el\\)\\( \\|$\\)"))]
     ["Copy File" speedbar-item-copy
      (save-excursion (beginning-of-line) (looking-at "[0-9]+: *\\["))]
     ["Rename File" speedbar-item-rename
      (save-excursion (beginning-of-line) (looking-at "[0-9]+: *[[<]"))]
     ["Delete File" speedbar-item-delete
-     (save-excursion (beginning-of-line) (looking-at "[0-9]+: *[[<]"))])
+     (save-excursion (beginning-of-line) (looking-at "[0-9]+: *[[<]"))]
+    ["Delete Object" speedbar-item-object-delete
+     (save-excursion (beginning-of-line)
+		     (looking-at "[0-9]+: *\\[[+-]\\] [^ \n]+ \\*?[!#]$"))]
+    )
   "Additional menu items while in file-mode.")
  
 (defvar speedbar-easymenu-definition-trailer
@@ -1770,7 +1776,8 @@ Assumes that the current buffer is the speedbar buffer"
 	(progn
 	  (select-frame speedbar-attached-frame)
 	  (byte-compile-file f nil)
-	  (select-frame sf)))
+	  (select-frame sf)
+	  (speedbar-reset-scanners)))
     ))
 
 (defun speedbar-mouse-item-info (event)
@@ -1897,6 +1904,24 @@ Files can be renamed to new names or moved to new directories."
 	    (goto-char p))
 	  ))
     ))
+
+(defun speedbar-item-object-delete ()
+  "Delete the object associated from the item under the cursor.
+The file is removed from disk.  The object is determined from the
+variable `speedbar-obj-alist'."
+  (interactive)
+  (let* ((f (speedbar-line-file))
+	 (obj nil)
+	 (oa speedbar-obj-alist))
+    (if (not f) (error "Not a file"))
+    (while (and oa (not (string-match (car (car oa)) f)))
+      (setq oa (cdr oa)))
+    (setq obj (concat (file-name-sans-extension f) (cdr (car oa))))
+    (if (and oa (file-exists-p obj)
+	     (y-or-n-p (format "Delete %s? " obj)))
+	(progn
+	  (delete-file obj)
+	  (speedbar-reset-scanners)))))
 
 (defun speedbar-enable-update ()
   "Enable automatic updating in speedbar via timers."
@@ -3013,7 +3038,7 @@ that will occur on your system."
 ;; Objet File scanning
 (defun speedbar-check-objects ()
   "Scan all files in a directory, and for each see if there is an object.
-See `speedbar-this-file-in-obj' and `speedbar-obj-alist' for how
+See `speedbar-check-obj-this-line' and `speedbar-obj-alist' for how
 to add more object types."
   ;; Check for to-do to be reset.  If reset but no RCS is available
   ;; then set to nil (do nothing) otherwise, start at the beginning
