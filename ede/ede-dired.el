@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede-dired.el,v 1.1 1999/05/22 14:28:39 zappo Exp $
+;; RCS: $Id: ede-dired.el,v 1.2 1999/12/04 17:28:49 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -32,6 +32,7 @@
 
 (require 'ede)
 (require 'easymenu)
+(require 'dired)
 
 ;;; Code:
 (defvar ede-dired-minor-mode nil
