@@ -306,7 +306,7 @@ For instance, the default library name for the grammar in the
 @node languagemode Decl
 @subsection languagemode Decl
 
-@deffn %-Decl %languagemode @var{mode}...
+@deffn %-Decl %languagemode @var{mode1}...
 Declare in which major modes Emacs edits the sources that @semantic{}
 parses using this grammar.
 
@@ -1200,16 +1200,225 @@ List of associations (@var{MACRO-NAME} . @var{EXPANDER}).
 @node Querying grammars
 @section Querying grammars
 
-Grammar files are parsed by the @semantic{} @acronym{LALR} parser,
-which means that you can use the powerful @acronym{API} provided by
-@semantic{} to query grammar tags.
+In order to generate the intermediate Emacs Lisp code needed by your
+parser, you have to query the grammar for the code, declarations, and
+rules it contains.
 
-@inforef{top, Application Development Manual, semantic-appdev}.
+To obtain those information in a @dfn{context free} manner, grammar
+files are parsed by the @semantic{} @acronym{LALR} parser to produce
+tags.
 
-@c document here the grammar tags
+To query a grammar you can use the powerful @acronym{API} provided by
+@semantic{}.  @inforef{top, Application Development Manual,
+semantic-appdev}.
 
-Moreover, the common grammar framework provides the following high
-level @acronym{API} to query grammar declarations.
+For declarations, the grammar framework provides a specialized high
+level @acronym{API}.
+
+@menu
+* Grammar Tags::                
+* Querying Declarations::       
+@end menu
+
+@node Grammar Tags
+@subsection Grammar Tags
+
+This section describes the available grammar tags.
+@inforef{Semantic Tags, , semantic-appdev}.
+
+Each tag description has the form
+@w{@var{class name optional-attributes}}.
+
+@deffn tag code "prologue"
+Tag produced from a @var{prologue} section (@pxref{Prologue}).
+The prologue code is the text in between tag's bounds.
+@end deffn
+
+@deffn tag code "epilogue"
+Tag produced from the @var{epilogue} section (@pxref{Epilogue}).
+The epilogue code is the text in between tag's bounds.
+@end deffn
+
+@deffn tag start @var{nonterminal1} @var{rest-nonterminals}
+Tag produced from a @code{%start} declaration (@pxref{start Decl}).
+
+@table @var
+@item nonterminal1
+First nonterminal symbol name.
+@item rest-nonterminals
+List of nonterminal symbol names which follow the first one.
+Associated to the attribute @code{:rest}.
+@end table
+@end deffn
+
+@deffn tag languagemode @var{mode1} @var{rest-modes}
+Tag produced from a @code{%languagemode} declaration (@pxref{languagemode Decl}).
+
+@table @var
+@item mode1
+First mode symbol name.
+@item rest-modes
+List of mode symbol names which follow the first one.  Associated to
+the attribute @code{:rest}.
+@end table
+@end deffn
+
+@deffn tag scopestart @var{nonterminal}
+Tag produced from a @code{%scopestart} declaration (@pxref{scopestart Decl}).
+
+@table @var
+@item nonterminal
+Nonterminal symbol name.
+@end table
+@end deffn
+
+@deffn tag quotemode @var{symbol}
+Tag produced from a @code{%quotemode} declaration (@pxref{quotemode Decl}).
+
+@table @var
+@item symbol
+Symbol name, value of quote mode.
+@end table
+@end deffn
+
+@deffn  tag assoc @var{associativity} @var{type-name} @var{tokens}
+Tag produced from a @code{%left}, @code{%right}, or @code{%nonassoc}
+declaration (@pxref{precedence Decl}).
+
+@table @var
+@item associativity
+"left", "right", or "nonassoc".
+@item type-name
+Symbol name of the token type.
+Associated to the attribute @code{:type}.
+@item tokens
+List of terminal symbol names.
+Associated to the attribute @code{:value}.
+@end table
+@end deffn
+
+@deffn tag assoc "default-prec" @var{FLAG}
+Tag produced from a @code{%default-prec}, or @code{%no-default-prec}
+declaration (@pxref{default-prec Decl}).
+
+@table @var
+@item flag
+@code{(list "t")} or @code{(list "nil")} for respectively
+@code{%default-prec} and @code{%no-default-prec}.
+Associated to the attribute @code{:value}.
+@end table
+@end deffn
+
+@deffn tag keyword @var{keyword-name} @var{keyword-value}
+Tag produced from a @code{%keyword} declaration (@pxref{keyword Decl}).
+
+@table @var
+@item keyword-value
+Name of the keyword symbol.
+@item keyword-value
+Value of the keyword as a string.
+Associated to the attribute @code{:value}.
+@end table
+@end deffn
+
+@deffn  tag token @var{token-name1} @var{type-name} @var{match-value}
+@deffnx tag token @var{token-name1} @var{type-name} @var{rest-tokens}
+Tag produced from a @code{%token} declaration (@pxref{token Decl}).
+
+@table @var
+@item token-name1
+First or unique token symbol name.
+@item type-name
+Symbol name of the token type.
+Associated to the attribute @code{:type}.
+@item match-value
+Value of the token as a string.
+Associated to the attribute @code{:value}.
+@item rest-tokens
+List of token symbol names which follow the first one in the
+declaration.  Associated to the attribute @code{:rest}.
+@end table
+@end deffn
+
+@deffn tag type @var{type-name} @var{properties}
+Tag produced from a @code{%type} declaration (@pxref{type Decl}).
+
+@table @var
+@item type-name
+Symbol name of the type.
+@item properties
+List of properties.  Each property is a pair @w{@code{(@var{symbol} . @var{value})}}
+where @var{symbol} is the property symbol name, and @var{value} the
+property value as string which contains a readable Lisp expression.
+Associated to the attribute @code{:value}.
+@end table
+@end deffn
+
+@deffn tag put @var{keyword-name1} @var{rest-keywords} @var{properties}
+Tag produced from a @code{%put} declaration (@pxref{put Decl}).
+
+@table @var
+@item keyword-name1
+First or unique keyword [or type] symbol name.
+@item rest-keywords
+List of keyword [or type] symbol names which follow the first one in
+the declaration.  Associated to the attribute @code{:rest}.
+@item properties
+List of properties.  Each property is a pair @w{@code{(@var{symbol} . @var{value})}}
+where @var{symbol} is the property symbol name, and @var{value} the
+property value as string which contains a readable Lisp expression.
+Associated to the attribute @code{:value}.
+@end table
+@end deffn
+
+@deffn tag macro "macro" @var{library} @var{macro-names}
+Tag produced from a @code{%use-macros} declaration (@pxref{use-macros
+Decl}).
+
+@table @var
+@item library
+Library name.  Associated to the attribute @code{:type}.
+@item macro-names
+List of macro names.  Associated to the attribute @code{:value}.
+@end table
+@end deffn
+
+@deffn tag nonterminal @var{nonterminal} @var{rule-tags}
+Tag produced from a nonterminal description (@pxref{Grammar Rules}).
+
+@table @var
+@item nonterminal
+Nonterminal symbol name.
+@item rule-tags
+List rule tags.  Associated to the attribute @code{:children}.
+@end table
+@end deffn
+
+@deffn tag rule @var{rule-name} :value @var{components} :prec @var{terminal} :expr @var{action}
+Tag produced from an individual grammar rule (@pxref{Grammar Rules}).
+
+@table @var
+@item rule-name
+Generated rule name.
+@item components
+List of rule's components.  A component is a nonterminal/terminal
+symbol name, a string that represent a C-like character, or a list of
+one string element which contains the readable Lisp form of a mid-rule
+semantic action.  Associated to the attribute @code{:value}.
+@item prec
+Terminal symbol name or a string that represent a C-like character.
+Associated to the attribute @code{:prec}.
+@item action
+String which contains the readable Lisp form of the main
+semantic action.  Associated to the attribute @code{:expr}.
+@end table
+@end deffn
+
+@node Querying Declarations
+@subsection Querying Declarations
+
+This section describes the high level @acronym{API} to query grammar
+declarations.
 
 @defun semantic-grammar-prologue
 @anchor{semantic-grammar-prologue}
@@ -1233,25 +1442,25 @@ package name derived from the grammar file name.
 
 @defun semantic-grammar-languagemode
 @anchor{semantic-grammar-languagemode}
-Return the @code{%languagemode} value as a list of symbols or nil.
+Return the @code{%languagemode} value as a list of symbols or @code{nil}.
 @*@xref{languagemode Decl}.
 @end defun
 
 @defun semantic-grammar-start
 @anchor{semantic-grammar-start}
-Return the @code{%start} value as a list of symbols or nil.
+Return the @code{%start} value as a list of symbols or @code{nil}.
 @*@xref{start Decl}.
 @end defun
 
 @defun semantic-grammar-scopestart
 @anchor{semantic-grammar-scopestart}
-Return the @code{%scopestart} value as a symbol or nil.
+Return the @code{%scopestart} value as a symbol or @code{nil}.
 @*@xref{scopestart Decl}.
 @end defun
 
 @defun semantic-grammar-quotemode
 @anchor{semantic-grammar-quotemode}
-Return the @code{%quotemode} value as a symbol or nil.
+Return the @code{%quotemode} value as a symbol or @code{nil}.
 @*@xref{quotemode Decl}.
 @end defun
 
