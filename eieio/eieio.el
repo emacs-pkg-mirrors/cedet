@@ -5,9 +5,9 @@
 ;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio.el,v 1.122 2002/06/27 16:52:48 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.123 2002/09/04 01:57:00 zappo Exp $
 ;; Keywords: OO, lisp
-(defvar eieio-version "0.17"
+(defvar eieio-version "0.17.1"
   "Current version of EIEIO.")
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -878,10 +878,14 @@ DOC-STRING is the documentation attached to METHOD."
 
 (defun eieio-defgeneric (method doc-string)
   "Engine part to `defgeneric' macro defining METHOD with DOC-STRING."
-  (let ((lambda-form (eieio-defgeneric-form method doc-string)))
-    (if (and (fboundp method) (not (generic-p method)))
-	(error "You cannot create a generic/method over an existing symbol"))
-    (fset method lambda-form)
+  (if (and (fboundp method) (not (generic-p method))
+	   (or (byte-code-function-p (symbol-function method))
+	       (not (eq 'autoload (car (symbol-function method)))))
+	   )
+      (error "You cannot create a generic/method over an existing symbol"))
+  (unless (fboundp 'method)
+    ;; Don't do this over and over.
+    (fset method (eieio-defgeneric-form method doc-string))
     'method))
 
 (defmacro defmethod (method &rest args)
@@ -922,10 +926,10 @@ the arglst, and doc string, and eventually the body, such as:
 			 argfix))
       (setq loopa (cdr loopa)))
     ;; make sure there is a generic
-    (if (not (fboundp method))
-	(eieio-defgeneric method
-	  (if (stringp (car body))
-	      (car body) (format "Generically created method `%s'" method))))
+    (eieio-defgeneric
+     method
+     (if (stringp (car body))
+	 (car body) (format "Generically created method `%s'" method)))
     ;; create symbol for property to bind to.  If the first arg is of
     ;; the form (varname vartype) and `vartype' is a class, then
     ;; that class will be the type symbol.  If not, then it will fall
@@ -1469,14 +1473,26 @@ This should only be called from a generic function."
   (let ((newargs nil) (mclass nil)  (lambdas nil) (tlambdas nil) (keys nil)
 	(static nil)
 	(eieio-generic-call-methodname method)
-	(eieio-generic-call-arglst args))
+	(eieio-generic-call-arglst args)
+	(firstarg nil))
     ;; get a copy
-    (setq newargs args)
+    (setq newargs args
+	  firstarg (car newargs))
+    ;; Is the class passed in autoloaded?
+    ;; Since class names are also constructors, they can be autoloaded
+    ;; via the autoload command.  Check for this, and load them in.
+    ;; It's ok if it doesn't turn out to be a class.  Probably want that
+    ;; function loaded anyway.
+    (if (and (symbolp firstarg)
+	     (fboundp firstarg)
+	     (listp (symbol-function firstarg))
+	     (eq 'autoload (car (symbol-function firstarg))))
+	(load (nth 1 (symbol-function firstarg))))
     ;; lookup the forms to use
-    (cond ((object-p (car newargs))
-	   (setq mclass (object-class-fast (car newargs))))
-	  ((class-p (car newargs))
-	   (setq mclass (car newargs)
+    (cond ((object-p firstarg)
+	   (setq mclass (object-class-fast firstarg)))
+	  ((class-p firstarg)
+	   (setq mclass firstarg
 		 static t)))
     ;; Now create a list in reverse order of all the calls we have
     ;; make in order to successfully do this right.  Rules:
