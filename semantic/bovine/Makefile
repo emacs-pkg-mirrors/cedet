@@ -9,11 +9,11 @@
 top=../
 ede_FILES=Project.ede Makefile
 
-by_SEMANTIC_GRAMMAR=c.by make.by scheme.by
+by_SEMANTIC_GRAMMAR=c.by make.by scheme.by erlang.by
 EMACS=emacs
 LOADPATH=../../common/ ../ ../../eieio/ ../../common/ ../wisent/ ../../eieio/ ../../speedbar/ ../\
    
-by_SAMENATIC_GRAMMAR_EL=semantic-c-by.el semantic-make-by.el semantic-scm-by.el
+by_SAMENATIC_GRAMMAR_EL=semantic-c-by.el semantic-make-by.el semantic-scm-by.el semantic-erlang-by.el
 bovinator_LISP=semantic-bovine.el bovine-grammar.el semantic-bnf.el bovine-debug.el
 EMACS=emacs
 examples_MISC=semantic-skel.el skeleton.by
