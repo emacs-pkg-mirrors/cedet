@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: bovine-grammar.el,v 1.11 2003/03/30 01:53:49 zappo Exp $
+;; X-RCS: $Id: bovine-grammar.el,v 1.12 2003/04/01 03:50:30 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -292,9 +292,9 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
   (let* ((start      (semantic-grammar-start))
          (scopestart (semantic-grammar-scopestart))
          (quotemode  (semantic-grammar-quotemode))
-         (tags       (semantic-find-nonterminal-by-token
+         (tags       (semantic-find-tags-by-class
                       'token (current-buffer)))
-         (nterms     (semantic-find-nonterminal-by-token
+         (nterms     (semantic-find-tags-by-class
                       'nonterminal (current-buffer)))
          nterm rules items item actn prec tag type regex)
     (when start
@@ -352,7 +352,7 @@ QUOTEMODE is the mode in which quoted symbols are slurred."
                  ;; Replace ITEM by its %token definition.
                  ;; If a '%token TYPE ITEM [REGEX]' definition exists
                  ;; in the grammar, ITEM is replaced by TYPE [REGEX].
-                 ((setq tag (semantic-find-nonterminal-by-name
+                 ((setq tag (semantic-find-first-tag-by-name
                                item tags)
                         type  (semantic-tag-get-attribute tag :type))
                   (insert type)
