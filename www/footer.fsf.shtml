@@ -7,10 +7,16 @@
 &nbsp
 </td></tr></table>
 
-
+<table align=right><tr><td>
+<a href="http://www.sourceforge.net">
 <IMG src="http://sourceforge.net/sflogo.php?group_id=14932&type=1"
-     width="88" height="31" border="0" alt="SourceForge Logo" align=right>
-</A>
+     width="88" height="31" border="0" alt="SourceForge Logo">
+</a><br>
+<a href="http://sourceforge.net/donate/index.php?group_id=17886">
+<IMG src="http://sourceforge.net/images/x-click-but7.gif"
+     width=72 height=29 alt="Donate With Paypal">
+</a>
+</td></tr></table>
 <A HREF="index.shtml"><IMG SRC="minitreb.jpg" ALT="gnu" ALIGN=LEFT></A>
 <A HREF="eric.shtml">Eric's homepage</A><BR>
 <A HREF="index.php">Return to CEDET.</A><BR>
