@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.5 2000/09/05 01:02:47 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.6 2000/09/08 13:47:02 zappo Exp $
 
 (defvar dframe-version "1.0beta"
   "The current version of the dedicated frame library.")
@@ -186,7 +186,7 @@ relevant to the buffer you are currently editing."
   :group 'dframe
   :type 'integer)
 
-(defcustom frame-activity-change-focus-flag nil
+(defcustom dframe-activity-change-focus-flag nil
   "*Non-nil means the selected frame will change based on activity.
 Thus, if a file is selected for edit, the buffer will appear in the
 selected frame and the focus will change to that frame."
