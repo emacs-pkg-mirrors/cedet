@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.2 2003/05/29 01:04:34 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.3 2003/08/01 17:28:20 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -232,6 +232,7 @@ may re-organize the list with side-effects."
 ;; external members, and bring them together in a cloned copy of the
 ;; class tag.
 ;;
+;;;###autoload
 (defvar semantic-orphaned-member-metaparent-type "class"
   "In `semantic-adopt-external-members', the type of 'type for metaparents.
 A metaparent is a made-up type semantic token used to hold the child list
