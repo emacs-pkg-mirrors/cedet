@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.1 2003/12/18 02:17:15 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.2 2003/12/19 03:24:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -44,7 +44,7 @@
 (defvar semantic-idle-scheduler-timer nil
   "Timer used to schedule tasks in idle time.")
 
-(defcustom semantic-idle-scheduler-idle-time 4
+(defcustom semantic-idle-scheduler-idle-time 2
   "*Time in seconds of idle time before auto-reparse.
 This time should be short enough to ensure that idle-scheduler will be
 run as soon as Emacs is idle."
@@ -161,9 +161,8 @@ minor mode is enabled."
   semantic-idle-scheduler-mode)
 
 (semantic-add-minor-mode 'semantic-idle-scheduler-mode
-                         "a"
+                         "ARP"
                          nil)
-
 
 
 ;;; SERVICES services
@@ -177,10 +176,12 @@ buffer has had its tags made up to date.  These functions
 will not be called if there are errors parsing the
 current buffer.")
 
+;;;###autoload
 (defun semantic-idle-scheduler-add (function)
   "Schedule FUNCTION to occur during idle time."
   (add-to-list 'semantic-idle-scheduler-queue function))
 
+;;;###autoload
 (defun semantic-idle-scheduler-remove (function)
   "Unschedule FUNCTION to occur during idle time."
   (setq semantic-idle-scheduler-queue
@@ -210,19 +211,39 @@ current buffer.")
   "Function run when after `semantc-idle-scheduler-idle-time'.
 This function will reparse the current buffer, and if successful,
 call additional functions registered with the timer calls."
-  ;; First, reparse the current buffer.
-  (let ((inhibit-quit nil)
-	(lexok (semantic-idle-scheduler-refresh-tags))
-	(queue semantic-idle-scheduler-queue)
-	)
-    
-    ;; Evaluate all other services.  Stop on keypress.
-    (when lexok
-      (while (and queue (semantic-idle-scheduler-user-input-waiting-p))
-	(funcall (car queue))
-	))
-    ))
+  (when (semantic-idle-scheduler-enabled-p)
 
+    ;; Disable the auto parse timer while re-parsing
+    (semantic-idle-scheduler-kill-timer)
+    
+    (condition-case nil
+	;; First, reparse the current buffer.
+  	(let ((inhibit-quit nil)
+	      (lexok (semantic-idle-scheduler-refresh-tags))
+	      (buffers (buffer-list))
+	      (queue semantic-idle-scheduler-queue)
+	      )
+
+	  ;; Now loop over other buffers, trying to update them as well.
+	  (save-excursion
+	    (while (and buffers
+			(not (semantic-idle-scheduler-user-input-waiting-p)))
+	      (set-buffer (car buffers))
+	      (when semantic-idle-scheduler-mode
+		(semantic-idle-scheduler-refresh-tags)
+		)
+	      (setq buffers (cdr buffers))))
+      
+	  ;; Evaluate all other services.  Stop on keypress.
+	  (when lexok
+	    (while (and queue (not (semantic-idle-scheduler-user-input-waiting-p)))
+	      (funcall (car queue))
+	      ))
+	  )
+      (error nil))
+    
+    ;; Enable again the auto parse timer
+    (semantic-idle-scheduler-setup-timer)))
 
 ;;; REPARSING
 ;;
@@ -276,56 +297,228 @@ reparse.
 Does nothing if the current buffer doesn't need reparsing or if its
 size exceeds the `semantic-idle-scheduler-max-buffer-size' threshold."
 
-  (when (semantic-idle-scheduler-enabled-p)
-    ;; Disable the auto parse timer while re-parsing
-    (semantic-idle-scheduler-kill-timer)
-    (let* ((semantic-bovination-working-type nil)
-           (inhibit-quit nil)
-           (working-use-echo-area-p
-            (not semantic-idle-scheduler-working-in-modeline-flag))
-           (working-status-dynamic-type
-            (if semantic-idle-scheduler-no-working-message
-                nil
-              working-status-dynamic-type))
-           (working-status-percentage-type
-            (if semantic-idle-scheduler-no-working-message
-                nil
-              working-status-percentage-type))
-           (semantic-lex-unterminated-syntax-end-function
-            (lambda (syntax start end) (throw 'idle-scheduler syntax)))
-	   ;; When flex is deleted, delete this also.
-           (semantic-flex-unterminated-syntax-end-function
-            (lambda (syntax start end) (throw 'idle-scheduler syntax)))
-	   (lexically-safe t)
-           )
+  (let* ((semantic-bovination-working-type nil)
+	 (inhibit-quit nil)
+	 (working-use-echo-area-p
+	  (not semantic-idle-scheduler-working-in-modeline-flag))
+	 (working-status-dynamic-type
+	  (if semantic-idle-scheduler-no-working-message
+	      nil
+	    working-status-dynamic-type))
+	 (working-status-percentage-type
+	  (if semantic-idle-scheduler-no-working-message
+	      nil
+	    working-status-percentage-type))
+	 (semantic-lex-unterminated-syntax-end-function
+	  (lambda (syntax start end) (throw 'idle-scheduler syntax)))
+	 ;; When flex is deleted, delete this also.
+	 (semantic-flex-unterminated-syntax-end-function
+	  (lambda (syntax start end) (throw 'idle-scheduler syntax)))
+	 (lexically-safe t)
+	 )
+    ;; Let people hook into this, but don't let them hose
+    ;; us over!
+    (condition-case nil
+	(run-hooks 'semantic-before-idle-scheduler-reparse-hooks)
+      (error (setq semantic-before-idle-scheduler-reparse-hooks nil)))
+
+    (unwind-protect
+	;; Perform the parsing.
+	(when (catch 'idle-scheduler
+		(save-excursion
+		  (semantic-bovinate-toplevel t)
+		  nil)
+		nil)
+	  ;; If we are here, it is because the lexical step failed,
+	  ;; proably due to unterminated lists or something like that.
+
+	  ;; We do nothing, and just wait for the next idle timer
+	  ;; to go off.  In the meantime, remember this, and make sure
+	  ;; no other idle services can get executed.
+	  (setq lexically-safe nil))
       ;; Let people hook into this, but don't let them hose
       ;; us over!
       (condition-case nil
-          (run-hooks 'semantic-before-idle-scheduler-reparse-hooks)
-        (error (setq semantic-before-idle-scheduler-reparse-hooks nil)))
+	  (run-hooks 'semantic-after-idle-scheduler-reparse-hooks)
+	(error (setq semantic-after-idle-scheduler-reparse-hooks nil))))
+    ;; Return if we are lexically safe
+    lexically-safe))
 
-      (unwind-protect
-          ;; Perform the parsing.
-          (when (catch 'idle-scheduler
-                  (save-excursion
-                    (semantic-bovinate-toplevel t))
-                  nil)
-            ;; If we are here, it is because the lexical step failed,
-	    ;; proably due to unterminated lists or something like that.
+
+;;; IDLE SERVICES
+;;
+;; Idle Services are minor modes which enable or disable a services in
+;; the idle scheduler.  Creating a new services only requires calling
+;; `semantic-create-idle-services' which does all the setup
+;; needed to create the minor mode that will enable or disable
+;; a services.  The services must provide a single function.
 
-	    ;; We do nothing, and just wait for the next idle timer
-	    ;; to go off.  In the meantime, remember this, and make sure
-	    ;; no other idle services can get executed.
-            (setq lexically-safe nil))
-        ;; Let people hook into this, but don't let them hose
-        ;; us over!
-        (condition-case nil
-            (run-hooks 'semantic-after-idle-scheduler-reparse-hooks)
-          (error (setq semantic-after-idle-scheduler-reparse-hooks nil))))
-      ;; Enable again the auto parse timer
-      (semantic-idle-scheduler-setup-timer)
-      ;; Return if we are lexically safe
-      lexically-safe)))
+(defmacro define-semantic-idle-service (name doc &rest forms)
+  "Create a new idle services with NAME.
+DOC will be a documentation string describing FORMS.
+FORMS will be called during idle time after the current buffer's
+semantic tag information has been updated.
+This routines creates the following functions and variables:"
+  (let ((global (intern (concat "global-" (symbol-name name) "-mode")))
+	(mode 	(intern (concat (symbol-name name) "-mode")))
+	(hook 	(intern (concat (symbol-name name) "-mode-hook")))
+	(map  	(intern (concat (symbol-name name) "-mode-map")))
+	(setup 	(intern (concat (symbol-name name) "-mode-setup")))
+	(func 	(intern (concat (symbol-name name) "-idle-function")))
+	)
+
+    `(progn
+       (defun ,global (&optional arg)
+	 ,(concat "Toggle global use of option `" (symbol-name mode) "'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle.")
+	 (interactive "P")
+	 (setq ,global
+	       (semantic-toggle-minor-mode-globally
+		',mode arg)))
+
+       (defcustom ,global nil
+	 (concat "*If non-nil, enable global use of `" (symbol-name ',mode) "'.
+" ,doc)
+	 :group 'semantic
+	 :type 'boolean
+	 :require 'semantic-util-modes
+	 :initialize 'custom-initialize-default
+	 :set (lambda (sym val)
+		(,global (if val 1 -1))))
+
+       (defcustom ,hook nil
+	 (concat "*Hook run at the end of function `" (symbol-name ',mode) "'.")
+	 :group 'semantic
+	 :type 'hook)
+
+       (defvar ,map
+	 (let ((km (make-sparse-keymap)))
+	   km)
+	 (concat "Keymap for `" (symbol-name ',mode) "'."))
+
+       (defvar ,mode nil
+	 (concat "Non-nil if summary minor mode is enabled.
+Use the command `" (symbol-name ',mode) "' to change this variable."))
+       (make-variable-buffer-local ',mode)
+
+       (defun ,setup ()
+	 ,(concat "Setup option `" (symbol-name mode) "'.
+The minor mode can be turned on only if semantic feature is available
+and the idle scheduler is active.
+Return non-nil if the minor mode is enabled.")
+	 (if ,mode
+	     (if (not (and (featurep 'semantic) (semantic-active-p)))
+		 (progn
+		   ;; Disable minor mode if semantic stuff not available
+		   (setq ,mode nil)
+		   (error "Buffer %s was not set up for parsing"
+			  (buffer-name)))
+	       ;; Enable eldoc mode
+	       (semantic-idle-scheduler-add #',func)
+	       )
+	   ;; Disable eldoc mode
+	   (semantic-idle-scheduler-remove #',func)
+	   )
+	 ,mode)
+
+;;;###autoload
+       (defun ,mode (&optional arg)
+	 ,(concat doc "
+This is a minor mode which performs actions during idle time.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled.")
+	 (interactive
+	  (list (or current-prefix-arg
+		    (if ,mode 0 1))))
+	 (setq ,mode
+	       (if arg
+		   (>
+		    (prefix-numeric-value arg)
+		    0)
+		 (not semantic-summary-mode)))
+	 (,setup)
+	 (run-hooks ,hook)
+	 (if (interactive-p)
+	     (message "%s %sabled"
+		      (symbol-name ',mode)
+		      (if semantic-summary-mode "en" "dis")))
+	 (semantic-mode-line-update)
+	 ,mode)
+
+       (semantic-add-minor-mode ',mode
+				""	; idle schedulers are quiet?
+				,map)
+    
+       (defun ,func ()
+	 ,doc
+	 ,@forms)
+    
+       )))
+(put 'define-semantic-idle-service 'lisp-indent-function 1)
+
+
+;;; SUMMARY MODE
+;;
+;; Use ELDOC services to show useful info about symbol under point.
+(require 'semantic-ctxt)
+
+(defcustom semantic-idle-summary-function 'semantic-format-tag-summarize
+  "*Function to use when displaying tag information during idle time.
+Some useful functions are found in `semantic-format-tag-functions'."
+  :group 'semantic
+  :type semantic-format-tag-custom-list)
+
+(defsubst semantic-idle-summary-find-current-symbol-tag (sym)
+  "Search for a semantic tag with name SYM.
+Return the tag found or nil if not found."
+  (car (if (and (featurep 'semanticdb) semanticdb-current-database)
+           (cdar (semanticdb-deep-find-tags-by-name sym))
+         (semantic-deep-find-tags-by-name sym (current-buffer)))))
+
+(defun semantic-idle-summary-current-symbol-info-default ()
+  "Return a string message describing the current context."
+  (let (sym found)
+    (and
+     ;; 1- Look for a tag with current symbol name
+     (setq sym (car (semantic-ctxt-current-symbol)))
+     (not (setq found (senator-find-current-symbol-tag sym)))
+     ;; 2- Look for a keyword with that name
+     (semantic-lex-keyword-p sym)
+     (not (setq found (semantic-lex-keyword-get sym 'summary)))
+     ;; 3- Look for a tag with current function name
+     (setq sym (car (semantic-ctxt-current-function)))
+     (not (setq found (senator-find-current-symbol-tag sym)))
+     ;; 4- Look for a keyword with that name
+     (semantic-lex-keyword-p sym)
+     (setq found (semantic-lex-keyword-get sym 'summary)))
+    found))
+
+(define-semantic-idle-service semantic-idle-summary
+  "Display a tag summary of the lexcial token under the cursor."
+  (unless (eq major-mode 'emacs-lisp-mode)
+
+    (let* ((found (senator-eldoc-print-current-symbol-info-default))
+	   (str (cond ((stringp found)
+		       found)
+		      ((semantic-tag-p found)
+		       (funcall senator-eldoc-summary-function
+				found nil senator-eldoc-use-color))
+		      (t nil)
+		      ))
+	   )
+
+      (unless (and (boundp 'eldoc-echo-area-use-multiline-p)
+		   eldoc-echo-area-use-multiline-p)
+	(let ((w (1- (window-width (minibuffer-window)))))
+	  (if (> (length str) w)
+	      (setq str (substring str 0 w)))))
+      
+      (eldoc-message str))  
+    ))
+ 
 
 (provide 'semantic-idle)
 
