@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.28 2001/05/25 01:12:50 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.29 2001/06/03 14:02:26 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -80,23 +80,6 @@
   ,(semantic-lambda
   (list ( concat (nth 0 vals) (nth 1 vals) ( car (nth 2 vals))))))
  ) ; end filename
- (structparts
- ( semantic-list
-  ,(semantic-lambda
- 
- (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'structsubparts)
- ))
- ) ; end structparts
- (structsubparts
- ( open-paren "{"
-  ,(semantic-lambda
-  (list nil)))
- ( close-paren "}"
-  ,(semantic-lambda
-  (list nil)))
- ( var-or-fun)
- ( define)
- ) ; end structsubparts
  (classparts
  ( semantic-list
   ,(semantic-lambda
@@ -122,13 +105,21 @@
  ()
  ) ; end classsubparts
  (opt-class-parents
- ( punctuation "\\b:\\b" opt-class-protection symbol
+ ( punctuation "\\b:\\b" class-parents
   ,(semantic-lambda
-  (list (nth 2 vals))))
+  (list (nth 1 vals))))
  (
   ,(semantic-lambda
  ))
  ) ; end opt-class-parents
+ (class-parents
+ ( opt-class-protection symbol punctuation "\\b,\\b" class-parents
+  ,(semantic-lambda
+  ( cons (nth 1 vals) (nth 3 vals))))
+ ( opt-class-protection symbol
+  ,(semantic-lambda
+  (list (nth 1 vals))))
+ ) ; end class-parents
  (opt-class-protection
  ( PUBLIC)
  ( PRIVATE)
@@ -149,6 +140,7 @@
   ,(semantic-lambda
   (list nil)))
  ( type)
+ ( var-or-fun)
  ( define)
  ( opt-class-protection punctuation "\\b:\\b"
   ,(semantic-lambda
@@ -180,29 +172,30 @@
   (list nil)))
  ) ; end opt-name
  (typesimple
- ( STRUCT opt-name structparts
+ ( struct-or-class opt-name opt-class-parents classparts
   ,(semantic-lambda
-  (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
+  (nth 1 vals) (list 'type) (nth 0 vals) (list (nth 3 vals)) (nth 2 vals) (list nil nil)))
  ( UNION opt-name structparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
  ( ENUM opt-name enumparts
   ,(semantic-lambda
   (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
- ( CLASS symbol opt-class-parents classparts
-  ,(semantic-lambda
-  (list (nth 1 vals) 'type (nth 0 vals) (nth 3 vals)) (nth 2 vals) (list nil nil)))
  ( TYPEDEF typeform symbol
   ,(semantic-lambda
   (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
- ( NAMESPACE symbol namespaceparts
-  ,(semantic-lambda
-  (list (nth 1 vals) 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
  ) ; end typesimple
+ (struct-or-class
+ ( STRUCT)
+ ( CLASS)
+ ) ; end struct-or-class
  (type
  ( typesimple punctuation "\\b;\\b"
   ,(semantic-lambda
   (nth 0 vals)))
+ ( NAMESPACE symbol namespaceparts
+  ,(semantic-lambda
+  (list (nth 1 vals) 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
  ) ; end type
  (opt-stars
  ( punctuation "\\b\\*\\b" opt-stars
@@ -280,13 +273,32 @@
   ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
  ) ; end var-or-fun
  (var-or-func-decl
- ( opt-class opt-destructor functionname arg-list fun-or-proto-end
+ ( opt-class opt-destructor functionname arg-list opt-throw fun-or-proto-end
   ,(semantic-lambda
-  (nth 2 vals) (list 'function (nth 0 vals) (nth 1 vals) (nth 3 vals))))
+  (nth 2 vals) (list 'function (nth 0 vals) (nth 1 vals) (nth 3 vals) (nth 4 vals))))
  ( varnamelist punctuation "\\b;\\b"
   ,(semantic-lambda
   (list (nth 0 vals) 'variable)))
  ) ; end var-or-func-decl
+ (opt-throw
+ ( THROW semantic-list
+ ,(lambda (vals start end)
+ 
+ (semantic-bovinate-from-nonterminal (car (nth 1 vals)) (cdr (nth 1 vals)) 'throw-exception-list)
+ ))
+ ()
+ ) ; end opt-throw
+ (throw-exception-list
+ ( symbol punctuation "\\b,\\b" throw-exception-list
+  ,(semantic-lambda
+  ( cons (nth 0 vals) (nth 2 vals))))
+ ( symbol close-paren ")"
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ( open-paren "(" throw-exception-list
+  ,(semantic-lambda
+  (nth 1 vals)))
+ ) ; end throw-exception-list
  (opt-bits
  ( punctuation "\\b:\\b" symbol
   ,(semantic-lambda
@@ -457,7 +469,7 @@
  ))
  ) ; end expression
  )
-      "C language specification.")
+ "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -546,7 +558,11 @@ This is so we don't have to match the same starting text several times."
 		'const (if (member "const" declmods) t nil)
 		'typemodifiers (delete "const" declmods)
 		'parent (car (nth 2 tokenpart))
-		'destructor (car (nth 3 tokenpart) ) )
+		'destructor (car (nth 3 tokenpart) )
+		;; Even though it is "throw" in C++, we use
+		;; `throws' as a common name for things that toss
+		;; exceptions about.
+		'throws (nth 5 tokenpart))
 	       nil)
 	 )
 	))
@@ -588,6 +604,7 @@ machine."
       ("typedef" . TYPEDEF)
       ("class" . CLASS)
       ("namespace" . NAMESPACE)
+      ("throw" . THROW)
       ("operator" . OPERATOR)
       ("public" . PUBLIC)
       ("private" . PRIVATE)
@@ -626,6 +643,7 @@ machine."
      ("typedef" summary "Arbitrary Type Declaration: typedef <typedeclaration> <name>;")
      ("class" summary "Class Declaration: class <name>[:parents] { ... };")
      ("namespace" summary "Namespace Declaration: namespace <name> { ... };")
+     ("throw" summary "<type> <methoddef> (<method args>) throw (<exception>) ...")
      ("if" summary "if (<condition>) { code } [ else { code } ]")
      ("else" summary "if (<condition>) { code } [ else { code } ]")
      ("do" summary " do { code } while (<condition>);")
