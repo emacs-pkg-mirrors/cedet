@@ -56,7 +56,7 @@
     :name "tools"
     :path ""
     :source '("semantic-imenu.el" "semantic-sb.el" "working.el" "semanticdb.el" "document.el" "document-vars.el" "sformat.el" "semantic-chart.el" "semantic-util-modes.el" "semantic-analyze.el" "semantic-ia.el" "semantic-cb.el" "semantic-ia-sb.el" "semanticdb-file.el" "semanticdb-search.el" "semanticdb-mk.el" "semanticdb-el.el" "semanticdb-system.el" "semantic-debug.el" "semanticdb-find.el" "semantic-regtest.el")
-    :aux-packages '("eieio" "speedbar" "inversion")
+    :aux-packages '("eieio" "ede" "speedbar" "inversion")
     )
    (ede-proj-target-elisp "senator"
     :name "senator"
@@ -67,11 +67,6 @@
     :name "misc"
     :path ""
     :source '("INSTALL" "NEWS" "ChangeLog" "AUTHORS")
-    )
-   (ede-proj-target-makefile-info "info"
-    :name "info"
-    :path ""
-    :source '("semantic.texi")
     )
    )
   :web-site-url "http://cedet.sourceforge.net/semantic.shtml"
