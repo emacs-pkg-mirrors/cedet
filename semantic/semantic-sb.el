@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.24 2000/10/05 14:59:35 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.25 2000/12/11 23:27:56 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -328,14 +328,25 @@ to create much wiser decisions about how to sort and group these items."
 (defun semantic-fetch-dynamic-bovine (file)
   "Load FILE into a buffer, and generate tags using the Semantic Bovinator.
 Returns the tag list, or t for an error."
-  (save-excursion
-    (set-buffer (find-file-noselect file))
-    (if (or (not (featurep 'semantic)) (not semantic-toplevel-bovine-table))
-	t
-      (if speedbar-power-click (semantic-clear-toplevel-cache))
-      (condition-case nil
-	  (semantic-bucketize (semantic-bovinate-toplevel))
-	(error t)))))
+  (let ((out (if (and (featurep 'semanticdb) (semanticdb-minor-mode-p)
+		      (not speedbar-power-click))
+		 ;; If the database is loaded and running, try to get
+		 ;; tokens from it.
+		 (or (semanticdb-file-stream file)
+		     t)
+	       ;; No database, do it the old way.
+	       (save-excursion
+		 (set-buffer (find-file-noselect file))
+		 (if (or (not (featurep 'semantic))
+			 (not semantic-toplevel-bovine-table))
+		     t
+		   (if speedbar-power-click (semantic-clear-toplevel-cache))
+		   (semantic-bovinate-toplevel))))))
+    (if (listp out)
+	(condition-case nil
+	    (semantic-bucketize out)
+	  (error t))
+      t)))
 
 ;; Link ourselves into the tagging process.
 (add-to-list 'speedbar-dynamic-tags-function-list
