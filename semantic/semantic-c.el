@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.38 2001/09/18 18:21:07 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.39 2001/09/26 23:55:11 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -159,6 +159,9 @@
   ,(semantic-lambda
   (list nil)))
  ( close-paren "}"
+  ,(semantic-lambda
+  (list nil)))
+ ( punctuation "\\b,\\b"
   ,(semantic-lambda
   (list nil)))
  ) ; end enumsubparts
@@ -408,6 +411,9 @@
  ( punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" close-paren ")"
   ,(semantic-lambda
   (list "...")))
+ ( punctuation "\\b,\\b"
+  ,(semantic-lambda
+  (list nil)))
  ( open-paren "("
   ,(semantic-lambda
   (list nil)))
@@ -465,6 +471,9 @@
   (list nil)))
  ) ; end opt-expression
  (expression
+ ( symbol punctuation "\\." symbol
+  ,(semantic-lambda
+ ))
  ( symbol
   ,(semantic-lambda
  ))
@@ -479,7 +488,7 @@
  ))
  ) ; end expression
  )
-                        "C language specification.")
+   "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
