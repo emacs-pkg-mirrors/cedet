@@ -39,6 +39,9 @@ aclass2::aclass2(init aninitvalue)
 
 int aclass2::amethod2(int arg2)
 {
-  a;
+  int alocalvar;
+  float q;
+
+  ac;
 }
 
