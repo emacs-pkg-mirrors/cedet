@@ -1,9 +1,9 @@
-;;; Copyright (C) 1999, 2000 Eric M. Ludlam
+;;; semantic-make.el --- Makefile parsing rules.
+
+;; Copyright (C) 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.1
-;; Keywords: goofy
-;; X-RCS: $Id: semantic-make.el,v 1.1 2000/06/11 02:19:01 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.2 2000/06/11 18:46:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -24,10 +24,13 @@
 
 ;;; Commentary:
 ;;
+;; Use the Semantic Bovinator to parse Makefiles.
+;; Concocted as an experiment for nonstandard languages.
 
 (require 'semantic)
 (require 'backquote)
 
+;;; Code:
 (defvar semantic-toplevel-make-bovine-table
   `((bovine-toplevel
      ( variable)
@@ -35,13 +38,13 @@
      ( conditional)
      ) ; end bovine-toplevel
     (variable
-     ( symbol punctuation "=" elements
+     ( symbol equals elements
 	      ,(lambda (vals start end)
 		 (append  (list (nth 0 vals) 'variable nil nil (nth 2 vals) nil nil)
 			  (list start end))))
      ) ; end variable
     (rule
-     ( symbol punctuation ":" elements commands
+     ( symbol colons elements commands
 	      ,(lambda (vals start end)
 		 (append  (list (nth 0 vals) 'function nil (nth 2 vals) nil)
 			  (list start end))))
@@ -60,6 +63,26 @@
 		 (append  (list nil)
 			  (list start end))))
      ) ; end conditional
+    (equals
+     ( punctuation ":" punctuation "="
+		   ,(lambda (vals start end)
+		      (append 
+		       (list start end))))
+     ( punctuation "="
+		   ,(lambda (vals start end)
+		      (append 
+		       (list start end))))
+     ) ; end equals
+    (colons
+     ( punctuation ":" punctuation ":"
+		   ,(lambda (vals start end)
+		      (append 
+		       (list start end))))
+     ( punctuation ":"
+		   ,(lambda (vals start end)
+		      (append 
+		       (list start end))))
+     ) ; end colons
     (elements
      ( symbol elements
 	      ,(lambda (vals start end)
@@ -106,20 +129,33 @@ These command lines continue to additional lines when the end with \\"
   (goto-char (match-end 0))
   nil)
 
-(add-hook
- 'makefile-mode-hook
- (lambda ()
-   (setq semantic-toplevel-bovine-table semantic-toplevel-make-bovine-table
-	 semantic-flex-extensions semantic-flex-make-extentions
-	 semantic-flex-syntax-modifications '((?. "_")
-					      (?= ".")
-					      (?/ "_")
-					      (?\t ".")
-					      (?( "_")
-					      (?) "_")
-					      (?{ "_")
-					      (?} "_")
-					      (?$ "_")
-					      )
-	 semantic-flex-enable-newlines t
-	 )))
+(defun semantic-default-make-setup ()
+  "Set up a Makefile buffer for parsing with semantic."
+  (setq semantic-toplevel-bovine-table semantic-toplevel-make-bovine-table
+	semantic-flex-extensions semantic-flex-make-extentions
+	semantic-flex-syntax-modifications '((?. "_")
+					     (?= ".")
+					     (?/ "_")
+					     (?\t ".")
+					     (?( "_")
+					       (?) "_")
+					     (?{ "_")
+					     (?} "_")
+					     (?$ "_")
+					     )
+	semantic-flex-enable-newlines t
+	semantic-symbol->name-assoc-list
+	'((variable . "Variables")
+	  (function . "Rules")
+	  (include . "Dependencies"))
+	))
+
+(add-hook 'makefile-mode-hook 'semantic-default-make-setup)
+
+
+
+(provide 'semantic-make)
+
+;;; semantic-make.el ends here
+
+
