@@ -246,9 +246,12 @@ Call the new entrie's activate method."
   (let ((file (plist-get args :filename))
 	(line (plist-get args :line))
 	(face (plist-get args :face)))
-    (if (not file) (setq file (buffer-file-name)))
-    (if (not file) (error "You can only add marks to files."))
-    (setq file (expand-file-name file))
+    (if (not file)
+        (progn
+          (setq file (buffer-file-name))
+          (if file
+              (setq file (expand-file-name file))
+            (setq file (buffer-name)))))
     (when (not line)
       (setq line (count-lines (point-min) (point)))
       (if (bolp) (setq line (1+ line))))
@@ -282,20 +285,25 @@ Call the new entrie's activate method."
 	(if (oref e overlay)
 	    ;; Already active
 	    nil
-	  (if (get-file-buffer file)
-	      (save-excursion
-		(set-buffer (get-file-buffer file))
-		(goto-line (oref e line))
-		(beginning-of-line)
-		(oset e overlay
-		      (linemark-make-overlay (point)
-					     (save-excursion
-					       (end-of-line) (point))
-					     (current-buffer)))
-		(with-slots (overlay) e
-		  (linemark-overlay-put overlay 'face (oref e face))
-		  (linemark-overlay-put overlay 'obj e)
-		  (linemark-overlay-put overlay 'tag 'linemark))))))
+          (let ((buffer))
+	    (if (get-file-buffer file)
+                (setq buffer (get-file-buffer file))
+              (setq buffer (get-buffer file)))
+            (if buffer
+		(save-excursion
+                  (set-buffer buffer)
+                  (save-excursion
+                    (goto-line (oref e line))
+                    (beginning-of-line)
+                    (oset e overlay
+                          (linemark-make-overlay (point)
+                                                 (save-excursion
+                                                   (end-of-line) (point))
+                                                 (current-buffer)))
+                    (with-slots (overlay) e
+                      (linemark-overlay-put overlay 'face (oref e face))
+                      (linemark-overlay-put overlay 'obj e)
+                      (linemark-overlay-put overlay 'tag 'linemark))))))))
     ;; Not active
     (with-slots (overlay) e
       (if overlay
@@ -380,7 +388,8 @@ Call the new entrie's activate method."
   "Clear all bookmarks in this buffer."
   (interactive)
   (mapcar (lambda (e)
-	    (if (string= (oref e filename) (buffer-file-name))
+	    (if (or (string= (oref e filename) (buffer-file-name))
+                    (string= (oref e filename) (buffer-name)))
 		(linemark-delete e)))
 	  (oref viss-bookmark-group marks)))
 
