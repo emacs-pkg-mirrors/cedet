@@ -1,0 +1,36 @@
+;; Object ede-proj-project
+;; EDE project file.
+(ede-proj-project "ede-proj-project"
+  :name "EDE"
+  :version "1.0.beta2"
+  :file "Project.ede"
+  :targets (list   (ede-proj-target-elisp "ede"
+    :name "ede"
+    :path ""
+    :source '("ede.el" "ede-proj.el" "ede-speedbar.el" "project-am.el" "ede-pmake.el" "ede-pconf.el" "ede-dired.el" "ede-proj-elisp.el" "ede-proj-misc.el" "ede-proj-obj.el" "ede-proj-prog.el" "ede-proj-archive.el" "ede-proj-shared.el" "ede-proj-info.el" "ede-proj-scheme.el" "ede-proj-aux.el" "ede-proj-comp.el" "ede-source.el" "ede-util.el")
+    :versionsource '("ede.el")
+    :aux-packages '("eieio" "speedbar")
+    )
+   (ede-proj-target-elisp "aux.lisp"
+    :name "aux.lisp"
+    :path ""
+    :source '("autoconf-edit.el" "autoconf-compat.el" "ede-emacs.el")
+    )
+   (ede-proj-target-aux "aux"
+    :name "aux"
+    :path ""
+    :source '("NEWS" "README" "TODO" "ede-proj-skel.el")
+    )
+   (ede-proj-target-makefile-info "ede"
+    :name "ede.info"
+    :path ""
+    :source '("ede.texi" "ede-projects.texi" "ede-targets.texi" "ede-sourcecode.texi" "ede-compilers.texi")
+    :mainmenu "ede.texi"
+    )
+   (ede-proj-target-aux "test"
+    :name "test"
+    :path "subdir/"
+    )
+   )
+  :configuration-variables 'nil
+  )
