@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.15 2004/02/24 01:29:58 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.16 2005/01/04 00:47:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -483,6 +483,13 @@ project database to build the available relations.  The structure of
 the class hierarchy can then be navigated using traditional speedbar
 interactions."
   (interactive)
+  ;; For some reason when the speedbar buttons are requested, the attached
+  ;; frame can be nil for the class browser.  I don't know why nothing else
+  ;; is affected by this.  This only happens on the very first call to
+  ;; speedbar.  This little hack will "fix" the problem.
+  (if (not semantic-cb-current-project)
+      (semantic-cb-new-class-browser))
+  ;; Do the rest of the init.
   (speedbar-frame-mode 1)
   (speedbar-change-initial-expansion-list "Class Browser")
   (speedbar-get-focus))
