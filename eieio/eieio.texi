@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.32 2000/09/30 02:25:14 zappo Exp $
+@c $Id: eieio.texi,v 1.33 2000/10/09 04:17:42 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -248,17 +248,49 @@ valuen)}.  Some valid CLOS tags are:
 @table @code
 @item :initarg
 The argument used during initialization.  @xref{Making New Objects}.
+A good symbol to use for initarg is one that starts with a colon @code{:}.
 @item :initform
 A lisp expression used to generate the default value for this slot.
 If :initform is left out, that slot defaults to being unbound.
+The value passed to initform is automatically quoted.  Thus,
+@example
+:initform (1 2 3)
+@end example
+appears as the specified list in the default object.
+A function call like this:
+@example
+:initform +
+@end example
+is quoted in as a function.  On the other hand, if you need code to be
+executed at instantiation time as the initform, code like this:
+@example
+:initform (lambda () (+ 1 some-global-var))
+@end example
+will be identified as a function call, and be executed in place.
 @item :type
 An unquoted type specifier used to validate data set into this slot.
 @xref{(cl)Type Predicates}.
+Here are some examples:
+ @table @code
+ @item symbol
+ A symbol.
+ @item number
+ A number type
+ @item my-class-name
+ An object of your class type.
+ @item (or null symbol)
+ A symbol, or nil.
+ @end table
 @item :allocation
-Unsupported: Either :class or :instance (defaults to :instance) used to
-specify how data is stored.
+Either :class or :instance (defaults to :instance) used to
+specify how data is stored.  Slots stored per instance have unique
+values for each object.  Slots stored per class have shared values for
+each object.  If one object changes a :class allocated slot, then all
+objects for that class gain the new value.
 @item :documentation
-Documentation detailing the use of this slot.
+Documentation detailing the use of this slot.  This documentation is
+exposed when the user describes a class, and during customization of an
+object.
 @end table
 
 Some tags whose behaviors do not yet match CLOS are:
@@ -266,6 +298,8 @@ Some tags whose behaviors do not yet match CLOS are:
 @table @code
 @item :accessor
 Name of a generic function which can be used to fetch the value of this slot.
+You can call this function later on your object and retrieve the value
+of the slot.
 @item :writer
 Name of a generic function which will write this slot.
 @item :reader
@@ -276,14 +310,21 @@ Some tags which are unique to EIEIO are:
 
 @table @code
 @item :custom
-A custom @code{:type} specifier used when editing an object of this type.
+A custom :type specifier used when editing an object of this type.
+See documentation for @code{defcustom} for details.  This specifier is
+equivalent to the :type field of a @code{defcustom} call.
+@item :label
+When customizing an object, the value of :label will be used instead
+of the slot name.  This enables better descriptions of the data than
+would usually be afforded.
 @item :group
-A symbol representing a group this slot belongs to.  When customizing
-an option, slots are organized based on the @code{:groups} they are
-assigned to.
+Similar to @code{defcustom}'s :group command, this organizes different
+slots in an object into groups.  When customizing an object, only the
+slots belonging to a specific group need be worked with, simplifying the
+size of the display.
 @item :protection
-A specifier which indicates that only methods of this class may access
-this slot.
+A CLOS unsupported specifier which indicates that only methods of this
+class may access this slot.
 
 When using a slot referencing function, if the value behind @var{slot}
 is private, then the current scope of operation must be within a method
@@ -302,13 +343,6 @@ Possible class options are:
 @item :documentation
 Doc string to use for this class.  If an Emacs style documentation
 string is also provided, then this option is ignored.
-@item :custom-groups
-This is not a CLOS option.
-
-This lets you specify a list of customization groups the slots in this
-project belong to.  It is generally unnecessary to specify this in
-code, as it is auto-generated from the @code{:group} specifier in the
-slot description.
 @item :allow-nil-initform
 This is not a CLOS option.
 
@@ -316,6 +350,11 @@ If this option is non-nil, and the @code{:initform} is @code{nil}, but
 the @code{:type} is specifies something such as @code{string} then allow
 this to pass.  The default is to have this option be off.  This is
 implemented as an alternative to unbound slots.
+@item :custom-groups
+This is a list of groups that can be customized within this class.  This
+slot is auto-generated when a class is created and need not be
+specified.  It can be retrieved with the @code{class-option} command,
+however, to see what groups are available.
 @item :metaclass
 Unsupported CLOS option.  Enables the use of a different base class other
 than @code{standard-class}.
