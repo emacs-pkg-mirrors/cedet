@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: semantic-ede-grammar.el,v 1.6 2004/03/28 01:34:17 zappo Exp $
+;; RCS: $Id: semantic-ede-grammar.el,v 1.7 2004/05/25 14:24:23 ponced Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ parsing different languages.")
      "@echo \"(require 'semantic-load)\" >> grammar-make-script"
      "@echo \"(require 'semantic-grammar)\" >> grammar-make-script"
      ;; "@echo \"(setq debug-on-error t)\" >> grammar-make-script"
-     "${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $^"
+     "${EMACS} -batch --no-site-file -l grammar-make-script -f semantic-grammar-batch-build-packages $^"
      )
    ;; :autoconf '("AM_PATH_LISPDIR")
    :sourcetype '(semantic-ede-source-grammar-wisent)
@@ -104,7 +104,7 @@ parsing different languages.")
      "@echo \"(require 'semantic-load)\" >> grammar-make-script"
      "@echo \"(require 'semantic-grammar)\" >> grammar-make-script"
      ;; "@echo \"(setq debug-on-error t)\" >> grammar-make-script"
-     "${EMACS} -batch -q -l grammar-make-script -f semantic-grammar-batch-build-packages $^"
+     "${EMACS} -batch --no-site-file -l grammar-make-script -f semantic-grammar-batch-build-packages $^"
      )
    ;; :autoconf '("AM_PATH_LISPDIR")
    :sourcetype '(semantic-ede-source-grammar-bovine)
