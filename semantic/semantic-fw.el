@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.6 2002/08/04 01:50:09 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.7 2002/08/09 23:22:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,6 +32,7 @@
 
 ;;; Code:
 ;;
+
 ;;; Compatibility
 ;;
 (if (featurep 'xemacs)
@@ -372,6 +373,7 @@ override table found."
          (setq overload (intern-soft (symbol-name overload) table))
          (symbol-value overload))))
 
+;;;###autoload
 (defmacro define-overload (name args docstring &rest body)
   "Define a new function, as with `defun' which can be overloaded.
 NAME is the name of the function to create.  If it is of the form
