@@ -1,4 +1,4 @@
-;;; wisent-expr.el --- Sample expression LALR parser for Emacs
+;;; wisent-expr.el --- Infix to prefix expression converter
 
 ;; Copyright (C) 2001 David Ponce
 
@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-expr.el,v 1.2 2001/08/30 14:00:13 ponced Exp $
+;; X-RCS: $Id: wisent-expr.el,v 1.3 2001/09/12 21:36:56 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -26,7 +26,9 @@
 ;; Boston, MA 02111-1307, USA.
 
 ;;; Commentary:
-;; Just convert expressions from postfix to infix notation.
+;;
+;; Sample program using the elisp LALR parser Wisent. It just converts
+;; expressions from infix (C like) to prefix notation (Lisp like).
 
 ;;; History:
 ;; 
@@ -35,41 +37,45 @@
 
 (require 'wisent)
 
-(defconst wisent-expr-grammar
-  '(
-    ;; non-terminals
-    CONSTANT
-    LPAREN
-    MINUS
-    PLUS
-    RPAREN
-    SEMI
-    SLASH
-    STAR
-    ;; productions
-    (grammar (grammar expr)      : (append $1 (list $2))
-             (expr)              : (list 'progn $1)
-             )
-    (expr    (add SEMI)          : $1
-             (error SEMI)        : nil  ; error recovery
-             (SEMI)              : nil
-             )
-    (add     (add MINUS mult)    : (list '- $1 $3)
-             (add PLUS mult)     : (list '+ $1 $3)
-             (mult)              : $1
-             )
-    (mult    (mult SLASH final)  : (list '/ $1 $3)
-             (mult STAR final)   : (list '* $1 $3)
-             (final)             : $1
-             )
-    (final   (LPAREN add RPAREN) : $2
-             (CONSTANT)          : $1
-             )
-    )
-  )
-
 (defconst wisent-expr-parser-tables
-  (wisent-compile-grammar wisent-expr-grammar))
+  (eval-when-compile
+    (wisent-compile-grammar
+     '(
+       ;; terminals
+       (NUMBER MINUS PLUS DIV MULT LPAREN RPAREN SEMI)
+       ;; no operator precedence
+       nil
+       ;; non terminals
+       (grammar ((grammar expr)
+                 (format "%s %s" $1 $2))
+                ((expr)
+                 (format "%s" $1))
+                )
+       (expr    ((add SEMI)
+                 (format "%s%s" $1 $2))
+                ((SEMI)
+                 ";")
+                ((error SEMI) ;; on parse error skip tokens until
+                 "\"error\";") ;; next semicolon and return "error";
+                )
+       (add     ((add MINUS mult)
+                 (list '- $1 $3))
+                ((add PLUS mult)
+                 (list '+ $1 $3))
+                ((mult))
+                )
+       (mult    ((mult DIV final)
+                 (list '/ $1 $3))
+                ((mult MULT final)
+                 (list '* $1 $3))
+                ((final))
+                )
+       (final   ((LPAREN add RPAREN)
+                 $2)
+                ((NUMBER))
+                )
+       )))
+  "Expression converter parser tables.")
 
 (defconst wisent-expr-operators
   '((?\; . SEMI)
@@ -77,59 +83,58 @@
     (?\) . RPAREN)
     (?\+ . PLUS)
     (?\- . MINUS)
-    (?\* . STAR)
-    (?\/ . SLASH)))
+    (?\* . MULT)
+    (?\/ . DIV))
+  "Expression converter operator terminals.")
 
-(defconst wisent-expr-digits
-  '(?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9))
+(defconst wisent-expr-number-regexp
+  (eval-when-compile
+    (concat "^\\("
+            "[0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
+            "\\|"
+            "[.][0-9]+\\([eE][-+]?[0-9]+\\)?"
+            "\\)"
+            ))
+  "Regexp to match the expression converter number terminals.")
 
-(defvar wisent-expr-lexer-input-stream nil)
+(defvar wisent-expr-lexer-input-stream nil
+  "The expression converter lexer input stream.")
 
 (defun wisent-expr-lexer ()
+  "The expression converter lexer."
   (let* ((is  (or wisent-expr-lexer-input-stream ""))
-         (isl (1- (length is)))
-         (i   (string-match "[^ ]" is))
-         (lex (list wisent-eoi-term))
-         j c k)
-    (if i
-        (progn
-          (setq c (aref is i)
-                j i)
-          (cond
-           ;; Operator
-           ((setq k (assq c wisent-expr-operators))
-            (setq j   (1+ j)
-                  lex (cons (cdr k) (cons c (cons i j)))))
-           ;; Number
-           ((setq k (memq c wisent-expr-digits))
-            (while (and (< j isl) k (setq j (1+ j)))
-              (setq c (aref is j)
-                    k (memq c wisent-expr-digits)))
-            (if (> j i)
-                (setq lex (cons 'CONSTANT
-                                (cons (car (read-from-string
-                                            (substring is i j)))
-                                      (cons i j))))))
-           ;; Invalid input
-           (t
-            (error "Invalid input character %c" c)))
-          (setq wisent-expr-lexer-input-stream (substring is j))))
+         (k   (string-match "\\S-" is)) ;; skip spaces
+         (lex (list wisent-eoi-term)))
+    (if (not k)
+        nil
+      (setq is (substring is k))
+      (cond
+       ;; Number
+       ((string-match wisent-expr-number-regexp is)
+        (setq lex (list 'NUMBER (read (match-string 0 is)))
+              is  (substring is (match-end 0))))
+       ;; Operator
+       ((setq k (assq (aref is 0) wisent-expr-operators))
+        (setq lex (list (cdr k) (string (aref is 0)))
+              is  (substring is 1)))
+       ;; Invalid input
+       (t
+        (error "Invalid input character '%c'" (aref is 0))))
+      (setq wisent-expr-lexer-input-stream is))
     lex))
 
-(defun wisent-expr-error (msg)
-  (message msg)
-;;  (debug)
-  )
-
-(defun wisent-expr-test ()
-  (interactive)
-  (let ((string (read-from-minibuffer "Expression: ")))
-    (setq wisent-expr-lexer-input-stream string)
+(defun wisent-expr (input)
+  "Infix to prefix expression converter.
+Parse INPUT string and output the result of computation."
+  (interactive "sexpr: ")
+  (or (string-match ";\\s-*$" input)
+      (setq input (concat input ";")))
+  (let ((wisent-expr-lexer-input-stream input))
     (message "%s -> %s"
-             string
+             input
              (wisent-parse wisent-expr-parser-tables
                            #'wisent-expr-lexer
-                           #'wisent-expr-error))))
+                           #'message))))
 
 (provide 'wisent-expr)
 
