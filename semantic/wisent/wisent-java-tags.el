@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.23 2003/03/27 07:47:29 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.24 2003/04/02 10:16:50 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,7 +48,7 @@
 ;;;;
 
 (defconst wisent-java-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-14 09:01+0100
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-04-02 12:07+0200
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -340,7 +340,7 @@ Tweaked for Semantic needs.  That is to avoid full parsing of
 unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-14 09:01+0100
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-04-02 12:07+0200
   (semantic-lex-make-keyword-table
    '(("abstract" . ABSTRACT)
      ("boolean" . BOOLEAN)
@@ -494,7 +494,7 @@ unnecessary stuff to improve performance.")
   "Java keywords.")
 
 (defconst wisent-java-tokens
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-14 09:01+0100
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-04-02 12:07+0200
   (wisent-lex-make-token-table
    '(("number"
       (NUMBER_LITERAL))
@@ -604,7 +604,7 @@ This function override `get-local-variables'."
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-03-14 09:01+0100
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2003-04-02 12:07+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -622,7 +622,7 @@ Use the alternate LALR(1) parser."
      semantic-lex-number-expression semantic-java-number-regexp
      semantic-lex-analyzer 'wisent-java-tags-lexer
      ;; Parsing
-     semantic-expand-nonterminal 'wisent-java-expand-nonterminal
+     semantic-tag-expand-function 'wisent-java-expand-tag
      ;; Environment
      semantic-imenu-summary-function 'semantic-prototype-nonterminal
      imenu-create-index-function 'semantic-create-imenu-index
@@ -657,8 +657,8 @@ Use the alternate LALR(1) parser."
  t ;; They can be changed in mode hook by more specific ones
  'java-mode)
 
-(defun wisent-java-expand-nonterminal (tag)
-  "Expand TAG into a list of equivalent nonterminals, or nil.
+(defun wisent-java-expand-tag (tag)
+  "Expand TAG into a list of equivalent tags, or nil.
 Expand multiple variable declarations in the same statement, that is
 tags of class `variable' whose name is equal to a list of elements of
 the form (NAME START . END).  NAME is a variable name.  START and END

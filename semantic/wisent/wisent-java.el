@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.37 2003/03/27 07:47:29 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.38 2003/04/02 10:16:50 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,7 +48,7 @@
 ;;;;
 
 (defconst wisent-java-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-03-14 09:02+0100
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-02 12:05+0200
   (progn
     (eval-when-compile
       (require 'wisent-comp))
@@ -58,7 +58,7 @@
        (goal
         ((compilation_unit)
          (wisent-raw-tag
-          (semantic-token "goal" 'goal 'tree $1))))
+          (semantic-tag "goal" 'goal 'tree $1))))
        (literal
         ((NULL_LITERAL))
         ((BOOLEAN_LITERAL))
@@ -236,9 +236,9 @@
         (nil)
         ((field_declarations)
          (wisent-raw-tag
-          (semantic-token "goal" 'goal 'tree
-                          (apply 'nconc
-                                 (nreverse $1))))))
+          (semantic-tag "goal" 'goal 'tree
+                        (apply 'nconc
+                               (nreverse $1))))))
        (field_declarations
         ((field_declarations field_declaration_maybe)
          (cons $2 $1))
@@ -585,7 +585,7 @@ Tweaked for Semantic needs.  That is to avoid full parsing of
 unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-03-14 09:02+0100
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-02 12:05+0200
   (semantic-lex-make-keyword-table
    '(("abstract" . ABSTRACT)
      ("boolean" . BOOLEAN)
@@ -739,7 +739,7 @@ unnecessary stuff to improve performance.")
   "Java keywords.")
 
 (defconst wisent-java-tokens
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-03-14 09:02+0100
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-02 12:05+0200
   (wisent-lex-make-token-table
    '(("number"
       (NUMBER_LITERAL))
@@ -805,7 +805,7 @@ unnecessary stuff to improve performance.")
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-03-14 09:02+0100
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2003-04-02 12:05+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -824,7 +824,7 @@ Use the alternate LALR(1) parser."
      semantic-lex-depth nil
      semantic-lex-analyzer 'wisent-java-lexer
      ;; Parsing
-     semantic-expand-nonterminal 'wisent-java-expand-nonterminal
+     semantic-tag-expand-function 'wisent-java-expand-tag
      ;; Environment
      semantic-imenu-summary-function 'semantic-prototype-nonterminal
      imenu-create-index-function 'semantic-create-imenu-index
@@ -859,11 +859,11 @@ Use the alternate LALR(1) parser."
  t ;; They can be changed in mode hook by more specific ones
  'java-mode)
 
-(defun wisent-java-expand-nonterminal (tag)
-  "Expand TAG into a list of equivalent nonterminals, or nil.
-Expand special tags of class 'goal into a list of nonterminals.  Each
-'goal tag has an attribute `tree' whose value is a list of cooked
-nonterminal tags in reverse order.
+(defun wisent-java-expand-tag (tag)
+  "Expand TAG into a list of equivalent tags, or nil.
+Expand special tags of class 'goal into a list of tags.  Each 'goal
+tag has an attribute `tree' whose value is a list of already expanded
+tags in reverse order.
 Expand multiple variable declarations in the same statement, that is
 tags of class `variable' whose name is equal to a list of elements of
 the form (NAME START . END).  NAME is a variable name.  START and END
