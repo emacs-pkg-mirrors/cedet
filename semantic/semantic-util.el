@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.73 2001/08/17 21:09:33 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.74 2001/09/12 04:49:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -74,7 +74,7 @@ interfaces, or abstract classes which are parents of TOKEN."
   `(nth 4 ,token))
 
 (defun semantic-token-type-parent-superclass (token)
-  "Retrieve the parent superclasses of type type TOKEN."
+  "Retrieve a list of parent superclasses for the type token TOKEN."
   (let ((p (semantic-token-type-parent token)))
     (cond ((stringp (car p))
 	   (list (car p)))
@@ -82,7 +82,7 @@ interfaces, or abstract classes which are parents of TOKEN."
 	   (car p)))))
 
 (defun semantic-token-type-parent-implement (token)
-  "Retrieve the parent interfaces of type type TOKEN."
+  "Retrieve a list of parent interfaces for the type token TOKEN."
   (cdr (semantic-token-type-parent token)))
 
 (defmacro semantic-token-type-extra-specs (token)
@@ -1228,6 +1228,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 			(setq r (concat r "[]")
 			      deref (1- deref)))
 		      r)))
+	 (point (semantic-token-extra-spec token 'pointer))
 	 (suffix (if (eq tok 'variable)
 		     (semantic-token-variable-extra-spec token 'suffix)))
 	 )
@@ -1235,6 +1236,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	(setq mods (concat (mapconcat (lambda (a) a) mods " ") " ")))
     (if (and mods color)
 	(setq mods (semantic-colorize-text mods 'type)))
+    (if point (setq point (make-string point ?*)) "")
     (if args
 	(setq args
 	      (concat " "
@@ -1250,6 +1252,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 	      (setq type (semantic-colorize-text type 'type)))))
     (concat (or mods "")
 	    (if type (concat type " "))
+	    point
 	    name
 	    (or args "")
 	    (or array ""))))
