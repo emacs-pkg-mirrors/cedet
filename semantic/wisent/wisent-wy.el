@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.15 2002/08/04 17:36:20 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.16 2002/08/07 18:01:22 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -130,7 +130,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-04 18:51+0200
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-07 13:25+0200
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -260,7 +260,7 @@ It ignores whitespaces, newlines and comments."
             vals nil))))
        (put_name_list
         ((BRACE_BLOCK)
-         (semantic-bovinate-region
+         (semantic-parse-region
           (car $region1)
           (cdr $region1)
           'put_names 1)))
@@ -273,7 +273,7 @@ It ignores whitespaces, newlines and comments."
          (wisent-token $1 'put-name nil nil)))
        (put_value_list
         ((BRACE_BLOCK)
-         (semantic-bovinate-region
+         (semantic-parse-region
           (car $region1)
           (cdr $region1)
           'put_values 1)))
@@ -414,7 +414,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-04 18:51+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-07 13:25+0200
    (semantic-lex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -435,7 +435,7 @@ It ignores whitespaces, newlines and comments."
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-04 18:51+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-07 13:25+0200
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -465,11 +465,11 @@ It ignores whitespaces, newlines and comments."
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-04 18:51+0200
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-08-07 13:25+0200
   (progn
     (semantic-install-function-overrides
-     '((bovinate-nonterminal . wisent-bovinate-nonterminal)))
-    (setq semantic-bovinate-parser-name "LALR"
+     '((parse-stream . wisent-parse-stream)))
+    (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-wy-automaton
           semantic-flex-keywords-obarray wisent-wy-keywords
           wisent-flex-tokens-obarray wisent-wy-tokens)
@@ -532,33 +532,32 @@ ARGS are ASSOC's key value list."
                       (setq key (not key))))
                 args))))
 
-(defun wisent-wy-EXPANDTHING ($i nonterm depth expander)
-  "Return expansion of built-in EXPAND/EXPANDFULL expression.
-$I is the placeholder value to expand.
-NONTERM is the nonterminal symbol to start with.
-DEPTH specifies the lexical depth to decend.
-EXPANDER is the Semantic function called to expand NONTERM"
-  (let* ((n   (symbol-name $i))
-         ($ri (and (string-match "^[$]\\([1-9][0-9]*\\)$" n)
-                   (intern (concat "$region" (match-string 1 n))))))
-    (if $ri
-        `(,expander (car ,$ri) (cdr ,$ri) ',nonterm ,depth))))
+(defsubst wisent-wy-region-placeholder ($n)
+  "Return $regionN placeholder symbol corresponding to given $N one.
+Return nil if $N is not a valid placeholder symbol."
+  (let ((n (symbol-name $i)))
+    (if (string-match "^[$]\\([1-9][0-9]*\\)$" n)
+        (intern (concat "$region" (match-string 1 n))))))
 
 (defun wisent-wy-EXPAND ($i nonterm)
   "Return expansion of built-in EXPAND expression.
 $I is the placeholder value to expand.
 NONTERM is the nonterminal symbol to start with."
-  (or (wisent-wy-EXPANDTHING
-       $i nonterm nil 'semantic-bovinate-from-nonterminal)
-      (error "Invalid form (EXPAND %s %s)" $i nonterm)))
+  (let (($ri (wisent-wy-region-placeholder $i)))
+    (if $ri
+        `(semantic-bovinate-from-nonterminal
+          (car ,$ri) (cdr ,$ri) ',nonterm)
+      (error "Invalid form (EXPAND %s %s)" $i nonterm))))
 
 (defun wisent-wy-EXPANDFULL ($i nonterm)
   "Return expansion of built-in EXPANDFULL expression.
 $I is the placeholder value to expand.
 NONTERM is the nonterminal symbol to start with."
-  (or (wisent-wy-EXPANDTHING
-       $i nonterm 1 'semantic-bovinate-region)
-      (error "Invalid form (EXPANDFULL %s %s)" $i nonterm)))
+  (let (($ri (wisent-wy-region-placeholder $i)))
+    (if $ri
+        `(semantic-parse-region
+          (car ,$ri) (cdr ,$ri) ',nonterm 1)
+      (error "Invalid form (EXPANDFULL %s %s)" $i nonterm))))
 
 (defconst wisent-wy-builtins
   '(
@@ -659,8 +658,8 @@ Warn if other TYPE tokens exist."
   (format
    "(progn\n\
       (semantic-install-function-overrides\n\
-       '((bovinate-nonterminal . wisent-bovinate-nonterminal)))\n\
-      (setq semantic-bovinate-parser-name \"LALR\"\n\
+       '((parse-stream . wisent-parse-stream)))\n\
+      (setq semantic-parser-name \"LALR\"\n\
             semantic-toplevel-bovine-table %s\n\
             semantic-flex-keywords-obarray %s\n\
             wisent-flex-tokens-obarray %s)\n\
