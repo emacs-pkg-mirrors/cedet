@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.86 2003/11/20 04:11:34 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.87 2003/12/11 08:17:25 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -2395,10 +2395,11 @@ You can override the info collecting part with `eldoc-current-symbol-info'."
 		    (t nil)
 		    ))
 
-    (if (not eldoc-echo-area-use-multiline-p)
-	(let ((w (1- (window-width (minibuffer-window)))))
-	  (if (> (length str) w)
-	      (setq str (substring str 0 w)))))
+    (unless (and (boundp 'eldoc-echo-area-use-multiline-p)
+		 eldoc-echo-area-use-multiline-p)
+      (let ((w (1- (window-width (minibuffer-window)))))
+	(if (> (length str) w)
+	    (setq str (substring str 0 w)))))
       
     (eldoc-message str)))
 
