@@ -16,8 +16,8 @@ LOADDEFS=ede-loaddefs.el
 LOADDIRS=.
 ede_LISP=project-am.el ede.el ede-pmake.el ede-pconf.el ede-proj.el ede-dired.el ede-proj-elisp.el ede-proj-misc.el ede-proj-obj.el ede-proj-prog.el ede-proj-archive.el ede-proj-shared.el ede-proj-info.el ede-proj-scheme.el ede-proj-aux.el ede-proj-comp.el ede-source.el ede-util.el ede-system.el ede-speedbar.el
 EMACS=emacs
-aux_lisp_LISP=autoconf-edit.el autoconf-compat.el
-aux_AUX=NEWS README TODO ede-proj-skel.el
+aux-lisp_LISP=autoconf-edit.el autoconf-compat.el
+misc_AUX=NEWS README TODO ede-proj-skel.el
 ede_info_TEXINFOS=ede.texi ede-projects.texi ede-targets.texi ede-sourcecode.texi ede-compilers.texi
 MAKEINFO=makeinfo
 test_AUX=
@@ -26,7 +26,7 @@ DISTDIR=$(top)EDE-$(VERSION)
 
 
 
-all: ede-loaddefs.el ede aux.lisp ede.info
+all: ede-loaddefs.el ede aux-lisp ede.info
 
 .PHONY: ede-loaddefs.el
 ede-loaddefs.el: $(LOADDEFS)
@@ -46,8 +46,8 @@ ede: $(ede_LISP)
 	@echo "(setq debug-on-error t)" >> $@-compile-script
 	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
 
-.PHONY: aux.lisp
-aux.lisp: $(aux_lisp_LISP)
+.PHONY: aux-lisp
+aux-lisp: $(aux-lisp_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
@@ -68,7 +68,7 @@ clean:
 dist: ede.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(LOADDEFS) $(ede_LISP) $(aux_lisp_LISP) $(aux_AUX) $(ede_info_TEXINFOS) ede.info* $(test_AUX) $(ede_FILES) $(DISTDIR)
+	cp $(LOADDEFS) $(ede_LISP) $(aux-lisp_LISP) $(misc_AUX) $(ede_info_TEXINFOS) ede.info* $(test_AUX) $(ede_FILES) $(DISTDIR)
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 
