@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995,1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: widget-d.el,v 1.10 1996/11/27 03:40:46 zappo Exp $
+;;; RCS: $Id: widget-d.el,v 1.11 1996/12/12 03:30:28 zappo Exp $
 ;;; Keywords: OO widget
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -286,8 +286,8 @@ will then appear in the text field.")
 	      :docstring "Holder for scrollbar so we don't make too many of them"
 	      :protection private)
    )
-  "Specialized composite widget which wil build a `widget-text-block'
-of the same dimentions given for our width/height.  A scrollbar will be
+  "Specialized composite widget which will build a `widget-text-block'
+of the same dimensions given for our width/height.  A scrollbar will be
 created just off the edge of our box and it's `maximum' and `minimum' will
 be controlled by the text widget (as it's text gets larger/smaller), and
 the scrollbar's value will alter the text widget's positioning of text.")
@@ -374,10 +374,10 @@ types.")
 
 (defclass widget-arrow-button (widget-button)
   ((activate-hook :initform (lambda-default (obj reason)
-			      "Arrow button Activate-Hook"
-			      (let ((state (oref obj state)))
-				(set-value state (+ (get-value state)
-						    (oref obj adjustment))))))
+			       "Arrow button Activate-Hook"
+			       (let ((state (oref obj state)))
+				 (set-value state (+ (get-value state)
+						     (oref obj adjustment))))))
    (state :initarg :state
 	  :initarg nil
 	  :docstring "The value which will be adjusted when we are activated")
@@ -407,6 +407,11 @@ values.")
    (option-obarray :initform nil
 		   :protection private
 		   :docstring "Obarray used for command line reading of symbols")
+   (title :initarg :title
+	  :initform "Option"
+	  :docstring "String that appears as the completion-prompt, or
+as the title to a popup menu.  When used in a prompt, the form is
+\"Select\" title \": \".")
    (ind-face :initarg :ind-face
 	     :initform widget-indicator-face
 	     :docstring "Face used on the `option-indicator' string"
@@ -496,9 +501,7 @@ form [ horizontal-char vertical-char ]")
 	   :initform "#"
 	   :docstring "Character used to draw the value thumb button indicator")
    )
-  "Not Implemented Completely Yet.
-
-Class of scale.  A scale is merely a thumb marker displaying the current
+  "Class of scale.  A scale is merely a thumb marker displaying the current
 value of some number graphically across some random number of text 
 characters.")
 
@@ -507,10 +510,8 @@ characters.")
 		:initform t)
    (range :initarg :range
 	  :initform 10
-	  :docstring "Range of currently viewable area"))
-  "Not Implemented Completely Yet.
-
-Class for a scrollbar.  A scrollbar also will have a visual range
+	  :docstring "Range of currently viewable area (Not used)"))
+  "Class for a scrollbar.  A scrollbar also will have a visual range
 where the thumbtack changes size based on RANGE.")
    
 
