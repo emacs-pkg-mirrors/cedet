@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.62 2002/03/16 15:46:53 zappo Exp $
+@c $Id: semantic.texi,v 1.63 2002/03/23 03:02:41 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -1459,8 +1459,9 @@ If you prefer debugging against the Lisp table, find the table in a
 buffer, place the cursor in it, and use the command
 @code{semantic-bovinate-debug-set-table} in it.
 
-@deffn Command semantic-bovinate-debug-set-table
+@deffn Command semantic-bovinate-debug-set-table &optional clear
 Set the table for the next debug to be here.
+Optional argument @var{CLEAR} to unset the debug table.
 @end deffn
 
 After the table is set, the @code{bovinate-debug} command can be run
@@ -2689,6 +2690,8 @@ Semantic.
 * imenu::                       Special support for Imenu.
 * semanticdb::                  Cache your parsed buffers between sessions.
 * senator::                     The Semantic Navigator
+* analyzer::                    Analyze local context
+* class browser::               Class hierarchy browser
 * document::                    Document generation functions
 * charts::                      Charting code statistics
 * minor modes::                 Useful minor modes
@@ -2718,6 +2721,9 @@ functions.
 
 If you use @file{semantic-load.el}, you do not need to add the above
 lines in your .emacs file.
+
+Two additional speedbar modes are described in @ref{Speedbar Analysis}, and
+@ref{class browser}.
 
 @node imenu, semanticdb, speedbar, Tools
 @comment  node-name,  next,  previous,  up
@@ -2923,7 +2929,7 @@ If file has database tokens available in the database, return them.
 If file does not have tokens available, then load the file, and create them.
 @end defun
 
-@node senator, document, semanticdb, Tools
+@node senator, analyzer, semanticdb, Tools
 @comment  node-name,  next,  previous,  up
 @section Semantic Navigator
 
@@ -3110,7 +3116,149 @@ only.
 Any comments, suggestions, bug reports or upgrade requests are
 welcome.  Please send them to David Ponce at david@@dponce.com
 
-@node document, charts, senator, Tools
+@node analyzer, class browser, senator, Tools
+@comment  node-name,  next,  previous,  up
+@section Semantic Analyzer
+
+The semantic analyzer is a library tool that performs context
+analysis and can derive useful information.
+
+@deffn Command semantic-analyze-current-context position
+Analyze the current context at @var{POSITION}.
+If called interactively, display interesting information about @var{POSITION}
+in a separate buffer.
+Returns an object based on symbol @dfn{semantic-analyze-context}.
+@end deffn
+
+While this can be used as a command, it is mostly useful that way
+while debugging the analyzer, or tools using the return value.  Use
+the Emacs command @dfn{describe-class} to learn more about using
+@code{semantic-analyze-context}.
+
+Another command that uses the analyzer context derives a completion
+list.
+
+@deffn Command semantic-analyze-possible-completions context
+Return a list of semantic tokens which are possible completions.
+@var{CONTEXT} is either a position (such as point), or a precalculated
+context.  Passing in a context is useful if the caller also needs
+to access parts of the analysis.
+
+Completions run through the following filters:
+
+@table @asis
+@item Elements currently in scope
+@item Constants currently in scope
+@item Elements match the @code{:prefix} in the @var{CONTEXT}.
+@item Type of the completion matches the type of the context.
+@end table
+
+Context type matching can identify the following:
+
+@table @asis
+@item No specific type
+@item Assignment into a variable of some type.
+@item Argument to a function with type constraints.
+@end table
+
+When called interactively, this function displays the list of
+possible completions.  This is useful for debugging.
+@end deffn
+
+@menu
+* Smart Completion ::           Commands for smart completion.
+* Speedbar Analysis ::          Display an analysis in speedbar.
+@end menu
+
+@node Smart Completion, Speedbar Analysis, analyzer, analyzer
+@comment  node-name,  next,  previous,  up
+@subsection Smart Completion
+
+The file @file{semantic-ia.el} contains two commands for performing
+smart completion using the analysis library.  Analysis to calculate
+these completions are done through the analyzer and completion
+mechanism.  These functions just provide commands that can be bound
+to key bindings.
+
+@deffn Command semantic-ia-complete-symbol point
+Complete the current symbol at @var{POINT}.
+Completion options are calculated with
+@dfn{semantic-analyze-possible-completions}.
+@end deffn
+
+@deffn Command semantic-ia-complete-symbol-menu point
+Complete the current symbol via a menu based at @var{POINT}.
+Completion options are calculated with
+@dfn{semantic-analyze-possible-completions}.
+@end deffn
+
+@node Speedbar Analysis, , Smart Completion, analyzer
+@comment  node-name,  next,  previous,  up
+@subsection Speedbar Analysis
+
+The Analyzer output can be used through a speedbar interface.
+This interface lists details about the analysis, such as the current
+function, local arguments and variables, details on the prefix (the
+symbol the cursor is on), and a list of all possible completions.
+Completions are specified in
+@dfn{semantic-analyze-possible-completions}
+@ref{analyzer}.
+
+Each entry can be jumped to by clicking on the name.  For strongly
+typed languages, this means you will jump to the definition of the
+variable, slot, or type definition.
+
+In addition each entry has an <i> button.  Clicking on this will
+display a summary of everything that is known about the variable or
+type displayed on that line.
+
+If you click on the name of a variable in the ``Completions'' menu,
+then the text that was recently analyzed will be replaced with the
+name of the token that was clicked on in speedbar.
+
+@deffn Command semantic-speedbar-analysis
+Start Speedbar in semantic analysis mode.
+The analyzer displays information about the current context, plus a smart
+list of possible completions.
+@end deffn
+
+You can also enter speedbar analyzer mode by selecting ``Analyze''
+from the ``Display'' menu item on speedbar's menu.
+
+@node class browser, document, analyzer, Tools
+@comment  node-name,  next,  previous,  up
+@section Class Browser
+
+The semantic class browser is a library that can covert a project
+group of files into an EIEIO based structure that contains links
+between structures so that the inheritance links between semantic
+tokens can be easily navigated.
+
+The core to this library is one function in @file{semantic-cb.el}.
+
+@defun semantic-cb-new-class-browser
+Create an object representing this project's organization.
+The object returned is of type @dfn{semantic-cb-project}, which contains
+the slot `:types', a list of all top-level types.  Each element is a
+class of type @dfn{semantic-cb-token}, or @dfn{semantic-cb-type}.
+@end defun
+
+Use the Emacs function `describe-class' to learn more about these
+classes.
+
+You can access the class inheritance structure through a speedbar
+interface.  You can choose the ``Class Browser'' option from
+Speedbar's ``Display'' menu item, or use the following command:
+
+@deffn Command semantic-cb-speedbar-mode
+Bring speedbar up, and put it into Class Browser mode.
+This will use the Class Browser logic applied to the current Semantic
+project database to build the available relations.  The structure of
+the class hierarchy can then be navigated using traditional speedbar
+interactions.
+@end deffn
+
+@node document, charts, class browser, Tools
 @comment  node-name,  next,  previous,  up
 @section Document generation
 
