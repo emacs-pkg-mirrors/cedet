@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.5 2003/07/09 15:21:50 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.6 2003/07/16 14:05:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -440,9 +440,9 @@ Used by `semantic-format-tag-uml-protection-to-string'."
 (defun semantic--format-uml-post-colorize (text tag parent)
   "Add color to TEXT created from TAG and PARENT.
 Adds augmentation for `abstract' and `static' entries."
-  (if (semantic-nonterminal-abstract tag parent)
+  (if (semantic-tag-abstract tag parent)
       (setq text (semantic--format-colorize-merge-text text 'abstract)))
-  (if (semantic-nonterminal-static tag parent)
+  (if (semantic-tag-static tag parent)
       (setq text (semantic--format-colorize-merge-text text 'static)))
   text
   )
@@ -450,9 +450,9 @@ Adds augmentation for `abstract' and `static' entries."
 (defun semantic-uml-attribute-string (tag &optional parent)
   "Return a string for TAG, a child of PARENT representing a UML attribute.
 UML attribute strings are things like {abstract} or {leaf}."
-  (cond ((semantic-nonterminal-abstract tag parent)
+  (cond ((semantic-tag-abstract tag parent)
 	 "{abstract}")
-	((semantic-nonterminal-leaf tag parent)
+	((semantic-tag-leaf tag parent)
 	 "{leaf}")
 	))
 
@@ -475,7 +475,7 @@ If PROTECTION-SYMBOL is unknown, then the return value is
 (defsubst semantic-format-tag-uml-protection (tag parent)
   "Retrieve the protection string for TAG with PARENT."
   (semantic-format-tag-uml-protection-to-string
-   (semantic-nonterminal-protection tag parent)))
+   (semantic-tag-protection tag parent)))
 
 (defun semantic--format-tag-uml-type (tag color)
   "Format the data type of TAG to a string usable for formatting.
