@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.237 2004/02/23 13:57:25 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.238 2004/02/24 01:30:42 zappo Exp $
 
 (defvar speedbar-version "0.15beta2"
   "The current version of speedbar.")
@@ -1345,10 +1345,12 @@ Assumes that the current buffer is the speedbar buffer."
 
 ;;; Speedbar file activity (aka creeping featurism)
 ;;
-(defun speedbar-refresh ()
-  "Refresh the current speedbar display, disposing of any cached data."
-  (interactive)
+(defun speedbar-refresh (arg)
+  "Refresh the current speedbar display, disposing of any cached data.
+Argument ARG represents to force a refresh past any caches that may exist."
+  (interactive "P")
   (let ((dl speedbar-shown-directories)
+	(dframe-power-click arg)
 	deactivate-mark)
     ;; We need to hack something so this works in detached frames.
     (while dl
