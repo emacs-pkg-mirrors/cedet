@@ -1,3 +1,38 @@
+* Changes for Semantic 1.4.3
+
+** Enhancements to the C/C++ grammar (now really complex C++ can be parsed)
+
+*** Fixed some aspects of 'using' (e.g. now "using namespace XXX" is possible)
+
+*** Fixed some aspects with namespaces, e.g. now unnamed namespaces are
+    correct parsed and "unnamed" is added as type-name and namespace-qualified
+    class-names are now allowed whereever it is necessary
+
+*** Better and complete handling of builtin-types, means better handling of
+    signed and unsigned, supporting composed builtins like 'long int'
+
+*** Improved template parsing:
+
+**** Templates in combination with namespaces
+
+**** Outside method-implementations for template classes are now correct parsed
+     and also correct grouped to the type of the template class-declaration
+
+**** Template-specifier can now contain normal args like "int i" which is very
+     important.
+
+**** Template-specifiers are allowed in class-qualifiers
+
+*** Improving macro-parsing, i.e. now also multiline-macros (every line ending
+    with a \) are parsed correctly; same for arbitrary one-liners
+    
+*** C++ keyword 'typename' is recognized and parsed now
+
+*** operator()() and operator[]() are parsed correctly
+
+*** Some minor fixes
+
+
 * Changes for Semantic 1.4.2
 
 ** Added namespaces support to the C/C++ grammar.
