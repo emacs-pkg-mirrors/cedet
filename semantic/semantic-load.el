@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.36 2003/07/18 05:26:53 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.37 2003/07/29 15:14:42 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -44,6 +44,9 @@
 
 ;;; Useful predefined setup
 ;;
+(defvar semantic-load-imenu-string "TAGS"
+  "String used in `semantic-load' startup for the Imenu menu item.")
+
 (defvar semantic-load-turn-everything-on nil
   "Non-nil means turn on all features in the semantic package.")
 
@@ -64,7 +67,8 @@ other criteria.")
 	     (locate-library "imenu"))
     (add-hook 'semantic-init-hooks (lambda ()
 				     (condition-case nil
-					 (imenu-add-to-menubar "TOKENS")
+					 (imenu-add-to-menubar
+					  semantic-load-imenu-string)
 				       (error nil)))))
 
   (when semantic-load-turn-everything-on
