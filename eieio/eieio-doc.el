@@ -1,9 +1,9 @@
 ;;; eieio-doc.el --- create texinfo documentation for an eieio class
 
-;;; Copyright (C) 1996, 1998, 1999 Eric M. Ludlam
+;;; Copyright (C) 1996, 1998, 1999, 2000 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-doc.el,v 1.13 2000/07/14 02:30:33 zappo Exp $
+;; RCS: $Id: eieio-doc.el,v 1.14 2000/09/25 01:52:28 zappo Exp $
 ;; Keywords: OO, lisp, docs
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -48,6 +48,13 @@ Can be referenced from the recursed function.")
 (defvar eieiodoc-next-class nil
   "Non-nil when `eieiodoc-recurse' is running.
 Can be referenced from the recursed function.")
+
+(defun eieiodoc-class-nuke (root-class indexstring &optional skiplist)
+  "Call `eieiodoc-class' after nuking everything from POINT on.
+ROOT-CLASS, INDEXSTRING, and SKIPLIST are the same as `eieiodoc-class'."
+  (delete-region (point) (point-max))
+  (sit-for 0)
+  (eieiodoc-class root-class indexstring skiplist))
 
 (defun eieiodoc-class (root-class indexstring &optional skiplist)
   "Create documentation starting with ROOT-CLASS.
@@ -175,7 +182,68 @@ Argument LEVEL is the current level of recursion we have hit."
 	  (if (not set-one) (delete-region (point) anchor))
 	  ))
     (insert "@end table\n")
+    ;; Finally, document all the methods associated with this class.
+    (let ((methods (eieio-all-generic-functions class))
+	  (doc nil))
+      (if (not methods) nil
+	(insert "@sub" eieiodoc-current-section-level
+		" Specialized Methods\n\n")
+	(while methods
+	  (setq doc (eieio-method-documentation (car methods) class))
+	  (insert "@deffn Method " (symbol-name (car methods)))
+	  (if (not doc)
+	      (insert "\n  Undocumented")
+	    (if (car doc)
+		(progn
+		  (insert " :BEFORE ")
+		  (eieiodoc-output-deffn-args (car (car doc)))
+		  (insert "\n")
+		  (eieiodoc-insert-and-massage-docstring-with-args
+		   (cdr (car doc)) (car (car doc)) class)))
+	    (setq doc (cdr doc))
+	    (if (car doc)
+		(progn
+		  (insert " :PRIMARY ")
+		  (eieiodoc-output-deffn-args (car (car doc)))
+		  (insert "\n")
+		  (eieiodoc-insert-and-massage-docstring-with-args
+		   (cdr (car doc)) (car (car doc)) class)))
+	    (setq doc (cdr doc))
+	    (if (car doc)
+		(progn
+		  (insert " :AFTER ")
+		  (eieiodoc-output-deffn-args (car (car doc)))
+		  (insert "\n")
+		  (eieiodoc-insert-and-massage-docstring-with-args
+		   (cdr (car doc)) (car (car doc)) class)))
+	    (insert "\n@end deffn\n\n"))
+	  (setq methods (cdr methods)))))
     ))
+
+(defun eieiodoc-insert-and-massage-docstring-with-args (doc arglst class)
+  "Update DOC with texinfo strings using ARGLST with @var.
+Argument CLASS is the class passed to `eieiodoc-texify-docstring'."
+  (let ((start (point))
+	(end nil)
+	(case-fold-search nil))
+    ;; Insert the text
+    (insert (eieiodoc-texify-docstring doc class))
+    (setq end (point))
+    (save-restriction
+      (narrow-to-region start end)
+      (save-excursion
+	;; Now find arguments
+	(while arglst
+	  (goto-char (point-min))
+	  (while (re-search-forward (upcase (symbol-name (car arglst))) nil t)
+	    (replace-match "@var{\\&}" t))
+	  (setq arglst (cdr arglst)))))))
+
+(defun eieiodoc-output-deffn-args (arglst)
+  "Output ARGLST for a deffn."
+  (while arglst
+    (insert (symbol-name (car arglst)) " ")
+    (setq arglst (cdr arglst))))
 
 (defun eieiodoc-one-attribute (class attribute doc priv deflt type)
   "Create documentation of CLASS for a single ATTRIBUTE.
@@ -196,7 +264,7 @@ validation is done on that slot."
       (if (and type (not (eq type t)))
 	  (insert "\nType: @code{" (format "%S" type) "}"))
       (if (not (eq deflt eieio-unbound))
-	  (insert "\nDefault Value: @code{"(format "%S" deflt) "}"))
+	  (insert " @*\nDefault Value: @code{"(format "%S" deflt) "}"))
       (insert "\n\n")
       (if (eq pv 'default)
 	  ;; default differs only, xref the parent
@@ -283,10 +351,8 @@ that class.
 			     (if (and (class-p v) (not (eq v class)))
 				 (concat " @xref{" vs "}.")))
 			    nil t string)))))
-  (while (string-match "\\( \\|^\\)\\(nil\\|t\\|'[-a-zA-Z0-9]+\\|:[-a-zA-Z0-9]+\\)\\([ ,]\\|$\\)" string)
+  (while (string-match "\\( \\|^\\|-\\)\\(nil\\|t\\|'[-a-zA-Z0-9]+\\|:[-a-zA-Z0-9]+\\)\\([ ,]\\|$\\)" string)
     (setq string (replace-match "@code{\\2}" t nil string 2)))
-  (while (string-match "\\( \\|^\\)\\(\\(non-\\)\\(nil\\)\\)\\([ ,]\\|$\\)" string)
-    (setq string (replace-match "\\2@code{\\3}" t nil string 2)))
   (while (string-match "\\( \\|^\\)\\(\\[[^]]+\\]\\)\\( \\|$\\)" string)
     (setq string (replace-match "@code{\\2}" t nil string 2)))
   (while (string-match "\\( \\|^\\)\\(\\(\\(C-\\|M-\\|S-\\)+\\([^ \t\n]\\|RET\\|SPC\\|TAB\\)\\)\\|\\(RET\\|SPC\\|TAB\\)\\)\\( \\|$\\)" string)
