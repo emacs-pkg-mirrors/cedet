@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.21 2002/06/29 18:06:40 ponced Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.22 2002/09/16 01:43:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -71,6 +71,7 @@ go up past the bounds of that token."
       (if bounds-type (error "No context of type %s to advance in" bounds-type))
       (if s (funcall s)
 	(semantic-up-context-default)))))
+(put 'semantic-up-context 'semantic-overload 'up-context)
 
 (defun semantic-up-context-default ()
   "Move the point up and out one context level.
@@ -83,39 +84,30 @@ Works with languages that use parenthetical grouping."
 	nil)
     (error t)))
 
-(defun semantic-beginning-of-context (&optional point)
+(define-overload semantic-beginning-of-context (&optional point)
   "Move POINT to the beginning of the current context.
 Return non-nil if there is no upper context.
-The default behavior uses `semantic-up-context'.  It can
-be overridden with `beginning-of-context'."
-  (if point (goto-char point))
-  (let ((s (semantic-fetch-overload 'beginning-of-context)))
-    (if s (funcall s)
-      (semantic-beginning-of-context-default)
-      )))
+The default behavior uses `semantic-up-context'.")
 
-(defun semantic-beginning-of-context-default ()
-  "Move point to the beginning of the current context via parenthisis.
+(defun semantic-beginning-of-context-default (&optional point)
+  "Move POINT to the beginning of the current context via parenthisis.
 Return non-nil if there is no upper context."
+  (if point (goto-char point))
   (if (semantic-up-context)
       t
     (forward-char 1)
     nil))
 
-(defun semantic-end-of-context (&optional point)
+(define-overload semantic-end-of-context (&optional point)
   "Move POINT to the end of the current context.
 Return non-nil if there is no upper context.
 Be default, this uses `semantic-up-context', and assumes parenthetical
-block delimiters.  This can be overridden with `end-of-context'."
-  (if point (goto-char point))
-  (let ((s (semantic-fetch-overload 'end-of-context)))
-    (if s (funcall s)
-      (semantic-end-of-context-default)
-      )))
+block delimiters.")
 
-(defun semantic-end-of-context-default ()
-  "Move point to the end of the current context via parenthisis.
+(defun semantic-end-of-context-default (&optional point)
+  "Move POINT to the end of the current context via parenthisis.
 Return non-nil if there is no upper context."
+  (if point (goto-char point))
   (if (semantic-up-context)
       t
     ;; Go over the list, and back over the end parenthisis.
@@ -141,7 +133,7 @@ Return non-nil if there is no upper context."
   `(save-restriction
      (semantic-narrow-to-context)
      ,@body))
-(put 'semantic-with-buffer-narrowed-to-context 'lisp-indent-function 1)
+(put 'semantic-with-buffer-narrowed-to-context 'lisp-indent-function 0)
 (add-hook 'edebug-setup-hook
 	  (lambda ()
 	    (def-edebug-spec semantic-with-buffer-narrowed-to-context
@@ -167,9 +159,10 @@ This can be overriden with `get-local-variables'."
              (case-fold-search semantic-case-fold))
         (if s
             (funcall s)
-          (semantic-get-local-variables-default))))))
+          (semantic-get-local-variables-default point))))))
+(put 'semantic-get-local-variables 'semantic-overload 'get-local-variables)
 
-(defun semantic-get-local-variables-default ()
+(defun semantic-get-local-variables-default (&optional point)
   "Get local values from a specific context.
 Uses the bovinator with the special top-symbol `bovine-inner-scope'
 to collect tokens, such as local variables or prototypes."
@@ -223,36 +216,34 @@ Part of this behavior can be overridden with `get-local-arguments'."
                        (error "Unknown parameter element")))
                      rparams)))
     (nreverse rparams)))
+(put 'semantic-get-local-arguments 'semantic-overload 'get-local-arguments)
 
-(defun semantic-get-local-arguments-default ()
+(defun semantic-get-local-arguments-default (&optional point)
   "Get arguments (variables) from the current context.
 Parameters are available if the point is in a function or method."
+  (if point (goto-char point))
   (let ((tok (semantic-current-nonterminal)))
     (if (and tok (eq (semantic-token-token tok) 'function))
 	(semantic-token-function-args tok))))
 
-(defun semantic-get-all-local-variables (&optional point)
+(define-overload semantic-get-all-local-variables (&optional point)
   "Get all local variables for this context, and parent contexts.
 Local variables are returned in Semantic token format.
 Be default, this gets local variables, and local arguments.
-This can be overridden with `get-all-local-variables'.
-Optional argument POINT is the location to start getting the variables from."
-  (save-excursion
-    (if point (goto-char point))
-    (let ((s (semantic-fetch-overload 'get-all-local-variables))
-	  (case-fold-search semantic-case-fold))
-      (if s (funcall s)
-	(semantic-get-all-local-variables-default)
-	))))
+Optional argument POINT is the location to start getting the variables from.")
 
-(defun semantic-get-all-local-variables-default ()
+(defun semantic-get-all-local-variables-default (&optional point)
   "Get all local variables for this context.
+Optional argument POINT is the location to start getting the variables from.
 That is a cons (LOCAL-ARGUMENTS . LOCAL-VARIABLES) where:
 
 - LOCAL-ARGUMENTS is collected by `semantic-get-local-arguments'.
 - LOCAL-VARIABLES is collected by `semantic-get-local-variables'."
-  (cons (semantic-get-local-arguments)
-        (semantic-get-local-variables)))
+  (save-excursion
+    (if point (goto-char point))
+    (let ((case-fold-search semantic-case-fold))
+      (cons (semantic-get-local-arguments)
+	    (semantic-get-local-variables)))))
 
 ;;; Local context parsing
 ;;
@@ -267,52 +258,43 @@ That is a cons (LOCAL-ARGUMENTS . LOCAL-VARIABLES) where:
 ;; argument     - The index to the argument the cursor is on.
 ;;
 ;;
-(defun semantic-end-of-command ()
+(define-overload semantic-end-of-command ()
   "Move to the end of the current command.
-Be default, uses `semantic-command-separation-character'.
-Override with `end-of-command'."
-  (semantic-with-buffer-narrowed-to-context
-      (let ((s (semantic-fetch-overload 'end-of-command))
-	    (case-fold-search semantic-case-fold))
-	(if s (funcall s)
-	  (semantic-end-of-command-default)
-	  ))))
+Be default, uses `semantic-command-separation-character'.")
 
 (defun semantic-end-of-command-default ()
   "Move to the beginning of the current command.
 Depends on `semantic-command-separation-character' to find the
 beginning and end of a command."
-  (if (re-search-forward (regexp-quote semantic-command-separation-character)
-			 nil t)
-      (forward-char -1)
-    ;; If there wasn't a command after this, we are the last
-    ;; command, and we are incomplete.
-    (goto-char (point-max))))
-
-(defun semantic-beginning-of-command ()
-  "Move to the beginning of the current command.
-Be default, users `semantic-command-separation-character'.
-Override with `beginning-of-command'."
   (semantic-with-buffer-narrowed-to-context
-      (let ((s (semantic-fetch-overload 'beginning-of-command))
-	    (case-fold-search semantic-case-fold))
-	(if s (funcall s)
-	  (semantic-beginning-of-command-default)
-	  ))))
+    (let ((case-fold-search semantic-case-fold))
+
+      (if (re-search-forward (regexp-quote semantic-command-separation-character)
+			     nil t)
+	  (forward-char -1)
+	;; If there wasn't a command after this, we are the last
+	;; command, and we are incomplete.
+	(goto-char (point-max))))))
+
+(define-overload semantic-beginning-of-command ()
+  "Move to the beginning of the current command.
+Be default, users `semantic-command-separation-character'.")
 
 (defun semantic-beginning-of-command-default ()
   "Move to the beginning of the current command.
 Depends on `semantic-command-separation-character' to find the
 beginning and end of a command."
-  (skip-chars-backward semantic-command-separation-character)
-  (if (re-search-backward (regexp-quote semantic-command-separation-character)
-			  nil t)
-      (goto-char (match-end 0))
-    ;; If there wasn't a command after this, we are the last
-    ;; command, and we are incomplete.
-    (goto-char (point-min)))
-  (skip-chars-forward " \t\n")
-  )
+  (semantic-with-buffer-narrowed-to-context
+    (let ((case-fold-search semantic-case-fold))
+      (skip-chars-backward semantic-command-separation-character)
+      (if (re-search-backward (regexp-quote semantic-command-separation-character)
+			      nil t)
+	  (goto-char (match-end 0))
+	;; If there wasn't a command after this, we are the last
+	;; command, and we are incomplete.
+	(goto-char (point-min)))
+      (skip-chars-forward " \t\n")
+      )))
 
 
 (defsubst semantic-point-at-beginning-of-command ()
@@ -333,32 +315,27 @@ beginning and end of a command."
   `(save-restriction
      (semantic-narrow-to-command)
      ,@body))
-(put 'semantic-with-buffer-narrowed-to-command 'lisp-indent-function 1)
+(put 'semantic-with-buffer-narrowed-to-command 'lisp-indent-function 0)
 (add-hook 'edebug-setup-hook
 	  (lambda ()
 	    (def-edebug-spec semantic-with-buffer-narrowed-to-command
 	      (def-body))))
 
 
-(defun semantic-ctxt-current-symbol (&optional point)
+(define-overload semantic-ctxt-current-symbol (&optional point)
   "Return the current symbol the cursor is on at POINT in a list.
-This will include a list of type/field names when applicable.
-This can be overridden using `ctxt-current-symbol'."
-  (if point (goto-char point))
-  (let ((s (semantic-fetch-overload 'ctxt-current-symbol))
-	(case-fold-search semantic-case-fold))
-    (if s (funcall s)
-      (semantic-ctxt-current-symbol-default)
-      )))
+This will include a list of type/field names when applicable.")
 
-(defun semantic-ctxt-current-symbol-default ()
+(defun semantic-ctxt-current-symbol-default (&optional point)
   "Return the current symbol the cursor is on at POINT in a list.
 This will include a list of type/field names when applicable.
 Depends on `semantic-type-relation-separator-character'."
+  (if point (goto-char point))
   (let* ((fieldsep1 (mapconcat (lambda (a) (regexp-quote a))
 			       semantic-type-relation-separator-character
 			       "\\|"))
 	 (fieldsep (concat "\\(" fieldsep1 "\\)\\(\\w\\|\\s_\\)"))
+	 (case-fold-search semantic-case-fold)
 	 (symlist nil)
 	 end)
     (save-excursion
@@ -401,23 +378,18 @@ Depends on `semantic-type-relation-separator-character'."
 	(error nil)))
     symlist))
 
-(defun semantic-ctxt-current-assignment (&optional point)
+(define-overload semantic-ctxt-current-assignment (&optional point)
   "Return the current assignment near the cursor at POINT.
 Return a list as per `semantic-ctxt-current-symbol'.
-Return nil if there is nothing relevant.
-Override with `ctxt-current-assignment'."
-  (if point (goto-char point))
-  (let ((s (semantic-fetch-overload 'ctxt-current-assignment))
-	(case-fold-search semantic-case-fold))
-    (if s (funcall s)
-      (semantic-ctxt-current-assignment-default)
-      )))
+Return nil if there is nothing relevant.")
 
-(defun semantic-ctxt-current-assignment-default ()
+(defun semantic-ctxt-current-assignment-default (&optional point)
   "Return the current assignment near the cursor at POINT.
 By default, assume that \"=\" indicates an assignment."
-  (condition-case nil
-      (semantic-with-buffer-narrowed-to-command
+  (if point (goto-char point))
+  (let ((case-fold-search semantic-case-fold))
+    (condition-case nil
+	(semantic-with-buffer-narrowed-to-command
 	  (save-excursion
 	    (skip-chars-forward " \t=")
 	    (condition-case nil (forward-char 1) (error nil))
@@ -426,69 +398,59 @@ By default, assume that \"=\" indicates an assignment."
 	    ;; we'll have the variable.  Otherwise we threw an error
 	    (forward-sexp -1)
 	    (semantic-ctxt-current-symbol)))
-    (error nil)))
+      (error nil))))
 
-(defun semantic-ctxt-current-function (&optional point)
-  "Return the current function the cursor is in at POINT.
+(define-overload semantic-ctxt-current-function (&optional point)
+  "Return the current function call the cursor is in at POINT.
 The function returned is the one accepting the arguments that
 the cursor is currently in.  It will not return function symbol if the
-cursor is on the text representing that function.
-This can be overridden with `ctxt-current-function'."
+cursor is on the text representing that function.")
+
+(defun semantic-ctxt-current-function-default (&optional point)
+  "Return the current function call the cursor is in at POINT.
+The call will be identifed for C like langauges with the form
+ NAME ( args ... )"
   (if point (goto-char point))
-  (let ((s (semantic-fetch-overload 'ctxt-current-function))
-	(case-fold-search semantic-case-fold))
-    (if s (funcall s)
-      (semantic-ctxt-current-function-default)
-      )))
+  (let ((case-fold-search semantic-case-fold))
+    (save-excursion
+      (semantic-up-context)
+      (when (looking-at "(")
+	(semantic-ctxt-current-symbol)))
+    ))
 
-(defun semantic-ctxt-current-function-default ()
-  "Default function for `semantic-ctxt-current-function'."
-  (save-excursion
-    (semantic-up-context)
-    (when (looking-at "(")
-      (semantic-ctxt-current-symbol)))
-  )
+(define-overload semantic-ctxt-current-argument (&optional point)
+  "Return the index of the argument position the cursor is on at POINT.")
 
-(defun semantic-ctxt-current-argument (&optional point)
-  "Return the index of the argument position the cursor is on at POINT.
-Override with `ctxt-current-argument'."
-  (if point (goto-char point))
-  (let ((s (semantic-fetch-overload 'ctxt-current-argument))
-	(case-fold-search semantic-case-fold))
-    (if s (funcall s)
-      (semantic-ctxt-current-argument-default)
-      )))
-
- (defun semantic-ctxt-current-argument-default ()
+(defun semantic-ctxt-current-argument-default (&optional point)
   "Return the index of the argument the cursor is on.
 Depends on `semantic-function-argument-separation-character'."
-  (when (semantic-ctxt-current-function)
-    (save-excursion
-      ;; Only get the current arg index if we are in function args.
-      (let ((p (point))
-	    (idx 1))
-	(semantic-up-context)
-	(while (re-search-forward
-		(regexp-quote semantic-function-argument-separation-character)
-		p t)
-	  (setq idx (1+ idx)))
-	idx))))
-
-(defun semantic-ctxt-scoped-types (&optional point)
-  "Return a list of type names currently in scope at POINT.
-Override with `ctxt-scoped-types'."
   (if point (goto-char point))
-  (let ((s (semantic-fetch-overload 'ctxt-scoped-types))
-	(case-fold-search semantic-case-fold))
-    (if s (funcall s)
-      (semantic-ctxt-scoped-types-default)
-      )))
+  (let ((case-fold-search semantic-case-fold))
+    (when (semantic-ctxt-current-function)
+      (save-excursion
+	;; Only get the current arg index if we are in function args.
+	(let ((p (point))
+	      (idx 1))
+	  (semantic-up-context)
+	  (while (re-search-forward
+		  (regexp-quote semantic-function-argument-separation-character)
+		  p t)
+	    (setq idx (1+ idx)))
+	  idx)))))
 
-(defun semantic-ctxt-scoped-types-default ()
-  "Return a list of scoped types by name for the current context.
+(define-overload semantic-ctxt-scoped-types (&optional point)
+  "Return a list of type names currently in scope at POINT.")
+
+(defun semantic-ctxt-scoped-types-default (&optional point)
+  "Return a list of scoped types by name for the current context at POINT..
 This is very different for various languages, and does nothing unless
 overriden."
-  nil)
+  (if point (goto-char point))
+  (let ((case-fold-search semantic-case-fold))
+    ;; We need to look at TYPES withing the bounds of locally parse arguments.
+    ;; C needs to find using statements and the like too.  Bleh.
+    nil
+    ))
 
 (provide 'semantic-ctxt)
 
