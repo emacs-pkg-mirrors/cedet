@@ -142,9 +142,9 @@ clean:
 
 .PHONY: dist
 
-dist: $(metagrammar_SAMENATIC_GRAMMAR_EL)
+dist: autoloads $(metagrammar_SAMENATIC_GRAMMAR_EL)
 	mkdir $(DISTDIR)
-	cp $(metagrammar_SEMANTIC_GRAMMAR) $(metagrammar_SAMENATIC_GRAMMAR_EL) $(maintenance_LISP) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
+	cp semantic-loaddefs.el $(metagrammar_SEMANTIC_GRAMMAR) $(metagrammar_SAMENATIC_GRAMMAR_EL) $(maintenance_LISP) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/wisent dist
 	cd tests; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/tests dist
 	cd doc; $(MAKE) $(MFLAGS) DISTDIR=$(DISTDIR)/doc dist
