@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.el,v 1.3 2003/09/07 01:53:45 zappo Exp $
+;; X-RCS: $Id: wisent-dot.el,v 1.4 2003/09/14 08:29:01 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -90,7 +90,7 @@ It ignores whitespace, newlines nad comments."
    semantic-lex-analyzer 'wisent-dot-lexer
    ;; Parsing
    ;; Environment
-   semantic-imenu-summary-function 'semantic-name-nonterminal
+   semantic-imenu-summary-function 'semantic-format-tag-name
    imenu-create-index-function 'semantic-create-imenu-index
    semantic-command-separation-character ";"
    ;; Speedbar
@@ -99,12 +99,12 @@ It ignores whitespace, newlines nad comments."
      (digraph . "Directed Graph")
      (node . "Node")
      )
-   senator-step-at-token-ids '(graph digraph)
-   )
-  (setq semantic-lex-analyzer #'wisent-dot-lexer))
+   ;; Navigation
+   senator-step-at-tag-classes '(graph digraph)
+   ))
 
 ;;;###autoload
-(add-hook 'graphviz-dot-mode-hook #'wisent-dot-setup-parser)
+(add-hook 'graphviz-dot-mode-hook 'wisent-dot-setup-parser)
 
 (provide 'wisent-dot)
 
