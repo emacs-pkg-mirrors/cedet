@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.3 1999/01/21 21:24:27 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.4 1999/11/10 14:33:03 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -37,8 +37,6 @@
 
 ;;; Code:
 (eval-when-compile (require 'speedbar))
-
-(require 'project-am)
 
 ;;; Speedbar support mode
 ;;
@@ -138,50 +136,6 @@ expansion depth."
 			  nil this  ; nothing to jump to
 			  'speedbar-file-face depth))
 
-(defmethod ede-sb-button ((this project-am-program) depth)
-  "Create a speedbar button for object THIS at DEPTH."
-  (speedbar-make-tag-line 'angle ?+
-			  'ede-object-expand
-			  this (ede-name this)
-			  nil nil  ; nothing to jump to
-			  'speedbar-file-face depth))
-
-(defmethod ede-sb-button ((this project-am-lib) depth)
-  "Create a speedbar button for object THIS at DEPTH."
-  (speedbar-make-tag-line 'angle ?+
-			  'ede-object-expand
-			  this (ede-name this)
-			  nil nil  ; nothing to jump to
-			  'speedbar-file-face depth))
-
-(defmethod ede-sb-button ((this project-am-texinfo) depth)
-  "Create a speedbar button for object THIS at DEPTH."
-  (speedbar-make-tag-line 'bracket ?+
-			  'ede-object-expand
-			  this
-			  (ede-name this)
-			  'ede-file-find
-			  (concat (oref this :path)
-				  (oref this :name))
-			  'speedbar-file-face depth))
-
-(defmethod ede-sb-button ((this project-am-man) depth)
-  "Create a speedbar button for object THIS at DEPTH."
-  (speedbar-make-tag-line 'bracket ?? nil nil
-			  (ede-name this)
-			  'ede-file-find
-			  (concat (oref this :path)
-				  (oref this :name))
-			  'speedbar-file-face depth))
-
-(defmethod ede-sb-button ((this project-am-lisp) depth)
-  "Create a speedbar button for object THIS at DEPTH."
-  (speedbar-make-tag-line 'angle ?+
-			  'ede-object-expand
-			  this (ede-name this)
-			  nil nil  ; nothing to jump to
-			  'speedbar-file-face depth))
-
 (defun ede-object-expand (text token indent)
   "Expand an object.
 TEXT is the text clicked on.  TOKEN is the object we are expanding from.
@@ -226,65 +180,6 @@ method for the actual text."
 				      (concat (oref this :path) car)
 				      'speedbar-file-face depth))
 	    source)))
-
-(defmethod ede-sb-expand ((this project-am-objectcode) depth)
-  "Expand node describing something built into objectcode.
-TEXT is the text clicked on.  TOKEN is the object we are expanding from.
-INDENT is the current indentatin level."
-  (let ((sources (oref this :source)))
-    (while sources
-      (speedbar-make-tag-line 'bracket ?+
-			      'ede-tag-file
-			      (concat (oref this :path)
-				      (car sources))
-			      (car sources)
-			      'ede-file-find
-			      (concat
-			       (oref this :path)
-			       (car sources))
-			      'speedbar-file-face depth)
-      (setq sources (cdr sources)))))
-
-(defmethod ede-sb-expand ((this project-am-texinfo) depth)
-  "Expand node describing a texinfo manual.
-TEXT is the text clicked on.  TOKEN is the object we are expanding from.
-INDENT is the current indentatin level."
-  (let ((includes (oref this :include)))
-    (while includes
-      (speedbar-make-tag-line 'bracket ?+
-			      'ede-tag-file
-			      (concat (oref this :path)
-				      (car includes))
-			      (car includes)
-			      'ede-file-find
-			      (concat
-			       (oref this :path)
-			       (car includes))
-			      'speedbar-file-face depth)
-      (setq includes (cdr includes)))
-    ;; Not only do we show the included files (for future expansion)
-    ;; but we also want to display tags for this file too.
-    (ede-create-tag-buttons (concat (oref this :path)
-					   (oref this :name))
-				   depth)))
-
-(defmethod ede-sb-expand ((this project-am-lisp) depth)
-  "Expand node describing lisp code.
-TEXT is the text clicked on.  TOKEN is the object we are expanding from.
-INDENT is the current indentatin level."
-  (let ((sources (oref this :lisp)))
-    (while sources
-      (speedbar-make-tag-line 'bracket ?+
-			      'ede-tag-file
-			      (concat (oref this :path)
-				      (car sources))
-			      (car sources)
-			      'ede-file-find
-			      (concat
-			       (oref this :path)
-			       (car sources))
-			      'speedbar-file-face depth)
-      (setq sources (cdr sources)))))
 
 (defun ede-file-find (text token indent)
   "Find the file TEXT at path TOKEN.
