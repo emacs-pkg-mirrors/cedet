@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.5 2002/07/15 10:29:34 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.6 2002/07/16 21:13:43 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -470,6 +470,65 @@ See `define-lex-analyzer' for more about analyzers."
 				 (match-beginning ,(or index 0))
 				 (match-end ,(or index 0)))))
      ))
+
+;;;###autoload
+(defmacro define-lex-block-analyzer (name doc spec1 &rest specs)
+  "Create a lexical analyzer NAME for paired delimiters blocks.
+It detects a paired delimiters block or the corresponding open or
+close delimiter depending on the value of the variable
+`current-depth'.  DOC is the documentation string of the lexical
+analyzer.  SPEC1 and SPECS specify the token symbols and open, close
+delimiters used.  Each SPEC has the form:
+
+\(BLOCK-SYM (OPEN-DELIM OPEN-SYM) (CLOSE-DELIM CLOSE-SYM))
+ 
+where BLOCK-SYM is the symbol returned in a block token.  OPEN-DELIM
+and CLOSE-DELIM are respectively the open and close delimiters
+identifying a block.  OPEN-SYM and CLOSE-SYM are respectively the
+symbols returned in open and close tokens."
+  (let ((specs (cons spec1 specs))
+        spec open olist clist)
+    (while specs
+      (setq spec  (car specs)
+            specs (cdr specs)
+            open  (nth 1 spec)
+            ;; build alist ((OPEN-DELIM OPEN-SYM BLOCK-SYM) ...)
+            olist (cons (list (car open) (cadr open) (car spec)) olist)
+            ;; build alist ((CLOSE-DELIM CLOSE-SYM) ...)
+            clist (cons (nth 2 spec) clist)))
+    `(eval-and-compile
+       (defvar ,name nil ,doc)
+       (setq ,name
+             '((and
+                (looking-at "\\(\\s(\\|\\s)\\)")
+                (let ((text (match-string 0)) match)
+                  (cond
+                   ((setq match (assoc text ',olist))
+                    (if (or (not depth) (< current-depth depth))
+                        (progn
+                          (setq current-depth (1+ current-depth))
+                          (semantic-lex-token
+                           (nth 1 match)
+                           (match-beginning 0) (match-end 0)))
+                      (semantic-lex-token
+                       (nth 2 match)
+                       (match-beginning 0)
+                       (save-excursion
+                         (condition-case nil
+                             (forward-list 1)
+                           ;; This case makes lex robust to broken lists.
+                           (error
+                            (goto-char
+                             (funcall
+                              semantic-lex-unterminated-syntax-end-function
+                              (nth 2 match) start end))))
+                         (setq end-point (point))))))
+                   ((setq match (assoc text ',clist))
+                    (setq current-depth (1- current-depth))
+                    (semantic-lex-token
+                     (nth 1 match)
+                     (match-beginning 0) (match-end 0)))))))
+             ))))
 
 ;;; Analyzers
 ;;
