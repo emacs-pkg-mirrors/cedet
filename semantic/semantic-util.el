@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.63 2001/05/07 11:28:38 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.64 2001/05/07 16:28:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1158,7 +1158,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((tok (semantic-token-token token))
 	 (name (semantic-name-nonterminal token parent color))
 	 (type (if (member tok '(function variable type))
-		   (semantic-token-type token) ""))
+		   (semantic-token-type token)))
 	 (args (semantic-prototype-nonterminal-default-args
 		(cond ((eq tok 'function)
 		       (semantic-token-function-args token))
