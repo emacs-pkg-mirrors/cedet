@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.8 1999/12/01 00:52:29 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.9 1999/12/01 01:54:41 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -39,9 +39,57 @@
 
 ;;; Speedbar support mode
 ;;
-(eieio-speedbar-create 'eieio-speedbar-make-map
-		       'eieio-speedbar-key-map
-		       'eieio-speedbar-menu
+(defvar ede-speedbar-key-map nil
+  "A Generic object based speedbar display keymap.")
+
+(defun ede-speedbar-make-map ()
+  "Make the generic object based speedbar keymap."
+  (setq ede-speedbar-key-map (speedbar-make-specialized-keymap))
+
+  ;; General viewing things
+  (define-key ede-speedbar-key-map "\C-m" 'speedbar-edit-line)
+  (define-key ede-speedbar-key-map "+" 'speedbar-expand-line)
+  (define-key ede-speedbar-key-map "=" 'speedbar-expand-line)
+  (define-key ede-speedbar-key-map "-" 'speedbar-contract-line)
+
+  ;; Some object based things
+  (define-key ede-speedbar-key-map "C" 'eieio-speedbar-customize-line)
+
+  ;; Some project based things
+  (define-key ede-speedbar-key-map "R" 'ede-speedbar-remove-file-from-target)
+  (define-key ede-speedbar-key-map "b" 'ede-speedbar-compile-line)
+  (define-key ede-speedbar-key-map "B" 'ede-speedbar-compile-project)
+  (define-key ede-speedbar-key-map "D" 'ede-speedbar-make-distribution)
+  (define-key ede-speedbar-key-map "E" 'ede-speedbar-edit-projectfile)
+  )
+
+(defvar ede-speedbar-menu
+  '([ "Compile" ede-speedbar-compile-line t]
+    [ "Compile Project" ede-speedbar-compile-project
+      (ede-project-child-p (speedbar-line-token)) ]
+    "---"
+    [ "Edit File/Tag" speedbar-edit-line
+      (not (object-p (speedbar-line-token)))]
+    [ "Expand" speedbar-expand-line
+      (save-excursion (beginning-of-line)
+		      (looking-at "[0-9]+: *.\\+. "))]
+    [ "Contract" speedbar-contract-line
+      (save-excursion (beginning-of-line)
+		      (looking-at "[0-9]+: *.-. "))]
+    "---"
+    [ "Remove File from Target" ede-speedbar-remove-file-from-target
+      (stringp (speedbar-line-token)) ]
+    [ "Customize Project/Target" eieio-speedbar-customize-line
+      (object-p (speedbar-line-token)) ]
+    [ "Edit Project File" ede-speedbar-edit-projectfile t]
+    [ "Make Distribution" ede-speedbar-make-distribution
+      (ede-project-child-p (speedbar-line-token)) ]
+    )
+  "Menu part in easymenu format used in speedbar while browsing objects.")
+
+(eieio-speedbar-create 'ede-speedbar-make-map
+		       'ede-speedbar-key-map
+		       'ede-speedbar-menu
 		       "EDE"
 		       'ede-speedbar-toplevel-buttons)
 
@@ -60,6 +108,49 @@ Argument DIR is the directory from which to derive the list of objects."
   (ede-load-project-file dir)
   ede-projects
   )
+
+;;; Some special commands useful in EDE
+;;
+(defun ede-speedbar-remove-file-from-target ()
+  "Remove the file at point from it's target."
+  (if (stringp (speedbar-line-token))
+      (progn
+	(speedbar-edit-line)
+	(ede-remove-file))))
+
+(defun ede-speedbar-compile-line ()
+  "Compile/Build the project or target on this line."
+  (let ((obj (eieio-speedbar-find-nearest-object)))
+    (if (not (object-p obj))
+	nil
+      (cond ((child-of-class-p obj ede-project)
+	     (project-compile-project obj))
+	    ((child-of-class-p obj ede-target)
+	     (project-compile-target obj))
+	    (t (error "Error in speedbar structure"))))))
+
+(defun ede-speedbar-get-top-project-for-line ()
+  "Return a project object for this line."
+  (let ((obj (eieio-speedbar-find-nearest-object)))
+    (if (not (object-p obj))
+	(error "Error in speedbar or ede structure")
+      (if (child-of-class-p obj ede-target)
+	  (setq obj (ede-target-parent obj)))
+      (if (child-of-class-p obj ede-project)
+	  obj
+	(error "Error in speedbar or ede structure")))))
+
+(defun ede-speedbar-compile-project ()
+  "Compile/Build the project which owns this line."
+  (project-compile-project (ede-speedbar-get-top-project-for-line)))
+
+(defun ede-speedbar-make-distribution ()
+  "Edit the project file based on this line."
+  (project-make-dist (ede-speedbar-get-top-project-for-line)))
+
+(defun ede-speedbar-edit-projectfile ()
+  "Edit the project file based on this line."
+  (project-edit-file-target (ede-speedbar-get-top-project-for-line)))
 
 ;;; Speedbar Project Methods
 ;;
