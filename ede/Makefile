@@ -72,7 +72,7 @@ tags:
 
 
 clean:
-	rm -f *.elc *.html *.info
+	rm -f *.elc *.html *.info*
 
 .PHONY: dist
 
