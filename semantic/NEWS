@@ -235,6 +235,14 @@ All search routines are now methods.
 *** `semanticdb-search-results-table'
 Class for any search in a database with no tables of its own.
 
+*** Different search classes
+Searches in databases have been broken into three classes.
+- Basic search - on values as stored directly in a semantic token.
+- Advanced search - complex searches of relationships.  Needed for
+  system databases which cannot support a generic search.
+- Generic search - Takes a predicate.  System databases cannot usually
+  support this style of search.
+
 ** semanticdb-system.el
 Representation of a database belonging to system libraries.
 These databases may not come from source code, and can represent
