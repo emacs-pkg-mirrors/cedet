@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-autogen.el,v 1.3 2002/08/09 03:22:12 zappo Exp $
+;; X-CVS: $Id: semantic-autogen.el,v 1.4 2002/08/10 13:58:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,7 +30,14 @@
 ;;; Code
 ;;
 
-(add-to-list 'load-path ".")
+(if noninteractive
+    (progn
+      ;; if the user is doing this non-interactivly, we need to set up
+      ;; these conveniences.
+      (add-to-list 'load-path nil)
+      (setq find-file-hooks nil
+	    find-file-suppress-same-file-warnings t)
+      ))
 
 ;; Load this in first
 (require 'autoload)
@@ -49,8 +56,7 @@
     (insert ";;; semantic-al.el --- Auto-generated file filled with autoloads.")
     (update-autoloads-from-directories dir)
     )
-  (newline 2)
-  (save-buffer))
+  (newline 2))
 
 ;; Bum me out.  Taken from autoload.el and augmented.  Just look at these
 ;; hard coded lists.  BLECH!
@@ -96,6 +102,15 @@ or macro definition or a defcustom)."
 				    define-minor-mode)) t)
 		  (eq (car-safe (car body)) 'interactive))
 	      (if macrop (list 'quote 'macro) nil))))
+
+     ;; So we can export a class, export it as a function.
+     ;; That way when we "initialize" allocate one of this
+     ;; class, it loads the file.
+     ((eq car 'defclass)
+      (let ((varname (car-safe (cdr-safe form)))
+	    )
+	(list 'autoload varname file nil nil nil)
+	))
 
      ;; Convert defcustom to a simpler (and less space-consuming) defvar,
      ;; but add some extra stuff if it uses :require.
