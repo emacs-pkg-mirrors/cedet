@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.4 2004/07/30 17:57:14 zappo Exp $
+;; X-RCS: $Id: mode-local.el,v 1.5 2005/01/10 14:57:56 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -299,8 +299,10 @@ doesn't have PROPERTY set."
   "Activate variables defined locally in MODE and its parents.
 That is, copy mode local bindings into corresponding buffer local
 variables.
-If MODE is not specified it defaults to current `major-mode'."
-  (let (modes table)
+If MODE is not specified it defaults to current `major-mode'.
+Return the alist of buffer-local variables that have been changed.
+Elements are (SYMBOL . PREVIOUS-VALUE), describing one variable."
+  (let (modes table old-locals)
     (unless mode
       (set (make-local-variable 'mode-local--init-mode) major-mode)
       (setq mode major-mode))
@@ -314,9 +316,14 @@ If MODE is not specified it defaults to current `major-mode'."
         (mapatoms
          #'(lambda (var)
              (when (get var 'mode-variable-flag)
-               (set (make-local-variable (intern (symbol-name var)))
-                    (symbol-value var))))
-         table)))))
+               (let ((v (intern (symbol-name var))))
+                 ;; Save the current buffer-local value of the
+                 ;; mode-local variable.
+                 (and (local-variable-p v)
+                      (push (cons v (symbol-value v)) old-locals))
+                 (set (make-local-variable v) (symbol-value var)))))
+         table)))
+    old-locals))
 
 (defun deactivate-mode-local-bindings (&optional mode)
   "Deactivate variables defined locally in MODE and its parents.
@@ -341,15 +348,24 @@ If MODE is not specified it defaults to current `major-mode'."
 The current mode bindings are saved, BODY is evaluated, and the saved
 bindings are restored, even in case of an abnormal exit.
 Value is what BODY returns."
-   (let ((old-mode  (make-symbol "mode")))
-     `(let ((,old-mode mode-local-active-mode))
+   (let ((old-mode  (make-symbol "mode"))
+         (old-locals (make-symbol "old-locals"))
+         (local (make-symbol "local")))
+     `(let ((,old-mode mode-local-active-mode)
+            (,old-locals nil))
         (unwind-protect
             (progn
               (deactivate-mode-local-bindings ,old-mode)
               (setq mode-local-active-mode ',mode)
-              (activate-mode-local-bindings ',mode)
+              ;; Save the previous value of buffer-local variables
+              ;; changed by `activate-mode-local-bindings'.
+              (setq ,old-locals (activate-mode-local-bindings ',mode))
               ,@body)
           (deactivate-mode-local-bindings ',mode)
+          ;; Restore the previous value of buffer-local variables.
+          (dolist (,local ,old-locals)
+            (set (car ,local) (cdr ,local)))
+          ;; Restore the mode local variables.
           (setq mode-local-active-mode ,old-mode)
           (activate-mode-local-bindings ,old-mode)))))
 (put 'with-mode-local 'lisp-indent-function 1)
