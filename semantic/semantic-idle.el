@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.27 2004/06/10 17:26:17 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.28 2004/06/28 13:58:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -87,6 +87,7 @@ run as soon as Emacs is idle."
 (defcustom global-semantic-idle-scheduler-mode nil
   "*If non-nil, enable global use of idle-scheduler mode."
   :group 'semantic
+  :group 'semantic-modes
   :type 'boolean
   :require 'semantic-idle
   :initialize 'custom-initialize-default
@@ -389,6 +390,7 @@ If ARG is nil, then toggle.")
 	 (concat "*If non-nil, enable global use of `" (symbol-name ',mode) "'.
 " ,doc)
 	 :group 'semantic
+	 :group 'semantic-modes
 	 :type 'boolean
 	 :require 'semantic-idle
 	 :initialize 'custom-initialize-default
