@@ -29,13 +29,13 @@
    (semantic-ede-proj-target-grammar "wy"
     :name "wy"
     :path ""
-    :source '("wisent-csharp.wy")
+    :source '("wisent-csharp.wy" "wisent-javascript-jv.wy")
     )
    (ede-proj-target-elisp "lisp"
     :name "lisp"
     :path ""
-    :source '("wisent-csharp.el")
-    :aux-packages '("semantic-grammar" "wisent" "inversion" "speedbar")
+    :source '("wisent-csharp.el" "semantic-matlab.el" "wisent-javascript.el")
+    :aux-packages '("semantic-grammar" "wisent" "inversion" "speedbar" "semantic-el")
     )
    )
   :metasubproject 't
