@@ -1,9 +1,9 @@
 ;;; semantic-c.el --- Semantic details for C
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.24 2003/08/02 08:13:52 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.25 2004/02/05 23:22:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -486,6 +486,24 @@ These are constants which are of type TYPE."
 	   (string= (semantic-tag-type type) "enum"))
       (semantic-tag-type-members type)))
 
+(defun semantic-c-ctxt-scoped-types (&optional point)
+  "Return a list of tags of CLASS type based on POINT.
+DO NOT return the list of tags encompassing point."
+  (when point (goto-char (point)))
+  (let ((tagreturn nil)
+	(tmp nil))
+    ;; In C++, we want to find all the namespaces declared
+    ;; locally and add them to the list.
+    (setq tmp (semantic-find-tags-by-class 'type (current-buffer)))
+    (setq tmp (semantic-find-tags-by-type "namespace" tmp))
+    (setq tagreturn tmp)
+    ;; We should also find all "using" type statements and
+    ;; accept those entities in as well.
+
+    ;; Return the stuff
+    tagreturn
+    ))
+
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
@@ -524,6 +542,7 @@ These are constants which are of type TYPE."
      (analyze-dereference-metatype . semantic-c-analyze-dereference-metatype)
      (analyze-type-constants . semantic-c-analyze-type-constants)
      (format-tag-name . semantic-c-format-tag-name)
+     (ctxt-scoped-types . semantic-c-ctxt-scoped-types)
      )
    t ;; Set as t for now while developing.
    )
