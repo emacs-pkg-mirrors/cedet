@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-shared.el,v 1.7 2000/09/28 18:41:26 zappo Exp $
+;; RCS: $Id: ede-proj-shared.el,v 1.8 2001/01/10 06:57:50 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,6 +29,8 @@
 (require 'ede-pmake)
 (require 'ede-proj-prog)
 
+;;; THIS NEEDS WORK.  SEE ede-proj-obj.
+
 ;;; Code:
 (defclass ede-proj-target-makefile-shared-object
   (ede-proj-target-makefile-program)
@@ -48,10 +50,10 @@ Use ldlibs to add addition libraries.")
 	 :variables '(("CC_SHARED" . "gcc")
 		      ("C_SHARED_COMPILE" .
 		       "$(CC_SHARED) -shared $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)"))
-	 :linkvariables '(("C_SHARED_LINK" .
-			   "$(CC_SHARED) -shared $(CFLAGS) $(LDFLAGS) -L. -o $@ $^")
-			  )
-	 :commands '("$(C_SHARED_LINK) %s")
+;	 :linkvariables '(("C_SHARED_LINK" .
+;			   "$(CC_SHARED) -shared $(CFLAGS) $(LDFLAGS) -L. -o $@ $^")
+;			  )
+;	 :commands '("$(C_SHARED_LINK) %s")
 	 :autoconf '("AM_PROG_LIBTOOL")
 	 )
   "Compiler for C sourcecode.")
