@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.5.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.55 1997/08/02 19:19:50 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.56 1997/08/02 20:22:07 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -247,6 +247,8 @@
 ;;       Added `speedbar-activity-change-focus-flag' to control if the
 ;;         focus changes w/ mouse events.
 ;;       Added `speedbar-sort-tags' toggle to the menubar.
+;;       Added `speedbar-smart-directory-expand-flag' to toggle how
+;;         new directories might be inserted into the speedbar hierarchy.
 
 ;;; TODO:
 ;; 1) More functions to create buttons and options
@@ -254,8 +256,7 @@
 ;; 3) Timeout directories we haven't visited in a while.
 ;; 4) Remeber tags when refreshing the display.  (Refresh tags too?)
 ;; 5) More 'special mode support.
-;; 6) Smart way to auto-expand instead of directory switch
-;; 7) C- Mouse 3 menu too much indirection
+;; 6) C- Mouse 3 menu too much indirection
 
 ;;; Code:
 (require 'assoc)
@@ -1549,11 +1550,13 @@ name will have the function FIND-FUN and not token."
 (defun speedbar-update-directory-contents ()
   "Update the contents of the speedbar buffer based on the current directory."
   (let ((cbd (expand-file-name default-directory))
+	cbd-parent
 	(funclst speedbar-initial-expansion-list)
 	(cache speedbar-full-text-cache)
 	;; disable stealth during update
 	(speedbar-stealthy-function-list nil)
 	(use-cache nil)
+	(expand-local nil)
 	;; Because there is a bug I can't find just yet
 	(inhibit-quit nil))
     (save-excursion
@@ -1563,35 +1566,55 @@ name will have the function FIND-FUN and not token."
       ;; careful with our text cache!
       (if (member cbd speedbar-shown-directories)
 	  (setq cache nil)
-	;; If this directory is NOT in the current list of available
-	;; paths, then use the cache, and set the cache to our new
-	;; value.  Make sure to unhighlight the current file, or if we
-	;; come back to this directory, it might be a different file
-	;; and then we get a mess!
-	(if (> (point-max) 1)
-	    (progn
-	      (speedbar-clear-current-file)
-	      (setq speedbar-full-text-cache
-		    (cons speedbar-shown-directories (buffer-string)))))
 
-	;; Check if our new directory is in the list of directories
-	;; show in the text-cahce
-	(if (member cbd (car cache))
-	    (setq speedbar-shown-directories (car cache)
-		  use-cache t)
-	  ;; default the shown directories to this list...
-	  (setq speedbar-shown-directories (list cbd)))
-	)
+	;; Build cbd-parent, and see if THAT is in the current shown
+	;; directories.  First, go through pains to get the parent directory
+	(if (and speedbar-smart-directory-expand-flag
+		 (save-match-data
+		   (setq cbd-parent cbd)
+		   (if (string-match "/$" cbd-parent)
+		       (setq cbd-parent (substring cbd-parent 0 (match-beginning 0))))
+		   (setq cbd-parent (file-name-directory cbd-parent)))
+		 (member cbd-parent speedbar-shown-directories))
+	    (setq expand-local t)
+
+	  ;; If this directory is NOT in the current list of available
+	  ;; paths, then use the cache, and set the cache to our new
+	  ;; value.  Make sure to unhighlight the current file, or if we
+	  ;; come back to this directory, it might be a different file
+	  ;; and then we get a mess!
+	  (if (> (point-max) 1)
+	      (progn
+		(speedbar-clear-current-file)
+		(setq speedbar-full-text-cache
+		      (cons speedbar-shown-directories (buffer-string)))))
+
+	  ;; Check if our new directory is in the list of directories
+	  ;; shown in the text-cache
+	  (if (member cbd (car cache))
+	      (setq speedbar-shown-directories (car cache)
+		    use-cache t)
+	    ;; default the shown directories to this list...
+	    (setq speedbar-shown-directories (list cbd)))
+	  ))
       (setq speedbar-last-selected-file nil)
       (speedbar-with-writable
-	(setq default-directory cbd)
-	(erase-buffer)
-	(if use-cache
-	    (insert (cdr cache))
-	  (while funclst
-	    (funcall (car funclst) cbd 0)
-	    (setq funclst (cdr funclst)))))
-      (goto-char (point-min))))
+	(if (and expand-local
+		 ;; Find this directory as a speedbar node.
+		 (speedbar-path-line cbd))
+	    ;; Open it.
+	    (speedbar-expand-line)
+	  (setq default-directory cbd)
+	  (erase-buffer)
+	  (cond (use-cache
+		 ;; I think default-directory is different if there
+		 ;; is a cache
+		 (insert (cdr cache)))
+		(t
+		 (while funclst
+		   (funcall (car funclst) cbd 0)
+		   (setq funclst (cdr funclst))))))
+	(goto-char (point-min)))))
   (speedbar-reconfigure-menubar))
 
 (defun speedbar-update-special-contents ()
@@ -2020,6 +2043,30 @@ directory with these items."
 			       path))
 	    (setq path (substring path 0 (match-beginning 0))))
 	(concat default-directory path)))))
+
+(defun speedbar-path-line (path)
+  "Position the cursor on the line specified by PATH."
+  (save-match-data
+    (if (string-match "/$" path)
+	(setq path (substring path 0 (match-beginning 0))))
+    (let ((nomatch t) (depth 0)
+	  (fname (file-name-nondirectory path))
+	  (pname (file-name-directory path)))
+      (if (not (member pname speedbar-shown-directories))
+	  (error "Internal Error: File %s not shown in speedbar." path))
+      (goto-char (point-min))
+      (while (and nomatch
+		  (re-search-forward
+		   (concat "[]>] \\(" (regexp-quote fname)
+			   "\\)\\(" (regexp-quote speedbar-vc-indicator) "\\)?$")
+		   nil t))
+	(beginning-of-line)
+	(looking-at "\\([0-9]+\\):")
+	(setq depth (string-to-int (match-string 0))
+	      nomatch (not (string= pname (speedbar-line-path depth))))
+	(end-of-line))
+      (beginning-of-line)
+      (not nomatch))))
 
 (defun speedbar-edit-line ()
   "Edit whatever tag or file is on the current speedbar line."
