@@ -1,12 +1,12 @@
 ;;; semantic-grammar-wy.el --- Generated parser support file
 
-;; Copyright (C) 2003 David Ponce
-;;
+;; Copyright (C) 2002, 2003 David Ponce
+
 ;; Author: David Ponce <david@dponce.com>
-;; Created: 2003-08-01 11:10:03+0200
+;; Created: 2003-08-09 10:29:17+0200
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar-wy.el,v 1.1 2003/08/02 08:09:19 ponced Exp $
-;;
+;; X-RCS: $Id: semantic-grammar-wy.el,v 1.2 2003/08/11 06:32:03 ponced Exp $
+
 ;; This file is not part of GNU Emacs.
 ;;
 ;; This program is free software; you can redistribute it and/or
@@ -116,7 +116,6 @@
         ((decl)
          (eval $1)))
        (decl
-        (nil)
         ((languagemode_decl))
         ((package_decl))
         ((precedence_decl))
