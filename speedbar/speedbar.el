@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.196 2001/01/08 13:54:05 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.197 2001/04/27 00:52:32 zappo Exp $
 
 (defvar speedbar-version "0.14"
   "The current version of speedbar.")
@@ -267,7 +267,8 @@ tags to insert.  It will then create the speedbar buttons.")
   :type 'boolean)
 
 (defcustom speedbar-sort-tags nil
-  "*If Non-nil, sort tags in the speedbar display.  *Obsolete*."
+  "*If Non-nil, sort tags in the speedbar display.  *Obsolete*.
+Use `semantic-tag-hierarchy-method' instead."
   :group 'speedbar
   :type 'boolean)
 
@@ -287,8 +288,8 @@ or
   (GROUP-NAME-STRING ELT1 EL2... ELTn)"
   :group 'speedbar
   :type 'hook
-  :options '(speedbar-trim-words-tag-hierarchy
-	     speedbar-prefix-group-tag-hierarchy
+  :options '(speedbar-prefix-group-tag-hierarchy
+	     speedbar-trim-words-tag-hierarchy
 	     speedbar-simple-group-tag-hierarchy
 	     speedbar-sort-tag-hierarchy)
   )
@@ -850,17 +851,28 @@ supported at a time.
   (cond ((and dframe-xemacsp
 	      (or (member 'left speedbar-frame-plist)
 		  (member 'top speedbar-frame-plist)))
+	 (dframe-reposition-frame
+	  speedbar-frame
+	  (dframe-attached-frame speedbar-frame)
+	  (cons (car (cdr (member 'left speedbar-frame-plist)))
+		(car (cdr (member 'top speedbar-frame-plist)))))
 	 )
 	((and (not dframe-xemacsp)
 	      (or (assoc 'left speedbar-frame-parameters)
-		  (assoc 'top speedbar-frame-parameters))
-	      ;; if left/top were specified in the parameters, do nothing.
-	      )
+		  (assoc 'top speedbar-frame-parameters)))
+	 ;; if left/top were specified in the parameters, pass them
+	 ;; down to the reposition function
+	 (dframe-reposition-frame
+	  speedbar-frame
+	  (dframe-attached-frame speedbar-frame)
+	  (cons (cdr (assoc 'left speedbar-frame-parameters))
+		(cdr (assoc 'top  speedbar-frame-parameters))))
 	 )
 	(t
 	 (dframe-reposition-frame speedbar-frame
 				  (dframe-attached-frame speedbar-frame)
 				  'left-right))))
+
 (defun speedbar-detach ()
   "Detach the current Speedbar from auto-updating.
 Doing this allows the creation of a second speedbar."
@@ -2817,7 +2829,7 @@ Optional argument P is where to start the search from."
     (if p (goto-char p))
     (beginning-of-line)
     (if (looking-at (concat
-		     "\\([0-9]+\\): *[[<{][-+?][]>}] \\([^ \n]+\\)\\("
+		     "\\([0-9]+\\): *[[<{]?[-+?=][]>}@()|] \\([^ \n]+\\)\\("
 		     speedbar-indicator-regex "\\)?"))
 	(match-string 2)
       nil)))
@@ -3079,7 +3091,6 @@ expanded.  INDENT is the current indentation level."
 	 )
 	(t (error "Ooops...  not sure what to do")))
   (speedbar-center-buffer-smartly)
-  (setq speedbar-last-selected-file nil)
   (save-excursion (speedbar-stealthy-updates)))
 
 (defun speedbar-directory-buttons-follow (text token indent)
@@ -3209,8 +3220,9 @@ interested in."
 	    (setq end (point-max)))))
       ;; Now work out the details of centering
       (let ((nl (count-lines start end))
+	    (wl (count-lines (window-start) (window-end)))
 	    (cp (point)))
-	(if (> nl (window-height (selected-window)))
+	(if (> nl wl)
 	    ;; We can't fit it all, so just center on cursor
 	    (progn (goto-char start)
 		   (recenter 1))
@@ -3564,13 +3576,21 @@ If TEMP is non-nil, then clicking on a buffer restores the previous display."
 (defun speedbar-buffers-line-path (&optional depth)
   "Fetch the full path to the file (buffer) specified on the current line.
 Optional argument DEPTH specifies the current depth of the back search."
-  (end-of-line)
-  ;; Buffers are always at level 0
-  (if (not (re-search-backward "^0:" nil t))
-      nil
-    (let* ((bn (speedbar-line-text))
-	   (buffer (if bn (get-buffer bn))))
-      (if buffer (file-name-directory (buffer-file-name buffer))))))
+  (save-excursion
+    (end-of-line)
+    (let ((start (point)))
+      ;; Buffers are always at level 0
+      (if (not (re-search-backward "^0:" nil t))
+	  nil
+	(let* ((bn (speedbar-line-text))
+	       (buffer (if bn (get-buffer bn))))
+	  (if buffer
+	      (if (save-excursion
+		    (end-of-line)
+		    (eq start (point)))
+		  (file-name-directory (or (buffer-file-name buffer)
+					   ""))
+		(buffer-file-name buffer))))))))
 
 (defun speedbar-buffer-click (text token indent)
   "When the users clicks on a buffer-button in speedbar.
@@ -3713,6 +3733,13 @@ TEXT is the buffer's name, TOKEN and INDENT are unused."
 (add-hook 'edebug-setup-hook
 	  (lambda ()
 	    (def-edebug-spec speedbar-with-writable def-body)))
+
+;; Fix a font lock problem for some versions of Emacs
+(if (boundp 'font-lock-global-modes)
+    (if (listp font-lock-global-modes)
+	(add-to-list 'font-lock-global-modes '(not speedbar-mode))
+      )
+  )
 
 (provide 'speedbar)
 ;;; speedbar ends here
