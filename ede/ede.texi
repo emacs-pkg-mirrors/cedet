@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: ede.texi,v 1.5 1999/03/20 17:15:57 zappo Exp $
+@c $Id: ede.texi,v 1.6 1999/04/21 22:22:47 zappo Exp $
 @c
 @setfilename ede.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -248,5 +248,23 @@ needed.
 The additional class @code{ede-makefile-rule} is a specialty class for
 tracking simple information about a rule.  This class is designed for
 user modifications, but can also be used in your class if needed.
+
+Class hierarchies:
+
+@menu
+* Project :: The different project types.
+* Targets :: The different target types.
+@end menu
+
+@defindex pj
+@defindex tg
+
+@node Project, Targets, Extending EDE, Extending EDE
+
+@include ede-projects.texi
+
+@node Targets, , Project, Extending EDE
+
+@include ede-targets.texi
 
 @bye
