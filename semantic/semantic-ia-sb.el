@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.2 2002/03/14 18:28:01 zappo Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.3 2002/03/16 15:29:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -47,7 +47,12 @@
   )
 
 (defvar semantic-ia-sb-easymenu-definition
-  ()
+  '( "---"
+     [ "Expand" speedbar-expand-line nil ]
+     [ "Contract" speedbar-contract-line nil ]
+     [ "Jump to Tag" speedbar-edit-line t ]
+     [ "Complete" speedbar-edit-line t ]
+     )
   "Extra menu items Analysis mode.")
 
 ;; Make sure our special speedbar major mode is loaded
@@ -100,11 +105,11 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
     (set-buffer speedbar-buffer)
     ;; If we have something, do something spiff with it.
     (erase-buffer)
-    (insert "Buffer:\n")
+    (speedbar-insert-separator "Buffer")
     ;; Note to self: Turn this into an expandable file name.
-    (speedbar-insert-button (buffer-name buffer)
-			    'speedbar-file-face
-			    nil nil nil nil)
+    (speedbar-make-tag-line 'bracket ?  nil nil
+			    (buffer-name buffer)
+			    nil nil 'speedbar-file-face 0)
     (when analysis
       ;; Now insert information about the context
       ;;     (insert "Context:\n")
@@ -112,45 +117,127 @@ DIRECTORY is the current directory, which is ignored, and ZERO is 0."
       ;; 			    'speedbar-tag-face
       ;; 			    nil nil nil nil)
       (when fnargs
-	(insert "Arguments:\n")
+	(speedbar-insert-separator "Arguments")
 	(semantic-ia-sb-string-list fnargs
 				    'speedbar-tag-face
 				    'semantic-sb-token-jump))
       (let ((localvars (oref analysis localvariables)))
 	(when localvars
-	  (insert "Local Variables:\n")
+	  (speedbar-insert-separator "Local Variables")
 	  (semantic-ia-sb-string-list localvars
 				      'speedbar-tag-face
 				      ;; This is from semantic-sb
 				      'semantic-sb-token-jump)))
       (let ((prefix (oref analysis prefix)))
 	(when prefix
-	  (insert "Prefix:\n")
+	  (speedbar-insert-separator "Prefix")
 	  (semantic-ia-sb-string-list prefix
 				      'speedbar-tag-face
 				      'semantic-sb-token-jump))
 	)
       (when completions
-	(insert "Completions:\n")
-	(semantic-ia-sb-string-list completions
-				    'speedbar-tag-face
-				    'semantic-ia-sb-complete))
+	(speedbar-insert-separator "Completions")
+	(semantic-ia-sb-completion-list completions
+					'speedbar-tag-face
+					'semantic-ia-sb-complete))
       )))
-
+		 
 (defun semantic-ia-sb-string-list (list face function)
   "Create some speedbar buttons from LIST.
 Each button will use FACE, and be activated with FUNCTION."
   (while list
-    (let ((string (cond ((stringp (car list))
-			 (car list))
-			((semantic-token-p (car list))
-			 (semantic-uml-concise-prototype-nonterminal (car list)))
-			(t "foo"))))
-      (speedbar-make-tag-line 'statictag ?  nil nil
-			      string function (car list) face
-			      0)
+    (let* ((usefn nil)
+	   (string (cond ((stringp (car list))
+			  (car list))
+			 ((semantic-token-p (car list))
+			  (setq usefn (semantic-token-with-position-p (car list)))
+			  (semantic-uml-concise-prototype-nonterminal (car list)))
+			 (t "foo"))))
+      (if (semantic-token-p (car list))
+	  (speedbar-make-tag-line 'angle ?i
+				  'semantic-ia-sb-token-info (car list)
+				  string (if usefn function) (car list) face
+				  0)
+	(speedbar-make-tag-line 'statictag ??
+				nil nil
+				string (if usefn function) (car list) face
+				0))
       (setq list (cdr list)))))
 		 
+(defun semantic-ia-sb-completion-list (list face function)
+  "Create some speedbar buttons from LIST.
+Each button will use FACE, and be activated with FUNCTION."
+  (while list
+    (let* ((documentable nil)
+	   (string (cond ((stringp (car list))
+			  (car list))
+			 ((semantic-token-p (car list))
+			  (setq documentable t)
+			  (semantic-uml-concise-prototype-nonterminal (car list)))
+			(t "foo"))))
+      (if documentable
+	  (speedbar-make-tag-line 'angle ?i
+				  'semantic-ia-sb-token-info
+				  (car list)
+				  string function (car list) face
+				  0)
+	(speedbar-make-tag-line 'statictag ?  nil nil
+				string function (car list) face
+				0))
+      (setq list (cdr list)))))
+
+(defun semantic-ia-sb-token-info (text token indent)
+  "Display as much information as we can about token..
+Show the information in a shrunk split-buffer and expand
+out as many details as possible.
+TEXT, TOKEN, and INDENT are speedbar function arguments."
+  (unwind-protect
+      (progn
+	(speedbar-select-attached-frame)
+	(with-output-to-temp-buffer "*Tag Information*"
+	  ;; Output something about this token:
+	  (save-excursion
+	    (set-buffer "*Tag Information*")
+	    (goto-char (point-max))
+	    (insert
+	     (semantic-prototype-nonterminal token nil t)
+	     "\n")
+	    (let ((type (semantic-token-type token))
+		  (typetok nil))
+	      (if type
+		  (progn
+		    (cond ((semantic-token-p type)
+			   (setq type (semantic-token-name type)))
+			  ((listp type)
+			   (setq type (car type))))
+		    (save-excursion
+		      (set-buffer
+		       (marker-buffer
+			(car semantic-ia-sb-last-analysis)))
+		      (setq typetok (semanticdb-find-nonterminal-by-name
+				     type nil t nil nil t)))
+		    (if typetok
+			(insert
+			 (semantic-prototype-nonterminal
+			  (cdr (car typetok)) nil t))
+		      (save-excursion
+			(set-buffer
+			 (marker-buffer
+			  (car semantic-ia-sb-last-analysis)))
+			(semantic-flex-keyword-p type)
+			(setq typetok
+			      (semantic-flex-keyword-get type 'summary)))
+		      (if typetok
+			  (insert typetok))
+		      
+		      )))
+	      )
+	    ))
+	;; Make it small
+	(shrink-window-if-larger-than-buffer
+	 (get-buffer-window "*Tag Information*")))
+    (select-frame speedbar-frame)))
+
 (defun semantic-ia-sb-line-path (&optional depth)
   "Return the file name associated with DEPTH."
   (save-match-data
@@ -175,8 +262,8 @@ TEXT TOKEN and INDENT are the details."
       (set-buffer (marker-buffer pnt))
       (if (and (<= (point) (cdr bounds)) (>= (point) (car bounds)))
 	  (setq movepoint t))
-      (delete-region (car bounds) (cdr bounds))
       (goto-char (car bounds))
+      (delete-region (car bounds) (cdr bounds))
       (insert (semantic-token-name token))
       (if movepoint (setq movepoint (point)))
       ;; I'd like to use this to add fancy () or what not at the end
