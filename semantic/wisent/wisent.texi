@@ -1,0 +1,601 @@
+\input texinfo   @c -*-texinfo-*-
+@c
+@c $Id: wisent.texi,v 1.1 2002/01/08 22:18:32 ponced Exp $
+@c
+@setfilename wisent.info
+@settitle Wisent: The Bison like parser generator for Emacs
+
+@ifinfo
+@format
+START-INFO-DIR-ENTRY
+* Wisent: (wisent).       LALR Parsing for Emacs
+END-INFO-DIR-ENTRY
+@end format
+@end ifinfo
+
+@paragraphindent 0
+@exampleindent   3
+
+@titlepage
+@sp 10
+@center @titlefont{Wisent}
+@vskip 0pt plus 1 fill
+Copyright @copyright{} 2001 David Ponce
+@end titlepage
+
+@ifnottex
+@node Top, Overview, (dir), (dir)
+@comment  node-name,  next,  previous,  up
+@top LALR Parsing for Emacs
+@end ifnottex
+
+Wisent is an Elisp implementation of a Bison like parser generator.
+It can generate compilers compatible with the Semantic tool set
+@inforef{Top, , semantic.info}.
+
+@menu
+* Overview::                    Overview.
+* Grammar::                     Grammar.
+* Grammar format::              Grammar format.
+* Conflicts::                   Conflicts.
+* Example::                     Example.
+* Parsing::                     Parsing.
+* Index::                       Index.
+@end menu
+
+@node Overview, Grammar, Top, Top
+@comment  node-name,  next,  previous,  up
+@chapter Overview
+
+Wisent is an Elisp implementation of a Bison like parser generator.
+The code is freely inspired from Dominique Boucher's Scheme
+implementation of Bison and from the sources of GNU Bison 1.28.
+Wisent uses the Bison algorithm to compute the @acronym{LALR(1)}
+look-ahead set.  It is described in:
+
+@quotation
+@cite{Efficient Computation of LALR(1) Look-Ahead Set}, F. DeRemer et
+T. Pennello, TOPLAS, vol. 4, no. 4, October 1982.
+@end quotation
+
+Wisent has a Bison like mechanism to recover from parse errors and can
+resolve shift/reduce conflicts using operator precedence declarations
+@xref{Conflicts}.
+
+For more details on the basic concepts for understanding Wisent, read
+the Bison manual ;) @inforef{Top, , bison.info}.
+
+@node Grammar, Parsing, Overview, Top
+@comment  node-name,  next,  previous,  up
+@chapter Grammar
+
+In order for Wisent to parse a language, it must be described by a
+Context Free Grammar (@acronym{CFG}).  This grammar is then compiled,
+using the function @code{wisent-compile-grammar}.  This produces the
+tables needed by the parser.  The tables themselves are Elisp vectors
+and lists stored in a main vector.
+
+The formal grammar is formulated using terminal and nonterminal
+symbols which are represented in Wisent as Elisp symbols.
+
+Terminal symbols (also known as a @dfn{token}) represent the lexical
+elements of the language like numbers, strings, etc..
+
+For example @code{PLUS} can represent the operator @code{+}.
+
+Nonterminal symbols are described by rules of the form:
+
+@example
+RESULT: COMPONENTS...
+      ;
+@end example
+
+where @var{RESULT} is the nonterminal symbol that this rule describes
+and @var{COMPONENTS} are various terminal and nonterminal symbols that
+are put together by this rule.
+
+For example,
+
+@example
+exp: exp PLUS exp
+   ;
+@end example
+
+says that two groupings of type @code{exp}, with a @code{PLUS} token in
+between, can be combined into a larger grouping of type @code{exp}.
+ 
+By convention, a nonterminal symbol should be in lower case, such as
+@code{expr}, @code{stmt} or @code{declaration}.  Terminal symbols
+should be upper case to distinguish them from nonterminals: for
+example, @code{INTEGER}, @code{IDENTIFIER}, @code{IF} or
+@code{RETURN}.  A terminal symbol that stands for a particular keyword
+in the language should be named after that keyword converted to upper
+case.  The terminal symbol @code{error} is reserved for error
+recovery.
+
+@defun wisent-compile-grammar grammar &optional start-list stream
+Compile grammar @var{GRAMMAR} and return the tables needed by the parser.
+
+@table @var
+@item grammar
+The @acronym{CFG} to process (@pxref{Grammar format}).
+@item start-list
+Optional list of nonterminal symbols defined as extra entry points in
+the grammar.  The first nonterminal specified in the grammar is always
+defined as the main entry point in the grammar.
+@item stream
+Optional @code{standard-output} stream where the tables will be
+pretty-printed.
+
+@quotation
+@strong{WARNING}: As the tables resulting of grammar compilation can
+be very large pretty-printing (done via the standard function
+@code{pp}) can take a while and consume a lot of computer resources!
+@end quotation
+@end table
+
+The value returned by @code{wisent-compile-grammar} is a vector of
+vectors and lists: @code{[ACTIONS GOTOS REDUCTIONS TERMS STARTS]}
+where:
+
+@table @var
+@item actions
+@itemx gotos
+Tell the parser what action to do at each state.  That is shift,
+reduce, accept or error @xref{Parsing}.
+@item reductions
+Hold the code of semantic actions associated to reductions.  By
+default semantic actions are byte-compiled to achieve best performance
+of the parser.
+
+@item terms
+This is an alist (association list) which allows the parser to
+retrieve terminal numbers it uses internally, from terminal symbols
+returned by lexical analysis.  This can be useful too to know what
+terminal symbol is associated to a number.
+
+@item STARTS
+Give the definitions of start nonterminals.
+This is an alist (association list) of @code{(NONTERM . TERM)}
+which associates a starting point nonterminal symbol @code{NONTERM}
+to a terminal symbol @code{TERM} that will be first shifted into
+the parser stack.
+@end table
+@end defun
+
+For example:
+
+@lisp
+(wisent-compile-grammar my-grammar nil (current-buffer))
+@end lisp
+
+inserts the parser tables value at point in current buffer.
+
+>>> Is there a way to have a precompiled grammar pretty printed?
+    This would be a good (interactive) command, and make the above
+    API cleaner.  The bison command line compiler bundles all this
+    together because it doesn't maintain it's state, whereas wisent
+    loads it's tables into variables.
+
+    It might also be possible to create an output buffer later which
+    is faster by not usiing pp.
+
+<<< As a pre-compiled grammar is just a vector of vectors and lists,
+    it can be easily pretty printed (except the byte compiled code of
+    semantic actions).
+    
+    In fact I used this feature for debugging purpose while I ported
+    Scheme code to Elisp one, to check that both versions produced
+    the same tables from the same grammar.
+
+    I agree with you, it is a good idea to remove the STREAM parameter
+    from `wisent-compile-grammar'.
+
+@menu
+* Grammar format::              
+* Conflicts::                   
+* Example::                     
+@end menu
+
+@node Grammar format, Conflicts, Grammar, Grammar
+@comment  node-name,  next,  previous,  up
+@section Grammar format
+
+This is a list @code{(TERMINALS ASSOCS . NON-TERMINALS)} where:
+
+>>> From an implementation standpoint, would it make sense for
+    TERMINALS and ASSOCS to be in separate variables defined earlier
+    in the language set up file, and passed down the the compiler?
+ 
+    My thinking is that perhaps the ASSOCS, at least, might be useful
+    to reference in that precidence reminders could be displayed via
+    eldoc or overlays while editing, and easier access might be nice.
+
+    It could also be possible to have incremental rebuilds if
+    needed.  Does this make sense?
+
+<<< TERMINALS and ASSOCS values are actually part of the grammar
+    specification!  The LALR tables produced by the parser generator
+    completely depend on the actual value of these fields.  That is if
+    you change something in TERMINALS and/or in ASSOCS the LALR tables
+    won't be the same.  So I think it is better to keep them in the
+    grammar definition as they currently are.
+
+@table @var
+@item terminals
+The list of terminal symbols used in the grammar.
+
+@item assocs
+Specify the associativity of terminals like do the Bison
+@code{%nonassoc}, @code{%left} and @code{%right} statements.  It is
+nil or a list of elements of the form @code{(ASSOC-TYPE .
+ASSOC-TERMS)} where @var{ASSOC-TYPE} is one of @code{'nonassoc},
+@code{'left} or @code{'right}, and @var{TERMS} is a list of terminal
+symbols which must be declared in @var{TERMINALS}.
+@item non-terminals
+The list of non terminal definitions.  Each definition has the form
+@code{(NONTERM . PRODS)} where @var{NONTERM} is the non terminal
+symbol and @var{PRODS} the list of productions associated to this non
+terminal.  Each element of @var{PRODS} has the form:
+
+@code{(ITEMS [PRECEDENCE] [ACTION])} where:
+
+@table @var
+@item items
+Is a list of terminal and/or non terminal symbols to match.  Or nil
+for an empty match.
+@item precedence
+Is an optional vector of one element: a terminal symbol.  The rule
+will be given the precedence level of this terminal symbol.  By
+default the rule precedence is the one of the last terminal symbol in
+it.  Only terminals declared in @var{ASSOCS} have a precedence level.
+
+>>> If precidence is defined in the ASSOC table and here, what is the
+    precidence table needed for?
+
+<<< The ASSOCS table defines associativity and an implicit precedence
+    level for given terminals.  PRECEDENCE here explicitly defines the
+    precedence level of the rule (as the precedence level of a
+    terminal specified in ASSOCS).
+
+@item action
+Is one optional Elisp expression: the action to do when the rule is
+matched.  As in Bison, actions accept @code{$N} placeholders.  Each
+@code{$N} placeholder is actually variable local to the semantic
+action.  It will receive the value of Nth element of @var{ITEMS} which
+can be of any Lisp data type.  The first element is @code{$1}, the
+second one @code{$2}, etc..  Unlike Bison, Wisent does not allow the
+use of @code{$N} placeholders with N <= 0.
+
+Also the special variable @code{$region} contains the start/end
+positions of text matched by the rule, as a pair @code{(START-POS .
+END-POS)}.  @code{$region} is nil when used in an empty match rule.
+Actions can use @code{wisent-set-region} to modify the region, this
+could be useful in actions used to recover from syntax errors.
+
+>>> Perhaps $start and $end, and even $1region, or $region1 would
+    also be useful.  I sometimes find myself writing special rules,
+    just to get the region of one part of the rule.
+
+<<< $start and $end can be easily obtained using respectively
+    (car $region) and (cdr $region).  But I agree with you that
+    having a $regionn for each $n is a good idea!
+
+Finally the special symbol @code{$nterm} contain the nonterminal symbol
+the action belongs to.  It could be useful to improve error reporting
+or debugging.
+
+If you don't specify an action for a rule, Wisent (like Bison)
+supplies a default: @code{$1}.  Thus, the value of the first symbol in
+the rule becomes the value of the whole rule.  The default action for
+an empty match returns nil.
+@end table
+@end table
+
+@node Conflicts, Example, Grammar format, Grammar
+@comment  node-name,  next,  previous,  up
+@section Conflicts
+
+Wisent resolves conflicts in grammars the same way Bison does.
+
+It resolves a reduce/reduce conflict by choosing to use the rule that
+appears first in the grammar.
+
+It resolves shift/reduce conflicts by choosing to shift, unless
+otherwise directed by operator precedence declarations (see
+@var{ASSOCS} and @var{NON-TERMINALS} in @pxref{Grammar format}).
+
+@node Example,  , Conflicts, Grammar
+@comment  node-name,  next,  previous,  up
+@section Example
+
+Here is an example of a Bison like grammar to parse simple infix
+arithmetic expressions.  It is explained more fully in the Bison
+manual: @inforef{Infix Calc, Examples, bison.info}.
+
+@example
+%token NUM
+%token NL
+%token EQ
+%token PLUS
+%token MINUS
+%token NEG
+%token MULT
+%token DIV
+%token EXP
+%token LPAREN
+%token RPAREN
+
+%nonassoc EQ
+%left     PLUS MINUS
+%left     MULT DIV
+%left     NEG
+%right    EXP
+
+input:
+    /* empty */
+  | input line
+  ;
+
+line:
+    NL
+  | exp NL
+  ;
+
+exp:
+    NUM
+  | exp EQ exp
+  | exp PLUS exp
+  | exp MINUS exp
+  | exp MULT exp
+  | exp DIV exp
+  | MINUS exp %prec NEG
+  | exp EXP exp
+  | LPAREN exp RPAREN
+  ;
+@end example
+
+And following is the corresponding form accepted by Wisent:
+
+@lisp
+((NUM NL EQ PLUS MINUS NEG MULT DIV EXP LPAREN RPAREN)
+ ((nonassoc EQ)
+  (left PLUS MINUS)
+  (left MULT DIV)
+  (left NEG)
+  (right EXP))
+ (input
+  (nil)
+  ((input line)))
+ (line
+  ((NL))
+  ((exp NL)))
+ (exp
+  ((NUM))
+  ((exp EQ exp))
+  ((exp PLUS exp))
+  ((exp MINUS exp))
+  ((exp MULT exp))
+  ((exp DIV exp))
+  ((MINUS exp) [NEG])
+  ((exp EXP exp))
+  ((LPAREN exp RPAREN))))
+@end lisp
+
+@node Parsing, Index, Grammar, Top
+@comment  node-name,  next,  previous,  up
+@chapter Parsing
+
+The parser used by Wisent is a bottom-up @acronym{LR} parser driven by
+the tables produced by @code{wisent-compile-grammar} from a
+@acronym{CFG} grammar (@pxref{Grammar}).
+
+An @acronym{LR} parser, also called a @dfn{shift-reduce} parser, is
+based on states stored in a stack and on four elementary operations
+performed at every state:
+
+@table @dfn
+@item shift
+This operation reads the next lexical token available in input and
+pushes it into the stack.
+@item reduce
+This operation replaces a nonterminal by its semantic value.  The
+nonterminal component values are popped from the stack and reduced by
+the semantic action associated to this nonterminal.  The result is
+pushed back on top of stack.
+@item accept
+This operation stops the parser which has successfully processed all
+input tokens.  The semantic value of the start nonterminal is on top
+of stack. 
+@item error
+This operation interrupts parsing because of a syntax error (an
+unexpected token in input).  At this point the parser can call a
+recovery routine and try to resume or simply issue an error message
+and stop.
+@end table
+
+@defun wisent-parse tables lexer error &optional start
+Parse input using the automaton specified in @var{TABLES}.
+
+@table @var
+@item tables
+
+>>> Is it multiple tables, or just one table?
+
+<<< It is multiples tables (actions, gotos, reductions, ...) grouped
+    in a big one ;)
+
+Are the parser tables produced by @code{wisent-compile-grammar}.
+@item lexer
+Is a function with no argument called by the parser to obtain the next
+terminal in input.  @var{LEXER} must return a list @code{(TERM
+TERM-VALUE [TERM-START . TERM-END])} or @code{(list 'wisent-eoi-term)}
+when at the end of the input.
+
+@table @var
+@item term
+Is the unique symbol identifying a terminal as specified in the
+grammar.
+@item term-value
+Is the actual value of the terminal.
+
+>>> Note: Caluculating values can be a very slow process on big
+    buffers due to slowness in string manipulations.  It could be
+    adventageous to do this only when needed, such as when $1 is
+    requested.
+
+<<< In fact a $n value is calculated only once, when it is
+    retrieved by the lexer (terminal) or as the result of a semantic
+    action (nonterminal).  Notice also that semantic actions bind only
+    the $n variables that are actually used.
+
+    Finally the current design (which is the Bison's one) has a big
+    advantage: the parser is completely independent of the input
+    source it parses.  Only the lexer knows where to read input
+    data.  A good illustration of this is the wisent-calc sample
+    which don't use buffers at all.  It parses input strings read
+    from the minibuffer.
+
+@item term-start
+@itemx term-end
+Are optionals start and end positions of the terminal string value in
+the input stream.  You can use the macro @code{wisent-lexer} to call
+@var{LEXER} in semantic actions.
+@end table
+
+@item error-function
+Is a reporting function called when a parse error occurs.  It receives
+a message string to report.  When @var{ERROR-FUNCTION} is called by
+the parser the variable @code{wisent-input} contains the unexpected
+token as returned by @var{LEXER}.  This function can also be called
+from semantic actions using the special macro @code{wisent-error}.
+When called from a recovery action the value of the variable
+@code{wisent-recovering} is non-nil.
+@item start
+Specify the nonterminal symbol used by the parser as its goal.  It
+defaults to the first nonterminal specified in the grammar.
+@var{START} must be one the @var{STARTS} symbol specified at
+compilation time (@pxref{Grammar}).
+@end table
+@end defun
+
+@menu
+* Writing Actions::        Variables and macros useful in grammar actions.
+@end menu
+
+@node Writing Actions,  , Parsing, Parsing
+@comment  node-name,  next,  previous,  up
+@subsection Variables and macros useful in grammar actions.
+
+@defvar wisent-nerrs
+The number of parse errors encountered so far.
+@end defvar
+
+@defvar wisent-input
+The last token read.
+The actual value of this variable is local to the parser.
+@end defvar
+
+@defun wisent-lexer
+Obtain the next terminal in input.
+@end defun
+
+@defvar wisent-recovering
+Non-@code{nil} when the parser is recovering.
+The actual value of this variable is local to the parser.
+@end defvar
+
+@defun wisent-error msg
+Call the language specific error reporting function with message @var{MSG}.
+>>> Perhaps specify a use here.
+@end defun
+
+@defun wisent-errok
+Resume generating error messages immediately for subsequent syntax errors.
+This is useful primarily in error rules.
+@end defun
+
+@defun wisent-clearin
+Discard the current look-ahead token.
+This will cause a new token to be read.  This is useful primarily in
+error rules.
+@end defun
+
+@defun wisent-region &rest positions
+Return the start/end positions of the region including @var{POSITIONS}.
+Each element of @var{POSITIONS} is a pair (@var{START-POS} .
+@var{END-POS}) or nil.  The returned value is the pair
+(@var{MIN-START-POS} . @var{MAX-END-POS}) or @code{nil} if no
+@var{POSITIONS} are available.
+@end defun
+
+>>> Based on earlier text, allowing POSITIONS to be $1 $2 etc in the
+    bnf file would be handy too.
+
+@defun wisent-set-region start end
+Change the region of text matched by the current nonterminal.
+@var{START} and @var{END} are respectively the beginning and end
+positions of the region.  If @var{START} or @var{END} values are not a
+valid positions the region is set to nil.
+
+>>> Examples of using this would be nice, though it strikes me as
+    being a feature of the lexer.
+
+<<< `wisent-skip-block' is an example of use.  See below.
+
+@end defun
+
+@defun wisent-skip-token
+Skip an invalid token and try to continue parsing.
+To be used in grammar recovery actions.
+@end defun
+
+@defun wisent-skip-block
+Safely skip a parenthesized block and try to continue parsing.
+To be used in grammar recovery actions.
+
+>>> Are tokens the same as blocks? 
+
+<<< No.  A block contains the lexical tokens expanded from the
+    corresponding high level semantic-list token.  This function skips
+    the current block and use `wisent-set-region' to set $region to
+    the block start/end positions.  That is the block is just
+    returned as a whole token without parsing its content.  Combined
+    with error recovery this is an equivalent to the EXPANDFULL
+    feature when all low level lexical tokens are read.  That is
+    `semantic-flex-depth' is nil instead of 0.
+    
+    wisent-java.bnf is an example of use of this feature.  Input
+    source is parsed in one pass (no semantic-list) and errors are
+    handled in grammar semantic actions.
+
+    As opposite wisent-java-tags.bnf specifies a multi-pass recursive
+    parser like the default LL one.  Errors are handled outside of the
+    grammar via the EXPANDFULL feature.
+
+@end defun
+
+>> Do the above contribute to the wisent-nerrs variable?
+<< Not directly.  wisent-nerrs is incremented each time a parse error
+   occurs.  If wisent-skip-... functions are mainly useful in error
+   recovery semantic actions they can be used in ``normal'' semantic
+   actions.
+
+>> Perhaps this should be broken into three sections.  One for a
+   simple action writing and examples, then one for parser state,
+   and a third for error recovery.
+<< Good idea and more work to do ;-)
+
+>> An error recovery node, in the future, could be quite valuable
+   in rebuilding token lists in a partially re-written buffer, and
+   deserves some development time for semantic 2.0.
+<< Ditto ;-)
+
+@node Index,  , Parsing, Top
+@comment  node-name,  next,  previous,  up
+@unnumbered Index
+
+@printindex cp
+
+@contents
+@bye
