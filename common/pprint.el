@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 06 Mar 2002
 ;; Keywords: lisp
-;; X-RCS: $Id: pprint.el,v 1.1 2002/03/10 09:06:50 ponced Exp $
+;; X-RCS: $Id: pprint.el,v 1.2 2002/03/10 09:12:32 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -97,10 +97,13 @@ Value is what BODY returns."
 (defvar pprint-no-break)
 
 (defmacro pprint-no-break-p (&rest motions)
-  "Return non-nil if after MOTIONS current column is <= width."
-  (if motions
-      `(<= (save-excursion ,@ motions (current-column)) pprint-width)
-    `(<= (current-column) pprint-width)))
+  "Return non-nil if executing MOTIONS don't break line."
+  `(save-excursion
+     (let ((p (point)))
+       ,@motions
+       (and (<= (current-column) pprint-width)
+            (= (progn (beginning-of-line) (point))
+               (progn (goto-char p) (beginning-of-line) (point)))))))
 
 (defsubst pprint-maybe-newline-and-indent ()
   "Insert a newline, then indent.
@@ -120,10 +123,8 @@ found."
   
 (defsubst pprint-dispatch-printer ()
   "Dispatch a printer to print current expression.
-Return non-nil if a printer was found and dispatched."
-  (let ((printer
-         (or (pprint-search-printer pprint-printers)
-             (pprint-search-printer pprint-standard-printers))))
+Return non-nil if a printer was found."
+  (let ((printer (pprint-search-printer pprint-printers)))
     (when printer
       (funcall printer)
       t)))
@@ -135,18 +136,18 @@ ROOM specifies the available width."
     (save-restriction
       (narrow-to-region (point) (progn (forward-sexp) (point)))
       (let* ((old-sexp (buffer-string))
-             (pprint-width room))
+             (pprint-width room)
+             (width 0))
         (goto-char (point-min))
         (pprint-sexp)
-        (let ((width 0))
-          (goto-char (point-min))
-          (while (not (eobp))
-            (end-of-line)
-            (setq width (max width (current-column)))
-            (beginning-of-line)
-            (kill-line t))
-          (insert old-sexp)
-          width)))))
+        (goto-char (point-min))
+        (while (not (eobp))
+          (end-of-line)
+          (setq width (max width (current-column)))
+          (forward-line))
+        (kill-region (point-min) (point-max))
+        (insert old-sexp)
+        width))))
 
 (defsubst pprint-list ()
   "Built-in list printer."
@@ -173,14 +174,10 @@ ROOM specifies the available width."
   (up-list 1)
   (or (looking-at "\\s)")
       (eobp)
-      (= 1 (save-excursion
-             (save-restriction
-               (widen)
-               (narrow-to-region 
-                (save-excursion (forward-list -1) (point))
-                (point))
-               (goto-char (point-min))
-               (1+ (vertical-motion (point-max))))))
+      (= (save-excursion
+           (beginning-of-line) (point))
+         (save-excursion
+           (forward-list -1) (beginning-of-line) (point)))
       (pprint-maybe-newline-and-indent)))
 
 (defsubst pprint-sequence ()
@@ -190,7 +187,7 @@ Insert a line break before each expression."
     (pprint-maybe-newline-and-indent)
     (pprint-sexp)))
 
-(defconst pprint-min-width 20
+(defvar pprint-min-width 20
   "Minimum width required to prettify an expression.
 If current width is greater than this value, the pretty printer does
 nothing.")
@@ -384,7 +381,8 @@ lines to given WIDTH.  WIDTH value defaults to `fill-column'."
       (prin1 object (current-buffer)))
     (goto-char (point-min))
     (let* ((pprint-width (or width fill-column))
-           (zmacs-regions nil)) ;; XEmacs
+           (zmacs-regions nil) ;; XEmacs
+           (inhibit-modification-hooks t)) ;; Emacs
       (pprint-sexp))
     (buffer-string)))
 
