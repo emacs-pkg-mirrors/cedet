@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.70 2000/12/10 05:07:14 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.71 2000/12/10 20:21:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -152,7 +152,7 @@ GENERIC ENTRIES:
  Bovine table entry return elements are up to the table author.  It is
 recommended, however, that the following format be used.
 
- (\"NAME\" type-symbol [\"TYPE\"] ... \"DOCSTRING\" OVERLAY)
+ (\"NAME\" type-symbol [\"TYPE\"] ... \"DOCSTRING\" PROPERTIES OVERLAY)
 
 Where type-symbol is the type of return token found, and NAME is it's
 name.  If there is any typing information needed to describe this
@@ -162,10 +162,18 @@ of DOCSTRING.  A docstring does not have to exist in the form used by
 Emacs Lisp.  It could be the text of a comment appearing just before a
 function call, or in line with a variable.
 
-The last element must be OVERLAY.
-The OVERLAY is automatically created by semantic from an input that
-consists of START and END.  When building a parser table, use START
-and END as positions in the buffer.
+PROPERTIES is a list of additional properties for this token.
+PRORPERTIES is not for details of the token.  It is used for
+additional tags needed by tools using the parse stream.  For example,
+the `dirty' property is used when a given token needs to be reparsed.
+
+PROPERTIES are automatically added to the token by the system when
+using BNF, or `semantic-lambda' in the table.
+
+The last element must be OVERLAY.  The OVERLAY is automatically
+created by the parsing system.  When programming with BNF, or using
+`semantic-lambda', no extra work needs to be done.  If you are
+building the parse table yourself, use START and END.
 
 It may seem odd to place NAME in slot 0, and the type-symbol in slot
 1, but this turns the returned elements into a list which can be used
@@ -184,7 +192,7 @@ a type nonterminal.
 TOP-LEVEL ENTRIES:
 
  (\"NAME\" variable \"TYPE\" CONST DEFAULT-VALUE MODIFIERS [OPTSUFFIX]
-           \"DOCSTRING\" OVERLAY)
+           \"DOCSTRING\" PROPERTIES OVERLAY)
    The definition of a variable, or constant.
    CONST is a boolean representing if this variable is considered a constant.
    DEFAULT-VALUE can be something apropriate such a a string,
@@ -195,7 +203,7 @@ TOP-LEVEL ENTRIES:
    DOCSTRING is optional.
 
  (\"NAME\" function \"TYPE\" ( ARG-LIST ) MODIFIERS [THROWS]
-          \"DOCSTRING\" OVERLAY)
+          \"DOCSTRING\" PROPERTIES OVERLAY)
    A function/procedure definition.
    ARG-LIST is a list of variable definitions.
    THROWS is an optional argument for functions or methods in languages
@@ -203,7 +211,7 @@ TOP-LEVEL ENTRIES:
    DOCSTRING is optional.
 
  (\"NAME\" type \"TYPE\" ( PART-LIST ) ( PARENTS ) MODIFIERS
-          \"DOCSTRING\" OVERLAY)
+          \"DOCSTRING\" PROPERTIES OVERLAY)
    A type definition.
    TYPE of a type could be anything, such as (in C) struct, union, typedef,
    or class.
@@ -212,16 +220,14 @@ TOP-LEVEL ENTRIES:
    PARENTS is strictly for classes where there is inheritance.
    
 
- (\"FILE\" include SYSTEM \"DOCSTRING\" OVERLAY)
+ (\"FILE\" include SYSTEM \"DOCSTRING\" PROPERTIES OVERLAY)
    In C, an #include statement.  In elisp, a require statement.
    Indicates additional locations of sources or definitions.
    SYSTEM is true if this include is part of a set of system includes.
 
- (\"NAME\" package DETAIL \"DOCSTRING\" OVERLAY)
+ (\"NAME\" package DETAIL \"DOCSTRING\" PROPERTIES OVERLAY)
    In Emacs Lisp, a `provide' statement.  DETAIL might be an
-   associated file name.
-
-OTHER ENTRIES:")
+   associated file name.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-table)
 
 (defvar semantic-symbol->name-assoc-list
@@ -264,6 +270,11 @@ if it does not need to be expanded.")
 If no significant changes have been made (based on the state) then
 this is returned instead of re-parsing the buffer.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache)
+
+(defvar semantic-edits-are-safe nil
+  "When non-nil, modifications to not require a reparse.
+It prevents tokens from being marked dirty, and it
+prevents top level edits from causing a cache check.")
 
 (defvar semantic-toplevel-bovine-cache-check nil
   "Non nil if the bovine cache is out of date.
@@ -316,6 +327,16 @@ For language specific hooks, make sure you define this as a local hook.")
 ;;
 ;; See semantic-util for a wider range of utility functions and macros.
 ;;
+;; TFE = Token From End
+(defconst semantic-tfe-overlay 1
+  "Amount to subtract from the length of the token to get the overlay.")
+(defconst semantic-tfe-properties 2
+  "Amount to subtract from the length of the token to get the property list.")
+(defconst semantic-tfe-docstring 3
+  "Amount to subtract from the length of the token to get the doc string.")
+(defconst semantic-tfe-number 2
+  "The number of required end elements.")
+
 (defmacro semantic-token-token (token)
   "Retrieve from TOKEN the token identifier.
 ie, the symbol 'variable, 'function, 'type, or other."
@@ -329,21 +350,49 @@ ie, the symbol 'variable, 'function, 'type, or other."
   "Retrieve the documentation of TOKEN.
 Optional argument BUFFER indicates where to get the text from.
 If not provided, then only the POSITION can be provided."
-  (let ((p (nth (- (length token) 2) token)))
+  (let ((p (nth (- (length token) semantic-tfe-docstring) token)))
     (if (and p buffer)
 	(save-excursion
 	  (set-buffer buffer)
 	  (semantic-flex-text (car (semantic-flex p (1+ p)))))
       p)))
 
+(defmacro semantic-token-properties (token)
+  "Retrieve the PROPERTIES part of TOKEN.
+The returned item is an ALIST of (KEY . VALUE) pairs."
+  `(nth (- (length ,token) semantic-tfe-properties) ,token))
+
+(defmacro semantic-token-properties-cdr (token)
+  "Retrieve the cons cell for the PROPERTIES part of TOKEN."
+  `(nthcdr (- (length ,token) semantic-tfe-properties) ,token))
+
+(defun semantic-token-put (token key value)
+  "For TOKEN, put the property KEY on it with VALUE.
+If VALUE is nil, then remove the property from TOKEN."
+  (let* ((c (semantic-token-properties-cdr token))
+	 (al (car c))
+	 (a (assoc key (car c))))
+    (if a
+	(if value
+	    (setcdr a value)
+	  (adelete 'al key)
+	  (setcar c al))
+      (if value
+	  (setcar c (cons (cons key value) (car c)))))
+    ))
+
+(defun semantic-token-get (token key)
+  "For TOKEN, get the value for property KEY."
+  (cdr (assoc key (semantic-token-properties token))))
+
 (defmacro semantic-token-overlay (token)
   "Retrieve the OVERLAY part of TOKEN.
 The returned item may be an overlay or an unloaded buffer representation."
-  `(nth (- (length ,token) 1) ,token))
+  `(nth (- (length ,token) semantic-tfe-overlay) ,token))
 
 (defmacro semantic-token-overlay-cdr (token)
   "Retrieve the cons cell containing the OVERLAY part of TOKEN."
-  `(nthcdr (- (length ,token) 1) ,token))
+  `(nthcdr (- (length ,token) semantic-tfe-overlay) ,token))
 
 (defmacro semantic-token-extent (token)
   "Retrieve the extent (START END) of TOKEN."
@@ -523,7 +572,8 @@ Optional argument CHECKCACHE is the same as that for
   "Run whenever a buffer controlled by `semantic-mode' change.
 Tracks when and how the buffer is re-parsed.
 Argument START, END, and LENGTH specify the bounds of the change."
-  (when (not semantic-toplevel-bovine-cache-check)
+  (when (and (not semantic-toplevel-bovine-cache-check)
+	     (not semantic-edits-are-safe))
     (let ((tl (condition-case nil
 		  (semantic-find-nonterminal-by-overlay-in-region
 		   (1- start) (1+ end))
@@ -535,16 +585,14 @@ Argument START, END, and LENGTH specify the bounds of the change."
 	     ;; If we are completely enclosed in this overlay.
 	     ((and (> start (semantic-token-start (car tl)))
 		   (< end (semantic-token-end (car tl))))
-	      (if (semantic-overlay-get (semantic-token-overlay (car tl))
-					'dirty)
+	      (if (semantic-token-get (car tl) 'dirty)
 		  nil
 		(add-to-list 'semantic-dirty-tokens (car tl))
-		(semantic-overlay-put (semantic-token-overlay (car tl))
-				      'dirty t))
-	      (condition-case nil
-		  (run-hook-with-args 'semantic-dirty-token-hooks
-				      (car tl) start end)
-		(error (if debug-on-error) (debug)))
+		(semantic-token-put (car tl) 'dirty t)
+		(condition-case nil
+		    (run-hook-with-args 'semantic-dirty-token-hooks
+					(car tl) start end)
+		  (error (if debug-on-error) (debug))))
 	      )
 	     ;; If we cover the beginning or end of this item, we must
 	     ;; reparse this object.
@@ -562,24 +610,29 @@ Argument START, END, and LENGTH specify the bounds of the change."
 (defun semantic-raw-to-cooked-token (token)
   "Convert TOKEN from a raw state to a cooked state.
 The parser returns raw tokens with positional data START/END.
-We convert it from that to a cooked state with an overlay.
-Changed the token with side effects and returns TOKEN."
+We convert it from that to a cooked state with a property list and an overlay.
+Change the token with side effects and returns TOKEN."
   (let* ((result nil)
 	 (tmpet nil)
 	 (ncdr (- (length token) 2))
-	 (startcdr (if (natnump ncdr) (nthcdr ncdr token)))
+	 (propcdr (if (natnump ncdr) (nthcdr ncdr token)))
+	 (overcdr (cdr propcdr))
+	 ;; propcdr is the CDR containing the START from the token.
+	 ;; overcdr is the CDR containing the END from the token.
+	 ;; PROPCDR will contain the property list after cooking.
+	 ;; OVERCDR will contain the overlay after cooking.
 	 (o (condition-case nil
-		(semantic-make-overlay (car startcdr)
-				       (car (cdr startcdr))
+		(semantic-make-overlay (car propcdr)
+				       (car overcdr)
 				       (current-buffer)
 				       ;; Examin start/rear
 				       ;; advance flags.
 				       )
 	      (error (debug token)
 		     nil))))
-    ;; Convert START/END into an overlay.
-    (setcdr startcdr nil)
-    (setcar startcdr o)
+    ;; Convert START/END into PROPERTIES/OVERLAY.
+    (setcar overcdr o)
+    (setcar propcdr nil)
     (semantic-overlay-put o 'semantic token)
     ;; Expand based on local configuration
     (if (not semantic-expand-nonterminal)
@@ -593,24 +646,26 @@ Changed the token with side effects and returns TOKEN."
 	;; Fixup all overlays, start by deleting the old one
 	(let ((motok tmpet) o start end)
 	  (while motok
-	    (setq startcdr (nthcdr (- (length (car motok)) 1)
+	    (setq propcdr (nthcdr (- (length (car motok)) 2)
+				   (car motok))
+		  overcdr (nthcdr (- (length (car motok)) 1)
 				   (car motok))
 		  ;; this will support new overlays created by
 		  ;; the special function, or recycles
-		  start (if (semantic-overlay-live-p (car startcdr))
-			    (semantic-overlay-start (car startcdr))
+		  start (if (semantic-overlay-live-p (car overcdr))
+			    (semantic-overlay-start (car overcdr))
 			  start)
-		  end (if (semantic-overlay-live-p (car startcdr))
-			  (semantic-overlay-end (car startcdr))
+		  end (if (semantic-overlay-live-p (car overcdr))
+			  (semantic-overlay-end (car overcdr))
 			end)
 		  o (semantic-make-overlay start end
 					   (current-buffer)))
-	    (if (semantic-overlay-live-p (car startcdr))
+	    (if (semantic-overlay-live-p (car overcdr))
 		(semantic-overlay-delete (semantic-token-overlay
 					  (car motok))))
 	    (semantic-overlay-stack-add o)
-	    (setcdr startcdr nil)
-	    (setcar startcdr o)
+	    (setcar propcdr nil)
+	    (setcar overcdr o)
 	    (semantic-overlay-put o 'semantic (car motok))
 	    (setq motok (cdr motok))))
 	(setq result (append tmpet result))))
@@ -634,8 +689,12 @@ the current results on a parse error."
 	    (error "Parse error @ %d" (car (cdr (car stream)))))
 	(semantic-overlay-stack-add stream-overlays)
 	(if token
-	    (setq result (append (semantic-raw-to-cooked-token token)
-				 result))
+	    (progn
+	      (setq result (append (semantic-raw-to-cooked-token token)
+				   result))
+	      ;; Place the nonterm into the token.
+	      (if (not (eq nonterm 'bovine-toplevel))
+		  (semantic-token-put token 'reparse-symbol nonterm)))
 	  (if returnonerror (setq stream nil))
 	  ;;(error "Parse error")
 	  )
@@ -655,7 +714,8 @@ the current results on a parse error."
 				  (semantic-token-end token)))
 	 ;; For embeded tokens (type parts, for example) we need a
 	 ;; different symbol.  Come up with a plan to solve this.
-	 (nonterminal 'bovine-toplevel)
+	 (nonterminal (or (semantic-token-get token 'reparse-symbol)
+			  'bovine-toplevel))
 	 (new (semantic-bovinate-nonterminal flexbits
 					     semantic-toplevel-bovine-table
 					     nonterminal)))
@@ -675,6 +735,12 @@ the current results on a parse error."
 	(semantic-overlay-put o 'invisible (semantic-overlay-get oo 'invisible))
 	;; Free the old overlay(s)
 	(semantic-deoverlay-token token)
+	;; Recover properties
+	(let ((p (semantic-token-properties token)))
+	  (while p
+	    (semantic-token-put new (car (car p)) (cdr (car p)))
+	    (setq p (cdr p))))
+	(semantic-token-put new 'dirty nil)
 	;; Splice into the main list.
 	(setcdr token (cdr new))
 	(setcar token (car new))
