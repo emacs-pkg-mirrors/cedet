@@ -1,9 +1,9 @@
-# Simple BNF notation for top-level C elements.
+# Simple BNF notation for Makefiles.
 #
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: make.bnf,v 1.4 2000/09/09 02:09:35 zappo Exp $
+# X-RCS: $Id: make.bnf,v 1.5 2000/11/13 21:06:42 zappo Exp $
 #
 # make.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: make.bnf,v $
+# Revision 1.5  2000/11/13 21:06:42  zappo
+# Fixed comment.
+#
 # Revision 1.4  2000/09/09 02:09:35  zappo
 # Use new bnf settings section.
 #
