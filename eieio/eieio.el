@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.13
-;; RCS: $Id: eieio.el,v 1.57 1999/11/19 14:28:41 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.58 1999/11/24 15:19:58 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -769,8 +769,6 @@ Checks the :type specifier."
 Checks the :type specifier."
   (if eieio-skip-typecheck
       nil
-    ;; Trim off object IDX junk added in for the object index.
-    (setq field-idx (- field-idx 3))
     (let ((st (aref (aref (class-v class) class-class-allocation-type)
 		    field-idx)))
       (if (not (eieio-perform-slot-validation st value))
@@ -898,7 +896,7 @@ Fills in OBJ's FIELD with VALUE."
 	;; Lets check that info out.
 	(if (setq c
 		  (eieio-class-field-name-index (aref obj object-class) field))
-	    ;; Oref that slot.
+	    ;; Oset that slot.
 	    (progn
 	      (eieio-validate-class-slot-value (object-class-fast obj) c value)
 	      (aset (aref (class-v (aref obj object-class))
@@ -1235,7 +1233,7 @@ are the arguments passed in at the top level."
 	(mclass (eieiomt-next scoped-class))
 	(callsomething nil)
 	(returnval nil))
-    (while mclass
+    (while (and mclass (not callsomething))
       ;; lookup the form to use for the PRIMARY object for the next level
       (setq lambdas (eieio-generic-form eieio-generic-call-methodname
 					method-primary (car mclass)))
