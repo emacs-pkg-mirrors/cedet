@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.44 2000/10/23 17:59:20 zappo Exp $
+;; RCS: $Id: ede.el,v 1.45 2001/01/10 07:01:46 zappo Exp $
 (defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
@@ -539,6 +539,13 @@ If optional argument CURRENT is non-nil, return sub-menu code."
 (eval-and-compile
   (autoload 'ede-dired-minor-mode "ede-dired" "EDE commands for dired" t))
 
+(defun ede-turn-on-hook ()
+  "Turn on EDE minor mode in the current buffer if needed.
+To be used in hook functions."
+  (if (and (stringp (buffer-file-name))
+	   (stringp default-directory))
+      (ede-minor-mode 1)))
+
 (defun ede-minor-mode (&optional arg)
   "Project Automake minor mode.
 If this file is contained, or could be contained in an automake
@@ -549,7 +556,8 @@ easy to edit your automake files.
 
 With argument ARG positive, turn on the mode.  Negative, turn off the
 mode.  nil means to toggle the mode."
-  (if (eq major-mode 'dired-mode)
+  (if (or (eq major-mode 'dired-mode)
+	  (eq major-mode 'vc-dired-mode))
       (ede-dired-minor-mode arg)
     (progn
       (setq ede-minor-mode
@@ -570,15 +578,15 @@ mode.  nil means to toggle the mode."
 If ARG is negative, disable.  Toggle otherwise."
   (interactive "P")
   (if (not arg)
-      (if (member (lambda () (ede-minor-mode 1)) find-file-hooks)
+      (if (member 'ede-turn-on-hook find-file-hooks)
 	  (global-ede-mode -1)
 	(global-ede-mode 1))
     (if (or (eq arg t) (> arg 0))
 	(progn
-	  (add-hook 'find-file-hooks (lambda () (ede-minor-mode 1)))
-	  (add-hook 'dired-mode-hook (lambda () (ede-minor-mode 1))))
-      (remove-hook 'find-file-hooks (lambda () (ede-minor-mode 1)))
-      (remove-hook 'dired-mode-hook (lambda () (ede-minor-mode 1))))
+	  (add-hook 'find-file-hooks 'ede-turn-on-hook)
+	  (add-hook 'dired-mode-hook 'ede-turn-on-hook))
+      (remove-hook 'find-file-hooks 'ede-turn-on-hook)
+      (remove-hook 'dired-mode-hook 'ede-turn-on-hook))
     (let ((b (buffer-list)))
       (while b
 	(if (buffer-file-name (car b))
@@ -1441,6 +1449,9 @@ If VARIABLE is not project local, just use set."
   (autoload 'ede-speedbar "ede-speedbar" "Run speedbar in EDE project mode." t)
   (autoload 'ede-speedbar-file-setup "ede-speedbar" "EDE in Speedbar File mode hack." t)
 )
+
+(autoload 'ede-update-version "ede-util"
+  "Update the version of the current project." t)
 
 (provide 'ede)
 
