@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.15 2001/12/03 22:27:25 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.16 2001/12/04 01:30:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -589,8 +589,21 @@ current buffer don't need re-parse or if its size don't match
             (working-status-dynamic-type
              (if semantic-auto-parse-no-working-message
                  nil
-               working-status-dynamic-type)))
-        (semantic-bovinate-toplevel t))))
+               working-status-dynamic-type))
+	    (semantic-flex-unterminated-syntax-throw-symbol 'auto-parse)
+	    )
+	(when (catch 'auto-parse
+		(save-excursion
+		  (semantic-bovinate-toplevel t))
+		nil)
+	  ;; The reparse failed, no status has been set up that
+	  ;; things are really bad.  If auto-parse needs to do
+	  ;; something in this case, this is where we do it, otherwise
+	  ;; wait for the next timer, and see if the buffer has
+	  ;; been fixed up enough to do something useful.
+	  ;;(message "Auto-reparse sillyness")
+	  nil
+	  ))))
 
 (defun semantic-auto-parse-setup-timer ()
   "Lazy initialization of the auto parse idle timer."
