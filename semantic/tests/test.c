@@ -1,7 +1,7 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.2 2001/08/08 01:01:39 zappo Exp $
+ * $Id: test.c,v 1.3 2001/08/17 21:22:30 zappo Exp $
  *
  */
 
@@ -91,6 +91,8 @@ char *mvarp1, *mvarp2, *mvarp3;
 char *mvarpa1 = 'a', *mvarpa2 = 'b', *mvarpa3 = 'c';
 char mvaras1[10], mvaras2[12][13], *mvaras3 = 'd';
 
+static register const unsigned int tmvar1;
+
 #define MACRO1 1
 #define MACRO2(foo) (1+foo)
 
@@ -154,6 +156,8 @@ int funk3(arg_51, arg_53)
      int arg_51, *arg_53;
 {
   sv = 6;
+  funcall(sv, arg51);
+  fv = 7;
 }
 
 /* End of C tests */
