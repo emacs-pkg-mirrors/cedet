@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.3 2002/02/04 19:42:00 ponced Exp $
+@c $Id: wisent.texi,v 1.4 2002/02/05 20:03:22 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle The Bison-compatible Parser Generator for Emacs
@@ -80,8 +80,8 @@ Wisent resolves shift/reduce conflicts using operator precedence and
 associativity @xref{Conflicts}.
 
 @item 
-Its parser recover from a syntax error using the rules your wrote to
-recognize the special token @code{error}.
+Parser error recovery is accomplished using rules which match the
+special token @code{error}.
 @end itemize
 
 So, for more details on the basic concepts for understanding Wisent,
@@ -92,8 +92,8 @@ read the Bison manual ;) @inforef{Top, , bison.info}.
 @chapter Grammar
 
 In order for Wisent to parse a language, it must be described by a
-Context Free Grammar (@acronym{CFG}).  This grammar is then compiled,
-using the function @code{wisent-compile-grammar}.  This produces the
+Context Free Grammar (@acronym{CFG}).  This grammar is compiled using
+the function @code{wisent-compile-grammar}.  This produces the
 automaton (a set of tables) needed by the parser.
 
 The formal grammar is formulated using terminal and nonterminal
@@ -129,9 +129,9 @@ By convention, a nonterminal symbol should be in lower case, such as
 @code{expr}, @code{stmt} or @code{declaration}.  Terminal symbols
 should be upper case to distinguish them from nonterminals: for
 example, @code{INTEGER}, @code{IDENTIFIER}, @code{IF} or
-@code{RETURN}.  A terminal symbol that stands for a particular keyword
-in the language should be named after that keyword converted to upper
-case.  The terminal symbol @code{error} is reserved for error
+@code{RETURN}.  A terminal symbol represents a particular keyword in
+the language and is conventionally the same as that keyword converted
+to upper case.  The terminal symbol @code{error} is reserved for error
 recovery.
 
 @defun wisent-compile-grammar grammar &optional start-list
@@ -159,7 +159,7 @@ after reducing with each rule.
 @item functions
 A vector of semantic actions.  A semantic action is actually an Elisp
 function (lambda expression).  By default these functions are
-byte-compiled to achieve best performance of the parser.
+byte-compiled to achieve best performance.
 @item translate
 An alist which maps tokens returned by lexical analysis
 into item numbers used internally.
@@ -198,6 +198,10 @@ This is a list @code{(TERMINALS ASSOCS . NON-TERMINALS)} where:
     you change something in TERMINALS and/or in ASSOCS the LALR tables
     won't be the same.  So I think it is better to keep them in the
     grammar definition as they currently are.
+
+>>> Ok.  Since I was only concerned with referencing these fields, a
+    simple API can be devised later to query the state to provide
+    runtime editing help if desired.
 
 @table @var
 @item terminals
@@ -239,7 +243,7 @@ it.  Only terminals declared in @var{ASSOCS} have a precedence level.
 @item action
 Is one optional Elisp expression: the action to do when the rule is
 matched.  As in Bison, actions accept @code{$N} placeholders.  Each
-@code{$N} placeholder is actually variable local to the semantic
+@code{$N} placeholder is actually a variable local to the semantic
 action.  It will receive the value of Nth element of @var{ITEMS} which
 can be of any Lisp data type.  The first element is @code{$1}, the
 second one @code{$2}, etc..  Unlike Bison, Wisent does not allow the
@@ -333,7 +337,7 @@ exp:
   ;
 @end example
 
-And following is the corresponding form accepted by Wisent:
+The following is the corresponding form accepted by Wisent:
 
 @lisp
 ((NUM NL EQ PLUS MINUS NEG MULT DIV EXP LPAREN RPAREN)
@@ -452,11 +456,15 @@ Are the optionals beginning and end positions of @var{value} in the
 input stream.
 @end table
 
-When there is no more token to read the lexer must return the token
+When there are no more tokens to read the lexer must return the token
 @code{(list 'wisent-eoi-term)} to each request. 
 
 It is possible to call the lexer from a grammar's semantic action
 using the macro @code{wisent-lexer}.
+
+>>> Does this eat the token, or just fetch it, and leave it on the
+    stack of things still to parse?  The existing of `wisent-clearin'
+    indicates that the lookahead token is not modified.
 
 @node Report errors, Writing Actions, Writing a Lexer, Parsing
 @comment  node-name,  next,  previous,  up
@@ -476,6 +484,17 @@ The error reporting function can be called from a semantic action too
 using the special macro @code{wisent-error}.  When called from a
 semantic action entered by error recovery the value of the variable
 @code{wisent-recovering} is non-nil.
+
+>>> Is it possible to ignore this token and move onto the next.
+    For example, default behavior might be to allow 1 or 2 terminals
+    of slop in the middle of a match before throwing a hard error.
+    This would make the parser more robust to autoparsing during
+    typing.  This is somewhat suggested with `wisent-nerrs'.
+    The default would remain `error', but the semantic tool set may
+    try to install different error handlers depending on when
+    it chooses to parse the file.  `wisent-clearin' and a couple other
+    skip functions alludes to this possibility.  Describing this in
+    detail here would be great.
 
 @node Writing Actions,  , Report errors, Parsing
 @comment  node-name,  next,  previous,  up
@@ -501,7 +520,9 @@ The actual value of this variable is local to the parser.
 
 @defun wisent-error msg
 Call the language specific error reporting function with message @var{MSG}.
+
 >>> Perhaps specify a use here.
+
 @end defun
 
 @defun wisent-errok
@@ -567,6 +588,7 @@ To be used in grammar recovery actions.
     parser like the default LL one.  Errors are handled outside of the
     grammar via the EXPANDFULL feature.
 
+>>> You may want to add a simple definition of BLOCK here.
 @end defun
 
 >> Do the above contribute to the wisent-nerrs variable?
