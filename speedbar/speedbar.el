@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996, 1997 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.37 1997/03/20 23:05:56 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.38 1997/03/27 04:31:05 zappo Exp $
 ;;; Version: 0.4.5
 ;;; Keywords: file, tags, tools
 ;;;
@@ -250,7 +250,7 @@ interruption.  See `speedbar-check-vc' as a good example.")
 
 (defvar speedbar-show-unknown-files nil
   "*Non-nil shows files we can't expand with a ? in the expand button.
-`nil' means don't show the file in the list.")
+nil means don't show the file in the list.")
 
 ;; Xemacs timers aren't based on idleness.  Therefore tune it down a little
 ;; or suffer mightilly!
@@ -292,8 +292,8 @@ instead.  Etags support is not as robust as imenu support.")
 See imenu.el source for how imenu does sorting.")
 
 (defvar speedbar-directory-button-trim-method 'span
-  "*Indicates how the directory button will be displayed.  Possible values
-are:
+  "*Indicates how the directory button will be displayed.
+Possible values are:
  'span - span large directories over multiple lines.
  'trim - trim large directories to only show the last few.
  nil   - no trimming.")
@@ -323,8 +323,7 @@ added by examining the function `speedbar-this-file-in-vc' and
 Any file checked out is marked with `speedbar-vc-indicator'")
 
 (defvar speedbar-vc-to-do-point nil
-  "Local variable used to maintain the list of files for stealthy
-examination of version control")
+  "Local variable maintaining the current vc check position.")
 
 (defvar speedbar-ignored-modes
   '(Info-mode rmail-mode)
@@ -429,8 +428,12 @@ PATH-EXPRESSION to `speedbar-ignored-path-expressions'."
 (defvar speedbar-do-update (or (not (fboundp 'run-with-idle-timer))
 			       (not (fboundp 'start-itimer)))
   "*Indicate wether the speedbar should do automatic updates.
-When this is `nil' then speedbar will not follow the attached frame's path.
-When speedbar is active, use \\<speedbar-key-map> `\\[speedbar-toggle-updates]' to toggle this value.")
+When this is nil then speedbar will not follow the attached frame's path.
+When speedbar is active, use:
+
+\\<speedbar-key-map> `\\[speedbar-toggle-updates]'
+
+to toggle this value.")
 
 (defvar speedbar-syntax-table nil
   "Syntax-table used on the speedbar.")
@@ -738,8 +741,8 @@ nil if it doesn't exist."
   "The speedbar allows the user to manage a list of directories and tags.
 The first line represents the default path of the speedbar frame.
 Each directory segment is a button which jumps speedbar's default
-directory to that path.  Buttons are activated by clicking mouse-2.
-In some situations using S-mouse-2 is a `power click' which will
+directory to that path.  Buttons are activated by clicking mouse2.
+In some situations using Shift mouse2 is a `power click' which will
 rescan cached items, or pop up new frames.
 
 Each line starting with <+> represents a directory.  Click on the <+>
@@ -855,7 +858,7 @@ frame and window to be the currently active frame and window."
   
 (defun speedbar-temp-buffer-show-function (buffer)
   "Placed in the variable `temp-buffer-show-function' in speedbar-mode.
-If a user requests help using C-h <Key> the temp buffer will be
+If a user requests help using \\[help-command] <Key> the temp buffer will be
 redirected into a window on the attached frame."
   (if speedbar-attached-frame (select-frame speedbar-attached-frame))
   (pop-to-buffer buffer nil)
@@ -1128,7 +1131,7 @@ again."
 
 (defmacro speedbar-with-writable (&rest forms)
   "Allow the buffer to be writable and evaluate forms.
-Turn read-only back on when done."
+Turn read only back on when done."
   (list 'let '((speedbar-with-writable-buff (current-buffer)))
 	'(toggle-read-only -1)
 	(cons 'progn forms)
@@ -1315,7 +1318,7 @@ position to insert a new item, and that the new item will end with a CR"
   "Insert list of FILES starting at point, and indenting all files to LEVEL.
 Tag exapndable items with a +, otherwise a ?.  Don't highlight ? as we
 don't know how to manage them.  The input parameter FILES is a cons
-cell of the form ( 'dir-list . 'file-list )"
+cell of the form ( 'DIRLIST . 'FILELIST )"
   ;; Start inserting all the directories
   (let ((dirs (car files)))
     (while dirs
@@ -1623,7 +1626,7 @@ to add nore types of version control systems."
 (defun speedbar-check-vc-this-line ()
   "Return t if the file on this line is check of of a version control system.
 The one caller-requirement is that the last regex matching opperation
-has the current depth stored in (match-string 1), and that the cursor
+has the current depth stored in (MATCHSTRING 1), and that the cursor
 is right in front of the file name."
   (let* ((d (string-to-int (match-string 1)))
 	 (f (speedbar-line-path d))
@@ -1737,8 +1740,8 @@ directory, then it is the directory name."
 	nil))))
 
 (defun speedbar-goto-this-file (file)
-  "If FILE is displayed, goto this line and return t, otherwise do not move
-and return nil."
+  "If FILE is displayed, goto this line and return t.
+Otherwise do not move and return nil."
   (let ((path (substring (file-name-directory (expand-file-name file))
 			 (length (expand-file-name default-directory))))
 	(dest (point)))
@@ -2068,8 +2071,8 @@ interested in."
     nil
 
 (defun speedbar-fetch-dynamic-imenu (file)
-  "Use the imenu package to load in file, and extract all the items
-tags we wish to display in the speedbar package."
+  "Load FILE into a buffer, and generate tags using Imenu.
+Returns the tag list, or t for an error."
   ;; Load this AND compile it in
   (require 'imenu)
   (save-excursion
@@ -2100,25 +2103,26 @@ the tags output.  If the output is complex, use a function symbol
 instead of regexp.  The function should expect to be at the beginning
 of a line in the etags buffer.
 
-This variable is ignored if `speedbar-use-imenu-package' is `t'")
+This variable is ignored if `speedbar-use-imenu-package' is t")
 
 (defvar speedbar-fetch-etags-command "etags"
   "*Command used to create an etags file.
 
-This variable is ignored if `speedbar-use-imenu-package' is `t'")
+This variable is ignored if `speedbar-use-imenu-package' is t")
 
 (defvar speedbar-fetch-etags-arguments '("-D" "-I" "-o" "-")
-  "*List of arguments to use with `speedbar-fetch-etags-command' to create
-an etags output buffer.  Use `speedbar-toggle-etags' to modify this
-list conveniently.
+  "*List of arguments to use with `speedbar-fetch-etags-command'.
+This creates an etags output buffer.  Use `speedbar-toggle-etags' to
+modify this list conveniently.
 
-This variable is ignored if `speedbar-use-imenu-package' is `t'")
+This variable is ignored if `speedbar-use-imenu-package' is t")
 
 (defun speedbar-toggle-etags (flag)
-  "Toggle FLAG in `speedbar-fetch-etags-arguments' to be a member of
-etags command line arguments.  If flag is \"sort\", then toggle the
-value of `speedbar-sort-tags'.  If it's value is \"show\" then toggle
-the value of `speedbar-show-unknown-files'.
+  "Toggle FLAG in `speedbar-fetch-etags-arguments'.
+FLAG then becomes a member of etags command line arguments.  If flag
+is \"sort\", then toggle the value of `speedbar-sort-tags'.  If it's
+value is \"show\" then toggle the value of
+`speedbar-show-unknown-files'.
 
   This function is a convenience function for XEmacs menu created by 
 Farzin Guilak <farzin@protocol.com>"
@@ -2138,9 +2142,8 @@ Farzin Guilak <farzin@protocol.com>"
    (t nil)))
 
 (defun speedbar-fetch-dynamic-etags (file)
-  "For the complete file definition FILE, run etags as a subprocess,
-fetch it's output, and create a list of symbols extracted, and their
-position in FILE."
+  "For FILE, run etags and create a list of symbols extracted.
+Each symbol will be associated with it's line position in FILE."
   (let ((newlist nil))
     (unwind-protect
 	(save-excursion
@@ -2192,9 +2195,9 @@ position in FILE."
 ;      (delete-region (match-beginning 1) (match-end 1)))))
 
 (defun speedbar-extract-one-symbol (expr)
-  "At point in current buffer, return nil, or one alist of the form
-of a dotted pair: ( symbol . position ) from etags output.  Parse the
-output using the regular expression EXPR"
+  "At point, return nil, or one alist in the form: ( symbol . position )
+The line should contain output from etags.  Parse the output using the
+regular expression EXPR"
   (let* ((sym (if (stringp expr)
 		  (if (save-excursion
 			(re-search-forward expr (save-excursion 
