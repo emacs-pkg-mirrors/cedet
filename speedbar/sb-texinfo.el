@@ -1,11 +1,11 @@
 ;;; sb-texinfo.el --- provide hierarchical speedbar menu's for texinfo files
 
-;; Copyright (c) 2000 Richard Y. Kim
+;; Copyright (c) 2000, 2002 Richard Y. Kim
 
 ;; Author: Richard Y. Kim, <ryk@ap.com>
 ;; Maintainer: Richard Y. Kim, <ryk@ap.com>
 ;; Created: Fri Jun 16 17:23:11 2000
-;; Version: $Id: sb-texinfo.el,v 1.7 2000/12/11 23:44:51 zappo Exp $
+;; Version: $Id: sb-texinfo.el,v 1.8 2002/03/17 02:40:42 zappo Exp $
 ;; Keywords:
 
 ;; This program is free software; you can redistribute it and/or
@@ -113,24 +113,24 @@
 (defconst speedbar-texinfo-section-regexp
   "^@\\(top \\|chapter \\|sect\\|subs\\|subh\\|unnum\\|major\\|chapheading \\|heading \\|appendix\\)")
 
-;; This returns t if the major mode of the current buffer is not 'texinfo-mode.
-;; If it is 'texinfo-mode, then this returns a list where each element is
-;; (LEVEL NAME . MARKER).
-;; LEVEL is 0, 1, 2, or 3 corresponding to chapter section,
-;; subsection, and subsubsection respectively.
-;; NAME is the name of the node.
-;; MARKER is emacs marker that points to the beginning of the node.
-;; The elements in the the list returned are in ascending order of the MARKER.
-;; This function along with it's parter, speedbar-insert-texinfo-list, are
-;; designed to be added to the speedbar-dynamic-tags-function-list list.
 (defun speedbar-fetch-dynamic-texinfo ( filename )
+  "This returns t if the major mode of the current buffer is not 'texinfo-mode.
+If it is 'texinfo-mode, then this returns a list where each element is
+(LEVEL NAME . MARKER).
+LEVEL is 0, 1, 2, or 3 corresponding to chapter section,
+subsection, and subsubsection respectively.
+NAME is the name of the node.
+MARKER is emacs marker that points to the beginning of the node.
+The elements in the the list returned are in ascending order of the MARKER.
+This function along with it's parter, speedbar-insert-texinfo-list, are
+designed to be added to the speedbar-dynamic-tags-function-list list."
   (set-buffer (find-file-noselect filename))
   (if (not (eq major-mode 'texinfo-mode))
       t
     (condition-case nil
 	(save-excursion
 
-	  ;; Set speedbar-tag-hierarchy-method to nil so that 
+	  ;; Set speedbar-tag-hierarchy-method to nil so that
 	  ;; speedbar-create-tag-hierarchy won't reorder the list.
 	  ;; Make it buffer local so that the global value is not touched.
 	  (make-local-variable 'speedbar-tag-hierarchy-method)
@@ -172,15 +172,15 @@
 	    (nreverse alist)))
       (error t))))
 
-;; See speedbar-fetch-dynamic-texinfo for description of LST.
-;; LEVEL should be 0 unless this is called recursively.
-;; This function converts LST from a flat list structure into
-;; a hierarchical list suitable to be passed on to speedbar-insert-texinfo-list.
-;; This function creates the hierarchical list recursively.
-;; On first pass all the nodes of each chapter are grouped into a list.
-;; Then each of these lists are recursively converted so that all nodes
-;; of each section are grouped together.
-(defun speedbar-format-texinfo-list ( lst level )
+(defun speedbar-format-texinfo-list ( lst level)
+  "See `speedbar-fetch-dynamic-texinfo' for description of LST.
+LEVEL should be 0 unless this is called recursively.
+This function converts LST from a flat list structure into
+a hierarchical list suitable to be passed on to `speedbar-insert-texinfo-list'.
+This function creates the hierarchical list recursively.
+On first pass all the nodes of each chapter are grouped into a list.
+Then each of these lists are recursively converted so that all nodes
+of each section are grouped together."
   (let (new-list elem section-list)
     (while lst
       (setq section-list (list (cdr (car lst))))
@@ -202,11 +202,15 @@
 		 (let ((head (car x)))
 		   (cons (car head)
 			 (cons (cdr head)
-			       (speedbar-format-texinfo-list (cdr x) level))))))
+			       (speedbar-format-texinfo-list
+				(cdr x) level))))))
 	    new-list)))
 
 (defun speedbar-insert-texinfo-list (indent lst)
-  (speedbar-insert-generic-list indent (speedbar-format-texinfo-list lst indent)
+  "Insert a list of generic tokens reorganized into chapeters.
+INDENT is the current level of indentation, and LST is the list of tokens."
+  (speedbar-insert-generic-list indent
+				(speedbar-format-texinfo-list lst 0)
 				'speedbar-tag-expand
 				'speedbar-tag-find))
 
