@@ -152,30 +152,32 @@ Works on grep, compile, or other type mode."
 	  (condition-case nil
 	      (save-excursion
 		(set-buffer (marker-buffer errmark))
-		(goto-char errmark)
+		(save-excursion
+		  (goto-char errmark)
 	  
-		(setq face (cond
-			    ((re-search-forward "error" (point-at-eol) t)
-			     'linemark-stop-face)
-			    ((re-search-forward "warning" (point-at-eol) t)
-			     'linemark-caution-face)
-			    (t
-			     'linemark-funny-face))))
+		  (setq face (cond
+			      ((re-search-forward "error" (point-at-eol) t)
+			       'linemark-stop-face)
+			      ((re-search-forward "warning" (point-at-eol) t)
+			       'linemark-caution-face)
+			      (t
+			       'linemark-funny-face)))))
 	    (error nil))
 
 	  (condition-case nil
 	      (save-excursion
 		(set-buffer (marker-buffer errmark))
-		(goto-char errmark)
-		(setq txt (buffer-substring-no-properties
-			   (point-at-bol) (point-at-eol)))
-		;; Strip positional information
-		(while (string-match "[0-9]:" txt)
-		  (setq txt (substring txt (match-end 0))))
-		;; Strip leading whitespace (if any)
-		(when (string-match "^\\s-++" txt)
-		  (setq txt (substring txt (match-end 0))))
-		)
+		(save-excursion
+		  (goto-char errmark)
+		  (setq txt (buffer-substring-no-properties
+			     (point-at-bol) (point-at-eol)))
+		  ;; Strip positional information
+		  (while (string-match "[0-9]:" txt)
+		    (setq txt (substring txt (match-end 0))))
+		  ;; Strip leading whitespace (if any)
+		  (when (string-match "^\\s-++" txt)
+		    (setq txt (substring txt (match-end 0))))
+		  ))
 	    (error nil))
 
 	  (setq entry
