@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.wy,v 1.7 2003/03/13 08:38:33 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.wy,v 1.8 2003/04/02 10:17:34 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -58,7 +58,7 @@
    semantic-lex-number-expression semantic-java-number-regexp
    semantic-lex-analyzer 'wisent-java-tags-lexer
    ;; Parsing
-   semantic-expand-nonterminal 'wisent-java-expand-nonterminal
+   semantic-tag-expand-function 'wisent-java-expand-tag
    ;; Environment
    semantic-imenu-summary-function 'semantic-prototype-nonterminal
    imenu-create-index-function 'semantic-create-imenu-index
