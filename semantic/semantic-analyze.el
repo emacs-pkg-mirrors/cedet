@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.4 2001/10/08 21:10:07 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.5 2001/10/28 01:00:19 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -92,8 +92,57 @@ or a string, or a non-positional token."
 	   (car tt))
 	  (t nil))))
 
+(defun semantic-analyze-token-type (token)
+  "Return the semantic token for a type within the type of TOKEN.
+TOKEN can be a variable, function or other type of token.
+The type of token (such as a class or struct) is a name.
+Lookup this name in database, and return all slots/fields
+within that types field.  Also handles anonymous types."
+  (let ((ttype (semantic-token-type token))
+	(name nil)
+	(typetoken nil)
+	)
+
+    ;; Is it an anonymouse type?
+    (if (and ttype
+	     (semantic-token-p ttype)
+	     (eq (semantic-token-token ttype) 'type)
+	     (semantic-nonterminal-children ttype))
+	;; We have an anonymous type for TOKEN with children.
+	;; Use this type directly.
+	ttype
+
+      ;; Not an anonymous type.  Look up the name of this type
+      ;; elsewhere, and report back.
+      (setq name (semantic-analyze-token-type-to-name token))
+      (if (and name (not (string= name "")))
+	  (setq typetoken (semantic-analyze-find-nonterminal name))
+	;; No name to look stuff up with.
+	(error "Semantic token %S has no type information"
+	       (semantic-token-name ttype)))
+
+      ;; Handle lists of tokens.
+      (if (and (listp typetoken) (semantic-token-p (car typetoken)))
+
+	  (let ((toklist typetoken))
+	    (setq typetoken nil)
+	    ;; Loop over all returned elements until we find a type
+	    ;; that is a perfect match.
+	    (while (and toklist (not typetoken))
+	      ;; FIXME: Do better matching.
+	      (if (and (car toklist)
+		       (eq (semantic-token-token (car toklist)) 'type))
+		  (setq typetoken (car toklist)))
+	      (setq toklist (cdr toklist)))))
+
+      ;; We now have a token associated with the type.
+      typetoken)))
+
 (defun semantic-analyze-find-nonterminal-sequence (sequence &optional localvar scope typereturn)
   "Attempt to find all nonterminals in SEQUENCE.
+Optional argument LOCALVAR is the list of local variables to use when
+finding the details on the first element of SEQUENCE in case
+it is not found in the global set of tables.
 Optional argument SCOPE are additional terminals to search which are currently
 scoped.  These are no local variables, but symbols available in a structure
 which doesn't need to be dereferneced.
@@ -112,6 +161,9 @@ will be stored.  If nil, that data is thrown away."
 		   (car s) scope)
 		  (semantic-find-nonterminal-by-name
 		   (car s) (semantic-get-local-arguments))
+		  ;; This should be first, but bugs in the
+		  ;; C parser will turn function calls into
+		  ;; assumed int return function prototypes.  Yuck!
 		  (semantic-find-nonterminal-by-name
 		   (car s) localvar)))
 
@@ -129,43 +181,26 @@ will be stored.  If nil, that data is thrown away."
       ;; representing the full typeographic information of it's
       ;; type, and use that to determine the search context for
       ;; (car s)
-      (let ((tmptype (semantic-analyze-token-type-to-name tmp))
-	    (tmptypetok nil)
+      (let ((tmptype (semantic-analyze-token-type tmp))
 	    (slots nil))
 	
-	(if tmptype
-	    (setq tmptypetok
-		  (or (semantic-analyze-find-nonterminal tmptype)
-		      ;; In some languages, types can be
-		      (semantic-find-nonterminal-by-name
-		       (car s) localvar)))
-	  (error "Semantic token %s has no type info"
-		 (semantic-token-name tmp)))
-
-	(if (and (listp tmptypetok) (semantic-token-p (car tmptypetok)))
-	    ;; We should be smarter... :(
-	    (setq tmptypetok (car tmptypetok)))
-
-	;; Now that we have the type associated with TMP, we can find
-	;; fields in that structure.  Make sure we really have a type
-	;; first though.
-	(if (not (and tmptypetok
-		      (eq (semantic-token-token tmptypetok) 'type)))
-	    (error "Symbol %s type %s is not a known aggregate type"
-		   (semantic-token-name tmp)
-		   tmptype))
-
-	;; get the slots
-	(setq slots (semantic-token-type-parts tmptypetok))
+	;; Get the children
+	(setq slots (semantic-nonterminal-children tmptype))
 
 	;; find (car s) in the list o slots
 	(setq tmp (semantic-find-nonterminal-by-name (car s)
 						     slots nil nil))
 	
 	(if (and (listp tmp) (semantic-token-p (car tmp)))
-	    ;; We should be smarter... :(
+	    ;; We should be smarter...  For example
+	    ;; search for an item only of 'variable if we know
+	    ;; the syntax is variable, or only 'function if we
+	    ;; can see a function.  Most languages don't allow that
+	    ;; type of duality, so we will probably be safe with this
+	    ;; forever.
 	    (setq tmp (car tmp)))
 
+	;; Make sure we have a token.
 	(if (not (semantic-token-p tmp))
 	    (if (cdr s)
 		;; In the middle, we need to keep seeking our types out.
@@ -174,7 +209,10 @@ will be stored.  If nil, that data is thrown away."
 	      (setq tmp (car s))))
 
 	(setq tok (cons tmp tok))
-	(setq toktype (cons tmptypetok toktype))
+	(setq toktype (cons tmptype toktype))
+
+	;; Get ready for the next iteration
+	(setq tmp tmptype)
 	)
       (setq s (cdr s)))
 
@@ -206,7 +244,10 @@ Tokens returned are not in the global name space, but are instead
 scoped inside a class or namespace.  Such items can be referenced
 without use of \"object.function()\" style syntax due to an
 implicit \"object\"."
-  (apply #'append (mapcar #'semantic-analyze-type-parts typelist)))
+  (apply #'append (mapcar #'semantic-analyze-type-parts typelist))
+  ;; We also need to get all parents of typelist, and include public or
+  ;; protected methods of those!
+  )
 
 (defun semantic-analyze-scoped-types (&optional position)
   "Return a list of types current in scope at POSITION.
@@ -215,31 +256,45 @@ types available."
   (save-excursion
     (if position (goto-char position))
     (let ((tok (semantic-current-nonterminal))
+	  (code-scoped-parents nil)
 	  (parent nil))
       (setq parent
-	    (when tok
-	      (if (eq (semantic-token-token tok) 'function)
-		  ;; If TOK is a function, it may have a parent class.
-		  ;; Find it.
-		  (let ((p (semantic-token-function-parent tok)))
-		    (if p
-			;; We have a parent, search for it.
-			(let ((ptok (semantic-analyze-find-nonterminal
-				     (cond ((stringp p) p)
-					   ((semantic-token-p p)
-					    (semantic-token-name p))
-					   ((and (listp p) (stringp (car p)))
-					    (car p))) 'type)))
-			  ptok)
+	    ;; This only makes sense in a function
+	    (when (and tok (eq (semantic-token-token tok) 'function))
+	      ;; If TOK is a function, it may have a parent class.
+	      ;; Find it.
+	      (let ((p (semantic-token-function-parent tok)))
+		(if p
+		    ;; We have a parent, search for it.
+		    (let ((ptok (semantic-analyze-find-nonterminal
+				 (cond ((stringp p) p)
+				       ((semantic-token-p p)
+					(semantic-token-name p))
+				       ((and (listp p) (stringp (car p)))
+					(car p))) 'type)))
+		      ptok)
 		  ;; No specified parent.  See if there is a parent by
-		      ;; position
-		      (setq p (semantic-current-nonterminal-parent))
-		      p)))))
-      ;; We should search the hierarchy for all parent classes
-      ;; as well.
+		  ;; position?
+		  (setq p (semantic-current-nonterminal-parent))
+		  p))
+	      ;; Lets ask if any types are currently scoped.  Scoped
+	      ;; classes and types provide their public methods and types
+	      ;; in source code, but are unrelated hierarchically.
+	      (let ((sp (semantic-ctxt-scoped-types)))
+		(while sp
+		  ;; Get this thing as a non terminal
+		  (setq code-scoped-parents
+			(cons
+			 (semantic-analyze-find-nonterminal (car sp))
+			 code-scoped-parents))
+		  (setq  sp (cdr sp))))
+	      (setq code-scoped-parents (nreverse code-scoped-parents))
+	      ))
+      ;; We return a list in case a function can have multiple explicit
+      ;; parents.
       (if parent
-	  (list parent))
-      )))
+	  (cons parent code-scoped-parents)
+	code-scoped-parents))))
 
 ;;; Top Level context analysis function
 ;;
@@ -469,7 +524,7 @@ Analysis is done at POINT."
 
 	(setq c (semantic-find-nonterminal-by-name-regexp
 		 (concat "^" completetext)
-		 (oref a scope)
+		 (semantic-nonterminal-children completetexttype)
 		 nil nil))
 	      
       (let ((expr (concat "^" completetext)))
@@ -484,6 +539,10 @@ Analysis is done at POINT."
 		 ;; Local variables
 		 (semantic-find-nonterminal-by-name-regexp
 		  expr (oref a localvariables)
+		  nil nil)
+		 ;; The current scope
+		 (semantic-find-nonterminal-by-name-regexp
+		  expr (oref a scope)
 		  nil nil)
 		 ;; The world
 		 (semantic-analyze-find-nonterminals-by-prefix
