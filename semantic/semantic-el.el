@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.28 2000/06/11 18:48:25 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.29 2000/06/13 14:38:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -137,6 +137,7 @@
 	   (function . "Defuns")
 	   (include . "Requires")
 	   (package . "Provides"))
+	imenu-create-index-function 'semantic-create-imenu-index
 	))
 
 (add-hook 'emacs-lisp-mode-hook 'semantic-default-elisp-setup)
