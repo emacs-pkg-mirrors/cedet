@@ -4,8 +4,8 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.42 2000/10/14 02:49:53 zappo Exp $
-(defconst ede-version "0.8 beta 2"
+;; RCS: $Id: ede.el,v 1.43 2000/10/21 02:19:44 zappo Exp $
+(defconst ede-version "1.0.beta2"
   "Current version of the Emacs EDE.")
 
 ;; This software is free software; you can redistribute it and/or modify
@@ -166,12 +166,24 @@ type is required and the load function used.")
 	 :documentation "The path to the sources of this target.
 Relative to the path of the project it belongs to.")
    (source :initarg :source
+	   :initform nil
 	   ;; I'd prefer a list of strings.
 	   :type list
 	   :custom (repeat (string :tag "File"))
 	   :label "Source Files"
 	   :group (default source)
 	   :documentation "Source files in this target.")
+   (versionsource :initarg :versionsource
+		  :initform nil
+		  :type list
+		  :custom (repeat (string :tag "File"))
+		  :label "Source Files with Version String"
+		  :group (source)
+		  :documentation
+		  "Source files with a version string in them.
+These files are checked for a version string whenever the EDE version
+of the master project is changed.  When strings are found, the version
+previously there is updated.")
    ;; Class level slots
    ;;
 ;   (takes-compile-command :allocation :class
@@ -276,7 +288,7 @@ and target specific elements such as build variables.")
    )
   "Top level EDE project specification.
 All specific project types must derive from this project.")
-
+
 ;;; Management variables
 ;;
 (defvar ede-projects nil
@@ -297,7 +309,7 @@ If `ede-object' is nil, then commands will operate on this object.")
 (defvar ede-deep-rescan nil
   "Non nil means scan down a tree, otherwise rescans are top level only.
 Do not set this to non-nil globally.  It is used internally.")
-
+
 ;;; Important macros for doing commands.
 ;;
 (defmacro ede-with-projectfile (obj &rest forms)
@@ -330,8 +342,8 @@ Argument LIST-O-O is the list of objects to choose from."
 	 (ans (completing-read prompt al nil t)))
     (setq ans (assoc ans al))
     (cdr ans)))
-
-;;; Minor mode specification
+
+;;; Menu and Keymap
 ;;
 (defvar ede-minor-mode nil
   "Non-nil in `emacs-lisp-mode' for automatic documentation checking.")
@@ -398,41 +410,42 @@ Argument MENU-DEF is the menu definition to use."
   (easy-menu-filter-return
    (easy-menu-create-menu
     "Build Forms"
-    (let* ((obj (ede-current-project))
-	   (newmenu nil) ;'([ "Build Selected..." ede-compile-selected t ]))
-	   (targets (oref obj targets))
-	   targitems
-	   (ede-obj (if (listp ede-object) ede-object (list ede-object)))
-	   (tskip nil))
-      ;; First, collect the build items from the project
-      (setq newmenu (append newmenu (ede-menu-items-build obj t)))
-      ;; Second, Declare the current target menu items
-      (if (and ede-obj (ede-menu-obj-of-class-p ede-target))
-	  (while ede-obj
-	    (setq newmenu (append newmenu
-				  (ede-menu-items-build (car ede-obj) t))
-		  tskip (car ede-obj)
-		  ede-obj (cdr ede-obj))))
-      ;; Third, by name, enable builds for other local targets
-      (while targets
-	(unless (eq tskip (car targets))
-	  (setq targitems (ede-menu-items-build (car targets) nil))
-	  (setq newmenu
-		(append newmenu
-			(if (= 1 (length targitems))
-			    targitems
-			  (cons (ede-name (car targets))
-				targitems))))
-	  )
-	(setq targets (cdr targets)))
-      ;; Fourth, build sub projects.
-      ;; Fifth, Add make distribution
-      (setq newmenu
-	    (append newmenu
-		    (list [ "Make distribution" ede-make-dist t ])))
-      ;; Return it
-      newmenu
-      ))))
+    (let ((obj (ede-current-project))
+	  (newmenu nil) ;'([ "Build Selected..." ede-compile-selected t ]))
+	  targets
+	  targitems
+	  ede-obj
+	  (tskip nil))
+      (if (not obj)
+	  nil
+	(setq targets (oref obj targets)
+	      ede-obj (if (listp ede-object) ede-object (list ede-object)))
+	;; First, collect the build items from the project
+	(setq newmenu (append newmenu (ede-menu-items-build obj t)))
+	;; Second, Declare the current target menu items
+	(if (and ede-obj (ede-menu-obj-of-class-p ede-target))
+	    (while ede-obj
+	      (setq newmenu (append newmenu
+				    (ede-menu-items-build (car ede-obj) t))
+		    tskip (car ede-obj)
+		    ede-obj (cdr ede-obj))))
+	;; Third, by name, enable builds for other local targets
+	(while targets
+	  (unless (eq tskip (car targets))
+	    (setq targitems (ede-menu-items-build (car targets) nil))
+	    (setq newmenu
+		  (append newmenu
+			  (if (= 1 (length targitems))
+			      targitems
+			    (cons (ede-name (car targets))
+				  targitems))))
+	    )
+	  (setq targets (cdr targets)))
+	;; Fourth, build sub projects.
+	;; -- nerp
+	;; Fifth, Add make distribution
+	(append newmenu (list [ "Make distribution" ede-make-dist t ]))
+	)))))
 
 (defun ede-target-forms-menu (menu-def)
   "Create a target MENU-DEF based on the object belonging to this buffer."
@@ -440,17 +453,19 @@ Argument MENU-DEF is the menu definition to use."
    (easy-menu-create-menu
     "Target Forms"
     (let ((obj (or ede-selected-object ede-object)))
-      (append
-       '([ "Add File" ede-add-file (ede-current-project) ]
-	 [ "Remove File" ede-remove-file
-	   (and ede-object
-		(or (listp ede-object)
-		    (not (obj-of-class-p ede-object ede-project)))) ])
-       (if (and (not (listp obj)) (oref obj menu))
-	   (oref obj menu)
-	 (when (listp obj)
-	   ;; This is bad, but I'm not sure what else to do.
-	   (oref (car obj) menu))))))))
+      (if (not obj)
+	  nil
+	(append
+	 '([ "Add File" ede-add-file (ede-current-project) ]
+	   [ "Remove File" ede-remove-file
+	     (and ede-object
+		  (or (listp ede-object)
+		      (not (obj-of-class-p ede-object ede-project)))) ])
+	 (if (and (not (listp obj)) (oref obj menu))
+	     (oref obj menu)
+	   (when (listp obj)
+	     ;; This is bad, but I'm not sure what else to do.
+	     (oref (car obj) menu)))))))))
        
 
 (defun ede-project-forms-menu (menu-def)
@@ -518,7 +533,7 @@ If optional argument CURRENT is non-nil, return sub-menu code."
 	   (concat "Build Target " (ede-name obj))
 	   `(project-compile-target ,obj)
 	   t))))
-
+
 ;;; Mode Declarations
 ;;
 (eval-and-compile
@@ -789,7 +804,8 @@ Argument NEWVERSION is the version number to use in the current project."
 				  v nil v))))
   (let ((ede-object (ede-toplevel)))
     (oset ede-object :version newversion)
-    (project-update-version ede-object)))
+    (project-update-version ede-object)
+    (ede-update-version-in-source ede-object newversion)))
 
 (eval-when-compile (require 'eieio-custom))
 
@@ -943,7 +959,7 @@ Argument COMMAND is the command to use for compiling the target."
 (defmethod project-rescan ((this ede-project))
   "Rescan the EDE proj project THIS."
   (error "Rescanning a project is not supported by %s" (object-name this)))
-
+
 ;;; Default methods for EDE classes
 ;;
 ;; These are methods which you might want to override, but there is
@@ -1004,6 +1020,14 @@ Argument THIS is the project to convert PATH to."
   ;; By default, all targets reference the source object, and let it decide.
   (let ((src (ede-target-sourcecode this)))
     (while (and src (not (ede-want-file-p (car src) file)))
+      (setq src (cdr src)))
+    src))
+
+(defmethod ede-want-file-source-p ((this ede-target) file)
+  "Return non-nil if THIS target wants FILE."
+  ;; By default, all targets reference the source object, and let it decide.
+  (let ((src (ede-target-sourcecode this)))
+    (while (and src (not (ede-want-file-source-p (car src) file)))
       (setq src (cdr src)))
     src))
 
@@ -1346,6 +1370,32 @@ This includes buffers controlled by a specific target of PROJECT."
 (defmethod ede-map-targets ((this ede-project) proc)
   "For object THIS, execute PROC on all targets."
   (mapcar proc (oref this targets)))
+
+;;; Version Checking/Updating
+;;
+(defmethod ede-update-version-in-source ((this ede-project) version)
+  "Change occurrences of a version string in sources.
+In project THIS, cycle over all targets to give them a chance to set
+their sources to VERSION."
+  (ede-map-targets this (lambda (targ)
+			  (ede-update-version-in-source targ version))))
+
+(defmethod ede-update-version-in-source ((this ede-target) version)
+  "In sources for THIS, change version numbers to VERSION."
+  (if (and (slot-boundp this 'versionsource)
+	   (oref this versionsource))
+      (save-excursion
+	(set-buffer (find-file-noselect
+		     (ede-expand-filename this (oref this versionsource))))
+	(goto-char (point-min))
+	(let ((case-fold-search t))
+	  (if (re-search-forward "version:\\s-*\\([^ \t\n]+\\)" nil t)
+	      (progn
+		(delete-region (match-beginning 1)
+			       (match-end 1))
+		(goto-char (match-beginning 1))
+		(insert version)))))))
+
 
 
 ;;; Project-local variables
