@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.9 2003/05/13 14:42:35 ponced Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.10 2003/06/08 23:39:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -98,6 +98,9 @@
 ;; Keep semanticdb optional.
 (eval-when-compile (require 'semanticdb))
 
+(eval-when-compile (require 'avoid)
+		   (require 'tooltip))
+  
 ;;; Code:
 
 ;;; Compatibility
@@ -340,26 +343,6 @@ default, possibly choosing a function or variable."
     (unless sym
       (setq sym (semantic-ctxt-current-assignment)))
     sym))
-
-
-;;; Specific queries
-;;
-(defun semantic-complete-read-tag-buffer-deep (prompt &optional
-						      default-tag initial-input history)
-  "Ask for a tag by name from the current buffer.
-PROMPT is a string to prompt with.
-DEFAULT-TAG is a semantic tag or string to use as the default value.
-If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
-HISTORY is a symbol representing a variable to story the history in."
-  (semantic-complete-read-tag-engine
-   (semantic-collector-buffer-deep prompt :buffer (current-buffer))
-   (semantic-displayor-traditional-with-focus-highlight "simple")
-   ;;(semantic-displayor-tooltip "simple")
-   prompt
-   default-tag
-   initial-input
-   history)
-  )
 
 
 ;;; Collection Engines
@@ -613,7 +596,7 @@ Uses `semantic-flatten-tags-table'"
   ((focus :type number
 	  :documentation "A tag index from `table' which has focus.
 Multiple calls to the display function can choose to focus on a
-given tag, by highlighting its location.")  
+given tag, by highlighting its location.")
    )
   "A displayor which has the ability to focus in on one tag.
 Focusing is a way of differentiationg between multiple tags
@@ -680,30 +663,30 @@ one in the source buffer."
 		 :initarg :max-tags
 		 :initform 10
 		 :custom integer
-		 :documentation 
+		 :documentation
 		 "Max number of tags displayed on tooltip at once.
 If `force-show' is 1,  this value is ignored with typing tab or space twice continuously.
 if `force-show' is 0, this value is always ignored.")
    (force-show   :type integer
 		 :initarg :force-show
 	         :initform 1
-		 :custom (choice (const 
+		 :custom (choice (const
 				  :tag "Show when double typing"
 				  1)
 				 (const
 				  :tag "Show always"
 				  0)
-				 (const 
-				  :tag "Show if the number of tags is less than `max-tags'." 
+				 (const
+				  :tag "Show if the number of tags is less than `max-tags'."
 				  -1))
 	         :documentation
 		 "Control the behavior of the number of tags is greater than `max-tags'.
--1 means tags are never shown. 
-0 means the tags are always shown. 
+-1 means tags are never shown.
+0 means the tags are always shown.
 1 means tags are shown if space or tab is typed twice continuously.")
    (typing-count :type integer
 		 :initform 0
-		 :documentation 
+		 :documentation
 		 "Counter holding how many times the user types space or tab continuously before showing tags.")
    (shown        :type boolean
 		 :initform nil
@@ -721,27 +704,28 @@ if `force-show' is 0, this value is always ignored.")
 	 (force-show (oref obj force-show))
 	 msg)
     (if (or (oref obj shown)
-	    (< ll (oref obj max-tags)) 
+	    (< ll (oref obj max-tags))
 	    (and (<= 0 force-show)
 		 (< (1- force-show) typing-count)))
-	(progn 
+	(progn
 	  (oset obj typing-count 0)
 	  (oset obj shown t)
 	  (if (eq 1 ll)
 	      (setq msg "SOLE COMPLETION")
 	    (setq msg (mapconcat 'identity l "\n"))
 	    (if (eq 0 (length msg))
-		(setq msg "NO MORE COMPLETIONS"))) 
+		(setq msg "NO MORE COMPLETIONS")))
 	  (semantic-displayor-tooltip-show msg))
       (oset obj typing-count (1+ typing-count))
       (cond
        ((= force-show -1)
 	(semantic-displayor-tooltip-show "TOO MANY"))
        ((= force-show 1)
-	(semantic-displayor-tooltip-show 
+	(semantic-displayor-tooltip-show
 	 "TOO MANY (Type TAB or SPACE again to show force)"))))))
 
 (defun semantic-displayor-tooltip-show (text)
+  "Display a tooltip with TEXT near cursor."
   (require 'tooltip)
   (require 'avoid)
   (let* ((P (mouse-avoidance-point-position))
@@ -757,6 +741,26 @@ if `force-show' is 0, this value is always ignored.")
     (set-mouse-position frame (1+ x) y)))
 
 ;; End code contributed by Masatake YAMATO <jet@gyve.org>
+
+
+;;; Specific queries
+;;
+(defun semantic-complete-read-tag-buffer-deep (prompt &optional
+						      default-tag initial-input history)
+  "Ask for a tag by name from the current buffer.
+PROMPT is a string to prompt with.
+DEFAULT-TAG is a semantic tag or string to use as the default value.
+If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
+HISTORY is a symbol representing a variable to story the history in."
+  (semantic-complete-read-tag-engine
+   (semantic-collector-buffer-deep prompt :buffer (current-buffer))
+   (semantic-displayor-traditional-with-focus-highlight "simple")
+   ;;(semantic-displayor-tooltip "simple")
+   prompt
+   default-tag
+   initial-input
+   history)
+  )
 
 
 ;;; Testing
@@ -780,6 +784,9 @@ if `force-show' is 0, this value is always ignored.")
       (working-message "%S: %s "
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)))))
+
+
+
 
 ;; End
 (provide 'semantic-complete)
