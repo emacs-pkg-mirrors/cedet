@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-wy.el,v 1.9 2002/07/01 11:36:51 ponced Exp $
+;; X-RCS: $Id: wisent-wy.el,v 1.10 2002/07/16 21:18:18 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,28 +34,118 @@
 
 ;;; Code:
 (require 'wisent-bovine)
+(require 'semantic-lex)
 
 (eval-when-compile
   (require 'font-lock))
 
 ;;;;
-;;;; Set up parser
+;;;; Set up lexer
 ;;;;
-(defconst wisent-wy-c-char-re "'\\s\\?.'"
+
+;;; Analyzers
+;;
+(define-lex-regex-analyzer wisent-wy-lex-symbol
+  "Detect and create identifier or keyword tokens."
+  "\\(\\sw\\|\\s_\\)+"
+  (semantic-lex-token
+   (or (semantic-flex-keyword-p (match-string 0))
+       'SYMBOL)
+   (match-beginning 0)
+   (match-end 0)))
+
+(define-lex-simple-regex-analyzer wisent-wy-lex-number
+  "Detect and create number tokens."
+  semantic-lex-number-expression 'NUMBER)
+
+(define-lex-regex-analyzer wisent-wy-lex-string
+  "Detect and create a string token."
+  "\\s\""
+  ;; Zing to the end of this string.
+  (semantic-lex-token
+   'STRING (point)
+   (save-excursion
+     (condition-case nil
+         (forward-sexp 1)
+       ;; This case makes lex
+       ;; robust to broken strings.
+       (error
+        (goto-char
+         (funcall
+          semantic-lex-unterminated-syntax-end-function
+          'string
+          start end))))
+     (point))))
+
+(defconst wisent-wy-lex-c-char-re "'\\s\\?.'"
   "Regexp matching C-like character literals.")
 
-(defconst wisent-wy-flex-extensions
-  (list (cons wisent-wy-c-char-re 'wisent-wy-flex-char))
-  "`semantic-flex-extensions' to recognize C-like character literals.")
+(define-lex-simple-regex-analyzer wisent-wy-lex-char
+  "Detect and create a C-like character token."
+  wisent-wy-lex-c-char-re 'CHARACTER)
 
-(defun wisent-wy-flex-char ()
-  "Return a 'char syntactic token."
-  (goto-char (match-end 0))
-  (cons 'char (cons (match-beginning 0) (match-end 0))))
+(define-lex-regex-analyzer wisent-wy-lex-punctuation
+  "Detect and create punctuation tokens."
+  "\\(\\s.\\|\\s$\\|\\s'\\)+"
+  (let* ((punct (match-string 0))
+         (start (match-beginning 0))
+         (rules (cdr (wisent-flex-token-rules 'punctuation)))
+         entry)
+    ;; Starting with the longest punctuation string, search if it
+    ;; matches a punctuation of this language.
+    (while (and (> (length punct) 0)
+                (not (setq entry (rassoc punct rules))))
+      (setq punct (substring punct 0 -1)))
+    (semantic-lex-token (car entry) start (+ start (length punct)))))
+
+(define-lex-block-analyzer wisent-wy-lex-blocks
+  "Detect and create a open, close or block token."
+  (PAREN_BLOCK ("(" LPAREN) (")" RPAREN))
+  (BRACE_BLOCK ("{" LBRACE) ("}" RBRACE))
+  )
+
+;;; Lexer
+;;
+(define-lex wisent-wy-lexer
+  "Lexical analyzer that handles WY buffers.
+It ignores whitespaces, newlines and comments."
+  semantic-lex-ignore-newline
+  semantic-lex-ignore-whitespace
+  wisent-wy-lex-symbol
+  wisent-wy-lex-number
+  wisent-wy-lex-char
+  wisent-wy-lex-string
+  ;; Must detect comments after strings because `comment-start-skip'
+  ;; regexp match semicolons inside strings!
+  semantic-lex-ignore-comments
+  ;; Must detect punctuations after comments because the semicolon can
+  ;; be a punctuation or a comment start!
+  wisent-wy-lex-punctuation
+  wisent-wy-lex-blocks
+  semantic-lex-default-action)
+
+;;; Test the lexer
+;;
+(defun wisent-wy-lex-buffer ()
+  "Run `wisent-wy-lex' on current buffer."
+  (interactive)
+  (semantic-lex-init)
+  (setq semantic-lex-analyzer 'wisent-wy-lex)
+  (let ((token-stream
+         (semantic-lex (point-min) (point-max))))
+    (with-current-buffer (get-buffer-create "*wisent-wy-lex*")
+      (erase-buffer)
+      (pp token-stream (current-buffer))
+      (goto-char (point-min))
+      (pop-to-buffer (current-buffer)))))
+
+;;;;
+;;;; Set up parser
+;;;;
 
 (defconst wisent-wy-automaton
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-01 13:01+0200
+    ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-16 22:18+0200
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL NUMBER CHARACTER PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
@@ -339,7 +429,7 @@
 
 (defconst wisent-wy-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-01 13:01+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-16 22:18+0200
    (semantic-flex-make-keyword-table
     '(("left" . LEFT)
       ("nonassoc" . NONASSOC)
@@ -360,7 +450,7 @@
 
 (defconst wisent-wy-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-01 13:01+0200
+   ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-16 22:18+0200
    (wisent-flex-make-token-table
     '(("punctuation"
        (PERCENT . "%")
@@ -384,15 +474,13 @@
        (SYMBOL))
       ("string"
        (STRING)))
-    '(("close-paren" string t)
-      ("open-paren" string t)
-      ("punctuation" string t)))
+    'nil)
    )
   "Tokens.")
 
 (defun wisent-wy-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-01 13:01+0200
+  ;;DO NOT EDIT! Generated from wisent-wy.wy - 2002-07-16 22:18+0200
   (progn
     (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
           semantic-bovinate-parser-name "LALR"
@@ -403,34 +491,32 @@
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
               'wisent-collect-unmatched-syntax nil t)
-    (setq semantic-number-expression
-          ;; Numbers
-          (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
-                  "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
-          ;; C-like character literals
-          semantic-flex-extensions wisent-wy-flex-extensions
-          ;; Parent/Child separator
-          semantic-type-relation-separator-character '(":")
-          ;; Names
-          semantic-symbol->name-assoc-list
-          '(
-            (code         . "Setup Code")
-            (keyword      . "Keyword")
-            (token        . "Token")
-            (nonterminal  . "Nonterminal")
-            (rule         . "Rule")
-            )
-          ;; Faces
-          semantic-face-alist
-          '(
-            (code         . default)
-            (keyword      . font-lock-keyword-face)
-            (token        . font-lock-type-face)
-            (nonterminal  . font-lock-function-name-face)
-            (rule         . default)
-            )
-          )
-
+    (setq
+     ;; Lexical analysis
+     semantic-lex-number-expression
+     (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
+             "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
+     semantic-lex-analyzer 'wisent-wy-lexer
+     wisent-lexer-function 'wisent-lex
+     ;; Environment
+     semantic-type-relation-separator-character '(":")
+     semantic-symbol->name-assoc-list
+     '(
+       (code         . "Setup Code")
+       (keyword      . "Keyword")
+       (token        . "Token")
+       (nonterminal  . "Nonterminal")
+       (rule         . "Rule")
+       )
+     semantic-face-alist
+     '(
+       (code         . default)
+       (keyword      . font-lock-keyword-face)
+       (token        . font-lock-type-face)
+       (nonterminal  . font-lock-function-name-face)
+       (rule         . default)
+       )
+     )
     (semantic-install-function-overrides
      '(
        ;;(abbreviate-nonterminal    . wisent-wy-abbreviate-nonterminal)
@@ -571,7 +657,7 @@ Warn if other TYPE tokens exist."
 
 (defun wisent-wy-item-value (item)
   "Return symbol or character value of ITEM string."
-  (if (string-match wisent-wy-c-char-re item)
+  (if (string-match wisent-wy-lex-c-char-re item)
       (read (concat "?" (substring item 1 -1)))
     (intern item)))
 
@@ -696,7 +782,7 @@ nil."
         (while names
           (setq term  (car names)
                 names (cdr names))
-          (or (string-match wisent-wy-c-char-re term)
+          (or (string-match wisent-wy-lex-c-char-re term)
               (setcdr assoc (cons (list (intern term))
                                   (cdr assoc)))))))
     
@@ -1046,7 +1132,7 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     ("\\$\\(\\sw\\|\\s_\\)*" 0 font-lock-variable-name-face)
     ("%" 0 font-lock-reference-face)
     ("<\\(\\(\\sw\\|\\s_\\)+\\)>" 1 font-lock-type-face)
-    (,wisent-wy-c-char-re
+    (,wisent-wy-lex-c-char-re
      0 ,(if (boundp 'font-lock-constant-face)
             'font-lock-constant-face
           'font-lock-string-face) t)
