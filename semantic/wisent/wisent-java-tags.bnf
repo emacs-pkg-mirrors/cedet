@@ -6,7 +6,7 @@
 ## Maintainer: David Ponce <david@dponce.com>
 ## Created: 15 Dec 2001
 ## Keywords: syntax
-## X-RCS: $Id: wisent-java-tags.bnf,v 1.2 2001/12/18 06:50:25 ponced Exp $
+## X-RCS: $Id: wisent-java-tags.bnf,v 1.3 2002/02/07 22:25:00 ponced Exp $
 ##
 ## This file is not part of GNU Emacs.
 ##
@@ -36,6 +36,8 @@
 %languagemode  java-mode
 %setupfunction wisent-java-default-setup
 
+# The default start symbol
+%start compilation_unit
 # Alternate entry points
 #    - Needed by partial re-parse
 %start package_declaration
