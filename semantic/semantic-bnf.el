@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.44 2001/10/05 21:32:27 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.45 2001/10/17 13:08:52 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1625,7 +1625,8 @@ and initial #."
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
 
 (eval-after-load "which-func"
-  '(add-to-list 'which-func-modes 'semantic-bnf-mode))
+  '(unless (eq which-func-modes t)
+     '(add-to-list 'which-func-modes 'semantic-bnf-mode)))
 
 (provide 'semantic-bnf)
 
