@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.14 2003/11/29 12:27:21 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.15 2003/12/04 22:01:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -895,9 +895,9 @@ which have the same name."
 	  (oset obj focus 0)
 	(oset obj focus (1+ (oref obj focus)))
 	)
-      (if (<= (length table) (oref obj focus))
+      (if (<= (semanticdb-find-result-length table) (oref obj focus))
 	  (oset obj focus 0))
-      (nth (oref obj focus) table))))
+      (semanticdb-find-result-nth table (oref obj focus)))))
 
 (defmethod semantic-displayor-current-focus ((obj semantic-displayor-focus-abstract))
   "Return the tag currently in focus, or call parent method."
@@ -927,19 +927,41 @@ which have the same name."
   "Focus in on possible tag completions.
 Focus is performed by cycling through the tags and highlighting
 one in the source buffer."
-  (let ((tag (semantic-displayor-focus-next-tag obj))
+  (let* ((focus (semantic-displayor-focus-next-tag obj))
+	 (tag (car focus))
+	 (table (cdr focus))
 	)
-    (if (semantic-tag-with-position-p tag)
-	(when (semantic-tag-buffer tag)
-	  (if (get-buffer-window (semantic-tag-buffer tag))
-	      (unwind-protect
-		  (progn
-		    (select-window (get-buffer-window (semantic-tag-buffer tag)))
-		    (goto-char (semantic-tag-start tag))
-		    (semantic-momentary-highlight-tag tag)
-		    )
-		(select-window (minibuffer-window))))))
-    ))
+    (let ((buf (or (semantic-tag-buffer tag)
+		   (and table (semanticdb-get-buffer table)))))
+      ;; If no buffer is provided, then we can make up a summary buffer.
+      (when (not buf)
+	(save-excursion
+	  (set-buffer (get-buffer-create "*Completion Focus*"))
+	  (erase-buffer)
+	  (insert "Focus on tag: \n")
+	  (insert (semantic-format-tag-summarize tag) "\n")
+	  (when table
+	    (insert "From table: \n")
+	    (insert (object-name table) "\n"))
+	  (when buf
+	    (insert "In buffer: \n")
+	    (insert (format "%S" buf)))
+	  (setq buf (current-buffer))))
+      ;; Show the tag in the buffer.
+      (if (get-buffer-window buf)
+	  (select-window (get-buffer-window buf))
+	(switch-to-buffer-other-window buf t)
+	(select-window (get-buffer-window buf)))
+      ;; Now do some positioning
+      (unwind-protect
+	  (if (semantic-tag-with-position-p tag)
+	      ;; Full tag positional information available
+	      (progn
+		(goto-char (semantic-tag-start tag))
+		(semantic-momentary-highlight-tag tag)
+		))
+	(select-window (minibuffer-window)))
+      )))
 
 ;;; Tooltip completion lister
 ;; 
