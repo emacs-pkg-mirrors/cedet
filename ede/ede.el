@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.62 2003/09/06 19:37:55 zappo Exp $
+;; RCS: $Id: ede.el,v 1.63 2003/09/17 08:58:19 ponced Exp $
 (defconst ede-version "1.0beta3"
   "Current version of the Emacs EDE.")
 
@@ -41,7 +41,7 @@
 ;;
 ;;  (global-ede-mode t)
 
-(load "ede-loaddefs" nil t)
+(require 'ede-load)
 (require 'ede-source)
 
 ;;; Code:
