@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.43 2001/07/17 19:13:43 zappo Exp $
+@c $Id: eieio.texi,v 1.44 2001/08/01 01:54:04 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -34,8 +34,8 @@ wrong!
 @menu
 * Introduction::          Why use eieio?  Basic overview, samples list.
 * CLOS compatibility::    What are the differences?
-* Building Classes::      How to write out new class structures.
-* Default Superclass::    The grand-daddy of all superclasses.
+* Building Classes::      How to write new class structures.
+* Default Superclass::    The root superclasses.
 * Making New Objects::    How to construct new objects.
 * Accessing Slots::       How to access a slot.
 * Writing Methods::       How to write a CLOS style method.
@@ -43,7 +43,7 @@ wrong!
 * Association Lists::     List of objects as association lists.
 * Introspection::         Looking inside a class.
 * Signals::               When you make errors
-* Base Classes::          Additional classes you can use inherit from.
+* Base Classes::          Additional classes you can inherit from.
 * Browsing::              Browsing your class lists.
 * Class Values::          Displaying information about a class or object.
 * Customizing::           Customizing objects.
@@ -700,14 +700,20 @@ before @var{:AFTER}, after @var{:BEFORE}, and is represented in CLOS as
 
 @code{arglist} is the argument list.  Unlike CLOS, only the FIRST
 argument may be type-cast, and it may only be type-cast to an EIEIO
-object.  An arglist such as @code{(a b)} would classify the function as
-generic call, which has no object it can talk to (none is passed in) and
-merely allows the creation of side-effects.  If the arglist appears as
-@code{((this data-object) b)} then the form is stored as belonging to
-the class @code{data-object}.  If two @code{defmethod}s appear with
-arglists such as @code{(a b)} and @code{(c d)} then one of the
-implementations will be overwritten, but generic and multiple type cast
-arglists can co-exist.
+object.  An arglist such as @code{(a b)} would classify the function
+as generic call, which has no object it can talk to (none is passed
+in) and merely allows the creation of side-effects.  If the arglist
+appears as @code{((this data-object) b)} then the form is stored as
+belonging to the class @code{data-object}.
+
+The first argument does not need to be typecast.  A method with no
+typecast is a @code{generic}.  If a given class has no implementation,
+then the generic will be called when that method is used on a given
+object of that class.
+
+If two @code{defmethod}s appear with arglists such as @code{(a b)}
+and @code{(c d)} then one of the implementations will be overwritten,
+but generic and multiple type cast arglists can co-exist.
 
 When called, if there is a method cast against the object's parent
 class, but not for that object's class, the parent class' method will be
@@ -725,13 +731,16 @@ they are executed in this order:
 
 @table @asis
 @item method :BEFORE
-@item generic :BEFORE
 @item method :PRIMARY
-@item generic :PRIMARY
 @item method :AFTER
-@item generic :AFTER
 @end table
 @end defun
+
+If in any situation a method does not exist, but a generic does, then
+the generic is called in place of the method.
+
+If no methods exist, then the signal @code{no-method-definition} is
+thrown. @ref{Signals}
 
 See the file @file{eieio-test.el} for an example testing these
 differently tagged methods.
@@ -742,7 +751,10 @@ While running inside a CLOS method, calling this function will call the
 method associated with the parent of the class of the currently running
 method with the same parameters.
 
-Optional arguments @var{replacement-args} can be used to replace the
+If no next method is available, but a generic is implemented for the
+given key (Such as @code{:BEFORE}), then the generic will be called.
+
+OPTIONAL arguments @var{replacement-args} can be used to replace the
 arguments the next method would be called with.  Useful if a child class
 wishes to add additional behaviors through the modification of the
 parameters.  This is not a feature of CLOS.
@@ -1388,7 +1400,7 @@ override your methods at any time.  Your methods should be prefixed
 with your package name.
 @item Do not prefix slots in your class.  The slots are always locally
 scoped to your class, and need no prefixing.
-@item If your library inherits from another libraries classes, you
+@item If your library inherits from other libraries of classes, you
 must ``require'' that library with the @code{require} command.
 @end itemize
 
