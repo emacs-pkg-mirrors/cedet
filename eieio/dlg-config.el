@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dlg-config.el,v 1.10 1997/01/18 23:51:12 zappo Exp $
+;;; RCS: $Id: dlg-config.el,v 1.11 1997/01/19 22:07:22 zappo Exp $
 ;;; Keywords: OO, dialog, configure
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -149,12 +149,21 @@ the SYMBOL is the symbol this toggle directly edits through a
 `data-object-symbol' class.  If the symbol is a local variable, then
 the object `data-object-symbol-default' is used instead."
   (while toggle-data
-    (create-widget (car toggle-data) widget-toggle-button
-		   :state
-		   (if (local-variable-if-set-p (car (cdr toggle-data)))
-		       (data-object-symbol-default (car (cdr toggle-data)))
-		     (data-object-symbol (car (cdr toggle-data)))))
+    ;; By making sure that the symbol really exists, we can more easilly
+    ;; create cross-emacsen dialogs
+    (if (boundp (car (cdr toggle-data)))
+	(create-widget (car toggle-data) widget-toggle-button
+		       :state
+		       (if (local-variable-if-set-p (car (cdr toggle-data)) nil)
+			   (data-object-symbol-default (car (cdr toggle-data)))
+			 (data-object-symbol (car (cdr toggle-data))))))
     (setq toggle-data (cdr (cdr toggle-data)))))
+
+(defmacro dlg-color-name (cn)
+  "Avoid annoyance of XEmacs differences"
+  (if (eval-when-compile dialog-xemacs-p)
+      (list 'if cn (list 'color-name cn) cn)
+    cn))
 
 (defun dlg-face-box (face &optional bx by boxjust)
   "Create a frame to edit FACE in.  Optionally set position at BX and BY
@@ -170,9 +179,9 @@ using BOXJUST as the justification for the label."
 			   (format "%s-fg-data" face)
 			   :face face
 			   :value (if (face-foreground face) 
-				      (face-foreground face)
+				      (dlg-color-name (face-foreground face))
 				    (if (face-foreground 'default)
-					(face-foreground 'default)
+					(dlg-color-name (face-foreground 'default))
 				      ""))))
     (create-widget (format "%s-bglt" face) widget-labeled-text
 		   :label "Background:" :text-length 20
@@ -180,9 +189,9 @@ using BOXJUST as the justification for the label."
 			   (format "%s-bg-data" face)
 			   :face face
 			   :value (if (face-background face) 
-				      (face-background face)
+				      (dlg-color-name (face-background face))
 				    (if (face-background 'default)
-					(face-background 'default)
+					(dlg-color-name (face-background 'default))
 				      ""))))
     (create-widget (format "%s-under" face) widget-toggle-button
     :x 1 :y -1 :label-value "Underline"
@@ -191,32 +200,27 @@ using BOXJUST as the justification for the label."
 	    :face face
 	    :value (face-underline-p face)))
     (let* ((f1 (face-font face))
-	   (f (if f1 f1 ""))
+	   (f (if f1 (if (stringp f1) f1 (font-name f1)) ""))
 	   (jnk (string-match x-font-regexp-slant f))
 	   ;; match-beginning should be to x-font-regexp-slant-subnum
 	   ;; but it doesn't seem to work.
 	   (it (if (and jnk (match-beginning 1))
-		   (string= (substring 
-			     f 
-			     (match-beginning 1)
-			     (match-end 1))
-			    "o")
+		   (string= (match-string 1 f) "o")
 		 nil))
+	   (wsub (if (boundp 'x-font-regexp-weight-subnum)
+		     x-font-regexp-weight-subnum
+		   1))
 	   (jnk2 (string-match x-font-regexp-weight f))
-	   (bld (if (and jnk2 (match-beginning x-font-regexp-weight-subnum))
-		    (string= (substring 
-			      f
-			      (match-beginning x-font-regexp-weight-subnum)
-			      (match-end x-font-regexp-weight-subnum))
-			     "bold")
+	   (bld (if (and jnk2 (match-beginning wsub))
+		    (string= (match-string wsub f) "bold")
 		  nil)))
-    (create-widget (format "%s-emph" face) widget-option-button-dlg-font-style
-		   :x -5 :y t 
-		   :option-list '("default" "bold" "italic" "bold-italic")
-		   :state (data-face-emphasis-object
-			   (format "%s-emph-data" face)
-			   :face face
-			   :value (+ (if it 2 0) (if bld 1 0)))))
+      (create-widget (format "%s-emph" face) widget-option-button-dlg-font-style
+		     :x -5 :y t 
+		     :option-list '("default" "bold" "italic" "bold-italic")
+		     :state (data-face-emphasis-object
+			     (format "%s-emph-data" face)
+			     :face face
+			     :value (+ (if it 2 0) (if bld 1 0)))))
     ))
 
 (defun dlg-faces (&optional list-o-faces)
@@ -233,7 +237,7 @@ default to a list of simple faces."
 			       (if (member 'paren-mismatch (face-list))
 				   'paren-mismatch))))
   (dlg-init 'xdefaults)
-  (let ((even t))
+  (let ((even t) (dlg-auto-edit nil))	;don't save while building
     (while list-o-faces
       (if (car list-o-faces)
 	  (dlg-face-box (car list-o-faces)
