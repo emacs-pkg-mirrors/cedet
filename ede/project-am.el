@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.10 1998/12/16 13:58:47 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.11 1999/01/05 02:45:15 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -141,7 +141,7 @@ OT is the object target.  DIR is the directory to start in."
       (makefile-end-of-command)
       (insert " " ofn)
       (makefile-fill-paragraph nil)
-      (project-am-rescan ot)
+      (project-rescan ot)
       (save-buffer))
     (setq ede-object ot)))
 
@@ -156,7 +156,7 @@ OT is the object target.  DIR is the directory to start in."
     (makefile-navigate-macro (concat " *" (regexp-quote (ede-name fnnd))))
     (replace-match "" t t nil 0)
     (makefile-fill-paragraph nil)
-    (project-am-rescan ot)
+    (project-rescan ot)
     (save-buffer))
   (setq ede-object nil))
 
@@ -219,7 +219,7 @@ buffer being in order to provide a smart default target type."
       (insert " " (ede-target-name ot))
       (save-buffer)
       ;; Rescan the object in this makefile.
-      (project-am-rescan ede-object))))
+      (project-rescan ede-object))))
 
 ;(defun project-am-rescan-toplevel ()
 ;  "Rescan all projects in which the current buffer resides."
@@ -380,7 +380,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 		ede-object
 	      (let ((ampf (project-am-makefile (project-am-last-dir fn)
 					       :file fn)))
-		(project-am-rescan ampf)
+		(project-rescan ampf)
 		(make-local-variable 'ede-object)
 		(setq ede-object ampf)
 		ampf))
@@ -442,7 +442,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 		     (setq tmp (apply (cdr typecar) lstcar
 				      :name lstcar
 				      :path path nil)))
-		 (project-am-rescan tmp)
+		 (project-rescan tmp)
 		 (setq ntargets (cons tmp ntargets)))
 	       (makefile-macro-file-list (car typecar))))
      tp)
@@ -452,7 +452,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 	(let ((tmp (project-am-lisp "lisp"
 				    :name "lisp"
 				    :path path)))
-	  (project-am-rescan tmp)
+	  (project-rescan tmp)
 	  (setq ntargets (cons tmp ntargets))))
     ;; Now that we have this new list, chuck the old targets
     ;; and replace it with the new list of targets I just created.
@@ -478,7 +478,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 				     sp "/")))
 		;; If we have tmp, then rescan it only if deep mode.
 		(if ede-deep-rescan
-		    (project-am-rescan tmp)))
+		    (project-rescan tmp)))
 	      ;; Tac tmp onto our list of things to keep
 	      (setq nsubproj (cons tmp nsubproj)))
 	    csubproj)
@@ -486,25 +486,25 @@ It does not check for existing project objects.  Use `project-am-load'."
     ;; All elements should be updated now.
     ))
 
-(defmethod project-am-rescan ((this project-am-program))
+(defmethod project-rescan ((this project-am-program))
   "Rescan object THIS."
   (oset this :source (makefile-macro-file-list (project-am-macro this)))
   (oset this :ldadd (makefile-macro-file-list
 		     (concat (oref this :name) "_LDADD"))))
 
-(defmethod project-am-rescan ((this project-am-lib))
+(defmethod project-rescan ((this project-am-lib))
   "Rescan object THIS."
   (oset this :source (makefile-macro-file-list (project-am-macro this))))
 
-(defmethod project-am-rescan ((this project-am-texinfo))
+(defmethod project-rescan ((this project-am-texinfo))
   "Rescan object THIS."
   (oset this :include (makefile-macro-file-list (project-am-macro this))))
 
-(defmethod project-am-rescan ((this project-am-man))
+(defmethod project-rescan ((this project-am-man))
   "Rescan object THIS."
   )
 
-(defmethod project-am-rescan ((this project-am-lisp))
+(defmethod project-rescan ((this project-am-lisp))
   "Rescan the lisp sources."
   (oset this :lisp (makefile-macro-file-list (project-am-macro this))))
 
