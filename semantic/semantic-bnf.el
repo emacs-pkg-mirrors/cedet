@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.6 2001/09/18 14:49:53 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.7 2001/09/29 23:43:42 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -887,8 +887,7 @@ SOURCEFILE is the file name from whence tokstream came."
 	  (error "Setup function %s not found in %s"
 		 (semantic-token-name (car setfn)) (buffer-file-name))
 	;; Scan for setup text, and remove old stuff, insert new.
-	(let ((b (match-beginning 0))
-	      (e (save-excursion (end-of-defun) (point))))
+	(let ((e (save-excursion (end-of-defun) (point))))
 	  (if (re-search-forward (car semantic-setup-code-delimiters)
 				 nil t)
 	      ;; Search and destroy
@@ -966,7 +965,6 @@ token table variable."
   (semantic-clear-toplevel-cache)
   (let* ((fname (file-name-nondirectory (buffer-file-name)))
 	 (tok (semantic-bovinate-toplevel t))
-	 (bb (current-buffer))
 	 (dest (semantic-bnf-find-table-destination tok))
 	 (keydest (semantic-bnf-find-keyword-destination tok))
 	 (tokdest (semantic-bnf-find-token-destination tok))
@@ -1146,7 +1144,6 @@ RULE is a symbol representing the rule name we are currently in.
 MATCHLISTINDEX is the index to the current match list being tested.
 MATCHINDEX is the index into the matchlist being tested."
   (let* ((start (car (semantic-find-nonterminal-by-token 'start (current-buffer))))
-	 (sn (symbol-name rule))
 	 (findme (if (and start (eq rule 'bovine-toplevel))
 		     (semantic-token-name start)
 		   (symbol-name rule)))
@@ -1396,7 +1393,7 @@ Optional argument COLOR determines if color is added to the text."
 (defun semantic-bnf-ecsi ()
   "Return an info string about the current context."
   (let* ((sym (semantic-ctxt-current-symbol))
-	 (summ (assoc (car sym) semantic-bnf-syntax-help))n
+	 (summ (assoc (car sym) semantic-bnf-syntax-help))
 	 (found (cdr summ)))
     (if found
 	found
