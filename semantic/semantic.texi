@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.23 2000/12/16 15:15:08 zappo Exp $
+@c $Id: semantic.texi,v 1.24 2001/01/06 05:22:48 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{Semantic}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1999, 2000 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001 Eric M. Ludlam
 @end titlepage
 
 @node Top, Install, (dir), (dir)
@@ -353,6 +353,7 @@ Available override symbols:
 @item summarize-nonterminal  @tab (token & parent)  @tab Return summery string.
 @item prototype-nonterminal  @tab (token)           @tab Return a prototype string.
 @item prototype-file         @tab (buffer)          @tab Return a file in which prototypes are placed
+@item nonterminal-children   @tab (token)           @tab Return first rate children. These are children which may contain overlays.
 @end multitable
                                                    
 Parameters mean:
@@ -370,6 +371,13 @@ parent token which should have positional information in it.
 @end table
 
 @end defvar
+
+@defvar semantic-type-relation-separator-character
+Character used to separation a parent/child relationship.
+In C, a type field is separated like this: ``type.field''
+thus, the character is a ``.''.
+@end defvar
+
 
 @defvar semantic-dependency-include-path
 Defines the include path used when searching for files.
@@ -635,6 +643,25 @@ When a buffer is parsed, the results are cached in a local variable in
 the parsed buffer.  This command will clear the cache so that the parser
 is called a second time.
 @end deffn
+
+When writing programs that use the bovinator, the following functions
+are needed.
+
+@deffn Predicate semantic-bovine-toplevel-full-reparse-needed-p &optional checkcache
+Return non-nil if the current buffer needs a full reparse.
+Optional argument @var{checkcache} indicates if the cache check should be made.
+@end deffn
+
+@deffn Predicate semantic-bovine-toplevel-partial-reparse-needed-p
+Return non-nil if the current buffer needs a full reparse.
+@end deffn
+
+@deffn semantic-bovinate-toplevel &optional checkcache
+Bovinate the entire current buffer.
+If the optional argument @var{checkcache} is non-nil, then flush the cache iff
+there has been a size change.
+@end deffn
+
 
 @node Debugging, Non-Terminals, Compiling, Top
 @chapter Debugging a bovine table.
