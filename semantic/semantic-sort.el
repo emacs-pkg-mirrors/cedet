@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.14 2004/02/10 01:56:15 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.15 2004/02/11 03:21:42 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -51,7 +51,7 @@ Argument S1 and S2 are the strings to compare."
   ;; Use downcase instead of upcase because an average name
   ;; has more lower case characters.
   (if (fboundp 'compare-strings)
-      (< (compare-strings s1 0 nil s2 0 nil t) 0)
+      (eq (compare-strings s1 0 nil s2 0 nil t) -1)
     (string-lessp (downcase s1) (downcase s2))))
 
 (defun semantic-sort-tag-type (tag)
