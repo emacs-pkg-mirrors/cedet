@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 1.3.3
+;; Version: 1.4
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.76 2001/01/07 02:55:56 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.77 2001/01/10 06:48:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,18 +32,6 @@
 ;; The output of a semantic bovine parse is parse tree.  While it is
 ;; possible to assign actions in the bovine-table in a similar fashion
 ;; to bison, this is not it's end goal.
-;;
-;; DESIGN ISSUES:
-;; -------------
-;;
-;;  At the moment, the only thing I really dislike is the RESULT
-;;  LAMBDA format.  While having some good defaults is nice, the use
-;;  of append and list in the lambda seems unnecessarily complex.
-;;
-;;  Also of issue, I am still not sure I like the idea of stripping
-;;  BEGIN/END off of nonterminal tokens passed down in VALS.  While they
-;;  are often unnecessary, I can imagine that they could prove useful.
-;;  Only time will tell.
 
 ;;; History:
 ;; 
@@ -51,8 +39,11 @@
 (require 'working)
 (require 'semantic-util)
 
+(defvar semantic-version "1.4"
+  "Current version of Semantic.")
+
 (defgroup semantic nil
-  "File and tag browser frame."
+  "Parser Generator."
   )
 
 ;;; Code:
