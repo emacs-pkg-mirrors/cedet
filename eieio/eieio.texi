@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.16 1999/02/18 20:19:44 zappo Exp $
+@c $Id: eieio.texi,v 1.17 1999/03/18 18:53:12 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -49,10 +49,11 @@ wrong!
 * Customizing::           Customizing objects.
 * Documentation::         Automatically creating texinfo documentation
 * Demo Programs::         Some examples using eieio.
+* Function Index::
 @end menu
 
 As of this writing, updates can be found at:
-  ftp://ftp.ultranet.com/pub/zappo
+  @uref{ftp://ftp.ultranet.com/pub/zappo}.
 
 @node Introduction, CLOS compatibility, Top, Top
 @comment  node-name,  next,  previous,  up
@@ -153,7 +154,7 @@ single inheritance is currently supported
 @item make-instance
 Make instance works as expected, however it just uses the EIEIO instance
 creator automatically created when a new class is generated.
-@xref{Making New Objects}
+@xref{Making New Objects}.
 @item slot-value
 Accesses the value of a named slot within an object
 @item defgeneric
@@ -184,7 +185,7 @@ Pretty print an object.  Can be found as @code{eieio-describe-class} for a
 bufferized version.
 @end table
 
-When creating a new class @xref{Building Classes} there are several
+When creating a new class (@pxref{Building Classes}) there are several
 keywords supported by EIEIO.
 
 In EIEIO tags are in lower case, not mixed case.
@@ -216,7 +217,7 @@ valuen)}.  Some valid tags are:
 
 @table @asis
 @item :initarg
-The argument used during initialization. @xref{Making New Objects}
+The argument used during initialization.  @xref{Making New Objects}.
 @item :initform
 A lisp expression used to generate the default value for this slot.
 @item :accessor
@@ -240,7 +241,7 @@ A CLOS unsupported specifier which indicates that only methods of this
 class may access this slot.
 @end table
 
-@xref{CLOS compatibility} for more details on CLOS tags versus EIEIO
+@ref{CLOS compatibility}, for more details on CLOS tags versus EIEIO
 specific tags.
 
 The whole definition may look like this:
@@ -366,7 +367,7 @@ An example pair would appear simply as @code{:value 1}.  Of course you
 can do any valid lispy thing you want with it, such as
 @code{:value (if (boundp 'special-symbol) special-symbol nil)}
 
-Example of creating an object from a class in @xref{Building Classes}:
+Example of creating an object from a class, @ref{Building Classes}:
 
 @example
 (data-object "test" :value 3 :reference nil)
@@ -398,8 +399,8 @@ This function is pretty intrusive, and is offered as a way to allow
 users to configure the default behavior of packages built with classes
 more easily.
 
-For example, if a user wanted all @code{data-objects} @xref{Building
-Classes} to inform a special object of his own devising when they
+For example, if a user wanted all @code{data-objects} (@pxref{Building
+Classes}) to inform a special object of his own devising when they
 changed, this can be arranged by simply executing this bit of code:
 
 @example
@@ -450,7 +451,7 @@ read the values, or set the local variable to a new value.
 @defun slot-missing object field operation &optional new-valie
 This method is called when a there is an attemp to access a slot that
 does not exist for a given object.  The default method signals an error
-of type @code{invalid-slot-name}. @xref{Signals}
+of type @code{invalid-slot-name}.  @xref{Signals}.
 
 You may override this behavior, but it is not expected to return in the
 current implementation.
@@ -531,7 +532,7 @@ Optional arguments REPLACEMENT-ARGS can be used to replace the arguments
 the next method would be called with.  Useful if a child class wishes to
 add additional behaviours through the modification of the parameters.
 
-@xref{Default Superclass} for example code.
+@ref{Default Superclass} for example code.
 
 @end defun
 
@@ -737,7 +738,7 @@ eieio-default-superclass
        +--data-object-symbol
 @end example
 
-Note that we start with eieio-default-superclass.  @xref{Default Superclass}
+Note that we start with eieio-default-superclass.  @xref{Default Superclass}.
 
 Note: new classes are consed into the inheritance lists, so the tree
 comes out upside-down.
@@ -745,7 +746,7 @@ comes out upside-down.
 It is also possible to use the function @code{eieio-class-tree} in the
 @file{tree.el} package.  This will create an interactive tree.  Clicking
 on nodes will allow expansion/contraction of branches, or editing of a
-class.  @xref{Class Values}
+class.  @xref{Class Values}.
 
 @node Class Values, Customizing, Browsing, Top
 @comment  node-name,  next,  previous,  up
@@ -819,7 +820,7 @@ all these classes, subsection headings, and indexes.
 
 Each class will be indexed using the texinfo labeled index
 @var{indexstring} which is a two letter description.
-@xref{(texinfo) New Indices}
+@xref{(texinfo) New Indices}.
 
 To use this command, the texinfo macro
 
@@ -845,7 +846,7 @@ Only classes loaded into emacs' memory can be documented.
 
 @end deffn
 
-@node Demo Programs, , Documentation, Top
+@node Demo Programs, Function Index, Documentation, Top
 @comment  node-name,  next,  previous,  up
 @chapter Demo Programs
 
@@ -872,4 +873,10 @@ Database interface object for emacs.  So far, on psql (PostgreSQL) is
 supported with @file{psql.el}
 @end table
 
+@node Function Index,  , Demo Programs, Top
+@unnumbered Function Index
+
+@printindex fn
+
+@contents
 @bye
