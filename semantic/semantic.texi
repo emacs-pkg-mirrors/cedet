@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.32 2001/04/07 14:32:58 zappo Exp $
+@c $Id: semantic.texi,v 1.33 2001/04/13 01:28:04 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -1505,6 +1505,15 @@ To use semanticdb, add the following to your @file{.emacs} file:
 (require 'semanticdb)
 (global-semanticdb-minor-mode 1)
 @end example
+
+If you have a tool which optionally uses the semantic database, it may
+be important to track if the database mode is turned on or off.
+
+@deffn Option semanticdb-mode-hooks
+Hooks run whenever @dfn{global-semanticdb-minor-mode} is run.
+Use @dfn{semanticdb-minor-mode-p} to determine if the mode has been turned
+on or off.
+@end deffn
 
 @subsection Searching
 
