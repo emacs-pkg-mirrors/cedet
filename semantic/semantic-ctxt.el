@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.18 2001/10/09 18:33:38 ponced Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.19 2001/10/26 14:10:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -345,12 +345,12 @@ beginning and end of a command."
   "Return the current symbol the cursor is on at POINT in a list.
 This will include a list of type/field names when applicable.
 This can be overridden using `ctxt-current-symbol'."
-    (if point (goto-char point))
-    (let ((s (semantic-fetch-overload 'ctxt-current-symbol))
-	  (case-fold-search semantic-case-fold))
-      (if s (funcall s)
-	(semantic-ctxt-current-symbol-default)
-	)))
+  (if point (goto-char point))
+  (let ((s (semantic-fetch-overload 'ctxt-current-symbol))
+	(case-fold-search semantic-case-fold))
+    (if s (funcall s)
+      (semantic-ctxt-current-symbol-default)
+      )))
 
 (defun semantic-ctxt-current-symbol-default ()
   "Return the current symbol the cursor is on at POINT in a list.
@@ -405,12 +405,12 @@ Depends on `semantic-type-relation-separator-character'."
 Return a list as per `semantic-ctxt-current-symbol'.
 Return nil if there is nothing relevant.
 Override with `ctxt-current-assignment'."
-    (if point (goto-char point))
-    (let ((s (semantic-fetch-overload 'ctxt-current-assignment))
-	  (case-fold-search semantic-case-fold))
-      (if s (funcall s)
-	(semantic-ctxt-current-assignment-default)
-	)))
+  (if point (goto-char point))
+  (let ((s (semantic-fetch-overload 'ctxt-current-assignment))
+	(case-fold-search semantic-case-fold))
+    (if s (funcall s)
+      (semantic-ctxt-current-assignment-default)
+      )))
 
 (defun semantic-ctxt-current-assignment-default ()
   "Return the current assignment near the cursor at POINT.
@@ -433,12 +433,12 @@ The function returned is the one accepting the arguments that
 the cursor is currently in.  It will not return function symbol if the
 cursor is on the text representing that function.
 This can be overridden with `ctxt-current-function'."
-    (if point (goto-char point))
-    (let ((s (semantic-fetch-overload 'ctxt-current-function))
-	  (case-fold-search semantic-case-fold))
-      (if s (funcall s)
-	(semantic-ctxt-current-function-default)
-	)))
+  (if point (goto-char point))
+  (let ((s (semantic-fetch-overload 'ctxt-current-function))
+	(case-fold-search semantic-case-fold))
+    (if s (funcall s)
+      (semantic-ctxt-current-function-default)
+      )))
 
 (defun semantic-ctxt-current-function-default ()
   "Default function for `semantic-ctxt-current-function'."
@@ -451,12 +451,12 @@ This can be overridden with `ctxt-current-function'."
 (defun semantic-ctxt-current-argument (&optional point)
   "Return the index of the argument position the cursor is on at POINT.
 Override with `ctxt-current-argument'."
-    (if point (goto-char point))
-    (let ((s (semantic-fetch-overload 'ctxt-current-argument))
-	  (case-fold-search semantic-case-fold))
-      (if s (funcall s)
-	(semantic-ctxt-current-argument-default)
-	)))
+  (if point (goto-char point))
+  (let ((s (semantic-fetch-overload 'ctxt-current-argument))
+	(case-fold-search semantic-case-fold))
+    (if s (funcall s)
+      (semantic-ctxt-current-argument-default)
+      )))
 
  (defun semantic-ctxt-current-argument-default ()
   "Return the index of the argument the cursor is on.
@@ -472,6 +472,22 @@ Depends on `semantic-function-argument-separation-character'."
 		p t)
 	  (setq idx (1+ idx)))
 	idx))))
+
+(defun semantic-ctxt-scoped-types (&optional point)
+  "Return a list of type names currently in scope at POINT.
+Override with `ctxt-scoped-types'."
+  (if point (goto-char point))
+  (let ((s (semantic-fetch-overload 'ctxt-scoped-types))
+	(case-fold-search semantic-case-fold))
+    (if s (funcall s)
+      (semantic-ctxt-scoped-types-default)
+      )))
+
+(defun semantic-ctxt-scoped-types-default ()
+  "Return a list of scoped types by name for the current context.
+This is very different for various languages, and does nothing unless
+overriden."
+  nil)
 
 (provide 'semantic-ctxt)
 
