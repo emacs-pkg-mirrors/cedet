@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.14 2003/03/11 12:53:44 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.15 2003/03/14 01:53:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -486,7 +486,7 @@ Returns the documentation as a string, also."
 (defconst semantic-fw-font-lock-keywords
   (eval-when-compile
     (let* (
-           ;; Variable declarations         
+           ;; Variable declarations
            (kv (regexp-opt
                 '(
                   "defconst-mode-local"
@@ -503,6 +503,7 @@ Returns the documentation as a string, also."
                   "define-mode-overload-implementation"
                   "define-overload"
                   "define-wisent-lexer"
+		  "semantic-alias-obsolete"
                   ) t))
            ;; Regexp depths
            (kv-depth (regexp-opt-depth kv))
@@ -534,6 +535,19 @@ Returns the documentation as a string, also."
   (font-lock-add-keywords 'emacs-lisp-mode
                           semantic-fw-font-lock-keywords)
   )
+
+
+;;; Obsoleting various functions
+;;
+;;;###autoload
+(defun semantic-alias-obsolete (oldfnalias newfn)
+  "Make OLDFNALIAS an alias for NEWFN.
+Mark OLDFNALIAS as obsolete, such that the byte compiler
+will throw a warning when it encounters this symbol."
+  (defalias oldfnalias newfn)
+  (make-obsolete oldfnalias newfn)
+  )
+
 
 ;;; Interfacing with edebug
 ;;
