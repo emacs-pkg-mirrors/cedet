@@ -8,14 +8,14 @@ This chapter discusses the tag data structure and the API provided
 by @semantic{} to query, process, and modify tags.
 
 The tags list for a buffer can be obtained by calling
-@code{semantic-bovinate-toplevel} which returns
+@code{semantic-fetch-tags} which returns
 a parse tree of tags that represent the program structure.
 
 @ignore
 David said:
 
 Tags are not sorted.  Maybe would it be clearer to say that
-`semantic-bovinate-toplevel' returns a parse tree of tags that
+`semantic-fetch-tags returns a parse tree of tags that
 represent the program structure.
 
 From a grammar's developer point of view it could be worth
