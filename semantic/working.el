@@ -171,6 +171,23 @@ it will take ahead of time.  Functions provided in `working' are:
 
 ;;; Programmer functions
 ;;
+(defun working-message-emacs (&rest args)
+  "Print but no log a one-line message at the bottom of the screen.
+See the function `message' for details on ARGS."
+  (let ((message-log-max nil)) ;; No logging
+    (apply 'message args)))
+
+(defun working-message-xemacs (&rest args)
+  "Print but no log a one-line message at the bottom of the screen.
+See the function `message' for details on ARGS."
+  (let ((log-message-filter-function #'ignore)) ;; No logging
+    (apply 'message args)))
+
+(defalias 'working-message
+  (if (boundp 'log-message-filter-function)
+      'working-message-xemacs
+    'working-message-emacs))
+
 (defmacro working-status-forms (message donestr &rest forms)
   "Contain a block of code during which a working status is shown.
 MESSAGE is the message string to use and DONESTR is the completed text
@@ -228,10 +245,8 @@ macro `working-status-forms'."
   (let* ((p (or percent
 		(floor (* 100.0 (/ (float (point)) (point-max))))))
 	 (m1 (apply 'format working-message args))
-	 (m2 (funcall working-status-percentage-type (length m1) p))
-	 (log-message-filter-function #'ignore) ; No logging (XEmacs)
-	 (message-log-max))             ; No logging (Emacs)
-    (message "%s%s" m1 m2)))
+	 (m2 (funcall working-status-percentage-type (length m1) p)))
+    (working-message "%s%s" m1 m2)))
 
 (defun working-dynamic-status (&optional number &rest args)
   "Called within the macro `working-status-forms', show the status.
@@ -241,10 +256,8 @@ Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
   (let* ((n (or number working-ref1))
 	 (m1 (apply 'format working-message args))
-	 (m2 (funcall working-status-dynamic-type (length m1) n))
-	 (log-message-filter-function #'ignore) ; No logging (XEmacs)
-	 (message-log-max))             ; No logging (Emacs)
-    (message "%s%s" m1 m2)
+	 (m2 (funcall working-status-dynamic-type (length m1) n)))
+    (working-message "%s%s" m1 m2)
     (setq working-ref1 (1+ working-ref1))))
 
 ;;; Utilities
