@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.44 2001/10/05 02:04:49 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.45 2001/10/05 19:37:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -284,9 +284,6 @@
  ( declmods typeformbase metadeclmod opt-ref var-or-func-decl
   ,(semantic-lambda
   ( semantic-c-reconstitute-token (nth 4 vals) (nth 0 vals) (nth 1 vals))))
- ( declmods var-or-func-decl
-  ,(semantic-lambda
-  ( semantic-c-reconstitute-token (nth 1 vals) (nth 0 vals) nil)))
  ) ; end var-or-fun
  (var-or-func-decl
  ( opt-stars opt-class opt-destructor functionname opt-under-p arg-list opt-post-fcn-modifiers opt-throw opt-initializers fun-or-proto-end
@@ -506,7 +503,7 @@
  ( punctuation "[-+*/%^|&]" expression)
  ) ; end expression
  )
- "C language specification.")
+  "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
