@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.26 2004/03/20 00:20:45 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.27 2004/04/28 15:42:09 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -301,9 +301,7 @@ used to perform the override."
   (if (and (eq (semantic-tag-class tag) 'function)
 	   (semantic-tag-get-attribute tag :overloadable))
       ;; Calc the doc to use for the overloadable symbols.
-	(semantic-overload-docstring-extension
-	 (semantic-overload-symbol-from-function
-	  (intern (semantic-tag-name tag))))
+      (overload-docstring-extension (intern (semantic-tag-name tag)))
     ""))
 
 (defun semantic-emacs-lisp-obsoleted-doc (tag)
@@ -327,30 +325,27 @@ into Emacs Lisp's memory."
   "Return the documentation string for TAG.
 Optional argument NOSNARF is ignored."
   (let ((d (semantic-tag-docstring tag)))
-    (if d
-	(concat
-	 (substitute-command-keys
-	  (if (and (> (length d) 0) (= (aref d 0) ?*))
-	      (substring d 1)
-	    d))
-	 (semantic-emacs-lisp-overridable-doc tag)
-	 (semantic-emacs-lisp-obsoleted-doc tag))
-      ;; doc isn't in the tag itself.  Lets pull it out of the sources.
-      ;; If the tag isn't cooked, then we had just recursed.
-      (when (semantic-overlay-p (semantic-tag-overlay tag))
-	(let* ((semantic-elisp-store-documentation-in-tag t)
-	       (newtag
-		(save-excursion
-		  (set-buffer (semantic-tag-buffer tag))
-		  (goto-char (semantic-tag-start tag))
-		  (semantic-elisp-use-read
-		   ;; concoct a lexical token.
-		   (cons (semantic-tag-start tag)
-			 (semantic-tag-end tag))))))
-	  ;; We are passing down an uncooked token!
-	  (semantic-documentation-for-tag newtag))))))
+    (when (and (not d) (semantic-tag-buffer tag))
+      ;; Doc isn't in the tag itself.  Lets pull it out of the
+      ;; sources.
+      (let ((semantic-elisp-store-documentation-in-tag t))
+        (setq tag (with-current-buffer (semantic-tag-buffer tag)
+                    (goto-char (semantic-tag-start tag))
+                    (semantic-elisp-use-read
+                     ;; concoct a lexical token.
+                     (cons (semantic-tag-start tag)
+                           (semantic-tag-end tag))))
+              d (semantic-tag-docstring tag))))
+    (when d
+      (concat
+       (substitute-command-keys
+        (if (and (> (length d) 0) (= (aref d 0) ?*))
+            (substring d 1)
+          d))
+       (semantic-emacs-lisp-overridable-doc tag)
+       (semantic-emacs-lisp-obsoleted-doc tag)))))
 
-(define-mode-overload-implementation semantic-insert-foreign-token
+(define-mode-overload-implementation semantic-insert-foreign-tag
   emacs-lisp-mode (tag tagfile)
   "Insert TAG from TAGFILE at point.
 Attempts a simple prototype for calling or using TAG."
