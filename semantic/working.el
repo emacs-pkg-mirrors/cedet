@@ -3,7 +3,7 @@
 ;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 1.1
+;; Version: 1.2
 ;; Keywords: status
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -47,7 +47,7 @@
 ;;; Backwards Compatibility:
 ;;
 ;; If you want to use working in your program, but don't want to force people
-;; to install working, use could this at the beginning of your program for
+;; to install working, use could add this at the beginning of your program for
 ;; compatibility.
 ;;
 ;; (eval-and-compile
@@ -91,6 +91,9 @@
 ;;        Convert celeron to animator
 ;;        Added a bounce display
 ;;     Made working robust under a multi-frame environment (speedbar)
+;;
+;; 1.2 Fix up documentation.
+;;     Updated dotgrowth function for exceptionally large numbers of dots.
 
 (require 'custom)
 
@@ -119,7 +122,7 @@ Functions provided in `working' are:
 		 (const working-celeron-percent-display)))
 
 (defcustom working-status-dynamic-type 'working-celeron-display
-  "Function used to display a celeron working display.
+  "Function used to display an animation indicating progress being made.
 Dynamic working types occur when the program does not know how long
 it will take ahead of time.  Functions provided in `working' are:
   `working-number-display'
@@ -159,8 +162,7 @@ to use when the functions `working-status' is called from FORMS."
   "Called within the macro `working-status-forms', show the status.
 If PERCENT is nil, then calculate PERCENT from the value of `point' in
 the current buffer.  If it is a number or float, use it as the raw
-percentile.  If it is a string, then consider the job done, and
-display this string where numbers would appear.
+percentile.
 Additional ARGS are passed to fill on % elements of MESSAGE from the
 macro `working-status-forms'."
   (let* ((p (or percent
@@ -172,17 +174,24 @@ macro `working-status-forms'."
 
 (defun working-dynamic-status (&optional number &rest args)
   "Called within the macro `working-status-forms', show the status.
-If NUMBER is nil, then increment NUMBER from 0 with each call.  If it
-is a number or float, use it as the raw percentile.  If it is a
-string, then consider the job done, and display this string where
-numbers would appear.  Additional ARGS are passed to fill on %
-elements of MESSAGE from the macro `working-status-forms'."
+If NUMBER is nil, then increment a local NUMBER from 0 with each call.
+If it is a number or float, use it as the raw percentile.
+Additional ARGS are passed to fill on % elements of MESSAGE from the
+macro `working-status-forms'."
   (let* ((n (or number working-ref1))
 	 (m1 (apply 'format working-message args))
 	 (m2 (funcall working-status-dynamic-type (length m1) n))
 	 (message-log-max))
     (message "%s%s" m1 m2)
     (setq working-ref1 (1+ working-ref1))))
+
+;;; Utilities
+;;
+(defun working-message-frame-width ()
+  "Return the width of the frame the working message will be in."
+  (let* ((mbw (frame-parameter (selected-frame) 'minibuffer))
+	 (fr (if mbw (window-frame mbw) default-minibuffer-frame)))
+    (frame-width fr)))
 
 ;;; Percentage display types.
 ;;
@@ -198,9 +207,7 @@ is t to display the done string, or the percentage to display."
   "Return a string with a bar-graph showing percent.
 LENGTH is the amount of display that has been used.  PERCENT
 is t to display the done string, or the percentage to display."
-  (let* ((mbw (frame-parameter (selected-frame) 'minibuffer))
-	 (fr (if mbw (window-frame mbw) default-minibuffer-frame))
-	 (bs (- (frame-width fr) length 5)))
+  (let ((bs (- (working-message-frame-width) length 5)))
     (cond ((eq percent t)
 	   (concat ": [" (make-string bs ?#) "] " working-donestring))
 	  ((< bs 0) "")
@@ -271,9 +278,14 @@ is t to display the done string, or the number to display."
 (defun working-dotgrowth-display (length number)
   "Return a string displaying growing dots due to activity.
 LENGTH is the amount of display that has been used.  NUMBER
-is t to display the done string, or the number to display."
-  (concat " (" (make-string working-ref1 ?.) ")"
-	  (if (eq number t) (concat " " working-donestring) "")))
+is t to display the done string, or the number to display.
+This display happens to ignore NUMBER."
+  (let* ((width (- (working-message-frame-width) 4 length))
+	 (num-wrap (/ working-ref1 width))
+	 (num-. (% working-ref1 width))
+	 (dots [ ?. ?, ?o ?* ?O ?@ ?# ]))
+    (concat " (" (make-string num-. (aref dots (% num-wrap (length dots)))) ")"
+	    (if (eq number t) (concat " " working-donestring) ""))))
 
 (defun working-frame-animation-display (length number frames)
   "Manage a simple frame-based animation for working functions.
@@ -373,7 +385,7 @@ is t to display the done string, or the number to display."
     (working-status-forms "Scanning" "done"
       (while (not (eobp))
 	;; Use default buffer position.
-	(working-dynamic-status)
+	(working-dynamic-status nil)
 	(forward-sexp 1)
 	(sleep-for 0.05)
 	)
