@@ -1,10 +1,10 @@
 ;;; ede-proj-prog.el --- EDE Generic Project program support
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-prog.el,v 1.2 1999/11/10 14:30:10 zappo Exp $
+;; RCS: $Id: ede-proj-prog.el,v 1.3 2000/07/11 23:15:40 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -27,7 +27,7 @@
 ;;
 ;; Handle building programs from object files in and EDE Project file.
 
-(require 'ede-proj-obj)
+(eval-and-compile (require 'ede-proj-obj))
 
 ;;; Code:
 (defclass ede-proj-target-makefile-program

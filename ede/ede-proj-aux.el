@@ -1,10 +1,10 @@
 ;;; ede-proj-aux.el --- EDE Generic Project auxilliary file support
 
-;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-aux.el,v 1.2 1999/11/09 11:21:25 zappo Exp $
+;; RCS: $Id: ede-proj-aux.el,v 1.3 2000/07/11 23:12:28 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -26,6 +26,8 @@
 ;;; Commentary:
 ;;
 ;; Handle auxiliary files (README, FAQ, etc) in and EDE Project file.
+
+(eval-and-compile (require 'ede-proj))
 
 ;;; Code:
 (defclass ede-proj-target-aux (ede-proj-target)
