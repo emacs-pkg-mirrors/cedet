@@ -1,8 +1,8 @@
 ;;; semantic-tag-ls.el --- Language Specific override functions for tags
 
-;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.2 2003/07/16 14:51:52 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.3 2004/02/04 03:56:13 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -97,6 +97,34 @@ See `semantic-tag-protection'."
 			 'protected)))))
       (setq mods (cdr mods)))
     prot))
+
+(defun semantic-tag-protected-p (tag protection &optional parent)
+  "Non-nil if TAG is is protected.
+PROTECTION is a symbol which can be returned by the method
+`semantic-tag-protection'.
+PARENT is the parent data type which contains TAG.
+
+For these PROTECTIONs, true is returned if TAG is:
+@table @asis
+@item nil
+  Always true
+@item  private
+  True if nil.
+@item protected
+  True if private or nil.
+@item public
+  True if private, protected, or nil.
+@end table"
+  (let ((tagpro (semantic-tag-protection tag parent)))
+    (or (null protection)
+	(and (eq protection 'private)
+	     (null tagpro))
+	(and (eq protection 'protected)
+	     (or (null tagpro)
+		 (eq tagpro 'private)))
+	(and (eq protection 'public)
+	     (not (eq tagpro 'public))))
+    ))
 
 ;;;###autoload
 (defun semantic-tag-abstract (tag &optional parent)
