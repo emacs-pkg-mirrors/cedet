@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: dialog-mode.el,v 1.1 1996/03/28 03:50:02 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.2 1996/06/17 22:32:28 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;      
 ;;; This program is free software; you can redistribute it and/or modify
@@ -92,6 +92,7 @@ shell definition in a given buffer.")
   (define-key dialog-mode-map "\C-z" nil)
   (define-key dialog-mode-map "\C-h" nil)
   (define-key dialog-mode-map "\C-g" nil)
+  (define-key dialog-mode-map [tab] "\C-i")
   (define-key dialog-mode-map [up] "\C-p")
   (define-key dialog-mode-map [down] "\C-n")
   (define-key dialog-mode-map [right] "\C-f")
@@ -202,37 +203,23 @@ needed."
     ;; Now, a quicky column moveto/forceto method.
     (or (= (move-to-column x) x) (indent-to x))))
   
-(defun insert-overwrite-face (string face)
+(defun insert-overwrite-face (string face &optional focus-face)
   "Insert STRING into buffer at point, and cover it with FACE"
   (if widget-toplevel-shell
       (let* ((pnt (point))
-	     (ol (if (fboundp 'overlays-at)
-		     (overlays-at pnt)
-		   nil))
-	     (end (+ pnt (length string)))
-	     (no nil))
-	;; delete overlays sitting here already
-	(while ol
-	  (if (and (= (overlay-start (car ol)) pnt)
-		   (= (overlay-end (car ol)) end)
-		   (overlay-get (car ol) 'dialog-mode))
-	      (delete-overlay (car ol)))
-	  (setq ol (cdr ol)))
+	     (end (+ pnt (length string))))
 	(goto-char pnt)
-	;; Insert first, then delete.  This prevents overlapping overlays
-	;; from befuddling themselves all over the place.
 	(insert string)
 	(if (eobp) (save-excursion (insert "\n"))) ;always make sure there's a blank line
 	(if (> (length string) (- (save-excursion (end-of-line) (point))
 				  (point)))
 	    (delete-region (point) (save-excursion (end-of-line) (point)))
 	  (delete-char (length string)))
-	(if (and face (fboundp 'make-overlay) (fboundp 'overlay-put) 
-		 window-system)
+	(if (fboundp 'put-text-property)
 	    (progn
-	      (setq no (make-overlay pnt end))
-	      (overlay-put no 'face face)
-	      (overlay-put no 'dialog-mode t))))))
+	      (if face (put-text-property pnt end 'face face))
+	      (if focus-face (put-text-property pnt end 'mouse-face focus-face))
+	      )))))
 
 (defun widget-bunch-o-chars (n char)
   "Return string of n dashes"
@@ -322,7 +309,7 @@ the screen."
     (let ((myframe (create-widget "Togg Frame" widget-frame widget-toplevel-shell
 				   :x 5 :y 15
 				   :frame-label "Toggle Tests..."
-				   :box-face 'font-lock-referece-face)))
+				   :box-face 'font-lock-reference-face)))
       (create-widget "Togg" widget-toggle-button myframe
 		     :x 1 :y 1 :label-value "Toggle Me"
 		     :face 'underline  :ind-face 'highlight
@@ -331,12 +318,14 @@ the screen."
 				       (message "Changed value")))
       (create-widget "Forceon" widget-button myframe
 		     :x 20 :y 1 :label-value "Turn On"
+		     :box-face font-lock-type-face
 		     :activate-hook 
 		     (list 'lambda '(obj reason) "Flip Tog"
 			   (list 'set-value mytog t)))
       (create-widget "Forceoff" widget-button myframe
 		     :x 50 :y 1 :label-value "Turn Off"
 		     :face 'underline
+		     :box-face font-lock-type-face
 		     :activate-hook
 		     (list 'lambda '(obj reason) "Flip Tog"
 			   (list 'set-value mytog nil)))
