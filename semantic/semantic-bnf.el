@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.32 2001/02/24 02:08:17 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.33 2001/03/01 14:08:54 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -85,72 +85,74 @@
 				(car (car vals))
 				(cdr (car vals)))))
 			(list (symbol-name (car (read r))) 'setting r))))
-;     (symbol "token" symbol symbol
-;	     ,(semantic-lambda
-;	       (list (nth 1 vals) 'token (nth 2 vals))))
+				   ;     (symbol "token" symbol symbol
+					;	     ,(semantic-lambda
+	      ;	       (list (nth 1 vals) 'token (nth 2 vals))))
      (START symbol
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'start)))
+	    ,(semantic-lambda
+	      (list (nth 1 vals) 'start)))
      (SCOPESTART symbol
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'scopestart)))
+		 ,(semantic-lambda
+		   (list (nth 1 vals) 'scopestart)))
      (TOKEN symbol string
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'keyword "symbol" (nth 2 vals))))
+	    ,(semantic-lambda
+	      (list (nth 1 vals) 'keyword "symbol" (nth 2 vals))))
      (TOKEN symbol symbol string
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'token
-		     (nth 2 vals)  (nth 3 vals))))
+	    ,(semantic-lambda
+	      (list (nth 1 vals) 'token
+		    (nth 2 vals)  (nth 3 vals))))
      (PUT symbol symbol put-value
-	     ,(semantic-lambda
-	       (list (list (nth 1 vals)) 'put
-		     (list (cons (nth 2 vals) (nth 3 vals))))))
+	  ,(semantic-lambda
+	    (list (nth 1 vals) 'put
+		  (list (nth 1 vals))
+		  (list (cons (nth 2 vals) (nth 3 vals))))))
      (PUT symbol semantic-list
 	  ,(semantic-lambda
-	    (list (list (nth 1 vals)) 'put
+	    (list (nth 1 vals) 'put
+		  (list (nth 1 vals))
 		  (semantic-bovinate-from-nonterminal-full
-		    (car (nth 2 vals)) (cdr (nth 2 vals))
-		    `put-value-list))))
+		   (car (nth 2 vals)) (cdr (nth 2 vals))
+		   `put-value-list))))
      (PUT semantic-list symbol put-value
 	  ,(semantic-lambda
-	    (list (semantic-bovinate-from-nonterminal-full
-		    (car (nth 1 vals)) (cdr (nth 1 vals))
-		    `put-name-list)
-		  'put
-		  (list (cons (nth 2 vals) (nth 3 vals))))))
+	    (let ((names (semantic-bovinate-from-nonterminal-full
+			  (car (nth 1 vals)) (cdr (nth 1 vals))
+			  `put-name-list)))
+	      (list (car (car names)) 'put names
+		    (list (cons (nth 2 vals) (nth 3 vals)))))))
      (PUT semantic-list semantic-list
 	  ,(semantic-lambda
-	    (list (semantic-bovinate-from-nonterminal-full
-		    (car (nth 1 vals)) (cdr (nth 1 vals))
-		    `put-name-list)
-		  'put
-		  (semantic-bovinate-from-nonterminal-full
-		    (car (nth 2 vals)) (cdr (nth 2 vals))
-		    `put-value-list))))
+	    (let ((names (semantic-bovinate-from-nonterminal-full
+			  (car (nth 1 vals)) (cdr (nth 1 vals))
+			  `put-name-list)))
+	      (list (car (car names)) 'put names
+		    (semantic-bovinate-from-nonterminal-full
+		     (car (nth 2 vals)) (cdr (nth 2 vals))
+		     `put-value-list)))))
      (OUTPUTFILE symbol punctuation "." symbol "\\bel\\b"
-	     ,(semantic-lambda
-	       (list (concat (nth 1 vals) ".el") 'outputfile)))
+		 ,(semantic-lambda
+		   (list (concat (nth 1 vals) ".el") 'outputfile)))
      (PARSETABLE symbol
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'parsetable)))
+		 ,(semantic-lambda
+		   (list (nth 1 vals) 'parsetable)))
      (KEYWORDTABLE symbol
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'keywordtable)))
+		   ,(semantic-lambda
+		     (list (nth 1 vals) 'keywordtable)))
      (LANGUAGEMODE symbol
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'languagemode)))
+		   ,(semantic-lambda
+		     (list (nth 1 vals) 'languagemode)))
      (LANGUAGEMODE semantic-list
-	     ,(semantic-lambda
-	       (let ((r (buffer-substring
-			 (car (nth 1 vals))
-			 (cdr (nth 1 vals)))))
-		 (list r 'languagemode))))
+		   ,(semantic-lambda
+		     (let ((r (buffer-substring
+			       (car (nth 1 vals))
+			       (cdr (nth 1 vals)))))
+		       (list r 'languagemode))))
      (SETUPFUNCTION symbol
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'setupfunction)))
+		    ,(semantic-lambda
+		      (list (nth 1 vals) 'setupfunction)))
      (QUOTEMODE symbol
-	     ,(semantic-lambda
-	       (list (nth 1 vals) 'quotemode)))
+		,(semantic-lambda
+		  (list (nth 1 vals) 'quotemode)))
      )
     (put-name-list
      (open-paren ,(semantic-lambda (list nil)))
@@ -160,8 +162,8 @@
      (open-paren ,(semantic-lambda (list nil)))
      (close-paren ,(semantic-lambda (list nil)))
      (symbol put-value
-     ,(semantic-lambda
-       (cons (nth 0 vals) (nth 1 vals))))
+	     ,(semantic-lambda
+	       (cons (nth 0 vals) (nth 1 vals))))
      )
     (put-value
      (symbol ,(semantic-lambda (list (nth 0 vals))))
@@ -210,7 +212,12 @@
       ("setupfunction" . SETUPFUNCTION)
       ("quotemode" . QUOTEMODE)
       )
-   nil)
+   `(("put" summary "%put <keyword> <lisp expression>")
+     ("token" summary "%token <keyword> [syntax] \"matchtext\"")
+     ("start" summary "%start <starting rule name>")
+     ("scopestart" summary "%scopestart <starting scope (code) rule name>")
+     ("languagemode" summary "%languagemode [ lispsymbol | ( lispsym lispsym ...) ]")
+     ))
   "Keyword table used for Semantic BNF files.")
 
 
@@ -623,7 +630,7 @@ SOURCEFILE is the file name from whence tokstream came."
 	    (insert ")\n  '(\n ")
 	    ;; Now get all properties
 	    (while put
-	      (setq keys (car (car put)))
+	      (setq keys (nth 2 (car put)))
 	      (while keys
 		(setq key (semantic-find-nonterminal-by-token 'keyword tok))
 		(let ((a (assoc (if (listp (car keys))
@@ -631,7 +638,7 @@ SOURCEFILE is the file name from whence tokstream came."
 				  (car keys))
 				key)))
 		  (if (not a) (error "Token %s not found" (car keys)))
-		  (let ((pairs (nth 2 (car put))))
+		  (let ((pairs (nth 3 (car put))))
 		    (while pairs
 		      (insert "  ("
 			      (nth 3 a) " "
@@ -824,6 +831,7 @@ Once found, put it in a buffer, and return it."
   (define-key semantic-bnf-map "\C-c\C-c" 'semantic-bnf-generate-and-load-no-indent)
   (define-key semantic-bnf-map "\C-cc" 'semantic-bnf-generate-and-load)
   (define-key semantic-bnf-map "\C-cr" 'semantic-bnf-generate-one-rule)
+  (define-key semantic-bnf-map "\M-\t" 'semantic-bnf-complete)
   )
 
 (speedbar-add-supported-extension ".bnf")
@@ -853,19 +861,22 @@ Once found, put it in a buffer, and return it."
 			     ;; simplifying our keywords significantly
 			     ((?_ . "w") (?- . "w"))))
   (setq semantic-symbol->name-assoc-list
-	'( (keyword . "Keywords")
-	   (token . "Tokens")
-	   (rule  . "Rules")
-	   )
-	semantic-override-table
-	'( (abbreviate-nonterminal . semantic-bnf-abbreviate-nonterminal)
+	'( (keyword . "Keyword")
+	   (token . "Token")
+	   (rule  . "Rule")
 	   )
 	imenu-create-index-function 'semantic-create-imenu-index)
+  (semantic-install-function-overrides
+   '( (abbreviate-nonterminal . semantic-bnf-abbreviate-nonterminal)
+      (summarize-nonterminal . semantic-bnf-summarize-nonterminal)
+      (eldoc-current-symbol-info . semantic-bnf-ecsi)
+      )
+   t)
   (run-hooks 'semantic-bnf-mode-hook))
 
 (defun semantic-bnf-abbreviate-nonterminal (token &optional parent)
   "Return a string abbreviation of TOKEN.
-Optional PARENT is no used."
+Optional PARENT is not used."
   (let ((tok (semantic-token-token token))
 	(name (semantic-token-name token)))
     (cond
@@ -873,6 +884,58 @@ Optional PARENT is no used."
      ((eq tok 'setting) "%settings%")
      ((or (eq tok 'token) (eq tok 'keyword)) name)
      (t (concat "%" (symbol-name tok) " " name)))))
+
+(defun semantic-bnf-summarize-nonterminal (token &optional parent)
+  "Return a string summarizing TOKEN.
+Optional PARENT is not used."
+  (let ((tok (semantic-token-token token))
+	(name (semantic-token-name token)))
+    (cond
+     ((eq tok 'rule)
+      (concat "Rule: " name " with "
+	      (int-to-string (length (nth 3 token)))
+	      " match lists."))
+     ((eq tok 'keyword)
+      (concat "Keyword: " name " " (nth 3 token)))
+     ((eq tok 'token)
+      (concat "Token: " name " " (nth 2 token) " " (nth 3 token)))
+     (t (semantic-bnf-abbreviate-nonterminal token))))
+  )
+
+(defvar semantic-bnf-syntax-help
+  `( ("symbol" . "Syntax: A symbol of alpha numeric and symbol characters")
+     ("punctuation" . "Syntax: Punctuation character.")
+     ("semantic-list" . "Syntax: A list delimited by any valid list characters")
+     ("open-paren" . "Syntax: Open Parenthisis character")
+     ("close-paren" . "Syntax: Close Parenthisis character")
+     ("string" . "Syntax: String character delemeted text")
+     ("comment" . "Syntax: Comment character delimited text")
+     ("EMPTY" . "Syntax: Match empty text")
+     ("ASSOC" . "Lambda Key: (ASSOC key1 value1 key2 value2 ...)")
+     ("EXPAND" . "Lambda Key: (EXPAND <list id> <rule>)")
+     ("EXPANDFULL" . "Lambda Key: (EXPANDFULL <list id> <rule>)")
+     ("$1" . "Match Value: Value from match list in slot 1")
+     ("$2" . "Match Value: Value from match list in slot 2")
+     ("$3" . "Match Value: Value from match list in slot 3")
+     ("$4" . "Match Value: Value from match list in slot 4")
+     ("$5" . "Match Value: Value from match list in slot 5")
+     ("$6" . "Match Value: Value from match list in slot 6")
+     ("$7" . "Match Value: Value from match list in slot 7")
+     ("$8" . "Match Value: Value from match list in slot 8")
+     ("$9" . "Match Value: Value from match list in slot 9")
+     ("nil" . "Value: Empty List, False, nothing.")
+     )
+  "Association of syntax elements, and the corresponding help.")
+
+(defun semantic-bnf-ecsi ()
+  "Return an info string about the current context."
+  (let* ((sym (semantic-ctxt-current-symbol))
+	 (summ (assoc (car sym) semantic-bnf-syntax-help))n
+	 (found (cdr summ)))
+    (if found
+	found
+      (senator-eldoc-print-current-symbol-info-default)
+      )))
 
 (defun semantic-bnf-electric-punctuation ()
   "Insert and reindent for the symbol just typed in."
@@ -972,6 +1035,18 @@ Optional argument POINT is the position on the line to indent."
 	      (delete-horizontal-space)
 	      (indent-to indent))))))))
   (if (bolp) (if (looking-at "\\s-+") (end-of-line))))
+
+
+(defun semantic-bnf-complete ()
+  "Complete the symbol under point from various sources."
+  (interactive)
+  (if (or (semantic-bnf-in-settings-p)
+	  (semantic-bnf-in-lambda-continuation-p))
+      ;; In a lisp part... do lisp completion
+      (lisp-complete-symbol)
+    ;; In BNF part, to BNF completion.
+    (require 'senator)
+    (senator-complete-symbol)))
 
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
 
