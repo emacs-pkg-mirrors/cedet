@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.24 2003/02/08 05:33:55 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.25 2003/02/10 05:27:42 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -57,9 +57,11 @@
 ;;    - Needed by partial re-parse
 %start function_parameter
 %start paren_class
+%start indented_block
 ;;    - Needed by EXPANDFULL clauses
 %start function_parameters
 %start paren_classes
+%start indented_block_body
 
 %{
   (setq
@@ -68,7 +70,6 @@
    semantic-command-separation-character ";"
    wisent-python-lexer-indent-stack '(0)
    semantic-lex-analyzer #'semantic-python-lexer
-   semantic-lex-depth	0
    )
   %}
 
@@ -90,6 +91,7 @@
 %token <semantic-list> PAREN_BLOCK     "^("
 %token <semantic-list> BRACE_BLOCK     "^{"
 %token <semantic-list> BRACK_BLOCK     "^\\["
+%token <semantic-list> INDENT_BLOCK    "^\\s-+"
 
 ;; ------------------
 ;; Operator terminals
@@ -604,7 +606,7 @@ compound_stmt
   | for_stmt
   | try_stmt
   | funcdef
-  | classdef
+  | class_declaration
   ;
 
 ;;;============================================================================
@@ -636,21 +638,22 @@ else_suite_pair_opt
 suite
   : simple_stmt
     (list $1)
-  | NEWLINE INDENT stmt_oom DEDENT
-    (nreverse $3)
+  | NEWLINE indented_block
+    (nreverse $2)
   ;
 
-;; stmt+   oom stands for One Or More
-stmt_oom
-  : stmt
-    (list $1)
-  | stmt_oom stmt
-    (cons $2 $1)
+indented_block
+  : INDENT_BLOCK
+ ;;(wisent-token $1 'indent-block nil nil)
+    (EXPANDFULL $1 indented_block_body)
   ;
 
-;; stmt: simple_stmt | compound_stmt
-stmt
-  : simple_stmt
+indented_block_body
+  : INDENT
+    ()
+  | DEDENT
+    ()
+  | simple_stmt
   | compound_stmt
   ;
 
@@ -746,11 +749,11 @@ function_parameter
   ;
 
 ;;;============================================================================
-;;;@@ classdef
+;;;@@ class_declaration
 ;;;============================================================================
 
 ;; classdef: 'class' NAME ['(' testlist ')'] ':' suite
-classdef
+class_declaration
   : CLASS NAME paren_class_list_opt COLON suite
     (wisent-token $2 'type $1 $5 $3 nil)
   ;

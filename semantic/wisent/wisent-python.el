@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.28 2003/02/08 05:39:53 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.29 2003/02/10 05:27:42 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -104,14 +104,39 @@ stack."
 	   nil)
 	  ;; Indentation increased
 	  ((> curr-indent last-indent)
-	   ;; Return an INDENT lexical token
-	   (push curr-indent wisent-python-lexer-indent-stack)
-	   (semantic-lex-token 'INDENT last-pos (point))
-	   t)
+	   (if (or (not depth) (< current-depth depth))
+	       (progn
+		 ;;(message "depth=%s, current-depth=%s" depth current-depth)
+		 ;; Return an INDENT lexical token
+		 (setq current-depth (1+ current-depth))
+		 (push curr-indent wisent-python-lexer-indent-stack)
+		 (semantic-lex-token 'INDENT last-pos (point))
+		 t)
+	     ;; Add an INDENT_BLOCK token
+	     ;;(message "depth=%s, current-depth=%s" depth current-depth)
+	     (semantic-lex-token
+	      'INDENT_BLOCK
+	      (progn (beginning-of-line) (point))
+	      (save-excursion
+		(condition-case nil
+		    (let ((starting-indentation (current-indentation)))
+		      (while (>= (current-indentation) starting-indentation)
+			(forward-list 1)
+			(beginning-of-line)))
+		  ;; This case makes lex robust to broken lists.
+		  (error
+		   (goto-char
+		    (funcall
+		     semantic-lex-unterminated-syntax-end-function
+		     'INDENT start end))))
+		(setq end-point (point))))
+	     t)
+	   )
 	  ;; Indentation decreased
 	  (t
 	   ;; Pop items from indentation stack
 	   (while (< curr-indent last-indent)
+	     (setq current-depth (1- current-depth))
 	     (semantic-lex-token 'DEDENT last-pos (point))
 	     (pop wisent-python-lexer-indent-stack)
 	     (setq last-indent (or (car wisent-python-lexer-indent-stack) 0)))
@@ -132,16 +157,9 @@ stack."
   "Handle NEWLINE syntactic tokens.
 If the following line is an implicit continuation of current line,
 then throw away any immediately following INDENT and DEDENT tokens."
-  (looking-at "\\(\n\\|\\s>\\)") ;; newline char or end of buffer
+  (looking-at "\\(\n\\|\\s>\\)") ;; newline or end of buffer
   (goto-char (match-end 0))
-  (cond
-   ;; If an unmatched open-paren exists, then no NEWLINE, INDENT, nor
-   ;; DEDENT tokens are generated.  Simply move the point.
-   ((> current-depth 0)
-    (skip-chars-forward " \t")
-    (setq end-point (point)))
-   (t
-    (semantic-lex-token 'NEWLINE (1- (point)) (point))))
+  (semantic-lex-token 'NEWLINE (1- (point)) (point))
   (semantic-lex-python-pop-indent-stack))
 
 (define-lex-analyzer semantic-lex-python-string
@@ -224,9 +242,11 @@ then throw away any immediately following INDENT and DEDENT tokens."
   )
 
 (defun python-next-line ()
-  "Move the cursor to the next line to check for INDENT or DEDENT tokens.
-Usually this is simply the next line unless strings, lists, or blank lines,
-or comment lines are encountered.  This function skips over such items."
+  "Move the cursor to the next logical line to check for INDENT or DEDENT tokens.
+Usually this is simply the next physical line unless strings, lists, explicit
+line continuation, blank lines, or comment lines are encountered.
+This function skips over such items so that the cursor is at the beginning of
+the next logical line."
   (let (beg)
     (while (not (eolp))
       (setq beg (point))
@@ -234,10 +254,15 @@ or comment lines are encountered.  This function skips over such items."
        ;; skip over triple-quote string
        ((looking-at "\"\"\"")
 	(forward-char 3)
+	;; TODO: this probably should be protected with condition-case
+	;; in case the closing triple quote is not found. -ryk2/8/03.
 	(search-forward "\"\"\""))
        ;; skip over lists, strings, etc
        ((looking-at "\\(\\s(\\|\\s\"\\|\\s<\\)")
 	(forward-sexp 1))
+       ;; backslash is the explicit line continuation character
+       ((looking-at "\\s\\")
+	(forward-line 1)) 
        ;; skip over white space, word, symbol, and punctuation characters
        (t (skip-syntax-forward "-w_.")))
       (if (= (point) beg)
@@ -252,7 +277,7 @@ or comment lines are encountered.  This function skips over such items."
   "Without actually changing the position, return the buffer position of
 the next line whose indentation is the same as the current line or less
 than current line."
-  (or target-column (setq target-column (current-column)))
+  (or target-column (setq target-column (current-indentation)))
   (save-excursion
     (python-next-line)
     (while (> (current-indentation) target-column)
@@ -275,6 +300,16 @@ Otherwise simply call the original function."
 ;;;@ Parser
 ;;;****************************************************************************
 
+;; TODO: Is this really needed? -ryk2/9/03.
+(define-mode-overload-implementation
+  semantic-parse-region python-mode
+  (start end &optional nonterminal depth returnonerror)
+  "Over-ride in order to initialize some variables."
+  (let ((wisent-python-lexer-indent-stack '(0))
+	(wisent-python-explicit-line-continuation nil))
+    (semantic-parse-region-default
+     start end nonterminal depth returnonerror)))
+
 ;; Commented this out after learning that there is no need to convert
 ;; tokens to names.  See "(semantic)Style Guide". -ryk2/7/03.
 '(define-mode-overload-implementation
@@ -296,10 +331,10 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;****************************************************************************
 
 (defconst wisent-python-parser-tables
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-07 21:30-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-09 19:54-0800
   (eval-when-compile
     (wisent-compile-grammar
-     '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
+     '((NEWLINE LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK INDENT_BLOCK LTLTEQ GTGTEQ EXPEQ DIVDIVEQ DIVDIV LTLT GTGT EXPONENT EQ GE LE PLUSEQ MINUSEQ MULTEQ DIVEQ MODEQ AMPEQ OREQ HATEQ LTGT NE HAT LT GT AMP MULT DIV MOD PLUS MINUS PERIOD TILDE BAR COLON SEMICOLON COMMA ASSIGN BACKQUOTE BACKSLASH STRING_LITERAL NUMBER_LITERAL NAME INDENT DEDENT AND ASSERT BREAK CLASS CONTINUE DEF DEL ELIF ELSE EXCEPT EXEC FINALLY FOR FROM GLOBAL IF IMPORT IN IS LAMBDA NOT OR PASS PRINT RAISE RETURN TRY WHILE YIELD)
        nil
        (goal
 	((NEWLINE))
@@ -473,7 +508,7 @@ then converted to simple names to comply with the semantic token style guide."
 	((for_stmt))
 	((try_stmt))
 	((funcdef))
-	((classdef)))
+	((class_declaration)))
        (if_stmt
 	((IF test COLON suite elif_suite_pair_list else_suite_pair_opt)
 	 (wisent-token $1 'code nil nil)))
@@ -488,14 +523,19 @@ then converted to simple names to comply with the semantic token style guide."
        (suite
 	((simple_stmt)
 	 (list $1))
-	((NEWLINE INDENT stmt_oom DEDENT)
-	 (nreverse $3)))
-       (stmt_oom
-	((stmt)
-	 (list $1))
-	((stmt_oom stmt)
-	 (cons $2 $1)))
-       (stmt
+	((NEWLINE indented_block)
+	 (nreverse $2)))
+       (indented_block
+	((INDENT_BLOCK)
+	 (semantic-parse-region
+	  (car $region1)
+	  (cdr $region1)
+	  'indented_block_body 1)))
+       (indented_block_body
+	((INDENT)
+	 nil)
+	((DEDENT)
+	 nil)
 	((simple_stmt))
 	((compound_stmt)))
        (while_stmt
@@ -543,7 +583,7 @@ then converted to simple names to comply with the semantic token style guide."
 	 (wisent-token $2 'variable nil nil nil nil))
 	((EXPONENT NAME)
 	 (wisent-token $2 'variable nil nil nil nil)))
-       (classdef
+       (class_declaration
 	((CLASS NAME paren_class_list_opt COLON suite)
 	 (wisent-token $2 'type $1 $5 $3 nil)))
        (paren_class_list_opt
@@ -738,11 +778,11 @@ then converted to simple names to comply with the semantic token style guide."
        (semicolon_opt
 	(nil)
 	((SEMICOLON))))
-     '(goal function_parameter paren_class function_parameters paren_classes)))
+     '(goal function_parameter paren_class indented_block function_parameters paren_classes indented_block_body)))
   "Parser automaton.")
 
 (defconst wisent-python-keywords
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-07 21:30-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-09 19:54-0800
   (semantic-lex-make-keyword-table
    '(("and" . AND)
      ("assert" . ASSERT)
@@ -804,7 +844,7 @@ then converted to simple names to comply with the semantic token style guide."
   "Keywords.")
 
 (defconst wisent-python-tokens
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-07 21:30-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-09 19:54-0800
   (wisent-lex-make-token-table
    '(("<no-type>"
       (DEDENT)
@@ -857,6 +897,7 @@ then converted to simple names to comply with the semantic token style guide."
       (GTGTEQ . ">>=")
       (LTLTEQ . "<<="))
      ("semantic-list"
+      (INDENT_BLOCK . "^\\s-+")
       (BRACK_BLOCK . "^\\[")
       (BRACE_BLOCK . "^{")
       (PAREN_BLOCK . "^("))
@@ -876,7 +917,7 @@ then converted to simple names to comply with the semantic token style guide."
 ;;;###autoload
 (defun wisent-python-default-setup ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-07 21:30-0800
+  ;;DO NOT EDIT! Generated from wisent-python.wy - 2003-02-09 19:54-0800
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -894,7 +935,6 @@ then converted to simple names to comply with the semantic token style guide."
      semantic-command-separation-character ";"
      wisent-python-lexer-indent-stack '(0)
      semantic-lex-analyzer #'semantic-python-lexer
-     semantic-lex-depth	0
      )))
 
 (provide 'wisent-python)
