@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.81 2001/10/05 19:27:53 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.82 2001/10/08 21:02:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -557,10 +557,6 @@ Optional argument SEARCH-PARTS and SEARCH-INCLUDE are passed to
   `(semantic-find-nonterminal-by-function
     (lambda (tok) (member tok '(function variable type)))
     ,streamorbuffer ,search-parts ,search-includes))
-
-(defvar semantic-default-built-in-types nil
-  "For a given language, a set of built-in types.")
-(make-variable-buffer-local 'semantic-default-built-in-types)
 
 (defun semantic-find-nonterminal-by-type
   (type streamorbuffer &optional search-parts search-includes)
