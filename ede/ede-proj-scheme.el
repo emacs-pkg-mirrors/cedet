@@ -4,16 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, scheme
-;; RCS: $Id: ede-proj-scheme.el,v 1.6 2000/07/22 12:45:08 zappo Exp $
+;; RCS: $Id: ede-proj-scheme.el,v 1.7 2000/09/24 15:44:08 zappo Exp $
 
-;; This file is NOT part of GNU Emacs.
-
-;; GNU Emacs is free software; you can redistribute it and/or modify
+;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; This software is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -42,10 +40,6 @@
 		:documentation "The preferred interpreter for this code.")
    )
   "This target consists of scheme files.")
-
-(defmethod ede-want-file-p ((obj ede-proj-target-scheme) file)
-  "Return t if OBJ wants to own FILE."
-  (string-match "\\.scm$" file))
 
 (defmethod ede-proj-tweak-autoconf ((this ede-proj-target-scheme))
   "Tweak the configure file (current buffer) to accomodate THIS."
