@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.19 2003/02/24 08:05:05 ponced Exp $
+@c $Id: wisent.texi,v 1.1 2003/08/31 01:29:01 zappo Exp $
 @c
 @setfilename wisent.info
 @settitle Wisent: the Bison-compatible Parser Generator for Emacs
