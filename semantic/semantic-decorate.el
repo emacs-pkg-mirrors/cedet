@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate.el,v 1.2 2003/07/04 20:59:55 ponced Exp $
+;; X-RCS: $Id: semantic-decorate.el,v 1.3 2003/07/16 14:13:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -170,6 +170,93 @@ instead of read-only."
 ;;;###autoload
 (semantic-alias-obsolete 'semantic-token-read-only-p
 			 'semantic-tag-read-only-p)
+
+;;; Secondary overlays
+;;
+;; Some types of decoration require a second overlay to be made.
+;; It could be for images, arrows, or whatever.
+;; We need a way to create such an overlay, and make sure it
+;; gets whacked, but doesn't show up in the master list
+;; of overlays used for searching.
+;;;###autoload
+(defun semantic-tag-create-secondary-overlay (tag &optional link-hook)
+  "Create a secondary overlay for TAG.
+Returns an overlay.  The overlay is also saved in TAG.
+LINK-HOOK is a function called whenever TAG is to be linked into
+a buffer.  It should take TAG and OVERLAY as arguments.
+The LINK-HOOK should be used to position and set properties on the
+generated secondary overlay."
+  (if (not (semantic-tag-overlay tag))
+      ;; do nothing if there is no overlay
+      nil
+    (let* ((os (semantic-tag-start tag))
+	   (oe (semantic-tag-end tag))
+	   (to (semantic-tag-overlay tag))
+	   (o (semantic-make-overlay os oe (semantic-tag-buffer tag)))
+	   (attr (semantic-tag-secondary-overlays tag))
+	   )
+      (semantic--tag-put-property tag 'secondary-overlays (cons o attr))
+      (semantic-overlay-put o 'semantic-secondary t)
+      (semantic-overlay-put o 'semantic-link-hook link-hook)
+      (semantic-tag-add-hook tag 'link-hook 'semantic--tag-link-secondary-overlays)
+      (semantic-tag-add-hook tag 'unlink-hook 'semantic--tag-unlink-secondary-overlays)
+      (run-hook-with-args link-hook tag o)
+      o)))
+
+(defun semantic-tag-delete-secondary-overlay (tag overlay-or-property)
+  "Delete from TAG the secondary overlay OVERLAY-OR-PROPERTY.
+If OVERLAY-OR-PROPERTY is an overlay, delete that overlay.
+If OVERLAY-OR-PROPERTY is a symbol, find the overlay with that property.."
+  (let* ((ol (semantic-tag-secondary-overlays tag))
+	 (olsearch ol)
+	 (o overlay-or-property))
+    (while (and olsearch (not (semantic-overlay-p o)))
+      (when (semantic-overlay-get (car olsearch) overlay-or-property)
+	  (setq o (car olsearch)))
+      (setq olsearch (cdr olsearch)))
+    (when (semantic-overlay-p o)
+      ;; We don't really need to worry about the hooks.
+      ;; They will clean themselves up eventually ??
+      (semantic--tag-put-property tag 'secondary-overlays
+				  (delete o ol))
+      (semantic-overlay-delete o))))
+
+(defun semantic--tag-unlink-secondary-overlays (tag)
+  "Unlink secondary overlays from TAG."
+  (let ((ol (semantic-tag-secondary-overlays tag))
+	(nl nil))
+    (while ol
+      (if (semantic-overlay-get (car ol) 'semantic-link-hook)
+	  ;; Only put in a proxy if there is a link-hook.  If there is no link-hook
+	  ;; the decorating mode must know when tags are unlinked on its own.
+	  (setq nl (cons (semantic-overlay-get (car ol) 'semantic-link-hook)
+			 nl))
+	;; Else, remove all  traces of ourself from the tag
+	;; Note to self: Does this prevent multiple types of secondary
+	;; overlays per tag?
+	(semantic-tag-remove-hook tag 'link-hook 'semantic--tag-link-secondary-overlays)
+	(semantic-tag-remove-hook tag 'unlink-hook 'semantic--tag-unlink-secondary-overlays)
+	)
+      (semantic-overlay-delete (car ol))
+      (setq ol (cdr ol)))
+    (semantic--tag-put-property tag 'secondary-overlays (nreverse nl))
+    ))
+
+(defun semantic--tag-link-secondary-overlays (tag)
+  "Unlink secondary overlays from TAG."
+  (let ((ol (semantic-tag-secondary-overlays tag)))
+    ;; Wipe out old values.
+    (semantic--tag-put-property tag 'secondary-overlays nil)
+    ;; Run all the link hooks.
+    (while ol
+      (semantic-tag-create-secondary-overlay tag (car ol))
+      (setq ol (cdr ol)))
+    ))
+
+;;;###autoload
+(defun semantic-tag-secondary-overlays (tag)
+  "Return a list of secondary overlays active on TAG."
+  (semantic--tag-get-property tag 'secondary-overlays))
 
 (provide 'semantic-decorate)
 
