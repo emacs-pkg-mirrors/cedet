@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.7 2003/04/06 00:48:39 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.8 2003/07/31 14:40:37 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 ;;
 ;;;###autoload
 (defcustom semanticdb-default-file-name "semantic.cache"
-  "*File name of the semantic token cache."
+  "*File name of the semantic tag cache."
   :group 'semanticdb
   :type 'string)
 
@@ -59,7 +59,7 @@ stores caches in a coded file name in this directory."
 ;;;###autoload
 (defcustom semanticdb-persistent-path '(project)
   "*List of valid paths that semanticdb will cache tags to.
-When `global-semanticdb-minor-mode' is active, token lists will
+When `global-semanticdb-minor-mode' is active, tag lists will
 be saved to disk when Emacs exits.  Not all directories will have
 tags that should be saved.
 The value should be a list of valid paths.  A path can be a string,
@@ -84,10 +84,10 @@ the database recently written."
 (defclass semanticdb-project-database-file (semanticdb-project-database
 					    eieio-persistent)
   ((file-header-line :initform ";; SEMANTICDB Tags save file")
-   (semantic-token-version :initarg :semantic-token-version
-			   :initform "1.4"
-			   :documentation
-			   "The version of the tags saved.
+   (semantic-tag-version :initarg :semantic-tag-version
+			 :initform "1.4"
+			 :documentation
+			 "The version of the tags saved.
 The default value is 1.4.  In semantic 1.4 there was no versioning, so
 when those files are loaded, this becomes the version number.
 To save the version number, we must hand-set this version string.")
@@ -118,7 +118,7 @@ If DIRECTORY doesn't exist, create a new one."
 		dbc  ; Create the database requested.  Perhaps
 		(file-name-nondirectory fn)
 		:file fn :tables nil
-		:semantic-token-version semantic-version
+		:semantic-tag-version semantic-version
 		:semanticdb-version semanticdb-file-version)))
     db))
 
@@ -128,7 +128,7 @@ If DIRECTORY doesn't exist, create a new one."
   (condition-case foo
       (let* ((r (eieio-persistent-read filename))
 	     (c (oref r tables))
-	     (tv (oref r semantic-token-version))
+	     (tv (oref r semantic-tag-version))
 	     (fv (oref r semanticdb-version))
 	     )
 	;; Restore the parent-db connection
@@ -136,11 +136,11 @@ If DIRECTORY doesn't exist, create a new one."
 	  (oset (car c) parent-db r)
 	  (setq c (cdr c)))
 	(if (not (inversion-test 'semanticdb-file fv))
-	    (when (inversion-test 'semantic-token tv)
+	    (when (inversion-test 'semantic-tag tv)
 	      ;; Incompatible version.  Flush tables.
 	      (oset r tables nil)
 	      ;; Reset the version to new version.
-	      (oset r semantic-token-version semantic-token-version)
+	      (oset r semantic-tag-version semantic-tag-version)
 	      ;; Warn user
 	      (message "Semanticdb file is old.  Starting over for %s"
 		       filename)
@@ -167,7 +167,7 @@ If DB is not specified, then use the current database."
   (let ((objname (oref DB file)))
     (when (and (semanticdb-live-p DB)
 	       (semanticdb-write-directory-p DB))
-      (message "Saving token summary for %s..." objname)
+      (message "Saving tag summary for %s..." objname)
       (condition-case foo
 	  (eieio-persistent-save (or DB semanticdb-current-database))
 	(file-error ; System error saving?  Ignore it.
@@ -180,7 +180,7 @@ If DB is not specified, then use the current database."
 	   (error "%S" foo))))
       (run-hook-with-args 'semanticdb-save-database-hooks
 			  (or DB semanticdb-current-database))
-      (message "Saving token summary for %s...done" objname))
+      (message "Saving tag summary for %s...done" objname))
     ))
 
 ;;;###autoload
