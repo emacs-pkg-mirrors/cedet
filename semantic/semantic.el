@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.35 2000/05/04 03:34:43 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.36 2000/05/17 02:24:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -409,6 +409,10 @@ If not provided, then only the POSITION can be provided."
 	  (set-buffer buffer)
 	  (semantic-flex-text (car (semantic-flex p (1+ p)))))
       p)))
+
+(defmacro semantic-token-extent (token)
+  "Retrieve the extent (START END) of TOKEN."
+  `(nthcdr (- (length ,token) 2) ,token))
 
 (defmacro semantic-token-start (token)
   "Retrieve the start location of TOKEN."
