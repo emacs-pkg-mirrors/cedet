@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.7 2003/09/05 10:32:12 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.8 2003/09/07 09:39:17 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -152,6 +152,9 @@ Optional argument COLOR indicates that color should be mixed in."
                  f
                'semantic-format-tag-prototype-default)
              tag parent color)))
+
+(semantic-alias-obsolete 'semantic-java-prototype-nonterminal
+                         'semantic-format-prototype-tag-java-mode)
 
 ;; Documentation handler
 ;;
