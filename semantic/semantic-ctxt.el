@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.26 2003/04/02 02:27:55 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.27 2003/12/04 22:31:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -429,6 +429,21 @@ Depends on `semantic-function-argument-separation-character'."
 	    (setq idx (1+ idx)))
 	  idx)))))
 
+(defun semantic-ctxt-current-thing ()
+  "Calculate a thing identified by the current cursor position.
+Calls previously defined `semantic-ctxt-current-...' calls until something
+gets a match.  See `semantic-ctxt-current-symbol',
+`semantic-ctxt-current-function', and `semantic-ctxt-current-assignment'
+for details on the return value."
+  (or (semantic-ctxt-current-symbol)
+      (semantic-ctxt-current-function)
+      (semantic-ctxt-current-assignment)))
+
+
+;;; Scoped Types
+;;
+;; Scoped types are types that the current code would have access to.
+;; The come from the global namespace or from special commands such as "using"
 (define-overload semantic-ctxt-scoped-types (&optional point)
   "Return a list of type names currently in scope at POINT.")
 
