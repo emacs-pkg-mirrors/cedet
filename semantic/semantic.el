@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.111 2001/08/17 21:20:32 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.112 2001/08/27 20:37:49 ponced Exp $
 
 (defvar semantic-version "1.4"
   "Current version of Semantic.")
@@ -245,12 +245,12 @@ The functions must take a TOKEN as a parameter.
 Any token sent to this hook will have first been called with
 `semantic-dirty-token-hooks'.  This hook is not called for tokens
 marked dirty if the buffer is completely reparsed.  In that case, use
-`semantic-after-toplevel-bovinate-hook'.")
+`semantic-after-toplevel-cache-change-hook'.")
 
 (defvar semantic-change-hooks nil
   "Hooks run when semantic detects a change in a buffer.
 Each hook function must take three arguments, identical to the
-common hook `after-change-function'.")
+common hook `after-change-functions'.")
 
 (defvar semantic-bovinate-toplevel-override nil
   "Local variable set by major modes which provide their own bovination.
@@ -261,7 +261,10 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
   "Hooks run after a toplevel token parse.
 It is not run if the toplevel parse command is called, and buffer does
 not need to be fully reparsed.
-For language specific hooks, make sure you define this as a local hook.")
+For language specific hooks, make sure you define this as a local hook.
+
+This hook should not be used any more.
+Use `semantic-after-toplevel-cache-change-hook' instead.")
 
 (defvar semantic-after-toplevel-cache-change-hook nil
   "Hooks run after the buffer token list has changed.
@@ -274,12 +277,22 @@ tokens associated with this buffer.
 
 For language specific hooks, make sure you define this as a local hook.")
 
+(defvar semantic-after-partial-cache-change-hook nil
+  "Hooks run after the buffer token list has been updated.
+This list will change when the current token list has been partially
+reparsed.
+
+Hook functions must take one argument, which is the updated list of
+tokens associated with this buffer.
+
+For language specific hooks, make sure you define this as a local hook.")
+
 (defvar semantic-before-toplevel-cache-flush-hook nil
   "Hooks run before the toplevel nonterminal cache is flushed.
-For language specific hooks, make sure you define this as a local hook.
-This hook is called before a corresponding
-`semantic-after-toplevel-bovinate-hook' which is also called during a
-flush when the cache is given a new value of nil.")
+For language specific hooks, make sure you define this as a local
+hook.  This hook is called before a corresponding
+`semantic-after-toplevel-cache-change-hook' which is also called
+during a flush when the cache is given a new value of nil.")
 
 (defvar semantic-reparse-needed-change-hook nil
   "Hooks run when a user edit is detected as needing a reparse.
@@ -605,6 +618,8 @@ that, otherwise, do a full reparse."
     (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
 	;; If the partial reparse fails, jump to a full reparse.
 	(semantic-bovinate-toplevel checkcache)
+      (run-hook-with-args 'semantic-after-partial-cache-change-hook
+                          semantic-toplevel-bovine-cache)
       semantic-toplevel-bovine-cache)
     )
    ((semantic-bovine-toplevel-full-reparse-needed-p checkcache)
