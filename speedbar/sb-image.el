@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-image.el,v 1.5 2002/02/28 16:23:31 zappo Exp $
+;; X-RCS: $Id: sb-image.el,v 1.6 2002/03/16 20:04:15 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -164,15 +164,42 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
   ((:type xpm :file "sb-objod.xpm" :ascent center))
   "Image used for open tag groups.")
 
+(defimage-speedbar speedbar-label
+  ((:type xpm :file "sb-label.xpm" :ascent center))
+  "Image used for label prefix.")
+
+(defimage-speedbar speedbar-read-only
+  ((:type xpm :file "sb-ro.xpm" :ascent center))
+  "Image used to mark an item Read Only, Locked, or some such.")
+
+(defimage-speedbar speedbar-document-tag
+  ((:type xpm :file "sb-doc.xpm" :ascent center))
+  "Image used to indicate documentation available.")
+
+(defimage-speedbar speedbar-document-plus
+  ((:type xpm :file "sb-doc-plus.xpm" :ascent center))
+  "Image used to indicate documentation available.")
+
+(defimage-speedbar speedbar-document-minus
+  ((:type xpm :file "sb-doc-minus.xpm" :ascent center))
+  "Image used to indicate documentation available.")
+
+(defimage-speedbar speedbar-info-tag
+  ((:type xpm :file "sb-info.xpm" :ascent center))
+  "Image used to indicate more information available.")
+
 (defvar speedbar-expand-image-button-alist
   '(("<+>" . speedbar-directory-plus)
     ("<->" . speedbar-directory-minus)
     ("[+]" . speedbar-page-plus)
     ("[-]" . speedbar-page-minus)
     ("[?]" . speedbar-page)
+    ("[ ]" . speedbar-page)
     ("{+}" . speedbar-tag-plus)
     ("{-}" . speedbar-tag-minus)
     ("<M>" . speedbar-mail)
+    ("<d>" . speedbar-document-tag)
+    ("<i>" . speedbar-info-tag)
     (" =>" . speedbar-tag)
     (" +>" . speedbar-tag-gt)
     (" ->" . speedbar-tag-v)
@@ -182,6 +209,11 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
     ("*" . speedbar-checkout)
     ("#" . speedbar-object)
     ("!" . speedbar-object-out-of-date)
+    ("//" . speedbar-label)
+    ("%" . speedbar-read-only)
+    ;; Not used in this form, but kept here so we don't forget
+    ("<d+>" . speedbar-document-plus)
+    ("<d->" . speedbar-document-minus)
     )
   "List of text and image associations.")
 
@@ -210,6 +242,29 @@ If we have an image associated with it, use that image."
 	  ;(message "Bad text [%s]" (buffer-substring start (+ start length)))
 	  ))))
 
+(defun speedbar-image-dump ()
+  "Dump out the current state of the Speedbar image alist.
+See `speedbar-expand-image-button-alist' for details."
+  (interactive)
+  (with-output-to-temp-buffer "*Speedbar Images*"
+    (save-excursion
+      (set-buffer "*Speedbar Images*")
+      (goto-char (point-max))
+      (insert "Speedbar image cache.\n\n")
+      (let ((start (point)) (end nil))
+	(insert "Image\tText\tImage Name")
+	(setq end (point))
+	(insert "\n")
+	(put-text-property start end 'face 'underline))
+      (let ((ia speedbar-expand-image-button-alist))
+	(while ia
+	  (let ((start (point)))
+	    (insert (car (car ia)))
+	    (insert "\t")
+	    (speedbar-insert-image-button-maybe start
+						(length (car (car ia))))
+	    (insert (car (car ia)) "\t" (format "%s" (cdr (car ia))) "\n"))
+	  (setq ia (cdr ia)))))))
 
 (provide 'sb-image)
 
