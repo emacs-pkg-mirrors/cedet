@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.16 2003/04/02 04:20:15 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.17 2003/04/04 13:18:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 23:16-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-04-04 15:00+0200
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -52,7 +52,7 @@
      (using)
      ) ;; end declaration
 
-    (bovine-inner-scope	;;codeblock
+    (bovine-inner-scope ;;codeblock
      (define)
      (codeblock-var-or-fun)
      (type)
@@ -61,12 +61,12 @@
     (extern-c-contents
      (open-paren
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (bovine-toplevel)
      (close-paren
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end extern-c-contents
 
@@ -76,22 +76,22 @@
       "\"C\""
       semantic-list
       ,(semantic-lambda
-	(semantic-tag
-	 "C"
-	 'extern :members
-	 (semantic-parse-region
-	  (car
-	   (nth 2 vals))
-	  (cdr
-	   (nth 2 vals))
-	  'extern-c-contents
-	  1)))
+        (semantic-tag
+         "C"
+         'extern :members
+         (semantic-parse-region
+          (car
+           (nth 2 vals))
+          (cdr
+           (nth 2 vals))
+          'extern-c-contents
+          1)))
       )
      (EXTERN
       string
       "\"C\""
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end extern-c
 
@@ -101,22 +101,22 @@
       punctuation
       "\\b[;]\\b"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (expression
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end macro-expression-list
 
     (macro-def
      (macro-expression-list
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (expression
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ( ;;EMPTY
       )
@@ -127,45 +127,45 @@
       "\\b[#]\\b"
       macro-or-include
       ,(semantic-lambda
-	(nth 1 vals))
+        (nth 1 vals))
       )
      ) ;; end macro
 
     (macro-or-include
      (DEFINE
-       symbol
-       opt-define-arglist
-       macro-def
-       ,(semantic-lambda
-	 (semantic-tag-new-variable
-	  (nth 1 vals) nil
-	  (nth 3 vals)
-	  'const t))
-       )
+      symbol
+      opt-define-arglist
+      macro-def
+      ,(semantic-lambda
+        (semantic-tag-new-variable
+         (nth 1 vals) nil
+         (nth 3 vals)
+         'const t))
+      )
      (INCLUDE
       system-include
       ,(semantic-lambda
-	(semantic-tag-new-include
-	 (substring
-	  (nth 1 vals)
-	  1
-	  (1-
-	   (length
-	    (nth 1 vals)))) t))
+        (semantic-tag-new-include
+         (substring
+          (nth 1 vals)
+          1
+          (1-
+           (length
+            (nth 1 vals)))) t))
       )
      (INCLUDE
       string
       ,(semantic-lambda
-	(semantic-tag-new-include
-	 (read
-	  (nth 1 vals)) nil))
+        (semantic-tag-new-include
+         (read
+          (nth 1 vals)) nil))
       )
      ) ;; end macro-or-include
 
     (opt-define-arglist
      (semantic-list
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ( ;;EMPTY
       )
@@ -179,23 +179,23 @@
        opt-define-arglist
        macro-def
        ,(semantic-lambda
-	 (semantic-tag-new-variable
-	  (nth 2 vals) nil
-	  (nth 3 vals)
-	  'const t))
+         (semantic-tag-new-variable
+          (nth 2 vals) nil
+          (nth 3 vals)
+          'const t))
        )
-      )	;; end define
+      ) ;; end define
 
     (unionparts
      (semantic-list
       ,(semantic-lambda
-	(semantic-parse-region
-	 (car
-	  (nth 0 vals))
-	 (cdr
-	  (nth 0 vals))
-	 'classsubparts
-	 1))
+        (semantic-parse-region
+         (car
+          (nth 0 vals))
+         (cdr
+          (nth 0 vals))
+         'classsubparts
+         1))
       )
      ) ;; end unionparts
 
@@ -209,22 +209,22 @@
      (open-paren
       "{"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (close-paren
       "}"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (class-protection
       opt-symbol
       punctuation
       "\\b[:]\\b"
       ,(semantic-lambda
-	(semantic-tag
-	 (car
-	  (nth 0 vals))
-	 'label))
+        (semantic-tag
+         (car
+          (nth 0 vals))
+         'label))
       )
      (var-or-fun)
      (type)
@@ -240,8 +240,8 @@
       class-parents
       opt-template-specifier
       ,(semantic-lambda
-	(list
-	 (nth 1 vals)))
+        (list
+         (nth 1 vals)))
       )
      ( ;;EMPTY
       ,(semantic-lambda)
@@ -256,15 +256,15 @@
       "\\b[,]\\b"
       class-parents
       ,(semantic-lambda
-	(cons
-	 (nth 2 vals)
-	 (nth 4 vals)))
+        (cons
+         (nth 2 vals)
+         (nth 4 vals)))
       )
      (opt-class-protection
       opt-class-declmods
       namespace-symbol
       ,(semantic-lambda
-	(nth 2 vals))
+        (nth 2 vals))
       )
      ) ;; end class-parents
 
@@ -272,7 +272,7 @@
      (class-declmods
       opt-class-declmods
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ( ;;EMPTY
       )
@@ -291,7 +291,7 @@
     (opt-class-protection
      (class-protection
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      ( ;;EMPTY
       )
@@ -300,13 +300,13 @@
     (namespaceparts
      (semantic-list
       ,(semantic-lambda
-	(semantic-parse-region
-	 (car
-	  (nth 0 vals))
-	 (cdr
-	  (nth 0 vals))
-	 'namespacesubparts
-	 1))
+        (semantic-parse-region
+         (car
+          (nth 0 vals))
+         (cdr
+          (nth 0 vals))
+         'namespacesubparts
+         1))
       )
      ) ;; end namespaceparts
 
@@ -314,12 +314,12 @@
      (open-paren
       "{"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (close-paren
       "}"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (type)
      (var-or-fun)
@@ -328,10 +328,10 @@
       punctuation
       "\\b[:]\\b"
       ,(semantic-lambda
-	(semantic-tag
-	 (car
-	  (nth 0 vals))
-	 'label))
+        (semantic-tag
+         (car
+          (nth 0 vals))
+         'label))
       )
      (template)
      (using)
@@ -342,13 +342,13 @@
     (enumparts
      (semantic-list
       ,(semantic-lambda
-	(semantic-parse-region
-	 (car
-	  (nth 0 vals))
-	 (cdr
-	  (nth 0 vals))
-	 'enumsubparts
-	 1))
+        (semantic-parse-region
+         (car
+          (nth 0 vals))
+         (cdr
+          (nth 0 vals))
+         'enumsubparts
+         1))
       )
      ) ;; end enumparts
 
@@ -356,27 +356,27 @@
      (symbol
       opt-assign
       ,(semantic-lambda
-	(semantic-tag-new-variable
-	 (nth 0 vals)
-	 "int"
-	 (car
-	  (nth 1 vals))
-	 'const t))
+        (semantic-tag-new-variable
+         (nth 0 vals)
+         "int"
+         (car
+          (nth 1 vals))
+         'const t))
       )
      (open-paren
       "{"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (close-paren
       "}"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (punctuation
       "\\b[,]\\b"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end enumsubparts
 
@@ -384,8 +384,8 @@
      (symbol)
      ( ;;EMPTY
       ,(semantic-lambda
-	(list
-	 ""))
+        (list
+         ""))
       )
      ) ;; end opt-name
 
@@ -405,63 +405,63 @@
       opt-class-parents
       semantic-list
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (car
-	  (nth 1 vals))
-	 (car
-	  (nth 0 vals))
-	 (let
-	     (
-	      (semantic-c-classname
-	       (cons
-		(car
-		 (nth 1 vals))
-		(car
-		 (nth 0 vals)))))
-	   (semantic-parse-region
-	    (car
-	     (nth 4 vals))
-	    (cdr
-	     (nth 4 vals))
-	    'classsubparts
-	    1))
-	 (nth 3 vals)
-	 'template-specifier
-	 (nth 2 vals)))
+        (semantic-tag-new-type
+         (car
+          (nth 1 vals))
+         (car
+          (nth 0 vals))
+         (let
+             (
+              (semantic-c-classname
+               (cons
+                (car
+                 (nth 1 vals))
+                (car
+                 (nth 0 vals)))))
+           (semantic-parse-region
+            (car
+             (nth 4 vals))
+            (cdr
+             (nth 4 vals))
+            'classsubparts
+            1))
+         (nth 3 vals)
+         'template-specifier
+         (nth 2 vals)))
       )
      (struct-or-class
       opt-name
       opt-template-specifier
       opt-class-parents
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (car
-	  (nth 1 vals))
-	 (car
-	  (nth 0 vals)) nil
-	 (nth 3 vals)
-	 'template-specifier
-	 (nth 2 vals)))
+        (semantic-tag-new-type
+         (car
+          (nth 1 vals))
+         (car
+          (nth 0 vals)) nil
+         (nth 3 vals)
+         'template-specifier
+         (nth 2 vals)))
       )
      (UNION
       opt-name
       unionparts
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (car
-	  (nth 1 vals))
-	 (nth 0 vals)
-	 (nth 2 vals) nil))
+        (semantic-tag-new-type
+         (car
+          (nth 1 vals))
+         (nth 0 vals)
+         (nth 2 vals) nil))
       )
      (ENUM
       opt-name
       enumparts
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (car
-	  (nth 1 vals))
-	 (nth 0 vals)
-	 (nth 2 vals) nil))
+        (semantic-tag-new-type
+         (car
+          (nth 1 vals))
+         (nth 0 vals)
+         (nth 2 vals) nil))
       )
      (TYPEDEF
       declmods
@@ -469,10 +469,10 @@
       cv-declmods
       typedef-symbol-list
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (nth 4 vals)
-	 (nth 0 vals) nil
-	 (nth 2 vals)))
+        (semantic-tag-new-type
+         (nth 4 vals)
+         (nth 0 vals) nil
+         (nth 2 vals)))
       )
      ) ;; end typesimple
 
@@ -482,14 +482,14 @@
       "\\b[,]\\b"
       typedef-symbol-list
       ,(semantic-lambda
-	(cons
-	 (nth 0 vals)
-	 (nth 2 vals)))
+        (cons
+         (nth 0 vals)
+         (nth 2 vals)))
       )
      (typedefname
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      ) ;; end typedef-symbol-list
 
@@ -499,9 +499,9 @@
       opt-bits
       opt-array
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)
-	 (nth 1 vals)))
+        (list
+         (nth 0 vals)
+         (nth 1 vals)))
       )
      ) ;; end typedefname
 
@@ -515,24 +515,24 @@
       punctuation
       "\\b[;]\\b"
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (NAMESPACE
       symbol
       namespaceparts
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (nth 1 vals)
-	 (nth 0 vals)
-	 (nth 2 vals) nil))
+        (semantic-tag-new-type
+         (nth 1 vals)
+         (nth 0 vals)
+         (nth 2 vals) nil))
       )
      (NAMESPACE
       namespaceparts
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 "unnamed"
-	 (nth 0 vals)
-	 (nth 1 vals) nil))
+        (semantic-tag-new-type
+         "unnamed"
+         (nth 0 vals)
+         (nth 1 vals) nil))
       )
      ) ;; end type
 
@@ -542,7 +542,7 @@
       punctuation
       "\\b[;]\\b"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (USING
       NAMESPACE
@@ -550,7 +550,7 @@
       punctuation
       "\\b[;]\\b"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end using
 
@@ -560,9 +560,9 @@
       opt-friend
       template-definition
       ,(semantic-lambda
-	(semantic-c-reconstitute-template
-	 (nth 3 vals)
-	 (nth 1 vals)))
+        (semantic-c-reconstitute-template
+         (nth 3 vals)
+         (nth 1 vals)))
       )
      ) ;; end template
 
@@ -575,7 +575,7 @@
     (opt-template-specifier
      (template-specifier
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      ( ;;EMPTY
       ,(semantic-lambda)
@@ -589,7 +589,7 @@
       punctuation
       "\\b[>]\\b"
       ,(semantic-lambda
-	(nth 1 vals))
+        (nth 1 vals))
       )
      ) ;; end template-specifier
 
@@ -597,9 +597,9 @@
      (template-var
       template-specifier-type-list
       ,(semantic-lambda
-	(cons
-	 (nth 0 vals)
-	 (nth 1 vals)))
+        (cons
+         (nth 0 vals)
+         (nth 1 vals)))
       )
      ( ;;EMPTY
       )
@@ -610,7 +610,7 @@
       "\\b[,]\\b"
       template-specifier-types
       ,(semantic-lambda
-	(nth 1 vals))
+        (nth 1 vals))
       )
      ( ;;EMPTY
       ,(semantic-lambda)
@@ -621,27 +621,27 @@
      (template-type
       opt-template-equal
       ,(semantic-lambda
-	(cons
-	 (car
-	  (nth 0 vals))
-	 (cdr
-	  (nth 0 vals))))
+        (cons
+         (car
+          (nth 0 vals))
+         (cdr
+          (nth 0 vals))))
       )
      (string
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      (number
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      (opt-stars
       opt-ref
       namespace-symbol
       ,(semantic-lambda
-	(nth 2 vals))
+        (nth 2 vals))
       )
      ) ;; end template-var
 
@@ -655,8 +655,8 @@
       punctuation
       "\\b[>]\\b"
       ,(semantic-lambda
-	(list
-	 (nth 1 vals)))
+        (list
+         (nth 1 vals)))
       )
      ( ;;EMPTY
       )
@@ -666,23 +666,23 @@
      (CLASS
       symbol
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (nth 1 vals)
-	 "class" nil nil))
+        (semantic-tag-new-type
+         (nth 1 vals)
+         "class" nil nil))
       )
      (STRUCT
       symbol
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (nth 1 vals)
-	 "struct" nil nil))
+        (semantic-tag-new-type
+         (nth 1 vals)
+         "struct" nil nil))
       )
      (TYPENAME
       symbol
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (nth 1 vals)
-	 "class" nil nil))
+        (semantic-tag-new-type
+         (nth 1 vals)
+         "class" nil nil))
       )
      (declmods
       typeformbase
@@ -691,39 +691,39 @@
       opt-ref
       variablearg-opt-name
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (car
-	  (nth 1 vals)) nil nil nil
-	 'const
-	 (if
-	     (member
-	      "const"
-	      (append
-	       (nth 0 vals)
-	       (nth 2 vals))) t nil)
-	 'typemodifiers
-	 (delete
-	  "const"
-	  (append
-	   (nth 0 vals)
-	   (nth 2 vals)))
-	 'reference
-	 (car
-	  (nth 4 vals))
-	 'pointer
-	 (car
-	  (nth 3 vals))))
+        (semantic-tag-new-type
+         (car
+          (nth 1 vals)) nil nil nil
+         'const
+         (if
+             (member
+              "const"
+              (append
+               (nth 0 vals)
+               (nth 2 vals))) t nil)
+         'typemodifiers
+         (delete
+          "const"
+          (append
+           (nth 0 vals)
+           (nth 2 vals)))
+         'reference
+         (car
+          (nth 4 vals))
+         'pointer
+         (car
+          (nth 3 vals))))
       )
      ) ;; end template-type
 
     (template-definition
      (type
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (var-or-fun
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      ) ;; end template-definition
 
@@ -733,15 +733,15 @@
       opt-starmod
       opt-stars
       ,(semantic-lambda
-	(list
-	 (1+
-	  (car
-	   (nth 2 vals)))))
+        (list
+         (1+
+          (car
+           (nth 2 vals)))))
       )
      ( ;;EMPTY
       ,(semantic-lambda
-	(list
-	 0))
+        (list
+         0))
       )
      ) ;; end opt-stars
 
@@ -749,10 +749,10 @@
      (STARMOD
       opt-starmod
       ,(semantic-lambda
-	(cons
-	 (car
-	  (nth 0 vals))
-	 (nth 1 vals)))
+        (cons
+         (car
+          (nth 0 vals))
+         (nth 1 vals)))
       )
      ( ;;EMPTY
       ,(semantic-lambda)
@@ -767,14 +767,14 @@
      (DECLMOD
       declmods
       ,(semantic-lambda
-	(cons
-	 (car
-	  (nth 0 vals))
-	 (nth 1 vals)))
+        (cons
+         (car
+          (nth 0 vals))
+         (nth 1 vals)))
       )
      (DECLMOD
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      ( ;;EMPTY
       ,(semantic-lambda)
@@ -811,14 +811,14 @@
      (CVDECLMOD
       cv-declmods
       ,(semantic-lambda
-	(cons
-	 (car
-	  (nth 0 vals))
-	 (nth 1 vals)))
+        (cons
+         (car
+          (nth 0 vals))
+         (nth 1 vals)))
       )
      (CVDECLMOD
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      ( ;;EMPTY
       ,(semantic-lambda)
@@ -834,58 +834,57 @@
      (punctuation
       "\\b[&]\\b"
       ,(semantic-lambda
-	(list
-	 1))
+        (list
+         1))
       )
      ( ;;EMPTY
       ,(semantic-lambda
-	(list
-	 0))
+        (list
+         0))
       )
      ) ;; end opt-ref
 
     (typeformbase
      (typesimple
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (STRUCT
       symbol
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (nth 1 vals)
-	 (nth 0 vals) nil nil))
+        (semantic-tag-new-type
+         (nth 1 vals)
+         (nth 0 vals) nil nil))
       )
      (UNION
       symbol
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (nth 1 vals)
-	 (nth 0 vals) nil nil))
+        (semantic-tag-new-type
+         (nth 1 vals)
+         (nth 0 vals) nil nil))
       )
      (ENUM
       symbol
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (nth 1 vals)
-	 (nth 0 vals) nil nil))
+        (semantic-tag-new-type
+         (nth 1 vals)
+         (nth 0 vals) nil nil))
       )
      (builtintype
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (namespace-symbol
-      opt-template-specifier
       ,(semantic-lambda
-	(semantic-tag-new-type
-	 (car
-	  (nth 0 vals))
-	 "class" nil nil))
+        (semantic-tag-new-type
+         (car
+          (nth 0 vals))
+         "class" nil nil))
       )
      (symbol
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      ) ;; end typeformbase
 
@@ -903,31 +902,31 @@
      (LONG
       INT
       ,(semantic-lambda
-	(list
-	 (concat
-	  (nth 0 vals)
-	  " "
-	  (nth 1 vals))))
+        (list
+         (concat
+          (nth 0 vals)
+          " "
+          (nth 1 vals))))
       )
      (FLOAT)
      (DOUBLE)
      (LONG
       DOUBLE
       ,(semantic-lambda
-	(list
-	 (concat
-	  (nth 0 vals)
-	  " "
-	  (nth 1 vals))))
+        (list
+         (concat
+          (nth 0 vals)
+          " "
+          (nth 1 vals))))
       )
      (LONG
       LONG
       ,(semantic-lambda
-	(list
-	 (concat
-	  (nth 0 vals)
-	  " "
-	  (nth 1 vals))))
+        (list
+         (concat
+          (nth 0 vals)
+          " "
+          (nth 1 vals))))
       )
      (LONG)
      ) ;; end builtintype-types
@@ -936,25 +935,25 @@
      (signedmod
       builtintype-types
       ,(semantic-lambda
-	(list
-	 (concat
-	  (car
-	   (nth 0 vals))
-	  " "
-	  (car
-	   (nth 1 vals)))))
+        (list
+         (concat
+          (car
+           (nth 0 vals))
+          " "
+          (car
+           (nth 1 vals)))))
       )
      (builtintype-types
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (signedmod
       ,(semantic-lambda
-	(list
-	 (concat
-	  (car
-	   (nth 0 vals))
-	  " int")))
+        (list
+         (concat
+          (car
+           (nth 0 vals))
+          " int")))
       )
      ) ;; end builtintype
 
@@ -965,35 +964,35 @@
       opt-ref
       var-or-func-decl
       ,(semantic-lambda
-	(semantic-c-reconstitute-token
-	 (nth 4 vals)
-	 (nth 0 vals)
-	 (nth 1 vals)))
+        (semantic-c-reconstitute-token
+         (nth 4 vals)
+         (nth 0 vals)
+         (nth 1 vals)))
       )
      ) ;; end codeblock-var-or-fun
 
     (var-or-fun
      (codeblock-var-or-fun
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (declmods
       var-or-func-decl
       ,(semantic-lambda
-	(semantic-c-reconstitute-token
-	 (nth 1 vals)
-	 (nth 0 vals) nil))
+        (semantic-c-reconstitute-token
+         (nth 1 vals)
+         (nth 0 vals) nil))
       )
      ) ;; end var-or-fun
 
     (var-or-func-decl
      (func-decl
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (var-decl
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      ) ;; end var-or-func-decl
 
@@ -1010,16 +1009,16 @@
       opt-initializers
       fun-or-proto-end
       ,(semantic-lambda
-	(nth 3 vals)
-	(list
-	 'function
-	 (nth 1 vals)
-	 (nth 2 vals)
-	 (nth 6 vals)
-	 (nth 8 vals)
-	 (nth 7 vals))
-	(nth 0 vals)
-	(nth 10 vals))
+        (nth 3 vals)
+        (list
+         'function
+         (nth 1 vals)
+         (nth 2 vals)
+         (nth 6 vals)
+         (nth 8 vals)
+         (nth 7 vals))
+        (nth 0 vals)
+        (nth 10 vals))
       )
      ) ;; end func-decl
 
@@ -1028,20 +1027,20 @@
       punctuation
       "\\b[;]\\b"
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)
-	 'variable))
+        (list
+         (nth 0 vals)
+         'variable))
       )
      ) ;; end var-decl
 
     (opt-under-p
      (UNDERP
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (UNDERUNDERP
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ( ;;EMPTY
       )
@@ -1066,13 +1065,13 @@
      (post-fcn-modifiers
       opt-post-fcn-modifiers
       ,(semantic-lambda
-	(cons
-	 (nth 0 vals)
-	 (nth 1 vals)))
+        (cons
+         (nth 0 vals)
+         (nth 1 vals)))
       )
      ( ;;EMPTY
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end opt-post-fcn-modifiers
 
@@ -1085,12 +1084,12 @@
      (THROW
       semantic-list
       ,(lambda (vals start end)
-	 (semantic-bovinate-from-nonterminal
-	  (car
-	   (nth 1 vals))
-	  (cdr
-	   (nth 1 vals))
-	  'throw-exception-list))
+         (semantic-bovinate-from-nonterminal
+          (car
+           (nth 1 vals))
+          (cdr
+           (nth 1 vals))
+          'throw-exception-list))
       )
      ( ;;EMPTY
       )
@@ -1102,29 +1101,29 @@
       "\\b[,]\\b"
       throw-exception-list
       ,(semantic-lambda
-	(cons
-	 (car
-	  (nth 0 vals))
-	 (nth 2 vals)))
+        (cons
+         (car
+          (nth 0 vals))
+         (nth 2 vals)))
       )
      (namespace-symbol
       close-paren
       ")"
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (symbol
       close-paren
       ")"
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      (open-paren
       "("
       throw-exception-list
       ,(semantic-lambda
-	(nth 1 vals))
+        (nth 1 vals))
       )
      (close-paren
       ")"
@@ -1137,12 +1136,12 @@
       "\\b[:]\\b"
       number
       ,(semantic-lambda
-	(list
-	 (nth 1 vals)))
+        (list
+         (nth 1 vals)))
       )
      ( ;;EMPTY
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end opt-bits
 
@@ -1151,15 +1150,15 @@
       "\\[.*\\]$"
       opt-array
       ,(semantic-lambda
-	(list
-	 (cons
-	  1
-	  (car
-	   (nth 1 vals)))))
+        (list
+         (cons
+          1
+          (car
+           (nth 1 vals)))))
       )
      ( ;;EMPTY
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end opt-array
 
@@ -1168,12 +1167,12 @@
       "\\b[=]\\b"
       expression
       ,(semantic-lambda
-	(list
-	 (nth 1 vals)))
+        (list
+         (nth 1 vals)))
       )
      ( ;;EMPTY
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end opt-assign
 
@@ -1192,11 +1191,11 @@
       opt-array
       opt-assign
       ,(semantic-lambda
-	(nth 2 vals)
-	(nth 0 vals)
-	(nth 3 vals)
-	(nth 4 vals)
-	(nth 5 vals))
+        (nth 2 vals)
+        (nth 0 vals)
+        (nth 3 vals)
+        (nth 4 vals)
+        (nth 5 vals))
       )
      ) ;; end varname
 
@@ -1207,40 +1206,40 @@
       opt-ref
       variablearg-opt-name
       ,(semantic-lambda
-	(semantic-tag-new-variable
-	 (list
-	  (nth 4 vals))
-	 (nth 1 vals) nil
-	 'const
-	 (if
-	     (member
-	      "const"
-	      (append
-	       (nth 0 vals)
-	       (nth 2 vals))) t nil)
-	 'typemodifiers
-	 (delete
-	  "const"
-	  (append
-	   (nth 0 vals)
-	   (nth 2 vals)))
-	 'reference
-	 (car
-	  (nth 3 vals))))
+        (semantic-tag-new-variable
+         (list
+          (nth 4 vals))
+         (nth 1 vals) nil
+         'const
+         (if
+             (member
+              "const"
+              (append
+               (nth 0 vals)
+               (nth 2 vals))) t nil)
+         'typemodifiers
+         (delete
+          "const"
+          (append
+           (nth 0 vals)
+           (nth 2 vals)))
+         'reference
+         (car
+          (nth 3 vals))))
       )
      ) ;; end variablearg
 
     (variablearg-opt-name
      (varname
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (opt-stars
       ,(semantic-lambda
-	(list
-	 "")
-	(nth 0 vals)
-	(list nil nil nil))
+        (list
+         "")
+        (nth 0 vals)
+        (list nil nil nil))
       )
      ) ;; end variablearg-opt-name
 
@@ -1250,36 +1249,38 @@
       "\\b[,]\\b"
       varnamelist
       ,(semantic-lambda
-	(cons
-	 (nth 0 vals)
-	 (nth 2 vals)))
+        (cons
+         (nth 0 vals)
+         (nth 2 vals)))
       )
      (varname
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      ) ;; end varnamelist
 
     (namespace-symbol
      (symbol
+      opt-template-specifier
       punctuation
       "\\b[:]\\b"
       punctuation
       "\\b[:]\\b"
       namespace-symbol
       ,(semantic-lambda
-	(list
-	 (concat
-	  (nth 0 vals)
-	  "::"
-	  (car
-	   (nth 3 vals)))))
+        (list
+         (concat
+          (nth 0 vals)
+          "::"
+          (car
+           (nth 4 vals)))))
       )
      (symbol
+      opt-template-specifier
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      ) ;; end namespace-symbol
 
@@ -1291,12 +1292,12 @@
       "\\b[:]\\b"
       namespace-opt-class
       ,(semantic-lambda
-	(list
-	 (concat
-	  (nth 0 vals)
-	  "::"
-	  (car
-	   (nth 3 vals)))))
+        (list
+         (concat
+          (nth 0 vals)
+          "::"
+          (car
+           (nth 3 vals)))))
       )
      (symbol
       opt-template-specifier
@@ -1305,19 +1306,19 @@
       punctuation
       "\\b[:]\\b"
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      ) ;; end namespace-opt-class
 
     (opt-class
      (namespace-opt-class
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      ( ;;EMPTY
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end opt-class
 
@@ -1325,11 +1326,11 @@
      (punctuation
       "\\b[~]\\b"
       ,(semantic-lambda
-	(list t))
+        (list t))
       )
      ( ;;EMPTY
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end opt-destructor
 
@@ -1338,18 +1339,18 @@
       "^("
       knr-arguments
       ,(semantic-lambda
-	(nth 1 vals))
+        (nth 1 vals))
       )
      (semantic-list
       "^("
       ,(semantic-lambda
-	(semantic-parse-region
-	 (car
-	  (nth 0 vals))
-	 (cdr
-	  (nth 0 vals))
-	 'arg-sub-list
-	 1))
+        (semantic-parse-region
+         (car
+          (nth 0 vals))
+         (cdr
+          (nth 0 vals))
+         'arg-sub-list
+         1))
       )
      (semantic-list
       "^(void)$"
@@ -1363,27 +1364,27 @@
       "\\b[;]\\b"
       knr-arguments
       ,(semantic-lambda
-	(cons
-	 (car
-	  (semantic-expand-c-nonterminal
-	   (nth 0 vals)))
-	 (nth 2 vals)))
+        (cons
+         (car
+          (semantic-expand-c-nonterminal
+           (nth 0 vals)))
+         (nth 2 vals)))
       )
      (variablearg
       punctuation
       "\\b[;]\\b"
       ,(semantic-lambda
-	(list
-	 (car
-	  (semantic-expand-c-nonterminal
-	   (nth 0 vals)))))
+        (list
+         (car
+          (semantic-expand-c-nonterminal
+           (nth 0 vals)))))
       )
      ) ;; end knr-arguments
 
     (arg-sub-list
      (variablearg
       ,(semantic-lambda
-	(nth 0 vals))
+        (nth 0 vals))
       )
      (punctuation
       "\\b[.]\\b"
@@ -1394,23 +1395,23 @@
       close-paren
       ")"
       ,(semantic-lambda
-	(list
-	 "..."))
+        (list
+         "..."))
       )
      (punctuation
       "\\b[,]\\b"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (open-paren
       "("
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (close-paren
       ")"
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      ) ;; end arg-sub-list
 
@@ -1420,68 +1421,68 @@
       punctuation
       "\\b[<]\\b"
       ,(semantic-lambda
-	(list
-	 "<<"))
+        (list
+         "<<"))
       )
      (punctuation
       "\\b[>]\\b"
       punctuation
       "\\b[>]\\b"
       ,(semantic-lambda
-	(list
-	 ">>"))
+        (list
+         ">>"))
       )
      (punctuation
       "\\b[=]\\b"
       punctuation
       "\\b[=]\\b"
       ,(semantic-lambda
-	(list
-	 "=="))
+        (list
+         "=="))
       )
      (punctuation
       "\\b[<]\\b"
       punctuation
       "\\b[=]\\b"
       ,(semantic-lambda
-	(list
-	 "<="))
+        (list
+         "<="))
       )
      (punctuation
       "\\b[>]\\b"
       punctuation
       "\\b[=]\\b"
       ,(semantic-lambda
-	(list
-	 ">="))
+        (list
+         ">="))
       )
      (punctuation
       "\\b[!]\\b"
       punctuation
       "\\b[=]\\b"
       ,(semantic-lambda
-	(list
-	 "!="))
+        (list
+         "!="))
       )
      (punctuation
       "\\b[-]\\b"
       punctuation
       "\\b[>]\\b"
       ,(semantic-lambda
-	(list
-	 "->"))
+        (list
+         "->"))
       )
      (semantic-list
       "()"
       ,(semantic-lambda
-	(list
-	 "()"))
+        (list
+         "()"))
       )
      (semantic-list
       "\\[\\]"
       ,(semantic-lambda
-	(list
-	 "[]"))
+        (list
+         "[]"))
       )
      (punctuation
       "\\b[<]\\b")
@@ -1505,12 +1506,12 @@
      (OPERATOR
       operatorsym
       ,(semantic-lambda
-	(nth 1 vals))
+        (nth 1 vals))
       )
      (symbol
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      ) ;; end functionname
 
@@ -1518,11 +1519,11 @@
      (punctuation
       "\\b[;]\\b"
       ,(semantic-lambda
-	(list t))
+        (list t))
       )
      (semantic-list
       ,(semantic-lambda
-	(list nil))
+        (list nil))
       )
      (punctuation
       "\\b[=]\\b"
@@ -1531,20 +1532,20 @@
       punctuation
       "\\b[;]\\b"
       ,(semantic-lambda
-	(list
-	 'pure-virtual))
+        (list
+         'pure-virtual))
       )
      ) ;; end fun-or-proto-end
 
     (type-cast
      (semantic-list
       ,(lambda (vals start end)
-	 (semantic-bovinate-from-nonterminal
-	  (car
-	   (nth 0 vals))
-	  (cdr
-	   (nth 0 vals))
-	  'type-cast-list))
+         (semantic-bovinate-from-nonterminal
+          (car
+           (nth 0 vals))
+          (cdr
+           (nth 0 vals))
+          'type-cast-list))
       )
      ) ;; end type-cast
 
@@ -1563,64 +1564,64 @@
      (string
       string-seq
       ,(semantic-lambda
-	(list
-	 (concat
-	  (nth 0 vals)
-	  (car
-	   (nth 1 vals)))))
+        (list
+         (concat
+          (nth 0 vals)
+          (car
+           (nth 1 vals)))))
       )
      (string
       ,(semantic-lambda
-	(list
-	 (nth 0 vals)))
+        (list
+         (nth 0 vals)))
       )
      ) ;; end string-seq
 
     (expression
      (number
       ,(semantic-lambda
-	(list
-	 (identity start)
-	 (identity end)))
+        (list
+         (identity start)
+         (identity end)))
       )
      (function-call
       ,(semantic-lambda
-	(list
-	 (identity start)
-	 (identity end)))
+        (list
+         (identity start)
+         (identity end)))
       )
      (namespace-symbol
       ,(semantic-lambda
-	(list
-	 (identity start)
-	 (identity end)))
+        (list
+         (identity start)
+         (identity end)))
       )
      (string-seq
       ,(semantic-lambda
-	(list
-	 (identity start)
-	 (identity end)))
+        (list
+         (identity start)
+         (identity end)))
       )
      (type-cast
       expression
       ,(semantic-lambda
-	(list
-	 (identity start)
-	 (identity end)))
+        (list
+         (identity start)
+         (identity end)))
       )
      (semantic-list
       ,(semantic-lambda
-	(list
-	 (identity start)
-	 (identity end)))
+        (list
+         (identity start)
+         (identity end)))
       )
      (punctuation
       "[-+*/%^|&]"
       expression
       ,(semantic-lambda
-	(list
-	 (identity start)
-	 (identity end)))
+        (list
+         (identity start)
+         (identity end)))
       )
      ) ;; end expression
     )
@@ -1876,7 +1877,7 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
   tag)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 23:16-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-04-04 15:00+0200
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -2132,38 +2133,38 @@ These are constants which are of type TYPE."
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-04-01 23:16-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-04-04 15:00+0200
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
-	  semantic-debug-parser-source "c.by"
-	  semantic-debug-parser-class 'semantic-bovine-debug-parser
-	  semantic-flex-keywords-obarray semantic-c-keyword-table
-	  semantic-equivalent-major-modes '(c-mode c++-mode)
-	  )
+          semantic-debug-parser-source "c.by"
+          semantic-debug-parser-class 'semantic-bovine-debug-parser
+          semantic-flex-keywords-obarray semantic-c-keyword-table
+          semantic-equivalent-major-modes '(c-mode c++-mode)
+          )
     (setq semantic-tag-expand-function 'semantic-expand-c-nonterminal
-	  semantic-dependency-include-path semantic-default-c-path
-	  semantic-orphaned-member-metaparent-type "struct"
-	  semantic-symbol->name-assoc-list
-	  '((type     . "Types")
-	    (variable . "Variables")
-	    (function . "Functions")
-	    (include  . "Includes")
-	    )
-	  semantic-symbol->name-assoc-list-for-type-parts
-	  '((type     . "Types")
-	    (variable . "Attributes")
-	    (function . "Methods")
-	    (label    . "Labels")
-	    )
-	  imenu-create-index-function 'semantic-create-imenu-index
-	  semantic-type-relation-separator-character '("." "->")
-	  semantic-command-separation-character ";"
-	  document-comment-start "/*"
-	  document-comment-line-prefix " *"
-	  document-comment-end " */"
-	  ;; Semantic navigation inside 'type children
-	  senator-step-at-token-ids '(function variable)
-	  ))
+          semantic-dependency-include-path semantic-default-c-path
+          semantic-orphaned-member-metaparent-type "struct"
+          semantic-symbol->name-assoc-list
+          '((type     . "Types")
+            (variable . "Variables")
+            (function . "Functions")
+            (include  . "Includes")
+            )
+          semantic-symbol->name-assoc-list-for-type-parts
+          '((type     . "Types")
+            (variable . "Attributes")
+            (function . "Methods")
+            (label    . "Labels")
+            )
+          imenu-create-index-function 'semantic-create-imenu-index
+          semantic-type-relation-separator-character '("." "->")
+          semantic-command-separation-character ";"
+          document-comment-start "/*"
+          document-comment-line-prefix " *"
+          document-comment-end " */"
+          ;; Semantic navigation inside 'type children
+          senator-step-at-token-ids '(function variable)
+          ))
   (semantic-install-function-overrides
    '((nonterminal-protection . semantic-c-nonterminal-protection)
      (tag-components . semantic-c-tag-components)
