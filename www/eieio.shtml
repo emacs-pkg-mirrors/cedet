@@ -79,7 +79,7 @@ useful examples
 <DT><a href="http://jde.sunsite.dk/">JDE</a>
 <DD>Java Development Environment for Emacs uses EIEIO to manage the debugger,
     dialogs, and more.
-<DT><a href="http://home.swipnet.se/mayhem/ecb.html">ECB</a>
+<DT><a href="http://ecb.sourceforge.net/">ECB</a>
 <DD>Emacs Code Browser.  Browse your files and source code.
 <DT><a href="http://xae.sunsite.dk/">XAE</a>
 <DD>XML Authoring tool.
