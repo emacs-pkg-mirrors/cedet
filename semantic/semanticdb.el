@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.25 2001/04/26 01:43:08 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.26 2001/04/30 22:14:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -418,8 +418,8 @@ Update the environment of Semantic enabled buffers accordingly."
 
 ;;; Utilities
 ;;
-;; Line all the semantic-util 'find-nonterminal...' type functions, but
-;; trans file across the database.
+;; What is the current database, are two tables of an equivalent mode,
+;; and what databases are a part of the same project.
 (defun semanticdb-current-database ()
   "Return the currently active database."
   (or semanticdb-current-database
@@ -443,6 +443,53 @@ local variable."
 	  (member (oref table major-mode) semantic-equivalent-major-modes)))
     ))
 
+(defcustom semanticdb-project-roots nil
+  "*List of directories, where each directory is the root of some project.
+All subdirectories of a root project are considered a part of one project.
+Values in this string can be overriden by project management programs
+via the `semanticdb-project-root-functions' variable."
+  :group 'semanticdb
+  :type '(repeat string))
+
+(defvar semanticdb-project-root-functions nil
+  "List of functions used to determine a given directories project root.
+Functions in this variable can override `semanticdb-project-roots'.
+Functions set in the variable are given one argument (a directory) and
+must return a string, (the root directory).  This variable should be used
+by project management programs like EDE or JDE.")
+
+(defun semanticdb-current-database-list ()
+  "Return a list of databases associated with the current buffer.
+If this buffer has a database, but doesn't have a project associated
+with it, return nil.
+First, it checks `semanticdb-project-root-functions', and if that
+has no results, it checks `semanticdb-project-roots'.  If that fails,
+it returns the results of function `semanticdb-current-database'."
+  (let ((root nil)			; found root directory
+	(dbs nil)			; collected databases
+	(func semanticdb-project-root-functions) ;special project functions
+	(roots semanticdb-project-roots) ;all user roots
+	(adb semanticdb-database-list)	; all databases
+	)
+    (while (and func (not root))
+      (setq root (funcall (car func) default-directory)
+	    func (cdr func)))
+    (while (and roots (not root))
+      (if (string-match (concat "^"
+				(regexp-quote
+				 (expand-file-name (car roots))))
+			(expand-file-name default-directory))
+	  (setq root (car roots)))
+      (setq roots (cdr roots)))
+    (let ((regexp (concat "^" (regexp-quote (expand-file-name root)))))
+      (while (and root adb)
+	(if (string-match regexp (oref (car adb) file))
+	    (setq dbs (cons (car adb) dbs)))
+	(setq adb (cdr adb))))
+    dbs))
+
+;;; Search routines
+;;
 (defun semanticdb-find-nonterminal-by-name
   (name &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals with name NAME in databases.
@@ -524,7 +571,8 @@ Return a list ((DB-TABLE . TOKEN-OR-TOKEN-LIST) ...)."
   (if (not databases)
       ;; Calculate what database to use.
       ;; Something simple and dumb for now.
-      (setq databases (list (semanticdb-current-database))))
+      (setq databases (or (semanticdb-current-database-list)
+			  (list (semanticdb-current-database)))))
   (let ((ret nil)
         (case-fold-search semantic-case-fold))
     (while databases
