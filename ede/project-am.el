@@ -39,7 +39,7 @@
 ;; 
 
 (require 'speedbar)
-(require 'makefile "mmfm")
+(require 'makefile "make-mode")
 (require 'eieio)
 
 (defvar project-am-projects nil
@@ -48,21 +48,35 @@
 (defvar project-am-object nil
   "Local variable defining a makefile object for a given Makefile.am.")
 
+(defvar project-am-constructing nil
+  "Non nil when constructing a project hierarchy.")
+
 (defclass project-am-target ()
   ((name :initarg :name :docstring "Name of this target.")
-   (source :initarg :source :docstring "List of source files.")
-   (ldadd :initarg :ldadd :docstring "Additional LD args.")
    (path :initarg :path :docstring "The path to this target.")
    )
   "A top level target to build.")
 
-(defclass project-am-program (project-am-target)
-  nil
+(defclass project-am-objectcode (project-am-target)
+  ((source :initarg :source :docstring "List of source files."))
+  "A target which creates object code, like a C program or library.")
+
+(defclass project-am-program (project-am-objectcode)
+  ((ldadd :initarg :ldadd :docstring "Additional LD args."
+	  :initform nil))
   "A top level program to build")
 
-(defclass project-am-lib (project-am-target)
+(defclass project-am-lib (project-am-objectcode)
   nil
   "A top level library to build")
+
+(defclass project-am-texinfo (project-am-target)
+  ((include :initarg :include
+	    ;; We cheat here.  I happen to know that THIS
+	    ;; is defined in eieio.
+	    :initform nil
+	    :docstring "Additional texinfo included in this one."))
+  "A top level texinfo file to build.")
 
 (defclass project-am-makefile ()
   ((file :initarg :file
@@ -138,7 +152,8 @@ mode.  nil means to toggle the mode."
   (setq project-am-minor-mode
 	(not (or (and (null arg) project-am-minor-mode)
 		 (<= (prefix-numeric-value arg) 0))))
-  (project-am-load default-directory))
+  (if (not project-am-constructing)
+      (project-am-load default-directory)))
 
 ;;; Project loading and saving
 ;;
@@ -146,7 +161,8 @@ mode.  nil means to toggle the mode."
   "Read an automakefile PROJECT into our data structure.
 Make sure that the tree down to our makefile is complete so that there
 is cohesion in the project.  Return the project file (or sub-project)."
-  (let* ((fn (project-am-find-topmost-level
+  (let* ((project-am-constructing t)
+	 (fn (project-am-find-topmost-level
 	      (if (string-match "/$" project)
 		  project
 		(concat project "/"))))
@@ -158,10 +174,10 @@ is cohesion in the project.  Return the project file (or sub-project)."
     (setq amo (object-assoc fn :file project-am-projects))
     (if amo
 	nil
-      (setq amo (project-am-load-makefile fn))
+      (let ((project-am-constructiong t))
+	(setq amo (project-am-load-makefile fn)))
       (if (not amo)
 	  nil
-	(project-am-load-subtree amo)
 	(setq project-am-projects (cons amo project-am-projects))))
     (if (not amo)
 	nil
@@ -172,7 +188,8 @@ is cohesion in the project.  Return the project file (or sub-project)."
 	    (setq subdir (match-string 0 trimmed)
 		  trimmed (replace-match "" t t trimmed))
 	  (error "Error scanning down path for project"))
-      (setq amo (project-am-subtree amo (concat fn subdir))))
+	(setq amo (project-am-subtree amo (concat fn subdir "Makefile.am"))
+	      fn (concat fn subdir)))
       amo)))
 
 (defun project-am-find-topmost-level (path)
@@ -186,33 +203,67 @@ is cohesion in the project.  Return the project file (or sub-project)."
 (defun project-am-load-makefile (path)
   "Converts PATH into a project Makefile, and return it's object object.
 It does not check for existing project objects.  Use `project-am-load'."
-  (let* ((fn (concat path "Makefile.am")))
+  (let* ((fn (expand-file-name (concat path "Makefile.am")))
+	 (kb (get-file-buffer fn)))
     (if (not (file-exists-p fn))
 	nil
       (save-excursion
 	(set-buffer (find-file-noselect fn))
-	(if (and project-am-object (project-am-makefile-p project-am-object))
-	    project-am-object
-	  (let ((ampf (make-instance project-am-makefile
-				     :file filename
-				     :targets
-				     (mapcar 'project-am-scan-program
-					     (makefile-macro-file-list
-					      "bin_PROGRAMS"))
-				     )))
-	    (oset ampf :subproj (project-am-load-subtree ampf))
-	    (make-local-variable 'project-am-object)
-	    (setq project-am-object ampf)
-	    ampf))))))
+	(prog1
+	    (if (and project-am-object (project-am-makefile-p project-am-object))
+		project-am-object
+	      (let ((ampf (make-instance project-am-makefile
+					 :file fn
+					 :targets
+					 (append
+					  (mapcar 'project-am-scan-program
+						  (makefile-macro-file-list
+						   "bin_PROGRAMS"))
+					  (mapcar 'project-am-scan-program
+						  (makefile-macro-file-list
+						   "sbin_PROGRAMS"))
+					  (mapcar 'project-am-scan-lib
+						  (makefile-macro-file-list
+						   "noinst_LIBRARIES"))
+					  (mapcar 'project-am-scan-texinfo
+						  (makefile-macro-file-list
+						   "info_TEXINFOS"))
+					  ))))
+		(project-am-load-subtree ampf)
+		(make-local-variable 'project-am-object)
+		(setq project-am-object ampf)
+		ampf))
+	  ;; If the buffer was not already loaded, kill it.
+	  (if (not kb) (kill-buffer (current-buffer))))))))
 
 (defun project-am-scan-program (program)
-  "Create a PROGRAM object and return it."
+  "Create a object of CLASS based on NAME.
+Argument PROGRAM is the name of the program to create."
   (make-instance project-am-program
 		 :name program
-		 :source (makefile-macro-file-list (concat program "_SOURCES"))
-		 :ldadd (makefile-macro-file-list (concat program "_LDADD"))
-		 :path default-directory
-		 ))
+		 :path (expand-file-name default-directory)
+		 :source (makefile-macro-file-list
+			  (concat program "_SOURCES"))
+		 :ldadd (makefile-macro-file-list
+			  (concat program "_LDADD"))))
+
+(defun project-am-scan-lib (program)
+  "Create a object of CLASS based on NAME.
+Argument PROGRAM is the name of the library to create."
+  (make-instance project-am-lib
+		 :name program
+		 :path (expand-file-name default-directory)
+		 :source (makefile-macro-file-list
+			  (concat program "_SOURCES"))))
+
+(defun project-am-scan-texinfo (program)
+  "Create a object of CLASS based on NAME.
+Argument PROGRAM is the name of the texinfo file."
+  (make-instance project-am-texinfo
+		 :name program
+		 :path (expand-file-name default-directory)
+		 :include (makefile-macro-file-list
+			   (concat program "_TEXINFOS"))))
 
 (defun project-am-buffer-project (buffer)
   "Return the project associated with BUFFER."
@@ -229,7 +280,11 @@ It does not check for existing project objects.  Use `project-am-load'."
   "Load the project file AMPF's subdirs in."
   (let ((sd (save-excursion
 	      (project-am-set-buffer ampf)
-	      (makefile-macro-file-list "SUBDIRS")))
+	      (or
+	       ;; If DIST_SUBDIRS doesn't exist, then go for the static list of SUBDIRS.
+	       ;; The DIST version should contain SUBDIRS plus extra stuff.
+	       (makefile-macro-file-list "DIST_SUBDIRS")
+	       (makefile-macro-file-list "SUBDIRS"))))
 	(sp nil)
 	(tampf nil))
     (while sd
@@ -242,7 +297,7 @@ It does not check for existing project objects.  Use `project-am-load'."
 
 (defmethod project-am-subtree ((ampf project-am-makefile) subpath)
   "Return the sub project in AMPF specified by SUBPATH."
-  (object-assoc subpath :file (oref ampf subproj)))
+  (object-assoc (expand-file-name subpath) :file (oref ampf subproj)))
 
 ;;; Speedbar support mode
 ;;
@@ -277,91 +332,160 @@ It does not check for existing project objects.  Use `project-am-load'."
   (speedbar-change-initial-expansion-list "project")
   )
 
+
 (defun project-am-speedbar (dir-or-object depth)
   "Create buttons in speedbar that represents the current project.
 DIR-OR-OBJECT is the object to expand, or nil, and DEPTH is the current
 expansion depth."
-  (let* ((speedbar-tag-hierarchy-method '(sort))
-	 (obj (if (stringp dir-or-object)
-		  (project-am-load dir-or-object)
-		object))
-	 (subproj nil)
-	 (targets nil))
+  (let ((obj (if (stringp dir-or-object)
+		 ;; For any project ALWAYS start at the top
+		 ;; when we first start.  (When we have a string)
+		 (project-am-load (project-am-find-topmost-level
+				   dir-or-object))
+	       dir-or-object)))
     (if (not obj)
 	(speedbar-make-tag-line nil nil nil nil "No Project" nil nil
 				nil (1+ depth))
-      (setq subproj (oref obj :subproj))
-      (setq targets (oref obj :targets))
-      (while subproj
-	(speedbar-make-tag-line 'angle ?+
-				'project-am-subproj-expand
-				(car subproj)
-				(file-name-nondirectory
-				 (oref (car subproj) :file))
-				nil nil  ; nothing to jump to
-				'speedbar-directory-face depth)
-	(setq subproj (cdr subproj)))
-      (while targets
-	(speedbar-make-tag-line 'angle ?+
-				'project-am-target-expand
-				(car targets)
-				(oref (car targets) :name)
-				nil nil  ; nothing to jump to
-				'speedbar-file-face depth)
-	(setq targets (cdr targets))))))
+      ;; Depend on the object method for expansion rules.
+      (project-am-sb-expand obj depth))))
 
-(defun project-am-subproj-expand (text token indent)
-  "Expand a sub project.
+;;; Speedbar Project Methods
+;;
+(defmethod project-am-sb-button ((this project-am-makefile) depth)
+  "Create a speedbar button for object THIS at DEPTH."
+  (speedbar-make-tag-line 'angle ?+
+			  'project-am-object-expand
+			  this
+			  (let ((s (file-name-directory
+				    (oref this :file))))
+			    (string-match "/\\([a-zA-Z0-9_]+\\)/$" s)
+			    (match-string 1 s))
+			  'project-am-file-find
+			  (oref this :file)
+			  'speedbar-directory-face depth))
+
+(defmethod project-am-sb-button ((this project-am-program) depth)
+  "Create a speedbar button for object THIS at DEPTH."
+  (speedbar-make-tag-line 'angle ?+
+			  'project-am-object-expand
+			  this (oref this :name)
+			  nil nil  ; nothing to jump to
+			  'speedbar-file-face depth))
+
+(defmethod project-am-sb-button ((this project-am-lib) depth)
+  "Create a speedbar button for object THIS at DEPTH."
+  (speedbar-make-tag-line 'angle ?+
+			  'project-am-object-expand
+			  this (oref this :name)
+			  nil nil  ; nothing to jump to
+			  'speedbar-file-face depth))
+
+(defmethod project-am-sb-button ((this project-am-texinfo) depth)
+  "Create a speedbar button for object THIS at DEPTH."
+  (speedbar-make-tag-line 'bracket ?+
+			  'project-am-object-expand
+			  this
+			  (oref this :name)
+			  'project-am-file-find
+			  (concat (oref this :path)
+				  (oref this :name))
+			  'speedbar-file-face depth))
+
+(defun project-am-object-expand (text token indent)
+  "Expand an object.
 TEXT is the text clicked on.  TOKEN is the object we are expanding from.
-INDENT is the current indentatin level."
+INDENT is the current indentatin level.
+This function will maintain the state of the +,- and call the objects'
+method for the actual text."
   (cond ((string-match "+" text)	;we have to expand this file
 	 (speedbar-change-expand-button-char ?-)
 	 (speedbar-with-writable
 	   (save-excursion
 	     (end-of-line) (forward-char 1)
 	     (let ((speedbar-tag-hierarchy-method '(sort)))
-	       (project-am-speedbar token (1+ indent))))))
+	       (project-am-sb-expand token (1+ indent))))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
 	(t (error "Ooops... not sure what to do")))
   (speedbar-center-buffer-smartly))
 
-(defun project-am-target-expand (text token indent)
-  "Expand a sub project.
+(defmethod project-am-sb-expand ((this project-am-makefile) depth)
+  "Expand THIS logically at DEPTH."
+  (let* ((subproj nil)
+	 (targets nil))
+    (setq subproj (oref this :subproj))
+    (setq targets (oref this :targets))
+    (while subproj
+      (project-am-sb-button (car subproj) depth)
+      (setq subproj (cdr subproj)))
+    (while targets
+      (project-am-sb-button (car targets) depth)
+      (setq targets (cdr targets)))))
+
+(defmethod project-am-sb-expand ((this project-am-objectcode) depth)
+  "Expand node describing something built into objectcode.
 TEXT is the text clicked on.  TOKEN is the object we are expanding from.
 INDENT is the current indentatin level."
-  (cond ((string-match "+" text)	;we have to expand this file
-	 (speedbar-change-expand-button-char ?-)
-	 (speedbar-with-writable
-	   (save-excursion
-	     (end-of-line) (forward-char 1)
-	     ;; Get all the source files, and insert them as a new
-	     ;; kind of button.
-	     (let ((speedbar-tag-hierarchy-method '(sort))
-		   (sources (oref token :source)))
-	       (while sources
-		 (speedbar-make-tag-line 'bracket ?+
-					 'project-am-tag-file
-					 (concat (oref token :path)
-						 (car sources))
-					 (car sources)
-					 'project-am-file-find
-					 (concat
-					  (oref token :path)
-					  (car sources))
-					 'speedbar-file-face (1+ indent))
-		 (setq sources (cdr sources)))))))
-	((string-match "-" text)	;we have to contract this node
-	 (speedbar-change-expand-button-char ?+)
-	 (speedbar-delete-subblock indent))
-	(t (error "Ooops... not sure what to do")))
-  (speedbar-center-buffer-smartly))
+  (let ((sources (oref token :source)))
+    (while sources
+      (speedbar-make-tag-line 'bracket ?+
+			      'project-am-tag-file
+			      (concat (oref token :path)
+				      (car sources))
+			      (car sources)
+			      'project-am-file-find
+			      (concat
+			       (oref token :path)
+			       (car sources))
+			      'speedbar-file-face depth)
+      (setq sources (cdr sources)))))
+
+(defmethod project-am-sb-expand ((this project-am-texinfo) depth)
+  "Expand node describing a texinfo manual.
+TEXT is the text clicked on.  TOKEN is the object we are expanding from.
+INDENT is the current indentatin level."
+  (let ((includes (oref token :include)))
+    (while includes
+      (speedbar-make-tag-line 'bracket ?+
+			      'project-am-tag-file
+			      (concat (oref token :path)
+				      (car includes))
+			      (car includes)
+			      'project-am-file-find
+			      (concat
+			       (oref token :path)
+			       (car includes))
+			      'speedbar-file-face depth)
+      (setq includes (cdr includes)))
+    ;; Not only do we show the included files (for future expansion)
+    ;; but we also want to display tags for this file too.
+    (project-am-create-tag-buttons (concat (oref token :path) 
+					   (oref token :name))
+				   depth)))
 
 (defun project-am-file-find (text token indent)
   "Find the file TEXT at path TOKEN.
 INDENT is the current indentation level."
   (speedbar-find-file-in-frame token))
+
+(defun project-am-create-tag-buttons (filename indent)
+  "Create the tag buttons associated with FILENAME at INDENT."
+  (let* ((lst (if speedbar-use-imenu-flag
+		  (let ((tim (speedbar-fetch-dynamic-imenu filename)))
+		    (if (eq tim t)
+			(speedbar-fetch-dynamic-etags filename)
+		      tim))
+		(speedbar-fetch-dynamic-etags filename))))
+    ;; if no list, then remove expando button
+    (if (not lst)
+	(speedbar-change-expand-button-char ??)
+      (speedbar-with-writable
+	;; We must do 1- because indent was already incremented.
+	(speedbar-insert-generic-list (1- indent)
+				      lst
+				      'project-am-tag-expand
+				      'project-am-tag-find)))))
 
 (defun project-am-tag-file (text token indent)
   "Expand a tag sublist.  Imenu will return sub-lists of specialized tag types.
@@ -369,24 +493,10 @@ Etags does not support this feature.  TEXT will be the button
 string.  TOKEN will be the list, and INDENT is the current indentation
 level."
   (cond ((string-match "+" text)	;we have to expand this file
-	 (let* ((fn token)
-		(lst (if speedbar-use-imenu-flag
-			 (let ((tim (speedbar-fetch-dynamic-imenu fn)))
-			   (if (eq tim t)
-			       (speedbar-fetch-dynamic-etags fn)
-			     tim))
-		       (speedbar-fetch-dynamic-etags fn))))
-	   ;; if no list, then remove expando button
-	   (if (not lst)
-	       (speedbar-change-expand-button-char ??)
-	     (speedbar-change-expand-button-char ?-)
-	     (speedbar-with-writable
-	       (save-excursion
-		 (end-of-line) (forward-char 1)
-		 (speedbar-insert-generic-list indent
-					       lst
-					       'project-am-tag-expand
-					       'project-am-tag-find))))))
+	 (speedbar-with-writable
+	   (save-excursion
+	     (end-of-line) (forward-char 1)
+	     (project-am-create-tag-buttons token indent))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
@@ -452,7 +562,64 @@ INDENT is the current indentation level."
 ; makefile-pickup-macros -- rescan buffer for macro lists.
 ; makefile-macroassign-regex -- regex for finding macros in a makefile
 
+(defun makefile-beginning-of-command ()
+  "Move the the beginning of the current command."
+  (interactive)
+  (if (save-excursion
+	(forward-line -1)
+	(makefile-line-continued-p))
+      (forward-line -1))
+  (beginning-of-line)
+  (if (not (makefile-line-continued-p))
+      nil
+    (while (and (makefile-line-continued-p)
+		(not (bobp)))
+      (forward-line -1))
+    (forward-line 1)))
 
+(defun makefile-end-of-command ()
+  "Move the the beginning of the current command."
+  (interactive)
+  (end-of-line)
+  (while (and (makefile-line-continued-p)
+	      (not (eobp)))
+    (forward-line 1)
+    (end-of-line)))
+
+(defun makefile-line-continued-p ()
+  "Return non-nil if the current line ends in continuation."
+  (save-excursion
+    (end-of-line)
+    (= (preceding-char) ?\\)))
+
+;;; Programatic editing of a Makefile
+;;
+(defun makefile-move-to-macro (macro)
+  "Move to the definition of MACRO.  Return t if found."
+  (let ((oldpt (point)))
+    (goto-char (point-min))
+    (if (re-search-forward (concat "^" macro "\\s-*=") nil t)
+	t
+      (goto-char oldpt)
+      nil)))
+
+(defun makefile-navigate-macro (stop-before)
+  "In a list of files, move forward until STOP-BEFORE is reached.
+STOP-BEFORE is a regular expression matching a file name."
+  
+)
+
+(defun makefile-macro-file-list (macro)
+  "Return a list of all files in MACRO."
+  (save-excursion
+    (if (makefile-move-to-macro macro)
+	(let ((e (save-excursion
+		   (makefile-end-of-command)
+		   (point)))
+	      (lst nil))
+	  (while (re-search-forward "\\s-**\\([-a-zA-Z0-9./_@$%()]+\\)\\s-*" e t)
+	    (setq lst (cons (match-string 1) lst)))
+	  (nreverse lst)))))
 
 ;;; Hooks
 ;;
