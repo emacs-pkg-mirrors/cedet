@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.10 2003/08/02 08:14:24 ponced Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.10.2.1 2003/11/07 07:49:08 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,13 +64,21 @@
 
 (defun semantic-make-expand-tag (tag)
   "Expand TAG into a list of equivalent tags, or nil."
-  (let (name xpand)
-    (when (and (memq (semantic-tag-class tag) '(function include))
-               (listp (setq name (semantic-tag-name tag))))
-      (while name
-        (setq xpand (cons (semantic-tag-clone tag (car name)) xpand)
-              name  (cdr name)))
-      xpand)))
+  (let ((name (semantic-tag-name tag))
+        xpand)
+    (when (consp name)
+      (cond
+       ((semantic-tag-of-class-p tag 'function)
+        (while name
+          (setq xpand (cons (semantic-tag-clone tag (car name)) xpand)
+                name  (cdr name)))
+        )
+       ((semantic-tag-of-class-p tag 'include)
+        (while name
+          (setq xpand (cons (semantic-tag-clone tag (caar name)) xpand)
+                name  (cdr name)))
+        )))
+    xpand))
 
 ;;;###autoload
 (defun semantic-default-make-setup ()
