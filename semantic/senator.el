@@ -1,13 +1,13 @@
 ;;; senator.el --- SEmantic NAvigaTOR
 
-;; Copyright (C) 2000 by David Ponce
+;; Copyright (C) 2000, 2001 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Version: 2.1
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.16 2001/01/10 08:09:16 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.17 2001/01/24 21:28:40 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -63,6 +63,7 @@
 ;;    C-c , p         `senator-previous-token'
 ;;    C-c , j         `senator-jump'
 ;;    C-c , i         `senator-isearch-toggle-semantic-mode'
+;;    C-c , TAB       `senator-complete-symbol'
 ;;
 ;; To install, put this file on your Emacs-Lisp load path and add
 ;;   (require 'senator)
@@ -95,6 +96,9 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.17  2001/01/24 21:28:40  zappo
+;; Added some completion functions.
+;;
 ;; Revision 1.16  2001/01/10 08:09:16  david_ponce
 ;; Fixed undeclared local variable 'slot' in `senator-menu-item'.
 ;;
@@ -287,6 +291,18 @@ arguments and always return nil."
          (semantic-bovinate-toplevel nil nil t))
        ))
 
+(if (not (boundp 'semantic-find-nonterminal-by-name-regexp))
+    
+    ;; before Semantic 1.4
+    (defun semantic-find-nonterminal-by-name-regexp (regex streamorbuffer)
+      "Find all nonterminals whose name match REGEX in STREAMORBUFFER."
+      (semantic-find-nonterminal-by-function
+       (lambda (tok) (string-match regex (semantic-token-name tok)))
+       streamorbuffer)
+      )
+  )
+
+
 ;;;;
 ;;;; Common functions
 ;;;;
@@ -458,7 +474,7 @@ beginning of the name use (match-beginning 0)."
 (defun senator-search-forward-raw (searcher what &optional bound noerror count)
   "Use SEARCHER to search WHAT in semantic tokens after point.
 See `search-forward' for the meaning of BOUND NOERROR and COUNT.
-BOUND and COUNT are just ignored in the current implementation."
+COUNT is just ignored in the current implementation."
   (let ((origin (point))
         (tokens (senator-parse))
         (senator-step-at-start-end-token-ids nil)
@@ -468,15 +484,19 @@ BOUND and COUNT are just ignored in the current implementation."
                       (senator-find-next-token tokens origin)))
       (while (and token (not pos))
         (setq limit (senator-search-token-name token))
+        (if bound
+            (setq limit (min bound limit)))
         (setq start (match-beginning 0))
         (if (and (> origin start) (< origin limit))
             (setq start origin))
-        (goto-char start)
-        (setq pos (funcall searcher what limit t))
-        (if (and pos (>= (match-beginning 0) origin))
-            nil
-          (setq pos nil)
-          (setq token (senator-find-next-token tokens (point))))))
+        (if (and bound (> start limit))
+            (setq token nil)
+          (goto-char start)
+          (setq pos (funcall searcher what limit t))
+          (if (and pos (>= (match-beginning 0) origin))
+              nil
+            (setq pos nil)
+            (setq token (senator-find-next-token tokens (point)))))))
     (if pos
         (goto-char start)
       (setq limit (point)))
@@ -484,9 +504,8 @@ BOUND and COUNT are just ignored in the current implementation."
 
 (defun senator-search-backward-raw (searcher what &optional bound noerror count)
   "Use SEARCHER to search WHAT in semantic tokens before point.
-See `search-backward' for the meaning of BOUND NOERROR and
-COUNT.  BOUND and COUNT are just ignored in the current
-implementation."
+See `search-backward' for the meaning of BOUND NOERROR and COUNT.
+COUNT is just ignored in the current implementation."
   (let ((origin (point))
         (tokens (senator-parse))
         (senator-step-at-start-end-token-ids nil)
@@ -496,15 +515,19 @@ implementation."
       (while (and token (not pos))
         (setq start (senator-search-token-name token))
         (setq limit (match-beginning 0))
+        (if bound
+            (setq limit (max bound limit)))
         (if (and (< origin start) (> origin limit))
             (setq start origin))
-        (goto-char start)
-        (setq pos (funcall searcher what limit t))
-        (if (and pos (<= (match-end 0) origin))
-            nil
-          (setq pos nil)
-          (goto-char (semantic-token-start token))
-          (setq token (senator-find-previous-token tokens (point))))))
+        (if (and bound (< start limit))
+            (setq token nil)
+          (goto-char start)
+          (setq pos (funcall searcher what limit t))
+          (if (and pos (<= (match-end 0) origin))
+              nil
+            (setq pos nil)
+            (goto-char (semantic-token-start token))
+            (setq token (senator-find-previous-token tokens (point)))))))
     (if pos
         (goto-char start)
       (setq limit (point)))
@@ -593,6 +616,44 @@ local type's context (see function `senator-current-type-context')."
                        (semantic-token-token token)
                        (semantic-token-name  token)))))
 
+(defvar senator-last-completion-stats nil
+  "The last senator completion was here.
+Of the form (BUFFER STARTPOS INDEX COMPLIST...)")
+
+;;;###autoload
+(defun senator-complete-symbol ()
+  "Complete the current symbol under point."
+  (interactive)
+  (let* ((symstart (save-excursion (forward-sexp -1) (point)))
+	 regex complst newstr index)
+    ;; Get old stats if apropriate.
+    (if (and senator-last-completion-stats
+	     (eq (car senator-last-completion-stats) (current-buffer))
+	     (= (nth 1 senator-last-completion-stats) symstart))
+
+	(setq complst (cdr (cdr (cdr senator-last-completion-stats))))
+
+      (setq regex (regexp-quote (buffer-substring symstart (point)))
+	    complst (semantic-find-nonterminal-by-name-regexp
+		     regex (senator-parse))
+	    senator-last-completion-stats (append (list (current-buffer)
+							symstart
+							0)
+						  complst)))
+						
+    ;; Do the completion if apropriate.
+    (when complst
+      ;; get the new string
+      (setq index (nth 2 senator-last-completion-stats)
+	    newstr (nth index complst))
+      ;; Update the index
+      (if (< index (1- (length complst)))
+	  (setcar (nthcdr 2 senator-last-completion-stats) (1+ index))
+	(setcar (nthcdr 2 senator-last-completion-stats) 0))
+      ;; Replace the string
+      (delete-region symstart (point))
+      (insert (semantic-token-name newstr)))))
+
 ;;;;
 ;;;; Search commands
 ;;;;
@@ -602,8 +663,7 @@ local type's context (see function `senator-current-type-context')."
   "Search semantic tokens forward from point for string WHAT.
 Set point to the end of the occurrence found, and return point.  See
 `search-forward' for details and the meaning of BOUND NOERROR and
-COUNT.  BOUND and COUNT are just ignored in the current
-implementation."
+COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic search: ")
   (senator-search-forward-raw #'search-forward what bound noerror count))
 
@@ -612,8 +672,7 @@ implementation."
   "Search semantic tokens forward from point for regexp WHAT.
 Set point to the end of the occurrence found, and return point.  See
 `re-search-forward' for details and the meaning of BOUND NOERROR and
-COUNT.  BOUND and COUNT are just ignored in the current
-implementation."
+COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic regexp search: ")
   (senator-search-forward-raw #'re-search-forward what bound noerror count))
 
@@ -622,8 +681,7 @@ implementation."
   "Search semantic tokens forward from point for word WHAT.
 Set point to the end of the occurrence found, and return point.  See
 `word-search-forward' for details and the meaning of BOUND NOERROR and
-COUNT.  BOUND and COUNT are just ignored in the current
-implementation."
+COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic word search: ")
   (senator-search-forward-raw #'word-search-forward what bound noerror count))
 
@@ -632,8 +690,7 @@ implementation."
   "Search semantic tokens backward from point for string WHAT.
 Set point to the beginning of the occurrence found, and return point.
 See `search-backward' for details and the meaning of BOUND NOERROR and
-COUNT.  BOUND and COUNT are just ignored in the current
-implementation."
+COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic backward search: ")
   (senator-search-backward-raw #'search-backward what bound noerror count))
 
@@ -642,8 +699,7 @@ implementation."
   "Search semantic tokens backward from point for regexp WHAT.
 Set point to the beginning of the occurrence found, and return point.
 See `re-search-backward' for details and the meaning of BOUND NOERROR
-and COUNT.  BOUND and COUNT are just ignored in the current
-implementation."
+and COUNT.  COUNT is just ignored in the current implementation."
   (interactive "sSemantic backward regexp search: ")
   (senator-search-backward-raw #'re-search-backward what bound noerror count))
 
@@ -652,7 +708,7 @@ implementation."
   "Search semantic tokens backward from point for word WHAT.
 Set point to the beginning of the occurrence found, and return point.
 See `word-search-backward' for details and the meaning of BOUND
-NOERROR and COUNT.  BOUND and COUNT are just ignored in the current
+NOERROR and COUNT.  COUNT is just ignored in the current
 implementation."
   (interactive "sSemantic backward word search: ")
   (senator-search-backward-raw #'word-search-backward what bound noerror count))
@@ -742,6 +798,7 @@ This is a buffer local variable.")
     (define-key km "j" 'senator-jump)
     (define-key km "p" 'senator-previous-token)
     (define-key km "n" 'senator-next-token)
+    (define-key km "\t" 'senator-complete-symbol)
     km)
   "Default key bindings in senator minor mode.")
 
