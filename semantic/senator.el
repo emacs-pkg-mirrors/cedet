@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.67 2003/04/01 13:07:57 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.68 2003/04/01 15:20:50 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -2292,8 +2292,8 @@ versions of Emacs."
                         (semantic-brute-find-first-tag-by-name
                          (car sym) (current-buffer) t)))
           (and (not found)
-               (semantic-flex-keyword-p (car sym))
-               (setq found (semantic-flex-keyword-get (car sym) 'summary)))
+               (semantic-lex-keyword-p (car sym))
+               (setq found (semantic-lex-keyword-get (car sym) 'summary)))
           ))
     (or found
         (progn
@@ -2308,8 +2308,8 @@ versions of Emacs."
                               (semantic-brute-find-first-tag-by-name
                                (car sym) (current-buffer) t)))
                 (and (not found)
-                     (semantic-flex-keyword-p (car sym))
-                     (setq found (semantic-flex-keyword-get (car sym) 'summary)))
+                     (semantic-lex-keyword-p (car sym))
+                     (setq found (semantic-lex-keyword-get (car sym) 'summary)))
                 ))
           ))
     found))
