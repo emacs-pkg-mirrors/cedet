@@ -14,7 +14,7 @@
    (ede-proj-target-elisp "aux.lisp"
     :name "aux.lisp"
     :path ""
-    :source '("autoconf-edit.el" "autoconf-compat.el" "ede-emacs.el")
+    :source '("autoconf-edit.el" "autoconf-compat.el")
     )
    (ede-proj-target-aux "aux"
     :name "aux"
