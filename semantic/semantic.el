@@ -1,10 +1,10 @@
 ;;; semantic.el --- Semantic buffer evaluator.
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.165 2003/01/28 12:36:03 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.166 2003/02/01 02:49:34 zappo Exp $
 
 (defvar semantic-version "2.0beta1"
   "Current version of Semantic.")
@@ -379,6 +379,13 @@ This makes sure semantic-init type stuff can occur."
   "When non-nil, activate the interactive parsing debugger.
 Do not set this yourself.  Call `semantic-bovinate-buffer-debug'.")
 
+(defun semantic-elapsed-time (start end)
+  "Copied from elp.el.  Was elp-elapsed-time.
+Argument START and END bound the time being calculated."
+  (+ (* (- (car end) (car start)) 65536.0)
+     (- (car (cdr end)) (car (cdr start)))
+     (/ (- (car (cdr (cdr end))) (car (cdr (cdr start)))) 1000000.0)))
+
 (defun bovinate (&optional clear)
   "Bovinate the current buffer.  Show output in a temp buffer.
 Optional argument CLEAR will clear the cache before bovinating.
@@ -389,15 +396,9 @@ the output buffer."
   (if (eq clear '-) (setq clear -1))
   (let* ((start (current-time))
 	 (out (semantic-bovinate-toplevel t))
-	 (end (current-time))
-	 (diffs (- (nth 1 end) (nth 1 start)))
-	 (diffm (- (nth 2 end) (nth 2 start)))
-	 )
-    (if (< 0 diffm)
-	(setq diffs (1+ diffs)
-	      diffm (+ 10000 diffm)))
-    (setq diffm (/ diffm 10000.0))
-    (message "Retrieving tokens took %d.%d seconds." diffs diffm)
+	 (end (current-time)))
+    (message "Retrieving tokens took %.2f seconds."
+	     (semantic-elapsed-time start end))
     (when (not (and (numberp clear) (> 0 clear)))
       (pop-to-buffer "*BOVINATE*")
       (require 'pp)
