@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.75 2003/08/01 16:37:52 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.76 2003/08/01 17:29:45 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -118,6 +118,7 @@
   :group 'senator
   :type 'hook)
 
+;;;###autoload
 (defcustom senator-step-at-tag-classes nil
   "*List of tag classes where to step.
 A tag class is a symbol like 'variable, 'function, 'type, or other.
@@ -130,6 +131,7 @@ navigation."
 (make-obsolete-variable 'semantic-step-at-token-ids
 			'semantic-step-at-tag-classes)
 
+;;;###autoload
 (defcustom senator-step-at-start-end-tag-classes '(function)
   "*List of tag classes where to step at start and end.
 A tag class is a symbol like 'variable, 'function, 'type, or other.
