@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.4 1999/06/06 14:20:49 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.5 1999/12/17 20:51:59 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -193,7 +193,7 @@ VALS are the matches in the BNF notation file."
       ;; conversion upon it.
       (insert "\n")
       (indent-for-tab-command)
-      (insert "(lambda (vals start end)\n")
+      (insert ",(lambda (vals start end)\n")
       (indent-for-tab-command)
       (cond ((eq (car slsr) 'EXPAND)
 	     (semantic-bnf-EXPAND slsr))
@@ -221,7 +221,7 @@ VALS are the matches in the BNF notation file."
 			(goto-char (point-min))
 			(semantic-bovinate-toplevel 0 t))))
 	 (tl (float (length tokstream))))
-    (insert "'(")
+    (insert "`(")
     (indent-for-tab-command)
     (working-status-forms "Building bovine table" "done"
       (while tokstream
@@ -287,7 +287,7 @@ VALS are the matches in the BNF notation file."
       (set-buffer (marker-buffer dest))
       (goto-char dest)
       (re-search-forward "def\\(var\\|const\\)\\s-+\\(\\w\\|\\s_\\)+\\s-*\n")
-      (if (looking-at "\\s-*'(") (kill-sexp 1))
+      (if (looking-at "\\s-*`(") (kill-sexp 1))
       (delete-blank-lines)
       (semantic-bnf-to-bovine (buffer-file-name bb))
       (eval-defun nil))))
