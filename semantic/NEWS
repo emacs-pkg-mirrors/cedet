@@ -69,18 +69,27 @@ Fetch the text associated with a lexical token.
 *** Macros to easily build custom lexers.
 
 `define-lex'
-Define a new lexer as a set of single lexical analyzers.
+Define a new lexer as a set of lexical rules.
 
 `define-lex-analyzer'
-Base macro to create a single lexical analyzer.
+Base macro to create a lexical rule.
+
+A lexical rule associates a PATTERN to an ACTION.
+
+A PATTERN describes how to match data in the input stream, with a
+combination of regular expressions and strings.
+
+An ACTION is a set of arbitrary Emacs Lisp statements executed when
+the input stream matches the corresponding PATTERN, typically to push
+a new token on the lexical stream.
 
 `define-lex-regex-analyzer' and `define-lex-simple-regex-analyzer'
-Create single lexical analyzers that match a regexp.
+Create lexical rules that match a regexp.
 
 `define-lex-block-analyzer'
-Create a single lexical analyzer for paired delimiters blocks.
+Create a lexical rule for paired delimiters blocks.
 
-*** A set of useful single analyzers is predefined.
+*** A set of useful lexical rules is predefined.
 
 `semantic-lex-beginning-of-line'
 `semantic-lex-newline'
@@ -264,6 +273,26 @@ Makefile rules to build these files.
 
 Language specific human written code must call the automatically
 generated setup function.
+
+*** Auto-generation of lexical rules
+
+The new %type statement combined with the use of %token and %keyword
+statements permits the declaration of a lexical type and associates it
+with patterns that define how to match lexical tokens of that type.
+
+The grammar construction process can benefit from the %type, %keyword
+and %token declarations to automatically generate the definition of a
+lexical rule for each explicitly declared lexical type.
+
+Default values are provided for well known types like <keyword>,
+<symbol>, <string>, <number>, <punctuation>, and <block>.  Those types
+assume that the correct patterns are provided by %keyword and %token
+statements, a simple "%type <type>" declaration should generally
+suffice to auto-generate a suitable lexical rule.
+
+It is then easy to put predefined and auto-generated lexical rules
+together to build ad-hoc lexical analyzers.  Examples are available
+among the grammars included in the distribution.
 
 *** Bovine grammar
 
