@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.22 2003/02/21 18:02:00 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.23 2003/07/23 20:11:53 zappo Exp $
 
 (defvar dframe-version "1.3"
   "The current version of the dedicated frame library.")
@@ -913,7 +913,10 @@ BUFFER and POSITION are optional because XEmacs doesn't use them."
 (defun dframe-mouse-set-point (e)
   "Set POINT based on event E.
 Handles clicking on images in XEmacs."
-  (if (and (fboundp 'event-over-glyph-p) (event-over-glyph-p e))
+  (if (save-excursion
+	(save-window-excursion
+	  (mouse-set-point e)
+	  (and (fboundp 'event-over-glyph-p) (event-over-glyph-p e))))
       ;; We are in XEmacs, and clicked on a picture
       (let ((ext (event-glyph-extent e)))
 	;; This position is back inside the extent where the
