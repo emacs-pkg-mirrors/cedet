@@ -1,10 +1,10 @@
 ;;; semanticdb-file.el --- Save a semanticdb to a cache file.
 
-;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-file.el,v 1.11 2003/12/11 01:03:48 zappo Exp $
+;; X-RCS: $Id: semanticdb-file.el,v 1.12 2004/01/27 14:40:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -212,6 +212,16 @@ Argument OBJ is the object to write."
       (let ((b (get-file-buffer (semanticdb-full-filename obj))))
 	(save-excursion
 	  (if b (progn (set-buffer b)
+		       ;; Try to get an accurate unmatched syntax table.
+		       (when (and (boundp semantic-show-unmatched-syntax-mode)
+				  semantic-show-unmatched-syntax-mode)
+			 ;; Only do this if the user runs unmatched syntax
+			 ;; mode display enties.
+			 (oset obj unmatched-syntax
+			       (semantic-show-unmatched-lex-tokens-fetch))
+			 )
+		       ;; Unlink the cache.  When there are arrors,
+		       ;; reset the master cache.
 		       (condition-case nil
 			   (semantic--tag-unlink-cache-from-buffer)
 			 (error
@@ -222,7 +232,8 @@ Argument OBJ is the object to write."
 		       (oset obj pointmax (point-max)))))
 	(call-next-method)
 	(save-excursion
-	  (if b (progn (set-buffer b) (semantic--tag-link-cache-to-buffer))))
+	  (if b (progn (set-buffer b) (semantic--tag-link-cache-to-buffer)))
+	  (oset obj unmatched-syntax nil))
 	)))
 
 ;;; State queries
