@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-html.el,v 1.2 2004/03/19 23:58:07 zappo Exp $
+;; X-RCS: $Id: semantic-html.el,v 1.3 2004/03/28 11:33:21 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -173,8 +173,8 @@ tag with greater section value than LEVEL is found."
 	  (goto-char (car oldl))
 	  (if (looking-at "<\\(\\w+\\)")
 	      (let* ((word (match-string 1))
-		     (levelmatch (assoc-string word semantic-html-section-list
-					       t))
+		     (levelmatch (assoc-ignore-case
+                                  word semantic-html-section-list))
 		     text begin tmp
 		     )
 		(when (not levelmatch)
