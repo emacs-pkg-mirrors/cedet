@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.14 2002/08/11 16:27:31 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.15 2002/09/07 02:01:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -114,6 +114,12 @@ When this happens, the buffer is marked as needing a full reprase.")
 ;;
 ;; Manage a series of overlays that define changes recently
 ;; made to the current buffer.
+;;;###autoload
+(defun semantic-change-function (start end length)
+  "Provide a mechanism for semantic token management.
+Argument START, END, and LENGTH specify the bounds of the change."
+   (setq semantic-unmatched-syntax-cache-check t)
+   (run-hook-with-args 'semantic-change-hooks start end length))
 
 (defun semantic-changes-in-region (start end &optional buffer)
   "Find change overlays which exist in whole or in part between START and END.
@@ -837,78 +843,6 @@ lost if not transferred into NEWTOKEN."
     ;; to point at the updated state of the world.
     (semantic-overlay-put o 'semantic oldtoken)
     ))
-
-;;; OLD CODE
-;;
-;; The following semantic 1.x code handles reparses when changes to a buffer
-;; are restricted withing the bounds of a single token.  Keep this around
-;; till the new experimental incremental parse manager is completed.
-
-(defvar semantic-dirty-tokens nil
-  "List of tokens in the current buffer which are dirty.
-Dirty functions can then be reparsed, and spliced back into the main list.")
-(make-variable-buffer-local 'semantic-dirty-tokens)
-
-(defvar semantic-dirty-token-hooks nil
-  "Hooks run after when a token is marked as dirty (edited by the user).
-The functions must take TOKEN, START, and END as a parameters.
-This hook will only be called once when a token is first made dirty,
-subsequent edits will not cause this to run a second time unless that
-token is first cleaned.  Any token marked as dirty will
-also be called with `semantic-clean-token-hooks', unless a full
-reparse is done instead.")
-
-(defvar semantic-pre-clean-token-hooks nil
-  "Hooks run before a token is reparsed.
-The functions must take a TOKEN as a parameter.
-Any token sent to this hook is about to be cleaned, or reparsed.
-The overlay may change, but many features and properties will
-persist unless a full reparse is later required.
-See `semantic-dirty-token-hooks' and `semantic-clean-token-hooks'.")
-
-(defvar semantic-clean-token-hooks nil
-  "Hooks run after a token is marked as clean (reparsed after user edits.)
-The functions must take a TOKEN as a parameter.
-Any token sent to this hook will have first been called with
-`semantic-dirty-token-hooks'.  This hook is not called for tokens
-marked dirty if the buffer is completely reparsed.  In that case, use
-`semantic-after-toplevel-cache-change-hook'.")
-
-;; Cleanup
-(defun semantic-remove-dirty-children-internal (token dirties)
-  "Remove TOKEN children from DIRTIES.
-Return the new value of DIRTIES."
-  (if dirties
-      (let ((children (semantic-nonterminal-children token t))
-            child)
-        (while (and children dirties)
-          (setq child (car children)
-                children (cdr children)
-                dirties  (semantic-remove-dirty-children-internal
-                          child (delq child dirties))))))
-  dirties)
-
-(defun semantic-remove-dirty-children ()
-  "Remove children of dirty tokens from the list of dirty tokens.
-It is not necessary and even dangerous to reparse these tokens as they
-will be recreated when reparsing their parents.  Return the new value
-of the variable `semantic-dirty-tokens' changed by side effect."
-  (let ((dirties semantic-dirty-tokens)
-        token)
-    (while dirties
-      (setq token   (car dirties)
-            dirties (cdr dirties)
-            semantic-dirty-tokens
-            (semantic-remove-dirty-children-internal
-             token semantic-dirty-tokens))))
-  semantic-dirty-tokens)
-
-(defun semantic-change-function (start end length)
-  "Provide a mechanism for semantic token management.
-Argument START, END, and LENGTH specify the bounds of the change."
-  (setq semantic-unmatched-syntax-cache-check t)
-  (run-hook-with-args 'semantic-change-hooks start end length))
-
 
 ;;; Setup incremental parser
 ;;
@@ -918,177 +852,6 @@ Argument START, END, and LENGTH specify the bounds of the change."
 ;;;###autoload
 (add-hook 'semantic-before-toplevel-cache-flush-hook
           #'semantic-edits-flush-changes)
-
-
-
-;;; Reparse one token.
-;;
-;; Use this when a set of changes modifies a single token.
-;;
-(defun semantic-rebovinate-token (token)
-  "Use TOKEN for extents, and reparse it, splicing it back into the cache."
-  ;; Pre Hooks
-  (run-hook-with-args 'semantic-pre-clean-token-hooks token)
-
-  (let* ((lexbits (semantic-lex (semantic-token-start token)
-                                 (semantic-token-end token)))
-	 ;; For embedded tokens (type parts, for example) we need a
-	 ;; different symbol.  Come up with a plan to solve this.
-	 (nonterminal (semantic-token-get token 'reparse-symbol))
-	 (new (semantic-parse-stream lexbits nonterminal))
-	 (cooked nil)
-	 )
-    (setq new (car (cdr new)))
-    (if (not new)
-        ;; Clever reparse failed, queuing full reparse.
-        (semantic-parse-tree-set-needs-rebuild)
-      (setq cooked (semantic-raw-to-cooked-token new))
-      (if (not (eq new (car cooked)))
-          (if (= (length cooked) 1)
-              ;; Cooking did a 1 to 1 replacement.  Use it.
-              (setq new (car cooked))
-	    ;; If cooking results in multiple things, do a full reparse.
-	    (semantic-edits-incremental-fail))))
-    ;; Don't do much if we have to do a full recheck.
-    (unless (semantic-parse-tree-needs-rebuild-p)
-      (semantic-overlay-token new)
-      (let ((oo (semantic-token-overlay token))
-            (o (semantic-token-overlay new)))
-        ;; Copy all properties of the old overlay here.
-        ;; I think I can use plists in emacs, but not in XEmacs.  Ack!
-        (semantic-overlay-put o 'face (semantic-overlay-get oo 'face))
-        (semantic-overlay-put o 'old-face (semantic-overlay-get oo 'old-face))
-        (semantic-overlay-put o 'intangible (semantic-overlay-get oo 'intangible))
-        (semantic-overlay-put o 'invisible (semantic-overlay-get oo 'invisible))
-        ;; Free the old overlay(s)
-        (semantic-deoverlay-token token)
-        ;; Recover properties
-        (let ((p (semantic-token-properties token)))
-          (while p
-            (semantic-token-put new (car (car p)) (cdr (car p)))
-            (setq p (cdr p))))
-        (semantic-token-put new 'reparse-symbol nonterminal)
-        (semantic-token-put new 'dirty nil)
-        ;; Splice into the main list.
-        (setcdr token (cdr new))
-        (setcar token (car new))
-        ;; This important bit is because the CONS cell representing
-        ;; TOKEN is what we need here, even though the whole thing is
-        ;; the same.
-        (semantic-overlay-put o 'semantic token)
-        ;; Hooks
-        (run-hook-with-args 'semantic-clean-token-hooks token)
-        )
-      )))
-
-(defun semantic-cleanup-dirty-tokens ()
-  "Reparse tokens which are marked as dirty."
-  (let ((changes (semantic-remove-dirty-children)))
-    ;; We have a cache, and some dirty tokens
-    (let ((semantic-bovination-working-type 'dynamic))
-      (working-status-forms
-	  (semantic-bovination-working-message (buffer-name))
-	  "done"
-	(while (and semantic-dirty-tokens
-		    (not (semantic-parse-tree-needs-rebuild-p)))
-	  (semantic-rebovinate-token (car semantic-dirty-tokens))
-	  (setq semantic-dirty-tokens (cdr semantic-dirty-tokens))
-	  (working-dynamic-status))
-	(working-dynamic-status t))
-      (setq semantic-dirty-tokens nil)
-      (or (semantic-parse-tree-needs-rebuild-p)
-          (semantic-parse-tree-set-up-to-date)))
-    changes))
-
-
-;;; Nonterminal regions and splicing
-;;
-;; This functionality is needed to take some set of dirty code,
-;; and splice in new tokens after a partial reparse.
-
-(defun semantic-change-function-mark-dirty  (start end length)
-  "Run whenever a buffer controlled by `semantic-mode' changes.
-Tracks when and how the buffer is re-parsed.
-Argument START, END, and LENGTH specify the bounds of the change."
-  (unless (or (semantic-parse-tree-needs-rebuild-p)
-              semantic-edits-are-safe)
-    (let ((tl (condition-case nil
-		  (nreverse (semantic-find-nonterminal-by-overlay-in-region
-		   (1- start) (1+ end)))
-		(error nil))))
-      (if tl
-          (progn
-            (catch 'alldone
-              ;; Loop over the token list
-              (while tl
-                (cond
-                 ;; If we are completely enclosed in this overlay.
-                 ((and (> start (semantic-token-start (car tl)))
-                       (< end (semantic-token-end (car tl))))
-                  (if (semantic-token-get (car tl) 'dirty)
-                      nil
-                    (add-to-list 'semantic-dirty-tokens (car tl))
-                    (semantic-token-put (car tl) 'dirty t)
-                    (condition-case nil
-                        (run-hook-with-args 'semantic-dirty-token-hooks
-                                            (car tl) start end)
-                      (error (if debug-on-error (debug)))))
-		  (throw 'alldone t))
-                 ;; If we cover the beginning or end of this item, we
-                 ;; must reparse this object.  If there are more items
-                 ;; coming, then postpone this till later.
-                 ((not (cdr tl))
-                  (semantic-parse-tree-set-needs-rebuild)
-                  (run-hooks 'semantic-reparse-needed-change-hook))
-                 (t nil))
-                ;; next
-                (setq tl (cdr tl))))
-            (or (semantic-parse-tree-needs-rebuild-p)
-                (semantic-parse-tree-set-needs-update)))
-	;; There was no hit, perhaps we need to reparse this
-	;; intermediate area.
-        (semantic-parse-tree-set-needs-rebuild)
-	)
-      )))
-
-;;; OLD AND BROKEN CODE
-;;
-;; This code was the beginning of a new incremental reparse manager, but I
-;; never got it working right.  Keep it around till I know for sure it is
-;; useless.
-
-(defsubst semantic-find-nearby-dirty-tokens (beg end)
-  "Make a special kind of token for dirty whitespace.
-Argument BEG and END is the region to find nearby tokens.
-EXPERIMENTAL"
-  (let ((prev (semantic-find-nonterminal-by-overlay-prev beg))
-	(next (semantic-find-nonterminal-by-overlay-next end)))
-    (if prev (semantic-token-put prev 'dirty-after t))
-    (if next (semantic-token-put next 'dirty-before t))
-    (list prev next)))
-
-(defun semantic-set-tokens-dirty-in-region (beg end)
-  "Mark the region between BEG and END as dirty.
-This is done by finding tokens overlapping the region, and marking
-them dirty.  Regions not covered by a token are then marked as
-dirty-after, meaning the space after that area is dirty.
-This function will be called in an after change hook, and must
-be very fast.
-EXPERIMENTAL"
-  (let ((tromp (semantic-find-nonterminal-by-overlay-in-region beg end))
-	(ttmp nil)
-	)
-    (if (not tromp)
-	;; No tokens hit, setup a dirty region on the screen.
-	(setq tromp nil) ;(semantic-get-dirty-token beg end))
-      ;; First, mark all fully dirty tokens.
-      (setq ttmp tromp)
-      (while ttmp
-	(and (> beg (semantic-token-start (car tromp)))
-	     (< end (semantic-token-end (car tromp))))
-
-	)
-	)))
 
 (provide 'semantic-edit)
 
