@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.7 2000/04/23 15:34:28 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.8 2000/04/25 14:46:42 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,10 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.8  2000/04/25 14:46:42  zappo
+# structparts now uses EXPANDFULL to get positional information for it's
+# sub parts.  This simplified STRUCTSUBPARTS nonterminal
+#
 # Revision 1.7  2000/04/23 15:34:28  zappo
 # Added copyright information.
 #
@@ -71,18 +75,13 @@ filename : symbol punctuation "\\." symbol
 	 ;
 	  
 structparts : semantic-list
-	      (EXPAND $1 structsubparts)
+	      (EXPANDFULL $1 structsubparts)
 	    ;
 
-structsubparts: open-paren "{" close-paren "}"
-		( nil )
-	      | open-paren "{" structsubparts
-		( ,$2 )
-	      | variabledef punctuation ";" structsubparts
-		( ,(append ,(semantic-expand-c-nonterminal $1) $3) )
-	      | variabledef punctuation ";" close-paren "}"
-		( ,(semantic-expand-c-nonterminal $1) )
-	      ;
+structsubparts : variable
+	       | define
+	       # sometimes there are defines in structs.
+	       ;
 
 
 enumparts : semantic-list
