@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ctxt.el,v 1.28 2004/01/10 01:22:15 zappo Exp $
+;; X-RCS: $Id: semantic-ctxt.el,v 1.29 2004/01/12 20:37:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -260,13 +260,14 @@ Depends on `semantic-command-separation-character' to find the
 beginning and end of a command."
   (semantic-with-buffer-narrowed-to-context
     (let ((case-fold-search semantic-case-fold))
+      (with-syntax-table semantic-lex-syntax-table
 
-      (if (re-search-forward (regexp-quote semantic-command-separation-character)
-			     nil t)
-	  (forward-char -1)
-	;; If there wasn't a command after this, we are the last
-	;; command, and we are incomplete.
-	(goto-char (point-max))))))
+	(if (re-search-forward (regexp-quote semantic-command-separation-character)
+			       nil t)
+	    (forward-char -1)
+	  ;; If there wasn't a command after this, we are the last
+	  ;; command, and we are incomplete.
+	  (goto-char (point-max)))))))
 
 (define-overload semantic-beginning-of-command ()
   "Move to the beginning of the current command.
@@ -277,16 +278,17 @@ Be default, uses `semantic-command-separation-character'.")
 Depends on `semantic-command-separation-character' to find the
 beginning and end of a command."
   (semantic-with-buffer-narrowed-to-context
-    (let ((case-fold-search semantic-case-fold))
-      (skip-chars-backward semantic-command-separation-character)
-      (if (re-search-backward (regexp-quote semantic-command-separation-character)
-			      nil t)
-	  (goto-char (match-end 0))
-	;; If there wasn't a command after this, we are the last
-	;; command, and we are incomplete.
-	(goto-char (point-min)))
-      (skip-chars-forward " \t\n")
-      )))
+    (with-syntax-table semantic-lex-syntax-table
+      (let ((case-fold-search semantic-case-fold))
+	(skip-chars-backward semantic-command-separation-character)
+	(if (re-search-backward (regexp-quote semantic-command-separation-character)
+				nil t)
+	    (goto-char (match-end 0))
+	  ;; If there wasn't a command after this, we are the last
+	  ;; command, and we are incomplete.
+	  (goto-char (point-min)))
+	(skip-chars-forward " \t\n")
+	))))
 
 
 (defsubst semantic-point-at-beginning-of-command ()
@@ -330,45 +332,46 @@ Depends on `semantic-type-relation-separator-character'."
 	 (case-fold-search semantic-case-fold)
 	 (symlist nil)
 	 end)
-    (save-excursion
-      (if (looking-at "\\w\\|\\s_")
-	  (forward-sexp 1)
-	;; Not on a sym, are we at a separator char with no field
-	;; specified yet?
-	(when (or (looking-at fieldsep1)
-		  (save-excursion
-		    (and (condition-case nil
-			     (progn (forward-sexp -1)
-				    (forward-sexp 1)
-				    t)
-			   (error nil))
-			 (looking-at fieldsep1))))
-	  (setq symlist (list ""))
-	  (forward-sexp -1)
-	  (forward-sexp 1)))
-      (setq end (point))
-      (condition-case nil
-	  (while (save-excursion
-		   (forward-char -1)
-		   (looking-at "\\w\\|\\s_"))
-	    ;; We have a symbol.. Do symbol things
+    (with-syntax-table semantic-lex-syntax-table    
+      (save-excursion
+	(if (looking-at "\\w\\|\\s_")
+	    (forward-sexp 1)
+	  ;; Not on a sym, are we at a separator char with no field
+	  ;; specified yet?
+	  (when (or (looking-at fieldsep1)
+		    (save-excursion
+		      (and (condition-case nil
+			       (progn (forward-sexp -1)
+				      (forward-sexp 1)
+				      t)
+			     (error nil))
+			   (looking-at fieldsep1))))
+	    (setq symlist (list ""))
 	    (forward-sexp -1)
-	    (setq symlist (cons (buffer-substring-no-properties (point) end)
-				symlist))
-	    ;; Skip the next syntactic expression backwards, then go forwards.
-	    (let ((cp (point)))
+	    (forward-sexp 1)))
+	(setq end (point))
+	(condition-case nil
+	    (while (save-excursion
+		     (forward-char -1)
+		     (looking-at "\\w\\|\\s_"))
+	      ;; We have a symbol.. Do symbol things
 	      (forward-sexp -1)
-	      (forward-sexp 1)
-	      ;; If we end up at the same place we started, we are at the
-	      ;; beginning of a buffer, or narrowed to a command and
-	      ;; have to stop.
-	      (if (<= cp (point)) (error nil)))
-	    (if (looking-at fieldsep)
-		(setq end (point))
-	      (error nil))
-	    )
-	(error nil)))
-    symlist))
+	      (setq symlist (cons (buffer-substring-no-properties (point) end)
+				  symlist))
+	      ;; Skip the next syntactic expression backwards, then go forwards.
+	      (let ((cp (point)))
+		(forward-sexp -1)
+		(forward-sexp 1)
+		;; If we end up at the same place we started, we are at the
+		;; beginning of a buffer, or narrowed to a command and
+		;; have to stop.
+		(if (<= cp (point)) (error nil)))
+	      (if (looking-at fieldsep)
+		  (setq end (point))
+		(error nil))
+	      )
+	  (error nil)))
+      symlist)))
 
 (define-overload semantic-ctxt-current-assignment (&optional point)
   "Return the current assignment near the cursor at POINT.
@@ -380,17 +383,18 @@ Return nil if there is nothing relevant.")
 By default, assume that \"=\" indicates an assignment."
   (if point (goto-char point))
   (let ((case-fold-search semantic-case-fold))
-    (condition-case nil
-	(semantic-with-buffer-narrowed-to-command
-	  (save-excursion
-	    (skip-chars-forward " \t=")
-	    (condition-case nil (forward-char 1) (error nil))
-	    (re-search-backward "[^=]=\\([^=]\\|$\\)")
-	    ;; We are at an equals sign.  Go backwards a sexp, and
-	    ;; we'll have the variable.  Otherwise we threw an error
-	    (forward-sexp -1)
-	    (semantic-ctxt-current-symbol)))
-      (error nil))))
+    (with-syntax-table semantic-lex-syntax-table    
+      (condition-case nil
+	  (semantic-with-buffer-narrowed-to-command
+	    (save-excursion
+	      (skip-chars-forward " \t=")
+	      (condition-case nil (forward-char 1) (error nil))
+	      (re-search-backward "[^=]=\\([^=]\\|$\\)")
+	      ;; We are at an equals sign.  Go backwards a sexp, and
+	      ;; we'll have the variable.  Otherwise we threw an error
+	      (forward-sexp -1)
+	      (semantic-ctxt-current-symbol)))
+	(error nil)))))
 
 (define-overload semantic-ctxt-current-function (&optional point)
   "Return the current function call the cursor is in at POINT.
@@ -404,10 +408,11 @@ The call will be identifed for C like langauges with the form
  NAME ( args ... )"
   (if point (goto-char point))
   (let ((case-fold-search semantic-case-fold))
-    (save-excursion
-      (semantic-up-context)
-      (when (looking-at "(")
-	(semantic-ctxt-current-symbol)))
+    (with-syntax-table semantic-lex-syntax-table
+      (save-excursion
+	(semantic-up-context)
+	(when (looking-at "(")
+	  (semantic-ctxt-current-symbol))))
     ))
 
 (define-overload semantic-ctxt-current-argument (&optional point)
@@ -418,17 +423,18 @@ The call will be identifed for C like langauges with the form
 Depends on `semantic-function-argument-separation-character'."
   (if point (goto-char point))
   (let ((case-fold-search semantic-case-fold))
-    (when (semantic-ctxt-current-function)
-      (save-excursion
-	;; Only get the current arg index if we are in function args.
-	(let ((p (point))
-	      (idx 1))
-	  (semantic-up-context)
-	  (while (re-search-forward
-		  (regexp-quote semantic-function-argument-separation-character)
-		  p t)
-	    (setq idx (1+ idx)))
-	  idx)))))
+    (with-syntax-table semantic-lex-syntax-table
+      (when (semantic-ctxt-current-function)
+	(save-excursion
+	  ;; Only get the current arg index if we are in function args.
+	  (let ((p (point))
+		(idx 1))
+	    (semantic-up-context)
+	    (while (re-search-forward
+		    (regexp-quote semantic-function-argument-separation-character)
+		    p t)
+	      (setq idx (1+ idx)))
+	    idx))))))
 
 (defun semantic-ctxt-current-thing ()
   "Calculate a thing identified by the current cursor position.
