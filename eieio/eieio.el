@@ -6,14 +6,14 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.16 1996/11/13 23:30:42 zappo Exp $
-;;; Keywords: OO                                           
-;;;                                                                          
+;;; RCS: $Id: eieio.el,v 1.17 1996/11/18 00:24:12 zappo Exp $
+;;; Keywords: OO, lisp
+;;;
 ;;; This program is free software; you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
 ;;; the Free Software Foundation; either version 2, or (at your option)
 ;;; any later version.
-;;;           
+;;;
 ;;; This program is distributed in the hope that it will be useful,
 ;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -176,11 +176,15 @@
 ;;;        Removed all reference to classmethods as no one liked them,
 ;;;           and were wasing space in here.
 ;;;        Added `oset-default' to modify existing classes default values.
+;;;        `oref-default' can now take a class or object to retrieve
+;;;           the default value.
 ;;;        Optimized several convenience functions as macros, and made some
 ;;;           signals arise from more logical locations.
 ;;;        Created and used signal symbols `no-method-definition' for
 ;;;           method calls that do not resolve, and `invalid-slot-name'
 ;;;           when the user tries to access an invalid slot name.
+;;;        Added `eieio-attribute-to-initarg' for reverse translation
+;;;           init arguments during document generation.
 
 ;;;
 ;;; Variable declarations.  These variables are used to hold the call
@@ -601,15 +605,17 @@ the body, such as:
 (defun oref-default-engine (obj field)
   "Return the default value in OBJ at FIELD in the object vector.
 This value is found in the objects class structure and does not
-represent the actual stored value."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
+represent the actual stored value.  OBJ may be an object instance, or
+a class symbol"
+  (if (not (or (object-p obj) (class-p obj))) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
-  (let ((c (eieio-field-name-index (aref obj 1) field))
-	(nump (length (aref (class-v (aref obj 1)) class-public-a))))
-    (if (not c) (signal 'invalid-slot-name (list (object-name obj) field)))
+  (let* ((cl (if (object-p obj) (aref obj 1) obj))
+	 (c (eieio-field-name-index cl field))
+	 (nump (length (aref (class-v cl) class-public-a))))
+    (if (not c) (signal 'invalid-slot-name (list (class-name cl) field)))
     (let ((val (if (< c (+ 3 nump))
-		   (nth (- c 3) (aref (class-v (aref obj 1)) class-public-d))
-		 (nth (- c nump 3) (aref (class-v (aref obj 1)) class-private-d)))))
+		   (nth (- c 3) (aref (class-v cl) class-public-d))
+		 (nth (- c nump 3) (aref (class-v cl) class-private-d)))))
       ;; check for functions to evaluate
       (if (or (and (listp val) (equal (car val) 'lambda))
 	      (and (symbolp val) (fboundp val)))
@@ -721,8 +727,9 @@ VALUE.  This does not affect any existing objects of type CLASS"
 				  class-symbol-obarray)))
 	 (fsi (if (symbolp fsym) (symbol-value fsym) nil)))
     (if (integerp fsi)
-	(if (or (not (get fsym 'private)) 
-		(child-of-class-p class scoped-class))
+	(if (or (not (get fsym 'private))
+		(and scoped-class
+		     (child-of-class-p class scoped-class)))
 	    (+ 3 fsi)
 	  nil))))
 
@@ -972,6 +979,14 @@ we can cheat if need be.. May remove that later..."
 	(cdr tuple)
       initarg)))
 
+(defun eieio-attribute-to-initarg (class attribute)
+  "Converts the ATTRIBUTE into the corresponding init argument tag
+which is a symbol that starts with `:'."
+  (let ((tuple (rassoc attribute (aref (class-v class) class-initarg-tuples))))
+    (if tuple
+	(car tuple)
+      nil)))
+
 (defun eieio-set-fields (obj fields)
   "Set the fields of OBJ with the list FIELDS which is a list of
 name/value pairs.  Called from the constructor routine."
@@ -1069,8 +1084,8 @@ associated with this symbol.  Current method specific code is:")
 (put 'invalid-slot-name 'error-message "Invalid slot name")
 
 ;;;
-;;; We want all object created by EIEIO to have some default set of
-;;; behavious so we can create object utilities, and allow various
+;;; We want all objects created by EIEIO to have some default set of
+;;; behaviours so we can create object utilities, and allow various
 ;;; types of error checking.  To do this, create the default EIEIO
 ;;; class, and when no parent class is specified, use this as the
 ;;; default.  (But don't store it in the other classes as the default,
@@ -1082,7 +1097,7 @@ associated with this symbol.  Current method specific code is:")
 
   (defclass eieio-default-superclass nil
     nil
-    "Default class used as parent class for superclasses.  It's
+    "Default class used as parent class for superclasses.  Its
 fields are automatically adopted by such superclasses but not stored
 in the `parent' field.  When searching for attributes or methods, when
 the last parent is found, the search will recurse to this class.")
@@ -1090,9 +1105,14 @@ the last parent is found, the search will recurse to this class.")
 
 ;;; We want our superclass to define it's own methods.
 (defmethod constructor ((this eieio-default-superclass) &optional fields)
-    "Constructor for filling in attributes when constructing a new
-class."
-    ;(message "Constructing %s" (object-name this))
+    "Constructs the new object THIS based on FIELDS.  FIELDS is a
+tagged list where odd numbered elements are tags, and even numbered
+elements are the values to store in the tagged slot.  If you overload
+the constructor, there you will need to call `eieio-set-defaults' and
+`eieio-set-fields' yourself, or you can call `call-next-method' to
+have this constructor called automatically.  If these steps are not
+taken, then new objects of your class will not have their default
+values set, or dynamically set from FIELDS."
     ;; Load in the defaults
     (eieio-set-defaults this t)
     ;; Set fields for ourselves from the list of fields
@@ -1106,141 +1126,8 @@ class."
 
 
 ;;;
-;;; Now, for convenience, we should have a browser, to aid people in
-;;; debugging their object oriented emacs lisp programs...
+;;; Interfacing with edebug
 ;;;
-
-(defun eieio-browse (&optional root-class)
-  "Create an object browser window which shows all objects starting
-with root-class, or eieio-default-superclass if none is given."
-  (interactive (if current-prefix-arg
-		   (list (read (read-string "Class to build tree from:")))
-		 nil))
-  (if (not root-class) (setq root-class 'eieio-default-superclass))
-  (if (not (class-p root-class)) (signal 'wrong-type-argument (list 'class-p root-class)))
-  (display-buffer (get-buffer-create "*EIEIO OBJECT BROWSE*") t)
-  (save-excursion
-    (set-buffer (get-buffer "*EIEIO OBJECT BROWSE*"))
-    (erase-buffer)
-    (goto-char 0)
-    (eieio-browse-tree root-class "" "")
-    ))
-
-(defun eieio-browse-tree (this-root prefix ch-prefix)
-  "Recursive part of browser, draws the children of the given class on
-the screen."
-  (if (not (class-p (eval this-root))) (signal 'wrong-type-argument (list 'class-p this-root)))
-  (let ((myname (symbol-name this-root))
-	(chl (aref (class-v this-root) class-children))
-	(fprefix (concat ch-prefix "  +--"))
-	(mprefix (concat ch-prefix "  |  "))
-	(lprefix (concat ch-prefix "     ")))
-    ;; Removed overlay stuff... not usefull.
-    (insert prefix myname "\n")
-;   This didn't really do anything except clutter the screen
-;   (if chl
-;	(if (= (length chl) 1)
-;	    (insert (format " -- [1 child]\n"))
-;	  (insert (format " -- [%d children]\n" (length chl))))
-;     (insert (format " -- [No children]\n"))))
-    (while (cdr chl)
-      (eieio-browse-tree (car chl) fprefix mprefix)
-      (setq chl (cdr chl)))
-    (if chl
-	(eieio-browse-tree (car chl) fprefix lprefix))
-    ))
-
-(defun eieio-thing-to-string (thing)
-  "Convert THING into a string.  If THING is an object, use
-`object-name' instead, if THING is a class, then use `class-name'
-instead, if THING is a list of stuff, try those."
-  (if (object-p thing) (object-name thing)
-    (if (class-p thing) (class-name thing)
-      (if (and thing (listp thing))
-	  (let ((op "("))
-	    (while thing
-	      (setq op (concat op " " (eieio-thing-to-string (car thing))))
-	      (setq thing (cdr thing)))
-	    (concat op ")"))
-	(format "%S" thing))))
-  )
-
-(defun eieio-describe-class (class)
-  "Describe a CLASS defined by a string or symbol.  If CLASS is actually
-an object, then also display current values of that obect."
-  (interactive "sClass: ")
-  (switch-to-buffer (get-buffer-create "*EIEIO OBJECT DESCRIBE*"))
-  (erase-buffer)
-  (let* ((cv (cond ((stringp class) (class-v (read class)))
-		   ((symbolp class) (class-v class))
-		   ((object-p class) (class-v (object-class-fast class)))
-		   (t (error "Can't find class info from parameter"))))
-	 (this (if (object-p class) class this))
-	 (scoped-class (if (object-p class) (object-class-fast class) scoped-class))
-	 (priva (aref cv class-private-a))
-	 (publa (aref cv class-public-a))
-	 (privd (aref cv class-private-d))
-	 (publd (aref cv class-public-d)))
-    (insert "Description of")
-    (if (object-p class)
-	(insert " object `" (aref class 2) "'"))
-    (insert " class `" (symbol-name (aref cv 1)) "'\n")
-    (insert "\nPRIVATE\n")
-    (put-text-property (point)
-		       (progn (insert "Field:\t\t\tdefault value"
-				      (if (object-p class)
-					  "\t\tCurrent Value" ""))
-			      (point))
-		       'face 'underline)
-    (insert "\n")
-    (while priva
-      (let ((dvs (eieio-thing-to-string (car privd))))
-	(insert (symbol-name (car priva)) "\t" 
-		(if (< (length (symbol-name (car priva))) 8) "\t" "")
-		(if (< (length (symbol-name (car priva))) 16) "\t" "")
-		dvs
-		(if (object-p class)
-		    (concat
-		     "\t"
-		     (if (< (length dvs) 8) "\t" "")
-		     (if (< (length dvs) 16) "\t" "")
-		     (eieio-thing-to-string (oref-engine class (car priva))))
-		  "")
-		"\n"))
-      (setq priva (cdr priva)
-	    privd (cdr privd)))
-    (insert "\nPUBLIC\n")
-    (put-text-property (point)
-		       (progn (insert "Field:\t\t\tdefault value"
-				      (if (object-p class)
-					  "\t\tCurrent Value" ""))
-			      (point))
-		       'face 'underline)
-    (insert "\n")
-    (while publa
-      (let ((dvs (eieio-thing-to-string (car publd))))
-	(insert (symbol-name (car publa)) "\t"
-		(if (< (length (symbol-name (car publa))) 8) "\t" "")
-		(if (< (length (symbol-name (car publa))) 16) "\t" "")
-		dvs
-		(if (object-p class)
-		    (concat
-		     "\t"
-		     (if (< (length dvs) 8) "\t" "")
-		     (if (< (length dvs) 16) "\t" "")
-		     (eieio-thing-to-string (oref-engine class (car publa))))
-		  "")
-		"\n"))
-      (setq publa (cdr publa)
-	    publd (cdr publd)))))
-
-
-;;; Interfacing with other packages
-;;
-;; Now lets support edebug in reguard to defmethod forms.
-;; reguardless of if edebug is running, this hook is re-eveluated so
-;; this is a clever way for edebug to allow us to add hooks
-;; dynamically
 (add-hook 'edebug-setup-hook
 	  (lambda () 
 	    (def-edebug-spec defmethod
@@ -1252,6 +1139,7 @@ an object, then also display current values of that obect."
 	       [ &optional stringp ]    ; documentation string
 	       def-body	                ; part to be debugged
 	       ))
+	    ;; The rest of the macros
 	    (def-edebug-spec oref (form quote))
 	    (def-edebug-spec oref-default (form quote))
 	    (def-edebug-spec oset (form quote form))
@@ -1263,6 +1151,13 @@ an object, then also display current values of that obect."
 	    (def-edebug-spec generic-p form)
 	    )
 	  )
+
+;;;
+;;; Autoloading some external symbols
+;;;
+(autoload 'eieio-browse "eieio-opt" "Create an object browser window" t)
+(autoload 'eieio-describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
+(autoload 'describe-class "eieio-opt" "Describe CLASS defined by a string or symbol" t)
 
 ;;; end of lisp
 (provide 'eieio)
