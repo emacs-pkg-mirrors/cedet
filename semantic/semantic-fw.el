@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.7 2002/08/09 23:22:12 zappo Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.8 2002/08/13 16:38:23 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -275,45 +275,228 @@ the current MODE controlled buffer found."
 ;; specifics.  This section permits the setting of override functions
 ;; for tasks of that nature, and also provides reasonable defaults.
 
-(defvar semantic-override-table nil
-  "Buffer local semantic function overrides obarray.
-These overrides provide a hook for a `major-mode' to override specific
-behaviors with respect to generated semantic toplevel nonterminals and
-things that these non-terminals are useful for.  Use the function
-`semantic-install-function-overrides' to install overrides.
+;;; Core Semantic bindings API
+;;
+(defvar semantic-symbol-table nil
+  "Buffer local semantic obarray.
+These symbols provide a hook for a `major-mode' to specify specific
+behaviors.  Use the function `semantic-bind' to define new bindings.")
+(make-variable-buffer-local 'semantic-symbol-table)
 
-Use `semantic-list-overrides' to get a list of override functions.")
-(make-variable-buffer-local 'semantic-override-table)
-
-(defsubst semantic-current-overrides (&optional mode)
-  "Return the current function overrides table.
-That is `semantic-override-table' if locally set, or the override
-table of current major mode or its parents.
-If optional argument MODE is specified return the override table of
-that mode or its parents."
+(defsubst semantic-current-bindings (&optional mode)
+  "Return the current semantic symbol table.
+That is `semantic-symbol-table' if locally set, or the symbol table of
+current major mode or its parents.
+If optional argument MODE is specified return the symbol table of that
+mode or its parents."
   (let (table)
-    (or mode (setq table semantic-override-table
+    (or mode (setq table semantic-symbol-table
                    mode  major-mode))
     (while (and mode (not table))
-      (or (setq table (get mode 'semantic-override-table))
+      (or (setq table (get mode 'semantic-symbol-table))
           (setq mode  (get mode 'derived-mode-parent))))
     table))
 
-(defun semantic-new-overrides (&optional table)
-  "Return a new function overrides table.
-If optional argument TABLE is non-nil, it must be an overrides table.
-Its content is copied into the new table."
+(defun semantic-new-bindings (&optional table)
+  "Return a new semantic symbol table.
+If optional argument TABLE is non-nil, it must be another symbol
+table, and its content is copied into the new table."
   (let ((new-table (make-vector 13 0)))
     (if table
         (mapatoms
          #'(lambda (sym)
              (let ((new-sym (intern (symbol-name sym) new-table)))
                (set new-sym (symbol-value sym))
-               (put new-sym 'override (get sym 'override))))
+               (setplist new-sym (symbol-plist sym))))
          table))
     new-table))
 
-(defun semantic-install-function-overrides (overrides &optional transient mode)
+(defun semantic-bind (bindings &optional plist mode)
+  "Define BINDINGS in the specified environment.
+BINDINGS is a list of (VARIABLE . VALUE).
+Optional argument PLIST is a property list each VARIABLE symbol will
+be set to.  The following properties have special meaning:
+
+- `constant' if non-nil, prevent to rebind variables.
+- `mode-var' if non-nil, define mode variables.
+- `override' if non-nil, define override functions.
+
+The `override' and `mode-var' properties are mutually exclusive.
+
+If optional argument MODE is non-nil, it must be a major mode symbol.
+BINDINGS will be defined globally for this major mode.  If MODE is
+nil, BINDINGS will be defined locally in the current buffer, in
+variable `semantic-symbol-table'.  The later should be done in MODE
+hook."
+  ;; Check plist consistency
+  (and (plist-get plist 'mode-var)
+       (plist-get plist 'override)
+       (error "Bindings can't be both overrides and mode variables"))
+  (let (table variable varname value binding)
+    (if mode
+        (progn
+          (setq table
+                ;; Install in given MODE symbol table
+                (or (get mode 'semantic-symbol-table)
+                    ;; Or in a new one inherited from MODE parents
+                    (semantic-new-bindings
+                     (semantic-current-bindings mode))))
+          (put mode 'semantic-symbol-table table))
+      ;; Fail if trying to bind mode variables in local context!
+      (if (plist-get plist 'mode-var)
+          (error "Mode required to bind mode variables"))
+      ;; Install in buffer local symbol table
+      (or semantic-symbol-table
+          ;; Or in a new one inherited from `major-mode' or parents
+          (setq semantic-symbol-table
+                (semantic-new-bindings
+                 (semantic-current-bindings))))
+      (setq table semantic-symbol-table))
+    (while bindings
+      (setq binding  (car bindings)
+            bindings (cdr bindings)
+            varname  (symbol-name (car binding))
+            value    (cdr binding))
+      (if (setq variable (intern-soft varname table))
+          ;; Binding already exists
+          ;; Check rebind consistency
+          (cond
+           ((get variable 'constant)
+            (error "Can't change the value of constant `%s'"
+                   variable))
+           ((and (get variable 'mode-var)
+                 (plist-get plist 'override))
+            (error "Can't rebind override `%s' as a mode variable"
+                   variable))
+           ((and (get variable 'override)
+                 (plist-get plist 'mode-var))
+            (error "Can't rebind mode variable `%s' as an override"
+                   variable))
+           (t
+            ;; Merge plist and assign new value
+            (setplist variable (append plist (symbol-plist variable)))
+            (set variable value)))
+        ;; New binding
+        (setq variable (intern varname table))
+        ;; Set new plist and assign initial value
+        (setplist variable plist)
+        (set variable value)))
+    ;; Return the symbol table used
+    table))
+
+(defsubst semantic-symbol (sym &optional mode)
+  "Return the semantic symbol SYM or nil if not found.
+Fetch SYM from `semantic-symbol-table' if locally set, or from
+the symbol table of current major mode or its parents.
+If optional argument MODE is non-nil search in the symbol table of
+that mode or its parents.
+Unless MODE is non-nil, set the buffer local value of
+`semantic-symbol-table' to the current symbol table found."
+  (or (and sym (symbolp sym)) (error "Invalid symbol %S" sym))
+  (or (symbolp mode) (error "Invalid major mode symbol %S" mode))
+  (let ((table (semantic-current-bindings mode)))
+    (and (arrayp table)
+         (or mode (setq semantic-symbol-table table))
+         (intern-soft (symbol-name sym) table))))
+  
+  
+(defsubst semantic-symbol-value (sym &optional mode property)
+  "Return the current semantic value of SYM, or nil if not found.
+If optional argument PROPERTY is non-nil check that SYM has that
+property set.
+See also `semantic-symbol'."
+  (and (setq sym (semantic-symbol sym mode))
+       (or (not property) (get sym property))
+       (symbol-value sym)))
+
+(defsubst semantic-set-local-variable (sym val)
+  "Set variable SYM to VAL locally in current buffer.
+BUFFER defaults to the current buffer."
+  (set (make-local-variable sym) val))
+
+;;; Mode local variables API
+;;
+;; There are buffer local variables, and frame local variables.
+;; These routines give the illusion of mode specific variables.
+;;
+;; Why?  Some tokens have values specific to a major mode, but their buffer
+;; might not be loaded.  This lets them run as though they were in a buffer
+;; of the apropriate type.
+;;
+(defun semantic-activate-mode-bindings (&optional mode)
+  "Set buffer local variables with MODE local variables.
+If MODE is not specified it defaults to current `major-mode'."
+  (let ((table (semantic-current-bindings (or mode major-mode))))
+    (when table
+      (mapatoms
+       #'(lambda (var)
+           (if (get var 'mode-var)
+               (semantic-set-local-variable
+                (intern (symbol-name var)) (symbol-value var))))
+       table))))
+
+(defsubst mode-local-value (mode sym)
+  "Return the value of the MODE local variable SYM."
+  (or mode (error "Missing major mode symbol"))
+  (semantic-symbol-value sym mode 'mode-var))
+
+(defmacro setq-mode-local (mode &rest args)
+  "Assign new values to variables local in MODE.
+MODE must be a major mode symbol.
+ARGS is a list (SYM VAL SYM VAL ...).
+The symbols SYM are variables; they are literal (not evaluated).
+The values VAL are expressions; they are evaluated.
+Set each SYM to the value of its VAL, locally in buffers already in
+MODE, or in buffers switched to that mode.
+Return the value of the last VAL."
+  (when args
+    (let (bl sl sym val)
+      (while args
+        (setq sym  (car args)
+              val  (cadr args)
+              bl   (cons `(cons ',sym ,val) bl)
+              sl   (cons `(semantic-set-local-variable ',sym ,val) sl)
+              args (cddr args)))
+      `(progn
+         ;; Save mode bindings
+         (semantic-bind (list ,@bl) '(mode-var t) ',mode)
+         ;; Assign to local variables in all existing buffers in MODE
+         (semantic-map-mode-buffers #'(lambda () ,@sl) ',mode)
+         ;; Return the last value
+         ,val)
+      )))
+
+(defmacro defvar-mode-local (mode sym val &optional docstring)
+  "Define MODE local variable SYM with value VAL.
+DOCSTRING is optional."
+  `(progn
+     (setq-mode-local ,mode ,sym ,val)
+     (put (semantic-symbol ',mode ',sym)
+          'variable-documentation ,docstring)
+     ',sym))
+
+(defmacro defconst-mode-local (mode sym val &optional docstring)
+  "Define MODE local constant SYM with value VAL.
+DOCSTRING is optional."
+  (let ((tmp (make-symbol "tmp")))
+  `(let (,tmp)
+     (setq-mode-local ,mode ,sym ,val)
+     (setq ,tmp (semantic-symbol ',mode ',sym))
+     (put ,tmp 'constant t)
+     (put ,tmp 'variable-documentation ,docstring)
+     ',sym)))
+
+;;; Override functions API
+;;
+(defsubst semantic-fetch-overload (overload)
+  "Return the current OVERLOAD function, or nil if not found.
+Fetch OVERLOAD from `semantic-override-table' if locally set, or from
+the override table of current major mode or its parents.  Set the
+buffer local value of `semantic-override-table' to the current
+override table found."
+  (semantic-symbol-value overload nil 'override))
+
+(defsubst semantic-install-function-overrides (overrides &optional transient mode)
   "Install the function OVERRIDES in the specified environment.
 OVERRIDES must be an alist ((OVERLOAD .  FUNCTION) ...) where OVERLOAD
 is a symbol identifying an overloadable entry, and FUNCTION is the
@@ -322,56 +505,11 @@ If optional argument TRANSIENT is non-nil, installed overrides can in
 turn be overridden by next installation.
 If optional argument MODE is non-nil, it must be a major mode symbol.
 OVERRIDES will be installed globally for this major mode.  If MODE is
-nil, OVERRIDES will be installed locally in the current buffer, in
-variable `semantic-override-table'.  This later installation should be
-done in MODE hook."
-  (let (table overload overname function override)
-    (if mode
-        (progn
-          (setq table
-                ;; Install in given MODE override table
-                (or (get mode 'semantic-override-table)
-                    ;; Or in a new one inherited from MODE parents
-                    (semantic-new-overrides
-                     (semantic-current-overrides mode))))
-          (put mode 'semantic-override-table table))
-      ;; Install in buffer local override table
-      (or semantic-override-table
-          ;; Or in a new one inherited from `major-mode' or parents
-          (setq semantic-override-table
-                (semantic-new-overrides
-                 (semantic-current-overrides))))
-      (setq table semantic-override-table))
-    (while overrides
-      (setq override  (car overrides)
-            overrides (cdr overrides)
-            overname  (symbol-name (car override))
-            function  (cdr override))
-      ;; Keep trace of mode where function overrides something
-      (and mode function (symbolp function)
-           (put function 'semantic-override-mode mode))
-      (if (setq overload (intern-soft overname table))
-          (if (get overload 'override)
-              (set overload function)
-            (or (equal (symbol-value overload) function)
-                (message
-                 "Current `%s' function #'%s not overrode by #'%s"
-                 overload (symbol-value overload) function)))
-        (setq overload (intern overname table))
-        (set overload function))
-      (put overload 'override transient))))
-
-(defun semantic-fetch-overload (overload)
-  "Return the current OVERLOAD function, or nil if not found.
-Fetch OVERLOAD from `semantic-override-table' if locally set, or from
-the override table of current major mode or its parents.  Set the
-buffer local value of `semantic-override-table' to the current
-override table found."
-  (let ((table (semantic-current-overrides)))
-    (and (arrayp table)
-         (setq semantic-override-table table)
-         (setq overload (intern-soft (symbol-name overload) table))
-         (symbol-value overload))))
+nil, OVERRIDES will be installed locally in the current buffer.  This
+later installation should be done in MODE hook."
+  (semantic-bind overrides
+                 (list 'constant (not transient) 'override t)
+                 mode))
 
 ;;;###autoload
 (defmacro define-overload (name args docstring &rest body)
@@ -433,61 +571,63 @@ This function is an implementation for %s"
 	 ,@body)
        (semantic-install-function-overrides '((,overload . ,newname)) nil ',mode)
        )))
+
+;;; Editor goodies ;-)
+;;
+(put 'defvar-mode-local   'lisp-indent-function 'defun)
+(put 'defconst-mode-local 'lisp-indent-function 'defun)
 
-;;; MODE VARIABLES
-;;
-;; There are buffer local variables, and frame local variables.
-;; These routines give the illusion of mode specific variables.
-;;
-;; They work like this:
-;; a symbol, like `c-mode' has a `semantic-variables' property which
-;; is a list of variables set for this mode.
-;; A variable with a mode value appears in that list, AND it has
-;; a property matching the mode name.  This property contains the value
-;; of that variable for that mode.
-;;
-;; Why?  Some tokens have values specific to a major mode, but their buffer
-;; might not be loaded.  This lets them run as though they were in a buffer
-;; of the apropriate type.
-;;
-(defun semantic-symbol-value-for-mode (variable mode)
-  "Retrieve the value of VARIABLE (a symbol) for MODE."
-  (if (memq mode (get mode 'semantic-variables))
-      (get variable mode)
-    (symbol-value variable)))
+(defconst semantic-fw-font-lock-keywords
+  (eval-when-compile
+    (let* (
+           ;; Variable declarations         
+           (kv (regexp-opt
+                '(
+                  "defconst-mode-local"
+                  "defvar-mode-local"
+                  ) t))
+           ;; Function declarations
+           (kf (regexp-opt
+                '(
+                  "define-lex"
+                  "define-lex-analyzer"
+                  "define-lex-block-analyzer"
+                  "define-lex-regex-analyzer"
+                  "define-lex-simple-regex-analyzer"
+                  "define-mode-overload-implementation"
+                  "define-overload"
+                  "define-wisent-lexer"
+                  ) t))
+           ;; Regexp depths
+           (kv-depth (regexp-opt-depth kv))
+           (kf-depth (regexp-opt-depth kf))
+           )
+      `((,(concat
+           ;; Declarative things
+           "(\\(" kv "\\|" kf "\\)"
+           ;; Whitespaces & names
+           "\\>[ \t]*\\(\\sw+\\)?[ \t]*\\(\\sw+\\)?"
+           )
+         (1 font-lock-keyword-face)
+         (,(+ 1 kv-depth kf-depth 1)
+          (cond ((match-beginning 2)
+                 font-lock-type-face)
+                ((match-beginning ,(+ 1 kv-depth 1))
+                 font-lock-function-name-face)
+                )
+          nil t)
+         (,(+ 1 kv-depth kf-depth 1 1)
+          (cond ((match-beginning 2)
+                 font-lock-variable-name-face)
+                )
+          nil t)))
+      ))
+  "Highlighted Semantic keywords.")
 
-(defun semantic-symbol-value-mode-assign ()
-  "For the current major mode, set values of variables into local variables.
-To be called by semantic init function."
-  (let ((vars (get major-mode 'semantic-variables)))
-    (while vars
-      (set (car vars) (get (car vars) major-mode))
-      (setq vars (cdr vars)))))
-
-(defun semantic-setq-major-mode (varname modename value)
-  "Perform the work of `setq-major-mode'.
-VARNAME is the variable name, MODENAME is the major mode, and VALUE is the
-new value."
-  ;; Force this value into MODENAME for later extraction
-  (let ((plist (get modename 'semantic-variables)))
-    (add-to-list 'plist varname)
-    (put modename 'semantic-variables plist))
-  ;; Make this assignment into the mode part.
-  (put varname modename value)
-  ;; Assign to all existing buffers.
-  (semantic-map-mode-buffers (lambda () (set varname value))
-			     modename)
+(when (fboundp 'font-lock-add-keywords)
+  (font-lock-add-keywords 'emacs-lisp-mode
+                          semantic-fw-font-lock-keywords)
   )
-
-(defmacro setq-major-mode (varname modename value)
-  "Assign into VARNAME for all modes of MODENAME a new VALUE.
-VARNAME is a symbol (unquoted).
-MODENAME must be a major mode variable, or the assignment is useless.
-VALUE is the new value to be assigned.
-The assignments is saved for new buffers created of class MODENAME,
-and assigned into those modes.
-All existing modes of a given type will be given VALUE also."
-  `(semantic-setq-major-mode ',varname ',modename ,value))
 
 (provide 'semantic-fw)
 
