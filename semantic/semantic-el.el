@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.1 1999/05/03 18:06:27 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.2 1999/05/05 11:38:29 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -45,18 +45,18 @@
     ;; When parsing at depth 0, we need to extract elements from semantic
     ;; lists at bovine-toplevel.  This symbol provides the needed redirection.
     (extract-toplevel
-     (function) (variable) (include) (comment))
+     (function) (variable) (include) (code) (comment))
     ;; A function is anything that starts with a (defun
     (function
-     (open-paren symbol "defun" symbol arg-list string
+     (open-paren symbol "defun\\|defmacro" symbol arg-list; string
 		 (lambda (vals start end)
-		   (list 'function (nth 2 vals) nil (nth 3 vals) nil;(nth 4 vals)
+		   (list (nth 2 vals) 'function nil (nth 3 vals) nil;(nth 4 vals)
 			 start end))))
     ;; A variable can be a defvar or defconst.
     (variable
      (open-paren symbol "defvar\\|defconst" symbol expression string
 		 (lambda (vals start end)
-		   (list 'variable (nth 2 vals) nil
+		   (list (nth 2 vals) 'variable nil
 			 (if (string= (nth 1 vals) "defconst") t nil)
 			 nil;(nth 4 vals)
 			 start end))))
@@ -64,7 +64,15 @@
     (include
      (open-paren symbol "require" quote symbol
 		 (lambda (vals start end)
-		   (list 'include (nth 3 vals) nil start end))))
+		   (list (nth 3 vals) 'include nil start end))))
+    ;; Some random code stuck in there.
+    (code
+     (open-paren symbol
+		 (lambda (vals start end)
+		   (let ((sym (if (nth 1 vals) (intern-soft (nth 1 vals)))))
+		     (if (and sym (fboundp sym))
+			 (list (nth 1 vals) 'code start end)
+		       )))))
     ;; Quotes are oft optional in some cases
     (quote (punctuation "'"))
     ;; Something that can be evaluated out to something.
@@ -81,6 +89,8 @@
      )
     ;; This guys is some number of argument symbols...
     (argsyms
+     (open-paren close-paren (lambda (vals start end)
+			       (list nil start end)))
      (open-paren argsyms (lambda (vals start end)
 			   (append (car (cdr vals)) (list start end))))
      (symbol argsyms (lambda (vals start end)
