@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2.1
 ;; Keywords: tags, tools, w3
-;; X-RCS: $Id: sb-w3.el,v 1.8 2002/02/06 18:58:23 zappo Exp $
+;; X-RCS: $Id: sb-w3.el,v 1.9 2002/02/28 16:32:19 zappo Exp $
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -50,7 +50,10 @@
 ;; 0.2.1 - Added new keymap support
 
 ;;; Code:
-(require 'w3-imenu)
+(eval-and-compile
+  (condition-case nil
+      (require 'w3-imenu)
+    (error nil)))
 (require 'cl)
 (require 'speedbar)
 
