@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.47 2001/10/02 18:52:21 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.48 2001/10/03 17:54:07 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1450,6 +1450,55 @@ That is remove the unsupported :help stuff."
        :help "Copy the current token to a register"
        ])
     )
+   "--"
+   (list
+    "Chart"
+    (senator-menu-item
+     [ "Chart Tokens by Class"
+       semantic-chart-nonterminals-by-token
+       :active t
+       :help "Catagorize all tokens by type, and chart the volume for each type"
+       ])
+    (senator-menu-item
+     [ "Chart Tokens by Complexity"
+       semantic-chart-nonterminal-complexity-token
+       :active t
+       :help "Choose the most complex tokens, and chart them by complexity"
+       ])
+    (senator-menu-item
+     [ "Chart File Complexity"
+       semantic-chart-database-size
+       :active (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+       :help "Choose the files with the most tokens, and chart them by volume"
+       ])
+    )
+   (list
+    "Modes"
+    (senator-menu-item
+     [ "Highlight Dirty Tokens"
+       semantic-show-dirty-mode
+       :active t
+       :style toggle
+       :selected semantic-show-dirty-mode
+       :help "Highlight tokens in the current buffer which need to be reparsed."
+       ])
+    (senator-menu-item
+     [ "Highlight Unmatched Syntax"
+       semantic-show-unmatched-syntax-mode
+       :active t
+       :style toggle
+       :selected semantic-show-unmatched-syntax-mode
+       :help "Highlight syntax which is not recognized valid syntax."
+       ])
+    (senator-menu-item
+     [ "Semantic Database"
+       semanticdb-toggle-global-mode
+       :active (featurep 'semanticdb)
+       :style toggle
+       :selected (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
+       :help "Cache tokens for killed buffers and between sessions."
+       ])
+    )
    "-"
    (list
     "Imenu Config"
@@ -1549,15 +1598,6 @@ That is remove the unsupported :help stuff."
        :help "If listing other buffers, update all buffer menus after a parse"
        ])
     )
-   (senator-menu-item
-    [ "Semantic Database"
-      semanticdb-toggle-global-mode
-      :active (featurep 'semanticdb)
-      :style toggle
-      :selected (and (featurep 'semanticdb) (semanticdb-minor-mode-p))
-      :help "Cache tokens for killed buffers and between sessions."
-      ])
-   "-"
    (list
     "Options"
     (senator-menu-item
