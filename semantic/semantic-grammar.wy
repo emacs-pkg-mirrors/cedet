@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.7 2003/08/11 06:34:17 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.8 2003/08/15 13:06:17 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -48,6 +48,7 @@
 %token SCOPESTART      "%scopestart"
 %token START           "%start"
 %token TOKEN           "%token"
+%token USE-MACROS      "%use-macros"
 
 ;; Obsolete keywords
 %token KEYWORDTABLE    "%keywordtable"
@@ -119,6 +120,7 @@ decl:
   | scopestart_decl
   | start_decl
   | token_decl
+  | use_macros_decl
  ;; Obsoletes declarations    
   | keywordtable_decl
   | outputfile_decl
@@ -231,6 +233,12 @@ token_type_opt:
 token_type:
     LT SYMBOL GT
     (progn $2)
+  ;
+
+use_macros_decl:
+    USE-MACROS SYMBOL put_name_list
+    (let* ((names (mapcar 'semantic-tag-name $3)))
+      `(TAG "macro" 'macro :type ',$2 :value ',names))
   ;
 
 ;;; OBSOLETE Declarations
