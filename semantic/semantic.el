@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.118 2001/09/26 00:43:14 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.119 2001/09/27 00:52:22 zappo Exp $
 
 (defvar semantic-version "1.4beta11"
   "Current version of Semantic.")
@@ -251,6 +251,18 @@ marked dirty if the buffer is completely reparsed.  In that case, use
   "Hooks run when semantic detects a change in a buffer.
 Each hook function must take three arguments, identical to the
 common hook `after-change-functions'.")
+
+(defvar semantic-unmatched-syntax-hook nil
+  "Hooks run when semantic detects syntax not matched in a grammar.
+Each individual piece of syntax (such as a symbol or punctuation
+character) is called with this hook when it doesn't match in the
+grammar, and multiple unmatched syntax elements are not grouped
+together.  Each hook is called with one argument, which is a list of
+syntax tokens created by the semantic lexer.  Use the functions
+`semantic-flex-start', `semantic-flex-end' and `semantic-flex-text' to
+get information about these tokens.  The current buffer is the buffer
+these tokens are derived from.")
+
 
 (defvar semantic-bovinate-toplevel-override nil
   "Local variable set by major modes which provide their own bovination.
@@ -833,7 +845,9 @@ DEPTH is optional, and defaults to 0.
 Optional argument RETURNONERROR indicates that the parser should exit with
 the current results on a parse error."
   (if (not depth) (setq depth semantic-flex-depth))
-  (let ((result nil) (case-fold-search semantic-case-fold))
+  (let ((result nil)
+	(homeless-syntax nil)
+	(case-fold-search semantic-case-fold))
     (while stream
       (let* ((nontermsym
 	      (semantic-bovinate-nonterminal
@@ -854,10 +868,13 @@ the current results on a parse error."
 	      ;; No error in this case, a purposeful nil means don't store
 	      ;; anything.
 	      )
-	  (if returnonerror (setq stream nil))
-	  ;;(error "Parse error")
-	  )
-	;; Designated to ignore.
+	  (if returnonerror
+	      (setq stream nil)
+	    ;; The current item in the stream didn't match, so add it to
+	    ;; the list of syntax items which didn't match.
+	    (setq homeless-syntax (cons (car stream) homeless-syntax))
+	    ))
+	;; De)ignated to ignore.
 	(setq stream (car nontermsym)))
       (if stream
 	  (if (eq semantic-bovination-working-type 'percent)
@@ -865,6 +882,8 @@ the current results on a parse error."
 			       (* 100.0 (/ (float (car (cdr (car stream))))
 					   (float (point-max))))))
 	    (working-dynamic-status))))
+    (run-hook-with-args 'semantic-unmatched-syntax-hook
+			homeless-syntax)
     result))
 
 (defun semantic-rebovinate-token (token)
