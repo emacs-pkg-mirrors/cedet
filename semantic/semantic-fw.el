@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.34 2004/03/08 12:00:48 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.35 2004/03/08 14:03:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -458,17 +458,22 @@ BUFFER defaults to the current buffer."
 That is, copy mode local bindings into corresponding buffer local
 variables.
 If MODE is not specified it defaults to current `major-mode'."
-  (let ((mode (or mode major-mode))
-        table)
+  (let (modes table)
+    (or mode (setq mode major-mode))
+    ;; Get MODE's parents & MODE in the right order.
     (while mode
-      (when (setq table (get mode 'semantic-symbol-table))
+      (setq modes (cons mode modes)
+            mode  (semantic-get-parent-mode mode)))
+    ;; Activate mode bindings following parent modes order.
+    (while modes
+      (when (setq table (get (car modes) 'semantic-symbol-table))
         (mapatoms
          #'(lambda (var)
              (if (get var 'mode-var)
                  (semantic-set-local-variable
                   (intern (symbol-name var)) (symbol-value var))))
          table))
-      (setq mode (semantic-get-parent-mode mode)))))
+      (setq modes (cdr modes)))))
 
 (defun semantic-deactivate-mode-bindings (&optional mode)
   "Deactivate variables defined locally in MODE and its parents.
