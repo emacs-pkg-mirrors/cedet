@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.16 2001/09/27 21:06:27 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.17 2001/10/03 18:00:02 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -794,53 +794,6 @@ unnecessary stuff to improve performance.")
      (LPAREN . "(")))
   "Java tokens.")
 
-(defconst wisent-java-number-regexp
-  (eval-when-compile
-    (concat "\\("
-            "\\<[0-9]+[.][0-9]+\\([eE][-+]?[0-9]+\\)?[fFdD]?\\>"
-            "\\|"
-            "\\<[0-9]+[.][eE][-+]?[0-9]+[fFdD]?\\>"
-            "\\|"
-            "\\<[0-9]+[.][fFdD]\\>"
-            "\\|"
-            "\\<[0-9]+[.]"
-            "\\|"
-            "[.][0-9]+\\([eE][-+]?[0-9]+\\)?[fFdD]?\\>"
-            "\\|"
-            "\\<[0-9]+[eE][-+]?[0-9]+[fFdD]?\\>"
-            "\\|"
-            "\\<0[xX][0-9a-fA-F]+[lL]?\\>"
-            "\\|"
-            "\\<[0-9]+[lLfFdD]?\\>"
-            "\\)"
-            ))
-  "Lexer regexp to match Java number terminals.
-Following is the specification of Java number literals.
-
-DECIMAL_LITERAL:
-    [1-9][0-9]*
-  ;
-HEX_LITERAL:
-    0[xX][0-9a-fA-F]+
-  ;
-OCTAL_LITERAL:
-    0[0-7]*
-  ;
-INTEGER_LITERAL:
-    <DECIMAL_LITERAL>[lL]?
-  | <HEX_LITERAL>[lL]?
-  | <OCTAL_LITERAL>[lL]?
-  ;
-EXPONENT:
-    [eE][+-]?[09]+
-  ;
-FLOATING_POINT_LITERAL:
-    [0-9]+[.][0-9]*<EXPONENT>?[fFdD]?
-  | [.][0-9]+<EXPONENT>?[fFdD]?
-  | [0-9]+<EXPONENT>[fFdD]?
-  | [0-9]+<EXPONENT>?[fFdD]
-  ;")
-
 ;;;;
 ;;;; The Java Lexer
 ;;;;
@@ -867,23 +820,6 @@ positions of the token in input."
               y (semantic-flex-keyword-p x))
         (setq lex (cons y (cons x (cdr tk)))
               is  (cdr is)))
-       
-       ;; Number
-       ;; -------
-       ((save-excursion
-          (setq x (semantic-flex-start tk))
-          (goto-char x)
-          (if (looking-at wisent-java-number-regexp)
-              (progn
-                (setq y (match-end 0))
-                ;; Adjust input stream.
-                (while (and tk (<= (semantic-flex-end tk) y))
-                  (setq is (cdr is)
-                        tk (car is)))
-                (setq lex (cons 'NUMBER_LITERAL
-                                (cons
-                                 (buffer-substring-no-properties x y)
-                                 (cons x y))))))))
        
        ;; Punctuation
        ;; -----------
@@ -920,6 +856,13 @@ positions of the token in input."
                      wisent-java-tokens 'paren x))
             (error "Invalid %s %s in input" ft x))
         (setq lex (cons y (cons x (cdr tk)))
+              is  (cdr is)))
+       
+       ;; Number
+       ;; -------
+       ((eq ft 'number)
+        (setq lex (cons 'NUMBER_LITERAL
+                        (cons (semantic-flex-text tk) (cdr tk)))
               is  (cdr is)))
        
        ;; String
@@ -1059,6 +1002,8 @@ Use the alternate LALR(1) parser."
      wisent-lexer-function 'wisent-java-lex
      ;; How `semantic-flex' will setup the lexer input stream.
      wisent-flex-depth nil
+     ;; Tell `semantic-flex' to handle Java numbers
+     semantic-number-expression semantic-java-number-regexp
      ;; Java is case sensitive
      semantic-case-fold nil
      ;; function to use when creating items in imenu
