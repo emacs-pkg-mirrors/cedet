@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.125 2001/10/28 01:59:06 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.126 2001/11/02 21:37:08 ponced Exp $
 
 (defvar semantic-version "1.4beta12"
   "Current version of Semantic.")
@@ -774,6 +774,7 @@ that, otherwise, do a full reparse."
 	semantic-toplevel-bovine-force-reparse nil
         semantic-unmatched-syntax-cache-check nil
         semantic-bovinate-nonterminal-check-obarray nil)
+  (make-local-hook 'after-change-functions)
   (add-hook 'after-change-functions 'semantic-change-function nil t)
   (run-hook-with-args 'semantic-after-toplevel-cache-change-hook
 		      semantic-toplevel-bovine-cache)
