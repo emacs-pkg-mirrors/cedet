@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.41 2001/05/23 08:24:57 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.42 2001/07/13 16:07:05 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -693,6 +693,7 @@ NO-DEFAULT switches like this:
 - - \\[universal-argument] -     NO-DEFAULT.
 - - \\[universal-argument] \\[universal-argument]   IN-CONTEXT + NO-DEFAULT."
   (interactive (senator-jump-interactive "Jump to: " nil nil t))
+  (push-mark)
   (let ((tok (senator-jump-noselect sym no-default)))
     (when tok
       (switch-to-buffer (semantic-token-buffer tok))
