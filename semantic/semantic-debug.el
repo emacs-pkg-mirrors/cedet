@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-debug.el,v 1.3 2003/02/13 02:44:44 zappo Exp $
+;; X-RCS: $Id: semantic-debug.el,v 1.4 2003/02/14 19:02:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -379,14 +379,9 @@ Argument ONOFF is non-nil when we are entering debug mode."
 The parser needs to be on the load path, or this routine returns nil."
   (if (not semantic-debug-parser-source)
       (error "No parser is associated with this buffer"))
-  (let ((lp load-path)
-	(parser nil))
-    (while (and lp (not parser))
-      (let ((tmp (concat (car lp) "/" semantic-debug-parser-source)))
-	(if (file-exists-p tmp)
-	    (setq parser tmp)))
-      (setq lp (cdr lp)))
-    (find-file-noselect parser)))
+  (let ((parser (locate-library semantic-debug-parser-source t)))
+    (if parser
+	(find-file-noselect parser))))
 
 ;;; Debugger commands
 ;;
