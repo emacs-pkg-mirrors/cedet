@@ -2,7 +2,7 @@
 ;; EDE project file.
 (ede-proj-project "EDE"
   :name "EDE"
-  :version "1.0.beta2"
+  :version "1.0.beta3"
   :file "Project.ede"
   :targets (list 
    (ede-proj-target-elisp "ede"
@@ -34,6 +34,8 @@
     )
    )
   :web-site-url "http://cedet.sourceforge.net/ede.shtml"
+  :web-site-directory "../www"
+  :web-site-file "ede.shtml"
   :ftp-upload-site "/ftp@upload.sourceforge.net:/incoming"
   :configuration-variables 'nil
   )
