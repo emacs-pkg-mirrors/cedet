@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.41 2001/05/20 12:42:16 zappo Exp $
+@c $Id: eieio.texi,v 1.42 2001/05/31 16:35:16 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -868,7 +868,7 @@ Same as @code{same-class-p} except this is a macro and no type checking
 is performed.
 @end defun
 
-@defun obj-of-class-p obj class
+@defun object-of-class-p obj class
 Returns @code{t} if @var{obj} inherits anything from @var{class}.  This
 is different from @code{same-class-p} because it checks for inheritance.
 @end defun
@@ -925,7 +925,7 @@ objects on top of vectors, and thus everything is technically visible,
 some functions have been provided.  None of these functions are a part
 of CLOS.
 
-@defun obj-slots obj
+@defun object-slots obj
 Return the list of public slots for @var{obj}.
 @end defun
 
