@@ -6,7 +6,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.17
-;; RCS: $Id: eieio.el,v 1.104 2001/05/19 21:11:56 zappo Exp $
+;; RCS: $Id: eieio.el,v 1.105 2001/05/20 12:41:05 zappo Exp $
 ;; Keywords: OO, lisp
 (defvar eieio-version "0.17beta2"
   "Current version of EIEIO.")
@@ -503,8 +503,8 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	;; name whose purpose is to set the value of the slot.
 	(if writer
 	    (progn
-	      (eieio-defmethod write
-		(list (list 'value (list 'this cname))
+	      (eieio-defmethod writer
+		(list (list (list 'this cname) 'value)
 		      (format "Set the slot `%s' of an object of class `%s'"
 			      name cname)
 		      `(setf (slot-value this ',name) value)))
@@ -1240,10 +1240,16 @@ make a slot unbound."
   "In OBJECT, make SLOT unbound."
   (eieio-oset object slot eieio-unbound))
 
-(defun slot-exists-p (object slot)
-  "Non-nil if OBJECT contains SLOT."
-  (let ((cv (class-v (object-class object))))
-    (memq slot (aref cv class-public-a))))
+(defun slot-exists-p (object-or-class slot)
+  "Non-nil if OBJECT-OR-CLASS has SLOT."
+  (let ((cv (class-v (cond ((object-p object-or-class)
+			    (object-class object-or-class))
+			   ((class-p object-or-class)
+			    object-or-class))
+		     )))
+    (or (memq slot (aref cv class-public-a))
+	(memq slot (aref cv class-class-allocation-a)))
+    ))
 
 (defun find-class (symbol &optional errorp)
   "Return the class that SYMBOL represents. (CLOS function)
