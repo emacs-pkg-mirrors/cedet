@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-format.el,v 1.1 2003/04/07 07:21:10 zappo Exp $
+;; X-RCS: $Id: semantic-format.el,v 1.2 2003/04/08 03:26:27 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -203,26 +203,31 @@ COLOR specifies if color should be used."
 
 ;;; Data Type
 ;;
-(defun semantic--format-tag-type(tag color)
+(define-overload semantic-format-tag-type (tag color)
   "Convert the data type of TAG to a string usable in tag formatting.
-It is presumed that TYPE is a string or semantic tag."
+It is presumed that TYPE is a string or semantic tag.")
+
+(defun semantic-format-tag-type-default (tag color)
+  "Convert the data type of TAG to a string usable in tag formatting.
+Argument COLOR specifies to colorize the text."
   (let* ((type (semantic-tag-type tag))
-	 (point (semantic-tag-get-attribute tag 'pointer))
-	 (ref (semantic-tag-get-attribute tag 'reference))
 	 (out (cond ((semantic-tag-p type)
-		     (semantic-format-tag-prototype type nil color))
+		     (let ((typetype (semantic-tag-type type))
+			   (name (semantic-tag-name type)))
+		       (semantic--format-colorize-text
+			(if typetype
+			    (concat typetype " " name)
+			  name)
+			'type)))
 		    ((and (listp type)
 			  (stringp (car type)))
 		     (car type))
 		    ((stringp type)
 		     type)
 		    (t nil))))
-    (if ref (setq ref "&"))
-    (if point (setq point (make-string point ?*)) "")
     (if (and color out)
-	(setq out (semantic--format-colorize-text out 'type)))
-    (when out
-      (setq out (concat out ref point)))
+	(setq out (semantic--format-colorize-text out 'type))
+      out)
     ))
 
 
@@ -343,7 +348,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
   (let* ((class (semantic-tag-class tag))
 	 (name (semantic-format-tag-name tag parent color))
 	 (type (if (member class '(function variable type))
-		   (semantic--format-tag-type tag color)))
+		   (semantic-format-tag-type tag color)))
 	 (args (semantic--format-tag-arguments
 		(cond ((eq class 'function)
 		       (semantic-tag-function-arguments tag))
@@ -474,7 +479,7 @@ If PROTECTION-SYMBOL is unknown, then the return value is
 (defun semantic--format-tag-uml-type (tag color)
   "Format the data type of TAG to a string usable for formatting.
 COLOR indicates if it should be colorized."
-  (let ((str (semantic--format-tag-type tag color)))
+  (let ((str (semantic-format-tag-type tag color)))
     (if str
 	(concat semantic-uml-colon-string str))))
 
@@ -526,7 +531,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 		  ")"))
 		((eq class 'type)
 		 "{}")))
-	 )
+	 (text nil))
     (setq text (concat prot cp argtext type))
     (if color
 	(setq text (semantic--format-uml-post-colorize text tag parent)))
