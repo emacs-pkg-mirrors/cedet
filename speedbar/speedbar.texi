@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.5 1999/09/15 22:17:54 zappo Exp $
+@c $Id: speedbar.texi,v 1.6 1999/09/19 12:34:25 zappo Exp $
 @c
 
 @c This manual covers the tool "speedbar", and is a part of it's
@@ -48,23 +48,25 @@ Speedbar is a program for Emacs which can be used to summarize
 information about the current buffer.  It's inspiration was the classic
 "explorer" often used in modern development environments.
 
-Speedbar displays a tall narrow frame in which a classic tree-view is
-shown.  This tree view defaults to containing a list of files.  These
-files can be "expanded" to list tags inside, or files in a directory.
-Each file or tag can be jumped to immediately.
+Speedbar displays a narrow frame in which a tree view is shown.  This
+tree view defaults to containing a list of files and directories.  Files
+can be "expanded" to list tags inside. Directories can be expanded to
+list the files within itself.  Each file or tag can be jumped to
+immediately.
 
-Speedbar expands upon classic "explorer" windows by constantly
-maintaining context with the user.  The "current buffer" file is always
-highlighted, and when directories are switched, speedbar follows.
-Speedbar also mimics the classic explorer by providing multiple display
-modes.  These modes come in two flavors.  Major display modes remain
-consistent across buffers, and minor ones appear only when a buffer of
-the applicable type is shown.  This provides authors of other packages
-to provide speedbar summaries customized to their tastes.
+Speedbar expands upon classic "explorer" windows by maintaining context
+with the user.  For example, when using the file view, the current
+buffer's file is highlighted.  Speedbar also mimics the classic explorer
+window by providing multiple display modes.  These modes come in two
+flavors.  Major display modes remain consistent across buffers, and
+minor display modes appear only when a buffer of the applicable type is
+shown.  This provides authors of other packages to provide speedbar
+summaries customized to the needs of that mode.
 
 Throughout this manual, activities are defined as "clicking on", or
-"expanding" items.  Clicking means using @kbd{mouse-2}.  Expanding has a
-more complex meaning  @xref{Basic Navigation}.
+"expanding" items.  Clicking means using clicking @kbd{mouse-2} on a
+button.  Expanding refers to clicking on an expansion button to display
+a summary of the entry the exapansion button is on. @xref{Basic Navigation}.
 
 @menu
 * Introduction::     Basics of speedbar.
@@ -82,37 +84,39 @@ more complex meaning  @xref{Basic Navigation}.
 @chapter Introduction
 @cindex introduction
 
-Speedbar can be started using the command @kbd{M-x speedbar RET} or from
-the menu bar in versions of Emacs with speedbar installed by default.
-The first thing speedbar does is attempt to create a new frame.  On X
-windows, or under Windows NT, speedbar's frame is twenty characters
-wide, and attempts to mimic the height of the frame from which it was
-started.  It then places itself to the left or right of the frame you
-started it from.
+To start using speedbar use the command @kbd{M-x speedbar RET} or select
+it from the menu bar in versions of Emacs with speedbar installed by
+default.  This command will open a new frame to summarize the local
+files.  On X windows, or under Windows NT, speedbar's frame is twenty
+characters wide, and will mimic the height of the frame from which it
+was started.  It then places itself to the left or right of the frame
+you started it from.
 
-Speedbar's relationship with the frame you started it from is very
-important.  This frame is the "attached frame" which speedbar always
-uses as a reference point.  Once started speedbar watches this frame,
-and attempts to make it's contents relevant to whatever buffer is
-currently loaded into the attached frame.  In addition, all requests
-made in speedbar that require the display of some buffer will display in
-the attached frame.
+To use speedbar effectivly, it is important to understand its
+relationship with the frame you started it from.  This frame is the
+"attached frame" which speedbar will use as a reference point.  Once
+started speedbar will watch the contents of this frame, and attempts to
+make it's contents relevant to the buffer loaded into the attached
+frame.  In addition, all requests made in speedbar that require the
+display of some buffer will display in the attached frame.
 
-If you are using speedbar in terminal mode, the new frame appears the
-normal size, as one would expect in a terminal.  Since it is not
-visible, speedbar is always in "slowbar" mode, where no tracking is done
-unless speedbar is explicitly requested again.
+If you use speedbar in terminal mode, the new frame appears the same
+size as the terminal.  Since it is not visible while working in the
+attached frame, speedbar will save time by using "slowbar" mode, where
+no tracking is done until speedbar is requested to show itself.
 
 The function to use when switching between frames using the keyboard is
-`speedbar-get-focus'.  This function is a toggle between frames, and is
-especially useful to bind to a key in terminal mode @xref{Customizing}.
+@fcn{speedbar-get-focus}.  This function will toggle between frames, and
+useful to bind to a key in terminal mode @xref{Customizing}.
 
 @node Basic Navigation, File Mode, Introduction, Top
 @comment  node-name,  next,  previous,  up
 @chapter Basic Navigation
 
-Speedbar has several display and behavior modes.  These modes all have a
-common behavior, menu system, and look.
+Speedbar can display different types of data, and has several display
+and behavior modes.  These modes all have a common behavior, menu
+system, and look.  If one mode is learned, then the other modes are easy
+to use.
 
 @menu
 * Basic Keybindings::
@@ -160,9 +164,9 @@ the same current depth.
 Switch buffers in the attached frame.
 @end table
 
-Speedbar can handle multiple modes, and two are provided by default.
-These modes are the File mode, and Buffers mode.  Speedbar provides
-accelerators to switch into these different modes.
+Speedbar can handle multiple modes.  Two are provided by default.
+These modes are File mode, and Buffers mode.  There are accelerators to
+switch into these different modes.
 
 @cindex mode switching hotkeys
 @table @kbd
@@ -172,11 +176,11 @@ previous display mode is restored.
 @item f
 Switch into Files mode.
 @item r
-Switch back to whatever the previous mode was.
+Switch back to the previous mode was.
 @end table
 
-Some modes provides groups, lists and tags.  @xref{Basic Visuals}.  When
-these are available, some additional common bindings are available.
+Some modes provide groups, lists and tags.  @xref{Basic Visuals}.  When
+these are available some additional common bindings are available.
 
 @cindex common keys
 @table @kbd
@@ -195,32 +199,35 @@ Contract the current group, hiding sub items.
 @section Basic Visuals
 @cindex visuals
 
-Speedbar uses visual queues for indicating different types of data.
-These queues are used consistently across the different speedbar modes.
+Speedbar has visual cues for indicating different types of data.  These
+cues are used consistently across the different speedbar modes to make
+them easier to understand.
 
-The most basic visual affect is color, and mouse highlighting.  Anything
-the mouse highlights can be clicked on. @xref{Mouse Bindings}.  Anything
-not colored will also not be clickable.
+At a high level, in Files mode, there are directory buttons, sub
+directory buttons, File buttons, tag buttons, and expansion buttons.
+This permits to to use the mouse to navigate a directory tree, and
+quickly view files, or a summary of those files.
 
-Text in speedbar consists of three different types of data.  Plaintext,
-such as labels or separators, Groups, and tags.  Some items also get
-boolean flags.
+The most basic visual effect used to distinguis between these button
+types is color and mouse highlighting.  Anything the mouse highlights
+can be clicked on and is called a button @xref{Mouse Bindings}.
+Anything not highlighted by the mouse will not be clickable.
 
-@subsubsection Plaintext
-
-Plaintext generally starts in column 0, without any special symbols.  In
-File mode, the current directory label is like this.  In buffers mode,
-different buffer groups are prefixed with a description of what they are
-like.
-
-Plaintext will appear white, and not be clickable.
+Text in speedbar consists of four different types of data.  Knowing how
+to read these textual elements will make it easier to navigate by
+identifying the types of data available.
 
 @subsubsection Groups
 @cindex groups
 
-Groups can appear at different levels, and are prefixed with a + in some
-sort of "box".  In files mode, directories are "groups" where the + is
-surrounded by angle brackets like this:
+Groups summarize information in a single line, and provide a high level
+view of more complex systems, like a directory tree, or manual chapters.
+
+Groups appear at different indentation levels, and are prefixed with a
+@code{+} in some sort of "box".  The group name will summarize the
+information within it, and the expansion box will display that
+information inline.  In files mode, directories and files are "groups"
+where the @code{+} is surrounded by brackets like this:
 
 @example
 <+> include
@@ -229,56 +236,77 @@ surrounded by angle brackets like this:
 @end example
 
 In this example, we see both open and closed directories, in addition to
-a file.
+a file.  The directories have a box consisting of angle brackets, and a
+file uses square brackets.
 
 In all modes, a group can be "edited" by pressing @kbd{RET}, meaning a
 file will be opened, or a directory explicitly opened in speedbar.  A
 group can be expanded or contracted using @kbd{+} or
 @kbd{-}. @xref{Basic Keybindings}.
 
-Sometimes groups may have a ? in it's indicator "box".  This means that
-it is a group type, but there are no contents, or no known way of
+Sometimes groups may have a @code{?} in it's indicator box.  This means
+that it is a group type, but there are no contents, or no known way of
 extracting contents of that group.
+
+When a group has been expanded, the indicator button changes from
+@code{+} to @code{-}.  This indicates that the contents are being shown.
+Click the @code{-} button to contract the group, or hide the contents
+currently displayed.
 
 @subsubsection Tags
 @cindex tags
 
-Tags are the leaf nodes of the system.  Tags are generally prefixed with
-a simple plaintext symbol character, such as ">".  Tags can only be
-jumped to using @kbd{RET} or @kbd{e}.
+Tags are the leaf nodes of the tree system.  Tags are generally prefixed
+with a simple character, such as @code{>}.  Tags can only be jumped to using
+@kbd{RET} or @kbd{e}.
 
 @subsubsection Boolean Flags
 
 Sometimes a group or tag is given a boolean flag.  These flags appear as
-extra plaintext characters at the end of the line.  At the moment, only
-Files mode uses boolean flags, such as a @asis{*} to indicate that a
-file has been checked out of a versioning system.
+extra text characters at the end of the line.  Files mode uses boolean
+flags, such as a @code{*} to indicate that a file has been checked out
+of a versioning system.
 
+For additional flags,
 @c Note to self, update these to sub-nodes which are more relevant.
 @xref{File Mode}, @xref{Version Control}.
 
-@subsubsection Color Queues
+@subsubsection Unadorned Text
+
+Unadorned text generally starts in column 0, without any special symbols
+prefixing them.  In buffers mode different buffer groups are prefixed
+with a description of what the following buffers are (Files, scratch
+buffers, and invisible buffers.)
+
+Unadorned text will generally be colorless, and not be clickable.
+
+@subsubsection Color Cues
 
 Each type of Group, item indicator, and label is given a different
 color.  The colors chosen are dependent on a light or dark background.
 Of important note is that the "current item", which may be a buffer or
-file name, is highlighted red, and underlined.  In addition, the cursor
-is generally moved to that line.
+file name, is highlighted red, and underlined.
 
 Colors can be customized from the group @code{speedbar-faces}.  Some
 modes, such as for Info, will use the Info colors instead of default
 speedbar colors as an indication of what is currently being displayed.
+
+The face naming convention mirrors the File display mode.  Modes which
+do not use files will attempt to use the same colors on analogous
+entries.
 
 @node Mouse Bindings, Displays Submenu, Basic Visuals, Basic Navigation
 @comment  node-name,  next,  previous,  up
 @section Mouse Bindings
 @cindex mouse bindings
 
-Speedbar's display is made of of different textual queues which provide
-buttons which can be clicked on @xref{Basic Visuals}.  Anything that
-highlights can be clicked on with the mouse, or affected by the menu.
+The mouse has become a common information navigation tool.  Speedbar
+will use the mouse to navigate file systems, buffer lists, and other
+data.  The different textual cues provide buttons which can be clicked
+on @xref{Basic Visuals}.  Anything that highlights can be clicked on
+with the mouse, or effected by the menu.
 
-In general, these are the bindings:
+These are the bindings:
 @table @kbd
 @item mouse-1
 Move cursor to that location
@@ -289,69 +317,77 @@ click, and useful for windows users with only two button mice.
 @cindex power click
 Power click, which is the same as activate, except some other useful
 thing happens.  If a group @code{+} is clicked, any caches are flushed,
-and subitems re-read.  If it is a buffer or file, it will be opened in a
-new frame.
+and subitems re-read.  If it is a name, it will be opened in a new
+frame.
 @item mouse-3
-Activate speedbar menu.  The item selected affects the line clicked, not
+Activate speedbar menu.  The item selected effects the line clicked, not
 the line where the cursor was. 
 @item mode-line mouse-1
-Activate the menu.  This affects the item the cursor is on, since the
+Activate the menu.  This effects the item the cursor is on, since the
 mouse was not clicked on anything.
 @item C-mouse-1
 Buffers sub-menu.  The buffer in the attached frame is switched.
 @end table
 
-Also, when speedbar is selected, and the mouse moves over items, details
-of that item should be displayed in the minibuffer of the attached
-frame.  Sometimes this can contain extra information such as file
-permissions, or tag location.
+When the mouse moves over buttons in speedbar, details of that item
+should be displayed in the minibuffer of the attached frame.  Sometimes
+this can contain extra information such as file permissions, or tag
+location.
 
 @node Displays Submenu, , Mouse Bindings, Basic Navigation
 @comment  node-name,  next,  previous,  up
 @section Displays Submenu
 @cindex displays submenu
 
-In the main menu, found by clicking @kbd{mouse-3}, a submenu labeled
-"Displays" is available.  This submenu lets you easily choose between
-different display modes in speedbar.
+You can display different data by using different display modes.  These
+specialized modes make it easier to navigate the relevent pieces of
+information, such as files and directories, or buffers.
 
-This menu only contains modes currently loaded into emacs.  By default,
-this would include Files, Quick Buffers, and Buffers.  Other major
-display modes, such as Info are loaded separately.
+In the main menu, found by clicking @kbd{mouse-3}, there is a submenu
+labeled "Displays".  This submenu lets you easily choose between
+different display modes.
+
+The contents are modes currently loaded into emacs.  By default, this
+would include Files, Quick Buffers, and Buffers.  Other major display
+modes such as Info are loaded separately.
 
 @node File Mode, Buffer Mode, Basic Navigation, Top
 @comment  node-name,  next,  previous,  up
 @chapter File Mode
 @cindex file mode
 
-The most common mode for speedbar is Files Mode.  In this mode,
-directories, files, and file tags can all be manipulated in a clean tree
-form.
+File mode displays a summary of your current directory.  You can display
+files in the attached frame, or summarize the tags found in files.  You
+can even see if a file is checked out of a version control system, or
+has some associated object file.
+
+Advanced behaviors, like copying and renaming files is also provided.
 
 @menu
 * Directory Display::   What the display means.
+* Hidden Files::        How to display hidden files.
 * File Keybindings::    Performing file operations.
 @end menu
 
-@node Directory Display, File Keybindings, File Mode, File Mode
+@node Directory Display, Hidden Files, File Mode, File Mode
 @comment  node-name,  next,  previous,  up
 @section Directory Display
 @cindex directory display
 
-In this mode, there are three major sections in the display.  The first
-line or two shows the root directory speedbar is currently viewing.  You
-can jump to one of the parent directories by clicking on the part of the
-directory in the first line you wish to jump to.
+There are three major sections in the display.  The first line or two is
+the root directory speedbar is currently viewing.  You can jump to one
+of the parent directories by clicking on the name of the directory you
+wish to jump to.
 
 Next, directories are listed.  A directory starts with the group
-indicator @asis{<+>}.  Clicking the directory name makes speedbar load
-that directory as the root directory for its display.  Clicking the
-@asis{<+>} will list all directories and files indented beneath.
+indicator button @code{<+>}.  Clicking the directory name makes speedbar
+load that directory as the root directory for its display.  Clicking the
+@code{<+>} button will list all directories and files beneath.
 
-Next, files are listed.  Files start with the group indicator @asis{[+]}
-or @asis{[?]}.  You can jump to a file in the attached frame by clicking
-on the file name.  You can open a file and look at it's major tags by
-clicking on the @asis{[+]} symbol near the file name.
+Next, files are listed.  Files start with the group indicator @code{[+]}
+or @code{[?]}.  You can jump to a file in the attached frame by clicking
+on the file name.  You can expand a file and look at it's major tags by
+clicking on the @code{[+]} symbol near the file name.
 
 A typical session might look like this:
 @example
@@ -377,13 +413,13 @@ A typical session might look like this:
 @end example
 
 In this example, you can see several directories.  The directory
-@file{speedbar} has been opened inline.  Inside the directory speedbar
-the file @file{speedbar.el} has it's tags exposed.  These tags are
-extensive, and they are summarized into groups.
+@file{speedbar} has been opened inline.  Inside the directory
+@file{speedbar} the file @file{speedbar.el} has it's tags exposed.
+These tags are extensive, and they are summarized into tag groups.
 
 Files get additional boolean flags associated with them.  Valid flags are:
 @cindex file flags
-@table @asis
+@table @code
 @item *
 This file has been checked out of a version control
 system. @xref{Version Control}.
@@ -400,9 +436,12 @@ symbol will show all symbols that have been organized into that group.
 Different types of files have unique tagging methods as defined by their
 major mode, and the package @file{imenu}.
 
-Tag groups are defined in multiple ways.  Imenu keywords can explicitly
-create a group.  In this case, @samp{Types} and @samp{Variables} are
-Imenu defined types.  All remaining top-level symbols are then regrouped
+Tag groups are defined in multiple ways which make it easier to find the
+tag you are looking for.  Imenu keywords explicitly create groups, and
+speedbar will automatically create groups if tag lists are too long.
+
+In our example, Imenu created the groups @samp{Types} and
+@samp{Variables}.  All remaining top-level symbols are then regrouped
 based on the variable @code{speedbar-tag-hierarchy-method}.  The
 subgroups @samp{def} and @samp{speedbar-} are groupings where the first
 few characters of the given symbols are specified in the group name.
@@ -410,21 +449,42 @@ Some group names may say something like @samp{speedbar-t to speedbar-v},
 indicating that all symbols which alphabetically fall between those
 catagories are included in that sub-group. @xref{Tag Hierarchy Methods}.
 
-@node File Keybindings, , Directory Display, File Mode
+@node Hidden Files, File Keybindings, Directory Display, File Mode
+@comment  node-name,  next,  previous,  up
+@section Hidden Files
+@cindex hidden files
+
+On unix, a hidden file is a file whose name starts with a period.  They
+are hidden from a regular directory listing because the user is not
+generally interested in them.
+
+In speedbar, a hidden file is a file which isn't very interesting and
+might just prove distracting to the user.  Any uninteresting files are
+removed from the File display.  There are two levels of interest in
+speedbar.  The first level of uninterest are files which have no
+expansion method, or way of extracting tags.  The second level is any
+file that matches the same pattern used for completion in
+@fcn{find-file}.  This is derived from the variable
+@code{completion-ignored-extensions}.
+
+You can toggle the display of uninteresting files from the toggle menu
+item "Show All Files".  This will display all level one hidden files.
+These files will be shown with a @code{?}} indicator.  Level 2 hidden
+files will still not be shown.
+
+Object files fall into the catagory of level 2 hidden files.  You can
+determine their presense by the @code{#} and @code{!} file indicators
+@xref{Directory Display}.
+
+@node File Keybindings, , Hidden Files, File Mode
 @comment  node-name,  next,  previous,  up
 @section File Keybindings
 @cindex file keybindings
 
-Files mode permits several file operations.  One menu item toggles the
-display of all available files.  By default, only files which Emacs
-understands, and knows how to convert into a tag list.  By showing all
-files, additional files such as text files are also displayed, but they
-are prefixed with the @samp{[?]} symbol.  This means that it is a file,
-but that Emacs doesn't know how to expand it.
-
-Other keybindings all operate on "the current file."  In this case, the
-current file is the file at point, or clicked on when pulling up the
-menu.
+Files mode has keybindings permitting different file system operations
+such as copy or rename.  These commands all operate on "the current
+file."  In this case, the current file is the file at point, or clicked
+on when pulling up the menu.
 
 @table @kbd
 @item U
@@ -448,6 +508,12 @@ Delete the current file.
 Delete the current file's object file.  Use the symbols @samp{#} and
 @samp{!} to determine if there is an object file available.
 @end table
+
+One menu item toggles the display of all available files.  By default,
+only files which Emacs understands, and knows how to convert into a tag
+list.  By showing all files, additional files such as text files are
+also displayed, but they are prefixed with the @samp{[?]} symbol.  This
+means that it is a file, but that Emacs doesn't know how to expand it.
 
 @node Buffer Mode, Minor Modes, File Mode, Top
 @comment  node-name,  next,  previous,  up
@@ -473,7 +539,7 @@ Revert this buffer, reloading from disk.
 In addition to buffers mode, there is also Quick Buffers mode.  In fact,
 Quick Buffers is bound to the @kbd{b} key.  The only difference between
 Buffers and Quick Buffers is that after one operation is is performed
-which affects the attached frame, the display is immediately reverted to
+which effects the attached frame, the display is immediately reverted to
 the last displayed mode.
 
 Thus, if you are in Files mode, and you need quick access to a buffer,
@@ -569,7 +635,7 @@ important aspect of it's behavior.
 In general, there are three custom groups you can use to quickly modify
 speedbar's behavior.
 
-@table @asis
+@table @code
 @item speedbar
 Basic speedbar behaviors.
 @item speedbar-vc
