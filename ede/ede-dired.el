@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.4
 ;; Keywords: project, make
-;; RCS: $Id: ede-dired.el,v 1.6 2000/09/24 15:17:42 zappo Exp $
+;; RCS: $Id: ede-dired.el,v 1.7 2000/10/14 02:48:41 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -52,13 +52,14 @@
   (easy-menu-define
    ede-dired-menu ede-dired-keymap "EDE Dired Minor Mode Menu"
    '("Project"
-     ["Create a new target" ede-new-target (ede-current-project) ]
-     ["Add files to project" ede-dired-add-to-target (ede-current-project) ]
-     ["Compile project" ede-compile-project (ede-current-project) ]
-     ["Make distribution" ede-make-dist (ede-current-project) ]
-     "---"
-     ["Speedbar project" ede-speedbar (ede-current-project) ]
-     ["Customize Project" ede-customize-project (ede-current-project) ]
+     [ "Add files to target" ede-dired-add-to-target (ede-current-project) ]
+     ( "Build" :filter ede-build-forms-menu)
+     "-"
+     [ "Create Project" ede-new (not (ede-current-project)) ]
+     [ "Create Target" ede-new-target (ede-current-project) ]
+     "-"
+     ( "Customize Project" :filter ede-customize-forms-menu )
+     [ "View Project Tree" ede-speedbar (ede-current-project) ]
      ))
   )
 
