@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.58 2002/07/21 13:38:54 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.59 2002/08/04 02:07:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -129,8 +129,10 @@ Return a bovination list to use."
      ((eq ts 'eval-and-compile)
       ;; Eval and compile can be wrapped around definitions, such as in
       ;; eieio.el, so splice it's parts back into the main list.
-      (semantic-bovinate-from-nonterminal-full (car sl) (cdr sl)
-					       'bovine-toplevel 1)
+      (condition-case foo
+	  (semantic-bovinate-region (car sl) (cdr sl) nil 1)
+	(error (message "MUNGE: %S" foo)
+	       nil))
       )
      ((or (eq ts 'defvar)
 	  (eq ts 'defconst)
@@ -151,7 +153,9 @@ Return a bovination list to use."
      ((or (eq ts 'defun)
 	  (eq ts 'defun*)
 	  (eq ts 'defsubst)
-	  (eq ts 'defmacro))
+	  (eq ts 'defmacro)
+	  (eq ts 'define-overload)
+	  )
       ;; functions and macros
       (list sn 'function nil (semantic-elisp-desymbolify (nth 2 rt))
 	    (semantic-bovinate-make-assoc-list
@@ -212,6 +216,21 @@ Return a bovination list to use."
 	    nil ;(semantic-elisp-desymbolify (nth 2 rt))
 	    nil (nth 4 rt))
       )
+     ;; Now about a few Semantic specials?
+     ((eq ts 'define-lex)
+      (list sn 'function nil nil
+	    (semantic-bovinate-make-assoc-list
+	     'lexical-analyzer t)
+	    nil))
+     ((eq ts 'define-mode-overload-implementation)
+      (let ((args (nth 3 rt))
+	    )
+	(list sn 'function nil
+	      (when (listp args)
+		(semantic-elisp-desymbolify args))
+	      (semantic-bovinate-make-assoc-list
+	       'override-function t)
+	      nil)))
      ;; Now for other stuff
      ((eq ts 'require)
       (list sn 'include nil nil))
@@ -239,13 +258,31 @@ Argument NONTERM is the nonterminal to test for expansion."
       (cdr (cdr nonterm)))
     nil))
 
-(defun semantic-elisp-find-dependency (token)
+(define-lex semantic-emacs-lisp-lexer
+  "A simple lexical analyzer for Emacs Lisp.
+This lexer ignores comments and whitespace, and will return
+syntax as specified by the syntax table."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  semantic-lex-number
+  semantic-lex-symbol-or-keyword
+  semantic-lex-charquote
+  semantic-lex-paren-or-list
+  semantic-lex-close-paren
+  semantic-lex-string
+  semantic-lex-ignore-comments
+  semantic-lex-punctuation
+  semantic-lex-default-action)
+
+(define-mode-overload-implementation semantic-find-dependency
+  emacs-lisp-mode (token)
   "Find the file BUFFER depends on described by TOKEN."
   (let ((f (file-name-sans-extension
 	    (locate-library (semantic-token-name token)))))
     (concat f ".el")))
 
-(defun semantic-elisp-find-documentation (token &optional nosnarf)
+(define-mode-overload-implementation semantic-find-documentation
+  emacs-lisp-mode (token &optional nosnarf)
   "Return the documentation string for TOKEN.
 Optional argument NOSNARF is ignored."
   (let ((d (semantic-token-docstring token)))
@@ -253,7 +290,8 @@ Optional argument NOSNARF is ignored."
 	(substring d 1)
       d)))
 
-(defun semantic-elisp-insert-foreign-token (token tokenfile)
+(define-mode-overload-implementation semantic-insert-foreign-token
+  emacs-lisp-mode (token tokenfile)
   "Insert TOKEN from TOKENFILE at point.
 Attempts a simple prototype for calling or using TOKEN."
   (cond ((eq (semantic-token-token token) 'function)
@@ -262,7 +300,8 @@ Attempts a simple prototype for calling or using TOKEN."
 	(t
 	 (insert (semantic-token-name token)))))
 
-(defun semantic-elisp-nonterminal-protection (token &optional parent)
+(define-mode-overload-implementation semantic-nonterminal-protection
+  emacs-lisp-mode (token &optional parent)
   "Return the protection of TOKEN in PARENT.
 Override function for `semantic-nonterminal-protection'."
   (let ((prot (semantic-token-extra-spec token 'protection)))
@@ -275,35 +314,37 @@ Override function for `semantic-nonterminal-protection'."
      ((string= prot ":protected") 'protected)
      ((string= prot "protected") 'protected))))
 
-(defun semantic-elisp-nonterminal-static (token &optional parent)
+(define-mode-overload-implementation semantic-elisp-nonterminal-static
+  emacs-lisp-mode (token &optional parent)
   "Return non-nil if TOKEN is static in PARENT class.
 Overrides `semantic-nonterminal-static'."
   ;; This can only be true (theoretically) in a class where it is assigned.
   (semantic-token-extra-spec token 'static))
 
+(setq-major-mode semantic-lex-analyzer emacs-lisp-mode
+		 'semantic-emacs-lisp-lexer)
+
+(setq-major-mode semantic-toplevel-bovine-table emacs-lisp-mode
+		 semantic-toplevel-elisp-bovine-table)
+(setq-major-mode semantic-expand-nonterminal emacs-lisp-mode
+		 'semantic-expand-elisp-nonterminal)
+(setq-major-mode semantic-function-argument-separator emacs-lisp-mode
+		 " ")
+(setq-major-mode semantic-function-argument-separation-character emacs-lisp-mode
+		 " ")
+(setq-major-mode semantic-symbol->name-assoc-list emacs-lisp-mode
+		 '( (type     . "Types")
+		    (variable . "Variables")
+		    (function . "Defuns")
+		    (include  . "Requires")
+		    (package  . "Provides")))
+(setq-major-mode imenu-create-index-function emacs-lisp-mode
+		 'semantic-create-imenu-index)
+
 ;;;###autoload
 (defun semantic-default-elisp-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
-  (semantic-install-function-overrides
-   '((find-dependency . semantic-elisp-find-dependency)
-     (find-documentation . semantic-elisp-find-documentation)
-     (insert-foreign-token . semantic-elisp-insert-foreign-token)
-     (nonterminal-protection . semantic-elisp-nonterminal-protection)
-     (nonterminal-static . semantic-elisp-nonterminal-static)
-     )
-   t)
-  (setq semantic-toplevel-bovine-table semantic-toplevel-elisp-bovine-table
-	semantic-expand-nonterminal 'semantic-expand-elisp-nonterminal
-	semantic-function-argument-separator " "
-	semantic-function-argument-separation-character " "
-	semantic-symbol->name-assoc-list
-	'( (type     . "Types")
-	   (variable . "Variables")
-	   (function . "Defuns")
-	   (include  . "Requires")
-	   (package  . "Provides"))
-	imenu-create-index-function 'semantic-create-imenu-index
-	))
+  )
 
 (add-hook 'emacs-lisp-mode-hook 'semantic-default-elisp-setup)
 
