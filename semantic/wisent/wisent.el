@@ -10,7 +10,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.18 2001/12/18 06:49:15 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.19 2002/01/14 19:56:19 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -34,233 +34,11 @@
 ;; Wisent is an Elisp implementation of a Bison like parser generator.
 ;; The code is freely inspired from Dominique Boucher's Scheme
 ;; implementation of Bison and from the sources of GNU Bison 1.28.
-;; Wisent uses the Bison algorithm to compute the LALR(1) look-ahead
-;; set.  It is described in:
-;;
-;; "Efficient Computation of LALR(1) Look-Ahead Set", F.  DeRemer et
-;; T.  Pennello, TOPLAS, vol.  4, no.  4, October 1982.
-;;
-;; Unlike the Dominique Boucher's Scheme implementation Wisent has a
-;; Bison like mechanism to recover from parse errors and can resolve
-;; shift/reduce conflicts using operator precedence declarations.
 ;;
 ;; For more details on the basic concepts for understanding Wisent,
 ;; read the Bison manual ;)
 ;;
-;; 1. Grammar
-;; ==========
-;;
-;; In order for Wisent to parse a language, it must be described by a
-;; Context Free Grammar (CFG).  This grammar is then compiled, using
-;; the function `wisent-compile-grammar'.  This produces the tables
-;; needed by the parser.  The table is an Emacs Lisp `vector' of
-;; vectors and listes.  See `wisent-compile-grammar' for details on
-;; the format of the table.
-;;
-;; `wisent-compile-grammar' is called like this:
-;;
-;;    (wisent-compile-grammar GRAMMAR [STARTS] [STREAM])
-;;
-;; - GRAMMAR is the CFG to process.
-;;
-;; - STARTS (optional) is a list of nonterminal symbols defined as
-;;   extra entry points in the grammar.  The first nonterminal
-;;   specified in the grammar is always defined as the main entry
-;;   point in the grammar.
-;;
-;; - STREAM (optional) is a `standard-output' stream where the tables
-;;   will be pretty-printed.
-;;
-;;   ****************************************************************
-;;   WARNING: As the tables resulting of grammar compilation can be
-;;   very large pretty-printing (done via the standard function `pp')
-;;   can take a while and consume a lot of computer resources!
-;;   ****************************************************************
-;;
-;; For example:
-;;
-;;    (wisent-compile-grammar my-grammar nil (current-buffer))
-;;
-;; inserts the parser tables value at point in current buffer.
-;;
-;; 1.1 Grammar format
-;; ==================
-;; 
-;; This is a list (TERMINALS ASSOCS . NON-TERMINALS) where:
-;;
-;; - TERMINALS is the list terminal symbols used in the grammar.
-;;
-;; - ASSOCS specifies the associativity of terminals like does the
-;;   Bison %nonassoc, %left and %right statements.  It is nil or a
-;;   list of elements of the form (ASSOC-TYPE . ASSOC-TERMS) where
-;;   ASSOC-TYPE is one of 'nonassoc, 'left or 'right, and TERMS is a
-;;   list of terminal symbols which must be declared in TERMINALS.
-;;
-;; - NON-TERMINALS is the list of non terminal definitions.  Each
-;;   definition has the form (NONTERM . PRODS) where NONTERM is the
-;;   non terminal symbol and PRODS the list of productions associated
-;;   to this non terminal.  Each element of PRODS has the form:
-;;
-;;   (ITEMS [PREC] [ACTION]) where:
-;;
-;;   -- ITEMS is a list of terminal and/or non terminal symbols to
-;;      match.  Or nil for an empty match.
-;;
-;;   -- PREC (optional) is a vector of one element: a terminal symbol.
-;;      The rule will be given the precedence level of this terminal
-;;      symbol.  By default the rule precedence is the one of the last
-;;      terminal symbol in it.  Only terminals declared in ASSOCS have
-;;      a precedence level.
-;;
-;;   -- ACTION (optional) is one Elisp expression: the semantic action
-;;      to do when the rule is matched.  Like in Bison, action accept
-;;      `$<i>' placeholders.  Each `$<i>' placeholder will receive the
-;;      value of i-th element of ITEMS.  The first element is `$1',
-;;      the second one `$2', etc..  Unlike Bison, Wisent does not allow
-;;      the use of `$<i>' placeholders with i <= 0.
-;;
-;;      Also the special variable `$region' contains the start/end
-;;      positions of text matched by the rule, as a pair (START-POS
-;;      . END-POS).  `$region' is nil when used in an empty match
-;;      rule.  Actions can use `wisent-set-region' to modify the
-;;      region, this could be useful in actions used to recover from
-;;      syntax errors.
-;;
-;;      Finally the special symbol `$nterm' contain the nonterminal
-;;      symbol the action belongs to.  It could be useful to improve
-;;      error reporting or debugging.
-;;
-;;      If you don't specify an action for a rule, Wisent (like Bison)
-;;      supplies a default: `$1'.  Thus, the value of the first symbol
-;;      in the rule becomes the value of the whole rule.  The default
-;;      action for an empty match returns nil.
-;;
-;; 1.2 Conflicts
-;; =============
-;;
-;; Wisent resolves conflicts in grammar the same way Bison does.
-;;
-;; It resolves a reduce/reduce conflict by choosing to use the rule
-;; that appears first in the grammar.
-;;
-;; It resolves shift/reduce conflicts by choosing to shift, unless
-;; otherwise directed by operator precedence declarations (see ASSOCS
-;; and NON-TERMINALS in chapter 1.1 "Grammar format" above).
-;;
-;; 1.3 Example
-;; ===========
-;;
-;; Here is an example of a Bison like grammar to parse simple infix
-;; arithmetic expressions.  It is explained more fully in the Bison
-;; manual: "Infix Calc(bison.info)".
-;;
-;;   %token NUM
-;;   %token NL
-;;   %token EQ
-;;   %token PLUS
-;;   %token MINUS
-;;   %token NEG
-;;   %token MULT
-;;   %token DIV
-;;   %token EXP
-;;   %token LPAREN
-;;   %token RPAREN
-;;
-;;   %nonassoc EQ
-;;   %left     PLUS MINUS
-;;   %left     MULT DIV
-;;   %left     NEG
-;;   %right    EXP
-;;
-;;   input:
-;;       /* empty */
-;;     | input line
-;;     ;
-
-;;   line:
-;;       NL
-;;     | exp NL
-;;     ;
-
-;;   exp:
-;;       NUM
-;;     | exp EQ exp
-;;     | exp PLUS exp
-;;     | exp MINUS exp
-;;     | exp MULT exp
-;;     | exp DIV exp
-;;     | MINUS exp %prec NEG
-;;     | exp EXP exp
-;;     | LPAREN exp RPAREN
-;;     ;
-;;
-;; And following is the corresponding form accepted by Wisent:
-;;
-;;   ((NUM NL EQ PLUS MINUS NEG MULT DIV EXP LPAREN RPAREN)
-;;    ((nonassoc EQ)
-;;     (left PLUS MINUS)
-;;     (left MULT DIV)
-;;     (left NEG)
-;;     (right EXP))
-;;    (input
-;;     (nil)
-;;     ((input line)))
-;;    (line
-;;     ((NL))
-;;     ((exp NL)))
-;;    (exp
-;;     ((NUM))
-;;     ((exp EQ exp))
-;;     ((exp PLUS exp))
-;;     ((exp MINUS exp))
-;;     ((exp MULT exp))
-;;     ((exp DIV exp))
-;;     ((MINUS exp) [NEG])
-;;     ((exp EXP exp))
-;;     ((LPAREN exp RPAREN))))
-;;
-;; 2. Parsing
-;; ==========
-;;
-;; The parser used by Wisent is a bottom-up LR parser driven by the
-;; tables produced by `wisent-compile-grammar' from a CFG grammar.  To
-;; start the parser call the function `wisent-parse' like this:
-;;
-;;   (wisent-parse TABLES LEXER ERROR-FUNCTION [START])
-;;
-;; It returns the semantic value of the START nonterminal (the goal).
-;;
-;; - TABLES are the parser tables produced by
-;;   `wisent-compile-grammar'.
-;;
-;; - LEXER is a function with no argument called by the parser to
-;;   obtain the next terminal in input.  LEXER must return a list
-;;   (TERM TERM-VALUE [TERM-START . TERM-END]) or (`wisent-eoi-term')
-;;   when at the end of the input.
-;;
-;;   -- TERM is the unique symbol identifying a terminal as specified
-;;      in the grammar.
-;;
-;;   -- TERM-VALUE is the actual value of the terminal.
-;;
-;;   -- TERM-START and TERM-END (optionals) are the start and end
-;;      positions of the terminal string value in the input stream.
-;;      You can use the macro `wisent-lexer' to call LEXER in semantic
-;;      actions.
-;;
-;; - ERROR-FUNCTION is a reporting function called when a parse error
-;;   occurs.  It receives a message string to report.  When
-;;   ERROR-FUNCTION is called by the parser the variable
-;;   `wisent-input' contains the unexpected token as returned by
-;;   LEXER.  This function can also be called from semantic actions
-;;   using the special macro `wisent-error'.  When called from a
-;;   recovery action the value of the variable `wisent-recovering' is
-;;   non-nil.
-;;
-;; - START specify the nonterminal symbol used by the parser as its
-;;   goal.  It defaults to the first nonterminal specified in the
-;;   grammar.  START must be one the STARTS symbol specified at
-;;   compilation time (see chapter 1 "Grammar" above).
+;; For more details on Wisent itself read the Wisent manual.
 
 ;;; History:
 ;; 
@@ -1889,23 +1667,25 @@ And returns the updated top-of-stack index."
          (n     (length rh))            ; number of values in stack
          (vi    n)                      ; $<i> index
          (spi   1)                      ; $<i> value index in stack
-         (pl    nil)                    ; list of $<i> positions
-         (vbl   nil)                    ; $<i> binding list
+         (rl    nil)                    ; list of binded $region<i>
+         (bl    nil)                    ; let* binding list
          (i     1)
-         $i)
+         $i $ri)
     (while (<= i n)
       (setq $i  (intern (format "$%d" vi))
-            pl  (cons `(cdr (aref stack (- sp ,spi))) pl))
+            $ri (intern (format "$region%d" vi))
+            rl  (cons $ri rl)
+            bl  (cons `(,$ri (cdr (aref stack (- sp ,spi)))) bl))
       (if (memq $i $l) ;; Only bind $<i> if used in action
-          (setq vbl (cons `(,$i (car (aref stack (- sp ,spi)))) vbl)))
+          (setq bl (cons `(,$i (car (aref stack (- sp ,spi)))) bl)))
       (setq i   (1+ i)
             vi  (1- vi)
             spi (+ spi 2)))
-    (setq vbl `(,@vbl
-                ($region (wisent-region ,@pl))
-                ($nterm  ',(nth nt wisent--vars))))
+    (setq bl `(,@bl
+               ($region (wisent-region ,@rl))
+               ($nterm  ',(nth nt wisent--vars))))
     `(lambda (stack sp gotos)
-       (let ,vbl
+       (let* ,bl
          ,(if (= nt 0) ;; If `wisent-start-nonterm'
               '(identity $1) ;; Dummy accept action never called
             `(wisent-push stack (- sp ,(1- spi)) ,nt gotos
@@ -1930,12 +1710,10 @@ GRAM/ACTS is the list of actions associated to nonterminals."
             l (cdr l)))
     (nreverse tokens)))
 
-(defun wisent-build-tables (gram gram/acts starts &optional stream)
+(defun wisent-build-tables (gram gram/acts starts)
   "Compute and return the LALR tables needed by the parser.
 GRAM is the grammar in internal format.  GRAM/ACTS are grammar rules
-in internal format.  STARTS is the table of entry point nonterminals.
-If optional STREAM is non-nil it receives a readable representation of
-the tables."
+in internal format.  STARTS is the table of entry point nonterminals."
   (setq wisent--nterms (length wisent--terms)
         wisent--nvars  (length wisent--vars)
         wisent--nsyms  (+ wisent--nterms wisent--nvars)
@@ -1972,13 +1750,7 @@ the tables."
             (wisent-log-rules)
             (wisent-log "\n\n")
             (if (wisent-noninteractive)
-                (wisent-append-to-log-file))))
-      (if stream
-          (save-excursion
-            (working-dynamic-status
-             (format "(pretty-print tables on %S)" stream))
-            (pp tables stream))))
-    ))
+                (wisent-append-to-log-file)))))))
 
 (defvar wisent-nonterm-count nil
   "Hold the number of nonterminals.
@@ -2078,16 +1850,15 @@ DEF is the internal representation of a nonterminal definition."
   (cons (wisent-grammar-production-lhs def)
         (mapcar #'wisent-grammar-rule-rhs def)))
 
-(defun wisent-process-grammar (grammar &optional starts stream)
+(defun wisent-process-grammar (grammar &optional starts)
   "Process the given external representation of GRAMMAR.
 That check and convert external representation to internal format.
 Then compute and generate the LALR tables needed by the parser.
-Optional argument STARTS is a list of entry point nonterminals.  If
-optional STREAM is non-nil it receives a readable representation of
-the tables.  GRAMMAR is a list of form: (TERMS ASSOCS . NONTERMS)
-where TERMS is a list of terminal symbols, ASSOCS is a list describing
-the associativity of terminals or nil.  And NONTERMS is the list of
-non terminal definitions (see function `wisent-process-nonterminal').
+Optional argument STARTS is a list of entry point nonterminals.
+GRAMMAR is a list of form: (TERMS ASSOCS . NONTERMS) where TERMS is a
+list of terminal symbols, ASSOCS is a list describing the
+associativity of terminals or nil.  And NONTERMS is the list of non
+terminal definitions (see function `wisent-process-nonterminal').
 ASSOCS is a list of elements: (ASSOC-TYPE . ASSOC-TERMS) where
 ASSOC-TYPE is one of 'nonassoc, 'left or 'right, and ASSOC-TERMS is a
 list of terminal symbols which must have been declared in TERMS."
@@ -2205,7 +1976,7 @@ list of terminal symbols which must have been declared in TERMS."
           r-gram        (mapcar #'wisent-grammar-production r-vars)
           gram/acts     (apply #'nconc r-vars))
     ;; Build the LALR tables
-    (wisent-build-tables r-gram gram/acts starts stream)))
+    (wisent-build-tables r-gram gram/acts starts)))
 
 (defun wisent-byte-compile-reduction-table (rt)
   "Byte compile the reduction table RT.
@@ -2220,26 +1991,38 @@ of the parser!"
 
 (defalias 'wisent-compiled-grammar-p 'vectorp)
 
-(defun wisent-compile-grammar (gram &optional starts stream)
-  "Compile grammar GRAM and return the tables needed by the parser.
-Optional argument STARTS is a list of nonterminal symbols defined as
-entry point in the grammar.  If nil the first nonterminal specified in
-the grammar will be the only start symbol defined.  Optional STREAM is
-a `standard-output' stream where the tables will be pretty-printed.
-The value returned by `wisent-compile-grammar' is a vector of vectors
-and listes: [ACTIONS GOTOS REDUCTIONS TERMS STARTS] where:
+(defun wisent-compile-grammar (grammar &optional start-list)
+  "Compile GRAMMAR and return the tables needed by the parser.
+Optional argument START-LIST is a list of nonterminal symbols defined
+as extra entry point in the grammar.  The first nonterminal specified in the grammar is always
+defined as the main entry point in the grammar.
 
-- - ACTIONS/GOTOS tell the parser what action to do at each state.
-- - REDUCTIONS holds the byte code of semantic actions.
-- - TERMS associates terminal symbols to their internal ID.
-- - STARTS gives the defined start nonterminals."
-  (if (wisent-compiled-grammar-p gram)
-      gram ;; Grammar already compiled just return it
+The value returned by `wisent-compile-grammar' is a vector of vectors
+and lists: [ACTIONS GOTOS REDUCTIONS TERMS STARTS] where:
+
+- ACTIONS/GOTOS tell the parser what action to do at each state.  That
+  is shift, reduce, accept or error.
+
+- REDUCTIONS hold the code of semantic actions associated to
+  reductions.  By default semantic actions are byte-compiled to
+  achieve best performance of the parser.
+
+- TERMS this is an alist (association list) which allows the parser to
+  retrieve terminal numbers it uses internally, from terminal symbols
+  returned by lexical analysis.  This can be useful too to know what
+  terminal symbol is associated to a number.
+
+- STARTS define the allowed start nonterminals.  This is an alist
+  of (NONTERM . TERM) which asso ciates a starting point nonterminal
+  symbol NONTERM to a terminal symbol TERM that will be first shifted
+  into the parser stack."
+  (if (wisent-compiled-grammar-p grammar)
+      grammar ;; Grammar already compiled just return it
     (let ((working-status-dynamic-type #'working-text-display))
       (working-status-forms "Compiling grammar" "done"
         (working-dynamic-status "(initializing)")
         (wisent-initialize-all)
-        (let ((tables (wisent-process-grammar gram starts stream)))
+        (let ((tables (wisent-process-grammar grammar start-list)))
           (if wisent-debug-flag
               nil ;; disable compilation when debugging
             ;; Compile the reduction table
@@ -2255,10 +2038,10 @@ and listes: [ACTIONS GOTOS REDUCTIONS TERMS STARTS] where:
 ;;;;
 
 (defvar wisent-nerrs nil
-  "Hold the number of parse errors.")
+  "The number of parse errors encountered so far.")
 
 (defvar wisent-lookahead nil
-  "Hold the lookahead lexical token.
+  "The lookahead lexical token.
 This value is non-nil if the parser terminated because of an
 unrecoverable error.")
 
@@ -2291,11 +2074,14 @@ value of this variable is local to the parser.")
   `(funcall wisent-parse-error-function ,msg))
   
 (defmacro wisent-errok ()
-  "Cause parser to recover immediately to its normal mode."
+  "Resume generating error messages immediately for subsequent syntax errors.
+This is useful primarily in error rules."
   '(setq wisent-recovering nil))
   
 (defmacro wisent-clearin ()
-  "Cause a token to be read."
+  "Discard the current look-ahead token.
+This will cause a new token to be read.  This is useful primarily in
+error rules."
   '(setq wisent-input nil))
 
 (defvar $region nil
@@ -2416,15 +2202,16 @@ entry points."
       (error "Invalid start nonterminal %s" start))))
 
 (defun wisent-parse (tables lexer error &optional start)
-  "Parse data.
-The LALR(1) parser is driven by the TABLES built by
-`wisent-compile-grammar'.  LEXER is a no argument function called by
-the parser to obtain the next input token.  ERROR is an error
-reporting function called when a parse error occurs.  This function
-receives a message string to report.  START specify the nonterminal
-symbol used by the parser as its goal.  It defaults to the first
-nonterminal specified in the grammar.  START must be one the STARTS
-symbol specified at compilation time (see `wisent-compile-grammar')."
+  "Parse input using the automaton specified in TABLES.
+TABLES are produced by `wisent-compile-grammar'.
+LEXER is a function with no argument called by the parser to obtain
+the next terminal in input.
+ERROR is a reporting function called when a parse error occurs.  It
+receives a message string to report.
+START specify the nonterminal symbol used by the parser as its goal.
+It defaults to the first nonterminal specified in the grammar.  START
+must be one the entry point nonterminal symbols specified at
+compilation time (see `wisent-compile-grammar')."
   (let* ((actions    (aref tables 0))
          (gotos      (aref tables 1))
          (reductions (aref tables 2))
