@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.4 1999/11/10 14:33:03 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.5 1999/11/10 15:28:44 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -169,7 +169,7 @@ method for the actual text."
       (mapcar (lambda (car) (ede-sb-button car depth)) targets))))
 
 (defmethod ede-sb-expand ((this ede-target) depth)
-  "The default speedbar button for any target."
+  "Create buttons for items belonging to target THIS at DEPTH."
   (with-slots (source) this
     (mapcar (lambda (car)
 	      (speedbar-make-tag-line 'bracket ?+
