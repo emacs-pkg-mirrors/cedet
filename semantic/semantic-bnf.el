@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.8 2000/04/23 15:35:01 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.9 2000/04/25 14:47:41 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -112,6 +112,19 @@
 	    ")\n")
     (indent-for-tab-command)))
 
+(defun semantic-bnf-EXPANDFULL (lst)
+  "Insert a token full expand function based on LST."
+  (let ((argv (1- (string-to-int (substring (symbol-name (car (cdr lst)))
+					    1)))))
+    (insert "\n")
+    (indent-for-tab-command)
+    (insert "(semantic-bovinate-from-nonterminal-full "
+	    "(car (nth " (int-to-string argv) " vals)) "
+	    "(cdr (nth " (int-to-string argv) " vals)) "
+	    "'" (symbol-name (car (cdr (cdr lst))))
+	    ")\n")
+    (indent-for-tab-command)))
+
 (defun semantic-bnf-lambda-substitute (lst &optional inplace)
   "Insert LST substituting based on rules for the BNF converter.
 LST is the list in which we are substituting.
@@ -129,58 +142,61 @@ Optional INPLACE indicates that the list is being expanded from elsewhere."
 	  (setq inplace t))
 	)
     (if inplace (insert " (")))
-  (if (eq (car lst) 'EXPAND)
-      (semantic-bnf-EXPAND lst)
-    (let ((inlist nil))
-      (while lst
-	(cond ((eq (car lst) nil)
-	       (if (and (not inlist) (not inplace))
-		   (progn (insert " (list")
-			  (setq inlist t)))
-	       (insert " nil"))
-	      ((listp (car lst))
-	       (let ((fn (and (symbolp (car (car lst))) (fboundp (car (car lst))))))
-		 (if (and (not inlist) (not inplace))
-		     (progn (insert " (list")
-			    (setq inlist t)))
-		 (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
-		     (insert " (append"))
-		 (semantic-bnf-lambda-substitute (car lst) (and fn (not (eq fn 'quote))))
-		 (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
-		     (insert  ")"))
-		 ))
-	      ((symbolp (car lst))
-	       (let ((n (symbol-name (car lst))) ;the name
-		     (x nil))		;expand flag
-		 (if (eq (aref n 0) ?,)
-		     (setq n (substring n 1)
-			   x t))
-		 (if (string= n "")
-		     ;; We expand only the next item in place (a list?)
-		     (progn
-		       (setq lst (cdr lst))
-		       ;; A regular inline-list...
-		       (semantic-bnf-lambda-substitute (car lst) t))
-		   (if (eq (aref n 0) ?$)
-		       (let ((val (1- (string-to-int (substring n 1)))))
-			 (if (and (not x) (not inlist) (not inplace))
-			     (insert " (list")
-			   (if (and x inlist (not inplace))
-			       (progn (insert ")")
-				      (setq inlist nil))))
-			 (insert " (nth " (int-to-string val) " vals)")
-			 (if (and (not x) (not inplace)) (setq inlist t)))
-		     (if (and (not inlist) (not inplace))
-			 (progn (insert " (list")
-				(setq inlist t)))
-		     (insert " " (if inplace "" "'") n)))))
-	      (t
-	       (if (and (not inlist) (not inplace))
-		   (progn (insert " (list")
-			  (setq inlist t)))
-	       (insert (format " %S" (car lst)))))
-	(setq lst (cdr lst)))
-      (if inlist (insert ")"))))
+  (cond ((eq (car lst) 'EXPAND)
+	 (semantic-bnf-EXPAND lst))
+	((eq (car lst) 'EXPANDFULL)
+	 (semantic-bnf-EXPANDFULL lst))
+	(t
+	 (let ((inlist nil))
+	   (while lst
+	     (cond ((eq (car lst) nil)
+		    (if (and (not inlist) (not inplace))
+			(progn (insert " (list")
+			       (setq inlist t)))
+		    (insert " nil"))
+		   ((listp (car lst))
+		    (let ((fn (and (symbolp (car (car lst))) (fboundp (car (car lst))))))
+		      (if (and (not inlist) (not inplace))
+			  (progn (insert " (list")
+				 (setq inlist t)))
+		      (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
+			  (insert " (append"))
+		      (semantic-bnf-lambda-substitute (car lst) (and fn (not (eq fn 'quote))))
+		      (if (and inplace (not fn) (not (eq (car (car lst)) 'EXPAND)))
+			  (insert  ")"))
+		      ))
+		   ((symbolp (car lst))
+		    (let ((n (symbol-name (car lst))) ;the name
+			  (x nil))	;expand flag
+		      (if (eq (aref n 0) ?,)
+			  (setq n (substring n 1)
+				x t))
+		      (if (string= n "")
+			  ;; We expand only the next item in place (a list?)
+			  (progn
+			    (setq lst (cdr lst))
+			    ;; A regular inline-list...
+			    (semantic-bnf-lambda-substitute (car lst) t))
+			(if (eq (aref n 0) ?$)
+			    (let ((val (1- (string-to-int (substring n 1)))))
+			      (if (and (not x) (not inlist) (not inplace))
+				  (insert " (list")
+				(if (and x inlist (not inplace))
+				    (progn (insert ")")
+					   (setq inlist nil))))
+			      (insert " (nth " (int-to-string val) " vals)")
+			      (if (and (not x) (not inplace)) (setq inlist t)))
+			  (if (and (not inlist) (not inplace))
+			      (progn (insert " (list")
+				     (setq inlist t)))
+			  (insert " " (if inplace "" "'") n)))))
+		   (t
+		    (if (and (not inlist) (not inplace))
+			(progn (insert " (list")
+			       (setq inlist t)))
+		    (insert (format " %S" (car lst)))))
+	     (setq lst (cdr lst)))
+	   (if inlist (insert ")")))))
   (if inplace (insert ")")))
 
 (defun semantic-bnf-lambda-convert (semliststr vals)
