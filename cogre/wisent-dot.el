@@ -4,7 +4,7 @@
 
 ;; Author: Eric Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-dot.el,v 1.6 2004/01/23 14:58:08 ponced Exp $
+;; X-RCS: $Id: wisent-dot.el,v 1.7 2004/02/02 09:18:17 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,6 +58,19 @@
 (require 'wisent-bovine)
 (require 'semantic)
 (require 'wisent-dot-wy)
+
+(define-mode-overload-implementation semantic-tag-components
+  graphviz-dot-mode (tag)
+  "Return the children of tag TAG."
+  (cond
+   ((memq (semantic-tag-class tag)
+         '(generic-node graph-attributes node link))
+    (semantic-tag-get-attribute tag :attributes)
+    )
+   ((memq (semantic-tag-class tag)
+         '(digraph graph))
+    (semantic-tag-get-attribute tag :members)
+    )))
 
 ;;;###autoload
 (defun wisent-dot-setup-parser ()
