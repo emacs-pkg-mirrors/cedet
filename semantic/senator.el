@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.35 2001/04/23 07:17:24 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.36 2001/04/26 07:04:48 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -1523,10 +1523,10 @@ Use the command `senator-minor-mode' to change this variable.")
 
 (defun senator-minor-mode-setup ()
   "Actually setup the senator minor mode.
-Turn off the minor mode if semantic feature is not available or
-`semantic-toplevel-bovine-table' not provided for the current buffer.
-If minor mode is enabled parse the current buffer if needed.  Return
-non-nil if the minor mode is enabled."
+The minor mode can be turned on only if semantic feature is available
+and the current buffer was set up for parsing.  When minor mode is
+enabled parse the current buffer if needed.  Return non-nil if the
+minor mode is enabled."
   (if senator-minor-mode
       (if (not (and (featurep 'semantic) (semantic-active-p)))
           ;; Disable minor mode if semantic stuff not available
@@ -1561,9 +1561,9 @@ non-nil if the minor mode is enabled."
 (defun senator-minor-mode (&optional arg)
   "Toggle senator minor mode.
 With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode is turned on only if semantic feature is available and a
-`semantic-toplevel-bovine-table' is provided for the current buffer.
-Return non-nil if the minor mode is enabled.
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled.
 
 \\{senator-mode-map}"
   (interactive
