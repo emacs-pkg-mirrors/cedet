@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-find.el,v 1.15 2003/08/29 16:10:51 zappo Exp $
+;; X-RCS: $Id: semantic-find.el,v 1.16 2003/09/02 16:10:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -377,7 +377,7 @@ attempting to do completions."
 These tags are defined outside the scope of the original TYPE declaration.
 TABLE is a tag table.  See `semantic-something-to-tag-table'."
   (semantic--find-tags-by-macro
-   (equal (semantic-nonterminal-external-member-parent (car tags))
+   (equal (semantic-tag-external-member-parent (car tags))
 	  type)
    table))
 
