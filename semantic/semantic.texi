@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.20 2000/10/05 13:03:41 zappo Exp $
+@c $Id: semantic.texi,v 1.21 2000/12/09 03:05:37 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -43,14 +43,16 @@ your .emacs file:
 @code{(setq max-specpdl-size 1000)}
 
 @menu
-* Install::			Installing semantic.
-* Lexing::                      Setting up the lexer for your language.
-* Bovinating::                  Setting up the parser for your language.
-* BNF conversion::              Using the BNF converter to make tables.
-* Compiling::                   Running the bovinator on a source file.
-* Debugging::                   Using the bovine table debugger.
-* Non-Terminals::               How to use the nonterminal stream.
-* Utilities::                   Utilities for querying the nonterminal stream.
+* Install::             Installing semantic.
+* Lexing::              Setting up the lexer for your language.
+* Bovinating::          Setting up the parser for your language.
+* BNF conversion::      Using the BNF converter to make tables.
+* Compiling::           Running the bovinator on a source file.
+* Debugging::           Using the bovine table debugger.
+* Non-Terminals::       How to use the nonterminal stream.
+* Utilities::           Utilities for querying the nonterminal stream.
+* Tools::               Tools which use semantic.
+* Index::
 @end menu
 
 @node Install, Lexing, Top, Top
@@ -138,7 +140,7 @@ While it is certainly possible to write this table yourself, it is most
 likely you will want to use the BNF converter.  @xref{BNF conversion}.
 This is an easier method for specifying your rules.  You will still need
 to specify a variable in your language for the table, however.  A good
-rule of thumb is to call it @code{langauge-toplevel-bovine-table} if it
+rule of thumb is to call it @code{language-toplevel-bovine-table} if it
 part of the language, or @code{semantic-toplevel-language-bovine-table}
 if you donate it to the semantic package.
 
@@ -320,11 +322,11 @@ Available override symbols:
 @item find-nonterminal       @tab (token & parent)  @tab Find token in buffer.
 @item find-documentation     @tab (token & nosnarf) @tab Find doc comments.
 @item abbreviate-nonterminal @tab (token & parent)  @tab Return summery string.
-@item summerize-nonterminal  @tab (token & parent)  @tab Return summery string.
+@item summarize-nonterminal  @tab (token & parent)  @tab Return summery string.
 @item prototype-nonterminal  @tab (token)           @tab Return a prototype string.
 @item prototype-file         @tab (buffer)          @tab Return a file in which prototypes are placed
 @end multitable
- 	                                           
+                                                   
 Parameters mean:
 
 @table @code
@@ -641,7 +643,7 @@ broken.
 @node Non-Terminals, Utilities, Debugging, Top
 @chapter Using the Non-Termianal Stream
 
-The list of nontermianls returned from the parser is always language
+The list of nonterminals returned from the parser is always language
 dependent, but should follow some simple conventions.  A generic entry
 in the stream should be of the form
 
@@ -716,7 +718,7 @@ In Emacs Lisp, a `provide' statement.  @var{DETAIL} might be an associated
 file name.
 @refill
 
-@node Utilities,  , Non-Terminals, Top
+@node Utilities, Tools, Non-Terminals, Top
 @chapter Utilities
 
 There are many utilities which can be used in programs that use the
@@ -801,7 +803,7 @@ Retrieve the non-type modifiers of the function @var{TOKEN}.
 @end defun
 
 @defun semantic-token-function-throws token
-Retrieve the throws signale of the function @var{TOKEN}.
+Retrieve the throws signal of the function @var{TOKEN}.
 This is an optional field, and returns @code{nil} if it doesn't exist.
 @end defun
 
@@ -1001,8 +1003,8 @@ cal look for.  When appropriate, this can be overridden by a language specific
 enhancement.
 @end defun
 
-@defun semantic-summerize-nonterminal token &optional parent
-Summerize @var{TOKEN} in a reasonable way.
+@defun semantic-summarize-nonterminal token &optional parent
+Summarize @var{TOKEN} in a reasonable way.
 Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
 @end defun
 
@@ -1018,6 +1020,78 @@ prototype file, or the existence of an @var{EDE} variable indicating which
 file prototypes belong in.
 @end defun
 
+@node Tools, Index, Utilities, Top
+@comment  node-name,  next,  previous,  up
+@chapter Tools
+
+Several tools come with Semantic which would not be possible without it.
+In general, these tools will work with any language supported by
+Semantic.
+
+@menu
+* speedbar::            How to use Semantic speedbar support
+* semanticdb::          Cache your parsed buffers between sessions.
+* senator::             The Semantic Navigator
+@end menu
+
+@node speedbar, semanticdb, Tools, Tools
+@comment  node-name,  next,  previous,  up
+@section Speedbar
+
+Speedbar supports the display of tags through the Semantic parser.  To
+use this utility, add a line like this to your @file{.emacs} file:
+
+@example
+(add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb)))
+@end example
+
+or you can simply add:
+
+@example
+(require 'semantic-sb)
+@end example
+
+Once installed, speedbar will use semantic to find tokens, and will
+display them appropriately.  Tags from semantic will have additional
+details which can be seen, such as return type, or arguments to
+functions.
+
+@node semanticdb, senator, speedbar, Tools
+@comment  node-name,  next,  previous,  up
+@section Semantic Database
+
+Semanticdb is a utility which tracks your parsed files, and save the
+parsed information to files.  When you reload your source files,
+semanticdb automatically associates the file with the cached copy,
+saving time by not reparsing your buffer.
+
+Semanticdb also provides an API for programs to use.  These functions
+will return token information without loading the source file into
+memory by checking the disk cache.
+
+To use semanticdb, add the following to your @file{.emacs} file:
+
+@example
+(require 'semanticdb)
+(global-semanticdb-minor-mode 1)
+@end example
+
+*Write section on programming api*
+
+@node senator, , semanticdb, Tools
+@comment  node-name,  next,  previous,  up
+@section Semantic Navigator
+
+Senator stands for SEmantic NAvigaTOR and was written by David Ponce.
+
+*port commentary here*
+
+@node Index, , Tools, Top
+@comment  node-name,  next,  previous,  up
+@chapter Index
+
+@unnumbered Concept Index
+@printindex cp
 
 @bye
 
