@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.17 2003/04/04 13:18:08 ponced Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.18 2003/04/09 01:46:02 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -2023,7 +2023,10 @@ Override function for `semantic-nonterminal-protection'."
 	    (cond ((string= (semantic-tag-type parent) "class") 'private)
 		  ((string= (semantic-tag-type parent) "struct") 'public)
 		  (t 'unknown))))
-    (or prot 'public)))
+    (or prot
+	(if parent
+	    'public
+	  nil))))
 
 (defun semantic-c-tag-components (tag)
   "Return components for TAG."
@@ -2034,6 +2037,20 @@ Override function for `semantic-nonterminal-protection'."
       ;; to make sure we can apply overlays properly.
       (semantic-tag-components (semantic-tag-type-superclasses tag))
     (semantic-tag-components-default tag)))
+
+(defun semantic-c-format-tag-type (tag color)
+  "Convert the data type of TAG to a string usable in tag formatting.
+Adds pointer and reference symbols to the default.
+Argument COLOR adds color to the text."
+  (let* ((type (semantic-format-tag-type-default tag color))
+	 (point (semantic-tag-get-attribute tag 'pointer))
+	 (ref (semantic-tag-get-attribute tag 'reference))
+	 )
+    (if ref (setq ref "&"))
+    (if point (setq point (make-string point ?*)) "")
+    (when type
+      (concat type ref point))
+    ))
 
 (defun semantic-c-nonterminal-template (tag)
   "Return the template specification for TAG, or nil."
@@ -2049,9 +2066,9 @@ This might be a string, or a list of tokens."
   (cond ((stringp templatespec)
 	 templatespec)
 	((semantic-tag-p templatespec)
-	 (semantic-abbreviate-nonterminal templatespec))
+	 (semantic-format-tag-abbreviate templatespec))
 	((listp templatespec)
-	 (mapconcat 'semantic-abbreviate-nonterminal templatespec ", "))))
+	 (mapconcat 'semantic-format-tag-abbreviate templatespec ", "))))
 
 (defun semantic-c-template-string (token &optional parent color)
   "Return a string representing the TEMPLATE attribute of TOKEN.
@@ -2073,20 +2090,20 @@ Argument COLOR specifies that the string should be colorized."
 	  (t
 	   ""))))
 
-(defun semantic-c-concise-prototype-nonterminal (token &optional parent color)
+(defun semantic-c-format-tag-concise-prototype (token &optional parent color)
   "Return an abbreviated string describing TOKEN for C and C++.
 Optional PARENT and COLOR as specified with
-`semantic-abbreviate-nonterminal-default'."
+`semantic-format-tag-abbreviate-default'."
   ;; If we have special template things, append.
-  (concat  (semantic-concise-prototype-nonterminal-default token parent color)
+  (concat  (semantic-format-tag-concise-prototype-default token parent color)
 	   (semantic-c-template-string token parent color)))
 
-(defun semantic-c-uml-prototype-nonterminal (token &optional parent color)
+(defun semantic-c-format-tag-uml-prototype (token &optional parent color)
   "Return an uml string describing TOKEN for C and C++.
 Optional PARENT and COLOR as specified with
 `semantic-abbreviate-nonterminal-default'."
   ;; If we have special template things, append.
-  (concat  (semantic-uml-prototype-nonterminal-default token parent color)
+  (concat  (semantic-format-tag-uml-prototype-default token parent color)
 	   (semantic-c-template-string token parent color)))
 
 (defun semantic-c-nonterminal-abstract (tag &optional parent)
@@ -2168,8 +2185,9 @@ These are constants which are of type TYPE."
   (semantic-install-function-overrides
    '((nonterminal-protection . semantic-c-nonterminal-protection)
      (tag-components . semantic-c-tag-components)
-     (concise-prototype-nonterminal . semantic-c-concise-prototype-nonterminal)
-     (uml-prototype-nonterminal . semantic-c-uml-prototype-nonterminal)
+     (format-tag-concise-prototype . semantic-c-format-tag-concise-prototype)
+     (format-tag-uml-prototype . semantic-c-format-tag-uml-prototype)
+     (format-tag-type . semantic-c-format-tag-type)
      (nonterminal-abstract . semantic-c-nonterminal-abstract)
      (analyze-dereference-metatype . semantic-c-analyze-dereference-metatype)
      (analyze-type-constants . semantic-c-analyze-type-constants)
