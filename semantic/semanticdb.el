@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.5 2000/12/12 02:38:11 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.6 2000/12/15 01:20:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -75,7 +75,8 @@ use this.")
   "Database of file tables.")
 
 (defclass semanticdb-table ()
-  ((file :initarg :file
+  ((parent-db :documentation "Database Object containing this table.")
+   (file :initarg :file
 	 :documentation "File name relative to the parent database.
 This is for the file whose tags are stored in this TABLE object.")
    (pointmax :initarg :pointmax
@@ -94,10 +95,11 @@ If FILENAME exists, then load that database, and return it.
 If FILENAME doesn't exist, create a new one."
   (if (file-exists-p filename)
       (or (semanticdb-file-loaded-p filename)
-	  (semanticdb-load-database filename))
-    (semanticdb-project-database (file-name-nondirectory filename)
-				 :file filename
-				 :tables nil)))
+	  (semanticdb-load-database filename)))
+  (if (not (semanticdb-file-loaded-p filename))
+      (semanticdb-project-database (file-name-nondirectory filename)
+				   :file filename
+				   :tables nil)))
 
 (defun semanticdb-get-database (filename)
   "Get a database for FILENAME.
@@ -107,7 +109,10 @@ If one isn't found, create one."
 
 (defun semanticdb-load-database (filename)
   "Load the database FILENAME."
-  (eieio-persistent-read filename))
+  (condition-case foo
+      (eieio-persistent-read filename)
+    (error (message "Cache Error: %s, Restart" foo)
+	   nil)))
 
 (defun semanticdb-file-loaded-p (filename)
   "Return the project belonging to FILENAME if it was already loaded."
@@ -121,11 +126,9 @@ If one isn't found, create one."
 (defun semanticdb-save-db (&optional DB)
   "Write out the database DB to its file.
 If DB is not specified, then use the current database."
-  (condition-case nil
-      (progn
-	(eieio-persistent-save (or DB semanticdb-current-database))
-	(run-hooks 'semanticdb-save-database-hooks DB))
-    (error nil)))
+  (eieio-persistent-save (or DB semanticdb-current-database))
+  (run-hook-with-args 'semanticdb-save-database-hooks DB)
+  )
 
 (defun semanticdb-save-all-db ()
   "Save all semantic token databases."
@@ -133,11 +136,16 @@ If DB is not specified, then use the current database."
   (mapcar 'semanticdb-save-db semanticdb-database-list)
   (message "Saving token summaries...done"))
 
+(defmethod semanticdb-full-filename ((obj semanticdb-table))
+  "Fetch the full filename that OBJ refers to."
+  (concat (file-name-directory (oref (oref obj parent-db) file))
+	  (oref obj file)))
+
 (defmethod object-write ((obj semanticdb-table))
   "When writing a table, we have to make sure we deoverlay it first.
 Restore the overlays after writting.
 Argument OBJ is the object to write."
-  (let ((b (get-file-buffer (oref obj file))))
+  (let ((b (get-file-buffer (semanticdb-full-filename obj))))
     (save-excursion
       (if b (progn (set-buffer b) (semantic-deoverlay-cache)
 		   (oset obj pointmax (point-max)))))
@@ -153,7 +161,7 @@ Sets up the semanticdb environment."
   (let ((cdb nil)
 	(ctbl nil))
     (if (not (and semanticdb-semantic-init-hook-overload
-		  (setq cdb (run-hooks semanticdb-semantic-init-hook-overload))))
+		  (setq cdb (run-hooks 'semanticdb-semantic-init-hook-overload))))
 	(setq cdb
 	      (semanticdb-get-database
 	       (concat (file-name-directory (buffer-file-name))
@@ -168,6 +176,7 @@ Sets up the semanticdb environment."
 	     :file (eieio-persistent-path-relative
 		    semanticdb-current-database (buffer-file-name))
 	     ))
+      (oset ctbl parent-db cdb)
       (object-add-to-list semanticdb-current-database
 			  'tables
 			  ctbl
