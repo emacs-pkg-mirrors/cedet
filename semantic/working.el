@@ -150,12 +150,14 @@ Functions provided in `working' are:
 Dynamic working types occur when the program does not know how long
 it will take ahead of time.  Functions provided in `working' are:
   `working-number-display'
+  `working-text-display'
   `working-spinner-display'
   `working-dotgrowth-display'
   `working-celeron-display'
   `working-bounce-display'"
   :group 'working
   :type '(choice (const working-number-display)
+                 (const working-text-display)
 		 (const working-spinner-display)
 		 (const working-dotgrowth-display)
 		 (const working-celeron-display)
@@ -388,12 +390,20 @@ is t to display the done string, or the percentage to display."
 ;;; Dynamic display types.
 ;;
 (defun working-number-display (length number)
-  "Return a string display the number of things that happened.
+  "Return a string displaying the number of things that happened.
 LENGTH is the amount of display that has been used.  NUMBER
 is t to display the done string, or the number to display."
   (cond ((eq number t) (concat "... " working-donestring))
 	;; All the % signs because it then gets passed to message.
 	(t (format "... %d" number))))
+
+(defun working-text-display (length text)
+    "Return a string displaying the name of things that happened.
+LENGTH is the amount of display that has been used.  TEXT
+is t to display the done string, or the text to display."
+    (if (eq text t)
+        (concat "... " working-donestring)
+      (format "... %s" text)))
 
 (defun working-spinner-display (length number)
   "Return a string displaying a spinner based on a number.
