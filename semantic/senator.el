@@ -5,9 +5,9 @@
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
-;; Version: 2.0
+;; Version: 2.1
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.14 2000/12/12 11:02:16 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.15 2001/01/03 16:09:28 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -34,7 +34,9 @@
 ;; tokens.
 
 ;; The commands `senator-next-token' and `senator-previous-token'
-;; navigate respectively to the token after or before the point.
+;; navigate respectively to the token after or before the point.  The
+;; command `senator-jump' directly jumps to a particular semantic
+;; symbol.
 
 ;; Also, for each built-in search command `search-forward',
 ;; `search-backward', `re-search-forward', `re-search-backward',
@@ -59,6 +61,7 @@
 ;;    ---             -------
 ;;    C-c , n         `senator-next-token'
 ;;    C-c , p         `senator-previous-token'
+;;    C-c , j         `senator-jump'
 ;;    C-c , i         `senator-isearch-toggle-semantic-mode'
 ;;
 ;; To install, put this file on your Emacs-Lisp load path and add
@@ -92,6 +95,28 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.15  2001/01/03 16:09:28  david_ponce
+;; New version 2.1.
+;;
+;; Fixed a nasty typo in `senator-minor-mode'.  `run-hooks' were missing
+;; a quotation before their arguments.  Thanks to "Charles Rich"
+;; <rich@merl.com> who has reported this bug.
+;;
+;; Added new `senator-jump' command.  Thanks to "Eric M. Ludlam"
+;; <zappo@ultranet.com> and "T. V. Raman" <tvraman@almaden.ibm.com> for
+;; their help.
+;;
+;; Added new `senator-minor-mode-name' option to customize the name
+;; displayed in the modeline when senator minor mode is on.
+;;
+;; When semantic isearch mode is on it now appends "/si" to the senator
+;; minor mode name displayed in the modeline.
+;;
+;; Added new keyboard shortcut "\C-," to toggle semantic search in
+;; isearch mode.
+;;
+;; Some code improvements.
+;;
 ;; Revision 1.14  2000/12/12 11:02:16  david_ponce
 ;; `senator-mark-defun' now work on XEmacs too.
 ;;
@@ -188,6 +213,11 @@
   "SEmantic NAvigaTOR."
   :group 'semantic)
 
+(defcustom senator-minor-mode-name "Senator"
+  "*Name displayed in the modeline when senator minor mode is on."
+  :group 'senator
+  :type 'string)
+
 (defface senator-momentary-highlight-face  '((((class color) (background dark))
 					      (:background "gray30"))
 					     (((class color) (background light))
@@ -224,6 +254,12 @@ langage behaviour."
   :type 'boolean)
 (make-variable-buffer-local 'senator-highlight-found)
 
+(defcustom senator-separator-char ?#
+  "*Character separator used to compose token full name."
+  :group 'senator
+  :type 'character)
+(make-variable-buffer-local 'senator-separator-char)
+
 ;;; Compatibility
 (cond ((fboundp 'semantic-momentary-highlight-token)
        ;; semantic 1.3
@@ -233,10 +269,16 @@ langage behaviour."
        )
       (t
        ;; semantic before 1.3
-       (defun semantic-momentary-highlight-token (token)
-         "Highlight TOKEN, not implemented in this version of semantic."
-         ;; Does nothing
-         )
+       (defun semantic-momentary-highlight-token (&rest ignore)
+         "Highlight a token, removing highlighting when the user hits a key.
+Not implemented in this version of the Semantic Bovinator.  IGNORE
+arguments and always return nil."
+         nil)
+       (defun semantic-find-nonterminal-by-overlay (&rest ignore)
+         "Find all nonterminals covering a position by using overlays.
+Not implemented in this version of the Semantic Bovinator.  IGNORE
+arguments and always return nil."
+         nil)
        (defun senator-parse ()
          "Parse the current buffer and return the tokens where to navigate."
          (semantic-bovinate-toplevel nil nil t))
@@ -322,6 +364,75 @@ nil."
   "Return non-nil if POS is between start and end of TOKEN."
   (and (> pos (semantic-token-start token))
        (< pos (semantic-token-end   token))))
+
+(defun senator-full-token-name (token parent)
+  "Compose a full name from TOKEN name and names in its PARENT list.
+A `senator-separator-char' separates each token name.  The parent list
+is in reverse order."
+  (let ((sep  (char-to-string senator-separator-char))
+        (name ""))
+    (while parent
+      (setq name (concat (semantic-token-name (car parent))
+                         sep
+                         name)
+            parent (cdr parent)))
+    (concat name (semantic-token-name token))))
+
+(defun senator-last-name (full-name)
+  "Return the last name from FULL-NAME.
+That is the name after the last `senator-separator-char' or FULL-NAME
+itself if it does not contain any separator character."
+  (and (string-match (format "[%c]?\\([^%c]+\\)\\'"
+                             senator-separator-char
+                             senator-separator-char)
+                     full-name)
+       (match-string 1 full-name)))
+
+(defun senator-completion-stream (stream parent full-name-p &optional top-level)
+  "Return a useful completion list from STREAM.
+That is a flat list of all tokens available.  Prepend to each token
+name the name of tokens in its PARENT list if FULL-NAME-P is non-nil.
+This helps to distinguish between tokens in multiple top level type
+declarations or in sub type declarations.  If TOP-LEVEL is non-nil the
+completion list will contain only tokens at top level.  Otherwise all
+sub type tokens are included too."
+  (let (cs token)
+    (while stream
+      (setq token  (car stream))
+      (setq stream (cdr stream))
+      (setq cs (cons (cons (senator-full-token-name token parent)
+                           (cdr token))
+                     cs))
+      (and (not top-level)
+           (eq (semantic-token-token token) 'type)
+           (setq cs (append cs (senator-completion-stream
+                                (semantic-token-type-parts token)
+                                (and full-name-p (cons token parent))
+                                t)))))
+    cs))
+
+(defun senator-current-type-context ()
+  "Return tokens in the type context at point or nil if not found."
+  (let ((context (semantic-find-nonterminal-by-token
+                  'type (semantic-find-nonterminal-by-overlay))))
+    (if context
+        (semantic-token-type-parts
+         (nth (1- (length context)) context)))))
+
+(defun senator-completion-list (&optional in-context)
+  "Return a useful completion list from tokens in current buffer.
+That is a flat list of all tokens available.  If IN-CONTEXT is not nil
+return only the top level tokens in the type context at point or the
+top level tokens in the current buffer if no type context exists at
+point."
+  (let (stream full-name-p)
+    (if in-context
+        (setq stream (senator-current-type-context)))
+    (or stream (setq stream (senator-parse)))
+    (setq full-name-p (and (not in-context)
+                           (cdr (semantic-find-nonterminal-by-token
+                                 'type stream))))
+    (senator-completion-stream stream nil full-name-p in-context)))
 
 ;;;;
 ;;;; Search functions
@@ -456,6 +567,29 @@ Return the semantic token or nil if at beginning of buffer."
                        where))
     found))
 
+;;;###autoload
+(defun senator-jump (sym)
+  "Jump to the semantic symbol SYM.
+If called interactively and a prefix argument is supplied jump in the
+local type's context (see function `senator-current-type-context')."
+  (interactive
+   (list
+    (completing-read "Jump to: "
+                     (senator-completion-list current-prefix-arg)
+                     nil
+                     t
+                     ""
+                     'semantic-read-symbol-history)))
+  (when sym
+    (let ((token
+           (semantic-find-nonterminal-by-name (senator-last-name sym)
+                                              (current-buffer))))
+      (goto-char (semantic-token-start  token))
+      (senator-momentary-highlight-token token)
+      (senator-message "%S: %s "
+                       (semantic-token-token token)
+                       (semantic-token-name  token)))))
+
 ;;;;
 ;;;; Search commands
 ;;;;
@@ -587,6 +721,9 @@ implementation."
 ;;;;
 ;;;; Senator minor mode
 ;;;;
+(defvar senator-mode nil
+  "Name of the minor mode, if non-nil.")
+(make-variable-buffer-local 'senator-mode)
 
 (defvar senator-isearch-semantic-mode nil
   "Non-nil if isearch does semantic search.
@@ -599,6 +736,7 @@ This is a buffer local variable.")
 (defvar senator-prefix-map
   (let ((km (make-sparse-keymap)))
     (define-key km "i" 'senator-isearch-toggle-semantic-mode)
+    (define-key km "j" 'senator-jump)
     (define-key km "p" 'senator-previous-token)
     (define-key km "n" 'senator-next-token)
     km)
@@ -637,6 +775,12 @@ That is remove the unsupported :help stuff."
       senator-previous-token
       :active t
       :help "Go to the previous token found"
+      ])
+    (senator-menu-item
+     ["Jump..."
+      senator-jump
+      :active t
+      :help "Jump to a semantic symbol"
       ])
     )
    (list
@@ -716,6 +860,16 @@ That is remove the unsupported :help stuff."
     km)
   "Keymap for senator minor mode.")
 
+(defun senator-show-status ()
+  "Update the modeline to show the senator minor mode state.
+If `senator-isearch-semantic-mode' is non-nil append \"/si\" to
+the value of the variable `senator-minor-mode-name'."
+  (setq senator-mode (format (if senator-isearch-semantic-mode
+                                 " %s/si"
+                               " %s")
+                             senator-minor-mode-name))
+  (force-mode-line-update))
+
 (defun senator-minor-mode-setup ()
   "Actually setup the senator minor mode.
 Turn off the minor mode if semantic feature is not available or
@@ -733,6 +887,7 @@ non-nil if the minor mode is enabled."
 	(condition-case nil
 	    (senator-parse)
 	  (quit (message "senator-minor-mode: parsing of buffer canceled.")))
+        (senator-show-status)
         )
     ;; XEmacs needs this
     (if (featurep 'xemacs)
@@ -755,7 +910,7 @@ minor mode is turned on only if semantic feature is available and a
 Return non-nil if the minor mode is enabled.
 
 \\{senator-mode-map}"
-      nil " Senator" senator-mode-map
+      nil senator-mode senator-mode-map
       :global nil
       :group 'senator
       (senator-minor-mode-setup))
@@ -793,13 +948,13 @@ Return non-nil if the minor mode is enabled.
               (not senator-minor-mode)))
       (and senator-minor-mode-hook
            (not (equal old-mode senator-minor-mode))
-           (run-hooks senator-minor-mode-hook))
+           (run-hooks 'senator-minor-mode-hook))
       (and senator-minor-mode-on-hook
            senator-minor-mode
-           (run-hooks senator-minor-mode-on-hook))
+           (run-hooks 'senator-minor-mode-on-hook))
       (and senator-minor-mode-off-hook
            (not senator-minor-mode)
-           (run-hooks senator-minor-mode-off-hook)))
+           (run-hooks 'senator-minor-mode-off-hook)))
     (senator-minor-mode-setup)
     (senator-message "Senator minor mode %s"
                      (if senator-minor-mode
@@ -810,12 +965,12 @@ Return non-nil if the minor mode is enabled.
   (if (fboundp 'add-minor-mode)
       
       ;; XEmacs
-      (add-minor-mode 'senator-minor-mode " Senator" senator-mode-map)
+      (add-minor-mode 'senator-minor-mode 'senator-mode senator-mode-map)
 
     ;; Emacs 20
     (or (assq 'senator-minor-mode minor-mode-alist)
         (setq minor-mode-alist
-              (cons (list 'senator-minor-mode " Senator") minor-mode-alist)))
+              (cons (list 'senator-minor-mode 'senator-mode) minor-mode-alist)))
     
     (or (assq 'senator-minor-mode minor-mode-map-alist)
         (setq minor-mode-map-alist
@@ -922,11 +1077,6 @@ If semantic tokens are available, use them to navigate."
 ;;;; Using semantic search in isearch mode
 ;;;;
 
-(defvar senator-isearch-mode-name nil
-  "Save current value of the variable `isearch-mode'.
-This is a buffer local variable.")
-(make-variable-buffer-local 'senator-isearch-mode-name)
-
 (defun senator-isearch-search-handler ()
   "Return the actual search function used by `isearch-search'.
 If `senator-isearch-semantic-mode' is nil it delegates to the
@@ -951,15 +1101,6 @@ and `isearch-word'."
                'senator-search-backward)))
     (isearch-default-search-handler)))
 
-(defun senator-isearch-update-modeline ()
-  "Update the modeline to show the semantic search state.
-If `senator-isearch-semantic-mode' is non-nil append \"/S\" to
-the value of the variable `isearch-mode'."
-  (if senator-isearch-semantic-mode
-      (setq isearch-mode (concat senator-isearch-mode-name "/S"))
-    (setq isearch-mode senator-isearch-mode-name))
-  (force-mode-line-update))
-
 (defun senator-isearch-toggle-semantic-mode ()
   "Toggle semantic searching on or off in isearch mode.
 \\[senator-isearch-toggle-semantic-mode] toggle semantic searching."
@@ -967,28 +1108,28 @@ the value of the variable `isearch-mode'."
   (when senator-minor-mode
     (setq senator-isearch-semantic-mode
           (not senator-isearch-semantic-mode))
-    (when isearch-mode
-      (senator-isearch-update-modeline)
-      ;; force lazy highlight update
-      (isearch-lazy-highlight-cleanup t)
-      (setq isearch-lazy-highlight-last-string nil)
-      (setq isearch-adjusted t)
-      (isearch-update)))
-  (senator-message "Isearch semantic mode %s"
-                   (if senator-isearch-semantic-mode
-                       "enabled"
-                     "disabled")))
+    (senator-show-status)
+    (if isearch-mode
+        ;; force lazy highlight update
+        (senator-lazy-highlight-update)
+      (senator-message "Isearch semantic mode %s"
+                       (if senator-isearch-semantic-mode
+                           "enabled"
+                         "disabled")))))
+
+;; Needed by XEmacs isearch to not terminate isearch mode when
+;; toggling semantic search.
+(put 'senator-isearch-toggle-semantic-mode 'isearch-command t)
+
+;; Keyboard shortcut to toggle semantic search in isearch mode.
+(define-key isearch-mode-map [(control ?,)] 'senator-isearch-toggle-semantic-mode)
 
 (defun senator-isearch-mode-hook ()
   "Isearch mode hook to setup semantic searching."
-  (or senator-isearch-mode-name
-      (setq senator-isearch-mode-name isearch-mode
-            isearch-search-handler-provider
-            #'senator-isearch-search-handler))
+  (setq isearch-search-handler-provider #'senator-isearch-search-handler)
   (or senator-minor-mode
       (setq senator-isearch-semantic-mode nil))
-  (senator-isearch-update-modeline)
-  (isearch-lazy-highlight-cleanup t))
+  (senator-show-status))
 
 (add-hook 'isearch-mode-hook 'senator-isearch-mode-hook)
 
