@@ -1,11 +1,11 @@
 ;;; ede-speedbar.el --- Speebar viewing of EDE projects
 
-;;;  Copyright (C) 1998  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.2
 ;; Keywords: project, make, tags
-;; RCS: $Id: ede-speedbar.el,v 1.2 1999/01/21 13:57:16 zappo Exp $
+;; RCS: $Id: ede-speedbar.el,v 1.3 1999/01/21 21:24:27 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -75,11 +75,31 @@
 				 ede-speedbar-menu
 				 ede-speedbar-key-map
 				 ede-speedbar-buttons))
+  ;; Overload those functions that we care about.
+  (speedbar-add-mode-functions-list
+   '("EDE"
+     (speedbar-item-info . ede-speedbar-item-info)
+     (speedbar-line-path . ede-speedbar-line-path)))
   ;; Now, throw us into EDE mode on speedbar.
   (speedbar-change-initial-expansion-list "EDE")
   ;; Now flip over to the speedbar frame
   (speedbar-get-focus)
   )
+
+(defun ede-speedbar-item-info ()
+  "Display info for the current line when in EDE display mode."
+  (or (speedbar-item-info-tag-helper)
+      (let ((tok (speedbar-line-token)))
+	(cond ((object-p tok)
+	       (message (ede-description tok)))
+	      ((stringp tok)
+	       (speedbar-item-info-file-helper tok))
+	      (t nil)))))
+
+(defun ede-speedbar-line-path (&optional depth)
+  "Return the path to the file the cursor is on.
+Optional DEPTH is the depth we start at."
+  (file-name-nondirectory (or (speedbar-line-token) "")))
 
 (defun ede-speedbar-buttons (dir-or-object depth)
   "Create buttons in speedbar that represents the current project.
@@ -109,6 +129,14 @@ expansion depth."
 			  'ede-file-find
 			  (oref this :file)
 			  'speedbar-directory-face depth))
+
+(defmethod ede-sb-button ((this ede-target) depth)
+  "The default speedbar button for any target."
+  (speedbar-make-tag-line 'angle ?+
+			  'ede-object-expand
+			  this (ede-name this)
+			  nil this  ; nothing to jump to
+			  'speedbar-file-face depth))
 
 (defmethod ede-sb-button ((this project-am-program) depth)
   "Create a speedbar button for object THIS at DEPTH."
@@ -175,17 +203,7 @@ method for the actual text."
 
 (defmethod ede-sb-expand ((this ede-project) depth)
   "Expand THIS logically at DEPTH."
-  (let* ((subproj nil))
-    (setq subproj (oref this :subproj))
-    (while subproj
-      (ede-sb-button (car subproj) depth)
-      (setq subproj (cdr subproj)))))
-
-(defmethod ede-sb-expand ((this project-am-makefile) depth)
-  "Expand THIS logically at DEPTH."
-  (let* ((subproj nil) (targets nil))
-    (setq subproj (oref this :subproj))
-    (setq targets (oref this :targets))
+  (with-slots (subproj targets) this
     (if (and (= 1 (+ (length subproj) (length targets)))
 	     (string= (ede-name this)
 		      (ede-name (or (car subproj)
@@ -193,10 +211,21 @@ method for the actual text."
 	;; If there is only one target, and it has the same name
 	;; as the directory, then expand that target instead.
 	(ede-sb-expand (or (car subproj) (car targets)) depth)
-      (if subproj (call-next-method))
-      (while targets
-	(ede-sb-button (car targets) depth)
-	(setq targets (cdr targets))))))
+      (mapcar (lambda (car) (ede-sb-button car depth)) subproj)
+      (mapcar (lambda (car) (ede-sb-button car depth)) targets))))
+
+(defmethod ede-sb-expand ((this ede-target) depth)
+  "The default speedbar button for any target."
+  (with-slots (source) this
+    (mapcar (lambda (car)
+	      (speedbar-make-tag-line 'bracket ?+
+				      'ede-tag-file
+				      (concat (oref this :path) car)
+				      car
+				      'ede-file-find
+				      (concat (oref this :path) car)
+				      'speedbar-file-face depth))
+	    source)))
 
 (defmethod ede-sb-expand ((this project-am-objectcode) depth)
   "Expand node describing something built into objectcode.
