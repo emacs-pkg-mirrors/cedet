@@ -1,12 +1,12 @@
 ;;; semantic-util-modes.el --- Semantic minor modes
 
-;;; Copyright (C) 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2003 Eric M. Ludlam
 ;;; Copyright (C) 2001 David Ponce
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.17.4.1 2002/12/26 11:07:50 ponced Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.17.4.2 2003/04/07 22:07:03 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -755,6 +755,134 @@ minor mode is enabled.
 (semantic-add-minor-mode 'semantic-summary-mode
                          "" ;; Eldoc provides the mode indicator
                          semantic-summary-mode-map)
+
+;;;;
+;;;; Minor mode to make function decls sticky.
+;;;;
+
+;;;###autoload
+(defun global-semantic-stickyfunc-mode (&optional arg)
+  "Toggle global use of option `semantic-stickyfunc-mode'.
+If ARG is positive, enable, if it is negative, disable.
+If ARG is nil, then toggle."
+  (interactive "P")
+  (setq global-semantic-stickyfunc-mode
+        (semantic-toggle-minor-mode-globally
+         'semantic-stickyfunc-mode arg)))
+
+;;;###autoload
+(defcustom global-semantic-stickyfunc-mode nil
+  "*If non-nil, enable global use of stickyfunc mode."
+  :group 'semantic
+  :type 'boolean
+  :require 'semantic-util-modes
+  :initialize 'custom-initialize-default
+  :set (lambda (sym val)
+         (global-semantic-stickyfunc-mode (if val 1 -1))))
+
+(defcustom semantic-stickyfunc-mode-hook nil
+  "*Hook run at the end of function `semantic-stickyfunc-mode'."
+  :group 'semantic
+  :type 'hook)
+
+(defvar semantic-stickyfunc-mode-map
+  (let ((km (make-sparse-keymap)))
+    km)
+  "Keymap for stickyfunc minor mode.")
+
+(defvar semantic-stickyfunc-mode nil
+  "Non-nil if stickyfunc minor mode is enabled.
+Use the command `semantic-stickyfunc-mode' to change this variable.")
+(make-variable-buffer-local 'semantic-stickyfunc-mode)
+
+(defun semantic-stickyfunc-mode-setup ()
+  "Setup option `semantic-stickyfunc-mode'.
+For semantic enabled buffers, make the function declaration for the top most
+function \"sticky\".  This is accomplished by putting the first line of
+text for that function in Emacs 21's header line."
+  (if semantic-stickyfunc-mode
+      (progn
+	(if (not (and (featurep 'semantic) (semantic-active-p)))
+	    (progn
+	      ;; Disable minor mode if semantic stuff not available
+	      (setq semantic-stickyfunc-mode nil)
+	      (error "Buffer %s was not set up for parsing"
+		     (buffer-name))))
+	(if (not (boundp 'default-header-line-format))
+	    (progn
+	      ;; Disable if there are no header lines to use.
+	      (setq semantic-stickyfunc-mode nil)
+	      (error "Sticky Function mode requires Emacs 21")))
+	;; Enable the mode
+	(setq header-line-format
+	      '("    "
+		(:eval (semantic-stickyfunc-fetch-stickyline))))
+        )
+    ;; Disable sticky func mode
+    (setq header-line-format nil))
+  semantic-stickyfunc-mode)
+
+;;;###autoload
+(defun semantic-stickyfunc-mode (&optional arg)
+  "Minor mode to show useful things about tokens in echo area.
+Enables/disables making the header line of functions sticky.
+With prefix argument ARG, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-nil if the
+minor mode is enabled.
+
+\\{semantic-stickyfunc-mode-map}"
+  (interactive
+   (list (or current-prefix-arg
+             (if semantic-stickyfunc-mode 0 1))))
+  (setq semantic-stickyfunc-mode
+        (if arg
+            (>
+             (prefix-numeric-value arg)
+             0)
+          (not semantic-stickyfunc-mode)))
+  (semantic-stickyfunc-mode-setup)
+  (run-hooks 'semantic-stickyfunc-mode-hook)
+  (if (interactive-p)
+      (message "Stickyfunc minor mode %sabled"
+               (if semantic-stickyfunc-mode "en" "dis")))
+  (semantic-mode-line-update)
+  semantic-stickyfunc-mode)
+
+(defvar semantic-stickyfunc-sticky-classes
+  '(function type)
+  "List of tag classes which sticky func will display in the header line.")
+
+(defun semantic-stickyfunc-fetch-stickyline ()
+  "Make the function at the top of the current window sticky.
+Capture it's function declaration, and place it in the header line.
+If there is no function, disable the header line."
+  (let ((str
+	 (save-excursion
+	   (goto-char (window-start (selected-window)))
+	   (forward-line -1)
+	   (end-of-line)
+	   ;; Capture this function
+	   (let ((tag (semantic-current-nonterminal)))
+	     (if (or (not tag)
+		     (not (member (semantic-token-token tag)
+				  semantic-stickyfunc-sticky-classes)))
+		 ;; Set it to be the text under the header line
+		 (buffer-substring (point-at-bol) (point-at-eol))
+	       ;; Get it
+	       (goto-char (semantic-token-start tag))
+	       (buffer-substring (point-at-bol) (point-at-eol))
+	       ))))
+	(start 0))
+    (while (string-match "%" str start)
+      (setq str (replace-match "%%" t t str 0)
+	    start (1+ (match-end 0)))
+      )
+    str))
+
+(semantic-add-minor-mode 'semantic-stickyfunc-mode
+                         "" ;; Don't need indicator.  It's quite visible
+                         semantic-stickyfunc-mode-map)
 
 (provide 'semantic-util-modes)
 
