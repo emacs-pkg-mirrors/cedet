@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.9 2002/12/13 07:02:20 ponced Exp $
+;; X-RCS: $Id: inversion.el,v 1.10 2002/12/19 08:01:33 ponced Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta4"
@@ -294,7 +294,7 @@ value of these variables must be a version string.
 Return a pair (VERSION-STRING . INCOMPATIBLE-VERSION-STRING) where
 INCOMPATIBLE-VERSION-STRING can be nil.
 Return nil when VERSION-STRING was not found."
-  (let* ((file (locate-file (symbol-name package) load-path '(".el")))
+  (let* ((file (locate-library (format "%s.el" package) t))
 	 (tag (car inversion-find-data))
 	 (idx (nth 1 inversion-find-data))
 	 version)
