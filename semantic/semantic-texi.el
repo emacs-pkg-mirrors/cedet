@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-texi.el,v 1.8.2.2 2002/12/17 11:50:20 ponced Exp $
+;; X-RCS: $Id: semantic-texi.el,v 1.8.2.3 2002/12/26 11:07:13 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -99,9 +99,9 @@ or
     ))
 
 (defun semantic-texi-recursive-combobulate-list (sectionlist level)
-  "Re-arrange SECTIONLIST to be a hierarchical token list starting at LEVEL.
-Return the re-arranged new list, with all remaining tokens from
-SECTIOLIST starting at ELT 2.  Sections not are not dealt with as soon as a
+  "Rearrange SECTIONLIST to be a hierarchical token list starting at LEVEL.
+Return the rearranged new list, with all remaining tokens from
+SECTIONLIST starting at ELT 2.  Sections not are not dealt with as soon as a
 token with greater section value than LEVEL is found."
   (let ((newl nil)
 	(oldl sectionlist)
