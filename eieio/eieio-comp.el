@@ -1,10 +1,10 @@
 ;;; eieio-comp.el -- eieio routines to help with byte compilation
 
 ;;;
-;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001 Eric M. Ludlam
+;; Copyright (C) 1995,1996, 1998, 1999, 2000, 2001, 2002 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-comp.el,v 1.11 2001/05/31 00:18:28 zappo Exp $
+;; RCS: $Id: eieio-comp.el,v 1.12 2002/06/27 02:58:21 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -67,6 +67,9 @@ that is called but rarely.  Argument FORM is the body of the method."
 			   ((eq ':PRIMARY (car form))
 			    (setq form (cdr form))
 			    ":PRIMARY ")
+			   ((eq ':STATIC (car form))
+			    (setq form (cdr form))
+			    ":STATIC ")
 			   (t ""))))
 	 (params (car form))
 	 (lamparams (byte-compile-defmethod-param-convert params))
