@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.19 2004/02/19 01:39:38 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.20 2004/02/19 02:19:22 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -408,11 +408,36 @@ define-mode-overload\\)\
 
 (define-mode-overload-implementation semantic-get-local-variables emacs-lisp-mode
   (&optional point)
-  "Do not collect local variables.
-Local variables are useful for dynamic completion and other things that
-are staticly typed.  Since lisp is not staticly typed, this is not
-a useful use of CPU cycles."
-  nil)
+  "Return a list of local variables for POINT.
+Scan backwards from point at each successive function.  For all occurances
+of `let' or `let*', grab those variable names."
+  (let* ((vars nil)
+	 (fn nil))
+    (save-excursion
+      (while (setq fn (car (semantic-ctxt-current-function)))
+	(when (member fn '("let" "let*"))
+	  ;; Snarf variables
+	  (up-list -1)
+	  (forward-char 1)
+	  (forward-word 1)
+	  (skip-chars-forward "* \t\n")
+	  (let ((varlst (read (buffer-substring (point)
+						(save-excursion
+						  (forward-sexp 1)
+						  (point))))))
+	    (while varlst
+	      (let* ((oneelt (car varlst))
+		     (name (if (symbolp oneelt)
+			       oneelt
+			     (car oneelt))))
+		(setq vars (cons (semantic-tag-new-variable
+				  (symbol-name name)
+				  nil nil)
+				 vars)))
+	      (setq varlst (cdr varlst)))
+	    ))
+	(up-list -1)))
+    (nreverse vars)))
 
 (define-mode-overload-implementation semantic-end-of-command emacs-lisp-mode
   ()
