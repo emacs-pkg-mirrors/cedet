@@ -20,7 +20,7 @@ a generic way.  It also provides a simple way for Mode Authors who are
 expert's in their language, to provide a parser for those tool
 authors, without knowing anything about those tools.</p>
 
-<h3>The Semantic Bovinator is made up of these important pieces:</h3>
+<h3>Semantic 1.4 is made up of these important pieces:</h3>
 <ol>
 <li>lexer: Converts a language into a token stream
 <li>parser: Converts a token stream into a stream of nonterminals
@@ -59,31 +59,19 @@ Complexity of semantic.el
 </td>
 </table>
 
-<h3>New tools in 1.4 beta</h3>
+<h3>Experimental tools in 1.4 beta</h3>
 <ol>
 <li>charting: Draw a chart of some things semantic can quantify.
-<li>database: store parsed tokens on a file system.
-      This will provide search and restore capabilities. 
-<li>local context: A mechanism for identifying the local context in a language.
-    (1/2 of this is in 1.4 beta.)
-<li>completion: intelligent completion (Some new completion facilities exist in
-    senator.el)
-<li>intellisense like information via eldoc (definitions in
-senator.el)
-<li>smart completion of symbols actually available in a given context.
+<li>smart completion of symbols actually available in a given context
+via the semantic-analyze.el
 </ol>
 
 <h3>Tools planned for future versions of Semantic:</h3>
 <ol>
 <li>Faster parsing: David Ponce is working on a bison port to Emacs Lisp.
-<li>local context: A mechanism for identifying the local context in a language.
-<li>completion: intelligent completion filtering on data types
+<li>Dynamic highlighting for invalid code.
 <li>type analysis library: Analyze the types (structures & classes) in a given
 	  project. (See also <a href=cogre.shtml>COGRE</a>)
-<li>Unit Test generation: Analyze an API, and automatically create
-          unit tests for it.
-<li>smart templates: Insert code fragments based based intrinsicly
-	  upon the language definition, and available variables and types.
 <li>dependency analysis: Determine if a given dependency is really needed,
 	  or if a dependency is missing.
 <li>comment generation: Create comment templates based on the current
@@ -91,6 +79,10 @@ senator.el)
 <li>header file manager: For languages with header files (c, c++), maintain
 	  them from the originating sources.
 <li>Call tree management: Find out where types and functions are used.
+<li>Unit Test generation: Analyze an API, and automatically create
+          unit tests for it.
+<li>smart templates: Insert code fragments based based intrinsically
+	  upon the language definition, and available variables and types.
 </ol>
 
 <h2>Read the docs:</h2>
@@ -113,6 +105,13 @@ senator.el)
 <li>Test semantic and send in bugs.
 <li>Help with documentation
 </ul>
+
+<h2>Join the mailing list</h2>
+
+<p>Join the
+<a href="http://sourceforge.net/mail/?group_id=17886">
+mailing list</a>
+to ask question, or help develop semantic.
 
 <h2>Other Tools that use Semantic</h2>
 
@@ -137,15 +136,11 @@ senator.el)
 
 <h2>Download the Semantic Bovinator</h2>
 
-<P>Almost out of beta!
-   <a href="http://sourceforge.net/project/showfiles.php?group_id=17886">
-   Semantic 1.4 beta14</a><br>
+<P>The latest stable version of Semantic
+   <a href="http://sourceforge.net/project/showfiles.php?group_id=17886&release_id=96432">
+   Semantic 1.4</a><br>
    This version depends on the recent speedbar release: version 0.14 beta 3.
 </p>
-
-<p>The last stable bovinator:
-<a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
-      semantic-1.3.3.tar.gz</a></p>
 
 <h3>Bovinator Dependencies</h3>
 
@@ -170,12 +165,23 @@ Thanks to David Ponce for creating this fix.
   <a href="http://sourceforge.net/projects/rte">Real Time Enterprises</a>
   RPM site at sourceforge.</p>
 
+<h3>Gentoo</h3>
+
+<P>You can get Gentoo linux packages from
+<a href="http://userfs.cec.wustl.edu/~jap1/ebuilds/semantic/">
+Jacob Perkin's ebuilds FTP area</a>.
+
 <h3>Older releases of Semantic</h3>
 
-<P><a href="http://cedet.sourceforge.net/ftp/semantic-1.2.1.tar.gz"> semantic-1.2.1.tar.gz</a>
+<p><a href=http://sourceforge.net/project/showfiles.php?group_id=17886>
+   semantic-1.3.3.tar.gz</a></p>
+
+<P><a href="http://cedet.sourceforge.net/ftp/semantic-1.2.1.tar.gz">
+   semantic-1.2.1.tar.gz</a>
 </p>
 
-<P><a href="http://cedet.sourceforge.net/ftp/semantic-1.1.tar.gz"> semantic-1.1.tar.gz</a>
+<P><a href="http://cedet.sourceforge.net/ftp/semantic-1.1.tar.gz">
+   semantic-1.1.tar.gz</a>
 </p>
 
 
