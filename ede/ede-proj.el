@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.20 1999/11/10 13:48:06 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.21 2000/01/18 18:54:18 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -454,8 +454,8 @@ MFILENAME is the makefile to generate."
 	      ;; This is a hazardous thing, for some elements
 	      ;; might not be bound.  Skip typechecking and duplicate
 	      ;; unbound slots along the way.
-	      (oset-engine this (car fields)
-			   (oref-default-engine this (car fields)))))
+	      (eieio-oset this (car fields)
+			  (eieio-oref-default this (car fields)))))
 	(setq fields (cdr fields)))
       (while l
 	(let ((field (car l)) (val (car (cdr l))))
@@ -473,7 +473,7 @@ MFILENAME is the makefile to generate."
 		     (setq val (cdr val)))
 		   (oset this targets newtarg)))
 		(t
-		 (oset-engine this field val))))
+		 (eieio-oset this field val))))
 	(setq l (cdr (cdr l))))))) ;; field/value
 	
 (defmethod project-rescan ((this ede-proj-target) readstream)
@@ -482,7 +482,7 @@ MFILENAME is the makefile to generate."
   (while readstream
     (let ((tag (car readstream))
 	  (val (car (cdr readstream))))
-      (oset-engine this tag val))
+      (eieio-oset this tag val))
     (setq readstream (cdr (cdr readstream)))))
 
 (add-to-list 'auto-mode-alist '("Project\\.ede" . emacs-lisp-mode))
