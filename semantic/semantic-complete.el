@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.27 2004/02/06 04:11:22 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.28 2004/02/16 20:21:35 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -119,7 +119,6 @@
 (eval-when-compile (require 'semanticdb))
 
 (eval-when-compile
-  (require 'avoid)
   (condition-case nil
       ;; Tooltip not available in older emacsen.
       (require 'tooltip)
@@ -622,40 +621,43 @@ quit hook, will exit this completion mode."
 If completion mode is active, check to see if we are within
 the bounds of `semantic-complete-inline-overlay', or within
 a reasonable distance."
-  ;; Exit if something bad happened.
-  (if (not semantic-complete-inline-overlay)
-      (progn
-	;;(message "Inline Hook installed, but overlay deleted.")
-	(semantic-complete-inline-exit)))
-  ;; Exit if commands caused us to exit the area of interest
-  (let ((s (semantic-overlay-start semantic-complete-inline-overlay))
-	(e (semantic-overlay-end semantic-complete-inline-overlay))
-	(b (semantic-overlay-buffer semantic-complete-inline-overlay))
-	(txt nil)
-	)
-    (cond
-     ;; EXIT when we are no longer in a good place.
-     ((or (not (eq b (current-buffer)))
-	  (< (point) s)
-	  (> (point) e))
-      ;;(message "Exit: %S %S %S" s e (point))
-      (semantic-complete-inline-exit)
-      )
-     ;; Exit if the user typed in a character that is not part
-     ;; of the symbol being completed.
-     ((and (setq txt (semantic-completion-text))
-	   (not (string= txt ""))
-	   (and (/= (point) s)
-		(save-excursion
-		  (forward-char -1)
-		  (not (looking-at "\\(\\w\\|\\s_\\)")))))
-      ;;(message "Non symbol character.")
-      (semantic-complete-inline-exit))
-     (t
-      ;; Else, show completions now
-      (semantic-complete-inline-force-display)
+  (condition-case nil
+      ;; Exit if something bad happened.
+      (if (not semantic-complete-inline-overlay)
+	  (progn
+	    ;;(message "Inline Hook installed, but overlay deleted.")
+	    (semantic-complete-inline-exit))
+	;; Exit if commands caused us to exit the area of interest
+	(let ((s (semantic-overlay-start semantic-complete-inline-overlay))
+	      (e (semantic-overlay-end semantic-complete-inline-overlay))
+	      (b (semantic-overlay-buffer semantic-complete-inline-overlay))
+	      (txt nil)
+	      )
+	  (cond
+	   ;; EXIT when we are no longer in a good place.
+	   ((or (not (eq b (current-buffer)))
+		(< (point) s)
+		(> (point) e))
+	    ;;(message "Exit: %S %S %S" s e (point))
+	    (semantic-complete-inline-exit)
+	    )
+	   ;; Exit if the user typed in a character that is not part
+	   ;; of the symbol being completed.
+	   ((and (setq txt (semantic-completion-text))
+		 (not (string= txt ""))
+		 (and (/= (point) s)
+		      (save-excursion
+			(forward-char -1)
+			(not (looking-at "\\(\\w\\|\\s_\\)")))))
+	    ;;(message "Non symbol character.")
+	    (semantic-complete-inline-exit))
+	   (t
+	    ;; Else, show completions now
+	    (semantic-complete-inline-force-display)
     
-      ))))
+	    ))))
+    ;; If something goes terribly wrong, clean up after ourselves.
+    (error (semantic-complete-inline-exit))))
 
 (defun semantic-complete-inline-force-display ()
   "Force the display of whatever the current completions are.
@@ -1378,7 +1380,6 @@ if `force-show' is 0, this value is always ignored.")
 (defmethod initialize-instance :AFTER ((obj semantic-displayor-tooltip) &rest args)
   "Make sure we have tooltips required."
   (require 'tooltip)
-  (require 'avoid)
   )
 
 (defmethod semantic-displayor-show-request ((obj semantic-displayor-tooltip))
@@ -1434,19 +1435,33 @@ if `force-show' is 0, this value is always ignored.")
 	  (semantic-displayor-tooltip-show (concat msg "\n(TAB for more)")))
 	 )))))
 
+(defun semantic-displayor-point-position ()
+  "Return the location of POINT as positioned on the selected frame.
+Return a cons cell (X . Y)"
+  (let* ((w (selected-window))
+	 (f (selected-frame))
+	 (edges (window-inside-edges w))
+	 (col (current-column))
+	 (row (count-lines (window-start w) (point)))
+	 (x (+ (car edges) col))
+	 (y (+ (car (cdr edges)) row)))
+    (cons x y))
+  )
+
 (defun semantic-displayor-tooltip-show (text)
   "Display a tooltip with TEXT near cursor."
-  (let* ((P (mouse-avoidance-point-position))
-	 (frame (car P))
-	 (x (cadr P))
-	 (y (cddr P))
-	 (oP (mouse-position))
-	 (oframe (car oP))
-	 (ox     (cadr oP))
-	 (oy     (cddr oP)))
+  (let* ((P (semantic-displayor-point-position))
+	 (frame (selected-frame))
+	 (x (car P))
+	 (y (cdr P))
+	 (oP (mouse-pixel-position))
+	 (tooltip-x-offset 0)
+	 (tooltip-y-offset -40)
+	 )
     (set-mouse-position frame x y)
     (tooltip-show text)
-    (set-mouse-position frame (1+ x) y)))
+    (set-mouse-pixel-position (nth 0 oP) (nth 1 oP) (nthcdr 2 oP))
+    ))
 
 (defmethod semantic-displayor-scroll-request ((obj semantic-displayor-tooltip))
   "A request to for the displayor to scroll the completion list (if needed)."
