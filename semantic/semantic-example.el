@@ -1,10 +1,10 @@
 ;;; semanto-example.el --- Examples using the semantic API
 
-;;; Copyright (C) 2002 Eric M. Ludlam
+;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-example.el,v 1.1 2002/02/28 00:39:41 zappo Exp $
+;; X-RCS: $Id: semantic-example.el,v 1.2 2003/04/09 01:14:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -52,7 +52,7 @@ Shows how to:
      nil )))
   (let (tok pos)
     ;; Search for the token
-    (setq tok (semantic-find-nonterminal-by-name
+    (setq tok (semantic-find-first-tag-by-name
 	       name
 	       ;; Get the stream.  May be a buffer too.
 	       (semantic-bovinate-toplevel t)
@@ -64,7 +64,7 @@ Shows how to:
     (if tok
 	(progn
 	  ;; Get the position of the token.
-	  (setq pos (semantic-token-start tok))
+	  (setq pos (semantic-tag-start tok))
 	  ;; Jump.
 	  ;; Because we only searched this buffer, we can assume the token is
 	  ;; also in this buffer.
@@ -76,12 +76,12 @@ Shows how to:
       (error "No tag %s found" name)
       )))
 
-(defcustom se-summary-function 'semantic-uml-prototype-nonterminal
+(defcustom se-summary-function 'semantic-format-tag-uml-prototype
   "*Function to use when showing info about a token for Examples.
 Shows how to:
   * Create a customization variable."
   :group 'semantic
-  :type semantic-token->text-custom-list)
+  :type semantic-format-tag-custom-list)
 
 (defun se-show (name)
   "Show important information about some token with NAME.
@@ -89,7 +89,7 @@ Shows how to:
  * Create a variable with `semantic-token->text-functions'.
  * Create the colorized text."
   (interactive (list (semantic-read-symbol "Symbol: ")))
-  (let ((tok (semantic-find-nonterminal-by-name name (current-buffer) t))
+  (let ((tok (semantic-find-first-tag-by-name name (current-buffer) t))
 	parent
 	msg)
     (if tok
@@ -97,8 +97,8 @@ Shows how to:
 	  ;; Token text functions can take a PARENT argument.  To find this
 	  ;; really quickly, jump to TOK, then use the overlay mechanism to
 	  ;; Find it.
-	  (goto-char (semantic-token-start tok))
-	  (setq parent (semantic-current-nonterminal-parent))
+	  (goto-char (semantic-tag-start tok))
+	  (setq parent (semantic-current-tag-parent))
 	  ;; Create a message
 	  (setq msg (funcall se-summary-function tok parent t))
 	  ;; Display it
@@ -113,14 +113,11 @@ Shows how to:
    (list (read-string "Symbol: "
 		      ;; Current symbol is the default
 		      (car (reverse (semantic-ctxt-current-symbol))))))
-  (let ((tok (semanticdb-find-nonterminal-by-name-regexp
+  (let ((tok (semanticdb-deep-find-tags-by-name-regexp
 	      name
 	      ;; The current list of active databases for this file.
 	      ;; This is the same as passing `nil'
 	      (semanticdb-current-database-list)
-	      t   ;; Search inside types
-	      nil ;; Do not search include files
-	      nil ;; Only files of the same mode
 	      t   ;; When a token is found, make sure it is
 	          ;; an active buffer.
 	      )))
