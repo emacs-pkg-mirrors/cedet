@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.15 2001/02/23 02:02:25 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.16 2001/03/14 12:42:22 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -431,7 +431,9 @@ in an Emacs buffer."
 	(while files
 	  (when (or diff-mode
 		    (eq mm (oref (car files) major-mode)))
-	    (semanticdb-refresh-table (car files))
+ 	    ;; This can cause unneded refreshes while typing with
+ 	    ;; senator-eldoc mode.
+ 	    ;;(semanticdb-refresh-table (car files))
 	    (setq found (funcall function
 				 (oref (car files) tokens)
 				 search-parts
