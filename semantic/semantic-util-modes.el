@@ -1,12 +1,12 @@
 ;;; semantic-util-modes.el --- Semantic minor modes
 
-;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 ;;; Copyright (C) 2001 David Ponce
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.39 2003/12/22 16:08:04 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.40 2004/01/27 15:08:46 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -352,6 +352,22 @@ The face is used in  `semantic-show-unmatched-syntax-mode'."
       (setq found (semantic-unmatched-syntax-overlay-p (car ol))
             ol    (cdr ol)))
     found))
+
+(defun semantic-show-unmatched-lex-tokens-fetch ()
+  "Fetch a list of unmatched lexical tokens from the current buffer.
+Uses the overlays which have accurate bounds, and rebuilds what was
+originally passed in."
+  (let ((ol (semantic-overlays-in (point-min) (point-max)))
+	(ustc nil))
+    (while ol
+      (if (semantic-unmatched-syntax-overlay-p (car ol))
+	  (setq ustc (cons (cons 'thing
+				 (cons (semantic-overlay-start (car ol))
+				       (semantic-overlay-end (car ol))))
+			   ustc)))
+      (setq ol (cdr ol)))
+    (nreverse ustc))
+  )
 
 (defun semantic-clean-unmatched-syntax-in-region (beg end)
   "Remove all unmatched syntax overlays between BEG and END."
