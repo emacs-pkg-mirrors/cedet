@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.95 1998/05/05 01:58:36 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.96 1998/05/05 02:08:53 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -2155,7 +2155,7 @@ cell of the form ( 'DIRLIST . 'FILELIST )"
    ((eq method 'prefix-group)
     (let ((newlst nil)
 	  (sublst nil)
-3	  (work-list nil)
+ 	  (work-list nil)
 	  (junk-list nil)
 	  (short-group-list nil)
 	  (short-start-name nil)
