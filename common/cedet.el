@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.3 2003/09/17 08:56:12 ponced Exp $
+;; X-RCS: $Id: cedet.el,v 1.4 2003/09/23 15:12:48 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -76,17 +76,18 @@
 (eval-when-compile
   (require 'cl))
 
-(defconst cedet-version "1.0"
+(defconst cedet-version "1.0beta1"
   "Current version of CEDET.")
 
 (defconst cedet-packages
-  '(
-    ;;PACKAGE   MIN-VERSION
-    (cogre      "0.4"       )
-    (ede        "1.0beta3"  )
-    (eieio      "0.18"      )
-    (semantic   "2.0beta1"  )
-    (speedbar   "0.15beta1" )
+  `(
+    ;;PACKAGE   MIN-VERSION      INSTALLDIR
+    (cedet      ,cedet-version   "common"  )
+    (cogre      "0.4"                      )
+    (ede        "1.0beta3"                 )
+    (eieio      "0.18"                     )
+    (semantic   "2.0beta1"                 )
+    (speedbar   "0.15beta1"                )
     )
   "Table of CEDET packages to install.")
 
@@ -102,14 +103,20 @@
   (require 'inversion)
   
   ;; Go up to the parent "<INSTALL-DIR>/cedet" directory.
-  (let ((default-directory (expand-file-name "..")))
+  (let ((default-directory (expand-file-name ".."))
+        package min-version installdir)
 
     ;; Add the CEDET packages subdirectories to the `load-path' if
     ;; necessary, and do specific setup.
-    (dolist (package cedet-packages)
-      (inversion-add-to-load-path (car package) (cadr package))
+    (dolist (package-spec cedet-packages)
+      (setq package     (nth 0 package-spec)
+            min-version (nth 1 package-spec)
+            installdir  (nth 2 package-spec))
+      (when installdir
+        (setq installdir (expand-file-name installdir)))
+      (inversion-add-to-load-path package min-version installdir)
       (condition-case err
-          (require (intern (format "%s-load" (car package))))
+          (require (intern (format "%s-load" package)))
         (error
          (message "%s" (error-message-string err)))))
     ))
