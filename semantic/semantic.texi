@@ -1,6 +1,6 @@
-\input texinfo   @c -*-texinfo-*-
+q\input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.27 2001/01/31 16:42:10 zappo Exp $
+@c $Id: semantic.texi,v 1.28 2001/02/22 02:42:23 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -44,11 +44,10 @@ make these updates would be greatly appreciated.
 * Bovinating::          Setting up the parser for your language.
 * BNF conversion::      Using the BNF converter to make tables.
 * Compiling::           Running the bovinator on a source file.
-* Debugging::           Using the bovine table debugger.
-* Non-Terminals::       How to use the nonterminal stream.
+@c * Debugging::           Using the bovine table debugger.
+* Utilities::           How to use the nonterminal stream.
 * Current Context::     How to get the current code context.
-* Utilities::           Utilities for querying the nonterminal stream.
-* Tools::               Tools which use semantic.
+* Tools::               User Tools which use semantic.
 * Index::
 @end menu
 
@@ -61,15 +60,12 @@ lines into your individual @file{.emacs} file, or into
 @file{site-lisp/site-start.el}.
 
 @example
-(add-to-list 'load-path "/path/to/semantic")
-
-(require 'semantic-c)
-(require 'semantic-el)
-(require 'semantic-make)
-(add-hook 'speedbar-load-hook (lambda () (require 'semantic-sb)))
-(autoload 'semantic-bnf-mode "semantic-bnf" "Mode for Bovine Normal Form." t)
-(add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
+(setq semantic-load-turn-everything-on t)
+(load-file "/path/to/semantic/semantic-load.el")
 @end example
+
+If you would like to turn individual tools on or off in your init
+file, skip the first line.
 
 @node Lexing, Bovinating, Install, Top
 @chapter Preparing your language for Lexing
@@ -78,25 +74,25 @@ In order to reduce a source file into a token list, it must first be
 converted into a token stream.  Tokens are syntactic elements such as
 whitespace, symbols, strings, lists, and punctuation.
 
-The lexer uses the major-mode's syntax table for conversion.  As long as
-that is set up correctly (along with the important
-@code{comment-start-skip} variable) the lexer should already work for
-your language.
+The lexer uses the major-mode's syntax table for conversion.  As long
+as that is set up correctly (along with the important
+@code{comment-start} and @code{comment-start-skip} variable) the lexer
+should already work for your language.
 
-There are three ways to extend the flexer.
+There are three ways to extend the lexer.
 
 @defvar semantic-flex-extensions
-For a given language buffer, this is an associatoin list.  The key is a
-regular expression used to match text in the buffer.  The data element
-is a function which will be called when that text is encountered.
+Buffer local extensions to the lexical analyzer.
+This should contain an alist with a key of a regex and a data element of
+a function.  The function should both move point, and return a lexical
+token of the form:
 
-The function should return a list of the form:
 @example
-(TYPE START . END)
+  ( TYPE START . END)
 @end example
-nil is also valid in case the text does not satisfy some other criterion.
 
-TYPE can be any type of symbol, as long as it doesn't occur as a
+@code{nil} is also a valid return.
+@var{TYPE} can be any type of symbol, as long as it doesn't occur as a
 nonterminal in the language definition.
 @end defvar
 
@@ -121,8 +117,9 @@ filenames are prevalent as in Makefiles.)
 @end defvar
 
 @defvar semantic-flex-enable-newlines
-When flexing, report 'newlines as syntactic elements.
+When flexing, report @code{'newlines} as syntactic elements.
 Useful for languages where the newline is a special case terminator.
+Only set this on a per mode basis, not globally.
 @end defvar
 
 @section Keywords
@@ -136,18 +133,16 @@ about those keywords.  The following programming functions can be useful
 when examining text in a language buffer.
 
 @defun semantic-flex-keyword-p text
-Return non-nil if @var{text} is a keyword in the keyword table.
+Return a symbol if @var{TEXT} is a keyword in the keyword table.
 @end defun
 
 @defun semantic-flex-keyword-put text property value
-For the keyword found as @var{text} in a language buffer, set
-@var{property} to have @var{value}.
+For keyword @var{TEXT}, set @var{PROPERTY} to have @var{VALUE}.
 @end defun
 
 @defun semantic-flex-keyword-get text property
 For the keyword found as @var{text}, get the value of @var{property}.
 @end defun
-
 
 @defun semantic-flex-map-keywords fun &optional property
 Call function @var{FUN} on every semantic keyword.
@@ -165,6 +160,10 @@ PROPERTY value.
 Keyword properties can be set up in a BNF file for ease of maintenance.
 While examining the text in a language buffer, this can provide an easy
 and quick way of storing details about text in the buffer.
+
+@section Standard Keyword Properties
+
+Add known properties here when they are known.
 
 @node Bovinating, BNF conversion, Lexing, Top
 @chapter Preparing a bovine table for your language
@@ -187,9 +186,8 @@ variable @code{semantic-toplevel-bovine-table} to the contents of your
 language table.  @code{semantic-toplevel-bovine-table} is always buffer
 local.
 
-Since it is important to know the format of the table when debugging
-@xref{Debugging}, you should still attempt to understand the basics of
-the table.
+Since it is important to know the format of the table when debugging ,
+you should still attempt to understand the basics of the table.
 
 Please see the documentation for the variable
 @code{semantic-toplevel-bovine-table} for details on it's format.
@@ -207,7 +205,7 @@ real parser generators.
 
 It is important to have an Emacs Lisp file with a variable ready to take
 the output of your table @xref{Bovinating}.  Also, make sure that the
-file @file{semantic-bnf} is loaded.  Give your language file the
+file @file{semantic-bnf.el} is loaded.  Give your language file the
 extension @file{.bnf} and you are ready.
 
 The comment character is @asis{#}.
@@ -215,17 +213,30 @@ The comment character is @asis{#}.
 When you want to test your file, use the keyboard shortcut @kbd{C-c C-c}
 to parse the file, generate the variable, and load the new definition
 in.  It will then use the settings specified above to determine what to
-do.
+do.  Use the shortcut @kbd{C-c c} to do the same thing, but spend
+extra time indenting the table nicely.
 
 Make sure that you create the variable specified in the
 @code{%parsetable} token before trying to convert the bnf file.  A
-simple definition like this should be sufficient.
+simple definition like this is sufficient.
 
 @example
 (defvar semantic-toplevel-lang-bovine-table
    nil
    "Table for use with semantic for parsing LANG.")
 @end example
+
+If you use tokens (created with the @code{%token} specifier), also
+make sure you have a keyword table available, like this:
+
+@example
+(defvar semantic-lang-keyword-table
+   nil
+   "Table for use with semantic for keywords.")
+@end example
+
+Specify the name of the keyword table with the @code{%keywordtable}
+specifier.
 
 The BNF file has two sections.  The first is the settings section, and
 the second is the language definition, or list of semantic rules.
@@ -248,8 +259,9 @@ They are:
 
 @table @code
 @item %start <nonterminal>
-Will let you specify an alternative to @code{bovine-toplevel}.  (See
-below)
+Specify an alternative to @code{bovine-toplevel}.  (See below)
+@item %scopestart <nonterminal>
+Specify an alternitive to @code{bovine-inner-scope}.
 @item %outputfile <filename>
 Required.  Specifies the file into which this files output is stored.
 @item %parsetable <lisp-variable-name>
@@ -263,16 +275,19 @@ Optional.  Specify a new token @var{NAME}.  This is added to a lexical
 keyword list using @var{TEXT}.  The symbol is then converted into a new
 lexical terminal.  This requires that the @code{%keywordtable} specified
 variable is available in the file specified by @code{%outputfile}.
-@item %put <NAME> symbol <VALUE>
-Tokens created without a type are considered keywords, and placed in a
-keyword table.  Use @code{%put} to apply properties to that keyword.
-@ref{Lexing}.
 @item %token <name> type "<text>"
 Optional.  Specify a new token @var{NAME}.  It is made from an existing
 lexical token of type @var{TYPE}.  @var{TEXT} is a string which will be
 matched explicitly.  @var{NAME} can be used in match rules as though they were
 flex tokens, but are converted back to @var{TYPE} "text" internally.
+@item %put <NAME> symbol <VALUE>
+@itemx %put <NAME> ( symbol1 <VALUE1> symbol2 <VALUE2> ... )
+@itemx %put ( <NAME1> <NAME2>...) symbol <VALUE>
+Tokens created without a type are considered keywords, and placed in a
+keyword table.  Use @code{%put} to apply properties to that keyword.
+@ref{Lexing}.
 @item %languagemode <lisp-function-name>
+@itemx %languagemode ( <lisp-function-name1> <lisp-function-name2> ... )
 Optional.  Specifies the Emacs major mode associated with the language
 being specified.  When the language is converted, all buffers of this
 mode will get the new table installed.
@@ -292,7 +307,7 @@ entered which will be placed inside the setup function.  In general, you
 probably want to set variables that tell Semantic and related tools how
 the language works.
 
-Here are some variable that control how different programs will work
+Here are some variables that control how different programs will work
 with your language.
 
 @defvar semantic-flex-depth
@@ -304,28 +319,37 @@ This specifies how many lists to create tokens in.
 Buffer local extensions to the lexical analyzer.
 This should contain an alist with a key of a regex and a data element of
 a function.  The function should both move point, and return a lexical
-token of the form ( TYPE START .  END).  nil is also a valid return.
+token of the form:
+@example
+  ( TYPE START . END)
+@end example
+
+@code{nil} is also a valid return.
+@var{TYPE} can be any type of symbol, as long as it doesn't occur as a
+nonterminal in the language definition.
 @end defvar
 
 @defvar semantic-flex-syntax-modifications
 Updates to the syntax table for this buffer.
 These changes are active only while this file is being flexed.
 This is a list where each element is of the form:
-  (CHAR CLASS) 
-Where CHAR is the char passed to `modify-syntax-entry',
-and CLASS is the string also passed to `modify-syntax-entry' to define
-what class of syntax CHAR is.
+@example
+  (CHAR CLASS)
+@end example
+Where @var{CHAR} is the char passed to @dfn{modify-syntax-entry},
+and @var{CLASS} is the string also passed to @dfn{modify-syntax-entry} to define
+what class of syntax @var{CHAR} is.
 @end defvar
 
 @defvar semantic-flex-enable-newlines
-When flexing, report 'newlines as syntactic elements.
+When flexing, report @code{'newlines} as syntactic elements.
 Useful for languages where the newline is a special case terminator.
 Only set this on a per mode basis, not globally.
 @end defvar
 
 @defvar semantic-ignore-comments
 Default comment handling.
-t means to strip comments when flexing.  Nil means to keep comments
+@code{t} means to strip comments when flexing.  @code{Nil} means to keep comments
 as part of the token stream.
 @end defvar
 
@@ -335,17 +359,25 @@ The string is used to represent a group of objects of the given type.
 It is sometimes useful for a language to use a different string
 in place of the default, even though that language will still
 return a symbol.  For example, Java return's includes, but the
-string can be replaced with `Imports'.
+string can be replaced with @code{Imports}.
 @end defvar
 
 @defvar semantic-case-fold
-Value for `case-fold-search' when parsing.
+Value for @code{case-fold-search} when parsing.
 @end defvar
 
 @defvar semantic-expand-nonterminal
-Function to call for each returned Non-terminal.
-Return a list of non-terminals derived from the first argument, or nil
+Function to call for each nonterminal production.
+Return a list of non-terminals derived from the first argument, or @code{nil}
 if it does not need to be expanded.
+Languages with compound definitions should use this function to expand
+from one compound symbol into several.  For example, in @var{C} the
+definition
+@example
+  int a, b;
+@end example
+is easily parsed into one token.  This function should take this
+compound token and turn it into two tokens, one for @var{A}, and the other for @var{B}.
 @end defvar
 
 @defvar semantic-override-table
@@ -369,6 +401,25 @@ Available override symbols:
 @item prototype-nonterminal  @tab (token)           @tab Return a prototype string.
 @item prototype-file         @tab (buffer)          @tab Return a file in which prototypes are placed
 @item nonterminal-children   @tab (token)           @tab Return first rate children. These are children which may contain overlays.
+@item beginning-of-context   @tab (& point)         @tab Move to the beginning of the
+					                 current context.
+@item end-of-context         @tab (& point)         @tab Move to the end of the
+					                 current context.
+@item up-context             @tab (& point)         @tab Move up one context level.
+@item get-local-variables    @tab (& point)         @tab Get local variables.
+@item get-all-local-variables@tab (& point)         @tab Get all local variables.
+@item get-local-arguments    @tab (& point)         @tab Get arguments to this function.
+
+@item end-of-command         @tab                   @tab Move to the end of the current
+                                                         command
+@item beginning-of-command   @tab                   @tab Move to the beginning of the
+                                                         current command
+@item ctxt-current-symbol    @tab (& point)         @tab List of related symbols.
+@item ctxt-current-assignment@tab (& point)         @tab Variable being assigned to.
+@item ctxt-current-function  @tab (& point)         @tab Function being called at point.
+@item ctxt-current-argument  @tab (& point)         @tab The index to the argument of
+                                                         the current function the cursor
+                                                         is in.
 @end multitable
                                                    
 Parameters mean:
@@ -388,9 +439,12 @@ parent token which should have positional information in it.
 @end defvar
 
 @defvar semantic-type-relation-separator-character
-Character used to separation a parent/child relationship.
-In C, a type field is separated like this: ``type.field''
-thus, the character is a ``.''.
+Character strings used to separation a parent/child relationship.
+This list of strings are used for displaying or finding separators
+in variable field dereferencing.  The first character will be used for
+display.  In @var{C}, a type field is separated like this: ``type.field''
+thus, the character is a ``.''.  In @var{C}, and additional value of ``->''
+would be in the list, so that ``type->field'' could be found.
 @end defvar
 
 
@@ -402,6 +456,8 @@ This variable can also be set to a single function.  If it is a
 function, it will be called with one arguments, the file to find as a
 string, and  it should return the full path to that file, or nil.
 @end defvar
+
+This configures Imenu to use semantic parsing.
 
 @defvar imenu-create-index-function
 The function to use for creating a buffer index.
@@ -496,8 +552,8 @@ find_a_moose: MOOSE
             ;
 @end example
 
-will match "moose" explicitly, unlike the previous example where moose
-need only appear in the symbol.  This is because "moose" will be
+will match ``moose'' explicitly, unlike the previous example where moose
+need only appear in the symbol.  This is because ``moose'' will be
 converted to @var{MOOSE} in the lexical analysis stage.  Thus the symbol
 @var{MOOSE} won't be available any other way.
 
@@ -513,6 +569,17 @@ find_a_moose: MOOSE
 then @code{MOOSE} will match the string "moose" explicitly, but it won't
 do so at the lexical level, allowing use of the text "moose" in other
 forms of regular expressions.
+
+Non symbol tokens are also alowed.  For example:
+
+@example
+%token PERIOD punctuation "."
+
+filename : symbol PERIOD symbol
+         ;
+@end example
+
+will explicitly match one period when used in the above rule.
 
 @node Optional Lambda Expression, Examples, Rules, BNF conversion
 @section Optional Lambda Expressions
@@ -573,6 +640,14 @@ is like EXPAND, except that the parser will iterate over
 parser iterates over @code{bovine-toplevel}. This lets you have
 much simpler rules in this specific case, and also lets you have
 positional information in the returned tokens, and error skipping.
+@item (ASSOC symbol1 value1 symbol2 value2 ... )
+This is used for creating an association list.  Each @var{SYMBOL} is
+included in the list if the associated @var{VALUE} is non-nil.  While
+the items are all listed explicitly, the created structure is an
+association list of the form:
+@example
+  ( ( symbol1 . value1) (symbol2 . value2) ... )
+@end example
 @end table
 
 If the symbol @code{%quotemode backquote} is specified, then use
@@ -632,7 +707,7 @@ which would return
 ( "A" "B" )
 @end example
 
-@node Compiling, Debugging, BNF conversion, Top
+@node Compiling, Utilities, BNF conversion, Top
 @chapter Compiling a language file with the bovinator
 
 From a program you can use the function @code{semantic-bovinate-toplevel}.
@@ -647,217 +722,55 @@ This command takes a token stream returned by the function
 additional optional argument of NONTERMINAL which is the nonterminal in
 your table it is to start parsing with.
 
-@deffn Command bovinate
-As a user, you can use @code{bovinate} which runs the
-previously mentioned command, and displays the returned tokens in a
-buffer.  This is a great tool for testing tables as you develop them.
+@deffn Comamnd bovinate &optional clear
+Bovinate the current buffer.  Show output in a temp buffer.
+Optional argument @var{CLEAR} will clear the cache before bovinating.
 @end deffn
 
-@deffn Command semantic-clear-toplevel-cache
-When a buffer is parsed, the results are cached in a local variable in
-the parsed buffer.  This command will clear the cache so that the parser
-is called a second time.
+@deffn Comamnd semantic-clear-toplevel-cache
+Clear the toplevel bovin cache for the current buffer.
+Clearing the cache will force a complete reparse next time a token
+stream is requested.
 @end deffn
 
-When writing programs that use the bovinator, the following functions
-are needed.
+When programming, the following functions are useful.
 
-@deffn Predicate semantic-bovine-toplevel-full-reparse-needed-p &optional checkcache
-Return non-nil if the current buffer needs a full reparse.
-Optional argument @var{checkcache} indicates if the cache check should be made.
-@end deffn
+@defun semantic-bovine-toplevel-full-reparse-needed-p &optional checkcache
+Return non-@code{nil} if the current buffer needs a full reparse.
+Optional argument @var{CHECKCACHE} indicates if the cache check should be made.
+@end defun
 
-@deffn Predicate semantic-bovine-toplevel-partial-reparse-needed-p
-Return non-nil if the current buffer needs a full reparse.
-@end deffn
+@defun semantic-bovine-toplevel-partial-reparse-needed-p &optional checkcache
+Return non-@code{nil} if the current buffer needs a full reparse.
+Optional argument @var{CHECKCACHE} indicates if the cache check should be made.
+@end defun
 
-@deffn semantic-bovinate-toplevel &optional checkcache
+@defun semantic-bovinate-toplevel &optional checkcache
 Bovinate the entire current buffer.
-If the optional argument @var{checkcache} is non-nil, then flush the cache iff
+If the optional argument @var{CHECKCACHE} is non-@code{nil}, then flush the cache iff
 there has been a size change.
-@end deffn
+@end defun
 
-
-@node Debugging, Non-Terminals, Compiling, Top
-@chapter Debugging a bovine table.
-
-To debug a language is a two step process.  The first tells emacs where
-to find the source code to the bovine table.  The second is to run the
-debugger from a language file that uses the table.
-
-@deffn Command semantic-bovinate-debug-set-table
-Finds a variable definition under point.  Sets this to be the table used
-when debugging a language definition.
-@end deffn
-
-@deffn Command bovinate-debug
-Start parsing the current buffer in debug mode.  Uses the definition set
-with @code{semantic-bovinate-debug-set-table}.  Use space to move to the
-next definition.  It will hightlight the current semantic token in the
-source buffer, and the current match symbol.
-
-@key{C-g} halts the debugger.
-@end deffn
-
-@deffn Command bovinate-create-reference
-Create a reference parse table.  A reference table can be used to
-identify differences between parsing runs.
-@end deffn
-
-@deffn Command bovinate-reference-compare
-Bovinates the current buffer with a reference list.
-Throws an error for the first difference, with details as to what was
-broken.
-@end deffn
-
-@node Non-Terminals, Current Context, Debugging, Top
-@chapter Using the Non-Termianal Stream
-
-The list of nonterminals returned from the parser is always language
-dependent, but should follow some simple conventions.  Despite the fact
-that they are listed here, always use convenience functions because
-these structures change between releases.  When writing your parser,
-however, it is important to create yourtokens with these patterns.
-
- A generic entry in the stream should be of the form
-
-@example
-("NAME" type-symbol ["TYPE"] ... "DOCSTRING")
-@end example
-
-In this case, @var{NAME} is the identifier being declared.
-@var{type-symbol} is a symbol representing the type of identifier being
-declared.  @var{TYPE} is a string containing the text of the type of
-this identifier, or nil if there is no typing information.
-@refill
-
-Additional information follows TYPE which is specific to the type of
-identifier being created.  The last two entries are @var{docstring},
-some documentation associated with this class, and @var{overlay}, which
-describe the bounds of this definition.  @var{overlay} is an overlay
-object in Emacs, and an extent in XEmacs.
-@refill
-
-Some predefined nonterminals that can be used are:
-
-@example
-("NAME" variable "TYPE" CONST DEFAULT-VALUE EXTRA-SPEC [OPTSUFFIX]
-        "DOCSTRING")
-@end example
-
-The definition of a variable, or constant.  @var{CONST} is a boolean
-representing if this variable is considered a constant.
-@var{DEFAULT-VALUE} can be something apropriate such a a string, or
-list of parsed elements.  @var{EXTRA-SPEC} are details about a variable
-that are not covered in the @var{TYPE} field.  See the Extra-Spec
-section below. @var{OPTSUFFIX} is an optional field specifying traling
-extra-spec such as array dimentions or bit fields. @var{DOCSTRING} is
-optional.
-@refill
-
-@example
-("NAME" function "TYPE" ( ARG-LIST ) EXTRA-SPEC [THROWS] 
-        "DOCSTRING")
-@end example
-
-A function/procedure definition.
-@var{ARG-LIST} is a list of variable definitions.
-@var{THROWS} is an optional argument for functions or methods in languages
-that support typed signal throwing.
-@var{DOCSTRING} is optional.
-
-@example
-("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC "DOCSTRING")
-@end example
-
-A type definition.
-@var{TYPE} of a type could be anything, such as (in C) struct, union, typedef,
-or class.
-@var{PART-LIST} is only useful for structs that have multiple individual parts.
-         (It is recommended that these be variables, functions or types).
-@var{PARENTS} is strictly for classes where there is inheritance.
-
-@example
-("FILE" include SYSTEM "DOCSTRING")
-@end example
-
-In C, an #include statement.  In elisp, a require statement.
-Indicates additional locations of sources or definitions.
-@var{SYSTEM} is true if this include is part of a set of system includes.
-
-@example
-("NAME" package DETAIL "DOCSTRING")
-@end example
-
-In Emacs Lisp, a `provide' statement.  @var{DETAIL} might be an associated
-file name.
-@refill
-
-@section EXTRA-SPEC
-
-The EXTRA-SPEC section of variables, functions, and types provide a
-location to place language specific details which are not accounted
-for by the base token type.  Because there is an arbitrary number of
-things that could be associated in the EXTRA-SPEC section, this should
-be formatted as an association list.
-
-Here are some typed extra specifiers that may exist.  Any arbitrary
-number of extra specifiers may be created, and specifiers not
-documented here are allowed.
-
-@example
-  (parent . \"text\")
-@end example
-
-Name of a parent type/class.  C++ and CLOS allow the creation of a
-function outside the body of that type/class.
-
-@example
-(dereference . INT)
-@end example
-
-Number of levels of dereference.  In C, the number of `*' characters
-indicating pointers.
-
-@example
-(typemodifiers . \"text\")
-@end example
-
-Keyword modifiers for a type.  In C, such words would include
-`register', and `volatile'.
-
-@node Current Context, Utilities, Non-Terminals, Top
-@chapter The Current Context
-
-** Add text here about semantic-ctxt.el **
-
-@node Utilities, Tools, Current Context, Top
+@node Utilities, Current Context, Compiling, Top
+@comment  node-name,  next,  previous,  up
 @chapter Utilities
 
-There are many utilities which can be used in programs that use the
-nonterminal stream generated by the bovinator.  These utilities
-generally require that the current buffer belongs to the stream being
-analyzied.
-
-Some of these utils will use EDE if it is available.  EDE is a tool that
-tracks how program language files relate to eachother.
+Once a source file has been parsed, the follwing APIs can be used to
+write programs that use the token stream most effectivly.
 
 @menu
-* Nonterminal queryies::        Get info about one nonterminal token.
-* Nonterminal streams::         Get info from a stream of nonterminals.
-* Nonterminal completion::      Read nonterminal names in the minibuffer.
-* Override methods::            Methods that are more language specific.
+* Token Queries::               Getting info about a parsed token (nonterminal).
+* Nonterminal Streams::         Working with streams of nonterminals
+* Nonterminal Completion::      Completing read functions.
+* Override Methods::            Language dependent functions.
 @end menu
 
-@node Nonterminal queryies, Nonterminal streams, Utilities, Utilities
-@section Nonterminal queryies
+@node Token Queries, Nonterminal Streams, Utilities, Utilities
+@comment  node-name,  next,  previous,  up
+@section Token Queries
 
-These functions all take a single nonterminal (a list), and return some
-element from that list.
-
-@defun semantic-token-p token
-Return non-@code{nil} if @var{TOKEN} is most likely a semantic token.
-@end defun
+When writing programs that use the bovinator, the following functions
+are needed to find get details out of a nonterminal.
 
 @defun semantic-token-token token
 Retrieve from @var{TOKEN} the token identifier.
@@ -875,8 +788,8 @@ If not provided, then only the @var{POSITION} can be provided.
 @end defun
 
 @defun semantic-token-overlay token
-Retrieve the overlay associated with @var{TOKEN}.  The overlay is used
-to store the extent of TOKEN.
+Retrieve the @var{OVERLAY} part of @var{TOKEN}.
+The returned item may be an overlay or an unloaded buffer representation.
 @end defun
 
 @defun semantic-token-extent token
@@ -985,7 +898,7 @@ Retrieve a specifier value for the variable @var{TOKEN}.
 Retrieve the flag indicating if the include @var{TOKEN} is a sysmtem include.
 @end defun
 
-@node Nonterminal streams, Nonterminal completion, Nonterminal queryies, Utilities
+@node Nonterminal Streams, Nonterminal Completion, Token Queries, Utilities
 @section Nonterminal streams
 
 These functions take some key, and returns information found inside the
@@ -993,48 +906,19 @@ nonterminal stream returned by the bovinator.  Some will return one
 token (the first matching item found.)  Others will return a list of all
 items matching a given criterion.
 
+These functions query the current buffer's overlay system for tokens.
 
-@defun semantic-find-nonterminal-by-name name streamorbuffer
-Find a nonterminal @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a string.
-@end defun
-
-@defun semantic-find-nonterminal-by-property property value streamorbuffer
-Find all tokens where @var{property} equals @var{value}.
-Returns a list of all tokens with a match.
-@end defun
-
-@defun semantic-find-nonterminal-by-modifier modifier streamorbuffer
-Find all nonterminals with a given @var{MODIFIER} in @var{STREAMORBUFFER}.
-@var{MODIFIER} is a symbol key into the modifiers association list."
-@end defun
-
-@defun semantic-find-nonterminal-by-position position streamorbuffer &optional nomedian
-Find a nonterminal covinging @var{POSITION} within @var{STREAMORBUFFER}.
-@var{POSITION} is a number, or marker.  If @var{NOMEDIAN} is non-@code{nil}, don't do
-the median calculation, and return nil.
-@end defun
-
-@defun semantic-find-innermost-nonterminal-by-position position streamorbuffer &optional nomedian
-Find a list of nonterminals covering @var{POSITION} within
-@var{STREAMORBUFFER}.  @var{POSITION} is a number, or marker.  If
-@var{NOMEDIAN} is non-@code{nil}, don't do the median calculation, and
-return nil.  This function will find the topmost item, and recurse until
-no more details are available of findable.
-@end defun
-
-@defun semantic-find-nonterminal-by-overlay positionormarker buffer
+@defun semantic-find-nonterminal-by-overlay &optional positionormarker buffer
 Find all nonterminals covering @var{POSITIONORMARKER} by using overlays.
-If @var{POSITIONORMARKER} is nil, use the current point.  Optional
-@var{BUFFER} is used if @var{POSITIONORMARKER} is a number, otherwise
-the current buffer is used.  This finds all tokens covering the
-specified position by checking for all overlays covering the current
-spot.  They are then sorted from largest to smallest via the start
-location.
+If @var{POSITIONORMARKER} is @code{nil}, use the current point.
+Optional @var{BUFFER} is used if @var{POSITIONORMARKER} is a number, otherwise the current
+buffer is used.  This finds all tokens covering the specified position
+by checking for all overlays covering the current spot.  They are then sorted
+from largest to smallest via the start location.
 @end defun
 
-@defun semantic-find-nonterminal-by-overlay-in-region start end buffer
-Find all nonterminals which exist in whole or in part between
-@var{START} and @var{END}.
+@defun semantic-find-nonterminal-by-overlay-in-region start end &optional buffer
+Find all nonterminals which exist in whole or in part between @var{START} and @var{END}.
 Uses overlays to determine positin.
 Optional @var{BUFFER} argument specifies the buffer to use.
 @end defun
@@ -1045,30 +929,87 @@ If there are more than one in the same location, return the
 smallest token.
 @end defun
 
-@defun semantic-find-nonterminal-by-token token streamorbuffer
+These functions search the entire stream for tokens matches a specific
+criteria.
+
+@defun semantic-find-nonterminal-by-name name streamorbuffer &optional search-parts search-include
+Find a nonterminal @var{NAME} within @var{STREAMORBUFFER}.  @var{NAME} is a string.
+If @var{SEARCH-PARTS} is non-@code{nil}, search children of tokens.
+If @var{SEARCH-INCLUDE} is non-@code{nil}, search include files.
+@end defun
+
+@defun semantic-find-nonterminal-by-property property value streamorbuffer &optional search-parts search-includes
+Find all nonterminals with @var{PROPERTY} equal to @var{VALUE} in @var{STREAMORBUFFER}.
+Properties can be added with @dfn{semantic-token-put}.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
+@end defun
+
+@defun semantic-find-nonterminal-by-extra-spec spec streamorbuffer &optional search-parts search-includes
+Find all nonterminals with a given @var{SPEC} in @var{STREAMORBUFFER}.
+@var{SPEC} is a symbol key into the modifiers association list.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
+@end defun
+
+@defun semantic-find-nonterminal-by-position position streamorbuffer &optional nomedian
+Find a nonterminal covering @var{POSITION} within @var{STREAMORBUFFER}.
+@var{POSITION} is a number, or marker.  If @var{NOMEDIAN} is non-@code{nil}, don't do
+the median calculation, and return nil.
+@end defun
+
+@defun semantic-find-innermost-nonterminal-by-position position streamorbuffer &optional nomedian
+Find a list of nonterminals covering @var{POSITION} within @var{STREAMORBUFFER}.
+@var{POSITION} is a number, or marker.  If @var{NOMEDIAN} is non-@code{nil}, don't do
+the median calculation, and return nil.
+This function will find the topmost item, and recurse until no more
+details are available of findable.
+@end defun
+
+@defun semantic-find-nonterminal-by-token token streamorbuffer &optional search-parts search-includes
 Find all nonterminals with a token @var{TOKEN} within @var{STREAMORBUFFER}.
-@var{TOKEN} is a symbol.
+@var{TOKEN} is a symbol representing the type of the tokens to find.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDE} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
 @end defun
 
-@defun semantic-find-nonterminal-standard streamorbuffer
+@defun semantic-find-nonterminal-standard streamorbuffer &optional search-parts search-includes
 Find all nonterminals in @var{STREAMORBUFFER} which define simple token types.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDE} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
 @end defun
 
-@defun semantic-find-nonterminal-by-type type streamorbuffer
+@defun semantic-find-nonterminal-by-type type streamorbuffer &optional search-parts search-includes
 Find all nonterminals with type @var{TYPE} within @var{STREAMORBUFFER}.
-@var{TYPE} is a string.
+@var{TYPE} is a string which is the name of the type of the token returned.
+Optional argument @var{SEARCH-PARTS} and @var{SEARCH-INCLUDES} are passed to
+@dfn{semantic-find-nonterminal-by-function}.
 @end defun
 
-@defun semantic-find-nonterminal-by-function function streamorbuffer
-Find all nonterminals which @var{FUNCTION} match within @var{STREAMORBUFFER}.
+@defun semantic-find-nonterminal-by-function function streamorbuffer &optional search-parts search-includes
+Find all nonterminals in which @var{FUNCTION} match within @var{STREAMORBUFFER}.
 @var{FUNCTION} must return non-@code{nil} if an element of @var{STREAM} will be included
 in the new list.
+
+If optional argument @var{SEARCH-PARTS} is non-@code{nil}, all sub-parts of tokens
+are searched.  The overloadable function @dfn{semantic-nonterminal-children} is
+used for the searching child lists.  If @var{SEARCH-PARTS} is the symbol
+@code{'positiononly}, then only children that have positional information are
+searched.
+
+If @var{SEARCH-INCLUDES} is non-@code{nil}, then all include files are also
+searched for matches.
 @end defun
 
-@defun semantic-find-nonterminal-by-function-first-match function streamorbuffer
+@defun semantic-find-nonterminal-by-function-first-match function streamorbuffer &optional search-parts search-includes
 Find the first nonterminal which @var{FUNCTION} match within @var{STREAMORBUFFER}.
 @var{FUNCTION} must return non-@code{nil} if an element of @var{STREAM} will be included
 in the new list.
+If optional argument @var{SEARCH-PARTS}, all sub-parts of tokens are searched.
+The overloadable function @dfn{semantic-nonterminal-children} is used for
+searching.
+If @var{SEARCH-INCLUDES} is non-@code{nil}, then all include files are also
+searched for matches.
 @end defun
 
 @defun semantic-recursive-find-nonterminal-by-name name buffer
@@ -1079,7 +1020,7 @@ in which @var{TOKEN} (the token found to match @var{NAME}) was found.
 @end defun
 
 
-@node Nonterminal completion, Override methods, Nonterminal streams, Utilities
+@node Nonterminal Completion, Override Methods, Nonterminal Streams, Utilities
 @section Nonterminal completion
 
 These functions provide ways reading the names of items in a buffer with
@@ -1125,8 +1066,8 @@ from under point.
 @end defun
 
 
-@node Override methods,  , Nonterminal completion, Utilities
-@section Override methods
+@node Override Methods,  , Nonterminal Completion, Utilities
+@section Override Methods
 
 These functions are called `override methods' because they provide
 generic behaviors, which a given language can override.  For example,
@@ -1135,6 +1076,24 @@ finding a dependency file in Emacs lisp can be done with the
 a dependency can be found by searching a generic search path which can
 be passed in via a variable.
 
+@defun semantic-nonterminal-children token &optional positionalonly
+Return the list of top level children belonging to @var{TOKEN}.
+Children are any sub-tokens which may contain overlays.
+The default behavior (if not overriden with @code{nonterminal-children}
+is to return type parts for a type, and arguments for a function.
+
+If optional argument @var{POSITIONALONLY} is non-@code{nil}, then only return valid
+children if they contain positions.  Some languages may choose to create
+lists of children without position/overlay information.
+
+If this function is overriden, use @dfn{semantic-nonterminal-children-default}
+to also include the default behavior, and merely extend your own.
+
+Note for language authors:
+  If a mode defines a language that has tokens in it with overlays that
+should not be considered children, you should still return them with
+this function.
+@end defun
 
 @defun semantic-find-dependency token
 Find the filename represented from @var{TOKEN}.
@@ -1191,7 +1150,158 @@ prototype file, or the existence of an @var{EDE} variable indicating which
 file prototypes belong in.
 @end defun
 
-@node Tools, Index, Utilities, Top
+@defun semantic-abbreviate-nonterminal token &optional parent
+Return an abbreviated string describing @var{TOKEN}.
+The abbreviation is to be short, with possible symbols indicating
+the type of token, or other information.
+Optional argument @var{PARENT} is the parent type if @var{TOKEN} is a detail.
+@end defun
+
+@defun semantic-concise-prototype-nonterminal token
+Return a concise prototype for @var{TOKEN}.
+This function must be overloaded, though it need not be used.
+@end defun
+
+@node Current Context, Tools, Utilities, Top
+@comment  node-name,  next,  previous,  up
+@chapter Deriving the Current Context
+
+This chapter deals with how to derive the current context, and also
+how a language maintainter can get the current context API to work
+with their language.
+
+By default, the behavior will function in C like languages.  This
+means languages with parenthetical blocks, and type dereferencing
+which uses a similar form.
+
+@menu
+* Blocks ::             Navigating code blocks.
+* Local Variables::     Getting lists of local variables.
+* Derived Context::     What goes at a given location?
+* Suggestions::         Get suggestions on one goes in a derived context.
+@end menu
+
+@node Blocks, Local Variables, Current Context, Current Context
+@section Blocks and Navigation
+
+Source code is typically built up of control structures, and blocks of
+context, or lexical scope.  Semantic terms these lexical scopes as a
+``context''.  The following functions can be used to navigate contexts.
+Some of them are override functions.  Language authors can override
+a subset of them to make them work for their language.
+
+@defun semantic-up-context &optional point
+Move point up one context from @var{POINT}.
+Return non-@code{nil} if there are no more context levels.
+Overloaded functions using @code{up-context} take no parameters.
+@end defun
+
+@defun semantic-beginning-of-context &optional point
+Move @var{POINT} to the beginning of the current context.
+Return non-@code{nil} if there is no upper context.
+The default behavior uses @code{semantic-up-context}.  It can
+be overridden with @code{beginning-of-context}.
+@end defun
+
+@defun semantic-end-of-context &optional point
+Move @var{POINT} to the end of the current context.
+Return non-@code{nil} if there is no upper context.
+Be default, this uses @code{semantic-up-context}, and assumes parenthetical
+block delimiters.  This can be overridden with @code{end-of-context}.
+@end defun
+
+These next set of functions can be used to navigate across commands.
+
+@defun semantic-end-of-command
+Move to the end of the current command.
+Be default, uses @code{semantic-command-separation-character}.
+Override with @code{end-of-command}.
+@end defun
+
+@defun semantic-beginning-of-command
+Move to the beginning of the current command.
+Be default, users @code{semantic-command-separation-character}.
+Override with @code{beginning-of-command}.
+@end defun
+
+@node Local Variables, Derived Context, Blocks, Current Context
+@section Deriving local variables
+
+Within a given context, or block of code, local variables are often
+defined.  These functions can be used to retrieve lists of locally
+scoped variables.
+
+@defun semantic-get-local-variables &optional point
+Get the local variables based on POINT's context.
+Local variables are returned in Semantic token format.
+Be default, this calculates the current bounds using context blocks
+navigation, then uses the parser with @code{bovine-inner-scope} to
+parse tokens at the beginning of the context.
+This can be overriden with @code{get-local-variables}.
+@end defun
+
+@defun semantic-get-local-arguments &optional point
+Get arguments (variables) from the current context at @var{POINT}.
+Parameters are available if the point is in a function or method.
+This function returns a list of tokens.  If the local token returns
+just a list of strings, then this function will convert them to tokens.
+Part of this behavior can be overridden with @code{get-local-arguments}.
+@end defun
+
+@defun semantic-get-all-local-variables &optional point
+Get all local variables for this context, and parent contexts.
+Local variables are returned in Semantic token format.
+Be default, this gets local variables, and local arguments.
+This can be overridden with @code{get-all-local-variables}.
+@end defun
+
+@node Derived Context, Suggestions, Local Variables, Current Context
+@section Deriving the Current Context
+
+While a context has already been used to describe blocks of code,
+other context include more local details, such as the symbol the
+cursor is on, or the fact we are assinging into some other variable.
+
+These context deriving functions can be overridden to provide langauge
+specific behavior.  By default, it assumes a C like language.
+
+@defun semantic-ctxt-current-symbol &optional point
+Return the current symbol the cursor is on at @var{POINT} in a list.
+This will include a list of type/field names when applicable.
+This can be overridden using @code{ctxt-current-symbol}.
+@end defun
+
+@defun semantic-ctxt-current-assignment &optional point
+Return the current assignment near the cursor at @var{POINT}.
+Return a list as per @code{semantic-ctxt-current-symbol}.
+Return @code{nil} if there is nothing relevant.
+Override with @code{ctxt-current-assignment}.
+@end defun
+
+@defun semantic-ctxt-current-function &optional point
+Return the current symbol the cursor is on at @var{POINT}.
+The function returned is the one accepting the arguments that
+the cursor is currently in.
+This can be overridden with `ctxt.current-function'.
+@end defun
+
+@defun semantic-ctxt-current-argument &optional point
+Return the current symbol the cursor is on at @var{POINT}.
+Override with @code{ctxt-current-argument}.
+@end defun
+
+@node Suggestions, , Derived Context, Current Context
+@section Getting Suggestions for the Current Context
+
+The suggestion API uses all the context deriving functions to make
+intelligent guesses as to what belongs in a given location.  These
+functions can be used to create smart completion mechanisms, or
+displays.
+
+Unfortunatly, they are not fully implemented in Semantic 1.4.
+
+
+@node Tools, Index, Current Context, Top
 @comment  node-name,  next,  previous,  up
 @chapter Tools
 
@@ -1201,12 +1311,14 @@ Semantic.
 
 @menu
 * speedbar::            How to use Semantic speedbar support
+* imenu::               Special support for Imenu.
 * semanticdb::          Cache your parsed buffers between sessions.
 * senator::             The Semantic Navigator
+* document::            Document generation functions
 * miscellaneous:: 
 @end menu
 
-@node speedbar, semanticdb, Tools, Tools
+@node speedbar, imenu, Tools, Tools
 @comment  node-name,  next,  previous,  up
 @section Speedbar
 
@@ -1228,11 +1340,87 @@ display them appropriately.  Tags from semantic will have additional
 details which can be seen, such as return type, or arguments to
 functions.
 
-@node semanticdb, senator, speedbar, Tools
+@node imenu, semanticdb, speedbar, Tools
+@comment  node-name,  next,  previous,  up
+@section Imenu support
+
+There is special support for creating Imenu entries using semantic.
+This is a highly customizable tool which can create specialized menu
+systems for navigating your source file.
+
+By default, each language that wants special imenu support will set
+itself up for it.  To setup imenu for your buffers, use this command
+in your @file{.emacs} file:
+
+@example
+(add-hook 'semantic-init-hooks (lambda ()
+                               	   (imenu-add-to-menubar "TOKENS")))
+@end example
+
+Also supported is @dfn{which-func-mode}.  This usually uses imenu
+tags to show the current function.  The semantic support for this
+function uses overlays, which is much faster.
+
+You can customize imenu with the following options:
+
+@deffn Option semantic-imenu-summary-function
+Function to use when creating items in Imenu.
+Some useful functions are:
+@dfn{semantic-abbreviate-nonterminal}
+@dfn{semantic-summarize-nonterminal}
+@dfn{semantic-prototype-nonterminal}
+@end deffn
+
+@deffn Option semantic-imenu-bucketize-file
+Non-@code{nil} if tokens in a file are to be grouped into buckets.
+@end deffn
+
+@deffn Option semantic-imenu-buckets-to-submenu
+Non-@code{nil} if buckets of tokens are to be turned into submenus.
+This option is ignored if @code{semantic-imenu-bucketize-file} is nil.
+@end deffn
+
+@deffn Option semantic-imenu-expand-type-parts
+Non-@code{nil} if types should have submenus with parts in it.
+@end deffn
+
+@deffn Option semantic-imenu-bucketize-type-parts
+Non-@code{nil} if elements of a type should be placed grouped into buckets.
+@code{Nil} means to keep them in the same order.
+Overriden to @code{nil} if @code{semantic-imenu-bucketize-file} is nil.
+@end deffn
+
+@deffn Option semantic-imenu-sort-bucket-function
+Function to use when sorting tags in the buckets of functions.
+@end deffn
+
+@deffn Option semantic-imenu-index-directory
+Non @code{nil} to index the entire directory for tags.
+Doesn't actually parse the entire directory, but displays tags for all files
+currently listed in the current Semantic database.
+This variable has no meaning if semanticdb is not active.
+@end deffn
+
+@deffn Option semantic-imenu-auto-rebuild-directory-indexes
+If non-@code{nil} automatically rebuild directory index imenus.
+That is when a directory index imenu is updated, automatically rebuild
+other buffer local ones based on the same semanticdb.
+@end deffn
+
+When adding support to a language, this variable may need to be set:
+
+@defvar semantic-imenu-expandable-token
+Tokens of this token type will be given submenu with children.
+By default, a @code{type} has interesting children.  In Texinfo, however,
+a @code{section} has interesting children.
+@end defvar
+
+
+@node semanticdb, senator, imenu, Tools
 @comment  node-name,  next,  previous,  up
 @section Semantic Database
 
-Semanticdb is a utility which tracks your parsed files, and save the
+Semanticdb is a utility which tracks your parsed files, and saves the
 parsed information to files.  When you reload your source files,
 semanticdb automatically associates the file with the cached copy,
 saving time by not reparsing your buffer.
@@ -1248,9 +1436,48 @@ To use semanticdb, add the following to your @file{.emacs} file:
 (global-semanticdb-minor-mode 1)
 @end example
 
-*Write section on programming api*
+@subsection Searching
 
-@node senator, miscellaneous, semanticdb, Tools
+You can search for tokens in the database using the following
+functions.
+
+@defun semanticdb-find-nonterminal-by-name name &optional databases search-parts search-includes diff-mode find-file-match
+Find all occurances of nonterminals with name @var{NAME} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES}, @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+@end defun
+
+@defun semanticdb-find-nonterminal-by-name-regexp regex &optional databases search-parts search-includes diff-mode find-file-match
+Find all occurances of nonterminals with name matching @var{REGEX} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+@end defun
+
+@defun semanticdb-find-nonterminal-by-type type &optional databases search-parts search-includes diff-mode find-file-match
+Find all nonterminals with a type of @var{TYPE} in databases.
+See @dfn{semanticdb-find-nonterminal-by-function} for details on @var{DATABASES},
+@var{SEARCH-PARTS}, @var{SEARCH-INCLUDES} @var{DIFF-MODE}, and @var{FIND-@var{FILE}-MATCH}.
+@end defun
+
+@defun semanticdb-find-nonterminal-by-function function &optional databases search-parts search-includes diff-mode find-file-match
+Find all occurances of nonterminals which match @var{FUNCTION}.
+Search in all @var{DATABASES}.  If @var{DATABASES} is @code{nil}, search a range of
+associated databases.
+When @var{SEARCH-PARTS} is non-@code{nil} the search will include children of tokens.
+When @var{SEARCH-INCLUDES} is non-@code{nil}, the search will include dependency files.
+When @var{DIFF-MODE} is non-@code{nil}, search databases which are of a different mode.
+@var{A} Mode is the @code{major-mode} that file was in when it was last parsed.
+When @var{FIND-@var{FILE}-MATCH} is non-@code{nil}, the make sure any found token's file is
+in an Emacs buffer.
+@end defun
+
+@defun semanticdb-file-stream file
+Return a list of tokens belonging to @var{FILE}.
+If file has database tokens available in the database, return them.
+If file does not have tokens available, then load the file, and create them.
+@end defun
+
+@node senator, document, semanticdb, Tools
 @comment  node-name,  next,  previous,  up
 @section Semantic Navigator
 
@@ -1267,6 +1494,20 @@ Move to the next token in the current buffer.
 
 @deffn Command senator-previous-token
 Move to the previous token in the current buffer.
+@end deffn
+
+@deffn Comamnd senator-jump sym
+Jump to the semantic symbol @var{SYM}.
+If called interactively and a prefix argument is supplied jump in the
+local type's context (see function @dfn{senator-current-type-context}).
+@end deffn
+
+@deffn Comamnd senator-complete-symbol
+Complete the current symbol under point.
+@end deffn
+
+@deffn Comamnd senator-completion-menu-keyboard-popup
+Popup a completion menu for the symbol at point.
 @end deffn
 
 @deffn Command senator-search-forward string
@@ -1304,6 +1545,18 @@ senator-next-token
 senator-previous-token
 @item C-c , i
 senator-isearch-toggle-semantic-mode
+@item C-c , j
+senator-jump
+@item C-c , TAB
+senator-complete-symbol
+@item C-c , SPC
+senator-completion-menu-keyboard-popup
+@item C-c , C-y
+senator-yank-token
+@item C-c , C-w
+senator-kill-token
+@item C-c , M-w
+senator-copy-token
 @end table
 @end deffn
 
@@ -1319,14 +1572,23 @@ use this:
 To customize navigation around different types of tokens, use the
 following variables:
 
-@defvar senator-step-at-token-ids
-List of symbols.  The symbols represent different token types.
-Navigation occurs only between tokens of these types.
-@end defvar
+@deffn Option senator-step-at-token-ids
+List of token identifiers where to step.
+Token identifier is symbol @code{'variable}, @code{'function}, @code{'type}, or other.  If
+@code{nil} navigation steps at any token found.  This is a buffer local
+variable.  It can be set in a mode hook to get a specific langage
+navigation.
+@end deffn
 
-@defvar senator-step-at-start-end-token-ids
-Navigation pauses at the beginning and end of tokens of this type.
-@end defvar
+@deffn Option senator-step-at-start-end-token-ids
+List of token identifiers where to step at start and end.
+Token identifier is symbol @code{'variable}, @code{'function}, @code{'type}, or other.  If
+@code{nil} navigation only step at beginning of tokens.  If @code{t} step at start
+and end of any token where it is allowed to step.  Also, stepping at
+start and end of a token prevent stepping inside its children.  This
+is a buffer local variable.  It can be set in a mode hook to get a
+specific langage navigation.
+@end deffn
 
 To have a mode specific customization, do something like this in a hook:
 
@@ -1347,7 +1609,51 @@ only.
 Any comments, suggestions, bug reports or upgrade requests are
 welcome.  Please send them to David Ponce at david@@dponce.com
 
-@node miscellaneous, , senator, Tools
+@node document, miscellaneous, senator, Tools
+@comment  node-name,  next,  previous,  up
+@section Document generation
+
+The document program uses semantic token streams to aid in the
+creation of texinfo documentation.  The main entry point for the
+documentation generator are the following commands:
+
+@deffn Comamnd document &optional resetfile
+Document the function or variable the cursor is in.
+Optional argument @var{RESETFILE} is provided w/ universal argument.
+When non-@code{nil}, query for a new documentation file.
+@end deffn
+
+@deffn Comamnd document-inline
+Document the current function with an inline comment.
+@end deffn
+
+@deffn Comamnd document-insert-defun-comment nonterm buffer
+Insert mode-comment documentation about @var{NONTERM} from @var{BUFFER}.
+@end deffn
+
+@deffn Comamnd document-insert-new-file-header header
+Insert a new header file into this buffer.  Add reference to @var{HEADER}.
+Used by @code{prototype} if this file doesn't have an introductory comment.
+@end deffn
+
+In addition to these base documentation commands, the texinfo semantic
+parser includes a two convenience functions when working directly with
+texinfo files.
+
+@deffn Comamnd semantic-texi-update-doc &optional token
+Update the documentation for @var{TOKEN}.
+If the current buffer is a texinfo file, then find the source doc, and
+update it.  If the current buffer is a source file, then get the
+documentation for this item, find the existing doc in the associated
+manual, and update that.
+@end deffn
+
+@deffn Comamnd semantic-texi-goto-source &optional token
+Jump to the source for the definition in the texinfo file @var{TOKEN}.
+If @var{TOKEN} is @code{nil}, it is derived from the deffn under @var{POINT}.
+@end deffn
+
+@node miscellaneous, , document, Tools
 @comment  node-name,  next,  previous,  up
 @section Miscellaneous commands
 
