@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: wisent.texi,v 1.13 2002/06/26 17:32:58 ponced Exp $
+@c $Id: wisent.texi,v 1.14 2002/06/27 12:30:16 ponced Exp $
 @c
 @setfilename wisent.info
 @settitle Wisent: the Bison-compatible Parser Generator for Emacs
@@ -100,15 +100,7 @@ Grammar styles
 * Bovine style::                
 * Bison style::                 
 * Mixed style::                 
-
-Bovine style
-
-* Top level nonterminals::      
-* Bovine style example::        
-
-Bison style
-
-* Bison style example::         
+* Start nonterminals::          
 
 @end detailmenu
 @end menu
@@ -956,12 +948,12 @@ block delimited by @samp{LBRACE} (@code{@{}) and @samp{RBRACE}
 
 @cindex How to use Wisent with Semantic
 @cindex Wisent vs. Semantic
-@cindex Semantic syntax tree
+@cindex Semantic parse tree
 @cindex Semantic token
 This chapter presents how the Wisent's parser can be used to produce
-@dfn{syntax trees} for the Semantic tool set.
+@dfn{parse trees} for the Semantic tool set.
 
-A Semantic syntax tree is a hierarchy of Emacs Lisp data structures,
+A Semantic parse tree is a hierarchy of Emacs Lisp data structures,
 called @dfn{Semantic tokens}, that describes a program in a way
 independent of programming languages.  Semantic tokens can be seen as
 @dfn{tags} that map program declarations, like functions, methods,
@@ -1371,6 +1363,7 @@ it can be worth a mix of the two styles!
 * Bovine style::                
 * Bison style::                 
 * Mixed style::                 
+* Start nonterminals::          
 @end menu
 
 @node Bovine style
@@ -1380,13 +1373,14 @@ it can be worth a mix of the two styles!
 @cindex Semantic token, Raw
 @cindex Semantic token, Cooked
 The @dfn{bovine style} is the preferred style to use with Semantic.
-It relies on the bovinator back-end mechanism which parses top-level
+It relies on the bovinator back-end mechanism which parses start
 nonterminals one at a time and automagically skip unexpected lexical
 tokens in input.
 
-Each top-level nonterminal must produces a @dfn{raw semantic token} by
+Each start nonterminal must produces a @dfn{raw semantic token} by
 calling the function @code{wisent-token} with the appropriate
-parameters.
+parameters.@*
+@xref{Start nonterminals}, for more informations.
 
 Bovination then automatically translate raw tokens into @dfn{cooked
 semantic tokens}, updating the raw token structure with internal
@@ -1401,26 +1395,14 @@ Return a raw Semantic token including @var{RETURN-VAL}.
 Should be used in Semantic actions to build the bovine cache.
 @end defun
 
-@menu
-* Top level nonterminals::      
-* Bovine style example::        
-@end menu
-
-@node Top level nonterminals
-@subsubsection Top level nonterminals
-
-@cindex Top level nonterminals
-To be done!
-
-@node Bovine style example
-@subsubsection Bovine style example
-
-@cindex Grammar bovine style example
 The following example is a snippet of the bovine style Java grammar
 provided in the Semantic distribution in the file
 @file{wisent-java-tags.wy}.
 
 @example
+%start formal_parameter_list
+@dots{}
+
 formal_parameter_list
   : PAREN_BLOCK
     (EXPANDFULL $1 formal_parameters)
@@ -1476,39 +1458,16 @@ straightforward to use grammars written in Bison style in Semantic.
 Mainly because such grammars are designed to parse the whole input
 data in one pass, and don't use the bovinator back-end mechanism
 (@pxref{Bovine style}).  With Bison style the parser is called once to
-parse the grammar start symbol, which is the only known top-level
-nonterminal.
+parse the grammar start nonterminal.
 
-The first consequence is that syntax errors are not automatically
-handled by Semantic.  Thus, it is necessary to explicitly handle them
-at the grammar level, providing error recovery rules to skip
-unexpected input data.
-
-The second consequence is that the bovinator can't do automatic raw to
-cooked token translation, excepted for the start nonterminal value.
-So it is also necessary to explicitly return cooked semantic tokens
-from concerned semantic actions by calling the function
-@code{wisent-cooked-token} with the appropriate parameters.
-
-@findex wisent-cooked-token
-@defun wisent-cooked-token &rest return-val
-Return a cooked Semantic token including @var{RETURN-VAL}.
-Should be used in Semantic actions to build the bovine cache.
-@end defun
-
-@menu
-* Bison style example::         
-@end menu
-
-@node Bison style example
-@subsubsection Bison style example
-
-@cindex Grammar Bison style example
 The following example is a snippet of the Bison style Java grammar
 provided in the Semantic distribution in the file
 @file{wisent-java.wy}.
 
 @example
+%start formal_parameter_list
+@dots{}
+
 formal_parameter_list
   : formal_parameter_list COMMA formal_parameter
     (cons $3 $1)
@@ -1523,6 +1482,24 @@ formal_parameter
                          nil)
   ;
 @end example
+
+The first consequence is that syntax errors are not automatically
+handled by Semantic.  Thus, it is necessary to explicitly handle them
+at the grammar level, providing error recovery rules to skip
+unexpected input data.
+
+The second consequence is that the bovinator can't do automatic raw to
+cooked token translation, excepted for the start nonterminal value.
+So it is also necessary to explicitly return cooked semantic tokens
+from concerned semantic actions by calling the function
+@code{wisent-cooked-token} with the appropriate parameters.@*
+@xref{Start nonterminals}, for partial re-parse considerations.
+
+@findex wisent-cooked-token
+@defun wisent-cooked-token &rest return-val
+Return a cooked Semantic token including @var{RETURN-VAL}.
+Should be used in Semantic actions to build the bovine cache.
+@end defun
 
 @node Mixed style
 @subsection Mixed style
@@ -1611,6 +1588,91 @@ rules:
 In such cases, when it is difficult for Emacs to obtain
 @code{semantic-list} syntactic tokens, the best solution is to use
 traditional Bison style with error recovery!
+
+@node Start nonterminals
+@subsection Start nonterminals
+
+@cindex Start nonterminals
+@cindex Partial re-parse
+@cindex @code{reparse-symbol} property
+When you write a grammar for Semantic, it is important to carefully
+indicate the start nonterminals.  Each one defines an entry point in
+the grammar, and after parsing its semantic value is returned to the
+bovinator.  Consequently:
+
+@strong{The semantic value of a start nonterminal must be a valid
+Semantic token}.
+
+Start nonterminals are declared by the @code{%start} statements.  When
+nothing is specified the first nonterminal that appears in the grammar
+is the start nonterminal.
+
+Generally, the following nonterminals must be declared as start
+symbols:
+
+@table @bullet
+@item The main grammar entry point
+Of course!
+@item nonterminals passed to @code{EXPAND}/@code{EXPANDFULL}
+These built-in functions recursively parse a part of input data, based
+on rules of the given nonterminal.
+
+For example, the following will parse @code{PAREN_BLOCK} data using
+the @code{formal_parameters} rules:
+
+@example
+formal_parameter_list
+  : PAREN_BLOCK
+    (EXPANDFULL $1 formal_parameters)
+  ;
+@end example
+
+The semantic value of @code{formal_parameters} becomes the value of
+the @code{EXPANDFULL} expression.  It is a list of Semantic tokens
+spliced in the parse tree.
+
+To allow that the automaton must know that @code{formal_parameters} is
+a start symbol.  It must be declared:
+
+@example
+%start formal_parameters
+@end example
+@end table
+
+The @code{EXPANDFULL} built-in function has a side effect it is
+important to know, related to the partial re-parse mechanism of
+Semantic.  The nonterminal symbol parameter passed to
+@code{EXPANDFULL} also becomes the @code{reparse-symbol} property of
+the Semantic tokens returned by the @code{EXPANDFULL} expression.
+
+When buffer's data mapped by one of these tokens is modified, Semantic
+schedules a partial re-parse of that data, using the token's
+@code{reparse-symbol} property as start nonterminal.  So the rules
+associated to this start symbol must be carefully reviewed to ensure
+that partial re-parse will work!
+
+Things are a little bit different when the grammar is written in
+Bison style and use the function @code{wisent-cooked-token} to directly
+produce cooked Semantic tokens.  In a such case, the @code{reparse-symbol}
+property is set with the nonterminal symbol the current rule belongs
+to.
+
+For example,
+
+@example
+rule:
+    rhs
+    @dots{}
+    (wisent-cooked-token name 'rule type comps prec action nil)
+  ;
+@end example
+
+Set the @code{reparse-symbol} property of the cooked token to
+@code{rule}.  A important consequence is that:
+
+@strong{Every nonterminal having any rule that calls
+@code{wisent-cooked-token} in a semantic action, should be declared as
+a start symbol!}
 
 @node Wisent Flex
 @section The Wisent Flex lexer
@@ -1746,6 +1808,9 @@ string comparison:
 @end example
 @end enumerate
 
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
 @include fdl.texi
 
 @node Index
@@ -1759,4 +1824,4 @@ string comparison:
 @c That's all
 @bye
 
-@c  LocalWords:  Wisent automagically bovination bovinate
+@c  LocalWords:  Wisent automagically bovination bovinate bovinator
