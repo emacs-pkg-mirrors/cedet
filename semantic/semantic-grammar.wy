@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.wy,v 1.1 2002/09/05 13:27:39 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.wy,v 1.2 2002/09/11 10:22:32 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -28,9 +28,6 @@
 %{
   (setq
    ;; Lexical analysis
-   semantic-lex-number-expression
-   (concat "[-+]?\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
-           "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
    semantic-lex-analyzer 'semantic-grammar-lexer
    ;; Environment
    semantic-type-relation-separator-character '(":")
@@ -87,9 +84,8 @@
 ;; Literals
 %token <string>        STRING
 %token <symbol>        SYMBOL
-%token <number>        NUMBER
 %token <char>          CHARACTER
-%token <sexp>          PREFIX-EXP
+%token <sexp>          SEXP
 
 ;; Blocks
 %token <semantic-list> PAREN_BLOCK "^("
@@ -349,9 +345,8 @@ put_value:
 any_value:
     any_symbol
   | STRING
-  | NUMBER
-  | PREFIX-EXP
   | PAREN_BLOCK
+  | SEXP
   ;
 
 symbols:
