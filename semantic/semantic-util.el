@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.103 2003/02/25 16:31:35 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.104 2003/02/27 02:57:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; API for accessing and searching nonterminal streams from the
+;; API for acessing and searching nonterminal streams from the
 ;; Semantic Bovinator.
 ;;
 
@@ -55,186 +55,6 @@ Equivalent modes share a parser, and a set of override methods.
 Setup from the BNF code generator.  A value of nil means that
 the current major mode is the only one.")
 (make-variable-buffer-local 'semantic-equivalent-major-modes)
-
-;;; Utility API functions
-;;
-;; These functions use the flex and bovination engines to perform some
-;; simple tasks useful to other programs.  These are just the most
-;; critical entries.
-(defun semantic-equivalent-tokens-p (token1 token2)
-  "Compare TOKEN1 and TOKEN2 and return non-nil if they are equivalent.
-Use `eq' to test of two tokens are the same.  Use this function if tokens
-are being copied and regrouped to test for if two tokens represent the same
-thing, but may be constructed of different cons cells."
-  (and (string= (semantic-token-name token1) (semantic-token-name token2))
-       (eq (semantic-token-token token1) (semantic-token-token token2))
-       (eq (semantic-token-start token1) (semantic-token-start token2))
-       (eq (semantic-token-end token1) (semantic-token-end token2))))
-
-(defun semantic-token-type (token)
-  "Retrieve the type of TOKEN."
-  (if (member (semantic-token-token token)
-	      '(function variable type))
-      (nth 2 token)))
-
-(defmacro semantic-token-type-parts (token)
-  "Retrieve the parts of the type TOKEN."
-  `(nth 3 ,token))
-
-(defmacro semantic-token-type-parent (token)
-  "Retrieve the parent of the type TOKEN.
-The return value is a list.  A value of nil means no parents.
-The `car' of the list is either the parent class, or a list
-of parent classes.  The `cdr' of the list is the list of
-interfaces, or abstract classes which are parents of TOKEN."
-  `(nth 4 ,token))
-
-(defun semantic-token-type-parent-superclass (token)
-  "Retrieve a list of parent superclasses for the type token TOKEN."
-  (let ((p (semantic-token-type-parent token)))
-    (cond ((stringp (car p))
-	   (list (car p)))
-	  ((listp (car p))
-	   (car p)))))
-
-(defun semantic-token-type-parent-implement (token)
-  "Retrieve a list of parent interfaces for the type token TOKEN."
-  (cdr (semantic-token-type-parent token)))
-
-(defmacro semantic-token-type-extra-specs (token)
-  "Retrieve extra specifications for the type TOKEN."
-  `(nth 5 ,token))
-
-(defmacro semantic-token-type-extra-spec (token spec)
-  "Retrieve an extra specification for the type TOKEN.
-SPEC is the symbol whose specification value to get."
-  `(cdr (assoc ,spec (semantic-token-type-extra-specs ,token))))
-
-(defmacro semantic-token-type-modifiers (token)
-  "Retrieve modifiers for the type TOKEN."
-  `(semantic-token-type-extra-spec ,token 'typemodifiers))
-
-(defmacro semantic-token-function-args (token)
-  "Retrieve the arguments of the function TOKEN."
-  `(nth 3 ,token))
-
-(defmacro semantic-token-function-extra-specs (token)
-  "Retrieve extra specifications for the function TOKEN."
-  `(nth 4 ,token))
-
-(defmacro semantic-token-function-extra-spec (token spec)
-  "Retrieve an extra specification for the function TOKEN.
-SPEC is the symbol whose specification value to get."
-  `(cdr (assoc ,spec (semantic-token-function-extra-specs ,token))))
-
-(defmacro semantic-token-function-modifiers (token)
-  "Retrieve modifiers for the function TOKEN."
-  `(semantic-token-function-extra-spec ,token 'typemodifiers))
-
-(defmacro semantic-token-function-throws (token)
-  "The symbol string that a function can throws.
-Determines if it is available based on the length of TOKEN."
-  `(semantic-token-function-extra-spec ,token 'throws))
-
-(defmacro semantic-token-function-parent (token)
-  "The parent of the function TOKEN.
-A function has a parent if it is a method of a class, and if the
-function does not appear in body of it's parent class."
-  `(semantic-token-function-extra-spec ,token 'parent))
-
-(defmacro semantic-token-function-destructor (token)
-  "Non-nil if TOKEN is a destructor function."
-  `(semantic-token-function-extra-spec ,token 'destructor))
-
-(defmacro semantic-token-variable-default (token)
-  "Retrieve the default value of the variable TOKEN."
-  `(nth 3 ,token))
-
-(defmacro semantic-token-variable-extra-specs (token)
-  "Retrieve extra specifications for the variable TOKEN."
-  `(nth 4 ,token))
-
-(defmacro semantic-token-variable-extra-spec (token spec)
-  "Retrieve an extra specification for the variable TOKEN.
-SPEC is the symbol whose specification value to get."
-  `(cdr (assoc ,spec (semantic-token-variable-extra-specs ,token))))
-
-(defmacro semantic-token-variable-modifiers (token)
-  "Retrieve modifiers for the variable TOKEN."
-  `(semantic-token-variable-extra-spec ,token 'typemodifiers))
-
-(defmacro semantic-token-variable-const (token)
-  "Retrieve the status of constantness from the variable TOKEN."
-  `(semantic-token-variable-extra-spec ,token 'const))
-
-(defmacro semantic-token-variable-optsuffix (token)
-  "Optional details if this variable has bit fields, or array dimentions.
-Determines if it is available based on the length of TOKEN."
-  `(semantic-token-variable-extra-spec ,token 'suffix))
-
-(defmacro semantic-token-include-system (token)
- "Retrieve the flag indicating if the include TOKEN is a system include."
-  `(nth 2 ,token))
-
-(defun semantic-token-extra-spec (token spec)
-  "Retrieve an extra specification for TOKEN.
-SPEC is a symbol whose specification value to get.
-This function can get extra specifications from any type of token.
-Do not use the function if you know what type of token you are dereferencing.
-Instead, use `semantic-token-variable-extra-spec',
-`semantic-token-function-extra-spec', or  `semantic-token-type-extra-spec'."
-  (let ((tt (semantic-token-token token)))
-    (cond ((eq tt 'variable)
-	   (semantic-token-variable-extra-spec token spec))
-	  ((eq tt 'function)
-	   (semantic-token-function-extra-spec token spec))
-	  ((eq tt 'type)
-	   (semantic-token-type-extra-spec token spec))
-	  (t nil))))
-
-(defun semantic-token-extra-specs (token)
-  "Retrieve the extra specifications list for TOKEN.
-This function can get extra specifications from any type of token.
-Do not use the function if you know what type of token you are dereferencing.
-Instead, use `semantic-token-variable-extra-specs',
-`semantic-token-function-extra-specs', or  `semantic-token-type-extra-specs'."
-  (let ((tt (semantic-token-token token)))
-    (cond ((eq tt 'variable)
-	   (semantic-token-variable-extra-specs token))
-	  ((eq tt 'function)
-	   (semantic-token-function-extra-specs token))
-	  ((eq tt 'type)
-	   (semantic-token-type-extra-specs token))
-	  (t nil))))
-
-(defun semantic-token-add-extra-spec (token spec value)
-  "Add to TOKEN, and extra specifier SPEC with VALUE.
-Use this function in a parser when not all specifiers are known
-at the same time."
-  (let ((tt (semantic-token-token token)))
-    (cond ((eq tt 'variable)
-	   (setcar (nthcdr 4 token)
-		   (cons (cons spec value)
-			 (semantic-token-variable-extra-specs token))))
-	  ((eq tt 'function)
-	   (setcar (nthcdr 4 token)
-		   (cons (cons spec value)
-			 (semantic-token-function-extra-specs token))))
-	  ((eq tt 'type)
-	   (setcar (nthcdr 5 token)
-		   (cons (cons spec value)
-			 (semantic-token-type-extra-specs token))))
-	  (t nil))
-    token))
-
-
-(defmacro semantic-token-modifiers (token)
-  "Retrieve modifiers for TOKEN.
-If TOKEN is of an unknown type, then nil is returned."
-  `(semantic-token-extra-spec ,token 'typemodifiers))
-
-;;; Misc. utilities
-;;
 
 ;; These semanticdb calls will throw warnings in the byte compiler.
 ;; Doing the right thing to make them available at compile time
