@@ -4,9 +4,9 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.193 2000/10/21 03:07:18 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.194 2000/12/11 23:32:41 zappo Exp $
 
-(defvar speedbar-version "0.13.1"
+(defvar speedbar-version "0.14"
   "The current version of speedbar.")
 
 ;; This file is part of GNU Emacs.
@@ -634,7 +634,7 @@ It is generated from the variable `completion-ignored-extensions'")
   (append '(".[ch]\\(\\+\\+\\|pp\\|c\\|h\\|xx\\)?" ".tex\\(i\\(nfo\\)?\\)?"
 	    ".el" ".emacs" ".l" ".lsp" ".p" ".java" ".f\\(90\\|77\\|or\\)?")
 	  (if speedbar-use-imenu-flag
-	      '(".ada" ".p[lm]" ".tcl" ".m" ".scm" ".pm" ".py"
+	      '(".ada" ".p[lm]" ".tcl" ".m" ".scm" ".pm" ".py" ".g"
 		;; html is not supported by default, but an imenu tags package
 		;; is available.  Also, html files are nice to be able to see.
 		".s?html"
@@ -899,14 +899,10 @@ directories.")
       (defalias 'speedbar-make-overlay 'make-extent)
       (defalias 'speedbar-overlay-put 'set-extent-property)
       (defalias 'speedbar-delete-overlay 'delete-extent)
-      (defalias 'speedbar-overlay-start 'extent-start)
-      (defalias 'speedbar-overlay-end 'extent-end)
       (defalias 'speedbar-mode-line-update 'redraw-modeline))
   (defalias 'speedbar-make-overlay 'make-overlay)
   (defalias 'speedbar-overlay-put 'overlay-put)
   (defalias 'speedbar-delete-overlay 'delete-overlay)
-  (defalias 'speedbar-overlay-start 'overlay-start)
-  (defalias 'speedbar-overlay-end 'overlay-end)
   (defalias 'speedbar-mode-line-update 'force-mode-line-update))
 
 ;;; Mode definitions/ user commands
@@ -1874,8 +1870,9 @@ INDEX is not used, but is required by the caller."
 This is the button that expands or contracts a node (if applicable),
 and EXP-BUTTON-CHAR the character in it (+, -, ?, etc).  EXP-BUTTON-FUNCTION
 is the function to call if it's clicked on.  Button types are
-'bracket, 'angle, 'curly, or nil.  EXP-BUTTON-DATA is extra data
-attached to the text forming the expansion button.
+'bracket, 'angle, 'curly, 'expandtag, 'statictag, t, or nil.
+EXP-BUTTON-DATA is extra data attached to the text forming the expansion
+button.
 
 Next, TAG-BUTTON is the text of the tag.  TAG-BUTTON-FUNCTION is the
 function to call if clicked on, and TAG-BUTTON-DATA is the data to
@@ -2004,7 +2001,9 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 Groups may optionally contain a position."
   (and (stringp (car-safe sublst))
        (or (and (listp (cdr-safe sublst))
-		(speedbar-generic-list-tag-p (car-safe (cdr-safe sublst))))
+		(or (speedbar-generic-list-tag-p (car-safe (cdr-safe sublst)))
+		    (speedbar-generic-list-group-p (car-safe (cdr-safe sublst))
+						   )))
 	   (and (number-or-marker-p (car-safe (cdr-safe sublst)))
 		(listp (cdr-safe (cdr-safe sublst)))
 		(speedbar-generic-list-tag-p
@@ -3321,7 +3320,6 @@ This uses the entries in `speedbar-dynamic-tags-function-list'
 to find the proper tags.  It is up to each of those individual
 functions to do caching and flushing if appropriate."
   (save-excursion
-    (set-buffer (find-file-noselect file))
     ;; If there is a buffer-local value of
     ;; speedbar-dynamic-tags-function-list, it will now be available.
     (let ((dtf speedbar-dynamic-tags-function-list)
@@ -3329,7 +3327,7 @@ functions to do caching and flushing if appropriate."
       (while (and (eq ret t) dtf)
 	(setq ret
 	      (if (fboundp (car (car dtf)))
-		  (funcall (car (car dtf)) (buffer-file-name))
+		  (funcall (car (car dtf)) file)
 		t))
 	(if (eq ret t)
 	    (setq dtf (cdr dtf))))
@@ -3353,6 +3351,7 @@ functions to do caching and flushing if appropriate."
 Returns the tag list, or t for an error."
   ;; Load this AND compile it in
   (require 'imenu)
+  (set-buffer (find-file-noselect file))
   (if dframe-power-click (setq imenu--index-alist nil))
   (condition-case nil
       (let ((index-alist (imenu--make-index-alist t)))
