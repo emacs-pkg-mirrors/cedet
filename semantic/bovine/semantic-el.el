@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.2 2002/08/13 16:37:28 ponced Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.3 2002/08/20 16:56:10 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -355,6 +355,11 @@ Overrides `semantic-nonterminal-static'."
 
 ;;;###autoload
 (add-hook 'emacs-lisp-mode-hook 'semantic-default-elisp-setup)
+
+;;;###autoload
+(eval-after-load "semanticdb"
+  '(require 'semanticdb-el)
+  )
 
 (provide 'semantic-el)
 
