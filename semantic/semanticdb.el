@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.49 2003/01/27 22:00:29 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.50 2003/01/28 08:20:23 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -501,9 +501,12 @@ If file does not have tokens available, then load the file, and create them."
   (let* ((default-directory (file-name-directory file))
          (fo (semanticdb-create-database semanticdb-new-database-class
                                          default-directory))
-         (to (semanticdb-file-table fo file))
-         )
-    (if to
+         to)
+    ;; The `reference-directory' slot is not persistent, ensure here
+    ;; that it is initialized!
+    (or (slot-boundp fo 'reference-directory)
+        (oset fo reference-directory default-directory))
+    (if (setq to (semanticdb-file-table fo file))
 	(oref to tokens) ;; get them.
       ;; We must load the file.
       (save-excursion
