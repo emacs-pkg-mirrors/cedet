@@ -1,11 +1,11 @@
 ;;; semantic-imenu.el --- Use the Bovinator as a imenu tag generator
 
-;;; Copyright (C) 2000, 2001, 2002 Paul Kinnucan & Eric Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003 Paul Kinnucan & Eric Ludlam
 ;;; Copyright (C) 2001, 2002, 2003 Eric Ludlam
 
 ;; Created By: Paul Kinnucan
 ;; Maintainer: Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.44 2003/04/01 13:06:22 ponced Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.45 2003/04/09 00:49:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,6 +37,7 @@
 ;;             ))
 
 (require 'semantic)
+(require 'semantic-format)
 (eval-when-compile
   (condition-case nil
       (require 'imenu)
@@ -72,11 +73,11 @@
   :group 'imenu
   )
 
-(defcustom semantic-imenu-summary-function 'semantic-abbreviate-nonterminal
+(defcustom semantic-imenu-summary-function 'semantic-format-tag-abbreviate
   "*Function to use when creating items in Imenu.
 Some useful functions are found in `semantic-token->text-functions'."
   :group 'semantic-imenu
-  :type semantic-token->text-custom-list)
+  :type semantic-format-tag-custom-list)
 (make-variable-buffer-local 'semantic-imenu-summary-function)
 
 (defcustom semantic-imenu-bucketize-file t
@@ -148,8 +149,8 @@ a `section' has interesting children.")
 
 ;;; Code:
 (defun semantic-imenu-tag-overlay (tag)
-  "Return the overlay belonging to TOKEN.
-If TOKEN doesn't have an overlay, and instead as a vector of positions,
+  "Return the overlay belonging to tag.
+If TAG doesn't have an overlay, and instead as a vector of positions,
 concoct a combination of file name, and position."
   (let ((o (semantic-tag-overlay tag)))
     (if (not (semantic-overlay-p o))
@@ -391,14 +392,17 @@ Optional argument PARENT is a tag parent of STREAM."
 			    submenu))
 		      ;; There were no parts, or something like that, so
 		      ;; instead just put the definition here.
-		      (semantic-imenu-tag-overlay tag)
+		      (if (semantic-tag-with-position-p tag)
+			  (semantic-imenu-tag-overlay tag)
+			nil)
 		      ))
 		   index)))
-        (setq index (cons
-                     (cons
-                      (funcall semantic-imenu-summary-function tag)
-                      (semantic-imenu-tag-overlay tag))
-                     index)))
+	(if (semantic-tag-with-position-p tag)
+	    (setq index (cons
+			 (cons
+			  (funcall semantic-imenu-summary-function tag)
+			  (semantic-imenu-tag-overlay tag))
+			 index))))
       (setq tags (cdr tags)))
     ;; `imenu--split-submenus' sort submenus according to
     ;; `imenu-sort-function' setting and split them up if they are
@@ -493,16 +497,16 @@ Clears all imenu menus that may be depending on the database."
 Returns the first tag name in the list, unless it is a type,
 in which case it concatenates them together."
   (cond ((eq (length taglist) 1)
-	 (semantic-abbreviate-nonterminal
+	 (semantic-format-tag-abbreviate
           (car taglist) nil semantic-which-function-use-color))
 	((eq (semantic-tag-class (car taglist))
 	     semantic-imenu-expandable-token)
-	 (concat (semantic-name-nonterminal
+	 (concat (semantic-format-tag-name
                   (car taglist) semantic-which-function-use-color) "."
 		 ;; recurse until we no longer have a type
 		 ;; or any tags left.
 		 (semantic-default-which-function (cdr taglist))))
-	(t (semantic-abbreviate-nonterminal
+	(t (semantic-format-tag-abbreviate
             (car taglist) nil semantic-which-function-use-color))))
 
 (defadvice which-function (around semantic-which activate)
