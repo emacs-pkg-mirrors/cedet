@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.7 2003/02/01 03:13:36 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.8 2003/02/06 14:17:48 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -1062,16 +1062,15 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     ;; force them to call our setup function again, refreshing
     ;; all semantic data, and enabling them to work with the
     ;; new code just created.
-    (let ((mode (semantic-grammar-languagemode))
-	  (setup (semantic-grammar-setupfunction))
-	  (buf (buffer-list)))
-      (while buf
-	(save-excursion
-	  (set-buffer (car buf))
-	  (if (eq major-mode mode)
-	      (funcall setup)))
-	(setq buf (cdr buf))
-	))))
+    (semantic-map-mode-buffers
+     (semantic-grammar-setupfunction)
+     (semantic-grammar-languagemode))
+    ;; Make sure the file was required.  This solves the problem
+    ;; of compiling a grammar, followed by loading a file and not
+    ;; having the rest of the source loaded up.
+    (require (intern (file-name-sans-extension
+                      (semantic-grammar-outputfile))))
+    ))
 
 ;;;;
 ;;;; Define major mode
