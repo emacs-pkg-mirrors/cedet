@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.6 2004/03/01 01:12:49 zappo Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.7 2004/03/03 03:30:05 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -99,6 +99,8 @@ See `semantic-tag-protection'."
       (setq mods (cdr mods)))
     prot))
 
+(put 'semantic-tag-protection 'semantic-overload 'tag-protection)
+
 ;;;###autoload
 (defun semantic-tag-protected-p (tag protection &optional parent)
   "Non-nil if TAG is is protected.
@@ -140,7 +142,7 @@ is to return true if `abstract' is in the type modifiers."
   (let* ((s (or (semantic-fetch-overload 'tag-abstract)
 		(semantic-fetch-overload 'nonterminal-abstract))))
     (if s (funcall s tag parent)
-      (semantic-tag-abstract-default tag parent))))
+      (semantic-tag-abstract-p-default tag parent))))
 
 (defun semantic-tag-abstract-p-default (tag &optional parent)
   "Return non-nil if TAG is abstract as a child of PARENT default action.
@@ -165,7 +167,7 @@ is to return true if `leaf' is in the type modifiers."
   (let* ((s (or (semantic-fetch-overload 'tag-leaf)
 		(semantic-fetch-overload 'nonterminal-leaf))))
     (if s (funcall s tag parent)
-      (semantic-tag-leaf-default tag parent))))
+      (semantic-tag-leaf-p-default tag parent))))
 
 (defun semantic-tag-leaf-p-default (tag &optional parent)
   "Return non-nil if TAG is leaf as a child of PARENT default action.
@@ -219,7 +221,7 @@ override this function with `tag-full-name' will use
 `semantic-tag-name'.  Override functions only need to handle
 STREAM-OR-BUFFER with a tag stream value, or nil."
   (let* ((s (or (semantic-fetch-overload 'nonterminal-full-name)
-		(semantic-fetch-overload 'nonterminal-full-name)))
+		(semantic-fetch-overload 'tag-full-name)))
 	 (stream (semantic-something-to-tag-table (or stream-or-buffer tag))))
     (if s (funcall s tag stream)
       (semantic-tag-full-name-default tag stream))))
@@ -228,6 +230,9 @@ STREAM-OR-BUFFER with a tag stream value, or nil."
   "Default method for `semantic-tag-full-name'.
 Return the name of TAG found in the toplevel STREAM."
   (semantic-tag-name tag))
+
+(put 'semantic-tag-full-name 'semantic-overload
+     'tag-full-name)
 
 ;;; Compatibility aliases.
 ;;
