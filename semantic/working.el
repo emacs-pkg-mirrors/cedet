@@ -3,7 +3,7 @@
 ;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 1.2
+;; Version: 1.3
 ;; Keywords: status
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -95,6 +95,10 @@
 ;; 1.2 Fix up documentation.
 ;;     Updated dotgrowth function for exceptionally large numbers of dots.
 ;;     Added the percentage bubble displays.
+;;
+;; 1.3 Added `working-status-timeout' and `working-status-call-process'.
+;;     Added test fns `working-wait-for-keypress' and `working-verify-sleep'.
+;;
 
 (require 'custom)
 
@@ -122,7 +126,7 @@
 ;;; User configurable variables
 ;;
 (defcustom working-status-percentage-type 'working-bar-percent-display
-  "Function used to display the percent status.
+  "*Function used to display the percent status.
 Functions provided in `working' are:
   `working-percent-display'
   `working-bar-display'
@@ -141,7 +145,7 @@ Functions provided in `working' are:
 		 (const working-celeron-percent-display)))
 
 (defcustom working-status-dynamic-type 'working-celeron-display
-  "Function used to display an animation indicating progress being made.
+  "*Function used to display an animation indicating progress being made.
 Dynamic working types occur when the program does not know how long
 it will take ahead of time.  Functions provided in `working' are:
   `working-number-display'
@@ -483,7 +487,7 @@ is t to display the done string, or the number to display."
 (defun working-wait-for-keypress ()
   "Display funny graphics while waiting for a keypress."
   (interactive)
-  (working-status-timeout .1 "Press a key..." "done"
+  (working-status-timeout .1 "Press a key" "done"
     (while (sit-for 10))))
 
 (defun working-verify-sleep ()
