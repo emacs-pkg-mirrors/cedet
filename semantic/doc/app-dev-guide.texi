@@ -463,9 +463,17 @@ with side effects that could effect the tag cache.
 There are some existing utility functions which will reorganize the
 tag list for you.
 
+@defun semantic-unique-tag-table tags
+@anchor{semantic-unique-tag-table}
+Scan a list of @var{TAGS}, removing duplicates.
+This must first sort the tags by position ascending.
+@var{TAGS} are removed only if they are equivalent, as can happen when
+multiple tag sources are scanned.
+@end defun
+
 @defun semantic-unique-tag-table-by-name tags
 @anchor{semantic-unique-tag-table-by-name}
-Scan a list of @var{TAGS}, removing duplicates.
+Scan a list of @var{TAGS}, removing duplicate names.
 This must first sort the tags by name alphabetically ascending.
 @end defun
 
