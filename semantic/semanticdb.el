@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.54 2003/03/11 00:42:25 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.55 2003/04/02 02:29:40 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -405,7 +405,7 @@ Sets up the semanticdb environment."
 	 (oset ctbl unmatched-syntax nil)
 	 ))
       (semantic-set-toplevel-bovine-cache (oref ctbl tokens))
-      (semantic-overlay-cache)
+      (semantic--tag-link-cache-to-buffer)
       )
     ))
 
@@ -432,7 +432,7 @@ handle it later if need be."
       (progn
 	(oset semanticdb-current-table pointmax (point-max))
 	(condition-case nil
-	    (semantic-deoverlay-cache)
+	    (semantic--tag-unlink-cache-from-buffer)
 	  ;; If this messes up, just clear the system
 	  (error
 	   (semantic-clear-toplevel-cache)
@@ -501,11 +501,11 @@ Update the environment of Semantic enabled buffers accordingly."
 (defun semanticdb-table-oob-sanity-check (cache)
   "Validate that CACHE tokens do not have any overlays in them."
   (while cache
-    (when (semantic-overlay-p (semantic-token-overlay cache))
+    (when (semantic-overlay-p (semantic-tag-overlay cache))
       (message "Token %s has an erroneous overlay!"
 	       (semantic-summarize-nonterminal (car cache))))
     (semanticdb-table-oob-sanity-check
-     (semantic-nonterminal-children (car cache) t))
+     (semantic-tag-components-with-overlays (car cache)))
     (setq cache (cdr cache))))
 
 (defun semanticdb-table-sanity-check (&optional table)
