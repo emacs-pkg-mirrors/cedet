@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.117 2003/05/29 00:49:56 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.118 2003/07/03 00:58:55 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -547,100 +547,6 @@ STREAM-OR-BUFFER with a token stream value, or nil."
 Return the name of TOKEN found in the toplevel STREAM."
   (semantic-tag-name token))
 
-
-;;; Do some fancy stuff with overlays
-;;
-(defun semantic-highlight-token (token &optional face)
-  "Specify that TOKEN should be highlighted.
-Optional FACE specifies the face to use."
-  (let ((o (semantic-tag-overlay token)))
-    (semantic-overlay-put o 'old-face
-			  (cons (semantic-overlay-get o 'face)
-				(semantic-overlay-get o 'old-face)))
-    (semantic-overlay-put o 'face (or face 'highlight))
-    ))
-
-(defun semantic-unhighlight-token (token)
-  "Unhighlight TOKEN, restoring it's previous face."
-  (let ((o (semantic-tag-overlay token)))
-    (semantic-overlay-put o 'face (car (semantic-overlay-get o 'old-face)))
-    (semantic-overlay-put o 'old-face (cdr (semantic-overlay-get o 'old-face)))
-    ))
-
-(defun semantic-momentary-unhighlight-token (token)
-  "Unhighlight TOKEN, restoring it's previous face."
-  (semantic-unhighlight-token token)
-  (remove-hook 'pre-command-hook
-	       `(lambda () (semantic-momentary-unhighlight-token ',token))))
-
-(defun semantic-momentary-highlight-token (token &optional face)
-  "Highlight TOKEN, removing highlighting when the user hits a key.
-Optional argument FACE is the face to use for highlighting.
-If FACE is not specified, then `highlight' will be used."
-  (semantic-highlight-token token face)
-  (add-hook 'pre-command-hook
-	    `(lambda () (semantic-momentary-unhighlight-token ',token))))
-
-(defun semantic-set-token-face (token face)
-  "Specify that TOKEN should use FACE for display."
-  (semantic-overlay-put (semantic-tag-overlay token) 'face face))
-
-(defun semantic-set-token-invisible (token &optional visible)
-  "Enable the text in TOKEN to be made invisible.
-If VISIBLE is non-nil, make the text visible."
-  (semantic-overlay-put (semantic-tag-overlay token) 'invisible
-			(not visible)))
-
-(defun semantic-token-invisible-p (token)
-  "Return non-nil if TOKEN is invisible."
-  (semantic-overlay-get (semantic-tag-overlay token) 'invisible))
-
-(defun semantic-set-token-intangible (token &optional tangible)
-  "Enable the text in TOKEN to be made intangible.
-If TANGIBLE is non-nil, make the text visible.
-This function does not have meaning in XEmacs because it seems that
-the extent 'intangible' property does not exist."
-  (semantic-overlay-put (semantic-tag-overlay token) 'intangible
-			(not tangible)))
-
-(defun semantic-token-intangible-p (token)
-  "Return non-nil if TOKEN is intangible.
-This function does not have meaning in XEmacs because it seems that
-the extent 'intangible' property does not exist."
-  (semantic-overlay-get (semantic-tag-overlay token) 'intangible))
-
-(defun semantic-overlay-signal-read-only
-  (overlay after start end &optional len)
-  "Hook used in modification hooks to prevent modification.
-Allows deletion of the entire text.
-Argument OVERLAY, AFTER, START, END, and LEN are passed in by the system."
-  ;; Stolen blithly from cpp.el in Emacs 21.1
-  (if (and (not after)
-	   (or (< (semantic-overlay-start overlay) start)
-	       (> (semantic-overlay-end overlay) end)))
-      (error "This text is read only")))
-
-(defun semantic-set-token-read-only (token &optional writable)
-  "Enable the text in TOKEN to be made read-only.
-Optional argument WRITABLE should be non-nil to make the text writable.
-instead of read-only."
-  (let ((o (semantic-tag-overlay token))
-	(hook (if writable nil '(semantic-overlay-signal-read-only))))
-    (if (featurep 'xemacs)
-        ;; XEmacs extents have a 'read-only' property.
-        (semantic-overlay-put o 'read-only (not writable))
-      (semantic-overlay-put o 'modification-hooks hook)
-      (semantic-overlay-put o 'insert-in-front-hooks hook)
-      (semantic-overlay-put o 'insert-behind-hooks hook))))
-
-(defun semantic-token-read-only-p (token)
-  "Return non-nil if the current TOKEN is marked read only."
-  (let ((o (semantic-tag-overlay token)))
-    (if (featurep 'xemacs)
-        ;; XEmacs extents have a 'read-only' property.
-        (semantic-overlay-get o 'read-only)
-      (member 'semantic-overlay-signal-read-only
-              (semantic-overlay-get o 'modification-hooks)))))
 
 (defun semantic-narrow-to-token (token)
   "Narrow to the region specified by TOKEN."
