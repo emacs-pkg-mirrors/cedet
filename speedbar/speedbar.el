@@ -3,9 +3,9 @@
 ;;; Copyright (C) 1996, 97, 98 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.7.2c
+;; Version: 0.7.2d
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.128 1998/10/04 12:56:59 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.129 1998/10/24 17:55:04 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -432,6 +432,18 @@ Available methods are:
 	   (const :tag "Create groups from common prefixes." prefix-group)
 	   (const :tag "Group loose tags into their own group." simple-group))
 	  ))
+
+(defcustom speedbar-tag-group-name-minimum-length 4
+  "*The minimum length of a prefix group name before expanding.
+Thus, if the `speedbar-tag-hierarchy-method' includes `prefix-group'
+and one such groups common characters is less than this number of
+characters, then the group name will be changed to the form of:
+  worda to wordb
+instead of just
+  word
+This way we won't get silly looking listings."
+  :group 'speedbar
+  :type 'integer)
 
 (defcustom speedbar-tag-split-minimum-length 20
   "*Minimum length before we stop trying to create sub-lists in tags.
@@ -937,6 +949,16 @@ directories.")
   "Never set this by hand.  Value is t when S-mouse activity occurs.")
 
 
+;;; Compatibility
+;;
+(if (fboundp 'frame-parameter)
+
+    (defalias 'speedbar-frame-parameter 'frame-parameter)
+  
+  (defun speedbar-frame-parameter (frame parameter)
+    "Return FRAME's PARAMETER value."
+    (cdr (assoc parameter (frame-parameters frame)))))
+
 ;;; Mode definitions/ user commands
 ;;
 
@@ -995,9 +1017,9 @@ supported at a time.
 		  (make-frame (nconc (list 'height
 					   (speedbar-needed-height))
 				     speedbar-frame-plist))
-		(let* ((mh (frame-parameter nil 'menu-bar-lines))
-		       (cfx (frame-parameter nil 'left))
-		       (cfy (frame-parameter nil 'top))
+		(let* ((mh (speedbar-frame-parameter nil 'menu-bar-lines))
+		       (cfx (speedbar-frame-parameter nil 'left))
+		       (cfy (speedbar-frame-parameter nil 'top))
 		       (cfw (frame-pixel-width))
 		       (params
 			(append
@@ -2236,9 +2258,13 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 	    (setq newlst (cons (car lst) newlst))
 	  (setq sublst (cons (car lst) sublst)))
 	(setq lst (cdr lst)))
+      ;; The two sublists are in reverse order from what they started as.
+      (setq newlst (nreverse newlst)
+	    sublst (nreverse sublst))
       ;; Now, first find out how long our list is.  Never let a
       ;; list get-shorter than our minimum.
       (if (<= (length sublst) speedbar-tag-split-minimum-length)
+	  ;; Must reverse, because a constructed work list is backwards.
 	  (setq work-list (nreverse sublst))
 	(setq diff-idx (length (try-completion "" sublst)))
 	;; Sort the whole list into bins.
@@ -2259,7 +2285,9 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 	;; group combinding those two sub-lists.
 	(setq diff-idx 0)
 	(while (> 256 diff-idx)
-	  (let ((l (aref bins diff-idx)))
+	  (let ((l (nreverse ;; Reverse the list since they are stuck in
+		    ;; backwards.
+		    (aref bins diff-idx))))
 	    (if l
 		(let ((tmp (cons (try-completion "" l) l)))
 		  (if (or (> (length l) speedbar-tag-regroup-maximum-length)
@@ -2277,12 +2305,23 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 						  junk-list)))
 			 ((= num-shorts-grouped 1)
 			  ;; Only one short group?  Just stick it in
-			  ;; there by itself.
-			  (setq work-list
-				(cons (cons (try-completion
-					     "" short-group-list)
-					    (nreverse short-group-list))
-				      work-list)))
+			  ;; there by itself.  Make a group, and find
+			  ;; a subexpression
+			  (let ((subexpression (try-completion
+						"" short-group-list)))
+			    (if (< (length subexpression)
+				   speedbar-tag-group-name-minimum-length)
+				(setq subexpression
+				      (concat short-start-name
+					      " ("
+					      (substring
+					       (car (car short-group-list))
+					       (length short-start-name))
+					      ")")))
+			    (setq work-list
+				  (cons (cons subexpression
+					      short-group-list)
+					work-list))))
 			 (short-group-list
 			  ;; Multiple groups to be named in a special
 			  ;; way by displaying the range over which we
@@ -2291,13 +2330,13 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 				(cons (cons (concat short-start-name
 						    " to "
 						    short-end-name)
-					    (nreverse short-group-list))
+					    short-group-list)
 				      work-list))))
 			;; Reset short group list information every time.
 			(setq short-group-list nil
 			      short-start-name nil
 			      short-end-name nil
-				num-shorts-grouped 0)))
+			      num-shorts-grouped 0)))
 		  ;; Ok, now that we cleaned up the short-group-list,
 		  ;; we can deal with this new list, to decide if it
 		  ;; should go on one of these sub-lists or not.
@@ -2328,16 +2367,16 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
 	;; have grouped them.
 	(setq work-list
 	      (cons (cons (concat short-start-name " to " short-end-name)
-			  (nreverse short-group-list))
+			  short-group-list)
 		    work-list))))
       ;; Now, stick our new list onto the end of
       (if work-list
 	  (if junk-list
-	      (append (nreverse newlst)
-		      (nreverse work-list)
+	      (append  newlst
+		       (nreverse work-list)
 		      junk-list)
-	    (append (nreverse newlst)
-		    (nreverse work-list)))
+	    (append  newlst
+		     (nreverse work-list)))
 	(append (nreverse newlst) junk-list))))
    ((eq method 'trim-words)
     (let ((newlst nil)
@@ -2386,7 +2425,13 @@ cell of the form ( 'DIRLIST .  'FILELIST )"
   "Adjust the tag hierarchy in LST, and return it.
 This uses `speedbar-tag-hierarchy-method' to determine how to adjust
 the list.  See it's value for details."
-  (let ((methods speedbar-tag-hierarchy-method))
+  (let* ((f (save-excursion
+	      (forward-line -1)
+	      (speedbar-line-path)))
+	 (methods (if (get-file-buffer f)
+		      (save-excursion (set-buffer (get-file-buffer f))
+				      speedbar-tag-hierarchy-method)
+		    speedbar-tag-hierarchy-method)))
     (while methods
       (setq lst (speedbar-apply-one-tag-hierarchy-method lst (car methods))
 	    methods (cdr methods)))
@@ -3070,7 +3115,7 @@ Otherwise do not move and return nil."
 	    (goto-char dest)
 	    nil))))))
 
-(defun speedbar-line-path (depth)
+(defun speedbar-line-path (&optional depth)
   "Retrieve the pathname associated with the current line.
 This may require traversing backwards from DEPTH and combining the default
 directory with these items."
@@ -3078,6 +3123,11 @@ directory with these items."
    ((string= speedbar-initial-expansion-list-name "files")
     (save-excursion
       (save-match-data
+	(if (not depth)
+	    (progn
+	      (beginning-of-line)
+	      (looking-at "^\\([0-9]+\\):")
+	      (setq depth (string-to-int (match-string 1)))))
 	(let ((path nil))
 	  (setq depth (1- depth))
 	  (while (/= depth -1)
