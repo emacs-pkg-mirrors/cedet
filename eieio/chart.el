@@ -4,7 +4,7 @@
 ;;
 ;; Author: <zappo@gnu.org>
 ;; Version: 0.1
-;; RCS: $Id: chart.el,v 1.6 1999/02/18 19:10:23 zappo Exp $
+;; RCS: $Id: chart.el,v 1.7 1999/09/05 19:49:00 zappo Exp $
 ;; Keywords: OO, chart, graph
 ;;                                                                          
 ;; This program is free software; you can redistribute it and/or modify
@@ -166,7 +166,7 @@ Returns the newly created buffer"
 
 (defclass chart-axis-range (chart-axis)
   ((bounds :initarg :bounds
-	   :initform (0.0 . 50.0))
+	   :initform '(0.0 . 50.0))
    )
   "Class used to display an axis defined by a range of values")
 
