@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.5 2000/09/14 19:23:45 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.6 2000/09/19 04:21:24 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -47,10 +47,10 @@
      ( define)
      )					; end declaration
     (include
-     ( punctuation "\\b#\\b" symbol "\\binclude\\b" punctuation "<" filename punctuation ">"
+     ( punctuation "\\b#\\b" INCLUDE punctuation "<" filename punctuation ">"
 		   ,(semantic-lambda
 		     (nth 3 vals) (list 'include 't nil)))
-     ( punctuation "\\b#\\b" symbol "\\binclude\\b" string
+     ( punctuation "\\b#\\b" INCLUDE string
 		   ,(semantic-lambda
 		     (list ( read (nth 2 vals)) 'include nil nil)))
      )					; end include
@@ -92,18 +92,18 @@
 	(list nil)))
      )					; end opt-name
     (typesimple
-     ( symbol "\\bstruct\\b" opt-name structparts
+     ( STRUCT opt-name structparts
 	      ,(semantic-lambda
 		(nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
-     ( symbol "\\bunion\\b" opt-name structparts
-	      ,(semantic-lambda
-		(nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
-     ( symbol "\\benum\\b" opt-name enumparts
-	      ,(semantic-lambda
-		(nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
-     ( symbol "\\btypedef\\b" typeform symbol
-	      ,(semantic-lambda
-		(list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
+     ( UNION opt-name structparts
+	     ,(semantic-lambda
+	       (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
+     ( ENUM opt-name enumparts
+	    ,(semantic-lambda
+	      (nth 1 vals) (list 'type (nth 0 vals) (nth 2 vals) nil nil nil)))
+     ( TYPEDEF typeform symbol
+	       ,(semantic-lambda
+		 (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
      )					; end typesimple
     (type
      ( typesimple punctuation "\\b;\\b"
@@ -170,7 +170,7 @@
 	(list nil)))
      )					; end opt-assign
     (macro
-     ( punctuation "\\b#\\b" symbol "\\bdefine\\b" symbol opt-expression
+     ( punctuation "\\b#\\b" DEFINE symbol opt-expression
 		   ,(semantic-lambda
 		     (list (nth 2 vals) 'variable nil 't (nth 3 vals) nil nil)))
      )					; end macro
@@ -362,11 +362,23 @@ machine."
   :group 'c
   :type '(repeat (string :tag "Type")))
 
+(defvar semantic-c-keyword-table
+  (semantic-flex-make-keyword-table 
+   `( ("include" . INCLUDE)
+      ("define" . DEFINE)
+      ("struct" . STRUCT)
+      ("union" . UNION)
+      ("enum" . ENUM)
+      ("typedef" . TYPEDEF)
+      ))
+  "Some keywords used in C.")
+
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
   (setq semantic-default-built-in-types semantic-default-c-built-in-types)
   ;; Code generated from c.bnf
   (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table)
+  (setq semantic-flex-keywords-obarray semantic-c-keyword-table)
   (setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
 	semantic-flex-extensions semantic-flex-c-extensions
 	semantic-dependency-include-path semantic-default-c-path
@@ -376,7 +388,7 @@ machine."
 	document-comment-end " */"
 	)
 
-  ;; End code generated from c.bnf
+ ;; End code generated from c.bnf
 )
 
 (add-hook 'c-mode-hook 'semantic-default-c-setup)
