@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-el.el,v 1.4 2002/09/16 01:51:48 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.5 2002/10/30 15:58:14 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,6 +28,7 @@
 
 (require 'semantic)
 (require 'backquote)
+(require 'find-func)
 (eval-when-compile
   (require 'semantic-imenu)
   )
@@ -356,14 +357,19 @@ a useful use of CPU cycles."
   ()
   "Move cursor to the end of the current command.
 In emacs lisp this is easilly defined by parenthisis bounding."
-  (up-list 1))
+  (condition-case nil
+      (up-list 1)
+    (error nil)))
 
 (define-mode-overload-implementation semantic-beginning-of-command emacs-lisp-mode
   ()
   "Move cursor to the beginning of the current command.
 In emacs lisp this is easilly defined by parenthisis bounding."
-  (up-list -1)
-  (forward-char 1))
+  (condition-case nil
+      (progn
+        (up-list -1)
+        (forward-char 1))
+    (error nil)))
 
 (define-mode-overload-implementation semantic-ctxt-current-symbol emacs-lisp-mode
   (&optional point)
