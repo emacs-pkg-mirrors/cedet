@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.18 2001/02/20 20:37:44 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.19 2001/02/24 15:24:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -52,7 +52,7 @@
  ( type)
  ) ; end codeblock
  (include
- ( punctuation "\\b#\\b" INCLUDE punctuation "<" filename punctuation ">"
+ ( punctuation "\\b#\\b" INCLUDE punctuation "\\b<\\b" filename punctuation "\\b>\\b"
   ,(semantic-lambda
   (nth 3 vals) (list 'include t nil)))
  ( punctuation "\\b#\\b" INCLUDE string
@@ -63,7 +63,7 @@
  ( symbol punctuation "\\b\\.\\b" symbol
   ,(semantic-lambda
   (list ( concat (nth 0 vals) (nth 1 vals) (nth 2 vals)))))
- ( symbol punctuation "/" filename
+ ( symbol punctuation "\\b/\\b" filename
   ,(semantic-lambda
   (list ( concat (nth 0 vals) (nth 1 vals) ( car (nth 2 vals))))))
  ) ; end filename
@@ -75,14 +75,14 @@
  ))
  ) ; end structparts
  (structsubparts
- ( variable)
- ( define)
  ( open-paren "{"
   ,(semantic-lambda
   (list nil)))
  ( close-paren "}"
   ,(semantic-lambda
   (list nil)))
+ ( variable)
+ ( define)
  ) ; end structsubparts
  (classparts
  ( semantic-list
@@ -91,20 +91,6 @@
  (semantic-bovinate-from-nonterminal-full (car (nth 0 vals)) (cdr (nth 0 vals)) 'classsubparts)
  ))
  ) ; end classparts
- (classsubparts
- ( variable)
- ( define)
- ( function)
- ( opt-class-protection punctuation "\\b:\\b"
-  ,(semantic-lambda
-  (list nil)))
- ( open-paren "{"
-  ,(semantic-lambda
-  (list nil)))
- ( close-paren "}"
-  ,(semantic-lambda
-  (list nil)))
- ) ; end classsubparts
  (opt-class-parents
  ( punctuation "\\b:\\b" opt-class-protection symbol
   ,(semantic-lambda
@@ -410,7 +396,7 @@
  ))
  ) ; end expression
  )
-           "C language specification.")
+              "C language specification.")
 
 (defvar semantic-flex-c-extensions
   '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
@@ -523,7 +509,8 @@ machine."
   "Set up a buffer for semantic parsing of the C language."
   (setq semantic-default-built-in-types semantic-default-c-built-in-types)
   ;; Code generated from c.bnf
-  (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table)
+  (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
+	semantic-toplevel-bovine-table-source "c.bnf")
   (setq semantic-flex-keywords-obarray semantic-c-keyword-table)
   (setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
 	semantic-flex-extensions semantic-flex-c-extensions
