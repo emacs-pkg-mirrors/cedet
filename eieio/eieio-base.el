@@ -4,7 +4,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-base.el,v 1.9 2001/04/29 13:20:57 zappo Exp $
+;; RCS: $Id: eieio-base.el,v 1.10 2001/05/07 20:30:45 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -207,6 +207,35 @@ instance."
 ;; Notes on the persistent object:
 ;; It should also set up some hooks to help it keep itself up to date.
 
+
+;;; Named object
+;;
+;; Named objects use the objects `name' as a slot, and that slot
+;; is accessed with the `object-name' symbol.
+
+(defclass eieio-named ()
+  ()
+  "Object with a name.
+Name storage already occurs in an object.  This object provides get/set
+access to it.")
+
+(defmethod slot-missing ((obj eieio-named)
+			 slot-name operation &optional new-value)
+  "Called when a on-existant slot is accessed.
+For variable `eieio-named', provide an imaginary `object-nam' slot.
+Argument OBJ is the Named object.
+Argument SLOT-NAME is the slot that was attempted to be accessed.
+OPERATION is the type of access, such as `oref' or `oset'.
+NEW-VALUE is the value that was being set into SLOT if OPERATION were
+a set type."
+  (if (eq slot-name 'object-name)
+      (cond ((eq operation 'oset)
+	     (if (not (stringp new-value))
+		 (signal 'invalid-slot-type
+			 (list obj slot-name 'string new-value)))
+	     (object-set-name-string obj new-value))
+	    (t (object-name-string obj)))
+    (call-next-method)))
 
 (provide 'eieio-base)
 
