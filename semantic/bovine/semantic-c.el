@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.13 2003/03/15 19:29:12 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.14 2003/03/30 01:32:07 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -40,7 +40,7 @@
 
 ;;; Code:
 (defvar semantic-toplevel-c-bovine-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-03-13 20:18-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-03-29 20:23-0500
   `(
     (bovine-toplevel ;;declaration
      (macro)
@@ -76,14 +76,15 @@
       "\"C\""
       semantic-list
       ,(semantic-lambda
-	(list 'extern
-	      (semantic-parse-region
-	       (car
-		(nth 2 vals))
-	       (cdr
-		(nth 2 vals))
-	       'extern-c-contents
-	       1)))
+	(semantic-tag
+	 'extern :members
+	 (semantic-parse-region
+	  (car
+	   (nth 2 vals))
+	  (cdr
+	   (nth 2 vals))
+	  'extern-c-contents
+	  1)))
       )
      (EXTERN
       string
@@ -219,16 +220,13 @@
       punctuation
       "\\b[:]\\b"
       ,(semantic-lambda
-	(nth 0 vals)
-	(list 'label))
+	(semantic-tag
+	 (nth 0 vals)
+	 'label))
       )
      (var-or-fun)
      (type)
-     (define
-       ,(semantic-lambda
-	 (nth 0 vals)
-	 (list 'protection))
-       )
+     (define)
      (template)
      ( ;;EMPTY
       )
@@ -328,8 +326,9 @@
       punctuation
       "\\b[:]\\b"
       ,(semantic-lambda
-	(list
-	 (nth 0 vals) 'protection))
+	(semantic-tag
+	 (nth 0 vals)
+	 'label))
       )
      (template)
      (using)
@@ -1697,20 +1696,20 @@ Go to the next line."
 
 (defun semantic-expand-c-nonterminal (nonterm)
   "Expand NONTERM into a list of equivalent nonterminals, or nil."
-  (cond ((eq (car nonterm) 'extern)
+  (cond ((eq (semantic-tag-class nonterm) 'extern)
 	 ;; We have hit an exter "C" command with a list after it.
-	 (car (cdr nonterm))
+	 (semantic-tag-get-attribute nonterm :members)
 	 )
 	((listp (car nonterm))
-	 (cond ((eq (semantic-token-token nonterm) 'variable)
+	 (cond ((eq (semantic-tag-class nonterm) 'variable)
 		;; The name part comes back in the form of:
 		;; ( NAME NUMSTARS BITS ARRAY ASSIGN )
 		(let ((vl nil)
-		      (basety (semantic-token-type nonterm))
+		      (basety (semantic-tag-type nonterm))
 		      (ty "")
-		      (mods (semantic-token-variable-extra-spec nonterm 'typemodifiers))
+		      (mods (semantic-tag-get-attribute nonterm 'typemodifiers))
 		      (suffix "")
-		      (lst (semantic-token-name nonterm))
+		      (lst (semantic-tag-name nonterm))
 		      (default nil)
 		      (cur nil))
 		  (while lst
@@ -1723,65 +1722,64 @@ Go to the next line."
 		      (setq ty basety))
 		    (setq default (nth 4 cur))
 		    (setq vl (cons
-			      (list
+			      (semantic-tag-new-variable
 			       (car cur) ;name
-			       'variable
 			       ty	;type
 			       (if default
 				   (buffer-substring-no-properties
 				    (car default) (car (cdr default))))
-			       (semantic-bovinate-make-assoc-list
-				'const (semantic-token-variable-const nonterm)
-				'suffix suffix
-				'typemodifiers mods
-				'dereference (length (nth 3 cur))
-				'pointer (nth 1 cur)
-				)
-			       (semantic-token-docstring nonterm) ;doc
-			       (semantic-token-properties nonterm) ;properties
-			       (semantic-token-overlay nonterm))
+			       'const (semantic-tag-variable-constant-p nonterm)
+			       'suffix suffix
+			       'typemodifiers mods
+			       'dereference (length (nth 3 cur))
+			       'pointer (nth 1 cur)
+			       :documentation (semantic-tag-docstring nonterm) ;doc
+			       )
 			      vl))
+		    (semantic--tag-copy-properties nonterm (car vl))
+		    (semantic--tag-set-overlay (car vl)
+					       (semantic-tag-overlay nonterm))
 		    (setq lst (cdr lst)))
 		  vl))
-	       ((eq (semantic-token-token nonterm) 'type)
+	       ((eq (semantic-tag-class nonterm) 'type)
 		;; We may someday want to add an extra check for a type
 		;; of type "typedef".
 		;; Each elt of NAME is ( STARS NAME )
 		(let ((vl nil)
-		      (names (semantic-token-name nonterm)))
+		      (names (semantic-tag-name nonterm)))
 		  (while names
-		    (setq vl (cons (list
+		    (setq vl (cons (semantic-tag-new-type
 				    (nth 1 (car names)) ; name
-				    'type
 				    "typedef"
-				    (semantic-token-type-parts nonterm)
+				    (semantic-tag-type-members nonterm)
 				    ;; parent is just tbe name of what
 				    ;; is passed down as a nonterminal.
 				    (list
-				     (semantic-token-name
-				      (semantic-token-type-parent nonterm)))
-				    (semantic-bovinate-make-assoc-list
-				     'pointer
-				     (let ((stars (car (car (car names)))))
-				       (if (= stars 0) nil stars))
-				     ;; This specifies what the typedef
-				     ;; is expanded out as.  Just the
-				     ;; name shows up as a parent of this
-				     ;; typedef.
-				     'typedef
-				     (semantic-token-type-parent nonterm))
-				    (semantic-token-docstring nonterm)
-				    (semantic-token-properties nonterm)
-				    (semantic-token-overlay nonterm))
+				     (semantic-tag-name
+				      (semantic-tag-type-superclasses nonterm)))
+				    'pointer
+				    (let ((stars (car (car (car names)))))
+				      (if (= stars 0) nil stars))
+				    ;; This specifies what the typedef
+				    ;; is expanded out as.  Just the
+				    ;; name shows up as a parent of this
+				    ;; typedef.
+				    'typedef
+				    (semantic-token-type-parent nonterm)
+				    :documentation
+				    (semantic-tag-docstring nonterm))
 				   vl))
+		    (semantic--tag-copy-properties nonterm (car vl))
+		    (semantic--tag-set-overlay (car vl)
+					       (semantic-tag-overlay nonterm))
 		    (setq names (cdr names)))
 		  vl))
 	       ((and (listp (car nonterm))
-		     (eq (semantic-token-token (car nonterm)) 'variable))
+		     (eq (semantic-tag-class (car nonterm)) 'variable))
 		;; Argument lists come in this way.  Append all the expansions!
 		(let ((vl nil))
 		  (while nonterm
-		    (setq vl (append (semantic-expand-c-nonterminal (car vl))
+		    (setq vl (append (semantic-tag-components (car vl))
 				     vl)
 			  nonterm (cdr nonterm)))
 		  vl))
@@ -1805,15 +1803,13 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 	     (stringp (car typedecl)))
     (setq typedecl (car typedecl)))
   (cond ((eq (nth 1 tokenpart) 'variable)
-	 (list (car tokenpart)
-	       'variable
-	       (or typedecl "int")	;type
-	       nil			;default value (filled with expand)
-	       (semantic-bovinate-make-assoc-list
-		'const (if (member "const" declmods) t nil)
-		'typemodifiers (delete "const" declmods)
-		)
-	       nil)
+	 (semantic-tag-new-variable
+	  (car tokenpart)
+	  (or typedecl "int")	;type
+	  nil			;default value (filled with expand)
+	  'const (if (member "const" declmods) t nil)
+	  'typemodifiers (delete "const" declmods)
+	  )
 	 )
 	((eq (nth 1 tokenpart) 'function)
 	 ;; We should look at part 4 (the arglist) here, and throw an
@@ -1828,51 +1824,49 @@ Optional argument STAR and REF indicate the number of * and & in the typedef."
 			      (string= (car (nth 2 tokenpart)) (car tokenpart)))
 			 )
 		     (not (car (nth 3 tokenpart))))))
-	   (list (car tokenpart)
-		 'function
-		 (or typedecl		;type
-		     (cond ((car (nth 3 tokenpart) )
-			    "void")	; Destructors have no return?
-			   (constructor
-			    ;; Constructors return an object.			  ;; in our
-			    (list (or (car semantic-c-classname)
-				      (car (nth 2 tokenpart)))
-				  'type
-				  (or (cdr semantic-c-classname)
-				      "class")))
-			   (t "int")))
-		 (nth 4 tokenpart)	;arglist
-		 (semantic-bovinate-make-assoc-list
-		  'const (if (member "const" declmods) t nil)
-		  'typemodifiers (delete "const" declmods)
-		  'parent (car (nth 2 tokenpart))
-		  'destructor (if (car (nth 3 tokenpart) ) t)
-		  'constructor (if constructor t)
-		  'pointer (nth 7 tokenpart)
-		  ;; Even though it is "throw" in C++, we use
-		  ;; `throws' as a common name for things that toss
-		  ;; exceptions about.
-		  'throws (nth 5 tokenpart)
-		  ;; Reemtrant is a C++ thingy.  Add it here
-		  'reentrant (if (member "reentrant" (nth 6 tokenpart)) t)
-		  ;; A function post-const is funky.  Try stuff
-		  'methodconst (if (member "const" (nth 6 tokenpart)) t)
-		  ;; prototypes are functions w/ no body
-		  'prototype (if (nth 8 tokenpart) t)
-		  ;; Pure virtual
-		  'pure-virtual (if (eq (nth 8 tokenpart) 'pure-virtual) t)
-		  )
-		 nil))
+	   (semantic-tag-new-function
+	    (car tokenpart)
+	    (or typedecl		;type
+		(cond ((car (nth 3 tokenpart) )
+		       "void")		; Destructors have no return?
+		      (constructor
+		       ;; Constructors return an object.			  ;; in our
+		       (list (or (car semantic-c-classname)
+				 (car (nth 2 tokenpart)))
+			     'type
+			     (or (cdr semantic-c-classname)
+				 "class")))
+		      (t "int")))
+	    (nth 4 tokenpart)	;arglist
+	    'const (if (member "const" declmods) t nil)
+	    'typemodifiers (delete "const" declmods)
+	    'parent (car (nth 2 tokenpart))
+	    'destructor (if (car (nth 3 tokenpart) ) t)
+	    'constructor (if constructor t)
+	    'pointer (nth 7 tokenpart)
+	    ;; Even though it is "throw" in C++, we use
+	    ;; `throws' as a common name for things that toss
+	    ;; exceptions about.
+	    'throws (nth 5 tokenpart)
+	    ;; Reemtrant is a C++ thingy.  Add it here
+	    'reentrant (if (member "reentrant" (nth 6 tokenpart)) t)
+	    ;; A function post-const is funky.  Try stuff
+	    'methodconst (if (member "const" (nth 6 tokenpart)) t)
+	    ;; prototypes are functions w/ no body
+	    'prototype (if (nth 8 tokenpart) t)
+	    ;; Pure virtual
+	    'pure-virtual (if (eq (nth 8 tokenpart) 'pure-virtual) t)
+	    ))
 	 )
 	))
 
-(defun semantic-c-reconstitute-template (def specifier)
-  "Reconstitute the token DEF with the template SPECIFIER."
-  (semantic-token-add-extra-spec def 'template (or specifier ""))
-  def)
+(defun semantic-c-reconstitute-template (tag specifier)
+  "Reconstitute the token TAG with the template SPECIFIER."
+  (semantic-tag-put-attribute tag 'template (or specifier ""))
+  tag)
 
 (defvar semantic-c-keyword-table
-  ;;DO NOT EDIT! Generated from c.by - 2003-03-13 20:18-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-03-29 20:23-0500
   (semantic-lex-make-keyword-table
    '(("include" . INCLUDE)
      ("define" . DEFINE)
@@ -1984,11 +1978,11 @@ machine."
 (defun semantic-c-nonterminal-protection (token &optional parent)
   "Return the protection of TOKEN in PARENT.
 Override function for `semantic-nonterminal-protection'."
-  (let ((mods (semantic-token-type-modifiers token))
+  (let ((mods (semantic-tag-modifiers token))
 	(prot nil))
     ;; Check the modifiers for protection if we are not a child
     ;; of some class type.
-    (when (or (not parent) (not (eq (semantic-token-token parent) 'type)))
+    (when (or (not parent) (not (eq (semantic-tag-class parent) 'type)))
       (while (and (not prot) mods)
 	(if (stringp (car mods))
 	    (let ((s (car mods)))
@@ -2000,50 +1994,50 @@ Override function for `semantic-nonterminal-protection'."
 		     'private))))
 	(setq mods (cdr mods))))
     ;; If we have a typed parent, look for :public style labels.
-    (when (and parent (eq (semantic-token-token parent) 'type))
-      (let ((pp (semantic-token-type-parts parent)))
+    (when (and parent (eq (semantic-tag-class parent) 'type))
+      (let ((pp (semantic-tag-type-members parent)))
 	(while (and pp (not (eq (car pp) token)))
-	  (when (eq (semantic-token-token (car pp)) 'label)
+	  (when (eq (semantic-tag-class (car pp)) 'label)
 	    (setq prot
-		  (cond ((string= (semantic-token-name (car pp)) "public")
+		  (cond ((string= (semantic-tag-name (car pp)) "public")
 			 'public)
-			((string= (semantic-token-name (car pp)) "private")
+			((string= (semantic-tag-name (car pp)) "private")
 			 'private)
-			((string= (semantic-token-name (car pp)) "protected")
+			((string= (semantic-tag-name (car pp)) "protected")
 			 'protected)))
 	    )
 	  (setq pp (cdr pp)))))
-    (when (and (not prot) (eq (semantic-token-token parent) 'type))
+    (when (and (not prot) (eq (semantic-tag-class parent) 'type))
       (setq prot
-	    (cond ((string= (semantic-token-type parent) "class") 'private)
-		  ((string= (semantic-token-type parent) "struct") 'public)
+	    (cond ((string= (semantic-tag-type parent) "class") 'private)
+		  ((string= (semantic-tag-type parent) "struct") 'public)
 		  (t 'unknown))))
     (or prot 'public)))
 
-(defun semantic-c-nonterminal-children (token)
-  "Return children for the C token TOKEN."
-  (if (and (eq (semantic-token-token token) 'type)
-	   (string= (semantic-token-type token) "typedef"))
+(defun semantic-c-tag-components (tag)
+  "Return components for TAG."
+  (if (and (eq (semantic-tag-class tag) 'type)
+	   (string= (semantic-tag-type tag) "typedef"))
       ;; A typedef can contain a parent who has positional children,
       ;; but that parent will not have a position.  Do this funny hack
       ;; to make sure we can apply overlays properly.
-      (semantic-nonterminal-children (semantic-token-type-parent token))
-    (semantic-nonterminal-children-default token)))
+      (semantic-tag-components (semantic-tag-type-superclasses tag))
+    (semantic-tag-components-default tag)))
 
-(defun semantic-c-nonterminal-template (token)
-  "Return the template specification for TOKEN, or nil."
-  (semantic-token-extra-spec token 'template))
+(defun semantic-c-nonterminal-template (tag)
+  "Return the template specification for TAG, or nil."
+  (semantic-tag-get-attribute tag 'template))
 
-(defun semantic-c-nonterminal-template-specifier (token)
-  "Return the template specifier specification for TOKEN, or nil."
-  (semantic-token-extra-spec token 'template-specifier))
+(defun semantic-c-nonterminal-template-specifier (tag)
+  "Return the template specifier specification for TAG, or nil."
+  (semantic-tag-get-attribute tag 'template-specifier))
 
 (defun semantic-c-template-string-body (templatespec)
   "Convert TEMPLATESPEC into a string.
 This might be a string, or a list of tokens."
   (cond ((stringp templatespec)
 	 templatespec)
-	((semantic-token-p templatespec)
+	((semantic-tag-p templatespec)
 	 (semantic-abbreviate-nonterminal templatespec))
 	((listp templatespec)
 	 (mapconcat 'semantic-abbreviate-nonterminal templatespec ", "))))
@@ -2084,51 +2078,51 @@ Optional PARENT and COLOR as specified with
   (concat  (semantic-uml-prototype-nonterminal-default token parent color)
 	   (semantic-c-template-string token parent color)))
 
-(defun semantic-c-nonterminal-abstract (token &optional parent)
-  "Return non-nil if TOKEN is considered abstract.
-PARENT is token's parent.
+(defun semantic-c-nonterminal-abstract (tag &optional parent)
+  "Return non-nil if TAG is considered abstract.
+PARENT is tag's parent.
 In C, a method is abstract if it is `virtual', which is already
 handled.  A class is abstract iff it's destructor is virtual."
   (cond
-   ((eq (semantic-token-token token) 'type)
+   ((eq (semantic-tag-class tag) 'type)
     (or (semantic-find-nonterminal-by-extra-spec 'pure-virtual
-						 (semantic-nonterminal-children token)
+						 (semantic-tag-components tag)
 						 nil nil)
 	(let* ((ds (semantic-find-nonterminal-by-extra-spec
 		    'destructor
-		    (semantic-nonterminal-children token)
+		    (semantic-tag-components tag)
 		    nil nil))
 	       (cs (semantic-find-nonterminal-by-extra-spec
 		    'constructor
-		    (semantic-nonterminal-children token)
+		    (semantic-tag-components tag)
 		    nil nil)))
-	  (and ds (member "virtual" (semantic-token-modifiers (car ds)))
-	       cs (eq 'protected (semantic-nonterminal-protection cs token))
+	  (and ds (member "virtual" (semantic-tag-modifiers (car ds)))
+	       cs (eq 'protected (semantic-nonterminal-protection cs tag))
 	       )
 	  )))
-   ((eq (semantic-token-token token) 'function)
-    (semantic-token-extra-spec token 'pure-virtual))
-   (t (semantic-nonterminal-abstract-default token parent))))
+   ((eq (semantic-tag-class tag) 'function)
+    (semantic-tag-get-attribute tag 'pure-virtual))
+   (t (semantic-nonterminal-abstract-default tag parent))))
 
 (defun semantic-c-analyze-dereference-metatype (type)
   "Dereference TYPE as described in `semantic-analyze-dereference-metatype'.
-If TYPE is a typedef, get TYPE's type by name or token, and return."
-  (if (and (eq (semantic-token-token type) 'type)
-	   (string= (semantic-token-type type) "typedef"))
-      (semantic-token-type-extra-spec type 'typedef)
+If TYPE is a typedef, get TYPE's type by name or tag, and return."
+  (if (and (eq (semantic-tag-class type) 'type)
+	   (string= (semantic-tag-type type) "typedef"))
+      (semantic-tag-get-attribute type 'typedef)
     type))
 
 (defun semantic-c-analyze-type-constants (type)
-  "When TYPE is a token for an enum, return it's parts.
+  "When TYPE is a tag for an enum, return it's parts.
 These are constants which are of type TYPE."
-  (if (and (eq (semantic-token-token type) 'type)
-	   (string= (semantic-token-type type) "enum"))
-      (semantic-token-type-parts type)))
+  (if (and (eq (semantic-tag-class type) 'type)
+	   (string= (semantic-tag-type type) "enum"))
+      (semantic-tag-type-members type)))
 
 ;;;###autoload
 (defun semantic-default-c-setup ()
   "Set up a buffer for semantic parsing of the C language."
-  ;;DO NOT EDIT! Generated from c.by - 2003-03-13 20:18-0500
+  ;;DO NOT EDIT! Generated from c.by - 2003-03-29 20:23-0500
   (progn
     (setq semantic-toplevel-bovine-table semantic-toplevel-c-bovine-table
 	  semantic-debug-parser-source "c.by"
@@ -2136,7 +2130,7 @@ These are constants which are of type TYPE."
 	  semantic-flex-keywords-obarray semantic-c-keyword-table
 	  semantic-equivalent-major-modes '(c-mode c++-mode)
 	  )
-    (setq semantic-expand-nonterminal 'semantic-expand-c-nonterminal
+    (setq semantic-tag-expand-function 'semantic-expand-c-nonterminal
 	  semantic-dependency-include-path semantic-default-c-path
 	  semantic-orphaned-member-metaparent-type "struct"
 	  semantic-symbol->name-assoc-list
@@ -2162,7 +2156,7 @@ These are constants which are of type TYPE."
 	  ))
   (semantic-install-function-overrides
    '((nonterminal-protection . semantic-c-nonterminal-protection)
-     (nonterminal-children . semantic-c-nonterminal-children)
+     (tag-components . semantic-c-tag-components)
      (concise-prototype-nonterminal . semantic-c-concise-prototype-nonterminal)
      (uml-prototype-nonterminal . semantic-c-uml-prototype-nonterminal)
      (nonterminal-abstract . semantic-c-nonterminal-abstract)
