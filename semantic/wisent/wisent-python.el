@@ -6,7 +6,7 @@
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.el,v 1.31 2003/02/18 01:58:23 emacsman Exp $
+;; X-RCS: $Id: wisent-python.el,v 1.32 2003/02/18 03:04:03 emacsman Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -259,8 +259,9 @@ the next logical line."
        ;; skip over triple-quote string
        ((looking-at "\"\"\"")
 	(forward-char 3)
-	;; TODO: this probably should be protected with condition-case
-	;; in case the closing triple quote is not found. -ryk2/8/03.
+	;; TODO: this probably should be protected with
+	;; semantic-lex-unterminated-syntax-protection
+	;; in case the closing triple quote is not found. -ryk2/17/03.
 	(search-forward "\"\"\""))
        ;; skip over lists, strings, etc
        ((looking-at "\\(\\s(\\|\\s\"\\|\\s<\\)")
@@ -268,8 +269,9 @@ the next logical line."
        ;; backslash is the explicit line continuation character
        ((looking-at "\\s\\")
 	(forward-line 1)) 
-       ;; skip over white space, word, symbol, and punctuation characters
-       (t (skip-syntax-forward "-w_.")))
+       ;; skip over white space, word, symbol, punctuation, and paired
+       ;; delimiter (backquote) characters.
+       (t (skip-syntax-forward "-w_.$")))
       (if (= (point) beg)
 	  (error "You have found a bug in python-next-line")))
     ;; the point now should be at the end of a line
