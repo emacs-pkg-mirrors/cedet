@@ -1,12 +1,12 @@
 ;;; semantic-grammar.el --- Major mode framework for Semantic grammars
 ;;
-;; Copyright (C) 2002-2005 David Ponce
+;; Copyright (C) 2002, 2003, 2004, 2005 David Ponce
 ;;
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.65 2005/01/11 17:09:53 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.66 2005/01/13 12:27:39 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;

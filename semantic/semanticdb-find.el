@@ -1,10 +1,10 @@
 ;;; semanticdb-find.el --- Searching through semantic databases.
 
-;;; Copyright (C) 2000-2005 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.22 2005/01/12 22:37:47 zappo Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.23 2005/01/13 12:27:38 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 

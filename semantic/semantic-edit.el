@@ -1,8 +1,8 @@
 ;;; semantic-edit.el --- Edit Management for Semantic
 
-;;; Copyright (C) 1999-2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-edit.el,v 1.28 2005/01/11 17:03:08 zappo Exp $
+;; X-CVS: $Id: semantic-edit.el,v 1.29 2005/01/13 12:27:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 

@@ -1,10 +1,10 @@
 ;;; semantic-ia.el --- Interactive Analysis functions
 
-;;; Copyright (C) 2000-2005 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.6 2005/01/12 22:31:28 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.7 2005/01/13 12:27:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 

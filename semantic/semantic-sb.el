@@ -1,10 +1,10 @@
 ;;; semantic-sb.el --- Semantic tag display for speedbar
 
-;;; Copyright (C) 1999-2005 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.52 2005/01/12 21:31:34 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.53 2005/01/13 12:27:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
