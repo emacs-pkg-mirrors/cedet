@@ -25,7 +25,7 @@
 @copying
 This manual documents Application Development with Semantic.
 
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004, 2005 Eric M. Ludlam
 Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
@@ -1514,7 +1514,7 @@ The state is indicated in the modeline with the following characters:
 The cache is up to date.
 @item !
 The cache requires a full update.
-@item ~
+@item ^
 The cache needs to be incrementally parsed.
 @item %
 The cache is not currently parseable.
