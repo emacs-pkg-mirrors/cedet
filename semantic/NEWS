@@ -1,6 +1,46 @@
 Semantic 2.0 is a major new version.
 
+* Versioning
+
+Semantic now uses `inversion' to track version numbers of different
+releases.  Semanticdb table files save the version number they are
+created at, and can identify old tables to regenerate them when an
+incompatible upgrade occurs.
+
 * API changes
+
+** Naming Conventions
+
+There is a new naming convention for the things Semantic refers too.
+The list of renamed functions is far to long to list here.  All
+functions that used the old conventions have been changed to use the
+new conventions, and are not explicitly listed here unless there is
+an incompatible change.
+
+*** New conventions
+
+token - Refers to a lexical analyzer production.
+stream - A list of tokens
+tag - Refers to a datastructure created by a grammar to represent
+      something in a language file
+table - A hierarchical list of tags.
+tag-class - A tag may represent a function, data type, or variable.
+parse - Run a source file through a parser.
+
+*** Old conventions
+
+token - Could be a lexical token, or a tag
+nonterminal - Could be a grammar nonterminal, or a tag
+stream - Could be a list of lexical tokens, or a tag table.
+token-type - New represented as tag-class
+bovinate - Run a source file through a parser.
+
+*** Obsoletion stratety
+
+The new framework function `semantic-alias-obsolete' has been used to
+obsolete old functions and allow old code to continue working.  Byte
+compiler warnings will be produced if old functions are used.  The
+old function will be completely removed in a future release.
 
 ** Lexical analysis.
 
@@ -198,16 +238,31 @@ That returns the token table value.
 *** `bovine-grammar-mode'.
 That converts grammar input form into Elisp code to be used by the
 "bovinator".  Such grammars are associated to the .by file extension.
-
-That new mode obsoletes the previous `bnf-mode' used by Semantic.
-However .bnf grammars are still supported for compatibility with
-Semantic version 1.  Currently only c.bnf has been translated into a
-c.by format.
+Old grammars in .bnf files are no longer supported.
 
 *** `wisent-grammar-mode'.
 That converts grammar input form into Elisp code to be used by the
 Wisent LALR parser.  Such grammars are associated to the .wy
 file extension.
+
+** Grammar build process
+
+A new grammar construction process separates generated code from hand
+written code.  An semantic specific EDE extension will generate
+Makefile rules to build these files.
+
+Language specific human written code must call the automatically
+generated setup function.
+
+*** Bovine grammar
+
+A file FOO.by will create the file FOO-by.el, and FOO-by.elc
+automatically.
+
+*** Wisent grammar
+
+A file FOO.wy will create the file FOO-wy.el, and FOO-wy.elc
+automatically.
 
 * Database.
 
@@ -230,8 +285,12 @@ Depends on `inversion' for save file compatibility tests.
 File based project database type.
 
 ** semanticdb-search.el
-All search routines have been moved into this file.
-All search routines are now methods.
+All old search routines have been moved into this file.
+All old search routines are now methods on database projects.
+All old search routines have been obsoleted.  Use semanticdb-find.el
+based routines instead.  These functions are still maintained because
+the semanticdb-find based routines do not yet handle all the same
+search paramters as the old routines.
 
 *** `semanticdb-search-results-table'
 Class for any search in a database with no tables of its own.
@@ -243,6 +302,45 @@ Searches in databases have been broken into three classes.
   system databases which cannot support a generic search.
 - Generic search - Takes a predicate.  System databases cannot usually
   support this style of search.
+
+** semanticdb-find.el
+New prefered search routines which start with `semanticdb-find...'.
+These routines take fewer parameters.  There are more types of search
+routines than before to make up for the missing parameters.
+
+*** Basic search
+Scans the current buffer, and all files included into this buffer.
+Only scans top level tags.
+
+*** Deep search
+A Deep search will "flatten" the tags in a file so they are all
+visible, including parts of structures or classes.
+
+*** Brute searches
+As a basic search, but scans all files in the current project.
+
+*** semanticdb-find-translate-path
+This new routines determines the "path" to scan.  There are two basic
+types of paths.  The default is to examine the specified buffers
+include list, and only scan those files.  Optional "brute" path will
+scan all files in the current project, including system level databases.
+
+*** Search Results
+Search Results are somewhat more formalized, and have routines to
+deal with them.
+
+semanticdb-search-results-p
+semanticdb-strip-search-results
+semanticdb-search-result-with-nil-p
+semanticdb-search-result-length
+semanticdb-search-result-nth
+
+*** New types of searches not originally in semanticdb-search.el
+
+**** semantic-find-*-by-name-for-completion
+Searches "for completion" use different matching constraints
+equivalent to the regular expression "^chars", which provide a speed
+improvement.
 
 ** semanticdb-system.el
 Representation of a database belonging to system libraries.
@@ -285,6 +383,13 @@ Highlight areas that a user edits.
 Make the current functions header `sticky' to the top of the current
 window.  (Emacs 21 required)
 
+** `semantic-show-tag-boundaries-mode'
+Displays a boundary between tags.
+
+** `semantic-highlight-by-attribute-mode'
+Colorizes tags based on attributes of those tags.
+Customizable to any type of comparison.
+
 * Hooks.
 
 ** `semantic-before-auto-parse-hooks'
@@ -295,7 +400,8 @@ Run after option `semantic-auto-parse-mode' has parsed.
 
 * Setup.
 
-A lot of things are now auto-loaded on demand.
+A lot of things are now auto-loaded on demand.  Setup should now be
+done through the cedet.el initialization file.
 
 * Languages.
 
@@ -305,9 +411,8 @@ modifications.  The tokens generated are formatted similar to
 those produced by the Java parser.
 
 ** Erlang parser added.
-The grammar was written for semantic 1.4 in BNF format.
-
-TBD.
+The grammar was written for semantic 1.4 in BNF format, and converted
+to .by format.
 
 
 Local variables:
