@@ -1,9 +1,9 @@
 # Simple BNF notation for Makefiles.
 #
-# Copyright (C) 1999, 2000 Eric M. Ludlam
+# Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: make.bnf,v 1.5 2000/11/13 21:06:42 zappo Exp $
+# X-RCS: $Id: make.bnf,v 1.6 2001/01/24 21:09:21 zappo Exp $
 #
 # make.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: make.bnf,v $
+# Revision 1.6  2001/01/24 21:09:21  zappo
+# Added support for new token formats that use ASSOC.
+#
 # Revision 1.5  2000/11/13 21:06:42  zappo
 # Fixed comment.
 #
@@ -70,7 +73,7 @@ Makefile : variable
 	 ;
 
 variable: symbol equals elements
-	  (,$1 variable nil nil ,$3 nil nil)
+	  (,$1 variable nil ,$3 nil nil)
 	;
 
 rule: symbol colons elements commands
@@ -78,11 +81,11 @@ rule: symbol colons elements commands
     ;
 
 conditional: symbol "if" symbol newline
-	     ( nil )
+	     ( )
 	   | symbol "else" newline
-	     ( nil )
+	     ( )
 	   | symbol "endif" newline
-	     ( nil )
+	     ( )
 	   ;
 
 equals: punctuation ":" punctuation "="	()

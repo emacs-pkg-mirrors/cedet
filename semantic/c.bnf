@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.22 2001/01/06 14:35:40 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.23 2001/01/24 21:08:41 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.23  2001/01/24 21:08:41  zappo
+# Added support for new token formats that use ASSOC.
+#
 # Revision 1.22  2001/01/06 14:35:40  zappo
 # Put `type' `t' onto some tokens.
 # Struct and enums now match the braces, and return nil.
@@ -28,70 +31,7 @@
 # Added ... to fuction arg lists.
 # Match parens for arg lists.
 #
-# Revision 1.21  2000/12/10 20:53:08  zappo
-# Fix spelling errors.
-#
-# Revision 1.20  2000/10/30 01:34:23  zappo
-# Tidied up opt-array stuff.
-#
-# Revision 1.19  2000/09/27 02:08:04  zappo
-# Moved `type' to be before `function' and `variable' in `declaration'.
-#
-# Revision 1.18  2000/09/21 03:35:08  zappo
-# Fixed up struct/union variable declaration section to use new lexical
-# tokens for struct/union.
-#
-# Revision 1.17  2000/09/19 04:22:31  zappo
-# Added %keywordtable
-#
-# Revision 1.16  2000/09/14 19:23:27  zappo
-# Updated to use %token to make new tokens for use in RULES.
-#
-# Revision 1.15  2000/09/11 23:00:32  zappo
-# Use new BNF settings section.
-#
-# Revision 1.14  2000/07/05 14:41:31  zappo
-# Support multiple continuous decl modifiers.
-# Added modifiers into variables.
-#
-# Revision 1.13  2000/07/01 18:15:31  zappo
-# Updated for new elements in the tokens.
-#
-# Revision 1.12  2000/06/13 14:37:48  zappo
-# The table has moved.
-#
-# Revision 1.11  2000/05/06 01:32:57  zappo
-# Use EXPANDFULL for enums, and for argument lists to functions.
-#
-# Revision 1.10  2000/04/29 12:54:15  zappo
-# Added support for Linux __P items.
-# Added support for "..." fn prototypes.
-#
-# Revision 1.9  2000/04/28 18:57:49  zappo
-# Added system flag to include files.
-#
-# Revision 1.8  2000/04/25 14:46:42  zappo
-# structparts now uses EXPANDFULL to get positional information for it's
-# sub parts.  This simplified STRUCTSUBPARTS nonterminal
-#
-# Revision 1.7  2000/04/23 15:34:28  zappo
-# Added copyright information.
-#
-# Revision 1.6  2000/04/20 23:55:03  zappo
-# Macros split from 'variable' nt.
-# Added knr-argument parsing.
-#
-# Revision 1.5  2000/04/16 22:34:07  zappo
-# Added `filename' for include rules.
-#
-# Revision 1.4  1999/12/17 20:53:16  zappo
-# Added a splice , for varnamelist.
-#
-# Revision 1.3  1999/06/06 14:20:24  zappo
-# Fixed up some language definitions.
-#
-# Revision 1.2  1999/05/18 14:08:56  zappo
-# Fixed up the returns of some nonterminals.
+# [...]
 #
 # Revision 1.1  1999/05/17 17:28:30  zappo
 # Initial revision
@@ -152,7 +92,7 @@ filename : symbol PERIOD symbol
          | symbol punctuation "/" filename
 	   ( (concat $1 $2 (car $3)) )
 	 ;
-	  
+
 structparts : semantic-list
 	      (EXPANDFULL $1 structsubparts)
 	    ;
@@ -249,7 +189,10 @@ opt-assign : EQUAL expression
 	   ;
 
 macro : HASH DEFINE symbol opt-expression
-	( $3 variable nil t $4 nil nil )
+	( $3 variable nil $4
+	     (ASSOC const t)
+	     nil
+	      )
       ;
 
 variable : variabledef SEMICOLON
@@ -257,8 +200,14 @@ variable : variabledef SEMICOLON
 	 ;
 
 variabledef : declmods typeform varnamelist
-	      ( $3 variable $2 (if $1 (string-match "const" (car $1))) nil 
-	      (if (and $1 (string-match "const" (car $1))) (cdr $1) $1) nil )
+	      ( $3 variable $2
+		   ;; default value
+		   nil
+		   ;; modifiers
+		   (ASSOC const (if (member "const" $1) t nil)
+			  typemodifiers (delete "const" $1))
+		   nil
+		    )
 	    ;
 
 opt-restrict : symbol "\\<\\(__\\)?restrict\\>"
@@ -271,9 +220,11 @@ varname : opt-stars opt-restrict symbol opt-bits opt-array opt-assign
 
 # I should store more in this def, but leave it simple for now.
 variablearg : declmods typeform varname
-	      ( (car $3) variable $2 (if $1 (string-match "const" (car $1)))
-	      nil (if (and $1 (string-match "const" (car $1))) (cdr $1) $1)
-	      nil )
+	      ( (car $3) variable $2 nil
+		 (ASSOC const (if (member "const" $1) t nil)
+			typemodifiers (delete "const" $1))
+		 nil
+		 )
 	    ;
 
 varnamelist : varname COMA varnamelist
@@ -311,7 +262,11 @@ arg-sub-list : variablearg
 	     ;
 
 functiondef : declmods typeform symbol arg-list
-	      ( $3 function $2 $4 $1 nil )
+	      ( $3 function $2 $4 
+		   (ASSOC const (if (member "const" $1) t nil)
+			  typemodifiers (delete "const" $1))
+		   nil
+		    )
             ;
 
 prototype : functiondef SEMICOLON
@@ -329,11 +284,11 @@ opt-expression : expression
 # Use expression for parsing only.  Don't actually return anything
 # for now.  Hopefully we can fix this later.
 expression : symbol
-	     ( nil )
+	     ( )
            | punctuation "[!*&~]" symbol
-	     ( nil )
+	     ( )
            | semantic-list
-	     ( nil )
+	     ( )
 	   # | expression "+-*/%^|&" expression
 	   # ( nil )
 	   ;
