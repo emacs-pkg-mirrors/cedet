@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.26 2004/02/19 01:43:30 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.27 2004/03/01 01:15:30 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -445,7 +445,7 @@ Optional PARENT and COLOR as specified with
   (concat  (semantic-format-tag-uml-prototype-default token parent color)
 	   (semantic-c-template-string token parent color)))
 
-(defun semantic-c-tag-abstract (tag &optional parent)
+(defun semantic-c-tag-abstract-p (tag &optional parent)
   "Return non-nil if TAG is considered abstract.
 PARENT is tag's parent.
 In C, a method is abstract if it is `virtual', which is already
@@ -469,7 +469,7 @@ handled.  A class is abstract iff it's destructor is virtual."
 	  )))
    ((eq (semantic-tag-class tag) 'function)
     (semantic-tag-get-attribute tag 'pure-virtual))
-   (t (semantic-tag-abstract-default tag parent))))
+   (t (semantic-tag-abstract-p-default tag parent))))
 
 (defun semantic-c-analyze-dereference-metatype (type)
   "Dereference TYPE as described in `semantic-analyze-dereference-metatype'.
@@ -538,7 +538,7 @@ DO NOT return the list of tags encompassing point."
      (format-tag-concise-prototype . semantic-c-format-tag-concise-prototype)
      (format-tag-uml-prototype . semantic-c-format-tag-uml-prototype)
      (format-tag-type . semantic-c-format-tag-type)
-     (tag-abstract . semantic-c-tag-abstract)
+     (tag-abstract-p . semantic-c-tag-abstract-p)
      (analyze-dereference-metatype . semantic-c-analyze-dereference-metatype)
      (analyze-type-constants . semantic-c-analyze-type-constants)
      (format-tag-name . semantic-c-format-tag-name)
