@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.152 2002/07/29 17:25:13 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.153 2002/07/31 19:47:01 ponced Exp $
 
 (defvar semantic-version "2.0alpha2"
   "Current version of Semantic.")
@@ -508,14 +508,8 @@ that, otherwise, do a full reparse."
     )
    ((semantic-bovine-toplevel-partial-reparse-needed-p checkcache)
     (garbage-collect)
-    (let ((gc-cons-threshold 10000000)
-          (semantic-bovination-working-type 'dynamic)
-	  (changes nil))
-      (working-status-forms
-          (semantic-bovination-working-message (buffer-name))
-          "done"
-        (setq changes (funcall semantic-bovinate-incremental-parser))
-        (working-dynamic-status t))
+    (let* ((gc-cons-threshold 10000000)
+           (changes (funcall semantic-bovinate-incremental-parser)))
       (if (semantic-bovine-toplevel-full-reparse-needed-p checkcache)
           ;; If the partial reparse fails, jump to a full reparse.
           (semantic-bovinate-toplevel checkcache)
