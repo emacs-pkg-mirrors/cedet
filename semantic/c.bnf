@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.51 2001/11/30 02:48:11 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.52 2001/11/30 03:50:33 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -226,9 +226,9 @@ filename-prefix : symbol
 		;
 
 filename : filename-prefix PERIOD symbol
-	   ( (concat $1 $2 $3) )
-         | symbol DIVIDE filename
-	   ( (concat $1 $2 (car $3)) )
+	   ( (concat (car $1) $2 $3) )
+         | filename-prefix DIVIDE filename
+	   ( (concat (car $1) $2 (car $3)) )
 	 ;
 
 # In C++, structures can have the same things as classes.
