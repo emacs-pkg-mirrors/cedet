@@ -1,11 +1,11 @@
 ;;; sb-rmail --- Speedbar support for rmail
 
-;; Copyright (C) 1997, 1998, 1999, 2001 Free Software Foundation
+;; Copyright (C) 1997, 1998, 1999, 2001, 2002 Free Software Foundation
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-rmail.el,v 1.10 2002/02/06 18:57:43 zappo Exp $
+;; X-RCS: $Id: sb-rmail.el,v 1.11 2002/03/16 20:08:42 zappo Exp $
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -102,16 +102,16 @@ current message into that RMAIL folder."
 					       (end-of-line)
 					       (point))))))
     (goto-char (point-min))
-    (if (and (looking-at "Reply to:")
+    (if (and (looking-at "\\(//\\)?Reply to:")
 	     (equal from rmail-speedbar-last-user))
 	nil
       (setq rmail-speedbar-last-user from)
       (erase-buffer)
-      (insert "Reply To:\n")
+      (speedbar-insert-separator "Reply To")
       (if (stringp from)
 	  (speedbar-insert-button from 'speedbar-directory-face 'highlight
 				  'rmail-speedbar-button 'rmail-reply))
-      (insert "Folders:\n")
+      (speedbar-insert-separator "Folders")
       (let* ((case-fold-search nil)
 	     (df (directory-files (save-excursion (set-buffer buffer)
 						  default-directory)
