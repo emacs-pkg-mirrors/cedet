@@ -1,12 +1,12 @@
 ;;; senator.el --- SEmantic NAvigaTOR
 
-;; Copyright (C) 2000, 2001, 2002 by David Ponce
+;; Copyright (C) 2000, 2001, 2002, 2003 by David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.63 2002/12/29 18:04:22 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.64 2003/03/11 03:27:16 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -2157,13 +2157,23 @@ If semantic tokens are available, use them to navigate."
       (senator-mark-defun)
     ad-do-it))
 
+(defvar senator-add-log-tokens '(function variable type)
+  "When advising `add-log-current-defun', nonterminal tokens used.
+Semantic nonterminals that are of these toke types will be used
+to find the name used by add log.")
+
 (defadvice add-log-current-defun (around senator activate)
   "Return name of function definition point is in, or nil."
   (if senator-minor-mode
-      (let ((cd (semantic-current-nonterminal)))
-      (if (member (semantic-token-token cd) '(function variable type))
-          (setq ad-return-value (semantic-token-name cd))
-        ad-do-it))
+      (let ((cd (semantic-find-nonterminal-by-overlay))
+	    (name nil))
+	(while (and cd (not name))
+	  (if (member (semantic-token-token (car cd)) senator-add-log-tokens)
+	      (setq name (semantic-token-name (car cd))))
+	  (setq cd (cdr cd)))
+	(if name
+	    (setq ad-return-value name)
+	  ad-do-it))
     ad-do-it))
 
 ;;;;
