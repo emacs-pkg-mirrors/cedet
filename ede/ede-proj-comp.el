@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-comp.el,v 1.2 2000/10/01 01:22:26 zappo Exp $
+;; RCS: $Id: ede-proj-comp.el,v 1.3 2000/10/11 02:57:39 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -103,10 +103,47 @@ For example, C code uses .o on unix, and Emacs Lisp uses .elc.")
 		:type boolean
 		:documentation
 		"Non-nil if this compiler can make dependencies.")
+   (uselinker :initarg :uselinker
+	      :initform nil
+	      :type boolean
+	      :documentation
+	      "Non-nil if this compiler creates code that can be linked.
+This requires that the containing target also define a list of available
+linkers that can be used.")
    )
   "Definition for a compiler.
 Different types of objects will provide different compilers for
 different situations.")
+
+(defclass ede-linker ()
+  ((name :initarg :name
+	 :type string
+	 :custom string
+	 :documentation "Name of this type of compiler.")
+   (variables :initarg :variables
+	      :type list
+	      :custom (repeat (cons (string :tag "Variable")
+				    (string :tag "Value")))
+	      :documentation
+	      "Variables needed in the Makefile for this compiler.
+An assoc list where each element is (VARNAME . VALUE) where VARNAME
+is a string, and VALUE is either a string, or a list of strings.
+For example, GCC would define CC=gcc, and emacs would define EMACS=emacs.")
+   (rules :initarg :rules
+	  :initform nil
+	  :type list
+	  :custom (repeat (object :objecttype ede-makefile-rule))
+	  :documentation
+	  "Auxiliary rules needed for this compiler to run.
+For example, yacc/lex files need additional chain rules, or inferences.")
+   (commands :initarg :commands
+	    :type list
+	    :custom (repeat string)
+	    :documentation
+	    "The commands used to execute this compiler.
+The object which uses this compiler will place these commands after
+it's rule definition."))
+  "Contains information needed to link many generated object files together.")
 
 (defclass ede-makefile-rule ()
   ((target :initarg :target
@@ -182,7 +219,6 @@ This will prevent rules from creating duplicate variables or rules."
     (setq compilers (cdr compilers)))
   (car-safe compilers))
 				  
-
 ;;; Methods:
 (defmethod ede-proj-tweak-autoconf ((this ede-compiler))
   "Tweak the configure file (current buffer) to accomodate THIS."
@@ -214,9 +250,10 @@ This will prevent rules from creating duplicate variables or rules."
 	  (setq variables (cdr variables))))))
 
 (defmethod ede-compiler-intermediate-objects-p ((this ede-compiler))
-  "Return non-nil if THIS has intermediate object files."
-  (and (slot-boundp this 'objectextention)
-       (oref this objectextention)))
+  "Return non-nil if THIS has intermediate object files.
+If this compiler creates code that can be linked together,
+then the object files created by the compiler are considered intermediate."
+  (oref this uselinker))
 
 (defmethod ede-compiler-intermediate-object-variable ((this ede-compiler)
 						      targetname)
