@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.22 2000/12/10 23:46:52 zappo Exp $
+@c $Id: semantic.texi,v 1.23 2000/12/16 15:15:08 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic parsing for Emacs
@@ -124,6 +124,33 @@ When flexing, report 'newlines as syntactic elements.
 Useful for languages where the newline is a special case terminator.
 @end defvar
 
+@section Keywords
+
+Another important piece of the lexer is the keyword table. @ref{Settings}.
+You language will want to set up a keyword table for fast conversion of
+symbol strings to language terminals.
+
+The keywords table can also be used to store additional information
+about those keywords.  The following programming functions can be useful
+when examining text in a language buffer.
+
+@defun semantic-flex-keyword-p text
+Return non-nil if @var{text} is a keyword in the keyword table.
+@end defun
+
+@defun semantic-flex-keyword-put text property value
+For the keyword found as @var{text} in a language buffer, set
+@var{property} to have @var{value}.
+@end defun
+
+@defun semantic-flex-keyword-get text property
+For the keyword found as @var{text}, get the value of @var{property}.
+@end defun
+
+Keyword properties can be set up in a BNF file for ease of maintenance.
+While examining the text in a language buffer, this can provide an easy
+and quick way of storing details about text in the buffer.
+
 @node Bovinating, BNF conversion, Lexing, Top
 @chapter Preparing a bovine table for your language
 
@@ -160,7 +187,8 @@ Please see the documentation for the variable
 The BNF converter takes a file in "Bovine Normal Form" which is similar
 to "Backus-Naur Form".  If you have ever used yacc or bison, you will
 find it similar.  The BNF form used by semantic, however, does not
-include token precedence rules.
+include token precedence rules, and several other features needed to make
+real parser generators.
 
 It is important to have an Emacs Lisp file with a variable ready to take
 the output of your table @xref{Bovinating}.  Also, make sure that the
@@ -220,6 +248,10 @@ Optional.  Specify a new token @var{NAME}.  This is added to a lexical
 keyword list using @var{TEXT}.  The symbol is then converted into a new
 lexical terminal.  This requires that the @code{%keywordtable} specified
 variable is available in the file specified by @code{%outputfile}.
+@item %put <NAME> symbol <VALUE>
+Tokens created without a type are considered keywords, and placed in a
+keyword table.  Use @code{%put} to apply properties to that keyword.
+@ref{Lexing}.
 @item %token <name> type "<text>"
 Optional.  Specify a new token @var{NAME}.  It is made from an existing
 lexical token of type @var{TYPE}.  @var{TEXT} is a string which will be
