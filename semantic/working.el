@@ -133,7 +133,7 @@ it will take ahead of time.  Functions provided in `working' are:
   "Message stored when in a status loop.")
 (defvar working-donestring nil
   "Done string stored when in a status loop.")
-(defvar working-working-ref1 nil
+(defvar working-ref1 nil
   "A reference number used in a status loop.")
 
 ;;; Programmer functions
