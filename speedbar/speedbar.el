@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.197 2001/04/27 00:52:32 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.198 2001/04/29 12:51:00 zappo Exp $
 
 (defvar speedbar-version "0.14"
   "The current version of speedbar.")
@@ -159,6 +159,20 @@ frame."
   :group 'speedbar
   :type 'boolean)
 
+(defcustom speedbar-query-confirmation-method 'all
+  "*Query control for file operations.
+The 'always flag means to always query before file operations.
+The 'none-but-delete flag means to not query before any file
+operations, except before a file deletion."
+  :group 'speedbar
+  :type '(radio (const :tag "Always Query before some file operations."
+		       all)
+		(const :tag "Never Query before file operations, except for deletions."
+		       none-but-delete)
+;;;;		(const :tag "Never Every Query."
+;;;;		       none)
+		))
+
 (defvar speedbar-special-mode-expansion-list nil
   "Default function list for creating specialized button lists.
 This list is set by modes that wish to have special speedbar displays.
@@ -172,12 +186,12 @@ This keymap is local to each buffer that wants to define special keybindings
 effective when it's display is shown.")
 
 (defcustom speedbar-visiting-file-hook nil
-  "Hooks run when speedbar visits a file in the selected frame."
+  "*Hooks run when speedbar visits a file in the selected frame."
   :group 'speedbar
   :type 'hook)
 
 (defcustom speedbar-visiting-tag-hook '(speedbar-highlight-one-tag-line)
-  "Hooks run when speedbar visits a tag in the selected frame."
+  "*Hooks run when speedbar visits a tag in the selected frame."
   :group 'speedbar
   :type 'hook
   :options '(speedbar-highlight-one-tag-line
@@ -186,12 +200,12 @@ effective when it's display is shown.")
 	     ))
 
 (defcustom speedbar-load-hook nil
-  "Hooks run when speedbar is loaded."
+  "*Hooks run when speedbar is loaded."
   :group 'speedbar
   :type 'hook)
 
 (defcustom speedbar-reconfigure-keymaps-hook nil
-  "Hooks run when the keymaps are regenerated."
+  "*Hooks run when the keymaps are regenerated."
   :group 'speedbar
   :type 'hook)
 
@@ -460,7 +474,7 @@ state data."
   :group 'speedbar
   :type 'hook)
 
-(defvar speedbar-ignored-modes nil
+(defvar speedbar-ignored-modes '(fundamental-mode)
   "*List of major modes which speedbar will not switch directories for.")
 
 (defun speedbar-extension-list-to-regex (extlist)
@@ -504,7 +518,7 @@ before speedbar has been loaded."
 	       speedbar-ignored-path-regexp
 	       (speedbar-extension-list-to-regex val))))
 
-(defcustom speedbar-directory-unshown-regexp "^\\(CVS\\|RCS\\|SCCS\\)\\'"
+(defcustom speedbar-directory-unshown-regexp "^\\(CVS\\|RCS\\|SCCS\\|\\..*\\)\\'"
   "*Regular expression matching directories not to show in speedbar.
 They should include commonly existing directories which are not
 useful, such as version control."
@@ -975,10 +989,15 @@ in the selected file.
 Argument FMT is the format string, and ARGS are the arguments for message."
   `(dframe-message ,fmt ,@args))
 
-(defsubst speedbar-y-or-n-p (prompt)
+(defsubst speedbar-y-or-n-p (prompt &optional deleting)
   "Like `y-or-n-p', but for use in the speedbar frame.
-Argument PROMPT is the prompt to use."
-  (dframe-y-or-n-p prompt))
+Argument PROMPT is the prompt to use.
+Optional argument DELETING means this is a query that will delete something.
+The variable `speedbar-query-confirmation-method' can cause this to
+return true without a query."
+  (or (and (not deleting)
+	   (eq speedbar-query-confirmation-method 'none-but-delete))
+      (dframe-y-or-n-p prompt)))
 
 (defsubst speedbar-select-attached-frame ()
   "Select the frame attached to this speedbar."
@@ -1328,7 +1347,7 @@ nil if not applicable."
 	      (attr (speedbar-line-token))
 	      (item nil))
 	  (if (and (featurep 'semantic) (semantic-token-p attr))
-	      (speedbar-message (semantic-summerize-nonterminal attr))
+	      (speedbar-message (semantic-summarize-nonterminal attr))
 	    (looking-at "\\([0-9]+\\):")
 	    (setq item (file-name-nondirectory (speedbar-line-path)))
 	    (speedbar-message "Tag: %s  in %s" tag item)))
@@ -1352,7 +1371,7 @@ nil if not applicable."
 			       nil))))
 	      (if (and (featurep 'semantic) (semantic-token-p detail))
 		  (speedbar-message
-		   (semantic-summerize-nonterminal detail parent))
+		   (semantic-summarize-nonterminal detail parent))
 		(if parent
 		    (speedbar-message "Detail: %s of tag %s" detail
 				      (if (and (featurep 'semantic)
@@ -1390,7 +1409,8 @@ Files can be copied to new names or places."
 			  (if (string-match "[/\\]$" rt) "" "/")
 			  (file-name-nondirectory f))))
 	(if (or (not (file-exists-p rt))
-		(speedbar-y-or-n-p (format "Overwrite %s with %s? " rt f)))
+		(speedbar-y-or-n-p (format "Overwrite %s with %s? " rt f)
+				   t))
 	    (progn
 	      (copy-file f rt t t)
 	      ;; refresh display if the new place is currently displayed.
@@ -1419,7 +1439,8 @@ Files can be renamed to new names or moved to new directories."
 			    (if (string-match "[/\\]\\'" rt) "" "/")
 			    (file-name-nondirectory f))))
 	  (if (or (not (file-exists-p rt))
-		  (speedbar-y-or-n-p (format "Overwrite %s with %s? " rt f)))
+		  (speedbar-y-or-n-p (format "Overwrite %s with %s? " rt f)
+				     t))
 	      (progn
 		(rename-file f rt t)
 		;; refresh display if the new place is currently displayed.
@@ -1450,7 +1471,7 @@ Files can be renamed to new names or moved to new directories."
   (interactive)
   (let ((f (speedbar-line-file)))
     (if (not f) (error "Not a file"))
-    (if (speedbar-y-or-n-p (format "Delete %s? " f))
+    (if (speedbar-y-or-n-p (format "Delete %s? " f) t)
 	(progn
 	  (if (file-directory-p f)
 	      (delete-directory f)
@@ -1475,7 +1496,7 @@ variable `speedbar-obj-alist'."
       (setq oa (cdr oa)))
     (setq obj (concat (file-name-sans-extension f) (cdr (car oa))))
     (if (and oa (file-exists-p obj)
-	     (speedbar-y-or-n-p (format "Delete %s? " obj)))
+	     (speedbar-y-or-n-p (format "Delete %s? " obj) t))
 	(progn
 	  (delete-file obj)
 	  (speedbar-reset-scanners)))))
