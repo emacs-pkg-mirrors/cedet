@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-fw.el,v 1.19 2003/04/02 08:44:47 ponced Exp $
+;; X-CVS: $Id: semantic-fw.el,v 1.20 2003/04/04 14:37:18 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -358,7 +358,7 @@ Return the value of the last VAL."
 DOCSTRING is optional."
   `(progn
      (setq-mode-local ,mode ,sym ,val)
-     (put (semantic-symbol ',mode ',sym)
+     (put (semantic-symbol ',sym ',mode)
           'variable-documentation ,docstring)
      ',sym))
 
@@ -368,7 +368,7 @@ DOCSTRING is optional."
   (let ((tmp (make-symbol "tmp")))
   `(let (,tmp)
      (setq-mode-local ,mode ,sym ,val)
-     (setq ,tmp (semantic-symbol ',mode ',sym))
+     (setq ,tmp (semantic-symbol ',sym ',mode))
      (put ,tmp 'constant t)
      (put ,tmp 'variable-documentation ,docstring)
      ',sym)))
