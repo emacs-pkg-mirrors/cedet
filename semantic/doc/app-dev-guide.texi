@@ -966,6 +966,7 @@ These functions help derive information about tags that may not
 be obvious for non-traditional languages with their own token types.
 
 @defun semantic-tag-protection tag &optional parent
+@anchor{semantic-tag-protection}
 Return protection information about @var{TAG} with optional @var{PARENT}.
 This function returns on of the following symbols:
    @code{nil}        - No special protection.  Language dependent.
@@ -978,6 +979,7 @@ to themselves.  Use of this function should allow for this.
 
 The default behavior (if not overridden with @code{tag-protection}
 is to return a symbol based on type modifiers.
+@obsolete{semantic-nonterminal-protection,semantic-tag-protection}
 @end defun
 
 @defun semantic-tag-protected-p tag protection &optional parent
@@ -987,20 +989,21 @@ Non-@code{nil} if @var{TAG} is is protected.
 @dfn{semantic-tag-protection}.
 @var{PARENT} is the parent data type which contains @var{TAG}.
 
-For these @var{PROTECTION}s, true is returned if @var{TAG} is:
+For these PROTECTIONs, true is returned if @var{TAG} is:
 @table @asis
 @item @code{nil}
   Always true
 @item  private
-  True if nil.
+  True if @code{nil}.
 @item protected
-  True if private or nil.
+  True if private or @code{nil}.
 @item public
-  True if private, protected, or nil.
+  True if private, protected, or @code{nil}.
 @end table
 @end defun
 
 @defun semantic-tag-abstract-p tag &optional parent
+@anchor{semantic-tag-abstract-p}
 Return non @code{nil} if @var{TAG} is abstract.
 Optional @var{PARENT} is the parent tag of @var{TAG}.
 In @var{UML}, abstract methods and classes have special meaning and behavior
@@ -1008,30 +1011,38 @@ in how methods are overridden.  In @var{UML}, abstract methods are italicized.
 
 The default behavior (if not overridden with @code{tag-abstract}
 is to return true if @code{abstract} is in the type modifiers.
+@obsolete{semantic-tag-abstract,semantic-tag-abstract-p}
 @end defun
 
 @defun semantic-tag-leaf-p tag &optional parent
+@anchor{semantic-tag-leaf-p}
 Return non @code{nil} if @var{TAG} is leaf.
 Optional @var{PARENT} is the parent tag of @var{TAG}.
 In @var{UML}, leaf methods and classes have special meaning and behavior.
 
 The default behavior (if not overridden with @code{tag-leaf}
 is to return true if @code{leaf} is in the type modifiers.
+@obsolete{semantic-tag-leaf,semantic-tag-leaf-p}
 @end defun
 
 @defun semantic-tag-static-p tag &optional parent
+@anchor{semantic-tag-static-p}
 Return non @code{nil} if @var{TAG} is static.
 Optional @var{PARENT} is the parent tag of @var{TAG}.
 In @var{UML}, static methods and attributes mean that they are allocated
 in the parent class, and are not instance specific.
 @var{UML} notation specifies that @var{STATIC} entries are underlined.
+This function can be overriden in semantic using the
+symbol @code{tag-static-p}.
+@obsolete{semantic-tag-static,semantic-tag-static-p}
 @end defun
 
 @defvar semantic-dependency-include-path
+@anchor{semantic-dependency-include-path}
 Defines the include path used when searching for files.
 This should be a list of directories to search which is specific to
 the file being included.
-If @code{semantic-find-dependency} is overridden for a given language, this
+If @dfn{semantic-find-dependency} is overridden for a given language, this
 path is most likely ignored.
 
 @var{TODO}: use ffap.el to locate such items.
@@ -1078,6 +1089,7 @@ Note: @var{TYPE} not yet implemented.
 @section Local Context
 
 @defun semantic-up-context &optional point bounds-type
+@anchor{semantic-up-context}
 Move point up one context from @var{POINT}.
 Return non-@code{nil} if there are no more context levels.
 Overloaded functions using @code{up-context} take no parameters.
@@ -1089,6 +1101,7 @@ go up past the bounds of that tag.
 @end defun
 
 @defun semantic-beginning-of-context &optional point
+@anchor{semantic-beginning-of-context}
 Move @var{POINT} to the beginning of the current context.
 Return non-@code{nil} if there is no upper context.
 The default behavior uses @dfn{semantic-up-context}.
@@ -1097,6 +1110,7 @@ symbol @code{beginning-of-context}.
 @end defun
 
 @defun semantic-end-of-context &optional point
+@anchor{semantic-end-of-context}
 Move @var{POINT} to the end of the current context.
 Return non-@code{nil} if there is no upper context.
 Be default, this uses @dfn{semantic-up-context}, and assumes parenthetical
@@ -1106,6 +1120,7 @@ symbol @code{end-of-context}.
 @end defun
 
 @defun semantic-get-local-variables &optional point
+@anchor{semantic-get-local-variables}
 Get the local variables based on POINT's context.
 Local variables are returned in Semantic tag format.
 Be default, this calculates the current bounds using context blocks
@@ -1115,6 +1130,7 @@ This can be overriden with @code{get-local-variables}.
 @end defun
 
 @defun semantic-get-local-arguments &optional point
+@anchor{semantic-get-local-arguments}
 Get arguments (variables) from the current context at @var{POINT}.
 Parameters are available if the point is in a function or method.
 Return a list of tags unlinked from the originating buffer.
@@ -1125,6 +1141,7 @@ tags.
 @end defun
 
 @defun semantic-get-all-local-variables &optional point
+@anchor{semantic-get-all-local-variables}
 Get all local variables for this context, and parent contexts.
 Local variables are returned in Semantic tag format.
 Be default, this gets local variables, and local arguments.
@@ -1138,6 +1155,7 @@ looking at the code (locally) and navigating, and fetching information
 such as a the type of the parameter the cursor may be typing in.
 
 @defun semantic-end-of-command
+@anchor{semantic-end-of-command}
 Move to the end of the current command.
 Be default, uses @code{semantic-command-separation-character}.
 This function can be overriden in semantic using the
@@ -1145,6 +1163,7 @@ symbol @code{end-of-command}.
 @end defun
 
 @defun semantic-beginning-of-command
+@anchor{semantic-beginning-of-command}
 Move to the beginning of the current command.
 Be default, uses @code{semantic-command-separation-character}.
 This function can be overriden in semantic using the
@@ -1152,6 +1171,7 @@ symbol @code{beginning-of-command}.
 @end defun
 
 @defun semantic-ctxt-current-symbol &optional point
+@anchor{semantic-ctxt-current-symbol}
 Return the current symbol the cursor is on at @var{POINT} in a list.
 This will include a list of type/field names when applicable.
 This function can be overriden in semantic using the
@@ -1159,6 +1179,7 @@ symbol @code{ctxt-current-symbol}.
 @end defun
 
 @defun semantic-ctxt-current-assignment &optional point
+@anchor{semantic-ctxt-current-assignment}
 Return the current assignment near the cursor at @var{POINT}.
 Return a list as per @dfn{semantic-ctxt-current-symbol}.
 Return @code{nil} if there is nothing relevant.
@@ -1167,6 +1188,7 @@ symbol @code{ctxt-current-assignment}.
 @end defun
 
 @defun semantic-ctxt-current-function &optional point
+@anchor{semantic-ctxt-current-function}
 Return the current function call the cursor is in at @var{POINT}.
 The function returned is the one accepting the arguments that
 the cursor is currently in.  It will not return function symbol if the
@@ -1176,6 +1198,7 @@ symbol @code{ctxt-current-function}.
 @end defun
 
 @defun semantic-ctxt-current-argument &optional point
+@anchor{semantic-ctxt-current-argument}
 Return the index of the argument position the cursor is on at @var{POINT}.
 This function can be overriden in semantic using the
 symbol @code{ctxt-current-argument}.
@@ -1190,8 +1213,23 @@ gets a match.  See @dfn{semantic-ctxt-current-symbol},
 for details on the return value.
 @end defun
 
+@defun semantic-ctxt-current-class-list &optional point
+@anchor{semantic-ctxt-current-class-list}
+Return a list of tag classes that are allowed at @var{POINT}.
+If @var{POINT} is @code{nil}, the current buffer location is used.
+For example, in Emacs Lisp, the symbol after a ( is most likely
+a function.  In a makefile, symbols after a : are rules, and symbols
+after a $( are variables.
+This function can be overriden in semantic using the
+symbol @code{ctxt-current-class-list}.
+@end defun
+
 @defun semantic-ctxt-scoped-types &optional point
+@anchor{semantic-ctxt-scoped-types}
 Return a list of type names currently in scope at @var{POINT}.
+The return value can be a mixed list of either strings (names of
+types that are in scope) or actual tags (type declared locally
+that may or may not have a name.)
 This function can be overriden in semantic using the
 symbol @code{ctxt-scoped-types}.
 @end defun
