@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.23 2003/03/31 07:46:24 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.24 2003/04/01 03:39:17 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -613,10 +613,10 @@ It ignores whitespaces, newlines and comments."
 Argument OVERLAY is the overlay created to mark the change.
 When OVERLAY marks a change in the scope of a nonterminal tag extend
 the change bounds to encompass the whole nonterminal tag."
-  (let ((outer (car (semantic-find-nonterminal-by-overlay-in-region
+  (let ((outer (car (semantic-find-tag-by-overlay-in-region
                      (semantic-edits-os overlay)
                      (semantic-edits-oe overlay)))))
-    (if (semantic-tag-class-of-p outer 'nonterminal)
+    (if (semantic-tag-of-class-p outer 'nonterminal)
         (semantic-overlay-move overlay
                                (semantic-tag-start outer)
                                (semantic-tag-end outer)))))
@@ -629,7 +629,7 @@ the change bounds to encompass the whole nonterminal tag."
   "Return expansion of built-in ASSOC expression.
 ARGS are ASSOC's key value list."
   (let ((key t))
-    `(semantic-bovinate-make-assoc-list
+    `(semantic-tag-make-assoc-list
       ,@(mapcar #'(lambda (i)
                     (prog1
                         (if key
@@ -668,7 +668,7 @@ ARGS are ASSOC's key value list."
 (defun semantic-grammar-first-tag-name (class)
   "Return the name of the first tag of class CLASS found.
 Warn if other tags of class CLASS exist."
-  (let* ((tags (semantic-find-nonterminal-by-token
+  (let* ((tags (semantic-find-tags-by-class
                 class (current-buffer))))
     (if tags
         (prog1
@@ -680,7 +680,7 @@ Warn if other tags of class CLASS exist."
 (defun semantic-grammar-tag-symbols (class)
   "Return the list of symbols defined in tags of class CLASS.
 That is tag names plus names defined in tag attribute `:rest'."
-  (let* ((tags (semantic-find-nonterminal-by-token
+  (let* ((tags (semantic-find-tags-by-class
                 class (current-buffer))))
     (apply #'append
            (mapcar
@@ -721,7 +721,7 @@ That is tag names plus names defined in tag attribute `:rest'."
              (goto-char (semantic-tag-end code-tag))
              (skip-chars-backward "\r\n\t %}")
              (point))))
-     (semantic-find-nonterminal-by-token 'code (current-buffer))
+     (semantic-find-tags-by-class 'code (current-buffer))
      "\n")))
 
 (defun semantic-grammar-setupcode-forms ()
@@ -776,11 +776,11 @@ the keyword and TOKEN is the terminal symbol identifying the keyword."
    #'(lambda (key)
        (cons (semantic-tag-get-attribute key :value)
              (intern (semantic-tag-name key))))
-   (semantic-find-nonterminal-by-token 'keyword (current-buffer))))
+   (semantic-find-tags-by-class 'keyword (current-buffer))))
 
 (defun semantic-grammar-keyword-properties (keywords)
   "Return the list of KEYWORDS properties."
-  (let ((puts (semantic-find-nonterminal-by-token
+  (let ((puts (semantic-find-tags-by-class
                'put (current-buffer)))
         put keys key plist assoc pkey pval props)
     (while puts
@@ -814,7 +814,7 @@ nil."
   (let (tags alist assoc tag type term names value)
     
     ;; Check for <type> in %left, %right & %nonassoc declarations
-    (setq tags (semantic-find-nonterminal-by-token
+    (setq tags (semantic-find-tags-by-class
                 'assoc (current-buffer)))
     (while tags
       (setq tag  (car tags)
@@ -833,7 +833,7 @@ nil."
     
     ;; Then process %token declarations so they can override any
     ;; previous specifications
-    (setq tags (semantic-find-nonterminal-by-token
+    (setq tags (semantic-find-tags-by-class
                 'token (current-buffer)))
     (while tags
       (setq tag  (car tags)
@@ -854,7 +854,7 @@ nil."
 
 (defun semantic-grammar-token-properties (tokens)
   "Return the list of properties of lexical tokens TOKENS."
-  (let ((puts (semantic-find-nonterminal-by-token
+  (let ((puts (semantic-find-tags-by-class
                'put (current-buffer)))
         put keys key plist assoc pkey pval props)
     (while puts
@@ -961,7 +961,7 @@ of the first line of comment."
           (format-time-string "%Y-%m-%d %R%z")))
 
 (defmacro semantic-grammar-as-string (object)
-  "Return object as a string value."
+  "Return OBJECT as a string value."
   `(if (stringp ,object)
        ,object
      (require 'pp)
@@ -1452,7 +1452,7 @@ Use the Lisp or grammar indenter depending on point location."
       ;; We are in lisp code.  Do lisp completion.
       (lisp-complete-symbol)
     ;; We are not in lisp code.  Do rule completion.
-    (let* ((nonterms (semantic-find-nonterminal-by-token 'nonterminal (current-buffer)))
+    (let* ((nonterms (semantic-find-tags-by-class 'nonterminal (current-buffer)))
 	   (sym (car (semantic-ctxt-current-symbol)))
 	   (ans (try-completion sym nonterms)))
       (cond ((eq ans t)
@@ -1575,16 +1575,16 @@ Optional argument COLOR determines if color is added to the text."
      ((eq class 'keyword)
       (setq label "Keyword: ")
       (let (summary)
-        (semantic-find-nonterminal-by-function
+        (semantic-brute-find-tag-by-function
          #'(lambda (put)
              (unless summary
                (setq summary (cdr (assoc "summary"
                                          (semantic-tag-get-attribute
                                           put :value))))))
          ;; Get `put' tag with TAG name.
-         (semantic-find-nonterminal-by-name-regexp
+         (semantic-find-tags-by-name-regexp
           (regexp-quote (semantic-tag-name tag))
-          (semantic-find-nonterminal-by-token 'put (current-buffer))))
+          (semantic-find-tags-by-class 'put (current-buffer))))
 	(setq desc (concat " = "
                            (semantic-tag-get-attribute tag :value)
                            (if summary
