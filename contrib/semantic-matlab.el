@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-matlab.el,v 1.1 2005/01/16 02:57:08 zappo Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.2 2005/01/16 22:04:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,7 +35,10 @@
 
 (require 'semantic)
 (require 'semantic-format)
-(require 'matlab)
+;; Allow a build without MATLAB installed.
+(condition-case nil
+    (require 'matlab)
+  (error nil))
 
 ;;(eval-when-compile
 ;;  (require 'semanticdb)
