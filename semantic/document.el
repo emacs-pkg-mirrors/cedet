@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.12 2002/05/07 01:31:15 zappo Exp $
+;; X-RCS: $Id: document.el,v 1.12.2.1 2002/12/26 11:05:16 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -39,6 +39,11 @@
 (require 'sformat)
 ;; This contains most variable settings for auto-comment generation.
 (require 'document-vars)
+
+;; XEmacs change: needed to define macros at compile time.
+(eval-when-compile
+  (require 'semantic)
+  (require 'semantic-util))
 
 ;;; Code:
 
@@ -335,8 +340,8 @@ This will create a new documentation string from scratch."
   "Create documentation for the function defined in NONTERM.
 If we can identify a verb in the list followed by some
 name part then check the return value to see if we can use that to
-finish off the sentence.  ie.  Any function with 'alloc' in it will be
-allocating something based on it's type."
+finish off the sentence.  ie. any function with 'alloc' in it will be
+allocating something based on its type."
   (let ((al document-autocomment-return-first-alist)
 	(dropit nil)
 	(tailit nil)
@@ -409,7 +414,7 @@ Argument RETURNVAL is the string representing the type to be returned."
   
 (defun document-insert-parameters (params &optional commentlist)
   "Convert a parameter list PARAMS into a vertical list separated by -es.
-Optional COMMENTLIST is a list of previously know parts with comments."
+Optional COMMENTLIST is a list of previously known parts with comments."
 
   (let* ((col (if Sformat-formatting (Sformat-column) (current-column)))
 	 (newl params)
@@ -460,7 +465,7 @@ Optional COMMENTLIST is a list of previously know parts with comments."
   "Convert nonterminal or string PARAM into a name,comment pair.
 Optional COMMENTLIST is list of previously existing comments to
 use instead in alist form.  If the name doesn't appear in the list of
-standard names, then englishafy it.  instead."
+standard names, then englishify it instead."
   (let ((cmt "")
 	(aso document-autocomment-param-alist)
 	(fnd nil)
@@ -569,7 +574,7 @@ COMMENT is a flex token."
       (setq document-runflags (cdr document-runflags)))))
 
 (defun document-argument-name (arg)
-  "Return a string representing the argument ARGs name.
+  "Return a string representing the name of ARG.
 Arguments can be semantic tokens, or strings."
   (cond ((semantic-token-p arg)
 	 (semantic-token-name arg))
@@ -669,7 +674,7 @@ Works with the following rules:
   2) inserts spaces in front of all lowerUpper case combos
   3) expands noun names based on common programmer nouns.
   
-  This function is designed for Variables, not functions.  This does
+  This function is designed for variables, not functions.  This does
 not account for verb parts."
   (let ((ind 0)				;index in string
 	(llow nil)			;lower/upper case flag
