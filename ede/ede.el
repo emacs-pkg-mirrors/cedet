@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.23 1999/11/09 20:14:57 zappo Exp $
+;; RCS: $Id: ede.el,v 1.24 1999/11/10 14:18:15 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -308,11 +308,6 @@ Argument LIST-O-O is the list of objects to choose from."
 (if ede-minor-keymap
     (progn
       (easy-menu-define
-       ede-minor-target-menu ede-minor-keymap "Target Minor Mode Menu"
-       '("Target" 
-	 :filter ede-target-forms-menu
-	 [ "No Menu Available" 'undefined ]))
-      (easy-menu-define
        ede-minor-menu ede-minor-keymap "Project Minor Mode Menu"
        '("Project"
 	 [ "Build all" ede-compile-project nil ]
@@ -329,13 +324,11 @@ Argument LIST-O-O is the list of objects to choose from."
 	 [ "Select Active Target" nil nil ]
 	 [ "Add Target" ede-new-target (ede-current-project) ]
 	 [ "Remove Target" ede-delete-target ede-object ]
-	 [ "Target Preferences..." ede-customize-target
-	   (and ede-object
-		(not (obj-of-class-p ede-object ede-project))) ]
+	 ( "Target Options" :filter ede-target-forms-menu )
 	 "---"
-	 [ "Select Active Project" nil nil ]
+	 [ "Select Active Project" 'undefined nil ]
 	 [ "Create Project" ede-new (not ede-object) ]
-	 [ "Remove Project" nil nil ]
+	 [ "Remove Project" 'undefined nil ]
 	 [ "Load a project" ede t ]
 	 [ "Rescan Project Files" ede-rescan-toplevel t ]
 	 [ "Customize Project" ede-customize-project (ede-current-project) ]
@@ -362,8 +355,15 @@ Argument LIST-O-O is the list of objects to choose from."
   (easy-menu-filter-return
    (easy-menu-create-menu
     "Target Forms"
-    (let ((obj (or ede-selected-object ede-object)))
-      (or (oref obj menu) menu-def)))))
+    (let* ((obj (or ede-selected-object ede-object))
+	   (defaultitems
+	     '( [ "Target Preferences..." ede-customize-target
+		  (and ede-object
+		       (not (obj-of-class-p ede-object ede-project))) ]
+		)))
+      (if (oref obj menu)
+	  (append defaultitems (oref obj menu))
+	defaultitems)))))
 
 (defun ede-apply-object-keymap (&optional default)
   "Add target specific keybindings into the local map.
