@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: inversion.el,v 1.14 2003/03/02 14:05:34 zappo Exp $
+;; X-RCS: $Id: inversion.el,v 1.15 2003/03/03 01:42:05 zappo Exp $
 
 ;;; Code:
 (defvar inversion-version "1.0beta4"
@@ -305,7 +305,7 @@ Return nil if everything is ok.	 Return an error string otherwise."
      ;; Check failed
      (t "Inversion version check failed."))))
 
-(defun inversion-require (package version file &optional directory
+(defun inversion-require (package version &optional file directory
 				  &rest reserved)
   "Declare that you need PACKAGE with at least VERSION.
 PACKAGE might be found in FILE.  (See `require'.)
