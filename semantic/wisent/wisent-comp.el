@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.19 2003/10/01 08:48:58 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.20 2004/02/26 08:35:31 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -197,6 +197,15 @@ If optional LEFT is non-nil insert spaces on left."
 
 (defvar wisent-verbose-flag nil
   "*Non-nil means to report verbose information on generated parser.")
+
+;;;###autoload
+(defun wisent-toggle-verbose-flag ()
+  "Toggle whether to report verbose information on generated parser."
+  (interactive)
+  (setq wisent-verbose-flag (not wisent-verbose-flag))
+  (when (interactive-p)
+    (message "Verbose report %sabled"
+             (if wisent-verbose-flag "en" "dis"))))
 
 (defmacro wisent-log-buffer ()
   "Return the log buffer.
