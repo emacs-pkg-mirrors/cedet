@@ -82,7 +82,6 @@ Copyright @copyright{} 2004 @value{AUTHOR}
 @c *************************************************************************
 @c @ Document
 @c *************************************************************************
-@paragraphindent none
 
 @node top
 @top @value{TITLE}
@@ -948,6 +947,11 @@ Lisp code.
 You can run the command @command{semantic-grammar-create-package} with
 @w{@kbd{C-c C-c}} (or @w{@kbd{C-u C-c C-c}} to unconditionally
 re-generate the Lisp code).@refill
+
+Additionally, when this command is run interactively, all open buffers
+of that mode have their setup functions re-run.  That way after
+compiling your grammar, all relevant buffers will be actively using
+that grammar so you can test what you have done.
 
 @deffn Command semantic-grammar-indent
 @anchor{semantic-grammar-indent}
