@@ -325,15 +325,18 @@ types of paths.  The default is to examine the specified buffers
 include list, and only scan those files.  Optional "brute" path will
 scan all files in the current project, including system level databases.
 
-*** Search Results
-Search Results are somewhat more formalized, and have routines to
+*** database Find Results
+Find Results are somewhat more formalized, and have routines to
 deal with them.
 
-semanticdb-search-results-p
-semanticdb-strip-search-results
-semanticdb-search-result-with-nil-p
-semanticdb-search-result-length
-semanticdb-search-result-nth
+semanticdb-find-results-p
+semanticdb-strip-find-results
+semanticdb-find-result-with-nil-p
+semanticdb-find-result-length
+semanticdb-find-result-nth
+
+Find results can be passed into any semanticdb-find routine as the
+path and only those results will be scanned.
 
 *** New types of searches not originally in semanticdb-search.el
 
