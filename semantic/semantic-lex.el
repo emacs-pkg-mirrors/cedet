@@ -1,8 +1,8 @@
 ;;; semantic-lex.el --- Lexical Analyzer builder
 
-;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-lex.el,v 1.15 2003/01/25 09:23:02 ponced Exp $
+;; X-CVS: $Id: semantic-lex.el,v 1.16 2003/01/31 13:48:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,7 +33,8 @@
 
 ;;; Compatibility
 ;;
-(eval-and-compile (if (not (fboundp 'with-syntax-table))
+(eval-and-compile
+  (if (not (fboundp 'with-syntax-table))
 
 ;; Copied from Emacs 21 for compatibility with released Emacses.
 (defmacro with-syntax-table (table &rest body)
@@ -616,7 +617,10 @@ at the beginning of `token-stream'.   This can be done by using
      ;; function help is automatically provided, and perhaps the
      ;; function could be useful for testing and debugging one
      ;; analyzer.
-     (fset ',name (lambda () ,doc (when ,condition ,@forms)))
+     (fset ',name (lambda () ,doc
+		    (let ((token-stream nil))
+		      (when ,condition ,@forms)
+		      token-stream)))
      ))
 
 ;;;###autoload
