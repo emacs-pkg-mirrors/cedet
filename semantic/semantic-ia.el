@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia.el,v 1.1 2002/02/27 04:23:19 zappo Exp $
+;; X-RCS: $Id: semantic-ia.el,v 1.2 2002/03/23 03:08:01 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -58,7 +58,8 @@ Supports caching."
     symbols))
 
 (defun semantic-ia-complete-symbol (point)
-  "Complete the current symbol at POINT."
+  "Complete the current symbol at POINT.
+Completion options are calculated with `semantic-analyze-possible-completions'."
   (interactive "d")
   (let* ((a (semantic-analyze-current-context point))
 	 (syms (semantic-ia-get-completions a point))
@@ -93,7 +94,8 @@ Supports caching."
   :type semantic-token->text-custom-list)
 
 (defun semantic-ia-complete-symbol-menu (point)
-  "Complete the current symbol based at POINT."
+  "Complete the current symbol via a menu based at POINT.
+Completion options are calculated with `semantic-analyze-possible-completions'."
   (interactive "d")
   (let* ((a (semantic-analyze-current-context point))
 	 (syms (semantic-ia-get-completions a point))
