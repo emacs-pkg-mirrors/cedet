@@ -81,7 +81,7 @@ Complexity of semantic.el
 </td>
 </table>
 
-<h3>What's coming in Semantic 2.0?</h3>
+<h3>What's coming in Semantic 2.0?  (A Part of of CEDET 1.0)</h3>
 <dl>
 <td><b>New Grammar framework</b>
 <dd>A new framework for handling parsers, and the rule based language
@@ -96,7 +96,7 @@ Complexity of semantic.el
 <dd>The old Bovine Normal Form pun has been removed.  LL (bovine)
   parsers are now in .by files.
 <dt><b>Improved incremental parser</b>
-<dd>Fixes the token cache in more situations than the previous
+<dd>Fixes the tag cache in more situations than the previous
   mechanism reducing the frequency a full reparse is needed.
 <dt><b>Improved lex API</b>
 <dd>New programmers interface to the lexical analysis phase produces
