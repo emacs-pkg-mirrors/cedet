@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 June 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.el,v 1.22 2002/05/15 19:23:23 ponced Exp $
+;; X-RCS: $Id: wisent-java.el,v 1.23 2002/06/29 18:12:51 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,62 +46,15 @@
 ;;;; Global stuff
 ;;;;
 
-(eval-and-compile ;; Definitions needed at compilation time
-
-  (defun wisent-java-expand-nonterminal (token)
-    "Expand TOKEN into a list of equivalent nonterminals, or nil.
-Handle multiple variable declarations in the same statement that is
-tokens of the form:
-
-\(NAME-LIST variable TYPE DEFAULT EXTRA-SPECS DOCSTRING PROPS OVERLAY)
-
-Where NAME-LIST is a list of elements of the form (NAME START . END).
-NAME is the variable name.  START and END are respectively the
-beginning and end of the region of declaration related to this
-variable NAME."
-    (if (eq (semantic-token-token token) 'variable)
-        (let ((nl (semantic-token-name token)))
-          (if (consp nl)
-              ;; There are multiple names in the same variable
-              ;; declaration.
-              (let* ((ty (semantic-token-type                 token))
-                     (dv (semantic-token-variable-default     token))
-                     (xs (semantic-token-variable-extra-specs token))
-                     (ds (semantic-token-docstring            token))
-                     (pr (semantic-token-properties           token))
-                     (ov (semantic-token-overlay              token))
-                     (ov-start  (aref ov 0))
-                     (ov-end    (aref ov 1))
-                     nelt start end vl)
-                ;; Merge in new 'variable tokens each name and other
-                ;; values from the initial token.
-                (while nl
-                  (setq nelt  (car nl)
-                        nl    (cdr nl)
-                        start (if nl (cadr nelt) ov-start)
-                        end   (if vl (cddr nelt) ov-end)
-                        vl    (cons (list (car nelt)
-                                          'variable
-                                          ty ; type
-                                          dv ; default value
-                                          xs ; extra specs
-                                          ds ; docstring
-                                          pr ; properties
-                                          (vector start end))
-                                    vl)))
-                vl)))))
-  
-  )
-
 (defconst wisent-java-parser-tables
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-05-15 13:57+0200
+    ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-06-13 10:23+0200
     (wisent-compile-grammar
      '((LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP NULL_LITERAL BOOLEAN_LITERAL IDENTIFIER STRING_LITERAL NUMBER_LITERAL ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED)
        nil
        (goal
         ((compilation_unit)
-         (nreverse $1)))
+         (wisent-token "goal" 'goal $1 nil)))
        (literal
         ((NULL_LITERAL))
         ((BOOLEAN_LITERAL))
@@ -175,14 +128,14 @@ variable NAME."
          (list $1)))
        (package_declaration
         ((PACKAGE name SEMICOLON)
-         (wisent-token $2 'package nil nil))
+         (wisent-cooked-token $2 'package nil nil))
         ((error)
          (wisent-skip-token)))
        (import_declaration
         ((IMPORT name SEMICOLON)
-         (wisent-token $2 'include nil nil))
+         (wisent-cooked-token $2 'include nil nil))
         ((IMPORT name DOT MULT SEMICOLON)
-         (wisent-token
+         (wisent-cooked-token
           (concat $2 $3 $4)
           'include nil nil))
         ((error)
@@ -217,12 +170,12 @@ variable NAME."
         ((PUBLIC)))
        (class_declaration
         ((modifiers_opt CLASS IDENTIFIER superc_opt interfaces_opt class_body)
-         (wisent-token $3 'type $2 $6
-                       (if
-                           (or $4 $5)
-                           (cons $4 $5))
-                       (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                       nil)))
+         (wisent-cooked-token $3 'type $2 $6
+                              (if
+                                  (or $4 $5)
+                                  (cons $4 $5))
+                              (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                              nil)))
        (superc
         ((EXTENDS class_type)
          (identity $2)))
@@ -271,8 +224,10 @@ variable NAME."
        (field_declarations_opt
         (nil)
         ((field_declarations)
-         (apply 'nconc
-                (nreverse $1))))
+         (wisent-token "goal" 'goal
+                       (apply 'nconc
+                              (nreverse $1))
+                       nil)))
        (field_declarations
         ((field_declarations field_declaration_maybe)
          (cons $2 $1))
@@ -284,11 +239,9 @@ variable NAME."
          (wisent-skip-token)))
        (field_declaration
         ((modifiers_opt type variable_declarators SEMICOLON)
-         (wisent-java-expand-nonterminal
-          (car
-           (wisent-token $3 'variable $2 nil
-                         (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                         nil)))))
+         (wisent-cooked-token $3 'variable $2 nil
+                              (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                              nil)))
        (variable_declarators
         ((variable_declarators COMMA variable_declarator)
          (cons $3 $1))
@@ -308,14 +261,14 @@ variable NAME."
         ((expression)))
        (method_declaration
         ((modifiers_opt VOID method_declarator throwsc_opt method_body)
-         (wisent-token
+         (wisent-cooked-token
           (car $3)
           'function $2
           (cdr $3)
           (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
           nil))
         ((modifiers_opt type method_declarator throwsc_opt method_body)
-         (wisent-token
+         (wisent-cooked-token
           (car $3)
           'function $2
           (cdr $3)
@@ -342,9 +295,9 @@ variable NAME."
          (list $1)))
        (formal_parameter
         ((formal_parameter_modifier_opt type variable_declarator_id)
-         (wisent-token $3 'variable $2 nil
-                       (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                       nil)))
+         (wisent-cooked-token $3 'variable $2 nil
+                              (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                              nil)))
        (formal_parameter_modifier_opt
         (nil)
         ((FINAL)
@@ -367,7 +320,7 @@ variable NAME."
         ((STATIC block)))
        (constructor_declaration
         ((modifiers_opt constructor_declarator throwsc_opt constructor_body)
-         (wisent-token
+         (wisent-cooked-token
           (car $2)
           'function nil
           (cdr $2)
@@ -387,11 +340,11 @@ variable NAME."
         ((THIS LPAREN argument_list_opt RPAREN SEMICOLON)))
        (interface_declaration
         ((modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body)
-         (wisent-token $3 'type $2 $5
-                       (if $4
-                           (cons nil $4))
-                       (semantic-bovinate-make-assoc-list 'typemodifiers $1)
-                       nil)))
+         (wisent-cooked-token $3 'type $2 $5
+                              (if $4
+                                  (cons nil $4))
+                              (semantic-bovinate-make-assoc-list 'typemodifiers $1)
+                              nil)))
        (extends_interfaces_opt
         (nil)
         ((extends_interfaces)
@@ -425,14 +378,14 @@ variable NAME."
         ((field_declaration)))
        (abstract_method_declaration
         ((modifiers_opt VOID method_declarator throwsc_opt SEMICOLON)
-         (wisent-token
+         (wisent-cooked-token
           (car $3)
           'function $2
           (cdr $3)
           (semantic-bovinate-make-assoc-list 'typemodifiers $1 'throws $4)
           nil))
         ((modifiers_opt type method_declarator throwsc_opt SEMICOLON)
-         (wisent-token
+         (wisent-cooked-token
           (car $3)
           'function $2
           (cdr $3)
@@ -615,7 +568,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-05-15 13:57+0200
+   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-06-13 10:23+0200
    (semantic-flex-make-keyword-table
     '(("abstract" . ABSTRACT)
       ("boolean" . BOOLEAN)
@@ -771,7 +724,7 @@ unnecessary stuff to improve performance.")
 
 (defconst wisent-java-tokens
   (identity
-   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-05-15 13:57+0200
+   ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-06-13 10:23+0200
    (wisent-flex-make-token-table
     '(("number"
        (NUMBER_LITERAL))
@@ -842,9 +795,10 @@ unnecessary stuff to improve performance.")
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-05-15 13:57+0200
+  ;;DO NOT EDIT! Generated from wisent-java.wy - 2002-06-13 10:23+0200
   (progn
-    (setq semantic-bovinate-toplevel-override 'wisent-bovinate-toplevel
+    (setq semantic-bovinate-parser 'wisent-bovinate-nonterminal
+          semantic-bovinate-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-java-parser-tables
           semantic-flex-keywords-obarray wisent-java-keywords
           wisent-flex-tokens-obarray wisent-java-tokens)
@@ -857,6 +811,7 @@ Use the alternate LALR(1) parser."
      t ;; They can be changed in mode hook by more specific ones
      )
     (setq
+     semantic-expand-nonterminal 'wisent-java-expand-nonterminal
      ;; How `semantic-flex' will setup the lexer input stream.
      semantic-flex-depth nil
      ;; Tell `semantic-flex' to handle Java numbers
@@ -885,10 +840,72 @@ Use the alternate LALR(1) parser."
      ;; Semantic navigation inside 'type children
      senator-step-at-token-ids '(function variable)
      )
+    ;; Collect unmatched syntax lexical tokens
+    (semantic-make-local-hook 'wisent-skip-token-hook)
+    (add-hook 'wisent-skip-token-hook
+              'wisent-collect-unmatched-syntax nil t)
     ;; Setup javadoc stuff
     (semantic-java-doc-setup))
   )
 
+(defun wisent-java-expand-nonterminal (token)
+  "Expand TOKEN into a list of equivalent nonterminals, or nil.
+Expand special raw tokens 'goal into a list of nonterminals.  A 'goal
+raw token has the form:
+
+\(\"goal\" 'goal NONTERMS DOCSTRING PROPS OVERLAY)
+
+where NONTERMS is a list of cooked nonterminal tokens in reverse
+order.  The DOCSTRING, PROPS and OVERLAY elements have no meaning.
+They are just here to obey the orthodox token style!
+
+Handle multiple variable declarations in the same statement that is
+tokens of the form:
+
+\(NAME-LIST variable TYPE DEFAULT EXTRA-SPECS DOCSTRING PROPS OVERLAY)
+
+Where NAME-LIST is a list of elements of the form (NAME START . END).
+NAME is the variable name.  START and END are respectively the
+beginning and end of the region of declaration related to this
+variable NAME."
+  (let ((cat (semantic-token-token token))
+        ty dv xs ds pr ov ov-start ov-end start end nl vl nelt)
+    (cond
+     
+     ;; Expand a goal
+     ((eq cat 'goal)
+      (nreverse (nth 2 token)))
+     
+     ;; Expand multiple names in the same variable declaration.
+     ((and (eq cat 'variable)
+           (consp (setq nl (semantic-token-name token))))
+      (setq ty (semantic-token-type                 token)
+            dv (semantic-token-variable-default     token)
+            xs (semantic-token-variable-extra-specs token)
+            ds (semantic-token-docstring            token)
+            pr (semantic-token-properties           token)
+            ov (semantic-token-overlay              token)
+            ov-start  (aref ov 0)
+            ov-end    (aref ov 1))
+      ;; Merge in new 'variable tokens each name and other
+      ;; values from the initial token.
+      (while nl
+        (setq nelt  (car nl)
+              nl    (cdr nl)
+              start (if nl (cadr nelt) ov-start)
+              end   (if vl (cddr nelt) ov-end)
+              vl    (cons (list (car nelt)
+                                'variable
+                                ty      ; type
+                                dv      ; default value
+                                xs      ; extra specs
+                                ds      ; docstring
+                                pr      ; properties
+                                (vector start end))
+                          vl)))
+      vl)
+     )))
+  
 ;;;;
 ;;;; Simple parser error reporting function
 ;;;;
@@ -912,24 +929,19 @@ MSG is the message string to report."
 Uses the bovinator with the special top-symbol `field_declaration'
 to collect tokens, such as local variables or prototypes.
 This function is a Java specific `get-local-variables' override."
-  ;; The working status is to let the parser work properly
-  (working-status-forms "LALR:Local" "done"
-    (let ((semantic-bovination-working-type nil)
-          ;; We want nothing to do with funny syntaxing while doing this.
-          (semantic-unmatched-syntax-hook nil)
-          ;; Disable parsing messages
-          (working-status-dynamic-type nil)
-          (vars nil))
-      (while (not (semantic-up-context (point) 'function))
-        (save-excursion
-          (forward-char 1)
-          (setq vars
-                (append (wisent-bovinate-region-until-error
-                         (point)
-                         (save-excursion (semantic-end-of-context) (point))
-                         'field_declarations_opt)
-                        vars))))
-      vars)))
+  (let ((vars nil)
+        ;; We want nothing to do with funny syntaxing while doing this.
+        (semantic-unmatched-syntax-hook nil))
+    (while (not (semantic-up-context (point) 'function))
+      (save-excursion
+        (forward-char 1)
+        (setq vars
+              (append (semantic-bovinate-region-until-error
+                       (point)
+                       (save-excursion (semantic-end-of-context) (point))
+                       'field_declarations_opt)
+                      vars))))
+    vars))
 
 ;;;;
 ;;;; Semantic integration of the Java LALR parser
