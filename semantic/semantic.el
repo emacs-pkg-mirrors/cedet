@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.171 2003/04/01 15:20:11 ponced Exp $
+;; X-RCS: $Id: semantic.el,v 1.172 2003/04/01 20:08:24 zappo Exp $
 
 (eval-and-compile
   ;; Other package depend on this value at compile time via inversion.
@@ -613,7 +613,7 @@ compatibility with previous versions of Semantic."
             semantic-unmatched-syntax-cache-check)
         (semantic-clear-toplevel-cache))
       ;; Set up the new overlays
-      (semantic-overlay-list res)
+      (semantic--tag-link-list-to-buffer res)
       ;; Set up the cache with the new results
       (semantic-set-toplevel-bovine-cache res)
       ))))
@@ -650,12 +650,12 @@ This function returns tokens without overlays."
                                ;; Set the 'reparse-symbol property to
                                ;; NONTERM unless it was already setup
                                ;; by a token expander
-                               (or (semantic-token-get
+                               (or (semantic--tag-get-property
                                     token 'reparse-symbol)
-                                   (semantic-token-put
+                                   (semantic--tag-put-property
                                     token 'reparse-symbol nonterm))
                                token)
-                           (semantic-raw-to-cooked-token token))
+                           (semantic--tag-expand token))
                     result (append token result))
             ;; No error in this case, a purposeful nil means don't
             ;; store anything.
