@@ -7,7 +7,7 @@
 ;; Created: 10 Nov 2000
 ;; Version: 2.1
 ;; Keywords: tools, syntax
-;; VC: $Id: senator.el,v 1.15 2001/01/03 16:09:28 david_ponce Exp $
+;; VC: $Id: senator.el,v 1.16 2001/01/10 08:09:16 david_ponce Exp $
 
 ;; This file is not part of Emacs
 
@@ -95,6 +95,9 @@
 ;;; History:
 
 ;; $Log: senator.el,v $
+;; Revision 1.16  2001/01/10 08:09:16  david_ponce
+;; Fixed undeclared local variable 'slot' in `senator-menu-item'.
+;;
 ;; Revision 1.15  2001/01/03 16:09:28  david_ponce
 ;; New version 2.1.
 ;;
@@ -748,7 +751,7 @@ That is remove the unsupported :help stuff."
   (if (featurep 'xemacs)
       (let ((n (length item))
             (i 0)
-            l)
+            slot l)
         (while (< i n)
           (setq slot (aref item i))
           (if (and (keywordp slot)
