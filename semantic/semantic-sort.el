@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.12 2004/02/05 22:29:33 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.13 2004/02/06 04:10:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -158,7 +158,8 @@ Return the sorted list."
   "Scan a list of TAGS, removing duplicate names.
 This must first sort the tags by name alphabetically ascending."
   (let ((copy (copy-sequence tags))
-	(sorted (semantic-sort-tags-by-name-increasing tags))
+	(sorted (semantic-sort-tags-by-name-increasing
+		 (copy-sequence tags)))
 	(uniq nil))
     (while sorted
       (if (or (not uniq)
@@ -176,8 +177,9 @@ This must first sort the tags by name alphabetically ascending.
 TAGS are removed only if they are equivalent, as can happen when
 multiple tag sources are scanned."
   (let ((copy (copy-sequence tags))
-	(sorted (sort tags (lambda (a b)
-			     (< (semantic-tag-start a) (semantic-tag-start b)))))
+	(sorted (sort (copy-sequence tags)
+		      (lambda (a b)
+			(< (semantic-tag-start a) (semantic-tag-start b)))))
 	(uniq nil))
     (while sorted
       (if (or (not uniq)
