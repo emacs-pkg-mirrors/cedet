@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: bison-wisent.el,v 1.1 2002/09/11 00:30:17 zappo Exp $
+;; X-RCS: $Id: bison-wisent.el,v 1.2 2002/10/26 14:33:10 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 (defalias 'yacc->wisent 'bison->wisent)
 (require 'cc-mode)
 
+;;;###autoload
 (defun bison->wisent ()
   "Treat the current buffer as a YACC or BISON file, and translate to wisent.
 Replaces all comments with wisent compatible comments.
@@ -80,7 +81,7 @@ Return t on success."
 	(save-excursion
 	  (newline)
 	  (indent-for-tab-command)))
-    (insert ";; Action")
+    (insert ";; ")
     t))
 
 (defun bison->wisent-action-replace  ()
