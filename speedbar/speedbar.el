@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.16 1997/01/18 16:01:16 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.17 1997/01/19 22:12:37 zappo Exp $
 ;;; Version: 0.4
 ;;; Keywords: file, tags, tools
 ;;;
@@ -950,14 +950,15 @@ what it is.  This is specific to file names.  If the file name doesn't show
 up, but it should be in the list, then the directory cache needs to be
 updated."
   (let* ((lastf (selected-frame))
-	 (newcf (save-excursion
+	 (newcfd (save-excursion
 		  (select-frame speedbar-attached-frame)
 		  (let ((rf (if (buffer-file-name)
-				(file-name-nondirectory (buffer-file-name))
+				(buffer-file-name)
 			      nil)))
 		    (select-frame lastf)
 		    rf)))
-	(lastb (current-buffer)))
+	 (newcf (if newcfd (file-name-nondirectory newcfd)))
+	 (lastb (current-buffer)))
     (if (and newcf (not (string= newcf speedbar-last-selected-file)))
 	(progn
 	  (select-frame speedbar-frame)
@@ -986,7 +987,9 @@ updated."
 				   'face 
 				   'speedbar-selected-face)
 	      ;; Oops, it's not in the list.  Should it be?
-	      (if (string-match speedbar-file-regexp newcf)
+	      (if (and (string-match speedbar-file-regexp newcf)
+		       (string= (file-name-directory newcfd)
+				default-directory))
 		  ;; yes, it is (we will ignore unknowns for now...)
 		  (progn
 		    (speedbar-refresh)
