@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-image.el,v 1.6 2002/03/16 20:04:15 zappo Exp $
+;; X-RCS: $Id: sb-image.el,v 1.7 2002/03/17 11:44:13 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -104,6 +104,10 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
 
 )))
 
+(defimage-speedbar speedbar-directory
+  ((:type xpm :file "sb-dir.xpm" :ascent center))
+  "Image used for emptly closed directories.")
+
 (defimage-speedbar speedbar-directory-plus
   ((:type xpm :file "sb-dir-plus.xpm" :ascent center))
   "Image used for closed directories with stuff in them.")
@@ -148,6 +152,14 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
   ((:type xpm :file "sb-tag-type.xpm" :ascent center))
   "Image used for open tag groups.")
 
+(defimage-speedbar speedbar-box-plus
+  ((:type xpm :file "sb-box-plus.xpm" :ascent center))
+  "Image used for closed groups of tags.")
+
+(defimage-speedbar speedbar-box-minus
+  ((:type xpm :file "sb-box-minus.xpm" :ascent center))
+  "Image used for open groups of tags.")
+
 (defimage-speedbar speedbar-mail
   ((:type xpm :file "sb-mail.xpm" :ascent center))
   "Image used for open tag groups.")
@@ -191,12 +203,13 @@ IMAGESPEC is the image data, and DOCSTRING is documentation for the image."
 (defvar speedbar-expand-image-button-alist
   '(("<+>" . speedbar-directory-plus)
     ("<->" . speedbar-directory-minus)
+    ("< >" . speedbar-directory)
     ("[+]" . speedbar-page-plus)
     ("[-]" . speedbar-page-minus)
     ("[?]" . speedbar-page)
     ("[ ]" . speedbar-page)
-    ("{+}" . speedbar-tag-plus)
-    ("{-}" . speedbar-tag-minus)
+    ("{+}" . speedbar-box-plus)
+    ("{-}" . speedbar-box-minus)
     ("<M>" . speedbar-mail)
     ("<d>" . speedbar-document-tag)
     ("<i>" . speedbar-info-tag)
