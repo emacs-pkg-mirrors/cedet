@@ -7,7 +7,7 @@
    (ede-proj-target-aux "Tests"
     :name "Tests"
     :path ""
-    :source '("test.c" "test.cpp" "templates.cpp" "test.make")
+    :source '("test.c" "test.cpp" "templates.cpp" "test.make" "scopetest.cpp" "scopetest.java")
     )
    )
   )
