@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.0.3
 ;; Keywords: project, make
-;; RCS: $Id: project-am.el,v 1.16 1999/03/20 16:20:28 zappo Exp $
+;; RCS: $Id: project-am.el,v 1.17 1999/04/21 22:23:04 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -46,13 +46,13 @@
 (require 'eieio)
 (require 'ede)
 
+(eval-when-compile (require 'compile))
+
 ;; customization stuff
 (defgroup project-am nil
   "File and tag browser frame."
   :group 'tools
   :group 'ede
-;  :group 'convenience
-;  :version "20.3"
   )
 
 (defcustom project-am-compile-project-command nil
@@ -134,7 +134,7 @@ OT is the object target.  DIR is the directory to start in."
 	 (ofn (file-name-nondirectory (buffer-file-name))))
     (if (not ot)
 	(setq ot
-	      (project-am-new-target
+	      (project-new-target
 	       target (project-am-preferred-target-type (buffer-file-name)))))
     (ede-with-projectfile ot
       (makefile-move-to-macro (project-am-macro ot))
@@ -312,7 +312,7 @@ Argument COMMAND is the command to use for compiling the target."
 	     project-am-compile-project-command
 	   (format
 	    project-am-compile-target-command
-	    (project-am-compile-target-command ede-object))))))
+	    (project-compile-target-command ede-object))))))
   ;; We better be in the right place when compiling a specific target.
   (compile command))
 
