@@ -1,10 +1,10 @@
 ;;; semantic.el --- Semantic buffer evaluator.
 
-;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
+;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.137 2001/12/18 17:37:16 emacsman Exp $
+;; X-RCS: $Id: semantic.el,v 1.138 2002/02/06 03:18:51 zappo Exp $
 
 (defvar semantic-version "1.4beta13"
   "Current version of Semantic.")
@@ -1443,6 +1443,10 @@ COLLECTION is the list of things collected so far."
 	  (let ((e (semantic-read-event)))
 	    (cond ((eq e ?f)		;force a failure on this symbol.
 		   (setq ret 'fail))
+		  ((eq e ?a)		;Abort this syntax element
+		   (error "Abort"))
+		  ((eq e ?q)		;Quit this debug session
+		   (signal 'quit "Abort"))
 		  (t nil)))
 	  (other-window 1)
 	  )
