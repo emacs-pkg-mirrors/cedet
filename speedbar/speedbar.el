@@ -1,10 +1,10 @@
 ;;; speedbar --- quick access to files and tags in a frame
 
-;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02, 03 Free Software Foundation
+;;; Copyright (C) 1996, 97, 98, 99, 00, 01, 02, 03, 04 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.235 2004/01/01 17:54:34 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.236 2004/01/08 21:48:13 zappo Exp $
 
 (defvar speedbar-version "0.15beta1"
   "The current version of speedbar.")
@@ -3526,6 +3526,12 @@ This uses the entries in `speedbar-dynamic-tags-function-list'
 to find the proper tags.  It is up to each of those individual
 functions to do caching and flushing if appropriate."
   (save-excursion
+    ;; If a file is in memory, switch to that buffer.  This allows
+    ;; us to use the local variable.  If the file is on disk, we
+    ;; can try a few of the defaults that can get tags without
+    ;; opening the file.
+    (if (get-file-buffer file)
+	(set-buffer (get-file-buffer file)))
     ;; If there is a buffer-local value of
     ;; speedbar-dynamic-tags-function-list, it will now be available.
     (let ((dtf speedbar-dynamic-tags-function-list)
