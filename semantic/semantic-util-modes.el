@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.30 2003/04/02 02:23:52 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.31 2003/04/11 08:32:19 berndl Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1063,6 +1063,17 @@ If there is no function, disable the header line."
 		 (buffer-substring (point-at-bol) (point-at-eol))
 	       ;; Get it
 	       (goto-char (semantic-tag-start tag))
+               ;; Klaus Berndl <klaus.berndl@sdm.de>: 
+               ;; goto the tag name; this is especially needed for languages
+               ;; like c++ where a often used style is like:
+               ;;     void
+               ;;     ClassX::methodM(arg1...)
+               ;;     {
+               ;;       ...
+               ;;     }
+               ;; Without going to the tag-name we would get"void" in the
+               ;; header line which is IMHO not really useful
+               (search-forward (semantic-tag-name tag) nil t)
 	       (buffer-substring (point-at-bol) (point-at-eol))
 	       ))))
 	(start 0))
