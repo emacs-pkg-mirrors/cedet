@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.104 2001/06/03 14:25:03 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.105 2001/06/03 21:38:50 zappo Exp $
 
 (defvar semantic-version "1.4beta7"
   "Current version of Semantic.")
@@ -309,7 +309,7 @@ this is returned instead of re-parsing the buffer.
 
 If you need a token list, use `semantic-bovinate-toplevel'.  If you
 need the cached values for some reason, chances are you can, add a
-hook to `semantic-after-toplevel-tokens-change-hook'.")
+hook to `semantic-after-toplevel-cache-change-hook'.")
 (make-variable-buffer-local 'semantic-toplevel-bovine-cache)
 
 (defvar semantic-edits-are-safe nil
@@ -369,8 +369,6 @@ This function should behave as the function `semantic-bovinate-toplevel'.")
   "Hooks run after a toplevel token parse.
 It is not run if the toplevel parse command is called, and buffer does
 not need to be fully reparsed.
-This function is also called when the toplevel cache is flushed, and
-the cache is emptied.
 For language specific hooks, make sure you define this as a local hook.")
 
 (defvar semantic-after-toplevel-cache-change-hook nil
@@ -380,7 +378,9 @@ list in a buffer is cleared.  It is *NOT* called if the current token
 list partially reparsed.
 
 Hook functions must take one argument, which is the new list of
-tokens associated with this buffer.")
+tokens associated with this buffer.
+
+For language specific hooks, make sure you define this as a local hook.")
 
 (defvar semantic-before-toplevel-cache-flush-hook nil
   "Hooks run before the toplevel nonterminal cache is flushed.
