@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: bovine-debug.el,v 1.1 2003/02/13 02:38:54 zappo Exp $
+;; X-RCS: $Id: bovine-debug.el,v 1.2 2003/03/13 02:23:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -109,6 +109,33 @@ LEXTOKEN, is a token returned by the lexer which is being matched."
   "Display info about this one parser frame."
   (message "%S" (oref frame collection))
   )
+
+;;; Lisp error thrown frame.
+;;
+(defclass semantic-bovine-debug-error-frame (semantic-debug-frame)
+  ((condition :initarg :condition
+	      :documentation
+	      "An error condition caught in an action.")
+   )
+  "Debugger frame representaion of a lisp error thrown during parsing.")
+
+(defun semantic-create-bovine-debug-error-frame (condition)
+  "Create an error frame for bovine debugger.
+Argument CONDITION is the thrown error condition."
+  (let ((frame (semantic-bovine-debug-error-frame "frame"
+						  :condition condition)))
+    (semantic-debug-set-frame semantic-debug-current-interface
+			      frame)
+    frame))
+
+(defmethod semantic-debug-frame-highlight ((frame semantic-bovine-debug-error-frame))
+  "Highlight a frame from an action."
+  ;; How do I get the location of the action in the source buffer?
+  )
+
+(defmethod semantic-debug-frame-info ((frame semantic-bovine-debug-error-frame))
+  "Display info about the error thrown."
+  (message "Error: %S" (oref frame condition)))
 
 ;;; Parser support for the debugger
 ;;
