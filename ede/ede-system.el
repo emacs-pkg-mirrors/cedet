@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, vc
-;; RCS: $Id: ede-system.el,v 1.1 2001/05/20 12:48:25 zappo Exp $
+;; RCS: $Id: ede-system.el,v 1.2 2001/12/05 01:32:05 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -45,13 +45,34 @@
     (browse-url home)
     ))
 
-(defun ede-upload-distribution ()
-  "Upload the current distribution to the correct FTP site."
+
+(defun ede-edit-web-page ()
+  "Edit the web site for this project."
   (interactive)
-  (let ((files (project-dist-files (ede-toplevel)))
-	(upload (if (string= (oref (ede-toplevel) ftp-upload-site) "")
-		    (oref (ede-toplevel) ftp-site)
-		  (oref (ede-toplevel) ftp-upload-site))))
+  (let* ((toplevel (ede-toplevel))
+	 (dir (oref toplevel web-site-directory))
+	 (file (oref toplevel web-site-file))
+	 (endfile (concat (file-name-as-directory dir) file)))
+    (if (string-match "^/r[:@]" endfile)
+	(require 'tramp))
+    (when (not (file-exists-p endfile))
+      (setq endfile file)
+      (if (string-match "^/r[:@]" endfile)
+	  (require 'tramp))
+      (if (not (file-exists-p endfile))
+	  (error "No project file found")))
+    (find-file endfile)))
+	 
+
+(defun ede-upload-distribution ()
+  "Upload the current distribution to the correct location.
+Use /user@ftp.site.com: file names for FTP sites.
+Download tramp, and use /r:machine: for names on remote sites w/out FTP access."
+  (interactive)
+  (let* ((files (project-dist-files (ede-toplevel)))
+	 (upload (if (string= (oref (ede-toplevel) ftp-upload-site) "")
+		     (oref (ede-toplevel) ftp-site)
+		   (oref (ede-toplevel) ftp-upload-site))))
     (when (or (string= upload "")
 	      (not (file-exists-p upload)))
       (error "Upload directory %S does not exist" upload))
@@ -63,6 +84,34 @@
 	      (message "File %s does not exist yet.  Building a distribution"
 		       localfile)
 	      (ede-make-dist)
+	      (error "File %s does not exist yet.  Building a distribution"
+		     localfile)
+	      ))
+	(copy-file localfile upload)
+	(setq files (cdr files)))))
+  (message "Done uploading files...")
+  )
+
+(defun ede-upload-html-documentation ()
+  "Upload the current distributions documentation as HTML.
+Use /user@ftp.site.com: file names for FTP sites.
+Download tramp, and use /r:machine: for names on remote sites w/out FTP access."
+  (interactive)
+  (let* ((files (ede-html-doc-files (ede-toplevel)))
+	 (upload (if (string= (oref (ede-toplevel) ftp-upload-site) "")
+		     (oref (ede-toplevel) ftp-site)
+		   (oref (ede-toplevel) ftp-upload-site))))
+    (when (or (string= upload "")
+	      (not (file-exists-p upload)))
+      (error "Upload directory %S does not exist" upload))
+    (while files
+      (let ((localfile (concat (file-name-directory (oref (ede-toplevel) file))
+			       (car files))))
+	(if (not (file-exists-p localfile))
+	    (progn
+	      (message "File %s does not exist yet.  Building a distribution"
+		       localfile)
+	      ;;(project-compile-target ... )
 	      (error "File %s does not exist yet.  Building a distribution"
 		     localfile)
 	      ))
