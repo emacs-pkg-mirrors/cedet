@@ -161,15 +161,6 @@ Here is a quick view of the framework:
 @node Grammar File
 @chapter Grammar File
 
-@c If there is only one subsection, perhaps it should be promoted?
-
-@menu
-* Grammar outline::             
-@end menu
-
-@node Grammar outline
-@section Grammar outline
-
 A @semantic{} grammar file has four main sections, and looks like this:
 
 @example
@@ -191,14 +182,53 @@ semicolons (@code{;;}) instead of a single one. The single semicolon
 (@code{;}) is the end of rule delimiter.
 
 @menu
+* Terminal and Nonterminal Symbols::  
 * Prologue::                    
 * Declarations::                
 * Grammar Rules::               
 * Epilogue::                    
 @end menu
 
+@node Terminal and Nonterminal Symbols
+@section Terminal and Nonterminal Symbols
+
+@dfn{Symbols} in @semantic{} grammars represent the grammatical
+classifications of the language.  They are valid Emacs Lisp symbols
+without special punctuations that require escaping.
+
+A @dfn{terminal symbol} (also known as a @dfn{lexical token class})
+represents a class of syntactically equivalent tokens.  You use the
+symbol in grammar rules to mean that a token in that class is allowed.
+Bison's convention recommends it should be all upper case.
+
+Terminal symbols are part of the lexical tokens returned by the
+function @code{semantic-lex-analyzer}.  They indicate what kind of
+token has been read.  For more on lexical analysis, see
+@inforef{Writing Lexers, ,semantic-langdev}.
+
+Terminal symbols are declared using @code{%keyword} (see
+@pxref{keyword Decl}) or @code{%token} (see @pxref{token Decl})
+statements.
+
+@table @strong
+@item Please note:
+Terminal symbols can be @dfn{literal characters} which have the same
+syntax used in C for character constants; for example, @code{'+'} is a
+@dfn{literal character token class}.  A character token class doesn't
+need to be declared, and can be used in precedence declarations like
+other terminal symbols (see @pxref{precedence Decl}).@*
+For now @semantic{} lexers don't handle literal characters terminals.
+@end table
+
+A @dfn{nonterminal symbol} stands for a class of syntactically
+equivalent groupings.  The symbol name is used in writing grammar
+rules.  Bison's convention recommends it should be all lower case.
+
+The symbol @code{error} is a terminal symbol reserved for error
+recovery; you shouldn't use it for any other purpose.
+
 @node Prologue
-@subsection Prologue
+@section Prologue
 
 The @var{prologue} section contains definitions of Emacs Lisp
 variables, function and macros that are used in the actions in the
@@ -214,21 +244,15 @@ other @var{declarations}.  All @var{prologue} sections are copied to
 the generated parser file in the order they appear in the grammar.
 
 @node Declarations
-@subsection Declarations
+@section Declarations
 
 The @var{declarations} section contains declarations that define
 terminal symbols, specify precedence, and so on.  In some simple
 grammars you may not need any declarations.
 
-Declarations of terminal symbols defines the symbols (lexical tokens) used in
+Declarations of terminal symbols defines the symbols used in
 formulating the grammar and the type associated to categories of
-tokens.
-
-All token names (but not single-character literal tokens such as
-@code{'+'} and @code{'*'}) must be declared.
-
-For more on lexical analysis,
-see @inforef{Writing Lexers, ,semantic-langdev}.
+tokens (see also @pxref{Terminal and Nonterminal Symbols}).
 
 @menu
 * package Decl::                
@@ -246,7 +270,7 @@ see @inforef{Writing Lexers, ,semantic-langdev}.
 @end menu
 
 @node package Decl
-@subsubsection package Decl
+@subsection package Decl
 
 @c Perhaps the declaration below could be
 @c %package @var{package-name}
@@ -282,7 +306,7 @@ For instance, the default library name for the grammar in the
 @end deffn
 
 @node languagemode Decl
-@subsubsection languagemode Decl
+@subsection languagemode Decl
 
 @deffn %-Decl %languagemode @var{mode}...
 @sp 1
@@ -302,7 +326,7 @@ currently edited in those major modes.
 @end deffn
 
 @node keyword Decl
-@subsubsection keyword Decl
+@subsection keyword Decl
 
 @deffn %-Decl %keyword @var{keyword-name} @var{keyword-value}
 @sp 1
@@ -382,7 +406,7 @@ If optional @var{PROPERTY} is non-@code{nil}, return only keywords which have a
 @end defun
 
 @node put Decl
-@subsubsection put Decl
+@subsection put Decl
 
 The @code{%put} statement assigns properties to keywords
 (@pxref{keyword Decl}).  For instance, the predefined @code{summary}
@@ -432,7 +456,7 @@ For keyword with @var{NAME}, return its @var{PROPERTY} value.
 @end defun
 
 @node token Decl
-@subsubsection token Decl
+@subsection token Decl
 
 The @code{%token} statement declares a terminal symbol (a @dfn{token})
 which is not a keyword.
@@ -476,7 +500,7 @@ In the generated library, token definitions are stored in the table of
 declared types (see @pxref{type Decl}).
 
 @node type Decl
-@subsubsection type Decl
+@subsection type Decl
 
 @deffn %-Decl %type <@var{type-name}> [@var{property1} @var{value1} @dots{}]
 @sp 1
@@ -577,7 +601,7 @@ If optional @var{PROPERTY} is non-@code{nil}, return only type symbols which hav
 @end defun
 
 @node precedence Decl
-@subsubsection precedence Decl
+@subsection precedence Decl
 
 @deffn  %-Decl %left [<@var{type-name}>] @var{token1} @dots{}
 @deffnx %-Decl %right [<@var{type-name}>] @var{token1} @dots{}
@@ -599,7 +623,7 @@ for @semantic{} isn't usually necessary.
 @end table
 
 @node default-prec Decl
-@subsubsection default-prec Decl
+@subsection default-prec Decl
 
 @deffn  %-Decl %default-prec
 @deffnx %-Decl %no-default-prec
@@ -622,7 +646,7 @@ for @semantic{} isn't usually necessary.
 @end table
 
 @node quotemode Decl
-@subsubsection quotemode Decl
+@subsection quotemode Decl
 
 @deffn %-Decl %quotemode @var{symbol}
 @sp 1
@@ -637,7 +661,7 @@ This information has meaning only in @dfn{bovine} grammars.
 @end table
 
 @node scopestart Decl
-@subsubsection scopestart Decl
+@subsection scopestart Decl
 
 @deffn %-Decl %scopestart @var{nonterminal}
 @sp 1
@@ -652,7 +676,7 @@ This information has meaning only in @dfn{bovine} grammars.
 @end table
 
 @node start Decl
-@subsubsection start Decl
+@subsection start Decl
 
 @deffn %-Decl %start @var{nonterminal1} @dots{}
 @sp 1
@@ -667,17 +691,86 @@ information, @inforef{Start nonterminals, , wisent}, and
 @end table
 
 @node use-macros Decl
-@subsubsection use-macros Decl
+@subsection use-macros Decl
 
 @deffn %-Decl %use-macros @var{library} @{@var{macro-name1} @dots{}@}
 @sp 1
 @end deffn
 
 @node Grammar Rules
-@subsection Grammar Rules
+@section Grammar Rules
+
+A grammar rule has the following general form:
+
+@example
+@var{result}: @var{components} @dots{}
+      ;
+@end example
+
+@var{result} is the nonterminal symbol that this rule describes, and
+@var{components} are the various terminal and nonterminal symbols
+that are put together by this rule
+(see @pxref{Terminal and Nonterminal Symbols}).
+
+For example, this rule:
+
+@example
+exp: exp PLUS exp
+   ;
+@end example
+
+Says that two groupings of type @samp{exp}, with a @samp{PLUS} token
+in between, can be combined into a larger grouping of type @samp{exp}.
+
+Scattered among the components can be @var{actions} that determine the
+semantics of the rule.  An action is an Emacs Lisp list form, for
+example:
+
+@lisp
+(cons $1 $2)
+@end lisp
+
+To execute a sequence of forms, you can enclose them between braces
+like this:
+
+@lisp
+@{
+  (message "$2=%s" $2)
+  $2
+ @}
+@end lisp
+
+Usually there is only one action and it follows the rule components.
+
+Multiple rules for the same @var{result} are joined with the
+vertical-bar character @code{|} as follows:
+
+@example
+@var{result}: @var{rule1-components}@dots{}
+      | @var{rule2-components}@dots{}
+        @dots{}
+      ;
+@end example
+
+If @var{components} in a rule is empty, it means that @var{result} can
+match the empty string.  For example, here is how to define a
+comma-separated sequence of zero or more @samp{exp} groupings:
+
+@example
+expseq: ;;Empty
+      | expseq1
+      ;
+     
+expseq1: exp
+       | expseq1 COMMA exp
+       ;
+@end example
+
+It is customary to write a comment @code{;;Empty} in each rule with no
+components.
 
 @node Epilogue
-@subsection Epilogue
+@section Epilogue
 
 The @var{epilogue} section contains arbitrary Emacs Lisp code which is
 copied verbatim to the end of the parser file, just as the
@@ -708,22 +801,15 @@ to avoid confusion with the Emacs Lisp library own footer.
 @chapter Working with grammars
 
 @menu
-* Common facilities::
-* BY grammars::
-* WY grammars::
-@end menu
-
-@node Common facilities
-@section Common facilities
-
-@menu
 * Editing grammars::            
 * Auto-generation of lexical rules::  
-* Macros::                      
+* Grammar Macros::              
+* BY grammars::                 
+* WY grammars::                 
 @end menu
 
 @node Editing grammars
-@subsection Editing grammars
+@section Editing grammars
 
 @c Document here the various commands and keyboard shortcuts
 @c available in semantic-grammar-mode. 
@@ -779,7 +865,7 @@ Each time you type one, the line is re-indented after the character is
 inserted.@refill
 
 @node Auto-generation of lexical rules
-@subsection Auto-generation of lexical rules
+@section Auto-generation of lexical rules
 
 Using a @code{%type} statement, combined with @code{%keyword} and
 @code{%token} ones, permits the declaration of a lexical type and
@@ -803,10 +889,10 @@ control it to produce the lexical rules needed to scan your language.
 @end menu
 
 @node The principle
-@subsubsection The principle
+@subsection The principle
 
 @node Type properties with a special meaning
-@subsubsection Type properties with a special meaning
+@subsection Type properties with a special meaning
 
 @table @code
 @item syntax
@@ -841,7 +927,7 @@ These match algorithms are defined:
 @end table
 
 @node Predefined well-known types
-@subsubsection Predefined well-known types
+@subsection Predefined well-known types
 
 Default values are provided for well known types like <keyword>,
 <symbol>, <string>, <number>, <punctuation>, and <block>.  Those types
@@ -858,8 +944,8 @@ suffice to auto-generate a suitable lexical rule.
 @item block
 @end table
 
-@node Macros
-@subsection Macros
+@node Grammar Macros
+@section Grammar Macros
 
 @c This refers to ASSOC, EXPANDFULL, and TAG?
 
