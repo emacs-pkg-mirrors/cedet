@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.18 2001/03/26 05:54:26 ponced Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.19 2001/04/07 13:42:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,6 +32,7 @@
 ;;
 
 (require 'eieio-base)
+(require 'semantic)
 
 ;;; Variables:
 (defgroup semanticdb nil
@@ -240,7 +241,8 @@ This will call `semantic-bovinate-toplevel' if that file is in memory."
 (defvar semanticdb-project-predicates nil
   "List of predicates to try that indicate a directory belongs to a project.
 This list is used when `semanticdb-persistent-path' contains the value
-'project.
+'project.  If the predicate list is nil, then presume all paths are valid.
+
 Project Management software (such as EDE and JDE) should add their own
 predicates with `add-hook' to this variable, and semanticdb will save token
 caches in directories controlled by them.")
@@ -256,12 +258,19 @@ Uses `semanticdb-persistent-path' to determine the return value."
 		   (throw 'found t)))
 	      ((eq (car path) 'project)
 	       (let ((predicates semanticdb-project-predicates))
-		 (while predicates
-		   (if (funcall (car predicates)
-				(file-name-directory (oref obj file)))
+		 (if predicates
+		     (while predicates
+		       (if (funcall (car predicates)
+				    (file-name-directory (oref obj file)))
+			   (throw 'found t))
+		       (setq predicates (cdr predicates)))
+		   ;; If the mode is 'project, and there are no project
+		   ;; modes, then just always save the file.  If users
+		   ;; wish to restrict the search, modify
+		   ;; `semanticdb-persistent-path' to include desired paths.
+		   (if (= (length semanticdb-persistent-path) 1)
 		       (throw 'found t))
-		   (setq predicates (cdr predicates))))
-	       )
+		   )))
 	      ((eq (car path) 'never)
 	       (throw 'found nil))
 	      ((eq (car path) 'always)
@@ -399,6 +408,20 @@ Update the environment of Semantic enabled buffers accordingly."
 ;;
 ;; Line all the semantic-util 'find-nonterminal...' type functions, but
 ;; trans file across the database.
+(defmethod semanticdb-equivalent-mode ((table semanticdb-table) &optional buffer)
+  "Return non-nil if TABLE's mode is equivalent to BUFFER.
+Equivalent modes are specified by by `semantic-equivalent-major-modes'
+local variable."
+  (save-excursion
+    (if buffer (set-buffer buffer))
+    (or
+     ;; nil means the same as major-mode
+     (and (not semantic-equivalent-major-modes)
+	  (eq major-mode (oref table major-mode)))
+     (and semantic-equivalent-major-modes
+	  (member (oref table major-mode) semantic-equivalent-major-modes)))
+    ))
+
 (defun semanticdb-find-nonterminal-by-name
   (name &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals with name NAME in databases.
@@ -452,11 +475,11 @@ Return a list ((DB-TABLE . TOKEN-OR-TOKEN-LIST) ...)."
     (while databases
       (let* ((files (oref (car databases) tables))
 	     (found nil)
-	     (mm major-mode))
+	     (orig-buffer (current-buffer)))
 	(while files
 	  (when (or diff-mode
-		    (eq mm (oref (car files) major-mode)))
- 	    ;; This can cause unneded refreshes while typing with
+		    (semanticdb-equivalent-mode (car files) orig-buffer))
+ 	    ;; This can cause unneeded refreshes while typing with
  	    ;; senator-eldoc mode.
  	    ;;(semanticdb-refresh-table (car files))
 	    (setq found (funcall function
