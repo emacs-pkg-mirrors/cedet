@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.12 2003/09/02 16:09:53 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.13 2003/11/20 15:54:44 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -88,6 +88,18 @@
 ;; calls to the displayor may opt to show each tag one at a time in
 ;; the buffer.  When the user likes one, selection would cause the
 ;; 'focus' item to be selected.
+;;
+;; CACHE FORMAT
+;;
+;; The format of the tag lists used to perform the completions are in
+;; semanticdb "find" format, like this:
+;;
+;; ( ( DBTABLE1 TAG1 TAG2 ...)
+;;   ( DBTABLE2 TAG1 TAG2 ...)
+;;   ... )
+;;
+;; For buffer local searches, assume that DBTABLE can be nil, and buffer
+;; location information is in the TAGs overlay.
 
 (require 'eieio)
 (require 'semantic-tag)
@@ -117,6 +129,7 @@
     (defalias 'semantic-delete-minibuffer-contents 'delete-minibuffer-contents)
   (defalias 'semantic-delete-minibuffer-contents 'erase-buffer))
 
+;;; ------------------------------------------------------------
 ;;; Option Selection harnesses
 ;;
 (defvar semantic-completion-collector-engine nil
@@ -204,12 +217,14 @@ HISTORY is a symbol representing a variable to story the history in."
 				    'semantic-completion-default-history)
 				default-tag))
     ;; First, see if the displayor has a focus entry for us.
+    ;; This returns a single tag.
     (setq tag (list (semantic-displayor-current-focus displayor)))
-    (unless (car tag)
+    (unless (semantic-tag-p tag)
       ;; Convert the answer, a string, back into a tag using
       ;; the collector
-      (if (slot-boundp collector 'match-list)
-	  (setq tag (oref collector match-list))
+      (if (setq tag (semantic-collector-get-match-list collector))
+	  ;; Did the get.  Do nothing else
+	  nil
 	;; No match!
 	(if (and (string= ans "") default-tag)
 	    ;; Choose the default!
@@ -217,14 +232,21 @@ HISTORY is a symbol representing a variable to story the history in."
 		(setq tag orig-default-tag)
 	      (semantic-collector-calculate-completions collector
 							default-tag)
-	      (setq tag (oref collector match-list))
+	      (setq tag (semantic-collector-get-match collector))
 	      ))))
+    ;; It might be a find result.  Strip it.
+    (if (semanticdb-find-results-p tag)
+	(if (> (semanticdb-find-result-length tag) 1)
+	    (error "Tag is not unique.  Error in completion engine?")
+	  ;; By now, there should be something.
+	  (setq tag (semanticdb-find-result-nth tag 0 t))))
     ;; If it isn't a tag, we didn't finish properly.
     ;; Throw an error
-    (if (semantic-tag-with-position-p (car tag))
-	(car tag)
-      (error "Error finding tag based upon result")
-      )))
+    (if (not (semantic-tag-p tag))
+	(error
+	 "Error finding tag.  Error in completion engine?"))
+    tag
+    ))
 
 (defun semantic-complete-complete-space ()
   "Complete the partial input in the minibuffer."
@@ -242,10 +264,15 @@ HISTORY is a symbol representing a variable to story the history in."
   (let ((collector semantic-completion-collector-engine)
 	(displayor semantic-completion-display-engine)
 	(name (semantic-minibuffer-contents))
-	match)
+	match
+	matchlist)
     (when (string= name "")
       ;; The user wants the defaults!
       (exit-minibuffer))
+    ;; This forces a full calculation of completion on CR.
+    (semantic-collector-calculate-completions
+     semantic-completion-collector-engine
+     (semantic-minibuffer-contents))
     (semantic-complete-try-completion)
     (cond
      ;; Input match displayor focus entry
@@ -253,11 +280,14 @@ HISTORY is a symbol representing a variable to story the history in."
            (equal name (oref displayor last-prefix)))
       (exit-minibuffer))
      ;; One match
-     ((and (slot-boundp collector 'match-list)
-	   (oref collector match-list))
-      (exit-minibuffer))
+     ((setq matchlist (semantic-collector-get-match-list collector))
+      (if (= (semanticdb-find-result-length matchlist) 1)
+	  (exit-minibuffer)
+	(semantic-completion-message " [Not Unique]")))
      ;; Input match one element of last-all-completions
      ((and (slot-boundp collector 'last-all-completions)
+	   ;; oooo, several months after first implementation, this
+	   ;; should go through the collector instead.
 	   (setq match (semantic-find-tags-by-name
 			name (oref collector last-all-completions))))
       (semantic-displayor-set-completions displayor match name)
@@ -281,6 +311,7 @@ If PARTIAL, do partial completion stopping at spaces."
      ((stringp comp)
       (if (string= (semantic-minibuffer-contents) comp)
           nil ;; Minibuffer isn't changing.  Display.
+	(semantic-delete-minibuffer-contents)
         (beginning-of-line)
         (delete-region (point) (point-max))
         ;; We should pay attention to the parameter
@@ -350,6 +381,7 @@ default, possibly choosing a function or variable."
     sym))
 
 
+;;; ------------------------------------------------------------
 ;;; Collection Engines
 ;;
 ;; Collection engines can scan tags from the current environment and
@@ -373,12 +405,12 @@ default, possibly choosing a function or variable."
 Some collectors use a given buffer as a starting place while looking up
 tags.")
    (cache :initform nil
-	  :type list
+	  :type (or null semanticdb-find-result-with-nil)
 	  :documentation "Cache of tags.
 These tags are re-used during a completion session.
 Sometimes these tags are cached between completion sessions.")
    (last-all-completions :initarg nil
-			 :type list
+			 :type semanticdb-find-result-with-nil
 			 :documentation "Last result of `all-completions'.
 This result can be used for refined completions as `last-prefix' gets
 closer to a specific result.")
@@ -386,7 +418,7 @@ closer to a specific result.")
 		:documentation "The last queried prefix.
 This prefix can be used to cache intermediate completion offers.
 making the action of homing in on a token faster.")
-   (last-completion :type string
+   (last-completion :type (or null string)
 		    :documentation "The last calculated completion.
 This completion is calculated and saved for future use.")
    (match-list :type list
@@ -410,6 +442,25 @@ When tokens are matched, they are added to this list.")
       (semantic-displayor-next-action semantic-completion-display-engine)
     'complete))
 
+(defmethod semantic-collector-get-cache ((obj semantic-collector-abstract))
+  "Get the raw cache of tags for completion.
+Calculate the cache if there isn't one."
+  (or (oref obj cache)
+      (semantic-collector-calculate-cache obj)))
+
+(defmethod semantic-collector-calculate-completions-raw
+  ((obj semantic-collector-abstract) prefix completionlist)
+  "Calculate the completions for prefix from completionlist.
+Output must be in semanticdb Find result format."
+  ;; Must output in semanticdb format
+  (list
+   (cons nil
+	 (semantic-find-tags-for-completion
+	  prefix
+	  ;; To do this kind of search with a pre-built completion
+	  ;; list, we need to strip it first.
+	  (semanticdb-strip-find-results completionlist)))))
+
 (defmethod semantic-collector-calculate-completions
   ((obj semantic-collector-abstract) prefix)
   "Calculate completions for prefix as setup for other queries."
@@ -423,13 +474,12 @@ When tokens are matched, they are added to this list.")
 			   t)))
 	      ;; New prefix is subset of old prefix
 	      (oref obj last-all-completions)
-	    (or (oref obj cache)
-		(semantic-collector-calculate-cache obj))))
+	    (semantic-collector-get-cache obj)))
 	 ;; Get the result
 	 (answer (if same-prefix-p
 		     completionlist
-		   (semantic-find-tags-for-completion prefix
-						      completionlist))
+		   (semantic-collector-calculate-completions-raw
+		    obj prefix completionlist))
 		 )
 	 (completion nil))
     (when (not same-prefix-p)
@@ -437,7 +487,9 @@ When tokens are matched, they are added to this list.")
       (oset obj last-prefix prefix)
       (oset obj last-all-completions answer))
     ;; Now calculation the completion.
-    (setq completion (try-completion prefix answer))
+    (setq completion (try-completion
+		      prefix
+		      (semanticdb-strip-find-results answer)))
     (oset obj match-list nil)
     (oset obj last-completion
 	  (cond
@@ -451,6 +503,22 @@ When tokens are matched, they are added to this list.")
 	   (t (or completion prefix))
 	   ))
     ))
+
+(defmethod semantic-collector-get-match-list ((obj semantic-collector-abstract))
+  "Return the active valid MATCH from the semantic collector.
+For now, just return the first element from our list of available
+matches.  For semanticdb based results, make sure the file is loaded
+into a buffer."
+  (when (slot-boundp obj 'match-list)
+    (oref obj match-list)))
+
+(defmethod semantic-collector-get-match ((obj semantic-collector-abstract))
+  "Return the active valid MATCH from the semantic collector.
+For now, just return the first element from our list of available
+matches.  For semanticdb based results, make sure the file is loaded
+into a buffer."
+  (when (slot-boundp obj 'match-list)
+    (semanticdb-find-result-nth (oref obj match-list) 0 t)))
 
 (defmethod semantic-collector-all-completions
   ((obj semantic-collector-abstract))
@@ -531,16 +599,65 @@ NEWCACHE is the new tag table, but we ignore it."
 Provides deep searches through types.")
 
 (defmethod semantic-collector-calculate-cache
-  ((obj semantic-collector-buffer-abstract))
+  ((obj semantic-collector-buffer-deep))
   "Calculate the completion cache for OBJ.
 Uses `semantic-flatten-tags-table'"
-  (oset obj cache (semantic-flatten-tags-table (oref obj buffer))))
+  (oset obj cache
+	;; Must create it in SEMANTICDB find format.
+	;; ( ( DBTABLE TAG TAG ... ) ... )
+	(list
+	 (cons nil
+	       (semantic-flatten-tags-table (oref obj buffer))))))
+
+;;; PROJECT SPECIFIC COMPLETION
+;;
+(defclass semantic-collector-project-abstract (semantic-collector-abstract)
+  ((path :initarg :path
+	 :initform nil
+	 :documentation "List of database tables to search.
+At creation time, it can be anything accepted by
+`semanticdb-find-translate-path' as a PATH argument.")
+   )
+  "Root class for project wide completion engines."
+  :abstract t)
+
+;;; Project Search
+(defclass semantic-collector-project (semantic-collector-project-abstract)
+  ()
+  "Completion engine for tags in a project.")
+
+
+(defmethod semantic-collector-calculate-completions-raw
+  ((obj semantic-collector-project) prefix completionlist)
+  "Calculate the completions for prefix from completionlist."
+  (semanticdb-find-tags-for-completion prefix (oref obj path)))
+
+;;; Brutish Project search
+(defclass semantic-collector-project-brutish (semantic-collector-project-abstract)
+  ()
+  "Completion engine for tags in a project.")
+
+(defmethod semantic-collector-calculate-completions-raw
+  ((obj semantic-collector-project-brutish) prefix completionlist)
+  "Calculate the completions for prefix from completionlist."
+  (semanticdb-brute-deep-find-tags-for-completion prefix (oref obj path)))
 
 
+;;; ------------------------------------------------------------
 ;;; Tag List Display Engines
 ;;
+;; A typical displayor accepts a pre-determined list of completions
+;; generated by a collector.  This format is in semanticdb search
+;; form.  This vaguely standard form is a bit challenging to navigate
+;; because the tags do not contain buffer info, but the file assocated
+;; with the tags preceed the tag in the list.
+;;
+;; Basic displayors don't care, and can strip the results.
+;; Advanced highlighting displayors need to know when they need
+;; to load a file so that the tag in question can be highlighted.
+;;
 (defclass semantic-displayor-abstract ()
-  ((table :type list
+  ((table :type (or null semanticdb-find-result-with-nil)
 	  :initform nil
 	  :documentation "List of tags this displayor is showing.")
    (last-prefix :type string
@@ -572,9 +689,9 @@ Uses `semantic-flatten-tags-table'"
   (scroll-other-window))
 
 (defmethod semantic-displayor-current-focus ((obj semantic-displayor-abstract))
-  "Return the tag currently in focus."
-  (if (slot-boundp obj 'table)
-      (car (oref obj table))))
+  "Return a single tag currently in focus.
+This object type doesn't do focus, so will never have a focus object."
+  nil)
 
 ;; Traditional displayor
 (defcustom semantic-completion-displayor-format-tag-function
@@ -592,7 +709,7 @@ Uses `semantic-flatten-tags-table'"
   (with-output-to-temp-buffer "*Completions*"
     (display-completion-list
      (mapcar semantic-completion-displayor-format-tag-function
-	     (oref obj table)))
+	     (semanticdb-strip-find-results (oref obj table))))
     )
   )
 
@@ -602,6 +719,11 @@ Uses `semantic-flatten-tags-table'"
 	  :documentation "A tag index from `table' which has focus.
 Multiple calls to the display function can choose to focus on a
 given tag, by highlighting its location.")
+   (find-file-focus
+    :allocation :class
+    :initform nil
+    :documentation
+    "Non-nil if focusing requires a tag's buffer be in memory.")
    )
   "A displayor which has the ability to focus in on one tag.
 Focusing is a way of differentiationg between multiple tags
@@ -627,17 +749,19 @@ which have the same name."
       (nth (oref obj focus) table))))
 
 (defmethod semantic-displayor-current-focus ((obj semantic-displayor-focus-abstract))
-  "Return the tag currently in focus."
+  "Return the tag currently in focus, or call parent method."
   (if (and (slot-boundp obj 'focus)
 	   (slot-boundp obj 'table))
-      (nth (oref obj focus) (oref obj table))
+      (semanticdb-find-result-nth (oref obj focus)
+				  (oref obj table)
+				  (oref obj find-file-focus))
     (call-next-method)))
 
 ;;; Simple displayor which performs traditional display completion,
 ;; and also focuses with highlighting.
 (defclass semantic-displayor-traditional-with-focus-highlight
   (semantic-displayor-traditional semantic-displayor-focus-abstract)
-  ()
+  ((find-file-focus :initform t))
   "A traditional displayor which can focus on a tag by showing it.")
 
 (defmethod semantic-displayor-focus-request
@@ -748,10 +872,13 @@ if `force-show' is 0, this value is always ignored.")
 ;; End code contributed by Masatake YAMATO <jet@gyve.org>
 
 
+;;; ------------------------------------------------------------
 ;;; Specific queries
 ;;
 (defun semantic-complete-read-tag-buffer-deep (prompt &optional
-						      default-tag initial-input history)
+						      default-tag
+						      initial-input
+						      history)
   "Ask for a tag by name from the current buffer.
 Available tags are from the current buffer, at any level.
 Completion options are presented in a traditional way, with highlighting
@@ -770,7 +897,32 @@ HISTORY is a symbol representing a variable to story the history in."
    history)
   )
 
+(defun semantic-complete-read-tag-project (prompt &optional
+						  default-tag
+						  initial-input
+						  history)
+  "Ask for a tag by name from the current project.
+Available tags are from the current project, at the top level.
+Completion options are presented in a traditional way, with highlighting
+to resolve same-name collisions.
+PROMPT is a string to prompt with.
+DEFAULT-TAG is a semantic tag or string to use as the default value.
+If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
+HISTORY is a symbol representing a variable to story the history in."
+  (semantic-complete-read-tag-engine
+   (semantic-collector-project-brutish prompt
+				       :buffer (current-buffer)
+				       :path (current-buffer)
+				       )
+   (semantic-displayor-traditional-with-focus-highlight "simple")
+   prompt
+   default-tag
+   initial-input
+   history)
+  )
+
 
+;;; ------------------------------------------------------------
 ;;; Testing
 ;;
 (defun semantic-complete-test ()
@@ -778,7 +930,7 @@ HISTORY is a symbol representing a variable to story the history in."
   (interactive)
   (message "%S"
    (semantic-format-tag-prototype
-    (semantic-complete-read-tag-buffer-deep "Symbol: ")
+    (semantic-complete-read-tag-project "Symbol: ")
     )))
 
 (defun semantic-complete-jump ()
@@ -792,8 +944,6 @@ HISTORY is a symbol representing a variable to story the history in."
       (working-message "%S: %s "
                        (semantic-tag-class tag)
                        (semantic-tag-name  tag)))))
-
-
 
 
 ;; End
