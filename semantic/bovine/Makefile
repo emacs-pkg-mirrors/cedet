@@ -14,7 +14,7 @@ EMACS=emacs
 LOADPATH=../../common/ ../wisent/ ../../eieio/ ../../speedbar/ ../\
    
 examples_MISC=semantic-skel.el skeleton.by
-languages_LISP=semantic-c.el semantic-el.el semantic-java.el semantic-make.el semantic-scm.el
+languages_LISP=semantic-c.el semantic-el.el semantic-make.el semantic-scm.el
 by_MISC=c.by make.by scheme.by
 VERSION=2.0beta1
 DISTDIR=$(top)semantic-$(VERSION)/bovine
