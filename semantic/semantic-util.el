@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.79 2001/10/02 18:51:21 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.80 2001/10/04 15:04:14 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -400,6 +400,16 @@ smallest token.  Return nil if there is no token here."
 A token's parent would be a containing structure, such as a type
 containing a field.  Return nil if there is no parent."
   (car (cdr (nreverse (semantic-find-nonterminal-by-overlay)))))
+
+(defun semantic-current-nonterminal-of-type (type)
+  "Return the current (smallest) nonterminal of TYPE in the current buffer.
+If the smallest token is not of type TYPE, keep going upwards until one
+is found."
+  (let ((toks (nreverse (semantic-find-nonterminal-by-overlay))))
+    (while (and toks
+		(not (eq (semantic-token-token (car toks)) type)))
+      (setq toks (cdr toks)))
+    (car toks)))
 
 
 ;;; Nonterminal regions and splicing
@@ -1879,6 +1889,28 @@ instead of read-only."
   "Narrow to the region specified by TOKEN."
   (narrow-to-region (semantic-token-start token)
 		    (semantic-token-end token)))
+
+(defmacro semantic-with-buffer-narrowed-to-current-token (&rest body)
+  "Execute BODY with the buffer narrowed to the current nonterminal."
+  `(save-restriction
+     (semantic-narrow-to-token (semantic-current-nonterminal))
+     ,@body))
+(put 'semantic-with-buffer-narrowed-to-current-token 'lisp-indent-function 0)
+(add-hook 'edebug-setup-hook
+	  (lambda ()
+	    (def-edebug-spec semantic-with-buffer-narrowed-to-current-token
+	      (def-body))))
+
+(defmacro semantic-with-buffer-narrowed-to-token (token &rest body)
+  "Narrow to TOKEN, and execute BODY."
+  `(save-restriction
+     (semantic-narrow-to-token ,token)
+     ,@body))
+(put 'semantic-with-buffer-narrowed-to-token 'lisp-indent-function 1)
+(add-hook 'edebug-setup-hook
+	  (lambda ()
+	    (def-edebug-spec semantic-with-buffer-narrowed-to-token
+	      (def-body))))
 
 ;;; Interactive Functions for bovination
 ;;
