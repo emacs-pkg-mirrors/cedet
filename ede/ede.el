@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.3
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.12 1999/03/17 23:06:31 zappo Exp $
+;; RCS: $Id: ede.el,v 1.13 1999/03/17 23:39:47 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -353,7 +353,7 @@ of objects with the `ede-want-file-p' method."
 		((or (eq ede-auto-add-method 'always)
 		     (and (eq ede-auto-add-method 'multi-ask)
 			  (= 1 (length desires))))
-		 (project-add-file (car desires) file))
+		 (ede-add-file (car desires)))
 		(t nil))))))
 
 
