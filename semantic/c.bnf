@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.34 2001/05/01 16:52:40 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.35 2001/05/09 03:25:17 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,11 @@
 # Boston, MA 02111-1307, USA.
 #
 # $Log: c.bnf,v $
+# Revision 1.35  2001/05/09 03:25:17  zappo
+# Added inline method support.
+# Store protection elements
+# Change enum parts to be integer variables.
+#
 # Revision 1.34  2001/05/01 16:52:40  zappo
 # Revamped lots of summary strings.
 # Added `type' as a possible expansion in classsubparts.
@@ -136,6 +141,8 @@
 %token UNSIGNED "unsigned"
 %put UNSIGNED summary "Numeric Type Modifier: unsigned <numeric type> <name> ..."
 
+%token INLINE "inline"
+%put INLINE "Function Modifier: inline <return  type> <name>(...) {...};"
 %token VIRTUAL "virtual"
 %put VIRTUAL summary "Method Modifier: virtual <type> <name>(...) ..."
 
@@ -266,6 +273,7 @@ classsubparts : open-paren "{"
 	      | close-paren "}"
 		( nil )
 	      | opt-class-protection COLON
+		( ,$1 label )
 	      | var-or-fun
 	      | type
 	      | define	      
@@ -308,7 +316,7 @@ enumparts : semantic-list
 	  ;
 
 enumsubparts : symbol opt-assign
-	       ( $1 enum )
+	       ( $1 variable "int" ,$2 (ASSOC const t) nil)
 	     | open-paren "{"
 	       ( nil )
 	     | close-paren "}"
@@ -359,6 +367,7 @@ DECLMOD : EXTERN
 	| SIGNED
 	| UNSIGNED
 	| VIRTUAL
+	| INLINE
 	;
 
 # Don't deal with the stars or reference just yet.
