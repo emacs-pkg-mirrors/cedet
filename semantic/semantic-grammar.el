@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.17 2003/03/13 08:51:56 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.18 2003/03/16 09:27:19 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -95,6 +95,19 @@
 	(point))
       ))))
 
+(define-lex-regex-analyzer semantic-grammar-lex-prefixed-list
+  "Detect and create a prefixed list token."
+  "\\s'\\s-*("
+  (semantic-lex-push-token
+   (semantic-lex-token
+    'PREFIXED_LIST
+    (match-beginning 0)
+    (save-excursion
+      (semantic-lex-unterminated-syntax-protection 'PREFIXED_LIST
+	(forward-sexp 1)
+	(point))
+      ))))
+
 ;;; Lexer
 ;;
 (define-lex semantic-grammar-lexer
@@ -108,6 +121,9 @@ It ignores whitespaces, newlines and comments."
   ;; Must detect comments after strings because `comment-start-skip'
   ;; regexp match semicolons inside strings!
   semantic-lex-ignore-comments
+  ;; Must detect prefixed list before punctuation because prefix chars
+  ;; are also punctuations!
+  semantic-grammar-lex-prefixed-list
   ;; Must detect punctuations after comments because the semicolon can
   ;; be a punctuation or a comment start!
   semantic-lex-punctuation-type
@@ -134,12 +150,12 @@ It ignores whitespaces, newlines and comments."
 ;;;;
 
 (defconst semantic-grammar-automaton
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-02-18 22:35+0100
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-16 10:18+0100
   (progn
     (eval-when-compile
       (require 'wisent-comp))
     (wisent-compile-grammar
-     '((LEFT NONASSOC PREC PUT RIGHT START SCOPESTART QUOTEMODE TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL CHARACTER SEXP PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
+     '((LEFT NONASSOC PREC PUT RIGHT START SCOPESTART QUOTEMODE TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL CHARACTER SEXP PREFIXED_LIST PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
        nil
        (grammar
         ((PERCENT)
@@ -149,12 +165,14 @@ It ignores whitespaces, newlines and comments."
         ((nonterminal)))
        (code
         ((PAREN_BLOCK)
-         (wisent-token "code" 'code nil $1 nil))
+         (wisent-raw-tag
+          (semantic-tag "setupcode" 'code)))
         ((BRACE_BLOCK)
-         (wisent-token "code" 'code nil $1 nil)))
+         (wisent-raw-tag
+          (semantic-tag "setupcode" 'code))))
        (declaration
         ((decl)
-         (apply #'wisent-token $1)))
+         (eval $1)))
        (decl
         ((languagemode_decl))
         ((outputfile_decl))
@@ -172,107 +190,174 @@ It ignores whitespaces, newlines and comments."
         ((put_decl)))
        (languagemode_decl
         ((LANGUAGEMODE symbols)
-         (list
-          (car $2)
-          'languagemode nil
-          (cdr $2)
-          nil)))
+         (list 'wisent-raw-tag
+               (list 'semantic-tag
+                     (list 'quote
+                           (car $2))
+                     ''languagemode ':rest
+                     (list 'quote
+                           (cdr $2))))))
        (outputfile_decl
         ((OUTPUTFILE string_value)
-         (list $2 'outputfile nil nil)))
+         (list 'wisent-raw-tag
+               (cons 'semantic-tag
+                     (cons
+                      (list 'quote $2)
+                      '('outputfile))))))
        (string_value
         ((STRING)
          (read $1)))
        (setupfunction_decl
         ((SETUPFUNCTION any_symbol)
-         (list $2 'setupfunction nil nil)))
+         (list 'wisent-raw-tag
+               (cons 'semantic-tag
+                     (cons
+                      (list 'quote $2)
+                      '('setupfunction))))))
        (keywordtable_decl
         ((KEYWORDTABLE any_symbol)
-         (list $2 'keywordtable nil nil)))
+         (list 'wisent-raw-tag
+               (cons 'semantic-tag
+                     (cons
+                      (list 'quote $2)
+                      '('keywordtable))))))
        (parsetable_decl
         ((PARSETABLE any_symbol)
-         (list $2 'parsetable nil nil)))
+         (list 'wisent-raw-tag
+               (cons 'semantic-tag
+                     (cons
+                      (list 'quote $2)
+                      '('parsetable))))))
        (tokentable_decl
         ((TOKENTABLE any_symbol)
-         (list $2 'tokentable nil nil)))
+         (list 'wisent-raw-tag
+               (cons 'semantic-tag
+                     (cons
+                      (list 'quote $2)
+                      '('tokentable))))))
        (token_decl
         ((TOKEN token_type_opt any_symbol string_value)
-         (list $3
-               (if $2 'token 'keyword)
-               $2 nil $4 nil))
+         (list 'wisent-raw-tag
+               (list 'semantic-tag
+                     (list 'quote $3)
+                     (list 'quote
+                           (if $2 'token 'keyword))
+                     ':type
+                     (list 'quote $2)
+                     ':value
+                     (list 'quote $4))))
         ((TOKEN token_type_opt symbols)
-         (list
-          (car $3)
-          'token $2
-          (cdr $3)
-          nil nil)))
+         (list 'wisent-raw-tag
+               (list 'semantic-tag
+                     (list 'quote
+                           (car $3))
+                     ''token ':type
+                     (list 'quote $2)
+                     ':rest
+                     (list 'quote
+                           (cdr $3))))))
        (token_type_opt
         (nil)
         ((token_type)))
        (token_type
         ((LT any_symbol GT)
-         (identity $2)))
+         $2))
        (start_decl
         ((START symbols)
-         (list
-          (car $2)
-          'start nil
-          (cdr $2)
-          nil)))
+         (list 'wisent-raw-tag
+               (list 'semantic-tag
+                     (list 'quote
+                           (car $2))
+                     ''start ':rest
+                     (list 'quote
+                           (cdr $2))))))
        (scopestart_decl
         ((SCOPESTART any_symbol)
-         (list $2 'scopestart nil nil)))
+         (list 'wisent-raw-tag
+               (cons 'semantic-tag
+                     (cons
+                      (list 'quote $2)
+                      '('scopestart))))))
        (quotemode_decl
         ((QUOTEMODE any_symbol)
-         (list $2 'quotemode nil nil)))
+         (list 'wisent-raw-tag
+               (cons 'semantic-tag
+                     (cons
+                      (list 'quote $2)
+                      '('quotemode))))))
        (left_decl
         ((LEFT token_type_opt items)
-         (list $1 'assoc $2 $3 nil)))
+         (list 'wisent-raw-tag
+               (list 'semantic-tag
+                     (list 'quote $1)
+                     ''assoc ':type
+                     (list 'quote $2)
+                     ':value
+                     (list 'quote $3)))))
        (right_decl
         ((RIGHT token_type_opt items)
-         (list $1 'assoc $2 $3 nil)))
+         (list 'wisent-raw-tag
+               (list 'semantic-tag
+                     (list 'quote $1)
+                     ''assoc ':type
+                     (list 'quote $2)
+                     ':value
+                     (list 'quote $3)))))
        (nonassoc_decl
         ((NONASSOC token_type_opt items)
-         (list $1 'assoc $2 $3 nil)))
+         (list 'wisent-raw-tag
+               (list 'semantic-tag
+                     (list 'quote $1)
+                     ''assoc ':type
+                     (list 'quote $2)
+                     ':value
+                     (list 'quote $3)))))
        (put_decl
         ((PUT any_symbol put_value)
-         (list $2 'put nil nil
-               (list $3)
-               nil))
+         (list 'wisent-raw-tag
+               (list 'semantic-tag
+                     (list 'quote $2)
+                     ''put ':value
+                     (list 'quote
+                           (list $3)))))
         ((PUT any_symbol put_value_list)
          (let*
              ((vals
-               (mapcar
-                #'(lambda
-                    (tok)
-                    (nth 3 tok))
-                $3)))
-           (list $2 'put nil nil vals nil)))
+               (mapcar 'semantic-token-name $3)))
+           (list 'wisent-raw-tag
+                 (list 'semantic-tag
+                       (list 'quote $2)
+                       ''put ':value
+                       (list 'quote vals)))))
         ((PUT put_name_list put_value)
          (let*
              ((names
-               (mapcar #'semantic-token-name $2)))
-           (list
-            (car names)
-            'put nil
-            (cdr names)
-            (list $3)
-            nil)))
+               (mapcar 'semantic-token-name $2)))
+           (list 'wisent-raw-tag
+                 (list 'semantic-tag
+                       (list 'quote
+                             (car names))
+                       ''put ':rest
+                       (list 'quote
+                             (cdr names))
+                       ':value
+                       (list 'quote
+                             (list $3))))))
         ((PUT put_name_list put_value_list)
          (let*
              ((names
-               (mapcar #'semantic-token-name $2))
+               (mapcar 'semantic-token-name $2))
               (vals
-               (mapcar
-                #'(lambda
-                    (tok)
-                    (nth 3 tok))
-                $3)))
-           (list
-            (car names)
-            'put nil
-            (cdr names)
-            vals nil))))
+               (mapcar 'semantic-token-name $3)))
+           (list 'wisent-raw-tag
+                 (list 'semantic-tag
+                       (list 'quote
+                             (car names))
+                       ''put ':rest
+                       (list 'quote
+                             (cdr names))
+                       ':value
+                       (list 'quote vals))))))
        (put_name_list
         ((BRACE_BLOCK)
          (semantic-parse-region
@@ -285,7 +370,8 @@ It ignores whitespaces, newlines and comments."
         ((RBRACE)
          nil)
         ((any_symbol)
-         (wisent-token $1 'put-name nil nil)))
+         (wisent-raw-tag
+          (semantic-tag $1 'put-name))))
        (put_value_list
         ((BRACE_BLOCK)
          (semantic-parse-region
@@ -298,7 +384,8 @@ It ignores whitespaces, newlines and comments."
         ((RBRACE)
          nil)
         ((put_value)
-         (wisent-token "" 'put-value nil $1 nil)))
+         (wisent-raw-tag
+          (semantic-tag $1 'put-value))))
        (put_value
         ((any_symbol any_value)
          (cons $1 $2)))
@@ -306,6 +393,7 @@ It ignores whitespaces, newlines and comments."
         ((any_symbol))
         ((STRING))
         ((PAREN_BLOCK))
+        ((PREFIXED_LIST))
         ((SEXP)))
        (symbols
         ((lifo_symbols)
@@ -317,7 +405,8 @@ It ignores whitespaces, newlines and comments."
          (list $1)))
        (nonterminal
         ((any_symbol COLON rules SEMI)
-         (wisent-token $1 'nonterminal nil $3 nil)))
+         (wisent-raw-tag
+          (semantic-tag $1 'nonterminal :children $3))))
        (rules
         ((lifo_rules)
          (apply #'nconc
@@ -363,7 +452,9 @@ It ignores whitespaces, newlines and comments."
                               "{}" e))
                       comps " "))
              (setq type "empty" name ";;EMPTY"))
-           (wisent-cooked-token name 'rule type comps prec action nil))))
+           (wisent-cook-tag
+            (wisent-raw-tag
+             (semantic-tag name 'rule :type type :value comps :prec prec :expr action))))))
        (rhs
         (nil)
         ((rhs item)
@@ -378,9 +469,10 @@ It ignores whitespaces, newlines and comments."
           $1)))
        (level
         ((PERCENT PREC item)
-         (identity $3)))
+         $3))
        (action
         ((PAREN_BLOCK))
+        ((PREFIXED_LIST))
         ((BRACE_BLOCK)
          (format "(progn\n%s)"
                  (let
@@ -428,7 +520,7 @@ It ignores whitespaces, newlines and comments."
   "Parser automaton.")
 
 (defconst semantic-grammar-keywords
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-02-18 22:35+0100
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-16 10:18+0100
   (semantic-lex-make-keyword-table
    '(("left" . LEFT)
      ("nonassoc" . NONASSOC)
@@ -449,7 +541,7 @@ It ignores whitespaces, newlines and comments."
   "Keywords.")
 
 (defconst semantic-grammar-tokens
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-02-18 22:35+0100
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-16 10:18+0100
   (wisent-lex-make-token-table
    '(("punctuation"
       (PERCENT . "%")
@@ -466,6 +558,7 @@ It ignores whitespaces, newlines and comments."
       (BRACE_BLOCK . "^{")
       (PAREN_BLOCK . "^("))
      ("sexp"
+      (PREFIXED_LIST . "\\s'\\s-*(")
       (SEXP))
      ("char"
       (CHARACTER))
@@ -478,7 +571,7 @@ It ignores whitespaces, newlines and comments."
 
 (defun semantic-grammar-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-02-18 22:35+0100
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2003-03-16 10:18+0100
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
@@ -570,8 +663,7 @@ ARGS are ASSOC's key value list."
 (define-mode-overload-implementation semantic-nonterminal-children
   semantic-grammar-mode (token)
   "Return the children of TOKEN."
-  (if (eq (semantic-token-token token) 'nonterminal)
-      (nth 3 token)))
+  (semantic-token-extra-spec token :children))
 
 (defun semantic-grammar-token-name (type)
   "Return the name of the first TYPE token found.
@@ -590,11 +682,13 @@ Warn if other TYPE tokens exist."
   (let* ((tokens (semantic-find-nonterminal-by-token
                   type (current-buffer))))
     (apply #'append
-           (mapcar #'(lambda (token)
-                       (mapcar #'intern
-                               (cons (semantic-token-name token)
-                                     (nth 3 token))))
-                   tokens))))
+           (mapcar
+            #'(lambda (token)
+                (mapcar
+                 #'intern
+                 (cons (semantic-token-name token)
+                       (semantic-token-extra-spec token :rest))))
+            tokens))))
 
 (defsubst semantic-grammar-item-text (item)
   "Return the readable string form of ITEM."
@@ -612,44 +706,34 @@ Warn if other TYPE tokens exist."
   "Return the %setupfunction value as a symbol or nil."
   (intern (or (semantic-grammar-token-name 'setupfunction) "nil")))
 
-(defun semantic-grammar-code-value (token)
-  "Return value of the code TOKEN as a list of expressions."
-  (let* ((s (nth 3 token))
-         rdata form start end)
-    (if (string-match "^{[\r\n\t ]*" s)
-        (setq start (match-end 0)))
-    (if (string-match "[\r\n\t ]*%?}$" s start)
-        (setq end (match-beginning 0)))
+(defun semantic-grammar-setupcode-text ()
+  "Return grammar setup code as a string value."
+  (save-excursion
+    (mapconcat
+     #'(lambda (code-tag)
+         (buffer-substring
+          (progn
+            (goto-char (semantic-token-start code-tag))
+            (skip-chars-forward "{\r\n\t ")
+            (point))
+           (progn
+             (goto-char (semantic-token-end code-tag))
+             (skip-chars-backward "\r\n\t %}")
+             (point))))
+     (semantic-find-nonterminal-by-token 'code (current-buffer))
+     "\n")))
+
+(defun semantic-grammar-setupcode-forms ()
+  "Return grammar setup code as a list of expressions."
+  (let ((code  (semantic-grammar-setupcode-text))
+        (start 0)
+        rdata form)
     (condition-case nil
-        (while (setq rdata (read-from-string s start end))
-          (setq form (cons (car rdata) form)
+        (while (setq rdata (read-from-string code start))
+          (setq form  (cons (car rdata) form)
                 start (cdr rdata)))
       (error nil))
     (nreverse form)))
-
-(defsubst semantic-grammar-setupcode-forms ()
-  "Return grammar setup code as a list of expressions."
-  (apply #'nconc
-         (mapcar #'semantic-grammar-code-value
-                 (semantic-find-nonterminal-by-token
-                  'code (current-buffer)))))
-
-(defsubst semantic-grammar-setupcode-text ()
-  "Return grammar setup code as a string value."
-  (mapconcat
-   #'(lambda (code)
-       (let* ((s (nth 3 code))
-              start end)
-         (if (string-match "^{[\r\n\t ]*" s)
-             (setq start (match-end 0)))
-         (if (string-match "[\r\n\t ]*%?}$" s)
-             (setq start (or start 0)
-                   end   (match-beginning 0)))
-         (if start
-             (substring s start end)
-           s)))
-   (semantic-find-nonterminal-by-token 'code (current-buffer))
-   "\n"))
 
 (defsubst semantic-grammar-tokentable ()
   "Return the %tokentable value as a symbol or nil."
@@ -689,7 +773,8 @@ That is an alist of (VALUE . TOKEN) where VALUE is the string value of
 the keyword and TOKEN is the terminal symbol identifying the keyword."
   (mapcar
    #'(lambda (key)
-       (cons (nth 4 key) (intern (semantic-token-name key))))
+       (cons (semantic-token-extra-spec key :value)
+             (intern (semantic-token-name key))))
    (semantic-find-nonterminal-by-token 'keyword (current-buffer))))
 
 (defun semantic-grammar-keyword-properties (keywords)
@@ -702,7 +787,8 @@ the keyword and TOKEN is the terminal symbol identifying the keyword."
             puts  (cdr puts)
             keys  (mapcar
                    #'intern
-                   (cons (semantic-token-name put) (nth 3 put))))
+                   (cons (semantic-token-name put)
+                         (semantic-token-extra-spec put :rest))))
       (while keys
         (setq key   (car keys)
               keys  (cdr keys)
@@ -710,7 +796,7 @@ the keyword and TOKEN is the terminal symbol identifying the keyword."
         (if (null assoc)
             nil ;;(message "*** %%put to undefined keyword %s ignored" key)
           (setq key   (car assoc)
-                plist (nth 4 put))
+                plist (semantic-token-extra-spec put :value))
           (while plist
             (setq pkey  (intern (caar plist))
                   pval  (read (cdar plist))
@@ -732,8 +818,8 @@ nil."
     (while tokens
       (setq token  (car tokens)
             tokens (cdr tokens))
-      (when (setq type (nth 2 token))
-        (setq names (nth 3 token)
+      (when (setq type (semantic-token-extra-spec token :type))
+        (setq names (semantic-token-extra-spec token :value)
               assoc (assoc type alist))
         (or assoc (setq assoc (list type)
                         alist (cons assoc alist)))
@@ -751,16 +837,18 @@ nil."
     (while tokens
       (setq token  (car tokens)
             tokens (cdr tokens))
-        (setq names (cons (semantic-token-name token) (nth 3 token))
-              type  (or (nth 2 token) "<no-type>")
-              value (nth 4 token)
-              assoc (assoc type alist))
-        (or assoc (setq assoc (list type)
-                        alist (cons assoc alist)))
-        (while names
-          (setq term  (intern (car names))
-                names (cdr names))
-          (setcdr assoc (cons (cons term value) (cdr assoc)))))
+      (setq names (cons (semantic-token-name token)
+                        (semantic-token-extra-spec token :rest))
+            type  (or (semantic-token-extra-spec token :type)
+                      "<no-type>")
+            value (semantic-token-extra-spec token :value)
+            assoc (assoc type alist))
+      (or assoc (setq assoc (list type)
+                      alist (cons assoc alist)))
+      (while names
+        (setq term  (intern (car names))
+              names (cdr names))
+        (setcdr assoc (cons (cons term value) (cdr assoc)))))
     alist))
 
 (defun semantic-grammar-token-properties (tokens)
@@ -771,7 +859,8 @@ nil."
     (while puts
       (setq put   (car puts)
             puts  (cdr puts)
-            keys  (cons (semantic-token-name put) (nth 3 put)))
+            keys  (cons (semantic-token-name put)
+                        (semantic-token-extra-spec put :rest)))
       (while keys
         (setq key   (car keys)
               keys  (cdr keys)
@@ -779,7 +868,7 @@ nil."
         (if (null assoc)
             nil ;; (message "*** %%put to undefined token %s ignored" key)
           (setq key   (car assoc)
-                plist (nth 4 put))
+                plist (semantic-token-extra-spec put :value))
           (while plist
             (setq pkey  (intern (caar plist))
                   pval  (read (cdar plist))
@@ -1109,6 +1198,9 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
      0 ,(if (boundp 'font-lock-constant-face)
             'font-lock-constant-face
           'font-lock-string-face) t)
+    ;; Must highlight :keyword here, because ':' is a punctuation in
+    ;; grammar mode!
+    ("[\r\n\t ]+:\\sw+\\>" 0 font-lock-builtin-face)
     )
   "Font Lock keywords used to highlight Semantic grammar buffers.")
 
@@ -1118,7 +1210,7 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
   "Font Lock keywords used to highlight Semantic grammar buffers.")
 
 (defvar semantic-grammar-mode-keywords-3
-  (append semantic-grammar-mode-keywords-2
+  (append semantic-grammar-mode-keywords-1
           lisp-font-lock-keywords-2)
   "Font Lock keywords used to highlight Semantic grammar buffers.")
 
