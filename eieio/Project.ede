@@ -5,21 +5,27 @@
   :version "0.16"
   :file "Project.ede"
   :targets (list 
-   (ede-proj-target-elisp "(eieio.el eieio-custom.el eieio-opt.el eieio-comp.el eieio-doc.el)"
+   (ede-proj-target-elisp "eieio"
     :name "eieio"
     :path ""
-    :source '("eieio.el" "eieio-custom.el" "eieio-opt.el" "eieio-comp.el" "eieio-doc.el" "eieio-base.el" "compare-strings.el")
+    :source '("eieio.el" "eieio-comp.el" "eieio-opt.el" "eieio-custom.el" "eieio-doc.el" "eieio-base.el" "compare-strings.el")
     :versionsource '("eieio.el")
     )
    (ede-proj-target-elisp "examples"
     :name "examples"
     :path ""
-    :source '("tree.el" "chart.el" "eieio-speedbar.el" "eieio-tests.el")
+    :source '("tree.el" "call-tree.el" "chart.el" "eieio-speedbar.el")
     )
    (ede-proj-target-makefile-info "eieio.info"
     :name "eieio.info"
     :path ""
     :source '("eieio.texi")
+    )
+   (ede-proj-target-elisp "nil"
+    :name "test"
+    :path ""
+    :source '("eieio-tests.el")
+    :partofall 'nil
     )
    (ede-proj-target-makefile-miscelaneous "Misc"
     :name "Misc"
