@@ -4,14 +4,14 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: graph, oop, extensions, outlines
-;; X-RCS: $Id: cogre.el,v 1.6 2001/05/09 02:33:53 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.7 2001/05/18 03:00:49 zappo Exp $
 
 (defvar cogre-version "0.0"
   "Current version of Cogre.")
 
 ;; This file is not part of GNU Emacs.
 
-;; Semantic is free software; you can redistribute it and/or modify
+;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
@@ -73,18 +73,18 @@
   :group 'cogre)
 
 (defface cogre-box-first-face  '((((class color) (background dark))
-				  (:background "gray30" :foreground "white" :overline t))
+				  (:background "gray30" :foreground "white" :overline "white"))
 				 (((class color) (background light))
-				  (:background "gray" :foreground "black" :overline t)))
+				  (:background "gray" :foreground "black" :overline "black")))
   "Face used for the first data item in rectangles of boxes displaying data.
 This has the `overline' property set to display borders between sections
 within a box."
   :group 'cogre)
 
 (defface cogre-box-last-face  '((((class color) (background dark))
-				  (:background "gray30" :foreground "white" :underline t))
+				  (:background "gray30" :foreground "white" :underline "white"))
 				 (((class color) (background light))
-				  (:background "gray" :foreground "black" :underline t)))
+				  (:background "gray" :foreground "black" :underline "black")))
   "Face used for the first data item in rectangles of boxes displaying data.
 This has the `overline' property set to display borders between sections
 within a box."
@@ -183,13 +183,13 @@ a status, or values.")
 (defclass cogre-link (cogre-graph-element)
   ((start :initarg :start
 	  :initform nil
-	  :type (or null string cogre-node-child)
+	  :type (or null string cogre-node)
 	  :documentation "The starting node.
 As a string, the object-name of the node we start on.
 As an object, the node we start on.")
    (end :initarg :end
 	  :initform nil
-	  :type (or null string cogre-node-child)
+	  :type (or null string cogre-node)
 	  :documentation "The ending node.
 As a string, the object-name of the node we end on.
 As an object, the node we end on.")
@@ -564,12 +564,13 @@ If ARG is unspecified, assume 1."
 (defun cogre-move-node (x y)
   "Set NODE to postion X, Y."
   (interactive "nX: \nnY: ")
-  (let ((e (cogre-current-element (point))))
+  (let ((inhibit-point-motion-hooks t)
+	(e (cogre-current-element (point))))
     (cogre-erase e)
     (cogre-move e x y)
-    (picture-goto-coordinate x y)
-    (if (interactive-p)
-	(cogre-render-buffer cogre-graph))))
+    (picture-goto-coordinate x y))
+  (if (interactive-p)
+      (cogre-render-buffer cogre-graph)))
 
 (defun cogre-move-node-left (arg)
   "Move NODE left by ARG columns."
@@ -663,13 +664,14 @@ with dirty flags set."
   (let ((inhibit-read-only t)
 	(x (current-column))
 	(y (1- (picture-current-line))))
-    (save-excursion
-      (with-slots (elements) graph
-	(if erase
-	    (progn
-	      (erase-buffer)
-	      (mapcar (lambda (e) (cogre-set-dirty e t)) elements)))
-	(mapcar (lambda (e) (cogre-render e)) elements)))
+    (let ((inhibit-point-motion-hooks t))
+      (save-excursion
+	(with-slots (elements) graph
+	  (if erase
+	      (progn
+		(erase-buffer)
+		(mapcar (lambda (e) (cogre-set-dirty e t)) elements)))
+	  (mapcar (lambda (e) (cogre-render e)) elements))))
     (picture-goto-coordinate x y)))
 
 (defmethod cogre-render ((element cogre-graph-element))
@@ -683,6 +685,16 @@ are called from `call-next-method', so reset our dirty flag."
 By default, an ELEMENT has nothing to erase, but assume we
 are called from `call-next-method', so set our dirty flag."
   (cogre-set-dirty element t))
+
+(defmethod cogre-entered ((element cogre-graph-element) start end)
+  "Method called when the cursor enters ELEMENT.
+START and END cover the region with the property."
+  (message "%s" (object-name element)))
+
+(defmethod cogre-left ((element cogre-graph-element) start end)
+  "Method called when the cursor exits ELEMENT.
+START and END cover the region with the property."
+  nil)
 
 ;;; Nodes
 (defmethod cogre-erase ((node cogre-node))
@@ -746,35 +758,35 @@ Always make the width 2 greater than the widest string."
 	    top-lines (1- top-lines)))
     (setq title (nreverse title))
     (while title
-      (setq rect (cons (cogre-string-with-face
-			(car title)
-			(if first
-			    (progn (setq first nil)
-				   'cogre-box-first-face)
-			  'cogre-box-face)
-			node width align)
-		       rect)
-	    title (cdr title)))
+      (let ((face (cond ((and first (null (cdr title)))
+			 '(cogre-box-first-face cogre-box-last-face))
+			(first
+			 'cogre-box-first-face)
+			((and (null (cdr title))
+			      (not (and (null slots)
+					(/= bottom-lines 0))))
+			 'cogre-box-last-face)
+			(t 'cogre-box-face))))
+	(setq rect (cons (cogre-string-with-face
+			  (car title) face
+			  node width align)
+			 rect)
+	      title (cdr title))))
     (while slots
       (let ((sl (car slots)))
 	;; If a subnode has nil here, make sure we put in a blank
 	;; line placeholder.
 	(if (not sl) (setq sl (list "")))
-	(setq first t)
 	(while sl
-	  (setq rect (cons (cogre-string-with-face
-			    (car sl)
-			    (if first
-				(progn (setq first nil)
-				       'cogre-box-first-face)
-			      (if (and (= bottom-lines 0)
-				       (= (length slots) 1)
-				       (= (length sl) 1))
-				  'cogre-box-last-face
-				'cogre-box-face))
-			    node width align)
-			   rect)
-		sl (cdr sl))))
+	  (let ((face (cond ((and (= bottom-lines 0)
+				  (null (cdr sl)))
+			     'cogre-box-last-face)
+			    (t 'cogre-box-face))))
+	    (setq rect (cons (cogre-string-with-face
+			      (car sl) face
+			      node width align)
+			     rect)
+		  sl (cdr sl)))))
       (setq slots (cdr slots)))
     (while (> bottom-lines 0)
       (setq rect (cons (cogre-string-with-face
@@ -1016,7 +1028,8 @@ right so that it is centered.  If optional argument ALIGN is non-nil,
 the align the string either 'left or 'right.
 Return the new string."
   (if length
-      (let* ((ws (- length (length string)))
+      (let* ((preprops (copy-sequence (text-properties-at 0 string)))
+	     (ws (- length (length string)))
 	     (sws (cond ((not align)
 			 (make-string (/ ws 2) ? ))
 			((eq align 'right)
@@ -1032,13 +1045,55 @@ Return the new string."
 			((eq align 'right)
 			 " ")
 			(t "")
-			)))
-	(setq string (concat sws string ews))))
-  (add-text-properties 0 (length string) (list 'face face
-					       'rear-nonsticky t
-					       'detachable t ;; xemacs
-					       'element element
-					       )
+			))
+	     )
+	(let ((pm (plist-member preprops face)))
+	  (when pm
+	    ;; We don't want to modify the face on this based
+	    ;; on the first character.
+	    (setcar (cdr pm) 'face)
+	    (setq preprops (delq 'face preprops))))
+	(setq string (concat sws string ews))
+	(add-text-properties 0 (length string) preprops string)
+	))
+  ;; Add our faces on.  Preserve previously applied faces.
+  (when face
+    (alter-text-property 0 (length string) 'face
+			 (lambda (current-face)
+			   (let ((cf
+				  (cond ((facep current-face)
+					 (list current-face))
+					((listp current-face)
+					 current-face)
+					(t nil)))
+				 (nf
+				  (cond ((facep face)
+					 (list face))
+					((listp face)
+					 face)
+					(t nil))))
+			     (append cf nf)))
+			 string))
+  ;; Add on other properties.
+  (add-text-properties 0 (length string)
+		       (list 'rear-nonsticky t
+			     'detachable t ;; xemacs
+			     'element element
+			     ;; 'local-map
+			     ;; 'modification-hooks
+			     'point-entered
+			     (lambda (s e)
+			       (let ((inhibit-point-motion-hooks t))
+				 (when (cogre-current-element)
+				   (cogre-entered (cogre-current-element) s e))))
+			     'point-left
+			     (lambda (s e)
+			       (let* ((inhibit-point-motion-hooks t)
+				      (el
+				       (save-excursion
+					 (goto-char s)
+					 (cogre-current-element))))
+				 (when el (cogre-left el s e)))))
 		       string)
   string)
 
