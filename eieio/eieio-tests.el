@@ -4,7 +4,7 @@
 ;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; RCS: $Id: eieio-tests.el,v 1.10 2001/02/19 02:36:12 zappo Exp $
+;; RCS: $Id: eieio-tests.el,v 1.11 2001/02/19 17:38:36 zappo Exp $
 ;; Keywords: oop, lisp, tools
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -32,6 +32,8 @@
 ;;  
 ;; Test the various features of EIEIO.  To run the tests, evaluate the
 ;; entire buffer.
+
+(require 'eieio-base)
 
 ;;; Code:
 
