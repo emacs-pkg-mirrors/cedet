@@ -26,7 +26,7 @@ MAKEINFO=makeinfo
 misc_MISC=INSTALL ChangeLog
 hacks_LISP=picture-hack.el
 COGRE_LISP=cogre.el cogre-uml.el uml-create.el
-VERSION=0.4
+VERSION=0.4beta1
 DISTDIR=$(top)COGRE-$(VERSION)
 
 
