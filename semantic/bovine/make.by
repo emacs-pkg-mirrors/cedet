@@ -3,7 +3,7 @@
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: make.by,v 1.9 2004/03/06 19:16:51 zappo Exp $
+;; X-RCS: $Id: make.by,v 1.10 2004/09/22 11:16:35 ponced Exp $
 ;;
 ;; make.bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -45,11 +45,11 @@
 %put IFNEQ   summary "Conditional: ifneq (expression) ... else ... endif"
 %put INCLUDE summary "Macro: include filename1 filename2 ..."
 
-%token <punctuation> COLON     "\\b[:]\\b"
-%token <punctuation> PLUS      "\\b[+]\\b"
-%token <punctuation> EQUAL     "\\b[=]\\b"
-%token <punctuation> DOLLAR    "\\b[$]\\b"
-%token <punctuation> BACKSLASH "\\b[\\]\\b"
+%token <punctuation> COLON     "\\`[:]\\'"
+%token <punctuation> PLUS      "\\`[+]\\'"
+%token <punctuation> EQUAL     "\\`[=]\\'"
+%token <punctuation> DOLLAR    "\\`[$]\\'"
+%token <punctuation> BACKSLASH "\\`[\\]\\'"
 
 %%
 
