@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.97 2004/04/28 15:41:18 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.98 2004/06/10 21:31:15 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1998,7 +1998,6 @@ minor mode is enabled."
         ;; Parse the current buffer if needed
         (condition-case nil
             (progn
-              (senator-parse)
               ;; Add completion hooks
               (semantic-make-local-hook
                'semantic-after-toplevel-cache-change-hook)
