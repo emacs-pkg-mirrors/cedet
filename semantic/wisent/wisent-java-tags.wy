@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.wy,v 1.6 2002/08/11 09:42:03 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.wy,v 1.7 2003/03/13 08:38:33 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -415,16 +415,16 @@ compilation_unit
 ;; ("NAME" package DETAIL "DOCSTRING")
 package_declaration
   : PACKAGE qualified_name SEMICOLON
-    (wisent-token $2 'package nil nil)
+    (PACKAGE-TAG $2 nil)
   ;
 
 ;;; Include file token
 ;; ("FILE" include SYSTEM "DOCSTRING") 
 import_declaration
   : IMPORT qualified_name SEMICOLON
-    (wisent-token $2 'include nil nil)
+    (INCLUDE-TAG $2 nil)
   | IMPORT qualified_name DOT MULT SEMICOLON
-    (wisent-token (concat $2 $3 $4) 'include nil nil)
+    (INCLUDE-TAG (concat $2 $3 $4) nil)
   ;
 
 type_declaration
@@ -438,9 +438,7 @@ type_declaration
 ;; ("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC "DOCSTRING")
 class_declaration
   : modifiers_opt CLASS qualified_name superc_opt interfaces_opt class_body
-    (wisent-token $3 'type $2 $6 (if (or $4 $5) (cons $4 $5))
-                  (ASSOC typemodifiers $1)
-                  nil)
+    (TYPE-TAG $3 $2 $6 (if (or $4 $5) (cons $4 $5)) 'typemodifiers $1)
   ;
 
 superc_opt
@@ -480,9 +478,7 @@ class_member_declaration
 ;; ("NAME" type "TYPE" ( PART-LIST ) ( PARENTS ) EXTRA-SPEC "DOCSTRING")
 interface_declaration
   : modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt interface_body
-    (wisent-token $3 'type $2 $5 (if $4 (cons nil $4))
-                  (ASSOC typemodifiers $1)
-                  nil)
+    (TYPE-TAG $3 $2 $5 (if $4 (cons nil $4)) 'typemodifiers $1)
   ;
 
 extends_interfaces_opt
@@ -515,9 +511,7 @@ static_initializer
 ;; ("NAME" function "TYPE" ( ARG-LIST ) EXTRA-SPEC "DOCSTRING") 
 constructor_declaration
   : modifiers_opt constructor_declarator throwsc_opt constructor_body
-    (wisent-token (car $2) 'function nil (cdr $2)
-                  (ASSOC typemodifiers $1 throws $3)
-                  nil)
+    (FUNCTION-TAG (car $2) nil (cdr $2) 'typemodifiers $1 'throws $3)
   ;
 
 constructor_declarator
@@ -533,13 +527,9 @@ constructor_body
 ;; ("NAME" function "TYPE" ( ARG-LIST ) EXTRA-SPEC "DOCSTRING") 
 method_declaration
   : modifiers_opt VOID method_declarator throwsc_opt method_body
-    (wisent-token (car $3) 'function $2 (cdr $3)
-                  (ASSOC typemodifiers $1 throws $4)
-                   nil)
+    (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
   | modifiers_opt type method_declarator throwsc_opt method_body
-    (wisent-token (car $3) 'function $2 (cdr $3)
-                  (ASSOC typemodifiers $1 throws $4)
-                  nil)
+    (FUNCTION-TAG (car $3) $2 (cdr $3) 'typemodifiers $1 'throws $4)
   ;
 
 method_declarator
@@ -588,9 +578,7 @@ formal_parameters
 ;; ("NAME" variable "TYPE" DEFAULT-VALUE EXTRA-SPEC "DOCSTRING")
 formal_parameter
   : formal_parameter_modifier_opt type variable_declarator_id
-    (wisent-token $3 'variable $2 nil
-                  (ASSOC typemodifiers $1)
-                  nil)
+    (VARIABLE-TAG $3 $2 nil 'typemodifiers $1)
   ;
 
 formal_parameter_modifier_opt
@@ -603,9 +591,7 @@ formal_parameter_modifier_opt
 ;; ("NAME" variable "TYPE" DEFAULT-VALUE EXTRA-SPEC "DOCSTRING")
 field_declaration
   : modifiers_opt type variable_declarators SEMICOLON
-    (wisent-token $3 'variable $2 nil
-                  (ASSOC typemodifiers $1)
-                  nil)
+    (VARIABLE-TAG $3 $2 nil 'typemodifiers $1)
   ;
 
 variable_declarators
