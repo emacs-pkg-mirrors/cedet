@@ -1,9 +1,9 @@
-;; BY notation for Makefiles.
+;;; make.by -- BY notation for Makefiles.
 ;;
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: make.by,v 1.7 2003/04/07 11:22:15 ponced Exp $
+;; X-RCS: $Id: make.by,v 1.8 2003/08/02 08:13:14 ponced Exp $
 ;;
 ;; make.bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -21,44 +21,28 @@
 ;; Boston, MA 02111-1307, USA.
 ;;
 
-%start         Makefile
-%outputfile    "semantic-make.el"
-%parsetable    semantic-toplevel-make-bovine-table
-%keywordtable  semantic-make-keyword-table
+%package semantic-make-by
+
 %languagemode  makefile-mode
-%setupfunction semantic-default-make-setup
+%start         Makefile
 
 ;; This was always a test case.
 %quotemode     backquote
 
-%(setq semantic-symbol->name-assoc-list '((variable . "Variables")
-					  (function . "Rules")
-					  (include . "Dependencies"))
-       semantic-case-fold t
-       semantic-tag-expand-function 'semantic-make-expand-tag
-       semantic-lex-syntax-modifications '((?. "_")
-					   (?= ".")
-					   (?/ "_")
-					   (?$ ".")
-					   (?+ ".")
-					   (?\\ ".")
-					   )
-       imenu-create-index-function 'semantic-create-imenu-index
-       )
-
-%token IF "if"
-%token IFDEF "ifdef"
-%token IFNDEF "ifndef"
-%token IFEQ "ifeq"
-%token IFNEQ "ifneq"
-%token ELSE "else"
-%token ENDIF "endif"
-%put { IF ELSE ENDIF } summary "Conditional: if (expression) ... else ... endif"
-%put IFDEF  summary "Conditional: ifdef (expression) ... else ... endif"
-%put IFNDEF summary "Conditional: ifndef (expression) ... else ... endif"
-%put IFEQ summary "Conditional: ifeq (expression) ... else ... endif"
-%put IFNEQ summary "Conditional: ifneq (expression) ... else ... endif"
+%token IF      "if"
+%token IFDEF   "ifdef"
+%token IFNDEF  "ifndef"
+%token IFEQ    "ifeq"
+%token IFNEQ   "ifneq"
+%token ELSE    "else"
+%token ENDIF   "endif"
 %token INCLUDE "include"
+
+%put { IF ELSE ENDIF } summary "Conditional: if (expression) ... else ... endif"
+%put IFDEF   summary "Conditional: ifdef (expression) ... else ... endif"
+%put IFNDEF  summary "Conditional: ifndef (expression) ... else ... endif"
+%put IFEQ    summary "Conditional: ifeq (expression) ... else ... endif"
+%put IFNEQ   summary "Conditional: ifneq (expression) ... else ... endif"
 %put INCLUDE summary "Macro: include filename1 filename2 ..."
 
 %token <punctuation> COLON     "\\b[:]\\b"
@@ -171,4 +155,5 @@ commands: shell-command newline commands
 opt-whitespace : whitespace ( nil )
 	       | ;;EMPTY
 	       ;
-;; End
+
+;;; make.by ends here

@@ -1,9 +1,9 @@
-;; Scheme BNF language specification
+;;; scheme.by -- Scheme BNF language specification
 ;;
 ;; Copyright (C) 2001, 2003 Eric M. Ludlam
 ;;
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: scheme.by,v 1.6 2003/03/21 03:24:48 zappo Exp $
+;; X-RCS: $Id: scheme.by,v 1.7 2003/08/02 08:13:14 ponced Exp $
 ;;
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -20,35 +20,23 @@
 ;; Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
-%start         scheme
-%outputfile    "semantic-scm.el"
-%parsetable    semantic-toplevel-scheme-bovine-table
-%keywordtable  semantic-scheme-keyword-table
+%package semantic-scm-by
+
 %languagemode  scheme-mode
-%setupfunction semantic-default-scheme-setup
+%start         scheme
 
-%(setq semantic-symbol->name-assoc-list '( (variable . "Variables")
-					   ;;(type     . "Types")
-					   (function . "Functions")
-					   (include  . "Loads")
-					   (package  . "DefineModule"))
-       imenu-create-index-function 'semantic-create-imenu-index
-       semantic-dependency-include-path semantic-default-scheme-path
-       imenu-create-index-function 'semantic-create-imenu-index
-       document-comment-start ";;"
-       document-comment-line-prefix ";;"
-       document-comment-end "\n"
-       )
-
-%token DEFINE "define"
-%put DEFINE summary "Function: (define symbol expression)"
+%token DEFINE        "define"
 %token DEFINE-MODULE "define-module"
+%token LOAD          "load"
+
+%put DEFINE        summary "Function: (define symbol expression)"
 %put DEFINE-MODULE summary "Function: (define-module (name arg1 ...)) "
-%token LOAD "load"
-%put LOAD summary "Function: (load \"filename\")"
+%put LOAD          summary "Function: (load \"filename\")"
 
 %token <open-paren> OPENPAREN "("
 %token <close-paren> CLOSEPAREN ")"
+
+%%
 
 scheme : semantic-list
 	 (EXPAND $1 scheme-list 4)
@@ -94,3 +82,5 @@ expression : symbol
 	   | semantic-list
 	   | string
 	   ;
+
+;;; scheme.by ends here

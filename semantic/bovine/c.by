@@ -7,7 +7,7 @@
 ;;         David Ponce <david@dponce.com>
 ;;         Klaus Berndl <klaus.berndl@sdm.de>
 ;;
-;; X-RCS: $Id: c.by,v 1.16 2003/08/01 17:38:16 zappo Exp $
+;; X-RCS: $Id: c.by,v 1.17 2003/08/02 08:13:14 ponced Exp $
 ;;
 ;; c.by is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,38 +25,11 @@
 ;; Boston, MA 02111-1307, USA.
 ;;
 
+%package semantic-c-by
+
+%languagemode  c-mode c++-mode
 %start         declaration
 %scopestart    codeblock
-%outputfile    "semantic-c.el"
-%parsetable    semantic-toplevel-c-bovine-table
-%keywordtable  semantic-c-keyword-table
-%languagemode  c-mode c++-mode
-%setupfunction semantic-default-c-setup
-
-%(setq semantic-tag-expand-function 'semantic-expand-c-tag
-       semantic-dependency-include-path semantic-default-c-path
-       semantic-orphaned-member-metaparent-type "struct"
-       semantic-symbol->name-assoc-list
-       '((type     . "Types")
-         (variable . "Variables")
-         (function . "Functions")
-         (include  . "Includes")
-         )
-       semantic-symbol->name-assoc-list-for-type-parts
-       '((type     . "Types")
-         (variable . "Attributes")
-         (function . "Methods")
-         (label    . "Labels")
-         )
-       imenu-create-index-function 'semantic-create-imenu-index
-       semantic-type-relation-separator-character '("." "->")
-       semantic-command-separation-character ";"
-       document-comment-start "/*"
-       document-comment-line-prefix " *"
-       document-comment-end " */"
-       ;; Semantic navigation inside 'type children
-       senator-step-at-token-ids '(function variable)
-       )
 
 %token INCLUDE "include"
 %token DEFINE  "define"

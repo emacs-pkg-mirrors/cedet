@@ -1,9 +1,9 @@
-;; Skeleton for creating BY files.
+;;; skeleton.by -- Skeleton for creating BY files.
 ;;
 ;; Copyright (C) 2001, 2003 Eric M. Ludlam
 ;;
 ;; Author: 
-;; X-RCS: $Id: skeleton.by,v 1.2 2003/02/02 02:07:57 zappo Exp $
+;; X-RCS: $Id: skeleton.by,v 1.3 2003/08/02 08:13:14 ponced Exp $
 ;;
 ;; .bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -26,33 +26,11 @@
 ;; Replace start, and scopestart names with something apropriate for
 ;; your language.
 
+%package semantic-skeleton-by
+
+%languagemode  skeleton-mode
 %start         starting_rule
 %scopestart    start_scope_rule
-%outputfile    "semantic-skel.el"
-%parsetable    semantic-toplevel-skeleton-bovine-table
-%keywordtable  semantic-skeleton-keyword-table
-%languagemode  skeleton-mode
-%setupfunction semantic-default-skeleton-setup
-
-;; Commented out lines below are generally considered optional
-;; See the Emacs Doc for the symbols used below
-%(setq semantic-symbol->name-assoc-list '( (variable . "Variables")
-					   (type     . "Types")
-					   (function . "Functions")
-					   (include  . "Includes")
-					   (package  . "Exports"))
-       ;;semantic-expand-nonterminal 'semantic-expand-skeleton-nonterminal
-       ;;semantic-flex-extensions semantic-flex-skeleton-extensions
-       ;;semantic-dependency-include-path semantic-default-skeleton-path
-       imenu-create-index-function 'semantic-create-imenu-index
-       semantic-type-relation-separator-character '(".")
-       semantic-command-separation-character ";"
-       document-comment-start "/*"
-       document-comment-line-prefix " *"
-       document-comment-end " */"
-       ;; Semantic navigation inside 'type children
-       senator-step-at-token-ids '(function variable)
-       )
 
 ;; Make common keywords into tokens returned by the lexer.
 ;; This improves accuracy, makes this file more readable.
@@ -67,6 +45,8 @@
 ;; but does make your file more readable.
 %token <punctuation> PERIOD "\\b[.]\\b"
 %token <punctuation> OPERATORS "[-+*/%^|&]"
+
+%%
 
 starting_rule : something
 	      ;
@@ -97,3 +77,5 @@ expression : number
 	   | OPERATORS expression
 	   ;; ( nil )
 	   ;
+
+;;; skeleton.by ends here
