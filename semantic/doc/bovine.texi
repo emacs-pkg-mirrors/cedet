@@ -26,7 +26,7 @@
 This manual documents Bovine parser development in Semantic
 
 Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
-Copyright @copyright{} 2001, 2002, 2003 David Ponce
+Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
 @quotation
@@ -58,7 +58,7 @@ License''.
 This file documents parser development with the bovine parser generator
 @emph{Infrastructure for parser based text analysis in Emacs}
 
-Copyright @copyright{} 2002 @value{AUTHOR}
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
 @end ifinfo
 
 @titlepage
@@ -66,7 +66,7 @@ Copyright @copyright{} 2002 @value{AUTHOR}
 @title @value{TITLE}
 @author by @value{AUTHOR}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
 @page
 @vskip 0pt plus 1 fill
 @insertcopying
@@ -84,229 +84,191 @@ Copyright @copyright{} 1999, 2000, 2001, 2002, 2003 @value{AUTHOR}
 @node top
 @top @value{TITLE}
 
-The bovine parser is the original semantic parser, and is an
-implementation of an LL parser.  It is good for simple langauges.  It
-has many conveniences making grammar writing easy.  The conveniences
-make it less flexible than a full LALR @emph{bison} style grammar.
+The @dfn{bovine} parser is the original @semantic{} parser, and is an
+implementation of an @acronym{LL} parser.  It is good for simple
+languages.  It has many conveniences making grammar writing easy.  The
+conveniences make it less powerful than a Bison-like @acronym{LALR}
+parser.  For more information, @inforef{top, the Wisent Parser Manual,
+wisent}.
 
-Bovine parsers are stored in files with a @file{.by} extension.
-When compiled, the contents is converted into a file of the form
-@file{NAME-by.el}.  This, in turn is byte compiled.
-@inforef{Grammar Programming Environment, ,lang-support-guide}.
-
-A bovine parser file has the following top level structure.
-Text in <angle> brackes should be replaced with apropriate values.
-
-@example
-%package <language>
-%languagemode  <mode name>
-%start         <starting rule>
-%scopestart    <scope starting rule>
-
-<DECLARATIONS>
-
-%%
-
-<RULES>
-@end example
-
-The comment character is @asis{;}, as with Emacs Lisp.
+Bovine @acronym{LL} grammars are stored in files with a @file{.by}
+extension.  When compiled, the contents is converted into a file of
+the form @file{NAME-by.el}.  This, in turn is byte compiled.
+@inforef{top, Grammar Framework Manual, grammar-fw}.
 
 @menu
-* %start::                      The starting rules for the grammar.
-* %languagemode::               The Emacs major mode associate with your grammar.
-* %token::                      Defining new lexical tokens
+* Starting Rules::              The starting rules for the grammar.
 * Bovine Grammar Rules::        Rules used to parse a language
 * Optional Lambda Expression::  Actions to take when a rule is matched
 * Bovine Examples::             Simple Samples
+* GNU Free Documentation License::  
+* Index::                       
 @end menu
 
-@node %start
-@chapter %start
+@node Starting Rules
+@chapter Starting Rules
 
-In Bison, one and only one nonterminal is designated as the
-``start'' symbol.
-In @semantic{}, one or more nonterminals can be designated as the
-``start'' symbol.
+In Bison, one and only one nonterminal is designated as the ``start''
+symbol.  In @semantic{}, one or more nonterminals can be designated as
+the ``start'' symbol.  They are declared following the @code{%start}
+keyword separated by spaces.  @inforef{start Decl, ,grammar-fw}.
 
-One or more start symbols can be explicitly declared following
-the @b{%start}  keyword separated by spaces.
+If no @code{%start} keyword is used in a grammar, then the very first
+is used.  Internally the first start nonterminal is targeted by the
+reserved symbol @code{bovine-toplevel}, so it can be found by the
+parser harness.
 
-If no @b{%start} keyword is used in a grammar, then the start token
-is called @b{bovine-toplevel}.  When it is used, then the rule named
-by the @b{%start} token is renamed internally to @b{bovine-toplevel}
-so it can be found by the parser harness.
-
-If one or more explicit @b{start} symbols are declared, then
-the very first is used.
-
-@ignore
-Submitted By: Joseph Kiniry (kiniry)
->Assigned to: Richard Y. Kim (emacsman)
-Summary: Semantics of %start and %scopestart settings still unclear.
-
-Initial Comment:
-The rule specified with %start is a legal topmost
-production rule, but the first rule in a BNF file is
-still used as bovine-toplevel.  This is not made clear.
-
-If a rule is specified with %scopestart then that rule
-is not used/generated in the corresponding table.  This
-leads to an erroneous disconnected grammar
-specification.  I think that the use of this variable
-needs to be reviewed and its documentation needs to be
-clarified.
-@end ignore
-
-@node %languagemode
-@chapter %languagemode
-
-@c >   A while back, I updated semantic-grammer.el to auto-run the setup
-@c > function in all modes of the correct type.  It uses %languagemode to
-@c > figure out what buffers to look in.  %languagemode doesn't seem to be
-@c > used in wisent though.  I'm not sure if it should be or not.  Perhaps
-@c > no cases call for it yet.
-@c 
-@c %languagemode is not used by the parser itself, but is used by
-@c grammar tools, when the grammar provides it (wisent-java-tags.wy
-@c for example).
-@c 
-
-@node %token
-@chapter %token
-
-In the bovine parser, the @b{%token} and related @b{%put} command
-control the creation of additional lexical tokens types called
-@emph{keywords}.
-
-The @b{%token} has two forms.
-
-@table @asis
-@item %token NAME ``name''
-In this form, the new lexical token @var{NAME} is declared matched to the
-keyword ``name'', a string.  ``name'' must be a valid @emph{symbol}
-token @inforef{Writing Lexers, ,lang-support-guide}.
-@item %token <LEXICALTYPE> NAME ``regexp''
-In this form, the new lexical token @var{NAME} is created which consists of
-characters of the lexical type @var{LEXICALTYPE}.  The <angle> brackets are
-a part of the syntax.  These lexical characters are matched against
-@var{REGEXP}.
-@end table
-
-Internally, symbol tokens created with the first form are added to a
-lexical keyword table @inforef{Keywords, , lang-support-guide}.  The other types of lexical
-tokens are substitued into the rules, and do not appear in the Emacs
-Lisp representation of the grammar.
-
-A related command to @b{%token} is @b{%put}.  This works much the
-same way as the Emacs Lisp command @dfn{put}, in that it associates a
-property with a value on the named token.
-
-@defun Fcn %put NAME PROPERTY VALUE
-@var{NAME} is the name of the token to add a value to.
-@var{PROPERTY} is a symbol representing the property whose value is
-to be modified.
-@var{VALUE} is an Emacs Lisp form to be used as a value on that
-property.
-@end defun
+To find locally defined variables, the local context handler needs to
+parse the body of functional code.  The @code{scopestart} declaration
+specifies the name of a nonterminal used as the goal to parse a local
+context, @inforef{scopestart Decl, ,grammar-fw}.  Internally the
+scopestart nonterminal is targeted by the reserved symbol
+@code{bovine-inner-scope}, so it can be found by the parser harness.
 
 @node Bovine Grammar Rules
 @chapter Bovine Grammar Rules
 
 The rules are what allow the compiler to create tags from a language
 file.  Once the setup is done in the prologue, you can start writing
-rules.
+rules.  @inforef{Grammar Rules, ,grammar-fw}.
 
 @example
-RESULT : MATCH1 (optional-lambda-expression)
-       | MATCH2 (optional-lambda-expression)
+@var{result} : @var{components1} @var{optional-semantic-action1})
+       | @var{components2} @var{optional-semantic-action2}
        ;
 @end example
 
-@var{RESULT} is a non-terminal, or a token synthesized in your grammar.
-@var{MATCH} is a list of elements that are to be matched if @var{RESULT}
-is to be made.  The optional lambda expression is a list containing
-simplified rules for concocting the parse tree.
+@var{result} is a nonterminal, that is a symbol synthesized in your grammar.
+@var{components} is a list of elements that are to be matched if @var{result}
+is to be made.  @var{optional-semantic-action} is an optional sequence
+of simplified Emacs Lisp expressions for concocting the parse tree.
 
-In bison, each time an element of a @var{MATCH} is found, it is
-"shifted" onto the parser stack.  (The stack of matched elements.)  When
-all of @var{MATCH1}'s elements have been matched, it is "reduced" to
-@var{RESULT}.  @xref{(bison)Algorithm}.
+In bison, each time an element of @var{components} is found, it is
+@dfn{shifted} onto the parser stack.  (The stack of matched elements.)
+When all @var{components}' elements have been matched, it is
+@dfn{reduced} to @var{result}.  @xref{(bison)Algorithm}.
 
-The first @var{RESULT} written into your language specification should
-be @code{bovine-toplevel}, or the symbol specified with @code{%start}.
-When starting a parse for a file, this is the default token iterated
-over.  You can use any token you want in place of @code{bovine-toplevel}
-if you specify what that nonterminal will be with a @code{%start} token
-in the settings section.
+A particular @var{result} written into your grammar becomes
+the parser's goal.  It is designated by a @code{%start} statement
+(@pxref{Starting Rules}).  The value returned by the associated
+@var{optional-semantic-action} is the parser's result.  It should be
+a tree of @semantic{} @dfn{tags}, @inforef{Semantic Tags, ,
+semantic-appdev}.
 
-@var{MATCH} is made up of symbols and strings.  A symbol such as
-@code{foo} means that a syntactic token of type @code{foo} must be
-matched.  A string in the mix means that the previous symbol must have
-the additional constraint of exactly matching it.  Thus, the
-combination:
+@var{components} is made up of symbols.  A symbol such as @code{FOO}
+means that a syntactic token of class @code{FOO} must be matched.
 
-@example
-symbol "moose"
-@end example
+@menu
+* How Lexical Tokens Match::    
+* Grammar-to-Lisp Details::     
+* Order of components in rules::  
+@end menu
 
-means that a symbol must first be encountered, and then it must
-@code{string-match "moose"}.  Be especially careful to remember that the
-string is a regular expression.  The code:
+@node How Lexical Tokens Match
+@section How Lexical Tokens Match
 
-@example
-punctuation "."
-@end example
+A lexical rule must be used to define how to match a lexical token.
 
-will match any punctuation.
-
-For the above example in bison, a LEX rule would be used to create a new
-token @var{MOOSE}.  In this case, the @var{MOOSE} token would appear.
-For the bovinator, this task was mixed into the language definition to
-simplify implementation, though Bison's technique is more efficient.
-
-To make a symbol match explicitly for keywords, for example, you can use
-the @code{%token} command in the settings section to create new symbols.
+For instance:
 
 @example
-%token MOOSE "moose"
-
-find_a_moose: MOOSE
-            ;
+%keyword FOO "foo"
 @end example
 
-will match ``moose'' explicitly, unlike the previous example where moose
-need only appear in the symbol.  This is because ``moose'' will be
-converted to @var{MOOSE} in the lexical analysis stage.  Thus the symbol
-@var{MOOSE} won't be available any other way.
+Means that @code{FOO} is a reserved language keyword, matched as such
+by looking up into a keyword table, @inforef{keyword Decl,
+,grammar-fw}.  This is because @code{"foo"} will be converted to
+@code{FOO} in the lexical analysis stage.  Thus the symbol @code{FOO}
+won't be available any other way.
 
 If we specify our token in this way:
 
 @example
-%token MOOSE symbol "moose"
-
-find_a_moose: MOOSE
-            ;
+%token <symbol> FOO "foo"
 @end example
 
-then @code{MOOSE} will match the string "moose" explicitly, but it won't
-do so at the lexical level, allowing use of the text "moose" in other
-forms of regular expressions.
+then @code{FOO} will match the string @code{"foo"} explicitly, but it
+won't do so at the lexical level, allowing use of the text
+@code{"foo"} in other forms of regular expressions.
+
+In that case, @code{FOO} is a @code{symbol}-type token.  To match, a
+@code{symbol} must first be encountered, and then it must
+@code{string-match "foo"}.
+
+@table @strong
+@item Caution:
+Be especially careful to remember that @code{"foo"}, and more
+generally the %token's match-value string, is a regular expression!
+@end table
 
 Non symbol tokens are also allowed.  For example:
 
 @example
-%token PERIOD punctuation "."
+%token <punctuation> PERIOD "[.]"
 
 filename : symbol PERIOD symbol
          ;
 @end example
 
-will explicitly match one period when used in the above rule.
+@code{PERIOD} is a @code{punctuation}-type token that will explicitly
+match one period when used in the above rule.
 
-@section Order of MATCH rules
+@table @strong
+@item Please Note:
+@code{symbol}, @code{punctuation}, etc., are predefined lexical token
+types, based on the @dfn{syntax class}-character associations
+currently in effect.
+@end table
 
-If a rule has multiple matches, order is important, for example
+@node Grammar-to-Lisp Details
+@section Grammar-to-Lisp Details
+
+For the bovinator, lexical token matching patterns are @emph{inlined}.
+When the grammar-to-lisp converter encounters a lexical token
+declaration of the form:
+
+@example
+%token <@var{type}> @var{token-name} @var{match-value}
+@end example
+
+It substitutes every occurrences of @var{token-name} in rules, by its
+expanded form:
+
+@example
+@var{type} @var{match-value}
+@end example
+
+For example:
+
+@example
+%token <symbol> MOOSE "moose"
+
+find_a_moose: MOOSE
+            ;
+@end example
+
+Will generate this pseudo equivalent-rule:
+
+@example
+find_a_moose: symbol "moose"   ;; invalid syntax!
+            ;
+@end example
+
+Thus, from the bovinator point of view, the @var{components} part of a
+rule is made up of symbols and strings.  A string in the mix means
+that the previous symbol must have the additional constraint of
+exactly matching it, as described in @ref{How Lexical Tokens Match}.
+
+@table @strong
+@item Please Note:
+For the bovinator, this task was mixed into the language definition to
+simplify implementation, though Bison's technique is more efficient.
+@end table
+
+@node Order of components in rules
+@section Order of components in rules
+
+If a rule has multiple components, order is important, for example
 
 @example
 headerfile : symbol PERIOD symbol
@@ -314,7 +276,7 @@ headerfile : symbol PERIOD symbol
            ;
 @end example
 
-would match ``foo.h'' or the c++ header ``foo''.
+would match @samp{foo.h} or the @acronym{C++} header @samp{foo}.
 The bovine parser will first attempt to match the long form, and then
 the short form.  If they were in reverse order, then the long form
 would never be tested.
@@ -461,3 +423,23 @@ which would return
 @example
 ( "A" "B" )
 @end example
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@include fdl.texi
+
+@node Index
+@unnumbered Index
+@printindex cp
+
+@iftex
+@contents
+@summarycontents
+@end iftex
+
+@bye
+
+@c Following comments are for the benefit of ispell.
+
+@c  LocalWords:  bovinator inlined
