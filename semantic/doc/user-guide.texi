@@ -26,7 +26,7 @@
 This is the Semantic User's Manual
 
 Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
-Copyright @copyright{} 2001, 2002, 2003 David Ponce
+Copyright @copyright{} 2001, 2002, 2003, 2004 David Ponce
 Copyright @copyright{} 2002, 2003 Richard Y. Kim
 
 @quotation
@@ -58,7 +58,7 @@ License''.
 This is the Semantic User's Guide
 @emph{Infrastructure for parser based text analysis in Emacs}
 
-Copyright @copyright{} 2002, 2003, 2004 @value{AUTHOR}
+Copyright @copyright{} 1999, 2000, 2001, 2002, 2003, 2004 @value{AUTHOR}
 @end ifinfo
 
 @titlepage
@@ -101,6 +101,8 @@ from semantic.
 * Minor Modes::                 Useful minor modes
 * semanticdb::                  Cache your parsed buffers between sessions.
 * Customizing::                 
+* GNU Free Documentation License::  
+* Index::                       
 @end menu
 
 @node speedbar
@@ -424,12 +426,6 @@ This will cause navigation and search commands to stop only between
 functions and variables, and to step at start and end of functions
 only.
 
-@section Contact information for Senator
-
-Any comments, suggestions, bug reports or upgrade requests are
-welcome.  Please send them to the semantic mailing list, or to
-David Ponce at david@@dponce.com
-
 @node Analyzer
 @chapter Analyzer
 @cindex Analyzer
@@ -715,8 +711,8 @@ Application Developers Guide
 @inforef{Idle Scheduling, , semantic-appdev.info}.
 
 @menu
-* Reparsing Options::
-* Idle Summary Mode:::
+* Reparsing Options::           
+* Idle Summary Mode::           
 @end menu
 
 @node Reparsing Options
@@ -1121,4 +1117,22 @@ the class name.
 Customizations can be divided into two categories.
 * M-x customize
 * Low level hooks.
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@include fdl.texi
+
+@node Index
+@unnumbered Index
+@printindex cp
+
+@iftex
+@contents
+@summarycontents
+@end iftex
+
+@bye
+
+@c Following comments are for the benefit of ispell.
 
