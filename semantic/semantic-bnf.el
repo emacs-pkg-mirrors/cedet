@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.19 2000/09/27 02:13:08 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.20 2000/09/27 14:54:22 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -684,7 +684,7 @@ SOURCEFILE is the file name from whence tokstream came."
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
 
 (eval-after-load "which-func"
-  (add-to-list 'which-func-modes 'semantic-bnf-mode))
+  '(add-to-list 'which-func-modes 'semantic-bnf-mode))
 
 (provide 'semantic-bnf)
 
