@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.8 1999/05/27 01:43:52 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.9 1999/06/06 13:56:55 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -384,6 +384,17 @@
     )
 "The moose is loose.")
 
+(defvar semantic-flex-c-extensions
+  '(("^#\\(if\\(def\\)?\\|else\\|endif\\)" . semantic-flex-c-if))
+  "Extensions to the flexer for C.")
+
+(defun semantic-flex-c-if ()
+  "Move the cursor and return nil when a #if is found."
+  ;; Future enhancement: Enable only the then or else clause depending on
+  ;; some mysterious knowledge.
+  (if (bolp) (end-of-line))
+  nil)
+
 (defun semantic-expand-c-nonterminal (nonterm)
   "Expand NONTERM into a list of equivalent nonterminals, or nil."
   (if (listp (car nonterm))
@@ -439,7 +450,8 @@
             (setq semantic-toplevel-bovine-table 
 		  semantic-toplevel-c-bovine-table
 		  semantic-expand-nonterminal 
-		  'semantic-expand-c-nonterminal)))
+		  'semantic-expand-c-nonterminal
+		  semantic-flex-extensions semantic-flex-c-extensions)))
 
 (provide 'semantic-ex)
 
