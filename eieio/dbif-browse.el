@@ -1,48 +1,49 @@
-;;; dbif browser - generic browser for any dbif child class type
-;;;
-;;; Copyright (C) 1996 Eric M. Ludlam
-;;;
-;;; Author: <zappo@gnu.ai.mit.edu>
-;;; Version: 0.1
-;;; RCS: $Id: dbif-browse.el,v 1.3 1996/10/12 10:22:20 zappo Exp $
-;;; Keywords: OO database
-;;;                                                                          
-;;; This program is free software; you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 2, or (at your option)
-;;; any later version.
-;;;
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-;;;
-;;; You should have received a copy of the GNU General Public License
-;;; along with this program; if not, you can either send email to this
-;;; program's author (see below) or write to:
-;;;
-;;;              The Free Software Foundation, Inc.
-;;;              675 Mass Ave.
-;;;              Cambridge, MA 02139, USA. 
-;;;
-;;; Please send bug reports, etc. to zappo@gnu.ai.mit.edu.
-;;;
-;;; Updates can be found at:
-;;;    ftp://ftp.ultranet.com/pub/zappo
+;;; dbif-browse.el --- generic browser for any dbif child class type
+;;
+;; Copyright (C) 1996, 1998 Eric M. Ludlam
+;;
+;; Author: <zappo@gnu.ai.mit.edu>
+;; Version: 0.1
+;; RCS: $Id: dbif-browse.el,v 1.4 1999/02/18 18:13:27 zappo Exp $
+;; Keywords: OO database
+;;                                                                          
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; if not, you can either send email to this
+;; program's author (see below) or write to:
+;;
+;;              The Free Software Foundation, Inc.
+;;              675 Mass Ave.
+;;              Cambridge, MA 02139, USA. 
+;;
+;; Please send bug reports, etc. to zappo@gnu.org.
+;;
+;; Updates can be found at:
+;;    ftp://ftp.ultranet.com/pub/zappo
 
 ;;; Commentary:
-;;;   By using the dbif database superclass, it's possible to use
-;;; the basic accessors to maintain a browser system (table-list,
-;;; table-schema, and sample data) for any database with a supporting
-;;; connection type.  (providing all such requests return a tuple
-;;; type.)
-;;;   This mode is not very sophisticated yet, as it serves to provide
-;;; a basic testing framework to my silly ideals.
-;;;
-;;; PREFERRED: emacs 19 for faces and colors.
+;;   By using the dbif database superclass, it's possible to use
+;; the basic accessors to maintain a browser system (table-list,
+;; table-schema, and sample data) for any database with a supporting
+;; connection type.  (providing all such requests return a tuple
+;; type.)
+;;   This mode is not very sophisticated yet, as it serves to provide
+;; a basic testing framework to my silly ideals.
+;;
+;; PREFERRED: Emacs 19 for faces and colors.
 
 (require 'dbif)
 
+;;; Code:
 (defvar dbif-browse-mode-map nil
   "Keymap used in various browse modes.")
 (if dbif-browse-mode-map
@@ -63,10 +64,10 @@
   "Stores the tuple currently displayed in the current buffer.")
 
 (defvar dbif-local-selected 0
-  "Stores the index to the currently selected tuple")
+  "Stores the index to the currently selected tuple.")
 
 (defvar dbif-local-link-buffer nil
-  "Stores the buffer in which we have linked info")
+  "Stores the buffer in which we have linked info.")
 
 (defvar dbif-local-dependants nil
   "List of buffers dependant on out selected field...")
@@ -96,17 +97,19 @@ connection type."
     ))
 
 (defun psql-browse (host port database)
-  "Browse a Postgres95 database.  Opens a couple windows in which you
+  "Browse a Postgres95 database.
+Opens a couple windows in which you
 can click on items to expand them, or view their values."
-  (interactive "sHost: \nsPort: \nsDatabase: ")
+  (interactive "sDatabase: \nsHost: \nsPort: ")
   (require 'psql)
-  (let ((dbbuff (psql-set-db host port database)))
+  (let ((dbbuff (psql-set-db database host port)))
     (dbif-browse dbbuff database)))
 
 (defun ingsql-browse (host username database)
-  "Browse a Postgres95 database.  Opens a couple windows in which you
+  "Browse an Ingres database.
+Opens a couple windows in which you
 can click on items to expand them, or view their values."
-  (interactive "sHost: \nsUsername: \nsDatabase: ")
+  (interactive "sDatabase: \nsHost: \nsUsername:")
   (require 'ingsql)
   (let ((dbbuff (ingsql-set-db host username database)))
     (dbif-browse dbbuff database)))
@@ -274,3 +277,7 @@ re-create it, otherwise, only update the highlight line"
 ;;; end of lisp
 (provide 'dbif-browse)
 
+
+(provide 'dbif-browse)
+
+;;; dbif-browse.el ends here
