@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.30 2004/04/05 02:05:43 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.31 2004/06/29 13:41:52 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -49,10 +49,29 @@
   (setq semantic-lex-end-point (point))
   nil)
 
+;;; Compatibility
+;;
+(if (fboundp 'c-end-of-macro)
+    (defalias 'semantic-c-end-of-macro 'c-end-of-macro)
+  ;; From cc-mode 5.30
+  (defun semantic-c-end-of-macro ()
+    "Go to the end of a preprocessor directive.
+More accurately, move point to the end of the closest following line
+that doesn't end with a line continuation backslash.
+
+This function does not do any hidden buffer changes."
+    (while (progn
+             (end-of-line)
+             (when (and (eq (char-before) ?\\)
+                        (not (eobp)))
+               (forward-char)
+               t))))
+  )
+
 (define-lex-regex-analyzer semantic-lex-c-if
   "Ignore various forms of #if/#else/#endif conditionals."
   "^#\\(if\\(def\\)?\\|el\\(if\\|se\\)\\|endif\\)"
-  (when (bolp) (end-of-line))
+  (semantic-c-end-of-macro)
   (setq semantic-lex-end-point (point))
   nil)
 
