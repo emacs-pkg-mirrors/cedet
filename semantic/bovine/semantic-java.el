@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.9 2004/02/02 09:19:20 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.10 2004/02/02 10:36:44 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -91,8 +91,9 @@ FLOATING_POINT_LITERAL:
 (define-mode-overload-implementation semantic-ctxt-scoped-types
   java-mode (&optional point)
   "Return a list of type names currently in scope at POINT."
-  (semantic-find-tags-by-class
-   'type (semantic-find-tag-by-overlay point)))
+  (mapcar 'semantic-tag-name
+          (semantic-find-tags-by-class
+           'type (semantic-find-tag-by-overlay point))))
 
 ;; Prototype handler
 ;;
