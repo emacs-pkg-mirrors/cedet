@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1995, 1996 Eric M. Ludlam
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: dialog-mode.el,v 1.17 1997/01/16 02:23:51 zappo Exp $
+;;; RCS: $Id: dialog-mode.el,v 1.18 1997/01/24 00:56:03 zappo Exp $
 ;;; Keywords: OO widget dialog
 ;;;                     
 ;;; This program is free software; you can redistribute it and/or modify
@@ -36,6 +36,11 @@
 ;;; which you can place buttons and text fields within a top-level
 ;;; shell.  This mode manages the keymap, and the input is distributed
 ;;; to the correct active widget.
+;;;
+;;;  Dialog-mode also provides the most basic framework needed for
+;;; creating other modes which may need widgets in them.  The general
+;;; keymaps and things needed can be re-used to create widgets
+;;; embedded in other types of modes.
 ;;;
 ;;; To create a new dialog, you must follow these basic steps:
 ;;; 1) Create a new blank buffer
@@ -73,21 +78,23 @@
 ;;; 
          
 (defvar widget-toplevel-shell nil
-  "Buffer local variable containing the definition of the toplevel
-shell active in the current buffer.  There can be only one toplevel
-shell definition in a given buffer.")
+  "Buffer local variable containing the definition of the toplevel shell.
+This shell is active in the current buffer.  There can be only one
+toplevel shell definition in a given buffer.  It should maintain a
+buffer-local value as any buffer may wish to have embedded widgets."
 (make-variable-buffer-local 'widget-toplevel-shell)
 
 (defvar dialog-current-parent nil
-  "Defined while building buffers.  This represents the parent of
-newly created widgets.")
+  "This variable is defined inside a `dialog-build-group' form.
+It's value is the widget defined as the first parameter to
+`dialog-build-group'")
 
 ;;;
 ;;; Dialog mode variables
 ;;;
 (defun dialog-superbind-alpha (keymap fn)
-  "In KEYMAP bind all occurances of alphanumeric keys to FN.  An alphanumeric
-key is any value between 0 and 128"
+  "In KEYMAP bind all occurances of alphanumeric keys to FN.
+An alphanumeric key is any value between 0 and 128"
   (let ((key "\00"))
     (aset key 0 0)
     (while (< (aref key 0) 128)
@@ -98,7 +105,7 @@ key is any value between 0 and 128"
   "Keymap used in dialog mode.")
 
 (defvar dialog-meta-map nil
-  "Keymap used to trap meta-keys")
+  "Keymap used to trap meta-keys.")
 
 (if dialog-mode-map () 
   ;; create and fill up the keymap with our event handler
@@ -170,13 +177,13 @@ key is any value between 0 and 128"
     ))
   
 (defun dialog-load-color (sym l-fg l-bg d-fg d-bg &optional bold italic underline)
-  "Create a color for SYM with a L-FG and L-BG color, or D-FG and
-D-BG. Optionally make BOLD, ITALIC, or UNDERLINED if applicable.  If
-the background attribute of the current frame is determined to be
-light (white, for example) then L-FG and L-BG is used.  If not, then
-D-FG and D-BG is used.  This will allocate the colors in the best
-possible mannor.  This will allow me to store multiple defaults and
-dynamically determine which colors to use."
+  "Create a color for SYM with a L-FG and L-BG color, or D-FG and D-BG.
+Optionally make BOLD, ITALIC, or UNDERLINED if applicable.  If the
+background attribute of the current frame is determined to be light
+(white, for example) then L-FG and L-BG is used.  If not, then D-FG
+and D-BG is used.  This will allocate the colors in the best possible
+mannor.  This will allow me to store multiple defaults and dynamically
+determine which colors to use."
   (if window-system
       (let* ((params (frame-parameters))
 	     (disp-res (if (fboundp 'x-get-resource)
@@ -272,9 +279,10 @@ dynamically determine which colors to use."
 (dialog-load-color 'widget-text-button-face "black" "cyan" nil "blue3")
 
 (defun dialog-mode ()
-  "Major mode for interaction with widgets.  A widget is any of a number of
-rectangular regions on the screen with certain visual effects, and user
-actions.
+  "Major mode for interaction with widgets.
+
+A widget is any of a number of rectangular regions on the screen with
+certain visual effects, and user actions.
 
 All keystrokes are interpreted by the widget upon which the cursor
 resides.  Thus SPC on a button activates it, but in a text field, it
@@ -310,8 +318,8 @@ Commands:
   (run-hooks 'dialog-mode-hooks))
 
 (defmacro dialog-with-writeable (&rest forms)
-  "Allow the buffer to be writable and evaluate forms.  Turn read-only back
-on when done."
+  "Allow the buffer to be writable and evaluate FORMS.
+Turn read-only back on when done."
   (list 'let '((dialog-with-writeable-buff (current-buffer)))
 	'(toggle-read-only -1)
 	(cons 'progn forms)
@@ -323,7 +331,7 @@ on when done."
 	    (def-edebug-spec dialog-with-writeable
 	      def-body)))
 
-(defun dialog-refresh () "Refresh all visible widgets in this buffer"
+(defun dialog-refresh () "Refresh all visible widgets in this buffer."
   (interactive)
   (dialog-with-writeable
     (erase-buffer)
@@ -336,7 +344,7 @@ on when done."
 (defun dialog-quit () "Quits a dialog."
   (bury-buffer))
 
-(defun dialog-widget-help () "Gain help for the widget under the cursor"
+(defun dialog-widget-help () "Gain help for the widget under the cursor."
   (interactive)
   (dialog-with-writeable
     (let ((dispatch (or (get-text-property (point) 'widget-object)
@@ -344,14 +352,14 @@ on when done."
       (help-actions dispatch nil))))
   
 (defun dialog-mouse-widget-help (e)
- "Go where the mouse clicks and call `dialog-widget-help'"
+ "Go where the mouse clicks and call `dialog-widget-help'."
  (interactive "e")
  (mouse-set-point e)
  (dialog-widget-help))
 
 (defun dialog-lookup-key (keymap coe)
-  "Translate event COE into the command keybinding which sometimes
-requires translation into arrays and things."
+  "Translate from KEYMAP the event COE. Return the command keybinding.
+This task isn't as simple as it should be."
   (let ((cc (cond ((numberp coe)
 		   (char-to-string coe))
 		  ((stringp coe)
@@ -373,8 +381,9 @@ last-command setting while running interpreted commands.")
       (input dispatch (if last-input-char last-input-char last-input-event)))))
 
 (defun dialog-handle-kbd-maybe ()
- "Read the last kbd event, and handle it. but only if a widget has
-registered with this area of text, otherwise run the default keybinding."
+ "Read the last kbd event, and handle it if a widget is registered.
+A registered widget has marked the area of text under point. If the
+text is not marked, the default keybinding is run instead."
   (interactive)
   (dialog-with-writeable
     (let ((dispatch (get-text-property (point) 'widget-object)))
@@ -389,7 +398,7 @@ registered with this area of text, otherwise run the default keybinding."
 	  (command-execute command t)
 	  (setq dialog-last-maybe-command command))))))
 
-(defun dialog-handle-meta-kbd () "Read the last kbd event, and handle it as a meta key"
+(defun dialog-handle-meta-kbd () "Read the last kbd event, and handle it as a meta key."
   (interactive)
   (dialog-with-writeable
     (let ((dispatch (or (get-text-property (point) 'widget-object)
@@ -398,7 +407,7 @@ registered with this area of text, otherwise run the default keybinding."
 			  (concat "\e" (char-to-string last-input-char))
 			last-input-char)))))
 
-(defun dialog-next-widget (arg) "Move cursor to next logical widget"
+(defun dialog-next-widget (arg) "Move cursor to next logical widget."
   (interactive "P")
   (choose-next-widget widget-toplevel-shell 
 		      (cond ((null arg) 1)
@@ -406,7 +415,7 @@ registered with this area of text, otherwise run the default keybinding."
 			    (t arg)))
   )
 
-(defun dialog-prev-widget (arg) "Move cursor to next logical widget"
+(defun dialog-prev-widget (arg) "Move cursor to previous logical widget."
   (interactive "P")
   (choose-next-widget widget-toplevel-shell 
 		      (cond ((null arg) -1)
@@ -457,8 +466,9 @@ registered with this area of text, otherwise run the default keybinding."
 
 ;;; Widget creation routines and convenience functions
 (defmacro dialog-build-group (widget &rest forms)
-  "This is similar to a `progn' where new WIDGET becomes the  default
-parent for new widgets created within FORMS"
+  "This is similar to a `progn' where new WIDGET becomes the default parent.
+All new widgets created within FORMS will have WIDGET as its parent
+unless otherwise specified."
   (list 'let* (list (list 'dw widget)
 		    (list 'dialog-current-parent 
 			  '(if (stringp dw) 
@@ -474,10 +484,10 @@ parent for new widgets created within FORMS"
 	      def-body)))
 
 (defun create-widget (name class &rest resources)
-  "Creates a dialog widget with name NAME of class CLASS.  The parent
-will be defined from the current environment created by
-`dialog-build-group'.  RESOURCES is a list to be passed tot he
-CLASS routine.
+  "Creates a dialog widget with name NAME of class CLASS.
+The parent will be defined from the current environment created by
+`dialog-build-group'.  RESOURCES is a list to be passed tot he CLASS
+routine.
 
   This function is current BACKWARD COMPATIBLE so that an optional 3rd
 argument could be the parent widget, overriding any enviroment from
@@ -502,9 +512,9 @@ argument could be the parent widget, overriding any enviroment from
 
 ;; Not backward compatible because it didn't exist before
 (defun create-widget-first (name class &rest resources)
-  "Creates a dialog widget with name NAME of class CLASS.  The parent
-will be defined from the current environment, and RESOURCES is a list
-to be passed tot he CLASS routine."
+  "Creates a dialog widget with name NAME of class CLASS.
+The parent will be defined from the current environment, and RESOURCES
+is a list to be passed tot he CLASS routine."
   (let* ((con (class-constructor class))
 	 (new (apply con name resources))
 	 (parent (or dialog-current-parent widget-toplevel-shell)))
@@ -518,9 +528,9 @@ to be passed tot he CLASS routine."
     new))
 
 (defun create-widget-parent (name class parent &rest resources)
-  "Create a dialog widget with name NAME of class CLASS.  PARENT will
-be the widget this new widget resides in, and RESOURCES is a list to
-be passed to the CLASS routine"
+  "Create a dialog widget with name NAME of class CLASS with PARENT.
+PARENT will be the widget this new widget resides in, and RESOURCES is
+a list to be passed to the CLASS routine"
   (let* ((con (class-constructor class))
 	 (new (apply con name resources)))
     ;; add this child to the parent, which sets news parent field
@@ -533,9 +543,9 @@ be passed to the CLASS routine"
     new))
 
 (defun create-widget-parent-first (name class parent &rest resources)
-  "Create a dialog with name NAME of class CLASS.  PARENT will be the
-widget this new widget resides in, and RESOURCES is a list to be
-passed to the CLASS routine"
+  "Create a dialog with name NAME of class CLASS with PARENT.
+PARENT will be the widget this new widget resides in, and RESOURCES is
+a list to be passed to the CLASS routine."
   ;;(message "Building Dialog... [%s]" name)
   (let* ((con (class-constructor class))
 	 (new (apply con name resources)))
@@ -593,8 +603,7 @@ mouse button is released event is recieved."
 )
 
 (defun dialog-string-to-list (string)
-  "Convert STRING into a list of strings which were separated by
-carriage returns."
+  "Convert STRING into a list.  Substrinsg were separated by CR."
   (if (not (stringp string)) (signal 'wrong-type-argument (list 'string-p string)))
   (let ((newlst nil))
     (while string
@@ -627,8 +636,8 @@ carriage returns."
 (if (eval-when-compile dialog-xemacs-p)
 
 (defun dialog-popup (event title menu)
-  "Do the work of of creating a popup for XEmacs, and return the
-associated value selected by the user."
+  "Do the work of of creating a popup for XEmacs.
+Return the associated value selected by the user."
   ;; This bit of Emacs to XEmacs brilliance was taken from
   ;; custom-widget by Per Abrahamsen <abraham@iesd.auc.dk>
   (let ((val (get-popup-menu-response 
@@ -645,16 +654,16 @@ associated value selected by the user."
     (cdr (assoc val menu))))
 
 (defun dialog-popup (event title menu)
-  "Do the work of of creating a popup for GNU emacs, and return the
-associated value selected by the user."
+  "Do the work of of creating a popup, and return the associated
+value."
   (x-popup-menu event (cons title (list (cons "" menu)))))
 
 )
 
 (defun dialog-list-2-menu (event title list &optional max)
-  "Take a list and turn it into a pop-up menu.  It returns an index into
-said list.  The list may have anything in it, and they need not be of the
-same type."
+  "Take a list and turn it into a pop-up menu.
+It returns an index into said list.  The list may have anything in it,
+and they need not be of the same type."
 
   (let ((menu))
     (setq menu
@@ -684,8 +693,7 @@ same type."
 
 
 (defun goto-xy (x y)
-  "Move cursor to position X Y in buffer, and add spaces and CRs if
-needed."
+  "Move cursor to position X Y in buffer, and add spaces and CRs if needed."
   (if (eq major-mode 'dialog-mode)
       (let ((indent-tabs-mode nil)
 	    (num (goto-line y)))
@@ -702,8 +710,8 @@ needed."
 		    (put-text-property pnt end 'mouse-face nil))))))))
   
 (defun insert-overwrite-face (string face &optional focus-face object)
-  "Insert STRING into buffer at point, and cover it with FACE.  If
-optional FOCUS-FACE, then also put this as the mouse-face.  If
+  "Insert STRING into buffer at point, and cover it with FACE.
+If optional FOCUS-FACE, then also put this as the mouse-face.  If
 optional OBJECT is included, then put that down as the text property
 `widget-object' so that we can do faster lookups while dishing out
 keystrokes, etc."
@@ -739,8 +747,8 @@ keystrokes, etc."
       )))
 
 (defun dialog-browse-tree (this-root prefix ch-prefix)
-  "Recursive part of browser, draws the children of the given class on
-the screen."
+  "Recursive part of the widget tree browser.
+It draws the children of the given class on the screen."
   (if (not (object-p this-root)) (signal 'wrong-type-argument (list 'object-p this-root)))
   (let ((myname (object-name this-root))
 	(chl (if (obj-of-class-p this-root widget-group)
