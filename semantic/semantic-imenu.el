@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2000 Paul Kinnucan & Eric Ludlam
 
 ;; Author: Paul Kinnucan, Eric Ludlam
-;; X-RCS: $Id: semantic-imenu.el,v 1.13 2000/09/27 01:49:24 zappo Exp $
+;; X-RCS: $Id: semantic-imenu.el,v 1.14 2000/09/27 01:50:29 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -212,7 +212,7 @@ Optional argument NOTYPECHECK specifies not to make subgroups under types."
 (require 'advice)
 
 (defvar semantic-which-function
-  (lambda (l) (mapconcat 'semantic-abbreviate-nonterminal ol "."))
+  (lambda (l) (mapconcat 'semantic-abbreviate-nonterminal l "."))
   "Function to convert semantic tokens into `which-function' text.")
 
 (defadvice which-function (around semantic-which activate)
