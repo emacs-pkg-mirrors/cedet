@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.5 2003/08/29 16:12:17 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.6 2003/09/02 16:16:12 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -257,7 +257,7 @@ functions outside the definition of the class.  It is easier to study
 the structure of a program when such methods are grouped together
 more logically.
 
-This function uses `semantic-nonterminal-external-member-p' to
+This function uses `semantic-tag-external-member-p' to
 determine when a potential child is an externally defined member.
 
 Note: Applications which use this function must account for token
@@ -277,7 +277,7 @@ buckets with the bucket function."
     ;; external entries
     (while tags
       (cond
-       ((setq tmp (semantic-nonterminal-external-member-parent (car tags)))
+       ((setq tmp (semantic-tag-external-member-parent (car tags)))
 	(let ((tagcopy (semantic-tag-clone (car tags)))
 	      (a (assoc tmp parent-buckets)))
 	  (semantic--tag-put-property-no-side-effect tagcopy 'adopted t)
@@ -364,92 +364,101 @@ buckets with the bucket function."
 ;; In order to adopt external children, we need a few overload methods
 ;; to enable the feature.
 ;;
-(define-overload semantic-nonterminal-external-member-parent (token)
-  "Return a parent for TOKEN when TOKEN is an external member.
-TOKEN is an external member if it is defined at a toplevel and
+(define-overload semantic-tag-external-member-parent (tag)
+  "Return a parent for TAG when TAG is an external member.
+TAG is an external member if it is defined at a toplevel and
 has some sort of label defining a parent.  The parent return will
 be a string.
 
 The default behavior, if not overridden with
-`nonterminal-external-member-parent' is get the 'parent extra
-specifier of TOKEN.
+`tag-tag-member-parent' is get the 'parent extra
+specifier of TAG.
 
 If this function is overridden, use
-`semantic-nonterminal-external-member-parent-default' to also
+`semantic-tag-external-member-parent-default' to also
 include the default behavior, and merely extend your own."
   )
 
-(defun semantic-nonterminal-external-member-parent-default (token)
-  "Return the name of TOKENs parent iff TOKEN is not defined in it's parent."
+(defun semantic-tag-external-member-parent-default (tag)
+  "Return the name of TAGs parent iff TAG is not defined in it's parent."
   ;; Use only the extra spec because a type has a parent which
   ;; means something completely different.
-  (let ((tp (semantic-tag-get-attribute token 'parent)))
+  (let ((tp (semantic-tag-get-attribute tag 'parent)))
     (when (stringp tp)
       tp)
     ))
 
-(define-overload semantic-nonterminal-external-member-p (parent token)
-  "Return non-nil if PARENT is the parent of TOKEN.
-TOKEN is an external member of PARENT when it is somehow tagged
+(semantic-alias-obsolete 'semantic-nonterminal-external-member-parent
+			 'semantic-tag-external-member-parent)
+
+(define-overload semantic-tag-external-member-p (parent tag)
+  "Return non-nil if PARENT is the parent of TAG.
+TAG is an external member of PARENT when it is somehow tagged
 as having PARENT as it's parent.
-PARENT and TOKEN must both be semantic tokens.
+PARENT and TAG must both be semantic tags.
 
 The default behavior, if not overridden with
-`nonterminal-external-member-p' is to match 'parent extra specifier in
-the name of TOKEN.
+`tag-external-member-p' is to match 'parent extra specifier in
+the name of TAG.
 
 If this function is overridden, use
-`semantic-nonterminal-external-member-children-p-default' to also
+`semantic-tag-external-member-children-p-default' to also
 include the default behavior, and merely extend your own."
   )
 
-(defun semantic-nonterminal-external-member-p-default (parent token)
-  "Return non-nil if PARENT is the parent of TOKEN."
+(defun semantic-tag-external-member-p-default (parent tag)
+  "Return non-nil if PARENT is the parent of TAG."
   ;; Use only the extra spec because a type has a parent which
   ;; means something completely different.
-  (let ((tp (semantic-nonterminal-external-member-parent token)))
+  (let ((tp (semantic-tag-external-member-parent tag)))
     (and (stringp tp)
 	 (string= (semantic-tag-name parent) tp))
     ))
 
-(define-overload semantic-nonterminal-external-member-children (token &optional usedb)
-  "Return the list of children which are not *in* TOKEN.
+(semantic-alias-obsolete 'semantic-nonterminal-external-member-p
+			 'semantic-tag-external-member-p)
+
+(define-overload semantic-tag-external-member-children (tag &optional usedb)
+  "Return the list of children which are not *in* TAG.
 If optional argument USEDB is non-nil, then also search files in
 the Semantic Database.  If USEDB is a list of databases, search those
 databases.
 
 Children in this case are functions or types which are members of
-TOKEN, such as the parts of a type, but which are not defined inside
+TAG, such as the parts of a type, but which are not defined inside
 the class.  C++ and CLOS both permit methods of a class to be defined
 outside the bounds of the class' definition.
 
 The default behavior, if not overridden with
-`nonterminal-external-member-children' is to search using
-`semantic-nonterminal-external-member-p' in all top level definitions
-with a parent of TOKEN.
+`tag-external-member-children' is to search using
+`semantic-tag-external-member-p' in all top level definitions
+with a parent of TAG.
 
 If this function is overridden, use
-`semantic-nonterminal-external-member-children-default' to also
+`semantic-tag-external-member-children-default' to also
 include the default behavior, and merely extend your own."
   )
 
-(defun semantic-nonterminal-external-member-children-default (token &optional usedb)
-  "Return list of external children for TOKEN.
+(defun semantic-tag-external-member-children-default (tag &optional usedb)
+  "Return list of external children for TAG.
 Optional argument USEDB specifies if the semantic database is used.
-See `semantic-nonterminal-external-member-children' for details."
+See `semantic-tag-external-member-children' for details."
   (if (and usedb
 	   (fboundp 'semanticdb-minor-mode-p)
 	   (semanticdb-minor-mode-p))
       (let ((m (semanticdb-find-tags-external-children-of-type
-		(semantic-tag-name token))))
+		(semantic-tag-name tag))))
 	(if m (apply #'append (mapcar #'cdr m))))
     (semantic--find-tags-by-function
      `(lambda (tok)
 	;; This bit of annoying backquote forces the contents of
-	;; token into the generated lambda.
-       (semantic-nonterminal-external-member-p ',token tok))
+	;; tag into the generated lambda.
+       (semantic-tag-external-member-p ',tag tok))
      (current-buffer))
     ))
+
+(semantic-alias-obsolete 'semantic-nonterminal-external-member-children
+			 'semantic-tag-external-member-children)
 
 (provide 'semantic-sort)
 
