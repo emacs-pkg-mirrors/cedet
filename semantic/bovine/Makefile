@@ -42,7 +42,7 @@ bovinator: $(bovinator_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 examples: 
 	@
@@ -54,7 +54,7 @@ languages: $(languages_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f batch-byte-compile $^
+	$(EMACS) -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
 
 tags: 
 
