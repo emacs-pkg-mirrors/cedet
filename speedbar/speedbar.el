@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.7.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.115 1998/08/03 13:28:14 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.116 1998/08/03 18:02:47 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -366,48 +366,47 @@ between different directories."
   :group 'speedbar
   :type 'integer)
 
-(if speedbar-xemacs20p
-    ;; These values by Hrvoje Niksic <hniksic@srce.hr>
-    (defcustom speedbar-frame-plist
-      '(minibuffer nil width 20 border-width 0
-		   internal-border-width 0 unsplittable t
-		   default-toolbar-visible-p nil has-modeline-p nil
-		   menubar-visible-p nil)
-      ;; The following will let you change the cursors.
-      ;;'(text-pointer-glyph [cursor-font :data "top_left_arrow"]
-      ;;  nontext-pointer-glyph [cursor-font :data "top_left_arrow"]
-      ;;  selection-pointer-glyph [cursor-font :data "hand2"])))
-      "*Parameters to use when creating the speedbar frame in XEmacs.
+;; These values by Hrvoje Niksic <hniksic@srce.hr>
+(defcustom speedbar-frame-plist
+  '(minibuffer nil width 20 border-width 0
+	       internal-border-width 0 unsplittable t
+	       default-toolbar-visible-p nil has-modeline-p nil
+	       menubar-visible-p nil)
+  ;; The following will let you change the cursors.
+  ;;'(text-pointer-glyph [cursor-font :data "top_left_arrow"]
+  ;;  nontext-pointer-glyph [cursor-font :data "top_left_arrow"]
+  ;;  selection-pointer-glyph [cursor-font :data "hand2"])))
+  "*Parameters to use when creating the speedbar frame in XEmacs.
 Parameters not listed here which will be added automatically are
 `height' which will be initialized to the height of the frame speedbar
 is attached to."
-      :group 'speedbar
-      :type '(repeat (group :inline t
-			    (symbol :tag "Property")
-			    (sexp :tag "Value"))))
-  
-  ;; Emacs frame parameters
-  (defcustom speedbar-frame-parameters '((minibuffer . nil)
-					 (width . 20)
-					 (scroll-bar-width . 10)
-					 (border-width . 0)
-					 (menu-bar-lines . 0)
-					 (unsplittable . t))
-    "*Parameters to use when creating the speedbar frame in Emacs.
-Parameters not listed here which will be added automatically are
-`height' which will be initialized to the height of the frame speedbar
-is attached to."
-    :group 'speedbar
-    :type '(repeat (sexp :tag "Parameter")))
-  )
+  :group 'speedbar
+  :type '(repeat (group :inline t
+			(symbol :tag "Property")
+			(sexp :tag "Value"))))
 
-  (defcustom speedbar-use-imenu-flag (stringp (locate-library "imenu"))
-    "*Non-nil means use imenu for file parsing.  nil to use etags.
+;; Emacs frame parameters
+(defcustom speedbar-frame-parameters '((minibuffer . nil)
+				       (width . 20)
+				       (scroll-bar-width . 10)
+				       (border-width . 0)
+				       (menu-bar-lines . 0)
+				       (unsplittable . t))
+  "*Parameters to use when creating the speedbar frame in Emacs.
+Parameters not listed here which will be added automatically are
+`height' which will be initialized to the height of the frame speedbar
+is attached to."
+  :group 'speedbar
+  :type '(repeat (sexp :tag "Parameter")))
+)
+
+(defcustom speedbar-use-imenu-flag (stringp (locate-library "imenu"))
+  "*Non-nil means use imenu for file parsing.  nil to use etags.
 XEmacs prior to 20.4 doesn't support imenu, therefore the default is to
 use etags instead.  Etags support is not as robust as imenu support."
-    :tag "User Imenu"
-    :group 'speedbar
-    :type 'boolean)
+  :tag "User Imenu"
+  :group 'speedbar
+  :type 'boolean)
 
 (defcustom speedbar-track-mouse-flag t
   "*Non-nil means to display info about the line under the mouse."
