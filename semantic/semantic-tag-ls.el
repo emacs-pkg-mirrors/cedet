@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag-ls.el,v 1.8 2004/04/28 15:40:03 ponced Exp $
+;; X-CVS: $Id: semantic-tag-ls.el,v 1.9 2004/04/29 10:14:32 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -130,22 +130,21 @@ For these PROTECTIONs, true is returned if TAG is:
     ))
 
 ;;;###autoload
-(defun semantic-tag-abstract-p (tag &optional parent)
+(define-overload semantic-tag-abstract-p (tag &optional parent)
   "Return non nil if TAG is abstract.
 Optional PARENT is the parent tag of TAG.
 In UML, abstract methods and classes have special meaning and behavior
 in how methods are overridden.  In UML, abstract methods are italicized.
 
-The default behavior (if not overridden with `tag-abstract'
-is to return true if `abstract' is in the type modifiers."
-  (let* ((s (or (semantic-fetch-overload 'tag-abstract)
-		(semantic-fetch-overload 'nonterminal-abstract))))
-    (if s (funcall s tag parent)
-      (semantic-tag-abstract-p-default tag parent))))
+The default behavior (if not overridden with `tag-abstract-p'
+is to return true if `abstract' is in the type modifiers.")
+
+(make-obsolete-overload 'semantic-nonterminal-abstract
+                        'semantic-tag-abstract-p)
 
 (defun semantic-tag-abstract-p-default (tag &optional parent)
   "Return non-nil if TAG is abstract as a child of PARENT default action.
-See `semantic-tag-abstract'."
+See `semantic-tag-abstract-p'."
   (let ((mods (semantic-tag-modifiers tag))
 	(abs nil))
     (while (and (not abs) mods)
@@ -156,21 +155,20 @@ See `semantic-tag-abstract'."
     abs))
 
 ;;;###autoload
-(defun semantic-tag-leaf-p (tag &optional parent)
+(define-overload semantic-tag-leaf-p (tag &optional parent)
   "Return non nil if TAG is leaf.
 Optional PARENT is the parent tag of TAG.
 In UML, leaf methods and classes have special meaning and behavior.
 
-The default behavior (if not overridden with `tag-leaf'
-is to return true if `leaf' is in the type modifiers."
-  (let* ((s (or (semantic-fetch-overload 'tag-leaf)
-		(semantic-fetch-overload 'nonterminal-leaf))))
-    (if s (funcall s tag parent)
-      (semantic-tag-leaf-p-default tag parent))))
+The default behavior (if not overridden with `tag-leaf-p'
+is to return true if `leaf' is in the type modifiers.")
+
+(make-obsolete-overload 'semantic-nonterminal-leaf
+                        'semantic-tag-leaf-p)
 
 (defun semantic-tag-leaf-p-default (tag &optional parent)
   "Return non-nil if TAG is leaf as a child of PARENT default action.
-See `semantic-tag-leaf'."
+See `semantic-tag-leaf-p'."
   (let ((mods (semantic-tag-modifiers tag))
 	(leaf nil))
     (while (and (not leaf) mods)
@@ -191,7 +189,7 @@ UML notation specifies that STATIC entries are underlined.")
 
 (defun semantic-tag-static-p-default (tag &optional parent)
   "Return non-nil if TAG is static as a child of PARENT default action.
-See `semantic-tag-static'."
+See `semantic-tag-static-p'."
   (let ((mods (semantic-tag-modifiers tag))
 	(static nil))
     (while (and (not static) mods)
@@ -238,15 +236,15 @@ Return the name of TAG found in the toplevel STREAM."
 (semantic-alias-obsolete 'semantic-nonterminal-protection-default
 			 'semantic-tag-protection-default)
 (semantic-alias-obsolete 'semantic-nonterminal-abstract
-			 'semantic-tag-abstract)
+			 'semantic-tag-abstract-p)
 (semantic-alias-obsolete 'semantic-nonterminal-abstract-default
-			 'semantic-tag-abstract-default)
+			 'semantic-tag-abstract-p-default)
 (semantic-alias-obsolete 'semantic-nonterminal-leaf
-			 'semantic-tag-leaf)
+			 'semantic-tag-leaf-p)
 (semantic-alias-obsolete 'semantic-nonterminal-leaf-default
-			 'semantic-tag-leaf-default)
+			 'semantic-tag-leaf-p-default)
 (semantic-alias-obsolete 'semantic-nonterminal-static-default
-			 'semantic-tag-static-default)
+			 'semantic-tag-static-p-default)
 (semantic-alias-obsolete 'semantic-nonterminal-full-name
 			 'semantic-tag-full-name)
 (semantic-alias-obsolete 'semantic-nonterminal-full-name-default
