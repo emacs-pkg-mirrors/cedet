@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: speedbar.texi,v 1.10 2000/07/13 19:13:38 zappo Exp $
+@c $Id: speedbar.texi,v 1.11 2000/09/05 00:39:35 zappo Exp $
 @c
 
 @c This manual covers the tool "speedbar", and is a part of it's
@@ -45,8 +45,9 @@ Copyright @copyright{} 1999, 2000 Eric M. Ludlam
 Copyright @copyright{} 1999 Eric M. Ludlam
 
 Speedbar is a program for Emacs which can be used to summarize
-information about the current buffer.  It's inspiration was the classic
-"explorer" often used in modern development environments.
+information about the current buffer.  It's original inspiration was the
+"explorer" often used in modern development environments, office
+packages, and web browsers.
 
 Speedbar displays a narrow frame in which a tree view is shown.  This
 tree view defaults to containing a list of files and directories.  Files
@@ -54,19 +55,20 @@ can be "expanded" to list tags inside. Directories can be expanded to
 list the files within itself.  Each file or tag can be jumped to
 immediately.
 
-Speedbar expands upon classic "explorer" windows by maintaining context
-with the user.  For example, when using the file view, the current
-buffer's file is highlighted.  Speedbar also mimics the classic explorer
-window by providing multiple display modes.  These modes come in two
-flavors.  Major display modes remain consistent across buffers, and
-minor display modes appear only when a buffer of the applicable type is
-shown.  This provides authors of other packages to provide speedbar
-summaries customized to the needs of that mode.
+Speedbar expands upon "explorer" windows by maintaining context with the
+user.  For example, when using the file view, the current buffer's file
+is highlighted.  Speedbar also mimics the explorer windows by providing
+multiple display modes.  These modes come in two flavors.  Major display
+modes remain consistent across buffers, and minor display modes appear
+only when a buffer of the applicable type is shown.  This provides
+authors of other packages to provide speedbar summaries customized to
+the needs of that mode.
 
 Throughout this manual, activities are defined as "clicking on", or
 "expanding" items.  Clicking means using clicking @kbd{mouse-2} on a
 button.  Expanding refers to clicking on an expansion button to display
-a summary of the entry the exapansion button is on. @xref{Basic Navigation}.
+an expanded summary of the entry the exapansion button is
+on. @xref{Basic Navigation}.
 
 @menu
 * Introduction::     Basics of speedbar.
