@@ -72,10 +72,39 @@ Different Modes for Speedbar
    implicitly supported by default.</p>
 
 <ul>
-<li>
-    VHDL mode has a very fancy class browser for VHDL files.
-<li><a href=http://xslt-process.sourceforge.net/index.php>
+<li><a href="eieio.shtml">EIEIO</a> can use speedbar to display
+    class hierarchies.  It also has a specialized class set to
+    make building custom speedbar displays easy.
+<li><a href="semantic.shtml">Semantic</a> has a tagging mechanism
+    that plugs into speedbar.  It also has two major display modes
+    for displaying class hierarchies, and context analysis.
+<li><a href="ede.shtml">EDE</a> uses the EIEIO classes to display
+    project status.
+<li><a href="http://opensource.ee.ethz.ch/emacs/vhdl-mode.html">
+    VHDL mode</a> has a very fancy class browser for VHDL files.
+<li><a href="http://xslt-process.sourceforge.net/index.php">
      XSLT-process</a> for Emacs provides XSLT file browsing.
+<li><a href="http://www.emacswiki.org/cgi-bin/wiki.pl?EmacsIRCClient">
+    EIRC</a> has a
+    <a href="http://www.emacswiki.org/cgi-bin/wiki.pl?ErcSpeedbar">
+    speedbar display mode</a>
+    for showing servers and channels.
+<li><a href="http://www.esat.kuleuven.ac.be/~vdplas/emacs/">
+    ELDO & SPICE modes</a> support speedbar tagging through
+    imenu and speedbar configurations.
+<li>Check the <a href="http://ctags.sourceforge.net/faq.html">
+    exuberant ctags FAQ</a> to use that tool with speedbar.
+<li><a href="http://idlwave.org/">IDLWave mode</a> supports
+    speedbar tagging.
+<li><a href="http://libre.act-europe.fr/adamode/main.html">
+    Ada mode</a> has had issues displaying files in speedbar which
+    were fixed.
+<li><a href="http://sourceforge.net/projects/php-mode/">
+    php-mode</a> supports speedbar tagging.
+<li><a href="http://feff.phys.washington.edu/~ravel/software/ease/">
+    EASE</a> analysis mode for emacs.
+<li><a href="http://www.azundris.com/hacks/lisp/">
+    CIOMO - CoBOL mode</a> supports imenu and speedbar.
 </ul>
 
 <p>If you know of others, let me know and I'll add a link.</p>
