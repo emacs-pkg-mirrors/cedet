@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.50 2003/02/25 14:38:05 zappo Exp $
+@c $Id: eieio.texi,v 1.51 2004/06/13 01:46:20 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{eieio}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1995,1996,1998, 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
+Copyright @copyright{} 1995,1996,1998, 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 @end titlepage
 
 
@@ -1146,10 +1146,10 @@ Class allocated slot @var{file-header-line} is used with method
 @code{object-write} as a header comment.
 @end deftp
 
-All objects can write themselves to a file, bu persistent objects have
+All objects can write themselves to a file, but persistent objects have
 several additional methods that aid in maintaining them.
 
-@defmethod eieio-persistent eieio-save obj &optional file
+@defmethod eieio-persistent eieio-persistent-save obj &optional file
 Write the object @var{obj} to its file.
 If optional argument @var{file} is specified, use that file name
 instead.
