@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.21 2004/01/09 21:02:20 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.22 2004/02/02 02:49:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -308,6 +308,19 @@ TYPE can be a string, or a token of class 'type."
 	     t))
       ))
     ))
+
+(defun semantic-tag-type-compound-p (tag)
+  "Return non-nil the type of TAG is compound.
+Compound implies a structure or similar data type.
+Returns the list of tag members if it is compound."
+  (let* ((tagtype (semantic-tag-type tag))
+	 )
+    (when (and (semantic-tag-p tagtype)
+	       (semantic-tag-of-class-p tagtype 'type))
+      ;; We have the potential of this being a nifty compound type.
+      (semantic-tag-type-members tagtype)
+      )))
+
 
 ;;; Tag creation
 ;;
