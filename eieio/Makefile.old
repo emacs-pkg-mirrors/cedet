@@ -20,27 +20,31 @@
 #
 # Please send bug reports, etc. to zappo@gnu.org
 #
-# $Id: Makefile.old,v 1.1 1998/10/27 17:51:20 zappo Exp $
+# $Id: Makefile.old,v 1.2 1998/10/27 19:21:53 zappo Exp $
 
 
 VERSION=0.9
 
 LISP=call-tree.el chart.el dbif-browse.el dbif-edit.el dbif.el \
-	eieio-comp.el eieio-doc.el eieio eieio-opt.el eieio.el \
-	eieiocomp.el psql.el
+	eieio-comp.el eieio-doc.el eieio-opt.el eieio.el psql.el
 
 TEXINFO=eieio.texi
+
+STUFF=Makefile eieiocomp.el
 
 # dialog code is not distributed.
 DIALOG=dialog-mode.el dialog-tree.el dlg-class.el dlg-config.el \
 	e-config.el ecfg-menu.el widget-d.el widget-i.el
 
-all:
+all: eieio.info
 	emacs -batch -l eieiocomp.el
 
-dist: $(LISP) $(TEXINFO)
+eieio.info:
+	makeinfo eieio.texi
+
+dist: $(LISP) $(TEXINFO) $(STUFF)
 	mkdir eieio-$(VERSION)
-	cp $(LISP) $(TEXINFO) eieio-$(VERSION)
+	cp $(LISP) $(TEXINFO) $(STUFF) eieio-$(VERSION)
 	tar -cvzf eieio-$(VERSION).tar.gz eieio-$(VERSION)
 	rm -rf eieio-$(VERSION)
 
