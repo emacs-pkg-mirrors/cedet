@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-ia-sb.el,v 1.14 2004/02/26 15:31:28 ponced Exp $
+;; X-RCS: $Id: semantic-ia-sb.el,v 1.15 2004/04/28 15:38:39 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -313,7 +313,7 @@ TEXT TAG and INDENT are the details."
       ;; I'd like to use this to add fancy () or what not at the end
       ;; but we need the parent file whih requires an upgrade to the
       ;; analysis tool.
-      ;;(senator-insert-foreign-tag tag ??))
+      ;;(semantic-insert-foreign-tag tag ??))
       )
     (if movepoint
 	(let ((cf (selected-frame)))
