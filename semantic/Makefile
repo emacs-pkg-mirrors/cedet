@@ -9,11 +9,13 @@
 top=
 ede_FILES=Project.ede Makefile
 
-maintenance_LISP=semantic-ede-grammar.el
 EMACS=emacs
-LOADPATH=../eieio/ ../ede/ wisent/ bovine/\
+LOADPATH=../common/ ../eieio/ ../ede/ wisent/ bovine/\
    ../common/ ../speedbar/ ../ede/ ../eieio/\
    
+LOADDEFS=semantic-al.el
+maintenance_LISP=semantic-ede-grammar.el
+EMACS=emacs
 wy_MISC=semantic-grammar.wy
 scripts_MISC=semanticdb.sh
 example_MISC=semantic-example.el
@@ -28,7 +30,16 @@ DISTDIR=$(top)semantic-$(VERSION)
 
 
 
-all: wy scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
+all: semantic-al.el wy scripts example init semantic Languages tools senator wisent Tests Documentation bovinator
+
+.PHONY: semantic-al.el
+semantic-al.el: $(LOADDEFS)
+	@echo "(add-to-list 'load-path nil)" > $@-compile-script
+	for loadpath in . ${LOADPATH}; do \
+	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
+	done;
+	@echo "(require 'cedet-autogen)" >> $@-compile-script
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ .
 
 .PHONY: maintenance
 maintenance: $(maintenance_LISP)
@@ -48,11 +59,8 @@ scripts:
 example: 
 	@
 
-semantic-al.el: $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(init_LISP) $(maintenance_LISP) $(wildcard bovine/*.el) $(wildcard wisent/*.el)
-	$(EMACS) -batch -l semantic-autogen.el -f semantic-hack-autoloads
-
 .PHONY: init
-init: $(init_LISP) semantic-al.el
+init: $(init_LISP)
 	@echo "(add-to-list 'load-path nil)" > $@-compile-script
 	for loadpath in . ${LOADPATH}; do \
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
@@ -126,7 +134,7 @@ clean:
 dist:
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(maintenance_LISP) $(wy_MISC) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
+	cp $(LOADDEFS) $(maintenance_LISP) $(wy_MISC) $(scripts_MISC) $(example_MISC) $(init_LISP) $(semantic_LISP) $(Languages_LISP) $(tools_LISP) $(senator_LISP) $(misc_AUX) $(ede_FILES) $(DISTDIR)
 	cd wisent; $(MAKE) dist
 	cd tests; $(MAKE) dist
 	cd doc; $(MAKE) dist
