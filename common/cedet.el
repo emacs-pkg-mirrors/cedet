@@ -6,7 +6,7 @@
 ;; Maintainer: CEDET developers <http://sf.net/projects/cedet>
 ;; Created: 09 Dec 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: cedet.el,v 1.8 2004/03/28 11:27:40 ponced Exp $
+;; X-RCS: $Id: cedet.el,v 1.9 2004/06/24 08:03:22 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -110,16 +110,23 @@
         package min-version installdir)
 
     ;; Add the CEDET packages subdirectories to the `load-path' if
-    ;; necessary, and do specific setup.
+    ;; necessary.
     (dolist (package-spec cedet-packages)
       (setq package     (nth 0 package-spec)
             min-version (nth 1 package-spec)
             installdir  (nth 2 package-spec))
       (when installdir
         (setq installdir (expand-file-name installdir)))
-      (inversion-add-to-load-path package min-version installdir)
+      (inversion-add-to-load-path package min-version installdir))
+
+    ;; Then run every package setup.
+    (dolist (package-spec cedet-packages)
+      (setq package (nth 0 package-spec))
+      (message "Setting up %s..." package)
       (condition-case err
-          (require (intern (format "%s-load" package)))
+          (progn
+            (require (intern (format "%s-load" package)))
+            (message "Setting up %s...done" package))
         (error
          (message "%s" (error-message-string err)))))
     ))
