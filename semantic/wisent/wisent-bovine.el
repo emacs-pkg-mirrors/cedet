@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Aug 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-bovine.el,v 1.1 2001/08/30 14:01:05 ponced Exp $
+;; X-RCS: $Id: wisent-bovine.el,v 1.2 2001/08/30 14:51:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,7 +116,6 @@ list of semantic tokens found."
   (let* ((gc-cons-threshold 10000000)
          (wisent-flex-istream stream)
          (cache (wisent-parse table lexer error nonterminal)))
-    (semantic-overlay-list cache)
     (list wisent-flex-istream cache)))
 
 (defun wisent-bovinate-nonterminals (stream nonterm
@@ -157,6 +156,7 @@ The optional argument CHECKCACHE is ignored."
     (working-status-forms (format "%s [LALR]" (buffer-name)) "done"
       (setq cache (wisent-bovinate-nonterminals stream nil))
       (working-status t))
+    (semantic-overlay-list cache)
     ;;(semantic-set-toplevel-bovine-cache cache)
     ;;semantic-toplevel-bovine-cache))
     cache))
