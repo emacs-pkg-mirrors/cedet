@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.59 2001/12/12 01:36:54 zappo Exp $
+@c $Id: semantic.texi,v 1.60 2002/02/24 13:53:28 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -17,7 +17,7 @@ END-INFO-DIR-ENTRY
 @sp 10
 @center @titlefont{Semantic}
 @vskip 0pt plus 1 fill
-Copyright @copyright{} 1999, 2000, 2001 Eric M. Ludlam
+Copyright @copyright{} 1999, 2000, 2001, 2002 Eric M. Ludlam
 @end titlepage
 
 @node Top, Install, (dir), (dir)
@@ -818,7 +818,13 @@ Available override symbols:
 
 @item prototype-file         @tab (buffer)          @tab Return a file in which prototypes are placed
 @item nonterminal-children   @tab (token)           @tab Return first rate children. These are children which may contain overlays.
+@item nonterminal-external-member-parent @tab (token) @tab Parent of TOKEN
+@item nonterminal-external-member-p @tab (parent token) @tab Non nil if TOKEN has PARENT, but is not in PARENT.
+@item nonterminal-external-member-children @tab (token & usedb) @tab Get all external children of TOKEN.  
 @item nonterminal-protection @tab (token & parent)  @tab Return protection as a symbol.
+@item nonterminal-abstract   @tab (token & parent)  @tab Return if TOKEN is abstract.
+@item nonterminal-leaf       @tab (token & parent)  @tab Return if TOKEN is leaf.
+@item nonterminal-static     @tab (token & parent)  @tab Return if TOKEN is static.
 @item beginning-of-context   @tab (& point)         @tab Move to the beginning of the
 					                 current context.
 @item end-of-context         @tab (& point)         @tab Move to the end of the
@@ -1485,7 +1491,8 @@ write programs that use the token stream most effectively.
 
 @menu
 * Token Queries::               Getting info about a parsed token (nonterminal).
-* Nonterminal Streams::         Working with streams of nonterminals
+* Nonterminal Streams::         Working with streams of nonterminals.
+* Nonterminal Sorting::         Reorganizing streams.
 * Nonterminal Completion::      Completing read functions.
 * Override Methods::            Language dependent functions.
 * Parser Hooks::                How to know when tags change.
@@ -1642,7 +1649,7 @@ Retrieve the flag indicating if the include @var{TOKEN} is a system include.
 
 For override methods that query a token, see @xref{Token Details}.
 
-@node Nonterminal Streams, Nonterminal Completion, Token Queries, Utilities
+@node Nonterminal Streams, Nonterminal Sorting, Token Queries, Utilities
 @section Nonterminal streams
 
 These functions take some key, and returns information found inside the
@@ -1778,7 +1785,36 @@ in which @var{TOKEN} (the token found to match @var{NAME}) was found.
 @end defun
 
 
-@node Nonterminal Completion, Override Methods, Nonterminal Streams, Utilities
+@node Nonterminal Sorting, Nonterminal Completion, Nonterminal Streams, Utilities
+@section Nonterminal sorting
+
+Sometimes it is important to reorganize a token stream into a form
+that is better for display to a user.  It is important to not use
+functions with side effects when doing this, and that could effect
+the token cache.
+
+There are some existing utility functions which will reorganize the
+token list for you.
+
+@defun semantic-bucketize tokens &optional filter
+Sort @var{TOKENS} into a group of buckets based on token type.
+Unknown types are placed in a Misc bucket.
+Optional argument @var{FILTER} is a filter function to be applied to each bucket.
+The filter function will take one argument, which is a list of tokens, and
+may re-organize the list with side-effects.
+@end defun
+
+@defun semantic-adopt-external-members tokens
+Rebuild @var{TOKENS} so that externally defined members are regrouped.
+Some languages such as @var{C}++ and @var{CLOS} permit the declaration of member
+functions outside the definition of the class.  It is easier to study
+the structure of a program when such methods are grouped together
+more logically.
+This function uses @dfn{semantic-nonterminal-external-member-p} to
+determine when a potential child is an externally defined member.
+@end defun
+
+@node Nonterminal Completion, Override Methods, Nonterminal Sorting, Utilities
 @section Nonterminal completion
 
 These functions provide ways reading the names of items in a buffer with
@@ -1953,6 +1989,56 @@ this function.  If you do not, then token reparsing, and database
 saving will fail.
 @end defun
 
+@defun semantic-nonterminal-external-member-parent token
+Return a parent for @var{TOKEN} when @var{TOKEN} is an external member.
+@var{TOKEN} is an external member if it is defined at a toplevel and
+has some sort of label defing a parent.  The parent return will
+be a string.
+
+The default behavior, if not overriden with
+@code{nonterminal-external-member-parent} is get the @code{'parent} extra
+specifier of @var{TOKEN}.
+
+If this function is overriden, use
+@dfn{semantic-nonterminal-external-member-parent-default} to also
+include the default behavior, and merely extend your own.
+@end defun
+
+@defun semantic-nonterminal-external-member-p parent token
+Return non-@code{nil} if @var{PARENT} is the parent of @var{TOKEN}.
+@var{TOKEN} is an external member of @var{PARENT} when it is somehow tagged
+as having @var{PARENT} as it's parent.
+
+The default behavior, if not overriden with
+@code{nonterminal-external-member-p} is to match @code{'parent} extra specifier in
+the name of @var{TOKEN}.
+
+If this function is overriden, use
+@code{semantic-nonterminal-external-member-children-p-default} to also
+include the default behavior, and merely extend your own.
+@end defun
+
+@defun semantic-nonterminal-external-member-children token &optional usedb
+Return the list of children which are not *in* @var{TOKEN}.
+If optional argument @var{USEDB} is non-@code{nil}, then also search files in
+the Semantic Database.  If @var{USEDB} is a list of databases, search those
+databases.
+
+Children in this case are functions or types which are members of
+@var{TOKEN}, such as the parts of a type, but which are not defined inside
+the class.  @var{C}++ and @var{CLOS} both permit methods of a class to be defined
+outside the bounds of the class' definition.
+
+The default behavior, if not overriden with
+@code{nonterminal-external-member-children} is to search using
+@dfn{semantic-nonterminal-external-member-p} in all top level definitions
+with a parent of @var{TOKEN}.
+
+If this function is overriden, use
+@dfn{semantic-nonterminal-external-member-children-default} to also
+include the default behavior, and merely extend your own.
+@end defun
+
 @defun semantic-nonterminal-protection token &optional parent
 Return protection information about @var{TOKEN} with optional @var{PARENT}.
 This function returns on of the following symbols:
@@ -1964,8 +2050,38 @@ This function returns on of the following symbols:
 Some languages may choose to provide additional return symbols specific
 to themselves.  Use of this function should allow for this.
 
-The default behavior (if not overridden with @code{nonterminal-children}
+The default behavior (if not overridden with @code{nonterminal-protection}
 is to return a symbol based on type modifiers.
+@end defun
+
+@defun semantic-nonterminal-abstract token &optional parent
+Return non @code{nil} if @var{TOKEN} is abstract.
+Optional @var{PARENT} is the parent token of @var{TOKEN}.
+In @var{UML}, abstract methods and classes have special meaning and behavior
+in how methods are overriden.  In @var{UML}, abstract methods are italicized.
+
+The default behavior (if not overriden with @code{nonterminal-abstract}
+is to return true if @code{abstract} is in the type modifiers.
+@end defun
+
+@defun semantic-nonterminal-leaf token &optional parent
+Return non @code{nil} if @var{TOKEN} is leaf.
+Optional @var{PARENT} is the parent token of @var{TOKEN}.
+In @var{UML}, leaf methods and classes have special meaning and behavior.
+
+The default behavior (if not overriden with @code{nonterminal-leaf}
+is to return true if @code{leaf} is in the type modifiers.
+@end defun
+
+@defun semantic-nonterminal-static token &optional parent
+Return non @code{nil} if @var{TOKEN} is static.
+Optional @var{PARENT} is the parent token of @var{TOKEN}.
+In @var{UML}, static methods and attributes mean that they are allocated
+in the parent class, and are not instance specific.
+@var{UML} notation specifies that @var{STATIC} entries are underlined.
+
+The default behavior (if not overriden with @code{nonterminal-static}
+is to return true if @code{static} is in the type modifiers.
 @end defun
 
 @defun semantic-find-dependency token
