@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-decorate-mode.el,v 1.2 2004/06/14 12:15:36 ponced Exp $
+;; X-RCS: $Id: semantic-decorate-mode.el,v 1.3 2004/06/17 08:23:43 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,39 +28,162 @@
 ;; A minor mode for use in decorating tags.
 ;;
 ;; There are two types of decorations that can be performed on a tag.
-;; You can either highlight the full tag, or you can add a secondary
-;; overlay on some part of the tag body.
+;; You can either highlight the full tag, or you can add an
+;; independent decoration on some part of the tag body.
 ;;
-;; For secondary overlays in particular, managing them so that they
+;; For independent decoration in particular, managing them so that they
 ;; do not get corrupted is challenging.  This major mode and
 ;; corresponding macros will make handling those types of decorations
 ;; easier.
 ;;
-;; Most of this mode was copied from `semantic-show-tag-boundaries-mode'
-;;
-
-;;; Acronyms in code:
-;;
-;; In the following code:
-;;  dso - Decorate with Secondary Overlay
-;;  dpo - Decorate with Primary Overlay
 
 ;;; Code:
 (require 'semantic)
+(require 'semantic-decorate)
 (require 'semantic-util-modes)
+(eval-when-compile (require 'cl))
 
+;;; Misc.
+;;
+(defsubst semantic-decorate-style-predicate (style)
+  "Return the STYLE's predicate function."
+  (intern (format "%s-p" style)))
+
+(defsubst semantic-decorate-style-highlighter (style)
+  "Return the STYLE's highlighter function."
+  (intern (format "%s-highlight" style)))
+
+;;; Base decoration API
+;;
+(defsubst semantic-decoration-p (object)
+  "Return non-nil if OBJECT is a tag decoration."
+  (and (semantic-overlay-p object)
+       (semantic-overlay-get object 'semantic-decoration)))
+
+(defsubst semantic-decoration-set-property (deco property value)
+  "Set the DECO decoration's PROPERTY to VALUE.
+Return DECO."
+  (assert (semantic-decoration-p deco))
+  (semantic-overlay-put deco property value)
+  deco)
+
+(defsubst semantic-decoration-get-property (deco property)
+  "Return the DECO decoration's PROPERTY value."
+  (assert (semantic-decoration-p deco))
+  (semantic-overlay-get deco property))
+
+(defsubst semantic-decoration-set-face (deco face)
+  "Set the face of the decoration DECO to FACE.
+Return DECO."
+  (semantic-decoration-set-property deco 'face face))
+
+(defsubst semantic-decoration-face (deco)
+  "Return the face of the decoration DECO."
+  (semantic-decoration-get-property deco 'face))
+
+(defsubst semantic-decoration-set-priority (deco priority)
+  "Set the priority of the decoration DECO to PRIORITY.
+Return DECO."
+  (assert (natnump priority))
+  (semantic-decoration-set-property deco 'priority priority))
+
+(defsubst semantic-decoration-priority (deco)
+  "Return the priority of the decoration DECO."
+  (semantic-decoration-get-property deco 'priority))
+
+(defsubst semantic-decoration-move (deco begin end)
+  "Move the decoration DECO on the region between BEGIN and END.
+Return DECO."
+  (assert (semantic-decoration-p deco))
+  (semantic-overlay-move deco begin end)
+  deco)
+
+;;; Tag decoration
+;;
+(defun semantic-decorate-tag (tag begin end &optional face)
+  "Add a new decoration on TAG on the region between BEGIN and END.
+If optional argument FACE is non-nil, set the decoration's face to
+FACE."
+  (let ((deco (semantic-tag-create-secondary-overlay tag)))
+    ;; We do not use the unlink property because we do not want to
+    ;; save the highlighting information in the DB.
+    (semantic-overlay-put deco 'semantic-decoration t)
+    (semantic-decoration-move deco begin end)
+    (semantic-decoration-set-face deco face)
+    deco))
+
+(defun semantic-decorate-clear-tag (tag &optional deco)
+  "Remove decorations from TAG.
+If optional argument DECO is non-nil, remove only that decoration."
+  (assert (or (null deco) (semantic-decoration-p deco)))
+  ;; Clear primary decorations.
+  ;; For now, just unhighlight the tag.  How to deal with other
+  ;; primary decorations like invisibility, etc. ?  Maybe just
+  ;; restoring default values will suffice?
+  (semantic-unhighlight-tag tag)
+  (semantic-tag-delete-secondary-overlay
+   tag (or deco 'semantic-decoration)))
+
+(defun semantic-decorate-tag-decoration (tag)
+  "Return decoration found on TAG."
+  (semantic-tag-get-secondary-overlay tag 'semantic-decoration))
+
+;;; Global setup of active decorations
+;;
+(defun semantic-decorate-flush-decorations (&optional buffer)
+  "Flush decorations found in BUFFER.
+BUFFER defaults to the current buffer.
+Should be used to flush decorations that might remain in BUFFER, for
+example, after tags have been refreshed."
+  (with-current-buffer (or buffer (current-buffer))
+    (dolist (o (semantic-overlays-in (point-min) (point-max)))
+      (and (semantic-decoration-p o)
+           (semantic-overlay-delete o)))))
+
+(defun semantic-decorate-clear-decorations (tag-list)
+  "Remove decorations found in tags in TAG-LIST."
+  (dolist (tag tag-list)
+    (semantic-decorate-clear-tag tag)
+    ;; recurse over children
+    (semantic-decorate-clear-decorations
+     (semantic-tag-components-with-overlays tag))))
+
+(defun semantic-decorate-add-decorations (tag-list)
+  "Add decorations to tags in TAG-LIST.
+Also make sure old decorations in the area are completely flushed."
+  (dolist (tag tag-list)
+    ;; Cleanup old decorations.
+    (when (semantic-decorate-tag-decoration tag)
+      ;; It would be nice if this never happened, but it still does
+      ;; once in a while.  Print a message to help flush these
+      ;; situations
+      (message "Decorations still on %s" (semantic-format-tag-name tag))
+      (semantic-decorate-clear-tag tag))
+    ;; Add new decorations.
+    (dolist (style semantic-decoration-styles)
+      (and (cdr style)
+           (funcall (semantic-decorate-style-predicate   (car style)) tag)
+           (funcall (semantic-decorate-style-highlighter (car style)) tag)))
+    ;; Recurse on the children of all tags
+    (semantic-decorate-add-decorations
+     (semantic-tag-components-with-overlays tag))))
+
 ;;; DECORATION MODE
 ;;
-;; Generic mode for handling basic highlighting and secondary
-;; overlays.
-
+;; Generic mode for handling basic highlighting and decorations.
+;;
+(defvar semantic-decoration-styles nil
+  "*List of active decoration styles.
+It is an alist of \(NAME . FLAG) elements, where NAME is a style name
+and FLAG is non-nil if the style is enabled.
+See also `define-semantic-decoration-style' which will automatically
+add items to this list.")
 
 ;;;###autoload
 (defun global-semantic-decoration-mode (&optional arg)
   "Toggle global use of option `semantic-decoration-mode'.
 Decoration mode turns on all active decorations as specified
-by `semantic-decoration-primary-alist' and
-`semantic-decoration-secondary-alist'.
+by `semantic-decoration-styles'.
 If ARG is positive, enable, if it is negative, disable.
 If ARG is nil, then toggle."
   (interactive "P")
@@ -72,8 +195,7 @@ If ARG is nil, then toggle."
 (defcustom global-semantic-decoration-mode nil
   "*If non-nil, enable global use of `semantic-decoration-mode'.
 When this mode is activated, decorations specified by
-`semantic-decoration-primary-alist' and
-`semantic-decoration-secondary-alist' will be enabled."
+`semantic-decoration-styles'."
   :group 'semantic
   :type 'boolean
   :require 'semantic-decorate-mode
@@ -81,18 +203,17 @@ When this mode is activated, decorations specified by
   :set (lambda (sym val)
          (global-semantic-decoration-mode (if val 1 -1))))
 
-(defcustom semantic-decoration-hook nil
+(defcustom semantic-decoration-mode-hook nil
   "*Hook run at the end of function `semantic-decoration-mode'."
   :group 'semantic
   :type 'hook)
 
 (defvar semantic-decoration-mode nil
   "Non-nil if `semantic-decoration-mode' is enabled.
-Use the command `semantic-decoration-mode' to change this
-variable.")
+Use the command `semantic-decoration-mode' to change this variable.")
 (make-variable-buffer-local 'semantic-decoration-mode)
 
-(defun semantic-decoration-setup ()
+(defun semantic-decoration-mode-setup ()
   "Setup the `semantic-decoration-mode' minor mode.
 The minor mode can be turned on only if the semantic feature is available
 and the current buffer was set up for parsing.  Return non-nil if the
@@ -105,34 +226,32 @@ minor mode is enabled."
             (error "Buffer %s was not set up for parsing"
                    (buffer-name)))
         ;; Add hooks
-	(semantic-make-local-hook 'semantic-after-partial-cache-change-hook)
-	(add-hook 'semantic-after-partial-cache-change-hook
-		  'semantic-decorate-reparse-hook nil t)
-	(semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
-	(add-hook 'semantic-after-toplevel-cache-change-hook
-		  'semantic-dso-after-full-reparse-hook nil t)
-	(semantic-decorate-reparse-hook (semantic-fetch-tags))
-	)
-    ;; Cleanup tag boundaries highlighting
-    (semantic-dso-clear (semantic-fetch-tags))
+        (semantic-make-local-hook 'semantic-after-partial-cache-change-hook)
+        (add-hook 'semantic-after-partial-cache-change-hook
+                  'semantic-decorate-tags-after-partial-reparse nil t)
+        (semantic-make-local-hook 'semantic-after-toplevel-cache-change-hook)
+        (add-hook 'semantic-after-toplevel-cache-change-hook
+                  'semantic-decorate-tags-after-full-reparse nil t)
+        (semantic-decorate-add-decorations (semantic-fetch-tags))
+        )
+    ;; Remove decorations
+    (semantic-decorate-clear-decorations (semantic-fetch-tags))
     ;; Cleanup any leftover crap too.
-    (semantic-dso-flush-rogue-overlays)
+    (semantic-decorate-flush-decorations)
     ;; Remove hooks
     (remove-hook 'semantic-after-partial-cache-change-hook
-		 'semantic-decorate-reparse-hook t)
+                 'semantic-decorate-tags-after-partial-reparse t)
     (remove-hook 'semantic-after-toplevel-cache-change-hook
-		 'semantic-dso-after-full-reparse-hook t)
+                 'semantic-decorate-tags-after-full-reparse t)
     )
   semantic-decoration-mode)
-  
+
 ;;;###autoload
 (defun semantic-decoration-mode (&optional arg)
   "Minor mode for decorating tags.
-Decorations are specified in `semantic-decoration-primary-alist' and
-`semantic-decorate-secondary-alist'.
-You can create new decoration types with:
-`define-semantic-decoration-with-secondary-overaly', or with
-`define-semantic-decoration-with-primary-overlay'.
+Decorations are specified in `semantic-decoration-styles'.
+You can define new decoration styles with
+`define-semantic-decoration-style'.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode can be turned on only if semantic feature is available and
 the current buffer was set up for parsing.  Return non-nil if the
@@ -148,281 +267,199 @@ minor mode is enabled."
              (prefix-numeric-value arg)
              0)
           (not semantic-decoration-mode)))
-  (semantic-decoration-setup)
-  (run-hooks 'semantic-decoration-hook)
+  (semantic-decoration-mode-setup)
+  (run-hooks 'semantic-decoration-mode-hook)
   (if (interactive-p)
       (message "decoration-mode minor mode %sabled"
                (if semantic-decoration-mode "en" "dis")))
   (semantic-mode-line-update)
   semantic-decoration-mode)
 
-
-(defun semantic-decorate-tag-secondary-overlay-p (ol)
-  "Non nil of OL is a secondary overlay created for `semantic-decoration-mode'."
-  (semantic-overlay-get ol 'semantic-dso))
-
-(defun semantic-dso-flush-rogue-overlays ()
-  "Flush ALL secondary overlays associated with decoration mode."
-  (let ((ol (semantic-overlays-in (point-min) (point-max))))
-    (while ol
-      (if (semantic-decorate-tag-secondary-overlay-p (car ol))
-	  (semantic-overlay-delete (car ol)))
-      (setq ol (cdr ol)))))
-
-(defun semantic-dso-clear (tag-list)
-  "Clear boundaries off from TAG-LIST."
-  (while tag-list
-    (semantic-tag-delete-secondary-overlay (car tag-list) 'semantic-dso)
-
-    ;; recurse over children
-    (semantic-dso-clear
-     (semantic-tag-components-with-overlays (car tag-list)))
-    
-    (setq tag-list (cdr tag-list)))
-  )
-
-(defun semantic-dso-after-full-reparse-hook (tag-list)
-  "Called after a complete reparse of the current buffer.
-Eventually calls `semantic-decorate-reparse-hook'.
-Argument TAG-LIST is the list of tags recently parsed."
-  ;; Flush everything
-  (semantic-dso-flush-rogue-overlays)
-  ;; Add it back on
-  (semantic-decorate-reparse-hook tag-list))
-
-(defun semantic-decorate-reparse-hook (tag-list)
-  "Called when the new tags TAG-LIST are created in a buffer.
-Adds decorations to these fresh tags, and makes sure old decorations
-in the area are completely flushed."
-  (while tag-list
-    (let ((oldoverlays (semantic-tag-get-secondary-overlay
-			(car tag-list) 'semantic-dso)))
-      (when oldoverlays
-	;; It would be nice if this never happened, but it still does
-	;; once in a while.  Print a message to help flush these situations
-	(message "Secondary overlay still on %s"
-		 (semantic-format-tag-name (car tag-list)))
-	(while oldoverlays
-	  (semantic-tag-delete-secondary-overlay (car tag-list)
-						 (car oldoverlays))
-	  (setq oldoverlays (cdr oldoverlays))))
-      )
-    ;; Start with primary items
-    (let ((primary semantic-decoration-primary-alist))
-      (while primary
-	(if (funcall (car (car primary)) (car tag-list))
-	    (funcall (car (cdr (car primary))) (car tag-list)))
-	(setq primary (cdr primary))))
-    ;; Now do secondary overlay style decorations
-    (let ((secondary semantic-decoration-secondary-alist))
-      (while secondary
-	(if (funcall (car (car secondary)) (car tag-list))
-	    (funcall (car (cdr (car secondary))) (car tag-list)))
-	(setq secondary (cdr secondary))))
-    ;; Recurse on the children of all tags
-    (semantic-decorate-reparse-hook
-     (semantic-tag-components-with-overlays (car tag-list)))
-    (setq tag-list (cdr tag-list))))
-
-
 (semantic-add-minor-mode 'semantic-decoration-mode
                          ""
                          nil)
 
-;;; Primary Decorations
+(defun semantic-decorate-tags-after-full-reparse (tag-list)
+  "Add decorations after a complete reparse of the current buffer.
+TAG-LIST is the list of tags recently parsed.
+Flush all existing decorations and call `semantic-decorate-add-decorations' to
+add decorations.
+Called from `semantic-after-toplevel-cache-change-hook'."
+  ;; Flush everything
+  (semantic-decorate-flush-decorations)
+  ;; Add it back on
+  (semantic-decorate-add-decorations tag-list))
+
+(defun semantic-decorate-tags-after-partial-reparse (tag-list)
+  "Add decorations when new tags are created in the current buffer.
+TAG-LIST is the list of newly created tags.
+Call `semantic-decorate-add-decorations' to add decorations.
+Called from `semantic-after-partial-cache-change-hook'."
+  (semantic-decorate-add-decorations tag-list))
+
+(defun semantic-toggle-decoration-style (name &optional arg)
+  "Turn on/off the decoration style with NAME.
+Decorations are specified in `semantic-decoration-styles'.
+With prefix argument ARG, turn on if positive, otherwise off.
+Return non-nil if the decoration style is enabled."
+  (interactive
+   (list (completing-read "Decoration style: "
+                          semantic-decoration-styles nil t)
+         current-prefix-arg))
+  (setq name (format "%s" name)) ;; Ensure NAME is a string.
+  (unless (equal name "")
+    (let* ((style (assoc name semantic-decoration-styles))
+           (flag  (if arg
+                      (> (prefix-numeric-value arg) 0)
+                    (not (cdr style)))))
+      (unless (eq (cdr style) flag)
+        ;; Store the new flag.
+        (setcdr style flag)
+        ;; Refresh decorations is `semantic-decoration-mode' is on.
+        (when semantic-decoration-mode
+          (semantic-decoration-mode -1)
+          (semantic-decoration-mode 1))
+        (when (interactive-p)
+          (message "Decoration style %s turned %s" (car style)
+                   (if flag "on" "off"))))
+      flag)))
+
+;;; Defining decoration styles
 ;;
-;; Functions and utiles for primary decorations
-
-(defvar semantic-decoration-primary-alist
-  nil
-  "*List of active decoration styles applied to the primary tag overlay.
-It is of the form
-\( (NAME-p NAME-highlight) ... )
-See `define-semantic-decoration-on-primary-overlay' which will
-automatically add items to this list.")
-
-;;; Primary Decoration Creation Macros
-;;
-;; Macro based construction of primary decoration management.
-(defmacro define-semantic-decoration-on-primary-overlay (name doc &rest forms)
-  "Defines a primary decoration mode.
-This creates a new overload method called `NAME-p'. You must implement
-`NAME-p-default'.  This method returns non-nil if first argument TAG
-should be decorated by concept NAME.
-This also creates a new function called `NAME-highlight' which is created
-using FORMS.  FORMS should consist only of functions like
-`semantic-set-tag-face', or `semantic-set-tag-intangible' found in
-the source file semantic-decorate.el."
-  (let ((-p 	    (intern (concat (symbol-name name) "-p")))
-	(-highlight (intern (concat (symbol-name name) "-highlight")))
-	)
-    `(eval-and-compile
-       ;; Create an override method to specify if a given tag belongs
-       ;; to this type of decoration
-       (define-overload ,-p (tag)
-	 ,(concat "Determine if TAG should be decorated by "
-		  (symbol-name name) "\n" doc))
-       ;; Create an override method that will perform the highlight
-       ;; operation if the -p method returns non-nil.
-       (defun ,-highlight (tag) 
-	 ,(concat "Propertly list applied tags matching " (symbol-name name) "-p\n"
-		  doc)
-	 ,@forms)
-       ;; Add this to the list of primary decoration modes.
-       (add-to-list 'semantic-decoration-primary-alist
-		    ,(list 'quote (list -p -highlight)))
-       ))
-  )
-
-;;; Private Method Highlight
-;;
-(defface semantic-decoration-private-members-face
-  '((((class color) (background dark))
-     (:background "#100000"))
-    (((class color) (background light))
-     (:background "#8fffff")))
-  "*Face used to show privatly scoped tags in.
-The face is used in  `semantic-decoration-mode.'."
-  :group 'semantic-faces)
-
-
-(define-semantic-decoration-on-primary-overlay
-  semantic-decoration-private-members
-  "Highlight class members that are designated as PRIVATE access."
-  (semantic-set-tag-face tag 'semantic-decoration-private-members-face))
-
-(defun semantic-decoration-private-members-p-default (tag)
-  "Non-nil if TAG is private."
-  (and (member (semantic-tag-class tag) '(function variable))
-       (eq (semantic-tag-protection tag) 'private)))
-
-(defface semantic-decoration-protected-members-face
-  '((((class color) (background dark))
-     (:background "#000010"))
-    (((class color) (background light))
-     (:background "#fffff8")))
-  "*Face used to show protected scoped tags in.
-The face is used in  `semantic-highlight-by-attribute-mode'."
-  :group 'semantic-faces)
-
-(define-semantic-decoration-on-primary-overlay
-  semantic-decoration-protected-members
-  "Highlight class members that are designated as PROTECTED access."
-  (semantic-set-tag-face tag 'semantic-decoration-protected-members-face))
-
-(defun semantic-decoration-protected-members-p-default (tag)
-  "Non-nil if TAG is private."
-  (and (member (semantic-tag-class tag) '(function variable))
-       (eq (semantic-tag-protection tag) 'protected)))
-
-
-;;; Secondary Decorations
-;;
-(defvar semantic-decoration-secondary-alist
-  nil
-  "*List of active decoration styles which use secondary overlays.
-It is of the form
-\( (NAME-p NAME-highlight) ... )
-See `define-semantic-decoration-with-secondary-overlay' which will
-automatically add items to this list.")
-
-;;; Utils - secondary
-;;
-;; Functions that created modes should use.
-
-(defun semantic-decoration-create-secondary-overlay (tag begin end face)
-  "Create a secondary overlay on TAG on the region between BEGIN and END.
-Set the 'face property of the overlay to FACE."
-  (let ((o (semantic-tag-create-secondary-overlay tag)))
-    ;; We do not use the unlink property because we do not want to
-    ;; save the highlighting informatin in the DB.
-    (semantic-overlay-put o 'face face)
-    (semantic-overlay-put o 'semantic-dso t)
-    (semantic-overlay-move o begin end)
-    ))
-
-;;; Decoration mode creation macros
-;;
-;; These macros will assist in the creation of new decoration modes.
-(defmacro define-semantic-decoration-with-secondary-overlay (name doc)
-  "Create a new decoration style that uses a secondary overlay.
-This creates a new overload method called `NAME-p'.  You must implement
-`NAME-p-default'.  It also creates a new overload method called
-`NAME-highlight'.  You must implement `NAME-highlight-default'.
-`NAME-highlight-default' must use
-`semantic-decorate-create-secondary-overlay' when applying decoration
-to the overlay so that decoration mode can manage it.
+(defmacro define-semantic-decoration-style (name doc)
+  "Define a new decoration style with NAME.
 DOC is a documentation string describing the decoration style NAME.
-It is appended to the autogenerated doc for -p and -highlight methods."
-  (let ((-p 	    (intern (concat (symbol-name name) "-p")))
-	(-highlight (intern (concat (symbol-name name) "-highlight")))
-	)
+It is appended to auto-generated doc strings.
+
+This defines two new overload functions respectively called `NAME-p'
+and `NAME-highlight', for which you must provide a default
+implementation in respectively the functions `NAME-p-default' and
+`NAME-highlight-default'.  Those functions are passed a tag.  `NAME-p'
+must return non-nil to indicate that the tag should be decorated by
+`NAME-highlight'.
+
+To put primary decorations on a tag `NAME-highlight' must use
+functions like `semantic-set-tag-face', `semantic-set-tag-intangible',
+etc., found in the semantic-decorate library.
+
+To add other kind of decorations on a tag, `NAME-highlight' must use
+`semantic-decorate-tag', and other functions of the semantic
+decoration API found in this library."
+  (let ((predicate   (semantic-decorate-style-predicate   name))
+        (highlighter (semantic-decorate-style-highlighter name)))
     `(eval-and-compile
        ;; Create an override method to specify if a given tag belongs
        ;; to this type of decoration
-       (define-overload ,-p (tag)
-	 ,(concat "Determine if TAG should be decorated by "
-		  (symbol-name name) "\n" doc))
+       (define-overload ,predicate (tag)
+         ,(format "Return non-nil to decorate TAG with `%s' style.\n%s"
+                  name doc))
        ;; Create an override method that will perform the highlight
        ;; operation if the -p method returns non-nil.
-       (define-overload ,-highlight (tag)
-	 ,(concat "Highlight TAG for " (symbol-name name) "\n"
-		  doc))
+       (define-overload ,highlighter (tag)
+         ,(format "Decorate TAG with `%s' style.\n%s"
+                  name doc))
        ;; Add this to the list of primary decoration modes.
-       (add-to-list 'semantic-decoration-secondary-alist
-		    ,(list 'quote (list -p -highlight)))
-       ))
-  )
-
-
-;;; Tag Boundaries
+       (add-to-list 'semantic-decoration-styles
+                    (cons ',(symbol-name name) t))
+       )))
+
+;;; Predefined decoration styles
 ;;
-(define-semantic-decoration-with-secondary-overlay
-  semantic-tag-boundary
+
+;;; Tag boundaries highlighting
+;;
+(define-semantic-decoration-style semantic-tag-boundary
   "Place an overline in front of each long tag.
 Does not provide overlines for prototypes.")
-
 
 (defface semantic-tag-boundary-face
   '((((class color) (background dark))
      (:overline "cyan"))
     (((class color) (background light))
      (:overline "blue")))
-  "*Face used to show unmatched syntax in.
-The face is used in  `semantic-decoration-mode'."
+  "*Face used to show long tags in.
+Used by decoration style: `semantic-tag-boundary'."
   :group 'semantic-faces)
 
 (defun semantic-tag-boundary-p-default (tag)
-  "Non nil if TAG is a type, or a non-prototype function."
+  "Return non-nil if TAG is a type, or a non-prototype function."
   (let ((c (semantic-tag-class tag)))
-
     (and
      (or
       ;; All types get a line?
       (eq c 'type)
       ;; Functions which aren't prototypes get a line.
-      (and (eq (semantic-tag-class tag) 'function)
-	   (not (semantic-tag-get-attribute tag :prototype-flag)))
+      (and (eq c 'function)
+           (not (semantic-tag-get-attribute tag :prototype-flag)))
       )
      ;; Nothing smaller than a few lines
      (> (- (semantic-tag-end tag) (semantic-tag-start tag)) 150)
      ;; Random truth
-     t
-     )))
+     t)
+    ))
 
 (defun semantic-tag-boundary-highlight-default (tag)
   "Highlight the first line of TAG as a boundary."
-  (semantic-decoration-create-secondary-overlay
-   tag 
-   (semantic-tag-start tag)
-   (save-excursion
-     (set-buffer (semantic-tag-buffer tag))
-     (goto-char (semantic-tag-start tag))
-     (end-of-line)
-     (forward-char 1)
-     (point))
-   'semantic-tag-boundary-face))
+  (with-current-buffer (semantic-tag-buffer tag)
+    (semantic-decorate-tag
+     tag
+     (semantic-tag-start tag)
+     (save-excursion
+       (goto-char (semantic-tag-start tag))
+       (end-of-line)
+       (forward-char 1)
+       (point))
+     'semantic-tag-boundary-face)))
 
+;;; Private member highlighting
+;;
+(define-semantic-decoration-style semantic-decoration-on-private-members
+  "Highlight class members that are designated as PRIVATE access.")
+
+(defface semantic-decoration-on-private-members-face
+  '((((class color) (background dark))
+     (:background "#100000"))
+    (((class color) (background light))
+     (:background "#8fffff")))
+  "*Face used to show privately scoped tags in.
+Used by the decoration style: `semantic-decoration-on-private-members'."
+  :group 'semantic-faces)
+
+(defun semantic-decoration-on-private-members-highlight-default (tag)
+  "Highlight TAG as designated to have PRIVATE access.
+Use a primary decoration."
+  (semantic-set-tag-face
+   tag 'semantic-decoration-on-private-members-face))
+
+(defun semantic-decoration-on-private-members-p-default (tag)
+  "Return non-nil if TAG has PRIVATE access."
+  (and (member (semantic-tag-class tag) '(function variable))
+       (eq (semantic-tag-protection tag) 'private)))
+
+;;; Protected member highlighting
+;;
+(defface semantic-decoration-on-protected-members-face
+  '((((class color) (background dark))
+     (:background "#000010"))
+    (((class color) (background light))
+     (:background "#fffff8")))
+  "*Face used to show protected scoped tags in.
+Used by the decoration style: `semantic-decoration-on-protected-members'."
+  :group 'semantic-faces)
+
+(define-semantic-decoration-style semantic-decoration-on-protected-members
+  "Highlight class members that are designated as PROTECTED access.")
+
+(defun semantic-decoration-on-protected-members-p-default (tag)
+  "Return non-nil if TAG has PROTECTED access."
+  (and (member (semantic-tag-class tag) '(function variable))
+       (eq (semantic-tag-protection tag) 'protected)))
+
+(defun semantic-decoration-on-protected-members-highlight-default (tag)
+  "Highlight TAG as designated to have PROTECTED access.
+Use a primary decoration."
+  (semantic-set-tag-face
+   tag 'semantic-decoration-on-protected-members-face))
 
 (provide 'semantic-decorate-mode)
 
