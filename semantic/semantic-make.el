@@ -3,7 +3,7 @@
 ;; Copyright (C) 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-make.el,v 1.7 2001/01/24 21:19:48 zappo Exp $
+;; X-RCS: $Id: semantic-make.el,v 1.8 2001/04/13 02:02:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,72 +32,93 @@
 
 ;;; Code:
 (defvar semantic-toplevel-make-bovine-table
-  `((bovine-toplevel
-     ( variable)
-     ( rule)
-     ( conditional)
-     )					; end Makefile
-    (variable
-     ( symbol equals elements
-	      ,(semantic-lambda
-		(list (nth 0 vals) 'variable nil (nth 2 vals) nil nil)))
-     )					; end variable
-    (rule
-     ( symbol colons elements commands
-	      ,(semantic-lambda
-		(list (nth 0 vals) 'function nil (nth 2 vals) nil nil)))
-     )					; end rule
-    (conditional
-     ( symbol "if" symbol newline
-	      ,(semantic-lambda
-		))
-     ( symbol "else" newline
-	      ,(semantic-lambda
-		))
-     ( symbol "endif" newline
-	      ,(semantic-lambda
-		))
-     )					; end conditional
-    (equals
-     ( punctuation ":" punctuation "="
-		   ,(semantic-lambda
-		     ))
-     ( punctuation "+" punctuation "="
-		   ,(semantic-lambda
-		     ))
-     ( punctuation "="
-		   ,(semantic-lambda
-		     ))
-     )					; end equals
-    (colons
-     ( punctuation ":" punctuation ":"
-		   ,(semantic-lambda
-		     ))
-     ( punctuation ":"
-		   ,(semantic-lambda
-		     ))
-     )					; end colons
-    (elements
-     ( symbol elements
-	      ,(semantic-lambda
-		(list (nth 0 vals)) (nth 1 vals)))
-     ( symbol newline
-	      ,(semantic-lambda
-		(list (nth 0 vals))))
-     ( newline
-       ,(semantic-lambda
-	 ))
-     )					; end elements
-    (commands
-     ( shell-command newline commands
-		     ,(semantic-lambda
-		       (list (nth 0 vals)) (nth 1 vals)))
-     (
-      ,(semantic-lambda
-	))
-     )					; end commands
-    )
-    "Table for parsing Makefiles.")
+`((bovine-toplevel
+ ( variable)
+ ( rule)
+ ( conditional)
+ ( include)
+ ) ; end Makefile
+ (variable
+ ( symbol equals elements
+  ,(semantic-lambda
+  (list (nth 0 vals) 'variable nil (nth 2 vals) nil nil)))
+ ) ; end variable
+ (rule
+ ( symbol colons elements commands
+  ,(semantic-lambda
+  (list (nth 0 vals) 'function nil (nth 2 vals) nil nil)))
+ ) ; end rule
+ (conditional
+ ( IF symbol newline
+  ,(semantic-lambda
+ ))
+ ( ELSE newline
+  ,(semantic-lambda
+ ))
+ ( ENDIF newline
+  ,(semantic-lambda
+ ))
+ ) ; end conditional
+ (include
+ ( INCLUDE symbol elements
+  ,(semantic-lambda
+  (list (nth 1 vals) 'include nil)))
+ ) ; end include
+ (equals
+ ( punctuation "\\b:\\b" punctuation "\\b=\\b"
+  ,(semantic-lambda
+ ))
+ ( punctuation "\\b\\+\\b" punctuation "\\b=\\b"
+  ,(semantic-lambda
+ ))
+ ( punctuation "\\b=\\b"
+  ,(semantic-lambda
+ ))
+ ) ; end equals
+ (colons
+ ( punctuation "\\b:\\b" punctuation "\\b:\\b"
+  ,(semantic-lambda
+ ))
+ ( punctuation "\\b:\\b"
+  ,(semantic-lambda
+ ))
+ ) ; end colons
+ (elements
+ ( symbol elements
+  ,(semantic-lambda
+  (list (nth 0 vals)) (nth 1 vals)))
+ ( symbol newline
+  ,(semantic-lambda
+  (list (nth 0 vals))))
+ ( newline
+  ,(semantic-lambda
+ ))
+ ) ; end elements
+ (commands
+ ( shell-command newline commands
+  ,(semantic-lambda
+  (list (nth 0 vals)) (nth 1 vals)))
+ (
+  ,(semantic-lambda
+ ))
+ ) ; end commands
+ )
+        "Table for parsing Makefiles.")
+
+(defvar semantic-make-keyword-table
+  (semantic-flex-make-keyword-table 
+   `( ("if" . IF)
+      ("else" . ELSE)
+      ("endif" . ENDIF)
+      ("include" . INCLUDE)
+      )
+   '(
+     ("if" summary "Conditional: if (expression) ... else ... endif")
+     ("else" summary "Conditional: if (expression) ... else ... endif")
+     ("endif" summary "Conditional: if (expression) ... else ... endif")
+     ("include" summary "Macro: include filename1 filename2 ...")
+     ))
+  "Keyword table for Makefiles.")
 
 (defvar semantic-flex-make-extensions
   '(("^\\(\t\\)" . semantic-flex-make-command)
@@ -122,7 +143,9 @@ These command lines continue to additional lines when the end with \\"
   "Set up a Makefile buffer for parsing with semantic."
   (setq semantic-flex-extensions semantic-flex-make-extensions)
   ;; Code generated from make.bnf
-  (setq semantic-toplevel-bovine-table semantic-toplevel-make-bovine-table)
+  (setq semantic-toplevel-bovine-table semantic-toplevel-make-bovine-table
+	semantic-toplevel-bovine-table-source "make.bnf")
+  (setq semantic-flex-keywords-obarray semantic-make-keyword-table)
   (setq semantic-flex-enable-newlines t
 	semantic-symbol->name-assoc-list '((variable . "Variables")
 					   (function . "Rules")
