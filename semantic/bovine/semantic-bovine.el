@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.1 2002/08/11 17:18:21 zappo Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.2 2002/08/15 18:26:54 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,10 +28,11 @@
 ;; languages with list characters easy.  This parser lives on as one
 ;; of many available parsers for semantic the tool.
 ;;
-;; This parser should be used when the language is simple, such as makefiles
-;; or other data-declaritive langauges.
+;; This parser should be used when the language is simple, such as
+;; makefiles or other data-declaritive langauges.
 
 ;;; Code:
+(require 'semantic)
 
 ;;; Semantic Bovination
 ;;
