@@ -1,10 +1,10 @@
 ;;; sb-image --- Image management for speedbar
 
-;;; Copyright (C) 1999, 2000, 2001 Free Software Foundation
+;;; Copyright (C) 1999, 2000, 2001, 2002 Free Software Foundation
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-image.el,v 1.4 2001/05/09 01:11:25 zappo Exp $
+;; X-RCS: $Id: sb-image.el,v 1.5 2002/02/28 16:23:31 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -67,7 +67,12 @@ Argument DOCSTRING is the documentation for VARIABLE."
 ;; ELSE
 (defun speedbar-find-image-on-load-path (image)
   "Find the image file IMAGE on the load path."
-  (let ((l load-path)
+  (let ((l (cons
+	    ;; In XEmacs, try the data directory first (for an
+	    ;; install in XEmacs property.  Then search the load
+	    ;; path (for user installs)
+	    (locate-data-directory "speedbar")
+	    load-path))
 	(r nil))
     (while (and l (not r))
       (if (file-exists-p (concat (car l) "/" image))
