@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.42 2001/08/15 02:55:39 zappo Exp $
+@c $Id: semantic.texi,v 1.43 2001/08/17 21:11:09 zappo Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -909,6 +909,49 @@ the Java @code{package} statement, or a @code{provide} in Emacs Lisp.
 specific bit of information.
 @end table
 
+@section Extra Specifiers
+
+Some default token types have a slot EXTRA-SPEC, for extra specifiers.
+These specifiers provide additional details not commonly used, or not
+available in all languages.  This list is an alist, and if a given key
+is nil, it is not in the list, saving space.  Some valid extra
+specifiers are:
+
+@table @code
+@item (parent .  "text")
+Name of a parent type/class.  This is not the same as a parent for a
+type.  In C++ and CLOS allow the creation of a function outside the
+body of that class.  Such functions will set the @var{parent}
+specifier to a plain text string which is the name of that parent.
+
+@item (dereference .  INT)
+Number of levels of dereference.
+In C, the number of `*' characters indicating pointers.
+
+@item (typemodifiers .  ( "text" ... ))
+Keyword modifiers for a type.  In C, such words would include
+@code{register'} and @code{volatile'}
+
+@item (suffix . "text")
+Suffix information for a variable.  Not currently used.
+
+@item (const .  t)
+This exists if the variable or function return value is constant.
+
+@item (throws .  ( "text" ... ))
+For functions or methods in languages that support typed signal
+throwing, this is a list of exceptions that can be thrown.
+
+@item (destructor . t)
+This exists for functions which are destructor methods in a class
+definition.  In C, a destructor's name excludes the ~ character.  When
+producing the name of the function, the ~ is added back in.
+
+@item (user-visible . t)
+For functions in interpreted languages such as Emacs Lisp, this
+signals that a function or variable is user visible.  In Emacs Lisp,
+this means a function is @dfn{interactive}.
+@end table
 
 
 @node Compiling, Debugging, BNF conversion, Top
