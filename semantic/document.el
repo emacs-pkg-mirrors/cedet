@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: doc
-;; X-RCS: $Id: document.el,v 1.13 2002/12/29 18:01:20 ponced Exp $
+;; X-RCS: $Id: document.el,v 1.14 2003/04/01 15:18:16 ponced Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -553,14 +553,14 @@ Argument FORM is the format string to use."
 COMMENT is a flex token."
   (let ((endpos 0))
     (save-excursion
-      (goto-char (semantic-flex-end comment))
+      (goto-char (semantic-lex-token-end comment))
       (if (not (re-search-backward (regexp-quote (document-comment-start))
-				   (semantic-flex-start comment) t))
+				   (semantic-lex-token-start comment) t))
 	  (error "Comment confuses me"))
       (let ((s (document-just-after-token-regexp ?H document-function-comment)))
 	(if (not s) (error "Can't find where to enter new history element"))
 	(if (re-search-forward (concat "\\(" s "\\)")
-			       (1+ (semantic-flex-end comment)) t)
+			       (1+ (semantic-lex-token-end comment)) t)
 	    (progn
 	      (goto-char (match-beginning 1))
 	      (insert (concat "\n" (document-comment-line-prefix) " "))
@@ -588,18 +588,18 @@ Arguments can be semantic tokens, or strings."
 	(case-fold-search nil)
 	(l (semantic-token-function-args nonterm)))
     (save-excursion
-      (goto-char (semantic-flex-start comment))
+      (goto-char (semantic-lex-token-start comment))
       (let ((s (document-just-after-token-regexp ?P document-function-comment))
 	    (s2 (document-just-before-token-regexp ?P document-function-comment)))
 	(if (or (not s) (not s2))
 	    (error "Cannot break format string into findable begin and end tokens"))
 	(if (not (re-search-forward (concat "\\(" s "\\)")
-				    (1+ (semantic-flex-end comment)) t))
+				    (1+ (semantic-lex-token-end comment)) t))
 	    (error "Comment is not formatted correctly for param check"))
 	(goto-char (match-beginning 1))
 	(setq en (point))
-	(goto-char (semantic-flex-start comment))
-	(if (not (re-search-forward s2 (semantic-flex-end comment) t))
+	(goto-char (semantic-lex-token-start comment))
+	(if (not (re-search-forward s2 (semantic-lex-token-end comment) t))
 	    (error "Comment is not formatted correctly for param check"))
 	(setq st (point))
 	;; At this point we have the beginning and end of the
@@ -612,7 +612,7 @@ Arguments can be semantic tokens, or strings."
 	  (let ((n (buffer-substring (match-beginning 1) (match-end 1)))
 		(c nil))
 	    (setq c (point))
-	    (re-search-forward "$" (semantic-flex-end comment) t)
+	    (re-search-forward "$" (semantic-lex-token-end comment) t)
 	    (setq c (buffer-substring c (point)))
 	    (setq il (cons (cons n c) il))))
 	;; run verify on two lists of parameters to make sure they
