@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-cb.el,v 1.12 2003/09/02 16:09:19 zappo Exp $
+;; X-RCS: $Id: semantic-cb.el,v 1.13 2003/09/07 02:53:57 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -317,6 +317,7 @@ PARENTOBJ is the CB token which hosts CHILDLIST."
 
 ;;; Dot Output File Generation for UML
 ;;
+;;;###autoload
 (defun semantic-dot (start)
   "Create a DOT graph out of the class browser information.
 Argument START specifies the name of the class we are going to start
