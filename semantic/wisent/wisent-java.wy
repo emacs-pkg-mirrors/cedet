@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java.wy,v 1.3 2002/06/29 18:13:25 ponced Exp $
+;; X-RCS: $Id: wisent-java.wy,v 1.4 2002/06/30 22:27:32 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -67,10 +67,6 @@
    ;; Semantic navigation inside 'type children
    senator-step-at-token-ids '(function variable)
    )
-  ;; Collect unmatched syntax lexical tokens
-  (semantic-make-local-hook 'wisent-skip-token-hook)
-  (add-hook 'wisent-skip-token-hook
-            'wisent-collect-unmatched-syntax nil t)
   ;; Setup javadoc stuff
   (semantic-java-doc-setup)
   %}
