@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.155 2002/08/04 01:55:45 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.156 2002/08/04 17:11:54 ponced Exp $
 
 (defvar semantic-version "2.0alpha2"
   "Current version of Semantic.")
@@ -597,7 +597,7 @@ but which DO NOT HAVE OVERLAYS associated with them.")
 (define-overload semantic-bovinate-nonterminal (stream nonterminal)
   "Parse a single new nonterminal from STREAM.
 Start using the rule NONTERMINAL.
-For bovine and wisent based parsers, STRAM is from the output
+For bovine and wisent based parsers, STREAM is from the output
 of `semantic-lex', and NONTERMINAL is a rule in the apropriate
 language specific rules file.
 The default parser table used for bovine or wisent based parsers
@@ -859,7 +859,7 @@ If NONTERM is nil, use `bovine-block-toplevel'.
 Optional argument DEPTH is the depth of lists to dive into.
 When used in a `lambda' of a MATCH-LIST, there is no need to include
 a START and END part."
-  (semantic-bovinate-region start end nonterm depth))
+  (semantic-bovinate-region start end nonterm (or depth 1)))
 
 (provide 'semantic)
 
