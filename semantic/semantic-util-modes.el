@@ -6,7 +6,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Author: David Ponce <david@dponce.com>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util-modes.el,v 1.18 2002/07/29 03:46:25 zappo Exp $
+;; X-RCS: $Id: semantic-util-modes.el,v 1.19 2002/07/31 19:46:38 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -698,49 +698,52 @@ Called after `semantic-auto-parse-idle-time' seconds of Emacs idle
 time.  Does nothing if option `semantic-auto-parse-mode' is not enabled or
 current buffer don't need re-parse or if its size don't match
 `semantic-auto-parse-max-buffer-size' threshold."
-  (if (semantic-auto-parse-enabled-p)
-      (let ((semantic-bovination-working-type nil)
-	    (inhibit-quit nil)
-	    (working-use-echo-area-p
-	     (not semantic-auto-parse-working-in-modeline-flag))
-            (working-status-dynamic-type
-             (if semantic-auto-parse-no-working-message
-                 nil
-               working-status-dynamic-type))
-	    (working-status-percentage-type
-	     (if semantic-auto-parse-no-working-message
-		 nil
-	       working-status-percentage-type))
-	    (semantic-flex-unterminated-syntax-end-function
-	     (lambda (syntax start end) (throw 'auto-parse syntax)))
-	    )
-	;; Let people hook into this, but don't let them hose
-	;; us over!
-	(condition-case nil
-	    (run-hooks 'semantic-before-auto-parse-hooks)
-	  (error nil))
+  (when (semantic-auto-parse-enabled-p)
+    ;; Disable the auto parse timer while re-parsing
+    (semantic-auto-parse-kill-timer)
+    (let* ((semantic-bovination-working-type nil)
+           (inhibit-quit nil)
+           (working-use-echo-area-p
+            (not semantic-auto-parse-working-in-modeline-flag))
+           (working-status-dynamic-type
+            (if semantic-auto-parse-no-working-message
+                nil
+              working-status-dynamic-type))
+           (working-status-percentage-type
+            (if semantic-auto-parse-no-working-message
+                nil
+              working-status-percentage-type))
+           (semantic-flex-unterminated-syntax-end-function
+            (lambda (syntax start end) (throw 'auto-parse syntax)))
+           )
+      ;; Let people hook into this, but don't let them hose
+      ;; us over!
+      (condition-case nil
+          (run-hooks 'semantic-before-auto-parse-hooks)
+        (error nil))
 
-	(unwind-protect
-	    ;; Perform the parsing.dd
-	    (when (catch 'auto-parse
-		    (save-excursion
-		      (semantic-bovinate-toplevel t))
-		    nil)
-	      ;; The reparse failed, no status has been set up that
-	      ;; things are really bad.  If auto-parse needs to do
-	      ;; something in this case, this is where we do it, otherwise
-	      ;; wait for the next timer, and see if the buffer has
-	      ;; been fixed up enough to do something useful.
-	      ;;(message "Auto-reparse sillyness")
-	      nil)
-	  ;; Let people hook into this, but don't let them hose
-	  ;; us over!
-	  (condition-case nil
-	      (run-hooks 'semantic-after-auto-parse-hooks)
-	    (error nil)))
-	;; Return nil.
-	nil
-	)))
+      (unwind-protect
+          ;; Perform the parsing.
+          (when (catch 'auto-parse
+                  (save-excursion
+                    (semantic-bovinate-toplevel t))
+                  nil)
+            ;; The reparse failed, no status has been set up that
+            ;; things are really bad.  If auto-parse needs to do
+            ;; something in this case, this is where we do it, otherwise
+            ;; wait for the next timer, and see if the buffer has
+            ;; been fixed up enough to do something useful.
+            ;;(message "Auto-reparse sillyness")
+            nil)
+        ;; Let people hook into this, but don't let them hose
+        ;; us over!
+        (condition-case nil
+            (run-hooks 'semantic-after-auto-parse-hooks)
+          (error nil))))
+    ;; Enable again the auto parse timer
+    (semantic-auto-parse-setup-timer)
+    ;; Return nil.
+    nil))
 
 (defun semantic-auto-parse-setup-timer ()
   "Lazy initialization of the auto parse idle timer."
@@ -749,6 +752,12 @@ current buffer don't need re-parse or if its size don't match
             (run-with-idle-timer
              semantic-auto-parse-idle-time t
              #'semantic-auto-parse-bovinate))))
+
+(defun semantic-auto-parse-kill-timer ()
+  "Kill the auto parse idle timer."
+  (if (timerp semantic-auto-parse-timer)
+      (cancel-timer semantic-auto-parse-timer))
+  (setq semantic-auto-parse-timer nil))
 
 (defun semantic-auto-parse-mode-setup ()
   "Setup option `semantic-auto-parse-mode'.
