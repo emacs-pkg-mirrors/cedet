@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.4 2001/09/11 14:59:22 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.5 2001/09/17 15:26:06 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -519,6 +519,90 @@ Optional argument SCOPESTART is the token to start subscopes with."
 
 ;;; LALR conversion routines
 ;;
+(defun semantic-bnf-to-lalr-ASSOC (&rest args)
+  "Return expansion of built-in ASSOC expression.
+ARGS are ASSOC's key value list."
+  (let ((key t))
+    `(semantic-bovinate-make-assoc-list
+      ,@(mapcar #'(lambda (i)
+                    (prog1
+                        (if key
+                            (list 'quote i)
+                          i)
+                      (setq key (not key))))
+                args))))
+
+(defun semantic-bnf-to-lalr-EXPANDTHING ($i nonterm expander)
+  "Return expansion of built-in EXPAND/EXPANDFULL expression.
+$I is the placeholder value to expand.
+NONTERM is the nonterminal symbol to start with.
+EXPANDER is the Semantic function called to expand NONTERM"
+  (let ((i (and (symbolp $i)
+                (string-match "^[$]\\([1-9][0-9]*\\)$"
+                              (symbol-name $i))
+                (string-to-int
+                 (match-string 1 (symbol-name $i)))))
+        v)
+    (if (not i)
+        nil
+      (setq v (intern (format "$region%d" i))
+            i (1+ (* 2 (1- i))))
+      `(let ((,v (cdr (aref stack (- sp ,i)))))
+         (if ,v
+             (,expander (car ,v) (cdr ,v) ,nonterm))))))
+
+(defun semantic-bnf-to-lalr-EXPAND ($i nonterm)
+  "Return expansion of built-in EXPAND expression.
+$I is the placeholder value to expand.
+NONTERM is the nonterminal symbol to start with."
+  (or (semantic-bnf-to-lalr-EXPANDTHING
+       $i nonterm 'wisent-bovinate-from-nonterminal)
+      (error "Invalid form (EXPAND %s %s)" $i nonterm)))
+
+(defun semantic-bnf-to-lalr-EXPANDFULL ($i nonterm)
+  "Return expansion of built-in EXPANDFULL expression.
+$I is the placeholder value to expand.
+NONTERM is the nonterminal symbol to start with."
+  (or (semantic-bnf-to-lalr-EXPANDTHING
+       $i nonterm 'wisent-bovinate-from-nonterminal-full)
+      (error "Invalid form (EXPANDFULL %s %s)" $i nonterm)))
+
+(defconst semantic-bnf-to-lalr-builtins
+  '(
+    ;; Builtin name . Expander
+    ;; ------------ . ---------------------------------
+    (  ASSOC        . semantic-bnf-to-lalr-ASSOC)
+    (  EXPAND       . semantic-bnf-to-lalr-EXPAND)
+    (  EXPANDFULL   . semantic-bnf-to-lalr-EXPANDFULL)
+    ;; ------------ . ---------------------------------
+    )
+  "Expanders of Semantic built-in functions in LALR grammar.")
+
+(defun semantic-bnf-to-lalr-action (expr)
+  "Return expanded form of the semantic action expression EXPR.
+Macros are expanded and calls to built-in functions were replaced by
+their expansion as specified in `semantic-bnf-to-lalr-builtins'."
+  (if (not (listp expr))
+      ;; EXPR is an atom, no expansion needed
+      expr
+    ;; EXPR is a list, expand inside it
+    (let (eexpr sexpr bltn)
+      ;; If macro expand it first
+      (setq expr (macroexpand expr))
+      ;; Expand builtins
+      (if (setq bltn (assq (car expr) semantic-bnf-to-lalr-builtins))
+          (setq expr (apply (cdr bltn) (cdr expr))))
+      (while expr
+        (setq sexpr (car expr)
+              expr  (cdr expr))
+        ;; Recursively expand function call but quote expression
+        (and (consp sexpr)
+             (not (eq (car sexpr) 'quote))
+             (setq sexpr (semantic-bnf-to-lalr-action sexpr)))
+        ;; Accumulate expanded forms
+        (setq eexpr (nconc eexpr (list sexpr))))
+      eexpr)))
+
 (defun semantic-bnf-matching-to-lalr (matching)
   "Convert the rule MATCHING from BNF to LALR internal lisp form."
   (let* ((act (condition-case nil
@@ -541,9 +625,11 @@ Optional argument SCOPESTART is the token to start subscopes with."
     ;; to distinguish if the semantic action is missing or is actually
     ;; nil!
     (if act
-        (if prec
-            (list ml prec (car act))
-          (list ml (car act)))
+        (progn
+          (setq act (semantic-bnf-to-lalr-action (car act)))
+          (if prec
+              (list ml prec act)
+            (list ml act)))
       (if prec
           (list ml prec)
         (list ml)))))
