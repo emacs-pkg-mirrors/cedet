@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-comp.el,v 1.18 2003/02/19 16:30:13 ponced Exp $
+;; X-RCS: $Id: wisent-comp.el,v 1.19 2003/10/01 08:48:58 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -307,7 +307,7 @@ Used when running without interactive terminal.")
 ;; `wisent-compile-grammar' and are shared by all other nested
 ;; callees.
 (wisent-defcontext compile-grammar
-  F LA LAruleno accessing-symbol conflicts consistent
+  F LA LAruleno accessing-symbol conflicts consistent default-prec
   derives err-table fderives final-state first-reduction first-shift
   first-state firsts from-state goto-map includes itemset nitemset
   kernel-base kernel-end kernel-items last-reduction last-shift
@@ -3227,18 +3227,24 @@ the rule."
 (defun wisent-parse-grammar (grammar &optional start-list)
   "Parse GRAMMAR and build a suitable internal representation.
 Optional argument START-LIST defines the start symbols.
-GRAMMAR is a list of form: (TOKENS ASSOCS . NONTERMS) where TOKENS is
-a list of terminal symbols (tokens), ASSOCS is a list describing the
-associativity of terminals or nil.  And NONTERMS is the list of non
-terminal definitions (see function `wisent-parse-nonterminals').
-ASSOCS is a list of elements: (ASSOC-TYPE . ASSOC-TOKENS) where
-ASSOC-TYPE is one of 'nonassoc, 'left or 'right, and ASSOC-TOKENS is a
-list of tokens which must have been declared in TOKENS."
+GRAMMAR is a list of form: (TOKENS ASSOCS . NONTERMS)
+
+TOKENS is a list of terminal symbols (tokens).
+
+ASSOCS is nil or an alist of (ASSOC-TYPE . ASSOC-VALUE) elements
+describing the associativity of TOKENS.  ASSOC-TYPE must be one of the
+`default-prec' `nonassoc', `left' or `right' symbols.  When ASSOC-TYPE
+is `default-prec', ASSOC-VALUE must be nil or t (the default).
+Otherwise it is a list of tokens which must have been previously
+declared in TOKENS.
+
+NONTERMS is the list of non terminal definitions (see function
+`wisent-parse-nonterminals')."
   (working-dynamic-status "(parse input grammar)")
   (or (and (consp grammar) (> (length grammar) 2))
       (error "bad input grammar"))
   
-  (let (i r nt pl rhs pre lst start-var assoc rules item
+  (let (i r nt pl rhs pre dpre lst start-var assoc rules item
           token var def tokens vars defs ep-token ep-var ep-def)
     
     ;; Built-in tokens
@@ -3255,27 +3261,39 @@ list of tokens which must have been declared in TOKENS."
     ;; Check/Set up tokens precedence & associativity
     (setq lst  (nth 1 grammar)
           pre  0
-          defs nil)
+          defs nil
+          dpre nil
+          default-prec t)
     (while lst
       (setq def    (car lst)
             assoc  (car def)
             tokens (cdr def)
-            lst    (cdr lst)
-            pre    (1+ pre))
-      (or (memq assoc '(left right nonassoc))
-          (error "invalid associativity syntax: %S" assoc))
-      (while tokens
-        (setq token  (car tokens)
-              tokens (cdr tokens))
-        (if (memq token defs)
-            (message "*** redefining precedence of `%s'" token))
-        (or (memq token token-list)
-            ;; Define token not previously declared.
-            (wisent-push-token token))
-        (setq defs (cons token defs))
-        ;; Record the precedence and associativity of the terminal.
-        (wisent-set-prec  token pre)
-        (wisent-set-assoc token assoc)))
+            lst    (cdr lst))
+      (if (eq assoc 'default-prec)
+          (progn
+            (or (null (cdr tokens))
+                (memq (car tokens) '(t nil))
+                (error "invalid default-prec value: %S" tokens))
+            (setq default-prec (car tokens))
+            (if dpre
+                (message "*** redefining default-prec to %s"
+                         default-prec))
+            (setq dpre t))
+        (or (memq assoc '(left right nonassoc))
+            (error "invalid associativity syntax: %S" assoc))
+        (setq pre (1+ pre))
+        (while tokens
+          (setq token  (car tokens)
+                tokens (cdr tokens))
+          (if (memq token defs)
+              (message "*** redefining precedence of `%s'" token))
+          (or (memq token token-list)
+              ;; Define token not previously declared.
+              (wisent-push-token token))
+          (setq defs (cons token defs))
+          ;; Record the precedence and associativity of the terminal.
+          (wisent-set-prec  token pre)
+          (wisent-set-assoc token assoc))))
     
     ;; Check/Collect nonterminals
     (setq lst  (nthcdr 2 grammar)
@@ -3394,8 +3412,9 @@ list of tokens which must have been declared in TOKENS."
         (setq item (wisent-item-number (car rhs)))
         ;; Get default precedence level of rule, that is the
         ;; precedence of the last terminal in it.
-        (if (wisent-ISTOKEN item)
-            (setq pre item))
+        (and (wisent-ISTOKEN item)
+             default-prec
+             (setq pre item))
         
         (aset ritem i item)
         (setq i (1+ i)
