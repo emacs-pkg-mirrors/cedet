@@ -217,10 +217,12 @@ other buffer local ones based on the same semanticdb.
 
 When adding support to a language, this variable may need to be set:
 
-@defvar semantic-imenu-expandable-tag-class
-Tags of this class will be given submenu with children.
-By default, a @code{type} has interesting children.  In Texinfo, however,
-a @code{section} has interesting children.
+@defvar semantic-imenu-expandable-tag-classes
+@anchor{semantic-imenu-expandable-tag-classes}
+List of expandable tag classes.
+Tags of those classes will be given submenu with children.
+By default, a @code{type} has interesting children.  In Texinfo, however, a
+@code{section} has interesting children.
 @end defvar
 
 @node senator
