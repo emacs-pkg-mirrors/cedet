@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 27 Apr 2004
 ;; Keywords: syntax
-;; X-RCS: $Id: mode-local.el,v 1.3 2004/06/24 08:05:31 ponced Exp $
+;; X-RCS: $Id: mode-local.el,v 1.4 2004/07/30 17:57:14 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -37,6 +37,13 @@
 ;; There are buffer local variables, and frame local variables.
 ;; This library give the illusion of mode specific variables.
 ;;
+;; You should use a mode-local variable or override to allow extension
+;; only if you expect a mode author to provide that extension.  If a
+;; user might wish to customize a give variable or function then
+;; the existing customization mechanism should be used.
+
+;; To Do:
+;; Allow customization of a variable for a specific mode?
 
 ;;; History:
 ;;
