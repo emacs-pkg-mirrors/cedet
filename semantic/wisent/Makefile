@@ -18,7 +18,7 @@ taggers_SEMANTIC_GRAMMAR=wisent-java-tags.wy wisent-awk.wy wisent-calc.wy wisent
 EMACS=emacs
 taggers_SAMENATIC_GRAMMAR_EL=wisent-java-tags-wy.el wisent-awk-wy.el wisent-calc-wy.el wisent-cim-wy.el wisent-java-wy.el wisent-python-wy.el
 languages_LISP=wisent-calc.el wisent-java.el wisent-java-tags.el wisent-python.el
-VERSION=2.0beta1
+VERSION=2.0beta2
 DISTDIR=$(top)semantic-$(VERSION)/wisent
 
 
