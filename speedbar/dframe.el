@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: dframe.el,v 1.1 2000/08/14 18:47:27 zappo Exp $
+;; X-RCS: $Id: dframe.el,v 1.2 2000/08/17 03:01:17 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -39,17 +39,69 @@
 ;; * Timed activities using idle-timers
 ;; * Frame/buffer killing hooks
 ;; * Mouse-3 position relative menu
-;; * Mouse motion hacking
-;; * Mouse clicking w/ xemacs image hack
+;; * Mouse motion, help-echo hacks
+;; * Mouse clicking, double clicking, & xemacs image clicking hack
 ;; * Mode line hacking
-;; * Macros for use in a program covering:
+;; * Utilities for use in a program covering:
+;;    o keymap massage for some actions
 ;;    o working with an associated buffer
+;;    o shift-click
+;;    o detaching a frame
+;;    o focus-shifting & optional frame jumping
+;;    o currently active frame.
+;;    o message/y-or-n-p 
+;;    o mouse set point
 ;;
 ;; To Use:
-;; 1) Create a function to turn your frame on/off taking one ARG
-;; 2) Create a buffer to host in your dedicated frame
-;;    a) You may wish to set truncate-lines to t
-;;    b) 
+;; 1) (require 'dframe)
+;; 2) Variable Setup:
+;;   -frame-parameters -- Frame parameters for Emacs.
+;;   -frame-plist -- Frame parameters for XEmacs.
+;;   -- Not on parameter lists: They can optionally include width
+;;      and height.  If width or height is not included, then it will
+;;      be provided to match the originating frame.  In general,
+;;      turning off the menu bar, mode line, and minibuffer can
+;;      provide a smaller window, or more display area.
+;;   -track-mouse-flag -- mouse tracking on/off specific to your tool.
+;;   -update-flag -- app toggle for timer use.  Init from
+;;     `dframe-have-timer-flag'.  This is nil for terminals, since
+;;     updating a frame in a terminal is not useful to the user.
+;;   -key-map -- Your keymap.  Call `dframe-update-keymap' on it.
+;;   -buffer, -frame, -cached-frame -- Variables used to track your
+;;     applications buffer, frame, or frame cache (when hidden).  See
+;;     `dframe-frame-mode' for details.
+;;   -before-delete-hook, -before-popup-hook, -after-create-hook --
+;;     Hooks to have called.  The `-after-create-hook' probably wants
+;;     to call a function which calls `dframe-reposition-frame' in an
+;;     appropriate manner.
+;; 3) Function Setup:
+;;   your-frame-mode -- function to toggle your app frame on and off.
+;;     its tasks are:
+;;       a) create a buffer
+;;       b) Call `dframe-frame-mode'.  (See its doc)
+;;       c) If successful (your -frame variable has a value), call
+;;          timer setup if applicable.
+;;   your-frame-reposition- -- Function to call from after-create-hook to
+;;     reposition your frame with `dframe-repsoition-frame'.
+;;   your-mode -- Set up the major mode of the buffer for your app.
+;;     Set these variables: dframe-track-mouse-function,
+;;                          dframe-help-echo-function,
+;;                          dframe-mouse-click-function,
+;;                          dframe-mouse-position-function.
+;;   See speedbar's implementation of these functions.
+;;    `speedbar-current-frame', `speedbar-get-focus', `speedbar-message',
+;;    `speedbar-y-or-n-p', `speedbar-set-timer', `speedbar-click', 
+;;    `speedbar-position-cursor-on-line'
+;; 4) Handling mouse clicks, and help text:
+;;   dframe-track-mouse, dframe-help-echo-function --
+;;    These variables need to be set to functions that display info
+;;    based on the mouse's position.
+;;   Text propert 'help-echo, set to `dframe-help-echo', which will
+;;    call `dframe-hel-echo-function'.
+;;   Have a `-click' function, it can call `dframe-quick-mouse' for
+;;    positioning.  If the variable `dframe-power-click' is non-nil,
+;;    then `shift' was held down during the click.
+
 
 ;;; Code:
 (defvar dframe-xemacsp (string-match "XEmacs" emacs-version)
@@ -106,6 +158,15 @@
   :prefix "dframe-"
   :group 'dframe
   :group 'faces)
+
+(defvar dframe-have-timer-flag
+  (and (or (fboundp 'run-with-idle-timer)
+	   (fboundp 'start-itimer)
+	   (boundp 'post-command-idle-hook))
+       (if (fboundp 'display-graphic-p)
+	   (display-graphic-p)
+	 window-system))
+  "Non-nil means that timers are available for this Emacs.")
 
 (defcustom dframe-update-speed
   (if dframe-xemacsp
