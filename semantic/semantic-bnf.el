@@ -3,11 +3,9 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; Version: 0.1
+;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.10 2000/04/25 17:42:17 zappo Exp $
-
-;; This file is not part of GNU Emacs.
+;; X-RCS: $Id: semantic-bnf.el,v 1.11 2000/09/08 21:47:19 zappo Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -41,6 +39,14 @@
 (defvar semantic-bovine-bnf-table
   ;; BNF's BNF
   ;;
+  ;; decl : punctuation "%" semantic-list punctuation "%"
+  ;;      ;
+  ;;
+  ;; Here, the first symbol is a special token meaning something to
+  ;; the generator.
+  ;; percenttoken : punctuation "%" symbol symbol
+  ;;              ;
+  ;;
   ;; rule : result punctuation ":" rule-list
   ;;      ;
   ;;
@@ -59,46 +65,73 @@
   ;;            | symbol
   ;;            | string
   ;;            ;
-  '((bovine-toplevel
+  `((bovine-toplevel
      (symbol punctuation ":" rule-list punctuation ";"
-	     (lambda (vals start end)
-	       (list (nth 0 vals) 'rule nil (nth 2 vals) start end)
-	       )))
+	     ,(semantic-lambda
+	       (list (nth 0 vals) 'rule nil (nth 2 vals))))
+     (punctuation "%" percent-thing
+		  ,(semantic-lambda
+		    (nth 1 vals))))
+    (percent-thing
+     (semantic-list punctuation "%"
+		    ;; When loading lisp rules, use READ to convert
+		    ;; into a list we can pretty print later.
+		    ,(semantic-lambda
+		      (let ((r (read (buffer-substring
+				      (car (car vals))
+				      (cdr (car vals))))))
+			(list (symbol-name (car r)) 'setting r))))
+;     (symbol "token" symbol symbol
+;	     ,(semantic-lambda
+;	       (list (nth 1 vals) 'token (nth 2 vals))))
+     (symbol "start" symbol
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'start)))
+     (symbol "outputfile" symbol punctuation "." symbol "el"
+	     ,(semantic-lambda
+	       (list (concat (nth 1 vals) ".el") 'outputfile)))
+     (symbol "parsetable" symbol
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'parsetable)))
+     (symbol "languagemode" symbol
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'languagemode)))
+     (symbol "quotemode" symbol
+	     ,(semantic-lambda
+	       (list (nth 1 vals) 'quotemode)))
+     )
     (rule-list
      (match-list lambda-fn rule-or-list
-		 (lambda (vals start end)
-		   (append (cons (cons (car (nth 1 vals)) (nth 0 vals))
-				 (nth 2 vals))
-			   (list start end))
-		   )))
+		 ,(semantic-lambda
+		   (cons (cons (car (nth 1 vals)) (nth 0 vals))
+			 (nth 2 vals)))))
     (rule-or-list
      (punctuation "|" match-list lambda-fn rule-or-list
-		  (lambda (vals start end)
-		    (append (cons (cons (car (nth 2 vals)) (nth 1 vals))
-				  (nth 3 vals))
-			    (list start end))
-		    ))
-     ((lambda (vals start end) (list nil))
-      ))
+		  ,(semantic-lambda
+		    (cons (cons (car (nth 2 vals)) (nth 1 vals))
+			  (nth 3 vals))))
+     (,(semantic-lambda nil)))
     (match-list
      (symbol match-list
-	     (lambda (vals start end)
-	       (append (cons (nth 0 vals) (nth 1 vals)) (list start end))))
+	     ,(semantic-lambda
+	       (cons (nth 0 vals) (nth 1 vals))))
      (string match-list
-	     (lambda (vals start end)
-	       (append (cons (nth 0 vals) (nth 1 vals)) (list start end))))
+	     ,(semantic-lambda
+	       (cons (nth 0 vals) (nth 1 vals))))
      (string)
      (symbol)
      )
     (lambda-fn
-      (semantic-list
-       (lambda (vals start end)
-	 (list (buffer-substring-no-properties start end)
-	       start end)))
-      ((lambda (vals start end) (list "" start end))))
+     (semantic-list
+      ,(semantic-lambda
+	(list (buffer-substring-no-properties start end))))
+     (,(semantic-lambda (list "" ))))
     )
-  "Bovine table used to convert a BNF language file into a bovine table.")
+"Bovine table used to convert a BNF language file into a bovine table.")
 
+
+;;; Conversion routines
+;;
 (defun semantic-bnf-EXPAND (lst)
   "Insert a token expand function based on LST."
   (let ((argv (1- (string-to-int (substring (symbol-name (car (cdr lst)))
@@ -210,7 +243,7 @@ VALS are the matches in the BNF notation file."
       ;; conversion upon it.
       (insert "\n")
       (indent-for-tab-command)
-      (insert ",(lambda (vals start end)\n")
+      (insert ",(semantic-lambda\n")
       (indent-for-tab-command)
       (cond ((eq (car slsr) 'EXPAND)
 	     (semantic-bnf-EXPAND slsr))
@@ -220,24 +253,14 @@ VALS are the matches in the BNF notation file."
 	     ;; Use a simpler expander
 	     )
 	    (t
-	     (insert "(append ")
 	     (semantic-bnf-lambda-substitute slsr)
-	     ;; Finish it off
-	     (insert "\n")
-	     (indent-for-tab-command)
-	     (insert "(list start end))")))
+	     ))
       (insert ")"))))
 
-(defun semantic-bnf-to-bovine (file)
+(defun semantic-bnf-to-bovine (file tokstream)
   "Insert the BNF file FILE into the current buffer as a bovine table."
   (interactive "FBNF file: ")
-  (let* ((tokstream (save-excursion
-		      (set-buffer (find-file-noselect file))
-		      (semantic-clear-toplevel-cache)
-		      (save-excursion
-			(goto-char (point-min))
-			(semantic-bovinate-toplevel 0 t))))
-	 (tl (float (length tokstream))))
+  (let ((tl (float (length tokstream))))
     (insert "`(")
     (indent-for-tab-command)
     (working-status-forms "Building bovine table" "done"
@@ -248,36 +271,39 @@ VALS are the matches in the BNF notation file."
 	;; ( LAMBDA-STRING TOKEN1 TOKEN2 ... )
 	(let* ((rule (car tokstream))
 	       (matches (car (cdr (cdr (cdr rule))))))
-	  (insert "(" (car rule) "\n")
-	  (indent-for-tab-command)
-	  (while matches
-	    (let* ((mla (car matches))
-		   (lamb (car mla))
-		   (ml (cdr mla)))
-	      (insert "(")
-	      (if (and (= (length ml) 1) (string= (car ml) "EMPTY"))
-		  nil
-		(while ml
-		  (insert " " (car ml))
-		  (setq ml (cdr ml))))
-	      (semantic-bnf-lambda-convert lamb (car (cdr mla)))
-	      (insert ")\n")
-	      (indent-for-tab-command))
-	    (setq matches (cdr matches)))
-	  (insert ") ; end " (car rule) "\n")
-	  (indent-for-tab-command))
+	  (when (eq (car (cdr rule)) 'rule)
+	    (insert "(" (car rule) "\n")
+	    (indent-for-tab-command)
+	    (while matches
+	      (let* ((mla (car matches))
+		     (lamb (car mla))
+		     (ml (cdr mla)))
+		(insert "(")
+		(if (and (= (length ml) 1) (string= (car ml) "EMPTY"))
+		    nil
+		  (while ml
+		    (insert " " (car ml))
+		    (setq ml (cdr ml))))
+		(semantic-bnf-lambda-convert lamb (car (cdr mla)))
+		(insert ")\n")
+		(indent-for-tab-command))
+	      (setq matches (cdr matches)))
+	    (insert ") ; end " (car rule) "\n")
+	    (indent-for-tab-command)))
 	(setq tokstream (cdr tokstream))
 	(working-status (* 100.0 (- 1.0 (/ (float (length tokstream)) tl)))))
       (working-status t))
     (insert ")\n")
     ))
-
-(defun semantic-bnf-find-destination ()
-  "Find the destination file for this BNF file."
+
+;;; Output File hacks
+;;
+(defun semantic-bnf-find-table-destination-old ()
+  "Find the destination file for this BNF file via comments."
   (save-excursion
     (goto-char (point-min))
     (if (re-search-forward
-	 "^# TABLE: \\([-a-zA-Z0-9_-]+\\.el\\):\\([-a-zA-Z0-9_]+\\)$"
+	 "^#\\s-*TABLE:\\s-*\\([-a-zA-Z0-9_-]+\\.el\\):\\([-a-zA-Z0-9_]+\\)$"
 	 nil t)
 	(save-excursion
 	  (let ((f (match-string 1))
@@ -291,33 +317,69 @@ VALS are the matches in the BNF notation file."
 		  (point-marker)))))
       nil)))
 
-(defun semantic-bnf-find-mode ()
+(defun semantic-bnf-find-table-destination (tokstream)
+  "Find the destination file for this BNF file.
+Argument TOKSTREAM is the list of tokens in which to find the file and
+parse table variable."
+  (save-excursion
+    (let ((file (semantic-find-nonterminal-by-token 'outputfile tokstream))
+	  (var (semantic-find-nonterminal-by-token 'parsetable tokstream)))
+      (if (or (not file) (not var))
+	  (semantic-bnf-find-table-destination-old)
+	;; Fix file/var to strings
+	(setq file (semantic-token-name file)
+	      var (semantic-token-name var))
+	;; Look these items up.
+	(set-buffer (find-file-noselect file))
+	(goto-char (point-min))
+	(if (re-search-forward (concat "def\\(var\\|const\\)\\s-+"
+				       (regexp-quote var)) nil t)
+	    (progn
+	      (goto-char (match-beginning 0))
+	      (point-marker))
+	  (error "You must add a declaration for %s in %s"
+		 var file))))))
+
+(defun semantic-bnf-find-languagemode-old ()
   "Find the mode this BNF is used in."
+  (error "Upgrade")
   (save-excursion
     (goto-char (point-min))
-    (if (re-search-forward "^# MODE: \\([-a-z]+\\)$" nil t)
+    (if (re-search-forward "^#\\-*MODE:\\s-*\\([-a-z]+\\)$" nil t)
 	(save-excursion
 	  (let ((m (match-string 1)))
 	    (read m)))
       nil)))
+
+(defun semantic-bnf-find-languagemode (tokstream)
+  "Find the lanugage mode for this BNF file.
+Argument TOKSTREAM is the list of tokens in which to find the file and
+parse table variable."
+  (let ((mode (semantic-find-nonterminal-by-token 'languagemode tokstream)))
+    (if mode
+	(intern (semantic-token-name mode))
+      (semantic-bnf-find-languagemode-old))))
 
 (defun semantic-bnf-generate-and-load ()
   "Take the current BNF, auto-generate it into a table, and load it."
   (interactive)
   (if (not (eq major-mode 'semantic-bnf-mode))
       (error "Not valid outside the scope of a BNF file"))
-  (let ((bb (current-buffer))
-	(dest (semantic-bnf-find-destination))
-	(mode (semantic-bnf-find-mode)))
+  ;; Do the work
+  (let* ((tok (semantic-bovinate-toplevel 0 t t))
+	 (bb (current-buffer))
+	 (dest (semantic-bnf-find-table-destination tok))
+	 (mode (semantic-bnf-find-languagemode tok)))
     (if (not dest)
 	(error "You must specify a destination table in your BNF file"))
     (save-excursion
       (set-buffer (marker-buffer dest))
       (goto-char dest)
       (re-search-forward "def\\(var\\|const\\)\\s-+\\(\\w\\|\\s_\\)+\\s-*\n")
-      (if (looking-at "\\s-*`(") (kill-sexp 1))
+      (if (looking-at "\\s-*\\(`(\\|nil\\)")
+	  (delete-region (point) (save-excursion (forward-sexp 1) (point))))
       (delete-blank-lines)
-      (semantic-bnf-to-bovine (buffer-file-name bb))
+      (semantic-bnf-to-bovine (buffer-file-name bb) tok)
       (eval-defun nil))
     (if mode
 	(save-excursion
@@ -336,7 +398,7 @@ VALS are the matches in the BNF notation file."
     (emacs-lisp-mode)
     (erase-buffer)
     (semantic-bnf-to-bovine (buffer-file-name bb))))
-
+
 ;;; Semantic BNF mode
 ;;
 ;; Major mode for editing BNF files.  More importantly, define a syntax
@@ -349,6 +411,7 @@ VALS are the matches in the BNF notation file."
   (setq semantic-bnf-syntax-table (make-syntax-table (standard-syntax-table)))
   (modify-syntax-entry ?: "." semantic-bnf-syntax-table)
   (modify-syntax-entry ?| "." semantic-bnf-syntax-table)
+  (modify-syntax-entry ?% "." semantic-bnf-syntax-table)
   (modify-syntax-entry ?\; "." semantic-bnf-syntax-table)
   (modify-syntax-entry ?\" "\"" semantic-bnf-syntax-table)
   (modify-syntax-entry ?- "_" semantic-bnf-syntax-table)
@@ -368,6 +431,8 @@ VALS are the matches in the BNF notation file."
 \\|\\(open\\|close\\)-paren\\|comment\\)\\>"
      1 font-lock-keyword-face)
     ("\\$[0-9]+" 0 font-lock-variable-name-face)
+    ("%" 0 font-lock-reference-face)
+    ("%\\(\\w+\\)" 1 font-lock-type-face)
     )
   "Font Lock keywords used to highlight BNF buffer.")
 
@@ -386,6 +451,7 @@ VALS are the matches in the BNF notation file."
 
 (speedbar-add-supported-extension ".bnf")
 
+(defalias 'bnf-mode 'semantic-bnf-mode)
 (defun semantic-bnf-mode ()
   "Initialize a buffer for editing BNF code."
   (interactive)
@@ -413,29 +479,42 @@ VALS are the matches in the BNF notation file."
   (self-insert-command 1)
   (semantic-bnf-indent))
 
+(defun semantic-bnf-in-settings-p (&optional point)
+  "Non-nil if POINT is in a settings block."
+  (condition-case nil
+      (save-excursion
+	(if point (goto-char point))
+	(up-list -1)
+	(while (not (eq (preceding-char) ?%))
+	  (up-list -1))
+	t)
+    (error nil)))
+
 (defun semantic-bnf-indent ()
   "Indent the current line according to BNF rules."
   (interactive)
-  (save-excursion
-    (beginning-of-line)
-    (let ((indent (current-indentation)))
-      (if (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
-	  (delete-horizontal-space)
-	(save-excursion
-	  (forward-line -1)
-	  (if (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
-	      (setq indent (- (match-end 0) (point) 1))
-	    (if (looking-at "\\s-*;")
-		(setq indent 0)
-	      (if (looking-at "\\s-*[|#]")
-		  (setq indent (current-indentation))
-		(setq indent (- (current-indentation) 2))))))
-	(if (not (looking-at "\\s-*[|;#]"))
-	    (setq indent (+ 2 indent)))
-	(if (= (current-indentation) indent)
-	    nil
-	  (delete-horizontal-space)
-	  (indent-to indent)))))
+  (if (semantic-bnf-in-settings-p)
+      (lisp-indent-line)
+    (save-excursion
+      (beginning-of-line)
+      (let ((indent (current-indentation)))
+	(if (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
+	    (delete-horizontal-space)
+	  (save-excursion
+	    (forward-line -1)
+	    (if (looking-at "\\s-*\\(\\w\\|\\s_\\)+\\s-*:")
+		(setq indent (- (match-end 0) (point) 1))
+	      (if (looking-at "\\s-*;")
+		  (setq indent 0)
+		(if (looking-at "\\s-*[|#]")
+		    (setq indent (current-indentation))
+		  (setq indent (- (current-indentation) 2))))))
+	  (if (not (looking-at "\\s-*[|;#]"))
+	      (setq indent (+ 2 indent)))
+	  (if (= (current-indentation) indent)
+	      nil
+	    (delete-horizontal-space)
+	    (indent-to indent))))))
   (if (bolp) (if (looking-at "\\s-+") (end-of-line))))
 
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
