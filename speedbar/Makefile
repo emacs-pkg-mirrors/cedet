@@ -12,6 +12,7 @@ ede_FILES=Project.ede Makefile
 EMACS=emacs
 LOADPATH=../common/ ../common/ 
 LOADDEFS=speedbar-defs.el
+LOADDIRS=.
 speedbar_LISP=dframe.el speedbar.el
 EMACS=emacs
 info_TEXINFOS=speedbar.texi
@@ -33,7 +34,7 @@ speedbar-defs.el: $(LOADDEFS)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ .
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)
 
 .PHONY: speedbar
 speedbar: $(speedbar_LISP)

@@ -13,6 +13,7 @@ EMACS=emacs
 LOADPATH=../common/ ../speedbar/ ../eieio/\
    
 LOADDEFS=ede-loaddefs.el
+LOADDIRS=.
 ede_LISP=project-am.el ede.el ede-pmake.el ede-pconf.el ede-proj.el ede-dired.el ede-proj-elisp.el ede-proj-misc.el ede-proj-obj.el ede-proj-prog.el ede-proj-archive.el ede-proj-shared.el ede-proj-info.el ede-proj-scheme.el ede-proj-aux.el ede-proj-comp.el ede-source.el ede-util.el ede-system.el ede-speedbar.el
 EMACS=emacs
 aux_lisp_LISP=autoconf-edit.el autoconf-compat.el
@@ -34,7 +35,7 @@ ede-loaddefs.el: $(LOADDEFS)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ .
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)
 
 .PHONY: ede
 ede: $(ede_LISP)

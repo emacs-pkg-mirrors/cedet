@@ -14,6 +14,7 @@ LOADPATH=../common/ ../eieio/ ../ede/ wisent/ bovine/\
    ../common/ ../speedbar/ ../ede/ ../eieio/\
    
 LOADDEFS=semantic-al.el
+LOADDIRS=. bovine wisent
 maintenance_LISP=semantic-ede-grammar.el
 EMACS=emacs
 wy_MISC=semantic-grammar.wy
@@ -39,7 +40,7 @@ semantic-al.el: $(LOADDEFS)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ .
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)
 
 .PHONY: maintenance
 maintenance: $(maintenance_LISP)

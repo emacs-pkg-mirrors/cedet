@@ -10,8 +10,9 @@ top=
 ede_FILES=Project.ede Makefile
 
 EMACS=emacs
-LOADPATH=../common/ 
+LOADPATH=../common/ ../speedbar/ 
 LOADDEFS=eieio-defs.el
+LOADDIRS=.
 eieio_LISP=eieio.el eieio-comp.el eieio-opt.el eieio-custom.el eieio-doc.el eieio-base.el
 EMACS=emacs
 examples_LISP=tree.el call-tree.el chart.el eieio-speedbar.el linemark.el lmcompile.el
@@ -33,7 +34,7 @@ eieio-defs.el: $(LOADDEFS)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ .
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)
 
 .PHONY: eieio
 eieio: $(eieio_LISP)

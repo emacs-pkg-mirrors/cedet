@@ -16,6 +16,7 @@ LOADPATH=../common/ ../semantic/ ../eieio/\
 wisent_SAMENATIC_GRAMMAR_EL=wisent-dot-wy.el
 EMACS=emacs
 LOADDEFS=cogre-defs.el
+LOADDIRS=.
 dot_LISP=wisent-dot.el
 EMACS=emacs
 Mode_LISP=cogre-mode.el
@@ -48,7 +49,7 @@ cogre-defs.el: $(LOADDEFS)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(require 'cedet-autogen)" >> $@-compile-script
-	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ .
+	$(EMACS) -batch -l $@-compile-script -f cedet-batch-update-autoloads $@ $(LOADDIRS)
 
 .PHONY: dot
 dot: $(dot_LISP)
@@ -99,10 +100,10 @@ clean:
 	rm -f *.elc *.html *.info
 
 
-dist: cogre.info
+dist: $(wisent_SAMENATIC_GRAMMAR_EL) cogre.info
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
-	cp $(wisent_SEMANTIC_GRAMMAR) $(LOADDEFS) $(dot_LISP) $(Mode_LISP) $(info_TEXINFOS) cogre.info* $(misc_MISC) $(hacks_LISP) $(COGRE_LISP) $(ede_FILES) $(DISTDIR)
+	cp $(wisent_SEMANTIC_GRAMMAR) $(wisent_SAMENATIC_GRAMMAR_EL) $(LOADDEFS) $(dot_LISP) $(Mode_LISP) $(info_TEXINFOS) cogre.info* $(misc_MISC) $(hacks_LISP) $(COGRE_LISP) $(ede_FILES) $(DISTDIR)
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 
