@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.207 2001/10/18 18:52:43 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.208 2001/10/26 13:06:03 zappo Exp $
 
 (defvar speedbar-version "0.14beta2"
   "The current version of speedbar.")
@@ -655,8 +655,9 @@ to toggle this value.")
   (define-key speedbar-key-map "\M-p" 'speedbar-restricted-prev)
   (define-key speedbar-key-map "\C-\M-n" 'speedbar-forward-list)
   (define-key speedbar-key-map "\C-\M-p" 'speedbar-backward-list)
-  (define-key speedbar-key-map " " 'speedbar-scroll-up)
-  (define-key speedbar-key-map [delete] 'speedbar-scroll-down)
+;; These commands never seemed useful.
+;;  (define-key speedbar-key-map " " 'speedbar-scroll-up)
+;;  (define-key speedbar-key-map [delete] 'speedbar-scroll-down)
 
   ;; Short cuts I happen to find useful
   (define-key speedbar-key-map "r"
@@ -694,6 +695,8 @@ This basically creates a sparse keymap, and makes it's parent be
   (define-key speedbar-file-key-map "+" 'speedbar-expand-line)
   (define-key speedbar-file-key-map "=" 'speedbar-expand-line)
   (define-key speedbar-file-key-map "-" 'speedbar-contract-line)
+
+  (define-key speedbar-file-key-map " " 'speedbar-toggle-line-expansion)
 
   ;; file based commands
   (define-key speedbar-file-key-map "U" 'speedbar-up-directory)
@@ -3054,6 +3057,18 @@ With universal argument ARG, flush cached data."
 	(speedbar-do-function-pointer))
     (error (speedbar-position-cursor-on-line))))
 
+(defun speedbar-toggle-line-expansion ()
+  "Contract or expand the line under the cursor."
+  (interactive)
+  (beginning-of-line)
+  (condition-case nil
+      (progn
+	(re-search-forward ":\\s-*.[-+]. "
+			   (save-excursion (end-of-line) (point)))
+	(forward-char -2)
+	(speedbar-do-function-pointer))
+    (error (speedbar-position-cursor-on-line))))
+
 (defun speedbar-find-file (text token indent)
   "Speedbar click handler for filenames.
 TEXT, the file will be displayed in the attached frame.
@@ -3531,6 +3546,7 @@ regular expression EXPR"
   (define-key speedbar-buffers-key-map "+" 'speedbar-expand-line)
   (define-key speedbar-buffers-key-map "=" 'speedbar-expand-line)
   (define-key speedbar-buffers-key-map "-" 'speedbar-contract-line)
+  (define-key speedbar-buffers-key-map " " 'speedbar-toggle-line-expansion)
 
   ;; Buffer specific keybindings
   (define-key speedbar-buffers-key-map "k" 'speedbar-buffer-kill-buffer)
