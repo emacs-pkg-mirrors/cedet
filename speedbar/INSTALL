@@ -64,6 +64,9 @@ of this update of speedbar.
    ;; Texinfo fancy chapter tags
    (add-hook 'texinfo-mode-hook (lambda () (require 'sb-texinfo)))
 
+   ;; HTML fancy chapter tags
+   (add-hook 'html-mode-hook (lambda () (require 'sb-html)))
+
    For any verison of emacs on a linux RPM based system:
    (autoload 'rpm "sb-rpm" "Rpm package listing in speedbar.")
 
@@ -80,3 +83,7 @@ of this update of speedbar.
    (autoload 'rmail-speedbar-buttons "sb-rmail" "Rmail specific speedbar button generator.")
    ;; current stack display
    (autoload 'gud-speedbar-buttons "sb-gud" "GUD specific speedbar button generator.")
+
+   For an info mode in Emacs 20.x, it may be necessary to do this instead:
+
+   (eval-after-load "info" (require 'sb-info))
