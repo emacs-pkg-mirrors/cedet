@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: semantic.texi,v 1.65 2002/05/13 04:54:34 emacsman Exp $
+@c $Id: semantic.texi,v 1.66 2002/06/07 18:24:58 ponced Exp $
 @c
 @setfilename semantic.info
 @settitle Semantic Bovinator: Parser generation for Emacs
@@ -413,7 +413,13 @@ extensions.  An example use of @var{semantic-flex-extensions} is in
 the value of @var{semantic-flex-make-extensions} which may generate
 @code{shell-command} tokens.
 
+@anchor{Default syntactic tokens}
+@subsection Default syntactic tokens if the lexer is not extended.
 @table @code
+@item bol
+Empty string matching a beginning of line.
+This token is produced only if the user set
+@var{semantic-flex-enable-bol} to non-@code{nil}.
 @item charquote
 String sequences that match @code{\\s\\+}.
 @item close-paren
@@ -425,7 +431,7 @@ These token types are not produced by default.
 They are produced only if the user set
 @var{semantic-ignore-comments} to @code{nil}.
 @item newline
-Characters matching @code{\\s-*\\(\n\\)}.
+Characters matching @code{\\s-*\\(\n\\|\\s>\\)}.
 This token is produced only if the user set
 @var{semantic-flex-enable-newlines} to
 non-@code{nil}.
@@ -447,6 +453,12 @@ The lexer relies on @code{forward-sexp} to find the
 matching end.
 @item symbol
 String sequences that match @code{\\(\\sw\\|\\s_\\)+}.
+@item whitespace
+Characters that match `\\s-+' regexp. 
+This token is produced only if the user set
+@var{semantic-flex-enable-whitespace} to non-@code{nil}.  If
+@var{semantic-ignore-comments} is non-@code{nil} too comments are
+considered as whitespaces.
 @end table
 
 @node Lexer Options, Keywords, Lexer Output, Lexing
@@ -455,6 +467,17 @@ String sequences that match @code{\\(\\sw\\|\\s_\\)+}.
 Although most lexer functions are called for you by other semantic
 functions, there are ways for you to extend or customize the lexer.
 Three variables shown below serve this purpose.
+
+@defvar semantic-flex-unterminated-syntax-end-function
+Function called when unterminated syntax is encountered.
+This should be set to one function.  That function should take three
+parameters.  The @var{SYNTAX}, or type of syntax which is unterminated.
+@var{SYNTAX-START} where the broken syntax begins.
+@var{FLEX-END} is where the lexical analysis was asked to end.
+This function can be used for languages that can intelligently fix up
+broken syntax, or the exit lexical analysis via @dfn{throw} or @dfn{signal}
+when finding unterminated syntax.
+@end defvar
 
 @defvar semantic-flex-extensions
 Buffer local extensions to the lexical analyzer.
@@ -497,13 +520,48 @@ Useful for languages where the newline is a special case terminator.
 Only set this on a per mode basis, not globally.
 @end defvar
 
-@defvar semantic-flex-unterminated-syntax-throw-symbol
-Symbol specifying what to @dfn{throw} upon finding unterminated syntax.
-Lists and strings, could be unterminated.  This provides something that
-can be @code{thrown} from the lexical analysis phase for tools that wish
-to take special care when problems arise during a parse.
-Set this variable in a @dfn{let} statement, then wrap lexical or parsing
-calls in @dfn{catch}.
+@defvar semantic-flex-enable-whitespace
+When flexing, report @code{'whitespace} as syntactic elements.
+Useful for languages where the syntax is whitespace dependent.
+Only set this on a per mode basis, not globally.
+@end defvar
+
+@defvar semantic-flex-enable-bol
+When flexing, report beginning of lines as syntactic elements.
+Useful for languages like python which are indentation sensitive.
+Only set this on a per mode basis, not globally.
+@end defvar
+
+@defvar semantic-number-expression
+Regular expression for matching a number.
+If this value is @code{nil}, no number extraction is done during lex.
+This expression tries to match C and Java like numbers.
+
+@example
+DECIMAL_LITERAL:
+    [1-9][0-9]*
+  ;
+HEX_LITERAL:
+    0[xX][0-9a-fA-F]+
+  ;
+OCTAL_LITERAL:
+    0[0-7]*
+  ;
+INTEGER_LITERAL:
+    <DECIMAL_LITERAL>[lL]?
+  | <HEX_LITERAL>[lL]?
+  | <OCTAL_LITERAL>[lL]?
+  ;
+EXPONENT:
+    [eE][+-]?[09]+
+  ;
+FLOATING_POINT_LITERAL:
+    [0-9]+[.][0-9]*<EXPONENT>?[fFdD]?
+  | [.][0-9]+<EXPONENT>?[fFdD]?
+  | [0-9]+<EXPONENT>[fFdD]?
+  | [0-9]+<EXPONENT>?[fFdD]
+  ;
+@end example
 @end defvar
 
 @node Keywords, Keyword Properties, Lexer Options, Lexing
@@ -1033,32 +1091,8 @@ filename : symbol PERIOD symbol
 
 will explicitly match one period when used in the above rule.
 
-Default syntactic tokens (If the lexer is not extended) are:
-@table @code
-@item newline
-A newline if @var{semantic-flex-enable-newline} is non-nil.
-@item symbol
-A symbol for the language, usually comprising alpha numeric
-characters, and _.
-@item number
-A number for the language.  You can specify a number format with
-the variable @var{semantic-number-expression}.
-@item charquote
-A character quoting punctuation.  Like ? in Emacs Lisp.
-@item semantic-list
-A list, delimited on either end with some parenthetical form.
-@item open-paren
-An opening parenthesis.
-@item close-paren
-A closing parenthesis.
-@item string
-A string, including starting and ending delimiters.
-@item comment
-A comment.  This can be stripped from the stream if
-@var{semantic-ignore-comments} is non-nil.
-@item punctuation
-Punctuation characters, such as operators, period, and coma.
-@end table
+@xref{Default syntactic tokens}.
+
 
 @node Optional Lambda Expression, Examples, Rules, BNF conversion
 @section Optional Lambda Expressions
@@ -1186,7 +1220,7 @@ which would return
 ( "A" "B" )
 @end example
 
-@node Style Guide , , Examples, BNF conversion
+@node Style Guide ,  , Examples, BNF conversion
 @section Semantic Token Style Guide
 
 In order for a generalized program using Semantic to work with
@@ -2310,7 +2344,7 @@ Override with @code{ctxt-scoped-types}.
 For details on using these functions to get more detailed information
 about the current context: @xref{Context Analysis}.
 
-@node Making New Methods, , Local Context, Override Methods
+@node Making New Methods,  , Local Context, Override Methods
 @subsection Making New Methods
 
 @node Parser Hooks, Example Programs, Override Methods, Programming
@@ -2432,7 +2466,7 @@ This hook is called before a corresponding
 during a flush when the cache is given a new value of nil.
 @end defvar
 
-@node Example Programs, , Parser Hooks, Programming
+@node Example Programs,  , Parser Hooks, Programming
 @section Programming Examples
 
 Here are some simple examples that use different aspects of the
@@ -3213,7 +3247,7 @@ Completion options are calculated with
 @dfn{semantic-analyze-possible-completions}.
 @end deffn
 
-@node Speedbar Analysis, , Smart Completion, analyzer
+@node Speedbar Analysis,  , Smart Completion, analyzer
 @comment  node-name,  next,  previous,  up
 @subsection Speedbar Analysis
 
