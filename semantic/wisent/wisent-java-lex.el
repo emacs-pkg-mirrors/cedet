@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-lex.el,v 1.4 2002/08/11 09:41:12 ponced Exp $
+;; X-RCS: $Id: wisent-java-lex.el,v 1.5 2002/10/02 15:08:06 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -104,7 +104,7 @@ It ignores whitespaces, newlines and comments."
   wisent-java-lex-number
   wisent-java-lex-string
   wisent-java-lex-symbol
-  wisent-lex-punctuation
+  semantic-lex-punctuation-type
   wisent-java-lex-blocks
   semantic-lex-default-action)
 
@@ -117,7 +117,7 @@ It ignores whitespaces, newlines and comments."
   wisent-java-lex-number
   wisent-java-lex-string
   wisent-java-lex-symbol2
-  wisent-lex-punctuation
+  semantic-lex-punctuation-type
   wisent-java-lex-blocks
   semantic-lex-default-action)
 
