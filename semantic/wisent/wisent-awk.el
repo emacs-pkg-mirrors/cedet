@@ -1,4 +1,4 @@
-;;; wisent-awk.bnf --- GNU AWK Grammar
+;;; wisent-awk.el --- GNU AWK Grammar
 
 ;; Copyright (C) 2002 David Ponce
 ;; Copyright 2001 Free Software Foundation, Inc.
@@ -7,7 +7,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Jan 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-awk.el,v 1.1 2002/02/01 23:56:13 ponced Exp $
+;; X-RCS: $Id: wisent-awk.el,v 1.2 2002/02/04 19:43:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
