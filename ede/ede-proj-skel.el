@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj-skel.el,v 1.9 2000/10/05 20:36:43 zappo Exp $
+;; RCS: $Id: ede-proj-skel.el,v 1.10 2001/01/10 06:58:18 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -233,7 +233,7 @@
 ;;(defmethod ede-proj-makefile-insert-source-variables
 ;;           ((this ede-proj-target-%NAME%) &optional moresource)
 ;;  "Insert variables needed by target THIS."
-;;  (call-next-method this (oref this headers))
+;;  (call-next-method this (oref this %moresourceslotname%))
 
 ;; This method lets you add more variables specific to your type of target.
 ;;(defmethod ede-proj-makefile-insert-variables ((this ede-proj-target-%NAME%)
