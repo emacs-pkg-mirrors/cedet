@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.2 2002/08/11 01:45:14 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.3 2002/08/11 02:01:58 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -43,17 +43,17 @@ If DATABASES is nil, search a range of associated databases calculated by
 `semanticdb-current-database-list'.  DATABASES is a list of variable
 `semanticdb-project-database' objects.
 FUNCTION should accept one argument, the database being searched."
-  (let ((dbs (or databases
-		 ;; Calculate what database to use.
-		 ;; Something simple and dumb for now.
-		 (or (semanticdb-current-database-list)
-		     (list (semanticdb-current-database)))))
-	(case-fold-search semantic-case-fold)
-	)
-    (setq res (mapcar
+  (let* ((dbs (or databases
+		  ;; Calculate what database to use.
+		  ;; Something simple and dumb for now.
+		  (or (semanticdb-current-database-list)
+		      (list (semanticdb-current-database)))))
+	 (case-fold-search semantic-case-fold)
+	 (res (mapcar
 	       (lambda (db)
 		 (funcall function db))
 	       dbs))
+	 out)
     ;; Flatten the list.  The DB is unimportant at this stage.
     (setq res (apply 'append res))
     (setq out nil)
