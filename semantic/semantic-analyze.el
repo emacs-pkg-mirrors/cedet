@@ -1,10 +1,10 @@
 ;;; semantic-analyze.el --- Analyze semantic tokens against local context
 
-;;; Copyright (C) 2000, 2001, 2002 Eric M. Ludlam
+;;; Copyright (C) 2000, 2001, 2002, 2003 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.8 2002/08/11 16:25:35 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.9 2003/02/25 16:23:48 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -139,7 +139,9 @@ within that types field.  Also handles anonymous types."
     (if (and ttype
 	     (semantic-token-p ttype)
 	     (eq (semantic-token-token ttype) 'type)
-	     (semantic-nonterminal-children ttype))
+	     (semantic-analyze-type-parts ttype)
+	     ;(semantic-nonterminal-children ttype)
+	     )
 	;; We have an anonymous type for TOKEN with children.
 	;; Use this type directly.
 	(semantic-analyze-dereference-metatype ttype)
@@ -218,12 +220,12 @@ will be stored.  If nil, that data is thrown away."
 	    (slots nil))
 	
 	;; Get the children
-	(setq slots (semantic-nonterminal-children tmptype))
+	(setq slots (semantic-analyze-type-parts tmptype))
 
 	;; find (car s) in the list o slots
-	(setq tmp (semantic-find-nonterminal-by-name (car s)
-						     slots nil nil))
-	
+	(setq tmp (semantic-find-nonterminal-by-name
+		   (car s) slots nil nil))
+
 	(if (and (listp tmp) (semantic-token-p (car tmp)))
 	    ;; We should be smarter...  For example
 	    ;; search for an item only of 'variable if we know
@@ -254,8 +256,11 @@ will be stored.  If nil, that data is thrown away."
   "Return all parts of TYPE, a nonterminal representing a TYPE declaration.
 This includes both the TYPE parts, and all functions found in all
 databases which have this type as a property."
-  (let ((slots (semantic-token-type-parts type))
-	(extmeth (semantic-nonterminal-external-member-children type)))
+  (let ((slots
+	 (semantic-nonterminal-children type)
+	 ;(semantic-token-type-parts type)
+	 )
+	(extmeth (semantic-nonterminal-external-member-children type t)))
     ;; Flatten the database output.
     (append slots extmeth)
     ))
@@ -447,8 +452,10 @@ Returns an object based on symbol `semantic-analyze-context'."
 
 	(when fntok
 	  (setq fntokend (car (reverse fntok))
-		argtok (nth (1- arg) (semantic-token-function-args fntokend)))
-	  ))
+		argtok
+		(when (semantic-token-p fntokend)
+		  (nth (1- arg) (semantic-token-function-args fntokend)))
+		)))
 
       (if fntok
 	  ;; If we found a token for our function, we can go into
@@ -622,7 +629,8 @@ in a buffer."
 
 	(setq c (semantic-find-nonterminal-by-name-regexp
 		 (concat "^" completetext)
-		 (semantic-nonterminal-children completetexttype)
+		 (semantic-analyze-type-parts completetexttype)
+		 ;(semantic-nonterminal-children completetexttype)
 		 nil nil))
 	      
       (let ((expr (concat "^" completetext)))
