@@ -1,0 +1,61 @@
+<title>Using Semantic Bovinator for Intellisense</title>
+
+<!--#include file="rightcol.php"-->
+
+<h1>Setting up Semantic for Intellisense</h1>
+
+<p>Semantic can be set up to have Intellisense like behavior for C and
+C++.  It also works for Java, but too much of Java is in core
+libraries Semantic does not (yet) have access to to be a complete
+solution.
+
+<p>Here is the quick-and-dirty setup for semantic:
+
+<pre>
+(setq semantic-load-turn-useful-things-on t)
+(require 'semantic-load)
+</pre>
+
+<p>These two lines set up two important aspects of intellisense like
+behavior.
+
+<ol>
+<li> semanticdb is enabled.  This allows symbol lookup between files.
+<li> eldoc is enabled.  This shows prototypes in the mode line.
+</ol>
+
+<p>Unfortunately, eldoc is a good solution for Functional languages, and
+local definitions.  Not always for a complete structured or object
+oriented program.
+
+<p>To be more complete, you need to specify a project directory for
+semanticdb.
+
+<pre>
+(setq semanticdb-project-roots
+      (list "/path/to/project/one"
+            "/path/to/project/two"))
+</pre>
+
+<p>This tells semanticdb which databases to references when looking up
+symbols from a given file.  Only the root of a given project need be
+specified.  
+<a href="ede.shtml">EDE</a> will set these up for you automatically.
+
+<p>The next step is to force Emacs to parse all your files into
+  databases.  Unfortunately, this is currently best done by just
+  visiting all the files you care about, and running
+
+<pre>
+M-x semanticdb-save-all-db
+</pre>
+
+<p>Lastly, call
+
+<pre>
+M-x semantic-speedbar-analysis
+</pre>
+
+<p>which will now be able to analyze the cursor location, and provide
+intelligent references.  Sometimes you need to press <tt>g</tt> to
+force an update.
