@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make, scheme
-;; RCS: $Id: ede-proj-scheme.el,v 1.2 1999/11/09 20:36:45 zappo Exp $
+;; RCS: $Id: ede-proj-scheme.el,v 1.3 1999/11/10 14:18:49 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -30,7 +30,9 @@
 
 ;;; Code:
 (defclass ede-proj-target-scheme (ede-proj-target)
-  ((interpreter :initarg :interpreter
+  ((menu :initform nil)
+   (keybindings :initform nil)
+   (interpreter :initarg :interpreter
 		:initform "guile"
 		:type string
 		:custom string
