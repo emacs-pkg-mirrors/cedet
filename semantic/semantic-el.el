@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: goofy
-;; X-RCS: $Id: semantic-el.el,v 1.10 1999/06/14 13:57:42 zappo Exp $
+;; X-RCS: $Id: semantic-el.el,v 1.11 1999/12/13 18:44:49 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -415,7 +415,8 @@
 		     (setq mods (concat ":" (nth 2 cur))))
 		 (if (nth 3 cur)
 		     (setq mods (concat mods
-					"[" (length (nth 3 cur)) "]")))
+					"[" (int-to-string
+					     (length (nth 3 cur))) "]")))
 		 (if (= (length basety) 1)
 		     (progn
 		       (setq ty (car basety))
