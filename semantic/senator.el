@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.88 2003/12/17 14:54:43 zappo Exp $
+;; X-RCS: $Id: senator.el,v 1.89 2003/12/22 15:56:12 zappo Exp $
 
 ;; This file is not part of Emacs
 
@@ -1432,24 +1432,24 @@ minor mode entry."
  )
 
 (senator-register-mode-menu-entry
- "Auto parse"
- '(semantic-auto-parse-mode
-   :help "Automatically parse buffer following changes."
+ "Idle Scheduler"
+ '(semantic-idle-scheduler-mode
+   :help "Schedule idle time to automatically parse buffer following changes."
    )
- '(global-semantic-auto-parse-mode
-   :help "Automatically parse all Semantic buffer following changes."
-   :save global-semantic-auto-parse-mode
+ '(global-semantic-idle-scheduler-mode
+   :help "Schedule idle time to automatically parse all Semantic buffer following changes."
+   :save global-semantic-idle-scheduler-mode
    )
  )
 
 (senator-register-mode-menu-entry
- "Summaries"
- '(semantic-summary-mode
-   :help "Show useful things about the Semantic tag near point."
+ "Idle Summaries"
+ '(semantic-idle-scheduler-mode
+   :help "Show tag summaries in idle time."
    )
- '(global-semantic-summary-mode
-   :help "Automatically enable summary mode in all Semantic buffers."
-   :save global-semantic-summary-mode
+ '(global-semantic-idle-scheduler-mode
+   :help "Show tag summaries in idle time in all buffers."
+   :save global-semantic-idle-scheduler-mode
    )
  )
 
