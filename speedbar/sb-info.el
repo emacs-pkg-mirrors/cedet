@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
 ;; Version: 0.1
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: sb-info.el,v 1.7 1998/05/15 03:15:30 zappo Exp $
+;; X-RCS: $Id: sb-info.el,v 1.8 1998/05/15 03:16:26 zappo Exp $
 ;;
 ;; This file is patch of GNU Emacs.
 ;;
@@ -58,7 +58,7 @@
   "Keymap used when in the info display mode.")
 
 (if Info-speedbar-key-map
-b    nil
+    nil
   (setq Info-speedbar-key-map (speedbar-make-specialized-keymap))
 
   ;; Basic tree features
