@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c
-@c $Id: eieio.texi,v 1.34 2000/10/11 02:47:43 zappo Exp $
+@c $Id: eieio.texi,v 1.35 2000/12/02 02:58:18 zappo Exp $
 @c
 @setfilename eieio.info
 @settitle Enhanced Implementation of Emacs Interpreted Objects
@@ -44,6 +44,7 @@ wrong!
 * Association Lists::     List of objects as association lists.
 * Introspection::         Looking inside a class.
 * Signals::               When you make errors
+* Base Classes::          Additional classes you can use inherit from.
 * Browsing::              Browsing your class lists.
 * Class Values::          Displaying information about a class or object.
 * Customizing::           Customizing objects.
@@ -132,7 +133,7 @@ charts easily.
 Classes for implementing a speedbar display.  If you write a program
 that uses a system of objects, and your classes inherit from those in
 @file{eieio-speedbar}, then you can write a speedbar display for your
-objects in very little time.
+objects in very little time. @ref{eieio-speedbar}
 @end table
 
 @section EIEIO wish list
@@ -257,16 +258,20 @@ The value passed to initform is automatically quoted.  Thus,
 :initform (1 2 3)
 @end example
 appears as the specified list in the default object.
-A function call like this:
+A function like this:
 @example
 :initform +
 @end example
-is quoted in as a function.  On the other hand, if you need code to be
+is quoted in as a symbol.  On the other hand, if you need code to be
 executed at instantiation time as the initform, code like this:
 @example
 :initform (lambda () (+ 1 some-global-var))
 @end example
 will be identified as a function call, and be executed in place.
+@cindexlambda-default
+Lastly, using the function @code{lambda-default} instead of
+@code{lambda} will let you specify a lambda expression to use as the
+value, without evaluation.
 @item :type
 An unquoted type specifier used to validate data set into this slot.
 @xref{(cl)Type Predicates}.
@@ -280,6 +285,8 @@ Here are some examples:
  An object of your class type.
  @item (or null symbol)
  A symbol, or nil.
+ @item function
+ A function symbol, or a @code{lambda-default} expression.
  @end table
 @item :allocation
 Either :class or :instance (defaults to :instance) used to
@@ -922,7 +929,7 @@ For the given @var{class} return the :initarg associated with
 nil.
 @end defun
 
-@node Signals, Browsing, Introspection, Top
+@node Signals, Base Classes, Introspection, Top
 @comment  node-name,  next,  previous,  up
 @chapter Signals
 
@@ -964,7 +971,141 @@ This signal is called when an attempt to reference @var{slot} in
 @var{object} is made, and that instance is currently unbound.
 @end deffn
 
-@node Browsing, Class Values, Signals, Top
+@node Base Classes, Browsing, Signals, Top
+@comment  node-name,  next,  previous,  up
+@chapter Base Classes
+
+Asside from @code{eieio-default-superclass}, EIEIO comes with some
+additional classes that you can use.  By using multiple inheritance, it
+is possible to use several features at the same time.
+
+@menu
+* eieio-instance-inheritor::    Enable value inheritance between instances.
+* eieio-speedbar::              Enable speedbar support in your objects.
+@end menu
+
+@node eieio-instance-inheritor, eieio-speedbar, Base Classes, Base Classes
+@comment  node-name,  next,  previous,  up
+@section @code{eieio-instance-inheritor}
+
+Instance inheritance is a mechanism whereby the value of a slot in
+object instance can reference the parent instance.  If the parent's slot
+value is changed, then the child instance is also changed.  If the
+child's slot is set, then the parent's slot is not modified.
+
+@deftp {Class} eieio-instance-inheritor parent-instance
+A class whose instances are enabled with instance inheritance.
+The @var{parent-instance} slot indicates the instance which is
+considered the parent of the current instance.  Default is @code{nil}.
+@end deftp
+
+@cindex clone
+To use this class, inherit from it with your own class.
+To make a new instance that inherits from and existing instance of you
+class, use the @code{clone} method with additional parameters
+to specify local values.
+
+@cindex slot-unbound
+The @code{eieio-instance-inheritor} class works by causing cloned
+objects to have all slots unbound.  This class' @code{slot-unbound}
+method will cause references to unbound slots to be redirected to the
+parent instance.  If the parent slot is also unbound, then
+@code{slot-unbound} will throw an @code{slot-unbound} signal.
+
+@node eieio-speedbar, , eieio-instance-inheritor, Base Classes
+@comment  node-name,  next,  previous,  up
+@section eieio-speedbar
+
+If a series of class instances map to a tree structure, it is possible
+to cause your classes to be displayable in Speedbar. @xref{Top(speedbar)}.
+Inheriting from these classes will enable a speedbar major display mode
+with a minimum of effort.
+
+@deftp {Class} eieio-speedbar buttontype buttonface
+Enables base speedbar display for a class.
+@cindex speedbar-make-tag-line
+The slot @var{buttontype} is any of the symbols allowed by the
+function @code{speedbar-make-tag-line} for the @var{exp-button-type}
+argument. @xref{Extending(speedbar)}
+The slot @var{buttonface} is the face to use for the text of the string
+displayed in speedbar.
+The slots @var{buttontype} and @var{buttonface} are class allocated
+slots, and do not take up space in your instances.
+@end deftp
+
+@deftp {Class} eieio-speedbar-directory-button buttontype buttonface
+This class inherits from @code{eieio-speedbar} and initializes 
+@var{buttontype} and @var{buttonface} to appear as directory level lines.
+@end deftp
+
+@deftp {Class} eieio-speedbar-file-button buttontype buttonface
+This class inherits from @code{eieio-speedbar} and initializes 
+@var{buttontype} and @var{buttonface} to appear as file level lines.
+@end deftp
+
+To use these classes, inherit from one of them in you class.  You can
+use multiple inheritance with them safely.  To customize your class for
+speedbar display, override the default values for @var{buttontype} and
+@var{buttonface} to get the desired effects.
+
+Useful methods to define for your new class include:
+
+@defmethod eieio-speedbar eieio-speedbar-derive-line-path obj depth
+Return a string representing a directory associated with an instance
+of @var{obj}.  @var{depth} can be used to indice how many levels of
+indentation have been opened by the user where @var{obj} is shown.
+@end defmethod
+
+
+@defmethod eieio-speedbar eieio-speedbar-description obj
+Return a string description of @var{OBJ}.
+This is shown in the minibuffer or tooltip when the mouse hovers over
+this instance in speedbar.
+@end defmethod
+
+@defmethod eieio-speedbar eieio-speedbar-child-description obj
+Return a string representing a description of a child node of @var{obj}
+when that child is not an object.  It is often useful to just use
+item info helper functions such as @code{speedbar-item-info-file-helper}.
+@end defmethod
+
+@defmethod eieio-speedbar eieio-speedbar-object-buttonname obj
+Return a string which is the text displayed in speedbar for @var{obj}.
+@end defmethod
+
+@defmethod eieio-speedbar eieio-speedbar-object-children obj
+Return a list of children of @var{obj}.
+@end defmethod
+
+@defmethod eieio-speedbar eieio-speedbar-child-make-tag-lines obj depth
+This method inserts a list of speedbar tag lines for @var{obj} to
+represent its children.  Implement this method for your class
+if your children are not objects themselves.  You still need to
+implement @code{eieio-speedbar-object-children}.
+
+In this method, use techniques specified in the Speedbar manual.
+@xref{Extending(speedbar)}.
+@end defmethod
+
+Some other functions you will need to learn to use are:
+
+@deffn eieio-speedbar-create make-map key-map menu name toplevelfn
+Register your object display mode with speedbar.
+@var{make-map} is a function which initialized you keymap.
+@var{key-map} is a symbol you keymap is installed into.
+@var{menu} is an easy menu vector representing menu items specific to your
+object display.
+@var{name} is a short string to use as a name identifying you mode.
+@var{toplevelfn} is a function called which must return a list of
+objects representing those in the instance system you wish to browse in
+speedbar.
+
+Read the Extending chapter in the speedbar manual for more information
+on how speedbar modes work.
+@xref{Extending(speedbar)} 
+@end deffn
+
+@node Browsing, Class Values, Base Classes, Top
 @comment  node-name,  next,  previous,  up
 @chapter Browsing class trees
 
@@ -1044,6 +1185,31 @@ If you want to have additional actions taken when a user clicks on the
 This method does nothing by default, but that may change in the future.
 This would be the best way to make your objects persistent when using
 in-place editing.
+
+@section Widget extention
+
+When widgets are being created, one new widget extention has been added,
+called the @code{:slotofchoices}.  When this occurs in a widget
+definition, all elements after it are removed, and the slot is specifies
+is queried and converted into a series of constants.
+
+@example
+(choice (const :tag "None" nil)
+        :slotofchoices morestuff)
+@end example
+
+and if the slot @code{morestuff} contains @code{(sym1 sym2 sym3)}, the
+above example is converted into:
+
+@example
+(choice (const :tag "None" nil)
+        (const sym1)
+        (const sym2)
+        (const sym3))
+@end example
+
+This is useful when a given item needs to be selected from a list of
+items defined in this second slot.
 
 @node Documentation, Demo Programs, Customizing, Top
 @comment  node-name,  next,  previous,  up
