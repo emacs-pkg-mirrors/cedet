@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 19 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-calc.wy,v 1.5 2003/02/13 07:23:56 ponced Exp $
+;; X-RCS: $Id: wisent-calc.wy,v 1.6 2003/08/02 08:18:55 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,22 +35,7 @@
 ;;; History:
 ;; 
 
-%outputfile    "wisent-calc.el"
-%parsetable    wisent-calc-automaton
-%tokentable    wisent-calc-tokens
-%setupfunction wisent-calc-setup-parser
-
-(setq semantic-number-expression
-      (concat "\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
-              "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
-      semantic-lex-analyzer #'wisent-calc-lexer
-      semantic-lex-depth nil
-      semantic-lex-syntax-modifications
-      '((?\; ".") (?\= ".") (?\+ ".")
-        (?\- ".") (?\* ".") (?\/ ".")
-        (?\^ ".") (?\( ".") (?\) ".")
-        )
-      )
+;;%package wisent-calc-wy
 
 %token <number> NUM
 
@@ -97,5 +82,21 @@ exp:
   ;
 
 %%
+
+(defun wisent-calc-setup-parser ()
+  "Setup buffer for parse."
+  (wisent-calc-wy--install-parser)
+  (setq semantic-number-expression
+        (concat "\\([0-9]+\\([.][0-9]*\\)?\\([eE][-+]?[0-9]+\\)?"
+                "\\|[.][0-9]+\\([eE][-+]?[0-9]+\\)?\\)")
+        semantic-lex-analyzer #'wisent-calc-lexer
+        semantic-lex-depth nil
+        semantic-lex-syntax-modifications
+        '((?\; ".") (?\= ".") (?\+ ".")
+          (?\- ".") (?\* ".") (?\/ ".")
+          (?\^ ".") (?\( ".") (?\) ".")
+          )
+        )
+  )
 
 ;;; wisent-calc.wy ends here
