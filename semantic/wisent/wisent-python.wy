@@ -1,12 +1,12 @@
 ;;; wisent-python.wy -- LALR grammar for Python
 ;;
-;; Copyright (C) 2002 Richard Kim
+;; Copyright (C) 2002, 2003 Richard Kim
 ;;
 ;; Author: Richard Kim <ryk@dspwiz.com>
 ;; Maintainer: Richard Kim <ryk@dspwiz.com>
 ;; Created: June 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-python.wy,v 1.25 2003/02/10 05:27:42 emacsman Exp $
+;; X-RCS: $Id: wisent-python.wy,v 1.26 2003/02/22 15:37:20 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -275,8 +275,8 @@
 ;;;@ goal
 ;;;****************************************************************************
 
-# simple_stmt are statements that do not involve INDENT tokens
-# compound_stmt are statements that involve INDENT tokens
+;; simple_stmt are statements that do not involve INDENT tokens
+;; compound_stmt are statements that involve INDENT tokens
 goal
   : NEWLINE
   | simple_stmt
