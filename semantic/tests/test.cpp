@@ -3,7 +3,7 @@
  * Do not include things tested in test.c since that shares the
  * same language.
  *
- * $Id: test.cpp,v 1.5 2001/10/04 15:08:24 zappo Exp $
+ * $Id: test.cpp,v 1.6 2001/10/04 15:08:53 zappo Exp $
  *
  */
 
@@ -115,7 +115,7 @@ class class4 : class1 {
   // Pure virtual methods.
   void virtual print () const = 0;
 
-}
+};
 
 /* Namespaces */
 namespace namespace1 {
