@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.11
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.170 2000/06/11 18:44:00 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.171 2000/06/23 23:08:12 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -475,10 +475,10 @@ or
   (GROUP-NAME-STRING ELT1 EL2... ELTn)"
   :group 'speedbar
   :type 'hook
-  :options '(speedbar-sort-tag-hierarchy
-	     speedbar-trim-words-tag-hierarchy
+  :options '(speedbar-trim-words-tag-hierarchy
 	     speedbar-prefix-group-tag-hierarchy
-	     speedbar-simple-group-tag-hierarchy)
+	     speedbar-simple-group-tag-hierarchy
+	     speedbar-sort-tag-hierarchy)
   )
 
 (defcustom speedbar-tag-group-name-minimum-length 4
@@ -2176,8 +2176,10 @@ This is based on `speedbar-initial-expansion-list-name' referencing
   (setq speedbar-previously-used-expansion-list-name
 	speedbar-initial-expansion-list-name
 	speedbar-initial-expansion-list-name new-default)
-  (speedbar-refresh)
-  (speedbar-reconfigure-keymaps))
+  (if (and speedbar-frame (frame-live-p speedbar-frame))
+      (progn
+	(speedbar-refresh)
+	(speedbar-reconfigure-keymaps))))
 
 (defun speedbar-fetch-replacement-function (function)
   "Return a current mode specific replacement for function, or nil.
