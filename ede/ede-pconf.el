@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project
-;; RCS: $Id: ede-pconf.el,v 1.9 2000/10/14 02:57:16 zappo Exp $
+;; RCS: $Id: ede-pconf.el,v 1.10 2001/01/10 06:55:03 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -68,8 +68,8 @@
      ;;
     (ede-proj-dist-makefile this)
     ;; Loop over all targets to clean and then add themselves in.
-    (mapc 'ede-proj-flush-autoconf targs)
-    (mapc 'ede-proj-tweak-autoconf targs)
+    (ede-map-targets 'ede-proj-flush-autoconf this)
+    (ede-map-targets 'ede-proj-tweak-autoconf this)
     ;; Now save
     (save-buffer)
     ;; Verify aclocal
@@ -83,7 +83,7 @@
 	(if (not (ede-expand-filename (ede-toplevel this) "config.h.in"))
 	    (setq postcmd "autoheader;"))))
     ;; Verify Makefile.in, and --add-missing files (cheaply)
-    (setq add-missing (ede-or (mapcar 'ede-proj-configure-add-missing targs)))
+    (setq add-missing (ede-map-any-target-p 'ede-proj-configure-add-missing this))
     (if (not (ede-expand-filename (ede-toplevel this) "Makefile.in"))
 	(progn
 	  (setq postcmd (concat postcmd "automake"))
