@@ -3,7 +3,7 @@
 # Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 #
 # Author: Eric M. Ludlam <zappo@gnu.org>
-# X-RCS: $Id: c.bnf,v 1.54 2001/12/07 19:55:25 zappo Exp $
+# X-RCS: $Id: c.bnf,v 1.55 2001/12/18 02:39:12 zappo Exp $
 #
 # c.bnf is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -92,6 +92,8 @@
 %put CLASS summary "Class Declaration: class <name>[:parents] { ... };"
 %token NAMESPACE "namespace"
 %put NAMESPACE summary "Namespace Declaration: namespace <name> { ... };"
+%token TEMPLATE "template"
+%put TEMPLATE summary "template <TYPE> [other definition]"
 
 # Despite this, this parser can find templates by ignoring the TEMPLATE
 # keyword, and finding the class/method being templateized.
@@ -166,6 +168,7 @@ declaration : macro
 	    | var-or-fun
 	    | define
 	    | extern-c
+	    | template
 	    ;
 
 codeblock : define
@@ -353,6 +356,41 @@ type : typesimple SEMICOLON
        ( $2 type $1 $3 nil nil nil )
      ;
 
+template : TEMPLATE template-specifier template-definition
+	 # We should add a 'template extra specifier for the definition found.
+	   ( ,$3 )
+	 ;
+
+template-specifier : LESS template-specifier-type-list GREATER
+		     ( ,$2 )
+		   ;
+
+template-specifier-type-list : template-var COMA template-specifier-type-list
+			       ( ,(cons (,car ,$1) $3 ) )
+			     | template-var
+			       ( $1 )
+			     ;
+
+template-var : template-type opt-template-equal
+	       ( ,$1 )
+	     ;
+
+opt-template-equal : EQUAL symbol LESS template-specifier-type-list GREATER
+		   | EMPTY
+		   ;
+
+template-type : CLASS symbol
+	      | STRUCT symbol
+	      | builtintype
+	      | symbol
+	      ;
+
+template-definition : type
+		      ( ,$1 )
+		    | var-or-fun
+		      ( ,$1 )
+		    ;
+
 opt-stars :  STAR opt-starmod opt-stars
 	    ( (1+ (car $3)) )
 	  | EMPTY
@@ -413,9 +451,19 @@ typeformbase : typesimple
 	       ( $2 type $1 )
 	     | builtintype
 	       ( ,$1 )
+	     | symbol template-specifier
+	       ( $1 type "class" )
+	     | symbol COLON COLON typeformclassbase
+	       ( (concat $1 "::" (car $4) ) )
 	     | symbol
 	       ( $1 )
 	     ;
+
+typeformclassbase : symbol COLON COLON typeformclassbase
+		    ( (concat $1 "::" (car $4)) )
+		  | symbol
+		    ( $1 )
+		  ;
 
 builtintype : VOID
 	    | CHAR
