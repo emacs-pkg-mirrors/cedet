@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-load.el,v 1.9 2001/10/03 00:32:34 zappo Exp $
+;; X-RCS: $Id: semantic-load.el,v 1.10 2001/10/08 21:16:42 zappo Exp $
 
 ;; Semantic is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@
 
 ;;; Code:
 
+;;; Parser setup
+;;
 (autoload 'semantic-bnf-mode "semantic-bnf" "Mode for Bovine Normal Form." t)
 (add-to-list 'auto-mode-alist '("\\.bnf$" . semantic-bnf-mode))
 
@@ -48,7 +50,11 @@
 (autoload 'semantic-default-java-setup "semantic-java")
 (add-hook 'java-mode-hook 'semantic-default-java-setup)
 
+;;; Charts
+;;
 (autoload 'semantic-chart-nonterminals-by-token "semantic-chart" nil t)
+(autoload 'semantic-chart-nonterminal-complexity-token "semantic-chart" nil t)
+(autoload 'semantic-chart-database-size "semantic-chart" nil t)
 
 
 ;;; Minor modes
@@ -56,10 +62,6 @@
 
 ;; semanticdb
 (autoload 'global-semanticdb-minor-mode "semanticdb" nil t)
-
-(autoload 'semantic-chart-nonterminals-by-token "semantic-chart" nil t)
-(autoload 'semantic-chart-nonterminal-complexity-token "semantic-chart" nil t)
-(autoload 'semantic-chart-database-size "semantic-chart" nil t)
 
 ;; senator
 (autoload 'senator-minor-mode "senator"
