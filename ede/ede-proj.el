@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-proj.el,v 1.11 1999/03/20 16:17:32 zappo Exp $
+;; RCS: $Id: ede-proj.el,v 1.12 1999/03/20 17:13:59 zappo Exp $
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -176,7 +176,7 @@ Do not prefix with TAB.")
 	  :initform nil
 	  :custom boolean
 	  :documentation "Is this a phony rule?
-Adds this rule to a .PHONY list.  (unimplemented.)"))
+Adds this rule to a .PHONY list."))
   "A single rule for building some target.")
 
 (defclass ede-proj-project (ede-project)
@@ -426,7 +426,8 @@ FILE must be massaged by `ede-convert-path'."
 (defmethod project-compile-project ((proj ede-proj-project) &optional command)
   "Compile the entire current project PROJ.
 Argument COMMAND is the command to use when compiling."
-  (let ((pm (ede-proj-dist-makefile proj)))
+  (let ((pm (ede-proj-dist-makefile proj))
+	(default-directory (file-name-directory (oref proj file))))
     (ede-proj-makefile-create-maybe proj pm)
     (compile (concat "make -f " pm " all"))))
 
@@ -529,7 +530,7 @@ Optional argument COMMAND is the s the alternate command to use."
 MFILENAME is the makefile to generate."
   ;; For now, pass through until dirty is implemented.
   (require 'ede-pmake)
-  (if (file-newer-than-file-p mfilename (oref this file))
+  (if (file-newer-than-file-p (oref this file) mfilename)
       (ede-proj-makefile-create this mfilename)))
 
 ;;; Lower level overloads
