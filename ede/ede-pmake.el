@@ -1,10 +1,10 @@
 ;;; ede-pmake.el --- EDE Generic Project Makefile code generator.
 
-;;;  Copyright (C) 1998, 1999, 2000  Eric M. Ludlam
+;;;  Copyright (C) 1998, 1999, 2000, 2001  Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede-pmake.el,v 1.29 2001/01/10 06:55:23 zappo Exp $
+;; RCS: $Id: ede-pmake.el,v 1.30 2001/04/27 00:14:54 zappo Exp $
 
 ;; This software is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ MFILENAME is the makefile to generate."
        "\n#\n"
        "# DO NOT MODIFY THIS FILE OR YOUR CHANGES MAY BE LOST.\n"
        "# EDE is the Emacs Development Environment.\n"
-       "# http://www.ultranet.com/~zappo/ede.shtml\n"
+       "# http://cedet.sourceforge.net/ede.shtml\n"
        "# \n")
       ;; Just this project's variables
       (ede-proj-makefile-insert-variables this)
@@ -337,6 +337,24 @@ These are removed with make clean."
   (mapc 'ede-proj-makefile-insert-rules (oref this inference-rules))
   )
 
+(defmethod ede-proj-makefile-insert-dist-dependencies ((this ede-proj-project))
+  "Insert any symbols that the DIST rule should depend on.
+Argument THIS is the project that should insert stuff."
+  (mapc 'ede-proj-makefile-insert-dist-dependencies (oref this targets))
+  )
+
+(defmethod ede-proj-makefile-insert-dist-dependencies ((this ede-proj-target))
+  "Insert any symbols that the DIST rule should depend on.
+Argument THIS is the target that should insert stuff."
+  nil
+  )
+
+(defmethod ede-proj-makefile-insert-dist-filepatterns ((this ede-proj-target))
+  "Insert any symbols that the DIST rule should depend on.
+Argument THIS is the target that should insert stuff."
+  (ede-proj-makefile-insert-dist-dependencies this)
+  )
+
 (defmethod ede-proj-makefile-insert-dist-rules ((this ede-proj-project))
   "Insert distribution rules for THIS in a Makefile, such as CLEAN and DIST."
   (let ((junk (ede-proj-makefile-garbage-patterns this))
@@ -347,7 +365,9 @@ These are removed with make clean."
 		"\trm -f "
 		(mapconcat (lambda (c) c) junk " ")
 		"\n\n"))
-    (insert "\ndist:\n"
+    (insert "\ndist:")
+    (ede-proj-makefile-insert-dist-dependencies this)
+    (insert "\n"
 	    "\trm -rf $(DISTDIR)\n"
 	    "\tmkdir $(DISTDIR)\n")
     (setq tmp (oref this targets))
@@ -368,7 +388,10 @@ These are removed with make clean."
 		     (setq sv (car sv))))
 		  (t (setq sv (car sv)))))
 	(if (stringp sv)
-	    (insert " $(" sv ")"))
+	    (progn
+	      (insert " $(" sv ")")
+	      (ede-proj-makefile-insert-dist-filepatterns (car tmp))
+	      ))
 	(setq tmp (cdr tmp))))
     (insert " $(ede_FILES) $(DISTDIR)\n"
 	    "\ttar -cvzf $(DISTDIR).tar.gz $(DISTDIR)\n"
