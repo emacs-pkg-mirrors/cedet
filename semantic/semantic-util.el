@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.14 2000/07/01 17:54:16 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.15 2000/07/01 18:57:50 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -116,7 +116,7 @@ Determines if it is available based on the length of TOKEN."
 
 (defun semantic-find-nonterminal-by-position (position streamorbuffer
 						       &optional nomedian)
-  "Find a nonterminal covinging POSITION within STREAMORBUFFER.
+  "Find a nonterminal covering POSITION within STREAMORBUFFER.
 POSITION is a number, or marker.  If NOMEDIAN is non-nil, don't do
 the median calculation, and return nil."
   (save-excursion
@@ -148,6 +148,30 @@ the median calculation, and return nil."
 	(setq prev (car stream)
 	      stream (cdr stream)))
       found)))
+
+(defun semantic-find-innermost-nonterminal-by-position
+  (position streamorbuffer &optional nomedian)
+  "Find a list of nonterminals covering POSITION within STREAMORBUFFER.
+POSITION is a number, or marker.  If NOMEDIAN is non-nil, don't do
+the median calculation, and return nil.
+This function will find the topmost item, and recurse until no more
+details are available of findable."
+  (let* ((returnme nil)
+	 (current (semantic-find-nonterminal-by-position
+		   position streamorbuffer nomedian))
+	 (nextstream (and current
+			  (if (eq (semantic-token-token current) 'type)
+			      (semantic-token-type-parts current)
+			    nil))))
+    (while nextstream
+      (setq returnme (cons current returnme))
+      (setq current (semantic-find-nonterminal-by-position
+		     position nextstream nomedian))
+      (setq nextstream (and current
+			    (if (eq (semantic-token-token current) 'token)
+				(semantic-token-type-parts current)
+			      nil))))
+    (nreverse (cons current returnme))))
 
 (defun semantic-find-nonterminal-by-token (token streamorbuffer)
   "Find all nonterminals with a token TOKEN within STREAMORBUFFER.
@@ -634,8 +658,10 @@ file prototypes belong in."
 Argument P is the point to search from in the current buffer."
   (interactive "d")
   (message
-   (semantic-summerize-nonterminal
-    (semantic-find-nonterminal-by-position p (current-buffer)))))
+   (mapconcat
+    'semantic-abbreviate-nonterminal
+    (semantic-find-innermost-nonterminal-by-position p (current-buffer))
+    ",")))
 
 (defun semantic-hack-search ()
   "Disply info about something under the cursor using generic methods."
