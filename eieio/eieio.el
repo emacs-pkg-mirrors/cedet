@@ -6,7 +6,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.7
-;;; RCS: $Id: eieio.el,v 1.9 1996/10/12 10:23:33 zappo Exp $
+;;; RCS: $Id: eieio.el,v 1.10 1996/10/17 01:40:04 zappo Exp $
 ;;; Keywords: OO                                           
 ;;;                                                                          
 ;;; This program is free software; you can redistribute it and/or modify
@@ -179,6 +179,8 @@
 ;;; state when using methods.
 ;;;
 
+(eval-when-compile (require 'cl))
+
 (defvar eieio-byte-compile-on-load t
   "*Non-nil means byte compile all methods when they are created.
 This improves speed of execution for large complex forms.  The need
@@ -236,7 +238,7 @@ tags are:
   :initform   - initializing form
   :initarg    - tag used during initialization
   :accessor   - tag used to create a function to access this field
-  :protection - non-nil means a private slot (only accessable in a classmethod)
+  :protection - non-nil means a private slot (accessable when THIS is set)
   :method     - non-nil means classify this as a classmethod, not a slot
 
   You can have multiple tags per slot, though some specifiers can't be
@@ -253,8 +255,6 @@ in that class definition.  See defclass for more information"
   (if (not (listp superclass)) (signal 'wrong-type-argument '(listp superclass)))
   (let* ((pname (if superclass (car superclass) nil))
 	 (newc (make-vector class-num-fields nil)) 
-	 (private nil)
-	 (tmp nil)
 	 (clearparent nil))
     (aset newc 0 'defclass)
     (aset newc 1 cname)
@@ -288,11 +288,9 @@ in that class definition.  See defclass for more information"
     ;; in from the parent class
     (if (aref newc 3)
 	(progn
-	  (aset newc class-private-m (copy-sequence (aref (class-v (aref newc class-parent)) class-private-m)))
 	  (aset newc class-private-a (copy-sequence (aref (class-v (aref newc class-parent)) class-private-a)))
 	  (aset newc class-private-d (copy-sequence (aref (class-v (aref newc class-parent)) class-private-d)))
 	  (aset newc class-private-doc (copy-sequence (aref (class-v (aref newc class-parent)) class-private-doc)))
-	  (aset newc class-public-m (copy-sequence (aref (class-v (aref newc class-parent)) class-public-m)))
 	  (aset newc class-public-a (copy-sequence (aref (class-v (aref newc class-parent)) class-public-a)))
 	  (aset newc class-public-d (copy-sequence (aref (class-v (aref newc class-parent)) class-public-d)))
 	  (aset newc class-public-doc (copy-sequence (aref (class-v (aref newc class-parent)) class-public-doc)))
@@ -309,40 +307,24 @@ in that class definition.  See defclass for more information"
 	     (initarg (car (cdr (member ':initarg field))))
 	     (docstr (car (cdr (member ':docstring field))))
 	     (prot (car (cdr (member ':protection field))))
-	     (meth (car (cdr (member ':method field))))
 	     )
-	(if meth
-	    ;; Here we are defining a method
-	    (progn
-	      (if (eq prot 'private)
-		  ;; define method as private
-		  (progn
-		    (aset newc class-private-m
-			  (append (aref newc class-private-m)
-				  (list name)))
-		    )
-		;; define method as public
-		(aset newc class-public-m
-		      (append (aref newc class-public-m)
-			      (list name)))
-		))
-	  (let* ((-a (if (eq prot 'private) class-private-a class-public-a))
-		 (-d (if (eq prot 'private) class-private-d class-public-d))
-		 (-doc (if (eq prot 'private) class-private-doc class-public-doc))
-		 (-al (aref newc -a))
-		 (-dl (aref newc -d))
-		 (-docl (aref newc -doc))
-		 (np (member name -al))
-		 (dp (if np (nthcdr (- (length -al) (length np)) -dl) nil)))
-	    (if np
-		(progn
-		  ;; If we have a repeat, only update the initarg...
-		  (setcar dp init)
-		  )
-	      (aset newc -a (append -al (list name)))
-	      (aset newc -d (append -dl (list init)))
-	      (aset newc -doc (append -docl (list docstr))))
-	    )
+
+	(let* ((-a (if (eq prot 'private) class-private-a class-public-a))
+	       (-d (if (eq prot 'private) class-private-d class-public-d))
+	       (-doc (if (eq prot 'private) class-private-doc class-public-doc))
+	       (-al (aref newc -a))
+	       (-dl (aref newc -d))
+	       (-docl (aref newc -doc))
+	       (np (member name -al))
+	       (dp (if np (nthcdr (- (length -al) (length np)) -dl) nil)))
+	  (if np
+	      (progn
+		;; If we have a repeat, only update the initarg...
+		(setcar dp init)
+		)
+	    (aset newc -a (append -al (list name)))
+	    (aset newc -d (append -dl (list init)))
+	    (aset newc -doc (append -docl (list docstr))))
 	  ;; public and privates both can install new initargs
 	  (if initarg
 	      (progn
@@ -378,11 +360,6 @@ in that class definition.  See defclass for more information"
 	  )
 	)
       (setq fields (cdr fields)))
-
-    ;; Create the vector of implementations
-    (aset newc class-methods 
-	  (make-vector (+ (length (aref newc class-public-m))
-			  (length (aref newc class-private-m))) nil))
 
     ;; Store this forever.  Give it a variable type (The class
     ;; definition symbol), A property (the vector),
@@ -462,39 +439,6 @@ INITARGS"
     (apply cc class initargs)))
 
 ;;;
-;;; Class Methods (methods stored in a class with no external symbol
-;;;                of thier own)
-;;;
-(defmacro defclassmethod (method class args &rest body)
-  "Define a function method for METHODEF with ARGS and BODY.  It
-returns a tuple `(class method)'"
-  (list 'defclassmethod-engine 
-	(list 'quote method) 
-	(list 'quote class) 
-	(list 'quote args)
-	(list 'quote body)))
-
-(defun defclassmethod-engine (method class args body)
-  "Define a function method for METHOD in CLASS with ARGS and BODY. It
-returns a tuple `(class method)'"
-  (let* ((cl class)
-	 (mt method)
-	 ;; Make sure the scoped class is set while looking up the
-	 ;; method becase we can DEFINE a method without being
-	 ;; within it's method.  (Else could prove problematic.)
-	 (scoped-class cl)
-	 (mi (eieio-method-name-index cl mt))
-	 (save nil))
-    (if (not mi) (error "Method %s does not exist in class %s" 
-			mt (class-name cl)))
-    (setq save 
-	  (aset (aref (class-v cl) class-methods) mi
-		(append (list 'lambda args) body)))
-    ;; rebuild the doc string...
-    (eieio-rebuild-doc-string (symbol-value cl))
-    (list cl mt)))
-
-;;;
 ;;; CLOS methods and generics
 ;;;
 (defmacro defgeneric (method args &optional doc-string)
@@ -535,8 +479,7 @@ the body, such as:
 
 (defun defmethod-engine (method args)
   "Workpart of the defmethod macro"
-  (let ((key nil) (body nil) (bindsym nil) (firstarg nil) (typesym nil)
-	(argfix nil) loopa)
+  (let ((key nil) (body nil) (firstarg nil) (argfix nil) loopa)
     ;; find optional keys
     (setq key
 	  (cond ((eq ':BEFORE (car args))
@@ -604,7 +547,7 @@ the body, such as:
       (defsetf oref-engine (obj field) (store)
 	(list 'oset-engine obj field store))
       (defsetf oref (obj field) (store) 
-	(list 'oset-engine obj 'field store))
+	(list 'oset-engine obj field store))
       ))
 
 ;; This alias is needed so that functions can be written
@@ -647,54 +590,6 @@ represent the actual stored value."
     (if (not c) (error "Named field %s does not occur in %s" 
 		       field (object-name obj)))
     (aset obj c value)))
-
-(defmacro ocall (obj method &rest args)
-  "For the given OBJ, call the METHOD associated with it using ARGS as
-the arguments used to call it."
-  (let ((tempvar (make-symbol "objval")))
-    (list 'let (list (list tempvar obj))
-	  (list 'ocall-engine tempvar (list 'object-class tempvar)
-		(list 'quote method) (list 'quote args)))))
-
-(defmacro ocall-parent (&rest args)
-  "For the currently active object (stored in THIS) call the currently
-running method (stored conveniently in METHOD) on the parent class of
-the current methods class (currently stored in scoped-class)"
-  (list 'ocall-engine this (list 'class-parent 'scoped-class) 'method
-	(list 'quote args)))
-
-(defun ocall-engine (obj class method args)
-  "Recursive method finding function caller.  For OBJ, which better be
-inheriting something from CLASS (but isn't tested for) call METHOD
-with the list of arguments ARGS."
-  (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
-  (let* ((newargs nil)
-	 (mi (let ((scoped-class class)) ;need class scoped here
-	       (eieio-method-name-index class method)))
-	 (meth (if mi (aref (aref (class-v class) class-methods) mi) nil)))
-    (if meth
-	(progn
-	  ;; evaluate the arguments BEFORE changing THIS and SCOPED CLASS
-	  (while args
-	    (setq newargs (cons (eval (car args)) newargs)
-		  args (cdr args)))
-	  ;; fix the order
-	  (setq newargs (reverse newargs))
-	  ;; set context of call
-	  (let ((this obj)
-		(scoped-class class))
-	    (apply meth newargs)))
-      ;;(eval (append (list 'funcall meth) args))
-      ;; Check mi too.  This is a short-cut in the search we don't
-      ;; have the function part way down the parental tree
-      (if (and (class-parent class) mi)
-	  (ocall-engine obj (class-parent class) method args)
-	(if (and (not (class-parent class)) 
-		 (not (equal class eieio-default-superclass))
-		 mi)
-	    (ocall-engine obj eieio-default-superclass method args)
-	  (error "Method %s in object %s is virtual"
-		 method (object-name obj)))))))
 
 
 ;;;
@@ -815,7 +710,7 @@ for parameters")
 available methods which may be programmed in."
   ;; We must expand our arguments first as they are always
   ;; passed in as quoted symbols
-  (let ((newargs nil) (forms nil) (mclass nil)  (lambdas nil)
+  (let ((newargs nil) (mclass nil)  (lambdas nil)
 	(eieio-generic-call-methodname method)
 	(eieio-generic-call-arglst args))
     ;; get a copy 
@@ -946,8 +841,8 @@ matching CLASS"
 (defun eieiomt-next (class)
   "Return the next class, or `eieio-default-superclass' or nil,
 depending on the return value of `class-parent'"
-  (or (class-parent es)
-      (if (eq es 'eieio-default-superclass)
+  (or (class-parent class)
+      (if (eq class 'eieio-default-superclass)
 	  nil
 	'eieio-default-superclass)))
 
@@ -1171,6 +1066,101 @@ associated with this symbol.  Current method specific code is:")
     (defgeneric-engine sym newdoc)
     ))
 
+;; Defmethod compiler must appear before calls to defmethod.
+;;
+;; Byte compiler functions for defmethod.  This will affect the new GNU
+;; byte compiler for emacs 19 and better.  This function will be called by
+;; the byte compiler whenever a `defmethod' is encountered in a file.
+;; It will output a function call to `defmethod-engine' with the byte
+;; compiled function as a parameter.  As a result, the engine must
+;; know when it encounters a compiled function.
+
+(eval-when-compile ; XEmacs compatibility
+  (if (not (fboundp 'byte-compile-compiled-obj-to-list))
+      (defun byte-compile-compiled-obj-to-list (moose) nil))
+  (if (not (boundp 'byte-compile-outbuffer))
+      (defvar byte-compile-outbuffer nil)))
+
+(eval-and-compile
+  (put 'defmethod 'byte-hunk-handler 'byte-compile-file-form-defmethod))
+
+(defun byte-compile-file-form-defmethod (form)
+  "Mumble about the thing we are compiling."
+  (setq form (cdr form))
+  (let* ((meth (car form))
+	 (key (progn (setq form (cdr form))
+		     (cond ((eq ':BEFORE (car form))
+			    (setq form (cdr form))
+			    ":BEFORE ")
+			   ((eq ':AFTER (car form))
+			    (setq form (cdr form))
+			    ":AFTER ")
+			   (t ""))))
+	 (params (car form))
+	 (lamparams (byte-compile-defmethod-param-convert params))
+	 (class (car (cdr (car params))))
+	 (my-outbuffer (if (string-match "XEmacs" emacs-version)
+			   byte-compile-outbuffer outbuffer))
+	 )
+    (let ((name (format "%s::%s" (or class "#<generic>") meth)))
+      (if byte-compile-verbose
+	  ;; #### filename used free
+	  (message "Compiling %s... (%s)" (or filename "") name))
+      (setq byte-compile-current-form name) ; for warnings
+      )
+    ;; Flush any pending output
+    (byte-compile-flush-pending)
+    ;; Byte compile the body.  For the byte compiled forms, add the 
+    ;; rest arguments, which will get ignored by the engine which will
+    ;; add them later (I hope)
+    (let* ((new-one (byte-compile-lambda 
+		     (append (list 'lambda lamparams)
+			     (cdr form))))
+	   (code (byte-compile-byte-code-maker new-one)))
+      (princ "\n(defmethod-engine '" my-outbuffer)
+      (princ meth my-outbuffer)
+      (princ " '(" my-outbuffer)
+      (princ key my-outbuffer)
+      (prin1 params my-outbuffer)
+      (princ " " my-outbuffer)
+      (eieio-byte-compile-princ-code code my-outbuffer)
+      (princ "))" my-outbuffer)
+      nil
+      )))
+
+(defun eieio-byte-compile-princ-code (code outbuffer)
+  "Xemacs and GNU emacs do their things differently. Lets do it right
+on both platforms"
+  (if (not (string-match "XEmacs" emacs-version))
+      ;; FSF emacs
+      (prin1 code outbuffer)
+    ;; XEmacs
+    (if (atom code)
+	(princ "#[" outbuffer)
+      (princ "'(" outbuffer))
+    (let ((codelist (if (byte-code-function-p code)
+			(byte-compile-compiled-obj-to-list code)
+		      (append code nil))))
+      (while codelist
+	(prin1 (car codelist) outbuffer)
+	(princ " " outbuffer)
+	(setq codelist (cdr codelist))
+	))
+    (if (atom code)
+	(princ "]" outbuffer)
+      (princ ")" outbuffer))))
+
+(defun byte-compile-defmethod-param-convert (paramlist)
+  "Convert method params into the params used by the defmethod thingy."
+  (let ((argfix nil))
+    (while paramlist
+      (setq argfix (cons (if (listp (car paramlist)) 
+			     (car (car paramlist))
+			   (car paramlist))
+			 argfix))
+      (setq paramlist (cdr paramlist)))
+    (nreverse argfix)))
+
 ;;;
 ;;; We want all object created by EIEIO to have some default set of
 ;;; behavious so we can create object utilities, and allow various
@@ -1238,12 +1228,8 @@ the screen."
 	(fprefix (concat ch-prefix "  +--"))
 	(mprefix (concat ch-prefix "  |  "))
 	(lprefix (concat ch-prefix "     ")))
-    (insert prefix)
-    (if (not (and window-system (fboundp 'make-overlay)))
-	(insert myname)
-      (let ((no (make-overlay (point) (progn (insert myname) (point)))))
-	(overlay-put no 'face 'bold)))
-    (insert "\n")
+    ;; Removed overlay stuff... not usefull.
+    (insert prefix myname "\n")
 ;   This didn't really do anything except clutter the screen
 ;   (if chl
 ;	(if (= (length chl) 1)
@@ -1344,81 +1330,10 @@ an object, then also display current values of that obect."
 
 ;;; Interfacing with other packages
 ;;
-;; Byte compiler functions for defmethod.  This will affect the new GNU
-;; byte compiler for emacs 19 and better.  This function will be called by
-;; the byte compiler whenever a `defmethod' is encountered in a file.
-;; It will output a function call to `defmethod-engine' with the byte
-;; compiled function as a parameter.  As a result, the engine must
-;; know when it encounters a compiled function.
-
-(put 'defmethod 'byte-hunk-handler 'byte-compile-file-form-defmethod)
-(defun byte-compile-file-form-defmethod (form)
-  "Mumble about the thing we are compiling."
-  (setq form (cdr form))
-  (let* ((meth (car form))
-	 (key (progn (setq form (cdr form))
-		     (cond ((eq ':BEFORE (car form))
-			    (setq form (cdr form))
-			    ":BEFORE ")
-			   ((eq ':AFTER (car form))
-			    (setq form (cdr form))
-			    ":AFTER ")
-			   (t ""))))
-	 (params (car form))
-	 (lamparams (byte-compile-defmethod-param-convert params))
-	 (class (car (cdr (car params)))))
-    (let ((name (format "%s::%s" (or class "#<generic>") meth)))
-      (if byte-compile-verbose
-	  (message "Compiling %s... (%s)" (or filename "") name))
-      (setq byte-compile-current-form name) ; for warnings
-      )
-    ;; Flush any pending output
-    (byte-compile-flush-pending)
-    ;; Byte compile the body.  For the byte compiled forms, add the 
-    ;; rest arguments, which will get ignored by the engine which will
-    ;; add them later (I hope)
-    (let* ((new-one (byte-compile-lambda 
-		     (append (list 'lambda lamparams)
-			     (cdr form))))
-	   (code (byte-compile-byte-code-maker new-one)))
-      (princ "\n(defmethod-engine '" outbuffer)
-      (princ meth outbuffer)
-      (princ " '(" outbuffer)
-      (princ key outbuffer)
-      (prin1 params outbuffer)
-      (princ " " outbuffer)
-      (prin1 code outbuffer)
-      (princ "))" outbuffer)
-      nil
-      )))
-
-(defun byte-compile-defmethod-param-convert (paramlist)
-  "Convert method params into the params used by the defmethod thingy."
-  (let ((argfix nil))
-    (while paramlist
-      (setq argfix (cons (if (listp (car paramlist)) 
-			     (car (car paramlist))
-			   (car paramlist))
-			 argfix))
-      (setq paramlist (cdr paramlist)))
-    (nreverse argfix)))
-
-
 ;; Now lets support edebug in reguard to defmethod forms.
 ;; reguardless of if edebug is running, this hook is re-eveluated so
 ;; this is a clever way for edebug to allow us to add hooks
 ;; dynamically
-(add-hook 'edebug-setup-hook
-	  (lambda () 
-	    (def-edebug-spec defclassmethod
-	      (symbolp	   ; This is a symbol
-	       symbolp     ; this is the class's symbol
-	       lambda-list ; arguments
-	       [ &optional stringp ] ; documentation string
-	       def-body	   ; part to be debugged
-	       )))
-	  )
-
 (add-hook 'edebug-setup-hook
 	  (lambda () 
 	    (def-edebug-spec defmethod
