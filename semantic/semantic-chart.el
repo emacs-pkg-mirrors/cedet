@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: chart
-;; X-RCS: $Id: semantic-chart.el,v 1.2 2001/09/26 01:03:53 zappo Exp $
+;; X-RCS: $Id: semantic-chart.el,v 1.3 2001/09/26 21:07:28 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -53,7 +53,7 @@ for tokens which will be charted."
 		   (semantic-find-nonterminal-by-token
 		    (car symname)
 		    stream
-		    nil nil)))
+		    t nil)))
 		  semantic-symbol->name-assoc-list)))
     (chart-bar-quickie 'vertical
 		       "Semantic Toplevel Token Volume"
@@ -85,7 +85,7 @@ Only the most complex items are charted."
 		    (set-buffer buffer-or-stream)
 		    (semantic-bovinate-toplevel t)))
 		 (t buffer-or-stream))
-	   t nil))
+	   'positiononly nil))
 	 (name (cond ((semantic-token-with-position-p (car stream))
 		      (buffer-name (semantic-token-buffer (car stream))))
 		     (t "")))
