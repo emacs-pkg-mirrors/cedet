@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-c.el,v 1.9 2000/09/27 02:08:50 zappo Exp $
+;; X-RCS: $Id: semantic-c.el,v 1.10 2000/10/30 01:33:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -46,15 +46,15 @@
      ( define)
      )					; end declaration
     (include
-     ( punctuation "\\b#\\b" INCLUDE punctuation "<" filename punctuation ">"
+     ( punctuation "#\\b" INCLUDE punctuation "<" filename punctuation ">"
 		   ,(semantic-lambda
 		     (nth 3 vals) (list 'include 't nil)))
-     ( punctuation "\\b#\\b" INCLUDE string
+     ( punctuation "#\\b" INCLUDE string
 		   ,(semantic-lambda
 		     (list ( read (nth 2 vals)) 'include nil nil)))
      )					; end include
     (filename
-     ( symbol punctuation "\\b\\.\\b" symbol
+     ( symbol punctuation "\\.\\b" symbol
 	      ,(semantic-lambda
 		(list ( concat (nth 0 vals) (nth 1 vals) (nth 2 vals)))))
      ( symbol punctuation "/" filename
@@ -105,12 +105,12 @@
 		 (list (nth 2 vals) 'type (nth 0 vals) nil (nth 1 vals) nil nil)))
      )					; end typesimple
     (type
-     ( typesimple punctuation "\\b;\\b"
+     ( typesimple punctuation ";\\b"
 		  ,(semantic-lambda
 		    (nth 0 vals)))
      )					; end type
     (opt-stars
-     ( punctuation "\\b\\*\\b" opt-stars
+     ( punctuation "\\*\\b" opt-stars
 		   ,(semantic-lambda
 		     (list ( 1+ ( car (nth 1 vals))))))
      (
@@ -151,7 +151,7 @@
 	 (list (nth 0 vals))))
      )					; end typeformbase
     (opt-bits
-     ( punctuation "\\b:\\b" symbol
+     ( punctuation ":\\b" symbol
 		   ,(semantic-lambda
 		     (list (nth 1 vals))))
      (
@@ -167,7 +167,7 @@
 	(list nil)))
      )					; end opt-array
     (opt-assign
-     ( punctuation "\\b=\\b" expression
+     ( punctuation "=\\b" expression
 		   ,(semantic-lambda
 		     (list (nth 1 vals))))
      (
@@ -175,12 +175,12 @@
 	(list nil)))
      )					; end opt-assign
     (macro
-     ( punctuation "\\b#\\b" DEFINE symbol opt-expression
+     ( punctuation "#\\b" DEFINE symbol opt-expression
 		   ,(semantic-lambda
 		     (list (nth 2 vals) 'variable nil 't (nth 3 vals) nil nil)))
      )					; end macro
     (variable
-     ( variabledef punctuation "\\b;\\b"
+     ( variabledef punctuation ";\\b"
 		   ,(semantic-lambda
 		     (nth 0 vals)))
      )					; end variable
@@ -204,7 +204,7 @@
 		  (list ( car (nth 2 vals)) 'variable (nth 1 vals) ( if (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) nil ( if ( and (nth 0 vals) ( string-match "const" ( car (nth 0 vals)))) ( cdr (nth 0 vals)) (nth 0 vals)) nil)))
      )					; end variablearg
     (varnamelist
-     ( varname punctuation "\\b,\\b" varnamelist
+     ( varname punctuation ",\\b" varnamelist
 	       ,(semantic-lambda
 		 ( cons (nth 0 vals) (nth 2 vals))))
      ( varname
@@ -227,10 +227,10 @@
 	 ))
      )					; end arg-list
     (knr-arguments
-     ( variablearg punctuation "\\b;\\b" knr-arguments
+     ( variablearg punctuation ";\\b" knr-arguments
 		   ,(semantic-lambda
 		     ( cons (nth 0 vals) (nth 2 vals))))
-     ( variablearg punctuation "\\b;\\b"
+     ( variablearg punctuation ";\\b"
 		   ,(semantic-lambda
 		     (list (nth 0 vals))))
      )					; end knr-arguments
@@ -245,7 +245,7 @@
      ( variablearg
        ,(semantic-lambda
 	 (nth 0 vals)))
-     ( punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" punctuation "\\b\\.\\b" close-paren ")"
+     ( punctuation "\\.\\b" punctuation "\\.\\b" punctuation "\\.\\b" close-paren ")"
 		   ,(semantic-lambda
 		     (list "...")))
      )					; end arg-sub-list
@@ -255,7 +255,7 @@
 		  (list (nth 2 vals) 'function (nth 1 vals) (nth 3 vals) (nth 0 vals) nil)))
      )					; end functiondef
     (prototype
-     ( functiondef punctuation "\\b;\\b"
+     ( functiondef punctuation ";\\b"
 		   ,(semantic-lambda
 		     (nth 0 vals)))
      )					; end prototype
