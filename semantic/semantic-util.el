@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.104 2003/02/27 02:57:07 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.105 2003/03/14 01:54:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -1054,7 +1054,8 @@ This is a simple C like default."
     str))
 
 ;; Semantic 1.2.x had this misspelling.  Keep it for backwards compatibiity.
-(defalias 'semantic-summerize-nonterminal 'semantic-summarize-nonterminal)
+(semantic-alias-obsolete 
+ 'semantic-summerize-nonterminal 'semantic-summarize-nonterminal)
 
 (define-overload semantic-summarize-nonterminal (token &optional parent color)
   "Summarize TOKEN in a reasonable way.
