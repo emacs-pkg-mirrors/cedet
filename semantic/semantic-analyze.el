@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-analyze.el,v 1.38 2004/03/11 02:30:18 zappo Exp $
+;; X-RCS: $Id: semantic-analyze.el,v 1.39 2004/04/28 15:34:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -594,7 +594,7 @@ Return data methods identify the requred type by the return value
 of the parent function.") 
 
 ;;;###autoload
-(defun semantic-analyze-current-context (&optional position)
+(define-overload semantic-analyze-current-context (&optional position)
   "Analyze the current context at optional POSITION.
 If called interactively, display interesting information about POSITION
 in a separate buffer.
@@ -608,13 +608,10 @@ if a cached copy of the return object is found."
   (if (not position) (setq position (point)))
   (save-excursion
     (goto-char position)
-    (let* ((s (semantic-fetch-overload 'analyze-current-context))
-	   (answer (semantic-get-cache-data 'current-context)))
+    (let* ((answer (semantic-get-cache-data 'current-context)))
       (with-syntax-table semantic-lex-syntax-table
 	(when (not answer)
-	  (setq answer
-		(if s (funcall s position)
-		  (semantic-analyze-current-context-default position)))
+	  (setq answer (:override))
 	  (when (and answer (oref answer bounds))
 	    (with-slots (bounds) answer
 	      (semantic-cache-data-to-buffer (current-buffer)
@@ -628,9 +625,6 @@ if a cached copy of the return object is found."
 		(semantic-analyze-pop-to-context answer))))
       
 	answer))))
-
-(put 'semantic-analyze-current-context 'semantic-overload
-     'analyze-current-context)
 
 (defun semantic-analyze-current-context-default (position)
   "Analyze the current context at POSITION.
@@ -807,7 +801,7 @@ Used as options when completing."
     tags))
 
 ;;;###autoload
-(defun semantic-analyze-possible-completions (context)
+(define-overload semantic-analyze-possible-completions (context)
   "Return a list of semantic tags which are possible completions.
 CONTEXT is either a position (such as point), or a precalculated
 context.  Passing in a context is useful if the caller also needs
@@ -825,27 +819,17 @@ When called interactively, displays the list of possible completions
 in a buffer."
   (interactive "d")
   (with-syntax-table semantic-lex-syntax-table
-    (let* ((context
-	    (if (semantic-analyze-context-child-p context) context
-	      (semantic-analyze-current-context context)))
-	   (s (semantic-fetch-overload 'analyze-possible-completions))
-	   (ans
-	    (if s (funcall s context)
-	      (semantic-analyze-possible-completions-default context))))
-    
+    (let* ((context (if (semantic-analyze-context-child-p context)
+                        context
+                      (semantic-analyze-current-context context)))
+	   (ans (:override)))
       ;; If interactive, display them.
       (when (interactive-p)
 	(with-output-to-temp-buffer "*Possible Completions*"
 	  (semantic-analyze-princ-sequence ans "" (current-buffer)))
 	(shrink-window-if-larger-than-buffer
-	 (get-buffer-window "*Possible Completions*"))
-	)
-    
-      ans
-      )))
-
-(put 'semantic-analyze-possible-completions 'semantic-overload
-     'analyze-possible-completions)
+	 (get-buffer-window "*Possible Completions*")))
+      ans)))
 
 (defun semantic-analyze-possible-completions-default (context)
   "Default method for producing smart completions.
