@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.44 2002/08/17 14:03:11 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.45 2002/08/20 16:30:45 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -82,17 +82,10 @@ mechanism.")
 (make-variable-buffer-local 'semanticdb-new-database-class)
 
 ;;; Classes:
-(defclass semanticdb-table ()
+(defclass semanticdb-abstract-table ()
   ((parent-db ;; :initarg :parent-db
     ;; Do not set an initarg, or you get circular writes to disk.
 	      :documentation "Database Object containing this table.")
-   (file :initarg :file
-	 :documentation "File name relative to the parent database.
-This is for the file whose tags are stored in this TABLE object.")
-   (pointmax :initarg :pointmax
-	     :initform nil
-	     :documentation "Size of buffer when written to disk.
-Checked on retrieval to make sure the file is the same.")
    (major-mode :initarg :major-mode
 	       :initform nil
 	       :documentation "Major mode this table belongs to.
@@ -100,11 +93,25 @@ Sometimes it is important for a program to know if a given table has the
 same major mode as the current buffer.")
    (tokens :initarg :tokens
 	   :documentation "The tokens belonging to this table.")
+   )
+  "A simple table for semantic tokens.
+This table is the root of tables, and contains the minimum needed
+for a new table not associated with a buffer."
+  :abstract t)
+
+(defclass semanticdb-table (semanticdb-abstract-table)
+  ((file :initarg :file
+	 :documentation "File name relative to the parent database.
+This is for the file whose tags are stored in this TABLE object.")
+   (pointmax :initarg :pointmax
+	     :initform nil
+	     :documentation "Size of buffer when written to disk.
+Checked on retrieval to make sure the file is the same.")
    (unmatched-syntax :initarg :unmatched-syntax
 		     :documentation
 		     "List of vectors specifying unmatched syntax.")
    )
-  "A single table of tokens belonging to a given file.")
+  "A single table of tokens derived from file.")
 
 (defclass semanticdb-project-database (eieio-instance-tracker)
   ((tracking-symbol :initform semanticdb-database-list)
@@ -253,22 +260,37 @@ Functions set in the variable are given one argument (a directory) and
 must return a string, (the root directory).  This variable should be used
 by project management programs like EDE or JDE.")
 
+(defvar semanticdb-project-system-databases nil
+  "List of databases containing system library information.
+Mode authors can create their own system databases which know
+detailed information about the system libraries for querying purposes.
+Put those into this variable as a buffer-local, or mode-local
+value.")
+(make-variable-buffer-local 'semanticdb-project-system-databases)
+
+(defvar semanticdb-search-system-databases t
+  "Non nil if search routines are to include a system database.")
+
 (defun semanticdb-current-database-list ()
   "Return a list of databases associated with the current buffer.
 If this buffer has a database, but doesn't have a project associated
 with it, return nil.
 First, it checks `semanticdb-project-root-functions', and if that
 has no results, it checks `semanticdb-project-roots'.  If that fails,
-it returns the results of function `semanticdb-current-database'."
+it returns the results of function `semanticdb-current-database'.
+Always append `semanticdb-project-system-databases' if
+`semanticdb-search-system' is non-nil."
   (let ((root nil)			; found root directory
 	(dbs nil)			; collected databases
 	(func semanticdb-project-root-functions) ;special project functions
 	(roots semanticdb-project-roots) ;all user roots
 	(adb semanticdb-database-list)	; all databases
 	)
+    ;; Find the root based on project functions.
     (while (and func (not root))
       (setq root (funcall (car func) default-directory)
 	    func (cdr func)))
+    ;; Find roots based on strings
     (while (and roots (not root))
       (if (string-match (concat "^"
 				(regexp-quote
@@ -276,12 +298,19 @@ it returns the results of function `semanticdb-current-database'."
 			(expand-file-name default-directory))
 	  (setq root (car roots)))
       (setq roots (cdr roots)))
+    ;; Find databases based on the root directory.
     (if root
         (let ((regexp (concat "^" (regexp-quote (expand-file-name root)))))
           (while (and root adb)
-            (if (string-match regexp (oref (car adb) file))
+	    ;; I don't like this part, but close enough.
+            (if (and (slot-exists-p (car adb) 'file)
+		     (string-match regexp (oref (car adb) file)))
                 (setq dbs (cons (car adb) dbs)))
             (setq adb (cdr adb)))))
+    ;; Add in system databases
+    (when semanticdb-search-system-databases
+      (setq dbs (append dbs semanticdb-project-system-databases)))
+    ;; Return
     dbs))
 
 
