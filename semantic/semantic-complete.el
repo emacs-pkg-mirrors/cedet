@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.13 2003/11/20 15:54:44 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.14 2003/11/29 12:27:21 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -175,24 +175,18 @@ PROMPT is a string to prompt with.
 DEFAULT-TAG is a semantic tag or string to use as the default value.
 If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
 HISTORY is a symbol representing a variable to story the history in."
-  (let ((semantic-completion-collector-engine collector)
-	(semantic-completion-display-engine displayor)
-	(ans nil)
-	(tag nil)
-	(orig-default-tag default-tag)
-	)
-    (unless default-tag
-      (setq default-tag (semantic-complete-choose-default)))
-    (when default-tag
-      (setq default-tag (cond ((stringp default-tag)
-			       default-tag)
-			      ((semantic-tag-p default-tag)
-			       (semantic-tag-name default-tag))
-			      ((and (listp default-tag)
-				    (stringp (car default-tag)))
-			       (car (nreverse default-tag)))
-			      )))
-    (when (stringp default-tag)
+  (let* ((semantic-completion-collector-engine collector)
+	 (semantic-completion-display-engine displayor)
+	 (semantic-complete-active-default nil)
+	 (semantic-complete-current-matched-tag nil)
+	 (ans nil)
+	 (tag nil)
+	 (default-as-tag (semantic-complete-default-to-tag default-tag))
+	 (default-as-string (when (semantic-tag-p default-as-tag)
+			      (semantic-tag-name default-as-tag)))
+	 )
+
+    (when default-as-string
       ;; Add this to the prompt.
       ;;
       ;; I really want to add a lookup of the symbol in those
@@ -203,11 +197,12 @@ HISTORY is a symbol representing a variable to story the history in."
       (if (string-match ":" prompt)
 	  (setq prompt (concat
 			(substring prompt 0 (match-beginning 0))
-			" (" default-tag ")"
+			" (" default-as-string ")"
 			(substring prompt (match-beginning 0))))
-	(setq prompt (concat prompt " ("
-			     default-tag
-			     "): "))))
+	(setq prompt (concat prompt " (" default-as-string "): "))))
+    ;;
+    ;; Perform the Completion
+    ;;
     (setq ans
 	  (read-from-minibuffer prompt
 				initial-input
@@ -216,37 +211,172 @@ HISTORY is a symbol representing a variable to story the history in."
 				(or history
 				    'semantic-completion-default-history)
 				default-tag))
-    ;; First, see if the displayor has a focus entry for us.
-    ;; This returns a single tag.
-    (setq tag (list (semantic-displayor-current-focus displayor)))
-    (unless (semantic-tag-p tag)
-      ;; Convert the answer, a string, back into a tag using
-      ;; the collector
-      (if (setq tag (semantic-collector-get-match-list collector))
-	  ;; Did the get.  Do nothing else
-	  nil
-	;; No match!
-	(if (and (string= ans "") default-tag)
-	    ;; Choose the default!
-	    (if (semantic-tag-p orig-default-tag)
-		(setq tag orig-default-tag)
-	      (semantic-collector-calculate-completions collector
-							default-tag)
-	      (setq tag (semantic-collector-get-match collector))
-	      ))))
-    ;; It might be a find result.  Strip it.
-    (if (semanticdb-find-results-p tag)
-	(if (> (semanticdb-find-result-length tag) 1)
-	    (error "Tag is not unique.  Error in completion engine?")
-	  ;; By now, there should be something.
-	  (setq tag (semanticdb-find-result-nth tag 0 t))))
-    ;; If it isn't a tag, we didn't finish properly.
-    ;; Throw an error
-    (if (not (semantic-tag-p tag))
-	(error
-	 "Error finding tag.  Error in completion engine?"))
-    tag
+    ;;
+    ;; Extract the tag from the completion machinery.
+    ;;
+    semantic-complete-current-matched-tag
     ))
+
+
+;;; Util for basic completion prompts
+;;
+(defun semantic-completion-message (fmt &rest args)
+  "Display the string FMT formatted with ARGS at the end of the minibuffer."
+  (message (concat (buffer-string) (apply 'format fmt args))))
+
+(defvar semantic-complete-active-default nil
+  "The current default tag calculated for this prompt.")
+
+(defun semantic-complete-choose-default ()
+  "Based on the current position, choose a nice default for completion.
+Defaults are chosent from the lcoal context.
+It might be nice to someday have it find the tag assocated with the
+default, possibly choosing a function or variable."
+  (let ((sym nil))
+    (setq sym (semantic-ctxt-current-symbol))
+    (unless sym
+      (setq sym (semantic-ctxt-current-function)))
+    (unless sym
+      (setq sym (semantic-ctxt-current-assignment)))
+    sym))
+
+(defun semantic-complete-default-to-tag (default)
+  "Convert a calculated or passed in DEFAULT into a tag."
+  (if (semantic-tag-p default)
+      ;; Just return what was passed in.
+      (setq semantic-complete-active-default default)
+    ;; If none was passed in, guess.
+    (if (null default)
+	(setq default (semantic-complete-choose-default)))
+    (if (null default)
+	;; Do nothing
+	nil
+      ;; Turn default into something useful.
+      (let ((str
+	     (cond
+	      ;; Semantic-ctxt-current-symbol will return a list of
+	      ;; strings.  Technically, we should use the analyzer to
+	      ;; fully extract what we need, but for now, just grab the
+	      ;; first string
+	      ((and (listp default) (stringp (car default)))
+	       (car default))
+	      ((stringp default)
+	       default)
+	      ((symbolp default)
+	       (symbol-name default))
+	      (t
+	       (signal 'wrong-type-argument
+		       (list default 'semantic-tag-p)))))
+	    (tag nil))
+	;; Now that we have that symbol string, look it up using the active
+	;; collector.  If we get a match, use it.
+	(semantic-collector-calculate-completions
+	 semantic-completion-collector-engine
+	 str)
+	;; Do we have the perfect match???
+	(let ((ml (semantic-collector-current-exact-match
+		   semantic-completion-collector-engine)))
+	  (when ml
+	    ;; We don't care about uniqueness.  Just guess for convenience
+	    (setq tag (semanticdb-find-result-nth ml 0))))
+	;; save it
+	(setq semantic-complete-active-default tag)
+	;; Return it.. .whatever it may be
+	tag))))
+
+
+;;; Prompt Return Value
+;;
+;; Getting a return value out of this completion prompt is a bit
+;; challenging.  The read command returns the string typed in.
+;; We need to convert this into a valid tag.  We can exit the minibuffer
+;; for different reasons.  If we purposely exit, we must make sure
+;; the focused tag is calculated... preferably once.
+(defvar semantic-complete-current-matched-tag nil
+  "Variable used to pass the tags being matched to the prompt.")
+
+(defun semantic-complete-current-match ()
+  "Calculate a match from the current completion environment.
+Save this in our completion variable.  Make sure that variable
+is cleared if any other keypress is made.
+Return value can be:
+  tag - a single tag that has been matched.
+  string - a message to show in the minibuffer."
+  ;; Query the environment for an active completion.
+  (let ((collector semantic-completion-collector-engine)
+	(displayor semantic-completion-display-engine)
+	(contents (semantic-minibuffer-contents))
+	match
+	matchlist
+	answer)
+    (if (string= contents "")
+	;; The user wants the defaults!
+	(setq answer semantic-complete-active-default)
+      ;; This forces a full calculation of completion on CR.
+      (semantic-collector-calculate-completions collector contents)
+      (semantic-complete-try-completion)
+      (cond
+       ;; Input match displayor focus entry
+       ((setq answer (semantic-displayor-current-focus displayor))
+	;; We have answer, continue
+	)
+       ;; One match from the collector
+       ((setq matchlist (semantic-collector-current-exact-match collector))
+	(if (= (semanticdb-find-result-length matchlist) 1)
+	    (setq answer (semanticdb-find-result-nth matchlist 0))
+	  (if (semantic-displayor-focus-abstract-child-p displayor)
+	      ;; For focusing displayors, we can claim this is
+	      ;; not unique.  Multiple focuses can choose the correct
+	      ;; one.
+	      (setq answer "Not Unique")
+	    ;; If we don't have a focusing displayor, we need to do something
+	    ;; graceful.  First, see if all the matches have the same name.
+	    (let ((allsame t)
+		  (firstname (semantic-tag-name
+			      (semanticdb-find-result-nth matchlist 0)))
+		  (cnt 1)
+		  (max (semanticdb-find-result-length matchlist)))
+	      (while (and allsame (< cnt max))
+		(if (not (string= firstname
+				  (semantic-tag-name
+				   (semanticdb-find-result-nth matchlist cnt))))
+		    (setq allsame nil))
+		(setq cnt (1+ cnt))
+		)
+	      ;; Now we know if they are all the same.  If they are, just
+	      ;; accept the first, otherwise complain.
+	      (if allsame
+		  (setq answer (semanticdb-find-result-nth matchlist 0))
+		(setq answer "Not Unique"))
+	      ))))
+       ;; No match
+       (t
+	(setq answer "No Match")))
+      )
+    (when (semantic-tag-p answer)
+      (setq semantic-complete-current-matched-tag answer)
+      ;; Make sure it is up to date by clearing it if the user dares
+      ;; to touch the keyboard.
+      (add-hook 'pre-command-hook
+		(lambda () (setq semantic-complete-current-matched-tag nil)))
+      )
+    ;; Return it
+    answer
+    ))
+
+
+;;; Keybindings
+;;
+;; Keys are bound to to perform completion using our mechanisms.
+;; Do that work here.
+(defun semantic-complete-done ()
+  "Accept the current input."
+  (interactive)
+  (let ((ans (semantic-complete-current-match)))
+    (if (stringp ans)
+	(semantic-completion-message (concat " [" ans "]"))
+      (exit-minibuffer)))
+  )
 
 (defun semantic-complete-complete-space ()
   "Complete the partial input in the minibuffer."
@@ -258,51 +388,16 @@ HISTORY is a symbol representing a variable to story the history in."
   (interactive)
   (semantic-complete-do-completion))
 
-(defun semantic-complete-done ()
-  "Accept the current input."
-  (interactive)
-  (let ((collector semantic-completion-collector-engine)
-	(displayor semantic-completion-display-engine)
-	(name (semantic-minibuffer-contents))
-	match
-	matchlist)
-    (when (string= name "")
-      ;; The user wants the defaults!
-      (exit-minibuffer))
-    ;; This forces a full calculation of completion on CR.
-    (semantic-collector-calculate-completions
-     semantic-completion-collector-engine
-     (semantic-minibuffer-contents))
-    (semantic-complete-try-completion)
-    (cond
-     ;; Input match displayor focus entry
-     ((and (semantic-displayor-current-focus displayor)
-           (equal name (oref displayor last-prefix)))
-      (exit-minibuffer))
-     ;; One match
-     ((setq matchlist (semantic-collector-get-match-list collector))
-      (if (= (semanticdb-find-result-length matchlist) 1)
-	  (exit-minibuffer)
-	(semantic-completion-message " [Not Unique]")))
-     ;; Input match one element of last-all-completions
-     ((and (slot-boundp collector 'last-all-completions)
-	   ;; oooo, several months after first implementation, this
-	   ;; should go through the collector instead.
-	   (setq match (semantic-find-tags-by-name
-			name (oref collector last-all-completions))))
-      (semantic-displayor-set-completions displayor match name)
-      (oset collector match-list match)
-      (exit-minibuffer))
-     ;; No match
-     (t
-      (semantic-completion-message " [No Match]")))
-    ))
-
+;;; Completion Functions
+;;
+;; Thees routines are functional entry points to performing completion.
+;;
 (defun semantic-complete-try-completion (&optional partial)
   "Try a completion for the current minibuffer.
 If PARTIAL, do partial completion stopping at spaces."
   (let ((comp (semantic-collector-try-completion
-               semantic-completion-collector-engine)))
+               semantic-completion-collector-engine
+	       (semantic-minibuffer-contents))))
     (cond
      ((null comp)
       (semantic-completion-message " [No Match]")
@@ -335,50 +430,60 @@ If PARTIAL, do partial completion stopping at spaces."
 (defun semantic-complete-do-completion (&optional partial)
   "Do a completion for the current minibuffer.
 If PARTIAL, do partial completion stopping at spaces."
-  (semantic-collector-calculate-completions
-   semantic-completion-collector-engine
-   (semantic-minibuffer-contents))
-  (let* ((na (semantic-collector-next-action
-	      semantic-completion-collector-engine)))
-    (cond
-     ((eq na 'display)
-      ;; We need to display the completions.
-      ;; Set the completions into the display engine
-      (semantic-displayor-set-completions
-       semantic-completion-display-engine
-       (semantic-collector-all-completions
-        semantic-completion-collector-engine)
-       (semantic-minibuffer-contents))
-      ;; Ask the displayor to display them.
-      (semantic-displayor-show-request
-       semantic-completion-display-engine)
-      )
-     ((eq na 'focus)
-      (semantic-displayor-focus-request
-       semantic-completion-display-engine)
-      )
-     ((eq na 'complete)
-      ;; Else, we are in completion mode
-      (semantic-complete-try-completion partial)
-      )
-     (t nil))))
+  (let ((contents (semantic-minibuffer-contents))
+	(collector semantic-completion-collector-engine)
+	(displayor semantic-completion-display-engine))
 
-(defun semantic-completion-message (fmt &rest args)
-  "Display the string FMT formatted with ARGS at the end of the minibuffer."
-  (message (concat (buffer-string) (apply 'format fmt args))))
+    (semantic-collector-calculate-completions collector contents)
+    (let* ((na (semantic-complete-next-action)))
+      (cond
+       ;; Perform completion
+       ((eq na 'complete)
+	(semantic-complete-try-completion partial)
+	)
+       ;; We need to display the completions.
+       ;; Set the completions into the display engine
+       ((eq na 'display)
+	(semantic-displayor-set-completions
+	 displayor
+	 (semantic-collector-all-completions collector contents)
+	 contents)
+	;; Ask the displayor to display them.
+	(semantic-displayor-show-request displayor)
+	)
+       ((eq na 'scroll)
+	(semantic-displayor-scroll-request displayor)
+	)
+       ((eq na 'focus)
+	(semantic-displayor-focus-request displayor)
+	)
+       (t nil)))))
+
+;;; ------------------------------------------------------------
+;;; Interactions between collection and displaying
+;;
+;; Functional routines used to help collectors communicate with
+;; the current displayor, or for the previous section.
 
-(defun semantic-complete-choose-default ()
-  "Based on the current position, choose a nice default for completion.
-Defaults are chosent from the lcoal context.
-It might be nice to someday have it find the tag assocated with the
-default, possibly choosing a function or variable."
-  (let ((sym nil))
-    (setq sym (semantic-ctxt-current-symbol))
-    (unless sym
-      (setq sym (semantic-ctxt-current-function)))
-    (unless sym
-      (setq sym (semantic-ctxt-current-assignment)))
-    sym))
+(defun semantic-complete-next-action ()
+  "Determine what the next completion action should be.
+First, the collector can determine if we should perform a completion or not.
+If there is nothing to complete, then the displayor determines if we are
+to show a completion list, scroll, or perhaps do a focus (if it is capable.)
+Expected return values are:
+  complete -> Perform a completion action
+  display -> Show the list of completions
+  scroll -> The completions have been shown, and the user keeps hitting
+            the complete button.  If possible, scroll the completions
+  focus -> The displayor knows how to shift focus among possible completions.
+           Let it do that."
+  (let ((ans nil))
+    (setq ans (semantic-collector-next-action
+	       semantic-completion-collector-engine))
+    (unless ans
+      (setq ans (semantic-displayor-next-action
+		 semantic-completion-display-engine)))
+    ans))
 
 
 ;;; ------------------------------------------------------------
@@ -390,6 +495,12 @@ default, possibly choosing a function or variable."
 ;; General features of the abstract collector:
 ;; * Cache completion lists between uses
 ;; * Cache itself per buffer.  Handle reparse hooks
+;;
+;; Key Interface Functions to implement:
+;; * semantic-collector-next-action
+;; * semantic-collector-calculate-completions
+;; * semantic-collector-try-completion
+;; * semantic-collector-all-completions
 
 (defvar semantic-collector-per-buffer-list nil
   "List of collectors active in this buffer.")
@@ -415,32 +526,34 @@ Sometimes these tags are cached between completion sessions.")
 This result can be used for refined completions as `last-prefix' gets
 closer to a specific result.")
    (last-prefix :type string
+		:protection :protected
 		:documentation "The last queried prefix.
 This prefix can be used to cache intermediate completion offers.
 making the action of homing in on a token faster.")
    (last-completion :type (or null string)
 		    :documentation "The last calculated completion.
 This completion is calculated and saved for future use.")
-   (match-list :type list
-	       :documentation "The list of matched tags.
+   (current-exact-match :type list
+			:protection :protected
+			:documentation "The list of matched tags.
 When tokens are matched, they are added to this list.")
    )
   "Root class for completion engines."
   :abstract t)
+
+(defmethod semantic-collector-next-action
+  ((obj semantic-collector-abstract))
+  "What should we do next?  OBJ can predict a next good action."
+  (if (and (slot-boundp obj 'last-completion)
+	   (string= (semantic-minibuffer-contents) (oref obj last-completion)))
+      nil
+    'complete))
 
 (defmethod semantic-collector-last-prefix= ((obj semantic-collector-abstract)
 					    last-prefix)
   "Return non-nil if OBJ's prefix matches PREFIX."
   (and (slot-boundp obj 'last-prefix)
        (string= (oref obj last-prefix) last-prefix)))
-
-(defmethod semantic-collector-next-action
-  ((obj semantic-collector-abstract))
-  "What should we do next?  OBJ can predict a next good action."
-  (if (string= (semantic-minibuffer-contents)
-	       (oref obj last-completion))
-      (semantic-displayor-next-action semantic-completion-display-engine)
-    'complete))
 
 (defmethod semantic-collector-get-cache ((obj semantic-collector-abstract))
   "Get the raw cache of tags for completion.
@@ -481,47 +594,59 @@ Output must be in semanticdb Find result format."
 		   (semantic-collector-calculate-completions-raw
 		    obj prefix completionlist))
 		 )
-	 (completion nil))
+	 (completion nil)
+	 (complete-not-uniq nil)
+	 )
     (when (not same-prefix-p)
       ;; Save results if it is interesting and beneficial
       (oset obj last-prefix prefix)
       (oset obj last-all-completions answer))
-    ;; Now calculation the completion.
+    ;; Now calculate the completion.
     (setq completion (try-completion
 		      prefix
 		      (semanticdb-strip-find-results answer)))
-    (oset obj match-list nil)
+    (oset obj current-exact-match nil)
     (oset obj last-completion
 	  (cond
 	   ;; Unique match in AC.  Last completion is a match.
-	   ;; Also set the match-list.
+	   ;; Also set the current-exact-match.
 	   ((eq completion t)
-	    (oset obj match-list answer)
+	    (oset obj current-exact-match answer)
 	    prefix)
+	   ;; It may be complete (a symbol) but still not unique.
+	   ;; We can capture a match
+	   ((setq complete-not-uniq
+		  (semanticdb-find-tags-by-name
+		   prefix
+		   (semanticdb-strip-find-results answer)))
+	    (oset obj current-exact-match 
+		  complete-not-uniq)
+	    prefix
+	    )
 	   ;; Non unique match, return the string that handles
 	   ;; completion
 	   (t (or completion prefix))
 	   ))
     ))
 
-(defmethod semantic-collector-get-match-list ((obj semantic-collector-abstract))
+(defmethod semantic-collector-current-exact-match ((obj semantic-collector-abstract))
   "Return the active valid MATCH from the semantic collector.
 For now, just return the first element from our list of available
 matches.  For semanticdb based results, make sure the file is loaded
 into a buffer."
-  (when (slot-boundp obj 'match-list)
-    (oref obj match-list)))
+  (when (slot-boundp obj 'current-exact-match)
+    (oref obj current-exact-match)))
 
 (defmethod semantic-collector-get-match ((obj semantic-collector-abstract))
   "Return the active valid MATCH from the semantic collector.
 For now, just return the first element from our list of available
 matches.  For semanticdb based results, make sure the file is loaded
 into a buffer."
-  (when (slot-boundp obj 'match-list)
-    (semanticdb-find-result-nth (oref obj match-list) 0 t)))
+  (when (slot-boundp obj 'current-exact-match)
+    (semanticdb-find-result-nth-in-buffer (oref obj current-exact-match) 0)))
 
 (defmethod semantic-collector-all-completions
-  ((obj semantic-collector-abstract))
+  ((obj semantic-collector-abstract) prefix)
   "For OBJ, retrieve all completions matching PREFIX.
 The returned list consists of all the tags currently
 matching PREFIX."
@@ -529,7 +654,7 @@ matching PREFIX."
     (oref obj last-all-completions)))
 
 (defmethod semantic-collector-try-completion
-  ((obj semantic-collector-abstract))
+  ((obj semantic-collector-abstract) prefix)
   "For OBJ, attempt to match PREFIX.
 See `try-completion' for details on how this works.
 Return nil for no match.
@@ -549,6 +674,9 @@ with that name."
   "Flush THIS collector object, clearing any caches and prefix."
   (oset this cache nil)
   (slot-makeunbound this 'last-prefix)
+  (slot-makeunbound this 'last-completion)
+  (slot-makeunbound this 'last-all-completions)
+  (slot-makeunbound this 'current-exact-match)
   )
 
 ;;; PER BUFFER
@@ -573,7 +701,7 @@ These collectors track themselves on a per-buffer basis "
 	(setq old new)))
     (slot-makeunbound old 'last-completion)
     (slot-makeunbound old 'last-prefix)
-    (slot-makeunbound old 'match-list)
+    (slot-makeunbound old 'current-exact-match)
     old))
 
 ;; Buffer specific collectors should flush themselves
@@ -656,11 +784,21 @@ At creation time, it can be anything accepted by
 ;; Advanced highlighting displayors need to know when they need
 ;; to load a file so that the tag in question can be highlighted.
 ;;
+;; Key interface methods to a displayor are:
+;; * semantic-displayor-next-action
+;; * semantic-displayor-set-completions
+;; * semantic-displayor-current-focus
+;; * semantic-displayor-show-request
+;; * semantic-displayor-scroll-request
+;; * semantic-displayor-focus-request
+
 (defclass semantic-displayor-abstract ()
   ((table :type (or null semanticdb-find-result-with-nil)
 	  :initform nil
+	  :protection :protected
 	  :documentation "List of tags this displayor is showing.")
    (last-prefix :type string
+		:protection :protected
 		:documentation "Prefix associated with slot `table'")
    )
   "Manages the display of some number of tags."
@@ -671,7 +809,7 @@ At creation time, it can be anything accepted by
   (if (and (slot-boundp obj 'last-prefix)
 	   (string= (oref obj last-prefix) (semantic-minibuffer-contents))
 	   (eq last-command this-command))
-      'focus
+      'scroll
     'display))
 
 (defmethod semantic-displayor-set-completions ((obj semantic-displayor-abstract)
@@ -686,6 +824,10 @@ At creation time, it can be anything accepted by
 
 (defmethod semantic-displayor-focus-request ((obj semantic-displayor-abstract))
   "A request to for the displayor to focus on some tag option."
+  (ding))
+
+(defmethod semantic-displayor-scroll-request ((obj semantic-displayor-abstract))
+  "A request to for the displayor to scroll the completion list (if needed)."
   (scroll-other-window))
 
 (defmethod semantic-displayor-current-focus ((obj semantic-displayor-abstract))
@@ -716,6 +858,7 @@ This object type doesn't do focus, so will never have a focus object."
 ;;; Abstract baseclass for any displayor which supports focus
 (defclass semantic-displayor-focus-abstract (semantic-displayor-abstract)
   ((focus :type number
+	  :protection :protected
 	  :documentation "A tag index from `table' which has focus.
 Multiple calls to the display function can choose to focus on a
 given tag, by highlighting its location.")
@@ -729,6 +872,14 @@ given tag, by highlighting its location.")
 Focusing is a way of differentiationg between multiple tags
 which have the same name."
   :abstract t)
+
+(defmethod semantic-displayor-next-action ((obj semantic-displayor-focus-abstract))
+  "The next action to take on the minibuffer related to display."
+  (if (and (slot-boundp obj 'last-prefix)
+	   (string= (oref obj last-prefix) (semantic-minibuffer-contents))
+	   (eq last-command this-command))
+      'focus
+    'display))
 
 (defmethod semantic-displayor-set-completions ((obj semantic-displayor-focus-abstract)
 					       table prefix)
@@ -751,10 +902,17 @@ which have the same name."
 (defmethod semantic-displayor-current-focus ((obj semantic-displayor-focus-abstract))
   "Return the tag currently in focus, or call parent method."
   (if (and (slot-boundp obj 'focus)
-	   (slot-boundp obj 'table))
-      (semanticdb-find-result-nth (oref obj focus)
-				  (oref obj table)
-				  (oref obj find-file-focus))
+	   (slot-boundp obj 'table)
+	   ;; Only return the current focus IFF the minibuffer reflects
+	   ;; the list this focus was derived from.
+	   (slot-boundp obj 'last-prefix)
+	   (string= (semantic-minibuffer-contents) (oref obj last-prefix))
+	   )
+      ;; We need to focus
+      (if (oref obj find-file-focus)
+	  (semanticdb-find-result-nth-in-buffer (oref obj table) (oref obj focus))
+	(semanticdb-find-result-nth (oref obj table) (oref obj focus)))
+    ;; Do whatever
     (call-next-method)))
 
 ;;; Simple displayor which performs traditional display completion,
