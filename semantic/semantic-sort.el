@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sort.el,v 1.11 2004/02/05 03:16:49 zappo Exp $
+;; X-RCS: $Id: semantic-sort.el,v 1.12 2004/02/05 22:29:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -54,9 +54,9 @@ Argument S1 and S2 are the strings to compare."
       (< (compare-strings s1 0 nil s2 0 nil t) 0)
     (string-lessp (downcase s1) (downcase s2))))
 
-(defun semantic-sort-tag-type (token)
-  "Return a type string for TOKEN guaranteed to be a string."
-  (let ((ty (semantic-tag-type token)))
+(defun semantic-sort-tag-type (tag)
+  "Return a type string for TAG guaranteed to be a string."
+  (let ((ty (semantic-tag-type tag)))
     (cond ((stringp ty)
 	   ty)
 	  ((listp ty)
@@ -64,68 +64,85 @@ Argument S1 and S2 are the strings to compare."
 	  (t ""))))
 
 ;;;###autoload
-(defun semantic-sort-tokens-by-name-increasing (tokens)
-  "Sort TOKENS by name in increasing order with side effects.
+(defun semantic-sort-tags-by-name-increasing (tags)
+  "Sort TAGS by name in increasing order with side effects.
 Return the sorted list."
-  (sort tokens (lambda (a b)
-		 (string-lessp (semantic-tag-name a)
-			       (semantic-tag-name b)))))
+  (sort tags (lambda (a b)
+	       (string-lessp (semantic-tag-name a)
+			     (semantic-tag-name b)))))
 
 ;;;###autoload
-(defun semantic-sort-tokens-by-name-decreasing (tokens)
-  "Sort TOKENS by name in decreasing order with side effects.
+(defun semantic-sort-tags-by-name-decreasing (tags)
+  "Sort TAGS by name in decreasing order with side effects.
 Return the sorted list."
-  (sort tokens (lambda (a b)
-		 (string-lessp (semantic-tag-name b)
-			       (semantic-tag-name a)))))
+  (sort tags (lambda (a b)
+	       (string-lessp (semantic-tag-name b)
+			     (semantic-tag-name a)))))
 
 ;;;###autoload
-(defun semantic-sort-tokens-by-type-increasing (tokens)
-  "Sort TOKENS by type in increasing order with side effects.
+(defun semantic-sort-tags-by-type-increasing (tags)
+  "Sort TAGS by type in increasing order with side effects.
 Return the sorted list."
-  (sort tokens (lambda (a b)
-		 (string-lessp (semantic-sort-tag-type a)
-			       (semantic-sort-tag-type b)))))
+  (sort tags (lambda (a b)
+	       (string-lessp (semantic-sort-tag-type a)
+			     (semantic-sort-tag-type b)))))
 
 ;;;###autoload
-(defun semantic-sort-tokens-by-type-decreasing (tokens)
-  "Sort TOKENS by type in decreasing order with side effects.
+(defun semantic-sort-tags-by-type-decreasing (tags)
+  "Sort TAGS by type in decreasing order with side effects.
 Return the sorted list."
-  (sort tokens (lambda (a b)
-		 (string-lessp (semantic-sort-tag-type b)
-			       (semantic-sort-tag-type a)))))
+  (sort tags (lambda (a b)
+	       (string-lessp (semantic-sort-tag-type b)
+			     (semantic-sort-tag-type a)))))
 
 ;;;###autoload
-(defun semantic-sort-tokens-by-name-increasing-ci (tokens)
-  "Sort TOKENS by name in increasing order with side effects.
+(defun semantic-sort-tags-by-name-increasing-ci (tags)
+  "Sort TAGS by name in increasing order with side effects.
 Return the sorted list."
-  (sort tokens (lambda (a b)
-		 (semantic-string-lessp-ci (semantic-tag-name a)
-					   (semantic-tag-name b)))))
+  (sort tags (lambda (a b)
+	       (semantic-string-lessp-ci (semantic-tag-name a)
+					 (semantic-tag-name b)))))
 
 ;;;###autoload
-(defun semantic-sort-tokens-by-name-decreasing-ci (tokens)
-  "Sort TOKENS by name in decreasing order with side effects.
+(defun semantic-sort-tags-by-name-decreasing-ci (tags)
+  "Sort TAGS by name in decreasing order with side effects.
 Return the sorted list."
-  (sort tokens (lambda (a b)
-		 (semantic-string-lessp-ci (semantic-tag-name b)
-					   (semantic-tag-name a)))))
+  (sort tags (lambda (a b)
+	       (semantic-string-lessp-ci (semantic-tag-name b)
+					 (semantic-tag-name a)))))
 
 ;;;###autoload
-(defun semantic-sort-tokens-by-type-increasing-ci (tokens)
-  "Sort TOKENS by type in increasing order with side effects.
+(defun semantic-sort-tags-by-type-increasing-ci (tags)
+  "Sort TAGS by type in increasing order with side effects.
 Return the sorted list."
-  (sort tokens (lambda (a b)
-		 (semantic-string-lessp-ci (semantic-sort-tag-type a)
-					   (semantic-sort-tag-type b)))))
+  (sort tags (lambda (a b)
+	       (semantic-string-lessp-ci (semantic-sort-tag-type a)
+					 (semantic-sort-tag-type b)))))
 
 ;;;###autoload
-(defun semantic-sort-tokens-by-type-decreasing-ci (tokens)
-  "Sort TOKENS by type in decreasing order with side effects.
+(defun semantic-sort-tags-by-type-decreasing-ci (tags)
+  "Sort TAGS by type in decreasing order with side effects.
 Return the sorted list."
-  (sort tokens (lambda (a b)
-		 (semantic-string-lessp-ci (semantic-sort-tag-type b)
-					   (semantic-sort-tag-type a)))))
+  (sort tags (lambda (a b)
+	       (semantic-string-lessp-ci (semantic-sort-tag-type b)
+					 (semantic-sort-tag-type a)))))
+
+(semantic-alias-obsolete 'semantic-sort-tokens-by-name-increasing
+			 'semantic-sort-tags-by-name-increasing)
+(semantic-alias-obsolete 'semantic-sort-tokens-by-name-decreasing
+			 'semantic-sort-tags-by-name-decreasing)
+(semantic-alias-obsolete 'semantic-sort-tokens-by-type-increasing
+			 'semantic-sort-tags-by-type-increasing)
+(semantic-alias-obsolete 'semantic-sort-tokens-by-type-decreasing
+			 'semantic-sort-tags-by-type-decreasing)
+(semantic-alias-obsolete 'semantic-sort-tokens-by-name-increasing-ci
+			 'semantic-sort-tags-by-name-increasing-ci)
+(semantic-alias-obsolete 'semantic-sort-tokens-by-name-decreasing-ci
+			 'semantic-sort-tags-by-name-decreasing-ci)
+(semantic-alias-obsolete 'semantic-sort-tokens-by-type-increasing-ci
+			 'semantic-sort-tags-by-type-increasing-ci)
+(semantic-alias-obsolete 'semantic-sort-tokens-by-type-decreasing-ci
+			 'semantic-sort-tags-by-type-decreasing-ci)
 
 
 ;;; Unique
@@ -141,7 +158,7 @@ Return the sorted list."
   "Scan a list of TAGS, removing duplicate names.
 This must first sort the tags by name alphabetically ascending."
   (let ((copy (copy-sequence tags))
-	(sorted (semantic-sort-tokens-by-name-increasing tags))
+	(sorted (semantic-sort-tags-by-name-increasing tags))
 	(uniq nil))
     (while sorted
       (if (or (not uniq)
@@ -159,7 +176,8 @@ This must first sort the tags by name alphabetically ascending.
 TAGS are removed only if they are equivalent, as can happen when
 multiple tag sources are scanned."
   (let ((copy (copy-sequence tags))
-	(sorted (semantic-sort-tokens-by-name-increasing tags))
+	(sorted (sort tags (lambda (a b)
+			     (< (semantic-tag-start a) (semantic-tag-start b)))))
 	(uniq nil))
     (while sorted
       (if (or (not uniq)
