@@ -809,8 +809,8 @@ the first symbol in the rule becomes the value of the whole rule:
 @code{(progn $1)}.  The default value of an empty rule is @code{nil}.
 
 The exact default behavior depends on the parser.  For more
-information, @inforef{Start nonterminals, , wisent}, and
-@inforef{%start , , bovine}.
+information, @inforef{Wisent, , wisent}, and @inforef{Bovine, ,
+bovine}, manuals.
 
 @table @strong
 @item Please note:
