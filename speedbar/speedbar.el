@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: speedbar.el,v 1.218 2002/03/17 11:45:37 zappo Exp $
+;; X-RCS: $Id: speedbar.el,v 1.219 2002/03/22 20:50:54 zappo Exp $
 
 (defvar speedbar-version "0.14beta4"
   "The current version of speedbar.")
@@ -84,6 +84,31 @@
   :group 'speedbar)
 
 ;;; Code:
+(defun speedbar-require-version (major minor &optional beta)
+  "Non-nil if this version of SPEEDBAR does not satisfy a specific version.
+Arguments can be:
+
+  (MAJOR MINOR &optional BETA)
+
+  Values MAJOR and MINOR must be integers.  BETA can be an integer, or
+excluded if a released version is required.
+
+It is assumed that if the current version is newer than that specified,
+everything passes.  Exceptions occur when known incompatibilities are
+introduced."
+  (when (string-match "\\([0-9]+\\)\\.\\([0-9]+\\)\\( ?beta ?\\([0-9]+\\)\\)?"
+		      speedbar-version)
+    (let ((vmajor (string-to-int (match-string 1 speedbar-version)))
+	  (vminor (string-to-int (match-string 2 speedbar-version)))
+	  (vbeta (match-string 4 speedbar-version)))
+      (when vbeta (setq vbeta (string-to-int vbeta)))
+      (or (> major vmajor)
+	  (and (= major vmajor) (> minor vminor))
+	  (and (= major vmajor) (= minor vminor)
+	       (or (and (not beta) vbeta)
+		   (and beta vbeta (> beta vbeta)))))
+      )))
+
 (defvar speedbar-initial-expansion-mode-alist
   '(("buffers" speedbar-buffer-easymenu-definition speedbar-buffers-key-map
      speedbar-buffer-buttons)
