@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.41 2002/06/14 13:11:46 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.42 2002/07/21 13:39:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -650,7 +650,8 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   (function &optional databases search-parts search-includes diff-mode find-file-match)
   "Find all occurances of nonterminals which match FUNCTION.
 Search in all DATABASES.  If DATABASES is nil, search a range of
-associated databases.
+associated databases calculated by `semanticdb-current-database-list'.
+DATABASES is a list of `semanticdb-project-database' objects.
 When SEARCH-PARTS is non-nil the search will include children of tokens.
 When SEARCH-INCLUDES is non-nil, the search will include dependency files.
 When DIFF-MODE is non-nil, search databases which are of a different mode.
