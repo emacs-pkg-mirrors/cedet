@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb.el,v 1.62 2003/09/24 13:48:32 zappo Exp $
+;; X-RCS: $Id: semanticdb.el,v 1.62.2.1 2003/10/27 14:44:54 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -297,6 +297,16 @@ Force PATH to end with a /."
   (if (not (= semanticdb-dir-sep-char (aref path (1- (length path)))))
       (concat path (list semanticdb-dir-sep-char))
     path))
+
+(defmethod semanticdb-printable-name ((table semanticdb-table))
+  "Return a string which is a short and logical printable name for TABLE.
+Use this instead of getting the :file slot of the table, which can
+sometimes be unbound."
+  ;; I know I said that the above is sometimes unbound.
+  ;; Not that if this line throws an error, you should go to
+  ;; the subclass, and override this method.
+  (file-name-nondirectory (file-name-sans-extension (oref table file)))
+  )
 
 ;;; Associations
 ;;

@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-search.el,v 1.10 2003/07/25 17:35:12 zappo Exp $
+;; X-RCS: $Id: semanticdb-search.el,v 1.10.2.1 2003/10/27 14:44:36 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,6 +66,13 @@ Emacs' own symbol table, or from external libraries.")
   "If the tag list associated with OBJ is loaded, refresh it.
 This will call `semantic-bovinate-toplevel' if that file is in memory."
   nil)
+
+(defmethod semanticdb-printable-name ((table semanticdb-search-results-table))
+  "Return a string which is a short and logical printable name for TABLE.
+A search result may not have a file assocated with it, so we need to
+provide a reasonable identification."
+  (concat "System: " (object-name-string table))
+  )
 
 ;;; Utils
 ;;
