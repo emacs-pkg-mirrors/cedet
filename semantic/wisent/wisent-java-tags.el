@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.17 2002/08/11 20:30:47 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.18 2002/09/05 13:33:42 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,8 +48,8 @@
 ;;;;
 
 (defconst wisent-java-parser-tables
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-09-05 13:54+0200
   (eval-when-compile
-    ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-10 21:15+0200
     (wisent-compile-grammar
      '((LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK PAREN_BLOCK BRACE_BLOCK BRACK_BLOCK NOT NOTEQ MOD MODEQ AND ANDAND ANDEQ MULT MULTEQ PLUS PLUSPLUS PLUSEQ COMMA MINUS MINUSMINUS MINUSEQ DOT DIV DIVEQ COLON SEMICOLON LT LSHIFT LSHIFTEQ LTEQ EQ EQEQ GT GTEQ RSHIFT RSHIFTEQ URSHIFT URSHIFTEQ QUESTION XOR XOREQ OR OREQ OROR COMP IDENTIFIER STRING_LITERAL NUMBER_LITERAL ABSTRACT BOOLEAN BREAK BYTE CASE CATCH CHAR CLASS CONST CONTINUE DEFAULT DO DOUBLE ELSE EXTENDS FINAL FINALLY FLOAT FOR GOTO IF IMPLEMENTS IMPORT INSTANCEOF INT INTERFACE LONG NATIVE NEW PACKAGE PRIVATE PROTECTED PUBLIC RETURN SHORT STATIC STRICTFP SUPER SWITCH SYNCHRONIZED THIS THROW THROWS TRANSIENT TRY VOID VOLATILE WHILE _AUTHOR _VERSION _PARAM _RETURN _EXCEPTION _THROWS _SEE _SINCE _SERIAL _SERIALDATA _SERIALFIELD _DEPRECATED)
        nil
@@ -331,233 +331,228 @@
          (concat $1 "[]"))
         ((BRACK_BLOCK)
          (identity "[]"))))
-     '(compilation_unit package_declaration import_declaration class_declaration field_declaration method_declaration formal_parameter constructor_declaration interface_declaration class_member_declaration interface_member_declaration formal_parameters))
-    )
+     '(compilation_unit package_declaration import_declaration class_declaration field_declaration method_declaration formal_parameter constructor_declaration interface_declaration class_member_declaration interface_member_declaration formal_parameters)))
   "Wisent LALR(1) grammar for Semantic.
 Tweaked for Semantic needs.  That is to avoid full parsing of
 unnecessary stuff to improve performance.")
 
 (defconst wisent-java-keywords
-  (identity
-   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-10 21:15+0200
-   (semantic-lex-make-keyword-table
-    '(("abstract" . ABSTRACT)
-      ("boolean" . BOOLEAN)
-      ("break" . BREAK)
-      ("byte" . BYTE)
-      ("case" . CASE)
-      ("catch" . CATCH)
-      ("char" . CHAR)
-      ("class" . CLASS)
-      ("const" . CONST)
-      ("continue" . CONTINUE)
-      ("default" . DEFAULT)
-      ("do" . DO)
-      ("double" . DOUBLE)
-      ("else" . ELSE)
-      ("extends" . EXTENDS)
-      ("final" . FINAL)
-      ("finally" . FINALLY)
-      ("float" . FLOAT)
-      ("for" . FOR)
-      ("goto" . GOTO)
-      ("if" . IF)
-      ("implements" . IMPLEMENTS)
-      ("import" . IMPORT)
-      ("instanceof" . INSTANCEOF)
-      ("int" . INT)
-      ("interface" . INTERFACE)
-      ("long" . LONG)
-      ("native" . NATIVE)
-      ("new" . NEW)
-      ("package" . PACKAGE)
-      ("private" . PRIVATE)
-      ("protected" . PROTECTED)
-      ("public" . PUBLIC)
-      ("return" . RETURN)
-      ("short" . SHORT)
-      ("static" . STATIC)
-      ("strictfp" . STRICTFP)
-      ("super" . SUPER)
-      ("switch" . SWITCH)
-      ("synchronized" . SYNCHRONIZED)
-      ("this" . THIS)
-      ("throw" . THROW)
-      ("throws" . THROWS)
-      ("transient" . TRANSIENT)
-      ("try" . TRY)
-      ("void" . VOID)
-      ("volatile" . VOLATILE)
-      ("while" . WHILE)
-      ("@author" . _AUTHOR)
-      ("@version" . _VERSION)
-      ("@param" . _PARAM)
-      ("@return" . _RETURN)
-      ("@exception" . _EXCEPTION)
-      ("@throws" . _THROWS)
-      ("@see" . _SEE)
-      ("@since" . _SINCE)
-      ("@serial" . _SERIAL)
-      ("@serialData" . _SERIALDATA)
-      ("@serialField" . _SERIALFIELD)
-      ("@deprecated" . _DEPRECATED))
-    '(("@deprecated" javadoc
-       (seq 12 usage
-            (type function variable)
-            opt t))
-      ("@serialField" javadoc
-       (seq 11 usage
-            (variable)
-            opt t))
-      ("@serialData" javadoc
-       (seq 10 usage
-            (function)
-            opt t))
-      ("@serial" javadoc
-       (seq 9 usage
-            (variable)
-            opt t))
-      ("@since" javadoc
-       (seq 8 usage
-            (type function variable)
-            opt t))
-      ("@see" javadoc
-       (seq 7 usage
-            (type function variable)
-            opt t with-ref t))
-      ("@throws" javadoc
-       (seq 6 usage
-            (function)
-            with-name t))
-      ("@exception" javadoc
-       (seq 5 usage
-            (function)
-            with-name t))
-      ("@return" javadoc
-       (seq 4 usage
-            (function)))
-      ("@param" javadoc
-       (seq 3 usage
-            (function)
-            with-name t))
-      ("@version" javadoc
-       (seq 2 usage
-            (type)))
-      ("@author" javadoc
-       (seq 1 usage
-            (type)))
-      ("while" summary "while (<expr>) <stmt> | do <stmt> while (<expr>);")
-      ("volatile" summary "Field declaration modifier: volatile <type> <name> ...")
-      ("void" summary "Method return type: void <name> ...")
-      ("try" summary "try {<stmts>} [catch(<parm>) {<stmts>} ...] [finally {<stmts>}]")
-      ("transient" summary "Field declaration modifier: transient <type> <name> ...")
-      ("throws" summary "Method|Constructor declaration: throws <classType>, ...")
-      ("throw" summary "throw <expr> ;")
-      ("synchronized" summary "synchronized (<expr>) ... | Method decl. modifier: synchronized <type> <name> ...")
-      ("switch" summary "switch(<expr>) {[case <const-expr>: <stmts> ...] [default: <stmts>]}")
-      ("strictfp" summary "Declaration modifier: strictfp {class|interface|<type>} <name> ...")
-      ("static" summary "Declaration modifier: static {class|interface|<type>} <name> ...")
-      ("short" summary "Integral primitive type (-32768 to 32767)")
-      ("return" summary "return [<expr>] ;")
-      ("public" summary "Access level modifier: public {class|interface|<type>} <name> ...")
-      ("protected" summary "Access level modifier: protected {class|interface|<type>} <name> ...")
-      ("private" summary "Access level modifier: private {class|interface|<type>} <name> ...")
-      ("package" summary "Package declaration: package <name>")
-      ("native" summary "Method declaration modifier: native <type> <name> ...")
-      ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
-      ("interface" summary "Interface declaration: interface <name>")
-      ("int" summary "Integral primitive type (-2147483648 to 2147483647)")
-      ("import" summary "Import package declarations: import <package>")
-      ("implements" summary "Class SuperInterfaces declaration: implements <name> [, ...]")
-      ("if" summary "if (<expr>) <stmt> [else <stmt>]")
-      ("goto" summary "Unused reserved word")
-      ("for" summary "for ([<init-expr>]; [<expr>]; [<update-expr>]) <stmt>")
-      ("float" summary "Primitive floating-point type (single-precision 32-bit IEEE 754)")
-      ("finally" summary "try {<stmts>} ... finally {<stmts>}")
-      ("final" summary "Class|Member declaration modifier: final {class|<type>} <name> ...")
-      ("extends" summary "SuperClass|SuperInterfaces declaration: extends <name> [, ...]")
-      ("else" summary "if (<expr>) <stmt> else <stmt>")
-      ("double" summary "Primitive floating-point type (double-precision 64-bit IEEE 754)")
-      ("do" summary "do <stmt> while (<expr>);")
-      ("default" summary "switch(<expr>) { ... default: <stmts>}")
-      ("continue" summary "continue [<label>] ;")
-      ("const" summary "Unused reserved word")
-      ("class" summary "Class declaration: class <name>")
-      ("char" summary "Integral primitive type ('u0000' to 'uffff') (0 to 65535)")
-      ("catch" summary "try {<stmts>} catch(<parm>) {<stmts>} ... ")
-      ("case" summary "switch(<expr>) {case <const-expr>: <stmts> ... }")
-      ("byte" summary "Integral primitive type (-128 to 127)")
-      ("break" summary "break [<label>] ;")
-      ("boolean" summary "Primitive logical quantity type (true or false)")
-      ("abstract" summary "Class|Method declaration modifier: abstract {class|<type>} <name> ...")))
-   )
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-09-05 13:54+0200
+  (semantic-lex-make-keyword-table
+   '(("abstract" . ABSTRACT)
+     ("boolean" . BOOLEAN)
+     ("break" . BREAK)
+     ("byte" . BYTE)
+     ("case" . CASE)
+     ("catch" . CATCH)
+     ("char" . CHAR)
+     ("class" . CLASS)
+     ("const" . CONST)
+     ("continue" . CONTINUE)
+     ("default" . DEFAULT)
+     ("do" . DO)
+     ("double" . DOUBLE)
+     ("else" . ELSE)
+     ("extends" . EXTENDS)
+     ("final" . FINAL)
+     ("finally" . FINALLY)
+     ("float" . FLOAT)
+     ("for" . FOR)
+     ("goto" . GOTO)
+     ("if" . IF)
+     ("implements" . IMPLEMENTS)
+     ("import" . IMPORT)
+     ("instanceof" . INSTANCEOF)
+     ("int" . INT)
+     ("interface" . INTERFACE)
+     ("long" . LONG)
+     ("native" . NATIVE)
+     ("new" . NEW)
+     ("package" . PACKAGE)
+     ("private" . PRIVATE)
+     ("protected" . PROTECTED)
+     ("public" . PUBLIC)
+     ("return" . RETURN)
+     ("short" . SHORT)
+     ("static" . STATIC)
+     ("strictfp" . STRICTFP)
+     ("super" . SUPER)
+     ("switch" . SWITCH)
+     ("synchronized" . SYNCHRONIZED)
+     ("this" . THIS)
+     ("throw" . THROW)
+     ("throws" . THROWS)
+     ("transient" . TRANSIENT)
+     ("try" . TRY)
+     ("void" . VOID)
+     ("volatile" . VOLATILE)
+     ("while" . WHILE)
+     ("@author" . _AUTHOR)
+     ("@version" . _VERSION)
+     ("@param" . _PARAM)
+     ("@return" . _RETURN)
+     ("@exception" . _EXCEPTION)
+     ("@throws" . _THROWS)
+     ("@see" . _SEE)
+     ("@since" . _SINCE)
+     ("@serial" . _SERIAL)
+     ("@serialData" . _SERIALDATA)
+     ("@serialField" . _SERIALFIELD)
+     ("@deprecated" . _DEPRECATED))
+   '(("@deprecated" javadoc
+      (seq 12 usage
+           (type function variable)
+           opt t))
+     ("@serialField" javadoc
+      (seq 11 usage
+           (variable)
+           opt t))
+     ("@serialData" javadoc
+      (seq 10 usage
+           (function)
+           opt t))
+     ("@serial" javadoc
+      (seq 9 usage
+           (variable)
+           opt t))
+     ("@since" javadoc
+      (seq 8 usage
+           (type function variable)
+           opt t))
+     ("@see" javadoc
+      (seq 7 usage
+           (type function variable)
+           opt t with-ref t))
+     ("@throws" javadoc
+      (seq 6 usage
+           (function)
+           with-name t))
+     ("@exception" javadoc
+      (seq 5 usage
+           (function)
+           with-name t))
+     ("@return" javadoc
+      (seq 4 usage
+           (function)))
+     ("@param" javadoc
+      (seq 3 usage
+           (function)
+           with-name t))
+     ("@version" javadoc
+      (seq 2 usage
+           (type)))
+     ("@author" javadoc
+      (seq 1 usage
+           (type)))
+     ("while" summary "while (<expr>) <stmt> | do <stmt> while (<expr>);")
+     ("volatile" summary "Field declaration modifier: volatile <type> <name> ...")
+     ("void" summary "Method return type: void <name> ...")
+     ("try" summary "try {<stmts>} [catch(<parm>) {<stmts>} ...] [finally {<stmts>}]")
+     ("transient" summary "Field declaration modifier: transient <type> <name> ...")
+     ("throws" summary "Method|Constructor declaration: throws <classType>, ...")
+     ("throw" summary "throw <expr> ;")
+     ("synchronized" summary "synchronized (<expr>) ... | Method decl. modifier: synchronized <type> <name> ...")
+     ("switch" summary "switch(<expr>) {[case <const-expr>: <stmts> ...] [default: <stmts>]}")
+     ("strictfp" summary "Declaration modifier: strictfp {class|interface|<type>} <name> ...")
+     ("static" summary "Declaration modifier: static {class|interface|<type>} <name> ...")
+     ("short" summary "Integral primitive type (-32768 to 32767)")
+     ("return" summary "return [<expr>] ;")
+     ("public" summary "Access level modifier: public {class|interface|<type>} <name> ...")
+     ("protected" summary "Access level modifier: protected {class|interface|<type>} <name> ...")
+     ("private" summary "Access level modifier: private {class|interface|<type>} <name> ...")
+     ("package" summary "Package declaration: package <name>")
+     ("native" summary "Method declaration modifier: native <type> <name> ...")
+     ("long" summary "Integral primitive type (-9223372036854775808 to 9223372036854775807)")
+     ("interface" summary "Interface declaration: interface <name>")
+     ("int" summary "Integral primitive type (-2147483648 to 2147483647)")
+     ("import" summary "Import package declarations: import <package>")
+     ("implements" summary "Class SuperInterfaces declaration: implements <name> [, ...]")
+     ("if" summary "if (<expr>) <stmt> [else <stmt>]")
+     ("goto" summary "Unused reserved word")
+     ("for" summary "for ([<init-expr>]; [<expr>]; [<update-expr>]) <stmt>")
+     ("float" summary "Primitive floating-point type (single-precision 32-bit IEEE 754)")
+     ("finally" summary "try {<stmts>} ... finally {<stmts>}")
+     ("final" summary "Class|Member declaration modifier: final {class|<type>} <name> ...")
+     ("extends" summary "SuperClass|SuperInterfaces declaration: extends <name> [, ...]")
+     ("else" summary "if (<expr>) <stmt> else <stmt>")
+     ("double" summary "Primitive floating-point type (double-precision 64-bit IEEE 754)")
+     ("do" summary "do <stmt> while (<expr>);")
+     ("default" summary "switch(<expr>) { ... default: <stmts>}")
+     ("continue" summary "continue [<label>] ;")
+     ("const" summary "Unused reserved word")
+     ("class" summary "Class declaration: class <name>")
+     ("char" summary "Integral primitive type ('u0000' to 'uffff') (0 to 65535)")
+     ("catch" summary "try {<stmts>} catch(<parm>) {<stmts>} ... ")
+     ("case" summary "switch(<expr>) {case <const-expr>: <stmts> ... }")
+     ("byte" summary "Integral primitive type (-128 to 127)")
+     ("break" summary "break [<label>] ;")
+     ("boolean" summary "Primitive logical quantity type (true or false)")
+     ("abstract" summary "Class|Method declaration modifier: abstract {class|<type>} <name> ...")))
   "Java keywords.")
 
 (defconst wisent-java-tokens
-  (identity
-   ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-10 21:15+0200
-   (wisent-lex-make-token-table
-    '(("number"
-       (NUMBER_LITERAL))
-      ("string"
-       (STRING_LITERAL))
-      ("symbol"
-       (IDENTIFIER))
-      ("punctuation"
-       (COMP . "~")
-       (OROR . "||")
-       (OREQ . "|=")
-       (OR . "|")
-       (XOREQ . "^=")
-       (XOR . "^")
-       (QUESTION . "?")
-       (URSHIFTEQ . ">>>=")
-       (URSHIFT . ">>>")
-       (RSHIFTEQ . ">>=")
-       (RSHIFT . ">>")
-       (GTEQ . ">=")
-       (GT . ">")
-       (EQEQ . "==")
-       (EQ . "=")
-       (LTEQ . "<=")
-       (LSHIFTEQ . "<<=")
-       (LSHIFT . "<<")
-       (LT . "<")
-       (SEMICOLON . ";")
-       (COLON . ":")
-       (DIVEQ . "/=")
-       (DIV . "/")
-       (DOT . ".")
-       (MINUSEQ . "-=")
-       (MINUSMINUS . "--")
-       (MINUS . "-")
-       (COMMA . ",")
-       (PLUSEQ . "+=")
-       (PLUSPLUS . "++")
-       (PLUS . "+")
-       (MULTEQ . "*=")
-       (MULT . "*")
-       (ANDEQ . "&=")
-       (ANDAND . "&&")
-       (AND . "&")
-       (MODEQ . "%=")
-       (MOD . "%")
-       (NOTEQ . "!=")
-       (NOT . "!"))
-      ("semantic-list"
-       (BRACK_BLOCK . "^\\[")
-       (BRACE_BLOCK . "^{")
-       (PAREN_BLOCK . "^("))
-      ("close-paren"
-       (RBRACK . "]")
-       (RBRACE . "}")
-       (RPAREN . ")"))
-      ("open-paren"
-       (LBRACK . "[")
-       (LBRACE . "{")
-       (LPAREN . "(")))
-    'nil)
-   )
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-09-05 13:54+0200
+  (wisent-lex-make-token-table
+   '(("number"
+      (NUMBER_LITERAL))
+     ("string"
+      (STRING_LITERAL))
+     ("symbol"
+      (IDENTIFIER))
+     ("punctuation"
+      (COMP . "~")
+      (OROR . "||")
+      (OREQ . "|=")
+      (OR . "|")
+      (XOREQ . "^=")
+      (XOR . "^")
+      (QUESTION . "?")
+      (URSHIFTEQ . ">>>=")
+      (URSHIFT . ">>>")
+      (RSHIFTEQ . ">>=")
+      (RSHIFT . ">>")
+      (GTEQ . ">=")
+      (GT . ">")
+      (EQEQ . "==")
+      (EQ . "=")
+      (LTEQ . "<=")
+      (LSHIFTEQ . "<<=")
+      (LSHIFT . "<<")
+      (LT . "<")
+      (SEMICOLON . ";")
+      (COLON . ":")
+      (DIVEQ . "/=")
+      (DIV . "/")
+      (DOT . ".")
+      (MINUSEQ . "-=")
+      (MINUSMINUS . "--")
+      (MINUS . "-")
+      (COMMA . ",")
+      (PLUSEQ . "+=")
+      (PLUSPLUS . "++")
+      (PLUS . "+")
+      (MULTEQ . "*=")
+      (MULT . "*")
+      (ANDEQ . "&=")
+      (ANDAND . "&&")
+      (AND . "&")
+      (MODEQ . "%=")
+      (MOD . "%")
+      (NOTEQ . "!=")
+      (NOT . "!"))
+     ("semantic-list"
+      (BRACK_BLOCK . "^\\[")
+      (BRACE_BLOCK . "^{")
+      (PAREN_BLOCK . "^("))
+     ("close-paren"
+      (RBRACK . "]")
+      (RBRACE . "}")
+      (RPAREN . ")"))
+     ("open-paren"
+      (LBRACK . "[")
+      (LBRACE . "{")
+      (LPAREN . "(")))
+   'nil)
   "Java tokens.")
 
 ;;;;
@@ -606,14 +601,14 @@ This function is a Java specific `get-local-variables' override."
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
-  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-08-10 21:15+0200
+  ;;DO NOT EDIT! Generated from wisent-java-tags.wy - 2002-09-05 13:54+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table wisent-java-parser-tables
           semantic-flex-keywords-obarray wisent-java-keywords
-          wisent-lex-tokens-obarray wisent-java-tokens)
+          semantic-lex-tokens-obarray wisent-java-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
@@ -647,8 +642,7 @@ Use the alternate LALR(1) parser."
      senator-step-at-token-ids '(function variable)
      )
     ;; Setup javadoc stuff
-    (semantic-java-doc-setup))
-  )
+    (semantic-java-doc-setup)))
 
 ;; semantic overloaded functions
 (semantic-install-function-overrides
