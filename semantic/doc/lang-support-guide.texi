@@ -412,6 +412,37 @@ These tools use the semantic analysis tool.
 @inforef{Context Analysis. . semantic-appdev}
 @end table
 
+@menu
+* Semantic Analyzer Support::
+@end menu
+
+@node Semantic Analyzer Support
+@subsection Semantic Analyzer Support
+
+@ignore
+>> From and Email I sent to get David started on supporting the analyzer
+
+  First, context parsing needs to work.  This includes
+`semantic-ctxt-current-symbol', `-function', `-assignment'.  You also
+need `semantic-get-local-arguments' and -local-variables'.
+
+  The next most critical piece is to provide implementations of the
+semanticdb-find search path calculation API.
+`semanticdb-find-table-for-include' is a good start.  That really
+should use `semantic-dependency-tag-file', but that doesn't use
+semanticdb-project-root when looking for files.  Java could be
+trouble here since you can import a *.
+
+  A couple more good ones is `semanticdb-find-translate-path-brutish'
+and `semanticdb-find-translate-path-includes'.  Brutish searches look
+at everything in the current project.  The include path will scan
+only those items explicitly included into your file.
+
+  Last but not least, for Java, we need a semanticdb back end that
+will provide tags out of a jar file.  Since most objects inherit from
+a system library (like Object), you will need this to get the tag
+list including `clone' and the like.
+@end ignore
 
 @node Writing Lexers
 @chapter Writing Lexers
@@ -1085,9 +1116,308 @@ there has been a size change.
 @node Debugging
 @chapter Debugging
 
-NOTE: This chapter was written for Semantic 1.4 BNF format files.
-Much still holds true for Semantic 2.0 BY files, but does not work
-for WY files.
+Grammars can be tricky things to debug.  There are several types of
+tools for debugging in Semantic, and the type of problem you have
+requires different types of tools.
+
+@menu
+* Lexical Debugging::
+* Parser Output tools::
+* Bovine Parser Debugging::
+* Wisent Parser Debugging::
+* Overlay Debugging::
+* Incremental Parser Debugging::
+* Debugging Analysis::
+* Semantic 1.4 Doc::
+@end menu
+
+@node Lexical Debugging
+@section Lexical Debugging
+
+The first major problem you may encounter is with lexical analysis.
+If the text is not transformed into the expected token stream, no
+parser will understand it.
+
+You can step through the lexical analyzer with the following command:
+
+@deffn Command semantic-lex-debug arg
+@anchor{semantic-lex-debug}
+Debug the semantic lexer in the current buffer.
+Argument @var{ARG} specifies of the analyze the whole buffer, or start at point.
+While engaged, each token identified by the lexer will be highlighted
+in the target buffer   @var{A} description of the current token will be
+displayed in the minibuffer.  Press @kbd{SPC} to move to the next lexical token.
+@end deffn
+
+For an example of what the output of the @code{semantic-lex} function
+should return, see @ref{Lexer Output}.
+
+@node Parser Output tools
+@section Parser Output tools
+
+There are several tools which can be used to see what the parser
+output is.  These will work for any type of parser, including the
+Bovine parser, Wisent parser.
+
+The first and easiest is a minor mode which highlights text the
+parser did not understand.
+
+@deffn Command semantic-show-unmatched-syntax-mode &optional arg
+@anchor{semantic-show-unmatched-syntax-mode}
+Minor mode to highlight unmatched lexical syntax tokens.
+When a parser executes, some elements in the buffer may not match any
+parser rules.  These text characters are considered unmatched syntax.
+Often time, the display of unmatched syntax can expose coding
+problems before the compiler is run.
+
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+
+key             binding
+---             -------
+
+@var{C}-c		Prefix Command
+
+@kbd{C-c} ,		Prefix Command
+
+@kbd{C-c} , `		semantic-show-unmatched-syntax-next
+@end deffn
+
+
+Another interesting mode will display a line between all the tags in
+the current buffer to make it more obvious where boundaries lie.  You
+can enable this as a minor mode.
+
+@deffn Command semantic-show-tag-boundaries-mode &optional arg
+@anchor{semantic-show-tag-boundaries-mode}
+Minor mode to display a boundary in front of tags.
+The boundary is displayed using an overline in Emacs @var{21}.
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
+
+Another interesting mode hels if you are worred about specific
+attributes, you can se this minor mode to highlight different tokens
+in different ways based on the attributes you are most concerned with.
+
+@deffn Command semantic-highlight-by-attribute-mode &optional arg
+@anchor{semantic-highlight-by-attribute-mode}
+Minor mode to highlight tags based on some attribute.
+By default, the protection of a tag will give it a different
+background color.
+
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
+
+Another tool that can be used is a dump of the current list of tags.
+This shows the actual Lisp representation of the tags generated in a
+rather bland dump.  this can be useful if text was successfully
+parsed, and you want to be sure that the correct information was
+captured.
+
+@deffn Command bovinate &optional clear
+@anchor{bovinate}
+Bovinate the current buffer.  Show output in a temp buffer.
+Optional argument @var{CLEAR} will clear the cache before bovinating.
+If @var{CLEAR} is negative, it will do a full reparse, and also not display
+the output buffer.
+@end deffn
+
+@node Bovine Parser Debugging
+@section Bovine Parser Debugging
+
+The bovine parser is described in @inforef{top, ,bovine}.
+
+Asside using a traditional Emacs Lisp debugger on functions you
+provide for token expansion, there is one other means of debugging
+which interactively steps over the rules in your grammar file.
+
+@deffn Command semantic-debug
+@anchor{semantic-debug}
+Parse the current buffer and run in debug mode.
+@end deffn
+
+Once the parser is activated in this mode, the current tag cache is
+flushed, and the parser started.  At each stage in the LALR parser,
+the current rule, and match step is highlighted in your parser source
+buffer.  In a second window, the text being parsed is shown, and the
+lexical token found is highlighted.  A clue of the current stack of
+saved data is displayed in the minibuffer.
+
+There is a wide range of keybindings that can be used to execute code
+in your buffer.  (Not all are implemented.)
+
+@table @kbd
+@item n
+@itemx SPC
+Next.
+@item s
+Step.
+@item u
+Up.  (Not implemented yet.)
+@item d
+Down.  (Not implemented yet.)
+@item f
+Fail Match.  Pretend the current match element and the token in the
+buffer is a failed match, even if it is not.
+@item h
+Print information about the current parser state.
+@item s
+Jump to to the source buffer.
+@item p
+Jump to the parser buffer.
+@item q
+Quit.  Exits this debug session and the parser.
+@item a
+Abort.  Aborts one level of the parser, possibly exiting the debugger.
+@item g
+Go.  Stop debugging, and just start parsing.
+@item b
+Set Breakpoint.  (Not implemented yet.)
+@item e
+@code{eval-expression}.  Lets you execute some random Emacs Lisp command.
+@end table
+
+@b{Note:} While the core of @code{semantic-debug} is a generic
+debugger interface for rule based grammars, only the bovine parser has
+a specific backend implementation.  If someone wants to implement a
+debugger backend for wisent, that would be spiff.
+
+@node Wisent Parser Debugging
+@section Wisent Parser Debugging
+
+Wisent does not implement a backend for @code{semantic-debug}, it
+does have some debugging commands the rule actions.  You can read
+about them in the wisent manual.
+
+@inforef{Grammar Debugging, , wisent}
+
+@node Overlay Debugging
+@section Overlay Debugging
+
+Once a buffer has been parsed into a tag table, the next most
+important step is getting those tags activated for a buffer, and
+storable in a @code{semanticdb} backend.
+@inforef{semanticdb, , semantic-appdev}.
+
+These two activities depend on the ability of every tag in the table
+to be linked and unlinked to the current buffer with an overlay.
+@inforef{semantic-appdev, , Tag Overlay}
+@inforef{semantic-appdev, , Tag Hooks}
+
+In this case, the most important function that must be written is:
+
+@defun semantic-tag-components-with-overlays tag
+@anchor{semantic-tag-components-with-overlays}
+Return the list of top level components belonging to @var{TAG}.
+Children are any sub-tags which contain overlays.
+
+Default behavior is to get @dfn{semantic-tag-components} in addition
+to the components of an anonymous types (if applicable.)
+
+Note for language authors:
+  If a mode defines a language tag that has tags in it with overlays
+you should still return them with this function.
+Ignoring this step will prevent several features from working correctly.
+This function can be overriden in semantic using the
+symbol @code{tag-components-with-overlays}.
+@end defun
+
+If your are successfully building a tag table, and errors occur
+saving or restoring tags from semanticdb, this is the most likely
+cause of the problem.
+
+@node Incremental Parser Debugging
+@section Incremental Parser Debugging
+
+The incremental parser is a highly complex engine for quickly
+refreshing the tag table of a buffer after some set of changes have
+been made to that buffer by a user.
+
+There is no debugger or interface to the incremental parser, however
+there are a few minor modes which can help you identify issues if you
+think there are problems while incrementally parsing a buffer.
+
+The first stage of the incremental parser is in tracking the changes
+the user makes to a buffer.  You can visibly track these changes too.
+
+@deffn Command semantic-highlight-edits-mode &optional arg
+@anchor{semantic-highlight-edits-mode}
+Minor mode for highlighting changes made in a buffer.
+Changes are tracked by semantic so that the incremental parser can work
+properly.
+This mode will highlight those changes as they are made, and clear them
+when the incremental parser accounts for those edits.
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
+
+Another important aspect of the incremental parser involves tracking
+the current parser state of the buffer.  You can track this state
+also.
+
+@deffn Command semantic-show-parser-state-mode &optional arg
+@anchor{semantic-show-parser-state-mode}
+Minor mode for displaying parser cache state in the modeline.
+The cache can be in one of three states.  They are
+Up to date, Partial reprase needed, and Full reparse needed.
+The state is indicated in the modeline with the following characters:
+@table @kbd
+@item -
+The cache is up to date.
+@item !
+The cache requires a full update.
+@item ~
+The cache needs to be incrementally parsed.
+@item %
+The cache is not currently parseable.
+@item @@
+Auto-parse in progress (not set here.)
+@end table
+
+With prefix argument @var{ARG}, turn on if positive, otherwise off.  The
+minor mode can be turned on only if semantic feature is available and
+the current buffer was set up for parsing.  Return non-@code{nil} if the
+minor mode is enabled.
+@end deffn
+
+@node Debugging Analysis
+@section Debugging Analysis
+
+The semantic analyzer is a at the top of the food chain when it comes
+to @semantic{} service functionality.  The semantic support for a
+language must be absolute before analysis will work property.
+
+A good way to test analysis is by placing the cursor in different
+places, and requesting a dump of the context.
+
+@deffn Command semantic-analyze-current-context position
+@anchor{semantic-analyze-current-context}
+Analyze the current context at @var{POSITION}.
+If called interactively, display interesting information about @var{POSITION}
+in a separate buffer.
+Returns an object based on symbol @dfn{semantic-analyze-context}.
+@end deffn
+
+@ref{Semantic Analyzer Support}
+@inforef{Analyzer, , semantic-user}
+
+@node Semantic 1.4 Doc
+@section Semantic 1.4 Doc
+
+@i{
+In semantic 1.4 the following documentation was written for debugging.
+I'm leaving in here until better doc for 2.0 is done.
+}
 
 Writing language files using BY is significantly easier than writing
 then using regular expressions in a functional manner.  Debugging
