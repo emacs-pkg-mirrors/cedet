@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.2
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.7 2001/09/29 23:43:42 ponced Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.40.2.8 2001/10/04 20:27:14 ponced Exp $
 
 ;; Semantic-bnf is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1216,7 +1216,7 @@ Once found, put it in a buffer, and return it."
 (defvar semantic-bnf-mode-keywords
   `((";\\s-*[^#\n ].*$" 0 font-lock-comment-face)
     ("^\\(\\w+\\)[ \n\r\t]*:" 1 font-lock-function-name-face)
-    ("\\<\\(EMPTY\\|symbol\\|punctuation\\|string\\|semantic-list\
+    ("\\<\\(EMPTY\\|symbol\\|number\\|punctuation\\|string\\|semantic-list\
 \\|\\(open\\|close\\)-paren\\|comment\\)\\>"
      1 font-lock-keyword-face)
     ("(\\s-*\\(ASSOC\\|EXPAND\\(FULL\\)?\\)\\>"
@@ -1367,6 +1367,7 @@ Optional argument COLOR determines if color is added to the text."
 
 (defvar semantic-bnf-syntax-help
   `( ("symbol" . "Syntax: A symbol of alpha numeric and symbol characters")
+     ("number" . "Syntax: Numeric characters.")
      ("punctuation" . "Syntax: Punctuation character.")
      ("semantic-list" . "Syntax: A list delimited by any valid list characters")
      ("open-paren" . "Syntax: Open Parenthisis character")
