@@ -42,6 +42,10 @@ obsolete old functions and allow old code to continue working.  Byte
 compiler warnings will be produced if old functions are used.  The
 old function will be completely removed in a future release.
 
+For variables, the function `semantic-varalias-obsolete' has been
+used.  When available it uses a native alias routine for compatibility
+or displays a warning.
+
 ** Lexical analysis.
 
 *** The old `semantic-flex' API is deprecated.
@@ -380,7 +384,7 @@ path and only those results will be scanned.
 
 *** New types of searches not originally in semanticdb-search.el
 
-**** semantic-find-*-by-name-for-completion
+**** semanticdb-find-*-by-name-for-completion
 Searches "for completion" use different matching constraints
 equivalent to the regular expression "^chars", which provide a speed
 improvement.
@@ -437,12 +441,16 @@ Customizable to any type of comparison.
 ** `semantic-summary-mode' obsolete
 
 ** `semantic-idle-scheduler-mode'
-Replaces semantic-auto-parse-mode.  Reparses all buffers.
+Replaces seman`tic-auto-parse-mode'.  Reparses all buffers.
 Also schedules additional functionality.
 
 ** `semantic-idle-summary-mode'
-Replaces semantic-summary-mode.  Uses the new idle scheduler
+Replaces seman`tic-summary-mode'.  Uses the new idle scheduler
 to execute itself.
+
+** `semantic-idle-completions-mode'
+New minor mode for automatically going into inline completion
+for symbol prefixes.
 
 * Hooks.
 
