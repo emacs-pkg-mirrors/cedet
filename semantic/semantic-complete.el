@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-complete.el,v 1.11 2003/07/09 14:53:00 zappo Exp $
+;; X-RCS: $Id: semantic-complete.el,v 1.12 2003/09/02 16:09:53 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -753,6 +753,9 @@ if `force-show' is 0, this value is always ignored.")
 (defun semantic-complete-read-tag-buffer-deep (prompt &optional
 						      default-tag initial-input history)
   "Ask for a tag by name from the current buffer.
+Available tags are from the current buffer, at any level.
+Completion options are presented in a traditional way, with highlighting
+to resolve same-name collisions.
 PROMPT is a string to prompt with.
 DEFAULT-TAG is a semantic tag or string to use as the default value.
 If INITIAL-INPUT is non-nil, insert it in the minibuffer initially.
