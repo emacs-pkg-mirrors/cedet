@@ -8,7 +8,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 30 Janvier 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent.el,v 1.24 2002/02/08 23:21:43 ponced Exp $
+;; X-RCS: $Id: wisent.el,v 1.25 2002/06/30 22:22:32 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -124,10 +124,16 @@ Return an LALR automaton of the form:
   :type 'integer
   :group 'wisent)
 
-(defvar wisent-skip-token-hook nil
-  "Hook run when the parser skips a lexical token.
-The hook function receives the lexical token skipped.  For language
-specific hooks, make sure you define this as a local hook.")
+(defvar wisent-discarding-token-functions nil
+  "List of functions to be called when discarding a lexical token.
+These functions receive the lexical token discarded.
+When the parser encounters unexpected tokens, it can discards them,
+based on what directed by error recovery rules.  Either when the
+parser reads tokens until one is found that can be shifted, or when an
+semantic action calls the function `wisent-skip-token' or
+`wisent-skip-block'.
+For language specific hooks, make sure you define this as a local
+hook.")
 
 (defvar wisent-nerrs nil
   "The number of parse errors encountered so far.")
@@ -201,7 +207,8 @@ To be used in grammar recovery actions."
   (if (eq (car wisent-input) wisent-eoi-term)
       ;; does nothing at EOI to avoid infinite recovery loop
       nil
-    (run-hook-with-args 'wisent-skip-token-hook wisent-input)
+    (run-hook-with-args
+     'wisent-discarding-token-functions wisent-input)
     (wisent-clearin)
     (wisent-errok)))
 
@@ -232,7 +239,8 @@ To be used in grammar recovery actions."
         (setq input wisent-input)
         (while (and (not (eq (car input) wisent-eoi-term))
                     (< (nth 2 input) end))
-          (run-hook-with-args 'wisent-skip-token-hook input)
+          (run-hook-with-args
+           'wisent-discarding-token-functions input)
           (setq input (wisent-lexer)))
         ;; Clear the lookahead token
         (if (eq (car wisent-input) wisent-eoi-term)
@@ -362,7 +370,8 @@ automaton has only one entry point."
         (if (eq wisent-recovering wisent-parse-max-recover)
             (if (eq (car wisent-input) wisent-eoi-term)
                 (setq action nil) ;; Terminate if at end of input.
-              (run-hook-with-args 'wisent-skip-token-hook wisent-input)
+              (run-hook-with-args
+               'wisent-discarding-token-functions wisent-input)
               (setq wisent-input (wisent-lexer)))
 
           ;; Else will try to reuse lookahead token after shifting the
@@ -407,7 +416,8 @@ automaton has only one entry point."
                       (not (or (eq wisent-eoi-term choice)
                                (assq (wisent-translate
                                       choice translate) choices))))
-                  (run-hook-with-args 'wisent-skip-token-hook wisent-input)
+                  (run-hook-with-args
+                   'wisent-discarding-token-functions wisent-input)
                   (setq wisent-input nil))))))
         
        ;; Shift current token on top of the stack
