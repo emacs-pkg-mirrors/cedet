@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-bovine.el,v 1.2 2002/08/15 18:26:54 ponced Exp $
+;; X-CVS: $Id: semantic-bovine.el,v 1.3 2002/09/07 02:15:43 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -322,6 +322,7 @@ Optional argument CLEAR to unset the debug table."
   
 ;; We will get warnings in here about semantic-bnf-* fns.
 ;; We cannot require semantic-bnf due to compile errors.
+;;;###autoload
 (defun semantic-bovinate-debug-buffer ()
   "Bovinate the current buffer in debug mode."
   (interactive)
