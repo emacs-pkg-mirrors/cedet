@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.14 2003/03/11 00:41:36 zappo Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.15 2003/03/11 03:28:13 zappo Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -562,6 +562,10 @@ ARGS are ASSOC's key value list."
 ;;;;
 ;;;; API to access grammar tokens
 ;;;;
+
+(defvar-mode-local semantic-grammar-mode
+  senator-add-log-tokens '(nonterminal put token keyword)
+  "List of nonterminal tokens used with add-log.")
 
 (define-mode-overload-implementation semantic-nonterminal-children
   semantic-grammar-mode (token)
