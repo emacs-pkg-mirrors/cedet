@@ -17,7 +17,7 @@
    (ede-proj-target-makefile-info "Documentation"
     :name "Documentation"
     :path ""
-    :source '("semantic.texi" "semantic.texi" "glossary.texi" "overview.texi" "installation.texi" "fdl.texi" "internals.texi" "semanticheader.texi")
+    :source '("semantic.texi" "glossary.texi" "overview.texi" "installation.texi" "fdl.texi" "internals.texi" "semanticheader.texi")
     :mainmenu "semantic.texi"
     )
    (ede-proj-target-makefile-info "semantic-user.info"
