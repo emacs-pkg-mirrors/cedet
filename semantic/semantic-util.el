@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.57 2001/04/12 01:14:13 zappo Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.58 2001/04/13 16:58:32 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,9 +30,7 @@
 ;;
 
 (require 'assoc)
-(eval-when-compile
-  (provide 'semantic-util)
-  (require 'semantic))
+(require 'semantic)
 
 ;;; Code:
 
@@ -57,115 +55,6 @@ the current major mode is the only one.")
 ;; These functions use the flex and bovination engines to perform some
 ;; simple tasks useful to other programs.  These are just the most
 ;; critical entries.
-;;
-;; See semantic-util for a wider range of utility functions and macros.
-;;
-;; TFE = Token From End
-(defconst semantic-tfe-overlay 1
-  "Amount to subtract from the length of the token to get the overlay.")
-(defconst semantic-tfe-properties 2
-  "Amount to subtract from the length of the token to get the property list.")
-(defconst semantic-tfe-docstring 3
-  "Amount to subtract from the length of the token to get the doc string.")
-(defconst semantic-tfe-number 2
-  "The number of required end elements.")
-
-(defmacro semantic-token-token (token)
-  "Retrieve from TOKEN the token identifier.
-ie, the symbol 'variable, 'function, 'type, or other."
-  `(nth 1 ,token))
-
-(defun semantic-token-name (token)
-  "Retrieve the name of TOKEN."
-  (car token))
-
-(defun semantic-token-docstring (token &optional buffer)
-  "Retrieve the documentation of TOKEN.
-Optional argument BUFFER indicates where to get the text from.
-If not provided, then only the POSITION can be provided."
-  (let ((p (nth (- (length token) semantic-tfe-docstring) token)))
-    (if (and p buffer)
-	(save-excursion
-	  (set-buffer buffer)
-	  (semantic-flex-text (car (semantic-flex p (1+ p)))))
-      p)))
-
-(defmacro semantic-token-properties (token)
-  "Retrieve the PROPERTIES part of TOKEN.
-The returned item is an ALIST of (KEY . VALUE) pairs."
-  `(nth (- (length ,token) semantic-tfe-properties) ,token))
-
-(defmacro semantic-token-properties-cdr (token)
-  "Retrieve the cons cell for the PROPERTIES part of TOKEN."
-  `(nthcdr (- (length ,token) semantic-tfe-properties) ,token))
-
-(defun semantic-token-put (token key value)
-  "For TOKEN, put the property KEY on it with VALUE.
-If VALUE is nil, then remove the property from TOKEN."
-  (let* ((c (semantic-token-properties-cdr token))
-	 (al (car c))
-	 (a (assoc key (car c))))
-    (if a
-	(if value
-	    (setcdr a value)
-	  (adelete 'al key)
-	  (setcar c al))
-      (if value
-	  (setcar c (cons (cons key value) (car c)))))
-    ))
-
-(defun semantic-token-get (token key)
-  "For TOKEN, get the value for property KEY."
-  (cdr (assoc key (semantic-token-properties token))))
-
-(defmacro semantic-token-overlay (token)
-  "Retrieve the OVERLAY part of TOKEN.
-The returned item may be an overlay or an unloaded buffer representation."
-  `(nth (- (length ,token) semantic-tfe-overlay) ,token))
-
-(defmacro semantic-token-overlay-cdr (token)
-  "Retrieve the cons cell containing the OVERLAY part of TOKEN."
-  `(nthcdr (- (length ,token) semantic-tfe-overlay) ,token))
-
-(defmacro semantic-token-extent (token)
-  "Retrieve the extent (START END) of TOKEN."
-  `(let ((o (semantic-token-overlay ,token)))
-     (if (semantic-overlay-p o)
-	 (list (semantic-overlay-start o) (semantic-overlay-end o))
-       (list (aref o 0) (aref o 1)))))
-
-(defun semantic-token-start (token)
-  "Retrieve the start location of TOKEN."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-start o) (aref o 0))))
-
-(defun semantic-token-end (token)
-  "Retrieve the end location of TOKEN."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-end o) (aref o 1))))
-
-(defun semantic-token-buffer (token)
-  "Retrieve the buffer TOKEN resides in."
-  (let ((o (semantic-token-overlay token)))
-    (if (semantic-overlay-p o) (semantic-overlay-buffer o)
-      ;; We have no buffer for this token (It's not in Emacs right now.)
-      nil)))
-
-(defun semantic-token-p (token)
-  "Return non-nil if TOKEN is most likely a semantic token."
-  (and (listp token)
-       (stringp (car token))
-       (symbolp (car (cdr token)))))
-
-(defun semantic-token-with-position-p (token)
-  "Return non-nil if TOKEN is a semantic token with positional information."
-  (and (listp token)
-       (stringp (car token))
-       (symbolp (car (cdr token)))
-       (let ((o (semantic-token-overlay token)))
-	 (or (semantic-overlay-p o)
-	     (arrayp o)))))
-
 (defun semantic-token-type (token)
   "Retrieve the type of TOKEN."
   (if (member (semantic-token-token token)
@@ -283,6 +172,32 @@ the current Semantic enabled buffer found."
           (with-current-buffer b
             (if (semantic-active-p)
                 (funcall fun)))))))
+
+;; These semanticdb calls will throw warnings in the byte compiler.
+;; Doing the right thing to make them available at compile time
+;; really messes up the compilation sequence.
+(defun semantic-file-token-stream (file &optional checkcache)
+  "Return a token stream for FILE.
+If it is loaded, return the stream after making sure it's ok.
+If FILE is not loaded, check to see if `semanticdb' feature exists,
+   and use it to get tokens from files not in memory.
+If FILE is not loaded, and semanticdb is not available, find the file
+   and parse it.
+Optional argument CHECKCACHE is the same as that for
+`semantic-bovinate-toplevel'."
+  (if (get-file-buffer file)
+      (save-excursion
+	(set-buffer (get-file-buffer file))
+	(semantic-bovinate-toplevel checkcache))
+    ;; File not loaded
+    (if (and (fboundp 'semanticdb-minor-mode-p)
+	     (semanticdb-minor-mode-p))
+	;; semanticdb is around, use it.
+	(semanticdb-file-stream file)
+      ;; Get the stream ourselves.
+      (save-excursion
+	(set-buffer (find-file-noselect file))
+	(semantic-bovinate-toplevel checkcache)))))
 
 ;;; Searching by Position APIs
 ;;
@@ -443,6 +358,47 @@ smallest token."
 ;;
 ;; This functionality is needed to take some set of dirty code,
 ;; and splice in new tokens after a partial reparse.
+
+(defun semantic-change-function-mark-dirty  (start end length)
+  "Run whenever a buffer controlled by `semantic-mode' change.
+Tracks when and how the buffer is re-parsed.
+Argument START, END, and LENGTH specify the bounds of the change."
+  (when (and (not semantic-toplevel-bovine-cache-check)
+	     (not semantic-edits-are-safe))
+    (let ((tl (condition-case nil
+		  (nreverse (semantic-find-nonterminal-by-overlay-in-region
+		   (1- start) (1+ end)))
+		(error nil))))
+      (if tl
+	  (catch 'alldone
+	    ;; Loop over the token list
+	    (while tl
+	      (cond
+	       ;; If we are completely enclosed in this overlay.
+	       ((and (> start (semantic-token-start (car tl)))
+		     (< end (semantic-token-end (car tl))))
+		(if (semantic-token-get (car tl) 'dirty)
+		    nil
+		  (add-to-list 'semantic-dirty-tokens (car tl))
+		  (semantic-token-put (car tl) 'dirty t)
+		  (condition-case nil
+		      (run-hook-with-args 'semantic-dirty-token-hooks
+					  (car tl) start end)
+		    (error (if debug-on-error (debug)))))
+		  (throw 'alldone t))
+	       ;; If we cover the beginning or end of this item, we must
+	       ;; reparse this object.  If there are more items coming, then postpone
+	       ;; this till later.
+	       ((not (cdr tl))
+		(setq semantic-toplevel-bovine-cache-check t)
+		(run-hooks 'semantic-reparse-needed-change-hook))
+	       (t nil))
+	      ;; next
+	      (setq tl (cdr tl))))
+	;; There was no hit, perhaps we need to reparse this intermediate area.
+	(setq semantic-toplevel-bovine-cache-check t)
+	)
+      )))
 ;;
 ;; Properties set on the tokens are:
 ;;  dirty          - This token is dirty
@@ -1447,60 +1403,6 @@ instead of read-only."
   "Narrow to the region specified by TOKEN."
   (narrow-to-region (semantic-token-start token)
 		    (semantic-token-end token)))
-
-;;; Force token lists in and out of overlay mode.
-;;
-(defun semantic-deoverlay-token (token)
-  "Convert TOKEN from using an overlay to using an overlay proxy."
-  (when (semantic-token-p token)
-    (let ((c (semantic-token-overlay-cdr token))
-	  a)
-      (when (and c (semantic-overlay-p (car c)))
-	(setq a (vector (semantic-overlay-start (car c))
-			(semantic-overlay-end (car c))))
-	(semantic-overlay-delete (car c))
-	(setcar c a)
-	;; Fix the children of this token
-	(semantic-deoverlay-list (semantic-nonterminal-children token)))
-      )))
-
-(defun semantic-overlay-token (token)
-  "Convert TOKEN from using an overlay proxy to using an overlay."
-  (when (semantic-token-p token)
-    (let ((c (semantic-token-overlay-cdr token))
-	  o)
-      (when (and c (vectorp (car c)) (= (length (car c)) 2))
-	(setq o (semantic-make-overlay (aref (car c) 0)
-				       (aref (car c) 1)
-				       (current-buffer)))
-	(setcar c o)
-	(semantic-overlay-put o 'semantic token)
-	;; Fix overlays in children of this token
-	(semantic-overlay-list (semantic-nonterminal-children token))
-	))))
-
-(defun semantic-deoverlay-list (l)
-  "Remove overlays from the list L."
-  (mapcar 'semantic-deoverlay-token l))
-
-(defun semantic-overlay-list (l)
-  "Convert numbers to  overlays from the list L."
-  (mapcar 'semantic-overlay-token l))
-
-(defun semantic-deoverlay-cache ()
-  "Convert all tokens in the current cache to use overlay proxies."
-  (semantic-deoverlay-list (semantic-bovinate-toplevel)))
-
-(defun semantic-overlay-cache ()
-  "Convert all tokens in the current cache to use overlays."
-  (condition-case nil
-      ;; In this unique case, we cannot call the usual toplevel fn.
-      ;; because we don't want a reparse, we want the old overlays.
-      (semantic-overlay-list semantic-toplevel-bovine-cache)
-    ;; Recover when there is an error restoring the cache.
-    (error (message "Error recovering token list.")
-	   (semantic-clear-toplevel-cache)
-	   nil)))
 
 ;;; Interactive Functions for bovination
 ;;
