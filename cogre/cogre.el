@@ -4,9 +4,8 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: cogre.el,v 1.1 2001/04/14 05:39:17 zappo Exp $
+;; X-RCS: $Id: cogre.el,v 1.2 2001/04/18 02:27:35 zappo Exp $
 
-;;; Code:
 (defvar cogre-version "0.0"
   "Current version of Cogre.")
 
@@ -47,7 +46,9 @@
 (require 'eieio)
 (require 'eieio-opt)
 (require 'semantic)
-(require 'picture)
+(require 'picture-hack)
+
+;;; Code:
 
 ;;; Display Faces
 (defgroup cogre nil
@@ -185,6 +186,20 @@ Each element of the vector can be a list or string.")
 	      :type (or null string)
 	      :documentation "The ending glyph.
 See slot `start-glyph'")
+   (horizontal-preference-ratio
+    :initform .5
+    :allocation class
+    :documentation
+    "When choosing a link's direction, a weight applied to horizontal.
+Since characters are not square, this ratio attempts to handle the visible
+space the link spans, not the number of characters in the coordinate
+system being used.
+Also, some links may want to be vertical or horizontal as often as
+possible, thus values of 0 or 10 are also fine to advance a
+preference."  )
+   (stop-position :initform nil
+		  :documentation
+		  "After drawing this link, store a place for a tab stop.")
    )
   "Connected Graph link.
 Links are lines drawn between two nodes, or possibly loose in space
@@ -213,9 +228,12 @@ arrows or circles.")
 (if cogre-mode-map
     nil
   (setq cogre-mode-map (make-keymap))
+  ;; Structure changes
   (define-key cogre-mode-map "R" 'cogre-refresh)
   (define-key cogre-mode-map "N" 'cogre-new-node)
   (define-key cogre-mode-map "L" 'cogre-new-link)
+  (define-key cogre-mode-map "D" 'cogre-delete)
+  ;; Modifications
   (define-key cogre-mode-map "n" 'cogre-set-element-name)
   (define-key cogre-mode-map "l" 'cogre-edit-label)
   ;; Move nodes around
@@ -250,7 +268,8 @@ The new graph will be given NAME.  See `cogre-mode' for details."
     ))
 
 (defun cogre-mode ()
-  "Connected Graph Editor Mode."
+  "Connected Graph Editor Mode.
+\\{cogre-mode-map}"
   (interactive)
   (setq major-mode 'cogre-mode
 	mode-name "Cogre")
@@ -266,6 +285,22 @@ The new graph will be given NAME.  See `cogre-mode' for details."
 Throw an error if there is no node."
   (let ((e (cogre-current-element (or pos (point)))))
     (if (or (not e) (not (obj-of-class-p e cogre-node)))
+	(error "No graph node under point")
+      e)))
+
+(defun cogre-link-at-point-interactive (&optional pos)
+  "Return the node under POS.
+Throw an error if there is no node."
+  (let ((e (cogre-current-element (or pos (point)))))
+    (if (or (not e) (not (obj-of-class-p e cogre-link)))
+	(error "No graph node under point")
+      e)))
+
+(defun cogre-element-at-point-interactive (&optional pos)
+  "Return the node under POS.
+Throw an error if there is no node."
+  (let ((e (cogre-current-element (or pos (point)))))
+    (if (not e)
 	(error "No graph node under point")
       e)))
 
@@ -315,6 +350,28 @@ LINKTYPE is the eieio class name for the link to insert."
   (cogre-render-buffer cogre-graph)
   )
 
+(defvar cogre-delete-dont-ask nil
+  "Track if we should ask about deleting an object from the graph.")
+
+(defun cogre-delete (element)
+  "Delete the graph ELEMENT under the cursor."
+  (interactive (list (cogre-element-at-point-interactive (point))))
+  (if (or cogre-delete-dont-ask
+	  (y-or-n-p (format "Really delete %s? " (object-name element))))
+      (let ((cogre-delete-dont-ask t))
+	(if (obj-of-class-p element cogre-node)
+	    (let ((el (oref cogre-graph elements))
+		  (test nil))
+	      (while el
+		(setq test (car el)
+		      el (cdr el))
+		(if (and (obj-of-class-p test cogre-link)
+			 (or (eq element (oref test start))
+			     (eq element (oref test end))))
+		    (cogre-delete test)))))
+	(cogre-erase element)
+	(cogre-delete-element cogre-graph element))
+    ))
 
 (defun cogre-set-element-name (node name)
   "Set the name of the current NODE to NAME."
@@ -343,8 +400,13 @@ If ARG is unspecified, assume 1."
 	(if (< ni 0) (setq ni (+ l ni))
 	  (if (>= ni l) (setq ni (- ni l))))
 	(setq next (nth ni e))))
-    (let ((p (oref next position)))
-      (cogre-goto-coordinate (aref p 0) (aref p 1)))))
+    (if (obj-of-class-p next cogre-node)
+	(let ((p (oref next position)))
+	  (picture-goto-coordinate (aref p 0) (aref p 1)))
+      ;; Else, we have a link
+      (with-slots (stop-position) next
+	(apply 'picture-goto-coordinate stop-position)
+	))))
 
 (defun cogre-prev-node (&optional arg)
   "Move backward ARG nodes in the hierarchy.
@@ -360,7 +422,7 @@ If ARG is unspecified, assume 1."
     (if (> 0 x) (setq x 0))
     (if (> 0 y) (setq y 0))
     (oset e position (vector x y))
-    (cogre-goto-coordinate x y)
+    (picture-goto-coordinate x y)
     (if (interactive-p)
 	(cogre-render-buffer cogre-graph))))
 
@@ -406,6 +468,10 @@ If ARG is unspecified, assume 1."
 (defmethod cogre-add-element ((graph cogre-graph) elt)
   "Add to GRAPH a new element ELT."
   (object-add-to-list graph 'elements elt t))
+
+(defmethod cogre-delete-element ((graph cogre-graph) elt)
+  "Delete from GRAPH the element ELT."
+  (object-remove-from-list graph 'elements elt))
 
 (defmethod cogre-unique-name ((graph cogre-graph) name)
   "Within GRAPH, make NAME unique."
@@ -453,7 +519,7 @@ with dirty flags set."
 	      (erase-buffer)
 	      (mapcar (lambda (e) (cogre-set-dirty e t)) elements)))
 	(mapcar (lambda (e) (cogre-render e)) elements)))
-    (cogre-goto-coordinate x y)))
+    (picture-goto-coordinate x y)))
 
 (defmethod cogre-render ((element cogre-graph-element))
   "Render ELEMENT.
@@ -499,7 +565,7 @@ are called from `call-next-method', so set our dirty flag."
   "Render NODE in the current graph."
   (cogre-node-rectangle node)
   (with-slots (position rectangle) node
-    (cogre-goto-coordinate (aref position 0) (aref position 1))
+    (picture-goto-coordinate (aref position 0) (aref position 1))
     (picture-insert-rectangle rectangle nil))
   (call-next-method))
 
@@ -581,6 +647,86 @@ Each list will be prefixed with a line before it."
   "Return the widest string in NODE."
   (length (oref node name)))
 
+(defun cogre-node-horizontal-distance (node1 node2)
+  "Calculate the horizontal distance between NODE1 and NODE2.
+This number is positive or negative, depending on the direction
+of distance."
+  ;; Make sure their rectangle's are up to date.
+  (cogre-node-rebuild node1)
+  (cogre-node-rebuild node2)
+  ;; Get all the details
+  (let* ((p1 (oref node1 position))	;position vector
+	 (p2 (oref node2 position))
+	 (x1 (aref p1 0))		;X,Y for NODE1
+	 (x2 (aref p2 0))		;X,Y for NODE2
+	 )
+    (if (< x1 x2)
+	;; positive distance.
+	(- x2 x1 (length (car (cogre-node-rectangle node1))))
+      (- x1 x2 (length (car (cogre-node-rectangle node2))))
+      )))
+
+(defun cogre-node-vertical-distance (node1 node2)
+  "Calculate the vertical distance between NODE1 and NODE2.
+This number is positive or negative, depending on the direction
+of distance."
+  ;; Make sure their rectangle's are up to date.
+  (cogre-node-rebuild node1)
+  (cogre-node-rebuild node2)
+  ;; Get all the details
+  (let* ((p1 (oref node1 position))	;position vector
+	 (p2 (oref node2 position))
+	 (y1 (aref p1 1))		;X,Y for NODE1
+	 (y2 (aref p2 1))		;X,Y for NODE2
+	 )
+    (if (< y1 y2)
+	;; positive distance.
+	(- y2 y1 (length (cogre-node-rectangle node1)))
+      (- y1 y2 (length (cogre-node-rectangle node2)))
+      )))
+
+(defun cogre-choose-horizontal-link-anchors (node1 node2)
+  "Choose horizontal link anchor points between NODE1 and NODE2.
+The data returned is (X1 Y1 X2 Y2)."
+  (let* ((p1 (oref node1 position))	;position vector
+	 (p2 (oref node2 position))
+	 (x1 (aref p1 0))		;X,Y for START
+	 (y1 (aref p1 1))
+	 (x2 (aref p2 0))		;X,Y for END
+	 (y2 (aref p2 1))
+	 (r1 (cogre-node-rectangle node1)) ;rectangle text
+	 (r2 (cogre-node-rectangle node2))
+	 (h1 (length r1))		;Height
+	 (h2 (length r2))
+	 (w1 (length (car r1)))		;Width
+	 (w2 (length (car r2)))
+	 )
+    (if (< x1 x2)
+	(list (+ x1 w1) (+ y1 (/ h1 2)) (1- x2) (+ y2 (/ h2 2)))
+      (list (1- x1) (+ y1 (/ h1 2)) (+ x2  w2) (+ y2 (/ h2 2))))
+    ))
+
+(defun cogre-choose-vertical-link-anchors (node1 node2)
+  "Choose vertical link anchor points between NODE1 and NODE2.
+The data returned is (X1 Y1 X2 Y2)."
+  (let* ((p1 (oref node1 position))	;position vector
+	 (p2 (oref node2 position))
+	 (x1 (aref p1 0))		;X,Y for START
+	 (y1 (aref p1 1))
+	 (x2 (aref p2 0))		;X,Y for END
+	 (y2 (aref p2 1))
+	 (r1 (cogre-node-rectangle node1)) ;rectangle text
+	 (r2 (cogre-node-rectangle node2))
+	 (h1 (length r1))		;Height
+	 (h2 (length r2))
+	 (w1 (length (car r1)))		;Width
+	 (w2 (length (car r2)))
+	 )
+    (if (< y1 y2)
+	(list (+ x1 (/ w1 2)) (+ y1 h1) (+ x2 (/ w2 2)) (1- y2))
+      (list (+ x1 (/ w1 2)) (1- y1) (+ x2  (/ w2 2)) (+ y2 h2)))
+      ))
+
 ;;; Links
 ;;
 (defmethod cogre-erase ((link cogre-link))
@@ -600,47 +746,23 @@ Each list will be prefixed with a line before it."
 (defmethod cogre-render ((link cogre-link))
   "Render LINK in the current graph."
   (with-slots (start end start-glyph end-glyph) link
-    (let* ((p1 (oref start position))	;position vector
-	   (p2 (oref end position))
-	   (x1 (aref p1 0))		;X,Y for START
-	   (y1 (aref p1 1))
-	   (x2 (aref p2 0))		;X,Y for END
-	   (y2 (aref p2 1))
-	   (r1 (cogre-node-rectangle start)) ;rectangle text
-	   (r2 (cogre-node-rectangle end))
-	   (w1 (length (car r1)))	;Width
-	   (w2 (length (car r2)))
-	   (h1 (length r1))		;Height
-	   (h2 (length r2))
-	   xstart xend ystart yend
+    (let* ((hd (cogre-node-horizontal-distance start end))
+	   (vd (cogre-node-vertical-distance start end))
+	   linkcoords
+	   dir
 	   )
       ;; Calculate starting points in relation to our attached nodes.
-      (if (> (abs (- x1 x2)) (abs (- y1 y2)))
+      (if (> (* hd (oref link horizontal-preference-ratio)) vd)
 	  ;; In this case, the X delta is larger than the Y delta,
 	  ;; so the line is going mostly left/right.
-	  (progn
-	    (if (< x1 x2)
-		(setq xstart (+ x1 w1)
-		      xend x2)
-	      (setq xstart x1
-		    xend (+ x2 w2))
-	      )
-	    (setq ystart (+ y1 (/ h1 2))
-		  yend (+ y2 (/ h2 2)))
-	    )
-	;; In this case, the Y delta is larger than the X delta,
-	;; so the line is going mostly up/down.
-	(if (< y1 y2)
-	    (setq ystart (+ y1 h1)
-		  yend y2)
-	  (setq ystart y1
-		yend (+ y2 h2))
-	  )
-	(setq xstart (+ x1 (/ w1 2))
-	      xend (+ x2 (/ w2 2)))
-	)
+	  (setq linkcoords (cogre-choose-horizontal-link-anchors start end)
+		dir 'horizontal)
+	(setq linkcoords (cogre-choose-vertical-link-anchors start end)
+	      dir 'vertical))
+      (oset link stop-position (list (car linkcoords) (car (cdr linkcoords))))
       ;; Now draw a rectiliniar line
-      (cogre-draw-rectilinear-line xstart ystart xend yend)
+      (apply 'picture-draw-rectilinear-line
+	     (append linkcoords (list dir 'face nil 'element link)))
       ;; Handle start/end glyps.
       ;; foo
       ))
@@ -648,73 +770,6 @@ Each list will be prefixed with a line before it."
 
 ;;; Low Level Rendering and status
 ;;
-(defun cogre-goto-coordinate (x y)
-  "Goto coordinate X, Y."
-  (let ((inhibit-read-only t))
-    (goto-char (point-min))
-    (picture-newline y)
-    (move-to-column x t)
-    ))
-
-(defun cogre-picture-set-motion (vert horiz)
-  "Set VERT and HORIZ increments for movement in Picture mode.
-Hack from picture mode."
-  (setq picture-vertical-step vert
-	picture-horizontal-step horiz))
-
-(defun cogre-draw-rectilinear-line (x1 y1 x2 y2)
-  "Draw a line from X1, Y1 to X2, Y2.
-The line is drawn in a rectilinear fashion."
-  ;; A rectilinear line for us (short term) is a line travelling
-  ;; in the direction of greatest distance, with a jog in the middle.
-  (let (xdir ydir halfway htwiddle
-	)
-    ;; Travelling
-    (if (> x1 x2)
-	(setq xdir -1)
-      (setq xdir 1))
-    (if (> y1 y2)
-	(setq ydir -1)
-      (setq ydir 1))
-    ;; Get there
-    (cogre-goto-coordinate x1 y1)
-    (picture-update-desired-column t)
-    ;; Determine primary direction
-    (if (> (abs (- x1 x2)) (abs (- y1 y2)))
-	;; This means that X is primary direction
-	(progn
-	  (setq halfway (/ (abs (- x1 x2)) 2)
-		htwiddle (% (abs (- x1 x2)) 2))
-	  (cogre-picture-set-motion 0 xdir)
-	  (picture-insert picture-rectangle-h (+ halfway htwiddle))
-	  (if (/= y1 y2)
-	      (progn
-		(cogre-picture-set-motion ydir 0)
-		(picture-insert picture-rectangle-ctl 1)
-		(picture-insert picture-rectangle-v (1- (abs (- y1 y2))))
-		(cogre-picture-set-motion 0 xdir)
-		(picture-insert picture-rectangle-ctl 1)
-		(setq halfway (1- halfway))
-		))
-	  (picture-insert picture-rectangle-h halfway)
-	  )
-      ;; This means that Y is the primary direction
-      (setq halfway (/ (abs (- y1 y2)) 2)
-	    htwiddle (% (abs (- y1 y2)) 2))
-      (cogre-picture-set-motion ydir 0)
-      (picture-insert picture-rectangle-v (+ halfway htwiddle))
-      (if (/= y1 y2)
-	  (progn
-	    (cogre-picture-set-motion 0 xdir)
-	    (picture-insert picture-rectangle-ctl 1)
-	    (picture-insert picture-rectangle-h (1- (abs (- x1 x2))))
-	    (cogre-picture-set-motion ydir 0)
-	    (picture-insert picture-rectangle-ctl 1)
-	    (setq halfway (1- halfway))
-	    ))
-      (picture-insert picture-rectangle-v halfway)
-      )
-    ))
 
 (defun cogre-string-with-face (string face element &optional length)
   "Using text STRING, apply FACE to that text.
@@ -736,11 +791,11 @@ right so that it is centered.  Return the new string."
 
 (defun cogre-erase-rectangle (x y width height)
   "Clear out the rectangle at X Y, with dimensions WIDTH HEIGHT."
-  (cogre-goto-coordinate x y)
+  (picture-goto-coordinate x y)
   (clear-rectangle (point)
 		   (save-excursion
-		     (cogre-goto-coordinate (+ x width)
-					    (+ y height))
+		     (picture-goto-coordinate (+ x width)
+					      (+ y height))
 		     (point))
 		   t))
 
