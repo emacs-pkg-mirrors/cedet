@@ -5,8 +5,8 @@
 ;; Copyright (C) 1995,1996, 1998, 1999 Eric M. Ludlam
 ;;
 ;; Author: <zappo@gnu.org>
-;; Version: 0.14.1
-;; RCS: $Id: eieio.el,v 1.63 1999/12/04 16:44:48 zappo Exp $
+;; Version: 0.15
+;; RCS: $Id: eieio.el,v 1.64 2000/04/13 00:26:28 zappo Exp $
 ;; Keywords: OO, lisp
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -44,7 +44,7 @@
 ;;; Code:
 (eval-when-compile (require 'cl))
 
-(defvar eieio-version "0.14.1"
+(defvar eieio-version "0.15"
   "Current version of EIEIO.")
 (defun eieio-version ()
   "Display the current version of EIEIO."
@@ -223,9 +223,9 @@ Options in CLOS not supported in EIEIO:
 
 Due to the way class options are set up, you can add any tags in you
 wish, and reference them using the function `class-option'."
-  `(defclass-engine ',name ',superclass ',fields ',options-and-doc))
+  `(eieio-defclass ',name ',superclass ',fields ',options-and-doc))
 
-(defun defclass-engine (cname superclasses fields options-and-doc)
+(defun eieio-defclass (cname superclasses fields options-and-doc)
   "See `defclass' for more information.
 Define CNAME as a new subclass of SUPERCLASSES, with FIELDS being the
 fields residing in that class definition, and with options or documentation
@@ -351,12 +351,12 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	;; so that users can `setf' the space returned by this function
 	(if acces
 	    (progn
-	      (defmethod-engine acces
+	      (eieio-defmethod acces
 		(list (list (list 'this cname))
 		      (format
 		       "Retrieves the slot `%s' from an object of class `%s'"
 		       name cname)
-		      (list 'oref-engine 'this (list 'quote name))))
+		      (list 'eieio-oref 'this (list 'quote name))))
 	      ;; It turns out that using the setf macro with a
 	      ;; generic method form is impossible because almost
 	      ;; any type of form could be created for disparaging
@@ -365,7 +365,7 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	      ;; Create a setf definition for this accessor.
 	      ;;(eieio-cl-defsetf acces '(widget)
 	      ;;		  '(store)
-	      ;;		  (list 'oset-engine 'widget
+	      ;;		  (list 'eieio-oset 'widget
 	      ;;			(list 'quote cname)
 	      ;;			'store))
 	      )
@@ -374,19 +374,19 @@ OPTIONS-AND-DOC as the toplevel documentation for this class."
 	;; name whose purpose is to write out this slot value.
 	(if writer
 	    (progn
-	      (defmethod-engine writer
+	      (eieio-defmethod writer
 		(list (list (list 'this cname))
 		      (format
 		       "Write the slot `%s' from object of class `%s'"
 		       name cname)
 		      (list 'eieio-override-prin1
-			    (list 'oref-engine 'this (list 'quote name)))))
+			    (list 'eieio-oref 'this (list 'quote name)))))
 	      ))
 	;; If a reader is defined, then create a generic method
 	;; of that name whose purpose is to read this slot value.
 	(if reader
 	    (progn
-	      (defmethod-engine reader
+	      (eieio-defmethod reader
 		(list (list (list 'this cname))
 		      (format
 		       "Read the slot `%s' from object of class `%s'"
@@ -685,11 +685,11 @@ is appropriate to use.  Use `defmethod' to create methods, and it
 calls defgeneric for you.  With this implementation the arguments are
 currently ignored.  You can use `defgeneric' to apply specialized
 top level documentation to a method."
-  (list 'defgeneric-engine
+  (list 'eieio-defgeneric
 	(list 'quote method)
 	doc-string))
 
-(defun defgeneric-engine (method doc-string)
+(defun eieio-defgeneric (method doc-string)
   "Engine part to `defgeneric' macro defining METHOD with DOC-STRING."
   (let ((lambda-form
 	 (list 'lambda '(&rest local-args)
@@ -708,11 +708,11 @@ ARGS lists any keys (such as :BEFORE or :AFTER), the arglst, and
 doc string, and eventually the body, such as:
 
   (defmethod mymethod [:BEFORE | :AFTER] (args) doc-string body)"
-  (list 'defmethod-engine
+  (list 'eieio-defmethod
 	(list 'quote method)
 	(list 'quote args)))
 
-(defun defmethod-engine (method args)
+(defun eieio-defmethod (method args)
   "Work part of the `defmethod' macro defining METHOD with ARGS."
   (let ((key nil) (body nil) (firstarg nil) (argfix nil) loopa)
     ;; find optional keys
@@ -735,7 +735,7 @@ doc string, and eventually the body, such as:
       (setq loopa (cdr loopa)))
     ;; make sure there is a generic
     (if (not (fboundp method))
-	(defgeneric-engine method
+	(eieio-defgeneric method
 	  (if (stringp (car body))
 	      (car body) (format "Generically created method %s" method))))
     ;; create symbol for property to bind to.  If the first arg is of
@@ -812,9 +812,9 @@ Argument FN is the function calling this verifier."
   "Retrieve the value stored in OBJ in the slot named by FIELD.
 Field is the name of the slot when created by `defclass' or the label
 created by the :initarg tag."
-  (list 'oref-engine obj (list 'quote field)))
+  (list 'eieio-oref obj (list 'quote field)))
 
-(defun oref-engine (obj field)
+(defun eieio-oref (obj field)
   "Return the value in OBJ at FIELD in the object vector."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
   (if (not (symbolp field)) (signal 'wrong-type-argument (list 'symbolp field)))
@@ -835,8 +835,8 @@ created by the :initarg tag."
 	  )
       (eieio-barf-if-slot-unbound (aref obj c) obj field 'oref))))
 
-(defalias 'slot-value 'oref-engine)
-(defalias 'set-slot-value 'oset-engine)
+(defalias 'slot-value 'eieio-oref)
+(defalias 'set-slot-value 'eieio-oset)
 
 ;; This alias is needed so that functions can be written
 ;; for defaults, but still behave like lambdas.
@@ -860,9 +860,9 @@ CDR is function definition and body."
 The default value is the value installed in a class with the :initform
 tag.  FIELD can be the slot name, or the tag specified by the :initarg
 tag in the `defclass' call."
-  (list 'oref-default-engine obj (list 'quote field)))
+  (list 'eieio-oref-default obj (list 'quote field)))
 
-(defun oref-default-engine (obj field)
+(defun eieio-oref-default (obj field)
   "Does the work for the macro `oref-default' with similar parameters.
 Fills in OBJ's FIELD with it's default value."
   (if (not (or (object-p obj) (class-p obj))) (signal 'wrong-type-argument (list 'object-p obj)))
@@ -900,9 +900,9 @@ Fills in OBJ's FIELD with it's default value."
   "Set the value in OBJ for slot FIELD to VALUE.
 FIELD is the slot name as specified in `defclass' or the tag created
 with in the :initarg slot.  VALUE can be any Lisp object."
-  (list 'oset-engine obj (list 'quote field) value))
+  (list 'eieio-oset obj (list 'quote field) value))
 
-(defun oset-engine (obj field value)
+(defun eieio-oset (obj field value)
   "Does the work for the macro `oset'.
 Fills in OBJ's FIELD with VALUE."
   (if (not (object-p obj)) (signal 'wrong-type-argument (list 'object-p obj)))
@@ -931,9 +931,9 @@ Fills in OBJ's FIELD with VALUE."
 The default value is usually set with the :initform tag during class
 creation.  This allows users to change the default behavior of classes
 after they are created."
-  (list 'oset-default-engine class (list 'quote field) value))
+  (list 'eieio-oset-default class (list 'quote field) value))
 
-(defun oset-default-engine (class field value)
+(defun eieio-oset-default (class field value)
   "Does the work for the macro `oset-default'.
 Fills in the default value in CLASS' in FIELD with VALUE."
   (if (not (class-p class)) (signal 'wrong-type-argument (list 'class-p class)))
@@ -1066,11 +1066,11 @@ make a slot unbound."
   ;; Skip typechecking while retrieving this value.
   (let ((eieio-skip-typecheck t))
     ;; Return nil if the magic symbol is in there.
-    (if (eq (oref-engine object slot) eieio-unbound) nil t)))
+    (if (eq (eieio-oref object slot) eieio-unbound) nil t)))
 
 (defun slot-makeunbound (object slot)
   "In OBJECT, make SLOT unbound."
-  (oset-engine object slot eieio-unbound))
+  (eieio-oset object slot eieio-unbound))
 
 (defun slot-exists-p (object slot)
   "Non-nil if OBJECT contains SLOT."
@@ -1093,7 +1093,7 @@ The value is actually the element of LIST whose field equals KEY."
   (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
   (while (and list (not (condition-case nil
 			    ;; This prevents errors for missing slots.
-			    (equal key (oref-engine (car list) field))
+			    (equal key (eieio-oref (car list) field))
 			  (error nil))))
     (setq list (cdr list)))
   (car list))
@@ -1105,7 +1105,7 @@ This is useful when you need to do completing read on an object group."
   (if (not (listp list)) (signal 'wrong-type-argument (list 'listp list)))
   (let ((assoclist nil))
     (while list
-      (setq assoclist (cons (cons (oref-engine (car list) field)
+      (setq assoclist (cons (cons (eieio-oref (car list) field)
 				  (car list))
 			    assoclist))
       (setq list (cdr list)))
@@ -1120,7 +1120,7 @@ list."
   (let ((assoclist nil))
     (while list
       (if (slot-exists-p (car list) field)
-	  (setq assoclist (cons (cons (oref-engine (car list) field)
+	  (setq assoclist (cons (cons (eieio-oref (car list) field)
 				      (car list))
 				assoclist)))
       (setq list (cdr list)))
@@ -1430,13 +1430,13 @@ not nil."
   (let ((scoped-class (aref obj object-class))
 	(pub (aref (class-v (aref obj object-class)) class-public-a)))
     (while pub
-      (let ((df (oref-default-engine obj (car pub))))
+      (let ((df (eieio-oref-default obj (car pub))))
 	(if (and (listp df) (eq (car df) 'lambda-default))
 	    (progn
 	      (setq df (copy-sequence df))
 	      (setcar df 'lambda)))
 	(if (or df set-all)
-	    (oset-engine obj (car pub) df)))
+	    (eieio-oset obj (car pub) df)))
       (setq pub (cdr pub)))))
 
 (defun eieio-initarg-to-attribute (class initarg)
@@ -1557,7 +1557,7 @@ associated with this symbol.  Current method specific code is:")
 	  (setq gm (cdr gm))))
       (setq i (1+ i)))
     ;; tuck this bit of information away.
-    (defgeneric-engine sym newdoc)
+    (eieio-defgeneric sym newdoc)
     ))
 
 ;;; Here are some special types of errors
@@ -1589,11 +1589,11 @@ associated with this symbol.  Current method specific code is:")
   (if (featurep 'cl)
       (progn
 	(defsetf slot-value (obj field) (store)
-	  (list 'oset-engine obj field store))
-	(defsetf oref-engine (obj field) (store)
-	  (list 'oset-engine obj field store))
+	  (list 'eieio-oset obj field store))
+	(defsetf eieio-oref (obj field) (store)
+	  (list 'eieio-oset obj field store))
 	(defsetf oref (obj field) (store)
-	  (list 'oset-engine obj field store))))
+	  (list 'eieio-oset obj field store))))
   )
 
 (add-hook 'eieio-hook 'eieio-cl-run-defsetf)
@@ -1625,7 +1625,7 @@ Called from the constructor routine."
     (while fields
       (let ((rn (eieio-initarg-to-attribute (object-class-fast obj)
 					    (car fields))))
-	(oset-engine obj rn (car (cdr fields))))
+	(eieio-oset obj rn (car (cdr fields))))
       (setq fields (cdr (cdr fields))))))
 
 (defmethod initialize-instance ((this eieio-default-superclass)
@@ -1745,13 +1745,13 @@ this object."
 	  (eieio-print-depth (1+ eieio-print-depth)))
       (while publa
 	(let ((i (class-slot-initarg cl (car publa)))
-	      (v (oref-engine this (car publa))))
+	      (v (eieio-oref this (car publa))))
 	  (if (or (not i) (equal v (car publd)))
 	      nil ;; Don't bother if it = default, or can't be initialized.
 	    (princ (make-string (* eieio-print-depth 2) ? ))
 	    (princ (symbol-name i))
 	    (princ " ")
-	    (let ((o (oref-engine this (car publa))))
+	    (let ((o (eieio-oref this (car publa))))
 	      (eieio-override-prin1 o))
 	    (princ "\n")))
 	(setq publa (cdr publa) publd (cdr publd)))
