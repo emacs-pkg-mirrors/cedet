@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 06 Mar 2002
 ;; Keywords: lisp
-;; X-RCS: $Id: pprint.el,v 1.3 2002/03/10 12:08:23 ponced Exp $
+;; X-RCS: $Id: pprint.el,v 1.4 2002/03/11 06:11:57 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -93,6 +93,11 @@ Value is what BODY returns."
 ;;;; Core functions
 ;;;;
 
+(defvar pprint-min-width 20
+  "Minimum width required to prettify an expression.
+If current width is greater than this value, the pretty printer does
+nothing.")
+
 (defvar pprint-width)
 (defvar pprint-no-break)
 
@@ -149,6 +154,10 @@ beyond specified ROOM."
       (insert old-sexp)
       nobreak)))
 
+(defsubst pprint-close-list ()
+  "Built-in printer to process close parenthesis characters."
+  (up-list 1))
+
 (defsubst pprint-list ()
   "Built-in list printer."
   (down-list 1)
@@ -164,29 +173,12 @@ beyond specified ROOM."
       (setq nobreak nil)))
   (pprint-close-list))
 
-(defsubst pprint-close-list ()
-  "Built-in printer to process close parenthesis characters."
-  (up-list 1)
-;;   (or (looking-at "\\s)")
-;;       (eobp)
-;;       (= (save-excursion
-;;            (beginning-of-line) (point))
-;;          (save-excursion
-;;            (forward-list -1) (beginning-of-line) (point)))
-;;       (pprint-maybe-newline-and-indent))
-  )
-
 (defsubst pprint-sequence ()
   "Built-in printer of a sequence of expressions.
 Insert a line break before each expression."
   (while (not (looking-at "\\s)"))
     (pprint-maybe-newline-and-indent)
     (pprint-sexp)))
-
-(defvar pprint-min-width 20
-  "Minimum width required to prettify an expression.
-If current width is greater than this value, the pretty printer does
-nothing.")
 
 (defun pprint-sexp (&optional pprint-no-break)
   "Pretty print S-expression at point.
