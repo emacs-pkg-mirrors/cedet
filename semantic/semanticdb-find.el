@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-find.el,v 1.5 2003/06/20 13:09:56 ponced Exp $
+;; X-RCS: $Id: semanticdb-find.el,v 1.6 2003/08/01 17:27:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -164,6 +164,7 @@ Default action as described in `semanticdb-find-translate-path'."
       )
     matchedtables))
 
+;;;###autoload
 (define-overload semanticdb-find-table-for-include (includetag &optional table)
   "For a single INCLUDETAG found in TABLE, find a `semanticdb-table' object
 INCLUDETAG is a semantic TAG of class 'include.
@@ -268,6 +269,18 @@ associated with that tag should be loaded into a buffer."
      (semanticdb-find-tags-for-completion-method table prefix))
    path find-file-match))
 
+;;;###autoload
+(defun semanticdb-find-tags-by-class (class &optional path find-file-match)
+  "Search for all tags of CLASS on PATH.
+Search also in all components of top level tags founds.
+See `semanticdb-find-translate-path' for details on PATH.
+FIND-FILE-MATCH indicates that any time a match is found, the file
+associated with that tag should be loaded into a buffer."
+  (semanticdb-find-tags-collector
+   (lambda (table)
+     (semanticdb-find-tags-by-class-method table class))
+   path find-file-match))
+
 ;;; Deep Searches
 ;;
 ;;;###autoload
@@ -340,6 +353,11 @@ Returns a table of all matching tags."
   "In TABLE, find all occurances of tags matching PREFIX.
 Returns a table of all matching tags."
   (semantic-find-tags-for-completion prefix (semanticdb-get-tags table)))
+
+(defmethod semanticdb-find-tags-by-class-method ((table semanticdb-table) class)
+  "In TABLE, find all occurances of tags of CLASS.
+Returns a table of all matching tags."
+  (semantic-find-tags-by-class class (semanticdb-get-tags table)))
 
 (defmethod semanticdb-find-tags-external-children-of-type-method
    ((table semanticdb-table) parent)
