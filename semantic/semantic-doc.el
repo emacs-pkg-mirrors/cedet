@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-doc.el,v 1.3 2003/09/05 10:31:33 ponced Exp $
+;; X-RCS: $Id: semantic-doc.el,v 1.4 2004/04/28 15:36:40 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,7 +36,7 @@
 ;;; Code:
 
 ;;;###autoload
-(defun semantic-documentation-for-tag (&optional tag nosnarf)
+(define-overload semantic-documentation-for-tag (&optional tag nosnarf)
   "Find documentation from TAG and return it as a clean string.
 TAG might have DOCUMENTATION set in it already.  If not, there may be
 some documentation in a comment preceding TAG's definition which we
@@ -46,34 +46,32 @@ Optional argument NOSNARF means to only return the lexical analyzer token for it
 If nosnarf if 'lex, then only return the lex token."
   (if (not tag)
       (setq tag (car (semantic-find-tag-by-overlay nil))))
-  (let ((s (or (semantic-fetch-overload 'documentation-for-tag)
-	       (semantic-fetch-overload 'find-documentation))))
-    (if s (funcall s tag nosnarf)
-      ;; No override.  Try something simple to find documentation nearby
+  (:override
+   ;; No override.  Try something simple to find documentation nearby
+   (save-excursion
+     (set-buffer (semantic-tag-buffer tag))
+     (semantic-go-to-tag tag)
+     (or
+      ;; Is there doc in the tag???
+      (if (semantic-tag-docstring tag)
+          (if (stringp (semantic-tag-docstring tag))
+              (semantic-tag-docstring tag)
+            (goto-char (semantic-tag-docstring tag))
+            (semantic-doc-snarf-comment-for-tag nosnarf)))
+      ;; Check just before the definition.
       (save-excursion
-	(set-buffer (semantic-tag-buffer tag))
-	(semantic-go-to-tag tag)
-	(or
-	 ;; Is there doc in the tag???
-	 (if (semantic-tag-docstring tag)
-	     (if (stringp (semantic-tag-docstring tag))
-		 (semantic-tag-docstring tag)
-	       (goto-char (semantic-tag-docstring tag))
-	       (semantic-doc-snarf-comment-for-tag nosnarf)))
-	 ;; Check just before the definition.
-	 (save-excursion
-	   (re-search-backward comment-start-skip nil t)
-	   (if (not (semantic-brute-find-tag-by-position
-		     (point) (current-buffer) t))
-	       ;; We found a comment that doesn't belong to the body
-	       ;; of a function.
-	       (semantic-doc-snarf-comment-for-tag nosnarf)))
-	 ;;  Lets look for comments either after the definition, but before code:
-	 ;; Not sure yet.  Fill in something clever later....
-	 nil
-	 )))))
-(put 'semantic-documentation-for-tag 'semantic-overload 'documentation-for-tag)
-(put 'semantic-find-documentation 'semantic-overload 'find-documentation)
+        (re-search-backward comment-start-skip nil t)
+        (if (not (semantic-brute-find-tag-by-position
+                  (point) (current-buffer) t))
+            ;; We found a comment that doesn't belong to the body
+            ;; of a function.
+            (semantic-doc-snarf-comment-for-tag nosnarf)))
+      ;;  Lets look for comments either after the definition, but before code:
+      ;; Not sure yet.  Fill in something clever later....
+      nil))))
+
+(make-obsolete-overload 'semantic-find-documentation
+                        'semantic-documentation-for-tag)
 
 (defun semantic-doc-snarf-comment-for-tag (nosnarf)
   "Snarf up the comment at POINT for `semantic-documentation-for-tag'.
