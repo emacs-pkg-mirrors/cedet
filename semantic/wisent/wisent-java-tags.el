@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.el,v 1.16 2002/08/11 09:41:44 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.el,v 1.17 2002/08/11 20:30:47 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -602,6 +602,7 @@ This function is a Java specific `get-local-variables' override."
 ;;;; Semantic integration of the Java LALR parser
 ;;;;
 
+;;;###autoload
 (defun wisent-java-default-setup ()
   "Hook run to setup Semantic in `java-mode'.
 Use the alternate LALR(1) parser."
@@ -701,9 +702,8 @@ variable NAME."
                                   vl)))
               vl)))))
 
-;; Replace the default setup by this new one.
-(remove-hook 'java-mode-hook #'semantic-default-java-setup)
-(add-hook    'java-mode-hook #'wisent-java-default-setup)
+;;;###autoload
+(add-hook 'java-mode-hook #'wisent-java-default-setup)
 
 (provide 'wisent-java-tags)
 
