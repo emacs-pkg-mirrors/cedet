@@ -2,7 +2,7 @@
 
 ;;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Eric M. Ludlam
 
-;; X-CVS: $Id: semantic-tag.el,v 1.12 2003/04/01 04:38:22 zappo Exp $
+;; X-CVS: $Id: semantic-tag.el,v 1.13 2003/04/01 15:19:32 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -308,30 +308,30 @@ such as 'variable, or 'function.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
   (list name class (semantic-tag-make-plist attributes) nil nil))
 
-(defmacro semantic-tag-new-variable (name type default-value &rest attributes)
+(defsubst semantic-tag-new-variable (name type default-value &rest attributes)
   "Create a semantic tag of class variable.
 NAME is the name of this variable.
 TYPE is a string or semantic tag representing the type of this variable.
 DEFAULT-VALUE is a string representing the default value of this variable.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
-  `(semantic-tag ,name 'variable
-                 :type ,type
-                 :default-value ,default-value
-                 ,@attributes))
+  (apply 'semantic-tag name 'variable
+         :type type
+         :default-value default-value
+         attributes))
 
-(defmacro semantic-tag-new-function (name type arg-list &rest attributes)
+(defsubst semantic-tag-new-function (name type arg-list &rest attributes)
   "Create a semantic tag of class function.
 NAME is the name of this function.
 TYPE is a string or semantic tag representing the type of this function.
 ARG-LIST is a list of strings or semantic tags representing the
 arguments of this function.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
-  `(semantic-tag ,name 'function
-                 :type ,type
-                 :arguments ,arg-list
-                 ,@attributes))
+  (apply 'semantic-tag name 'function
+         :type type
+         :arguments arg-list
+         attributes))
 
-(defmacro semantic-tag-new-type (name type members parents &rest attributes)
+(defsubst semantic-tag-new-type (name type members parents &rest attributes)
   "Create a semantic tag of class type.
 NAME is the name of this type.
 TYPE is a string or semantic tag representing the type of this type.
@@ -349,43 +349,41 @@ This slot can be interesting because the form:
 is a valid parent where there is no explicit parent, and only an
 interface.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
-  (let ((p (make-symbol "parents")))
-    `(let ((,p ,parents)) ;; Ensure that PARENTS is only evaluated once
-       (semantic-tag ,name 'type
-                     :type ,type
-                     :members ,members
-                     :superclasses (car ,p)
-                     :interfaces (cdr ,p)
-                     ,@attributes))))
+  (apply 'semantic-tag name 'type
+         :type type
+         :members members
+         :superclasses (car parents)
+         :interfaces (cdr parents)
+         attributes))
 
-(defmacro semantic-tag-new-include (name system-flag &rest attributes)
+(defsubst semantic-tag-new-include (name system-flag &rest attributes)
   "Create a semantic tag of class include.
 NAME is the name of this include.
 SYSTEM-FLAG represents that we were able to identify this include as belonging
 to the system, as opposed to belonging to the local project.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
-  `(semantic-tag ,name 'include
-                 :system-flag ,system-flag
-                 ,@attributes))
+  (apply 'semantic-tag name 'include
+         :system-flag system-flag
+         attributes))
 
-(defmacro semantic-tag-new-package (name detail &rest attributes)
+(defsubst semantic-tag-new-package (name detail &rest attributes)
   "Create a semantic tag of class package.
 NAME is the name of this package.
 DETAIL is extra information about this package, such as a location where
 it can be found.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
-  `(semantic-tag ,name 'package
-                 :detail ,detail
-                 ,@attributes))
+  (apply 'semantic-tag name 'package
+         :detail detail
+         attributes))
 
-(defmacro semantic-tag-new-code (name detail &rest attributes)
+(defsubst semantic-tag-new-code (name detail &rest attributes)
   "Create a semantic tag of class code.
 NAME is a name for this code.
 DETAIL is extra information about the code.
 ATTRIBUTES is a list of additional attributes belonging to this tag."
-  `(semantic-tag ,name 'code
-                 :detail ,detail
-                 ,@attributes))
+  (apply 'semantic-tag name 'code
+         :detail detail
+         attributes))
 
 ;;; Copying and cloning tags.
 ;;
