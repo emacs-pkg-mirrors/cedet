@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Aug 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-grammar.el,v 1.4 2002/09/12 09:27:19 ponced Exp $
+;; X-RCS: $Id: semantic-grammar.el,v 1.5 2002/10/02 15:03:51 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -116,7 +116,7 @@ It ignores whitespaces, newlines and comments."
   semantic-lex-ignore-comments
   ;; Must detect punctuations after comments because the semicolon can
   ;; be a punctuation or a comment start!
-  wisent-lex-punctuation
+  semantic-lex-punctuation-type
   semantic-grammar-lex-blocks
   semantic-grammar-lex-sexp)
 
@@ -140,7 +140,7 @@ It ignores whitespaces, newlines and comments."
 ;;;;
 
 (defconst semantic-grammar-automaton
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-12 11:25+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-10-02 15:40+0200
   (eval-when-compile
     (wisent-compile-grammar
      '((LEFT NONASSOC PREC PUT RIGHT START SCOPESTART QUOTEMODE TOKEN LANGUAGEMODE OUTPUTFILE SETUPFUNCTION KEYWORDTABLE PARSETABLE TOKENTABLE STRING SYMBOL CHARACTER SEXP PAREN_BLOCK BRACE_BLOCK LBRACE RBRACE COLON SEMI OR LT GT PERCENT)
@@ -432,7 +432,7 @@ It ignores whitespaces, newlines and comments."
   "Parser automaton.")
 
 (defconst semantic-grammar-keywords
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-12 11:25+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-10-02 15:40+0200
   (semantic-lex-make-keyword-table
    '(("left" . LEFT)
      ("nonassoc" . NONASSOC)
@@ -453,7 +453,7 @@ It ignores whitespaces, newlines and comments."
   "Keywords.")
 
 (defconst semantic-grammar-tokens
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-12 11:25+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-10-02 15:40+0200
   (wisent-lex-make-token-table
    '(("punctuation"
       (PERCENT . "%")
@@ -482,14 +482,14 @@ It ignores whitespaces, newlines and comments."
 
 (defun semantic-grammar-setup-semantic ()
   "Setup buffer for parse."
-  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-09-12 11:25+0200
+  ;;DO NOT EDIT! Generated from semantic-grammar.wy - 2002-10-02 15:40+0200
   (progn
     (semantic-install-function-overrides
      '((parse-stream . wisent-parse-stream)))
     (setq semantic-parser-name "LALR"
           semantic-toplevel-bovine-table semantic-grammar-automaton
           semantic-flex-keywords-obarray semantic-grammar-keywords
-          semantic-lex-tokens-obarray semantic-grammar-tokens)
+          semantic-lex-types-obarray semantic-grammar-tokens)
     ;; Collect unmatched syntax lexical tokens
     (semantic-make-local-hook 'wisent-discarding-token-functions)
     (add-hook 'wisent-discarding-token-functions
@@ -941,7 +941,7 @@ of the first line of comment."
 (defun semantic-grammar-tokentable-builder-default ()
   "Return the default value of the token table."
   (let ((tokens (semantic-grammar-tokens)))
-    `(semantic-lex-make-token-table
+    `(semantic-lex-make-type-table
       ',tokens
       ',(semantic-grammar-token-properties tokens))))
 
@@ -1072,7 +1072,6 @@ If NOERROR is non-nil then does nothing if there is no %DEF."
     (modify-syntax-entry ?\- "_"     table) ;; Symbol
     (modify-syntax-entry ?\. "_"     table) ;; Symbol
     (modify-syntax-entry ?\\ "\\"    table) ;; Quote
-    (modify-syntax-entry ?\? "\\"    table) ;; Quote
     (modify-syntax-entry ?\` "'"     table) ;; Prefix ` (backquote)
     (modify-syntax-entry ?\' "'"     table) ;; Prefix ' (quote)
     (modify-syntax-entry ?\, "'"     table) ;; Prefix , (comma)
