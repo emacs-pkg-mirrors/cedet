@@ -1,7 +1,7 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.1 2001/05/23 18:45:54 zappo Exp $
+ * $Id: test.c,v 1.2 2001/08/08 01:01:39 zappo Exp $
  *
  */
 
@@ -33,6 +33,8 @@ struct {
 typedef struct mystruct1 typedef_of_mystruct1;
 typedef struct mystruct1 *typedef_of_pointer_mystruct1;
 typedef struct { int slot_a; } typedef_of_anonymous_struct;
+typedef struct A {
+} B;
 
 union myunion1 {
   int slot41;
