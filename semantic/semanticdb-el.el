@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: tags
-;; X-RCS: $Id: semanticdb-el.el,v 1.3 2003/02/13 07:13:43 ponced Exp $
+;; X-RCS: $Id: semanticdb-el.el,v 1.4 2003/02/25 15:03:52 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -265,6 +265,36 @@ Return a list ((DB-TABLE . TOKEN-LIST) ...)."
   nil
   )
 
+;;; Advanced Searches
+;;
+(defmethod semanticdb-find-nonterminal-external-children-of-type-method
+  ((database semanticdb-project-database) type search-parts search-includes diff-mode find-file-match)
+  "Find all nonterminals which are child elements of TYPE
+See `semanticdb-find-nonterminal-by-function' for details on DATABASES,
+SEARCH-PARTS, SEARCH-INCLUDES DIFF-MODE, FIND-FILE-MATCH and IGNORE-SYSTEM.
+Return a list ((DB-TABLE . TOKEN-LIST) ...)."
+  ;; EIEIO is the only time this matters
+  (when (featurep 'eieio)
+    (let* ((class (intern-soft type))
+	   (toklst (when class
+		     (delq nil
+			   (mapcar 'semanticdb-elisp-sym->nonterm
+				   ;; Fancy eieio function that knows all about
+				   ;; built in methods belonging to CLASS.
+				   (eieio-all-generic-functions class)))))
+	   )
+      (when toklst
+	;; Set up the table.
+	(let ((newtable (semanticdb-table-emacs-lisp "external children search")))
+	  (oset newtable parent-db database)
+	  (oset newtable tokens toklst)
+	  ;; Return the new table.
+	  (list (cons newtable toklst)))	
+	)
+      )))
+
+;;; Genric searches
+;;
 (defmethod semanticdb-find-symbol-by-function-method
   ((database semanticdb-project-database-emacs-lisp)
    predicate &optional search-parts search-includes diff-mode find-file-match)
