@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.81 2001/02/09 11:43:35 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.82 2001/02/09 19:50:24 zappo Exp $
 
 (defvar semantic-version "1.4.alpha2"
   "Current version of Semantic.")
@@ -930,7 +930,11 @@ so far, to be used in the error recovery stack."
 		      (setq tev (car lte)
 			    lte (cdr lte))
 		      (if (string-match tev val)
-			  (setq cvl (cons val cvl)) ;append this value
+			  (setq cvl (cons
+				     (if (member (car lse)
+						 '(comment semantic-list))
+					 valdot val)
+				     cvl)) ;append this value
 			(semantic-overlay-stack-clear)
 			(setq lte nil cvl nil))) ;clear the entry (exit)
 		  (setq cvl (cons
