@@ -1,11 +1,11 @@
-;;; semantic-ex.el --- Semantic details for some languages
+;;; semantic-bnf.el --- Semantic details for some languages
 
 ;;; Copyright (C) 1999, 2000 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: parse
-;; X-RCS: $Id: semantic-bnf.el,v 1.9 2000/04/25 14:47:41 zappo Exp $
+;; X-RCS: $Id: semantic-bnf.el,v 1.10 2000/04/25 17:42:17 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
