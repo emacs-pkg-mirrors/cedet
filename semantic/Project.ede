@@ -8,7 +8,7 @@
    (ede-proj-target-makefile-miscelaneous "example"
     :name "example"
     :path ""
-    :source '("semantic-skel.el" "skeleton.bnf")
+    :source '("semantic-skel.el" "skeleton.bnf" "semantic-example.el")
     )
    (ede-proj-target-elisp "nil"
     :name "init"
