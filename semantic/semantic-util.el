@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-util.el,v 1.101 2002/11/15 19:22:15 ponced Exp $
+;; X-RCS: $Id: semantic-util.el,v 1.102 2002/12/29 18:03:48 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -41,7 +41,7 @@
 ;;; Code:
 
 (defvar semantic-type-relation-separator-character '(".")
-  "Character strings used to separation a parent/child relationship.
+  "Character strings used to separate a parent/child relationship.
 This list of strings are used for displaying or finding separators
 in variable field dereferencing.  The first character will be used for
 display.  In C, a type field is separated like this: \"type.field\"
@@ -1201,7 +1201,7 @@ Optional argument COLOR means highlight the prototype with font-lock colors."
 
 (define-overload semantic-abbreviate-nonterminal (token &optional parent color)
   "Return an abbreviated string describing TOKEN.
-The abbrevIation is to be short, with possible symbols indicating
+The abbreviation is to be short, with possible symbols indicating
 the type of token, or other information.
 Optional argument PARENT is the parent type if TOKEN is a detail.
 Optional argument COLOR means highlight the prototype with font-lock colors.")
