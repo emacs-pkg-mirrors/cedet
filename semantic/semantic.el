@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 1.3
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.55 2000/10/04 12:27:00 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.56 2000/10/10 00:48:04 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -401,11 +401,13 @@ string can be replaced with `Imports'.")
 (defvar semantic-flex-depth 0
   "Default flexing depth.
 This specifies how many lists to create tokens in.")
+(make-variable-buffer-local 'semantic-flex-depth)
 
 (defvar semantic-ignore-comments t
   "Default comment handling.
 t means to strip comments when flexing.  Nil means to keep comments
 as part of the token stream.")
+(make-variable-buffer-local 'semantic-ignore-comments)
 
 (defvar semantic-expand-nonterminal nil
   "Function to call for each returned Non-terminal.
