@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2001 Eric M. Ludlam
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
-;; X-RCS: $Id: semantic-scm.el,v 1.6 2001/10/03 00:30:42 zappo Exp $
+;; X-RCS: $Id: semantic-scm.el,v 1.7 2001/11/17 15:42:02 zappo Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -140,6 +140,7 @@ Attempts a simple prototype for calling or using TOKEN."
 	(t
 	 (insert (semantic-token-name token)))))
 
+;;;###autoload
 (defun semantic-default-scheme-setup ()
   "Setup hook function for Emacs Lisp files and Semantic."
  ;; Code generated from scheme.bnf
