@@ -4,7 +4,7 @@
 ;;;
 ;;; Author: <zappo@gnu.ai.mit.edu>
 ;;; Version: 0.4
-;;; RCS: $Id: widget-i.el,v 1.4 1996/08/19 00:52:21 zappo Exp $
+;;; RCS: $Id: widget-i.el,v 1.5 1996/09/21 15:54:42 zappo Exp $
 ;;; Keywords: OO widget
 ;;;                                                        
 ;;; This program is free software; you can redistribute it and/or modify     
@@ -271,6 +271,9 @@ based on the number of children we have."
   ;; field.  *THIS IS A CHEAT - Should implement Friends!*
   (let ((me this) (scoped-class (object-class child)) (this child))
     (oset child parent me))
+  ;; We must make sure the toplevel shell can correctly maintain it's
+  ;; navigation list
+  (clear-navigation-list widget-toplevel-shell)
   )
 
 (defmethod get-children ((this widget-group))
@@ -280,51 +283,23 @@ based on the number of children we have."
 (defmethod input ((this widget-group) char-or-event)
   "Handles the input event char-or-event by passing it to it's
 children.  If it is passed to a child, return t, else return nil"
+  (input (selected-widget this) char-or-event))
+
+(defmethod selected-widget ((this widget-group))
+  "Return the widget who is currently selected within myself, as well
+as the next logical widget after myself"
   (let ((x (current-column))
 	(y (count-lines (point-min) (point)))
 	(lop (oref this child-list))
-	after
 	(found nil)
-	(op 'input-needed))
+	)
     ;; find the child who has been clicked
     (while (and lop (not found))
       (if (not (picked (car lop) x y))
 	  nil
 	(setq found (car lop)))
       (setq lop (cdr lop)))
-    (while (and (car lop) (not (oref (car lop) handle-io)))
-      (setq lop (cdr lop)))
-    (setq after (car lop))
-    (if (and (not after) (or (not found) (eq (oref this parent) t)))
-	(progn
-	  (setq lop (oref this child-list))
-	  (while (and (car lop) (not (oref (car lop) handle-io)))
-	    (setq lop (cdr lop)))
-	  (setq after (car lop))))
-    ;; do something with that widget
-    (cond ((and (numberp char-or-event) (= char-or-event ?\C-i))
-	   ;; In this case, move forward one widget
-	   (if (and found (obj-of-class-p found widget-group))
-	       (progn
-		 (setq op (input found char-or-event))
-		 (if (eq op nil)
-		     (if after
-			 (progn
-			   (move-cursor-to after)
-			   (setq op after)))))
-	     (if after
-		 (if (obj-of-class-p after widget-group)
-		     (setq op (input after char-or-event))
-		   (move-cursor-to after)
-		   (setq op after))
-	       (setq op nil)))
-	   )
-	  ((and (numberp char-or-event) (= char-or-event ?\M-i))
-	   ;; In this case, move backward one widget
-	   )
-	  (t
-	   (setq op (input found char-or-event))))
-    op))
+    found))
 
 (defmethod draw ((this widget-group))
   "Draw the basic group widget.  Basically all our children, with
@@ -337,15 +312,97 @@ their X,Y offset by our X,Y"
   (let ((kids (oref this child-list)))
     (while kids
       (if (obj-of-class-p (car kids) widget-visual)
-	  (progn
-	    ;(message "Refreshing object %s" (object-name (car kids)))
-	    ;(sit-for 1)
-	    (draw (car kids))))
+	  (draw (car kids)))
       (sit-for 0)
       (setq kids (cdr kids))
       ))
   ;; (message "Done...")
   )
+
+(defmethod first-io-widget ((this widget-group))
+  "Return the first widget which can handle IO in THIS"
+  (let ((kids (oref this child-list)))
+    (while (and kids (not (oref (car kids) handle-io)))
+      (setq kids (cdr kids)))
+    (car kids)))
+ 
+
+(defmethod build-navigation-list ((this widget-group))
+  "Called by the toplevel shell to create a navigation list.  It's
+recursive so all group members need it.  Returns a logical list of
+widgets in the order they should be navigated by.  A navigation list
+is always in reverse order for speed."
+  (let ((newlist nil)
+	(kids (oref this child-list)))
+    (while kids
+      (if (oref (car kids) handle-io)
+	  (if (obj-of-class-p (car kids) widget-group)
+	      (setq newlist (append 
+			     (build-navigation-list (car kids))
+			     newlist))
+	    (setq newlist (cons (car kids) newlist))))
+      (setq kids (cdr kids)))
+    newlist))
+
+;;
+;; top level shells
+;;
+(defmethod clear-navigation-list ((this widget-toplevel))
+  "Clear the current navigation list so it will be re-built later."
+  (oset this logical-child-list nil)
+  )
+
+(defmethod get-navigation-list ((this widget-toplevel))
+  "For this object, return the navigation list, or build the
+navigation list, and store it in ourselves for future reference as a
+vector for fast access if it doesn't exist"
+  ;; short curcuit or returns first non-nil member
+  (or (oref this logical-child-list)
+      (oset this logical-child-list 
+	    (let* ((ml (build-navigation-list this))
+		   (nl nil)
+		   (c (1- (length ml))))
+	      ;; this process reverses the navigation list, and
+	      ;; associates each object with it's index
+	      (while ml
+		(setq nl (cons (list (car ml) c) nl)
+		      ml (cdr ml)
+		      c (1- c)))
+	      nl))
+      ))
+
+(defmethod choose-next-widget ((this widget-toplevel) &optional arg)
+  "There will be a currently selected widget.  This command will cycle
+to the ARGth widget in some direction."
+  ;; first, find our widget association
+  (let ((cw (selected-widget this))
+	(navlist (get-navigation-list this)))
+    (if (not cw) (setq arg 0
+		       cw (car (car navlist))))
+    ;; loop down over all groups
+    (while (obj-of-class-p cw widget-group)
+      (let ((tcw (selected-widget cw)))
+	(if tcw 
+	    (setq cw tcw)
+	  ;; if we get no hits, choose the first in the
+	  ;; currently selected group
+	  (setq arg 0
+		cw (first-io-widget cw)))))
+    ;; We have now definitly selected a widget of some sort, so move
+    ;; there by overscanning our navigation list.
+    (move-cursor-to
+     (let* ((al (assoc cw navlist))
+	    (len (length navlist))
+	    (nai (+ (nth 1 al) arg)))
+       (if (not al)
+	   (error "Oops!")
+	 (if (> 0 nai)
+	     (setq nai (+ nai len))
+	   (if (<= len nai)
+	       (setq nai (- nai len)))))
+       (car (nth nai navlist)))))
+  )
+
 
 ;;
 ;; frame
@@ -431,52 +488,82 @@ their X,Y offset by our X,Y"
     (if lv
 	(oset this label-value lv)
       (error "Label value for %s is not a data-object!" (object-name this))))
+  ;; Convert our label string into substrings
+  (label-break-into-substrings this)
   ;; If no width/height, try to set them
   (if (not (oref this width))
       (if fix
-	  (let ((lv (oref this label-value)))
-	    (oset this width (+ (length (format "%s" (render lv)))
-				(oref this leftmargin) (oref this rightmargin))))
+	  (let ((lv (oref this label-list))
+		(long 0))
+	    (while lv
+	      (if (> (length (car lv)) long)
+		  (setq long (length (car lv))))
+	      (setq lv (cdr lv)))
+	    (oset this width (+ long
+				(oref this leftmargin)
+				(oref this rightmargin))))
 	(error "Label %s width is invalid" (object-name this))))
   (if (not (oref this height))
       (if fix
-	  (oset this height (+ 1 (oref this topmargin) 
+	  (oset this height (+ (length (oref this label-list)) 
+			       (oref this topmargin) 
 			       (oref this bottommargin)))
 	(error "Label %s height is invalid" (object-name this))))
   ;; Now verify the rest
   (call-next-method))
 
+(defmethod label-break-into-substrings ((this widget-label))
+  "Takes the label-value from the dataobject, and transforms it into a list
+of substrings which was separated by carriage returns."
+  (let ((txt (render (oref this label-value)))
+	(newlst nil))
+    (if (not (stringp txt)) (error "label-widget must have string label"))
+    (while txt
+      (if (string-match "\n" txt)
+	  (setq newlst (cons (substring txt 0 (match-beginning 0))
+			     newlst)
+		txt (substring txt (match-end 0)))
+	(setq newlst (cons txt newlst)
+	      txt nil)))
+    (oset this label-list (reverse newlst))
+    ))
+
 (defmethod draw ((this widget-label))
   "Refresh a label widget.  Calculate centering style, then display the
 String to optimally fill that area."
   (let* ((x (+ (oref this rx) (oref this leftmargin)))
+	 (tx x)
 	 (y (+ (oref this ry) (oref this topmargin)))
 	 (w (- (oref this width) (oref this leftmargin) (oref this rightmargin)))
 	 (h (- (oref this height) (oref this topmargin) (oref this bottommargin)))
-	 (ds (render (oref this label-value)))
-	 (s (length ds))
+	 (ll (oref this label-list))
+	 (ns (length ll))
+	 ;; (ds (render (oref this label-value)))
+	 (s 0)
 	 (j (oref this justification)))
-    (setq y (+ y (/ h 2)))
-    (if (> s w)
-	(progn
-	  (setq ds (substring ds 0 w))
-	  (setq s (length ds))))
-    ;; First, clear anything that might be in the way
-    (goto-xy x y)
-    (insert-overwrite-face (make-string w ? ) nil nil)
-    ;; Now find the centering mechanism, and draw the string
-    (cond ((string-match "\n" ds)
-	   (error "Multiline strings not supported in labels yet")
-	   )
-	  ((eq j 'center)
-	   (setq x (+ x (/ (- w s) 2))))
-	  ((eq j 'right)
-	   (setq x (+ x (- w s))))
-	  ((eq j 'left)
-	   )
-	  (t (error "Internal label error")))
-    (goto-xy x y)
-    (insert-overwrite-face ds (oref this face) (oref this focus-face)))
+    (setq y (+ y (/ (- h ns) 2)))
+;    (if (> s w)
+;	(progn
+;	  (setq ds (substring ds 0 w))
+;	  (setq s (length ds))))
+    (while ll
+      (setq s (length (car ll)))
+      ;; First, clear anything that might be in the way
+      (goto-xy x y)
+      (insert-overwrite-face (make-string w ? ) nil nil)
+      ;; Now find the centering mechanism, and draw the string
+      (cond ((eq j 'center)
+	     (setq tx (+ x (/ (- w s) 2))))
+	    ((eq j 'right)
+	     (setq tx (+ x (- w s))))
+	    ((eq j 'left)
+	     )
+	    (t (error "Internal label error")))
+      (goto-xy tx y)
+      (insert-overwrite-face (car ll) (oref this face) (oref this focus-face))
+      (setq ll (cdr ll)
+	    y (1+ y))
+      ))
   (call-next-method))
 
 (defmethod input ((this widget-label) coe)
@@ -528,10 +615,7 @@ String to optimally fill that area."
 	      (oset this focus-face omf)
 	      (if (equal (current-buffer) cb)
 		  (draw this)))))
-    (if (or (eq coe 'return)
-	    (= coe ? )
-	    (= coe ?\n)
-	    (= coe ?\f))
+    (if (member coe '(return ?  ?\n ?\f))
 	(progn
 	  (show-arm this t)
 	  (active-actions this coe)
@@ -608,27 +692,41 @@ help about this widget."
 (defmethod input ((this widget-option-button) coe)
   "What to do if clicked upon by the mouse"
   (if (and (listp coe) (eventp coe))
-      (let ((rv (dialog-list-2-menu coe "Options" (oref this option-list))))
-	(if rv (set-value (oref this state) rv this))
-	(reset-option-label this)
-	(show-arm this nil))
-    (if (or (eq coe 'return)
-	    (= coe ? )
-	    (= coe ?\n)
-	    (= coe ?\f))
-	(progn
-	  (show-arm this t)
-	  (let* ((nv (completing-read "Select Value: " 
-				      (oref this option-obarray) nil t 
-				      (nth (get-value (oref this state))
-					   (oref this option-list)))))
-	    (set-value (oref this state) 
-		       (- (length (oref this option-list))
-			  (length (member nv (oref this option-list))))
-		       this)
-	    (reset-option-label this))
-	  (show-arm this nil))
-      (message "RET or SPC to activate button!"))))
+      (if (or (member 'down-mouse-3 coe)
+	      (member 'mouse-3 coe))
+	  (help-actions this 'click)
+	(let ((rv (dialog-list-2-menu coe "Options" (oref this option-list))))
+	  (if rv (set-value (oref this state) rv this))
+	  (reset-option-label this)
+	  (show-arm this nil)))
+    (cond ((member coe '(return ?  ?\n ?\f))
+	   (show-arm this t)
+	   (let* ((nv (completing-read "Select Value: " 
+				       (oref this option-obarray) nil t 
+				       (nth (get-value (oref this state))
+					    (oref this option-list)))))
+	     (set-value (oref this state) 
+			(- (length (oref this option-list))
+			   (length (member nv (oref this option-list))))
+			this)
+	     (reset-option-label this))
+	   (show-arm this nil))
+	  ((member coe '(up down ?\C-n ?\C-p))
+	   (let ((len (length (oref this option-list)))
+		 (nv (get-value (oref this state))))
+	     (cond ((member coe '(up ?\C-p))
+		    (setq nv (1- nv)))
+		   ((member coe '(down ?\C-n))
+		    (setq nv (1+ nv))))
+	     (cond ((< nv 0)
+		    (setq nv (1- len)))
+		   ((>= nv len)
+		    (setq nv 0)))
+	     (set-value (oref this state) nv)
+	     (reset-option-label this))
+	   (show-arm this nil))
+	  (t
+	   (message "RET or SPC to activate button, UP or DOWN to cycle options")))))
 
 (defmethod reset-option-label ((this widget-option-button))
   "Reset the label on THIS widget."
@@ -887,11 +985,14 @@ help about this widget."
   ;; first find out if we will be doing any edits at all
   (if (and (listp coe) (eventp coe))
       ()				;ignore it for now
-    (let ((cc (if (numberp coe)
-		  (char-to-string coe)
-		(lookup-key function-key-map (make-vector 1 coe))
-		)))
-      (if (fboundp (global-key-binding cc))
+    (let ((cc (cond ((numberp coe)
+		     (char-to-string coe))
+		    ((stringp coe)
+		     coe)
+		    (t
+		     (lookup-key function-key-map (make-vector 1 coe))))
+	      ))
+      (if (and cc (fboundp (global-key-binding cc)))
 	  ;; In this case, we have a one-keystroke edit
 	  (let ((cp (- (current-column) (oref this rx)))
 		(mo (oref this value))
