@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 25 Feb 2002
 ;; Keywords: syntax
-;; X-RCS: $Id: wisent-java-tags.wy,v 1.11 2003/12/05 09:18:58 ponced Exp $
+;; X-RCS: $Id: wisent-java-tags.wy,v 1.12 2004/01/16 08:57:53 ponced Exp $
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -46,260 +46,270 @@
 %start interface_member_declaration
 %start formal_parameters
 
-;; ---------------------
-;; Parenthesis terminals
-;; ---------------------
-%token <open-paren>   LPAREN           "("
-%token <close-paren>  RPAREN           ")"
-%token <open-paren>   LBRACE           "{"
-%token <close-paren>  RBRACE           "}"
-%token <open-paren>   LBRACK           "["
-%token <close-paren>  RBRACK           "]"
+;; -----------------------------
+;; Block & Parenthesis terminals
+;; -----------------------------
+%type  <block>       syntax "\\s(\\|\\s)" matchdatatype block
 
-;; ---------------
-;; Block terminals
-;; ---------------
-%token <block>        PAREN_BLOCK      "(LPAREN RPAREN)"
-%token <block>        BRACE_BLOCK      "(LBRACE RBRACE)"
-%token <block>        BRACK_BLOCK      "(LBRACK RBRACK)"
+%token <block>       PAREN_BLOCK "(LPAREN RPAREN)"
+%token <block>       BRACE_BLOCK "(LBRACE RBRACE)"
+%token <block>       BRACK_BLOCK "(LBRACK RBRACK)"
+
+%token <open-paren>  LPAREN      "("
+%token <close-paren> RPAREN      ")"
+%token <open-paren>  LBRACE      "{"
+%token <close-paren> RBRACE      "}"
+%token <open-paren>  LBRACK      "["
+%token <close-paren> RBRACK      "]"
 
 ;; ------------------
 ;; Operator terminals
 ;; ------------------
-%token <punctuation>   NOT             "!"
-%token <punctuation>   NOTEQ           "!="
-%token <punctuation>   MOD             "%"
-%token <punctuation>   MODEQ           "%="
-%token <punctuation>   AND             "&"
-%token <punctuation>   ANDAND          "&&"
-%token <punctuation>   ANDEQ           "&="
-%token <punctuation>   MULT            "*"
-%token <punctuation>   MULTEQ          "*="
-%token <punctuation>   PLUS            "+"
-%token <punctuation>   PLUSPLUS        "++"
-%token <punctuation>   PLUSEQ          "+="
-%token <punctuation>   COMMA           ","
-%token <punctuation>   MINUS           "-"
-%token <punctuation>   MINUSMINUS      "--"
-%token <punctuation>   MINUSEQ         "-="
-%token <punctuation>   DOT             "."
-%token <punctuation>   DIV             "/"
-%token <punctuation>   DIVEQ           "/="
-%token <punctuation>   COLON           ":"
-%token <punctuation>   SEMICOLON       ";"
-%token <punctuation>   LT              "<"
-%token <punctuation>   LSHIFT          "<<"
-%token <punctuation>   LSHIFTEQ        "<<="
-%token <punctuation>   LTEQ            "<="
-%token <punctuation>   EQ              "="
-%token <punctuation>   EQEQ            "=="
-%token <punctuation>   GT              ">"
-%token <punctuation>   GTEQ            ">="
-%token <punctuation>   RSHIFT          ">>"
-%token <punctuation>   RSHIFTEQ        ">>="
-%token <punctuation>   URSHIFT         ">>>"
-%token <punctuation>   URSHIFTEQ       ">>>="
-%token <punctuation>   QUESTION        "?"
-%token <punctuation>   XOR             "^"
-%token <punctuation>   XOREQ           "^="
-%token <punctuation>   OR              "|"
-%token <punctuation>   OREQ            "|="
-%token <punctuation>   OROR            "||"
-%token <punctuation>   COMP            "~"
+%type  <punctuation> syntax "\\(\\s.\\|\\s$\\|\\s'\\)+" matchdatatype string
+
+%token <punctuation> NOT         "!"
+%token <punctuation> NOTEQ       "!="
+%token <punctuation> MOD         "%"
+%token <punctuation> MODEQ       "%="
+%token <punctuation> AND         "&"
+%token <punctuation> ANDAND      "&&"
+%token <punctuation> ANDEQ       "&="
+%token <punctuation> MULT        "*"
+%token <punctuation> MULTEQ      "*="
+%token <punctuation> PLUS        "+"
+%token <punctuation> PLUSPLUS    "++"
+%token <punctuation> PLUSEQ      "+="
+%token <punctuation> COMMA       ","
+%token <punctuation> MINUS       "-"
+%token <punctuation> MINUSMINUS  "--"
+%token <punctuation> MINUSEQ     "-="
+%token <punctuation> DOT         "."
+%token <punctuation> DIV         "/"
+%token <punctuation> DIVEQ       "/="
+%token <punctuation> COLON       ":"
+%token <punctuation> SEMICOLON   ";"
+%token <punctuation> LT          "<"
+%token <punctuation> LSHIFT      "<<"
+%token <punctuation> LSHIFTEQ    "<<="
+%token <punctuation> LTEQ        "<="
+%token <punctuation> EQ          "="
+%token <punctuation> EQEQ        "=="
+%token <punctuation> GT          ">"
+%token <punctuation> GTEQ        ">="
+%token <punctuation> RSHIFT      ">>"
+%token <punctuation> RSHIFTEQ    ">>="
+%token <punctuation> URSHIFT     ">>>"
+%token <punctuation> URSHIFTEQ   ">>>="
+%token <punctuation> QUESTION    "?"
+%token <punctuation> XOR         "^"
+%token <punctuation> XOREQ       "^="
+%token <punctuation> OR          "|"
+%token <punctuation> OREQ        "|="
+%token <punctuation> OROR        "||"
+%token <punctuation> COMP        "~"
 
 ;; -----------------
 ;; Literal terminals
 ;; -----------------
+%type  <symbol>      syntax "\\(\\sw\\|\\s_\\)+"
 %token <symbol>      IDENTIFIER
+
+%type  <string>      syntax "\\s\"" matchdatatype sexp
 %token <string>      STRING_LITERAL
+
+%type  <number>      syntax semantic-lex-number-expression
 %token <number>      NUMBER_LITERAL
 
 ;; -----------------
 ;; Keyword terminals
 ;; -----------------
-%token ABSTRACT     "abstract"
-%put ABSTRACT summary
+
+;; Generate a keyword analyzer
+%type  <keyword> syntax "\\(\\sw\\|\\s_\\)+" matchdatatype keyword
+
+%keyword ABSTRACT     "abstract"
+%put     ABSTRACT summary
 "Class|Method declaration modifier: abstract {class|<type>} <name> ..."
 
-%token BOOLEAN      "boolean"
-%put BOOLEAN summary
+%keyword BOOLEAN      "boolean"
+%put     BOOLEAN summary
 "Primitive logical quantity type (true or false)"
 
-%token BREAK        "break"
-%put BREAK summary
+%keyword BREAK        "break"
+%put     BREAK summary
 "break [<label>] ;"
 
-%token BYTE         "byte"
-%put BYTE summary
+%keyword BYTE         "byte"
+%put     BYTE summary
 "Integral primitive type (-128 to 127)"
 
-%token CASE         "case"
-%put CASE summary
+%keyword CASE         "case"
+%put     CASE summary
 "switch(<expr>) {case <const-expr>: <stmts> ... }"
 
-%token CATCH        "catch"
-%put CATCH summary
+%keyword CATCH        "catch"
+%put     CATCH summary
 "try {<stmts>} catch(<parm>) {<stmts>} ... "
 
-%token CHAR         "char"
-%put CHAR summary
+%keyword CHAR         "char"
+%put     CHAR summary
 "Integral primitive type ('\u0000' to '\uffff') (0 to 65535)"
 
-%token CLASS        "class"
-%put CLASS summary
+%keyword CLASS        "class"
+%put     CLASS summary
 "Class declaration: class <name>"
 
-%token CONST        "const"
-%put CONST summary
+%keyword CONST        "const"
+%put     CONST summary
 "Unused reserved word"
 
-%token CONTINUE     "continue"
-%put CONTINUE summary
+%keyword CONTINUE     "continue"
+%put     CONTINUE summary
 "continue [<label>] ;"
 
-%token DEFAULT      "default"
-%put DEFAULT summary
+%keyword DEFAULT      "default"
+%put     DEFAULT summary
 "switch(<expr>) { ... default: <stmts>}"
 
-%token DO           "do"
-%put DO summary
+%keyword DO           "do"
+%put     DO summary
 "do <stmt> while (<expr>);"
 
-%token DOUBLE       "double"
-%put DOUBLE summary
+%keyword DOUBLE       "double"
+%put     DOUBLE summary
 "Primitive floating-point type (double-precision 64-bit IEEE 754)"
 
-%token ELSE         "else"
-%put ELSE summary
+%keyword ELSE         "else"
+%put     ELSE summary
 "if (<expr>) <stmt> else <stmt>"
 
-%token EXTENDS      "extends"
-%put EXTENDS summary
+%keyword EXTENDS      "extends"
+%put     EXTENDS summary
 "SuperClass|SuperInterfaces declaration: extends <name> [, ...]"
 
-%token FINAL        "final"
-%put FINAL summary
+%keyword FINAL        "final"
+%put     FINAL summary
 "Class|Member declaration modifier: final {class|<type>} <name> ..."
 
-%token FINALLY      "finally"
-%put FINALLY summary
+%keyword FINALLY      "finally"
+%put     FINALLY summary
 "try {<stmts>} ... finally {<stmts>}"
 
-%token FLOAT        "float"
-%put FLOAT summary
+%keyword FLOAT        "float"
+%put     FLOAT summary
 "Primitive floating-point type (single-precision 32-bit IEEE 754)"
 
-%token FOR          "for"
-%put FOR summary
+%keyword FOR          "for"
+%put     FOR summary
 "for ([<init-expr>]; [<expr>]; [<update-expr>]) <stmt>"
 
-%token GOTO         "goto"
-%put GOTO summary
+%keyword GOTO         "goto"
+%put     GOTO summary
 "Unused reserved word"
 
-%token IF           "if"
-%put IF summary
+%keyword IF           "if"
+%put     IF summary
 "if (<expr>) <stmt> [else <stmt>]"
 
-%token IMPLEMENTS   "implements"
-%put IMPLEMENTS summary
+%keyword IMPLEMENTS   "implements"
+%put     IMPLEMENTS summary
 "Class SuperInterfaces declaration: implements <name> [, ...]"
 
-%token IMPORT       "import"
-%put IMPORT summary
+%keyword IMPORT       "import"
+%put     IMPORT summary
 "Import package declarations: import <package>"
 
-%token INSTANCEOF   "instanceof"
+%keyword INSTANCEOF   "instanceof"
 
-%token INT          "int"
-%put INT summary
+%keyword INT          "int"
+%put     INT summary
 "Integral primitive type (-2147483648 to 2147483647)"
 
-%token INTERFACE    "interface"
-%put INTERFACE summary
+%keyword INTERFACE    "interface"
+%put     INTERFACE summary
 "Interface declaration: interface <name>"
 
-%token LONG         "long"
-%put LONG summary
+%keyword LONG         "long"
+%put     LONG summary
 "Integral primitive type (-9223372036854775808 to 9223372036854775807)"
 
-%token NATIVE       "native"
-%put NATIVE summary
+%keyword NATIVE       "native"
+%put     NATIVE summary
 "Method declaration modifier: native <type> <name> ..."
 
-%token NEW          "new"
+%keyword NEW          "new"
 
-%token PACKAGE      "package"
-%put PACKAGE summary
+%keyword PACKAGE      "package"
+%put     PACKAGE summary
 "Package declaration: package <name>"
 
-%token PRIVATE      "private"
-%put PRIVATE summary
+%keyword PRIVATE      "private"
+%put     PRIVATE summary
 "Access level modifier: private {class|interface|<type>} <name> ..."
 
-%token PROTECTED    "protected"
-%put PROTECTED summary
+%keyword PROTECTED    "protected"
+%put     PROTECTED summary
 "Access level modifier: protected {class|interface|<type>} <name> ..."
 
-%token PUBLIC       "public"
-%put PUBLIC summary
+%keyword PUBLIC       "public"
+%put     PUBLIC summary
 "Access level modifier: public {class|interface|<type>} <name> ..."
 
-%token RETURN       "return"
-%put RETURN summary
+%keyword RETURN       "return"
+%put     RETURN summary
 "return [<expr>] ;"
 
-%token SHORT        "short"
-%put SHORT summary
+%keyword SHORT        "short"
+%put     SHORT summary
 "Integral primitive type (-32768 to 32767)"
 
-%token STATIC       "static"
-%put STATIC summary
+%keyword STATIC       "static"
+%put     STATIC summary
 "Declaration modifier: static {class|interface|<type>} <name> ..."
 
-%token STRICTFP     "strictfp"
-%put STRICTFP summary
+%keyword STRICTFP     "strictfp"
+%put     STRICTFP summary
 "Declaration modifier: strictfp {class|interface|<type>} <name> ..."
 
-%token SUPER        "super"
+%keyword SUPER        "super"
 
-%token SWITCH       "switch"
-%put SWITCH summary
+%keyword SWITCH       "switch"
+%put     SWITCH summary
 "switch(<expr>) {[case <const-expr>: <stmts> ...] [default: <stmts>]}"
 
 
-%token SYNCHRONIZED "synchronized"
-%put SYNCHRONIZED summary
+%keyword SYNCHRONIZED "synchronized"
+%put     SYNCHRONIZED summary
 "synchronized (<expr>) ... | Method decl. modifier: synchronized <type> <name> ..."
 
-%token THIS         "this"
+%keyword THIS         "this"
 
-%token THROW        "throw"
-%put THROW summary
+%keyword THROW        "throw"
+%put     THROW summary
 "throw <expr> ;"
 
-%token THROWS       "throws"
-%put THROWS summary
+%keyword THROWS       "throws"
+%put     THROWS summary
 "Method|Constructor declaration: throws <classType>, ..."
 
-%token TRANSIENT    "transient"
-%put TRANSIENT summary
+%keyword TRANSIENT    "transient"
+%put     TRANSIENT summary
 "Field declaration modifier: transient <type> <name> ..."
 
-%token TRY          "try"
-%put TRY summary
+%keyword TRY          "try"
+%put     TRY summary
 "try {<stmts>} [catch(<parm>) {<stmts>} ...] [finally {<stmts>}]"
 
-%token VOID         "void"
-%put VOID summary
+%keyword VOID         "void"
+%put     VOID summary
 "Method return type: void <name> ..."
 
-%token VOLATILE     "volatile"
-%put VOLATILE summary
+%keyword VOLATILE     "volatile"
+%put     VOLATILE summary
 "Field declaration modifier: volatile <type> <name> ..."
 
-%token WHILE        "while"
-%put WHILE summary
+%keyword WHILE        "while"
+%put     WHILE summary
 "while (<expr>) <stmt> | do <stmt> while (<expr>);"
   
 ;; --------------------------
@@ -326,30 +336,30 @@
 ;; - `with-ref' (optional) if non-nil indicates that the tag is
 ;;   followed by a reference like in "@see <reference>".
 
-%token _AUTHOR      "@author"
-%put   _AUTHOR      javadoc (seq 1 usage (type))
-%token _VERSION     "@version"
-%put   _VERSION     javadoc (seq 2 usage (type)) 
-%token _PARAM       "@param"
-%put   _PARAM       javadoc (seq 3 usage (function) with-name t) 
-%token _RETURN      "@return"
-%put   _RETURN      javadoc (seq 4 usage (function)) 
-%token _EXCEPTION   "@exception"
-%put   _EXCEPTION   javadoc (seq 5 usage (function) with-name t) 
-%token _THROWS      "@throws"
-%put   _THROWS      javadoc (seq 6 usage (function) with-name t) 
-%token _SEE         "@see"
-%put   _SEE         javadoc (seq 7 usage (type function variable) opt t with-ref t) 
-%token _SINCE       "@since"
-%put   _SINCE       javadoc (seq 8 usage (type function variable) opt t) 
-%token _SERIAL      "@serial"
-%put   _SERIAL      javadoc (seq 9 usage (variable) opt t) 
-%token _SERIALDATA  "@serialData"
-%put   _SERIALDATA  javadoc (seq 10 usage (function) opt t) 
-%token _SERIALFIELD "@serialField"
-%put   _SERIALFIELD javadoc (seq 11 usage (variable) opt t) 
-%token _DEPRECATED  "@deprecated"
-%put   _DEPRECATED  javadoc (seq 12 usage (type function variable) opt t) 
+%keyword _AUTHOR      "@author"
+%put     _AUTHOR      javadoc (seq 1 usage (type))
+%keyword _VERSION     "@version"
+%put     _VERSION     javadoc (seq 2 usage (type)) 
+%keyword _PARAM       "@param"
+%put     _PARAM       javadoc (seq 3 usage (function) with-name t) 
+%keyword _RETURN      "@return"
+%put     _RETURN      javadoc (seq 4 usage (function)) 
+%keyword _EXCEPTION   "@exception"
+%put     _EXCEPTION   javadoc (seq 5 usage (function) with-name t) 
+%keyword _THROWS      "@throws"
+%put     _THROWS      javadoc (seq 6 usage (function) with-name t) 
+%keyword _SEE         "@see"
+%put     _SEE         javadoc (seq 7 usage (type function variable) opt t with-ref t) 
+%keyword _SINCE       "@since"
+%put     _SINCE       javadoc (seq 8 usage (type function variable) opt t) 
+%keyword _SERIAL      "@serial"
+%put     _SERIAL      javadoc (seq 9 usage (variable) opt t) 
+%keyword _SERIALDATA  "@serialData"
+%put     _SERIALDATA  javadoc (seq 10 usage (function) opt t) 
+%keyword _SERIALFIELD "@serialField"
+%put     _SERIALFIELD javadoc (seq 11 usage (variable) opt t) 
+%keyword _DEPRECATED  "@deprecated"
+%put     _DEPRECATED  javadoc (seq 12 usage (type function variable) opt t) 
 
 %%
 
@@ -706,5 +716,25 @@ dims
   | BRACK_BLOCK
     (identity "[]")
   ;
+
+%%
+
+;; Define the lexer for this grammar
+(define-lex wisent-java-tags-lexer
+  "Lexical analyzer that handles Java buffers.
+It ignores whitespaces, newlines and comments."
+  semantic-lex-ignore-whitespace
+  semantic-lex-ignore-newline
+  semantic-lex-ignore-comments
+  ;;;; Auto-generated analyzers.
+  wisent-java-tags-wy--<number>-regexp-analyzer
+  wisent-java-tags-wy--<string>-sexp-analyzer
+  ;; Must detect keywords before other symbols
+  wisent-java-tags-wy--<keyword>-keyword-analyzer
+  wisent-java-tags-wy--<symbol>-regexp-analyzer
+  wisent-java-tags-wy--<punctuation>-string-analyzer
+  wisent-java-tags-wy--<block>-block-analyzer
+  ;;;;
+  semantic-lex-default-action)
 
 ;;; wisent-java-tags.wy ends here
