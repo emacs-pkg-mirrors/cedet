@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic.el,v 1.109 2001/07/20 21:31:19 zappo Exp $
+;; X-RCS: $Id: semantic.el,v 1.110 2001/07/20 22:05:39 ponced Exp $
 
 (defvar semantic-version "1.4beta9"
   "Current version of Semantic.")
@@ -1583,11 +1583,10 @@ apply those properties"
 	(setq propertyalist (cdr propertyalist))))
     obarray))
 
-(defun semantic-flex-keyword-p (text)
+(defsubst semantic-flex-keyword-p (text)
   "Return a symbol if TEXT is a keyword in the keyword table.
 Return nil if TEXT is not in the symbol table."
-  (let ((sym (intern-soft text semantic-flex-keywords-obarray)))
-    (if sym (symbol-value sym))))
+  (symbol-value (intern-soft text semantic-flex-keywords-obarray)))
 
 (defun semantic-flex-keyword-put (text property value)
   "For keyword TEXT, set PROPERTY to have VALUE."
@@ -1656,11 +1655,6 @@ what class of syntax CHAR is.")
 Useful for languages where the newline is a special case terminator.
 Only set this on a per mode basis, not globally.")
 (make-variable-buffer-local 'semantic-flex-enable-newlines)
-
-(defun semantic-flex-buffer (&optional depth)
-  "Sematically flex the current buffer.
-Optional argument DEPTH is the depth to scan into lists."
-  (semantic-flex (point-min) (point-max) depth))
 
 (defun semantic-flex (start end &optional depth length)
   "Using the syntax table, do something roughly equivalent to flex.
@@ -1806,21 +1800,29 @@ LENGTH tokens."
     ;(message "Flexing muscles...done")
     (nreverse ts)))
 
-(defun semantic-flex-text (semobj)
-  "Fetch the text associated with the semantic object SEMOBJ."
-  (buffer-substring-no-properties (car (cdr semobj)) (cdr (cdr semobj))))
+(defsubst semantic-flex-buffer (&optional depth)
+  "Sematically flex the current buffer.
+Optional argument DEPTH is the depth to scan into lists."
+  (semantic-flex (point-min) (point-max) depth))
 
-(defun semantic-flex-list (semlist depth)
-  "Flex the body of SEMLIST to DEPTH."
-  (semantic-flex (car (cdr semlist)) (cdr (cdr semlist)) depth))
-
-(defun semantic-flex-start (semobj)
+(defsubst semantic-flex-start (semobj)
   "Fetch the start position of the semantic object SEMOBJ."
   (nth 1 semobj))
 
-(defun semantic-flex-end (semobj)
+(defsubst semantic-flex-end (semobj)
   "Fetch the end position of the semantic object SEMOBJ."
   (cdr (cdr semobj)))
+
+(defsubst semantic-flex-text (semobj)
+  "Fetch the text associated with the semantic object SEMOBJ."
+  (buffer-substring-no-properties (semantic-flex-start semobj)
+                                  (semantic-flex-end   semobj)))
+
+(defsubst semantic-flex-list (semlist depth)
+  "Flex the body of SEMLIST to DEPTH."
+  (semantic-flex (semantic-flex-start semlist)
+                 (semantic-flex-end   semlist)
+                 depth))
 
 ;;; Settings and autoloads
 ;;
