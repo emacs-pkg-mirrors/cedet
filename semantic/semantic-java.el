@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1999, 2000, 2001 David Ponce
 
 ;; Author: David Ponce <david@dponce.com>
-;; X-RCS: $Id: semantic-java.el,v 1.15 2001/05/07 08:13:02 ponced Exp $
+;; X-RCS: $Id: semantic-java.el,v 1.16 2001/05/07 14:56:18 ponced Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -572,17 +572,14 @@ See also `semantic-java-prototype-nonterminal'."
       (if (semantic-token-p arg)
           (setq argt (if color
                          (semantic-colorize-text
-                          (semantic-token-type arg)
-                          'font-lock-type-face)
+                          (semantic-token-type arg) 'type)
                        (semantic-token-type arg))
                 argp (concat argp argt (if args "," "")))))
     (if color
         (progn
           (if type
-              (setq type (semantic-colorize-text
-                          type 'font-lock-type-face)))
-          (setq name (semantic-colorize-text
-                      name 'font-lock-function-name-face))))
+              (setq type (semantic-colorize-text type 'type)))
+          (setq name (semantic-colorize-text name 'function))))
     (concat (or type "") (if type " " "") name "(" argp ")")))
 
 (defun semantic-java-prototype-variable (token &optional parent color)
@@ -591,13 +588,13 @@ Optional argument PARENT is a parent (containing) item.
 Optional argument COLOR indicates that color should be mixed in.
 See also `semantic-java-prototype-nonterminal'."
   (concat (if color
-              (semantic-colorize-text (semantic-token-type token)
-                                      'font-lock-type-face)
+              (semantic-colorize-text
+               (semantic-token-type token) 'type)
             (semantic-token-type token))
           " "
           (if color
-              (semantic-colorize-text (semantic-token-name token)
-                                      'font-lock-variable-name-face)
+              (semantic-colorize-text
+               (semantic-token-name token) 'variable)
             (semantic-token-name token))))
 
 (defun semantic-java-prototype-type (token &optional parent color)
@@ -608,23 +605,9 @@ See also `semantic-java-prototype-nonterminal'."
   (concat (semantic-token-type token)
           " "
           (if color
-              (semantic-colorize-text (semantic-token-name token)
-                                      'font-lock-type-face)
+              (semantic-colorize-text
+               (semantic-token-name token) 'type)
             (semantic-token-name token))))
-
-(defun semantic-java-prototype-include (token &optional parent color)
-  "Return an include (import) prototype for TOKEN.
-Optional argument PARENT is a parent (containing) item.
-Optional argument COLOR indicates that color should be mixed in.
-See also `semantic-java-prototype-nonterminal'."
-  (semantic-token-name token))
-
-(defun semantic-java-prototype-package (token &optional parent color)
-  "Return a package prototype for TOKEN.
-Optional argument PARENT is a parent (containing) item.
-Optional argument COLOR indicates that color should be mixed in.
-See also `semantic-java-prototype-nonterminal'."
-  (semantic-token-name token))
 
 (defun semantic-java-prototype-nonterminal (token &optional parent color)
   "Return a prototype for TOKEN.
