@@ -308,6 +308,19 @@ automatically.
 A file FOO.wy will create the file FOO-wy.el, and FOO-wy.elc
 automatically.
 
+* Decorations.
+
+** secondary overlays
+An API for adding secondary overlays onto a tag has been added.
+This allows you to add/remove arbitrary visual effects onto a tag.
+Uses tag link hooks to make sure the overlays are added/removed
+safely.
+
+** folded tags
+New functions `semantic-set-tag-folded' and `semantic-tag-folded-p'
+allow you to put a tag into a 'folded' state where only the 1st line
+is showing. 
+
 * Database.
 
 ** semanticdb.el
@@ -415,8 +428,8 @@ Routines for building semantic.cache files from a command line script.
 
 * Utilities.
 
-** `semantic-find-nonterminal-parent-by-overlay'
-Find the parent of a nonterminal token by overlays.
+** `semantic-find-tag-parent-by-overlay'
+Find the parent of a tag by overlays.
     
 * Minor modes.
 
@@ -498,6 +511,10 @@ The Emacs Lisp parser is now more flexible.  Using the new macros
 `semantic-elisp-setup-form-parser' and
 `semantic-elisp-reuse-form-parser', it is easy to parse all kind of
 Lisp forms to produce semantic tags.
+
+** Texinfo parser improved
+The texinfo parser was updated, and supports the new
+analysis engine.
 
 
 Local variables:
