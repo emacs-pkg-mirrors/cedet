@@ -4,8 +4,8 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: project, make
-;; RCS: $Id: ede.el,v 1.54 2001/09/12 04:41:02 zappo Exp $
-(defconst ede-version "1.0.beta2"
+;; RCS: $Id: ede.el,v 1.55 2001/12/05 01:19:31 zappo Exp $
+(defconst ede-version "1.0.beta3"
   "Current version of the Emacs EDE.")
 
 ;; This software is free software; you can redistribute it and/or modify
