@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: file, tags, tools
-;; X-RCS: $Id: ezimage.el,v 1.3 2003/08/06 18:34:41 ponced Exp $
+;; X-RCS: $Id: ezimage.el,v 1.3.2.1 2003/11/09 03:29:39 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -278,12 +278,14 @@ Optional argument STRING is a st ring upon which to add text properties."
 (defun ezimage-image-over-string (string &optional alist)
   "Insert over the text in STRING an image found in ALIST.
 Return STRING with properties applied."
-  (when ezimage-use-images
-    (let ((a (assoc string alist)))
-      (when (and a (symbol-value (cdr a)))
-	(ezimage-insert-over-text (symbol-value (cdr a))
-				  0 (length string)
-				  string)))))
+  (if ezimage-use-images
+      (let ((a (assoc string alist)))
+	(if (and a (symbol-value (cdr a)))
+	    (ezimage-insert-over-text (symbol-value (cdr a))
+				      0 (length string)
+				      string)
+	  string))
+    string))
 
 (defun ezimage-insert-over-text (image start end &optional string)
   "Place IMAGE over the text between START and END.
