@@ -3,7 +3,7 @@
 ;;; Copyright (C) 1996 Eric M. Ludlam
 ;;;
 ;;; Author: Eric M. Ludlam <zappo@gnu.ai.mit.edu>
-;;; RCS: $Id: speedbar.el,v 1.3 1996/10/01 02:52:55 zappo Exp $
+;;; RCS: $Id: speedbar.el,v 1.4 1996/10/01 03:16:46 zappo Exp $
 ;;; Version: 0.2
 ;;; Keywords: file, etags, tools
 ;;;
@@ -97,7 +97,11 @@
 ;;; you're typeing.  It's quite pesky.
 ;;;
 ;;;    To get speedbar-configure-faces to work, you will need to
-;;; download my eieio package from my ftp site:
+;;; download my eieio package from my ftp site.
+;;;
+;;;    EIEIO is NOT required when using speedbar.  Only if you want to use
+;;; a fancy dialog face editor for speedbar.
+;;;
 ;;; ftp://ftp.ultranet.com/pub/zappo/eieio-*.tar.gz
 ;;;
 
@@ -288,7 +292,7 @@ This variable is ignored if `speedbar-use-imenu-package' is `t'")
 	     ;; Now try to make them different colors
 	     (cond ((face-differs-from-default-p 'speedbar-button-face))
 		   ((x-display-color-p) (set-face-foreground 'speedbar-button-face 
-							     "light green"))
+							     "forestgreen"))
 		   (t (copy-face 'bold 'speedbar-button-face)))
 
 	     (cond ((face-differs-from-default-p 'speedbar-file-face))
