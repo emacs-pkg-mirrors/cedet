@@ -5,7 +5,7 @@
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Version: 0.1
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-sb.el,v 1.4 1999/05/18 15:59:40 zappo Exp $
+;; X-RCS: $Id: semantic-sb.el,v 1.5 1999/05/23 13:29:15 zappo Exp $
 
 ;; This file is part of GNU Emacs.
 
@@ -186,18 +186,38 @@ Optional PREFIX is the character to use when marking the line."
 		   )))))
     ))
 
+(defun semantic-sb-detail-parent ()
+  "Return the first parent token of the current like that includes a location."
+  (save-excursion
+    (beginning-of-line)
+    (let ((dep (if (looking-at "[0-9]+:")
+		   (1- (string-to-int (match-string 0)))
+		 0)))
+      (re-search-backward (concat "^"
+				  (int-to-string dep)
+				  ":")
+			  nil t))
+    (beginning-of-line)
+    (if (looking-at "[0-9]+: +[-+][>()@|] \\([^\n]+\\)$")
+	(let ((prop nil))
+	  (goto-char (match-beginning 1))
+	  (setq prop (get-text-property (point) 'speedbar-token))
+	  (if (numberp (semantic-token-start prop))
+	      prop
+	    (semantic-sb-detail-parent)))
+      nil)))
+
 (defun semantic-sb-show-extra (text token indent)
   "Display additional information about the token as an expansion.
 TEXT TOKEN and INDENT are the details."
   (cond ((string-match "+" text)	;we have to expand this file
 	 (speedbar-change-expand-button-char ?-)
 	 (speedbar-with-writable
-	   (save-excursion
-	     (end-of-line) (forward-char 1)
-	     (save-restriction
-	       (narrow-to-region (point) (point))
-	       ;; Add in stuff specific to this type of token.
-	       (semantic-sb-insert-details token (1+ indent))))))
+	   (end-of-line) (forward-char 1)
+	   (save-restriction
+	     (narrow-to-region (point) (point))
+	     ;; Add in stuff specific to this type of token.
+	     (semantic-sb-insert-details token (1+ indent)))))
 	((string-match "-" text)	;we have to contract this node
 	 (speedbar-change-expand-button-char ?+)
 	 (speedbar-delete-subblock indent))
@@ -207,14 +227,26 @@ TEXT TOKEN and INDENT are the details."
 (defun semantic-sb-token-jump (text token indent)
   "Jump to the location specified in token.
 TEXT TOKEN and INDENT are the details."
-  (let ((file (speedbar-line-path indent)))
+  (let ((file (speedbar-line-path indent))
+	(parent (semantic-sb-detail-parent)))
     (speedbar-find-file-in-frame file)
     (save-excursion (speedbar-stealthy-updates))
     ;; Reset the timer with a new timeout when cliking a file
     ;; in case the user was navigating directories, we can cancel
     ;; that other timer.
     (speedbar-set-timer speedbar-update-speed)
-    (goto-char (semantic-token-start token))
+    (let ((start (semantic-token-start token)))
+      (if (numberp start)
+	  ;; If it's a number, go there
+	  (goto-char start)
+	;; Otherwise, it's a trimmed vector, such as a parameter,
+	;; or a structure part.
+	(if (not parent)
+	    nil
+	  (goto-char (semantic-token-start parent))
+	  ;; Here we make an assumtion that the text returned by the bovinator
+	  ;; and concocted by us actually exists in the buffer.
+	  (re-search-forward text nil t))))
     (run-hooks 'speedbar-visiting-tag-hook)
     ;;(recenter)
     (speedbar-maybee-jump-to-attached-frame)
