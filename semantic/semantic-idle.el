@@ -4,7 +4,7 @@
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
-;; X-RCS: $Id: semantic-idle.el,v 1.10 2004/01/13 03:58:33 zappo Exp $
+;; X-RCS: $Id: semantic-idle.el,v 1.11 2004/01/15 01:49:39 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -213,15 +213,15 @@ call additional functions registered with the timer calls."
     ;; Disable the auto parse timer while re-parsing
     (semantic-idle-scheduler-kill-timer)
 
-    (semantic-exit-on-input 'idle-timer
-      (condition-case err
+    (condition-case err
+	(semantic-exit-on-input 'idle-timer
 	  ;; First, reparse the current buffer.
 	  (let ((inhibit-quit nil)
 		(lexok (semantic-idle-scheduler-refresh-tags))
 		(buffers (buffer-list))
 		(queue semantic-idle-scheduler-queue)
 		)
-
+	    
 	    ;; Now loop over other buffers, trying to update them as well.
 	    (save-excursion
 	      (while buffers
@@ -231,15 +231,15 @@ call additional functions registered with the timer calls."
 		  (semantic-idle-scheduler-refresh-tags)
 		  )
 		(setq buffers (cdr buffers))))
-      
+	    
 	    ;; Evaluate all other services.  Stop on keypress.
 	    (save-excursion
 	      (while queue
 		(semantic-throw-on-input 'idle-queue)
 		(funcall (car queue))
 		(setq queue (cdr queue))))
-	    )
-	(error (message "idle error: %S" err))))
+	    ))
+      (error (message "idle error: %S" err)))
     
     ;; Enable again the auto parse timer
     (semantic-idle-scheduler-setup-timer)))
