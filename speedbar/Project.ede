@@ -34,5 +34,9 @@
     :partofall 'nil
     )
    )
+  :web-site-url "http://cedet.sourceforge.net/speedbar.shtml"
+  :web-site-directory "~/cedet/www"
+  :web-site-file "speedbar.shtml"
+  :ftp-upload-site "/ftp@upload.sourceforge.net:/incoming"
   :configuration-variables 'nil
   )
