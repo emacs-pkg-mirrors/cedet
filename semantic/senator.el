@@ -6,7 +6,7 @@
 ;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 10 Nov 2000
 ;; Keywords: syntax
-;; X-RCS: $Id: senator.el,v 1.32 2001/04/11 13:22:19 ponced Exp $
+;; X-RCS: $Id: senator.el,v 1.33 2001/04/12 08:19:38 ponced Exp $
 
 ;; This file is not part of Emacs
 
@@ -103,6 +103,10 @@
 ;;; Code:
 (require 'semantic)
 (require 'semantic-ctxt)
+(eval-when-compile
+  (require 'semanticdb)
+  (require 'semantic-imenu)
+  )
 
 ;;; Customization
 (defgroup senator nil
@@ -1497,6 +1501,26 @@ the value of the variable `senator-minor-mode-name'."
                              senator-minor-mode-name))
   (force-mode-line-update))
 
+(defcustom senator-minor-mode-hook nil
+  "Hook run at the end of function `senator-minor-mode'."
+  :group 'senator
+  :type 'hook)
+
+(defcustom senator-minor-mode-on-hook nil
+  "Hook called when senator minor mode is turned on"
+  :group 'senator
+  :type 'hook)
+  
+(defcustom senator-minor-mode-off-hook nil
+  "Hook called when senator minor mode is turned off"
+  :group 'senator
+  :type 'hook)
+  
+(defvar senator-minor-mode nil
+  "Non-nil if Senator minor mode is enabled.
+Use the command `senator-minor-mode' to change this variable.")
+(make-variable-buffer-local 'senator-minor-mode)
+
 (defun senator-minor-mode-setup ()
   "Actually setup the senator minor mode.
 Turn off the minor mode if semantic feature is not available or
@@ -1534,88 +1558,52 @@ non-nil if the minor mode is enabled."
     (setq senator-isearch-semantic-mode nil))
   senator-minor-mode)
   
-(if (fboundp 'define-minor-mode)
-
-;;; Note that `define-minor-mode' actually calls the mode-function if
-;;; the associated variable is non-nil, which requires that all needed
-;;; functions be already defined.  [This is arguably a bug in d-m-m]
-;;;###autoload
-    (define-minor-mode senator-minor-mode
-      "Toggle senator minor mode.
+(defun senator-minor-mode (&optional arg)
+  "Toggle senator minor mode.
 With prefix argument ARG, turn on if positive, otherwise off.  The
 minor mode is turned on only if semantic feature is available and a
 `semantic-toplevel-bovine-table' is provided for the current buffer.
 Return non-nil if the minor mode is enabled.
 
 \\{senator-mode-map}"
-      nil senator-mode senator-mode-map
-      :global nil
-      :group 'senator
-      (senator-minor-mode-setup))
+  (interactive
+   (list (or current-prefix-arg
+             (if senator-minor-mode 0 1))))
+  (setq senator-minor-mode
+        (if arg
+            (>
+             (prefix-numeric-value arg)
+             0)
+          (not senator-minor-mode)))
+  (senator-minor-mode-setup)
+  (run-hooks 'senator-minor-mode-hook
+             (if senator-minor-mode
+                 'senator-minor-mode-on-hook
+               'senator-minor-mode-off-hook))
+  (if (interactive-p)
+      (message "Senator minor mode %sabled"
+               (if senator-minor-mode "en" "dis")))
+  (force-mode-line-update)
+  senator-minor-mode)
 
-;;; `define-minor-mode' is not defined
-
-  (defvar senator-minor-mode nil
-    "Non-nil if senator minor mode is on.")
-  (make-variable-buffer-local 'senator-minor-mode)
-  
-  (defvar senator-minor-mode-hook  nil
-    "Hook called when senator minor mode is toggled")
-  
-  (defvar senator-minor-mode-on-hook nil
-    "Hook called when senator minor mode is turned on")
-  
-  (defvar senator-minor-mode-off-hook nil
-    "Hook called when senator minor mode is turned off")
-  
-;;;###autoload
-  (defun senator-minor-mode (&optional arg)
-      "Toggle senator minor mode.
-With prefix argument ARG, turn on if positive, otherwise off.  The
-minor mode is turned on only if semantic feature is available and a
-`semantic-toplevel-bovine-table' is provided for the current buffer.
-Return non-nil if the minor mode is enabled.
-
-\\{senator-mode-map}"
-    (interactive "P")
-    (let ((old-mode senator-minor-mode))
-      (setq senator-minor-mode
-            (if arg
-                (or (listp arg) ;; C-u alone
-                    (> (prefix-numeric-value arg) 0))
-              (not senator-minor-mode)))
-      (and senator-minor-mode-hook
-           (not (equal old-mode senator-minor-mode))
-           (run-hooks 'senator-minor-mode-hook))
-      (and senator-minor-mode-on-hook
-           senator-minor-mode
-           (run-hooks 'senator-minor-mode-on-hook))
-      (and senator-minor-mode-off-hook
-           (not senator-minor-mode)
-           (run-hooks 'senator-minor-mode-off-hook)))
-    (senator-minor-mode-setup)
-    (senator-message "Senator minor mode %s"
-                     (if senator-minor-mode
-                         "enabled"
-                       "disabled"))
-    senator-minor-mode)
-
-  (if (fboundp 'add-minor-mode)
+(if (fboundp 'add-minor-mode)
       
-      ;; XEmacs
-      (add-minor-mode 'senator-minor-mode 'senator-mode senator-mode-map)
+    ;; Emacs 21 & XEmacs
+    (add-minor-mode 'senator-minor-mode
+                    'senator-mode senator-mode-map)
 
-    ;; Emacs 20
-    (or (assq 'senator-minor-mode minor-mode-alist)
-        (setq minor-mode-alist
-              (cons (list 'senator-minor-mode 'senator-mode) minor-mode-alist)))
+  ;; Emacs 20
+  (or (assq 'senator-minor-mode minor-mode-alist)
+      (setq minor-mode-alist
+            (cons (list 'senator-minor-mode 'senator-mode)
+                  minor-mode-alist)))
     
-    (or (assq 'senator-minor-mode minor-mode-map-alist)
-        (setq minor-mode-map-alist
-              (cons (cons 'senator-minor-mode senator-mode-map)
-                    minor-mode-map-alist)))
+  (or (assq 'senator-minor-mode minor-mode-map-alist)
+      (setq minor-mode-map-alist
+            (cons (cons 'senator-minor-mode senator-mode-map)
+                  minor-mode-map-alist)))
     
-    ))
+  )
 
 ;;;;
 ;;;; Useful advices
