@@ -8,7 +8,7 @@
     :name "bovinator"
     :path ""
     :source '("semantic-bovine.el" "bovine-grammar.el" "semantic-bnf.el" "bovine-debug.el")
-    :aux-packages '("semantic" "speedbar" "eieio" "wisent")
+    :aux-packages '("semantic" "speedbar" "eieio" "wisent" "inversion")
     )
    (ede-proj-target-makefile-miscelaneous "examples"
     :name "examples"
